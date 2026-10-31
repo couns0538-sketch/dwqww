@@ -1,0 +1,1207 @@
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 776614d..478b5ca 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -134,6 +134,12 @@ public:
+     // Search-level repetition: any earlier occurrence at or after history
+     // index root_index counts, otherwise two earlier occurrences are needed.
+     [[nodiscard]] bool is_repetition(std::size_t root_index) const;
++    // Upcoming repetition (UCI CuckooRep): true when the side to move has a
++    // legal reversible move after which is_repetition(root_index) holds, i.e.
++    // it can reach a search-level repetition draw at once. Answered from the
++    // key history and the cuckoo table of reversible-move keys (namespace
++    // cuckoo below) without generating moves. Cold: used only with CuckooRep.
++    [[nodiscard, gnu::cold]] bool upcoming_repetition(std::size_t root_index) const;
+     [[nodiscard]] bool is_insufficient_material() const;
+     [[nodiscard]] bool has_non_pawn_material(Color color) const;
+ 
+@@ -202,4 +208,32 @@ private:
+     return static_cast<Piece>((color == White ? 0 : 6) + type);
+ }
+ 
++// Cuckoo table behind Board::upcoming_repetition (UCI CuckooRep). It holds one
++// entry per reversible move of a knight, bishop, rook, queen or king of either
++// colour between two squares {a, b} (a < b) that the piece connects on an
++// empty board: 2 x (168 + 280 + 448 + 728 + 210) = 3668 entries. The key of an
++// entry is the Zobrist difference of the two positions the move connects:
++// piece-on-a ^ piece-on-b ^ side-to-move. The table is a constant built at
++// compile time; these accessors exist for tests and diagnostics.
++namespace cuckoo {
++
++inline constexpr std::size_t Slots = 8192;
++
++struct Entry {
++    Piece piece = Empty;
++    int a = 0;  // the lower square
++    int b = 0;  // the higher square
++};
++
++// Number of stored entries (3668).
++[[nodiscard, gnu::cold]] std::size_t entry_count();
++// Zobrist key difference of `piece` moving between squares a and b.
++[[nodiscard, gnu::cold]] std::uint64_t move_key(Piece piece, int a, int b);
++// Exact lookup: the entry whose key is `key`, if any.
++[[nodiscard, gnu::cold]] std::optional<Entry> lookup(std::uint64_t key);
++// Slot contents for table-level tests (key 0 = empty slot).
++[[nodiscard, gnu::cold]] std::uint64_t slot_key(std::size_t slot);
++
++} // namespace cuckoo
++
+ } // namespace forge
+diff --git a/include/forge/correction_plus.hpp b/include/forge/correction_plus.hpp
+new file mode 100644
+index 0000000..870b85b
+--- /dev/null
++++ b/include/forge/correction_plus.hpp
+@@ -0,0 +1,147 @@
++#pragma once
++
++// Extended correction history (UCI option CorrHistPlus, default 0 = off).
++//
++// AL1 s198 corrects the static evaluation with two learned tables, keyed by the
++// pawn structure and by the material signature (src/search/evaluation.inc).
++// CorrHistPlus adds three more keys, one option bit each, so that every key can
++// be gated on its own:
++//   1  Continuation: the previous two moves (our move two plies ago and the
++//      opponent's reply) as (piece type, destination) pairs        -> gate G-B1
++//   2  MinorPiece:   placement of both sides' knights, bishops and kings -> G-B2
++//   4  NonPawn:      placement of one side's non-pawn pieces incl. its king;
++//                    one table per side, both read at every node
++// This header holds everything that does not depend on search state: the keys
++// (hashes of piece bitboards computed on demand, so forge::Board is unchanged),
++// the table layout and the fixed-point update and blend rules. The search glue
++// is src/search/correction_plus.inc. tests/correction_history_tests.cpp checks
++// these functions against independent reference implementations.
++
++#include "forge/board.hpp"
++// R13 lock port: included from forge/search.hpp after CorrectionSize / CorrectionGrain / CorrectionLimit
++// (the R3 stack has them in forge/history.hpp).
++
++#include <algorithm>
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++namespace forge::corrplus {
++
++// Bits of forge::options::corr_hist_plus.
++constexpr int Continuation = 1;
++constexpr int MinorPiece = 2;
++constexpr int NonPawn = 4;
++constexpr int AllKeys = Continuation | MinorPiece | NonPawn;
++
++// ---------------------------------------------------------------- keys
++// One odd multiplier per piece role (own random draw), summed, then avalanched
++// so that the low bits used as the table index depend on every input bit.
++inline constexpr std::array<std::uint64_t, 6> KeyMultipliers{
++    0xccc786391d0cc457ULL, 0xac43abac3a456cc1ULL, 0xd2773bee220bddebULL,
++    0x678b09c87c6dca51ULL, 0x16efdac28abd75dbULL, 0xd508421d0238c1a9ULL,
++};
++
++// xor-shift-multiply finaliser (the output step of the public-domain SplitMix64 generator).
++[[nodiscard]] constexpr std::uint64_t avalanche(std::uint64_t x) {
++    x = (x ^ (x >> 30U)) * 0xbf58476d1ce4e5b9ULL;
++    x = (x ^ (x >> 27U)) * 0x94d049bb133111ebULL;
++    return x ^ (x >> 31U);
++}
++
++// Knights, bishops and kings of both sides.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t minor_piece_key(const Board& board) {
++    return avalanche(board.pieces(WN) * KeyMultipliers[0] + board.pieces(WB) * KeyMultipliers[1] +
++                     board.pieces(BN) * KeyMultipliers[2] + board.pieces(BB) * KeyMultipliers[3] +
++                     board.pieces(WK) * KeyMultipliers[4] + board.pieces(BK) * KeyMultipliers[5]);
++}
++
++// Knights, bishops, rooks, queens and the king of one side.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t non_pawn_key(const Board& board, Color color) {
++    return avalanche(board.pieces(color, Knight) * KeyMultipliers[0] + board.pieces(color, Bishop) * KeyMultipliers[1] +
++                     board.pieces(color, Rook) * KeyMultipliers[2] + board.pieces(color, Queen) * KeyMultipliers[3] +
++                     board.pieces(color, King) * KeyMultipliers[4]);
++}
++
++// Slot of a hashed key in a CorrectionSize table (same rule as the pawn table).
++[[nodiscard]] constexpr std::size_t key_index(std::uint64_t key) {
++    return static_cast<std::size_t>(key & (CorrectionSize - 1U));
++}
++
++// ---------------------------------------------------------------- tables
++// Continuation table, directly indexed:
++// [side to move][type of our move two plies ago][its destination]
++//               [type of the opponent's last move][its destination].
++// The colours of both moved pieces follow from the side to move (a null move
++// in between gives no key), so piece types (1..6) suffice.
++constexpr std::size_t PieceTypes = 6;
++constexpr std::size_t ContinuationSize = 2 * PieceTypes * 64 * PieceTypes * 64;
++
++[[nodiscard]] constexpr std::size_t continuation_index(Color side, int our_type, int our_to, int their_type, int their_to) {
++    std::size_t index = static_cast<std::size_t>(side);
++    index = index * PieceTypes + static_cast<std::size_t>(our_type - 1);
++    index = index * 64 + static_cast<std::size_t>(our_to);
++    index = index * PieceTypes + static_cast<std::size_t>(their_type - 1);
++    return index * 64 + static_cast<std::size_t>(their_to);
++}
++
++// Entries are CorrectionGrain fixed point like the pawn table and never leave
++// +/-CorrectionLimit (8192), so 16 bits suffice: 768 KiB per search thread.
++using Entry = std::int16_t;
++struct Tables {
++    std::array<std::array<Entry, CorrectionSize>, 2> minor;                    // [side to move][key]
++    std::array<std::array<std::array<Entry, CorrectionSize>, 2>, 2> non_pawn;  // [key's colour][side to move][key]
++    std::array<Entry, ContinuationSize> continuation;                          // continuation_index()
++};
++
++// ---------------------------------------------------------------- division
++// The search glue (src/search/correction_plus.inc) is [[gnu::cold]], i.e.
++// optimised for size, and there GCC divides by a constant with idiv, even by a
++// power of two. These helpers give exactly the C++ quotient (rounded toward
++// zero) with the multiply / shift sequences GCC uses in hot code; the tests
++// check them against the / operator over the whole reachable range.
++
++// x / 2^Shift, for |x| < 2^31 - 2^Shift.
++template <int Shift>
++[[nodiscard]] constexpr int div_pow2(int x) {
++    return (x + ((x >> 31) & ((1 << Shift) - 1))) >> Shift;
++}
++
++// x / 100, for every 32-bit x.
++[[nodiscard]] constexpr int div100(int x) {
++    const long long scaled = static_cast<long long>(x) * 1374389535LL;  // ceil(2^37 / 100)
++    return static_cast<int>(scaled >> 37) + (x < 0 ? 1 : 0);
++}
++
++static_assert(CorrectionGrain == 1 << 8 && CorrectionLimit == 1 << 13, "div_pow2 shifts below assume these values");
++
++// ---------------------------------------------------------------- update
++// Step: the residual and depth weight of the pawn/material update
++// (Worker::update_correction): (search score - corrected static eval) in
++// CorrectionGrain units, clipped to +/-CorrectionLimit/4, times min(depth+1,16)/256.
++[[nodiscard]] constexpr int step(int best_score, int static_eval, int depth) {
++    const int residual = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
++    return div_pow2<8>(residual * std::min(depth + 1, 16));
++}
++
++// One entry: add the step and decay the entry toward 0 by entry * |step| /
++// CorrectionLimit (a saturated entry moves less in its own direction and is
++// unlearned faster; at zero residual nothing changes), then clamp. The decay
++// keeps |entry| <= CorrectionLimit for |step| <= CorrectionLimit; the clamp
++// is the guarantee.
++[[nodiscard]] constexpr int apply(int entry, int step) {
++    const int magnitude = step < 0 ? -step : step;
++    return std::clamp(entry + step - div_pow2<13>(entry * magnitude), -CorrectionLimit, CorrectionLimit);
++}
++
++// ---------------------------------------------------------------- blend
++// Contribution of the enabled keys: sum of entry * weight (weights x0.01,
++// tune::Corr*Weight), in CorrectionGrain units, clamped to +/-TotalLimit
++// (64 cp) before it is added to the pawn + material correction.
++constexpr int TotalLimit = 2 * CorrectionLimit;
++
++[[nodiscard]] constexpr int blend(int weighted_sum) {
++    return std::clamp(div100(weighted_sum), -TotalLimit, TotalLimit);
++}
++
++} // namespace forge::corrplus
+diff --git a/include/forge/hist_rework.hpp b/include/forge/hist_rework.hpp
+new file mode 100644
+index 0000000..ffe9cbc
+--- /dev/null
++++ b/include/forge/hist_rework.hpp
+@@ -0,0 +1,109 @@
++#pragma once
++// UCI HistRework (Astra A1), default 0 = the AL1 s198 lock search. Levels 1..3 rework how the quiet history
++// and the static-eval correction learn and blend:
++//   - the butterfly history gets a twin keyed by whether the move's from/to square is attacked by a LESSER
++//     enemy piece; quiet_history reads a blend of the lock table and the threat-keyed twin;
++//   - a correction table keyed by pawn structure x non-pawn material (one joint key) is added to the
++//     pawn + material corrections; it learns with a gravity-style (self-damping) update.
++// The lock's own tables keep their exact update and read rules. Design, overflow proof and tuning ranges:
++// opus_round1/sol_A1/forge_astra_A1_design_20261027.md.
++#include "forge/bitboard.hpp"
++#include "forge/board.hpp"
++
++#include <array>
++#include <cstddef>
++#include <cstdint>
++
++namespace forge {
++
++namespace search_options {
++// 0 = off (the lock). 1..3 = the tune steps below. Set only between searches (UCI setoption stops the search).
++extern int hist_rework;
++} // namespace search_options
++
++namespace hist_rework {
++
++constexpr int MaxLevel = 3;
++constexpr int HistoryLimit = 16384;        // the lock's HistoryMax (search.cpp asserts the equality)
++constexpr int CorrectionEntryLimit = 8192; // the lock's CorrectionLimit (search.cpp asserts the equality)
++
++[[nodiscard]] constexpr int clamp_level(int level) { return level < 1 ? 1 : (level > MaxLevel ? MaxLevel : level); }
++// Quarters of the butterfly term read from the threat-keyed twin: level 1, 2, 3 -> 2, 3, 4 (50 %, 75 %, 100 %).
++[[nodiscard]] constexpr int threat_quarters(int level) { return clamp_level(level) + 1; }
++// Read weight (x0.01) of the pawn x non-pawn-material correction: level 1, 2, 3 -> 50, 75, 100.
++[[nodiscard]] constexpr int joint_weight(int level) { return 25 * clamp_level(level) + 25; }
++
++// Squares attacked by a lesser enemy piece, indexed by the type of the piece that stands (or would stand)
++// there. Pawns, knights, bishops: enemy pawn attacks. Rooks: + enemy knights and bishops. Queens: + enemy
++// rooks. King and NoPieceType: empty (a king never moves onto an attacked square; evasions are their own
++// stage). The side to move is "us"; attacks use the current occupancy (no x-rays, pins ignored).
++struct LesserThreats {
++    std::array<Bitboard, 7> by_type{};
++};
++
++[[nodiscard]] inline LesserThreats lesser_threats(const Board& board) {
++    const Color them = opposite(board.side_to_move());
++    const Bitboard occupancy = board.occupied();
++    const Bitboard by_pawn = pawn_attacks_bb(them, board.pieces(them, Pawn));
++    Bitboard by_minor = by_pawn;
++    for (Bitboard bb = board.pieces(them, Knight); bb != 0;) by_minor |= attacks::knight(pop_lsb(bb));
++    for (Bitboard bb = board.pieces(them, Bishop); bb != 0;) by_minor |= attacks::bishop(pop_lsb(bb), occupancy);
++    Bitboard by_rook = by_minor;
++    for (Bitboard bb = board.pieces(them, Rook); bb != 0;) by_rook |= attacks::rook(pop_lsb(bb), occupancy);
++    LesserThreats threats;
++    threats.by_type[static_cast<std::size_t>(Pawn)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Knight)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Bishop)] = by_pawn;
++    threats.by_type[static_cast<std::size_t>(Rook)] = by_minor;
++    threats.by_type[static_cast<std::size_t>(Queen)] = by_rook;
++    return threats;
++}
++
++// 0 or 1: is `square` (0..63) in `set`.
++[[nodiscard]] constexpr std::size_t square_bit(Bitboard set, int square) {
++    return static_cast<std::size_t>((set >> square) & 1U);
++}
++
++// Butterfly term read by quiet_history: quarters/4 from the threat-keyed twin, the rest from the lock table.
++// |plain|, |threat| <= HistoryLimit and 0 <= quarters <= 4 give |numerator| <= 4 * HistoryLimit = 65536 and
++// |result| <= HistoryLimit (C++ division truncates toward zero).
++[[nodiscard]] constexpr int blend(int plain, int threat, int quarters) {
++    return (plain * (4 - quarters) + threat * quarters) / 4;
++}
++
++// Gravity-style update of a joint-correction entry: entry + step - entry * |step| / limit. For |entry| <= limit
++// and |step| <= limit the result stays within +-limit (design note, section 4); the clamp is a guard that the
++// unit test shows never changes a value on that domain. |entry * step| <= limit^2 = 2^26 fits int32.
++[[nodiscard]] constexpr std::int32_t gravity(std::int32_t entry, std::int32_t step, std::int32_t limit) {
++    const std::int32_t magnitude = step < 0 ? -step : step;
++    const std::int32_t next = entry + step - entry * magnitude / limit;
++    return next < -limit ? -limit : (next > limit ? limit : next);
++}
++
++// Non-pawn material signature: 4 bits per (colour, knight/bishop/rook/queen) count, saturated at 15.
++[[nodiscard]] inline std::uint32_t non_pawn_material(const Board& board) {
++    std::uint32_t signature = 0;
++    for (const Color color : {White, Black}) {
++        for (int type = Knight; type <= Queen; ++type) {
++            const int count = popcount(board.pieces(color, static_cast<PieceType>(type)));
++            signature = (signature << 4U) | static_cast<std::uint32_t>(count < 15 ? count : 15);
++        }
++    }
++    return signature;
++}
++
++// SplitMix64 finaliser (a public-domain mixing function): every signature bit reaches the low index bits.
++[[nodiscard]] constexpr std::uint64_t mix64(std::uint64_t z) {
++    z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
++    z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
++    return z ^ (z >> 31U);
++}
++
++// Key of the pawn-structure x non-pawn-material correction: the Zobrist pawn key (pawn placement of both
++// colours) mixed with the non-pawn material signature. Unsigned arithmetic only (wraps by definition).
++[[nodiscard]] inline std::uint64_t joint_key(const Board& board) {
++    return board.pawn_key() ^ mix64(static_cast<std::uint64_t>(non_pawn_material(board)) + 1U);
++}
++
++} // namespace hist_rework
++} // namespace forge
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..6d15b35 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include "forge/board.hpp"
+ #include "forge/eval.hpp"
++#include "forge/hist_rework.hpp"
+ #include "forge/nnue.hpp"
+ 
+ #include <array>
+@@ -243,6 +244,10 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++// CorrHistPlus (UCI option, default 0 = off): read weights of the extra correction keys (x0.01).
++extern int CorrContWeight;        // bit 1: continuation correction (previous two moves)
++extern int CorrMinorWeight;       // bit 2: minor-piece correction
++extern int CorrNonPawnWeight;     // bit 4: each side's non-pawn correction
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+@@ -258,6 +263,27 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
++} // namespace forge
++
++// CorrHistPlus (R13 B1 port of Opus C2 as in forge-bundle-int b7c17722): forge/correction_plus.hpp uses
++// CorrectionSize / CorrectionGrain / CorrectionLimit above, so it is included here.
++#include "forge/correction_plus.hpp"
++
++namespace forge {
++
++// Runtime search options of the B1 bundle (R13 port of forge-bundle-int b7c17722). All default OFF; with all
++// of them OFF the search is the AL1 s198 search. Written only while no search runs (the UCI loop stops it first).
++namespace options {
++// UCI CorrHistPlus (spin 0-7, default 0): extra correction-history keys, a bitmask of
++// forge::corrplus::{Continuation = 1, MinorPiece = 2, NonPawn = 4} (forge/correction_plus.hpp).
++extern std::uint8_t corr_hist_plus;
++// UCI CuckooRep (check, default false): upcoming-repetition draw bound in search (Board::upcoming_repetition).
++extern bool cuckoo_rep;
++// UCI TtPruneV2 (check, default false): FB2-J3 TT-move pruning rules; each search reads it once (tt_prune_v2_).
++extern bool tt_prune_v2;
++} // namespace options
++// UCI HistRework: [side][from attacked by a lesser enemy piece][to attacked by a lesser enemy piece][from][to].
++using LesserThreatHistory = std::array<std::array<std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>, 2>, 2>;
+ 
+ struct SearchStack {
+     std::array<Move, MaxPly + 1> pv{};
+@@ -344,9 +370,25 @@ private:
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // UCI HistRework (forge/hist_rework.hpp). Last members, so every lock member keeps its offset; read and
++    // written only while the option is on. threat_maps_[ply] holds the lesser-attacker maps of the node at ply.
++    std::unique_ptr<LesserThreatHistory> threat_history_;
++    std::unique_ptr<CorrectionHistory> joint_correction_;
++    std::array<hist_rework::LesserThreats, MaxPly + 8> threat_maps_{};
++    // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker: null until the option is on and the
++    // first update allocates them; freed by Worker::clear(). TtPruneV2: this search's snapshot of the option.
++    std::unique_ptr<corrplus::Tables> correction_plus_;
++    bool tt_prune_v2_ = false;
+ 
+-    int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+-    int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
++    // Two search instances: Cuckoo = false is the lock search; Cuckoo = true is the UCI CuckooRep instance, whose
++    // child calls go through the upcoming-repetition bound (search_cuckoo / qsearch_cuckoo), as the R3 stack's
++    // CuckooRep instances do. search_child / qsearch_child are the child calls of an instance.
++    template <bool Cuckoo> int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    template <bool Cuckoo> int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
++    template <bool Cuckoo> int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    template <bool Cuckoo> int qsearch_child(Board& board, SearchStack* ss, int alpha, int beta);
++    int search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
++    int qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta);
+     [[nodiscard]] bool should_stop();
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+     [[nodiscard]] std::uint64_t total_nodes() const;
+@@ -355,10 +397,20 @@ private:
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
++    void update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
++                               int quiet_count);
++    [[nodiscard]] std::int16_t& threat_history_entry(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
++    // CorrHistPlus (src/search.cpp). corrected_eval and update_correction jump to their cold twins only when
++    // forge::options::corr_hist_plus != 0; the helpers are always inlined so that corrected_eval_plus stays a leaf.
++    [[gnu::cold]] [[nodiscard]] int corrected_eval_plus(const Board& board, int raw_eval) const;
++    [[gnu::cold]] void update_correction_plus(const Board& board, int depth, int best_score, int static_eval);
++    [[gnu::always_inline]] [[nodiscard]] inline int correction_plus(const Board& board) const;
++    [[gnu::always_inline]] [[nodiscard]] inline const SearchStack* correction_frame(const Board& board) const;
++    [[gnu::always_inline]] [[nodiscard]] inline std::size_t continuation_correction_index(const Board& board) const;
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+diff --git a/src/board.cpp b/src/board.cpp
+index 19d4ff2..80fa546 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -5,6 +5,7 @@
+ #include <cctype>
+ #include <cstdlib>
+ #include <sstream>
++#include <utility>
+ 
+ namespace forge {
+ namespace {
+@@ -1055,4 +1056,179 @@ std::uint64_t Board::compute_pawn_key() const {
+     return key;
+ }
+ 
++// ---------------------------------------------------------------------------
++// Upcoming-repetition detection (UCI CuckooRep, default off).
++//
++// Idea (M. van Kervinck, 2013; see opus_round1/C6/IDEA_SOURCE.md): a position
++// P that occurred i plies ago (i odd, inside the reversible window) can be
++// reached again by one move of the side to move exactly when
++//   (1) the opponent's men stand where they stood in P: the XOR of the
++//       opponent's key deltas since P (side key removed) is zero, and
++//   (2) the key difference key ^ key(P) is the key of a single reversible move
++//       of the side to move, which the cuckoo table below recognises in at
++//       most two probes, and the move is possible now (mover on one end, the
++//       other end empty, no man in between).
++// Such a move is legal: it recreates P, in which the side to move was not in
++// check. This file's code is written from that description only.
++// The table and every helper are cold or constant: with CuckooRep off nothing
++// here is executed and the hot code and data layout of the board are unchanged
++// (the table is placed after all other read-only data on Windows).
++namespace {
++
++struct CuckooMove {
++    std::uint8_t piece = 0;  // Piece (never a pawn); 0 = empty slot
++    std::uint8_t a = 0;      // lower square
++    std::uint8_t b = 0;      // higher square
++    std::uint8_t unused = 0;
++};
++
++struct CuckooTable {
++    std::array<std::uint64_t, cuckoo::Slots> keys{};  // 0 = empty slot
++    std::array<CuckooMove, cuckoo::Slots> moves{};
++    std::size_t entries = 0;
++    bool complete = true;  // every insertion found a slot
++};
++
++// Two independent 13-bit slot indices from different halves of the key.
++constexpr std::size_t cuckoo_slot_low(std::uint64_t key) {
++    return static_cast<std::size_t>(key) & (cuckoo::Slots - 1);
++}
++constexpr std::size_t cuckoo_slot_high(std::uint64_t key) {
++    return static_cast<std::size_t>(key >> 32U) & (cuckoo::Slots - 1);
++}
++
++// Whether a piece of this type connects squares a and b on an empty board.
++constexpr bool reversible_step(int type, int a, int b) {
++    const int df = file_of(a) - file_of(b);
++    const int dr = rank_of(a) - rank_of(b);
++    const int files = df < 0 ? -df : df;
++    const int ranks = dr < 0 ? -dr : dr;
++    const bool diagonal = files == ranks && files != 0;
++    const bool straight = (files == 0) != (ranks == 0);
++    switch (type) {
++    case Knight: return (files == 1 && ranks == 2) || (files == 2 && ranks == 1);
++    case Bishop: return diagonal;
++    case Rook: return straight;
++    case Queen: return diagonal || straight;
++    case King: return files <= 1 && ranks <= 1 && (files | ranks) != 0;
++    default: return false;
++    }
++}
++
++constexpr std::uint64_t reversible_move_key(int piece, int a, int b) {
++    return piece_key(a, static_cast<Piece>(piece)) ^ piece_key(b, static_cast<Piece>(piece)) ^ Z.side;
++}
++
++// Cuckoo hashing with two candidate slots per key: an insertion takes its
++// first slot and evicts the occupant, which moves to its other slot, and so on.
++constexpr CuckooTable build_cuckoo_table() {
++    CuckooTable table{};
++    for (int piece = WN; piece <= BK; ++piece) {
++        const int type = piece_type(static_cast<Piece>(piece));
++        if (type == Pawn) continue;
++        for (int a = 0; a < 64; ++a) {
++            for (int b = a + 1; b < 64; ++b) {
++                if (!reversible_step(type, a, b)) continue;
++                std::uint64_t key = reversible_move_key(piece, a, b);
++                CuckooMove move{static_cast<std::uint8_t>(piece), static_cast<std::uint8_t>(a),
++                                static_cast<std::uint8_t>(b), 0};
++                if (key == 0) table.complete = false;
++                std::size_t slot = cuckoo_slot_low(key);
++                for (int evictions = 0; key != 0; ++evictions) {
++                    if (evictions > 4096) {
++                        table.complete = false;
++                        break;
++                    }
++                    std::swap(table.keys[slot], key);
++                    std::swap(table.moves[slot], move);
++                    slot = slot == cuckoo_slot_low(key) ? cuckoo_slot_high(key) : cuckoo_slot_low(key);
++                }
++                ++table.entries;
++            }
++        }
++    }
++    return table;
++}
++
++#if defined(_WIN32) && defined(__GNUC__)
++// Sorted after every other .rdata input section by the PE linker, so adding the
++// table does not move any existing read-only data of the engine.
++#define FORGE_CUCKOO_SECTION [[gnu::section(".rdata$zz_forge_cuckoo")]]
++#else
++#define FORGE_CUCKOO_SECTION
++#endif
++FORGE_CUCKOO_SECTION constexpr CuckooTable CuckooMoves = build_cuckoo_table();
++#undef FORGE_CUCKOO_SECTION
++
++static_assert(CuckooMoves.complete, "cuckoo table insertion failed");
++static_assert(CuckooMoves.entries == 3668, "2 colours x (N 168 + B 280 + R 448 + Q 728 + K 210) moves");
++
++[[gnu::always_inline]] inline const CuckooMove* cuckoo_find(std::uint64_t key) {
++    if (key == 0) return nullptr;
++    std::size_t slot = cuckoo_slot_low(key);
++    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    slot = cuckoo_slot_high(key);
++    if (CuckooMoves.keys[slot] == key) return &CuckooMoves.moves[slot];
++    return nullptr;
++}
++
++} // namespace
++
++namespace cuckoo {
++
++std::size_t entry_count() { return CuckooMoves.entries; }
++
++std::uint64_t move_key(Piece piece, int a, int b) { return reversible_move_key(piece, a, b); }
++
++std::optional<Entry> lookup(std::uint64_t key) {
++    const CuckooMove* const move = cuckoo_find(key);
++    if (move == nullptr) return std::nullopt;
++    return Entry{static_cast<Piece>(move->piece), move->a, move->b};
++}
++
++std::uint64_t slot_key(std::size_t slot) { return slot < Slots ? CuckooMoves.keys[slot] : 0; }
++
++} // namespace cuckoo
++
++bool Board::upcoming_repetition(std::size_t root_index) const {
++    // After one more reversible move, is_repetition() of the new position scans
++    // its earlier positions at even distances 4 .. span, where span is the
++    // smaller of its halfmove clock, its plies since a null move (both one more
++    // than here, with the same saturation as make_move) and its number of
++    // earlier positions. Seen from here those are the odd distances 3 .. span-1.
++    const std::size_t size = key_history_.size();
++    const std::size_t clock = std::min<std::size_t>(static_cast<std::size_t>(halfmove_) + 1, 65535);
++    const std::size_t since_null = std::min<std::size_t>(static_cast<std::size_t>(plies_from_null_) + 1, 1024);
++    const std::size_t span = std::min(std::min(clock, since_null), size);
++    if (span < 4) return false;
++    const std::uint64_t* const keys = key_history_.data();
++    const std::size_t now = size - 1;
++    // Running XOR of the opponent's move deltas (one ply each, side key removed)
++    // between the candidate earlier position and now.
++    std::uint64_t opponent = keys[now] ^ keys[now - 1] ^ Z.side;
++    for (std::size_t distance = 3; distance < span; distance += 2) {
++        opponent ^= keys[now - distance + 1] ^ keys[now - distance] ^ Z.side;
++        if (opponent != 0) continue;
++        const std::uint64_t earlier = keys[now - distance];
++        const CuckooMove* const move = cuckoo_find(key_ ^ earlier);
++        if (move == nullptr) continue;
++        const Piece piece = static_cast<Piece>(move->piece);
++        if (color_of(piece) != side_) continue;
++        int from = move->a;
++        int to = move->b;
++        if (squares_[static_cast<std::size_t>(from)] != piece) std::swap(from, to);
++        if (squares_[static_cast<std::size_t>(from)] != piece || squares_[static_cast<std::size_t>(to)] != Empty ||
++            (attacks::between(from, to) & occupied()) != 0) {
++            continue;
++        }
++        // As in is_repetition(): one occurrence at or after the root is a draw;
++        // before the root a second occurrence inside the window is needed.
++        if (now - distance >= root_index) return true;
++        for (std::size_t further = distance + 2; further < span; further += 2) {
++            if (keys[now - further] == earlier) return true;
++        }
++    }
++    return false;
++}
++
+ } // namespace forge
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..90d02dc 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -6,10 +6,24 @@
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
++#include <new>
+ #include <optional>
+ 
+ namespace forge {
+ 
++// Defined before the tunables: GCC emits a translation unit's globals in reverse order, so the lock's
++// tunables keep their addresses.
++namespace search_options {
++int hist_rework = 0;
++} // namespace search_options
++
++// B1 bundle options (R13 port of forge-bundle-int b7c17722; forge/search.hpp), all OFF.
++namespace options {
++std::uint8_t corr_hist_plus = 0;
++bool cuckoo_rep = false;
++bool tt_prune_v2 = false;
++} // namespace options
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -62,6 +76,9 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int CorrContWeight = 100;
++int CorrMinorWeight = 100;
++int CorrNonPawnWeight = 100;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +114,8 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
++        {"CorrNonPawnWeight", &CorrNonPawnWeight, 0, 300},
+     };
+     return table;
+ }
+@@ -105,6 +124,8 @@ const std::vector<Parameter>& parameters() {
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
++static_assert(hist_rework::HistoryLimit == HistoryMax, "HistRework bounds assume the lock's history limit");
++static_assert(hist_rework::CorrectionEntryLimit == CorrectionLimit, "HistRework bounds assume the lock's correction limit");
+ 
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     if (score >= MateInMaxPly) return score + ply;
+@@ -566,7 +587,9 @@ Worker::Worker(SharedSearchState& shared, int id)
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+-      material_correction_(std::make_unique<CorrectionHistory>()) {
++      material_correction_(std::make_unique<CorrectionHistory>()),
++      threat_history_(std::make_unique<LesserThreatHistory>()),
++      joint_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+ }
+ 
+@@ -580,12 +603,16 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    correction_plus_.reset();  // CorrHistPlus tables, reallocated (zeroed) by the next update
++    *threat_history_ = LesserThreatHistory{};
++    *joint_correction_ = CorrectionHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+ namespace {
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+-[[nodiscard]] std::uint64_t material_key(const Board& board) {
++// Always inlined: it also has a call site in the cold CorrHistPlus path.
++[[gnu::always_inline]] [[nodiscard]] inline std::uint64_t material_key(const Board& board) {
+     std::uint64_t key = 0;
+     for (const Color color : {White, Black}) {
+         for (int type = Pawn; type <= Queen; ++type) {
+@@ -636,15 +663,26 @@ void Worker::record_null_move(SearchStack* ss) {
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
++    // computes this correction plus the extra keys (corrected_eval_plus below).
++    if (options::corr_hist_plus != 0) [[unlikely]] return corrected_eval_plus(board, raw_eval);
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
++        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
++        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
++                      hist_rework::joint_weight(level) / 100;
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+ void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
++    // CorrHistPlus (default 0 = off): one predictable branch; the cold path
++    // performs this update plus the extra keys (update_correction_plus below).
++    if (options::corr_hist_plus != 0) [[unlikely]] return update_correction_plus(board, depth, best_score, static_eval);
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+     const int weight = std::min(depth + 1, 16);
+@@ -653,7 +691,141 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (search_options::hist_rework != 0) [[unlikely]] {
++        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
++        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
++        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
++        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
++}
++
++// ---- CorrHistPlus (R13 B1 port: forge-bundle-int b7c17722 src/search/correction_plus.inc, unchanged) ----
++
++// Frame of the node whose evaluation is being corrected. corrected_eval and
++// update_correction run on the search board of that node, every make_move /
++// make_null_move between the root and the node pushed one key onto the board
++// history, the root frame is stack_[4] and the child of frame ss is ss + 1
++// (iterative.inc, alphabeta.inc, qsearch.inc), so the board history gives the
++// frame without passing it through the hot callers. The ply recorded in the
++// frame confirms it; anything else (e.g. a probe outside a search) gets none.
++inline const SearchStack* Worker::correction_frame(const Board& board) const {
++    const std::size_t history = board.history_size();
++    if (history <= root_history_index_) return nullptr;
++    const std::size_t ply = history - 1 - root_history_index_;
++    if (ply > static_cast<std::size_t>(MaxPly)) return nullptr;
++    const SearchStack* ss = &stack_[4 + ply];
++    return ss->ply == static_cast<int>(ply) ? ss : nullptr;
++}
++
++// Continuation-table slot of the node (forge::corrplus::continuation_index), or
++// ContinuationSize when the previous two moves are not both known: next to the
++// root (the sentinel frames hold no move) or after a null move.
++inline std::size_t Worker::continuation_correction_index(const Board& board) const {
++    const SearchStack* ss = correction_frame(board);
++    if (ss == nullptr) return corrplus::ContinuationSize;
++    const SearchStack* theirs = ss - 1;  // the move that led to this node
++    const SearchStack* ours = ss - 2;    // our move before it
++    const Color side = board.side_to_move();
++    if (theirs->current_move.is_none() || ours->current_move.is_none() ||
++        theirs->moved_piece == Empty || ours->moved_piece == Empty ||
++        color_of(ours->moved_piece) != side || color_of(theirs->moved_piece) == side) {
++        return corrplus::ContinuationSize;
++    }
++    // The colours are fixed by the side to move (checked above): the piece type
++    // is the piece minus its colour offset (no modulo in this size-optimised code).
++    const int ours_offset = side == White ? 0 : 6;
++    return corrplus::continuation_index(side, static_cast<int>(ours->moved_piece) - ours_offset, ours->current_move.to,
++                                        static_cast<int>(theirs->moved_piece) - (6 - ours_offset), theirs->current_move.to);
++}
++
++// Correction of the enabled extra keys in CorrectionGrain units (weighted,
++// clamped by corrplus::blend); added to the pawn + material correction.
++inline int Worker::correction_plus(const Board& board) const {
++    const corrplus::Tables* tables = correction_plus_.get();
++    if (tables == nullptr) return 0;  // nothing learned yet: the first update allocates the tables
++    const int keys = options::corr_hist_plus;
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    int sum = 0;
++    if ((keys & corrplus::Continuation) != 0) {
++        const std::size_t index = continuation_correction_index(board);
++        if (index < corrplus::ContinuationSize) sum += tables->continuation[index] * tune::CorrContWeight;
++    }
++    if ((keys & corrplus::MinorPiece) != 0) {
++        sum += tables->minor[side][corrplus::key_index(corrplus::minor_piece_key(board))] * tune::CorrMinorWeight;
++    }
++    if ((keys & corrplus::NonPawn) != 0) {
++        const int white = tables->non_pawn[White][side][corrplus::key_index(corrplus::non_pawn_key(board, White))];
++        const int black = tables->non_pawn[Black][side][corrplus::key_index(corrplus::non_pawn_key(board, Black))];
++        sum += (white + black) * tune::CorrNonPawnWeight;
++    }
++    return corrplus::blend(sum);
++}
++
++// corrected_eval with CorrHistPlus on: the AL1 s198 statements of
++// corrected_eval (pawn + material correction; the divisions written as
++// corrplus::div100 / div_pow2, the same values) plus the extra keys.
++int Worker::corrected_eval_plus(const Board& board, int raw_eval) const {
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
++    if (tune::MaterialCorrectionWeight > 0) {
++        correction += corrplus::div100((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight);
++    }
++    // R3 stack: HistRework's joint term as in corrected_eval, so HistRework and CorrHistPlus combine.
++    if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
++        // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
++        correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
++                      hist_rework::joint_weight(level) / 100;
++    }
++    correction += correction_plus(board);
++    return std::clamp(raw_eval + corrplus::div_pow2<8>(correction), -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++
++// update_correction with CorrHistPlus on: the AL1 s198 statements of
++// update_correction (pawn + material tables; / 256 written as div_pow2<8>,
++// the same value) plus the extra keys. The search
++// calls update_correction under one rule for all tables: not in check, no
++// excluded move, no mate score, best move quiet (or none), and the bound on the
++// side of the difference (alphabeta.inc). The extra entries take the same
++// residual and depth weight (corrplus::step) with a decay (corrplus::apply).
++void Worker::update_correction_plus(const Board& board, int depth, int best_score, int static_eval) {
++    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
++    const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
++    const int weight = std::min(depth + 1, 16);
++    auto apply = [&](std::int32_t& entry) {
++        entry = std::clamp(entry + corrplus::div_pow2<8>(diff * weight), -CorrectionLimit, CorrectionLimit);
++    };
++    apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
++    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    // R3 stack: HistRework's joint update as in update_correction, so HistRework and CorrHistPlus combine.
++    if (search_options::hist_rework != 0) [[unlikely]] {
++        // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
++        // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
++        std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
++        entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
++    }
++
++    if (!correction_plus_) {
++        // Value-initialised (all entries 0). On allocation failure the extra keys stay unused.
++        correction_plus_.reset(new (std::nothrow) corrplus::Tables());
++        if (!correction_plus_) return;
++    }
++    corrplus::Tables& tables = *correction_plus_;
++    const int keys = options::corr_hist_plus;
++    const int step = corrplus::step(best_score, static_eval, depth);
++    auto learn = [step](corrplus::Entry& entry) { entry = static_cast<corrplus::Entry>(corrplus::apply(entry, step)); };
++    if ((keys & corrplus::Continuation) != 0) {
++        const std::size_t index = continuation_correction_index(board);
++        if (index < corrplus::ContinuationSize) learn(tables.continuation[index]);
++    }
++    if ((keys & corrplus::MinorPiece) != 0) {
++        learn(tables.minor[side][corrplus::key_index(corrplus::minor_piece_key(board))]);
++    }
++    if ((keys & corrplus::NonPawn) != 0) {
++        learn(tables.non_pawn[White][side][corrplus::key_index(corrplus::non_pawn_key(board, White))]);
++        learn(tables.non_pawn[Black][side][corrplus::key_index(corrplus::non_pawn_key(board, Black))]);
++    }
+ }
++// ---- end CorrHistPlus ----
+ 
+ std::int64_t Worker::elapsed_ms() const {
+     auto origin = start_;
+@@ -701,9 +873,30 @@ bool Worker::is_draw(const Board& board, int ply) const {
+            (!board.in_check() && !board.has_legal_move());
+ }
+ 
++// HistRework: the threat-keyed butterfly slot of a quiet move at the node of `ss` (its maps are threat_maps_[ply]).
++std::int16_t& Worker::threat_history_entry(const Board& board, const SearchStack* ss, Move move) const {
++    const hist_rework::LesserThreats& threats = threat_maps_[static_cast<std::size_t>(ss->ply)];
++    const Bitboard set = threats.by_type[static_cast<std::size_t>(piece_type(board.moved_piece(move)))];
++    return (*threat_history_)[static_cast<std::size_t>(board.side_to_move())][hist_rework::square_bit(set, move.from)]
++                             [hist_rework::square_bit(set, move.to)][move.from][move.to];
++}
++
++void Worker::update_threat_history(const Board& board, const SearchStack* ss, Move best, int bonus, const Move* quiets,
++                                   int quiet_count) {
++    apply_history(threat_history_entry(board, ss, best), bonus);
++    for (int i = 0; i < quiet_count; ++i) {
++        if (quiets[i] == best) continue;
++        apply_history(threat_history_entry(board, ss, quiets[i]), -bonus);
++    }
++}
++
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
++    if (const int level = search_options::hist_rework; level != 0 && ss != nullptr) [[unlikely]] {
++        // |score| <= 16384 after the blend, as for the lock table alone (hist_rework::blend).
++        score = hist_rework::blend(score, threat_history_entry(board, ss, move), hist_rework::threat_quarters(level));
++    }
+     if (ss != nullptr) {
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+@@ -747,6 +940,8 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+     }
++    // HistRework: the threat-keyed twin learns the same bonus and maluses (lock gravity, apply_history).
++    if (search_options::hist_rework != 0) [[unlikely]] update_threat_history(board, ss, move, bonus, quiets, quiet_count);
+ }
+ 
+ void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+@@ -768,6 +963,45 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
+ // ---------------------------------------------------------------------------
+ // Quiescence search
+ 
++// CuckooRep (R13 B1 port of Opus C6 as in forge-bundle-int b7c17722 src/search/cuckoo.inc): the child calls of the
++// CuckooRep instance (search<true> / qsearch<true>) go through these upcoming-repetition draw bounds; the lock
++// instance (search<false> / qsearch<false>) calls itself. A repetition needs >= 3 reversible plies (may_repeat).
++namespace {
++[[nodiscard]] inline bool may_repeat(const Board& board) { return board.halfmove_clock() >= 3; }
++} // namespace
++
++template <bool Cuckoo>
++inline int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    if constexpr (Cuckoo) return search_cuckoo(board, ss, depth, alpha, beta, cut_node);
++    else return search<false>(board, ss, depth, alpha, beta, cut_node);
++}
++
++template <bool Cuckoo>
++inline int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
++    if constexpr (Cuckoo) return qsearch_cuckoo(board, ss, alpha, beta);
++    else return qsearch<false>(board, ss, alpha, beta);
++}
++
++int Worker::search_cuckoo(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
++    constexpr int DrawScore = 0;
++    if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() && may_repeat(board) &&
++        board.upcoming_repetition(root_history_index_)) {
++        if (beta <= DrawScore) return DrawScore;
++        return std::max(search<true>(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
++    }
++    return search<true>(board, ss, depth, alpha, beta, cut_node);
++}
++
++int Worker::qsearch_cuckoo(Board& board, SearchStack* ss, int alpha, int beta) {
++    constexpr int DrawScore = 0;
++    if (alpha < DrawScore && may_repeat(board) && board.upcoming_repetition(root_history_index_)) {
++        if (beta <= DrawScore) return DrawScore;
++        return std::max(qsearch<true>(board, ss, DrawScore, beta), DrawScore);
++    }
++    return qsearch<true>(board, ss, alpha, beta);
++}
++
++template <bool Cuckoo>
+ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool pv_node = beta - alpha > 1;
+     const int ply = ss->ply;
+@@ -821,6 +1055,9 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         futility_base = ss->static_eval + tune::QsFutilityMargin;
+     }
+ 
++    // HistRework: check evasions score quiet moves with quiet_history, which reads this node's maps.
++    if (in_check && search_options::hist_rework != 0) [[unlikely]]
++        threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+     Move best_move = Move::none();
+     int move_count = 0;
+@@ -845,7 +1082,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         Undo undo;
+         (void)board.make_move(move, undo);
+         shared_.tt.prefetch(board.key());
+-        const int score = -qsearch(board, ss + 1, -beta, -alpha);
++        const int score = -qsearch_child<Cuckoo>(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+         if (score > best_score) {
+@@ -872,12 +1109,13 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ // ---------------------------------------------------------------------------
+ // Main alpha-beta search
+ 
++template <bool Cuckoo>
+ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+     const bool pv_node = beta - alpha > 1;
+     const bool root_node = ss->ply == 0;
+     const int ply = ss->ply;
+ 
+-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
++    if (depth <= 0) return qsearch_child<Cuckoo>(board, ss, alpha, beta);
+     // The frame is reused across siblings and same-ply verification searches.
+     // Keep this call's inherited path budget independent of those mutations.
+     const int inherited_double_extensions = (ss - 1)->double_extensions;
+@@ -952,12 +1190,18 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+         // Razoring: hopeless positions fall back to quiescence.
+         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+-            const int razor = qsearch(board, ss, alpha - 1, alpha);
++            const int razor = qsearch_child<Cuckoo>(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+         }
+         // Reverse futility pruning.
+-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
++        // FB2 TtPruneV2: the opponent's static eval fell on their move (opponent worsening): a third of a
++        // margin step cheaper fail high. 0 with the option off, so the condition is the AL1 s198 one.
++        const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
++                                          ss->static_eval + (ss - 1)->static_eval > 2
++                                      ? tune::RfpMargin / 3 : 0;
++        if (depth <= tune::RfpDepth &&
++            eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+             eval < MateInMaxPly) {
+             return eval;
+         }
+@@ -976,7 +1220,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
+-            int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
++            int null_score = -search_child<Cuckoo>(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+@@ -987,7 +1231,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 }
+                 // Verification search at high depth guards against zugzwang.
+                 ss->null_move_allowed = false;
+-                const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                const int verification = search_child<Cuckoo>(board, ss, depth - reduction, beta - 1, beta, false);
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+@@ -1013,9 +1257,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
+-                int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
++                int value = -qsearch_child<Cuckoo>(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+-                    value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
++                    value = -search_child<Cuckoo>(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+                 }
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+@@ -1029,7 +1273,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    // FB2 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
++    // (Exclusive with the IIR above: that one needs no TT move, this one a TT move.)
++    else if (tt_prune_v2_ && !in_check && depth >= tune::IirDepth + 2 && cut_node && !tt_move.is_none() &&
++             tt_bound == BoundUpper && !ss->tt_pv) --depth;
+ 
++    // HistRework: lesser-attacker maps of this node, read by quiet_history and the history updates below.
++    if (search_options::hist_rework != 0) [[unlikely]] threat_maps_[static_cast<std::size_t>(ply)] = hist_rework::lesser_threats(board);
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};
+     std::array<Move, 64> captures_tried{};
+@@ -1061,15 +1311,23 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+-            if (quiet && !gives_check) {
++            // FB2 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
++            // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold when
++            // not improving.
++            const bool prunable = !tt_prune_v2_ || move != tt_move;
++            const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
++            const int history_prune_threshold = tt_prune_v2_ && !improving
++                                                    ? -tune::HistoryPruneMultiplier * depth * 3 / 4
++                                                    : -tune::HistoryPruneMultiplier * depth;
++            if (quiet && !gives_check && prunable) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+-                    ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
++                    ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+                     skip_quiets = true;
+                     continue;
+                 }
+-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
++                if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) continue;
+                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+-            } else {
++            } else if (prunable) {
+                 // Futility pruning for captures: even winning the piece cannot
+                 // bring the position back to alpha.
+                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+@@ -1092,7 +1350,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
+-            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++            const int singular_score = search_child<Cuckoo>(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -1145,10 +1403,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+-            score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
++            score = -search_child<Cuckoo>(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+             if (full_depth_needed) {
+-                score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++                score = -search_child<Cuckoo>(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                 full_depth_needed = false;
+             }
+             if (!aborted_ && quiet && score > alpha) {
+@@ -1157,10 +1415,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             }
+         }
+         if (full_depth_needed && !aborted_) {
+-            score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
++            score = -search_child<Cuckoo>(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+         }
+         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+-            score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
++            score = -search_child<Cuckoo>(board, ss + 1, new_depth, -beta, -alpha, false);
+         }
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+@@ -1202,6 +1460,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        if (search_options::hist_rework != 0) [[unlikely]]
++            apply_history(threat_history_entry(board, ss, best_move), history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+@@ -1243,6 +1503,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
++    tt_prune_v2_ = options::tt_prune_v2;  // FB2 TtPruneV2: one snapshot per search (bundle-int fb2_)
+     node_limit_ = limits.nodes;
+     node_limit_specified_ = is_main() && (limits.nodes_specified || limits.nodes != 0);
+ 
+@@ -1388,7 +1649,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         int iteration_score = score;
+         while (true) {
+             ss->ply = 0;
+-            iteration_score = search(board, ss, depth, alpha, beta, false);
++            iteration_score = options::cuckoo_rep ? search_cuckoo(board, ss, depth, alpha, beta, false)
++                                                  : search<false>(board, ss, depth, alpha, beta, false);
+             if (aborted_) break;
+             if (iteration_score <= alpha) {
+                 beta = (alpha + beta) / 2;
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3..d69d610 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -171,6 +171,13 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            // Search option added after AL1 s198 (Astra A1); default 0 = the lock's search (forge/hist_rework.hpp).
++            std::cout << "option name HistRework type spin default 0 min 0 max " << forge::hist_rework::MaxLevel << "\n";
++            // B1 bundle options (R13 port of forge-bundle-int b7c17722); all default OFF.
++            std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n"
++                         "option name CuckooRep type check default false\n"
++                         "option name TtPruneV2 type check default false\n"
++                         "option name BundlePreset type combo default OFF var OFF var B1\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +266,48 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++            } else if (name == "HistRework") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::search_options::hist_rework = std::clamp(value, 0, forge::hist_rework::MaxLevel);
++                }
++            } else if (name == "CorrHistPlus") {
++                int value = 0;
++                const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
++                if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    forge::options::corr_hist_plus = static_cast<std::uint8_t>(std::clamp(value, 0, 7));
++                }
++            } else if (name == "CuckooRep" || name == "TtPruneV2") {
++                if (value_text != "true" && value_text != "false") {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else if (name == "CuckooRep") {
++                    forge::options::cuckoo_rep = value_text == "true";
++                } else {
++                    forge::options::tt_prune_v2 = value_text == "true";
++                }
++            } else if (name == "BundlePreset") {
++                // forge-bundle-int presets; OFF and B1 are ported (B2-B4 need CorrHistV2 / LmrTableV2).
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                if (value_text != "OFF" && value_text != "B1") {
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                } else {
++                    const bool b1 = value_text == "B1";
++                    forge::options::corr_hist_plus = static_cast<std::uint8_t>(b1 ? 1 : 0);
++                    forge::search_options::hist_rework = b1 ? 2 : 0;
++                    forge::options::cuckoo_rep = b1;
++                    forge::options::tt_prune_v2 = b1;
++                    std::cout << "info string BundlePreset " << value_text << ": CorrHistPlus=" << (b1 ? 1 : 0)
++                              << " HistRework=" << (b1 ? 2 : 0) << " CuckooRep=" << (b1 ? "true" : "false")
++                              << " CorrHistV2=false LmrTableV2=false TtPruneV2=" << (b1 ? "true" : "false") << std::endl;
++                }
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;

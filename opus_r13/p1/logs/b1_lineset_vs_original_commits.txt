@@ -1,0 +1,296 @@
+original: 936 +/- lines; port: 873 +/- lines
+only in original: 199; only in port: 136
+--- ONLY IN ORIGINAL
+10x [include/forge/board.hpp,include/forge/correction_plus.hpp,include/forge/hist_rework.hpp,include/forge/search_options.hpp,src/board.cpp,src/search.cpp,src/search/correction_plus.inc,src/search/cuckoo.inc,src/search/options.inc] + 
+1x [src/search.cpp] + #define FORGE_QSEARCH_CALL qsearch
+1x [src/search.cpp] + #define FORGE_QSEARCH_CALL qsearch_cuckoo
+1x [src/search.cpp] + #define FORGE_QSEARCH_FN qsearch
+1x [src/search.cpp] + #define FORGE_QSEARCH_FN qsearch_cuckoo_body
+1x [src/search.cpp] + #define FORGE_SEARCH_CALL search
+1x [src/search.cpp] + #define FORGE_SEARCH_CALL search_cuckoo
+1x [src/search.cpp] + #define FORGE_SEARCH_FN search
+1x [src/search.cpp] + #define FORGE_SEARCH_FN search_cuckoo_body
+2x [src/board.cpp,src/search/alphabeta.inc,src/search/qsearch.inc] + #endif
+1x [src/search/qsearch.inc] + #error "define FORGE_QSEARCH_FN and FORGE_QSEARCH_CALL before including search/qsearch.inc"
+1x [src/search/alphabeta.inc] + #error "define FORGE_SEARCH_FN, FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL before including search/alphabeta.inc"
+1x [src/search/qsearch.inc] + #if !defined(FORGE_QSEARCH_FN) || !defined(FORGE_QSEARCH_CALL)
+1x [src/search/alphabeta.inc] + #if !defined(FORGE_SEARCH_FN) || !defined(FORGE_SEARCH_CALL) || !defined(FORGE_QSEARCH_CALL)
+1x [include/forge/correction_plus.hpp] + #include "forge/history.hpp"
+2x [include/forge/search.hpp] + #include "forge/search_options.hpp"
+1x [src/search.cpp] + #include "search/alphabeta.inc"
+1x [src/search.cpp] + #include "search/alphabeta.inc" // main alpha-beta search (Worker::search)
+1x [src/search.cpp] + #include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
+1x [src/search.cpp] + #include "search/cuckoo.inc" // CuckooRep: upcoming-repetition draw bound
+2x [src/search.cpp] + #include "search/options.inc" // runtime search options (all OFF by default)
+1x [src/search.cpp] + #include "search/qsearch.inc"
+1x [src/search.cpp] + #include "search/qsearch.inc" // quiescence search (Worker::qsearch)
+1x [include/forge/correction_plus.hpp,include/forge/hist_rework.hpp,include/forge/search_options.hpp] + #include <cstdint>
+2x [include/forge/correction_plus.hpp,include/forge/hist_rework.hpp,include/forge/search_options.hpp] + #pragma once
+2x [src/search.cpp] + #undef FORGE_QSEARCH_CALL
+2x [src/search.cpp] + #undef FORGE_QSEARCH_FN
+2x [src/search.cpp] + #undef FORGE_SEARCH_CALL
+2x [src/search.cpp] + #undef FORGE_SEARCH_FN
+2x [include/forge/correction_plus.hpp,src/board.cpp,src/search/correction_plus.inc,src/search/cuckoo.inc] + //
+1x [include/forge/search_options.hpp] + // (forge/correction_plus.hpp). 0 keeps the AL1 s198 pawn + material
+1x [src/search/correction_plus.inc] + // (forge/correction_plus.hpp, UCI option CorrHistPlus, default 0 = off).
+1x [src/search/alphabeta.inc] + // (src/search/cuckoo.inc), which add the upcoming-repetition draw bound.
+1x [include/forge/search.hpp] + // (src/search/cuckoo.inc), wrapping second instances of the two functions
+1x [include/forge/search.hpp] + // (src/search/{alphabeta,qsearch}.inc) whose child calls come back here.
+1x [src/search/alphabeta.inc] + // - as Worker::search / Worker::qsearch, calling themselves: the AL1 s198
+1x [src/search/alphabeta.inc] + // - as Worker::search_cuckoo_body / Worker::qsearch_cuckoo_body, whose child
+1x [src/search/evaluation.inc] + // Always inlined: it also has a call site in the cold CorrHistPlus path, and an
+1x [src/search/cuckoo.inc] + // At a node whose side to move has a legal reversible move into a position the
+1x [src/search/cuckoo.inc] + // Board::upcoming_repetition() is false below a halfmove clock of 3 (no earlier
+1x [src/search/cuckoo.inc] + // Compiled as part of src/search.cpp (included exactly once), after the
+2x [src/search/options.inc] + // Compiled as part of src/search.cpp (included exactly once).
+1x [src/search/correction_plus.inc] + // Compiled as part of src/search.cpp (included exactly once, after
+1x [src/search/alphabeta.inc] + // Compiled as part of src/search.cpp, which includes this file and qsearch.inc
+1x [src/search/qsearch.inc] + // Compiled as part of src/search.cpp, which includes this file twice (see the
+1x [include/forge/search.hpp] + // CorrHistPlus (src/search/correction_plus.inc). corrected_eval and
+1x [include/forge/thread_data.hpp] + // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker.
+1x [src/search/cuckoo.inc] + // CuckooRep instances of the quiescence and main search (qsearch_cuckoo_body,
+1x [src/search/correction_plus.inc] + // How the default build stays the AL1 s198 build: Worker::corrected_eval and
+1x [include/forge/thread_data.hpp] + // Null until the option is on and the first update allocates them; freed
+2x [include/forge/search_options.hpp] + // OFF; with all options OFF the search is the AL1 s198 search. Options are
+1x [include/forge/search.hpp] + // Pinned to a 64-byte boundary (its AL1 s198 placement): the hot search
+2x [include/forge/search_options.hpp] + // Runtime search options set over UCI (src/uci.cpp). Every option defaults to
+1x [src/search/correction_plus.inc] + // Search module: CorrHistPlus, the extra correction-history keys
+2x [src/search/options.inc] + // Search module: runtime search options (forge/search_options.hpp), all OFF.
+1x [src/search/cuckoo.inc] + // Search module: the upcoming-repetition draw bound (UCI CuckooRep, default off).
+2x [src/uci.cpp] + // Search options added after AL1 s198; all default OFF (see forge/search_options.hpp).
+1x [src/search.cpp] + // The quiescence and main search once more, for UCI CuckooRep: their child
+1x [src/search/alphabeta.inc] + // The root (iterative.inc) picks one of the two trees once per iteration, so
+1x [include/forge/search_options.hpp] + // UCI CorrHistPlus (spin 0-7, default 0): extra correction-history keys, a
+1x [include/forge/search_options.hpp] + // UCI CuckooRep (check, default false): upcoming-repetition draw bound. At
+1x [src/search/iterative.inc] + // UCI CuckooRep picks the search instance with the upcoming-repetition bound.
+1x [include/forge/search.hpp] + // UCI CuckooRep: search / qsearch with the upcoming-repetition draw bound
+1x [src/search/qsearch.inc] + // Worker::qsearch_cuckoo_body for UCI CuckooRep. FORGE_QSEARCH_FN names the
+1x [src/search/correction_plus.inc] + // Worker::update_correction (evaluation.inc) only gained one branch at their
+1x [src/search/cuckoo.inc] + // above the draw score (a fail-low there, e.g. because pruning skipped the
+1x [src/search/alphabeta.inc] + // and quiescence calls go through Worker::search_cuckoo / qsearch_cuckoo
+1x [src/search/correction_plus.inc] + // are always_inline): GCC's interprocedural register allocation lets the
+1x [src/search/correction_plus.inc] + // away from the hot .text. corrected_eval_plus is also a leaf (all helpers
+1x [include/forge/search_options.hpp] + // bitmask of forge::corrplus::{Continuation = 1, MinorPiece = 2, NonPawn = 4}
+1x [include/forge/thread_data.hpp] + // by Worker::clear(). Last member, no initialiser: the members above keep
+1x [src/search/cuckoo.inc] + // call at the many nodes just after a capture or pawn move.
+1x [src/search/correction_plus.inc] + // callers of corrected_eval (search, qsearch) keep values in registers that
+1x [src/search.cpp] + // calls go through the upcoming-repetition bound of cuckoo.inc (see the head
+1x [include/forge/search_options.hpp] + // can reach a search-level repetition draw with one reversible move; if so,
+1x [src/search/correction_plus.inc] + // clobber them and change the callers' code.
+1x [src/search/evaluation.inc] + // computes this correction plus the extra keys (correction_plus.inc).
+1x [src/search/correction_plus.inc] + // corrected_eval leaves alone, so a twin that called other functions would
+1x [include/forge/search_options.hpp] + // correction only; each bit is meant to be gated on its own. One byte so that
+1x [src/search/cuckoo.inc] + // drawing move, still proves no less than the draw). Nodes with an excluded
+1x [src/search/correction_plus.inc] + // evaluation.inc).
+1x [include/forge/search_options.hpp] + // every non-root node of the main and quiescence search whose alpha is below
+1x [src/search.cpp] + // exactly once below (except qsearch.inc and alphabeta.inc, included a second
+1x [src/search/cuckoo.inc] + // excluded one. The root never gets the bound. Depth-0 nodes are handed to
+1x [src/search/cuckoo.inc] + // fails high at once when beta is at or below the draw score; otherwise it is
+1x [src/search.cpp] + // forge/search_options.hpp.
+1x [src/search.cpp] + // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp,
+1x [include/forge/search.hpp] + // forge::options::corr_hist_plus != 0; the helpers are always inlined so
+1x [src/search/qsearch.inc] + // function defined here, FORGE_QSEARCH_CALL the function called for children.
+1x [src/search/alphabeta.inc] + // function defined here; FORGE_SEARCH_CALL and FORGE_QSEARCH_CALL name the
+1x [include/forge/search.hpp] + // functions after it then keep their alignment when the cold worker
+1x [src/search/alphabeta.inc] + // functions it calls for child nodes and for quiescence.
+1x [src/search/qsearch.inc] + // head of alphabeta.inc): as Worker::qsearch, the AL1 s198 function, and as
+1x [include/forge/search_options.hpp] + // instances of the search functions; with the option off no node tests it.
+1x [src/search.cpp] + // keep the AL1 s198 code and placement.
+1x [src/search/correction_plus.inc] + // keys. The twins are [[gnu::cold]], so GCC places them in .text.unlikely,
+1x [include/forge/search.hpp] + // lifecycle code before it in .text changes size (CorrHistPlus member).
+1x [include/forge/search_options.hpp] + // memory that needs no register.
+1x [src/search/cuckoo.inc] + // move (singular verification) are left alone: the drawing move could be the
+1x [src/search/cuckoo.inc] + // occurrence inside the rule-50 and null-move window, at or after the root, or
+1x [src/search.cpp] + // of alphabeta.inc). Last in the file, so that the default search functions
+1x [include/forge/search_options.hpp] + // once per iteration at the root, which then searches with the CuckooRep
+1x [src/search/evaluation.inc] + // out-of-line copy would be emitted at the start of the hot .text.
+1x [src/search/evaluation.inc] + // performs this update plus the extra keys (correction_plus.inc).
+1x [src/search/cuckoo.inc] + // position at distance 3 inside the window); testing that inline first skips the
+1x [src/search/cuckoo.inc] + // quiescence unchanged and get the bound there (one detector call per node).
+1x [src/search/correction_plus.inc] + // repeats the AL1 s198 statements of its hot counterpart and adds the extra
+1x [src/search/cuckoo.inc] + // search scores as a repetition draw (Board::upcoming_repetition: an earlier
+1x [src/search/alphabeta.inc] + // search, used when UCI CuckooRep is off;
+1x [src/search/cuckoo.inc] + // search_cuckoo_body), whose quiescence and child calls come here.
+1x [src/search/cuckoo.inc] + // searched with alpha raised to the draw score and its result is kept at or
+1x [include/forge/search.hpp] + // that corrected_eval_plus stays a leaf (see correction_plus.inc).
+1x [include/forge/search_options.hpp] + // the default-path test in the hot corrected_eval is a single compare with
+1x [include/forge/search_options.hpp] + // the draw score is a lower bound for the node (src/search/cuckoo.inc). Read
+1x [include/forge/search_options.hpp] + // the draw score, Board::upcoming_repetition() asks whether the side to move
+1x [include/forge/thread_data.hpp] + // their AL1 s198 offsets.
+1x [src/search.cpp] + // time at the end for UCI CuckooRep, see the head of alphabeta.inc), so that
+1x [src/search/correction_plus.inc] + // top, `if (options::corr_hist_plus != 0) [[unlikely]] return <twin>(...)`,
+1x [src/search/alphabeta.inc] + // twice each:
+1x [src/search/cuckoo.inc] + // two before it), the draw score is a lower bound. With alpha below it the node
+1x [include/forge/search.hpp] + // update_correction jump to their cold twins only when
+1x [src/search/correction_plus.inc] + // which jumps with the arguments untouched to the cold twins below. Each twin
+1x [src/search/alphabeta.inc] + // with CuckooRep off no node tests the option. FORGE_SEARCH_FN names the
+2x [include/forge/search_options.hpp] + // written only while no search runs (the UCI loop stops the search first).
+1x [src/search/iterative.inc] + : search(board, ss, depth, alpha, beta, false);
+1x [include/forge/search.hpp] + [[nodiscard, gnu::aligned(64)]] int static_evaluate(const Board& board, SearchStack* ss);
+1x [src/search/alphabeta.inc] + const int razor = FORGE_QSEARCH_CALL(board, ss, alpha - 1, alpha);
+1x [src/search/qsearch.inc] + const int score = -FORGE_QSEARCH_CALL(board, ss + 1, -beta, -alpha);
+1x [src/search/alphabeta.inc] + const int singular_score = FORGE_SEARCH_CALL(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+1x [src/search/alphabeta.inc] + const int verification = FORGE_SEARCH_CALL(board, ss, depth - reduction, beta - 1, beta, false);
+1x [src/uci.cpp] + else if (value_text == "false") forge::options::cuckoo_rep = false;
+1x [src/uci.cpp] + else {
+1x [src/search/cuckoo.inc] + if (alpha < DrawScore && board.upcoming_repetition(root_history_index_)) {
+1x [src/search/alphabeta.inc] + if (depth <= 0) return FORGE_QSEARCH_CALL(board, ss, alpha, beta);
+1x [src/search/cuckoo.inc] + if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() &&
+1x [src/uci.cpp] + if (value_text == "true") forge::options::cuckoo_rep = true;
+1x [src/search/qsearch.inc] + int Worker::FORGE_QSEARCH_FN(Board& board, SearchStack* ss, int alpha, int beta) {
+1x [src/search/alphabeta.inc] + int Worker::FORGE_SEARCH_FN(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+1x [src/search/alphabeta.inc] + int null_score = -FORGE_SEARCH_CALL(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+1x [include/forge/search.hpp] + int qsearch_cuckoo_body(Board& board, SearchStack* ss, int alpha, int beta);
+1x [include/forge/search.hpp] + int search_cuckoo_body(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+1x [src/search/alphabeta.inc] + int value = -FORGE_QSEARCH_CALL(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+1x [include/forge/hist_rework.hpp,src/search/correction_plus.inc,src/search/cuckoo.inc] + namespace forge {
+4x [include/forge/search_options.hpp,src/search/options.inc] + namespace forge::options {
+1x [src/search/cuckoo.inc] + return qsearch_cuckoo_body(board, ss, alpha, beta);
+1x [src/search/cuckoo.inc] + return search_cuckoo_body(board, ss, depth, alpha, beta, cut_node);
+1x [src/search/cuckoo.inc] + return std::max(qsearch_cuckoo_body(board, ss, DrawScore, beta), DrawScore);
+1x [src/search/cuckoo.inc] + return std::max(search_cuckoo_body(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
+2x [src/search/alphabeta.inc] + score = -FORGE_SEARCH_CALL(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+1x [src/search/alphabeta.inc] + score = -FORGE_SEARCH_CALL(board, ss + 1, new_depth, -beta, -alpha, false);
+1x [src/search/alphabeta.inc] + score = -FORGE_SEARCH_CALL(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+1x [src/uci.cpp] + std::cout << "info string invalid value for option CuckooRep" << std::endl;
+1x [src/uci.cpp] + std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
+1x [src/uci.cpp] + std::cout << "option name CuckooRep type check default false\n";
+1x [src/search/alphabeta.inc] + value = -FORGE_SEARCH_CALL(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+1x [include/forge/hist_rework.hpp,src/search/correction_plus.inc,src/search/cuckoo.inc] + } // namespace forge
+4x [include/forge/search_options.hpp,src/search/options.inc] + } // namespace forge::options
+1x [src/search.cpp] - #include "search/alphabeta.inc" // main alpha-beta search
+1x [src/search.cpp] - #include "search/qsearch.inc" // quiescence search
+2x [src/search/alphabeta.inc,src/search/qsearch.inc] - // Compiled as part of src/search.cpp (included exactly once).
+1x [src/search.cpp] - // exactly once below, so that
+1x [src/search.cpp] - // forge/tt.hpp, forge/history.hpp, forge/thread_data.hpp, forge/search_tune.hpp.
+1x [include/forge/search.hpp] - [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+1x [src/search/cuckoo.inc] - if (alpha < DrawScore && board.upcoming_repetition(root_history_index_)) {
+1x [src/search/cuckoo.inc] - if (depth > 0 && alpha < DrawScore && ss->ply != 0 && ss->excluded_move.is_none() &&
+1x [src/search/qsearch.inc] - int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+1x [src/search/alphabeta.inc] - int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+--- ONLY IN PORT
+1x [src/uci.cpp] + "option name BundlePreset type combo default OFF var OFF var B1\n";
+1x [src/uci.cpp] + "option name CuckooRep type check default false\n"
+1x [src/uci.cpp] + "option name TtPruneV2 type check default false\n"
+1x [src/search.cpp] + // (Exclusive with the IIR above: that one needs no TT move, this one a TT move.)
+1x [include/forge/correction_plus.hpp] + // (the R3 stack has them in forge/history.hpp).
+1x [src/search.cpp] + // ---- CorrHistPlus (R13 B1 port: forge-bundle-int b7c17722 src/search/correction_plus.inc, unchanged) ----
+1x [src/search.cpp] + // ---- end CorrHistPlus ----
+1x [src/search.cpp] + // Always inlined: it also has a call site in the cold CorrHistPlus path.
+1x [src/uci.cpp] + // B1 bundle options (R13 port of forge-bundle-int b7c17722); all default OFF.
+1x [src/search.cpp] + // B1 bundle options (R13 port of forge-bundle-int b7c17722; forge/search.hpp), all OFF.
+1x [include/forge/search.hpp] + // CorrHistPlus (R13 B1 port of Opus C2 as in forge-bundle-int b7c17722): forge/correction_plus.hpp uses
+1x [include/forge/search.hpp] + // CorrHistPlus (src/search.cpp). corrected_eval and update_correction jump to their cold twins only when
+1x [include/forge/search.hpp] + // CorrHistPlus tables (forge/correction_plus.hpp), owned by this worker: null until the option is on and the
+1x [include/forge/search.hpp] + // CorrectionSize / CorrectionGrain / CorrectionLimit above, so it is included here.
+1x [src/search.cpp] + // CuckooRep (R13 B1 port of Opus C6 as in forge-bundle-int b7c17722 src/search/cuckoo.inc): the child calls of the
+1x [src/search.cpp] + // CuckooRep instance (search<true> / qsearch<true>) go through these upcoming-repetition draw bounds; the lock
+1x [include/forge/search.hpp] + // CuckooRep instances do. search_child / qsearch_child are the child calls of an instance.
+1x [src/search.cpp] + // FB2 TtPruneV2: a cut node whose TT move failed low before (upper bound) is unlikely to cut: reduce it too.
+1x [src/search.cpp] + // FB2 TtPruneV2: the TT move is never pruned by futility / history / SEE (it carried a bound before);
+1x [src/search.cpp] + // FB2 TtPruneV2: the opponent's static eval fell on their move (opponent worsening): a third of a
+1x [src/search.cpp] + // HistRework: pawn structure x non-pawn material. |entry| <= 8192, weight <= 100: |term| <= 8192.
+1x [src/search.cpp] + // HistRework: the joint table learns the same residual step (|step| <= 2048 * 16 / 256 = 128) with a
+1x [include/forge/correction_plus.hpp] + // R13 lock port: included from forge/search.hpp after CorrectionSize / CorrectionGrain / CorrectionLimit
+1x [src/search.cpp] + // R3 stack: HistRework's joint term as in corrected_eval, so HistRework and CorrHistPlus combine.
+1x [src/search.cpp] + // R3 stack: HistRework's joint update as in update_correction, so HistRework and CorrHistPlus combine.
+1x [include/forge/search.hpp] + // Runtime search options of the B1 bundle (R13 port of forge-bundle-int b7c17722). All default OFF; with all
+1x [include/forge/search.hpp] + // Two search instances: Cuckoo = false is the lock search; Cuckoo = true is the UCI CuckooRep instance, whose
+1x [include/forge/search.hpp] + // UCI CorrHistPlus (spin 0-7, default 0): extra correction-history keys, a bitmask of
+1x [include/forge/search.hpp] + // UCI CuckooRep (check, default false): upcoming-repetition draw bound in search (Board::upcoming_repetition).
+1x [include/forge/search.hpp] + // UCI TtPruneV2 (check, default false): FB2-J3 TT-move pruning rules; each search reads it once (tt_prune_v2_).
+1x [include/forge/search.hpp] + // child calls go through the upcoming-repetition bound (search_cuckoo / qsearch_cuckoo), as the R3 stack's
+1x [src/search.cpp] + // computes this correction plus the extra keys (corrected_eval_plus below).
+1x [include/forge/search.hpp] + // first update allocates them; freed by Worker::clear(). TtPruneV2: this search's snapshot of the option.
+1x [src/uci.cpp] + // forge-bundle-int presets; OFF and B1 are ported (B2-B4 need CorrHistV2 / LmrTableV2).
+1x [include/forge/search.hpp] + // forge::corrplus::{Continuation = 1, MinorPiece = 2, NonPawn = 4} (forge/correction_plus.hpp).
+1x [include/forge/search.hpp] + // forge::options::corr_hist_plus != 0; the helpers are always inlined so that corrected_eval_plus stays a leaf.
+1x [src/search.cpp] + // gravity-style damping instead of the lock's add-and-clamp; the lock tables above are unchanged.
+1x [src/search.cpp] + // instance (search<false> / qsearch<false>) calls itself. A repetition needs >= 3 reversible plies (may_repeat).
+1x [src/search.cpp] + // margin step cheaper fail high. 0 with the option off, so the condition is the AL1 s198 one.
+1x [src/search.cpp] + // not improving.
+1x [include/forge/search.hpp] + // of them OFF the search is the AL1 s198 search. Written only while no search runs (the UCI loop stops it first).
+1x [src/search.cpp] + // performs this update plus the extra keys (update_correction_plus below).
+1x [src/search.cpp] + // quiet futility needs a wider margin when improving; history pruning starts at 3/4 of the threshold when
+1x [src/search.cpp] + : -tune::HistoryPruneMultiplier * depth;
+1x [src/search.cpp] + : search<false>(board, ss, depth, alpha, beta, false);
+1x [src/uci.cpp] + << " CorrHistV2=false LmrTableV2=false TtPruneV2=" << (b1 ? "true" : "false") << std::endl;
+1x [src/uci.cpp] + << " HistRework=" << (b1 ? 2 : 0) << " CuckooRep=" << (b1 ? "true" : "false")
+1x [src/search.cpp] + ? -tune::HistoryPruneMultiplier * depth * 3 / 4
+1x [src/search.cpp] + ? tune::RfpMargin / 3 : 0;
+1x [src/search.cpp] + bool tt_prune_v2 = false;
+1x [include/forge/search.hpp] + bool tt_prune_v2_ = false;
+1x [src/uci.cpp] + const bool b1 = value_text == "B1";
+1x [src/search.cpp] + const bool prunable = !tt_prune_v2_ || move != tt_move;
+1x [src/search.cpp] + const int futility_improving = tt_prune_v2_ && improving ? tune::FutilityBase / 2 : 0;
+1x [src/search.cpp] + const int history_prune_threshold = tt_prune_v2_ && !improving
+1x [src/search.cpp] + const int razor = qsearch_child<Cuckoo>(board, ss, alpha - 1, alpha);
+1x [src/search.cpp] + const int rfp_worsening = tt_prune_v2_ && (ss - 1)->static_eval != ValueNone &&
+1x [src/search.cpp] + const int score = -qsearch_child<Cuckoo>(board, ss + 1, -beta, -alpha);
+1x [src/search.cpp] + const int singular_score = search_child<Cuckoo>(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+1x [src/search.cpp] + const int verification = search_child<Cuckoo>(board, ss, depth - reduction, beta - 1, beta, false);
+1x [src/uci.cpp] + const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+1x [src/search.cpp] + correction += (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)] *
+1x [src/search.cpp] + else if (tt_prune_v2_ && !in_check && depth >= tune::IirDepth + 2 && cut_node && !tt_move.is_none() &&
+1x [src/search.cpp] + else return qsearch<false>(board, ss, alpha, beta);
+1x [src/search.cpp] + else return search<false>(board, ss, depth, alpha, beta, cut_node);
+1x [src/search.cpp] + entry = hist_rework::gravity(entry, diff * weight / 256, CorrectionLimit);
+1x [src/search.cpp] + eval - (tune::RfpMargin * depth - tune::RfpImproving * improving - rfp_worsening) >= beta &&
+1x [include/forge/search.hpp] + extern bool tt_prune_v2;
+1x [src/uci.cpp] + forge::options::corr_hist_plus = static_cast<std::uint8_t>(b1 ? 1 : 0);
+1x [src/uci.cpp] + forge::options::cuckoo_rep = b1;
+1x [src/uci.cpp] + forge::options::cuckoo_rep = value_text == "true";
+1x [src/uci.cpp] + forge::options::tt_prune_v2 = b1;
+1x [src/uci.cpp] + forge::options::tt_prune_v2 = value_text == "true";
+1x [src/uci.cpp] + forge::search_options::hist_rework = b1 ? 2 : 0;
+1x [src/search.cpp] + hist_rework::joint_weight(level) / 100;
+1x [src/search.cpp] + if (const int level = search_options::hist_rework; level != 0) [[unlikely]] {
+1x [src/search.cpp] + if (depth <= 0) return qsearch_child<Cuckoo>(board, ss, alpha, beta);
+1x [src/search.cpp] + if (depth <= tune::RfpDepth &&
+1x [src/search.cpp] + if (lmr_depth <= tune::HistoryPruneDepth && history < history_prune_threshold) continue;
+1x [src/search.cpp] + if (quiet && !gives_check && prunable) {
+1x [src/search.cpp] + if (search_options::hist_rework != 0) [[unlikely]] {
+1x [src/uci.cpp] + if (value_text != "OFF" && value_text != "B1") {
+1x [src/uci.cpp] + if (value_text != "true" && value_text != "false") {
+1x [src/search.cpp] + if constexpr (Cuckoo) return qsearch_cuckoo(board, ss, alpha, beta);
+1x [src/search.cpp] + if constexpr (Cuckoo) return search_cuckoo(board, ss, depth, alpha, beta, cut_node);
+1x [src/search.cpp] + inline int Worker::qsearch_child(Board& board, SearchStack* ss, int alpha, int beta) {
+1x [src/search.cpp] + inline int Worker::search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+1x [src/search.cpp] + int null_score = -search_child<Cuckoo>(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+1x [src/search.cpp] + int value = -qsearch_child<Cuckoo>(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+2x [include/forge/search.hpp,src/search.cpp] + namespace options {
+1x [src/search.cpp] + return qsearch<true>(board, ss, alpha, beta);
+1x [src/search.cpp] + return search<true>(board, ss, depth, alpha, beta, cut_node);
+1x [src/search.cpp] + return std::max(qsearch<true>(board, ss, DrawScore, beta), DrawScore);
+1x [src/search.cpp] + return std::max(search<true>(board, ss, depth, DrawScore, beta, cut_node), DrawScore);
+2x [src/search.cpp] + score = -search_child<Cuckoo>(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+1x [src/search.cpp] + score = -search_child<Cuckoo>(board, ss + 1, new_depth, -beta, -alpha, false);
+1x [src/search.cpp] + score = -search_child<Cuckoo>(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+1x [src/search.cpp] + ss->static_eval + (ss - 1)->static_eval > 2
+1x [src/search.cpp] + ss->static_eval + tune::FutilityBase + futility_improving + tune::FutilityMultiplier * lmr_depth <= alpha) {
+1x [src/uci.cpp] + std::cout << "info string BundlePreset " << value_text << ": CorrHistPlus=" << (b1 ? 1 : 0)
+2x [src/uci.cpp] + std::cout << "info string invalid value for option " << name << std::endl;
+1x [src/uci.cpp] + std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n"
+1x [src/search.cpp] + std::int32_t& entry = (*joint_correction_)[side][hist_rework::joint_key(board) & (CorrectionSize - 1U)];
+4x [src/search.cpp] + template <bool Cuckoo>
+1x [include/forge/search.hpp] + template <bool Cuckoo> int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+1x [include/forge/search.hpp] + template <bool Cuckoo> int qsearch_child(Board& board, SearchStack* ss, int alpha, int beta);
+1x [include/forge/search.hpp] + template <bool Cuckoo> int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+1x [include/forge/search.hpp] + template <bool Cuckoo> int search_child(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+1x [src/search.cpp] + tt_bound == BoundUpper && !ss->tt_pv) --depth;
+1x [src/search.cpp] + tt_prune_v2_ = options::tt_prune_v2; // FB2 TtPruneV2: one snapshot per search (bundle-int fb2_)
+1x [src/search.cpp] + value = -search_child<Cuckoo>(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+5x [include/forge/correction_plus.hpp,include/forge/hist_rework.hpp,src/board.cpp,src/search.cpp,src/uci.cpp] + }
+2x [include/forge/search.hpp,src/search.cpp] + } // namespace options
+1x [src/uci.cpp] + } else if (name == "BundlePreset") {
+1x [src/uci.cpp] + } else if (name == "CuckooRep" || name == "TtPruneV2") {
+1x [src/search.cpp] + } else if (prunable) {
+2x [src/uci.cpp] + } else {
+1x [src/search.cpp] - if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+1x [src/search.cpp] - if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+1x [src/search.cpp] - if (quiet && !gives_check) {
+1x [include/forge/search.hpp] - int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+1x [include/forge/search.hpp] - int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+1x [src/search.cpp] - ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+1x [src/search.cpp] - } else {
+LINESET DIFFERS
