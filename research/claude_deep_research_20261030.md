@@ -22,6 +22,21 @@ already has.
   None of them was measured on Forge; nothing here was gated. Treat each as a hypothesis for a
   Forge SPRT.
 
+## 1. Top picks so far (ranked by expected gain per day of work)
+
+| # | Idea | Expected gain (evidence) | Effort | Licence of what we use |
+|---|---|---|---|---|
+| 1 | E3 eval post-processing on the HalfKA path: material scaling, optimism, 50-move damping, draw jitter | Stockfish: about +8 to +12 Elo over 5 tests | 1 day + tuning | own code, ideas from GPL |
+| 2 | S1 Windows large pages for the TT and the 66 MiB HalfKA weights | +5-10% NPS typical in Stockfish (up to 30%); weights alone +3.9 Elo STC in Stockfish | 0.5 day | own code from Microsoft docs |
+| 3 | E2 reorder first-layer neurons by activation rate | ~2% NPS, bit-identical evals (about +4 Elo STC) | 0.5-1 day | own script, idea from GPL docs |
+| 4 | D2 Lichess puzzles as a tactical regression gate | no Elo by itself, catches regressions before gates | 0.5 day | CC0 data |
+| 5 | E1 small second net for lopsided positions | Stockfish: about +2 Elo STC and LTC, +1.5 more with re-eval | 2-4 days | own code + own data |
+| 6 | D1 Lichess eval DB as validation (and maybe training) data | unproven for Forge | 1 day | CC0 data |
+| 7 | T1 targeted CC0 books (endgames, closed, transpositions) | faster, sharper gates for targeted changes | none | CC0 |
+| 8 | T2 Bayesian tuner for 2-6 parameters | unproven vs SPSA | 1 day | Apache-2.0 / MIT |
+| 9 | M1 thread voting for the reported move | Stockfish +3.8 to +5.6 Elo at 8-31 threads; small at Forge's 2-3 threads | 0.5 day | own code, idea from GPL |
+| - | E4 bigger L1 / L2 | loses or ties at STC, wins only at long TC | GPU days | - |
+
 ## Contents
 
 1. Top picks (summary table)
@@ -55,11 +70,10 @@ Checked with `git grep` over the newest head `origin/opus-r12-pgo-net` 56cf4844 
 
 Not found in any of the 367 heads (no matching symbol): Windows large pages
 (`MEM_LARGE_PAGES` / `SeLockMemoryPrivilege`), a second small net (`smallnet`), eval optimism,
-NUMA code, `MultiPV`, `Chess960`, `UCI_ShowWDL`, a non-zero-chunk search for the sparse first
-layer (`nnz`; the L1 loop at `src/nnue_halfka.cpp:222-241` still has to be read to confirm it is
-dense). These are the open slots the research below targets.
+NUMA code, `MultiPV`, `Chess960`, `UCI_ShowWDL`. These are the open slots the research below
+targets.
 
-Correction after reading the code: the HalfKA first dense layer already skips all-zero 4-byte
+No `nnz` symbol either, but reading the code shows the HalfKA first dense layer already skips all-zero 4-byte
 input blocks (`block_affine()`, 56cf4844 `src/nnue_halfka.cpp:223-245`, "blocks whose 4 inputs are
 all zero are skipped"), so Stockfish's block-sparse layer is **already in Forge**. Only the cheap
 neuron-reordering add-on (E2 below) is new.
@@ -116,9 +130,10 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
 
 - **What Forge does now:** `Worker::halfka_evaluate()` returns
   `std::clamp(halfka::evaluate(...), -30000, 30000)` (56cf4844 `src/search.cpp:661-692`): the
-  raw net output, nothing else. A grep of all heads finds no `optimism`, no draw randomization
-  (`nodes & 2`) and no 50-move damping in eval (the "scale" hits in `opus-r3-stack` /
-  `opus-r5b-speed` are only the time manager's `falling_eval_scale`).
+  raw net output, nothing else. A grep of all 367 heads finds no `optimism` and no draw
+  randomization (`nodes & 2`); the R12, `opus-r3-stack` and `opus-r5b-speed` heads have no
+  50-move damping or material scaling in eval (their "scale" hits are only the time manager's
+  `falling_eval_scale`).
 - **What Stockfish master does today** (`src/evaluate.cpp:59-79`, read 2026-10-31):
   `v = nnue + (nnue + optimism) * correl / 65536` (correl = agreement of NNUE and material),
   then `v += material * v / 90649` (scale by material left), then `v -= v * rule50 / 189`; and
@@ -135,8 +150,9 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
   | Optimism scaled by NNUE-vs-material "complexity" | `1066119083` 2021-12-30 | 88,392 games, about +1.5 | 37,848 games, about +2.5 |
   | Random +-1 draw score (3-fold blindness) | `97d2cc9a9c` 2018, `770c8d92f3` 2019 | yellow (+1.0) | VLTC 120+1.2 2 threads: 51,902 games, about +2.0 |
 
-  Total in Stockfish: roughly +8 to +12 Elo. Forge's net, draw rate and eval scale differ, so
-  each piece must be re-measured; the draw jitter mainly matters at long TC.
+  Total in Stockfish: roughly +8 to +12 Elo (sums of SPRT estimates overstate the real total,
+  per the Fishtest FAQ). Forge's net, draw rate and eval scale differ, so each piece must be
+  re-measured; the draw jitter mainly matters at long TC.
 - **Forge fit:** all four live in `halfka_evaluate()` and the draw-return sites of
   `src/search.cpp`; keep the TT storing `raw_eval` as it does now and apply correction history
   after the scaling (Stockfish order). Constants need one SPSA pass afterwards (Forge's R9
@@ -146,9 +162,32 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
   order of the table (material scaling first), STC [0, 2] then LTC [0.5, 2.5]; draw jitter
   needs a longer TC (Stockfish only saw it pass at 120+1.2).
 
+### E4. Bigger L1 or L2: only worth it if Forge targets long time controls
+
+- **Forge now:** HalfKA K32H3 net with L1 1024; L1/L2/L3 are read from the net file (engine
+  limits `MaxL1 = 4096`, `MaxL2 = 64`, `MaxL3 = 64`, 56cf4844 `include/forge/nnue_halfka.hpp:25-27`),
+  so a bigger net needs a new training run but no engine change.
+- **Evidence (Stockfish, architecture history
+  <https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue_architecture_history.html>):**
+  - L1 1024 -> 1536 (`c1fff71650`, 2023-05-31): **failed STC** (13,728 games, about -6 Elo),
+    failing LTC (about -0.8), passed VLTC 180+1.8 (47,616 games, about +2.3) and VLTC SMP 60+0.6
+    8 threads (19,942 games, about +4.2).
+  - L1 1536 -> 2048 (`915532181f`, 2023-07-01): failed STC, LTC +0.68 +- 1.5 (40,000 games),
+    passed VLTC 180+1.8.
+  - L2 16 -> 32 at L1 1024 (`a6d055d7e2`, 2026-02-18, the same L1 as Forge): **failed STC**
+    (189,184 games, +0.0), passed LTC (37,902 games W 9833 L 9509, about +3.0) and VLTC SMP.
+- **Verdict:** every size step lost or tied at STC and won only at long TC, because the slower
+  net costs more search than it gains in accuracy at short TC. Do it only if Forge's target is
+  long TC; then L2 32 is the cheapest step (L1 stays at 1024, so NPS drops least).
+- **Licence:** ideas only (Stockfish GPL); the training change is a config value in Forge's own
+  R11 pipeline (nnue-pytorch is GPL, run-only, as today).
+- **Effort:** one R11 training run per size (GPU days), no engine code.
+- **How to test:** gate at the TC Forge cares about (STC alone would reject it, as it did in
+  Stockfish), plus NPS ABBA to know the speed cost.
+
 ## 3. Speed ideas
 
-### S1. Windows large pages for the transposition table
+### S1. Windows large pages for the transposition table and the net weights
 
 - **Source:** Stockfish commit "Add support for Windows large pages" (Sami Kiminki, 2020-05-13,
   PR #2656) <https://github.com/official-stockfish/Stockfish/pull/2656>; Microsoft "Large-Page
@@ -160,6 +199,13 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
   number of threads and hash size. More for large hashes, large number of threads and NUMA";
   Stockfish readme: "Typical increases are 5..10% in terms of nps, but speed increases up to 30%
   have been measured". 5% is about +10 Elo STC by the rule above. Not found in any Forge head.
+  **The net weights matter as much as the TT:** Stockfish `485d517c68` "Add large page support
+  for NNUE weights" (2020-09-21, PR #3081, "No functional change") passed STC {-0.25,1.25} with
+  14,896 games W 1854 L 1686 D 11356 (about +3.9 Elo); Stockfish master today also puts history
+  tables and thread data in large pages (`LargePagePtr` in `src/history.h`, `src/thread.h`).
+  Forge's HalfKA feature transformer is int8 with 96 buckets x 704 planes = 67,584 features x
+  L1 1024 = **66 MiB** of weights read at random rows on every accumulator update, so this
+  applies even when a gate runs with a tiny hash.
 - **Forge fit / caveat:** the account that runs gates needs the "Lock pages in memory" right
   (secpol.msc, then log off/on). Large pages are never paged out, so a 1 GB hash takes 1 GB
   away from the trainer and self-play for good; keep gate hashes small and keep the PC's
@@ -169,6 +215,34 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
 - **How to test:** no functional change, so bench/perft identical to the pins; NPS ABBA at
   Hash 64 / 256 / 1024 MB, Threads 1 and 3 (skill `forge-engine-verify`); gate only if the A/B
   shows >= 1%.
+
+## 4. Search, time and SMP ideas outside the excluded list
+
+The exclusion list (TT, LMR, all pruning, singular extensions, history and correction history,
+50-move hash cutoffs, the 2026 Stockfish search bundle) plus what Forge already has (aspiration,
+ProbCut, prefetch, ponder, node-effort and falling-eval time management, best-move stability,
+cuckoo repetition in the r3/r5 line, SmpV2 helper diversification) leaves little on the search
+side. The draw-score jitter is listed under E3 because it is one line next to the eval
+post-processing. One SMP item remains:
+
+### M1. Stockfish-style thread voting for the reported best move
+
+- **Forge now:** SmpV2 (`origin/fable-fb2-j5`, `src/search.cpp:1563-1564`) reports "the deepest
+  completed result of any thread"; R12 56cf4844 has no thread-result selection at all. (A grep
+  hit for "vote" in `origin/astra2-smpv2-mate` is only the comment "crew vote: gated
+  separately".)
+- **Source:** Stockfish `d96c1c32a2` "Introduce voting system for best move selection"
+  (2018-08-08) and `67ae53b020` "New voting formula for threads" (2018-12-18, quadratic votes:
+  each thread votes for its best move with weight `(score - minScore + c)^2 * depth`, the move
+  with most votes wins, then the deepest thread voting for it reports).
+- **Licence:** Stockfish GPL-3.0 -> **[IDEAS ONLY]**.
+- **Evidence:** `67ae53b020`: 8 threads 5+0.05, 20,202 games W 4031 L 3813 (about +3.8 Elo);
+  8 threads 20+0.2, 14,330 games W 2290 L 2115 (about +4.3); 31 threads 5+0.05, 20,000 games
+  +5.63 +- 2.8. The gain grows with thread count; at Threads 2 (Forge's gate setting) expect
+  little.
+- **Effort:** 0.5 day (votes collected when each thread finishes an iteration).
+- **How to test:** an SMP SPRT at the thread count Forge will play with (Threads 3 on a 3-CPU
+  mask under the PC rules); Threads 1 bench must stay identical.
 
 ## 5. Training data
 
@@ -185,9 +259,9 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
   eval vs a deep Stockfish eval, by phase) next to the 013/014 holdout; (b) extra training
   positions in eval-only mode (no game result, so lambda = 1.0 for these rows); (c) opening
   positions from real games for datagen.
-- **Caveat:** these labels are Stockfish output. The CC0 licence allows any use, but some rating
-  lists treat nets trained on another engine's evals as not original; decide this before
-  training on them. Use (a) is safe either way.
+- **Caveat:** these labels are Stockfish output. The CC0 licence allows any use, but originality
+  rules differ between rating lists and engine communities; check the policy of any list Forge
+  will enter before training on them. Use (a) is safe either way.
 - **Evidence:** none for Forge (**unproven**). Size and licence are verified.
 - **Effort:** 1 day for a jsonl -> plain/binpack converter (keep the deepest eval, first PV).
 - **How to test:** R11 pipeline A/B: same recipe with and without a slice, compare the 013/014
@@ -212,6 +286,27 @@ How to read the Elo numbers: Stockfish's own rule of thumb for small speed-ups (
 - **Verdict:** ODbL/DbCL is a share-alike database licence, not MIT/BSD/Apache/CC0, so it is
   **excluded** by the rules of this report, even though Stockfish's nets are trained on it.
   Ask the owner before any use.
+
+### D4. Lichess opening names/lines (CC0)
+
+- **Source:** <https://github.com/lichess-org/chess-openings> (licence **CC0-1.0**, 579 stars,
+  pushed 2026-10-29): every named opening as a move list (ECO A-E TSV files).
+- **Use:** a balanced, human-opening seed set for datagen and for a non-UHO sanity gate.
+- **Effort:** none beyond a TSV -> EPD/PGN step.
+
+## 6. Trainers and data tools
+
+- **No mature permissive NNUE trainer besides bullet** (which is excluded). GitHub search on
+  2026-10-31 (`nnue trainer license:mit`, `nnue license:apache-2.0`, `nnue train
+  license:bsd-3-clause`, by stars) found only small or old projects:
+  `amanjpro/zahak-trainer` (MIT, 7 stars, last push 2022), `nicotina04/noru` (Apache-2.0, Rust
+  library, 4 stars), `github-jimjim/nnue-trainer` (MIT, 1 star). Other trainers are GPL
+  (`official-stockfish/nnue-pytorch`, `jnlt3/marlinflow`) or have no licence (`Luecx/Grapheus`).
+  Verdict: keep nnue-pytorch run-only (as R11 does); nothing permissive is worth switching to.
+- `Disservin/fast-datagen` (MIT, 2023): small datagen tool by the fastchess author; Forge's own
+  R8 native driver already does this job, so only worth a read.
+- More permissive engines to read (adds to T3): `MinusKelvin/frozenight` (Apache-2.0, NNUE-only
+  Rust engine), `Timmoth/Sapling` (Apache-2.0, C#).
 
 ## 7. Testers and tuners
 
@@ -266,6 +361,20 @@ rights granted at all).
   (<https://official-stockfish.github.io/docs/stockfish-wiki/Useful-data.html>, "Elo gain using
   syzygy").
 
+## 9. GPL / AGPL: ideas only, or run as a separate tool (never copied into Forge)
+
+| Tool | Licence | Why it is useful |
+|---|---|---|
+| `vondele/matetrack` <https://github.com/vondele/matetrack> | GPL-3.0 | mate-finding regression suite (positions with known mates); fits the R5D "forced mate reported as cp" bug class |
+| `AndyGrant/OpenBench` <https://github.com/AndyGrant/OpenBench> | GPL-3.0 | distributed SPRT/SPSA server if more machines join the testing |
+| `michiguel/Ordo` | GPL-3.0 | rating lists from many PGNs (cross-checks gate Elo) |
+| `lucasart/c-chess-cli` | GPL-3.0 | alternative match runner (fastchess, MIT, is already used) |
+| `official-stockfish/WDL_model` | GPL-3.0 | fitting a win-rate model to show WDL / normalise eval to "100 cp = 50% win" |
+| `syzygy1/tb` | GPL-2.0 | Syzygy generator (the tables themselves are free to use) |
+
+All Stockfish-derived ideas in sections 2-4 also belong here: the idea is used, the code is
+written fresh.
+
 ## 10. Checked and dropped
 
 - Block-sparse first dense layer: already in Forge (`block_affine()`), see section 0.
@@ -274,6 +383,16 @@ rights granted at all).
 - Syzygy, cuckoo upcoming-repetition, PEXT, VNNI, pairwise, node-effort time management,
   best-move stability: in Forge (section 0).
 - NUMA / L3-domain thread pinning (Stockfish, ~4% NPS on multi-CCD CPUs per
-  <https://anemato.de/blog/nuca>): only helps CPUs with several L3 domains; the PC's 16 logical
-  CPUs point to one 8-core CCD, so no gain expected.
+  <https://anemato.de/blog/nuca>): only helps CPUs with several L3 domains. The PC's CPU is an
+  AMD Ryzen 7 9850X3D (8 cores / 16 threads, one CCD, 96 MB L3; `Win32_Processor`, 2026-10-31),
+  so there is nothing to gain.
 - LEB128 net compression (Stockfish `a46087e`): smaller binary only, no speed or Elo.
+- Stockfish data on Hugging Face, licence not on the allowed list:
+  `official-stockfish/fishtest_pgns` (LGPL-3.0), `official-stockfish/master-binpacks` (ODbL),
+  `official-stockfish/master-smallnet-binpacks` (no licence tag).
+- Code with no licence at all (no rights granted): `linrock/nnue-data`, `Luecx/Grapheus`,
+  `cosmobobak/viriformat`, `aronpetko/integral`, `mcthouacbb/Sirius`. GPL-3.0:
+  `jnlt3/marlinflow` (trainer), `Disservin/binpack-rust`, `official-stockfish/WDL_model`.
+- Evaluation grain of 16 + random +-1 (Stockfish `d212e663bb`, 2024: STC about +0.9, LTC about
+  +2.4): not in Stockfish master's `evaluate.cpp` any more (2026-10-31), so it was apparently
+  removed later; not recommended without finding out why.
