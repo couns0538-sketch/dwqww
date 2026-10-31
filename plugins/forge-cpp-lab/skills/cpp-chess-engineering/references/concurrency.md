@@ -1,0 +1,15 @@
+# SMP and transposition-table concurrency
+
+Write the sharing/lifetime map first: TT, thread-local board/accumulator, root results, histories, stop flags, options, allocator storage and search generation. For each shared field specify writer, reader, synchronization and quiescence condition. A benchmark cannot establish race freedom.
+
+An atomic sequence/version counter around ordinary concurrently accessed payload does **not** legalize C++ data races. Discarding a torn snapshot afterward does not undo undefined behavior. `memcpy`, aligned stores, x86 hardware behavior and `volatile` do not fix the language-level race. Choose a reviewed lock or genuinely atomic representation, document its coherence protocol and memory ordering, then measure cost. Separate atomic fields are race-free individually but not automatically a coherent multi-field snapshot. `atomic_ref` requires appropriate alignment, lifetime and compatible access by all participating threads.
+
+TT probes should return owned coherent values, not escaped references into mutable entries. Store selection and replacement need a coherent candidate snapshot. Review generation wrap, collision/replacement, bounds and depth, mate normalization, and rule-50/repetition contexts independently from physical coherence. A lock around only stores leaves readers racing. Thread-local tables trade capacity for simplicity; do not assume their Elo or memory tradeoff is free.
+
+Clear, resize, new-search publication and shutdown must honor every accessor's lifetime. Stop/join workers before freeing/replacing backing storage, or prove an alternative lifetime scheme. A stop flag alone is not a join. Test stop/quit, repeated searches, resize/clear, small hash, contention and helpers at unusual depths on the **whole engine**. Standalone TSan PASS covers only that harness. TSan may be unsupported in a container; preserve the startup error as UNVERIFIED.
+
+SMP result selection: keep the main thread's normal partial-iteration result. Classify proven mate and both winning/losing tablebase scores using this engine's definitions, not guessed numeric thresholds. Protect proven results according to the documented score/depth rule; clamp compared depth to requested limits. Add a deterministic test where a helper would replace main's result, plus Threads=1 behavior checks. Avoid brittle score/move pins unrelated to the contract.
+
+Runtime options: latch before search into immutable worker configuration, or use atomics and a documented update boundary. Atomic access solves a data race, not inconsistent mid-search semantics. Expose tunables in `uci` if strict drivers require them. Default-OFF build/runtime controls follow the active experiment contract.
+
+Measure overhead only after correctness: one-thread cost, multi-thread throughput and scaling, hash size, collision/contention, root quality and equal-time strength. Record native CPU topology and usable cores; run competing benchmarks serially. False-sharing padding/alignment must be verified in the actual layout.
