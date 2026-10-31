@@ -1,29 +1,29 @@
 # R12 - LTO+PGO profile with the HalfKA net path — IN PROGRESS (checkpoint)
 
-Branch `opus-r12-pgo-net` = 7f79c349 (r10fix1, engine unchanged) + R12 commits (kit, tools, report). No Elo or gate
-claim; QA gates. Machine exclusive: no (gates, NNUE trainer w4_s4 and self-play kept running).
+Branch `opus-r12-pgo-net` = 7f79c349 (r10fix1, engine unchanged) + R12 commits (kit, tools, report, skill). No Elo or
+gate claim; QA gates. Machine exclusive: no (gates, NNUE trainer w4_s4 and self-play kept running). Cores: QA freed
+CPUs 0/1 at 20:14 PC clock (trainer mask 0x000F -> 0x000C); every R12 build ran pinned to 0x3, every timing run on
+CPU 0 (CPU 1 = its SMT sibling, idle except our own builds, which never overlapped timing), all BelowNormal.
 
-## State at this checkpoint
-- Done: kit v2.4 (`kit_v24/`): frozen workload v2 + `tools/train_driver.py`, `-Workload v2`, `-PartialTraining` (item 2b),
-  `-CheckOptPins`; R12 tools `r12_build_chain.py`, `r12_speed.py`, `r12_fens12k.py`, `exe_func_diff.py`; skill
-  `forge-ltopgo-pgo`. Script parses with 0 errors in PowerShell 5.1 and 7; a dry run (empty source) bound every new
-  parameter; train_driver smoke on plain D8D90B68 OK.
-- Source: `F:\opus_scratch\r12\src_r10fix1` = QA's `cands\r10fix1\forge_r10fix1_src`, byte-identical to git 7f79c349
-  (src/, include/, CMakeLists.txt: 23 files).
-- Waiting (since 20:02 PC clock): no CPU pair free for profiling/timing (trainer 0x000F Idle on 0-3, gate 0xFFF0,
-  self-play 3-CPU masks inside 4-15; QA's own qa_x_check ran on 0x0003 until ~20:03). Two background runners wait:
-  the build chain (`F:\opus_scratch\r12\logs\chain.log`, strict: starts when no gate / trainer / self-play / QA process
-  holds a pair, e.g. after QA narrows the trainer mask as in speed4) and `r12_phase2.py`
-  (`F:\opus_scratch\r12\phase2\phase2.log`: binding check, 12k identity, speed; starts after the chain). Nothing heavy
-  has run yet. If QA frees 0/1 without changing the trainer mask: start
-  `r12_build_chain.py ... --pair 0x3 --ignore-idle --log F:/opus_scratch/r12/logs/chain2.log` and
-  `r12_phase2.py ... --chain-log F:/opus_scratch/r12/logs/chain2.log --ignore-idle` (the first chain then stops at
-  its first build because the tag exists; one phase2 owns the output folder).
+## Results so far
+### Workload v2 as specified (nets + Threads=2) does not reproduce
+| build | workload | LTO+PGO exe sha256 | identity (OFF pins, e19 pins, e9 pins) |
+|---|---|---|---|
+| r10fix1_w2_pc1 | v2 | 8f162985ac76683092c304dba734d789c8d885d57b6a735026addb45ee240492 | ALL OK |
+| r10fix1_w2_pc2 | v2 | 18503c4dae56d55e696d918770b34b68c081f27e5be4b36326a6ef745ba12ea1 | OFF ALL OK |
+| r10fix1_w2pt_pc1 | v2 + -fprofile-partial-training | 63ae405f75eaa46885449486e7b16dd9b1f725eef094ee9428854ae618a80382 | ALL OK |
+| r10fix1_w2pt_pc2 | v2 + -fprofile-partial-training | ee5c8beaa5153d2b68bfd83139b850a538dcb22b9460fafc92e27167f77614fc | OFF ALL OK |
 
-## Next steps (if QA picks this up)
-1. `r12_build_chain.py` builds A = workload v2 (tags r10fix1_w2_pc1/pc2) and B = v2 + `-PartialTraining`
-   (r10fix1_w2pt_pc1/pc2) with `-Expose`, znver5, FMA 0; binding check: pc1 = pc2 forge_ltopgo sha256 per variant.
-2. Identity: kit OFF pins + net pins (e19 373062/.../4115992, e9 287095/.../2816047 = plain D8D90B68's counts),
-   `r12_fens12k.py` 12000/12000 vs D8D90B68 for both nets.
-3. Speed (`r12_speed.py`, one CPU of the freed pair, sibling idle): net: A, B vs D8D90B68 and 9E5CB644, d16 + d20,
-   7 palindromic blocks + 3 A/A blocks; no net: A, B vs FD3A5190. Median + bootstrap one-sided 95% lower bound.
+- pc1 != pc2 for both variants: the binding check FAILS, so no speed run was made with these exes (rule).
+- Cause (logs/funcdiff_*.txt, `tools/exe_func_diff.py`): 12 of 4686 (v2) and 23 of 4674 (v2 + pt) functions differ,
+  all hot: Worker::search, qsearch, evaluate_position, static_evaluate, MovePicker::next, halfka::evaluate_raw (v2),
+  generate_pseudo_legal, see_ge, ... The 24 Threads=2 `go nodes 200000` searches share the TT between two threads, so
+  their node split and tree shape depend on timing; those counts land in exactly the code PGO optimizes hardest.
+- `bench` cannot profile SMP: it runs its own one-thread `Searcher(16)` with an exclusive TT lease whatever Threads is.
+  So "bench at Threads=2" would be reproducible but would profile no SMP code; real SMP profiling needs `go` with
+  2 threads, which is not reproducible. The binding pc1 = pc2 rule and an SMP profile cannot both hold.
+- Decision: the gated net workload is **v2t1** = v2 without the Threads=2 part (node-deterministic bench only:
+  no net, e19, e9 at Threads=1; sha256 dca15f66...). Workload v2 stays in the kit as the documented SMP experiment.
+
+### Workload v2t1 (reproducible net profile) - running
+(filled in when the builds and phase 2 finish)
