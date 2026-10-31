@@ -29,8 +29,11 @@ Scratch on C:\o13\p2 (F: was under its 50 GB floor).
 | LargePages=true (on this PC: 'LargePages: on (2 MiB NNUE w1)', 'on (32 MiB TT)'): nodes = OFF pins | PASS | PASS | logs/plain_a*_lp.json |
 | EvalFileHalfKA e19 = D8D90B68 counts 373062/831975/4115992/17885060/37006232 | PASS | PASS | logs/plain_a*_e19.json |
 | EvalFileHalfKA e9 = D8D90B68 counts 287095/693432/2816047/12332089/25323515 | PASS | PASS | logs/plain_a*_e9.json |
-| kit v2.4 (v2.1 + partial training + Expose) pc1 = pc2, identity incl. LargePages / e19 / e9 pins | RUNNING (tag stk) | RUNNING (tag stka) | - |
+| kit v2.4 (workload v2.1 + -PartialTraining + -Expose) pc1 = pc2 exe sha256 | **ff6628ce2b7391428a06d9234d3ba7f8d61d879d0155612df1239eb0e646a557** | **302ad8fba36c09f16f0c871bb080697f912e3360e4943a3b8a7077060bfafd4f** | logs/kit_stk*/SUMMARY_pc*.txt |
+| kit identity, plain = LTO+PGO: OFF pins + perft + per-FEN; LargePages=true IDENTICAL to OFF; e19 / e9 = pins, live | ALL OK (4 sets) | ALL OK (4 sets) | logs/kit_stk*/*.compare.txt |
+| step 1b: real -Wmissing-profile warnings with the net-path profile (no net + e19 + e9 passes) / vfmadd | 0 / 0 | 0 / 0 | SUMMARY |
+| 12k-FEN exe identity vs plain D8D90B68 (go depth 2 + 500 x depth 8, e19 and e9) | RUNNING | RUNNING | - |
 
-## Step 1b - net-path PGO
+## Step 1b - net-path PGO (built: both exes above use it)
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
 To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training reproduced in R12 and QA's w21pt).

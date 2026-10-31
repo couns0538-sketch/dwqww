@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
-# kit24_build.sh <scratch repo> <tag> <cpu mask> - Coder's kit v2.4 (QA's R12 bundle recipe: -Workload v2.1
+# kit24_build.sh <scratch repo> <tag> <cpu mask> [sides, default "pc1 pc2"] - Coder's kit v2.4 (QA's R12 bundle recipe: -Workload v2.1
 # -PartialTraining -Expose) twice (<tag>_pc1, <tag>_pc2) from fresh clean exports, work dir C:\o13\w, BelowNormal on
 # <cpu mask>. Checks: OFF pins + perft; -CheckOpt LargePages=true (pins = OFF pins), EvalFileHalfKA = e19 / e9 (pins =
 # plain D8D90B68 counts). Then the binding check pc1 exe sha256 == pc2.
 set -uo pipefail
-repo="$1"; tag="$2"; mask="$3"; T1=/d/grok-pc-data/dwqww/.claude/worktrees/o13-p1/opus_r13/tools
+repo="$1"; tag="$2"; mask="$3"; sides="${4:-pc1 pc2}"; T1=/d/grok-pc-data/dwqww/.claude/worktrees/o13-p1/opus_r13/tools
 KIT='C:\Users\Administrator\grok-pc\forge_push\qa_r12fix\pkg\coder_5d93a8e1\kit_v24\build_ltopgo.ps1'
 PY='C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe'
 E19='C:\Users\Administrator\grok-pc\forge_push\bin\r11_e19_final_bf1e347c.nnue'
 E9='C:\Users\Administrator\grok-pc\forge_push\bin\r11_e9_best_5380f866.nnue'
 OFFP='d11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354'
-for side in pc1 pc2; do
-  powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T1/pc_gate.ps1")" -Drive C -NeedGB 1 || { echo "pc_gate not OK, stop"; exit 75; }
+for side in $sides; do
+  # load gate: wait (60 s steps, up to 30 min) instead of stopping; my CPUs are off the gate mask 0xFFF0
+  ok=0; for i in $(seq 1 30); do
+    if powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T1/pc_gate.ps1")" -Drive C -NeedGB 1 -MaxCpu 92; then ok=1; break; fi
+    sleep 60
+  done
+  [ $ok = 1 ] || { echo "pc_gate not OK for 30 min, stop"; exit 75; }
   src=/c/o13/src/${tag}_$side; bash "$T1/export_src.sh" "$repo" "$src" >/dev/null || exit 2
   cmd="& '$KIT' -SrcDir '$(cygpath -w "$src")' -Tag '${tag}_$side' -Work 'C:\o13\w' -Affinity $mask -Python '$PY' -Expose"
   cmd="$cmd -Workload v2.1 -NetE19 '$E19' -NetE9 '$E9' -PartialTraining -Pins '$OFFP' -PerftPins 'startpos=4865609,kiwipete=193690690'"
