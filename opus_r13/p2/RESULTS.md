@@ -32,7 +32,8 @@ Scratch on C:\o13\p2 (F: was under its 50 GB floor).
 | kit v2.4 (workload v2.1 + -PartialTraining + -Expose) pc1 = pc2 exe sha256 | **ff6628ce2b7391428a06d9234d3ba7f8d61d879d0155612df1239eb0e646a557** | **302ad8fba36c09f16f0c871bb080697f912e3360e4943a3b8a7077060bfafd4f** | logs/kit_stk*/SUMMARY_pc*.txt |
 | kit identity, plain = LTO+PGO: OFF pins + perft + per-FEN; LargePages=true IDENTICAL to OFF; e19 / e9 = pins, live | ALL OK (4 sets) | ALL OK (4 sets) | logs/kit_stk*/*.compare.txt |
 | step 1b: real -Wmissing-profile warnings with the net-path profile (no net + e19 + e9 passes) / vfmadd | 0 / 0 | 0 / 0 | SUMMARY |
-| 12k-FEN exe identity vs plain D8D90B68 (go depth 2 + 500 x depth 8, e19 and e9) | RUNNING | RUNNING | - |
+| 12k-FEN exe identity vs plain D8D90B68 (go depth 2: depth, score, nodes, bestmove), e19 and e9 | 12000/12000 both nets | 12000/12000 both nets | logs/f12k_*_compare.txt |
+| CI ASan+UBSan self-play (Linux g++ 13.3; no net on the runner), default and LargePages=true: 0 sanitizer lines, 0 illegal | PASS | PASS | logs/ci_san_41211359051.txt (run 41211359051) |
 
 ## Step 1b - net-path PGO (built: both exes above use it)
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
