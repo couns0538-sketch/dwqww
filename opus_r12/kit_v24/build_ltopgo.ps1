@@ -14,12 +14,19 @@
 # v2.3 (QA_LTOPGO_CANDS_AL1_PC_20261030 md5 05d7ffcc): optional -Expose switch = the .sh --expose: adds
 #   -DFORGE_EXPOSE_TUNABLES=1 to BOTH the plain and LTO+PGO builds so tunables show in the uci list. Only uci.cpp reads it
 #   (CMake sets it on the forge target only). Without -Expose every command line is byte-for-byte v2.2.
+# v2.4 (Opus R12, 2026-10-30): -Workload v2 = frozen workload v2 (workload\frozen_train_cmds_v2.txt + nets_v2.txt, both
+#   sha256-checked): the v1 benches, then the same benches with EvalFileHalfKA = e19_final and = e9_best, and for each of
+#   the three (no net, e19, e9) 8 'go nodes 200000' searches at Threads=2 (bench ignores Threads). A go is stopped by the
+#   next UCI line, so v2 trains through tools\train_driver.py (waits for bestmove/readyok, checks net sha256 and loads).
+#   -PartialTraining adds -fprofile-partial-training to the use compiles and the use link. -CheckOptPins pins the
+#   bench counts of each -CheckOpt run. Defaults (-Workload v1, no -PartialTraining) keep every v2.3 command line.
 # Variable names are all distinct ignoring case (PowerShell names are case-insensitive: the old $s/$S bug).
 # usage (PowerShell, a CLEAN source copy whose SOURCES list equals the lock's):
 #   powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File build_ltopgo.ps1 -SrcDir D:\...\clean_src -Tag al1s198_frozen_pc1 `
 #     [-Work D:\forge_push\ltopgo] [-Kit <folder with workload\ and tools\>] [-Affinity 0x3] [-Flto '-flto=1'] `
 #     [-CheckOpt 'Name=Value', 'N1=V1;N2=V2'] [-Pins 'd11=312866,...'] [-PerftPins 'startpos=4865609,kiwipete=193690690'] `
-#     [-TrainTimeoutSec 3600] [-CheckTimeoutSec 7200] [-Expose]
+#     [-TrainTimeoutSec 3600] [-CheckTimeoutSec 7200] [-Expose] [-Workload v2 [-NetE19 <path>] [-NetE9 <path>]]
+#     [-PartialTraining] [-CheckOptPins 'd11=...,d16=...', ...]
 param(
   [Parameter(Mandatory=$true)][string]$SrcDir,
   [Parameter(Mandatory=$true)][string]$Tag,
@@ -34,7 +41,12 @@ param(
   [string]$GcovDump = 'C:\msys64\ucrt64\bin\gcov-dump.exe',
   [int]$TrainTimeoutSec = 3600,
   [int]$CheckTimeoutSec = 7200,
-  [switch]$Expose
+  [switch]$Expose,
+  [ValidateSet('v1','v2')][string]$Workload = 'v1',
+  [string]$NetE19 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e19_final_bf1e347c.nnue',
+  [string]$NetE9 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e9_best_5380f866.nnue',
+  [switch]$PartialTraining,
+  [string[]]$CheckOptPins = @()
 )
 $ErrorActionPreference = 'Continue'
 $me = [System.Diagnostics.Process]::GetCurrentProcess(); $me.ProcessorAffinity = [IntPtr]$Affinity; $me.PriorityClass = 'BelowNormal'
@@ -46,6 +58,14 @@ if ((Get-FileHash $WlFile -Algorithm SHA256).Hash -ne '1D52720A2662153120C394BBA
 if ((Get-FileHash $FenFile -Algorithm SHA256).Hash -ne '16F158933265DC5DC05FFD00A181809D345B25D72D3DE8E169804EFED7B1A835') { throw 'bench_fens sha256 mismatch' }
 if (Select-String -Path $WlFile -Pattern '^setoption' -Quiet) { throw 'frozen workload must not set options' }
 foreach($toolPath in $gpp, $objdumpExe, $Checker, $ArcsTool){ if (-not (Test-Path $toolPath)) { throw "missing tool: $toolPath" } }
+$WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2.txt'; $NetsFile = Join-Path $Kit 'workload\nets_v2.txt'; $Driver = Join-Path $Kit 'tools\train_driver.py'
+if ($Workload -eq 'v2') {
+  if ((Get-FileHash $WlV2File -Algorithm SHA256).Hash -ne '52B8299ED4A2412C5295ECA9438170AA9AF17C844FE528374033050931F6D2EE') { throw 'frozen workload v2 sha256 mismatch' }
+  if ((Get-FileHash $NetsFile -Algorithm SHA256).Hash -ne '8448DAE96755CB65F8880226B9FCC0B3DDF8904B9435021F747E0E9C4E2C74D3') { throw 'nets_v2 manifest sha256 mismatch' }
+  if (@(Select-String -Path $WlV2File -Pattern '^setoption' | Where-Object { $_.Line -notmatch '^setoption name (Threads|EvalFileHalfKA) value ' }).Count) { throw 'workload v2 may only set Threads and EvalFileHalfKA' }
+  foreach($toolPath in $Driver, $NetE19, $NetE9){ if (-not (Test-Path $toolPath)) { throw "missing: $toolPath" } }
+}
+if ($CheckOptPins.Count -gt $CheckOpt.Count) { throw '-CheckOptPins has more entries than -CheckOpt' }
 $leftovers = @(Get-ChildItem -Recurse -Force $SrcDir | Where-Object { ($_.PSIsContainer -and ($_.Name -like 'obj_*' -or $_.Name -like 'pgo_*')) -or (-not $_.PSIsContainer -and $_.Extension -in '.gcda','.o','.exe') })
 if ($leftovers.Count -ne 0) { throw "source copy is not clean ($($leftovers.Count) build leftovers, e.g. $($leftovers[0].FullName)); pass a fresh copy of the source" }
 $HaveGcovDump = Test-Path $GcovDump   # optional since v2.1
@@ -83,7 +103,8 @@ try {
   $Units = @(Get-ChildItem src -Filter *.cpp | Sort-Object Name | ForEach-Object { $_.BaseName })   # AL1: bitboard board book eval eval_params nnue search uci
   if ($Expose) { $F = @($F) + '-DFORGE_EXPOSE_TUNABLES=1' }
   $LTO = $Flto,'-fuse-linker-plugin'
-  Say "src $SrcDir tag $Tag units $($Units -join ' ') flto $Flto expose $([bool]$Expose)"
+  $PT = @(); if ($PartialTraining) { $PT = @('-fprofile-partial-training') }
+  Say "src $SrcDir tag $Tag units $($Units -join ' ') flto $Flto expose $([bool]$Expose) workload $Workload partial_training $([bool]$PartialTraining)"
   Get-ChildItem -Recurse -File $Tree | Sort-Object FullName | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash)  $($_.FullName.Substring($Tree.Length+1))" } | Set-Content (Join-Path $OutDir 'SOURCES.sha256')
   # 1) plain = the lock's direct g++ line (j1v2/lockref/2_build/build_windows.ps1), same token order
   Say '== plain (lock line)'
@@ -98,13 +119,20 @@ try {
   foreach($unit in $Units){ Invoke-Gpp "gen $unit" $GenLog (@($F) + $LTO + "-fprofile-generate=$P2" + '-fprofile-update=single' + '-c' + "src/$unit.cpp" + '-o' + "obj_ltopgo/$unit.o") }
   Invoke-Gpp 'gen link' $GenLog (@($F) + $LTO + "-fprofile-generate=$P2" + '-static' + @((Get-ChildItem obj_ltopgo\*.o).FullName) + '-o' + "forge_instr_$Tag.exe")
   # 3) training = FROZEN workload as raw stdin bytes (no setoption: all UCI options at default/OFF), with a timeout
-  Say '== train (frozen workload)'
+  Say "== train (frozen workload $Workload)"
   $TrainOut = Join-Path $OutDir 'train_out.txt'
-  $trainRc = Invoke-Timed "$Tree\forge_instr_$Tag.exe" @() $WlFile $TrainOut $TrainTimeoutSec
+  if ($Workload -eq 'v1') {
+    $trainRc = Invoke-Timed "$Tree\forge_instr_$Tag.exe" @() $WlFile $TrainOut $TrainTimeoutSec
+    $wantBench = 3
+  } else {
+    # v2: the driver waits for bestmove/readyok; engine output -> train_engine_out.txt, driver log -> train_out.txt
+    $trainRc = Invoke-Timed $Python @($Driver, "$Tree\forge_instr_$Tag.exe", $WlV2File, $NetsFile, (Join-Path $OutDir 'train_engine_out.txt'), '--net', "e19=$NetE19", '--net', "e9=$NetE9", '--timeout', "$TrainTimeoutSec") $null $TrainOut ($TrainTimeoutSec + 120)
+    $wantBench = 9
+  }
   if ($trainRc -ne 0) { throw "training exe exit $trainRc" }
   $trainEnd = Get-Date
   $benchLines = @(Get-Content $TrainOut | Select-String 'bench depth'); $benchLines | ForEach-Object { Say "$_" }
-  if ($benchLines.Count -ne 3) { throw "training gave $($benchLines.Count) bench lines (want 3)" }
+  if ($benchLines.Count -ne $wantBench) { throw "training gave $($benchLines.Count) bench lines (want $wantBench)" }
   $gcdaFiles = @(Get-ChildItem $P2 -Filter *.gcda -Recurse); Say "gcda count $($gcdaFiles.Count) (units $($Units.Count))"
   if ($gcdaFiles.Count -ne $Units.Count) { throw 'gcda count != unit count' }
   $manifestRows = @($gcdaFiles | ForEach-Object { [pscustomobject]@{ Norm = (Format-GcdaName $_.FullName.Substring($P2.Length+1)); Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() } })
@@ -121,6 +149,8 @@ try {
   $gcdaSha = (Get-FileHash $Manifest -Algorithm SHA256).Hash; $nohdrSha = (Get-FileHash $NohdrManifest -Algorithm SHA256).Hash
   Say "gcda_manifest_nohdr sha256 $nohdrSha (record only; first 12 header bytes stripped, value-profile counters may still differ)"
   $SummaryRows.Add("expose $([bool]$Expose)")
+  $SummaryRows.Add("workload $Workload partial_training $([bool]$PartialTraining)")
+  if ($Workload -eq 'v2') { $SummaryRows.Add("nets e19 $((Get-FileHash $NetE19 -Algorithm SHA256).Hash) e9 $((Get-FileHash $NetE9 -Algorithm SHA256).Hash)") }
   $SummaryRows.Add("gcda_manifest sha256 $gcdaSha (record only)"); $SummaryRows.Add("gcda_manifest_nohdr sha256 $nohdrSha (record only)")
   $ArcsManifest = Join-Path $OutDir 'gcda_arcs_manifest.txt'
   if ($HaveGcovDump) {
@@ -138,15 +168,16 @@ try {
   # 4) LTO+PGO use (QA build_lto.ps1 step (b) use lines, same object paths)
   Say '== LTO+PGO use'
   foreach($unit in $Units){
-    Invoke-Gpp "use $unit" $UseLog (@($F) + $LTO + "-fprofile-use=$P2" + '-fprofile-correction' + '-Wmissing-profile' + '-c' + "src/$unit.cpp" + '-o' + "obj_ltopgo/$unit.o")
+    Invoke-Gpp "use $unit" $UseLog (@($F) + $LTO + "-fprofile-use=$P2" + '-fprofile-correction' + '-Wmissing-profile' + $PT + '-c' + "src/$unit.cpp" + '-o' + "obj_ltopgo/$unit.o")
     if ((Get-Item "obj_ltopgo/$unit.o").LastWriteTime -le $trainEnd) { throw "obj_ltopgo/$unit.o not rebuilt after training" }
   }
-  $linkArgs = @($F) + $LTO + "-fprofile-use=$P2" + '-fprofile-correction' + '-Wmissing-profile' + '-static' + '-Wl,--no-insert-timestamp' + @((Get-ChildItem obj_ltopgo\*.o).FullName) + '-o' + "forge_ltopgo_$Tag.exe"
+  $linkArgs = @($F) + $LTO + "-fprofile-use=$P2" + '-fprofile-correction' + '-Wmissing-profile' + $PT + '-static' + '-Wl,--no-insert-timestamp' + @((Get-ChildItem obj_ltopgo\*.o).FullName) + '-o' + "forge_ltopgo_$Tag.exe"
   Add-Content $UseLog ("-- link command: g++ " + ($linkArgs -join ' '))
   Invoke-Gpp 'use link' $UseLog $linkArgs
   # LTO checks: -flto on the link line, and every object carries LTO IR (.gnu.lto_ sections)
   if (-not ($linkArgs -contains $Flto)) { throw '-flto not on the link line' }
   if (-not ($linkArgs -contains '-Wl,--no-insert-timestamp')) { throw 'v2.2: --no-insert-timestamp not on the use link line' }
+  if ($PartialTraining -and -not ($linkArgs -contains '-fprofile-partial-training')) { throw 'v2.4: -fprofile-partial-training not on the use link line' }
   foreach($unit in $Units){
     $ltoSections = @(& $objdumpExe -h "obj_ltopgo/$unit.o" | Select-String '\.gnu\.lto_'); if ($LASTEXITCODE -ne 0) { throw "objdump failed on $unit.o" }
     if ($ltoSections.Count -eq 0) { throw "obj_ltopgo/$unit.o has no LTO IR" }
@@ -168,14 +199,14 @@ try {
   $Ident = Join-Path $OutDir 'ident'; New-Item -ItemType Directory $Ident | Out-Null
   $allOk = $true
   $runSets = @(@{ Name = 'off'; Opts = @() })
-  $k = 0; foreach($optSet in $CheckOpt){ $k++; $runSets += @{ Name = "opt$k"; Opts = $optSet.Split(';') } }
+  $k = 0; foreach($optSet in $CheckOpt){ $k++; $runSets += @{ Name = "opt$k"; Opts = $optSet.Split(';'); Pins = $(if ($CheckOptPins.Count -ge $k) { $CheckOptPins[$k-1] } else { '' }) } }
   foreach($runSet in $runSets){
     $optArgs = @(); foreach($kv in $runSet.Opts){ $optArgs += '--opt'; $optArgs += $kv }
     foreach($kind in 'plain','ltopgo'){
       $checkRc = Invoke-Timed $Python (@($Checker, 'run', "$Tree\forge_${kind}_$Tag.exe", "$Ident\$($runSet.Name).$kind.json") + $optArgs + @('--fens', $FenFile)) $null "$Ident\$($runSet.Name).$kind.txt" $CheckTimeoutSec
       if ($checkRc -ne 0) { throw "lp_check run failed ($($runSet.Name) $kind), exit $checkRc" }
     }
-    $cmpArgs = @(); if ($runSet.Name -eq 'off') { if ($Pins) { $cmpArgs += '--pins', $Pins }; if ($PerftPins) { $cmpArgs += '--perft-pins', $PerftPins } } else { $cmpArgs += '--off', "$Ident\off.plain.json" }
+    $cmpArgs = @(); if ($runSet.Name -eq 'off') { if ($Pins) { $cmpArgs += '--pins', $Pins }; if ($PerftPins) { $cmpArgs += '--perft-pins', $PerftPins } } else { $cmpArgs += '--off', "$Ident\off.plain.json"; if ($runSet.Pins) { $cmpArgs += '--pins', $runSet.Pins } }
     $cmp = @(& $Python $Checker compare "$Ident\$($runSet.Name).plain.json" "$Ident\$($runSet.Name).ltopgo.json" @cmpArgs); $cmpRc = $LASTEXITCODE
     $cmp | Set-Content "$Ident\$($runSet.Name).compare.txt"; $cmp | ForEach-Object { Say "$_" }
     if ($cmpRc -ne 0) { $allOk = $false }
