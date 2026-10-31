@@ -7,7 +7,7 @@ Scratch/builds on C:\o13 (F: had 45 GB < 50 GB floor at start). Handoff exes: `C
 ## Ranking (prompt order)
 | rank | item | state | gate line(s) | exe sha256 (pc1 = pc2) |
 |---|---|---|---|---|
-| 1 | b1 BundlePreset=B1 | PORTING | BundlePreset=B1 | - |
+| 1 | b1 BundlePreset=B1 | READY (handoff b1/README.md) | BundlePreset=B1 | e950c77e7832e7f32d701bf1424d65553957ca8486e8bd1d29d922f9b1e25900 |
 | 2 | packa_w50 | READY (handoff packa_w50/README.md) | NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=50 | 07cc2393934528272d3114e3d664a3165fabc3614f2eba9a2782ca919e4b8146 |
 | 2 | packa_w60 | READY (handoff packa_w60/README.md) | NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=60 | same exe as w50 |
 | 3 | bnd68 | TODO (next plan) | | |
@@ -31,5 +31,20 @@ Scratch/builds on C:\o13 (F: had 45 GB < 50 GB floor at start). Handoff exes: `C
 | CI ASan+UBSan self-play: default/w50/w60/max/active, 0 sanitizer lines, 0 illegal (+ lock control) | PASS run 41209065763 | logs/ci_san_41209065763.txt |
 | mate probe 22 forced mates @3M nodes: OFF 19 / w50 22 / w60 20; w60's one miss (OFF M15, KRK) is found at 30M nodes | PASS (horizon note) | logs/packa.json, logs/lost1_*.json |
 
+## b1 (item 1)
+| check | result | evidence |
+|---|---|---|
+| port: A1 a8b63aae + C6 2cb0babd by `patch -p1 -F0`; C6 search part, C2, TtPruneV2, BundlePreset by tools/port_b1.py (all anchors asserted once) | DONE | b1/b1_port.patch, tools/port_b1.py |
+| **ON nodes = forge-bundle-int b7c17722 (binding port proof)**: B1 280182/758456/3357587/11208630/20560049, TtPruneV2 309157/736967/2960397/12062561/34293668, CorrHistPlus=1 d11 318363 | EQUAL (plain and LTO+PGO) | logs/b1_plain_*.json, logs/kit_b1k/opt1.compare.txt |
+| line set vs original commits | layout differences only (listed) | logs/b1_lineset_vs_original_commits.txt |
+| LTO+PGO pc1 = pc2 e950c77e…, OFF ALL OK, ON live (B1, CorrHistPlus=7), 0 missing-profile, vfmadd 0 | PASS | logs/kit_b1k/ |
+| uci defaults OFF / params 100, smoke 16/16 legal, mate probe OFF 19 B1 21 (none lost) | PASS | logs/b1.json |
+| CI ASan+UBSan self-play default/B1/max | PASS run 41210111829 | logs/ci_san_41210111829_b1.txt |
+
+## Handoff verification (fresh, 2026-10-31)
+- Each committed port patch, applied with `patch -p1 -F0` to a fresh `git archive d4f4312` lock copy, equals the kit's
+  built source `C:\o13\w\<tag>_pc1\src_copy` (diff -rq, build products excluded): packa IDENTICAL, b1 IDENTICAL
+  (logs/verify_patch_*.diff are empty). Handoff exes hash to the pc1 = pc2 values (b1 e950c77e…, packa 07cc2393…).
+
 ## Next
-B1 port (reference ON bench 280182/758456/3357587/11208630/20560049): A1 HistRework + C6 board cuckoo applied (no fuzz); CorrHistPlus, CuckooRep search instance, TtPruneV2, BundlePreset being ported.
+Block 1 of the plan is done for P1 (items 1-2). P1 items 3-5 (bnd68, packc28, eos49) go into the next short plan after P2 steps 1/1a/1b.
