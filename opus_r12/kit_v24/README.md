@@ -136,3 +136,6 @@ The .ps1 has a `-Expose` switch, the same as the .sh `--expose`: it adds `-DFORG
   pc1 = pc2 exe sha256 and OFF = pins checks, and it is never compared or gated against a v1 build.
 - The .sh (box) is unchanged: v2 is PC-only for now (net paths, Windows driver call).
 - R12 runs: `opus_r12/tools/r12_build_chain.py` (waits for a free CPU pair, then runs the kit pinned to it).
+- **Use `-Workload v2t1` for gated net builds.** `-Workload v2` (with the Threads=2 `go` part) does NOT reproduce: two
+  clean builds gave different exes (12 hot functions differ, FROZEN_WORKLOAD.md "Measured"). v2t1 = v2 without that
+  part (sha256 dca15f66...), node-deterministic, trained through the same driver.

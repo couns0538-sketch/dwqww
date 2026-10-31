@@ -70,6 +70,7 @@ def main():
     ap.add_argument("--ignore-idle", action="store_true",
                     help="QA freed --pair for R12: Idle-class processes (trainer, self-play) do not block it")
     ap.add_argument("--python", default=sys.executable)
+    ap.add_argument("--workload", default="v2", choices=["v2", "v2t1"], help="kit -Workload for every build")
     a = ap.parse_args()
     want = None if a.pair == "auto" else int(a.pair, 0)
     if a.ignore_idle and want is None:
@@ -98,8 +99,8 @@ def main():
             time.sleep(30)
         # -Command (not -File): only -Command binds 'a','b' to the [string[]] -CheckOpt / -CheckOptPins parameters
         q = lambda s: "'" + s.replace("'", "''") + "'"
-        ps = ("& %s -SrcDir %s -Tag %s -Work %s -Affinity %d -Expose -Workload v2 -Python %s -Pins %s -PerftPins %s" % (
-            q(os.path.abspath(KIT)), q(a.src), q(tag), q(a.work), pm, q(a.python), q(OFF_PINS), q(PERFT_PINS)))
+        ps = ("& %s -SrcDir %s -Tag %s -Work %s -Affinity %d -Expose -Workload %s -Python %s -Pins %s -PerftPins %s" % (
+            q(os.path.abspath(KIT)), q(a.src), q(tag), q(a.work), pm, a.workload, q(a.python), q(OFF_PINS), q(PERFT_PINS)))
         if pt:
             ps += " -PartialTraining"
         if full:

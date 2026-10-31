@@ -20,6 +20,8 @@
 #   next UCI line, so v2 trains through tools\train_driver.py (waits for bestmove/readyok, checks net sha256 and loads).
 #   -PartialTraining adds -fprofile-partial-training to the use compiles and the use link. -CheckOptPins pins the
 #   bench counts of each -CheckOpt run. Defaults (-Workload v1, no -PartialTraining) keep every v2.3 command line.
+#   -Workload v2t1 = v2 without the Threads=2 go part (frozen_train_cmds_v2t1.txt): R12 measured that two clean v2
+#   builds give different exes (12 hot functions differ), so v2t1 is the reproducible workload for gated net builds.
 # Variable names are all distinct ignoring case (PowerShell names are case-insensitive: the old $s/$S bug).
 # usage (PowerShell, a CLEAN source copy whose SOURCES list equals the lock's):
 #   powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File build_ltopgo.ps1 -SrcDir D:\...\clean_src -Tag al1s198_frozen_pc1 `
@@ -42,7 +44,7 @@ param(
   [int]$TrainTimeoutSec = 3600,
   [int]$CheckTimeoutSec = 7200,
   [switch]$Expose,
-  [ValidateSet('v1','v2')][string]$Workload = 'v1',
+  [ValidateSet('v1','v2','v2t1')][string]$Workload = 'v1',
   [string]$NetE19 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e19_final_bf1e347c.nnue',
   [string]$NetE9 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e9_best_5380f866.nnue',
   [switch]$PartialTraining,
@@ -59,8 +61,10 @@ if ((Get-FileHash $FenFile -Algorithm SHA256).Hash -ne '16F158933265DC5DC05FFD00
 if (Select-String -Path $WlFile -Pattern '^setoption' -Quiet) { throw 'frozen workload must not set options' }
 foreach($toolPath in $gpp, $objdumpExe, $Checker, $ArcsTool){ if (-not (Test-Path $toolPath)) { throw "missing tool: $toolPath" } }
 $WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2.txt'; $NetsFile = Join-Path $Kit 'workload\nets_v2.txt'; $Driver = Join-Path $Kit 'tools\train_driver.py'
-if ($Workload -eq 'v2') {
-  if ((Get-FileHash $WlV2File -Algorithm SHA256).Hash -ne '52B8299ED4A2412C5295ECA9438170AA9AF17C844FE528374033050931F6D2EE') { throw 'frozen workload v2 sha256 mismatch' }
+$WlV2Sha = '52B8299ED4A2412C5295ECA9438170AA9AF17C844FE528374033050931F6D2EE'
+if ($Workload -eq 'v2t1') { $WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2t1.txt'; $WlV2Sha = 'DCA15F6620F8622AB0FBFEC29CB1A405607D394AAE831B0CC736B004A34767E2' }
+if ($Workload -ne 'v1') {
+  if ((Get-FileHash $WlV2File -Algorithm SHA256).Hash -ne $WlV2Sha) { throw "frozen workload $Workload sha256 mismatch" }
   if ((Get-FileHash $NetsFile -Algorithm SHA256).Hash -ne '8448DAE96755CB65F8880226B9FCC0B3DDF8904B9435021F747E0E9C4E2C74D3') { throw 'nets_v2 manifest sha256 mismatch' }
   if (@(Select-String -Path $WlV2File -Pattern '^setoption' | Where-Object { $_.Line -notmatch '^setoption name (Threads|EvalFileHalfKA) value ' }).Count) { throw 'workload v2 may only set Threads and EvalFileHalfKA' }
   foreach($toolPath in $Driver, $NetE19, $NetE9){ if (-not (Test-Path $toolPath)) { throw "missing: $toolPath" } }
@@ -150,7 +154,7 @@ try {
   Say "gcda_manifest_nohdr sha256 $nohdrSha (record only; first 12 header bytes stripped, value-profile counters may still differ)"
   $SummaryRows.Add("expose $([bool]$Expose)")
   $SummaryRows.Add("workload $Workload partial_training $([bool]$PartialTraining)")
-  if ($Workload -eq 'v2') { $SummaryRows.Add("nets e19 $((Get-FileHash $NetE19 -Algorithm SHA256).Hash) e9 $((Get-FileHash $NetE9 -Algorithm SHA256).Hash)") }
+  if ($Workload -ne 'v1') { $SummaryRows.Add("nets e19 $((Get-FileHash $NetE19 -Algorithm SHA256).Hash) e9 $((Get-FileHash $NetE9 -Algorithm SHA256).Hash)") }
   $SummaryRows.Add("gcda_manifest sha256 $gcdaSha (record only)"); $SummaryRows.Add("gcda_manifest_nohdr sha256 $nohdrSha (record only)")
   $ArcsManifest = Join-Path $OutDir 'gcda_arcs_manifest.txt'
   if ($HaveGcovDump) {

@@ -65,3 +65,23 @@ Rules:
   reproducible is exactly what the pc1 = pc2 exe sha256 check decides; see the R12 report for the measured result.
 - Net paths are fixed per PC (`-NetE19` / `-NetE9`, defaults = the forge_push\bin copies QA times with); the path string
   is part of the training input, so pc1 and pc2 must use the same paths.
+
+## Measured (R12, 2026-10-30): the Threads=2 part makes the exe non-reproducible -> workload v2t1
+Two clean v2 builds of r10fix1 (tags r10fix1_w2_pc1 / _pc2, same PC, same pair 0x3, minutes apart) both passed every
+identity check (OFF = lock pins, e19 and e9 = D8D90B68's counts at d11..d22) but gave different LTO+PGO exes:
+8f162985... vs 18503c4d.... `opus_r12/tools/exe_func_diff.py`: 12 of 4686 functions differ and they are the hot ones
+(Worker::search, qsearch, evaluate_position, static_evaluate, MovePicker::next, halfka::evaluate_raw,
+generate_pseudo_legal, see_ge, the halfka layer kernel, should_stop, ...): the timing-dependent counts of the Threads=2
+searches move PGO decisions in exactly the code that decides speed. The binding pc1 = pc2 rule cannot hold with a
+Threads=2 `go` part, so:
+
+| file | sha256 | content |
+|---|---|---|
+| workload/frozen_train_cmds_v2t1.txt | dca15f6620f8622ab0fbfec29cb1a405607d394aae831b0cc736b004a34767e2 | v2 without the Threads=2 searches |
+
+v2t1, exactly (LF): `uci`, `isready`, `bench 11`, `bench 13`, `bench 16` (= v1), `setoption name EvalFileHalfKA value
+{NET:e19}`, `isready`, bench 11/13/16, `setoption name EvalFileHalfKA value {NET:e9}`, `isready`, bench 11/13/16,
+`isready`, `quit`. Node-deterministic (bench only; nets checked by sha256). It profiles the net path; the SMP code stays
+unprofiled, as with v1. `-Workload v2t1` is the workload for gated net builds; `-Workload v2` stays in the kit as the
+documented non-reproducible SMP experiment (do not gate its exes). Profiling SMP would need a different binding rule
+(e.g. pc2 rebuilt from pc1's archived profile) - a CR decision, not taken here.

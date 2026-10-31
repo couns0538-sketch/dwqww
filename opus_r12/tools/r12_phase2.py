@@ -38,7 +38,10 @@ def main():
     ap.add_argument("--pair", default="auto", help="auto = the pair the chain used (from the chain log)")
     ap.add_argument("--ignore-idle", action="store_true")
     ap.add_argument("--skip-speed-nonet", action="store_true")
+    ap.add_argument("--variant", action="append", default=[],
+                    help="NAME=STEM (build tags STEM_pc1 / STEM_pc2); default A=r10fix1_w2 B=r10fix1_w2pt")
     a = ap.parse_args()
+    variants = tuple(tuple(v.split("=", 1)) for v in a.variant) or VARIANTS
     os.makedirs(a.out, exist_ok=True)
     py = sys.executable
     logf = open(os.path.join(a.out, "phase2.log"), "a", encoding="utf-8", newline="\n")
@@ -86,7 +89,7 @@ def main():
                 last = time.time()
             time.sleep(30)
     exes = {}
-    for v, stem in VARIANTS:
+    for v, stem in variants:
         shas, ok = [], True
         for pc in ("pc1", "pc2"):
             summ = os.path.join(a.builds, "%s_%s" % (stem, pc), "SUMMARY.txt")
@@ -125,7 +128,7 @@ def main():
         if rc != 0:
             log("STOP: 12k exe identity failed for %s; no speed runs" % tag)
             return 2
-    order = [v for v, _ in VARIANTS if v in exes]
+    order = [v for v, _ in variants if v in exes]
     speed_sets = [("speed_net_e9", NET9, [(v, exes[v]) for v in order] + [("D8", d8), ("L9", l9)],
                    ["D8", "L9"] + (["A"] if len(order) == 2 else []))]
     if not a.skip_speed_nonet:
