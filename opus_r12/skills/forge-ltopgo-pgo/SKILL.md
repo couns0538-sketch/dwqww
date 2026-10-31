@@ -61,3 +61,15 @@ Trainer holds 0x000F (Idle), gates 0xFFF0 (BelowNormal), self-play 3-CPU masks i
 0x0003 at BelowNormal. Profiling and timing only on a pair QA frees: either QA narrows the trainer mask (e.g. 0xF->0xC,
 as in QA's speed4) - `r12_build_chain.py` / `r12_speed.py` then see it free by themselves - or QA says "use 0/1" and
 the tools run with `--pair 0x3 --ignore-idle`. Never on a gate's CPUs. Free RAM >= 4 GB.
+
+## R12 results (2026-10-30, CPU 0, e9_best, 7 palindromic blocks, engine nps; opus_r12/REPORT.md)
+- Kept: **v2t1 + -PartialTraining = 436ed8e1** (pc1 = pc2): net +7.2% d16 / +7.3% d20 vs plain D8D90B68 (95% LB +3.2 /
+  +6.2), +22% vs v1-LP 9E5CB644; no net -0.04% / -0.81% vs lock LP FD3A5190 (inside A/A noise).
+- v2t1 without partial training (e06e0348): net +4.2 / +5.6% vs D8D90B68 but -2.8 / -3.2% vs FD3A5190 with no net.
+- 9E5CB644 vs D8D90B68 reproduced QA: -12.7% / -12.6%. A net-path profile turns the LP penalty into a gain.
+- Per-file timing offsets are real here: an exe vs its own byte copy measured -3.0% (d16); single X-vs-Y comparisons
+  of different files carry that much placement noise. For a close call use several fresh copies per variant
+  (`tools/r12_pooled.py`; prepared, not run in R12).
+- A waiting runner cannot be stopped (no kill, TaskStop leaves it running): to neutralise one, rename the exes it will
+  start (`*.exe.parked`) - it exits with FileNotFoundError at its first run (R12 did this for the copies runner).
+- 12k exe-level identity (`r12_fens12k.py`, go depth 2 on fens_12k): 36,000 searches in ~8 s per net.
