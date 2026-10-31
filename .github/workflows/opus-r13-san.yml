@@ -1,0 +1,55 @@
+# R13 Phase 1: ASan+UBSan self-play smoke of each near-miss port on the lock tree (git d4f4312 = src_al1s198_clean).
+# Per item: lock source + `patch -p1 -F0` of the item's port patch, g++ -fsanitize=address,undefined, then
+# opus_r13/tools/selfplay_smoke.py (legality via the engine's own `go perft 1`, sanitizer lines counted from stderr)
+# for the item's configs (default = all OFF, each gate line, max values). Item "lock" is the unpatched control.
+name: opus-r13-san
+on:
+  push:
+    branches: ['opus-r13-p1-nearmiss-ports']
+    paths: ['opus_r13/p1/**', 'opus_r13/tools/selfplay_smoke.py', '.github/workflows/opus-r13-san.yml']
+  workflow_dispatch:
+jobs:
+  san:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - item: lock
+            patch: '-'
+            configs: 'default='
+          - item: packa
+            patch: opus_r13/p1/packa_w50/packa_port.patch
+            configs: 'default=|w50=NonPawnCorr=1;PawnHist=1;NonPawnCorrWeight=50|w60=NonPawnCorr=1;PawnHist=1;NonPawnCorrWeight=60|max=NonPawnCorr=1;PawnHist=1;NonPawnCorrWeight=300;PawnHistDivisor=16;LmrCorrThreshold=500;NonPawnKeyIncludesKing=1|active=NonPawnCorr=1;PawnHist=1;NonPawnCorrWeight=300;PawnHistDivisor=1;LmrCorrThreshold=1;NonPawnKeyIncludesKing=0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: lock source + port patch
+        run: |
+          git fetch -q --depth 1 origin d4f43124dde1d1e37de90e18930e374f32ea7ffa
+          mkdir lock && git archive FETCH_HEAD src include | tar -x -C lock
+          if [ "${{ matrix.patch }}" != "-" ]; then (cd lock && patch -p1 -F0 < "$GITHUB_WORKSPACE/${{ matrix.patch }}"); fi
+          sha256sum lock/src/*.cpp | tee src_sha256.txt
+      - name: build ASan+UBSan
+        run: |
+          cd lock && g++ --version | head -1
+          g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_san
+      - name: self-play smoke
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          args=()
+          IFS='|' read -ra cfgs <<< "${{ matrix.configs }}"
+          for c in "${cfgs[@]}"; do args+=(--config "${c%%=*}" "${c#*=}"); done
+          python3 opus_r13/tools/selfplay_smoke.py lock/forge_san "${args[@]}" --games 4 --nodes 20000 --max-plies 160 --out san_${{ matrix.item }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: san_${{ matrix.item }}
+          path: |
+            san_${{ matrix.item }}*
+            src_sha256.txt
