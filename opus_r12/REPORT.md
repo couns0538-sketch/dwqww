@@ -10,8 +10,15 @@ claim; QA gates. Machine exclusive: no (gates, NNUE trainer w4_s4 and self-play 
   parameter; train_driver smoke on plain D8D90B68 OK.
 - Source: `F:\opus_scratch\r12\src_r10fix1` = QA's `cands\r10fix1\forge_r10fix1_src`, byte-identical to git 7f79c349
   (src/, include/, CMakeLists.txt: 23 files).
-- Waiting: no CPU pair free for profiling/timing (trainer 0x000F Idle, gate + self-play 0xFFF0). The build chain
-  (`F:\opus_scratch\r12\logs\chain.log`) starts by itself when a pair is free; nothing heavy has run yet.
+- Waiting (since 20:02 PC clock): no CPU pair free for profiling/timing (trainer 0x000F Idle on 0-3, gate 0xFFF0,
+  self-play 3-CPU masks inside 4-15; QA's own qa_x_check ran on 0x0003 until ~20:03). Two background runners wait:
+  the build chain (`F:\opus_scratch\r12\logs\chain.log`, strict: starts when no gate / trainer / self-play / QA process
+  holds a pair, e.g. after QA narrows the trainer mask as in speed4) and `r12_phase2.py`
+  (`F:\opus_scratch\r12\phase2\phase2.log`: binding check, 12k identity, speed; starts after the chain). Nothing heavy
+  has run yet. If QA frees 0/1 without changing the trainer mask: start
+  `r12_build_chain.py ... --pair 0x3 --ignore-idle --log F:/opus_scratch/r12/logs/chain2.log` and
+  `r12_phase2.py ... --chain-log F:/opus_scratch/r12/logs/chain2.log --ignore-idle` (the first chain then stops at
+  its first build because the tag exists; one phase2 owns the output folder).
 
 ## Next steps (if QA picks this up)
 1. `r12_build_chain.py` builds A = workload v2 (tags r10fix1_w2_pc1/pc2) and B = v2 + `-PartialTraining`
