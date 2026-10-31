@@ -136,4 +136,6 @@ speed net (e9) 20:42 - 20:59, no net 20:59 - 22:03 (55 min of it waiting: the pa
 - The A-vs-B decision with several byte copies per variant (`tools/r12_pooled.py`) was prepared but not run: the pair was busy again at 22:46 and the budget was used up. Its waiting runner was neutralised by renaming its copy exes to `*.exe.parked` (F:\opus_scratch\r12\exe\copies): it exits at its first run instead of timing anything.
 - No-net d20 block 2 (21:01:28 - 21:02:02) ended right before the pair became busy; it is the outlier block (+6.88% B vs FD); the median without it is -0.89%, same conclusion.
 - The box script build_ltopgo.sh is unchanged (v2 / v2t1 are PC-only: Windows net paths, driver call).
-- Leftover background processes of this job: none doing work; the parked copies runner waits for the pair and then exits.
+- Leftover processes of this job (owner may stop them by PID; the agent may not kill): three idle `tail -F` log
+  watchers, PIDs 11024, 12784, 2968, on F:\opus_scratch\r12 logs (no measurable CPU). Nothing else of R12 runs: the
+  parked copies runner exited at 22:49 at its first run (FileNotFoundError, `speed_copies_e9/runs.csv` = header only).
