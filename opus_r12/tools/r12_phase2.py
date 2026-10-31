@@ -35,7 +35,7 @@ def main():
     ap.add_argument("--chain-log", required=True)
     ap.add_argument("--exe-dir", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--pair", default="0x3")
+    ap.add_argument("--pair", default="auto", help="auto = the pair the chain used (from the chain log)")
     ap.add_argument("--ignore-idle", action="store_true")
     ap.add_argument("--skip-speed-nonet", action="store_true")
     a = ap.parse_args()
@@ -49,6 +49,23 @@ def main():
         logf.write(line + "\n")
         logf.flush()
 
+    log("phase2 waiting for %s" % a.chain_log)
+    while True:
+        text = open(a.chain_log, encoding="utf-8").read() if os.path.exists(a.chain_log) else ""
+        if "chain done" in text or "STOP chain" in text:
+            break
+        time.sleep(30)
+    try:  # one phase2 per output folder: the first one whose chain finished does the work
+        os.close(os.open(os.path.join(a.out, "phase2.owner"), os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        log("another phase2 already owns %s; exit" % a.out)
+        return 0
+    if a.pair == "auto":  # the pair the chain built on
+        pairs = re.findall(r"build \S+ pair (0x[0-9a-f]+)", text)
+        if not pairs:
+            log("no build pair in the chain log; stop")
+            return 1
+        a.pair = pairs[-1]
     pair = int(a.pair, 0)
     cpu = (pair & -pair).bit_length() - 1
     extra = ["--ignore-idle"] if a.ignore_idle else []
@@ -58,18 +75,16 @@ def main():
     import r12_speed
 
     def wait_pair():
+        last = 0.0
         while True:
             hits = r12_speed.busy_masks(pair, a.ignore_idle)
             free_gb = psutil.virtual_memory().available / 2 ** 30
             if not hits and free_gb >= r12_speed.MIN_FREE_GB:
                 return
-            log("WAIT pair %s busy %s free RAM %.1f GB" % (hex(pair), hits[:3], free_gb))
+            if time.time() - last > 300:
+                log("WAIT pair %s busy %s free RAM %.1f GB" % (hex(pair), hits[:3], free_gb))
+                last = time.time()
             time.sleep(30)
-    while True:
-        text = open(a.chain_log, encoding="utf-8").read() if os.path.exists(a.chain_log) else ""
-        if "chain done" in text or "STOP chain" in text:
-            break
-        time.sleep(30)
     exes = {}
     for v, stem in VARIANTS:
         shas, ok = [], True
