@@ -25,7 +25,11 @@ Scratch on C:\o13\p2 (F: was under its 50 GB floor).
 | check | align 0 | align 1 | evidence |
 |---|---|---|---|
 | plain build (lock g++ line + Expose), warnings / vfmadd | 0 / 0 (2cc718f3…) | 0 / 0 (8a41b4cb…) | - |
-| OFF pins, LargePages=true = OFF, e19 / e9 net pins (D8D90B68 counts) | RUNNING | RUNNING | - |
+| OFF bench d11-d22 = 312866/862329/3024920/12389307/34048354, perft 4865609/193690690, 8 per-FEN d13 | PASS | PASS | logs/plain_a*_off.json |
+| LargePages=true (on this PC: 'LargePages: on (2 MiB NNUE w1)', 'on (32 MiB TT)'): nodes = OFF pins | PASS | PASS | logs/plain_a*_lp.json |
+| EvalFileHalfKA e19 = D8D90B68 counts 373062/831975/4115992/17885060/37006232 | PASS | PASS | logs/plain_a*_e19.json |
+| EvalFileHalfKA e9 = D8D90B68 counts 287095/693432/2816047/12332089/25323515 | PASS | PASS | logs/plain_a*_e9.json |
+| kit v2.4 (v2.1 + partial training + Expose) pc1 = pc2, identity incl. LargePages / e19 / e9 pins | RUNNING (tag stk) | RUNNING (tag stka) | - |
 
 ## Step 1b - net-path PGO
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
