@@ -1,0 +1,558 @@
+diff --git a/include/forge/board.hpp b/include/forge/board.hpp
+index 776614d..6a1120b 100644
+--- a/include/forge/board.hpp
++++ b/include/forge/board.hpp
+@@ -80,6 +80,7 @@ struct Undo {
+     std::uint16_t fullmove = 1;
+     std::uint64_t key = 0;
+     std::uint64_t pawn_key = 0;
++    std::array<std::uint64_t, 2> nonpawn_key{};
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
+ };
+@@ -154,6 +155,17 @@ public:
+     [[nodiscard]] Color side_to_move() const { return side_; }
+     [[nodiscard]] std::uint64_t key() const { return key_; }
+     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
++    // Zobrist-style key of one colour's non-pawn pieces (knights, bishops, rooks,
++    // queens and the king) by piece and square. Kept incrementally by make/unmake;
++    // a null move changes no piece, so it leaves both keys unchanged.
++    [[nodiscard]] std::uint64_t nonpawn_key(Color color) const {
++        return nonpawn_key_[static_cast<std::size_t>(color)];
++    }
++    // Full recomputation from the piece placement (tests and debug asserts).
++    [[nodiscard]] std::uint64_t compute_nonpawn_key(Color color) const;
++    // Zobrist term of `color`'s king (0 if there is none). XOR it out of nonpawn_key(color) for a king-less key.
++    // Read-only accessor added by packa-epa; the incremental key code is untouched.
++    [[nodiscard]] std::uint64_t king_key_term(Color color) const;
+     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+     [[nodiscard]] int fullmove_number() const { return fullmove_; }
+     [[nodiscard]] int ep_square() const { return ep_square_; }
+@@ -178,6 +190,7 @@ private:
+     std::uint16_t fullmove_ = 1;
+     std::uint64_t key_ = 0;
+     std::uint64_t pawn_key_ = 0;
++    std::array<std::uint64_t, 2> nonpawn_key_{};
+     Bitboard checkers_ = 0;
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+@@ -189,6 +202,9 @@ private:
+     [[nodiscard]] bool has_legal_en_passant_capture() const;
+     [[nodiscard]] std::uint64_t compute_key() const;
+     [[nodiscard]] std::uint64_t compute_pawn_key() const;
++#ifndef NDEBUG
++    void assert_nonpawn_keys() const;
++#endif
+     [[nodiscard]] Bitboard compute_checkers() const;
+     [[nodiscard]] bool square_attacked_with_occupancy(int square, Color by, Bitboard occupancy,
+                                                        Bitboard removed = 0) const;
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..c063d00 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -228,6 +228,13 @@ extern int LmrHistoryDivisor;
+ extern int CheckExtensionDepth;
+ extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+ extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
++// Pack A "history" (P1 / P3 / P7); every switch defaults to OFF so the default build is node-identical to the base.
++extern int NonPawnCorr;               // P1: 1 = add the two non-pawn correction tables (keyed by Board::nonpawn_key)
++extern int NonPawnCorrWeight;         // P1: percent weight of each non-pawn table (100 = same as the pawn table)
++extern int NonPawnKeyIncludesKing;    // P1: 1 = king term kept in the non-pawn key (as the CR-passed board key), 0 = king-less key at lookup only
++extern int PawnHist;                  // P3: 1 = add the pawn-structure-keyed quiet history
++extern int PawnHistDivisor;           // P3: the pawn history term is divided by this when summed into quiet_history
++extern int LmrCorrThreshold;          // P7: cp; r -= 1 when |static_eval - raw_eval| > threshold (0 = off)
+ // Time management (sudden-death / increment controls).
+ extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+ extern int TmIncrementPercent;    // share of the increment added to the soft limit
+@@ -251,6 +258,7 @@ void refresh();
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
++using PawnHistoryRow = PieceToHistory;
+ using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+ using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+ using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+@@ -258,6 +266,8 @@ constexpr std::size_t CorrectionSize = 1U << 14U;
+ constexpr int CorrectionGrain = 256;
+ constexpr int CorrectionLimit = 32 * CorrectionGrain;
+ using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
++constexpr std::size_t PawnHistorySize = 512; // pawn_key buckets (power of two)
++using PawnHistory = std::array<PawnHistoryRow, PawnHistorySize>;
+ 
+ struct SearchStack {
+     std::array<Move, MaxPly + 1> pv{};
+@@ -321,6 +331,8 @@ private:
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++    std::array<std::unique_ptr<CorrectionHistory>, 2> nonpawn_correction_; // P1, indexed by the colour whose pieces form the key
++    std::unique_ptr<PawnHistory> pawn_history_;                            // P3
+     std::array<SearchStack, MaxPly + 8> stack_{};
+     std::array<Move, 256> root_effort_moves_{};
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+@@ -359,6 +371,9 @@ private:
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
++    // P1: slot index (always < CorrectionSize) of one colour's non-pawn table; applies NonPawnKeyIncludesKing.
++    void update_pawn_history(const Board& board, Piece piece, int to, int bonus);
++    [[nodiscard]] static std::size_t nonpawn_slot(const Board& board, Color color);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+diff --git a/src/board.cpp b/src/board.cpp
+index 19d4ff2..eb6cc14 100644
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -349,6 +349,7 @@ bool Board::set_fen(std::string_view fen_text, std::string* error) {
+     }
+     candidate.key_ = candidate.compute_key();
+     candidate.pawn_key_ = candidate.compute_pawn_key();
++    candidate.nonpawn_key_ = {candidate.compute_nonpawn_key(White), candidate.compute_nonpawn_key(Black)};
+     candidate.checkers_ = candidate.compute_checkers();
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+@@ -727,6 +728,7 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     undo.fullmove = fullmove_;
+     undo.key = key_;
+     undo.pawn_key = pawn_key_;
++    undo.nonpawn_key = nonpawn_key_;
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
+ 
+@@ -745,21 +747,25 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     } else if (undo.captured != Empty) {
+         key_ ^= piece_key(move.to, undo.captured);
+         if (piece_type(undo.captured) == Pawn) pawn_key_ ^= piece_key(move.to, undo.captured);
++        else nonpawn_key_[static_cast<std::size_t>(them)] ^= piece_key(move.to, undo.captured);
+         remove_piece(move.to);
+     }
+     if (undo.captured != Empty || piece_type(moving) == Pawn) halfmove_ = 0;
+ 
+     key_ ^= piece_key(move.from, moving);
+     if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.from, moving);
++    else nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.from, moving);
+     move_piece(move.from, move.to);
+     if (move.is_promotion()) {
+         const Piece promoted = make_piece(us, move.promotion);
+         remove_piece(move.to);
+         put_piece(promoted, move.to);
+         key_ ^= piece_key(move.to, promoted);
++        nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, promoted);
+     } else {
+         key_ ^= piece_key(move.to, moving);
+         if (piece_type(moving) == Pawn) pawn_key_ ^= piece_key(move.to, moving);
++        else nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(move.to, moving);
+     }
+     if (piece_type(moving) == King) king_squares_[static_cast<std::size_t>(us)] = move.to;
+ 
+@@ -769,6 +775,7 @@ bool Board::make_move(const Move& move, Undo& undo) {
+         const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+         const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+         key_ ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++        nonpawn_key_[static_cast<std::size_t>(us)] ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+         move_piece(rook_from, rook_to);
+     }
+ 
+@@ -786,6 +793,9 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+     return true;
+ }
+ 
+@@ -816,8 +826,12 @@ void Board::unmake_move(const Move& move, const Undo& undo) {
+     fullmove_ = undo.fullmove;
+     key_ = undo.key;
+     pawn_key_ = undo.pawn_key;
++    nonpawn_key_ = undo.nonpawn_key;
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ void Board::make_null_move(NullUndo& undo) {
+@@ -836,6 +850,9 @@ void Board::make_null_move(NullUndo& undo) {
+     plies_from_null_ = 0;
+     checkers_ = 0;
+     key_history_.push_back(key_);
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ void Board::unmake_null_move(const NullUndo& undo) {
+@@ -846,6 +863,9 @@ void Board::unmake_null_move(const NullUndo& undo) {
+     halfmove_ = undo.halfmove;
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
++#ifndef NDEBUG
++    assert_nonpawn_keys();
++#endif
+ }
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
+@@ -1055,4 +1075,27 @@ std::uint64_t Board::compute_pawn_key() const {
+     return key;
+ }
+ 
++std::uint64_t Board::compute_nonpawn_key(Color color) const {
++    std::uint64_t key = 0;
++    Bitboard others = occupied(color) & ~pieces(color, Pawn);
++    while (others != 0) {
++        const int square = pop_lsb(others);
++        key ^= piece_key(square, squares_[static_cast<std::size_t>(square)]);
++    }
++    return key;
++}
++
++std::uint64_t Board::king_key_term(Color color) const {
++    const int square = king_square(color);
++    if (square < 0) return 0;
++    return piece_key(square, squares_[static_cast<std::size_t>(square)]);
++}
++
++#ifndef NDEBUG
++void Board::assert_nonpawn_keys() const {
++    assert(nonpawn_key_[White] == compute_nonpawn_key(White));
++    assert(nonpawn_key_[Black] == compute_nonpawn_key(Black));
++}
++#endif
++
+ } // namespace forge
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..115ffd8 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -3,6 +3,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <cstdio>
+ #include <cstring>
+ #include <iostream>
+ #include <limits>
+@@ -62,6 +63,12 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++int NonPawnCorr = 0;
++int NonPawnCorrWeight = 100;
++int NonPawnKeyIncludesKing = 1;
++int PawnHist = 0;
++int PawnHistDivisor = 2;
++int LmrCorrThreshold = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +104,10 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"NonPawnCorr", &NonPawnCorr, 0, 1},                 {"NonPawnCorrWeight", &NonPawnCorrWeight, 0, 300},
++        {"NonPawnKeyIncludesKing", &NonPawnKeyIncludesKing, 0, 1},
++        {"PawnHist", &PawnHist, 0, 1},                       {"PawnHistDivisor", &PawnHistDivisor, 1, 16},
++        {"LmrCorrThreshold", &LmrCorrThreshold, 0, 500},
+     };
+     return table;
+ }
+@@ -106,6 +117,34 @@ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+ 
++#ifdef FORGE_CORR_STATS
++// Debug-only (compile with -DFORGE_CORR_STATS): histogram of |static_eval - raw_eval| over the LMR candidate moves
++// (every move that reaches the reduction computation, not in check). Single-thread use; printed to stderr at exit.
++struct CorrStats {
++    static constexpr int Buckets = 12; // 0-9, 10-19, ..., 90-99, 100-199, >=200
++    static inline std::uint64_t counts[Buckets] = {};
++    static void record(int magnitude) { ++counts[magnitude >= 200 ? 11 : (magnitude >= 100 ? 10 : magnitude / 10)]; }
++    struct Printer {
++        ~Printer() {
++            std::uint64_t total = 0;
++            for (const std::uint64_t c : counts) total += c;
++            if (total == 0) return;
++            std::fprintf(stderr, "corr_stats total_lmr_moves %llu\n", static_cast<unsigned long long>(total));
++            static const char* const labels[Buckets] = {"0-9", "10-19", "20-29", "30-39", "40-49", "50-59",
++                                                         "60-69", "70-79", "80-89", "90-99", "100-199", ">=200"};
++            std::uint64_t tail = total; // moves with |corr| >= this bucket's lower bound
++            for (int i = 0; i < Buckets; ++i) {
++                std::fprintf(stderr, "corr_stats bucket %-8s %12llu  %6.2f%%   share with |corr| >= lower bound: %6.2f%%\n", labels[i],
++                             static_cast<unsigned long long>(counts[i]), 100.0 * static_cast<double>(counts[i]) / static_cast<double>(total),
++                             100.0 * static_cast<double>(tail) / static_cast<double>(total));
++                tail -= counts[i];
++            }
++        }
++    };
++    static inline Printer printer{};
++};
++#endif
++
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     if (score >= MateInMaxPly) return score + ply;
+     if (score <= -MateInMaxPly) return score - ply;
+@@ -566,7 +605,9 @@ Worker::Worker(SharedSearchState& shared, int id)
+       continuation_history_(std::make_unique<ContinuationHistory>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+-      material_correction_(std::make_unique<CorrectionHistory>()) {
++      material_correction_(std::make_unique<CorrectionHistory>()),
++      nonpawn_correction_{std::make_unique<CorrectionHistory>(), std::make_unique<CorrectionHistory>()},
++      pawn_history_(std::make_unique<PawnHistory>()) {
+     clear();
+ }
+ 
+@@ -580,6 +621,8 @@ void Worker::clear() {
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
++    for (auto& table : nonpawn_correction_) *table = CorrectionHistory{};
++    *pawn_history_ = PawnHistory{};
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
+@@ -635,12 +678,26 @@ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
++std::size_t Worker::nonpawn_slot(const Board& board, Color color) {
++    std::uint64_t key = board.nonpawn_key(color);
++    if (tune::NonPawnKeyIncludesKing == 0) key ^= board.king_key_term(color);
++    const std::size_t slot = static_cast<std::size_t>(key & (CorrectionSize - 1U));
++    assert(slot < CorrectionSize);
++    return slot;
++}
++
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+     }
++    if (tune::NonPawnCorr != 0 && tune::NonPawnCorrWeight > 0) {
++        for (const Color color : {White, Black}) {
++            correction += (*nonpawn_correction_[static_cast<std::size_t>(color)])[side][nonpawn_slot(board, color)] *
++                          tune::NonPawnCorrWeight / 100;
++        }
++    }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+ 
+@@ -653,6 +710,11 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++    if (tune::NonPawnCorr != 0 && tune::NonPawnCorrWeight > 0) {
++        for (const Color color : {White, Black}) {
++            apply((*nonpawn_correction_[static_cast<std::size_t>(color)])[side][nonpawn_slot(board, color)]);
++        }
++    }
+ }
+ 
+ std::int64_t Worker::elapsed_ms() const {
+@@ -708,6 +770,10 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move)
+         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+     }
++    if (tune::PawnHist != 0) {
++        score += (*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistorySize - 1U))]
++                                 [static_cast<std::size_t>(piece)][move.to] / tune::PawnHistDivisor;
++    }
+     return score;
+ }
+ 
+@@ -726,6 +792,13 @@ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus
+     }
+ }
+ 
++void Worker::update_pawn_history(const Board& board, Piece piece, int to, int bonus) {
++    if (tune::PawnHist == 0) return;
++    assert(static_cast<std::size_t>(piece) < 13 && to >= 0 && to < 64);
++    apply_history((*pawn_history_)[static_cast<std::size_t>(board.pawn_key() & (PawnHistorySize - 1U))]
++                                  [static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)], bonus);
++}
++
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                   int quiet_count) {
+     const int bonus = history_bonus(depth);
+@@ -741,11 +814,13 @@ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move,
+     const Piece piece = board.moved_piece(move);
+     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+     update_continuation(ss, piece, move.to, bonus);
++    update_pawn_history(board, piece, move.to, bonus);
+     for (int i = 0; i < quiet_count; ++i) {
+         const Move quiet = quiets[i];
+         if (quiet == move) continue;
+         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
++        update_pawn_history(board, board.moved_piece(quiet), quiet.to, -bonus);
+     }
+ }
+ 
+@@ -1144,6 +1219,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++#ifdef FORGE_CORR_STATS
++            if (!in_check && ss->static_eval != ValueNone && ss->raw_eval != ValueNone)
++                CorrStats::record(std::abs(ss->static_eval - ss->raw_eval));
++#endif
++            if (tune::LmrCorrThreshold > 0 && !in_check && ss->static_eval != ValueNone && ss->raw_eval != ValueNone &&
++                std::abs(ss->static_eval - ss->raw_eval) > tune::LmrCorrThreshold) {
++                r -= 1;
++            }
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
+@@ -1202,6 +1285,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Even without a cutoff, a new PV move earned its place.
+         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+                       history_bonus(depth) / 4);
++        update_pawn_history(board, board.moved_piece(best_move), best_move.to, history_bonus(depth) / 4);
+     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+         // Every move failed low: the parent's quiet move refuted this line.
+diff --git a/tests/nonpawn_key_tests.cpp b/tests/nonpawn_key_tests.cpp
+new file mode 100644
+index 0000000..e293166
+--- /dev/null
++++ b/tests/nonpawn_key_tests.cpp
+@@ -0,0 +1,133 @@
++// Checks Board::nonpawn_key(colour) against a full recompute at every ply of
++// random legal-move walks (make, null move, unmake), plus FEN round trips.
++#include "forge/board.hpp"
++
++#include <cstdint>
++#include <iostream>
++#include <string>
++#include <vector>
++
++namespace {
++
++int failures = 0;
++
++void check(bool ok, const std::string& what) {
++    if (!ok) {
++        ++failures;
++        if (failures <= 20) std::cerr << "FAIL: " << what << '\n';
++    }
++}
++
++std::uint64_t rng_state = 0x9E3779B97F4A7C15ULL;
++std::uint64_t next_random() {
++    rng_state ^= rng_state << 13;
++    rng_state ^= rng_state >> 7;
++    rng_state ^= rng_state << 17;
++    return rng_state;
++}
++
++struct Keys {
++    std::uint64_t white, black;
++};
++
++Keys keys_of(const forge::Board& board) {
++    return {board.nonpawn_key(forge::White), board.nonpawn_key(forge::Black)};
++}
++
++void check_consistent(const forge::Board& board, const std::string& label) {
++    check(board.nonpawn_key(forge::White) == board.compute_nonpawn_key(forge::White), label + ": white key vs recompute");
++    check(board.nonpawn_key(forge::Black) == board.compute_nonpawn_key(forge::Black), label + ": black key vs recompute");
++}
++
++void walk(const std::string& fen, int games, int plies) {
++    forge::Board board;
++    check(board.set_fen(fen), "parse " + fen);
++    std::uint64_t checked = 0;
++    for (int game = 0; game < games; ++game) {
++        check(board.set_fen(fen), "reparse " + fen);
++        check_consistent(board, fen + " initial");
++        std::vector<forge::Move> moves_made;
++        std::vector<forge::Undo> undos;
++        std::vector<Keys> before;
++        for (int ply = 0; ply < plies; ++ply) {
++            const forge::MoveList legal = board.legal_moves();
++            if (legal.empty()) break;
++            const Keys here = keys_of(board);
++            // Every few plies: null move and back (not while in check).
++            if (!board.in_check() && next_random() % 5 == 0) {
++                forge::NullUndo null_undo;
++                board.make_null_move(null_undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black, fen + ": null move changed keys");
++                check_consistent(board, fen + " after null");
++                board.unmake_null_move(null_undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black, fen + ": unmake null changed keys");
++                ++checked;
++            }
++            // Try every legal move once and unmake it (covers all castling/ep/promotion/capture kinds).
++            for (const forge::Move move : legal) {
++                forge::Undo undo;
++                check(board.make_move(move, undo), "make_move");
++                check_consistent(board, fen + " after make " + forge::Board::move_to_uci(move));
++                board.unmake_move(move, undo);
++                check(keys_of(board).white == here.white && keys_of(board).black == here.black,
++                      fen + ": unmake restores keys " + forge::Board::move_to_uci(move));
++                ++checked;
++            }
++            const forge::Move chosen = legal[next_random() % legal.size()];
++            forge::Undo undo;
++            check(board.make_move(chosen, undo), "make chosen");
++            check_consistent(board, fen + " walk");
++            // FEN round trip rebuilds the keys from scratch.
++            forge::Board rebuilt;
++            check(rebuilt.set_fen(board.fen()), "fen round trip");
++            check(rebuilt.nonpawn_key(forge::White) == board.nonpawn_key(forge::White) &&
++                      rebuilt.nonpawn_key(forge::Black) == board.nonpawn_key(forge::Black),
++                  fen + ": FEN rebuild equals incremental keys");
++            moves_made.push_back(chosen);
++            undos.push_back(undo);
++            before.push_back(here);
++            ++checked;
++        }
++        while (!moves_made.empty()) {
++            board.unmake_move(moves_made.back(), undos.back());
++            const Keys expected = before.back();
++            check(keys_of(board).white == expected.white && keys_of(board).black == expected.black, fen + ": unwind restores keys");
++            check_consistent(board, fen + " unwind");
++            moves_made.pop_back();
++            undos.pop_back();
++            before.pop_back();
++            ++checked;
++        }
++    }
++    std::cout << "nonpawn_key walk ok: " << fen << " (" << checked << " checks)\n";
++}
++
++} // namespace
++
++int main() {
++    forge::Board start;
++    check(start.nonpawn_key(forge::White) != 0 && start.nonpawn_key(forge::Black) != 0, "startpos keys nonzero");
++    check(start.nonpawn_key(forge::White) != start.nonpawn_key(forge::Black), "colour keys differ");
++    // Kings-and-pawns only: only the kings contribute.
++    forge::Board kp;
++    check(kp.set_fen("4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1"), "kp fen");
++    check_consistent(kp, "kp");
++
++    const std::vector<std::string> fens = {
++        std::string(forge::Board::StandardStartFen),
++        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",   // castling, captures
++        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",                                // ep / rook endgame
++        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",        // promotions
++        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",               // promotion captures
++        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
++        "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",           // en passant available
++        "4k3/1P6/8/8/8/8/6p1/4K3 w - - 0 1",                                        // both sides promote
++    };
++    for (const std::string& fen : fens) walk(fen, 40, 120);
++    if (failures != 0) {
++        std::cerr << failures << " nonpawn_key test failure(s)\n";
++        return 1;
++    }
++    std::cout << "nonpawn_key tests passed\n";
++    return 0;
++}
