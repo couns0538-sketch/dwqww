@@ -1,8 +1,18 @@
 # Fitted time management — UNPROVEN
 
-Candidate branch: `astra-r8-tmfit`. Base: `905e2325caeabea92b1017b22b434218a43145a7`,
-the authorized `forge-bundle-int` parent fallback. Preliminary OFF and ON benches
-match FD3A5190's five pins and both perft5 totals. See RESULTS.md for final status.
+Candidate branch: `astra-r8-tmfit`. The authoritative gate patch is now
+`tmfit-lock.patch`, based on actual AL1 s198 lock source
+`294dbed3a15dfd821aaf9d4edc6e5f62832fd460`. Its SHA256 is
+`ef09b342368efd01876bf771726d58cc84d73ec2960b5a70ead710ff0e88d9e3`,
+identical to CR's supplied port. Apply with `git apply --check -p1` then
+`git apply -p1` on that exact tree. CI builds this patched lock checkout.
+
+The branch-root engine is the earlier reference implementation on the permitted
+905e2325 fallback. Its unchanged historical patch is `tmfit-fallback-905.patch`;
+its results cannot qualify the actual-lock port. The final fallback200 run passed
+both timing bounds with zero faults. Actual-lock runtime checks are pending;
+see RESULTS.md. Crew builds must use the authoritative lock patch, not the
+reference branch-root engine.
 
 `TmFitModel` is one new default-off UCI spin option. It predicts whether the
 last completed iteration's best move will differ from the current one, then
@@ -53,8 +63,10 @@ independent samples, and opening separation does not prove transposition separat
 
 The mapping is frozen after 40 paired calibration games: multiplier permille
 `clamp(742 + 3000*p, 650, 1750)`. ON/OFF time ratios were 0.986462 per move
-and 0.989479 per game-side, with zero faults. Separate 200-game qualification
-is pending. AUC is predictive discrimination, not strength.
+and 0.989479 per game-side, with zero faults. The separate200-game fallback
+qualification measured0.990168 per move /0.990016 per game-side, zero faults.
+These parameters are unchanged in the actual-lock port, whose separate runtime
+qualification is pending. AUC is predictive discrimination, not strength.
 The 1% sample, full-data hashes, coefficients and split IDs are in
 `evidence/fit_v0_001/`. Raw logs stay in authorized local scratch.
 

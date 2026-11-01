@@ -6,6 +6,7 @@ import subprocess
 import time
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('runner', Path(__file__).with_name('run_tmfit.py'))
 runner = importlib.util.module_from_spec(spec)
@@ -13,6 +14,21 @@ spec.loader.exec_module(runner)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_governor_wait_is_before_timed_go_not_subtracted_afterward(self):
+        engine=runner.Engine.__new__(runner.Engine)
+        events=[]
+        clock=[1.0]
+        engine.send=lambda command:events.append(command)
+        engine.sync=lambda:events.append('sync')
+        engine.until=lambda predicate,timeout:(['info depth 1 time 250','bestmove e2e4'],clock[0]+.25)
+        def admission():
+            events.append('governor')
+            clock[0]+=60
+        with patch.object(runner,'load_governor',side_effect=admission),patch.object(runner.time,'perf_counter',side_effect=lambda:clock[0]):
+            result=engine.search('position startpos','go wtime 1000 btime 1000',5)
+        self.assertEqual(result['wall_ms'],250)
+        self.assertLess(events.index('governor'),events.index('go wtime 1000 btime 1000'))
+
     def test_paired_mode_assignments_swap_colors_only_for_timing(self):
         self.assertEqual(runner.game_player_modes('smoke',0,0,False),[0,1])
         self.assertEqual(runner.game_player_modes('smoke',1,0,False),[1,0])

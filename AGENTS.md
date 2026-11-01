@@ -31,3 +31,14 @@ being tested or attribute an earlier candidate's results to modified code.
 At each completed milestone, save a concise record of the reviewed scope,
 candidate identity, findings, fixes, validation results, and next action in the
 task's evidence directory. Never call an unresolved candidate accepted.
+
+## Shared-PC execution for Astra R8
+
+Use CR's sleep-based governor for native grok-pc work: start below80%CPU,
+wait when CPU reaches90%, and require8GiB free physical RAM. Preserve the
+mandated BelowNormal priority and at most two active engine/build workers.
+Do not suspend any process, including owned processes. An owned-process pause
+step may only be considered after its code is committed to astra-r8-tmfit and
+CR has explicitly passed it; that approval has not been given. Never control
+crew gates, fastchess, NNUE training, or self-play processes. The earlier
+scratch pause-attempt helper is not an authorized execution path.

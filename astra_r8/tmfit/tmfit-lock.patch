@@ -1,185 +1,74 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 07be24081cf423164d22ae0b058e6b8d599bba34..0837369152a515d9c9f13ba6604ffcd16568e304 100644
+index 915039a..351d9d6 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -8,6 +8,7 @@ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+@@ -5,6 +5,7 @@ find_package(Threads REQUIRED)
+ option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
  option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
- option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
- option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
 +option(FORGE_TM_LOG "Emit completed root iterations for time-model fitting" OFF)
  
- option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
- 
-@@ -23,6 +24,9 @@ add_library(forge_core
+ add_library(forge_core
+     src/bitboard.cpp
+@@ -17,6 +18,9 @@ add_library(forge_core
  )
  target_include_directories(forge_core PUBLIC include)
  target_compile_features(forge_core PUBLIC cxx_std_20)
 +if(FORGE_TM_LOG)
 +    target_compile_definitions(forge_core PUBLIC FORGE_TM_LOG=1)
 +endif()
- if(FORGE_NOZERO_MOVE_BUFFERS)
-     target_compile_definitions(forge_core PUBLIC FORGE_NOZERO_MOVE_BUFFERS=1)
- endif()
-@@ -206,6 +210,11 @@ target_link_libraries(forge_history_tests PRIVATE forge_core Threads::Threads)
- add_executable(forge_timeman_tests tests/timeman_tests.cpp)
- target_include_directories(forge_timeman_tests PRIVATE src)
- target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
+ 
+ if(MSVC)
+     target_compile_options(forge_core PRIVATE /W4 /permissive-)
+@@ -67,6 +71,10 @@ target_link_libraries(forge_nearest_pawn_tests PRIVATE forge_core Threads::Threa
+ add_executable(forge_pv_metadata_tests tests/pv_metadata_tests.cpp)
+ target_link_libraries(forge_pv_metadata_tests PRIVATE forge_core Threads::Threads)
+ 
 +add_executable(forge_tmfit_tests tests/tmfit_tests.cpp)
 +target_include_directories(forge_tmfit_tests PRIVATE src)
-+target_compile_features(forge_tmfit_tests PRIVATE cxx_std_20)
-+# Inherit the core's sanitizer compile/link flags in diagnostic builds.
 +target_link_libraries(forge_tmfit_tests PRIVATE forge_core Threads::Threads)
- 
- # Lazy SMP housekeeping and SMP options (O1).
- add_executable(forge_smp_tests tests/smp_tests.cpp)
-@@ -393,6 +402,7 @@ add_test(NAME forge_bad_capture_tests COMMAND forge_bad_capture_tests)
- add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
- add_test(NAME forge_history_tests COMMAND forge_history_tests)
- add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
-+add_test(NAME forge_tmfit_tests COMMAND forge_tmfit_tests)
- add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
- add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
- add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
-diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
-index 9aa50d5adb6dc96bd3155cfb578e4999d8f701ec..ef9973e074dc0cf3f3e6201df76bc0fe9dfdde34 100644
---- a/include/forge/search_options.hpp
-+++ b/include/forge/search_options.hpp
-@@ -9,6 +9,10 @@
- // written only while no search runs (the UCI loop stops the search first).
- namespace forge::options {
- 
-+// UCI TmFitModel (spin 0-1, default 0). Changes only the clock-managed soft
-+// budget. The main worker snapshots it once per search; fixed-depth is unchanged.
-+extern bool tm_fit_model;
 +
- // UCI SmpExactNodes (check, default false); acts only with Threads > 1.
- // Resets every worker's published node count before the helper threads start
- // (otherwise the main thread reads the previous search's counts until each
-diff --git a/include/forge/search_tune.hpp b/include/forge/search_tune.hpp
-index f544f64051bf0d89196cd767cffa28d1dee1e193..5d23d4be3c6ab3410e8e689f6d184e1cce2eeee2 100644
---- a/include/forge/search_tune.hpp
-+++ b/include/forge/search_tune.hpp
-@@ -69,6 +69,10 @@ extern int TmUnstableFactor;      // x0.01 soft scale when the best move just ch
+ add_executable(forge_bench bench/benchmark.cpp)
+ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
+ 
+@@ -79,6 +87,7 @@ add_test(NAME forge_nearest_pawn_tests COMMAND forge_nearest_pawn_tests)
+ add_test(NAME forge_pv_metadata_tests COMMAND forge_pv_metadata_tests)
+ add_test(NAME forge_tt_tests COMMAND forge_tt_tests)
+ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
++add_test(NAME forge_tmfit_tests COMMAND forge_tmfit_tests)
+ add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
+     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
+     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..03fabd3 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -239,6 +239,9 @@ extern int TmUnstableFactor;      // x0.01 soft scale when the best move just ch
  extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
  extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
  extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
-+// Fitted model coefficients Q12 and probability-to-multiplier mapping permille.
-+// Advertised only by FORGE_EXPOSE_TUNABLES builds; snapshotted once per search.
++// Fitted model coefficients Q12 and probability-to-multiplier mapping permille (UCI TmFitModel).
 +extern int TmFitBias, TmFitDepth, TmFitChanged, TmFitEffort, TmFitScore, TmFitDelta, TmFitElapsed;
 +extern int TmFitA, TmFitB, TmFitLo, TmFitHi;
  extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
  extern int CaptureFutilityMultiplier;
  extern int CaptureFutilityDepth;
-diff --git a/src/search.cpp b/src/search.cpp
-index c2313b7bb2e540e9962f851e6426c5656ede04a0..b9f86c68ff687a42287af8aa44066105b64d550a 100644
---- a/src/search.cpp
-+++ b/src/search.cpp
-@@ -46,6 +46,7 @@
- #include "search/evaluation.inc"  // static evaluation glue, correction history
- #include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
- #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
-+#include "search/tmfit.hpp"       // fitted, time-only soft-budget multiplier
- #include "search/checks.inc"      // per-node clock / node / stop checks, draws
- #include "search/history.inc"     // move-ordering history scoring and updates
- #define FORGE_SEARCH_FN search
-diff --git a/src/search/iterative.inc b/src/search/iterative.inc
-index aa85a62a3b9d1c8cac20e3591c92ace8bd74597a..205c7ee859805834d02c13bf932ab75249cbad07 100644
---- a/src/search/iterative.inc
-+++ b/src/search/iterative.inc
-@@ -43,6 +43,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+@@ -248,6 +251,12 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ void refresh();
+ } // namespace tune
  
-     // Time allocation.
-     timeman::allocate(limits, soft_limit_ms_, hard_limit_ms_, time_managed_);
-+    const bool fit_enabled = options::tm_fit_model && is_main() && time_managed_;
-+    const tmfit::Model fit_model = fit_enabled
-+        ? tmfit::Model{{tune::TmFitBias, tune::TmFitDepth, tune::TmFitChanged, tune::TmFitEffort,
-+                       tune::TmFitScore, tune::TmFitDelta, tune::TmFitElapsed},
-+                      tune::TmFitA, tune::TmFitB, tune::TmFitLo, tune::TmFitHi}
-+        : tmfit::Model{};
-     SearchInfo result;
-     const MoveList legal = board.legal_moves();
-     MoveList root_candidates;
-@@ -225,6 +231,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
-         emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(score) : score,
-              result.pv);
- 
-+#ifdef FORGE_TM_LOG
-+        // Training instrumentation is compiled out entirely in ordinary builds.
-+        // Root effort has the same cumulative-per-search meaning as the lock TM.
-+        if (is_main() && emit_info) {
-+            std::uint64_t best_nodes = 0;
-+            const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
-+            const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
-+            if (best_effort != effort_end) {
-+                best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
-+            }
-+            const std::int64_t log_elapsed = elapsed_ms();
-+            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-+            if (!shared_.output_closed.load(std::memory_order_relaxed)) {
-+                std::cout << "info string tm_log {\"depth\":" << depth
-+                          << ",\"best_move\":\"" << Board::move_to_uci(result.best_move) << '\"'
-+                          << ",\"changed\":" << (!previous_best.is_none() && result.best_move != previous_best ? 1 : 0)
-+                          << ",\"node_fraction\":" << (local_nodes_ ? static_cast<double>(best_nodes) / static_cast<double>(local_nodes_) : 0.0)
-+                          << ",\"node_fraction_q10\":" << tmfit::ratio_q10(best_nodes, local_nodes_, 1024)
-+                          << ",\"score_cp\":" << score
-+                          << ",\"score_delta_cp\":" << (previous_score == ValueNone ? 0 : score - previous_score)
-+                          << ",\"elapsed_ms\":" << log_elapsed << ",\"soft_ms\":" << soft_limit_ms_
-+                          << ",\"hard_ms\":" << hard_limit_ms_ << '}' << std::endl;
-+            }
-+        }
-+#endif
-+        const bool fit_changed = fit_enabled && !previous_best.is_none() && result.best_move != previous_best;
-         if (result.best_move == previous_best) ++stable_iterations;
-         else stable_iterations = 0;
-         previous_best = result.best_move;
-@@ -248,7 +280,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
-                 factor *= timeman::falling_eval_scale(iteration_previous_score, score);
-             }
-             factor = timeman::factor_floor(factor);
--            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
-+            if (fit_enabled) {
-+                std::uint64_t best_nodes = 0;
-+                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
-+                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
-+                if (best_effort != effort_end)
-+                    best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
-+                const int score_delta = iteration_previous_score == ValueNone ? 0 : score - iteration_previous_score;
-+                const auto x = tmfit::features(depth, fit_changed, best_nodes, local_nodes_, score,
-+                                               score_delta, elapsed_ms(), soft_limit_ms_);
-+                const int probability = tmfit::predict_q10(fit_model, x);
-+                const int multiplier = tmfit::multiplier_permille(fit_model, probability);
-+                const auto target = tmfit::soft_target_ms(soft_limit_ms_, factor, multiplier, hard_limit_ms_);
-+                if (emit_info) {
-+                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-+                    if (!shared_.output_closed.load(std::memory_order_relaxed)) {
-+                        std::cout << "info string tmfit {\"depth\":" << depth << ",\"p_q10\":" << probability
-+                                  << ",\"multiplier_permille\":" << multiplier << ",\"soft_target_ms\":" << target
-+                                  << ",\"hard_ms\":" << hard_limit_ms_ << ",\"changed\":" << (fit_changed ? 1 : 0)
-+                                  << ",\"effort_q10\":" << x[3] << ",\"delta_cp\":" << score_delta
-+                                  << '}' << std::endl;
-+                    }
-+                }
-+                if (elapsed_ms() >= target) break;
-+            } else {
-+                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
-+            }
-         }
-     }
- 
-diff --git a/src/search/options.inc b/src/search/options.inc
-index 05ac8934cd2b76d5f7730429c965c73cf381513b..132ec04a81382bf8c64577c59ed347656a8d1197 100644
---- a/src/search/options.inc
-+++ b/src/search/options.inc
-@@ -23,5 +23,6 @@ bool cuckoo_rep = false;
- bool material_key_table = false;
- bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
- bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
-+bool tm_fit_model = false;
- 
- } // namespace forge::options
++// UCI TmFitModel (spin 0-1, default 0). Changes only the clock-managed soft
++// budget. The main worker snapshots it once per search; written only while no search runs.
++namespace options {
++extern bool tm_fit_model;
++} // namespace options
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
 diff --git a/src/search/tmfit.hpp b/src/search/tmfit.hpp
 new file mode 100644
-index 0000000000000000000000000000000000000000..3e889de3040d4e430aebc030dc886b7d59dc7b56
+index 0000000..3e889de
 --- /dev/null
 +++ b/src/search/tmfit.hpp
 @@ -0,0 +1,91 @@
@@ -274,16 +163,22 @@ index 0000000000000000000000000000000000000000..3e889de3040d4e430aebc030dc886b7d
 +    return std::max<std::int64_t>(1, static_cast<std::int64_t>(target));
 +}
 +} // namespace forge::tmfit
-diff --git a/src/search/tune.inc b/src/search/tune.inc
-index 2af4a36f000fa016918d86a391cb5812a81dd6e4..86c97419e3a2ffef92616f354c532bfba8e337ff 100644
---- a/src/search/tune.inc
-+++ b/src/search/tune.inc
-@@ -107,6 +107,19 @@ int TmUnstableFactor = 140;
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..052530b 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,5 +1,6 @@
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
++#include "search/tmfit.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -58,6 +59,18 @@ int TmUnstableFactor = 140;
  int TmEffortBase = 155;
  int TmFallingEvalPercent = 100;
  int TmMinFactorPercent = 45;
 +// UNPROVEN: Q12 logistic fit from 52,012 logged iterations; see astra_r8/tmfit.
-+// Probability mapping is under empirical time-balance calibration at this checkpoint.
 +int TmFitBias = -3201;
 +int TmFitDepth = -5127;
 +int TmFitChanged = 6120;
@@ -298,7 +193,7 @@ index 2af4a36f000fa016918d86a391cb5812a81dd6e4..86c97419e3a2ffef92616f354c532bfb
  int CaptureFutilityBase = 0;
  int CaptureFutilityMultiplier = 250;
  int CaptureFutilityDepth = 6;
-@@ -144,6 +157,12 @@ const std::vector<Parameter>& parameters() {
+@@ -95,6 +108,12 @@ const std::vector<Parameter>& parameters() {
          {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
          {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
          {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
@@ -310,23 +205,109 @@ index 2af4a36f000fa016918d86a391cb5812a81dd6e4..86c97419e3a2ffef92616f354c532bfb
 +        {"TmFitLo", &TmFitLo, 100, 3000},                    {"TmFitHi", &TmFitHi, 100, 3000},
          {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
          {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
-         {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
+     };
+@@ -102,6 +121,10 @@ const std::vector<Parameter>& parameters() {
+ }
+ } // namespace tune
+ 
++namespace options {
++bool tm_fit_model = false;
++} // namespace options
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1273,6 +1296,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+         time_managed_ = true;
+     }
++    const bool fit_enabled = options::tm_fit_model && is_main() && time_managed_;
++    const tmfit::Model fit_model = fit_enabled
++        ? tmfit::Model{{tune::TmFitBias, tune::TmFitDepth, tune::TmFitChanged, tune::TmFitEffort,
++                       tune::TmFitScore, tune::TmFitDelta, tune::TmFitElapsed},
++                      tune::TmFitA, tune::TmFitB, tune::TmFitLo, tune::TmFitHi}
++        : tmfit::Model{};
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
+     MoveList root_candidates;
+@@ -1422,6 +1451,29 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         result.nodes = total_nodes();
+         emit(depth, score, result.pv);
+ 
++#ifdef FORGE_TM_LOG
++        // Training instrumentation is compiled out entirely in ordinary builds.
++        if (is_main() && emit_info) {
++            std::uint64_t best_nodes = 0;
++            const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
++            const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
++            if (best_effort != effort_end) {
++                best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
++            }
++            const std::int64_t log_elapsed = elapsed_ms();
++            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++            std::cout << "info string tm_log {\"depth\":" << depth
++                      << ",\"best_move\":\"" << Board::move_to_uci(result.best_move) << '\"'
++                      << ",\"changed\":" << (!previous_best.is_none() && result.best_move != previous_best ? 1 : 0)
++                      << ",\"node_fraction\":" << (local_nodes_ ? static_cast<double>(best_nodes) / static_cast<double>(local_nodes_) : 0.0)
++                      << ",\"node_fraction_q10\":" << tmfit::ratio_q10(best_nodes, local_nodes_, 1024)
++                      << ",\"score_cp\":" << score
++                      << ",\"score_delta_cp\":" << (previous_score == ValueNone ? 0 : score - previous_score)
++                      << ",\"elapsed_ms\":" << log_elapsed << ",\"soft_ms\":" << soft_limit_ms_
++                      << ",\"hard_ms\":" << hard_limit_ms_ << '}' << std::endl;
++        }
++#endif
++        const bool fit_changed = fit_enabled && !previous_best.is_none() && result.best_move != previous_best;
+         if (result.best_move == previous_best) ++stable_iterations;
+         else stable_iterations = 0;
+         previous_best = result.best_move;
+@@ -1453,7 +1505,30 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+             }
+             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            if (fit_enabled) {
++                std::uint64_t best_nodes = 0;
++                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
++                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
++                if (best_effort != effort_end)
++                    best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
++                const int score_delta = iteration_previous_score == ValueNone ? 0 : score - iteration_previous_score;
++                const auto x = tmfit::features(depth, fit_changed, best_nodes, local_nodes_, score,
++                                               score_delta, elapsed_ms(), soft_limit_ms_);
++                const int probability = tmfit::predict_q10(fit_model, x);
++                const int multiplier = tmfit::multiplier_permille(fit_model, probability);
++                const auto target = tmfit::soft_target_ms(soft_limit_ms_, factor, multiplier, hard_limit_ms_);
++                if (emit_info) {
++                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                    std::cout << "info string tmfit {\"depth\":" << depth << ",\"p_q10\":" << probability
++                              << ",\"multiplier_permille\":" << multiplier << ",\"soft_target_ms\":" << target
++                              << ",\"hard_ms\":" << hard_limit_ms_ << ",\"changed\":" << (fit_changed ? 1 : 0)
++                              << ",\"effort_q10\":" << x[3] << ",\"delta_cp\":" << score_delta
++                              << '}' << std::endl;
++                }
++                if (elapsed_ms() >= target) break;
++            } else {
++                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            }
+         }
+     }
+ 
 diff --git a/src/uci.cpp b/src/uci.cpp
-index 45fa2f5a0140dced554f49173eabeab9c15bba77..95dce7022709211835f4318f392d31f7350b72da 100644
+index 607adf3..5013169 100644
 --- a/src/uci.cpp
 +++ b/src/uci.cpp
-@@ -462,6 +462,7 @@ int main() {
-                          "option name Syzygy50MoveRule type check default true\n";
-             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
-             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
+@@ -171,6 +171,7 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
 +            std::cout << "option name TmFitModel type spin default 0 min 0 max 1\n";
-             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
-             std::cout << "option name NNUEFile type string default <empty>\n"
-                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
-@@ -683,6 +684,13 @@ int main() {
-                     // Start (and prioritise) the watchdog now, not inside a starved search.
-                     if (forge::options::hard_deadline_ms > 0) deadline_watchdog.start();
-                 }
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -216,6 +217,13 @@ int main() {
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
 +            } else if (name == "TmFitModel") {
 +                if (value_text == "0" || value_text == "1") {
 +                    forge::options::tm_fit_model = value_text == "1";
@@ -334,12 +315,12 @@ index 45fa2f5a0140dced554f49173eabeab9c15bba77..95dce7022709211835f4318f392d31f7
 +                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
 +                    std::cout << "info string invalid value for option TmFitModel" << std::endl;
 +                }
-             } else if (name == "CorrMargins") {
-                 int value = 0;
-                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+             } else if (name == "Clear Hash") {
+                 searcher.clear_hash();
+             } else if (name == "Ponder") {
 diff --git a/tests/tmfit_tests.cpp b/tests/tmfit_tests.cpp
 new file mode 100644
-index 0000000000000000000000000000000000000000..ccd9b306c615fb78254aeff9da420958c6b14679
+index 0000000..ccd9b30
 --- /dev/null
 +++ b/tests/tmfit_tests.cpp
 @@ -0,0 +1,57 @@

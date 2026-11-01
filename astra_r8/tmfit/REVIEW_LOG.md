@@ -28,11 +28,10 @@ incorrectly subjected to a200-game gate). Corrected all-ON sanitizer mode and
 regressions; subsequent runs41289111781,41289552546,41289992830,41290843946 PASS.
 CI now checks harness regressions before compilation and watches their files.
 
-Current unresolved qualification: final200-game time balance is running. No
-acceptance or strength claim. Next milestone: independent review of the final
-evidence, candidate bindings, patch and handoff; fix confirmed issues and verify
-the completed record before declaring the engineering task finished. Crew SPRT
-and longer-TC confirmation remain separate requirements for strength acceptance.
+The fallback200-game time balance completed and was reviewed below. Actual-lock
+runtime qualification is now unresolved after CR's base correction. No acceptance
+or strength claim. Crew SPRT and longer-TC confirmation remain separate
+requirements for strength acceptance.
 
 CR follow-up on41699d07/6b2b5ece: FIX. Accepted both findings: deliver the patch
 against actual AL1 s198 source294dbed3, and add CR's PC resource governor before
@@ -49,3 +48,37 @@ Main agent accepts the findings. These are905fallback results only. New lock
 patch, source snapshot and executable must bind to294dbed3, with separate checks.
 The independent reviewer also confirmed the authoritative patch/source approach
 meets the requested port without replacing unrelated reference engine files.
+
+Actual-lock source-port milestone: independent read-only review of exact CR patch
+ef09b342368efd01876bf771726d58cc84d73ec2960b5a70ead710ff0e88d9e3 and the patched294
+stage found no concrete code defects. Verified all six changed blobs, untouched
+search algorithms/allocation/hard stop, default-OFF path, once-per-search snapshot,
+UCI join-before-option-write and completed-iteration-only logging. Main agent
+accepts this scope result; quick build/numeric and all actual-lock runtime checks
+remain pending, so the candidate is not accepted. Next: review governor, then
+governed native build and exact-candidate validation.
+
+Governor/build milestone:33 quick tests initially passed. Independent review
+confirmed CR's sleep-boundary policy, free-RAM semantics, unchanged active timing,
+BelowNormal and two-worker maximum. It found one missing build dependency receipt:
+run_tmfit.py supplied the guard but was not snapshotted. Main agent accepted it;
+builder now snapshots all three harness sources and rejects changes after build.
+The added tamper regression passed (five builder tests); focused re-review passed.
+Windows read-only sampling verified fresh metrics and BelowNormal16384. CPU was
+94–95.5%, above startup threshold, so native work must wait. No engine/compiler
+ran during those checks.
+
+Couns further restricted all native work to CR's sleep-based governor: no process
+suspension of any kind unless a separate pause step is committed and passed by CR.
+That approval does not exist. No suspension hook is used by the governor; the
+earlier scratch helper remains disabled. Crew processes are outside our control.
+
+Package/CI milestone: review found missing exact-patch hash assertion and a
+declaration-file mutation race. Main agent accepted both: CI asserts the exact
+SHA before applying; packager reads, retains and hashes declaration bytes once.
+The mutation regression passes. Producer source→binary→test linkage is explicitly
+a required manual audit, not a claimed automatic feature. Focused re-review
+passed these fixes and the new Linux actual-lock qualification job; its results
+must retain Linux scope. Reviewer verified fresh100 fixture hash/uniqueness and
+zero overlap with training, calibration and previous smoke. Runtime results
+remain pending; no candidate acceptance or strength claim.

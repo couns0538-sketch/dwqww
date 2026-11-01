@@ -11,7 +11,7 @@ spec.loader.exec_module(parallel)
 
 
 def fixture():
-    frozen = dict(engine_sha256='engine', referee_sha256='referee', runner_sha256='runner',
+    frozen = dict(engine_sha256='engine', referee_sha256='referee', runner_sha256='runner',governor_sha256='governor',
                   seed=2026110110, base_ms=8000, inc_ms=80, max_plies=400,
                   options=['TmFitA=914','TmFitB=1000','TmFitHi=1500','TmFitLo=750'],
                   option_file_sha256={}, engine_threads=1, assignments=[])
@@ -19,7 +19,7 @@ def fixture():
     for shard_id in range(2):
         openings = [f'opening-{shard_id}-{i}' for i in range(50)]
         frozen['assignments'].append(dict(shard_id=shard_id, openings=openings, sha256=f'openings{shard_id}'))
-        manifest = dict(engine_sha256='engine', referee_sha256='referee', runner_sha256='runner',
+        manifest = dict(engine_sha256='engine', referee_sha256='referee', runner_sha256='runner',governor_sha256='governor',
                         openings_sha256=f'openings{shard_id}', engine_threads=1,
                         option_file_sha256={}, selfplay_design='opposed_modes_colors_swapped',
                         command=dict(command='smoke-shard', games=100, seed=2026110110,
@@ -70,10 +70,10 @@ class AggregationTests(unittest.TestCase):
 
     def test_reject_different_exe_settings_clock_and_partial_claim(self):
         frozen, shards = fixture()
-        for field in ('engine_sha256','runner_sha256','threads','clock','option','claim'):
+        for field in ('engine_sha256','runner_sha256','governor_sha256','threads','clock','option','claim'):
             bad = copy.deepcopy(shards)
             manifest = bad[1]['manifest']
-            if field in ('engine_sha256','runner_sha256'):
+            if field in ('engine_sha256','runner_sha256','governor_sha256'):
                 manifest[field] = 'different'
             elif field == 'threads':
                 manifest['engine_threads'] = 2

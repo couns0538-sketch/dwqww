@@ -26,3 +26,11 @@ These descriptions supplement source inspection of AL1 and TimeManV2.
 TmFitModel is distinct: logistic coefficients are estimated from logged completed
 iterations, then the probability mapping is calibrated against measured time.
 No Caissa code or licence notice is copied because no Caissa source is imported.
+
+CR's supplied actual-AL1 port, governor patch and port helper are retained
+unchanged under cr_fixes/ with full MD5/SHA256 receipts. The authoritative
+tmfit-lock.patch is the supplied CR port; it moves the same original model onto
+294dbed3 without importing other engine algorithms. The governor matches CR's
+80% startup /90% ongoing CPU and8GiB free physical RAM boundary policy, with
+fresh-metric validation, recorded waits and regression tests. No third-party
+engine source or tuned constant was introduced by these fixes.

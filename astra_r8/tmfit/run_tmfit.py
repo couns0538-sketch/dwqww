@@ -21,6 +21,8 @@ import statistics
 import subprocess
 import threading
 import time
+import resource_governor
+from resource_governor import load_governor
 
 PINS = {11: 312866, 13: 862329, 16: 3024920, 20: 12389307, 22: 34048354}
 START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -66,6 +68,7 @@ def resource_guard(scratch_root):
     size = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
     if size > 5e9:
         raise RuntimeError('Task scratch exceeds 5 GB')
+    load_governor()
 
 
 def is_sanitizer_report(line):
@@ -207,6 +210,7 @@ class Engine(Process):
     def search(self, position, command, timeout):
         self.send(position)
         self.sync()
+        load_governor()  # Boundary wait finishes before the timed go begins.
         begin = time.perf_counter()
         self.send(command)
         lines, stamp = self.until(lambda line: line.startswith('bestmove '), timeout)
@@ -473,6 +477,7 @@ def bench(args, options):
             for depth, pin in PINS.items():
                 resource_guard(args.scratch_root)
                 with Engine(args.exe, log, mode, options) as engine:
+                    load_governor()
                     engine.send(f'bench {depth}')
                     lines, _ = engine.until(lambda x: x.startswith('info string bench depth '), 1800)
                     nodes = int(re.search(r'\bnodes (\d+)', lines[-1])[1])
@@ -480,6 +485,7 @@ def bench(args, options):
                     print(json.dumps(rows[-1]), flush=True)
         for fen, pin in [(START, 4865609), (KIWI, 193690690)]:
             with Engine(args.exe, log, 0, options) as engine:
+                load_governor()
                 engine.send('position fen '+fen)
                 engine.send('go perft 5')
                 lines, _ = engine.until(lambda x: x.startswith('nodes '), 600)
@@ -545,10 +551,15 @@ def main():
     validate_extra_options(options)
     resource_guard(args.scratch_root)
     args.out.mkdir(parents=True, exist_ok=False)
+    resource_governor.attach(args.out)
     with (args.out/'runner_snapshot.py').open('xb') as snapshot:
         snapshot.write(Path(__file__).read_bytes())
+    with (args.out/'resource_governor_snapshot.py').open('xb') as snapshot:
+        snapshot.write(Path(resource_governor.__file__).read_bytes())
     manifest = dict(strength='UNPROVEN', command=vars(args), engine_sha256=digest(args.exe),
                     runner_sha256=digest(args.out/'runner_snapshot.py'), runner_snapshot='runner_snapshot.py',
+                    governor_sha256=digest(args.out/'resource_governor_snapshot.py'),
+                    governor=resource_governor.snapshot(),
                     openings_sha256=digest(args.openings) if args.openings else None,
                     referee_sha256=digest(args.referee) if args.referee else None,
                     started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
@@ -569,13 +580,15 @@ def main():
             summary = bench(args,options)
         else:
             summary = probes(args,fens,options)
-        write_json(args.out/'sha256.json', {p.name:digest(p) for p in args.out.iterdir() if p.is_file() and p.name != 'sha256.json'})
         print(json.dumps(summary), flush=True)
         if not summary.get('pass', summary.get('pass_', False)):
             raise RuntimeError('Qualification conditions failed; see summary.json')
     except BaseException as error:
         write_json(args.out/'failure.json', dict(type=type(error).__name__, message=str(error)))
         raise
+    finally:
+        resource_governor.finish(args.out)
+        write_json(args.out/'sha256.json', {p.name:digest(p) for p in args.out.iterdir() if p.is_file() and p.name != 'sha256.json'})
 
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
 # Astra R8 fitted time model — UNPROVEN
 
-Source base: `905e2325caeabea92b1017b22b434218a43145a7`, the explicitly permitted
-`forge-bundle-int` parent fallback. Lock executable identifier: FD3A5190 (AL1 s198).
+Authoritative gate base: `294dbed3a15dfd821aaf9d4edc6e5f62832fd460`, actual AL1 s198.
+Historical reference base: `905e2325caeabea92b1017b22b434218a43145a7`, the initially
+permitted `forge-bundle-int` parent fallback. Lock executable identifier: FD3A5190.
 Branch: `astra-r8-tmfit`. Crew builds the LTO+PGO gate executable.
 
 ## Current qualification status
@@ -21,15 +22,15 @@ instead of F: with 50 GB minimum free. Scratch is
 |---|---|---|
 | Data: >=50,000 real root iterations | PASS | 52,012 /19 games; 0 illegal/flags; hashed 1% sample |
 | Fit: grouped 20% held-out AUC | PASS | 4/19 held-out groups; AUC0.682619, fixed0.682835 |
-| 1 OFF pins d11/13/16/20/22 | PASS | fitted-v1:312866 /862329 /3024920 /12389307 /34048354 |
-| 1 ON fixed-depth identity | PASS | fitted-v1: identical five pins |
-| 1 perft5 | PASS | start4865609; kiwipete193690690 |
-| 2 timed live proof | PASS (revised fixture) | fitted-v1:10/20, median3; original opening-only5/20 and1/20 failures retained |
-| 3 200-game average time | PASS (fallback source only) | 200 games; ratios0.99016836/move,0.99001560/game-side;0flags/illegal; actual-lock port not yet qualified |
-| 4 hard limits | PASS | fitted-v1:50,1s+.01s; max255.124ms;0hard-cap+20ms overruns |
-| 5 absurd coefficient clamp | PASS | A1000000,50positions; multiplier capped1500; max255.342ms;0overruns |
-| 6 ASan+UBSan ON smoke | PASS | Linux CI41289552546,fittedsource,4allONgames,0reports/faults |
-| 7 patch/README/fitter/tests/skill | FIX | CR requires actual AL1 s198 base294dbed3; fallback patch/evidence preserved |
+| 1 OFF pins d11/13/16/20/22 | PENDING actual lock | Fallback PASS:312866 /862329 /3024920 /12389307 /34048354 |
+| 1 ON fixed-depth identity | PENDING actual lock | Fallback PASS: identical five pins |
+| 1 perft5 | PENDING actual lock | Fallback PASS:start4865609; kiwipete193690690 |
+| 2 timed live proof | PENDING actual lock | Fallback revised fixture:10/20, median3; opening-only5/20 and1/20 failures retained |
+| 3 200-game average time | PENDING actual lock | Fallback200 PASS:ratios0.99016836/move,0.99001560/game-side;0flags/illegal |
+| 4 hard limits | PENDING actual lock | Fallback50 PASS:1s+.01s; max255.124ms;0hard-cap+20ms overruns |
+| 5 absurd coefficient clamp | PENDING actual lock | FallbackA1000000/50 PASS:capped1500; max255.342ms;0overruns |
+| 6 ASan+UBSan ON smoke | PENDING actual lock | FallbackCI41291623694 PASS:4allONgames,0reports/faults |
+| 7 patch/README/fitter/tests/skill | IN PROGRESS | Exact CR patch now applies to294dbed3; governor/actual runtime validation pending |
 | Crew SPRT | UNPROVEN | CR first, then Strength and QA; UHO primary, 8moves separate, longer TC confirm |
 
 Blockers: none after D: scratch authorization; optional CodeRabbit/Sonar CLIs and
@@ -185,3 +186,33 @@ Original bytes and full hashes are versioned under cr_fixes/. Couns clarified
 8GB **free** RAM; CR uses8GiB, startCPU<80%, pauseCPU>=90%. That specification
 supersedes the initial own-process memory interpretation. Governor and lock-port
 matching are under implementation/review; no further native engine runs started.
+
+## Checkpoint 11 — CR port and sleep governor reviewed; actual tests pending
+
+Authoritative tmfit-lock.patch is byte-identical to CR's supplied file, SHA256
+ef09b342368efd01876bf771726d58cc84d73ec2960b5a70ead710ff0e88d9e3. Its actual294
+source stage has77 files,71 unchanged originals. Independent source review found
+no concrete code defects. The old905 patch is preserved as tmfit-fallback-905.patch.
+
+Governor matches CR's sleep-boundary policy and never suspends processes or
+subtracts active timing.34 governor/driver/coordinator/builder regressions pass.
+Review found and fixed the missing imported-guard snapshot; all three builder
+dependencies are now sealed and rechecked. Native API probes verify16CPUs,
+BelowNormal and fresh free-RAM readings. Host CPU94–99% causes60-second sleeps
+before startup. The native build request is waiting; no compiler/engine launched.
+Couns's later prohibition on all process suspension is recorded in AGENTS.md.
+
+Installed C++ evidence checker ran on evidence/lock-source-draft-v1: eight
+artifact hashes and both source/patch checks PASS; all eight experimental checks
+remain UNVERIFIED in this source-only draft. Candidate ID:
+55114017bc763b71c097ad5e65acec6a6ff2b0e4d2d1353ddf9166fbafc679e5.
+Packager declaration mutation regression passes; producer source→binary→test
+links require explicit main-agent/reviewer audit and are not automatically inferred.
+
+Actual-lock CI now asserts the exact patch hash, applies it to294dbed3, and builds
+that tree for ASan+UBSan and separate release qualification. Independent focused
+review found no blockers. Linux results will be labeled as Linux. The fresh
+100-opening fixture (seed2026110112, SHA6420d200...) has zero overlap with all139
+training/calibration/prior-smoke openings. Parameters remain742/3000/650/1750.
+Next: run source-bound checks/200 games on CI while governed PC work waits, then
+audit the completed evidence and handoff. All strength remains UNPROVEN.

@@ -96,9 +96,23 @@ exact lock commit or packaged source before generating a handoff patch. Compare
 the source bytes, then check both `git apply --check -p1` and the intended patch
 consumer on that tree. Git archive/export line-ending conversion can differ
 from blob bytes; use blob hashes when auditing untouched algorithm regions.
+Pin `core.autocrlf=false` and `core.eol=lf` for isolated patch application:
+global Git settings can change output bytes even outside a Git worktree.
 When a candidate is ported to another base, preserve the earlier candidate and
 its results under their original identity. Bind new results to the new base,
 patch, resulting source, compiler flags and executable; never relabel evidence.
+
+On a shared PC, encode the owner's CPU and free-memory policy in every live
+runner and builder. State whether thresholds govern admission between work
+units or continuous active execution. A boundary governor must wait before the
+timed `go`, preserve fresh resource samples and observed peaks, and record its
+thresholds/waits/failures with the candidate. Never silently subtract a pause
+from an active search's wall time and then claim the hard deadline passed.
+Clarify free RAM versus job RAM and decimal GB versus GiB from the supplied
+policy. Test threshold equality, stale/missing metrics, low memory and resumption
+with fake samples; do not create artificial load on a crew machine to test it.
+Control only owned work, keep the mandated priority/concurrency limits, and
+preserve every interrupted run under its original candidate identity.
 
 Retain immutable raw logs under the authorized scratch/storage budget. Commit
 a deterministic 1% sample, exact row counts, source/executable/net/opening
@@ -115,6 +129,24 @@ matching settings and modes, then recompute both time ratios from raw player
 totals across all shards. Average neither shard ratios nor shard PASS labels.
 Preserve every child failure and wait for owned children to clean up. Count
 simultaneously active search threads across the entire job, including shards.
+
+For a loaded shared Windows PC, match the owner's actual CPU/free-RAM policy.
+Use a boundary admission governor before compiler units and before timed `go`,
+recording thresholds, fresh metric receipts and wait events. `GetSystemTimes`
+kernel totals already include idle; subtract idle once. Retain sampled peaks
+between boundaries and fail closed on missing or stale metrics. A boundary
+governor does not impose an instantaneous ceiling inside a running search.
+Wait before starting its timer; never subtract a pause from measured elapsed
+time and then claim a hard wall-clock deadline passed. Preserve existing logs
+and never suspend unrelated work. Record explicit non-applicability for CI on
+another platform rather than claiming that the PC governor ran there.
+
+When building an exported lock stage, an ancestor repository's `git HEAD` is
+not the stage identity. Require declared base/patch provenance and hash the
+actual source files, including external helper translation units; recheck their
+hashes after compilation. Keep engine, referee and numeric binaries in separate
+new output directories, bind the referee to the same Board implementation, and
+do not mistake compiling a numeric target for executing its tests.
 
 Record correctness, fitted prediction quality, equal-time behavior and playing
 strength as separate conclusions. Keep the candidate UNPROVEN until the crew's

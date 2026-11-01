@@ -34,7 +34,7 @@ def aggregate(frozen, shards):
         assignment = next(a for a in assignments if a['shard_id'] == shard['shard_id'])
         manifest = shard['manifest']
         command = manifest['command']
-        for key in ('engine_sha256', 'referee_sha256', 'runner_sha256', 'engine_threads', 'option_file_sha256'):
+        for key in ('engine_sha256', 'referee_sha256', 'runner_sha256', 'governor_sha256', 'engine_threads', 'option_file_sha256'):
             if manifest.get(key) != frozen[key]:
                 raise ValueError('Shard provenance differs: ' + key)
         if manifest['engine_threads'] != 1 or manifest.get('selfplay_design') != 'opposed_modes_colors_swapped':
@@ -107,12 +107,18 @@ def read_shard(path, shard_id):
         target = (path/name).resolve()
         if not target.is_relative_to(path.resolve()) or runner.digest(target) != expected:
             raise ValueError('Changed or invalid shard artifact: ' + name)
-    for required in ('manifest.json','summary.json','games.jsonl','runner_snapshot.py','moves.jsonl','transcript.log'):
+    for required in ('manifest.json','summary.json','games.jsonl','runner_snapshot.py','moves.jsonl','transcript.log',
+                     'resource_governor_snapshot.py','governor-receipt.json'):
         if required not in seals:
             raise ValueError('Missing sealed artifact: ' + required)
     manifest = json.loads((path/'manifest.json').read_text(encoding='utf-8'))
     if runner.digest(path/'runner_snapshot.py') != manifest['runner_sha256']:
         raise ValueError('Runner snapshot hash mismatch')
+    if runner.digest(path/'resource_governor_snapshot.py') != manifest['governor_sha256']:
+        raise ValueError('Governor snapshot hash mismatch')
+    governor_receipt=json.loads((path/'governor-receipt.json').read_text(encoding='utf-8'))
+    if governor_receipt.get('errors',0) != 0:
+        raise ValueError('Governor failed; partial evidence cannot qualify')
     return dict(shard_id=shard_id, manifest=manifest,
                 summary=json.loads((path/'summary.json').read_text(encoding='utf-8')),
                 games=[json.loads(line) for line in (path/'games.jsonl').read_text(encoding='utf-8').splitlines() if line])
@@ -161,6 +167,7 @@ def main():
         parser.error('Frozen input must contain exactly 100 unique positions')
     runner.resource_guard(args.scratch_root)
     args.out.mkdir(parents=True, exist_ok=False)
+    runner.resource_governor.attach(args.out)
     binary_dir = args.out/'bin'
     binary_dir.mkdir()
     engine = binary_dir/('forge'+args.exe.suffix)
@@ -172,6 +179,8 @@ def main():
                   started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
                   engine_sha256=copy_new(args.exe,engine), referee_sha256=copy_new(args.referee,referee),
                   runner_sha256=copy_new(Path(runner.__file__),runner_path),
+                  governor_sha256=copy_new(Path(runner.resource_governor.__file__),args.out/'resource_governor.py'),
+                  governor=runner.resource_governor.snapshot(),
                   coordinator_sha256=copy_new(Path(__file__),args.out/'run_parallel_smoke.py'),
                   opening_source_path=str(args.openings.resolve()),
                   opening_source_sha256=copy_new(args.openings,args.out/'opening_source.epd'),
@@ -208,6 +217,7 @@ def main():
     try:
         flags = subprocess.BELOW_NORMAL_PRIORITY_CLASS | subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
         for shard_id, command in enumerate(commands):
+            runner.load_governor(start=True)  # Each new shard obeys CR's stricter startup admission.
             log = (args.out/f'shard{shard_id}-driver.log').open('x',encoding='utf-8')
             logs.append(log)
             processes.append(subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,creationflags=flags))
@@ -221,6 +231,7 @@ def main():
             raise ValueError('Frozen configuration changed during qualification')
         for path,expected in ((engine,frozen['engine_sha256']),(referee,frozen['referee_sha256']),
                               (runner_path,frozen['runner_sha256']),
+                              (args.out/'resource_governor.py',frozen['governor_sha256']),
                               (args.out/'run_parallel_smoke.py',frozen['coordinator_sha256']),
                               (args.out/'opening_source.epd',frozen['opening_source_sha256'])):
             if runner.digest(path) != expected:
@@ -245,6 +256,7 @@ def main():
                 process.wait()
         for log in logs:
             log.close()
+        runner.resource_governor.finish(args.out)
         write_new_json(args.out/'sha256.json',{str(p.relative_to(args.out)):runner.digest(p)
                        for p in args.out.rglob('*') if p.is_file() and p != args.out/'sha256.json'})
 
