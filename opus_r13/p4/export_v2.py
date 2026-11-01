@@ -8,7 +8,7 @@ Input: the `quantised.bin` that forge_v2_bullet writes with its save format (all
   l0b [H]
   l1w [8][2H]       (saved transposed: one row of 2H per output bucket, side-to-move half first)
   l1b [8]
-then zero padding to a multiple of 64 bytes (checked: anything else is an error).
+then bullet's padding to a multiple of 64 bytes: the repeating bytes b"bullet" (or no padding); anything else is an error.
 inputs = 768 (+ 9216 threats for b, c) (+ 1792 pawn pairs for c), in that order (forge_v2_bullet ForgeV2).
 Output: FORGENN2 via the crew's tools/nnue/forge_nnue_v2.py write_v2 (copied unchanged next to this file from
 forge-bundle-int b7c17722): hidden H, 1 king bucket (map all 0), no mirroring, stand-alone (not residual), 8 output
@@ -58,8 +58,13 @@ def main():
     raw = open(a.checkpoint, 'rb').read()
     counts = [n_in * h, h, BUCKETS * 2 * h, BUCKETS]
     need = 4 * sum(counts)
-    if len(raw) < need or len(raw) - need >= 64 or any(raw[need:]):
-        raise SystemExit(f'{a.checkpoint}: {len(raw)} bytes, expected {need} + zero padding < 64 (stage {a.stage}, H {h})')
+    # bullet da426a49 ModelWeights::to_quantised_buffer pads to a multiple of 64 bytes with the repeating bytes b"bullet"
+    # (crates/trainer/src/model/weights.rs); an unpadded save is accepted too. Anything else is an error.
+    pad_len = (64 - need % 64) % 64
+    bullet_pad = (b'bullet' * 11)[:pad_len]
+    if not (len(raw) == need or (len(raw) == need + pad_len and raw[need:] == bullet_pad)):
+        raise SystemExit(f'{a.checkpoint}: {len(raw)} bytes; expected {need} (stage {a.stage}, H {h}) or {need + pad_len} '
+                         f'ending in bullet padding {bullet_pad!r}; got tail {raw[need:need + 16]!r}')
     floats = struct.unpack_from(f'<{need // 4}f', raw)
     pos = 0
     parts = []

@@ -1,4 +1,4 @@
-# R13 Phase 4 - v2-feature nets with bullet (FORGENN2) - IN PROGRESS (no GPU run: needs Engine NNUE's window)
+# R13 Phase 4 - v2-feature nets with bullet (FORGENN2) - IN PROGRESS, CR R13 = FIX (being fixed; no training/handoff before)
 
 Branch `opus-r13-p4-v2nets` (from main). UNPROVEN: no net trained here yet; no Elo claim.
 
@@ -30,6 +30,14 @@ a mock runtime! It can't actually do anything!"). So the prompt's "CPU-only smok
 every training run, the smoke included, needs a GPU window. CPU-side proof instead (no training needed): the program
 compiles against the mock backend, and parity_v2.sh checks, per stage, a seeded random FORGENN2 net through the Rust feature
 lists + float32 reference against the engine's own loader / features / kernel (v2_eval, AVX2 + SSE builds) on 10k FENs.
+
+## CR R13 (crew Code Review of 59ad17c9) and fixes
+| CR item | fix |
+|---|---|
+| parity_v2.sh always exits 0 (a mutation run proved it never fails) | every stage now exits 1 on any non-exact FEN, ERR line, line-count mismatch or all-zero evals; `PARITY PASS` only at the end; `PARITY_MUTATE=1` plants a +1 in the reference and must make it fail (to be shown in the run log) |
+| export_v2.py rejects real bullet output (pad bytes are 'bullet', not zeros) | accepts exactly bullet's padding (crates/trainer/src/model/weights.rs to_quantised_buffer: repeating b"bullet" up to a multiple of 64) or no padding; anything else is an error |
+| IDEA_SOURCE wrong: sfbinpack GPL-3.0, montyformat AGPL-3.0 | IDEA_SOURCE.md rewritten with a licence table from the crates' Cargo.toml: both are bullet_lib dependencies, trainer tool only, never in Forge source |
+| H768+ parity still unrun | open: parity so far is for H = 256 (the R3 engine's compiled HiddenSize); H 768 / 1024 / 1536 need engine harness builds with -DFORGE_NNUE_HIDDEN=<H> and nets of that width - listed as TODO, no claim beyond H256 |
 
 ## Next
 cargo build (CPU backend) with my own CARGO_HOME copy (no writes into F:\bullet_hip), feature parity (Rust lists vs engine via
