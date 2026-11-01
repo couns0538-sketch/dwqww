@@ -1,0 +1,73 @@
+test_bool_count_rejected (test_crew_proof.ProofTests.test_bool_count_rejected) ... ok
+test_changed_recipe_refuses_before_output (test_crew_proof.ProofTests.test_changed_recipe_refuses_before_output) ... ok
+test_cli_reports_failure_and_exit (test_crew_proof.ProofTests.test_cli_reports_failure_and_exit) ... ok
+test_complete_fixture_records_all_nine_check_rows (test_crew_proof.ProofTests.test_complete_fixture_records_all_nine_check_rows) ... ok
+test_contradictory_fma_flag_rejects (test_crew_proof.ProofTests.test_contradictory_fma_flag_rejects) ... FAIL
+test_contradictory_lto_flags_reject (test_crew_proof.ProofTests.test_contradictory_lto_flags_reject) ... FAIL
+test_different_builds_fail (test_crew_proof.ProofTests.test_different_builds_fail) ... ok
+test_final_link_binds_output (test_crew_proof.ProofTests.test_final_link_binds_output) ... FAIL
+test_inactive_on_fails (test_crew_proof.ProofTests.test_inactive_on_fails) ... ok
+test_later_stage_binary_mutation_cannot_pass (test_crew_proof.ProofTests.test_later_stage_binary_mutation_cannot_pass) ... ok
+test_malformed_adapter_receipt_cannot_crash_without_table (test_crew_proof.ProofTests.test_malformed_adapter_receipt_cannot_crash_without_table) ... ok
+test_missing_profile_cannot_pass (test_crew_proof.ProofTests.test_missing_profile_cannot_pass) ... ok
+test_never_overwrites_existing_output (test_crew_proof.ProofTests.test_never_overwrites_existing_output) ... ok
+test_nonzero_child_cannot_pass (test_crew_proof.ProofTests.test_nonzero_child_cannot_pass) ... ok
+test_off_pin_mismatch_fails (test_crew_proof.ProofTests.test_off_pin_mismatch_fails) ... ok
+test_on_nodes_must_differ (test_crew_proof.ProofTests.test_on_nodes_must_differ) ... ok
+test_sanitizer_must_execute (test_crew_proof.ProofTests.test_sanitizer_must_execute) ... ok
+test_timeout_stops_later_stages_and_preserves_table (test_crew_proof.ProofTests.test_timeout_stops_later_stages_and_preserves_table) ... ok
+test_two_thread_contract_refuses_before_launch (test_crew_proof.ProofTests.test_two_thread_contract_refuses_before_launch) ... ok
+test_use_phase_must_keep_lto (test_crew_proof.ProofTests.test_use_phase_must_keep_lto) ... FAIL
+
+======================================================================
+FAIL: test_contradictory_fma_flag_rejects (test_crew_proof.ProofTests.test_contradictory_fma_flag_rejects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_proof.py", line 75, in test_contradictory_fma_flag_rejects
+    def test_contradictory_fma_flag_rejects(self):self.assertEqual(self.runproof('fma')[0]['status'],'FAIL')
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+======================================================================
+FAIL: test_contradictory_lto_flags_reject (test_crew_proof.ProofTests.test_contradictory_lto_flags_reject)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_proof.py", line 74, in test_contradictory_lto_flags_reject
+    def test_contradictory_lto_flags_reject(self):self.assertEqual(self.runproof('conflict')[0]['status'],'FAIL')
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+======================================================================
+FAIL: test_final_link_binds_output (test_crew_proof.ProofTests.test_final_link_binds_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_proof.py", line 76, in test_final_link_binds_output
+    def test_final_link_binds_output(self):self.assertEqual(self.runproof('wronglink')[0]['status'],'FAIL')
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+======================================================================
+FAIL: test_use_phase_must_keep_lto (test_crew_proof.ProofTests.test_use_phase_must_keep_lto)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_proof.py", line 73, in test_use_phase_must_keep_lto
+    def test_use_phase_must_keep_lto(self):self.assertEqual(self.runproof('uselto')[0]['status'],'FAIL')
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+----------------------------------------------------------------------
+Ran 20 tests in 15.500s
+
+FAILED (failures=4)
