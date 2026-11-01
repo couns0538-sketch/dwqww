@@ -9,3 +9,7 @@ Skill-writing/testing methods: available `superpowers:writing-skills`, `superpow
 C++/tool research entry points are in `references/research.md`. They are leads for future version-specific verification, not a claim of supporting an unperformed experiment. No other engine implementation or tuned constants are copied. No optional external source library, MCP server, hook or connector is bundled.
 
 The MIT license applies only to this plugin subtree's original files. It does not license the parent Forge engine, user data, third-party tools or externally retrieved documents. Schema/source hashes and URLs are recorded as provenance only.
+
+## Crew extension 1.1.0 (2026-11-01)
+
+The user's seven exact workflow specifications define the new specialist names. Original helpers and references; existing C++ engineering skill routes to them. Review corrections bind measured records to actual binaries/net/options, preserve full-FEN/game provenance, reject ineffective LTO/PGO/no-FMA witnesses, detect real fixture interruption and honor protected-root/path limits. No engine code or tuned constants were copied. PowerShell 7.4.6 portable tooling from the official PowerShell release was used outside the repository for syntax/pure-helper testing; this does not establish native Windows PowerShell 5.1 behavior.
