@@ -168,13 +168,27 @@ class Sampler:
             self.cursor += k; n -= k
         return np.concatenate(parts).tolist() if parts else []
 
+    def order_check(self):
+        """sha256 of pass 1's first 64 entries (int64 little-endian), from this numpy's Generator stream.
+        Generator streams are not guaranteed across numpy versions (CR LOW-N1), so this is stored in the
+        checkpoint and a resume whose stream differs fails closed. Computed once; does not touch the pass cache."""
+        if getattr(self, '_order_check', None) is None:
+            head = np.random.default_rng([self.seed, 1]).permutation(self.count)[:64]
+            self._order_check = hashlib.sha256(np.ascontiguousarray(head, dtype='<i8').tobytes()).hexdigest()
+        return self._order_check
+
     def state_dict(self):
-        return dict(count=self.count, seed=self.seed, manifest=self.manifest, cursor=self.cursor, algorithm=self.ALGORITHM)
+        return dict(count=self.count, seed=self.seed, manifest=self.manifest, cursor=self.cursor, algorithm=self.ALGORITHM,
+                    numpy_version=np.__version__, order_check=self.order_check())
 
     def load_state_dict(self, state):
         expected = self.state_dict()
         if any(state.get(k) != expected[k] for k in ('count','seed','manifest','algorithm')) or type(state.get('cursor')) is not int or state['cursor'] < 0:
             raise ValueError('sampler identity mismatch')
+        if state.get('numpy_version') != expected['numpy_version']:
+            raise ValueError(f"sampler numpy mismatch: checkpoint {state.get('numpy_version')!r}, running {expected['numpy_version']!r} (perm-v1 order is numpy-stream dependent; refusing to resume)")
+        if state.get('order_check') != expected['order_check']:
+            raise ValueError('sampler order_check mismatch: this numpy does not reproduce the checkpoint pass order; refusing to resume')
         self.cursor = state['cursor']
 
 class RowFile:

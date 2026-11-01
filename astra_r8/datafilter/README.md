@@ -36,8 +36,9 @@ Independent counts are computed for measurable rules; overlap and first-drop
 counts cover enabled rules in check/capture/mate/ply order. Best-move coverage 0
 means BLOCKED, never “100% quiet.” The two JSONL output streams preserve identical
 row order. Their hashes are deterministic; reports also contain nondeterministic
-wall time and throughput. Failures retain unpublished `.partial` evidence, and
-existing final or partial destinations are refused.
+wall time and throughput. Filter/holdout failures retain unpublished `.partial`
+evidence, and existing final or partial destinations are refused. `rebind_manifest.py`
+is the exception: on failure it deletes its own `<new>.partial`, so nothing is left.
 
 Holdout separation is a separate explicit stage, `clear_holdouts.py`. The complete
 audit found 47 matching board+STM keys across 013/014. The separately named
