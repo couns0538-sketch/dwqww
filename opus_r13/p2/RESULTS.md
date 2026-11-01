@@ -35,6 +35,19 @@ Scratch on C:\o13\p2 (F: was under its 50 GB floor).
 | 12k-FEN exe identity vs plain D8D90B68 (go depth 2: depth, score, nodes, bestmove), e19 and e9 | 12000/12000 both nets | 12000/12000 both nets | logs/f12k_*_compare.txt |
 | CI ASan+UBSan self-play (Linux g++ 13.3; no net on the runner), default and LargePages=true: 0 sanitizer lines, 0 illegal | PASS | PASS | logs/ci_san_41211359051.txt (run 41211359051) |
 
+## Advisory ABBA, align 1 (302ad8fb) vs align 0 (ff6628ce) - NOT official (QA times)
+r12_speed.py (opus-r12-pgo-net), CPU 2 with sibling CPU 3 idle (pair freed by the owner), BelowNormal, fresh process per
+run, 10 palindromic pairs + 3 A/A pairs per exe against byte copies, bench d16 / d20, Threads 1 Hash 16, nodes equal.
+| net | depth | engine nps median | 2-sided 95% | cpu nps median | A/A noise (median, both exes) |
+|---|---|---|---|---|---|
+| none (AL1 embedded, the profiled w1 path) | d16 | -0.07% | [-2.32%, +0.22%] | -0.58% | +0.8 .. +3.5% |
+| none | d20 | -0.92% | [-2.22%, -0.17%] | -0.28% | +2.7 .. +3.5% |
+| e19 | d16 | +0.37% | [-0.76%, +0.47%] | +0.13% | +0.8 .. +1.7% |
+| e19 | d20 | +0.89% | [-1.42%, +2.48%] | -0.03% | -0.6 .. +0.1% |
+**Verdict: neutral** (every interval inside the A/A noise; no gain >= +1%). The misalignment is real (w1 48 mod 64 without
+the switch) but costs nothing measurable in these LTO+PGO builds. Handed over as a node-identical switch build for QA's
+official timing; where the time goes (perf-style sampling) is left for the sparse-L1 step. Logs: logs/abba_align_*.
+
 ## Step 1b - net-path PGO (built: both exes above use it)
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
 To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training reproduced in R12 and QA's w21pt).
