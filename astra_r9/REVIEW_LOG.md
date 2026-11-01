@@ -53,3 +53,22 @@ Schema validator PASS; read-only forward-test rejected a hypothetical integer-on
 epsilon-checked horizontal-reduction handover for the correct concrete reasons.
 All three relative references resolve and exist. Next: run protocol v2 with other
 owned work paused; final evidence review after measurement.
+
+## M4 — complete correctness packet audit
+
+Engine source fb58080d23d871706662e91f092f918bb032d84c, production
+775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284 unchanged.
+Packet audit found a manual summary addition error: actual sanitizer coverage is
+572 plies/mode, not 592. Raw games/logs were correct; corrected report and retained
+failed audit01. Audit02 PASS1181; strengthened audit03 PASS1226.
+
+Read-only reviewer confirmed raw proof consistency, requested current status text,
+auxiliary compile provenance, full FMA-family evidence and stronger mode/source
+attribution assertions. All confirmed and fixed; no rejected findings. Auxiliary
+argv records are explicitly reconstructed from executed tool history, with compiler,
+source/harness and executable hashes. Whole-exe FMA-family scan zero hits bound to
+the production hash. Audit checks source Git blobs, parity names/hashes/activation,
+kit modes/paths and smoke/sanitizer mode fields. Focused recheck PASS.
+
+Next: complete remaining timing gate and final timing review. No accepted speed
+claim or QA handover. First qualifying protocol-v2 A/A block obtained by 15:09.
