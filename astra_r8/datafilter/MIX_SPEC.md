@@ -69,9 +69,10 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'D:/grok-pc-data/dwqww/astra8_data/handoff/manifest.json'
-$env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
-$env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
+# QA fix: re-pin the runtime once after the adapter fixes / npt move (writes a NEW manifest):
+#   & $py rebind_manifest.py <old manifest> <new manifest> --npt-root D:/grok-pc-data/npt/nnue-pytorch-amd
+$manifest = 'D:/grok-pc-data/dwqww/astra8_data/handoff/manifest_qafix.json'
+$npt = 'D:/grok-pc-data/npt/nnue-pytorch-amd'   # installed npt; default if --npt-root omitted
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
@@ -82,12 +83,15 @@ $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"
 
 # Engine NNUE executes only after its device/resource gate. Logical cuda:0 only.
-& $py $entry --manifest $manifest --recipe filtered_eval_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_eval_v1' --device cuda:0
-& $py $entry --manifest $manifest --recipe filtered_wdl_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_wdl_v1' --device cuda:0
+& $py $entry --manifest $manifest --recipe filtered_eval_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_eval_v1' --device cuda:0 --npt-root $npt --seed <FRESH_LEDGER_SEED>
+& $py $entry --manifest $manifest --recipe filtered_wdl_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_wdl_v1' --device cuda:0 --npt-root $npt --seed <FRESH_LEDGER_SEED>
 ```
 
-These commands each set K32H3^, L1024, batch16384, epoch152500000, epochs8,
-lr0.000875, gamma0.72, seed5108, no SWA, one process/device, zero loader workers,
+These commands each set K32H3^, L1024, batch16384, lr0.000875, gamma0.72, no SWA.
+Seed is required (no default; reserve it in the seed ledger). Epoch size is derived from
+`--passes-per-epoch` (default 1.0 pass over the cohort = 61 steps for 999,953 rows) and
+`--epochs` (default 3), so the default is ~3 passes; more than 8 total passes is refused
+unless `--allow-many-passes` (QA fix 2; the old 152.5M x 8 recipe was ~1,220 passes). Also one process/device, zero loader workers,
 and two torch threads. The Python adapter is intentionally bounded, not a throughput
 replacement for Opus R13. No loader speed or training-throughput claim is made.
 It reports no invented HLL unique counts. New run directories must not exist.

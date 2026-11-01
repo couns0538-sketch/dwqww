@@ -4,6 +4,10 @@ import json
 import os
 from pathlib import Path
 import sys
+if __name__ == '__main__' and '--npt-root' in sys.argv[:-1]:
+    # Must be set before npt_adapter imports the installed trainer.
+    os.environ['ASTRA_NPT_ROOT'] = sys.argv[sys.argv.index('--npt-root') + 1]
+    os.environ['NNUE_DATA_LOADER_LIB'] = os.path.join(os.environ['ASTRA_NPT_ROOT'], 'build', 'libtraining_data_loader.dll')
 from npt_adapter import (BatchStream, MaskedNNUE, RowFile, Sampler, NPT,
                          runtime_identity, single_process, torch)
 from filter_positions import sha256, low_priority
@@ -125,6 +129,7 @@ def main():
     p.add_argument('--epochs',type=int,default=DEFAULT_EPOCHS)
     p.add_argument('--passes-per-epoch',type=float,default=DEFAULT_PASSES_PER_EPOCH)
     p.add_argument('--allow-many-passes',action='store_true')
+    p.add_argument('--npt-root',help='installed npt directory (default ASTRA_NPT_ROOT or D: install)')
     a = p.parse_args()
     single_process(); low_priority()
     context = Context(a.manifest,a.recipe,a.seed,a.passes_per_epoch,a.epochs,a.allow_many_passes)

@@ -9,7 +9,12 @@ import sys
 from array import array
 import numpy as np
 
-NPT = Path(os.environ.get('ASTRA_NPT_ROOT', 'F:/opus_scratch/r6/nnue-pytorch-amd')).resolve()
+# Installed npt (GPL; never vendored here). Location from ASTRA_NPT_ROOT (train_adapter --npt-root),
+# default a D: install; no dependency on any agent scratch tree.
+DEFAULT_NPT_ROOT = 'D:/grok-pc-data/npt/nnue-pytorch-amd'
+NPT = Path(os.environ.get('ASTRA_NPT_ROOT') or DEFAULT_NPT_ROOT).resolve()
+if not (NPT / 'train.py').is_file():
+    raise ImportError(f'installed npt not found at {NPT}; set ASTRA_NPT_ROOT or pass --npt-root')
 sys.path.insert(0, str(NPT))
 os.environ.setdefault('NNUE_DATA_LOADER_LIB', str(NPT/'build/libtraining_data_loader.dll'))
 import torch
