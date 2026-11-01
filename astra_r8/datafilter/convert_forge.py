@@ -7,13 +7,15 @@ Filters as data40m: not check, <=max-pieces, move not capture/promo, not game ov
 Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
 import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
 from filter_lichess_rec import REC, encode_board
-from records import record, selfplay_record, dumps
+from records import record, selfplay_record, read_records, dumps
 ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
 ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
 ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
 ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
 ap.add_argument('--max-load', type=float, default=4.0)
 ap.add_argument('--keep-result', action='store_true')
+ap.add_argument('--lichess', nargs='*', default=[])
+ap.add_argument('--normalized', nargs='*', default=[])
 a = ap.parse_args()
 if os.path.lexists(a.outdir): sys.exit('refusing existing output destination')
 metadata = []
@@ -38,14 +40,16 @@ def keep(b, w, mv):
 throttle()
 for f in a.pgn:
     fh = open(f, encoding='utf-8', errors='ignore')
+    source_game = 0
     while True:
         g = chess.pgn.read_game(fh)
         if g is None: break
         st['games'] += 1
+        source_game += 1
         if st['games'] % 500 == 0: throttle()
         if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
         b = g.board()
-        for node in g.mainline():
+        for source_ply, node in enumerate(g.mainline()):
             mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
             if not m: st['book_or_noeval'] += 1
             elif m.group(2): st['mate'] += 1
@@ -55,7 +59,7 @@ for f in a.pgn:
                 if a.keep_result:
                     rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
                     current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
-                                              str(st['games']) + ':' + str(b.ply()), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                                              str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
                 keep(b, cp if b.turn else -cp, mv)
             b.push(mv)
 for f in a.selfplay:
@@ -67,6 +71,14 @@ for f in a.selfplay:
         if not b.is_valid(): st['sp_bad'] += 1; continue
         if a.keep_result: current_metadata = selfplay_record(line, f, source_row)
         keep(b, s if b.turn else -s, None)   # selfplay already quiet-filtered by eligible_score
+for kind, paths in [('lichess', a.lichess), ('normalized', a.normalized)]:
+    for f in paths:
+        for current_metadata in read_records(f, kind):
+            b = chess.Board(current_metadata['fen'])
+            if current_metadata['score_type'] == 'mate': st['mate'] += 1; continue
+            sc = current_metadata['score_stm']
+            mv = chess.Move.from_uci(current_metadata['best_move']) if current_metadata['best_move'] else None
+            keep(b, sc if b.turn else -sc, mv)
 if not out: sys.exit('no records')
 arr = np.concatenate(out); st['kept'] = len(arr)
 import signcheck; st['signcheck'] = signcheck.check(arr, n=1000)
@@ -87,5 +99,5 @@ if a.keep_result:
 s = arr['score'].astype(np.int32)
 st.update(final=len(arr), train=len(arr)-nv, val=nv, mean=float(s.mean()), std=float(s.std()),
           abs_median=float(np.median(np.abs(s))), black_to_move=float(arr['stm'].mean()), min_depth=a.min_depth,
-          sources=a.pgn + a.selfplay)
+          sources=a.pgn + a.selfplay + a.lichess + a.normalized)
 json.dump(st, open(f'{a.outdir}/stats.json', 'w'), indent=1); print(json.dumps(st, indent=1))

@@ -14,9 +14,15 @@ def record(fen, score, score_type, result_white, source, source_row,
     board = chess.Board(fen)
     if not board.is_valid():
         raise ValueError('invalid board')
-    if score_type not in ('cp', 'mate') or not isinstance(score, (int, float)) or not math.isfinite(score):
+    if source_kind not in ('selfplay', 'pgn', 'lichess'):
+        raise ValueError('unsupported source kind')
+    if not isinstance(source, str) or not source or isinstance(source_row, bool) or not isinstance(source_row, (str, int)) or not str(source_row):
+        raise ValueError('invalid source provenance')
+    if type(source_row) is int and source_row < 1:
+        raise ValueError('source row must be positive')
+    if score_type not in ('cp', 'mate') or type(score) is not int:
         raise ValueError('invalid score/type')
-    if result_white not in (None, -1, 0, 1):
+    if result_white is not None and (type(result_white) is not int or result_white not in (-1, 0, 1)):
         raise ValueError('invalid result')
     if best_move is not None and chess.Move.from_uci(best_move) not in board.legal_moves:
         raise ValueError('illegal stored best move')
@@ -48,6 +54,10 @@ def lichess_record(obj, source, row):
                   obj['evals'][0].get('depth'))
 
 def validate_record(r):
+    if type(r['has_result']) is not bool or type(r['ply']) is not int:
+        raise ValueError('invalid derived metadata type')
+    if r['result_stm'] is not None and type(r['result_stm']) is not int:
+        raise ValueError('invalid result_stm type')
     rebuilt = record(r['fen'], r['score_stm'], r['score_type'], r['result_white'],
                      r['source'], r['source_row'], r['source_kind'], r['best_move'],
                      r['raw_score'], r.get('depth'))
@@ -64,7 +74,11 @@ def read_records(path, kind='normalized'):
                 game_index += 1
                 if game.errors:
                     raise ValueError(f'{path}: game {game_index}: malformed PGN')
-                result = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}.get(game.headers.get('Result', '*'))
+                token = game.headers.get('Result', '*')
+                outcomes = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}
+                if token not in outcomes:
+                    raise ValueError(f'{path}: game {game_index}: invalid result {token}')
+                result = outcomes[token]
                 board = game.board()
                 for ply, node in enumerate(game.mainline()):
                     m = EV.match(node.comment or '')

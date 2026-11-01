@@ -50,3 +50,13 @@ def test_overlap_accounting(tmp_path):
     assert stats['independent']['check'] == stats['independent']['mate'] == 1
     assert stats['first_drop']['check'] == 1 and stats['first_drop']['mate'] == 0
     assert stats['overlap']['check+mate'] == 1
+
+def test_storage_preflight_before_output(tmp_path, monkeypatch):
+    import filter_positions as f
+    inp = tmp_path / 'in.jsonl'; inp.write_text(dumps(fixture(chess.STARTING_FEN))+'\n')
+    def fail(*args, **kwargs):
+        raise OSError('disk reserve')
+    monkeypatch.setattr(f, 'storage_guard', fail)
+    with pytest.raises(OSError, match='reserve'):
+        f.run_filter(inp, tmp_path/'out')
+    assert not (tmp_path/'out.partial').exists()

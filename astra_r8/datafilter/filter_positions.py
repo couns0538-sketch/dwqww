@@ -13,6 +13,7 @@ import chess
 from records import read_records, dumps
 
 RULES = ('check', 'capture', 'mate', 'ply')
+ARTIFACT_ROOT = Path('D:/grok-pc-data/dwqww/astra8_data')
 
 def low_priority():
     if os.name == 'nt':
@@ -26,13 +27,14 @@ def low_priority():
     else:
         os.nice(10)
 
-def storage_guard(root):
+def storage_guard(root=None, allowance=64*1024*1024):
     if os.name == 'nt':
+        # User authorized D-only validation while F is below its reserve; F remains read-only.
         for drive, reserve in [('C:/', 30), ('D:/', 50)]:
-            if shutil.disk_usage(drive).free < reserve * 10**9:
+            if shutil.disk_usage(drive).free < reserve * 10**9 + (allowance if drive == 'D:/' else 0):
                 raise OSError(f'{drive} below {reserve} GB reserve')
-    size = sum(p.stat().st_size for p in Path(root).rglob('*') if p.is_file())
-    if size > 15 * 10**9:
+    size = sum(p.stat().st_size for p in ARTIFACT_ROOT.rglob('*') if p.is_file())
+    if size + allowance > 15 * 10**9:
         raise OSError('new artifact cap exceeded')
 
 def sha256(path):
@@ -70,6 +72,7 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
     partial = out.with_name(out.name + '.partial')
     if out.exists() or partial.exists():
         raise FileExistsError('refusing existing output destination')
+    storage_guard()
     low_priority()
     partial.mkdir(parents=True)
     enabled = (drop_in_check, drop_capture_bestmove, drop_mate_scores, max_ply_from_start is not None)
@@ -82,6 +85,7 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
         with open(partial / 'records.jsonl', 'x', encoding='utf-8', newline='\n') as records, open(partial / 'metadata.jsonl', 'x', encoding='utf-8', newline='\n') as metadata:
             # Bounded submission; executor.map alone queues the entire input on Python 3.10.
             while window := list(itertools.islice(source, workers * 2)):
+                storage_guard(allowance=sum(len(dumps(r).encode('utf-8'))+1 for part in window for r in part)*2 + 1024*1024)
                 args = [(part, max_ply_from_start) for part in window]
                 results = executor.map(inspect_chunk, args) if executor else map(inspect_chunk, args)
                 for part in results:
