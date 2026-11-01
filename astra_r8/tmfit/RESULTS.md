@@ -7,11 +7,11 @@ Branch: `astra-r8-tmfit`. Crew builds the LTO+PGO gate executable.
 
 ## Current qualification status
 
-Implemented and fitted on real data; source patch applies to the lock fallback.
-Identity, liveness, hard-limit, clamp and sanitizer checks pass for the fallback
-source as scoped below. Its final200-game run also completed cleanly. CR requires
-a patch port and identity checks on the actual AL1 s198 source294dbed3, plus a
-CPU/RAM governor before further PC runs. These fixes are in progress.
+Implemented and fitted on real data; the authoritative CR patch applies to the
+actual AL1 s198 source294dbed3. Its Linux identity, liveness, hard-limit, clamp
+and sanitizer checks pass. Fresh200-game actual-lock timing qualification is
+running. CR's sleep-based CPU/free-RAM governor is installed and reviewed;
+native Windows startup is waiting for permissible host load.
 No search algorithm changes. Strength remains UNPROVEN.
 
 Storage: C: 182.1 GB, D: 83.8 GB, F: 49.1 GB at setup. User authorized D: scratch
@@ -22,19 +22,20 @@ instead of F: with 50 GB minimum free. Scratch is
 |---|---|---|
 | Data: >=50,000 real root iterations | PASS | 52,012 /19 games; 0 illegal/flags; hashed 1% sample |
 | Fit: grouped 20% held-out AUC | PASS | 4/19 held-out groups; AUC0.682619, fixed0.682835 |
-| 1 OFF pins d11/13/16/20/22 | PENDING actual lock | Fallback PASS:312866 /862329 /3024920 /12389307 /34048354 |
-| 1 ON fixed-depth identity | PENDING actual lock | Fallback PASS: identical five pins |
-| 1 perft5 | PENDING actual lock | Fallback PASS:start4865609; kiwipete193690690 |
-| 2 timed live proof | PENDING actual lock | Fallback revised fixture:10/20, median3; opening-only5/20 and1/20 failures retained |
+| 1 OFF pins d11/13/16/20/22 | PASS actual lock/Linux | CI41296951735:312866 /862329 /3024920 /12389307 /34048354 |
+| 1 ON fixed-depth identity | PASS actual lock/Linux | Same CI identity step; identical five pins |
+| 1 perft5 | PASS actual lock/Linux | start4865609; kiwipete193690690 |
+| 2 timed live proof | PASS actual lock/Linux | CI clock-check step passed; exact medians/count pending final artifact; original fallback failures retained |
 | 3 200-game average time | PENDING actual lock | Fallback200 PASS:ratios0.99016836/move,0.99001560/game-side;0flags/illegal |
-| 4 hard limits | PENDING actual lock | Fallback50 PASS:1s+.01s; max255.124ms;0hard-cap+20ms overruns |
-| 5 absurd coefficient clamp | PENDING actual lock | FallbackA1000000/50 PASS:capped1500; max255.342ms;0overruns |
-| 6 ASan+UBSan ON smoke | PENDING actual lock | FallbackCI41291623694 PASS:4allONgames,0reports/faults |
-| 7 patch/README/fitter/tests/skill | IN PROGRESS | Exact CR patch now applies to294dbed3; governor/actual runtime validation pending |
+| 4 hard limits | PASS actual lock/Linux | CI clock-check step passed50positions; exact maxima pending final artifact |
+| 5 absurd coefficient clamp | PASS actual lock/Linux | CI clock-check step passedA1000000/50positions; exact maxima pending artifact |
+| 6 ASan+UBSan ON smoke | PASS actual lock/Linux | CI41296951735 job124819689489:4allONgames/389plies,0reports/faults |
+| 7 patch/README/fitter/tests/skill | IN PROGRESS | Exact CR patch applies to294dbed3; final runtime/evidence audit pending |
 | Crew SPRT | UNPROVEN | CR first, then Strength and QA; UHO primary, 8moves separate, longer TC confirm |
 
-Blockers: none after D: scratch authorization; optional CodeRabbit/Sonar CLIs and
-MCP analysis tools are not currently available. Never treat missing analysis as PASS.
+Native Windows blocker: host CPU exceeds80% startup limit; the builder sleeps.
+Linux CI qualification continues. Optional CodeRabbit/Sonar CLIs and MCP analysis
+tools are unavailable. Never treat missing analysis as PASS.
 
 Next: implement/review the resource governor and actual-lock port, verify its
 OFF pins, and rerun candidate-dependent checks before the final handoff.
@@ -216,3 +217,19 @@ review found no blockers. Linux results will be labeled as Linux. The fresh
 training/calibration/prior-smoke openings. Parameters remain742/3000/650/1750.
 Next: run source-bound checks/200 games on CI while governed PC work waits, then
 audit the completed evidence and handoff. All strength remains UNPROVEN.
+
+## Checkpoint 12 — actual-lock Linux checks pass; final200 running
+
+Pushed02e79145998a6fb31c01e455d0b658a3bc6c5c8b. CI41296951735's sanitizer job
+124819689489 passed on asserted base294/patch ef09b342: numeric tests and4ONgames,
+389plies,0reports/illegal/time losses. Log/status/hash receipts are retained in
+evidence/ci_actual_lock_41296951735. Release qualification job124820184414 passed
+OFF/ON pins+perft and live/hard/absurd steps; jobs-at-final200-start.json preserves
+the exact step statuses. Its fresh200-game qualification is still running.
+Do not infer final acceptance or detailed probe numbers before artifact audit.
+
+The native Windows build request remains in CR-governor startup sleeps at
+CPU94–99%; no compiler or engine has launched. No process suspension is used.
+Linux evidence will not be relabeled Windows or crew LTO+PGO. Next: finish200,
+download and audit source→binary→test links, run final evidence checker/review,
+and hand off to CR, Strength and QA. Strength remains UNPROVEN.

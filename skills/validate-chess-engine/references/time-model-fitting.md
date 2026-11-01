@@ -108,6 +108,9 @@ units or continuous active execution. A boundary governor must wait before the
 timed `go`, preserve fresh resource samples and observed peaks, and record its
 thresholds/waits/failures with the candidate. Never silently subtract a pause
 from an active search's wall time and then claim the hard deadline passed.
+On Windows, `GetSystemTimes` kernel totals already include idle; subtract it
+once. Fail closed on missing or stale metrics. Explicitly mark the PC governor
+as not applicable in CI on another platform.
 Clarify free RAM versus job RAM and decimal GB versus GiB from the supplied
 policy. Test threshold equality, stale/missing metrics, low memory and resumption
 with fake samples; do not create artificial load on a crew machine to test it.
@@ -129,17 +132,6 @@ matching settings and modes, then recompute both time ratios from raw player
 totals across all shards. Average neither shard ratios nor shard PASS labels.
 Preserve every child failure and wait for owned children to clean up. Count
 simultaneously active search threads across the entire job, including shards.
-
-For a loaded shared Windows PC, match the owner's actual CPU/free-RAM policy.
-Use a boundary admission governor before compiler units and before timed `go`,
-recording thresholds, fresh metric receipts and wait events. `GetSystemTimes`
-kernel totals already include idle; subtract idle once. Retain sampled peaks
-between boundaries and fail closed on missing or stale metrics. A boundary
-governor does not impose an instantaneous ceiling inside a running search.
-Wait before starting its timer; never subtract a pause from measured elapsed
-time and then claim a hard wall-clock deadline passed. Preserve existing logs
-and never suspend unrelated work. Record explicit non-applicability for CI on
-another platform rather than claiming that the PC governor ran there.
 
 When building an exported lock stage, an ancestor repository's `git HEAD` is
 not the stage identity. Require declared base/patch provenance and hash the

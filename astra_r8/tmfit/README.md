@@ -10,8 +10,9 @@ identical to CR's supplied port. Apply with `git apply --check -p1` then
 The branch-root engine is the earlier reference implementation on the permitted
 905e2325 fallback. Its unchanged historical patch is `tmfit-fallback-905.patch`;
 its results cannot qualify the actual-lock port. The final fallback200 run passed
-both timing bounds with zero faults. Actual-lock runtime checks are pending;
-see RESULTS.md. Crew builds must use the authoritative lock patch, not the
+both timing bounds with zero faults. Actual-lock Linux identity, liveness, hard
+limits, clamp and sanitizer checks passed; its200-game qualification is running.
+See RESULTS.md. Crew builds must use the authoritative lock patch, not the
 reference branch-root engine.
 
 `TmFitModel` is one new default-off UCI spin option. It predicts whether the
@@ -33,6 +34,8 @@ depth, best-move change, effort and score delta. OFF emits no model diagnostics.
 52,012 real completed root iterations, 19 OFF self-play games at 8+0.08,
 Threads=1, Hash=16, seed2026110108, 8moves_v3. Logging is a default-OFF build
 switch, `FORGE_TM_LOG`; its entire block is removed from ordinary builds.
+Training and calibration used the905 fallback reference. The actual-lock port
+retains those coefficients and mapping without refitting or tuning against its tests.
 Root effort is cumulative within the search, matching the existing time manager.
 Near-best root move count was omitted because this source does not expose it.
 
@@ -65,8 +68,9 @@ The mapping is frozen after 40 paired calibration games: multiplier permille
 `clamp(742 + 3000*p, 650, 1750)`. ON/OFF time ratios were 0.986462 per move
 and 0.989479 per game-side, with zero faults. The separate200-game fallback
 qualification measured0.990168 per move /0.990016 per game-side, zero faults.
-These parameters are unchanged in the actual-lock port, whose separate runtime
-qualification is pending. AUC is predictive discrimination, not strength.
+These parameters are unchanged in the actual-lock port, whose fresh200-game
+qualification is running. AUC is predictive discrimination on the training-source
+holdout, not strength or a separate actual-lock prediction-quality estimate.
 The 1% sample, full-data hashes, coefficients and split IDs are in
 `evidence/fit_v0_001/`. Raw logs stay in authorized local scratch.
 
@@ -89,7 +93,9 @@ longer-TC confirmation. No Elo claim is made: **UNPROVEN**.
 
 Local validation uses GCC15.2 plain O3 x86-64-v3, static, ffp-contract=off and
 `FORGE_NNUE_HIDDEN=256`; it is not the crew's LTO+PGO gate build. Use
-`build_native.py --out <authorized-scratch/new-dir> [--expose] [--log]`.
+`build_native.py --source-root <patched-294-source> --base-commit 294dbed3a15dfd821aaf9d4edc6e5f62832fd460 --patch astra_r8/tmfit/tmfit-lock.patch --out <authorized-scratch/new-dir> --expose`.
+The native builder uses CR's sleep governor; high host CPU currently prevents
+startup. It never suspends processes. Linux CI results are labeled separately.
 The fitter requires NumPy; the runner and referee use only Python stdlib and
 Forge Board code. The referee is same-family legality validation, not an
 independent chess implementation. Exact commands and hashes are retained in
