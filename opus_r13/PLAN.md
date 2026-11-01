@@ -130,3 +130,16 @@ Order = the prompt's order. Same pipeline and checks as block 1 (skills forge-lo
    list + int8 dot over it behind `FORGE_SPARSE_L1` (default 0), bit-identical parity on the 12k FENs (embedded + FTP1
    net), bench pins, sanitizer, advisory ABBA.
 If usage looks low at any point: stop starting new items, push, write `opus_r13/FINAL_REPORT.md` (Phase 8).
+
+---
+# Block 3 plan (written 2026-11-01 ~08:50 PC clock; block 2 done: P1 items 3-5 READY; P2 step 2 sparse L1 stopped as SLOWER)
+P2 steps 5 / 5a are "if time is left": skipped for now (TODO), the order moves on to Phase 3.
+1. **P3 step 1 - split Sf26Bundle** on the lock tree (sf26bundle_al1.patch, applies with -F0): new switches Sf26NmpPrior
+   (bit 2), Sf26LmrGap (bit 4), Sf26MulticutCorr (bit 8), default 0, each = its bit of Sf26Bundle (OR); margins stay
+   tunables (Sf26NmpPriorBonus 16, new Sf26NmpPriorCap 3, Sf26LmrAlphaGap 260). Proof: OFF pins; each single switch ON
+   bench == Sf26Bundle=<bit> bench (same nodes), plus Sf26Bundle=14 == the original's bench if recorded in the handoff.
+2. **P3 step 3 - build + checks**: kit v2.3 -Expose pc1/pc2, CheckOpt per single line; cand_checks (mate probe: bits 2/4
+   prune/reduce); CI ASan+UBSan; handoffs p3/sf26_nmp, p3/sf26_lmr, p3/sf26_mc + the combined line (only if 2+ singles pass).
+3. **P3 step 2 - SPSA** per bit (fixed budget stated before the run, fresh logged seeds, 1-2 threads, BelowNormal, CPUs 2-3),
+   R9 tuner (forge-spsa-tuning skill) on the built exe; values are proposals only (setoption lines in the READMEs).
+If usage looks low: stop starting new items, push, update opus_r13/FINAL_REPORT.md.
