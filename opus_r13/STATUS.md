@@ -1,16 +1,16 @@
 # Forge R13 (Opus) - status, one line per phase
 
-Updated: 2026-11-01 09:37 PC clock. Plan blocks 1-4 in opus_r13/PLAN.md. All results UNPROVEN (no gate).
+Updated: 2026-11-01 11:00 PC clock. CR R13: P3 PASS, P6 PASS, P4 + P7 FIX (fixes pushed, runs in progress). All UNPROVEN.
 
 | phase | state | branch | last commit |
 |---|---|---|---|
 | P1 near-miss ports | DONE: all 5 items READY (b1, packa_w50, packa_w60, bnd68, packc28, eos49) | opus-r13-p1-nearmiss-ports | 759acc6d |
 | P2 speed stack / align / net-path PGO / sparse L1 | DONE for now: stack align0 ff6628ce, align1 302ad8fb (neutral), sparse stks 6fdf46dc exact but SLOWER (stopped); steps 5/5a TODO | opus-r13-p2-sparse-l1 | a9d14902 |
-| P3 Sf26 split + SPSA | split READY (exe 029d58e8, 3 single lines + combined); SPSA bits 2/4 running (160 pairs each) | opus-r13-p3-sf26split | 1aaf00bd |
-| P4 v2-feature nets (bullet) | IN PROGRESS: trainer/exporter/harness/reference written (da68b43c), build + parity next | opus-r13-p4-v2nets | da68b43c |
+| P3 Sf26 split + SPSA | DONE, CR PASS: exe 029d58e8, 3 single lines (queued as gates) + combined; SPSA bits 2/4 noise-level | opus-r13-p3-sf26split | fe841cb4 |
+| P4 v2-feature nets (bullet) | CR FIX done (parity fails on mismatch, bullet padding, licence table); trainer compiles (mock backend); random-net parity running; GPU window needed | opus-r13-p4-v2nets | e23fca30 |
 | P5 relabel pipeline | tools staged (relabel_job.py: sharded/resumable Windows driver around Astra relabel_positions), run after the SPSA | opus-r13-p5-nnue-data | - |
-| P6 Syzygy on the lock tree | port script applied cleanly (+1796 lines), patch pushed; build + checks after the SPSA | opus-r13-p6-syzygy | c860d3b8 |
-| P7 E3 fit | tools written (raw eval harness, PGN extractor, fitter); no E3 gate is H0 yet; run after the SPSA | opus-r13-p7-e3fit | 7d81f367 |
+| P6 Syzygy on the lock tree | CR PASS (port); build + checks next | opus-r13-p6-syzygy | c860d3b8 |
+| P7 E3 fit | CR FIX done (raw_eval compiles on d4f4312, loud failures, bootstrap CIs, dedupe); fit running | opus-r13-p7-e3fit | cad3fe13 |
 | P8 final report | checkpoint 2 (FINAL_REPORT.md), updated as work lands | opus-r13-status | - |
 
 Notes
