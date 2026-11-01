@@ -91,3 +91,37 @@ sanitizer-status-corrected.json with workflow_commit and explicit patched-source
 candidate_id; the sealed original and its hashes remain unchanged. No other
 provenance overclaims found; absent ASan binary/producer-reported hash is disclosed.
 Final review will cover the release/200-game artifacts and final qualification.
+
+Final actual-lock engineering handoff milestone: exact base294dbed3 plus CR
+patch ef09b342, candidate55114017bc763b71c097ad5e65acec6a6ff2b0e4d2d1353ddf9166fbafc679e5.
+No source or harness changes since the tested workflow commit02e79145.
+Quick/source checks: fresh -p1 application matches all77 source files; installed
+checker passes all10 checks and127 artifact references in final packagev2.
+Completed CI41296951735 supplies pinned OFF/ON bench/perft, live11/20 median3,
+hard50/50, absurd50/50 and4 ASan+UBSan ON games without reports. The original
+GitHub smoke-count failure remains preserved, with its dedicated-mode fix and
+regressions validated by subsequent CI including this actual-lock run.
+
+Independent reviewer inspected stable release evidence and assembled package,
+verified source archives/binaries/test manifests, and reconciled all26,308 raw
+move records with200 games/100 color-swapped pairs. Main agent separately read
+and assessed the audit, checked78 retained hashes and3 downloaded binaries,
+recomputed timing totals, and rehashed the52,012-row dataset/fit/sample split.
+Both timing ratios pass±3%, with0 illegal moves/time losses. Linux scope and
+the missing ASan binary limitation remain explicit.
+
+Finding P2: qualification-status.json repeated the workflow-commit-as-candidate
+label error. Accepted and fixed by adding qualification-status-corrected.json
+(SHA2560fdc16172f00a241b73f813256abdfdf62c2fdf796db982d77879a850c7dcddf)
+and a new final packagev2. Original receipt and sealed packagev1 are preserved.
+Focused recheck approved the correction, unchanged source/results and all127
+references, with0 unresolved findings. Main agent accepts the review; no rejected
+findings or speculative changes. Existing validation skill gained this provenance
+lesson rather than a duplicate skill.
+
+Engineering handoff is complete; strength acceptance is UNPROVEN. Crew next:
+Code Review, Engine Strength, Engine QA LTO+PGO build/SPRT, then longer-TC confirm
+if TM H1. Native grok-pc startup never admitted compiler/engine work;56 sleep
+checks were followed by cancellation of the owned waiting request. No suspension
+or crew process intervention occurred. AGENTS.md retains the automatic review
+policy and explicit no-suspension restriction for subsequent development.

@@ -1,0 +1,110 @@
+name: astra-r8-tmfit-sanitizers
+on:
+  workflow_dispatch:
+  push:
+    branches: [astra-r8-tmfit]
+    paths: ['src/**', 'include/**', 'CMakeLists.txt', 'tests/tmfit_tests.cpp', 'astra_r8/tmfit/*.py', 'astra_r8/tmfit/*.patch', 'astra_r8/tmfit/tmfit_referee.cpp', '.github/workflows/astra-r8-tmfit.yml']
+permissions:
+  contents: read
+jobs:
+  sanitizer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the exact AL1 s198 lock source
+        uses: actions/checkout@v4
+        with:
+          ref: 294dbed3a15dfd821aaf9d4edc6e5f62832fd460
+          path: lock-source
+      - name: Apply the authoritative actual-lock candidate
+        run: |
+          test "$(git -C lock-source rev-parse HEAD)" = 294dbed3a15dfd821aaf9d4edc6e5f62832fd460
+          echo 'ef09b342368efd01876bf771726d58cc84d73ec2960b5a70ead710ff0e88d9e3  astra_r8/tmfit/tmfit-lock.patch' | sha256sum --check --strict
+          git -C lock-source -c core.autocrlf=false -c core.eol=lf apply --check -p1 "$GITHUB_WORKSPACE/astra_r8/tmfit/tmfit-lock.patch"
+          git -C lock-source -c core.autocrlf=false -c core.eol=lf apply -p1 "$GITHUB_WORKSPACE/astra_r8/tmfit/tmfit-lock.patch"
+          sha256sum astra_r8/tmfit/tmfit-lock.patch
+      - name: Check harness failure regressions before compiling
+        run: |
+          python3 -m unittest discover -s astra_r8/tmfit -p test_run_tmfit.py -v
+          python3 -m unittest discover -s astra_r8/tmfit -p test_parallel_smoke.py -v
+          python3 -m unittest discover -s astra_r8/tmfit -p test_resource_governor.py -v
+          python3 -m unittest discover -s astra_r8/tmfit -p test_build_native.py -v
+          python3 -m unittest discover -s astra_r8/tmfit -p test_package_lock_candidate.py -v
+      - name: Build ASan and UBSan
+        run: |
+          cmake -S lock-source -B build -DCMAKE_BUILD_TYPE=Debug -DFORGE_ENABLE_SANITIZERS=ON -DFORGE_EXPOSE_TUNABLES=ON -DCMAKE_CXX_FLAGS='-DFORGE_NNUE_HIDDEN=256 -O1'
+          cmake --build build --target forge forge_tmfit_tests -j2
+          c++ -std=c++20 -O1 -Ilock-source/include astra_r8/tmfit/tmfit_referee.cpp lock-source/src/board.cpp lock-source/src/bitboard.cpp -o build/tmfit_referee
+      - name: ON numeric and timed self-play smoke — UNPROVEN
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          ./build/forge_tmfit_tests
+          mkdir -p build/evidence
+          python3 astra_r8/tmfit/run_tmfit.py sanitizer --exe build/forge --referee build/tmfit_referee --openings tools/openings/forge-10000.epd --scratch-root build/evidence --out build/evidence/sanitizer --games 4 --base-ms 8000 --inc-ms 80 --max-plies 100
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tmfit-sanitizer-evidence
+          path: build/evidence
+  lock-qualification:
+    needs: sanitizer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 294dbed3a15dfd821aaf9d4edc6e5f62832fd460
+          path: lock-source
+      - name: Apply and build the exact lock candidate
+        run: |
+          test "$(git -C lock-source rev-parse HEAD)" = 294dbed3a15dfd821aaf9d4edc6e5f62832fd460
+          echo 'ef09b342368efd01876bf771726d58cc84d73ec2960b5a70ead710ff0e88d9e3  astra_r8/tmfit/tmfit-lock.patch' | sha256sum --check --strict
+          git -C lock-source -c core.autocrlf=false -c core.eol=lf apply --check -p1 "$GITHUB_WORKSPACE/astra_r8/tmfit/tmfit-lock.patch"
+          git -C lock-source -c core.autocrlf=false -c core.eol=lf apply -p1 "$GITHUB_WORKSPACE/astra_r8/tmfit/tmfit-lock.patch"
+          cmake -S lock-source -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_EXPOSE_TUNABLES=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS='-DFORGE_NNUE_HIDDEN=256 -march=x86-64-v3'
+          cmake --build build --target forge forge_tmfit_tests -j2
+          c++ -std=c++20 -O3 -Ilock-source/include astra_r8/tmfit/tmfit_referee.cpp lock-source/src/board.cpp lock-source/src/bitboard.cpp -o build/tmfit_referee
+          mkdir -p build/evidence
+          python3 - <<'PY'
+          import hashlib,json,pathlib,shutil,sys
+          sys.path.insert(0,'astra_r8/tmfit')
+          import package_lock_candidate as p
+          root=pathlib.Path('lock-source').resolve()
+          patch=pathlib.Path('astra_r8/tmfit/tmfit-lock.patch').resolve()
+          blobs=p.git_source(root,p.BASE)
+          actual,receipt=p.apply_verify(blobs,patch,pathlib.Path('build/receipt-apply-check').resolve(),root,set(blobs)|p.NEW_FILES)
+          identity=p.candidate_identity(p.BASE,p.sha(patch.read_bytes()),actual)
+          evidence=pathlib.Path('build/evidence')
+          (evidence/'candidate-identity.json').write_bytes(p.json_bytes(identity))
+          (evidence/'source-application.json').write_bytes(p.json_bytes(receipt))
+          (evidence/'source-sha256.json').write_bytes(p.json_bytes({n:p.sha(b) for n,b in actual.items()}))
+          (evidence/'build-receipt.json').write_bytes(p.json_bytes(dict(strength='UNPROVEN',platform='GitHub ubuntu-24.04',candidate_id=identity['candidate_id'],base_commit=p.BASE,patch_sha256=p.sha(patch.read_bytes()),binaries={n:p.sha(pathlib.Path('build',n).read_bytes()) for n in ['forge','forge_tmfit_tests','tmfit_referee']})))
+          for name in ['compile_commands.json','CMakeCache.txt']:
+              shutil.copyfile(pathlib.Path('build',name),evidence/name)
+          PY
+      - name: Numeric, OFF and ON pins, and perft on actual lock
+        run: |
+          ./build/forge_tmfit_tests > build/evidence/numeric.log
+          cat build/evidence/numeric.log
+          python3 astra_r8/tmfit/run_tmfit.py bench --exe build/forge --scratch-root build/evidence --out build/evidence/bench
+      - name: Timed live proof, hard limits and absurd coefficient
+        run: |
+          python3 astra_r8/tmfit/run_tmfit.py live --exe build/forge --scratch-root build/evidence --out build/evidence/live --openings astra_r8/tmfit/evidence/clock_fixture/positions.epd --seed 2026110111
+          python3 astra_r8/tmfit/run_tmfit.py hard --exe build/forge --scratch-root build/evidence --out build/evidence/hard --openings astra_r8/tmfit/evidence/clock_fixture/positions.epd --seed 2026110111
+          python3 astra_r8/tmfit/run_tmfit.py absurd --exe build/forge --scratch-root build/evidence --out build/evidence/absurd --openings astra_r8/tmfit/evidence/clock_fixture/positions.epd --seed 2026110111
+      - name: Frozen 200-game actual-lock timing qualification — UNPROVEN
+        run: |
+          python3 astra_r8/tmfit/run_parallel_smoke.py --exe build/forge --referee build/tmfit_referee --openings astra_r8/tmfit/evidence/lock_smoke_openings/8moves_lock100.epd --scratch-root build/evidence --out build/evidence/final200 --seed 2026110112 --base-ms 8000 --inc-ms 80 --option TmFitA=742 --option TmFitB=3000 --option TmFitLo=650 --option TmFitHi=1750
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tmfit-actual-lock-qualification
+          path: |
+            build/evidence
+            build/forge
+            build/forge_tmfit_tests
+            build/tmfit_referee

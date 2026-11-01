@@ -11,7 +11,7 @@ The branch-root engine is the earlier reference implementation on the permitted
 905e2325 fallback. Its unchanged historical patch is `tmfit-fallback-905.patch`;
 its results cannot qualify the actual-lock port. The final fallback200 run passed
 both timing bounds with zero faults. Actual-lock Linux identity, liveness, hard
-limits, clamp and sanitizer checks passed; its200-game qualification is running.
+limits, clamp, sanitizer and 200-game qualification checks passed.
 See RESULTS.md. Crew builds must use the authoritative lock patch, not the
 reference branch-root engine.
 
@@ -68,8 +68,9 @@ The mapping is frozen after 40 paired calibration games: multiplier permille
 `clamp(742 + 3000*p, 650, 1750)`. ON/OFF time ratios were 0.986462 per move
 and 0.989479 per game-side, with zero faults. The separate200-game fallback
 qualification measured0.990168 per move /0.990016 per game-side, zero faults.
-These parameters are unchanged in the actual-lock port, whose fresh200-game
-qualification is running. AUC is predictive discrimination on the training-source
+These parameters are unchanged in the actual-lock port. Its fresh 200-game
+qualification measured 0.990135 per move and 0.990286 per game-side, with zero
+illegal moves or time losses. AUC is predictive discrimination on the training-source
 holdout, not strength or a separate actual-lock prediction-quality estimate.
 The 1% sample, full-data hashes, coefficients and split IDs are in
 `evidence/fit_v0_001/`. Raw logs stay in authorized local scratch.
@@ -91,11 +92,26 @@ invocations need only `TmFitModel=1`. All other experimental options stay OFF.
 UHO is the primary SPRT book; 8moves_v3 is separate, never pooled. A TM H1 needs
 longer-TC confirmation. No Elo claim is made: **UNPROVEN**.
 
-Local validation uses GCC15.2 plain O3 x86-64-v3, static, ffp-contract=off and
-`FORGE_NNUE_HIDDEN=256`; it is not the crew's LTO+PGO gate build. Use
+The actual-lock qualification ran on GitHub Ubuntu 24.04 with plain Release O3,
+x86-64-v3, ffp-contract=off, `FORGE_NNUE_HIDDEN=256`, Expose ON and TM_LOG OFF.
+OFF and ON matched all five bench pins; perft5 matched both pins. Timed medians
+changed on 11/20 positions. All 50 hard-budget positions and all 50 absurd-A
+positions passed, and ASan+UBSan completed 389 ON plies without reports.
+The final source and evidence package is
+`evidence/qualification_actual_lock_final_v2/`; `candidate-source.tar` contains
+the exact 77 source files qualified in CI. Its candidate ID is
+`55114017bc763b71c097ad5e65acec6a6ff2b0e4d2d1353ddf9166fbafc679e5`.
+The installed C++ evidence checker passes; it checks hashes and declarations,
+with producer source/binary/test links audited separately. CI run:
+https://github.com/couns0538-sketch/dwqww/actions/runs/41296951735.
+
+Historical fallback Windows validation used GCC15.2 plain O3, not crew LTO+PGO.
+No actual-lock Windows compiler or engine launched: the governor waited through
+56 startup checks above 80% CPU, then the main agent cancelled its own waiting
+request. No process suspension was used. For a future authorized native build, use
 `build_native.py --source-root <patched-294-source> --base-commit 294dbed3a15dfd821aaf9d4edc6e5f62832fd460 --patch astra_r8/tmfit/tmfit-lock.patch --out <authorized-scratch/new-dir> --expose`.
-The native builder uses CR's sleep governor; high host CPU currently prevents
-startup. It never suspends processes. Linux CI results are labeled separately.
+The native builder uses CR's sleep governor. It never suspends processes.
+The crew still owns the LTO+PGO gate build and strength acceptance.
 The fitter requires NumPy; the runner and referee use only Python stdlib and
 Forge Board code. The referee is same-family legality validation, not an
 independent chess implementation. Exact commands and hashes are retained in

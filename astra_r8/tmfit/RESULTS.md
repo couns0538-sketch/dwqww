@@ -8,10 +8,11 @@ Branch: `astra-r8-tmfit`. Crew builds the LTO+PGO gate executable.
 ## Current qualification status
 
 Implemented and fitted on real data; the authoritative CR patch applies to the
-actual AL1 s198 source294dbed3. Its Linux identity, liveness, hard-limit, clamp
-and sanitizer checks pass. Fresh200-game actual-lock timing qualification is
-running. CR's sleep-based CPU/free-RAM governor is installed and reviewed;
-native Windows startup is waiting for permissible host load.
+actual AL1 s198 source294dbed3. Its Linux identity, liveness, hard-limit, clamp,
+sanitizer and fresh 200-game timing checks pass. CR's sleep-based CPU/free-RAM
+governor is installed and reviewed. Native Windows startup stayed above the
+80% CPU admission limit; the owned waiting request was cancelled without ever
+launching a compiler or engine. No process suspension was used.
 No search algorithm changes. Strength remains UNPROVEN.
 
 Storage: C: 182.1 GB, D: 83.8 GB, F: 49.1 GB at setup. User authorized D: scratch
@@ -25,20 +26,20 @@ instead of F: with 50 GB minimum free. Scratch is
 | 1 OFF pins d11/13/16/20/22 | PASS actual lock/Linux | CI41296951735:312866 /862329 /3024920 /12389307 /34048354 |
 | 1 ON fixed-depth identity | PASS actual lock/Linux | Same CI identity step; identical five pins |
 | 1 perft5 | PASS actual lock/Linux | start4865609; kiwipete193690690 |
-| 2 timed live proof | PASS actual lock/Linux | CI clock-check step passed; exact medians/count pending final artifact; original fallback failures retained |
-| 3 200-game average time | PENDING actual lock | Fallback200 PASS:ratios0.99016836/move,0.99001560/game-side;0flags/illegal |
-| 4 hard limits | PASS actual lock/Linux | CI clock-check step passed50positions; exact maxima pending final artifact |
-| 5 absurd coefficient clamp | PASS actual lock/Linux | CI clock-check step passedA1000000/50positions; exact maxima pending artifact |
+| 2 timed live proof | PASS actual lock/Linux | 11/20 positions; median of3; fresh processes, interleaved clock searches and diagnostics |
+| 3 200-game average time | PASS actual lock/Linux | 200 games/100 fresh pairs; ON/OFF0.99013512 per move,0.99028568 per game-side;0 flags/illegal |
+| 4 hard limits | PASS actual lock/Linux | 50 positions,1s+0.01s; max200.510805ms;0 overruns against hard budget+20ms |
+| 5 absurd coefficient clamp | PASS actual lock/Linux | A1000000,50 positions; all710 multipliers clamped1500; max200.664711ms;0 overruns |
 | 6 ASan+UBSan ON smoke | PASS actual lock/Linux | CI41296951735 job124819689489:4allONgames/389plies,0reports/faults |
-| 7 patch/README/fitter/tests/skill | IN PROGRESS | Exact CR patch applies to294dbed3; final runtime/evidence audit pending |
+| 7 patch/README/fitter/tests/skill | PASS engineering handoff | Exact CR patch applies to294dbed3; source archive, checker and independent final review PASS; no unresolved findings |
 | Crew SPRT | UNPROVEN | CR first, then Strength and QA; UHO primary, 8moves separate, longer TC confirm |
 
-Native Windows blocker: host CPU exceeds80% startup limit; the builder sleeps.
-Linux CI qualification continues. Optional CodeRabbit/Sonar CLIs and MCP analysis
-tools are unavailable. Never treat missing analysis as PASS.
+Actual-lock validation scope: GitHub Ubuntu24.04 plain Release O3 and a separate
+ASan+UBSan build; not native Windows or crew LTO+PGO. Optional CodeRabbit/Sonar
+analysis tools were unavailable; a reviewer subagent performed focused reviews.
 
-Next: implement/review the resource governor and actual-lock port, verify its
-OFF pins, and rerun candidate-dependent checks before the final handoff.
+Next: crew Code Review first, Engine Strength and Engine QA; build LTO+PGO and
+run the declared SPRT protocol. Strength remains UNPROVEN.
 
 ## Checkpoint 2 — implemented, collecting; UNPROVEN
 
@@ -258,3 +259,42 @@ patched-source candidate_id; preserved the sealed original and all old hashes.
 REVIEW_LOG.md records the finding and accepted correction. Final200 remains in
 progress without a reported failure; coefficients/source remain frozen. Native
 startup still sleeps at97.5%CPU. No process suspension or native compiler launch.
+
+## Checkpoint 15 — actual-lock qualification complete; final receipt review
+
+CI run41296951735 completed successfully on workflow commit02e79145. The tested
+source is actual294 plus CR patch ef09b342, candidate
+`55114017bc763b71c097ad5e65acec6a6ff2b0e4d2d1353ddf9166fbafc679e5`.
+Downloaded release engine SHA256:
+`b91b15806d88c93ec7a59b2c04ea98aaec80fca5fb0eb0aeee3fac2606ed0731`.
+All77 source files, three release binaries,84 producer hash entries and test
+manifests bind consistently. Main agent independently recomputed the200-game
+totals: OFF13,153 moves /2,352,805.814612ms; ON13,155 /2,329,949.905202ms.
+ON/OFF ratios are0.9901351231 per move and0.9902856796 per game-side. Both pass
+the±3% bounds, with0 illegal moves and0 time losses. The100 color-swapped pairs
+use fresh seed2026110112 openings disjoint from139 earlier openings.
+
+Independent final review parsed all26,308 raw moves and verified the exact
+source archives, binaries, hashes, live11/20 medians,50 hard and50 absurd probes.
+One receipt repeated the workflow/candidate label error. Its original is retained;
+qualification-status-corrected.json names the workflow commit and candidate ID
+separately. Final packagev2 includes this correction and passes the installed
+C++ checker:127 artifact hash checks,10 declared/source checks,0 issues.
+Focused independent recheck approved the correction and package delta, with
+no unresolved findings. The main agent accepts that review outcome.
+
+The owned native builder never passed startup admission:56 sleep checks at high
+host CPU, no output directory/compiler/engine. Its queued exec session was
+cancelled by Ctrl-C, exit1, without suspension or crew process intervention.
+The full bounded startup console and receipt are preserved. At final storage
+inspection C:166,443,565,056 bytes and D:87,220,498,432 bytes were free; scratch
+was551,333,697 bytes before the small final repackaging step.
+
+Final package: evidence/qualification_actual_lock_final_v2. The first final
+package remains unchanged at authorized scratch/qualification_actual_lock_final_v1;
+its replacement only adds the reviewed provenance correction. Committed bounded
+raw logs total18.2MB; full training/200-game raw logs and binaries stay in scratch.
+No coefficient/source changes followed qualification. Linux engineering evidence
+is complete; native Windows and crew LTO+PGO are not claimed. Handoff order is
+CR, Strength, QA; UHO primary and8moves_v3 separate, longer-TC confirm for TM H1.
+Strength remains UNPROVEN.

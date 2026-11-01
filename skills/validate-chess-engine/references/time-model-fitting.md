@@ -101,6 +101,13 @@ global Git settings can change output bytes even outside a Git worktree.
 When a candidate is ported to another base, preserve the earlier candidate and
 its results under their original identity. Bind new results to the new base,
 patch, resulting source, compiler flags and executable; never relabel evidence.
+Distinguish the workflow commit from an exported candidate's identity: use the
+base commit, exact patch hash and resulting source manifest. A successful CI job
+must assert those inputs before building. Download and hash the tested binaries
+when available; if an artifact omits one, disclose that its hash is only
+producer-reported and explain the source/build/test link supported by the log.
+An evidence checker's hash/status PASS does not perform this provenance audit.
+When correcting a sealed receipt, retain the original and add a linked correction.
 
 On a shared PC, encode the owner's CPU and free-memory policy in every live
 runner and builder. State whether thresholds govern admission between work
