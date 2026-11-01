@@ -114,11 +114,12 @@ def test_actual_feature_and_model_forward_contract():
 
 def test_command_contract():
     from train_adapter import command
-    args = command('manifest.json','new-output','cpu')
-    for key, value in [('--features','K32H3^'),('--l1','1024'),('--batch-size','16384'),('--epoch-size','152500000'),('--max-epochs','8'),('--lr','0.000875'),('--gamma','0.72'),('--seed','5108')]:
+    # QA fix 2: seed/epoch size/epochs are explicit (was hard-coded 5108 / 152500000 / 8).
+    args = command('manifest.json','new-output','cpu',seed=61101,epoch_size=61*16384,epochs=3)
+    for key, value in [('--features','K32H3^'),('--l1','1024'),('--batch-size','16384'),('--epoch-size',str(61*16384)),('--max-epochs','3'),('--lr','0.000875'),('--gamma','0.72'),('--seed','61101')]:
         assert args[args.index(key)+1] == value
     with pytest.raises(ValueError):
-        command('manifest','out','cuda:0,1')
+        command('manifest','out','cuda:0,1',seed=61101,epoch_size=16384,epochs=1)
 
 def test_native_black_result_and_mirror_features():
     import torch
@@ -147,11 +148,11 @@ def test_validation_does_not_advance_training_sampler(tmp_path):
 
 def test_checkpoint_identity_and_epoch_boundary():
     from train_adapter import resume_epoch
-    assert resume_epoch(9307,9307*16384)==1
+    assert resume_epoch(9307,9307*16384,9307)==1
     with pytest.raises(ValueError,match='epoch-boundary'):
-        resume_epoch(1,16384)
+        resume_epoch(1,16384,9307)
     with pytest.raises(ValueError,match='cursor'):
-        resume_epoch(9307,0)
+        resume_epoch(9307,0,9307)
 
 def test_native_logger_interface(tmp_path):
     from npt_adapter import BatchStream, RowFile, Sampler
@@ -169,7 +170,7 @@ def test_nonzero_device_rank_rejected(monkeypatch):
     from train_adapter import command
     from npt_adapter import single_process
     with pytest.raises(ValueError):
-        command('manifest','out','cuda:1')
+        command('manifest','out','cuda:1',seed=61101,epoch_size=16384,epochs=1)
     monkeypatch.setenv('LOCAL_RANK','1')
     with pytest.raises(ValueError):
         single_process()

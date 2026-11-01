@@ -13,7 +13,7 @@ def context(tmp_path):
     from train_adapter import Context
     p=tmp_path/'rows.jsonl'; p.write_text('\n'.join(map(dumps,rows()))+'\n')
     m=tmp_path/'manifest.json'; m.write_text(json.dumps({'train':{'path':str(p),'sha256':sha256(p)},'validation':{'path':str(p),'sha256':sha256(p)}}))
-    return Context(m,'filtered_wdl_v1')
+    return Context(m,'filtered_wdl_v1',61101,allow_many_passes=True)
 
 def test_installed_entrypoint_constructs_without_training(tmp_path,monkeypatch):
     import torch
@@ -34,7 +34,7 @@ def test_installed_entrypoint_constructs_without_training(tmp_path,monkeypatch):
     monkeypatch.setattr(train,'SimpleTrainer',NoTraining)
     try:
         install(ctx,train)
-        args=command(ctx.manifest_path,tmp_path/'run','cpu')
+        args=command(ctx.manifest_path,tmp_path/'run','cpu',seed=61101,epoch_size=16384,epochs=8)
         for flag,value in [('--l1','8'),('--batch-size','2'),('--epoch-size','4'),('--validation-size','4'),('--threads','1')]:
             args[args.index(flag)+1]=value
         args+=['--async-checkpoint-save','False']
@@ -65,7 +65,7 @@ def build_trainer(ctx,tmp_path):
 @pytest.mark.parametrize('already_stepped',[False,True])
 def test_real_checkpoint_sampler_lr_restore(tmp_path,already_stepped):
     import torch
-    ctx=context(tmp_path); ctx.runtime={'pin':'fixture'}
+    ctx=context(tmp_path); ctx.runtime={'pin':'fixture'}; ctx.plan=dict(ctx.plan,steps_per_epoch=9307)
     t=build_trainer(ctx,tmp_path)
     t.current_epoch=0; t.global_step=9307; ctx.sampler.cursor=9307*16384
     if already_stepped:
