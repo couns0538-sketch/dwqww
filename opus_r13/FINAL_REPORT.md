@@ -1,4 +1,4 @@
-# R13 (Opus) - report (checkpoint 2, 2026-11-01 ~09:10 PC clock: P1 done, P2 done for now, P3 SPSA running)
+# R13 (Opus) - report (checkpoint 3, 2026-11-01 ~09:45 PC clock: P1 done, P2 done for now, P3 SPSA running, P4-P7 prepared)
 
 Everything below is **UNPROVEN**: no Elo or speed claim; crew gates (UHO first, 8moves_v3 second, never pooled) and QA's
 timing decide. Lock = FD3A5190 (AL1 s198, kit v2.3 -Expose). Lock source = git d4f4312 (= src_al1s198_clean, 20 files).
@@ -59,6 +59,20 @@ All: OFF bench d11-d22 = 312866/862329/3024920/12389307/34048354 (no setoption) 
 ## Left (TODO for the crew or a next session)
 - P2 steps 5 / 5a (optional speed items) and a profile of the HalfKA L1 before any new sparse attempt; P4 v2-feature nets;
   P5 relabel; P6 Syzygy; P7 E3 fit.
+
+## Phases 4-7 - prepared, waiting for CPU (each on its own branch, see its RESULTS.md)
+- P4 (opus-r13-p4-v2nets): bullet v2 trainer (stages a/b/c; own input type mirroring nnue_v2.hpp O6 threats / O7 pawn
+  pairs; 8 output buckets = Forge's map), FORGENN2 exporter (round(x*4096), via the crew's write_v2), engine parity harness
+  (v2::load + refresh + evaluate), numpy float32 reference, GPU_REQUEST.md (3 stages x H 768/1024/1536 x 2 fresh seeds,
+  ~4.6 GPU h, first window: stage a h1024). FTP1 permutation does not apply to FORGENN2 (no int8 L1 layer).
+- P5 (opus-r13-p5-nnue-data): relabel_job.py = sharded, resumable Windows driver (Idle, CPUs 2-3, run id in every status
+  file, per-shard output hashes, nothing in place) around Astra's relabel_positions / forge_probe (unchanged copies);
+  input: Astra's filtered 10M slice D:\grok-pc-data11_nnuestraorge_filtered.pos (9,206,371 rows; FEN sidecar not
+  extracted -> reconstructed FENs, stated); probe to be built from the lock source.
+- P6 (opus-r13-p6-syzygy): Opus C1 prober port script applied cleanly to a fresh lock copy (+1796 lines); every Board
+  method it calls exists in the lock; build + WDL/DTZ checks next.
+- P7 (opus-r13-p7-e3fit): no E3 gate is H0 yet; tools: raw static eval harness (lock), gate-PGN extractor, fitter
+  (80/20 by game, optimism approximated statically).
 
 ## Scoping notes for the phases not started (read-only checks, 2026-11-01)
 - P4 v2-feature nets: bullet dirs exist on F: (`F:ullet_hip`, `F:ullet_equal`, `F:ullet_gpu_test_20261031`); Astra's
