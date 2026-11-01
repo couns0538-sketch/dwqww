@@ -1,31 +1,38 @@
 #!/usr/bin/env python3
 """fit_e3.py - R13 P7 (own code): fit the E3 eval post-processing values to game results (WDL log-loss).
 
-usage: python -I -B fit_e3.py <prefix> <evals.txt> <out.json>
+usage: python -I -B fit_e3.py <prefix> <evals.txt> <out.json> [--boot 2000] [--seed 13701]
   <prefix>.tsv from extract_positions.py, evals.txt from raw_eval (lock raw static eval, side to move, one per FEN).
 Model (src/search.cpp of e3_evalpost_al1, Worker::e3_post_eval, integer arithmetic with C++ truncation toward zero):
-  optimism (approximated for a static fit: the search uses the previous iteration's ROOT score; here the position's own
-  raw eval stands in for it):  o = trunc(K * v / (|v| + 120));  v += trunc(o * M / M0)
-  material scale:  factor = 1024 + trunc(s * (2M - M0) * 1024 / (100 * M0));  v = trunc(v * factor / 1024)
-  rule50 damping:  v -= trunc(v * D * min(clock, 100) / 10000);  clamp to +-(MateInMaxPly - 1)
-  K = EvalOptimism, s = EvalMatScale, D = EvalRule50Damp; M = E3 material, M0 = 2 * (8*82 + 2*337 + 2*365 + 2*477 + 1025).
-Loss: mean soft-label cross-entropy of p = sigmoid(a * v / 400) against the side-to-move result (1, 0.5, 0); the slope
-a is refitted for every parameter set (so a pure rescaling of the eval cannot win). Split: games whose id hashes to
-0 mod 5 are the 20% held out (by game, never by position). Search: coarse grid on the 80% training games, then a
-+-step refine around the best; each option alone (the gate lines are per option) and the three together.
-Reports held-out loss for OFF (0, 0, 0), the hand values (12, 40, 30) and the fitted values.
+  optimism (APPROXIMATED for a static fit - the search uses the previous iteration's ROOT score; here the position's own
+  raw eval stands in for it, so a fitted EvalOptimism is weak evidence):  o = trunc(K*v/(|v|+120));  v += trunc(o*M/M0)
+  material scale:  factor = 1024 + trunc(s*(2M - M0)*1024/(100*M0));  v = trunc(v*factor/1024)
+  rule50 damping:  v -= trunc(v*D*min(clock, 100)/10000);  clamp to +-(MateInMaxPly - 1)
+Loss: mean soft-label cross-entropy of p = sigmoid(a*v/400) against the side-to-move result (1, 0.5, 0); the slope a is
+refitted on the training games for every parameter set (a pure rescaling cannot win). Split by game: games whose id hashes
+to 0 mod 5 are the held-out 20%. Search: coarse grid + local refine on the training games; each option alone and all three.
+Error bars (CR R13): game-level bootstrap of the held-out set (resample held-out games with replacement, --boot times, fixed
+seed), 95% percentile intervals of the held-out loss DIFFERENCES fitted - OFF, hand - OFF and fitted - hand.
+Fails loudly (exit 2) on bad input: line-count mismatch, any ERR eval, a non-integer eval, a result outside {0, 0.5, 1},
+a negative material / clock, or fewer than 50 games / 2000 positions in either split. Exit 0 = report written.
 """
+import argparse
 import json
 import sys
 
 import numpy as np
 
 M0 = 2 * (8 * 82 + 2 * 337 + 2 * 365 + 2 * 477 + 1025)
-MATE_IN_MAX = 31743  # MateInMaxPly - 1 clamp bound; static evals never get near it
+MATE_IN_MAX = 31743
+HAND = (12, 40, 30)
+
+
+def die(msg):
+    print(f'fit_e3: ERROR: {msg}', file=sys.stderr)
+    sys.exit(2)
 
 
 def tdiv(a, b):
-    """C++ integer division (truncation toward zero) on int64 arrays."""
     q = np.abs(a) // np.abs(b)
     return np.where((a < 0) ^ (b < 0), -q, q)
 
@@ -33,8 +40,7 @@ def tdiv(a, b):
 def transform(v, m, clock, s, k, d):
     v = v.astype(np.int64)
     if k:
-        o = tdiv(k * v, np.abs(v) + 120)
-        v = v + tdiv(o * m, np.full_like(m, M0))
+        v = v + tdiv(tdiv(k * v, np.abs(v) + 120) * m, np.full_like(m, M0))
     if s:
         factor = 1024 + tdiv(s * (2 * m - M0) * 1024, np.full_like(m, 100 * M0))
         v = tdiv(v * factor, np.full_like(v, 1024))
@@ -43,98 +49,140 @@ def transform(v, m, clock, s, k, d):
     return np.clip(v, -MATE_IN_MAX, MATE_IN_MAX)
 
 
-def loss_at(x, y, a):
+def pos_losses(x, y, a):
     z = a * x / 400.0
-    # log(1 + e^-z) etc. computed stably
-    lp = -np.logaddexp(0.0, -z)
-    lq = -np.logaddexp(0.0, z)
-    return float(-(y * lp + (1 - y) * lq).mean())
+    return y * np.logaddexp(0.0, -z) + (1 - y) * np.logaddexp(0.0, z)
 
 
 def fit_slope(x, y):
     lo, hi = 0.1, 8.0
-    for _ in range(60):  # golden-section on a convex 1-D loss
+    f = lambda a: float(pos_losses(x, y, a).mean())
+    for _ in range(60):
         m1, m2 = lo + (hi - lo) * 0.382, lo + (hi - lo) * 0.618
-        if loss_at(x, y, m1) < loss_at(x, y, m2):
+        if f(m1) < f(m2):
             hi = m2
         else:
             lo = m1
     a = (lo + hi) / 2
-    return a, loss_at(x, y, a)
+    return a, f(a)
 
 
-def evaluate(params, data, train_slope=None):
-    v, m, c, y = data
-    x = transform(v, m, c, *params).astype(np.float64)
-    if train_slope is None:
-        return fit_slope(x, y)
-    return train_slope, loss_at(x, y, train_slope)
+def load(prefix, evals_path):
+    lines = open(prefix + '.tsv').read().splitlines()
+    if not lines or lines[0].split('\t')[:5] != ['game_id', 'ply', 'stm_result', 'material', 'clock']:
+        die(f'{prefix}.tsv: missing or wrong header')
+    rows = [l.split('\t') for l in lines[1:]]
+    evals = open(evals_path).read().split()
+    if len(rows) != len(evals):
+        die(f'{len(rows)} positions but {len(evals)} evals')
+    if not rows:
+        die('no positions')
+    try:
+        v = np.array([int(e) for e in evals], dtype=np.int64)
+    except ValueError:
+        bad = next(e for e in evals if not e.lstrip('-').isdigit())
+        die(f'non-integer eval {bad!r} (raw_eval ERR or truncated output)')
+    y = np.array([float(r[2]) for r in rows])
+    if not np.isin(y, (0.0, 0.5, 1.0)).all():
+        die('a result is not 0, 0.5 or 1')
+    m = np.array([int(r[3]) for r in rows], dtype=np.int64)
+    c = np.array([int(r[4]) for r in rows], dtype=np.int64)
+    if (m < 0).any() or (m > M0).any() or (c < 0).any():
+        die('material / clock out of range')
+    ids = [r[0] for r in rows]
+    uniq = {g: i for i, g in enumerate(dict.fromkeys(ids))}
+    game = np.array([uniq[g] for g in ids])
+    held = np.array([int(g, 16) % 5 == 0 for g in ids])
+    return v, y, m, c, game, held
 
 
 def main():
-    prefix, evals_path, out_path = sys.argv[1:4]
-    rows = [l.rstrip('\n').split('\t') for l in open(prefix + '.tsv')][1:]
-    evals = [l.strip() for l in open(evals_path)]
-    assert len(rows) == len(evals), (len(rows), len(evals))
-    keep = [i for i, e in enumerate(evals) if e != 'ERR']
-    gid = np.array([int(rows[i][0], 16) % 5 for i in keep])
-    v = np.array([int(evals[i]) for i in keep], dtype=np.int64)
-    y = np.array([float(rows[i][2]) for i in keep])
-    m = np.array([int(rows[i][3]) for i in keep], dtype=np.int64)
-    c = np.array([int(rows[i][4]) for i in keep], dtype=np.int64)
-    tr, te = gid != 0, gid == 0
+    ap = argparse.ArgumentParser()
+    ap.add_argument('prefix')
+    ap.add_argument('evals')
+    ap.add_argument('out')
+    ap.add_argument('--boot', type=int, default=2000)
+    ap.add_argument('--seed', type=int, default=13701)
+    a = ap.parse_args()
+    v, y, m, c, game, held = load(a.prefix, a.evals)
+    tr, te = ~held, held
+    for name, mask in (('training', tr), ('held-out', te)):
+        if mask.sum() < 2000 or len(np.unique(game[mask])) < 50:
+            die(f'{name} split too small: {int(mask.sum())} positions, {len(np.unique(game[mask]))} games')
     train = (v[tr], m[tr], c[tr], y[tr])
     test = (v[te], m[te], c[te], y[te])
-    report = {'positions': int(len(v)), 'train_positions': int(tr.sum()), 'test_positions': int(te.sum()),
-              'games_hint': 'split by game id hash (0 mod 5 = held out)', 'fits': {}}
 
-    def search(space):
-        best = None
-        for p in space:
-            a, l = evaluate(p, train)
-            if best is None or l < best[2]:
-                best = (p, a, l)
-        return best
+    def fit(p):
+        x = transform(train[0], train[1], train[2], *p).astype(np.float64)
+        return fit_slope(x, train[3])
 
-    def refine(best, steps):
-        p, a, l = best
+    def refine(p, steps):
+        a0, l0 = fit(p)
         improved = True
         while improved:
             improved = False
             for i, st in enumerate(steps):
-                if st == 0:
-                    continue
-                for delta in (-st, st):
+                for delta in ((-st, st) if st else ()):
                     q = list(p)
                     q[i] = int(min(max(q[i] + delta, 0), (50, 150, 60)[i]))
                     q = tuple(q)
                     if q == p:
                         continue
-                    a2, l2 = evaluate(q, train)
-                    if l2 < l - 1e-9:
-                        p, a, l, improved = q, a2, l2, True
-        return p, a, l
+                    a2, l2 = fit(q)
+                    if l2 < l0 - 1e-9:
+                        p, a0, l0, improved = q, a2, l2, True
+        return p, a0, l0
 
     grids = {
         'EvalMatScale only': ([(s, 0, 0) for s in range(0, 51, 5)], (1, 0, 0)),
-        'EvalOptimism only (static approximation)': ([(0, k, 0) for k in range(0, 151, 10)], (0, 2, 0)),
+        'EvalOptimism only (static approximation: weak evidence)': ([(0, k, 0) for k in range(0, 151, 10)], (0, 2, 0)),
         'EvalRule50Damp only': ([(0, 0, d) for d in range(0, 61, 5)], (0, 0, 1)),
         'all three': ([(s, k, d) for s in range(0, 51, 10) for k in range(0, 151, 30) for d in range(0, 61, 10)], (2, 5, 2)),
     }
+    sets = {'OFF': (0, 0, 0), 'hand (12, 40, 30)': HAND, 'hand MatScale 12 only': (12, 0, 0),
+            'hand Optimism 40 only': (0, 40, 0), 'hand Rule50Damp 30 only': (0, 0, 30)}
     for name, (space, steps) in grids.items():
-        coarse = search(space)
-        p, a, l = refine(coarse, steps)
-        report['fits'][name] = {'params_s_k_d': p, 'train_loss': l, 'slope': a,
-                                'heldout_loss': evaluate(p, test, train_slope=a)[1]}
-    for name, p in (('OFF', (0, 0, 0)), ('hand (12, 40, 30)', (12, 40, 30)), ('hand MatScale 12 only', (12, 0, 0)),
-                    ('hand Optimism 40 only', (0, 40, 0)), ('hand Rule50Damp 30 only', (0, 0, 30))):
-        a, l = evaluate(p, train)
-        report['fits'][name] = {'params_s_k_d': p, 'train_loss': l, 'slope': a,
-                                'heldout_loss': evaluate(p, test, train_slope=a)[1]}
-    with open(out_path, 'w', newline='\n') as fh:
+        best = min(space, key=lambda p: fit(p)[1])
+        sets['fitted: ' + name] = refine(best, steps)[0]
+    # held-out per-position losses with the training slope of each set
+    games_te = game[te]
+    gidx = {g: i for i, g in enumerate(np.unique(games_te))}
+    gi = np.array([gidx[g] for g in games_te])
+    n_games = len(gidx)
+    per = {}
+    report = {'positions': int(len(v)), 'train_positions': int(tr.sum()), 'heldout_positions': int(te.sum()),
+              'train_games': int(len(np.unique(game[tr]))), 'heldout_games': n_games, 'bootstrap': a.boot,
+              'seed': a.seed, 'sets': {}, 'differences': {}}
+    for name, p in sets.items():
+        slope, train_loss = fit(p)
+        x = transform(test[0], test[1], test[2], *p).astype(np.float64)
+        losses = pos_losses(x, test[3], slope)
+        per[name] = (np.bincount(gi, weights=losses, minlength=n_games), np.bincount(gi, minlength=n_games))
+        report['sets'][name] = {'s_k_d': list(p), 'slope': slope, 'train_loss': train_loss,
+                                'heldout_loss': float(losses.mean())}
+    rng = np.random.default_rng(a.seed)
+    boots = rng.integers(0, n_games, size=(a.boot, n_games))
+
+    def boot_loss(name):
+        sums, cnts = per[name]
+        return sums[boots].sum(axis=1) / cnts[boots].sum(axis=1)
+
+    pairs = [('fitted: all three', 'OFF'), ('hand (12, 40, 30)', 'OFF'), ('fitted: all three', 'hand (12, 40, 30)')]
+    for opt in ('EvalMatScale only', 'EvalOptimism only (static approximation: weak evidence)', 'EvalRule50Damp only'):
+        pairs.append(('fitted: ' + opt, 'OFF'))
+    for x_name, y_name in pairs:
+        d = boot_loss(x_name) - boot_loss(y_name)
+        point = report['sets'][x_name]['heldout_loss'] - report['sets'][y_name]['heldout_loss']
+        lo, hi = np.percentile(d, [2.5, 97.5])
+        report['differences'][f'{x_name} - {y_name}'] = {'point': point, 'ci95': [float(lo), float(hi)],
+                                                          'better_in_ci': bool(hi < 0)}
+    with open(a.out, 'w', newline='\n') as fh:
         json.dump(report, fh, indent=1)
-    for name, f in report['fits'].items():
-        print(f'{name:45s} s,k,d={f["params_s_k_d"]}  train {f["train_loss"]:.6f}  held-out {f["heldout_loss"]:.6f}  slope {f["slope"]:.3f}')
+    for name, f in report['sets'].items():
+        print(f'{name:62s} s,k,d={f["s_k_d"]}  train {f["train_loss"]:.6f}  held-out {f["heldout_loss"]:.6f}')
+    for name, f in report['differences'].items():
+        print(f'{name:90s} {f["point"]:+.6f}  95% CI [{f["ci95"][0]:+.6f}, {f["ci95"][1]:+.6f}]'
+              f'{"  (better)" if f["better_in_ci"] else ""}')
 
 
 if __name__ == '__main__':

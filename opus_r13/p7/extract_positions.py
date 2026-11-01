@@ -6,7 +6,9 @@ Writes <out_prefix>.fens (one FEN per line, with the real halfmove clock) and <o
 (game_id, ply, stm_result (1 / 0.5 / 0 from the side to move), material (E3 formula), clock, pgn file, round).
 Rules: games with a 1-0 / 0-1 / 1/2-1/2 result only; positions from ply --min-ply on (past the book), every --every-th
 ply, side to move not in check, no checkmate / stalemate positions. Game id = sha1 of (pgn file name, game index): the
-80/20 split by game is done in fit_e3.py from that id. python-chess (installed in the crew venv) is used as a PGN reader
+80/20 split by game is done in fit_e3.py from that id.
+Dedupe (CR R13): a game whose result + full move list was already seen (in any file: gate folders hold reruns
+and copies) is skipped and counted; the same opening played twice with colours swapped is two different games. python-chess (installed in the crew venv) is used as a PGN reader
 tool only (GPL; nothing copied into Forge).
 E3 material (src/search.cpp e3_material): sum of PieceValueMg {P 82, N 337, B 365, R 477, Q 1025} over the pieces of
 both sides, kings excluded, capped at the starting total.
@@ -38,7 +40,8 @@ def main():
     for ext in ('.fens', '.tsv'):
         if os.path.exists(a.out + ext):
             raise SystemExit(f'refusing to overwrite {a.out + ext}')
-    games = positions = 0
+    games = positions = dups = 0
+    seen = set()
     with open(a.out + '.fens', 'w', newline='\n') as ffen, open(a.out + '.tsv', 'w', newline='\n') as ftsv:
         ftsv.write('game_id\tply\tstm_result\tmaterial\tclock\tpgn\tround\n')
         for path in a.pgns:
@@ -54,10 +57,16 @@ def main():
                     white = {'1-0': 1.0, '0-1': 0.0, '1/2-1/2': 0.5}.get(result)
                     if white is None:
                         continue
+                    moves = list(game.mainline_moves())
+                    key = hashlib.sha1((result + ' ' + game.board().fen() + ' ' + ' '.join(m.uci() for m in moves)).encode()).digest()
+                    if key in seen:
+                        dups += 1
+                        continue
+                    seen.add(key)
                     gid = hashlib.sha1(f'{name}#{index}'.encode()).hexdigest()[:16]
                     board = game.board()
                     ply = 0
-                    for move in game.mainline_moves():
+                    for move in moves:
                         board.push(move)
                         ply += 1
                         if ply < a.min_ply or ply % a.every or board.is_check() or board.is_game_over():
@@ -71,7 +80,9 @@ def main():
                         break
             if a.max_games and games >= a.max_games:
                 break
-    print(f'{games} games, {positions} positions -> {a.out}.fens / .tsv')
+    if games == 0 or positions == 0:
+        raise SystemExit('no games / positions extracted')
+    print(f'{games} games ({dups} duplicate games skipped), {positions} positions -> {a.out}.fens / .tsv')
 
 
 if __name__ == '__main__':
