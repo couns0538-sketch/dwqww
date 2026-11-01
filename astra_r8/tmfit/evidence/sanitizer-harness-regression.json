@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "strength": "UNPROVEN",
+  "recorded_at": "2026-11-01T09:27:48-08:00",
+  "command": "python -m unittest discover -s astra_r8/tmfit -p test_run_tmfit.py",
+  "test_count": 7,
+  "exit_code": 0,
+  "stdout_stderr": ".......\nRan 7 tests in 0.002s\nOK\n",
+  "sha256": {
+    "astra_r8/tmfit/run_tmfit.py": "ba0101ba8bd9535cdacc90b17553a45f39a8467d11803e5e9445d7c0faa6c8eb",
+    "astra_r8/tmfit/test_run_tmfit.py": "424d707c90a44f985b18c4ce53159f60deef5f76f73ef849599f0a2edb194af5",
+    ".github/workflows/astra-r8-tmfit.yml": "8e3d11c3475744d4f9fcae46e468b23e7094079c10b819044395d50ffc5edd63"
+  },
+  "covered_failure": "The former workflow used smoke --games 4, which could not satisfy the 200-game normalization gate. The dedicated sanitizer command forces every game ON and defaults to four bounded games.",
+  "checks": [
+    "Four ON exercised games pass without timing normalization",
+    "Missing game, OFF mode, illegal move, time loss, or zero exercised moves fail",
+    "ASan error/summary/deadly-signal, UBSan summary/runtime-error, and LSan reports are recognized",
+    "Existing timed liveness and telemetry regressions remain passing"
+  ],
+  "limitation": "Harness unit tests only. No actual ASan/UBSan execution result is claimed here; the corrected CI run must provide that evidence."
+}

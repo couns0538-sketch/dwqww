@@ -8,6 +8,34 @@ spec.loader.exec_module(runner)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_sanitizer_four_on_games_do_not_require_normalization(self):
+        games = [dict(mode=1, result='ply_cap', moves=100) for _ in range(4)]
+        result = runner.sanitizer_summary(games, 4)
+        self.assertTrue(result['pass_'])
+        self.assertEqual(result['requested_games'], 4)
+        self.assertTrue(result['all_on'])
+        self.assertNotIn('ratio_on_off', result)
+
+    def test_sanitizer_rejects_missing_game_off_mode_and_faults(self):
+        games = [dict(mode=1, result='checkmate', moves=20) for _ in range(4)]
+        self.assertFalse(runner.sanitizer_summary(games[:3], 4)['pass_'])
+        for field, value in [('mode', 0), ('result', 'illegal'), ('result', 'time_loss'), ('moves', 0)]:
+            bad = [dict(game) for game in games]
+            bad[0][field] = value
+            with self.subTest(field=field, value=value):
+                self.assertFalse(runner.sanitizer_summary(bad, 4)['pass_'])
+
+    def test_sanitizer_reports_include_summary_and_shutdown_signal(self):
+        for line in ['ERROR: AddressSanitizer: heap-buffer-overflow',
+                     'SUMMARY: AddressSanitizer: heap-buffer-overflow file.cpp:4',
+                     'AddressSanitizer:DEADLYSIGNAL',
+                     'SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior file.cpp:4',
+                     'ERROR: LeakSanitizer: detected memory leaks',
+                     'file.cpp:4: runtime error: signed integer overflow']:
+            with self.subTest(line=line):
+                self.assertTrue(runner.is_sanitizer_report(line))
+        self.assertFalse(runner.is_sanitizer_report('info depth 1 score cp 32 time 1'))
+
     def test_extract_iteration_records(self):
         lines = ['info depth 4 nodes 10', 'info string tm_log {"depth":4,"best_move":"e2e4"}',
                  'bestmove e2e4 ponder e7e5']

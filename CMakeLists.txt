@@ -213,6 +213,8 @@ target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
 add_executable(forge_tmfit_tests tests/tmfit_tests.cpp)
 target_include_directories(forge_tmfit_tests PRIVATE src)
 target_compile_features(forge_tmfit_tests PRIVATE cxx_std_20)
+# Inherit the core's sanitizer compile/link flags in diagnostic builds.
+target_link_libraries(forge_tmfit_tests PRIVATE forge_core Threads::Threads)
 
 # Lazy SMP housekeeping and SMP options (O1).
 add_executable(forge_smp_tests tests/smp_tests.cpp)

@@ -51,3 +51,16 @@ Source checkpoint1 published: 79ff4d68. New sanitizer workflow is branch-scoped.
 Next: finish 50k data, real fit and mapping calibration, final binary validation.
 Prior art limitation: requested named variants except TimeManV2 were not found in
 available refs; see PRIOR_ART_AUDIT.md. No claim to have reviewed absent source.
+
+## Checkpoint 3 — preliminary identity complete; UNPROVEN
+
+All five OFF and ON node pins and both perft5 values PASS on logging v0.
+Nonlogging Expose build SHA256:
+`11f0cd92dd052ea685e6a33cbaab75756fc26702dd80977a55c321b53e94bce4`.
+Collection passed 34,299 iterations with no recorded flags or illegal moves.
+GitHub sanitizer run41288852339 built ASan+UBSan and executed395 plies without
+reports, but the workflow FAILED because the four-game diagnostic smoke was
+incorrectly checked against the 200-game qualification requirement. Preserved
+as a failed run; fixed with a dedicated all-ON sanitizer command and regression.
+New native build script records exact command, source hashes and binary hash.
+Next: finish dataset, fit, calibrate on separate openings, rerun final checks.

@@ -68,6 +68,13 @@ def resource_guard(scratch_root):
         raise RuntimeError('Task scratch exceeds 5 GB')
 
 
+def is_sanitizer_report(line):
+    # Catch summary-only diagnostics and shutdown/leak reports as well as the
+    # usual first error line. Output is preserved in the transcript before fail.
+    return any(marker in line for marker in (
+        'AddressSanitizer', 'UndefinedBehaviorSanitizer', 'LeakSanitizer', 'runtime error:'))
+
+
 class Process:
     def __init__(self, exe, log):
         flags = 0
@@ -103,7 +110,7 @@ class Process:
             if line is None:
                 raise RuntimeError(f'Process exited {self.process.poll()}')
             self.log.write(f'< {line}\n')
-            if 'ERROR: AddressSanitizer' in line or 'runtime error:' in line:
+            if is_sanitizer_report(line):
                 raise RuntimeError(f'Sanitizer report: {line}')
             result.append(line)
             if predicate(line):
@@ -132,7 +139,7 @@ class Process:
                 break
             if line is not None:
                 self.log.write(f'< {line}\n')
-                if 'ERROR: AddressSanitizer' in line or 'runtime error:' in line:
+                if is_sanitizer_report(line):
                     reports.append(line)
         self.log.flush()
         if reports:
@@ -222,6 +229,17 @@ def write_json(path, obj):
     Path(path).write_text(json.dumps(obj, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
 
+def sanitizer_summary(games, requested_games):
+    """Bounded all-ON smoke; distinct from the 200-game timing qualification."""
+    all_on = bool(games) and all(g['mode'] == 1 for g in games)
+    faults = sum(g['result'] in ('illegal', 'time_loss') for g in games)
+    exercised = bool(games) and all(g['moves'] > 0 for g in games)
+    return dict(requested_games=requested_games, all_on=all_on, exercised=exercised,
+                scope='Bounded all-ON self-play; no time-normalization or playing-strength claim',
+                pass_=requested_games > 0 and len(games) == requested_games and
+                all_on and exercised and faults == 0)
+
+
 def selfplay(args, fens, options):
     games = []
     iteration_count = 0
@@ -233,10 +251,11 @@ def selfplay(args, fens, options):
         game_log = stack.enter_context((args.out / 'games.jsonl').open('x', encoding='utf-8'))
         referee = stack.enter_context(Referee(args.referee, transcript))
         # Engines are reused within the batch but reset between games. No concurrent search.
-        engines = [stack.enter_context(Engine(args.exe, transcript, 0, options)) for _ in range(2)]
+        initial_mode = 1 if args.command == 'sanitizer' else 0
+        engines = [stack.enter_context(Engine(args.exe, transcript, initial_mode, options)) for _ in range(2)]
         for game in range(args.games if args.games else 100000):
             resource_guard(args.scratch_root)
-            mode = game % 2 if args.command == 'smoke' else args.mode
+            mode = 1 if args.command == 'sanitizer' else (game % 2 if args.command == 'smoke' else args.mode)
             pair_id = game // 2 if args.command == 'smoke' else game
             fen = fens[pair_id % len(fens)]
             opening_group = hashlib.sha256(fen.encode()).hexdigest()[:16]
@@ -302,6 +321,8 @@ def selfplay(args, fens, options):
                        game_time_ratio_on_off=mean_game_times.get(1,0)/max(1,mean_game_times.get(0,0)),
                        pass_=len(games) >= 200 and ratio is not None and abs(ratio-1) <= .03 and
                        summary['illegal_moves'] == summary['time_losses'] == 0)
+    elif args.command == 'sanitizer':
+        summary.update(sanitizer_summary(games, args.games))
     else:
         summary['pass_'] = iteration_count >= args.min_iterations
     write_json(args.out/'summary.json', summary)
@@ -426,7 +447,7 @@ def main():
         if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), subprocess.BELOW_NORMAL_PRIORITY_CLASS):
             raise ctypes.WinError(ctypes.get_last_error())
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['collect','smoke','live','hard','absurd','bench'])
+    parser.add_argument('command', choices=['collect','smoke','sanitizer','live','hard','absurd','bench'])
     parser.add_argument('--exe', type=Path, required=True)
     parser.add_argument('--referee', type=Path)
     parser.add_argument('--openings', type=Path)
@@ -447,18 +468,23 @@ def main():
     args.out = args.out.resolve()
     if not args.out.is_relative_to(args.scratch_root):
         parser.error('--out must be under --scratch-root')
-    if args.command in ('collect','smoke') and not args.referee:
+    if args.command in ('collect','smoke','sanitizer') and not args.referee:
         parser.error('--referee required for self-play')
     if args.command != 'bench' and not args.openings:
         parser.error('--openings EPD/FEN required')
     if args.command == 'smoke' and not args.games:
         args.games = 200
+    if args.command == 'sanitizer':
+        if not args.games:
+            args.games = 4
+        args.mode = 1
     if args.base_ms <= 0 or args.inc_ms < 0 or args.games < 0 or args.min_iterations < 1 or args.max_plies < 1:
         parser.error('Invalid time/game/iteration limits')
     options = dict(item.split('=',1) for item in args.option)
     resource_guard(args.scratch_root)
     args.out.mkdir(parents=True, exist_ok=False)
     manifest = dict(strength='UNPROVEN', command=vars(args), engine_sha256=digest(args.exe),
+                    runner_sha256=digest(Path(__file__)),
                     openings_sha256=digest(args.openings) if args.openings else None,
                     referee_sha256=digest(args.referee) if args.referee else None,
                     started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
@@ -470,7 +496,7 @@ def main():
     write_json(args.out/'manifest.json', manifest)
     try:
         fens = read_positions(args.openings,args.seed) if args.openings else []
-        if args.command in ('collect','smoke'):
+        if args.command in ('collect','smoke','sanitizer'):
             summary = selfplay(args,fens,options)
         elif args.command == 'bench':
             summary = bench(args,options)
