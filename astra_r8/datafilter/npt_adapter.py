@@ -7,6 +7,7 @@ from pathlib import Path
 import random
 import sys
 from array import array
+import numpy as np
 
 NPT = Path(os.environ.get('ASTRA_NPT_ROOT', 'F:/opus_scratch/r6/nnue-pytorch-amd')).resolve()
 sys.path.insert(0, str(NPT))
@@ -24,19 +25,33 @@ def single_process():
     if torch.distributed.is_available() and torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
         raise ValueError('distributed adapter execution unsupported')
 
+COLUMNS = ('fen', 'score_stm', 'ply', 'result_stm', 'has_result', 'source', 'source_row', 'source_kind')
+
+def check_native_row(r):
+    """Full validation of one row; run once per row (at load for RowFile)."""
+    validate_record(r)
+    if r['score_type'] != 'cp' or not -32768 <= r['score_stm'] <= 32767 or not 0 <= r['ply'] <= 65535:
+        raise ValueError('native score/ply range or type unsupported')
+
 def make_batch(rows, feature_name, recipe):
     single_process()
-    if recipe not in ('filtered_eval_v1', 'filtered_wdl_v1'):
-        raise ValueError('unknown recipe')
     if not rows or len(rows) > 16384:
         raise ValueError('batch must contain 1..16384 rows')
     for r in rows:
-        validate_record(r)
-        if r['score_type'] != 'cp' or not -32768 <= r['score_stm'] <= 32767 or not 0 <= r['ply'] <= 65535:
-            raise ValueError('native score/ply range or type unsupported')
+        check_native_row(r)
+    return make_batch_validated({key: [r[key] for r in rows] for key in COLUMNS}, feature_name, recipe)
+
+def make_batch_validated(cols, feature_name, recipe):
+    """Batch from already-validated column lists (see RowFile); no per-row revalidation."""
+    single_process()
+    if recipe not in ('filtered_eval_v1', 'filtered_wdl_v1'):
+        raise ValueError('unknown recipe')
+    n = len(cols['fen'])
+    if not n or n > 16384 or any(len(cols[key]) != n for key in COLUMNS):
+        raise ValueError('batch must contain 1..16384 aligned rows')
     native = data_loader.get_sparse_batch_from_fens(
-        feature_name, [r['fen'] for r in rows], [r['score_stm'] for r in rows],
-        [r['ply'] for r in rows], [r['result_stm'] if r['has_result'] else 0 for r in rows])
+        feature_name, cols['fen'], cols['score_stm'], cols['ply'],
+        [res if known else 0 for res, known in zip(cols['result_stm'], cols['has_result'])])
     if not native:
         raise ValueError('native feature batch unavailable')
     try:
@@ -46,10 +61,11 @@ def make_batch(rows, feature_name, recipe):
         owned = tuple(t.clone() for t in borrowed)
     finally:
         data_loader.destroy_sparse_batch(native)
-    metadata = {key: [r[key] for r in rows] for key in ('source','source_row','source_kind','has_result','result_stm','fen','ply')}
+    metadata = {key: list(cols[key]) for key in ('source','source_row','source_kind','has_result','result_stm','fen','ply')}
     # Native ABI has no unknown-result sentinel. Its dummy 0 is never a semantic draw:
     # the separate mask forces lambda=1 and retains null in result_stm.
-    metadata['lambda'] = [0.8 if recipe == 'filtered_wdl_v1' and r['source_kind'] == 'selfplay' and r['has_result'] else 1.0 for r in rows]
+    metadata['lambda'] = [0.8 if recipe == 'filtered_wdl_v1' and kind == 'selfplay' and known else 1.0
+                          for kind, known in zip(cols['source_kind'], cols['has_result'])]
     return (*owned, metadata)
 
 class RowLambda(LambdaController):
@@ -115,22 +131,43 @@ class MaskedNNUE(NNUE):
         super().on_load_checkpoint(checkpoint, resuming)
 
 class Sampler:
-    """O(1) state affine permutations; exact deterministic resume, not a fast loader."""
+    """O(1) state affine permutations; exact deterministic resume.
+    The per-pass affine map (multiplier, shift) is derived once per pass and cached,
+    and take() evaluates a whole span with numpy; order is identical to next()."""
     def __init__(self, count, seed, manifest):
         if count < 1:
             raise ValueError('empty dataset')
+        if count >= 2**31:
+            raise ValueError('count too large for int64 affine evaluation')
         self.count, self.seed, self.manifest, self.cursor = count, seed, manifest, 0
+        self._pass = None
+
+    def pass_params(self, epoch):
+        if self._pass is None or self._pass[0] != epoch:
+            rng = random.Random(self.seed + epoch)
+            multiplier = rng.randrange(1, self.count + 1)
+            while math.gcd(multiplier, self.count) != 1:
+                multiplier = multiplier % self.count + 1
+            shift = rng.randrange(self.count)
+            self._pass = (epoch, multiplier, shift)
+        return self._pass[1], self._pass[2]
 
     def next(self):
         epoch, offset = divmod(self.cursor, self.count)
-        rng = random.Random(self.seed + epoch)
-        multiplier = rng.randrange(1, self.count + 1)
-        while math.gcd(multiplier, self.count) != 1:
-            multiplier = multiplier % self.count + 1
-        shift = rng.randrange(self.count)
-        index = (multiplier * offset + shift) % self.count
+        multiplier, shift = self.pass_params(epoch)
         self.cursor += 1
-        return index
+        return (multiplier * offset + shift) % self.count
+
+    def take(self, n):
+        parts = []
+        while n > 0:
+            epoch, offset = divmod(self.cursor, self.count)
+            k = min(n, self.count - offset)
+            multiplier, shift = self.pass_params(epoch)
+            span = np.arange(offset, offset + k, dtype=np.int64)
+            parts.append((span * multiplier + shift) % self.count)
+            self.cursor += k; n -= k
+        return np.concatenate(parts).tolist() if parts else []
 
     def state_dict(self):
         return dict(count=self.count, seed=self.seed, manifest=self.manifest, cursor=self.cursor, algorithm='affine-v1')
@@ -142,26 +179,43 @@ class Sampler:
         self.cursor = state['cursor']
 
 class RowFile:
+    """Pinned JSONL rows, each fully validated exactly once at load into column lists."""
     def __init__(self, path, expected_hash):
         self.path = Path(path)
         if sha256(self.path) != expected_hash:
             raise ValueError('record hash mismatch')
         self.offsets = array('Q')
+        self.cols = {key: [] for key in COLUMNS}
         with open(self.path, 'rb') as fh:
             while True:
                 offset = fh.tell()
-                if not fh.readline():
+                line = fh.readline()
+                if not line:
                     break
+                r = json.loads(line)
+                check_native_row(r)
                 self.offsets.append(offset)
+                for key in COLUMNS:
+                    self.cols[key].append(r[key])
+        if sha256(self.path) != expected_hash:
+            raise ValueError('records changed while loading')
         self.identity = (self.path.stat().st_size, self.path.stat().st_mtime_ns)
 
-    def fetch(self, indices):
+    def _check_identity(self):
         if (self.path.stat().st_size,self.path.stat().st_mtime_ns) != self.identity:
             raise ValueError('records changed after pinning')
+
+    def columns(self, indices):
+        self._check_identity()
+        return {key: [col[i] for i in indices] for key, col in self.cols.items()}
+
+    def fetch(self, indices):
+        """Full original rows (re-read from the pinned file); kept for audits/tests."""
+        self._check_identity()
         with open(self.path, 'rb') as fh:
             rows = []
             for i in indices:
-                fh.seek(self.offsets[i]); rows.append(validate_record(json.loads(fh.readline())))
+                fh.seek(self.offsets[i]); rows.append(json.loads(fh.readline()))
             return rows
 
 class BatchStream:
@@ -184,8 +238,7 @@ class BatchStream:
         single_process()
         sampler = Sampler(self.sampler.count,self.sampler.seed,self.sampler.manifest) if self.validation else self.sampler
         for _ in range(self.batches):
-            indices = [sampler.next() for _ in range(self.batch_size)]
-            yield make_batch(self.rows.fetch(indices), self.feature, self.recipe)
+            yield make_batch_validated(self.rows.columns(sampler.take(self.batch_size)), self.feature, self.recipe)
 
 def runtime_identity():
     paths = {str(Path(m.__file__).resolve()) for m in list(sys.modules.values())
