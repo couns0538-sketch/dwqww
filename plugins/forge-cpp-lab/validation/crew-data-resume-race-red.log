@@ -1,0 +1,35 @@
+test_changed_source_refuses_resume (test_crew_resume_job.ResumeTests.test_changed_source_refuses_resume) ... ok
+test_completed_next_shard_is_not_counted_as_partial (test_crew_resume_job.ResumeTests.test_completed_next_shard_is_not_counted_as_partial) ... FAIL
+test_completed_resume_keeps_same_bytes (test_crew_resume_job.ResumeTests.test_completed_resume_keeps_same_bytes) ... ok
+test_corrupted_sealed_shard_refuses_resume (test_crew_resume_job.ResumeTests.test_corrupted_sealed_shard_refuses_resume) ... ok
+test_existing_output_requires_explicit_resume (test_crew_resume_job.ResumeTests.test_existing_output_requires_explicit_resume) ... ok
+test_natural_completion_race_is_not_interruption_proof (test_crew_resume_job.ResumeTests.test_natural_completion_race_is_not_interruption_proof) ... ERROR
+test_real_terminated_worker_resume_matches_uninterrupted (test_crew_resume_job.ResumeTests.test_real_terminated_worker_resume_matches_uninterrupted) ... ok
+
+======================================================================
+ERROR: test_natural_completion_race_is_not_interruption_proof (test_crew_resume_job.ResumeTests.test_natural_completion_race_is_not_interruption_proof)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_resume_job.py", line 27, in test_natural_completion_race_is_not_interruption_proof
+    with self.assertRaisesRegex(RuntimeError,'normally|interruption'):self.m.selftest(self.root/'race')
+                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/skills/resumable-shard-job/scripts/resume_fixture.py", line 121, in selftest
+    resumed=run(inputs,out/'interrupted',True)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/skills/resumable-shard-job/scripts/resume_fixture.py", line 54, in run
+    if not config_path.is_file() or json.loads(config_path.read_text())!=config:raise ValueError('configuration or source changed; refuse resume')
+                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: configuration or source changed; refuse resume
+
+======================================================================
+FAIL: test_completed_next_shard_is_not_counted_as_partial (test_crew_resume_job.ResumeTests.test_completed_next_shard_is_not_counted_as_partial)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_resume_job.py", line 30, in test_completed_next_shard_is_not_counted_as_partial
+    self.assertTrue(hasattr(self.m,'verify_interruption'),'interruption boundary validator missing')
+AssertionError: False is not true : interruption boundary validator missing
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.381s
+
+FAILED (failures=1, errors=1)
