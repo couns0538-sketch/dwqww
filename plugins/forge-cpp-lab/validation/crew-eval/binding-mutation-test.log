@@ -1,0 +1,33 @@
+test_replaced_candidate_binary_with_updated_hash_cannot_reuse_old_trace (test_crew_eval_mutation.EvalParity.test_replaced_candidate_binary_with_updated_hash_cannot_reuse_old_trace) ... FAIL
+test_negative_control_trace_must_bind_corrupt_network (test_crew_eval_mutation.EvalParity.test_negative_control_trace_must_bind_corrupt_network) ... FAIL
+
+======================================================================
+FAIL: test_replaced_candidate_binary_with_updated_hash_cannot_reuse_old_trace (test_crew_eval_mutation.EvalParity.test_replaced_candidate_binary_with_updated_hash_cannot_reuse_old_trace)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_eval.py", line 32, in test_replaced_candidate_binary_with_updated_hash_cannot_reuse_old_trace
+    (self.root/'candidate.bin').write_bytes(b'new candidate');self.record['candidate_binary']=self.ref('candidate.bin');self.assertEqual(self.runcheck()['status'],'FAIL')
+                                                                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+======================================================================
+FAIL: test_negative_control_trace_must_bind_corrupt_network (test_crew_eval_mutation.EvalParity.test_negative_control_trace_must_bind_corrupt_network)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_eval.py", line 34, in test_negative_control_trace_must_bind_corrupt_network
+    lines=(self.root/'negative').read_text().splitlines();header=json.loads(lines[0]);header['network_sha256']=self.ref('net')['sha256'];lines[0]=json.dumps(header);(self.root/'negative').write_text('\n'.join(lines)+'\n');self.record['negative_control']['trace']=self.ref('negative');self.assertEqual(self.runcheck()['status'],'FAIL')
+                                                                                                                                                                                                                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.581s
+
+FAILED (failures=2)
+MUTATION TEST: current helper with only trace-header identity comparison disabled; this is not a historical baseline snapshot.
+PASS: both meaningful regression assertions rejected the binding omission mutant.

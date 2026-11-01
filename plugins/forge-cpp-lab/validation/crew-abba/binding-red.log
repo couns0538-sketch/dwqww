@@ -1,0 +1,44 @@
+test_aa_binary_must_match_actual_baseline (test_crew_abba.Abba.test_aa_binary_must_match_actual_baseline) ... ok
+test_cli_read_only_and_exit_zero (test_crew_abba.Abba.test_cli_read_only_and_exit_zero) ... ok
+test_complete_abba_reports_geometric_block_ratio_and_spread (test_crew_abba.Abba.test_complete_abba_reports_geometric_block_ratio_and_spread) ... ok
+test_insufficient_blocks_rejected (test_crew_abba.Abba.test_insufficient_blocks_rejected) ... ok
+test_missing_repeat_is_not_accepted (test_crew_abba.Abba.test_missing_repeat_is_not_accepted) ... ok
+test_node_drift_blocks_timing_claim (test_crew_abba.Abba.test_node_drift_blocks_timing_claim) ... ok
+test_noise_calibration_failure_blocks_comparison (test_crew_abba.Abba.test_noise_calibration_failure_blocks_comparison) ... ok
+test_nonfinite_tolerance_invalid (test_crew_abba.Abba.test_nonfinite_tolerance_invalid) ... ok
+test_parallel_or_inconsistent_timestamps_rejected (test_crew_abba.Abba.test_parallel_or_inconsistent_timestamps_rejected) ... ok
+test_quietness_cannot_be_missing (test_crew_abba.Abba.test_quietness_cannot_be_missing) ... ok
+test_replaced_binary_with_updated_record_and_plan_rejects_old_samples (test_crew_abba.Abba.test_replaced_binary_with_updated_record_and_plan_rejects_old_samples) ... FAIL
+test_sample_hash_change_fails (test_crew_abba.Abba.test_sample_hash_change_fails) ... ok
+test_two_threads_or_wrong_cpu_rejected (test_crew_abba.Abba.test_two_threads_or_wrong_cpu_rejected) ... ok
+test_wrong_binary_in_one_b_sample_fails (test_crew_abba.Abba.test_wrong_binary_in_one_b_sample_fails) ... FAIL
+test_wrong_order_rejected (test_crew_abba.Abba.test_wrong_order_rejected) ... ok
+
+======================================================================
+FAIL: test_replaced_binary_with_updated_record_and_plan_rejects_old_samples (test_crew_abba.Abba.test_replaced_binary_with_updated_record_and_plan_rejects_old_samples)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_abba.py", line 30, in test_replaced_binary_with_updated_record_and_plan_rejects_old_samples
+    (self.root/'b.bin').write_text('new candidate');self.record['candidate']=self.ref('b.bin');self.writeplan();self.assertEqual(self.runcheck()['status'],'FAIL')
+                                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+======================================================================
+FAIL: test_wrong_binary_in_one_b_sample_fails (test_crew_abba.Abba.test_wrong_binary_in_one_b_sample_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/forge-crew-skills-20261101/plugins/forge-cpp-lab/tests/test_crew_abba.py", line 32, in test_wrong_binary_in_one_b_sample_fails
+    self.mutate('ab',lambda rows:rows[2].update(binary_sha256=self.ref('a.bin')['sha256']));self.assertEqual(self.runcheck()['status'],'FAIL')
+                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'PASS' != 'FAIL'
+- PASS
++ FAIL
+
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.314s
+
+FAILED (failures=2)
