@@ -259,12 +259,12 @@ def sanitizer_summary(games, requested_games):
 def game_player_modes(command, game, mode, same_mode):
     if command == 'sanitizer':
         return [1,1]
-    if command in ('smoke','calibrate'):
+    if command in ('smoke','smoke-shard','calibrate'):
         return [game%2,game%2] if same_mode else [game%2,1-game%2]
     return [mode,mode]
 
 
-def timing_summary(games, requested_games, calibration=False):
+def timing_summary(games, requested_games, calibration=False, partial=False):
     paired = any(g.get('mode') == 'paired' for g in games)
     samples = [player for game in games for player in game.get('players',[])] if paired else games
     averages = {mode: sum(g['total_wall_ms'] for g in samples if g['mode'] == mode) /
@@ -283,12 +283,13 @@ def timing_summary(games, requested_games, calibration=False):
                               for index,g in enumerate(games))
     else:
         clean = clean and all(sum(g['mode']==mode for g in games)==requested_games//2 for mode in (0,1))
-    return dict(phase='calibration' if calibration else 'qualification', requested_games=requested_games,
+    return dict(phase='partial' if partial else ('calibration' if calibration else 'qualification'),
+                status='PARTIAL' if partial else 'UNPROVEN', requested_games=requested_games,
                 selfplay_design='opposed_modes_colors_swapped' if paired else 'same_mode_games_preliminary',
-                mapping_status='UNPROVEN', qualification_eligible=not calibration and paired,
+                mapping_status='UNPROVEN', qualification_eligible=not calibration and not partial and paired,
                 average_ms_per_move=averages, ratio_on_off=ratio, average_ms_per_game=mean_games,
                 game_time_ratio_on_off=game_ratio,
-                pass_=clean and (calibration or (paired and len(games)>=200 and ratio is not None and
+                pass_=clean and (calibration or partial or (paired and len(games)>=200 and ratio is not None and
                                                  abs(ratio-1)<=.03 and abs(game_ratio-1)<=.03)))
 
 
@@ -310,7 +311,7 @@ def selfplay(args, fens, options):
             player_modes = game_player_modes(args.command,game,args.mode,args.same_mode)
             paired = player_modes[0] != player_modes[1]
             mode = 'paired' if paired else player_modes[0]
-            pair_id = game // 2 if args.command in ('smoke','calibrate') else game
+            pair_id = game // 2 if args.command in ('smoke','smoke-shard','calibrate') else game
             fen = fens[pair_id % len(fens)]
             opening_group = hashlib.sha256(fen.encode()).hexdigest()[:16]
             game_id = f'{run_id}:{game}'
@@ -370,8 +371,8 @@ def selfplay(args, fens, options):
     summary = dict(strength='UNPROVEN', games=len(games), iterations=iteration_count,
                    illegal_moves=sum(g['result'] == 'illegal' for g in games),
                    time_losses=sum(g['result'] == 'time_loss' for g in games))
-    if args.command in ('smoke','calibrate'):
-        summary.update(timing_summary(games,args.games,calibration=args.command=='calibrate'))
+    if args.command in ('smoke','smoke-shard','calibrate'):
+        summary.update(timing_summary(games,args.games,calibration=args.command=='calibrate',partial=args.command=='smoke-shard'))
     elif args.command == 'sanitizer':
         summary.update(sanitizer_summary(games, args.games))
     else:
@@ -498,7 +499,7 @@ def main():
         if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), subprocess.BELOW_NORMAL_PRIORITY_CLASS):
             raise ctypes.WinError(ctypes.get_last_error())
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['collect','smoke','calibrate','sanitizer','live','hard','absurd','bench'])
+    parser.add_argument('command', choices=['collect','smoke','smoke-shard','calibrate','sanitizer','live','hard','absurd','bench'])
     parser.add_argument('--exe', type=Path, required=True)
     parser.add_argument('--referee', type=Path)
     parser.add_argument('--openings', type=Path)
@@ -520,16 +521,20 @@ def main():
     args.out = args.out.resolve()
     if not args.out.is_relative_to(args.scratch_root):
         parser.error('--out must be under --scratch-root')
-    if args.command in ('collect','smoke','calibrate','sanitizer') and not args.referee:
+    if args.command in ('collect','smoke','smoke-shard','calibrate','sanitizer') and not args.referee:
         parser.error('--referee required for self-play')
     if args.command != 'bench' and not args.openings:
         parser.error('--openings EPD/FEN required')
     if args.command == 'smoke' and not args.games:
         args.games = 200
+    if args.command == 'smoke-shard' and not args.games:
+        args.games = 100
     if args.command == 'calibrate' and not args.games:
         args.games = 40
-    if args.command in ('smoke','calibrate') and (args.games<2 or args.games%2):
+    if args.command in ('smoke','smoke-shard','calibrate') and (args.games<2 or args.games%2):
         parser.error('Paired timing runs require an even game count >=2')
+    if args.command=='smoke-shard' and args.same_mode:
+        parser.error('Smoke shards require opposed modes with swapped colors')
     if args.command == 'sanitizer':
         if not args.games:
             args.games = 4
@@ -540,15 +545,17 @@ def main():
     validate_extra_options(options)
     resource_guard(args.scratch_root)
     args.out.mkdir(parents=True, exist_ok=False)
+    with (args.out/'runner_snapshot.py').open('xb') as snapshot:
+        snapshot.write(Path(__file__).read_bytes())
     manifest = dict(strength='UNPROVEN', command=vars(args), engine_sha256=digest(args.exe),
-                    runner_sha256=digest(Path(__file__)),
+                    runner_sha256=digest(args.out/'runner_snapshot.py'), runner_snapshot='runner_snapshot.py',
                     openings_sha256=digest(args.openings) if args.openings else None,
                     referee_sha256=digest(args.referee) if args.referee else None,
                     started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
                     priority='BelowNormal' if os.name == 'nt' else 'inherited', engine_threads=1,
                     legal_validator='Forge Board; same-family, not independent implementation')
     manifest['selfplay_design'] = ('same_mode_games_preliminary' if args.same_mode else
-                                  'opposed_modes_colors_swapped') if args.command in ('smoke','calibrate') else 'homogeneous_modes'
+                                  'opposed_modes_colors_swapped') if args.command in ('smoke','smoke-shard','calibrate') else 'homogeneous_modes'
     manifest['first_pair_player_modes_white_black'] = [game_player_modes(args.command,i,args.mode,args.same_mode) for i in (0,1)]
     manifest['option_file_sha256'] = {name:digest(value) for name,value in options.items()
                                     if name in ('EvalFile','NNUEFile') and Path(value).is_file()}
@@ -556,7 +563,7 @@ def main():
     write_json(args.out/'manifest.json', manifest)
     try:
         fens = read_positions(args.openings,args.seed) if args.openings else []
-        if args.command in ('collect','smoke','calibrate','sanitizer'):
+        if args.command in ('collect','smoke','smoke-shard','calibrate','sanitizer'):
             summary = selfplay(args,fens,options)
         elif args.command == 'bench':
             summary = bench(args,options)

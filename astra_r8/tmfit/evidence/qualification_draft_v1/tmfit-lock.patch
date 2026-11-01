@@ -1,0 +1,402 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 07be24081cf423164d22ae0b058e6b8d599bba34..0837369152a515d9c9f13ba6604ffcd16568e304 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -8,6 +8,7 @@ option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
+ option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+ option(FORGE_NOZERO_MOVE_BUFFERS "Leave the MoveList/MovePicker move buffers uninitialised (node-exact speed candidate)" OFF)
+ option(FORGE_PROF "Build opt-in search-only profiling counters" OFF)
++option(FORGE_TM_LOG "Emit completed root iterations for time-model fitting" OFF)
+ 
+ option(FORGE_ATTACKS_INIT_ONCE "Synchronize the first attack-table initialization" OFF)
+ 
+@@ -23,6 +24,9 @@ add_library(forge_core
+ )
+ target_include_directories(forge_core PUBLIC include)
+ target_compile_features(forge_core PUBLIC cxx_std_20)
++if(FORGE_TM_LOG)
++    target_compile_definitions(forge_core PUBLIC FORGE_TM_LOG=1)
++endif()
+ if(FORGE_NOZERO_MOVE_BUFFERS)
+     target_compile_definitions(forge_core PUBLIC FORGE_NOZERO_MOVE_BUFFERS=1)
+ endif()
+@@ -206,6 +210,11 @@ target_link_libraries(forge_history_tests PRIVATE forge_core Threads::Threads)
+ add_executable(forge_timeman_tests tests/timeman_tests.cpp)
+ target_include_directories(forge_timeman_tests PRIVATE src)
+ target_link_libraries(forge_timeman_tests PRIVATE forge_core Threads::Threads)
++add_executable(forge_tmfit_tests tests/tmfit_tests.cpp)
++target_include_directories(forge_tmfit_tests PRIVATE src)
++target_compile_features(forge_tmfit_tests PRIVATE cxx_std_20)
++# Inherit the core's sanitizer compile/link flags in diagnostic builds.
++target_link_libraries(forge_tmfit_tests PRIVATE forge_core Threads::Threads)
+ 
+ # Lazy SMP housekeeping and SMP options (O1).
+ add_executable(forge_smp_tests tests/smp_tests.cpp)
+@@ -393,6 +402,7 @@ add_test(NAME forge_bad_capture_tests COMMAND forge_bad_capture_tests)
+ add_test(NAME forge_movepicker_tests COMMAND forge_movepicker_tests)
+ add_test(NAME forge_history_tests COMMAND forge_history_tests)
+ add_test(NAME forge_timeman_tests COMMAND forge_timeman_tests)
++add_test(NAME forge_tmfit_tests COMMAND forge_tmfit_tests)
+ add_test(NAME forge_smp_tests COMMAND forge_smp_tests)
+ add_test(NAME forge_nnue_v2_tests COMMAND forge_nnue_v2_tests)
+ add_test(NAME forge_nnue_v2_uci_tests COMMAND forge_nnue_v2_uci_tests $<TARGET_FILE:forge>)
+diff --git a/include/forge/search_options.hpp b/include/forge/search_options.hpp
+index 9aa50d5adb6dc96bd3155cfb578e4999d8f701ec..ef9973e074dc0cf3f3e6201df76bc0fe9dfdde34 100644
+--- a/include/forge/search_options.hpp
++++ b/include/forge/search_options.hpp
+@@ -9,6 +9,10 @@
+ // written only while no search runs (the UCI loop stops the search first).
+ namespace forge::options {
+ 
++// UCI TmFitModel (spin 0-1, default 0). Changes only the clock-managed soft
++// budget. The main worker snapshots it once per search; fixed-depth is unchanged.
++extern bool tm_fit_model;
++
+ // UCI SmpExactNodes (check, default false); acts only with Threads > 1.
+ // Resets every worker's published node count before the helper threads start
+ // (otherwise the main thread reads the previous search's counts until each
+diff --git a/include/forge/search_tune.hpp b/include/forge/search_tune.hpp
+index f544f64051bf0d89196cd767cffa28d1dee1e193..5d23d4be3c6ab3410e8e689f6d184e1cce2eeee2 100644
+--- a/include/forge/search_tune.hpp
++++ b/include/forge/search_tune.hpp
+@@ -69,6 +69,10 @@ extern int TmUnstableFactor;      // x0.01 soft scale when the best move just ch
+ extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
+ extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
+ extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
++// Fitted model coefficients Q12 and probability-to-multiplier mapping permille.
++// Advertised only by FORGE_EXPOSE_TUNABLES builds; snapshotted once per search.
++extern int TmFitBias, TmFitDepth, TmFitChanged, TmFitEffort, TmFitScore, TmFitDelta, TmFitElapsed;
++extern int TmFitA, TmFitB, TmFitLo, TmFitHi;
+ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+diff --git a/src/search.cpp b/src/search.cpp
+index c2313b7bb2e540e9962f851e6426c5656ede04a0..b9f86c68ff687a42287af8aa44066105b64d550a 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -46,6 +46,7 @@
+ #include "search/evaluation.inc"  // static evaluation glue, correction history
+ #include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
+ #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
++#include "search/tmfit.hpp"       // fitted, time-only soft-budget multiplier
+ #include "search/checks.inc"      // per-node clock / node / stop checks, draws
+ #include "search/history.inc"     // move-ordering history scoring and updates
+ #define FORGE_SEARCH_FN search
+diff --git a/src/search/iterative.inc b/src/search/iterative.inc
+index aa85a62a3b9d1c8cac20e3591c92ace8bd74597a..205c7ee859805834d02c13bf932ab75249cbad07 100644
+--- a/src/search/iterative.inc
++++ b/src/search/iterative.inc
+@@ -43,6 +43,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+ 
+     // Time allocation.
+     timeman::allocate(limits, soft_limit_ms_, hard_limit_ms_, time_managed_);
++    const bool fit_enabled = options::tm_fit_model && is_main() && time_managed_;
++    const tmfit::Model fit_model = fit_enabled
++        ? tmfit::Model{{tune::TmFitBias, tune::TmFitDepth, tune::TmFitChanged, tune::TmFitEffort,
++                       tune::TmFitScore, tune::TmFitDelta, tune::TmFitElapsed},
++                      tune::TmFitA, tune::TmFitB, tune::TmFitLo, tune::TmFitHi}
++        : tmfit::Model{};
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
+     MoveList root_candidates;
+@@ -225,6 +231,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(score) : score,
+              result.pv);
+ 
++#ifdef FORGE_TM_LOG
++        // Training instrumentation is compiled out entirely in ordinary builds.
++        // Root effort has the same cumulative-per-search meaning as the lock TM.
++        if (is_main() && emit_info) {
++            std::uint64_t best_nodes = 0;
++            const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
++            const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
++            if (best_effort != effort_end) {
++                best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
++            }
++            const std::int64_t log_elapsed = elapsed_ms();
++            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++            if (!shared_.output_closed.load(std::memory_order_relaxed)) {
++                std::cout << "info string tm_log {\"depth\":" << depth
++                          << ",\"best_move\":\"" << Board::move_to_uci(result.best_move) << '\"'
++                          << ",\"changed\":" << (!previous_best.is_none() && result.best_move != previous_best ? 1 : 0)
++                          << ",\"node_fraction\":" << (local_nodes_ ? static_cast<double>(best_nodes) / static_cast<double>(local_nodes_) : 0.0)
++                          << ",\"node_fraction_q10\":" << tmfit::ratio_q10(best_nodes, local_nodes_, 1024)
++                          << ",\"score_cp\":" << score
++                          << ",\"score_delta_cp\":" << (previous_score == ValueNone ? 0 : score - previous_score)
++                          << ",\"elapsed_ms\":" << log_elapsed << ",\"soft_ms\":" << soft_limit_ms_
++                          << ",\"hard_ms\":" << hard_limit_ms_ << '}' << std::endl;
++            }
++        }
++#endif
++        const bool fit_changed = fit_enabled && !previous_best.is_none() && result.best_move != previous_best;
+         if (result.best_move == previous_best) ++stable_iterations;
+         else stable_iterations = 0;
+         previous_best = result.best_move;
+@@ -248,7 +280,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+                 factor *= timeman::falling_eval_scale(iteration_previous_score, score);
+             }
+             factor = timeman::factor_floor(factor);
+-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            if (fit_enabled) {
++                std::uint64_t best_nodes = 0;
++                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
++                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
++                if (best_effort != effort_end)
++                    best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
++                const int score_delta = iteration_previous_score == ValueNone ? 0 : score - iteration_previous_score;
++                const auto x = tmfit::features(depth, fit_changed, best_nodes, local_nodes_, score,
++                                               score_delta, elapsed_ms(), soft_limit_ms_);
++                const int probability = tmfit::predict_q10(fit_model, x);
++                const int multiplier = tmfit::multiplier_permille(fit_model, probability);
++                const auto target = tmfit::soft_target_ms(soft_limit_ms_, factor, multiplier, hard_limit_ms_);
++                if (emit_info) {
++                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++                    if (!shared_.output_closed.load(std::memory_order_relaxed)) {
++                        std::cout << "info string tmfit {\"depth\":" << depth << ",\"p_q10\":" << probability
++                                  << ",\"multiplier_permille\":" << multiplier << ",\"soft_target_ms\":" << target
++                                  << ",\"hard_ms\":" << hard_limit_ms_ << ",\"changed\":" << (fit_changed ? 1 : 0)
++                                  << ",\"effort_q10\":" << x[3] << ",\"delta_cp\":" << score_delta
++                                  << '}' << std::endl;
++                    }
++                }
++                if (elapsed_ms() >= target) break;
++            } else {
++                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
++            }
+         }
+     }
+ 
+diff --git a/src/search/options.inc b/src/search/options.inc
+index 05ac8934cd2b76d5f7730429c965c73cf381513b..132ec04a81382bf8c64577c59ed347656a8d1197 100644
+--- a/src/search/options.inc
++++ b/src/search/options.inc
+@@ -23,5 +23,6 @@ bool cuckoo_rep = false;
+ bool material_key_table = false;
+ bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
+ bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
++bool tm_fit_model = false;
+ 
+ } // namespace forge::options
+diff --git a/src/search/tmfit.hpp b/src/search/tmfit.hpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..3e889de3040d4e430aebc030dc886b7d59dc7b56
+--- /dev/null
++++ b/src/search/tmfit.hpp
+@@ -0,0 +1,91 @@
++#pragma once
++// Original Forge time-model inference. UNPROVEN: coefficients are fitted offline.
++// No allocation, floating-point sigmoid, search-state mutation, or hard-cap extension.
++#include <algorithm>
++#include <array>
++#include <cstdint>
++
++namespace forge::tmfit {
++using Features = std::array<int, 7>;
++struct Model {
++    std::array<int, 7> beta{}; // Q12, order: bias/depth/change/effort/score/delta/elapsed
++    int a = 1000, b = 0, lo = 500, hi = 1500; // multiplier permille
++};
++
++// Saturating ratio in Q10 (cap must be a positive multiple of 1024), including
++// UINT64_MAX inputs without multiplication overflow.
++inline int ratio_q10(std::uint64_t numerator, std::uint64_t denominator, int cap) {
++    if (!denominator) return 0;
++    const auto whole = numerator / denominator;
++    if (whole >= static_cast<std::uint64_t>(cap / 1024)) return cap;
++    auto remainder = numerator % denominator;
++    int fraction = 0;
++    for (int bit = 0; bit < 10; ++bit) {
++        fraction *= 2;
++        if (remainder >= denominator - remainder) {
++            remainder -= denominator - remainder;
++            ++fraction;
++        } else {
++            remainder *= 2;
++        }
++    }
++    return std::min(cap, static_cast<int>(whole) * 1024 + fraction);
++}
++
++inline Features features(int depth, bool changed, std::uint64_t best_nodes, std::uint64_t nodes,
++                         int score, int delta, std::int64_t elapsed, std::int64_t soft) {
++    return {1024, std::clamp(depth, 0, 64) * 64, changed ? 1024 : 0,
++            ratio_q10(best_nodes, nodes, 1024),
++            std::clamp(score, -2000, 2000) * 1024 / 1000,
++            std::clamp(delta, -1000, 1000) * 1024 / 1000,
++            ratio_q10(static_cast<std::uint64_t>(std::max<std::int64_t>(0, elapsed)),
++                      static_cast<std::uint64_t>(std::max<std::int64_t>(1, soft)), 4096)};
++}
++
++// round(1024 / (1 + exp(-x))) for x=-8,-8+1/16,...,8.
++// Mathematical lookup values, generated independently; no engine's tuned constants.
++inline constexpr std::array<int, 257> Sigmoid = {
++    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
++    1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,
++    3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6,
++    7, 7, 8, 8, 9, 9, 10, 11, 11, 12, 13, 14, 14, 15, 16, 17,
++    18, 20, 21, 22, 24, 25, 27, 28, 30, 32, 34, 36, 38, 41, 43, 46,
++    49, 52, 55, 58, 62, 65, 69, 73, 78, 82, 87, 92, 98, 103, 109, 116,
++    122, 129, 136, 144, 152, 160, 168, 177, 187, 197, 207, 217, 228, 239, 251, 263,
++    275, 288, 301, 315, 329, 343, 357, 372, 387, 402, 417, 433, 448, 464, 480, 496,
++    512, 528, 544, 560, 576, 591, 607, 622, 637, 652, 667, 681, 695, 709, 723, 736,
++    749, 761, 773, 785, 796, 807, 817, 827, 837, 847, 856, 864, 872, 880, 888, 895,
++    902, 908, 915, 921, 926, 932, 937, 942, 946, 951, 955, 959, 962, 966, 969, 972,
++    975, 978, 981, 983, 986, 988, 990, 992, 994, 996, 997, 999, 1000, 1002, 1003, 1004,
++    1006, 1007, 1008, 1009, 1010, 1010, 1011, 1012, 1013, 1013, 1014, 1015, 1015, 1016, 1016, 1017,
++    1017, 1018, 1018, 1018, 1019, 1019, 1019, 1020, 1020, 1020, 1020, 1021, 1021, 1021, 1021, 1021,
++    1021, 1022, 1022, 1022, 1022, 1022, 1022, 1022, 1022, 1023, 1023, 1023, 1023, 1023, 1023, 1023,
++    1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1024, 1024, 1024, 1024, 1024, 1024,
++    1024
++};
++inline int sigmoid_q10(std::int64_t logit_q12) {
++    const auto bounded = std::clamp<std::int64_t>(logit_q12, -32768, 32768);
++    return Sigmoid[static_cast<std::size_t>((bounded + 32768 + 128) / 256)];
++}
++inline int predict_q10(const Model& model, const Features& x) {
++    std::int64_t dot = 0;
++    for (std::size_t i = 0; i < x.size(); ++i)
++        dot += static_cast<std::int64_t>(model.beta[i]) * x[i];
++    return sigmoid_q10(dot / 1024); // C++ truncation toward zero, mirrored by the fitter.
++}
++inline int multiplier_permille(const Model& model, int probability_q10) {
++    const int lo = std::clamp(model.lo, 100, 3000);
++    const int hi = std::max(lo, std::clamp(model.hi, 100, 3000));
++    const std::int64_t raw = static_cast<std::int64_t>(model.a)
++        + static_cast<std::int64_t>(model.b) * std::clamp(probability_q10, 0, 1024) / 1024;
++    return static_cast<int>(std::clamp<std::int64_t>(raw, lo, hi));
++}
++inline std::int64_t soft_target_ms(std::int64_t soft, double legacy_factor, int multiplier,
++                                   std::int64_t hard) {
++    // The legacy factor remains unchanged; all fitted inference and mapping above are integer.
++    // Compare before converting to avoid integer overflow even with extreme UCI clock values.
++    const double target = static_cast<double>(soft) * legacy_factor * multiplier / 1000.0;
++    if (target >= static_cast<double>(hard)) return hard;
++    return std::max<std::int64_t>(1, static_cast<std::int64_t>(target));
++}
++} // namespace forge::tmfit
+diff --git a/src/search/tune.inc b/src/search/tune.inc
+index 2af4a36f000fa016918d86a391cb5812a81dd6e4..86c97419e3a2ffef92616f354c532bfba8e337ff 100644
+--- a/src/search/tune.inc
++++ b/src/search/tune.inc
+@@ -107,6 +107,19 @@ int TmUnstableFactor = 140;
+ int TmEffortBase = 155;
+ int TmFallingEvalPercent = 100;
+ int TmMinFactorPercent = 45;
++// UNPROVEN: Q12 logistic fit from 52,012 logged iterations; see astra_r8/tmfit.
++// Probability mapping is under empirical time-balance calibration at this checkpoint.
++int TmFitBias = -3201;
++int TmFitDepth = -5127;
++int TmFitChanged = 6120;
++int TmFitEffort = -3440;
++int TmFitScore = -1537;
++int TmFitDelta = -167;
++int TmFitElapsed = 1284;
++int TmFitA = 742;
++int TmFitB = 3000;
++int TmFitLo = 650;
++int TmFitHi = 1750;
+ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+@@ -144,6 +157,12 @@ const std::vector<Parameter>& parameters() {
+         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
++        {"TmFitBias", &TmFitBias, -131072, 131072},           {"TmFitDepth", &TmFitDepth, -131072, 131072},
++        {"TmFitChanged", &TmFitChanged, -131072, 131072},     {"TmFitEffort", &TmFitEffort, -131072, 131072},
++        {"TmFitScore", &TmFitScore, -131072, 131072},         {"TmFitDelta", &TmFitDelta, -131072, 131072},
++        {"TmFitElapsed", &TmFitElapsed, -131072, 131072},
++        {"TmFitA", &TmFitA, -1000000, 1000000},              {"TmFitB", &TmFitB, -1000000, 1000000},
++        {"TmFitLo", &TmFitLo, 100, 3000},                    {"TmFitHi", &TmFitHi, 100, 3000},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+         {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 45fa2f5a0140dced554f49173eabeab9c15bba77..95dce7022709211835f4318f392d31f7350b72da 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -462,6 +462,7 @@ int main() {
+                          "option name Syzygy50MoveRule type check default true\n";
+             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
+             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
++            std::cout << "option name TmFitModel type spin default 0 min 0 max 1\n";
+             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
+             std::cout << "option name NNUEFile type string default <empty>\n"
+                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
+@@ -683,6 +684,13 @@ int main() {
+                     // Start (and prioritise) the watchdog now, not inside a starved search.
+                     if (forge::options::hard_deadline_ms > 0) deadline_watchdog.start();
+                 }
++            } else if (name == "TmFitModel") {
++                if (value_text == "0" || value_text == "1") {
++                    forge::options::tm_fit_model = value_text == "1";
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option TmFitModel" << std::endl;
++                }
+             } else if (name == "CorrMargins") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+diff --git a/tests/tmfit_tests.cpp b/tests/tmfit_tests.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..ccd9b306c615fb78254aeff9da420958c6b14679
+--- /dev/null
++++ b/tests/tmfit_tests.cpp
+@@ -0,0 +1,57 @@
++// Numeric safety and independent sigmoid reference for the time-only model.
++#include "search/tmfit.hpp"
++#include <cmath>
++#include <cstdint>
++#include <iostream>
++#include <limits>
++
++int main() {
++    using namespace forge::tmfit;
++    int failures = 0;
++    auto check = [&](bool ok, const char* what) {
++        if (!ok) { ++failures; std::cerr << "FAIL " << what << '\n'; }
++    };
++    check(ratio_q10(1, 2, 4096) == 512, "fraction scale");
++    check(ratio_q10(UINT64_MAX - 1, UINT64_MAX, 4096) == 1023, "fraction overflow");
++    check(ratio_q10(UINT64_MAX, 1, 4096) == 4096, "ratio saturation");
++    check(ratio_q10(0, 0, 4096) == 0, "zero denominator");
++    const auto f = features(16, true, 1, 2, -1500, -500, 100, 200);
++    check(f == Features{1024, 1024, 1024, 512, -1536, -512, 512}, "feature units and signed truncation");
++    const auto extreme = features(1000, false, UINT64_MAX, 1, INT32_MIN, INT32_MAX, INT64_MAX, 1);
++    check(extreme == Features{1024, 4096, 0, 1024, -2048, 1024, 4096}, "feature clamps");
++    int last = -1;
++    for (int z = -32768; z <= 32768; ++z) {
++        const int p = sigmoid_q10(z);
++        check(p >= last && p >= 0 && p <= 1024, "sigmoid bounds and monotonicity");
++        // Nearest grid spacing is 1/16; worst derivative is 1/4.
++        check(std::abs(p / 1024.0 - 1.0 / (1.0 + std::exp(-z / 4096.0))) < 0.0084,
++              "sigmoid independent numeric accuracy");
++        last = p;
++    }
++    Model model{};
++    check(predict_q10(model, f) == 512, "zero logit probability");
++    model.beta[0] = 4096;
++    check(predict_q10(model, f) == 749, "positive logit units");
++    model.beta[0] = -4096;
++    check(predict_q10(model, f) == 275, "negative logit units");
++    model.beta[0] = -128;
++    model.beta[1] = -1;
++    check(predict_q10(model, Features{1024,1,0,0,0,0,0}) == 512, "signed dot truncates toward zero");
++    model.beta.fill(131072);
++    check(predict_q10(model, Features{1024,4096,1024,1024,2048,1024,4096}) == 1024,
++          "dot product wide accumulation");
++    model.a = INT32_MAX;
++    model.b = INT32_MAX;
++    model.lo = 500;
++    model.hi = 1500;
++    check(multiplier_permille(model, 1024) == 1500, "absurd mapping clamps");
++    model.lo = 2000;
++    model.hi = 1000;
++    check(multiplier_permille(model, 0) == 2000, "crossed bounds safe");
++    check(soft_target_ms(100, 1.5, 2000, 200) == 200, "hard cap");
++    check(soft_target_ms(100, 1.5, 500, 200) == 75, "scales before hard cap");
++    check(soft_target_ms(INT64_MAX, 10.0, 3000, INT64_MAX) == INT64_MAX, "target overflow cap");
++    check(soft_target_ms(1, 0.01, 100, 50) == 1, "positive minimum");
++    std::cout << "tmfit numeric tests " << (failures ? "FAIL" : "PASS") << '\n';
++    return failures ? 1 : 0;
++}

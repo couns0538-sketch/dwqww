@@ -20,6 +20,20 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(runner.game_player_modes('calibrate',1,0,True),[1,1])
         self.assertEqual(runner.game_player_modes('collect',1,0,False),[0,0])
         self.assertEqual(runner.game_player_modes('sanitizer',0,0,False),[1,1])
+        self.assertEqual(runner.game_player_modes('smoke-shard',1,0,False),[1,0])
+
+    def test_smoke_shard_is_partial_and_cannot_satisfy_qualification(self):
+        games=[dict(mode='paired',result='checkmate',moves=100,total_wall_ms=15000,
+                    players=[dict(mode=mode,moves=50,total_wall_ms=5000+5000*mode)
+                             for mode in runner.game_player_modes('smoke-shard',i,0,False)])
+               for i in range(100)]
+        partial=runner.timing_summary(games,100,partial=True)
+        self.assertTrue(partial['pass_'])
+        self.assertEqual(partial['status'],'PARTIAL')
+        self.assertFalse(partial['qualification_eligible'])
+        self.assertEqual(partial['ratio_on_off'],2)
+        self.assertFalse(runner.timing_summary(games,100)['pass_'])
+        self.assertFalse(runner.timing_summary(games[:-1],100,partial=True)['pass_'])
 
     def test_paired_summary_uses_each_engine_side_within_same_game(self):
         games=[]

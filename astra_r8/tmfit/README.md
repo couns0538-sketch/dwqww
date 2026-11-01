@@ -14,7 +14,7 @@ The driver snapshots enablement and coefficients once per search. Inference uses
 Q10 bounded features, Q12 coefficients and an integer sigmoid table; no dynamic
 allocation is added to inference. The legacy soft-factor calculation retains
 its existing floating-point arithmetic. Clock allocation activates the model;
-fixed depth, movetime and infinite searches do not use its soft-stop adjustment.
+pure fixed-depth, movetime and infinite searches do not use its soft-stop adjustment.
 ON `info string tmfit` lines show probability, multiplier, target, hard cap,
 depth, best-move change, effort and score delta. OFF emits no model diagnostics.
 

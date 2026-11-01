@@ -16,16 +16,16 @@ instead of F: with 50 GB minimum free. Scratch is
 
 | Test | Status | Evidence / next action |
 |---|---|---|
-| Data: >=50,000 real root iterations | NOT RUN | Build logger and collect seeded self-play |
-| Fit: grouped 20% held-out AUC | NOT RUN | Final iteration excluded from labels |
-| 1 OFF pins d11/13/16/20/22 | NOT RUN | 312866 / 862329 / 3024920 / 12389307 / 34048354 |
-| 1 ON fixed-depth identity | NOT RUN | Same pins required |
-| 1 perft5 | NOT RUN | start 4865609; kiwipete 193690690 |
-| 2 timed live proof | NOT RUN | 20 positions, fresh processes, interleaved, median3 |
-| 3 200-game average time | NOT RUN | Â±3%; zero flags/illegal moves |
-| 4 hard limits | NOT RUN | 50 positions, 1s + .01s, budget +20ms |
-| 5 absurd coefficient clamp | NOT RUN | Expose-only TmFitA |
-| 6 ASan+UBSan ON smoke | NOT RUN | Native toolchain capability to establish |
+| Data: >=50,000 real root iterations | PASS | 52,012 /19 games; 0 illegal/flags; hashed 1% sample |
+| Fit: grouped 20% held-out AUC | PASS | 4/19 held-out groups; AUC0.682619, fixed0.682835 |
+| 1 OFF pins d11/13/16/20/22 | PASS | fitted-v1:312866 /862329 /3024920 /12389307 /34048354 |
+| 1 ON fixed-depth identity | PASS | fitted-v1: identical five pins |
+| 1 perft5 | PASS | start4865609; kiwipete193690690 |
+| 2 timed live proof | PASS (revised fixture) | fitted-v1:10/20, median3; original opening-only5/20 and1/20 failures retained |
+| 3 200-game average time | NOT RUN | Separate paired40-game calibration running before frozen200-game smoke |
+| 4 hard limits | PASS | fitted-v1:50,1s+.01s; max255.124ms;0hard-cap+20ms overruns |
+| 5 absurd coefficient clamp | PASS | A1000000,50positions; multiplier capped1500; max255.342ms;0overruns |
+| 6 ASan+UBSan ON smoke | PASS | Linux CI41289552546,fittedsource,4allONgames,0reports/faults |
 | 7 patch/README/fitter/tests/skill | IN PROGRESS | Patch must apply to base with -p1 |
 | Crew SPRT | UNPROVEN | CR first, then Strength and QA; UHO primary, 8moves separate, longer TC confirm |
 
@@ -35,7 +35,7 @@ MCP analysis tools are not currently available. Never treat missing analysis as 
 Next: build and establish OFF pins; collect actual logs; fit coefficients;
 calibrate multiplier on separate paired games; run success matrix and hand off.
 
-## Checkpoint 2 — implemented, collecting; UNPROVEN
+## Checkpoint 2 â€” implemented, collecting; UNPROVEN
 
 Logger, model, NumPy fitter, native referee and six harness modes implemented.
 Fitter 13 tests PASS, harness 4 tests PASS, numeric bounds test PASS. An independent
@@ -52,7 +52,7 @@ Next: finish 50k data, real fit and mapping calibration, final binary validation
 Prior art limitation: requested named variants except TimeManV2 were not found in
 available refs; see PRIOR_ART_AUDIT.md. No claim to have reviewed absent source.
 
-## Checkpoint 3 — preliminary identity complete; UNPROVEN
+## Checkpoint 3 â€” preliminary identity complete; UNPROVEN
 
 All five OFF and ON node pins and both perft5 values PASS on logging v0.
 Nonlogging Expose build SHA256:
@@ -65,7 +65,7 @@ as a failed run; fixed with a dedicated all-ON sanitizer command and regression.
 New native build script records exact command, source hashes and binary hash.
 Next: finish dataset, fit, calibrate on separate openings, rerun final checks.
 
-## Checkpoint 4 — real fit installed, mapping under calibration; UNPROVEN
+## Checkpoint 4 â€” real fit installed, mapping under calibration; UNPROVEN
 
 Collection COMPLETE:52,012 root iterations /19 games, zero illegal moves/time losses.
 Raw dataset SHA256 `884e458c7298f465dd3b3810c5a98132647d2d15701e53ccbdd4ba10e036eb8c`.
@@ -82,7 +82,7 @@ red/green regressions now pass and both are fixed before timing qualification.
 Couns clarified off-repo prior art; descriptions recorded in IDEA_SOURCE, no blocker.
 Next: mapping calibration, frozen200game smoke and final timed/identity checks.
 
-## Checkpoint 5 — fitted source validation; UNPROVEN
+## Checkpoint 5 â€” fitted source validation; UNPROVEN
 
 Native fitted-v1 executable SHA256:
 `e9e6c2686350307c8bd73749544c372fd528d5561e87c6b4cc8b6f9df26eefae`.
@@ -96,3 +96,24 @@ control game-length confounding. Original same-mode40game pilot remains preserve
 Final200game smoke has not yet run. No acceptance or strength claim.
 Evidence files are marked binary in .gitattributes to preserve byte hashes across
 Windows/Linux checkouts. Scratch remains below5GB and D retains >50GB free.
+
+## Checkpoint 6 â€” complete local correctness, calibration ongoing; UNPROVEN
+
+Fitted default identity, revised-fixture liveness, both50-position hard/clamp
+tests and fitted-source ASan+UBSan all PASS; current table above is authoritative.
+Original40-game same-mode A914 calibration completed with zero faults, ratios
+1.02226 per move /1.02528 per game; it is preliminary, not the final paired test.
+Paired40-game A742 and paired20-game A842 calibration are in progress. Final
+100 openings are frozen with zero intersection with19 training and20 calibration
+openings. The final200-game smoke will follow mapping freeze.
+
+The original failed GitHub run41288852339 is retained as historical evidence.
+Its four-game-versus200-game check wiring is fixed; later runs41289111781 and
+41289552546 PASS. Sixteen driver regressions now pass, including the specific
+sanitizer-count distinction. CI runs them before compilation and triggers on
+harness, referee and build-file changes so this class of regression is checked.
+
+The installed C++ plugin checker has actually run:32 artifact hashes PASS,
+patch applies with-p1 to905e2325, but draft qualification correctly returnsFAIL
+solely for the pending200-game check. Draft remains immutable; final record
+will be regenerated. Source/patch and all logs remain UNPROVEN for strength.

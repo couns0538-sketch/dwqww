@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [astra-r8-tmfit]
-    paths: ['src/**', 'include/**', 'tests/tmfit_tests.cpp', 'astra_r8/tmfit/run_tmfit.py', 'astra_r8/tmfit/test_run_tmfit.py', '.github/workflows/astra-r8-tmfit.yml']
+    paths: ['src/**', 'include/**', 'CMakeLists.txt', 'tests/tmfit_tests.cpp', 'astra_r8/tmfit/*.py', 'astra_r8/tmfit/tmfit_referee.cpp', '.github/workflows/astra-r8-tmfit.yml']
 permissions:
   contents: read
 jobs:
@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Check harness failure regressions before compiling
+        run: python3 -m unittest discover -s astra_r8/tmfit -p test_run_tmfit.py -v
       - name: Build ASan and UBSan
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DFORGE_ENABLE_SANITIZERS=ON -DFORGE_EXPOSE_TUNABLES=ON -DCMAKE_CXX_FLAGS='-DFORGE_NNUE_HIDDEN=256 -O1'
@@ -24,7 +26,6 @@ jobs:
         run: |
           ./build/forge_tmfit_tests
           mkdir -p build/evidence
-          python3 -m unittest discover -s astra_r8/tmfit -p test_run_tmfit.py
           python3 astra_r8/tmfit/run_tmfit.py sanitizer --exe build/forge --referee build/tmfit_referee --openings tools/openings/forge-10000.epd --scratch-root build/evidence --out build/evidence/sanitizer --games 4 --base-ms 8000 --inc-ms 80 --max-plies 100
       - uses: actions/upload-artifact@v4
         if: always()
