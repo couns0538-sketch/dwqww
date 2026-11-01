@@ -39,6 +39,20 @@ lists + float32 reference against the engine's own loader / features / kernel (v
 | IDEA_SOURCE wrong: sfbinpack GPL-3.0, montyformat AGPL-3.0 | IDEA_SOURCE.md rewritten with a licence table from the crates' Cargo.toml: both are bullet_lib dependencies, trainer tool only, never in Forge source |
 | H768+ parity still unrun | open: parity so far is for H = 256 (the R3 engine's compiled HiddenSize); H 768 / 1024 / 1536 need engine harness builds with -DFORGE_NNUE_HIDDEN=<H> and nets of that width - listed as TODO, no claim beyond H256 |
 
+## Parity results (2026-11-01, after the CR fixes) - PASS at H = 256
+| check | result | evidence |
+|---|---|---|
+| forge-v2-bullet compiles (bullet da426a49, mock backend, rustc 1.99.1, own CARGO_HOME / target dir) | 0 errors, 52 s | logs/cargo_build_mock.log |
+| v2_eval harness on forge-bundle-int b7c17722: AVX2 (x86-64-v3) and SSE (x86-64-v2, 0 ymm/zmm instructions) builds | 0 warnings each | logs/harness_build_run.log |
+| stage a (768 + 8 buckets), random net seed 13451: reference vs engine, 10k FENs | AVX2 10000/10000, SSE 10000/10000 exact, max diff 0 | logs/parity_run.log |
+| stage b (+ O6 threats), seed 13452 | AVX2 10000/10000, SSE 10000/10000 exact (9978 non-zero evals) | same |
+| stage c (+ O7 pawn pairs), seed 13453 | AVX2 10000/10000, SSE 10000/10000 exact (9981 non-zero evals) | same |
+| planted bug: PARITY_MUTATE=1 (+1 on one reference value) | stage a 9999/10000 -> FAIL, exit 1 (the script can fail) | same |
+Meaning: on random weights every feature index matters, so the Rust input type (piece-square, threats, pawn pairs, both
+perspectives), the FORGENN2 layout written through write_v2 and the float32 reference all agree with the engine's own loader,
+feature code and output kernel, on both SIMD paths. Not covered yet: H 768 / 1024 / 1536 (engine builds with that
+FORGE_NNUE_HIDDEN) and a trained net (needs a GPU window: bullet has no CPU backend). Hashes: logs/artifacts.sha256.
+
 ## Next
 cargo build (CPU backend) with my own CARGO_HOME copy (no writes into F:\bullet_hip), feature parity (Rust lists vs engine via
 v2_eval on 10k FENs per stage, AVX2 + SSE builds), CPU smoke on 1M positions, GPU_REQUEST.md.
