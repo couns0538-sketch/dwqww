@@ -46,8 +46,8 @@ Experiment 2 uses preregistered longer warmup and whole-block replacement, as th
 approved plan permits. Eligibility uses only fixed CPU-time/sibling telemetry,
 never NPS or winner. Four eligible A/A blocks must pass original control criteria,
 then ten eligible ABBA blocks are required. A second failed A/A control stops c1.
-At 15:25, A/A control PASS: four eligible blocks collected from 23 attempts.
-ABBA collection has three eligible blocks from eight attempts. All rows and rejected
+At 15:40, A/A control PASS: four eligible blocks collected from 23 attempts.
+ABBA collection has five eligible blocks from 24 attempts. All rows and rejected
 blocks retained; collection continues within fixed attempt/deadline limits. No speed
 acceptance until ten eligible ABBA blocks and final review are complete.
 
