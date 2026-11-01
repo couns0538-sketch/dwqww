@@ -17,6 +17,8 @@ games). Bit 1 (razor) has its own gate. This splits bits 2, 4, 8 into their own 
 Margins at their original defaults (Sf26NmpPriorBonus 16, Sf26NmpPriorCap 3, Sf26LmrAlphaGap 260). SPSA proposals (if any
 move beyond noise) are listed in RESULTS.md as optional extra setoption lines; the default lines above are the primary ones.
 OFF (no setoption) must bench 312866/862329/3024920/12389307/34048354 before game 1.
+SPSA proposals (160 pairs each; noise-level, gate the defaults first): sf26_nmp + `Sf26NmpPriorBonus 18`,
+`Sf26NmpPriorCap 2` (z +0.48 / -1.16); sf26_lmr + `Sf26LmrAlphaGap 311` (z +1.45). Details: RESULTS.md.
 
 ## Checks (evidence in logs/)
 | check | result | evidence |

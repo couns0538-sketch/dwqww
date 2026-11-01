@@ -1,4 +1,4 @@
-# R13 Phase 3 - Sf26 bundle split (bits 2 / 4 / 8) - IN PROGRESS
+# R13 Phase 3 - Sf26 bundle split (bits 2 / 4 / 8) - DONE (CR R13 PASS; the 3 singles are queued as gates)
 Branch `opus-r13-p3-sf26split` (from main). UNPROVEN: no Elo claim. Background: Sf26Bundle=14 (bits 2/4/8) capped with no
 decision on both books (8moves -3.94, UHO -3.47 at 1500 games); bit 1 (razor) has its own gate.
 
@@ -41,3 +41,16 @@ plus vs minus +57 -42 =221 (69.1% draws); 0 of 2 parameters beyond 2 sigma (abou
 Proposal (optional, noise-level - gate the default line first): `setoption name Sf26NmpPrior value 1`,
 `Sf26NmpPriorBonus value 18`, `Sf26NmpPriorCap value 2`. (The R9 report tool prints `R9Tune=true` in its option lines:
 that is R9-specific and not an option of this exe; the switch here is Sf26NmpPrior.) Evidence: spsa/run_bit2/, spsa/report_bit2/.
+
+### SPSA result, bit 4 (run 2026-11-01 09:56-10:45, 160 pairs = 320 games, seed 13004)
+| parameter | start | end | int | noise sigma | z | halves | verdict |
+|---|---|---|---|---|---|---|---|
+| Sf26LmrAlphaGap | 260 | 310.63 | 311 | 34.83 | +1.45 | mixed | noise |
+plus vs minus +44 -44 =232 (72.5% draws); 0 of 1 parameter beyond 2 sigma.
+Proposal (optional, noise-level): `setoption name Sf26LmrGap value 1` + `Sf26LmrAlphaGap value 311`. Bit 8: no margin, no SPSA.
+Evidence: spsa/run_bit4/, spsa/report_bit4/.
+
+## Summary for the gate queue
+Primary lines (default margins) as in README.md: Sf26NmpPrior 1 / Sf26LmrGap 1 / Sf26MulticutCorr 1, exe 029d58e8; combined
+line only if 2+ singles reach H1. SPSA proposals (both noise-level, not recommended over the defaults): bit 2 Bonus 18 + Cap 2,
+bit 4 Gap 311. Everything UNPROVEN.
