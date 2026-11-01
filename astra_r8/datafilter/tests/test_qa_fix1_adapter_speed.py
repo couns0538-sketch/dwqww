@@ -16,14 +16,10 @@ def rows_file(tmp_path, n=50):
     return p, sha256(p)
 
 def reference_next(count, seed, cursor):
-    """Verbatim semantics of the 7a8e22e8 Sampler.next (reseeded per index)."""
-    epoch, offset = divmod(cursor, count)
-    rng = random.Random(seed + epoch)
-    multiplier = rng.randrange(1, count + 1)
-    while math.gcd(multiplier, count) != 1:
-        multiplier = multiplier % count + 1
-    shift = rng.randrange(count)
-    return (multiplier * offset + shift) % count
+    """Independent perm-v1 reference (QA fix 5 replaced the affine order; see test_qa_fix5_sampler_perm.py)."""
+    import numpy as np
+    p, offset = divmod(cursor, count)
+    return int(np.random.default_rng([seed, p]).permutation(count)[offset])
 
 @pytest.mark.parametrize('count', [1, 17, 50, 999953])
 def test_take_matches_reference_order_across_passes(count):
@@ -48,7 +44,9 @@ def test_each_row_validated_once(tmp_path, monkeypatch):
     batches = list(stream)
     assert len(batches) == 7 and len(calls) == 50
 
-def test_batches_bit_identical_to_old_adapter(tmp_path):
+def test_batches_bit_identical_to_row_path(tmp_path):
+    """Column path == an independent row path built straight from the JSON lines and the native API
+    (not through make_batch/make_batch_validated, CR caveat), for the same sampler indices."""
     import torch
     import npt_adapter as a
     from records import validate_record
@@ -59,9 +57,16 @@ def test_batches_bit_identical_to_old_adapter(tmp_path):
     cursor = 0
     for b in new:
         idx = [reference_next(50, 61101, c) for c in range(cursor, cursor + 16)]; cursor += 16
-        old = a.make_batch([validate_record(json.loads(lines[i])) for i in idx], 'K32H3', 'filtered_wdl_v1')
-        assert all(torch.equal(x, y) for x, y in zip(old[:8], b[:8]))
-        assert old[8] == b[8]
+        rows = [validate_record(json.loads(lines[i])) for i in idx]
+        nat = a.data_loader.get_sparse_batch_from_fens('K32H3', [r['fen'] for r in rows], [r['score_stm'] for r in rows],
+                                                      [r['ply'] for r in rows], [r['result_stm'] if r['has_result'] else 0 for r in rows])
+        try:
+            ref = tuple(t.clone() for t in nat.contents.get_tensors('cpu', use_pinned_memory=False))
+        finally:
+            a.data_loader.destroy_sparse_batch(nat)
+        assert all(torch.equal(x, y) for x, y in zip(ref, b[:8]))
+        assert b[8]['source_row'] == [r['source_row'] for r in rows] and b[8]['fen'] == [r['fen'] for r in rows]
+        assert b[8] == a.make_batch(rows, 'K32H3', 'filtered_wdl_v1')[8]
 
 def test_invalid_row_rejected_at_load(tmp_path):
     import npt_adapter as a

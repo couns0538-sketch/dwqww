@@ -1,10 +1,8 @@
 """Original bounded adapter calling installed npt APIs; no npt code copied. UNPROVEN."""
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
-import random
 import sys
 from array import array
 import numpy as np
@@ -136,46 +134,42 @@ class MaskedNNUE(NNUE):
         super().on_load_checkpoint(checkpoint, resuming)
 
 class Sampler:
-    """O(1) state affine permutations; exact deterministic resume.
-    The per-pass affine map (multiplier, shift) is derived once per pass and cached,
-    and take() evaluates a whole span with numpy; order is identical to next()."""
+    """Seeded per-pass full permutation ('perm-v1'); exact deterministic resume.
+    Pass p (0-based, p = cursor // count) visits every row exactly once in the order
+    numpy.random.default_rng([seed, p]).permutation(count); one pass is cached (8 bytes/row).
+    Replaces the affine lattice ('affine-v1', CR N-1: later passes were same-game clusters).
+    Not bit-identical to 7a8e22e8/81a44e65 batches: same rows and per-pass coverage, different order."""
+    ALGORITHM = 'perm-v1'
+
     def __init__(self, count, seed, manifest):
         if count < 1:
             raise ValueError('empty dataset')
-        if count >= 2**31:
-            raise ValueError('count too large for int64 affine evaluation')
+        if type(seed) is not int or seed < 0:
+            raise ValueError('sampler seed must be a nonnegative int')
         self.count, self.seed, self.manifest, self.cursor = count, seed, manifest, 0
         self._pass = None
 
-    def pass_params(self, epoch):
-        if self._pass is None or self._pass[0] != epoch:
-            rng = random.Random(self.seed + epoch)
-            multiplier = rng.randrange(1, self.count + 1)
-            while math.gcd(multiplier, self.count) != 1:
-                multiplier = multiplier % self.count + 1
-            shift = rng.randrange(self.count)
-            self._pass = (epoch, multiplier, shift)
-        return self._pass[1], self._pass[2]
+    def pass_order(self, p):
+        if self._pass is None or self._pass[0] != p:
+            self._pass = (p, np.random.default_rng([self.seed, p]).permutation(self.count))
+        return self._pass[1]
 
     def next(self):
-        epoch, offset = divmod(self.cursor, self.count)
-        multiplier, shift = self.pass_params(epoch)
+        p, offset = divmod(self.cursor, self.count)
         self.cursor += 1
-        return (multiplier * offset + shift) % self.count
+        return int(self.pass_order(p)[offset])
 
     def take(self, n):
         parts = []
         while n > 0:
-            epoch, offset = divmod(self.cursor, self.count)
+            p, offset = divmod(self.cursor, self.count)
             k = min(n, self.count - offset)
-            multiplier, shift = self.pass_params(epoch)
-            span = np.arange(offset, offset + k, dtype=np.int64)
-            parts.append((span * multiplier + shift) % self.count)
+            parts.append(self.pass_order(p)[offset:offset + k])
             self.cursor += k; n -= k
         return np.concatenate(parts).tolist() if parts else []
 
     def state_dict(self):
-        return dict(count=self.count, seed=self.seed, manifest=self.manifest, cursor=self.cursor, algorithm='affine-v1')
+        return dict(count=self.count, seed=self.seed, manifest=self.manifest, cursor=self.cursor, algorithm=self.ALGORITHM)
 
     def load_state_dict(self, state):
         expected = self.state_dict()
