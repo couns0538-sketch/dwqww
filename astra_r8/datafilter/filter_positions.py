@@ -110,6 +110,8 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                             records.write(text)
                             metadata.write(text)
                 storage_guard(out.parent)
+        if count == 0:
+            raise ValueError('empty input: no records; refusing to publish an empty selection')
         elapsed = time.perf_counter() - start
         report = dict(input=count, kept=kept, dropped=count-kept,
                       independent={k: independent[k] for k in RULES},

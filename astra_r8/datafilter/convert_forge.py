@@ -67,8 +67,12 @@ for f in a.selfplay:
         if not line.strip() or line.startswith('#'): continue
         st['sp_lines'] += 1
         try: fen, sc, _ = [x.strip() for x in line.split('|')]; b = chess.Board(fen); s = int(sc)
-        except Exception: st['sp_bad'] += 1; continue
-        if not b.is_valid(): st['sp_bad'] += 1; continue
+        except Exception:
+            if a.keep_result: sys.exit(f'malformed selfplay line {f}:{source_row}')  # strict with --keep-result
+            st['sp_bad'] += 1; continue
+        if not b.is_valid():
+            if a.keep_result: sys.exit(f'invalid selfplay board {f}:{source_row}')
+            st['sp_bad'] += 1; continue
         if a.keep_result: current_metadata = selfplay_record(line, f, source_row)
         keep(b, s if b.turn else -s, None)   # selfplay already quiet-filtered by eligible_score
 for kind, paths in [('lichess', a.lichess), ('normalized', a.normalized)]:
