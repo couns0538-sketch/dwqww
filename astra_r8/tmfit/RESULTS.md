@@ -248,3 +248,13 @@ Actual-lock final200 remains in progress without a reported failure. The native
 builder still sleeps before startup (latestCPU97.6%,11.64GiB free RAM); no native
 compiler/engine or suspension has occurred. No code/parameter changes or interim
 timing decisions. Next: final timing result, artifact audit, final review/checker.
+
+## Checkpoint 14 — sanitizer review correction preserved; UNPROVEN
+
+Independent sanitizer audit confirmed all389ON moves and nine producer hashes,
+with zero faults/reports. A minor receipt label called the workflow SHA the
+candidate_commit. Added sanitizer-status-corrected.json with workflow_commit and
+patched-source candidate_id; preserved the sealed original and all old hashes.
+REVIEW_LOG.md records the finding and accepted correction. Final200 remains in
+progress without a reported failure; coefficients/source remain frozen. Native
+startup still sleeps at97.5%CPU. No process suspension or native compiler launch.

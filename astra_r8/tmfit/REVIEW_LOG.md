@@ -82,3 +82,12 @@ passed these fixes and the new Linux actual-lock qualification job; its results
 must retain Linux scope. Reviewer verified fresh100 fixture hash/uniqueness and
 zero overlap with training, calibration and previous smoke. Runtime results
 remain pending; no candidate acceptance or strength claim.
+
+Completed actual-lock ASan artifact audit: independent reviewer verified all nine
+producer hashes, exact workflow-snapshot Git blobs and all389ON moves with model
+diagnostics, zero faults/reports. One receipt mislabeled the workflow commit as
+candidate_commit. Main agent accepted the naming correction and added
+sanitizer-status-corrected.json with workflow_commit and explicit patched-source
+candidate_id; the sealed original and its hashes remain unchanged. No other
+provenance overclaims found; absent ASan binary/producer-reported hash is disclosed.
+Final review will cover the release/200-game artifacts and final qualification.
