@@ -17,6 +17,8 @@ def rebind(old, new):
     old, new = Path(old), Path(new)
     if new.exists():
         raise FileExistsError(new)
+    if new.with_name(new.name + '.partial').exists():
+        raise FileExistsError(new.with_name(new.name + '.partial'))
     m = json.loads(old.read_text(encoding='utf-8'))
     m['runtime'] = runtime_identity()
     m['npt_root'] = str(NPT)
@@ -25,9 +27,18 @@ def rebind(old, new):
     for key in ('seed', 'epoch_size', 'epochs'):
         hp[key] = 'per-run CLI (QA fix 2)'
     m['hyperparameters'] = hp
-    with open(new, 'x', encoding='utf-8') as fh:
+    # CR LOW-B: write <new>.partial, verify it, publish to <new> only on PASS (never leave an unverified manifest at <new>)
+    partial = new.with_name(new.name + '.partial')
+    with open(partial, 'x', encoding='utf-8') as fh:
         json.dump(m, fh, indent=2)
-    return verify(new)
+    try:
+        result = verify(partial)
+        os.link(partial, new)  # fails if <new> appeared meanwhile; never overwrites
+    except BaseException:
+        partial.unlink()  # our own file from this call
+        raise
+    partial.unlink()
+    return dict(result, manifest_sha256=sha256(new))
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
