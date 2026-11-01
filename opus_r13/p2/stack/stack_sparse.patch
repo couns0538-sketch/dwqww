@@ -1,5 +1,5 @@
 diff --git a/src/nnue_halfka.cpp b/src/nnue_halfka.cpp
-index 1036517..df9207c 100644
+index 1036517..b826ee7 100644
 --- a/src/nnue_halfka.cpp
 +++ b/src/nnue_halfka.cpp
 @@ -220,12 +220,17 @@ std::int32_t dot(const std::int8_t* w, const std::uint8_t* x, int n) {
@@ -43,9 +43,9 @@ index 1036517..df9207c 100644
 +#if FORGE_SPARSE_L1
 +// find-nnz: phase 1 lists the non-zero 4-byte input blocks (ascending), phase 2 multiplies only those, with Chains
 +// independent accumulator sets so consecutive multiply-adds do not wait on each other. Integer sums: bit-identical.
-+constexpr int MaxNnzBlocks = 2048;  // inputs per layer <= 8192 (K32H3 nets: l1 <= 1536)
++constexpr int MaxNnzBlocks = 512;  // inputs per layer <= 2048 (K32H3 nets: l1 <= 1536); 1 KiB: no stack probe
 +template <int NQ>
-+void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
++[[gnu::always_inline]] inline void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
 +    if (in > 4 * MaxNnzBlocks) [[unlikely]] return block_affine_dense<NQ>(x, in, wb, s);
 +    std::uint16_t nnz[MaxNnzBlocks];
 +    int count = 0;

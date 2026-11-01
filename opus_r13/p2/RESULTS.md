@@ -52,7 +52,7 @@ official timing; where the time goes (perf-style sampling) is left for the spars
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
 To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training reproduced in R12 and QA's w21pt).
 
-## Step 2 - sparse L1 (find-nnz), build switch FORGE_SPARSE_L1 (default 0) - IN PROGRESS
+## Step 2 - sparse L1 (find-nnz), build switch FORGE_SPARSE_L1 (default 0) - STOPPED: SLOWER (2 attempts), do not gate
 - Where: the HalfKA block kernel (`block_affine`, used for fc_0 and fc_1). It already skipped all-zero 4-byte blocks, but
   scanned and multiplied in one loop with one dependent dpbusd chain per output group. Switch 1: phase 1 lists the
   non-zero blocks (same masks), phase 2 multiplies only those with 4 (NQ = 1) or 2 independent accumulator chains, summed
@@ -79,3 +79,19 @@ To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training 
 - Kit v2.4 workload v2.1 (no net + e19 + e9 passes) + -PartialTraining + -Expose: **pc1 = pc2 = 6fdf46dcf80555a1cbb94d88ea9f4368a7127312a83de23b6358056d170057d2** (`C:\o13\handoff\p2_stackorge_ltopgo_stks_sparse1.exe`).
 - Kit identity ALL OK (OFF pins, LargePages = OFF, e19 / e9 = D8D90B68 pins, plain = LTO+PGO); 0 real -Wmissing-profile
   warnings; vfmadd 0 (logs/kit_stks/). 12k-FEN exe identity vs D8D90B68: 12000/12000 for e19 and e9 (logs/f12k_stks_*).
+
+## Step 4 - advisory ABBA, sparse vs dense (e19 net; not official) -> SLOWER, item stopped
+| build pair | depth | engine nps median | 2-sided 95% | cpu nps median | evidence |
+|---|---|---|---|---|---|
+| LTO+PGO stks_sparse1 (6fdf46dc) vs stk_align0 (ff6628ce), 10 pairs + 3 A/A | d16 | -13.54% | [-14.53%, -11.85%] | -14.08% | logs/abba_sparse_e19_summary.txt |
+| same | d20 | -11.90% | [-13.28%, -10.87%] | -12.47% | same |
+| plain sparse v1 vs plain dense, 6 pairs | d16 | -7.59% | [-9.73%, -3.25%] | -7.89% | logs/abba_sparse_plain_e19_summary.txt |
+| plain sparse v2 (1 KiB list: no ___chkstk_ms; always_inline) vs dense, 6 pairs | d16 | -7.95% | [-8.71%, -6.98%] | -8.08% | logs/abba_sparse_plain_v2_e19_summary.txt |
+A/A noise in the LTO+PGO run: -2.1 .. +0.7% (medians). Parity stays exact in every build (pins, 12k).
+Where the time goes (what was checked, not a profile): the dense kernel already skips all-zero 4-byte blocks with the same
+mask, so the find-nnz list only adds work - an extra store/reload pass over the non-zero block indices and a second
+branchy loop - while the extra accumulator chains do not pay it back (the dense loop overlaps the mask scan with the
+multiply-adds). v1 was also not inlined and its 4 KiB list made every call run the Windows stack probe ___chkstk_ms;
+removing both (v2) did not help (still -8% plain). Not done: a sampling profile (no perf on Windows; -pg on a copy is the
+next step) and a vpcompressw phase 1. Stop rule: two failures for the same reason -> item stopped; the switch stays in
+the source at default 0 (dense), patch stack/stack_sparse.patch (v1 + v2).
