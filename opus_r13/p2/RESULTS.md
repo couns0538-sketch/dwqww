@@ -71,3 +71,5 @@ To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training 
 | e9 bench d11-d22 = D8D90B68 287095/693432/2816047/12332089/25323515 | PASS | PASS | logs/plain_sparse_*_e9.json |
 | 12k-FEN exe identity vs D8D90B68 (go depth 2: depth, score, nodes, bestmove), e19 and e9 | 12000/12000 both | 12000/12000 both | logs/f12k_sparse_*_compare.txt |
 (The prompt's 10,000-FEN eval parity is covered by the 12k-FEN search identity: any eval difference changes score/nodes.)
+| sanitizer, net path (local: MinGW has no ASan, so -fsanitize=undefined -fsanitize-undefined-trap-on-error + -D_GLIBCXX_ASSERTIONS, sparse ON, exe 1947c8d6): self-play 4 games each with no net / e19 / e19 + LargePages / e9, 0 illegal, 0 traps (exit 0) | PASS | (znver5 build) | logs/ubsan_sparse_selfplay.json |
+| sanitizer, no net (GitHub ASan+UBSan, stack align 0/1) | PASS | - | logs/ci_san_41211359051.txt |
