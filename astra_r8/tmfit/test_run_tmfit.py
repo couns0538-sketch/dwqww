@@ -1,5 +1,10 @@
 import importlib.util
+import io
 from pathlib import Path
+import queue
+import subprocess
+import time
+from types import SimpleNamespace
 import unittest
 
 spec = importlib.util.spec_from_file_location('runner', Path(__file__).with_name('run_tmfit.py'))
@@ -8,6 +13,78 @@ spec.loader.exec_module(runner)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_calibration_is_clean_run_only_and_never_qualification(self):
+        games = [dict(mode=i%2, result='checkmate', moves=100,
+                      total_wall_ms=10000 if i%2==0 else 20000) for i in range(40)]
+        result = runner.timing_summary(games,40,calibration=True)
+        self.assertTrue(result['pass_'])
+        self.assertEqual(result['ratio_on_off'],2)
+        self.assertFalse(result['qualification_eligible'])
+        self.assertFalse(runner.timing_summary(games,40)['pass_'])
+        games[0]['result']='time_loss'
+        self.assertFalse(runner.timing_summary(games,40,calibration=True)['pass_'])
+
+    def test_timing_qualification_requires_200_clean_games_and_three_percent(self):
+        games = [dict(mode=i%2,result='checkmate',moves=100,total_wall_ms=10000) for i in range(200)]
+        self.assertTrue(runner.timing_summary(games,200)['pass_'])
+        self.assertFalse(runner.timing_summary(games[:198],200)['pass_'])
+        for game in games:
+            if game['mode']:
+                game['total_wall_ms']=10400
+        self.assertFalse(runner.timing_summary(games,200)['pass_'])
+
+    def test_hung_quit_is_failure_after_owned_child_is_killed(self):
+        class HungChild:
+            stdin = io.StringIO()
+            returncode = None
+            killed = False
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout):
+                if not self.killed:
+                    raise subprocess.TimeoutExpired('owned-child', timeout)
+                return self.returncode
+
+            def kill(self):
+                self.killed = True
+                self.returncode = -9
+
+        process = runner.Process.__new__(runner.Process)
+        process.process = HungChild()
+        process.log = io.StringIO()
+        process.lines = queue.Queue()
+        process.reader = SimpleNamespace(join=lambda timeout: None)
+        with self.assertRaisesRegex(RuntimeError, 'forced termination'):
+            process.close()
+        self.assertTrue(process.process.killed)
+
+    def test_sync_rejects_option_errors_even_before_readyok(self):
+        for rejection in ['info string invalid value for option TmFitA',
+                          'info string Unknown option: TmFitBias',
+                          'info string option TmFitDepth rejected',
+                          'info string unsupported option TmFitEffort']:
+            engine = runner.Engine.__new__(runner.Engine)
+            engine.process = SimpleNamespace(stdin=io.StringIO())
+            engine.log = io.StringIO()
+            engine.lines = queue.Queue()
+            for line in (rejection, 'readyok'):
+                engine.lines.put((time.perf_counter(), line))
+            with self.subTest(rejection=rejection):
+                with self.assertRaisesRegex(RuntimeError, 'option rejected'):
+                    engine.sync()
+                self.assertIn(rejection, engine.log.getvalue())
+
+    def test_reserved_options_cannot_override_test_configuration(self):
+        for key, value in [('TmFitModel', '0'), ('Threads', '1'), ('Hash', '16')]:
+            engine = runner.Engine.__new__(runner.Engine)
+            # An override must be rejected before any engine command is issued.
+            engine.send = lambda _: self.fail('configuration rejection must precede UCI traffic')
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(ValueError, 'reserved'):
+                    engine.initialize(1, {key: value})
+
     def test_sanitizer_four_on_games_do_not_require_normalization(self):
         games = [dict(mode=1, result='ply_cap', moves=100) for _ in range(4)]
         result = runner.sanitizer_summary(games, 4)

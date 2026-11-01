@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "strength": "UNPROVEN",
+  "recorded_at": "2026-11-01T09:32:34-08:00",
+  "command": "python -m unittest discover -s astra_r8/tmfit -p test_run_tmfit.py",
+  "red": "Before fixes, 10 tests ran with 8 failures: hung quit was silently accepted, three reserved options reached UCI traffic, and four option-error receipts were ignored.",
+  "green": "10 tests in 0.002s, OK; exit code 0",
+  "sha256": {
+    "astra_r8/tmfit/run_tmfit.py": "62601626fed41f4f79674173630a4ab78a44a87c71ee7ba9bb81b70f18f81b88",
+    "astra_r8/tmfit/test_run_tmfit.py": "8dc7c651e843b7f5c6c4eeb6e1b36a4e9b42e4172a0f368d9fb45c79f4cf2c7e"
+  },
+  "fixes": [
+    "Force-killing this harness's own child after a failed quit now raises failure after cleanup and transcript drainage",
+    "Engine.sync rejects invalid, unknown, unsupported, rejected, and error option receipts before readyok",
+    "TmFitModel, Threads, and Hash cannot be overridden through --option, including same-value overrides"
+  ],
+  "limitations": "Mock process/protocol fixtures exercise failure paths without launching or killing real engines. This is harness correctness evidence, not an engine sanitizer result. Prior logs and evidence remain unchanged."
+}

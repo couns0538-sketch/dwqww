@@ -35,6 +35,8 @@ def main():
     command += [f'src/{unit}.cpp' for unit in units] + ['-o', str(out/'forge.exe')]
     flags = subprocess.BELOW_NORMAL_PRIORITY_CLASS | subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
     env = dict(os.environ)
+    (out/'tmp').mkdir()
+    env['TMP'] = env['TEMP'] = env['TMPDIR'] = str(out/'tmp')
     env['PATH'] = str(Path(args.compiler).parent) + os.pathsep + env.get('PATH', '')
     tracked = subprocess.check_output(['git', 'ls-files', 'src', 'include'], cwd=root, text=True).splitlines()
     hashes = {name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in tracked}

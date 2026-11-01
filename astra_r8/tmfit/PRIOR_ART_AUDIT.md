@@ -29,7 +29,9 @@ locally available main/astra/fable/bundle refs found no implementations named
 timepack 1–4, tmdiv18, omni_tm, TmOppClock, or TmScoreLoss. Their existence and
 hand-set-factor character are given by the task; the absent source was not
 silently treated as reviewed. Source-level comparison with those variants
-remains a review limitation until their source locations are supplied/fetched.
+was initially a review limitation. Couns subsequently confirmed these are off-repo
+crew patches and directed comparison using their descriptions in IDEA_SOURCE.md;
+no further source discovery is required. All use fixed hand-tuned factors.
 
 All new inference, logging, and tests are original. The sigmoid table is
 generated from the mathematical logistic formula, not another engine's tuned

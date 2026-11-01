@@ -107,18 +107,19 @@ int TmUnstableFactor = 140;
 int TmEffortBase = 155;
 int TmFallingEvalPercent = 100;
 int TmMinFactorPercent = 45;
-// UNFITTED checkpoint: neutral mapping until the real-data fit is installed.
-int TmFitBias = 0;
-int TmFitDepth = 0;
-int TmFitChanged = 0;
-int TmFitEffort = 0;
-int TmFitScore = 0;
-int TmFitDelta = 0;
-int TmFitElapsed = 0;
-int TmFitA = 1000;
-int TmFitB = 0;
-int TmFitLo = 500;
-int TmFitHi = 1500;
+// UNPROVEN: Q12 logistic fit from 52,012 logged iterations; see astra_r8/tmfit.
+// Probability mapping is under empirical time-balance calibration at this checkpoint.
+int TmFitBias = -3201;
+int TmFitDepth = -5127;
+int TmFitChanged = 6120;
+int TmFitEffort = -3440;
+int TmFitScore = -1537;
+int TmFitDelta = -167;
+int TmFitElapsed = 1284;
+int TmFitA = 742;
+int TmFitB = 3000;
+int TmFitLo = 650;
+int TmFitHi = 1750;
 int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;

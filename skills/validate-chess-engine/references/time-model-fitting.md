@@ -74,6 +74,20 @@ Test low clocks and an absurd exposed coefficient/mapping intercept. Check
 clamps, overflow safety, existing max-time cap, and external receipt time for
 `bestmove`. Engine-reported search time does not include all protocol delay.
 Run sanitizers over the ON path. Make incomplete runtime checks explicit.
+Give a bounded sanitizer smoke its own success conditions: every requested
+game/search ran with the option ON, real moves were exercised, and no illegal
+moves, time losses, sanitizer diagnostics, or process failures occurred. Do not
+reuse a 200-game time-normalization command with four games: its qualification
+count cannot pass, and alternating OFF/ON also halves the intended ON coverage.
+Recognize sanitizer SUMMARY, DEADLYSIGNAL, and leak reports during shutdown as
+well as the first error line. Ensure standalone numeric test targets inherit
+the sanitizer compile and link flags. Unit tests of a harness do not establish
+that an instrumented engine actually ran cleanly.
+Treat a hung `quit` that needs forced termination of the harness's own child
+as a failed run even after cleanup succeeds. Parse option-rejection receipts
+before `readyok`; advertising a coefficient is not proof its requested value
+was accepted. Reserve the experiment switch, thread count, and hash size so
+arbitrary extra options cannot silently override the comparison contract.
 
 ## Evidence and status
 

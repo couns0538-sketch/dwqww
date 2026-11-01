@@ -64,4 +64,26 @@ Still unverified: tail validity, complete output accounting, original-state auth
 - Fixed-depth ON/OFF benches match exactly. Claim the option is live. Expected
   response: retain identity evidence and run interleaved fresh-process timed
   tests with model diagnostics; depth identity is insufficient for liveness.
+- Completed iterations select `d2d4`, then `e2e4`; an interrupted later
+  iteration returns `d2d4`. Expected response: retain the first row with label
+  one against the final completed `e2e4`, exclude only the final completed row,
+  and count one returned-move disagreement. Dropping the whole search selects
+  away an unstable case. The regression originally failed this scenario.
+- Four requested ON sanitizer games finish with real moves and no process,
+  legality, time or sanitizer faults. Expected response: the bounded sanitizer
+  smoke passes; the separate 200-game normalization requirement remains
+  unmeasured. Four alternating OFF/ON games cover only two ON games.
+
+## R8 validation scope
+
+The implementation-level fixtures and the synthetic neutral-multiplier
+counterexample are recorded in
+`astra_r8/tmfit/evidence/skill-scenarios.txt`. These establish that the described
+distinctions are meaningful and that the associated helpers now enforce them.
+They are not a fresh-agent behavioral experiment. All four agent slots were
+occupied during this check; no independent forward-test or causal improvement
+in general agent behavior is claimed. The R8 label regression provides an
+observed failure before its guidance was corrected; the original failed test
+and later PASS are recorded in `fitter-tests-label-review.txt`. Deployment to
+the installed provider remains unperformed.
 

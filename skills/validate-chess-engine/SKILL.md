@@ -1,6 +1,6 @@
 ---
 name: validate-chess-engine
-description: Use when validating GrokChess, Forge or other UCI engines; investigating illegal moves, state or TT bugs; checking perft, UCI behavior or training-data conversion; comparing candidates with fastchess SPRT; interpreting Elo/Stockfish claims; or accepting search, evaluation, NNUE or speed changes.
+description: Use when validating GrokChess, Forge or other UCI engines; investigating illegal moves, state or TT bugs; checking perft, UCI behavior or training-data conversion; fitting or qualifying time-management models; comparing candidates with fastchess SPRT; interpreting Elo/Stockfish claims; or accepting search, evaluation, NNUE or speed changes.
 ---
 
 # Validate Chess Engine Improvements

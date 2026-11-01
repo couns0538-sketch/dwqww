@@ -64,3 +64,20 @@ incorrectly checked against the 200-game qualification requirement. Preserved
 as a failed run; fixed with a dedicated all-ON sanitizer command and regression.
 New native build script records exact command, source hashes and binary hash.
 Next: finish dataset, fit, calibrate on separate openings, rerun final checks.
+
+## Checkpoint 4 — real fit installed, mapping under calibration; UNPROVEN
+
+Collection COMPLETE:52,012 root iterations /19 games, zero illegal moves/time losses.
+Raw dataset SHA256 `884e458c7298f465dd3b3810c5a98132647d2d15701e53ccbdd4ba10e036eb8c`.
+Fitter:49,400 eligible rows,42,124train/7,276heldout,15/4 opening groups.
+Heldout AUC0.6826193881; integer AUC0.6828350984. One interrupted-return disagreement
+retained with the completed-final-iteration label. Committed sample521rows (~178KB).
+Q12 coefficients: -3201,-5127,6120,-3440,-1537,-167,1284 (bias/depth/change/effort/score/delta/elapsed).
+First mapping A914/B1000/Lo750/Hi1500 failed robust live threshold:5/20 positions.
+Preserved; stronger A742/B3000/Lo650/Hi1750 is being assessed. Both remain UNPROVEN.
+ASan+UBSan corrected run41289111781 PASS:4allON games399plies, no reports or faults,
+neutral preliminary coefficients. Final fitted-coefficient sanitizer rerun pending.
+Independent review found two harness P2s (hung quit and rejected option accepted);
+red/green regressions now pass and both are fixed before timing qualification.
+Couns clarified off-repo prior art; descriptions recorded in IDEA_SOURCE, no blocker.
+Next: mapping calibration, frozen200game smoke and final timed/identity checks.

@@ -75,6 +75,13 @@ def is_sanitizer_report(line):
         'AddressSanitizer', 'UndefinedBehaviorSanitizer', 'LeakSanitizer', 'runtime error:'))
 
 
+def validate_extra_options(options):
+    reserved = {'tmfitmodel', 'threads', 'hash'}
+    forbidden = [name for name in options if name.strip().casefold() in reserved]
+    if forbidden:
+        raise ValueError('Harness-reserved option cannot be overridden: ' + ', '.join(forbidden))
+
+
 class Process:
     def __init__(self, exe, log):
         flags = 0
@@ -144,7 +151,9 @@ class Process:
         self.log.flush()
         if reports:
             raise RuntimeError('Sanitizer report during shutdown: ' + reports[0])
-        if not killed and self.process.returncode:
+        if killed:
+            raise RuntimeError('Child required forced termination after quit; shutdown failed')
+        if self.process.returncode:
             raise RuntimeError(f'Child process exit status {self.process.returncode}')
 
     def __enter__(self):
@@ -164,6 +173,7 @@ class Engine(Process):
             raise
 
     def initialize(self, mode, options):
+        validate_extra_options(options)
         self.send('uci')
         identification, _ = self.until(lambda line: line == 'uciok')
         names = {line.split(' type ', 1)[0].removeprefix('option name ') for line in identification if line.startswith('option name ')}
@@ -185,6 +195,12 @@ class Engine(Process):
     def sync(self):
         self.send('isready')
         lines, _ = self.until(lambda line: line == 'readyok')
+        for line in lines:
+            receipt = line.casefold()
+            if 'option' in receipt and any(marker in receipt for marker in (
+                    'invalid', 'unknown', 'unrecognized', 'unrecognised', 'unsupported',
+                    'no such', 'reject', 'error')):
+                raise RuntimeError('Engine option rejected: ' + line)
         if any(line.startswith('bestmove ') for line in lines):
             raise RuntimeError('Duplicate/unexpected bestmove')
 
@@ -240,6 +256,22 @@ def sanitizer_summary(games, requested_games):
                 all_on and exercised and faults == 0)
 
 
+def timing_summary(games, requested_games, calibration=False):
+    averages = {mode: sum(g['total_wall_ms'] for g in games if g['mode'] == mode) /
+                max(1, sum(g['moves'] for g in games if g['mode'] == mode)) for mode in (0,1)}
+    ratio = averages[1]/averages[0] if averages[0] else None
+    mean_games = {mode: statistics.mean(g['total_wall_ms'] for g in games if g['mode']==mode)
+                  for mode in (0,1) if any(g['mode']==mode for g in games)}
+    clean = len(games)==requested_games and requested_games>=2 and requested_games%2==0 and all(
+        g['result'] not in ('illegal','time_loss') and g['moves']>0 for g in games)
+    clean = clean and all(sum(g['mode']==mode for g in games)==requested_games//2 for mode in (0,1))
+    return dict(phase='calibration' if calibration else 'qualification', requested_games=requested_games,
+                mapping_status='UNPROVEN', qualification_eligible=not calibration,
+                average_ms_per_move=averages, ratio_on_off=ratio, average_ms_per_game=mean_games,
+                game_time_ratio_on_off=mean_games.get(1,0)/max(1,mean_games.get(0,0)),
+                pass_=clean and (calibration or (len(games)>=200 and ratio is not None and abs(ratio-1)<=.03)))
+
+
 def selfplay(args, fens, options):
     games = []
     iteration_count = 0
@@ -255,8 +287,8 @@ def selfplay(args, fens, options):
         engines = [stack.enter_context(Engine(args.exe, transcript, initial_mode, options)) for _ in range(2)]
         for game in range(args.games if args.games else 100000):
             resource_guard(args.scratch_root)
-            mode = 1 if args.command == 'sanitizer' else (game % 2 if args.command == 'smoke' else args.mode)
-            pair_id = game // 2 if args.command == 'smoke' else game
+            mode = 1 if args.command == 'sanitizer' else (game % 2 if args.command in ('smoke','calibrate') else args.mode)
+            pair_id = game // 2 if args.command in ('smoke','calibrate') else game
             fen = fens[pair_id % len(fens)]
             opening_group = hashlib.sha256(fen.encode()).hexdigest()[:16]
             game_id = f'{run_id}:{game}'
@@ -310,17 +342,8 @@ def selfplay(args, fens, options):
     summary = dict(strength='UNPROVEN', games=len(games), iterations=iteration_count,
                    illegal_moves=sum(g['result'] == 'illegal' for g in games),
                    time_losses=sum(g['result'] == 'time_loss' for g in games))
-    if args.command == 'smoke':
-        averages = {mode: sum(g['total_wall_ms'] for g in games if g['mode'] == mode) /
-                    max(1, sum(g['moves'] for g in games if g['mode'] == mode)) for mode in (0, 1)}
-        ratio = averages[1] / averages[0] if averages[0] else None
-        mean_game_times = {mode: statistics.mean(g['total_wall_ms'] for g in games if g['mode'] == mode)
-                           for mode in (0,1) if any(g['mode'] == mode for g in games)}
-        summary.update(average_ms_per_move=averages, ratio_on_off=ratio,
-                       average_ms_per_game=mean_game_times,
-                       game_time_ratio_on_off=mean_game_times.get(1,0)/max(1,mean_game_times.get(0,0)),
-                       pass_=len(games) >= 200 and ratio is not None and abs(ratio-1) <= .03 and
-                       summary['illegal_moves'] == summary['time_losses'] == 0)
+    if args.command in ('smoke','calibrate'):
+        summary.update(timing_summary(games,args.games,calibration=args.command=='calibrate'))
     elif args.command == 'sanitizer':
         summary.update(sanitizer_summary(games, args.games))
     else:
@@ -447,7 +470,7 @@ def main():
         if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), subprocess.BELOW_NORMAL_PRIORITY_CLASS):
             raise ctypes.WinError(ctypes.get_last_error())
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['collect','smoke','sanitizer','live','hard','absurd','bench'])
+    parser.add_argument('command', choices=['collect','smoke','calibrate','sanitizer','live','hard','absurd','bench'])
     parser.add_argument('--exe', type=Path, required=True)
     parser.add_argument('--referee', type=Path)
     parser.add_argument('--openings', type=Path)
@@ -468,12 +491,16 @@ def main():
     args.out = args.out.resolve()
     if not args.out.is_relative_to(args.scratch_root):
         parser.error('--out must be under --scratch-root')
-    if args.command in ('collect','smoke','sanitizer') and not args.referee:
+    if args.command in ('collect','smoke','calibrate','sanitizer') and not args.referee:
         parser.error('--referee required for self-play')
     if args.command != 'bench' and not args.openings:
         parser.error('--openings EPD/FEN required')
     if args.command == 'smoke' and not args.games:
         args.games = 200
+    if args.command == 'calibrate' and not args.games:
+        args.games = 40
+    if args.command in ('smoke','calibrate') and (args.games<2 or args.games%2):
+        parser.error('Paired timing runs require an even game count >=2')
     if args.command == 'sanitizer':
         if not args.games:
             args.games = 4
@@ -481,6 +508,7 @@ def main():
     if args.base_ms <= 0 or args.inc_ms < 0 or args.games < 0 or args.min_iterations < 1 or args.max_plies < 1:
         parser.error('Invalid time/game/iteration limits')
     options = dict(item.split('=',1) for item in args.option)
+    validate_extra_options(options)
     resource_guard(args.scratch_root)
     args.out.mkdir(parents=True, exist_ok=False)
     manifest = dict(strength='UNPROVEN', command=vars(args), engine_sha256=digest(args.exe),
@@ -496,7 +524,7 @@ def main():
     write_json(args.out/'manifest.json', manifest)
     try:
         fens = read_positions(args.openings,args.seed) if args.openings else []
-        if args.command in ('collect','smoke','sanitizer'):
+        if args.command in ('collect','smoke','calibrate','sanitizer'):
             summary = selfplay(args,fens,options)
         elif args.command == 'bench':
             summary = bench(args,options)
