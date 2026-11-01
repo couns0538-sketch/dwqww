@@ -233,3 +233,18 @@ CPU94–99%; no compiler or engine has launched. No process suspension is used.
 Linux evidence will not be relabeled Windows or crew LTO+PGO. Next: finish200,
 download and audit source→binary→test links, run final evidence checker/review,
 and hand off to CR, Strength and QA. Strength remains UNPROVEN.
+
+## Checkpoint 13 — sanitizer artifact audited; timing test still running
+
+Downloaded the completed sanitizer artifact into authorized scratch. All nine
+producer hashes verify; runner/governor snapshots match exact Git blobs from
+02e79145. Four all-ON games and zero sanitizer transcript markers are confirmed.
+Bounded manifests/game ledger and source→binary→test audit are retained under
+ci_actual_lock_41296951735/sanitizer_artifact. The ASan executable was not in that
+artifact; its runtime SHA is producer-reported and linked through the successful
+source-asserting build job. This limitation is explicit in identity-audit.json.
+
+Actual-lock final200 remains in progress without a reported failure. The native
+builder still sleeps before startup (latestCPU97.6%,11.64GiB free RAM); no native
+compiler/engine or suspension has occurred. No code/parameter changes or interim
+timing decisions. Next: final timing result, artifact audit, final review/checker.
