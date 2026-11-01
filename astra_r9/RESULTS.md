@@ -1,7 +1,7 @@
 # Astra R9 results
 
 Started 2026-11-01 13:57 America/Los_Angeles. Six-hour deadline: 19:57.
-Status: baseline preflight; no optimization implemented or accepted. Elo: UNPROVEN.
+Status: c1 correctness proof PASS; advisory speed test next. No candidate accepted yet. Elo: UNPROVEN.
 
 - Lock SHA256 PASS: FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
 - Kit MD5 PASS: 729FE7275C3C01D22C751CB751D5C9D2.
@@ -35,3 +35,25 @@ candidate harnesses PASS: 684200 evaluations, 324100 legal moves, 12000 nulls,
 digest 3bd3b27ac5a60483. Diagnostic-only ON counter 684200.
 Lock all five bench pins and both perft pins PASS. ASan/UBSan positive controls PASS.
 Next: immutable c1 source snapshot, two v2.3 production builds and full remaining proof.
+
+## M2 — reproducible production and correctness proof
+
+Source implementation commit fb58080, frozen D:\a9\c1 (manifest c1-source.json).
+Production b1 = b2 SHA256:
+775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284.
+Both unchanged v2.3 kit runs PASS: OFF/ON full pins and perft, plain-vs-LTO+PGO
+identity, no missing-profile warnings, no FMA; longest gcda path 83 characters.
+One benign serial-LTRANS warning; gcov-dump unavailable (kit permits record-only omission).
+First attempt a1 failed before compilation because Windows PowerShell did not load
+Get-FileHash. Retained FAILED/log; corrected host to installed pwsh 7.6.8 with new tags.
+
+Production lock/OFF/ON depth-2 corpus comparison PASS: all 12000 score/node/bestmove
+records identical, every bestmove legal. T1/T4 movetime smoke OFF/ON PASS (48 legal
+bestmoves, each awaited before quit). ASan+UBSan c1 self-play OFF/ON PASS: 8 games /
+592 legal plies each, zero reports; native sanitizer exe SHA256
+A56762278935AF93344680BA147A9076F63B52504E2495A686D7FE5F28A4A2AA.
+
+Harness review found absolute-timeout and setup-cleanup gaps plus missing during-run
+timing telemetry. All fixed; three targeted regressions PASS; focused recheck PASS.
+Timing now retains all rows and rejects experiments with any contaminated run.
+Next: predeclared four A/A and ten ABBA blocks, no concurrent owned heavy work.

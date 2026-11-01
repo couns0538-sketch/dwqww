@@ -22,3 +22,18 @@ M1 focused recheck PASS: all three gaps closed, git diff --check clean. Reviewed
 nnue.cpp D11B4EED401A3F6C05EA7A5C8917E1E7F933A9E1BDF3E3992D44C62424F3F635.
 Expanded unchanged-lock/candidate digests both 3bd3b27ac5a60483, 684200 evaluations,
 324100 moves, 12000 nulls. Proceed with production build; not accepted pending full proof.
+
+## M2 — validation harness and pre-timing review
+
+Production c1/b1 and b2 SHA256 775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
+engine source remains fb58080. Read-only reviewer review_wide01 found three harness
+issues: streaming output could defeat an absolute deadline; affinity failure before
+cleanup scope could orphan an owned child; timing lacked during-run interference
+checks. Confirmed and fixed all; no rejected findings. Added deadline, affinity-failure,
+and Windows CPU accounting regressions (3 PASS). Focused recheck PASS, including
+production parity comparison and ABBA pair/statistics logic.
+
+Validation: both kit builds full OFF/ON identity PASS and reproducible; diagnostic
+684200 comparisons PASS; native sanitizer selfplay zero reports/illegal moves;
+T1/T4 smoke PASS; production 12k lock/OFF/ON parity PASS. Next: advisory timing.
+No candidate accepted until the speed gate passes and final evidence review closes.

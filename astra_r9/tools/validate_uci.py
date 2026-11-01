@@ -7,29 +7,34 @@ PINS={11:312866,13:862329,16:3024920,20:12389307,22:34048354}
 KIWI='r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
 class Engine:
     def __init__(self,exe,log,threads=1,on=False,core=2):
-        self.log=open(log,'w'); self.q=queue.Queue()
-        self.p=subprocess.Popen([exe],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
-                                text=True,creationflags=subprocess.IDLE_PRIORITY_CLASS)
-        psutil.Process(self.p.pid).cpu_affinity([core] if threads==1 else [2,3])
+        self.log=open(log,'w'); self.q=queue.Queue(); self.p=None; self.reader=None
         def pump():
             for s in self.p.stdout:
                 self.log.write(s); self.log.flush(); self.q.put(s.strip())
             self.q.put(None)
-        self.reader=threading.Thread(target=pump,daemon=True); self.reader.start()
-        self.send('uci'); lines=self.wait(r'^uciok$')
-        self.options='\n'.join(lines)
-        for n,v in [('Threads',str(threads)),('Hash','16'),('OwnBook','false')]: self.send(f'setoption name {n} value {v}')
-        if on:
-            if 'option name NNUEWideOutput type check default false' not in self.options: raise RuntimeError('missing option')
-            self.send('setoption name NNUEWideOutput value true')
-        self.send('isready'); self.wait('^readyok$')
+        try:
+            self.p=subprocess.Popen([exe],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                                    text=True,creationflags=subprocess.IDLE_PRIORITY_CLASS)
+            psutil.Process(self.p.pid).cpu_affinity([core] if threads==1 else [2,3])
+            self.reader=threading.Thread(target=pump,daemon=True); self.reader.start()
+            self.send('uci'); lines=self.wait(r'^uciok$')
+            self.options='\n'.join(lines)
+            for n,v in [('Threads',str(threads)),('Hash','16'),('OwnBook','false')]: self.send(f'setoption name {n} value {v}')
+            if on:
+                if 'option name NNUEWideOutput type check default false' not in self.options: raise RuntimeError('missing option')
+                self.send('setoption name NNUEWideOutput value true')
+            self.send('isready'); self.wait('^readyok$')
+        except BaseException:
+            self.abort(); raise
     def send(self,s):
         self.log.write('> '+s+'\n'); self.log.flush()
         self.p.stdin.write(s+'\n'); self.p.stdin.flush()
     def wait(self,rx,timeout=300):
         end=time.monotonic()+timeout; lines=[]
         while True:
-            s=self.q.get(timeout=max(.01,end-time.monotonic()))
+            remaining=end-time.monotonic()
+            if remaining<=0: raise TimeoutError('absolute UCI deadline waiting for '+rx)
+            s=self.q.get(timeout=remaining)
             if s is None: raise RuntimeError('engine exited: '+str(self.p.poll()))
             if 'ERROR: AddressSanitizer' in s or 'runtime error:' in s or 'SUMMARY: UndefinedBehaviorSanitizer' in s:
                 raise RuntimeError('sanitizer report: '+s)
@@ -42,9 +47,13 @@ class Engine:
             except subprocess.TimeoutExpired: self.p.kill(); self.p.wait(); raise
         self.reader.join(timeout=5); self.log.close()
         if self.p.returncode != 0: raise RuntimeError('engine exit '+str(self.p.returncode))
+        transcript=pathlib.Path(self.log.name).read_text()
+        if re.search(r'ERROR: AddressSanitizer|runtime error:|SUMMARY: (?:UndefinedBehaviorSanitizer|AddressSanitizer)',transcript):
+            raise RuntimeError('sanitizer report in complete transcript')
     def abort(self):
-        if self.p.poll() is None: self.p.kill(); self.p.wait()
-        self.reader.join(timeout=5); self.log.close()
+        if self.p is not None and self.p.poll() is None: self.p.kill(); self.p.wait()
+        if self.reader is not None: self.reader.join(timeout=5)
+        self.log.close()
     def move(self,b,command):
         self.send('position fen '+b.fen()); self.send(command)
         lines=self.wait('^bestmove ')
