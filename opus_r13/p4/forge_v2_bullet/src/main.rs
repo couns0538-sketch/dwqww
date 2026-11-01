@@ -15,7 +15,7 @@
 //! side-to-move features use the stored squares and the other perspective uses square ^ 56 with colours swapped.
 //! Output: raw f32 tensors l0w [input][H], l0b [H], l1w transposed [bucket][2H], l1b [bucket] -> export_v2.py.
 //!
-//! usage: forge_v2_bullet <a|b|c> <binpack> <out_dir> [hidden=256] [superbatches=4] [batches_per_sb=1024] [threads=2]
+//! usage: forge_v2_bullet <a|b|c> <binpack> <out_dir> [hidden=256] [superbatches=4] [batches_per_sb=1024] [threads=2] [seed]
 //!        forge_v2_bullet features <a|b|c> <fen>      (prints the active feature pairs, for the parity tests)
 use bullet_lib::{
     game::{inputs::SparseInputType, outputs::MaterialCount},
@@ -230,10 +230,13 @@ fn main() {
     let sbs: usize = arg(&a, 5, 4);
     let bpsb: usize = arg(&a, 6, 1024);
     let threads: usize = arg(&a, 7, 2);
+    let seed: u64 = arg(&a, 8, 13_401);
+    println!("forge_v2_bullet stage {} hidden {hidden} superbatches {sbs} x {bpsb} seed {seed}", a[1]);
     let n_in = inputs.num_inputs();
 
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
+        .seed(seed)
         .optimiser(AdamW)
         .inputs(inputs)
         .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
