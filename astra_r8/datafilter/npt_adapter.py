@@ -19,7 +19,7 @@ from records import validate_record
 from filter_positions import sha256
 
 def single_process():
-    if int(os.environ.get('WORLD_SIZE', '1')) != 1 or int(os.environ.get('RANK', '0')) != 0 or torch.utils.data.get_worker_info() is not None:
+    if int(os.environ.get('WORLD_SIZE', '1')) != 1 or int(os.environ.get('RANK', '0')) != 0 or int(os.environ.get('LOCAL_RANK','0')) != 0 or torch.utils.data.get_worker_info() is not None:
         raise ValueError('adapter supports one process/device and zero loader workers only')
     if torch.distributed.is_available() and torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
         raise ValueError('distributed adapter execution unsupported')
@@ -89,7 +89,8 @@ class MaskedNNUE(NNUE):
     def compute_loss_with_scorenet(self, scorenet, batch, current_step):
         metadata = batch[8] if len(batch) == 9 else self._metadata
         try:
-            if metadata is None or len(metadata['lambda']) != batch[5].shape[0]:
+            keys = ('lambda','source','source_row','source_kind','has_result','result_stm','fen','ply')
+            if metadata is None or any(len(metadata[key]) != batch[5].shape[0] for key in keys):
                 raise ValueError('missing or misaligned row metadata')
             for mask, lam in zip(metadata['has_result'], metadata['lambda']):
                 if (not mask and lam != 1.0) or lam not in (0.8, 1.0):
@@ -167,6 +168,14 @@ class BatchStream:
     def __init__(self, row_file, sampler, batches, batch_size, feature, recipe, validation=False):
         self.rows, self.sampler, self.batches = row_file, sampler, batches
         self.batch_size, self.feature, self.recipe, self.validation = batch_size, feature, recipe, validation
+        self.dataset = self
+
+    def get_unique_stats(self):
+        raise NotImplementedError('bounded Python adapter does not measure HLL unique counts')
+
+    def get_hll_state(self):
+        # Installed logger explicitly skips HLL reporting for empty state.
+        return b''
 
     def __len__(self):
         return self.batches
@@ -182,4 +191,5 @@ def runtime_identity():
     paths = {str(Path(m.__file__).resolve()) for m in list(sys.modules.values())
              if getattr(m, '__file__', None) and Path(m.__file__).resolve().is_relative_to(NPT)}
     paths.add(str(Path(os.environ['NNUE_DATA_LOADER_LIB']).resolve()))
+    paths.update(str(Path(__file__).resolve().parent/name) for name in ('npt_adapter.py','train_adapter.py','records.py'))
     return dict(python=sys.version, torch=torch.__version__, files={p:sha256(p) for p in sorted(paths)})

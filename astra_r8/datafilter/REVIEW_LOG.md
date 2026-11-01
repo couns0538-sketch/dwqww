@@ -25,3 +25,22 @@ evidence/adapter_green_attempt2.log. Focused recheck requested; million run held
 
 Existing freeze: started with >80 GB D free and <1 GB new outputs; completed
 before guard review. Original source hashes remained stable. It is preserved.
+
+Focused resource recheck: APPROVED for million-row run, candidate hashes matched.
+Two identical runs now match hashes; default cohort counts independently agree.
+
+## Milestone 3: adapter contracts and masked loss
+
+Candidate evidence/milestone3_candidate.json; reviewer inspected actual installed
+npt contracts. Confirmed: eight clones/finally free, signed STM semantics, lambda
+shape/device/dtype, inherited loss/scaling, transient cleanup, manifest/sampler pins.
+Accepted findings: missing `train.dataset`/HLL logger interface; nonzero cuda device
+selector not honored by installed local_rank dispatch; missing integration test for
+checkpoint scheduler repair; unequal mask lengths could bypass validation.
+Fixes: explicit unavailable-HLL facade; cpu/logical cuda:0 only and LOCAL_RANK=0;
+all metadata lengths checked; epoch-boundary checkpoint subclass validated through
+real npt model/optimizer/checkpoint load, pre-step and already-stepped scheduler
+states plus missing/malformed state. No optimizer updates performed.
+Evidence: review3_red.log, integration_attempt.log (37 passed). Test model forward
+uses L1=8 to bound CPU memory; exact recipe config remains L1024. Complete recipe
+commands now in MIX_SPEC.md. Fixed candidate review3_fixed_candidate.json.

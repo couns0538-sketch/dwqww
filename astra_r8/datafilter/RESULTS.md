@@ -5,12 +5,12 @@ Implementation in progress; no training readiness or strength claim.
 
 | Success test | Status |
 |---|---|
-| 1 Legacy identity, 100,000 rows | PENDING |
-| 2 Result orientation, 1,000 rows | PENDING |
-| 3 Determinism | PENDING |
-| 4 Deliberate failures | PENDING |
-| 5 Million-row audit | PENDING |
-| 6 Sign audit | PENDING |
+| 1 Legacy identity, 100,000 rows | PASS — train and val hashes separately identical |
+| 2 Result orientation, 1,000 rows | PASS — reviewed table, 1000 mirror checks |
+| 3 Determinism | PASS — two 2-worker runs, identical record/metadata hashes |
+| 4 Deliberate failures | PASS — enabled-rule and malformed-input fixtures |
+| 5 Million-row audit | PASS for measurable rules; capture/qsearch BLOCKED |
+| 6 Sign audit | PASS — Pearson 0.6635962860, unknowns excluded |
 | 7 Handoff integrity | PENDING |
 
 Capture measurement BLOCKED: production self-play lacks stored best moves.
@@ -35,3 +35,14 @@ Frozen cohort: shard001 rows 1..466506, shard002 rows 1..533494.
 User enlarged working budget to approximately six hours. User explicitly permits
 D-only validation while F has 47.46 GB free; F remains read-only.
 Next: legacy100k/orientation audits, two-worker million filter, adapter integration.
+
+Latest: legacy identity and orientation audits complete. Default filter keeps
+1,000,000/1,000,000; optional ply<=160 keeps 909,569, drops 90,431. Check/mate
+counts are zero in this preselected self-play cohort. First 2-worker run:
+71.186 seconds, 14047.70 positions/s. No best-move metadata; all results known.
+Full holdout013/014 scans still running; training readiness remains pending.
+Milestone3 review found missing npt logger interface and incorrect nonzero GPU
+dispatch acceptance. Fixed; 37 CPU tests now pass including installed entrypoint
+construction (stops before training) and real CPU checkpoint/scheduler round trips.
+Warnings: installed Torch deprecation notices and expected scheduler-before-step
+warning in a no-optimizer-update checkpoint test. No training/GPU work performed.

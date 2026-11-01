@@ -60,3 +60,28 @@ def test_storage_preflight_before_output(tmp_path, monkeypatch):
     with pytest.raises(OSError, match='reserve'):
         f.run_filter(inp, tmp_path/'out')
     assert not (tmp_path/'out.partial').exists()
+
+@pytest.mark.parametrize('fen,move,score,options', [
+    ('4k3/8/8/8/8/8/4r3/4K3 w - - 0 1','e1e2',0,{'drop_in_check':True}),
+    ('4k3/8/8/8/8/8/4r3/4K3 w - - 0 1','e1e2',0,{'drop_capture_bestmove':True}),
+    ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81','e5d6',0,{'drop_capture_bestmove':True}),
+    ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81','a7a8q',0,{'drop_capture_bestmove':True}),
+    (chess.STARTING_FEN,'e2e4',31872,{'drop_mate_scores':True}),
+    (chess.STARTING_FEN.replace(' 0 1',' 0 81'),'e2e4',0,{'max_ply_from_start':159}),
+])
+def test_enabled_rule_drops_fixture_and_keeps_quiet(tmp_path,fen,move,score,options):
+    from filter_positions import run_filter
+    data=[fixture(fen,move,score),fixture(chess.STARTING_FEN,'e2e4')]
+    inp=tmp_path/'fixtures.jsonl'; inp.write_text('\n'.join(map(dumps,data))+'\n')
+    off=run_filter(inp,tmp_path/'off')
+    assert off['kept']==2
+    on=run_filter(inp,tmp_path/'on',**options)
+    assert on['input']==2 and on['kept']==1 and on['dropped']==1
+    assert json.loads((tmp_path/'on/records.jsonl').read_text())['fen']==chess.STARTING_FEN
+
+def test_malformed_later_row_never_publishes(tmp_path):
+    from filter_positions import run_filter
+    p=tmp_path/'bad.jsonl'; p.write_text(dumps(fixture(chess.STARTING_FEN))+'\n{"fen":"broken"}\n')
+    with pytest.raises(ValueError):
+        run_filter(p,tmp_path/'out')
+    assert not (tmp_path/'out').exists()
