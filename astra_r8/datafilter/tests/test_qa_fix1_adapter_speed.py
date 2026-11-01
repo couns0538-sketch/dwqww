@@ -15,11 +15,17 @@ def rows_file(tmp_path, n=50):
     p = tmp_path / 'rows.jsonl'; p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
     return p, sha256(p)
 
+import functools
+
+@functools.lru_cache(maxsize=4)
+def _reference_pass(count, seed, p):
+    import numpy as np
+    return np.random.default_rng([seed, p]).permutation(count).tolist()
+
 def reference_next(count, seed, cursor):
     """Independent perm-v1 reference (QA fix 5 replaced the affine order; see test_qa_fix5_sampler_perm.py)."""
-    import numpy as np
     p, offset = divmod(cursor, count)
-    return int(np.random.default_rng([seed, p]).permutation(count)[offset])
+    return _reference_pass(count, seed, p)[offset]
 
 @pytest.mark.parametrize('count', [1, 17, 50, 999953])
 def test_take_matches_reference_order_across_passes(count):
