@@ -130,3 +130,17 @@ coordinator will run two disjoint100-game shards, at most2active search threads;
 only its combined200-game record can qualify. Driver16 and aggregator5 unit
 regressions pass. Raw final game/search logs stay in scratch; commit bounded
 game ledgers, summaries and complete hashes. Latest CI41290843946 PASS.
+
+## Checkpoint 8 — automatic review policy adopted; final run active
+
+Root AGENTS.md now contains Couns's automatic review/fix/verification policy.
+No prior project AGENTS.md was found; other branch/worktree instructions were
+not replaced. Focused independent review of the policy/log found one minor
+provenance ambiguity; fixed with exact binary/build/evidence links, verified.
+REVIEW_LOG.md records milestones, confirmed fixes, validation and next actions.
+
+Final smoke source41699d07, frozen executablee9e6c268..., mapping742/3000/650/1750:
+40/200 games completed at the latest monitor readback, zero faults; two active
+searches, no candidate or tested-executable changes. Still PENDING, not accepted.
+Normal and Expose UCI surface checks also PASS: onlyTmFitModel public normally,
+11coefficients exposed in Expose builds, diagnostics only whenON.

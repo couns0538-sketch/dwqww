@@ -29,7 +29,9 @@ Near-best root move count was omitted because this source does not expose it.
 Final completed iterations supply labels and are excluded as training examples.
 An aborted later iteration can revise the returned move: that is recorded, not
 used to discard unstable searches. Whole opening groups are held out; the split
-is 15 training /4 test groups,42,124 /7,276 eligible rows. Related rows are not
+is 15 training /4 test groups,42,124 /7,276 eligible rows. The20% split is by
+whole group (rounded up to4/19); unequal game lengths give14.73% held-out rows.
+Related rows are not
 independent samples, and opening separation does not prove transposition separation.
 
 | Measure | Result |
