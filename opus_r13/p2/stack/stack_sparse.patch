@@ -1,0 +1,120 @@
+diff --git a/src/nnue_halfka.cpp b/src/nnue_halfka.cpp
+index 1036517..df9207c 100644
+--- a/src/nnue_halfka.cpp
++++ b/src/nnue_halfka.cpp
+@@ -220,12 +220,17 @@ std::int32_t dot(const std::int8_t* w, const std::uint8_t* x, int n) {
+     return sum;
+ }
+ 
++// FORGE_SPARSE_L1 (R13 P2 step 2, build switch, default 0): find-nnz block kernel, see block_affine below.
++#ifndef FORGE_SPARSE_L1
++#define FORGE_SPARSE_L1 0
++#endif
++
+ #if defined(__AVX512VNNI__) && defined(__AVX512BW__)
+ // Block kernel: s[k] = sum_i w[k][i] * x[i] for NQ x 16 outputs. Each block of 4 inputs is broadcast and multiplied with
+ // the 4 weights of every output (regroup() layout); blocks whose 4 inputs are all zero are skipped, which leaves the
+ // integer sums unchanged.
+ template <int NQ>
+-void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
++void block_affine_dense(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
+     __m512i acc[NQ];
+     for (int q = 0; q < NQ; ++q) acc[q] = _mm512_setzero_si512();
+     for (int c = 0; c < in; c += 64) {
+@@ -247,7 +252,7 @@ void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int
+ #elif defined(__AVX2__)
+ // Block kernel (AVX2): as above with NQ x 8 outputs; x <= 127 and |w| <= 128 keep maddubs's pair sums inside int16.
+ template <int NQ>
+-void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
++void block_affine_dense(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
+     __m256i acc[NQ];
+     for (int q = 0; q < NQ; ++q) acc[q] = _mm256_setzero_si256();
+     const __m256i ones = _mm256_set1_epi16(1), zero = _mm256_setzero_si256();
+@@ -269,6 +274,87 @@ void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int
+ }
+ #endif
+ 
++#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
++constexpr int SparseGroup = 16;  // int32 outputs per zmm
++#elif defined(__AVX2__)
++constexpr int SparseGroup = 8;   // int32 outputs per ymm
++#endif
++#if (defined(__AVX512VNNI__) && defined(__AVX512BW__)) || defined(__AVX2__)
++#if FORGE_SPARSE_L1
++// find-nnz: phase 1 lists the non-zero 4-byte input blocks (ascending), phase 2 multiplies only those, with Chains
++// independent accumulator sets so consecutive multiply-adds do not wait on each other. Integer sums: bit-identical.
++constexpr int MaxNnzBlocks = 2048;  // inputs per layer <= 8192 (K32H3 nets: l1 <= 1536)
++template <int NQ>
++void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
++    if (in > 4 * MaxNnzBlocks) [[unlikely]] return block_affine_dense<NQ>(x, in, wb, s);
++    std::uint16_t nnz[MaxNnzBlocks];
++    int count = 0;
++#if defined(__AVX512VNNI__) && defined(__AVX512BW__)
++    for (int c = 0; c < in; c += 64) {
++        unsigned mask = in - c >= 64 ? static_cast<unsigned>(_mm512_test_epi32_mask(_mm512_loadu_si512(x + c), _mm512_loadu_si512(x + c)))
++                                     : static_cast<unsigned>(_mm256_test_epi32_mask(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c)),
++                                                                                    _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c))));
++        while (mask != 0) {
++            nnz[count++] = static_cast<std::uint16_t>(c / 4 + std::countr_zero(mask));
++            mask &= mask - 1;
++        }
++    }
++    using Vec = __m512i;
++    auto zero = [] { return _mm512_setzero_si512(); };
++    auto madd = [](Vec acc, Vec xb, const std::int8_t* w) { return _mm512_dpbusd_epi32(acc, xb, _mm512_loadu_si512(w)); };
++    auto bcast = [](std::int32_t four) { return _mm512_set1_epi32(four); };
++    auto add = [](Vec a, Vec b) { return _mm512_add_epi32(a, b); };
++    auto store = [](std::int32_t* dst, Vec v) { _mm512_storeu_si512(dst, v); };
++#else
++    const __m256i vzero = _mm256_setzero_si256();
++    for (int c = 0; c < in; c += 32) {
++        const __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(x + c));
++        unsigned mask = static_cast<unsigned>(_mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(v, vzero))));
++        while (mask != 0) {
++            nnz[count++] = static_cast<std::uint16_t>(c / 4 + std::countr_zero(mask));
++            mask &= mask - 1;
++        }
++    }
++    using Vec = __m256i;
++    auto zero = [] { return _mm256_setzero_si256(); };
++    auto madd = [](Vec acc, Vec xb, const std::int8_t* w) {
++        return _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_maddubs_epi16(xb, _mm256_loadu_si256(reinterpret_cast<const __m256i*>(w))),
++                                                       _mm256_set1_epi16(1)));
++    };
++    auto bcast = [](std::int32_t four) { return _mm256_set1_epi32(four); };
++    auto add = [](Vec a, Vec b) { return _mm256_add_epi32(a, b); };
++    auto store = [](std::int32_t* dst, Vec v) { _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), v); };
++#endif
++    constexpr int Bytes = SparseGroup * 4;  // weight bytes per output group and block
++    constexpr int Chains = NQ == 1 ? 4 : 2;
++    Vec acc[Chains][NQ];
++    for (int h = 0; h < Chains; ++h)
++        for (int q = 0; q < NQ; ++q) acc[h][q] = zero();
++    auto step = [&](int h, int b) {
++        std::int32_t four = 0;
++        std::memcpy(&four, x + 4 * b, 4);
++        const Vec xb = bcast(four);
++        const std::int8_t* w = wb + static_cast<std::size_t>(b) * NQ * Bytes;
++        for (int q = 0; q < NQ; ++q) acc[h][q] = madd(acc[h][q], xb, w + q * Bytes);
++    };
++    int k = 0;
++    for (; k + Chains <= count; k += Chains)
++        for (int h = 0; h < Chains; ++h) step(h, nnz[k + h]);
++    for (; k < count; ++k) step(0, nnz[k]);
++    for (int q = 0; q < NQ; ++q) {
++        Vec sum = acc[0][q];
++        for (int h = 1; h < Chains; ++h) sum = add(sum, acc[h][q]);
++        store(s + q * SparseGroup, sum);
++    }
++}
++#else
++template <int NQ>
++inline void block_affine(const std::uint8_t* x, int in, const std::int8_t* wb, std::int32_t* s) {
++    block_affine_dense<NQ>(x, in, wb, s);
++}
++#endif
++#endif
++
+ // s[k] = b[k] + sum_i w[k][i] * x[i] for k < out. SIMD: the block kernel on the regrouped weights (outp = out padded to
+ // 16 sums are written, s needs room for them); scalar: one dense dot per output row of the file layout.
+ void layer(const std::uint8_t* x, int in, const large_pages::WeightVector<std::int8_t>& w,

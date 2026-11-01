@@ -51,3 +51,14 @@ official timing; where the time goes (perf-style sampling) is left for the spars
 ## Step 1b - net-path PGO (built: both exes above use it)
 Kit v2.4 workload v2.1 profiles three passes: no net, EvalFileHalfKA = e19, = e9 (bench 11/13/16 + 8 x `go nodes 200000`, Threads 1).
 To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training reproduced in R12 and QA's w21pt).
+
+## Step 2 - sparse L1 (find-nnz), build switch FORGE_SPARSE_L1 (default 0) - IN PROGRESS
+- Where: the HalfKA block kernel (`block_affine`, used for fc_0 and fc_1). It already skipped all-zero 4-byte blocks, but
+  scanned and multiplied in one loop with one dependent dpbusd chain per output group. Switch 1: phase 1 lists the
+  non-zero blocks (same masks), phase 2 multiplies only those with 4 (NQ = 1) or 2 independent accumulator chains, summed
+  at the end. Integer sums without saturation -> bit-identical by construction. AVX-512 VNNI and AVX2 paths; switch 0 =
+  the old kernel (renamed block_affine_dense, called through an inline wrapper). Own code; the find-nnz idea is public.
+- Patch: stack/stack_sparse.patch (on top of stack_s1_port + stack_align), script tools/port_sparse.py.
+- Builds: plain znver5 sparse (70e1b4a4, vpdpbusd 49x), plain AVX2 sparse -march=x86-64-v3 (87ec8e98, 0 zmm), both 0 warnings.
+- FTP1-permuted net: NEEDS_INPUT - no FTP1 net file found (forge_pushin, F:orge_nnue_train, D:\grok-pc-data, depth 3);
+  parity runs on e19 / e9.
