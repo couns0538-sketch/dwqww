@@ -60,6 +60,16 @@ All: OFF bench d11-d22 = 312866/862329/3024920/12389307/34048354 (no setoption) 
 - P2 steps 5 / 5a (optional speed items) and a profile of the HalfKA L1 before any new sparse attempt; P4 v2-feature nets;
   P5 relabel; P6 Syzygy; P7 E3 fit.
 
+## Scoping notes for the phases not started (read-only checks, 2026-11-01)
+- P4 v2-feature nets: bullet dirs exist on F: (`F:ullet_hip`, `F:ullet_equal`, `F:ullet_gpu_test_20261031`); Astra's
+  exporter work is on `origin/astra-bullet-export-20261030` (f67c6882, "51-test exporter qualification"); the v2 feature
+  inference is on `origin/opus-C4` (king buckets), `opus-C5` (output buckets), `opus-O6` (threats), `opus-O7` (pawn pairs).
+  Needs: bullet configs per stage, a Forge-v2 exporter with the FTP1 permutation, parity tests, then a GPU window.
+- P5 relabel: the box pilot tool (92,523 positions at 20k nodes) was not located on the PC in this session.
+- P6 Syzygy: prober on `opus-r3-stack` (src/search/syzygy.inc ~60 KB + include/forge/syzygy.hpp + tablebase.inc), split
+  layout -> a port like B1's (forge-lock-port skill); D:\syzygy345 holds 290 tables.
+- P7 E3 fit: inputs `D:\grok-pc-data\opus30h_inputs\e3\e3_evalpost_al1_src.zip`; check E3 gate RESULT files first.
+
 ## Skills (new / updated; committed under skills/<name>/ on the branch they describe, mirrored into .claude/skills/)
 - New: `forge-lock-port`, `forge-candidate-checks` (branch opus-r13-p1-nearmiss-ports), `forge-speed-stack` (opus-r13-p2-sparse-l1,
   incl. the sparse-L1 negative result).
