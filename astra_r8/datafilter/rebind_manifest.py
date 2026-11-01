@@ -30,7 +30,9 @@ def rebind(old, new):
     return verify(new)
 
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('old'); p.add_argument('new'); p.add_argument('--npt-root')
     a = p.parse_args(); low_priority()
+    if a.npt_root and Path(a.npt_root).resolve() != NPT:
+        raise SystemExit(f'--npt-root {a.npt_root} was not applied before import (loaded {NPT}); use the "--npt-root PATH" form')
     print(json.dumps(rebind(a.old, a.new), indent=2))

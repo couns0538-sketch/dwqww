@@ -20,3 +20,13 @@ def test_cli_npt_root_overrides_env(tmp_path):
                         '--manifest', 'm.json', '--recipe', 'filtered_eval_v1', '--output', 'o', '--seed', '1', '--check'],
                        cwd=str(HERE), env=env, capture_output=True, text=True)
     assert p.returncode != 0 and 'installed npt not found' in p.stderr and 'nope' in p.stderr
+
+def test_npt_root_equals_form_and_abbrev_refused(tmp_path):
+    """CR LOW-A: '--npt-root=X' / '--npt-r X' must not be silently ignored."""
+    env = dict(os.environ)
+    base = [sys.executable, '-B', str(HERE / 'train_adapter.py'), '--manifest', 'm.json', '--recipe', 'filtered_eval_v1',
+            '--output', 'o', '--seed', '1', '--check']
+    p = subprocess.run(base + ['--npt-root=' + str(tmp_path / 'other')], cwd=str(HERE), env=env, capture_output=True, text=True)
+    assert p.returncode != 0 and 'was not applied before import' in p.stderr
+    p = subprocess.run(base + ['--npt-r', str(tmp_path / 'other')], cwd=str(HERE), env=env, capture_output=True, text=True)
+    assert p.returncode == 2 and 'unrecognized' in p.stderr

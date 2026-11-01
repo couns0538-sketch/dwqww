@@ -118,7 +118,7 @@ def install(context, train):
     train.SimpleTrainer = make_trainer_class(train.SimpleTrainer,context)
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--manifest', type=Path, required=True)
     p.add_argument('--recipe',choices=['filtered_eval_v1','filtered_wdl_v1'],required=True)
     p.add_argument('--output',type=Path,required=True)
@@ -131,6 +131,8 @@ def main():
     p.add_argument('--allow-many-passes',action='store_true')
     p.add_argument('--npt-root',help='installed npt directory (default ASTRA_NPT_ROOT or D: install)')
     a = p.parse_args()
+    if a.npt_root and Path(a.npt_root).resolve() != NPT:
+        raise SystemExit(f'--npt-root {a.npt_root} was not applied before import (loaded {NPT}); use the "--npt-root PATH" form')
     single_process(); low_priority()
     context = Context(a.manifest,a.recipe,a.seed,a.passes_per_epoch,a.epochs,a.allow_many_passes)
     if context.manifest.get('training_ready') is not True:
