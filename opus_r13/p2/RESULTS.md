@@ -73,3 +73,9 @@ To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training 
 (The prompt's 10,000-FEN eval parity is covered by the 12k-FEN search identity: any eval difference changes score/nodes.)
 | sanitizer, net path (local: MinGW has no ASan, so -fsanitize=undefined -fsanitize-undefined-trap-on-error + -D_GLIBCXX_ASSERTIONS, sparse ON, exe 1947c8d6): self-play 4 games each with no net / e19 / e19 + LargePages / e9, 0 illegal, 0 traps (exit 0) | PASS | (znver5 build) | logs/ubsan_sparse_selfplay.json |
 | sanitizer, no net (GitHub ASan+UBSan, stack align 0/1) | PASS | - | logs/ci_san_41211359051.txt |
+
+## Step 6 - LTO+PGO build of the sparse stack (PGO profile with FORGE_SPARSE_L1 ON)
+- Source: stack (r10fix1 + S1 + align switch 0 + sparse switch) with `#define FORGE_SPARSE_L1 1` (one-line LF variant).
+- Kit v2.4 workload v2.1 (no net + e19 + e9 passes) + -PartialTraining + -Expose: **pc1 = pc2 = 6fdf46dcf80555a1cbb94d88ea9f4368a7127312a83de23b6358056d170057d2** (`C:\o13\handoff\p2_stackorge_ltopgo_stks_sparse1.exe`).
+- Kit identity ALL OK (OFF pins, LargePages = OFF, e19 / e9 = D8D90B68 pins, plain = LTO+PGO); 0 real -Wmissing-profile
+  warnings; vfmadd 0 (logs/kit_stks/). 12k-FEN exe identity vs D8D90B68: 12000/12000 for e19 and e9 (logs/f12k_stks_*).
