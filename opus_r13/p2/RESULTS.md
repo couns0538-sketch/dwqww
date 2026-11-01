@@ -62,3 +62,12 @@ To prove: 0 real -Wmissing-profile warnings, pc1 = pc2 (v2.1 + partial training 
 - Builds: plain znver5 sparse (70e1b4a4, vpdpbusd 49x), plain AVX2 sparse -march=x86-64-v3 (87ec8e98, 0 zmm), both 0 warnings.
 - FTP1-permuted net: NEEDS_INPUT - no FTP1 net file found (forge_pushin, F:orge_nnue_train, D:\grok-pc-data, depth 3);
   parity runs on e19 / e9.
+
+### Step 2 / 3 parity (sparse = dense, exact)
+| check | znver5 sparse (VNNI) | AVX2 sparse (x86-64-v3) | evidence |
+|---|---|---|---|
+| OFF pins d11-d22 + perft + per-FEN; LargePages=true = OFF | PASS | PASS | logs/plain_sparse_*_off/lp.json |
+| e19 bench d11-d22 = D8D90B68 373062/831975/4115992/17885060/37006232 | PASS | PASS | logs/plain_sparse_*_e19.json |
+| e9 bench d11-d22 = D8D90B68 287095/693432/2816047/12332089/25323515 | PASS | PASS | logs/plain_sparse_*_e9.json |
+| 12k-FEN exe identity vs D8D90B68 (go depth 2: depth, score, nodes, bestmove), e19 and e9 | 12000/12000 both | 12000/12000 both | logs/f12k_sparse_*_compare.txt |
+(The prompt's 10,000-FEN eval parity is covered by the 12k-FEN search identity: any eval difference changes score/nodes.)
