@@ -1,4 +1,4 @@
-# R13 (Opus) - report, written as a checkpoint after Phase 1 and Phase 2 block 1 (2026-10-31, ~17:40 PC clock)
+# R13 (Opus) - report (checkpoint 2, 2026-11-01 ~09:10 PC clock: P1 done, P2 done for now, P3 SPSA running)
 
 Everything below is **UNPROVEN**: no Elo or speed claim; crew gates (UHO first, 8moves_v3 second, never pooled) and QA's
 timing decide. Lock = FD3A5190 (AL1 s198, kit v2.3 -Expose). Lock source = git d4f4312 (= src_al1s198_clean, 20 files).
@@ -37,6 +37,18 @@ All: OFF bench d11-d22 = 312866/862329/3024920/12389307/34048354 (no setoption) 
 - FORGE_ALIGN_WEIGHTS: lock w1 at 48 mod 64 without, 0 with (probe). Advisory ABBA align1 vs align0: **neutral**
   (no net d16 -0.07%, d20 -0.92%; e19 d16 +0.37%, d20 +0.89%; A/A noise up to ~3%).
 
+## Phase 2 step 2 - sparse L1 (find-nnz): STOPPED, slower
+- FORGE_SPARSE_L1 (default 0) is bit-identical (pins, 12k 12000/12000, AVX-512 + AVX2, UBSan-trap self-play with nets),
+  LTO+PGO exe 6fdf46dc (pc1 = pc2), but advisory ABBA with e19: LTO+PGO -13.5% (d16) / -11.9% (d20) vs dense; plain -7.6%,
+  and -8% after one fix attempt (no ___chkstk_ms, inlined). Two failures -> stopped; dense stays. Do not gate 6fdf46dc.
+
+## Phase 3 - Sf26 split (branch opus-r13-p3-sf26split, opus_r13/p3/README.md)
+- Exe 029d58e8036aafa18849fef4c32cdf1a02385cc96208692d5fa366dad8e401ce (pc1 = pc2): switches Sf26NmpPrior (bit 2),
+  Sf26LmrGap (bit 4), Sf26MulticutCorr (bit 8); each one's bench = the original Sf26Bundle bit on AL1 at d11-d22.
+- Gate lines: `Sf26NmpPrior 1` (bench 13 = 931568), `Sf26LmrGap 1` (936607), `Sf26MulticutCorr 1` (849753); combined
+  (= Sf26Bundle 14, 727853) only if 2+ singles reach H1. Checks PASS (smoke 32/32, mate probe, CI ASan+UBSan).
+- SPSA (160 pairs per bit, 5+0.05, seeds 13002 / 13004): running; results go to opus_r13/p3/RESULTS.md (proposals only).
+
 ## Known risks
 - F: had 45 GB (< 50 GB floor): all scratch, builds and exes are on C:\o13 (not F:\o13 as the prompt said).
 - b1: CuckooRep's 8 R3 macro instances are one template parameter here; nodes are identical, codegen differs from R3.
@@ -45,8 +57,10 @@ All: OFF bench d11-d22 = 312866/862329/3024920/12389307/34048354 (no setoption) 
 - All builds are workload v1 (Phase 1) or v2.1 (Phase 2); never compare across workloads without saying so.
 
 ## Left (TODO for the crew or a next session)
-- P2 step 2 sparse L1 (find-nnz) and steps 3-6; P3 Sf26 split + SPSA; P4 v2-feature nets; P5 relabel; P6 Syzygy; P7 E3 fit.
+- P2 steps 5 / 5a (optional speed items) and a profile of the HalfKA L1 before any new sparse attempt; P4 v2-feature nets;
+  P5 relabel; P6 Syzygy; P7 E3 fit.
 
 ## Skills (new / updated; committed under skills/<name>/ on the branch they describe, mirrored into .claude/skills/)
-- New: `forge-lock-port`, `forge-candidate-checks` (branch opus-r13-p1-nearmiss-ports), `forge-speed-stack` (opus-r13-p2-sparse-l1).
+- New: `forge-lock-port`, `forge-candidate-checks` (branch opus-r13-p1-nearmiss-ports), `forge-speed-stack` (opus-r13-p2-sparse-l1,
+  incl. the sparse-L1 negative result).
 - Updated: `forge-ltopgo-pgo` (R13 section), `forge-pc-rules` (R13 rules) (opus-r13-p1-nearmiss-ports).
