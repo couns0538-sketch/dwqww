@@ -37,3 +37,19 @@ Validation: both kit builds full OFF/ON identity PASS and reproducible; diagnost
 684200 comparisons PASS; native sanitizer selfplay zero reports/illegal moves;
 T1/T4 smoke PASS; production 12k lock/OFF/ON parity PASS. Next: advisory timing.
 No candidate accepted until the speed gate passes and final evidence review closes.
+
+## M3 — first timing rejection and second protocol review
+
+Engine identity unchanged (775EDEA1...A6EF4284). Experiment 1 inconclusive: A/A
+paired +1.679%, candidate +1.632%, 21/56 runs contaminated. No speed accepted.
+Reviewed protocol v2 and time_abba_blocks.py read-only: PASS to run, not acceptance.
+Whole-block telemetry-only eligibility, retained rejected rows, selected/all-attempt
+statistics, fixed control/gain thresholds, attempt/deadline bounds verified. No
+confirmed outstanding findings. Both experiments and rejection counts must be reported.
+
+Reusable skills/eval-exact-simd/SKILL.md saved in branch, not globally installed.
+Baseline gap motivating it was M1's incomplete float/combined-eval/long-sequence proof.
+Schema validator PASS; read-only forward-test rejected a hypothetical integer-only,
+epsilon-checked horizontal-reduction handover for the correct concrete reasons.
+All three relative references resolve and exist. Next: run protocol v2 with other
+owned work paused; final evidence review after measurement.

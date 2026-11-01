@@ -1,7 +1,7 @@
 # Astra R9 results
 
 Started 2026-11-01 13:57 America/Los_Angeles. Six-hour deadline: 19:57.
-Status: c1 correctness proof PASS; advisory speed test next. No candidate accepted yet. Elo: UNPROVEN.
+Status: c1 correctness proof PASS; first timing inconclusive due to host interference. No candidate accepted yet. Elo: UNPROVEN.
 
 - Lock SHA256 PASS: FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
 - Kit MD5 PASS: 729FE7275C3C01D22C751CB751D5C9D2.
@@ -57,3 +57,12 @@ Harness review found absolute-timeout and setup-cleanup gaps plus missing during
 timing telemetry. All fixed; three targeted regressions PASS; focused recheck PASS.
 Timing now retains all rows and rejects experiments with any contaminated run.
 Next: predeclared four A/A and ten ABBA blocks, no concurrent owned heavy work.
+
+Experiment 1 complete: A/A paired median +1.679% (IQR 3.354 points), candidate
+paired median +1.632% (IQR 7.868 points), 21/56 contaminated runs. Speed gate FAIL /
+INCONCLUSIVE, not a measured gain. All 56 measured d20 nodes exact. Some lightweight
+documentation/skill validation work overlapped this attempt; it may contribute to
+interference and is not repeated during experiment 2. All data retained.
+Next: review and execute protocol v2, longer warmup and predeclared whole-block
+replacement as allowed by the approved plan. Fixed telemetry criteria, no NPS-based
+selection, all-attempt sensitivity table. A second failed A/A control stops c1.
