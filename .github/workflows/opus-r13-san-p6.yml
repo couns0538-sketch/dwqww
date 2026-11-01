@@ -1,0 +1,48 @@
+# R13 Phase 6: ASan+UBSan self-play smoke of the Syzygy port on the lock tree (git d4f4312 + p6/syzygy_port.patch).
+# Tables: the 3-4 piece Syzygy WDL+DTZ files (~4 MB) via Opus C1's own polite, md5-checked fetch script (unchanged copy),
+# cached; never committed. Configs: default (SyzygyPath empty, normal starts) and, from 3-4 piece endgame starts so the
+# prober runs at the root and in search: SyzygyPath; SyzygyPath + SyzygyProbeDepth 4; SyzygyPath + Syzygy50MoveRule false.
+name: opus-r13-san-p6
+on:
+  push:
+    branches: ['opus-r13-p6-syzygy']
+    paths: ['opus_r13/p6/syzygy_port.patch', 'opus_r13/p6/tb_starts.fens', 'opus_r13/tools/selfplay_smoke.py', '.github/workflows/opus-r13-san-p6.yml']
+  workflow_dispatch:
+jobs:
+  san:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: lock source + Syzygy port
+        run: |
+          git fetch -q --depth 1 origin d4f43124dde1d1e37de90e18930e374f32ea7ffa
+          mkdir lock && git archive FETCH_HEAD src include | tar -x -C lock
+          cd lock && patch -p1 -F0 < "$GITHUB_WORKSPACE/opus_r13/p6/syzygy_port.patch"
+      - uses: actions/cache@v4
+        with:
+          path: tables
+          key: syzygy-3-4-${{ hashFiles('opus_r13/p6/ci_fetch_tables.sh') }}
+      - name: fetch 3-4 piece tables
+        run: bash opus_r13/p6/ci_fetch_tables.sh tables
+      - name: build ASan+UBSan
+        run: |
+          cd lock && g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_san
+      - name: self-play smoke
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          T="$GITHUB_WORKSPACE/tables"
+          python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --config default "" --games 4 --nodes 20000 --max-plies 160 --out san_default
+          python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --starts opus_r13/p6/tb_starts.fens \
+            --config tb "SyzygyPath=$T" --config tb_pd4 "SyzygyPath=$T;SyzygyProbeDepth=4" \
+            --config tb_no50 "SyzygyPath=$T;Syzygy50MoveRule=false" --games 6 --nodes 20000 --max-plies 120 --out san_tb
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: san_p6
+          path: san_*
