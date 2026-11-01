@@ -66,3 +66,9 @@ interference and is not repeated during experiment 2. All data retained.
 Next: review and execute protocol v2, longer warmup and predeclared whole-block
 replacement as allowed by the approved plan. Fixed telemetry criteria, no NPS-based
 selection, all-attempt sensitivity table. A second failed A/A control stops c1.
+
+14:48 checkpoint: protocol-v2 has completed nine A/A attempts, zero eligible whole
+blocks. Intermittent CPU-time loss persists even with other owned development work
+paused. Measurement remains in progress within its fixed attempt/deadline limits.
+No source or executable change; no speed acceptance. Periodic evidence checkpoint
+only; no new builds, tests, training, gates or matches launched.
