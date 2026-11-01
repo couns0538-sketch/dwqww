@@ -32,3 +32,10 @@ opus-r13-p2-sparse-l1 `opus_r13/tools/` (kit24_build.sh, port_align.py) + the P1
 - Never edit a bash script while an instance of it runs (bash reads it incrementally: the running copy died with
   "unexpected EOF"). Copy to a new name instead.
 - A load gate inside a wrapper must wait and retry, not exit: two own builds in parallel pushed total CPU over 85% once.
+
+## Sparse L1 (find-nnz) result, R13 P2 step 2 - negative, keep for the record
+- The HalfKA `block_affine` already skips all-zero 4-byte blocks (mask + countr_zero loop). A two-phase find-nnz version
+  (index list, then 2-4 independent dpbusd chains) was bit-identical (pins, 12k 12000/12000, AVX-512 and AVX2) but SLOWER:
+  LTO+PGO -12..-14%, plain -8% (also after removing ___chkstk_ms with a 1 KiB list and forcing inline). Do not retry the
+  same design; next ideas: a sampling profile first (-pg on a copy), vpcompressw phase 1, fusing the list into the FT pack.
+- A Windows stack array > 4 KiB in a hot function costs a `___chkstk_ms` probe per call (seen in objdump).
