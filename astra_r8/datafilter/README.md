@@ -51,8 +51,11 @@ cleared selection.
 tensors before native free, and retains provenance/result masks as batch metadata.
 Unknown outcomes require a neutral ABI placeholder, but lambda=1 masks that value;
 the semantic result remains null. Isolated subclasses retain npt model, loss and
-score scaling while supplying `[batch,1]` lambda. The Python sampler has constant
-state and deterministic affine permutations; no fast-loader work is included.
+score scaling while supplying `[batch,1]` lambda. The Python sampler ('perm-v1') has constant
+state and a seeded full permutation per pass (numpy default_rng([seed, pass])); its
+checkpoint state stores numpy.__version__ and a pass-1 order hash, and resume refuses a
+different numpy or stream, old affine-v1 states, and old perm-v1 states written before
+fix 7 (753a85a7) that lack those keys. No fast-loader work is included.
 Only one process/device and zero loader workers are supported. Training resume is
 limited to checked epoch boundaries; sampler state itself can resume at any row.
 
