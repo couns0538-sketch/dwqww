@@ -1,0 +1,137 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..89387ca 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -243,6 +243,15 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++extern int Sf26Bundle;             // SF26 micro-pack bit mask (0 = off): 1 razor all-node, 2 NMP prior fail-high, 4 LMR alpha gap, 8 multicut corrhist
++extern int Sf26RazorAllRelief;     // bit 1: cp taken off RazorBase at all-nodes (margin clamped at 0)
++extern int Sf26NmpPriorBonus;      // bit 2: cp of NMP static-eval guard relief per earlier sibling null fail high (max 3)
++extern int Sf26LmrAlphaGap;        // bit 4: static eval this far below alpha adds one LMR ply to quiet moves
++// R13 P3: bits 2 / 4 / 8 as their own switches (0 = off; each is ORed with its Sf26Bundle bit) + bit 2's cap.
++extern int Sf26NmpPrior;           // = Sf26Bundle bit 2
++extern int Sf26LmrGap;             // = Sf26Bundle bit 4
++extern int Sf26MulticutCorr;       // = Sf26Bundle bit 8
++extern int Sf26NmpPriorCap;        // bit 2: earlier sibling null fail highs counted, at most this many (original 3)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+@@ -271,6 +280,7 @@ struct SearchStack {
+     int raw_eval = ValueNone;
+     int move_count = 0;
+     int cutoff_count = 0;
++    int null_cut_count = 0; // SF26 bit 2: null-move fail highs at this ply under the current parent
+     int double_extensions = 0;
+     bool in_check = false;
+     bool tt_pv = false;
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..9bcef1c 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,21 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// SF26 search micro-pack (ideas only, own values; all OFF by default). Sf26Bundle is a bit mask:
++//   1 = razoring only at expected all-nodes (non-PV, not cut_node), with a smaller margin (Sf26RazorAllRelief)
++//   2 = null-move pruning: each earlier null-move fail high at this ply (same parent) loosens the static-eval
++//       guard by Sf26NmpPriorBonus cp (count capped at 3)
++//   4 = LMR: quiet moves get one extra ply of reduction when the static eval is more than Sf26LmrAlphaGap below alpha
++//   8 = singular multicut (singular_beta >= beta) also updates correction history toward singular_beta
++// 15 = all four. The three value parameters are read only when their bit is set.
++int Sf26Bundle = 0;
++int Sf26RazorAllRelief = 60;
++int Sf26NmpPriorBonus = 16;
++int Sf26LmrAlphaGap = 260;
++int Sf26NmpPrior = 0;
++int Sf26LmrGap = 0;
++int Sf26MulticutCorr = 0;
++int Sf26NmpPriorCap = 3;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +112,10 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"Sf26Bundle", &Sf26Bundle, 0, 15},                      {"Sf26RazorAllRelief", &Sf26RazorAllRelief, 0, 300},
++        {"Sf26NmpPriorBonus", &Sf26NmpPriorBonus, 0, 100},       {"Sf26LmrAlphaGap", &Sf26LmrAlphaGap, 50, 1000},
++        {"Sf26NmpPrior", &Sf26NmpPrior, 0, 1},                   {"Sf26LmrGap", &Sf26LmrGap, 0, 1},
++        {"Sf26MulticutCorr", &Sf26MulticutCorr, 0, 1},           {"Sf26NmpPriorCap", &Sf26NmpPriorCap, 1, 8},
+     };
+     return table;
+ }
+@@ -903,6 +922,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const Move excluded = ss->excluded_move;
+     (ss + 1)->excluded_move = Move::none();
+     (ss + 1)->cutoff_count = 0;
++    (ss + 1)->null_cut_count = 0; // SF26 bit 2: null-move fail highs among this node's children
+     // Children share killers with their siblings; grandchildren start afresh.
+     (ss + 2)->killers = {};
+ 
+@@ -951,7 +971,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
+         // Razoring: hopeless positions fall back to quiescence.
+-        if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
++        // SF26 bit 1: razor only at expected all-nodes, with a smaller (never negative) margin there.
++        const bool sf26_razor_all = (tune::Sf26Bundle & 1) != 0;
++        if (sf26_razor_all
++                ? (!cut_node && depth <= tune::RazorDepth &&
++                   eval + std::max(0, tune::RazorBase - tune::Sf26RazorAllRelief) + tune::RazorMultiplier * depth < alpha)
++                : (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha)) {
+             const int razor = qsearch(board, ss, alpha - 1, alpha);
+             if (aborted_) return 0;
+             if (razor < alpha) return razor;
+@@ -962,7 +987,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             return eval;
+         }
+         // Null move pruning.
+-        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++        // SF26 bit 2: earlier null-move fail highs among this node's siblings loosen the static-eval guard.
++        const int sf26_nmp_bonus = ((tune::Sf26Bundle & 2) != 0 || tune::Sf26NmpPrior != 0)
++                                       ? std::min(ss->null_cut_count, tune::Sf26NmpPriorCap) * tune::Sf26NmpPriorBonus : 0;
++        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 - sf26_nmp_bonus &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+@@ -983,6 +1011,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (is_mate_score(null_score)) null_score = beta;
+                 if (depth < 14) {
+                     ++null_cutoffs_;
++                    ++ss->null_cut_count;
+                     return null_score;
+                 }
+                 // Verification search at high depth guards against zugzwang.
+@@ -993,6 +1022,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+                     ++null_cutoffs_;
++                    ++ss->null_cut_count;
+                     return null_score;
+                 }
+             }
+@@ -1103,6 +1133,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                     extension = 2;
+                 }
+             } else if (singular_beta >= beta) {
++                // SF26 bit 8: the multicut is a lower bound above the static eval; teach the correction history.
++                if (((tune::Sf26Bundle & 8) != 0 || tune::Sf26MulticutCorr != 0) && !in_check && !is_mate_score(singular_beta) &&
++                    singular_beta > ss->static_eval) {
++                    update_correction(board, singular_depth, singular_beta, ss->static_eval);
++                }
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
+@@ -1144,6 +1179,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (in_check) r -= 1;
+             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
++            // SF26 bit 4: a quiet move far below alpha by static eval is unlikely to raise it; reduce one more ply.
++            if (((tune::Sf26Bundle & 4) != 0 || tune::Sf26LmrGap != 0) && quiet && !in_check &&
++                ss->static_eval + tune::Sf26LmrAlphaGap < alpha) r += 1;
+             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+             full_depth_needed = score > alpha && reduced_depth < new_depth;
