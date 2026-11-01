@@ -10,9 +10,9 @@ Scratch/builds on C:\o13 (F: had 45 GB < 50 GB floor at start). Handoff exes: `C
 | 1 | b1 BundlePreset=B1 | READY (handoff b1/README.md) | BundlePreset=B1 | e950c77e7832e7f32d701bf1424d65553957ca8486e8bd1d29d922f9b1e25900 |
 | 2 | packa_w50 | READY (handoff packa_w50/README.md) | NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=50 | 07cc2393934528272d3114e3d664a3165fabc3614f2eba9a2782ca919e4b8146 |
 | 2 | packa_w60 | READY (handoff packa_w60/README.md) | NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=60 | same exe as w50 |
-| 3 | bnd68 | TODO (next plan) | | |
-| 4 | packc28 | TODO (next plan) | | |
-| 5 | eos49 | TODO (next plan) | | |
+| 3 | bnd68 | READY (handoff bnd68/README.md) | NonPawnCorr=1 PawnHist=1 NonPawnCorrWeight=50 ContHist4Pct=45 EvalOnlyStore=1 EvalOnlyStoreMinDepth=2 | 8dc93b38b7513de629e4854748f593b6d42a51bd4922a5c16d2a54b130866f69 |
+| 4 | packc28 | READY (handoff packc28/README.md) | AspFailHighReduce=1 AspFailHighMaxReduce=3 EvalSwingMult=24 EvalSwingMax=200 | cf617e671069d32ba6eb5ce452b56e193af41442a5db39388a19005a04b22351 |
+| 5 | eos49 | READY (handoff eos49/README.md; precondition at bench 16) | EvalOnlyStore=1 EvalOnlyStoreMinDepth=2 | a4e7f24cbb7334e1d203e92bfa71d4edbf8d10a6a5836ad702978dee32dddbdc |
 
 ## packa (items packa_w50 / packa_w60: one exe, two gate lines)
 | check | result | evidence |
@@ -41,10 +41,22 @@ Scratch/builds on C:\o13 (F: had 45 GB < 50 GB floor at start). Handoff exes: `C
 | uci defaults OFF / params 100, smoke 16/16 legal, mate probe OFF 19 B1 21 (none lost) | PASS | logs/b1.json |
 | CI ASan+UBSan self-play default/B1/max | PASS run 41210111829 | logs/ci_san_41210111829_b1.txt |
 
+## Block 2 items (bnd68, packc28, eos49)
+| check | bnd68 | packc28 | eos49 | evidence |
+|---|---|---|---|---|
+| port proof | files byte-equal to packae2r; line set = packa + packe2r (EQUAL) | packc.patch -F0, line set EQUAL | files byte-equal to packe2r | logs/*_lineset.txt |
+| plain OFF pins + perft + per-FEN d13 | PASS | PASS | PASS | logs/*_plain_off.json |
+| LTO+PGO pc1 = pc2, OFF ALL OK, gate line live, 0 missing-profile, vfmadd 0 | PASS | PASS | PASS | logs/kit_bnd, kit_pkc, kit_eos |
+| ON gate line d11-d22 | 365135/776194/2534121/11294400/32210117 | 277906/690187/2273374/8834244/17379405 | 312866/862329/3033426/12953506/41008668 (= OFF at d11/d13) | logs/kit_*/opt1.compare.txt |
+| uci defaults (switches 0, parameters original) | PASS | PASS | PASS | logs/<item>.json |
+| T1/T4 smoke legal | 16/16 | 16/16 | 16/16 | logs/<item>.json |
+| mate probe @3M (OFF 19) | 22 | 22 | 20; one deep KRK M15 at 3M = cp, both mate 11 at 30M (horizon) | logs/<item>.json, logs/eos49_lost1_30M.json |
+| CI ASan+UBSan self-play default/gate/max | PASS | PASS | PASS | logs/ci_san_41212623622.txt |
+
 ## Handoff verification (fresh, 2026-10-31)
 - Each committed port patch, applied with `patch -p1 -F0` to a fresh `git archive d4f4312` lock copy, equals the kit's
   built source `C:\o13\w\<tag>_pc1\src_copy` (diff -rq, build products excluded): packa IDENTICAL, b1 IDENTICAL
   (logs/verify_patch_*.diff are empty). Handoff exes hash to the pc1 = pc2 values (b1 e950c77e…, packa 07cc2393…).
 
 ## Next
-Block 1 of the plan is done for P1 (items 1-2). P1 items 3-5 (bnd68, packc28, eos49) go into the next short plan after P2 steps 1/1a/1b.
+All 5 Phase 1 items are READY (6 gate lines, 5 exes). Phase 1 done; next: P2 step 2 (sparse L1) per PLAN block 2.
