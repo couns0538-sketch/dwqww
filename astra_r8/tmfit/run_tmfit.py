@@ -256,20 +256,40 @@ def sanitizer_summary(games, requested_games):
                 all_on and exercised and faults == 0)
 
 
+def game_player_modes(command, game, mode, same_mode):
+    if command == 'sanitizer':
+        return [1,1]
+    if command in ('smoke','calibrate'):
+        return [game%2,game%2] if same_mode else [game%2,1-game%2]
+    return [mode,mode]
+
+
 def timing_summary(games, requested_games, calibration=False):
-    averages = {mode: sum(g['total_wall_ms'] for g in games if g['mode'] == mode) /
-                max(1, sum(g['moves'] for g in games if g['mode'] == mode)) for mode in (0,1)}
+    paired = any(g.get('mode') == 'paired' for g in games)
+    samples = [player for game in games for player in game.get('players',[])] if paired else games
+    averages = {mode: sum(g['total_wall_ms'] for g in samples if g['mode'] == mode) /
+                max(1, sum(g['moves'] for g in samples if g['mode'] == mode)) for mode in (0,1)}
     ratio = averages[1]/averages[0] if averages[0] else None
-    mean_games = {mode: statistics.mean(g['total_wall_ms'] for g in games if g['mode']==mode)
-                  for mode in (0,1) if any(g['mode']==mode for g in games)}
+    mean_games = {mode: statistics.mean(g['total_wall_ms'] for g in samples if g['mode']==mode)
+                  for mode in (0,1) if any(g['mode']==mode for g in samples)}
+    game_ratio = mean_games.get(1,0)/max(1,mean_games.get(0,0))
     clean = len(games)==requested_games and requested_games>=2 and requested_games%2==0 and all(
         g['result'] not in ('illegal','time_loss') and g['moves']>0 for g in games)
-    clean = clean and all(sum(g['mode']==mode for g in games)==requested_games//2 for mode in (0,1))
+    if paired:
+        clean = clean and all(g.get('mode')=='paired' and len(g.get('players',[]))==2 and
+                              sorted(p['mode'] for p in g['players'])==[0,1] and
+                              all(p['moves']>0 for p in g['players']) and
+                              [p['mode'] for p in g['players']]==[index%2,1-index%2]
+                              for index,g in enumerate(games))
+    else:
+        clean = clean and all(sum(g['mode']==mode for g in games)==requested_games//2 for mode in (0,1))
     return dict(phase='calibration' if calibration else 'qualification', requested_games=requested_games,
-                mapping_status='UNPROVEN', qualification_eligible=not calibration,
+                selfplay_design='opposed_modes_colors_swapped' if paired else 'same_mode_games_preliminary',
+                mapping_status='UNPROVEN', qualification_eligible=not calibration and paired,
                 average_ms_per_move=averages, ratio_on_off=ratio, average_ms_per_game=mean_games,
-                game_time_ratio_on_off=mean_games.get(1,0)/max(1,mean_games.get(0,0)),
-                pass_=clean and (calibration or (len(games)>=200 and ratio is not None and abs(ratio-1)<=.03)))
+                game_time_ratio_on_off=game_ratio,
+                pass_=clean and (calibration or (paired and len(games)>=200 and ratio is not None and
+                                                 abs(ratio-1)<=.03 and abs(game_ratio-1)<=.03)))
 
 
 def selfplay(args, fens, options):
@@ -287,19 +307,22 @@ def selfplay(args, fens, options):
         engines = [stack.enter_context(Engine(args.exe, transcript, initial_mode, options)) for _ in range(2)]
         for game in range(args.games if args.games else 100000):
             resource_guard(args.scratch_root)
-            mode = 1 if args.command == 'sanitizer' else (game % 2 if args.command in ('smoke','calibrate') else args.mode)
+            player_modes = game_player_modes(args.command,game,args.mode,args.same_mode)
+            paired = player_modes[0] != player_modes[1]
+            mode = 'paired' if paired else player_modes[0]
             pair_id = game // 2 if args.command in ('smoke','calibrate') else game
             fen = fens[pair_id % len(fens)]
             opening_group = hashlib.sha256(fen.encode()).hexdigest()[:16]
             game_id = f'{run_id}:{game}'
             state = referee.state('fen ' + fen)
-            for engine in engines:
-                engine.send(f'setoption name TmFitModel value {mode}')
+            for color,engine in enumerate(engines):
+                engine.send(f'setoption name TmFitModel value {player_modes[color]}')
                 engine.send('ucinewgame')
                 engine.sync()
             clocks = [float(args.base_ms), float(args.base_ms)]
             moves = []
             times = []
+            side_times = [[],[]]
             result = 'ply_cap'
             for ply in range(args.max_plies):
                 if state['outcome'] != 'ongoing':
@@ -311,12 +334,14 @@ def selfplay(args, fens, options):
                 searched = engines[side].search(position, command, clocks[side]/1000 + 5)
                 move = searched['bestmove']
                 times.append(searched['wall_ms'])
+                side_times[side].append(searched['wall_ms'])
                 if move not in state['legal']:
                     result = 'illegal'
                 elif searched['wall_ms'] > clocks[side]:
                     result = 'time_loss'
                 record = {k: v for k, v in searched.items() if k != 'lines'}
-                record.update(game_id=game_id, pair_id=opening_group, ply=ply, mode=mode, remaining_ms=clocks[side], fen=state['fen'])
+                record.update(game_id=game_id, pair_id=opening_group, ply=ply, mode=player_modes[side],
+                              color='white' if side==0 else 'black',remaining_ms=clocks[side], fen=state['fen'])
                 moves_log.write(json.dumps(record) + '\n')
                 rows = iteration_rows(searched['lines'], game_id, ply, move, opening_group)
                 for row in rows:
@@ -330,6 +355,9 @@ def selfplay(args, fens, options):
             completed = dict(game=game, pair_id=pair_id, mode=mode, opening=fen, result=result,
                              moves=len(times), total_wall_ms=sum(times), mean_wall_ms=statistics.mean(times) if times else 0,
                              iterations=iteration_count)
+            completed['players'] = [dict(color='white' if side==0 else 'black',mode=player_modes[side],
+                                         moves=len(side_times[side]),total_wall_ms=sum(side_times[side]))
+                                    for side in (0,1)]
             games.append(completed)
             game_log.write(json.dumps(completed) + '\n')
             for stream in (raw, moves_log, game_log):
@@ -483,6 +511,7 @@ def main():
     parser.add_argument('--min-iterations', type=int, default=50000)
     parser.add_argument('--max-plies', type=int, default=400)
     parser.add_argument('--mode', type=int, choices=[0,1], default=0)
+    parser.add_argument('--same-mode', action='store_true', help='reproduce preliminary OFF/OFF then ON/ON games; new timing runs default OFF versus ON with colors swapped')
     parser.add_argument('--absurd-a', type=int, default=1000000)
     parser.add_argument('--option', action='append', default=[], help='NAME=VALUE, repeated')
     args = parser.parse_args()
@@ -518,6 +547,9 @@ def main():
                     started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
                     priority='BelowNormal' if os.name == 'nt' else 'inherited', engine_threads=1,
                     legal_validator='Forge Board; same-family, not independent implementation')
+    manifest['selfplay_design'] = ('same_mode_games_preliminary' if args.same_mode else
+                                  'opposed_modes_colors_swapped') if args.command in ('smoke','calibrate') else 'homogeneous_modes'
+    manifest['first_pair_player_modes_white_black'] = [game_player_modes(args.command,i,args.mode,args.same_mode) for i in (0,1)]
     manifest['option_file_sha256'] = {name:digest(value) for name,value in options.items()
                                     if name in ('EvalFile','NNUEFile') and Path(value).is_file()}
     manifest['command'] = {key: str(value) if isinstance(value,Path) else value for key,value in vars(args).items()}

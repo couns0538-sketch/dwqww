@@ -13,6 +13,41 @@ spec.loader.exec_module(runner)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_paired_mode_assignments_swap_colors_only_for_timing(self):
+        self.assertEqual(runner.game_player_modes('smoke',0,0,False),[0,1])
+        self.assertEqual(runner.game_player_modes('smoke',1,0,False),[1,0])
+        self.assertEqual(runner.game_player_modes('calibrate',1,0,False),[1,0])
+        self.assertEqual(runner.game_player_modes('calibrate',1,0,True),[1,1])
+        self.assertEqual(runner.game_player_modes('collect',1,0,False),[0,0])
+        self.assertEqual(runner.game_player_modes('sanitizer',0,0,False),[1,1])
+
+    def test_paired_summary_uses_each_engine_side_within_same_game(self):
+        games=[]
+        for i in range(200):
+            players=[dict(mode=mode,color=color,moves=50,total_wall_ms=5000+100*mode)
+                     for color,mode in zip(('white','black'),runner.game_player_modes('smoke',i,0,False))]
+            games.append(dict(mode='paired',result='checkmate',moves=100,total_wall_ms=10100,players=players))
+        summary=runner.timing_summary(games,200)
+        self.assertTrue(summary['pass_'])
+        self.assertEqual(summary['selfplay_design'],'opposed_modes_colors_swapped')
+        self.assertAlmostEqual(summary['ratio_on_off'],1.02)
+        self.assertAlmostEqual(summary['game_time_ratio_on_off'],1.02)
+        self.assertEqual(summary['average_ms_per_move'],{0:100,1:102})
+        games[0]['players'][1]['mode']=0
+        self.assertFalse(runner.timing_summary(games,200)['pass_'])
+
+    def test_qualification_also_checks_average_game_side_time(self):
+        games=[]
+        for i in range(200):
+            players=[dict(mode=mode,moves=50+25*mode,total_wall_ms=5000+2500*mode)
+                     for mode in runner.game_player_modes('smoke',i,0,False)]
+            games.append(dict(mode='paired',result='checkmate',moves=125,total_wall_ms=12500,players=players))
+        summary=runner.timing_summary(games,200)
+        self.assertEqual(summary['ratio_on_off'],1)
+        self.assertEqual(summary['game_time_ratio_on_off'],1.5)
+        self.assertFalse(summary['pass_'])
+        self.assertTrue(runner.timing_summary(games,200,calibration=True)['pass_'])
+
     def test_calibration_is_clean_run_only_and_never_qualification(self):
         games = [dict(mode=i%2, result='checkmate', moves=100,
                       total_wall_ms=10000 if i%2==0 else 20000) for i in range(40)]
@@ -25,12 +60,15 @@ class EvidenceTests(unittest.TestCase):
         self.assertFalse(runner.timing_summary(games,40,calibration=True)['pass_'])
 
     def test_timing_qualification_requires_200_clean_games_and_three_percent(self):
-        games = [dict(mode=i%2,result='checkmate',moves=100,total_wall_ms=10000) for i in range(200)]
+        games = [dict(mode='paired',result='checkmate',moves=100,total_wall_ms=10000,
+                      players=[dict(mode=mode,moves=50,total_wall_ms=5000)
+                               for mode in runner.game_player_modes('smoke',i,0,False)]) for i in range(200)]
         self.assertTrue(runner.timing_summary(games,200)['pass_'])
         self.assertFalse(runner.timing_summary(games[:198],200)['pass_'])
         for game in games:
-            if game['mode']:
-                game['total_wall_ms']=10400
+            for player in game['players']:
+                if player['mode']:
+                    player['total_wall_ms']=5200
         self.assertFalse(runner.timing_summary(games,200)['pass_'])
 
     def test_hung_quit_is_failure_after_owned_child_is_killed(self):

@@ -81,3 +81,18 @@ Independent review found two harness P2s (hung quit and rejected option accepted
 red/green regressions now pass and both are fixed before timing qualification.
 Couns clarified off-repo prior art; descriptions recorded in IDEA_SOURCE, no blocker.
 Next: mapping calibration, frozen200game smoke and final timed/identity checks.
+
+## Checkpoint 5 — fitted source validation; UNPROVEN
+
+Native fitted-v1 executable SHA256:
+`e9e6c2686350307c8bd73749544c372fd528d5561e87c6b4cc8b6f9df26eefae`.
+Fitted source ASan+UBSan run41289552546 PASS (allON4games, no reports/faults).
+Clock fixture60positions was frozen using seed81230, SHA ordering within three
+ply phases, without consulting ON timing outcomes. Seeded20 subset with A742/B3000
+changed median time on10/20 positions; original opening-only failures retained.
+Final fitted-default identity/live/hard/absurd checks are running.
+Calibration now uses per-game ON-vsOFF, colors reversed per opening pair, to
+control game-length confounding. Original same-mode40game pilot remains preserved.
+Final200game smoke has not yet run. No acceptance or strength claim.
+Evidence files are marked binary in .gitattributes to preserve byte hashes across
+Windows/Linux checkouts. Scratch remains below5GB and D retains >50GB free.
