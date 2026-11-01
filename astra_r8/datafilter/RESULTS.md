@@ -1,7 +1,7 @@
 # Astra R8 Job 2 — UNPROVEN
 
 Base: 9761eb367c3ae4e541fc316380699f78eb493a3c. Isolated branch astra-r8-datafilter.
-Implementation and CPU validation complete; final review and evidence checker pending.
+Implementation, CPU validation, final independent review and evidence checker complete.
 The cleared cohort has data/adapter clearance only. Training and strength are UNPROVEN.
 
 | Success test | Status |
@@ -12,7 +12,7 @@ The cleared cohort has data/adapter clearance only. Training and strength are UN
 | 4 Deliberate failures | PASS — enabled-rule and malformed-input fixtures |
 | 5 Million-row audit | PASS for measurable rules; capture/qsearch BLOCKED |
 | 6 Sign audit | PASS — Pearson 0.6635962860, unknowns excluded |
-| 7 Handoff integrity | PASS manifests/sample/preflights; final checker/review pending |
+| 7 Handoff integrity | PASS — manifests, sample, both preflights, checker and final review |
 
 Capture measurement BLOCKED: production self-play lacks stored best moves.
 Qsearch measurement BLOCKED: FD3A5190 exposes no static/root-qsearch oracle.
@@ -87,6 +87,16 @@ Windows checkout limitation: the pinned tree includes both `source/a` and
 The case-insensitive checkout cannot materialize both. Its unstaged omission is
 not included in this branch's commits; no unrelated fixture was edited.
 
-Next: final read-only review and Forge correctness evidence checker, then checkpoint
-handoff in order Code Review → Engine NNUE → Engine QA. No training, GPU, engine,
-production data/network or crew process changes. All strength remains UNPROVEN.
+Final independent reviewer APPROVED candidate
+`415dcce34d6b40119ba6972ec0310d7a03d2d2be` for the documented CPU-verified
+data/adapter handoff, with no blocking defects. It independently checked frozen
+source hashes, manifest/sample equality, checkpoint ordering and complete holdout
+evidence. Forge correctness evidence checker PASS with no issues
+(`evidence/forge_evidence_check.log`); this checks record consistency, not Elo.
+Production converter/helper hashes remain unchanged and match pinned Git blobs.
+New artifacts measured **2,799,406,584 bytes**, below15GB. Final closeout changes
+only documentation/evidence; the approved implementation remains unchanged.
+
+Handoff order: Code Review (approved) → Engine NNUE → Engine QA. Engine NNUE owns
+any training; Engine QA owns FD3A5190/UHO/8moves_v3/WAC300 gates. No training, GPU,
+engine, production data/network or crew process changes. All strength UNPROVEN.

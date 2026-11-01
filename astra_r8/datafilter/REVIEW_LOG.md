@@ -63,5 +63,17 @@ Both recipes share those rows. Manifests and3,139,111-byte sample verified.
 
 ## Milestone4: final evidence and handoff
 
-Final read-only review pending. Source, sample, manifests, original logs and
-recipe preflights are ready. No training or GPU run performed; strength UNPROVEN.
+Fresh read-only final_review subagent approved candidate
+`415dcce34d6b40119ba6972ec0310d7a03d2d2be` with no blocking defects. It reviewed all
+seven acceptance claims, converter/filter, native ownership, inherited masked loss,
+installed checkpoint ordering, manifest binding and complete holdout evidence.
+It independently checked every final_candidate.json source hash, repository versus
+delivered manifest SHA256 `0b75136d5d3ead9881b8dc78f0b46ee55d918de499884272c790356f8001d4bb`,
+and both sample copies SHA256 `c7394f11aebf2e76a2e5a1b8e834c8b5b92676180f5896e8ac30062472f7462c`.
+Only closeout finding: stale pending-review/checker prose, now resolved here and in
+RESULTS.md. No code changes after final review. Forge evidence checker PASS, no
+issues; both recipe preflights PASS;41 CPU tests PASS. Original failed overlap
+evidence and all failed test attempts retained. Approval excludes training,
+training throughput and playing strength; capture/qsearch production measurements
+remain BLOCKED. No unresolved implementation finding or deferred minor remains.
+Next: authorized final checkpoint, then Engine NNUE and Engine QA handoff.
