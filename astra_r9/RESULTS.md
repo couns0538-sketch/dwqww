@@ -26,3 +26,12 @@ Refresh cache skipped by profile; integer/VNNI deferred for lack of exact proof.
 Native llvm-mingw sanitizer toolchain downloaded under D:\a9, archive SHA256
 FD5462B7F5D93B2FF981FCD3F9C7E427E47F3203C64EA91C27BCC444EEBD74CD;
 positive controls pending. No optimized engine built yet.
+
+M1 review and focused recheck PASS (not candidate acceptance). Reviewed nnue.cpp:
+D11B4EED401A3F6C05EA7A5C8917E1E7F933A9E1BDF3E3992D44C62424F3F635.
+Confirmed reviewer gaps fixed: float lane/output bit checks, combined residual/HCE
+digest, long 128-ply incremental/unmake coverage. Separate unchanged-lock and
+candidate harnesses PASS: 684200 evaluations, 324100 legal moves, 12000 nulls,
+digest 3bd3b27ac5a60483. Diagnostic-only ON counter 684200.
+Lock all five bench pins and both perft pins PASS. ASan/UBSan positive controls PASS.
+Next: immutable c1 source snapshot, two v2.3 production builds and full remaining proof.

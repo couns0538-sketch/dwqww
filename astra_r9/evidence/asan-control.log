@@ -1,0 +1,49 @@
+=================================================================
+==9924==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x100480020038 at pc 0x7ff72b79159c bp 0x00000014fe40 sp 0x00000014fe88
+WRITE of size 4 at 0x100480020038 thread T0
+    #0 0x7ff72b79159b in main D:/a9/src/astra_r9/tools/sanitizer_control.cpp:8:46
+    #1 0x7ff72b79110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #2 0x7fff5021e8d6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002e8d6)
+    #3 0x7fff519cc53b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18008c53b)
+
+0x100480020038 is located 4 bytes after 4-byte region [0x100480020030,0x100480020034)
+allocated by thread T0 here:
+    #0 0x7ffe936df891 in operator new[](unsigned long long) /home/runner/work/llvm-mingw/llvm-mingw/llvm-project/compiler-rt/lib/asan/asan_new_delete.cpp:111:37
+    #1 0x7ff72b7914c8 in main D:/a9/src/astra_r9/tools/sanitizer_control.cpp:8:12
+    #2 0x7ff72b79110c in __tmainCRTStartup /home/runner/work/llvm-mingw/llvm-mingw/mingw-w64/mingw-w64-crt/build-x86_64/../crt/crtexe.c:271:11
+    #3 0x7fff5021e8d6  (C:\WINDOWS\System32\KERNEL32.DLL+0x18002e8d6)
+    #4 0x7fff519cc53b  (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18008c53b)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow D:/a9/src/astra_r9/tools/sanitizer_control.cpp:8:46 in main
+Shadow bytes around the buggy address:
+  0x10048001fd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10048001fe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10048001fe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10048001ff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x10048001ff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x100480020000: fa fa 05 fa fa fa 04[fa]fa fa fa fa fa fa fa fa
+  0x100480020080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x100480020100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x100480020180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x100480020200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x100480020280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==9924==ABORTING

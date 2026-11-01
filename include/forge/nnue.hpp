@@ -53,6 +53,13 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+// Set only while search workers are stopped, as with enabled.
+extern bool wide_output;
+#ifdef FORGE_NNUE_DIAGNOSTICS
+extern thread_local std::uint64_t wide_output_calls;
+extern thread_local std::array<float, 16> diagnostic_lanes;
+extern thread_local float diagnostic_output;
+#endif
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);

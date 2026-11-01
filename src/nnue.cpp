@@ -40,6 +40,12 @@ static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>
 namespace forge::nnue {
 
 bool enabled = true;
+bool wide_output = false;
+#ifdef FORGE_NNUE_DIAGNOSTICS
+thread_local std::uint64_t wide_output_calls = 0;
+thread_local std::array<float, 16> diagnostic_lanes{};
+thread_local float diagnostic_output = 0.0F;
+#endif
 
 namespace {
 
@@ -168,6 +174,28 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
+#if defined(__AVX512F__)
+    if (wide_output) {
+#ifdef FORGE_NNUE_DIAGNOSTICS
+        ++wide_output_calls;
+#endif
+        // Same sixteen independent lanes and exact operation order as below.
+        // Accumulators/weights retain their original 32-byte alignment.
+        const __m512 zero = _mm512_setzero_ps();
+        const __m512 one = _mm512_set1_ps(1.0F);
+        __m512 sums = zero;
+        for (int h = 0; h < HiddenSize; h += Lanes) {
+            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_loadu_ps(ours.data() + h), zero), one);
+            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_loadu_ps(theirs.data() + h), zero), one);
+            const __m512 term = _mm512_add_ps(
+                _mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_loadu_ps(w.w2.data() + h)),
+                _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_loadu_ps(w.w2.data() + HiddenSize + h)));
+            sums = _mm512_add_ps(sums, term);
+        }
+        _mm512_store_ps(lanes, sums);
+    } else
+#endif
+    {
 #if defined(__AVX2__)
     const __m256 zero = _mm256_setzero_ps();
     const __m256 one = _mm256_set1_ps(1.0F);
@@ -209,8 +237,13 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
         }
     }
 #endif
+    }
     float out = w.b2;
     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+#ifdef FORGE_NNUE_DIAGNOSTICS
+    for (int j = 0; j < Lanes; ++j) diagnostic_lanes[j] = lanes[j];
+    diagnostic_output = out;
+#endif
     const float centipawns = out * 400.0F / SigmoidK;
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
 }

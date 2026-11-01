@@ -171,6 +171,9 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#if defined(__AVX512F__)
+            if (forge::nnue::available()) std::cout << "option name NNUEWideOutput type check default false\n";
+#endif
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -259,6 +262,22 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+            } else if (name == "NNUEWideOutput") {
+#if defined(__AVX512F__)
+                if (value_text == "true" || value_text == "false") {
+                    forge::nnue::wide_output = value_text == "true";
+                    searcher.clear_hash();
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string NNUEWideOutput "
+                              << (forge::nnue::wide_output ? "ON AVX512F" : "OFF lock path") << std::endl;
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NNUEWideOutput" << std::endl;
+                }
+#else
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string NNUEWideOutput unavailable in this build" << std::endl;
+#endif
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;
