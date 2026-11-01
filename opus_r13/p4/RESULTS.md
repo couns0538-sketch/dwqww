@@ -24,6 +24,13 @@ Branch `opus-r13-p4-v2nets` (from main). UNPROVEN: no net trained here yet; no E
 - All three output paths of nnue::v2::output (AVX2, SSE, scalar) map hidden unit h to lane h % 16 and add the lanes in order,
   so the paths are bit-identical by construction and a float32 replay (eval_ref.py) can match them exactly.
 
+## Finding: bullet da426a49 has no CPU training backend
+Without the `rocm` / `cuda` features bullet's trainer uses `runtime::mock::MockGpu` (crates/gpu/src/runtime/mock.rs: "This is
+a mock runtime! It can't actually do anything!"). So the prompt's "CPU-only smoke on 1M positions" cannot run with bullet;
+every training run, the smoke included, needs a GPU window. CPU-side proof instead (no training needed): the program
+compiles against the mock backend, and parity_v2.sh checks, per stage, a seeded random FORGENN2 net through the Rust feature
+lists + float32 reference against the engine's own loader / features / kernel (v2_eval, AVX2 + SSE builds) on 10k FENs.
+
 ## Next
 cargo build (CPU backend) with my own CARGO_HOME copy (no writes into F:\bullet_hip), feature parity (Rust lists vs engine via
 v2_eval on 10k FENs per stage, AVX2 + SSE builds), CPU smoke on 1M positions, GPU_REQUEST.md.
