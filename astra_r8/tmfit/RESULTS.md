@@ -144,3 +144,14 @@ Final smoke source41699d07, frozen executablee9e6c268..., mapping742/3000/650/17
 searches, no candidate or tested-executable changes. Still PENDING, not accepted.
 Normal and Expose UCI surface checks also PASS: onlyTmFitModel public normally,
 11coefficients exposed in Expose builds, diagnostics only whenON.
+
+## Checkpoint 9 — final smoke past halfway; UNPROVEN
+
+At 2026-11-01 18:28 UTC, final smoke completed113/200 games (57+56),
+with zero recorded time losses/illegal moves. Test3 remains PENDING.
+Committed the immutable pre-run configuration as evidence/final_smoke_frozen.json,
+binding the executable, driver, coordinator, two disjoint opening shards,
+seed and742/3000/650/1750 mapping. No source or executable changed during the run.
+Next: finish200 games, evaluate both timing bounds, package proof, then focused
+independent review and corrections before engineering completion. Crew strength
+acceptance remains UNPROVEN.
