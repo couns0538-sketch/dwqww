@@ -17,3 +17,17 @@ decision on both books (8moves -3.94, UHO -3.47 at 1500 games); bit 1 (razor) ha
 | Sf26MulticutCorr=1 | 313902/849753/2830920/11586538/29775014 | Sf26Bundle=8 | = |
 | Sf26Bundle=14 | 335098/727853/2415447/9334814/29426126 | Sf26Bundle=14 | = |
   Evidence: logs/sf26_plain_*.json. LTO+PGO pc1/pc2 build (tag sfs): RUNNING.
+
+## Step 2 - SPSA (local, short; values are proposals only)
+Budget fixed BEFORE the runs: **160 game pairs (320 games) per bit**, tc 5+0.05, Threads 1, Hash 16, OwnBook false,
+8moves_v3 openings (sequential from a seeded start), concurrency <= 2 on CPUs 2-3 at BelowNormal (run_pinned 0xC).
+Seeds (fresh, logged): bit 2 = 13002, bit 4 = 13004. Engine = the LTO+PGO split exe, the bit's switch on in both engines.
+| run | switch on | tuned (start = original) | c_end | r_end |
+|---|---|---|---|---|
+| bit 2 | Sf26NmpPrior=1 | Sf26NmpPriorBonus 16 (0-100), Sf26NmpPriorCap 3 (1-8) | 4, 1 | 0.06 |
+| bit 4 | Sf26LmrGap=1 | Sf26LmrAlphaGap 260 (50-1000) | 40 | 0.06 |
+| bit 8 | - | no margin parameter in the code: nothing to tune | - | - |
+Tuner: R9's r9_spsa.py (opus-r9-spsa) copy with one change (fixed_options from the config instead of option.R9Tune=true):
+spsa/r9_spsa.py, spsa/patch_tuner.py; configs spsa/sf26_bit*.json. The governor caps are set above the PC's own ~90% load
+(gate + trainer) because the games are pinned to CPUs 2-3; max 2 games. Runs end by --max-pairs (no STOP files).
+Noise expectation (R9: 832 pairs moved 0 of 16 parameters beyond 2 sigma): at 160 pairs only a clearly mis-set margin can move.
