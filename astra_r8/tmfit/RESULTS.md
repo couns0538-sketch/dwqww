@@ -4,11 +4,12 @@ Source base: `905e2325caeabea92b1017b22b434218a43145a7`, the explicitly permitte
 `forge-bundle-int` parent fallback. Lock executable identifier: FD3A5190 (AL1 s198).
 Branch: `astra-r8-tmfit`. Crew builds the LTO+PGO gate executable.
 
-## Checkpoint 1 — setup and implementation in progress
+## Current qualification status
 
-Done: isolated worktree; examined AL1 time allocation; delegated logger/model,
-grouped logistic fitter, and native UCI validation harness; requested local Git
-exclusions installed. No search algorithm changes authorized.
+Implemented and fitted on real data; source patch applies to the lock fallback.
+Identity, liveness, hard-limit, clamp and sanitizer checks pass as scoped below.
+Time-balance calibration is running before the final200-game qualification.
+No search algorithm changes. Strength remains UNPROVEN.
 
 Storage: C: 182.1 GB, D: 83.8 GB, F: 49.1 GB at setup. User authorized D: scratch
 instead of F: with 50 GB minimum free. Scratch is
@@ -22,7 +23,7 @@ instead of F: with 50 GB minimum free. Scratch is
 | 1 ON fixed-depth identity | PASS | fitted-v1: identical five pins |
 | 1 perft5 | PASS | start4865609; kiwipete193690690 |
 | 2 timed live proof | PASS (revised fixture) | fitted-v1:10/20, median3; original opening-only5/20 and1/20 failures retained |
-| 3 200-game average time | NOT RUN | Separate paired40-game calibration running before frozen200-game smoke |
+| 3 200-game average time | PENDING | Mapping frozen after paired40: ratios0.986462/move,0.989479/game-side; final200 next |
 | 4 hard limits | PASS | fitted-v1:50,1s+.01s; max255.124ms;0hard-cap+20ms overruns |
 | 5 absurd coefficient clamp | PASS | A1000000,50positions; multiplier capped1500; max255.342ms;0overruns |
 | 6 ASan+UBSan ON smoke | PASS | Linux CI41289552546,fittedsource,4allONgames,0reports/faults |
@@ -117,3 +118,15 @@ The installed C++ plugin checker has actually run:32 artifact hashes PASS,
 patch applies with-p1 to905e2325, but draft qualification correctly returnsFAIL
 solely for the pending200-game check. Draft remains immutable; final record
 will be regenerated. Source/patch and all logs remain UNPROVEN for strength.
+
+## Checkpoint 7 — mapping frozen before final holdout; UNPROVEN
+
+A742/B3000/Lo650/Hi1750 remains the frozen default. Paired40 calibration completed
+with0flags/illegal moves; OFF181.5896ms/move, ON179.1312ms/move, ratio0.98646218;
+per-game-side ratio0.98947889. This satisfies both calibration limits. Keep742
+under the decision rule stated before completion; the842pilot is supplementary.
+The final100-opening fixture is disjoint from training/calibration. A reviewed
+coordinator will run two disjoint100-game shards, at most2active search threads;
+only its combined200-game record can qualify. Driver16 and aggregator5 unit
+regressions pass. Raw final game/search logs stay in scratch; commit bounded
+game ledgers, summaries and complete hashes. Latest CI41290843946 PASS.

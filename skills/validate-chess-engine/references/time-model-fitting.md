@@ -97,6 +97,16 @@ hashes, fit seed, split IDs, complete commands and fit script hash. Seal raw
 inputs before fitting and detect modifications during reads. Do not overwrite
 previous fit outputs when retrying.
 
+For parallel timing qualification, freeze the engine, coefficients, driver,
+network, clock settings and opening assignments before launching any shard.
+Use disjoint complete opening pairs with colors swapped. A short shard reports
+PARTIAL clean evidence, never the full-game-count qualification result. The
+parent must verify hashes, exact game/pair counts, unique opening assignments,
+matching settings and modes, then recompute both time ratios from raw player
+totals across all shards. Average neither shard ratios nor shard PASS labels.
+Preserve every child failure and wait for owned children to clean up. Count
+simultaneously active search threads across the entire job, including shards.
+
 Record correctness, fitted prediction quality, equal-time behavior and playing
 strength as separate conclusions. Keep the candidate UNPROVEN until the crew's
 declared SPRT passes; a time-management acceptance also needs its longer-time

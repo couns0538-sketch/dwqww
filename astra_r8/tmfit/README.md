@@ -49,8 +49,10 @@ independent samples, and opening separation does not prove transposition separat
 | Score delta clipped±1000cp /1000 | -167 |
 | Elapsed/base soft allocation, clipped0..4 | 1284 |
 
-The current mapping is **under calibration**, not qualified: multiplier permille
-`clamp(742 + 3000*p, 650, 1750)`. AUC is predictive discrimination, not strength.
+The mapping is frozen after 40 paired calibration games: multiplier permille
+`clamp(742 + 3000*p, 650, 1750)`. ON/OFF time ratios were 0.986462 per move
+and 0.989479 per game-side, with zero faults. Separate 200-game qualification
+is pending. AUC is predictive discrimination, not strength.
 The 1% sample, full-data hashes, coefficients and split IDs are in
 `evidence/fit_v0_001/`. Raw logs stay in authorized local scratch.
 
