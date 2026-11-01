@@ -7,8 +7,14 @@ repo="$1"; tag="$2"; shift 2; T=$(dirname "$0")
 KIT='C:\Users\Administrator\grok-pc\forge_push\qa_ltopgo_al1_stage\kit_v23\build_ltopgo.ps1'
 PY='C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe'
 opts=""; for o in "$@"; do opts="$opts${opts:+,}'$o'"; done
-for side in pc1 pc2; do
-  powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pc_gate.ps1")" -Drive C -NeedGB 1 || { echo "pc_gate not OK, stop"; exit 75; }
+sides="${KIT_SIDES:-pc1 pc2}"
+for side in $sides; do
+  # load gate (R13): wait in 60 s steps (up to 30 min); my CPUs 2-3 must be <= 60% busy, total <= 95%, RAM, disk
+  ok=0; for i in $(seq 1 30); do
+    if powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pc_gate.ps1")" -Drive C -NeedGB 1 -MaxCpu 95 -Cpus 2,3 -MaxMyCpu 60; then ok=1; break; fi
+    sleep 60
+  done
+  [ $ok = 1 ] || { echo "pc_gate not OK for 30 min, stop"; exit 75; }
   src=/c/o13/src/${tag}_$side; bash "$T/export_src.sh" "$repo" "$src" >/dev/null || exit 2
   cmd="& '$KIT' -SrcDir '$(cygpath -w "$src")' -Tag '${tag}_$side' -Work 'C:\o13\w' -Affinity 0xC -Python '$PY' -Expose"
   cmd="$cmd -Pins 'd11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354' -PerftPins 'startpos=4865609,kiwipete=193690690'"

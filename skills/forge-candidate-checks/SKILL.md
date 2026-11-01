@@ -10,7 +10,8 @@ Tools in `opus_r13/tools/` (branch opus-r13-p1-nearmiss-ports). Python: venv `C:
 
 ## Before any heavy step
 `powershell -NoProfile -ExecutionPolicy Bypass -File pc_gate.ps1 [-Drive C -NeedGB 1 -MaxCpu 85 -MinRamGB 6]`: free
-C:/D:/F:, total + per-CPU load, RAM; exit 0 = go. R13 PC (2026-10-31): gate on 0xFFF0 (8 engines), self-play Idle on
+C:/D:/F:, total + per-CPU load, RAM; exit 0 = go. Use `-MaxCpu 95 -Cpus 2,3 -MaxMyCpu 60` and WAIT in a loop: total CPU
+alone stopped all three block-2 builds at 87-90% while CPUs 2-3 were 7-35% busy (the trainer filled 0-1). R13 PC (2026-10-31): gate on 0xFFF0 (8 engines), self-play Idle on
 CPUs 4-15, trainer Idle 0x000F at ~25% -> my work on CPUs 2-3 (0xC), BelowNormal, <= 2 threads. Scratch on C:\o13 (F: < 50 GB).
 
 ## Build (binding: pc1 = pc2)
