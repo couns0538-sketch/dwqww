@@ -143,3 +143,12 @@ P2 steps 5 / 5a are "if time is left": skipped for now (TODO), the order moves o
 3. **P3 step 2 - SPSA** per bit (fixed budget stated before the run, fresh logged seeds, 1-2 threads, BelowNormal, CPUs 2-3),
    R9 tuner (forge-spsa-tuning skill) on the built exe; values are proposals only (setoption lines in the READMEs).
 If usage looks low: stop starting new items, push, update opus_r13/FINAL_REPORT.md.
+
+---
+# Block 4 plan (written 2026-11-01 ~09:35 PC clock; user: keep going until the credits are out, past Phase 3)
+1. Finish P3: SPSA bits 2 / 4 (running) -> tuned values + noise z in p3/RESULTS.md and README (proposals only).
+2. P4 (branch opus-r13-p4-v2nets), CPU-only parts first (GPU only in an Engine NNUE window):
+   build forge_v2_bullet (own CARGO_HOME copy, own target dir, Idle, 2 jobs, CPUs 2-3 after the SPSA); feature parity of
+   the Rust inputs vs the engine (v2_eval harness on forge-bundle-int, 10k FENs, AVX2 + SSE builds, nets from a short CPU
+   smoke per stage); CPU smoke on 1M positions; GPU_REQUEST.md (exact commands, minutes, L1 768/1024/1536 x 2 seeds).
+3. Then P5 (relabel), P6 (Syzygy), P7 (E3 fit) in that order, each pushed every ~10 minutes.
