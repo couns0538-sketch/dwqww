@@ -13,6 +13,10 @@ Inspect the working tree, current accepted revision, open reviews and latest led
 
 Use existing `resume-engine-development`, `validate-chess-engine`, `native-experiment-integrity` and `preserve-chess-evidence` when available. Their ownership stays with the installed skills; this plugin adds C++ depth rather than copies. Discover callable tools: GitHub for exact revisions, Context7/vendor docs for APIs, CodeRabbit/Sonar for review, research connectors for primary sources. Use a connector only for a concrete question. Missing optional tools are not a reason to stop native work.
 
+## Crew qualification skills
+
+Use the installed exact-named specialist when its trigger matches: `forge-lock-proof-set` for full lock qualification; `eval-exact-simd-port` before SIMD timing; `abba-nps-timing` for calibrated paired timings; `npt-data-holdout-check` for independent position/game/FEN audits; `resumable-shard-job` for checkpoint/restart proof; `grok-pc-safe-run` for approved spare-resource Windows jobs; `gate-handover-pack` for a sealed QA handoff. These specialists extend the shared workflow without replacing the accepted engine or granting permission to touch production. T4 qualification needs a separate authorized host when the grok-pc two-worker limit applies.
+
 ## Choose the smallest useful cycle
 
 | Task | Read |
