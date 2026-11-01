@@ -31,3 +31,13 @@ Tuner: R9's r9_spsa.py (opus-r9-spsa) copy with one change (fixed_options from t
 spsa/r9_spsa.py, spsa/patch_tuner.py; configs spsa/sf26_bit*.json. The governor caps are set above the PC's own ~90% load
 (gate + trainer) because the games are pinned to CPUs 2-3; max 2 games. Runs end by --max-pairs (no STOP files).
 Noise expectation (R9: 832 pairs moved 0 of 16 parameters beyond 2 sigma): at 160 pairs only a clearly mis-set margin can move.
+
+### SPSA result, bit 2 (run 2026-11-01 09:07-09:56, 160 pairs = 320 games, seed 13002)
+| parameter | start | end | int | noise sigma | z | verdict |
+|---|---|---|---|---|---|---|
+| Sf26NmpPriorBonus | 16 | 17.77 | 18 | 3.68 | +0.48 | noise |
+| Sf26NmpPriorCap | 3 | 1.93 | 2 | 0.92 | -1.16 | noise |
+plus vs minus +57 -42 =221 (69.1% draws); 0 of 2 parameters beyond 2 sigma (about 0.1 expected by chance).
+Proposal (optional, noise-level - gate the default line first): `setoption name Sf26NmpPrior value 1`,
+`Sf26NmpPriorBonus value 18`, `Sf26NmpPriorCap value 2`. (The R9 report tool prints `R9Tune=true` in its option lines:
+that is R9-specific and not an option of this exe; the switch here is Sf26NmpPrior.) Evidence: spsa/run_bit2/, spsa/report_bit2/.
