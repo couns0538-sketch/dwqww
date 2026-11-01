@@ -107,6 +107,18 @@ int TmUnstableFactor = 140;
 int TmEffortBase = 155;
 int TmFallingEvalPercent = 100;
 int TmMinFactorPercent = 45;
+// UNFITTED checkpoint: neutral mapping until the real-data fit is installed.
+int TmFitBias = 0;
+int TmFitDepth = 0;
+int TmFitChanged = 0;
+int TmFitEffort = 0;
+int TmFitScore = 0;
+int TmFitDelta = 0;
+int TmFitElapsed = 0;
+int TmFitA = 1000;
+int TmFitB = 0;
+int TmFitLo = 500;
+int TmFitHi = 1500;
 int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
@@ -144,6 +156,12 @@ const std::vector<Parameter>& parameters() {
         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+        {"TmFitBias", &TmFitBias, -131072, 131072},           {"TmFitDepth", &TmFitDepth, -131072, 131072},
+        {"TmFitChanged", &TmFitChanged, -131072, 131072},     {"TmFitEffort", &TmFitEffort, -131072, 131072},
+        {"TmFitScore", &TmFitScore, -131072, 131072},         {"TmFitDelta", &TmFitDelta, -131072, 131072},
+        {"TmFitElapsed", &TmFitElapsed, -131072, 131072},
+        {"TmFitA", &TmFitA, -1000000, 1000000},              {"TmFitB", &TmFitB, -1000000, 1000000},
+        {"TmFitLo", &TmFitLo, 100, 3000},                    {"TmFitHi", &TmFitHi, 100, 3000},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
         {"CorrContWeight", &CorrContWeight, 0, 300},          {"CorrMinorWeight", &CorrMinorWeight, 0, 300},

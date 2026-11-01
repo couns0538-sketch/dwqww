@@ -462,6 +462,7 @@ int main() {
                          "option name Syzygy50MoveRule type check default true\n";
             std::cout << "option name CorrHistPlus type spin default 0 min 0 max 7\n";
             std::cout << "option name HardDeadline type spin default 0 min 0 max 1000\n";
+            std::cout << "option name TmFitModel type spin default 0 min 0 max 1\n";
             // v2 networks (forge/search_options.hpp): off unless NNUEKingBuckets or NNUEOutputBuckets > 0.
             std::cout << "option name NNUEFile type string default <empty>\n"
                          "option name NNUEKingBuckets type spin default 0 min 0 max 32\n"
@@ -682,6 +683,13 @@ int main() {
                     forge::options::hard_deadline_ms = std::clamp(value, 0, 1000);
                     // Start (and prioritise) the watchdog now, not inside a starved search.
                     if (forge::options::hard_deadline_ms > 0) deadline_watchdog.start();
+                }
+            } else if (name == "TmFitModel") {
+                if (value_text == "0" || value_text == "1") {
+                    forge::options::tm_fit_model = value_text == "1";
+                } else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option TmFitModel" << std::endl;
                 }
             } else if (name == "CorrMargins") {
                 int value = 0;

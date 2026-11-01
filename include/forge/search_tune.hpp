@@ -69,6 +69,10 @@ extern int TmUnstableFactor;      // x0.01 soft scale when the best move just ch
 extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
 extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
 extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
+// Fitted model coefficients Q12 and probability-to-multiplier mapping permille.
+// Advertised only by FORGE_EXPOSE_TUNABLES builds; snapshotted once per search.
+extern int TmFitBias, TmFitDepth, TmFitChanged, TmFitEffort, TmFitScore, TmFitDelta, TmFitElapsed;
+extern int TmFitA, TmFitB, TmFitLo, TmFitHi;
 extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;

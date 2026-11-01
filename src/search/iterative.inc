@@ -43,6 +43,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 
     // Time allocation.
     timeman::allocate(limits, soft_limit_ms_, hard_limit_ms_, time_managed_);
+    const bool fit_enabled = options::tm_fit_model && is_main() && time_managed_;
+    const tmfit::Model fit_model = fit_enabled
+        ? tmfit::Model{{tune::TmFitBias, tune::TmFitDepth, tune::TmFitChanged, tune::TmFitEffort,
+                       tune::TmFitScore, tune::TmFitDelta, tune::TmFitElapsed},
+                      tune::TmFitA, tune::TmFitB, tune::TmFitLo, tune::TmFitHi}
+        : tmfit::Model{};
     SearchInfo result;
     const MoveList legal = board.legal_moves();
     MoveList root_candidates;
@@ -225,6 +231,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         emit(depth, syzygy::root_display.load(std::memory_order_relaxed) != 0 ? syzygy::display_score(score) : score,
              result.pv);
 
+#ifdef FORGE_TM_LOG
+        // Training instrumentation is compiled out entirely in ordinary builds.
+        // Root effort has the same cumulative-per-search meaning as the lock TM.
+        if (is_main() && emit_info) {
+            std::uint64_t best_nodes = 0;
+            const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+            const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+            if (best_effort != effort_end) {
+                best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
+            }
+            const std::int64_t log_elapsed = elapsed_ms();
+            const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+            if (!shared_.output_closed.load(std::memory_order_relaxed)) {
+                std::cout << "info string tm_log {\"depth\":" << depth
+                          << ",\"best_move\":\"" << Board::move_to_uci(result.best_move) << '\"'
+                          << ",\"changed\":" << (!previous_best.is_none() && result.best_move != previous_best ? 1 : 0)
+                          << ",\"node_fraction\":" << (local_nodes_ ? static_cast<double>(best_nodes) / static_cast<double>(local_nodes_) : 0.0)
+                          << ",\"node_fraction_q10\":" << tmfit::ratio_q10(best_nodes, local_nodes_, 1024)
+                          << ",\"score_cp\":" << score
+                          << ",\"score_delta_cp\":" << (previous_score == ValueNone ? 0 : score - previous_score)
+                          << ",\"elapsed_ms\":" << log_elapsed << ",\"soft_ms\":" << soft_limit_ms_
+                          << ",\"hard_ms\":" << hard_limit_ms_ << '}' << std::endl;
+            }
+        }
+#endif
+        const bool fit_changed = fit_enabled && !previous_best.is_none() && result.best_move != previous_best;
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;
         previous_best = result.best_move;
@@ -248,7 +280,32 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 factor *= timeman::falling_eval_scale(iteration_previous_score, score);
             }
             factor = timeman::factor_floor(factor);
-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            if (fit_enabled) {
+                std::uint64_t best_nodes = 0;
+                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+                if (best_effort != effort_end)
+                    best_nodes = root_move_nodes_[static_cast<std::size_t>(best_effort - root_effort_moves_.begin())];
+                const int score_delta = iteration_previous_score == ValueNone ? 0 : score - iteration_previous_score;
+                const auto x = tmfit::features(depth, fit_changed, best_nodes, local_nodes_, score,
+                                               score_delta, elapsed_ms(), soft_limit_ms_);
+                const int probability = tmfit::predict_q10(fit_model, x);
+                const int multiplier = tmfit::multiplier_permille(fit_model, probability);
+                const auto target = tmfit::soft_target_ms(soft_limit_ms_, factor, multiplier, hard_limit_ms_);
+                if (emit_info) {
+                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+                    if (!shared_.output_closed.load(std::memory_order_relaxed)) {
+                        std::cout << "info string tmfit {\"depth\":" << depth << ",\"p_q10\":" << probability
+                                  << ",\"multiplier_permille\":" << multiplier << ",\"soft_target_ms\":" << target
+                                  << ",\"hard_ms\":" << hard_limit_ms_ << ",\"changed\":" << (fit_changed ? 1 : 0)
+                                  << ",\"effort_q10\":" << x[3] << ",\"delta_cp\":" << score_delta
+                                  << '}' << std::endl;
+                    }
+                }
+                if (elapsed_ms() >= target) break;
+            } else {
+                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            }
         }
     }
 

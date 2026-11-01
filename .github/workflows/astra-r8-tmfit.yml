@@ -1,0 +1,32 @@
+name: astra-r8-tmfit-sanitizers
+on:
+  workflow_dispatch:
+  push:
+    branches: [astra-r8-tmfit]
+    paths: ['src/**', 'include/**', 'tests/tmfit_tests.cpp', '.github/workflows/astra-r8-tmfit.yml']
+permissions:
+  contents: read
+jobs:
+  sanitizer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ASan and UBSan
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DFORGE_ENABLE_SANITIZERS=ON -DFORGE_EXPOSE_TUNABLES=ON -DCMAKE_CXX_FLAGS='-DFORGE_NNUE_HIDDEN=256 -O1'
+          cmake --build build --target forge forge_tmfit_tests -j2
+          c++ -std=c++20 -O1 -Iinclude astra_r8/tmfit/tmfit_referee.cpp src/board.cpp src/bitboard.cpp -o build/tmfit_referee
+      - name: ON numeric and timed self-play smoke — UNPROVEN
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          ./build/forge_tmfit_tests
+          mkdir -p build/evidence
+          python3 astra_r8/tmfit/run_tmfit.py smoke --exe build/forge --referee build/tmfit_referee --openings tools/openings/forge-10000.epd --scratch-root build/evidence --out build/evidence/smoke --games 4 --base-ms 8000 --inc-ms 80 --max-plies 100
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tmfit-sanitizer-evidence
+          path: build/evidence

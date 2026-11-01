@@ -46,6 +46,7 @@
 #include "search/evaluation.inc"  // static evaluation glue, correction history
 #include "search/correction_plus.inc" // CorrHistPlus extra correction keys (cold)
 #include "search/timeman.hpp"     // time budgets and the soft stop rule (inline)
+#include "search/tmfit.hpp"       // fitted, time-only soft-budget multiplier
 #include "search/checks.inc"      // per-node clock / node / stop checks, draws
 #include "search/history.inc"     // move-ordering history scoring and updates
 #define FORGE_SEARCH_FN search

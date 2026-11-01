@@ -9,6 +9,10 @@
 // written only while no search runs (the UCI loop stops the search first).
 namespace forge::options {
 
+// UCI TmFitModel (spin 0-1, default 0). Changes only the clock-managed soft
+// budget. The main worker snapshots it once per search; fixed-depth is unchanged.
+extern bool tm_fit_model;
+
 // UCI SmpExactNodes (check, default false); acts only with Threads > 1.
 // Resets every worker's published node count before the helper threads start
 // (otherwise the main thread reads the previous search's counts until each

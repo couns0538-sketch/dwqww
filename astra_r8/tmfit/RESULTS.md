@@ -34,3 +34,20 @@ MCP analysis tools are not currently available. Never treat missing analysis as 
 
 Next: build and establish OFF pins; collect actual logs; fit coefficients;
 calibrate multiplier on separate paired games; run success matrix and hand off.
+
+## Checkpoint 2 — implemented, collecting; UNPROVEN
+
+Logger, model, NumPy fitter, native referee and six harness modes implemented.
+Fitter 13 tests PASS, harness 4 tests PASS, numeric bounds test PASS. An independent
+review corrected unstable-search selection bias and noise-only live-proof criteria.
+Initial build failed due to omitted FORGE_NNUE_HIDDEN=256; original failed log is
+preserved in scratch. Corrected x86-64-v3 GCC15.2 O3, ffp-contract=off, static,
+Expose+TM_LOG build succeeds. Embedded net SHA256:
+`0cc9ac542ed4a2271459f3e4819277f3d9b77122ec1bf1ab536673d34af21807`.
+OFF bench d11/d13/d16/d20 matches 312866/862329/3024920/12389307;
+full matrix remains running. Collection at 8+0.08, seed2026110108, 8moves_v3,
+Threads1/Hash16 is running. Coefficients remain UNFITTED neutral placeholders.
+Source checkpoint1 published: 79ff4d68. New sanitizer workflow is branch-scoped.
+Next: finish 50k data, real fit and mapping calibration, final binary validation.
+Prior art limitation: requested named variants except TimeManV2 were not found in
+available refs; see PRIOR_ART_AUDIT.md. No claim to have reviewed absent source.

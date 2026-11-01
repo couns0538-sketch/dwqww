@@ -23,5 +23,6 @@ bool cuckoo_rep = false;
 bool material_key_table = false;
 bool intended_threefold = false;   // S-IT (UCI IntendedThreefold)
 bool smp_helpers_past_depth = false;   // R3-6 (UCI SmpHelpersPastDepth; last, so the variables above keep their addresses)
+bool tm_fit_model = false;
 
 } // namespace forge::options
