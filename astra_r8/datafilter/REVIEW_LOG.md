@@ -44,3 +44,24 @@ states plus missing/malformed state. No optimizer updates performed.
 Evidence: review3_red.log, integration_attempt.log (37 passed). Test model forward
 uses L1=8 to bound CPU memory; exact recipe config remains L1024. Complete recipe
 commands now in MIX_SPEC.md. Fixed candidate review3_fixed_candidate.json.
+
+Focused milestone3 recheck: APPROVED for CPU-verified adapter handoff, pending
+manifest/preflights. Both final recipe preflights subsequently PASS. Latest full
+CPU suite:41 pass. Runtime imported-file hashes remain stable across CPU tests.
+
+## Holdout finding and focused split-stage review
+
+Complete audit found24/23 matching keys against complete013/014 (16,388,575 rows
+combined). Added explicit separate clearance stage; original failure preserved.
+Reviewer required exactly both pinned complete holdouts, post-selection source
+rehash, and delayed publication until proof/receipt completion. All accepted/fixed.
+Regression red:clearance_review_red.log; green:clearance_review_green.log(3 pass),
+including source mutation and unpublished failed output. Candidate identity:
+evidence/clearance_candidate.json. Focused recheck APPROVED actual execution.
+Actual run:47 rows excluded;999,953 retained; zero complete-holdout intersection.
+Both recipes share those rows. Manifests and3,139,111-byte sample verified.
+
+## Milestone4: final evidence and handoff
+
+Final read-only review pending. Source, sample, manifests, original logs and
+recipe preflights are ready. No training or GPU run performed; strength UNPROVEN.

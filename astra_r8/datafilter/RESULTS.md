@@ -1,7 +1,8 @@
 # Astra R8 Job 2 — UNPROVEN
 
 Base: 9761eb367c3ae4e541fc316380699f78eb493a3c. Isolated branch astra-r8-datafilter.
-Implementation in progress; no training readiness or strength claim.
+Implementation and CPU validation complete; final review and evidence checker pending.
+The cleared cohort has data/adapter clearance only. Training and strength are UNPROVEN.
 
 | Success test | Status |
 |---|---|
@@ -11,7 +12,7 @@ Implementation in progress; no training readiness or strength claim.
 | 4 Deliberate failures | PASS — enabled-rule and malformed-input fixtures |
 | 5 Million-row audit | PASS for measurable rules; capture/qsearch BLOCKED |
 | 6 Sign audit | PASS — Pearson 0.6635962860, unknowns excluded |
-| 7 Handoff integrity | PENDING |
+| 7 Handoff integrity | PASS manifests/sample/preflights; final checker/review pending |
 
 Capture measurement BLOCKED: production self-play lacks stored best moves.
 Qsearch measurement BLOCKED: FD3A5190 exposes no static/root-qsearch oracle.
@@ -46,3 +47,46 @@ dispatch acceptance. Fixed; 37 CPU tests now pass including installed entrypoint
 construction (stops before training) and real CPU checkpoint/scheduler round trips.
 Warnings: installed Torch deprecation notices and expected scheduler-before-step
 warning in a no-optimizer-update checkpoint test. No training/GPU work performed.
+
+## Final measured candidate
+
+- 41 CPU tests passed (`evidence/final_cpu.log`), including actual installed
+  entry-point construction stopped before training, native feature/forward/loss
+  checks, exception cleanup, sampler and real checkpoint/scheduler restoration.
+- Legacy train SHA256: `f7892da3e661415af787015313d1720231a76a5c0b3f063a07d9f830c7ec874f`.
+  Legacy validation SHA256: `b9db9883acadecad421a09d61242334898b0bbe8614a91766e1e2b59766f3eaa`.
+  Old/new match separately; 91,519 train + 924 validation metadata rows align.
+- The 1000-case reviewed orientation table and mirrors pass. An additional
+  independent literal oracle checks 1000 original raw self-play source rows.
+- Million-row independent audit: check=0, mate=0, ply>160=90,431; default retains
+  all million, optional ply<=160 retains909,569. Repeated two-worker payload hash
+  `dc360134f1a195fccb91349474a4beb008b444ac69249257ba8dfa7e18f92dc0` for both streams.
+- Original complete holdout audit **FAIL**: 24 board+STM matches in013 and23 in014.
+  Original failure preserved. A separately reviewed, explicit split stage excludes
+  their47-key union, preserving all other rows/order/duplicates. Complete scans:
+  013=10,000,000 rows;014=6,388,575 rows. Cleared overlap is zero for both.
+- Final matched-recipe selection: **999,953** self-play rows, 0 Lichess; separate
+  validation:16,384 rows from013 only. Cleared score/result Pearson **0.6635950368**.
+  Unknown-result exclusion is tested; this production cohort has no unknown results.
+- Sample:10,000 rows, **3,139,111 bytes**, `sample/positions.jsonl`.
+  Final manifest SHA256 `0b75136d5d3ead9881b8dc78f0b46ee55d918de499884272c790356f8001d4bb`.
+- Both recipe CPU `--check` preflights PASS. Runtime pins include actual imported
+  npt files, adapter files and native DLL SHA256
+  `88c0146804524af31cc724af39b122b5cd07e61833349c1a2cb66a28feb3939c`.
+- Latest reserve reading: C167,813,480,448 bytes; D83,613,192,192 bytes;
+  F47,239,548,928 bytes. User authorized D-only validation with F read-only.
+
+Ruling: explicit holdout split exclusion is necessary to preserve holdout separation;
+it is separately named/reported, never hidden inside the independent filter.
+Ruling: recipes are bounded-cohort recipes with baseline hyperparameters, not a
+claim to recreate the full305M-row baseline within the15GB artifact budget.
+Epoch-boundary training resume only; sampler-row resume is independently tested.
+
+Windows checkout limitation: the pinned tree includes both `source/a` and
+`source/A/child.txt` under validation/astra-a1-data/final_review/package_casefold_boundary.
+The case-insensitive checkout cannot materialize both. Its unstaged omission is
+not included in this branch's commits; no unrelated fixture was edited.
+
+Next: final read-only review and Forge correctness evidence checker, then checkpoint
+handoff in order Code Review → Engine NNUE → Engine QA. No training, GPU, engine,
+production data/network or crew process changes. All strength remains UNPROVEN.

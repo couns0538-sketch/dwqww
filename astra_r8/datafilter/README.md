@@ -39,6 +39,13 @@ row order. Their hashes are deterministic; reports also contain nondeterministic
 wall time and throughput. Failures retain unpublished `.partial` evidence, and
 existing final or partial destinations are refused.
 
+Holdout separation is a separate explicit stage, `clear_holdouts.py`. The complete
+audit found 47 matching board+STM keys across 013/014. The separately named
+`holdout_cleared` output excludes those keys, retains order/duplicates otherwise,
+and carries a complete hash-bound clearance receipt. It does not change filter
+defaults or erase the original failed overlap audit. Both recipes use this same
+cleared selection.
+
 `npt_adapter.py` uses installed `get_sparse_batch_from_fens`, clones all eight CPU
 tensors before native free, and retains provenance/result masks as batch metadata.
 Unknown outcomes require a neutral ABI placeholder, but lambda=1 masks that value;

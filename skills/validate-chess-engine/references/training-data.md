@@ -60,7 +60,52 @@ For the Forge crew's retention policy, pruning requires the explicit crew vote;
 do not insert `--prune-indexes` as a routine runbook step. Preserve inputs, raw
 logs and failed attempts regardless of any later index-pruning authorization.
 
-## Handoff
+## Result-aware normalization and deterministic filtering
+
+Keep original full FEN and provenance before legacy clipping, quiet filtering or
+deduplication. Distinguish White-relative stored outcomes from signed STM targets:
+White loss/draw/win = -1/0/+1, invert only for Black to move. Unknown outcomes
+require an explicit false result mask and null semantic result; never invent draws.
+For 32-byte Forge REC, audit byte29 mask and byte30 White 0/1/2 separately from
+STM targets. Exclude results from position identity and apply the identical
+first-occurrence and shuffle indices to binary records and all sidecars.
+
+Test both turns, all outcomes, unknowns, duplicate positions with different outcomes,
+and color/vertical mirror invariance. Feature-index enumeration may change under
+mirroring: compare active feature multisets or summed features, not arbitrary order.
+Run old/new compatibility on identical inputs and compare train/validation hashes
+separately. Pin production helpers and preserve their checkout bytes.
+
+An independent filter must be all-off by default and add no implicit clipping,
+deduplication or exclusions. Check captures, promotions and en passant using a
+genuine stored best move; absent metadata blocks measurement. Drop explicit mate
+labels or producer-defined thresholds before clipping (Forge: abs(score)>=31872).
+Derive zero-based ply from original FEN: 2*(fullmove-1)+(Black to move), with an
+inclusive limit. Report independent, overlap and ordered first-drop counts,
+metadata coverage, and input=retained+first-drops conservation. Test flags through
+actual output generation, not predicates alone. Compare record and metadata hashes
+across ordered two-worker runs; wall-time fields are not deterministic payloads.
+
+Preflight oracle capability before creating output. UCI depth1 is not root qsearch
+or static evaluation. An engine lacking the actual oracle must fail clearly;
+fixtures cannot replace a missing production measurement. Reserve the next bounded
+write against the complete artifact root before allocation, not after it.
+
+For npt result masking, call installed APIs without copying GPL implementation.
+Custom REC is not binpack. Supply original FEN, STM score, actual ply and signed
+STM result; retain provenance/masks separately. Clone all eight CPU tensors before
+freeing native memory, including failure cleanup. A native dummy outcome is safe
+only when an explicit mask forces lambda=1 and the semantic result stays null.
+Require lambda [batch,1] on score dtype/device; reject malformed batch metadata and
+clear transient state after training/validation/error paths. Verify mixed batches
+against the installed scalar loss and exercise actual loader/callback/trainer
+construction without training. Bind manifest identity, actual imported file/native
+library hashes and deterministic sampler state in checkpoints. Test checkpoint
+resume including scheduler timing; reject unsupported devices/processes rather
+than silently dispatching elsewhere. Keep full holdout clearance separate from
+adapter correctness, and playing strength UNPROVEN until crew-owned gates pass.
+
+## Handoff record
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

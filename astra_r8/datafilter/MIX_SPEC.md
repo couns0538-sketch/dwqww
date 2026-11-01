@@ -51,8 +51,13 @@ $env:TMP = "$data/tmp"
 & $py "$tools/filter_positions.py" "$data/cohort/million.jsonl" "$data/recipe_selection_new" --workers 2 --drop-in-check --drop-mate-scores
 ```
 
-The delivered manifest points to the already audited `filtered_default` output;
-the command above demonstrates reproduction without overwriting it.
+The delivered manifest points to `holdout_cleared/records.jsonl`: default filtering
+followed by the separately recorded holdout split exclusion. The complete audit
+found 24 matching board+STM keys in 013 and 23 in 014. Those 47 keys are excluded
+explicitly from both recipes; the original `filtered_default` and failed overlap
+audit remain intact. `clear_holdouts.py` reproduces this separate split stage only
+at a fresh artifact root, requiring both pinned complete holdouts. The command
+above demonstrates filtering alone without overwriting the audited selection.
 
 ## Crew-owned commands (not executed by this job)
 
