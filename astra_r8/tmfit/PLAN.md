@@ -9,11 +9,11 @@ behind TmFitModel=0/1. Multiply only the legacy soft-stop threshold. Preserve
 hard-time checks and allocation caps. Snapshot model settings once per search.
 
 - [x] Isolate lock fallback source; inspect prior time allocation; preserve crew work.
-- [ ] Compile logger and capture real >=50,000 root iterations, fixed seeds/openings.
-- [ ] Validate labeling, grouped split, AUC ties, quantization and extreme inputs.
-- [ ] Fit data and calibrate a/b/lo/hi with separate paired timing evidence.
+- [x] Compile logger and capture real >=50,000 root iterations, fixed seeds/openings.
+- [x] Validate labeling, grouped split, AUC ties, quantization and extreme inputs.
+- [x] Fit data and calibrate a/b/lo/hi with separate paired timing evidence.
 - [ ] Verify all seven numbered success tests, preserving original failures.
-- [ ] Review scope, license provenance and model timing behavior independently.
+- [x] Review scope, license provenance and model timing behavior independently.
 - [ ] Produce lock-applicable patch, sample/hashes, reusable skill and crew handoff.
 
 No copied GPL code/constants, no search changes, no Elo claims. One engine

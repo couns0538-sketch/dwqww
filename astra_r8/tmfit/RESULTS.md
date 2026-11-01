@@ -7,8 +7,10 @@ Branch: `astra-r8-tmfit`. Crew builds the LTO+PGO gate executable.
 ## Current qualification status
 
 Implemented and fitted on real data; source patch applies to the lock fallback.
-Identity, liveness, hard-limit, clamp and sanitizer checks pass as scoped below.
-Time-balance calibration is running before the final200-game qualification.
+Identity, liveness, hard-limit, clamp and sanitizer checks pass for the fallback
+source as scoped below. Its final200-game run also completed cleanly. CR requires
+a patch port and identity checks on the actual AL1 s198 source294dbed3, plus a
+CPU/RAM governor before further PC runs. These fixes are in progress.
 No search algorithm changes. Strength remains UNPROVEN.
 
 Storage: C: 182.1 GB, D: 83.8 GB, F: 49.1 GB at setup. User authorized D: scratch
@@ -23,18 +25,18 @@ instead of F: with 50 GB minimum free. Scratch is
 | 1 ON fixed-depth identity | PASS | fitted-v1: identical five pins |
 | 1 perft5 | PASS | start4865609; kiwipete193690690 |
 | 2 timed live proof | PASS (revised fixture) | fitted-v1:10/20, median3; original opening-only5/20 and1/20 failures retained |
-| 3 200-game average time | PENDING | Mapping frozen after paired40: ratios0.986462/move,0.989479/game-side; final200 next |
+| 3 200-game average time | PASS (fallback source only) | 200 games; ratios0.99016836/move,0.99001560/game-side;0flags/illegal; actual-lock port not yet qualified |
 | 4 hard limits | PASS | fitted-v1:50,1s+.01s; max255.124ms;0hard-cap+20ms overruns |
 | 5 absurd coefficient clamp | PASS | A1000000,50positions; multiplier capped1500; max255.342ms;0overruns |
 | 6 ASan+UBSan ON smoke | PASS | Linux CI41289552546,fittedsource,4allONgames,0reports/faults |
-| 7 patch/README/fitter/tests/skill | IN PROGRESS | Patch must apply to base with -p1 |
+| 7 patch/README/fitter/tests/skill | FIX | CR requires actual AL1 s198 base294dbed3; fallback patch/evidence preserved |
 | Crew SPRT | UNPROVEN | CR first, then Strength and QA; UHO primary, 8moves separate, longer TC confirm |
 
 Blockers: none after D: scratch authorization; optional CodeRabbit/Sonar CLIs and
 MCP analysis tools are not currently available. Never treat missing analysis as PASS.
 
-Next: build and establish OFF pins; collect actual logs; fit coefficients;
-calibrate multiplier on separate paired games; run success matrix and hand off.
+Next: implement/review the resource governor and actual-lock port, verify its
+OFF pins, and rerun candidate-dependent checks before the final handoff.
 
 ## Checkpoint 2 — implemented, collecting; UNPROVEN
 
@@ -155,3 +157,31 @@ seed and742/3000/650/1750 mapping. No source or executable changed during the ru
 Next: finish200 games, evaluate both timing bounds, package proof, then focused
 independent review and corrections before engineering completion. Crew strength
 acceptance remains UNPROVEN.
+
+## Checkpoint 10 — CR requests actual-lock port and resource governor
+
+CR verdict FIX on41699d07/6b2b5ece is accepted. Actual AL1 s198 source is
+294dbed3a15dfd821aaf9d4edc6e5f62832fd460; the local packaged source matches all75
+Git blobs. The existing905 fallback patch/evidence is preserved, not relabeled.
+CR supplied patch hash prefixes538c4876 (lockport) andc0005114 (governor); file
+locations are being located, with equivalent fixes prepared independently.
+
+The original200-game run sealed at18:44:49 UTC: bothchildren exit0, zero faults,
+ON176.8014ms/move vsOFF178.5569ms/move, ratio0.99016836; game-side ratio0.99001560.
+Bounded evidence and original raw hashes are in evidence/final_smoke_v1.
+At a live resource inspection, system CPU was90%. An owned-process pause attempt
+executed101seconds after the completed run sealed; no process was suspended.
+The original pause-attempt receipt and correction are both retained. This does
+not establish governor compliance for the old run. No further engines/builds
+will run until the80%CPU/90%peak/8GBRAM governor is installed and reviewed.
+
+Latest code-bearing GitHub CI41699d07 passed run41291623694:16driver+5aggregator
+regressions, numeric tests, ASan+UBSan and4all-ON games. Exact logs/receipt saved.
+All strength conclusions remain UNPROVEN; final engineering handoff is unresolved.
+
+CR artifacts subsequently located at C:/Users/Administrator/cr_crfix/astra_r8_tmfit.
+All three MD5 prefixes match: lockport538c4876, governorc0005114, helper6d109014.
+Original bytes and full hashes are versioned under cr_fixes/. Couns clarified
+8GB **free** RAM; CR uses8GiB, startCPU<80%, pauseCPU>=90%. That specification
+supersedes the initial own-process memory interpretation. Governor and lock-port
+matching are under implementation/review; no further native engine runs started.

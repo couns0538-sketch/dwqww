@@ -33,3 +33,19 @@ acceptance or strength claim. Next milestone: independent review of the final
 evidence, candidate bindings, patch and handoff; fix confirmed issues and verify
 the completed record before declaring the engineering task finished. Crew SPRT
 and longer-TC confirmation remain separate requirements for strength acceptance.
+
+CR follow-up on41699d07/6b2b5ece: FIX. Accepted both findings: deliver the patch
+against actual AL1 s198 source294dbed3, and add CR's PC resource governor before
+further runs. Original CR patches/helper were located locally; their MD5 prefixes
+538c4876/c0005114/6d109014 match and their unchanged bytes are in cr_fixes/.
+The clarified governor requires8GiB free RAM, starts below80%CPU, and pauses our
+work at90%CPU or higher. The earlier interpretation as an8GB own-process memory
+ceiling is superseded by CR's actual artifact and Couns's clarification.
+
+Independent focused review of completed fallback200 evidence and Checkpoint10
+found no defects: verified200games/100pairs, both time ratios, zero faults,
+retained hashes and empty suspension receipt101.006703seconds after completion.
+Main agent accepts the findings. These are905fallback results only. New lock
+patch, source snapshot and executable must bind to294dbed3, with separate checks.
+The independent reviewer also confirmed the authoritative patch/source approach
+meets the requested port without replacing unrelated reference engine files.

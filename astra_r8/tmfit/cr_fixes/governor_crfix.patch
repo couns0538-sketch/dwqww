@@ -1,0 +1,88 @@
+--- a/astra_r8/tmfit/run_tmfit.py	2026-11-01 10:18:39.230463214 +0100
++++ b/astra_r8/tmfit/run_tmfit.py	2026-11-01 10:18:39.266463349 +0100
+@@ -53,6 +53,67 @@
+     return order_positions(fens, seed)
+ 
+ 
++# CR fix (R8 tmfit review): PC load rule - start only below 80% CPU, pause in
++# 60 s steps while CPU >= 90%, and require >= 8 GB free RAM. Stdlib only.
++GOV_START_PCT, GOV_PAUSE_PCT, GOV_PAUSE_S, GOV_MIN_FREE = 80.0, 90.0, 60, 8 * 1024 ** 3
++_governor_started = False
++
++
++def _cpu_times():
++    if os.name == 'nt':
++        import ctypes
++        idle, kernel, user = (ctypes.c_ulonglong() for _ in range(3))
++        if not ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
++            raise ctypes.WinError()
++        return idle.value, kernel.value + user.value  # kernel time includes idle time
++    fields = [int(x) for x in Path('/proc/stat').read_text().split('\n', 1)[0].split()[1:]]
++    return fields[3] + (fields[4] if len(fields) > 4 else 0), sum(fields)
++
++
++def cpu_percent(window=1.0):
++    idle0, total0 = _cpu_times()
++    time.sleep(window)
++    idle1, total1 = _cpu_times()
++    total = total1 - total0
++    return 100.0 if total <= 0 else 100.0 * (1.0 - (idle1 - idle0) / total)
++
++
++def free_ram_bytes():
++    if os.name == 'nt':
++        import ctypes
++
++        class MemoryStatus(ctypes.Structure):
++            _fields_ = [('dwLength', ctypes.c_ulong), ('dwMemoryLoad', ctypes.c_ulong),
++                        ('ullTotalPhys', ctypes.c_ulonglong), ('ullAvailPhys', ctypes.c_ulonglong),
++                        ('ullTotalPageFile', ctypes.c_ulonglong), ('ullAvailPageFile', ctypes.c_ulonglong),
++                        ('ullTotalVirtual', ctypes.c_ulonglong), ('ullAvailVirtual', ctypes.c_ulonglong),
++                        ('ullAvailExtendedVirtual', ctypes.c_ulonglong)]
++        status = MemoryStatus()
++        status.dwLength = ctypes.sizeof(MemoryStatus)
++        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
++            raise ctypes.WinError()
++        return status.ullAvailPhys
++    for line in Path('/proc/meminfo').read_text().splitlines():
++        if line.startswith('MemAvailable:'):
++            return int(line.split()[1]) * 1024
++    raise RuntimeError('MemAvailable missing')
++
++
++def load_governor(start=None):
++    """Blocks until the PC load rule allows work; called before every game/search batch."""
++    global _governor_started
++    start = not _governor_started if start is None else start
++    limit = GOV_START_PCT if start else GOV_PAUSE_PCT
++    while True:
++        cpu, free = cpu_percent(), free_ram_bytes()
++        if cpu < limit and free >= GOV_MIN_FREE:
++            _governor_started = True
++            return
++        print(f'governor: cpu={cpu:.0f}% (limit {limit:.0f}%) free_ram={free / 1024 ** 3:.1f} GB '
++              f'(min 8): pausing {GOV_PAUSE_S} s', flush=True)
++        time.sleep(GOV_PAUSE_S)
++
++
+ def resource_guard(scratch_root):
+     """D scratch was authorized by user after F fell below its free-space floor."""
+     root = Path(scratch_root).resolve()
+@@ -66,6 +127,7 @@
+     size = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+     if size > 5e9:
+         raise RuntimeError('Task scratch exceeds 5 GB')
++    load_governor()
+ 
+ 
+ def is_sanitizer_report(line):
+--- a/astra_r8/tmfit/run_parallel_smoke.py	2026-11-01 10:18:39.242463259 +0100
++++ b/astra_r8/tmfit/run_parallel_smoke.py	2026-11-01 10:18:39.270463364 +0100
+@@ -208,6 +208,7 @@
+     try:
+         flags = subprocess.BELOW_NORMAL_PRIORITY_CLASS | subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+         for shard_id, command in enumerate(commands):
++            runner.load_governor(start=True)  # CR fix: each shard starts only below 80% CPU, >= 8 GB free
+             log = (args.out/f'shard{shard_id}-driver.log').open('x',encoding='utf-8')
+             logs.append(log)
+             processes.append(subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,creationflags=flags))

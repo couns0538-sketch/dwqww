@@ -91,6 +91,15 @@ arbitrary extra options cannot silently override the comparison contract.
 
 ## Evidence and status
 
+Bench-pin equality does not establish source-tree compatibility. Resolve the
+exact lock commit or packaged source before generating a handoff patch. Compare
+the source bytes, then check both `git apply --check -p1` and the intended patch
+consumer on that tree. Git archive/export line-ending conversion can differ
+from blob bytes; use blob hashes when auditing untouched algorithm regions.
+When a candidate is ported to another base, preserve the earlier candidate and
+its results under their original identity. Bind new results to the new base,
+patch, resulting source, compiler flags and executable; never relabel evidence.
+
 Retain immutable raw logs under the authorized scratch/storage budget. Commit
 a deterministic 1% sample, exact row counts, source/executable/net/opening
 hashes, fit seed, split IDs, complete commands and fit script hash. Seal raw
