@@ -26,4 +26,4 @@ OFF (no setoption) must bench 312866/862329/3024920/12389307/34048354 before gam
 | uci: Sf26Bundle / Sf26NmpPrior / Sf26LmrGap / Sf26MulticutCorr default 0; margins 3 / 16 / 260 / 60 | PASS | logs/sf26_checks.json |
 | T1/T4 movetime smoke, OFF + 3 lines, 4 positions: legal bestmoves | 32/32 | logs/sf26_checks.json |
 | mate probe 22 mates @3M: OFF 19, nmp 20, lmr 20, mc 19; the deep KRK M15 (3k4/8/8/8/7r/8/8/6K1 b) is cp for all three at 3M, mate 11 for OFF and all three at 30M (horizon) | PASS | logs/sf26_checks.json, logs/sf26_lost1_30M.json |
-| CI ASan+UBSan self-play default / nmp / lmr / mc / max | see RESULTS.md | - |
+| CI ASan+UBSan self-play default / nmp / lmr / mc / max: 0 sanitizer lines, 0 illegal | PASS (run 41286830769) | logs/ci_san_41286830769.txt |
