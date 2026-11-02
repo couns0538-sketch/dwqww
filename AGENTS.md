@@ -34,6 +34,7 @@ verbatim text as below. This file merges that policy with the Opus rules (R14, 2
 - npt work: never touch the live trainer, its queue, its runs or its loader DLL; work on copies; no HIP runtime next to the
   npt line; GPU only in a window Engine NNUE gives (request in `opus_r14b/item1/GPU_REQUEST.md`).
 - A blocked item: write the blocker in its RESULTS.md, push, and spend the time on the other item.
+- Disks (Couns 14:40): C: may also hold scratch (e.g. C:/o14b) but must stay >= 50 GB free; D: >= 50 GB; F: no writes.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
