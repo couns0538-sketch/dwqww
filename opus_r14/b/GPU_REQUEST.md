@@ -6,7 +6,7 @@ GPU at that time (read only, `grok-pc\forge_push\npt_keeper\STATUS.md` 10:28 PC 
 ~132 h of npt lines queued and fresh-seed npt lines inserted when the head is not npt -> no gap for another trainer.
 Nothing here runs next to an npt line, and nothing here runs without a written window from Engine NNUE.
 
-## Checks before every run (all must hold; the runner checks them itself, not only at start)
+## Checks before every run (all must hold; the run wrapper - not written yet, it comes with the first window - must check them itself before and during each run, not only at start)
 1. Engine NNUE gave a window (time span written in `opus_r14/b/WINDOW.md` by the owner or quoted from their note).
 2. No production trainer on the GPU: no `nnue-pytorch` / `train.py` / `train_resid*` python process (process list) and the
    npt keeper STATUS says `npt trainer running | NO`; `rocm-smi` shows the GPU idle.

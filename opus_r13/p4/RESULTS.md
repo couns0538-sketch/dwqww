@@ -111,3 +111,9 @@ match the engine's own loader / features / output kernel at every width the GPU 
 
 ## Next
 GPU window request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md); training only in a window Engine NNUE gives.
+
+### Review milestone R14-P4-3 (20-minute review pass, structured self-review, NOT independent)
+- Re-checked on origin: parity_v2.sh / GPU_REQUEST.md / main.rs still have CR's md5 9c124cc3 / 4246dfd5 / 9ede6e56; the
+  parity and build claims above match logs/parity_r14_*.log and logs/cargo_build_full_r14.log.
+- Found + fixed: opus_r14/b/GPU_REQUEST.md said "the runner checks them itself" - no run wrapper exists yet; reworded (the
+  wrapper comes with the first window and must check before and during each run).
