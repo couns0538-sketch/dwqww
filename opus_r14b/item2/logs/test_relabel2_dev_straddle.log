@@ -1,0 +1,77 @@
+dev test 3 start 2026-11-02 15:43:59
+PASS prepare_bad_fen_fields (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_fen_fields.txt:51: original full FEN required 
+PASS prepare_bad_piece (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_piece.txt:51: invalid character in position part of fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNX' 
+PASS prepare_bad_score (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_score.txt:51: invalid literal for int() with base 10: 'x20' 
+PASS prepare_bad_result (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_result.txt:51: invalid result: 0.7 
+PASS prepare_bad_fields (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_fields.txt:51: expected FEN | STM score | White result 
+PASS prepare_bad_empty_line (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_empty_line.txt:51: empty line 
+PASS prepare_bad_terminal (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_terminal.txt:51: terminal position (no legal move) cannot be searched 
+PASS prepare_bad_noresult (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_noresult.txt:51: no game result 
+PASS prepare_bad_tab (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_tab.txt:51: FEN contains a tab, control or non-ASCII character 
+PASS prepare_j2_bad_piece (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_piece.txt:51: invalid character in position part of fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNX' 
+PASS prepare_j2_bad_piece_same_error
+PASS prepare_j2_bad_empty_line (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_empty_line.txt:51: empty line 
+PASS prepare_j2_bad_empty_line_same_error
+PASS prepare_j2_bad_terminal (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_terminal.txt:51: terminal position (no legal move) cannot be searched 
+PASS prepare_j2_bad_terminal_same_error
+PASS prepare_j2_bad_tab (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\bad_tab.txt:51: FEN contains a tab, control or non-ASCII character 
+PASS prepare_j2_bad_tab_same_error
+PASS prepare_terminal_dropped (exit 0): 
+PASS prepare_missing_file (exit 2): BAD INPUT: no_such_file.txt: input file not found 
+PASS prepare_existing_job (exit 3): CONFIG MISMATCH: job directory exists: job_term_drop 
+PASS prepare_same_file_twice (exit 2): BAD INPUT: good.txt: same file or same content as input 0 (each input once) 
+PASS prepare_same_content_twice (exit 2): BAD INPUT: good_copy.txt: same file or same content as input 0 (each input once) 
+PASS prepare_val_ppm_range (exit 2): BAD INPUT: --rows >= 0 and 0 <= --val-ppm <= 1000000 
+PASS prepare_input_changed (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\growing.txt: changed while prepare read it (use finished files only) 
+PASS prepare_input_changed_nothing_published
+PASS prepare_normalized_overlap (exit 2): BAD INPUT: D:\o14b\r2\t_dev3\norm_b.jsonl:1: normalized rows must be in source order (sort by source, source_row) 
+PASS prepare_normalized_two_files (exit 0): 
+PASS prepare_normalized_one_file (exit 0): 
+PASS normalized_two_files_same_rows
+PASS prepare_j2_normalized (exit 2): BAD INPUT: --jobs 1 or 2 (R14-B thread budget); --jobs 2 reads --selfplay input only 
+PASS prepare_j3 (exit 2): BAD INPUT: --jobs 1 or 2 (R14-B thread budget); --jobs 2 reads --selfplay input only 
+PASS prepare_j1_whole (exit 0): 
+PASS prepare_j2_whole (exit 0): 
+PASS prepare_j2_whole_same_rows
+PASS prepare_j1_cut (exit 0): 
+PASS prepare_j2_cut (exit 0): 
+PASS prepare_j2_cut_same_rows
+PASS prepare_j1_big (exit 0): 
+PASS prepare_j2_big (exit 0): 
+PASS prepare_j2_big_same_rows
+PASS prepare_straddle (exit 0): 
+PASS prepare_straddle_j2 (exit 0): 
+PASS straddle_same_partition_as_one_file
+PASS straddle_one_game_id
+PASS straddle_j2_same_rows
+PASS prepare_files_out_of_order (exit 2): BAD INPUT: give the --selfplay files in name order (the order they were written): a game can run from one file into the next and must stay one game 
+PASS prepare_good (exit 0): 
+PASS run_two_shards (exit 0): 
+PASS run_not_a_job (exit 2): BAD INPUT: no_such_job: not a prepared job (no prepare.json) 
+PASS run_missing_probe (exit 2): BAD INPUT: probe no_such_probe.exe not found 
+PASS run_shard_size_zero (exit 2): BAD INPUT: --nodes, --hash-mb, --shard-size >= 1 and --max-shards >= 0 
+PASS run_bad_until (exit 2): BAD INPUT: --until 'tomorrow' is not YYYY-MM-DD HH:MM 
+PASS run_busy_job (exit 3): CONFIG MISMATCH: jg: another relabel2.py process is working on this job 
+PASS run_busy_job_message
+PASS run_other_nodes (exit 3): CONFIG MISMATCH: configuration differs from run_config.json: ['nodes'] 
+PASS run_other_shard_size (exit 3): CONFIG MISMATCH: configuration differs from run_config.json: ['shard_size'] 
+PASS run_other_run_id (exit 3): CONFIG MISMATCH: run id other != job run id g 
+PASS assemble_unfinished (exit 4): INTEGRITY: shard 2 is not published 
+PASS run_tampered_shard (exit 4): INTEGRITY: shard_00001: labels.tsv sha256 differs from its manifest 
+PASS run_tampered_rows (exit 4): INTEGRITY: rows.tsv differs from prepare.json 
+PASS prepare_full (exit 0): 
+PASS run_full (exit 0): 
+PASS assemble_full (exit 0): 
+PASS manifest_published_with_data
+PASS no_final_part_left
+PASS assemble_again (exit 3): CONFIG MISMATCH: jm\final exists 
+PASS prepare_kill (exit 0): 
+PASS run_hard_exit (exit 137): 
+PASS run_resume (exit 0): 
+PASS assemble_resumed (exit 0): 
+PASS resumed_equals_uninterrupted_train.txt
+PASS resumed_equals_uninterrupted_val.txt
+PASS resumed_equals_uninterrupted_labels.tsv
+interrupted attempts kept: shard_00001.part.1 
+failures: 0
+exit=0 end 2026-11-02 15:45:45

@@ -32,6 +32,14 @@ Rules for the big job:
   (the post-proof relabel2.py hashes each input before and after reading and stops with exit 2 when it changed; it
   also refuses the same file or the same content twice).
 - One process per job (the post-proof version holds `job.lock`; a second `run` stops with exit 3).
+- R8 v5 self-play (`D:\grok-pc-data\selfplay_out_r8v5_20261029\forge_selfplay_fast_NNN.dedup.txt`, 273 shards on
+  2026-11-02; 894,187 rows in shard 001 and 913,141 in 272 after the dedup, so 50M rows = ~55 shards) writes fixed
+  1M-position shards: a game
+  runs from one shard into the next (e.g. 271 ends at move 57 of a game that 272 continues at move 58). The
+  post-proof relabel2.py treats all inputs as one stream and only the game rule splits games, so give the shards in
+  name order (it refuses any other order with exit 2). The frozen proof version forced a new game at every file
+  change: that is safe for the old `selfplay_out\forge_selfplay_NNN.txt` files (each ends and starts at a game
+  boundary) but would split R8 v5 games in two ids - use the post-proof version for R8 v5 data.
 
 ## Cost (measured 2026-11-02 on the 1M proof runs; 20,000 nodes, Hash 1 MB, 1 thread per probe)
 | quantity | value | source |

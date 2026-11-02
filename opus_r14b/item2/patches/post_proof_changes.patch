@@ -14,17 +14,22 @@
    relabel2.py run      --job DIR --run-id ID --probe EXE [--nodes 20000] [--hash-mb 1] [--workers 1]
                         [--shard-size 10000] [--mask 0xC] [--max-shards K] [--until "YYYY-MM-DD HH:MM"]
    relabel2.py assemble --job DIR --run-id ID
-@@ -14,20 +15,29 @@
+@@ -14,20 +15,32 @@
  
  - prepare: every input row is validated with Astra's records.py (unchanged copy in astra/): original full FEN (castling,
    en passant, clocks kept), STM score, White result. A bad row stops with exit 2 and nothing is published. Game id =
 -  (input file, game index); a new game starts between two consecutive rows of a file when the ply does not increase,
+-  the result changes, the piece count rises or a castling right appears (all impossible inside one game, so a real
+-  game is never split; two games may merge, which cannot leak). Split: sha256(salt|game id) mod 1e6 < val ppm.
+-  --rows N keeps whole games only (the sample ends at a game boundary). Output rows.tsv + prepare.json.
 +  (origin, game index), the origin being the self-play text file a row comes from (the input file for --selfplay,
 +  the record's own source / source_row for --normalized; rows.tsv keeps origin index + row, prepare.json the origin
-+  names); a new game starts at a change of origin and between two consecutive rows when the ply does not increase,
-   the result changes, the piece count rises or a castling right appears (all impossible inside one game, so a real
-   game is never split; two games may merge, which cannot leak). Split: sha256(salt|game id) mod 1e6 < val ppm.
--  --rows N keeps whole games only (the sample ends at a game boundary). Output rows.tsv + prepare.json.
++  names; a game takes the origin of its first row). All inputs are ONE stream in the given order, and a new game
++  starts between two consecutive rows only when the ply does not increase, the result changes, the piece count rises
++  or a castling right appears (all impossible inside one game, so a real game is never split; two games may merge,
++  which cannot leak). R8 v5 self-play writes fixed 1M-position shards, so a game can run from one file into the next:
++  --selfplay files must therefore be given in name order (= the order they were written), else exit 2.
++  Split: sha256(salt|game id) mod 1e6 < val ppm.
 +  --rows N keeps whole games only (the sample ends at a game boundary). Output rows.tsv + prepare.json. Every input
 +  is given once (same path or same content twice -> exit 2: its games would get two ids) and hashed before and after
 +  it is read (a file that changes meanwhile, e.g. the self-play file still being written -> exit 2). --jobs 2 checks
@@ -51,7 +56,7 @@
    contain no run id or time, so an interrupted-and-resumed job gives byte-identical files.
  """
  
-@@ -133,57 +143,178 @@
+@@ -133,57 +146,183 @@
      return c_pieces > p_pieces or not c_castle <= p_castle
  
  
@@ -96,7 +101,7 @@
 +
 +    The origin is the self-play text file a row comes from: the input file itself for --selfplay, the record's own
 +    `source` / `source_row` for --normalized (one JSONL file may hold several origins). `origins` collects their
-+    names in order of first appearance; a game never spans two origins."""
++    names in order of first appearance (a game may continue from one origin into the next)."""
 +    origin_index = {}
 +    last_key = None  # normalized input: (source, source_row) increases across all files, so no row comes twice
 +    for si, src in enumerate(sources):
@@ -218,6 +223,11 @@
 +                raise BadInput(f"{p}: same file or same content as input {seen[key]} (each input once)")
 +            seen[key] = si
 +        sources.append({"index": si, "path": rp, "sha256": h, "kind": "selfplay" if a.selfplay else "normalized"})
++    if a.selfplay:  # a game that runs from one shard into the next must meet its continuation right after it
++        names = [s["path"].lower() for s in sources]
++        if names != sorted(names):
++            raise BadInput("give the --selfplay files in name order (the order they were written): a game can run "
++                           "from one file into the next and must stay one game")
 +    return sources
 +
 +
@@ -257,7 +267,7 @@
      tmp = job / "rows.tsv.part"
      st = {"rows": 0, "games": 0, "val_rows": 0, "val_games": 0, "row_id": 0}
      lengths, starts, game_no = [], [], {}
-@@ -210,25 +341,30 @@
+@@ -210,25 +349,30 @@
          starts.append(game[0][2]["ply"])
          return True
  
@@ -270,8 +280,8 @@
 -                si, _, r, _ = item
 -                if game and (si != game[-1][0] or new_game(prev, r)):
 +            for item in rows:
-+                oi, _, r, _ = item
-+                if game and (oi != game[-1][0] or new_game(prev, r)):
++                r = item[2]
++                if game and new_game(prev, r):  # inputs are one stream: a game may continue in the next file
                      if not emit(game, fh):
                          complete = False
                          break
@@ -291,7 +301,7 @@
      except BadInput as e:
          write_new(job / "prepare_failed.json", json.dumps({"run_id": a.run_id, "time": now(), "error": str(e)}) + "\n")
          raise
-@@ -239,10 +375,11 @@
+@@ -239,11 +383,13 @@
      info = {
          "run_id": a.run_id, "created": now(), "tool": TOOL, "tool_sha256": file_hash(__file__),
          "records_py_sha256": file_hash(HERE / "astra" / "records.py"), "inputs": sources,
@@ -300,11 +310,14 @@
          "rows_requested": a.rows, "train_rows": st["rows"] - st["val_rows"], "val_rows": st["val_rows"],
          "train_games": st["games"] - st["val_games"], "val_games": st["val_games"], "val_ppm": a.val_ppm,
 -        "salt": a.salt,
+-        "game_rule": "new game when ply does not increase, result changes, piece count rises or a castling right appears",
 +        "salt": a.salt, "prepare_jobs": a.jobs,
-         "game_rule": "new game when ply does not increase, result changes, piece count rises or a castling right appears",
++        "game_rule": "inputs are one stream in the given order; new game when ply does not increase, result changes, "
++                     "piece count rises or a castling right appears",
          "game_length": {"min": lengths[0], "median": q(lengths, 0.5), "p99": q(lengths, 0.99), "max": lengths[-1]},
          "game_start_ply": {"min": starts[0], "median": q(starts, 0.5), "p99": q(starts, 0.99), "max": starts[-1]},
-@@ -329,6 +466,7 @@
+         "rows_tsv_sha256": file_hash(job / "rows.tsv"),
+@@ -329,6 +475,7 @@
      from forge_probe import ProbePool  # R13 probe client, unchanged copy
  
      job = Path(a.job)
@@ -312,7 +325,7 @@
      info = load_prepare(job)
      if info["run_id"] != a.run_id:
          raise ConfigMismatch(f"run id {a.run_id} != job run id {info['run_id']}")
-@@ -338,13 +476,18 @@
+@@ -338,13 +485,18 @@
             "nodes": a.nodes, "hash_mb": a.hash_mb, "shard_size": a.shard_size,
             "prepare_json_sha256": file_hash(job / "prepare.json"), "tool": TOOL}
      rc = job / "run_config.json"
@@ -332,7 +345,7 @@
      lower_priority(int(a.mask, 16))
      n = info["rows"]
      shards = (n + a.shard_size - 1) // a.shard_size
-@@ -358,8 +501,8 @@
+@@ -358,8 +510,8 @@
              verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id)
              done.add(k)
      deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
@@ -343,7 +356,7 @@
      if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
          threading.Thread(target=lambda: (time.sleep(a.test_kill_after_seconds), os._exit(137)), daemon=True).start()
      t0, rows_session, shards_session = time.monotonic(), 0, 0
-@@ -400,7 +543,7 @@
+@@ -400,7 +552,7 @@
                            session_rows=rows_session, session_rows_per_hour=round(rate),
                            eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
              write_status(job / "status.json", status)
@@ -352,7 +365,7 @@
      print(json.dumps(status))
      return 0
  
-@@ -409,6 +552,7 @@
+@@ -409,6 +561,7 @@
  
  def cmd_assemble(a) -> int:
      job = Path(a.job)
@@ -360,7 +373,7 @@
      info = load_prepare(job)
      rc = json.loads((job / "run_config.json").read_text(encoding="utf-8"))
      if info["run_id"] != a.run_id or rc["run_id"] != a.run_id:
-@@ -463,13 +607,13 @@
+@@ -463,13 +616,13 @@
      finally:
          for f in fh.values():
              f.close()
@@ -378,7 +391,7 @@
      print(json.dumps({nm: files[nm]["md5"] for nm in names}))
      return 0
  
-@@ -483,6 +627,33 @@
+@@ -483,6 +636,33 @@
      return 0
  
  
@@ -412,7 +425,7 @@
  def main(argv=None) -> int:
      ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
      sub = ap.add_subparsers(dest="cmd", required=True)
-@@ -496,6 +667,7 @@
+@@ -496,6 +676,7 @@
      p.add_argument("--val-ppm", type=int, default=10000)
      p.add_argument("--salt", default="r14b")
      p.add_argument("--drop-terminal", action="store_true")
@@ -420,7 +433,7 @@
      p.add_argument("--mask", default="0xC")
      r = sub.add_parser("run")
      r.add_argument("--job", required=True)
-@@ -509,6 +681,7 @@
+@@ -509,6 +690,7 @@
      r.add_argument("--max-shards", type=int, default=0)
      r.add_argument("--until")
      r.add_argument("--test-kill-after-seconds", type=float, default=0.0, help=argparse.SUPPRESS)
@@ -428,7 +441,7 @@
      s = sub.add_parser("assemble")
      s.add_argument("--job", required=True)
      s.add_argument("--run-id", required=True)
-@@ -516,9 +689,10 @@
+@@ -516,9 +698,10 @@
      t = sub.add_parser("status")
      t.add_argument("--job", required=True)
      a = ap.parse_args(argv)
@@ -473,7 +486,7 @@
  head -n 400 "$src" > good.txt
  # bad inputs (exit 2), nothing published
  { head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 | 20 | 0.5'; } > bad_fen_fields.txt
-@@ -27,16 +33,71 @@
+@@ -27,16 +33,81 @@
  { head -n 50 good.txt; echo ''; head -n 60 good.txt | tail -n 10; } > bad_empty_line.txt
  { head -n 50 good.txt; echo '7k/6Q1/6K1/8/8/8/8/8 b - - 0 60 | -32000 | 1'; } > bad_terminal.txt
  { head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 20 | ?'; } > bad_noresult.txt
@@ -533,6 +546,16 @@
 +  expect 0 "prepare_j2_$1" "$PY" -I -B "$R" prepare --job "jp2_$1" --run-id t --selfplay "$2" --rows "$3" --jobs 2
 +  check "prepare_j2_${1}_same_rows" cmp -s "jp1_$1/rows.tsv" "jp2_$1/rows.tsv"
 +done
++# a game that runs from one file into the next (R8 v5 writes fixed 1M-position shards) stays one game: good.txt cut
++# inside its first game into two files gives the same game partition as the whole file; files out of name order -> 2
++head -n 30 good.txt > s_a.txt; tail -n +31 good.txt > s_b.txt
++expect 0 prepare_straddle "$PY" -I -B "$R" prepare --job jsa --run-id t --selfplay s_a.txt s_b.txt
++expect 0 prepare_straddle_j2 "$PY" -I -B "$R" prepare --job jsa2 --run-id t --selfplay s_a.txt s_b.txt --jobs 2
++bounds() { awk -F'\t' 'NR > 1 && $2 != prev {print $1} {prev = $2}' "$1"; }
++check straddle_same_partition_as_one_file cmp -s <(bounds jsa/rows.tsv) <(bounds jp1_whole/rows.tsv)
++check straddle_one_game_id test "$(awk -F'\t' '$1 == 29 || $1 == 30 {print $2}' jsa/rows.tsv | sort -u | wc -l)" = 1
++check straddle_j2_same_rows cmp -s jsa/rows.tsv jsa2/rows.tsv
++expect 2 prepare_files_out_of_order "$PY" -I -B "$R" prepare --job jso --run-id t --selfplay s_b.txt s_a.txt
 +# a good job: run 2 shards, then a busy job and configuration changes (exit 3) and a tampered shard (exit 4)
  expect 0 prepare_good "$PY" -I -B "$R" prepare --job jg --run-id g --selfplay good.txt --rows 300
  expect 0 run_two_shards "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --max-shards 2
@@ -547,7 +570,7 @@
  expect 3 run_other_nodes "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 6000 --shard-size 100
  expect 3 run_other_shard_size "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 50
  expect 3 run_other_run_id "$PY" -I -B "$R" run --job jg --run-id other --probe "$P" --nodes 5000 --shard-size 100
-@@ -45,5 +106,20 @@
+@@ -45,5 +116,20 @@
  expect 4 run_tampered_shard "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
  printf 'x' >> jg/rows.tsv
  expect 4 run_tampered_rows "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100

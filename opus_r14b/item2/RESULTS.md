@@ -68,3 +68,19 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 - Speed and the 1M check (rows.tsv = the proof's eefb1662... with --jobs 1 and --jobs 2) follow after the proof:
   `measure_rates.sh prepare` (order 1 2 2 1) and `bridge_check.sh`. Dev copy sha256 1af5d768...;
   everything in `patches/post_proof_changes.patch`.
+
+## Finding F8 (15:42, high for R8 v5 data): games run across R8 v5 shard files - fixed in the dev copy
+- R8 v5 self-play (`selfplay_out_r8v5_20261029`, the live pipeline) writes fixed 1M-position shards: shard 271 ends
+  with `8/3p4/3k4/8/1PP5/2K5/4b3/8 b - - 12 57` and shard 272 continues the same game with `... w - - 13 58`. The
+  frozen relabel2.py starts a new game at every input-file change, so such a game would get two game ids and its two
+  halves could land in train and val (a leak). The old `selfplay_out` files used in the proof end and start at game
+  boundaries (001 ends at move 99 of a game, 002 starts at move 5), so the proof is not affected.
+- Fix (dev copy): all inputs are one stream in the given order and only the game rule splits games (a game takes the
+  origin of its first row; rows.tsv keeps each row's own origin and line); `--selfplay` files must be given in name
+  order (= the order they were written), else exit 2.
+- Tests (dev script, logs/test_relabel2_dev_straddle.log): **73 / 73 PASS**, new: good.txt cut inside its first game
+  into two files -> the same game partition as the whole file, rows 29 / 30 (the two sides of the cut) one game id,
+  --jobs 2 identical; the two files in the wrong order -> exit 2.
+- Real data (dev copy): the last 5,000 rows of `forge_selfplay_fast_271.dedup.txt` + the first 5,000 of `_272` ->
+  10,000 rows in 117 games, the game across the cut is one id (`s0g57`: row 4999 = origin 0 line 5000, row 5000 =
+  origin 1 line 1), games start at ply 8-16 (median 8). C:\o14b\r2\r8v5chk.
