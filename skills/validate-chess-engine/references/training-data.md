@@ -158,6 +158,11 @@ the label. Pin the executable hash and preserve failed probes before correcting
 the runner. Perft checks FEN and move-state compatibility, not NNUE evaluation
 quality or training/export compatibility.
 
+Preserve timeout diagnostics before re-raising an owned-child timeout; Python may
+return bytes even in text mode. Inventory only closed logs. A packaging process
+must exclude its own active stdout log, then pin that final log separately. Keep
+the incorrect inventory for provenance and publish a distinct corrected record.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

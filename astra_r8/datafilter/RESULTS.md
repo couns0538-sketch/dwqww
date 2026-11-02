@@ -1,8 +1,8 @@
 # Astra R8 Job 2 — UNPROVEN
 
-## 30-minute follow-up audit — validation complete, final review pending
+## 30-minute follow-up audit — complete and independently approved
 
-Started 2026-11-02 21:04 UTC. User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
+2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
 entrypoint readiness bypass and missing output admission; late RNG seeding in
 installed npt (locally preseed before delegation); malformed/conflicting PGNs;
 boolean Lichess labels; mid-read input mutation; converter partial publication;
@@ -31,15 +31,22 @@ New manifest SHA256: `7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e40
 It binds the reviewed local runtime migration, unchanged installed npt, complete
 holdouts and 999,953 training rows. Prior handoffs remain historical evidence and
 deliberately fail current runtime identity checks. The 10,000-row sample is unchanged.
-Current retained artifacts: 9,298,928,834 bytes (<15 GB); C free 150,323,494,912
-bytes, D free 63,327,133,696 bytes. F remains read-only.
+Final retained artifacts: 9,299,020,702 bytes (<15 GB); C free 150,323,085,312
+bytes, D free 63,237,668,864 bytes. F remains read-only.
 True qsearch remains BLOCKED because the lock UCI lacks the required oracle.
 Original self-play best moves remain unavailable; capture uses a separate cohort.
-Final focused review confirmed all source and handoff pins, and found two closeout
-issues: a timeout lost probe diagnostics, and the inventory included its own
-still-open package log. Timeout regression failed first and now passes. A separate
-corrected inventory will exclude that active log; original receipts remain intact.
-Focused recheck pending. Strength remains UNPROVEN.
+Final focused review APPROVED `de96deb145a7228c115b1b4461da43e153b8eff6` after
+two closeout fixes: timeout diagnostic preservation and exclusion of the packaging
+process's then-open log from a separate corrected inventory. Original receipts
+remain intact. The additional timeout regression passes and the final native
+probe repeats all 62 perfts and five pins. Reviewer independently verified 31
+final candidate/evidence pins, 696 small inventory hashes, six large lengths and
+the separately disclosed packaging-log hash; main rehashed all 702 inventory
+payloads. No remaining review blocker. Current record:
+`evidence/audit30/correctness_record_final.json`; Forge evidence checker PASS,
+no issues (`forge_check_final.log`). This checks record consistency, not strength.
+Only documentation/evidence closeout follows the approved source. Strength remains
+UNPROVEN; Engine NNUE and Engine QA retain the training and gate work.
 
 ## 2026-11-02 STM-format follow-up — reviewed handoff
 

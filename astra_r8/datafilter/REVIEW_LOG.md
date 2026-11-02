@@ -40,6 +40,19 @@ owned-child timeout capture/FAIL receipt and regression (RED then GREEN). Origin
 inventory is retained; a corrected inventory excludes only the active packaging
 log. A fresh native probe will bind the final helper; focused recheck requested.
 
+Final recheck APPROVED `de96deb145a7228c115b1b4461da43e153b8eff6`, no remaining
+blocker. Both findings resolved; timeout RED/GREEN evidence preserved. Reviewer
+independently checked 31 final candidate/evidence pins, 696 small payload hashes,
+six large lengths and the excluded log's final hash. Main fully rehashed all 702
+remaining inventory payloads. Reviewer reparsed the final native stdout: all 62
+perft2 results and all five frozen bench counts match. Manifest remains
+`7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e405a8c1d`.
+The final helper ran after its timeout fix; no earlier result is attributed to a
+changed helper. Final correctness record/checker PASS, no issues. No further source
+changes; closeout only documents and preserves evidence. Audit ran 21:04–21:40 UTC,
+over the requested 30 minutes. No training/GPU/export/strength run. Qsearch and
+original-cohort missing best moves remain explicit limitations, not open bugs.
+
 ## 2026-11-02 follow-up: converter and resource milestone
 
 Base `7a8e22e8`; candidate source hashes will be bound in the review receipt.
