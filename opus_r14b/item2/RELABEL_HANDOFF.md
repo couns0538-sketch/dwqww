@@ -31,6 +31,6 @@ normalized JSONL output is accepted with `--normalized` when the rows are in sou
 | mean nodes per position / search depth | 19,996 / mostly 8-11 (7: 1.2 %, 8: 16.6 %, 9: 42.5 %, 10: 26.1 %, 11: 8.1 %, >= 12: 5.5 %) | shard 0 of run A |
 | **50M rows: probe thread-hours** | **~147 h** (50,000,000 / 340,000) | |
 | **50M rows: wall time** | **~147 h with 1 worker, ~74 h (3.1 days) with 2 workers** (`--workers 2`, the R14-B thread budget); resumable at any time with the same command | |
-| prepare (validation with python-chess, game ids) | 1M rows: ~10 min per job at Idle next to BelowNormal training (21 min for two jobs); expect roughly 2-3 h of one thread for 50M on a quieter CPU | `prove_resume.sh prepare` |
+| prepare (validation with python-chess, game ids) | 1M rows: ~10 min per job at Idle next to BelowNormal training (21 min for two jobs, measured); 50M: ESTIMATE up to ~8 h of one Idle thread at that rate (an uncontended measurement follows after the proof) | `prove_resume.sh prepare` |
 | disk per 1M rows | rows.tsv 86 MB + shard labels ~90 MB + final train/val text ~75 MB + final labels.tsv ~90 MB = **~340 MB**; 50M rows **~17 GB** (keep D: >= 50 GB free: plan the job folder accordingly) | proof job folder |
 | lower node counts | not measured in R14-B (the proof runs used the CPU budget); the probe cost is about proportional to nodes | - |
