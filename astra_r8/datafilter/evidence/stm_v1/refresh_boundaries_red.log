@@ -1,0 +1,40 @@
+.....FF                                                                  [100%]
+================================== FAILURES ===================================
+________________ test_previous_manifest_drift_never_publishes _________________
+
+tmp_path = WindowsPath('C:/astra8_data/stm_v1_20261102/refresh_boundaries_red_tmp/test_previous_manifest_drift_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019437BC0>
+
+    def test_previous_manifest_drift_never_publishes(tmp_path, monkeypatch):
+        h, previous, output = prepare(tmp_path, monkeypatch)
+        def checks(*args):
+            previous.write_text('{"changed":true}', encoding='utf-8')
+            return {name: {'status': 'PASS', 'exit_code': 0} for name in h.RECIPES}
+        monkeypatch.setattr(h, 'run_cpu_checks', checks)
+>       with pytest.raises(ValueError, match='previous manifest changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_refresh_handoff.py:110: Failed
+_______ test_cpu_environment_precedes_native_imports_and_uses_new_temp ________
+
+tmp_path = WindowsPath('C:/astra8_data/stm_v1_20261102/refresh_boundaries_red_tmp/test_cpu_environment_precedes_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019437FB0>
+
+    def test_cpu_environment_precedes_native_imports_and_uses_new_temp(tmp_path, monkeypatch):
+        import refresh_handoff as h
+        for key in ('CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'ROCR_VISIBLE_DEVICES',
+                    'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'OPENBLAS_NUM_THREADS',
+                    'TEMP', 'TMP', 'TORCHINDUCTOR_CACHE_DIR', 'TRITON_CACHE_DIR',
+                    'PYTHONDONTWRITEBYTECODE'):
+            monkeypatch.setenv(key, 'unsafe-caller-value')
+        monkeypatch.setattr(sys, 'dont_write_bytecode', False)
+>       temp = h.configure_cpu_runtime(tmp_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'refresh_handoff' has no attribute 'configure_cpu_runtime'
+
+astra_r8\datafilter\tests\test_refresh_handoff.py:123: AttributeError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_refresh_handoff.py::test_previous_manifest_drift_never_publishes
+FAILED astra_r8/datafilter/tests/test_refresh_handoff.py::test_cpu_environment_precedes_native_imports_and_uses_new_temp
+2 failed, 5 passed in 4.42s

@@ -13,12 +13,17 @@ Initial quick checks: 72 pytest tests + 11 resource subtests PASS, CPU-only,
 failed first, then 16 tests + 11 subtests PASS in `review1_green2.log`. Reviewer
 approved the fixed converter/resource candidate and large audits. Fresh 100k
 train/validation byte identity and actual 1000-case binary round-trip plus1000
-mirrors PASS. Single-rule million runs are in progress. This follow-up is not yet
+mirrors PASS. Six million-row runs completed: all-off/check/mate/recipe A/B each
+keep1,000,000; ply<=160 keeps909,569. Repeated recipe payloads are byte-identical;
+per-rule timings appear in README and `million_receipt.json`. This follow-up is not yet
 fully accepted or training-ready; the old candidate's readiness is unchanged.
+Expanded CPU suite: **89 tests + 11 subtests PASS** using the guarded PowerShell
+runner; `final_tests/pytest.log`. Warnings are existing Torch deprecations and
+the intentional no-optimizer-update checkpoint/scheduler test warning.
 Exact FD3A5190 binary/hash and matching build-source receipts now verified;
 bounded UCI handshake PASS, no search. True qsearch remains BLOCKED.
-Completed gate PGNs are being investigated as a separate capture-measurement
-cohort; they will not be silently mixed into either training recipe.
+Completed gate PGNs passed provenance/source review; a separate capture-measurement
+cohort freeze is running. It will not be mixed into either training recipe.
 
 Ruling: latest explicit C: authorization supersedes the earlier F-only output
 rule and historical D-only exception. Old D/F roots remain read-only and count

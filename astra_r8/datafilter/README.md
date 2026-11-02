@@ -43,6 +43,27 @@ row order. Their hashes are deterministic; reports also contain nondeterministic
 wall time and throughput. Failures retain unpublished `.partial` evidence, and
 existing final or partial destinations are refused.
 
+Fresh single-rule measurements on the pinned 1,000,000 self-play rows, two
+compute workers at BelowNormal priority:
+
+| Enabled rule | Kept | Keep rate | Seconds | Positions/s |
+|---|---:|---:|---:|---:|
+| None | 1,000,000 | 100% | 70.715 | 14,141 |
+| Check | 1,000,000 | 100% | 73.420 | 13,620 |
+| Mate | 1,000,000 | 100% | 70.300 | 14,225 |
+| Ply <=160 | 909,569 | 90.9569% | 73.503 | 13,605 |
+| Check + mate, run A | 1,000,000 | 100% | 72.303 | 13,831 |
+| Check + mate, run B | 1,000,000 | 100% | 69.276 | 14,435 |
+
+Runs A/B have identical payload hashes. These prefiltered self-play shards have
+no stored best moves, so their capture rate is unavailable. Qsearch remains
+BLOCKED on the exact lock. Capture statistics from the separately pinned gate
+PGN cohort will be reported separately; they cannot be substituted into this table.
+
+The matched recipes use check/mate filtering and the same holdout-cleared rows:
+evaluation-only lambda=1.0, or WDL lambda=0.8 on known-result self-play and1.0
+otherwise. Exact crew-owned commands and output names are in [MIX_SPEC.md](MIX_SPEC.md).
+
 Holdout separation is a separate explicit stage, `clear_holdouts.py`. The complete
 audit found 47 matching board+STM keys across 013/014. The separately named
 `holdout_cleared` output excludes those keys, retains order/duplicates otherwise,
@@ -72,6 +93,21 @@ Run CPU tests with F:/nnue_pytorch/venv/Scripts/python.exe, bytecode disabled,
 CUDA/HIP/ROCR devices hidden, OMP/MKL/OPENBLAS threads set to 1, and TEMP/TMP under
 the new output root. No GPU is needed for native feature or scalar-reference loss
 checks. All owned execution uses BelowNormal priority and at most two compute workers.
+
+Reproduce CPU tests with a new destination (the wrapper sets those environment
+limits and checks storage before creating it):
+
+```powershell
+./astra_r8/datafilter/run_cpu_tests.ps1 -OutputDirectory 'C:/astra8_data/review_tests_new'
+```
+
+`audit_followup.py identity NEW_RUN_ROOT`, `orientation NEW_RUN_ROOT` and
+`million NEW_RUN_ROOT` rerun the pinned legacy identity, actual binary result
+round-trip, and independent single-rule/determinism measurements respectively.
+Create a new run root under C: first, use the same CPU-only environment, and run stages sequentially.
+Each stage refuses existing destinations. `refresh_handoff.py NEW_HANDOFF_DIR`
+rehashes the approved unchanged cohort/holdouts and runs both CPU preflights
+before publishing a refreshed manifest. It never starts training.
 
 Handoff: Code Review → Engine NNUE → Engine QA. Subsequent FD3A5190 comparison,
 UHO first, 8moves_v3 separately, and WAC300 remain crew-owned. Every recipe and

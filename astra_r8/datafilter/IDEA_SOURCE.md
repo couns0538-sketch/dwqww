@@ -25,5 +25,21 @@ is excluded. No claim is made that an arbitrary Lichess dump is licensed merely
 because the parser can read it.
 
 This work neither modifies nor qualifies FD3A5190. The task lock is OFF bench
-312866/862329/3024920/12389307/34048354. No engine execution was needed, and these
-pins are supplied constraints rather than newly measured results.
+312866/862329/3024920/12389307/34048354. The follow-up ran only a bounded native
+UCI handshake on the exact FD3A5190 executable (no search, evaluation or bench).
+These bench pins are supplied constraints rather than newly measured results.
+
+The separate capture audit uses completed owned Forge gate PGNs under
+`F:/forge_push/`: uhoT2_sf26b14, uhoSF26bit1_razor_e417_vs_AL1lp,
+uhoE3a_evalmatscale12_vs_AL1lp, uhoE3b_evaloptimism40_vs_AL1lp and
+uhoE3c_evalrule50damp30_vs_AL1lp. Their original RUN_INFO/RESULT receipts,
+UHO opening provenance, entire source hashes and source-row identities are
+retained in the new capture manifest. Only exact-baseline searched moves qualify;
+no external corpus is imported and these positions are not training inputs.
+
+Fastchess's local MIT-licensed source was inspected to establish that stored
+bestmove/score/depth describe the position before the played move. No Fastchess
+implementation was copied. `audit_capture_cohort.py` records source paths and
+SHA256 values for match.cpp, pgn_builder.cpp, uci_engine.cpp and LICENSE under
+`C:/Users/Administrator/grok-pc/tools/fastchess`. This source inspection does not
+relicense other datasets or authorize copying GPL/AGPL implementations.
