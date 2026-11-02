@@ -1,0 +1,105 @@
+test_component_order_is_part_of_header (__main__.ComponentTests.test_component_order_is_part_of_header) ... ERROR
+test_duplicate_component_names_refused (__main__.ComponentTests.test_duplicate_component_names_refused) ... ERROR
+test_extra_component_refused (__main__.ComponentTests.test_extra_component_refused) ... ERROR
+test_missing_component_refused (__main__.ComponentTests.test_missing_component_refused) ... ERROR
+test_nonfinite_float_component_refused (__main__.ComponentTests.test_nonfinite_float_component_refused) ... ERROR
+test_signed_zero_remains_distinct (__main__.ComponentTests.test_signed_zero_remains_distinct) ... ERROR
+test_vector_preserves_float_and_signed_integer_bits (__main__.ComponentTests.test_vector_preserves_float_and_signed_integer_bits) ... ERROR
+
+======================================================================
+ERROR: test_component_order_is_part_of_header (__main__.ComponentTests.test_component_order_is_part_of_header)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 54, in test_component_order_is_part_of_header
+    checker.values(path,['a'*64],'components-v1',{'components':COMPONENTS},checker.digest(path),COMPONENTS)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_duplicate_component_names_refused (__main__.ComponentTests.test_duplicate_component_names_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 47, in test_duplicate_component_names_refused
+    self.values([self.row(['00000000','00000000'])],components)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_extra_component_refused (__main__.ComponentTests.test_extra_component_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 38, in test_extra_component_refused
+    self.values([self.row(['3f800000', '00000000', '00000000'])])
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_missing_component_refused (__main__.ComponentTests.test_missing_component_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 34, in test_missing_component_refused
+    self.values([self.row(['3f800000'])])
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_nonfinite_float_component_refused (__main__.ComponentTests.test_nonfinite_float_component_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 30, in test_nonfinite_float_component_refused
+    self.values([self.row(['7f800000', '00000000'])])
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_signed_zero_remains_distinct (__main__.ComponentTests.test_signed_zero_remains_distinct)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 41, in test_signed_zero_remains_distinct
+    self.assertNotEqual(self.values([self.row(['80000000', '00000000'])]),
+                        ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+======================================================================
+ERROR: test_vector_preserves_float_and_signed_integer_bits (__main__.ComponentTests.test_vector_preserves_float_and_signed_integer_bits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 26, in test_vector_preserves_float_and_signed_integer_bits
+    self.assertEqual(self.values([self.row(['3f800000', 'ffffffff'])]), [('3f800000', 'ffffffff')])
+                     ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\eval-exact-simd-port\scripts\test_components.py", line 19, in values
+    return checker.values(path, ['a' * 64], 'components-v1',
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          {'encoding': 'components-v1', 'components': components}, checker.digest(path), components)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: values() takes 5 positional arguments but 6 were given
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.017s
+
+FAILED (errors=7)
