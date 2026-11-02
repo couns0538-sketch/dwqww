@@ -79,7 +79,9 @@ def execute(a, evidence):
         try:
             deadline = time.monotonic() + 7200
             while p.poll() is None:
-                for child in owner.children(recursive=True):
+                try: descendants = owner.children(recursive=True)
+                except psutil.NoSuchProcess: descendants = []
+                for child in descendants:
                     try: tracked[child.pid] = child.create_time()
                     except psutil.NoSuchProcess: pass
                 if time.monotonic() > deadline:
@@ -89,15 +91,17 @@ def execute(a, evidence):
         finally:
             # Only observed descendants with unchanged creation identities are ours.
             # A timeout remains failed and requires a residual-process audit.
-            for pid, created in reversed(list(tracked.items())):
-                try:
-                    child = psutil.Process(pid)
-                    if child.create_time() == created and child.is_running():
-                        child.kill(); child.wait(timeout=15)
-                        cleanup.append({'pid':pid,'created':created,'action':'terminated owned residual'})
-                except psutil.NoSuchProcess: pass
-            p.wait(timeout=15)
-            (evidence/'ownership.json').write_text(json.dumps({'observed':tracked,'cleanup':cleanup}, indent=2))
+            try:
+                for pid, created in reversed(list(tracked.items())):
+                    try:
+                        child = psutil.Process(pid)
+                        if child.create_time() == created and child.is_running():
+                            child.kill(); child.wait(timeout=15)
+                            cleanup.append({'pid':pid,'created':created,'action':'terminated owned residual'})
+                    except psutil.NoSuchProcess: pass
+                p.wait(timeout=15)
+            finally:
+                (evidence/'ownership.json').write_text(json.dumps({'observed':tracked,'cleanup':cleanup}, indent=2))
         if cleanup and code == 0:
             raise RuntimeError('successful kit left residual children; invalid build')
     record['exit_code'] = code
@@ -107,6 +111,7 @@ def execute(a, evidence):
         exe = ROOT/f'b/{a.tag}/src_copy/forge_ltopgo_{a.tag}.exe'
         record['exe'] = str(exe); record['exe_sha256'] = sha(exe)
         assert {str(p.relative_to(source)):sha(p) for p in sorted(source.rglob('*')) if p.is_file()} == manifest
+        assert all(sha(p) == h for p,h in record['tools_sha256'].items()), 'tool drift'
     (evidence/'result.json').write_text(json.dumps(record, indent=2))
     print(json.dumps(record, indent=2), flush=True)
     return code
