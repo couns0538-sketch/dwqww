@@ -1,41 +1,49 @@
 # Exact resume — UNPROVEN
 
-Job1 and Job2 have incomplete evidence handoffs; Job3 step1 is next. No ownednative
-worker active. D:\a10\wt branchastra-r10-3jobs; owncloneD:\a10\repo. NoJob3workyet.
+Job3 active: source/6data inputs frozen; audit/state/replay implementations beingreviewed.
+Branchastra-r10-3jobs, worktreeD:\a10\wt; no Job1/Job2 workeractive.
+Owned auxiliaryprobe compile maystillrun: unifiedsession81164; outputsD:\a10\job3\probe01,
+launcher job3/launch-probe01. Poll itsreceipt/session beforestartinganothercompiler.
 
-Next: recover pinned qa-datafilter-fix d8982bc04d3a828ba440bad250d02fb72526f1a2 into
-copies under D:\a10\job3 (read-only Git source, ownclonefetch), checkCPU/disk beforework.
-Inspect astra_r8/datafilter converters/adapter/tests and original permitted metadata
-D:\grok-pc-data\dwqww\astra8_data. Locate complete013/014 exports and trustedhash/count
-manifests, authentic gameIDs and originalfullFEN provenance before audit. Freezeall
-inputs underD:a10/job3; never live trainerfolders/F/Opusfolders. MissingIDs or complete
-holds =>UNVERIFIED, neverPASS. Then fix opt-in fullstate sidecar through actualconverter/
-relabel path, preservelegacydefaultbytes; realadapter3faultreplays+negativecontrols+
-existing73tests; matchingholdout/resumableskills, focusedreviews, finalpack andreport.
+NEXT: assess independent review of skills/npt-data-holdout-check/scripts/audit_selfplay.py
+SHA b90263636fe3937f0938d4e0c5466f704dae545800892ba4f651a095030131a2 and
+job3/audit/native_manifest.json SHA484c45dd36cd2c44a1847ff30e8975ab91432973f5331e001a27bd0756f35e4b.
+14syntheticfixturesPASS; actualfullaudit NOTRUN. Afterreview/fixes/newhashes, run
+powershell -NoProfile -File D:\a10\wt\astra_r10\job3\audit\run-native.ps1 -RunId actual01
+withoneworker; no morethan2totalownedcompute. InputscompletebutIDsabsent=>UNVERIFIED.
 
-Job2 BLOCKED: mandatoryCR1e7b5d20/cc826b0a/129d440e unavailable in localGit andGitHub;
-exactdelta404. Repeatedlookupstopped. P4/P7headsstilldf79fb6e33e0ec45e4bdf40cbbdfadb3b6fc27a6 /
-cd9cb992fd6a6b05766d1117c1de441a430586a9; status43af044a14a375b653f3d0bc633d9f476325ca81.
-Freshremoteheadreceipt job2/recovery/remote-heads.json. OriginalPGNs/derivedfitdata
-notcommitted; reportpointsforbiddenF. No CRsubstitute, no newcandidate/fit/CI/parity/seed.
-Separate immutablepacks:
-job2/pack_rule50 SHA256SUMS E635D4362A83E4BFC2682BCCA92C00B1458EB5A604DE1E124E96E430E74D3236
-job2/pack_optimism SHA256SUMS 0C2AEC6CC35320D495432977C14C88769437A11B04BEEBDFD16AFBD68C7020A7
-BothSEALED_INCOMPLETE,52filesverified, finalfocusedreviewPASSforscopeonly.
+Parallelhalf-doneuncommittedfiles: job3/tool (converter/full_state/relabel +tests),
+job3/resume (realdata2converterfaultproof), job3/audit andmatchingholdout/resumableskills.
+Do notblanketstagewhileagentsedit. proof_contract fixingconfirmedstatehash/readrace,
+ADSpath,andexplicitLichessgame_idloss; RED02failedintended4regressions. EarlierGREEN01
+13PASS1numpySKIP only. DCPU runtime nowreadyfornumpytest with--converter/freshoutput:
+D:\a10\job3\runtime\python\python.exe, PYTHONPATH=D:\a10\job3\runtime\packages.
+Runtimeimports/full73suite NOTVERIFIED. Existingtestconftest writesoutsideD:a10 and
+filterlow_priority overridesIdle; adaptONLYtest/toolcopybeforefullsuite. ExternalNPT
+runtimeprotectedreadonly; do notvendorGPLcode oraccessF. No training/GPU.
+Review_build correctedresumeharness retainedorphan/receiptchecks; focusedrecheckpending.
+Run onlyreviewed freshmanifest; no nativeprobe/teacherclaimsfromFixtureProbePoolinputs.
 
-Job1immutablepack job1/pack SHA256SUMS
-1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD (1422filesverified).
-R9sourcef43a26aeed2448379fc2916b25f31ead8707b0ec; pc1=pc2=
-775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284.
-LockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072;
-kitMD5729FE7275C3C01D22C751CB751D5C9D2; pinned12kSHA
-c01c0e6a49fb9aaab535058bd7280c33b8735e0f8bd40834f1c029843a75a265.
-Build/pins/perft/T1/sanitizer/parityPASSdocumentedscope;0diff/negative3975.T4UNVERIFIED.
-TimingCALIBRATION_FAIL39AA/10eligible,median+0.361084%,IQR1.098525pp>1;0ABBA.
-Do notrerun/relaxprotocolc83ccb17d428069be129eaf4f1b253dbf299bb6d77ad0353a5667fa82ccb3245.
-Allspeed/strengthUNPROVEN. CrewQA/CRofficialABBA/gatesonlyUHO, nofreshseedinventory.
+FrozenoriginalsourceD:\a10\job3\source d8982bc04d3a828ba440bad250d02fb72526f1a2,
+SOURCE_MANIFEST SHA963425917e003880d00ba1c399af1e3a38f9a48dfd347d419ccce1f0b0b4aa54.
+FrozeninputsD:\a10\job3\inputs\INPUTS.json
+SHA4a0b8287c7bf3c1a4666e1f1d723d7b3c15112eac18e1a4e5e8de73e809140af.
+Source001 rows1..466506,source0021..533494; exactsourcepathliteral map
+job3/freeze01/PROVENANCE_MAP.json SHA0518b34cec38d26feac7b7d48b3af8a6987199346534bc681dcad46ada0dbc46.
+Hold01310000000rows SHAfa383b67aa30b8df79d5989b8fc5a92b5edf615fcfca0f1b46085c47600e17b9;
+hold0146388575rows SHAb2c8ec79a2f24b72d5c1a124a14f64cd46c04221ff405cb4409b755a75abbef0.
+All6sourcebefore/after/copySHA+MD5match. Auditraw6FENsource vscohort+filtered, completeholds.
+MissingrealgameIDs neverPASS. Seed4803011981 reserved matchedconverterbytecomparison.
 
-Halfdone:noneownedprocess; Job3unstarted. Preservefailedattempts/immutablepacks.
-AllwritesD:a10<=15GB, C>=30GiB,D>=50GiB,Idle<=2workers/fullprotectedrootslauncher.
-No GPU/training/matches/gates; P5excluded. UpdateRESULTS/RESUMEeverypush<=20minprogress.
-EndwithFINAL_REPORT.md; missingprerequisites explicitBLOCKED/UNVERIFIED.
+Priorjobsimmutableincompletepacks: Job1nativecorrectnessPASSdocumentedscope; calibration
+FAIL39AA10eligible IQR1.098525pp>1,0candidateABBA; no rerun/relax. Production775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
+lockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
+Job1packSHA256SUMS1af9e1c9850ece6b1d7da03f7046f982af0999cba8f140ad85c463967e8f85cd.
+Job2BLOCKED missingCR1e7b5d20/cc826b0a/129d440e; no newfit/parity/candidate.
+pack_rule50SUMSe635d4362a83e4bfc2682bcca92c00b1458eb5a604de1e124e96e430e74d3236;
+pack_optimismSUMS0c2aec6cc35320d495432977c14c88769437a11b04beebdfd16afbd68c7020a7.
+EverypackSEALED_INCOMPLETE/UNPROVEN. FullRESULTScontainsreviewrecords.
+
+D:a10only<=15GB,C>=30GiB,D>=50GiB,Idle<=2workers/fullprotectedrootslauncher.
+NeverF/Opus/P5/livequeues; no trainingGPUmatchesgates. FinalJob3pack/reportstillneeded.
+Pushcoherentmilestones<=20minprogress; preserveoriginalfailedattempts.
