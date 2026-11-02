@@ -5,8 +5,10 @@
 #   runA    : job A uninterrupted (1 probe, CPU 2 = mask 0x4, Idle)
 #   runB1   : job B, first session; it hard-exits itself after KILL1_S seconds (os._exit from a watchdog thread at an
 #             arbitrary point: no cleanup, no flush - like TerminateProcess)
-#   runB    : job B, a session that is killed from outside (stop of its background task = the whole process tree),
-#             and the same command again to resume to the end
+#   runB2   : job B, second session, same with KILL2_S (the second kill)
+#   runB    : job B, the session that resumes to the end
+#   (An external stop is not used: on this PC `kill` / Stop-Process are blocked by the session permissions, and
+#   stopping a background task ends only its outer shell, so the Python process would keep running.)
 #   finish  : assemble A and B, compare the md5 of train.txt / val.txt / labels.tsv, list the kept interrupted attempts
 # Settings: 20,000 nodes, Hash 1 MB, 1 thread per probe (the R13 job1 settings), shards of 10,000 rows.
 set -u
@@ -32,6 +34,10 @@ case $step in
     "$PY" -I -B "$R" run --job "$base/jobB" --run-id r14b-proof-B --probe "$P" --nodes "$NODES" --workers 1 --mask 0x8 \
       --test-kill-after-seconds "${KILL1_S:?KILL1_S}"
     echo "runB1 exit=$? (137 = the planned hard exit)" ;;
+  runB2)
+    "$PY" -I -B "$R" run --job "$base/jobB" --run-id r14b-proof-B --probe "$P" --nodes "$NODES" --workers 1 --mask 0x8 \
+      --test-kill-after-seconds "${KILL2_S:?KILL2_S}"
+    echo "runB2 exit=$? (137 = the planned hard exit)" ;;
   runB)
     "$PY" -I -B "$R" run --job "$base/jobB" --run-id r14b-proof-B --probe "$P" --nodes "$NODES" --workers 1 --mask 0x8 ;;
   finish)
