@@ -1,0 +1,65 @@
+diff --git a/config.py b/config.py
+index 75d7672..9f9b7ad 100644
+--- a/config.py
++++ b/config.py
+@@ -52,6 +52,11 @@ class TrainingConfig:
+     num_workers: int = 1
+     """Number of worker threads to use for data loading. Currently only works well for binpack."""
+ 
++    fast_loader: bool = False
++    """Opus R14-B: read the binpacks with forge_fastloader (forge_fastloader.py + .dll next to train.py, or
++    FORGE_FAST_LOADER_DIR). Same batches as --num-workers 1 of the default loader at any --num-workers; unchained
++    binpack, one file per stream, --no-filtered --no-wld-filtered, feature set K32H3 only. Off by default."""
++
+     batch_size: int = 16384
+     """Number of positions per batch / per iteration."""
+ 
+diff --git a/train.py b/train.py
+index 3980e82..700e721 100644
+--- a/train.py
++++ b/train.py
+@@ -46,12 +46,26 @@ def make_data_loaders(
+     prefetch_device=None,
+     rank=0,
+     world_size=1,
++    fast_loader=False,
+ ):
+     # Epoch and validation sizes are global; shard across DDP ranks.
+     features_name = feature_name
++    sparse_dataset = data_loader.SparseBatchDataset
++    if fast_loader:  # Opus R14-B --fast-loader: forge_fastloader.py + .dll from FORGE_FAST_LOADER_DIR or next to train.py
++        import importlib.util
++
++        fl_dir = os.environ.get("FORGE_FAST_LOADER_DIR", os.path.dirname(os.path.abspath(__file__)))
++        spec = importlib.util.spec_from_file_location("forge_fastloader", os.path.join(fl_dir, "forge_fastloader.py"))
++        forge_fastloader = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(forge_fastloader)
++        info = forge_fastloader.library_info()
++        print(f"Fast loader: ON ({info['version']}, {info['path']}, sha256 {info['sha256']})", flush=True)
++        sparse_dataset = forge_fastloader.FastSparseBatchDataset
++    else:
++        print("Fast loader: off", flush=True)
+     effective_batch_size = batch_size * world_size
+     train_num_batches = max(1, epoch_size // effective_batch_size)
+-    train_infinite = data_loader.SparseBatchDataset(
++    train_infinite = sparse_dataset(
+         features_name,
+         train_filenames,
+         batch_size,
+@@ -90,7 +104,7 @@ def make_data_loaders(
+             num_workers=0,
+         )
+     else:
+-        val_infinite = data_loader.SparseBatchDataset(
++        val_infinite = sparse_dataset(
+             features_name,
+             val_filenames,
+             batch_size,
+@@ -345,6 +359,7 @@ def main():
+         prefetch_device=device if accelerator == "cuda" else None,
+         rank=rank,
+         world_size=world_size,
++        fast_loader=args.fast_loader,
+     )
+ 
+     optimizer_and_schedulers = nnue.configure_optimizers()

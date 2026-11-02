@@ -97,8 +97,22 @@ def batch_line(k: int, b) -> str:
             f"{hashlib.sha256(floats).hexdigest()}\t{hashlib.sha256(ints).hexdigest()}")
 
 
+def make_skip(overrides: str):
+    """SkipCfg with 'name=value,...' overrides (type taken from the default)."""
+    import types
+
+    fields = {k: v for k, v in vars(SkipCfg).items() if not k.startswith("_")}
+    for item in filter(None, (x.strip() for x in overrides.split(","))):
+        k, v = item.split("=", 1)
+        if k not in fields:
+            raise SystemExit(f"unknown skip field {k}")
+        d = fields[k]
+        fields[k] = (v.lower() in ("1", "true")) if isinstance(d, bool) else type(d)(v)
+    return types.SimpleNamespace(**fields)
+
+
 class OldStream:
-    def __init__(self, dll_path, data, batch, workers, cyclic, window):
+    def __init__(self, dll_path, data, batch, workers, cyclic, window, s):
         self.dll = dll = ctypes.CDLL(os.path.abspath(dll_path))
         dll.create_sparse_batch_stream.restype = c_void_p
         dll.create_sparse_batch_stream.argtypes = [c_char_p, c_int, c_int, POINTER(c_char_p), c_int, c_bool,
@@ -108,7 +122,6 @@ class OldStream:
         dll.destroy_sparse_batch.argtypes = [POINTER(ffl.BatchView)]
         dll.destroy_sparse_batch_stream.argtypes = [c_void_p]
         dll.get_unique_position_stats.argtypes = [c_void_p] + [POINTER(c_uint64)] * 3
-        s = SkipCfg
         skip = CSkip(s.filtered, s.random_fen_skipping, s.wld_filtered, s.early_fen_skipping,
                      s.soft_early_fen_skipping, s.simple_eval_skipping, s.param_index, s.pc_y0, s.pc_y1, s.pc_y2,
                      s.pc_y3, s.pc_y4, s.ply_x1, s.ply_y1, s.ply_x2, s.ply_y2, s.ply_x3, s.ply_y3, s.ply_x4,
@@ -136,8 +149,8 @@ class OldStream:
 
 
 class NewStream:
-    def __init__(self, dll_path, data, batch, workers, cyclic, window):
-        self.s = ffl.FastStream(data, batch, threads=workers, cyclic=cyclic, skip_config=SkipCfg,
+    def __init__(self, dll_path, data, batch, workers, cyclic, window, s):
+        self.s = ffl.FastStream(data, batch, threads=workers, cyclic=cyclic, skip_config=s,
                                 window_entries=window, lib_path=dll_path)
 
     def next(self):
@@ -157,7 +170,7 @@ def cmd_dump(a) -> int:
     set_low(a.mask, a.priority)
     cls = OldStream if a.loader == "old" else NewStream
     t0 = time.perf_counter()
-    st = cls(a.dll, a.data, a.batch, a.workers, not a.finite, a.window)
+    st = cls(a.dll, a.data, a.batch, a.workers, not a.finite, a.window, make_skip(a.skip))
     lines, kept_timed, t_warm = [], 0, None
     for k in range(a.batches):
         p = st.next()
@@ -176,8 +189,9 @@ def cmd_dump(a) -> int:
     timed = (t1 - t_warm) if t_warm else float("nan")
     with open(a.out, "x", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
-        f.write(f"# loader={a.loader} dll={os.path.abspath(a.dll)} workers={a.workers} batch={a.batch} "
-                f"window={a.window} cyclic={not a.finite} data={os.path.abspath(a.data)}\n")
+        f.write(f"# loader={a.loader} dll={os.path.abspath(a.dll)} workers={a.workers}\n")
+        f.write(f"# settings batch={a.batch} window={a.window} cyclic={not a.finite} data={os.path.abspath(a.data)} "
+                f"skip={a.skip or 'npt-default'}\n")
         f.write(f"# batches={len(lines)} seconds_total={t1 - t0:.3f} warmup={a.warmup} seconds_timed={timed:.3f} "
                 f"kept_per_s={kept_timed / timed if timed == timed and timed > 0 else 0:.0f}\n")
         f.write(f"# preskip={preskip} total={total} peak_working_set_mb={peak_working_set_mb():.1f} "
@@ -197,8 +211,17 @@ def read_tsv(path):
 
 
 def cmd_compare(a) -> int:
-    ra, _ = read_tsv(a.a)
-    rb, _ = read_tsv(a.b)
+    ra, ma = read_tsv(a.a)
+    rb, mb = read_tsv(a.b)
+    for path, meta in ((a.a, ma), (a.b, mb)):
+        if not any("hashed=True" in m for m in meta):
+            print(f"{path}: not a hashed dump (made with --no-hash): no equality claim possible")
+            return 2
+    sa = [m for m in ma if m.startswith("# settings")]
+    sb = [m for m in mb if m.startswith("# settings")]
+    if sa != sb and not (a.legacy and not sa and not sb):
+        print(f"settings differ or are missing:\n  {sa}\n  {sb}")
+        return 2
     n = min(len(ra), len(rb))
     same = sum(1 for i in range(n) if ra[i] == rb[i])
     first = next((i for i in range(n) if ra[i] != rb[i]), None)
@@ -224,12 +247,14 @@ def main() -> int:
     d.add_argument("--warmup", type=int, default=0)
     d.add_argument("--finite", action="store_true", help="non-cyclic stream")
     d.add_argument("--no-hash", action="store_true", help="speed runs: skip the sha256")
+    d.add_argument("--skip", default="", help="skip-config overrides, e.g. random_fen_skipping=3,pc_y1=0")
     d.add_argument("--out", required=True)
     d.add_argument("--mask", default="0xC")
     d.add_argument("--priority", default="BelowNormal", choices=["BelowNormal", "Idle"])
     c = sub.add_parser("compare")
     c.add_argument("a")
     c.add_argument("b")
+    c.add_argument("--legacy", action="store_true", help="dumps from before the '# settings' line (12:35-12:40 runs)")
     a = ap.parse_args()
     return cmd_dump(a) if a.cmd == "dump" else cmd_compare(a)
 

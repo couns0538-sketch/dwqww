@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""fl_abba.py - Opus R14-B: palindromic ABBA speed comparison of two loader arms (own code, stdlib only).
+
+Each run is a fresh fl_equal.py process (`dump --no-hash`) on the same CPU mask and priority, reading the same file
+from its start; the order is A B B A A B B A ... so slow drifts of the PC cancel. Speed = kept positions per second
+over the timed batches (after the warm-up batches). ADVISORY: Engine QA does the official timing.
+
+usage: python -I -B fl_abba.py --out DIR --pairs 10 --a old:<dll>:2 --b fast:<dll>:2 [--batches 420 --warmup 20]
+       [--mask 0xC] [--priority BelowNormal] [--data <binpack>]
+Writes DIR/run_XX_<arm>.tsv per run and DIR/summary.txt (per-run speeds, per-pair ratio B/A, median, mean, 95% CI).
+"""
+
+import argparse
+import math
+import os
+import statistics
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = r"F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack"
+
+
+def run_one(arm, out_tsv, a):
+    loader, rest = arm.split(":", 1)  # the DLL path itself contains a drive colon
+    dll, workers = rest.rsplit(":", 1)
+    cmd =[sys.executable, "-I", "-B", os.path.join(HERE, "fl_equal.py"), "dump", "--loader", loader, "--dll", dll,
+           "--workers", workers, "--data", a.data, "--batches", str(a.batches), "--warmup", str(a.warmup),
+           "--no-hash", "--out", out_tsv, "--mask", a.mask, "--priority", a.priority]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+    with open(out_tsv, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("# batches="):
+                fields = dict(kv.split("=", 1) for kv in line[2:].split())
+                return float(fields["kept_per_s"])
+    raise RuntimeError(f"no speed line in {out_tsv}")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--pairs", type=int, default=10)
+    ap.add_argument("--a", required=True, help="loader:dll:workers")
+    ap.add_argument("--b", required=True, help="loader:dll:workers")
+    ap.add_argument("--batches", type=int, default=420)
+    ap.add_argument("--warmup", type=int, default=20)
+    ap.add_argument("--mask", default="0xC")
+    ap.add_argument("--priority", default="BelowNormal", choices=["BelowNormal", "Idle"])
+    ap.add_argument("--data", default=DATA)
+    a = ap.parse_args()
+    os.makedirs(a.out, exist_ok=False)
+    order = []
+    for p in range(a.pairs):
+        order += ["A", "B"] if p % 2 == 0 else ["B", "A"]
+    speeds = {"A": [], "B": []}
+    lines = [f"A = {a.a}", f"B = {a.b}", f"pairs {a.pairs}, batches {a.batches} (warm-up {a.warmup}), mask {a.mask}, "
+             f"{a.priority}, data {a.data}", f"start {time.strftime('%Y-%m-%d %H:%M:%S')}", ""]
+    for i, arm in enumerate(order):
+        spec = a.a if arm == "A" else a.b
+        s = run_one(spec, os.path.join(a.out, f"run_{i:02d}_{arm}.tsv"), a)
+        speeds[arm].append(s)
+        lines.append(f"run {i:02d} {arm} {s:,.0f} kept/s")
+        print(lines[-1], flush=True)
+    ratios = [b / x for x, b in zip(speeds["A"], speeds["B"])]
+    mean = statistics.fmean(ratios)
+    sd = statistics.stdev(ratios) if len(ratios) > 1 else 0.0
+    half = 2.262 * sd / math.sqrt(len(ratios)) if len(ratios) == 10 else 1.96 * sd / math.sqrt(len(ratios))
+    lines += ["", f"A median {statistics.median(speeds['A']):,.0f} kept/s, B median {statistics.median(speeds['B']):,.0f}",
+              "per-pair B/A: " + " ".join(f"{r:.3f}" for r in ratios),
+              f"B/A median {statistics.median(ratios):.3f}, mean {mean:.3f}, 95% CI {mean - half:.3f} .. {mean + half:.3f}"
+              f" (t, n={len(ratios)})", f"end {time.strftime('%Y-%m-%d %H:%M:%S')}"]
+    with open(os.path.join(a.out, "summary.txt"), "x", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+    print("\n".join(lines[-4:]))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

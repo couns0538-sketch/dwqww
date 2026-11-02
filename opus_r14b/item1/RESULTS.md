@@ -4,32 +4,34 @@ Branch `opus-r14b-fast-loader` (from main). Own code; the npt loader (nnue-pytor
 only (IDEA_SOURCE.md). Nothing of the live npt line was touched: the reference DLL is a copy, the trainer copy lives
 in `D:\o14b\npt`. No Elo or training-quality claim; Engine NNUE / QA decide.
 
-## Candidate
-| item | value |
-|---|---|
-| source | `fastloader/forge_fastloader.cpp` (sha256 in logs at commit), `fastloader/forge_fastloader.py`, spec `LOADER_SPEC.md` |
-| build | `fastloader/build_fastloader.sh OUT` (MinGW g++ 15.2, `-O3 -march=znver5`, static DLL, fixed random seed, no link timestamp, no auto image base), BelowNormal on CPUs 2-3 |
-| DLL | **a4f965aa075f623311c5deb3a41cfa01131320dd4adf72c617f7c0f0adb2e733** (`D:\o14b\fl\b4`), second build `D:\o14b\fl\b4pc2` byte-identical (pc1 = pc2) |
-| reference | copy of the queue's DLL `F:\opus_scratch\r6\nnue-pytorch-amd\build\libtraining_data_loader.dll` -> `D:\o14b\ref\` (sha256 88c01468...939c, equal to the live file) |
+## Candidates
+| build | DLL sha256 | status |
+|---|---|---|
+| b4 (12:37) | a4f965aa075f623311c5deb3a41cfa01131320dd4adf72c617f7c0f0adb2e733 | superseded by b5 (review fixes); its equality evidence is kept in logs/equality |
+| **b5 (13:39)** | **9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935** (`D:\o14b\fl\b5`, `b5pc2` byte-identical = pc1 = pc2; installed with the new wrapper in `D:\o14b\fl\b5_install`) | current candidate |
+
+Build: `fastloader/build_fastloader.sh OUT` (MinGW g++ 15.2 = the old DLL's toolchain, `-O3 -march=znver5`, static,
+fixed random seed, no link timestamp, no auto image base), BelowNormal on CPUs 2-3. Reference: copy of the queue's
+DLL `F:\opus_scratch\r6\nnue-pytorch-amd\build\libtraining_data_loader.dll` -> `D:\o14b\ref\` (sha256 88c01468...939c).
+Trainer switch: `tools/install_fast_loader.py <trainer copy>` (= `patches/0005-fast-loader-switch.patch`); with the
+switch on, the trainer prints `Fast loader: ON (<version>, <DLL path>, sha256 <...>)`.
 
 ## Checks
 | check | result | evidence |
 |---|---|---|
-| reference is deterministic: old `--num-workers 1` run twice, and `--num-workers 2` (same 1 decoder + 1 builder split) | 1000 / 1000 identical batches each | logs/equality/eq_old_w1*.tsv, eq_old_w2.tsv |
-| **train file, first 1,000 batches (16,384,000 positions), fast at 1 / 2 / 4 builder threads vs old w1** | **1000 / 1000 identical (sha256 of the float block and the int block of every batch, plus size and active counts)** | logs/equality/b4_fast_t*.tsv |
-| validation file, 300 batches, cyclic (wraps three times; 1,664,366 kept per pass) | 300 / 300 identical | val_old_cyc.tsv, b4_val_cyc.tsv |
-| validation file, finite stream to end of file (partial last window, last batch 9,582 positions) | 102 / 102 identical; read 16,388,575 / kept 1,664,366 in both | val_old_fin.tsv, b4_val_fin.tsv |
-| peak working set in these runs | old 769 MB, fast 165-178 MB | TSV `#` lines |
-| speed seen in the equality runs (with sha256 hashing in the loop, not a benchmark) | old w1 406k kept positions/s, fast 3.42-3.44M | TSV `#` lines; the official ABBA is the next step |
-| 1-epoch loss match (CPU) | TODO | - |
+| reference deterministic: old `--num-workers 1` twice, and `--num-workers 2` (same 1 decoder + 1 builder) | 1000 / 1000 identical each | logs/equality/eq_old_w1*.tsv, eq_old_w2.tsv |
+| train file, first 1,000 batches (16,384,000 positions), b4 at 1 / 2 / 4 builder threads vs old w1 | **1000 / 1000 identical** (sha256 of the float and int blocks = every byte the trainer reads, plus size and active counts) | logs/equality/b4_fast_t*.tsv |
+| validation file: 300 batches cyclic (three wraps) / finite stream to end of file (last batch 9,582) | 300 / 300 and 102 / 102 identical; read 16,388,575 / kept 1,664,366 in both | logs/equality/*val* |
+| self-test (independent no-filter reference, thread-count invariance, row invariants, 7 format errors, destroy while running, window < batch, acceptance 0, double release) | b5: ALL PASSED locally (`_GLIBCXX_ASSERTIONS`); CI ASan+UBSan and TSan: b4 version passed (run 41441092765), b5 version: see the next push | `fastloader/ffl_selftest.cpp`, `.github/workflows/ffl-sanitize.yml` |
+| CPU loss match, old arm (old DLL, `--num-workers 1`, K32H3^ L1 256, 64 batches, seed 5117, no validation stream) | done: train_loss_epoch 0.016163233667612076; no RAM-floor trip (min free 9.09 GB, peak private 6.2 GB) | `D:\o14b\lm\old256` |
+| CPU loss match, fast arm (b5 + new wrapper + installer patch, `--num-workers 2 --fast-loader`) | RUNNING (13:41) | `D:\o14b\lm\fast256b` |
+| b5 vs old: train 1000 batches, validation cyclic / finite, config matrix, batches spanning windows past a file wrap, Dataset-level tensors | TODO (after the loss match: CPUs 2-3 are busy) | - |
 | speed ABBA (>= 10 pairs, CPUs 2-3, BelowNormal) | TODO | - |
-| sanitizer self-test (ASan + UBSan, CI) | TODO | - |
-| review milestone | TODO (after the loss match, before the bench) | - |
 | GPU window epoch | TODO (GPU_REQUEST.md) | - |
 
-Data: train `F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack`, validation
-`F:\forge_j1_data\forge_holdout_013-014_j2.binpack` (read only). Settings = the npt line (`--no-filtered
---no-wld-filtered`, other skip defaults), feature set K32H3, batch 16384, window 1,048,576.
+The L1 1024 CPU loss match with a validation stream hit the 7 GB RAM floor (guard abort at 6.98 GB free, own private
+8.36 GB; the old loader alone holds up to 9 windows x 235 MB per stream and reads ~10x ahead). The recorded pair uses
+L1 256 without a validation stream; the loader output does not depend on the net width.
 
 ## Why "old --num-workers 1" is the reference
 The live line runs `--num-workers 4` = 3 decode workers + 1 builder. Its decode workers race for chunks and each
@@ -38,5 +40,27 @@ loader. With 1 or 2 workers there is one decode worker and the stream is a pure 
 The fast loader gives that stream at any thread count. Statistically the w4 and w1 streams apply the same filter
 rules, but the piece-count filter adapts per decode worker, so they are not the same sample (UNPROVEN either way).
 
-## Next
-CPU loss match (trainer copy + patch 0005) -> speed ABBA -> sanitizer CI -> review -> GPU_REQUEST.md.
+## Review milestone R14B-I1-1 (13:00-13:45; one read-only reviewer sub-agent, allowed by the brief at the time)
+- Reviewed: candidate commit 264549ae, DLL a4f965aa (b4), spec, wrapper, harness, trainer patch copy; against the old
+  loader source (behaviour only).
+- Findings and actions:
+  1. MEDIUM hang when the window is much smaller than the batch (`max_live_ = 3`): CONFIRMED, fixed (windows alive =
+     max(3, ceil(batch / window) + 2)); self-test (5) window 1024 < batch 5000 passes.
+  2. MEDIUM equality covers one configuration (window = 64 batches exactly; no oracle for spanning batches, random /
+     early skipping, non-default spline values): CONFIRMED as a coverage gap; old-vs-new config matrix and a
+     spanning-batch run past a file wrap are scheduled (TODO above).
+  3. MEDIUM trainer path not proven end to end (raw C API only; patch not committed; no DLL identity printed;
+     validation switch untested; `--num-workers 4` = 6 threads): fixed - patch + installer committed, start-up line with
+     path / sha256 / version, `--num-workers N` = N loader threads (reader + filter + N-2 builders), FastSparseBatchDataset
+     is what the running loss match uses; Dataset-level tensor hashes and a loss match with validation are TODO.
+  4. LOW out-of-range double -> u64 at acceptance 0: CONFIRMED (both DLLs saturate via AVX-512 today; a plain cast
+     elsewhere would not), fixed with explicit saturation; self-test (6) passes; old-vs-new with pc_y1 = 0 is in the
+     matrix TODO.
+  5. LOW no unique-position (HLL) metrics: ACCEPTED as a documented difference (logging only); resume from an
+     old-loader checkpoint now prints that its HLL state is ignored instead of dropping it silently.
+  6. LOW fail-open spots: fixed - strict skip config (no silent defaults), `next_raw` after close raises, double /
+     foreign `release` stops the stream with an error (self-test (7)), `compare` refuses unhashed or different-setting
+     dumps, the trainer loads the module by explicit path (no `sys.path` change). Not changed: destroying a stream while
+     another thread is inside `next()` (the trainer cannot do that; documented).
+- After this milestone Couns ruled out further sub-agents; later reviews are structured self-reviews (NOT independent).
+- Next: loss-match fast arm -> b5 equality matrix + Dataset-level check -> ABBA -> GPU_REQUEST.md.

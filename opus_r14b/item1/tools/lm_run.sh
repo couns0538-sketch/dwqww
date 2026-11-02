@@ -6,6 +6,9 @@
 # --no-filtered --no-wld-filtered) on the CPU with 1 epoch = 64 batches (one shuffle window) and 10 validation
 # batches. GPUs hidden exactly like the keeper's exports (no HIP device next to the live npt line); R6 RAM guard
 # (7 GB floor, JSON summary); BelowNormal on CPUs 2-3 via tools/lowrun.ps1. OUT_DIR must not exist.
+# LM_L1 (default 1024) and LM_VAL (validation positions, default 163840; 0 = no validation stream) can be lowered:
+# on 2026-11-02 the L1 1024 run with validation hit the 7 GB RAM floor (own private 8.36 GB, mostly the old loader's
+# window pool of up to 9 x 235 MB per stream), so the recorded loss match uses LM_L1=256 LM_VAL=0.
 set -euo pipefail
 arm=${1:?arm old|fast}
 out=${2:?out dir}
@@ -25,9 +28,14 @@ export NNUE_DATA_LOADER_LIB='D:\o14b\ref\libtraining_data_loader.dll'
 export NNUE_FT_BACKEND=torch TORCHDYNAMO_DISABLE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2
 export PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1
 export R6_MIN_FREE_GB=7 R6_GUARD_LOG="$outw\\guard.jsonl"
+export FORGE_FAST_LOADER_DIR=${FORGE_FAST_LOADER_DIR:-'D:\o14b\fl\b5_install'}  # forge_fastloader.py + .dll
 args="-B opus_tools\\guard_exec.py train.py F:\\forge_j1_data\\forge_train_001-039_ex013-014_j2.binpack"
-args="$args --validation-datasets F:\\forge_j1_data\\forge_holdout_013-014_j2.binpack --validation-size 163840"
-args="$args --default-root-dir $outw\\run --features K32H3^ --l1 1024 --batch-size 16384 --threads 2"
+l1=${LM_L1:-1024}
+val=${LM_VAL:-163840}
+if [ "$val" -gt 0 ]; then
+  args="$args --validation-datasets F:\\forge_j1_data\\forge_holdout_013-014_j2.binpack --validation-size $val"
+fi
+args="$args --default-root-dir $outw\\run --features K32H3^ --l1 $l1 --batch-size 16384 --threads 2"
 args="$args --epoch-size 1048576 --max-epochs 1 --network-save-period 1 --save-last-network False"
 args="$args --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0"
 args="$args --no-filtered --no-wld-filtered --accelerator cpu --gamma 0.72 $extra $*"

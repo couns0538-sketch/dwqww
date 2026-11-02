@@ -87,6 +87,16 @@ struct FflConfig {
 
 namespace {
 
+// x * 2^64 thresholds of the skip filter as u64. x = 2^64 exactly (acceptance 0) is out of range for a plain cast;
+// it saturates to 2^64 - 1 ("always reject"), which is what the AVX-512 conversion of both DLLs returns on this CPU.
+inline std::uint64_t to_threshold(double x) {
+    if (!(x < kTwo64))
+        return ~0ULL;
+    if (x <= 0.0)
+        return 0;
+    return static_cast<std::uint64_t>(x);
+}
+
 inline std::uint16_t be16(const unsigned char* p) { return static_cast<std::uint16_t>((p[0] << 8) | p[1]); }
 
 inline std::uint64_t be64(const unsigned char* p) {
@@ -123,7 +133,7 @@ public:
                || c.soft_early_fen_skipping > 0;
         if (c.random_fen_skipping > 0) {
             const double p = double(c.random_fen_skipping) / (c.random_fen_skipping + 1);
-            random_threshold_ = static_cast<std::uint64_t>(p * kTwo64);
+            random_threshold_ = to_threshold(p * kTwo64);
         }
         double total = 0.0;
         for (int pc = 0; pc <= 32; ++pc) {
@@ -158,7 +168,7 @@ public:
         if (cfg_.random_fen_skipping && rng() < random_threshold_)
             return false;
         if (cfg_.soft_early_fen_skipping > 0 && ply < cfg_.soft_early_fen_skipping) {
-            const auto reject = static_cast<std::uint64_t>((1.0 - ply_accept_[ply]) * kTwo64);
+            const auto reject = to_threshold((1.0 - ply_accept_[ply]) * kTwo64);
             if (rng() < reject)
                 return false;
         }
@@ -191,7 +201,7 @@ public:
         if (weight_[pc] > 0.0 && seen_[pc] > 0.0)
             accept = alpha_ * ((seen_total_ * weight_[pc]) / (weight_total_ * seen_[pc]));
         accept = std::clamp(accept, 0.0, 1.0);
-        const auto reject = static_cast<std::uint64_t>((1.0 - accept) * kTwo64);
+        const auto reject = to_threshold((1.0 - accept) * kTwo64);
         return !(rng() < reject);
     }
 
@@ -286,6 +296,7 @@ struct Task {
 
 struct BatchBuf {
     BatchView view{};               // handed out to the consumer; release() maps it back
+    bool handed_out = false;        // guarded by the loader mutex
     std::vector<float> floats;
     std::vector<int> ints;
 };
@@ -300,8 +311,10 @@ public:
         window_ = cfg_.window_entries <= 0 ? kDefaultWindow
                                            : static_cast<std::size_t>(std::clamp(cfg_.window_entries, 1024, 1 << 24));
         threads_ = std::max(1, cfg_.threads);
-        // >= 2: the window holding a pending tail must not block the next one.
-        max_live_ = cfg_.max_live_windows > 0 ? std::max(2, cfg_.max_live_windows) : 3;
+        // Windows alive at once: the ones whose entries still wait for a whole batch (at most ceil(B / W)), the open
+        // one and one spare. With fewer, a window much smaller than the batch would block the filter forever.
+        const std::size_t per_batch = (static_cast<std::size_t>(cfg_.batch_size) + window_ - 1) / window_;
+        max_live_ = std::max({3, static_cast<int>(std::min<std::size_t>(per_batch + 2, 1u << 20)), cfg_.max_live_windows});
         const int ring = cfg_.ring_batches > 0 ? cfg_.ring_batches : threads_ + 4;
         bufs_.resize(static_cast<std::size_t>(ring));
         for (auto& b : bufs_) {
@@ -354,21 +367,32 @@ public:
         BatchBuf* b = it->second;
         done_.erase(it);
         ++next_out_;
+        b->handed_out = true;
         return &b->view;
     }
 
+    // Gives a batch buffer back. A pointer that is not a handed-out batch (double release, foreign pointer) stops
+    // the stream with an error instead of letting two builders share one buffer.
     void release(BatchView* v) {
         if (!v)
             return;
+        bool bad = true;
         {
             std::lock_guard lk(m_);
             for (auto& b : bufs_)
-                if (&b->view == v) {
+                if (&b->view == v && b->handed_out) {
+                    b->handed_out = false;
                     free_.push_back(b.get());
+                    bad = false;
                     break;
                 }
+            if (bad && error_.empty())
+                error_ = "release of a batch that is not handed out (double release?)";
         }
-        cv_build_.notify_all();
+        if (bad)
+            notify_all();
+        else
+            cv_build_.notify_all();
     }
 
     void stats(std::uint64_t* preskip, std::uint64_t* total, std::uint64_t* batches) const {

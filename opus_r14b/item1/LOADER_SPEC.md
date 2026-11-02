@@ -50,7 +50,11 @@ For each record, in this order:
    total, after computing alpha.
 8. `accept = clamp(alpha * ratio(pc), 0, 1)` (0 if w[pc] or counter[pc] is 0); one draw; skip if
    `draw < (u64)((1 - accept) * 2^64)`. Otherwise keep the record.
-The double-to-u64 conversions truncate; `2^64` is `(double)(2^64 - 1)`.
+The double-to-u64 conversions truncate; `2^64` is `(double)(2^64 - 1)`. An acceptance of exactly 0 gives the value
+2^64, which does not fit: it saturates to 2^64 - 1 (always reject). That is what the AVX-512 conversion both DLLs use
+on this CPU returns; a plain cast on another instruction set would give 0 (never reject), so the fast loader saturates
+explicitly. If no skip option is active (not filtered, not wld_filtered, random_fen_skipping <= 0,
+early_fen_skipping < 0, soft_early_fen_skipping <= 0) there is no filter at all: every record is kept, no draws.
 
 ## 4. Shuffle windows (same engine as the filter)
 - Kept records collect in a 16,384-entry scratch. When the scratch is full it is appended to the open window; a
@@ -75,6 +79,9 @@ The double-to-u64 conversions truncate; `2^64` is `(double)(2^64 - 1)`.
   `feature = orient(s) + 64 * (2 * t + (q != c)) + 768 * (32 * state + bucket)`.
 
 ## 6. Fast-loader design (performance only; output must not depend on it)
+Threads: trainer `--num-workers N` = N loader threads per stream (reader + filter + max(1, N - 2) builders).
+Windows alive at once: max(3, ceil(batch / window) + 2), so a window smaller than the batch cannot block the filter.
+
 reader thread (chunk queue) -> one filter thread (section 3 + window bookkeeping of section 4; shuffles a 4-byte
 index permutation instead of moving records) -> batch tasks in order -> N builder threads (section 5; batch k goes
 to output k, buffers are taken in task order so no deadlock) -> consumer takes batches in order.

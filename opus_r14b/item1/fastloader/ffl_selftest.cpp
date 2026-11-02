@@ -440,6 +440,56 @@ int main(int argc, char** argv) {
         std::printf("(4) destroy while running: done\n");
     }
 
+    // (5) Window much smaller than the batch (3 * 1024 < 5000): must not hang; thread count changes nothing.
+    {
+        long c1 = 0, c3 = 0, f1 = 0, f3 = 0;
+        bool o1 = true, o3 = true;
+        const auto h1 = run_hash(fa, base_config(5000, 1, true, 1024, true), 40, &c1, &o1);
+        const auto h3 = run_hash(fa, base_config(5000, 3, true, 1024, true), 40, &c3, &o3);
+        const auto g1 = run_hash(fa, base_config(5000, 1, false, 1024, true), 1 << 30, &f1, &o1);
+        const auto g3 = run_hash(fa, base_config(5000, 3, false, 1024, true), 1 << 30, &f3, &o3);
+        CHECK(h1 == h3 && c1 == 40 * 5000 && c3 == c1 && o1 && o3, "window < batch, cyclic");
+        CHECK(g1 == g3 && f1 == f3 && f1 > 0, "window < batch, finite");
+        std::printf("(5) window 1024 < batch 5000: cyclic %ld rows, finite %ld rows, no hang\n", c1, f1);
+    }
+
+    // (6) Acceptance exactly 0 (pc_y1 = 0 gives weight 0 to 2..7 pieces): the threshold saturates, such rows are
+    // always rejected, on every compiler / instruction set.
+    {
+        const std::string fl = dir + "/ffl_low.binpack";
+        write_file(fl, 30000, 13, 5);  // 2..7 pieces
+        FflConfig c = base_config(512, 2, false, 4096, true);
+        c.pc_y[1] = 0.0;
+        void* h = ffl_create(&c, fl.c_str());
+        CHECK(h != nullptr, "create (pc_y1 = 0)");
+        long rows = 0;
+        while (BatchView* b = ffl_next(h)) {
+            rows += b->size;
+            ffl_release(h, b);
+        }
+        std::uint64_t pre = 0, tot = 0;
+        ffl_stats(h, &pre, &tot, nullptr);
+        ffl_destroy(h);
+        CHECK(rows == 0 && tot == 0 && pre == 30000, "acceptance 0 always rejects");
+        std::printf("(6) acceptance 0: read %llu, kept %llu\n", static_cast<unsigned long long>(pre),
+                    static_cast<unsigned long long>(tot));
+    }
+
+    // (7) Releasing a batch twice stops the stream with an error (no buffer is shared by two builders).
+    {
+        FflConfig c = base_config(256, 2, true, 1024, true);
+        void* h = ffl_create(&c, fa.c_str());
+        BatchView* b = ffl_next(h);
+        CHECK(b != nullptr, "first batch");
+        ffl_release(h, b);
+        ffl_release(h, b);
+        char err[256];
+        CHECK(ffl_error(h, err, sizeof err) > 0, "double release reported");
+        CHECK(ffl_next(h) == nullptr, "stream stopped after a double release");
+        ffl_destroy(h);
+        std::printf("(7) double release: %s\n", err);
+    }
+
     std::printf("%s (%d failures)\n", g_fail ? "FAILED" : "ALL PASSED", g_fail);
     return g_fail ? 1 : 0;
 }

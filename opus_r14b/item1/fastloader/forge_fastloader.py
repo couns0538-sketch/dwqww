@@ -64,11 +64,23 @@ _LIBS: dict[str, ctypes.CDLL] = {}
 _LIBS_LOCK = threading.Lock()
 
 
+def library_path(path: str | None = None) -> str:
+    return os.path.abspath(path or os.environ.get("FORGE_FAST_LOADER_LIB", "").strip() or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "forge_fastloader.dll"))
+
+
+def library_info(path: str | None = None) -> dict:
+    """Path, sha256 and version string of the DLL a stream would use (printed by the trainer at start-up)."""
+    import hashlib
+
+    path = library_path(path)
+    with open(path, "rb") as fh:
+        digest = hashlib.sha256(fh.read()).hexdigest()
+    return {"path": path, "sha256": digest, "version": load_library(path).ffl_version().decode()}
+
+
 def load_library(path: str | None = None) -> ctypes.CDLL:
-    path = path or os.environ.get("FORGE_FAST_LOADER_LIB", "").strip() or os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "forge_fastloader.dll"
-    )
-    path = os.path.abspath(path)
+    path = library_path(path)
     with _LIBS_LOCK:
         if path in _LIBS:
             return _LIBS[path]
@@ -94,32 +106,35 @@ def load_library(path: str | None = None) -> ctypes.CDLL:
         return lib
 
 
-def _get(cfg, name, default):
-    return getattr(cfg, name, default) if cfg is not None else default
+def _get(cfg, name):
+    try:
+        return getattr(cfg, name)
+    except AttributeError:
+        raise ValueError(f"fast loader: skip config has no field {name!r}") from None
 
 
-def make_config(batch_size, threads, cyclic, skip_config=None, window_entries=0) -> FflConfig:
-    """Translate a DataloaderSkipConfig-like object (attributes as in the trainer) into FflConfig."""
+def make_config(batch_size, threads, cyclic, skip_config, window_entries=0) -> FflConfig:
+    """Translate a DataloaderSkipConfig-like object (all fields required, no silent defaults) into FflConfig."""
+    if skip_config is None:
+        raise ValueError("fast loader: a skip config is required")
     c = FflConfig()
     c.batch_size = int(batch_size)
     c.threads = max(1, int(threads))
     c.cyclic = 1 if cyclic else 0
     c.window_entries = int(window_entries)
-    c.filtered = 1 if _get(skip_config, "filtered", True) else 0
-    c.wld_filtered = 1 if _get(skip_config, "wld_filtered", True) else 0
-    c.random_fen_skipping = int(_get(skip_config, "random_fen_skipping", 0))
-    c.early_fen_skipping = int(_get(skip_config, "early_fen_skipping", -1))
-    c.soft_early_fen_skipping = int(_get(skip_config, "soft_early_fen_skipping", 20))
-    c.simple_eval_skipping = int(_get(skip_config, "simple_eval_skipping", -1))
+    c.filtered = 1 if _get(skip_config, "filtered") else 0
+    c.wld_filtered = 1 if _get(skip_config, "wld_filtered") else 0
+    c.random_fen_skipping = int(_get(skip_config, "random_fen_skipping"))
+    c.early_fen_skipping = int(_get(skip_config, "early_fen_skipping"))
+    c.soft_early_fen_skipping = int(_get(skip_config, "soft_early_fen_skipping"))
+    c.simple_eval_skipping = int(_get(skip_config, "simple_eval_skipping"))
     c.max_live_windows = 0
     c.ring_batches = 0
-    pc_defaults = (0.0, 0.4, 1.0, 1.0, 0.75)
     for i in range(5):
-        c.pc_y[i] = float(_get(skip_config, f"pc_y{i}", pc_defaults[i]))
-    ply_defaults = ((0.0, 0.1), (6.0, 0.15), (10.0, 0.25), (18.0, 0.75))
+        c.pc_y[i] = float(_get(skip_config, f"pc_y{i}"))
     for i in range(4):
-        c.ply_x[i] = float(_get(skip_config, f"ply_x{i + 1}", ply_defaults[i][0]))
-        c.ply_y[i] = float(_get(skip_config, f"ply_y{i + 1}", ply_defaults[i][1]))
+        c.ply_x[i] = float(_get(skip_config, f"ply_x{i + 1}"))
+        c.ply_y[i] = float(_get(skip_config, f"ply_y{i + 1}"))
     if c.filtered or c.wld_filtered or c.simple_eval_skipping > 0:
         raise ValueError(
             "--fast-loader supports --no-filtered --no-wld-filtered without simple-eval skipping only"
@@ -130,8 +145,7 @@ def make_config(batch_size, threads, cyclic, skip_config=None, window_entries=0)
 class FastStream:
     """One fast-loader stream over one binpack file (raw batches, no torch)."""
 
-    def __init__(self, filename, batch_size, threads=1, cyclic=True, skip_config=None, window_entries=0,
-                 lib_path=None):
+    def __init__(self, filename, batch_size, threads, cyclic, skip_config, window_entries=0, lib_path=None):
         self.lib = load_library(lib_path)
         self.config = make_config(batch_size, threads, cyclic, skip_config, window_entries)
         self.handle = self.lib.ffl_create(byref(self.config), os.fsencode(os.path.abspath(filename)))
@@ -145,6 +159,8 @@ class FastStream:
 
     def next_raw(self):
         """Pointer to the next batch, or None at the end of a finite stream. Raises on a loader error."""
+        if not self.handle:
+            raise RuntimeError("fast loader: stream is closed")
         p = self.lib.ffl_next(self.handle)
         if not p:
             err = self.error()
@@ -187,7 +203,9 @@ class FastSparseBatchProvider:
                  ddp_config=None, io_config=None, use_pinned_memory=False, device="cpu"):
         _check_scope(feature_set, filenames, ddp_config)
         window = int(getattr(io_config, "shuffle_buffer_entries", 0)) if io_config is not None else 0
-        self.stream = FastStream(filenames[0], batch_size, threads=num_workers, cyclic=cyclic,
+        # --num-workers N = N loader threads in total: reader + filter + (N - 2) builders (at least one builder).
+        # The batches do not depend on it.
+        self.stream = FastStream(filenames[0], batch_size, threads=max(1, int(num_workers) - 2), cyclic=cyclic,
                                  skip_config=config, window_entries=window)
         self.use_pinned_memory = use_pinned_memory
         self.device = device
@@ -225,6 +243,18 @@ class FastSparseBatchProvider:
             stream.close()
 
 
+class _NoHll:
+    """Stands in for the trainer's hll_config: the fast loader keeps no unique-position (HyperLogLog) state, so a
+    resume from a checkpoint that carries one says so once instead of dropping it silently."""
+
+    def __setattr__(self, name, value):
+        if name == "initial_hll" and value and not getattr(self, "_warned", False):
+            object.__setattr__(self, "_warned", True)
+            print("[fast loader] checkpoint unique-position (HLL) state ignored: the fast loader reports no "
+                  "unique/total/preskip metrics", flush=True)
+        object.__setattr__(self, name, value)
+
+
 def _make_dataset_class():
     import torch  # only the trainer path needs torch; the raw layer above does not
 
@@ -245,6 +275,7 @@ def _make_dataset_class():
             self.io_config = io_config
             self.use_pinned_memory = use_pinned_memory
             self.device = "cpu"
+            self.hll_config = _NoHll()
             self._cached_iter = None
             self._iter_lock = threading.Lock()
 
