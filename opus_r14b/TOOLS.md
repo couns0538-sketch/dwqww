@@ -15,3 +15,14 @@
 | local | venv `C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B` (numpy, torch cpu, python-chess as test oracle) | item 2 tools and tests |
 | local | `opus_r14b/tools/pc_gate.ps1` (R13, read-only load / RAM / disk gate) | before every heavy step |
 | local | R13 probe `forge_data_probe` (lock source d4f4312) and Astra's converter / filter copies | item 2 labels |
+
+## Used so far (updated 15:25)
+| tool | used for | result |
+|---|---|---|
+| gh (GitHub CLI) | CI runs of `ffl-sanitize` (ASan+UBSan, TSan) on opus-r14b-fast-loader | runs 41441092765, 41446915233 PASS |
+| Context7 MCP (`/websites/pytorch/2.11`) | PyTorch reproducibility notes: only `torch.manual_seed()` controls the generator; no fixed default seed is promised | cited in item 1's seeding finding |
+| Parallel Search MCP | GCC docs on `-fprofile-dir` / `-fprofile-generate`: .gcda names follow the output file when sources are compiled and linked directly | fixed a silent non-PGO trap in `build_probe_opt.sh` before running it |
+| advisor (stronger reviewer, sees the transcript) | plan check at 14:40 | frozen-code rule for the proof, D:/F: path fixes in two documents, 2-worker estimate marked |
+| one read-only reviewer sub-agent (13:00-13:45, before Couns ruled them out) | item 1 review R14B-I1-1 | 1 hang + 1 overflow + fail-open spots fixed |
+| plugin skills | superpowers:verification-before-completion (before each "done"), systematic-debugging (when a check fails) | - |
+| project skills | forge-pc-rules, forge-nnue-pytorch-amd, forge-nnue-data, forge-ltopgo-pgo, forge-job-workflow; new forge-npt-fast-loader | updated at the end with R14-B lessons |
