@@ -95,3 +95,16 @@ description: Where the Forge NNUE training data, holdouts, runs, nets and conver
 - Relabel with it: `opus_r13/p5/relabel_job.py run ... --sidecar <fen> --sidecar-origin original_full_fen` (branch
   opus-r13-p5-nnue-data); a new job refuses `--allow-reconstructed` without `--accept-lossy-labels`. Proof tool
   `opus_r13/p5/prove_sidecar.py` (audit: board/stm of every row; compare: fixed vs old labels, control rows must be equal).
+
+## Resumable relabel with original FENs and a game-level split (R14-B, 2026-11-02, branch opus-r14b-relabel)
+- Tool `opus_r14b/item2/relabel2.py` (own code): `prepare` (self-play text `FEN | stm cp | white result`, or Astra
+  normalized JSONL in source order) -> `rows.tsv`; `run` (shards in `.part.N` dirs, published by one rename after
+  fsynced labels + manifest + summary; same command resumes; config pinned in run_config.json) -> `assemble`
+  (`final/train.txt`, `final/val.txt`, `final/labels.tsv`, MANIFEST with md5 + sha256). Exit codes 2 bad input,
+  3 configuration differs, 4 integrity. Idle + CPU mask for every subcommand; probe = R13 `C:\o13\p5\forge_data_probe.exe`.
+- Game id = (input file, game index); a new game starts when the ply does not increase, the result changes, the piece
+  count rises or a castling right reappears (never splits a real game). Raw self-play files are game-ordered; every
+  game starts at ply 8-11 (opening book). Split = sha256(salt | game id) mod 1e6 < val ppm.
+- At 500 nodes some positions cannot finish depth 1 (`insufficient_budget`): the run stops by design; use >= 5k nodes.
+- Kill / resume proof driver `opus_r14b/item2/prove_resume.sh` (prepare A + B, run A, run B with a hard exit and an
+  external stop, assemble, md5 compare). Session permissions block `kill`: stop an own background run with TaskStop.
