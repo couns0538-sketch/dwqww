@@ -5,13 +5,13 @@ PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; lab
 = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
 Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
 Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
-import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+import os, re, sys, json, time, math, argparse, numpy as np, chess, chess.pgn
 from pathlib import Path
 from filter_lichess_rec import REC, encode_board
 from records import record, selfplay_record, read_records, read_pgn_game, dumps
 from result_codec import encode_result
 from resource_policy import storage_guard
-from filter_positions import low_priority
+from filter_positions import low_priority, input_identity
 ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
 ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
 ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
@@ -21,12 +21,20 @@ ap.add_argument('--keep-result', action='store_true')
 ap.add_argument('--lichess', nargs='*', default=[])
 ap.add_argument('--normalized', nargs='*', default=[])
 a = ap.parse_args()
+if a.keep_result:
+    if not 1 <= a.clip <= 32767: ap.error('--clip must be between 1 and 32767')
+    if not math.isfinite(a.val) or not 0 <= a.val < 1: ap.error('--val must be finite and between 0 (inclusive) and 1 (exclusive)')
+    if a.seed < 0: ap.error('--seed must be nonnegative')
+    if not 2 <= a.max_pieces <= 32: ap.error('--max-pieces must be between 2 and 32')
+    if a.min_depth < 0: ap.error('--min-depth must be nonnegative')
 destination = Path(a.outdir)
 partial = destination.with_name(destination.name + '.partial')
 if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
 low_priority()
 storage_guard(destination)
 storage_guard(partial)
+source_paths = a.pgn + a.selfplay + a.lichess + a.normalized
+source_identities = [input_identity(f) for f in source_paths] if a.keep_result else []
 metadata = []
 current_metadata = None
 def throttle():
@@ -71,13 +79,18 @@ for f in a.pgn:
                 keep(b, cp if b.turn else -cp, mv)
             b.push(mv)
 for f in a.selfplay:
+    if a.keep_result:
+        for current_metadata in read_records(f, 'selfplay'):
+            st['sp_lines'] += 1
+            b = chess.Board(current_metadata['fen']); s = current_metadata['score_stm']
+            keep(b, s if b.turn else -s, None)
+        continue
     for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
         if not line.strip() or line.startswith('#'): continue
         st['sp_lines'] += 1
         try: fen, sc, _ = [x.strip() for x in line.split('|')]; b = chess.Board(fen); s = int(sc)
         except Exception: st['sp_bad'] += 1; continue
         if not b.is_valid(): st['sp_bad'] += 1; continue
-        if a.keep_result: current_metadata = selfplay_record(line, f, source_row)
         keep(b, s if b.turn else -s, None)   # selfplay already quiet-filtered by eligible_score
 for kind, paths in [('lichess', a.lichess), ('normalized', a.normalized)]:
     for f in paths:
@@ -110,8 +123,12 @@ s = arr['score'].astype(np.int32)
 st.update(final=len(arr), train=len(arr)-nv, val=nv, mean=float(s.mean()), std=float(s.std()),
           abs_median=float(np.median(np.abs(s))), black_to_move=float(arr['stm'].mean()), min_depth=a.min_depth,
           sources=a.pgn + a.selfplay + a.lichess + a.normalized)
+if a.keep_result: st['source_identities'] = source_identities
 with open(partial / 'stats.json', 'x', encoding='utf-8') as fh:
     json.dump(st, fh, indent=1)
+for source_path, identity in zip(source_paths, source_identities):
+    if input_identity(source_path) != identity:
+        raise ValueError('source changed during conversion: ' + source_path)
 storage_guard(destination, allowance=0)
 partial.rename(destination)
 print(json.dumps(st, indent=1))

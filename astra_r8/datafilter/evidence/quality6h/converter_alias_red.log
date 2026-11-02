@@ -1,0 +1,81 @@
+...............F                                                         [100%]
+================================== FAILURES ===================================
+__________________ test_retargeted_source_alias_is_rejected ___________________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_alias_red/pytest/test_retargeted_source_alias_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000196059D0>
+
+    def test_retargeted_source_alias_is_rejected(tmp_path, monkeypatch):
+        import filter_lichess_rec
+        source = valid_source(tmp_path)
+        second = tmp_path/'other.txt'
+        second.write_text(source.read_text().replace('| 1\n', '| 0\n'))
+        alias = tmp_path/'source_alias.txt'
+        try:
+            alias.symlink_to(source)
+        except OSError as exc:
+            pytest.skip(f'host cannot create the owned fixture symlink: {exc}')
+        original = filter_lichess_rec.encode_board
+        changed = False
+    
+        def retarget(*args, **kwargs):
+            nonlocal changed
+            if not changed:
+                alias.unlink()  # Only the link created above; both fixture sources remain.
+                alias.symlink_to(second)
+                changed = True
+            return original(*args, **kwargs)
+    
+        monkeypatch.setattr(filter_lichess_rec, 'encode_board', retarget)
+>       with pytest.raises(ValueError, match='source changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_converter_admission.py:104: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 0,
+ "moves": 0,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 4,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\converter_alias_red\\pytest\\test_retargeted_source_alias_i0\\source_alias.txt"
+ ],
+ "source_identities": [
+  {
+   "path": "C:\\astra8_data\\quality6h_20261102\\converter_alias_red\\pytest\\test_retargeted_source_alias_i0\\rows.txt",
+   "bytes": 174,
+   "sha256": "1bf7ab4d761d56ee10243cd5ec2cd2db5b0ce8baf0adc48f08dd3c71671d12b9",
+   "device": 7374117080949341541,
+   "inode": 562949953964929,
+   "mtime_ns": 1793659708427161800,
+   "ctime_ns": 1793659708427161800
+  }
+ ]
+}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_retargeted_source_alias_is_rejected
+1 failed, 15 passed in 5.40s

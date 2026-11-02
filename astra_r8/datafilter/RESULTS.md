@@ -30,6 +30,16 @@ benchmark on shard 003 passes in 5.690 seconds including hashing the complete
 a full-board check; reservoir samples are audit evidence only. No training data
 or holdout/game-separation claim. Complete results pending.
 
+Converter admission milestone: 15 failures reproduced before repairs, then an
+actual Windows alias-retargeting failure reproduced and fixed. Full suite: 192
+tests + 11 subtests PASS; 23 focused checks pass after expanding legacy output
+identity to filenames and stats.json. Small focused review approved the frozen
+converter before the next 100k/all-artifact and 1000-mirror reruns (now running).
+The no-flag configuration/parser path remains unchanged. Corpus audit has
+completed 13,593,220 rows in its first three sources without malformed positions;
+their score/result correlations are 0.6647, 0.6614 and 0.6599. Remaining sources
+are still being inspected; these are descriptive data statistics, not strength.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

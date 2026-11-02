@@ -47,6 +47,22 @@ explicitly recorded; it is not a pure decoding throughput measurement.
 New outputs are descriptive summaries and bounded reservoir evidence, never
 training inputs. One CPU leaves one available for the authorized main-agent work.
 
+## Six-hour continuation: converter admission and complete legacy output
+
+Initial 15 regression failures cover result-aware invalid settings, silently
+skipped malformed self-play, and unbound/changing source data. Fixes affect only
+--keep-result behavior. Main self-review identified an alias flaw in the initial
+fix: rehashing only the resolved target missed retargeting of the original input
+path. An actual Windows symlink fixture failed first, then passed after checking
+the original argument again. Both fixture targets are retained.
+Full suite passed 192 tests + 11 subtests. The additional all-output comparison
+now checks every filename/hash, including stats.json; 23 focused tests pass.
+One reused reviewer inspected only converter, audit and their two test files;
+no new agent or CPU validation. APPROVED for actual legacy/orientation reruns.
+Reviewed converter SHA256 2c63fd8be1a1254f1f0a58ac7bf7cb476cbe668635c0736422079ad1a9e8be4b.
+Source remains frozen during the reruns. Next: source metadata and handoff
+completeness checks while the separately frozen one-CPU corpus audit continues.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

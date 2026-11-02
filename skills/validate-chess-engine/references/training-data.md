@@ -161,6 +161,13 @@ Keep a strict structural preflight original and separate from library move
 legality; test ordinary exports, variations, special moves and UTF-8 damage.
 Preserve legacy parser behavior on an explicitly compatible no-flag interface.
 
+Recheck the original supplied source path, not only its initially resolved target.
+A retargeted input alias can otherwise read different bytes while the original
+target still hashes correctly. Cover this with an owned fixture link and preserve
+both fixture targets. A byte-compatibility contract includes output names and
+statistics/metadata files as well as binary payloads; distinguish original labels
+from intentionally clipped encoded labels in round-trip audits.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

@@ -35,6 +35,15 @@ shuffle and binary bytes are preserved. New `--pgn`, `--lichess` and `--normaliz
 routes retain source/full-state metadata with `--keep-result`. Output directories
 must not exist. REC is **not npt binpack**.
 
+Result-aware PGN input is strict standard chess: conflicting semantic headers,
+missing termination, damaged comments/variations, ignored garbage and invalid
+UTF-8 fail before final publication. `--keep-result` also rejects malformed
+self-play rows and invalid converter settings, and binds complete source hashes
+before/after conversion. Legacy no-flag parsing and argument behavior is retained.
+The metadata sidecar preserves the original score; REC keeps the established
+`--clip` behavior. The audit reconstructs and verifies the clipped REC label from
+that original score rather than pretending that clipping never occurred.
+
 Normalized records contain original full FEN, source and source row, source kind,
 raw score and type, STM score, White and STM results, result mask, zero-based ply,
 depth if known, and genuine stored best move if available. Self-play scores are

@@ -80,5 +80,5 @@ def test_pgn_results_and_original_clocks(tmp_path):
         p=subprocess.run([sys.executable,str(script),str(dest),'--pgn',str(source)],capture_output=True,text=True)
         assert p.returncode==0,p.stdout+p.stderr
         outputs.append(dest)
-    for split in ('train','val'):
-        assert (outputs[0]/f'{split}.bin').read_bytes()==(outputs[1]/f'{split}.bin').read_bytes()
+    for filename in ('train.bin','val.bin','stats.json'):
+        assert (outputs[0]/filename).read_bytes()==(outputs[1]/filename).read_bytes()

@@ -1,0 +1,1388 @@
+FFFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+____________ test_invalid_configuration_before_source_read[args0] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000047D3620>
+args = ('--clip', '-1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef0\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args1] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019342420>
+args = ('--clip', '0')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef1\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args2] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019546180>
+args = ('--clip', '32768')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef2\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args3] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195476E0>
+args = ('--val', '-0.1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef3\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args4] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195466F0>
+args = ('--val', '1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef4\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args5] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019561B80>
+args = ('--val', 'nan')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef5\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args6] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195443E0>
+args = ('--val', 'inf')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef6\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args7] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019546090>
+args = ('--seed', '-1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef7\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args8] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019546720>
+args = ('--max-pieces', '1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef8\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args9] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019563A10>
+args = ('--max-pieces', '33')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef9\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+____________ test_invalid_configuration_before_source_read[args10] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_invalid_configuration_bef10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195608F0>
+args = ('--min-depth', '-1')
+
+    @pytest.mark.parametrize('args', [
+        ('--clip', '-1'), ('--clip', '0'), ('--clip', '32768'),
+        ('--val', '-0.1'), ('--val', '1'), ('--val', 'nan'), ('--val', 'inf'),
+        ('--seed', '-1'), ('--max-pieces', '1'), ('--max-pieces', '33'),
+        ('--min-depth', '-1'),
+    ])
+    def test_invalid_configuration_before_source_read(tmp_path, monkeypatch, args):
+        with pytest.raises(SystemExit) as error:
+>           convert(monkeypatch, tmp_path/'missing.txt', tmp_path/'output', *args)
+
+astra_r8\datafilter\tests\test_converter_admission.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_converter_admission.py:18: in convert
+    runpy.run_path(str(HERE/'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+>       for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_invalid_configuration_bef10\\missing.txt'
+
+astra_r8\datafilter\convert_forge.py:74: FileNotFoundError
+________ test_bad_selfplay_cannot_be_silently_skipped[not a position] _________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_bad_selfplay_cannot_be_si0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019589040>
+bad = 'not a position'
+
+    @pytest.mark.parametrize('bad', ['not a position', '4k3/8/8/8/8/8/8/8 w - - 0 1 | 0 | 0.5'])
+    def test_bad_selfplay_cannot_be_silently_skipped(tmp_path, monkeypatch, bad):
+        source = valid_source(tmp_path)
+        with source.open('a') as fh:
+            fh.write(bad+'\n')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_converter_admission.py:47: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 0,
+ "moves": 0,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 5,
+ "sp_bad": 1,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_bad_selfplay_cannot_be_si0\\rows.txt"
+ ]
+}
+_ test_bad_selfplay_cannot_be_silently_skipped[4k3/8/8/8/8/8/8/8 w - - 0 1 | 0 | 0.5] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_bad_selfplay_cannot_be_si1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001952BD40>
+bad = '4k3/8/8/8/8/8/8/8 w - - 0 1 | 0 | 0.5'
+
+    @pytest.mark.parametrize('bad', ['not a position', '4k3/8/8/8/8/8/8/8 w - - 0 1 | 0 | 0.5'])
+    def test_bad_selfplay_cannot_be_silently_skipped(tmp_path, monkeypatch, bad):
+        source = valid_source(tmp_path)
+        with source.open('a') as fh:
+            fh.write(bad+'\n')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_converter_admission.py:47: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 0,
+ "moves": 0,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 5,
+ "sp_bad": 1,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_bad_selfplay_cannot_be_si1\\rows.txt"
+ ]
+}
+_________________ test_result_converter_binds_source_identity _________________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_result_converter_binds_so0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019563F50>
+
+    def test_result_converter_binds_source_identity(tmp_path, monkeypatch):
+        source = valid_source(tmp_path)
+        convert(monkeypatch, source, tmp_path/'output')
+        stats = json.loads((tmp_path/'output/stats.json').read_text())
+>       identity = stats['source_identities'][0]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'source_identities'
+
+astra_r8\datafilter\tests\test_converter_admission.py:56: KeyError
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 0,
+ "moves": 0,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 4,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_result_converter_binds_so0\\rows.txt"
+ ]
+}
+_____________ test_source_mutation_before_publication_is_rejected _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/converter_admission_red/pytest/test_source_mutation_before_pu0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019544D40>
+
+    def test_source_mutation_before_publication_is_rejected(tmp_path, monkeypatch):
+        import filter_lichess_rec
+        source = valid_source(tmp_path)
+        original = filter_lichess_rec.encode_board
+        mutated = False
+    
+        def mutate(*args, **kwargs):
+            nonlocal mutated
+            if not mutated:
+                with source.open('a') as fh:
+                    fh.write('# injected fixture mutation\n')
+                mutated = True
+            return original(*args, **kwargs)
+    
+        monkeypatch.setattr(filter_lichess_rec, 'encode_board', mutate)
+>       with pytest.raises(ValueError, match='source changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_converter_admission.py:77: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 0,
+ "moves": 0,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 4,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\converter_admission_red\\pytest\\test_source_mutation_before_pu0\\rows.txt"
+ ]
+}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args0]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args1]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args2]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args3]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args4]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args5]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args6]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args7]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args8]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args9]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_invalid_configuration_before_source_read[args10]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_bad_selfplay_cannot_be_silently_skipped[not a position]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_bad_selfplay_cannot_be_silently_skipped[4k3/8/8/8/8/8/8/8 w - - 0 1 | 0 | 0.5]
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_result_converter_binds_source_identity
+FAILED astra_r8/datafilter/tests/test_converter_admission.py::test_source_mutation_before_publication_is_rejected
+15 failed in 7.50s

@@ -60,6 +60,19 @@ def freeze(root, sources):
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     return manifest
 
+def compare_legacy_artifacts(old, new):
+    """The compatibility contract covers stats and file names as well as binaries."""
+    inventories = []
+    for directory in (old, new):
+        paths = list(Path(directory).iterdir())
+        if any(not path.is_file() or path.is_symlink() for path in paths):
+            raise ValueError('legacy output contains a nonregular artifact')
+        inventories.append({path.name: sha256(path) for path in paths})
+    if inventories[0] != inventories[1]:
+        raise ValueError('legacy output artifacts differ')
+    return inventories[0]
+
+
 def legacy(root):
     for name in ('old', 'new', 'result', 'legacy_logs'):
         if os.path.lexists(root/name):
@@ -73,7 +86,7 @@ def legacy(root):
             completed = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, env=os.environ.copy())
         if completed.returncode:
             raise RuntimeError(f'{name} converter failed; see log')
-    report = {}
+    report = {'all_legacy_artifacts': compare_legacy_artifacts(root/'old', root/'new')}
     from filter_lichess_rec import REC
     for split in ('train', 'val'):
         old, new = sha256(root/'old'/f'{split}.bin'), sha256(root/'new'/f'{split}.bin')
