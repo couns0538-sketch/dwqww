@@ -254,3 +254,7 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
   promoted after the proof with a bridge check (same output on the proof's own inputs).
 - pc_gate reported ok=False at 97 % total CPU (crew work everywhere): short checks then ran only at Idle on the own two
   cores (they compete with the own proof runs, nobody else's) and that was written down.
+- Timing next to crew work (2026-11-02 15:55): two of Astra's `profile_corpus.py` ran at BelowNormal with affinity 0xFFFF
+  (all CPUs). BelowNormal beats Idle on CPUs 2-3 too: an own Idle prepare got 0.7 s of CPU in 150 s, and proof shards went
+  from ~105 s to 140-188 s. Before timing anything, list who uses CPUs 2-3 (sample `TotalProcessorTime` of every
+  process whose affinity includes 0xC over 5 s) and write that load next to every rate; compare builds only by ABBA.
