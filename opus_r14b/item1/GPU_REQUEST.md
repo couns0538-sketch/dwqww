@@ -38,7 +38,7 @@ powershell -NoProfile -File D:\grok-pc-data\dwqww\.claude\worktrees\o14b-l1\opus
   '-B opus_tools\guard_exec.py train.py F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack --validation-datasets F:\forge_j1_data\forge_holdout_013-014_j2.binpack --validation-size 1000000 --default-root-dir C:\o14b\gpu\fl_e1 --features K32H3^ --l1 1024 --batch-size 16384 --num-workers 4 --threads 2 --epoch-size 152500000 --max-epochs 1 --network-save-period 1 --save-top-k 1 --save-last-network False --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered --accelerator cuda --gamma 0.72 --fast-loader'
 ```
 (Reads from F: only: the trainer copy is on D:, the data binpacks on F: are read-only. The command line contains no `train_resid` name, so the NNUE supervisor does not adopt it; the output folder does
-not start with `runs_`. `C:\o14b\gpu` must not exist before; create it right before the run.)
+not start with `runs_`. The run folder `C:\o14b\gpu\fl_e1` must not exist before the run; the cache folders may be reused.)
 
 ## During and after
 - GPU utilisation: the keeper's own source, HWiNFO CSV `C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv`
