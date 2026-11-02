@@ -31,6 +31,16 @@ aggregate retained C/D/F artifacts <=15 GB. Two CPU workers maximum, BelowNormal
 The previous approved handoff and source commit e526fc12 remain historical proof.
 Any new runtime changes require a newly verified handoff before crew use.
 
+At 23:22 UTC, the first seven closed sources (45,255,639 rows) all pass the
+descriptive scan. All have zero in-check and mate-score rows. Given the measured
+one-worker rate and remaining window, extend the audit to the other 22 closed
+001–039 sources (still excluding 013/014). Use the same frozen profiler, a separate
+new output and one additional CPU worker only after the current handoff checks.
+Together both scans cover the existing source inventory; they do not create
+training data, game-ID proof or a changed recipe. Keep the 03:11 deadline and
+final 30-minute review reserve. If a storage/source check fails, preserve evidence
+and redirect the remaining time without touching any crew process.
+
 Tool selection so far: Forge C++ engineering/evidence checker, Skill Creator,
 existing training-data validation guidance, Context7 official python-chess docs,
 GitHub connector read-only issue lookup. No matching open datafilter issue found.

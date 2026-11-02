@@ -1,5 +1,9 @@
 # Matched result-mask recipes — UNPROVEN
 
+Refresh in progress: the six-hour continuation changed parser/schema code, so
+the historical manifest below must be replaced by its newly verified successor
+before crew use. The entry point rejects stale runtime/tooling identities.
+
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input
 `forge_train_001-039_ex013-014_j2.binpack`, and separate 013/014 validation.

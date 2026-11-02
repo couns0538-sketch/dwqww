@@ -175,6 +175,13 @@ leading-zero source identifiers. After tightening a schema, replay existing real
 normalized shards read-only and bind their before/after hashes; unit fixtures
 alone do not prove compatibility with retained training data.
 
+A proof checker must reject missing evidence collections, not merely iterate
+whatever entries happen to be supplied. Bind required tool identities, ordered
+source consumption, retained/excluded conservation and sign/mirror evidence to
+the exact payload. If historical proofs need migration, authorize the specific
+historical digest and specific local modules; newly published proofs must satisfy
+the full current contract. Preserve old receipts instead of editing their pins.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

@@ -1,0 +1,873 @@
+FFFFFFFFFFFFFFFFFFFF                                                     [100%]
+================================== FAILURES ===================================
+_____ test_incomplete_or_inconsistent_proof_is_rejected[missing_tooling] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194D2A20>
+damage = 'missing_tooling'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+______ test_incomplete_or_inconsistent_proof_is_rejected[empty_tooling] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001953F770>
+damage = 'empty_tooling'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_____ test_incomplete_or_inconsistent_proof_is_rejected[missing_one_tool] _____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956D2B0>
+damage = 'missing_one_tool'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_____ test_incomplete_or_inconsistent_proof_is_rejected[missing_sources] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956E0C0>
+damage = 'missing_sources'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[source_count] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956EB70>
+damage = 'source_count'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[source_order] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956F2C0>
+damage = 'source_order'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_____ test_incomplete_or_inconsistent_proof_is_rejected[source_boundary] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956EF60>
+damage = 'source_boundary'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[source_bytes] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195853A0>
+damage = 'source_bytes'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[missing_sign] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019585EE0>
+damage = 'missing_sign'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[sign_payload] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956FFE0>
+damage = 'sign_payload'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+________ test_incomplete_or_inconsistent_proof_is_rejected[sign_known] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956D400>
+damage = 'sign_known'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_____ test_incomplete_or_inconsistent_proof_is_rejected[sign_correlation] _____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956D280>
+damage = 'sign_correlation'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+______ test_incomplete_or_inconsistent_proof_is_rejected[mirror_failed] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956DF40>
+damage = 'mirror_failed'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[mirror_short] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194D10D0>
+damage = 'mirror_short'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_______ test_incomplete_or_inconsistent_proof_is_rejected[schema_bool] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten14')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001953FA10>
+damage = 'schema_bool'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+___ test_incomplete_or_inconsistent_proof_is_rejected[payload_float_count] ____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten15')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019586030>
+damage = 'payload_float_count'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+_____ test_incomplete_or_inconsistent_proof_is_rejected[clearance_input] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten16')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019587770>
+damage = 'clearance_input'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+___ test_incomplete_or_inconsistent_proof_is_rejected[clearance_accounting] ___
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten17')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019587830>
+damage = 'clearance_accounting'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+____ test_incomplete_or_inconsistent_proof_is_rejected[clearance_original] ____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_incomplete_or_inconsisten18')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195A99D0>
+damage = 'clearance_original'
+
+    @pytest.mark.parametrize('damage', [
+        'missing_tooling', 'empty_tooling', 'missing_one_tool', 'missing_sources',
+        'source_count', 'source_order', 'source_boundary', 'source_bytes',
+        'missing_sign', 'sign_payload', 'sign_known', 'sign_correlation',
+        'mirror_failed', 'mirror_short', 'schema_bool', 'payload_float_count',
+        'clearance_input', 'clearance_accounting', 'clearance_original',
+    ])
+    def test_incomplete_or_inconsistent_proof_is_rejected(tmp_path, monkeypatch, damage):
+        path, m, receipt = fixture(tmp_path, monkeypatch)
+        if damage == 'missing_tooling': m.pop('tooling')
+        elif damage == 'empty_tooling': m['tooling'] = {}
+        elif damage == 'missing_one_tool': m['tooling'].pop(next(iter(m['tooling'])))
+        elif damage == 'missing_sources': m['cohort']['sources'] = []
+        elif damage == 'source_count': m['cohort']['count'] += 1
+        elif damage == 'source_order': m['cohort']['source_order'] = []
+        elif damage == 'source_boundary': m['cohort']['sources'][0]['last_source_row'] = 1
+        elif damage == 'source_bytes': m['cohort']['sources'][0]['bytes'] += 1
+        elif damage == 'missing_sign': m.pop('sign_audit')
+        elif damage == 'sign_payload': m['sign_audit']['selection_sha256'] = '0'*64
+        elif damage == 'sign_known': m['sign_audit']['known_result_count'] = 1
+        elif damage == 'sign_correlation': m['sign_audit']['pearson_stm_score_result'] = 0.9
+        elif damage == 'mirror_failed': m['sign_audit']['mirror_status'] = 'FAIL'
+        elif damage == 'mirror_short': m['sign_audit']['mirror_checked'] = 1
+        elif damage == 'schema_bool': m['schema'] = True
+        elif damage == 'payload_float_count': m['sample']['rows'] = 2.0
+        elif damage == 'clearance_input': receipt['selection']['input'] += 1
+        elif damage == 'clearance_accounting': receipt['selection']['holdout_excluded'] = 1
+        elif damage == 'clearance_original': receipt['original_selection_sha256'] = '0'*64
+        if damage.startswith('clearance_'):
+            cp = Path(m['clearance']['path'])
+            cp.write_text(json.dumps(receipt))
+            m['clearance']['sha256'] = v.sha256(cp)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:44: Failed
+______ test_runtime_exception_requires_the_approved_historical_manifest _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/handoff_completeness_red/pytest/test_runtime_exception_require0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195AA6F0>
+
+    def test_runtime_exception_requires_the_approved_historical_manifest(tmp_path, monkeypatch):
+        path, m, _ = fixture(tmp_path, monkeypatch)
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError, match='historical'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_completeness.py:51: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[missing_tooling]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[empty_tooling]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[missing_one_tool]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[missing_sources]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[source_count]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[source_order]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[source_boundary]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[source_bytes]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[missing_sign]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[sign_payload]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[sign_known]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[sign_correlation]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[mirror_failed]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[mirror_short]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[schema_bool]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[payload_float_count]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[clearance_input]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[clearance_accounting]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_incomplete_or_inconsistent_proof_is_rejected[clearance_original]
+FAILED astra_r8/datafilter/tests/test_handoff_completeness.py::test_runtime_exception_requires_the_approved_historical_manifest
+20 failed in 4.51s

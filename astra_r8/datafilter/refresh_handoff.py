@@ -23,19 +23,13 @@ import chess
 from filter_positions import low_priority, sha256
 from records import record
 from resource_policy import ARTIFACT_ROOT, storage_guard
-from verify_handoff import verify, REVIEWABLE_RUNTIME
+from verify_handoff import verify, REVIEWABLE_RUNTIME, APPROVED_PREVIOUS_SHA256, TOOLING
 
 HERE = Path(__file__).resolve().parent
 PREVIOUS = HERE/'evidence/handoff_manifest.json'
-APPROVED_PREVIOUS_SHA256 = '0b75136d5d3ead9881b8dc78f0b46ee55d918de499884272c790356f8001d4bb'
 RECIPES = ('filtered_eval_v1', 'filtered_wdl_v1')
 TRAINING_NAMES = ('filtered_eval_stm_v1', 'filtered_wdl_stm_v1')
 MIN_MIRRORS = 1000
-TOOLING = ('convert_forge.py', 'result_codec.py', 'filter_positions.py', 'pgn_input.py',
-           'resource_policy.py', 'filter_lichess_rec.py', 'signcheck.py',
-           'audit.py', 'audit_followup.py', 'audit_stm_roundtrip.py', 'audit_capture_cohort.py',
-           'audit_raw_labels.py', 'independent_audit.py', 'clear_holdouts.py',
-           'verify_handoff.py', 'refresh_handoff.py')
 
 
 def write_json(path, value):

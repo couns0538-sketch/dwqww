@@ -51,6 +51,18 @@ Actual read-only replay then accepted all 999,953 cleared training rows and all
 Malformed provenance, optional depth, raw-score types and Lichess result claims
 are rejected; existing valid metadata is preserved. No training has run.
 
+Handoff completeness milestone: 20 regression failures reproduced omitted or
+inconsistent evidence being accepted. Fixed required tooling/source accounting,
+clearance conservation and original-cohort binding, attached sign/mirror proof,
+integer types and historical migration restrictions. Full suite: 242 tests +
+11 subtests PASS; 41 focused checks then pass including historical compatibility
+and manifest mutation. The reused reviewer APPROVED the exact frozen change for
+refreshing the original pinned handoff. Actual refresh follows this checkpoint.
+The first seven fully profiled sources contain 45,255,639 valid rows, zero invalid,
+zero in-check and zero mate-score rows. The same frozen audit will inspect the
+other 22 closed 001–039 sources in a separate run after handoff preflights, within
+the two-worker limit. Complete corpus results remain pending and UNPROVEN.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

@@ -12,11 +12,13 @@ plus 11 subtests. Native FD3A5190 accepts all 62 sample/edge/mirrored FEN checks
 and reproduces all five supplied lock bench counts. These checks establish data
 and interface compatibility; strength remains UNPROVEN.
 
-Current handoff: `C:/astra8_data/audit30_20261102/handoff/manifest.json`, SHA256
+Historical handoff (refresh pending during the six-hour continuation):
+`C:/astra8_data/audit30_20261102/handoff/manifest.json`, SHA256
 `7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e405a8c1d`.
-Use the commands in MIX_SPEC.md. Older handoffs remain historical evidence and
+The new parser/schema fixes require a new verified manifest before crew use.
+The commands in MIX_SPEC.md are being refreshed. Older handoffs remain evidence and
 deliberately fail current runtime identity checks after the reviewed local fixes.
-Current proof: `evidence/audit30/correctness_record_final.json` and
+Prior proof: `evidence/audit30/correctness_record_final.json` and
 `full_output_hashes_final.json`; the latter rechecks 702 artifacts and excludes
 the then-open packaging log, whose final hash is separately disclosed. The final
 native helper also passes its timeout regression and a fresh successful Forge run.

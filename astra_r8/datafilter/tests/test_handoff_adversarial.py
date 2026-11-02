@@ -15,7 +15,13 @@ def fixture(tmp_path, monkeypatch):
     wrapper=tmp_path/'wrapper.py';wrapper.write_bytes(b'# fixture\n')
     manifest['baseline_wrapper']={'path':str(wrapper),'sha256':v.sha256(wrapper)}
     manifest['runtime']={'files':{str(wrapper):v.sha256(wrapper)}}
-    manifest['cohort']={'sources':[{'path':str(rows),'sha256':v.sha256(rows)}]}
+    manifest['cohort']={'count':2, 'source_order':[str(rows)],
+                        'hashes':{'million.jsonl':payload['sha256']},
+                        'sources':[{'path':str(rows),'sha256':v.sha256(rows),
+                                    'bytes':rows.stat().st_size, 'consumed':2,
+                                    'first_source_row':1,'last_source_row':2}]}
+    from refresh_handoff import tooling_identity
+    manifest['tooling']=tooling_identity()
     holds=[];pins={}
     for shard in ('013','014'):
         p=tmp_path/(shard+'.txt');p.write_bytes((shard+'\n').encode())
@@ -24,11 +30,17 @@ def fixture(tmp_path, monkeypatch):
     monkeypatch.setattr(v,'EXPECTED_HOLDOUTS',pins)
     manifest['holdouts']=holds
     receipt={'status':'PASS','remaining_overlap_unique_keys':0,
-             'selection':{'records_sha256':payload['sha256'],'metadata_sha256':payload['sha256'],'kept':2},
+             'original_selection_sha256':payload['sha256'],
+             'selection':{'records_sha256':payload['sha256'],'metadata_sha256':payload['sha256'],
+                          'input':2,'kept':2,'holdout_excluded':0},
              'complete_holdouts':copy.deepcopy(holds)}
     clearance=tmp_path/'clearance.json';clearance.write_text(json.dumps(receipt))
     manifest['clearance']={'path':str(clearance),'sha256':v.sha256(clearance)}
     manifest['known_result_count']=2;manifest['pearson_stm_score_result']=0.5
+    manifest['sign_audit']={'rows':2,'known_result_count':2,'unknown_result_count':0,
+                            'pearson_stm_score_result':0.5,'selection_sha256':payload['sha256'],
+                            'mirror_checked':2,'mirror_status':'PASS','sample_bytes':rows.stat().st_size}
+    monkeypatch.setattr(v,'MIN_MIRRORS',2,raising=False)
     path=tmp_path/'manifest.json'
     return path,manifest,receipt
 

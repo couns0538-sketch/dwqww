@@ -84,6 +84,27 @@ all pass, complete input hashes unchanged, source code hash unchanged. Evidence:
 metadata_real_replay.json. Next: reproduce handoff completeness gaps while the
 separately frozen corpus profiler continues. No handoff readiness claimed yet.
 
+## Six-hour continuation: complete handoff admission
+
+Reviewed verifier SHA256 5a8adb373d67d90ee154e595e28132f220e546e6e69e716d8373ba1dc6881c23,
+refresher b4977ff26923d325dc66ac26bc8c308018a267403aadb97f128196f8f54e7221.
+Twenty red reproductions showed omissions or inconsistent accounting could pass.
+Main now requires the complete tooling set, ordered nonempty source accounting,
+clearance conservation/original hash, bound sign/mirror proof and exact count
+types. Only the exact approved historical manifest may omit the newer proof
+fields during the narrowly allowed local migration. Manifest bytes are rechecked
+before returning a successful receipt. This schema covers the fixed existing
+cohort; future cohorts with different filtering/split accounting need an explicit
+new contract, not arbitrary reuse of its readiness flag.
+
+Full frozen suite: 242 tests + 11 subtests PASS. Two further historical/mutation
+cases added; focused verifier/refresher suite 41 PASS. Reused read-only reviewer
+APPROVED all four changed files and checked the actual prior manifest/clearance:
+1,000,000 = 999,953 + 47, original cohort hash and both complete holdouts bound.
+No new agents or repeated expensive test run. Main accepted the findings (none
+blocking) and will run the real refresh and both CPU preflights next. Prior
+handoff links are explicitly marked historical until the replacement passes.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity
