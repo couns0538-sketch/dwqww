@@ -1,9 +1,10 @@
 # Matched result-mask recipes — UNPROVEN
 
-Current handoff SHA256:
+Historical v1 handoff SHA256 (refresh pending after the aggregate worker-budget fix):
 `818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
 Both CPU preflights and strict published verification pass for source 5012035c.
 The entry point rejects stale runtime/tooling identities.
+Current-source commands below require the next verified manifest before crew use.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input

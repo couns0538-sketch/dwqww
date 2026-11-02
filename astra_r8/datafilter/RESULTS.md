@@ -70,6 +70,30 @@ verification before publication and again using the published path. New manifest
 Same 999,953 rows and sample hash; Pearson 0.6635950368 and 1,000 mirrors PASS.
 The complementary 22-source scan is now running as the second CPU worker.
 
+Aggregate CPU-budget correction: the prior `workers=2` filter created two pool
+processes while its parent parsed/wrote rows. A red allocation test reproduced
+the budget violation. It now uses one parent plus one child, with both counts in
+the receipt. Filter changes independently APPROVED; fresh million-row timings
+are pending after both profile scans finish. Earlier keep counts/hashes remain
+valid, but their two-pool-worker times do not qualify a two-total-worker claim.
+The v1 handoff above is now historical for source 5012035c; a new tooling-bound
+manifest must follow the filter correction before current-source crew use.
+
+Descriptive report milestone: full pre-review-fix suite 255 tests + 11 subtests
+PASS. Reviewer found impossible moments and contradictory outcome marginals could
+pass the new reporter. Five red cases reproduced both findings. Exact integer
+variance/covariance and outcome-marginal checks fix them; 14 reporter tests PASS,
+then two positive zero-variance/unknown-result checks PASS. Focused recheck
+APPROVED reporter SHA256
+`01e8b6ac924cba16205809ef405040e1cfafd404aef94bf102b335834d7a3a4c`.
+The reporter requires complete disjoint coverage of all 37 intended sources and
+does not grant training readiness. Actual combined report awaits both scans.
+
+Tests used only one temporarily yielded owned audit worker, verified by exact
+command, ancestry and frozen runtime. Every slot receipt records successful
+resume and zero CPU use while suspended. No crew process was changed; profile
+elapsed times include these recorded yields and are not filter benchmarks.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

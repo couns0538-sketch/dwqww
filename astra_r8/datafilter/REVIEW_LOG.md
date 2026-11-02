@@ -116,6 +116,37 @@ one owned BelowNormal child and bounded 03:11 UTC deadline. It started only afte
 the CPU preflights completed, retaining the two-worker total. This source-list
 extension used a structured self-check; no repeated code review was needed.
 
+## Six-hour continuation: aggregate filter budget and descriptive reporting
+
+Filter SHA256 b3fdda81f293dc240a68d8a129143c3db75ed4a96da8ada8202cf9a1864ea7ac.
+Main identified parent computation omitted from pool sizing. Red test confirms
+parent1+pool2 exceeded the requested total2. Fixed pool size to one for budget2;
+receipt explicitly reports coordinator/pool counts. One reused reviewer APPROVED
+this change. Payload predicates and ordering are unchanged. Prior timings remain
+historical; fresh actual two-total-worker runs are required before the final claim.
+
+New report_corpus.py combines disjoint complete source inspections, checks local
+report/sample identities and source metadata, sums raw moments and writes data
+composition tables. Initial 22 focused checks passed, then the full worktree
+suite passed 255 tests + 11 subtests. Reviewer found two concrete issues in the
+initial reporter: impossible moments accepted as undefined correlation, and
+score/outcome marginals inconsistent with known/unknown coverage. Main accepted
+both, reproduced five RED cases and added exact integer second-moment, variance,
+covariance and marginal checks. Fourteen reporter checks pass after fixes; two
+additional positive boundary checks pass for real zero variance and unknown-only
+outcomes. Reused reviewer APPROVED the focused recheck; no unresolved finding.
+Final reporter SHA256 01e8b6ac924cba16205809ef405040e1cfafd404aef94bf102b335834d7a3a4c;
+tests 226e1e8131c55f1fd6b429c9b4c0ecc652c40e64eae0a75537a8e8ec8c144782.
+
+Main's owned slot controller identifies only complementary audit child8776 via
+exact command, parent9460, launch-script ancestry and pinned runtime. It yields
+that worker while CPU tests run and resumes it in finally; every preserved
+slot_receipt records resumed=true and zero CPU seconds during suspension. No
+crew process or STOP/PAUSE file was touched. Profiling wall times retain this
+elapsed time. Next: combined data report after both scans; corrected filter
+million-row runs, refreshed handoff and final review. No report or timing result
+is claimed before those actual runs complete.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

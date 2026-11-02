@@ -84,7 +84,9 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
     independent, first, overlap, coverage = Counter(), Counter(), Counter(), Counter()
     count = kept = 0
     start = time.perf_counter()
-    executor = ProcessPoolExecutor(max_workers=workers, initializer=low_priority) if workers == 2 else None
+    # The parent parses/validates FENs and serializes both output streams, so it
+    # consumes one compute slot. A two-slot run may own only one pool worker.
+    executor = ProcessPoolExecutor(max_workers=workers-1, initializer=low_priority) if workers == 2 else None
     try:
         source = chunks(iter(read_records(inp, kind)))
         with open(partial / 'records.jsonl', 'x', encoding='utf-8', newline='\n') as records, open(partial / 'metadata.jsonl', 'x', encoding='utf-8', newline='\n') as metadata:
@@ -126,6 +128,7 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                       first_drop={k: first[k] for k in RULES}, overlap=dict(sorted(overlap.items())),
                       coverage=dict(coverage), enabled=dict(zip(RULES, enabled)),
                       max_ply_from_start=max_ply_from_start, workers=workers,
+                      coordinator_workers=1, pool_workers=workers-1,
                       elapsed_seconds=elapsed, positions_per_second=count/elapsed,
                       capture_measurement='PASS' if coverage['best_move'] == count else 'BLOCKED: missing metadata',
                       qsearch_measurement='BLOCKED: unsupported oracle',
@@ -147,7 +150,8 @@ if __name__ == '__main__':
     parser.add_argument('input')
     parser.add_argument('output')
     parser.add_argument('--kind', choices=['normalized', 'selfplay', 'lichess', 'pgn'], default='normalized')
-    parser.add_argument('--workers', type=int, default=1)
+    parser.add_argument('--workers', type=int, default=1,
+                        help='total compute-process budget, including parser/writer (1 or 2)')
     parser.add_argument('--drop-in-check', action='store_true')
     parser.add_argument('--drop-capture-bestmove', action='store_true')
     parser.add_argument('--drop-qs-unquiet', type=int)

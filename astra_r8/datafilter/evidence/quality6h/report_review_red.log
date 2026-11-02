@@ -1,0 +1,189 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+________ test_reviewed_impossible_statistics_rejected[negative_square] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/report_review_red/pytest/test_reviewed_impossible_stati0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019473B90>
+damage = 'negative_square'
+
+    @pytest.mark.parametrize('damage', ['negative_square','negative_variance','zero_variance_covariance',
+                                       'empty_known_moments','score_result_marginal'])
+    def test_reviewed_impossible_statistics_rejected(tmp_path, monkeypatch, damage):
+        paths = prepare(tmp_path, monkeypatch, unknown=damage=='empty_known_moments')
+        summary = json.loads(paths[0].read_text())
+        source = summary['sources'][0]
+        if damage == 'score_result_marginal':
+            source['histograms']['score_result'] = {'<=0:None':source['data_rows']}
+        else:
+            source['pearson_stm_score_result'] = None
+            if damage == 'negative_square':
+                source['moments'][3] = -1
+            elif damage == 'negative_variance':
+                source['moments'][1] = 100
+                source['moments'][3] = 1
+            elif damage == 'zero_variance_covariance':
+                source['moments'][1] = source['moments'][3] = 0
+                source['moments'][5] = 1
+            else:
+                source['moments'][1] = 1
+        paths[0].with_name('000.json').write_text(json.dumps(source))
+        paths[0].write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_corpus_report.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati0\\forge_selfplay_001.txt", "rows": 3, "status": "PASS", "complete_scan": true}
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati0\\forge_selfplay_002.txt", "rows": 4, "status": "PASS", "complete_scan": true}
+_______ test_reviewed_impossible_statistics_rejected[negative_variance] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/report_review_red/pytest/test_reviewed_impossible_stati1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019346F60>
+damage = 'negative_variance'
+
+    @pytest.mark.parametrize('damage', ['negative_square','negative_variance','zero_variance_covariance',
+                                       'empty_known_moments','score_result_marginal'])
+    def test_reviewed_impossible_statistics_rejected(tmp_path, monkeypatch, damage):
+        paths = prepare(tmp_path, monkeypatch, unknown=damage=='empty_known_moments')
+        summary = json.loads(paths[0].read_text())
+        source = summary['sources'][0]
+        if damage == 'score_result_marginal':
+            source['histograms']['score_result'] = {'<=0:None':source['data_rows']}
+        else:
+            source['pearson_stm_score_result'] = None
+            if damage == 'negative_square':
+                source['moments'][3] = -1
+            elif damage == 'negative_variance':
+                source['moments'][1] = 100
+                source['moments'][3] = 1
+            elif damage == 'zero_variance_covariance':
+                source['moments'][1] = source['moments'][3] = 0
+                source['moments'][5] = 1
+            else:
+                source['moments'][1] = 1
+        paths[0].with_name('000.json').write_text(json.dumps(source))
+        paths[0].write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_corpus_report.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati1\\forge_selfplay_001.txt", "rows": 3, "status": "PASS", "complete_scan": true}
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati1\\forge_selfplay_002.txt", "rows": 4, "status": "PASS", "complete_scan": true}
+___ test_reviewed_impossible_statistics_rejected[zero_variance_covariance] ____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/report_review_red/pytest/test_reviewed_impossible_stati2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001954CD10>
+damage = 'zero_variance_covariance'
+
+    @pytest.mark.parametrize('damage', ['negative_square','negative_variance','zero_variance_covariance',
+                                       'empty_known_moments','score_result_marginal'])
+    def test_reviewed_impossible_statistics_rejected(tmp_path, monkeypatch, damage):
+        paths = prepare(tmp_path, monkeypatch, unknown=damage=='empty_known_moments')
+        summary = json.loads(paths[0].read_text())
+        source = summary['sources'][0]
+        if damage == 'score_result_marginal':
+            source['histograms']['score_result'] = {'<=0:None':source['data_rows']}
+        else:
+            source['pearson_stm_score_result'] = None
+            if damage == 'negative_square':
+                source['moments'][3] = -1
+            elif damage == 'negative_variance':
+                source['moments'][1] = 100
+                source['moments'][3] = 1
+            elif damage == 'zero_variance_covariance':
+                source['moments'][1] = source['moments'][3] = 0
+                source['moments'][5] = 1
+            else:
+                source['moments'][1] = 1
+        paths[0].with_name('000.json').write_text(json.dumps(source))
+        paths[0].write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_corpus_report.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati2\\forge_selfplay_001.txt", "rows": 3, "status": "PASS", "complete_scan": true}
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati2\\forge_selfplay_002.txt", "rows": 4, "status": "PASS", "complete_scan": true}
+______ test_reviewed_impossible_statistics_rejected[empty_known_moments] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/report_review_red/pytest/test_reviewed_impossible_stati3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001954F260>
+damage = 'empty_known_moments'
+
+    @pytest.mark.parametrize('damage', ['negative_square','negative_variance','zero_variance_covariance',
+                                       'empty_known_moments','score_result_marginal'])
+    def test_reviewed_impossible_statistics_rejected(tmp_path, monkeypatch, damage):
+        paths = prepare(tmp_path, monkeypatch, unknown=damage=='empty_known_moments')
+        summary = json.loads(paths[0].read_text())
+        source = summary['sources'][0]
+        if damage == 'score_result_marginal':
+            source['histograms']['score_result'] = {'<=0:None':source['data_rows']}
+        else:
+            source['pearson_stm_score_result'] = None
+            if damage == 'negative_square':
+                source['moments'][3] = -1
+            elif damage == 'negative_variance':
+                source['moments'][1] = 100
+                source['moments'][3] = 1
+            elif damage == 'zero_variance_covariance':
+                source['moments'][1] = source['moments'][3] = 0
+                source['moments'][5] = 1
+            else:
+                source['moments'][1] = 1
+        paths[0].with_name('000.json').write_text(json.dumps(source))
+        paths[0].write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_corpus_report.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati3\\forge_selfplay_001.txt", "rows": 3, "status": "PASS", "complete_scan": true}
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati3\\forge_selfplay_002.txt", "rows": 4, "status": "PASS", "complete_scan": true}
+_____ test_reviewed_impossible_statistics_rejected[score_result_marginal] _____
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/report_review_red/pytest/test_reviewed_impossible_stati4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001954E810>
+damage = 'score_result_marginal'
+
+    @pytest.mark.parametrize('damage', ['negative_square','negative_variance','zero_variance_covariance',
+                                       'empty_known_moments','score_result_marginal'])
+    def test_reviewed_impossible_statistics_rejected(tmp_path, monkeypatch, damage):
+        paths = prepare(tmp_path, monkeypatch, unknown=damage=='empty_known_moments')
+        summary = json.loads(paths[0].read_text())
+        source = summary['sources'][0]
+        if damage == 'score_result_marginal':
+            source['histograms']['score_result'] = {'<=0:None':source['data_rows']}
+        else:
+            source['pearson_stm_score_result'] = None
+            if damage == 'negative_square':
+                source['moments'][3] = -1
+            elif damage == 'negative_variance':
+                source['moments'][1] = 100
+                source['moments'][3] = 1
+            elif damage == 'zero_variance_covariance':
+                source['moments'][1] = source['moments'][3] = 0
+                source['moments'][5] = 1
+            else:
+                source['moments'][1] = 1
+        paths[0].with_name('000.json').write_text(json.dumps(source))
+        paths[0].write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_corpus_report.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati4\\forge_selfplay_001.txt", "rows": 3, "status": "PASS", "complete_scan": true}
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\report_review_red\\pytest\\test_reviewed_impossible_stati4\\forge_selfplay_002.txt", "rows": 4, "status": "PASS", "complete_scan": true}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_corpus_report.py::test_reviewed_impossible_statistics_rejected[negative_square]
+FAILED astra_r8/datafilter/tests/test_corpus_report.py::test_reviewed_impossible_statistics_rejected[negative_variance]
+FAILED astra_r8/datafilter/tests/test_corpus_report.py::test_reviewed_impossible_statistics_rejected[zero_variance_covariance]
+FAILED astra_r8/datafilter/tests/test_corpus_report.py::test_reviewed_impossible_statistics_rejected[empty_known_moments]
+FAILED astra_r8/datafilter/tests/test_corpus_report.py::test_reviewed_impossible_statistics_rejected[score_result_marginal]
+5 failed, 9 deselected in 17.43s

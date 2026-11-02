@@ -12,14 +12,16 @@ plus 11 subtests. Native FD3A5190 accepts all 62 sample/edge/mirrored FEN checks
 and reproduces all five supplied lock bench counts. These checks establish data
 and interface compatibility; strength remains UNPROVEN.
 
-Current reviewed handoff: `C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`,
+Historical reviewed handoff (next refresh pending after the aggregate CPU-budget
+correction): `C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`,
 SHA256 `818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
 The six-hour continuation adds strict PGN/schema admission and complete proof
 binding. Its full CPU suite passes 242 tests + 11 subtests, followed by 41 focused
 checks. Both actual recipe preflights and published-manifest verification pass.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
-Use the commands in MIX_SPEC.md. Older handoffs remain evidence and
+Its tooling pins deliberately reject current-source use until the next refresh.
+The final ready-to-run paths will be updated in MIX_SPEC.md. Older handoffs remain evidence and
 deliberately fail current runtime identity checks after the reviewed local fixes.
 Prior proof: `evidence/audit30/correctness_record_final.json` and
 `full_output_hashes_final.json`; the latter rechecks 702 artifacts and excludes
@@ -60,7 +62,9 @@ White-relative and outcomes remain unknown. Fastchess PGN evaluation comments
 label the position **before** the played move; a PGN source row is game:move index.
 Unlabelled PGN nodes are not evaluation records. Castling, EP and clocks are kept.
 
-`filter_positions.py INPUT NEW_OUTPUT --kind normalized --workers 2` defaults to
+`filter_positions.py INPUT NEW_OUTPUT --kind normalized --workers 2` uses one
+parser/writer process and one pool process, counting both toward the total budget.
+It defaults to
 no exclusion, clipping, deduplication or shuffle. Add only the desired flags:
 
 - `--drop-in-check`
@@ -76,8 +80,10 @@ row order. Their hashes are deterministic; reports also contain nondeterministic
 wall time and throughput. Failures retain unpublished `.partial` evidence, and
 existing final or partial destinations are refused.
 
-Earlier single-rule measurements on the pinned 1,000,000 self-play rows, two
-compute workers at BelowNormal priority:
+Historical single-rule measurements on the pinned 1,000,000 self-play rows used
+two pool workers plus the parser/writer parent at BelowNormal priority. Keep
+counts/hashes remain valid; these times do not establish the corrected two-total-
+worker budget. Fresh replacements are pending:
 
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |
 |---|---:|---:|---:|---:|

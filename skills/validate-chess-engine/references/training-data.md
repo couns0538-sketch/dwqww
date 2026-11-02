@@ -182,6 +182,21 @@ the exact payload. If historical proofs need migration, authorize the specific
 historical digest and specific local modules; newly published proofs must satisfy
 the full current contract. Preserve old receipts instead of editing their pins.
 
+Count parsing/validation/serialization in the CPU budget, not only pool workers.
+For a two-process budget with a computing coordinator, permit one pool process.
+After correcting allocation, remeasure throughput rather than reusing timings
+from a larger total process set. If an owned validation job yields its slot,
+verify its exact identity/ancestry, resume it reliably and retain elapsed-time
+disclosure. Never use this procedure on crew training, gates or unowned jobs.
+
+Profile closed raw sources before assuming a proposed filter removes anything.
+Bind producer digests and full-source hashes; keep descriptive audit reservoirs
+separate from training inputs. Aggregate correlations from raw moments, not mean
+correlations. Require nonnegative variances, the integer covariance bound and
+consistent outcome marginals; distinguish genuine zero variance from impossible
+statistics. Missing game identifiers and missing oracle metadata remain explicit
+limitations regardless of how many source rows were inspected.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

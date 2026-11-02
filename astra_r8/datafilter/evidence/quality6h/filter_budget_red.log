@@ -1,0 +1,46 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+__________ test_parent_and_pool_stay_within_the_requested_budget[2] ___________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/filter_budget_red/pytest/test_parent_and_pool_stay_with1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000193CADB0>
+budget = 2
+
+    @pytest.mark.parametrize('budget', [1, 2])
+    def test_parent_and_pool_stay_within_the_requested_budget(tmp_path, monkeypatch, budget):
+        observed = []
+        class RecordingPool:
+            def __init__(self, *, max_workers, initializer):
+                observed.append(max_workers)
+                assert 1+max_workers <= budget, 'parent parsing/writing plus pool exceeds CPU budget'
+            def map(self, function, jobs):
+                return map(function, jobs)
+            def shutdown(self, **kwargs):
+                pass
+        monkeypatch.setattr(filtering, 'ProcessPoolExecutor', RecordingPool)
+        source = tmp_path/'input.jsonl'
+        row = record(chess.STARTING_FEN, 30, 'cp', 1, 'fixture', 1, 'selfplay')
+        source.write_text(dumps(row)+'\n')
+>       result = filtering.run_filter(source, tmp_path/'output', workers=budget)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_filter_cpu_budget.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\filter_positions.py:87: in run_filter
+    executor = ProcessPoolExecutor(max_workers=workers, initializer=low_priority) if workers == 2 else None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_filter_cpu_budget.test_parent_and_pool_stay_within_the_requested_budget.<locals>.RecordingPool object at 0x00000000195CF5F0>
+max_workers = 2, initializer = <function low_priority at 0x0000000004809300>
+
+    def __init__(self, *, max_workers, initializer):
+        observed.append(max_workers)
+>       assert 1+max_workers <= budget, 'parent parsing/writing plus pool exceeds CPU budget'
+E       AssertionError: parent parsing/writing plus pool exceeds CPU budget
+E       assert (1 + 2) <= 2
+
+astra_r8\datafilter\tests\test_filter_cpu_budget.py:15: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_filter_cpu_budget.py::test_parent_and_pool_stay_within_the_requested_budget[2]
+1 failed, 1 passed in 5.74s
