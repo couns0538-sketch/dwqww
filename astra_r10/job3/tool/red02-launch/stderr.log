@@ -1,0 +1,58 @@
+test_consumed_metadata_is_hashed (__main__.StateTests.test_consumed_metadata_is_hashed) ... FAIL
+test_manifest_parses_the_hashed_snapshot (__main__.StateTests.test_manifest_parses_the_hashed_snapshot) ... FAIL
+test_windows_ads_metadata_name_refused (__main__.StateTests.test_windows_ads_metadata_name_refused) ... ERROR
+test_explicit_lichess_game_id_retained (__main__.StateTests.test_explicit_lichess_game_id_retained) ... ERROR
+
+======================================================================
+ERROR: test_windows_ads_metadata_name_refused (__main__.StateTests.test_windows_ads_metadata_name_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job3\tool\test_state.py", line 183, in test_windows_ads_metadata_name_refused
+    full_state.verify_state(changed,full_state.sha256(changed),pos)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\astra_r10\job3\tool\full_state.py", line 157, in verify_state
+    observed_metadata = identity(metadata)
+  File "D:\a10\wt\astra_r10\job3\tool\full_state.py", line 30, in identity
+    path = Path(path).resolve(strict=True)
+  File "D:\a10\python\Lib\pathlib\__init__.py", line 1137, in resolve
+    return self.with_segments(os.path.realpath(self, strict=strict))
+                              ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen ntpath>", line 710, in realpath
+FileNotFoundError: [WinError 2] The system cannot find the file specified: 'D:\\a10\\wt\\astra_r10\\job3\\tool\\red02\\test_windows_ads_metadata_name_refused\\rows.jsonl:alternate_stream'
+
+======================================================================
+ERROR: test_explicit_lichess_game_id_retained (__main__.StateTests.test_explicit_lichess_game_id_retained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job3\tool\test_state.py", line 189, in test_explicit_lichess_game_id_retained
+    self.assertEqual(result['game_id'],value['game_id'])
+                     ~~~~~~^^^^^^^^^^^
+KeyError: 'game_id'
+
+======================================================================
+FAIL: test_consumed_metadata_is_hashed (__main__.StateTests.test_consumed_metadata_is_hashed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job3\tool\test_state.py", line 155, in test_consumed_metadata_is_hashed
+    with self.assertRaisesRegex(ValueError, 'consumed metadata'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_manifest_parses_the_hashed_snapshot (__main__.StateTests.test_manifest_parses_the_hashed_snapshot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job3\tool\test_state.py", line 173, in test_manifest_parses_the_hashed_snapshot
+    self.assertEqual(loaded[0]['fen'],FENS[0])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'r3k2r/8/8/8/8/8/8/R3K2R w - - 17 81' != 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 17 81'
+- r3k2r/8/8/8/8/8/8/R3K2R w - - 17 81
+?                            --
++ r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 17 81
+?                           +++++
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.092s
+
+FAILED (failures=2, errors=2)

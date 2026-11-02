@@ -1,49 +1,62 @@
-# Exact resume — UNPROVEN
+﻿# Exact resume â€” UNPROVEN
 
-Job3 active: source/6data inputs frozen; audit/state/replay implementations beingreviewed.
-Branchastra-r10-3jobs, worktreeD:\a10\wt; no Job1/Job2 workeractive.
-Owned auxiliaryprobe compile maystillrun: unifiedsession81164; outputsD:\a10\job3\probe01,
-launcher job3/launch-probe01. Poll itsreceipt/session beforestartinganothercompiler.
+Job3 step3: original73 regression and final handover remain. Branch astra-r10-3jobs,
+worktree D:\a10\wt. Native audit/state/native relabel/admitted replay03 complete.
 
-NEXT: assess independent review of skills/npt-data-holdout-check/scripts/audit_selfplay.py
-SHA b90263636fe3937f0938d4e0c5466f704dae545800892ba4f651a095030131a2 and
-job3/audit/native_manifest.json SHA484c45dd36cd2c44a1847ff30e8975ab91432973f5331e001a27bd0756f35e4b.
-14syntheticfixturesPASS; actualfullaudit NOTRUN. Afterreview/fixes/newhashes, run
-powershell -NoProfile -File D:\a10\wt\astra_r10\job3\audit\run-native.ps1 -RunId actual01
-withoneworker; no morethan2totalownedcompute. InputscompletebutIDsabsent=>UNVERIFIED.
+NEXT: finish and independently review WIP read-only NPT extension in
+skills/grok-pc-safe-run/scripts/Invoke-GrokPcSafeRun.ps1 and job3/regression runner.
+Agent review_build owns these; do not run suite before helper negative fixtures and
+review PASS. Exact external D:\grok-pc-data\npt\nnue-pytorch-amd is read-only.
+Never vendor GPL runtime, omit protected reads to bypass safety, or access F:.
+Runtime D:\a10\job3\runtime\python\python.exe, private runtime/packages.
+Check tyro/torchmetrics/tensorboard dependencies before73 suite. No training/GPU.
+Suite filter tests use2workers: no concurrent compute. Idle, two separately inspected
+load samples >=3s apart, selectedcore<30%/host<95%, fresh immediate admission.
 
-Parallelhalf-doneuncommittedfiles: job3/tool (converter/full_state/relabel +tests),
-job3/resume (realdata2converterfaultproof), job3/audit andmatchingholdout/resumableskills.
-Do notblanketstagewhileagentsedit. proof_contract fixingconfirmedstatehash/readrace,
-ADSpath,andexplicitLichessgame_idloss; RED02failedintended4regressions. EarlierGREEN01
-13PASS1numpySKIP only. DCPU runtime nowreadyfornumpytest with--converter/freshoutput:
-D:\a10\job3\runtime\python\python.exe, PYTHONPATH=D:\a10\job3\runtime\packages.
-Runtimeimports/full73suite NOTVERIFIED. Existingtestconftest writesoutsideD:a10 and
-filterlow_priority overridesIdle; adaptONLYtest/toolcopybeforefullsuite. ExternalNPT
-runtimeprotectedreadonly; do notvendorGPLcode oraccessF. No training/GPU.
-Review_build correctedresumeharness retainedorphan/receiptchecks; focusedrecheckpending.
-Run onlyreviewed freshmanifest; no nativeprobe/teacherclaimsfromFixtureProbePoolinputs.
+Frozen source d8982bc04d3a828ba440bad250d02fb72526f1a2 under D:\a10\job3\source;
+SOURCE_MANIFEST963425917E003880D00BA1C399AF1E3A38F9A48DFD347D419CCCE1F0B0B4AA54.
+Inputs D:\a10\job3\inputs\INPUTS.json
+SHA4A0B8287C7BF3C1A4666E1F1D723D7B3C15112EAC18E1A4E5E8DE73E809140AF.
+job3/audit/native-actual01/audit.json complete UNVERIFIED:999953filtered,
+holds01310M/0146388575,0positionoverlap,0six-fieldmismatch,17388528missingIDs.
+Native exit2 expected. SQLite348110848bytes excluded Git/pack, retainedSHA
+ffb7bba18efe8d69bfac8e8b4e1e29b4d84c464df647d375848a6b7f07aac3a7.
+Audit script506D71D0C38635A0896CDFA1A67F05138A1140927E06FA017763118A45027C61;
+manifest484C45DD36CD2C44A1847FF30E8975AB91432973F5331E001A27BD0756F35E4B.
 
-FrozenoriginalsourceD:\a10\job3\source d8982bc04d3a828ba440bad250d02fb72526f1a2,
-SOURCE_MANIFEST SHA963425917e003880d00ba1c399af1e3a38f9a48dfd347d419ccce1f0b0b4aa54.
-FrozeninputsD:\a10\job3\inputs\INPUTS.json
-SHA4a0b8287c7bf3c1a4666e1f1d723d7b3c15112eac18e1a4e5e8de73e809140af.
-Source001 rows1..466506,source0021..533494; exactsourcepathliteral map
-job3/freeze01/PROVENANCE_MAP.json SHA0518b34cec38d26feac7b7d48b3af8a6987199346534bc681dcad46ada0dbc46.
-Hold01310000000rows SHAfa383b67aa30b8df79d5989b8fc5a92b5edf615fcfca0f1b46085c47600e17b9;
-hold0146388575rows SHAb2c8ec79a2f24b72d5c1a124a14f64cd46c04221ff405cb4409b755a75abbef0.
-All6sourcebefore/after/copySHA+MD5match. Auditraw6FENsource vscohort+filtered, completeholds.
-MissingrealgameIDs neverPASS. Seed4803011981 reserved matchedconverterbytecomparison.
+job3/tool/green02:19PASS0skip. Full_state6F764190B8EB13D8976BEDFBF446FACC5225B91ADE001849C3B38FB9031DBD27.
+Converter73061059C96427B1DB2C875718F3EED0E44027A0FD72FB6C6EA3ED7A35B56FDB;
+relabel0CFD0BE703E85EC5D814137F4C382533E837259C5C41D931D79988BD82240EF7.
+Seed4803011981 belongs to one matched baseline/default/opt-in experiment.
+D:\a10\job3\native-relabel01 REPORT
+A459B3CA75087969E76018E72D0ABE9E662DD177A29A9FA03DC82F4FF3200B78;
+16actual rows0FENmismatches; auxiliaryprobe64B8199EBE4368F1935D1D855BDFFA14A83E9FF7B63FA936DBA2CF910B251616.
+D:\a10\job3\resume-proof03 REPORT
+30694FBDEA528C084863F06C2152FEFD59AC7E83AF36412A9732687D366CF46C;
+actual16rows all3faults MD5/SHAidentity and negativesPASS; admissionPASS in
+job3/resume/proof03-ADMISSION.json and proof03-launcher-binding.json.
+Proof02 admissionFAIL preserved, proof01 mock teacher scope only.
+Adapter30EE29216043B36C5F758DDCC382157E639A90D50D444FA40CED3A430BEB5F31;
+converter5E51245FF0F444DA0BC1E87F54430F4D4B462FE1A067D3A10E0E9CB29182C77E.
 
-Priorjobsimmutableincompletepacks: Job1nativecorrectnessPASSdocumentedscope; calibration
-FAIL39AA10eligible IQR1.098525pp>1,0candidateABBA; no rerun/relax. Production775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
+After regression: finalize HANDOVER, packaging/final_receipt from real statuses,
+close collector review, then inspect packaging/run-prepare.ps1 parameters and run
+fresh tag. Draft NOTEXECUTABLE yet. Full20 sealer testsPASS, sealer
+915E99937778D102A0D554BB1E243DF11DF2DD02FA40BB085921641B68C320D3.
+Use incomplete-data pack; missing authentic IDs=>trainingBLOCKED/UNPROVEN.
+Retain all failed attempts; omit bulk runtime/SQLite/fullholds from pack.
+Then FINAL_REPORT, exact RESULTS/RESUME, final push and remote-head verify.
+
+Job1 immutable SEALED_INCOMPLETE: production775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
 lockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
-Job1packSHA256SUMS1af9e1c9850ece6b1d7da03f7046f982af0999cba8f140ad85c463967e8f85cd.
-Job2BLOCKED missingCR1e7b5d20/cc826b0a/129d440e; no newfit/parity/candidate.
-pack_rule50SUMSe635d4362a83e4bfc2682bcca92c00b1458eb5a604de1e124e96e430e74d3236;
-pack_optimismSUMS0c2aec6cc35320d495432977c14c88769437a11b04beebdfd16afbd68c7020a7.
-EverypackSEALED_INCOMPLETE/UNPROVEN. FullRESULTScontainsreviewrecords.
+Native correctnessPASS disclosedscope; CALIBRATION_FAIL39AA10eligible IQR1.098525pp>1,
+0candidateABBA. No gain/below-threshold inference/retry/relax.
+job1/pack SUMS1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD.
+Job2BLOCKED missingCR1e7b5d20/cc826b0a/129d440e and permitted fit/PGNinputs.
+No new fit/parity/candidate. Distinct incomplete pack_rule50 SUMS
+E635D4362A83E4BFC2682BCCA92C00B1458EB5A604DE1E124E96E430E74D3236;
+pack_optimism0C2AEC6CC35320D495432977C14C88769437A11B04BEEBDFD16AFBD68C7020A7.
 
-D:a10only<=15GB,C>=30GiB,D>=50GiB,Idle<=2workers/fullprotectedrootslauncher.
-NeverF/Opus/P5/livequeues; no trainingGPUmatchesgates. FinalJob3pack/reportstillneeded.
-Pushcoherentmilestones<=20minprogress; preserveoriginalfailedattempts.
+D:\a10only<=15GB,C>=30GiB,D>=50GiB,full protected roots every launch.
+NoOpus/P5/livequeues/GPU/training/matches/gates. Samecheckfailure twice=>stopitem.
+Push coherentprogress<=20min, keepresumeexact. AllUNPROVEN.
