@@ -11,9 +11,9 @@ Run only an explicitly reviewed, bounded CPU job. Installing this skill launches
 
 Identify the actual spare logical CPUs, complete production roots, frozen executable hash and all intended reads/writes. Use existing scripts when they already satisfy this contract. Read [the launcher contract](references/launcher-contract.md) before preparing its manifest.
 
-All runtime data, portable tools, work directories, temporary files, logs and declared build/cache output belong on **D:**. In this R10 branch, working directories and every declared write path must be under **D:\a10**. A Python executable on C: is refused; use a reviewed D: environment. Never access live trainer datasets or NPT/gate queues, create STOP/PAUSE files, change another process's priority/affinity, or terminate another process. Supply the complete user-specified protected roots, including C: and F: entries; these are lexical exclusions, never inspected. Default name filters cannot discover arbitrary production locations. Work from independently exported inputs, not a running trainer's directory.
+All runtime data, portable tools, work directories, temporary files, logs and declared build/cache output belong on **D:**. In this R11 branch, working directories and every declared write path must be under **D:\a11**. A Python executable on C: is refused; use a reviewed D: environment. Never access live trainer datasets or NPT/gate queues, create STOP/PAUSE files, change another process's priority/affinity, or terminate another process. Supply the complete user-specified protected roots, including C: and F: entries; these are lexical exclusions, never inspected. Default name filters cannot discover arbitrary production locations. Work from independently exported inputs, not a running trainer's directory.
 
-R10's explicit user authorization permits one narrow external CPU-runtime read
+The inherited, explicitly approved CPU regression authorization permits one narrow external CPU-runtime read
 exception: pass `-ReadOnlyRuntimeRoots @('D:\grok-pc-data\npt\nnue-pytorch-amd')`
 and declare that exact runtime in `read_paths`. The default is an empty list and
 continues to reject it. Keep the **entire** protected-roots list, including
@@ -25,7 +25,7 @@ reparse points remain refused. This is policy preflight, not an OS sandbox:
 review import side effects, disable bytecode, keep caches/output on D, and pin
 imported external source/DLL identities before and after the bounded CPU check.
 
-For the explicitly authorized R10 CPU Inductor regression only, the separate
+For the explicitly authorized R11 CPU Inductor regression only, the separate
 `ReadOnlyToolchainRoots` parameter may name the exact MSVC `14.51.36231` root
 and Windows SDK `10.0.26100.0` Include/Lib roots listed in the helper. Its
 default is empty. This exception applies only to declared reads; writes,
@@ -61,7 +61,7 @@ GPU authorization is implied. See the launcher contract and the matching
 
 Use one or two explicitly approved spare CPUs and **one or two workers maximum**, Idle priority inherited before creation, and corresponding native thread arguments/environment. These settings do not limit arbitrary OS helper threads or sandbox an untrusted executable. Review the entire command and its adapter; refuse unknown behavior. For builds, propagate the budget into make/CMake jobs, compiler/LTO workers and every child; a wrapper argument alone does not enforce it. No batch or inline shell command bypasses that review.
 
-Reserve at least **51200 MiB on D:**, plus the next job's estimated new bytes, and **30 GiB free on C:**. Total retained **D:\a10** bytes plus the next reservation must not exceed **15,000,000,000 bytes**. Retained logs/indexes, clones, portable tools and failed attempts all count. Check fresh space before every job/shard and any write over 1 GB; floor breaches fail qualification and block new work. The helper scans workspace size at each launch/completion and at most once per minute during a job, while checking drive floors each second. It does not kill a running child on a floor breach: reviewed adapters must honor their bounded write reservation and use cooperative shards/live guards. If that cannot be guaranteed, do not launch it.
+Reserve at least **51200 MiB on D:**, plus the next job's estimated new bytes, and **30 GiB free on C:**. Total retained **D:\a11** bytes plus the next reservation must not exceed **15,000,000,000 bytes**. Retained logs/indexes, clones, portable tools and failed attempts all count. Check fresh space before every job/shard and any write over 1 GB; floor breaches fail qualification and block new work. The helper scans workspace size at each launch/completion and at most once per minute during a job, while checking drive floors each second. It does not kill a running child on a floor breach: reviewed adapters must honor their bounded write reservation and use cooperative shards/live guards. If that cannot be guaranteed, do not launch it.
 
 ## Launch and evidence
 

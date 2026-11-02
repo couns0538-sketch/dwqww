@@ -9,3 +9,13 @@ Independent audit_crfix review found no blocking evidence/claim defect. RECOVERY
 CPU admission observation2026-11-02T18:37:41Z found8 unrelated processes pinned across CPUs2/3; total86%, lane41/59%. Subsequent read-only process metadata identifies long-lived trainer supervisors and another crew job. No native workload launched and no process changed.
 
 Ruling: preserve safety refusal while writing runnable tests and tooling. TDD RED/GREEN execution order is deferred because no safe native CPU lane is available. This is unverified implementation, not PASS. Do not weaken the lane guard or replace original73 with mocks/skips. Continue setup/static review while awaiting authentic provenance and safe resource admission.
+
+## User steering and next-job preparation
+User asked to broaden GitHub and PC search, then skip unresolved provenance if notfound and focus on improving the next job. BROAD_GITHUB.json and BROAD_SEARCH_PC.md/json record the added searches and limits. No authentic target mapping recovered. Additional013ID lists are explicitly derived from FEN-boundary heuristics and are rejected. Do not repeat large scans of this population without new authentic evidence.
+
+Provenance tooling received independent review, fixes for4concrete findings and static recheck. Written26fixtures remain unexecuted. Runtime draft now includes exact first-step fixtures mode, source/input binding and startup guards. Static policy checks are separate from native validation. See reviews/REVIEW_LOG.md and NEXT_JOB.md. No training-ready data pack exists.
+
+## Final runtime and handoff milestones
+Independent runtime review found pre-helper output-path access, missing pre-native DLL/stdlib binding and stale launcher-contract paths. Root accepted and author corrected them. Focused recheck closed all findings at exact hashes in reviews/RUNTIME_RECHECK.md. PowerShell policy and official-archive checks passed without Python. Root inspected the fresh fixtures01 command and attempted Run; at 2026-11-02T19:19:30Z admission refused before child launch. Ten unrelated pinned processes and CPU2 load100% were recorded; no process changed. Original73 and new30 Python tests remain UNRUN.
+
+Independent sealer review found possible copy overwrite and incomplete metadata reservation. Root fixed both and reviewer closed them at SHA256 2e90aa14e738ca30244eb09f0bea58f695a0ce1c036a63c30f7cece2f795a228. See reviews/SEALER_REVIEW.md. Small blocked evidence will be sealed from a clean source commit and independently reread; the branch's evidence/HANDOFF_SEAL.json is authoritative for those checksum results. This fallback does not qualify data or training.

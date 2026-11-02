@@ -1,7 +1,18 @@
 # D-only reviewed-job launcher contract
 
+R11 owns only `D:\a11`; `D:\a10` and F: are forbidden even as inputs.
+The reviewed R11 wrapper validates manifest, binding and admission paths before
+reading or creating them. It rejects Windows trailing-dot/space aliases and
+checks reparse ancestors root first. Every native Python start additionally
+requires the complete extracted interpreter/DLL/stdlib/bootstrap file census
+and hashes to match the literal-pinned official NuGet/PyPI archives, verified
+in PowerShell before creation. The prepared candidate binds that census and
+all task source/helper/input-manifest identities; it is rechecked at Run and
+after exit. A read-only CPU2/3 admission check belongs to the reviewed wrapper;
+the generic helper does not itself discover workload conflicts.
+
 The separate `ReadOnlyToolchainRoots` opt-in is empty by default. For the
-authorized R10 CPU Inductor regression it accepts only these exact roots:
+authorized R11 CPU Inductor regression it accepts only these exact roots:
 `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.51.36231`,
 `C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0`, and
 `C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0`.
@@ -13,7 +24,7 @@ ADS, dot paths, queue/control names and reparse ancestors are still refused.
 must hash the exact compiler/linker/DLL/header/library input trees before and
 after use and keep compiler output/cache on D. This is not an OS sandbox.
 
-R10 supports an explicit external runtime read exception through the optional
+R11 retains the explicit external runtime read exception through the optional
 `-ReadOnlyRuntimeRoots` parameter. It defaults to empty; schema1 is unchanged.
 Only `D:\grok-pc-data\npt\nnue-pytorch-amd` is accepted under Couns's explicit
 read-only authorization. Declare the real runtime in `read_paths`, and retain
@@ -41,11 +52,11 @@ Schema 1 has exactly these top-level fields; unknown/missing/duplicate fields ar
 | `executable` | Existing absolute D: executable path; also present in read_paths |
 | `executable_sha256` | Reviewed 64-hex digest, checked before and after execution |
 | `arguments` | String array passed without a shell, Windows CRT quoting |
-| `working_directory` | Existing directory beneath D:\a10 |
-| `output_directory` | New D: directory for temp/manifest/stdout/stderr/result |
+| `working_directory` | Existing directory beneath D:\a11 |
+| `output_directory` | New directory beneath D:\a11 for temp/manifest/stdout/stderr/result |
 | `read_paths` | Nonempty array of all declared existing D: input paths |
-| `write_paths` | Nonempty array of every intended build/cache/output location beneath D:\a10 |
-| `logical_cpus` | One or two unique, available logical CPU indices 0..62; one processor group |
+| `write_paths` | Nonempty array of every intended build/cache/output location beneath D:\a11 |
+| `logical_cpus` | One or two unique, independently admitted CPUs from {2,3}; one processor group |
 | `worker_threads` | integer 1 or 2 |
 | `minimum_free_mib` | integer at least 51200 (D: floor); C: must independently retain 30 GiB |
 | `required_bytes` | nonnegative integer estimate for all new writes before the next bounded boundary |
@@ -54,7 +65,7 @@ The argument vector needs exactly one explicit matching thread setting: `--threa
 
 Paths use fully qualified D: spelling. Protected roots and any declared path that contains a protected root, queue.txt, queue_state.json, STOP/PAUSE leaves, named NPT/nnue-pytorch/gate directories and reparse-point ancestors are refused before opening them. This rejects a broad directory declaration such as D:\work when D:\work\live-trainer is protected, preventing recursive jobs from inheriting that scope. Declare real production locations via `-ProtectedRoots` even if they use different names. No source permissions or files are changed. All path-like arguments must be absolute D: paths within declared read_paths/write_paths; relative paths, dot components and drive-relative spelling are refused. `--key=D:\path` is checked. An `@D:\response-file` additionally requires an exact existing read_paths entry and prior content review; the helper does not parse response-file syntax. Use files instead of inline FENs or other arguments containing slashes, and use separate `-I D:\include` forms rather than embedded paths. These conservative argument constraints intentionally reject ambiguous cases. The manifest is copied as read-only input evidence; the copy's hash is recorded.
 
-The branch-local R10 launcher accepts drive-qualified protected roots on C:, D: or F: (and other drive letters) without opening those excluded roots. Runtime paths remain D:-only; cwd, output_directory and write_paths must stay beneath D:\a10. Supply the user's entire protected-root array unchanged. Workspace enumeration rejects reparse points and counts hidden files, clones, failed attempts and all other retained regular file bytes conservatively; hard links are counted per pathname.
+The branch-local R11 launcher accepts drive-qualified protected roots on C:, D: or F: (and other drive letters) without opening those excluded roots. Runtime paths remain D:-only; cwd, output_directory and write_paths must stay beneath D:\a11. Supply the user's entire protected-root array unchanged. Workspace enumeration rejects reparse points and counts hidden files, clones, failed attempts and all other retained regular file bytes conservatively; hard links are counted per pathname.
 
 The current process is set to the requested affinity and Idle before native creation, and restored afterward. Children inherit this scheduling. OMP/MKL/OpenBLAS thread environment is set to worker_threads; TEMP/TMP/TMPDIR point into the new D: output. No HOME/CODEX_HOME is changed. Both native pipes drain asynchronously with bounded buffers. A disk sink failure is retained while the pipe continues to drain to EOF; native exit is preserved in the receipt. Result code is the child's exit on a clean capture, 70 for capture/disk-floor failure, or 76 for preflight/unhandled launcher failure. `result.json` can itself fail on a full disk: that is a failed run, never PASS.
 

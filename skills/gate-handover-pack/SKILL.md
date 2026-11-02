@@ -60,3 +60,21 @@ safety launcher with `--threads 1`, the complete protected roots, a fresh output
 directory, and all reads/writes declared. Only D:\a10 I/O is accepted. Existing
 attempts are never reused or overwritten. Regression fixtures belong to
 astra_r10/job1/pack-tests and do not qualify any native data.
+
+## R11 blocked provenance handoff
+
+R11 writes only under D:\a11; never execute the R10 path-pinned sealer unchanged.
+If authentic source-game maps or safe CPU admission are missing, a small
+SEALED_BLOCKED_EVIDENCE bundle may contain the recovery ledger, inherited input
+identities, current metadata observations, unexecuted tooling/tests and exact
+resume commands. Include an explicit artifact inventory and independently
+verify MD5 and SHA256 for every listed file. Record the checksum-manifest hash
+outside the bundle to avoid circular identities. Do not include live data,
+weights or queue files. Keep the R10 sealed pack unchanged.
+
+This evidence bundle is NOT the requested qualified data pack. It must state
+that full current hashes, row scans, regression runs and overlap proofs are
+unrun wherever admission prevented them. Historical counts must be labelled
+inherited; unknown game counts and overlap are null, not zero. Never claim
+SEALED_DATA_TOOL, training clearance, all-tests-pass or completed R11 based on
+this fallback. A checksum PASS certifies only the listed evidence bytes.

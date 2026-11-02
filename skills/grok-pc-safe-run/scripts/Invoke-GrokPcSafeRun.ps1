@@ -4,11 +4,12 @@
 [CmdletBinding()]
 param([string]$Manifest, [string[]]$ProtectedRoots = @(), [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @())
 
-# R10 policy: kept in this branch-local skill; never changes installed settings.
+# R11 policy: kept in this branch-local skill; never changes installed settings.
 $script:R10WorkspaceCache = $null
 
 function Get-DPathLexical([string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path) -or $Path -notmatch '^[dD]:[\\/]' -or $Path -match '[*?]' -or $Path.IndexOf([char]0) -ge 0) { throw 'Absolute D: path required, without wildcard or NUL' }
+    if (@($Path -split '[\\/]' | Where-Object { $_ -match '[. ]$' }).Count) { throw 'Windows trailing dot/space aliases are refused before normalization' }
     if (@($Path -split '[\\/]' | Where-Object {$_ -eq '.' -or $_ -eq '..'}).Count -ne 0) { throw 'Dot path components are refused before normalization' }
     if ($Path.Substring(2).Contains(':')) { throw 'D: root and alternate data streams are not allowed' }
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
@@ -17,19 +18,26 @@ function Get-DPathLexical([string]$Path) {
 }
 function Get-ProtectedRootLexical([string]$Root) {
     if ([string]::IsNullOrWhiteSpace($Root) -or $Root -notmatch '^[a-zA-Z]:[\\/]' -or $Root -match '[*?]' -or $Root.IndexOf([char]0) -ge 0 -or $Root.Substring(2).Contains(':') -or @($Root -split '[\\/]' | Where-Object {$_ -eq '.' -or $_ -eq '..'}).Count -ne 0) { throw 'Protected roots must be explicit absolute drive paths without wildcard, stream or dot components' }
+    if (@($Root -split '[\\/]' | Where-Object { $_ -match '[. ]$' }).Count) { throw 'Windows trailing dot/space aliases are refused before normalization' }
     return [IO.Path]::GetFullPath($Root).TrimEnd('\')
 }
 function Assert-NoReparsePath([string]$Full) {
+    $chain = New-Object 'System.Collections.Generic.Stack[string]'
     $parent = $Full
     while ($parent) {
-        if (Test-Path -LiteralPath $parent) {
-            if ((Get-Item -LiteralPath $parent -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse points are not approved D: paths' }
-        }
+        $chain.Push($parent)
         $parent = [IO.Path]::GetDirectoryName($parent)
+    }
+    while ($chain.Count) {
+        $current = $chain.Pop()
+        try { $entry = Get-Item -LiteralPath $current -Force -ErrorAction Stop }
+        catch [System.Management.Automation.ItemNotFoundException] { break }
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse points are not approved D: paths' }
     }
 }
 function Assert-DPath([string]$Path, [string[]]$ProtectedRoots = @()) {
     $full = Get-DPathLexical $Path
+    if ($full -match '(?i)^D:\\a10(?:\\|$)' -or $full -match '(?i)\.nnue$' -or [IO.Path]::GetFileName($full) -ieq 'forge_queue_state.json') { throw 'R11 forbidden historical, network or queue path' }
     # Lexical checks precede filesystem inspection; queue.txt and queue_state.json are never opened.
     if ($full -match '(?i)(?:^|\\)(?:npt|nnue-pytorch|gate|gates|gate-queue|gate_queue)(?:\\|$)' -or [IO.Path]::GetFileName($full) -match '(?i)^(?:queue(?:_state)?\.(?:txt|json)|STOP(?:\..*)?|PAUSE(?:\..*)?)$') { throw 'Protected production path' }
     foreach ($root in $ProtectedRoots) {
@@ -66,6 +74,7 @@ function Assert-ReadOnlyToolchainRoots([string[]]$Roots) {
     }
 }
 function Assert-ReadPath([string]$Path, [string[]]$ProtectedRoots, [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @()) {
+    if ($Path -match '(?i)^D:[\\/]a10(?:[\\/]|$)' -or $Path -match '(?i)\.nnue$' -or [IO.Path]::GetFileName($Path) -ieq 'forge_queue_state.json') { throw 'R11 forbidden historical, network or queue path' }
     Assert-ReadOnlyRuntimeRoots $ReadOnlyRuntimeRoots $ProtectedRoots
     Assert-ReadOnlyToolchainRoots $ReadOnlyToolchainRoots
     if ($Path -match '^[cC]:[\\/]' -and $ReadOnlyToolchainRoots.Count -gt 0) {
@@ -111,19 +120,19 @@ function Quote-SafeArgument([AllowEmptyString()][string]$Value) {
 }
 function Assert-R10WritePath([string]$Path, [string[]]$ProtectedRoots) {
     $full = Assert-DPath $Path $ProtectedRoots
-    if (-not ($full.Equals('D:\a10',[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith('D:\a10\',[StringComparison]::OrdinalIgnoreCase))) { throw 'R10 write root must be D:\a10' }
+    if (-not ($full.Equals('D:\a11',[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith('D:\a11\',[StringComparison]::OrdinalIgnoreCase))) { throw 'R11 write root must be D:\a11' }
     return $full
 }
-function Get-R10WorkspaceBytes([string]$Root = 'D:\a10') {
+function Get-R10WorkspaceBytes([string]$Root = 'D:\a11') {
     $full = Assert-R10WritePath $Root @()
     [long]$bytes = 0
     $pending = New-Object 'System.Collections.Generic.Stack[System.IO.DirectoryInfo]'
     $pending.Push([IO.DirectoryInfo]::new($full))
     while ($pending.Count -gt 0) {
         $directory = $pending.Pop()
-        if ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point in R10 workspace' }
+        if ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point in R11 workspace' }
         foreach ($entry in $directory.EnumerateFileSystemInfos()) {
-            if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point in R10 workspace' }
+            if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point in R11 workspace' }
             if ($entry -is [IO.DirectoryInfo]) { $pending.Push($entry) }
             else { $bytes += $entry.Length }
         }
@@ -135,7 +144,7 @@ function Assert-R10StorageBudget([long]$CFreeBytes, [long]$DFreeBytes, [long]$Wo
     if ($CFreeBytes -lt 30GB) { throw 'C: free-space floor is 30 GiB' }
     [decimal]$need = [decimal]$MinimumMiB * 1048576 + $RequiredBytes
     if ([decimal]$DFreeBytes -lt $need) { throw 'Insufficient D: space for the job budget plus reserve' }
-    if ([decimal]$WorkspaceBytes + $RequiredBytes -gt 15000000000) { throw 'R10 workspace exceeds 15 GB cap including next reservation' }
+    if ([decimal]$WorkspaceBytes + $RequiredBytes -gt 15000000000) { throw 'R11 workspace exceeds 15 GB cap including next reservation' }
 }
 function Assert-SafeDisk([long]$MinimumMiB, [long]$RequiredBytes, [switch]$FreshWorkspace) {
     # Inspect disk floors each second but enumerate the workspace only at bounded
@@ -164,6 +173,7 @@ function Test-SafeJob([object]$j, [string[]]$ProtectedRoots, [string[]]$ReadOnly
     [int64]$available = [Diagnostics.Process]::GetCurrentProcess().ProcessorAffinity.ToInt64()
     foreach ($cpu in $cpus) {
         if (($cpu -isnot [int] -and $cpu -isnot [long]) -or $cpu -lt 0 -or $cpu -ge 63) { throw 'CPU must be integer 0..62 in one processor group' }
+        if ($cpu -notin @(2,3)) { throw 'R11 may admit only the reviewed CPU2/3 lane' }
         [int64]$bit = [int64]1 -shl $cpu
         if (($available -band $bit) -eq 0) { throw 'Requested CPU is unavailable to the launcher' }
         $mask = $mask -bor $bit
