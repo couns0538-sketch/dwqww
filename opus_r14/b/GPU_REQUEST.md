@@ -64,4 +64,9 @@ Stage rule: start b only after the a nets are scored; skip a width whose two a s
 ## What exists now (no GPU needed)
 - Trainer config forge_v2_bullet (stages a / b / c, own ForgeV2 input type), exporter export_v2.py, float32 reference
   eval_ref.py, random-net generator, legal-only FEN filter, CR-checked parity script; parity PASS at H 256 / 768 / 1024 / 1536.
-- Not done: ROCm build (needs the HIP env of F:\bullet_hip), any training, any scoring, any engine build with a v2 net.
+- ROCm build DONE (2026-11-02 11:04 PC clock, CPU only, no GPU use): `opus_r14/b/build_rocm_r14.bat` (Engine NNUE's
+  environment, all writes on D:), Finished in 1m31s, 0 warnings, no link error (the `-lstdc++` risk did not occur);
+  `D:\o14a\p4\target_rocm\release\forge-v2-bullet.exe` sha256 0028dd9c920aa29f29b5286571e209b3843bf40b2c2e476a9c0cee214c517ab0,
+  imports amdhip64_7.dll / hipblas.dll / hiprtc07013.dll (the mock build imports none). Not run (loading the HIP runtime is
+  left to the window). Runtime needs the venv ROCm bin dirs on PATH + GCN_ARCH_NAME=gfx1100.
+- Not done: any training, any scoring, any engine build with a v2 net.
