@@ -30,7 +30,7 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
 | load line (LTO+PGO exe, after `setoption name SyzygyPath value D:\syzygy345`) | `info string Syzygy: 145 WDL and 145 DTZ tables, up to 5 pieces` | logs/kit_syz/pc1_opt1.ltopgo.uci_excerpt.txt |
 | bench 16 on the LTO+PGO exe: OFF / SyzygyPath / SyzygyPath + PD4 | 3024920 / 2460490 / 2563760 | logs/kit_syz/pc1_*.ltopgo.uci_excerpt.txt |
 | warnings, codegen | compiler warning lines plain 0, LTO+PGO 1; real missing-profile / coverage warnings 0; -flto on the link line; vfmadd 0 | logs/kit_syz/kit_result_pc1.txt, kit_result_pc2.txt |
-| plain exes | pc1 8f1ac76c, pc2 88ae1406 (differ: build-path strings; not binding - the binding rule is the LTO+PGO exe) | SUMMARY_pc*.txt |
+| plain exes | pc1 8f1ac76c, pc2 88ae1406: same size, exactly 4 bytes differ = the PE header TimeDateStamp (file offset 136) and the PE CheckSum (offset 216) - a link timestamp, no code difference; not binding (the binding rule is the LTO+PGO exe) | SUMMARY_pc*.txt, `cmp -l` (R14 review) |
 
 ## R14 checks on exe 150374ff (2026-11-02, cand_checks.py, CPUs 2-3, BelowNormal)
 | check | result | evidence |
@@ -60,3 +60,7 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
   forge-candidate-checks (count decisive results for TB lines); (2) CI had no run at SyzygyProbeDepth's max (10) - config
   tb_pd10 added; (3) plain exes differ between pc1 / pc2 - expected (paths), not binding.
 - Checks after: CI run 41420554076 (2ba7c923, tb_pd10 included) green. Next: nothing on P6 until the crew's gates report.
+
+### Review milestone R14-P6-2 (20-minute review pass, structured self-review, NOT independent)
+- Found + fixed: the first R14 text said the plain pc1 / pc2 exes differ by "build-path strings" - a guess. Measured with
+  `cmp -l`: 4 bytes, the PE TimeDateStamp + CheckSum fields only; text corrected. No other finding in this file.
