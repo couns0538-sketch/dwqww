@@ -1,0 +1,62 @@
+.....F......F...                                              [100%]
+================================== FAILURES ===================================
+_____ ResourcePolicyTests.test_c_reserve_must_remain_strictly_above_50gb ______
+
+self = <test_resources.ResourcePolicyTests testMethod=test_c_reserve_must_remain_strictly_above_50gb>
+
+    def test_c_reserve_must_remain_strictly_above_50gb(self):
+        p = self.policy
+        with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=50*10**9+64)), \
+                patch.object(p, 'tree_bytes', return_value=0):
+>           with self.assertRaises(OSError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: OSError not raised
+
+astra_r8\datafilter\tests\test_resources.py:88: AssertionError
+_____________ test_legacy_audit_refuses_existing_baseline_output ______________
+
+tmp_path = WindowsPath('C:/astra8_data/stm_v1_20261102/review1_red_tmp/test_legacy_audit_refuses_exis0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195016D0>
+
+    def test_legacy_audit_refuses_existing_baseline_output(tmp_path, monkeypatch):
+        import audit
+        from unittest.mock import Mock
+        (tmp_path/'old').mkdir()
+        sentinel=tmp_path/'old/train.bin'; sentinel.write_bytes(b'preserve')
+        launch=Mock(side_effect=RuntimeError('must not launch baseline'))
+        monkeypatch.setattr(audit.subprocess,'run',launch)
+>       with pytest.raises(FileExistsError): audit.legacy(tmp_path)
+                                             ^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_converter.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\audit.py:70: in legacy
+    completed = subprocess.run(cmd, stdout=log, stderr=subprocess.STDOUT, env=os.environ.copy())
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Mock id='424678688'>
+args = (['F:\\nnue_pytorch\\venv\\Scripts\\python.exe', 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\...fplay', 'C:\\astra8_data\\stm_v1_20261102\\review1_red_tmp\\test_legacy_audit_refuses_exis0\\cohort\\legacy100k.txt'],)
+kwargs = {'stdout': <_io.BufferedWriter name='C:\\astra8_data\\stm_v1_20261102\\review1_red_tmp\\test_legacy_audit_refuses_exis...\\Roaming', 'CHOCOLATEYINSTALL': 'C:\\ProgramData\\chocolatey', 'CHOCOLATEYLASTPATHUPDATE': '134352779530365427', ...}}
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+>               raise effect
+E               RuntimeError: must not launch baseline
+
+F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py:1198: RuntimeError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_resources.py::ResourcePolicyTests::test_c_reserve_must_remain_strictly_above_50gb
+FAILED astra_r8/datafilter/tests/test_converter.py::test_legacy_audit_refuses_existing_baseline_output
+2 failed, 14 passed, 11 subtests passed in 4.85s

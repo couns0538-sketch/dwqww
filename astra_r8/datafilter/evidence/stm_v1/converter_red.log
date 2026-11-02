@@ -1,0 +1,41 @@
+....................FF.                                                  [100%]
+================================== FAILURES ===================================
+___________________ test_duplicate_outcome_first_occurrence ___________________
+
+tmp_path = WindowsPath('C:/astra8_data/stm_v1_20261102/converter_red_tmp/test_duplicate_outcome_first_o0')
+
+    def test_duplicate_outcome_first_occurrence(tmp_path):
+        lines=[]
+        for fen,white in positions():
+            stm=white if ' w ' in fen else -white
+            lines.extend([f'{fen} | {stm} | 1', f'{fen} | {stm+10} | 0'])
+        source=tmp_path/'input.txt'; source.write_text('\n'.join(lines)+'\n')
+        data=execute(tmp_path,['--selfplay',str(source),'--keep-result'])
+        assert len(data)==4
+        for binary,meta in data:
+            assert meta['result_white']==1 and binary['rsv'][0]==1
+>           assert tuple(binary['rsv']) == (1, 2 if binary['stm']==0 else 0, 1)
+E           assert (np.uint8(1),..., np.uint8(0)) == (1, 0, 1)
+E             
+E             At index 1 diff: np.uint8(2) != 0
+E             Use -v to get more diff
+
+astra_r8\datafilter\tests\test_converter.py:37: AssertionError
+________________________ test_lichess_converter_route _________________________
+
+tmp_path = WindowsPath('C:/astra8_data/stm_v1_20261102/converter_red_tmp/test_lichess_converter_route0')
+
+    def test_lichess_converter_route(tmp_path):
+        source=tmp_path/'lichess.jsonl'
+        source.write_text('\n'.join(json.dumps({'fen':fen,'evals':[{'pvs':[{'cp':score}]}]}) for fen,score in positions())+'\n')
+        data=execute(tmp_path,['--lichess',str(source),'--keep-result'])
+        assert len(data)==4
+>       assert all(not m['has_result'] and m['result_stm'] is None and tuple(b['rsv'])==(0,0,1) for b,m in data)
+E       assert False
+E        +  where False = all(<generator object test_lichess_converter_route.<locals>.<genexpr> at 0x00000000194525E0>)
+
+astra_r8\datafilter\tests\test_converter.py:46: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_converter.py::test_duplicate_outcome_first_occurrence
+FAILED astra_r8/datafilter/tests/test_converter.py::test_lichess_converter_route
+2 failed, 21 passed in 4.96s

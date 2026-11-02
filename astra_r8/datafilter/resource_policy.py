@@ -82,7 +82,7 @@ def storage_guard(root=None, allowance=DEFAULT_ALLOWANCE):
     for drive, reserve in (('C:/', 50 * 10**9), ('D:/', 50 * 10**9)):
         free[drive] = shutil.disk_usage(drive).free
         needed = reserve + (allowance if drive == 'C:/' else 0)
-        if free[drive] < needed:
+        if free[drive] < needed or (drive == 'C:/' and free[drive] == needed):
             raise OSError(f'{drive} below 50 GB reserve plus planned allocation')
     retained = sum(tree_bytes(path) for path in BUDGET_ROOTS)
     if retained + allowance > MAX_ARTIFACT_BYTES:

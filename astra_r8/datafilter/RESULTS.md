@@ -8,10 +8,13 @@ results in both binary and JSONL and subsequently authorized C: output with a
 Version 1 uses byte29 mask, byte30 STM L/D/W=0/1/2, byte31=1. Legacy no-flag
 records remain unchanged. Historical evidence below applies to the old candidate.
 
-Current quick checks: 72 pytest tests + 11 resource subtests PASS, CPU-only,
-`full1.log` under the new artifact root. Codec/converter regressions failed first
-on the old behavior and then passed. Fresh large checks and independent review
-are pending; this follow-up is not yet accepted or training-ready.
+Initial quick checks: 72 pytest tests + 11 resource subtests PASS, CPU-only,
+`full1.log` under the new artifact root. Two review findings fixed; regressions
+failed first, then 16 tests + 11 subtests PASS in `review1_green2.log`. Reviewer
+approved the fixed converter/resource candidate and large audits. Fresh 100k
+train/validation byte identity and actual 1000-case binary round-trip plus1000
+mirrors PASS. Single-rule million runs are in progress. This follow-up is not yet
+fully accepted or training-ready; the old candidate's readiness is unchanged.
 Exact FD3A5190 binary/hash and matching build-source receipts now verified;
 bounded UCI handshake PASS, no search. True qsearch remains BLOCKED.
 Completed gate PGNs are being investigated as a separate capture-measurement

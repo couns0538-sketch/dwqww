@@ -61,6 +61,9 @@ def freeze(root, sources):
     return manifest
 
 def legacy(root):
+    for name in ('old', 'new', 'result', 'legacy_logs'):
+        if os.path.lexists(root/name):
+            raise FileExistsError(root/name)
     logs = root / 'legacy_logs'
     storage_guard(root, allowance=100*10**6)
     logs.mkdir()

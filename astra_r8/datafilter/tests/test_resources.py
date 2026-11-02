@@ -41,7 +41,7 @@ class ResourcePolicyTests(unittest.TestCase):
         def usage(drive):
             return SimpleNamespace(free=50_000_000_100 if str(drive).startswith('C:') else 60_000_000_000)
         with patch.object(p.shutil, 'disk_usage', side_effect=usage), patch.object(p, 'tree_bytes', return_value=0):
-            p.storage_guard(allowance=100)
+            p.storage_guard(allowance=99)
             with self.assertRaisesRegex(OSError, 'C:.*reserve'):
                 p.storage_guard(allowance=101)
 
@@ -80,6 +80,13 @@ class ResourcePolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 p.storage_guard('D:/outside')
             disk.assert_not_called()
+
+    def test_c_reserve_must_remain_strictly_above_50gb(self):
+        p = self.policy
+        with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=50*10**9+64)), \
+                patch.object(p, 'tree_bytes', return_value=0):
+            with self.assertRaises(OSError):
+                p.storage_guard(allowance=64)
 
     def test_budget_scanner_counts_nested_regular_files(self):
         p = self.policy

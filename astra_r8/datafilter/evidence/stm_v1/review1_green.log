@@ -1,0 +1,40 @@
+....F...........                                              [100%]
+================================== FAILURES ===================================
+_________ ResourcePolicyTests.test_c_reserve_includes_next_allocation _________
+
+self = <test_resources.ResourcePolicyTests testMethod=test_c_reserve_includes_next_allocation>
+
+    def test_c_reserve_includes_next_allocation(self):
+        p = self.policy
+        def usage(drive):
+            return SimpleNamespace(free=50_000_000_100 if str(drive).startswith('C:') else 60_000_000_000)
+        with patch.object(p.shutil, 'disk_usage', side_effect=usage), patch.object(p, 'tree_bytes', return_value=0):
+>           p.storage_guard(allowance=100)
+
+astra_r8\datafilter\tests\test_resources.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = None, allowance = 100
+
+    def storage_guard(root=None, allowance=DEFAULT_ALLOWANCE):
+        """Check the actual destination, fresh reserves and aggregate retained bytes.
+    
+        ``allowance`` is a conservative bound on the next allocation, not the entire
+        run. Call before every bounded write batch and before final publication.
+        Read-only F: may remain below its historical reserve under current approval.
+        """
+        if type(allowance) is not int or allowance < 0:
+            raise ValueError('allocation allowance must be a nonnegative integer')
+        destination = check_output_path(ARTIFACT_ROOT if root is None else root)
+        free = {}
+        for drive, reserve in (('C:/', 50 * 10**9), ('D:/', 50 * 10**9)):
+            free[drive] = shutil.disk_usage(drive).free
+            needed = reserve + (allowance if drive == 'C:/' else 0)
+            if free[drive] < needed or (drive == 'C:/' and free[drive] == needed):
+>               raise OSError(f'{drive} below 50 GB reserve plus planned allocation')
+E               OSError: C:/ below 50 GB reserve plus planned allocation
+
+astra_r8\datafilter\resource_policy.py:86: OSError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_resources.py::ResourcePolicyTests::test_c_reserve_includes_next_allocation
+1 failed, 15 passed, 11 subtests passed in 4.92s

@@ -1,5 +1,39 @@
 # Training-data conversion and native evidence
 
+## Result-aware converter and filter follow-ups
+
+- Freeze the no-flag converter and compare actual train/validation payload hashes
+  separately. Cover each existing input route; an unchanged selection count is
+  not byte compatibility. Preserve deduplication and shuffle alignment with sidecars.
+- When reusing reserved bytes for outcomes, document the mask, result perspective,
+  unknown sentinel and explicit format version. Version a perspective change;
+  never silently reinterpret old White-relative bytes as side-to-move labels.
+  Reject unknown versions and invalid mask/payload pairs. Scores and outcomes may
+  have different perspectives; test each explicitly.
+- Exercise the real converter and decode its output against a literal independent
+  W/D/L-by-turn table, including missing outcomes and color-swapped mirrors.
+  Testing only a normalization helper does not establish binary round-trip behavior.
+- Run all-off and single-rule filter audits explicitly. A run with enabled rules
+  that happen to match zero rows is not evidence of the all-off path. Report
+  independent hits, first-drop counts, overlap, coverage and measured timings.
+- Missing stored best moves is unavailable capture evidence, not a zero capture
+  rate. A separately pinned PGN cohort can measure capture behavior, but label
+  that cohort separately and never mix its rates into the original cohort table.
+- Bind oracle capabilities to the exact executable digest and matching source
+  receipt. A depth-one UCI search is not root qsearch; unsupported static/qsearch
+  queries remain blocked under a no-engine-changes scope.
+- Recheck output containment and fresh free-space plus next-allocation bounds at
+  every write batch. Count retained artifacts and failed partials across old and
+  new roots. Follow the user's current root/reserve authorization; do not silently
+  reuse obsolete machine exceptions. Keep original sources read-only.
+- A refreshed handoff may reuse immutable row/holdout evidence only after digest
+  checks. Rebind changed tooling, run current CPU preflights, and publish readiness
+  only after verification; historical PASS logs do not qualify changed code.
+
+The R8 reproducible examples live in `astra_r8/datafilter/`: `result_codec.py`,
+`audit_stm_roundtrip.py`, `audit_followup.py` and `resource_policy.py`. Recipes and
+all correctness claims remain separate from crew-owned strength qualification.
+
 Use a source-grounded validation record before accepting converted labels or a
 shard pipeline. Keep format correctness, native search validity, trainer
 compatibility, measured throughput, training behavior and playing strength as

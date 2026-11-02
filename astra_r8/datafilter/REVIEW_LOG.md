@@ -7,7 +7,23 @@ Read-only converter_audit reviewer inspecting frozen converter/codec/audits and
 resource/filter files. Quick suite: 72 tests + 11 subtests PASS in
 `C:/astra8_data/stm_v1_20261102/full1.log`. New assertions first failed on old
 White-relative bytes; codec and resource red/green receipts are preserved.
-Large audits held pending review. No acceptance claim yet.
+Reviewer confirmed STM/legacy oracle, mirror transform, unchanged no-flag
+selection, byte allowance and bounded filter writes. Two findings accepted:
+strict C reserve must reject equality; direct legacy audit must refuse old/new/
+result destinations before launching the baseline converter. Regressions failed
+first (`review1_red.log`), then 16 tests + 11 subtests passed
+(`review1_green2.log`). An intermediate green attempt exposed an obsolete test
+expecting equality to pass; corrected that assertion and retained its log.
+Reviewer rechecked both fixes and approved large validation. The 100k byte
+identity and actual 1000+1000 mirrored converter round-trips now PASS.
+
+Separate capture measurement preflight: read-only converter_audit reviewed
+`audit_capture_cohort.py` SHA256
+`c5d0f33ac436baeb3db37dc2de779e1c365346ddf94f854b0547356969720c75`
+and its eight passing fixture tests. It independently checked gate receipts,
+exact FD baseline identity, genuine Fastchess searched-move semantics and source
+pins, bounded new output and post-read hashes. Approved the measurement-only
+million-row freeze. This cohort is excluded from both training recipes.
 
 ## Milestone 1: converter compatibility and result semantics
 

@@ -8,6 +8,18 @@ HERE=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(HERE))
 from filter_lichess_rec import REC
 
+
+def test_legacy_audit_refuses_existing_baseline_output(tmp_path, monkeypatch):
+    import audit
+    from unittest.mock import Mock
+    (tmp_path/'old').mkdir()
+    sentinel=tmp_path/'old/train.bin'; sentinel.write_bytes(b'preserve')
+    launch=Mock(side_effect=RuntimeError('must not launch baseline'))
+    monkeypatch.setattr(audit.subprocess,'run',launch)
+    with pytest.raises(FileExistsError): audit.legacy(tmp_path)
+    launch.assert_not_called()
+    assert sentinel.read_bytes()==b'preserve'
+
 def positions():
     for placement, score in [('7k/8/8/8/4Q3/8/8/K7',900),('7k/8/8/3q4/8/8/8/K7',-900)]:
         for turn in ('w','b'):

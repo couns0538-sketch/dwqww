@@ -27,7 +27,7 @@ is an opt-in that currently fails for these shards because they have no best mov
 Qsearch filtering fails capability preflight. There is no clipping, deduplication,
 random record skipping, relabeling or native binpack conversion in this path.
 
-The handoff manifest `D:/grok-pc-data/dwqww/astra8_data/handoff/manifest.json`
+The refreshed handoff manifest `C:/astra8_data/stm_v1_20261102/handoff/manifest.json`
 pins source boundaries/hashes, normalized training/validation hashes, holdout
 audit, recipe settings, and actual imported npt/adapter Python files and native DLL.
 It must report `training_ready: true`; otherwise the entry point refuses training.
@@ -41,17 +41,18 @@ is made. Complete holdout position audits are required for the selected cohort.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $tools = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter'
-$data = 'D:/grok-pc-data/dwqww/astra8_data'
+$data = 'C:/astra8_data/stm_v1_20261102'
+$inputRows = 'D:/grok-pc-data/dwqww/astra8_data/cohort/million.jsonl'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
 $env:TEMP = "$data/tmp"
 $env:TMP = "$data/tmp"
-& $py "$tools/filter_positions.py" "$data/cohort/million.jsonl" "$data/recipe_selection_new" --workers 2 --drop-in-check --drop-mate-scores
+& $py "$tools/filter_positions.py" $inputRows "$data/recipe_selection_new" --workers 2 --drop-in-check --drop-mate-scores
 ```
 
-The delivered manifest points to `holdout_cleared/records.jsonl`: default filtering
+The refreshed manifest references the preserved D: `holdout_cleared/records.jsonl`: check/mate filtering
 followed by the separately recorded holdout split exclusion. The complete audit
 found 24 matching board+STM keys in 013 and 23 in 014. Those 47 keys are excluded
 explicitly from both recipes; the original `filtered_default` and failed overlap
@@ -69,21 +70,21 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'D:/grok-pc-data/dwqww/astra8_data/handoff/manifest.json'
+$manifest = 'C:/astra8_data/stm_v1_20261102/handoff/manifest.json'
 $env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
 $env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = 'D:/grok-pc-data/dwqww/astra8_data/tmp'
+$env:TEMP = 'C:/astra8_data/stm_v1_20261102/tmp'
 $env:TMP = $env:TEMP
 $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"
 
 # Engine NNUE executes only after its device/resource gate. Logical cuda:0 only.
-& $py $entry --manifest $manifest --recipe filtered_eval_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_eval_v1' --device cuda:0
-& $py $entry --manifest $manifest --recipe filtered_wdl_v1 --output 'D:/grok-pc-data/dwqww/astra8_data/training/filtered_wdl_v1' --device cuda:0
+& $py $entry --manifest $manifest --recipe filtered_eval_v1 --output 'C:/astra8_data/training/filtered_eval_stm_v1' --device cuda:0
+& $py $entry --manifest $manifest --recipe filtered_wdl_v1 --output 'C:/astra8_data/training/filtered_wdl_stm_v1' --device cuda:0
 ```
 
 These commands each set K32H3^, L1024, batch16384, epoch152500000, epochs8,
@@ -98,6 +99,13 @@ training resume is supported. Native batch storage is released after all eight C
 tensors are cloned; per-call lambda state is cleared even after exceptions.
 
 No training, GPU use, model export, strength match or gate is part of this job.
-The six-hour allowance applies to this implementation and CPU verification.
+For CPU-only preflight, replace `--device cuda:0` with `--device cpu --check`.
+Neither command above was run in training mode by this job. The latest user
+authorization requires C: remain above 50 GB, including planned allocations;
+crew training must pass its own resource gate. Keep old D:/F: data read-only.
+The new binary result version does not change the JSONL consumed by this adapter.
+The separate completed-gate PGN capture audit is measurement-only and is not
+part of these matched recipes. All-off/single-rule million timings are likewise
+audits, not additional training mixtures.
 All outcomes remain UNPROVEN. Handoff: Code Review → Engine NNUE → Engine QA;
 FD3A5190 comparison, UHO first, 8moves_v3 separately and WAC300 are crew-owned.
