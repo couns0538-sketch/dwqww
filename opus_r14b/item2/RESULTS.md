@@ -20,6 +20,6 @@ any of these labels are used; nothing here is a strength claim. The 50M run is n
 | prepare on 2,000 rows: games found | 1,986 rows in 21 whole games, lengths 40-147, every game starts at ply 8-11 (the opening-book plies) | smoke, 13:20 |
 | tiny-budget guard: 500 nodes, a position that cannot finish depth 1 | the run stops (not an exact searched label), assemble refuses (exit 4) | smoke |
 | mini kill / resume (1,986 rows, 5,000 nodes, shards of 300; hard exit during start-up, resume) | md5 of train.txt / val.txt / labels.tsv identical to the uninterrupted job | smoke |
-| bad input / configuration / integrity exit codes | TODO (`test_relabel2.sh`) | - |
+| bad input / configuration / integrity exit codes | **19 / 19 PASS**: 8 bad inputs (FEN fields, piece letter, score, result token, missing field, empty line, terminal position, no result) -> exit 2 naming the row, no rows.tsv published; missing file -> 2; existing job -> 3; changed nodes / shard size / run id -> 3; unfinished assemble, tampered shard, tampered rows.tsv -> 4; `--drop-terminal` -> 0 | logs/test_relabel2.log |
 | 1,000,000-row proof: A uninterrupted vs B killed twice (hard exit + external stop) and resumed | TODO (`prove_resume.sh`) | - |
 | RELABEL_HANDOFF.md (positions / hour, 50M cost) | TODO | - |
