@@ -40,7 +40,7 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
 | mate probe, 22 positions (R5D KRK/KQK + 2 mate-in-1), `go nodes 3000000`, Threads 1 | OFF 19 mates + 3 cp; each Syzygy line 19 mates + 3 TB-win scores (`cp 31870`, above MateInMaxPly 31743): all 22 decisive positions recognised as won | logs/mate_probe_compare_r14.txt |
 | the tool's FAIL rule ("OFF mate, line not") | flags 3k4/8/8/8/7r/8/8/6K1 b (OFF mate 15, ON cp 31870 = TB win): a TB-win score instead of mate notation, not a lost mate; ON also turns OFF's cp 474 into mate 14 (8/1r6/8/8/8/4K2k/8/8 b) | same |
 | CI ASan+UBSan self-play (run 41295841377, 73c2d139): default 4 games, tb / tb_pd4 / tb_no50 6 games each from 3-4 piece starts | 0 illegal moves, 0 sanitizer lines, PASS | logs/ci_san_41295841377.txt |
-| CI at the option's max (R14: `SyzygyProbeDepth=10`, config tb_pd10 added to opus-r13-san-p6.yml) | run of this push: see the next commit | - |
+| CI at the option's max (R14: `SyzygyProbeDepth=10`, config tb_pd10 added to opus-r13-san-p6.yml), run 41420554076 on 2ba7c923 | default 4 games + tb / tb_pd4 / tb_no50 / **tb_pd10** 6 games each: 0 illegal moves, 0 sanitizer lines, PASS (green) | logs/ci_san_41420554076.txt |
 
 ## Code Review / QA (crew) - read, nothing to apply on this branch
 - `CR_PASS_p6syzygy_path_al1_ltopgo_150374ff.ok` and `CR_PASS_p6syzygy_pd4_al1_ltopgo_150374ff.ok` (grok-pc\forge_push,
@@ -59,4 +59,4 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
 - Findings: (1) cand_checks' mate rule reports a TB-win score as a "lost mate" - documented here and in the skill
   forge-candidate-checks (count decisive results for TB lines); (2) CI had no run at SyzygyProbeDepth's max (10) - config
   tb_pd10 added; (3) plain exes differ between pc1 / pc2 - expected (paths), not binding.
-- Next: read the tb_pd10 CI run and record it.
+- Checks after: CI run 41420554076 (2ba7c923, tb_pd10 included) green. Next: nothing on P6 until the crew's gates report.
