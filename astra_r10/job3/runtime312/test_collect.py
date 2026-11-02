@@ -2,6 +2,8 @@
 import argparse
 from pathlib import Path
 import unittest
+import tempfile
+import zipfile
 import collect_wheels as c
 
 
@@ -31,6 +33,22 @@ class CollectionGuards(unittest.TestCase):
     def test_torch_matching_receipt_accepts(self):
         c.verify_torch_identity(Path(c.TORCH_NAME), {'version': '2.9.1+cpu'}, 'good', 12,
                                 {'sha256': 'good', 'bytes': 12})
+
+    def test_vendored_metadata_does_not_replace_root(self):
+        with tempfile.TemporaryDirectory(dir=c.RUNTIME / 'tmp') as directory:
+            archive = Path(directory) / 'fixture.whl'
+            with zipfile.ZipFile(archive, 'w') as stream:
+                stream.writestr('fixture-1.dist-info/METADATA', 'Name: fixture\nVersion: 1\n')
+                stream.writestr('fixture/vendor/vendor-2.dist-info/METADATA', 'Name: vendor\nVersion: 2\n')
+            self.assertEqual(c.metadata(archive)['name'], 'fixture')
+
+    def test_only_vendored_metadata_refused(self):
+        with tempfile.TemporaryDirectory(dir=c.RUNTIME / 'tmp') as directory:
+            archive = Path(directory) / 'fixture.whl'
+            with zipfile.ZipFile(archive, 'w') as stream:
+                stream.writestr('fixture/vendor/vendor-2.dist-info/METADATA', 'Name: vendor\nVersion: 2\n')
+            with self.assertRaisesRegex(ValueError, 'one root METADATA'):
+                c.metadata(archive)
 
 
 if __name__ == '__main__':

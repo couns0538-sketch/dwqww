@@ -47,3 +47,11 @@ Next: reviewer inspects bounded bootstrap, run it after admission, report actual
 Python archive layout and storage, then prepare the exact wheel lock/size plan
 and bounded dependency installer. No large dependency install is authorized
 solely by this provisional size estimate.
+
+Completed assembly: see REVIEW.md and ASSEMBLY_RECEIPT.json. All stages above
+were independently reviewed and run within measured bounds. The authoritative
+manifest is `D:/a10/job3/runtime312/RUNTIME_FILES.json`, SHA256
+`a8d8325cd5d6216477c26da3638fe976b7e784b5ead7277c67692e0211a9b461`.
+The next step is the separately reviewed native regression runner with fresh
+load admission, the exact runtime-manifest hash, and bound read-only MSVC/NPT
+inputs. Do not rerun assembly or alter any frozen runtime file.

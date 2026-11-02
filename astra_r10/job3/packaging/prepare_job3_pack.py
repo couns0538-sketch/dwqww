@@ -21,6 +21,14 @@ ORIGINAL = ROOT / 'job3/source'
 ARCHIVED_LAUNCHER_SHA256 = '842d6520058eb9f5c14d7426ca3bad92f080afb5f5684f1c43ab1a56fe38c21d'
 RUNTIME_CURRENT_SHA256 = 'c20358958646d3ccf6372fda39548c9c9840626f8dfd93fcc531219d2d16bba6'
 RUNTIME_HISTORICAL_SHA256 = '659ca6fbe6abd4337f06eb7841cd8b065c0fc6dc558e3ca7bc47c161c13daa90'
+RUNTIME312_MANIFEST_SHA256 = 'a8d8325cd5d6216477c26da3638fe976b7e784b5ead7277c67692e0211a9b461'
+RUNTIME312_LOCK_SHA256 = 'ef9dcb6af1e3e64b9d2bbdbcf2eeac7480f9864a56b5bd96cad1741c50ac9a90'
+RUNTIME312_BOOTSTRAP_SHA256 = 'f9bba4329df2c6e99e1e65c6170b2683248ef86c1d1767901d71746fca2c4b3e'
+REGRESSION_RECORDS = ('RESULT.json', 'FAILURE.json', 'CPU_RUNTIME.json', 'NPT_SOURCES_BEFORE.json',
+    'NPT_IMPORTED_INITIAL.json', 'NPT_IMPORTED_AFTER.json', 'NPT_SOURCES_AFTER.json',
+    'TOOLCHAIN_BEFORE.json', 'TOOLCHAIN_AFTER.json', 'RUNTIME_BOUND_BEFORE.json',
+    'RUNTIME_BOUND_AFTER.json', 'PYTEST_COMMAND.json', 'pytest.log')
+REGRESSION_RETAINED = ('cache', 'temp', 'pycache', 'pytest-temp')
 sys.path.insert(0, str(WT / 'skills/gate-handover-pack/scripts'))
 import seal_evidence as sealing
 
@@ -108,6 +116,129 @@ def check_admission_artifacts(expected, current):
         need(current.get(str(path)) == sha256, 'admission helper/wrapper artifact changed after validation')
 
 
+def runtime312_inputs(add):
+    """Ship assembly identities/receipts only; never copy installed packages/wheels."""
+    runtime = ROOT / 'job3/runtime312'
+    evidence = JOB / 'runtime312'
+    bindings = {}
+    def bind(path, expected=None):
+        path = sealing.checked_path(path)
+        sha, _, size = digest(path)
+        need(expected is None or sha == expected, 'isolated runtime evidence changed: ' + str(path))
+        bindings[path] = sha; add(path)
+        return {'path': str(path), 'sha256': sha, 'bytes': size, 'shipped': True}
+    manifest = bind(runtime / 'RUNTIME_FILES.json', RUNTIME312_MANIFEST_SHA256)
+    branch_manifest = bind(evidence / 'RUNTIME_FILES.json', RUNTIME312_MANIFEST_SHA256)
+    lock_ref = bind(evidence / 'WHEEL_LOCK.json', RUNTIME312_LOCK_SHA256)
+    bootstrap_ref = bind(evidence / 'BOOTSTRAP.json', RUNTIME312_BOOTSTRAP_SHA256)
+    _, lock = bound_json(lock_ref); _, bootstrap = bound_json(bootstrap_ref)
+    assembly_ref = bind(evidence / 'ASSEMBLY_RECEIPT.json')
+    _, assembly = bound_json(assembly_ref)
+    need(assembly.get('status') == 'RUNTIME_ASSEMBLED' and
+         assembly.get('runtime_manifest_sha256') == RUNTIME312_MANIFEST_SHA256 and
+         assembly.get('wheel_lock_sha256') == RUNTIME312_LOCK_SHA256,
+         'assembly receipt must bind the qualified input identities')
+    source_receipts = []
+    for receipt in bootstrap['downloads'] + lock['metadata_receipts']:
+        path = sealing.checked_path(receipt['path'])
+        need(path.is_relative_to(runtime / 'downloads'), 'official source receipt escaped runtime downloads')
+        item = {'path': str(path), 'sha256': receipt['sha256'], 'bytes': receipt['bytes'],
+                'url': receipt['url']}
+        if path.suffix.lower() in ('.whl', '.nupkg'):
+            item.update(shipped=False, scope='Recorded official archive identity at assembly; bulk archive retained on D, not rehashed by collector.')
+        else:
+            item.update(bind(path, receipt['sha256']))
+            need(item['bytes'] == receipt['bytes'], 'official metadata byte count changed')
+        source_receipts.append(item)
+    for name in ('bootstrap-python.stdout', 'bootstrap-python.stderr', 'wheels.stdout', 'wheels.stderr', 'install.stdout', 'install.stderr'):
+        bind(runtime / 'logs' / name)
+    installer = bind(evidence / 'install-launch/result.json')
+    _, receipt = completion(installer)
+    need(receipt['native_exit_code'] == 0, 'runtime assembly launcher must have completed successfully')
+    return {'path': str(runtime), 'shipped': False, 'status': assembly['status'],
+            'manifest': manifest, 'branch_manifest': branch_manifest, 'wheel_lock': lock_ref,
+            'bootstrap': bootstrap_ref, 'assembly_receipt': assembly_ref, 'installer': installer,
+            'source_receipts': source_receipts,
+            'scope': 'Runtime/packages/wheels retained on D. Assembly identity only; native dependency/compiler qualification is reported separately by regression.'}, bindings
+
+
+def regression_retained_files(directory):
+    files = []
+    for name in REGRESSION_RETAINED:
+        root = sealing.checked_path(directory / name)
+        if not root.exists():
+            continue
+        need(root.is_dir(), 'retained execution path must be a directory')
+        for folder, dirs, names in os.walk(root, followlinks=False):
+            for leaf in dirs + names:
+                need(not sealing.reparse(Path(folder) / leaf), 'execution-cache reparse path refused')
+            files.extend(sealing.checked_path(Path(folder) / leaf) for leaf in names)
+            need(len(files) <= 10_000, 'retained execution inventory exceeds bounded collector scope')
+    return sorted(files)
+
+
+def regression_inputs(ready, regression_path, regression, add):
+    attempts = ready['regression'].get('attempts')
+    need(isinstance(attempts, list) and 1 <= len(attempts) <= 10,
+         'explicit completed regression/preflight attempt list required')
+    bindings, retained, summaries, inventories = {}, {}, [], {}
+    seen, reports = set(), set()
+    for item in attempts:
+        directory = sealing.checked_path(item['directory'])
+        need(directory.parent == ROOT / 'job3/regression-runs' and directory.is_dir() and directory not in seen,
+             'fresh uniquely listed regression output directory required')
+        seen.add(directory)
+        receipt_path, receipt = completion(item['launcher'], [('--out', directory)])
+        add(receipt_path); bindings[receipt_path] = item['launcher']['sha256']
+        allowed = set(REGRESSION_RECORDS) | set(REGRESSION_RETAINED) | {'runtime_receipts'}
+        need(all(path.name in allowed for path in directory.iterdir()), 'unrecognized regression output requires explicit review')
+        raw_reports = [directory / name for name in ('RESULT.json', 'FAILURE.json') if (directory / name).is_file()]
+        need(len(raw_reports) == 1, 'each native attempt needs its original result or failure report')
+        reports.add(raw_reports[0])
+        if raw_reports[0] == regression_path:
+            primary = ready['regression']['launcher']
+            need(Path(primary['path']) == receipt_path and primary['sha256'] == item['launcher']['sha256'],
+                 'primary regression report must use its own exact attempt launcher')
+            if regression['status'] == 'PASS':
+                need(receipt['native_exit_code'] == 0, 'primary regression PASS contradicts its own native exit')
+        artifacts = []
+        for name in REGRESSION_RECORDS:
+            path = directory / name
+            if path.exists():
+                need(path.is_file(), 'regression record is not a file')
+                add(path); sha, _, size = digest(path); bindings[path] = sha
+                artifacts.append({'path': str(path), 'sha256': sha, 'bytes': size})
+        receipts_dir = sealing.checked_path(directory / 'runtime_receipts')
+        if receipts_dir.exists():
+            for path in sorted(receipts_dir.iterdir()):
+                need(path.is_file() and path.suffix == '.json', 'runtime receipt must be an explicit JSON file')
+                add(path); sha, _, size = digest(path); bindings[path] = sha
+                artifacts.append({'path': str(path), 'sha256': sha, 'bytes': size})
+        inventory = regression_retained_files(directory)
+        inventories[directory] = inventory
+        rows = []
+        for path in inventory:
+            sha, md5, size = digest(path)
+            retained[path] = sha
+            rows.append({'path': str(path), 'sha256': sha, 'md5': md5, 'bytes': size})
+        _, original = bound_json({'path': str(raw_reports[0]), 'sha256': bindings[raw_reports[0]]})
+        summaries.append({'directory': str(directory), 'status': original.get('status'),
+                          'launcher': item['launcher'], 'native_exit_code': receipt['native_exit_code'],
+                          'artifacts': artifacts, 'retained_execution_files': rows,
+                          'retained_scope': 'Current post-exit hash inventory only; generated code/DLLs/test files remain outside the pack and Forge source.'})
+    need(regression_path in reports, 'final regression report must be one of the explicitly listed original native reports')
+    if regression['status'] == 'PASS':
+        need(regression.get('preflight_only') is False and regression.get('collected', 0) >= 73 and
+             regression.get('passed') == regression.get('collected') and regression.get('failures') == 0 and
+             regression.get('skipped') == 0 and regression.get('optimizer_updates') == 0 and regression.get('training_loops') == 0,
+             'regression PASS requires the complete unskipped suite with no training')
+        need(all(regression.get(key) is True for key in ('external_runtime_unchanged', 'toolchain_unchanged', 'private_runtime_unchanged')) and
+             regression.get('private_runtime_binding', {}).get('sha256') == RUNTIME312_MANIFEST_SHA256,
+             'regression PASS must bind unchanged isolated runtime/toolchain/NPT inputs')
+    need(len(json.dumps(summaries).encode()) <= 8 * 1024 * 1024, 'execution identity inventory exceeds8MiB bounded evidence')
+    return summaries, bindings, retained, inventories
+
+
 def prepare(final_receipt, destination, launcher_output):
     destination = sealing.checked_path(destination)
     launcher_output = sealing.checked_path(launcher_output)
@@ -191,6 +322,9 @@ def prepare(final_receipt, destination, launcher_output):
     add(regression_path)
     for path in admission_bindings:
         add(path)
+    runtime312_map, runtime312_bindings = runtime312_inputs(add)
+    regression_map, regression_bindings, retained_bindings, retained_inventories = regression_inputs(
+        ready, regression_path, regression, add)
 
     # Preserve exact auxiliary build input sources; never read/copy the external
     # C: compiler or mistake this O2 diagnostic binary for a kit candidate.
@@ -277,6 +411,8 @@ def prepare(final_receipt, destination, launcher_output):
                              'current_manifest': {'path': str(current_runtime), 'sha256': current_sha, 'bytes': current_bytes,
                                   'scope': 'Current copied D-runtime file identities only; no fresh original-source comparison or historical-copy reconstruction.'}},
                  'external_build_inputs': external_build_inputs,
+                 'isolated_cpu_runtime312': runtime312_map,
+                 'native_regression_attempts': regression_map,
                  'scope_notes': ['probe01 is auxiliary O2 diagnostic only; no engine candidate in this pack.',
                                  'resume-proof03 is primary admitted native upstream replay; proof02 correctness passed but admission failed and is auxiliary.',
                                  'resume-proof01 uses FixtureProbePool upstream and is auxiliary.',
@@ -325,6 +461,12 @@ def prepare(final_receipt, destination, launcher_output):
     check_admission_artifacts(admission_bindings, current)
     for path, expected in runtime_bindings.items():
         need(current.get(str(path)) == expected, 'runtime receipt artifact changed after validation')
+    for path, expected in (runtime312_bindings | regression_bindings).items():
+        need(current.get(str(path)) == expected, 'isolated runtime/regression evidence changed after validation')
+    for directory, expected_files in retained_inventories.items():
+        need(regression_retained_files(directory) == expected_files, 'retained execution file set changed during collection')
+    for path, expected in retained_bindings.items():
+        need(digest(path)[0] == expected, 'retained execution file changed during collection')
     for section in ('audit', 'replay', 'native_relabel', 'regression'):
         for pinned in ready[section].values():
             if isinstance(pinned, dict) and set(pinned) >= {'path', 'sha256'}:

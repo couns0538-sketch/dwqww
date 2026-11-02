@@ -69,8 +69,8 @@ def metadata(path):
             need(not (entry.external_attr >> 16) & 0o170000 == 0o120000, 'wheel symlink refused')
             total += entry.file_size
             need(total <= 2_500_000_000, 'single wheel expanded limit')
-        names = [n for n in archive.namelist() if n.endswith('.dist-info/METADATA')]
-        need(len(names) == 1, 'wheel must have exactly one METADATA')
+        names = [n for n in archive.namelist() if len(n.split('/')) == 2 and n.endswith('.dist-info/METADATA')]
+        need(len(names) == 1, 'wheel must have exactly one root METADATA')
         need(archive.getinfo(names[0]).file_size < 4_000_000, 'wheel metadata limit')
         info = email.message_from_bytes(archive.read(names[0]))
         return {'name': info['Name'], 'version': info['Version'], 'expanded_bytes': total,
@@ -135,8 +135,17 @@ def main():
             child.terminate(); child.wait(timeout=15)
             raise
     need(child.returncode == 0, 'official binary wheel resolver failed; retain logs')
+    finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial_workspace)
+
+
+def finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial_workspace, recovered=False):
+    lock_path = JOB / 'WHEEL_LOCK.json'
+    python = RUNTIME / 'python/python.exe'
     records = []
-    for wheel in sorted(wheels.glob('*.whl')):
+    metadata_bytes = 0
+    wheel_files = sorted(wheels.glob('*.whl'))
+    need(1 <= len(wheel_files) <= 100, 'bounded wheel inventory required')
+    for wheel in wheel_files:
         info = metadata(wheel)
         name = info['name'].lower().replace('_', '-')
         need(not any(bad in name for bad in ('nvidia', 'cuda', 'cudnn', 'directml', 'triton', 'rocm', 'torchvision')),
@@ -147,7 +156,9 @@ def main():
             official = torch
         else:
             receipt = base.download('https://pypi.org/pypi/' + name + '/' + info['version'] + '/json',
-                                    meta_dir / (name + '-' + info['version'] + '.json'), 8_000_000)
+                                    meta_dir / (name + '-' + info['version'] + '.json'),
+                                    min(8_000_000, 40_000_000 - metadata_bytes))
+            metadata_bytes += receipt['bytes']
             source_records.append(receipt)
             data = json.loads(Path(receipt['path']).read_bytes())
             choices = [f for f in data['urls'] if f['filename'] == wheel.name]
@@ -170,6 +181,7 @@ def main():
               'expanded_bytes': sum(r['expanded_bytes'] for r in records),
               'workspace_before': initial_workspace, 'workspace_after': safety.workspace_bytes(),
               'chess': 'separate authorized pure-Python old-runtime copy; no old binary package path imported',
+              'metadata_recovery': recovered,
               'scope': 'Official CPU wheels only; no installation/package import/NPT/training/GPU/backend bypass.'}
     for record in records:
         need(safety.digests(Path(record['path']))[0] == record['sha256'], 'wheel changed before lock publication')

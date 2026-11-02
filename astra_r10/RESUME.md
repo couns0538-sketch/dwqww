@@ -1,99 +1,84 @@
 ﻿# Exact resume â€” UNPROVEN
 
-Job3 step3: original73 regression and final handover remain. Branch astra-r10-3jobs,
-worktree D:\a10\wt. Native audit/state/native relabel/admitted replay03 complete.
+Job3 step3 is active. Branch astra-r10-3jobs, D:\a10\wt. No native test worker
+is running at this checkpoint. Original73 is NOT PASS: suite01 infraFAIL0tests;
+suite02 collected73/61PASS/1FAIL/0skip/11notrun and workspace-guard rejection.
 
-NEXT: Job3 step3, finish compatible CPU dependency assembly. Bootstrap PASS,
-wheel collection currently active via job3/runtime312/collect-launch. Inspect its
-result.json/native stdout before another attempt; never overwrite its evidence.
-Agent plan_safety_review owns the reviewed collection and separate installer;
-installer needs focused review of measured lock/size plan before execution.
-Then D:\a10\job3\runtime312\RUNTIME_FILES.json must say RUNTIME_ASSEMBLED and
-its exact SHA must be bound by the reviewed preparation command:
-powershell -NoProfile -File D:\a10\wt\astra_r10\job3\regression\prepare_native_attempt.ps1 -Tag preflight01 -Mode preflight -PreflightCpu 2
-This prepares only. Inspect generated wrapper/manifest, obtain fresh quiet
-admission, then run the generated launch_preflight01.ps1. If import preflight
-passes, prepare a NEW suite01 tag with -Mode suite; run alone on CPUs2/3 after
-both qualify. review_build owns native attempts; proof_contract reviews results.
-No73-test PASS exists yet. Every failed/refused attempt remains immutable.
-Exact external D:\grok-pc-data\npt\nnue-pytorch-amd is read-only.
-Never vendor GPL runtime, omit protected reads to bypass safety, or access F:.
-Old D:\a10\job3\runtime Python3.10 qualified state tests only: installed NPT requires
-Python3.12+ type-alias syntax. Separate target D:\a10\job3\runtime312 will use
-Python3.12 with development headers, CPU-only Torch2.9.1+cpu, NumPy1.26.4 and
-minimal dependencies. Official NuGet3.12.10 bootstrap PASSED; interpreter
-4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A,
-download16309737bytes/expanded44619813bytes. Wheel collection is running;
-dependency installation remains unrun. Existing
-MSVC14.51 and LLVM clang-cl are available read-only on C; no compiler installation.
-Runner must prebind external Python sources/DLL before imports and reject late
-unbound imports; do not bypass torch.compile or alter original test assertions.
-Current helper17205767AE3EA35A5CCB5A7965BC4988BAE26B4F2260C821411A657C9979C787
-and combined runner743E673FC07453938840C820871B0E5AD6DFD41EFC684CE0958ABD0D7B690573
-have closed focused reviews. Original19+NPT29+toolchain28 policy checks PASS;
-13 binding checks PASS0skip. Runtime verifier1D7CF26D8B46B1178BB8AA83CF63EB535225E7887B19A5FA0BBBAF2369F9BF04,
-toolchain2B3A79D1862E4498D4BA7C72BB3C1AC8E9BD69DC900DAEA4A0248887CE114C4E.
-Template2D99788AF0E52C46DE4EAFE5E494A92D80E7A13D47F644133FEFD313152326BB reviewed.
-External compile/cache/test artifacts remain D:\a10\job3\regression-runs outside
-Git; preserve paths/hashes and reports, do not vendor generated external code.
-Suite filter tests use2workers: no concurrent compute. Idle, two separately inspected
-load samples >=3s apart, selectedcore<30%/host<95%, fresh immediate admission.
+NEXT1: inspect/review astra_r10/job3/regression/recover_suite02_aliases.ps1.
+It is a recovery DRAFT at this checkpoint; review_build owns it. suite02 left29
+owned pytest *current links under D:\a10\job3\regression-runs\suite02\pytest-temp.
+Global workspace scans refuse them. Inventory link paths/types/targets and target
+file hashes; verify every path+target stays strictly within that own pytest-temp.
+Remove ONLY those exact alias links with nonrecursive native operations after
+review, then prove target bytes unchanged. Never delete dataset/log contents.
+Run no normal safe-launcher job until this bounded recovery restores the guard.
+Recovery may use the reviewed explicit Idle/full-protected-roots/disk-floor
+script because the normal global preflight is obstructed by these own links.
+Record that narrow exception and all originals. Never relax the general guard.
 
-Frozen source d8982bc04d3a828ba440bad250d02fb72526f1a2 under D:\a10\job3\source;
-SOURCE_MANIFEST963425917E003880D00BA1C399AF1E3A38F9A48DFD347D419CCCE1F0B0B4AA54.
-Inputs D:\a10\job3\inputs\INPUTS.json
-SHA4A0B8287C7BF3C1A4666E1F1D723D7B3C15112EAC18E1A4E5E8DE73E809140AF.
-job3/audit/native-actual01/audit.json complete UNVERIFIED:999953filtered,
-holds01310M/0146388575,0positionoverlap,0six-fieldmismatch,17388528missingIDs.
-Native exit2 expected. SQLite348110848bytes excluded Git/pack, retainedSHA
-ffb7bba18efe8d69bfac8e8b4e1e29b4d84c464df647d375848a6b7f07aac3a7.
-Audit script506D71D0C38635A0896CDFA1A67F05138A1140927E06FA017763118A45027C61;
-manifest484C45DD36CD2C44A1847FF30E8975AB91432973F5331E001A27BD0756F35E4B.
+NEXT2: review_build is preparing pytest_alias_guard.py/check_pytest_alias_guard.py
+to disable only pytest convenience aliases in the owned harness; assertions remain
+unchanged. Review+actual tmp_path fixture proof are required before full retry.
+Current drafts may still be uncommitted locally; last tested runners are preserved
+under regression/reviewed-runner743e and reviewed-runner2383. Do not relabel them.
 
-job3/tool/green02:19PASS0skip. Full_state6F764190B8EB13D8976BEDFBF446FACC5225B91ADE001849C3B38FB9031DBD27.
-Converter73061059C96427B1DB2C875718F3EED0E44027A0FD72FB6C6EA3ED7A35B56FDB;
-relabel0CFD0BE703E85EC5D814137F4C382533E837259C5C41D931D79988BD82240EF7.
-Seed4803011981 belongs to one matched baseline/default/opt-in experiment.
-D:\a10\job3\native-relabel01 REPORT
-A459B3CA75087969E76018E72D0ABE9E662DD177A29A9FA03DC82F4FF3200B78;
-16actual rows0FENmismatches; auxiliaryprobe64B8199EBE4368F1935D1D855BDFFA14A83E9FF7B63FA936DBA2CF910B251616.
-D:\a10\job3\resume-proof03 REPORT
-30694FBDEA528C084863F06C2152FEFD59AC7E83AF36412A9732687D366CF46C;
-actual16rows all3faults MD5/SHAidentity and negativesPASS; admissionPASS in
-job3/resume/proof03-ADMISSION.json and proof03-launcher-binding.json.
-Proof02 admissionFAIL preserved, proof01 mock teacher scope only.
-Adapter30EE29216043B36C5F758DDCC382157E639A90D50D444FA40CED3A430BEB5F31;
-converter5E51245FF0F444DA0BC1E87F54430F4D4B462FE1A067D3A10E0E9CB29182C77E.
+NEXT3: plan_safety_review prepares separate D:\a10\job3\runtime312np254,
+preserving runtime312. Official NumPy2.5.4 cp312-win_amd64 wheel SHA
+A7B1B6353E36A7E50DE2973A38D705C88EE93ADCF120673CEE7F45A4A3FA223A.
+Frozen test_qa_fix7_sampler_resume_guard.py documents historical2.5.4 and mutates
+version to1.26.4 as its negative. Existing1.26.4 made that mutation unchanged.
+Do not alter the test. New assembly must copy only bound old files except old
+NumPy package/dist-info/libs/owned scripts, then install exact official2.5.4 in
+fresh storage. No old-runtime overwrite/deletion. Budget proposal1.4GB, requires
+fresh actual disk/cap check and reviewed implementation before execution.
 
-After regression: finalize HANDOVER, packaging/final_receipt from real statuses,
-close collector review, then inspect packaging/run-prepare.ps1 parameters and run
-fresh tag. Draft NOTEXECUTABLE yet. Full20 sealer testsPASS, sealer
-915E99937778D102A0D554BB1E243DF11DF2DD02FA40BB085921641B68C320D3.
-Use incomplete-data pack; missing authentic IDs=>trainingBLOCKED/UNPROVEN.
-Retain all failed attempts; omit bulk runtime/SQLite/fullholds from pack.
-Then FINAL_REPORT, exact RESULTS/RESUME, final push and remote-head verify.
+After new immutable manifest exists, update/review runner/preparation bindings to
+that exact runtime and alias guard. Prepare fresh preflight02 then suite03 tags
+using regression/prepare_native_attempt.ps1. Preparation never executes. Review
+actual wrappers/manifests, then separately inspect two quiet samples (>=3s apart,
+selected CPU<30%, host<95%, fresh launch). Full suite runs alone on CPUs2/3,
+Idle, max2workers; Torch/BLAS/compile1; no GPU/training/optimizer update.
+Same check fails twice for same reason => stop that item and preserve evidence.
 
-Collector FE30F3E3F5A590EA966CE1B2F44066CAECF8D1D5BC56CD1643993E771928F497
-now has closed focused review and6 targeted identity fixtures PASS. It remains
-unexecuted pending final regression receipts. Full20 sealer tests PASS. Bundled
-restart selftest PASS only auxiliary, run after native proofs (ordering deviation
-recorded in resume/SELFTEST_RESULT.md). Current-D runtime identity manifest
-RUNTIME_CURRENT_HASHES.json SHA C20358958646D3CCF6372FDA39548C9C9840626F8DFD93FCC531219D2D16BBA6
-contains20045 files/1326486174bytes. Original RUNTIME_INPUTS.files was a malformed
-string due typed PowerShell variable collision; historical list not reconstructed.
-Both receipts preserved. Treat the11MB currentmanifest as artifact, not8MiB report
-parser input. HANDOVER/FINAL_REPORT are live checkpoints, original73/pack pending.
+Completed bindings:
+- Old assembled CPU runtime312 RUNTIME_FILES SHA
+  A8D8325CD5D6216477C26DA3638FE976B7E784B5EAD7277C67692E0211A9B461;
+  18686files613012961bytes, Python3.12.10/Torch2.9.1+cpu/NumPy1.26.4.
+- Wheel lock EF9DCB6AF1E3E64B9D2BBDBCF2EEAC7480F9864A56B5BD96CAD1741C50AC9A90.
+- Helper17205767AE3EA35A5CCB5A7965BC4988BAE26B4F2260C821411A657C9979C787;
+  original19+NPT29+toolchain28 policy checks PASS;13binding checksPASS0skip.
+- Native preflight01 RESULT C48A7CCE0302CC0E92DD8D212F29B79B95785856EB841B418A979AD817640F32
+  is PREFLIGHT_PASS0tests, not73-test acceptance. All before/after identities match.
+- Frozen source d8982bc04d3a828ba440bad250d02fb72526f1a2 under D:\a10\job3\source.
+  INPUTS SHA4A0B8287C7BF3C1A4666E1F1D723D7B3C15112EAC18E1A4E5E8DE73E809140AF.
+- Full audit job3/audit/native-actual01/audit.json complete UNVERIFIED:
+  999953filtered, holds10M+6388575,0positionoverlaps/0six-fieldmismatches,
+  17388528missingauthenticIDs. SQLite retained, excluded Git/pack.
+- State19PASS0skip, native relabel16actualrows0FENmismatches; REPORT
+  A459B3CA75087969E76018E72D0ABE9E662DD177A29A9FA03DC82F4FF3200B78.
+- Actual converter replay03 all3faults/MD5+SHA equality/negatives PASS;
+  REPORT30694FBDEA528C084863F06C2152FEFD59AC7E83AF36412A9732687D366CF46C.
+  Proof02 admissionFAIL and proof01 mockscope preserved. Auxiliary selftestPASS
+  ran late; ORDERING.json discloses missed fixture-first requirement.
 
-Job1 immutable SEALED_INCOMPLETE: production775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
+Final Job3 collector5A491D01EBF2CA1300DC35699FBCC9DEB2D9E6FF67B75FCFB7DD121E154738DA
+reviewed/8fixturesPASS; unexecuted. After final regression status and independent
+review, finish HANDOVER and FINAL_INPUTS from packaging/final_receipt.template.json.
+List ALL preflight/suite attempts, bind primaryreport to its own launcher. Preserve
+runtime/cache paths+hashes; do not vendor external generated code/bulk runtimes.
+Then packaging/run-prepare.ps1 -RunId final01 -FinalReceipt <FINAL_INPUTS.json>,
+review request, seal incomplete-data to job3/pack, independently verify MD5/SHA.
+Missing authenticIDs => trainingBLOCKED/UNPROVEN, no fabricated ready command.
+Finalize FINAL_REPORT/RESULTS/RESUME and push, verifying remote head.
+
+Prior immutable packs: job1/pack SEALED_INCOMPLETE, SUMS
+1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD.
+pc1=pc2=recovered775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
 lockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
-Native correctnessPASS disclosedscope; CALIBRATION_FAIL39AA10eligible IQR1.098525pp>1,
-0candidateABBA. No gain/below-threshold inference/retry/relax.
-job1/pack SUMS1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD.
-Job2BLOCKED missingCR1e7b5d20/cc826b0a/129d440e and permitted fit/PGNinputs.
-No new fit/parity/candidate. Distinct incomplete pack_rule50 SUMS
-E635D4362A83E4BFC2682BCCA92C00B1458EB5A604DE1E124E96E430E74D3236;
+Native proofPASSscope; AA39complete/10eligible IQR1.098525pp failsnoisegate,
+0candidateABBA,T4UNVERIFIED. Job2BLOCKED requiredCR/PGNinputs absent; no candidate.
+Distinct pack_rule50SUMSE635D4362A83E4BFC2682BCCA92C00B1458EB5A604DE1E124E96E430E74D3236;
 pack_optimism0C2AEC6CC35320D495432977C14C88769437A11B04BEEBDFD16AFBD68C7020A7.
 
-D:\a10only<=15GB,C>=30GiB,D>=50GiB,full protected roots every launch.
-NoOpus/P5/livequeues/GPU/training/matches/gates. Samecheckfailure twice=>stopitem.
-Push coherentprogress<=20min, keepresumeexact. AllUNPROVEN.
+D:\a10 only<=15GB,C>=30GiB/D>=50GiB,full protected roots; no Opus/P5/F/livequeue
+changes, GPU/training/matches/gates. Preserve every failed attempt. All UNPROVEN.
