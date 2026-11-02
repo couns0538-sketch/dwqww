@@ -54,4 +54,33 @@ Two main items, finished and verified one at a time. No Elo claims (UNPROVEN eve
 | unchained J1 binpack fact | skill forge-nnue-data | makes a filter pass without board decoding possible |
 | load / disk gate | `opus_r13/tools/pc_gate.ps1` (copied to `opus_r14b/tools/`) | same PC rules |
 
-## Item 2: resumable relabel - plan follows once item 1 is pushed with its checks.
+## Item 2: resumable relabel (`opus-r14b-relabel`, from `opus-r13-p5-nnue-data`) - plan (13:20 PC clock)
+
+### What exists (read)
+- R13/R14 P5 (`opus_r13/p5/`): `forge_data_probe.exe` (`C:\o13\p5`, sha256 ed76de96..., lock source d4f4312; TT, histories
+  and caches cleared before every search, so a label depends only on FEN, nodes and hash), `forge_probe.py` (probe
+  pool, `id \t op \t fen` protocol, FEN echo), Astra's `relabel_positions.py` (bound to .pos + FEN sidecar, one slice
+  per call), `relabel_job.py` (run id, config pinning, sha256 manifests, Idle + CPU mask). The R14 fix (original FEN
+  sidecar) was proven on 1,000 rows; no kill/resume proof, no game split, inputs limited to .pos + sidecar.
+- Astra `astra-r8-datafilter` owns `convert_forge.py --keep-result` and `filter_positions.py`; `records.py` turns a
+  self-play line `FEN | stm cp | white result` into a validated normalized record (full FEN, source, source_row).
+- Raw self-play text (`D:\grok-pc-data\selfplay_out\forge_selfplay_NNN.txt`) is game-ordered with full FENs; Astra R11
+  found no game provenance for the old filtered 10M slice, so game ids must come from the game-ordered sources.
+
+### Design: `opus_r14b/item2/relabel2.py` (own code) + unchanged copies of `forge_probe.py` and Astra's `records.py`
+- `prepare`: self-play text or Astra normalized JSONL -> `rows.tsv` (row id, game id, split, original FEN, old score,
+  result token, source, source row); every row validated (Astra's record checks); any bad row -> exit 2, nothing
+  published. Game id = (source, game index) from a leak-safe boundary rule on consecutive rows: ply not increasing,
+  result change, piece count rising or a castling right reappearing (never splits a real game, may merge two).
+  Split = sha256(salt, game id) < val ppm (default 1 %; Engine NNUE decides). Whole games only.
+- `run`: shards of S rows in `shards/shard_K.part.N/`, labels via the probe (20k nodes, Hash 1, one thread per probe,
+  Idle, CPU mask), `labels.tsv` + manifest (sha256) + summary (run id) written and fsynced, then the directory is
+  renamed to `shard_K` (publish). Resume = same command: config pinned (exit 3 on a change), every published shard
+  re-hashed (exit 4 on a mismatch), interrupted `.part.N` directories kept as evidence (never deleted), shard redone
+  as `.part.N+1`. `status.json` with the run id after every shard.
+- `assemble`: published shards in order -> `final/train.txt`, `final/val.txt` (self-play text format with the new
+  label) and `final/labels.tsv` (all columns), `.part` -> checks (every row id exactly once, game ids disjoint across
+  splits, counts) -> rename; `MANIFEST.json` with md5 + sha256.
+- Checks: bad-input tests (exit 2 / 3 / 4); 1,000,000-row sample cut at a game boundary: run A uninterrupted, run B
+  killed twice (hard exit at a random point + an external kill) and resumed -> md5 of the three data files identical,
+  no row duplicated or dropped; `RELABEL_HANDOFF.md` with measured positions/hour and the 50M cost. No 50M run.
