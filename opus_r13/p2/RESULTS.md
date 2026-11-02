@@ -95,3 +95,22 @@ multiply-adds). v1 was also not inlined and its 4 KiB list made every call run t
 removing both (v2) did not help (still -8% plain). Not done: a sampling profile (no perf on Windows; -pg on a copy is the
 next step) and a vpcompressw phase 1. Stop rule: two failures for the same reason -> item stopped; the switch stays in
 the source at default 0 (dense), patch stack/stack_sparse.patch (v1 + v2).
+
+## R14 Main item 2 - step 5a: FORGE_SEARCH_SPEED2 (build switch, default 0) - IN PROGRESS, UNPROVEN
+Spec (Couns, R14): TT prefetch at make_move on every path (incl. null move and qsearch) plus the speedmp MovePicker /
+piece_type hoist, one form only, off by default; node-identical vs the lock pins; advisory ABBA >= 10 pairs on one Idle
+core; QA does the official timing. The sparse L1 stays stopped.
+- Reading of the spec (lock d4f4312): the lock already prefetches the child cluster after make_move in qsearch and in the
+  main loop; the null move and the ProbCut make had none -> the switch adds `shared_.tt.prefetch(board.key())` there, so
+  every make on the search paths prefetches (one form: right after the make). Hoist = the crew's speedmp2 form (QuietScorer
+  + capture lookups + table piece_type); ptype's compare-and-subtract form is not used.
+- Port: `speed2/port_speed2.py` (anchored, each anchor exactly once, LF) on a fresh lock copy -> `speed2/speed2_port.patch`
+  (2 files, +91 lines, 0 removed: with the switch at 0 the preprocessor keeps exactly the lock's lines). `--default 1`
+  writes the kit variant (the kit takes no -D flags); the two variants differ only in the `#define` line.
+
+| check | result | evidence |
+|---|---|---|
+| plain build, switch 0 / switch 1 (lock g++ line + Expose, znver5) | 0 warnings each, vfmadd 0; sha256 8b36eb30 / 7d2535cd | speed2/logs/plain_*_build.log, plain_codegen.txt |
+| node identity (kit lp_check.py, frozen bench_fens): switch 1 vs switch 0 vs lock pins | ALL OK: bench d11-d22 312866 / 862329 / 3024920 / 12389307 / 34048354, perft 4865609 / 193690690, 8 FENs nodes + bestmoves | speed2/logs/plain_identity_off_vs_on.txt |
+| switch is live (codegen, since nodes cannot show it) | prefetch instructions 3 -> 5 (the two new sites); modulo-by-6 idiom (imul 0x2aaaaaab) 68 -> 11 (table piece_type) | speed2/logs/plain_codegen.txt |
+| kit v2.3 -Expose LTO+PGO: s2on pc1 + pc2 (candidate), s2off pc1 (identity vs FD3A5190) | running | - |
