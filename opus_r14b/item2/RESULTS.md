@@ -54,3 +54,17 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 |---|---|---|
 | Forge's own converter takes the output: `F:\opus_scratch\rescore_d8\bin\fen2bin.exe in.txt out.pos` (the self-play text -> FPOS tool) on `final/train.txt` of the dev test job (1,200 rows, 20k-node labels) | `lines=1200 records=1200 bad=0`; in the .pos (FPOS: 16-byte header, 32-byte boards, int16 scores, meta) the score column equals the new labels 1,200 / 1,200 (1,180 of them differ from the old score), side to move 1,200 / 1,200, result 1,200 / 1,200 (tokens `1.0` / `0.0` / `0.5` kept as in the self-play file) | D:\o14b\r2\conv_check |
 | would a per-job label cache (search each distinct FEN once) save searches? | **no**: the 1M sample has 999,921 distinct full FENs in 999,921 rows (0 duplicates, also 0 when the clocks are ignored): the self-play pipeline already deduplicates, so the idea was dropped | count over proof jobA/rows.tsv |
+
+## Improvement in the dev copy: prepare with two checking processes (`prepare --jobs 2`, 15:35-15:40)
+- Why: prepare checks every row with python-chess (Astra's records.py builds and validates a board, relabel2 builds
+  a second one for the legal-move test); 1M rows took ~10.5 min per job at Idle next to the trainer, so a 50M job
+  needs hours of prepare before the first label. `--jobs 2` (default 1) hands blocks of 4,096 self-play lines to two
+  spawned worker processes (Idle and the CPU mask are inherited) that run the same parse_line + check_row code; this
+  process keeps the order, the counters, the origins and the game rule, with at most 2 * jobs + 1 blocks in flight.
+  `--normalized` input stays single-process (its source-order check needs the global order); `--jobs` > 2 is refused.
+- Dev test script (logs/test_relabel2_dev_jobs2.log): **67 / 67 PASS**: rows.tsv of --jobs 2 = --jobs 1 for a whole
+  file, a `--rows` cut and 30,000 lines (8 blocks); bad rows give the same error text naming the same row (4 kinds);
+  normalized input / 3 jobs refused (exit 2); all earlier cases unchanged.
+- Speed and the 1M check (rows.tsv = the proof's eefb1662... with --jobs 1 and --jobs 2) follow after the proof:
+  `measure_rates.sh prepare` (order 1 2 2 1) and `bridge_check.sh`. Dev copy sha256 1af5d768...;
+  everything in `patches/post_proof_changes.patch`.
