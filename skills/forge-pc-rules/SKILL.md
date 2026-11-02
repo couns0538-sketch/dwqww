@@ -234,3 +234,23 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
   line and the queued hours; a ROCm build (CPU only) needs no window; never load the HIP runtime next to the npt line.
 - CR's fix files for Opus branches: `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\` (named by md5 in the briefs).
 - Lowering an OWN process (e.g. a venv launcher parent) to Idle by handle is fine; never re-prioritise anybody else's.
+
+## R14-B (2026-11-02 12:05 - 03:05 Nov 3, Couns's 15-hour job; binding until changed)
+- Scratch `D:\o14b\` <= 10 GB; C: may be used too (Couns 14:40: "c has 130gb free ... keep it above 50gb"): C: and D:
+  >= 50 GB free; F: write-forbidden. No sub-agents after 13:45 ("they burn tokens"); reviews every ~2 h are structured
+  self-reviews written down as NOT independent; a 30-minute bug hunt at the end ("forge must be able to use it").
+- Never create STOP / PAUSE files; never edit forge_queue_state.json, forge_gates.json, CURRENT_LOCK.json or the trainer
+  queue; never kill or re-prioritise crew processes; GPU only in a window Engine NNUE grants (none was granted).
+- Launcher `opus_r14b/item1/tools/lowrun.ps1` (branch opus-r14b-fast-loader): `-Mask 0x4 -Priority Idle|BelowNormal
+  -Exe <exe> -ArgLine "<args>" [-In f] [-Out f] [-Err f]` sets the class and the affinity on its own PowerShell process
+  first, so every child inherits both from its first instruction (no window at normal priority on all CPUs).
+- The session cannot end a process (`kill`, Stop-Process and even a command whose text says "kill" were refused), and
+  TaskStop ends only the outer shell (see above). A kill / resume proof therefore uses a hard exit the tool inflicts on
+  itself: a watchdog thread calls `os._exit(137)` after N seconds (no cleanup, no flush; relabel2.py
+  `--test-kill-after-seconds`). Afterwards check that no own child survived (`Get-CimInstance Win32_Process`).
+- Never edit a bash script while a chain is executing it: bash reads the file as it goes and runs the new bytes (the
+  lm_run.sh incident). Long drivers run from a private copy outside the worktree (`D:\o14b\r2\prove_resume_v2.sh`).
+- Code under a long proof is frozen at a recorded sha256; fixes go into a dev copy (`D:\o14b\r2\dev\`) and are
+  promoted after the proof with a bridge check (same output on the proof's own inputs).
+- pc_gate reported ok=False at 97 % total CPU (crew work everywhere): short checks then ran only at Idle on the own two
+  cores (they compete with the own proof runs, nobody else's) and that was written down.
