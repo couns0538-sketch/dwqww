@@ -23,11 +23,14 @@ $PY -I -B $R status --job D:/<job dir>
 Astra's filter (`filter_positions.py`, branch astra-r8-datafilter) runs before or after as Engine NNUE decides; its
 normalized JSONL output is accepted with `--normalized` when the rows are in source order.
 
-## Cost (measured; filled in from the 1M proof runs)
+## Cost (measured 2026-11-02 on the 1M proof runs; 20,000 nodes, Hash 1 MB, 1 thread per probe)
 | quantity | value | source |
 |---|---|---|
-| positions / hour, 1 probe worker, 20k nodes, Idle on one CPU shared with the Idle npt trainer | TBD | proof run A status.json |
-| 50M rows: probe thread-hours | TBD | 50,000,000 / rate |
-| 50M rows: wall time at 1 / 2 workers | TBD | |
-| prepare (validation of 1M rows) | TBD | prepare timing |
-| disk per 1M rows: rows.tsv + shard labels + final files | TBD | job folder size |
+| positions / hour, 1 probe worker, Idle on one CPU shared with the Idle npt trainer | **~340,000** (run A 339,856, run B 342,331 after 6 shards; 104-105 s per 10,000 rows) | proof `status.json`, shard summaries |
+| R13 job1 for comparison (same probe, 20k nodes, CPU 3, Idle) | 353,917 | R13 P5 RESULTS |
+| mean nodes per position / search depth | 19,996 / mostly 8-11 (7: 1.2 %, 8: 16.6 %, 9: 42.5 %, 10: 26.1 %, 11: 8.1 %, >= 12: 5.5 %) | shard 0 of run A |
+| **50M rows: probe thread-hours** | **~147 h** (50,000,000 / 340,000) | |
+| **50M rows: wall time** | **~147 h with 1 worker, ~74 h (3.1 days) with 2 workers** (`--workers 2`, the R14-B thread budget); resumable at any time with the same command | |
+| prepare (validation with python-chess, game ids) | 1M rows: ~10 min per job at Idle next to BelowNormal training (21 min for two jobs); expect roughly 2-3 h of one thread for 50M on a quieter CPU | `prove_resume.sh prepare` |
+| disk per 1M rows | rows.tsv 86 MB + shard labels ~90 MB + final train/val text ~75 MB + final labels.tsv ~90 MB = **~340 MB**; 50M rows **~17 GB** (keep D: >= 50 GB free: plan the job folder accordingly) | proof job folder |
+| lower node counts | not measured in R14-B (the proof runs used the CPU budget); the probe cost is about proportional to nodes | - |
