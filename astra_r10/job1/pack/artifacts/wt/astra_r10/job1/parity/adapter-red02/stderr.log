@@ -1,0 +1,65 @@
+test_complete_image_layout (__main__.WeightImageTests.test_complete_image_layout) ... ok
+test_new_json_refuses_overwrite (__main__.WeightImageTests.test_new_json_refuses_overwrite) ... ok
+test_one_w2_mutation_changes_only_its_two_bytes (__main__.WeightImageTests.test_one_w2_mutation_changes_only_its_two_bytes) ... ok
+test_out_of_range_int16_refused (__main__.WeightImageTests.test_out_of_range_int16_refused) ... ok
+test_path_traversal_refused (__main__.WeightImageTests.test_path_traversal_refused) ... ok
+test_prepared_fens_path_validated_before_hash_read (__main__.WeightImageTests.test_prepared_fens_path_validated_before_hash_read) ... FAIL
+test_prepared_harness_path_validated_before_hash_read (__main__.WeightImageTests.test_prepared_harness_path_validated_before_hash_read) ... FAIL
+test_source_drift_refused_before_preparation (__main__.WeightImageTests.test_source_drift_refused_before_preparation) ... FAIL
+test_wrong_array_count_refused (__main__.WeightImageTests.test_wrong_array_count_refused) ... ok
+
+======================================================================
+FAIL: test_prepared_fens_path_validated_before_hash_read (__main__.WeightImageTests.test_prepared_fens_path_validated_before_hash_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job1\parity\test_adapter.py", line 66, in test_prepared_fens_path_validated_before_hash_read
+    with self.assertRaises(ValueError): adapter.load_prepared(path)
+                                        ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\a10\wt\astra_r10\job1\parity\parity_adapter.py", line 122, in load_prepared
+    if sha(c['fens'])!=FENS_SHA or c['fens_sha256']!=FENS_SHA: raise ValueError('corpus drift')
+       ~~~^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1241, in _execute_mock_call
+    raise effect
+AssertionError: unvalidated path read
+
+======================================================================
+FAIL: test_prepared_harness_path_validated_before_hash_read (__main__.WeightImageTests.test_prepared_harness_path_validated_before_hash_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job1\parity\test_adapter.py", line 75, in test_prepared_harness_path_validated_before_hash_read
+    with self.assertRaises(ValueError): adapter.load_prepared(path)
+                                        ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\a10\wt\astra_r10\job1\parity\parity_adapter.py", line 123, in load_prepared
+    if sha(c['harness'])!=c['harness_sha256']: raise ValueError('harness drift')
+       ~~~^^^^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\a10\python\Lib\unittest\mock.py", line 1247, in _execute_mock_call
+    result = effect(*args, **kwargs)
+  File "D:\a10\wt\astra_r10\job1\parity\test_adapter.py", line 73, in checked_sha
+    raise AssertionError('unvalidated harness read')
+AssertionError: unvalidated harness read
+
+======================================================================
+FAIL: test_source_drift_refused_before_preparation (__main__.WeightImageTests.test_source_drift_refused_before_preparation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\astra_r10\job1\parity\test_adapter.py", line 58, in test_source_drift_refused_before_preparation
+    with self.assertRaisesRegex(ValueError,'authoritative source'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.233s
+
+FAILED (failures=3)

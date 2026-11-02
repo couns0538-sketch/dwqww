@@ -1,0 +1,100 @@
+﻿{
+    "scope":  "PowerShell 5.1 preflight regression; fixture executable never launched",
+    "launcher":  "D:\\a10\\wt\\skills\\grok-pc-safe-run\\scripts\\Invoke-GrokPcSafeRun.ps1",
+    "launcher_sha256":  "6300788E7F0BDA9E54F9D751AC823F6E2A7F41FC92849478A7198B6711A62F90",
+    "priority":  "Idle",
+    "affinity":  4,
+    "utc":  "2026-11-02T05:58:22.7058902Z",
+    "checks":  [
+                   {
+                       "name":  "full C D F protected-roots list accepted",
+                       "status":  "FAIL",
+                       "detail":  "Protected roots must be explicit absolute D: paths without wildcard, stream or dot components"
+                   },
+                   {
+                       "name":  "runtime C path refused with full roots",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "runtime F path refused without touching F",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "protected D descendant refused",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "protected D ancestor refused",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "protected sibling prefix allowed",
+                       "status":  "FAIL",
+                       "detail":  "Protected roots must be explicit absolute D: paths without wildcard, stream or dot components"
+                   },
+                   {
+                       "name":  "dot traversal refused",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "alternate stream refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /alternate data streams/; received \u0027Exception calling \"GetFullPath\" with \"1\" argument(s): \"The given path\u0027s format is not supported.\"\u0027"
+                   },
+                   {
+                       "name":  "relative protected root refused",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "write outside R10 root refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /write root/; received \u0027\u0027"
+                   },
+                   {
+                       "name":  "working directory outside R10 refused",
+                       "status":  "PASS",
+                       "detail":  ""
+                   },
+                   {
+                       "name":  "old 32GiB floor refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /51200/; received \u0027\u0027"
+                   },
+                   {
+                       "name":  "storage exact boundaries accepted",
+                       "status":  "FAIL",
+                       "detail":  "The term \u0027Assert-R10StorageBudget\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+                   },
+                   {
+                       "name":  "C floor breach refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /C:.*floor/; received \u0027The term \u0027Assert-R10StorageBudget\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\u0027"
+                   },
+                   {
+                       "name":  "D floor plus reservation refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /D:.*reserve/; received \u0027The term \u0027Assert-R10StorageBudget\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\u0027"
+                   },
+                   {
+                       "name":  "workspace cap plus reservation refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /workspace.*cap/; received \u0027The term \u0027Assert-R10StorageBudget\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\u0027"
+                   },
+                   {
+                       "name":  "negative reservation refused",
+                       "status":  "FAIL",
+                       "detail":  "Expected refusal /nonnegative/; received \u0027The term \u0027Assert-R10StorageBudget\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\u0027"
+                   },
+                   {
+                       "name":  "fresh workspace count includes hidden files and subdirectories",
+                       "status":  "FAIL",
+                       "detail":  "The term \u0027Get-R10WorkspaceBytes\u0027 is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+                   }
+               ]
+}

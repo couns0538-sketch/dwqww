@@ -1,0 +1,109 @@
+{
+  "note": "Auxiliary commands transcribed from executed tool history after review; not claimed to be contemporaneous command logs. Original stdout logs retained, empty on success.",
+  "cwd": "D:\\a9\\src",
+  "environment": {
+    "TEMP": "D:/a9/tmp",
+    "TMP": "D:/a9/tmp"
+  },
+  "source_commit": "fb58080d23d871706662e91f092f918bb032d84c",
+  "harness_sha256": "aff157fba79e6798374bafc47e93379f4fec98b35def7406eefe2936c851ea5b",
+  "candidate_source_manifest_sha256": "eb0ce6937c9c63be40ac8f8d3c59aada7c0ee4baaa172746d920a4246f5d173a",
+  "compilers": {
+    "gcc": {
+      "path": "C:/msys64/ucrt64/bin/g++.exe",
+      "sha256": "08c11faa4f15a460af8d90a2fd90f658658938c94051bde8babfbecce3304c6c",
+      "version": "g++.exe (Rev14, Built by MSYS2 project) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+    },
+    "clang": {
+      "path": "D:/a9/toolchain/llvm-mingw-20261020-ucrt-x86_64/bin/clang++.exe",
+      "sha256": "f6599825884bd087a81ef01e7a662025a9553de01dc501c824b6c568aa4e5ec9",
+      "version": "clang version 23.1.4 (https://github.com/llvm/llvm-project.git 7a941dfb2877a0b8cf30323fefa85ad019e0b0f5)\nTarget: x86_64-w64-windows-gnu\nThread model: posix\nInstalledDir: D:/a9/toolchain/llvm-mingw-20261020-ucrt-x86_64/bin\nConfiguration file: D:/a9/toolchain/llvm-mingw-20261020-ucrt-x86_64/bin/x86_64-w64-windows-gnu.cfg\n"
+    }
+  },
+  "builds": [
+    {
+      "name": "reference",
+      "argv": [
+        "C:/msys64/ucrt64/bin/g++.exe",
+        "-std=c++20",
+        "-O3",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=znver5",
+        "-static",
+        "-pthread",
+        "-IC:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/include",
+        "astra_r9/tools/eval_exact.cpp",
+        "C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/src/bitboard.cpp",
+        "C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/src/board.cpp",
+        "C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/src/eval.cpp",
+        "C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/src/eval_params.cpp",
+        "C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean/src/nnue.cpp",
+        "-o",
+        "D:/a9/checks/eval_lock02.exe"
+      ],
+      "exe_sha256": "e57124ab1a385c29c46ab629eec7726c832859bb2a734ef9a0cb04fee21b5e3e"
+    },
+    {
+      "name": "wide",
+      "argv": [
+        "C:/msys64/ucrt64/bin/g++.exe",
+        "-std=c++20",
+        "-O3",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DR9_TEST_WIDE",
+        "-DFORGE_NNUE_DIAGNOSTICS",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=znver5",
+        "-static",
+        "-pthread",
+        "-Iinclude",
+        "astra_r9/tools/eval_exact.cpp",
+        "src/bitboard.cpp",
+        "src/board.cpp",
+        "src/eval.cpp",
+        "src/eval_params.cpp",
+        "src/nnue.cpp",
+        "-o",
+        "D:/a9/checks/eval_wide02.exe"
+      ],
+      "exe_sha256": "caa3b0f737af74c26032ac1c44fc688c719aeb45bf0b110306ff1a27ddfb7237"
+    },
+    {
+      "name": "sanitizer",
+      "argv": [
+        "D:/a9/toolchain/llvm-mingw-20261020-ucrt-x86_64/bin/clang++.exe",
+        "-std=c++20",
+        "-O1",
+        "-g",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DFORGE_EXPOSE_TUNABLES=1",
+        "-march=znver5",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-fsanitize=address,undefined",
+        "-fno-sanitize-recover=all",
+        "-fno-omit-frame-pointer",
+        "-pthread",
+        "-ID:/a9/c1/include",
+        "D:\\a9\\c1\\src\\bitboard.cpp",
+        "D:\\a9\\c1\\src\\board.cpp",
+        "D:\\a9\\c1\\src\\book.cpp",
+        "D:\\a9\\c1\\src\\eval.cpp",
+        "D:\\a9\\c1\\src\\eval_params.cpp",
+        "D:\\a9\\c1\\src\\nnue.cpp",
+        "D:\\a9\\c1\\src\\search.cpp",
+        "D:\\a9\\c1\\src\\uci.cpp",
+        "-o",
+        "D:/a9/checks/forge_san_c1.exe"
+      ],
+      "exe_sha256": "a56762278935af93344680ba147a9076f63b52504e2495a686d7fe5f28a4a2aa"
+    }
+  ],
+  "sanitizer_run_environment": {
+    "ASAN_OPTIONS": "halt_on_error=1:detect_leaks=0",
+    "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+  }
+}

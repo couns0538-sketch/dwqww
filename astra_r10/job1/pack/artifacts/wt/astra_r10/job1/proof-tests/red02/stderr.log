@@ -1,0 +1,147 @@
+test_default_behavior_changing_still_requires_difference (__main__.ContractModes.test_default_behavior_changing_still_requires_difference) ... ok
+test_empty_skip_reason_refused (__main__.ContractModes.test_empty_skip_reason_refused) ... FAIL
+test_exact_inactive_fails (__main__.ContractModes.test_exact_inactive_fails) ... ok
+test_exact_missing_depth_fails (__main__.ContractModes.test_exact_missing_depth_fails) ... ok
+test_exact_one_wrong_pin_fails (__main__.ContractModes.test_exact_one_wrong_pin_fails) ... FAIL
+test_exact_options_mismatch_fails (__main__.ContractModes.test_exact_options_mismatch_fails) ... FAIL
+test_exact_same_pins_pass (__main__.ContractModes.test_exact_same_pins_pass) ... ERROR
+test_explicit_behavior_changing_accepts_difference (__main__.ContractModes.test_explicit_behavior_changing_accepts_difference) ... ok
+test_failure_before_t4_still_stops_later_stages (__main__.ContractModes.test_failure_before_t4_still_stops_later_stages) ... ERROR
+test_skip_and_argv_ambiguity_refused (__main__.ContractModes.test_skip_and_argv_ambiguity_refused) ... FAIL
+test_skipped_t4_is_unverified_and_sanitizer_runs (__main__.ContractModes.test_skipped_t4_is_unverified_and_sanitizer_runs) ... ERROR
+test_skipping_sanitizer_refused (__main__.ContractModes.test_skipping_sanitizer_refused) ... FAIL
+test_t4_without_skip_still_requires_four_thread_authorization (__main__.ContractModes.test_t4_without_skip_still_requires_four_thread_authorization) ... ok
+test_unknown_identity_mode_refused_before_launch (__main__.ContractModes.test_unknown_identity_mode_refused_before_launch) ... FAIL
+
+======================================================================
+ERROR: test_exact_same_pins_pass (__main__.ContractModes.test_exact_same_pins_pass)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 40, in test_exact_same_pins_pass
+    self.validate_on()
+    ~~~~~~~~~~~~~~~~^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 36, in validate_on
+    proof.validate('on_active', self.receipt, self.contract, self.root,
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   {'build_a': self.binary})
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 111, in validate
+    need(nodes!=c['expected_off_nodes'] and number(m.get('active_count'),1),'ON is inactive or nodes did not differ')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 13, in need
+    if not ok:raise ValueError(message)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: ON is inactive or nodes did not differ
+
+======================================================================
+ERROR: test_failure_before_t4_still_stops_later_stages (__main__.ContractModes.test_failure_before_t4_still_stops_later_stages)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 150, in test_failure_before_t4_still_stops_later_stages
+    report = self.run_contract(c)
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 105, in run_contract
+    return proof.run(path, self.root / 'run')
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 128, in run
+    need(number(c.get('max_worker_threads'),4),'proof set needs an authorized four-thread host; do not override grok-pc-safe-run')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 13, in need
+    if not ok:raise ValueError(message)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+======================================================================
+ERROR: test_skipped_t4_is_unverified_and_sanitizer_runs (__main__.ContractModes.test_skipped_t4_is_unverified_and_sanitizer_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 108, in test_skipped_t4_is_unverified_and_sanitizer_runs
+    report = self.run_contract(self.integration_contract())
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 105, in run_contract
+    return proof.run(path, self.root / 'run')
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 128, in run
+    need(number(c.get('max_worker_threads'),4),'proof set needs an authorized four-thread host; do not override grok-pc-safe-run')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\run_proof_set.py", line 13, in need
+    if not ok:raise ValueError(message)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+======================================================================
+FAIL: test_empty_skip_reason_refused (__main__.ContractModes.test_empty_skip_reason_refused)
+----------------------------------------------------------------------
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 132, in test_empty_skip_reason_refused
+    with self.assertRaisesRegex(ValueError, 'skip_reason'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "skip_reason" does not match "proof set needs an authorized four-thread host; do not override grok-pc-safe-run"
+
+======================================================================
+FAIL: test_exact_one_wrong_pin_fails (__main__.ContractModes.test_exact_one_wrong_pin_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 44, in test_exact_one_wrong_pin_fails
+    with self.assertRaisesRegex(ValueError, 'exact'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_exact_options_mismatch_fails (__main__.ContractModes.test_exact_options_mismatch_fails)
+----------------------------------------------------------------------
+ValueError: ON is inactive or nodes did not differ
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 59, in test_exact_options_mismatch_fails
+    with self.assertRaisesRegex(ValueError, 'options'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "options" does not match "ON is inactive or nodes did not differ"
+
+======================================================================
+FAIL: test_skip_and_argv_ambiguity_refused (__main__.ContractModes.test_skip_and_argv_ambiguity_refused)
+----------------------------------------------------------------------
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 138, in test_skip_and_argv_ambiguity_refused
+    with self.assertRaisesRegex(ValueError, 'skip_reason'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "skip_reason" does not match "proof set needs an authorized four-thread host; do not override grok-pc-safe-run"
+
+======================================================================
+FAIL: test_skipping_sanitizer_refused (__main__.ContractModes.test_skipping_sanitizer_refused)
+----------------------------------------------------------------------
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 126, in test_skipping_sanitizer_refused
+    with self.assertRaisesRegex(ValueError, 'only smoke_t4'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "only smoke_t4" does not match "proof set needs an authorized four-thread host; do not override grok-pc-safe-run"
+
+======================================================================
+FAIL: test_unknown_identity_mode_refused_before_launch (__main__.ContractModes.test_unknown_identity_mode_refused_before_launch)
+----------------------------------------------------------------------
+ValueError: proof set needs an authorized four-thread host; do not override grok-pc-safe-run
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\a10\wt\skills\forge-lock-proof-set\scripts\test_contract_modes.py", line 144, in test_unknown_identity_mode_refused_before_launch
+    with self.assertRaisesRegex(ValueError, 'identity_mode'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "identity_mode" does not match "proof set needs an authorized four-thread host; do not override grok-pc-safe-run"
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.054s
+
+FAILED (failures=6, errors=3)

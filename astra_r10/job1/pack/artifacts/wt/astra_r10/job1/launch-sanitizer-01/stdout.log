@@ -1,0 +1,60 @@
+{
+  "status": "PASS",
+  "kind": "sanitizer",
+  "binary": "D:\\a10\\inputs\\forge_san_c1.exe",
+  "binary_sha256": "a56762278935af93344680ba147a9076f63b52504e2495a686d7fe5f28a4a2aa",
+  "scope": "Native rerun. Sanitizer binary recovered unchanged from R9 with source manifest binding; auxiliary only.",
+  "t4": "UNVERIFIED: host loaded; no T4 launched",
+  "runs": [
+    {
+      "argv": [
+        "D:\\a10\\python\\python.exe",
+        "-B",
+        "D:\\a10\\wt\\astra_r10\\job1\\validation\\validate_uci.py",
+        "selfplay",
+        "D:\\a10\\inputs\\forge_san_c1.exe",
+        "D:\\a10\\wt\\astra_r10\\job1\\sanitizer-01\\off",
+        "--threads",
+        "1"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "D:\\a10\\python\\python.exe",
+        "-B",
+        "D:\\a10\\wt\\astra_r10\\job1\\validation\\validate_uci.py",
+        "selfplay",
+        "D:\\a10\\inputs\\forge_san_c1.exe",
+        "D:\\a10\\wt\\astra_r10\\job1\\sanitizer-01\\on",
+        "--threads",
+        "1",
+        "--on"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "D:\\a10\\inputs\\sanitizer_control.exe"
+      ],
+      "exit_code": 1,
+      "expected_failure_detected": true
+    },
+    {
+      "argv": [
+        "D:\\a10\\inputs\\sanitizer_control.exe",
+        "bounds"
+      ],
+      "exit_code": 1,
+      "expected_failure_detected": true
+    }
+  ],
+  "inputs_sha256": {
+    "D:\\a10\\wt\\astra_r10\\job1\\validation\\run_checks.py": "b2741b593532d6832efed2b0c482e85ed7fd09c50fa0b88858aec48848f01c6c",
+    "D:\\a10\\wt\\astra_r10\\job1\\validation\\validate_uci.py": "9ce866cb597a5041b064842ff140b0cac6571057c5c492146b36e60280a77710",
+    "D:\\a10\\inputs\\fens_12k.txt": "c01c0e6a49fb9aaab535058bd7280c33b8735e0f8bd40834f1c029843a75a265",
+    "D:\\a10\\wt\\astra_r9\\evidence\\c1-source.json": "eb0ce6937c9c63be40ac8f8d3c59aada7c0ee4baaa172746d920a4246f5d173a",
+    "D:\\a10\\wt\\astra_r9\\evidence\\auxiliary-build-provenance.json": "e26e974546e2a3c2d0b142e8b06b70936e65d0986354d6fd4b50ebcd26e6dec2"
+  },
+  "control_sha256": "0faf4019da342a99d2cdaf7fdf570f69b7d174050929a048fc63e3a415fd9089"
+}
