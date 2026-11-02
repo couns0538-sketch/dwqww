@@ -105,6 +105,17 @@ No new agents or repeated expensive test run. Main accepted the findings (none
 blocking) and will run the real refresh and both CPU preflights next. Prior
 handoff links are explicitly marked historical until the replacement passes.
 
+Actual refresh then PASS on frozen source 5012035c. Both CPU-only recipe preflights
+passed; final published-path verification passed with manifest SHA256
+818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8.
+The selected payload/sample hashes are unchanged; 1,000 mirrors and correlation
+0.6635950368 pass. Receipts are copied under evidence/quality6h/handoff_v1/.
+Main inspected the complementary source plan: exactly the other 22 closed shards,
+no duplicates with the first 15, neither holdout included, same frozen profiler,
+one owned BelowNormal child and bounded 03:11 UTC deadline. It started only after
+the CPU preflights completed, retaining the two-worker total. This source-list
+extension used a structured self-check; no repeated code review was needed.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

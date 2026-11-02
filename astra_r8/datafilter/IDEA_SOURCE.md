@@ -24,6 +24,11 @@ records and unknown outcomes. No Leela/Lc0 data is used; uncertain-licence data
 is excluded. No claim is made that an arbitrary Lichess dump is licensed merely
 because the parser can read it.
 
+The six-hour descriptive audit expands read-only inspection to all 37 closed
+owned self-play shards 001–039 excluding 013/014. Producer MD5 sidecars, full-source
+SHA256 and source identities are recorded. Audit reservoirs are evidence only;
+the ready-to-run recipes retain the original cleared 001/002 cohort above.
+
 This work does not modify FD3A5190. The task lock is OFF bench
 312866/862329/3024920/12389307/34048354. The first follow-up used a bounded UCI
 handshake. The later 30-minute audit also reproduced all five bench counts and

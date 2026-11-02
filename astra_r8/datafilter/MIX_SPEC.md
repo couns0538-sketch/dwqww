@@ -1,8 +1,9 @@
 # Matched result-mask recipes — UNPROVEN
 
-Refresh in progress: the six-hour continuation changed parser/schema code, so
-the historical manifest below must be replaced by its newly verified successor
-before crew use. The entry point rejects stale runtime/tooling identities.
+Current handoff SHA256:
+`818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
+Both CPU preflights and strict published verification pass for source 5012035c.
+The entry point rejects stale runtime/tooling identities.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input
@@ -31,7 +32,7 @@ is an opt-in that currently fails for these shards because they have no best mov
 Qsearch filtering fails capability preflight. There is no clipping, deduplication,
 random record skipping, relabeling or native binpack conversion in this path.
 
-The refreshed handoff manifest `C:/astra8_data/audit30_20261102/handoff/manifest.json`
+The refreshed handoff manifest `C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`
 pins source boundaries/hashes, normalized training/validation hashes, holdout
 audit, recipe settings, and actual imported npt/adapter Python files and native DLL.
 It must report `training_ready: true`; otherwise the entry point refuses training.
@@ -45,7 +46,7 @@ is made. Complete holdout position audits are required for the selected cohort.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $tools = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter'
-$data = 'C:/astra8_data/audit30_20261102'
+$data = 'C:/astra8_data/quality6h_20261102'
 $inputRows = 'D:/grok-pc-data/dwqww/astra8_data/cohort/million.jsonl'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
@@ -74,14 +75,14 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'C:/astra8_data/audit30_20261102/handoff/manifest.json'
+$manifest = 'C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json'
 $env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
 $env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = 'C:/astra8_data/audit30_20261102/tmp'
+$env:TEMP = 'C:/astra8_data/quality6h_20261102/handoff_v1/tmp'
 $env:TMP = $env:TEMP
 $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"

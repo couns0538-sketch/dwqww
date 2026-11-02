@@ -12,16 +12,22 @@ plus 11 subtests. Native FD3A5190 accepts all 62 sample/edge/mirrored FEN checks
 and reproduces all five supplied lock bench counts. These checks establish data
 and interface compatibility; strength remains UNPROVEN.
 
-Historical handoff (refresh pending during the six-hour continuation):
-`C:/astra8_data/audit30_20261102/handoff/manifest.json`, SHA256
-`7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e405a8c1d`.
-The new parser/schema fixes require a new verified manifest before crew use.
-The commands in MIX_SPEC.md are being refreshed. Older handoffs remain evidence and
+Current reviewed handoff: `C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`,
+SHA256 `818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
+The six-hour continuation adds strict PGN/schema admission and complete proof
+binding. Its full CPU suite passes 242 tests + 11 subtests, followed by 41 focused
+checks. Both actual recipe preflights and published-manifest verification pass.
+The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
+Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
+Use the commands in MIX_SPEC.md. Older handoffs remain evidence and
 deliberately fail current runtime identity checks after the reviewed local fixes.
 Prior proof: `evidence/audit30/correctness_record_final.json` and
 `full_output_hashes_final.json`; the latter rechecks 702 artifacts and excludes
 the then-open packaging log, whose final hash is separately disclosed. The final
 native helper also passes its timeout regression and a fresh successful Forge run.
+
+The broader closed-source profile is still running. It creates descriptive
+histograms and bounded audit samples only; these are not new training inputs.
 
 ## Interfaces
 

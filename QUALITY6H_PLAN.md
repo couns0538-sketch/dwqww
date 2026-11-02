@@ -41,6 +41,15 @@ training data, game-ID proof or a changed recipe. Keep the 03:11 deadline and
 final 30-minute review reserve. If a storage/source check fails, preserve evidence
 and redirect the remaining time without touching any crew process.
 
+Next risk found by main's static review: filter `workers=2` currently constructs
+two pool workers while its parent also parses/serializes records. Qualify and fix
+the aggregate compute budget (parent plus one child), preserving deterministic
+output. New red/green process-allocation checks wait until the first source scan
+frees a compute slot. Repeat the seven affected million-row two-worker timings
+only after both scans finish; reserve about 4.3 GB for the separately named full
+outputs and retain every earlier measurement as historical evidence. Do not
+attribute the old two-child timings to the corrected aggregate two-worker path.
+
 Tool selection so far: Forge C++ engineering/evidence checker, Skill Creator,
 existing training-data validation guidance, Context7 official python-chess docs,
 GitHub connector read-only issue lookup. No matching open datafilter issue found.

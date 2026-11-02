@@ -63,6 +63,13 @@ zero in-check and zero mate-score rows. The same frozen audit will inspect the
 other 22 closed 001–039 sources in a separate run after handoff preflights, within
 the two-worker limit. Complete corpus results remain pending and UNPROVEN.
 
+Actual refreshed handoff PASS, source 5012035c: both CPU recipe preflights, strict
+verification before publication and again using the published path. New manifest:
+`C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`, SHA256
+`818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
+Same 999,953 rows and sample hash; Pearson 0.6635950368 and 1,000 mirrors PASS.
+The complementary 22-source scan is now running as the second CPU worker.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
