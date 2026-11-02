@@ -1,6 +1,6 @@
-# Forge Astra R9
+# Forge Astra R10
 
-Work only on astra-r9-nnue-speed, under D:\a9. The imported src/ and include/ are the AL1 s198 lock source. Do not alter embedded weights. Preserve all evidence and immutable candidate binaries. All task-specific instructions in Couns's request and the approved plan apply.
+Work only on astra-r10-3jobs, under D:\a10. The imported src/ and include/ retain the R9 candidate over AL1 s198. Preserve all evidence and immutable candidate binaries. Never alter accepted weights; the explicit one-weight negative control belongs in a separately identified disposable copy. All task-specific instructions in Couns's request and the approved R10 plan apply. Earlier branches, Opus folders/branches and production queues are read-only and must remain untouched. F: is forbidden. All results are UNPROVEN pending crew gates.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
