@@ -1,5 +1,12 @@
 # Astra R8 Job 2 — UNPROVEN
 
+## Six-hour continuation — active
+
+New authorization starts 2026-11-02 21:51 UTC; final review reserved for
+2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
+Plan: `QUALITY6H_PLAN.md` at repository root. Current approved source e526fc12.
+Strict-input reproduction and data-audit design underway; no new candidate accepted.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

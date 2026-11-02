@@ -24,10 +24,11 @@ records and unknown outcomes. No Leela/Lc0 data is used; uncertain-licence data
 is excluded. No claim is made that an arbitrary Lichess dump is licensed merely
 because the parser can read it.
 
-This work neither modifies nor qualifies FD3A5190. The task lock is OFF bench
-312866/862329/3024920/12389307/34048354. The follow-up ran only a bounded native
-UCI handshake on the exact FD3A5190 executable (no search, evaluation or bench).
-These bench pins are supplied constraints rather than newly measured results.
+This work does not modify FD3A5190. The task lock is OFF bench
+312866/862329/3024920/12389307/34048354. The first follow-up used a bounded UCI
+handshake. The later 30-minute audit also reproduced all five bench counts and
+62 perft2 results on the exact executable, with the crew's recorded options.
+That establishes those compatibility checks, not full engine or strength qualification.
 
 The separate capture audit uses completed owned Forge gate PGNs under
 `F:/forge_push/`: uhoT2_sf26b14, uhoSF26bit1_razor_e417_vs_AL1lp,
