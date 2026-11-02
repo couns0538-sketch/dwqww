@@ -48,3 +48,9 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
   re-hash of published shards, status.json written by atomic replace (own status file).
 - Open: game ids are defined per job (`s<origin>g<n>`): prepare a whole dataset in one job; never merge the outputs of two
   jobs that share an input file (written into RELABEL_HANDOFF.md).
+
+## Usability and cost checks (15:30-15:35, while the proof runs)
+| check | result | evidence |
+|---|---|---|
+| Forge's own converter takes the output: `F:\opus_scratch\rescore_d8\bin\fen2bin.exe in.txt out.pos` (the self-play text -> FPOS tool) on `final/train.txt` of the dev test job (1,200 rows, 20k-node labels) | `lines=1200 records=1200 bad=0`; in the .pos (FPOS: 16-byte header, 32-byte boards, int16 scores, meta) the score column equals the new labels 1,200 / 1,200 (1,180 of them differ from the old score), side to move 1,200 / 1,200, result 1,200 / 1,200 (tokens `1.0` / `0.0` / `0.5` kept as in the self-play file) | D:\o14b\r2\conv_check |
+| would a per-job label cache (search each distinct FEN once) save searches? | **no**: the 1M sample has 999,921 distinct full FENs in 999,921 rows (0 duplicates, also 0 when the clocks are ignored): the self-play pipeline already deduplicates, so the idea was dropped | count over proof jobA/rows.tsv |

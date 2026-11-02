@@ -5,8 +5,10 @@
 d4f4312, state cleared before every search, 1 thread, Hash 1 MB), keeps the **original FEN** (castling, en passant,
 clocks; the label is searched on exactly that FEN, which the probe echoes back and the tool checks), splits
 validation **by game** (no game in both), and can be killed at any moment and resumed with the same command.
-Outputs per job: `final/train.txt`, `final/val.txt` (self-play text format `FEN | new stm cp | white result`, ready
-for the existing converters), `final/labels.tsv` (row id, game id, split, FEN, new and old score, result, depth,
+Outputs per job: `final/train.txt`, `final/val.txt` (self-play text format `FEN | new stm cp | white result`; Forge's
+own `F:\opus_scratch\rescore_d8\bin\fen2bin.exe in.txt out.pos` turns them into FPOS .pos files carrying the new
+scores - checked on 1,200 rows: 0 bad lines, score / side to move / result columns all equal; `hce_dump.exe in.txt
+out.hce` in the same folder makes the matching .hce), `final/labels.tsv` (row id, game id, split, FEN, new and old score, result, depth,
 nodes), `final/MANIFEST.json` (md5 + sha256). Exit codes: 2 bad input, 3 configuration differs, 4 integrity.
 
 ## Commands (PC rules: Idle, CPU mask, <= 2 probe workers; nothing is deleted or overwritten)
