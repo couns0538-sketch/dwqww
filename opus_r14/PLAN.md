@@ -42,3 +42,22 @@ wrongly called them unreachable; Couns pointed at the folder. The P6 LOW crfix (
    `fit_e3.py --bounds`, one refit at 50,400,100; candidate lines EvalRule50Damp 60 and EvalOptimism 150 strictly separate.
 5. **20-minute review** (Couns): structured self-review of everything pushed in block 1, fix what is wrong, record it.
 Then block 2 (A4 rest = H768+ parity, A5 P3 combined line, A6 STATUS) and the main items.
+
+## Block 2 (written 2026-11-02 ~10:35 PC clock, after block 1's pushes) - A4 rest, A5, A6, then the main items
+- **A4 P4, parity above H256**: the R3 tree's embedded default net (src/nnue_weights.inc) static-asserts H = 256, so the
+  H768 / 1024 / 1536 harnesses build from a copy without that file (D:\o14a\p4\r3_h, otherwise byte-identical; the v2
+  loader / features / output code is the same source). Per H: fresh dir, random nets of width H with the R13 seeds, CR's
+  parity_v2.sh unchanged (9c124cc3), AVX2 + SSE 10000/10000 exact; planted bug once at H1536. Then commit + push.
+- **A5 P3 combined line**: on the handoff exe 029d58e8, `lp_check.py run` (kit v2.3 tool) with Sf26NmpPrior=1,
+  Sf26LmrGap=1, Sf26MulticutCorr=1 must give the Sf26Bundle=14 numbers 335098 / 727853 / 2415447 / 9334814 / 29426126; plus
+  T1/T4 smoke and mate probe (cand_checks.py) and a CI ASan+UBSan config for the combined line if the P3 workflow lacks it.
+  Used only if 2+ singles reach H1.
+- **A6**: STATUS.md = real state of every branch.
+- **Main 1** (opus-r13-p4-v2nets): `opus_r14/b/GPU_REQUEST.md` with exact commands, minutes per run, staged a -> b -> c,
+  L1 768 / 1024 / 1536, >= 2 fresh seeds each, outputs on D: (F: write-forbidden), save rate kept small for the 10 GB
+  scratch cap. GPU state at 10:31 PC clock: npt line `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s24` training, keeper
+  window to 2026-11-08 with ~132 h of npt lines queued -> no window; never start next to it. Blocker written down if none comes.
+- **Main 2** (opus-r13-p2-sparse-l1): `FORGE_SEARCH_SPEED2` build switch (default 0) = TT prefetch at make_move on every path
+  (main search, null move, qsearch) + the speedmp MovePicker / piece_type hoist (crew source
+  `grok-pc\forge_push\src_speedmp2_h256e12`, CR PASS 2026-10-24), one form only; node-identical at 0 and 1 vs the lock pins;
+  kit pc1 = pc2; advisory ABBA >= 10 pairs on one Idle core; CI ASan+UBSan.
