@@ -1,0 +1,57 @@
+"""Malformed provenance and optional fields must not become trusted labels."""
+import json
+
+import chess
+import pytest
+
+from records import record, validate_record, read_records
+
+
+def row():
+    return record(chess.STARTING_FEN, 20, 'cp', 1, 'fixture', 1, 'selfplay')
+
+
+@pytest.mark.parametrize('field,value', [
+    ('depth', True), ('depth', -1), ('depth', '12'), ('depth', 1.5),
+    ('raw_score', True), ('raw_score', {}), ('raw_score', []), ('raw_score', ''),
+    ('raw_score', '  '), ('raw_score', None), ('source', '  '),
+    ('source_row', ' '), ('source_row', '0'), ('source_row', '0:2'),
+    ('source_row', '1:-1'), ('source_row', 'garbage'),
+    ('fen', None), ('fen', []), ('best_move', 123),
+])
+def test_malformed_normalized_metadata_rejected(field, value):
+    candidate = row()
+    candidate[field] = value
+    with pytest.raises(ValueError):
+        validate_record(candidate)
+
+
+def test_lichess_eval_cannot_claim_game_result():
+    candidate = row()
+    candidate['source_kind'] = 'lichess'
+    with pytest.raises(ValueError, match='result'):
+        validate_record(candidate)
+
+
+@pytest.mark.parametrize('source_row', [1, '1', '1:0', '2:128', '0001:0000'])
+def test_valid_provenance_and_optional_depth_preserved(source_row):
+    candidate = record(chess.STARTING_FEN, 20, 'cp', None, 'fixture', source_row,
+                       'pgn', raw_score='+0.20/12 note', depth=12)
+    assert validate_record(candidate) is candidate
+    assert candidate['source_row'] == source_row and candidate['depth'] == 12
+
+
+def test_unknown_input_kind_refused(tmp_path):
+    source = tmp_path/'rows.jsonl'
+    source.write_text(json.dumps(row())+'\n')
+    with pytest.raises(ValueError, match='kind'):
+        list(read_records(source, 'typo'))
+
+
+def test_type_error_includes_source_line(tmp_path):
+    candidate = row()
+    candidate['fen'] = []
+    source = tmp_path/'rows.jsonl'
+    source.write_text(json.dumps(candidate)+'\n')
+    with pytest.raises(ValueError, match='rows.jsonl:1:'):
+        list(read_records(source))

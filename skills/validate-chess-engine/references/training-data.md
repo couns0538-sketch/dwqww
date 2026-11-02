@@ -168,6 +168,13 @@ both fixture targets. A byte-compatibility contract includes output names and
 statistics/metadata files as well as binary payloads; distinguish original labels
 from intentionally clipped encoded labels in round-trip audits.
 
+Validate optional metadata as carefully as labels: reject booleans masquerading
+as depth/score integers, blank provenance, invalid game:ply identifiers and result
+claims on evaluation-only sources. Preserve valid original raw-label text and
+leading-zero source identifiers. After tightening a schema, replay existing real
+normalized shards read-only and bind their before/after hashes; unit fixtures
+alone do not prove compatibility with retained training data.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

@@ -4,8 +4,8 @@
 
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
-Plan: `QUALITY6H_PLAN.md` at repository root. Current approved source e526fc12.
-Strict-input reproduction and data-audit design underway; no new candidate accepted.
+Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
+their pinned source files; final refreshed handoff is still pending.
 
 Saved the three user-requested future engine skills under `skills/`: build proof,
 exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT
@@ -34,11 +34,22 @@ Converter admission milestone: 15 failures reproduced before repairs, then an
 actual Windows alias-retargeting failure reproduced and fixed. Full suite: 192
 tests + 11 subtests PASS; 23 focused checks pass after expanding legacy output
 identity to filenames and stats.json. Small focused review approved the frozen
-converter before the next 100k/all-artifact and 1000-mirror reruns (now running).
+converter before the next 100k/all-artifact and 1000-mirror reruns. Both now PASS:
+all three legacy artifacts (train, validation, stats) match exactly; 1,000 actual
+result records and 1,000 mirrors pass the literal orientation oracle.
 The no-flag configuration/parser path remains unchanged. Corpus audit has
 completed 13,593,220 rows in its first three sources without malformed positions;
 their score/result correlations are 0.6647, 0.6614 and 0.6599. Remaining sources
 are still being inspected; these are descriptive data statistics, not strength.
+
+Metadata admission milestone: 22 malformed-field cases failed before repair.
+The full frozen CPU suite passes 222 tests + 11 subtests. One narrow read-only
+review approved records.py SHA256
+`85e065c4727e28569fd6b8685fa347e5aa7e9337c9cbb74a2d78485a395ee2fb`.
+Actual read-only replay then accepted all 999,953 cleared training rows and all
+1,000,000 separate capture-cohort rows, with unchanged payload/source hashes.
+Malformed provenance, optional depth, raw-score types and Lichess result claims
+are rejected; existing valid metadata is preserved. No training has run.
 
 ## 30-minute follow-up audit — complete and independently approved
 

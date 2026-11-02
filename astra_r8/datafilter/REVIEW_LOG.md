@@ -63,6 +63,27 @@ Reviewed converter SHA256 2c63fd8be1a1254f1f0a58ac7bf7cb476cbe668635c0736422079a
 Source remains frozen during the reruns. Next: source metadata and handoff
 completeness checks while the separately frozen one-CPU corpus audit continues.
 
+Actual converter reruns PASS: all three legacy artifacts match on 100,000 input
+rows; actual binary outcome checks pass 1,000 cases and 1,000 mirrors. Receipts
+are in evidence/quality6h/converter_identity_receipt.json and
+converter_orientation_receipt.json. No converter changes after review.
+
+## Six-hour continuation: metadata schema admission
+
+Reviewed records.py SHA256
+85e065c4727e28569fd6b8685fa347e5aa7e9337c9cbb74a2d78485a395ee2fb.
+New regressions reproduced 22 failures before fixes. Main tightened malformed
+FEN/provenance, optional depth/raw-score types, unknown input-kind dispatch and
+Lichess evaluation rows claiming game results. Leading-zero source identifiers,
+valid game:ply identifiers, and original raw label text remain unchanged.
+Raw labels need not numerically equal a deliberately transformed encoded label.
+Full frozen suite: 222 tests + 11 subtests PASS. One reused read-only reviewer
+APPROVED the two-file milestone without running duplicate expensive validation.
+Main then replayed 1,999,953 existing normalized rows through strict validation:
+all pass, complete input hashes unchanged, source code hash unchanged. Evidence:
+metadata_real_replay.json. Next: reproduce handoff completeness gaps while the
+separately frozen corpus profiler continues. No handoff readiness claimed yet.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

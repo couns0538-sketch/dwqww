@@ -48,21 +48,31 @@ def read_pgn_game(fh):
 
 def record(fen, score, score_type, result_white, source, source_row,
            source_kind, best_move=None, raw_score=None, depth=None):
-    if len(fen.split()) != 6 or int(fen.split()[5]) < 1:
+    if not isinstance(fen, str) or len(fen.split()) != 6 or int(fen.split()[5]) < 1:
         raise ValueError('original full FEN required')
     board = chess.Board(fen)
     if not board.is_valid():
         raise ValueError('invalid board')
     if source_kind not in ('selfplay', 'pgn', 'lichess'):
         raise ValueError('unsupported source kind')
-    if not isinstance(source, str) or not source or isinstance(source_row, bool) or not isinstance(source_row, (str, int)) or not str(source_row):
+    if not isinstance(source, str) or not source.strip() or isinstance(source_row, bool) or not isinstance(source_row, (str, int)):
         raise ValueError('invalid source provenance')
     if type(source_row) is int and source_row < 1:
         raise ValueError('source row must be positive')
+    if isinstance(source_row, str) and (not re.fullmatch(r'[0-9]+(?::[0-9]+)?', source_row) or int(source_row.split(':')[0]) < 1):
+        raise ValueError('source row must identify a positive line or game:ply')
     if score_type not in ('cp', 'mate') or type(score) is not int:
         raise ValueError('invalid score/type')
     if result_white is not None and (type(result_white) is not int or result_white not in (-1, 0, 1)):
         raise ValueError('invalid result')
+    if source_kind == 'lichess' and result_white is not None:
+        raise ValueError('Lichess eval positions have no game result')
+    if depth is not None and (type(depth) is not int or depth < 0):
+        raise ValueError('invalid search depth')
+    if raw_score is not None and (type(raw_score) not in (int, str) or isinstance(raw_score, str) and not raw_score.strip()):
+        raise ValueError('invalid raw score metadata')
+    if best_move is not None and not isinstance(best_move, str):
+        raise ValueError('invalid stored best move')
     if best_move is not None and chess.Move.from_uci(best_move) not in board.legal_moves:
         raise ValueError('illegal stored best move')
     return dict(fen=fen, score_stm=score, score_type=score_type,
@@ -95,6 +105,10 @@ def lichess_record(obj, source, row):
                   obj['evals'][0].get('depth'))
 
 def validate_record(r):
+    if not isinstance(r, dict):
+        raise ValueError('normalized record must be a JSON object')
+    if r['raw_score'] is None:
+        raise ValueError('raw score metadata is required')
     if type(r['has_result']) is not bool or type(r['ply']) is not int:
         raise ValueError('invalid derived metadata type')
     if r['result_stm'] is not None and type(r['result_stm']) is not int:
@@ -108,6 +122,8 @@ def validate_record(r):
     return r
 
 def read_records(path, kind='normalized'):
+    if kind not in ('normalized', 'selfplay', 'lichess', 'pgn'):
+        raise ValueError('unsupported input kind')
     with open(path, encoding='utf-8-sig') as fh:
         if kind == 'pgn':
             game_index = 0
