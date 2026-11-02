@@ -1,0 +1,32 @@
+.............................................................F
+================================== FAILURES ===================================
+_______ test_resume_fails_closed_on_numpy_or_order_mismatch[<lambda>0] ________
+
+mutate = <function <lambda> at 0x0000000012683C40>
+
+    @pytest.mark.parametrize('mutate', [
+        lambda st: dict(st, numpy_version='1.26.4'),
+        lambda st: {k: v for k, v in st.items() if k != 'numpy_version'},
+        lambda st: dict(st, order_check='0' * 64),
+        lambda st: {k: v for k, v in st.items() if k != 'order_check'},
+    ])
+    def test_resume_fails_closed_on_numpy_or_order_mismatch(mutate):
+        from npt_adapter import Sampler
+        a = Sampler(50, SEED, 'm'); a.take(10)
+        b = Sampler(50, SEED, 'm')
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+wt\astra_r10\job3\regression\datafilter\tests\test_qa_fix7_sampler_resume_guard.py:47: Failed
+============================== warnings summary ===============================
+tests/test_integration.py::test_real_checkpoint_sampler_lr_restore[False]
+  D:\a10\job3\runtime312\packages\torch\optim\lr_scheduler.py:192: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED wt\astra_r10\job3\regression\datafilter\tests\test_qa_fix7_sampler_resume_guard.py::test_resume_fails_closed_on_numpy_or_order_mismatch[<lambda>0]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 61 passed, 1 warning in 70.77s (0:01:10)
+{"status": "FAIL", "stage": "final-private-runtime-binding", "collected": 73, "passed": 61, "failures": 1, "skipped": 0}

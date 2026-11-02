@@ -1,14 +1,15 @@
 # Forge Astra R10 — UNPROVEN
 
-Work branch: `astra-r10-3jobs`. All three jobs were addressed in order. This report
-is a live checkpoint until the Job3 pack identity and final regression result are
-filled below. No engine strength, gate acceptance or training clearance is claimed.
+Work branch: `astra-r10-3jobs`. All three jobs were addressed in order and their
+handover evidence is sealed and checksum-verified. Required work that could not
+qualify is recorded below. No engine strength, gate acceptance or training
+clearance is claimed. All strength remains UNPROVEN.
 
 | Job | Current result | Handover |
 |---|---|---|
 |1 NNUEWideOutput|Native correctness PASS within disclosed scope; timing CALIBRATION_FAIL; speed UNPROVEN|`job1/pack/`, SEALED_INCOMPLETE|
 |2 P4/P7 leftovers|BLOCKED by unavailable required CR commits and permitted fit inputs|`job2/pack_rule50/`, `job2/pack_optimism/`, separate SEALED_INCOMPLETE packs|
-|3 datafilter|Full audit complete, game separation UNVERIFIED; state/native replay proofs and73/73 regression PASS|`job3/pack/` pending final sealing/verification|
+|3 datafilter|Full audit complete, game separation UNVERIFIED; state/native replay proofs and 73/73 regression PASS|`job3/pack/`, SEALED_INCOMPLETE; training BLOCKED|
 
 The accepted lock is
 `FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072`.
@@ -147,8 +148,22 @@ All private-runtime, external NPT source/DLL and installed compiler/SDK identiti
 matched before/after;44 observed NPT imports were prebound. One existing scheduler
 warning is preserved; no optimizer update, training loop or GPU use occurred.
 
-Final Job3 pack identity: PENDING. The handover is
-for Engine NNUE plus CR. The training artifact is a BLOCKED guard, not a fabricated
+Job3 pack SHA256SUMS SHA256:
+`F02E6E139C198F9616EBA2A3510FF07B188C32D1BD8C6BF25DB80D16388DC25D`.
+MD5SUMS SHA256:
+`B57D69E5C3EEF289DC5170A538F003B09DBD4DC55219CB741045D8EBA785D896`.
+The sealed pack contains 3946 artifacts totaling 103098358 bytes and 3949
+checksum-covered files. Independent metadata/coverage review and actual full-file
+SHA256/MD5 verification PASS. Verification receipt:
+`35772CB06E61A13940137A34A479EF9D38634853C37B93D61224FC43BC318751`,
+in `job3/packaging/verify-cpu2final01-launch/result.json`; native exit 0, Idle,
+one worker on logical CPU 2, no capture or disk-floor errors. Its stdout records
+3949 files, PASS, SEALED_INCOMPLETE and UNPROVEN. Independent final review matched
+the receipt, manifest, verifier pins and unchanged pack identities, with no open
+pack-review findings. Passing checksums does not grant training clearance.
+
+The handover is for Engine NNUE plus CR. The training artifact is a BLOCKED guard,
+not a fabricated
 ready training command. Authentic game IDs and a reviewed qualified training
 manifest/seed inventory remain prerequisites for any later training.
 

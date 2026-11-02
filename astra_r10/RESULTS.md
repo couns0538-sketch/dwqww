@@ -12,7 +12,7 @@ Perft5 start4865609 kiwipete193690690. UHO crew gates only.
 | M0 plan/worktree/review policy | PASS setup only | safety compatibility tests/review |
 | Job1 native proof/timing | SEALED_INCOMPLETE; native proof PASS within disclosed scope; calibration FAIL | crew QA+CR review; speed/strength UNPROVEN |
 | Job2 P4/P7 | BLOCKED / SEALED_INCOMPLETE | authentic CR commits/exports and permitted PGN/fit inputs required |
-| Job3 audit/replay | Audit complete UNVERIFIED; state/native replay PASS within scope | compatible CPU runtime/original73 regression and final pack pending |
+| Job3 audit/replay | Audit complete UNVERIFIED; state/native replay and original 73/73 regression PASS; SEALED_INCOMPLETE pack checksums PASS | Engine NNUE+CR: authentic game IDs and qualified training manifest required; training BLOCKED |
 
 Planning review: installed launcher rejects required C/F protected roots; only D floor implemented. Exact proof helper requires ON difference and T4 up front. Kit resets priority to BelowNormal. Branch-local compatibility work in progress before native jobs. No candidate accepted.
 Ruling: use existing matching branch skills, not global C: installs; all writes remain D:a10. User milestone reviews override generic one-final-review skill advice.
@@ -74,3 +74,48 @@ M14 Job3 final native regression PASS and independent review closed. suite03 RES
 M14 recovery review/validation closed: exactly29 owned convenience links inventoried, removed nonrecursively with DirectoryInfo.Delete, every target-file set/hash unchanged. BEFORE9AA318228717F386BEC42BC92F07E4D4304B81F8022274E8585A535CDDE40342, AFTER9A99DB800D3DFC7C5D81C69132FF29D7098095F91982766B8E71A8B08B7CDF4F. This narrowly reviewed Idle/fullroots recovery restored the obstructed global guard; no dataset/log target bytes removed. Actual tmp_path alias-suppression fixture PASS3525259BD918B10E42646955558CB4F40B3D2AF0A84FE7D094B215B0DC0473C2. Guard policy and original73 assertions unchanged. Matching skill lessons cover dot-sourced parameter collisions, D log and optionalalias handling.
 
 M14 collectorB33F288B149486BCB2F7B8CF32F90C2875B7DCACA4BAC1200C77C3891FECB986 reviewed with11fixturesPASS0skip/native0. Historical suite02guardflag is preserved as rejected evidence; strict clean primaryreceipt binding remains mandatory. FINAL_INPUTS73FC861F33DF6491464E7CB6BDE5AD48FC1FE122D05529F72D315F08D3C4A3A8/HANDOVER490C0D16 focused review closed; all15refs and5attempt bindings match. Native preparation is released under fresh admission, followed by exactrequest review, sealing and independent checksum verification. Pack NOTSEALED at this checkpoint. Training remainsBLOCKED/gameID auditUNVERIFIED17388528missingIDs; all strengthUNPROVEN. Next finalize Job3pack and globalreport, then finalpush.
+
+M15 final Job3 pack sealed and verified (2026-11-02). Exact request
+F7B0EB4C7F4961C0FD3FC92FC631210ACDEF8D3EB887144BF26FA14A1D4DAC13
+received independent preseal review: 3946 unique artifacts, 103098358 artifact
+bytes, all source-to-pack bindings, five native regression attempts, required
+roles and blocked training guard verified. Sealer
+915E99937778D102A0D554BB1E243DF11DF2DD02FA40BB085921641B68C320D3
+completed native exit 0 at 17:37:58.985Z on Idle CPU3, one worker, no capture or
+floor errors. Two independently inspected admission samples preceded launch.
+Pack status is SEALED_INCOMPLETE / UNPROVEN, purpose incomplete-data,
+training BLOCKED, audit UNVERIFIED, actual-adapter replay PASS.
+
+M15 checksum and final independent review PASS: SHA256SUMS SHA256
+F02E6E139C198F9616EBA2A3510FF07B188C32D1BD8C6BF25DB80D16388DC25D;
+MD5SUMS SHA256 B57D69E5C3EEF289DC5170A538F003B09DBD4DC55219CB741045D8EBA785D896.
+All 3949 covered files passed actual SHA256+MD5 rehash and complete coverage.
+Verifier receipt 35772CB06E61A13940137A34A479EF9D38634853C37B93D61224FC43BC318751,
+stdout 048180D400809F465B140411C7B335074E628B2EA30C45600C27A560D01FE2B5,
+manifest 5528DB2E8687E75435420CC9CB69DBE41A12A8B27BF73BDF370E0897CFF9BD40.
+Native exit 0, completed 17:49:42.993Z, Idle CPU2, one worker, empty stderr and
+no capture/floor errors. Scheduling-only CPU3-to-CPU2 adaptation was self-reviewed;
+the exact previously reviewed verification algorithm was unchanged. Retained
+admission samples at 17:49:13.417Z and 17:49:25.948Z were CPU2 11/28%, host 76/84%;
+captured manifest write was 9.36 seconds after the final sample (filesystem
+metadata evidence, not an invented command timestamp). Earlier busy observations
+are retained as WAIT, not failed qualification or discarded timing blocks.
+Independent reviewer matched captured/prepared manifests, frozen verifier pins,
+receipt, 3949-file coverage and unchanged pack identities. No open final pack
+finding; no duplicate bulk rehash was run by the reviewer. Temporary review-credit
+errors earlier did not prevent completed independent preseal and final reviews.
+
+M15 closing status: original 73/73 regression, state preservation and actual
+adapter resume proofs PASS within documented scope. Missing authentic game IDs
+still block training; Job1 calibration FAIL and Job2 missing authentic inputs
+remain unresolved. FINAL_REPORT.md and RESUME.md give pack identities and exact
+crew prerequisites; no active native worker or partial recovery remains. No
+strength acceptance, ready training command, speed gain, gate or Elo claim.
+Final publication is to astra-r10-3jobs only; verify its remote head after push.
+
+M15 final documentation review corrected a stale source-manifest identity in the
+resume draft: the actual frozen SOURCE_MANIFEST.json, sealed copy and request all
+bind 78D9904850931712E193B4C280083527F04E964285671F8B951D9D58C66D0933.
+Root independently rehashed both files and fixed RESUME.md. The older M9 ledger
+claim 963425917... is preserved as historical text and superseded by this
+correction; it is not the current input identity. No pack bytes changed.

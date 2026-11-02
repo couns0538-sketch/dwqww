@@ -1,0 +1,501 @@
+--- original/astra_r8/datafilter/convert_forge.py
++++ tool/datafilter/convert_forge.py
+@@ -14,10 +14,18 @@
+ ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+ ap.add_argument('--max-load', type=float, default=4.0)
+ ap.add_argument('--keep-result', action='store_true')
++ap.add_argument('--keep-fen', action='store_true', help='opt-in original full-FEN/provenance sidecars and hash-bound row manifests; binary/result defaults unchanged')
+ ap.add_argument('--lichess', nargs='*', default=[])
+ ap.add_argument('--normalized', nargs='*', default=[])
+ a = ap.parse_args()
+ if os.path.lexists(a.outdir): sys.exit('refusing existing output destination')
++preserve_metadata = a.keep_result or a.keep_fen
++if a.keep_fen:
++    from pathlib import Path
++    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
++    from full_state import identity, write_state
++    state_sources = a.pgn + a.selfplay + a.lichess + a.normalized
++    state_input_identities = [identity(path) for path in state_sources]
+ metadata = []
+ current_metadata = None
+ def throttle():
+@@ -35,7 +43,7 @@
+     if a.keep_result:
+         encoded['rsv'][0, 0] = int(current_metadata['has_result'])
+         encoded['rsv'][0, 1] = 0 if not current_metadata['has_result'] else current_metadata['result_white'] + 1
+-        metadata.append(current_metadata)
++    if preserve_metadata: metadata.append(current_metadata)
+     out.append(encoded)
+ throttle()
+ for f in a.pgn:
+@@ -56,7 +64,7 @@
+             elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+             else:
+                 cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+-                if a.keep_result:
++                if preserve_metadata:
+                     rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                     current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                               str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+@@ -68,12 +76,12 @@
+         st['sp_lines'] += 1
+         try: fen, sc, _ = [x.strip() for x in line.split('|')]; b = chess.Board(fen); s = int(sc)
+         except Exception:
+-            if a.keep_result: sys.exit(f'malformed selfplay line {f}:{source_row}')  # strict with --keep-result
++            if preserve_metadata: sys.exit(f'malformed selfplay line {f}:{source_row}')  # strict with metadata preservation
+             st['sp_bad'] += 1; continue
+         if not b.is_valid():
+-            if a.keep_result: sys.exit(f'invalid selfplay board {f}:{source_row}')
++            if preserve_metadata: sys.exit(f'invalid selfplay board {f}:{source_row}')
+             st['sp_bad'] += 1; continue
+-        if a.keep_result: current_metadata = selfplay_record(line, f, source_row)
++        if preserve_metadata: current_metadata = selfplay_record(line, f, source_row)
+         keep(b, s if b.turn else -s, None)   # selfplay already quiet-filtered by eligible_score
+ for kind, paths in [('lichess', a.lichess), ('normalized', a.normalized)]:
+     for f in paths:
+@@ -90,16 +98,21 @@
+ if a.keep_result: key['rsv'] = 0
+ _, first = np.unique(np.ascontiguousarray(key).view(np.dtype((np.void, 32))), return_index=True)
+ st['dupes'] = len(arr) - len(first); indices = np.sort(first); arr = arr[indices]
+-if a.keep_result: metadata = [metadata[i] for i in indices]
++if preserve_metadata: metadata = [metadata[i] for i in indices]
+ indices = np.random.default_rng(a.seed).permutation(len(arr))
+ arr = arr[indices]; nv = max(1, int(round(len(arr) * a.val)))
+-if a.keep_result: metadata = [metadata[i] for i in indices]
++if preserve_metadata: metadata = [metadata[i] for i in indices]
++if a.keep_fen and state_input_identities != [identity(path) for path in state_sources]:
++    sys.exit('input changed during conversion')
+ os.makedirs(a.outdir, exist_ok=False)
+ arr[nv:].tofile(f'{a.outdir}/train.bin'); arr[:nv].tofile(f'{a.outdir}/val.bin')
+-if a.keep_result:
++if preserve_metadata:
+     for name, rows in [('train', metadata[nv:]), ('val', metadata[:nv])]:
+         with open(f'{a.outdir}/{name}.metadata.jsonl', 'x', encoding='utf-8', newline='\n') as fh:
+             for row in rows: fh.write(dumps(row) + '\n')
++        if a.keep_fen:
++            write_state(Path(a.outdir)/(name+'.bin'), rows, Path(a.outdir)/(name+'.state.json'),
++                        binary_format='rec32', sources=state_sources)
+ s = arr['score'].astype(np.int32)
+ st.update(final=len(arr), train=len(arr)-nv, val=nv, mean=float(s.mean()), std=float(s.std()),
+           abs_median=float(np.median(np.abs(s))), black_to_move=float(arr['stm'].mean()), min_depth=a.min_depth,
+--- original/astra_r8/datafilter/records.py
++++ tool/datafilter/records.py
+@@ -49,11 +49,22 @@
+     white_score = pv[kind]
+     board = chess.Board(obj['fen'])
+     move = pv.get('line', '').split()
+-    return record(obj['fen'], white_score * (1 if board.turn else -1), kind, None,
++    normalized = record(obj['fen'], white_score * (1 if board.turn else -1), kind, None,
+                   source, row, 'lichess', move[0] if move else None, white_score,
+                   obj['evals'][0].get('depth'))
++    if 'game_id' in obj:
++        check_game_id(obj['game_id'])
++        normalized['game_id'] = obj['game_id']
++    return normalized
++
++def check_game_id(value):
++    # Carry only an explicit supplied ID. Source rows/filenames are not IDs.
++    if value is not None and (not isinstance(value, str) or not value.strip()):
++        raise ValueError('game_id must be an authentic nonempty string or null')
+ 
+ def validate_record(r):
++    if 'game_id' in r:
++        check_game_id(r['game_id'])
+     if type(r['has_result']) is not bool or type(r['ply']) is not int:
+         raise ValueError('invalid derived metadata type')
+     if r['result_stm'] is not None and type(r['result_stm']) is not int:
+--- original/tools/data/relabel_positions.py
++++ tool/data/relabel_positions.py
+@@ -25,6 +25,8 @@
+     allow_reconstructed: bool=False
+     stem: str='relabeled'
+     sidecar_origin: str='auto'
++    state_manifest: Path | None=None
++    state_sha256: str | None=None
+ 
+ def require(ok,message):
+     if not ok:raise ValueError(message)
+@@ -63,6 +65,9 @@
+     require(c.start>=0 and 0<c.count<=100000 and c.stride>0 and 0<c.batch_size<=4096,'invalid slice: count1..100000, batch1..4096; use separate slices for larger jobs')
+     require(c.sidecar is not None or c.allow_reconstructed,'full FEN sidecar required unless --allow-reconstructed')
+     require(c.sidecar_origin in ('auto','original_full_fen','reconstructed'),'invalid sidecar origin')
++    require((c.state_manifest is None)==(c.state_sha256 is None),'state manifest and pinned SHA256 must be supplied together')
++    require(c.state_manifest is None or (c.sidecar is not None and not c.allow_reconstructed and c.sidecar_origin!='reconstructed'),
++            'full-state binding requires an original sidecar; reconstruction is not permitted')
+     c.out.mkdir(parents=True,exist_ok=False)
+     started=time.monotonic();parent_cpu=time.process_time();total_cpu_start=cpu_total() if os.name!='nt' else None
+     report={'status':'RUNNING','started_utc':datetime.now(timezone.utc).isoformat(),'config':{k:str(v) if isinstance(v,Path) else v for k,v in vars(c).items()},'selected':0,'exact_label_rows':0,'reconstructed_label_rows':0,'score_changed':0,'sum_absolute_score_change':0,'search_nodes':0,'query_cpu_ns':0,'depth_histogram':{},'claim':'Deeper-budget labels, not demonstrated stronger labels or Elo. Original teacher budget may be unknown.'}
+@@ -73,7 +78,15 @@
+         if c.sidecar is not None:inputs['sidecar']={'path':str(c.sidecar.resolve()),'sha256':sha256(c.sidecar)}
+         report['inputs']=inputs;report['probe_sha256']=sha256(c.probe)
+         report['implementation_sha256']={name:sha256(Path(__file__).with_name(name)) for name in ('relabel_positions.py','forge_pos.py','forge_probe.py')}
+-        selected=[];records=[]
++        state_rows=None
++        if c.state_manifest is not None:
++            import sys
++            sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
++            from full_state import verify_state, write_state
++            state_rows=verify_state(c.state_manifest,c.state_sha256,c.pos)
++            inputs['state_manifest']={'path':str(c.state_manifest.resolve()),'sha256':sha256(c.state_manifest)}
++            report['implementation_sha256']['full_state.py']=sha256(Path(__file__).resolve().parents[1]/'full_state.py')
++        selected=[];records=[];output_state=[]
+         with PosReader(c.pos) as reader:
+             last=c.start+(c.count-1)*c.stride
+             require(last<reader.n,'slice extends beyond input record count')
+@@ -88,9 +101,13 @@
+                     inputs['source_summary']={'path':str(source_summary.resolve()),'sha256':sha256(source_summary)}
+                 if inherited and 'reconstructed' in inherited:
+                     require(c.sidecar_origin!='original_full_fen','reconstructed sidecar cannot be promoted to original state')
++                    require(state_rows is None,'reconstructed sidecar cannot use original full-state binding')
+                 with c.sidecar.open(encoding='utf8') as source:
+                     for i,line in enumerate(source):
+                         require(i<reader.n,'sidecar longer than POS');lines=i+1
++                        if state_rows is not None:
++                            supplied_fen=line.split('|',1)[0].strip()
++                            require(supplied_fen.split()==state_rows[i]['fen'].split(),f'original six-field FEN mismatch at{i}')
+                         if i!=wanted:continue
+                         record=reader.row(i)
+                         if '|' in line:
+@@ -102,13 +119,16 @@
+                             fen=line.strip();white_result=(record.meta>>1)/2
+                             supplied,_=text_record(f'{fen} | {record.score} | {white_result}')
+                             require((supplied.board,supplied.meta&1)==(record.board,record.meta&1),f'FEN state mismatch at{i}')
+-                            require(c.sidecar_origin!='auto','FEN-only sidecar requires explicit --sidecar-origin original_full_fen or reconstructed')
+-                            origins.add(c.sidecar_origin)
++                            require(c.sidecar_origin!='auto' or state_rows is not None,'FEN-only sidecar requires explicit --sidecar-origin original_full_fen or reconstructed')
++                            origins.add('original_full_fen' if state_rows is not None else c.sidecar_origin)
+                         selected.append((i,fen));records.append(record);wanted=next(indices,None)
+                 require(lines==reader.n,'sidecar shorter than POS')
+                 require(len(origins)==1,'mixed sidecar state origin is not supported')
+                 report['state_origin']='reconstructed_no_castling_no_ep_clock0' if origins=={'reconstructed'} else 'original_full_fen'
+                 report['alignment_scope']='all sidecar row count; selected board/STM/score/result matches (full corpus audit is separate)'
++                if state_rows is not None:
++                    require(len(state_rows)==reader.n,'state manifest row count differs from POS')
++                    report['alignment_scope']='all input rows: pinned binary/metadata SHA256, row index/record SHA256, board/STM and all six original FEN fields'
+             else:
+                 for i in range(c.start,last+1,c.stride):
+                     record=reader.row(i);selected.append((i,board_to_fen(record,policy=RECONSTRUCTION_POLICY)));records.append(record)
+@@ -131,6 +151,12 @@
+                             score=answer['score'];hce=answer['hce']
+                             require(-32767<=score<=32767 and -32767<=hce<=32767,'FPOS/FHCE score overflow')
+                             writer.append(Record(old.board,score,old.meta,hce),fen=fen)
++                            if state_rows is not None:
++                                row=dict(state_rows[index])
++                                row['relabel_input_index']=index
++                                row['relabel_previous_evaluation']={key:row[key] for key in ('score_stm','score_type','raw_score','depth','best_move') if key in row}
++                                row.update(score_stm=score,score_type='cp',raw_score=score,depth=answer['depth'],best_move=answer['bestmove'])
++                                output_state.append(row)
+                             labels.write(json.dumps({'output_index':report['selected'],'input_index':index,'state_origin':report['state_origin'],'old_score_stm':old.score,'score_stm':score,'hce_stm':hce,'nodes_requested':c.nodes,'nodes':answer['nodes'],'depth':answer['depth'],'bestmove':answer['bestmove']},sort_keys=True)+'\n')
+                             report['selected']+=1;report['score_changed']+=score!=old.score;report['sum_absolute_score_change']+=abs(score-old.score)
+                             report['search_nodes']+=answer['nodes'];report['query_cpu_ns']+=answer['cpu_ns']
+@@ -138,7 +164,16 @@
+                         progress()
+             require(report['selected']==c.count,'incomplete selected slice')
+         for item in inputs.values():require(sha256(item['path'])==item['sha256'],'input changed during run')
++        if state_rows is not None:
++            require(verify_state(c.state_manifest,c.state_sha256,c.pos)==state_rows,'full-state input changed during run')
+         writer.close();writer=None
++        if state_rows is not None:
++            state_path=c.out/(c.stem+'.state.json')
++            state_report=write_state(c.out/(c.stem+'.pos'),output_state,state_path,binary_format='fpos1',
++                                    sources=[c.pos,c.sidecar,c.state_manifest])
++            report['full_state']={'manifest':str(state_path),'sha256':sha256(state_path),
++                                  'missing_game_ids':state_report['missing_game_ids'],
++                                  'game_id_status':state_report['game_id_status']}
+         report['exact_label_rows']=c.count if report['state_origin']=='original_full_fen' else 0
+         report['reconstructed_label_rows']=c.count-report['exact_label_rows']
+         report['wall_seconds']=time.monotonic()-started;report['parent_cpu_seconds']=time.process_time()-parent_cpu
+@@ -169,6 +204,8 @@
+     for name in ('pos','out','probe'):p.add_argument('--'+name,type=Path,required=True)
+     p.add_argument('--sidecar',type=Path);p.add_argument('--allow-reconstructed',action='store_true')
+     p.add_argument('--sidecar-origin',choices=('auto','original_full_fen','reconstructed'),default='auto')
++    p.add_argument('--state-manifest',type=Path,help='opt-in original full-FEN/provenance manifest, verified for every input row')
++    p.add_argument('--state-sha256',help='independently pinned SHA256 of --state-manifest')
+     for name,default in [('nodes',65536),('workers',1),('hash-mb',1),('start',0),('count',4096),('stride',1),('batch-size',128)]:p.add_argument('--'+name,type=int,default=default)
+     p.add_argument('--stem',default='relabeled');a=p.parse_args(argv)
+     report=run(Config(**vars(a)));print(json.dumps(report,indent=2));return 0
+--- original/tools/data2/convert_dataset.py
++++ resume/data2/convert_dataset.py
+@@ -309,7 +309,30 @@
+     guard('after binpack encoding')
+ 
+ 
+-def run(args):
++def _publish_chunk(staging, published, out):
++    """R10: exclusive NTFS publication of this run's closed, synced shard."""
++    root = Path('D:/a10').resolve(strict=True)
++    owned = Path(out)
++    if not owned.is_absolute() or owned.resolve(strict=True) == root or not owned.resolve(strict=True).is_relative_to(root):
++        raise ValueError('R10 output must resolve inside D:/a10')
++    owned = owned.resolve(strict=True)
++    staging, published = Path(staging), Path(published)
++    if (not staging.is_absolute() or not published.is_absolute()
++            or staging.parent.resolve(strict=True) != owned
++            or published.parent.resolve(strict=True) != owned
++            or staging.resolve(strict=True).parent != owned
++            or not staging.name.startswith('.partial_data_')
++            or published.name != staging.name.removeprefix('.partial_')):
++        raise ValueError('unsafe R10 shard publication path')
++    if published.exists() or published.is_symlink():
++        raise FileExistsError('refusing existing published shard')
++    if os.name != 'nt':
++        raise ValueError('R10 exclusive directory publication is qualified only on Windows')
++    # Windows rename refuses an existing destination; no replacement/copy fallback.
++    staging.rename(published)
++
++
++def run(args, *, fault_hook=None):
+     # Bind the actual reads to the exact resolved paths hashed here. Also retain
+     # and recheck each caller's original path binding, including symlinks.
+     args = copy.deepcopy(args)
+@@ -352,6 +375,9 @@
+     dependency_dir = Path(__file__).resolve().parents[1] / 'data'
+     config['tool_sha256'] = {p.name: sha(p) for p in [Path(__file__), Path(__file__).with_name('bullet_records.py'), Path(__file__).with_name('external_tool_policy.py'), *(dependency_dir/n for n in ('forge_pos.py','forge_probe.py','filter_positions.py'))]}
+     out = Path(args.out)
++    owned_root = Path('D:/a10').resolve(strict=True)
++    if not out.is_absolute() or out.resolve() == owned_root or not out.resolve().is_relative_to(owned_root):
++        raise ValueError('R10 output must resolve inside D:/a10')
+     if not args.resume: out.mkdir(parents=True, exist_ok=False)
+     with output_lock(out):
+         if args.resume:
+@@ -361,10 +387,10 @@
+                 result = verify(out)
+                 return result
+         else: dump_new(out / 'config.json', config)
+-        return convert_locked(args, out, config, inputs, bindings)
+-
+-
+-def convert_locked(args, out, config, inputs, bindings):
++        return convert_locked(args, out, config, inputs, bindings, fault_hook=fault_hook)
++
++
++def convert_locked(args, out, config, inputs, bindings, *, fault_hook=None):
+     chunks = read_chunks(out)
+     start = sum(c['input_rows'] for c in chunks)
+     if args.resume:
+@@ -411,7 +437,7 @@
+             exhausted = False
+             while not exhausted and (args.limit is None or start < args.limit):
+                 guard('before output chunk')
+-                chunkdir = out / ('data_' + uuid.uuid4().hex)
++                chunkdir = out / ('.partial_data_' + uuid.uuid4().hex)
+                 chunkdir.mkdir()
+                 counts = collections.Counter(); consumed = 0; kept = 0
+                 with ExitStack() as files_stack:
+@@ -472,11 +498,20 @@
+                     fd = os.open(chunkdir, os.O_RDONLY)
+                     try: os.fsync(fd)
+                     finally: os.close(fd)
++                published = out / chunkdir.name.removeprefix('.partial_')
++                context = {'out': str(out), 'chunk_index': len(chunks),
++                           'start_row': start, 'input_rows': consumed,
++                           'staging': str(chunkdir), 'published': str(published)}
++                if fault_hook is not None: fault_hook('before_publish', context)
++                _publish_chunk(chunkdir, published, out)
++                chunkdir = published
++                if fault_hook is not None: fault_hook('after_publish_before_checkpoint', context)
+                 counts['kept'] = kept
+                 files = {str(p.relative_to(out)): {'bytes': p.stat().st_size, 'sha256': sha(p)} for p in sorted(chunkdir.iterdir())}
+                 chunk = {'start_row': start, 'input_rows': consumed, 'kept': kept, 'counts': dict(counts), 'text': str((chunkdir/'rows.txt').relative_to(out)), 'bullet': str((chunkdir/'rows.bullet').relative_to(out)), 'provenance': str((chunkdir/'provenance.tsv').relative_to(out)), 'files': files}
+                 db.commit()
+                 dump_new(out / f'chunk_{len(chunks):06d}.json', chunk)
++                if fault_hook is not None: fault_hook('after_checkpoint', context)
+                 chunks.append(chunk); start += consumed; total.update(counts)
+                 print(json.dumps({'sealed_chunks': len(chunks), 'input_rows': start, 'counts': dict(total)}), flush=True)
+                 if args.stop_after_chunks and len(chunks) >= args.stop_after_chunks:
+--- /dev/null
++++ tool/full_state.py
+@@ -0,0 +1,193 @@
++"""Opt-in full-FEN/provenance binding for Forge REC32 and FPOS1 sidecars.
++
++Original R10 glue; no trainer or engine implementation is copied. UNPROVEN.
++Binary formats cannot authenticate absent game IDs or recover lost FEN fields.
++The caller must pin the returned manifest hash independently.
++"""
++from __future__ import annotations
++import hashlib
++import itertools
++import json
++import mmap
++import os
++from pathlib import Path
++import re
++import struct
++import chess
++
++SCHEMA = 'forge-full-state-v1'
++
++
++def sha256(path):
++    digest = hashlib.sha256()
++    with Path(path).open('rb') as stream:
++        for block in iter(lambda: stream.read(1024 * 1024), b''):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++def identity(path):
++    path = Path(path).resolve(strict=True)
++    return dict(path=str(path), bytes=path.stat().st_size, sha256=sha256(path))
++
++
++def _json(value):
++    return (json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)+'\n').encode('utf8')
++
++
++def _binary_rows(path, binary_format):
++    with Path(path).open('rb') as stream:
++        size = os.fstat(stream.fileno()).st_size
++        if binary_format == 'rec32':
++            if size % 32:
++                raise ValueError('REC32 byte count is not a multiple of 32')
++            while row := stream.read(32):
++                yield row
++        elif binary_format == 'fpos1':
++            header = stream.read(16)
++            if len(header) != 16:
++                raise ValueError('FPOS1 header truncated')
++            magic, version, count = struct.unpack('<4sIQ', header)
++            if magic != b'FPOS' or version != 1 or size != 16 + 35 * count:
++                raise ValueError('FPOS1 format/size/count mismatch')
++            with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
++                for index in range(count):
++                    yield (data[16+32*index:16+32*(index+1)] +
++                           data[16+32*count+2*index:16+32*count+2*(index+1)] +
++                           data[16+34*count+index:17+34*count+index])
++        else:
++            raise ValueError('unsupported binary format')
++
++
++def _check_features(raw, binary_format, row):
++    fen = row.get('fen')
++    if not isinstance(fen, str) or len(fen.split()) != 6:
++        raise ValueError('original six-field FEN required')
++    board = chess.Board(fen)
++    if not board.is_valid():
++        raise ValueError('invalid full-FEN chess position')
++    game_id = row.get('game_id')
++    if game_id is not None and (not isinstance(game_id, str) or not game_id.strip()):
++        raise ValueError('game_id must be an authentic nonempty string or null')
++    stm = int(not board.turn)
++    if binary_format == 'fpos1':
++        if struct.unpack('<h', raw[32:34])[0] == -32768:
++            raise ValueError('FPOS1 score -32768 is reserved/invalid')
++        expected = bytearray(32)
++        for square, piece in board.piece_map().items():
++            code = piece.piece_type + (0 if piece.color else 6)
++            expected[square//2] |= code << (4*(square % 2))
++        if raw[:32] != expected or not 0 <= raw[34] <= 5 or (raw[34] & 1) != stm:
++            raise ValueError('full FEN does not match FPOS1 board/STM')
++    else:
++        nibble = []
++        for square in chess.SquareSet(board.occupied):
++            piece = board.piece_at(square)
++            nibble.append(piece.piece_type - 1 + (0 if piece.color else 8))
++        nibble += [0] * (32-len(nibble))
++        pieces = bytes(nibble[2*i] | nibble[2*i+1] << 4 for i in range(16))
++        castle = (int(board.has_kingside_castling_rights(chess.WHITE)) |
++                  int(board.has_queenside_castling_rights(chess.WHITE)) << 1 |
++                  int(board.has_kingside_castling_rights(chess.BLACK)) << 2 |
++                  int(board.has_queenside_castling_rights(chess.BLACK)) << 3)
++        ep = board.ep_square if board.ep_square is not None else 255
++        if (raw[:8] != int(board.occupied).to_bytes(8, 'little') or raw[8:24] != pieces or
++                raw[24] != stm or raw[25] != castle or raw[28] != ep):
++            raise ValueError('full FEN does not match REC32 board/STM/castling/EP')
++
++
++def write_state(binary, rows, manifest, *, binary_format, sources=(), state_origin='original_full_fen'):
++    """Seal an aligned sidecar, then its manifest; never replace existing files.
++
++    Rows retain all supplied provenance. In particular no game ID is derived from
++    a row number, filename, FEN or shard name. None means unknown, not clearance.
++    """
++    if state_origin != 'original_full_fen':
++        raise ValueError('state binding requires original full FEN; reconstructed state is not original')
++    manifest = Path(manifest)
++    metadata = manifest.with_name(manifest.name+'.rows.jsonl')
++    pending = manifest.with_name(manifest.name+'.pending')
++    if any(path.exists() or path.is_symlink() for path in (manifest, metadata, pending)):
++        raise FileExistsError('state output already exists')
++    binary_before = identity(binary)
++    source_before = [identity(path) for path in sources]
++    sentinel = object()
++    count = missing = 0
++    with metadata.open('xb') as stream:
++        for index, (raw, row) in enumerate(itertools.zip_longest(_binary_rows(binary, binary_format), rows, fillvalue=sentinel)):
++            if raw is sentinel or row is sentinel:
++                raise ValueError('binary/metadata row count mismatch')
++            _check_features(raw, binary_format, row)
++            entry = dict(index=index, record_sha256=hashlib.sha256(raw).hexdigest(), metadata=row)
++            stream.write(_json(entry))
++            count += 1
++            missing += row.get('game_id') is None
++        stream.flush(); os.fsync(stream.fileno())
++    if binary_before != identity(binary) or source_before != [identity(path) for path in sources]:
++        raise ValueError('input changed while creating state binding')
++    meta_id = identity(metadata)
++    meta_id['path'] = metadata.name
++    result = dict(schema=SCHEMA, binary_format=binary_format, binary=binary_before,
++                  metadata=meta_id, rows=count, missing_game_ids=missing,
++                  game_id_status='UNVERIFIED' if missing else 'SUPPLIED_NOT_INDEPENDENTLY_AUTHENTICATED',
++                  state_origin=state_origin, sources=source_before, claim='UNPROVEN')
++    with pending.open('xb') as stream:
++        stream.write(_json(result)); stream.flush(); os.fsync(stream.fileno())
++    os.link(pending, manifest)
++    return result
++
++
++def verify_state(manifest, expected_sha256, binary):
++    """Verify every row and every file hash before returning any metadata."""
++    manifest = Path(manifest)
++    if not isinstance(expected_sha256, str) or not re.fullmatch('[0-9a-fA-F]{64}', expected_sha256):
++        raise ValueError('an independently pinned state-manifest SHA256 is required')
++    manifest_target = manifest.resolve(strict=True)
++    manifest_bytes = manifest.read_bytes()
++    if hashlib.sha256(manifest_bytes).hexdigest() != expected_sha256.lower():
++        raise ValueError('state manifest SHA256 mismatch')
++    receipt = json.loads(manifest_bytes)
++    if receipt.get('schema') != SCHEMA or receipt.get('state_origin') != 'original_full_fen':
++        raise ValueError('unsupported state manifest schema/origin')
++    observed = identity(binary)
++    if any(observed[key] != receipt['binary'][key] for key in ('bytes','sha256')):
++        raise ValueError('state binary SHA256/size mismatch')
++    name = receipt['metadata']['path']
++    if (not isinstance(name, str) or Path(name).name != name or name in ('.','..') or
++            any(character in name for character in '/\\:\0') or name.endswith((' ','.'))):
++        raise ValueError('state metadata path must be a local filename')
++    metadata = manifest.parent/name
++    observed_metadata = identity(metadata)
++    if any(observed_metadata[key] != receipt['metadata'][key] for key in ('bytes','sha256')):
++        raise ValueError('state metadata SHA256/size mismatch')
++    for source in receipt['sources']:
++        if identity(source['path']) != source:
++            raise ValueError('state original source changed')
++    rows = []
++    sentinel = object()
++    consumed_hash = hashlib.sha256()
++    consumed_bytes = 0
++    with metadata.open('rb') as stream:
++        for index, (raw, line) in enumerate(itertools.zip_longest(_binary_rows(binary, receipt['binary_format']), stream, fillvalue=sentinel)):
++            if raw is sentinel or line is sentinel:
++                raise ValueError('binary/metadata row count mismatch')
++            consumed_hash.update(line)
++            consumed_bytes += len(line)
++            entry = json.loads(line)
++            if type(entry.get('index')) is not int or entry['index'] != index or entry.get('record_sha256') != hashlib.sha256(raw).hexdigest():
++                raise ValueError('state row index/record SHA256 mismatch')
++            _check_features(raw, receipt['binary_format'], entry['metadata'])
++            rows.append(entry['metadata'])
++    if (consumed_hash.hexdigest() != receipt['metadata']['sha256'] or
++            consumed_bytes != receipt['metadata']['bytes']):
++        raise ValueError('state consumed metadata SHA256/size mismatch')
++    if type(receipt.get('rows')) is not int or len(rows) != receipt['rows']:
++        raise ValueError('state manifest row count mismatch')
++    if sum(row.get('game_id') is None for row in rows) != receipt.get('missing_game_ids'):
++        raise ValueError('state missing-game-ID count mismatch')
++    if (manifest.resolve(strict=True) != manifest_target or
++            sha256(manifest) != expected_sha256.lower() or
++            identity(binary) != observed or identity(metadata) != observed_metadata or
++            any(identity(source['path']) != source for source in receipt['sources'])):
++        raise ValueError('state input identity changed during verification')
++    return rows
