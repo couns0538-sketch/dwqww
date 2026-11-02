@@ -10,7 +10,7 @@ Perft5 start4865609 kiwipete193690690. UHO crew gates only.
 | Milestone | Status | Next |
 |---|---|---|
 | M0 plan/worktree/review policy | PASS setup only | safety compatibility tests/review |
-| Job1 native proof/timing | UNVERIFIED | recover inputs and build adapters |
+| Job1 native proof/timing | Native proof PASS within disclosed scope; calibration FAIL | seal incomplete evidence pack; speed/strength UNPROVEN |
 | Job2 P4/P7 | NOT STARTED | recheck heads on entry |
 | Job3 audit/replay | NOT STARTED | frozen inputs after Job2 |
 
@@ -36,3 +36,5 @@ Evidence sealer helper15 fixture tests PASS and source reviewed; existing strict
 Live timing checkpoint 2026-11-01 22:37 Pacific:16 complete A/A attempts,5 eligible; comparison NOT STARTED. Original append-only run/block logs retained. This checkpoint is incomplete evidence, no noise/speed PASS. Ruling: Couns's <=20-minute progress push takes priority over the temporary no-Git housekeeping note; checkpoint I/O at Idle on controller CPU3 is disclosed, telemetry-only eligibility remains unchanged and every affected attempt stays in the raw record. No engine, tolerance, protocol or source changes.
 
 Live timing checkpoint2026-11-01 22:56 Pacific:29 complete A/A attempts,6 eligible. Comparison still NOT STARTED; all attempts preserved. Required progress Git I/O again disclosed; no protocol/source changes or results-based exclusions. Deadline remains about23:21 Pacific.
+
+M6 timing completed2026-11-02T07:07:56Z: CALIBRATION_FAIL.39complete same-lock A/A blocks,10eligible; eligible median+0.361084%,IQR1.098525pp,min-1.467115%,max+1.411394%. IQR exceeds preregistered1pp limit, so candidateABBA not started (0blocks). Allcomplete median-1.173411%,IQR5.138024pp,min-24.280917%,max+8.671963%. Native exit1 is expected calibration refusal; no disk/capture errors. No claim of gain or below-threshold candidate speed. No retry or tolerance adjustment. Original logs stable; independent actual-record review in progress. Pack review requires SEALED_INCOMPLETE due calibration/T4/freshinventory and exact-kit generic-witness mismatch. HANDOVER.md records scope and table. Next seal reviewed evidence, push, then enter Job2.
