@@ -1,4 +1,4 @@
-# Forge - agent instructions for the Opus branches (opus-r13-*, opus_r14)
+# Forge - agent instructions for the Opus branches (opus-r13-*, opus_r14, opus-r14b-*)
 
 The repo has no AGENTS.md on main. The crew's AGENTS.md files on astra-* branches (astra-r8-datafilter, astra-r8-tmfit,
 astra-r9-nnue-speed, astra-r10-3jobs) carry Astra-specific rules and stay untouched; their review policy section is the same
@@ -22,6 +22,16 @@ verbatim text as below. This file merges that policy with the Opus rules (R14, 2
 - Licences: MIT / BSD / Apache code may be copied with its notice (and IDEA_SOURCE.md); GPL / AGPL is ideas only.
 - **No sub-agents** (Couns, 2026-11-02, overriding the "one reviewer subagent" of the brief): independent review is
   unavailable, so every review below is a structured self-review and is recorded as NOT independent.
+
+## Opus R14-B additions (Couns, 2026-11-02 12:05 PC clock; binding until changed)
+- Branches `opus-r14b-status` / `opus-r14b-fast-loader` / `opus-r14b-relabel`; scratch `D:\o14b\` <= 10 GB (D: >= 50 GB,
+  C: >= 30 GB, F: write-forbidden); RESULTS.md per item (`opus_r14b/item1|item2/`) and `opus_r14b/STATUS.md` current at
+  every push.
+- Sub-agents: the R14-B brief allows at most one reviewer / research sub-agent at a time (it replaces the R14 "no
+  sub-agents" line above for R14-B). A review done without one is a structured self-review, recorded as NOT independent.
+- npt work: never touch the live trainer, its queue, its runs or its loader DLL; work on copies; no HIP runtime next to the
+  npt line; GPU only in a window Engine NNUE gives (request in `opus_r14b/item1/GPU_REQUEST.md`).
+- A blocked item: write the blocker in its RESULTS.md, push, and spend the time on the other item.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
