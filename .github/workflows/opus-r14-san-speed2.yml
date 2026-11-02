@@ -1,0 +1,50 @@
+# R14 Main item 2: ASan+UBSan self-play smoke of FORGE_SEARCH_SPEED2 on the lock tree (git d4f4312 + speed2_port.patch),
+# built with the switch at 0 and at 1; selfplay_smoke.py (legality via `go perft 1`, sanitizer lines counted) at Threads 1
+# and Threads 2 (shared TT + the new prefetch sites).
+name: opus-r14-san-speed2
+on:
+  push:
+    branches: ['opus-r13-p2-sparse-l1']
+    paths: ['opus_r13/p2/speed2/*.patch', 'opus_r13/tools/selfplay_smoke.py', '.github/workflows/opus-r14-san-speed2.yml']
+  workflow_dispatch:
+jobs:
+  san:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - item: speed2_0
+            flags: '-DFORGE_SEARCH_SPEED2=0'
+          - item: speed2_1
+            flags: '-DFORGE_SEARCH_SPEED2=1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: lock source + speed2 patch
+        run: |
+          git fetch -q --depth 1 origin d4f43124dde1d1e37de90e18930e374f32ea7ffa
+          mkdir lock && git archive FETCH_HEAD src include | tar -x -C lock
+          cd lock && patch -p1 -F0 < "$GITHUB_WORKSPACE/opus_r13/p2/speed2/speed2_port.patch"
+          sha256sum src/*.cpp include/forge/*.hpp | tee ../src_sha256.txt
+      - name: build ASan+UBSan
+        run: |
+          cd lock && g++ --version | head -1
+          g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 ${{ matrix.flags }} -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_san
+      - name: self-play smoke
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --config default "" --config t2 "Threads=2" \
+            --games 4 --nodes 20000 --max-plies 160 --out san_${{ matrix.item }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: san_${{ matrix.item }}
+          path: |
+            san_${{ matrix.item }}*
+            src_sha256.txt
