@@ -7,6 +7,17 @@ New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 Plan: `QUALITY6H_PLAN.md` at repository root. Current approved source e526fc12.
 Strict-input reproduction and data-audit design underway; no new candidate accepted.
 
+Saved the three user-requested future engine skills under `skills/`: build proof,
+exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT
+licences) exactly match source Git blobs at crew-skills commit 27752e05. Python
+AST parsing, frontmatter and local-link checks pass. The generic Skill Creator
+validator is unavailable in the pinned runtime because PyYAML is absent; no
+installed package was changed. No build/SIMD/timing job launched.
+
+Strict PGN reproduction: 20 failing cases before fixes; the first focused parser
+suite passes 51 checks after fixes. Additional token-boundary checks and focused
+review pending; old candidate/handoff remain historical, not current acceptance.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

@@ -1,5 +1,17 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: saved future skills
+
+User explicitly requested preserving build qualification, SIMD and timing skills
+for later. Main inspected the crew catalog and the three exact skill bundles at
+27752e05d80d7280d7d9a83495052c03ef4ead15. All twelve saved files match upstream
+Git blob identities, including each full MIT notice. Helpers parse as Python;
+frontmatter and relative references checked. No implementation was changed and
+no engine job ran. This is a structured self-check, not independent review.
+Generic quick_validate.py could not import PyYAML in the pinned environment;
+preserved that limitation instead of altering the installed environment.
+Next: focused parser review after new boundary tests pass.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity
