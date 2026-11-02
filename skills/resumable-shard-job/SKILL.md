@@ -15,6 +15,8 @@ Use new sealed outputs and append-only checkpoint generations. A checkpoint iden
 
 Resume validates configuration, every committed shard hash and original source identity, acquires exclusive ownership, then continues from the last valid commit boundary. Refuse changed inputs/tools, corrupted shards, ambiguous orphan commits or simultaneous ownership. Keep disk capacity for old indexes/partials **plus** resumed work; check before each shard and during long index/output loops.
 
+Publish a fault marker only after its bytes are flushed and synced, using an exclusive atomic rename. Bind it to the owned worker, exact output directory, source range and fault point before terminating that worker. Snapshot retained staging/orphan files and earlier checkpoint receipts. Rehash those originals after both the first resume and a repeated completed resume: final output equality alone cannot prove that interrupted evidence was preserved. If the production format omits an output role, report that explicitly instead of claiming an unexercised role was replayed.
+
 ## Required interruption proof
 
 First run the bundled disposable selftest as a harness check; see [the recipe](references.md). It starts and terminates only its newly created fixture child, preserves a partial next shard, resumes, and compares MD5 **and** SHA-256 against an uninterrupted run. This proves only that fixture.

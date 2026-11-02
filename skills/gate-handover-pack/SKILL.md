@@ -45,6 +45,16 @@ and independent resumed outputs at all three fault points. Otherwise it blocks
 before output creation. Status `SEALED_DATA_TOOL` still grants no training or gate
 clearance. The supplied native evidence must be reviewed separately.
 
+When a data-tool handover has unresolved qualification, use the explicit
+`--purpose incomplete-data` instead. It still requires exactly one tool, sample,
+training command, audit report and replay report, plus nonempty blockers. Audit
+or replay status may be PASS, FAIL, UNVERIFIED or BLOCKED; preserve the original
+status and list every missing or failed requirement. It always produces
+`SEALED_INCOMPLETE`, UNPROVEN, with training clearance BLOCKED. A missing-ID audit
+cannot be upgraded by this route. Include a guarded training command that refuses
+execution until the missing clearance is supplied. The strict `data-tool` path
+and engine gate-readiness requirements remain unchanged.
+
 Read [the evidence-only contract](references/evidence-sealing.md). Run through the
 safety launcher with `--threads 1`, the complete protected roots, a fresh output
 directory, and all reads/writes declared. Only D:\a10 I/O is accepted. Existing

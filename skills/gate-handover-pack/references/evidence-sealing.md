@@ -1,6 +1,6 @@
 # R10 evidence-only sealing — UNPROVEN
 
-`seal_evidence.py MANIFEST.json --purpose incomplete-engine|data-tool --out NEW_DIRECTORY --threads 1`
+`seal_evidence.py MANIFEST.json --purpose incomplete-engine|incomplete-data|data-tool --out NEW_DIRECTORY --threads 1`
 
 This separate utility leaves `make_gate_pack.py` unchanged. It creates only a new,
 self-contained evidence copy; it never queues, runs, or accepts a gate or training
@@ -18,6 +18,18 @@ are copied explicitly under `artifacts/`, preserving their relative paths.
 `incomplete-engine` requires at least one nonempty blocker. Its status is
 `SEALED_INCOMPLETE`; it must never be presented as a completed strict gate pack.
 It requires no invented binaries, passing proof, gate settings or seed inventory.
+
+`incomplete-data` requires nonempty blockers and exactly one artifact of each role
+`tool`, `sample`, `training_command`, `audit_report`, `replay_report`. The two
+reports must be schema1 JSON objects with explicit status PASS, FAIL, UNVERIFIED
+or BLOCKED. Their declared status/scope are recorded without promoting them to
+qualification. Missing evidence or tests must be named in blockers; include the
+original records that are available. This route always emits SEALED_INCOMPLETE,
+UNPROVEN, and `training_clearance:"BLOCKED"`, even if both supplied reports say
+PASS. A guarded training command must refuse execution while clearance is
+missing. It is an evidence handoff, never training readiness. The strict
+`data-tool` checks below are unchanged and still reject missing IDs or non-PASS
+actual-adapter reports.
 
 `data-tool` requires no blockers and exactly one artifact of each role `tool`,
 `sample`, `training_command`, `audit_report`, `replay_report`. Additional artifacts
@@ -53,6 +65,9 @@ The pack contains REQUEST.json, REPORT.json, README.md, artifacts/, MD5SUMS and
 SHA256SUMS. Hash manifests cover all other regular files, excluding themselves.
 REPORT binds the request and sealer source hashes and always states UNPROVEN.
 `SEALED_DATA_TOOL` means artifact consistency only, never training clearance.
+The incomplete-data purpose additionally records input audit/replay statuses and
+an explicit blocked training-clearance field. Never rewrite an original report
+to obtain a stronger pack status.
 
 Before creation, the utility checks C: >=30 GiB, D: >=50 GiB plus the planned
 write reservation, and total retained D:\a10 bytes plus reservation <=15 GB

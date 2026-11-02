@@ -165,13 +165,29 @@ def validate_data(entries, roles):
             need(hashes[0]==hashes[1], 'resumed bytes differ')
 
 
+def validate_incomplete_data(roles):
+    """Require the data deliverables without asserting their qualification."""
+    for role in ('tool','sample','training_command','audit_report','replay_report'):
+        need(role in roles and len(roles[role])==1, 'incomplete-data requires one '+role)
+    statuses={}
+    for role in ('audit_report','replay_report'):
+        entry=roles[role][0];raw=json_bytes(entry['source'])
+        need(hashlib.sha256(raw).hexdigest()==entry['sha256'],'report changed after hash check')
+        report=decode(raw)
+        need(isinstance(report,dict) and type(report.get('schema')) is int and report['schema']==1
+             and report.get('status') in ('PASS','FAIL','UNVERIFIED','BLOCKED'),
+             role+' requires a schema1 report with explicit qualification status')
+        statuses[role]={'status':report['status'],'evidence_scope':report.get('evidence_scope','UNSPECIFIED')}
+    return statuses
+
+
 def write_new(path, data):
     with path.open('xb') as stream:
         stream.write(data);stream.flush();os.fsync(stream.fileno())
 
 
 def seal(manifest, out, purpose):
-    need(purpose in ('incomplete-engine','data-tool'), 'explicit supported purpose required')
+    need(purpose in ('incomplete-engine','incomplete-data','data-tool'), 'explicit supported purpose required')
     manifest=checked_path(manifest);out=checked_path(out)
     need(not out.exists(), 'output already exists; preserve every attempt')
     raw=json_bytes(manifest);request=decode(raw)
@@ -180,7 +196,7 @@ def seal(manifest, out, purpose):
     items=request.get('artifacts');need(isinstance(items,list) and items,'explicit artifacts required')
     blockers=request.get('blockers',[])
     need(isinstance(blockers,list) and all(isinstance(x,str) and x.strip() for x in blockers),'invalid blockers')
-    if purpose=='incomplete-engine':need(blockers,'incomplete-engine needs at least one blocker')
+    if purpose in ('incomplete-engine','incomplete-data'):need(blockers,purpose+' needs at least one blocker')
     else:need(not blockers,'data-tool qualification has unresolved blockers')
     entries={};roles={};case_names=set();payload_size=0
     for item in items:
@@ -195,6 +211,7 @@ def seal(manifest, out, purpose):
     for name in case_names:
         need(not any('/'.join(name.split('/')[:i]) in case_names for i in range(1,len(name.split('/')))), 'artifact parent is another file')
     if purpose=='data-tool':validate_data(entries,roles)
+    incomplete_statuses=validate_incomplete_data(roles) if purpose=='incomplete-data' else None
     reservation=payload_size+len(raw)*3+1024*1024
     disk_budget(reservation)
     need(workspace_bytes()+reservation<=CAP,'workspace 15 GB cap including pack reservation')
@@ -216,10 +233,13 @@ def seal(manifest, out, purpose):
         need(digests(target)[:2]==(entry['sha256'],entry['md5']),'copied artifact changed')
         need(digests(checked_path(source))[0]==entry['sha256'],'source changed while copying')
     need(digests(manifest)[0]==hashlib.sha256(raw).hexdigest(),'manifest changed during packing')
-    report={'schema':1,'purpose':purpose,'status':'SEALED_INCOMPLETE' if purpose=='incomplete-engine' else 'SEALED_DATA_TOOL',
+    report={'schema':1,'purpose':purpose,'status':'SEALED_INCOMPLETE' if purpose in ('incomplete-engine','incomplete-data') else 'SEALED_DATA_TOOL',
             'strength':'UNPROVEN','blockers':blockers,'manifest_sha256':hashlib.sha256(raw).hexdigest(),
             'sealer_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'artifacts':len(entries),'scope':'Artifact consistency only; native evidence requires independent review. No gate or training clearance.'}
+    if purpose=='incomplete-data':
+        report['training_clearance']='BLOCKED'
+        report['input_report_statuses']=incomplete_statuses
     write_new(out/'REQUEST.json',raw)
     write_new(out/'REPORT.json',(json.dumps(report,indent=2)+'\n').encode())
     readme=('UNPROVEN — '+report['status']+'\n\n'+report['scope']+'\n\n'
@@ -238,7 +258,7 @@ def seal(manifest, out, purpose):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest',type=Path);parser.add_argument('--out',required=True,type=Path)
-    parser.add_argument('--purpose',required=True,choices=('incomplete-engine','data-tool'))
+    parser.add_argument('--purpose',required=True,choices=('incomplete-engine','incomplete-data','data-tool'))
     parser.add_argument('--threads',required=True,type=int,choices=(1,))
     args=parser.parse_args()
     try:

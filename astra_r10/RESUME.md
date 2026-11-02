@@ -3,13 +3,23 @@
 Job3 step3: original73 regression and final handover remain. Branch astra-r10-3jobs,
 worktree D:\a10\wt. Native audit/state/native relabel/admitted replay03 complete.
 
-NEXT: finish and independently review WIP read-only NPT extension in
-skills/grok-pc-safe-run/scripts/Invoke-GrokPcSafeRun.ps1 and job3/regression runner.
-Agent review_build owns these; do not run suite before helper negative fixtures and
-review PASS. Exact external D:\grok-pc-data\npt\nnue-pytorch-amd is read-only.
+NEXT: Job3 step3, finish compatible CPU runtime preparation and regression review.
+Inspect astra_r10/job3/regression/run_regression.py and the runtime312 plan/installer
+being prepared under astra_r10/job3/runtime312. Agent plan_safety_review owns the
+new runtime setup; review_build owns helper fixtures and runner; proof_contract
+provides independent rechecks. No large installation before reviewed plan/disk-cap
+check. Native suite command is not yet finalized; do not invent a PASS or launch.
+Exact external D:\grok-pc-data\npt\nnue-pytorch-amd is read-only.
 Never vendor GPL runtime, omit protected reads to bypass safety, or access F:.
-Runtime D:\a10\job3\runtime\python\python.exe, private runtime/packages.
-Check tyro/torchmetrics/tensorboard dependencies before73 suite. No training/GPU.
+Old D:\a10\job3\runtime Python3.10 qualified state tests only: installed NPT requires
+Python3.12+ type-alias syntax. Separate target D:\a10\job3\runtime312 will use
+Python3.12 with development headers, CPU-only Torch2.9.1+cpu, NumPy1.26.4 and
+minimal dependencies. No download/install had started at this checkpoint. Existing
+MSVC14.51 and LLVM clang-cl are available read-only on C; no compiler installation.
+Runner must prebind external Python sources/DLL before imports and reject late
+unbound imports; do not bypass torch.compile or alter original test assertions.
+Current helperA78C49C5 static review found no new safety defect, fixtures pending.
+Runtime installer and substantive runner fixes still require independent review.
 Suite filter tests use2workers: no concurrent compute. Idle, two separately inspected
 load samples >=3s apart, selectedcore<30%/host<95%, fresh immediate admission.
 
@@ -46,6 +56,17 @@ fresh tag. Draft NOTEXECUTABLE yet. Full20 sealer testsPASS, sealer
 Use incomplete-data pack; missing authentic IDs=>trainingBLOCKED/UNPROVEN.
 Retain all failed attempts; omit bulk runtime/SQLite/fullholds from pack.
 Then FINAL_REPORT, exact RESULTS/RESUME, final push and remote-head verify.
+
+Collector FE30F3E3F5A590EA966CE1B2F44066CAECF8D1D5BC56CD1643993E771928F497
+now has closed focused review and6 targeted identity fixtures PASS. It remains
+unexecuted pending final regression receipts. Full20 sealer tests PASS. Bundled
+restart selftest PASS only auxiliary, run after native proofs (ordering deviation
+recorded in resume/SELFTEST_RESULT.md). Current-D runtime identity manifest
+RUNTIME_CURRENT_HASHES.json SHA C20358958646D3CCF6372FDA39548C9C9840626F8DFD93FCC531219D2D16BBA6
+contains20045 files/1326486174bytes. Original RUNTIME_INPUTS.files was a malformed
+string due typed PowerShell variable collision; historical list not reconstructed.
+Both receipts preserved. Treat the11MB currentmanifest as artifact, not8MiB report
+parser input. HANDOVER/FINAL_REPORT are live checkpoints, original73/pack pending.
 
 Job1 immutable SEALED_INCOMPLETE: production775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284;
 lockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
