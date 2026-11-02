@@ -1,0 +1,23 @@
+..................................................E           [100%]
+=================================== ERRORS ====================================
+_ ERROR at teardown of ResourcePolicyTests.test_redirected_root_or_child_refused _
+
+    @pytest.fixture(scope='session',autouse=True)
+    def pin_cpu_runtime():
+        import npt_adapter
+        import train
+        npt_adapter.torch.set_num_threads(1)
+        before=npt_adapter.runtime_identity()
+        yield
+        after=npt_adapter.runtime_identity()
+>       assert all(after['files'].get(p)==digest for p,digest in before['files'].items()),'runtime changed during tests'
+E       AssertionError: runtime changed during tests
+E       assert False
+E        +  where False = all(<generator object pin_cpu_runtime.<locals>.<genexpr> at 0x0000000005830C80>)
+
+astra_r8\datafilter\tests\conftest.py:17: AssertionError
+---------------------------- Captured stdout call -----------------------------
+uu
+=========================== short test summary info ===========================
+ERROR astra_r8/datafilter/tests/test_resources.py::ResourcePolicyTests::test_redirected_root_or_child_refused
+50 passed, 1 error, 11 subtests passed in 10.38s

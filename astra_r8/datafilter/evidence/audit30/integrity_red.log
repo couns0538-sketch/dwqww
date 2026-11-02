@@ -1,0 +1,428 @@
+FFFFF...FFFFFFFF                                                         [100%]
+================================== FAILURES ===================================
+_______ test_result_converter_rejects_malformed_pgn_before_publication ________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_result_converter_rejects_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194E0FB0>
+
+    def test_result_converter_rejects_malformed_pgn_before_publication(tmp_path, monkeypatch):
+        source = pgn_fixture(tmp_path / 'bad.pgn', malformed=True)
+>       with pytest.raises(ValueError, match='malformed PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:43: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 4,
+ "moves": 4,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 0,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\audit30_20261102\\integrity_red_tests\\test_result_converter_rejects_0\\bad.pgn"
+ ]
+}
+------------------------------ Captured log call ------------------------------
+ERROR    chess.pgn:pgn.py:1084 error during pgn parsing
+Traceback (most recent call last):
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 1555, in read_game
+    move = visitor.parse_san(board_stack[-1], token)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 938, in parse_san
+    return board.parse_san(san)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\__init__.py", line 2832, in parse_san
+    raise ValueError(f"illegal san: {san!r} in {self.fen()}")
+ValueError: illegal san: 'Qa1' in 4Q2k/8/8/8/8/8/8/K7 b - - 18 81
+ERROR    chess.pgn:pgn.py:1084 error during pgn parsing
+Traceback (most recent call last):
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 1555, in read_game
+    move = visitor.parse_san(board_stack[-1], token)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 938, in parse_san
+    return board.parse_san(san)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\__init__.py", line 2832, in parse_san
+    raise ValueError(f"illegal san: {san!r} in {self.fen()}")
+ValueError: illegal san: 'Qa1' in 6k1/8/8/8/4Q3/8/8/K7 w - - 18 82
+ERROR    chess.pgn:pgn.py:1084 error during pgn parsing
+Traceback (most recent call last):
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 1555, in read_game
+    move = visitor.parse_san(board_stack[-1], token)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 938, in parse_san
+    return board.parse_san(san)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\__init__.py", line 2832, in parse_san
+    raise ValueError(f"illegal san: {san!r} in {self.fen()}")
+ValueError: illegal san: 'Qa1' in 7k/8/8/3q4/8/8/1K6/8 b - - 18 81
+ERROR    chess.pgn:pgn.py:1084 error during pgn parsing
+Traceback (most recent call last):
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 1555, in read_game
+    move = visitor.parse_san(board_stack[-1], token)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 938, in parse_san
+    return board.parse_san(san)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\__init__.py", line 2832, in parse_san
+    raise ValueError(f"illegal san: {san!r} in {self.fen()}")
+ValueError: illegal san: 'Qa1' in 6k1/8/8/3q4/8/8/8/K7 w - - 18 82
+____________ test_result_converter_rejects_conflicting_result[0-1] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_result_converter_rejects_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019366E10>
+ending = '0-1'
+
+    @pytest.mark.parametrize('ending', ['0-1', '*'])
+    def test_result_converter_rejects_conflicting_result(tmp_path, monkeypatch, ending):
+        source = pgn_fixture(tmp_path / 'bad.pgn', ending=ending)
+>       with pytest.raises(ValueError, match='result'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:51: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 4,
+ "moves": 4,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 0,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\audit30_20261102\\integrity_red_tests\\test_result_converter_rejects_1\\bad.pgn"
+ ]
+}
+_____________ test_result_converter_rejects_conflicting_result[*] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_result_converter_rejects_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194E19A0>
+ending = '*'
+
+    @pytest.mark.parametrize('ending', ['0-1', '*'])
+    def test_result_converter_rejects_conflicting_result(tmp_path, monkeypatch, ending):
+        source = pgn_fixture(tmp_path / 'bad.pgn', ending=ending)
+>       with pytest.raises(ValueError, match='result'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:51: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 4,
+ "moves": 4,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 0,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\audit30_20261102\\integrity_red_tests\\test_result_converter_rejects_2\\bad.pgn"
+ ]
+}
+____________ test_normalized_pgn_result_consistency[1-0-0-1-None] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_normalized_pgn_result_con0')
+header = '1-0', ending = '0-1', expected = None
+
+    @pytest.mark.parametrize('header,ending,expected', [
+        ('1-0', '0-1', None), ('1-0', '*', None), ('*', '0-1', -1),
+        ('*', '*', None), ('1/2-1/2', '1/2-1/2', 0),
+    ])
+    def test_normalized_pgn_result_consistency(tmp_path, header, ending, expected):
+        source = tmp_path / 'result.pgn'
+        source.write_text(f'[Result "{header}"]\n\n1. e4 {{+0.20/10}} {ending}\n')
+        if header != '*' and ending != header:
+>           with pytest.raises(ValueError, match='result'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:64: Failed
+_____________ test_normalized_pgn_result_consistency[1-0-*-None] ______________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_normalized_pgn_result_con1')
+header = '1-0', ending = '*', expected = None
+
+    @pytest.mark.parametrize('header,ending,expected', [
+        ('1-0', '0-1', None), ('1-0', '*', None), ('*', '0-1', -1),
+        ('*', '*', None), ('1/2-1/2', '1/2-1/2', 0),
+    ])
+    def test_normalized_pgn_result_consistency(tmp_path, header, ending, expected):
+        source = tmp_path / 'result.pgn'
+        source.write_text(f'[Result "{header}"]\n\n1. e4 {{+0.20/10}} {ending}\n')
+        if header != '*' and ending != header:
+>           with pytest.raises(ValueError, match='result'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:64: Failed
+________ test_lichess_boolean_scores_rejected_before_orientation[w-cp] ________
+
+kind = 'cp', turn = 'w'
+
+    @pytest.mark.parametrize('kind', ['cp', 'mate'])
+    @pytest.mark.parametrize('turn', ['w', 'b'])
+    def test_lichess_boolean_scores_rejected_before_orientation(kind, turn):
+        obj = {'fen': chess.STARTING_FEN.replace(' w ', f' {turn} '),
+               'evals': [{'pvs': [{kind: True}]}]}
+>       with pytest.raises(ValueError, match='score'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:75: Failed
+_______ test_lichess_boolean_scores_rejected_before_orientation[w-mate] _______
+
+kind = 'mate', turn = 'w'
+
+    @pytest.mark.parametrize('kind', ['cp', 'mate'])
+    @pytest.mark.parametrize('turn', ['w', 'b'])
+    def test_lichess_boolean_scores_rejected_before_orientation(kind, turn):
+        obj = {'fen': chess.STARTING_FEN.replace(' w ', f' {turn} '),
+               'evals': [{'pvs': [{kind: True}]}]}
+>       with pytest.raises(ValueError, match='score'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:75: Failed
+________ test_lichess_boolean_scores_rejected_before_orientation[b-cp] ________
+
+kind = 'cp', turn = 'b'
+
+    @pytest.mark.parametrize('kind', ['cp', 'mate'])
+    @pytest.mark.parametrize('turn', ['w', 'b'])
+    def test_lichess_boolean_scores_rejected_before_orientation(kind, turn):
+        obj = {'fen': chess.STARTING_FEN.replace(' w ', f' {turn} '),
+               'evals': [{'pvs': [{kind: True}]}]}
+>       with pytest.raises(ValueError, match='score'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:75: Failed
+_______ test_lichess_boolean_scores_rejected_before_orientation[b-mate] _______
+
+kind = 'mate', turn = 'b'
+
+    @pytest.mark.parametrize('kind', ['cp', 'mate'])
+    @pytest.mark.parametrize('turn', ['w', 'b'])
+    def test_lichess_boolean_scores_rejected_before_orientation(kind, turn):
+        obj = {'fen': chess.STARTING_FEN.replace(' w ', f' {turn} '),
+               'evals': [{'pvs': [{kind: True}]}]}
+>       with pytest.raises(ValueError, match='score'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:75: Failed
+______ test_filter_rejects_complete_record_truncation_before_publication ______
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_filter_rejects_complete_r0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019572FC0>
+
+    def test_filter_rejects_complete_record_truncation_before_publication(tmp_path, monkeypatch):
+        row = record(chess.STARTING_FEN, 0, 'cp', None, 'fixture', 1, 'selfplay')
+        line = (dumps(row) + '\n').encode()
+        source = tmp_path / 'source.jsonl'
+        source.write_bytes(line * 4300)
+        original = filters.storage_guard
+        mutated = False
+    
+        def mutate(destination=None, allowance=64 * 1024 * 1024):
+            nonlocal mutated
+            result = original(destination, allowance)
+            if (not mutated and Path(destination).name == 'out.partial'
+                    and allowance != 64 * 1024 * 1024):
+                with source.open('r+b') as fh:
+                    fh.truncate(len(line) * 4200)
+                mutated = True
+            return result
+    
+        monkeypatch.setattr(filters, 'storage_guard', mutate)
+>       with pytest.raises(ValueError, match='source changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:98: Failed
+__________________ test_filter_receipt_binds_complete_input ___________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_filter_receipt_binds_comp0')
+
+    def test_filter_receipt_binds_complete_input(tmp_path):
+        source = tmp_path / 'source.jsonl'
+        source.write_text(dumps(record(chess.STARTING_FEN, 0, 'cp', None,
+                                      'fixture', 1, 'selfplay')) + '\n')
+        report = filters.run_filter(source, tmp_path / 'out')
+>       assert report['input_identity']['sha256'] == filters.sha256(source)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'input_identity'
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:109: KeyError
+________________ test_converter_late_failure_stays_unpublished ________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_converter_late_failure_st0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019553050>
+
+    def test_converter_late_failure_stays_unpublished(tmp_path, monkeypatch):
+        source = pgn_fixture(tmp_path / 'valid.pgn')
+        def fail(*args, **kwargs):
+            raise OSError('injected stats write failure')
+        monkeypatch.setattr(json, 'dump', fail)
+        with pytest.raises(OSError, match='stats write'):
+            converter(source, tmp_path / 'out', monkeypatch)
+>       assert not (tmp_path / 'out').exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_converter_late_failure_st0') / 'out').exists
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:121: AssertionError
+___________ test_converter_existing_partial_refused_before_reading ____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_red_tests/test_converter_existing_partia0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019584680>
+
+    def test_converter_existing_partial_refused_before_reading(tmp_path, monkeypatch):
+        partial = tmp_path / 'out.partial'
+        partial.mkdir()
+        (partial / 'sentinel').write_bytes(b'preserve')
+        with pytest.raises(SystemExit, match='existing output'):
+>           converter(tmp_path / 'missing.pgn', tmp_path / 'out', monkeypatch)
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_integrity_regressions.py:38: in converter
+    runpy.run_path(str(HERE / 'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    if os.path.lexists(a.outdir): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(a.outdir)
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+>       fh = open(f, encoding='utf-8', errors='ignore')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\audit30_20261102\\integrity_red_tests\\test_converter_existing_partia0\\missing.pgn'
+
+astra_r8\datafilter\convert_forge.py:46: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_result_converter_rejects_malformed_pgn_before_publication
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_result_converter_rejects_conflicting_result[0-1]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_result_converter_rejects_conflicting_result[*]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_normalized_pgn_result_consistency[1-0-0-1-None]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_normalized_pgn_result_consistency[1-0-*-None]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_lichess_boolean_scores_rejected_before_orientation[w-cp]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_lichess_boolean_scores_rejected_before_orientation[w-mate]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_lichess_boolean_scores_rejected_before_orientation[b-cp]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_lichess_boolean_scores_rejected_before_orientation[b-mate]
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_filter_rejects_complete_record_truncation_before_publication
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_filter_receipt_binds_complete_input
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_converter_late_failure_stays_unpublished
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_converter_existing_partial_refused_before_reading
+13 failed, 3 passed in 4.72s

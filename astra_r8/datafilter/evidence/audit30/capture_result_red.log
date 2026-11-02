@@ -1,0 +1,21 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_capture_reader_rejects_conflicting_game_result _____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/capture_result_red_tmp/test_capture_reader_rejects_co0')
+
+    def test_capture_reader_rejects_conflicting_game_result(tmp_path):
+        import audit_capture_cohort as c
+        p=tmp_path/'conflict_capture.pgn'
+        p.write_text('[Event "forge_fixture"]\n[White "'+c.BASELINE_NAME+'"]\n[Black "other"]\n'
+                     '[Result "1-0"]\n[Termination "normal"]\n\n1. e4 {+0.20/12} 0-1\n')
+        source={'files':{'pgn':{'path':str(p)}},'games_consumed':0,'candidate_name':'other',
+                'gate':'fixture','baseline_without_positive_depth_score':0}
+>       with pytest.raises(ValueError,match='conflicting'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:140: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_capture_reader_rejects_conflicting_game_result
+1 failed in 3.73s

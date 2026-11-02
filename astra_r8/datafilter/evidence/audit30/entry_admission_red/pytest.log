@@ -1,0 +1,652 @@
+FFFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+_____________ test_check_verifies_handoff_before_context_and_pass _____________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_check_verifies_handoff_be0/new_training_output'))
+capsys = <_pytest.capture.CaptureFixture object at 0x0000000019391670>
+
+    def test_check_verifies_handoff_before_context_and_pass(entry, capsys):
+        entry.run()
+>       assert entry.events[:3] == ['guard', 'verify', 'context']
+E       AssertionError: assert ['context'] == ['guard', 'verify', 'context']
+E         
+E         At index 0 diff: 'context' != 'guard'
+E         Right contains 2 more items, first extra item: 'verify'
+E         Use -v to get more diff
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:58: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_check_verifies_handoff_be0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_check_verifies_handoff_be0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_check_verifies_handoff_be0\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+________ test_failed_handoff_never_constructs_context_or_reports_pass _________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_failed_handoff_never_cons0/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019392D50>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000193927B0>
+
+    def test_failed_handoff_never_constructs_context_or_reports_pass(entry, monkeypatch, capsys):
+        def reject(path):
+            raise ValueError('clearance missing')
+        monkeypatch.setattr(entry.adapter, 'verify', reject)
+>       with pytest.raises(ValueError, match='clearance missing'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:67: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_failed_handoff_never_cons0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_failed_handoff_never_cons0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_failed_handoff_never_cons0\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+______ test_existing_output_rejected_before_preflight_or_training[False] ______
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_existing_output_rejected_0/new_training_output'))
+check = False
+
+    @pytest.mark.parametrize('check', [False, True])
+    def test_existing_output_rejected_before_preflight_or_training(entry, check):
+        entry.output.mkdir()
+        with pytest.raises(FileExistsError, match='existing training output'):
+            entry.run(check=check)
+>       assert 'context' not in entry.events and 'delegate' not in entry.events
+E       AssertionError: assert ('context' not in ['context'])
+E        +  where ['context'] = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_existing_output_rejected_0/new_training_output')).events
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:78: AssertionError
+______ test_existing_output_rejected_before_preflight_or_training[True] _______
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_existing_output_rejected_1/new_training_output'))
+check = True
+
+    @pytest.mark.parametrize('check', [False, True])
+    def test_existing_output_rejected_before_preflight_or_training(entry, check):
+        entry.output.mkdir()
+>       with pytest.raises(FileExistsError, match='existing training output'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE FileExistsError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:76: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_existing_output_rejected_1\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_existing_output_rejected_1\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_existing_output_rejected_1\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+_____________________ test_dangling_output_entry_rejected _____________________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_dangling_output_entry_rej0/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019416BA0>
+
+    def test_dangling_output_entry_rejected(entry, monkeypatch):
+        original = os.path.lexists
+        monkeypatch.setattr(os.path, 'lexists', lambda p: p == entry.output or original(p))
+>       with pytest.raises(FileExistsError, match='existing training output'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE FileExistsError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:84: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_dangling_output_entry_rej0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_dangling_output_entry_rej0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_dangling_output_entry_rej0\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+______ test_missing_resume_rejected_before_preflight_or_training[False] _______
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_missing_resume_rejected_b0/new_training_output'))
+check = False
+
+    @pytest.mark.parametrize('check', [False, True])
+    def test_missing_resume_rejected_before_preflight_or_training(entry, check):
+        with pytest.raises(ValueError, match='missing checkpoint'):
+            entry.run(check=check, resume=entry.manifest.parent/'missing.ckpt')
+>       assert 'context' not in entry.events and 'delegate' not in entry.events
+E       AssertionError: assert ('context' not in ['context'])
+E        +  where ['context'] = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_missing_resume_rejected_b0/new_training_output')).events
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:93: AssertionError
+_______ test_missing_resume_rejected_before_preflight_or_training[True] _______
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_missing_resume_rejected_b1/new_training_output'))
+check = True
+
+    @pytest.mark.parametrize('check', [False, True])
+    def test_missing_resume_rejected_before_preflight_or_training(entry, check):
+>       with pytest.raises(ValueError, match='missing checkpoint'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:91: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_missing_resume_rejected_b1\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_missing_resume_rejected_b1\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_missing_resume_rejected_b1\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu",
+    "--resume-from-checkpoint",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_missing_resume_rejected_b1\\missing.ckpt"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+_______________ test_actual_output_policy_rejects_F_destination _______________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_actual_output_policy_reje0/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019416B70>
+
+    def test_actual_output_policy_rejects_F_destination(entry, monkeypatch):
+        from resource_policy import storage_guard
+        monkeypatch.setattr(entry.adapter, 'storage_guard', storage_guard)
+>       with pytest.raises(ValueError, match='output must stay under'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:99: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_actual_output_policy_reje0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_actual_output_policy_reje0\\manifest.json",
+    "--default-root-dir",
+    "F:\\astra8_data\\forbidden_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+___________________ test_resource_failure_blocks_preflight ____________________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_resource_failure_blocks_p0/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001941FDD0>
+
+    def test_resource_failure_blocks_preflight(entry, monkeypatch):
+        def reject(path):
+            raise OSError('C:/ below 50 GB reserve plus planned allocation')
+        monkeypatch.setattr(entry.adapter, 'storage_guard', reject)
+>       with pytest.raises(OSError, match='50 GB reserve'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE OSError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:108: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_resource_failure_blocks_p0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_resource_failure_blocks_p0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_resource_failure_blocks_p0\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+___________ test_partial_manifest_cannot_enter_training[False-cpu] ____________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_partial_manifest_cannot_e0/new_training_output'))
+check = False, device = 'cpu'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_manifest_cannot_enter_training(entry, check, device):
+        partial = entry.manifest.parent/'candidate.partial'/'nested'/'manifest.json'
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:116: Failed
+__________ test_partial_manifest_cannot_enter_training[False-cuda:0] __________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_partial_manifest_cannot_e1/new_training_output'))
+check = False, device = 'cuda:0'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_manifest_cannot_enter_training(entry, check, device):
+        partial = entry.manifest.parent/'candidate.partial'/'nested'/'manifest.json'
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:116: Failed
+__________ test_partial_manifest_cannot_enter_training[True-cuda:0] ___________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_partial_manifest_cannot_e2/new_training_output'))
+check = True, device = 'cuda:0'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_manifest_cannot_enter_training(entry, check, device):
+        partial = entry.manifest.parent/'candidate.partial'/'nested'/'manifest.json'
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:116: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_partial_manifest_cannot_e2\\candidate.partial\\nested\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_partial_manifest_cannot_e2\\candidate.partial\\nested\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_partial_manifest_cannot_e2\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cuda",
+    "--gpus",
+    "0"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+__________ test_cpu_check_accepts_staged_manifest_after_verification __________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_cpu_check_accepts_staged_0/new_training_output'))
+
+    def test_cpu_check_accepts_staged_manifest_after_verification(entry):
+        entry.run(manifest_path=entry.manifest.parent/'candidate.partial'/'manifest.json')
+>       assert entry.events[:3] == ['guard', 'verify', 'context']
+E       AssertionError: assert ['context'] == ['guard', 'verify', 'context']
+E         
+E         At index 0 diff: 'context' != 'guard'
+E         Right contains 2 more items, first extra item: 'verify'
+E         Use -v to get more diff
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:123: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_cpu_check_accepts_staged_0\\candidate.partial\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_cpu_check_accepts_staged_0\\candidate.partial\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\audit30_20261102\\entry_admission_red\\pytest\\test_cpu_check_accepts_staged_0\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+______________________ test_seeding_precedes_delegation _______________________
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...Path('C:/astra8_data/audit30_20261102/entry_admission_red/pytest/test_seeding_precedes_delegati0/new_training_output'))
+
+    def test_seeding_precedes_delegation(entry):
+        entry.run(check=False)
+>       assert entry.events == ['guard', 'verify', 'context', 'install', 'seed', 'delegate']
+E       AssertionError: assert ['context', '...', 'delegate'] == ['guard', 've...', 'delegate']
+E         
+E         At index 0 diff: 'context' != 'guard'
+E         Right contains 3 more items, first extra item: 'install'
+E         Use -v to get more diff
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:129: AssertionError
+________ test_same_seed_repeats_actual_small_cpu_model_initialization _________
+
+    def test_same_seed_repeats_actual_small_cpu_model_initialization():
+        import numpy as np
+        import torch
+        import train_adapter as adapter
+        from model.config import NNUEConfig
+        from npt_adapter import MaskedNNUE
+>       assert callable(getattr(adapter, 'seed_runtime', None)), 'entrypoint needs a pre-construction seed'
+E       AssertionError: entrypoint needs a pre-construction seed
+E       assert False
+E        +  where False = callable(None)
+E        +    where None = getattr(<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\train_adapter.py'>, 'seed_runtime', None)
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:138: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_check_verifies_handoff_before_context_and_pass
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_failed_handoff_never_constructs_context_or_reports_pass
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_existing_output_rejected_before_preflight_or_training[False]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_existing_output_rejected_before_preflight_or_training[True]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_dangling_output_entry_rejected
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_missing_resume_rejected_before_preflight_or_training[False]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_missing_resume_rejected_before_preflight_or_training[True]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_actual_output_policy_rejects_F_destination
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_resource_failure_blocks_preflight
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_manifest_cannot_enter_training[False-cpu]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_manifest_cannot_enter_training[False-cuda:0]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_manifest_cannot_enter_training[True-cuda:0]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_cpu_check_accepts_staged_manifest_after_verification
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_seeding_precedes_delegation
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_same_seed_repeats_actual_small_cpu_model_initialization
+15 failed in 3.94s

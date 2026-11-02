@@ -11,7 +11,24 @@ One focused data-suite teardown detected concurrent code edits; preserved as
 failed evidence, then reran the complete frozen suite:133 tests+11subtests PASS.
 Native installed L1=8 model construction now has bit-identical parameters after
 explicit pre-seeding; no training step or optimizer update executed. Exact current
-diff is under independent final_review before refreshed large validation.
+diff was approved by independent final_review before refreshed large validation.
+
+Read-only reviewer APPROVED candidate `be2246d6718ab199a0cf7f11618673bef3d257e0`:
+seven changed modules and three regression files, no blocking defect. It confirmed
+installed train.py creates the model before its own seed call, strict legacy
+parsing isolation, input binding, admission and the two-file migration allowlist.
+Main assessed the review and executed the approved identity/orientation/handoff
+reruns. All passed; both published CPU recipe preflights and strict verification
+pass. The strict real-PGN million-row freeze reproduces the historical payload
+hash. Fresh two-worker filter repeats match, including complete input identity.
+
+Native helper is verification-only and added after the source commit; exact hash
+is in `evidence/audit30/correctness_record.json`. First probe failed because main
+assumed OFF meant UseNNUE=false. The archived crew transcript proves default true;
+correcting only the probe reproduces all five pins and all 62 perft2 counts.
+Both probes remain in evidence; no failed result is attributed to the correction.
+Focused native-helper/current-evidence review is now requested; no source edits
+while that review runs. Full test and failed regression logs are packaged.
 
 ## 2026-11-02 follow-up: converter and resource milestone
 

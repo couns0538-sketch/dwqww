@@ -27,7 +27,7 @@ is an opt-in that currently fails for these shards because they have no best mov
 Qsearch filtering fails capability preflight. There is no clipping, deduplication,
 random record skipping, relabeling or native binpack conversion in this path.
 
-The refreshed handoff manifest `C:/astra8_data/stm_v1_20261102/handoff/manifest.json`
+The refreshed handoff manifest `C:/astra8_data/audit30_20261102/handoff/manifest.json`
 pins source boundaries/hashes, normalized training/validation hashes, holdout
 audit, recipe settings, and actual imported npt/adapter Python files and native DLL.
 It must report `training_ready: true`; otherwise the entry point refuses training.
@@ -41,7 +41,7 @@ is made. Complete holdout position audits are required for the selected cohort.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $tools = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter'
-$data = 'C:/astra8_data/stm_v1_20261102'
+$data = 'C:/astra8_data/audit30_20261102'
 $inputRows = 'D:/grok-pc-data/dwqww/astra8_data/cohort/million.jsonl'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
@@ -70,14 +70,14 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'C:/astra8_data/stm_v1_20261102/handoff/manifest.json'
+$manifest = 'C:/astra8_data/audit30_20261102/handoff/manifest.json'
 $env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
 $env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = 'C:/astra8_data/stm_v1_20261102/tmp'
+$env:TEMP = 'C:/astra8_data/audit30_20261102/tmp'
 $env:TMP = $env:TEMP
 $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"

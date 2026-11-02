@@ -152,6 +152,12 @@ adapter correctness, and playing strength UNPROVEN until crew-owned gates pass.
 
 ## Handoff record
 
+For native compatibility checks, reproduce the archived UCI option transcript.
+An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
+the label. Pin the executable hash and preserve failed probes before correcting
+the runner. Perft checks FEN and move-state compatibility, not NNUE evaluation
+quality or training/export compatibility.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

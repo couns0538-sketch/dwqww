@@ -1,0 +1,23 @@
+.............F....................................            [100%]
+================================== FAILURES ===================================
+__________________ test_filter_receipt_binds_complete_input ___________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/integrity_green_tests/test_filter_receipt_binds_comp0')
+
+    def test_filter_receipt_binds_complete_input(tmp_path):
+        source = tmp_path / 'source.jsonl'
+        source.write_text(dumps(record(chess.STARTING_FEN, 0, 'cp', None,
+                                      'fixture', 1, 'selfplay')) + '\n')
+        report = filters.run_filter(source, tmp_path / 'out')
+        assert report['input_identity']['sha256'] == filters.sha256(source)
+        assert report['input_identity']['bytes'] == source.stat().st_size
+>       assert (tmp_path / 'out/records.jsonl').read_bytes() == source.read_bytes()
+E       assert b'{"best_move...rce_row":1}\n' == b'{"best_move...e_row":1}\r\n'
+E         
+E         At index 266 diff: b'\n' != b'\r'
+E         Use -v to get more diff
+
+astra_r8\datafilter\tests\test_integrity_regressions.py:111: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_integrity_regressions.py::test_filter_receipt_binds_complete_input
+1 failed, 49 passed, 11 subtests passed in 9.53s

@@ -5,6 +5,18 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
+The additional 30-minute audit fixed strict training admission, early seed setup,
+PGN result conflicts/parser errors, boolean Lichess labels, source mutation during
+filtering, and incomplete-output publication. The frozen suite passes 133 tests
+plus 11 subtests. Native FD3A5190 accepts all 62 sample/edge/mirrored FEN checks
+and reproduces all five supplied lock bench counts. These checks establish data
+and interface compatibility; strength remains UNPROVEN.
+
+Current handoff: `C:/astra8_data/audit30_20261102/handoff/manifest.json`, SHA256
+`7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e405a8c1d`.
+Use the commands in MIX_SPEC.md. Older handoffs remain historical evidence and
+deliberately fail current runtime identity checks after the reviewed local fixes.
+
 ## Interfaces
 
 `convert_forge.py OUT --selfplay INPUT --keep-result` writes the established
@@ -43,7 +55,7 @@ row order. Their hashes are deterministic; reports also contain nondeterministic
 wall time and throughput. Failures retain unpublished `.partial` evidence, and
 existing final or partial destinations are refused.
 
-Fresh single-rule measurements on the pinned 1,000,000 self-play rows, two
+Earlier single-rule measurements on the pinned 1,000,000 self-play rows, two
 compute workers at BelowNormal priority:
 
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |
@@ -113,9 +125,9 @@ Each stage refuses existing destinations. `refresh_handoff.py NEW_HANDOFF_DIR`
 rehashes the approved unchanged cohort/holdouts and runs both CPU preflights
 before publishing a refreshed manifest. It never starts training.
 
-Delivered follow-up: `evidence/stm_v1/handoff_manifest.json`, full-output hashes
+Historical first follow-up: `evidence/stm_v1/handoff_manifest.json`, full-output hashes
 in `evidence/stm_v1/full_output_hashes_stm_v1.json`, and the separately named
-`sample/positions_stm_v1.jsonl` (10,000 rows,3,139,111 bytes). The current C:
+`sample/positions_stm_v1.jsonl` (10,000 rows,3,139,111 bytes). That historical
 manifest SHA256 is `67beceef2a033d62d6d8cf75dce8284b1935e5dfa65c75c6f2fde253c7b4a8df`.
 Fresh sign audit: Pearson0.6635950368,1000 mirrors PASS; both CPU recipe
 preflights and published handoff verification PASS. Missing results remain excluded

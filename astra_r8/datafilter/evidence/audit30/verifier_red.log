@@ -1,0 +1,196 @@
+FFFFFFFFF.                                                               [100%]
+================================== FAILURES ===================================
+___________ test_nonfinite_or_impossible_correlation_rejected[nan] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_nonfinite_or_impossible_c0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194694C0>
+correlation = nan
+
+    @pytest.mark.parametrize('correlation',[float('nan'),float('inf'),1.5])
+    def test_nonfinite_or_impossible_correlation_rejected(tmp_path,monkeypatch,correlation):
+        path,m,_=fixture(tmp_path,monkeypatch);m['pearson_stm_score_result']=correlation
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:40: Failed
+___________ test_nonfinite_or_impossible_correlation_rejected[inf] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_nonfinite_or_impossible_c1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001946B590>
+correlation = inf
+
+    @pytest.mark.parametrize('correlation',[float('nan'),float('inf'),1.5])
+    def test_nonfinite_or_impossible_correlation_rejected(tmp_path,monkeypatch,correlation):
+        path,m,_=fixture(tmp_path,monkeypatch);m['pearson_stm_score_result']=correlation
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:40: Failed
+___________ test_nonfinite_or_impossible_correlation_rejected[1.5] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_nonfinite_or_impossible_c2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001946B110>
+correlation = 1.5
+
+    @pytest.mark.parametrize('correlation',[float('nan'),float('inf'),1.5])
+    def test_nonfinite_or_impossible_correlation_rejected(tmp_path,monkeypatch,correlation):
+        path,m,_=fixture(tmp_path,monkeypatch);m['pearson_stm_score_result']=correlation
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:40: Failed
+______________ test_unbound_proof_and_recipe_rejected[clearance] ______________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001947CE90>
+field = 'clearance'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+_______________ test_unbound_proof_and_recipe_rejected[tooling] _______________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001947CDD0>
+field = 'tooling'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+_______________ test_unbound_proof_and_recipe_rejected[wrapper] _______________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001947D910>
+field = 'wrapper'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+_______________ test_unbound_proof_and_recipe_rejected[recipe] ________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001947EC60>
+field = 'recipe'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+___________ test_unbound_proof_and_recipe_rejected[hyperparameters] ___________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001947E330>
+field = 'hyperparameters'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+________________ test_unbound_proof_and_recipe_rejected[ready] ________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/verifier_red_tmp/test_unbound_proof_and_recipe_5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001946BD10>
+field = 'ready'
+
+    @pytest.mark.parametrize('field',['clearance','tooling','wrapper','recipe','hyperparameters','ready'])
+    def test_unbound_proof_and_recipe_rejected(tmp_path,monkeypatch,field):
+        path,m,receipt=fixture(tmp_path,monkeypatch)
+        if field=='clearance':
+            receipt['complete_holdouts']=[]
+            p=Path(m['clearance']['path']);p.write_text(json.dumps(receipt));m['clearance']['sha256']=v.sha256(p)
+        elif field=='tooling':m['tooling']={m['baseline_wrapper']['path']:'0'*64}
+        elif field=='wrapper':m['baseline_wrapper']['sha256']='0'*64
+        elif field=='recipe':m['recipes']['filtered_wdl_v1']['selfplay_known_lambda']=0.2
+        elif field=='hyperparameters':m['hyperparameters']['seed']=1
+        else:m['training_ready']='yes'
+        path.write_text(json.dumps(m))
+>       with pytest.raises(ValueError):v.verify(path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_handoff_adversarial.py:55: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_nonfinite_or_impossible_correlation_rejected[nan]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_nonfinite_or_impossible_correlation_rejected[inf]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_nonfinite_or_impossible_correlation_rejected[1.5]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[clearance]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[tooling]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[wrapper]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[recipe]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[hyperparameters]
+FAILED astra_r8/datafilter/tests/test_handoff_adversarial.py::test_unbound_proof_and_recipe_rejected[ready]
+9 failed, 1 passed in 3.94s

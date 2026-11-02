@@ -1,17 +1,41 @@
 # Astra R8 Job 2 — UNPROVEN
 
-## 30-minute follow-up audit — in progress (2026-11-02 21:04 UTC)
+## 30-minute follow-up audit — validation complete, final review pending
 
-User requested an additional30-minute bug/integration audit. Confirmed and fixed:
+Started 2026-11-02 21:04 UTC. User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
 entrypoint readiness bypass and missing output admission; late RNG seeding in
 installed npt (locally preseed before delegation); malformed/conflicting PGNs;
 boolean Lichess labels; mid-read input mutation; converter partial publication;
 incomplete verifier bindings and nonfinite/impossible correlations.
-Frozen CPU suite:133 tests+11subtests PASS. Regression failures and fixes are
-under `C:/astra8_data/audit30_20261102`. No training/GPU or engine changes.
-Independent re-review, native Forge FEN/bench smoke and refreshed handoff pending.
-The prior handoff remains preserved historical evidence; changed local runtime
-files deliberately invalidate it until the new strict handoff is published.
+Source candidate `be2246d6718ab199a0cf7f11618673bef3d257e0` independently approved
+before fresh validation. Evidence: `evidence/audit30/`; full files under
+`C:/astra8_data/audit30_20261102`. No training/GPU or engine changes.
+
+| Check | Fresh audit result |
+|---|---|
+| Frozen CPU suite | PASS: 133 tests + 11 subtests; installed small-model initial parameters match after pre-seeding |
+| Legacy converter | PASS: 100,000 source rows, separate train/val SHA256 equality |
+| STM results | PASS: 1,000 actual records and 1,000 mirrors |
+| Determinism | PASS: 1M check/mate rows twice, same payload hash; 84.300/84.410 seconds, 11,862/11,847 positions/s, two workers |
+| Strict PGN parser | PASS: separately pinned 1M capture cohort reproduces prior hash; 176.250 seconds, one worker |
+| Forge compatibility | PASS: exact FD3A5190 SHA256; 62 FEN/perft2 checks including edge positions and mirrors; all five baseline benches |
+| Handoff | PASS: strict published verification, both actual CPU preflights, Pearson 0.6635950368 and 1,000 mirrors |
+
+Lock counts d11/13/16/20/22: 312866 / 862329 / 3024920 / 12389307 / 34048354.
+The first native probe used an incorrect `UseNNUE=false` assumption and failed
+bench identity. Its logs are preserved. Reproducing the recorded crew OFF options
+(`UseNNUE=true`, Threads=1, Hash=16) passes; no engine or net was changed.
+Perft proves state/move compatibility, not evaluation quality or net export.
+
+New manifest SHA256: `7afdcb408bc25b01644b81e7e2f89d78298de7c1d7139547cc99e90e405a8c1d`.
+It binds the reviewed local runtime migration, unchanged installed npt, complete
+holdouts and 999,953 training rows. Prior handoffs remain historical evidence and
+deliberately fail current runtime identity checks. The 10,000-row sample is unchanged.
+Current retained artifacts: 9,298,928,834 bytes (<15 GB); C free 150,323,494,912
+bytes, D free 63,327,133,696 bytes. F remains read-only.
+True qsearch remains BLOCKED because the lock UCI lacks the required oracle.
+Original self-play best moves remain unavailable; capture uses a separate cohort.
+Final focused helper/evidence re-review pending. Strength remains UNPROVEN.
 
 ## 2026-11-02 STM-format follow-up — reviewed handoff
 
