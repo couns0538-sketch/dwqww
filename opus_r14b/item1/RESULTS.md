@@ -88,3 +88,20 @@ rules, but the piece-count filter adapts per decode worker, so they are not the 
      another thread is inside `next()` (the trainer cannot do that; documented).
 - After this milestone Couns ruled out further sub-agents; later reviews are structured self-reviews (NOT independent).
 - Next: loss-match fast arm -> b5 equality matrix + Dataset-level check -> ABBA -> GPU_REQUEST.md.
+
+## Review milestone R14B-I1-2 (14:30; structured self-review, NOT independent - no sub-agents after 13:45)
+- Reviewed: everything changed after R14B-I1-1 (commits d870b8ab .. 1e074d1f): loader fixes (windows-alive formula,
+  saturating thresholds, double-release guard), wrapper (strict skip config, closed-stream error, thread mapping,
+  HLL resume warning, DLL identity), installer + patch 0005, `lm_det.py`, `lm_run.sh`, `fl_equal.py`, check scripts.
+  Candidate b5 9eb29b7d (pc1 = pc2).
+- Findings and actions: (1) `fl_equal.py` counted an empty line as a batch when a stream had none -> fixed, both
+  zero-batch dumps re-compared as 0 / 0; (2) `lm_run.sh` was edited while a run executed it (bash resumes by byte
+  offset; the shifted point hit `python -ArgLine`, which exits on the unknown option - nothing re-ran) -> every later
+  run uses a private copy; (3) `lm_det.py` did not put the trainer root on sys.path (first deterministic attempt
+  failed at import) -> fixed; (4) the trainer is not reproducible because it seeds after building the model ->
+  documented finding + optional patch 0006, worked around in the test wrapper only; (5) TaskStop leaves
+  Start-Process children running -> documented, waited for the orphan before the next CPU step.
+- Checks after the fixes: self-test 7 groups local + CI ASan/UBSan/TSan (run 41446915233); all b5 equality checks
+  (standard, 24-config matrix, 3,100 spanning batches, trainer path); exact CPU loss match; ABBA; full-epoch run.
+- Open: the GPU-window epoch (GPU busy with the npt queue). Next action: Engine NNUE / QA decide about a window
+  (GPU_REQUEST.md) and about adopting `--fast-loader` via `tools/install_fast_loader.py` on a trainer copy.
