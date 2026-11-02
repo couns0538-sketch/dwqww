@@ -1,6 +1,6 @@
 # Astra R8 Job 2 — UNPROVEN
 
-## 2026-11-02 STM-format follow-up — final review pending
+## 2026-11-02 STM-format follow-up — reviewed handoff
 
 Execution base: `7a8e22e8e2dad094f383ded125572d28aef10ace`. User selected STM
 results in both binary and JSONL and subsequently authorized C: output with a
@@ -16,7 +16,7 @@ records remain unchanged. Historical evidence below applies to the old candidate
 | 4 Deliberate failures | PASS:check,capture,en passant,promotion,mate,ply,quiet,all-off; malformed version/mask and output-safety regressions |
 | 5 Million-row keep rates | PASS for measurable rules; capture measured on a separately pinned million-row gate cohort; qsearch BLOCKED |
 | 6 Sign and mirror | PASS:Pearson0.6635950368 on999,953 cleared rows;1000 mirrors; unknowns excluded |
-| 7 Handoff | PASS:sample,90-output hash inventory,both CPU preflights and post-publication verification; final review pending |
+| 7 Handoff | PASS:sample,90-output hash inventory,both CPU preflights,post-publication verification,final independent review and evidence checker |
 
 Expanded CPU suite: **89 tests + 11 subtests PASS** (`evidence/stm_v1/full89_cpu.log`).
 All-off/check/mate/recipe A/B each keep1,000,000; ply<=160 keeps909,569.
@@ -38,6 +38,17 @@ Retained C/D/F artifacts:7,577,399,368 bytes (<15GB); latest C free156,717,297,6
 bytes and D free63,678,509,056 bytes. F stayed read-only under the C override.
 Production converter/helpers, engine, npt adapter/trainer and records module are
 unchanged. No training, GPU, net export or strength match ran. All strength UNPROVEN.
+
+Final fresh read-only reviewer APPROVED source candidate
+`555cfb9b0aaec4699362dfc2c8acdc1fe9027967` with no blocking findings. It checked all
+65 runtime/tooling hashes,11 reviewed-source pins,74 small inventory hashes and
+the lengths of16 large files, both manifest copies, sample, exact lock/oracle
+references and gate provenance. Full large-payload hashing was performed by the
+main validation, not repeated by the reviewer. Forge evidence checker PASS with
+no issues (`evidence/stm_v1/forge_final_check.log`); this is record consistency,
+not a playing-strength verdict. Closeout changes only documentation/evidence.
+Next owners: Code Review, then Engine NNUE for training and Engine QA for separate
+FD3A5190/UHO,8moves_v3 and WAC300 gates. No crew messages or training were sent/run.
 
 Ruling: latest explicit C: authorization supersedes the earlier F-only output
 rule and historical D-only exception. Old D/F roots remain read-only and count

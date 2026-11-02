@@ -41,6 +41,22 @@ PASS. Actual refresh and both CPU preflights subsequently passed, followed by
 verification using the published manifest path. Correlation0.6635950368 and1000
 mirrors passed; unchanged complete holdouts were rehashed. No training has run.
 
+## 2026-11-02 follow-up: final independent review
+
+Fresh `final_review` subagent APPROVED candidate
+`555cfb9b0aaec4699362dfc2c8acdc1fe9027967`, no blocking defects or missing
+implementation checks. Reviewed exact diff, surrounding code and unchanged
+training entry point. Independently verified65 runtime/tooling hashes,11 reviewed
+source hashes,74 inventory files up to10MB and lengths of16 large files; both
+manifest copies and sample; exact FD lock/oracle references; Fastchess semantics
+and gate receipt hashes. Both training output destinations remain absent.
+It read the89-test/11-subtest log and all acceptance receipts without rerunning
+expensive datasets/tests. Qsearch unsupported and original-cohort best moves
+absent remain explicit limitations. No code changed during or after final review.
+Closeout finding was pending-review prose only, now updated. Forge correctness
+evidence checker PASS, no issues; raw logs retain original whitespace/line endings.
+Next: publish final documentation/evidence checkpoint; crew handoff, UNPROVEN.
+
 ## Milestone 1: converter compatibility and result semantics
 
 Reviewer: read-only review_converter subagent. Candidate hashes:
