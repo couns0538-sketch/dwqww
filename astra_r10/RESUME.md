@@ -1,6 +1,6 @@
 # Exact resume - UNPROVEN
 
-Current job1 step4: TIMING RUNNING,16 complete A/A attempts/5 eligible at2026-11-01 22:37 Pacific. Builds/pins/perft/T1/sanitizers/raw-bit parity/negative control PASS. T4 UNVERIFIED loaded host.
+Current job1 step4: TIMING RUNNING,29 complete A/A attempts/6 eligible at2026-11-01 22:56 Pacific. Builds/pins/perft/T1/sanitizers/raw-bit parity/negative control PASS. T4 UNVERIFIED loaded host.
 Working directory D:\a10\wt, branch astra-r10-3jobs, independent repo D:\a10\repo.
 Next: DO NOT launch a second timing worker. Monitor existing run01 (unified exec session33082 in originating session). Read timing/run01/summary.json when present and timing/run-launch02/result.json for final native exit. Run command already active: powershell -NoProfile -File D:\a10\wt\astra_r10\launch.ps1 -Manifest D:\a10\wt\astra_r10\job1\timing\run-launch02-manifest.json . ProtocolSHA256c83ccb17d428069be129eaf4f1b253dbf299bb6d77ad0353a5667fa82ccb3245. Deadline about23:21 Pacific, first10 eligible A/A then10 ABBA; failed calibration stops comparison. Preserve running outputs; no overwrite/restart into these paths. No builds/tests during timing; required progress checkpoint I/O disclosed in RESULTS. On completion review all attempts, seal job1/pack with T4 limitation, then Job2 head checks.
 Plan: astra_r10/PLAN.md. RESULTS.md contains current states. Subagents may have half-done files in those two skill directories; inspect git status/diff before resuming.
