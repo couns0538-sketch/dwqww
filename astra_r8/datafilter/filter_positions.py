@@ -7,13 +7,12 @@ import itertools
 import json
 import os
 from pathlib import Path
-import shutil
 import time
 import chess
 from records import read_records, dumps
+from resource_policy import ARTIFACT_ROOT, storage_guard
 
 RULES = ('check', 'capture', 'mate', 'ply')
-ARTIFACT_ROOT = Path('D:/grok-pc-data/dwqww/astra8_data')
 
 def low_priority():
     if os.name == 'nt':
@@ -26,16 +25,6 @@ def low_priority():
             raise OSError('cannot set BelowNormal priority')
     else:
         os.nice(10)
-
-def storage_guard(root=None, allowance=64*1024*1024):
-    if os.name == 'nt':
-        # User authorized D-only validation while F is below its reserve; F remains read-only.
-        for drive, reserve in [('C:/', 30), ('D:/', 50)]:
-            if shutil.disk_usage(drive).free < reserve * 10**9 + (allowance if drive == 'D:/' else 0):
-                raise OSError(f'{drive} below {reserve} GB reserve')
-    size = sum(p.stat().st_size for p in ARTIFACT_ROOT.rglob('*') if p.is_file())
-    if size + allowance > 15 * 10**9:
-        raise OSError('new artifact cap exceeded')
 
 def sha256(path):
     h = hashlib.sha256()
@@ -70,9 +59,10 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
         raise ValueError('ply limit must be nonnegative')
     out = Path(out)
     partial = out.with_name(out.name + '.partial')
-    if out.exists() or partial.exists():
+    if os.path.lexists(out) or os.path.lexists(partial):
         raise FileExistsError('refusing existing output destination')
-    storage_guard()
+    storage_guard(out)
+    storage_guard(partial)
     low_priority()
     partial.mkdir(parents=True)
     enabled = (drop_in_check, drop_capture_bestmove, drop_mate_scores, max_ply_from_start is not None)
@@ -85,7 +75,7 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
         with open(partial / 'records.jsonl', 'x', encoding='utf-8', newline='\n') as records, open(partial / 'metadata.jsonl', 'x', encoding='utf-8', newline='\n') as metadata:
             # Bounded submission; executor.map alone queues the entire input on Python 3.10.
             while window := list(itertools.islice(source, workers * 2)):
-                storage_guard(allowance=sum(len(dumps(r).encode('utf-8'))+1 for part in window for r in part)*2 + 1024*1024)
+                storage_guard(partial, allowance=sum(len(dumps(r).encode('utf-8'))+1 for part in window for r in part)*2 + 1024*1024)
                 args = [(part, max_ply_from_start) for part in window]
                 results = executor.map(inspect_chunk, args) if executor else map(inspect_chunk, args)
                 for part in results:
@@ -109,7 +99,9 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                             text = dumps(r) + '\n'
                             records.write(text)
                             metadata.write(text)
-                storage_guard(out.parent)
+                records.flush()
+                metadata.flush()
+                storage_guard(partial)
         elapsed = time.perf_counter() - start
         report = dict(input=count, kept=kept, dropped=count-kept,
                       independent={k: independent[k] for k in RULES},
@@ -121,7 +113,11 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                       qsearch_measurement='BLOCKED: unsupported oracle',
                       hashes={p.name: sha256(p) for p in partial.iterdir()})
         assert count == kept + sum(first.values())
-        (partial / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True), encoding='utf-8')
+        report_text = json.dumps(report, indent=2, sort_keys=True)
+        storage_guard(partial, allowance=len(report_text.encode('utf-8')) + 1024*1024)
+        with open(partial / 'report.json', 'x', encoding='utf-8', newline='\n') as receipt:
+            receipt.write(report_text)
+        storage_guard(out, allowance=0)
         partial.rename(out)
         return report
     finally:

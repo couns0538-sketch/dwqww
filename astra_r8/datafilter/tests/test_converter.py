@@ -33,7 +33,8 @@ def test_duplicate_outcome_first_occurrence(tmp_path):
     data=execute(tmp_path,['--selfplay',str(source),'--keep-result'])
     assert len(data)==4
     for binary,meta in data:
-        assert meta['result_white']==1 and binary['rsv'][0]==1 and binary['rsv'][1]==2
+        assert meta['result_white']==1 and binary['rsv'][0]==1
+        assert tuple(binary['rsv']) == (1, 2 if binary['stm']==0 else 0, 1)
         assert meta['ply'] in (160,161) and ' 17 81' in meta['fen']
         assert meta['source_row'] in (1,3,5,7)
 
@@ -42,7 +43,7 @@ def test_lichess_converter_route(tmp_path):
     source.write_text('\n'.join(json.dumps({'fen':fen,'evals':[{'pvs':[{'cp':score}]}]}) for fen,score in positions())+'\n')
     data=execute(tmp_path,['--lichess',str(source),'--keep-result'])
     assert len(data)==4
-    assert all(not m['has_result'] and m['result_stm'] is None and b['rsv'][0]==0 for b,m in data)
+    assert all(not m['has_result'] and m['result_stm'] is None and tuple(b['rsv'])==(0,0,1) for b,m in data)
 
 def test_pgn_results_and_original_clocks(tmp_path):
     source=tmp_path/'input.pgn'
@@ -60,3 +61,12 @@ def test_pgn_results_and_original_clocks(tmp_path):
     for b,m in data:
         assert m['result_white']==1 and m['best_move'] is not None
         assert ' 17 81' in m['fen']
+    # Both original input routes keep their no-flag byte contract.
+    outputs=[]
+    for name,script in [('old',HERE/'baseline/convert_forge.py'),('new',HERE/'convert_forge.py')]:
+        dest=tmp_path/name
+        p=subprocess.run([sys.executable,str(script),str(dest),'--pgn',str(source)],capture_output=True,text=True)
+        assert p.returncode==0,p.stdout+p.stderr
+        outputs.append(dest)
+    for split in ('train','val'):
+        assert (outputs[0]/f'{split}.bin').read_bytes()==(outputs[1]/f'{split}.bin').read_bytes()

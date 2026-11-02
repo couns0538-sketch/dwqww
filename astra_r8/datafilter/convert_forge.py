@@ -8,6 +8,9 @@ Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --self
 import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
 from filter_lichess_rec import REC, encode_board
 from records import record, selfplay_record, read_records, dumps
+from result_codec import encode_result
+from resource_policy import storage_guard
+from filter_positions import low_priority
 ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
 ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
 ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
@@ -18,6 +21,8 @@ ap.add_argument('--lichess', nargs='*', default=[])
 ap.add_argument('--normalized', nargs='*', default=[])
 a = ap.parse_args()
 if os.path.lexists(a.outdir): sys.exit('refusing existing output destination')
+low_priority()
+storage_guard(a.outdir)
 metadata = []
 current_metadata = None
 def throttle():
@@ -33,8 +38,7 @@ def keep(b, w, mv):
     if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
     encoded = encode_board(b, w)
     if a.keep_result:
-        encoded['rsv'][0, 0] = int(current_metadata['has_result'])
-        encoded['rsv'][0, 1] = 0 if not current_metadata['has_result'] else current_metadata['result_white'] + 1
+        encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
         metadata.append(current_metadata)
     out.append(encoded)
 throttle()
@@ -90,6 +94,8 @@ if a.keep_result: metadata = [metadata[i] for i in indices]
 indices = np.random.default_rng(a.seed).permutation(len(arr))
 arr = arr[indices]; nv = max(1, int(round(len(arr) * a.val)))
 if a.keep_result: metadata = [metadata[i] for i in indices]
+metadata_bytes = sum(len(dumps(row).encode('utf-8')) + 1 for row in metadata) if a.keep_result else 0
+storage_guard(a.outdir, allowance=int(arr.nbytes) + metadata_bytes + 1024*1024)
 os.makedirs(a.outdir, exist_ok=False)
 arr[nv:].tofile(f'{a.outdir}/train.bin'); arr[:nv].tofile(f'{a.outdir}/val.bin')
 if a.keep_result:

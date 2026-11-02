@@ -1,5 +1,14 @@
 # Review log — UNPROVEN
 
+## 2026-11-02 follow-up: converter and resource milestone
+
+Base `7a8e22e8`; candidate source hashes will be bound in the review receipt.
+Read-only converter_audit reviewer inspecting frozen converter/codec/audits and
+resource/filter files. Quick suite: 72 tests + 11 subtests PASS in
+`C:/astra8_data/stm_v1_20261102/full1.log`. New assertions first failed on old
+White-relative bytes; codec and resource red/green receipts are preserved.
+Large audits held pending review. No acceptance claim yet.
+
 ## Milestone 1: converter compatibility and result semantics
 
 Reviewer: read-only review_converter subagent. Candidate hashes:

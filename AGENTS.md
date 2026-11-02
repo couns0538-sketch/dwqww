@@ -4,7 +4,10 @@ Scope: result-aware data tools only. All strength claims are UNPROVEN.
 Production tools, datasets, networks, installed npt and crew processes are read-only.
 No training, GPU work, relabeling, engine edits, STOP/PAUSE files or fast-loader work.
 Owned computation: BelowNormal priority, at most two workers. New artifacts under
-`D:/grok-pc-data/dwqww/astra8_data`, at most 15 GB; retain D: 50 GB and C: 30 GB free.
+`C:/astra8_data` under the user's 2026-11-02 override; keep C: above 50 GB,
+including the next allocation. Retain D: 50 GB. Existing D:/F: datasets and
+artifacts remain read-only; F: being below 50 GB does not block authorized C: work.
+Count preserved D:/F: and new C: artifacts together toward the 15 GB cap.
 Checkpoint RESULTS.md before each push, approximately every ten minutes. No force push.
 Read-only milestone reviews: converter, filter before million-row run, adapter, final evidence.
 Freeze candidate hashes during reviews; record findings, dispositions and rechecks in REVIEW_LOG.md.
@@ -13,7 +16,7 @@ Handoff: Code Review -> Engine NNUE -> Engine QA. Strength gates remain crew-own
 MIT/BSD/Apache code may be copied only with full notices. GPL/AGPL code,
 including npt/Stockfish tools, is ideas-only. No Leela data without a quoted
 permissive licence in IDEA_SOURCE.md. Never modify, move or delete datasets or
-.nnue files. Also preserve F: >= 50 GB free. No engine changes: lock FD3A5190,
+.nnue files. Do not allocate new artifacts on F:. No engine changes: lock FD3A5190,
 OFF bench 312866/862329/3024920/12389307/34048354. No loader-throughput work.
 # Development review and verification
 
@@ -48,5 +51,3 @@ being tested or attribute an earlier candidate's results to modified code.
 At each completed milestone, save a concise record of the reviewed scope,
 candidate identity, findings, fixes, validation results, and next action in the
 task's evidence directory. Never call an unresolved candidate accepted.
-
-

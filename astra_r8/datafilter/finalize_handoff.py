@@ -13,6 +13,7 @@ from verify_handoff import verify
 HERE=Path(__file__).resolve().parent
 
 def finalize(root):
+    storage_guard(root, allowance=100*10**6)
     output=root/'handoff'; output.mkdir()
     cleared=json.loads((root/'holdout_cleared/clearance.json').read_text())
     audit=json.loads((root/'independent_audit/audit.json').read_text())

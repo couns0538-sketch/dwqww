@@ -11,13 +11,14 @@ import time
 import chess
 import numpy as np
 from records import selfplay_record, read_records, dumps
+from result_codec import encode_result, decode_result
 from filter_positions import low_priority, storage_guard, sha256
 
 HERE = Path(__file__).resolve().parent
 
 def freeze(root, sources):
     out = root / 'cohort'
-    storage_guard(allowance=2*10**9)
+    storage_guard(out, allowance=2*10**9)
     out.mkdir()
     receipts = []
     count = 0
@@ -61,6 +62,7 @@ def freeze(root, sources):
 
 def legacy(root):
     logs = root / 'legacy_logs'
+    storage_guard(root, allowance=100*10**6)
     logs.mkdir()
     for name, script, extra in [('old', HERE/'baseline/convert_forge.py', []), ('new', HERE/'convert_forge.py', []), ('result', HERE/'convert_forge.py', ['--keep-result'])]:
         cmd = [sys.executable, str(script), str(root/name), '--selfplay', str(root/'cohort/legacy100k.txt'), *extra]
@@ -81,8 +83,8 @@ def legacy(root):
             b = chess.Board(row['fen'])
             score = max(-3000, min(3000, row['score_stm'] * (1 if b.turn else -1)))
             expected = encode_board(b, score)[0]
-            expected['rsv'][0] = row['has_result']
-            expected['rsv'][1] = row['result_white']+1 if row['has_result'] else 0
+            expected['rsv'] = encode_result(row['has_result'], row['result_stm'])
+            assert decode_result(item['rsv'], item['stm']) == row['result_stm']
             assert item.tobytes() == expected.tobytes()
         stripped = arr.copy(); stripped['rsv'] = 0
         assert stripped.tobytes() == (root/'old'/f'{split}.bin').read_bytes()
@@ -92,11 +94,12 @@ def legacy(root):
 
 def orientation(root):
     destination = root/'orientation1000.json'
+    storage_guard(destination)
     if destination.exists():
         raise FileExistsError(destination)
     # Literal table supplied by independent milestone reviewer.
     oracle = {('w','0'):(-1,True,0), ('w','0.5'):(0,True,1), ('w','1'):(1,True,2), ('w','?'):(None,False,0),
-              ('b','0'):(1,True,0), ('b','0.5'):(0,True,1), ('b','1'):(-1,True,2), ('b','?'):(None,False,0)}
+              ('b','0'):(1,True,2), ('b','0.5'):(0,True,1), ('b','1'):(-1,True,0), ('b','?'):(None,False,0)}
     by_turn = {'w': [], 'b': []}
     for row in read_records(root/'cohort/million.jsonl'):
         turn = row['fen'].split()[1]
@@ -108,7 +111,7 @@ def orientation(root):
     for (turn, token), expected in oracle.items():
         for fen in by_turn[turn]:
             r = selfplay_record(f'{fen} | 123 | {token}', 'orientation-fixture', len(cases)+1)
-            assert (r['result_stm'], r['has_result'], 0 if not r['has_result'] else r['result_white']+1) == expected
+            assert (r['result_stm'], r['has_result'], encode_result(r['has_result'], r['result_stm'])[1]) == expected
             opposite = {'0':'1', '1':'0', '0.5':'0.5', '?':'?'}[token]
             mirrored = selfplay_record(f'{chess.Board(fen).mirror().fen(en_passant="fen")} | 123 | {opposite}', 'mirror', 1)
             assert (r['score_stm'],r['result_stm'],r['has_result']) == (mirrored['score_stm'],mirrored['result_stm'],mirrored['has_result'])

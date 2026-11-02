@@ -15,6 +15,6 @@ def pin_cpu_runtime():
     yield
     after=npt_adapter.runtime_identity()
     assert all(after['files'].get(p)==digest for p,digest in before['files'].items()),'runtime changed during tests'
-    output=Path('D:/grok-pc-data/dwqww/astra8_data')/f'cpu_runtime_{time.time_ns()}.json'
+    output=Path(os.environ['TEMP'])/f'cpu_runtime_{time.time_ns()}.json'
     with output.open('x',encoding='utf-8') as fh:
         json.dump({'before':before,'after':after},fh,indent=2)

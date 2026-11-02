@@ -1,5 +1,29 @@
 # Astra R8 Job 2 — UNPROVEN
 
+## 2026-11-02 STM-format follow-up (in progress)
+
+Execution base: `7a8e22e8e2dad094f383ded125572d28aef10ace`. User selected STM
+results in both binary and JSONL and subsequently authorized C: output with a
+50 GB reserve. New artifacts: `C:/astra8_data/stm_v1_20261102`; no old data moved.
+Version 1 uses byte29 mask, byte30 STM L/D/W=0/1/2, byte31=1. Legacy no-flag
+records remain unchanged. Historical evidence below applies to the old candidate.
+
+Current quick checks: 72 pytest tests + 11 resource subtests PASS, CPU-only,
+`full1.log` under the new artifact root. Codec/converter regressions failed first
+on the old behavior and then passed. Fresh large checks and independent review
+are pending; this follow-up is not yet accepted or training-ready.
+Exact FD3A5190 binary/hash and matching build-source receipts now verified;
+bounded UCI handshake PASS, no search. True qsearch remains BLOCKED.
+Completed gate PGNs are being investigated as a separate capture-measurement
+cohort; they will not be silently mixed into either training recipe.
+
+Ruling: latest explicit C: authorization supersedes the earlier F-only output
+rule and historical D-only exception. Old D/F roots remain read-only and count
+toward the aggregate 15 GB limit. User's milestone reviews supersede the generic
+executing-plans skill's one-review default. No training/loader/engine changes.
+
+## Historical candidate and evidence (preserved)
+
 Base: 9761eb367c3ae4e541fc316380699f78eb493a3c. Isolated branch astra-r8-datafilter.
 Implementation, CPU validation, final independent review and evidence checker complete.
 The cleared cohort has data/adapter clearance only. Training and strength are UNPROVEN.

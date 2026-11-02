@@ -16,7 +16,7 @@ def position_key(fen):
 
 def run(root):
     output = root/'independent_audit'
-    storage_guard(allowance=200*10**6)
+    storage_guard(output, allowance=200*10**6)
     output.mkdir()
     start = time.perf_counter()
     counts = Counter(); keys = set(); n=sx=sy=sxx=syy=sxy=0

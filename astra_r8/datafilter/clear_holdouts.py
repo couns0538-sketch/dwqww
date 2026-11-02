@@ -16,7 +16,7 @@ def key(fen):
 def write_selection(source, output, blocked, publish=True):
     output=Path(output); partial=output.with_name(output.name+'.partial')
     if output.exists() or partial.exists(): raise FileExistsError(output)
-    storage_guard(allowance=Path(source).stat().st_size*2+20*10**6)
+    storage_guard(output, allowance=Path(source).stat().st_size*2+20*10**6)
     partial.mkdir()
     count=kept=0; exclusions=[]
     with open(source,encoding='utf-8') as inp, open(partial/'records.jsonl','x',encoding='utf-8',newline='\n') as records, open(partial/'metadata.jsonl','x',encoding='utf-8',newline='\n') as metadata:

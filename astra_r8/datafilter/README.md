@@ -9,8 +9,12 @@ by this job. Correct conversion and loss checks establish no playing-strength ga
 
 `convert_forge.py OUT --selfplay INPUT --keep-result` writes the established
 32-byte REC format plus aligned train/val JSONL metadata. Byte 29 is `has_result`;
-byte 30 is White loss/draw/win = 0/1/2. Unknown outcomes have mask 0 and semantic
-null. Without `--keep-result`, legacy filters, first-occurrence deduplication,
+byte 30 is **side-to-move** loss/draw/win = 0/1/2; byte 31 is version 1.
+Unknown outcomes have mask 0, payload 0 and semantic null. The historical
+version-0 result bytes are White-relative; `result_codec.py` decodes both versions
+and rejects unsupported versions or invalid masks/payloads. No existing binary
+is rewritten. Scores remain White-relative in REC and STM-relative in JSONL.
+Without `--keep-result`, legacy filters, first-occurrence deduplication,
 shuffle and binary bytes are preserved. New `--pgn`, `--lichess` and `--normalized`
 routes retain source/full-state metadata with `--keep-result`. Output directories
 must not exist. REC is **not npt binpack**.
@@ -58,7 +62,9 @@ limited to checked epoch boundaries; sampler state itself can resume at any row.
 ## Evidence and handoff
 
 See RESULTS.md for statuses and REVIEW_LOG.md for candidate hashes, findings and
-fixes. Full new outputs live under `D:/grok-pc-data/dwqww/astra8_data/`; the sample
+fixes. The user's latest override puts new outputs under `C:/astra8_data/`, with
+C: above 50 GB including planned allocation. Existing D:/F: artifacts are read-only
+and count with C: toward the 15 GB aggregate cap. The historical sample
 is at most 20 MB. Inputs, original logs and failed attempts are preserved.
 MIX_SPEC.md supplies the two crew-owned commands and exact recipe differences.
 
