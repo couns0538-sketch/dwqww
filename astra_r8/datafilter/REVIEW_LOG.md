@@ -33,6 +33,20 @@ same historical hash and 100k separate train/val byte identity. Sources remained
 frozen throughout. Next: converter configuration/source identity and broader data
 profile. No refreshed handoff or strength acceptance is claimed at this checkpoint.
 
+## Six-hour continuation: descriptive corpus audit
+
+Reviewed profiler SHA256 730f59b003eb583bf5b4e694930fe648277c8a9f2a84062eb5aef50a6f29a41a,
+tests dcddbb809816a163841a73a9f3be8224ebf05a0a59a92754408be117b70c6907.
+Eleven focused checks pass: exact outcome orientation/accounting, malformed rows,
+source/sidecar changes, same-metadata digest mismatch, duplicate/holdout rejection,
+bounded-prefix disclosure, mirror/rule/native boundaries, empty source and UTF-8.
+Second narrow read-only review inspected only those files and the resource guard.
+No blocking defect; APPROVED 100k benchmark followed by the stated 15-source scan.
+Main's 100k run passed. Its elapsed time includes hashing the entire source, as
+explicitly recorded; it is not a pure decoding throughput measurement.
+New outputs are descriptive summaries and bounded reservoir evidence, never
+training inputs. One CPU leaves one available for the authorized main-agent work.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

@@ -22,6 +22,14 @@ approved five pinned source files before actual corpus validation. The strict
 The 100k legacy train/validation hashes remain identical. No-flag parser behavior
 is unchanged. Prior handoff requires refresh for the changed local records module.
 
+Broader descriptive audit: `profile_corpus.py` passes 11 focused checks. Second
+narrow review approved its frozen source and the 15-source plan. A 100k-row
+benchmark on shard 003 passes in 5.690 seconds including hashing the complete
+645 MB source. Planned full scan: closed shards 001,002,003,006,009,012,015,018,
+021,024,027,030,033,036,039, one CPU at BelowNormal. Every inspected data row gets
+a full-board check; reservoir samples are audit evidence only. No training data
+or holdout/game-separation claim. Complete results pending.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
