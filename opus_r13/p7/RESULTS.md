@@ -48,3 +48,58 @@ Reading (no Elo claim; calibration of the static eval is not playing strength, o
 2. Optional, weak evidence: `setoption name EvalOptimism value 150` (instead of 40).
 3. EvalMatScale: no fitted candidate (the fit says 0); the hand line 12 is not supported by these data.
 E3 gate results were checked first: none of the E3 options had a gate (no RUN_INFO uses them), so none was H0.
+
+## R14 (2026-11-02): CR patch 129d440e, wider bounds, refit once - UNPROVEN
+### CR patch 129d440e (`C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p7_e3fit_crfix.patch`)
+It is CR's fix of 7d81f367 (applies cleanly there; not on cd9cb992, where my own CR fix cad3fe13 already changed the same
+lines). Item by item: raw_eval "cannot open" check and the public eval path - already in cad3fe13 (CR uses
+`Evaluator::evaluate`, mine `evaluate_uncached` + the network = the lock test's reference formula; CR box-checked the
+public path = the private one 9985/9985); **ported now**: extract_positions.py skips and counts games the PGN reader flags
+with errors (0 such games in these PGNs), fit_e3.py refuses to overwrite its output and flags values / slope on a bound;
+CR's run rule (start at CPU <= 80 % and >= 8 GB free RAM, BelowNormal) and CR's note "the static optimism stand-in is a
+material-weighted stretch of the eval and overlaps with EvalMatScale (planted s=20 fitted as k=120 nearly as well)" are
+adopted in the reading below.
+### Inputs
+- `logs/inputs.sha256` now also lists the 6 gate PGNs (sha256 taken 2026-11-02 10:25 PC clock). Finding: the PGNs are not
+  all the R13 state: `uhoSF26bit1_razor_e417_vs_AL1lp.pgn` grew from 1,093 games (R13 read it while that gate was still
+  running) to 2,998; the other 5 files give byte-identical extracted rows (447,280 positions, same .tsv / .fens content),
+  so their hashes also describe R13's input. R13 did not hash the razor PGN at its 1,093-game state; R13's own outputs
+  (al1gates.fens / .tsv / .evals, first 3 lines of inputs.sha256) pin the data every fit below uses.
+- A fresh R14 extraction of the grown PGNs (13,795 games, 574,366 positions, `logs/r14_extraction.sha256`) is available;
+  fits on it are NOT run in R14 (run_p7_r14b.sh is ready; the bound question uses R13's exact data).
+### Regression: the R14 fit_e3.py at the default bounds (50, 150, 60) reproduces R13's fit_e3.json exactly
+(every set, loss, slope, CI equal; the json only gains `bounds_s_k_d`, `at_upper_bound`, `slope_at_bound`); both fitted
+values are flagged K-AT-BOUND / D-AT-BOUND (logs/fit_e3_default_r14.json).
+### Refit once with wider bounds (50, 400, 100) on R13's data (logs/fit_e3_wide.json; D <= 100: at 100 the damping zeroes the eval at clock 100)
+| set | held-out log-loss | vs OFF, 95 % CI (game bootstrap 2000) | on a bound? |
+|---|---|---|---|
+| OFF | 0.569080 | - | - |
+| EvalRule50Damp only: d = **81** (was 60 = old max) | 0.566624 | -0.002456 [-0.003777, -0.001333] | no |
+| EvalOptimism only (static approximation, WEAK): k = **228** (was 150) | 0.567205 | -0.001875 [-0.002798, -0.001055] | no |
+| EvalMatScale only | 0 = OFF | 0 | - |
+| all three: (0, 185, 72) (was (0, 150, 60)) | 0.565484 | -0.003596 [-0.005247, -0.002191] | no |
+Past the old bound vs the bound value itself (paired game bootstrap, compare_sets.py, logs/compare_wide_vs_bound.json):
+| A vs B | held-out loss A - B, 95 % CI | reading |
+|---|---|---|
+| Rule50Damp 81 vs 60 | -0.000318 [-0.000632, -0.000039] | 81 better, barely separated |
+| Optimism 228 vs 150 | -0.000166 [-0.000450, +0.000085] | not separated |
+| all three (0,185,72) vs (0,150,60) | -0.000156 [-0.000397, +0.000052] | not separated |
+| Rule50Damp 81 vs the hand value 30 | -0.001191 [-0.001996, -0.000498] | clearly better |
+Reading (calibration of a static eval, not playing strength; only a gate decides): the Rule50Damp optimum lies past the E3
+option bound (~81 vs max 60) and is a little better calibrated than 60; Optimism's optimum also lies past 150, but not
+separated from 150 - and it is weak evidence anyway (static stand-in for the root score, overlap with MatScale). MatScale
+stays 0.
+### Candidate lines (crew's E3 exe; UNPROVEN; each line on its own, never bundled)
+1. `setoption name EvalRule50Damp value 60` - the best value the E3 option range allows (fit-only optimum 81 is outside it).
+2. Optional, weak evidence, on its own (NEVER together with Rule50Damp): `setoption name EvalOptimism value 150`.
+3. No MatScale line; the "all three" rows are fit-only, not a gate line.
+Owner item: gating Rule50Damp ~80 needs an E3 build whose EvalRule50Damp max is >= 81 (crew's E3 source; default 0, so OFF
+stays the lock) - worth it only after the crew's E3 hand gate uhoE3c (Rule50Damp 30, running since 05:18 PC clock) says the
+direction helps at all.
+
+### Review milestone R14-P7-1 (structured self-review, NOT independent - no sub-agents in R14)
+- Reviewed: fit_e3.py / extract_positions.py / compare_sets.py diffs, the regression json compare, the wide fit and the
+  bootstrap; candidate = fit values only (no exe built).
+- Findings: (1) the PGN growth (found by the re-extraction, cause pinned to one file) - documented above, the fits stay on
+  R13's hashed outputs; (2) a fitted value at the end of its search range says nothing about the optimum - the bound flags
+  (CR 129d440e) now mark it, and the wide refit answered it; (3) none open.

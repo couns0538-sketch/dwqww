@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """fit_e3.py - R13 P7 (own code): fit the E3 eval post-processing values to game results (WDL log-loss).
 
-usage: python -I -B fit_e3.py <prefix> <evals.txt> <out.json> [--boot 2000] [--seed 13701]
+usage: python -I -B fit_e3.py <prefix> <evals.txt> <out.json> [--boot 2000] [--seed 13701] [--bounds 50,150,60]
   <prefix>.tsv from extract_positions.py, evals.txt from raw_eval (lock raw static eval, side to move, one per FEN).
 Model (src/search.cpp of e3_evalpost_al1, Worker::e3_post_eval, integer arithmetic with C++ truncation toward zero):
   optimism (APPROXIMATED for a static fit - the search uses the previous iteration's ROOT score; here the position's own
@@ -15,6 +15,10 @@ Error bars (CR R13): game-level bootstrap of the held-out set (resample held-out
 seed), 95% percentile intervals of the held-out loss DIFFERENCES fitted - OFF, hand - OFF and fitted - hand.
 Fails loudly (exit 2) on bad input: line-count mismatch, any ERR eval, a non-integer eval, a result outside {0, 0.5, 1},
 a negative material / clock, or fewer than 50 games / 2000 positions in either split. Exit 0 = report written.
+R14: --bounds S,K,D = the search bounds of EvalMatScale / EvalOptimism / EvalRule50Damp (default 50,150,60 = the E3 UCI
+option ranges); the grids and the refine clamp follow them. D <= 100: at D = 100 the damping already zeroes the eval at
+clock 100, above it the sign would flip. Every set records which values sit on an upper bound and whether the slope sits
+on its search bound (CR patch 129d440e); an existing <out.json> is never overwritten (CR 129d440e).
 """
 import argparse
 import json
@@ -25,6 +29,7 @@ import numpy as np
 M0 = 2 * (8 * 82 + 2 * 337 + 2 * 365 + 2 * 477 + 1025)
 MATE_IN_MAX = 31743
 HAND = (12, 40, 30)
+SLOPE_LO, SLOPE_HI = 0.1, 8.0
 
 
 def die(msg):
@@ -55,7 +60,7 @@ def pos_losses(x, y, a):
 
 
 def fit_slope(x, y):
-    lo, hi = 0.1, 8.0
+    lo, hi = SLOPE_LO, SLOPE_HI
     f = lambda a: float(pos_losses(x, y, a).mean())
     for _ in range(60):
         m1, m2 = lo + (hi - lo) * 0.382, lo + (hi - lo) * 0.618
@@ -103,7 +108,18 @@ def main():
     ap.add_argument('out')
     ap.add_argument('--boot', type=int, default=2000)
     ap.add_argument('--seed', type=int, default=13701)
+    ap.add_argument('--bounds', default='50,150,60')
     a = ap.parse_args()
+    try:
+        bounds = tuple(int(b) for b in a.bounds.split(','))
+    except ValueError:
+        bounds = ()
+    if len(bounds) != 3 or min(bounds) < 1 or bounds[2] > 100:
+        die(f'--bounds {a.bounds!r}: need three positive integers S,K,D with D <= 100')
+    try:
+        out_fh = open(a.out, 'x', newline='\n')
+    except FileExistsError:
+        die(f'refusing to overwrite {a.out}')
     v, y, m, c, game, held = load(a.prefix, a.evals)
     tr, te = ~held, held
     for name, mask in (('training', tr), ('held-out', te)):
@@ -124,7 +140,7 @@ def main():
             for i, st in enumerate(steps):
                 for delta in ((-st, st) if st else ()):
                     q = list(p)
-                    q[i] = int(min(max(q[i] + delta, 0), (50, 150, 60)[i]))
+                    q[i] = int(min(max(q[i] + delta, 0), bounds[i]))
                     q = tuple(q)
                     if q == p:
                         continue
@@ -133,11 +149,13 @@ def main():
                         p, a0, l0, improved = q, a2, l2, True
         return p, a0, l0
 
+    sb, kb, db = bounds
     grids = {
-        'EvalMatScale only': ([(s, 0, 0) for s in range(0, 51, 5)], (1, 0, 0)),
-        'EvalOptimism only (static approximation: weak evidence)': ([(0, k, 0) for k in range(0, 151, 10)], (0, 2, 0)),
-        'EvalRule50Damp only': ([(0, 0, d) for d in range(0, 61, 5)], (0, 0, 1)),
-        'all three': ([(s, k, d) for s in range(0, 51, 10) for k in range(0, 151, 30) for d in range(0, 61, 10)], (2, 5, 2)),
+        'EvalMatScale only': ([(s, 0, 0) for s in range(0, sb + 1, 5)], (1, 0, 0)),
+        'EvalOptimism only (static approximation: weak evidence)': ([(0, k, 0) for k in range(0, kb + 1, 10)], (0, 2, 0)),
+        'EvalRule50Damp only': ([(0, 0, d) for d in range(0, db + 1, 5)], (0, 0, 1)),
+        'all three': ([(s, k, d) for s in range(0, sb + 1, 10) for k in range(0, kb + 1, 30) for d in range(0, db + 1, 10)],
+                      (2, 5, 2)),
     }
     sets = {'OFF': (0, 0, 0), 'hand (12, 40, 30)': HAND, 'hand MatScale 12 only': (12, 0, 0),
             'hand Optimism 40 only': (0, 40, 0), 'hand Rule50Damp 30 only': (0, 0, 30)}
@@ -152,14 +170,16 @@ def main():
     per = {}
     report = {'positions': int(len(v)), 'train_positions': int(tr.sum()), 'heldout_positions': int(te.sum()),
               'train_games': int(len(np.unique(game[tr]))), 'heldout_games': n_games, 'bootstrap': a.boot,
-              'seed': a.seed, 'sets': {}, 'differences': {}}
+              'seed': a.seed, 'bounds_s_k_d': list(bounds), 'sets': {}, 'differences': {}}
     for name, p in sets.items():
         slope, train_loss = fit(p)
         x = transform(test[0], test[1], test[2], *p).astype(np.float64)
         losses = pos_losses(x, test[3], slope)
         per[name] = (np.bincount(gi, weights=losses, minlength=n_games), np.bincount(gi, minlength=n_games))
         report['sets'][name] = {'s_k_d': list(p), 'slope': slope, 'train_loss': train_loss,
-                                'heldout_loss': float(losses.mean())}
+                                'heldout_loss': float(losses.mean()),
+                                'at_upper_bound': [bool(p[i] == bounds[i]) for i in range(3)],
+                                'slope_at_bound': bool(min(slope - SLOPE_LO, SLOPE_HI - slope) < 1e-3)}
     rng = np.random.default_rng(a.seed)
     boots = rng.integers(0, n_games, size=(a.boot, n_games))
 
@@ -176,10 +196,12 @@ def main():
         lo, hi = np.percentile(d, [2.5, 97.5])
         report['differences'][f'{x_name} - {y_name}'] = {'point': point, 'ci95': [float(lo), float(hi)],
                                                           'better_in_ci': bool(hi < 0)}
-    with open(a.out, 'w', newline='\n') as fh:
+    with out_fh as fh:
         json.dump(report, fh, indent=1)
     for name, f in report['sets'].items():
-        print(f'{name:62s} s,k,d={f["s_k_d"]}  train {f["train_loss"]:.6f}  held-out {f["heldout_loss"]:.6f}')
+        flags = ''.join(f'  {n}-AT-BOUND' for n, hit in zip(('S', 'K', 'D'), f['at_upper_bound']) if hit)
+        flags += '  SLOPE-AT-BOUND' if f['slope_at_bound'] else ''
+        print(f'{name:62s} s,k,d={f["s_k_d"]}  train {f["train_loss"]:.6f}  held-out {f["heldout_loss"]:.6f}{flags}')
     for name, f in report['differences'].items():
         print(f'{name:90s} {f["point"]:+.6f}  95% CI [{f["ci95"][0]:+.6f}, {f["ci95"][1]:+.6f}]'
               f'{"  (better)" if f["better_in_ci"] else ""}')

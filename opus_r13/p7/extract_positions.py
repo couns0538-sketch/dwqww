@@ -10,6 +10,7 @@ ply, side to move not in check, no checkmate / stalemate positions. Game id = sh
 Dedupe (CR R13): a game whose result + full move list was already seen (in any file: gate folders hold reruns
 and copies) is skipped and counted; the same opening played twice with colours swapped is two different games. python-chess (installed in the crew venv) is used as a PGN reader
 tool only (GPL; nothing copied into Forge).
+R14 (CR patch 129d440e): a game the PGN reader flags with errors (illegal or unparsable moves) is skipped and counted.
 E3 material (src/search.cpp e3_material): sum of PieceValueMg {P 82, N 337, B 365, R 477, Q 1025} over the pieces of
 both sides, kings excluded, capped at the starting total.
 """
@@ -40,7 +41,7 @@ def main():
     for ext in ('.fens', '.tsv'):
         if os.path.exists(a.out + ext):
             raise SystemExit(f'refusing to overwrite {a.out + ext}')
-    games = positions = dups = 0
+    games = positions = dups = bad = 0
     seen = set()
     with open(a.out + '.fens', 'w', newline='\n') as ffen, open(a.out + '.tsv', 'w', newline='\n') as ftsv:
         ftsv.write('game_id\tply\tstm_result\tmaterial\tclock\tpgn\tround\n')
@@ -56,6 +57,9 @@ def main():
                     result = game.headers.get('Result', '*')
                     white = {'1-0': 1.0, '0-1': 0.0, '1/2-1/2': 0.5}.get(result)
                     if white is None:
+                        continue
+                    if game.errors:
+                        bad += 1
                         continue
                     moves = list(game.mainline_moves())
                     key = hashlib.sha1((result + ' ' + game.board().fen() + ' ' + ' '.join(m.uci() for m in moves)).encode()).digest()
@@ -82,7 +86,8 @@ def main():
                 break
     if games == 0 or positions == 0:
         raise SystemExit('no games / positions extracted')
-    print(f'{games} games ({dups} duplicate games skipped), {positions} positions -> {a.out}.fens / .tsv')
+    print(f'{games} games ({dups} duplicate games skipped, {bad} games skipped for PGN errors), {positions} positions'
+          f' -> {a.out}.fens / .tsv')
 
 
 if __name__ == '__main__':
