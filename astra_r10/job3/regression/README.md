@@ -13,6 +13,8 @@ translated. Its current type-alias syntax requires Python 3.12 or newer; the
 earlier private Python 3.10 runtime was not used for a knowingly incompatible
 full-suite attempt. A separate CPU-only runtime is assembled at
 `D:/a10/job3/runtime312`, preserving the earlier runtime/evidence.
+The final73 replay uses the separate `runtime312np254` with historical
+NumPy2.5.4; the first runtime and both unsuccessful attempts remain intact.
 
 `run_regression.py` requires the assembled runtime manifest's SHA256 and binds
 all declared private runtime files before and after execution. It separately
@@ -44,13 +46,20 @@ Verification so far:
 - Thirteen local NPT/private-runtime binding fixtures: PASS, no skips or errors,
   native exit0; see `binding-fixtures01-launch` and
   `D:/a10/job3/regression-runs/binding-fixtures01/RESULT.json`.
-- Source, manifests and final native regression remain separately qualified;
-  these local fixtures do not constitute the historical73-test PASS.
+- Native `preflight01`: PREFLIGHT_PASS, native exit0, 42.8 seconds, CPU2 Idle,
+  Torch/interop1, CUDA/HIP null. The external NPT source/DLL, all18,686 private
+  runtime files and installed toolchain snapshots remained unchanged. Result
+  SHA256 `C48A7CCE0302CC0E92DD8D212F29B79B95785856EB841B418A979AD817640F32`.
+- Final `suite03`:73 collected/73 passed/0 failed/0 skipped; native0, clean
+  capture/disk/reparse checks and unchanged source/runtime/toolchain identities.
+  Result SHA256 `DF6058CB1CA6FE41580056384CE756CD021A744B0F50DE12BAA36E847900338B`.
+  One existing scheduler-order warning is preserved. See `ATTEMPTS.md` for all
+  failed attempts, exact archived source identities, recovery and final scope.
 
-After runtime assembly and focused review, prepare a fresh import preflight:
+For a later independent replay, use a fresh tag after reviewing the inputs:
 
 ```powershell
-powershell -NoProfile -File D:\a10\wt\astra_r10\job3\regression\prepare_native_attempt.ps1 -Tag preflight01 -Mode preflight -PreflightCpu 2
+powershell -NoProfile -File D:\a10\wt\astra_r10\job3\regression\prepare_native_attempt.ps1 -Tag crew-preflight01 -Mode preflight -PreflightCpu 2
 ```
 
 Preparation never launches. Inspect the generated manifest/wrapper and obtain a

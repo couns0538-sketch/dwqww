@@ -20,7 +20,7 @@ are preserved; none are invented for source files that lack them.
 | Native relabel | PASS within scope |16 actual source rows,15 castling/3 noncapturable EP;0 six-field mismatches;32768 nodes|
 | Actual converter replay03 | PASS |all3 fault points, first/repeated resume, per-shard and concatenated role MD5/SHA256 equality|
 | Deliberate failures | Detected |planted same-game leak, stripped castling, corrupt shard, changed input and metadata races|
-| Original73 regression tests | PENDING |owned suite/runtime adaptation under review; final receipt will record actual outcome|
+| Original73 regression tests | PASS |73/73,0 skips,native0; all14 original test files byte-identical; independent evidence review closed|
 | Training readiness | BLOCKED |missing authentic IDs; no qualified training manifest or fresh training seed inventory|
 
 The raw audit status is UNVERIFIED and its launcher exited2 as designed. Input
@@ -83,5 +83,38 @@ That malformed receipt remains untouched. RUNTIME_CURRENT_HASHES.json separately
 records the20045 current D-copy files/1326486174bytes at SHA256
 C20358958646D3CCF6372FDA39548C9C9840626F8DFD93FCC531219D2D16BBA6;
 it does not reconstruct the lost historical per-file list. The Python3.10 runtime
-qualified state tests but cannot parse the installed NPT Python3.12+ syntax; full
-regression qualification requires a compatible separate CPU environment.
+qualified state tests but could not parse the installed NPT Python3.12+ syntax.
+Full regression qualification used a separate CPU environment as recorded below.
+
+Final native regression report:
+`DF6058CB1CA6FE41580056384CE756CD021A744B0F50DE12BAA36E847900338B`.
+Runtime manifest:
+`29F8359847D9FC9E25B4B6166805F71940FD35548F9E222587CF16C422C7230E`;
+Python3.12.10, Torch2.9.1+cpu, NumPy2.5.4,18824files/597686913bytes.
+Runner:
+`2A1DE65B4581AE4CB1E74B9D0559DCD420702B060737AD9E00AD9F2F2DD7CAF0`.
+All73 collected IDs have passed calls; all219 setup/call/teardown reports passed.
+All101 copied-source pins and44 observed NPT import bindings were independently
+checked. Private runtime, external NPT source/DLL and installed MSVC/SDK snapshots
+match before/after. The suite used Idle CPUs2/3, Torch/BLAS/compile1, no GPU,
+optimizer updates or training loops. One existing scheduler-order warning remains.
+This CPU environment differs from the historical ROCm environment.
+
+All attempts are preserved. preflight01 passed imports only. suite01 collected
+zero tests because the strict D write guard refused pytest's default NUL log sink;
+the owned harness now supplies an explicit D log file. suite02 collected73,
+passed61 and failed1 before stopping: its NumPy1.26.4 equaled the historical
+negative test's deliberately substituted version. The frozen test documents2.5.4;
+a separate immutable runtime restores that version without changing the assertion.
+suite02 also tripped the workspace guard on29 owned pytest convenience aliases.
+Bounded reviewed recovery removed only those links, proving every target file set
+and hash unchanged. The final harness suppresses only optional alias creation and
+records the intended relationships. Its actual tmp_path fixture passed. Earlier
+guard failures remain rejected historical evidence, never clean qualification.
+
+The final collector binds each primary report to its exact launcher, preserves
+earlier failed attempts and inventories retained generated caches without copying
+external generated code into Forge. Its11 focused fixtures passed and independent
+review closed. The pack remains SEALED_INCOMPLETE/UNPROVEN because authentic
+game-ID clearance and a qualified training manifest are missing. Its final sealed
+checksum identity is recorded in the root FINAL_REPORT after verification.

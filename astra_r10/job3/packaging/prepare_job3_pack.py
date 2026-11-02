@@ -24,10 +24,12 @@ RUNTIME_HISTORICAL_SHA256 = '659ca6fbe6abd4337f06eb7841cd8b065c0fc6dc558e3ca7bc4
 RUNTIME312_MANIFEST_SHA256 = 'a8d8325cd5d6216477c26da3638fe976b7e784b5ead7277c67692e0211a9b461'
 RUNTIME312_LOCK_SHA256 = 'ef9dcb6af1e3e64b9d2bbdbcf2eeac7480f9864a56b5bd96cad1741c50ac9a90'
 RUNTIME312_BOOTSTRAP_SHA256 = 'f9bba4329df2c6e99e1e65c6170b2683248ef86c1d1767901d71746fca2c4b3e'
+RUNTIME254_MANIFEST_SHA256 = '29f8359847d9fc9e25b4b6166805f71940fd35548f9e222587cf16c422c7230e'
+RUNTIME254_LOCK_SHA256 = '560cdd1b73fdf0e28ab9ac6c0ac8d2dfaf8c20824eeb409748944ac4ae16517f'
 REGRESSION_RECORDS = ('RESULT.json', 'FAILURE.json', 'CPU_RUNTIME.json', 'NPT_SOURCES_BEFORE.json',
     'NPT_IMPORTED_INITIAL.json', 'NPT_IMPORTED_AFTER.json', 'NPT_SOURCES_AFTER.json',
     'TOOLCHAIN_BEFORE.json', 'TOOLCHAIN_AFTER.json', 'RUNTIME_BOUND_BEFORE.json',
-    'RUNTIME_BOUND_AFTER.json', 'PYTEST_COMMAND.json', 'pytest.log')
+    'RUNTIME_BOUND_AFTER.json', 'PYTEST_COMMAND.json', 'PYTEST_ALIASES.json', 'pytest.log')
 REGRESSION_RETAINED = ('cache', 'temp', 'pycache', 'pytest-temp')
 sys.path.insert(0, str(WT / 'skills/gate-handover-pack/scripts'))
 import seal_evidence as sealing
@@ -58,12 +60,15 @@ def bound_json(ref):
     return path, sealing.decode(raw)
 
 
-def completion(ref, flag_expectations=()):
+def completion(ref, flag_expectations=(), allow_historical_guard_failure=False):
     path, receipt = bound_json(ref)
     need(type(receipt.get('native_exit_code')) is int and isinstance(receipt.get('finished_utc'), str),
          'launcher exit completion required')
-    need(receipt.get('capture_errors') == [] and receipt.get('disk_floor_breached') is False,
-         'capture/floor issue must be resolved or explicitly reviewed outside this collector')
+    need(isinstance(receipt.get('capture_errors'), list) and type(receipt.get('disk_floor_breached')) is bool,
+         'original launcher guard status required')
+    if not allow_historical_guard_failure:
+        need(receipt.get('capture_errors') == [] and receipt.get('disk_floor_breached') is False,
+             'capture/floor issue must be resolved or explicitly reviewed outside this collector')
     manifest = path.parent / 'manifest.json'
     need(digest(manifest)[0] == receipt.get('manifest_sha256', '').lower(), 'launcher manifest identity mismatch')
     args = load(manifest).get('arguments', [])
@@ -177,6 +182,47 @@ def regression_retained_files(directory):
     return sorted(files)
 
 
+def runtime254_inputs(add):
+    """Preserve both runtime revisions, shipping only the new revision receipts."""
+    runtime = ROOT / 'job3/runtime312np254'
+    evidence = JOB / 'runtime312np254'
+    bindings = {}
+    def bind(path, expected=None):
+        path = sealing.checked_path(path)
+        sha, _, size = digest(path)
+        need(expected is None or sha == expected, 'NumPy revision evidence changed')
+        bindings[path] = sha; add(path)
+        return {'path': str(path), 'sha256': sha, 'bytes': size, 'shipped': True}
+    manifest_ref = bind(runtime / 'RUNTIME_FILES.json', RUNTIME254_MANIFEST_SHA256)
+    branch_ref = bind(evidence / 'RUNTIME_FILES.json', RUNTIME254_MANIFEST_SHA256)
+    lock_ref = bind(evidence / 'WHEEL_LOCK.json', RUNTIME254_LOCK_SHA256)
+    _, manifest = bound_json(manifest_ref); _, lock = bound_json(lock_ref)
+    need(manifest.get('status') == 'RUNTIME_ASSEMBLED' and Path(manifest['root']) == runtime and
+         manifest['source_runtime']['manifest_sha256'] == RUNTIME312_MANIFEST_SHA256 and
+         manifest['installed_versions']['numpy'] == '2.5.4' and manifest['wheel_lock_sha256'] == RUNTIME254_LOCK_SHA256,
+         'exact separate NumPy2.5.4 runtime required')
+    need(lock['source_lock']['sha256'] == RUNTIME312_LOCK_SHA256, 'replacement wheel lineage differs')
+    metadata = lock['replacement_metadata']
+    metadata_path = sealing.checked_path(metadata['path'])
+    need(metadata_path.parent == runtime / 'downloads', 'replacement metadata escaped its download root')
+    metadata_ref = bind(metadata_path, metadata['sha256'])
+    archive = lock['new_download']
+    archive_path = sealing.checked_path(archive['path'])
+    need(archive_path.parent == runtime / 'downloads', 'replacement archive path escaped runtime')
+    installer = bind(evidence / 'assemble-launch/result.json')
+    _, receipt = completion(installer)
+    need(receipt['native_exit_code'] == 0, 'NumPy revision assembly must have exited successfully')
+    for name in ('install.stdout', 'install.stderr'):
+        bind(runtime / 'logs' / name)
+    return {'path': str(runtime), 'shipped': False, 'status': 'RUNTIME_ASSEMBLED',
+            'manifest': manifest_ref, 'branch_manifest': branch_ref, 'wheel_lock': lock_ref,
+            'official_metadata': metadata_ref, 'installer': installer,
+            'new_archive': dict(archive, shipped=False,
+                scope='Recorded official archive identity at assembly; retained on D and not rehashed by collector.'),
+            'source_runtime_manifest': RUNTIME312_MANIFEST_SHA256,
+            'scope': 'Separate immutable CPU runtime revision with historical NumPy2.5.4; original runtime and failed attempts retained. Assembly does not grant regression or training clearance.'}, bindings
+
+
 def regression_inputs(ready, regression_path, regression, add):
     attempts = ready['regression'].get('attempts')
     need(isinstance(attempts, list) and 1 <= len(attempts) <= 10,
@@ -188,7 +234,9 @@ def regression_inputs(ready, regression_path, regression, add):
         need(directory.parent == ROOT / 'job3/regression-runs' and directory.is_dir() and directory not in seen,
              'fresh uniquely listed regression output directory required')
         seen.add(directory)
-        receipt_path, receipt = completion(item['launcher'], [('--out', directory)])
+        historical = directory != regression_path.parent
+        receipt_path, receipt = completion(item['launcher'], [('--out', directory)],
+                                           allow_historical_guard_failure=historical)
         add(receipt_path); bindings[receipt_path] = item['launcher']['sha256']
         allowed = set(REGRESSION_RECORDS) | set(REGRESSION_RETAINED) | {'runtime_receipts'}
         need(all(path.name in allowed for path in directory.iterdir()), 'unrecognized regression output requires explicit review')
@@ -224,6 +272,9 @@ def regression_inputs(ready, regression_path, regression, add):
         _, original = bound_json({'path': str(raw_reports[0]), 'sha256': bindings[raw_reports[0]]})
         summaries.append({'directory': str(directory), 'status': original.get('status'),
                           'launcher': item['launcher'], 'native_exit_code': receipt['native_exit_code'],
+                          'launcher_guard': {'capture_errors': receipt['capture_errors'],
+                              'disk_floor_breached': receipt['disk_floor_breached'],
+                              'qualification': 'REJECTED_HISTORICAL_ATTEMPT' if receipt['capture_errors'] or receipt['disk_floor_breached'] else 'CLEAN_LAUNCHER_ONLY'},
                           'artifacts': artifacts, 'retained_execution_files': rows,
                           'retained_scope': 'Current post-exit hash inventory only; generated code/DLLs/test files remain outside the pack and Forge source.'})
     need(regression_path in reports, 'final regression report must be one of the explicitly listed original native reports')
@@ -233,7 +284,7 @@ def regression_inputs(ready, regression_path, regression, add):
              regression.get('skipped') == 0 and regression.get('optimizer_updates') == 0 and regression.get('training_loops') == 0,
              'regression PASS requires the complete unskipped suite with no training')
         need(all(regression.get(key) is True for key in ('external_runtime_unchanged', 'toolchain_unchanged', 'private_runtime_unchanged')) and
-             regression.get('private_runtime_binding', {}).get('sha256') == RUNTIME312_MANIFEST_SHA256,
+             regression.get('private_runtime_binding', {}).get('sha256') == RUNTIME254_MANIFEST_SHA256,
              'regression PASS must bind unchanged isolated runtime/toolchain/NPT inputs')
     need(len(json.dumps(summaries).encode()) <= 8 * 1024 * 1024, 'execution identity inventory exceeds8MiB bounded evidence')
     return summaries, bindings, retained, inventories
@@ -323,6 +374,7 @@ def prepare(final_receipt, destination, launcher_output):
     for path in admission_bindings:
         add(path)
     runtime312_map, runtime312_bindings = runtime312_inputs(add)
+    runtime254_map, runtime254_bindings = runtime254_inputs(add)
     regression_map, regression_bindings, retained_bindings, retained_inventories = regression_inputs(
         ready, regression_path, regression, add)
 
@@ -412,6 +464,7 @@ def prepare(final_receipt, destination, launcher_output):
                                   'scope': 'Current copied D-runtime file identities only; no fresh original-source comparison or historical-copy reconstruction.'}},
                  'external_build_inputs': external_build_inputs,
                  'isolated_cpu_runtime312': runtime312_map,
+                 'isolated_cpu_runtime312np254': runtime254_map,
                  'native_regression_attempts': regression_map,
                  'scope_notes': ['probe01 is auxiliary O2 diagnostic only; no engine candidate in this pack.',
                                  'resume-proof03 is primary admitted native upstream replay; proof02 correctness passed but admission failed and is auxiliary.',
@@ -461,7 +514,7 @@ def prepare(final_receipt, destination, launcher_output):
     check_admission_artifacts(admission_bindings, current)
     for path, expected in runtime_bindings.items():
         need(current.get(str(path)) == expected, 'runtime receipt artifact changed after validation')
-    for path, expected in (runtime312_bindings | regression_bindings).items():
+    for path, expected in (runtime312_bindings | runtime254_bindings | regression_bindings).items():
         need(current.get(str(path)) == expected, 'isolated runtime/regression evidence changed after validation')
     for directory, expected_files in retained_inventories.items():
         need(regression_retained_files(directory) == expected_files, 'retained execution file set changed during collection')

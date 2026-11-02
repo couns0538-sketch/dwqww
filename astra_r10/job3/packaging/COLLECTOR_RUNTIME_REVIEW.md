@@ -57,3 +57,27 @@ final input/review receipt after the native suite exits. Include preflight01,
 suite01 (infrastructure FAIL, zero tests) and each subsequent completed attempt;
 bind the final suite report to its own launcher. No collector execution has
 occurred as part of these fixtures.
+
+Final runtime-revision milestone: collector SHA256
+`b33f288b149486bcb2f7b8cf32f90c2875b7dcaca4bac1200c77c3891fecb986`
+pins the separate NumPy2.5.4 runtime manifest
+`29f8359847d9fc9e25b4b6166805f71940fd35548f9e222587cf16c422c7230e`
+and wheel lock `560cdd1b73fdf0e28ab9ac6c0ac8d2dfaf8c20824eeb409748944ac4ae16517f`.
+The prior5A49 collector and tests are preserved. The extension includes the
+original `PYTEST_ALIASES.json`. Historical non-primary launcher guard failures
+are retained explicitly as REJECTED_HISTORICAL_ATTEMPT; primary completion and
+all default completion checks remain strict. No historical failure becomes PASS.
+
+The focused static review closed with no unresolved finding. Eleven synthetic
+fixtures then passed with zero skips at
+`runtime-integration-02-launch/`, native0 at2026-11-02T09:16:00.7469740Z, Idle
+CPU3/one worker and no capture/floor errors. The inspected admission pair was
+CPU3 13.5 then13.0%, host84.89375 then85.3%, recorded in
+`sealer-tests-collectorload02-launch/`. Native suite03 independently reports
+73/73 PASS, zero failures/skips, on the new runtime with clean launcher and
+unchanged bindings. The root final receipt must select its original RESULT
+`df6058cb1ca6fe41580056384ce756cd021a744b0f50de12baa36e847900338b`
+and exact launcher, retaining preflight01, suite01, suite02 and the auxiliary
+alias fixture. Code and runtime data are now frozen pending final receipt release.
+The reviewer inspected the eleven original fixture results and closed this
+milestone without residual findings before native pack preparation.

@@ -1,8 +1,35 @@
 ﻿# Exact resume â€” UNPROVEN
 
-Job3 step3 is active. Branch astra-r10-3jobs, D:\a10\wt. No native test worker
-is running at this checkpoint. Original73 is NOT PASS: suite01 infraFAIL0tests;
-suite02 collected73/61PASS/1FAIL/0skip/11notrun and workspace-guard rejection.
+CURRENT NEXT STEP — supersedes the completed recovery history below:
+Job3 native qualification is complete: suite03 PASS73/73,0skips/native0,
+RESULT DF6058CB1CA6FE41580056384CE756CD021A744B0F50DE12BAA36E847900338B.
+Independent reviewer verified14originaltestfiles/101sourcepins,219passed phases,
+44prebound imports and all runtime/NPT/toolchain before-after identities.
+Runtime29F8359847D9FC9E25B4B6166805F71940FD35548F9E222587CF16C422C7230E,
+runner2A1DE65B4581AE4CB1E74B9D0559DCD420702B060737AD9E00AD9F2F2DD7CAF0,
+aliasguard13F8BCF15FE3CC7915BEBC88C03F86E8BDD283A8012221F5E2C9A3AA0A9E00B7.
+No native test worker remains. Alias recovery and new runtime are already complete;
+DO NOT repeat them. Earlier failures remain rejected historical evidence.
+
+NEXT: finish Job3 packaging. FINAL_INPUTS.json is finalized/reviewed at
+73FC861F33DF6491464E7CB6BDE5AD48FC1FE122D05529F72D315F08D3C4A3A8;
+HANDOVER490C0D16 reviewed; collectorB33F288B149486BCB2F7B8CF32F90C2875B7DCACA4BAC1200C77C3891FECB986
+reviewed with11fixturesPASS. plan_safety_review owns preparation/sealing; check
+packaging/prepare-final01-launch/result.json BEFORE rerunning any command.
+Released command after fresh quiet admission:
+powershell -NoProfile -File D:\a10\wt\astra_r10\job3\packaging\run-prepare.ps1 -RunId final01 -FinalReceipt D:\a10\wt\astra_r10\job3\packaging\FINAL_INPUTS.json
+It may be running/complete at pickup. Preserve failed/incomplete attempts; new tag
+required for any retry. Reviewer proof_contract must check exact seal_request.json
+and source-to-pack mapping before seal, then independently verify final MD5/SHA
+coverage. Use reviewed phase wrapper from plan_safety if present; inspect it first.
+All Job3 input/code/review files are frozen through sealing. Only root global
+RESULTS/RESUME/FINAL_REPORT may change. Final report pack identity still pending.
+After verify: update final report/ledgers with actualpack hash, push, verify remote.
+MissingauthenticIDs => trainingBLOCKED/UNPROVEN even with73testsPASS.
+
+COMPLETED RECOVERY HISTORY (preserved for provenance, not instructions to rerun):
+Branch astra-r10-3jobs, D:\a10\wt. suite01 infraFAIL0tests; suite02 collected73/
+61PASS/1FAIL/0skip/11notrun and workspace-guard rejection, both preserved.
 
 NEXT1: inspect/review astra_r10/job3/regression/recover_suite02_aliases.ps1.
 It is a recovery DRAFT at this checkpoint; review_build owns it. suite02 left29

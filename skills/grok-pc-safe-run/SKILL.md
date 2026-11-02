@@ -34,6 +34,27 @@ Never replace these with C:, Program Files, another SDK, LLVM or another drive.
 Bind the selected x64 compiler/linker/DLL/header/library files before and after;
 set explicit PATH/INCLUDE/LIB and D caches rather than dumping or inheriting an
 unreviewed developer environment. No C installation or edit is authorized.
+
+When dot-sourcing this helper for validation functions, do not store caller
+state in its public parameter names (`Manifest`, `ProtectedRoots`,
+`ReadOnlyRuntimeRoots`, `ReadOnlyToolchainRoots`): dot-sourcing can overwrite
+those variables with parameter defaults. Use distinct names such as
+`r10ProtectedRoots`, and verify the full required list survives before use.
+Ordinary launches should invoke the script with `&` and explicit parameters.
+
+For a reviewed pytest job under a strict D write guard, set an explicit D
+`--log-file`; pytest otherwise opens Windows NUL. Its optional `*current`
+convenience symlinks also conflict with the global workspace reparse guard.
+Suppress only that optional alias creation in the owned harness, record the
+intended aliases, restore the private hook afterward, and prove a real
+`tmp_path` fixture still preserves its target bytes. Keep every test assertion
+and the normal source/DLL/reparse guards unchanged. Existing owned aliases
+require a separately reviewed bounded recovery: exact link/target inventory,
+safe nonrecursive unlink, before/after target hashes, full protected roots,
+disk floors and fresh admission. Never recursively remove a directory link.
+PowerShell5.1 directory symlink recovery uses a validated `DirectoryInfo`
+obtained with `Get-Item -LiteralPath` and its parameterless `Delete()` method;
+do not rely on historical `Remove-Item` directory-link behavior.
 External GPL code stays external; do not vendor it into Forge. No training or
 GPU authorization is implied. See the launcher contract and the matching
 `tests/Test-ReadOnlyRuntime.ps1` regression tests.

@@ -8,7 +8,7 @@ filled below. No engine strength, gate acceptance or training clearance is claim
 |---|---|---|
 |1 NNUEWideOutput|Native correctness PASS within disclosed scope; timing CALIBRATION_FAIL; speed UNPROVEN|`job1/pack/`, SEALED_INCOMPLETE|
 |2 P4/P7 leftovers|BLOCKED by unavailable required CR commits and permitted fit inputs|`job2/pack_rule50/`, `job2/pack_optimism/`, separate SEALED_INCOMPLETE packs|
-|3 datafilter|Full audit complete, game separation UNVERIFIED; state/native replay proofs PASS; original73 regression pending|`job3/pack/` pending final regression/review/sealing|
+|3 datafilter|Full audit complete, game separation UNVERIFIED; state/native replay proofs and73/73 regression PASS|`job3/pack/` pending final sealing/verification|
 
 The accepted lock is
 `FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072`.
@@ -137,7 +137,17 @@ admission FAILED because sampling and launch were batched without inspection.
 Both are preserved. Primary proof03 passed after separately inspected quiet samples
 and a fresh prelaunch observation. Only owned test processes were interrupted.
 
-Original73 regression: PENDING. Final Job3 pack identity: PENDING. The handover is
+Original73 regression: PASS, zero skips, native exit0. Independent review verified
+all73 collected IDs/passed calls,219 passed phases,14 byte-identical original test
+files and101 source pins. Final result SHA256
+`DF6058CB1CA6FE41580056384CE756CD021A744B0F50DE12BAA36E847900338B`.
+The final CPU runtime uses Python3.12.10/Torch2.9.1+cpu/NumPy2.5.4, manifest
+`29F8359847D9FC9E25B4B6166805F71940FD35548F9E222587CF16C422C7230E`.
+All private-runtime, external NPT source/DLL and installed compiler/SDK identities
+matched before/after;44 observed NPT imports were prebound. One existing scheduler
+warning is preserved; no optimizer update, training loop or GPU use occurred.
+
+Final Job3 pack identity: PENDING. The handover is
 for Engine NNUE plus CR. The training artifact is a BLOCKED guard, not a fabricated
 ready training command. Authentic game IDs and a reviewed qualified training
 manifest/seed inventory remain prerequisites for any later training.
@@ -151,6 +161,16 @@ contains20045 files/1326486174bytes, SHA256
 `C20358958646D3CCF6372FDA39548C9C9840626F8DFD93FCC531219D2D16BBA6`.
 It does not claim to reconstruct historical hashes. That Python3.10 environment
 cannot parse installed NPT Python3.12+ syntax, so it supplies no73-test acceptance.
+
+The final73-test acceptance comes from separate suite03. Earlier suite01 stopped
+before collection because pytest's NUL log sink conflicted with the D write guard;
+an explicit D log path fixed that. suite02 passed61 then failed a negative control
+whose substituted NumPy1.26.4 matched the chosen runtime. The frozen test documents
+NumPy2.5.4; a separate immutable runtime supplied that version, with every original
+assertion preserved. suite02 also triggered the global workspace guard on29 pytest
+convenience aliases. Reviewed link-only recovery preserved every target byte; the
+final harness suppresses only optional aliases and records them. All original
+failed/rejected receipts, exact earlier runners and runtime manifests are retained.
 
 ## Review and continuation
 

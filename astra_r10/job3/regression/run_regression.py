@@ -15,11 +15,12 @@ import sys
 import time
 import toolchain_binding
 import runtime_binding
+from pytest_alias_guard import record_current_aliases
 
 sys.dont_write_bytecode = True
 ROOT = Path('D:/a10')
 HERE = Path(__file__).resolve().parent
-RUNTIME = ROOT/'job3/runtime312'
+RUNTIME = ROOT/'job3/runtime312np254'
 NPT = Path('D:/grok-pc-data/npt/nnue-pytorch-amd')
 DLL = NPT/'build/libtraining_data_loader.dll'
 NPT_SOURCE_TREES = ('data_loader', 'ddp_utils', 'model', 'trainer')
@@ -69,7 +70,7 @@ def code_inputs():
     record = json.loads((HERE/'SOURCE_COPY.json').read_text(encoding='utf-8-sig'))
     if record['source_commit'] != 'd8982bc0':
         raise ValueError('wrong frozen regression source')
-    pinned = [identity(__file__), identity(HERE/'SOURCE_COPY.json'), identity(HERE/'toolchain_binding.py'), identity(HERE/'runtime_binding.py')]
+    pinned = [identity(__file__), identity(HERE/'SOURCE_COPY.json'), identity(HERE/'toolchain_binding.py'), identity(HERE/'runtime_binding.py'), identity(HERE/'pytest_alias_guard.py')]
     for item in record['final_files']:
         actual = identity(item['path'])
         if actual['sha256'].lower() != item['sha256'].lower():
@@ -253,12 +254,15 @@ def main():
         else:
             stage = 'existing-regression-suite'
             argv = ['-q', '--maxfail=1', '-p', 'no:cacheprovider',
+                    '--log-file', str(out/'pytest.log'),
                     '--basetemp', str(out/'pytest-temp'), '--rootdir', str(HERE/'datafilter'),
                     '--confcutdir', str(HERE/'datafilter/tests'), str(HERE/'datafilter/tests')]
             write_new(out/'PYTEST_COMMAND.json', {'argv':argv, 'source_commit':'d8982bc0',
                        'test_modifications':'fixture output path only; test assertions unchanged',
                        'historical_fixture_seeds':'unchanged deterministic unit-test inputs; no new training/experiment seed'})
-            exitcode = int(pytest.main(argv, plugins=[reports]))
+            with record_current_aliases(out/'pytest-temp') as aliases:
+                exitcode = int(pytest.main(argv, plugins=[reports]))
+            write_new(out/'PYTEST_ALIASES.json', {'scope':'optional pytest current-link creation recorded without reparse links; real fixture directories and assertions unchanged', 'aliases':aliases})
         after = verify_npt_binding(before)
         write_new(out/'NPT_IMPORTED_AFTER.json', after)
         write_new(out/'NPT_SOURCES_AFTER.json', {'files':prebind_npt_sources()})

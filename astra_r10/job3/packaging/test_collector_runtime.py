@@ -29,17 +29,17 @@ class RuntimeCollectorFixtures(unittest.TestCase):
         self.job_patch = patch.object(c, 'JOB', self.job); self.job_patch.start()
         self.addCleanup(self.tmp.cleanup); self.addCleanup(self.root_patch.stop); self.addCleanup(self.job_patch.stop)
 
-    def attempt(self, report=None, wrong_target=False):
-        directory = self.root / 'job3/regression-runs/fixture01'
+    def attempt(self, report=None, wrong_target=False, name='fixture01', guard_failure=False):
+        directory = self.root / ('job3/regression-runs/' + name)
         result = {'status': 'FAIL'} if report is None else report
         report_path = directory / ('RESULT.json' if result['status'] == 'PASS' else 'FAILURE.json')
         create(report_path, result)
         generated = directory / 'cache/generated.cpp'
         create(generated, b'// synthetic fixture generated text\n')
-        launch = self.job / 'regression/fixture01-launch'
+        launch = self.job / ('regression/' + name + '-launch')
         manifest = create(launch / 'manifest.json', {'arguments': ['--out', str(directory / 'wrong' if wrong_target else directory)]})
         receipt = create(launch / 'result.json', {'native_exit_code': 0 if result['status'] == 'PASS' else 1,
-            'finished_utc': '2026-11-02T08:00:00Z', 'capture_errors': [], 'disk_floor_breached': False,
+            'finished_utc': '2026-11-02T08:00:00Z', 'capture_errors': [], 'disk_floor_breached': guard_failure,
             'manifest_sha256': manifest['sha256']})
         ready = {'regression': {'launcher': receipt, 'attempts': [{'directory': str(directory), 'launcher': receipt}]}}
         return ready, directory, report_path, result, generated
@@ -103,6 +103,30 @@ class RuntimeCollectorFixtures(unittest.TestCase):
         ready['regression']['attempts'][0]['launcher'] = ref
         with self.assertRaisesRegex(ValueError, 'contradicts its own native exit'):
             c.regression_inputs(ready, report_path, report, lambda path: None)
+
+    def test_historical_guard_failure_is_preserved_as_rejected(self):
+        prior, _, _, _, _ = self.attempt(guard_failure=True)
+        ready, _, report_path, report, _ = self.attempt(name='fixture02')
+        ready['regression']['attempts'] = prior['regression']['attempts'] + ready['regression']['attempts']
+        summary, _, _, _ = c.regression_inputs(ready, report_path, report, lambda path: None)
+        self.assertTrue(summary[0]['launcher_guard']['disk_floor_breached'])
+        self.assertEqual(summary[0]['launcher_guard']['qualification'], 'REJECTED_HISTORICAL_ATTEMPT')
+
+    def test_primary_guard_failure_still_refused(self):
+        ready, _, report_path, report, _ = self.attempt(guard_failure=True)
+        with self.assertRaisesRegex(ValueError, 'capture/floor issue'):
+            c.regression_inputs(ready, report_path, report, lambda path: None)
+
+    def test_complete_pass_binds_new_runtime_and_alias_receipt(self):
+        result = {'status': 'PASS', 'preflight_only': False, 'collected': 73, 'passed': 73,
+                  'failures': 0, 'skipped': 0, 'optimizer_updates': 0, 'training_loops': 0,
+                  'external_runtime_unchanged': True, 'toolchain_unchanged': True,
+                  'private_runtime_unchanged': True, 'private_runtime_binding': {'sha256': c.RUNTIME254_MANIFEST_SHA256}}
+        ready, directory, report_path, report, _ = self.attempt(result)
+        aliases = directory / 'PYTEST_ALIASES.json'; create(aliases, {'status': 'fixture'})
+        shipped = set()
+        c.regression_inputs(ready, report_path, report, shipped.add)
+        self.assertIn(aliases, shipped)
 
 
 if __name__ == '__main__':
