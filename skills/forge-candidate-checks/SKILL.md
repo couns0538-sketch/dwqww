@@ -48,3 +48,6 @@ with PASS/FAIL and the evidence path, STATUS.md line on opus-r13-status. No Elo 
 - CI sanitizer configs for an option with a range: run its default AND its max (SyzygyProbeDepth=10 was missing in R13).
 - MSVC link.exe leaves VCTIP.EXE running for minutes; run_low.ps1's `Start-Process -Wait` waits for the whole tree, so a
   finished cargo build looks hung: read the build log, the exe is already there.
+- Option-equivalence proof (R14 P3 combined line): run the kit's `lp_check.py run` twice on the SAME exe (line A, line B)
+  and `lp_check.py compare A.json B.json --off OFF.json`: exit 0 = every bench / perft / per-FEN node and bestmove equal
+  (the table labels say plain / ltopgo; here they are A / B), plus "differs from OFF (live)".
