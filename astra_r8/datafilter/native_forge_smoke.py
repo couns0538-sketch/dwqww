@@ -41,8 +41,19 @@ def run(output, sample):
     (output/'stdin.txt').write_text(request,encoding='utf-8')
     started=time.perf_counter()
     # communicate's timeout owns/terminates only this child via subprocess.run.
-    completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
-                             cwd=output,timeout=120,creationflags=subprocess.BELOW_NORMAL_PRIORITY_CLASS)
+    try:
+        completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
+                                 cwd=output,timeout=120,creationflags=subprocess.BELOW_NORMAL_PRIORITY_CLASS)
+    except subprocess.TimeoutExpired as exc:
+        # TimeoutExpired may carry bytes even when text=True was requested.
+        for name, captured in [('stdout.log', exc.stdout), ('stderr.log', exc.stderr)]:
+            text = captured.decode('utf-8', errors='replace') if isinstance(captured, bytes) else captured or ''
+            (output/name).write_text(text, encoding='utf-8')
+        receipt = dict(status='FAIL', reason='engine timeout', timeout_seconds=exc.timeout,
+                       engine=str(ENGINE), sha256=sha256(ENGINE), expected_sha256=LOCK,
+                       elapsed_seconds=time.perf_counter()-started, strength='UNPROVEN')
+        (output/'report.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
+        raise
     (output/'stdout.log').write_text(completed.stdout,encoding='utf-8')
     (output/'stderr.log').write_text(completed.stderr,encoding='utf-8')
     actual=[int(n) for n in re.findall(r'^nodes (\d+)\s*$',completed.stdout,re.M)]

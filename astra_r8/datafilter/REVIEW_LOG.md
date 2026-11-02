@@ -30,6 +30,16 @@ Both probes remain in evidence; no failed result is attributed to the correction
 Focused native-helper/current-evidence review is now requested; no source edits
 while that review runs. Full test and failed regression logs are packaged.
 
+Final focused review confirmed all 65 runtime/tooling pins, 26 candidate/proof
+pins, both manifest copies and both approved local runtime migrations. It parsed
+the actual successful native transcript and checked the archived lock options.
+It checked 696 small inventory hashes and six large lengths. Main accepted both
+findings: timeout diagnostics were lost before log writes, and the then-open
+package.log was inventoried at zero bytes before finishing at 529 bytes. Added
+owned-child timeout capture/FAIL receipt and regression (RED then GREEN). Original
+inventory is retained; a corrected inventory excludes only the active packaging
+log. A fresh native probe will bind the final helper; focused recheck requested.
+
 ## 2026-11-02 follow-up: converter and resource milestone
 
 Base `7a8e22e8`; candidate source hashes will be bound in the review receipt.

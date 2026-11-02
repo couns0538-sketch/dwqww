@@ -35,7 +35,11 @@ Current retained artifacts: 9,298,928,834 bytes (<15 GB); C free 150,323,494,912
 bytes, D free 63,327,133,696 bytes. F remains read-only.
 True qsearch remains BLOCKED because the lock UCI lacks the required oracle.
 Original self-play best moves remain unavailable; capture uses a separate cohort.
-Final focused helper/evidence re-review pending. Strength remains UNPROVEN.
+Final focused review confirmed all source and handoff pins, and found two closeout
+issues: a timeout lost probe diagnostics, and the inventory included its own
+still-open package log. Timeout regression failed first and now passes. A separate
+corrected inventory will exclude that active log; original receipts remain intact.
+Focused recheck pending. Strength remains UNPROVEN.
 
 ## 2026-11-02 STM-format follow-up — reviewed handoff
 

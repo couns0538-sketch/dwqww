@@ -1,0 +1,50 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_timeout_preserves_captured_diagnostics _________________
+
+tmp_path = WindowsPath('C:/astra8_data/audit30_20261102/native_timeout_red/pytest/test_timeout_preserves_capture0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195B56A0>
+
+    def test_timeout_preserves_captured_diagnostics(tmp_path, monkeypatch):
+        sample = tmp_path / 'sample.jsonl'
+        sample.write_text(json.dumps({'fen': chess.STARTING_FEN}) + '\n')
+        output = tmp_path / 'native'
+        monkeypatch.setattr(smoke, 'storage_guard', lambda *a, **kw: None)
+        monkeypatch.setattr(smoke, 'sha256', lambda path: smoke.LOCK)
+    
+        def timeout(*args, **kwargs):
+            raise subprocess.TimeoutExpired(args[0], kwargs['timeout'],
+                                            output=b'partial output\xff', stderr=b'timeout stderr')
+    
+        monkeypatch.setattr(smoke.subprocess, 'run', timeout)
+        with pytest.raises(subprocess.TimeoutExpired):
+            smoke.run(output, sample)
+>       assert (output / 'stdout.log').read_text(encoding='utf-8') == 'partial output\ufffd'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_native_smoke.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/astra8_data/audit30_20261102/native_timeout_red/pytest/test_timeout_preserves_capture0/native/stdout.log')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\astra8_data\\audit30_20261102\\native_timeout_red\\pytest\\test_timeout_preserves_capture0\\native\\stdout.log'
+
+F:\nnue_pytorch\pythons\cpython-3.12-windows-x86_64-none\Lib\pathlib.py:1013: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_timeout_preserves_captured_diagnostics
+1 failed in 3.68s
