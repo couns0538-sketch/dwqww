@@ -27,8 +27,10 @@ verbatim text as below. This file merges that policy with the Opus rules (R14, 2
 - Branches `opus-r14b-status` / `opus-r14b-fast-loader` / `opus-r14b-relabel`; scratch `D:\o14b\` <= 10 GB (D: >= 50 GB,
   C: >= 30 GB, F: write-forbidden); RESULTS.md per item (`opus_r14b/item1|item2/`) and `opus_r14b/STATUS.md` current at
   every push.
-- Sub-agents: the R14-B brief allows at most one reviewer / research sub-agent at a time (it replaces the R14 "no
-  sub-agents" line above for R14-B). A review done without one is a structured self-review, recorded as NOT independent.
+- Sub-agents: the R14-B brief allowed one reviewer; one read-only review of item 1 ran (13:00-13:45). Then Couns
+  (13:45): "no subagents allowed they burn tokens and after youre done with all do a 30min review and look for bugs
+  glitches etc and fix them". From then on: no sub-agents; every review is a structured self-review recorded as NOT
+  independent; the job ends with a 30-minute bug-hunt review pass whose findings are fixed and recorded.
 - npt work: never touch the live trainer, its queue, its runs or its loader DLL; work on copies; no HIP runtime next to the
   npt line; GPU only in a window Engine NNUE gives (request in `opus_r14b/item1/GPU_REQUEST.md`).
 - A blocked item: write the blocker in its RESULTS.md, push, and spend the time on the other item.
