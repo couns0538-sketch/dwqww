@@ -1,7 +1,8 @@
 # R13 Phase 6: ASan+UBSan self-play smoke of the Syzygy port on the lock tree (git d4f4312 + p6/syzygy_port.patch).
 # Tables: the 3-4 piece Syzygy WDL+DTZ files (~4 MB) via Opus C1's own polite, md5-checked fetch script (unchanged copy),
 # cached; never committed. Configs: default (SyzygyPath empty, normal starts) and, from 3-4 piece endgame starts so the
-# prober runs at the root and in search: SyzygyPath; SyzygyPath + SyzygyProbeDepth 4; SyzygyPath + Syzygy50MoveRule false.
+# prober runs at the root and in search: SyzygyPath; SyzygyPath + SyzygyProbeDepth 4; SyzygyPath + Syzygy50MoveRule false;
+# R14: SyzygyPath + SyzygyProbeDepth 10 (the option's max; R14 proof set: default and max).
 name: opus-r13-san-p6
 on:
   push:
@@ -40,7 +41,8 @@ jobs:
           python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --config default "" --games 4 --nodes 20000 --max-plies 160 --out san_default
           python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --starts opus_r13/p6/tb_starts.fens \
             --config tb "SyzygyPath=$T" --config tb_pd4 "SyzygyPath=$T;SyzygyProbeDepth=4" \
-            --config tb_no50 "SyzygyPath=$T;Syzygy50MoveRule=false" --games 6 --nodes 20000 --max-plies 120 --out san_tb
+            --config tb_no50 "SyzygyPath=$T;Syzygy50MoveRule=false" --config tb_pd10 "SyzygyPath=$T;SyzygyProbeDepth=10" \
+            --games 6 --nodes 20000 --max-plies 120 --out san_tb
       - uses: actions/upload-artifact@v4
         if: always()
         with:
