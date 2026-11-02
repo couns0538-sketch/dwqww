@@ -1,4 +1,4 @@
-# R13 Phase 4 - v2-feature nets with bullet (FORGENN2) - IN PROGRESS, CR R13 = FIX (being fixed; no training/handoff before)
+# R13 Phase 4 - v2-feature nets with bullet (FORGENN2) - IN PROGRESS: CR fixes in (e23fca30 + CR final delta d884c23b), H256 parity PASS (R14 rerun); H768+ and training open
 
 Branch `opus-r13-p4-v2nets` (from main). UNPROVEN: no net trained here yet; no Elo claim.
 
@@ -53,6 +53,33 @@ perspectives), the FORGENN2 layout written through write_v2 and the float32 refe
 feature code and output kernel, on both SIMD paths. Not covered yet: H 768 / 1024 / 1536 (engine builds with that
 FORGE_NNUE_HIDDEN) and a trained net (needs a GPU window: bullet has no CPU backend). Hashes: logs/artifacts.sha256.
 
+## R14 (2026-11-02): CR final delta d884c23b + full cargo build + fresh H256 parity
+Couns: "git apply C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p4_final_delta_ports_crfix.patch (md5 d884c23b) on
+df79fb6e, check parity_v2.sh 9c124cc3, GPU_REQUEST.md 4246dfd5, main.rs 9ede6e56, full cargo build, rerun the 256 parity".
+| check | result | evidence |
+|---|---|---|
+| patch md5 | d884c23b061896fb9d66256cc22bd400 | - |
+| `git apply --check`, then `git apply` (worktree root, LF files) | clean, 3 files | - |
+| result md5: parity_v2.sh / GPU_REQUEST.md / forge_v2_bullet/src/main.rs | 9c124cc3 / 4246dfd5 / 9ede6e56 = CR's values | - |
+| older CR files p4_v2nets_crfix.patch (1e7b5d20), p4_v2nets_delta_crfix.patch (cc826b0a) | apply neither forward nor reverse on df79fb6e: their items were fixed in e23fca30 (table above); d884c23b ports the rest | - |
+| full cargo build: fresh target dir D:\o14a\p4\target_mock, `--release --offline`, mock backend, CARGO_HOME = own copy, 2 jobs, CPUs 2-3 BelowNormal, tracked Cargo.lock unchanged | Finished in 46.84 s, 0 warnings, 0 errors; forge-v2-bullet.exe sha256 70cbae12be24316c... | logs/cargo_build_full_r14.log, logs/artifacts_r14.sha256 |
+| legal-only FEN file (legal_fens.py: python-chess Board.status() == STATUS_VALID, run-only test oracle) | 10000/10000 legal, file byte-identical to fens10k.txt (sha256 457ecb48...) | logs/parity_r14_h256.log |
+| H256 parity in a fresh work dir (run_parity_r14.sh refuses existing dirs; parity_v2.sh now always rebuilds ref_<s>.txt) | stage a / b / c: AVX2 10000/10000 and SSE 10000/10000 exact, max diff 0 (nonzero evals 9969 / 9978 / 9981), PARITY PASS, exit 0 | logs/parity_r14_h256.log |
+| planted bug (PARITY_MUTATE=1, second fresh dir) | stage a 9999/10000 -> FAIL, exit 1 (as required) | same |
+| random nets | byte-identical to the R13 nets (sha256 39e38df8 / c30e9cdd / 157d43ea; fnv1a64 15b924b9 / ac1e5682 / e0452809) | logs/artifacts_r14.sha256 |
+| engine harness exes | unchanged R13 builds (v2_eval_avx2 d90efc87, v2_eval_sse c30b53f3; b7c17722 tree, -DFORGE_NNUE_HIDDEN=256) | same |
+
+### Review milestone R14-P4-1 (structured self-review, NOT independent - no sub-agents in R14)
+- Reviewed: the d884c23b diff (3 files) against df79fb6e, the trainer build and the parity run; candidate = tooling only
+  (forge-v2-bullet.exe 70cbae12), no engine change.
+- Findings: (1) parity_v2.sh still reuses `rand_<s>.nnue2` when it exists; harmless for parity (reference and engine read the
+  same net) and the R14 runner only accepts fresh dirs - kept as CR wrote it (the md5 9c124cc3 is CR's checked file).
+  (2) GPU_REQUEST.md still names F:\o13 run dirs; R14 forbids writes to F: (below its reserve) - the R14 request
+  (opus_r14/b/GPU_REQUEST.md, Main item 1) uses C:/D: paths instead; this file stays as CR checked it.
+  (3) main.rs: training argv 4..=9 matches `<stage> <binpack> <out> [hidden] [sb] [bpsb] [threads] [seed]`; unparsable
+  numbers now panic instead of silently taking a default (CR's intent) - OK.
+- Checks after: none needed (no fix). Next: H768 / 1024 / 1536 parity (block 2), then the GPU request.
+
 ## Next
-cargo build (CPU backend) with my own CARGO_HOME copy (no writes into F:\bullet_hip), feature parity (Rust lists vs engine via
-v2_eval on 10k FENs per stage, AVX2 + SSE builds), CPU smoke on 1M positions, GPU_REQUEST.md.
+H768 / 1024 / 1536 parity (v2_eval harness builds with -DFORGE_NNUE_HIDDEN=<H>, AVX2 + SSE, random nets of width H, fresh
+dirs); then the GPU window request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md).

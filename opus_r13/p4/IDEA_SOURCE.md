@@ -17,4 +17,7 @@ into Forge source (no code copied, translated or paraphrased; no constants). The
   input type in forge_v2_bullet/src/main.rs re-implements those definitions (own code).
 - Own code: forge_v2_bullet (MIT, like the Cargo.toml says), export_v2.py, eval_ref.py, make_random_net.py, parity_v2.sh,
   v2_eval.cpp. forge_nnue_v2.py is the crew's own tool (unchanged copy from forge-bundle-int b7c17722).
+- R14: parity_v2.sh / GPU_REQUEST.md / main.rs carry the crew's CR final delta (p4_final_delta_ports_crfix.patch, md5
+  d884c23b, Code Review's own changes to these own files). legal_fens.py (own code) runs python-chess (GPL-3.0) as a
+  run-only legality oracle for test inputs; nothing of python-chess is copied into Forge or into the trainer.
 - Status: UNPROVEN. No net, no Elo claim.

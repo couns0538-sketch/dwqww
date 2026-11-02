@@ -1,7 +1,8 @@
 # GPU_REQUEST - R13 P4 v2-feature nets (bullet, HIP, RX 7900 XT) - for Engine NNUE to schedule
 
 Nothing here runs without a window from Engine NNUE. Never start next to a training npt line: check `rocm-smi` and the npt
-supervisor log (read only) right before each run; if a production trainer is on the GPU, do not start.
+supervisor log (read only) right before each run; if a production trainer is on the GPU, do not start. grok-pc rule: start only at CPU load <= 80% and >= 8 GB free RAM,
+stop at the next superbatch if load stays > 90%; run at BelowNormal priority (the loader uses `threads` CPU threads).
 
 ## Build (once, CPU, Idle, 2 jobs; own CARGO_HOME copy and target dir, nothing written under F:\bullet_hip)
 ```powershell
@@ -25,7 +26,7 @@ Estimates: stage a from the measured 2.30M pos/s at h1024 (sb08 run, 1.22B posit
 inputs per position (32 -> ~130), so they are guesses until the first b run is timed. Whole sweep ~4.6 GPU hours; a first
 10-minute window is enough for stage a h1024 with both seeds. Example:
 ```powershell
-C:\o13\p4\target_rocm\release\forge_v2_bullet.exe a F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack `
+C:\o13\p4\target_rocm\release\forge-v2-bullet.exe a F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack `
   F:\o13\p4\runs\a_h1024_s13411 1024 40 1024 3 13411
 ```
 (F: scratch only when F: >= 50 GB + the run's size; else C:\o13\p4\runs.)
@@ -34,7 +35,7 @@ C:\o13\p4\target_rocm\release\forge_v2_bullet.exe a F:\forge_j1_data\forge_train
 ```powershell
 python -I -B opus_r13\p4\export_v2.py a <out_dir>\forge_v2_a_h1024-40\quantised.bin C:\o13\p4\nets\a_h1024_s13411.nnue2 --hidden 1024
 ```
-Then: feature parity (forge_v2_bullet features vs v2_eval on 10k FENs, AVX2 + SSE), offline scoring (corr / MAE on the 20k
+(cargo names the binary forge-v2-bullet.exe, after the package.) Then: feature parity (forge-v2-bullet features vs v2_eval on 10k FENs, AVX2 + SSE), offline scoring (corr / MAE on the 20k
 quiet Lichess set if the crew scorer is present), WAC300 at 200 ms against net-off (271-272), net md5 first.
 
 ## Deployment note (for the net-swap builds)

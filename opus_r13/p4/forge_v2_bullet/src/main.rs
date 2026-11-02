@@ -15,8 +15,8 @@
 //! side-to-move features use the stored squares and the other perspective uses square ^ 56 with colours swapped.
 //! Output: raw f32 tensors l0w [input][H], l0b [H], l1w transposed [bucket][2H], l1b [bucket] -> export_v2.py.
 //!
-//! usage: forge_v2_bullet <a|b|c> <binpack> <out_dir> [hidden=256] [superbatches=4] [batches_per_sb=1024] [threads=2] [seed]
-//!        forge_v2_bullet features <a|b|c> <fen>      (prints the active feature pairs, for the parity tests)
+//! usage: forge-v2-bullet <a|b|c> <binpack> <out_dir> [hidden=256] [superbatches=4] [batches_per_sb=1024] [threads=2] [seed]
+//!        forge-v2-bullet features <a|b|c> <fen>      (prints the active feature pairs, for the parity tests)
 use bullet_lib::{
     game::{inputs::SparseInputType, outputs::MaterialCount},
     nn::optimiser::AdamW,
@@ -200,13 +200,18 @@ impl SparseInputType for ForgeV2 {
 }
 
 fn arg<T: std::str::FromStr>(a: &[String], i: usize, d: T) -> T {
-    a.get(i).and_then(|s| s.parse().ok()).unwrap_or(d)
+    // a missing argument takes the default; a present but unparsable one is an error (never a silent default)
+    match a.get(i) {
+        None => d,
+        Some(s) => s.parse().unwrap_or_else(|_| panic!("argument {i} ({s:?}) is not a valid number")),
+    }
 }
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.get(1).map(String::as_str) == Some("features") {
-        // forge_v2_bullet features <a|b|c> <fens.txt>: per FEN two lines, "S <stm indices>" and "N <ntm indices>",
+        assert!(a.len() == 4, "usage: forge-v2-bullet features <a|b|c> <fens.txt>");
+        // forge-v2-bullet features <a|b|c> <fens.txt>: per FEN two lines, "S <stm indices>" and "N <ntm indices>",
         // plus "W" or "B" (side to move) first, for the parity reference (eval_ref.py)
         let inputs = ForgeV2::stage(&a[2]);
         let text = std::fs::read_to_string(&a[3]).expect("cannot read the FEN file");
@@ -222,7 +227,7 @@ fn main() {
         }
         return;
     }
-    assert!(a.len() >= 4, "usage: forge_v2_bullet <a|b|c> <binpack> <out_dir> [hidden] [superbatches] [batches_per_sb] [threads]");
+    assert!((4..=9).contains(&a.len()), "usage: forge-v2-bullet <a|b|c> <binpack> <out_dir> [hidden] [superbatches] [batches_per_sb] [threads] [seed]");
     let inputs = ForgeV2::stage(&a[1]);
     let data = a[2].clone();
     let out = a[3].clone();

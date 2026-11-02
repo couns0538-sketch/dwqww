@@ -6,7 +6,7 @@
 # version only printed and always exited 0).
 # PARITY_MUTATE=1 corrupts one reference value (+1 on the first FEN of each stage) before the comparison: the script must
 # then exit 1 - the planted-bug check that the comparison can fail.
-# usage: parity_v2.sh <work dir> <fens.txt> <forge_v2_bullet.exe> <v2_eval_avx2.exe> <v2_eval_sse.exe>
+# usage: parity_v2.sh <work dir> <fens.txt> <forge-v2-bullet.exe (cargo target name)> <v2_eval_avx2.exe> <v2_eval_sse.exe>
 set -euo pipefail
 W="$1"; FENS="$2"; FV2="$3"; AVX2="$4"; SSE="$5"
 D=$(cd "$(dirname "$0")" && pwd)
@@ -16,7 +16,9 @@ for s in a b c; do
   net="$W/rand_$s.nnue2"
   [ -e "$net" ] || "$PY" -I -B "$D/make_random_net.py" "$s" "$(cygpath -w "$net")" --seed $((13450 + $(printf '%d' "'$s") - 96))
   "$FV2" features "$s" "$(cygpath -w "$FENS")" > "$W/feat_$s.txt"
-  [ -e "$W/ref_$s.txt" ] || "$PY" -I -B "$D/eval_ref.py" "$(cygpath -w "$net")" "$(cygpath -w "$W/feat_$s.txt")" "$(cygpath -w "$FENS")" "$(cygpath -w "$W/ref_$s.txt")"
+  # always rebuild the reference from this run's feature lists (CR R13 delta: a cached ref_<s>.txt let a changed or
+  # broken forge-v2-bullet pass in a reused work dir; PARITY_MUTATE changes the reference in memory only)
+  "$PY" -I -B "$D/eval_ref.py" "$(cygpath -w "$net")" "$(cygpath -w "$W/feat_$s.txt")" "$(cygpath -w "$FENS")" "$(cygpath -w "$W/ref_$s.txt")"
   "$AVX2" "$(cygpath -w "$net")" "$(cygpath -w "$FENS")" > "$W/eng_avx2_$s.txt" 2> "$W/eng_avx2_$s.err"
   "$SSE" "$(cygpath -w "$net")" "$(cygpath -w "$FENS")" > "$W/eng_sse_$s.txt" 2> "$W/eng_sse_$s.err"
   "$PY" -I -B - "$W" "$s" "${PARITY_MUTATE:-0}" <<'EOF'
