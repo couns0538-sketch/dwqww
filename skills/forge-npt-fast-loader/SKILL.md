@@ -56,5 +56,20 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
   validation stream on the CPU hit the 7 GB guard floor (own private 8.36 GB).
 - `(1 - p) * 2^64` is out of range at p = 0; both DLLs saturate via AVX-512 `vcvttsd2usi`, a plain cast elsewhere
   gives 0. The fast loader saturates explicitly.
-- `kill` / `Stop-Process` are blocked by the session permissions; stop an own background run with TaskStop.
+- `kill` / `Stop-Process` are blocked by the session permissions. TaskStop of a background task ends its outer shell
+  only: a child started through `lowrun.ps1` (Start-Process) keeps running as an orphan until it finishes. Never
+  count on TaskStop as a kill; wait for the orphan before starting the next CPU step (thread budget).
 - No HIP runtime next to the live npt line: CPU tests hide the GPU with CUDA_/HIP_/ROCR_VISIBLE_DEVICES=-1.
+- npt training is not reproducible run to run, independent of the loader: train.py builds the model before applying
+  `--seed`, and torch 2.11.0+rocm7.13.0 seeds its default generator from the clock per process. An exact loss match
+  needs `tools/lm_det.py` (seeds before train.py, deterministic algorithms) + `LM_THREADS=1`; the optional trainer
+  fix is `patches/0006-seed-before-model-OPTIONAL.patch` (Engine NNUE decides).
+- A dump with no batches must write no row (fixed 14:25): an empty line once counted as a "batch" in `compare`.
+
+## Measured (2026-11-02, b5 9eb29b7d, ADVISORY - QA does official timing)
+- Equality: 1000/1000 train + 300/102 validation batches; trainer path 261/261 (every tensor); config matrix 24/24;
+  3,100 batches of 10,000 (spanning windows) past the first file wrap; exact CPU loss match (5/5 logged values).
+- Loader-only ABBA (10 pairs, CPUs 2-3, same 3-thread layout): old 468k vs fast 4.04M kept positions/s = 8.65x.
+- A full trainer epoch (152.5M positions, 1.55 B records) through the fast loader alone: 29.8 s, 166 MB peak.
+- CPU training on 2 CPUs: 11.4 vs 40.2 min for the same 64 batches (old loader threads starve torch); peak private
+  4.1 vs 6.2 GB.
