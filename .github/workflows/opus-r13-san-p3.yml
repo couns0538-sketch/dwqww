@@ -1,4 +1,5 @@
 # R13 Phase 3: ASan+UBSan self-play smoke of the Sf26 split on the lock tree (git d4f4312 + sf26split_port.patch).
+# R14: config comb = the combined gate line (the three singles at their default margins).
 name: opus-r13-san-p3
 on:
   push:
@@ -29,6 +30,7 @@ jobs:
         run: |
           python3 opus_r13/tools/selfplay_smoke.py lock/forge_san --config default "" --config nmp "Sf26NmpPrior=1" \
             --config lmr "Sf26LmrGap=1" --config mc "Sf26MulticutCorr=1" \
+            --config comb "Sf26NmpPrior=1;Sf26LmrGap=1;Sf26MulticutCorr=1" \
             --config max "Sf26Bundle=15;Sf26NmpPrior=1;Sf26LmrGap=1;Sf26MulticutCorr=1;Sf26NmpPriorBonus=100;Sf26NmpPriorCap=8;Sf26LmrAlphaGap=50;Sf26RazorAllRelief=300" \
             --games 4 --nodes 20000 --max-plies 160 --out san_sf26
       - uses: actions/upload-artifact@v4

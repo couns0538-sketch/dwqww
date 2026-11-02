@@ -54,3 +54,23 @@ Evidence: spsa/run_bit4/, spsa/report_bit4/.
 Primary lines (default margins) as in README.md: Sf26NmpPrior 1 / Sf26LmrGap 1 / Sf26MulticutCorr 1, exe 029d58e8; combined
 line only if 2+ singles reach H1. SPSA proposals (both noise-level, not recommended over the defaults): bit 2 Bonus 18 + Cap 2,
 bit 4 Gap 311. Everything UNPROVEN.
+
+## R14 (2026-11-02): combined line prepared (use ONLY if 2+ singles reach H1)
+Crew state: gates uhoSF26S_nmpprior_029d / _lmrgap_029d / _mccorr_029d queued with HELD 8moves_v3 40+0.4 confirms (CR PASS
+notes 2026-11-01 10:29); no SPSA rerun (Couns). Exe unchanged: 029d58e8 (`C:\o13\handoff\p3_sf26\forge_ltopgo_sfs.exe`).
+| check | result | evidence |
+|---|---|---|
+| OFF on the LTO+PGO exe vs lock pins (kit v2.3 lp_check.py, frozen bench_fens 16F15893) | ALL OK: 312866 / 862329 / 3024920 / 12389307 / 34048354, perft 4865609 / 193690690, 8 FENs | logs/comb_r14/run_comb.log |
+| combined line `Sf26NmpPrior=1; Sf26LmrGap=1; Sf26MulticutCorr=1` vs `Sf26Bundle=14` on the same exe: every bench (335098 / 727853 / 2415447 / 9334814 / 29426126), perft, per-FEN nodes and bestmoves | identical (NODE IDENTITY ALL OK), differs from OFF (live) | logs/comb_r14/b14.json, comb.json |
+| uci defaults of the three switches | 0 / 0 / 0 | logs/comb_r14/cand_checks_comb.json |
+| T1 + T4 movetime 1000 smoke, OFF + combined, 4 positions | 16 / 16 legal bestmoves | same |
+| mate probe, 22 positions at 3M nodes | OFF 19 mates, combined 21 (no OFF mate lost; finds 8/1r6/8/8/8/4K2k/8/8 b and 8/3k4/5R2/8/8/8/8/2K5 w) | same |
+| CI ASan+UBSan: new config `comb` in opus-r13-san-p3.yml | run of this push (recorded in the next commit) | - |
+Gate line (only if 2+ singles reach H1): engine A = 029d58e8 with `Sf26NmpPrior 1`, `Sf26LmrGap 1`, `Sf26MulticutCorr 1`
+(PC precondition bench 13 = 727853), engine B = lock FD3A5190; UHO first, 8moves_v3 confirm separate, never pooled. UNPROVEN.
+
+### Review milestone R14-P3-1 (structured self-review, NOT independent - no sub-agents in R14)
+- Reviewed: the lp_check runs (exe sha256 checked in the log), the compare semantics (b14 json as "plain" column, combined
+  as "ltopgo" column: every field must be equal), the cand_checks output; candidate = exe 029d58e8, no rebuild.
+- Findings: none; the R13 README already listed the line with these benches - R14 adds the exe-level identity proof, the
+  smoke / mate probe and a CI config for exactly this line.
