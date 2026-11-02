@@ -1,0 +1,60 @@
+---
+name: forge-npt-fast-loader
+description: The R14-B fast data loader for the npt (nnue-pytorch) trainer on grok-pc - forge_fastloader.dll + .py behind --fast-loader (default off), how it reproduces the old loader's --num-workers 1 stream byte for byte, the build (pc1 = pc2), the equality harnesses (raw C API and the trainer's Dataset path), the self-test + CI sanitizers, the CPU loss match, the loader-only ABBA, the GPU-window request, the trainer installer, and the pitfalls hit on 2026-11-02. Use for any question or change about npt data loading speed, --fast-loader, the old loader's skip filter / shuffle semantics, or batch-equality proofs.
+---
+
+# forge-npt-fast-loader (Opus R14-B, branch `opus-r14b-fast-loader`, folder `opus_r14b/item1/`)
+
+## What and why
+- The live npt line (`F:\opus_scratch\r6\nnue-pytorch-amd\train.py`, adapter `F:\forge_nnue_train\tools\train_resid_nnuepytorch_v2.py`)
+  loads `...\nnue-pytorch-amd\build\libtraining_data_loader.dll` (R6 "setup" g++ build, the slowest one). The run reads
+  ~10 records for every one it trains on (piece-count filter rejects ~90 %); the J1 binpack is unchained (34 B/record).
+- `forge_fastloader` filters on the packed record fields without building a board, shuffles a 4-byte index
+  permutation instead of 224-byte entries, and builds feature batches on several threads (batch k -> slot k).
+- Behaviour spec in own words: `LOADER_SPEC.md`. nnue-pytorch is GPL-3.0: read for behaviour only, never copy.
+
+## The reference stream
+- Old loader thread split (sparse stream): builders = max(1, floor(N/4)), decode workers = max(1, N - builders).
+  N = 1 and N = 2 = one decode worker -> deterministic (filter state + mt19937_64 default seed + std::shuffle of each
+  2^20 window all in one thread). N = 4 (live) = 3 racing decode workers -> not reproducible.
+- "Bit-identical to the old loader" = against `--num-workers 1`; the fast loader gives that stream at any thread count.
+- Seal timing matters: kept records go to a 16,384-entry scratch; a window seals (and shuffles, drawing from the same
+  engine) only when a scratch flush fills it. Get this wrong and every later batch differs.
+
+## Build and identity
+- `fastloader/build_fastloader.sh OUT` (MinGW g++ 15.2 - the old DLL's libstdc++, so std::shuffle matches).
+  Reproducible only with `-frandom-seed=... -Wl,--no-insert-timestamp -Wl,--disable-auto-image-base` (without them
+  pc1 != pc2: link timestamp, GCC random symbol names, image base hashed from the output path).
+- g++ needs `C:\msys64\ucrt64\bin` on PATH or it fails silently. Run builds through `tools/lowrun.ps1` (the
+  PowerShell process lowers itself first, children inherit class + mask; pass program args with `-ArgLine`, because
+  PowerShell eats `-o` as one of its own parameters).
+
+## Proof recipe (all own tools, stdlib Python unless noted)
+1. Raw equality: `tools/fl_equal.py dump --loader old|fast --dll ... --workers N --batches 1000 --out X.tsv`, then
+   `compare A B` (refuses unhashed dumps or different settings). Hashes the 3n-float + 66n-int blocks = every byte the
+   trainer reads. `--skip key=value,...` for other skip settings, `--batch/--window/--finite` for other shapes.
+2. Trainer-path equality (trainer venv, GPU hidden): `tools/fl_dataset_equal.py` builds the streams exactly like the
+   patched `make_data_loaders` (Dataset -> FixedNumBatchesDataset -> DataLoader) and hashes every tensor.
+3. Self-test `fastloader/ffl_selftest.cpp` (own fixtures; independent no-filter reference; thread-count invariance;
+   format errors; destroy while running; window < batch; acceptance 0; double release); CI workflow
+   `.github/workflows/ffl-sanitize.yml` runs it under ASan+UBSan and TSan on Linux.
+4. CPU loss match: `tools/lm_run.sh old|fast DIR` (copy it before running - see pitfalls); `LM_L1=256 LM_VAL=0` keeps
+   the old arm above the 7 GB RAM floor.
+5. Speed: `tools/fl_abba.py` (palindromic ABBA of loader-only runs; advisory; QA times officially).
+6. GPU window: `GPU_REQUEST.md` (one epoch of the live recipe with --fast-loader; GPU util from the keeper's HWiNFO CSV).
+
+## Trainer switch
+`tools/install_fast_loader.py <trainer copy>` (exact anchors, keeps CRLF/LF, refuses a patched or changed trainer);
+same as `patches/0005-fast-loader-switch.patch`. Loader files from `FORGE_FAST_LOADER_DIR` (or next to train.py),
+loaded by explicit path; the start-up line prints the DLL path, sha256 and version. `--num-workers N` = N loader threads
+(reader + filter + N-2 builders). Never patch the live trainer folder; Engine NNUE / QA decide about adoption.
+
+## Pitfalls (2026-11-02)
+- Never edit a bash script that is running (bash reads it by byte offset): editing `lm_run.sh` during a run shifted
+  the resume point into the middle of a command. Run a private copy per run, with its helpers next to it.
+- The old loader holds up to (consumers + 8) windows of 2^20 x 224 B per stream and reads ~10x ahead: L1 1024 + a
+  validation stream on the CPU hit the 7 GB guard floor (own private 8.36 GB).
+- `(1 - p) * 2^64` is out of range at p = 0; both DLLs saturate via AVX-512 `vcvttsd2usi`, a plain cast elsewhere
+  gives 0. The fast loader saturates explicitly.
+- `kill` / `Stop-Process` are blocked by the session permissions; stop an own background run with TaskStop.
+- No HIP runtime next to the live npt line: CPU tests hide the GPU with CUDA_/HIP_/ROCR_VISIBLE_DEVICES=-1.
