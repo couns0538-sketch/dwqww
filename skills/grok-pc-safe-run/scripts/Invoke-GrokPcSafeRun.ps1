@@ -2,33 +2,105 @@
 # IDEA_SOURCE: crew D-only / spare-core policy; .NET process pipes and Windows CRT argv rules.
 # Policy preflight for a reviewed job, not an OS sandbox or arbitrary native thread limiter.
 [CmdletBinding()]
-param([string]$Manifest, [string[]]$ProtectedRoots = @())
+param([string]$Manifest, [string[]]$ProtectedRoots = @(), [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @())
 
 # R10 policy: kept in this branch-local skill; never changes installed settings.
 $script:R10WorkspaceCache = $null
 
-function Assert-DPath([string]$Path, [string[]]$ProtectedRoots = @()) {
+function Get-DPathLexical([string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path) -or $Path -notmatch '^[dD]:[\\/]' -or $Path -match '[*?]' -or $Path.IndexOf([char]0) -ge 0) { throw 'Absolute D: path required, without wildcard or NUL' }
     if (@($Path -split '[\\/]' | Where-Object {$_ -eq '.' -or $_ -eq '..'}).Count -ne 0) { throw 'Dot path components are refused before normalization' }
     if ($Path.Substring(2).Contains(':')) { throw 'D: root and alternate data streams are not allowed' }
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
     if ($full -notmatch '^[dD]:\\' -or $full.Substring(2).Contains(':')) { throw 'D: root and alternate data streams are not allowed' }
-    # Lexical checks precede filesystem inspection; queue.txt and queue_state.json are never opened.
-    if ($full -match '(?i)(?:^|\\)(?:npt|nnue-pytorch|gate|gates|gate-queue|gate_queue)(?:\\|$)' -or [IO.Path]::GetFileName($full) -match '(?i)^(?:queue(?:_state)?\.(?:txt|json)|STOP(?:\..*)?|PAUSE(?:\..*)?)$') { throw 'Protected production path' }
-    foreach ($root in $ProtectedRoots) {
-        # Protected roots are lexical exclusions and may name any drive. Never
-        # inspect these roots (especially forbidden F:) or relax D-only job I/O.
-        if ([string]::IsNullOrWhiteSpace($root) -or $root -notmatch '^[a-zA-Z]:[\\/]' -or $root -match '[*?]' -or $root.IndexOf([char]0) -ge 0 -or $root.Substring(2).Contains(':') -or @($root -split '[\\/]' | Where-Object {$_ -eq '.' -or $_ -eq '..'}).Count -ne 0) { throw 'Protected roots must be explicit absolute drive paths without wildcard, stream or dot components' }
-        $blocked = [IO.Path]::GetFullPath($root).TrimEnd('\')
-        if ($full.Equals($blocked,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($blocked+'\',[StringComparison]::OrdinalIgnoreCase) -or $blocked.StartsWith($full+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Protected production root or its ancestor' }
-    }
-    $parent = $full
+    return $full
+}
+function Get-ProtectedRootLexical([string]$Root) {
+    if ([string]::IsNullOrWhiteSpace($Root) -or $Root -notmatch '^[a-zA-Z]:[\\/]' -or $Root -match '[*?]' -or $Root.IndexOf([char]0) -ge 0 -or $Root.Substring(2).Contains(':') -or @($Root -split '[\\/]' | Where-Object {$_ -eq '.' -or $_ -eq '..'}).Count -ne 0) { throw 'Protected roots must be explicit absolute drive paths without wildcard, stream or dot components' }
+    return [IO.Path]::GetFullPath($Root).TrimEnd('\')
+}
+function Assert-NoReparsePath([string]$Full) {
+    $parent = $Full
     while ($parent) {
         if (Test-Path -LiteralPath $parent) {
             if ((Get-Item -LiteralPath $parent -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse points are not approved D: paths' }
         }
         $parent = [IO.Path]::GetDirectoryName($parent)
     }
+}
+function Assert-DPath([string]$Path, [string[]]$ProtectedRoots = @()) {
+    $full = Get-DPathLexical $Path
+    # Lexical checks precede filesystem inspection; queue.txt and queue_state.json are never opened.
+    if ($full -match '(?i)(?:^|\\)(?:npt|nnue-pytorch|gate|gates|gate-queue|gate_queue)(?:\\|$)' -or [IO.Path]::GetFileName($full) -match '(?i)^(?:queue(?:_state)?\.(?:txt|json)|STOP(?:\..*)?|PAUSE(?:\..*)?)$') { throw 'Protected production path' }
+    foreach ($root in $ProtectedRoots) {
+        # Protected roots are lexical exclusions and may name any drive. Never
+        # inspect these roots (especially forbidden F:) or relax D-only job I/O.
+        $blocked = Get-ProtectedRootLexical $root
+        if ($full.Equals($blocked,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($blocked+'\',[StringComparison]::OrdinalIgnoreCase) -or $blocked.StartsWith($full+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Protected production root or its ancestor' }
+    }
+    Assert-NoReparsePath $full
+    return $full
+}
+function Assert-ReadOnlyRuntimeRoots([string[]]$Roots, [string[]]$ProtectedRoots) {
+    # Couns explicitly authorized reads of this external CPU runtime. This is
+    # not a general production-root override, and never applies to a write role.
+    if ($Roots.Count -gt 1) { throw 'Only the exact authorized NPT runtime may be opted in' }
+    $protected = @($ProtectedRoots | ForEach-Object { Get-ProtectedRootLexical $_ })
+    foreach ($root in $Roots) {
+        $full = Get-DPathLexical $root
+        if (-not $full.Equals('D:\grok-pc-data\npt\nnue-pytorch-amd',[StringComparison]::OrdinalIgnoreCase)) { throw 'Read-only runtime root is not explicitly authorized' }
+        if ('D:\grok-pc-data\npt' -notin $protected) { throw 'The complete protected NPT root must remain declared' }
+        Assert-NoReparsePath $full
+    }
+}
+function Assert-ReadOnlyToolchainRoots([string[]]$Roots) {
+    $approved = @('C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.51.36231',
+        'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0',
+        'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0')
+    if ($Roots.Count -gt 3 -or @($Roots | Select-Object -Unique).Count -ne $Roots.Count) { throw 'Unique exact authorized toolchain roots required' }
+    foreach ($root in $Roots) {
+        if ($root -notmatch '^[cC]:[\\/]') { throw 'Only exact authorized C: toolchain roots may be opted in' }
+        $full = Get-ProtectedRootLexical $root
+        if ($full -notin $approved) { throw 'Toolchain root is not explicitly authorized' }
+        Assert-NoReparsePath $full
+    }
+}
+function Assert-ReadPath([string]$Path, [string[]]$ProtectedRoots, [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @()) {
+    Assert-ReadOnlyRuntimeRoots $ReadOnlyRuntimeRoots $ProtectedRoots
+    Assert-ReadOnlyToolchainRoots $ReadOnlyToolchainRoots
+    if ($Path -match '^[cC]:[\\/]' -and $ReadOnlyToolchainRoots.Count -gt 0) {
+        $full = Get-ProtectedRootLexical $Path
+        $allowed = $false
+        foreach ($root in $ReadOnlyToolchainRoots) {
+            $tool = Get-ProtectedRootLexical $root
+            if ($full.Equals($tool,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($tool+'\',[StringComparison]::OrdinalIgnoreCase)) { $allowed=$true }
+        }
+        if (-not $allowed) { throw 'C: read is outside exact authorized toolchain roots' }
+        if ($full -match '(?i)(?:^|\\)(?:npt|nnue-pytorch|gate|gates|gate-queue|gate_queue|locks)(?:\\|$)' -or [IO.Path]::GetFileName($full) -match '(?i)^(?:queue(?:_state)?(?:\.[^\\]+)?|forge_queue(?:_state)?(?:\.[^\\]+)?|forge_gates\.json|CURRENT_LOCK\.json|STOP(?:\..*)?|PAUSE(?:\..*)?)$') { throw 'Production queue/lock/control path remains protected' }
+        foreach ($root in $ProtectedRoots) {
+            $blocked = Get-ProtectedRootLexical $root
+            if ($full.Equals($blocked,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($blocked+'\',[StringComparison]::OrdinalIgnoreCase) -or $blocked.StartsWith($full+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Protected production root or its ancestor' }
+        }
+        Assert-NoReparsePath $full
+        return $full
+    }
+    if ($ReadOnlyRuntimeRoots.Count -eq 0) { return (Assert-DPath $Path $ProtectedRoots) }
+    $full = Get-DPathLexical $Path
+    $runtime = 'D:\grok-pc-data\npt\nnue-pytorch-amd'
+    if (-not ($full.Equals($runtime,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($runtime+'\',[StringComparison]::OrdinalIgnoreCase))) {
+        return (Assert-DPath $Path $ProtectedRoots)
+    }
+    $relative = $full.Substring($runtime.Length).TrimStart('\')
+    if ($relative -match '(?i)(?:^|\\)(?:npt|nnue-pytorch|gate|gates|gate-queue|gate_queue|locks)(?:\\|$)' -or
+        [IO.Path]::GetFileName($full) -match '(?i)^(?:queue(?:_state)?(?:\.[^\\]+)?|forge_queue(?:_state)?(?:\.[^\\]+)?|forge_gates\.json|CURRENT_LOCK\.json|STOP(?:\..*)?|PAUSE(?:\..*)?)$') { throw 'Production queue/lock/control path remains protected' }
+    foreach ($root in $ProtectedRoots) {
+        $blocked = Get-ProtectedRootLexical $root
+        # Only this exact enclosing protected root gets a read-role exception.
+        # Any extra protected ancestor or nested protected root still wins.
+        if ($blocked.Equals('D:\grok-pc-data\npt',[StringComparison]::OrdinalIgnoreCase)) { continue }
+        if ($full.Equals($blocked,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($blocked+'\',[StringComparison]::OrdinalIgnoreCase) -or $blocked.StartsWith($full+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Protected production root or its ancestor' }
+    }
+    Assert-NoReparsePath $full
     return $full
 }
 function Quote-SafeArgument([AllowEmptyString()][string]$Value) {
@@ -75,7 +147,9 @@ function Assert-SafeDisk([long]$MinimumMiB, [long]$RequiredBytes, [switch]$Fresh
     }
     Assert-R10StorageBudget -CFreeBytes ([IO.DriveInfo]::new('C:\').AvailableFreeSpace) -DFreeBytes ([IO.DriveInfo]::new('D:\').AvailableFreeSpace) -WorkspaceBytes $script:R10WorkspaceCache.bytes -RequiredBytes $RequiredBytes -MinimumMiB $MinimumMiB
 }
-function Test-SafeJob([object]$j, [string[]]$ProtectedRoots) {
+function Test-SafeJob([object]$j, [string[]]$ProtectedRoots, [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @()) {
+    Assert-ReadOnlyRuntimeRoots $ReadOnlyRuntimeRoots $ProtectedRoots
+    Assert-ReadOnlyToolchainRoots $ReadOnlyToolchainRoots
     $fields = @('schema','executable','executable_sha256','arguments','working_directory','output_directory','read_paths','write_paths','logical_cpus','worker_threads','minimum_free_mib','required_bytes')
     if ($null -eq $j -or @($j.PSObject.Properties.Name).Count -ne $fields.Count) { throw 'Unexpected or missing manifest fields' }
     foreach ($name in $fields) { if ($null -eq $j.PSObject.Properties[$name]) { throw "Missing manifest field: $name" } }
@@ -112,8 +186,12 @@ function Test-SafeJob([object]$j, [string[]]$ProtectedRoots) {
         if ($null -ne $pathArgument) {
             $checkedPath = Assert-DPath $pathArgument $ProtectedRoots
             $declared = $false
-            foreach ($path in @($j.read_paths)+@($j.write_paths)) {
-                $allowed = Assert-DPath $path $ProtectedRoots
+            foreach ($path in @($j.read_paths)) {
+                $allowed = Assert-ReadPath $path $ProtectedRoots $ReadOnlyRuntimeRoots $ReadOnlyToolchainRoots
+                if ($checkedPath.Equals($allowed,[StringComparison]::OrdinalIgnoreCase) -or $checkedPath.StartsWith($allowed+'\',[StringComparison]::OrdinalIgnoreCase)) {$declared=$true}
+            }
+            foreach ($path in @($j.write_paths)) {
+                $allowed = Assert-R10WritePath $path $ProtectedRoots
                 if ($checkedPath.Equals($allowed,[StringComparison]::OrdinalIgnoreCase) -or $checkedPath.StartsWith($allowed+'\',[StringComparison]::OrdinalIgnoreCase)) {$declared=$true}
             }
             if (-not $declared) {throw 'Argument path is not within declared read_paths/write_paths'}
@@ -131,7 +209,7 @@ function Test-SafeJob([object]$j, [string[]]$ProtectedRoots) {
     $exe = Assert-DPath $j.executable $ProtectedRoots
     $cwd = Assert-R10WritePath $j.working_directory $ProtectedRoots
     $out = Assert-R10WritePath $j.output_directory $ProtectedRoots
-    foreach ($path in @($j.read_paths)+@($j.write_paths)) { $null = Assert-DPath $path $ProtectedRoots }
+    foreach ($path in $j.read_paths) { $null = Assert-ReadPath $path $ProtectedRoots $ReadOnlyRuntimeRoots $ReadOnlyToolchainRoots }
     foreach ($path in $j.write_paths) { $null = Assert-R10WritePath $path $ProtectedRoots }
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf) -or -not (Test-Path -LiteralPath $cwd -PathType Container)) { throw 'Executable and working directory must already exist on D:' }
     foreach ($path in $j.read_paths) { if (-not (Test-Path -LiteralPath $path)) { throw 'Declared input is missing' } }
@@ -142,7 +220,7 @@ function Test-SafeJob([object]$j, [string[]]$ProtectedRoots) {
     Assert-SafeDisk $j.minimum_free_mib $j.required_bytes -FreshWorkspace
     return [pscustomobject]@{Mask=$mask;Exe=$exe;Cwd=$cwd;Out=$out}
 }
-function Invoke-GrokPcSafeJob([string]$Manifest, [string[]]$ProtectedRoots) {
+function Invoke-GrokPcSafeJob([string]$Manifest, [string[]]$ProtectedRoots, [string[]]$ReadOnlyRuntimeRoots = @(), [string[]]$ReadOnlyToolchainRoots = @()) {
     if ($env:OS -ne 'Windows_NT') { throw 'Windows runtime required' }
     if ($ProtectedRoots.Count -lt 1) { throw 'Supply the complete production ProtectedRoots before reading the manifest' }
     $manifestPath = Assert-DPath $Manifest $ProtectedRoots
@@ -152,7 +230,7 @@ function Invoke-GrokPcSafeJob([string]$Manifest, [string[]]$ProtectedRoots) {
     if ($keys.Count -ne @($keys | Select-Object -Unique).Count) { throw 'Duplicate manifest fields refused' }
     $j = $raw | ConvertFrom-Json -ErrorAction Stop
     if ($keys.Count -ne @($j.PSObject.Properties.Name).Count) { throw 'Manifest requires plain top-level property names only' }
-    $checked = Test-SafeJob $j $ProtectedRoots
+    $checked = Test-SafeJob $j $ProtectedRoots $ReadOnlyRuntimeRoots $ReadOnlyToolchainRoots
     $self = [Diagnostics.Process]::GetCurrentProcess()
     $oldAffinity=$self.ProcessorAffinity; $oldPriority=$self.PriorityClass
     $envNames=@('TEMP','TMP','TMPDIR','OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS')
@@ -160,6 +238,12 @@ function Invoke-GrokPcSafeJob([string]$Manifest, [string[]]$ProtectedRoots) {
     $resultCode=70; $nativeCode=$null; $captureErrors=@(); $diskBreach=$false
     $null=New-Item -ItemType Directory -Path $checked.Out -ErrorAction Stop
     $temp=Join-Path $checked.Out 'temp'; $null=New-Item -ItemType Directory -Path $temp -ErrorAction Stop
+    if ($ReadOnlyRuntimeRoots.Count -gt 0) {
+        [ordered]@{read_only_runtime_roots=@($ReadOnlyRuntimeRoots);declared_read_paths=@($j.read_paths);write_exception=$false;scope='explicit external CPU runtime reads only; full protected roots retained'} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $checked.Out 'readonly-runtime-policy.json') -Encoding UTF8
+    }
+    if ($ReadOnlyToolchainRoots.Count -gt 0) {
+        [ordered]@{read_only_toolchain_roots=@($ReadOnlyToolchainRoots);declared_read_paths=@($j.read_paths);write_exception=$false;scope='explicit installed compiler/header/library reads only; full protected roots retained'} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $checked.Out 'readonly-toolchain-policy.json') -Encoding UTF8
+    }
     try {
         $self.ProcessorAffinity=[IntPtr]$checked.Mask
         $self.PriorityClass = [Diagnostics.ProcessPriorityClass]::Idle
@@ -216,6 +300,8 @@ public static class ForgeCrewSafeDrain {
         try { Assert-SafeDisk $j.minimum_free_mib 0 -FreshWorkspace } catch { $diskBreach=$true }
         if ((Get-FileHash -Algorithm SHA256 -LiteralPath $checked.Exe).Hash -ine $j.executable_sha256) { $captureErrors+='Executable changed during run' }
         $receipt=[ordered]@{native_exit_code=$nativeCode;capture_errors=@($captureErrors);disk_floor_breached=$diskBreach;affinity=$checked.Mask;priority='Idle';worker_threads=$j.worker_threads;manifest_sha256=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $checked.Out 'manifest.json')).Hash;finished_utc=[DateTime]::UtcNow.ToString('o')}
+        if ($ReadOnlyRuntimeRoots.Count -gt 0) { $receipt['read_only_runtime_roots']=@($ReadOnlyRuntimeRoots); $receipt['write_exception']=$false }
+        if ($ReadOnlyToolchainRoots.Count -gt 0) { $receipt['read_only_toolchain_roots']=@($ReadOnlyToolchainRoots); $receipt['write_exception']=$false }
         $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $checked.Out 'result.json') -Encoding UTF8
         if ($captureErrors.Count -eq 0 -and -not $diskBreach) { $resultCode=$nativeCode }
     } finally {
@@ -227,6 +313,6 @@ public static class ForgeCrewSafeDrain {
 }
 if ($MyInvocation.InvocationName -ne '.') {
     $ErrorActionPreference='Stop'
-    try { if (-not $Manifest) { throw 'Manifest is required' }; $code=Invoke-GrokPcSafeJob $Manifest $ProtectedRoots; exit $code }
+    try { if (-not $Manifest) { throw 'Manifest is required' }; $code=Invoke-GrokPcSafeJob $Manifest $ProtectedRoots $ReadOnlyRuntimeRoots $ReadOnlyToolchainRoots; exit $code }
     catch { [Console]::Error.WriteLine('REFUSED/FAILED: '+$_.Exception.Message); exit 76 }
 }

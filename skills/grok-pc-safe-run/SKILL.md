@@ -11,7 +11,32 @@ Run only an explicitly reviewed, bounded CPU job. Installing this skill launches
 
 Identify the actual spare logical CPUs, complete production roots, frozen executable hash and all intended reads/writes. Use existing scripts when they already satisfy this contract. Read [the launcher contract](references/launcher-contract.md) before preparing its manifest.
 
-All runtime data, portable tools, work directories, temporary files, logs and declared build/cache output belong on **D:**. In this R10 branch, working directories and every declared write path must be under **D:\a10**. A Python executable on C: is refused; use a reviewed D: environment. Never read/write live NPT or gate queues, create STOP/PAUSE files, change another process's priority/affinity, or terminate another process. Supply the complete user-specified protected roots, including C: and F: entries; these are lexical exclusions, never inspected. Default name filters cannot discover arbitrary production locations. Work from independently exported inputs, not a running trainer's directory.
+All runtime data, portable tools, work directories, temporary files, logs and declared build/cache output belong on **D:**. In this R10 branch, working directories and every declared write path must be under **D:\a10**. A Python executable on C: is refused; use a reviewed D: environment. Never access live trainer datasets or NPT/gate queues, create STOP/PAUSE files, change another process's priority/affinity, or terminate another process. Supply the complete user-specified protected roots, including C: and F: entries; these are lexical exclusions, never inspected. Default name filters cannot discover arbitrary production locations. Work from independently exported inputs, not a running trainer's directory.
+
+R10's explicit user authorization permits one narrow external CPU-runtime read
+exception: pass `-ReadOnlyRuntimeRoots @('D:\grok-pc-data\npt\nnue-pytorch-amd')`
+and declare that exact runtime in `read_paths`. The default is an empty list and
+continues to reject it. Keep the **entire** protected-roots list, including
+`D:\grok-pc-data\npt` and `F:\`; never omit a required read to bypass validation.
+Only declared read roles receive this exception. Executables, working/output
+directories, writes and command-path arguments retain strict validation.
+Ancestors, unrelated or nested protected roots, queue/control paths, ADS and
+reparse points remain refused. This is policy preflight, not an OS sandbox:
+review import side effects, disable bytecode, keep caches/output on D, and pin
+imported external source/DLL identities before and after the bounded CPU check.
+
+For the explicitly authorized R10 CPU Inductor regression only, the separate
+`ReadOnlyToolchainRoots` parameter may name the exact MSVC `14.51.36231` root
+and Windows SDK `10.0.26100.0` Include/Lib roots listed in the helper. Its
+default is empty. This exception applies only to declared reads; writes,
+executable/cwd/output fields and command-path arguments keep strict D rules.
+Never replace these with C:, Program Files, another SDK, LLVM or another drive.
+Bind the selected x64 compiler/linker/DLL/header/library files before and after;
+set explicit PATH/INCLUDE/LIB and D caches rather than dumping or inheriting an
+unreviewed developer environment. No C installation or edit is authorized.
+External GPL code stays external; do not vendor it into Forge. No training or
+GPU authorization is implied. See the launcher contract and the matching
+`tests/Test-ReadOnlyRuntime.ps1` regression tests.
 
 Use one or two explicitly approved spare CPUs and **one or two workers maximum**, Idle priority inherited before creation, and corresponding native thread arguments/environment. These settings do not limit arbitrary OS helper threads or sandbox an untrusted executable. Review the entire command and its adapter; refuse unknown behavior. For builds, propagate the budget into make/CMake jobs, compiler/LTO workers and every child; a wrapper argument alone does not enforce it. No batch or inline shell command bypasses that review.
 

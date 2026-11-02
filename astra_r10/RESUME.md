@@ -3,23 +3,39 @@
 Job3 step3: original73 regression and final handover remain. Branch astra-r10-3jobs,
 worktree D:\a10\wt. Native audit/state/native relabel/admitted replay03 complete.
 
-NEXT: Job3 step3, finish compatible CPU runtime preparation and regression review.
-Inspect astra_r10/job3/regression/run_regression.py and the runtime312 plan/installer
-being prepared under astra_r10/job3/runtime312. Agent plan_safety_review owns the
-new runtime setup; review_build owns helper fixtures and runner; proof_contract
-provides independent rechecks. No large installation before reviewed plan/disk-cap
-check. Native suite command is not yet finalized; do not invent a PASS or launch.
+NEXT: Job3 step3, finish compatible CPU dependency assembly. Bootstrap PASS,
+wheel collection currently active via job3/runtime312/collect-launch. Inspect its
+result.json/native stdout before another attempt; never overwrite its evidence.
+Agent plan_safety_review owns the reviewed collection and separate installer;
+installer needs focused review of measured lock/size plan before execution.
+Then D:\a10\job3\runtime312\RUNTIME_FILES.json must say RUNTIME_ASSEMBLED and
+its exact SHA must be bound by the reviewed preparation command:
+powershell -NoProfile -File D:\a10\wt\astra_r10\job3\regression\prepare_native_attempt.ps1 -Tag preflight01 -Mode preflight -PreflightCpu 2
+This prepares only. Inspect generated wrapper/manifest, obtain fresh quiet
+admission, then run the generated launch_preflight01.ps1. If import preflight
+passes, prepare a NEW suite01 tag with -Mode suite; run alone on CPUs2/3 after
+both qualify. review_build owns native attempts; proof_contract reviews results.
+No73-test PASS exists yet. Every failed/refused attempt remains immutable.
 Exact external D:\grok-pc-data\npt\nnue-pytorch-amd is read-only.
 Never vendor GPL runtime, omit protected reads to bypass safety, or access F:.
 Old D:\a10\job3\runtime Python3.10 qualified state tests only: installed NPT requires
 Python3.12+ type-alias syntax. Separate target D:\a10\job3\runtime312 will use
 Python3.12 with development headers, CPU-only Torch2.9.1+cpu, NumPy1.26.4 and
-minimal dependencies. No download/install had started at this checkpoint. Existing
+minimal dependencies. Official NuGet3.12.10 bootstrap PASSED; interpreter
+4D6F5F81A4BCA11191C4C7C6B43632694D0A4CE74E068619D8FDC161D469859A,
+download16309737bytes/expanded44619813bytes. Wheel collection is running;
+dependency installation remains unrun. Existing
 MSVC14.51 and LLVM clang-cl are available read-only on C; no compiler installation.
 Runner must prebind external Python sources/DLL before imports and reject late
 unbound imports; do not bypass torch.compile or alter original test assertions.
-Current helperA78C49C5 static review found no new safety defect, fixtures pending.
-Runtime installer and substantive runner fixes still require independent review.
+Current helper17205767AE3EA35A5CCB5A7965BC4988BAE26B4F2260C821411A657C9979C787
+and combined runner743E673FC07453938840C820871B0E5AD6DFD41EFC684CE0958ABD0D7B690573
+have closed focused reviews. Original19+NPT29+toolchain28 policy checks PASS;
+13 binding checks PASS0skip. Runtime verifier1D7CF26D8B46B1178BB8AA83CF63EB535225E7887B19A5FA0BBBAF2369F9BF04,
+toolchain2B3A79D1862E4498D4BA7C72BB3C1AC8E9BD69DC900DAEA4A0248887CE114C4E.
+Template2D99788AF0E52C46DE4EAFE5E494A92D80E7A13D47F644133FEFD313152326BB reviewed.
+External compile/cache/test artifacts remain D:\a10\job3\regression-runs outside
+Git; preserve paths/hashes and reports, do not vendor generated external code.
 Suite filter tests use2workers: no concurrent compute. Idle, two separately inspected
 load samples >=3s apart, selectedcore<30%/host<95%, fresh immediate admission.
 

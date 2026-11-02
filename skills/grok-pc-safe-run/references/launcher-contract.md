@@ -1,5 +1,36 @@
 # D-only reviewed-job launcher contract
 
+The separate `ReadOnlyToolchainRoots` opt-in is empty by default. For the
+authorized R10 CPU Inductor regression it accepts only these exact roots:
+`C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\VC\Tools\MSVC\14.51.36231`,
+`C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0`, and
+`C:\Program Files (x86)\Windows Kits\10\Lib\10.0.26100.0`.
+Only `read_paths` receives the exception. Executable, cwd, output, writes and
+path-like command arguments retain strict D validation. No broad C root, other
+version, SDK bin, LLVM or F root is admitted. Protected ancestors/descendants,
+ADS, dot paths, queue/control names and reparse ancestors are still refused.
+`readonly-toolchain-policy.json` and the receipt expose the opt-in; the adapter
+must hash the exact compiler/linker/DLL/header/library input trees before and
+after use and keep compiler output/cache on D. This is not an OS sandbox.
+
+R10 supports an explicit external runtime read exception through the optional
+`-ReadOnlyRuntimeRoots` parameter. It defaults to empty; schema1 is unchanged.
+Only `D:\grok-pc-data\npt\nnue-pytorch-amd` is accepted under Couns's explicit
+read-only authorization. Declare the real runtime in `read_paths`, and retain
+the full protected-roots list, including its enclosing protected NPT root and
+F:. Never omit a required read to evade validation.
+
+This exception applies only to declared read roles. Executable, working/output,
+write and command-path arguments keep strict validation. Protected ancestors,
+nested protected roots, queue/control files, ADS, traversal and reparse paths
+remain refused. The opt-in writes `readonly-runtime-policy.json`; the final
+receipt records the read-only roots and `write_exception=false`. Policy
+preflight does not sandbox native imports: keep bytecode/caches/temp on D and
+pin imported source/DLL identities before and after the bounded CPU check.
+External GPL runtime files remain external; no training or GPU is authorized.
+Preserve old helper bytes and receipts before updating a used launcher, and use
+the immutable archive for any replay bound to the old implementation.
+
 `Invoke-GrokPcSafeRun.ps1` requires Windows PowerShell 5.1 or compatible PowerShell on Windows. It has no automatic hook or scheduled task. Dot-sourcing loads functions only. Direct invocation requires `-Manifest` and a nonempty complete `-ProtectedRoots` list, supplied before the manifest is read. It never enumerates or terminates other processes.
 
 Schema 1 has exactly these top-level fields; unknown/missing/duplicate fields are refused:
