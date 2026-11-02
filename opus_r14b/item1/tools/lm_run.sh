@@ -25,22 +25,31 @@ esac
 outw=$(cygpath -w "$out")
 export CUDA_VISIBLE_DEVICES=-1 HIP_VISIBLE_DEVICES=-1 ROCR_VISIBLE_DEVICES=-1
 export NNUE_DATA_LOADER_LIB='D:\o14b\ref\libtraining_data_loader.dll'
-export NNUE_FT_BACKEND=torch TORCHDYNAMO_DISABLE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2
+th=${LM_THREADS:-2}       # torch / OMP / MKL threads; LM_THREADS=1 LM_DET=1 = bit-reproducible CPU training
+export NNUE_FT_BACKEND=torch TORCHDYNAMO_DISABLE=1 OMP_NUM_THREADS=$th MKL_NUM_THREADS=$th
 export PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1
 export R6_MIN_FREE_GB=7 R6_GUARD_LOG="$outw\\guard.jsonl"
 export FORGE_FAST_LOADER_DIR=${FORGE_FAST_LOADER_DIR:-'D:\o14b\fl\b5_install'}  # forge_fastloader.py + .dll
-args="-B opus_tools\\guard_exec.py train.py F:\\forge_j1_data\\forge_train_001-039_ex013-014_j2.binpack"
+script=train.py
+if [ "${LM_DET:-0}" = 1 ]; then  # torch.use_deterministic_algorithms(True) around train.py (tools/lm_det.py)
+  cp -n "$here/lm_det.py" "$npt/opus_tools/lm_det.py"
+  script='opus_tools\\lm_det.py'
+fi
+args="-B opus_tools\\guard_exec.py $script F:\\forge_j1_data\\forge_train_001-039_ex013-014_j2.binpack"
 l1=${LM_L1:-1024}
 val=${LM_VAL:-163840}
 if [ "$val" -gt 0 ]; then
   args="$args --validation-datasets F:\\forge_j1_data\\forge_holdout_013-014_j2.binpack --validation-size $val"
 fi
-args="$args --default-root-dir $outw\\run --features K32H3^ --l1 $l1 --batch-size 16384 --threads 2"
-args="$args --epoch-size 1048576 --max-epochs 1 --network-save-period 1 --save-last-network False"
+args="$args --default-root-dir $outw\\run --features K32H3^ --l1 $l1 --batch-size 16384 --threads $th"
+args="$args --epoch-size ${LM_EPOCH:-1048576} --max-epochs 1 --network-save-period 1 --save-last-network False"
 args="$args --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0"
 args="$args --no-filtered --no-wld-filtered --accelerator cpu --gamma 0.72 $extra $*"
 cd "$npt"
 echo "$(date '+%F %T') arm=$arm args: $args" > "$out/command.txt"
+set +e  # always record the exit code (a guard abort is exit 97)
 powershell -NoProfile -File "$(cygpath -w "$here/lowrun.ps1")" -Mask 0xC -Priority BelowNormal \
   -Exe 'F:\nnue_pytorch\venv\Scripts\python.exe' -ArgLine "$args" -Out "$outw\\stdout.log" -Err "$outw\\stderr.log"
-echo "exit=$?" >> "$out/command.txt"
+rc=$?
+echo "exit=$rc" >> "$out/command.txt"
+exit $rc
