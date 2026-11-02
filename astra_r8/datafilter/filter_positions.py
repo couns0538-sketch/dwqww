@@ -33,6 +33,20 @@ def sha256(path):
             h.update(block)
     return h.hexdigest()
 
+def input_identity(path):
+    """Bind the complete input and reject changes while its hash is read."""
+    path = Path(path)
+    before = path.stat()
+    digest = sha256(path)
+    after = path.stat()
+    fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+    if any(getattr(before, name) != getattr(after, name) for name in fields):
+        raise ValueError(f'source changed while hashing: {path}')
+    return dict(path=str(path.resolve()), bytes=after.st_size, sha256=digest,
+                device=after.st_dev, inode=after.st_ino,
+                mtime_ns=after.st_mtime_ns, ctime_ns=after.st_ctime_ns)
+
+
 def matches(r, max_ply=None):
     board = chess.Board(r['fen'])
     move = chess.Move.from_uci(r['best_move']) if r['best_move'] is not None else None
@@ -64,6 +78,7 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
     storage_guard(out)
     storage_guard(partial)
     low_priority()
+    original_input = input_identity(inp)
     partial.mkdir(parents=True)
     enabled = (drop_in_check, drop_capture_bestmove, drop_mate_scores, max_ply_from_start is not None)
     independent, first, overlap, coverage = Counter(), Counter(), Counter(), Counter()
@@ -102,8 +117,11 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                 records.flush()
                 metadata.flush()
                 storage_guard(partial)
+        if input_identity(inp) != original_input:
+            raise ValueError(f'source changed during filtering: {inp}')
         elapsed = time.perf_counter() - start
         report = dict(input=count, kept=kept, dropped=count-kept,
+                      input_identity=original_input,
                       independent={k: independent[k] for k in RULES},
                       first_drop={k: first[k] for k in RULES}, overlap=dict(sorted(overlap.items())),
                       coverage=dict(coverage), enabled=dict(zip(RULES, enabled)),

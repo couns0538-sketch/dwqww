@@ -1,5 +1,18 @@
 # Astra R8 Job 2 — UNPROVEN
 
+## 30-minute follow-up audit — in progress (2026-11-02 21:04 UTC)
+
+User requested an additional30-minute bug/integration audit. Confirmed and fixed:
+entrypoint readiness bypass and missing output admission; late RNG seeding in
+installed npt (locally preseed before delegation); malformed/conflicting PGNs;
+boolean Lichess labels; mid-read input mutation; converter partial publication;
+incomplete verifier bindings and nonfinite/impossible correlations.
+Frozen CPU suite:133 tests+11subtests PASS. Regression failures and fixes are
+under `C:/astra8_data/audit30_20261102`. No training/GPU or engine changes.
+Independent re-review, native Forge FEN/bench smoke and refreshed handoff pending.
+The prior handoff remains preserved historical evidence; changed local runtime
+files deliberately invalidate it until the new strict handoff is published.
+
 ## 2026-11-02 STM-format follow-up — reviewed handoff
 
 Execution base: `7a8e22e8e2dad094f383ded125572d28aef10ace`. User selected STM

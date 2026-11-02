@@ -23,7 +23,7 @@ import chess
 from filter_positions import low_priority, sha256
 from records import record
 from resource_policy import ARTIFACT_ROOT, storage_guard
-from verify_handoff import verify
+from verify_handoff import verify, REVIEWABLE_RUNTIME
 
 HERE = Path(__file__).resolve().parent
 PREVIOUS = HERE/'evidence/handoff_manifest.json'
@@ -75,9 +75,8 @@ def validate_previous(path):
     if sha256(path) != APPROVED_PREVIOUS_SHA256:
         raise ValueError('previous manifest differs from approved handoff')
     manifest = json.loads(Path(path).read_text(encoding='utf-8'))
-    verify(path)  # Rehash payloads, original sources, complete holdouts and receipt.
-    if current_runtime() != manifest['runtime']:
-        raise ValueError('runtime differs from the approved handoff')
+    verify(path, allow_runtime_changes=REVIEWABLE_RUNTIME)
+    check_runtime_migration(manifest['runtime'], current_runtime())
     wrapper = manifest['baseline_wrapper']
     if sha256(wrapper['path']) != wrapper['sha256']:
         raise ValueError('baseline training recipe changed')
@@ -91,6 +90,17 @@ def validate_previous(path):
     if len(receipt['complete_holdouts']) != 2 or observed != expected:
         raise ValueError('clearance does not bind both complete holdouts')
     return manifest
+
+
+def check_runtime_migration(previous, current):
+    """Allow only the reviewed local admission/normalization fixes, never npt drift."""
+    if {k:v for k,v in previous.items() if k!='files'} != {k:v for k,v in current.items() if k!='files'}:
+        raise ValueError('runtime version differs from approved handoff')
+    if previous['files'].keys()!=current['files'].keys():raise ValueError('runtime file set changed')
+    changed={p for p,h in previous['files'].items() if current['files'][p]!=h}
+    if not {str(Path(p).resolve()) for p in changed} <= REVIEWABLE_RUNTIME:
+        raise ValueError('installed npt runtime differs from approved handoff')
+    return {p:{'previous_sha256':previous['files'][p],'current_sha256':current['files'][p]} for p in sorted(changed)}
 
 
 def audit_selection(selection, sample_path):
@@ -199,14 +209,14 @@ def refresh(output, previous_manifest=PREVIOUS):
     configure_cpu_runtime(partial)
     previous = validate_previous(previous_manifest)
     runtime = current_runtime()
-    if runtime != previous['runtime']:
-        raise ValueError('runtime changed after previous handoff validation')
+    migration=check_runtime_migration(previous['runtime'],runtime)
     tools = tooling_identity()
     sample, sign = audit_selection(previous['train'], sample_path)
     if sign['mirror_checked'] < MIN_MIRRORS:
         raise ValueError('insufficient rows for 1000 mirror checks')
     manifest = copy.deepcopy(previous)
     manifest.update(sample=sample, runtime=runtime, tooling=tools, training_ready=True,
+                    runtime_migration=migration,
                     pearson_stm_score_result=sign['pearson_stm_score_result'],
                     known_result_count=sign['known_result_count'], sign_audit=sign,
                     previous_manifest={'path': str(Path(previous_manifest).resolve()), 'sha256': previous_digest},

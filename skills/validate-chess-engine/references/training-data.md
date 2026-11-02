@@ -29,6 +29,17 @@
 - A refreshed handoff may reuse immutable row/holdout evidence only after digest
   checks. Rebind changed tooling, run current CPU preflights, and publish readiness
   only after verification; historical PASS logs do not qualify changed code.
+- Exercise the actual consumer entry point: a separate verifier cannot protect a
+  caller that only trusts a readiness flag. Check receipt/holdout bindings, finite
+  statistics, fixed recipe parameters and safe output paths at admission. Staged
+  manifests may support CPU preflight, never training.
+- Inspect seed timing in the installed trainer. Seeding after model construction
+  does not make matched recipes start from identical weights; compare actual small
+  CPU constructions after pre-seeding, without taking optimizer steps.
+- Reject malformed PGN prefixes and contradictory header/movetext results before
+  emitting labels. Check raw score types before arithmetic can coerce booleans.
+  Hash inputs before and after filtering to detect complete-line truncation that
+  would otherwise look like successful EOF; publish only from completed staging.
 
 The R8 reproducible examples live in `astra_r8/datafilter/`: `result_codec.py`,
 `audit_stm_roundtrip.py`, `audit_followup.py` and `resource_policy.py`. Recipes and

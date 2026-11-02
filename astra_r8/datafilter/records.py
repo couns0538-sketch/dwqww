@@ -7,6 +7,27 @@ import chess.pgn
 
 EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
 
+class ResultGameBuilder(chess.pgn.GameBuilder):
+    """Reject conflicting result tokens instead of silently preferring headers."""
+    def visit_header(self, tagname, tagvalue):
+        if tagname == 'Result' and tagvalue not in ('1-0', '0-1', '1/2-1/2', '*'):
+            raise ValueError('invalid PGN result: ' + tagvalue)
+        return super().visit_header(tagname, tagvalue)
+
+    def visit_result(self, result):
+        header = self.game.headers.get('Result', '*')
+        if header != '*' and result != header:
+            raise ValueError(f'conflicting PGN result: header {header}, movetext {result}')
+        return super().visit_result(result)
+
+
+def read_pgn_game(fh):
+    game = chess.pgn.read_game(fh, Visitor=ResultGameBuilder)
+    if game is not None and game.errors:
+        raise ValueError('malformed PGN')
+    return game
+
+
 def record(fen, score, score_type, result_white, source, source_row,
            source_kind, best_move=None, raw_score=None, depth=None):
     if len(fen.split()) != 6 or int(fen.split()[5]) < 1:
@@ -47,6 +68,8 @@ def lichess_record(obj, source, row):
     pv = obj['evals'][0]['pvs'][0]
     kind = 'mate' if 'mate' in pv else 'cp'
     white_score = pv[kind]
+    if type(white_score) is not int:
+        raise ValueError('invalid Lichess score type')
     board = chess.Board(obj['fen'])
     move = pv.get('line', '').split()
     return record(obj['fen'], white_score * (1 if board.turn else -1), kind, None,
@@ -70,7 +93,7 @@ def read_records(path, kind='normalized'):
     with open(path, encoding='utf-8-sig') as fh:
         if kind == 'pgn':
             game_index = 0
-            while (game := chess.pgn.read_game(fh)) is not None:
+            while (game := read_pgn_game(fh)) is not None:
                 game_index += 1
                 if game.errors:
                     raise ValueError(f'{path}: game {game_index}: malformed PGN')

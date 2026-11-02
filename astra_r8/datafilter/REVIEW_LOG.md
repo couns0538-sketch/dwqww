@@ -1,5 +1,18 @@
 # Review log — UNPROVEN
 
+## 30-minute audit: findings and first fixes
+
+Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity
+reviewers reproduced admission/provenance failures using tiny owned fixtures.
+Main accepted the findings, delegated scoped fixes and reviewed the diffs.
+Red evidence: verifier_red.log (9 failures), entry_admission_red (15 failures),
+integrity_red.log (13 failures), capture_result_red.log (1 failure).
+One focused data-suite teardown detected concurrent code edits; preserved as
+failed evidence, then reran the complete frozen suite:133 tests+11subtests PASS.
+Native installed L1=8 model construction now has bit-identical parameters after
+explicit pre-seeding; no training step or optimizer update executed. Exact current
+diff is under independent final_review before refreshed large validation.
+
 ## 2026-11-02 follow-up: converter and resource milestone
 
 Base `7a8e22e8`; candidate source hashes will be bound in the review receipt.

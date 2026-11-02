@@ -6,8 +6,9 @@ PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; lab
 Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
 Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
 import os, re, sys, json, time, argparse, numpy as np, chess, chess.pgn
+from pathlib import Path
 from filter_lichess_rec import REC, encode_board
-from records import record, selfplay_record, read_records, dumps
+from records import record, selfplay_record, read_records, read_pgn_game, dumps
 from result_codec import encode_result
 from resource_policy import storage_guard
 from filter_positions import low_priority
@@ -20,9 +21,12 @@ ap.add_argument('--keep-result', action='store_true')
 ap.add_argument('--lichess', nargs='*', default=[])
 ap.add_argument('--normalized', nargs='*', default=[])
 a = ap.parse_args()
-if os.path.lexists(a.outdir): sys.exit('refusing existing output destination')
+destination = Path(a.outdir)
+partial = destination.with_name(destination.name + '.partial')
+if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
 low_priority()
-storage_guard(a.outdir)
+storage_guard(destination)
+storage_guard(partial)
 metadata = []
 current_metadata = None
 def throttle():
@@ -46,7 +50,7 @@ for f in a.pgn:
     fh = open(f, encoding='utf-8', errors='ignore')
     source_game = 0
     while True:
-        g = chess.pgn.read_game(fh)
+        g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
         if g is None: break
         st['games'] += 1
         source_game += 1
@@ -95,15 +99,19 @@ indices = np.random.default_rng(a.seed).permutation(len(arr))
 arr = arr[indices]; nv = max(1, int(round(len(arr) * a.val)))
 if a.keep_result: metadata = [metadata[i] for i in indices]
 metadata_bytes = sum(len(dumps(row).encode('utf-8')) + 1 for row in metadata) if a.keep_result else 0
-storage_guard(a.outdir, allowance=int(arr.nbytes) + metadata_bytes + 1024*1024)
-os.makedirs(a.outdir, exist_ok=False)
-arr[nv:].tofile(f'{a.outdir}/train.bin'); arr[:nv].tofile(f'{a.outdir}/val.bin')
+storage_guard(partial, allowance=int(arr.nbytes) + metadata_bytes + 1024*1024)
+partial.mkdir(parents=True, exist_ok=False)
+arr[nv:].tofile(partial / 'train.bin'); arr[:nv].tofile(partial / 'val.bin')
 if a.keep_result:
     for name, rows in [('train', metadata[nv:]), ('val', metadata[:nv])]:
-        with open(f'{a.outdir}/{name}.metadata.jsonl', 'x', encoding='utf-8', newline='\n') as fh:
+        with open(partial / f'{name}.metadata.jsonl', 'x', encoding='utf-8', newline='\n') as fh:
             for row in rows: fh.write(dumps(row) + '\n')
 s = arr['score'].astype(np.int32)
 st.update(final=len(arr), train=len(arr)-nv, val=nv, mean=float(s.mean()), std=float(s.std()),
           abs_median=float(np.median(np.abs(s))), black_to_move=float(arr['stm'].mean()), min_depth=a.min_depth,
           sources=a.pgn + a.selfplay + a.lichess + a.normalized)
-json.dump(st, open(f'{a.outdir}/stats.json', 'w'), indent=1); print(json.dumps(st, indent=1))
+with open(partial / 'stats.json', 'x', encoding='utf-8') as fh:
+    json.dump(st, fh, indent=1)
+storage_guard(destination, allowance=0)
+partial.rename(destination)
+print(json.dumps(st, indent=1))

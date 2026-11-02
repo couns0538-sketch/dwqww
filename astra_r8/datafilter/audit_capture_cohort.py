@@ -17,7 +17,7 @@ import chess
 import chess.pgn
 
 from filter_positions import low_priority, sha256
-from records import EV, dumps, record
+from records import EV, dumps, record, read_pgn_game
 from resource_policy import storage_guard
 
 BASELINE_NAME = 'base_AL1_s198_ltopgo_x_FD3A5190'
@@ -91,7 +91,7 @@ def qualify_gate(gate):
 def searched_rows(source):
     path = Path(source['files']['pgn']['path'])
     with path.open(encoding='utf-8-sig') as fh:
-        while (game := chess.pgn.read_game(fh)) is not None:
+        while (game := read_pgn_game(fh)) is not None:
             source['games_consumed'] += 1
             game_number = source['games_consumed']
             if game.errors:

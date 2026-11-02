@@ -7,6 +7,17 @@ import sys
 from npt_adapter import (BatchStream, MaskedNNUE, RowFile, Sampler, NPT,
                          runtime_identity, single_process, torch)
 from filter_positions import sha256, low_priority
+from resource_policy import storage_guard
+from verify_handoff import verify
+
+
+def seed_runtime():
+    """Pin initialization before installed train.main constructs its model."""
+    import random
+    import numpy as np
+    random.seed(5108)
+    np.random.seed(5108)
+    torch.manual_seed(5108)
 
 def resume_epoch(global_step, sampler_cursor):
     if sampler_cursor != global_step * 16384:
@@ -101,6 +112,16 @@ def main():
     p.add_argument('--check',action='store_true')
     a = p.parse_args()
     single_process(); low_priority()
+    storage_guard(a.output)
+    if a.resume is None and os.path.lexists(a.output):
+        raise FileExistsError('refusing existing training output')
+    if a.resume is not None and not a.resume.is_file():
+        raise ValueError('missing checkpoint')
+    manifest_parents = (*a.manifest.absolute().parents, *a.manifest.resolve().parents)
+    if any(path.name.casefold().endswith('.partial') for path in manifest_parents):
+        if not (a.check and a.device == 'cpu'):
+            raise ValueError('partial handoff permits CPU preflight only')
+    verify(a.manifest)
     context = Context(a.manifest,a.recipe)
     if context.manifest.get('training_ready') is not True:
         raise ValueError('manifest has no full holdout clearance; training blocked')
@@ -112,12 +133,9 @@ def main():
     if a.check:
         print(json.dumps(dict(status='PASS', command=args, identity=context.state_dict()),indent=2))
         return
-    if a.resume is None and a.output.exists():
-        raise FileExistsError('refusing existing training output')
-    if a.resume is not None and not a.resume.is_file():
-        raise ValueError('missing checkpoint')
     # Runtime hooks are confined to this interpreter. Installed files stay unchanged.
     install(context,train)
+    seed_runtime()
     sys.argv = args
     train.main()
 
