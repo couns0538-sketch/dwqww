@@ -80,6 +80,34 @@ df79fb6e, check parity_v2.sh 9c124cc3, GPU_REQUEST.md 4246dfd5, main.rs 9ede6e56
   numbers now panic instead of silently taking a default (CR's intent) - OK.
 - Checks after: none needed (no fix). Next: H768 / 1024 / 1536 parity (block 2), then the GPU request.
 
+## R14 (2026-11-02): parity above H256 - PASS at H 768 / 1024 / 1536
+- Harness builds: nnue::v2 sizes everything with the compile-time HiddenSize (= FORGE_NNUE_HIDDEN, file `hidden` must
+  match), and the R3 tree's embedded default net `src/nnue_weights.inc` static-asserts H = 256. So the H > 256 harnesses
+  build from `D:\o14a\p4\r3_h` = the R3 tree copy without that one file (66 other files byte-identical, logs/r3_h_src.sha256;
+  FORGE_HAS_NNUE = 0, which only removes the embedded default net; the v2 loader / features / output code is the same
+  source). Same g++ flags as H256 (`-O2 -ffp-contract=off -fno-fast-math -static`, AVX2 = x86-64-v3, SSE = x86-64-v2):
+  6 builds, 0 warnings each, SSE builds 0 ymm/zmm instructions (build_harness_r14.sh, logs/build_harness_r14.log).
+- Runs (run_parity_hbig_r14.sh): per H a fresh dir, random nets of width H pre-generated with the R13 seeds 13451 / 13452 /
+  13453, then CR's parity_v2.sh unchanged (md5 9c124cc3 checked in the log; it keeps the given net and always rebuilds
+  ref_<s>.txt), forge-v2-bullet 70cbae12, the same legal-only 10k FENs.
+| H | stage a (AVX2 / SSE) | stage b | stage c | result |
+|---|---|---|---|---|
+| 768 | 10000/10000 / 10000/10000, max diff 0 | 10000/10000 / 10000/10000 | 10000/10000 / 10000/10000 | PARITY PASS, exit 0 |
+| 1024 | 10000/10000 / 10000/10000 | 10000/10000 / 10000/10000 | 10000/10000 / 10000/10000 | PARITY PASS, exit 0 |
+| 1536 | 10000/10000 / 10000/10000 | 10000/10000 / 10000/10000 | 10000/10000 / 10000/10000 | PARITY PASS, exit 0 |
+| 1536 planted bug (PARITY_MUTATE=1, own fresh dir) | 9999/10000 -> FAIL | - | - | exit 1, as required |
+Nonzero evals 9986-9996 per stage (no all-zero output); hashes of the 6 harness exes and 9 nets: logs/artifacts_r14_hbig.sha256;
+full log: logs/parity_r14_h768_h1024_h1536.log. Meaning: the trainer's feature lists + FORGENN2 layout + float32 reference
+match the engine's own loader / features / output kernel at every width the GPU request uses. Not covered: a trained net
+(needs a GPU window; bullet has no CPU backend).
+
+### Review milestone R14-P4-2 (structured self-review, NOT independent)
+- Reviewed: the r3_h copy (hash list: only nnue_weights.inc missing), build flags vs the R13 H256 builds, the parity runner
+  (fresh-dir guard, seeds, unchanged parity_v2.sh), the log. Candidate = tooling only.
+- Findings: the first build attempt failed on the embedded-net static_assert (expected after reading nnue.cpp; fixed by
+  the copy without that file); the runner that ran had a sed-mangled comment line (control characters inside one `#` line,
+  21 lines like the clean copy) - commands identical to build_harness_r14.sh. No other finding.
+- Next: GPU request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md).
+
 ## Next
-H768 / 1024 / 1536 parity (v2_eval harness builds with -DFORGE_NNUE_HIDDEN=<H>, AVX2 + SSE, random nets of width H, fresh
-dirs); then the GPU window request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md).
+GPU window request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md); training only in a window Engine NNUE gives.
