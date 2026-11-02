@@ -23,8 +23,11 @@ is needed in the window.
 ## Command (PowerShell; Idle on CPUs 0-3 like the queue's trainer; GPU visible)
 ```powershell
 $env:OMP_NUM_THREADS='1'; $env:MKL_NUM_THREADS='1'; $env:OPENBLAS_NUM_THREADS='1'; $env:TORCHINDUCTOR_COMPILE_THREADS='1'
-$env:TMP='F:\opus_scratch\r6\tmp'; $env:TEMP='F:\opus_scratch\r6\tmp'
-$env:TRITON_CACHE_DIR='F:\opus_scratch\r6\triton_cache'; $env:TORCHINDUCTOR_CACHE_DIR='F:\opus_scratch\r6\inductor_cache'
+# F: is write-forbidden for Opus: temp files and kernel caches go to C: (first use compiles the Triton kernels cold,
+# a few extra minutes; QA may instead point these at the queue's own F: caches if Engine NNUE allows it).
+New-Item -ItemType Directory -Force C:\o14b\gpu\tmp, C:\o14b\gpu\triton_cache, C:\o14b\gpu\inductor_cache | Out-Null
+$env:TMP='C:\o14b\gpu\tmp'; $env:TEMP='C:\o14b\gpu\tmp'
+$env:TRITON_CACHE_DIR='C:\o14b\gpu\triton_cache'; $env:TORCHINDUCTOR_CACHE_DIR='C:\o14b\gpu\inductor_cache'
 $env:PYTHONDONTWRITEBYTECODE='1'; $env:PYTHONUTF8='1'; $env:NNUE_FT_BACKEND='auto'
 $env:NNUE_DATA_LOADER_LIB='D:\o14b\ref\libtraining_data_loader.dll'   # still imported by the trainer; not used for batches
 $env:FORGE_FAST_LOADER_DIR='D:\o14b\fl\b5_install'
@@ -34,7 +37,7 @@ powershell -NoProfile -File D:\grok-pc-data\dwqww\.claude\worktrees\o14b-l1\opus
   -Exe F:\nnue_pytorch\venv\Scripts\python.exe -Out C:\o14b\gpu\fl_e1_stdout.log -Err C:\o14b\gpu\fl_e1_stderr.log -ArgLine `
   '-B opus_tools\guard_exec.py train.py F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack --validation-datasets F:\forge_j1_data\forge_holdout_013-014_j2.binpack --validation-size 1000000 --default-root-dir C:\o14b\gpu\fl_e1 --features K32H3^ --l1 1024 --batch-size 16384 --num-workers 4 --threads 2 --epoch-size 152500000 --max-epochs 1 --network-save-period 1 --save-top-k 1 --save-last-network False --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered --accelerator cuda --gamma 0.72 --fast-loader'
 ```
-(The command line contains no `train_resid` name, so the NNUE supervisor does not adopt it; the output folder does
+(Reads from F: only: the trainer copy is on D:, the data binpacks on F: are read-only. The command line contains no `train_resid` name, so the NNUE supervisor does not adopt it; the output folder does
 not start with `runs_`. `C:\o14b\gpu` must not exist before; create it right before the run.)
 
 ## During and after
