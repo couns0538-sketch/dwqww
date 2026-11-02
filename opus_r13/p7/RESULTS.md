@@ -1,4 +1,4 @@
-# R13 Phase 7 - fit the E3 eval post-processing values - DONE (fit run after the CR R13 fixes) - UNPROVEN
+# R13 Phase 7 - fit the E3 eval post-processing values - DONE (R13 fit; R14: CR 129d440e items, wide refit: Rule50Damp optimum ~81 past the option max 60) - UNPROVEN
 Branch `opus-r13-p7-e3fit` (from main). UNPROVEN: fitted values are proposals; only a gate decides.
 - E3 gate results checked first: no gate RUN_INFO under F:\forge_push or D:\grok-pc-data\forge_push uses EvalMatScale /
   EvalOptimism / EvalRule50Damp / DrawJitter (2026-11-01), so none is H0 yet -> all three value options are fitted.
