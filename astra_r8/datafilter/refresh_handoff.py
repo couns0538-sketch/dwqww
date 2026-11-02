@@ -31,7 +31,7 @@ APPROVED_PREVIOUS_SHA256 = '0b75136d5d3ead9881b8dc78f0b46ee55d918de499884272c790
 RECIPES = ('filtered_eval_v1', 'filtered_wdl_v1')
 TRAINING_NAMES = ('filtered_eval_stm_v1', 'filtered_wdl_stm_v1')
 MIN_MIRRORS = 1000
-TOOLING = ('convert_forge.py', 'result_codec.py', 'filter_positions.py',
+TOOLING = ('convert_forge.py', 'result_codec.py', 'filter_positions.py', 'pgn_input.py',
            'resource_policy.py', 'filter_lichess_rec.py', 'signcheck.py',
            'audit.py', 'audit_followup.py', 'audit_stm_roundtrip.py', 'audit_capture_cohort.py',
            'audit_raw_labels.py', 'independent_audit.py', 'clear_holdouts.py',

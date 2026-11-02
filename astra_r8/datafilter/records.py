@@ -4,15 +4,31 @@ import math
 import re
 import chess
 import chess.pgn
+from pgn_input import CheckedPGNInput
 
 EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
 
 class ResultGameBuilder(chess.pgn.GameBuilder):
     """Reject conflicting result tokens instead of silently preferring headers."""
+    def begin_game(self):
+        self.original_headers = {}
+        return super().begin_game()
+
     def visit_header(self, tagname, tagvalue):
+        if tagname in ('Result', 'Variant', 'FEN', 'SetUp'):
+            previous = self.original_headers.get(tagname)
+            if previous is not None and previous != tagvalue:
+                raise ValueError(f'conflicting PGN header: {tagname}')
+            self.original_headers[tagname] = tagvalue
         if tagname == 'Result' and tagvalue not in ('1-0', '0-1', '1/2-1/2', '*'):
             raise ValueError('invalid PGN result: ' + tagvalue)
         return super().visit_header(tagname, tagvalue)
+
+    def end_headers(self):
+        board = self.game.headers.board()
+        if type(board) is not chess.Board or board.chess960:
+            raise ValueError('PGN must describe standard chess')
+        return super().end_headers()
 
     def visit_result(self, result):
         header = self.game.headers.get('Result', '*')
@@ -22,7 +38,9 @@ class ResultGameBuilder(chess.pgn.GameBuilder):
 
 
 def read_pgn_game(fh):
-    game = chess.pgn.read_game(fh, Visitor=ResultGameBuilder)
+    checked = CheckedPGNInput(fh)
+    game = chess.pgn.read_game(checked, Visitor=ResultGameBuilder)
+    checked.finish(game is not None)
     if game is not None and game.errors:
         raise ValueError('malformed PGN')
     return game

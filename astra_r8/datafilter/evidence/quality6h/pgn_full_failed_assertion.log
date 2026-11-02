@@ -1,0 +1,131 @@
+........................................................................ [ 43%]
+............................................................. [ 81%]
+..........................FFFFF                                          [100%]
+================================== FAILURES ===================================
+_ test_standard_special_moves_preserved[r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1-e1g1] _
+
+fen = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', move = 'e1g1'
+
+    @pytest.mark.parametrize('fen,move', [
+        ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', 'e1g1'),
+        ('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', 'e8c8'),
+        ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', 'e5d6'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8q'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8n'),
+    ])
+    def test_standard_special_moves_preserved(fen, move):
+        board = chess.Board(fen)
+        game = chess.pgn.Game.from_board(board)
+        game.add_main_variation(chess.Move.from_uci(move))
+        parsed = read_pgn_game(io.StringIO(str(game) + '\n'))
+        assert parsed.board().fen(en_passant='fen') == fen
+>       assert next(parsed.mainline_moves()).uci() == move
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'Mainline' object is not an iterator
+
+astra_r8\datafilter\tests\test_strict_pgn.py:118: TypeError
+_ test_standard_special_moves_preserved[r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1-e8c8] _
+
+fen = 'r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', move = 'e8c8'
+
+    @pytest.mark.parametrize('fen,move', [
+        ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', 'e1g1'),
+        ('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', 'e8c8'),
+        ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', 'e5d6'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8q'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8n'),
+    ])
+    def test_standard_special_moves_preserved(fen, move):
+        board = chess.Board(fen)
+        game = chess.pgn.Game.from_board(board)
+        game.add_main_variation(chess.Move.from_uci(move))
+        parsed = read_pgn_game(io.StringIO(str(game) + '\n'))
+        assert parsed.board().fen(en_passant='fen') == fen
+>       assert next(parsed.mainline_moves()).uci() == move
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'Mainline' object is not an iterator
+
+astra_r8\datafilter\tests\test_strict_pgn.py:118: TypeError
+_ test_standard_special_moves_preserved[4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81-e5d6] _
+
+fen = '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', move = 'e5d6'
+
+    @pytest.mark.parametrize('fen,move', [
+        ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', 'e1g1'),
+        ('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', 'e8c8'),
+        ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', 'e5d6'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8q'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8n'),
+    ])
+    def test_standard_special_moves_preserved(fen, move):
+        board = chess.Board(fen)
+        game = chess.pgn.Game.from_board(board)
+        game.add_main_variation(chess.Move.from_uci(move))
+        parsed = read_pgn_game(io.StringIO(str(game) + '\n'))
+        assert parsed.board().fen(en_passant='fen') == fen
+>       assert next(parsed.mainline_moves()).uci() == move
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'Mainline' object is not an iterator
+
+astra_r8\datafilter\tests\test_strict_pgn.py:118: TypeError
+_ test_standard_special_moves_preserved[4k3/P7/8/8/8/8/8/4K3 w - - 0 81-a7a8q] _
+
+fen = '4k3/P7/8/8/8/8/8/4K3 w - - 0 81', move = 'a7a8q'
+
+    @pytest.mark.parametrize('fen,move', [
+        ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', 'e1g1'),
+        ('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', 'e8c8'),
+        ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', 'e5d6'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8q'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8n'),
+    ])
+    def test_standard_special_moves_preserved(fen, move):
+        board = chess.Board(fen)
+        game = chess.pgn.Game.from_board(board)
+        game.add_main_variation(chess.Move.from_uci(move))
+        parsed = read_pgn_game(io.StringIO(str(game) + '\n'))
+        assert parsed.board().fen(en_passant='fen') == fen
+>       assert next(parsed.mainline_moves()).uci() == move
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'Mainline' object is not an iterator
+
+astra_r8\datafilter\tests\test_strict_pgn.py:118: TypeError
+_ test_standard_special_moves_preserved[4k3/P7/8/8/8/8/8/4K3 w - - 0 81-a7a8n] _
+
+fen = '4k3/P7/8/8/8/8/8/4K3 w - - 0 81', move = 'a7a8n'
+
+    @pytest.mark.parametrize('fen,move', [
+        ('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1', 'e1g1'),
+        ('r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1', 'e8c8'),
+        ('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81', 'e5d6'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8q'),
+        ('4k3/P7/8/8/8/8/8/4K3 w - - 0 81', 'a7a8n'),
+    ])
+    def test_standard_special_moves_preserved(fen, move):
+        board = chess.Board(fen)
+        game = chess.pgn.Game.from_board(board)
+        game.add_main_variation(chess.Move.from_uci(move))
+        parsed = read_pgn_game(io.StringIO(str(game) + '\n'))
+        assert parsed.board().fen(en_passant='fen') == fen
+>       assert next(parsed.mainline_moves()).uci() == move
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: 'Mainline' object is not an iterator
+
+astra_r8\datafilter\tests\test_strict_pgn.py:118: TypeError
+============================== warnings summary ===============================
+astra_r8/datafilter/tests/test_integration.py: 14 warnings
+  F:\nnue_pytorch\venv\Lib\site-packages\torch\jit\_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+astra_r8/datafilter/tests/test_integration.py::test_real_checkpoint_sampler_lr_restore[False]
+  D:\grok-pc-data\dwqww\astra-r8-datafilter\astra_r8\datafilter\train_adapter.py:93: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    scheduler.step()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_standard_special_moves_preserved[r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1-e1g1]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_standard_special_moves_preserved[r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1-e8c8]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_standard_special_moves_preserved[4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81-e5d6]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_standard_special_moves_preserved[4k3/P7/8/8/8/8/8/4K3 w - - 0 81-a7a8q]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_standard_special_moves_preserved[4k3/P7/8/8/8/8/8/4K3 w - - 0 81-a7a8n]
+5 failed, 159 passed, 15 warnings, 11 subtests passed in 21.11s

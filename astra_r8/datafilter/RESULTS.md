@@ -14,9 +14,13 @@ AST parsing, frontmatter and local-link checks pass. The generic Skill Creator
 validator is unavailable in the pinned runtime because PyYAML is absent; no
 installed package was changed. No build/SIMD/timing job launched.
 
-Strict PGN reproduction: 20 failing cases before fixes; the first focused parser
-suite passes 51 checks after fixes. Additional token-boundary checks and focused
-review pending; old candidate/handoff remain historical, not current acceptance.
+Strict PGN milestone: 20 failures reproduced before fixes, plus invalid UTF-8
+reproduced separately. Frozen suite: 165 tests + 11 subtests PASS. Focused reviewer
+approved five pinned source files before actual corpus validation. The strict
+1M-position gate-PGN freeze passed in 225.243 seconds and reproduced
+`803daf0fd7e5d01d18ec182d5117e7c1d5133534a288b92e7d674a710b50ee66`.
+The 100k legacy train/validation hashes remain identical. No-flag parser behavior
+is unchanged. Prior handoff requires refresh for the changed local records module.
 
 ## 30-minute follow-up audit — complete and independently approved
 

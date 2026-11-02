@@ -12,6 +12,27 @@ Generic quick_validate.py could not import PyYAML in the pinned environment;
 preserved that limitation instead of altering the installed environment.
 Next: focused parser review after new boundary tests pass.
 
+## Six-hour continuation: strict PGN milestone
+
+Candidate: `evidence/quality6h/pgn_candidate.json` (five source hashes, base fe06dc87).
+Original lexical preflight wraps the installed parser API without copying parser
+implementation. It rejects ignored garbage, incomplete comments/variations,
+missing termination, non-standard variants and conflicting semantic headers.
+Result-aware conversion now decodes UTF-8 strictly; no-flag behavior is preserved.
+Main self-review found an overly permissive pawn token pattern and tightened it
+with regression cases. Five special-move tests initially used the library's
+collection as an iterator; corrected the assertions and preserved the failed log.
+Initial source tests: 20 RED failures; UTF-8 test RED; final 165 tests + 11 subtests
+PASS. Native npt test warnings remain the previously recorded warnings.
+
+One narrow read-only final_review subagent inspected the frozen five files,
+immediate callers and actual installed parser interaction; no further agents or
+expensive tests. All hashes matched and no blocking defect was found. APPROVED
+actual PGN and legacy reruns. Main then completed the 1M real-PGN freeze with the
+same historical hash and 100k separate train/val byte identity. Sources remained
+frozen throughout. Next: converter configuration/source identity and broader data
+profile. No refreshed handoff or strength acceptance is claimed at this checkpoint.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

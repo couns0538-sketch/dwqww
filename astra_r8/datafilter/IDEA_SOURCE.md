@@ -44,3 +44,8 @@ implementation was copied. `audit_capture_cohort.py` records source paths and
 SHA256 values for match.cpp, pgn_builder.cpp, uci_engine.cpp and LICENSE under
 `C:/Users/Administrator/grok-pc/tools/fastchess`. This source inspection does not
 relicense other datasets or authorize copying GPL/AGPL implementations.
+
+The strict PGN preflight is original code. The installed python-chess parser and
+its public visitor API were inspected, along with [upstream parser documentation](https://github.com/niklasf/python-chess/blob/master/chess/pgn.py)
+via Context7, to understand forgiving recovery and variant handling. No parser
+implementation was copied; the library still handles SAN legality and game trees.

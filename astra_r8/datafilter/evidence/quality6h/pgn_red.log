@@ -1,0 +1,356 @@
+FFFFFFFFFFF.FFFFFFFF.F                                                   [100%]
+================================== FAILURES ===================================
+___________________ test_nonstandard_pgn_rejected[Chess960] ___________________
+
+variant = 'Chess960'
+
+    @pytest.mark.parametrize('variant', ['Chess960', 'Atomic', 'Suicide', 'Three-check', 'Crazyhouse'])
+    def test_nonstandard_pgn_rejected(variant):
+        text = f'[Variant "{variant}"]\n[Result "1-0"]\n\n1. e4 {{+0.20/12}} 1-0\n'
+>       with pytest.raises(ValueError, match='standard chess'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:13: Failed
+____________________ test_nonstandard_pgn_rejected[Atomic] ____________________
+
+variant = 'Atomic'
+
+    @pytest.mark.parametrize('variant', ['Chess960', 'Atomic', 'Suicide', 'Three-check', 'Crazyhouse'])
+    def test_nonstandard_pgn_rejected(variant):
+        text = f'[Variant "{variant}"]\n[Result "1-0"]\n\n1. e4 {{+0.20/12}} 1-0\n'
+>       with pytest.raises(ValueError, match='standard chess'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:13: Failed
+___________________ test_nonstandard_pgn_rejected[Suicide] ____________________
+
+variant = 'Suicide'
+
+    @pytest.mark.parametrize('variant', ['Chess960', 'Atomic', 'Suicide', 'Three-check', 'Crazyhouse'])
+    def test_nonstandard_pgn_rejected(variant):
+        text = f'[Variant "{variant}"]\n[Result "1-0"]\n\n1. e4 {{+0.20/12}} 1-0\n'
+>       with pytest.raises(ValueError, match='standard chess'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:13: Failed
+_________________ test_nonstandard_pgn_rejected[Three-check] __________________
+
+variant = 'Three-check'
+
+    @pytest.mark.parametrize('variant', ['Chess960', 'Atomic', 'Suicide', 'Three-check', 'Crazyhouse'])
+    def test_nonstandard_pgn_rejected(variant):
+        text = f'[Variant "{variant}"]\n[Result "1-0"]\n\n1. e4 {{+0.20/12}} 1-0\n'
+>       with pytest.raises(ValueError, match='standard chess'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:13: Failed
+__________________ test_nonstandard_pgn_rejected[Crazyhouse] __________________
+
+variant = 'Crazyhouse'
+
+    @pytest.mark.parametrize('variant', ['Chess960', 'Atomic', 'Suicide', 'Three-check', 'Crazyhouse'])
+    def test_nonstandard_pgn_rejected(variant):
+        text = f'[Variant "{variant}"]\n[Result "1-0"]\n\n1. e4 {{+0.20/12}} 1-0\n'
+>       with pytest.raises(ValueError, match='standard chess'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:13: Failed
+_ test_conflicting_semantic_headers_rejected[[Result "0-1"]\n[Result "1-0"]] __
+
+header = '[Result "0-1"]\n[Result "1-0"]'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "0-1"]\n[Result "1-0"]',
+        '[Variant "Atomic"]\n[Variant "Standard"]',
+        '[SetUp "0"]\n[SetUp "1"]',
+        f'[FEN "{chess.STARTING_FEN}"]\n[FEN "4k3/8/8/8/8/8/8/4K3 w - - 0 1"]',
+    ])
+    def test_conflicting_semantic_headers_rejected(header):
+>       with pytest.raises(ValueError, match='conflicting PGN header'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:24: Failed
+_ test_conflicting_semantic_headers_rejected[[Variant "Atomic"]\n[Variant "Standard"]] _
+
+header = '[Variant "Atomic"]\n[Variant "Standard"]'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "0-1"]\n[Result "1-0"]',
+        '[Variant "Atomic"]\n[Variant "Standard"]',
+        '[SetUp "0"]\n[SetUp "1"]',
+        f'[FEN "{chess.STARTING_FEN}"]\n[FEN "4k3/8/8/8/8/8/8/4K3 w - - 0 1"]',
+    ])
+    def test_conflicting_semantic_headers_rejected(header):
+>       with pytest.raises(ValueError, match='conflicting PGN header'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:24: Failed
+____ test_conflicting_semantic_headers_rejected[[SetUp "0"]\n[SetUp "1"]] _____
+
+header = '[SetUp "0"]\n[SetUp "1"]'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "0-1"]\n[Result "1-0"]',
+        '[Variant "Atomic"]\n[Variant "Standard"]',
+        '[SetUp "0"]\n[SetUp "1"]',
+        f'[FEN "{chess.STARTING_FEN}"]\n[FEN "4k3/8/8/8/8/8/8/4K3 w - - 0 1"]',
+    ])
+    def test_conflicting_semantic_headers_rejected(header):
+>       with pytest.raises(ValueError, match='conflicting PGN header'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:24: Failed
+_____________ test_conflicting_semantic_headers_rejected[header3] _____________
+
+header = '[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n[FEN "4k3/8/8/8/8/8/8/4K3 w - - 0 1"]'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "0-1"]\n[Result "1-0"]',
+        '[Variant "Atomic"]\n[Variant "Standard"]',
+        '[SetUp "0"]\n[SetUp "1"]',
+        f'[FEN "{chess.STARTING_FEN}"]\n[FEN "4k3/8/8/8/8/8/8/4K3 w - - 0 1"]',
+    ])
+    def test_conflicting_semantic_headers_rejected(header):
+>       with pytest.raises(ValueError, match='conflicting PGN header'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'conflicting PGN header'
+E         Actual message: 'malformed PGN'
+
+astra_r8\datafilter\tests\test_strict_pgn.py:24: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    chess.pgn:pgn.py:1084 error during pgn parsing
+Traceback (most recent call last):
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 1555, in read_game
+    move = visitor.parse_san(board_stack[-1], token)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\pgn.py", line 938, in parse_san
+    return board.parse_san(san)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "F:\nnue_pytorch\venv\Lib\site-packages\chess\__init__.py", line 2832, in parse_san
+    raise ValueError(f"illegal san: {san!r} in {self.fen()}")
+ValueError: illegal san: 'e4' in 4k3/8/8/8/8/8/8/4K3 w - - 0 1
+___________ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12] ___________
+
+movetext = '1. e4 {+0.20/12'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+_ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} totally_broken 1-0] _
+
+movetext = '1. e4 {+0.20/12} totally_broken 1-0'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+_______ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} ) 1-0] ________
+
+movetext = '1. e4 {+0.20/12} ) 1-0'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+_______ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} } 1-0] ________
+
+movetext = '1. e4 {+0.20/12} } 1-0'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+__________ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12}] ___________
+
+movetext = '1. e4 {+0.20/12}'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+_______ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} 1-0 e5] _______
+
+movetext = '1. e4 {+0.20/12} 1-0 e5'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+_______ test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} -- 1-0] _______
+
+movetext = '1. e4 {+0.20/12} -- 1-0'
+
+    @pytest.mark.parametrize('movetext', [
+        '1. e4 {+0.20/12',
+        '1. e4 {+0.20/12} totally_broken 1-0',
+        '1. e4 {+0.20/12} (1. d4 1-0',
+        '1. e4 {+0.20/12} ) 1-0',
+        '1. e4 {+0.20/12} } 1-0',
+        '1. e4 {+0.20/12}',
+        '1. e4 {+0.20/12} 1-0 e5',
+        '1. e4 {+0.20/12} -- 1-0',
+    ])
+    def test_structurally_damaged_pgn_rejected(movetext):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:39: Failed
+________________ test_malformed_header_rejected[[Result "1-0"] ________________
+
+header = '[Result "1-0"'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "1-0"', '[Result "1-0"] trailing', '[Result 1-0]',
+    ])
+    def test_malformed_header_rejected(header):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:47: Failed
+___________ test_malformed_header_rejected[[Result "1-0"] trailing] ___________
+
+header = '[Result "1-0"] trailing'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "1-0"', '[Result "1-0"] trailing', '[Result 1-0]',
+    ])
+    def test_malformed_header_rejected(header):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:47: Failed
+________________ test_malformed_header_rejected[[Result 1-0]] _________________
+
+header = '[Result 1-0]'
+
+    @pytest.mark.parametrize('header', [
+        '[Result "1-0"', '[Result "1-0"] trailing', '[Result 1-0]',
+    ])
+    def test_malformed_header_rejected(header):
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:47: Failed
+_____________ test_bad_later_game_does_not_hide_an_earlier_label ______________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/pgn_red/pytest/test_bad_later_game_does_not_h0')
+
+    def test_bad_later_game_does_not_hide_an_earlier_label(tmp_path):
+        source = tmp_path / 'two.pgn'
+        source.write_text('[Result "1-0"]\n\n1.e4 {+0.20/12} 1-0\n\n'
+                          '[Result "0-1"]\n\n1.d4 {+0.20/12} broken 0-1\n')
+        rows = read_records(source, 'pgn')
+        assert next(rows)['result_white'] == 1
+>       with pytest.raises(ValueError, match='PGN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:71: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_nonstandard_pgn_rejected[Chess960]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_nonstandard_pgn_rejected[Atomic]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_nonstandard_pgn_rejected[Suicide]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_nonstandard_pgn_rejected[Three-check]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_nonstandard_pgn_rejected[Crazyhouse]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_conflicting_semantic_headers_rejected[[Result "0-1"]\n[Result "1-0"]]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_conflicting_semantic_headers_rejected[[Variant "Atomic"]\n[Variant "Standard"]]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_conflicting_semantic_headers_rejected[[SetUp "0"]\n[SetUp "1"]]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_conflicting_semantic_headers_rejected[header3]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} totally_broken 1-0]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} ) 1-0]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} } 1-0]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12}]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} 1-0 e5]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_structurally_damaged_pgn_rejected[1. e4 {+0.20/12} -- 1-0]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_malformed_header_rejected[[Result "1-0"]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_malformed_header_rejected[[Result "1-0"] trailing]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_malformed_header_rejected[[Result 1-0]]
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_bad_later_game_does_not_hide_an_earlier_label
+20 failed, 2 passed in 3.96s

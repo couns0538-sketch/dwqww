@@ -152,6 +152,15 @@ adapter correctness, and playing strength UNPROVEN until crew-owned gates pass.
 
 ## Handoff record
 
+When using a forgiving PGN library for training data, inspect its actual recovery
+behavior. A populated game object and empty parser error list do not prove that
+every token was understood: garbage and incomplete comments can be ignored.
+Reject unsupported variants before emitting ordinary-chess records, bind both
+header and movetext outcomes, and reject conflicting repeated semantic headers.
+Keep a strict structural preflight original and separate from library move
+legality; test ordinary exports, variations, special moves and UTF-8 damage.
+Preserve legacy parser behavior on an explicitly compatible no-flag interface.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

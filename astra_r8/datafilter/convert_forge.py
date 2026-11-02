@@ -47,7 +47,7 @@ def keep(b, w, mv):
     out.append(encoded)
 throttle()
 for f in a.pgn:
-    fh = open(f, encoding='utf-8', errors='ignore')
+    fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
     source_game = 0
     while True:
         g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)

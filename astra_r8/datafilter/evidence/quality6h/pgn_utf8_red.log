@@ -1,0 +1,52 @@
+..............................F                                          [100%]
+================================== FAILURES ===================================
+_________________ test_result_converter_rejects_invalid_utf8 __________________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/pgn_utf8_red/pytest/test_result_converter_rejects_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195BA2A0>
+
+    def test_result_converter_rejects_invalid_utf8(tmp_path, monkeypatch):
+        from test_integrity_regressions import pgn_fixture, converter
+        source = pgn_fixture(tmp_path / 'damaged.pgn')
+        source.write_bytes(source.read_bytes().replace(b'/12}', b'/12\xff}', 1))
+>       with pytest.raises(UnicodeDecodeError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE UnicodeDecodeError
+
+astra_r8\datafilter\tests\test_strict_pgn.py:125: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+ "games": 4,
+ "moves": 4,
+ "book_or_noeval": 0,
+ "mate": 0,
+ "shallow": 0,
+ "check": 0,
+ "pieces_gt_max": 0,
+ "capture_promo": 0,
+ "gameover": 0,
+ "clipped": 0,
+ "sp_lines": 0,
+ "sp_bad": 0,
+ "kept": 4,
+ "signcheck": {
+  "n": 4,
+  "corr_white_material": 1.0,
+  "mirror": "ok"
+ },
+ "dupes": 0,
+ "final": 4,
+ "train": 3,
+ "val": 1,
+ "mean": 0.0,
+ "std": 900.0,
+ "abs_median": 900.0,
+ "black_to_move": 0.5,
+ "min_depth": 10,
+ "sources": [
+  "C:\\astra8_data\\quality6h_20261102\\pgn_utf8_red\\pytest\\test_result_converter_rejects_0\\damaged.pgn"
+ ]
+}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_strict_pgn.py::test_result_converter_rejects_invalid_utf8
+1 failed, 30 passed in 4.19s
