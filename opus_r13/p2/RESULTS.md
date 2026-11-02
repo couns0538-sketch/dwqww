@@ -113,4 +113,10 @@ core; QA does the official timing. The sparse L1 stays stopped.
 | plain build, switch 0 / switch 1 (lock g++ line + Expose, znver5) | 0 warnings each, vfmadd 0; sha256 8b36eb30 / 7d2535cd | speed2/logs/plain_*_build.log, plain_codegen.txt |
 | node identity (kit lp_check.py, frozen bench_fens): switch 1 vs switch 0 vs lock pins | ALL OK: bench d11-d22 312866 / 862329 / 3024920 / 12389307 / 34048354, perft 4865609 / 193690690, 8 FENs nodes + bestmoves | speed2/logs/plain_identity_off_vs_on.txt |
 | switch is live (codegen, since nodes cannot show it) | prefetch instructions 3 -> 5 (the two new sites); modulo-by-6 idiom (imul 0x2aaaaaab) 68 -> 11 (table piece_type) | speed2/logs/plain_codegen.txt |
-| kit v2.3 -Expose LTO+PGO: s2on pc1 + pc2 (candidate), s2off pc1 (identity vs FD3A5190) | running | - |
+| kit v2.3 -Expose LTO+PGO, switch ON (s2on, default-1 variant), two clean rebuilds (work D:\o14a\w, CPUs 2-3) | **pc1 = pc2 = de20653cea8ce61027223ae3a11e79e75d08a09df57a0e5de02959ad9ed235c8**, RESULT PASS both; NODE IDENTITY ALL OK = lock pins (bench d11-d22, perft, 8 FENs, plain = LTO+PGO); real missing-profile warnings 0; -flto on the link line | speed2/logs/kit_s2/ |
+| kit build of the switch-0 source (s2off, the patch applied, default 0) | **sha256 fd3a51903e73dc1f... = the lock exe FD3A5190 byte for byte**: with the switch off the build reproduces the lock exactly | speed2/logs/kit_s2/SUMMARY_s2off_pc1.txt, run_kit_speed2.log |
+| uci output, lock vs SPEED2 ON exe | identical (64 lines, 61 options; a build switch adds no option) | speed2/logs/kit_s2/uci_*.txt |
+| T1 + T4 movetime 1000 smoke on the SPEED2 exe, 4 positions | 8 / 8 legal bestmoves; mate probe 19 mates (= the lock's OFF count, node-identical) | speed2/logs/kit_s2/cand_checks_speed2.json |
+| CI ASan+UBSan self-play (run 41424824966, 17d55775): lock + patch at -DFORGE_SEARCH_SPEED2=0 and =1, Threads 1 and 2, 4 games each | PASS: 0 illegal, 0 sanitizer lines; at Threads 1 both builds play the same 520 moves (node-identical) | speed2/logs/ci_san_41424824966.txt |
+| handoff exe | `D:\o14a\handoff\speed2orge_ltopgo_speed2_de20653c.exe` (copy of s2on_pc1) | - |
+| advisory ABBA vs the lock (r12_speed.py, CPU 2, 10 pairs + 3 A/A, d16 / d20) | next (after the own Idle P7 fit frees CPUs 2-3) | - |
