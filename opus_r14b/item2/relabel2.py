@@ -496,6 +496,7 @@ def main(argv=None) -> int:
     p.add_argument("--val-ppm", type=int, default=10000)
     p.add_argument("--salt", default="r14b")
     p.add_argument("--drop-terminal", action="store_true")
+    p.add_argument("--mask", default="0xC")
     r = sub.add_parser("run")
     r.add_argument("--job", required=True)
     r.add_argument("--run-id", required=True)
@@ -511,9 +512,12 @@ def main(argv=None) -> int:
     s = sub.add_parser("assemble")
     s.add_argument("--job", required=True)
     s.add_argument("--run-id", required=True)
+    s.add_argument("--mask", default="0xC")
     t = sub.add_parser("status")
     t.add_argument("--job", required=True)
     a = ap.parse_args(argv)
+    if a.cmd in ("prepare", "assemble"):
+        lower_priority(int(a.mask, 16))  # run does it itself, after its configuration checks
     try:
         return {"prepare": cmd_prepare, "run": cmd_run, "assemble": cmd_assemble, "status": cmd_status}[a.cmd](a)
     except BadInput as e:
