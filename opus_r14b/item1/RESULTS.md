@@ -25,7 +25,8 @@ switch on, the trainer prints `Fast loader: ON (<version>, <DLL path>, sha256 <.
 | self-test (independent no-filter reference, thread-count invariance, row invariants, 7 format errors, destroy while running, window < batch, acceptance 0, double release) | b5: ALL PASSED locally (`_GLIBCXX_ASSERTIONS`); CI ASan+UBSan and TSan: b4 version passed (run 41441092765), b5 version: see the next push | `fastloader/ffl_selftest.cpp`, `.github/workflows/ffl-sanitize.yml` |
 | **trainer path: old SparseBatchDataset (w1) vs FastSparseBatchDataset b5 (w4), through FixedNumBatchesDataset + DataLoader, every tensor (8 per batch)** | **261 / 261 batches identical (200 train + 61 validation)** | logs/dataset/ds_*.tsv (`tools/fl_dataset_equal.py`) |
 | CPU loss match at 2 threads (K32H3^ L1 256, 64 batches, seed 5117, no validation stream): old arm (old DLL w1) vs fast arm (b5 + installer patch, `--num-workers 2 --fast-loader`) | losses NOT equal (epoch 0.016163233667612076 vs 0.016393575817346573; step 13 0.019647 vs 0.019793) although the trainer receives identical tensors (row above): 2-thread CPU training is not bit-reproducible -> deterministic pair below. Fast arm 11.4 min vs old 40.2 min on the same 2 CPUs (the old loader's threads take CPU from torch); peak private RAM 4.08 vs 6.2 GB; no RAM-floor trip | logs/lossmatch/ |
-| CPU loss match, deterministic (1 thread, `torch.use_deterministic_algorithms`, 16 batches): fast twice, then old | RUNNING (14:05; first attempt failed at import: wrapper did not put the trainer root on sys.path, fixed) | `D:\o14b\lm\det3_*` |
+| CPU loss match, deterministic attempt 1 (1 thread, `torch.use_deterministic_algorithms`, 16 batches): fast twice | **fast vs fast also differs** (epoch 0.020004266873002052 vs 0.02009074203670025) -> the trainer itself is not reproducible: see "Finding for Engine NNUE" below | `D:\o14b\lm\det3_*` |
+| CPU loss match, deterministic attempt 2 (as attempt 1 + seeds set before the model is built, `tools/lm_det.py`): fast twice, then old | RUNNING (14:10) | `D:\o14b\lm\det4_*` |
 | b5 vs old: train 1000 batches, validation cyclic / finite, config matrix, batches spanning windows past a file wrap | TODO (`tools/b5_checks.sh`, after the deterministic pair) | - |
 | speed ABBA (>= 10 pairs, CPUs 2-3, BelowNormal) | TODO | - |
 | GPU window epoch | TODO (GPU_REQUEST.md) | - |
@@ -33,6 +34,15 @@ switch on, the trainer prints `Fast loader: ON (<version>, <DLL path>, sha256 <.
 The L1 1024 CPU loss match with a validation stream hit the 7 GB RAM floor (guard abort at 6.98 GB free, own private
 8.36 GB; the old loader alone holds up to 9 windows x 235 MB per stream and reads ~10x ahead). The recorded pair uses
 L1 256 without a validation stream; the loader output does not depend on the net width.
+
+## Finding for Engine NNUE: `--seed` does not make npt runs reproducible (independent of the loader)
+`train.py` builds the model (line ~252) before it calls `torch.manual_seed(args.seed)` (line ~278), and this torch
+build (2.11.0+rocm7.13.0) seeds its default generator from the clock in every process (two fresh processes:
+`torch.initial_seed()` 271615243781900 vs 271624007961800, different `torch.rand(3)`). So every npt run starts from
+different initial weights whatever `--seed` says; two CPU runs with the same loader and data differed from the first
+logged step. Optional fix (NOT applied anywhere): `patches/0006-seed-before-model-OPTIONAL.patch` (seed before the
+model is built; the later seeding stays). Engine NNUE decides; the loss match here uses the same fix inside its own
+test wrapper `tools/lm_det.py` instead of changing the trainer.
 
 ## Why "old --num-workers 1" is the reference
 The live line runs `--num-workers 4` = 3 decode workers + 1 builder. Its decode workers race for chunks and each

@@ -1,0 +1,16 @@
+diff --git a/train.py b/train.py
+index 3980e82..f55b4d3 100644
+--- a/train.py
++++ b/train.py
+@@ -234,6 +234,11 @@ def main():
+     feature_name = args.nnue_config.features
+ 
+     max_epoch = args.max_epochs or 800
++    # Seed before the model is built: its initial weights come from the default generator (time-seeded per
++    # process in torch 2.11.0+rocm7.13.0), so seeding after creation leaves every run with a different init.
++    torch.manual_seed(args.seed)
++    random.seed(args.seed)
++    np.random.seed(args.seed)
+     if args.resume_from_model is None:
+         nnue = M.NNUE(
+             config=args.nnue_config,
