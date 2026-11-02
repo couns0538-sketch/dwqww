@@ -117,3 +117,12 @@ GPU window request (R14 Main item 1, opus_r14/b/GPU_REQUEST.md); training only i
   parity and build claims above match logs/parity_r14_*.log and logs/cargo_build_full_r14.log.
 - Found + fixed: opus_r14/b/GPU_REQUEST.md said "the runner checks them itself" - no run wrapper exists yet; reworded (the
   wrapper comes with the first window and must check before and during each run).
+
+## R14 Main item 1 - ROCm build ready, GPU window still missing
+- `opus_r14/b/build_rocm_r14.bat` (Engine NNUE's per-process environment: vcvars64, read-only HIP_PATH of the npt venv,
+  GCN_ARCH_NAME gfx1100; target / TEMP / CARGO_HOME on D: or my C:\o13 copy; Idle, CPUs 2-3, 1 job): `--features rocm
+  --offline` Finished in 1m31s, 0 warnings, no link error; forge-v2-bullet.exe sha256 0028dd9c...; imports amdhip64_7 /
+  hipblas / hiprtc07013 (logs/cargo_build_rocm_r14.log). Not run: loading the HIP runtime waits for a window.
+- Blocker: the npt keeper (`grok-pc\forge_push\npt_keeper\STATUS.md`) holds the GPU with npt lines until 2026-11-08 and
+  inserts fresh-seed npt lines when the queue head is not npt; no window from Engine NNUE so far. Request:
+  opus_r14/b/GPU_REQUEST.md.
