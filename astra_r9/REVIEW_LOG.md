@@ -94,3 +94,8 @@ limitations disclosed. No unresolved finding and no additional source change.
 Final safety/artifact audit PASS; no owned engine/compiler remains and disk reserves
 and workspace size satisfy limits. Pending labels closed. Next: final push and
 remote-HEAD verification; official timing remains with Engine QA.
+
+Publication check: f2b736f0117a658b29e530fcf80a391f31a996bd matched remote HEAD;
+working tree clean. Default Git whitespace check flagged Windows CRLF evidence;
+reran with cr-at-eol plus normal whitespace rules and passed (exit0), preserving
+all raw evidence bytes. No substantive change after final review.

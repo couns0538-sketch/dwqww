@@ -108,7 +108,8 @@ review findings, fixes and validation attribution.
 - Brief T4 smoke used the user's approved exception, confined to CPUs 2/3.
 - Final safety/artifact audit PASS: D:\a9 used 1,083,662,553 bytes before final Git
   packaging; C: free 164,629,540,864 bytes and D: free 81,198,305,280 bytes. No owned
-  engine/compiler process remained. Final Git publication is verified separately.
+  engine/compiler process remained. Proof/artifact publication commit
+  `f2b736f0117a658b29e530fcf80a391f31a996bd` was verified against remote HEAD.
 - QA TODO: official independent timing of the supplied production executable with
   `NNUEWideOutput=true`; leave the option default-off pending crew disposition.
 

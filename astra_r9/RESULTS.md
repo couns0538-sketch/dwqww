@@ -55,7 +55,9 @@ All-attempt paired gain +1.518022%, IQR 6.998095 points. All rows and rejected
 blocks retained. Full table: TIMING_TABLES.md. Prior nine-block checkpoint's manual
 16:10 label was approximate and late; commit was at 16:07–16:08. Raw UTC rows prevail.
 
-Next: final push verification; Engine QA owns official timing. Fresh audit04 PASS1226;
+Publication verified: proof/artifact commit f2b736f0117a658b29e530fcf80a391f31a996bd
+matches the remote branch; working tree clean at that verification. Next: Engine QA
+official timing and crew disposition. Fresh audit04 PASS1226;
 packaged executable hash matches b1/b2. FINAL_REPORT.md contains the proof, limitations
 and QA line. Official timing remains Engine QA's responsibility.
 All-attempt unpaired NPS medians are lock 2188345 versus candidate 2160675 (lower
