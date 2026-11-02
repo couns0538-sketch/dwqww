@@ -32,8 +32,9 @@ export R6_MIN_FREE_GB=7 R6_GUARD_LOG="$outw\\guard.jsonl"
 export FORGE_FAST_LOADER_DIR=${FORGE_FAST_LOADER_DIR:-'D:\o14b\fl\b5_install'}  # forge_fastloader.py + .dll
 script=train.py
 if [ "${LM_DET:-0}" = 1 ]; then  # torch.use_deterministic_algorithms(True) around train.py (tools/lm_det.py)
-  cp -n "$here/lm_det.py" "$npt/opus_tools/lm_det.py"
-  script='opus_tools\\lm_det.py'
+  h=$(sha256sum "$here/lm_det.py" | cut -c1-8)  # content-named copy: a stale wrapper is never reused
+  cp -n "$here/lm_det.py" "$npt/opus_tools/lm_det_$h.py"
+  script="opus_tools\\lm_det_$h.py"
 fi
 args="-B opus_tools\\guard_exec.py $script F:\\forge_j1_data\\forge_train_001-039_ex013-014_j2.binpack"
 l1=${LM_L1:-1024}

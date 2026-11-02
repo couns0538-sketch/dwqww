@@ -10,5 +10,6 @@ import torch
 
 torch.use_deterministic_algorithms(True)
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+sys.path.insert(0, os.getcwd())  # the trainer root (train.py imports data_loader, model, trainer from there)
 sys.argv = ["train.py"] + sys.argv[1:]
 runpy.run_path(os.path.join(os.getcwd(), "train.py"), run_name="__main__")
