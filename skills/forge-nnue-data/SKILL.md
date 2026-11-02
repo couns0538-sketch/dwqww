@@ -106,5 +106,9 @@ description: Where the Forge NNUE training data, holdouts, runs, nets and conver
   count rises or a castling right reappears (never splits a real game). Raw self-play files are game-ordered; every
   game starts at ply 8-11 (opening book). Split = sha256(salt | game id) mod 1e6 < val ppm.
 - At 500 nodes some positions cannot finish depth 1 (`insufficient_budget`): the run stops by design; use >= 5k nodes.
-- Kill / resume proof driver `opus_r14b/item2/prove_resume.sh` (prepare A + B, run A, run B with a hard exit and an
-  external stop, assemble, md5 compare). Session permissions block `kill`: stop an own background run with TaskStop.
+- Kill / resume proof driver `opus_r14b/item2/prove_resume.sh` (steps prepare / runA / runB1 / runB2 / runB / finish:
+  run B exits hard twice via `--test-kill-after-seconds` = `os._exit(137)` from a watchdog thread, then resumes;
+  finish assembles both jobs and compares md5). TaskStop does NOT stop a run (only its outer shell) and the session
+  cannot end processes: bound long runs with `--until "YYYY-MM-DD HH:MM"` / `--max-shards K` instead.
+- Use finished self-play files only: the newest `forge_selfplay_NNN.txt` is still being appended by the live self-play
+  (the dev version of relabel2.py hashes every input before and after reading and stops with exit 2 if it changed).

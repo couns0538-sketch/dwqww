@@ -23,6 +23,14 @@ $PY -I -B $R status --job C:/<job dir>
 Astra's filter (`filter_positions.py`, branch astra-r8-datafilter) runs before or after as Engine NNUE decides; its
 normalized JSONL output is accepted with `--normalized` when the rows are in source order.
 
+Rules for the big job:
+- Prepare the whole dataset in ONE job. Game ids (`s<origin>g<n>`) and the split are defined per job: two jobs that
+  share an input file give its games two ids each, so merging their outputs could put a game in train and val.
+- Finished self-play files only: the newest `forge_selfplay_NNN.txt` is still being written by the live self-play
+  (the post-proof relabel2.py hashes each input before and after reading and stops with exit 2 when it changed; it
+  also refuses the same file or the same content twice).
+- One process per job (the post-proof version holds `job.lock`; a second `run` stops with exit 3).
+
 ## Cost (measured 2026-11-02 on the 1M proof runs; 20,000 nodes, Hash 1 MB, 1 thread per probe)
 | quantity | value | source |
 |---|---|---|
