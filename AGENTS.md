@@ -1,6 +1,8 @@
-# Forge Astra R10
+# Forge Astra R11
 
-Work only on astra-r10-3jobs, under D:\a10. The imported src/ and include/ retain the R9 candidate over AL1 s198. Preserve all evidence and immutable candidate binaries. Never alter accepted weights; the explicit one-weight negative control belongs in a separately identified disposable copy. All task-specific instructions in Couns's request and the approved R10 plan apply. Earlier branches, Opus folders/branches and production queues are read-only and must remain untouched. F: is forbidden. All results are UNPROVEN pending crew gates.
+Work only on astra-r11-gameprov from e6868fd56ebb3991ee197af6be29f3dd14a4d1c2. All worktrees, Git objects, outputs, runtime and caches belong under D:\a11. Never access F: or D:\a10. Existing datasets and historic source files are read-only. Do not access any .nnue file, lock FD3A5190, live queues or forge_queue_state.json. Never kill/suspend/pause other processes; no STOP/PAUSE files. CPU only, Idle, verified spare CPUs, no GPU/training/strength claims. Keep C: >=30 GiB and D: >=50 GiB plus next bounded reservation. Preserve all failed evidence.
+
+Approved plan: astra_r11/PLAN.md. Complete original 013/014 authentic provenance is mandatory; missing holdout IDs means BLOCKED. Never fabricate IDs from row numbers, FEN boundaries or shard names. The exact CR prerequisite files are inert, hash-pinned historical repairs; implement R11 adaptations separately. Preserve all sealed R10 packs. All results UNPROVEN pending crew gates. Update STATUS.md and RESUME.md and commit/push hourly. Skill improvements stay in this branch, not C:.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
