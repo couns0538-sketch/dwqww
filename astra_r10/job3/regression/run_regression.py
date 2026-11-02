@@ -6,7 +6,9 @@ never skips or substitute fixture passes.
 """
 from __future__ import annotations
 import argparse
+import faulthandler
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -15,15 +17,43 @@ import sys
 import time
 import toolchain_binding
 import runtime_binding
-from pytest_alias_guard import record_current_aliases
 
 sys.dont_write_bytecode = True
 ROOT = Path('D:/a10')
 HERE = Path(__file__).resolve().parent
-RUNTIME = ROOT/'job3/runtime312np254'
+RUNTIME = ROOT/'job3/runtime312'
 NPT = Path('D:/grok-pc-data/npt/nnue-pytorch-amd')
 DLL = NPT/'build/libtraining_data_loader.dll'
 NPT_SOURCE_TREES = ('data_loader', 'ddp_utils', 'model', 'trainer')
+# CR crfix b25b207d: shared CPU2-3 lane guard (crfix_abcbb9c9 lane_guard.py, md5 596ecbe6)
+LANE_GUARD = ROOT/'wt/astra_r10/job1/lane_guard.py'
+LANE_CPUS = {2, 3}
+# Hard wall bound for the in-process suite; UNPROVEN size (historical suite time unknown).
+SUITE_TIMEOUT_SECONDS = 4*3600
+
+
+def load_lane_guard(path=None):
+    path = Path(LANE_GUARD if path is None else path)
+    spec = importlib.util.spec_from_file_location('r10_lane_guard', path)
+    if spec is None or spec.loader is None:
+        raise ValueError('lane guard missing: '+str(path))
+    module = importlib.util.module_from_spec(spec)
+    saved = list(sys.path)  # lane_guard prepends D:/a10/pydeps; keep later NPT imports unaffected
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path[:] = saved
+    return module
+
+
+def lane_gate(proc, idle, guard, out, name):
+    """Refuse unless Idle, pinned inside CPUs 2-3 and the lane/RAM guard is clear."""
+    cpus = set(proc.cpu_affinity())
+    if proc.nice() != idle or not cpus or not cpus <= LANE_CPUS:
+        raise ValueError('Idle and affinity inside CPUs 2-3 required')
+    record = guard.check_lane(proc)
+    write_new(out/name, {'affinity': sorted(cpus), 'guard': str(LANE_GUARD), 'guard_sha256': identity(guard.__file__)['sha256'], **record})
+    return record
 
 
 def own(path):
@@ -70,7 +100,7 @@ def code_inputs():
     record = json.loads((HERE/'SOURCE_COPY.json').read_text(encoding='utf-8-sig'))
     if record['source_commit'] != 'd8982bc0':
         raise ValueError('wrong frozen regression source')
-    pinned = [identity(__file__), identity(HERE/'SOURCE_COPY.json'), identity(HERE/'toolchain_binding.py'), identity(HERE/'runtime_binding.py'), identity(HERE/'pytest_alias_guard.py')]
+    pinned = [identity(__file__), identity(HERE/'SOURCE_COPY.json'), identity(HERE/'toolchain_binding.py'), identity(HERE/'runtime_binding.py')]
     for item in record['final_files']:
         actual = identity(item['path'])
         if actual['sha256'].lower() != item['sha256'].lower():
@@ -221,6 +251,10 @@ def main():
         proc = psutil.Process()
         if proc.nice() != psutil.IDLE_PRIORITY_CLASS or len(proc.cpu_affinity()) > 2:
             raise ValueError('Idle and at most2 explicit CPUs required')
+        stage = 'lane-guard'
+        guard = load_lane_guard()
+        lane_gate(proc, psutil.IDLE_PRIORITY_CLASS, guard, out, 'LANE_CHECK_START.json')
+        stage = 'cpu-dependency-import'
         runtime = {'python':sys.version, 'torch':torch.__version__, 'numpy':numpy.__version__,
                    'pytest':pytest.__version__, 'threads':torch.get_num_threads(),
                    'interop_threads':torch.get_num_interop_threads(), 'affinity':proc.cpu_affinity(),
@@ -254,15 +288,18 @@ def main():
         else:
             stage = 'existing-regression-suite'
             argv = ['-q', '--maxfail=1', '-p', 'no:cacheprovider',
-                    '--log-file', str(out/'pytest.log'),
                     '--basetemp', str(out/'pytest-temp'), '--rootdir', str(HERE/'datafilter'),
                     '--confcutdir', str(HERE/'datafilter/tests'), str(HERE/'datafilter/tests')]
             write_new(out/'PYTEST_COMMAND.json', {'argv':argv, 'source_commit':'d8982bc0',
                        'test_modifications':'fixture output path only; test assertions unchanged',
                        'historical_fixture_seeds':'unchanged deterministic unit-test inputs; no new training/experiment seed'})
-            with record_current_aliases(out/'pytest-temp') as aliases:
+            lane_gate(proc, psutil.IDLE_PRIORITY_CLASS, guard, out, 'LANE_CHECK_SUITE.json')
+            # Hard wall bound: on expiry faulthandler dumps stacks and exits this process with code 1.
+            faulthandler.dump_traceback_later(SUITE_TIMEOUT_SECONDS, exit=True)
+            try:
                 exitcode = int(pytest.main(argv, plugins=[reports]))
-            write_new(out/'PYTEST_ALIASES.json', {'scope':'optional pytest current-link creation recorded without reparse links; real fixture directories and assertions unchanged', 'aliases':aliases})
+            finally:
+                faulthandler.cancel_dump_traceback_later()
         after = verify_npt_binding(before)
         write_new(out/'NPT_IMPORTED_AFTER.json', after)
         write_new(out/'NPT_SOURCES_AFTER.json', {'files':prebind_npt_sources()})

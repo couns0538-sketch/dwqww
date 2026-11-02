@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 
 
 def check(ok,message):
@@ -67,4 +70,6 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--threads',required=True,type=int,choices=(1,))
     parser.add_argument('--pack',required=True,type=Path)
-    verify(parser.parse_args().pack)
+    pack=parser.parse_args().pack
+    lane_guard.check_lane()  # before hashing
+    verify(pack)

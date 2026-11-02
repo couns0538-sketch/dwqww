@@ -77,7 +77,7 @@ def validate_binding(p):
         raise ValueError('duplicate input role')
     by_role = {r['role']:r for r in inputs}
     required = {'baseline_binary','candidate_binary','source_manifest','network',
-                'compiler','original_kit','corpus','adapter','uci_adapter','arithmetic','host_topology'}
+                'compiler','original_kit','corpus','adapter','uci_adapter','arithmetic','host_topology','lane_guard'}
     if not required <= by_role.keys():
         raise ValueError('missing immutable input role')
     for role, ref in by_role.items():

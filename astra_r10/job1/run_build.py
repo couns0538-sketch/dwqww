@@ -5,6 +5,40 @@ import psutil
 
 ROOT = pathlib.Path('D:/a10')
 KIT_MD5 = '729fe7275c3c01d22c751cb751d5c9d2'
+LANE_CPUS = {2, 3}
+# tmfit pc_final200 lane (run_tmfit_final200_pc.ps1 / run_tmfit.py / run_parallel_smoke.py / tmfit_referee);
+# its kit builds run at -Affinity 12 and are caught by the CPU 2-3 pin test. Gate exes on CPUs 4-15 are not matched.
+LANE_RE = re.compile(r'(?i)run_tmfit|final200|run_parallel_smoke|tmfit_referee')
+MIN_AVAILABLE_RAM = 8*2**30  # crew grok-pc governor: 8 GiB free RAM before start
+
+def lane_conflicts(me, procs=None):
+    """CR fix: read-only scan; refuses to share CPUs 2-3. Never changes, suspends or stops another process."""
+    skip = {me.pid}
+    try: skip |= {q.pid for q in me.parents()}
+    except psutil.Error: pass
+    every = set(range(psutil.cpu_count()))
+    hits, unreadable = [], 0
+    for proc in (psutil.process_iter() if procs is None else procs):
+        if proc.pid in skip:
+            continue
+        try:
+            cmd = ' '.join(proc.cmdline() or [])
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied:
+            cmd = None; unreadable += 1
+        if cmd and LANE_RE.search(cmd):
+            hits.append({'pid':proc.pid, 'why':'tmfit/final200 lane process', 'cmd':cmd[:300]})
+            continue
+        try:
+            cpus = set(proc.cpu_affinity())
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied:
+            unreadable += 1; continue
+        if cpus and cpus != every and cpus & LANE_CPUS:
+            hits.append({'pid':proc.pid, 'why':'pinned onto CPUs 2-3', 'cpus':sorted(cpus), 'cmd':(cmd or '?')[:300]})
+    return hits, unreadable
 def sha(p):
     with open(p, 'rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -36,6 +70,12 @@ def execute(a, evidence):
     assert used + 1_000_000_000 <= 15_000_000_000, used
     load = psutil.cpu_percent(interval=3, percpu=True)
     assert max(load[2:4]) < 50, ('spare core busy; retry only after quiet', load)
+    available = psutil.virtual_memory().available
+    hits, unreadable = lane_conflicts(me)
+    (evidence/'lane_check.json').write_text(json.dumps({'conflicts':hits, 'unreadable':unreadable,
+        'available_ram':available, 'load':load}, indent=2))
+    assert available >= MIN_AVAILABLE_RAM, ('free RAM below 8 GiB governor floor', available)
+    assert not hits, ('CPUs 2-3 lane in use (tmfit final200 or another pinned job); serialise, retry later', hits)
     original = ROOT/'kit/build_ltopgo.ps1'
     raw = original.read_bytes()
     assert hashlib.md5(raw).hexdigest() == KIT_MD5

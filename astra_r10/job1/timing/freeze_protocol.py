@@ -5,6 +5,8 @@ R=pathlib.Path('D:/a10'); J=R/'wt/astra_r10/job1'; T=J/'timing'
 def sha(p):
     with p.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
 def read(p):return json.loads(p.read_text(encoding='utf-8-sig'))
+def need(ok,what=''):
+    if not ok:raise SystemExit('FREEZE REFUSED: '+repr(what))  # CR crfix: no assert-as-check
 def main():
     a=argparse.ArgumentParser();a.add_argument('--threads',type=int,choices=[1],required=True);a.parse_args()
     p=read(T/'protocol.template.json')
@@ -12,33 +14,33 @@ def main():
         'source_manifest':R/'wt/astra_r9/evidence/c1-source.json','network':R/'c1/src/nnue_weights.inc',
         'compiler':R/'inputs/gcc-15.2-gpp.exe','original_kit':R/'kit/build_ltopgo.ps1',
         'corpus':R/'inputs/fens_12k.txt','adapter':T/'run_timing.py','uci_adapter':T/'uci_adapter.py',
-        'arithmetic':T/'math_checks.py','host_topology':J/'host.json'}
+        'arithmetic':T/'math_checks.py','host_topology':J/'host.json','lane_guard':J/'lane_guard.py'}
     candidate=sha(paths['candidate_binary']); source_hash=sha(paths['source_manifest'])
     b=read(J/'build-proof01/REPORT.json')
-    assert len(b['checks'])==9 and all(x['status']=='PASS' for x in b['checks'])
-    assert b['checks'][-1]['name']=='reproducible_builds' and b['checks'][-1]['sha256']==candidate
-    assert b['source_commit']=='f43a26aeed2448379fc2916b25f31ead8707b0ec'
+    need(len(b['checks'])==9 and all(x['status']=='PASS' for x in b['checks']))
+    need(b['checks'][-1]['name']=='reproducible_builds' and b['checks'][-1]['sha256']==candidate)
+    need(b['source_commit']=='f43a26aeed2448379fc2916b25f31ead8707b0ec')
     for label in ['smoke','sanitizer']:
         receipt=read(J/(label+'-01')/'REPORT.json')
         expected=candidate if label=='smoke' else 'a56762278935af93344680ba147a9076f63b52504e2495a686d7fe5f28a4a2aa'
-        assert receipt['binary_sha256']==expected
-        assert receipt['inputs_sha256'][str(paths['source_manifest'])]==source_hash
-        assert all(sha(pathlib.Path(k))==v for k,v in receipt['inputs_sha256'].items())
+        need(receipt['binary_sha256']==expected)
+        need(receipt['inputs_sha256'][str(paths['source_manifest'])]==source_hash)
+        need(all(sha(pathlib.Path(k))==v for k,v in receipt['inputs_sha256'].items()))
     parity=read(J/'parity/check-launch01/stdout.log')
-    assert parity['compared_rows']==12000 and parity['mismatches']==0
-    assert parity['negative_control_mismatches']>0 and parity['parity_gate_satisfied'] is True
+    need(parity['compared_rows']==12000 and parity['mismatches']==0)
+    need(parity['negative_control_mismatches']>0 and parity['parity_gate_satisfied'] is True)
     prepared=read(R/'parity-r1/prepared.json'); builds=read(R/'parity-r1/builds.json')
-    assert prepared['authoritative_manifest_sha256']==source_hash
-    assert prepared['source_files']=={k.replace('\\','/'):v for k,v in read(paths['source_manifest']).items()}
-    assert builds['prepared_sha256']==sha(R/'parity-r1/prepared.json')
-    for info in builds['binaries'].values():assert sha(pathlib.Path(info['path']))==info['sha256']
+    need(prepared['authoritative_manifest_sha256']==source_hash)
+    need(prepared['source_files']=={k.replace('\\','/'):v for k,v in read(paths['source_manifest']).items()})
+    need(builds['prepared_sha256']==sha(R/'parity-r1/prepared.json'))
+    for info in builds['binaries'].values():need(sha(pathlib.Path(info['path']))==info['sha256'])
     for name in ['prepared.json','builds.json','eval-parity.json','native-summary.log']:
         paths['diagnostic_'+name]=R/'parity-r1'/name
     record=read(R/'parity-r1/eval-parity.json')
     for role in ['scalar_binary','candidate_binary','network','native_log','scalar_trace','candidate_trace']:
-        ref=record[role];path=(R/'parity-r1'/ref['path']).resolve();assert sha(path)==ref['sha256'];paths['parity_'+role]=path
+        ref=record[role];path=(R/'parity-r1'/ref['path']).resolve();need(sha(path)==ref['sha256']);paths['parity_'+role]=path
     for role in ['network','trace','binary']:
-        ref=record['negative_control'][role];path=(R/'parity-r1'/ref['path']).resolve();assert sha(path)==ref['sha256'];paths['negative_'+role]=path
+        ref=record['negative_control'][role];path=(R/'parity-r1'/ref['path']).resolve();need(sha(path)==ref['sha256']);paths['negative_'+role]=path
     p['inputs']=[{'role':role,'path':str(path),'sha256':sha(path)} for role,path in paths.items()]
     p['network_sha256']=sha(paths['network'])
     proofs={'build_pair':J/'build-proof01/REPORT.json','off_on_pins':J/'build-proof01/REPORT.json',
@@ -47,7 +49,7 @@ def main():
         'weight_negative_control':J/'parity/check-launch01/stdout.log'}
     for name,path in proofs.items():
         raw=read(path)
-        assert raw['status']=='PASS',(name,raw)
+        need(raw['status']=='PASS'),(name,raw)
         p['prerequisites'][name]={'status':'PASS','evidence_scope':'native','candidate_sha256':sha(paths['candidate_binary']),
             'path':str(path),'sha256':sha(path)}
     p['limitations']=['T4 UNVERIFIED: loaded host. No strength gate or match.',

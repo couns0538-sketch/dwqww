@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import email
 import hashlib
+import importlib.util
 from html.parser import HTMLParser
 import json
 import os
@@ -22,6 +23,21 @@ TORCH_NAME = 'torch-2.9.1+cpu-cp312-cp312-win_amd64.whl'
 TOP = ['numpy==1.26.4', 'torchmetrics==1.8.2', 'tyro', 'tensorboard', 'pytest==9.1.1', 'psutil==7.2.2']
 RESERVATION = 2_000_000_000
 GROWTH_STOP = 1_100_000_000
+# CR crfix b25b207d: shared CPU2-3 lane guard (crfix_abcbb9c9 lane_guard.py, md5 596ecbe6)
+LANE_GUARD = ROOT / 'wt/astra_r10/job1/lane_guard.py'
+
+
+def check_lane_guard(proc, path=None):
+    path = Path(LANE_GUARD if path is None else path)
+    spec = importlib.util.spec_from_file_location('r10_lane_guard', path)
+    need(spec is not None and spec.loader is not None and path.is_file(), 'lane guard missing')
+    module = importlib.util.module_from_spec(spec)
+    saved = list(sys.path)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path[:] = saved
+    return module.check_lane(proc)
 
 
 def pip_environment(inherited):
@@ -69,8 +85,8 @@ def metadata(path):
             need(not (entry.external_attr >> 16) & 0o170000 == 0o120000, 'wheel symlink refused')
             total += entry.file_size
             need(total <= 2_500_000_000, 'single wheel expanded limit')
-        names = [n for n in archive.namelist() if len(n.split('/')) == 2 and n.endswith('.dist-info/METADATA')]
-        need(len(names) == 1, 'wheel must have exactly one root METADATA')
+        names = [n for n in archive.namelist() if n.endswith('.dist-info/METADATA')]
+        need(len(names) == 1, 'wheel must have exactly one METADATA')
         need(archive.getinfo(names[0]).file_size < 4_000_000, 'wheel metadata limit')
         info = email.message_from_bytes(archive.read(names[0]))
         return {'name': info['Name'], 'version': info['Version'], 'expanded_bytes': total,
@@ -85,6 +101,7 @@ def main():
     parser.parse_args()
     proc = base.psutil.Process()
     need(proc.nice() == base.psutil.IDLE_PRIORITY_CLASS and proc.cpu_affinity() == [3], 'Idle CPU3 required')
+    check_lane_guard(proc)  # raises before any download or directory creation
     boot_raw = (JOB / 'BOOTSTRAP.json').read_bytes(); boot = json.loads(boot_raw)
     need(boot['status'] == 'BOOTSTRAP_PASS', 'verified interpreter required')
     python = RUNTIME / 'python/python.exe'
@@ -135,17 +152,8 @@ def main():
             child.terminate(); child.wait(timeout=15)
             raise
     need(child.returncode == 0, 'official binary wheel resolver failed; retain logs')
-    finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial_workspace)
-
-
-def finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial_workspace, recovered=False):
-    lock_path = JOB / 'WHEEL_LOCK.json'
-    python = RUNTIME / 'python/python.exe'
     records = []
-    metadata_bytes = 0
-    wheel_files = sorted(wheels.glob('*.whl'))
-    need(1 <= len(wheel_files) <= 100, 'bounded wheel inventory required')
-    for wheel in wheel_files:
+    for wheel in sorted(wheels.glob('*.whl')):
         info = metadata(wheel)
         name = info['name'].lower().replace('_', '-')
         need(not any(bad in name for bad in ('nvidia', 'cuda', 'cudnn', 'directml', 'triton', 'rocm', 'torchvision')),
@@ -156,9 +164,7 @@ def finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial
             official = torch
         else:
             receipt = base.download('https://pypi.org/pypi/' + name + '/' + info['version'] + '/json',
-                                    meta_dir / (name + '-' + info['version'] + '.json'),
-                                    min(8_000_000, 40_000_000 - metadata_bytes))
-            metadata_bytes += receipt['bytes']
+                                    meta_dir / (name + '-' + info['version'] + '.json'), 8_000_000)
             source_records.append(receipt)
             data = json.loads(Path(receipt['path']).read_bytes())
             choices = [f for f in data['urls'] if f['filename'] == wheel.name]
@@ -181,7 +187,6 @@ def finish_lock(wheels, meta_dir, torch, source_records, boot_raw, boot, initial
               'expanded_bytes': sum(r['expanded_bytes'] for r in records),
               'workspace_before': initial_workspace, 'workspace_after': safety.workspace_bytes(),
               'chess': 'separate authorized pure-Python old-runtime copy; no old binary package path imported',
-              'metadata_recovery': recovered,
               'scope': 'Official CPU wheels only; no installation/package import/NPT/training/GPU/backend bypass.'}
     for record in records:
         need(safety.digests(Path(record['path']))[0] == record['sha256'], 'wheel changed before lock publication')

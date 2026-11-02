@@ -26,6 +26,12 @@ RUNTIME312_LOCK_SHA256 = 'ef9dcb6af1e3e64b9d2bbdbcf2eeac7480f9864a56b5bd96cad174
 RUNTIME312_BOOTSTRAP_SHA256 = 'f9bba4329df2c6e99e1e65c6170b2683248ef86c1d1767901d71746fca2c4b3e'
 RUNTIME254_MANIFEST_SHA256 = '29f8359847d9fc9e25b4b6166805f71940fd35548f9e222587cf16c422c7230e'
 RUNTIME254_LOCK_SHA256 = '560cdd1b73fdf0e28ab9ac6c0ac8d2dfaf8c20824eeb409748944ac4ae16517f'
+# CR 31481475: only the primary attempt can be regression evidence, and only
+# when its pre-launch command binding names this exact runner/helper. Runner
+# 2a1de65b is the suite03 runner (no CR lane guard; CR accepts its result as
+# UNPROVEN evidence only). Any other runner needs a new CR entry here.
+REVIEWED_REGRESSION_RUNNERS = {'2a1de65b4581ae4cb1e74b9d0559dcd420702b060737ad9e00ad9f2f2dd7caf0'}
+REVIEWED_SAFE_RUN_HELPER = '17205767ae3ea35a5ccb5a7965bc4988bae26b4f2260c821411a657c9979c787'
 REGRESSION_RECORDS = ('RESULT.json', 'FAILURE.json', 'CPU_RUNTIME.json', 'NPT_SOURCES_BEFORE.json',
     'NPT_IMPORTED_INITIAL.json', 'NPT_IMPORTED_AFTER.json', 'NPT_SOURCES_AFTER.json',
     'TOOLCHAIN_BEFORE.json', 'TOOLCHAIN_AFTER.json', 'RUNTIME_BOUND_BEFORE.json',
@@ -229,6 +235,7 @@ def regression_inputs(ready, regression_path, regression, add):
          'explicit completed regression/preflight attempt list required')
     bindings, retained, summaries, inventories = {}, {}, [], {}
     seen, reports = set(), set()
+    primary_seen = 0
     for item in attempts:
         directory = sealing.checked_path(item['directory'])
         need(directory.parent == ROOT / 'job3/regression-runs' and directory.is_dir() and directory not in seen,
@@ -249,6 +256,17 @@ def regression_inputs(ready, regression_path, regression, add):
                  'primary regression report must use its own exact attempt launcher')
             if regression['status'] == 'PASS':
                 need(receipt['native_exit_code'] == 0, 'primary regression PASS contradicts its own native exit')
+            need(not historical and not receipt['capture_errors'] and receipt['disk_floor_breached'] is False,
+                 'primary regression attempt must have a clean launcher guard')
+            command_path, command = bound_json(ready['regression']['command_binding'])
+            need(command_path.parent == JOB / 'regression', 'primary command binding must be committed job3 regression evidence')
+            need(str(command.get('runner_sha256', '')).lower() in REVIEWED_REGRESSION_RUNNERS and
+                 str(command.get('helper_sha256', '')).lower() == REVIEWED_SAFE_RUN_HELPER,
+                 'primary regression runner/helper is not a CR-listed identity')
+            need(str(command.get('manifest_sha256', '')).lower() == receipt['manifest_sha256'].lower(),
+                 'primary command binding differs from its completed launcher manifest')
+            add(command_path); bindings[command_path] = ready['regression']['command_binding']['sha256']
+            primary_seen += 1
         artifacts = []
         for name in REGRESSION_RECORDS:
             path = directory / name
@@ -275,9 +293,11 @@ def regression_inputs(ready, regression_path, regression, add):
                           'launcher_guard': {'capture_errors': receipt['capture_errors'],
                               'disk_floor_breached': receipt['disk_floor_breached'],
                               'qualification': 'REJECTED_HISTORICAL_ATTEMPT' if receipt['capture_errors'] or receipt['disk_floor_breached'] else 'CLEAN_LAUNCHER_ONLY'},
+                          'role': 'PRIMARY_REGRESSION_EVIDENCE' if raw_reports[0] == regression_path else 'HISTORICAL_DISCLOSURE_ONLY',
+                          'counts_as_regression_evidence': raw_reports[0] == regression_path,
                           'artifacts': artifacts, 'retained_execution_files': rows,
                           'retained_scope': 'Current post-exit hash inventory only; generated code/DLLs/test files remain outside the pack and Forge source.'})
-    need(regression_path in reports, 'final regression report must be one of the explicitly listed original native reports')
+    need(regression_path in reports and primary_seen == 1, 'final regression report must be exactly one of the explicitly listed original native reports')
     if regression['status'] == 'PASS':
         need(regression.get('preflight_only') is False and regression.get('collected', 0) >= 73 and
              regression.get('passed') == regression.get('collected') and regression.get('failures') == 0 and

@@ -15,6 +15,9 @@ import struct
 import subprocess
 import sys
 import time
+sys.path.insert(0,'D:/a10/pydeps')
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
+from lane_guard import check_lane  # CR crfix abcbb9c9
 
 FENS_SHA='c01c0e6a49fb9aaab535058bd7280c33b8735e0f8bd40834f1c029843a75a265'
 SOURCE_NET_SHA='a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638'
@@ -169,6 +172,7 @@ def invoke(argv,directory,timeout=None,env=None):
 
 
 def build(a):
+    check_lane()  # CR crfix: Idle/BelowNormal, CPUs 2-3, tmfit lane, foreign pins, 8 GiB RAM
     root,c=load_prepared(a.prepared)
     if not re.fullmatch('[a-zA-Z0-9_-]{1,24}',a.tag): raise ValueError('new bounded build tag required')
     if (root/'builds.json').exists(): raise ValueError('successful build receipt already exists; never overwrite it')
@@ -186,7 +190,7 @@ def build(a):
               '-ffp-contract=off','-fno-fast-math','-march=znver5','-static','-pthread',
               '-I'+str(src/'include'),c['harness']]+[str(src/'src'/f'{unit}.cpp') for unit in
               ('bitboard','board','eval','eval_params','nnue')]+['-o',str(exe)]
-        invoke(argv,directory,env=env)
+        invoke(argv,directory,timeout=1800,env=env)  # CR crfix: bounded compile
         load_prepared(a.prepared)
         if sha(compiler)!=compiler_hash: raise ValueError('compiler drift')
         exes[label]={'path':str(exe),'sha256':sha(exe),'compile_command':argv}
@@ -215,6 +219,7 @@ def convert(raw,path,header,lines,seed,mode):
 
 
 def run(a):
+    check_lane()  # CR crfix
     root,c=load_prepared(a.prepared); builds=json.loads((root/'builds.json').read_text())
     if builds['prepared_sha256']!=sha(a.prepared): raise ValueError('prepared manifest drift')
     lines=Path(c['fens']).read_text(encoding='utf-8').splitlines()

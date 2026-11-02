@@ -12,7 +12,9 @@ import re
 import sys
 import time
 sys.path.insert(0, 'D:/a10/pydeps')
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import psutil
+from lane_guard import check_lane  # CR crfix abcbb9c9
 from math_checks import NODES, block_ratio, calibration, protocol_snapshot, sha, summary, validate_binding
 from uci_adapter import Engine
 
@@ -136,11 +138,15 @@ def main():
         raise ValueError('registered UCI adapter differs')
     if inputs['arithmetic']['sha256'].lower() != sha(pathlib.Path(__file__).with_name('math_checks.py')):
         raise ValueError('registered arithmetic differs')
+    if inputs['lane_guard']['sha256'].lower() != sha(pathlib.Path(__file__).resolve().parent.parent/'lane_guard.py'):
+        raise ValueError('registered lane guard differs')
     me = psutil.Process()
     if me.nice() != psutil.IDLE_PRIORITY_CLASS or not set(me.cpu_affinity()) <= {2,3}:
         raise RuntimeError('launch through reviewed safe manifest at Idle on CPUs2/3')
     me.cpu_affinity([3])
+    lane = check_lane(me)  # CR crfix: tmfit lane / foreign CPU2-3 pin / 8 GiB RAM before any engine
     args.out.mkdir(parents=True, exist_ok=False)
+    append(args.out/'lane_checks.jsonl', dict(lane, utc=utc(), when='start'))
     (args.out/'PROTOCOL.json').write_bytes(protocol_bytes)
     result = {'classification':'UNPROVEN', 'evidence_scope':'native', 'status':'RUNNING',
               'protocol_sha256':protocol_hash, 'platform':platform.platform(), 'start_utc':utc(),
@@ -160,6 +166,7 @@ def main():
                     if len(load) < 4 or any(not math.isfinite(x) for x in load[2:4]):
                         raise RuntimeError('pre-core telemetry unavailable')
                     append(args.out/'waits.jsonl', {'utc':utc(),'phase':phase,'attempt':attempt,'load':load[2:4]})
+                    append(args.out/'lane_checks.jsonl', dict(check_lane(me), utc=utc(), phase=phase, attempt=attempt))
                     if load[2] < 20 and load[3] < 20:
                         break
                     time.sleep(min(15, remaining(deadline)))

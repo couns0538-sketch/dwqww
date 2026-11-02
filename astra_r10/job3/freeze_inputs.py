@@ -12,6 +12,8 @@ DEST = ROOT / 'job3/inputs'
 OUT = WT / 'astra_r10/job3/freeze01'
 sys.path.insert(0, str(ROOT / 'pydeps'))
 import psutil
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 sys.path.insert(0, str(WT / 'skills/gate-handover-pack/scripts'))
 import seal_evidence as safety
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -52,6 +54,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--threads', type=int, choices=[1], required=True)
     p.parse_args()
+    lane_guard.check_lane()  # before any output
     me = psutil.Process()
     if me.nice() != psutil.IDLE_PRIORITY_CLASS or not set(me.cpu_affinity()) <= {2, 3}:
         raise RuntimeError('safe launcher required')
@@ -79,6 +82,7 @@ def main():
             with (OUT / 'load.jsonl').open('a') as stream:
                 stream.write(json.dumps({'role': role, 'attempt': attempt, 'cpu2_3': load[2:4], 'total_mean': sum(load) / len(load)}) + '\n')
             if max(load[2:4]) < 60 and sum(load) / len(load) < 98:
+                lane_guard.check_lane()  # re-check before each 0.03-0.65 GB copy
                 break
             time.sleep(10)
         else:

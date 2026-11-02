@@ -13,6 +13,8 @@ EXPORTS = pathlib.Path('D:/grok-pc-data/selfplay_out')
 OUT = WT / 'astra_r10/job3/discovery01'
 sys.path.insert(0, str(ROOT / 'pydeps'))
 import psutil
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 sys.path.insert(0, str(WT / 'skills/gate-handover-pack/scripts'))
 import seal_evidence as safety
 
@@ -29,6 +31,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--threads', type=int, choices=[1], required=True)
     p.parse_args()
+    lane_guard.check_lane()  # before any output
     proc = psutil.Process()
     if proc.nice() != psutil.IDLE_PRIORITY_CLASS or not set(proc.cpu_affinity()) <= {2, 3}:
         raise RuntimeError('safe launcher required')

@@ -8,8 +8,12 @@ import math
 from pathlib import Path
 import re
 import subprocess
+import sys
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 
 ap=argparse.ArgumentParser();ap.add_argument('--threads',type=int,choices=[1],required=True);a=ap.parse_args()
+lane_guard.check_lane()  # before any read/output
 HERE=Path(__file__).parent
 ROOT=HERE.parent
 RUN=ROOT/'run01'
@@ -29,7 +33,7 @@ def sha(path):
 def load(path):return json.loads(Path(path).read_text(encoding='utf-8-sig'))
 def rows(path):return [json.loads(x) for x in Path(path).read_text(encoding='utf-8').splitlines()]
 def git(*args):
-    p=subprocess.run(['git','-c','pack.threads=1',*args],cwd=REPO,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW)
+    p=subprocess.run(['git','-c','pack.threads=1',*args],cwd=REPO,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=300)
     if p.returncode:raise RuntimeError(p.stderr.decode('utf-8','replace'))
     return p.stdout
 def percentile(values,p):

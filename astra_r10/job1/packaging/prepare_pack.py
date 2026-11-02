@@ -22,6 +22,8 @@ PROTOCOL = 'c83ccb17d428069be129eaf4f1b253dbf299bb6d77ad0353a5667fa82ccb3245'
 SEALER = WT/'skills/gate-handover-pack/scripts/seal_evidence.py'
 sys.path.insert(0,str(SEALER.parent))
 import seal_evidence as sealing
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 
 
 def require(ok, message):
@@ -234,4 +236,5 @@ if __name__=='__main__':
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--launcher-output',type=Path,required=True)
     args=parser.parse_args()
+    lane_guard.check_lane()  # before any output
     prepare(args.out,args.launcher_output)

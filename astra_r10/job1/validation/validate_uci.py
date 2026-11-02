@@ -88,11 +88,13 @@ def main():
             e=Engine(args.exe,out/'uci.log',on=args.on)
             for d,n in PINS.items():
                 e.send(f'bench {d}'); s=e.wait(rf'bench depth {d} nodes ')[-1]
-                actual=int(re.search(r'nodes (\d+)',s)[1]); assert actual==n,(d,actual,n)
+                actual=int(re.search(r'nodes (\d+)',s)[1])
+                if actual!=n: raise RuntimeError(('bench pin',d,actual,n))
                 result['checks'].append({'depth':d,'nodes':actual}); print(s,flush=True)
             for name,fen,n in [('startpos',chess.STARTING_FEN,4865609),('kiwipete',KIWI,193690690)]:
                 e.send('position fen '+fen); e.send('go perft 5'); s=e.wait(r'^nodes \d+')[-1]
-                actual=int(s.split()[1]); assert actual==n,(name,actual,n)
+                actual=int(s.split()[1])
+                if actual!=n: raise RuntimeError(('perft pin',name,actual,n))
                 result['checks'].append({'perft':name,'nodes':actual}); print(name,s,flush=True)
             e.close(); e=None
         elif args.mode=='smoke':

@@ -2,6 +2,8 @@
 import argparse, hashlib, json, os, pathlib, subprocess, sys, time
 sys.path.insert(0, 'D:/a10/pydeps')
 import psutil
+sys.path.insert(0, 'D:/a10/wt/astra_r10/job1')  # CR crfix 0e91e02e: shared lane guard (crfix_abcbb9c9 lane_guard.py 596ecbe6)
+import lane_guard
 
 ROOT = pathlib.Path('D:/a10')
 WT = ROOT/'wt'
@@ -13,6 +15,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--threads',type=int,choices=[1],required=True)
     p.add_argument('--out',type=pathlib.Path,required=True);args=p.parse_args()
     out=args.out
+    lane_guard.check_lane()  # before any output/fetch
     if not out.is_absolute() or not out.is_relative_to(WT/'astra_r10/job2') or out.exists():
         raise ValueError('new Job2 output required')
     out.mkdir(parents=True)
@@ -23,7 +26,8 @@ def main():
     for attempt in range(40):
         load=psutil.cpu_percent(interval=3,percpu=True)
         with (out/'load.jsonl').open('a') as f:f.write(json.dumps({'attempt':attempt,'cpu2_3':load[2:4],'mean':sum(load)/len(load)})+'\n')
-        if max(load[2:4])<50 and sum(load)/len(load)<98:break
+        if max(load[2:4])<50 and sum(load)/len(load)<98:
+            lane_guard.check_lane();break
         time.sleep(10)
     else:raise RuntimeError('saturated host; no Git fetch started')
     records=[];total=0
@@ -33,7 +37,7 @@ def main():
         (out/(label+'-fetch.stdout')).write_bytes(result.stdout)
         (out/(label+'-fetch.stderr')).write_bytes(result.stderr)
         if result.returncode:raise RuntimeError(label+' fetch failed; retain outputs')
-        listing=subprocess.check_output(['git','-C',str(WT),'ls-tree','-r','--name-only',rev]).decode().splitlines()
+        listing=subprocess.check_output(['git','-C',str(WT),'ls-tree','-r','--name-only',rev],timeout=300).decode().splitlines()
         (out/(label+'-tree.txt')).write_text('\n'.join(listing)+'\n')
         selected=[name for name in listing if name.startswith('opus_r13/'+label+'/') or
                   (label=='status' and 'status' in name.lower() and name.lower().endswith('.md')) or
@@ -42,9 +46,9 @@ def main():
         for name in selected:
             rel=pathlib.PurePosixPath(name)
             if rel.is_absolute() or '..' in rel.parts:raise ValueError('unsafe git path')
-            size=int(subprocess.check_output(['git','-C',str(WT),'cat-file','-s',rev+':'+name]))
+            size=int(subprocess.check_output(['git','-C',str(WT),'cat-file','-s',rev+':'+name],timeout=120))
             if size>100_000_000 or total+size>500_000_000:raise ValueError('snapshot reservation exceeded')
-            blob=subprocess.check_output(['git','-C',str(WT),'show',rev+':'+name])
+            blob=subprocess.check_output(['git','-C',str(WT),'show',rev+':'+name],timeout=300)
             path=target.joinpath(*rel.parts);path.parent.mkdir(parents=True,exist_ok=True)
             with path.open('xb') as f:f.write(blob)
             total+=len(blob);records.append({'revision':rev,'path':name,'copy':str(path),'bytes':len(blob),'sha256':hashlib.sha256(blob).hexdigest()})
