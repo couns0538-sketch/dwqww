@@ -83,7 +83,13 @@ def cmd_run(a):
               'allow_reconstructed': a.allow_reconstructed, 'probe': str(Path(a.probe).resolve()), 'rows': rows,
               'shard_size': a.shard_size, 'nodes': a.nodes, 'workers': a.workers, 'hash_mb': a.hash_mb}
     jf = job / 'job.json'
-    origin = 'original_full_fen' if a.sidecar else 'reconstructed_no_castling_no_ep_clock0'
+    # what the shards will report (relabel_positions decides per shard; 'auto' is only allowed for text sidecars)
+    if not a.sidecar or a.sidecar_origin == 'reconstructed':
+        origin = 'reconstructed_no_castling_no_ep_clock0'
+    elif a.sidecar_origin == 'original_full_fen':
+        origin = 'original_full_fen'
+    else:
+        origin = 'auto (text sidecar: see each shard summary.json)'
     if not jf.exists() and a.allow_reconstructed and not a.accept_lossy_labels:
         raise SystemExit('--allow-reconstructed drops castling rights, en passant and the halfmove clock: use --sidecar '
                          '<original .fen> --sidecar-origin original_full_fen, or add --accept-lossy-labels on purpose')

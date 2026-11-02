@@ -58,3 +58,13 @@ A new full relabel run is not part of R14 (Couns: no relabel-run work); the comm
   to the selected rows): fine for this proof, ~5-10 s per 20k-row shard in a full run - noted, not changed (Astra's code,
   unchanged copy). (3) prove_sidecar compare reads the first start+count sidecar lines into memory: fine for 1,000.
 - Checks after: run_fix1k.sh results above. Next: none for P5 in R14 (Engine NNUE decides on old vs new labels).
+
+### Review milestone R14-P5-2 (20-minute review pass, structured self-review, NOT independent)
+- Reviewed again: relabel_job.py, prove_sidecar.py, this file's claims against the logs, the skill text.
+- Found + fixed: (1) relabel_job.py wrote `state_origin: original_full_fen` for ANY --sidecar, also with
+  `--sidecar-origin reconstructed` (a relabeler-emitted reconstructed .fen) - now reconstructed / original_full_fen / auto
+  follow --sidecar-origin (the shard summaries were always right; only the job-level label was affected; job_fix1k used
+  original_full_fen, so its records are correct). Re-checked: script parses, the guard still refuses a new
+  --allow-reconstructed job (exit 1, no job dir). (2) Skill forge-nnue-data said "changes 81.8 % of rows" - it is 81.8 % of
+  rows that LOSE state (labels changed for 208 / 841 affected rows in the sample): reworded.
+- Verified claims: all 22 job1 shard summaries say `reconstructed_no_castling_no_ep_clock0`; job1 created 11:10:32 PC clock.

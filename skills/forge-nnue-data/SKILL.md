@@ -85,8 +85,8 @@ description: Where the Forge NNUE training data, holdouts, runs, nets and conver
 
 ## FPOS has no castling / en passant / clocks - use the FEN sidecar for anything that searches (R14, 2026-11-02)
 - FPOS v1 rows = 32-byte board + side to move + score + result. Anything rebuilt from them (forge_pos.board_to_fen policy
-  `no-castling-no-ep-clocks-0-1`) has NO castling rights, NO en-passant square and halfmove 0. On Astra's filtered set that
-  changes 81.8 % of rows (castling 22.2 %, ep 3.6 %, halfmove > 0 70.6 %); at 20k nodes 199 of 211 castling rows got a
+  `no-castling-no-ep-clocks-0-1`) has NO castling rights, NO en-passant square and halfmove 0. On Astra's filtered set
+  81.8 % of rows lose state (castling 22.2 %, ep 3.6 %, halfmove > 0 70.6 %); at 20k nodes 199 of 211 castling rows got a
   different label (mean |delta| 23 cp). R13 P5 job1 (440,000 rows) ran like that: those labels are "reconstructed".
 - Astra's original FENs: member `completed/full10m/forge_filtered.fen` (sha256 beb3c31d..., 483,989,105 bytes, one FEN per
   .pos row) of `D:\grok-pc-data\r11_nnue\astra_dl\forge_astra_a1_data_results_20261030.tar.gz.part00000{0,1}` (whole sha256
