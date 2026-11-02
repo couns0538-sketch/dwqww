@@ -28,14 +28,14 @@ $env:TRITON_CACHE_DIR='F:\opus_scratch\r6\triton_cache'; $env:TORCHINDUCTOR_CACH
 $env:PYTHONDONTWRITEBYTECODE='1'; $env:PYTHONUTF8='1'; $env:NNUE_FT_BACKEND='auto'
 $env:NNUE_DATA_LOADER_LIB='D:\o14b\ref\libtraining_data_loader.dll'   # still imported by the trainer; not used for batches
 $env:FORGE_FAST_LOADER_DIR='D:\o14b\fl\b5_install'
-$env:R6_MIN_FREE_GB='6'; $env:R6_GUARD_LOG='D:\o14b\gpu\fl_e1_guard.jsonl'
+$env:R6_MIN_FREE_GB='6'; $env:R6_GUARD_LOG='C:\o14b\gpu\fl_e1_guard.jsonl'
 Set-Location D:\o14b\npt
 powershell -NoProfile -File D:\grok-pc-data\dwqww\.claude\worktrees\o14b-l1\opus_r14b\item1\tools\lowrun.ps1 -Mask 0xF -Priority Idle `
-  -Exe F:\nnue_pytorch\venv\Scripts\python.exe -Out D:\o14b\gpu\fl_e1_stdout.log -Err D:\o14b\gpu\fl_e1_stderr.log -ArgLine `
-  '-B opus_tools\guard_exec.py train.py F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack --validation-datasets F:\forge_j1_data\forge_holdout_013-014_j2.binpack --validation-size 1000000 --default-root-dir D:\o14b\gpu\fl_e1 --features K32H3^ --l1 1024 --batch-size 16384 --num-workers 4 --threads 2 --epoch-size 152500000 --max-epochs 1 --network-save-period 1 --save-top-k 1 --save-last-network False --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered --accelerator cuda --gamma 0.72 --fast-loader'
+  -Exe F:\nnue_pytorch\venv\Scripts\python.exe -Out C:\o14b\gpu\fl_e1_stdout.log -Err C:\o14b\gpu\fl_e1_stderr.log -ArgLine `
+  '-B opus_tools\guard_exec.py train.py F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack --validation-datasets F:\forge_j1_data\forge_holdout_013-014_j2.binpack --validation-size 1000000 --default-root-dir C:\o14b\gpu\fl_e1 --features K32H3^ --l1 1024 --batch-size 16384 --num-workers 4 --threads 2 --epoch-size 152500000 --max-epochs 1 --network-save-period 1 --save-top-k 1 --save-last-network False --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered --accelerator cuda --gamma 0.72 --fast-loader'
 ```
 (The command line contains no `train_resid` name, so the NNUE supervisor does not adopt it; the output folder does
-not start with `runs_`. `D:\o14b\gpu` must not exist before; create it right before the run.)
+not start with `runs_`. `C:\o14b\gpu` must not exist before; create it right before the run.)
 
 ## During and after
 - GPU utilisation: the keeper's own source, HWiNFO CSV `C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv`
