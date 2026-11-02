@@ -1,6 +1,6 @@
 # Astra R8 Job 2 — UNPROVEN
 
-## 2026-11-02 STM-format follow-up (in progress)
+## 2026-11-02 STM-format follow-up — final review pending
 
 Execution base: `7a8e22e8e2dad094f383ded125572d28aef10ace`. User selected STM
 results in both binary and JSONL and subsequently authorized C: output with a
@@ -8,22 +8,36 @@ results in both binary and JSONL and subsequently authorized C: output with a
 Version 1 uses byte29 mask, byte30 STM L/D/W=0/1/2, byte31=1. Legacy no-flag
 records remain unchanged. Historical evidence below applies to the old candidate.
 
-Initial quick checks: 72 pytest tests + 11 resource subtests PASS, CPU-only,
-`full1.log` under the new artifact root. Two review findings fixed; regressions
-failed first, then 16 tests + 11 subtests PASS in `review1_green2.log`. Reviewer
-approved the fixed converter/resource candidate and large audits. Fresh 100k
-train/validation byte identity and actual 1000-case binary round-trip plus1000
-mirrors PASS. Six million-row runs completed: all-off/check/mate/recipe A/B each
-keep1,000,000; ply<=160 keeps909,569. Repeated recipe payloads are byte-identical;
-per-rule timings appear in README and `million_receipt.json`. This follow-up is not yet
-fully accepted or training-ready; the old candidate's readiness is unchanged.
-Expanded CPU suite: **89 tests + 11 subtests PASS** using the guarded PowerShell
-runner; `final_tests/pytest.log`. Warnings are existing Torch deprecations and
-the intentional no-optimizer-update checkpoint/scheduler test warning.
+| Success test | Fresh result |
+|---|---|
+| 1 Legacy identity | PASS:100,000 source rows; train and val separately byte-identical; small PGN comparison also passes |
+| 2 STM result round-trip | PASS:1000 actual converter records plus1000 mirrors, independently reviewed literal oracle; version0 decode covered |
+| 3 Determinism | PASS:two million-row check/mate runs have identical payload hashes |
+| 4 Deliberate failures | PASS:check,capture,en passant,promotion,mate,ply,quiet,all-off; malformed version/mask and output-safety regressions |
+| 5 Million-row keep rates | PASS for measurable rules; capture measured on a separately pinned million-row gate cohort; qsearch BLOCKED |
+| 6 Sign and mirror | PASS:Pearson0.6635950368 on999,953 cleared rows;1000 mirrors; unknowns excluded |
+| 7 Handoff | PASS:sample,90-output hash inventory,both CPU preflights and post-publication verification; final review pending |
+
+Expanded CPU suite: **89 tests + 11 subtests PASS** (`evidence/stm_v1/full89_cpu.log`).
+All-off/check/mate/recipe A/B each keep1,000,000; ply<=160 keeps909,569.
+Separate capture cohort keeps849,465/1,000,000 (84.9465%),80.579s,12,410positions/s
+with2 workers. README contains each single-rule timing; original self-play has
+no best moves and its capture rate remains unavailable. No cohorts are pooled.
+Two converter/resource review findings and refresher boundary regressions were
+fixed with preserved red/green evidence; see REVIEW_LOG. Warnings are existing
+Torch deprecations and the no-optimizer-update checkpoint/scheduler test warning.
 Exact FD3A5190 binary/hash and matching build-source receipts now verified;
 bounded UCI handshake PASS, no search. True qsearch remains BLOCKED.
-Completed gate PGNs passed provenance/source review; a separate capture-measurement
-cohort freeze is running. It will not be mixed into either training recipe.
+Completed gate PGNs passed provenance/source review and complete before/after
+hash checks; the measurement-only freeze completed in154.903s. It is not mixed
+into either training recipe. Handoff manifest SHA256:
+`67beceef2a033d62d6d8cf75dce8284b1935e5dfa65c75c6f2fde253c7b4a8df`.
+Sample:10,000 rows,3,139,111 bytes, SHA256
+`c7394f11aebf2e76a2e5a1b8e834c8b5b92676180f5896e8ac30062472f7462c`.
+Retained C/D/F artifacts:7,577,399,368 bytes (<15GB); latest C free156,717,297,664
+bytes and D free63,678,509,056 bytes. F stayed read-only under the C override.
+Production converter/helpers, engine, npt adapter/trainer and records module are
+unchanged. No training, GPU, net export or strength match ran. All strength UNPROVEN.
 
 Ruling: latest explicit C: authorization supersedes the earlier F-only output
 rule and historical D-only exception. Old D/F roots remain read-only and count

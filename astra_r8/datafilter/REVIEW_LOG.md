@@ -25,6 +25,22 @@ exact FD baseline identity, genuine Fastchess searched-move semantics and source
 pins, bounded new output and post-read hashes. Approved the measurement-only
 million-row freeze. This cohort is excluded from both training recipes.
 
+## 2026-11-02 follow-up: handoff publication review
+
+Read-only converter_audit approved `refresh_handoff.py` SHA256
+`82b3faed3f0e4a9888b3f6ee976fd0906e05e7b95d05891b2d96af46550647a7`
+and seven passing tests before actual refresh. Review covered the approved old
+manifest pin, complete payload/source/holdout and receipt checks, fresh correlation
+and1000 mirrors, CPU environment before native import, both actual preflights,
+final runtime/tooling/lineage rechecks and publication. No blocking defects.
+The unpublished draft's true readiness flag is required by the unchanged
+`--check` interface; only the final renamed directory is the handoff.
+The reviewer also parsed the guarded test launcher and confirmed adapter,
+trainer and records code remain unchanged. Whole CPU suite:89 tests+11 subtests
+PASS. Actual refresh and both CPU preflights subsequently passed, followed by
+verification using the published manifest path. Correlation0.6635950368 and1000
+mirrors passed; unchanged complete holdouts were rehashed. No training has run.
+
 ## Milestone 1: converter compatibility and result semantics
 
 Reviewer: read-only review_converter subagent. Candidate hashes:

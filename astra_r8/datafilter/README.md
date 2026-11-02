@@ -57,8 +57,12 @@ compute workers at BelowNormal priority:
 
 Runs A/B have identical payload hashes. These prefiltered self-play shards have
 no stored best moves, so their capture rate is unavailable. Qsearch remains
-BLOCKED on the exact lock. Capture statistics from the separately pinned gate
-PGN cohort will be reported separately; they cannot be substituted into this table.
+BLOCKED on the exact lock. On the **separate measurement-only gate PGN cohort**,
+all1,000,000 rows have genuine baseline searched best moves. Capture/promotion
+exclusion keeps **849,465 (84.9465%)**, dropping150,535 in **80.579 seconds**
+(12,410 positions/s, two workers). Freezing that cohort took154.903 seconds with
+one worker. These rates cannot be substituted into the self-play table or pooled
+with it. Neither recipe uses the gate PGNs.
 
 The matched recipes use check/mate filtering and the same holdout-cleared rows:
 evaluation-only lambda=1.0, or WDL lambda=0.8 on known-result self-play and1.0
@@ -108,6 +112,14 @@ Create a new run root under C: first, use the same CPU-only environment, and run
 Each stage refuses existing destinations. `refresh_handoff.py NEW_HANDOFF_DIR`
 rehashes the approved unchanged cohort/holdouts and runs both CPU preflights
 before publishing a refreshed manifest. It never starts training.
+
+Delivered follow-up: `evidence/stm_v1/handoff_manifest.json`, full-output hashes
+in `evidence/stm_v1/full_output_hashes_stm_v1.json`, and the separately named
+`sample/positions_stm_v1.jsonl` (10,000 rows,3,139,111 bytes). The current C:
+manifest SHA256 is `67beceef2a033d62d6d8cf75dce8284b1935e5dfa65c75c6f2fde253c7b4a8df`.
+Fresh sign audit: Pearson0.6635950368,1000 mirrors PASS; both CPU recipe
+preflights and published handoff verification PASS. Missing results remain excluded
+from correlation. The real cohort has no unknown results; synthetic tests cover them.
 
 Handoff: Code Review → Engine NNUE → Engine QA. Subsequent FD3A5190 comparison,
 UHO first, 8moves_v3 separately, and WAC300 remain crew-owned. Every recipe and
