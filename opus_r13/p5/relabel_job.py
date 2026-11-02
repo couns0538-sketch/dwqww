@@ -20,6 +20,11 @@ usage:
   processes = threads (R13 rule: <= 2).
 - Every status file carries the run id: job.json, status.json (rewritten after each shard), shards.tsv (one line per
   finished shard: shard, rows, dir, seconds, output sha256s from its manifest, run id).
+- R14 fix: job1 (r13p5-20261101-a) ran with --allow-reconstructed, i.e. on FENs rebuilt from the .pos boards WITHOUT
+  castling rights, en-passant square and halfmove clock. A NEW job now refuses --allow-reconstructed unless
+  --accept-lossy-labels is also given (use --sidecar <original .fen> --sidecar-origin original_full_fen instead), and
+  job.json / status.json record state_origin. The resume check (job.json pins sidecar / origin / allow_reconstructed)
+  keeps one job dir from mixing origins.
 """
 import argparse
 import ctypes
@@ -72,13 +77,17 @@ def cmd_run(a):
     lower_priority(int(a.mask, 0))
     import relabel_positions as rp
     job = Path(a.job)
-    (job / 'shards').mkdir(parents=True, exist_ok=True)
     total = count_rows(a.pos)
     rows = min(a.rows or total, total)
     config = {'pos': str(Path(a.pos).resolve()), 'pos_sha256': None, 'sidecar': a.sidecar, 'sidecar_origin': a.sidecar_origin,
               'allow_reconstructed': a.allow_reconstructed, 'probe': str(Path(a.probe).resolve()), 'rows': rows,
               'shard_size': a.shard_size, 'nodes': a.nodes, 'workers': a.workers, 'hash_mb': a.hash_mb}
     jf = job / 'job.json'
+    origin = 'original_full_fen' if a.sidecar else 'reconstructed_no_castling_no_ep_clock0'
+    if not jf.exists() and a.allow_reconstructed and not a.accept_lossy_labels:
+        raise SystemExit('--allow-reconstructed drops castling rights, en passant and the halfmove clock: use --sidecar '
+                         '<original .fen> --sidecar-origin original_full_fen, or add --accept-lossy-labels on purpose')
+    (job / 'shards').mkdir(parents=True, exist_ok=True)
     if jf.exists():
         old = json.loads(jf.read_text(encoding='utf-8'))
         for key in config:
@@ -90,7 +99,7 @@ def cmd_run(a):
     else:
         config['pos_sha256'] = sha256(a.pos)
         atomic_json(jf, {'run_id': a.run_id, 'created': dt.datetime.now().isoformat(timespec='seconds'), 'config': config,
-                         'probe_sha256': sha256(a.probe), 'tool': 'opus_r13/p5/relabel_job.py'})
+                         'state_origin': origin, 'probe_sha256': sha256(a.probe), 'tool': 'opus_r13/p5/relabel_job.py'})
     shards = (rows + a.shard_size - 1) // a.shard_size
     until = dt.datetime.strptime(a.until, '%Y-%m-%d %H:%M') if a.until else None
     tsv = job / 'shards.tsv'
@@ -137,7 +146,7 @@ def cmd_run(a):
         finished_rows = sum(int(v[1]) for v in done.values())
         elapsed = time.time() - started
         atomic_json(job / 'status.json', {
-            'run_id': a.run_id, 'updated': dt.datetime.now().isoformat(timespec='seconds'), 'shards_total': shards,
+            'run_id': a.run_id, 'updated': dt.datetime.now().isoformat(timespec='seconds'), 'state_origin': origin, 'shards_total': shards,
             'shards_done': len(done), 'rows_total': rows, 'rows_done': finished_rows,
             'this_session_rows': ran * a.shard_size, 'this_session_seconds': round(elapsed, 1),
             'positions_per_hour_this_session': round(ran * a.shard_size / elapsed * 3600) if elapsed > 0 else None,
@@ -162,6 +171,7 @@ def main():
     r.add_argument('--sidecar')
     r.add_argument('--sidecar-origin', default='auto')
     r.add_argument('--allow-reconstructed', action='store_true')
+    r.add_argument('--accept-lossy-labels', action='store_true')
     r.add_argument('--rows', type=int, default=0)
     r.add_argument('--shard-size', type=int, default=20000)
     r.add_argument('--nodes', type=int, default=20000)
