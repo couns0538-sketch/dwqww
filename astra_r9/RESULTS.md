@@ -1,8 +1,9 @@
 # Astra R9 results
 
 Started 2026-11-01 13:57 America/Los_Angeles; six-hour deadline 19:57.
-Current status: c1 correctness PASS; speed UNACCEPTED because of host interference.
-Elo: UNPROVEN. No gate, strength match, merge or accepted QA handover.
+Current status: c1 correctness PASS; advisory speed gate PASS +2.172299% paired
+median. Final independent packet/artifact review PASS. Elo: UNPROVEN.
+No gate, strength match or merge. QA handover line and packaged exe in FINAL_REPORT.md.
 
 ## Frozen identities
 
@@ -46,13 +47,20 @@ Experiment 2 uses preregistered longer warmup and whole-block replacement, as th
 approved plan permits. Eligibility uses only fixed CPU-time/sibling telemetry,
 never NPS or winner. Four eligible A/A blocks must pass original control criteria,
 then ten eligible ABBA blocks are required. A second failed A/A control stops c1.
-At 16:10, A/A control PASS: four eligible blocks collected from 23 attempts.
-ABBA collection has nine eligible blocks from 45 attempts. All rows and rejected
-blocks retained; collection continues within fixed attempt/deadline limits. No speed
-acceptance until ten eligible ABBA blocks and final review are complete.
+Completed A/A control PASS: four eligible blocks from 23 attempts, paired median
++0.626352%, IQR 0.943615 points. ABBA completed ten eligible blocks from 48 attempts
+(20 pairs), median gain +2.172299%, IQR 1.100699 points, range +0.307487% to
++3.656076%. Quiet arm NPS medians: lock 2219512, candidate 2268064.5.
+All-attempt paired gain +1.518022%, IQR 6.998095 points. All rows and rejected
+blocks retained. Full table: TIMING_TABLES.md. Prior nine-block checkpoint's manual
+16:10 label was approximate and late; commit was at 16:07–16:08. Raw UTC rows prevail.
 
-Next: finish timing and final evidence
-review. Hand over only if every proof gate and >=1% advisory paired-median gain pass.
+Next: final push verification; Engine QA owns official timing. Fresh audit04 PASS1226;
+packaged executable hash matches b1/b2. FINAL_REPORT.md contains the proof, limitations
+and QA line. Official timing remains Engine QA's responsibility.
+All-attempt unpaired NPS medians are lock 2188345 versus candidate 2160675 (lower
+candidate median). M5 independent timing recomputation PASS; reviewer requested
+prominent disclosure of this different statistic, now included in FINAL_REPORT.md.
 
 ## Review milestones and retained failures
 
@@ -69,6 +77,10 @@ review. Hand over only if every proof gate and >=1% advisory paired-median gain 
   Audit03 PASS 1226 checks, including source-commit blobs and mode attribution.
   Auxiliary build provenance, complete FMA-family scan (zero hits) and current
   status text retained. No outstanding correctness/reporting finding.
+- M5: independent timing and final report/artifact review PASS. All 284 runs and
+  71 block-table rows checked; fixed selection and stats match raw evidence.
+  Requested all-attempt unpaired NPS disclosure added; no unresolved findings.
+  Candidate source fb58080 / exe775EDEA1 unchanged. Final safety/artifact audit PASS.
 - a1 kit launch failed before compilation: legacy PowerShell could not load
   Get-FileHash. Retained failure; corrected host to pwsh 7.6.8, new tags b1/b2.
 - profile01 setup blocked on oversized stdin queue; no profile accepted from it.

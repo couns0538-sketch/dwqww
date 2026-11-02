@@ -72,3 +72,25 @@ kit modes/paths and smoke/sanitizer mode fields. Focused recheck PASS.
 
 Next: complete remaining timing gate and final timing review. No accepted speed
 claim or QA handover. First qualifying protocol-v2 A/A block obtained by 15:09.
+
+## M5 — completed advisory timing and handover packet
+
+Frozen engine source fb58080d23d871706662e91f092f918bb032d84c and production SHA256
+775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284 unchanged.
+Read-only reviewer independently recomputed all 284 protocol-v2 runs, checked raw
+transcripts, exact warmup/timed nodes, whole-block eligibility and source/executable
+attribution. PASS: A/A4/23 blocks, +0.626352% bias/IQR0.943615; ABBA10/48 blocks,
+20 pairs, +2.172299% median/IQR1.100699. All 57 rejected blocks and 116 contaminated
+runs retained. No calculation, identity or selection defect found.
+
+Reviewer requested prominent all-attempt unpaired NPS disclosure: lock2188345,
+candidate2160675, despite positive +1.518022% paired median. Confirmed and added to
+FINAL_REPORT.md and RESULTS.md; full table already included both distributions.
+This is an advisory PASS only. Fresh audit04 PASS1226, packaged exe byte-identical
+to b1/b2, table generation independently checks counts/nodes/eligibility/arithmetic.
+Focused final report/table/artifact review PASS: all 71 rendered rows match raw
+data, proof attribution and hashes agree, links resolve, QA line complete, and
+limitations disclosed. No unresolved finding and no additional source change.
+Final safety/artifact audit PASS; no owned engine/compiler remains and disk reserves
+and workspace size satisfy limits. Pending labels closed. Next: final push and
+remote-HEAD verification; official timing remains with Engine QA.
