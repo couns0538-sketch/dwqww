@@ -16,7 +16,7 @@ is needed in the window.
 ## Pre-checks (all must pass, else do not start)
 1. No npt trainer alive: `Get-CimInstance Win32_Process | ? CommandLine -match 'nnue-pytorch-amd\\train.py'` is empty,
    and the keeper STATUS says the next line is held for this gap.
-2. Free RAM >= 12 GB (guard floor 6 GB like the queue, plus margin), C: >= 30 GB, D: >= 52 GB (one 1.5 GB checkpoint).
+2. Free RAM >= 12 GB (guard floor 6 GB like the queue, plus margin), C: >= 52 GB (Couns: keep C: >= 50 GB; the run writes one 1.5 GB checkpoint there), D: >= 50 GB.
 3. `D:\o14b\fl\b5_install\forge_fastloader.dll` has the sha256 above; `D:\o14b\npt` is the trainer copy with the
    `--fast-loader` switch (`tools/install_fast_loader.py`; files verified against `F:\opus_scratch\r6\nnue-pytorch-amd`).
 
