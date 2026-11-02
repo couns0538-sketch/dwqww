@@ -39,6 +39,10 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    LAST arguments, `--npt-extra --fast-loader` (`--npt-extra` takes the rest of the command line). Everything else
    stays as it is. `--num-workers N` sets the fast loader's feature-builder threads to N - 2 (at least 1; plus one
    reader and one filter thread); the batches are the same at any N (the w1 stream).
+   Thread count: the measured layout (reader + filter + 1 builder = `--num-workers 3`) delivered 4,035,567 kept
+   positions / s on 2 CPUs at BelowNormal, about 24x what the live line consumes (7.4-10.3 it/s x 16,384 = 121k-169k
+   kept positions / s in its epoch logs). So `--num-workers 3` is enough even for a GPU-bound epoch; with the live
+   line's `--num-workers 4` (the `_w4_` in its name) the fast loader would run 2 builders, one thread more than needed.
 5. Check the run log's first lines: `Fast loader: ON (<version>, <path>, sha256 9eb29b7d...)`. A trainer without the
    flag prints `Fast loader: off`.
 6. Roll back: remove `--npt-extra --fast-loader` (or `--npt-repo`); nothing else changes.
