@@ -188,7 +188,8 @@ def cmd_dump(a) -> int:
     st.close()
     timed = (t1 - t_warm) if t_warm else float("nan")
     with open(a.out, "x", encoding="utf-8", newline="\n") as f:
-        f.write("\n".join(lines) + "\n")
+        if lines:  # a stream with no batch writes no row (an empty row would count as one "batch" in compare)
+            f.write("\n".join(lines) + "\n")
         f.write(f"# loader={a.loader} dll={os.path.abspath(a.dll)} workers={a.workers}\n")
         f.write(f"# settings batch={a.batch} window={a.window} cyclic={not a.finite} data={os.path.abspath(a.data)} "
                 f"skip={a.skip or 'npt-default'}\n")
@@ -206,6 +207,8 @@ def read_tsv(path):
     rows, meta = [], []
     with open(path, encoding="utf-8") as f:
         for line in f:
+            if not line.strip():
+                continue  # dumps written before 14:25 have one empty row when the stream had no batch
             (meta if line.startswith("#") else rows).append(line.rstrip("\n"))
     return rows, meta
 

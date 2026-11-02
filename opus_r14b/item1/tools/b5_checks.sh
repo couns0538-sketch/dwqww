@@ -72,4 +72,8 @@ else
 fi
 echo "== 5 ABBA $(date '+%H:%M:%S')"
 "$PY" -I -B "$T/fl_abba.py" --out "$out/abba_w2_vs_f1" --pairs 10 --a "old:$OLD:2" --b "fast:$NEW:1" --batches 420 --warmup 20 | tail -3
+echo "== 6 one full trainer epoch through the fast loader alone (9,307 batches = 152.5M positions) $(date '+%H:%M:%S')"
+"$PY" -I -B "$T/fl_equal.py" dump --loader fast --dll "$NEW" --workers 2 --data "$TRAIN" --batches 9307 --warmup 20 \
+  --no-hash --out "$out/full_epoch_fast.tsv" | tail -1
+grep '^#' "$out/full_epoch_fast.tsv"
 echo "== done $(date '+%H:%M:%S'), failures: $fails"

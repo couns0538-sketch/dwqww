@@ -1,4 +1,4 @@
-# R14-B item 1 - fast npt data loader (`--fast-loader`, default off) - IN PROGRESS, UNPROVEN
+# R14-B item 1 - fast npt data loader (`--fast-loader`, default off) - DONE except the GPU window (requested), UNPROVEN
 
 Branch `opus-r14b-fast-loader` (from main). Own code; the npt loader (nnue-pytorch, GPL-3.0) was read for behaviour
 only (IDEA_SOURCE.md). Nothing of the live npt line was touched: the reference DLL is a copy, the trainer copy lives
@@ -22,14 +22,27 @@ switch on, the trainer prints `Fast loader: ON (<version>, <DLL path>, sha256 <.
 | reference deterministic: old `--num-workers 1` twice, and `--num-workers 2` (same 1 decoder + 1 builder) | 1000 / 1000 identical each | logs/equality/eq_old_w1*.tsv, eq_old_w2.tsv |
 | train file, first 1,000 batches (16,384,000 positions), b4 at 1 / 2 / 4 builder threads vs old w1 | **1000 / 1000 identical** (sha256 of the float and int blocks = every byte the trainer reads, plus size and active counts) | logs/equality/b4_fast_t*.tsv |
 | validation file: 300 batches cyclic (three wraps) / finite stream to end of file (last batch 9,582) | 300 / 300 and 102 / 102 identical; read 16,388,575 / kept 1,664,366 in both | logs/equality/*val* |
-| self-test (independent no-filter reference, thread-count invariance, row invariants, 7 format errors, destroy while running, window < batch, acceptance 0, double release) | b5: ALL PASSED locally (`_GLIBCXX_ASSERTIONS`); CI ASan+UBSan and TSan: b4 version passed (run 41441092765), b5 version: see the next push | `fastloader/ffl_selftest.cpp`, `.github/workflows/ffl-sanitize.yml` |
+| self-test (independent no-filter reference, thread-count invariance, row invariants, 7 format errors, destroy while running, window < batch, acceptance 0, double release) | b5: ALL PASSED locally (`_GLIBCXX_ASSERTIONS`) and in CI under ASan+UBSan and TSan (runs 41441092765 for b4, 41446915233 for b5) | `fastloader/ffl_selftest.cpp`, `.github/workflows/ffl-sanitize.yml` |
 | **trainer path: old SparseBatchDataset (w1) vs FastSparseBatchDataset b5 (w4), through FixedNumBatchesDataset + DataLoader, every tensor (8 per batch)** | **261 / 261 batches identical (200 train + 61 validation)** | logs/dataset/ds_*.tsv (`tools/fl_dataset_equal.py`) |
 | CPU loss match at 2 threads (K32H3^ L1 256, 64 batches, seed 5117, no validation stream): old arm (old DLL w1) vs fast arm (b5 + installer patch, `--num-workers 2 --fast-loader`) | losses NOT equal (epoch 0.016163233667612076 vs 0.016393575817346573; step 13 0.019647 vs 0.019793) although the trainer receives identical tensors (row above): 2-thread CPU training is not bit-reproducible -> deterministic pair below. Fast arm 11.4 min vs old 40.2 min on the same 2 CPUs (the old loader's threads take CPU from torch); peak private RAM 4.08 vs 6.2 GB; no RAM-floor trip | logs/lossmatch/ |
 | CPU loss match, deterministic attempt 1 (1 thread, `torch.use_deterministic_algorithms`, 16 batches): fast twice | **fast vs fast also differs** (epoch 0.020004266873002052 vs 0.02009074203670025) -> the trainer itself is not reproducible: see "Finding for Engine NNUE" below | `D:\o14b\lm\det3_*` |
 | **CPU 1-epoch loss match, reproducible setup** (K32H3^ L1 256, epoch = 16 batches of 16384, seed 5117 set before the model is built, 1 thread, `torch.use_deterministic_algorithms`; `tools/lm_det.py`): fast (b5, `--fast-loader --num-workers 2`) twice, old (`--num-workers 1`) once | **EXACT MATCH: old = fast = fast on all 5 logged values** (steps 4 / 8 / 12 / 16: 0.02027221769094467, 0.020174967125058174, 0.01979747787117958, 0.02008046768605709; epoch 0.02009364403784275); no RAM-floor trip (peak private old 6.13 GB, fast 4.01 GB) | logs/lossmatch/det4_* |
-| b5 vs old: train 1000 batches, validation cyclic / finite, config matrix, batches spanning windows past a file wrap | TODO (`tools/b5_checks.sh`, after the deterministic pair) | - |
-| speed ABBA (>= 10 pairs, CPUs 2-3, BelowNormal) | TODO | - |
-| GPU window epoch | TODO (GPU_REQUEST.md) | - |
+| **b5 vs old, standard config**: train 1000 batches (b5 at 2 and 4 builders), validation 300 cyclic + 102 finite | **all identical** | logs/b5checks/std_*.cmp |
+| **b5 vs old, config matrix** on the self-test's synthetic files (60,000 records with random plies, VALUE_NONE and zero scores; 30,000 records with 2-7 pieces), each cyclic (120 batches) and finite: npt defaults, no filter at all, random skipping 3, early skipping 8, `pc_y1=0` (acceptance 0), `ply_y1=0`, other spline values, window 1024 < batch 5000, batch 16384 with a 2^20 window | **24 / 24 identical** (the 2-7-piece file with `pc_y1=0` keeps 0 of 30,000 positions in both) | logs/b5checks/syn_*.cmp, low_*.cmp, matrix_settings.txt |
+| **b5 vs old, real data, batch 10,000** (batches span shuffle windows), 3,100 batches = past the first wrap of the 10.4 GB train file | **3100 / 3100 identical** | logs/b5checks/real_b10000.* |
+| trainer path again inside the check run (b5, w4 vs old w1) | 261 / 261 identical | logs/b5checks/ds_* |
+| **speed: palindromic ABBA, 10 pairs, CPUs 2-3, BelowNormal, same 3-thread layout** (old w2 = reader + decoder + builder; fast = reader + filter + 1 builder), 420 batches, 20 warm-up | **old median 468,494 vs fast 4,035,567 kept positions/s: 8.65x (mean 8.64x, 95 % CI 8.58 .. 8.69)** - ADVISORY, QA times officially | logs/b5checks/abba/summary.txt |
+| **one full trainer epoch through the fast loader alone** (9,307 batches = 152.5M positions; 1.55 B records read) | **29.8 s** (5.13M positions/s on 2 CPUs), peak working set **166 MB** flat over the epoch (the live line needs 16-20 min of GPU time per epoch) | logs/b5checks/full_epoch_fast.tsv |
+| GPU window epoch | REQUESTED, NOT GRANTED during R14-B (the npt queue holds the GPU until 2026-11-08; GPU util 47.7 % at 13:53) - GPU_REQUEST.md is ready for Engine NNUE / QA | GPU_REQUEST.md |
+
+## Done criteria (Couns) - status
+| criterion | status |
+|---|---|
+| pushed and CR-ready | yes: code, spec, installer + patch, tests, CI, logs on `opus-r14b-fast-loader` |
+| first 1,000 batches bit-identical, same data, same seed | yes (reference = old `--num-workers 1`, the only reproducible old stream; also b5 vs old on 24 other configurations, 3,100 spanning batches past a wrap, and 261 batches through the trainer's own data path) |
+| 1-epoch loss matches exactly | yes, in a reproducible training setup (CPU, 1 thread, deterministic algorithms, seed before the model). With the trainer as it is, no two runs match even with the same loader (finding below) |
+| >= 3x positions/s on 2 CPU threads (or >= 90 % GPU use) | yes: 8.65x (ADVISORY ABBA); the GPU-use measurement needs the window |
+| no RAM-floor trips over the full epoch | yes on the CPU: full loader epoch peak 166 MB; every CPU training run with the guard: no abort (fast 4.0-4.1 GB peak private vs old 6.1-6.2 GB). On the GPU: needs the window |
 
 The L1 1024 CPU loss match with a validation stream hit the 7 GB RAM floor (guard abort at 6.98 GB free, own private
 8.36 GB; the old loader alone holds up to 9 windows x 235 MB per stream and reads ~10x ahead). The recorded pair uses
