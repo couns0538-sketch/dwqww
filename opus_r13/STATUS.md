@@ -15,3 +15,12 @@ Updated: 2026-11-01 11:00 PC clock. CR R13: P3 PASS, P6 PASS, P4 + P7 FIX (fixes
 
 Notes
 - F: had 45.0 GB free at start (< 50 GB floor), so scratch/builds/handoff exes are on C:\o13\ (C: 169.7 GB free) until F: is >= 50 GB again.
+
+## Final state (2026-11-01 ~11:20 PC clock, usage ending)
+- P1 DONE: 6 gate lines (b1 e950c77e, packa w50/w60 07cc2393, bnd68 8dc93b38, packc28 cf617e67, eos49 a4e7f24c).
+- P2 DONE for now: stack ff6628ce / align 302ad8fb (neutral); sparse L1 6fdf46dc exact but slower (stopped).
+- P3 DONE (CR PASS): exe 029d58e8, singles queued; SPSA noise-level.
+- P4: CR fixes pushed; parity PASS at H256 (a/b/c x AVX2/SSE 10000/10000); needs a GPU window; H768+ open.
+- P5: relabel job running on the PC until 12:25 (job C:\o13\p5\job1); throughput + handoff TODO.
+- P6: OFF pins, ON bench = original prober pins, WDL/DTZ 220/220, 50-move 20/20; LTO+PGO pc1/pc2 + CI sanitizer were running.
+- P7 DONE: EvalRule50Damp 60 (fitted) beats OFF and hand; Optimism 150 weak; MatScale fits 0.
