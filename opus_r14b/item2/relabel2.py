@@ -227,11 +227,11 @@ def cmd_prepare(a) -> int:
                 emit(game, fh)
             fh.flush()
             os.fsync(fh.fileno())
+        if st["rows"] == 0:
+            raise BadInput("no rows selected (input empty, or --rows smaller than the first game)")
     except BadInput as e:
         write_new(job / "prepare_failed.json", json.dumps({"run_id": a.run_id, "time": now(), "error": str(e)}) + "\n")
         raise
-    if st["rows"] == 0:
-        raise BadInput("no rows selected")
     os.rename(tmp, job / "rows.tsv")
     lengths.sort()
     starts.sort()
