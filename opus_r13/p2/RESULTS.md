@@ -119,4 +119,16 @@ core; QA does the official timing. The sparse L1 stays stopped.
 | T1 + T4 movetime 1000 smoke on the SPEED2 exe, 4 positions | 8 / 8 legal bestmoves; mate probe 19 mates (= the lock's OFF count, node-identical) | speed2/logs/kit_s2/cand_checks_speed2.json |
 | CI ASan+UBSan self-play (run 41424824966, 17d55775): lock + patch at -DFORGE_SEARCH_SPEED2=0 and =1, Threads 1 and 2, 4 games each | PASS: 0 illegal, 0 sanitizer lines; at Threads 1 both builds play the same 520 moves (node-identical) | speed2/logs/ci_san_41424824966.txt |
 | handoff exe | `D:\o14a\handoff\speed2orge_ltopgo_speed2_de20653c.exe` (copy of s2on_pc1) | - |
-| advisory ABBA vs the lock (r12_speed.py, CPU 2, 10 pairs + 3 A/A, d16 / d20) | next (after the own Idle P7 fit frees CPUs 2-3) | - |
+| advisory ABBA vs the lock FD3A5190 (r12_speed.py: palindromic blocks, fresh process per run at BelowNormal on CPU 2, Idle trainer on the pair ignored; 10 pairs + 3 A/A pairs per exe with byte copies; 2026-11-02 11:16-11:25 PC clock) | d16: engine nps median **+3.01 %** (2-sided 95 % [-1.13, +4.80], 1-sided LB +1.23), cpu nps +2.60 % [+1.51, +3.56]; d20: engine nps **+2.76 %** [+1.78, +4.20], cpu nps +2.85 % [+1.94, +4.82]; A/A medians -1.35 .. +2.57 % (d20 copies +2.57 / +1.42 %: noise of the same size as the effect); nodes equal in all 128 runs (d16 3024920, d20 12389307). ADVISORY only - QA does the official timing | speed2/logs/abba/ |
+
+### Review milestone R14-P2-1 (structured self-review, NOT independent - no sub-agents in R14)
+- Reviewed: speed2_port.patch against the lock lines it guards (every change in `#if FORGE_SEARCH_SPEED2 ... #else <lock> #endif`),
+  the hoist arithmetic (same sums in the same order: main row + cont1 + cont2; 10 * (victim value + promotion delta) +
+  capture history), lifetimes (QuietScorer keeps a reference to the side's history row and the two continuation pointers
+  only during one generation - read at the same moment as the lock reads them), the table index (`piece & 15`, valid
+  Piece values 0..12), the new prefetch sites (child key after make_null_move / make_move), candidate = exe de20653c.
+- Findings in the code: none. Tooling finding: the first ABBA start waited on its own venv launcher (a BelowNormal
+  `.venv\Scripts\python.exe` parent on CPU 3); fixed by lowering that own process to Idle by handle (--ignore-idle
+  skips Idle processes; the engine runs keep BelowNormal) - lesson in the skill forge-speed-stack.
+- Spec reading recorded above (qsearch already prefetched; null move + ProbCut were the missing sites).
+- Next: QA timing; a gate only if QA finds the speed worth it (node-identical: strength can only come from speed).

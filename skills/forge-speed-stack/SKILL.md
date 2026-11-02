@@ -39,3 +39,23 @@ opus-r13-p2-sparse-l1 `opus_r13/tools/` (kit24_build.sh, port_align.py) + the P1
   LTO+PGO -12..-14%, plain -8% (also after removing ___chkstk_ms with a 1 KiB list and forcing inline). Do not retry the
   same design; next ideas: a sampling profile first (-pg on a copy), vpcompressw phase 1, fusing the list into the FT pack.
 - A Windows stack array > 4 KiB in a hot function costs a `___chkstk_ms` probe per call (seen in objdump).
+
+## Node-identical search speed switch on the LOCK tree (R14 Main 2, FORGE_SEARCH_SPEED2)
+- Port = anchored script on a fresh lock copy (`opus_r13/p2/speed2/port_speed2.py`, branch opus-r13-p2-sparse-l1): every
+  change inside `#if SWITCH ... #else <lock lines> #endif`, so the patch only ADDS lines (+91 / -0) and switch 0 keeps the
+  lock's code; `--default 1` writes the kit variant (the kit takes no -D flags; variants differ in one `#define`).
+- Proof: plain builds at 0 and 1 (`plain_build.sh <repo> <out> -DSWITCH=1`), kit lp_check `compare` of the two runs with
+  `--pins/--perft-pins` (bench, perft, 8 FENs, bestmoves). A speed switch cannot show "ON differs from OFF" in nodes: show
+  liveness in codegen instead (objdump counts: prefetch 3 -> 5, modulo-by-6 imul 0x2aaaaaab 68 -> 11) and diff the `uci`
+  output (must be identical: no new options).
+- Kit builds on D: per the R14 scratch rule: `opus_r13/p2/speed2/kit_build_r14.sh` (= R13 kit_build.sh with work dir
+  D:\o14a\w, exports D:\o14a\src, disk gate on D:); KIT_SIDES=pc1 for a one-sided identity build. A kit build of the
+  switch-0 source vs the lock exe's sha256 tells whether the preprocessor-only change reproduces the lock byte for byte.
+- ABBA: `r12_speed.py --cpu 2 --ignore-idle` ignores Idle-class processes, including MY OWN Idle jobs on the pair: start it
+  only after them (it does wait for non-Idle own builds).
+- The lock already prefetches the child TT cluster after make_move in qsearch and in the main loop; the null move and the
+  ProbCut make did not (R14 adds those two sites).
+- r12_speed.py pitfall (R14): its "own process" test knows only its own PID; the venv's `.venv\Scripts\python.exe` is a
+  launcher that starts the real cpython as a CHILD, so the launcher (same command line, own affinity) shows up as a busy
+  non-Idle python on the pair and the run waits forever. Start the driver at **Idle** (`run_low.ps1 -Prio Idle`) with
+  `--ignore-idle` (the engine runs still get BelowNormal from the tool), or lower the own launcher to Idle by handle.

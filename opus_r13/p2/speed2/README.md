@@ -22,7 +22,7 @@
 | kit build with the switch at 1, pc1 = pc2 | de20653c, NODE IDENTITY ALL OK vs the pins, 0 missing-profile warnings |
 | T1 / T4 movetime smoke | 8 / 8 legal bestmoves; mate probe 19 = the lock's |
 | CI ASan+UBSan (Threads 1 and 2, switch 0 and 1) | 0 illegal, 0 sanitizer lines |
-| advisory ABBA vs the lock | see RESULTS.md (QA does the official timing) |
+| advisory ABBA vs the lock (10 pairs, CPU 2) | d16 +3.0 % / d20 +2.8 % engine nps (cpu nps +2.6 / +2.9 %), A/A noise up to +2.6 %: advisory, UNPROVEN - QA does the official timing |
 
 ## For the crew
 Engine A = this exe with no setoption, engine B = lock FD3A5190. PC precondition: bench 13 = 862329 (all pins = lock).
