@@ -31,4 +31,4 @@ SPSA proposals (160 pairs each; noise-level, gate the defaults first): sf26_nmp 
 | CI ASan+UBSan self-play default / nmp / lmr / mc / max: 0 sanitizer lines, 0 illegal | PASS (run 41286830769) | logs/ci_san_41286830769.txt |
 | R14 combined line on this exe (kit lp_check.py, frozen bench_fens): the three singles together = `Sf26Bundle=14` in every bench d11-d22, perft and per-FEN node / bestmove number; differs from OFF; OFF = lock pins | PASS (NODE IDENTITY ALL OK) | logs/comb_r14/run_comb.log, off/b14/comb.json |
 | R14 combined line: uci defaults 0, T1/T4 movetime smoke 16/16 legal, mate probe OFF 19 / combined 21 mates (none lost) | PASS | logs/comb_r14/cand_checks_comb.json |
-| R14 CI ASan+UBSan config `comb` (the combined line) | run of the R14 push | logs/comb_r14/ |
+| R14 CI ASan+UBSan config `comb` (the combined line), run 41422747717 on c8486179: default / nmp / lmr / mc / comb / max, 4 games each | PASS: 0 illegal, 0 sanitizer lines | logs/comb_r14/ci_san_41422747717.txt |

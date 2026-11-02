@@ -65,7 +65,7 @@ notes 2026-11-01 10:29); no SPSA rerun (Couns). Exe unchanged: 029d58e8 (`C:\o13
 | uci defaults of the three switches | 0 / 0 / 0 | logs/comb_r14/cand_checks_comb.json |
 | T1 + T4 movetime 1000 smoke, OFF + combined, 4 positions | 16 / 16 legal bestmoves | same |
 | mate probe, 22 positions at 3M nodes | OFF 19 mates, combined 21 (no OFF mate lost; finds 8/1r6/8/8/8/4K2k/8/8 b and 8/3k4/5R2/8/8/8/8/2K5 w) | same |
-| CI ASan+UBSan: new config `comb` in opus-r13-san-p3.yml | run of this push (recorded in the next commit) | - |
+| CI ASan+UBSan: new config `comb` in opus-r13-san-p3.yml, run 41422747717 (c8486179) | comb 4 games 605 moves, 0 illegal, 0 sanitizer lines; all 6 configs PASS (green) | logs/comb_r14/ci_san_41422747717.txt |
 Gate line (only if 2+ singles reach H1): engine A = 029d58e8 with `Sf26NmpPrior 1`, `Sf26LmrGap 1`, `Sf26MulticutCorr 1`
 (PC precondition bench 13 = 727853), engine B = lock FD3A5190; UHO first, 8moves_v3 confirm separate, never pooled. UNPROVEN.
 
