@@ -1,38 +1,41 @@
 # Exact resume — UNPROVEN
 
-Job1 closed with SEALED_INCOMPLETE evidence handoff; Job2 step1 is next.
-No owned engine/timing worker is active. Worktree D:\a10\wt, branch astra-r10-3jobs,
-independent repository D:\a10\repo. No Job2 or Job3 edits/runs yet.
+Job1 and Job2 have incomplete evidence handoffs; Job3 step1 is next. No ownednative
+worker active. D:\a10\wt branchastra-r10-3jobs; owncloneD:\a10\repo. NoJob3workyet.
 
-Next command (read-only; Idle, TEMP/TMP D:a10):
-git -C D:\a10\wt ls-remote origin refs/heads/opus-r13-p4-v2nets refs/heads/opus-r13-p7-e3fit refs/heads/opus-r13-status
-Check CPU load before starting Job2. Skip an item if head newer than its pinnedbase:
-P4 df79fb6e33e0ec45e4bdf40cbbdfadb3b6fc27a6, P7 cd9cb992fd6a6b05766d1117c1de441a430586a9.
-Read status too; prior planning status43af044a14a375b653f3d0bc633d9f476325ca81.
-If unchanged, recover mandated CR1e7b5d20 +cc826b0a delta and P7CR129d440e.
-These were unresolved at planning; do not invent missing patches or access F:/Opus folders.
-Work only on copied Git content under astra_r10/job2. P5 excluded. Then Job3 d8982bc0.
+Next: recover pinned qa-datafilter-fix d8982bc04d3a828ba440bad250d02fb72526f1a2 into
+copies under D:\a10\job3 (read-only Git source, ownclonefetch), checkCPU/disk beforework.
+Inspect astra_r8/datafilter converters/adapter/tests and original permitted metadata
+D:\grok-pc-data\dwqww\astra8_data. Locate complete013/014 exports and trustedhash/count
+manifests, authentic gameIDs and originalfullFEN provenance before audit. Freezeall
+inputs underD:a10/job3; never live trainerfolders/F/Opusfolders. MissingIDs or complete
+holds =>UNVERIFIED, neverPASS. Then fix opt-in fullstate sidecar through actualconverter/
+relabel path, preservelegacydefaultbytes; realadapter3faultreplays+negativecontrols+
+existing73tests; matchingholdout/resumableskills, focusedreviews, finalpack andreport.
 
-Job1 pack D:\a10\wt\astra_r10\job1\pack is immutable. SEALED_INCOMPLETE/UNPROVEN.
-SHA256SUMS SHA256 1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD.
-RequestSHA25646ea5665ec0ca94f7cc25aaf356b242a97d1569b8595977423b2f9bf112a1659.
-1419artifacts,1422hashedfiles, independent MD5/SHA256 coverage PASS and final review PASS
-for incomplete handoff. Packed ledgers reflect pre-seal state; this live RESUME is current.
+Job2 BLOCKED: mandatoryCR1e7b5d20/cc826b0a/129d440e unavailable in localGit andGitHub;
+exactdelta404. Repeatedlookupstopped. P4/P7headsstilldf79fb6e33e0ec45e4bdf40cbbdfadb3b6fc27a6 /
+cd9cb992fd6a6b05766d1117c1de441a430586a9; status43af044a14a375b653f3d0bc633d9f476325ca81.
+Freshremoteheadreceipt job2/recovery/remote-heads.json. OriginalPGNs/derivedfitdata
+notcommitted; reportpointsforbiddenF. No CRsubstitute, no newcandidate/fit/CI/parity/seed.
+Separate immutablepacks:
+job2/pack_rule50 SHA256SUMS E635D4362A83E4BFC2682BCCA92C00B1458EB5A604DE1E124E96E430E74D3236
+job2/pack_optimism SHA256SUMS 0C2AEC6CC35320D495432977C14C88769437A11B04BEEBDFD16AFBD68C7020A7
+BothSEALED_INCOMPLETE,52filesverified, finalfocusedreviewPASSforscopeonly.
 
-R9source f43a26aeed2448379fc2916b25f31ead8707b0ec. pc1-a=pc2-a=
+Job1immutablepack job1/pack SHA256SUMS
+1AF9E1C9850ECE6B1D7DA03F7046F982AF0999CBA8F140AD85C463967E8F85CD (1422filesverified).
+R9sourcef43a26aeed2448379fc2916b25f31ead8707b0ec; pc1=pc2=
 775EDEA1D476A3A18C64AF63F53C55D6E29A4571556AAD2666E87F18A6EF4284.
-Lock FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072.
-KitMD5 729FE7275C3C01D22C751CB751D5C9D2. Pinned12kSHA256
+LockFD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072;
+kitMD5729FE7275C3C01D22C751CB751D5C9D2; pinned12kSHA
 c01c0e6a49fb9aaab535058bd7280c33b8735e0f8bd40834f1c029843a75a265.
-Native build/pins/perft/T1/sanitizer/parity proof PASS within documentedscope:
-12000rootFENs,0rawdiff,negative3975. T4UNVERIFIED, recovered sanitizer rerun disclosed.
-Final timing CALIBRATION_FAIL:39completeA/A,10eligible,median+0.361084%,IQR1.098525pp>1pp;
-0candidateABBA. Do not restart/relaxprotocol. ProtocolSHA256
-c83ccb17d428069be129eaf4f1b253dbf299bb6d77ad0353a5667fa82ccb3245 preregisteredbd9f81a.
-Finalrecords job1/timing/run01/summary.json,run-launch02/result.json,review01/REVIEW.md.
-No speedgain/below-threshold claim; all speed/strength UNPROVEN. Crew alone gates UHO.
+Build/pins/perft/T1/sanitizer/parityPASSdocumentedscope;0diff/negative3975.T4UNVERIFIED.
+TimingCALIBRATION_FAIL39AA/10eligible,median+0.361084%,IQR1.098525pp>1;0ABBA.
+Do notrerun/relaxprotocolc83ccb17d428069be129eaf4f1b253dbf299bb6d77ad0353a5667fa82ccb3245.
+Allspeed/strengthUNPROVEN. CrewQA/CRofficialABBA/gatesonlyUHO, nofreshseedinventory.
 
-Half-done: none in Job1; crew prerequisites intentionally unresolved. No live gate
-inventory or seedclearance. User data pipelines/Jobs2/3 remain. Preserve failedattempts.
-D:a10 only <=15GB; C>=30GiB,D>=50GiB; Idle<=2workers; full protected roots everylauncher.
-No gates/matches/training/GPU. Plan PLAN.md; every milestone and <=20minprogress push.
+Halfdone:noneownedprocess; Job3unstarted. Preservefailedattempts/immutablepacks.
+AllwritesD:a10<=15GB, C>=30GiB,D>=50GiB,Idle<=2workers/fullprotectedrootslauncher.
+No GPU/training/matches/gates; P5excluded. UpdateRESULTS/RESUMEeverypush<=20minprogress.
+EndwithFINAL_REPORT.md; missingprerequisites explicitBLOCKED/UNVERIFIED.
