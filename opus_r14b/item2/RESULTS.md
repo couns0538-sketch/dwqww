@@ -9,7 +9,7 @@ any of these labels are used; nothing here is a strength claim. The 50M run is n
 **State (2026-11-02 22:47 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
 FROZEN at sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602 (commit a3470e08, re-frozen 22:46 after
 shards started to record their settings; earlier freezes 88454db6... at 20:41, 0a81dd5f... at 22:03 after the prepare
-fuzz, 56eef0a6... at 22:22 after the damaged-job harness). Test suite: 155 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
+fuzz, 56eef0a6... at 22:22 after the damaged-job harness). Test suite: 157 PASS / 0 FAIL in the worktree at 23:06 (155 / 0 in the worktree and fresh clones at the re-freeze) (the 19 / 19 below is the afternoon's first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
 whole 1M sample with the LTO+PGO probe gave the proof's files byte for byte; Forge's fen2bin / hce_dump take all 1M
 rows. Probe builds from a fresh clone reproduce the tested exes. 50M: ~79 h on CPUs 2-3 with 2 workers (the whole-1M
 rate under load); runbook for R8 v5 shards 001-057 in RELABEL_HANDOFF.md. `FILES.txt` + `SHA256SUMS` index this
