@@ -120,7 +120,7 @@ range), #6 22:09-22:27 (damaged job state J-1..J-4; installer H6-1..H6-3), advis
 trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer's dataset calls: all covered), #10 23:20-23:21
 (relabel paths with spaces end to end: all exit 0), claims audit 23:21-23:24 (report numbers -> raw logs), #11
 00:08-00:09 (kept exes in place; one wrong note of mine corrected: the s31 line differs from the request only in the
-seed); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
+seed), #12 00:25 (relabel documents vs the code: consistent); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
 05:00-06:00.
 
 ## Deviations and incidents (honest record)
