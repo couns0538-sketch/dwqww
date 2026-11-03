@@ -29,7 +29,9 @@ fen2bin.exe in.txt out.pos` (sha256 24cb2e78...; its sibling `hce_dump.exe` repr
 R11), turns the text into .pos files with the new scores (checked on 1,200 rows: 0 bad lines; score, side to move and
 result columns equal), and `hce_dump.exe in.txt out.hce` makes the .hce (1,200 records, 0 bad). Whether the live
 supervisor uses these same binaries was not checked. Exit codes: 2 bad input,
-3 configuration differs / job busy / target exists, 4 integrity (a published file changed).
+3 configuration differs / job busy / target exists / disk floor, 4 integrity (a published file changed), 1 anything
+else, e.g. a probe that died, timed out or answered wrongly (`run` first writes "run stop ... <error>" to
+sessions.log; published shards stay; the same command resumes once the cause is fixed).
 
 ## Commands (PC rules: Idle, CPU mask, <= 2 probe workers; nothing is deleted or overwritten)
 ```bash

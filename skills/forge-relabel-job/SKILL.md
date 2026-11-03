@@ -27,7 +27,10 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   the shard is redone as `.part.N+1`). Bound a session with `--until` / `--max-shards`: on this PC the session cannot
   end processes and TaskStop only ends the outer shell.
 - Exit codes: 2 bad input (names the file:line), 3 configuration differs / job busy (`job.lock`) / target exists /
-  disk floor, 4 integrity (a published file changed). A changed relabel2.py resumes only with `--accept-new-tool`.
+  disk floor, 4 integrity (a published file changed), 1 anything else - e.g. a probe that died, timed out or answered
+  wrongly: `run` writes "run stop ... <error>" to sessions.log first; published shards stay, the interrupted attempt
+  dir is kept, and the same command resumes once the cause is fixed. A changed relabel2.py resumes only with
+  `--accept-new-tool`.
 - Disk floor `--min-free-gb` (default 50 GiB = the PC rule for C: and D:): prepare and assemble refuse a write that would
   cross it, run stops before the next shard (logged); free space and run the same command again.
 - Output to FPOS with the converter earlier jobs used (sha256 24cb2e78...; not checked against the live supervisor's):

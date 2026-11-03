@@ -546,7 +546,6 @@ def cmd_run(a) -> int:
                                  f"{tool_hash[:8]}); pass --accept-new-tool to resume with it (logged)")
     else:
         write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=tool_hash), indent=1) + "\n")
-    lower_priority(int(a.mask, 16))
     n = info["rows"]
     shards = (n + a.shard_size - 1) // a.shard_size
     offs = row_offsets(job, a.shard_size, n)
@@ -570,47 +569,55 @@ def cmd_run(a) -> int:
                         f"session_rows=0 (nothing left to label)")
         print(json.dumps(dict(status, shards_done=shards, rows_done=n, note="nothing left to label")))
         return 0
-    with ProbePool(a.probe, a.nodes, a.workers, None, hash_mb=a.hash_mb, timeout=300) as pool:
-        for k in range(shards):
-            if k in done:
-                continue
-            if a.max_shards and shards_session >= a.max_shards:
-                break
-            if deadline and dt.datetime.now() >= deadline:
-                break
-            try:  # a shard writes ~1 MB per 10,000 rows; stop before the drive crosses the floor
-                disk_check(job, 64 * 2 ** 20, a.min_free_gb, f"shard {k}")
-            except ConfigMismatch as e:
-                append_log(job, f"run stop run_id={a.run_id} before shard {k}: disk floor ({e})")
-                raise
-            first = k * a.shard_size
-            count = min(a.shard_size, n - first)
-            attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
-            part = sdir / f"shard_{k:05d}.part.{max(attempts, default=0) + 1}"
-            part.mkdir()
-            ts = time.monotonic()
-            rows = read_shard_rows(job, offs[k], count)
-            if [int(r[0]) for r in rows] != list(range(first, first + count)):
-                raise IntegrityError(f"shard {k}: row ids in rows.tsv are not {first}..{first + count - 1}")
-            lines = label_shard(pool, rows, cfg)
-            write_new(part / "labels.tsv", LABELS_HEADER + "".join(lines))
-            nodes = sum(int(x.split("\t")[8]) for x in lines)
-            summ = {"run_id": a.run_id, "shard": k, "first_row": first, "rows": count, "nodes_total": nodes,
-                    "seconds": round(time.monotonic() - ts, 2), "attempt": part.name, "finished": now()}
-            write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
-            write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
-                                                          "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
-            move_retry(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
-            done.add(k)
-            rows_session += count
-            shards_session += 1
-            el = time.monotonic() - t0
-            rate = rows_session * 3600 / el if el > 0 else 0
-            left = n - sum(min(a.shard_size, n - j * a.shard_size) for j in done)
-            status.update(updated=now(), shards_done=len(done), rows_done=n - left, last_shard=k,
-                          session_rows=rows_session, session_rows_per_hour=round(rate),
-                          eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
-            write_status(job / "status.json", status)
+    try:
+        with ProbePool(a.probe, a.nodes, a.workers, None, hash_mb=a.hash_mb, timeout=300) as pool:
+            for k in range(shards):
+                if k in done:
+                    continue
+                if a.max_shards and shards_session >= a.max_shards:
+                    break
+                if deadline and dt.datetime.now() >= deadline:
+                    break
+                try:  # a shard writes ~1 MB per 10,000 rows; stop before the drive crosses the floor
+                    disk_check(job, 64 * 2 ** 20, a.min_free_gb, f"shard {k}")
+                except ConfigMismatch as e:
+                    append_log(job, f"run stop run_id={a.run_id} tool={tool_hash[:16]} before shard {k}: disk floor ({e})")
+                    raise
+                first = k * a.shard_size
+                count = min(a.shard_size, n - first)
+                attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
+                part = sdir / f"shard_{k:05d}.part.{max(attempts, default=0) + 1}"
+                part.mkdir()
+                ts = time.monotonic()
+                rows = read_shard_rows(job, offs[k], count)
+                if [int(r[0]) for r in rows] != list(range(first, first + count)):
+                    raise IntegrityError(f"shard {k}: row ids in rows.tsv are not {first}..{first + count - 1}")
+                lines = label_shard(pool, rows, cfg)
+                write_new(part / "labels.tsv", LABELS_HEADER + "".join(lines))
+                nodes = sum(int(x.split("\t")[8]) for x in lines)
+                summ = {"run_id": a.run_id, "shard": k, "first_row": first, "rows": count, "nodes_total": nodes,
+                        "seconds": round(time.monotonic() - ts, 2), "attempt": part.name, "finished": now()}
+                write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
+                write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
+                                                              "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
+                move_retry(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
+                done.add(k)
+                rows_session += count
+                shards_session += 1
+                el = time.monotonic() - t0
+                rate = rows_session * 3600 / el if el > 0 else 0
+                left = n - sum(min(a.shard_size, n - j * a.shard_size) for j in done)
+                status.update(updated=now(), shards_done=len(done), rows_done=n - left, last_shard=k,
+                              session_rows=rows_session, session_rows_per_hour=round(rate),
+                              eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
+                write_status(job / "status.json", status)
+    except ConfigMismatch:
+        raise  # the disk floor wrote its own stop line
+    except Exception as e:  # a probe died / timed out / answered wrongly, rows.tsv changed, ...: say so
+        append_log(job, f"run stop run_id={a.run_id} tool={tool_hash[:16]} after {shards_session} new shards: "
+                        f"{type(e).__name__}: {str(e)[:500]} (exit 1; published shards stay, the interrupted attempt "
+                        f"dir is kept; the same command resumes once the cause is fixed)")
+        raise
     append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
     print(json.dumps(status))
     return 0
@@ -782,8 +789,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     try:
         check_args(a)
-        if a.cmd in ("prepare", "assemble"):
-            lower_priority(int(a.mask, 16))  # run does it itself, after its configuration checks
+        if a.cmd in ("prepare", "run", "assemble"):
+            lower_priority(int(a.mask, 16))  # before any hashing or reading (a 50M rows.tsv is ~4.5 GB)
         return {"prepare": cmd_prepare, "run": cmd_run, "assemble": cmd_assemble, "status": cmd_status}[a.cmd](a)
     except BadInput as e:
         print(f"BAD INPUT: {e}", file=sys.stderr)

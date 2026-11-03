@@ -143,6 +143,12 @@ expect 2 run_not_a_job "$PY" -I -B "$R" run --job no_such_job --run-id g --probe
 expect 2 run_missing_probe "$PY" -I -B "$R" run --job jg --run-id g --probe no_such_probe.exe --nodes 5000 --shard-size 100
 expect 2 run_shard_size_zero "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 0
 expect 2 run_bad_until "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --until tomorrow
+# a "probe" that dies at once (not a probe): exit 1, the stop and its cause in sessions.log, the attempt kept, nothing published
+expect 0 prepare_bad_probe_job "$PY" -I -B "$R" prepare --job jbp --run-id bp --selfplay good.txt --rows 300
+expect 1 run_bad_probe "$PY" -I -B "$R" run --job jbp --run-id bp --probe 'C:\Windows\System32\whoami.exe' --nodes 5000 --shard-size 100
+check run_bad_probe_logged grep -qE "run stop run_id=bp tool=[0-9a-f]{16} after 0 new shards: ProbeError" jbp/sessions.log
+check run_bad_probe_attempt_kept test -d jbp/shards/shard_00000.part.1
+check run_bad_probe_nothing_published test -z "$(ls -d jbp/shards/shard_0000? 2>/dev/null)"
 expect 3 run_busy_job "$PY" -I -B -c "import msvcrt, subprocess, sys
 f = open('jg/job.lock', 'a+b'); f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
 sys.exit(subprocess.call(sys.argv[1:]))" "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
@@ -232,6 +238,7 @@ run_not_a_job not a prepared job
 run_missing_probe probe no_such_probe.exe not found
 run_shard_size_zero --shard-size >= 1
 run_bad_until --until 'tomorrow' is not YYYY-MM-DD HH:MM
+run_bad_probe ProbeError
 run_other_nodes configuration differs from run_config.json: ['nodes']
 run_other_shard_size configuration differs from run_config.json: ['shard_size']
 run_other_run_id run id other != job run id g

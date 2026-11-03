@@ -273,3 +273,20 @@ tools/hash_sweep.py, the .gitattributes files, and the documents against the cod
 Checked and kept: move_retry retries PermissionError only (an existing target still fails at once); every floor check
 runs before its write; the status line handles jobs never run (no run_config.json); the simulated-contention tests
 patch only the calls they target.
+
+## Bug hunt #3 (20:04-20:20 by the PC clock; self-review, NOT independent)
+Scope: what hunts 1 and 2 did not read - relabel2.py run / assemble / prepare internals (shard loop, failure paths,
+game rule, split, input checks, status), the R13 probe client's failure behaviour (forge_probe.py, unchanged copy),
+and item 1's trainer path (does the trainer copy a batch before the fast loader reuses its memory?).
+| # | finding | fix | check |
+|---|---|---|---|
+| H3-1 | a probe that dies, times out or answers wrongly stopped `run` with a bare traceback (exit 1) and NO line in sessions.log: an operator resuming a 70-hour job could not see why the last session ended | the shard loop is wrapped: any such error writes "run stop run_id=.. tool=.. after N new shards: <type>: <message> (exit 1; published shards stay, ...)" to sessions.log and re-raises (exit 1 as documented); the disk floor keeps its own stop line | new test: a job run with `whoami.exe` as the "probe" -> exit 1, the stop line with ProbeError, attempt dir shard_00000.part.1 kept, nothing published (suite run after the full PGO run frees the core) |
+| H3-2 | `run` lowered itself to Idle on the CPU mask only after hashing rows.tsv, the probe and itself: for a 50M job that is ~4.5 GB of sha256 at the caller's priority on any CPU (Normal when started from a normal shell) | main() lowers priority for prepare, run and assemble before the command starts (as prepare / assemble already did) | code read; suite |
+| H3-3 | the docstring says every sessions.log line names the code hash; the disk-floor stop line did not | both stop lines carry tool=<sha256 prefix> | test greps the new line with its tool hash |
+Checked, no finding: shard publish by directory rename (FileExistsError is not retried, so a published shard is never
+replaced); verify_shard on every published shard at start and twice in assemble; the game rule cannot split a game;
+the split hash; `--rows` cuts at a game boundary and closes the --jobs workers; inputs hashed before and after
+reading; item 1: the trainer's `_pin_and_move` copies every batch block into a new tensor (also for device "cpu")
+before `FastSparseBatchProvider` releases the ring slot, and the packed-index path that skips the copy needs
+native_owned + CUDA without HIP, which this ROCm trainer never takes - no use-after-release.
+Docs: exit code 1 described in RELABEL_HANDOFF.md and the skill forge-relabel-job.
