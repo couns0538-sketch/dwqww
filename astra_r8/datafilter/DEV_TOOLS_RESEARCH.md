@@ -1,6 +1,6 @@
 # Additional developer-tool investigation — UNPROVEN
 
-Checked 2026-11-03; the final review runs from 08:25 through at least 09:25 UTC.
+Checked 2026-11-03; the final review completed from 08:25:06 through 09:25:35 UTC.
 The work is Python conversion/filtering and proof handling. New C++ builds,
 sanitizer campaigns against modified engine code, training, GPU profiling and
 loader work remain outside scope. A plugin can supply access or workflow; its

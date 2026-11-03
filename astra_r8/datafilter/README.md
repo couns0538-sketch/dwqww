@@ -18,7 +18,7 @@ Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v9/manifest.json`
 SHA256 `c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
 Current code must not be paired with historical v7/v8 manifests. v7 is protected evidence and remains
 unchanged at SHA256 52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
-The final review is active from 08:25 through at least 09:25 UTC. See [results](RESULTS.md),
+The final review completed from 08:25:06 through 09:25:35 UTC on 2026-11-03. See [results](RESULTS.md),
 [review log](REVIEW_LOG.md), [recipe commands](MIX_SPEC.md), and
 [R12 continuation constraints](R12_HANDOFF.md).
 

@@ -1,5 +1,21 @@
 # Astra R8 Job 2 — UNPROVEN
 
+Final closure, 2026-11-03 09:25:35 UTC: the complete final review ran from
+08:25:06 through 09:25:35 UTC. All confirmed in-scope findings are fixed and
+independently rechecked. Current CPU suite: **564 tests + 11 subtests PASS**;
+reviewed implementation/packer remain byte-identical to cb3d24a1. Final v9
+preflights, strict verification, artifact pack and Forge evidence checker PASS.
+Corrected FD3A5190 bench/perft pins PASS; protected v7 is unchanged. Both cleared
+JSONL files are intentionally identical (315,036,094 bytes each; MD5
+aa3e9272d686356ef6a9e25003c52546). No engine edits, training or GPU use.
+
+True qsearch/static UCI capability remains unavailable; CodeRabbit coverage is
+partial and SonarQube remains unauthenticated. These limitations are documented,
+not counted as passes. Strength is UNPROVEN. Next owners: Code Review, then
+Engine NNUE for training and Engine QA for separate gates and WAC300. R12 must
+start at the final published astra-r8-datafilter tip, including this closure.
+Earlier timestamped entries below are preserved historical checkpoints.
+
 09:17 UTC: independent final document/receipt review APPROVED, with no further
 findings. All53 local links in eight handoff documents resolve; all12 saved
 upstream skill blobs and full MIT notices match. The latest tool checker and
@@ -19,13 +35,13 @@ Retained artifacts at the pack boundary:14,960,739,398bytes; final-hour review
 and document closure continue through at least09:25 UTC. No training/GPU use.
 
 
-## Current acceptance checks - 09:01 UTC, UNPROVEN
+## Current acceptance checks - 09:25:35 UTC, UNPROVEN
 
 Code is at 4a3d4671 with documentation/evidence descendants. All confirmed PGN
 and packer findings are fixed and independently rechecked. Full CPU suite:
 **564 tests + 11 subtests PASS**, 532.82s (command534.030s), source/runtime stable.
 V9 manifest: c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291.
-The final inventory/checker PASS. The reserved review-hour closure is pending.
+The final inventory/checker PASS. The complete review hour closed at 09:25:35 UTC.
 
 | Numbered success test | Current result |
 |---|---|
@@ -35,7 +51,7 @@ The final inventory/checker PASS. The reserved review-hour closure is pending.
 | 4. Deliberate failures | PASS: complete 564-test/11-subtest suite, including raw PGN headers and setup guards |
 | 5. Rule rates/timing | PASS for measurable rules on two compute slots; capture uses a separate PGN cohort; true qsearch remains BLOCKED |
 | 6. Sign/mirror | PASS: fresh v9 Pearson 0.66359503677808 and 1,000 mirrors on 999,953 rows |
-| 7. Handoff | V9 sample, both CPU preflights, strict verification and final pack/checker PASS; review-hour closure pending |
+| 7. Handoff | V9 sample, both CPU preflights, strict verification and final pack/checker PASS; complete review hour closed |
 
 The full numeric census passes 304,999,573 rows across 37 sources with no exclusions.
 No full-corpus holdout or game-ID clearance is claimed. The two cleared JSONL

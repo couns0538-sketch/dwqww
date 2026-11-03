@@ -12,7 +12,8 @@ input admission. The final PGN repair
 validates raw FEN headers and rejects SetUp=1 without FEN. Prior legacy/result/
 mirror/filter proofs retain their identities through exact source comparison.
 All training remains crew-owned. The final evidence pack and consistency checker
-pass; the reserved review hour continues through 09:25 UTC.
+pass. The reserved review hour completed at 09:25:35 UTC on 2026-11-03; all
+confirmed findings are fixed and rechecked.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input

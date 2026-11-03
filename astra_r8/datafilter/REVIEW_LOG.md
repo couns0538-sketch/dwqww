@@ -1047,3 +1047,39 @@ zero errors; no training commands were executed. At09:11 GitHub returned empty
 commit statuses and empty first-page PR-triggered workflows for cb3d24a1; that is
 not a CI pass or an exhaustive workflow-history check. The final review-hour
 closure remains pending through at least09:25; source and test files stay frozen.
+
+
+### Final reserved-hour closure — 2026-11-03 09:25:35 UTC
+
+Actual review interval:08:25:06–09:25:35 UTC, at least one full hour. The
+08:23 planned start was not substituted for the actual start. Reviewed code is
+4a3d46710f88d5760e50738715f412f0704b3b6e; reviewed packer/handoff candidate is
+cb3d24a14234625682567e29a3e5633366e4f253. The final tip adds documentation and
+closed evidence only. The reused independent reviewer approved the repaired
+PGN handling, evidence dependency checks and final document/receipt map.
+
+Confirmed defects: raw PGN FEN could be normalized before validation, SetUp=1
+without FEN could default to startpos, and a shortened caller-provided inherited
+proof map could omit dependencies. All were reproduced, fixed and rechecked.
+The complete current suite passes564tests+11subtests in532.82s, with identical
+collection sets and stable source/runtime hashes. Packer regressions pass29/29.
+Fresh v9 verifies999,953rows, both CPU preflights, Pearson0.66359503677808 and
+1,000mirrors. Historical legacy/million-row proofs retain their own source pins.
+
+Final inventory:32,548files; Forge checker:95references/18checks PASS. Corrected
+exact-lock bench/perft execution PASS; no accepted result used rejected pins.
+Complete protected v7 and existing production engine/converter remain unchanged.
+Cleared metadata.jsonl and records.jsonl intentionally duplicate the same retained
+normalized lines; fresh direct comparison and full hashes agree.
+
+No unresolved confirmed in-scope code finding remains. True UCI qsearch/static
+oracle support is unavailable; no depth-one proxy or fake pass is supplied.
+CodeRabbit's separate PGN review is partial (one unidentified unreviewed file);
+SonarQube is unauthenticated. Neither qualifies as a complete independent tool
+review. No remote CI, training, GPU, model strength or full-corpus game/holdout
+clearance is claimed. The final closeout rechecks document links, saved licences,
+recipe syntax, unchanged code identities, output absence and resource reserves.
+
+Next action: publish the closure on astra-r8-datafilter and report its exact tip
+for R12. Review ownership remains Code Review -> Engine NNUE -> Engine QA; all
+strength is UNPROVEN until crew training, separate gates and WAC300 qualification.

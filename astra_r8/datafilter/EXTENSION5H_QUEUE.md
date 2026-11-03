@@ -1,3 +1,14 @@
+# Closed work queue — UNPROVEN
+
+Completed 2026-11-03 09:25:35 UTC. Improvement work and the full final review
+(08:25:06–09:25:35 UTC) are closed. All owned long-running jobs have ended;
+confirmed fixes and validation are recorded in RESULTS.md and REVIEW_LOG.md.
+Core/packer candidate cb3d24a1, v9 handoff and full 564+11 suite are current.
+The former v8/544-case queue below is historical, not an instruction to restart
+completed scans or replace current evidence. No training or engine work ran.
+
+## Historical planning notes
+
 # Current bounded work queue — UNPROVEN
 
 Authorized schedule: 2026-11-03 04:23–08:23 UTC improvement; 08:23–09:23 UTC

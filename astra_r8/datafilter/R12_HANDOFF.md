@@ -1,15 +1,16 @@
 # R12 continuation constraints from Couns — UNPROVEN
 
 R12 must start from the **final reviewed tip of `astra-r8-datafilter`**, at
-`d080df79142d5c61367d5eaab6355cf44876a6da` or later. The final tip is pending the
-authorized R8 review hour; do not substitute `e526fc12` or treat d080df79 as
-the final reviewed tip. This document records the handoff; R8 changes no engine.
+`d080df79142d5c61367d5eaab6355cf44876a6da` or later. The authorized R8 review
+hour completed at 09:25:35 UTC on 2026-11-03. Use the final published branch
+tip reported in the handoff, not `e526fc12` or the earlier d080df79 checkpoint. This document records the handoff; R8 changes no engine.
 
 The tested implementation is `4a3d46710f88d5760e50738715f412f0704b3b6e`;
 its reviewed packer and updated handoff are committed at
 `cb3d24a14234625682567e29a3e5633366e4f253`. The final branch tip also contains
-closed evidence and documentation. Resolve that final tip after the review-hour
-closure; do not branch R12 directly from an earlier implementation checkpoint.
+closed evidence and documentation; implementation and packer bytes are unchanged
+from cb3d24a1. Resolve the final published tip, including this closure record; do
+not branch R12 directly from an earlier implementation checkpoint.
 Current v9 manifest SHA256:
 `c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
 The complete suite passes 564 tests and 11 subtests, and both CPU recipe

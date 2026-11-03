@@ -2,7 +2,9 @@
 
 Current check, 2026-11-03: the user installed CodeRabbit CLI 0.9.2 and SonarQube
 CLI 1.11.0. CodeRabbit's signed canonical Windows executable is authenticated;
-its usage command reports ten included reviews and usage billing inactive.
+the pre-review usage check reported ten included reviews and usage billing
+inactive. One subsequent PGN milestone review used that service; no current
+remaining-review count is inferred from the earlier check.
 Two scoped broad CodeRabbit attempts were rejected by the300-file cap (686/750
 files counted despite intended code/test filters); neither returned findings or
 a clean result. Authentication is working; this is a scope limit. Temporary local

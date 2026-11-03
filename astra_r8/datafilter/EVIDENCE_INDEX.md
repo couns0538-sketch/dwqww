@@ -5,7 +5,7 @@ Lichess and raw-PGN-header repairs. Full suite: 564 tests plus 11 subtests PASS
 in 532.82s, with identical broad/reordered collection sets and stable source and
 runtime identities. Current code commit: 4a3d46710f88d5760e50738715f412f0704b3b6e.
 Fresh selected-cohort admission, both CPU preflights and strict v9 checks PASS.
-The final review continues through 09:25 UTC. Final packaging and the Forge
+The final review completed at 09:25:35 UTC on 2026-11-03. Final packaging and the Forge
 evidence checker PASS.
 Earlier measurements keep their original source identities.
 Use the two commands in [MIX_SPEC.md](MIX_SPEC.md); the crew owns training and gates.
