@@ -34,7 +34,7 @@ def terms(b64):
 
 
 def term_regex(words):
-    # whole words: a letter / digit may not touch the term on either side ("gpt" in "gpt-4", not in "egypt")
+    # whole words: a letter / digit may not touch the term on either side ("sf" in "sf-2", not in "sfx"; checked by the self-test)
     return re.compile(r'(?<![A-Za-z0-9])(' + '|'.join(re.escape(w) for w in words) + r')(?![A-Za-z0-9])', re.I)
 
 

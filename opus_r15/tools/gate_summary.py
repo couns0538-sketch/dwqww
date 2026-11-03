@@ -8,7 +8,7 @@ Per gate folder (the crew's layout: <tag>.log = fastchess stdout, <tag>.pgn, opt
   - from the PGN: games, W / D / L of the candidate (the first engine of fastchess's "Results of A vs B" line, else
     RUN_INFO's candidate), the pentanomial Ptnml(0-2) from the game pairs (both games of a Round), Elo +/- (95 %) and
     nElo +/- from the pentanomial, the exact fastchess 1.8.2 GSPRT LLR (normalized model, MLE under the t-value
-    constraint, as fishtest LLRcalc) for the gate's own bounds, problem games by PGN Termination (time forfeit,
+    constraint, as the reference SPRT code LLRcalc) for the gate's own bounds, problem games by PGN Termination (time forfeit,
     illegal move, abandoned / stalled connection = disconnect or crash, other), games per hour;
   - from the log: the last printed result block and every "loses on time" / illegal / disconnect reason line;
   - a check that the PGN numbers reproduce the printed ones (W/D/L and Ptnml exactly, Elo / nElo / LLR to the
@@ -81,7 +81,7 @@ def _secular(phat, a):
 
 
 def _mle_tvalue(phat, s):
-    """Cell probabilities of maximum likelihood under (mu - 0.5) / sigma = s, as fishtest LLRcalc.MLE_tvalue (which
+    """Cell probabilities of maximum likelihood under (mu - 0.5) / sigma = s, as the reference SPRT code (LLRcalc.MLE_tvalue, which
     fastchess follows): start from the uniform pdf, at most 10 fixed-point steps, stop when no cell moves by 1e-9.
     With a converged solution this equals the exact MLE; in extreme gates (an early H0 at Elo -86) the 10-step value
     is what the gate printed, so that is what is reproduced."""
@@ -103,7 +103,7 @@ def _mle_tvalue(phat, s):
 
 
 def exact_llr(pt, e0, e1):
-    """fastchess / fishtest normalized-model pentanomial LLR. Empty cells count 1e-3 (fishtest results_to_pdf)."""
+    """fastchess normalized-model pentanomial LLR. Empty cells count 1e-3 (reference SPRT code, results_to_pdf)."""
     reg = [max(1e-3, float(c)) for c in pt]
     n = sum(reg)
     if sum(pt) == 0:

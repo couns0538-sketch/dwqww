@@ -21,7 +21,7 @@ folder without a PGN is skipped (D:\grok-pc-data\forge_push has the older layout
 ## Facts learned (checked on all 62 F: gates with a PGN, 2026-11-03: W/D/L, Ptnml, Elo, error and LLR all exact)
 - fastchess prints W / D / L and Games over COMPLETE pairs only in pentanomial mode (gate68: 1392 logged games, 2 of
   unfinished pairs, printed 1390).
-- The LLR uses fishtest's LLRcalc: empty pentanomial cells count 1e-3, the t-value MLE starts from the uniform pdf and
+- The LLR uses the reference SPRT code (LLRcalc): empty pentanomial cells count 1e-3, the t-value MLE starts from the uniform pdf and
   takes at most 10 steps (an early H0 at Elo -86 printed -2.99; the fully converged MLE gives -3.68).
 - The PGN's write order is not the printing order: reproduce a printed block from the log's "Finished game K (A vs B):
   result {reason}" lines before it (pair = games 2r-1 and 2r). Games in flight at an SPRT stop reach the PGN later.

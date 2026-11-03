@@ -30,7 +30,7 @@ re-runnable, refuses to overwrite its outputs, and has a self-test with planted 
 | forge-uci (`opus_r15/mcp/forge_uci_mcp.py`, standard-library Python, stdio JSON-RPC) | tools pin_check, uci_options, bench, perft, gate_summary, index_check, pc_status for any Claude Code session; engines at Idle on CPUs 0-1 | `python -I -B opus_r15/mcp/test_forge_uci_mcp.py` -> 18 / 18 over the real stdio transport; registered at user scope with `bash opus_r15/mcp/setup_forge_mcp.sh` (2026-11-03 12:18, `claude mcp get forge-uci`: Connected) |
 
 Existing servers considered (web search 2026-11-03): AnglerfishChess/chess-uci-mcp (MIT, Python >= 3.12 + uv) and
-sonirico/mcp-stockfish (MIT, Go) bridge a UCI engine for position analysis (best move, eval, options); none checks
+a Go MCP server for one well-known engine (MIT) bridge a UCI engine for position analysis (best move, eval, options); none checks
 bench / perft pins, option lines or gate results, and both need an install (uv / Go) that this PC does not have.
 chess-uci-mcp is the licence-clean choice if position analysis is ever wanted; nothing was installed in R15. Plugins:
 none made - the two skills plus the server cover the R15 workflows without a plugin wrapper.
