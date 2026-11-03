@@ -47,6 +47,12 @@ for f in bad_piece bad_empty_line bad_terminal bad_tab; do
 done
 expect 0 prepare_terminal_dropped "$PY" -I -B "$R" prepare --job job_term_drop --run-id t --selfplay bad_terminal.txt --drop-terminal
 expect 2 prepare_missing_file "$PY" -I -B "$R" prepare --job job_missing --run-id t --selfplay no_such_file.txt
+# a Python without python-chess: one clear message up front, not "bad input" on the first row
+expect 2 prepare_no_chess "$PY" -I -B -c "import sys
+sys.modules['chess'] = None
+sys.path.insert(0, sys.argv[1])
+import relabel2
+sys.exit(relabel2.main(sys.argv[2:]))" "$here" prepare --job job_nochess --run-id t --selfplay good.txt
 expect 3 prepare_existing_job "$PY" -I -B "$R" prepare --job job_term_drop --run-id t --selfplay good.txt
 # each input once: the same games twice would get two game ids and could land in both splits
 cp good.txt good_copy.txt
@@ -226,6 +232,7 @@ prepare_disk_floor must stay free (--min-free-gb)
 run_disk_floor must stay free (--min-free-gb)
 assemble_disk_floor must stay free (--min-free-gb)
 status_not_a_job not a prepared job
+prepare_no_chess python-chess is needed
 EOF
 echo "failures: $fails"
 exit $((fails > 0))

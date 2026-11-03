@@ -357,6 +357,12 @@ def cmd_prepare(a) -> int:
     job = Path(a.job)
     if job.exists():
         raise ConfigMismatch(f"job directory exists: {job}")
+    try:  # once, up front: inside the row checks a missing module would look like a bad first input line
+        import chess  # noqa: F401
+        import records  # noqa: F401  (Astra's records.py, needs python-chess)
+    except ImportError as e:
+        raise BadInput(f"python-chess is needed ({e}); use C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe "
+                       f"(python-chess 1.11.2)") from None
     sources = input_sources(a)
     # rows.tsv is ~1.4x the self-play text it comes from (89.7 MB per 1M rows from ~64 MB): plan for 1.5x
     need = 1.5 * sum(Path(s["path"]).stat().st_size for s in sources)
