@@ -66,7 +66,10 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
 Unchained binpack records only (the J1 binpacks are unchained, 34 B / record; every chunk of both J1 files holds whole
 records - a damaged chunk's partial tail would be skipped, not reported), exactly one file per stream,
 `--no-filtered --no-wld-filtered` without simple-eval skipping, loader feature set K32H3 (what the trainer hands the
-loader for `--features K32H3^`; the CPU loss match ran train.py with `--features K32H3^`), no DDP (world size 1). Anything else raises instead of silently differing from the default loader.
+loader for `--features K32H3^`; the CPU loss match ran train.py with `--features K32H3^`), no DDP (world size 1).
+Anything else raises instead of silently differing from the default loader. Damaged files (bug hunt #4, 371 fuzz
+runs incl. a bounds-checked build): clean errors, no crash, no hang. One shared limit: a cyclic stream over a file in
+which the skip filter keeps nothing (e.g. every score VALUE_NONE) waits forever - the default loader does the same.
 
 ## What changes for training
 The live line runs the default loader with `--num-workers 4`: several decode workers, each with its own adaptive

@@ -194,3 +194,19 @@ check their outputs (DLL sha256, batch hashes), so no recorded result was affect
   patched (LF), DLL and forge_fastloader.py copied next to train.py (sha256 9eb29b7d... / 39af47b0...); then
   `fl_acceptance.sh <copy> <out>` with its defaults (the copy's own old DLL, the installed fast files): old w1 25 s,
   fast w4 6 s, **261 / 261 batches identical**.
+
+## Bug hunt #4 (20:50-21:10 by the PC clock; self-review, NOT independent): damaged binpack files (`tools/fl_fuzz.py`)
+Scope: can a damaged or unusual binpack crash or hang the fast loader? New tool `tools/fl_fuzz.py` cuts the first 3
+chunks of the J1 holdout binpack (3,145,782 bytes, read-only), writes seeded damaged copies and runs each through
+`fl_equal.py dump --loader fast` in its own process (base interpreter, so a timeout ends the real process; BelowNormal,
+CPUs 2-3): empty file, short header, header only, wrong magic in chunk 1 / 2, chunk size 0 / below one record / with a
+partial record tail / over 100 MiB / past the end, a cut at a chunk boundary, a duplicated chunk, 10 random
+truncations, random byte flips (1, 4 or 32 per file) and a file whose every score is VALUE_NONE.
+| run | result |
+|---|---|
+| b5 DLL, 45 runs (20 flips, seed 20261102) | 0 unexpected: every header / size / truncation case a clean `fast loader: ...` error, the valid cuts load |
+| b5 DLL, 326 runs (300 flips, seed 7) | **0 crash, 0 hang**: 177 load, 149 clean errors (104 chained-record flag, 23 more than 32 pieces, 12 truncated chunk, 3 record without both kings, ...) |
+| the same 326 cases on a `-D_GLIBCXX_ASSERTIONS -UNDEBUG` build (scratch, sha256 572c232a...) | 0 assertion failures, 0 crash, 0 hang; 325 / 326 outcomes identical to b5 (next row) |
+| H4-1: flip_238 loads 4 batches on b5 but errors on the assertions build | not a data difference: with 100 batches requested both builds fail with "record without both kings" in all 3 runs each. A builder working ahead stops the whole stream the moment it meets a bad record (fail fast), so whether earlier batches were already handed out depends on thread timing. No batch with a bad record is ever handed out. Documented, no change |
+| H4-2: every score VALUE_NONE (the skip filter keeps nothing) | finite: 0 batches (old loader: 0 batches). **Cyclic: waits forever - the old loader does exactly the same** (both checked with a 20-s limit, 20:51; children ended, no leftovers). A property of the design shared with the default loader, impossible with the J1 data (~10 % kept per pass). Documented in HANDOFF.md's scope; a later version could raise an error after many whole passes without a kept position (b5 stays unchanged: it is the verified candidate) |
+Logs: logs/fuzz/. The fuzz cases are part of `tools/fl_fuzz.py` (the VALUE_NONE file in finite mode only).
