@@ -73,3 +73,14 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 - A full trainer epoch (152.5M positions, 1.55 B records) through the fast loader alone: 29.8 s, 166 MB peak.
 - CPU training on 2 CPUs: 11.4 vs 40.2 min for the same 64 batches (old loader threads starve torch); peak private
   4.1 vs 6.2 GB.
+- Distribution vs the live layout (old loader `--num-workers 4`, not reproducible) over 2,000 batches = 32.8M positions
+  each (`tools/fl_distribution.py stats` + `compare`): total-variation distance < 0.001 for piece count, side to move,
+  outcome, queen bucket and score histograms; mean score -1.17 SE. Same distribution, different sample.
+
+## Handing it over (opus_r14b/item1/HANDOFF.md)
+- Adoption without touching crew code: the adapter `train_resid_nnuepytorch_v2.py` already takes `--npt-repo <copy>`
+  and `--npt-extra ...` (REMAINDER, so it goes last): `--npt-repo <switched copy> ... --npt-extra --fast-loader`.
+- Acceptance check before any GPU run: `bash tools/fl_acceptance.sh <trainer copy> <new out dir>` (CPU only, GPU
+  hidden, ~1 min: old w1 36 s, fast w4 6 s; 261 / 261 batches of every tensor identical on D:\o14b\npt).
+- `--num-workers N` = N - 2 builder threads (min 1) + reader + filter; `--num-workers 3` already gives ~24x the live
+  line's consumption. The live tree still matched the installer's base copy (264 / 264 files) on 2026-11-02 16:04.
