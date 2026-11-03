@@ -62,6 +62,7 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 
 | tool | one command | why |
 |---|---|---|
+| opus.sh | `bash opus_r14b/tools/opus.sh help` | one entry point: status, lint, abba, engine, time, load, test |
 | opus_status.sh | `bash opus_r14b/tools/opus_status.sh [--ci]` | worktrees (head, ahead / behind, dirty, CI), own processes with priority / affinity, who uses CPUs 2-3, RAM / disks vs floors, npt keeper head - in ~10 s |
 | abba.py | `python -I -B abba.py --out NEW --a "CMD" --b "CMD" --pairs 10 [--metric RX --higher-better] [--identity RX --identity-ab]` | palindromic A/B of any two commands (loader, probe, prepare, builds); stops when outputs differ; t-CI on log ratios; load next to the number |
 | doc_lint.py | `python -I -B doc_lint.py opus_r14b skills` | control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead relative links |

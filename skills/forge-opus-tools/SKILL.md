@@ -1,6 +1,6 @@
 ---
 name: forge-opus-tools
-description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
+description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus.sh (one entry point: status, lint, abba, engine, time, load, test), opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
 ---
 
 # forge-opus-tools (Opus R14-B, `opus_r14b/tools/` on `opus-r14b-status`)
@@ -9,6 +9,12 @@ All own code (stdlib Python, bash, PowerShell); nothing here changes or stops an
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
 with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (14 checks, ~30 s,
 must end `ALL PASS`; covers abba.py and doc_lint.py).
+
+## opus.sh - one entry point (for Couns and Opus)
+`bash $T/opus.sh help` lists: `status [--ci]`, `lint [PATH...]` (default: every R14-B branch folder + the skills),
+`abba ...`, `engine REF NEW_DIR [--quick]`, `time [--since T] [BRANCH...]` (default: last 24 h, the three R14-B
+branches; a branch made from an older branch also shows the base's commits in that window - give `--since` the job
+start for job accounting), `load [MASK] [SECONDS]`, `test NEW_DIR`. Unknown command: help + exit 2.
 
 ## opus_status.sh - what is going on (read-only, ~10 s)
 `bash $T/opus_status.sh [--ci] [WORKTREE_GLOB]` (glob default `o14b-*` under `.claude/worktrees`): per worktree branch,
