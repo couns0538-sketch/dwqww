@@ -195,7 +195,7 @@ check their outputs (DLL sha256, batch hashes), so no recorded result was affect
   `fl_acceptance.sh <copy> <out>` with its defaults (the copy's own old DLL, the installed fast files): old w1 25 s,
   fast w4 6 s, **261 / 261 batches identical**.
 
-## Bug hunt #4 (20:50-21:10 by the PC clock; self-review, NOT independent): damaged binpack files (`tools/fl_fuzz.py`)
+## Bug hunt #4 (20:50-20:56 and 21:04-21:12 by the PC clock, between them Couns's two messages; self-review, NOT independent): damaged binpack files (`tools/fl_fuzz.py`)
 Scope: can a damaged or unusual binpack crash or hang the fast loader? New tool `tools/fl_fuzz.py` cuts the first 3
 chunks of the J1 holdout binpack (3,145,782 bytes, read-only), writes seeded damaged copies and runs each through
 `fl_equal.py dump --loader fast` in its own process (base interpreter, so a timeout ends the real process; BelowNormal,
