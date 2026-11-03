@@ -1,0 +1,43 @@
+2026-11-03 13:01:21 cand_pack c6_lowplyhist tag c6lph3 option [LowPlyHist=1] patch [D:\o15\wt\opus_r15\cands\c6_lowplyhist\c6_lowplyhist.patch] sides pc1 pc2 smoke 120 s
+fresh lock copy /d/o15/src_pack/c6lph3: 20 files, base 47fc21d
+checking file include/forge/search.hpp
+checking file src/search.cpp
+patching file include/forge/search.hpp
+patching file src/search.cpp
+ include/forge/search.hpp |  4 ++++
+ src/search.cpp           | 19 +++++++++++++++++++
+ 2 files changed, 23 insertions(+)
+2026-11-03 13:01:21 check patch_applies          PASS  patch -p1 -F0 on a fresh d4f4312 copy (exit 0)
+cleanroom_lint: CLEAN (patches 1, message files 0, commits -)
+2026-11-03 13:01:21 check cleanroom_lint         PASS  no names / licence headers / protected files in the patch (exit 0)
+2026-11-03 13:01:21 kit: KIT_SIDES='pc1 pc2' bash '/d/o15/wt/opus_r15/tools/kit_build_r15.sh' '/d/o15/src_pack/c6lph3' c6lph3 'LowPlyHist=1'
+2026-11-03 13:21:20 check kit_build              PASS  kit_build_r15.sh exit 0 (2026-11-03 13:21:20 pc2 exit 0: 2026-11-03 13:21:20 RESULT PASS  exe for GATE_EXE: D:\o15\w\c6lph3_pc2\src_copy\forge_ltopgo_c6lph3_pc2.exe (binding: its sha256 must equal the other clean rebuild's, pc1 = pc2))
+2026-11-03 13:21:20 check pc1_equals_pc2         PASS  pc1 7a932e79a8ce994498a082f6a0353bdc3b8e74699aef78e28f47fb8de938c092 pc2 7a932e79a8ce994498a082f6a0353bdc3b8e74699aef78e28f47fb8de938c092
+2026-11-03 13:21:20 check kit_identity           PASS  SUMMARY: 'node identity OFF + 1 option run(s): ALL OK'
+2026-11-03 13:21:20 check kit_vfmadd0            PASS  LTO+PGO exe has no vfmadd
+2026-11-03 13:21:20 check kit_missing_profile0   PASS  kit build_log.txt: real missing-profile/coverage warnings: 0 (must be 0)
+2026-11-03 13:21:20 check kit_on_live            PASS  ident\opt1.compare.txt: option run differs from OFF
+2026-11-03 13:21:20 check exe_copy_sha256        PASS  copy = kit pc1 exe
+pin_check PASS  mode plain  exe D:\o15\cands\c6_lowplyhist\forge_ltopgo_c6lph3.exe
+sha256 7a932e79a8ce994498a082f6a0353bdc3b8e74699aef78e28f47fb8de938c092  options []  priority Idle mask 0x3  28 s
+bench d11        312866  want       312866  ok
+bench d13        862329  want       862329  ok
+bench d16       3024920  want      3024920  ok
+bench d20      12389307  want     12389307  ok
+bench d22      34048354  want     34048354  ok
+perft5 startpos       4865609  want      4865609  ok
+perft5 kiwipete     193690690  want    193690690  ok
+2026-11-03 13:21:50 check pin_off                PASS  bench d11/13/16/20/22 + perft startpos/kiwipete = lock pins (pin_check -Full)
+pin_check LIVE  mode on-line  exe D:\o15\cands\c6_lowplyhist\forge_ltopgo_c6lph3.exe
+sha256 7a932e79a8ce994498a082f6a0353bdc3b8e74699aef78e28f47fb8de938c092  options [LowPlyHist=1]  priority Idle mask 0x3  26 s
+advertised LowPlyHist -> LowPlyHist type spin default 0 min 0 max 1
+bench d11        320362  want  lock 312866  differs (live)
+bench d13        897394  want  lock 862329  differs (live)
+bench d16       2563336  want lock 3024920  differs (live)
+bench d20      11832941  want lock 12389307  differs (live)
+bench d22      35375816  want lock 34048354  differs (live)
+perft5 startpos       4865609  want      4865609  ok
+perft5 kiwipete     193690690  want    193690690  ok
+2026-11-03 13:22:17 check pin_on_live            PASS  ON line LowPlyHist=1 advertised, accepted, live, perft = pins
+SMOKE2M PASS line [LowPlyHist=1] games 22 finished 21 plies 2541 illegal 0 crashes 0 hangs 0 time_losses 0 overruns 0 option_errors 0 stderr no (120 s, Threads 2, tc 2000+20, margin 1000 ms)
+2026-11-03 13:24:17 check smoke                  PASS  22 games, 2541 plies, illegal 0, crashes 0, hangs 0, time losses 0 (120 s, Threads 2, 2000+20)

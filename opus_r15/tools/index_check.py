@@ -66,6 +66,11 @@ def main():
         if kind == 'candidate' and not r.get('option'):
             print(f'SKIP {name}: base run (no option line)')
             continue
+        if kind == 'extra' and r.get('verdict') == 'FAIL':
+            # a recorded finding (an existing exe whose line is not gateable), not a gate line: listed, never queued
+            print(f"NOTE {name}: recorded as NOT gateable ({'; '.join(r.get('problems', []))[:160]})")
+            report.append({'name': name, 'kind': kind, 'ok': None, 'failures': [], 'note': 'not gateable (finding)'})
+            continue
         exe = r.get('exe', '')
         if not exe or not os.path.isfile(exe):
             fails.append(f'exe missing: {exe}')
