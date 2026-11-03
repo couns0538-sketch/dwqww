@@ -1,0 +1,35 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..e8c5d2e 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,9 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// R15 option (0 = off, the lock search): in quiescence, after this many moves only checks, promotions and recaptures
++// on the previous move's square are still searched.
++int QsMovePrune = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +100,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"QsMovePrune", &QsMovePrune, 0, 16},
+     };
+     return table;
+ }
+@@ -830,6 +834,12 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         ++move_count;
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
++            // R15 QsMovePrune: once N moves were tried here, a capture that gives no check, is no promotion and is
++            // no recapture on the previous move's square is not searched (later captures are ordered worse).
++            if (tune::QsMovePrune > 0 && move_count > tune::QsMovePrune && !gives_check && !move.is_promotion() &&
++                move.to != (ss - 1)->current_move.to) {
++                continue;
++            }
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+                 best_score = std::max(best_score, futility_base + capture_value(board, move));

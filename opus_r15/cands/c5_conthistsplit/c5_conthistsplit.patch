@@ -1,0 +1,102 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..2d77529 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -318,6 +318,9 @@ private:
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
++    // R15 ContHistSplit: follow-up tables for moves made in check (evasions) and / or capturing; quiet moves made
++    // out of check keep the table above, which is the only table used while the option is off.
++    std::unique_ptr<std::array<ContinuationHistory, 3>> continuation_split_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
+@@ -355,6 +358,7 @@ private:
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
++    [[nodiscard]] PieceToHistory* continuation_for(bool in_check, bool capture, Piece piece, int to);
+     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..9941cd7 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// R15 option (0 = off, the lock search): separate follow-up history tables for evasions and captures.
++int ContHistSplit = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +99,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"ContHistSplit", &ContHistSplit, 0, 1},
+     };
+     return table;
+ }
+@@ -564,6 +567,7 @@ Worker::Worker(SharedSearchState& shared, int id)
+       main_history_(std::make_unique<ButterflyHistory>()),
+       capture_history_(std::make_unique<CaptureHistory>()),
+       continuation_history_(std::make_unique<ContinuationHistory>()),
++      continuation_split_(std::make_unique<std::array<ContinuationHistory, 3>>()),
+       counter_moves_(std::make_unique<CounterMoveTable>()),
+       correction_history_(std::make_unique<CorrectionHistory>()),
+       material_correction_(std::make_unique<CorrectionHistory>()) {
+@@ -577,6 +581,7 @@ void Worker::clear() {
+     *main_history_ = ButterflyHistory{};
+     *capture_history_ = CaptureHistory{};
+     *continuation_history_ = ContinuationHistory{};
++    std::memset(continuation_split_->data(), 0, sizeof(*continuation_split_));   // 4 MB: no stack temporary
+     *counter_moves_ = CounterMoveTable{};
+     *correction_history_ = CorrectionHistory{};
+     *material_correction_ = CorrectionHistory{};
+@@ -726,6 +731,15 @@ void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus
+     }
+ }
+ 
++// The follow-up table a move indexes for the plies after it. Off: always the lock's table. On: a move made while in
++// check and / or capturing gets its own table (index in_check * 2 + capture - 1: 0 capture, 1 evasion, 2 both).
++PieceToHistory* Worker::continuation_for(bool in_check, bool capture, Piece piece, int to) {
++    ContinuationHistory& table = tune::ContHistSplit != 0 && (in_check || capture)
++        ? (*continuation_split_)[static_cast<std::size_t>(in_check) * 2U + static_cast<std::size_t>(capture) - 1U]
++        : *continuation_history_;
++    return &table[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)];
++}
++
+ void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                   int quiet_count) {
+     const int bonus = history_bonus(depth);
+@@ -839,7 +853,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         }
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+-        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++        ss->continuation = continuation_for(in_check, move.is_capture(), ss->moved_piece, move.to);
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;
+@@ -1008,7 +1022,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+                 ss->current_move = move;
+                 ss->moved_piece = board.moved_piece(move);
+-                ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
++                ss->continuation = continuation_for(in_check, move.is_capture(), ss->moved_piece, move.to);
+                 (ss + 1)->ply = ply + 1;
+                 record_move(ss, board, move);
+                 Undo undo;
+@@ -1118,7 +1132,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+         ss->current_move = move;
+         ss->moved_piece = moved;
+-        ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
++        ss->continuation = continuation_for(in_check, capture, moved, move.to);
+         (ss + 1)->ply = ply + 1;
+         record_move(ss, board, move);
+         Undo undo;

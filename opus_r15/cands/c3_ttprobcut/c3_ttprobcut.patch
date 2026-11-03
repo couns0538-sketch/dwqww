@@ -1,0 +1,36 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..22a129c 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// R15 option (0 = off, the lock search): margin in cp above beta for a cut from a slightly too shallow TT lower bound.
++int TtProbcut = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +99,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"TtProbcut", &TtProbcut, 0, 1000},
+     };
+     return table;
+ }
+@@ -924,6 +927,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         return tt_score;
+     }
++    // R15 TtProbcut: a stored lower bound that beats beta by the margin, from a search at most three plies shallower
++    // than this one, is taken as the cut without searching again (also in check: no static evaluation is needed).
++    // The return value beta + margin <= tt_score stays a non-mate score.
++    if (tune::TtProbcut > 0 && !pv_node && !root_node && excluded.is_none() && tt_hit && tt_score != ValueNone &&
++        (tt_bound & BoundLower) != 0 && tt_depth >= depth - 3 && board.halfmove_clock() < 90 &&
++        !is_mate_score(tt_score) && !is_mate_score(beta) && tt_score >= beta + tune::TtProbcut) {
++        return beta + tune::TtProbcut;
++    }
+ 
+     // Static evaluation.
+     int eval;

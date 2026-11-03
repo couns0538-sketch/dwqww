@@ -1,0 +1,36 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..852ffba 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,9 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// R15 option (0 = off, the lock search): quiet futility / history / SEE pruning also apply the per-move history
++// term of LMR (the same clamp(history / LmrHistoryDivisor, -2, 2)) to the depth they test.
++int PruneLmrHist = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +100,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"PruneLmrHist", &PruneLmrHist, 0, 1},
+     };
+     return table;
+ }
+@@ -1060,7 +1064,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         // Shallow-depth pruning of unpromising moves.
+         if (!root_node && best_score > -MateInMaxPly && has_material) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+-            const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
++            int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
++            if (tune::PruneLmrHist != 0 && quiet) {
++                // A quiet move with a good history is searched less reduced by LMR, so it is pruned as a deeper
++                // move; a move with a bad history is pruned as a shallower one.
++                lmr_depth = std::max(0, lmr_depth + std::clamp(history / tune::LmrHistoryDivisor, -2, 2));
++            }
+             if (quiet && !gives_check) {
+                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {

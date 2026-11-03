@@ -1,0 +1,34 @@
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..082b15a 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -62,6 +62,8 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++// R15 option (0 = off, the lock search): internal iterative reduction also when the hash entry is too shallow.
++int IirShallowTt = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +99,7 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++        {"IirShallowTt", &IirShallowTt, 0, 1},
+     };
+     return table;
+ }
+@@ -1029,6 +1032,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     // Internal iterative reduction: no hash move suggests a less important node.
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
++    // R15 IirShallowTt: a hash move from an entry more than IirDepth plies shallower than this search orders the node
++    // hardly better than no hash move, so the same reduction applies.
++    if (tune::IirShallowTt != 0 && !in_check && depth >= tune::IirDepth && !tt_move.is_none() &&
++        tt_depth < depth - tune::IirDepth && (pv_node || cut_node)) {
++        --depth;
++    }
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+     std::array<Move, 128> quiets_tried{};

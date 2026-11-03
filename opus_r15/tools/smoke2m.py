@@ -8,12 +8,15 @@ One engine process plays both sides (ON vs ON) for --seconds of wall time at a r
 the gate path), Threads / Hash as in the crew's gates, OwnBook false, the line's options set once. Games start from a
 fixed position (startpos, kiwipete, two middlegames, one endgame) plus --random-plies random legal plies (seeded per
 game), so no two games are alike. Before every search the engine's own `go perft 1` list is read: a bestmove not in
-it is an ILLEGAL move. An engine exit is a CRASH (the engine is restarted and the smoke goes on), no bestmove within
-the side's remaining clock + 10 s is a HANG. A move that used more than the side's remaining clock is a TIME-OVER
-(reported; the clock is then reset, the game goes on). Every option must be acknowledged without an
+it is an ILLEGAL move (every one is counted; the game ends there). An engine exit is a CRASH (the engine is restarted
+and the smoke goes on), no bestmove within the side's remaining clock + 10 s is a HANG. A move that used more than
+the side's remaining clock + --timemargin (1000 ms, as fastchess in the crew's gates) is a TIME LOSS; less than that
+over the clock is an OVERRUN (reported only: pipe and scheduling latency of an Idle process on a busy core). After
+either the clock is reset and the game goes on. Every option must be acknowledged without an
 "info string invalid/unknown/error" line. stderr of the engine is kept in PREFIX.stderr.txt; any stderr text counts.
 
-Exit 0 = PASS: >= 1 finished game, 0 illegal, 0 crashes, 0 hangs, 0 option errors, empty stderr. 1 = FAIL. 2 = usage.
+Exit 0 = PASS: >= 1 finished game, 0 illegal, 0 crashes, 0 hangs, 0 time losses, 0 option errors, empty stderr.
+1 = FAIL. 2 = usage.
 --mask/--idle set this process's CPU mask / Idle class first (Windows), so the engine inherits both (fail closed).
 An ENGINE ending in .py is run with this interpreter (used by the self-test's stub engines).
 """
@@ -109,6 +112,7 @@ def main():
     ap.add_argument('--max-plies', type=int, default=160)
     ap.add_argument('--random-plies', type=int, default=4)
     ap.add_argument('--seed', type=int, default=15)
+    ap.add_argument('--timemargin', type=int, default=1000, help='ms over the clock before it is a time loss (gates: 1000)')
     ap.add_argument('--mask', default='')
     ap.add_argument('--idle', action='store_true')
     ap.add_argument('--out', default='smoke2m')
@@ -135,7 +139,8 @@ def main():
     set_low(a.mask, a.idle)
     cmd = [sys.executable, '-I', '-B', a.engine] if a.engine.endswith('.py') else [a.engine]
     errf = open(a.out + '.stderr.txt', 'w')
-    st = dict(games=0, finished_games=0, plies=0, illegal=0, crashes=0, hangs=0, time_overs=0, option_errors=0,
+    st = dict(games=0, finished_games=0, plies=0, illegal=0, crashes=0, hangs=0, time_losses=0, overruns=0,
+              option_errors=0,
               mates_or_stalemates=0, max_plies_games=0, restarts=0)
     events = []
 
@@ -226,9 +231,12 @@ def main():
                 break
             clock[side] -= used
             if clock[side] < 0:
-                st['time_overs'] += 1
-                events.append({'event': 'time_over', 'game': game, 'ply': ply, 'used_ms': used,
-                               'left_ms': clock[side] + used})
+                # as in the crew's gates (fastchess timemargin): beyond the margin it is a time loss, within it an
+                # overrun (pipe / scheduling latency of an Idle process on a busy core, no engine fault)
+                lost = -clock[side] > a.timemargin
+                st['time_losses' if lost else 'overruns'] += 1
+                events.append({'event': 'time_loss' if lost else 'overrun', 'game': game, 'ply': ply,
+                               'used_ms': used, 'left_ms': clock[side] + used})
                 clock[side] = base_ms
             clock[side] += inc_ms
             moves.append(best)
@@ -252,18 +260,18 @@ def main():
     errf.close()
     stderr_text = open(a.out + '.stderr.txt', encoding='utf-8', errors='replace').read().strip()
     ok = (st['finished_games'] >= 1 and st['illegal'] == 0 and st['crashes'] == 0 and st['hangs'] == 0
-          and st['option_errors'] == 0 and not stderr_text)
+          and st['time_losses'] == 0 and st['option_errors'] == 0 and not stderr_text)
     summary = dict(tool='smoke2m.py', verdict='PASS' if ok else 'FAIL', engine=os.path.abspath(a.engine),
-                   line=a.line, seconds=a.seconds, threads=a.threads, hash=a.hash, tc=a.tc, seed=a.seed,
-                   mask=a.mask, idle=a.idle, stderr_first_line=stderr_text.splitlines()[0] if stderr_text else '',
-                   **st, events=events[:50])
+                   line=a.line, seconds=a.seconds, threads=a.threads, hash=a.hash, tc=a.tc, timemargin=a.timemargin,
+                   seed=a.seed, mask=a.mask, idle=a.idle,
+                   stderr_first_line=stderr_text.splitlines()[0] if stderr_text else '', **st, events=events[:50])
     with open(a.out + '.json', 'w', newline='\n') as f:
         json.dump(summary, f, indent=1)
         f.write('\n')
     print(f"SMOKE2M {summary['verdict']} line [{a.line}] games {st['games']} finished {st['finished_games']} plies "
-          f"{st['plies']} illegal {st['illegal']} crashes {st['crashes']} hangs {st['hangs']} time_overs "
-          f"{st['time_overs']} option_errors {st['option_errors']} stderr {'yes' if stderr_text else 'no'} "
-          f"({a.seconds:.0f} s, Threads {a.threads}, tc {a.tc})")
+          f"{st['plies']} illegal {st['illegal']} crashes {st['crashes']} hangs {st['hangs']} time_losses "
+          f"{st['time_losses']} overruns {st['overruns']} option_errors {st['option_errors']} stderr "
+          f"{'yes' if stderr_text else 'no'} ({a.seconds:.0f} s, Threads {a.threads}, tc {a.tc}, margin {a.timemargin} ms)")
     return 0 if ok else 1
 
 
