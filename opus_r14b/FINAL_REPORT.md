@@ -1,10 +1,23 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 23:12), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 23:25), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
 
 UNPROVEN everywhere: no Elo or training-quality claims; Engine NNUE / QA decide. Nothing of the live npt line, the
 queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Idle on CPUs 2-3 (deviations below).
+
+## In short
+- **Item 1, fast npt loader** (`--fast-loader`, off by default): done and verified on the CPU - the same batches as
+  the default loader's `--num-workers 1` stream, byte for byte; exact loss match; 6.25x the default loader's
+  throughput in the live thread setting (8.65x in the w2 layout). Owed: the GPU measurement (no window granted; the
+  npt queue holds the GPU to Nov 8). Adoption: item 1 HANDOFF.md (installer + one-command acceptance check).
+- **Item 2, resumable relabel** (`relabel2.py`): done - the 1M kill / resume proof passed (md5 identical), frozen at
+  e01caaf1; 50M rows at 20k nodes = ~79 h on one core (RELABEL_HANDOFF.md runbook; not started, as asked);
+  `verify_job.py` checks a finished job before its labels are used.
+- **Tools** (Couns 19:46): `opus_r14b/tools/opus.sh` (status, lint, abba, engine, bisect, time, load, gpu, test);
+  `opus_r14b/checks/final_checks.sh` runs every end-of-job check in about a minute.
+- **The night** (Couns ~19:15): hourly bug hunts; every finding fixed and re-checked (records in the item RESULTS.md
+  files and TOOLS.md); the 1-hour hunt at the end. P6 crfix applied (Couns ~20:57); R15 waits for this report.
 
 ## Summary
 | item | state | key evidence | branch / head |
