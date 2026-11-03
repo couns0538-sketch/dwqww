@@ -326,3 +326,7 @@ trainer process at 22:34 (pid 13960 -> 11328); the keeper's STATUS names the new
 batch 16384, `--num-workers 4 --threads 2`, epoch 152.5M, `--no-filtered --no-wld-filtered`; only seed (5124),
 lr (0.000875) and gamma (0.72) differ. The trainer files are still the installer's base (264 / 264 in the 22:35
 fresh-clone rehearsal), so GPU_REQUEST.md and HANDOFF.md apply to the new line unchanged (GPU_REQUEST.md notes it).
+GPU_REQUEST.md's pre-checks run as written (23:02, read-only): 1 finds the live trainer (2 processes match
+`nnue-pytorch-amd\train.py`, pids 8308 / 11328) -> "do not start", as it must while the npt line trains; 2 RAM free
+15.3 GB, C: 131.7 GB, D: 53.5 GB -> pass; 3 the b5 DLL's sha256 9eb29b7d... and the switch in `D:\o14b\npt\train.py`
+(4 lines) -> pass.
