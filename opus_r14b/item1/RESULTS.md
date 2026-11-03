@@ -336,7 +336,7 @@ training run on CPUs 2-3, which the live trainer's mask has included since 22:29
 (no output folder). GPU_REQUEST.md lists it as optional pre-check 4, for a moment when no npt line trains. The
 trainer's CLI with `--fast-loader` did run in the afternoon's CPU loss match through the same launcher.
 
-## Bug hunt #8 (23:10-23:16 by the PC clock, started early; self-review, NOT independent): the DLL's lifecycle
+## Bug hunt #8 (23:10-23:11 by the PC clock, started early; self-review, NOT independent): the DLL's lifecycle
 Scope (written first): forge_fastloader.cpp create / next / release / destroy, errors in its threads, and teardown
 while the trainer waits for a batch - a race there would show at the end of training or when a stream is dropped.
 Read: `Loader::~Loader` sets `stop_`, wakes every condition variable and joins the reader, filter and builder threads,

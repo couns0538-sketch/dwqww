@@ -86,7 +86,7 @@ reader thread (chunk queue) -> one filter thread (section 3 + window bookkeeping
 index permutation instead of moving records) -> batch tasks in order -> N builder threads (section 5; batch k goes
 to output k, buffers are taken in task order so no deadlock) -> consumer takes batches in order.
 
-## 7. Threading contract of the C API (written down in bug hunt #8, 2026-11-02 23:16; unchanged code)
+## 7. Threading contract of the C API (written down in bug hunt #8, 2026-11-02 23:11; unchanged code)
 One consumer thread per stream calls `ffl_next` / `ffl_release`; the loader's own threads (reader, filter, builders)
 are internal. `ffl_destroy` must not run while another thread is inside `ffl_next` or `ffl_release` of the same stream:
 the destructor stops and joins the internal threads, not outside callers. The trainer path keeps this by reference
