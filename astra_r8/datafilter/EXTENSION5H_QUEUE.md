@@ -4,6 +4,14 @@ Authorized schedule: 2026-11-03 04:23–08:23 UTC improvement; 08:23–09:23 UTC
 deep review, fixes and verification. Continue the original task across user
 steering/compaction. No engine edits, training, GPU, crew controls or data removal.
 
+07:28 update: steps 1–5 below are complete. Admission union: 304,999,573 rows
+PASS; corrected lock and intentional JSONL byte equality PASS; Lichess/native
+repairs reviewed and tested. Step 6 is active. Full suite v1 passed 542+11;
+a subsequent command-path binding fix passed 51 affected tests and awaits
+focused recheck/new full run. Fresh proof-driver fixtures: 11 PASS; actual v8
+handoff and selected-cohort native admission still pending. Steps 7–8 remain
+reserved for the final hour. Older queued wording below is historical.
+
 1. Let the two reviewed single-worker admission scans finish with validator
    files frozen. Both use BelowNormal and occupy the total two-worker budget.
    Active artifacts: `C:/astra8_data/extension5h_20261103/admission_part0` and

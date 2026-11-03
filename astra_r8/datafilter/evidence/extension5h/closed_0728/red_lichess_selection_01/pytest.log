@@ -1,0 +1,189 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________ test_deepest_entry_and_first_pv_selected_with_provenance ___________
+
+    def test_deepest_entry_and_first_pv_selected_with_provenance():
+        shallow=evaluation(10,depth=10)
+        shallow['pvs'].append({'cp':9,'line':'d2d4'})
+        deep=evaluation(30,depth=30,line='g1f3')
+        deep['pvs'].append({'cp':29,'line':'d2d4'})
+        row=lichess_record(source([shallow,deep]),'fixture',1)
+>       assert row['score_stm']==30 and row['depth']==30 and row['best_move']=='g1f3'
+E       assert (10 == 30)
+
+astra_r8\datafilter\tests\test_lichess_selection.py:27: AssertionError
+____ test_castling_notation_normalized_without_chess960_rules[w-e1h1-e1g1] ____
+
+turn = 'w', raw = 'e1h1', canonical = 'e1g1'
+
+    @pytest.mark.parametrize('turn,raw,canonical',[
+        ('w','e1h1','e1g1'),('w','e1a1','e1c1'),
+        ('b','e8h8','e8g8'),('b','e8a8','e8c8')])
+    def test_castling_notation_normalized_without_chess960_rules(turn,raw,canonical):
+        fen=CASTLING.replace(' w ',f' {turn} ')
+        row=lichess_record(source([evaluation(20,line=raw)],fen),'fixture',1)
+>       assert row['fen']==fen and row['best_move']==canonical
+E       AssertionError: assert ('r3k2r/8/8/8/...w KQkq - 7 42' == 'r3k2r/8/8/8/...w KQkq - 7 42'
+E         
+E           r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 7 42 and 'e1h1' == 'e1g1'
+E         
+E         - e1g1
+E         ?   ^
+E         + e1h1
+E         ?   ^)
+
+astra_r8\datafilter\tests\test_lichess_selection.py:53: AssertionError
+____ test_castling_notation_normalized_without_chess960_rules[w-e1a1-e1c1] ____
+
+turn = 'w', raw = 'e1a1', canonical = 'e1c1'
+
+    @pytest.mark.parametrize('turn,raw,canonical',[
+        ('w','e1h1','e1g1'),('w','e1a1','e1c1'),
+        ('b','e8h8','e8g8'),('b','e8a8','e8c8')])
+    def test_castling_notation_normalized_without_chess960_rules(turn,raw,canonical):
+        fen=CASTLING.replace(' w ',f' {turn} ')
+        row=lichess_record(source([evaluation(20,line=raw)],fen),'fixture',1)
+>       assert row['fen']==fen and row['best_move']==canonical
+E       AssertionError: assert ('r3k2r/8/8/8/...w KQkq - 7 42' == 'r3k2r/8/8/8/...w KQkq - 7 42'
+E         
+E           r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 7 42 and 'e1a1' == 'e1c1'
+E         
+E         - e1c1
+E         ?   ^
+E         + e1a1
+E         ?   ^)
+
+astra_r8\datafilter\tests\test_lichess_selection.py:53: AssertionError
+____ test_castling_notation_normalized_without_chess960_rules[b-e8h8-e8g8] ____
+
+turn = 'b', raw = 'e8h8', canonical = 'e8g8'
+
+    @pytest.mark.parametrize('turn,raw,canonical',[
+        ('w','e1h1','e1g1'),('w','e1a1','e1c1'),
+        ('b','e8h8','e8g8'),('b','e8a8','e8c8')])
+    def test_castling_notation_normalized_without_chess960_rules(turn,raw,canonical):
+        fen=CASTLING.replace(' w ',f' {turn} ')
+        row=lichess_record(source([evaluation(20,line=raw)],fen),'fixture',1)
+>       assert row['fen']==fen and row['best_move']==canonical
+E       AssertionError: assert ('r3k2r/8/8/8/...b KQkq - 7 42' == 'r3k2r/8/8/8/...b KQkq - 7 42'
+E         
+E           r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 42 and 'e8h8' == 'e8g8'
+E         
+E         - e8g8
+E         ?   ^
+E         + e8h8
+E         ?   ^)
+
+astra_r8\datafilter\tests\test_lichess_selection.py:53: AssertionError
+____ test_castling_notation_normalized_without_chess960_rules[b-e8a8-e8c8] ____
+
+turn = 'b', raw = 'e8a8', canonical = 'e8c8'
+
+    @pytest.mark.parametrize('turn,raw,canonical',[
+        ('w','e1h1','e1g1'),('w','e1a1','e1c1'),
+        ('b','e8h8','e8g8'),('b','e8a8','e8c8')])
+    def test_castling_notation_normalized_without_chess960_rules(turn,raw,canonical):
+        fen=CASTLING.replace(' w ',f' {turn} ')
+        row=lichess_record(source([evaluation(20,line=raw)],fen),'fixture',1)
+>       assert row['fen']==fen and row['best_move']==canonical
+E       AssertionError: assert ('r3k2r/8/8/8/...b KQkq - 7 42' == 'r3k2r/8/8/8/...b KQkq - 7 42'
+E         
+E           r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 7 42 and 'e8a8' == 'e8c8'
+E         
+E         - e8c8
+E         ?   ^
+E         + e8a8
+E         ?   ^)
+
+astra_r8\datafilter\tests\test_lichess_selection.py:53: AssertionError
+_____ test_invalid_depth_rejected_even_when_another_entry_is_deeper[True] _____
+
+value = True
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+______ test_invalid_depth_rejected_even_when_another_entry_is_deeper[-1] ______
+
+value = -1
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+_____ test_invalid_depth_rejected_even_when_another_entry_is_deeper[1.5] ______
+
+value = 1.5
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+______ test_invalid_depth_rejected_even_when_another_entry_is_deeper[12] ______
+
+value = '12'
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+____ test_invalid_depth_rejected_even_when_another_entry_is_deeper[value4] ____
+
+value = {}
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+____ test_invalid_depth_rejected_even_when_another_entry_is_deeper[value5] ____
+
+value = []
+
+    @pytest.mark.parametrize('value',[True,-1,1.5,'12',{},[]])
+    def test_invalid_depth_rejected_even_when_another_entry_is_deeper(value):
+>       with pytest.raises(ValueError,match='depth'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_lichess_selection.py:85: Failed
+_____ test_four_field_fen_explains_missing_counters_without_synthesizing ______
+
+    def test_four_field_fen_explains_missing_counters_without_synthesizing():
+        fen=' '.join(chess.STARTING_FEN.split()[:4])
+>       with pytest.raises(ValueError,match='counters'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'counters'
+E         Actual message: 'original standard full FEN with signed-64-bit clocks required'
+
+astra_r8\datafilter\tests\test_lichess_selection.py:105: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_deepest_entry_and_first_pv_selected_with_provenance
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_castling_notation_normalized_without_chess960_rules[w-e1h1-e1g1]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_castling_notation_normalized_without_chess960_rules[w-e1a1-e1c1]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_castling_notation_normalized_without_chess960_rules[b-e8h8-e8g8]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_castling_notation_normalized_without_chess960_rules[b-e8a8-e8c8]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[True]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[-1]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[1.5]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[12]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[value4]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_invalid_depth_rejected_even_when_another_entry_is_deeper[value5]
+FAILED astra_r8/datafilter/tests/test_lichess_selection.py::test_four_field_fen_explains_missing_counters_without_synthesizing
+12 failed, 40 deselected in 3.51s

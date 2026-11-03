@@ -1,0 +1,92 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__ test_command_uses_verified_target_after_transient_alias_resolution[True] ___
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_manifest_command_01/cases/test_command_uses_ve... 0x000000001967D440>, run=<function entry_identity.<locals>.run at 0x000000001967D800>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F5100>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000195F51C0>
+check = True
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_command_uses_verified_target_after_transient_alias_resolution(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+        alternate = case.manifest.parent/'unverified.partial'/'manifest.json'
+        original_resolve = Path.resolve
+        original_command = adapter.command
+        state = {'redirect': False}
+    
+        def runtime():
+            state['redirect'] = True
+            return case.runtime
+    
+        def transient_resolve(path, *args, **kwargs):
+            if state['redirect'] and path == case.manifest:
+                return alternate
+            return original_resolve(path, *args, **kwargs)
+    
+        def build_command(*args, **kwargs):
+            state['redirect'] = False
+            return original_command(*args, **kwargs)
+    
+        monkeypatch.setattr(adapter, 'runtime_identity', runtime)
+        monkeypatch.setattr(Path, 'resolve', transient_resolve)
+        monkeypatch.setattr(adapter, 'command', build_command)
+        case.run(check)
+        output = capsys.readouterr().out
+        argv = json.loads(output)['command'] if check else sys.argv
+>       assert argv[1] == str(case.manifest)
+E       AssertionError: assert 'C:\\astra8_d...manifest.json' == 'C:\\astra8_d...manifest.json'
+E         
+E         Skipping 88 identical leading characters in diff, use -v to show
+E         - fied_tar0\manifest.json
+E         + fied_tar0\unverified.partial\manifest.json
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:161: AssertionError
+__ test_command_uses_verified_target_after_transient_alias_resolution[False] __
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_manifest_command_01/cases/test_command_uses_ve... 0x000000001967DA80>, run=<function entry_identity.<locals>.run at 0x000000001967DC60>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F7830>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000195F5250>
+check = False
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_command_uses_verified_target_after_transient_alias_resolution(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+        alternate = case.manifest.parent/'unverified.partial'/'manifest.json'
+        original_resolve = Path.resolve
+        original_command = adapter.command
+        state = {'redirect': False}
+    
+        def runtime():
+            state['redirect'] = True
+            return case.runtime
+    
+        def transient_resolve(path, *args, **kwargs):
+            if state['redirect'] and path == case.manifest:
+                return alternate
+            return original_resolve(path, *args, **kwargs)
+    
+        def build_command(*args, **kwargs):
+            state['redirect'] = False
+            return original_command(*args, **kwargs)
+    
+        monkeypatch.setattr(adapter, 'runtime_identity', runtime)
+        monkeypatch.setattr(Path, 'resolve', transient_resolve)
+        monkeypatch.setattr(adapter, 'command', build_command)
+        case.run(check)
+        output = capsys.readouterr().out
+        argv = json.loads(output)['command'] if check else sys.argv
+>       assert argv[1] == str(case.manifest)
+E       AssertionError: assert 'C:\\astra8_d...manifest.json' == 'C:\\astra8_d...manifest.json'
+E         
+E         Skipping 88 identical leading characters in diff, use -v to show
+E         - fied_tar1\manifest.json
+E         + fied_tar1\unverified.partial\manifest.json
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:161: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_command_uses_verified_target_after_transient_alias_resolution[True]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_command_uses_verified_target_after_transient_alias_resolution[False]
+2 failed, 9 deselected in 3.30s

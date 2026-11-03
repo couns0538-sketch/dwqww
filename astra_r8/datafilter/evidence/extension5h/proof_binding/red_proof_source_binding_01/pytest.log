@@ -1,0 +1,41 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+____________ test_shared_source_refuses_transient_substituted_text ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000586BDA0>
+
+    def test_shared_source_refuses_transient_substituted_text(monkeypatch):
+        original_text = Path.read_text
+        original_bytes = Path.read_bytes
+        names = {'records.py', 'records_before_lichess.py.txt'}
+        def changed_text(path, *args, **kwargs):
+            result = original_text(path, *args, **kwargs)
+            return result.replace('expected FEN |', 'substituted FEN |') if path.name in names else result
+        def changed_bytes(path):
+            result = original_bytes(path)
+            return result.replace(b'expected FEN |', b'substituted FEN |') if path.name in names else result
+        monkeypatch.setattr(Path, 'read_text', changed_text)
+        monkeypatch.setattr(Path, 'read_bytes', changed_bytes)
+>       with pytest.raises(ValueError, match='snapshot changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_repair_driver.py:96: Failed
+__________ test_shared_source_refuses_closing_current_digest_change ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000005A5B320>
+
+    def test_shared_source_refuses_closing_current_digest_change(monkeypatch):
+        original = driver.sha256
+        def changed(path):
+            return '0'*64 if Path(path).name == 'records.py' else original(path)
+        monkeypatch.setattr(driver, 'sha256', changed)
+>       with pytest.raises(ValueError, match='changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_repair_driver.py:105: Failed
+=========================== short test summary info ===========================
+FAILED ::test_shared_source_refuses_transient_substituted_text - Failed: DID ...
+FAILED ::test_shared_source_refuses_closing_current_digest_change - Failed: D...
+2 failed, 11 deselected in 0.20s

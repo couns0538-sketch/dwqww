@@ -1,5 +1,48 @@
 # Review log — UNPROVEN
 
+## 2026-11-03 07:30 — exact proof-source binding recheck
+
+The reused reviewer approved the command-path fix for the fresh full suite.
+It identified one defect in the new proof driver: source text was compared
+separately from its file hash. Main reproduced two false accepts using temporary
+substituted text and a changed closing current-file digest. The repair reads
+each source once as bytes, hashes those bytes, decodes only for comparison,
+checks closing path hashes, and reports the captured digest. All 13 fixture
+checks PASS in 2.62 seconds. Failed logs and the original driver are preserved.
+Reviewed driver SHA256 b978657a93bf6758e1f71255b8de5f9dcd24de40e5f8e67bec6e58e2bdf24b6e.
+Read-only recheck APPROVED real execution after the running full suite closes;
+no unresolved scoped findings. v8 and actual cohort admission remain pending.
+
+## 2026-11-03 07:28 — full admission, Lichess repair and command binding
+
+Candidate source maps and original RED/GREEN logs are preserved under
+evidence/extension5h/closed_0728, with COPIES.json binding each original path.
+Both admission workers closed successfully; the exact-byte union verifier
+accepted all 37 original sources/304,999,573 rows with zero rejections.
+records.py remained unchanged until the union was sealed. Its original module
+snapshot remains the source of the full-corpus proof.
+
+Main then implemented the reviewed Lichess repair. RED: 12 failures including
+wrong evaluation selection, raw castling aliases, ignored invalid depths and
+the missing-counter diagnostic. The four-field case was already rejected;
+the castling aliases were accepted but not normalized. GREEN: 116 tests PASS.
+The reused read-only final_review agent approved broader verification with no
+remaining concrete Lichess defect. Full suite v1 then passed 542 tests and
+11 subtests in 412.58 seconds, with stable source/runtime pins.
+
+Main discovered a second manifest resolution in command construction; the same
+reviewer confirmed it can emit an unverified path while Context remains verified.
+Actual training loaders should reject that mismatch, so this is a command
+provenance defect, not demonstrated unverified training. Two deterministic
+transient-resolution regressions failed before the fix. Main now passes the
+captured verified path to command(); 51 affected tests PASS. The v1 full suite
+predates this change and is not attributed to the later source. Focused recheck
+and fresh full verification are pending. All delegation tests use a stub.
+
+The fresh bounded proof driver passed 11 authored-fixture checks, including bad
+row counts/hashes, unsafe native halfmove and closing identity changes. Driver
+review and real selected-cohort/v8 execution are pending. No training or GPU run.
+
 ## Implemented input-integrity milestone — approved for broader verification
 
 After partition 0 exited successfully, main ran the safe regression selection

@@ -117,17 +117,59 @@ def selfplay_record(line, source, row):
         raise ValueError('invalid result: ' + result)
     return record(fen, int(score), 'cp', outcomes[result], source, row, 'selfplay', raw_score=score)
 
+def _lichess_move(board, raw_move):
+    if raw_move is None:
+        return None
+    if not isinstance(raw_move, str):
+        raise ValueError('invalid Lichess best move')
+    move = board.parse_uci(raw_move)
+    if not move:
+        raise ValueError('null Lichess best move is not a legal stored move')
+    return move.uci()
+
+
 def lichess_record(obj, source, row):
-    pv = obj['evals'][0]['pvs'][0]
-    kind = 'mate' if 'mate' in pv else 'cp'
+    if not isinstance(obj, dict) or not isinstance(obj.get('fen'), str):
+        raise ValueError('Lichess object with original FEN required')
+    fen = obj['fen']
+    if len(fen.split()) == 4:
+        raise ValueError('Lichess FEN is missing move counters; genuinely known full state required')
+    board = board_from_fen(fen)
+    evaluations = obj.get('evals')
+    if not isinstance(evaluations, list) or not evaluations:
+        raise ValueError('nonempty Lichess evaluation list required')
+    selected, deepest = 0, -2
+    for index, evaluation in enumerate(evaluations):
+        if not isinstance(evaluation, dict):
+            raise ValueError('invalid Lichess evaluation')
+        depth = evaluation.get('depth')
+        if depth is not None and (type(depth) is not int or depth < 0):
+            raise ValueError('invalid Lichess depth')
+        if not isinstance(evaluation.get('pvs'), list) or not evaluation['pvs']:
+            raise ValueError('nonempty Lichess PV list required')
+        rank = -1 if depth is None else depth
+        if rank > deepest:
+            selected, deepest = index, rank
+    evaluation = evaluations[selected]
+    pv = evaluation['pvs'][0]
+    if not isinstance(pv, dict):
+        raise ValueError('invalid selected Lichess PV')
+    kinds = [kind for kind in ('cp', 'mate') if kind in pv]
+    if len(kinds) != 1 or type(pv[kinds[0]]) is not int:
+        raise ValueError('exactly one integer Lichess cp or mate score required')
+    kind = kinds[0]
     white_score = pv[kind]
-    if type(white_score) is not int:
-        raise ValueError('invalid Lichess score type')
-    board = chess.Board(obj['fen'])
-    move = pv.get('line', '').split()
-    return record(obj['fen'], white_score * (1 if board.turn else -1), kind, None,
-                  source, row, 'lichess', move[0] if move else None, white_score,
-                  obj['evals'][0].get('depth'))
+    line = pv.get('line', '')
+    if not isinstance(line, str):
+        raise ValueError('invalid Lichess PV move text')
+    moves = line.split()
+    raw_move = moves[0] if moves else None
+    result = record(fen, white_score * (1 if board.turn else -1), kind, None,
+                    source, row, 'lichess', _lichess_move(board, raw_move),
+                    white_score, evaluation.get('depth'))
+    result.update(lichess_eval_index=selected, lichess_raw_best_move=raw_move,
+                  lichess_move_format='uci_chess960')
+    return result
 
 def validate_record(r):
     if not isinstance(r, dict):
@@ -144,6 +186,15 @@ def validate_record(r):
     for key in ('has_result', 'result_stm', 'ply'):
         if r[key] != rebuilt[key]:
             raise ValueError('inconsistent ' + key)
+    provenance = ('lichess_eval_index', 'lichess_raw_best_move', 'lichess_move_format')
+    if any(key in r for key in provenance):
+        if not all(key in r for key in provenance) or r['source_kind'] != 'lichess':
+            raise ValueError('incomplete or misplaced Lichess provenance')
+        if (type(r['lichess_eval_index']) is not int or r['lichess_eval_index'] < 0
+                or r['lichess_move_format'] != 'uci_chess960'):
+            raise ValueError('invalid Lichess selection/notation provenance')
+        if _lichess_move(chess.Board(r['fen']), r['lichess_raw_best_move']) != r['best_move']:
+            raise ValueError('Lichess raw and normalized best moves differ')
     return r
 
 def read_records(path, kind='normalized'):

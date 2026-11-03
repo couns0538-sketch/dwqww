@@ -2,6 +2,37 @@
 
 ## Current continuation — active, UNPROVEN
 
+2026-11-03 07:28 UTC checkpoint: both full admission scans and their union are
+closed PASS: 37 sources, 304,999,573 rows, zero invalid rows. The union digest is
+e125a32916ebfd751a21a03d79e10baf2b94d3f13bb32e6c9a3522afc24f9dd4.
+This is parser admission, not full-corpus holdout/game-ID clearance. It retains
+the original records.py a8ef0f43...7360be attribution. Only after union closure
+was the Lichess parser repaired: deepest evaluation selection, legal castling
+normalization and retained provenance. Twelve selected RED cases reproduced
+the prior gaps; 116 affected tests PASS. Raw four-field Lichess remains BLOCKED.
+
+Full CPU suite v1: 542 tests and 11 subtests PASS in 412.58 seconds; source/runtime
+pins stable. Subsequent review confirmed a command-provenance race: main resolved
+the manifest again after verification. Two RED tests reproduced unverified paths
+in both preflight and stub-delegated commands. The command now uses the captured
+verified path; 51 affected tests PASS in 3.53 seconds. This later fix still needs
+the fresh full suite. The v8 proof driver has 11 tiny-fixture tests passing; its
+actual selected-cohort admission and new handoff have not run yet.
+
+Corrected exact-lock verification PASS: all five bench pins plus startpos and
+Kiwipete perft5. Both cleared JSONL files are intentionally byte-identical;
+fresh direct comparison, 315,036,094-byte lengths, 999,953 rows, full SHA256 and
+MD5 aa3e9272d686356ef6a9e25003c52546 agree. The protected v7 tree is unchanged.
+Closed logs/receipts and a byte-copy index are in evidence/extension5h/closed_0728.
+Historical checkpoints below retain their original time/status, not current status.
+
+07:30 recheck: the command-target fix is independently approved. The proof
+driver's separate source-text/hash read gap reproduced in two further RED
+fixtures and was repaired with exact-byte hashes plus closing path checks.
+All 13 driver fixtures PASS; focused recheck APPROVED actual bounded execution
+after full CPU suite v2 closes. That fresh full suite is currently running alone.
+Driver SHA256 b978657a93bf6758e1f71255b8de5f9dcd24de40e5f8e67bec6e58e2bdf24b6e.
+
 User extended again at 2026-11-03 04:22 UTC: four further hours of improvements,
 then a full review/fix hour. Current schedule: 04:23–08:23 UTC improvements,
 08:23–09:23 UTC deep review, repairs and verification. The earlier 05:37–06:37

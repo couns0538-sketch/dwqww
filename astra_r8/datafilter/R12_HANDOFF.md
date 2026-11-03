@@ -21,17 +21,21 @@ Threads=1 and Hash=16:
 
 The previously supplied alternative three-number bench sequence is invalid.
 A search of R8 tools/evidence and saved engine skills on 2026-11-03 found no
-checks using it. Existing native R8 checks already use all five correct bench
-pins above. Full startpos/Kiwipete d5 confirmation will run when a compute slot
-is free, without interfering with the active source audits or crew processes.
+accepted checks using it. Existing native R8 checks already use all five correct
+bench pins above. Fresh exact-lock UCI verification completed at 07:04 UTC:
+all five bench pins and both depth-5 perft counts PASS, engine exit zero.
+Evidence: evidence/extension5h/closed_0728/lock_correction_v1/REPORT.json and
+the adjacent original UCI stdin/stdout/stderr. Wrong numbers occur only in
+deliberate rejection fixtures; they cannot qualify evidence.
 Any R12 or external check that used rejected pins must be rerun; R8 cannot
 certify uninspected external checks.
 
 Keep D: at or above 50 GB free and C: above 50 GB. Preserve, without moving or
 deleting, `C:/astra8_data/extension3h_20261103/handoff_v7/`, including manifest
 SHA256 `52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
-That manifest hash was rechecked after the correction. A later handoff refresh
-must use a new directory and retain v7 as evidence.
+The complete v7 tree was hashed before and after the corrected-lock/data check
+and remained unchanged. A later handoff refresh must use a new directory and
+retain v7 as evidence.
 
 `D:/grok-pc-data/dwqww/astra8_data/holdout_cleared/metadata.jsonl` **is meant to
 be byte-identical** to `records.jsonl` in the same directory. The explicit
@@ -39,10 +43,10 @@ holdout split writer writes the same retained JSONL line to both streams. They
 contain complete normalized records and aligned metadata, with the same order,
 999,953 rows and 315,036,094 bytes. Both recorded SHA256 values are
 `0e73a87c2e1af035aed34f51fdd74daefc05833ce133f254845f09f23aeb5dce`.
-The user's `aa3e9272` is a shortened MD5 identifier, not a full MD5 checksum.
-Fresh full hashes will be recorded when a compute slot is free. This contract
-is specific to normalized JSONL; converter binary REC and JSONL sidecars have
-different formats and are not byte-identical.
+Fresh direct byte comparison and full hashes PASS. Both full MD5 values are
+`aa3e9272d686356ef6a9e25003c52546`; the user's `aa3e9272` is its shortened prefix.
+This contract is specific to normalized JSONL; converter binary REC and JSONL
+sidecars have different formats and are not byte-identical.
 
 No strength claim follows from these checks. Engine NNUE owns training; Engine
 QA owns separate FD3A5190 UHO, 8moves_v3 and WAC300 qualification. UNPROVEN.

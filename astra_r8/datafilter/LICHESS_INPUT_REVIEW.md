@@ -1,4 +1,14 @@
-# Lichess input review — repair pending, UNPROVEN
+# Lichess input review — implemented and tested, UNPROVEN
+
+Current status at 07:28 UTC: the full corpus admission union closed before any
+records.py edit. The repair below is implemented. Twelve selected RED failures
+were preserved, followed by 116 affected test passes and 542 full-suite passes
+plus 11 subtests. Focused independent recheck approved broader verification.
+The castling RED cases showed accepted but unnormalized aliases, not rejected
+castling. The old four-field case already rejected input; its diagnostic is now
+explicit. Remaining text describes the original finding and chosen design.
+Fresh legacy/native-admission/v8 handoff proofs remain pending. No Lichess data
+was added to either recipe, and four-field input remains blocked.
 
 The official evaluation dump has four-field FENs: it omits both move counters.
 Its PV moves use UCI_Chess960 notation. Evaluation entries are ordered by PV

@@ -153,7 +153,7 @@ def main():
     context.runtime = runtime_identity()
     if context.runtime != context.manifest['runtime']:
         raise ValueError('installed npt runtime changed from manifest')
-    args = command(a.manifest.resolve(), a.output.resolve(),a.device,a.resume)
+    args = command(Path(manifest_identity['path']), a.output.resolve(),a.device,a.resume)
     context.check_manifest_identity()
     if a.check:
         print(json.dumps(dict(status='PASS', command=args, identity=context.state_dict()),indent=2))

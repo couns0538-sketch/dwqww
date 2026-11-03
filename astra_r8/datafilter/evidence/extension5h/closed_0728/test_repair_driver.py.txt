@@ -1,0 +1,81 @@
+"""Small original fixtures for the fresh proof driver, never production data."""
+import importlib.util
+import json
+from pathlib import Path
+import sys
+
+import pytest
+
+DRIVER = Path('D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/evidence/extension5h/verify_input_repair.py')
+spec = importlib.util.spec_from_file_location('fresh_repair_driver', DRIVER)
+driver = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(driver)
+from records import record, dumps
+
+
+@pytest.fixture
+def selected(tmp_path):
+    rows = [record('4k3/8/8/8/8/8/8/4K3 w - - 0 1', 20,
+                   'cp', 1, 'fixture', 1, 'selfplay'),
+            record('4k3/8/8/8/8/8/8/4K3 b - - 0 1', -20,
+                   'cp', 0, 'fixture', 2, 'selfplay')]
+    source = tmp_path/'rows.jsonl'
+    source.write_text(''.join(dumps(row)+'\n' for row in rows), encoding='utf-8')
+    return {'path':str(source),'sha256':driver.sha256(source),'rows':2}
+
+
+def test_native_admission_healthy_exact_bytes(selected):
+    result = driver.native_admission(selected)
+    assert result['status'] == 'PASS'
+    assert result['rows'] == 2 and result['known_results'] == 2
+    assert result['source_kinds'] == {'selfplay':2}
+    assert result['sha256'] == selected['sha256']
+    assert result['canonical_argument_changes'] == 0
+    assert result['score_min'] == -20 and result['score_max'] == 20
+
+
+@pytest.mark.parametrize('rows', [0, -1, True, 2.0, 3])
+def test_native_admission_invalid_count(selected, rows):
+    with pytest.raises(ValueError):
+        driver.native_admission({**selected, 'rows':rows})
+
+
+def test_native_admission_wrong_digest(selected):
+    with pytest.raises(ValueError, match='hash differs'):
+        driver.native_admission({**selected, 'sha256':'0'*64})
+
+
+def test_native_admission_rejects_unsafe_halfmove(selected):
+    path = Path(selected['path'])
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows[0]['fen'] = rows[0]['fen'].replace('0 1', '256 1')
+    path.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+    with pytest.raises(ValueError, match='row 1'):
+        driver.native_admission({**selected, 'sha256':driver.sha256(path)})
+
+
+def test_native_admission_changed_identity(selected, monkeypatch):
+    original = driver.input_identity
+    calls = []
+    def changed(path):
+        result = original(path)
+        calls.append(path)
+        if len(calls) == 2:
+            result['sha256'] = '0'*64
+        return result
+    monkeypatch.setattr(driver, 'input_identity', changed)
+    with pytest.raises(ValueError, match='changed'):
+        driver.native_admission(selected)
+
+
+def test_shared_source_matches_preserved_snapshot():
+    result = driver.shared_selfplay_source()
+    assert result['status'] == 'PASS'
+    assert len(result['function_sha256']) == 4
+    assert result['audited_records_sha256'] == driver.OLD_RECORDS_SHA
+
+
+def test_shared_source_refuses_changed_snapshot(monkeypatch):
+    monkeypatch.setattr(driver, 'OLD_RECORDS_SHA', '0'*64)
+    with pytest.raises(ValueError, match='snapshot changed'):
+        driver.shared_selfplay_source()

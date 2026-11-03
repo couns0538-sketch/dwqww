@@ -1,5 +1,6 @@
 """Entrypoint identity races use only authored manifests and stub delegation."""
 import json
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 
@@ -126,4 +127,37 @@ def test_unchanged_verified_manifest_allows_cpu_check_or_stub_delegation(
     else:
         assert case.events[-3:] == ['install', 'seed', 'delegate']
         assert not output
+    assert not (case.manifest.parent/'never_created').exists()
+
+
+@pytest.mark.parametrize('check', [True, False])
+def test_command_uses_verified_target_after_transient_alias_resolution(
+        entry_identity, monkeypatch, capsys, check):
+    case = entry_identity
+    alternate = case.manifest.parent/'unverified.partial'/'manifest.json'
+    original_resolve = Path.resolve
+    original_command = adapter.command
+    state = {'redirect': False}
+
+    def runtime():
+        state['redirect'] = True
+        return case.runtime
+
+    def transient_resolve(path, *args, **kwargs):
+        if state['redirect'] and path == case.manifest:
+            return alternate
+        return original_resolve(path, *args, **kwargs)
+
+    def build_command(*args, **kwargs):
+        state['redirect'] = False
+        return original_command(*args, **kwargs)
+
+    monkeypatch.setattr(adapter, 'runtime_identity', runtime)
+    monkeypatch.setattr(Path, 'resolve', transient_resolve)
+    monkeypatch.setattr(adapter, 'command', build_command)
+    case.run(check)
+    output = capsys.readouterr().out
+    argv = json.loads(output)['command'] if check else sys.argv
+    assert argv[1] == str(case.manifest)
+    assert argv[argv.index('--validation-datasets')+1] == str(case.manifest)
     assert not (case.manifest.parent/'never_created').exists()

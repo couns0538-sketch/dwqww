@@ -1,0 +1,183 @@
+"""Fresh bounded evidence for the input repairs; no training or GPU use."""
+import ast
+from collections import Counter
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+HERE = Path(__file__).resolve().parents[2]
+ROOT = Path('C:/astra8_data/extension5h_20261103')
+V7 = Path('C:/astra8_data/extension3h_20261103/handoff_v7')
+V7_SHA = '52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720'
+OLD_RECORDS_SHA = 'a8ef0f43c700d8dc275c0234b01d1c0d27b26549bdb3d05fb2d743a3887360be'
+sys.path.insert(0, str(HERE))
+sys.dont_write_bytecode = True
+os.environ.update(PYTHONDONTWRITEBYTECODE='1', CUDA_VISIBLE_DEVICES='',
+                  HIP_VISIBLE_DEVICES='', ROCR_VISIBLE_DEVICES='',
+                  OMP_NUM_THREADS='1', MKL_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1')
+
+from audit_followup import run as audit
+from filter_positions import input_identity, low_priority, run_filter, sha256
+from refresh_handoff import configure_cpu_runtime, current_runtime, refresh
+from resource_policy import storage_guard
+from verify_handoff import APPROVED_PREVIOUS_SHA256, verify
+
+
+def write(path, value):
+    text = json.dumps(value, indent=2, sort_keys=True, allow_nan=False)+'\n'
+    storage_guard(path, allowance=len(text.encode('utf-8'))+1024*1024)
+    with Path(path).open('x', encoding='utf-8', newline='\n') as stream:
+        stream.write(text)
+
+
+def shared_selfplay_source():
+    baseline = HERE/'evidence/extension5h/records_before_lichess.py.txt'
+    if sha256(baseline) != OLD_RECORDS_SHA:
+        raise ValueError('audited parser snapshot changed')
+    old = baseline.read_text(encoding='utf-8')
+    new = (HERE/'records.py').read_text(encoding='utf-8')
+    names = ('board_from_fen', 'record', 'selfplay_record', 'read_records')
+    selected = []
+    for text in (old, new):
+        selected.append({node.name: ast.get_source_segment(text, node)
+                         for node in ast.parse(text).body
+                         if isinstance(node, ast.FunctionDef) and node.name in names})
+    if set(selected[0]) != set(names) or selected[0] != selected[1]:
+        raise ValueError('shared selfplay function source changed')
+    old_prefix = old[:old.index('\ndef lichess_record(')].rstrip()
+    new_prefix = new[:new.index('\ndef _lichess_move(')].rstrip()
+    if old_prefix != new_prefix:
+        raise ValueError('shared parser imports/definitions changed')
+    return dict(status='PASS', strength='UNPROVEN',
+                audited_records_sha256=OLD_RECORDS_SHA,
+                current_records_sha256=sha256(HERE/'records.py'),
+                function_sha256={name:hashlib.sha256(text.encode()).hexdigest()
+                                 for name,text in selected[0].items()},
+                shared_prefix_sha256=hashlib.sha256(old_prefix.encode()).hexdigest(),
+                normalization='Universal text newlines; prefix trailing whitespace ignored.',
+                limitation='The full records.py hash changed. The corpus scan retains its original validator attribution.')
+
+
+def native_admission(selection):
+    """Read every selected row through current admission without native allocation."""
+    from npt_adapter import native_fen, torch
+    torch.set_num_threads(1)
+    if type(selection.get('rows')) is not int or selection['rows'] < 1:
+        raise ValueError('positive integer expected row count required')
+    source = Path(selection['path'])
+    before = input_identity(source)
+    if before['sha256'] != selection['sha256']:
+        raise ValueError('selected source hash differs before admission')
+    started = time.perf_counter()
+    digest = hashlib.sha256()
+    count = known = changed = 0
+    kinds = Counter()
+    score_min, score_max = 32767, -32768
+    max_halfmove = max_ply = max_fullmove = 0
+    with source.open('rb') as stream:
+        for line_number, raw in enumerate(stream, 1):
+            digest.update(raw)
+            try:
+                row = json.loads(raw)
+                canonical = native_fen(row)
+            except (ValueError, KeyError, TypeError, IndexError) as error:
+                raise ValueError(f'native admission rejected row {line_number}: {error}') from error
+            count += 1
+            known += row['has_result']
+            changed += canonical != row['fen']
+            kinds[row['source_kind']] += 1
+            score_min = min(score_min, row['score_stm'])
+            score_max = max(score_max, row['score_stm'])
+            fields = row['fen'].split()
+            max_halfmove = max(max_halfmove, int(fields[4]))
+            max_fullmove = max(max_fullmove, int(fields[5]))
+            max_ply = max(max_ply, row['ply'])
+            if count % 100000 == 0:
+                storage_guard(ROOT, allowance=0)
+                print(json.dumps({'event':'native_admission_progress','rows':count}), flush=True)
+    if count != selection['rows'] or digest.hexdigest() != selection['sha256']:
+        raise ValueError('selected source hash/count differs after admission')
+    if input_identity(source) != before:
+        raise ValueError('selected source identity changed during admission')
+    return dict(status='PASS', strength='UNPROVEN', rows=count, sha256=digest.hexdigest(),
+                source_identity=before, known_results=known, unknown_results=count-known,
+                source_kinds=dict(kinds), canonical_argument_changes=changed,
+                score_min=score_min, score_max=score_max, max_halfmove=max_halfmove,
+                max_fullmove=max_fullmove, max_ply=max_ply,
+                seconds=time.perf_counter()-started,
+                scope='Complete selected-cohort Python/native-input admission; no native allocation, training or loader-throughput claim.')
+
+
+def protected_tree():
+    result = {path.relative_to(V7).as_posix():sha256(path)
+              for path in sorted(V7.rglob('*')) if path.is_file()}
+    if result.get('manifest.json') != V7_SHA:
+        raise ValueError('protected v7 manifest changed')
+    return result
+
+
+def main():
+    low_priority()
+    output = ROOT/'input_repair_validation'
+    storage_guard(output, allowance=130_000_000)
+    output.mkdir()
+    configure_cpu_runtime(output)
+    files = (list(HERE.glob('*.py'))+list((HERE/'tests').glob('*.py'))
+             +[Path(__file__).resolve()])
+    source = {str(path):sha256(path) for path in files}
+    runtime = current_runtime()
+    protected = protected_tree()
+    run = dict(source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=HERE,text=True).strip(),
+               source_files=source, runtime=runtime, strength='UNPROVEN')
+    write(output/'RUN.json', run)
+    started = time.perf_counter()
+    write(output/'shared_selfplay_source.json', shared_selfplay_source())
+    original = (HERE/'evidence/handoff_manifest.json').read_bytes()
+    if hashlib.sha256(original).hexdigest() != APPROVED_PREVIOUS_SHA256:
+        raise ValueError('original approved handoff changed')
+    write(output/'native_admission.json', native_admission(json.loads(original)['train']))
+    stages = {}
+    for stage in ('identity', 'orientation'):
+        print('START '+stage, flush=True)
+        before = time.perf_counter()
+        audit(stage, output)
+        stages[stage] = dict(receipt=str(output/(stage+'_receipt.json')),
+                             sha256=sha256(output/(stage+'_receipt.json')),
+                             seconds=time.perf_counter()-before)
+        print('PASS '+stage, flush=True)
+    sample = HERE/'sample/positions_stm_v1.jsonl'
+    expected = 'c7394f11aebf2e76a2e5a1b8e834c8b5b92676180f5896e8ac30062472f7462c'
+    if sha256(sample) != expected:
+        raise ValueError('selected sample changed')
+    filters = {}
+    for name, options in [('all_off',{}),('recipe_a',{'drop_in_check':True,'drop_mate_scores':True}),
+                           ('recipe_b',{'drop_in_check':True,'drop_mate_scores':True})]:
+        report = run_filter(sample, output/name, workers=2, **options)
+        if report['input'] != 10000 or report['kept'] != 10000 or report['hashes']['records.jsonl'] != expected:
+            raise ValueError('bounded filter output changed')
+        filters[name] = report
+    if filters['recipe_a']['hashes'] != filters['recipe_b']['hashes']:
+        raise ValueError('repeated filter output is not deterministic')
+    write(output/'bounded_filter.json', filters)
+    destination = ROOT/'handoff_v8'
+    refresh(destination)
+    write(output/'published_verify.json', verify(destination/'manifest.json'))
+    if source != {str(path):sha256(path) for path in files} or current_runtime() != runtime:
+        raise ValueError('candidate/runtime changed during verification')
+    if protected_tree() != protected:
+        raise ValueError('protected v7 tree changed')
+    names = ('shared_selfplay_source.json','native_admission.json','bounded_filter.json','published_verify.json')
+    write(output/'COMPLETE.json', dict(**run,status='PASS',seconds=time.perf_counter()-started,
+          stages=stages,receipts={name:dict(path=str(output/name),sha256=sha256(output/name)) for name in names},
+          manifest=str(destination/'manifest.json'),manifest_sha256=sha256(destination/'manifest.json'),
+          protected_v7=protected,resource=storage_guard(output,allowance=0),
+          limitations='No new million-row filtering timing, training, GPU, engine change or strength claim.'))
+    print('PASS fresh input repair verification', flush=True)
+
+
+if __name__ == '__main__':
+    main()
