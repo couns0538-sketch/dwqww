@@ -1,10 +1,10 @@
 # FILES index, R14-B item 1 fast npt loader, branch opus-r14b-fast-loader. path | bytes | sha256 | content
 # candidate b5: forge_fastloader.dll sha256 9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935 (built by fastloader/build_fastloader.sh, not committed)
 GPU_REQUEST.md | 5463 | a52b816774702c7f45eacd9e0ef25874fad9260a96b775987e9b1f06a61224f8 | the GPU window request: commands, what to measure, done criteria
-HANDOFF.md | 8653 | 5907d8a238ed15732d2251d4ca3d3e5bd5bf7dc36ab421cb2045876c81d9d006 | adoption steps for Engine NNUE / QA (start here)
+HANDOFF.md | 8897 | ee9cc89bd3772236d6f58719e2d6e3ccd3a8888d39a081772cdac9c46aa19843 | adoption steps for Engine NNUE / QA (start here)
 IDEA_SOURCE.md | 1567 | 331213f557d86c3cce050088d0c8eabee865959d3b9093fc704adbb870535ff8 | sources: GPL loader read for behaviour only, own code
 LOADER_SPEC.md | 7570 | 96d504fef1c1314457e27b2984279d95f093a9ae2d293c70cb96a4139967908c | what the old loader does and what the fast loader reproduces
-RESULTS.md | 29830 | eb97291a9e0e4e723f64d9f27dcf85bf633ba533273bdcbe18406adfae21ebd6 | all checks, numbers and review records (chronological)
+RESULTS.md | 31772 | f958c536abc9967ee87ec3b67b1ea088559024d6663b98ec2201c0747faba038 | all checks, numbers and review records (chronological)
 trainer_manifest_b2614500.sha256 | 26935 | fcab593f4a913122345814d83a180328a452ea4aaea00c86ca8b85d01999aaa8 | sha256 of the 264 trainer files the installer's anchors were written for
 fastloader/build_fastloader.sh | 1474 | e1722e53b5e8b0fa65ddb57af43a3b197112b1f2b4f0b7e4b28246ddacc3f9ea | build of the DLL (pc1 = pc2 byte-identical)
 fastloader/ffl_selftest.cpp | 21299 | 5d8654ca8e0e3a45b722f264f7f702f889c12aab6630d5a45ea599b13c64ba0d | self-test (CI: ASan+UBSan, TSan)
@@ -102,6 +102,20 @@ logs/fuzz/fuzz_assertions_326_summary.txt | 205 | 1f517eb57a0a276bf46bf9e2ae236f
 logs/fuzz/fuzz_release_b5_326.tsv | 24296 | c95e09bafac51b44384535b73fcd834e3130d3e2ff1232ac76e9abfed1245cc0 | evidence log
 logs/fuzz/fuzz_release_b5_326_summary.txt | 203 | a25ff0655f63b176ca479f902bcba217f4f1a99db88429603b0f4262808c6fd8 | evidence log
 logs/fuzz/fuzz_release_b5_45.tsv | 4340 | 31724f8f484cb10823af6d5b208be4b8b1f5d02db92d46462499ad391514f859 | evidence log
+logs/installer/already_patched.out | 31 | 0014dded8b7e1afa812a38654f50e9158403423c532e1f1489febe79ca62a7d3 | evidence log
+logs/installer/anchor_changed.out | 85 | abca7c01f16e895ff71423fe94d2515c59a50a92dba5b7a66d9c5f15090e57de | evidence log
+logs/installer/check_fresh.out | 51 | 39a18375ba0f959f895c91331388e135d9e3f240c7fdfb39b3d4c8c2c0c7c7bf | evidence log
+logs/installer/install.out | 108 | d60b38b1711081aa1df842b3156c26b66cebc84e4c9185a289446a88ce21ac32 | evidence log
+logs/installer/live_check_allowed.out | 117 | 93974cfb270cd88d6e322e91a5700713ce3b52876904a4dae37ff30fbbea4c0d | evidence log
+logs/installer/live_install_refused.out | 127 | a82fc0a1c68d1d7e23c29f9ed0301a796cfd50aae3c93bc8d93ecd93d540e703 | evidence log
+logs/installer/loader_dll_without_path.out | 1377 | 53658f6baf06c0cdc1ff774edd4178866d19cc4f4e26fd63e4851e9b27e190c1 | evidence log
+logs/installer/loader_target_exists.out | 101 | 9ebed3693554f698dc80a03eb63c2b4cb6b39003ef95491dff083a28db9cd4d7 | evidence log
+logs/installer/misspelt_check.out | 1371 | bc58a65c33c418bc47aa885e06f557fc46fe46ae33002655e720c121e879c7c3 | evidence log
+logs/installer/no_folder.out | 140 | bc9c3673a440e1d04a4efecb41617ef458618343263f8f7c9d45b40fb83836e4 | evidence log
+logs/installer/not_utf8.out | 166 | daa149fc41ce2dbd3ceb19f42b07ebf7aff48b8fb13f9e4ad7737f4cb7fbcb7d | evidence log
+logs/installer/second_install.out | 31 | ea5b12378675d7868d7e0fb2ba49a0a8895288056386a34dbe5f0801266e7ec6 | evidence log
+logs/installer/test_installer_new.log | 1920 | 385462c0b58165b2dbdc0ad598a52b23203008a8a3750b2a9f3015ed6286aefa | evidence log
+logs/installer/test_installer_on_previous_installer.log | 2635 | 11bce32d417c8af2f24d2c3e255b0635c64307c4346c4c1859b762797017fcd8 | evidence log
 logs/lossmatch/det3_fast_a_command.txt | 519 | ab5ca9aea42bc430b7939d9578adf34ffd1319d535b7fb7537fcca5e16bc14c9 | evidence log
 logs/lossmatch/det3_fast_a_guard.jsonl | 225 | 6014dc564c5cf5820db709811539ae56823e4fbb6686549b0819c9fe48c660c7 | evidence log
 logs/lossmatch/det3_fast_a_metrics.csv | 171 | 62c5b79d2d845f4a042531463f79e7e544d32de09898a350663faddb7c4ae5e6 | evidence log
@@ -134,7 +148,8 @@ tools/fl_dataset_equal.py | 4738 | fa680931621a27dc4af88a1e09c967bd257f3a0d5f9b3
 tools/fl_distribution.py | 5289 | 64d10753c4fda3bd767be48e97e57ad51a3e3a838a707aafbee2e0e9b0d0994e | old w4 vs fast as distributions
 tools/fl_equal.py | 12026 | c1d806d28c55ee5ffa89a8309193a6f1fb0f3f467779ede63f4eaca3e5ebda7d | raw C API batch hashing and timing (old / fast)
 tools/fl_fuzz.py | 8505 | e98c7d2a3c73d6f309a6ffb7d7fedecabe78bcbf23876cb2a3c8a80e73e286b2 | damaged-file fuzzing (bug hunt #4)
-tools/install_fast_loader.py | 6102 | 20ba91d24571cdbf9a9041df718d76ec513ae9259b93bb530c40520dbba8a50a | installer for a trainer COPY (--check, --loader-dll)
+tools/install_fast_loader.py | 6978 | c96e920b5c9ad6738325acce5c9d9ffda337d48ed44b5d66e6a4ba16305606d1 | installer for a trainer COPY (--check, --loader-dll)
 tools/lm_det.py | 1325 | 2a229a3c3324477742cc1faf408e73e384a8b126b54f00f302c806911ee1de9c | deterministic CPU loss-match driver
 tools/lm_run.sh | 3412 | cec3e8bd38e754944b40396e24a11bd47e42e16b10ea11e25613c9234515a3fd | loss-match run script
 tools/lowrun.ps1 | 2127 | cc7f28dd09482454e894dfe2c77cc05c9eb625c1146ec5e558323064fc71af11 | run one program at low priority on a CPU mask (exit 127 if it cannot start)
+tools/test_installer.sh | 4122 | a3353101c0f049267c472fba9362df37e6f12679558f881289498a89a48f2850 | installer exit codes and file effects on copies of the live config.py + train.py (22 cases)

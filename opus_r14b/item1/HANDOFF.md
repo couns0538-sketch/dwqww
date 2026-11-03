@@ -45,7 +45,9 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    patches config.py + train.py (exact anchors; refuses a trainer that differs or is already patched, exit 2) and
    copies the DLL and this branch's `fastloader/forge_fastloader.py` next to `<COPY>\train.py` (never over an existing
    file; prints both sha256). (Without `--loader-dll`, copy the two files yourself, or set `FORGE_FAST_LOADER_DIR`; the
-   adapter passes the queue's environment through.)
+   adapter passes the queue's environment through.) Unknown or misspelt arguments are exit 2 (since 22:2x a typo can
+   no longer turn `--check` into an install), and a real install into the live folder
+   `F:\opus_scratch\r6\nnue-pytorch-amd` is refused; `--check` there is allowed (read-only).
 3b. Acceptance check, CPU only, GPU hidden (about 1 minute): `bash tools/fl_acceptance.sh <COPY> <new out dir>` runs
    the trainer's own Dataset -> FixedNumBatchesDataset -> DataLoader path with the old loader (w1; default: the copy's
    own `build\libtraining_data_loader.dll`) and the fast loader (w4; default: the files next to its train.py) and

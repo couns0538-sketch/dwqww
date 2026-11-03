@@ -44,7 +44,8 @@ description: The R14-B fast data loader for the npt (nnue-pytorch) trainer on gr
 6. GPU window: `GPU_REQUEST.md` (one epoch of the live recipe with --fast-loader; GPU util from the keeper's HWiNFO CSV).
 
 ## Trainer switch
-`tools/install_fast_loader.py <trainer copy>` (exact anchors, keeps CRLF/LF, refuses a patched or changed trainer);
+`tools/install_fast_loader.py <trainer copy>` (exact anchors, keeps CRLF/LF, refuses a patched or changed trainer, unknown
+arguments and a real install into the live trainer folder - exit 2; `tools/test_installer.sh` checks all of it, 22 cases);
 same as `patches/0005-fast-loader-switch.patch`. Loader files from `FORGE_FAST_LOADER_DIR` (or next to train.py),
 loaded by explicit path; the start-up line prints the DLL path, sha256 and version. `--num-workers N` = N loader threads
 (reader + filter + N-2 builders). Never patch the live trainer folder; Engine NNUE / QA decide about adoption.

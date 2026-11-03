@@ -1,0 +1,24 @@
+# test_installer.sh (22:26) run against the PREVIOUS install_fast_loader.py (as committed at edcdcd0d, before the 22:2x fix), with a COPY of the live config.py + train.py standing in for the live folder (the old installer would have patched the real one)
+PASS check_fresh (exit 0): t1\config.py: anchors OK t1\train.py: anchors OK 
+PASS check_changed_nothing
+FAIL misspelt_check: exit 0, wanted 2 with 'unknown or incomplete argument '--chek'': t1\config.py: anchors OK t1\train.py: anchors OK t1\config.py: patched (CRLF) t1\train.py: patched (LF) 
+FAIL misspelt_check_changed_nothing
+FAIL loader_dll_without_path: exit 2, wanted 2 with 'unknown or incomplete argument '--loader-dll'': --loader-dll needs a path 
+FAIL no_folder: exit 1, wanted 2 with 'cannot read it as a trainer file': Traceback (most recent call last):   File "C:\o14b\ti_old_2226\tree\opus_r14b\item1\tools\install_fast_loader.py", line 151, in <module>     sys.exit(main())   File "C:\o14b\ti_old_2226\tree\opus_r14b\item1\tools\install_fast_loader.py", line 137, in main     ok = patch(root / "config.py", CONFI
+FAIL not_utf8: exit 1, wanted 2 with 'cannot read it as a trainer file (UnicodeDecodeError': t2\config.py: anchors OK Traceback (most recent call last):   File "C:\o14b\ti_old_2226\tree\opus_r14b\item1\tools\install_fast_loader.py", line 151, in <module>     sys.exit(main())   File "C:\o14b\ti_old_2226\tree\opus_r14b\item1\tools\install_fast_loader.py", line 137, in main     ok = patch
+PASS not_utf8_config_unchanged
+PASS already_patched (exit 2): t3\config.py: already patched 
+PASS already_patched_changed_nothing
+PASS anchor_changed (exit 2): t4\config.py: anchors OK t4\train.py: anchor not found exactly once: '    rank=0,' 
+PASS anchor_changed_changed_nothing
+PASS loader_target_exists (exit 2): t5\config.py: anchors OK t5\train.py: anchors OK t5\forge_fastloader.dll: exists, not overwritten 
+PASS loader_target_exists_changed_nothing
+FAIL live_install_refused: exit 0, wanted 2 with 'is the live npt trainer': C:\o14b\ti_old_2226\live_copy2\config.py: anchors OK C:\o14b\ti_old_2226\live_copy2\train.py: anchors OK C:\o14b\ti_old_2226\live_copy2\config.py: patched (CRLF) C:\o14b\ti_old_2226\live_copy2\train.py: patched (LF) 
+FAIL live_check_allowed: exit 2, wanted 0 with 'anchors OK': C:\o14b\ti_old_2226\live_copy2\config.py: already patched 
+FAIL install: exit 2, wanted 0 with 'patched': t1\config.py: already patched 
+PASS install_patched_both
+PASS install_line_ends_config.py
+PASS install_line_ends_train.py
+PASS second_install (exit 2): t1\config.py: already patched 
+FAIL live_unchanged
+failures: 9

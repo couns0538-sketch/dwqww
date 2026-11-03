@@ -1,0 +1,17 @@
+unknown or incomplete argument '--chek'
+install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt trainer (own code).
+
+usage: python -I -B install_fast_loader.py TRAINER_COPY_DIR [--check] [--loader-dll PATH]
+Edits config.py (new option `fast_loader`, default False) and train.py (make_data_loaders picks
+forge_fastloader.FastSparseBatchDataset for the training and the validation stream; start-up line with the DLL path,
+sha256 and version). Exact anchors, CRLF/LF kept as found; refuses a trainer that is already patched or whose anchor
+text differs (exit 2). --check only reports. Never run it on the live trainer folder: the queue's trainer is not ours
+to change; Engine NNUE / QA decide (it refuses F:\opus_scratch6
+nue-pytorch-amd except with --check). Unknown
+arguments and a folder without readable config.py / train.py are exit 2 as well; nothing is changed unless every
+check passed. The equivalent diff is patches/0005-fast-loader-switch.patch.
+The loader files (forge_fastloader.py + forge_fastloader.dll) go next to train.py or into FORGE_FAST_LOADER_DIR;
+--loader-dll PATH copies that DLL and this branch's fastloader/forge_fastloader.py next to train.py (never over an
+existing file) and prints both sha256 values (the tested DLL b5 is 9eb29b7d...; fastloader/build_fastloader.sh
+rebuilds it byte for byte).
+

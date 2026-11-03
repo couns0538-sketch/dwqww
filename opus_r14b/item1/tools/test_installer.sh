@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# test_installer.sh SCRATCH_DIR [LIVE_TRAINER] - Opus R14-B item 1: exit codes and file effects of
+# install_fast_loader.py on copies of the live trainer's config.py + train.py (read-only from LIVE_TRAINER, default
+# F:/opus_scratch/r6/nnue-pytorch-amd). The live folder itself is only read (--check) and its two files are hashed
+# before and after. One PASS / FAIL line per case; exit 0 = all PASS. Bug hunt of 2026-11-02 22:2x (a misspelt
+# --check used to install).
+set -u
+d=${1:?scratch dir}
+live=${2:-F:/opus_scratch/r6/nnue-pytorch-amd}
+here=$(cd "$(dirname "$0")" && pwd)
+I=$here/install_fast_loader.py
+PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
+for f in "$I" "$PY" "$live/config.py" "$live/train.py"; do [ -f "$f" ] || { echo "not found: $f" >&2; exit 2; }; done
+[ -e "$d" ] && { echo "refusing existing $d" >&2; exit 2; }
+mkdir -p "$d" && cd "$d" || exit 1
+fails=0
+expect() {  # expect CODE NAME TEXT CMD...: exit code and a text the output must contain, no traceback
+  local want=$1 name=$2 text=$3; shift 3
+  "$@" >"$name.out" 2>&1; local got=$?
+  if [ "$got" = "$want" ] && grep -qF -- "$text" "$name.out" && ! grep -q Traceback "$name.out"; then
+    echo "PASS $name (exit $got): $(head -c 140 "$name.out" | tr '\n' ' ')"
+  else echo "FAIL $name: exit $got, wanted $want with '$text': $(head -c 300 "$name.out" | tr '\n' ' ')"; fails=$((fails + 1)); fi
+}
+check() { local name=$1; shift; if "$@"; then echo "PASS $name"; else echo "FAIL $name"; fails=$((fails + 1)); fi; }
+fresh() { mkdir -p "$1" && cp "$live/config.py" "$live/train.py" "$1/"; }
+live_sum() { sha256sum "$live/config.py" "$live/train.py" | cut -d' ' -f1 | tr '\n' ' '; }
+live0=$(live_sum)
+fresh t1; sum1=$(cat t1/*.py | sha256sum)
+expect 0 check_fresh "anchors OK" "$PY" -I -B "$I" t1 --check
+check check_changed_nothing test "$(cat t1/*.py | sha256sum)" = "$sum1"
+expect 2 misspelt_check "unknown or incomplete argument '--chek'" "$PY" -I -B "$I" t1 --chek
+check misspelt_check_changed_nothing test "$(cat t1/*.py | sha256sum)" = "$sum1"
+expect 2 loader_dll_without_path "unknown or incomplete argument '--loader-dll'" "$PY" -I -B "$I" t1 --loader-dll
+expect 2 no_folder "cannot read it as a trainer file" "$PY" -I -B "$I" no_such_dir
+mkdir -p t2 && cp "$live/config.py" t2/ && printf 'x = "\xff"\n' > t2/train.py
+expect 2 not_utf8 "cannot read it as a trainer file (UnicodeDecodeError" "$PY" -I -B "$I" t2
+check not_utf8_config_unchanged cmp -s "$live/config.py" t2/config.py
+fresh t3 && printf '\n# fast_loader\n' >> t3/config.py && sum3=$(cat t3/*.py | sha256sum)
+expect 2 already_patched "already patched" "$PY" -I -B "$I" t3
+check already_patched_changed_nothing test "$(cat t3/*.py | sha256sum)" = "$sum3"
+fresh t4 && sed -i 's/world_size=1,/world_size=2,/' t4/train.py && sum4=$(cat t4/*.py | sha256sum)
+expect 2 anchor_changed "anchor not found exactly once" "$PY" -I -B "$I" t4
+check anchor_changed_changed_nothing test "$(cat t4/*.py | sha256sum)" = "$sum4"
+fresh t5 && touch t5/forge_fastloader.dll && dll=$(cygpath -w "$live/train.py") && sum5=$(cat t5/*.py | sha256sum)
+expect 2 loader_target_exists "exists, not overwritten" "$PY" -I -B "$I" t5 --loader-dll "$dll"
+check loader_target_exists_changed_nothing test "$(cat t5/*.py | sha256sum)" = "$sum5"
+expect 2 live_install_refused "is the live npt trainer" "$PY" -I -B "$I" "$live"
+expect 0 live_check_allowed "anchors OK" "$PY" -I -B "$I" "$live" --check
+expect 0 install "patched" "$PY" -I -B "$I" t1
+check install_patched_both test "$(grep -c fast_loader t1/config.py)" -ge 1 -a "$(grep -c fast_loader t1/train.py)" -ge 1
+for f in config.py train.py; do  # CRLF / LF as found, no mixed line ends
+  check "install_line_ends_$f" "$PY" -I -B -c "import sys; a = open(sys.argv[1], 'rb').read(); b = open(sys.argv[2], 'rb').read()
+crlf = b'\r\n' in a
+sys.exit(0 if (b'\r\n' in b) == crlf and (not crlf or b.count(b'\n') == b.count(b'\r\n')) else 1)" "$live/$f" "t1/$f"
+done
+expect 2 second_install "already patched" "$PY" -I -B "$I" t1
+check live_unchanged test "$(live_sum)" = "$live0"
+echo "failures: $fails"
+exit $((fails > 0))

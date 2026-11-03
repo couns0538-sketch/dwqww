@@ -6,7 +6,9 @@ Edits config.py (new option `fast_loader`, default False) and train.py (make_dat
 forge_fastloader.FastSparseBatchDataset for the training and the validation stream; start-up line with the DLL path,
 sha256 and version). Exact anchors, CRLF/LF kept as found; refuses a trainer that is already patched or whose anchor
 text differs (exit 2). --check only reports. Never run it on the live trainer folder: the queue's trainer is not ours
-to change; Engine NNUE / QA decide. The equivalent diff is patches/0005-fast-loader-switch.patch.
+to change; Engine NNUE / QA decide (it refuses F:\opus_scratch\r6\nnue-pytorch-amd except with --check). Unknown
+arguments and a folder without readable config.py / train.py are exit 2 as well; nothing is changed unless every
+check passed. The equivalent diff is patches/0005-fast-loader-switch.patch.
 The loader files (forge_fastloader.py + forge_fastloader.dll) go next to train.py or into FORGE_FAST_LOADER_DIR;
 --loader-dll PATH copies that DLL and this branch's fastloader/forge_fastloader.py next to train.py (never over an
 existing file) and prints both sha256 values (the tested DLL b5 is 9eb29b7d...; fastloader/build_fastloader.sh
@@ -76,10 +78,17 @@ TRAIN = [
 ]
 
 
+LIVE_TRAINER = Path(r"F:\opus_scratch\r6\nnue-pytorch-amd")  # the queue's npt trainer (2026-11-02): never ours to change
+
+
 def patch(path: Path, pairs, check: bool) -> bool:
-    raw = path.read_bytes()
+    try:
+        raw = path.read_bytes()
+        text = raw.decode("utf-8").replace("\r\n", "\n")
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"{path}: cannot read it as a trainer file ({type(e).__name__}: {e})")
+        return False
     crlf = b"\r\n" in raw
-    text = raw.decode("utf-8").replace("\r\n", "\n")
     if "fast_loader" in text:
         print(f"{path}: already patched")
         return False
@@ -126,14 +135,18 @@ def main() -> int:
         print(__doc__)
         return 2
     root = Path(args[0])
-    check = "--check" in args[1:]
-    dll = None
-    if "--loader-dll" in args[1:]:
-        i = args.index("--loader-dll")
-        if i + 1 >= len(args):
-            print("--loader-dll needs a path")
+    check, dll, rest = False, None, args[1:]
+    while rest:  # an unknown or misspelt option (e.g. --chek) must not turn a check into an install
+        if rest[0] == "--check":
+            check, rest = True, rest[1:]
+        elif rest[0] == "--loader-dll" and len(rest) > 1:
+            dll, rest = Path(rest[1]), rest[2:]
+        else:
+            print(f"unknown or incomplete argument {rest[0]!r}\n{__doc__}")
             return 2
-        dll = Path(args[i + 1])
+    if not check and root.resolve() == LIVE_TRAINER.resolve():
+        print(f"{root} is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here")
+        return 2
     ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
     if ok and dll is not None:
         ok = copy_loader(root, dll, True, quiet=not check)  # validate first: nothing is changed unless all is fine

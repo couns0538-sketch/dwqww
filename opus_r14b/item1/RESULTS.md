@@ -276,3 +276,18 @@ measurement: the GPU window decides (GPU_REQUEST.md).
 After H5-6 / H5-7: fresh-clone checks again (21:44-21:48, clones a64dd643 / 2a2a68dd): 0 failures - suite 150 / 0,
 probe builds = the tested exes (500 / 500 reference answers), DLL rebuilt = b5, acceptance 261 / 261, adoption
 rehearsal on a fresh live-trainer copy (264 / 264 = installer base) 261 / 261 (C:\o14b\vc_2144).
+
+## Bug hunt #6, item 1 part (22:17-22:27; self-review, NOT independent): the installer's arguments and inputs
+| # | finding | fix | check |
+|---|---|---|---|
+| H6-1 | `tools/install_fast_loader.py` ignored arguments it did not know: a misspelt `--chek` turned "only check" into a real install (exit 0, config.py + train.py of the copy patched) | arguments are parsed strictly: anything but `--check` and `--loader-dll PATH` is exit 2 with the usage text, before any file is read | `misspelt_check` + `misspelt_check_changed_nothing` |
+| H6-2 | a folder without config.py / train.py, or a train.py that is not UTF-8, ended in a Python traceback (exit 1) | exit 2 naming the file ("cannot read it as a trainer file") | `no_folder`, `not_utf8` (+ config.py untouched) |
+| H6-3 | the docstring said "never run it on the live trainer folder" but nothing stopped a real install into `F:\opus_scratch\r6\nnue-pytorch-amd` | a real install there is exit 2 ("install into a COPY", HANDOFF.md step 1); `--check` (read-only) stays allowed | `live_install_refused`, `live_check_allowed`, `live_unchanged` (the live files' sha256 before = after) |
+
+`tools/test_installer.sh SCRATCH [LIVE]` (new; copies of the live config.py + train.py, the live folder only read):
+**22 / 22 PASS** on the fixed installer (logs/installer/test_installer_new.log, per-case outputs next to it). The same
+script against the previous installer (edcdcd0d), with a copy standing in for the live folder: 9 FAIL - H6-1 (and two
+cases that fail after it because the copy was already patched), H6-2 twice, H6-3 twice, and one text-only difference
+(the old "--loader-dll needs a path" was already exit 2) (logs/installer/test_installer_on_previous_installer.log).
+The patching itself is unchanged: config.py / train.py installed by the fixed installer are byte-identical to those
+of the 21:44 adoption rehearsal (sha256 5c41d7a7... / d9c3ccef...), which passed acceptance 261 / 261.
