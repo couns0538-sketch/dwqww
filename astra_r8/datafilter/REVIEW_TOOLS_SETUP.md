@@ -12,7 +12,11 @@ retained for troubleshooting; installing again is unnecessary.
 
 CodeRabbit executable: `C:/Users/Administrator/AppData/Local/Programs/coderabbit/coderabbit.exe`.
 SonarQube executable: `C:/Users/Administrator/AppData/Local/sonarqube-cli/bin/sonar.exe`.
-The independent reviewer and Forge evidence checker remain in use. Attempt
+A separate PGN-only milestone review later completed at 08:57 UTC with zero
+findings, one unidentified unreviewed file and warning exit1. Authentication
+needs no repair; this is partial review coverage. Its receipts are in
+evidence/extension5h/coderabbit_pgn_milestone. The independent reviewer and Forge
+evidence checker remain in use. Attempt
 receipts: evidence/extension5h/coderabbit_limits; analysis: DEV_TOOLS_RESEARCH.md.
 
 Use PowerShell under the same Windows account as Codex. Official installers:

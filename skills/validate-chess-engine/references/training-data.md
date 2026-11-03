@@ -349,6 +349,12 @@ JSON parser, then compare the current path hash and any prior binding. Separate
 hash/read/hash calls can accept temporary substituted content under a restored
 file's digest. Pair negative mutation fixtures with healthy cases through the
 same initialization path so unconditional rejection cannot masquerade as a fix.
+When packaging inherited evidence, derive mandatory receipts, source snapshots
+and manifests from the hard-pinned parent proof. Check the complete dependency
+set and each digest; trusting a caller's shortened binding map can silently omit
+a required artifact. Keep the original proof's source identity when a later
+repair leaves its exercised code unchanged, and verify that limited change
+explicitly instead of calling the old experiment a fresh run.
 Build emitted and delegated commands from the captured verified target, rather
 than resolving the original alias again after verification. Test the preflight
 command as well as stub delegation: a later loader rejection does not make an

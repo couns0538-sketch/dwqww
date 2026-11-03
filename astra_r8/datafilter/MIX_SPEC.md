@@ -3,7 +3,7 @@
 The commands below target the verified v9 handoff, SHA256
 `c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
 Both CPU recipe preflights and strict published verification PASS. The current
-source intentionally rejects historical v7 runtime pins; v7 remains protected
+source intentionally rejects historical v7/v8 runtime pins; v7 remains protected
 evidence with SHA256 52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
 The latest fixes bind native input and manifest identity and normalize supported
 Lichess records. They preserve the selected cohort and recipe parameters. The
@@ -11,7 +11,8 @@ full suite passes 564 tests and 11 subtests; all 999,953 selected rows pass nati
 input admission. The final PGN repair
 validates raw FEN headers and rejects SetUp=1 without FEN. Prior legacy/result/
 mirror/filter proofs retain their identities through exact source comparison.
-All training remains crew-owned; final evidence packaging is in progress.
+All training remains crew-owned. The final evidence pack and consistency checker
+pass; the reserved review hour continues through 09:25 UTC.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input

@@ -5,7 +5,8 @@ Lichess and raw-PGN-header repairs. Full suite: 564 tests plus 11 subtests PASS
 in 532.82s, with identical broad/reordered collection sets and stable source and
 runtime identities. Current code commit: 4a3d46710f88d5760e50738715f412f0704b3b6e.
 Fresh selected-cohort admission, both CPU preflights and strict v9 checks PASS.
-The final review continues through 09:25 UTC; final packaging is in progress.
+The final review continues through 09:25 UTC. Final packaging and the Forge
+evidence checker PASS.
 Earlier measurements keep their original source identities.
 Use the two commands in [MIX_SPEC.md](MIX_SPEC.md); the crew owns training and gates.
 
@@ -51,7 +52,7 @@ also passes every304,999,573 row, retaining records.py a8ef0f43...7360be attribu
 The [closed numeric census](evidence/extension5h/native_counter_closed/CLOSURE.json)
 passes the same 304,999,573 rows for score/counter representation, without native
 allocation. Neither audit grants full-corpus holdout or game-ID clearance. [Original-line replay](evidence/quality6h/reservoir_audit/reservoir_receipt.json)
-verifies 4,736 sampled labels; the [current native proof](evidence/quality6h/material_validation/native/report.json)
+verifies 4,736 sampled labels; the [historical native compatibility proof](evidence/quality6h/material_validation/native/report.json)
 checks those positions, seven edge cases and all mirrors (9,486 perft2 vectors),
 plus the five exact-lock bench pins. Perft establishes move/state compatibility,
 not NNUE evaluation quality or playing strength.
@@ -68,7 +69,15 @@ separately by the [correctness record](evidence/quality6h/final_pack_v3/correctn
 The [Forge checker](evidence/quality6h/final_pack_v3/checker.json) passes all 85
 references; its scope is consistency and hashes, not independent experiment truth.
 The pre-PGN extension pack is retained in evidence/extension5h/final_pack_v1.
-The post-repair inventory is pending final packaging. CodeRabbit completed a
+The [post-repair inventory](evidence/extension5h/final_pack_v2/full_output_hashes.json)
+contains 32,548 retained regular files, SHA256
+`0a11537b2a06eae7ea1e3c61af350295c51f1c754c0e1345276fd22d09cbe7a2`.
+Its [completion receipt](evidence/extension5h/final_pack_v2/COMPLETE.json) binds
+v9, the complete 564-case suite and all required inherited dependencies.
+The [current Forge checker](evidence/extension5h/final_pack_v2/checker.json)
+passes 95 references and 18 declared checks. It checks consistency and hashes,
+not independent experiment truth. The pack excludes its own metadata directory;
+those files are bound separately by the correctness record. CodeRabbit completed a
 separate PGN-only milestone with zero findings and one unidentified unreviewed
 file (warning exit); broad comparison remains blocked by its file cap.
 

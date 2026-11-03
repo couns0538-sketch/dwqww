@@ -1013,3 +1013,37 @@ zero findings, completed_with_warnings, one unreviewed file, exit1. Its output
 omits the file identity; no complete-coverage or broad-clean-review claim is made.
 Reviewed committed files and HEAD remained stable. This new milestone does not
 replace the two earlier blocked whole-branch attempts. Closed logs are preserved.
+
+### Final pack and preservation closure - 09:10 UTC
+
+Approved packer4c0a10aa...39ff21 completed final_pack_v2 at09:03:46.610374 UTC,
+exit0, candidatecb3d24a14234625682567e29a3e5633366e4f253. It binds the full564-case
+suite,50-file runtime, v9, exact inherited proof set and protected v7. Inventory:
+32,548regular files, SHA2560a11537b2a06eae7ea1e3c61af350295c51f1c754c0e1345276fd22d09cbe7a2.
+The canonical Forge checker passes95references/18declared checks; its scope is
+record consistency/current hashes, not independent experiment truth or strength.
+
+At09:07 UTC, main rechecked the exact engine digest, original production converter
+and helper digests,37closed source identities/sidecars, complete v7 file map,
+absence of training outputs and temporary CodeRabbit config, and d080df79 ancestry.
+Direct comparison of both cleared JSONL files again yields315,036,094bytes,
+999,953rows, SHA2560e73a87c...b5dce and MD5aa3e9272d686356ef6a9e25003c52546.
+No C/C++ or named build-file diff exists from175e3a1c or9761eb36. Fresh bench/perft
+was not rerun here; exact unchanged executable bytes retain the corrected-pin
+execution attribution. The final documentation review remains active to09:25.
+
+### Final document review - 09:17 UTC
+
+The reused independent reviewer approved the current v9 handoff documents and
+receipt map with no concrete defects. It checked paths/digests,564+11 evidence,
+historical versus fresh attribution, corrected lock, v7, intentional JSONL
+equality, commands/licences, blocked capabilities, CodeRabbit partial coverage
+and the R12 final-descendant requirement. Main made one clarity-only wording
+change afterward: the older perft proof is explicitly called historical.
+
+Read-only document audit: eight documents,53local links,12exact upstream Git
+blobs and three full MIT notices PASS. Both PowerShell recipe blocks parse with
+zero errors; no training commands were executed. At09:11 GitHub returned empty
+commit statuses and empty first-page PR-triggered workflows for cb3d24a1; that is
+not a CI pass or an exhaustive workflow-history check. The final review-hour
+closure remains pending through at least09:25; source and test files stay frozen.

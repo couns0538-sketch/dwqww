@@ -188,6 +188,15 @@ limited to checked epoch boundaries; sampler state itself can resume at any row.
 
 ## Evidence and handoff
 
+The final [artifact pack](evidence/extension5h/final_pack_v2/COMPLETE.json)
+passes with 32,548 retained files. Its full-output inventory SHA256 is
+`0a11537b2a06eae7ea1e3c61af350295c51f1c754c0e1345276fd22d09cbe7a2`.
+The Forge evidence checker passes 95 references/18 declared checks; that verifies
+consistency and hashes, not strength. The [closing preservation check](evidence/extension5h/final_pack_v2/post_pack_safety.json)
+confirms the exact lock, original converter helpers, protected v7, 37 source
+identities and intentional JSONL byte equality. No C/C++ or build files changed
+from either recorded R8 baseline.
+
 See [EVIDENCE_INDEX.md](EVIDENCE_INDEX.md) for the current proof map, RESULTS.md
 for statuses and REVIEW_LOG.md for candidate hashes, findings and fixes.
 The user's latest override puts new outputs under `C:/astra8_data/`, with

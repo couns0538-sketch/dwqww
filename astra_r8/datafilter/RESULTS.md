@@ -1,12 +1,31 @@
 # Astra R8 Job 2 — UNPROVEN
 
+09:17 UTC: independent final document/receipt review APPROVED, with no further
+findings. All53 local links in eight handoff documents resolve; all12 saved
+upstream skill blobs and full MIT notices match. The latest tool checker and
+preservation proof are in evidence/extension5h/final_pack_v2. GitHub exposes no
+statuses or PR-triggered first-page workflow runs for cb3d24a1; no CI pass is
+claimed. The review-hour closure remains scheduled for at least09:25 UTC.
+
+
+09:10 UTC: final pack PASS at candidate cb3d24a1, with 32,548 files and inventory
+SHA256 0a11537b2a06eae7ea1e3c61af350295c51f1c754c0e1345276fd22d09cbe7a2.
+Forge checker PASS: 95 artifact references and 18 declared checks, consistency
+and hashes only. Closing preservation checks PASS: original production converter
+helpers and exact lock unchanged; no C/C++ or build-file diff; all37 raw-source
+identities and the complete protected v7 tree unchanged. A fresh direct comparison
+again confirms both cleared JSONL files are intentionally byte-identical.
+Retained artifacts at the pack boundary:14,960,739,398bytes; final-hour review
+and document closure continue through at least09:25 UTC. No training/GPU use.
+
+
 ## Current acceptance checks - 09:01 UTC, UNPROVEN
 
 Code is at 4a3d4671 with documentation/evidence descendants. All confirmed PGN
 and packer findings are fixed and independently rechecked. Full CPU suite:
 **564 tests + 11 subtests PASS**, 532.82s (command534.030s), source/runtime stable.
 V9 manifest: c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291.
-The final inventory/checker and the reserved review-hour closure remain pending.
+The final inventory/checker PASS. The reserved review-hour closure is pending.
 
 | Numbered success test | Current result |
 |---|---|
@@ -15,13 +34,13 @@ The final inventory/checker and the reserved review-hour closure remain pending.
 | 3. Determinism | PASS: two million-row outputs match; current bounded replay also matches |
 | 4. Deliberate failures | PASS: complete 564-test/11-subtest suite, including raw PGN headers and setup guards |
 | 5. Rule rates/timing | PASS for measurable rules on two compute slots; capture uses a separate PGN cohort; true qsearch remains BLOCKED |
-| 6. Sign/mirror | PASS: fresh v9 Pearson0.66359503677808 and1,000 mirrors on999,953rows |
-| 7. Handoff | V9 sample, both CPU preflights and strict verification PASS; final pack/closure pending |
+| 6. Sign/mirror | PASS: fresh v9 Pearson 0.66359503677808 and 1,000 mirrors on 999,953 rows |
+| 7. Handoff | V9 sample, both CPU preflights, strict verification and final pack/checker PASS; review-hour closure pending |
 
-The full numeric census passes304,999,573rows/37sources with no exclusions.
+The full numeric census passes 304,999,573 rows across 37 sources with no exclusions.
 No full-corpus holdout or game-ID clearance is claimed. The two cleared JSONL
-streams are intentionally identical:315,036,094bytes each, MD5
- aa3e9272d686356ef6a9e25003c52546. Corrected exact-lock bench/perft5 checks PASS;
+streams are intentionally identical: 315,036,094 bytes each, MD5
+aa3e9272d686356ef6a9e25003c52546. Corrected exact-lock bench/perft5 checks PASS;
 protected v7 remains unchanged. No training, GPU work or engine changes.
 
 CodeRabbit's separate PGN milestone completed with zero findings but one

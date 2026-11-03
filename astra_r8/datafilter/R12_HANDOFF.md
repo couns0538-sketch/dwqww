@@ -5,6 +5,18 @@ R12 must start from the **final reviewed tip of `astra-r8-datafilter`**, at
 authorized R8 review hour; do not substitute `e526fc12` or treat d080df79 as
 the final reviewed tip. This document records the handoff; R8 changes no engine.
 
+The tested implementation is `4a3d46710f88d5760e50738715f412f0704b3b6e`;
+its reviewed packer and updated handoff are committed at
+`cb3d24a14234625682567e29a3e5633366e4f253`. The final branch tip also contains
+closed evidence and documentation. Resolve that final tip after the review-hour
+closure; do not branch R12 directly from an earlier implementation checkpoint.
+Current v9 manifest SHA256:
+`c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
+The complete suite passes 564 tests and 11 subtests, and both CPU recipe
+preflights pass. Final pack:32,548 files; Forge checker:95 references/18checks PASS.
+No R12 engine implementation has been started by this data-only job.
+
+
 The only accepted lock is `forge_ltopgo_x_al1s198_v23.exe`, SHA256
 `fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072`.
 Threads=1 and Hash=16:
@@ -50,3 +62,9 @@ sidecars have different formats and are not byte-identical.
 
 No strength claim follows from these checks. Engine NNUE owns training; Engine
 QA owns separate FD3A5190 UHO, 8moves_v3 and WAC300 qualification. UNPROVEN.
+
+The [closing preservation check](evidence/extension5h/final_pack_v2/post_pack_safety.json)
+at 09:07 UTC repeats the direct JSONL byte comparison, confirms all full hashes,
+checks all v7 files and the exact lock executable, and verifies no C/C++ or build
+file changes since either recorded baseline. It confirms ancestry from d080df79.
+This does not substitute for external R12 checks that used the rejected pins.
