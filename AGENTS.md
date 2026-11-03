@@ -40,6 +40,11 @@ verbatim text as below. This file merges that policy with the Opus rules (R14, 2
   review every 2 hours for 20min and at the end for 1h". So: the full window again (to ~03:05), keep improving and
   fixing, push; a 20-minute code review every 2 hours (~19:30, ~21:30, ~23:30), a 1-hour review at the end
   (~02:00-03:00); reviews stay structured self-reviews (no sub-agents), recorded as NOT independent.
+- Replaced at ~19:15 (Couns): "no work till 6 so another 10 hours in the morning keep improving everything you do and
+  every 1h 20min bug hunt and fix everything it finds make sure it works in forge and at the end a 1hour bug hunt no
+  subagents and fix everything found". So: the window runs to 06:00 PC clock; a 20-minute bug hunt every hour (~20:00,
+  21:00, ... 04:00) with every finding fixed; checks that each deliverable works in Forge's own setup; a 1-hour bug hunt
+  05:00-06:00; final report and last push before 06:00. No sub-agents.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
