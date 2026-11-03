@@ -7,7 +7,7 @@
 #   bisect GOOD BAD NEW_DIR [--depth D] first commit that changed bench nodes (builds each candidate; --test CMD)
 #   time [--since T] [BRANCH...]        commits, spans, pauses per branch (default: last 24 h, the R14-B branches)
 #   load [MASK] [SECONDS]               who uses the CPUs of MASK (default 0xC = CPUs 2-3, 5 s)
-#   test NEW_DIR                        the tools' own tests (21 checks)
+#   test NEW_DIR                        the tools' own tests (23 checks)
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}

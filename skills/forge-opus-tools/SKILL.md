@@ -7,7 +7,7 @@ description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (21 checks, ~40 s,
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (23 checks, ~40 s,
 must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
 
 ## opus.sh - one entry point (for Couns and Opus)
@@ -72,8 +72,9 @@ build 13 s, exe bf0a09f9..., FMA 0) and opus-r12-pgo-net 56cf4844 (22 files, 16 
 
 ## engine_bisect.sh - which commit changed the bench?
 `bash $T/engine_bisect.sh GOOD BAD C:/o14b/<new> [--depth 13] [--test "CMD"]`: binary search over
-`git rev-list --first-parent GOOD..BAD`; every candidate is a fresh `git archive` export (no checkout, the repository
-is not touched), built with the lock recipe on CPUs 2-3 at BelowNormal, then `bench DEPTH` (Threads 1, Hash 16, OwnBook
+`git rev-list --first-parent GOOD..BAD` (GOOD must be on BAD's first-parent line - a GOOD on a merged side branch is
+exit 2, since the line's commits before the merge would go untested); every candidate is a fresh `git archive` export
+(no checkout, the repository is not touched), built with the lock recipe on CPUs 2-3 at BelowNormal, then `bench DEPTH` (Threads 1, Hash 16, OwnBook
 false). "same" = GOOD's node count. A failed build / bench = skip (the search tries the nearest other candidate; if
 all in the range are skipped it lists them, exit 3). GOOD and BAD are tested first (BAD equal to GOOD -> exit 1,
 "nothing to find"). `--test "CMD"` replaces the engine build with any predicate (`{sha}`, `{dir}` placeholders; exit

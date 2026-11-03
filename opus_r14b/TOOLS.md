@@ -71,7 +71,7 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 | commit_span.py | `python -I -B commit_span.py --repo REPO --since "..." origin/<branch>...` | time per branch and pauses from commit times (for reports; no guessed hours) |
 | cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
 | engine_bisect.sh | `bash engine_bisect.sh GOOD BAD NEW_DIR [--depth 13]` | first commit that changed bench nodes (fresh export + lock-recipe build per candidate; skips failed builds; any predicate with --test) |
-| test_tools.sh | `bash test_tools.sh NEW_DIR` | 21 checks of abba.py, doc_lint.py, opus.sh and the bisect search (exit codes and output lines) |
+| test_tools.sh | `bash test_tools.sh NEW_DIR` | 23 checks of abba.py, doc_lint.py, opus.sh and the bisect search (exit codes and output lines) |
 
 ### Review R14B-T-1 (20:00-20:05 PC clock; structured self-review, NOT independent; no sub-agents)
 Reviewed: abba.py, doc_lint.py, engine_fresh_check.sh, commit_span.py, opus_status.sh at opus-r14b-status 6fc27230.
@@ -101,3 +101,13 @@ cc7f28dd...) on all three branches; engine_fresh_check.sh and engine_bisect.sh r
 - Planted change in a scratch clone (`C:\o14b\bis_mut_repo`, local commits only, never pushed): A comment, B
   `RfpMargin 72 -> 73`, C comment -> `engine_bisect.sh` found **B** (312,866 -> 294,685 nodes at d11; 4 builds, 65 s).
 - Estimates in the tool headers corrected from "2-4 min per build" (a guess) to the measured ~15 s.
+
+### Bug hunt #4, tools part (21:04-21:11; self-review, NOT independent)
+- H4-T1: `engine_bisect.sh` walked BAD's first-parent line but only checked that GOOD is an ancestor: a GOOD on a merged
+  side branch would leave the line's commits before the merge untested and could name the wrong commit. Now exit 2
+  unless GOOD is on that line. Tests: a merge fixture, GOOD on the side branch -> exit 2, GOOD on the line -> searched
+  (test_tools.sh 23 / 23 PASS, twice).
+- `refreeze.sh` (never run before) on the frozen relabel2.py: 0 failures in 5.5 min - suites 150 / 0 in the worktree
+  and a fresh clone, bridge PASS, labelling functions identical, sha256 88454db6... unchanged.
+- `opus_status.sh --ci` (never run before): the CI line works (the loader branch's last sanitizer run; "no runs" for
+  branches with only [skip ci] commits).

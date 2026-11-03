@@ -29,6 +29,10 @@ done
 g=$(git -C "$repo" rev-parse --verify -q "$good^{commit}") || { echo "engine_bisect: unknown ref $good"; exit 2; }
 b=$(git -C "$repo" rev-parse --verify -q "$bad^{commit}") || { echo "engine_bisect: unknown ref $bad"; exit 2; }
 git -C "$repo" merge-base --is-ancestor "$g" "$b" || { echo "engine_bisect: $good is not an ancestor of $bad"; exit 2; }
+# the search walks BAD's first-parent line, so GOOD must be on it (a GOOD on a merged side branch would leave the line's
+# commits before the merge untested and could name the wrong commit)
+git -C "$repo" rev-list --first-parent "$b" | grep -qx "$g" \
+  || { echo "engine_bisect: $good is not on the first-parent line of $bad (merged side branch?): pick a GOOD on that line"; exit 2; }
 mapfile -t cand < <(git -C "$repo" rev-list --first-parent --reverse "$g..$b")
 [ ${#cand[@]} -gt 0 ] || { echo "engine_bisect: no commits between $good and $bad"; exit 2; }
 mkdir -p "$out" || exit 2

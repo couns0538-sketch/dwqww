@@ -81,5 +81,14 @@ REPO="$X" bash "$here/engine_bisect.sh" "$G" "$B" "$S/bis_none" --test true > "$
 check bisect-nothing-to-find 1 $? "$S/bis_none.out" 'nothing to find'
 REPO="$X" bash "$here/engine_bisect.sh" "$B" "$G" "$S/bis_order" --test true > "$S/bis_order.out" 2>&1
 check bisect-not-ancestor 2 $? "$S/bis_order.out" 'is not an ancestor'
+M="$S/bisect_merge_repo"; mkdir -p "$M"   # m0 - m1 - m2 (merge of side commit s1, which branched at m0)
+( cd "$M" && git init -q && git config user.name t && git config user.email t@local && git config core.autocrlf false &&
+  echo 0 > v && git add v && git commit -q -m m0 && git branch side && echo 1 > v && git commit -qam m1 &&
+  git checkout -q side && echo s > w && git add w && git commit -q -m s1 && git checkout -q - &&
+  git merge -q --no-ff -m m2 side ) > /dev/null 2>&1 || { echo "FAIL bisect merge fixture"; fail=1; }
+REPO="$M" bash "$here/engine_bisect.sh" side HEAD "$S/bis_side" --test true > "$S/bis_side.out" 2>&1
+check bisect-good-off-first-parent-line 2 $? "$S/bis_side.out" 'not on the first-parent line'
+REPO="$M" bash "$here/engine_bisect.sh" HEAD~1~1 HEAD "$S/bis_line" --test true > "$S/bis_line.out" 2>&1
+check bisect-good-on-first-parent-line 1 $? "$S/bis_line.out" 'nothing to find'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail
