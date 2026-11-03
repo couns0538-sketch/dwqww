@@ -128,3 +128,8 @@ difference).
   FixedNumBatchesDataset -> DataLoader path, old loader w1 vs fast loader w4, every tensor of 200 training and 61
   validation batches hashed and compared. On `D:\o14b\npt`: old 36 s, fast 6 s, **261 / 261 batches identical**
   (logs/acceptance/). The script locates itself before changing directory and refuses a copy without the switch.
+
+## Bug hunt #1 (19:10-19:25; self-review, NOT independent)
+- `tools/fl_abba.py` used Student t only for exactly 10 pairs (1.96 otherwise: a too narrow CI for fewer pairs; the
+  recorded 8.65x used 10 pairs, so its CI 8.58-8.69 stands): now a t table for 1-30 degrees of freedom, checked
+  against scipy.stats.t.ppf(0.975) (0 mismatches). `tools/b5_checks.sh`: tools folder overridable (`FL_TOOLS`).
