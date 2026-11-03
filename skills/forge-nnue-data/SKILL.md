@@ -102,13 +102,16 @@ description: Where the Forge NNUE training data, holdouts, runs, nets and conver
   fsynced labels + manifest + summary; same command resumes; config pinned in run_config.json) -> `assemble`
   (`final/train.txt`, `final/val.txt`, `final/labels.tsv`, MANIFEST with md5 + sha256). Exit codes 2 bad input,
   3 configuration differs, 4 integrity. Idle + CPU mask for every subcommand; probe = R13 `C:\o13\p5\forge_data_probe.exe`.
-- Game id = (input file, game index); a new game starts when the ply does not increase, the result changes, the piece
-  count rises or a castling right reappears (never splits a real game). Raw self-play files are game-ordered; every
-  game starts at ply 8-11 (opening book). Split = sha256(salt | game id) mod 1e6 < val ppm.
+- Game id = (origin of the game's first row, game index); all inputs are ONE stream in name order and a new game
+  starts only when the ply does not increase, the result changes, the piece count rises or a castling right
+  reappears (never splits a real game). R8 v5 shards split games across files (271 -> 272), the old selfplay_out
+  files do not. Games start at ply 8-16 (opening book). Split = sha256(salt | game id) mod 1e6 < val ppm.
+- Full how-to (commands, input rules, checks, costs, pitfalls): [[forge-relabel-job]]. 1M kill / resume proof PASSED
+  2026-11-02 17:43 (md5 identical, frozen 5c88438f); branch version since 17:55 = 63be772c (bridge check PASS).
 - At 500 nodes some positions cannot finish depth 1 (`insufficient_budget`): the run stops by design; use >= 5k nodes.
 - Kill / resume proof driver `opus_r14b/item2/prove_resume.sh` (steps prepare / runA / runB1 / runB2 / runB / finish:
   run B exits hard twice via `--test-kill-after-seconds` = `os._exit(137)` from a watchdog thread, then resumes;
   finish assembles both jobs and compares md5). TaskStop does NOT stop a run (only its outer shell) and the session
   cannot end processes: bound long runs with `--until "YYYY-MM-DD HH:MM"` / `--max-shards K` instead.
 - Use finished self-play files only: the newest `forge_selfplay_NNN.txt` is still being appended by the live self-play
-  (the dev version of relabel2.py hashes every input before and after reading and stops with exit 2 if it changed).
+  (relabel2.py hashes every input it reads before and after reading and stops with exit 2 if it changed).

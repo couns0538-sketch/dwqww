@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """relabel2.py - Opus R14-B item 2: sharded, resumable relabel that keeps the original FEN and splits validation by
-game (own code, 2026-11-02). Normalized (Astra JSONL) input must be in source order (source, source_row). UNPROVEN as training data: Engine NNUE decides whether the labels are used.
+game (own code, 2026-11-02). UNPROVEN as training data: Engine NNUE decides whether the labels are used.
+Normalized (Astra JSONL) input must be in source order (source, source_row): see sort_normalized.py.
 
 usage (python with python-chess, e.g. C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B):
   relabel2.py prepare  --job DIR --run-id ID (--selfplay FILE ... | --normalized FILE ...) [--rows N]
-                       [--val-ppm 10000] [--salt S] [--drop-terminal]
+                       [--val-ppm 10000] [--salt S] [--drop-terminal] [--jobs 1|2]
   relabel2.py run      --job DIR --run-id ID --probe EXE [--nodes 20000] [--hash-mb 1] [--workers 1]
                        [--shard-size 10000] [--mask 0xC] [--max-shards K] [--until "YYYY-MM-DD HH:MM"]
   relabel2.py assemble --job DIR --run-id ID
@@ -14,20 +15,32 @@ Exit codes: 0 done, 2 bad input, 3 configuration differs from the job (or a targ
 
 - prepare: every input row is validated with Astra's records.py (unchanged copy in astra/): original full FEN (castling,
   en passant, clocks kept), STM score, White result. A bad row stops with exit 2 and nothing is published. Game id =
-  (input file, game index); a new game starts between two consecutive rows of a file when the ply does not increase,
-  the result changes, the piece count rises or a castling right appears (all impossible inside one game, so a real
-  game is never split; two games may merge, which cannot leak). Split: sha256(salt|game id) mod 1e6 < val ppm.
-  --rows N keeps whole games only (the sample ends at a game boundary). Output rows.tsv + prepare.json.
+  (origin, game index), the origin being the self-play text file a row comes from (the input file for --selfplay,
+  the record's own source / source_row for --normalized; rows.tsv keeps origin index + row, prepare.json the origin
+  names; a game takes the origin of its first row). All inputs are ONE stream in the given order, and a new game
+  starts between two consecutive rows only when the ply does not increase, the result changes, the piece count rises
+  or a castling right appears (all impossible inside one game, so a real game is never split; two games may merge,
+  which cannot leak). R8 v5 self-play writes fixed 1M-position shards, so a game can run from one file into the next:
+  --selfplay files must therefore be given in name order (= the order they were written), else exit 2.
+  Split: sha256(salt|game id) mod 1e6 < val ppm.
+  --rows N keeps whole games only (the sample ends at a game boundary). Output rows.tsv + prepare.json. Every input
+  is given once (same path or same content twice -> exit 2: its games would get two ids) and hashed before and after
+  it is read (a file that changes meanwhile, e.g. the self-play file still being written -> exit 2). --jobs 2 checks
+  the rows of --selfplay input in two worker processes (the same rows.tsv byte for byte). An interrupted prepare
+  leaves its folder as it is (rows.tsv.part, never published): prepare again into a new folder.
 - run: shard k = rows [k*S, (k+1)*S). A shard is labelled in shards/shard_K.part.N (labels.tsv, manifest.json with
   sha256, summary.json with the run id; all fsynced) and published by renaming the directory to shard_K. The same
-  command resumes: the configuration is pinned in run_config.json (exit 3 on a change), every published shard is
+  command resumes: the configuration and the relabel2.py hash are pinned in run_config.json (exit 3 on a change;
+  `--accept-new-tool` resumes on changed code, and every sessions.log line names the code hash), every published shard is
   re-hashed (exit 4 on a mismatch), interrupted .part.N directories stay as evidence (nothing is deleted or modified)
   and the shard is redone as .part.N+1. Labels come from the R13 probe (lock source d4f4312; transposition table,
   histories and caches cleared before every search), so a label depends only on FEN, nodes and hash. This process
-  and the probes run at Idle priority on --mask; --workers <= 2.
-- assemble: (only when every shard is published and intact) published shards in order -> final/train.txt and final/val.txt (self-play text format, new label) and
-  final/labels.tsv (all columns), checked (every row id exactly once and in order, game ids disjoint across the
-  splits, counts = prepare.json) and published by renaming; MANIFEST.json holds md5 + sha256. The three data files
+  and the probes run at Idle priority on --mask; --workers <= 2. One process per job: prepare / run / assemble hold
+  job/job.lock (released by the OS when the process ends; never deleted), a second one stops with exit 3.
+- assemble: (only when every shard is published and intact) published shards in order -> final/train.txt and
+  final/val.txt (self-play text format, new label) and final/labels.tsv (all columns), checked (every row id exactly
+  once and in order, game ids disjoint across the splits, counts = prepare.json); MANIFEST.json (md5 + sha256) is
+  written next to them and all four are published together by renaming final.part.N to final. The three data files
   contain no run id or time, so an interrupted-and-resumed job gives byte-identical files.
 """
 
@@ -133,57 +146,187 @@ def new_game(prev, cur) -> bool:
     return c_pieces > p_pieces or not c_castle <= p_castle
 
 
-def iter_rows(a, sources, counters):
-    """Yield (source index, row number, record, result token) in game order, validating every row."""
-    import chess
+def parse_line(selfplay: bool, path: str, row_no: int, line: str):
+    """One input line -> (record, result token) with Astra's records.py; ValueError on bad input."""
     import records  # Astra's unchanged records.py
 
-    paths = a.selfplay or a.normalized
-    for si, path in enumerate(paths):
-        p = Path(path)
-        if not p.is_file():
-            raise BadInput(f"{p}: input file not found")
-        sources.append({"index": si, "path": str(p.resolve()), "sha256": file_hash(p),
-                        "kind": "selfplay" if a.selfplay else "normalized"})
-        last_key = None
+    if selfplay:
+        if not line.strip():
+            raise ValueError("empty line")
+        return records.selfplay_record(line, path, row_no), line.split("|")[2].strip()
+    r = records.validate_record(json.loads(line))
+    if r["source_kind"] != "selfplay" or type(r["source_row"]) is not int:
+        raise ValueError("needs a self-play row with an integer source_row")
+    return r, RESULT_TOKEN.get(r["result_white"])
+
+
+def check_row(r) -> bool:
+    """Own checks after parsing; True = terminal position (no legal move). ValueError on bad input."""
+    import chess
+
+    if r["result_white"] is None:
+        raise ValueError("no game result")
+    if not (r["fen"].isascii() and r["fen"].isprintable()):  # a tab would split rows.tsv columns
+        raise ValueError("FEN contains a tab, control or non-ASCII character")
+    return not any(chess.Board(r["fen"]).legal_moves)
+
+
+def iter_rows(a, sources, counters, origins):
+    """Yield (origin index, origin row, record, result token) in game order, validating every row.
+
+    The origin is the self-play text file a row comes from: the input file itself for --selfplay, the record's own
+    `source` / `source_row` for --normalized (one JSONL file may hold several origins). `origins` collects their
+    names in order of first appearance (a game may continue from one origin into the next)."""
+    origin_index = {}
+    last_key = None  # normalized input: (source, source_row) increases across all files, so no row comes twice
+    for si, src in enumerate(sources):
+        p = Path(src["path"])
+        src["read"] = True
         with open(p, encoding="utf-8-sig") as fh:
             for row_no, line in enumerate(fh, 1):
                 counters["read"] += 1
                 try:
-                    if a.selfplay:
-                        if not line.strip():
-                            raise ValueError("empty line")
-                        r = records.selfplay_record(line, str(p), row_no)
-                        token = line.split("|")[2].strip()
-                    else:
-                        r = records.validate_record(json.loads(line))
-                        if r["source_kind"] != "selfplay" or type(r["source_row"]) is not int:
-                            raise ValueError("needs a self-play row with an integer source_row")
+                    r, token = parse_line(bool(a.selfplay), str(p), row_no, line)
+                    if not a.selfplay:
                         key = (r["source"], r["source_row"])
                         if last_key is not None and key <= last_key:
                             raise ValueError("normalized rows must be in source order (sort by source, source_row)")
                         last_key = key
-                        token = RESULT_TOKEN.get(r["result_white"])
-                    if r["result_white"] is None:
-                        raise ValueError("no game result")
-                    board = chess.Board(r["fen"])
+                    terminal = check_row(r)
                 except Exception as e:  # noqa: BLE001 - every rejection is bad input
                     raise BadInput(f"{p}:{row_no}: {e}") from None
-                if not any(board.legal_moves):
+                if terminal:
                     if not a.drop_terminal:
                         raise BadInput(f"{p}:{row_no}: terminal position (no legal move) cannot be searched")
                     counters["terminal"] += 1
                     continue
                 r["stats"] = board_stats(r["fen"])
-                yield si, row_no, r, token
+                name, origin_row = (str(p.resolve()), row_no) if a.selfplay else (r["source"], r["source_row"])
+                if name not in origin_index:
+                    origin_index[name] = len(origins)
+                    origins.append(name)
+                yield origin_index[name], origin_row, r, token
+
+
+BLOCK_LINES = 4096
+
+
+def check_block(job):
+    """--jobs 2 worker: parse_line + check_row for a block of self-play lines, in order, up to the first bad line."""
+    path, first, lines = job
+    out = []
+    for i, line in enumerate(lines):
+        try:
+            r, token = parse_line(True, path, first + i, line)
+            terminal = check_row(r)
+        except Exception as e:  # noqa: BLE001 - every rejection is bad input
+            return out, f"{path}:{first + i}: {e}"
+        out.append((r["fen"], r["score_stm"], r["result_white"], r["ply"], token, terminal))
+    return out, None
+
+
+def iter_rows_parallel(a, sources, counters, origins):
+    """iter_rows for --selfplay with a.jobs worker processes: the same rows, records, errors and counters in the same
+    order (workers check blocks of lines; this process keeps the order, counts and names the origins). At most
+    2 * jobs + 1 blocks are in flight, so memory stays small."""
+    import collections
+    import itertools
+    import multiprocessing
+
+    origin_index = {}
+    with multiprocessing.get_context("spawn").Pool(a.jobs) as pool:
+        for src in sources:
+            p = Path(src["path"])
+            path, name = str(p), str(p.resolve())
+            src["read"] = True
+            pending = collections.deque()
+            with open(p, encoding="utf-8-sig") as fh:
+                row_no, eof = 1, False
+                while not eof or pending:
+                    if not eof:
+                        lines = list(itertools.islice(fh, BLOCK_LINES))
+                        eof = not lines
+                        if lines:
+                            pending.append((row_no, pool.apply_async(check_block, ((path, row_no, lines),))))
+                            row_no += len(lines)
+                    if not pending or (not eof and len(pending) <= 2 * a.jobs):
+                        continue
+                    first, res = pending.popleft()
+                    out, err = res.get()
+                    for i, (fen, score, result_white, ply, token, terminal) in enumerate(out):
+                        counters["read"] += 1
+                        if terminal:
+                            if not a.drop_terminal:
+                                raise BadInput(f"{path}:{first + i}: terminal position (no legal move) cannot be searched")
+                            counters["terminal"] += 1
+                            continue
+                        if name not in origin_index:
+                            origin_index[name] = len(origins)
+                            origins.append(name)
+                        r = {"fen": fen, "score_stm": score, "result_white": result_white, "ply": ply,
+                             "stats": board_stats(fen)}
+                        yield origin_index[name], first + i, r, token
+                    if err:
+                        counters["read"] += 1
+                        raise BadInput(err)
+
+
+def input_sources(a):
+    """Every input file once (by path and by content), hashed before it is read."""
+    sources, seen = [], {}
+    for si, path in enumerate(a.selfplay or a.normalized):
+        p = Path(path)
+        if not p.is_file():
+            raise BadInput(f"{p}: input file not found")
+        rp, h = str(p.resolve()), file_hash(p)
+        # the same games twice would get two game ids each and could land in both splits
+        for key in (rp.lower(), h):
+            if key in seen:
+                raise BadInput(f"{p}: same file or same content as input {seen[key]} (each input once)")
+            seen[key] = si
+        sources.append({"index": si, "path": rp, "sha256": h, "kind": "selfplay" if a.selfplay else "normalized",
+                        "read": False})
+    if a.selfplay:  # a game that runs from one shard into the next must meet its continuation right after it
+        names = [s["path"].lower() for s in sources]
+        if names != sorted(names):
+            raise BadInput("give the --selfplay files in name order (the order they were written): a game can run "
+                           "from one file into the next and must stay one game")
+    return sources
+
+
+def lock_job(job: Path):
+    """Hold job/job.lock while this process works on the job: a second prepare / run / assemble on the same job stops
+    with exit 3. The OS releases the lock when the process ends in any way; the file itself is never deleted."""
+    fh = open(job / "job.lock", "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        fh.close()
+        raise ConfigMismatch(f"{job}: another relabel2.py process is working on this job") from None
+    return fh  # the caller keeps it open: closing it releases the lock
+
+
+def open_job(job: Path):
+    if not (job / "prepare.json").is_file():
+        raise BadInput(f"{job}: not a prepared job (no prepare.json; after an interrupted prepare, prepare again "
+                       "into a new folder)")
+    return lock_job(job)
 
 
 def cmd_prepare(a) -> int:
     job = Path(a.job)
     if job.exists():
         raise ConfigMismatch(f"job directory exists: {job}")
+    sources = input_sources(a)
     job.mkdir(parents=True)
-    sources, counters = [], {"read": 0, "terminal": 0}
+    lock = lock_job(job)  # noqa: F841 - held until the process ends
+    counters, origins = {"read": 0, "terminal": 0}, []
     tmp = job / "rows.tsv.part"
     st = {"rows": 0, "games": 0, "val_rows": 0, "val_games": 0, "row_id": 0}
     lengths, starts, game_no = [], [], {}
@@ -210,25 +353,30 @@ def cmd_prepare(a) -> int:
         starts.append(game[0][2]["ply"])
         return True
 
+    rows = (iter_rows_parallel if a.jobs > 1 else iter_rows)(a, sources, counters, origins)
     try:
         with open(tmp, "x", encoding="utf-8", newline="\n") as fh:
             fh.write(ROWS_HEADER)
             game, prev, complete = [], None, True
-            for item in iter_rows(a, sources, counters):
-                si, _, r, _ = item
-                if game and (si != game[-1][0] or new_game(prev, r)):
+            for item in rows:
+                r = item[2]
+                if game and new_game(prev, r):  # inputs are one stream: a game may continue in the next file
                     if not emit(game, fh):
                         complete = False
                         break
                     game = []
                 game.append(item)
                 prev = r
+            rows.close()  # after a --rows cut: stops the reading (and the --jobs workers) now
             if complete and game:
                 emit(game, fh)
             fh.flush()
             os.fsync(fh.fileno())
         if st["rows"] == 0:
             raise BadInput("no rows selected (input empty, or --rows smaller than the first game)")
+        for src in sources:  # e.g. the self-play file that is still being written: its hash would not fit the rows
+            if src["read"] and file_hash(src["path"]) != src["sha256"]:  # files after a --rows cut do not matter
+                raise BadInput(f"{src['path']}: changed while prepare read it (use finished files only)")
     except BadInput as e:
         write_new(job / "prepare_failed.json", json.dumps({"run_id": a.run_id, "time": now(), "error": str(e)}) + "\n")
         raise
@@ -239,11 +387,13 @@ def cmd_prepare(a) -> int:
     info = {
         "run_id": a.run_id, "created": now(), "tool": TOOL, "tool_sha256": file_hash(__file__),
         "records_py_sha256": file_hash(HERE / "astra" / "records.py"), "inputs": sources,
+        "origins": origins,  # rows.tsv `source` = index into this list, `source_row` = row in that self-play file
         "rows": st["rows"], "games": st["games"], "rows_read": counters["read"], "terminal_dropped": counters["terminal"],
         "rows_requested": a.rows, "train_rows": st["rows"] - st["val_rows"], "val_rows": st["val_rows"],
         "train_games": st["games"] - st["val_games"], "val_games": st["val_games"], "val_ppm": a.val_ppm,
-        "salt": a.salt,
-        "game_rule": "new game when ply does not increase, result changes, piece count rises or a castling right appears",
+        "salt": a.salt, "prepare_jobs": a.jobs,
+        "game_rule": "inputs are one stream in the given order; new game when ply does not increase, result changes, "
+                     "piece count rises or a castling right appears",
         "game_length": {"min": lengths[0], "median": q(lengths, 0.5), "p99": q(lengths, 0.99), "max": lengths[-1]},
         "game_start_ply": {"min": starts[0], "median": q(starts, 0.5), "p99": q(starts, 0.99), "max": starts[-1]},
         "rows_tsv_sha256": file_hash(job / "rows.tsv"),
@@ -329,6 +479,7 @@ def cmd_run(a) -> int:
     from forge_probe import ProbePool  # R13 probe client, unchanged copy
 
     job = Path(a.job)
+    lock = open_job(job)  # noqa: F841 - held until the process ends
     info = load_prepare(job)
     if info["run_id"] != a.run_id:
         raise ConfigMismatch(f"run id {a.run_id} != job run id {info['run_id']}")
@@ -338,13 +489,18 @@ def cmd_run(a) -> int:
            "nodes": a.nodes, "hash_mb": a.hash_mb, "shard_size": a.shard_size,
            "prepare_json_sha256": file_hash(job / "prepare.json"), "tool": TOOL}
     rc = job / "run_config.json"
+    tool_hash = file_hash(__file__)
     if rc.exists():
         old = json.loads(rc.read_text(encoding="utf-8"))
         diff = [k for k in cfg if old.get(k) != cfg[k] and k not in ("probe", "tool")]
         if diff:
             raise ConfigMismatch(f"configuration differs from run_config.json: {diff}")
+        # A job must not silently continue on other code: a changed relabel2.py resumes only when asked to.
+        if old.get("tool_sha256") != tool_hash and not a.accept_new_tool:
+            raise ConfigMismatch(f"relabel2.py changed since the job started ({str(old.get('tool_sha256'))[:8]} -> "
+                                 f"{tool_hash[:8]}); pass --accept-new-tool to resume with it (logged)")
     else:
-        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=file_hash(__file__)), indent=1) + "\n")
+        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=tool_hash), indent=1) + "\n")
     lower_priority(int(a.mask, 16))
     n = info["rows"]
     shards = (n + a.shard_size - 1) // a.shard_size
@@ -358,8 +514,8 @@ def cmd_run(a) -> int:
             verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id)
             done.add(k)
     deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
-    append_log(job, f"run start run_id={a.run_id} shards_done={len(done)}/{shards} workers={a.workers} "
-                    f"test_kill_after_s={a.test_kill_after_seconds}")
+    append_log(job, f"run start run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} "
+                    f"workers={a.workers} test_kill_after_s={a.test_kill_after_seconds}")
     if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
         threading.Thread(target=lambda: (time.sleep(a.test_kill_after_seconds), os._exit(137)), daemon=True).start()
     t0, rows_session, shards_session = time.monotonic(), 0, 0
@@ -400,7 +556,7 @@ def cmd_run(a) -> int:
                           session_rows=rows_session, session_rows_per_hour=round(rate),
                           eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
             write_status(job / "status.json", status)
-    append_log(job, f"run end run_id={a.run_id} shards_done={len(done)}/{shards} session_rows={rows_session}")
+    append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
     print(json.dumps(status))
     return 0
 
@@ -409,6 +565,7 @@ def cmd_run(a) -> int:
 
 def cmd_assemble(a) -> int:
     job = Path(a.job)
+    lock = open_job(job)  # noqa: F841 - held until the process ends
     info = load_prepare(job)
     rc = json.loads((job / "run_config.json").read_text(encoding="utf-8"))
     if info["run_id"] != a.run_id or rc["run_id"] != a.run_id:
@@ -463,13 +620,13 @@ def cmd_assemble(a) -> int:
     finally:
         for f in fh.values():
             f.close()
-    os.rename(tmpdir, final)
-    files = {nm: {"bytes": (final / nm).stat().st_size, "md5": file_hash(final / nm, "md5"),
-                  "sha256": file_hash(final / nm)} for nm in names}
+    files = {nm: {"bytes": (tmpdir / nm).stat().st_size, "md5": file_hash(tmpdir / nm, "md5"),
+                  "sha256": file_hash(tmpdir / nm)} for nm in names}
     man = {"run_id": a.run_id, "assembled": now(), "rows": n, "train_rows": counts["train"], "val_rows": counts["val"],
            "train_games": len(games["train"]), "val_games": len(games["val"]), "game_overlap": 0,
            "prepare_json_sha256": file_hash(job / "prepare.json"), "shard_labels_sha256": shard_hashes, "files": files}
-    write_new(final / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
+    write_new(tmpdir / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
+    os.rename(tmpdir, final)  # publishes the data files and their manifest together
     print(json.dumps({nm: files[nm]["md5"] for nm in names}))
     return 0
 
@@ -481,6 +638,33 @@ def cmd_status(a) -> int:
     parts = sorted(p.name for p in (job / "shards").glob("*.part.*")) if (job / "shards").exists() else []
     print(f"published shards: {len(list((job / 'shards').glob('shard_?????')))}; interrupted attempts kept: {parts}")
     return 0
+
+
+def check_args(a) -> None:
+    """Out-of-range options are bad input (exit 2) before anything starts."""
+    bad = []
+    if hasattr(a, "mask"):
+        try:
+            if int(a.mask, 16) <= 0:
+                bad.append("--mask must name at least one CPU")
+        except ValueError:
+            bad.append(f"--mask {a.mask!r} is not hexadecimal")
+    if a.cmd == "prepare" and (a.rows < 0 or not 0 <= a.val_ppm <= 1_000_000):
+        bad.append("--rows >= 0 and 0 <= --val-ppm <= 1000000")
+    if a.cmd == "prepare" and (a.jobs not in (1, 2) or (a.jobs > 1 and not a.selfplay)):
+        bad.append("--jobs 1 or 2 (R14-B thread budget); --jobs 2 reads --selfplay input only")
+    if a.cmd == "run":
+        if a.nodes < 1 or a.hash_mb < 1 or a.shard_size < 1 or a.max_shards < 0:
+            bad.append("--nodes, --hash-mb, --shard-size >= 1 and --max-shards >= 0")
+        if not Path(a.probe).is_file():
+            bad.append(f"probe {a.probe} not found")
+        if a.until:
+            try:
+                dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M")
+            except ValueError:
+                bad.append(f"--until {a.until!r} is not YYYY-MM-DD HH:MM")
+    if bad:
+        raise BadInput("; ".join(bad))
 
 
 def main(argv=None) -> int:
@@ -496,6 +680,7 @@ def main(argv=None) -> int:
     p.add_argument("--val-ppm", type=int, default=10000)
     p.add_argument("--salt", default="r14b")
     p.add_argument("--drop-terminal", action="store_true")
+    p.add_argument("--jobs", type=int, default=1, help="processes that check the rows (1 or 2; same rows.tsv)")
     p.add_argument("--mask", default="0xC")
     r = sub.add_parser("run")
     r.add_argument("--job", required=True)
@@ -509,6 +694,7 @@ def main(argv=None) -> int:
     r.add_argument("--max-shards", type=int, default=0)
     r.add_argument("--until")
     r.add_argument("--test-kill-after-seconds", type=float, default=0.0, help=argparse.SUPPRESS)
+    r.add_argument("--accept-new-tool", action="store_true", help="resume a job with a changed relabel2.py (logged)")
     s = sub.add_parser("assemble")
     s.add_argument("--job", required=True)
     s.add_argument("--run-id", required=True)
@@ -516,9 +702,10 @@ def main(argv=None) -> int:
     t = sub.add_parser("status")
     t.add_argument("--job", required=True)
     a = ap.parse_args(argv)
-    if a.cmd in ("prepare", "assemble"):
-        lower_priority(int(a.mask, 16))  # run does it itself, after its configuration checks
     try:
+        check_args(a)
+        if a.cmd in ("prepare", "assemble"):
+            lower_priority(int(a.mask, 16))  # run does it itself, after its configuration checks
         return {"prepare": cmd_prepare, "run": cmd_run, "assemble": cmd_assemble, "status": cmd_status}[a.cmd](a)
     except BadInput as e:
         print(f"BAD INPUT: {e}", file=sys.stderr)
