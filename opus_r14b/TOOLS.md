@@ -255,3 +255,17 @@ So the tools changed in hunts #15-#16 (lowrun.ps1, the strict compare) work end 
 Seen during the hunt (not Opus's doing): at 04:13 D: had 48.88 GB free, under Couns's 50 GB floor (Opus's D:\o14b has
 been 3.7 GB since 22:07; tonight's scratch is on C:); at 04:22 51.97 GB again. Nothing of Opus's was moved or deleted;
 D: writes stayed at git commits.
+
+(c) Claims audit, second pass (04:24-04:28): the hash sweep finds every cited hash (0 unmatched); counts, check
+dates and times that changed after the first audit (23:24) were compared with the latest logs and commits. Updated:
+the tool test count (37 in opus.sh's help, the skill, STATUS, FINAL_REPORT, memory), the fresh-clone and
+final_checks dates in FINAL_REPORT's summary rows, the launcher row (its two new refusals), the CPU-sharing note (the
+trainer has been on CPUs 0-1 since 22:59), the D: dip as a deviation and a disk owner item, HANDOFF's last live-tree
+check (04:16), RELABEL_HANDOFF's suite count from a fresh clone (157 / 0, 04:13), and three stale "1-h hunt 05:00"
+lines in the memory note. One more finding while reading the check scripts:
+- F-7: `checks/verify_chain.sh` step 3 ran a scratch copy of the fresh-clone script (`/d/o14b/r2/fresh_checkout_checks.sh`,
+  20:35, patched by a sed pattern the committed script no longer has), not the committed one next to it: a re-run
+  would have tested with an old fresh-clone check, and in any other checkout it fails. Fixed: it calls the committed
+  `fresh_checkout_checks.sh OUT_DIR`; `bash -n` OK; the chain itself is not re-run (minutes of CPU incl. a 1M-row
+  prepare) - the called script ran at 04:13 with 0 failures. checks/README.md says so and lists the newer final
+  checks (test_cli.py, test_helpers.py, dry runs 22:56 and 02:37).

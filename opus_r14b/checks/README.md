@@ -8,7 +8,9 @@ prepare of R8 v5 shards 271 + 272, and an end-to-end R8 v5 job (3,000 rows, PGO 
 
 These are the exact scripts that ran; they read Opus's scratch inputs (`D:\o14b\ref` old loader DLL,
 `D:\o14b\fl\b5_install`, `D:\o14b\npt` trainer copy, `D:\o14b\r2\proof` proof jobs) and write under `C:\o14b\vc_TAG`.
-To reuse them elsewhere, change those paths at the top of each script. Results: the RESULTS.md of each item.
+To reuse them elsewhere, change those paths at the top of each script. Results: the RESULTS.md of each item. One
+change since: step 3 of verify_chain.sh ran a scratch copy of the fresh-clone script (`D:\o14b\r2\...`, 20:35); since
+the final bug hunt (2026-11-03 04:27) it runs the committed `fresh_checkout_checks.sh` next to it (not re-run since).
 
 `refreeze.sh TAG` is the shorter re-check after a relabel2.py-only change once the code is frozen: the suite from the
 worktree and from a fresh clone, the bridge to the 1M proof, the function-level diff against the proof's code
@@ -33,8 +35,9 @@ prepare -> run (LTO+PGO probe, 20k nodes, 2 workers) -> status -> assemble -> fe
 
 `final_checks.sh OUT_DIR` is the end-of-job check in one command (about one minute): doc_lint over all R14-B
 documents, the file indexes (must already be committed), `sha256sum -c` in fresh clones of both item branches, the
-hash sweep, test_tools.sh, the installer and scope tests from the item 1 clone, relabel2.py = the frozen sha256 of
-RELABEL_HANDOFF.md plus e2e_r8v5.sh, and every worktree clean and in sync. Dry run 22:56: 8 / 8 steps PASS.
+hash sweep, test_tools.sh, the installer, scope and command-line tests (test_cli.py) from the item 1 clone,
+relabel2.py = the frozen sha256 of RELABEL_HANDOFF.md plus test_helpers.py and e2e_r8v5.sh from the item 2 clone /
+worktree, and every worktree clean and in sync. Dry runs 22:56 and 02:37: 8 / 8 steps PASS.
 
 `trainer_watch.sh OUT.tsv UNTIL_EPOCH` (read-only) samples the live npt trainer every 5 minutes: its CPU share on its
 own mask, the other processes there and the GPU utilisation of the same minutes (keeper's HWiNFO log); the overnight

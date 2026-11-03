@@ -27,8 +27,9 @@ step "2 bridge to the 1M proof"
 bash "$I2/bridge_check.sh" /d/o14b/r2/proof "$out/bridge" > "$out/bridge.log" 2>&1
 rc=$?; cat "$out/bridge.log"; [ $rc = 0 ] || fails=$((fails + 1))
 step "3 fresh-clone checks"
-sed "s|^base=/c/o14b/fresh$|base=$out/fresh|" /d/o14b/r2/fresh_checkout_checks.sh > "$out/fresh_checkout_checks.sh"
-bash "$out/fresh_checkout_checks.sh" > "$out/fresh.log" 2>&1
+# final bug hunt (04:27): this ran a scratch copy (/d/o14b/r2/fresh_checkout_checks.sh, ~20:30, patched by sed) and not
+# the committed script next to this one, which takes OUT_DIR as its argument: an old check, and none in another checkout
+bash "$(cd "$(dirname "$0")" && pwd)/fresh_checkout_checks.sh" "$out/fresh" > "$out/fresh.log" 2>&1
 rc=$?; grep "^clone\|^PASS\|^FAIL\|^exit=\|^===\|identical\|differ\|not OK\|copied" "$out/fresh.log"; [ $rc = 0 ] || fails=$((fails + 1))
 step "4 loader ABBA in the live setting"
 "$PY" -I -B "$I1/tools/fl_abba.py" --out "$(cygpath -w "$out/abba_live")" --pairs 10 \

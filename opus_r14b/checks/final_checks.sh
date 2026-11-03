@@ -63,7 +63,7 @@ now=$(sha256sum < "$R2/relabel2.py" | cut -d' ' -f1)
 echo "relabel2.py $now, RELABEL_HANDOFF.md says $frozen"
 res "relabel2.py = the frozen sha256" $([ -n "$frozen" ] && [ "$frozen" = "$now" ] && echo 0 || echo 1)
 "$PY" -I -B "$R2/test_helpers.py" "$out/test_helpers" > "$out/test_helpers.log" 2>&1
-rc=$?; tail -1 "$out/test_helpers.log"; res "test_helpers.py (sort_normalized / label_stats / probe_bench, broken input)" $rc
+rc=$?; tail -1 "$out/test_helpers.log"; res "test_helpers.py (item 2 helpers and scripts: broken input, wrong arguments)" $rc
 bash "$C/e2e_r8v5.sh" "$out/e2e" > "$out/e2e.log" 2>&1
 rc=$?; echo "$(grep -c "^PASS" "$out/e2e.log") PASS, $(grep -c "^FAIL" "$out/e2e.log") FAIL"; res "e2e_r8v5.sh (worktree code = the frozen file above)" $rc
 "$PY" -I -B "$R2/verify_job.py" "$out/e2e/job" --convert "$out/e2e_verify_convert" > "$out/verify_job.log" 2>&1
