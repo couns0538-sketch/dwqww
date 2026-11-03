@@ -1,5 +1,20 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: archive collection boundary
+
+New evidence/conftest.py SHA256
+`1d24360e4340dc5042c4e8c6643b31d85800ff9cb52a4f7a28f2578af2d97e4b`.
+Main found an archived test_*.py launcher was collected as a test module. The
+RED command deliberately put a directory-containing path first in argv, causing
+the launcher's path guard to reject before mkdir, PID lookup or suspension.
+An evidence-scoped pytest exclusion preserves archive bytes and excludes their
+execution; broad collection now finds all 301 runnable tests. The reused reviewer
+verified the narrow scope, RED/GREEN logs and both identical archived/original
+launcher hashes (2994a532...); APPROVED, no blocker. It executed no code and
+created no agents. Main extended the existing validation skill. Runtime source
+and the current v4 proof are unchanged. Next: complete pending corpus/native work
+and retain the final review window.
+
 ## Six-hour continuation: completion and inventory orchestration
 
 Core source remains approved 87963077, with 301 tests + 11 subtests passing.

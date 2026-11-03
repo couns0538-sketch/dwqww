@@ -239,6 +239,11 @@ return bytes even in text mode. Inventory only closed logs. A packaging process
 must exclude its own active stdout log, then pin that final log separately. Keep
 the incorrect inventory for provenance and publish a distinct corrected record.
 
+Keep archived execution scripts out of test discovery. A preserved source file
+named test_*.py may have top-level process-control or file-writing code. Scope
+pytest collection exclusions to the evidence tree, preserve archived bytes, and
+verify that broad collection still finds the complete real correctness suite.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

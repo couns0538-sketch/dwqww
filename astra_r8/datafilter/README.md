@@ -138,6 +138,10 @@ limits and checks storage before creating it):
 ./astra_r8/datafilter/run_cpu_tests.ps1 -OutputDirectory 'C:/astra8_data/review_tests_new'
 ```
 
+Archived Python snapshots under `evidence/` are excluded from pytest collection;
+their original bytes are preserved. Broad collection still finds all 301 real
+tests in `tests/`.
+
 `audit_followup.py identity NEW_RUN_ROOT`, `orientation NEW_RUN_ROOT` and
 `million NEW_RUN_ROOT` rerun the pinned legacy identity, actual binary result
 round-trip, and independent single-rule/determinism measurements respectively.

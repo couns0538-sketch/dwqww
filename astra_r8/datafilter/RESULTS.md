@@ -210,6 +210,13 @@ and the final closed-output packager; execution evidence remains pending.
 Production converter/helpers and all three sample copies retain their pinned
 hashes. Git ignore checks confirm __pycache__/ and *.pyc are excluded.
 
+Evidence collection fix: broad pytest discovery previously tried to import the
+archived test_with_owned_slot.py execution script. A safe reproducer failed at
+its path guard before file creation or process lookup. Evidence-local collection
+exclusions now preserve the archive while broad collection finds all 301 real
+tests. The reused reviewer APPROVED the scoped change. Both archived/original
+script copies remain byte-identical; no runtime/tooling or v4 manifest pin changed.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
