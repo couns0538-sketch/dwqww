@@ -255,3 +255,23 @@ Elo or training-quality claim.
 - Overnight watcher (item 1 RESULTS): with other work crowding its two CPUs the trainer's GPU use rose with its CPU
   share; with free CPUs it still stayed near 40 %. CPU competition explains part of the low GPU use, not all of it -
   the GPU window decides.
+
+## Addendum 2026-11-03 (after the job, from 10:05 by the PC clock): Code Review fixes
+Couns's message of 2026-11-03 ("Fix before/with R15") listed four items from Code Review's notes
+`CR_R14B_FINAL_HUNT_20261102.md` (md5 11ecb096) and `CR_R14B_FL_FUZZ_EED53145_20261102.md` (md5 ee4afdc3). The note
+files are not on the PC under these names (recursive search of C:\Users\Administrator, D:\ and F:\ at 10:09), so the
+work follows the items as written in the message. Each new test ran first against the code of the final heads (RED,
+logs kept), then against the fix. Self-review, NOT independent. The candidate DLL b5 (9eb29b7d...) and relabel2.py
+(e01caaf1...) are unchanged.
+| item | finding (confirmed by the RED run) | fix | tests after the fix | commit |
+|---|---|---|---|---|
+| 1 `install_fast_loader.py` | a copy whose config.py / train.py were hard or symbolic links to the live files was patched through the links (shown on a stand-in); a dangling link in a loader target's place was written through | linked copies refused (same file as the live trainer's by file identity, a symbolic link, more than one hard link; `--check` too, except on the live folder itself); loader targets tested with `os.path.lexists` | test_installer.sh 38 / 38 (RED: 8 failures) | f124ed3f (fast-loader) |
+| 2 `fl_abba.py` | `--warmup` >= `--batches` timed nothing: 0 kept/s, then a ZeroDivisionError after all runs | refused before the output folder is made (also in `fl_equal.py dump`); a run reporting 0 kept/s stops fl_abba with exit 1 | test_cli.py 42 / 42 at that commit (RED: 8 failures) | e29bf186 (fast-loader) |
+| 3 `pc_gate.ps1` | a failed or empty Get-Counter gave a CPU load of 0 % and ok=True | the gate fails (exit 1, the reason on stderr) when the counters cannot be read | test_tools.sh 43 / 43 (RED: 5 failures, 4 of them printed ok=True) | d3ad6881 (status) |
+| 4 `fl_fuzz.py` | no comparison with the default loader; exit 0 with no batch counted as ok; no disk floor, no `--flips` limit | every accepted damaged file compared bit for bit with the default loader (`--old-dll`, `--workers 1`); outcome "empty"; `--min-free-gb` 50; `--flips` <= 1000 | test_cli.py 51 / 51 (RED: 9 failures); real runs 46 + 326: 0 unexpected, every accepted file identical (17 + 174 same, 1 + 1 same-empty) | 1656e093 (fast-loader) |
+
+CI: the commits carry no `[skip ci]`, but no workflow covers these files - ffl-sanitize (fast-loader branch) runs only
+for `opus_r14b/item1/fastloader/**` and its own file, and the status branch has no workflow - so the pushes started no
+run; ffl-sanitize was dispatched by hand on the fast-loader head 05f0b120 (run 41610632313, result in TOOLS.md).
+Records: item 1 RESULTS "Code Review fixes", TOOLS.md "Code Review fixes", logs in `item1/logs/{installer,cli,fuzz}`
+and `opus_r14b/logs/cr_20261103/`.

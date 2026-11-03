@@ -289,3 +289,23 @@ lines in the memory note. One more finding while reading the check scripts:
 Closed 05:12 by the PC clock (read with `date` when this line was written): F-1..F-9 fixed and recorded, the fresh-clone checks and two final_checks dry runs with 0 failures, test_tools 37 / 37, test_installer 28 / 28. Anything found after this goes to FINAL_REPORT.md as an owner item.
 
 Last end-of-job check: `final_checks.sh C:/o14b/final_last_0533` 05:33:40-05:34:38 after the FINAL report (a4dfd966): 8 / 8 steps PASS, 0 failures - doc_lint 0 findings, indexes committed and verified, fresh-clone sha256sum -c of both items, hash sweep 0 unmatched, test_tools 37 / 37, test_installer 28 / 28, test_scope, test_cli 34 / 34, relabel2.py = frozen e01caaf1, test_helpers 77 / 77, R8 v5 end to end 11 / 11, verify_job --convert, all four worktrees clean and in sync. Only this line and the memory notes came after it.
+
+## Code Review fixes (2026-11-03, after the job, from 10:05 by the PC clock; self-review, NOT independent)
+Source: Couns's message "Fix before/with R15" with four items from Code Review's notes `CR_R14B_FINAL_HUNT_20261102.md`
+(md5 11ecb096) and `CR_R14B_FL_FUZZ_EED53145_20261102.md` (md5 ee4afdc3), which are not on the PC under these names
+(recursive search of C:\Users\Administrator, D:\ and F:\ at 10:09); the items as written were the specification.
+Items 1, 2 and 4: item 1 RESULTS "Code Review fixes" (branch opus-r14b-fast-loader). Item 3, here:
+| step | what | result |
+|---|---|---|
+| RED (10:17) | `test_tools.sh` with 6 new checks: pc_gate.ps1 run with `Get-Counter` replaced by a function in the calling PowerShell session (throws / returns nothing / non-terminating error / samples without `_total` / `_total` without a value; plus a control with 16 CPUs at 7 %) on the pc_gate.ps1 of 9e0c36d2 | 5 failures: four said `cpu 0% ... ok=True`, exit 0 (the CR finding), the throwing one ended in an unhandled PowerShell error; the control passed (logs/cr_20261103/test_tools_cr3_red_on_9e0c36d2.log, red/) |
+| fix (d3ad6881) | Get-Counter with `-ErrorAction Stop` in try / catch; a failure, no sample, not exactly one `_total`, a `_total` without a value or no per-CPU sample -> `pc_gate: CPU load could not be read (...): the gate FAILS` on stderr (also with `-Quiet`), exit 1; never a 0 % load | - |
+| GREEN (10:18-10:19) | the same test_tools.sh; a real run on C: with `-Cpus 2,3`; `-Cpus 2,99` | **43 / 43 ALL PASS**; real run cpu 80 %, exit 0; unknown CPU still exit 2 (logs/cr_20261103/test_tools_cr3.log, green/) |
+
+The RED of the control first failed on the fixture (numbers given to a PowerShell function as `7.0` were formatted
+as `7.0`, not `7`): the fake now casts them to [double]; the RED run was repeated with it (the log above).
+The test fixture technique (a function shadowing a cmdlet) is in the skill forge-opus-tools.
+CI: no workflow covers these files (ffl-sanitize runs only for `opus_r14b/item1/fastloader/**` and its own file; the
+status branch has none), so the pushes without `[skip ci]` started no run. ffl-sanitize dispatched by hand at 10:22:59
+on the fast-loader head 05f0b120: run 41610632313 **success** (asan-ubsan success, tsan success).
+Also changed for the records: `checks/make_index_r14b.sh` (index descriptions with the new test counts), two reasoned
+entries in `tools/hash_sweep_allow.txt` (the CR notes' md5s; the hash sweep then had 0 unmatched tokens).
