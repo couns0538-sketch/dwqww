@@ -118,6 +118,7 @@ stream). `compare` (logs/distribution/compare.txt, the two JSON files beside it)
 | outcome (0 / 0.5 / 1) | 0.00007 | 0.4 (2) |
 | queen bucket | 0.00013 | 5.2 (3) |
 | score, 100-cp bins | 0.00057 | 57.2 (60) |
+
 Mean score 0.08 vs 0.21 (internal units): difference -1.17 standard errors (batch-to-batch spread). Every distance is
 below 0.001: switching the live line from w4 to the fast loader changes the sample, not the distribution (chi-square
 values treat positions as independent, which positions inside one shuffle window are not, so they overstate any
@@ -209,6 +210,7 @@ truncations, random byte flips (1, 4 or 32 per file) and a file whose every scor
 | the same 326 cases on a `-D_GLIBCXX_ASSERTIONS -UNDEBUG` build (scratch, sha256 572c232a...) | 0 assertion failures, 0 crash, 0 hang; 325 / 326 outcomes identical to b5 (next row) |
 | H4-1: flip_238 loads 4 batches on b5 but errors on the assertions build | not a data difference: with 100 batches requested both builds fail with "record without both kings" in all 3 runs each. A builder working ahead stops the whole stream the moment it meets a bad record (fail fast), so whether earlier batches were already handed out depends on thread timing. No batch with a bad record is ever handed out. Documented, no change |
 | H4-2: every score VALUE_NONE (the skip filter keeps nothing) | finite: 0 batches (old loader: 0 batches). **Cyclic: waits forever - the old loader does exactly the same** (both checked with a 20-s limit, 20:51; children ended, no leftovers). A property of the design shared with the default loader, impossible with the J1 data (~10 % kept per pass). Documented in HANDOFF.md's scope; a later version could raise an error after many whole passes without a kept position (b5 stays unchanged: it is the verified candidate) |
+
 Logs: logs/fuzz/. The fuzz cases are part of `tools/fl_fuzz.py` (the VALUE_NONE file in finite mode only).
 
 ## The GPU use the fast loader is meant to raise: a measured baseline (21:14; read-only)
@@ -218,6 +220,7 @@ every ~2 s), while the live npt line ran with the default loader (`--num-workers
 |---|---|---|---|---|---|---|
 | 15:14-21:14 (6 h) | 10,790 | **45.7 % / 48 % / 78 %** | **4.0 %** of samples | 13.5 % | 44.4 % | 104.2 W |
 | 12:00-21:00 (9 h) | 16,184 | 46.0 % / 48 % / 78 % | 3.8 % | 11.7 % | 44.9 % | 104.6 W |
+
 Hourly means 15:00-21:00: 53 / 43 / 40 / 42 / 56 / 43 / 40 %. This is the "GPU at 25-50 %" of the brief, measured. It
 does not by itself show that the loader is the cause (validation, checkpoints and the 2 s sampling are in it): the GPU
 window measures the same column with `--fast-loader` (GPU_REQUEST.md, same command) - item 1's target is >= 90 %.
@@ -249,6 +252,7 @@ per run (20 warm-up), the J1 training binpack; load before: two crew BelowNormal
 |---|---|---|---|
 | old loader (live layout) | 407,670 | 2.45 | **0.30-0.41 of a CPU** |
 | fast loader | 2,909,398 | 0.34 | **0.04-0.06 of a CPU** |
+
 Per pair B/A 6.91-7.38, **median 7.19x, 95% CI 7.08-7.26** (ADVISORY). With the 0.4-0.6 cores the trainer process got
 at 21:19-21:22, the old loader alone needs most of that share to keep up, leaving little for the training loop
 (tensor copies, kernel launches); the fast loader needs about a tenth of it. This is CPU arithmetic, not a GPU
