@@ -153,3 +153,14 @@ difference).
 - The queue's wrapper `guard_exec.py` puts the script's own folder first on sys.path before runpy: a trainer copy at
   any path imports its own modules and the installed forge_fastloader.py. The copy's opus_tools\guard_exec.py has the
   adapter's pinned md5 0a794fbe..., so the GPU_REQUEST command works as written.
+
+## Bug hunt #3 (20:12-20:16 for item 1; self-review, NOT independent)
+- Trainer path: does the trainer copy a batch out of the fast loader's ring buffer before
+  `FastSparseBatchProvider.__next__` releases it? Yes: the live tree's `data_loader/_transport.py::_pin_and_move`
+  always makes a new tensor (`torch.empty` + `copy_` / memmove; pinned or not, also for device "cpu"), and the
+  packed-index path that would read the batch differently needs `native_owned` + CUDA without HIP, which the ROCm
+  trainer never takes. The int block is read as ONE array from `batch.white` (white | black | piece_count |
+  queen_bucket), which the DLL allocates contiguously (checked by every batch-equality test). No use-after-release.
+- DLL shutdown / error paths re-read (destructor sets stop, wakes all five condition variables, joins reader, filter
+  and builders; `next()` returns null on stop or error and the Python side raises the error text; a release of a
+  batch that is not handed out stops the stream with an error): no finding. Code unchanged (b5 9eb29b7d).
