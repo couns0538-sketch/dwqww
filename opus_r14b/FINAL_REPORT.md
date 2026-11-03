@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 22:58), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 23:12), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -103,7 +103,8 @@ use-after-release: none; with the advisor's read: the stop line's exit code, the
 loader fuzzed with 371 damaged files: no crash / hang; engine_bisect needs GOOD on BAD's first-parent line), #5 21:31
 (the "starved" wording corrected; doc_lint table rule, 11 broken tables fixed), prepare fuzz 21:56 (P-1: input score
 range), #6 22:09-22:27 (damaged job state J-1..J-4; installer H6-1..H6-3), advisor read 22:29 (H6-4, J-5), #7
-22:49-22:52 (fast loader scope: no code finding); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
+22:49-22:52 (fast loader scope: no code finding), #8 23:10-23:11 (the DLL's lifecycle: no reachable race in the
+trainer path; threading contract in LOADER_SPEC.md); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
 05:00-06:00.
 
 ## Deviations and incidents (honest record)
