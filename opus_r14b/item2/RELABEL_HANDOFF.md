@@ -37,7 +37,8 @@ Rules for the big job:
   1M-position shards: a game
   runs from one shard into the next (e.g. 271 ends at move 57 of a game that 272 continues at move 58). The
   post-proof relabel2.py treats all inputs as one stream and only the game rule splits games, so give the shards in
-  name order (it refuses any other order with exit 2). The frozen proof version forced a new game at every file
+  name order (it refuses any other order with exit 2; the order is that of the full lower-case paths, so take the
+  inputs of one job from one folder). The frozen proof version forced a new game at every file
   change: that is safe for the old `selfplay_out\forge_selfplay_NNN.txt` files (each ends and starts at a game
   boundary) but would split R8 v5 games in two ids - use the post-proof version for R8 v5 data.
 
