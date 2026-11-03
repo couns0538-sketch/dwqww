@@ -5,7 +5,8 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files; final refreshed handoff is still pending.
+their pinned source files. The current v2 handoff is verified; final review and
+the broader source-reservoir/native checks remain pending.
 
 Saved the three user-requested future engine skills under `skills/`: build proof,
 exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT
@@ -135,6 +136,15 @@ scores; explicit types now reject them. Eleven focused tests PASS. One reused
 reviewer APPROVED sourcec4e786682e571d94a6a5bd320ecdc3a9b4a821058e0567f9fbc88eb1728b1743.
 The actual4,736-row replay and expanded Forge proof remain pending completion of
 the complementary source scan. No training-readiness claim attaches to reservoirs.
+
+Current handoff v2 PASS, source 8ed37659: both CPU recipe preflights, strict
+verification before publication and again at the published path. Manifest SHA256
+`ec3d391f42eaf0cf630a7257237e03b32ca3024c84b0d393912c5565192a0604`;
+path `C:/astra8_data/quality6h_20261102/handoff_v2/manifest.json`.
+All 16 required tooling pins include the corrected filter and extended raw-label
+auditor. Rows/sample remain unchanged; Pearson 0.6635950368, 1,000 mirrors PASS.
+README/MIX_SPEC now point to v2 and an existing authorized temporary directory.
+Older manifest copies remain historical evidence. No training or GPU work ran.
 
 ## 30-minute follow-up audit — complete and independently approved
 

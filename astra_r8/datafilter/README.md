@@ -5,28 +5,20 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-The additional 30-minute audit fixed strict training admission, early seed setup,
-PGN result conflicts/parser errors, boolean Lichess labels, source mutation during
-filtering, and incomplete-output publication. The frozen suite passes 133 tests
-plus 11 subtests. Native FD3A5190 accepts all 62 sample/edge/mirrored FEN checks
-and reproduces all five supplied lock bench counts. These checks establish data
-and interface compatibility; strength remains UNPROVEN.
-
-Historical reviewed handoff (next refresh pending after the aggregate CPU-budget
-correction): `C:/astra8_data/quality6h_20261102/handoff_v1/manifest.json`,
-SHA256 `818008e05d581bbcef5e3332840f5e7eb208b0ce84e085fef90aff0f57c67fd8`.
-The six-hour continuation adds strict PGN/schema admission and complete proof
-binding. Its full CPU suite passes 242 tests + 11 subtests, followed by 41 focused
-checks. Both actual recipe preflights and published-manifest verification pass.
+Current verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v2/manifest.json`,
+SHA256 `ec3d391f42eaf0cf630a7257237e03b32ca3024c84b0d393912c5565192a0604`.
+The six-hour continuation fixes strict PGN/schema admission, source identity,
+complete proof binding and aggregate CPU allocation. The latest full CPU suite
+passes 274 tests + 11 subtests; eleven subsequent reservoir-audit tests also pass.
+Both actual recipe preflights and published-manifest verification pass on source
+8ed37659. The final review and complete-corpus checks are still in progress.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
-Its tooling pins deliberately reject current-source use until the next refresh.
-The final ready-to-run paths will be updated in MIX_SPEC.md. Older handoffs remain evidence and
-deliberately fail current runtime identity checks after the reviewed local fixes.
-Prior proof: `evidence/audit30/correctness_record_final.json` and
-`full_output_hashes_final.json`; the latter rechecks 702 artifacts and excludes
-the then-open packaging log, whose final hash is separately disclosed. The final
-native helper also passes its timeout regression and a fresh successful Forge run.
+Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
+deliberately fail current runtime/tooling checks after the reviewed local fixes.
+Historical native proof covers 62 sample/edge/mirrored FENs and all five supplied
+FD3A5190 bench counts; the expanded corpus-reservoir proof is pending. These checks
+establish data and interface compatibility; strength remains UNPROVEN.
 
 The broader closed-source profile is still running. It creates descriptive
 histograms and bounded audit samples only; these are not new training inputs.
@@ -82,7 +74,7 @@ existing final or partial destinations are refused.
 
 Fresh single-rule measurements on the pinned 1,000,000 self-play rows use one
 parser/writer plus one pool worker at BelowNormal priority (two total computing
-processes). Source88b7c6b1, unchanged filter SHA256 beginningb3fdda81. Earlier
+processes). Source 88b7c6b1, unchanged filter SHA256 beginning b3fdda81. Earlier
 two-pool-worker measurements remain historical evidence and are superseded here:
 
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |
@@ -97,14 +89,14 @@ two-pool-worker measurements remain historical evidence and are superseded here:
 Runs A/B have identical payload hashes. These prefiltered self-play shards have
 no stored best moves, so their capture rate is unavailable. Qsearch remains
 BLOCKED on the exact lock. On the **separate measurement-only gate PGN cohort**,
-all1,000,000 rows have genuine baseline searched best moves. Capture/promotion
-exclusion keeps **849,465 (84.9465%)**, dropping150,535 in **154.994 seconds**
-(6,452 positions/s, two total workers). The strict PGN freeze took225.243 seconds with
+all 1,000,000 rows have genuine baseline searched best moves. Capture/promotion
+exclusion keeps **849,465 (84.9465%)**, dropping 150,535 in **154.994 seconds**
+(6,452 positions/s, two total workers). The strict PGN freeze took 225.243 seconds with
 one worker. These rates cannot be substituted into the self-play table or pooled
 with it. Neither recipe uses the gate PGNs.
 
 The matched recipes use check/mate filtering and the same holdout-cleared rows:
-evaluation-only lambda=1.0, or WDL lambda=0.8 on known-result self-play and1.0
+evaluation-only lambda=1.0, or WDL lambda=0.8 on known-result self-play and 1.0
 otherwise. Exact crew-owned commands and output names are in [MIX_SPEC.md](MIX_SPEC.md).
 
 Holdout separation is a separate explicit stage, `clear_holdouts.py`. The complete

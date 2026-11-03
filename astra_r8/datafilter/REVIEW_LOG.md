@@ -1,5 +1,20 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: published v2 handoff
+
+Candidate source: 8ed3765941a1c736fb6db62a22531dba73983d2e. No source changes
+since the approved filter, proof-verifier and reservoir milestones. The unchanged
+refresher rehashed the selected data and complete holdouts, repeated correlation
+and 1,000 mirrors, and passed both actual CPU-only recipe preflights. Strict
+verification also passes using the final published path. Manifest SHA256:
+`ec3d391f42eaf0cf630a7257237e03b32ca3024c84b0d393912c5565192a0604`.
+Main reviewed the command paths, corrected the nonexistent selection TEMP path
+to the published handoff's existing temporary directory, and updated README and
+MIX_SPEC. Evidence is copied without altering originals. This is a follow-through
+check of already reviewed source, not an additional independent source review.
+Next: complete both corpus scans, original-line reservoir replay and expanded
+native Forge compatibility proof, then the reserved final review.
+
 ## Six-hour continuation: saved future skills
 
 User explicitly requested preserving build qualification, SIMD and timing skills
