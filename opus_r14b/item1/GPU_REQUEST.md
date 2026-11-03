@@ -11,7 +11,10 @@ One full trainer epoch of the live recipe (K32H3^, L1 1024, batch 16384, epoch 1
 9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935): it/s, epoch minutes, GPU utilisation, RAM-floor
 trips, loss. Control = the existing epochs of the live line with the default loader (e.g. w4_s24: epoch 0
 train_loss_epoch 0.000948, val 0.000550, 15.6-20.5 min per epoch, GPU 25-50 %, `npt_try1.log`), so no control run
-is needed in the window.
+is needed in the window. Since ~22:34 on 2026-11-02 the queue runs the next line, `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s31`
+(command line read 22:59): the same binpack and validation set, K32H3^, L1 1024, batch 16384, `--num-workers 4
+--threads 2`, `--no-filtered --no-wld-filtered` - everything the loader sees is unchanged (seed 5124, lr 0.000875,
+gamma 0.72 differ), so the fast loader's checked scope covers it and its epochs are an equally good control.
 
 ## Pre-checks (all must pass, else do not start)
 1. No npt trainer alive: `Get-CimInstance Win32_Process | ? CommandLine -match 'nnue-pytorch-amd\\train.py'` is empty,

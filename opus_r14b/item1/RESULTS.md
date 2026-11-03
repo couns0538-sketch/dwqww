@@ -317,3 +317,12 @@ No finding in the code. Noted: the feature-set / file / DDP checks run when the 
 skip-setting checks when the stream starts (the first batch of the first step), still before any batch is given out;
 moving them earlier would change forge_fastloader.py (39af47b0..., pinned by the acceptance and fresh-clone checks)
 for no change in what is refused, so it stays as it is.
+
+## The queue moved to the next npt line (seen 22:54-22:59; read-only)
+The watcher (C:\o14b\trainer_watch_night.tsv) shows the trainer's mask changing from 0x3 to 0xF at 22:29 and a new
+trainer process at 22:34 (pid 13960 -> 11328); the keeper's STATUS names the new run
+`npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s31`. Its command line (read 22:59) keeps everything the loader sees:
+`F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack`, the 013-014 holdout for validation, K32H3^, L1 1024,
+batch 16384, `--num-workers 4 --threads 2`, epoch 152.5M, `--no-filtered --no-wld-filtered`; only seed (5124),
+lr (0.000875) and gamma (0.72) differ. The trainer files are still the installer's base (264 / 264 in the 22:35
+fresh-clone rehearsal), so GPU_REQUEST.md and HANDOFF.md apply to the new line unchanged (GPU_REQUEST.md notes it).
