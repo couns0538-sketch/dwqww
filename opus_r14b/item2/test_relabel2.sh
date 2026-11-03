@@ -98,6 +98,12 @@ expect 2 prepare_normalized_overlap "$PY" -I -B "$R" prepare --job job_nov --run
 expect 0 prepare_normalized_two_files "$PY" -I -B "$R" prepare --job job_n2 --run-id t --normalized norm_a.jsonl norm_c.jsonl
 expect 0 prepare_normalized_one_file "$PY" -I -B "$R" prepare --job job_n1 --run-id t --normalized norm_100.jsonl
 check normalized_two_files_same_rows cmp -s job_n2/rows.tsv job_n1/rows.tsv
+# sort_normalized.py: a shuffled copy sorts back to source order byte for byte; an impossible RAM floor is refused
+sort -R norm_all.jsonl > norm_shuf.jsonl
+expect 0 sort_shuffled "$PY" -I -B "$here/sort_normalized.py" norm_sorted.jsonl norm_shuf.jsonl
+check sort_restores_source_order cmp -s norm_sorted.jsonl norm_all.jsonl
+expect 2 sort_ram_floor "$PY" -I -B "$here/sort_normalized.py" --min-free-ram-gb 100000 norm_x.jsonl norm_shuf.jsonl
+check sort_ram_floor_wrote_nothing test ! -e norm_x.jsonl
 expect 2 prepare_j2_normalized "$PY" -I -B "$R" prepare --job job_j2n --run-id t --normalized norm_100.jsonl --jobs 2
 expect 2 prepare_j3 "$PY" -I -B "$R" prepare --job job_j3 --run-id t --selfplay good.txt --jobs 3
 # --jobs 2 gives the same rows.tsv: whole file, a --rows cut, and 30,000 lines (8 blocks of 4,096, several in flight)
@@ -233,6 +239,7 @@ run_disk_floor must stay free (--min-free-gb)
 assemble_disk_floor must stay free (--min-free-gb)
 status_not_a_job not a prepared job
 prepare_no_chess python-chess is needed
+sort_ram_floor must stay free (--min-free-ram-gb
 EOF
 echo "failures: $fails"
 exit $((fails > 0))
