@@ -1,0 +1,119 @@
+FFF.                                                                     [100%]
+================================== FAILURES ===================================
+_ test_partial_target_captured_after_early_path_guard_cannot_delegate[False-cpu] _
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...:/astra8_data/extension5h_20261103/red_partial_identity_01/cases/test_partial_target_captured_a0/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000045AB290>
+check = False, device = 'cpu'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_target_captured_after_early_path_guard_cannot_delegate(entry, monkeypatch, check, device):
+        from filter_positions import input_identity
+        partial = entry.manifest.parent/'retargeted.partial'/'manifest.json'
+        partial.parent.mkdir()
+        partial.write_bytes(entry.manifest.read_bytes())
+        # Model the identity returned after an alias changes between the early
+        # spelling/resolve check and identity capture. Delegation is stubbed.
+        captured = input_identity(partial)
+        monkeypatch.setattr(entry.adapter, 'input_identity', lambda _: captured)
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:143: Failed
+_ test_partial_target_captured_after_early_path_guard_cannot_delegate[False-cuda:0] _
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...:/astra8_data/extension5h_20261103/red_partial_identity_01/cases/test_partial_target_captured_a1/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000018FCA480>
+check = False, device = 'cuda:0'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_target_captured_after_early_path_guard_cannot_delegate(entry, monkeypatch, check, device):
+        from filter_positions import input_identity
+        partial = entry.manifest.parent/'retargeted.partial'/'manifest.json'
+        partial.parent.mkdir()
+        partial.write_bytes(entry.manifest.read_bytes())
+        # Model the identity returned after an alias changes between the early
+        # spelling/resolve check and identity capture. Delegation is stubbed.
+        captured = input_identity(partial)
+        monkeypatch.setattr(entry.adapter, 'input_identity', lambda _: captured)
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:143: Failed
+_ test_partial_target_captured_after_early_path_guard_cannot_delegate[True-cuda:0] _
+
+entry = namespace(adapter=<module 'train_adapter' from 'D:\\grok-pc-data\\dwqww\\astra-r8-datafilter\\astra_r8\\datafilter\\tr...:/astra8_data/extension5h_20261103/red_partial_identity_01/cases/test_partial_target_captured_a2/new_training_output'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019442810>
+check = True, device = 'cuda:0'
+
+    @pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+    def test_partial_target_captured_after_early_path_guard_cannot_delegate(entry, monkeypatch, check, device):
+        from filter_positions import input_identity
+        partial = entry.manifest.parent/'retargeted.partial'/'manifest.json'
+        partial.parent.mkdir()
+        partial.write_bytes(entry.manifest.read_bytes())
+        # Model the identity returned after an alias changes between the early
+        # spelling/resolve check and identity capture. Delegation is stubbed.
+        captured = input_identity(partial)
+        monkeypatch.setattr(entry.adapter, 'input_identity', lambda _: captured)
+>       with pytest.raises(ValueError, match='partial'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_entrypoint_admission.py:143: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\extension5h_20261103\\red_partial_identity_01\\cases\\test_partial_target_captured_a2\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\extension5h_20261103\\red_partial_identity_01\\cases\\test_partial_target_captured_a2\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\extension5h_20261103\\red_partial_identity_01\\cases\\test_partial_target_captured_a2\\new_training_output",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cuda",
+    "--gpus",
+    "0"
+  ],
+  "identity": {
+    "fixture": "context"
+  }
+}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_target_captured_after_early_path_guard_cannot_delegate[False-cpu]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_target_captured_after_early_path_guard_cannot_delegate[False-cuda:0]
+FAILED astra_r8/datafilter/tests/test_entrypoint_admission.py::test_partial_target_captured_after_early_path_guard_cannot_delegate[True-cuda:0]
+3 failed, 1 passed, 15 deselected in 3.40s

@@ -1,0 +1,743 @@
+F.FFFFFFFFFFFFFF..FFFFFF....F                                            [100%]
+================================== FAILURES ===================================
+______ test_temporary_receipt_substitution_cannot_bind_to_restored_bytes ______
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_temporary_receipt_substit0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195D6CF0>
+
+    def test_temporary_receipt_substitution_cannot_bind_to_restored_bytes(tmp_path, monkeypatch):
+        path = tmp_path/'SUMMARY.json'
+        original = b'{"status":"FAIL"}'
+        replacement = b'{"status":"PASS"}'
+        path.write_bytes(original)
+        read_text, read_bytes = Path.read_text, Path.read_bytes
+    
+        def transient(method):
+            def read(supplied, *args, **kwargs):
+                if supplied != path:
+                    return method(supplied, *args, **kwargs)
+                supplied.write_bytes(replacement)
+                try:
+                    return method(supplied, *args, **kwargs)
+                finally:
+                    supplied.write_bytes(original)
+            return read
+    
+        monkeypatch.setattr(Path, 'read_text', transient(read_text))
+        monkeypatch.setattr(Path, 'read_bytes', transient(read_bytes))
+        bound = seal.BoundInputs()
+>       with pytest.raises(ValueError, match='receipt changed'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_receipt_byte_identity.py:31: Failed
+_______ test_change_after_successful_hash_cannot_become_index_baseline ________
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_change_after_successful_h0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195D7560>
+
+    def test_change_after_successful_hash_cannot_become_index_baseline(tmp_path,monkeypatch):
+        path,expected=source(tmp_path)
+        original=filters.sha256
+        changed=False
+        def mutate_after_hash(supplied):
+            nonlocal changed
+            result=original(supplied)
+            if Path(supplied)==path and not changed:
+                changed=True
+                path.write_text(payload(30),encoding='utf-8')
+            return result
+        monkeypatch.setattr(filters,'sha256',mutate_after_hash)
+        monkeypatch.setattr(adapter,'sha256',mutate_after_hash)
+>       with pytest.raises(ValueError,match='chang|mismatch'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_input_pin_races.py:39: Failed
+______ test_index_handle_must_be_the_hashed_file_even_if_path_is_stable _______
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_index_handle_must_be_the_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E2AE0>
+
+    def test_index_handle_must_be_the_hashed_file_even_if_path_is_stable(tmp_path,monkeypatch):
+        path,expected=source(tmp_path)
+        alternate=tmp_path/'alternate.jsonl'
+        alternate.write_text(payload()+payload(30),encoding='utf-8')
+        def redirected(supplied,*args,**kwargs):
+            return builtins.open(alternate if Path(supplied)==path else supplied,*args,**kwargs)
+        monkeypatch.setattr(adapter,'open',redirected,raising=False)
+>       with pytest.raises(ValueError,match='identity|chang|mismatch'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_input_pin_races.py:51: Failed
+_____ test_fetch_handle_redirection_cannot_return_rows_from_another_file ______
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_fetch_handle_redirection_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E07A0>
+
+    def test_fetch_handle_redirection_cannot_return_rows_from_another_file(tmp_path,monkeypatch):
+        path,expected=source(tmp_path)
+        pinned=adapter.RowFile(path,expected)
+        alternate=tmp_path/'alternate.jsonl'
+        alternate.write_text(payload(30),encoding='utf-8')
+        monkeypatch.setattr(adapter,'open',lambda supplied,*args,**kwargs:
+                            builtins.open(alternate,*args,**kwargs),raising=False)
+>       with pytest.raises(ValueError,match='identity|chang|mismatch'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_input_pin_races.py:63: Failed
+___________ test_in_place_change_during_fetch_never_returns_a_batch ___________
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_in_place_change_during_fe0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E0B60>
+
+    def test_in_place_change_during_fetch_never_returns_a_batch(tmp_path,monkeypatch):
+        path,expected=source(tmp_path)
+        pinned=adapter.RowFile(path,expected)
+        original=adapter.validate_record
+        def mutate_after_parse(row):
+            result=original(row)
+            path.write_text(payload(30),encoding='utf-8')
+            return result
+        monkeypatch.setattr(adapter,'validate_record',mutate_after_parse)
+>       with pytest.raises(ValueError,match='chang|identity'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_input_pin_races.py:76: Failed
+______ test_manifest_bytes_must_match_verified_identity_before_row_files ______
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_bytes_must_match0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E1BE0>
+
+    def test_manifest_bytes_must_match_verified_identity_before_row_files(tmp_path,monkeypatch):
+        import train_adapter as train
+        manifest,value,pin=context_manifest(tmp_path)
+        changed=deepcopy(value);changed['train']['path']='unverified-record-path'
+        manifest.write_text(json.dumps(changed),encoding='utf-8')
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unverified manifest reached RowFile')
+        monkeypatch.setattr(train,'RowFile',refuse)
+        with pytest.raises(ValueError,match='manifest'):
+>           context_with_pin(train,manifest,pin)
+
+astra_r8\datafilter\tests\test_input_pin_races.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_input_pin_races.py:94: in context_with_pin
+    return train.Context(manifest,'filtered_wdl_v1',**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+astra_r8\datafilter\train_adapter.py:35: in __init__
+    self.train_rows = RowFile(self.manifest['train']['path'], self.manifest['train']['sha256'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('unverified-record-path', '384d376f23538b33db7a6538373f75587cad18046fd24f4a0a0d3a1941db3b4a')
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unverified manifest reached RowFile')
+E       AssertionError: unverified manifest reached RowFile
+
+astra_r8\datafilter\tests\test_input_pin_races.py:105: AssertionError
+_______ test_manifest_change_during_context_initialization_is_rejected ________
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_change_during_co0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195D7CB0>
+
+    def test_manifest_change_during_context_initialization_is_rejected(tmp_path,monkeypatch):
+        import train_adapter as train
+        manifest,value,pin=context_manifest(tmp_path)
+        original=train.RowFile
+        changed=False
+        def mutate(*args,**kwargs):
+            nonlocal changed
+            result=original(*args,**kwargs)
+            if not changed:
+                changed=True
+                manifest.write_text(json.dumps({**value,'changed':True}),encoding='utf-8')
+            return result
+        monkeypatch.setattr(train,'RowFile',mutate)
+>       with pytest.raises(ValueError,match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_input_pin_races.py:125: Failed
+___ test_valid_context_retains_exact_byte_digest_and_checks_later_mutation ____
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_valid_context_retains_exa0')
+
+    def test_valid_context_retains_exact_byte_digest_and_checks_later_mutation(tmp_path):
+        import train_adapter as train
+        manifest,value,pin=context_manifest(tmp_path)
+        context=context_with_pin(train,manifest,pin)
+        assert context.digest==pin['sha256']
+>       context.check_manifest_identity()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Context' object has no attribute 'check_manifest_identity'
+
+astra_r8\datafilter\tests\test_input_pin_races.py:134: AttributeError
+_ test_manifest_replacement_after_verification_never_constructs_context[True] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x0000000019695120>, run=<function entry_identity.<locals>.run at 0x00000000196954E0>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E1340>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000195E16D0>
+check = True
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_manifest_replacement_after_verification_never_constructs_context(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+    
+        def replaced(path):
+            result = case.verify(path)
+            case.mutate()
+            return result
+    
+        monkeypatch.setattr(adapter, 'verify', replaced)
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:73: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_afte0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_afte0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_afte0\\never_created",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "manifest": "6635ed6b593400891f76d483550b421ea126bf28513dd3b2f812197fb5711cb7",
+    "recipe": "filtered_eval_v1",
+    "sampler": {
+      "count": 1,
+      "seed": 5108,
+      "manifest": "6635ed6b593400891f76d483550b421ea126bf28513dd3b2f812197fb5711cb7",
+      "cursor": 0,
+      "algorithm": "affine-v1"
+    },
+    "runtime": {
+      "fixture": "runtime"
+    }
+  }
+}
+_ test_manifest_replacement_after_verification_never_constructs_context[False] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x00000000196956C0>, run=<function entry_identity.<locals>.run at 0x0000000019695E40>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E2F30>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000195E1820>
+check = False
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_manifest_replacement_after_verification_never_constructs_context(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+    
+        def replaced(path):
+            result = case.verify(path)
+            case.mutate()
+            return result
+    
+        monkeypatch.setattr(adapter, 'verify', replaced)
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:73: Failed
+_ test_manifest_replacement_during_runtime_check_never_reports_or_delegates[True] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x0000000019696C00>, run=<function entry_identity.<locals>.run at 0x0000000019696200>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E0830>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000195E18B0>
+check = True
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_manifest_replacement_during_runtime_check_never_reports_or_delegates(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+    
+        def replaced():
+            case.mutate()
+            return case.runtime
+    
+        monkeypatch.setattr(adapter, 'runtime_identity', replaced)
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:89: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_duri0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_duri0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_manifest_replacement_duri0\\never_created",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "manifest": "2fa18bbb5664a7a6e42807168207a8edd7caaa5aaedef5817ccb7f7c970028a5",
+    "recipe": "filtered_eval_v1",
+    "sampler": {
+      "count": 1,
+      "seed": 5108,
+      "manifest": "2fa18bbb5664a7a6e42807168207a8edd7caaa5aaedef5817ccb7f7c970028a5",
+      "cursor": 0,
+      "algorithm": "affine-v1"
+    },
+    "runtime": {
+      "fixture": "runtime"
+    }
+  }
+}
+_ test_manifest_replacement_during_runtime_check_never_reports_or_delegates[False] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x0000000019695620>, run=<function entry_identity.<locals>.run at 0x0000000019696480>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001966A120>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000196693A0>
+check = False
+
+    @pytest.mark.parametrize('check', [True, False])
+    def test_manifest_replacement_during_runtime_check_never_reports_or_delegates(
+            entry_identity, monkeypatch, capsys, check):
+        case = entry_identity
+    
+        def replaced():
+            case.mutate()
+            return case.runtime
+    
+        monkeypatch.setattr(adapter, 'runtime_identity', replaced)
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:89: Failed
+_ test_manifest_replacement_in_last_initialization_step_never_delegates[install] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x0000000019697380>, run=<function entry_identity.<locals>.run at 0x0000000019696F20>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001966BC20>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000000196692E0>
+stage = 'install'
+
+    @pytest.mark.parametrize('stage', ['install', 'seed_runtime'])
+    def test_manifest_replacement_in_last_initialization_step_never_delegates(
+            entry_identity, monkeypatch, capsys, stage):
+        case = entry_identity
+        monkeypatch.setattr(adapter, stage, lambda *_: case.mutate())
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:100: Failed
+_ test_manifest_replacement_in_last_initialization_step_never_delegates[seed_runtime] _
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_manifest_replac... 0x0000000019696980>, run=<function entry_identity.<locals>.run at 0x0000000019697100>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019669730>
+capsys = <_pytest.capture.CaptureFixture object at 0x000000001966B830>
+stage = 'seed_runtime'
+
+    @pytest.mark.parametrize('stage', ['install', 'seed_runtime'])
+    def test_manifest_replacement_in_last_initialization_step_never_delegates(
+            entry_identity, monkeypatch, capsys, stage):
+        case = entry_identity
+        monkeypatch.setattr(adapter, stage, lambda *_: case.mutate())
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:100: Failed
+____ test_verifier_digest_must_match_the_original_manifest_before_context _____
+
+entry_identity = namespace(manifest=WindowsPath('C:/astra8_data/extension5h_20261103/red_input_boundaries_01/cases/test_verifier_digest... 0x0000000019697740>, run=<function entry_identity.<locals>.run at 0x0000000019697E20>, runtime={'fixture': 'runtime'})
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019668F80>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000000019669610>
+
+    def test_verifier_digest_must_match_the_original_manifest_before_context(
+            entry_identity, monkeypatch, capsys):
+        case = entry_identity
+        monkeypatch.setattr(adapter, 'verify', lambda _: {
+            'status': 'PASS', 'manifest_sha256': '0'*64})
+>       with pytest.raises(ValueError, match='manifest'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_manifest_entry_races.py:111: Failed
+---------------------------- Captured stdout call -----------------------------
+{
+  "status": "PASS",
+  "command": [
+    "F:\\opus_scratch\\r6\\nnue-pytorch-amd\\train.py",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_verifier_digest_must_matc0\\manifest.json",
+    "--validation-datasets",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_verifier_digest_must_matc0\\manifest.json",
+    "--default-root-dir",
+    "C:\\astra8_data\\extension5h_20261103\\red_input_boundaries_01\\cases\\test_verifier_digest_must_matc0\\never_created",
+    "--features",
+    "K32H3^",
+    "--l1",
+    "1024",
+    "--batch-size",
+    "16384",
+    "--epoch-size",
+    "152500000",
+    "--max-epochs",
+    "8",
+    "--lr",
+    "0.000875",
+    "--gamma",
+    "0.72",
+    "--seed",
+    "5108",
+    "--num-workers",
+    "0",
+    "--threads",
+    "2",
+    "--validation-size",
+    "16384",
+    "--swa-start-epoch",
+    "-1",
+    "--network-save-period",
+    "2",
+    "--save-top-k",
+    "2",
+    "--lambda",
+    "1.0",
+    "--accelerator",
+    "cpu"
+  ],
+  "identity": {
+    "manifest": "f2bcbac721e04a15f6960420be3b991fd61ccfce15c7e8da1fa1584839ac7b20",
+    "recipe": "filtered_eval_v1",
+    "sampler": {
+      "count": 1,
+      "seed": 5108,
+      "manifest": "f2bcbac721e04a15f6960420be3b991fd61ccfce15c7e8da1fa1584839ac7b20",
+      "cursor": 0,
+      "algorithm": "affine-v1"
+    },
+    "runtime": {
+      "fixture": "runtime"
+    }
+  }
+}
+________ test_native_argument_canonicalizes_spacing_and_decimal_clocks ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000196007D0>
+
+    def test_native_argument_canonicalizes_spacing_and_decimal_clocks(monkeypatch):
+        import npt_adapter as adapter
+        fen='4k3/8/8/3pP3/8/8/8/4K3\tw\t-\td6\t+000\t+081'
+        candidate=row(fen)
+        before=deepcopy(candidate)
+        captured=[]
+        def no_batch(feature,fens,scores,plies,results):
+            captured.extend(fens)
+            return None
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',no_batch)
+        with pytest.raises(ValueError,match='unavailable'):
+            adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+>       assert captured==['4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81']
+E       AssertionError: assert ['4k3/8/8/3pP...\t+000\t+081'] == ['4k3/8/8/3pP... w - d6 0 81']
+E         
+E         At index 0 diff: '4k3/8/8/3pP3/8/8/8/4K3\tw\t-\td6\t+000\t+081' != '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81'
+E         Use -v to get more diff
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:41: AssertionError
+___ test_unrepresentable_native_clocks_rejected_before_allocation[w-256-1] ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019603110>
+turn = 'w', halfmove = 256, fullmove = 1
+
+    @pytest.mark.parametrize('turn,halfmove,fullmove',[
+        ('w',256,1),('b',256,1),('w',2**31,1),('b',2**63-1,1),
+        ('b',0,32768),('w',0,32769),('b',0,32769)])
+    def test_unrepresentable_native_clocks_rejected_before_allocation(monkeypatch,turn,halfmove,fullmove):
+        import npt_adapter as adapter
+        fen=' '.join(chess.STARTING_FEN.split()[:1]+[turn,'KQkq','-',str(halfmove),str(fullmove)])
+        candidate=row(fen)
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unrepresentable native FEN reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 256 1'], [20], [0], [0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unrepresentable native FEN reached the C ABI')
+E       AssertionError: unrepresentable native FEN reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:55: AssertionError
+___ test_unrepresentable_native_clocks_rejected_before_allocation[b-256-1] ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000196696A0>
+turn = 'b', halfmove = 256, fullmove = 1
+
+    @pytest.mark.parametrize('turn,halfmove,fullmove',[
+        ('w',256,1),('b',256,1),('w',2**31,1),('b',2**63-1,1),
+        ('b',0,32768),('w',0,32769),('b',0,32769)])
+    def test_unrepresentable_native_clocks_rejected_before_allocation(monkeypatch,turn,halfmove,fullmove):
+        import npt_adapter as adapter
+        fen=' '.join(chess.STARTING_FEN.split()[:1]+[turn,'KQkq','-',str(halfmove),str(fullmove)])
+        candidate=row(fen)
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unrepresentable native FEN reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 256 1'], [20], [1], [0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unrepresentable native FEN reached the C ABI')
+E       AssertionError: unrepresentable native FEN reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:55: AssertionError
+_ test_unrepresentable_native_clocks_rejected_before_allocation[w-2147483648-1] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001966B3E0>
+turn = 'w', halfmove = 2147483648, fullmove = 1
+
+    @pytest.mark.parametrize('turn,halfmove,fullmove',[
+        ('w',256,1),('b',256,1),('w',2**31,1),('b',2**63-1,1),
+        ('b',0,32768),('w',0,32769),('b',0,32769)])
+    def test_unrepresentable_native_clocks_rejected_before_allocation(monkeypatch,turn,halfmove,fullmove):
+        import npt_adapter as adapter
+        fen=' '.join(chess.STARTING_FEN.split()[:1]+[turn,'KQkq','-',str(halfmove),str(fullmove)])
+        candidate=row(fen)
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unrepresentable native FEN reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 2147483648 1'], [20], [0], [0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unrepresentable native FEN reached the C ABI')
+E       AssertionError: unrepresentable native FEN reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:55: AssertionError
+_ test_unrepresentable_native_clocks_rejected_before_allocation[b-9223372036854775807-1] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001966B680>
+turn = 'b', halfmove = 9223372036854775807, fullmove = 1
+
+    @pytest.mark.parametrize('turn,halfmove,fullmove',[
+        ('w',256,1),('b',256,1),('w',2**31,1),('b',2**63-1,1),
+        ('b',0,32768),('w',0,32769),('b',0,32769)])
+    def test_unrepresentable_native_clocks_rejected_before_allocation(monkeypatch,turn,halfmove,fullmove):
+        import npt_adapter as adapter
+        fen=' '.join(chess.STARTING_FEN.split()[:1]+[turn,'KQkq','-',str(halfmove),str(fullmove)])
+        candidate=row(fen)
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unrepresentable native FEN reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 9223372036854775807 1'], [20], [1], [0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unrepresentable native FEN reached the C ABI')
+E       AssertionError: unrepresentable native FEN reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:55: AssertionError
+__ test_unrepresentable_native_clocks_rejected_before_allocation[b-0-32768] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019668170>
+turn = 'b', halfmove = 0, fullmove = 32768
+
+    @pytest.mark.parametrize('turn,halfmove,fullmove',[
+        ('w',256,1),('b',256,1),('w',2**31,1),('b',2**63-1,1),
+        ('b',0,32768),('w',0,32769),('b',0,32769)])
+    def test_unrepresentable_native_clocks_rejected_before_allocation(monkeypatch,turn,halfmove,fullmove):
+        import npt_adapter as adapter
+        fen=' '.join(chess.STARTING_FEN.split()[:1]+[turn,'KQkq','-',str(halfmove),str(fullmove)])
+        candidate=row(fen)
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('unrepresentable native FEN reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([candidate],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 32768'], [20], [65535], [0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('unrepresentable native FEN reached the C ABI')
+E       AssertionError: unrepresentable native FEN reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:55: AssertionError
+___________ test_later_invalid_row_prevents_the_whole_native_batch ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195E3440>
+
+    def test_later_invalid_row_prevents_the_whole_native_batch(monkeypatch):
+        import npt_adapter as adapter
+        good=row(chess.STARTING_FEN)
+        invalid=row(chess.STARTING_FEN.rsplit(' ',2)[0]+' 256 1')
+        calls=[]
+        def refuse(*args):
+            calls.append(args)
+            raise AssertionError('partially valid batch reached the C ABI')
+        monkeypatch.setattr(adapter.data_loader,'get_sparse_batch_from_fens',refuse)
+        with pytest.raises(ValueError,match='native'):
+>           adapter.make_batch([good,invalid],'K32H3','filtered_eval_v1')
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\npt_adapter.py:37: in make_batch
+    native = data_loader.get_sparse_batch_from_fens(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ('K32H3', ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 256 1'], [20, 20], [0, 0], [0, 0])
+
+    def refuse(*args):
+        calls.append(args)
+>       raise AssertionError('partially valid batch reached the C ABI')
+E       AssertionError: partially valid batch reached the C ABI
+
+astra_r8\datafilter\tests\test_native_fen_boundary.py:84: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_receipt_byte_identity.py::test_temporary_receipt_substitution_cannot_bind_to_restored_bytes
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_change_after_successful_hash_cannot_become_index_baseline
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_index_handle_must_be_the_hashed_file_even_if_path_is_stable
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_fetch_handle_redirection_cannot_return_rows_from_another_file
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_in_place_change_during_fetch_never_returns_a_batch
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_manifest_bytes_must_match_verified_identity_before_row_files
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_manifest_change_during_context_initialization_is_rejected
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_valid_context_retains_exact_byte_digest_and_checks_later_mutation
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_after_verification_never_constructs_context[True]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_after_verification_never_constructs_context[False]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_during_runtime_check_never_reports_or_delegates[True]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_during_runtime_check_never_reports_or_delegates[False]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_in_last_initialization_step_never_delegates[install]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_manifest_replacement_in_last_initialization_step_never_delegates[seed_runtime]
+FAILED astra_r8/datafilter/tests/test_manifest_entry_races.py::test_verifier_digest_must_match_the_original_manifest_before_context
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_native_argument_canonicalizes_spacing_and_decimal_clocks
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_unrepresentable_native_clocks_rejected_before_allocation[w-256-1]
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_unrepresentable_native_clocks_rejected_before_allocation[b-256-1]
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_unrepresentable_native_clocks_rejected_before_allocation[w-2147483648-1]
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_unrepresentable_native_clocks_rejected_before_allocation[b-9223372036854775807-1]
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_unrepresentable_native_clocks_rejected_before_allocation[b-0-32768]
+FAILED astra_r8/datafilter/tests/test_native_fen_boundary.py::test_later_invalid_row_prevents_the_whole_native_batch
+22 failed, 7 passed, 6 deselected in 4.38s

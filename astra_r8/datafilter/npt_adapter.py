@@ -16,7 +16,7 @@ import data_loader
 from model.nnue import NNUE
 from model.lambda_utils import LambdaController
 from records import validate_record
-from filter_positions import sha256
+from filter_positions import input_identity, sha256
 
 def single_process():
     if int(os.environ.get('WORLD_SIZE', '1')) != 1 or int(os.environ.get('RANK', '0')) != 0 or int(os.environ.get('LOCAL_RANK','0')) != 0 or torch.utils.data.get_worker_info() is not None:
@@ -24,18 +24,28 @@ def single_process():
     if torch.distributed.is_available() and torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
         raise ValueError('distributed adapter execution unsupported')
 
+
+def native_fen(row):
+    """Admit full state and canonicalize only the installed ABI's FEN argument."""
+    validate_record(row)
+    fields = row['fen'].split()
+    if (row['score_type'] != 'cp' or not -32768 <= row['score_stm'] <= 32767
+            or not 0 <= row['ply'] <= 65534 or not 0 <= int(fields[4]) <= 255):
+        raise ValueError('native score/ply/halfmove range or type unsupported')
+    # The native parser requires single spaces, uint8 rule-50, and uint16
+    # internal ply (one greater than our zero-based metadata ply).
+    return ' '.join(fields[:4] + [str(int(value)) for value in fields[4:]])
+
+
 def make_batch(rows, feature_name, recipe):
     single_process()
     if recipe not in ('filtered_eval_v1', 'filtered_wdl_v1'):
         raise ValueError('unknown recipe')
     if not rows or len(rows) > 16384:
         raise ValueError('batch must contain 1..16384 rows')
-    for r in rows:
-        validate_record(r)
-        if r['score_type'] != 'cp' or not -32768 <= r['score_stm'] <= 32767 or not 0 <= r['ply'] <= 65535:
-            raise ValueError('native score/ply range or type unsupported')
+    fens = [native_fen(row) for row in rows]
     native = data_loader.get_sparse_batch_from_fens(
-        feature_name, [r['fen'] for r in rows], [r['score_stm'] for r in rows],
+        feature_name, fens, [r['score_stm'] for r in rows],
         [r['ply'] for r in rows], [r['result_stm'] if r['has_result'] else 0 for r in rows])
     if not native:
         raise ValueError('native feature batch unavailable')
@@ -143,26 +153,49 @@ class Sampler:
 
 class RowFile:
     def __init__(self, path, expected_hash):
-        self.path = Path(path)
-        if sha256(self.path) != expected_hash:
+        self.path = Path(path).absolute()
+        self.identity = input_identity(self.path)
+        if self.identity['sha256'] != expected_hash:
             raise ValueError('record hash mismatch')
         self.offsets = array('Q')
         with open(self.path, 'rb') as fh:
+            self._check_identity(fh)
             while True:
                 offset = fh.tell()
                 if not fh.readline():
                     break
                 self.offsets.append(offset)
-        self.identity = (self.path.stat().st_size, self.path.stat().st_mtime_ns)
+            self._check_identity(fh)
+        if input_identity(self.path) != self.identity:
+            raise ValueError('records changed while indexing')
+
+    def _check_identity(self, handle=None):
+        if str(self.path.resolve()) != self.identity['path']:
+            raise ValueError('record path identity changed after pinning')
+        observations = [(self.path.stat(), False)]
+        if handle is not None:
+            observations.append((os.fstat(handle.fileno()), True))
+        fields = (('device', 'st_dev'), ('inode', 'st_ino'), ('bytes', 'st_size'),
+                  ('mtime_ns', 'st_mtime_ns'), ('ctime_ns', 'st_ctime_ns'))
+        for observed, is_handle in observations:
+            for key, field in fields:
+                # Windows Python can report birth time for path stat but change
+                # time for fstat. Keep the full path pin; compare the handle's
+                # device/file ID, size and mtime without conflating those clocks.
+                if is_handle and os.name == 'nt' and key == 'ctime_ns':
+                    continue
+                if getattr(observed, field) != self.identity[key]:
+                    raise ValueError('record file/handle identity changed after pinning')
 
     def fetch(self, indices):
-        if (self.path.stat().st_size,self.path.stat().st_mtime_ns) != self.identity:
-            raise ValueError('records changed after pinning')
+        self._check_identity()
         with open(self.path, 'rb') as fh:
+            self._check_identity(fh)
             rows = []
             for i in indices:
                 fh.seek(self.offsets[i]); rows.append(validate_record(json.loads(fh.readline())))
-            return rows
+            self._check_identity(fh)
+        return rows
 
 class BatchStream:
     def __init__(self, row_file, sampler, batches, batch_size, feature, recipe, validation=False):

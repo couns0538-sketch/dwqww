@@ -1,12 +1,13 @@
 """Crew-owned training entry point. This job invokes only --check. UNPROVEN."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import sys
 from npt_adapter import (BatchStream, MaskedNNUE, RowFile, Sampler, NPT,
                          runtime_identity, single_process, torch)
-from filter_positions import sha256, low_priority
+from filter_positions import input_identity, low_priority
 from resource_policy import storage_guard
 from verify_handoff import verify
 
@@ -27,15 +28,28 @@ def resume_epoch(global_step, sampler_cursor):
     return global_step // 9307
 
 class Context:
-    def __init__(self, manifest_path, recipe):
-        self.manifest_path = Path(manifest_path).resolve()
-        self.manifest = json.loads(self.manifest_path.read_text(encoding='utf-8'))
+    def __init__(self, manifest_path, recipe, *, expected_identity=None):
+        self.requested_manifest_path = Path(manifest_path).absolute()
+        self._manifest_identity = input_identity(self.requested_manifest_path)
+        if expected_identity is not None and self._manifest_identity != expected_identity:
+            raise ValueError('manifest differs from verified identity')
+        payload = self.requested_manifest_path.read_bytes()
+        self.digest = hashlib.sha256(payload).hexdigest()
+        if self.digest != self._manifest_identity['sha256']:
+            raise ValueError('manifest changed while reading parsed bytes')
+        self.manifest_path = Path(self._manifest_identity['path'])
+        self.manifest = json.loads(payload.decode('utf-8'))
         self.recipe = recipe
-        self.digest = sha256(self.manifest_path)
+        self.check_manifest_identity()
         self.train_rows = RowFile(self.manifest['train']['path'], self.manifest['train']['sha256'])
         self.val_rows = RowFile(self.manifest['validation']['path'], self.manifest['validation']['sha256'])
         self.sampler = Sampler(len(self.train_rows.offsets), 5108, self.digest)
         self.runtime = None
+        self.check_manifest_identity()
+
+    def check_manifest_identity(self):
+        if input_identity(self.requested_manifest_path) != self._manifest_identity:
+            raise ValueError('manifest changed after verification')
 
     def state_dict(self):
         return dict(manifest=self.digest, recipe=self.recipe, sampler=self.sampler.state_dict(), runtime=self.runtime)
@@ -121,8 +135,18 @@ def main():
     if any(path.name.casefold().endswith('.partial') for path in manifest_parents):
         if not (a.check and a.device == 'cpu'):
             raise ValueError('partial handoff permits CPU preflight only')
-    verify(a.manifest)
-    context = Context(a.manifest,a.recipe)
+    manifest_identity = input_identity(a.manifest)
+    # An alias may have changed since the early path check. Apply the same
+    # restriction to the resolved target actually bound for verification.
+    if any(parent.name.casefold().endswith('.partial')
+           for parent in Path(manifest_identity['path']).parents):
+        if not (a.check and a.device == 'cpu'):
+            raise ValueError('partial handoff permits CPU preflight only')
+    verified = verify(a.manifest)
+    if (verified['manifest_sha256'] != manifest_identity['sha256']
+            or input_identity(a.manifest) != manifest_identity):
+        raise ValueError('manifest changed during verification')
+    context = Context(a.manifest,a.recipe,expected_identity=manifest_identity)
     if context.manifest.get('training_ready') is not True:
         raise ValueError('manifest has no full holdout clearance; training blocked')
     import train
@@ -130,12 +154,14 @@ def main():
     if context.runtime != context.manifest['runtime']:
         raise ValueError('installed npt runtime changed from manifest')
     args = command(a.manifest.resolve(), a.output.resolve(),a.device,a.resume)
+    context.check_manifest_identity()
     if a.check:
         print(json.dumps(dict(status='PASS', command=args, identity=context.state_dict()),indent=2))
         return
     # Runtime hooks are confined to this interpreter. Installed files stay unchanged.
     install(context,train)
     seed_runtime()
+    context.check_manifest_identity()
     sys.argv = args
     train.main()
 

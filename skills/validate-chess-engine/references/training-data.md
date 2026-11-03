@@ -334,6 +334,9 @@ file's digest. Pair negative mutation fixtures with healthy cases through the
 same initialization path so unconditional rejection cannot masquerade as a fix.
 On Windows, do not treat st_ctime as a portable last-change timestamp; use the
 actual runtime's documented stat semantics and verify path/handle agreement.
+Path stat and fstat may even report different ctime meanings in the same Python
+build. Preserve full path identity, compare the handle's device/file ID, size
+and mtime, and qualify any clock comparison with healthy platform controls.
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

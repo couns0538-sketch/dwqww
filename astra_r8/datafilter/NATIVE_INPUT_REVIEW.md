@@ -1,4 +1,10 @@
-# Native input boundary review — repair pending, UNPROVEN
+# Native input boundary review — implemented, final verification pending, UNPROVEN
+
+Current status: the boundary and identity repairs below are implemented. The
+affected 131-test run passes, including actual installed-native tensor comparisons.
+Focused recheck approves broader verification. Full selected-cohort admission,
+the full suite and new v8 handoff are pending. Historical inspection/planning
+notes below explain the chosen scope.
 
 Read-only inspection on 2026-11-03 found a mismatch between valid Forge FEN
 text and the installed npt parser. Forge accepts repeated ASCII spaces/tabs and
@@ -68,3 +74,11 @@ compare the actual opened handle, and run healthy Windows cases as well as
 mutation cases. Initial/final content hashes establish indexed input identity;
 metadata checks do not promise detection of adversarial same-size writes with
 restored timestamps. See the [Python 3.12 stat contract](https://docs.python.org/3.12/library/os.html#os.stat_result).
+
+Actual verification exposed an additional platform distinction: for one healthy
+fixture the path's st_ctime_ns equalled birth time, while fstat's st_ctime_ns
+reported a later change time. The first repair therefore rejected that fixture.
+A deterministic regression reproduced it; the corrected adapter retains all
+path fields and compares the handle's device/file ID, size and mtime, omitting
+only handle ctime on Windows. Unix handle ctime remains checked. Failed evidence
+is preserved and the corrected affected suite passes.

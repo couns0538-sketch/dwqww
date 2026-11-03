@@ -1,0 +1,45 @@
+........F............................................................... [ 57%]
+......................................................                   [100%]
+================================== FAILURES ===================================
+___ test_valid_context_retains_exact_byte_digest_and_checks_later_mutation ____
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/green_input_boundaries_01/cases/test_valid_context_retains_exa0')
+
+    def test_valid_context_retains_exact_byte_digest_and_checks_later_mutation(tmp_path):
+        import train_adapter as train
+        manifest,value,pin=context_manifest(tmp_path)
+>       context=context_with_pin(train,manifest,pin)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_input_pin_races.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_input_pin_races.py:94: in context_with_pin
+    return train.Context(manifest,'filtered_wdl_v1',**options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+astra_r8\datafilter\train_adapter.py:44: in __init__
+    self.train_rows = RowFile(self.manifest['train']['path'], self.manifest['train']['sha256'])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+astra_r8\datafilter\npt_adapter.py:162: in __init__
+    self._check_identity(fh)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <npt_adapter.RowFile object at 0x00000000196467E0>
+handle = <_io.BufferedReader name='C:\\astra8_data\\extension5h_20261103\\green_input_boundaries_01\\cases\\test_valid_context_retains_exa0\\train.jsonl'>
+
+    def _check_identity(self, handle=None):
+        if str(self.path.resolve()) != self.identity['path']:
+            raise ValueError('record path identity changed after pinning')
+        observations = [self.path.stat()]
+        if handle is not None:
+            observations.append(os.fstat(handle.fileno()))
+        fields = (('device', 'st_dev'), ('inode', 'st_ino'), ('bytes', 'st_size'),
+                  ('mtime_ns', 'st_mtime_ns'), ('ctime_ns', 'st_ctime_ns'))
+        if any(getattr(observed, field) != self.identity[key]
+               for observed in observations for key, field in fields):
+>           raise ValueError('record file/handle identity changed after pinning')
+E           ValueError: record file/handle identity changed after pinning
+
+astra_r8\datafilter\npt_adapter.py:182: ValueError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_input_pin_races.py::test_valid_context_retains_exact_byte_digest_and_checks_later_mutation
+1 failed, 125 passed in 5.89s

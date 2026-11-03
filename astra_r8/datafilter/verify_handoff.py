@@ -17,7 +17,7 @@ TOOLING=('convert_forge.py', 'result_codec.py', 'filter_positions.py', 'pgn_inpu
          'audit.py', 'audit_followup.py', 'audit_stm_roundtrip.py', 'audit_capture_cohort.py',
          'audit_raw_labels.py', 'independent_audit.py', 'clear_holdouts.py',
          'verify_handoff.py', 'refresh_handoff.py')
-REVIEWABLE_RUNTIME={str((HERE/name).resolve()) for name in ('train_adapter.py','records.py')}
+REVIEWABLE_RUNTIME={str((HERE/name).resolve()) for name in ('train_adapter.py','records.py','npt_adapter.py')}
 EXPECTED_RECIPES={'filtered_eval_v1':{'selfplay_known_lambda':1.0,'other_lambda':1.0},
                   'filtered_wdl_v1':{'selfplay_known_lambda':0.8,'other_lambda':1.0}}
 EXPECTED_HYPERPARAMETERS={'features':'K32H3^','L1':1024,'batch_size':16384,
@@ -118,7 +118,7 @@ def verify_payload(item):
 def verify(path, *, allow_runtime_changes=()):
     """Default: strict admission. Overrides are only for reviewed historical-data reuse.
 
-    The refresher hard-pins its prior manifest before allowing the two owned
+    The refresher hard-pins its prior manifest before allowing the three owned
     normalization/admission modules to change. No installed npt or native file
     can be exempted; a newly published manifest always passes strict verification.
     """

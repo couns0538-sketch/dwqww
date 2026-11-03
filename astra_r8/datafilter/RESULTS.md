@@ -10,6 +10,27 @@ The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
 the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
+Input-integrity milestone, 06:58 UTC: partition 0 completed with exit 0,
+143,016,179 rows across 19 sources and zero rejections (7,719.402 command-wall
+seconds). Partition 1 remains active; the complete union is not yet qualified.
+The freed CPU slot ran the targeted regressions: 22 RED failures, seven controls
+passing, six unsafe pre-fix native cases excluded. One RED failure was the absent
+new Context API; the others reproduced receipt, file, manifest and native-input
+gaps. Repairs are implemented and 131 affected tests now PASS in 5.85 seconds,
+with stable source/runtime pins. Actual native whitespace tensor comparisons,
+the real tiny 37-source union and corrected-lock transcript tests are included.
+Focused independent recheck APPROVED broader verification; the full suite/new
+handoff remain pending. Review also found a .partial target race between the
+early path check and identity capture. Three RED cases reproduced it; the fix
+checks the captured resolved target before verification, with a CPU-check control.
+
+The first repair run preserved 125 passes and one healthy Windows-case failure:
+path stat and fstat reported different ctime semantics for the same file. A
+dedicated regression failed before the correction. The repair keeps full path
+identity and handle device/file ID, size and mtime checks, excluding only the
+incomparable Windows handle ctime. Original RED/failed-GREEN logs are retained.
+The running audit's records.py and other validator pins remain unchanged.
+
 Latest observation at 06:36:56 UTC: 254,663,894 rows checked, 30 source files
 closed, zero rejections reported. Both workers remain BelowNormal/one thread;
 D: has 57,489,690,624 bytes free. This is IN_PROGRESS, not full-corpus proof.

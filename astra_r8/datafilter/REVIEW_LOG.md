@@ -1,5 +1,36 @@
 # Review log — UNPROVEN
 
+## Implemented input-integrity milestone — approved for broader verification
+
+After partition 0 exited successfully, main ran the safe regression selection
+with one computing test worker alongside partition 1. Evidence:
+extension5h_20261103/red_input_boundaries_01 (22 failed, seven passed, six actual
+native pre-fix cases excluded). One failure was the intentionally new Context
+check API being absent; the remaining failures reproduced the reviewed gaps.
+Main implemented native transport normalization/counter admission, RowFile
+path/handle pinning, exact manifest-byte binding and pre-PASS/delegation checks,
+and exact-byte receipt hashing. Only the owned npt_adapter.py was added to the
+existing reviewed local runtime-migration set; installed-runtime pins stay fixed.
+
+The first affected run passed 125 tests but found a real Windows ctime mismatch
+in a healthy fixture. Read-only probing showed path stat ctime=birthtime and
+fstat ctime=change time while device/file ID, length and mtime agreed. A new
+deterministic regression failed before main excluded only HANDLE ctime on
+Windows. Full PATH identity remains checked, as do handle device/file ID, size
+and mtime. The second affected run PASSES 127 tests in 5.93s with source/runtime
+pins stable (green_input_boundaries_02). The same reviewer is rechecking these
+exact hashes; no full-suite or final handoff acceptance is claimed yet.
+
+The focused reviewer found one remaining medium issue: an alias retargeted into
+a .partial directory after the early path check could become the accepted
+identity. Main reproduced three forbidden modes with a deterministic captured-
+identity fixture, retaining a permitted CPU-check control. The captured target's
+parents are now checked before verify or Context construction. The third affected
+run PASSES 131 tests in 5.85s with stable pins (green_input_boundaries_03).
+The reviewer rechecked the exact guard and hashes and APPROVED broader
+verification/v8 preparation after scan closure, with no remaining scoped findings.
+These tests model returned identity; no OS-level alias swap is claimed.
+
 ## Draft recheck while full admission scans run
 
 The same read-only reviewer confirmed the corrected actual-runtime comparison

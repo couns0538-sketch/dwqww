@@ -21,15 +21,18 @@ def entry(tmp_path, monkeypatch):
     runtime = {'fixture': 'pinned'}
 
     class Context:
-        def __init__(self, path, recipe):
+        def __init__(self, path, recipe, *, expected_identity=None):
             events.append('context')
             self.manifest = {'training_ready': True, 'runtime': runtime}
         def state_dict(self):
             return {'fixture': 'context'}
+        def check_manifest_identity(self):
+            pass
 
     def verify(path):
         events.append('verify')
-        return {'status': 'PASS'}
+        from filter_positions import sha256
+        return {'status': 'PASS', 'manifest_sha256': sha256(path)}
 
     monkeypatch.setattr(adapter, 'Context', Context)
     monkeypatch.setattr(adapter, 'verify', verify, raising=False)
@@ -119,8 +122,39 @@ def test_partial_manifest_cannot_enter_training(entry, check, device):
 
 
 def test_cpu_check_accepts_staged_manifest_after_verification(entry):
-    entry.run(manifest_path=entry.manifest.parent/'candidate.partial'/'manifest.json')
+    candidate = entry.manifest.parent/'candidate.partial'/'manifest.json'
+    candidate.parent.mkdir()
+    candidate.write_text('{}', encoding='utf-8')
+    entry.run(manifest_path=candidate)
     assert entry.events[:3] == ['guard', 'verify', 'context']
+    assert 'delegate' not in entry.events
+
+
+@pytest.mark.parametrize(('check', 'device'), [(False, 'cpu'), (False, 'cuda:0'), (True, 'cuda:0')])
+def test_partial_target_captured_after_early_path_guard_cannot_delegate(entry, monkeypatch, check, device):
+    from filter_positions import input_identity
+    partial = entry.manifest.parent/'retargeted.partial'/'manifest.json'
+    partial.parent.mkdir()
+    partial.write_bytes(entry.manifest.read_bytes())
+    # Model the identity returned after an alias changes between the early
+    # spelling/resolve check and identity capture. Delegation is stubbed.
+    captured = input_identity(partial)
+    monkeypatch.setattr(entry.adapter, 'input_identity', lambda _: captured)
+    with pytest.raises(ValueError, match='partial'):
+        entry.run(check=check, device=device)
+    assert 'verify' not in entry.events and 'context' not in entry.events
+    assert 'delegate' not in entry.events
+
+
+def test_cpu_check_accepts_partial_target_captured_after_early_path_guard(entry, monkeypatch, capsys):
+    from filter_positions import input_identity
+    partial = entry.manifest.parent/'retargeted.partial'/'manifest.json'
+    partial.parent.mkdir()
+    partial.write_bytes(entry.manifest.read_bytes())
+    captured = input_identity(partial)
+    monkeypatch.setattr(entry.adapter, 'input_identity', lambda _: captured)
+    entry.run()
+    assert json.loads(capsys.readouterr().out)['status'] == 'PASS'
     assert 'delegate' not in entry.events
 
 
