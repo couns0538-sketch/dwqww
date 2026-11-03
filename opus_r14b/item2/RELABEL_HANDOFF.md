@@ -9,7 +9,9 @@
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
   `build_probe_opt.sh OUT D:\o14b\r2\pgo_req\train_2k.tsv`, two builds gave the same sha256). 10,000 / 10,000 answers
-  identical, and relabel2 with it reproduced the proof's first 19,945 labels byte for byte.
+  identical, and relabel2 with it reproduced the proof's first 19,945 labels byte for byte. `C:\o14b` is Opus's scratch
+  folder: copy the exe to a folder you own (or rebuild it) and check sha256 08299f9f6f4bb8026900ff7111a0b0e7461f77c18e5b01eeefcb05498d3546e7
+  before a long run; `run` pins the probe's sha256 in run_config.json, so a job keeps the probe it started with.
 
 ## What you get
 `relabel2.py` relabels self-play positions with a fixed-node search of the lock engine (lock source d4f4312, state

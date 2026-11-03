@@ -210,3 +210,15 @@ Astra's BelowNormal jobs (affinity all CPUs) used about one core somewhere on th
   measurement). Input hashing speed: 645 MB in 0.45 s (1,443 MB/s, cached).
 - RELABEL_HANDOFF.md rewritten with these measured numbers (50M rows at 20k nodes, 2 workers: 75.4 h with the R13
   probe, 72.4 h with the LTO+PGO probe, in this load; prepare 0.8 h with `--jobs 2`; ~17.1 GB on disk).
+
+## Review milestone R14B-I2-3 (18:45-18:55; structured self-review, NOT independent)
+- Candidate: relabel2.py bf714c67 (branch head), test_relabel2.sh, build_probe_opt.sh, measure_rates.sh,
+  bridge_check.sh, label_stats.py, RELABEL_HANDOFF.md (rewritten 18:41), skill forge-relabel-job.
+- Read: the R27 change (path / origin resolved once per file; error messages unchanged because str(p) == path), the
+  R28 change (self-location before cd, input guard), the PGO build changes (no -fprofile-dir, stop when no .gcda),
+  every number in RELABEL_HANDOFF.md against its log (all rates, the 50M divisions, prepare means 65.70M / 42.77M
+  rows/h, 1,443 MB/s, 89.7 + 93.5 + 157.8 = 341 MB, the eight identical labels md5s, label statistics).
+- Finding: the handoff pointed at the PGO exe in Opus's scratch folder without saying to copy it and check its
+  sha256 -> fixed (full sha256 given; `run` pins the probe sha256 per job). No code finding.
+- Checks: 75 / 75 tests (relative call), 1M prepare rows.tsv = the proof's, bridge PASS, measurement logs.
+- Next action: final report draft with the before / after table; bug hunt 02:30.
