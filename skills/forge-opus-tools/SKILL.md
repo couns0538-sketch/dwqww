@@ -7,8 +7,9 @@ description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (28 checks, ~40 s,
-must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (31 checks, ~40 s,
+must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh, engine_bisect.sh's search, gpu_util_stats.py and
+lowrun.ps1's refusals).
 
 ## opus.sh - one entry point (for Couns and Opus)
 `bash $T/opus.sh help` lists: `status [--ci]`, `lint [PATH...]` (default: every R14-B branch folder + the skills),
@@ -102,7 +103,10 @@ means 40-56 %. Use the same command for a GPU window with `--fast-loader` (item 
 - `cpu_users.ps1 -Mask 0xC -Seconds 5`: processes that used CPUs of the mask in the window, busiest first.
 - `pc_gate.ps1` (R13): load / RAM / disk gate before a heavy step.
 - `lowrun.ps1 -Mask 0xC -Priority BelowNormal|Idle -Exe <prog> -ArgLine "<args>" [-In/-Out/-Err files]`: run one
-  program (and its children) pinned at low priority; exit code = the program's.
+  program (and its children) pinned at low priority; exit code = the program's, 127 when it did not start. Refuses
+  (127, program not started) a mask that is not hexadecimal or names no CPU - before bug hunt #15 it then ran the
+  program on EVERY CPU with exit 0 - and an `-Out` / `-Err` file that exists (Start-Process would empty it). Same
+  file on all three branches (sha256 4f1052ba...).
 
 ## Check scripts of R14-B (`opus_r14b/checks/`, README.md there)
 - `final_checks.sh OUT_DIR`: the end-of-job check in one command (~1 min): doc_lint, file indexes committed,

@@ -192,3 +192,33 @@ missing exe there: exit 127 with "cannot start ...". No finding.
 Valid calls unchanged (`load 0xC 1`, `status --ci o14b-st*`). test_tools.sh: two new cases (opus-load-bad-mask,
 opus-status-unknown-option) -> **28 / 28 PASS** (01:09); the count is updated in opus.sh's help, the skill, STATUS,
 FINAL_REPORT and memory.
+
+### Bug hunt #15 (02:25-02:34 by the PC clock, started early; self-review, NOT independent): files overwritten, checks that pass on failure
+Scope (written 02:24, from H14-1): every place in the R14-B code on the three branches that writes a file must not
+truncate or replace an existing file it was not made for; item 2's remaining scripts with missing or wrong arguments
+must refuse before any probe work. Added during the hunt: check scripts whose exit code ignores a failed comparison
+(the class of H14-2). Swept: every `-Out` / `-Err` caller of lowrun.ps1, every Python `open()` / copy / rename, every
+shell redirection into a user-given path, on all three branches.
+| # | finding | fix |
+|---|---|---|
+| H15-1 | **lowrun.ps1 with a bad `-Mask` (`xyz`), `0x0` or a mask beyond the PC's CPUs printed a .NET exception and then RAN THE PROGRAM ON EVERY CPU, exit 0** (shown with cmd.exe: "ran", exit 0). A caller passing a user-given mask (e.g. `probe_bench.py run --mask`) would have run the probe outside CPUs 2-3 | a mask that is not hexadecimal or names no CPU: exit 127 before anything starts; setting the priority / affinity is checked too (exit 127) |
+| H15-2 | lowrun.ps1 emptied an existing `-Out` / `-Err` file before the program ran (the root of H14-1: a file holding "KEEP THIS LINE" held the program's output afterwards) | an existing redirect target is refused, exit 127 ("never overwritten: use a new name"). Every current caller writes into a fresh folder (checked: engine_bisect visits each candidate once, one folder per candidate), so none of them changes behaviour |
+| H15-3 | check scripts that print a failure but exit 0: item 1 `b5_checks.sh` counted failures and always exited 0 (its 4-builder comparison was printed, never counted; the ABBA and full-epoch steps hid their exit codes behind `tail`); item 2 `prove_resume.sh finish` printed DIFFERENT with exit 0; `measure_rates.sh` printed the labels / rows.tsv hashes that "must be identical" without comparing them | each now exits 1 on a failed comparison (`measure_rates.sh`: a `same` check after the workers and prepare steps) |
+| H15-4 | `measure_rates.sh` with an unknown step created BASE_DIR and wrote its 14 MB input before refusing; a killed `head` left a short `in220k.txt` that later runs reused silently | the step, python, relabel2.py, the probe and the source file are checked first; the input is written through `.part` and must hold 220,000 lines |
+| H15-5 | `bridge_check.sh` with a wrong PROOF_DIR started the 1M-row prepare (minutes of CPU) before its first comparison failed | the proof job's files (rows.tsv, prepare.json, run_config.json, final/) and the tools are checked before anything runs, exit 2 |
+| H15-6 | `fn_diff.py` without arguments, with a missing or unparsable file or an unknown function name: Python traceback | one line, exit 2 |
+
+No other writer overwrites: all R14-B shell scripts refuse an existing output folder, the Python tools open their
+outputs with "x", the installer refuses existing targets, relabel2.py renames only where designed (frozen, untouched).
+
+Checks (02:28-02:33): the launcher before / after with cmd.exe as the program: masks `xyz` / `0x0` ran the program
+(exit 0) before, exit 127 and not run after; `0x100000000` exit 127; `0xC` runs (exit 0); an existing `-Out` kept its
+content. `test_tools.sh` **31 / 31** (3 new launcher cases); item 2 `test_helpers.py` **77 / 77** (11 new: fn_diff.py,
+measure_rates.sh, bridge_check.sh, prove_resume.sh refusals - none of them starts a probe); `bash -n` on every changed
+script; measure_rates.sh's `same` tested alone (identical -> 0, different -> exit 1). lowrun.ps1 is identical on the
+three branches again: sha256 4f1052ba7af5f4a22408e8a1b1809181c74eebd9a346f100d1695b57dbca2a05 (was cc7f28dd..., now
+in the hash sweep's allow list as the version from 20:27 to this hunt).
+H15-7, found by re-running the hash sweep (02:35): two md5s cited in item 2's hunt-#10 record (c675dd5b..., 489c57ae...,
+train.txt / labels.tsv of a scratch job under `C:/o14b/dir with spaces 2320/`) matched no repository file, so step 4
+of final_checks.sh would have failed at the end of the job (its dry runs were before hunt #10). Recomputed from the
+scratch files (equal) and added to the allow list with that reason; the sweep now reports 0 unmatched tokens.

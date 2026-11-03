@@ -33,7 +33,7 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "tools/lm_det.py=deterministic CPU loss-match driver" \
   --desc "tools/lm_run.sh=loss-match run script" \
   --desc "tools/b5_checks.sh=b5 check script (config matrix, spanning batches)" \
-  --desc "tools/lowrun.ps1=run one program at low priority on a CPU mask (exit 127 if it cannot start)"
+  --desc "tools/lowrun.ps1=run one program at low priority on a CPU mask (exit 127 if it cannot start; refuses a bad mask or an existing -Out / -Err)"
 "$PY" -I -B "$MK" "$W/o14b-r2/opus_r14b/item2" --title "R14-B item 2 resumable relabel, branch opus-r14b-relabel" \
   --header "relabel2.py FROZEN at sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602" \
   --desc "RELABEL_HANDOFF.md=handoff for Engine NNUE: state, commands, rules, 50M runbook, costs (start here)" \
@@ -53,11 +53,11 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "pgo_train_2k.tsv=PGO training requests (rows 0-1,999 of the proof sample)" \
   --desc "label_stats.py=descriptive label statistics" \
   --desc "sort_normalized.py=sort Astra's normalized JSONL by (source, source_row), with a RAM check" \
-  --desc "test_helpers.py=exit-code tests of sort_normalized / label_stats / probe_bench with broken input (66 cases)" \
+  --desc "test_helpers.py=exit-code tests of sort_normalized / label_stats / probe_bench with broken input, fn_diff and the shell scripts with wrong arguments (77 cases)" \
   --desc "forge_probe.py=R13 probe client (unchanged copy)" \
   --desc "astra/records.py=Astra's record parser (unchanged copy)" \
   --desc "patches/post_proof_changes.patch=relabel2.py changes after the proof code" \
-  --desc "lowrun.ps1=run one program at low priority on a CPU mask (exit 127 if it cannot start)"
+  --desc "lowrun.ps1=run one program at low priority on a CPU mask (exit 127 if it cannot start; refuses a bad mask or an existing -Out / -Err)"
 for d in "$W/o14b-l1/opus_r14b/item1" "$W/o14b-r2/opus_r14b/item2"; do
   bash "$FIN" "$d"
   (cd "$d" && sha256sum -c --quiet SHA256SUMS && echo "$d: SHA256SUMS verify OK")

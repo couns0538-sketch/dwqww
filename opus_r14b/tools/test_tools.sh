@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# test_tools.sh SCRATCH - Opus R14-B: tests of abba.py and doc_lint.py (exit codes and the lines they must print).
+# test_tools.sh SCRATCH - Opus R14-B: tests of abba.py, doc_lint.py, opus.sh, engine_bisect.sh, gpu_util_stats.py and
+# lowrun.ps1 (exit codes and the lines they must print).
 # SCRATCH must not exist (it is created; nothing is deleted). About 30 s; the abba runs use mask 0xC at Idle.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -106,5 +107,15 @@ H="$S/hw.csv"   # HWiNFO layout: d.m.yyyy, unpadded H:M:S.fff, one unnamed value
 check gpu-util-window 0 $? "$S/gpu.out" ' 20 rows .the file covers 2026-11-02 10:00:00 -> ' 'GPU Utilization \[%\]: n 20, mean 47\.5, p10 10\.0, p50 50\.0, p90 90\.0' '>= 90 %: 10\.0 % of samples'
 "$PY" -I -B "$here/gpu_util_stats.py" --csv "$H" --from "2026-11-02 11:00" --to "2026-11-02 12:00" > "$S/gpu_empty.out" 2>&1
 check gpu-util-empty-window 2 $? "$S/gpu_empty.out" 'only 0 rows in the window'
+LR=$(cygpath -w "$here/lowrun.ps1"); CMD='C:\Windows\System32\cmd.exe'   # bug hunt #15: the launcher's refusals
+powershell -NoProfile -File "$LR" -Mask xyz -Exe "$CMD" -ArgLine "/c echo ran" -Out "$(cygpath -w "$S/lr_mask.txt")" > "$S/lr_mask.out" 2>&1
+check lowrun-bad-mask-refused 127 $? "$S/lr_mask.out" 'is not a hexadecimal CPU mask'   # it used to run the program on every CPU
+[ ! -e "$S/lr_mask.txt" ] || { echo "FAIL lowrun-bad-mask started the program"; fail=1; }
+printf 'KEEP\n' > "$S/lr_keep.txt"
+powershell -NoProfile -File "$LR" -Mask 0xC -Exe "$CMD" -ArgLine "/c echo ran" -Out "$(cygpath -w "$S/lr_keep.txt")" > "$S/lr_keep.out" 2>&1
+check lowrun-existing-out-refused 127 $? "$S/lr_keep.out" 'exists \(never overwritten'   # it used to empty the file
+[ "$(cat "$S/lr_keep.txt")" = KEEP ] || { echo "FAIL lowrun-existing-out changed the file"; fail=1; }
+powershell -NoProfile -File "$LR" -Mask 0xC -Exe "$CMD" -ArgLine "/c echo ran" -Out "$(cygpath -w "$S/lr_ok.txt")" > "$S/lr_ok.out" 2>&1
+check lowrun-runs 0 $? "$S/lr_ok.txt" '^ran'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail

@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 02:22), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 02:36), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -24,7 +24,7 @@ queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Id
 |---|---|---|---|
 | 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x (old w2 vs 1 builder) and **6.25x in the live thread setting** (old w4 vs 2 builders, 95% CI 6.13-6.60) - medians of 10 per-pair ratios, intervals of the mean ratio; distribution vs the live w4 layout: every total-variation distance < 0.001; **from a fresh clone: DLL rebuilt = b5, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) -> 261 / 261** (20:42, again 21:44 and 22:35-22:39 with the hardened installer); every out-of-scope setting refused with a clear message (test_scope.py 20 / 20); installer tests 25 / 25; HANDOFF.md | opus-r14b-fast-loader |
 | 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 e01caaf1...** (re-frozen 22:46 after shards started to record their settings; before that 56eef0a6... at 22:22 after the damaged-job harness: 29 findings, one silent - a lost run_config.json was re-created; earlier 88454db6... at 20:41 and 0a81dd5f... at 22:03 after a prepare fuzz finding); RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate) and a 50M runbook on R8 v5 shards 001-057; 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 then, 154 / 0 after the 22:03 re-freeze, 155 / 0 after the 22:22 and 22:46 ones, in the worktree and fresh clones, 157 / 0 at 23:06 with verify_job.py, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin and hce_dump: the final freeze's output = the first freeze's, byte for byte) | opus-r14b-relabel |
-| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 28 / 28 (01:09); engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry run 22:56 8 / 8 steps | opus-r14b-status |
+| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 31 / 31 (02:32; the launcher's refusals added in hunt #15); engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry run 22:56 8 / 8 steps | opus-r14b-status |
 | P6 crfix 4b537823 (Couns ~20:57) | DONE: applied with patch -p1, rebuilt, P6 checks re-run, pushed | OFF = the corrected lock pins, WDL / DTZ 220 / 220, check50 20 / 20, fail-closed 9 / 9, CI 41515843128 green | opus-r13-p6-syzygy d1751ca1, 4bf626eb |
 
 ## Baseline and improvements (measured numbers only)
@@ -38,7 +38,7 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
 | 50M rows at 20k nodes, 2 workers (light crew load) | 75.4 h (R13) | 72.4 h (LTO+PGO) | rows / measured rate |
 | the whole 1M proof sample with the LTO+PGO probe | the proof ran on the R13 probe | train / val / labels **byte-identical** to the proof's (all 999,921 labels); 635,344 rows/h through 94 min of real crew load -> **78.7 h for 50M** (the planning figure) | logs/pgo_full_1M.log |
 | R8 v5 input (games run across shard files) | 5c88438f gives a game crossing a file two game ids (leak risk) | one game id (one input stream in name order) | test + real shards 271 / 272 |
-| input / job safety | 19 tests | 157 PASS lines in test_relabel2.sh at 23:06 (155 at the 22:46 re-freeze; cases + reason checks): F1-F8, R17, R25, R27, R28, H2-x, H3-x, P-1, J-1..J-5 fixed with a test each; 300 damaged self-play files + 250 damaged JSONL files fuzzed: every one prepared or refused with file:line; 105 damaged-job runs (job_damage.py: published shards, manifests, rows.tsv, prepare.json, run_config.json, stray names): every one refused with exit 4 / 3 / 2 and a reason or clean exit 0 - on the 22:03 freeze 29 of them failed (one silently: a lost run_config.json was re-created), on the 22:22 freeze 3 (an edited run_config.json); the helpers around relabel2.py (sort_normalized, label_stats, probe_bench) with broken input in bug hunt #14: 36 of 54 calls wrong (one emptied an existing output file, `abba` passed changed answers with exit 0), all fixed, 66 / 66 cases | test_relabel2.sh, job_damage.py, test_helpers.py, RESULTS.md |
+| input / job safety | 19 tests | 157 PASS lines in test_relabel2.sh at 23:06 (155 at the 22:46 re-freeze; cases + reason checks): F1-F8, R17, R25, R27, R28, H2-x, H3-x, P-1, J-1..J-5 fixed with a test each; 300 damaged self-play files + 250 damaged JSONL files fuzzed: every one prepared or refused with file:line; 105 damaged-job runs (job_damage.py: published shards, manifests, rows.tsv, prepare.json, run_config.json, stray names): every one refused with exit 4 / 3 / 2 and a reason or clean exit 0 - on the 22:03 freeze 29 of them failed (one silently: a lost run_config.json was re-created), on the 22:22 freeze 3 (an edited run_config.json); the helpers around relabel2.py (sort_normalized, label_stats, probe_bench) with broken input in bug hunt #14: 36 of 54 calls wrong (one emptied an existing output file, `abba` passed changed answers with exit 0), all fixed, 66 / 66 cases; hunt #15: the remaining scripts refuse wrong arguments before any work and fail on a failed comparison, 77 / 77 | test_relabel2.sh, job_damage.py, test_helpers.py, RESULTS.md |
 | disk rule of the PC (C: / D: >= 50 GB) | not enforced by the tool | `--min-free-gb` (default 50): prepare / assemble refuse, run stops before the shard that would cross it | quick checks; test cases |
 | relabel output through the FPOS converters earlier jobs used | not checked | fen2bin carries the new labels 1,200 / 1,200; the whole 1M output: fen2bin 991,077 + 8,844 records = every row, 0 bad; hce_dump the same counts, 0 bad FEN, 0 clamped | conv_check, logs/conv_full_1M.txt |
 | failures that explain themselves | a probe that died ended `run` with a bare traceback and no log line; the launcher of every tool returned 0 when a program could not start | `run` writes "run stop ... <error> (exit N)" to sessions.log; lowrun.ps1 exits 127 (missing program / redirect folder / stdin file) | suite cases with a dead probe; 8 launcher cases |
@@ -103,6 +103,14 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   overwritten. `test_helpers.py` 66 / 66 in the worktree and a fresh clone; valid input gives the same results as
   before (Astra's chain sorted byte for byte, the 1M label statistics, the 500 reference requests, the R13 probe's
   answers on 5 positions).
+- Files overwritten and checks that pass on failure (bug hunt #15, 02:25-02:34, all three branches): **the shared
+  launcher lowrun.ps1, given a bad CPU mask (`xyz`, `0x0`), printed an exception and then ran the program on every
+  CPU with exit 0**, and it emptied an existing `-Out` / `-Err` file (the root of the hunt-#14 finding). Both refused
+  now (exit 127, program not started). Three check scripts printed a failed comparison but exited 0 (item 1
+  `b5_checks.sh`, item 2 `prove_resume.sh finish` and `measure_rates.sh`); two started work before refusing a wrong
+  argument (`measure_rates.sh` wrote its 14 MB input, `bridge_check.sh` started the 1M-row prepare); fn_diff.py
+  gave tracebacks. All fixed; the recorded runs of these scripts had no failure (checked in their logs).
+  test_tools.sh 31 / 31, test_helpers.py 77 / 77.
 
 ## Tools for Couns and Opus (Couns 19:46: "create tools scripts that you and i can use"; 19:47-21:17 by the commits)
 `opus_r14b/tools/` on opus-r14b-status, skill forge-opus-tools, one entry point `bash opus_r14b/tools/opus.sh help`:
@@ -111,7 +119,7 @@ GitHub tables, dead links - it found a broken RESULTS table on its first run and
 memory index), abba (palindromic A/B timing of any two commands with identity check, t-CI and load capture), engine
 (fresh export + lock-recipe build + bench / perft pins of any engine ref), bisect (first commit that changed bench
 nodes, building each candidate from a `git archive` export), time (spans and pauses from commit times), load, test
-(test_tools.sh, 28 checks), gpu (gpu_util_stats.py: GPU utilisation from the keeper's HWiNFO log). `opus_r14b/checks/`
+(test_tools.sh, 31 checks), gpu (gpu_util_stats.py: GPU utilisation from the keeper's HWiNFO log). `opus_r14b/checks/`
 holds the verify chain, the fresh-clone checks, refreeze.sh, the hash sweep, the file index, the R8 v5 end-to-end
 check and `final_checks.sh` (all end-of-job checks in one command, ~1 minute). Validated on real data:
 engine builds of the lock and an R12 branch (ALL OK), a planted-change bisect (found), the frozen relabel code
@@ -131,8 +139,10 @@ trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer
 00:08-00:09 (kept exes in place; one wrong note of mine corrected: the s31 line differs from the request only in the
 seed), #12 00:25 (relabel documents vs the code: consistent), #13 01:08-01:10 (tools with wrong
 arguments: two fixed - a bad CPU mask exited 0, a misspelt status option was ignored), #14 02:08-02:20 (item 2's
-helpers with broken input: H14-1..H14-10 fixed, one of them an output file emptied by `probe_bench.py run`); details
-in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt: 04:15-05:15 (STATUS.md plan).
+helpers with broken input: H14-1..H14-10 fixed, one of them an output file emptied by `probe_bench.py run`), #15
+02:25-02:34 (files overwritten, checks that pass on failure: H15-1..H15-6 fixed, among them the launcher running a
+program on every CPU when given a bad mask); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
+04:15-05:15 (STATUS.md plan).
 
 ## Deviations and incidents (honest record)
 - 15:22-16:27: dev test runs ran as a third Idle process next to the two proof probes on CPUs 2-3 (over the "<= 2
