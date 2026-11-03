@@ -1,25 +1,221 @@
-# R15 (Opus) - FINAL REPORT - INTERIM (written 12:33 PC clock; the final version replaces this file)
+# R15 (Opus) - FINAL REPORT
 
-Everything here is UNPROVEN until the crew gates it. No SPRT games were run, no Elo or speed claims are made.
+Everything here is UNPROVEN until the crew gates it. No SPRT games were run in R15 and no Elo or speed claim is made.
 Lock FD3A5190 = `C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe`, sha256
-`fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072`, md5 `2b4821e537c7004b8b588ef9e2ca07b1`; pins bench
+`fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072`, md5 `2b4821e537c7004b8b588ef9e2ca07b1`; pins: bench
 d11 312866, d13 862329, d16 3024920, d20 12389307, d22 34048354; perft 5 startpos 4865609, kiwipete 193690690.
-Branch `opus-r15-20261103` (worktree `D:\o15\wt`); scratch and exes under `D:\o15`. No sub-agents; every review is a
-structured self-review, NOT independent.
+Branch `opus-r15-20261103` (worktree `D:\o15\wt`, folder `opus_r15/`); scratch, exes and records under `D:\o15`.
+No sub-agents: every review here is a structured self-review, NOT independent. Commit messages carry no
+Co-Authored-By trailer (Couns's R15 rule: no vendor / model-company names in commit messages).
 
-## Status at 12:33
-- Job 0: the four R14-B CR fixes were already pushed 10:05-10:31; re-verified on fresh clones (38 + 20 + 51 + 43 PASS).
-- Base: the unpatched lock source through kit v2.3 `-Expose` = FD3A5190 byte for byte (11:38).
-- Job 1: C1-C5 complete (kit pc1 = pc2, OFF = pins, ON live, smoke 0 illegal / 0 crashes, CI ASan+UBSan green); C6
-  plain-checked, its kit pack running; two zero-build extras queued.
-- Job 2: pin_check, cand_pack, gate_summary + 6 more tools with self-tests, 2 skills, the forge-uci MCP server.
-- Left: C6 pack, extras, cand_pack -NoPatch self-test, final CI tie (ci_record), 30-minute bug check, final report.
+## Summary
+- Job 0: the four R14-B Code Review fixes had already been made and pushed (10:05-10:31 PC clock: f124ed3f installer
+  linked copies, e29bf186 fl_abba warm-up, 1656e093 fl_fuzz bit identity / empty runs / disk floor / --flips cap,
+  d3ad6881 pc_gate counters). R15 re-verified them on fresh clones of 34ea50ee28716821758034ca627689777327c9cd and
+  be7fdbfce042b4f45fe2237ef47025161f57401c: test_installer 38/38, test_scope 20/20, test_cli 51/51, test_tools 43/43.
+- Base: the unpatched lock source (git d4f43124dde1d1e37de90e18930e374f32ea7ffa) through QA's kit v2.3 `-Expose`
+  gives the lock exe byte for byte - twice (11:38 kit_build_r15 pc1; 12:48 cand_pack -NoPatch, pc1 = pc2).
+- Job 1: six candidates C1-C6, one exe and one OFF-by-default option each (search ideas; reasons for no eval idea
+  below). Each: OFF = every lock pin d11-d22 + both perfts, ON live, kit pc1 = pc2, 0 missing-profile warnings,
+  vfmadd 0, 2-minute smoke with 0 illegal / 0 crashes / 0 hangs / 0 time losses, ASan+UBSan CI green, clean-room lint
+  clean, R13 T1/T4 legality smoke + mate probe (every flip re-probed at 30M: horizon flips only). Plus one zero-build
+  extra (x1: TtCutoffHistory on R13's CR-passed packc28 exe) and one finding (x2: QA's B1 build cannot gate
+  TtPruneV2). Index for the crew's queue: `D:\o15\cands\INDEX.md` (copy `opus_r15/cands/INDEX.md`).
+- Job 2: pin_check.ps1, cand_pack.ps1, gate_summary.py (+ `--watch`, `--html`) and fourteen more tools (the main ones
+  with a self-test that plants failures); two skills; the forge-uci MCP server (user scope, Connected); TOOLS.md.
+- User goal (added during planning): a 30-minute bug check with every finding fixed - done (12:36-13:01 tool reviews,
+  13:25-13:45 final_checks_r15.sh + manual pass); eleven own mistakes found and fixed (list below), none of them
+  changed a gate exe, a node count or a check result of a finished line.
 
-## Candidates so far (D:\o15\cands\INDEX.md has every field)
-| line | setoption | exe sha256 | exe md5 | ON bench d11 / d13 / d16 / d20 / d22 |
-|---|---|---|---|---|
-| C1 PruneLmrHist | PruneLmrHist 1 | fe99a27db187980d1786be7300da17b72cfb323f15a041b9ec215950670cc47e | cd7b651f344032e75b1c5a1c10beb32b | 294465 / 815919 / 2071386 / 14396694 / 33272164 |
-| C2 QsMovePrune | QsMovePrune 3 | ff63a706e83e2e750b19f3ba61a1b2175033624696d9982f36611e86d8ffa9a2 | 2b0bdecee31448565a5ead2d93b15247 | 363674 / 815943 / 3220620 / 16380404 / 35367903 |
-| C3 TtProbcut | TtProbcut 360 | 4c48a25bdc051659795b653e3b30bf5a6063bf84813c9f0e8ab1bbb733a87723 | 92b69c3f81cb1b9a86e5106527674df8 | 322040 / 845712 / 2757689 / 9154533 / 20921486 |
-| C4 IirShallowTt | IirShallowTt 1 | 34055169d6c33e5ba94cfecc6b4699ede5e7dfa8a77c3e093c6343e72f2aea05 | 5ef69ec6f71b8a0bc60f360f65a85943 | 309855 / 724372 / 2173900 / 12053035 / 19939843 |
-| C5 ContHistSplit | ContHistSplit 1 | 3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7 | 25f4015a2173f2c7b4ded606bea41b2a | 323985 / 753650 / 3128498 / 11261436 / 29194446 |
+## Candidates, extras and per-line checks (generated by opus_r15/tools/report_rows.py from the records)
+
+| line | setoption | exe (full path) | sha256 | md5 | ON bench d11 / d13 / d16 / d20 / d22 | patch sha256 |
+|---|---|---|---|---|---|---|
+| c1_prunelmrhist | `PruneLmrHist 1` | `D:\o15\cands\c1_prunelmrhist\forge_ltopgo_c1plh.exe` | `fe99a27db187980d1786be7300da17b72cfb323f15a041b9ec215950670cc47e` | `cd7b651f344032e75b1c5a1c10beb32b` | 294465 / 815919 / 2071386 / 14396694 / 33272164 | `3a1ce540cc50b0ca89c58d721762c465884dcdbdb1e6d884e9c50848db21113a` |
+| c2_qsmoveprune | `QsMovePrune 3` | `D:\o15\cands\c2_qsmoveprune\forge_ltopgo_c2qmp.exe` | `ff63a706e83e2e750b19f3ba61a1b2175033624696d9982f36611e86d8ffa9a2` | `2b0bdecee31448565a5ead2d93b15247` | 363674 / 815943 / 3220620 / 16380404 / 35367903 | `bc201f621e24e07bdcb43b9711a4830d2aa35f643a6f9faf2040ce6092652066` |
+| c3_ttprobcut | `TtProbcut 360` | `D:\o15\cands\c3_ttprobcut\forge_ltopgo_c3tpc.exe` | `4c48a25bdc051659795b653e3b30bf5a6063bf84813c9f0e8ab1bbb733a87723` | `92b69c3f81cb1b9a86e5106527674df8` | 322040 / 845712 / 2757689 / 9154533 / 20921486 | `1313e6b06e0ca66fffe05dc4f6bd1df5b43b42da8db7ef2766d65acc159c2c42` |
+| c4_iirshallowtt | `IirShallowTt 1` | `D:\o15\cands\c4_iirshallowtt\forge_ltopgo_c4iir.exe` | `34055169d6c33e5ba94cfecc6b4699ede5e7dfa8a77c3e093c6343e72f2aea05` | `5ef69ec6f71b8a0bc60f360f65a85943` | 309855 / 724372 / 2173900 / 12053035 / 19939843 | `646d0d043a5bbb373eef72e943f17e461ef199bee8072cdb2d2559f607939b19` |
+| c5_conthistsplit | `ContHistSplit 1` | `D:\o15\cands\c5_conthistsplit\forge_ltopgo_c5chs.exe` | `3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7` | `25f4015a2173f2c7b4ded606bea41b2a` | 323985 / 753650 / 3128498 / 11261436 / 29194446 | `43565670d182fe8ea00dcd7d4a0ba46ef0def37075166eac31376f5e9b0ee1b3` |
+| c6_lowplyhist | `LowPlyHist 1` | `D:\o15\cands\c6_lowplyhist\forge_ltopgo_c6lph3.exe` | `7a932e79a8ce994498a082f6a0353bdc3b8e74699aef78e28f47fb8de938c092` | `dc6da21a9f43e6b8c4430f39f87d17f8` | 320362 / 897394 / 2563336 / 11832941 / 35375816 | `4ac36f0a5b85c139fb519ae0d9fbb65be7907ea08d52433456bc621d525740dd` |
+
+| line | patch_applies | cleanroom_lint | kit_build | pc1_equals_pc2 | kit_identity | kit_vfmadd0 | kit_missing_profile0 | kit_on_live | exe_copy_sha256 | pin_off | pin_on_live | smoke | smoke (fixed clock) | R13 cand_checks | CI |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| c1_prunelmrhist | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 19 g / 0 ill / 0 cr | T1/T4 legal; mates at 3M OFF 19 / ON 19; 2 flip(s) re-probed at 30M: all horizon flips, both solve them | success 41628366851 |
+| c2_qsmoveprune | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 19 g / 0 ill / 0 cr | T1/T4 legal; mates at 3M OFF 19 / ON 19; no flips | success 41628366851 |
+| c3_ttprobcut | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 21 g / 0 ill / 0 cr | T1/T4 legal; mates at 3M OFF 19 / ON 21; 4 flip(s) re-probed at 30M: all horizon flips, both solve them | success 41628366851 |
+| c4_iirshallowtt | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 21 g / 0 ill / 0 cr | T1/T4 legal; mates at 3M OFF 19 / ON 21; 4 flip(s) re-probed at 30M: all horizon flips, both solve them | success 41628366851 |
+| c5_conthistsplit | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 21 g / 0 ill / 0 cr | T1/T4 legal; mates at 3M OFF 19 / ON 20; 3 flip(s) re-probed at 30M: all horizon flips, both solve them | success 41628366851 |
+| c6_lowplyhist | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS 22 g / 0 ill / 0 cr (pack smoke) | T1/T4 legal; mates at 3M OFF 19 / ON 19; 2 flip(s) re-probed at 30M: all horizon flips, both solve them | success 41628366851 |
+
+| extra | setoption | exe (full path) | sha256 | md5 | ON bench d11 / d13 / d16 | verdict |
+|---|---|---|---|---|---|---|
+| x1_ttcutoffhistory | `TtCutoffHistory 1` | `D:\o15\cands\x1_ttcutoffhistory\forge_ltopgo_x_r13packc28_al1_cf617e67.exe` | `cf617e671069d32ba6eb5ce452b56e193af41442a5db39388a19005a04b22351` | `5f7b5484aa8080f631dc35e38086e760` | 303634 / 803034 / 2657310 | PASS |
+| x2_ttprunev2 | `TtPruneV2 true` | `D:\o15\cands\x2_ttprunev2\forge_ltopgo_x_b69bundleB1_al1_a0d0eca9.exe` | `a0d0eca93f439a345a97eeae8e7a0fa8f614abbc21f27a3d65ce33e149753014` | `b3246ee378006212cf5c915078303f04` | 312866 / 862329 / 3024920 | FAIL |
+| x2b_ttprunev2_b1k | `TtPruneV2 true` | `D:\o15\cands\x2b_ttprunev2_b1k\forge_ltopgo_b1k.exe` | `e950c77e7832e7f32d701bf1424d65553957ca8486e8bd1d29d922f9b1e25900` | `ae722dae2fbe49afd703b9ca856f2df3` | 309157 / 736967 / 2960397 | PASS |
+
+The "smoke" column is the pack smoke (for C1-C5 with the old clock mapping, see mistake 4); "smoke (fixed clock)" is the re-run with the fixed tool. The R13 strict rule calls any OFF-mate / ON-cp position a FAIL; every such flip was re-probed at 30M nodes (D:\o15\cands\<name>\mate_reprobe.json).
+
+## Gate next (ranked by expected Elo, highest first - an ordering with reasons, not an Elo claim)
+Every line: engine A = the exe + one setoption (Threads 2, Hash 16, OwnBook false as in the crew's gates), engine B =
+the lock; gate as singles with [0, 5]; bundle only lines that reach H1, and confirm on the other book.
+| rank | line | why this place |
+|---|---|---|
+| 1 | C2 QsMovePrune 3 | cuts the largest node class (quiescence) with a rule whose exceptions keep the forcing moves (checks, promotions, recaptures); at STC saved quiescence work turns into main-search depth |
+| 2 | x1 TtCutoffHistory 1 (existing CR-passed packc28 exe cf617e67) | TT cutoffs currently teach the ordering tables nothing; a cheap, widely used way to keep that information; prepared in R13 and never gated alone |
+| 3 | C5 ContHistSplit 1 | sharper follow-up statistics feed the ordering, LMR and history pruning at every node; the cost is 4 MB per worker and slower early learning |
+| 4 | C1 PruneLmrHist 1 | makes quiet pruning use the depth LMR really searches the move at; small, consistent change with low risk |
+| 5 | C3 TtProbcut 360 | skips re-searches of nodes the TT already proves far above beta (largest node saving at depth); the 3-ply / margin limits bound the risk of a missed refutation |
+| 6 | x2b TtPruneV2 true (R13 handoff B1 build e950c77e - needs a CR pass first; QA's CR-passed a0d0eca9 cannot run this line) | the micro-bundle inside both H1 bundles B1 and B4 (vs h256e12); its own share is unknown and it is several small rules behind one switch |
+| 7 | C4 IirShallowTt 1 | large node saving at depth, but it also reduces PV and cut nodes whose TT move is still good - more downside risk at STC |
+| 8 | C6 LowPlyHist 1 | ordering help only at plies 0-3 of each search; smallest expected effect |
+
+## Why each candidate should gain (one paragraph each; full text and the OFF-identity argument in cands/<name>/README.md)
+- **C1 PruneLmrHist** - the lock decides whether to prune a quiet move from a depth estimate that leaves out the one
+  per-move part of its own LMR formula; letting futility / history / SEE pruning use the depth the move would really
+  get (history term included) keeps good-history quiets and drops bad ones earlier.
+- **C2 QsMovePrune** - quiescence captures are ordered by victim value and capture history, so after the first three
+  tries the rest rarely raise alpha but each opens a new subtree; capping non-forcing captures (checks, promotions,
+  recaptures kept) saves the largest node class and turns it into main-search depth at STC.
+- **C3 TtProbcut** - a TT lower bound from a search at most three plies shallower that already beats beta by twice the
+  ProbCut margin almost surely fails high again; taking it as the cut saves the re-search, and returning beta + margin
+  never claims more than the table knows.
+- **C4 IirShallowTt** - a hash move from an entry more than IirDepth plies too shallow orders the node hardly better
+  than no hash move, so the same one-ply IIR applies; the next iteration does the full work only where it matters.
+- **C5 ContHistSplit** - follow-up histories after quiet moves, captures and evasions describe different situations;
+  one table per kind keeps the frequent calm-quiet statistics from blurring the rarer, different ones.
+- **C6 LowPlyHist** - near the root every node is expensive and visited by many iterations; a small per-search table
+  of what cut at plies 0-3 gives those nodes ordering knowledge about exactly these positions.
+
+## Own review of every patch (structured self-review, NOT independent; full text in each cands/<name>/README.md)
+| line | what can go wrong | what was checked |
+|---|---|---|
+| C1 PruneLmrHist | noisy low-depth history now moves the pruning depth by up to two plies either way: good-looking but bad quiets survive longer, real resources with a bad history are pruned earlier | OFF path untouched (lmr_depth unchanged when off); bounds: divisor >= 1000, clamp [-2, 2], lmr_depth >= 0; captures and LMP unchanged; ON bench, smoke, sanitizer CI, mate probe |
+| C2 QsMovePrune | a 4th capture that wins material on another square is no longer seen at the horizon (a hanging piece ordered late) | in-check nodes untouched (mate / stalemate in quiescence unchanged); TT move always first; checks / promotions / recaptures kept; `(ss - 1)` always exists (stack starts at index 4); edge values 1 and 16 in CI |
+| C3 TtProbcut | a large stored fail-high that three more plies would refute (zugzwang-like, deep tactic) is now trusted | no PV / root / singular-verification cuts; mate scores and the 50-move context excluded like the lock's TT cutoff; return value bounded below the stored score (no overflow); margin 1 and 1000 in CI |
+| C4 IirShallowTt | PV and cut nodes whose shallow hash move is in fact good lose a ply once (the next iteration restores it) | the two IIR rules exclude each other; singular extension cannot run at a reduced node (needs tt_depth >= depth - 3); IirDepth = 1 edge in CI |
+| C5 ContHistSplit | four tables learn from fewer samples (slower early learning), +4.15 MB per worker of cache pressure | OFF returns the lock's exact table cell; index 0..2 only when in_check or capture; 4 MB clear by memset on the heap (no stack temporary); per-worker tables (thread safety unchanged); Threads 2 in CI |
+| C6 LowPlyHist | over-fitting the ordering at plies 0-3 to the first iterations of a search | bounds 0 <= ply < 4 at read and write; int16 saturating updates; cleared per search and in clear(); not used by LMR / pruning |
+
+Common to all six: the kit's PGO profile is trained with the option OFF (frozen workload v1), so every ON path is
+cold-optimised; an ON line may run slightly slower than a profile with it on would allow. The same holds for every
+earlier option line (R13 / R14); no speed was measured in R15.
+
+## Job 2 - tools, skills, server (details: TOOLS.md, opus_r15/tools/README.md)
+| tool | for | self-test (planted failures) |
+|---|---|---|
+| pin_check.ps1 | any exe vs the lock pins; ON lines advertised / in range / accepted / live | 12 / 12 |
+| cand_pack.ps1 | patch -> gate-ready exe + RESULT.json + INDEX row in one command | 10 / 10 + six real runs + -NoPatch = FD3A5190 |
+| gate_summary.py | W/D/L, Ptnml, Elo +/-, nElo, exact LLR, time forfeits / illegal / disconnects, games/h; `--watch`; `--html` | 8 / 8 + 2; all 63 F: gates with a PGN reproduce their printed blocks exactly |
+| smoke2m.py | timed ON self-play with engine-side legality, crash / hang / time loss | 12 / 12 + 5 (stubs: illegal, crash, hang, stderr, slow, clock swap) |
+| cleanroom_lint.py | no names / licence headers / protected files in patches and commit messages | 15 / 15 |
+| index_check.py | before queueing: hashes, record checks, CI tie, advertised option + range | 8 / 8 |
+| ci_record.py | a green CI run tied to the exact built patches (sha256 at the run's commit) | 4 / 4 |
+| extra_check.py, mate_reprobe.py, make_index.py, report_rows.py, readme_checks.py, kit_build_r15.sh, plain_build_r15.sh, fresh_lock.sh, final_checks_r15.sh, repair_result_json.py | existing-exe lines, 30M mate re-probes, INDEX, report tables, kit wrapper, quick builds, fresh lock copies, end checks, the record repair | used in R15 (results below) |
+| skills `forge-r15-candidates`, `forge-gate-summary` | the candidate workflow and gate summaries (user scope, copies in opus_r15/skills) | listed by the harness |
+| MCP `forge-uci` (stdlib stdio JSON-RPC: pin_check, uci_options, bench, perft, gate_summary, index_check, pc_status) | the same checks from any session | 18 / 18 over the real stdio transport; `claude mcp get forge-uci`: Connected |
+
+## Every check result
+- Base / lock identity: unpatched lock source through kit v2.3 -Expose = `fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072`
+  (11:38 pc1, `opus_r15/base/`; 12:48 cand_pack -NoPatch pc1 = pc2, `D:\o15\cands\base_nopatch\RESULT.json`); the lock
+  copy `D:\o15\base\lock_copy.exe` passes pin_check -Full (all five depths + both perfts).
+- Per line (table above): patch applies to a fresh d4f4312 copy, clean-room lint clean, kit pc1 = pc2, kit OFF + ON node
+  identity plain = LTO+PGO (d11-d22, perft, 8 FENs), vfmadd 0, 0 missing-profile warnings, ON differs from OFF, pin_check
+  -Full OFF = all lock pins, ON live with perft = pins and the option advertised (default 0, ON in range), 2-minute
+  smoke at Threads 2 (19-22 games each; 0 illegal / crashes / hangs / time losses) - and for C1-C5 again with the fixed
+  clock (19-21 games each, same zeros).
+- R13 cand_checks (T1 + T4 movetime smoke with the engine's own perft-1 legality on 4 positions, mate probe 22 positions
+  at 3M nodes OFF vs ON): every T1/T4 move legal; mates at 3M OFF 19 vs ON C1 19, C2 19, C3 21, C4 21, C5 20, C6 19,
+  x1 18. The strict rule flags one position for every line except C2 (3k4/8/8/8/7r/8/8/6K1 b, OFF mate 15 / ON cp) -
+  the known horizon case (R14 P3 saw it for all Sf26 lines). mate_reprobe.py re-ran every flip in both directions at
+  30M nodes: all are horizon flips that OFF and ON both solve (e.g. this position: mate 11 / mate 11-14); 0 real losses.
+- CI (GitHub, no PC CPU): workflow opus-r15-san, ASan+UBSan build of lock + each patch, self-play default / ON / edge /
+  max and Threads 2: run 41624580607 (C1-C5, 21 configs) and run 41628366851 on 9fc59ea3 (lock + C1-C6, 7 jobs, 24
+  configs, every config 0 illegal and 0 sanitizer lines); ci_record.py tied 41628366851 to every built patch by sha256.
+  Superseded runs were cancelled by newer pushes (concurrency group), none failed.
+- Extras: x1 TtCutoffHistory 1 on `forge_ltopgo_x_r13packc28_al1_cf617e67.exe`: OFF pins, ON live, smoke 0 illegal,
+  mate probe 18 vs 19 at 3M with the same horizon flip (30M: both mate). x2 TtPruneV2 on QA's B1 build a0d0eca9:
+  NOT gateable (not advertised, ON = lock at every depth). x2b TtPruneV2 on the R13 b1k build e950c77e: advertised,
+  live, ON bench 309157 / 736967 / 2960397 = the FB2-J3 "TtPruneV2 only" numbers of forge-bundle-int BUNDLES.md
+  exactly, smoke 0 illegal.
+- index_check.py (before queueing): 9 lines, 0 failed (x2 listed as a not-gateable finding).
+- Documents: hash_sweep.py over every R15 document: 84 tokens match a file, 35 a commit, 0 unmatched; doc_lint.py: 0
+  findings; cleanroom_lint.py: all six patches and every commit message of the branch clean.
+- Tool self-tests (planted failures): pin_check 12/12, smoke2m 12/12 + 5, cleanroom_lint 15/15, cand_pack 10/10,
+  index_check 8/8, gate_summary 8/8 + 2 (and 63 / 63 F: gates reproduced), ci_record 4/4, forge-uci MCP 18/18.
+- `final_checks_r15.sh` (13:25:39-13:36:37 PC clock, log `D:\o15\logs\final_checks_1.log`, outputs
+  `D:\o15\logs\final_checks_1\`): **0 failures** - step 1: all six patch files applied to fresh d4f4312 copies, plain
+  builds with 0 warnings, OFF = the lock pins d11-d22 + perft, ON = the recorded nodes d11-d22 exactly (24 / 24);
+  step 2 index_check; step 3 every tool self-test (8 / 8 suites); step 4 clean-room lint of the patches and of every
+  commit message, doc_lint 73 files 0 findings; step 5 worktree clean and HEAD 8bf4dab3 = origin.
+
+## Crew safety (what my work did next to the crew's)
+- Gates: own work only on CPUs 0-1 (gates on 4-15). The stB LmrCapVictim gate played 77-87 games per 10 min from 10:30
+  (before R15) to its SPRT end at 12:22 (H0, 1070 games), mean depth 22.5 and 0.225 s/move for both engines; the next
+  gate (uhoE3a MatScale 12, UHO book) 75 games in its first full 10-min bin, depth ~21.7, 0.223 s/move
+  (`gate_summary.py --watch`). No gate, queue file or crew process was touched.
+- npt trainer / GPU: never touched. The keeper widens the trainer mask to 0xF while no "Opus R12 procs" hold CPUs 0/1,
+  so the Idle trainer shared my two CPUs. GPU utilisation by hour (HWiNFO log): 09:00 39 %, 10:00 35 %, 11:00 32 %,
+  12:00 29 % - the fall started before R15 (11:33); the 5-min keeper values were 30-33 % just before my start and 21-42 %
+  (mean ~30 %) during my builds: no measurable change, but my share cannot be separated from the trend.
+- Disk: D: 57-59 GB, C: 118-135 GB during the round (C: fell 17 GB 11:33-12:17, not from my writes: a few KB of
+  skills on C:). Floors (D: 50, C: 30) never reached. R15 scratch under D:\o15 (kit work dirs, exes, logs).
+- Threads: at most 4 at any time (kit 1 + smoke 2 + pin check 1; the R13 T4 smoke ran alone).
+
+## Mistakes made in R15 and fixed (all found by my own checks; none affected a gate exe)
+1. plain_build_r15.sh: g++ by absolute path exited 1 silently - PATH fix (11:41).
+2. cand_pack.ps1 set MSYS_NO_PATHCONV: fresh_lock's git could not find the repo, C1 attempt 1 stopped in 1 s (11:49).
+3. gate_summary.py: first LLR port missed the 1e-3 empty-cell rule and the 10-step uniform-start MLE (1 of 4 gates
+   differed); the check compared the wrong games for SPRT stops - fixed, 62 / 62 gates exact (12:06-12:09).
+4. smoke2m.py sent Black White's clock (indexed by first mover, 12:37): every C1-C5 smoke ran with that; legality /
+   crash / hang results stand; the five smokes were run again with the fixed tool (chain 4).
+5. I edited smoke2m.py while the C6 pack was about to start it: C6 attempt 1 died with a NameError (12:37); re-packed.
+6. cand_pack.ps1 wrote 35 MB RESULT.json files (Get-Content line properties): fixed, records repaired with every field
+   but the summary text compared equal, originals kept; ~11 MB of compressed junk stays in the branch history (no
+   force-push).
+7. cand_pack.ps1 built kit paths from -Root instead of the fixed kit work dir - fixed (latent; default root unaffected).
+8. A bash-quoted Python edit turned `\r` of a Windows path into a CR in TOOLS.md - repaired, doc_lint 0 findings.
+9. The x2 extra (TtPruneV2 on QA's B1 build a0d0eca9) is a lock-vs-lock line: the option is not advertised there -
+   found by pin_check, recorded as NOT GATEABLE; x2b uses the R13 build that advertises it.
+10. cand_pack refused attempt 1's leftover pin / smoke files only AFTER a 7-minute kit build (C6 attempt 2, 13:00):
+   it now refuses leftover outputs before building (self-test case added); C6 was packed again (attempt 3, same exe).
+11. index_check counted the recorded x2 finding as a failed gate line: an extra whose own record says FAIL is now a
+   NOTE (a failed candidate still fails).
+The cost: C6 needed three packs (23 min instead of 8) and C1 one extra minute; no exe, node count or check result of a
+finished line changed.
+
+## What is unfinished / not done (and why)
+- No games and no speed figures: R15 runs no SPRT games (Couns) and times nothing on the loaded PC; every ON path is
+  PGO-cold (profile trained with the option off), so an ON line may run a little slower than it could.
+- "OFF and ON variants" = one exe per option, OFF by default, ON by the setoption line (the crew's runner passes
+  option.X=V). No exe with the option compiled ON by default was built; cand_pack could do it with a one-line default
+  change if the crew wants no-setoption gates.
+- No eval idea: the eval-side ideas without a new net are the crew's open lines (E3 post-processing, correction
+  history / CorrHistPlus), and a new net needs the GPU (npt owns it until Nov 8).
+- Singular-extension and multi-cut refinements were not picked: FB2-J3's SingularV2 (triple / PV double extensions,
+  multicut on the singular score, deeper negative extensions) is prepared but never gated, and Sf26MulticutCorr is a
+  queued crew line. A lock port of SingularV2 is the natural next SE candidate.
+- x2 (TtPruneV2 on QA's B1 build a0d0eca9) is NOT gateable: the option is not advertised there and has no effect.
+  x2b (TtPruneV2 on the R13 handoff build e950c77e, which advertises it) has the R15 checks but no Code Review pass.
+- Branch history keeps ~11 MB (compressed) of the five 35 MB records committed before the fix (no force-push).
+- The forge-uci MCP server is registered with its path inside the worktree D:\o15\wt; if the worktree moves, run
+  `bash opus_r15/mcp/setup_forge_mcp.sh <new path>` (it never rewrites an existing entry: remove it first by hand).
+- Plugins: none (the two skills and the server cover the workflows).
+- Low-priority free lines not run: the lock's own off-by-default tunables FailLowContinuationBonus 100 and
+  CaptureFutilityBase 300 were tested in the h256e12 era (2,097 and 5,882 games, about 50 %, inconclusive); they need
+  no build if the crew wants them.
+
+## Owner items
+1. Crew: gate the INDEX lines as singles in the order of "Gate next" ([0, 5]); CR the R15 exes first (the CR_PASS
+   files are the crew's). Precondition per line on the gate PC: OFF = lock pins, ON = the INDEX ON bench.
+2. Crew / CR: decide whether x2b (TtPruneV2 alone on e950c77e) is worth a CR pass; on a0d0eca9 only BundlePreset works.
+3. Bundles only after singles reach H1; C2 + C3 (both prune) and C1 + C4 (both move depth) interact - gate them apart.
+4. If C1-C6 or x1 reach H1: an ON-default build and a confirm gate on the other book.
+
+## Time (from the commits and the clock, not estimated)
+- Planning (plan mode, read-only) 11:06-11:31 PC clock; first R15 commit 47199b71 at 11:33:50; at 13:25:37 the branch had
+  20 commits (11:33 -> 13:25, 1 h 51 min, no pause over 30 min, `opus_r15/tools/commit_span.py`); the final report and
+  its push follow (last commit = the one that adds this file). About 2 h 40 min of the ~6 h budget were used.
+- What the unused time did not buy: no seventh candidate (the brief asked for 4 to 6), no SE / multi-cut port
+  (SingularV2 is the obvious next one), no ON-default exes, no speed figures (not wanted on the loaded PC), no games.
+- Pushes about every 10 minutes from 12:30 on; earlier pushes every 2-5 minutes cancelled most CI runs (concurrency
+  group) - the green runs that matter are 41624580607 and 41628366851, and the run of the final commit.

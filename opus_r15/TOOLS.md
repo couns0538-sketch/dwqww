@@ -8,9 +8,9 @@ re-runnable, refuses to overwrite its outputs, and has a self-test with planted 
 | tool | for | verify (self-test, last result) |
 |---|---|---|
 | pin_check.ps1 | any exe vs the lock pins (bench d11/13/16 [+20/22], perft 5 x2); ON lines must be advertised, in range, accepted, live | `bash test_pin_check.sh D:\o15\logs\<new>` -> 12 / 12 |
-| cand_pack.ps1 | patch -> gate-ready exe + RESULT.json + INDEX row (kit pc1 = pc2, pins, smoke, lint) | `bash test_cand_pack.sh <new>` -> 9 / 9; C1-C5 full runs PASS |
+| cand_pack.ps1 | patch -> gate-ready exe + RESULT.json + INDEX row (kit pc1 = pc2, pins, smoke, lint) | `bash test_cand_pack.sh <new>` -> 10 / 10; C1-C6 full runs PASS, -NoPatch = FD3A5190 |
 | kit_build_r15.sh | QA kit v2.3 `-Expose` wrapper for D:\o15 (fixed pc_gate, disk floors) | unpatched lock -> sha256 fd3a5190... (opus_r15/base/) |
-| smoke2m.py | 2-minute timed ON self-play, legality by the engine's own perft 1, crash / hang / time loss | `bash test_smoke2m.sh <new>` -> 11 / 11 + 5 |
+| smoke2m.py | 2-minute timed ON self-play, legality by the engine's own perft 1, crash / hang / time loss | `bash test_smoke2m.sh <new>` -> 12 / 12 + 5 (incl. the clock-swap stub) |
 | cleanroom_lint.py | patches and commit messages: no names / licence headers / protected files | `python -I -B test_cleanroom_lint.py <new>` -> 15 / 15 |
 | make_index.py | INDEX.md from the RESULT.json + ci.json records | run by cand_pack; output `D:\o15\cands\INDEX.md` |
 | index_check.py | before queueing: hashes, record checks, CI, advertised option + range | `python -I -B test_index_check.py <new>` -> 8 / 8 |

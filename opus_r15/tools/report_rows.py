@@ -47,17 +47,28 @@ def main():
         c = r.get('checks', {})
         cells = ['PASS' if c.get(k, {}).get('ok') else ('-' if k not in c else 'FAIL') for k in keys]
         sm = load(os.path.join(r['_dir'], 'smoke_fixedclock.json'))
-        smt = (f"{sm['verdict']} {sm['games']} g / {sm['illegal']} ill / {sm['crashes']} cr" if sm else 'n/a')
+        if sm:
+            smt = f"{sm['verdict']} {sm['games']} g / {sm['illegal']} ill / {sm['crashes']} cr"
+        elif r.get('started', '') >= '2026-11-03 12:38' and r.get('smoke'):
+            ps = r['smoke']   # packed after the 12:37 clock fix: the pack's own smoke used the fixed tool
+            smt = f"{ps.get('verdict')} {ps.get('games')} g / {ps.get('illegal')} ill / {ps.get('crashes')} cr (pack smoke)"
+        else:
+            smt = 'n/a'
         cc = load(os.path.join(r['_dir'], 'cand_checks.json'))
         cct = 'n/a'
         if cc:
             s = cc.get('summary') or {}
-            cct = f"{cc.get('result')}: mates at 3M OFF {s.get('OFF')} / ON {s.get(r['option'] + '=' + r['on'])}"
-            if cc.get('fail'):
-                cct += f" ({len(cc['fail'])} flip)"
+            legal = all(x.get('legal') for x in (cc.get('checks') or {}).get('smoke', []))
+            cct = (f"T1/T4 {'legal' if legal else 'ILLEGAL'}; mates at 3M OFF {s.get('OFF')} / ON "
+                   f"{s.get(r['option'] + '=' + r['on'])}")
             mr = load(os.path.join(r['_dir'], 'mate_reprobe.json'))
-            if mr:
-                cct += '; 30M re-probe: ' + ', '.join(f"{f['off_N']} / {f['on_N']} -> {f['verdict']}" for f in mr['flips'])
+            if mr and mr['flips']:
+                kinds = [f['verdict'] for f in mr['flips']]
+                allh = all(k.startswith('horizon') for k in kinds)
+                cct += (f"; {len(kinds)} flip(s) re-probed at 30M: " +
+                        ('all horizon flips, both solve them' if allh else '; '.join(kinds)))
+            elif not cc.get('fail'):
+                cct += '; no flips'
         ci = load(os.path.join(r['_dir'], 'ci.json')) or {}
         print(f"| {r['name']} | " + ' | '.join(cells) + f" | {smt} | {cct} | {ci.get('conclusion', '?')} {ci.get('run', '')} |")
     print()
