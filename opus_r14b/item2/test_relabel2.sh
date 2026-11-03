@@ -146,5 +146,40 @@ expect 0 run_resume "$PY" -I -B "$R" run --job jk --run-id m --probe "$P" --node
 expect 0 assemble_resumed "$PY" -I -B "$R" assemble --job jk --run-id m
 for f in train.txt val.txt labels.tsv; do check "resumed_equals_uninterrupted_$f" cmp -s "jm/final/$f" "jk/final/$f"; done
 echo "interrupted attempts kept: $(ls -d jk/shards/*.part.* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
+# every refusal must give the expected reason: a missing file or a crash can also end with exit 2 / 3 / 4
+while read -r name text; do
+  check "reason_$name" grep -qF -- "$text" "$name.err"
+done <<'EOF'
+prepare_bad_fen_fields bad_fen_fields.txt:51: original full FEN required
+prepare_bad_piece bad_piece.txt:51: invalid character in position part of fen
+prepare_bad_score bad_score.txt:51: invalid literal for int()
+prepare_bad_result bad_result.txt:51: invalid result: 0.7
+prepare_bad_fields bad_fields.txt:51: expected FEN | STM score | White result
+prepare_bad_empty_line bad_empty_line.txt:51: empty line
+prepare_bad_terminal bad_terminal.txt:51: terminal position (no legal move) cannot be searched
+prepare_bad_noresult bad_noresult.txt:51: no game result
+prepare_bad_tab bad_tab.txt:51: FEN contains a tab
+prepare_missing_file no_such_file.txt: input file not found
+prepare_existing_job job directory exists
+prepare_same_file_twice same file or same content as input 0
+prepare_same_content_twice same file or same content as input 0
+prepare_val_ppm_range 0 <= --val-ppm <= 1000000
+prepare_input_changed changed while prepare read it
+prepare_normalized_overlap must be in source order
+prepare_j2_normalized --jobs 2 reads --selfplay input only
+prepare_j3 --jobs 1 or 2
+prepare_files_out_of_order give the --selfplay files in name order
+run_not_a_job not a prepared job
+run_missing_probe probe no_such_probe.exe not found
+run_shard_size_zero --shard-size >= 1
+run_bad_until --until 'tomorrow' is not YYYY-MM-DD HH:MM
+run_other_nodes configuration differs from run_config.json: ['nodes']
+run_other_shard_size configuration differs from run_config.json: ['shard_size']
+run_other_run_id run id other != job run id g
+assemble_unfinished shard 2 is not published
+run_tampered_shard shard_00001: labels.tsv sha256 differs from its manifest
+run_tampered_rows rows.tsv differs from prepare.json
+assemble_again final exists
+EOF
 echo "failures: $fails"
 exit $((fails > 0))
