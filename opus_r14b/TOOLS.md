@@ -285,3 +285,5 @@ lines in the memory note. One more finding while reading the check scripts:
 - F-9 (record): item 1 RESULTS' review record of 13:45 still listed three TODOs; a dated note now says what was done
   later and that the loss match WITH validation was never run (RAM floor at L1 1024), the validation batches being
   shown byte-identical instead.
+
+Closed 05:12 by the PC clock (read with `date` when this line was written): F-1..F-9 fixed and recorded, the fresh-clone checks and two final_checks dry runs with 0 failures, test_tools 37 / 37, test_installer 28 / 28. Anything found after this goes to FINAL_REPORT.md as an owner item.

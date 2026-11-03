@@ -156,7 +156,7 @@ helpers with broken input: H14-1..H14-10 fixed, one of them an output file empti
 02:25-02:34 (files overwritten, checks that pass on failure: H15-1..H15-7 fixed, among them the launcher running a
 program on every CPU when given a bad mask), #16 03:25-03:35 (item 1's documents against its code, its tools with
 wrong arguments: H16-1..H16-7 fixed, among them the acceptance compare passing junk); details in each RESULTS.md and
-TOOLS.md. Final 1-hour bug hunt from 04:13 (TOOLS.md): F-1..F-8 fixed - among them the installer's live-folder guard
+TOOLS.md. Final 1-hour bug hunt 04:13-05:12 (TOOLS.md): F-1..F-9 fixed - among them the installer's live-folder guard
 missing the `\\?\` spelling of the live trainer folder (F-8) and pc_gate.ps1 passing a CPU that does not exist (F-1);
 the fresh-clone checks again with 0 failures; a second claims audit.
 
