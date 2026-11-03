@@ -1,0 +1,36 @@
+{
+  "base_proof_sha256": "6e2354dffa7d273eca732bafac8c54c2830fe8d9a677cc217801a8f599c43c00",
+  "before_header_method": "    def end_headers(self):\n        board = self.game.headers.board()\n        if type(board) is not chess.Board or board.chess960:\n            raise ValueError('PGN must describe standard chess')\n        return super().end_headers()\n",
+  "before_records_sha256": "1cca85d356d5fb6ba4f0c5bcc01f15da77e794fcdce135449277dc40a4196e71",
+  "current_header_method": "    def end_headers(self):\n        if self.original_headers.get('SetUp') == '1' and 'FEN' not in self.original_headers:\n            raise ValueError('original PGN FEN required when SetUp is 1')\n        if 'FEN' in self.original_headers:\n            board_from_fen(self.original_headers['FEN'])\n        board = self.game.headers.board()\n        if type(board) is not chess.Board or board.chess960:\n            raise ValueError('PGN must describe standard chess')\n        return super().end_headers()\n",
+  "current_records_sha256": "8fe0e9e529bbd65ef3fcdf764ad96705696f66ec8d52188943676fc0623af406",
+  "inherited_receipts": {
+    "bounded_filter.json": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\bounded_filter.json",
+      "sha256": "a45613616e4722aee8d3f885b64136b0ffdbf7bdbef4b23885dc06768db5fe5e"
+    },
+    "identity": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\identity_receipt.json",
+      "sha256": "c522ff680f6fc3ba77a6f677614c2ed509d3313e180558158df6d1b5d64a9683"
+    },
+    "native_admission.json": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\native_admission.json",
+      "sha256": "45d18f32cb7f663bf2b054a73f55c3b5dd40ca746043b9d2691eb8e262b82327"
+    },
+    "orientation": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\orientation_receipt.json",
+      "sha256": "b5c4ca4e4795232edf9e993f5f9dfa4258daff8286efce22c2eea286c16d3364"
+    },
+    "published_verify.json": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\published_verify.json",
+      "sha256": "38462500463c74f2c8b65bb66446780e4e2e38794d5f7730fe9fdb525d5a007e"
+    },
+    "shared_selfplay_source.json": {
+      "path": "C:\\astra8_data\\extension5h_20261103\\input_repair_validation\\shared_selfplay_source.json",
+      "sha256": "a38723013d7b2e2b6b0d7cb8486697884874408ac7ae849d16ad3666ebc72bf1"
+    }
+  },
+  "limitation": "Prior 100k identity, 1000 result/mirror and filter proofs retain their original module identity. Only the PGN header method changed; these are not fresh reruns.",
+  "status": "PASS",
+  "unchanged_module_rest_sha256": "1d1dd22400215189cd114126ac4475c44e929c42eab763b3da995c81d1c12404"
+}

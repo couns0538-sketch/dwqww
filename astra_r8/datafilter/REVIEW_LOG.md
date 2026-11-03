@@ -958,7 +958,7 @@ text read omitted explicit UTF-8; the shell continued to commit/push. No data or
 code result was affected. This follow-up restores current RESULTS/REVIEW_LOG;
 subsequent multi-step commit commands check the edit process exit before staging.
 
-### PGN repair substantive recheck - 08:41 UTC
+### PGN repair substantive recheck - 08:40 UTC
 
 Reviewer approved exact records.py8fe0e9e5...3af406 and tests9598365d...8bfd1.
 Missing raw clocks, repaired clocks and SetUp=1 without FEN now fail before
@@ -973,3 +973,19 @@ node IDs. No tests are removed; reordering avoids consuming the large checkpoint
 fixture storage before conservative resource guards in other tests. New proof
 must retain earlier module identities for unchanged self-play checks and use
 separately named v9 outputs. Final approval remains conditional on those checks.
+
+### V9 proof closure and packer review - 08:52 UTC
+
+Reviewed verify_pgn_repair.py f301cc21...0bf completed at08:43:38, exit0.
+Current native admission passed999,953rows in59.664s; the complete proof took
+99.200s (command104.473). Both CPU preflights and strict v9 verification PASS,
+manifest c43e2498...56291. Protected v7 and installed runtime remain unchanged.
+Prior self-play identity/result/filter proofs are inherited through exact-byte
+source comparison outside the sole PGN header method; they are not fresh reruns.
+
+The full564-case suite is active with identical collection sets and integration
+last. Separately, packer PGN-mode collection checks passed24 authored fixtures.
+Reviewer then found that bound_inputs could omit inherited receipts/snapshot.
+Three RED cases reproduce omitted dependencies; healthy/conflicting controls
+passed. Main now derives mandatory links from the hard-pinned base COMPLETE;
+regression verification and substantive recheck remain required before use.

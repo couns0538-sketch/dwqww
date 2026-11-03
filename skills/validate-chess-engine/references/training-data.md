@@ -327,6 +327,15 @@ deterministic tie handling. Unknown state requires an explicit schema and guards
 at every consumer; rejecting an incomplete source is safer than making its
 synthetic counters look known. Data licensing and code licensing are separate.
 
+Validate raw structured input before a library normalizes it. A PGN reader can
+fill missing FEN clocks, repair fullmove zero, or normalize otherwise rejected
+text before the downstream board validator sees it. Validate every original FEN
+header first; SetUp=1 without FEN is missing state, while an ordinary PGN with
+neither header legitimately starts from the standard position. Cover the reader,
+filter and result-aware converter, later games, valid custom starts, and the
+unchanged legacy path. A known full FEN and an invented default are different
+contracts even when they produce the same normalized board.
+
 A successful hash before a separate indexing pass does not bind the indexed
 bytes if the identity baseline is captured only afterward. Pin before and after
 indexing and check the opened handle as well as the path; a temporarily redirected
@@ -354,6 +363,14 @@ actual runtime's documented stat semantics and verify path/handle agreement.
 Path stat and fstat may even report different ctime meanings in the same Python
 build. Preserve full path identity, compare the handle's device/file ID, size
 and mtime, and qualify any clock comparison with healthy platform controls.
+
+Before adding a full verification run, budget its retained artifacts and the
+conservative allowances checked by later stages. If test ordering changes to
+preserve that headroom, compare exact collected node IDs and counts with the
+broad suite, reject duplicates or omissions, and retain the actual command.
+Never remove old evidence or silently omit cases to make a budget pass.
+Use explicit UTF-8 for document reads and writes on Windows, and check each
+preparation command's exit before a dependent commit or push.
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

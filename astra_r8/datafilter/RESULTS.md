@@ -1,6 +1,21 @@
 # Astra R8 Job 2 — UNPROVEN
 
-08:41 UTC repair checkpoint: both raw-FEN and SetUp=1-without-FEN fixes are
+08:52 UTC: v9 verification PASS, manifest SHA256
+c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291.
+All 999,953 selected rows pass current native admission (59.664s), with zero
+transport-string changes. Both CPU recipe preflights, strict handoff checks,
+runtime identity and protected v7 checks PASS. Driver99.200s, command104.473s.
+Source-lineage proof confirms the only records.py change is end_headers; prior
+legacy/result/filter evidence keeps its original identity. Exact receipts:
+[evidence/extension5h/verified_v9](evidence/extension5h/verified_v9/COPIES.json).
+
+The complete reordered 564-case suite is IN_PROGRESS; no tests were removed.
+Final packer review reproduced three omissions in inherited-link validation;
+the repair is implemented and awaits regression checks/review before packaging.
+CodeRabbit's broad comparison remains blocked; no clean remote review is claimed.
+
+
+08:40 UTC repair checkpoint: both raw-FEN and SetUp=1-without-FEN fixes are
 independently approved. Final reviewed records.py SHA256:
 8fe0e9e529bbd65ef3fcdf764ad96705696f66ec8d52188943676fc0623af406.
 The companion fix passes 51 PGN checks; the earlier broader affected run passed
