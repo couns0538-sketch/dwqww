@@ -1,3 +1,4 @@
+#Requires -Version 7
 param(
     [Parameter(Mandatory=$true)][string]$Script,
     [string[]]$ScriptArguments = @(),
@@ -8,8 +9,8 @@ param(
     [switch]$WithDatafilterRuntime
 )
 $ErrorActionPreference='Stop'
-$root = 'D:\a13'
-$python = 'D:\a11\runtime\python\python.exe'
+$root = 'D:\a14'
+$python = 'D:\a14\runtime\python\python.exe'
 function Assert-OwnedPath([string]$Candidate) {
     $full=[IO.Path]::GetFullPath($Candidate)
     if ($full -ne $root -and -not $full.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Path outside owned root' }
@@ -36,8 +37,8 @@ $scriptFull = [IO.Path]::GetFullPath($Script)
 Assert-OwnedPath $scriptFull
 if ([IO.Path]::GetExtension($scriptFull) -ne '.py') { throw 'Only Python entry points are supported' }
 if (-not $scriptFull.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $scriptFull -PathType Leaf)) { throw 'Script outside owned root or missing' }
-if ($RequiredBytes -lt 0 -or (Get-PSDrive D).Free -lt (50GB + $RequiredBytes)) { throw '50 GiB plus allocation admission refused' }
-$run = Join-Path $root ('evidence\runs\' + $RunName)
+if ($RequiredBytes -lt 0 -or (Get-PSDrive D).Free -lt (50GB + $RequiredBytes) -or (Get-PSDrive C).Free -lt 30GB) { throw '50 GiB plus allocation admission refused' }
+$run = Join-Path $root ('evidence\test_logs\r14\launchers\' + $RunName)
 Assert-OwnedPath $run
 if (Test-Path -LiteralPath $run) { throw 'Refusing reused run directory' }
 $samples = Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor
@@ -47,38 +48,36 @@ if ($Cpu -eq -1) {
 } else { $usage = $samples | Where-Object Name -eq ([string]$Cpu) }
 if (-not $usage -or [int]$usage.PercentProcessorTime -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProcessorTime)% busy" }
 New-Item -ItemType Directory -Path $run, (Join-Path $run 'tmp') | Out-Null
-$env:PYTHONDONTWRITEBYTECODE='1'
-$env:PYTHONNOUSERSITE='1'
-$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
-$env:CUDA_VISIBLE_DEVICES='-1'
-$env:HIP_VISIBLE_DEVICES='-1'
-$env:ROCR_VISIBLE_DEVICES='-1'
-$env:OMP_NUM_THREADS='1'
-$env:MKL_NUM_THREADS='1'
-$env:OPENBLAS_NUM_THREADS='1'
-$env:NUMEXPR_NUM_THREADS='1'
-$env:TEMP=Join-Path $run 'tmp'
-$env:TMP=$env:TEMP
-$env:TMPDIR=$env:TEMP
-$env:TORCH_HOME=Join-Path $env:TEMP 'torch'
-$env:TORCHINDUCTOR_CACHE_DIR=Join-Path $env:TEMP 'inductor'
-$env:TRITON_CACHE_DIR=Join-Path $env:TEMP 'triton'
-$env:PYTHONPYCACHEPREFIX=Join-Path $env:TEMP 'pycache'
-$env:MPLCONFIGDIR=Join-Path $env:TEMP 'matplotlib'
-$env:XDG_CACHE_HOME=Join-Path $env:TEMP 'xdg-cache'
-$env:XDG_CONFIG_HOME=Join-Path $env:TEMP 'xdg-config'
-$env:HF_HOME=Join-Path $env:TEMP 'huggingface'
-$env:ASTRA_R13_CPU=[string]$Cpu
-$env:ASTRA_R13_DEADLINE=([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+$TimeoutSeconds).ToString()
-if ($WithDatafilterRuntime) {
-    $env:PYTHONPATH='D:\a13\tools;F:\nnue_pytorch\venv\Lib\site-packages'
-    $env:ASTRA_NPT_ROOT='F:\opus_scratch\r6\nnue-pytorch-amd'
-    $env:NNUE_DATA_LOADER_LIB='F:\opus_scratch\r6\nnue-pytorch-amd\build\libtraining_data_loader.dll'
-} else { $env:PYTHONPATH='D:\a13\tools' }
+$childEnvironment=@{}
+$childEnvironment['PYTHONDONTWRITEBYTECODE']='1'
+$childEnvironment['PYTHONNOUSERSITE']='1'
+$childEnvironment['PYTEST_DISABLE_PLUGIN_AUTOLOAD']='1'
+$childEnvironment['CUDA_VISIBLE_DEVICES']='-1'
+$childEnvironment['HIP_VISIBLE_DEVICES']='-1'
+$childEnvironment['ROCR_VISIBLE_DEVICES']='-1'
+$childEnvironment['OMP_NUM_THREADS']='1'
+$childEnvironment['MKL_NUM_THREADS']='1'
+$childEnvironment['OPENBLAS_NUM_THREADS']='1'
+$childEnvironment['NUMEXPR_NUM_THREADS']='1'
+$childEnvironment['TEMP']=Join-Path $run 'tmp'
+$childEnvironment['TMP']=$childEnvironment['TEMP']
+$childEnvironment['TMPDIR']=$childEnvironment['TEMP']
+$childEnvironment['TORCH_HOME']=Join-Path $childEnvironment['TEMP'] 'torch'
+$childEnvironment['TORCHINDUCTOR_CACHE_DIR']=Join-Path $childEnvironment['TEMP'] 'inductor'
+$childEnvironment['TRITON_CACHE_DIR']=Join-Path $childEnvironment['TEMP'] 'triton'
+$childEnvironment['PYTHONPYCACHEPREFIX']=Join-Path $childEnvironment['TEMP'] 'pycache'
+$childEnvironment['MPLCONFIGDIR']=Join-Path $childEnvironment['TEMP'] 'matplotlib'
+$childEnvironment['XDG_CACHE_HOME']=Join-Path $childEnvironment['TEMP'] 'xdg-cache'
+$childEnvironment['XDG_CONFIG_HOME']=Join-Path $childEnvironment['TEMP'] 'xdg-config'
+$childEnvironment['HF_HOME']=Join-Path $childEnvironment['TEMP'] 'huggingface'
+$childEnvironment['ASTRA_R13_CPU']=[string]$Cpu
+$childEnvironment['ASTRA_R13_DEADLINE']=([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+$TimeoutSeconds).ToString()
+if ($WithDatafilterRuntime) { throw 'Protected runtime access is forbidden' }
+$childEnvironment['PYTHONPATH']='D:\a14\tools'
 $process=[Diagnostics.Process]::GetCurrentProcess()
 $oldPriority=$process.PriorityClass
 $oldAffinity=$process.ProcessorAffinity
-$started=[DateTime]::UtcNow.ToString('o')
+$started=((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')+' Vienna')
 $scriptHash=(Get-FileHash -LiteralPath $scriptFull -Algorithm SHA256).Hash.ToLower()
 $sourcesBefore=Get-SourceIdentity
 $stopReason=$null
@@ -88,6 +87,7 @@ $child.StartInfo=[Diagnostics.ProcessStartInfo]::new()
 $child.StartInfo.FileName=$python
 $child.StartInfo.WorkingDirectory=$root
 $child.StartInfo.UseShellExecute=$false
+foreach ($key in $childEnvironment.Keys) { $child.StartInfo.Environment[$key]=[string]$childEnvironment[$key] }
 $child.StartInfo.CreateNoWindow=$true
 $child.StartInfo.RedirectStandardOutput=$true
 $child.StartInfo.RedirectStandardError=$true
@@ -109,7 +109,7 @@ try {
     $copyErr=$child.StandardError.BaseStream.CopyToAsync($errStream)
     $watch=[Diagnostics.Stopwatch]::StartNew()
     while (-not $child.WaitForExit(1000)) {
-        if ((Get-PSDrive D).Free -lt 50GB) { $stopReason='DISK_FLOOR' }
+        if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) { $stopReason='DISK_FLOOR' }
         if ($watch.Elapsed.TotalSeconds -ge $TimeoutSeconds) { $stopReason='DEADLINE' }
         if ($copyOut.IsFaulted -or $copyErr.IsFaulted) { $stopReason='CAPTURE_FAILED' }
         if ($stopReason) {
@@ -141,7 +141,7 @@ try {
 }
 $scriptAfter=$null
 $sourcesAfter=@{}
-if ((Get-PSDrive D).Free -lt 50GB) {
+if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) {
     Write-Output 'DISK_FLOOR: owned worker stopped; no receipt allocation or next job.'
     exit 70
 }
@@ -151,10 +151,10 @@ try {
     if ($scriptAfter -ne $scriptHash -or $sourcesBefore.Count -ne $sourcesAfter.Count) { throw 'Source identity changed' }
     foreach ($name in $sourcesBefore.Keys) { if ($sourcesBefore[$name] -ne $sourcesAfter[$name]) { throw "Source identity changed: $name" } }
 } catch { $nativeExit=70; $stopReason='SOURCE_CHANGED'; $exceptionMessage=$_.Exception.Message }
-$receipt=@{schema=2;script=$scriptFull;arguments=$ScriptArguments;python=$python;cpu=$Cpu;priority='Idle';threads=1;started=$started;finished=[DateTime]::UtcNow.ToString('o');exit_code=$nativeExit;stop_reason=$stopReason;exception=$exceptionMessage;free_bytes=(Get-PSDrive D).Free;required_bytes=$RequiredBytes;script_sha256_before=$scriptHash;script_sha256_after=$scriptAfter;source_sha256_before=$sourcesBefore;source_sha256_after=$sourcesAfter;log='output.log';stderr='stderr.log'}
-if ((Get-PSDrive D).Free -lt (50GB+1MB)) { Write-Output 'Receipt allocation reserve refused; no next job.'; exit 70 }
+$receipt=@{schema=2;script=$scriptFull;arguments=$ScriptArguments;python=$python;cpu=$Cpu;priority='Idle';threads=1;started=$started;finished=((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')+' Vienna');exit_code=$nativeExit;stop_reason=$stopReason;exception=$exceptionMessage;free_bytes=(Get-PSDrive D).Free;required_bytes=$RequiredBytes;script_sha256_before=$scriptHash;script_sha256_after=$scriptAfter;source_sha256_before=$sourcesBefore;source_sha256_after=$sourcesAfter;log='output.log';stderr='stderr.log'}
+if ((Get-PSDrive D).Free -lt (50GB+1MB) -or (Get-PSDrive C).Free -lt 30GB) { Write-Output 'Receipt allocation reserve refused; no next job.'; exit 70 }
 $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $run 'receipt.json') -Encoding utf8
 Get-Content -LiteralPath (Join-Path $run 'output.log') -Tail 22
 Get-Content -LiteralPath (Join-Path $run 'stderr.log') -Tail 22
-if ((Get-PSDrive D).Free -lt 50GB) { throw 'Disk floor breached; no next job' }
+if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) { throw 'Disk floor breached; no next job' }
 exit $nativeExit
