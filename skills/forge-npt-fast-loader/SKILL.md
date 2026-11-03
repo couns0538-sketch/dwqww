@@ -72,6 +72,13 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 - Equality: 1000/1000 train + 300/102 validation batches; trainer path 261/261 (every tensor); config matrix 24/24;
   3,100 batches of 10,000 (spanning windows) past the first file wrap; exact CPU loss match (5/5 logged values).
 - Loader-only ABBA (10 pairs, CPUs 2-3, same 3-thread layout): old 468k vs fast 4.04M kept positions/s = 8.65x.
+  Live thread setting (old `--num-workers 4` vs fast 2 builders): 6.25x on CPUs 2-3 (772k vs 4.82M), 7.19x on ONE
+  logical CPU (408k vs 2.91M): 2.45 vs 0.34 CPU-us per kept position; feeding the live line (121k-169k kept / s)
+  takes 0.30-0.41 of a CPU with the default loader, 0.04-0.06 with the fast one.
+- The live line's GPU use with the default loader (keeper's HWiNFO log, `opus_r14b/tools/gpu_util_stats.py` on
+  opus-r14b-status): 15:14-21:14 mean 45.7 %, >= 90 % in 4 % of samples - the before figure for the GPU window.
+- Damaged files (`tools/fl_fuzz.py`, 371 runs incl. a `-D_GLIBCXX_ASSERTIONS` build): clean errors, no crash, no hang.
+  Shared limit with the default loader: a cyclic stream over a file in which nothing passes the skip filter waits.
 - A full trainer epoch (152.5M positions, 1.55 B records) through the fast loader alone: 29.8 s, 166 MB peak.
 - CPU training on 2 CPUs: 11.4 vs 40.2 min for the same 64 batches (old loader threads starve torch); peak private
   4.1 vs 6.2 GB.
