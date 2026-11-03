@@ -457,3 +457,12 @@ RESULTS.) With this, every step of the verify chain has passed on the frozen cod
   (logs/fn_diff_frozen_vs_e01caaf1.txt): label_shard, new_game, board_stats, row_offsets, read_shard_rows, file_hash
   identical. New frozen sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602 (commit a3470e08),
   written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.
+
+## The final freeze end to end on R8 v5 data, through Forge's converters (22:53-22:54)
+`opus_r14b/checks/e2e_r8v5.sh` (branch opus-r14b-status; new): e01caaf1 on R8 v5 shards 271 + 272 with `--rows 3000`
+(cut at a game boundary: 2,859 rows), LTO+PGO probe at 20k nodes with 2 workers on CPUs 2-3, then status, assemble,
+fen2bin and hce_dump on both outputs: **11 / 11 PASS** in 30 s - fen2bin train 2,804 records / val 55, bad 0; hce_dump
+2,804 / 55, bad_fen 0, clamped 0; train + val rows = prepare.json; game_overlap 0; all 3 shards record the job's node
+limit / hash / probe sha256; a second run labels nothing; a second assemble is refused (exit 3). train.txt / val.txt /
+labels.tsv are byte-identical to the verify chain's run of 20:30 with the first freeze 88454db6 (C:\o14b\vc_2030):
+the three re-freezes changed no output (logs/e2e_r8v5_e01caaf1.log).
