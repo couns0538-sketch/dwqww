@@ -11,7 +11,7 @@
 # instrumented and the optimised build both link to the same work path OUT_DIR/w/fdp.exe (moved away after each
 # build), and missing-profile warnings stay on and are counted (a silent non-PGO build is the trap).
 # The search is deterministic (fixed nodes, state cleared per position), so the labels must stay bit-identical:
-# probe_bench.py checks that before any speed number is used. BelowNormal on CPU 2 (item 1's tools/lowrun.ps1);
+# probe_bench.py checks that before any speed number is used. BelowNormal on CPU 2 (lowrun.ps1 next to this script);
 # never overwrites (OUT_DIR must not exist).
 set -euo pipefail
 out=${1:?out dir}
@@ -19,7 +19,7 @@ train=${2:?training request file (id TAB analyze TAB fen per line)}
 [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
 here=$(cd "$(dirname "$0")" && pwd)
 src=$(cygpath -w "$here/../../opus_r13/p5/forge_data_probe.cpp")
-lowrun=$(cygpath -w "$here/../../../o14b-l1/opus_r14b/item1/tools/lowrun.ps1")
+lowrun=$(cygpath -w "$here/lowrun.ps1")   # own copy of item 1's launcher
 lock=/c/o13/p5/lock
 gxx='C:\msys64\ucrt64\bin\g++.exe'
 base="-O3 -DNDEBUG -std=gnu++20 -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"

@@ -7,7 +7,7 @@ usage:
   probe_bench.py run --exe PROBE --req REQ.tsv --out OUT.jsonl [--mask 0x4] [--nodes 20000]
   probe_bench.py compare A.jsonl B.jsonl          (every answer field except timing; exit 1 on any difference)
   probe_bench.py abba --a PROBE_A --b PROBE_B --req REQ.tsv --pairs 10 --out DIR [--mask 0x4]
-Runs go through item 1's tools/lowrun.ps1 (BelowNormal, one CPU), the request file on stdin. Speed = positions per
+Runs go through lowrun.ps1 next to this script (BelowNormal, one CPU), the request file on stdin. Speed = positions per
 second of wall time for the whole request file (ADVISORY; the probe's own cpu_ns is recorded too).
 """
 
@@ -21,8 +21,13 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LOWRUN = os.path.normpath(os.path.join(HERE, "..", "..", "..", "o14b-l1", "opus_r14b", "item1", "tools", "lowrun.ps1"))
+LOWRUN = os.path.join(HERE, "lowrun.ps1")  # own copy of item 1's launcher (same file, sha256 2c7fa58f...)
 TIMING = {"elapsed_ns", "cpu_ns", "process_cpu_ns"}
+# Student t, two-sided 95 %, by degrees of freedom (pairs - 1), checked against scipy.stats.t.ppf(0.975, dof);
+# 1.96 beyond 30. (Until 2026-11-02 19:15 only 10 pairs used t; other counts used 1.96, a too narrow CI.)
+T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
+        11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086,
+        21: 2.080, 22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
 
 
 def cmd_requests(a) -> int:
@@ -101,7 +106,7 @@ def cmd_abba(a) -> int:
     ratios = [b / x for x, b in zip(speed["A"], speed["B"])]
     if len(ratios) >= 2:
         m = statistics.fmean(ratios)
-        half = (2.262 if len(ratios) == 10 else 1.96) * statistics.stdev(ratios) / math.sqrt(len(ratios))
+        half = T975.get(len(ratios) - 1, 1.96) * statistics.stdev(ratios) / math.sqrt(len(ratios))
         lines += ["", f"A median {statistics.median(speed['A']):.2f}, B median {statistics.median(speed['B']):.2f} positions/s",
                   "per-pair B/A: " + " ".join(f"{r:.4f}" for r in ratios),
                   f"B/A median {statistics.median(ratios):.4f}, mean {m:.4f}, 95% CI {m - half:.4f} .. {m + half:.4f}",
