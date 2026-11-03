@@ -58,7 +58,9 @@ loader for `--features K32H3^`; the CPU loss match ran train.py with `--features
 The live line runs the default loader with `--num-workers 4`: several decode workers, each with its own adaptive
 filter state, mixed by thread timing (not reproducible run to run). The fast loader gives the deterministic
 `--num-workers 1` stream: same filter rules, a different sample of the same data. Loss values of a fast-loader epoch
-are therefore comparable to the live epochs only as a sanity check, not bit for bit.
+are therefore comparable to the live epochs only as a sanity check, not bit for bit. Measured (RESULTS.md,
+2026-11-02 18:25): over 32.8M positions each, old loader w4 vs fast loader differ by less than 0.001 total-variation
+distance in piece count, side to move, outcome, queen bucket and score histograms (mean score -1.17 SE).
 
 ## Optional trainer fix found on the way
 `train.py` builds the model before `torch.manual_seed`, and torch 2.11.0+rocm7.13.0 seeds from the clock per process:
