@@ -37,7 +37,7 @@ prepare -> run (LTO+PGO probe, 20k nodes, 2 workers) -> status -> assemble -> fe
 documents, the file indexes (must already be committed), `sha256sum -c` in fresh clones of both item branches, the
 hash sweep, test_tools.sh, the installer, scope and command-line tests (test_cli.py) from the item 1 clone,
 relabel2.py = the frozen sha256 of RELABEL_HANDOFF.md plus test_helpers.py and e2e_r8v5.sh from the item 2 clone /
-worktree, and every worktree clean and in sync. Dry runs 22:56 and 02:37: 8 / 8 steps PASS.
+worktree, and every worktree clean and in sync. Dry runs 22:56, 02:37 and 04:33: 8 / 8 steps PASS.
 
 `trainer_watch.sh OUT.tsv UNTIL_EPOCH` (read-only) samples the live npt trainer every 5 minutes: its CPU share on its
 own mask, the other processes there and the GPU utilisation of the same minutes (keeper's HWiNFO log); the overnight

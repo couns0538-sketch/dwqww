@@ -223,7 +223,7 @@ train.txt / labels.tsv of a scratch job under `C:/o14b/dir with spaces 2320/`) m
 of final_checks.sh would have failed at the end of the job (its dry runs were before hunt #10). Recomputed from the
 scratch files (equal) and added to the allow list with that reason; the sweep now reports 0 unmatched tokens.
 
-### Final 1-hour bug hunt (04:13-05:15 by the PC clock; self-review, NOT independent)
+### Final 1-hour bug hunt (from 04:13 by the PC clock, closing time at the end of this record; self-review, NOT independent)
 Scope (written 03:36, before the hunt): (a) this branch's own tools with wrong arguments and broken input - the
 classes hunts #13-#16 found elsewhere; (b) the adoption rehearsal from fresh clones again, since hunts #15-#16
 changed lowrun.ps1 and the acceptance tools after its last run (22:35); (c) a second claims audit of the reports.

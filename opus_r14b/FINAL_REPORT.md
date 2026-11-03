@@ -24,7 +24,7 @@ queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Id
 |---|---|---|---|
 | 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x (old w2 vs 1 builder) and **6.25x in the live thread setting** (old w4 vs 2 builders, 95% CI 6.13-6.60) - medians of 10 per-pair ratios, intervals of the mean ratio; distribution vs the live w4 layout: every total-variation distance < 0.001; **from a fresh clone: DLL rebuilt = b5, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) -> 261 / 261** (20:42, again 21:44 and 22:35-22:39 with the hardened installer, and 04:13-04:17 after hunts #15-#16); every out-of-scope setting refused with a clear message (test_scope.py 20 / 20); installer tests 28 / 28 (the live-folder guard under any spelling since the final hunt); HANDOFF.md | opus-r14b-fast-loader |
 | 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 e01caaf1...** (re-frozen 22:46 after shards started to record their settings; before that 56eef0a6... at 22:22 after the damaged-job harness: 29 findings, one silent - a lost run_config.json was re-created; earlier 88454db6... at 20:41 and 0a81dd5f... at 22:03 after a prepare fuzz finding); RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate) and a 50M runbook on R8 v5 shards 001-057; 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 then, 154 / 0 after the 22:03 re-freeze, 155 / 0 after the 22:22 and 22:46 ones, in the worktree and fresh clones, 157 / 0 at 23:06 with verify_job.py, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin and hce_dump: the final freeze's output = the first freeze's, byte for byte) | opus-r14b-relabel |
-| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 37 / 37 (04:24; the launcher's refusals added in hunt #15, six more tools' in the final hunt); engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry runs 22:56 and 02:37, 8 / 8 steps | opus-r14b-status |
+| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 37 / 37 (04:24; the launcher's refusals added in hunt #15, six more tools' in the final hunt); engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry runs 22:56, 02:37 and 04:33, 8 / 8 steps | opus-r14b-status |
 | P6 crfix 4b537823 (Couns ~20:57) | DONE: applied with patch -p1, rebuilt, P6 checks re-run, pushed | OFF = the corrected lock pins, WDL / DTZ 220 / 220, check50 20 / 20, fail-closed 9 / 9, CI 41515843128 green | opus-r13-p6-syzygy d1751ca1, 4bf626eb |
 
 ## Baseline and improvements (measured numbers only)
@@ -156,7 +156,17 @@ helpers with broken input: H14-1..H14-10 fixed, one of them an output file empti
 02:25-02:34 (files overwritten, checks that pass on failure: H15-1..H15-7 fixed, among them the launcher running a
 program on every CPU when given a bad mask), #16 03:25-03:35 (item 1's documents against its code, its tools with
 wrong arguments: H16-1..H16-7 fixed, among them the acceptance compare passing junk); details in each RESULTS.md and
-TOOLS.md. Final 1-hour bug hunt: 04:15-05:15 (STATUS.md plan).
+TOOLS.md. Final 1-hour bug hunt from 04:13 (TOOLS.md): F-1..F-8 fixed - among them the installer's live-folder guard
+missing the `\\?\` spelling of the live trainer folder (F-8) and pc_gate.ps1 passing a CPU that does not exist (F-1);
+the fresh-clone checks again with 0 failures; a second claims audit.
+
+## Time (from the commits: `tools/commit_span.py`, as of 04:36)
+315 distinct commits on the four branches between 12:19 and 04:32 (16h12): opus-r14b-status 124, fast-loader 82,
+relabel 107, opus-r13-p6-syzygy 2 (the P6 crfix). Six pauses over 30 minutes with no commit on any branch, 5h18 in
+all: 16:28-17:21 while the proof ran, the other five after 23:25 - the waits between the scheduled hunts. Most commits
+per hour: 19:00-23:00 (29-57). What the time did not buy: the GPU measurement of item 1 (no window granted), any
+independent review (no sub-agents after 13:45: every review is a self-review), the 50M relabel (not asked for), any
+Elo or training-quality claim.
 
 ## Deviations and incidents (honest record)
 - 15:22-16:27: dev test runs ran as a third Idle process next to the two proof probes on CPUs 2-3 (over the "<= 2
@@ -234,3 +244,12 @@ TOOLS.md. Final 1-hour bug hunt: 04:15-05:15 (STATUS.md plan).
   trainer, is the crew's decision (item 1 RESULTS; the overnight watcher log has the series).
 - Crew: free disk space is thin - D: dipped under its 50 GB floor at 04:13 (48.88 GB; 51.97 GB at 04:22) and F: had
   44.9 GB at 04:17 (under its 50 GB reserve); neither from Opus's work.
+- Not re-run after their last edit (honest record): item 1 `tools/b5_checks.sh` (hunt #15: exit code) and
+  `checks/verify_chain.sh` (final hunt F-7: calls the committed fresh-clone script). Both pass `bash -n`, and what
+  they call ran clean afterwards (fresh-clone checks 04:13-04:17, the item tests in final_checks.sh), but the two
+  scripts themselves have not run end to end since the change: their recorded results are from the versions before
+  (b5_checks 14:23, the chain 20:29-20:39). A full run takes minutes of CPU on CPUs 2-3 (the chain includes a 1M-row
+  prepare), so it was left to a quiet time.
+- Overnight watcher (item 1 RESULTS): with other work crowding its two CPUs the trainer's GPU use rose with its CPU
+  share; with free CPUs it still stayed near 40 %. CPU competition explains part of the low GPU use, not all of it -
+  the GPU window decides.
