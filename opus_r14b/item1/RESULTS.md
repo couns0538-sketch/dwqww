@@ -140,3 +140,16 @@ difference).
 - (19:27, works in Forge) The DLL needs no MinGW runtime: `objdump -p` lists only KERNEL32.dll and the Windows UCRT
   API sets (api-ms-win-crt-*), and Python loads it and reads its version with PATH = `C:\WINDOWS\system32;C:\WINDOWS`
   only (the trainer started by the queue does not have MSYS2 / Git folders on its PATH).
+
+## Bug hunt #2 (19:41-20:01; self-review, NOT independent)
+- H2-3 installer: the validation pass of `--loader-dll` printed "would copy" in a real install -> silent unless
+  --check. Check / install / second install on fresh copies of the live config.py + train.py: OK / patched + copied
+  (9eb29b7d..., 39af47b0...) / exit 2; the fresh install equals the tested trainer copy byte for byte.
+- H2-5 (documented, not changed): the filter walks a chunk in 34-byte records and would ignore a damaged chunk's tail
+  that is not a whole record instead of reporting it. Changing it means a new DLL and re-running every equality check
+  of b5, for a case that valid files cannot produce: a read-only header scan shows every chunk of both J1 binpacks is
+  whole records (train 9,915 chunks / 304,999,573 records, holdout 533 / 16,388,575 - the known counts). Noted in
+  HANDOFF.md's scope; a future loader version should report it.
+- The queue's wrapper `guard_exec.py` puts the script's own folder first on sys.path before runpy: a trainer copy at
+  any path imports its own modules and the installed forge_fastloader.py. The copy's opus_tools\guard_exec.py has the
+  adapter's pinned md5 0a794fbe..., so the GPU_REQUEST command works as written.

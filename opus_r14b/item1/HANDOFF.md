@@ -58,7 +58,8 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
 6. Roll back: remove `--npt-extra --fast-loader` (or `--npt-repo`); nothing else changes.
 
 ## Scope (fails closed with a clear error outside it)
-Unchained binpack records only (the J1 binpacks are unchained, 34 B / record), exactly one file per stream,
+Unchained binpack records only (the J1 binpacks are unchained, 34 B / record; every chunk of both J1 files holds whole
+records - a damaged chunk's partial tail would be skipped, not reported), exactly one file per stream,
 `--no-filtered --no-wld-filtered` without simple-eval skipping, loader feature set K32H3 (what the trainer hands the
 loader for `--features K32H3^`; the CPU loss match ran train.py with `--features K32H3^`), no DDP (world size 1). Anything else raises instead of silently differing from the default loader.
 
