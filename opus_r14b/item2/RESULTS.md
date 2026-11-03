@@ -466,3 +466,10 @@ fen2bin and hce_dump on both outputs: **11 / 11 PASS** in 30 s - fen2bin train 2
 limit / hash / probe sha256; a second run labels nothing; a second assemble is refused (exit 3). train.txt / val.txt /
 labels.tsv are byte-identical to the verify chain's run of 20:30 with the first freeze 88454db6 (C:\o14b\vc_2030):
 the three re-freezes changed no output (logs/e2e_r8v5_e01caaf1.log).
+
+## The 50M runbook as written, on the final freeze (23:00:02-23:00:24)
+RELABEL_HANDOFF.md's runbook commands, copied with only `--rows 3000` instead of 50000000 and a real `--until`, on
+R8 v5 shards 001-057 with e01caaf1 and the LTO+PGO probe: prepare exit 0 (2,973 rows in 35 whole games - the same
+cut as the 21:20 dry run), run 2,973 rows in 17 s (634,842 rows/h, the planning rate), status, assemble, fen2bin
+2,855 records = the train lines, bad 0 (logs/runbook_as_written_2300.log). One note added to the runbook: GNU
+sha256sum prints a leading "\" before the hash when the path contains backslashes (as `$P` does here).

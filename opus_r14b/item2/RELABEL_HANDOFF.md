@@ -105,7 +105,8 @@ R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 e01caaf1
 P=<your copy of the LTO+PGO probe>                               # sha256 08299f9f... (or the R13 probe ed76de96...)
 S=/d/grok-pc-data/selfplay_out_r8v5_20261029
 J=C:/<your folder>/relabel_r8v5_50m                              # a NEW folder on a drive with > 70 GB free
-sha256sum "$R" "$P"                                              # compare with the values above first
+sha256sum "$R" "$P"                                              # compare with the values above first (a path with
+                                                                 # backslashes makes sha256sum print a leading "\")
 $PY -I -B "$R" prepare --job "$J" --run-id r8v5-50m --rows 50000000 --jobs 2 --drop-terminal \
     --selfplay $(for i in $(seq -f %03g 1 57); do echo "$S/forge_selfplay_fast_$i.dedup.txt"; done)
 $PY -I -B "$R" run --job "$J" --run-id r8v5-50m --probe "$P" --nodes 20000 --workers 2 --mask 0xC \
