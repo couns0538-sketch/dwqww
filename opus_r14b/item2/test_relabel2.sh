@@ -210,6 +210,10 @@ expect 0 status_complete "$PY" -I -B "$R" status --job jm
 check status_complete_progress grep -q "final published" status_complete.out
 check no_final_part_left test -z "$(ls -d jm/final.part.* 2>/dev/null)"
 expect 3 assemble_again "$PY" -I -B "$R" assemble --job jm --run-id m
+# verify_job.py (read-only check of a finished job): the intact job passes, a copy with one extra byte does not
+expect 0 verify_job_intact "$PY" -I -B "$here/verify_job.py" jm
+cp -r jm jm_tampered && printf 'x' >> jm_tampered/final/train.txt
+expect 4 verify_job_tampered "$PY" -I -B "$here/verify_job.py" jm_tampered
 expect 0 prepare_kill "$PY" -I -B "$R" prepare --job jk --run-id m --selfplay big.txt --rows 1200
 expect 137 run_hard_exit "$PY" -I -B "$R" run --job jk --run-id m --probe "$P" --nodes 20000 --shard-size 100 --test-kill-after-seconds 5
 expect 0 run_resume "$PY" -I -B "$R" run --job jk --run-id m --probe "$P" --nodes 20000 --shard-size 100

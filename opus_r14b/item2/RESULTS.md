@@ -482,3 +482,17 @@ run keeps one byte offset per shard (5,000 for 50M rows) and labels 256 rows per
 the shards and keeps the game ids of each split in two sets (~0.6M short strings, tens of MB). So the 50M job needs
 about the memory of the 1M runs plus some tens of MB; the PC's RAM floor is not at risk. sort_normalized.py is the
 one tool that holds its input (R33: it checks the RAM first).
+
+## verify_job.py - the output checks in one read-only command (23:03-23:06)
+`verify_job.py JOB [--convert OUT_DIR]` (new; relabel2.py unchanged, so no re-freeze) checks a finished job before
+its labels are used: MANIFEST bytes / md5 / sha256 of the three files and its prepare.json hash, game_overlap 0;
+labels.tsv header, every row id once and in order, train.txt / val.txt = exactly the labels rows of their split as
+"FEN | score | result"; no game id in both splits; rows and split rows = prepare.json = MANIFEST; the shards
+re-hashed against MANIFEST's list; recorded shard settings = run_config.json; with `--convert` Forge's fen2bin and
+hce_dump on both outputs. Results (logs/verify_job/): the R8 v5 end-to-end job with `--convert` all PASS (17
+checks); the whole 1M PGO job all PASS in 1.7 s (md5s = the proof's, 10,781 train + 99 val games = its 10,880);
+planted damage on copies 6 / 6 as expected - a flipped byte in train.txt, two val.txt lines swapped with MANIFEST
+rewritten to match, one labels row dropped with MANIFEST rewritten to match, an edited shard node limit (each exit 4
+with the failing check named), final/ missing (exit 2), the intact copy (exit 0). Suite: two new cases
+(`verify_job_intact` exit 0, `verify_job_tampered` exit 4): **157 PASS / 0 FAIL** (23:05-23:06).
+RELABEL_HANDOFF.md "Checks before using the output" and the skill name the command.

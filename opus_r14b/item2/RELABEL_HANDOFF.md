@@ -130,6 +130,10 @@ shard and redoes the interrupted one in a new attempt folder (the old one is kep
 
 Checks before using the output: MANIFEST.json md5s, `game_overlap: 0`, train + val rows = prepare.json's rows, fen2bin
 `records` = lines with `bad=0`, hce_dump `bad_fen=0 clamped=0` (as on the 1M proof sample, logs/conv_full_1M.txt).
+All of them in one read-only command: `$PY -I -B verify_job.py "$J" --convert <new out dir>` (MANIFEST bytes / md5 /
+sha256, counts, every labels row once and in order, train.txt / val.txt = exactly those rows, no game in both splits,
+shards re-hashed against MANIFEST, shard settings = run_config.json, then fen2bin + hce_dump; exit 0 = all PASS, 4 =
+a named mismatch). The whole 1M PGO job: all PASS in under 2 s without `--convert` (logs/verify_job/).
 
 ## Cost (measured 2026-11-02, labels identical in every comparison; load on CPUs 2-3 logged next to every number)
 CPUs 2-3 (mask 0xC) are the two SMT threads of ONE physical core of the Ryzen 7 9850X3D: "2 workers" = 2 threads

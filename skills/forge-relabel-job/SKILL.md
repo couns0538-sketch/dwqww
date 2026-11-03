@@ -64,6 +64,9 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   of damaged job state x run / assemble / status = 105 runs, each wanting exit 4 / 3 / 2 with a reason line or a clean
   exit 0, never a traceback). Run it after any change; it refuses to start without relabel2.py, python, the self-play
   sample or the probe (`PY` / `SRC` / `PROBE`).
+- Before using a finished job's labels: `verify_job.py JOB --convert NEW_OUT_DIR` (read-only; MANIFEST hashes, counts,
+  every row once and in order, train / val = those rows, no game in both splits, shards re-hashed, shard settings,
+  fen2bin + hce_dump; exit 0 / 4). Whole 1M job: under 2 s without `--convert`.
 - A probe before a long run (10 s): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl`, then
   `probe_bench.py compare probe_ref_500_r13.jsonl new.jsonl` (exit 0 = the R13 probe's answers on all 500).
 - `build_probe_opt.sh <new dir>` rebuilds the probes from the branch alone (lock source via `git archive d4f4312`,
