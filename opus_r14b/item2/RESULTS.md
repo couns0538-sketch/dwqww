@@ -341,3 +341,11 @@ assembled with the branch code of 20:2x). Any later change to relabel2.py: `opus
 in the worktree and a fresh clone, bridge, function diff, new sha256) and the new sha256 in RELABEL_HANDOFF.md, this
 file, the skill, FINAL_REPORT.md and the memory note. Tools around it (build_probe_opt.sh, probe_bench.py,
 lowrun.ps1, ...) can change without touching the freeze; their checks are listed with each change.
+
+## Fresh-clone checks again after C1 / C2 (20:39-20:42; logs/chain_2030/fresh_checkout_rerun_2039.log): 0 failures
+Clone of this branch at 7fac1de1 (default core.autocrlf=true): suite 150 / 0; `build_probe_opt.sh` with its defaults
+(lock source exported from git: 20 files; committed pgo_train_2k.tsv: 2,000 training answers, 8 profile files):
+plain = R13's exe except the 5 PE timestamp / checksum bytes (137-139, 217-218), **LTO 565ddbf8... and PGO
+08299f9f... = the tested exes byte for byte**; the clone-built PGO probe answered probe_ref_500 **500 / 500 identical**
+to the R13 reference. (Item 1's part of the same run - DLL, self-test, acceptance, adoption rehearsal: item 1
+RESULTS.) With this, every step of the verify chain has passed on the frozen code.
