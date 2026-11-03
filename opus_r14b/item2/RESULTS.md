@@ -110,3 +110,20 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
   folder). Dev test script: **75 / 75 PASS** (logs/test_relabel2_dev_final.log; new: an input after the cut grows ->
   exit 0 and `"read": false`). The run took 39 min instead of ~2 min: Idle, starved next to the two proof probes and
   Astra's two BelowNormal jobs.
+
+## Review milestone R14B-I2-2 (15:55-16:30; structured self-review, NOT independent)
+- Candidate: dev copy `D:\o14b\r2\dev\relabel2.py` sha256 63be772c... (= `patches/post_proof_changes.patch`), with
+  test_relabel2.sh, measure_rates.sh, bridge_check.sh, label_stats.py; compared function by function with the frozen
+  5c88438f (logs/fn_diff_frozen_vs_post_proof.txt).
+- Read: every changed function (cmd_prepare, iter_rows, iter_rows_parallel / check_block, input_sources, check_args,
+  lock_job / open_job, cmd_run, cmd_assemble, main) plus the bridge / measurement scripts and the probe build scripts.
+- Findings and fixes: F8 (R8 v5 games across shard files; high for that data; fixed, real-data check), R17 (unread
+  inputs re-hashed; medium usability; fixed + test), R25 (the "not a prepared job" message gives no next step; low;
+  fixed). Checked and kept: --jobs 2 order / error / counter equivalence (tests), bounded blocks in flight (<= 5 x
+  4,096 lines), pool shutdown on a --rows cut (`rows.close()`), lock handle not inherited by probes or workers
+  (Python handles are non-inheritable), memory of a 50M job (games sets ~0.6M ids, offsets 5,000 entries).
+- Not changed, documented instead: game ids are per job (one job per dataset; RELABEL_HANDOFF.md); sort_normalized.py
+  holds its input in memory (split by source; its docstring says so); an interrupted prepare is redone in a new folder.
+- Checks: dev tests 75 / 75 PASS; scoped diff shows the labelling / resume path unchanged.
+- Next action: after the proof's `finish` (frozen code): bridge_check.sh, then promotion, then the full test script
+  from the branch copy.
