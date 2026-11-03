@@ -97,8 +97,9 @@ def patch(path: Path, pairs, check: bool) -> bool:
     return True
 
 
-def copy_loader(root: Path, dll: Path, check: bool) -> bool:
-    """--loader-dll: the DLL and this branch's forge_fastloader.py next to train.py; refuses to overwrite."""
+def copy_loader(root: Path, dll: Path, check: bool, quiet: bool = False) -> bool:
+    """--loader-dll: the DLL and this branch's forge_fastloader.py next to train.py; refuses to overwrite. With check
+    it only validates (and says what it would copy unless quiet)."""
     py = Path(__file__).resolve().parent.parent / "fastloader" / "forge_fastloader.py"
     pairs = [(dll, root / "forge_fastloader.dll"), (py, root / "forge_fastloader.py")]
     for src, dst in pairs:
@@ -111,7 +112,8 @@ def copy_loader(root: Path, dll: Path, check: bool) -> bool:
     for src, dst in pairs:
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
         if check:
-            print(f"would copy {src} -> {dst} (sha256 {digest})")
+            if not quiet:
+                print(f"would copy {src} -> {dst} (sha256 {digest})")
         else:
             shutil.copyfile(src, dst)
             print(f"copied {src} -> {dst} (sha256 {digest})")
@@ -134,7 +136,7 @@ def main() -> int:
         dll = Path(args[i + 1])
     ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
     if ok and dll is not None:
-        ok = copy_loader(root, dll, True)
+        ok = copy_loader(root, dll, True, quiet=not check)  # validate first: nothing is changed unless all is fine
     if not ok:
         return 2
     if not check:

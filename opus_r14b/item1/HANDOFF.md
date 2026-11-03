@@ -29,19 +29,22 @@ decoding a board and builds features in parallel. Evidence and numbers: RESULTS.
 GPU utilisation and it/s of a real epoch, and the adapter path below (the adapter starts a GPU run).
 
 ## Adopting it in the queue (Engine NNUE decides; never edit the live trainer folder in place)
-1. Make a trainer copy (e.g. `robocopy F:\opus_scratch\r6\nnue-pytorch-amd <COPY> /E`) and check its files against the
-   live tree (sha256 list) - `D:\o14b\npt` is such a copy, already switched. Checked 2026-11-02 16:04: the live tree
-   still equals the files that copy was made from (264 / 264 sha256 equal to `D:\o14b\npt_copy_manifest.txt`), so the
-   installer's anchors fit the trainer version the queue runs.
-2. `python -I -B tools/install_fast_loader.py <COPY> --check`, then without `--check` (exact anchors; refuses a trainer
-   that differs or is already patched, exit 2).
-3. Copy `forge_fastloader.dll` (sha256 above) and `forge_fastloader.py` next to `<COPY>\train.py` (or set
-   `FORGE_FAST_LOADER_DIR`; the adapter passes the queue's environment through).
-3b. Acceptance check, CPU only, GPU hidden (about 1 minute): `bash tools/fl_acceptance.sh <COPY> <new out dir>
-   [<copy of the live loader DLL>] [<fast loader folder>]` runs the trainer's own Dataset -> FixedNumBatchesDataset ->
-   DataLoader path with the old loader (w1) and the fast loader (w4) and compares every tensor of 200 training + 61
-   validation batches; exit 0 = identical. On `D:\o14b\npt` (2026-11-02 18:46): old 36 s, fast 6 s, **261 / 261
-   batches identical** (logs/acceptance/).
+1. Make a trainer copy (e.g. `robocopy F:\opus_scratch\r6\nnue-pytorch-amd <COPY> /E`) and check it against the
+   installer's base: `cd <COPY> && sha256sum -c <branch>/opus_r14b/item1/trainer_manifest_b2614500.sha256` (264 files,
+   all OK = the trainer version the installer's anchors were written for). `D:\o14b\npt` is such a copy, already
+   switched. Checked 2026-11-02 16:04: the live tree still matched (264 / 264).
+2. Build the DLL from this branch (`bash fastloader/build_fastloader.sh <new dir>`, ~1 minute; prints sha256, which
+   must be 9eb29b7d...) or use `D:\o14b\fl\b5_install\forge_fastloader.dll`.
+3. `python -I -B tools/install_fast_loader.py <COPY> --check --loader-dll <DLL>`, then the same without `--check`: it
+   patches config.py + train.py (exact anchors; refuses a trainer that differs or is already patched, exit 2) and
+   copies the DLL and this branch's `fastloader/forge_fastloader.py` next to `<COPY>\train.py` (never over an existing
+   file; prints both sha256). (Without `--loader-dll`, copy the two files yourself, or set `FORGE_FAST_LOADER_DIR`; the
+   adapter passes the queue's environment through.)
+3b. Acceptance check, CPU only, GPU hidden (about 1 minute): `bash tools/fl_acceptance.sh <COPY> <new out dir>` runs
+   the trainer's own Dataset -> FixedNumBatchesDataset -> DataLoader path with the old loader (w1; default: the copy's
+   own `build\libtraining_data_loader.dll`) and the fast loader (w4; default: the files next to its train.py) and
+   compares every tensor of 200 training + 61 validation batches; exit 0 = identical. On `D:\o14b\npt` (2026-11-02
+   18:46): old 36 s, fast 6 s, **261 / 261 batches identical** (logs/acceptance/).
 4. Queue line (adapter `F:\forge_nnue_train\tools\train_resid_nnuepytorch_v2.py`): add `--npt-repo <COPY>` and, as the
    LAST arguments, `--npt-extra --fast-loader` (`--npt-extra` takes the rest of the command line). Everything else
    stays as it is. `--num-workers N` sets the fast loader's feature-builder threads to N - 2 (at least 1; plus one
