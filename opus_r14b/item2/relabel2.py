@@ -186,6 +186,8 @@ def check_row(r) -> bool:
 
     if r["result_white"] is None:
         raise ValueError("no game result")
+    if not -32767 <= r["score_stm"] <= 32767:  # engine scores are int16 (mate ~32000); prepare fuzz, 2026-11-02 21:55
+        raise ValueError(f"score {r['score_stm']} outside -32767..32767")
     if not (r["fen"].isascii() and r["fen"].isprintable()):  # a tab would split rows.tsv columns
         raise ValueError("FEN contains a tab, control or non-ASCII character")
     return not any(chess.Board(r["fen"]).legal_moves)

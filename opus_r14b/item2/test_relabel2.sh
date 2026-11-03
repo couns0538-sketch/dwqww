@@ -39,12 +39,13 @@ head -n 400 "$src" > good.txt
 { head -n 50 good.txt; echo '7k/6Q1/6K1/8/8/8/8/8 b - - 0 60 | -32000 | 1'; } > bad_terminal.txt
 { head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 20 | ?'; } > bad_noresult.txt
 { head -n 50 good.txt; printf 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -\t0 1 | 20 | 0.5\n'; } > bad_tab.txt
-for f in bad_fen_fields bad_piece bad_score bad_result bad_fields bad_empty_line bad_terminal bad_noresult bad_tab; do
+{ head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 99999999999 | 0.5'; } > bad_score_range.txt
+for f in bad_fen_fields bad_piece bad_score bad_result bad_fields bad_empty_line bad_terminal bad_noresult bad_tab bad_score_range; do
   expect 2 "prepare_$f" "$PY" -I -B "$R" prepare --job "job_$f" --run-id t --selfplay "$f.txt"
   if [ -e "job_$f/rows.tsv" ]; then echo "FAIL prepare_$f published rows.tsv"; fails=$((fails + 1)); fi
 done
 # --jobs 2 (two checking processes): the same error, naming the same row, as --jobs 1
-for f in bad_piece bad_empty_line bad_terminal bad_tab; do
+for f in bad_piece bad_empty_line bad_terminal bad_tab bad_score_range; do
   expect 2 "prepare_j2_$f" "$PY" -I -B "$R" prepare --job "job_j2_$f" --run-id t --selfplay "$f.txt" --jobs 2
   check "prepare_j2_${f}_same_error" cmp -s "prepare_$f.err" "prepare_j2_$f.err"
 done
@@ -226,6 +227,7 @@ prepare_bad_result bad_result.txt:51: invalid result: 0.7
 prepare_bad_fields bad_fields.txt:51: expected FEN | STM score | White result
 prepare_bad_empty_line bad_empty_line.txt:51: empty line
 prepare_bad_terminal bad_terminal.txt:51: terminal position (no legal move) cannot be searched
+prepare_bad_score_range bad_score_range.txt:51: score 99999999999 outside -32767..32767
 prepare_bad_noresult bad_noresult.txt:51: no game result
 prepare_bad_tab bad_tab.txt:51: FEN contains a tab
 prepare_missing_file no_such_file.txt: input file not found
