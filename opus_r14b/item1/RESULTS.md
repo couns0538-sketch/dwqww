@@ -263,3 +263,7 @@ measurement: the GPU window decides (GPU_REQUEST.md).
 |---|---|---|---|
 | H5-6 | `tools/fl_acceptance.sh` passed the tools folder and the output folder unquoted inside lowrun's argument line: a path with a space (a checkout under `C:\Users\Some One\`) would split there | both paths quoted | acceptance into "C:\o14b\acc space test b5 2143": 261 / 261 |
 | H5-7 | since 19:24 the acceptance check takes the loader files next to the copy's train.py by default; `D:\o14b\npt` - the copy HANDOFF.md names - holds the superseded **b4** files (12:43), so the documented command on it now failed with an obscure AttributeError. Not a mix-up of evidence: the 18:46 run used the then-default b5 folder and its log names the b5 DLL (9eb29b7d...) | the check prints a note when the fast DLL is not b5; fl_dataset_equal.py stops with "forge_fastloader.py predates the b5 candidate" for a b4-era file; HANDOFF.md says what `D:\o14b\npt` holds and how to pass the b5 folder | stale copy: note + clear message (exit 1); b5 folder given: 261 / 261 |
+
+After H5-6 / H5-7: fresh-clone checks again (21:44-21:48, clones a64dd643 / 2a2a68dd): 0 failures - suite 150 / 0,
+probe builds = the tested exes (500 / 500 reference answers), DLL rebuilt = b5, acceptance 261 / 261, adoption
+rehearsal on a fresh live-trainer copy (264 / 264 = installer base) 261 / 261 (C:\o14b\vc_2144).
