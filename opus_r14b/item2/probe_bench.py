@@ -21,7 +21,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LOWRUN = os.path.join(HERE, "lowrun.ps1")  # own copy of item 1's launcher (same file, sha256 2c7fa58f...)
+LOWRUN = os.path.join(HERE, "lowrun.ps1")  # own copy of item 1's launcher (same file, sha256 cc7f28dd...)
 TIMING = {"elapsed_ns", "cpu_ns", "process_cpu_ns"}
 # Student t, two-sided 95 %, by degrees of freedom (pairs - 1), checked against scipy.stats.t.ppf(0.975, dof);
 # 1.96 beyond 30. (Until 2026-11-02 19:15 only 10 pairs used t; other counts used 1.96, a too narrow CI.)
