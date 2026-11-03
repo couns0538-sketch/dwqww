@@ -1,4 +1,7 @@
-# Opus R14-B final report (Couns's 15-hour job, 2026-11-02 12:05 -> 03:05 PC clock) - INTERIM 18:55, final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM 19:25, final at the end
+
+Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
+fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
 
 UNPROVEN everywhere: no Elo or training-quality claims; Engine NNUE / QA decide. Nothing of the live npt line, the
 queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Idle on CPUs 2-3 (deviations below).
@@ -19,9 +22,11 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
 | relabel throughput, 2 workers on one core | R13: 662,337 / 663,485 rows/h | LTO+PGO: 687,266 / 694,693 rows/h = **1.042x** | 19,927 rows, order R P P R, labels md5 identical |
 | 50M rows at 20k nodes, 2 workers (light crew load) | 75.4 h (R13) | 72.4 h (LTO+PGO) | rows / measured rate |
 | R8 v5 input (games run across shard files) | 5c88438f gives a game crossing a file two game ids (leak risk) | one game id (one input stream in name order) | test + real shards 271 / 272 |
-| input / job safety | 19 tests | 75 tests: F1-F8, R17, R25, R27, R28 fixed with a test each | test_relabel2.sh (relative call), RESULTS.md |
-| relabel output used by Forge's converter | not checked | fen2bin carries the new labels 1,200 / 1,200 | conv_check |
-| fast loader adoption | GPU_REQUEST.md only | HANDOFF.md: adapter path (`--npt-repo` + `--npt-extra --fast-loader`), live trainer = installer base (264 / 264 files), thread advice, distribution check | item 1 HANDOFF.md |
+| input / job safety | 19 tests | 75 tests + 30 reason checks (+ disk floor and status cases since 19:15): F1-F8, R17, R25, R27, R28 fixed with a test each; every refusal also checks its reason | test_relabel2.sh (relative call), RESULTS.md |
+| disk rule of the PC (C: / D: >= 50 GB) | not enforced by the tool | `--min-free-gb` (default 50): prepare / assemble refuse, run stops before the shard that would cross it | quick checks; test cases |
+| relabel output used by Forge's converters | not checked | fen2bin carries the new labels 1,200 / 1,200; hce_dump: 1,200 records, 0 bad | conv_check, conv_check2 |
+| fast loader adoption | GPU_REQUEST.md only | HANDOFF.md: adapter path (`--npt-repo` + `--npt-extra --fast-loader`), live trainer = installer base (264 / 264 files), thread advice, distribution check; one-command acceptance check (261 / 261); installer `--loader-dll` copies the loader files | item 1 HANDOFF.md, tools/fl_acceptance.sh |
+| works from a fresh clone | tools reached into other worktrees / scratch; a default clone (core.autocrlf=true) wrote CRLF and changed the documented hashes | own lowrun.ps1 copy; probe build exports the lock source from git and uses a committed training file; `opus_r14b/.gitattributes` keeps code LF (fresh clone: relabel2.py sha256 = the branch's) | fresh clone checks (more after the PGO run) |
 | regression caught by measuring | - | R27: a per-row `Path.resolve()` (76.7 us per call = 15.3 s per 200k rows) in the post-proof one-process prepare; the fix took it from 36.5 / 38.3 s to 17.9 / 18.1 s on the same 200k rows (2.05x, the same crew load: one BelowNormal job in both); output identical | logs/measure/resolvefix_check.log, post_chain.log |
 
 ## Item 1 - fast npt data loader (`opus_r14b/item1/`)
