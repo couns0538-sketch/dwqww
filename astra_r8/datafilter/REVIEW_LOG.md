@@ -1,5 +1,17 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: v4 verification closure
+
+Approved runtime-proof source 87963077 passes the full suite: 301 tests and
+11 subtests in 171.84 seconds, with unchanged runtime files. The exact owned
+profiler resumed successfully after a 172.5-second yield; its suspended CPU use
+was zero. Both CPU recipe preflights and strict verification from the published
+v4 path PASS. Manifest SHA256:
+`ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
+No new finding arose. Main assessed the actual results and refreshed the command
+paths. Next: original-line reservoir replay, native compatibility and final
+review/evidence packaging. No training, GPU or installed-runtime change.
+
 ## Six-hour continuation: complete approved-runtime proof
 
 Candidate base 7cb2264a. Verifier SHA256

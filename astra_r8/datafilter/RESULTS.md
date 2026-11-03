@@ -5,19 +5,18 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The v3 handoff and 290-test suite are verified for their
-source. The approved runtime-proof fix requires a new manifest; final review and
-the broader source-reservoir/native checks remain pending.
+their pinned source files. The current v4 handoff and 301-test suite are verified.
+Final review and the broader source-reservoir/native checks remain pending.
 
 | Success test | Current evidence |
 |---|---|
 | 1 Legacy identity | PASS: fresh 100k old/new train, validation and stats artifacts match exactly |
 | 2 Result orientation | PASS: fresh 1,000 converter records and 1,000 mirrors against literal oracle |
 | 3 Determinism | PASS: two million-row check/mate runs, identical full payload/metadata hashes |
-| 4 Deliberate failures | PASS: 290 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
+| 4 Deliberate failures | PASS: 301 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v3 manifest/sample/CPU preflights PASS for pinned source; runtime-proof refresh and final review pending |
+| 7 Handoff | v4 manifest/sample/CPU preflights PASS; final review and expanded corpus proof pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net
@@ -193,6 +192,14 @@ Fifty related tests then eleven focused boundary tests PASS. The reused reviewer
 APPROVED verifier SHA256
 `123e38a45bd14300e14ba9eb5cddf02f2269d55a4d5b0d85b7e5959c19ec3432`.
 Current-source v4 refresh follows; the original v3 proof remains preserved.
+
+V4 closure, source 87963077: **301 tests + 11 subtests PASS** in 171.84 seconds;
+runtime invariant PASS. Both actual CPU recipe preflights and published-path
+verification PASS. Manifest SHA256
+`ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`,
+path `C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`.
+The owned complementary profiler resumed after a 172.5-second yield, with zero
+CPU use while suspended. All previous data and evidence remain preserved.
 
 ## 30-minute follow-up audit — complete and independently approved
 

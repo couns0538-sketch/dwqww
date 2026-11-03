@@ -5,17 +5,16 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Previous verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v3/manifest.json`,
-SHA256 `9a7f019d757976955662381207efeededf8cc55181142271c5ae80552eef80be`.
+Current verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`,
+SHA256 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
-passes **290 tests + 11 subtests**.
+passes **301 tests + 11 subtests**.
 Both actual recipe preflights and published-manifest verification pass on source
-7ba94a6c. The final review and complete-corpus checks are still in progress.
+87963077. The final review and complete-corpus checks are still in progress.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
-The approved runtime-proof completeness fix requires the next manifest refresh
-before current-source crew use. Commands are in MIX_SPEC.md. Older handoffs remain evidence and
+Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
 deliberately fail current runtime/tooling checks after the reviewed local fixes.
 Historical native proof covers 62 sample/edge/mirrored FENs and all five supplied
 FD3A5190 bench counts; the expanded corpus-reservoir proof is pending. These checks
