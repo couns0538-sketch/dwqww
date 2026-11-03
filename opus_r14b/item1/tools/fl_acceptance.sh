@@ -6,18 +6,33 @@
 # loader (--num-workers 4, the live line's setting), and compares. GPU hidden: no HIP runtime is loaded next to the
 # live npt line. BelowNormal on CPUs 2-3 (lowrun.ps1). Exit 0 = every tensor identical.
 #   TRAINER_COPY    a copy of F:\opus_scratch\r6\nnue-pytorch-amd with the switch installed (install_fast_loader.py)
-#   OLD_LOADER_DLL  a COPY of the live line's build\libtraining_data_loader.dll (default D:\o14b\ref\..., sha256 88c01468...)
-#   FAST_LOADER_DIR folder with forge_fastloader.dll + forge_fastloader.py (default D:\o14b\fl\b5_install)
+#   OLD_LOADER_DLL  a COPY of the live line's loader DLL; default: the copy's own build\libtraining_data_loader.dll
+#                   (a full copy of the live tree has it), else D:\o14b\ref\... (sha256 88c01468..., Opus's copy)
+#   FAST_LOADER_DIR folder with forge_fastloader.dll + forge_fastloader.py; default: the trainer copy itself (where
+#                   install_fast_loader.py --loader-dll puts them), else D:\o14b\fl\b5_install
 set -u
 copy=${1:?trainer copy}
 out=${2:?out dir}
-old=${3:-'D:\o14b\ref\libtraining_data_loader.dll'}
-fast=${4:-'D:\o14b\fl\b5_install'}
 here=$(cd "$(dirname "$0")" && pwd)   # before any cd: $0 may be relative
 T=$(cygpath -w "$here")
 [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
 [ -f "$copy/train.py" ] || { echo "$copy: no train.py" >&2; exit 2; }
 grep -q fast_loader "$copy/train.py" || { echo "$copy: --fast-loader switch not installed (install_fast_loader.py)" >&2; exit 2; }
+old=${3:-}
+if [ -z "$old" ]; then
+  if [ -f "$copy/build/libtraining_data_loader.dll" ]; then old=$(cygpath -w "$(cd "$copy" && pwd)/build/libtraining_data_loader.dll")
+  else old='D:\o14b\ref\libtraining_data_loader.dll'; fi
+fi
+fast=${4:-}
+if [ -z "$fast" ]; then
+  if [ -f "$copy/forge_fastloader.dll" ] && [ -f "$copy/forge_fastloader.py" ]; then fast=$(cygpath -w "$(cd "$copy" && pwd)")
+  else fast='D:\o14b\fl\b5_install'; fi
+fi
+[ -f "$old" ] || { echo "old loader DLL not found: $old (give it as the 3rd argument)" >&2; exit 2; }
+{ [ -f "$fast\\forge_fastloader.dll" ] && [ -f "$fast\\forge_fastloader.py" ]; } || {
+  echo "no forge_fastloader.dll + .py in $fast (install_fast_loader.py --loader-dll, or give the folder as the 4th argument)" >&2
+  exit 2; }
+echo "old loader $old ($(sha256sum < "$old" | cut -c1-16)); fast loader folder $fast ($(sha256sum < "$fast\\forge_fastloader.dll" | cut -c1-16))"
 mkdir -p "$out"
 outw=$(cygpath -w "$(cd "$out" && pwd)")
 cd "$copy" || exit 2
