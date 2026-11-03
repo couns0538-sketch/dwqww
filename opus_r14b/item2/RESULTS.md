@@ -525,3 +525,38 @@ skill forge-relabel-job and relabel2.py's own usage text give, against what the 
   `--accept-new-tool` for run (the run text mentions it; `--help` lists all three). Changing the docstring would
   change the frozen file's sha256 for no change in behaviour.
 No finding that needs a change.
+
+## Bug hunt #14 (02:08-02:20 by the PC clock; self-review, NOT independent): the helpers with broken input
+Scope (written 01:11, before the hunt): sort_normalized.py, label_stats.py and probe_bench.py fed broken input must end
+with a nonzero exit and one clear message, no Python traceback, and write nothing on a refusal. 54 calls on tiny own
+fixtures (51 command lines + 3 `abba` runs with a stand-in for the probe); **36 were wrong**. relabel2.py (frozen
+e01caaf1) and test_relabel2.sh are not touched.
+| # | finding | fix |
+|---|---|---|
+| H14-1 | `probe_bench.py run --out EXISTING` **emptied the existing file**: Start-Process empties its redirect targets before the program runs (shown with a stand-in program that failed: a file holding one line was 0 bytes afterwards) - against "never overwrite" | `run` refuses an existing OUT or OUT.err and a missing output folder (exit 2) before anything starts |
+| H14-2 | `abba` printed "ANSWERS DIFFER" but exited **0**, with a CI over the runs before the difference; `--pairs 0` / `1` exited 0 with no result | answers that change: exit 1 and no speed figures; fewer than 2 pairs, an existing output folder or a missing probe: exit 2 before anything starts |
+| H14-3 | `compare` of two empty answer files said "0 identical" and exited **0**; answers with `ok: false` on both sides passed as the same labels | no answers: exit 2; any failed answer: exit 1 with the counts; a different number of answers is named |
+| H14-4 | sort_normalized.py on an empty or blank-only input wrote an empty OUT and exited **0** | exit 2, nothing written |
+| H14-5 | `--min-free-ram-gb nan` switched the RAM check off silently (a comparison with nan is false); `-1` too | a number of GB >= 0, otherwise exit 2 |
+| H14-6 | a misspelt option (`--min-free-ram=8`) became OUT: with two existing inputs it would write a file named after the option (the pattern of H6-1 / H13-2) | an argument starting with `-` that is not the option: usage, exit 2; `--min-free-ram-gb=X` is accepted |
+| H14-7 | source_row `1.5`, `"7"` or `true` and an integer source passed (int() / str() coerced them); relabel2 prepare accepts only an integer source_row, and integer sources sorted "10" before "9" | the types relabel2.py accepts (source a string, source_row an integer), exit 2 at the line |
+| H14-8 | tracebacks instead of a message: sort_normalized.py on a byte that is not UTF-8, an OUT in a missing folder and an OUT.part left by a killed run; label_stats.py on a missing file, a folder, a rows.tsv given by mistake (KeyError), a truncated row, a score that is not a number, a byte that is not UTF-8 and `--help`; probe_bench.py `compare` on broken JSON, a line that is not an object and a missing file, `requests` on a missing, empty or truncated rows file and an existing OUT, `run` on a missing probe | one line naming the file and the line, exit 2; an OUT.part is never deleted (message: move it aside) |
+| H14-9 | label_stats.py on VALID input: two rows with the same new score (no variance) ended in ZeroDivisionError | Pearson r is printed as nan when either score is constant |
+| H14-10 | `requests` on an empty or truncated rows file left a partial request file; `--start` past the end wrote an empty request file and exited 0 | every row is read and checked first, nothing is written on a refusal; no rows: exit 2; the first line must start with row_id, game_id, split, fen (rows.tsv or labels.tsv) |
+
+Also: the three tools now decode per line, so a bad byte is reported with its line number; sort_normalized.py's text
+says what it really does (a CRLF line end becomes LF, a leading BOM is dropped; before it said "byte for byte").
+Kept: label_stats.py on a header-only file is exit 1 "no rows" (no data, not bad input).
+
+Checks (02:15-02:19):
+- New `test_helpers.py SCRATCH` (stdlib only, no probe or engine started; `abba` driven with a stand-in run_probe):
+  **66 PASS / 0 FAIL** - exit code, no traceback, exactly the expected files left behind, existing files unchanged,
+  the fixtures unchanged. Run it after any change to the three helpers.
+- Valid input gives the same results as before (the old files from HEAD 1f8ce1db against the new ones): sorting
+  Astra's chain output (2,810 rows) is byte for byte equal; label_stats.py on proof job A's 999,921 labels prints
+  exactly `logs/label_stats_proof_1M.txt`; `requests` for rows 900,000-900,499 of the proof sample = the committed
+  `probe_ref_500.tsv`; `compare` of `probe_ref_500_r13.jsonl` with itself prints the same line, exit 0.
+- End to end with the R13 probe (5 positions, 2.4 s, BelowNormal on CPU 2): `run` exit 0, `compare` with the first 5
+  reference answers 5 / 5 identical, exit 0; a second `run` to the same `--out`: exit 2, the file's sha256 unchanged.
+- CPU used by the hunt: that probe run and four label_stats.py passes over the 1M labels at Idle (the old-vs-new check
+  ran twice, before and after the per-line decoding; about 3 s per pass); the rest are tiny fixtures.

@@ -19,6 +19,9 @@
   `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
   kill / resume, a dead probe, a busy job, 105 damaged-job runs); run it after any change, and after a change to
   relabel2.py run `opus_r14b/checks/refreeze.sh` (branch opus-r14b-status) and write the new sha256 here.
+  `test_helpers.py SCRATCH` (bug hunt #14; 66 cases, no probe started): sort_normalized.py, label_stats.py and
+  probe_bench.py with broken input end with exit 2 (1 for answers that differ or failed) and one line naming the file
+  and line, never a traceback, and write nothing; no output is ever overwritten. Run it after a change to those three.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
   `build_probe_opt.sh NEW_OUT_DIR`: lock source from git, PGO profile from the committed `pgo_train_2k.tsv`; two builds
