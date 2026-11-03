@@ -71,6 +71,20 @@ Expected duration is about 2.4 hours, allowing three hours conservatively.
 Only receipts/logs are emitted. Both are in progress; no full-corpus admission
 claim is made until their disjoint 37-source union is independently verified.
 
+At the 05:10 UTC checkpoint the two scans have passed more than 45 million
+rows with zero rejected rows so far. A draft union verifier and adversarial
+tests are prepared but not executed while both CPU slots are occupied. Focused
+inspection found a runtime-provenance gap in the draft; main required the actual
+Python/chess versions and added a consistent-substitution regression plus a
+real tiny 37-source integration fixture. This is not yet an accepted milestone.
+
+Official Lichess-format research found two repair targets: selecting the deepest
+evaluation and decoding UCI_Chess960 castling notation. The complete-FEN parser
+also rejects the public export's missing counters; that restriction stays
+explicit rather than inventing known ply/rule-50 state. Design and licence
+sources are in LICHESS_INPUT_REVIEW.md. No Lichess corpus or training was added.
+Core files remain frozen until the two admission scans finish.
+
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
 material boundary cases pass. Fresh 100k old/new identity, 1,000 results and

@@ -77,3 +77,13 @@ installer and receipt retain the URL, SHA256, size and method; lifecycle scripts
 were not run. Existing Node is used without global package installation.
 The added native/PGN boundary fixtures are original synthetic test inputs and
 are never included in training recipes or described as genuine game outcomes.
+
+The [official Lichess database page](https://database.lichess.org/) states:
+“Database exports are released under the Creative Commons CC0 license.”
+This identifies that export's data licence, not the licence of Lichess's code
+or an arbitrary third-party mirror. No external corpus has been downloaded or
+added to these recipes. Lichess exporter/eval-cache source was inspected to
+establish field semantics and White-relative scores; its AGPL implementation
+is ideas-only and was not copied. Exact source links and inspected blob IDs,
+along with the unresolved four-field FEN limitation, are recorded in
+LICHESS_INPUT_REVIEW.md. The repair fixtures remain authored synthetic data.

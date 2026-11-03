@@ -18,6 +18,14 @@ including npt/Stockfish tools, is ideas-only. No Leela data without a quoted
 permissive licence in IDEA_SOURCE.md. Never modify, move or delete datasets or
 .nnue files. Do not allocate new artifacts on F:. No engine changes: lock FD3A5190,
 OFF bench 312866/862329/3024920/12389307/34048354. No loader-throughput work.
+The exact executable is forge_ltopgo_x_al1s198_v23.exe, SHA256
+fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072.
+Startpos perft5=4865609; canonical Kiwipete perft5=193690690. Rejected older bench
+pins cannot qualify a check. Preserve C:/astra8_data/extension3h_20261103/handoff_v7/
+without moving or deleting it; its manifest SHA256 is
+52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
+R12 must inherit the final reviewed astra-r8-datafilter tip, d080df79 or later,
+not e526fc12. R8 itself remains converter/filter work with no engine edits.
 # Development review and verification
 
 Review, fixing, and verification are automatic parts of the development workflow.

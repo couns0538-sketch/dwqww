@@ -1,5 +1,24 @@
 # Review log — UNPROVEN
 
+## Draft partition-union verification and Lichess boundary review
+
+Read-only inspection of seal_admission.py draft d466247e...bafdd found that
+runtime strings agreed only among receipts. Main accepted the finding, changed
+the verifier to require actual sys.version/chess.__version__, records those
+versions in the union receipt, and authored a consistent-substitution regression.
+The reviewer also required a real small profile-to-admission integration test;
+main authored 37 one-row sources with real sealed profiles and two partitions.
+Inspection caught that historical profiles do not retain skipped-line counts;
+only their known/unknown result coverage can be compared. Execution and focused
+recheck are pending a free CPU slot. No draft acceptance or full-union claim.
+
+The Lichess design review rejected silent synthetic move counters because the
+native consumer accepts integer ply and counter-dependent full FEN. Main chose
+to retain explicit four-field rejection, document the limitation, and scope the
+pending repair to deepest-eval selection, strict PV fields and legal castling
+notation decoding for genuinely full-state inputs. No adapter or loader change
+is planned. Current selected recipes contain only cleared owned self-play.
+
 ## Corrected lock and R12 inheritance contract
 
 Main inspected native_forge_smoke.py, saved lock-proof skills, R8 evidence and
