@@ -1,0 +1,56 @@
+clone relabel at f366e8eb (core.autocrlf=true)
+clone fast-loader at ffa0fedc (core.autocrlf=true)
+=== 1 relabel tests from the clone 20:33:00
+exit=0 PASS 150 FAIL 0
+=== 2 probe builds from the clone 20:33:48
+FAIL probe build
+/c/o14b/vc_2030/fresh_checkout_checks.sh: line 31: /c/o14b/vc_2030/fresh/probe/lto/forge_data_probe.exe: No such file or directory
+FAIL LTO probe:  != 565ddbf8230b7c57
+/c/o14b/vc_2030/fresh_checkout_checks.sh: line 32: /c/o14b/vc_2030/fresh/probe/pgo/forge_data_probe.exe: No such file or directory
+FAIL PGO probe:  != 08299f9f6f4bb802
+lowrun: cannot start C:\o14b\vc_2030\fresh\probe\pgo\forge_data_probe.exe: This command cannot be run due to the error: The system cannot find the file specified.
+Traceback (most recent call last):
+  File "C:\o14b\vc_2030\fresh\relabel\opus_r14b\item2\probe_bench.py", line 150, in <module>
+    sys.exit(main())
+  File "C:\o14b\vc_2030\fresh\relabel\opus_r14b\item2\probe_bench.py", line 146, in main
+    return {"requests": cmd_requests, "run": cmd_run, "compare": cmd_compare, "abba": cmd_abba}[a.cmd](a)
+  File "C:\o14b\vc_2030\fresh\relabel\opus_r14b\item2\probe_bench.py", line 63, in cmd_run
+    wall, rows = run_probe(a.exe, a.req, a.out, a.mask, a.nodes)
+  File "C:\o14b\vc_2030\fresh\relabel\opus_r14b\item2\probe_bench.py", line 52, in run_probe
+    subprocess.run(["powershell", "-NoProfile", "-File", LOWRUN, "-Mask", mask, "-Priority", "BelowNormal",
+  File "C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\lib\subprocess.py", line 526, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['powershell', '-NoProfile', '-File', 'C:\\o14b\\vc_2030\\fresh\\relabel\\opus_r14b\\item2\\lowrun.ps1', '-Mask', '0x4', '-Priority', 'BelowNormal', '-Exe', 'C:\\o14b\\vc_2030\\fresh\\probe\\pgo\\forge_data_probe.exe', '-ArgLine', '--nodes 20000 --hash-mb 1', '-In', 'C:\\o14b\\vc_2030\\fresh\\relabel\\opus_r14b\\item2\\probe_ref_500.tsv', '-Out', 'C:\\o14b\\vc_2030\\fresh\\probe_ref_check.jsonl', '-Err', 'C:\\o14b\\vc_2030\\fresh\\probe_ref_check.jsonl.err']' returned non-zero exit status 127.
+C:/o14b/vc_2030/fresh/relabel/opus_r14b/item2/probe_ref_500_r13.jsonl vs C:/o14b/vc_2030/fresh/probe_ref_check.jsonl: 500 / 0 answers, n/a identical, first difference None
+FAIL the clone-built PGO probe differs from the R13 reference answers
+=== 3 DLL rebuild from the clone 20:33:49
+PASS fast loader DLL (9eb29b7d134a73eb)
+PASS forge_fastloader.py (39af47b0f347963c)
+=== 3b the loader self-test built on Windows (MinGW g++ -O2; CI runs it on Linux with sanitizers) 20:33:54
+self-test exit=0; (7) double release: release of a batch that is not handed out (double release?) ALL PASSED (0 failures) 
+=== 4 acceptance with the rebuilt DLL 20:34:02
+old loader D:\o14b\ref\libtraining_data_loader.dll (88c0146804524af3); fast loader folder C:\o14b\vc_2030\fresh\l1_build (9eb29b7d134a73eb)
+old (--num-workers 1): 20 s; old train: 200 batches, 8 tensors each old val: 61 batches, 8 tensors each 
+fast (--num-workers 4): 6 s; fast train: 200 batches, 8 tensors each fast val: 61 batches, 8 tensors each 
+C:/o14b/vc_2030/fresh/l1_accept/ds_old.tsv vs C:/o14b/vc_2030/fresh/l1_accept/ds_fast.tsv: 261 / 261 batches, identical 261, first difference None
+fast loader: {'path': 'C:\\o14b\\vc_2030\\fresh\\l1_build\\forge_fastloader.dll', 'sha256': '9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935', 'version': 'forge_fastloader 1 (Opus R14-B)'}
+=== 5 adoption rehearsal (HANDOFF steps 1-3b) on a fresh copy of the live trainer tree 20:34:28
+FAIL robocopy exit 16
+copy vs the installer's base manifest (from the clone): 264 files, not OK: 264
+Traceback (most recent call last):
+  File "C:\o14b\vc_2030\fresh\fast-loader\opus_r14b\item1\tools\install_fast_loader.py", line 151, in <module>
+    sys.exit(main())
+  File "C:\o14b\vc_2030\fresh\fast-loader\opus_r14b\item1\tools\install_fast_loader.py", line 137, in main
+    ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
+  File "C:\o14b\vc_2030\fresh\fast-loader\opus_r14b\item1\tools\install_fast_loader.py", line 80, in patch
+    raw = path.read_bytes()
+  File "C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\lib\pathlib.py", line 1126, in read_bytes
+    with self.open(mode='rb') as f:
+  File "C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\lib\pathlib.py", line 1119, in open
+    return self._accessor.open(self, mode, buffering, encoding, errors,
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\o14b\\vc_2030\\fresh\\npt_copy\\config.py'
+FAIL installer
+FAIL acceptance on the fresh copy
+/c/o14b/vc_2030/fresh/npt_copy: no train.py
+grep: /c/o14b/vc_2030/fresh/adopt_accept/ds_fast.log: No such file or directory
+=== failures: 7 20:34:28

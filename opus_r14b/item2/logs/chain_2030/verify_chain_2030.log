@@ -1,0 +1,87 @@
+
+=== 0 code: relabel2.py 88454db6e17cf4e7, branch heads r2 5a127452 l1 ffa0fedc 2026-11-02 20:29:22
+2026-11-02 20:29:27 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  python                     pid 6568    1.09 cores  affinity 0xF     Idle
+  claude                     pid 6076    0.10 cores  affinity 0xFFFF  BelowNormal
+  powershell                 pid 4048    0.08 cores  affinity 0xF     Normal
+
+=== 1 test suite 2026-11-02 20:29:27
+2026-11-02 20:29:31 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  python                     pid 6568    1.06 cores  affinity 0xF     Idle
+  claude                     pid 6076    0.15 cores  affinity 0xFFFF  BelowNormal
+  powershell                 pid 4048    0.09 cores  affinity 0xF     Normal
+exit=0 PASS 150 FAIL 0
+
+=== 2 bridge to the 1M proof 2026-11-02 20:30:16
+2026-11-02 20:30:21 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  powershell                 pid 4048    0.10 cores  affinity 0xF     Normal
+  Taskmgr                    pid 6120    0.06 cores  affinity 0xFFFF  Normal
+  powershell                 pid 9708    0.05 cores  affinity 0xFFFF  BelowNormal
+code: 88454db6e17cf4e7 (/d/grok-pc-data/dwqww/.claude/worktrees/o14b-r2/opus_r14b/item2/relabel2.py)
+prepare --jobs 1: exit 0 in 91 s
+PASS cmp -s /c/o14b/vc_2030/bridge/prep_j1/rows.tsv /d/o14b/r2/proof/jobA/rows.tsv
+prepare --jobs 2: exit 0 in 59 s
+PASS cmp -s /c/o14b/vc_2030/bridge/prep_j2/rows.tsv /d/o14b/r2/proof/jobA/rows.tsv
+run --accept-new-tool on the copy: exit 0; 2026-11-02T20:32:52 pid=14252 run end run_id=r14b-proof-A tool=88454db6e17cf4e7 shards_done=100/100 session_rows=0 (nothing left to label)
+assemble on the copy: exit 0
+PASS cmp -s /c/o14b/vc_2030/bridge/copyA/final/train.txt /d/o14b/r2/proof/jobA/final/train.txt
+PASS cmp -s /c/o14b/vc_2030/bridge/copyA/final/val.txt /d/o14b/r2/proof/jobA/final/val.txt
+PASS cmp -s /c/o14b/vc_2030/bridge/copyA/final/labels.tsv /d/o14b/r2/proof/jobA/final/labels.tsv
+failures: 0
+
+=== 3 fresh-clone checks 2026-11-02 20:32:55
+2026-11-02 20:32:59 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  powershell                 pid 4048    0.10 cores  affinity 0xF     Normal
+  Grok Bot                   pid 4008    0.08 cores  affinity 0xFFFF  Normal
+  powershell                 pid 6624    0.06 cores  affinity 0xFFFF  BelowNormal
+clone relabel at f366e8eb (core.autocrlf=true)
+clone fast-loader at ffa0fedc (core.autocrlf=true)
+=== 1 relabel tests from the clone 20:33:00
+exit=0 PASS 150 FAIL 0
+=== 2 probe builds from the clone 20:33:48
+FAIL probe build
+FAIL LTO probe:  != 565ddbf8230b7c57
+FAIL PGO probe:  != 08299f9f6f4bb802
+C:/o14b/vc_2030/fresh/relabel/opus_r14b/item2/probe_ref_500_r13.jsonl vs C:/o14b/vc_2030/fresh/probe_ref_check.jsonl: 500 / 0 answers, n/a identical, first difference None
+FAIL the clone-built PGO probe differs from the R13 reference answers
+=== 3 DLL rebuild from the clone 20:33:49
+PASS fast loader DLL (9eb29b7d134a73eb)
+PASS forge_fastloader.py (39af47b0f347963c)
+=== 3b the loader self-test built on Windows (MinGW g++ -O2; CI runs it on Linux with sanitizers) 20:33:54
+=== 4 acceptance with the rebuilt DLL 20:34:02
+C:/o14b/vc_2030/fresh/l1_accept/ds_old.tsv vs C:/o14b/vc_2030/fresh/l1_accept/ds_fast.tsv: 261 / 261 batches, identical 261, first difference None
+=== 5 adoption rehearsal (HANDOFF steps 1-3b) on a fresh copy of the live trainer tree 20:34:28
+FAIL robocopy exit 16
+copy vs the installer's base manifest (from the clone): 264 files, not OK: 264
+FAIL installer
+FAIL acceptance on the fresh copy
+=== failures: 7 20:34:28
+
+=== 4 loader ABBA in the live setting 2026-11-02 20:34:28
+2026-11-02 20:34:33 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  python                     pid 6568    0.71 cores  affinity 0xF     Idle
+  powershell                 pid 4048    0.11 cores  affinity 0xF     Normal
+  claude                     pid 6076    0.05 cores  affinity 0xFFFF  BelowNormal
+A median 772,284 kept/s, B median 4,818,564
+per-pair B/A: 7.078 6.694 6.330 5.975 6.157 6.167 6.116 6.143 6.442 6.550
+B/A median 6.248, mean 6.365, 95% CI 6.126 .. 6.604 (t, n=10)
+end 2026-11-02 20:36:30
+
+=== 5 prepare of one full R8 v5 shard 2026-11-02 20:36:30
+2026-11-02 20:36:35 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  firefox                    pid 240     0.48 cores  affinity 0xFFFF  Normal
+  powershell                 pid 4048    0.08 cores  affinity 0xF     Normal
+  claude                     pid 6076    0.07 cores  affinity 0xFFFF  BelowNormal
+exit=0 in 106 s
+{"rows": 1825791, "games": 21490, "rows_read": 1825791, "train_rows": 1807538, "val_rows": 18253, "val_games": 214, "game_length": {"min": 1, "median": 82, "p99": 196, "max": 283}, "game_start_ply": {"min": 8, "median": 8, "p99": 11, "max": 20}, "terminal_dropped": 0}
+
+=== 6 end to end on R8 v5 data: 3,000 rows -> 20k-node labels (PGO probe, 2 workers) -> assemble -> fen2bin 2026-11-02 20:38:21
+2026-11-02 20:38:26 processes using CPUs in 0xC over 3 s (CPU = cores busy on average):
+  firefox                    pid 240     0.16 cores  affinity 0xFFFF  Normal
+  Discord                    pid 4172    0.15 cores  affinity 0xFFFF  Normal
+  powershell                 pid 4048    0.14 cores  affinity 0xF     Normal
+C:\o14b\vc_2030\r8v5_e2e: 3/3 shards, 2,859/2,859 rows (100.0 %), final published; last session 605,435 rows/h (updated 2026-11-02T20:38:44), ETA at that rate -; unpublished attempt dirs (interrupted;
+exit=0; train.txt 2804 rows; fen2bin: source=C:\o14b\vc_2030\r8v5_e2e\final\train.txt lines=2804 records=2804 bad=0 
+PASS R8 v5 end to end (fen2bin records = train rows, 0 bad)
+
+=== chain failures: 1 2026-11-02 20:38:47

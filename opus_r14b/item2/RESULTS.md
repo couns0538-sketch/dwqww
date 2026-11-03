@@ -319,3 +319,14 @@ Every caller in item 2 (build_probe_opt.sh, probe_bench.py) also checks its outp
 |---|---|---|---|
 | C1 | `build_probe_opt.sh` (since I3 at 19:18) ran `git -C <its own folder> archive d4f4312 src include`; git reads those paths relative to the folder it runs in (`opus_r14b/item2/src`), so the lock export failed ("pathspec 'src' did not match") and the script stopped (set -e / pipefail) - in a fresh clone and in the worktree alike. The I3 check had exported from the repository root by hand, not through the script | archive from the repository's top level (`git rev-parse --show-toplevel`) and require exactly 20 exported files | export from the item2 folder: 20 files, identical to `C:\o13\p5\lock`; the probe builds from a fresh clone run again after the chain |
 | C2 | the chain's adoption rehearsal called `robocopy SRC DST /E ...` from Git Bash, which rewrote `/E` into `E:/` (robocopy exit 16, nothing copied; the manifest, installer and acceptance failures that followed were consequences) | `MSYS_NO_PATHCONV=1` for that call (fresh_checkout_checks.sh; item 1 HANDOFF notes it for Git Bash users) | 382 / 382 files copied, exit 1 (= files copied); the rehearsal runs again after the chain |
+
+## Verify chain 20:29-20:39 on the freeze candidate (`opus_r14b/checks/verify_chain.sh 2030`; logs/chain_2030/)
+Candidate: relabel2.py sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 (commit f414e2d8, 20:20).
+| step | result |
+|---|---|
+| 1 suite from the worktree | **150 PASS / 0 FAIL** (incl. the hunt-3 cases: dead probe -> exit 1 + stop line, masks, run on a finished job) |
+| 2 bridge to the 1M proof | **PASS**: prepare `--jobs 1` (91 s) and `--jobs 2` (59 s) rows.tsv = the proof's; `run --accept-new-tool` on a copy of proof job A re-verified 100 shards ("nothing left to label"); assemble = the proof's train / val / labels byte for byte |
+| 3 fresh clone (f366e8eb, default core.autocrlf=true; same relabel2.py) | suite 150 / 0; loader DLL rebuilt = b5; acceptance 261 / 261; **probe builds FAILED (C1) and adoption rehearsal FAILED (C2)** - both fixed above, re-run below |
+| 4 loader ABBA, live thread setting | item 1 RESULTS (6.25x) |
+| 5 prepare of R8 v5 shards 271 + 272 (`--jobs 2`) | exit 0 in 106 s: 1,825,791 rows, 21,490 games (val 214 games / 18,253 rows) = 62.0M rows/h |
+| 6 R8 v5 end to end | prepare `--rows 3000` (cut at a game boundary: 2,859 rows) -> 3 shards at 20k nodes, PGO probe, 2 workers -> assemble -> status "3/3 shards ... final published" -> fen2bin: 2,804 train records = 2,804 rows, 0 bad (val 55 rows) - **PASS** |

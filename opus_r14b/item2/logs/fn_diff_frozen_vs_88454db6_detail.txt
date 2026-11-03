@@ -1,0 +1,220 @@
+identical: BadInput ConfigMismatch IntegrityError append_log board_stats file_hash label_shard load_prepare lower_priority new_game now read_shard_rows row_offsets verify_shard write_new
+changed: cmd_assemble cmd_prepare cmd_run cmd_status iter_rows main write_status
+only in old: -
+only in new: check_args check_block check_row disk_check input_sources iter_rows_parallel lock_job move_retry open_job parse_line
+
+--- diff of cmd_run
+--- frozen
++++ post-proof
+@@ -4,2 +4,3 @@
+     job = Path(a.job)
++    lock = open_job(job)  # noqa: F841 - held until the process ends
+     info = load_prepare(job)
+@@ -13,2 +14,3 @@
+     rc = job / "run_config.json"
++    tool_hash = file_hash(__file__)
+     if rc.exists():
+@@ -18,5 +20,8 @@
+             raise ConfigMismatch(f"configuration differs from run_config.json: {diff}")
++        # A job must not silently continue on other code: a changed relabel2.py resumes only when asked to.
++        if old.get("tool_sha256") != tool_hash and not a.accept_new_tool:
++            raise ConfigMismatch(f"relabel2.py changed since the job started ({str(old.get('tool_sha256'))[:8]} -> "
++                                 f"{tool_hash[:8]}); pass --accept-new-tool to resume with it (logged)")
+     else:
+-        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=file_hash(__file__)), indent=1) + "\n")
+-    lower_priority(int(a.mask, 16))
++        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=tool_hash), indent=1) + "\n")
+     n = info["rows"]
+@@ -33,4 +38,4 @@
+     deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
+-    append_log(job, f"run start run_id={a.run_id} shards_done={len(done)}/{shards} workers={a.workers} "
+-                    f"test_kill_after_s={a.test_kill_after_seconds}")
++    append_log(job, f"run start run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} "
++                    f"workers={a.workers} test_kill_after_s={a.test_kill_after_seconds}")
+     if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
+@@ -39,39 +44,58 @@
+     status = {"run_id": a.run_id, "session_start": now(), "shards_total": shards, "rows_total": n}
+-    with ProbePool(a.probe, a.nodes, a.workers, None, hash_mb=a.hash_mb, timeout=300) as pool:
+-        for k in range(shards):
+-            if k in done:
+-                continue
+-            if a.max_shards and shards_session >= a.max_shards:
+-                break
+-            if deadline and dt.datetime.now() >= deadline:
+-                break
+-            first = k * a.shard_size
+-            count = min(a.shard_size, n - first)
+-            attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
+-            part = sdir / f"shard_{k:05d}.part.{max(attempts, default=0) + 1}"
+-            part.mkdir()
+-            ts = time.monotonic()
+-            rows = read_shard_rows(job, offs[k], count)
+-            if [int(r[0]) for r in rows] != list(range(first, first + count)):
+-                raise IntegrityError(f"shard {k}: row ids in rows.tsv are not {first}..{first + count - 1}")
+-            lines = label_shard(pool, rows, cfg)
+-            write_new(part / "labels.tsv", LABELS_HEADER + "".join(lines))
+-            nodes = sum(int(x.split("\t")[8]) for x in lines)
+-            summ = {"run_id": a.run_id, "shard": k, "first_row": first, "rows": count, "nodes_total": nodes,
+-                    "seconds": round(time.monotonic() - ts, 2), "attempt": part.name, "finished": now()}
+-            write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
+-            write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
+-                                                          "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
+-            os.rename(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
+-            done.add(k)
+-            rows_session += count
+-            shards_session += 1
+-            el = time.monotonic() - t0
+-            rate = rows_session * 3600 / el if el > 0 else 0
+-            left = n - sum(min(a.shard_size, n - j * a.shard_size) for j in done)
+-            status.update(updated=now(), shards_done=len(done), rows_done=n - left, last_shard=k,
+-                          session_rows=rows_session, session_rows_per_hour=round(rate),
+-                          eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
+-            write_status(job / "status.json", status)
+-    append_log(job, f"run end run_id={a.run_id} shards_done={len(done)}/{shards} session_rows={rows_session}")
++    if len(done) == shards:  # every shard published and re-verified: no probe needs to start
++        append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={shards}/{shards} "
++                        f"session_rows=0 (nothing left to label)")
++        print(json.dumps(dict(status, shards_done=shards, rows_done=n, note="nothing left to label")))
++        return 0
++    try:
++        with ProbePool(a.probe, a.nodes, a.workers, None, hash_mb=a.hash_mb, timeout=300) as pool:
++            for k in range(shards):
++                if k in done:
++                    continue
++                if a.max_shards and shards_session >= a.max_shards:
++                    break
++                if deadline and dt.datetime.now() >= deadline:
++                    break
++                try:  # a shard writes ~1 MB per 10,000 rows; stop before the drive crosses the floor
++                    disk_check(job, 64 * 2 ** 20, a.min_free_gb, f"shard {k}")
++                except ConfigMismatch as e:
++                    append_log(job, f"run stop run_id={a.run_id} tool={tool_hash[:16]} before shard {k}: disk floor ({e})")
++                    raise
++                first = k * a.shard_size
++                count = min(a.shard_size, n - first)
++                attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
++                part = sdir / f"shard_{k:05d}.part.{max(attempts, default=0) + 1}"
++                part.mkdir()
++                ts = time.monotonic()
++                rows = read_shard_rows(job, offs[k], count)
++                if [int(r[0]) for r in rows] != list(range(first, first + count)):
++                    raise IntegrityError(f"shard {k}: row ids in rows.tsv are not {first}..{first + count - 1}")
++                lines = label_shard(pool, rows, cfg)
++                write_new(part / "labels.tsv", LABELS_HEADER + "".join(lines))
++                nodes = sum(int(x.split("\t")[8]) for x in lines)
++                summ = {"run_id": a.run_id, "shard": k, "first_row": first, "rows": count, "nodes_total": nodes,
++                        "seconds": round(time.monotonic() - ts, 2), "attempt": part.name, "finished": now()}
++                write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
++                write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
++                                                              "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
++                move_retry(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
++                done.add(k)
++                rows_session += count
++                shards_session += 1
++                el = time.monotonic() - t0
++                rate = rows_session * 3600 / el if el > 0 else 0
++                left = n - sum(min(a.shard_size, n - j * a.shard_size) for j in done)
++                status.update(updated=now(), shards_done=len(done), rows_done=n - left, last_shard=k,
++                              session_rows=rows_session, session_rows_per_hour=round(rate),
++                              eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
++                write_status(job / "status.json", status)
++    except ConfigMismatch:
++        raise  # the disk floor wrote its own stop line
++    except Exception as e:  # a probe died / timed out / answered wrongly, rows.tsv changed, ...: say so
++        code = 4 if isinstance(e, IntegrityError) else 2 if isinstance(e, BadInput) else 1  # as main() maps them
++        append_log(job, f"run stop run_id={a.run_id} tool={tool_hash[:16]} after {shards_session} new shards: "
++                        f"{type(e).__name__}: {str(e)[:500]} (exit {code}; published shards stay, the interrupted "
++                        f"attempt dir is kept; the same command resumes once the cause is fixed)")
++        raise
++    append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
+     print(json.dumps(status))
+
+--- diff of cmd_assemble
+--- frozen
++++ post-proof
+@@ -2,2 +2,3 @@
+     job = Path(a.job)
++    lock = open_job(job)  # noqa: F841 - held until the process ends
+     info = load_prepare(job)
+@@ -16,2 +17,4 @@
+         verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
++    # train.txt + val.txt + labels.tsv: 157.8 MB per 1M rows in the proof; plan for 170 bytes per row
++    disk_check(job, 170.0 * n, a.min_free_gb, "assemble")
+     tries = [int(x.name.rsplit(".", 1)[1]) for x in job.glob("final.part.*")]
+@@ -56,5 +59,4 @@
+             f.close()
+-    os.rename(tmpdir, final)
+-    files = {nm: {"bytes": (final / nm).stat().st_size, "md5": file_hash(final / nm, "md5"),
+-                  "sha256": file_hash(final / nm)} for nm in names}
++    files = {nm: {"bytes": (tmpdir / nm).stat().st_size, "md5": file_hash(tmpdir / nm, "md5"),
++                  "sha256": file_hash(tmpdir / nm)} for nm in names}
+     man = {"run_id": a.run_id, "assembled": now(), "rows": n, "train_rows": counts["train"], "val_rows": counts["val"],
+@@ -62,3 +64,4 @@
+            "prepare_json_sha256": file_hash(job / "prepare.json"), "shard_labels_sha256": shard_hashes, "files": files}
+-    write_new(final / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
++    write_new(tmpdir / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
++    move_retry(tmpdir, final)  # publishes the data files and their manifest together
+     print(json.dumps({nm: files[nm]["md5"] for nm in names}))
+
+--- diff of iter_rows
+--- frozen
++++ post-proof
+@@ -1,14 +1,13 @@
+-def iter_rows(a, sources, counters):
+-    """Yield (source index, row number, record, result token) in game order, validating every row."""
+-    import chess
+-    import records  # Astra's unchanged records.py
++def iter_rows(a, sources, counters, origins):
++    """Yield (origin index, origin row, record, result token) in game order, validating every row.
+ 
+-    paths = a.selfplay or a.normalized
+-    for si, path in enumerate(paths):
+-        p = Path(path)
+-        if not p.is_file():
+-            raise BadInput(f"{p}: input file not found")
+-        sources.append({"index": si, "path": str(p.resolve()), "sha256": file_hash(p),
+-                        "kind": "selfplay" if a.selfplay else "normalized"})
+-        last_key = None
++    The origin is the self-play text file a row comes from: the input file itself for --selfplay, the record's own
++    `source` / `source_row` for --normalized (one JSONL file may hold several origins). `origins` collects their
++    names in order of first appearance (a game may continue from one origin into the next)."""
++    origin_index = {}
++    last_key = None  # normalized input: (source, source_row) increases across all files, so no row comes twice
++    for si, src in enumerate(sources):
++        p = Path(src["path"])
++        path, file_origin = str(p), str(p.resolve())  # once per file: resolve() costs ~77 us per call on this PC
++        src["read"] = True
+         with open(p, encoding="utf-8-sig") as fh:
+@@ -17,11 +16,4 @@
+                 try:
+-                    if a.selfplay:
+-                        if not line.strip():
+-                            raise ValueError("empty line")
+-                        r = records.selfplay_record(line, str(p), row_no)
+-                        token = line.split("|")[2].strip()
+-                    else:
+-                        r = records.validate_record(json.loads(line))
+-                        if r["source_kind"] != "selfplay" or type(r["source_row"]) is not int:
+-                            raise ValueError("needs a self-play row with an integer source_row")
++                    r, token = parse_line(bool(a.selfplay), path, row_no, line)
++                    if not a.selfplay:
+                         key = (r["source"], r["source_row"])
+@@ -30,9 +22,6 @@
+                         last_key = key
+-                        token = RESULT_TOKEN.get(r["result_white"])
+-                    if r["result_white"] is None:
+-                        raise ValueError("no game result")
+-                    board = chess.Board(r["fen"])
++                    terminal = check_row(r)
+                 except Exception as e:  # noqa: BLE001 - every rejection is bad input
+                     raise BadInput(f"{p}:{row_no}: {e}") from None
+-                if not any(board.legal_moves):
++                if terminal:
+                     if not a.drop_terminal:
+@@ -42,2 +31,6 @@
+                 r["stats"] = board_stats(r["fen"])
+-                yield si, row_no, r, token+                name, origin_row = (file_origin, row_no) if a.selfplay else (r["source"], r["source_row"])
++                if name not in origin_index:
++                    origin_index[name] = len(origins)
++                    origins.append(name)
++                yield origin_index[name], origin_row, r, token
