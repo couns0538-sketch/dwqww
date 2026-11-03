@@ -14,3 +14,6 @@ To reuse them elsewhere, change those paths at the top of each script. Results: 
 worktree and from a fresh clone, the bridge to the 1M proof, the function-level diff against the proof's code
 (5c88438f) with a note for every changed labelling function, and the new sha256 to write into the documents. The
 probe builds, the loader DLL and the adoption rehearsal do not depend on relabel2.py and are not repeated.
+
+`hash_sweep_r14b.sh OUT_FILE` re-runs the post-freeze hash sweep over the R14-B documents (20:48: 0 unmatched; 88 tokens
+match a file, 18 a commit, 39 the allow list with a reason each).
