@@ -240,3 +240,11 @@ No other script reaches outside its own branch folder (grep for worktree paths: 
 | I2 | `status` prints one readable line | the old output was raw JSON + a shard count; a non-job printed `{}` with exit 0 | "N/M shards, rows done / total (%), final published?, last session's rows/h and ETA, unpublished attempt dirs, free disk"; a non-job is exit 2. Tests: partial job "2/3 shards, 200/240 rows", finished job "final published", non-job exit 2 |
 | I3 | build_probe_opt.sh self-sufficient | it compiled from Opus's scratch copy `C:\o13\p5\lock` and needed a training file from `D:\o14b` | lock source exported from this repository (`git archive d4f4312 src include`, all 20 files identical to the scratch copy), training file committed (`pgo_train_2k.tsv`, sha256 5c1af57a...) and used by default; the R13 comparison is skipped with a message when that exe is absent |
 | R31 | a fresh clone on grok-pc (git's global `core.autocrlf=true`) wrote every .sh / .py / .md with CRLF, so the sha256 values the documents give for tool files would not match a crew checkout | `opus_r14b/.gitattributes` on all three branches: code, scripts, docs and committed inputs LF in every checkout; logs, patches, raw outputs byte-exact | fresh clone with the default settings: scripts LF, relabel2.py sha256 = the branch's, training file 5c1af57a... |
+
+## Runtime dependencies of the probes (19:27, works in Forge)
+- R13 / LTO / PGO probe exes are static: `objdump -p` of the PGO exe lists only KERNEL32.dll and the Windows UCRT API
+  sets; it answered a request with PATH = `C:\WINDOWS\system32;C:\WINDOWS` only. No MSYS2 / Git folder is needed at run
+  time (only for building).
+- Publish renames retry a transient PermissionError (virus scanners / indexers / readers hold handles on Windows) and a
+  status.json that stays locked is skipped with a warning (a873b269; tests added: a shard publish failing twice, a
+  status file that never unlocks).
