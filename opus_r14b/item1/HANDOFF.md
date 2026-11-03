@@ -52,8 +52,9 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    the trainer's own Dataset -> FixedNumBatchesDataset -> DataLoader path with the old loader (w1; default: the copy's
    own `build\libtraining_data_loader.dll`) and the fast loader (w4; default: the files next to its train.py) and
    compares every tensor of 200 training + 61 validation batches; exit 0 = identical. It prints the fast DLL's sha256
-   and a note when that is not b5 (9eb29b7d...); a b4-era forge_fastloader.py stops it with a clear message. A
-   different folder for either loader goes in as the 3rd / 4th argument, e.g. on `D:\o14b\npt` (b4 files):
+   and a note when that is not b5 (9eb29b7d...); a b4-era forge_fastloader.py stops it with a clear message. Another
+   old loader goes in as the 3rd argument (the DLL file itself) and another fast loader as the 4th (the folder that
+   holds forge_fastloader.dll + .py); `''` keeps a default, e.g. on `D:\o14b\npt` (b4 files):
    `bash tools/fl_acceptance.sh /d/o14b/npt <out> '' 'D:\o14b\fl\b5_install'` - 2026-11-02 18:46: old 36 s, fast 6 s,
    **261 / 261 batches identical** with b5 (logs/acceptance/: the log names the b5 DLL); again 21:42 into a folder
    whose name has spaces: 261 / 261. On the fresh-copy rehearsal (20:42) the defaults found the installed b5 files.
@@ -79,7 +80,9 @@ records - a damaged chunk's partial tail would be skipped, not reported), exactl
 `--no-filtered --no-wld-filtered` without simple-eval skipping, loader feature set K32H3 (what the trainer hands the
 loader for `--features K32H3^`; the CPU loss match ran train.py with `--features K32H3^`), no DDP (world size 1).
 Anything else raises instead of silently differing from the default loader; each refusal and its message is tested by
-`tools/test_scope.py` (20 cases, standard library + the DLL, no GPU: bug hunt #7). Damaged files (bug hunt #4, 371 fuzz
+`tools/test_scope.py` (20 cases, standard library + the DLL, no GPU: bug hunt #7). The equality, distribution and
+speed tools refuse wrong arguments, damaged or empty dumps and existing outputs before any work, and their compare
+commands never pass two empty or junk files: `tools/test_cli.py` (34 cases, no DLL loaded: bug hunt #16). Damaged files (bug hunt #4, 371 fuzz
 runs incl. a bounds-checked build): clean errors, no crash, no hang. One shared limit: a cyclic stream over a file in
 which the skip filter keeps nothing (e.g. every score VALUE_NONE) waits forever - the default loader does the same.
 

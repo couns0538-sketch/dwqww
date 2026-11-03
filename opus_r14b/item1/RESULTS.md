@@ -398,3 +398,40 @@ Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). Changes in this f
   was printed and never counted, and the ABBA / full-epoch steps hid their exit codes behind `tail`. Its recorded
   run (all PASS, read line by line) stands.
 The DLL, forge_fastloader.py, the installer and every other item 1 file are untouched.
+
+## Bug hunt #16 (03:25-03:35 by the PC clock; self-review, NOT independent): the documents against the code, the tools with wrong arguments
+Scope (written 02:36, before the hunt): every command, option, default, path and exit code that HANDOFF.md,
+GPU_REQUEST.md, LOADER_SPEC.md and the skill forge-npt-fast-loader give must exist as written (the GPU window is run
+from these documents); and item 1's Python tools with missing or wrong arguments: nonzero exit, a clear line, nothing
+written.
+
+Checked and right as written: GPU_REQUEST pre-check 1 (run from PowerShell as written it lists both processes of the
+live trainer, pid 8800 = the venv launcher and 4320 = the interpreter, so it says "do not start"; from Git Bash the
+backslashes of that one-liner get eaten, which is why the document gives it as PowerShell); every option of the GPU
+command, compared one by one with the live trainer's command line (s33, pid 4320): all accepted, the only differences
+are the intended ones (run folder, `--fast-loader`, `--max-epochs 1`, `--save-top-k 1`, `--save-last-network False`,
+seed); train.py takes forge_fastloader.py AND the DLL from `FORGE_FAST_LOADER_DIR` and prints `Fast loader: ON (...)` /
+`Fast loader: off` exactly as HANDOFF step 5 says; guard_exec.py's `R6_MIN_FREE_GB` / `R6_GUARD_LOG` and its JSON keys
+(`aborted`, `min_free_gb`, `peak_private_gb`); lm_run.sh's `LM_L1` / `LM_VAL` / `LM_EPOCH` (pre-check 4: batch 16384,
+65,536 = 4 steps, 16,384 = 1 validation batch, GPU hidden, b5 folder by default); the adapter's `--npt-repo` and
+`--npt-extra` (argparse REMAINDER, appended after the trainer arguments); `--num-workers N` = max(1, N - 2) builders;
+the manifest's 264 files; build_fastloader.sh prints the sha256; gpu_util_stats.py `--by-hour` and its default CSV;
+the b4 guard of fl_dataset_equal.py; every code name in LOADER_SPEC.md (`__getitem__` is the trainer's
+FixedNumBatchesDataset method, which re-raises the queued error as the spec says).
+| # | finding | fix |
+|---|---|---|
+| H16-1 | **`fl_dataset_equal.py --compare` (the acceptance check's verdict) passed two identical junk files, or two dumps without a batch, with exit 0**; `fl_equal.py compare` passed two hashed dumps without a batch | a dump must be complete (its `# loader=... batches= val_batches=` line, exactly that many rows, well-formed rows), else exit 2; dumps of different batch counts are exit 1; `fl_equal.py compare` of two dumps without a batch is exit 2 ("no equality claim possible") |
+| H16-2 | `fl_equal.py dump`, `fl_dataset_equal.py` (dump) and `fl_distribution.py stats` refused an existing `--out` only when writing it - after the whole run (up to a full 9,307-batch epoch), with a traceback, the run lost | the output (must not exist, its folder must), the DLL / data files and the mask are checked before any work, exit 2 |
+| H16-3 | `fl_abba.py`: `--pairs 0` made the folder, then a traceback; `--pairs 1` printed a "95% CI" of zero width from one ratio; a malformed arm, a missing DLL, a bad mask or an existing folder: tracebacks after the folder was made; a failed run: a traceback | all checked before the folder is made, exit 2; a failed run is one line and exit 1 (no speed figures) |
+| H16-4 | tracebacks for a bad `--mask` (`xyz`; `0x0` an OSError), a missing DLL or data file, missing or junk compare inputs (fl_equal, fl_distribution), and `fl_dataset_equal.py` without arguments (it started a dump and failed importing data_loader) | one line naming the file or option, exit 2 |
+| H16-5 | HANDOFF 3b said "a different folder for either loader goes in as the 3rd / 4th argument": the 3rd argument of fl_acceptance.sh is the old loader DLL FILE | wording fixed |
+| H16-6 | the skill's fl_equal.py command line lacked `--data`, which is required (argparse error if followed literally) | added |
+| H16-7 | GPU_REQUEST.md named s31 as the running line; since 02:18 it is s33 (seed 5126). It also did not say that the two log files must not exist (since hunt #15 lowrun.ps1 refuses an existing `-Out` / `-Err`) nor that `FORGE_FAST_LOADER_DIR` is what makes `D:\o14b\npt` (b4 files next to its train.py) load b5 | updated (queue facts read 03:27 with the option-by-option comparison; both preconditions written in) |
+
+Checks (03:29-03:34): the 22-call battery before / after (before: 16 tracebacks, the junk compare exit 0, three
+folders left by fl_abba; after: 22 / 22 exit 2 with one line, nothing left); new `tools/test_cli.py` **34 / 34** (no
+DLL loaded; stand-in files where a case needs an existing DLL / data); valid input unchanged: the recorded compares
+(1,000 / 1,000 raw batches, 261 / 261 b5 and acceptance trainer-path batches, the distribution compare) exit 0 as
+before, a fresh 2-batch old vs fast dump pair is identical (exit 0), `fl_abba.py` with 2 pairs exits 0;
+`test_scope.py` all PASS, `test_installer.sh` 25 / 25. The DLL, forge_fastloader.py, the installer and the patches are
+untouched.

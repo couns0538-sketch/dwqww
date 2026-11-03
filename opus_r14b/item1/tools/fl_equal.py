@@ -64,15 +64,33 @@ class CIo(ctypes.Structure):
     _fields_ = [("balance_window_mb", c_int), ("shuffle_buffer_entries", c_int)]
 
 
+def fail(msg, code=2):
+    """One clear line and exit (2 = bad usage or input); these used to end in tracebacks (bug hunt #16)."""
+    print(f"{os.path.basename(sys.argv[0])}: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def need_new_output(path: str) -> None:
+    """Checked BEFORE the work: an existing output used to be refused only when written, after the whole run."""
+    if os.path.exists(path) or not os.path.isdir(os.path.dirname(os.path.abspath(path))):
+        fail(f"{path}: exists or its folder is missing (outputs are never overwritten)")
+
+
 def set_low(mask: str, priority: str) -> None:
+    try:
+        m = int(mask, 16)
+    except ValueError:
+        m = 0
+    if m <= 0:
+        fail(f"--mask {mask!r} is not a hexadecimal CPU mask naming at least one CPU")
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.GetCurrentProcess.restype = c_void_p
     h = k32.GetCurrentProcess()
     cls = {"BelowNormal": 0x4000, "Idle": 0x40}[priority]
     if not k32.SetPriorityClass(c_void_p(h), cls):
-        raise OSError(ctypes.get_last_error(), "SetPriorityClass")
-    if not k32.SetProcessAffinityMask(c_void_p(h), c_size_t(int(mask, 16))):
-        raise OSError(ctypes.get_last_error(), "SetProcessAffinityMask")
+        fail(f"SetPriorityClass({priority}) failed: Windows error {ctypes.get_last_error()}")
+    if not k32.SetProcessAffinityMask(c_void_p(h), c_size_t(m)):
+        fail(f"SetProcessAffinityMask({mask}) failed: Windows error {ctypes.get_last_error()} (CPUs beyond this PC?)")
 
 
 def peak_working_set_mb() -> float:
@@ -167,6 +185,10 @@ class NewStream:
 
 
 def cmd_dump(a) -> int:
+    need_new_output(a.out)
+    for path, what in ((a.dll, "--dll"), (a.data, "--data")):
+        if not os.path.isfile(path):
+            fail(f"{what} {path}: file not found")
     set_low(a.mask, a.priority)
     cls = OldStream if a.loader == "old" else NewStream
     t0 = time.perf_counter()
@@ -205,11 +227,14 @@ def cmd_dump(a) -> int:
 
 def read_tsv(path):
     rows, meta = [], []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if not line.strip():
-                continue  # dumps written before 14:25 have one empty row when the stream had no batch
-            (meta if line.startswith("#") else rows).append(line.rstrip("\n"))
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue  # dumps written before 14:25 have one empty row when the stream had no batch
+                (meta if line.startswith("#") else rows).append(line.rstrip("\n"))
+    except (OSError, UnicodeDecodeError) as e:
+        fail(f"{path}: cannot read ({e})")
     return rows, meta
 
 
@@ -226,6 +251,9 @@ def cmd_compare(a) -> int:
         print(f"settings differ or are missing:\n  {sa}\n  {sb}")
         return 2
     n = min(len(ra), len(rb))
+    if not ra and not rb:  # two dumps without a batch used to compare as identical (bug hunt #16)
+        print(f"{a.a} vs {a.b}: no batch in either dump - nothing compared, no equality claim possible")
+        return 2
     same = sum(1 for i in range(n) if ra[i] == rb[i])
     first = next((i for i in range(n) if ra[i] != rb[i]), None)
     print(f"{a.a} vs {a.b}: compared {n} batches (lengths {len(ra)} / {len(rb)}), identical {same}, "

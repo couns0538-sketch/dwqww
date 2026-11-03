@@ -11,10 +11,13 @@ One full trainer epoch of the live recipe (K32H3^, L1 1024, batch 16384, epoch 1
 9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935): it/s, epoch minutes, GPU utilisation, RAM-floor
 trips, loss. Control = the existing epochs of the live line with the default loader (e.g. w4_s24: epoch 0
 train_loss_epoch 0.000948, val 0.000550, 15.6-20.5 min per epoch, GPU 25-50 %, `npt_try1.log`), so no control run
-is needed in the window. Since ~22:34 on 2026-11-02 the queue runs the next line, `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s31`
-(command line read 22:59): the same binpack and validation set, K32H3^, L1 1024, batch 16384, `--num-workers 4
---threads 2`, `--no-filtered --no-wld-filtered` - everything the loader sees is unchanged, and so is the rest of the
-recipe except the seed (5124 here, 5117 in the command below), so the fast loader's checked scope covers it and its epochs are an equally good control.
+is needed in the window. The queue runs the same recipe line after line with new seeds (s31 from ~22:34 on
+2026-11-02, read 22:59, seed 5124; `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s33` from 02:18 on 2026-11-03, read
+03:27, seed 5126): the same binpack and validation set, K32H3^, L1 1024, batch 16384, `--num-workers 4 --threads 2`,
+`--no-filtered --no-wld-filtered`. Compared option by option with the command below (bug hunt #16, 03:27), the s33
+line differs only in the run folder, the seed, `--max-epochs 8`, `--save-top-k 2` and `--save-last-network True` -
+everything the loader sees is unchanged, so the fast loader's checked scope covers these lines and their epochs are
+an equally good control.
 
 ## Pre-checks (all must pass, else do not start)
 1. No npt trainer alive: `Get-CimInstance Win32_Process | ? CommandLine -match 'nnue-pytorch-amd\\train.py'` is empty,
@@ -22,6 +25,8 @@ recipe except the seed (5124 here, 5117 in the command below), so the fast loade
 2. Free RAM >= 12 GB (guard floor 6 GB like the queue, plus margin), C: >= 52 GB (Couns: keep C: >= 50 GB; the run writes one 1.5 GB checkpoint there), D: >= 50 GB.
 3. `D:\o14b\fl\b5_install\forge_fastloader.dll` has the sha256 above; `D:\o14b\npt` is the trainer copy with the
    `--fast-loader` switch (`tools/install_fast_loader.py`; files verified against `F:\opus_scratch\r6\nnue-pytorch-amd`).
+   The loader files next to its train.py are the superseded b4: the command's `FORGE_FAST_LOADER_DIR` is what makes
+   it load b5 (train.py takes both forge_fastloader.py and the DLL from that folder), so keep that line.
 4. Optional, only while no npt line trains (it is a CPU training run on CPUs 2-3): a dry run of this recipe on the CPU
    with GPUs hidden, 4 steps + 1 validation batch, to see the start-up line `Fast loader: ON (...)`, the validation
    pass and the checkpoint save before the window: `LM_L1=1024 LM_VAL=16384 LM_EPOCH=65536 bash tools/lm_run.sh fast
@@ -46,7 +51,9 @@ powershell -NoProfile -File D:\grok-pc-data\dwqww\.claude\worktrees\o14b-l1\opus
   '-B opus_tools\guard_exec.py train.py F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack --validation-datasets F:\forge_j1_data\forge_holdout_013-014_j2.binpack --validation-size 1000000 --default-root-dir C:\o14b\gpu\fl_e1 --features K32H3^ --l1 1024 --batch-size 16384 --num-workers 4 --threads 2 --epoch-size 152500000 --max-epochs 1 --network-save-period 1 --save-top-k 1 --save-last-network False --swa-start-epoch -1 --seed 5117 --lr 0.000875 --start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered --accelerator cuda --gamma 0.72 --fast-loader'
 ```
 (Reads from F: only: the trainer copy is on D:, the data binpacks on F: are read-only. The command line contains no `train_resid` name, so the NNUE supervisor does not adopt it; the output folder does
-not start with `runs_`. The run folder `C:\o14b\gpu\fl_e1` must not exist before the run; the cache folders may be reused.)
+not start with `runs_`. The run folder `C:\o14b\gpu\fl_e1` must not exist before the run, nor the two log files
+`fl_e1_stdout.log` / `fl_e1_stderr.log`: since bug hunt #15 lowrun.ps1 refuses an existing `-Out` / `-Err` with exit
+127 instead of emptying it - after a failed attempt use new names. The cache folders may be reused.)
 
 ## During and after
 - GPU utilisation: the keeper's own source, HWiNFO CSV `C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv`

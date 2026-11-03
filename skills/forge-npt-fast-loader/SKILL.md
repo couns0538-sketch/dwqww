@@ -30,9 +30,13 @@ description: The R14-B fast data loader for the npt (nnue-pytorch) trainer on gr
   PowerShell eats `-o` as one of its own parameters).
 
 ## Proof recipe (all own tools, stdlib Python unless noted)
-1. Raw equality: `tools/fl_equal.py dump --loader old|fast --dll ... --workers N --batches 1000 --out X.tsv`, then
-   `compare A B` (refuses unhashed dumps or different settings). Hashes the 3n-float + 66n-int blocks = every byte the
-   trainer reads. `--skip key=value,...` for other skip settings, `--batch/--window/--finite` for other shapes.
+1. Raw equality: `tools/fl_equal.py dump --loader old|fast --dll ... --data <binpack> --workers N --batches 1000
+   --out X.tsv` (`--data` is required), then `compare A B` (refuses unhashed dumps, different settings and two dumps
+   without a batch). Hashes the 3n-float + 66n-int blocks = every byte the trainer reads. `--skip key=value,...` for
+   other skip settings, `--batch/--window/--finite` for other shapes. The tools check `--out` (must not exist), the
+   files and `--mask` BEFORE any work and exit 2 with one line otherwise: `tools/test_cli.py SCRATCH` (34 cases, bug
+   hunt #16; before it an existing `--out` was refused only after the whole run, and `fl_dataset_equal.py --compare`
+   passed two junk files with exit 0).
 2. Trainer-path equality (trainer venv, GPU hidden): `tools/fl_dataset_equal.py` builds the streams exactly like the
    patched `make_data_loaders` (Dataset -> FixedNumBatchesDataset -> DataLoader) and hashes every tensor.
 3. Self-test `fastloader/ffl_selftest.cpp` (own fixtures; independent no-filter reference; thread-count invariance;

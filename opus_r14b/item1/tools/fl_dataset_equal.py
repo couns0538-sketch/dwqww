@@ -78,9 +78,36 @@ def dump(a) -> int:
     return 0
 
 
+def fail(msg):
+    print(f"fl_dataset_equal: {msg}", file=sys.stderr)
+    sys.exit(2)
+
+
+def read_dump(path):
+    """Batch rows and footer of a COMPLETED dump; exit 2 with a clear line otherwise. Bug hunt #16: two identical
+    files of junk, or two dumps without a batch, used to compare as identical with exit 0 (the acceptance verdict)."""
+    try:
+        lines = open(path, encoding="utf-8").read().splitlines()
+    except (OSError, UnicodeDecodeError) as e:
+        fail(f"{path}: cannot read ({e})")
+    foot = [x for x in lines if x.startswith("# loader=")]
+    rows = [x for x in lines if not x.startswith("#")]
+    try:
+        meta = dict(kv.split("=", 1) for kv in foot[-1][2:].split() if "=" in kv) if len(foot) == 1 else {}
+        want = sum(max(0, int(meta[k])) for k in ("batches", "val_batches"))
+    except (KeyError, ValueError):
+        fail(f"{path}: not a completed fl_dataset_equal.py dump (no '# loader=... batches= val_batches=' line)")
+    if not rows or len(rows) != want or any(len(r.split("\t")) < 3 for r in rows):
+        fail(f"{path}: {len(rows)} batch rows, the dump's last line promises {want}")
+    return rows, meta
+
+
 def compare(pa, pb) -> int:
-    ra = [x for x in open(pa, encoding="utf-8").read().splitlines() if not x.startswith("#")]
-    rb = [x for x in open(pb, encoding="utf-8").read().splitlines() if not x.startswith("#")]
+    (ra, ma), (rb, mb) = read_dump(pa), read_dump(pb)
+    if (ma["batches"], ma["val_batches"]) != (mb["batches"], mb["val_batches"]):
+        print(f"{pa} vs {pb}: different batch counts ({ma['batches']} + {ma['val_batches']} vs "
+              f"{mb['batches']} + {mb['val_batches']}): not the same check")
+        return 1
     same = sum(1 for x, y in zip(ra, rb) if x == y)
     first = next((i for i, (x, y) in enumerate(zip(ra, rb)) if x != y), None)
     print(f"{pa} vs {pb}: {len(ra)} / {len(rb)} batches, identical {same}, first difference {first}")
@@ -101,6 +128,13 @@ def main() -> int:
     a = ap.parse_args()
     if a.compare:
         return compare(*a.compare)
+    if not a.loader or not a.out:  # no arguments used to start a dump and fail importing data_loader (bug hunt #16)
+        ap.error("a dump needs --loader and --out (or --compare A B)")
+    if os.path.exists(a.out) or not os.path.isdir(os.path.dirname(os.path.abspath(a.out))):
+        fail(f"{a.out}: exists or its folder is missing (outputs are never overwritten; checked before the run, "
+             f"not after it)")
+    if a.loader == "fast" and not os.environ.get("FORGE_FAST_LOADER_DIR"):
+        fail("--loader fast needs FORGE_FAST_LOADER_DIR (the folder with forge_fastloader.dll + .py)")
     return dump(a)
 
 

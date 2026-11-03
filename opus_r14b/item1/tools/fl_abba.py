@@ -27,9 +27,17 @@ T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8
         21: 2.080, 22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
 
 
+def parse_arm(arm):
+    """loader:dll:workers (the DLL path itself contains a drive colon); None if malformed."""
+    loader, _, rest = arm.partition(":")
+    dll, _, workers = rest.rpartition(":")
+    if loader not in ("old", "fast") or not dll or not workers.isdigit() or int(workers) < 1:
+        return None
+    return loader, dll, workers
+
+
 def run_one(arm, out_tsv, a):
-    loader, rest = arm.split(":", 1)  # the DLL path itself contains a drive colon
-    dll, workers = rest.rsplit(":", 1)
+    loader, dll, workers = parse_arm(arm)
     cmd =[sys.executable, "-I", "-B", os.path.join(HERE, "fl_equal.py"), "dump", "--loader", loader, "--dll", dll,
            "--workers", workers, "--data", a.data, "--batches", str(a.batches), "--warmup", str(a.warmup),
            "--no-hash", "--out", out_tsv, "--mask", a.mask, "--priority", a.priority]
@@ -54,6 +62,24 @@ def main() -> int:
     ap.add_argument("--priority", default="BelowNormal", choices=["BelowNormal", "Idle"])
     ap.add_argument("--data", default=DATA)
     a = ap.parse_args()
+    # bug hunt #16: these used to fail after the output folder was made (0 pairs: a traceback; 1 pair: a "95% CI" of
+    # zero width from one ratio; a malformed arm, a bad mask or an existing folder: tracebacks)
+    problems = [f"--{k} {v!r} is not loader:dll:workers with loader old|fast, an existing DLL and workers >= 1"
+                for k, v in (("a", a.a), ("b", a.b)) if not parse_arm(v) or not os.path.isfile(parse_arm(v)[1])]
+    if a.pairs < 2:
+        problems.append("--pairs must be at least 2 (the confidence interval needs two pairs)")
+    try:
+        if int(a.mask, 16) <= 0:
+            raise ValueError
+    except ValueError:
+        problems.append(f"--mask {a.mask!r} is not a hexadecimal CPU mask naming at least one CPU")
+    if not os.path.isfile(a.data):
+        problems.append(f"--data {a.data}: file not found")
+    if os.path.exists(a.out) or not os.path.isdir(os.path.dirname(os.path.abspath(a.out))):
+        problems.append(f"--out {a.out}: exists or its folder is missing (outputs are never overwritten)")
+    if problems:
+        print("fl_abba: " + "\nfl_abba: ".join(problems), file=sys.stderr)
+        return 2
     os.makedirs(a.out, exist_ok=False)
     order = []
     for p in range(a.pairs):
@@ -63,7 +89,11 @@ def main() -> int:
              f"{a.priority}, data {a.data}", f"start {time.strftime('%Y-%m-%d %H:%M:%S')}", ""]
     for i, arm in enumerate(order):
         spec = a.a if arm == "A" else a.b
-        s = run_one(spec, os.path.join(a.out, f"run_{i:02d}_{arm}.tsv"), a)
+        try:
+            s = run_one(spec, os.path.join(a.out, f"run_{i:02d}_{arm}.tsv"), a)
+        except (subprocess.CalledProcessError, RuntimeError, OSError) as e:  # was a traceback (bug hunt #16)
+            print(f"fl_abba: run {i:02d} ({arm}) failed: {e} - no speed figures", file=sys.stderr)
+            return 1
         speeds[arm].append(s)
         lines.append(f"run {i:02d} {arm} {s:,.0f} kept/s")
         print(lines[-1], flush=True)

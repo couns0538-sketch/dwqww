@@ -23,6 +23,10 @@ import fl_equal  # noqa: E402  (stream classes, low priority, peak memory)
 
 
 def stats(a) -> int:
+    fl_equal.need_new_output(a.out)  # before the run, not after it (bug hunt #16)
+    for path, what in ((a.dll, "--dll"), (a.data, "--data")):
+        if not os.path.isfile(path):
+            fl_equal.fail(f"{what} {path}: file not found")
     fl_equal.set_low(a.mask, a.priority)
     cls = fl_equal.OldStream if a.loader == "old" else fl_equal.NewStream
     st = cls(a.dll, a.data, a.batch, a.workers, True, a.window, fl_equal.make_skip(""))
@@ -63,8 +67,25 @@ def stats(a) -> int:
     return 0
 
 
+def load_stats(path):
+    """A stats file written by `stats`; exit 2 with a clear line otherwise (bug hunt #16: was a traceback)."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            s = json.load(f)
+        missing = [k for k in ("loader", "workers", "positions", "hist", "score_mean", "score_mean_se") if k not in s]
+        if missing:
+            raise KeyError(", ".join(missing))
+        if not s["hist"] or not all(sum(h) > 0 for h in s["hist"].values()) or s["positions"] <= 0:
+            raise ValueError("empty histograms")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        fl_equal.fail(f"{path}: not a fl_distribution.py stats file ({type(e).__name__}: {e})")
+    return s
+
+
 def compare(pa, pb) -> int:
-    A, B = json.load(open(pa)), json.load(open(pb))
+    A, B = load_stats(pa), load_stats(pb)
+    if {k: len(v) for k, v in A["hist"].items()} != {k: len(v) for k, v in B["hist"].items()}:
+        fl_equal.fail(f"{pa} and {pb} hold different histograms: not comparable")
     print(f"A = {A['loader']} w{A['workers']} ({A['positions']:,} positions), B = {B['loader']} w{B['workers']} "
           f"({B['positions']:,})")
     for key in A["hist"]:
