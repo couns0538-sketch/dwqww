@@ -34,6 +34,10 @@ check abba-metric-missing 2 $? "$S/ab_nometric.out" '--metric found nothing in r
 ab --out "$S/ab_args" --pairs 1 --a true --b true > "$S/ab_args.out" 2>&1
 check abba-pairs-1 2 $? "$S/ab_args.out" 'pairs must be >= 2'
 [ ! -e "$S/ab_args" ] || { echo "FAIL abba-pairs-1 created its folder"; fail=1; }
+ab --out "$S/ab_mask" --pairs 2 --mask xyz --a true --b true > "$S/ab_mask.out" 2>&1
+check abba-bad-mask 2 $? "$S/ab_mask.out" 'not a hex CPU mask'
+ab --out "$S/ab_nan" --pairs 2 --metric 'v=([0-9.]+)' --a "echo v=1.2.3" --b "echo v=1" > "$S/ab_nan.out" 2>&1
+check abba-metric-not-a-number 2 $? "$S/ab_nan.out" "group 1 is '1\.2\.3', not a number"
 
 F="$S/lint"; mkdir -p "$F"
 printf 'a\x08b\n' > "$F/ctrl.md"; printf 'echo hi\r\necho ho\r\n' > "$F/crlf.sh"; printf '\xef\xbb\xbfprint(1)\n' > "$F/bom.py"
@@ -50,6 +54,10 @@ C="$S/lint_clean"; mkdir -p "$C"
 printf 'fine C:/o14b and C:\\o14b, F:\\x; R14-B: ok; exit:K:FLAG; http://a.b\nskip C:o14bx (doc_lint: ignore)\n' > "$C/ok.md"
 "$PY" -I -B "$here/doc_lint.py" "$C" > "$S/lint_clean.out" 2>&1
 check doc_lint-clean 0 $? "$S/lint_clean.out" 'doc_lint: 1 files, 0 findings'
+E="$S/lint_edge"; mkdir -p "$E/sub dir"; printf 'x\n' > "$E/sub dir/a b.md"
+printf '[ok](sub%%20dir/a%%20b.md)\n\n| a | b |\n|-|-|\n| 1 | 2 | 3 |\n' > "$E/t.md"
+"$PY" -I -B "$here/doc_lint.py" "$E" > "$S/lint_edge.out" 2>&1
+check doc_lint-one-dash-table-and-encoded-link 1 $? "$S/lint_edge.out" 't.md:5: \[table\] 3 cells' 'doc_lint: 2 files, 1 findings'
 "$PY" -I -B "$here/doc_lint.py" "$S/nonexistent" > "$S/lint_missing.out" 2>&1
 check doc_lint-missing-path 2 $? "$S/lint_missing.out" 'does not exist'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"

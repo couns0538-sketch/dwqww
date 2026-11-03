@@ -19,13 +19,15 @@ Prints file:line: [check] message; exit 0 clean, 1 findings, 2 bad arguments. Ha
 import os
 import re
 import sys
+import urllib.parse
 
 TEXT = {".md", ".py", ".sh", ".ps1", ".txt", ".json", ".yml", ".yaml", ".cpp", ".h", ".hpp", ".tsv", ".sha256",
         ".patch"}
 LF_ONLY = {".sh", ".py", ".ps1", ".cpp", ".md", ".yml", ".tsv", ".sha256"}
 CRLF = b"\r\n"
 DRIVE = re.compile(r"(?<![A-Za-z0-9_$%:])[A-Z]:(?=[A-Za-z0-9_]{3,})(?=[A-Z_]*[a-z0-9])(?!\w+://)")
-DELIM = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+DELIM = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")  # GitHub accepts one dash per cell
+CLEAN = bytes(range(32, 256)) + b"\t\n\r"
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
 
 
@@ -48,7 +50,7 @@ def lint_file(path, out):
     with open(path, "rb") as fh:
         raw = fh.read()
     n0 = len(out)
-    bad_ctrl = sorted({c for c in raw if c < 32 and c not in (9, 10, 13)})
+    bad_ctrl = sorted(set(raw.translate(None, CLEAN)))  # what is left after deleting the allowed bytes
     n_cr, n_crlf = raw.count(b"\r"), raw.count(b"\r\n")
     if bad_ctrl or n_cr != n_crlf:
         first = next((i for i, c in enumerate(raw) if c in bad_ctrl), raw.find(b"\r"))
@@ -81,7 +83,7 @@ def lint_file(path, out):
             for m in LINK.finditer(ln):
                 target = m.group(1).split("#")[0]
                 if target and not re.match(r"^[a-z][a-z0-9+.-]*:", target, re.I) and not target.startswith("/"):
-                    if not os.path.exists(os.path.join(os.path.dirname(path), target)):
+                    if not os.path.exists(os.path.join(os.path.dirname(path), urllib.parse.unquote(target))):
                         out.append(f"{shown}:{i}: [link] {m.group(1)} does not exist")
     if ext == ".md":
         in_fence = False

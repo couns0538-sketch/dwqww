@@ -18,6 +18,9 @@ and every --load-every pairs; load.txt keeps it - quote it next to the number (I
 Outputs in --out (refused when it exists; nothing is overwritten): runs.tsv, runs/<slot>_<arm>.txt (each run's
 output), load.txt, summary.txt. Exit: 0 done, 1 a run exited nonzero, 2 bad arguments / identity differs / metric
 missing. No timeout: a hung command blocks the driver (look at the process list; the session tools cannot stop it).
+Wall seconds include starting the shell (Git Bash: tens of ms, the same for both arms, pulling the ratio towards 1):
+for commands shorter than a few seconds time inside the program and use --metric. --shell cmd passes the command
+to cmd.exe /s /c (no inner double quotes there); bash is the tested default.
 """
 import argparse
 import ctypes
@@ -101,7 +104,11 @@ def value_of(a, wall, text, tag):
     if not hits:
         print(f"abba: --metric found nothing in run {tag} (output in runs/{tag}.txt)", file=sys.stderr)
         sys.exit(2)
-    v = float(hits[-1].group(1).replace(",", ""))
+    try:
+        v = float((hits[-1].group(1) or "").replace(",", ""))  # commas = thousands separators
+    except ValueError:
+        print(f"abba: run {tag}: --metric group 1 is {hits[-1].group(1)!r}, not a number", file=sys.stderr)
+        sys.exit(2)
     if v <= 0:
         print(f"abba: run {tag} gave metric {v} (must be > 0)", file=sys.stderr)
         sys.exit(2)
@@ -158,13 +165,19 @@ def main():
                 ap.error(f"bad regex {rx!r}: {e}")
     if a.metric and re.compile(a.metric).groups < 1:
         ap.error("--metric needs a capture group, e.g. 'rows/h ([0-9,.]+)'")
-    mask = int(a.mask, 16)
-    if mask <= 0:
-        ap.error("--mask must name at least one CPU")
+    try:
+        mask = int(a.mask, 16)
+    except ValueError:
+        ap.error(f"--mask {a.mask!r} is not a hex CPU mask (e.g. 0xC)")
+    if mask <= 0 or mask >= 1 << (os.cpu_count() or 64):
+        ap.error(f"--mask {a.mask} names no CPU or a CPU this PC does not have ({os.cpu_count()} logical CPUs)")
     if os.path.exists(a.out):
         ap.error(f"--out {a.out} exists (write fresh, named folders)")
+    try:
+        pin_self(mask, a.priority)
+    except OSError as e:
+        ap.error(f"cannot pin the driver to {a.mask} at {a.priority}: {e}")
     os.makedirs(os.path.join(a.out, "runs"), exist_ok=False)
-    pin_self(mask, a.priority)
     argv = {"A": shell_argv(a.shell, a.a), "B": shell_argv(a.shell, a.b)}
     start = time.strftime("%Y-%m-%d %H:%M:%S")
     head = [f"abba.py start {start} pairs {a.pairs} mask {a.mask} priority {a.priority} shell {a.shell}",
