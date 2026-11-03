@@ -32,3 +32,20 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
   fixed; do not call those wrappers accepted. Busy-CPU refusal retained.
 - Streaming row primitives:14 tests passed, all-byte MD5 plus incomplete-key
   accounting. Production scan integration and independent review remain pending.
+
+## 13:35 Vienna checkpoint
+
+- Reviewed wrappers now use explicitly assigned suspended children in an owned
+  job and bounded pipe drains. Runtime setup eight tests passed; launcher cases
+  passed across retained runs, with one latest environment case refused by real
+  CPU admission. Do not describe the latest launcher suite as wholly green.
+- Native r03 rejects adjacent empty-square digits; fifteen quick tests passed.
+  Corrected harness has twenty-five passing tests and a2050-pair smoke with zero
+  disagreements. Million-pair qualification is still pending independent recheck.
+- Streaming and overlap targeted suite reached thirty passing tests. Full scan
+  attempts refused a busy CPU and then an owned runtime inventory marker. A
+  narrow exception was reviewed; external-root containment is being corrected.
+- Exact game provenance remains missing; position overlap and bounded legal
+  reachability cannot manufacture original identities. No export payload exists.
+- Next: launch guarded overlap and qualification, implement complete source
+  segment mapping, and retain all group mismatches and unknown boundaries.

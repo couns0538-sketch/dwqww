@@ -176,6 +176,15 @@ class NativeFixtures(unittest.TestCase):
             self.assertEqual(result['status'], 'UNKNOWN', result)
             self.assertEqual(result['reason'], 'invalid_input')
 
+    def test_consecutive_fen_digits_are_invalid(self):
+        bad = '4k3/8/8/8/8/8/8/4K111 w - - 0 1'
+        good = '4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+        pair_result = run_lines([pair(bad, good)])[0]
+        move_result = run_lines(['bad\t' + bad], '--moves')[0]
+        for result in (pair_result, move_result):
+            self.assertEqual(result['status'], 'UNKNOWN')
+            self.assertEqual(result['reason'], 'invalid_input')
+
     def test_json_identifier_escaping(self):
         a = chess.Board().fen(en_passant='fen')
         ident = 'quote"slash\\'

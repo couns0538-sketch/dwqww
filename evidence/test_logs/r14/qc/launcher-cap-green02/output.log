@@ -1,0 +1,28 @@
+.....F                                                                   [100%]
+================================== FAILURES ===================================
+___________ test_exited_child_cannot_leave_descendant_holding_pipes ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/launcher-cap-green02/pytest/test_exited_child_cannot_leave0')
+
+    def test_exited_child_cannot_leave_descendant_holding_pipes(tmp_path):
+        probe = tmp_path / 'pipe_probe.py'
+        child_out = tmp_path / 'descendant.json'
+        probe.write_text('import json,subprocess,sys\nfrom pathlib import Path\n'
+                         "child=subprocess.Popen([sys.executable,'-I','-B','-c','import time;time.sleep(6)'],stdout=sys.stdout,stderr=sys.stderr)\n"
+                         + f'Path({str(child_out)!r}).write_text(json.dumps(dict(pid=child.pid)))\n', encoding='utf-8')
+        name = 'pipes-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        harness = tmp_path / 'pipes.ps1'
+        harness.write_text("[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{name}' -TimeoutSeconds 2\nexit $LASTEXITCODE\n", encoding='utf-8')
+        started = time.monotonic()
+        result = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=15)
+        elapsed = time.monotonic() - started
+        assert result.returncode == 0, result.stdout + result.stderr
+>       assert elapsed < 5, f'capture outlived the child deadline: {elapsed:.2f}s'
+E       AssertionError: capture outlived the child deadline: 5.95s
+E       assert 5.952999999979511 < 5
+
+tests\test_r14_launcher.py:125: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_launcher.py::test_exited_child_cannot_leave_descendant_holding_pipes
+1 failed, 5 passed in 22.62s

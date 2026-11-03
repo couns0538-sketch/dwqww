@@ -11,6 +11,11 @@ param(
 $ErrorActionPreference='Stop'
 $root = 'D:\a14'
 $python = 'D:\a14\runtime\python\python.exe'
+. (Join-Path $root 'tools\R14-OwnedJob.ps1')
+function Assert-OwnedStorage([long]$NextBytes=0) {
+    $used=(Get-ChildItem -LiteralPath $root -Recurse -File -Force | Measure-Object -Property Length -Sum).Sum
+    if ($NextBytes -lt 0 -or ([long]$used+$NextBytes) -ge 5000000000L) { throw 'Owned storage cap admission refused' }
+}
 function Assert-OwnedPath([string]$Candidate) {
     $full=[IO.Path]::GetFullPath($Candidate)
     if ($full -ne $root -and -not $full.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Path outside owned root' }
@@ -38,6 +43,7 @@ Assert-OwnedPath $scriptFull
 if ([IO.Path]::GetExtension($scriptFull) -ne '.py') { throw 'Only Python entry points are supported' }
 if (-not $scriptFull.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $scriptFull -PathType Leaf)) { throw 'Script outside owned root or missing' }
 if ($RequiredBytes -lt 0 -or (Get-PSDrive D).Free -lt (50GB + $RequiredBytes) -or (Get-PSDrive C).Free -lt 30GB) { throw '50 GiB plus allocation admission refused' }
+Assert-OwnedStorage $RequiredBytes
 $run = Join-Path $root ('evidence\test_logs\r14\launchers\' + $RunName)
 Assert-OwnedPath $run
 if (Test-Path -LiteralPath $run) { throw 'Refusing reused run directory' }
@@ -72,6 +78,7 @@ $childEnvironment['XDG_CONFIG_HOME']=Join-Path $childEnvironment['TEMP'] 'xdg-co
 $childEnvironment['HF_HOME']=Join-Path $childEnvironment['TEMP'] 'huggingface'
 $childEnvironment['ASTRA_R13_CPU']=[string]$Cpu
 $childEnvironment['ASTRA_R13_DEADLINE']=([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()+$TimeoutSeconds).ToString()
+$childEnvironment['ASTRA_R14_DEADLINE']=$childEnvironment['ASTRA_R13_DEADLINE']
 if ($WithDatafilterRuntime) { throw 'Protected runtime access is forbidden' }
 $childEnvironment['PYTHONPATH']='D:\a14\tools'
 $process=[Diagnostics.Process]::GetCurrentProcess()
@@ -94,6 +101,7 @@ $child.StartInfo.RedirectStandardError=$true
 $child.StartInfo.ArgumentList.Add('-B')
 $child.StartInfo.ArgumentList.Add($scriptFull)
 foreach ($argument in $ScriptArguments) { $child.StartInfo.ArgumentList.Add($argument) }
+$job=Initialize-R14JobChild $child $run $python (@('-B',$scriptFull)+$ScriptArguments)
 $outStream=$null
 $errStream=$null
 $childStarted=$false
@@ -107,20 +115,24 @@ try {
     $childStarted=$true
     $copyOut=$child.StandardOutput.BaseStream.CopyToAsync($outStream)
     $copyErr=$child.StandardError.BaseStream.CopyToAsync($errStream)
+    Release-R14JobChild $job $child
     $watch=[Diagnostics.Stopwatch]::StartNew()
     while (-not $child.WaitForExit(1000)) {
         if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) { $stopReason='DISK_FLOOR' }
-        if ($watch.Elapsed.TotalSeconds -ge $TimeoutSeconds) { $stopReason='DEADLINE' }
-        if ($copyOut.IsFaulted -or $copyErr.IsFaulted) { $stopReason='CAPTURE_FAILED' }
+        try { Assert-OwnedStorage 1MB } catch { $stopReason='OWNED_STORAGE_CAP' }
+        if (-not $stopReason -and $watch.Elapsed.TotalSeconds -ge $TimeoutSeconds) { $stopReason='DEADLINE' }
+        if (-not $stopReason -and ($copyOut.IsFaulted -or $copyErr.IsFaulted)) { $stopReason='CAPTURE_FAILED' }
         if ($stopReason) {
             # Only this freshly started Popen-equivalent process tree is stopped.
-            $child.Kill($true)
-            $child.WaitForExit()
+            $job.Dispose()
+            if (-not $child.WaitForExit(5000)) { throw 'Owned child did not exit after job closure' }
             break
         }
     }
-    $null=$copyOut.GetAwaiter().GetResult()
-    $null=$copyErr.GetAwaiter().GetResult()
+    Complete-R14JobCapture $job $child @($copyOut,$copyErr) {
+        if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) { $script:stopReason='DISK_FLOOR'; throw 'Disk floor during capture' }
+        try { Assert-OwnedStorage 1MB } catch { $script:stopReason='OWNED_STORAGE_CAP'; throw }
+    }
     $nativeExit=$child.ExitCode
     if ($stopReason) { $nativeExit=70 }
 } catch {
@@ -129,11 +141,11 @@ try {
     $exceptionMessage=$_.Exception.Message
 } finally {
     if ($childStarted -and -not $child.HasExited) {
-        $child.Kill($true)
-        $child.WaitForExit()
+        try { Stop-R14JobChild $job $child $childStarted }
+        catch { $nativeExit=70; if (-not $stopReason) { $stopReason='CHILD_EXIT_TIMEOUT' } }
     }
-    if ($copyOut) { try { $null=$copyOut.GetAwaiter().GetResult() } catch { $nativeExit=70; $stopReason='CAPTURE_FAILED' } }
-    if ($copyErr) { try { $null=$copyErr.GetAwaiter().GetResult() } catch { $nativeExit=70; $stopReason='CAPTURE_FAILED' } }
+    try { Complete-R14JobCapture $job $child @($copyOut,$copyErr) $null }
+    catch { $nativeExit=70; if (-not $stopReason) { $stopReason='CAPTURE_FAILED' } }
     if ($outStream) { $outStream.Dispose() }
     if ($errStream) { $errStream.Dispose() }
     $process.ProcessorAffinity=$oldAffinity
@@ -141,8 +153,16 @@ try {
 }
 $scriptAfter=$null
 $sourcesAfter=@{}
+if ($stopReason -eq 'OWNED_STORAGE_CAP') {
+    Write-Output 'OWNED_STORAGE_CAP: owned worker stopped; no receipt allocation or next job.'
+    exit 70
+}
 if ((Get-PSDrive D).Free -lt 50GB -or (Get-PSDrive C).Free -lt 30GB) {
     Write-Output 'DISK_FLOOR: owned worker stopped; no receipt allocation or next job.'
+    exit 70
+}
+try { Assert-OwnedStorage 1MB } catch {
+    Write-Output 'OWNED_STORAGE_CAP: post-child reserve refused; no receipt allocation or next job.'
     exit 70
 }
 try {
@@ -153,6 +173,10 @@ try {
 } catch { $nativeExit=70; $stopReason='SOURCE_CHANGED'; $exceptionMessage=$_.Exception.Message }
 $receipt=@{schema=2;script=$scriptFull;arguments=$ScriptArguments;python=$python;cpu=$Cpu;priority='Idle';threads=1;started=$started;finished=((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')+' Vienna');exit_code=$nativeExit;stop_reason=$stopReason;exception=$exceptionMessage;free_bytes=(Get-PSDrive D).Free;required_bytes=$RequiredBytes;script_sha256_before=$scriptHash;script_sha256_after=$scriptAfter;source_sha256_before=$sourcesBefore;source_sha256_after=$sourcesAfter;log='output.log';stderr='stderr.log'}
 if ((Get-PSDrive D).Free -lt (50GB+1MB) -or (Get-PSDrive C).Free -lt 30GB) { Write-Output 'Receipt allocation reserve refused; no next job.'; exit 70 }
+try { Assert-OwnedStorage 1MB } catch {
+    Write-Output 'OWNED_STORAGE_CAP: receipt reserve refused; no receipt allocation or next job.'
+    exit 70
+}
 $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $run 'receipt.json') -Encoding utf8
 Get-Content -LiteralPath (Join-Path $run 'output.log') -Tail 22
 Get-Content -LiteralPath (Join-Path $run 'stderr.log') -Tail 22

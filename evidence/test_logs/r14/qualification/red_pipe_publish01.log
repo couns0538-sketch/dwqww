@@ -1,0 +1,32 @@
+test_resource_refusal_after_pending_write_leaves_no_final_report (__main__.QualificationTests.test_resource_refusal_after_pending_write_leaves_no_final_report) ... ERROR
+test_closed_pipe_before_process_exit_is_not_inspection_failure (__main__.QualificationTests.test_closed_pipe_before_process_exit_is_not_inspection_failure) ... ERROR
+
+======================================================================
+ERROR: test_resource_refusal_after_pending_write_leaves_no_final_report (__main__.QualificationTests.test_resource_refusal_after_pending_write_leaves_no_final_report)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 159, in test_resource_refusal_after_pending_write_leaves_no_final_report
+    self.assertFalse(self.q.publish_report(report, target))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a14\tools\r14_qualification\qualify.py", line 368, in publish_report
+    resource_guard(reserve_bytes=4096)
+  File "unittest\mock.py", line 1139, in __call__
+  File "unittest\mock.py", line 1143, in _mock_call
+  File "unittest\mock.py", line 1202, in _execute_mock_call
+RuntimeError: disk floor
+
+======================================================================
+ERROR: test_closed_pipe_before_process_exit_is_not_inspection_failure (__main__.QualificationTests.test_closed_pipe_before_process_exit_is_not_inspection_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 169, in test_closed_pipe_before_process_exit_is_not_inspection_failure
+    self.assertEqual(self.q.Native.available(client), 0)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a14\tools\r14_qualification\qualify.py", line 400, in available
+    raise RuntimeError('owned native pipe inspection failed')
+RuntimeError: owned native pipe inspection failed
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.019s
+
+FAILED (errors=2)

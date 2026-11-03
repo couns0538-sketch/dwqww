@@ -1,0 +1,57 @@
+test_nonfinite_deadlines_refused (__main__.QualificationTests.test_nonfinite_deadlines_refused) ... ERROR
+test_close_failure_cannot_complete_or_pass_smoke (__main__.QualificationTests.test_close_failure_cannot_complete_or_pass_smoke) ... ERROR
+test_extra_strata_cannot_compensate_missing_foundation (__main__.QualificationTests.test_extra_strata_cannot_compensate_missing_foundation) ... ERROR
+test_final_resource_refusal_blocks_publication (__main__.QualificationTests.test_final_resource_refusal_blocks_publication) ... ERROR
+test_shared_storage_cap_is_checked (__main__.QualificationTests.test_shared_storage_cap_is_checked) ... ERROR
+
+======================================================================
+ERROR: test_nonfinite_deadlines_refused (__main__.QualificationTests.test_nonfinite_deadlines_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 100, in test_nonfinite_deadlines_refused
+    self.q.check_duration(duration)
+    ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'r14_qualify' has no attribute 'check_duration'
+
+======================================================================
+ERROR: test_close_failure_cannot_complete_or_pass_smoke (__main__.QualificationTests.test_close_failure_cannot_complete_or_pass_smoke)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 110, in test_close_failure_cannot_complete_or_pass_smoke
+    self.q.finish_status(report, fixture=True, foundation_requested=10, close_error='bad exit')
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'r14_qualify' has no attribute 'finish_status'
+
+======================================================================
+ERROR: test_extra_strata_cannot_compensate_missing_foundation (__main__.QualificationTests.test_extra_strata_cannot_compensate_missing_foundation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 118, in test_extra_strata_cannot_compensate_missing_foundation
+    self.q.finish_status(report, fixture=False, foundation_requested=1000000)
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'r14_qualify' has no attribute 'finish_status'
+
+======================================================================
+ERROR: test_final_resource_refusal_blocks_publication (__main__.QualificationTests.test_final_resource_refusal_blocks_publication)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 126, in test_final_resource_refusal_blocks_publication
+    self.assertFalse(self.q.publish_report(report, target))
+                     ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'r14_qualify' has no attribute 'publish_report'
+
+======================================================================
+ERROR: test_shared_storage_cap_is_checked (__main__.QualificationTests.test_shared_storage_cap_is_checked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\a14\tests\r14_qualification\test_qualification.py", line 137, in test_shared_storage_cap_is_checked
+    mock.patch.object(self.q, 'owned_bytes', return_value=5000000000):
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "unittest\mock.py", line 1467, in __enter__
+  File "unittest\mock.py", line 1437, in get_original
+AttributeError: <module 'r14_qualify' from 'D:\\a14\\tools\\r14_qualification\\qualify.py'> does not have the attribute 'owned_bytes'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.020s
+
+FAILED (errors=5)

@@ -98,15 +98,20 @@ Board parse_fen(const std::string& text) {
     if (input >> extra) throw std::runtime_error("extra FEN fields");
     Board b;
     int r = 7, f = 0;
+    bool previous_digit = false;
     std::array<int, 2> kings{}, pawns{}, pieces{};
     for (char ch : fields[0]) {
         if (ch == '/') {
             if (f != 8 || r == 0) throw std::runtime_error("invalid FEN rank");
             --r; f = 0;
+            previous_digit = false;
         } else if (ch >= '1' && ch <= '8') {
+            if (previous_digit) throw std::runtime_error("consecutive FEN digits");
             f += ch - '0';
+            previous_digit = true;
             if (f > 8) throw std::runtime_error("FEN rank overflow");
         } else {
+            previous_digit = false;
             const std::string symbols = "PNBRQKpnbrqk";
             const auto at = symbols.find(ch);
             if (at == std::string::npos || f >= 8) throw std::runtime_error("invalid FEN piece");
