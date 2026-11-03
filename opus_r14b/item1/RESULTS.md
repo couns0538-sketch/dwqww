@@ -454,3 +454,29 @@ Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). In this folder:
 - The fresh-clone checks of 04:13-04:17 (HANDOFF steps 1-3b on a fresh copy of the live tree, 264 / 264, acceptance
   261 / 261) ran on the installer before this fix; the change is the guard alone (`is_live`), which a non-live copy
   never triggers.
+
+## Overnight watcher: the live trainer's CPU share and the GPU (21:23 -> 2026-11-03 04:37; read-only; descriptive only)
+`checks/trainer_watch.sh` (branch opus-r14b-status) sampled every 5 minutes, without touching any process: the live
+npt trainer's CPU use on its own mask, the CPU use of every other process allowed there, and the GPU utilisation of
+the same 5 minutes from the keeper's HWiNFO log. `checks/analyze_watch.py C:/o14b/trainer_watch_night.tsv`
+(87 usable samples, 2026-11-03 04:37): the queue ran 5 trainer processes one after another (the s-series lines of the
+same recipe) on mask 0x3 (CPUs 0-1) most of the night, 0xF (CPUs 0-3) at 22:29-22:59 and once at 04:01.
+| regime (trainer pid, mask) | samples | trainer cores | others on its CPUs | GPU util mean | r(cores, GPU) |
+|---|---|---|---|---|---|
+| 13960, 0x3 (11-02 21:23 -> 11-02 22:24) | 13 | 0.87 | 2.27 | 46.8 % | 0.61 (0.09 .. 0.87) |
+| 13960, 0xF (11-02 22:29 -> 11-02 22:29) | 1 | 0.59 | 2.08 | 24.5 % | - |
+| 11328, 0x3 (11-02 22:34 -> 11-03 00:30) | 20 | 0.81 | 0.66 | 36.2 % | -0.15 (-0.56 .. 0.31) |
+| 11328, 0xF (11-02 22:39 -> 11-02 22:54) | 4 | 0.88 | 2.56 | 40.7 % | 0.05 (-0.96 .. 0.96) |
+| 14160, 0x3 (11-03 00:35 -> 11-03 02:16) | 21 | 0.84 | 0.19 | 40.7 % | 0.08 (-0.36 .. 0.50) |
+| 4320, 0x3 (11-03 02:21 -> 11-03 03:56) | 20 | 0.81 | 0.12 | 40.2 % | -0.20 (-0.59 .. 0.27) |
+| 12268, 0xF (11-03 04:01 -> 11-03 04:01) | 1 | 2.00 | 0.16 | 46.6 % | - |
+| 12268, 0x3 (11-03 04:06 -> 11-03 04:37) | 7 | 0.70 | 0.15 | 37.4 % | -0.59 (-0.93 .. 0.30) |
+| pooled (mixes the regimes) | 87 | 0.83 | 0.72 | 40.1 % | 0.22 (0.01 .. 0.41) |
+
+Reading (descriptive, not proof - the trainer's phases can move both): in the first hour, with 2.27 cores of other
+work crowding the trainer's two CPUs, GPU use rose with the trainer's CPU share (33 % below 0.5 cores, 44 % at
+0.5-1, 51 % at 1-1.5; r 0.61, 95 % CI 0.09-0.87). In the later regimes on mask 0x3 (from 22:34; 0xF at
+22:39-22:59), with its CPUs nearly free (0.12-0.66 cores of other work), the trainer used 0.70-0.84 cores and the
+GPU stayed at 36-41 % with no clear correlation (every interval spans 0). So CPU competition explains part of the
+low GPU use, not all of it: with free CPUs the default-loader trainer still keeps the GPU near 40 %. The GPU window
+with `--fast-loader` remains the measurement that decides (GPU_REQUEST.md).
