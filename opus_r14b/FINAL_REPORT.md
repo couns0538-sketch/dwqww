@@ -91,11 +91,17 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
   `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p6_checks_crfix.patch`, md5
   4b537823b4c93aaf390413843299720b (sha256 5c572b72..., 2,311 bytes, file time 2026-11-02 20:53:41, i.e. it arrived
   after R14 ran). It patches opus_r13/p6/check_tb.py, ci_fetch_tables.sh and
-  tb_probe.cpp (branch opus-r13-p6-syzygy); not R14-B scope, not applied here.
+  tb_probe.cpp (branch opus-r13-p6-syzygy). Couns (~20:57): apply it with patch -p1 at the root of opus-r13-p6, rebuild,
+  re-run the P6 checks, commit and push - done: applied cleanly (3 files, +15 -3); port tree from git = R13's source;
+  plain engine rebuilt (differs from R13's only in the PE timestamp / checksum bytes); OFF = the corrected lock pins; both
+  ON benches = R13's; tb_probe rebuilt: WDL / DTZ 220/220 vs python-chess, answers = R13's; check50 20/20; the three new
+  fail-closed paths 9/9 (each against the R13 version); commit d1751ca1 pushed; CI run 41515843128 started by hand
+  (the workflow's push filter does not cover these files). Incident: a test setup mistake sent 3 GET requests to the
+  public table mirror (all 404, nothing downloaded); fixed and re-run offline. Details: opus_r13/p6/RESULTS.md.
 - The four candidate exes to keep are in place with the given sha256 (checked 20:54, read-only): syz_pc1 150374ff...,
   sfs 029d58e8..., speed2 de20653c..., the relabel probe 08299f9f.... R14-B deletes nothing anywhere.
 
 ## Owner items
 - GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
 - Engine NNUE decides on the 50M relabel (inputs, node count, probe); RELABEL_HANDOFF.md has commands and costs.
-- R15: apply / review the P6 crfix above with the corrected pins; keep the four exes.
+- R15: start only after this report's final version; use the corrected pins; keep the four exes (P6 crfix: done above).
