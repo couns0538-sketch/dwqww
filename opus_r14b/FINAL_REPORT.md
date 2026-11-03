@@ -95,8 +95,9 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
   re-run the P6 checks, commit and push - done: applied cleanly (3 files, +15 -3); port tree from git = R13's source;
   plain engine rebuilt (differs from R13's only in the PE timestamp / checksum bytes); OFF = the corrected lock pins; both
   ON benches = R13's; tb_probe rebuilt: WDL / DTZ 220/220 vs python-chess, answers = R13's; check50 20/20; the three new
-  fail-closed paths 9/9 (each against the R13 version); commit d1751ca1 pushed; CI run 41515843128 started by hand
-  (the workflow's push filter does not cover these files). Incident: a test setup mistake sent 3 GET requests to the
+  fail-closed paths 9/9 (each against the R13 version); commit d1751ca1 pushed; CI run 41515843128 (started by hand: the workflow's push filter does not
+  cover these files) green - 70 tables present after the new count check, ASan+UBSan smoke 0 illegal moves / 0
+  sanitizer lines in all 5 configs. Incident: a test setup mistake sent 3 GET requests to the
   public table mirror (all 404, nothing downloaded); fixed and re-run offline. Details: opus_r13/p6/RESULTS.md.
 - The four candidate exes to keep are in place with the given sha256 (checked 20:54, read-only): syz_pc1 150374ff...,
   sfs 029d58e8..., speed2 de20653c..., the relabel probe 08299f9f.... R14-B deletes nothing anywhere.
