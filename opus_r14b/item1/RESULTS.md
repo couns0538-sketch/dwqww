@@ -164,3 +164,11 @@ difference).
 - DLL shutdown / error paths re-read (destructor sets stop, wakes all five condition variables, joins reader, filter
   and builders; `next()` returns null on stop or error and the Python side raises the error text; a release of a
   batch that is not handed out stops the stream with an error): no finding. Code unchanged (b5 9eb29b7d).
+
+## After hunt #3: launcher fix (20:25-20:31; the same file on all three R14-B branches)
+`tools/lowrun.ps1` ended with exit 0 when Start-Process could not start the program (missing file) and ran it with an
+invalid handle when a redirect folder did not exist. Now exit 127 with a message for a missing program, a missing
+stdout / stderr folder or a missing stdin file; the program's own exit code otherwise (sha256 cc7f28dd..., checked:
+127 / 127 / 127 / 127 for the four failure cases, 3 for `cmd /c exit 3`, 0 with the expected output for a redirected
+echo and a stdin redirect). Item 1's callers (build_fastloader.sh, fl_acceptance.sh, lm_run.sh, b5_checks.sh) also
+check their outputs (DLL sha256, batch hashes), so no recorded result was affected.
