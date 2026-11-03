@@ -89,7 +89,7 @@ rules, but the piece-count filter adapts per decode worker, so they are not the 
   4. LOW out-of-range double -> u64 at acceptance 0: CONFIRMED (both DLLs saturate via AVX-512 today; a plain cast
      elsewhere would not), fixed with explicit saturation; self-test (6) passes; old-vs-new with pc_y1 = 0 is in the
      matrix TODO.
-  (Note added in the final bug hunt, 2026-11-03 04:46: the TODOs of items 2-4 were done later - the 24-configuration
+  (Note added in the final bug hunt, 2026-11-03 04:42: the TODOs of items 2-4 were done later - the 24-configuration
   matrix incl. pc_y1 = 0 and 3,100 batches past a file wrap (b5 checks, 14:23), Dataset-level tensor hashes on the
   trainer path, 261 / 261 incl. the 61 validation batches; a loss match WITH validation was not run - L1 1024 with
   validation hit the RAM floor, so the recorded match uses L1 256 without validation (lm_run.sh), and the validation
@@ -441,7 +441,7 @@ before, a fresh 2-batch old vs fast dump pair is identical (exit 0), `fl_abba.py
 `test_scope.py` all PASS, `test_installer.sh` 25 / 25. The DLL, forge_fastloader.py, the installer and the patches are
 untouched.
 
-## Final 1-hour bug hunt (04:13-05:15 by the PC clock; self-review, NOT independent): the live-folder guard under other spellings
+## Final 1-hour bug hunt (from 04:13 by the PC clock, closing time in TOOLS.md; self-review, NOT independent): the live-folder guard under other spellings
 Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). In this folder:
 - F-8 (found 04:28): the installer's live-folder guard compared `root.resolve() == LIVE_TRAINER.resolve()`. Eleven
   spellings of `F:\opus_scratch\r6\nnue-pytorch-amd` were resolved (read-only, the installer not run): lower / upper
