@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 21:33), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 22:04), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -10,7 +10,7 @@ queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Id
 | item | state | key evidence | branch / head |
 |---|---|---|---|
 | 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x (old w2 vs 1 builder) and **6.25x in the live thread setting** (old w4 vs 2 builders, 95% CI 6.13-6.60); distribution vs the live w4 layout: every total-variation distance < 0.001; **from a fresh clone: DLL rebuilt = b5, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) -> 261 / 261** (20:42); HANDOFF.md | opus-r14b-fast-loader |
-| 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 88454db6...** after the verify chain; RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate) and a 50M runbook on R8 v5 shards 001-057; 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 in the worktree and two fresh clones, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin) | opus-r14b-relabel |
+| 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 0a81dd5f...** (re-frozen 22:03 after a prepare fuzz finding; first 88454db6...); RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate) and a 50M runbook on R8 v5 shards 001-057; 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 then, 154 / 0 after the re-freeze, in the worktree and fresh clones, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin) | opus-r14b-relabel |
 | tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools | test_tools.sh 25 / 25; engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs | opus-r14b-status |
 | P6 crfix 4b537823 (Couns ~20:57) | DONE: applied with patch -p1, rebuilt, P6 checks re-run, pushed | OFF = the corrected lock pins, WDL / DTZ 220 / 220, check50 20 / 20, fail-closed 9 / 9, CI 41515843128 green | opus-r13-p6-syzygy d1751ca1, 4bf626eb |
 
@@ -25,7 +25,7 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
 | 50M rows at 20k nodes, 2 workers (light crew load) | 75.4 h (R13) | 72.4 h (LTO+PGO) | rows / measured rate |
 | the whole 1M proof sample with the LTO+PGO probe | the proof ran on the R13 probe | train / val / labels **byte-identical** to the proof's (all 999,921 labels); 635,344 rows/h through 94 min of real crew load -> **78.7 h for 50M** (the planning figure) | logs/pgo_full_1M.log |
 | R8 v5 input (games run across shard files) | 5c88438f gives a game crossing a file two game ids (leak risk) | one game id (one input stream in name order) | test + real shards 271 / 272 |
-| input / job safety | 19 tests | 150 PASS lines in test_relabel2.sh at 20:30 (cases + reason checks): F1-F8, R17, R25, R27, R28, H2-x, H3-x fixed with a test each; every refusal also checks its reason | test_relabel2.sh, RESULTS.md |
+| input / job safety | 19 tests | 154 PASS lines in test_relabel2.sh at 22:03 (cases + reason checks): F1-F8, R17, R25, R27, R28, H2-x, H3-x, P-1 fixed with a test each; 300 damaged-input files fuzzed: every one prepared or refused with file:line; every refusal also checks its reason | test_relabel2.sh, RESULTS.md |
 | disk rule of the PC (C: / D: >= 50 GB) | not enforced by the tool | `--min-free-gb` (default 50): prepare / assemble refuse, run stops before the shard that would cross it | quick checks; test cases |
 | relabel output through the FPOS converters earlier jobs used | not checked | fen2bin carries the new labels 1,200 / 1,200; the whole 1M output: fen2bin 991,077 + 8,844 records = every row, 0 bad; hce_dump the same counts, 0 bad FEN, 0 clamped | conv_check, logs/conv_full_1M.txt |
 | failures that explain themselves | a probe that died ended `run` with a bare traceback and no log line; the launcher of every tool returned 0 when a program could not start | `run` writes "run stop ... <error> (exit N)" to sessions.log; lowrun.ps1 exits 127 (missing program / redirect folder / stdin file) | suite cases with a dead probe; 8 launcher cases |
@@ -54,8 +54,8 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
 
 ## Item 2 - resumable relabel (`opus_r14b/item2/`)
 - relabel2.py (prepare / run / assemble / status), FROZEN at sha256
-  88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 after the verify chain (suites 150 / 0, bridge
-  PASS; refreeze.sh re-checked it at 21:10: 0 failures); tests, proof driver, bridge, measurement scripts, probe
+  0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155 after the verify chain and a re-freeze (suites 154 / 0, bridge
+  PASS; refreeze.sh re-checked it at 21:10, and again for the re-freeze at 22:03: 0 failures); tests, proof driver, bridge, measurement scripts, probe
   LTO / PGO build + bench, label statistics; skill forge-relabel-job; 50M runbook (RELABEL_HANDOFF.md) whose prepare
   command ran as written.
 - Proof: 999,921 rows in 10,880 games (val 99 games / 8,844 rows, overlap 0); B's hard exits at 14:48:59 (shard 14)
