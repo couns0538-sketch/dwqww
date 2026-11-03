@@ -9,12 +9,13 @@
 # --test "CMD": any predicate instead of the engine build; {sha} and {dir} are replaced by the commit and a new folder
 # for it; exit 0 = same as GOOD, 1 = changed, 125 = skip (git bisect's convention), anything else stops the search.
 # OUT must not exist; OUT/bisect.log keeps every step. Exit 0 = first changed commit found (printed last), 1 = none,
-# 2 = usage, 3 = every candidate in the remaining range was skipped. One build ~2-4 min on an idle core.
+# 2 = usage, 3 = every candidate in the remaining range was skipped. One build ~15 s and bench d11 ~2 s on a free
+# core (2026-11-02).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=${REPO:-$(git -C "$here" rev-parse --show-toplevel 2>/dev/null || echo /d/grok-pc-data/dwqww)}  # REPO: another repo
 good=${1:-}; bad=${2:-}; out=${3:-}
-[ -n "$good" ] && [ -n "$bad" ] && [ -n "$out" ] || { sed -n 2,12p "$0"; exit 2; }
+[ -n "$good" ] && [ -n "$bad" ] && [ -n "$out" ] || { sed -n 2,13p "$0"; exit 2; }
 shift 3
 depth=13; test_cmd=""
 while [ $# -gt 0 ]; do

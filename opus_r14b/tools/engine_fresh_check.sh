@@ -10,7 +10,7 @@
 #     312866 / 862329 / 3024920 / 12389307 / 34048354, perft 5 startpos 4865609, kiwipete 193690690
 #     (--quick: d11/13/16 + perft). Threads 1, Hash 16, OwnBook false - options OFF, as the lock pins need.
 # OUT must not exist. Exit 0 ALL OK, 1 a number differs, 2 usage / REF has no src, 3 build failed. A build takes
-# ~2-4 min, the full check ~2 min more on an idle core (Idle crew load makes both longer).
+# ~15 s, the full check ~30 s on a free core (2026-11-02; crew load on CPUs 2-3 makes both longer).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel 2>/dev/null || echo /d/grok-pc-data/dwqww)

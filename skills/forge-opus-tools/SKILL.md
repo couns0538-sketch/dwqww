@@ -67,7 +67,8 @@ BelowNormal via lowrun.ps1, exe sha256 + FMA count (0 for the lock recipe), then
 (`UCI_CHECK` overrides the path): bench d11/13/16/20/22 = 312866 / 862329 / 3024920 / 12389307 / 34048354, perft 5
 startpos 4865609, kiwipete 193690690 (`--quick`: d11/13/16 + perft). Exit 0 ALL OK / 1 differs / 2 usage / 3 build.
 This is the "options OFF = lock" identity only; ON behaviour, CTest, sanitizers and LTO+PGO builds stay with
-forge-engine-verify, forge-candidate-checks and forge-ltopgo-pgo.
+forge-engine-verify, forge-candidate-checks and forge-ltopgo-pgo. Validated 2026-11-02: the lock d4f4312 (20 files,
+build 13 s, exe bf0a09f9..., FMA 0) and opus-r12-pgo-net 56cf4844 (22 files, 16 s, FMA 0) both ALL OK in ~30 s.
 
 ## engine_bisect.sh - which commit changed the bench?
 `bash $T/engine_bisect.sh GOOD BAD C:/o14b/<new> [--depth 13] [--test "CMD"]`: binary search over
@@ -77,7 +78,10 @@ false). "same" = GOOD's node count. A failed build / bench = skip (the search tr
 all in the range are skipped it lists them, exit 3). GOOD and BAD are tested first (BAD equal to GOOD -> exit 1,
 "nothing to find"). `--test "CMD"` replaces the engine build with any predicate (`{sha}`, `{dir}` placeholders; exit
 0 same / 1 changed / 125 skip, as `git bisect run`); `REPO=<path>` points it at another repository. Log:
-`<out>/bisect.log`. Cost: ~log2(N) + 2 builds of 2-4 min each.
+`<out>/bisect.log`. Cost: ~log2(N) + 2 builds of ~15 s each + one bench each (d11 ~2 s) on a free core.
+Validated 2026-11-02 on real builds: lock d4f4312 .. opus-r12-pgo-net (38 commits) -> "nothing to find" (both 312,866
+nodes at d11, 34 s); a scratch clone with a comment commit, a planted `RfpMargin 72 -> 73` commit and another comment
+commit -> found the planted commit (312,866 -> 294,685 nodes; 4 builds, 65 s).
 
 ## Small helpers
 - `commit_span.py --repo D:/grok-pc-data/dwqww --since "2026-11-02 12:00" origin/<b1> origin/<b2> ...`: commits,

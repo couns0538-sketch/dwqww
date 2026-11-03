@@ -90,3 +90,14 @@ Found while converting the full 1M relabel output: Start-Process errors (missing
 redirect into a missing folder ran the program with an invalid handle. Now exit 127 with a message (missing program,
 missing stdout / stderr folder, missing stdin file); the program's exit code otherwise. Same file (sha256
 cc7f28dd...) on all three branches; engine_fresh_check.sh and engine_bisect.sh rely on it for the build exit code.
+
+### Engine tools on real builds (20:43-20:47; the advisor's open point: they had only been tested on arguments)
+- `engine_fresh_check.sh d4f4312`: 20 files, build 13 s (BelowNormal, CPUs 2-3), exe sha256 bf0a09f9..., FMA 0,
+  bench d11 / 13 / 16 / 20 / 22 and both perft pins OK -> **ALL OK** (check 30 s).
+- `engine_fresh_check.sh origin/opus-r12-pgo-net` (56cf4844, 22 files incl. the HalfKA unit): build 16 s, FMA 0,
+  **ALL OK** (options off = the lock's tree).
+- `engine_bisect.sh d4f4312 origin/opus-r12-pgo-net --depth 11`: both ends 312,866 nodes -> "nothing to find" (exit 1,
+  34 s).
+- Planted change in a scratch clone (`C:\o14b\bis_mut_repo`, local commits only, never pushed): A comment, B
+  `RfpMargin 72 -> 73`, C comment -> `engine_bisect.sh` found **B** (312,866 -> 294,685 nodes at d11; 4 builds, 65 s).
+- Estimates in the tool headers corrected from "2-4 min per build" (a guess) to the measured ~15 s.
