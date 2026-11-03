@@ -300,6 +300,25 @@ counts. A caller's completeness boolean is insufficient; a truncated plan must
 fail even if it retains that flag. Keep prefixes and disjoint partitions explicit
 until their complete union has been checked independently.
 
+Validate each consumer's FEN contract separately. An engine may accept whitespace
+or clock ranges that a native training library cannot represent. Inspect parsing
+failure handling and integer storage at the actual ABI boundary. Canonicalize
+only the transport string when semantics are known; retain the original FEN in
+provenance. Single ASCII separators and decimal clock text avoid differing
+whitespace parsers. Do not silently clamp counters, invent unknown clocks, or
+assume matching feature tensors prove complete state preservation. Check numeric
+limits and off-by-one ply conventions before allocation, including a bad later
+row in an otherwise valid batch. Keep deliberate crash cases in an owned isolated
+child, or prove rejection with a monitored ABI boundary instead.
+
+External evaluation exports may omit game counters and use king-to-rook castling
+notation even for standard chess. Read the publisher's actual schema and score
+perspective, preserve the selected evaluation index and raw move, and validate
+the normalized legal move. Use the documented evaluation-selection policy with
+deterministic tie handling. Unknown state requires an explicit schema and guards
+at every consumer; rejecting an incomplete source is safer than making its
+synthetic counters look known. Data licensing and code licensing are separate.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

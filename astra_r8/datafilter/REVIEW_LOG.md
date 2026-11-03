@@ -1,5 +1,25 @@
 # Review log — UNPROVEN
 
+## Native input consumer contract — confirmed by inspection, repair pending
+
+Main inspected the installed npt Position::trySet/fromFen and C ABI after tracing
+the local adapter's original-FEN argument. The reused reviewer independently
+confirmed that repeated spaces/tabs can reach an ignored parse failure and
+large rule-50 counters can reach std::stoi across the C ABI. It confirmed uint8
+rule-50 bounds 0..255 and uint16 one-based native ply, requiring normalized
+zero-based ply<=65534. Main accepted the minimal fix: canonicalize only ABI text,
+preserve original metadata, reject overflow before the whole batch allocation.
+No installed loader code or throughput path is to change. New tests include
+safe monitored-ABI failures and actual canonical tensor comparisons after repair.
+Execution remains pending a free CPU slot. These are source-inspection findings,
+not a claim of an observed native crash. NATIVE_INPUT_REVIEW.md gives details.
+
+The lock-correction harness draft review found a snapshot race: v7 could change
+between its initial expected-hash check and the protected-tree snapshot. Main
+accepted the finding and requires the captured manifest hash to match the pin
+as well; an intervening-change regression is authored. The harness still awaits
+tests and actual execution. Existing protected v7 files are untouched.
+
 ## Draft partition-union verification and Lichess boundary review
 
 Read-only inspection of seal_admission.py draft d466247e...bafdd found that

@@ -87,3 +87,9 @@ establish field semantics and White-relative scores; its AGPL implementation
 is ideas-only and was not copied. Exact source links and inspected blob IDs,
 along with the unresolved four-field FEN limitation, are recorded in
 LICHESS_INPUT_REVIEW.md. The repair fixtures remain authored synthetic data.
+
+Installed npt `data_loader/cpp/lib/chess.h` and its C ABI wrapper were inspected
+to establish actual FEN parsing, failure handling and counter widths. Their
+implementation remains separately installed and unchanged; no GPL/AGPL source
+is copied. The planned boundary repair is original Python validation/argument
+construction in the local adapter, documented in NATIVE_INPUT_REVIEW.md.

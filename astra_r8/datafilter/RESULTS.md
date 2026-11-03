@@ -85,6 +85,16 @@ explicit rather than inventing known ply/rule-50 state. Design and licence
 sources are in LICHESS_INPUT_REVIEW.md. No Lichess corpus or training was added.
 Core files remain frozen until the two admission scans finish.
 
+Native consumer inspection found a separate concrete input defect: the installed
+npt FEN parser splits only literal single spaces and stores rule-50/internal ply
+in uint8/uint16 fields. The local adapter currently forwards Forge-valid text
+unchanged. The focused reviewer confirmed the mismatch; a minimal Python ABI
+argument normalization and counter-range repair is planned, with original FEN
+metadata preserved and all installed npt code unchanged. Adversarial tests are
+authored but not executed. NATIVE_INPUT_REVIEW.md records the exact contract.
+Protected v7 remains unchanged; a reviewed repaired adapter will require a new
+v8 handoff and both CPU preflights. At 05:20 UTC D: has 54,594,408,448 bytes free.
+
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
 material boundary cases pass. Fresh 100k old/new identity, 1,000 results and
