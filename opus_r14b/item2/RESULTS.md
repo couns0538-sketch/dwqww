@@ -298,3 +298,18 @@ Docs: exit code 1 described in RELABEL_HANDOFF.md and the skill forge-relabel-jo
 |---|---|---|---|
 | L1 (20:25, found while converting the full 1M output) | `lowrun.ps1` (the launcher every R14-B tool uses to run a program at low priority on CPUs 2-3) ended with exit 0 when Start-Process could not start the program (missing file), and ran it with an invalid handle when a redirect folder did not exist - a caller trusting the exit code would count a program that never ran as a success | exit 127 with a message in both cases and for a missing stdin file; the program's own exit code otherwise. Same fixed file (sha256 cc7f28dd...) in all three branches | missing exe 127, missing stdout / stderr folder 127, missing stdin 127, `cmd /c exit 3` 3, echo with redirect 0 + output, stdin redirect works, Idle 0 |
 Every caller in item 2 (build_probe_opt.sh, probe_bench.py) also checks its outputs, so no recorded result was affected (the probe builds and the probe answers are checked by sha256 and by comparing answers).
+
+## The full 1M proof sample with the LTO+PGO probe (18:48-20:24) and through Forge's converters (20:31)
+- `relabel2.py` (bf714c67 for prepare / run, the 20:2x branch code for assemble) on the proof's inputs (`--rows
+  1000000 --jobs 2`, rows.tsv = the proof's), probe `C:\o14b\pgo2\pgo\forge_data_probe.exe` (LTO+PGO, sha256
+  08299f9f...), 20k nodes, 2 workers, CPUs 2-3 Idle: **train.txt / val.txt / labels.tsv identical to the proof's
+  (R13 probe) files** - md5 6e9e4e5a... / 8e639f41... / 2614e82d...: all 999,921 labels are the same with both probes.
+  Evidence: `logs/pgo_full_1M.log` (copy of C:\o14b\r2\pgo_full.log, with the load samples at start and end).
+- Rate under real load: 100 shards in 5,666 s of labelling = **635,344 rows/h** (per 10,000-row shard median 55.6 s,
+  50.1-81.6 s; quarters 665k / 625k / 604k / 650k rows/h); mean nodes 19,992. At the end the live npt trainer's Idle
+  python (affinity 0xF, so also CPUs 2-3) used 1.3 cores; at 18:48 the CPUs were nearly free. 50M rows at this rate:
+  **78.7 h** (the 72.4 h of the short 18:33-18:40 measurement was a light-load window).
+- Forge's FPOS / HCE converters (the builds earlier jobs used, `F:\opus_scratch\rescore_d8\bin`, fen2bin sha256
+  24cb2e78..., hce_dump a88e519d...) on the full output: fen2bin train 991,077 lines = 991,077 records, bad 0; val
+  8,844 = 8,844, bad 0 (35 bytes per record); hce_dump train 991,077 records, bad_fen 0, clamped 0; val 8,844, 0, 0
+  (`logs/conv_full_1M.txt`). Before: 1,200 rows of a test job.

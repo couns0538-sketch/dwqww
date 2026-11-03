@@ -11,8 +11,10 @@
   kill / resume) - run it after any change.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
-  `build_probe_opt.sh OUT D:\o14b\r2\pgo_req\train_2k.tsv`, two builds gave the same sha256). 10,000 / 10,000 answers
-  identical, and relabel2 with it reproduced the proof's first 19,945 labels byte for byte. All probe exes are static
+  `build_probe_opt.sh NEW_OUT_DIR`: lock source from git, PGO profile from the committed `pgo_train_2k.tsv`; two builds
+  gave the same sha256). 10,000 / 10,000 answers
+  identical, and the whole 1M proof sample relabelled with it gave train / val / labels files byte-identical to the
+  proof's (all 999,921 labels; 2026-11-02 18:49-20:24, logs/pgo_full_1M.log). All probe exes are static
   builds for this PC's CPU (`-march=znver5`; only Windows DLLs imported): on another CPU rebuild and run the probe
   reference check (probe_ref_500) before trusting the labels. `C:\o14b` is Opus's scratch
   folder: copy the exe to a folder you own (or rebuild it) and check sha256 08299f9f6f4bb8026900ff7111a0b0e7461f77c18e5b01eeefcb05498d3546e7
@@ -27,8 +29,9 @@ moment and resumed with the same command. Outputs per job: `final/train.txt`, `f
 nodes), `final/MANIFEST.json` (md5 + sha256). The FPOS converter earlier jobs used, `F:\opus_scratch\rescore_d8\bin\
 fen2bin.exe in.txt out.pos` (sha256 24cb2e78...; its sibling `hce_dump.exe` reproduces the production .hce exactly per
 R11), turns the text into .pos files with the new scores (checked on 1,200 rows: 0 bad lines; score, side to move and
-result columns equal), and `hce_dump.exe in.txt out.hce` makes the .hce (1,200 records, 0 bad). Whether the live
-supervisor uses these same binaries was not checked. Exit codes: 2 bad input,
+result columns equal), and `hce_dump.exe in.txt out.hce` (sha256 a88e519d...) makes the .hce. On the full 1M output:
+fen2bin 991,077 + 8,844 records = every train / val row, 0 bad; hce_dump the same counts, 0 bad FEN, 0 clamped
+(logs/conv_full_1M.txt). Whether the live supervisor uses these same binaries was not checked. Exit codes: 2 bad input,
 3 configuration differs / job busy / target exists / disk floor, 4 integrity (a published file changed), 1 anything
 else, e.g. a probe that died, timed out or answered wrongly (`run` first writes "run stop ... <error>" to
 sessions.log; published shards stay; the same command resumes once the cause is fixed).
@@ -74,6 +77,7 @@ CPUs 2-3 (mask 0xC) are the two SMT threads of ONE physical core of the Ryzen 7 
 sharing one core.
 | quantity | measured | 50M rows | source |
 |---|---|---|---|
+| **20k nodes, 2 workers, LTO+PGO probe, the whole 1M proof sample (18:49-20:24), real load (at the end the npt trainer's Idle python, affinity 0xF, used 1.3 cores)** | **635,344 rows/h** (quarters 665k / 625k / 604k / 650k) | **78.7 h** | logs/pgo_full_1M.log |
 | 20k nodes, 2 workers, R13 probe, light crew load (18:33-18:40) | 662,337 / 663,485 rows/h | **75.4 h** | logs/measure/w2_pgo.log |
 | 20k nodes, 2 workers, LTO+PGO probe, same window, order R P P R | 687,266 / 694,693 rows/h (1.042x of R13) | **72.4 h** | same |
 | 20k nodes, 2 workers, R13, with one crew BelowNormal job on all CPUs (18:08-18:15) | 622,149 / 615,475 rows/h | 80.8 h | logs/measure/post_chain.log |
@@ -86,7 +90,9 @@ sharing one core.
 | disk per 1M rows (proof job A) | 341 MB: rows.tsv 89.7 MB + shards 93.5 MB + final 157.8 MB | **~17.1 GB**: put the job on C: (keep >= 50 GB free; D: sat at 52-56 GB on 2026-11-02) | du of the proof job |
 - Labels do not depend on the worker count: labels.tsv md5 4939068e... in all eight 19,927-row jobs (1 and 2 workers,
   both probes).
-- 50M wall times are rows / measured rate; the real rate depends on crew load (Idle work yields to everything).
+- 50M wall times are rows / measured rate; the real rate depends on crew load (Idle work yields to everything). Plan
+  with the whole-1M figure (78.7 h on CPUs 2-3 with the PGO probe): it ran 94 minutes through changing crew load,
+  while the 72-75 h figures come from 7-minute light-load windows.
 
 ## Labels of the 1M proof sample (descriptive only; `label_stats.py`, logs/label_stats_proof_1M.txt)
 999,921 rows, mean nodes 19,992, depth mostly 8-11 (17.0 / 42.0 / 25.3 / 8.1 %); |new - old| median 52 cp (p90 330,
