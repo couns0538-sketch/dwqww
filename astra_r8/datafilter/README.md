@@ -10,11 +10,11 @@ Last verified handoff (historical after the current FEN admission repair):
 SHA256 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
-passes **301 tests + 11 subtests**.
+passes **323 tests + 11 subtests** on source 3f9815fd.
 Both actual recipe preflights and published-manifest verification pass on source
 87963077. Complete-corpus and expanded native checks pass; the reserved final
-review is still pending. The new shared FEN admission fix passes 98 related tests;
-focused review, a v5 handoff refresh and the complete current-source suite follow.
+review is still pending. The new shared FEN admission fix and duplicate-rights
+correction pass focused review and the full CPU suite; v5 refresh is in progress.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
 Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
@@ -157,8 +157,8 @@ limits and checks storage before creating it):
 ```
 
 Archived Python snapshots under `evidence/` are excluded from pytest collection;
-their original bytes are preserved. Broad collection still finds all 301 real
-tests in `tests/`.
+their original bytes are preserved. The complete runnable suite is in `tests/`;
+archived launchers never become tests when collecting the broader tool directory.
 
 `audit_followup.py identity NEW_RUN_ROOT`, `orientation NEW_RUN_ROOT` and
 `million NEW_RUN_ROOT` rerun the pinned legacy identity, actual binary result

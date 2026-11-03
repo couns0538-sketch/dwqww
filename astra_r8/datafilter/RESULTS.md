@@ -5,11 +5,11 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The prior v4 handoff and 301-test suite are verified
-for their frozen source. A further FEN admission repair passes 98 related tests;
-The focused reviewer found and main fixed duplicate castling-letter admission;
-all 66 metadata/native checks PASS and the recheck APPROVED. Full current-source
-verification and v5 refresh are running next; no final acceptance yet.
+their pinned source files. The reviewed standard-FEN admission repair now passes
+the full **323-test + 11-subtest** CPU suite in 233.34 seconds, with unchanged
+runtime files. Fresh 100k legacy identity and 1,000 actual result/mirror checks
+PASS. Current-cohort/native verification and v5 refresh are running; no final
+acceptance yet. Prior v4 and 301-test proofs remain historical.
 The complete source profile, original-line reservoir replay, native Forge checks
 and fresh full-output inventory PASS. The reserved final review remains pending.
 
@@ -18,7 +18,7 @@ and fresh full-output inventory PASS. The reserved final review remains pending.
 | 1 Legacy identity | PASS: fresh 100k old/new train, validation and stats artifacts match exactly |
 | 2 Result orientation | PASS: fresh 1,000 converter records and 1,000 mirrors against literal oracle |
 | 3 Determinism | PASS: two million-row check/mate runs, identical full payload/metadata hashes |
-| 4 Deliberate failures | PASS: 301 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
+| 4 Deliberate failures | PASS: 323 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
 | 7 Handoff | v4 manifest/sample/CPU preflights, expanded corpus/native proof and 7,001-file inventory PASS; final review pending |
