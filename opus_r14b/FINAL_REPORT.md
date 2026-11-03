@@ -116,3 +116,7 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
 - GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
 - Engine NNUE decides on the 50M relabel (inputs, node count, probe); RELABEL_HANDOFF.md has commands and costs.
 - R15: start only after this report's final version; use the corrected pins; keep the four exes (P6 crfix: done above).
+- Crew: the npt trainer runs at Idle on its own mask (0x3 / 0xF, set by the keeper) and got 0.4-0.6 cores of its two CPUs
+  at 21:19-21:22 while BelowNormal crew jobs with affinity on all CPUs (Astra's audit_forge_admission.py) used ~1 core
+  each; GPU 31-50 % in the same minutes. Keeping such jobs off the trainer's CPUs, or another priority class for the
+  trainer, is the crew's decision (item 1 RESULTS; the overnight watcher log has the series).
