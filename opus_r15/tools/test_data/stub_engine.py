@@ -7,6 +7,8 @@ Mode = the first word of argv[1] if given, else taken from the script name (stub
   hang     never answers a timed search
   stderr   plays a legal move but writes a line to stderr
   slow     plays a legal move after 2 s (a time loss at 500+5 with a 1000 ms margin)
+  clockcheck  White thinks 300 ms per move, Black 0 ms; Black must be sent its OWN (larger) clock as btime: if btime is
+           more than 150 ms below wtime the harness swapped the clocks and the stub answers an illegal move
   legal    plays a legal move (positive control for the stub path)
 Every position gets the same legal list (e2e4, d2d4); the stub does not track the board.
 """
@@ -15,8 +17,21 @@ import sys
 import time
 
 mode = sys.argv[1] if len(sys.argv) > 1 else os.path.basename(sys.argv[0]).split('_', 1)[-1].rsplit('.', 1)[0]
+nmoves = 0
 for raw in sys.stdin:
     line = raw.strip()
+    if line.startswith('position'):
+        nmoves = len(line.split(' moves ', 1)[1].split()) if ' moves ' in line else 0
+        continue
+    if line.startswith('go wtime') and mode == 'clockcheck':
+        tok = line.split()
+        wt, bt = int(tok[tok.index('wtime') + 1]), int(tok[tok.index('btime') + 1])
+        if nmoves % 2 == 0:          # every start position of smoke2m has White to move
+            time.sleep(0.3)
+            print('bestmove e2e4', flush=True)
+        else:
+            print('bestmove ' + ('a1a8' if bt < wt - 150 else 'e2e4'), flush=True)
+        continue
     if line == 'uci':
         print('id name stub ' + mode)
         print('option name Threads type spin default 1 min 1 max 8')

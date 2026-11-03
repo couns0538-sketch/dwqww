@@ -45,7 +45,10 @@ $Out = Join-Path $Root "cands\$Name"
 if (Test-Path -LiteralPath (Join-Path $Out 'RESULT.json')) { Fail-Args "$Out\RESULT.json exists (never overwritten: use a new -Name)" }
 $SrcRepo = Join-Path $Root "src_pack\$Tag"
 if (Test-Path -LiteralPath $SrcRepo) { Fail-Args "$SrcRepo exists (tag used before: use a new -Tag)" }
-foreach ($s in $sideList) { if (Test-Path -LiteralPath (Join-Path $Root "w\${Tag}_$s")) { Fail-Args "kit work dir $Root\w\${Tag}_$s exists (use a new -Tag)" } }
+# The kit's work dir is fixed by kit_build_r15.sh (D:\o15\w), whatever -Root says (bug check 2026-11-03 12:36: -Root
+# used to move only the record folders, so a test root looked for the kit outputs in the wrong place).
+$KitWork = 'D:\o15\w'
+foreach ($s in $sideList) { if (Test-Path -LiteralPath (Join-Path $KitWork "${Tag}_$s")) { Fail-Args "kit work dir $KitWork\${Tag}_$s exists (use a new -Tag)" } }
 $dFree = [math]::Round((Get-PSDrive D).Free / 1GB, 1); $cFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
 if ($dFree -lt 51 -or $cFree -lt 30) { [Console]::Error.WriteLine("cand_pack: STOP - D: $dFree GB / C: $cFree GB (floor D: 50 + 1, C: 30)"); exit 76 }
 
@@ -110,21 +113,22 @@ if (-not $NoPatch) { $kitArgs += " '$Option=$On'" }
 $kitLog = Join-Path $Out 'kit_build.log'
 Say "kit: $kitArgs"
 $rc = Run-Bash $kitArgs $kitLog
-$kitText = Get-Content -LiteralPath $kitLog -Raw
 if ($rc -eq 76) { Say 'kit wrapper: disk floor reached - STOP'; Finish 76 }
 Check 'kit_build' ($rc -eq 0) "kit_build_r15.sh exit $rc ($((Select-String -LiteralPath $kitLog -Pattern 'RESULT' | Select-Object -Last 1).Line))"
 if ($rc -ne 0) { Finish 3 }
 $shas = [ordered]@{}
 foreach ($s in $sideList) {
-    $e = Join-Path $Root "w\${Tag}_$s\src_copy\forge_ltopgo_${Tag}_$s.exe"
+    $e = Join-Path $KitWork "${Tag}_$s\src_copy\forge_ltopgo_${Tag}_$s.exe"
     $shas[$s] = (Get-FileHash -LiteralPath $e -Algorithm SHA256).Hash.ToLower()
 }
 $res.kit_exe_sha256 = $shas
 if ($sideList.Count -eq 2) { Check 'pc1_equals_pc2' ($shas['pc1'] -eq $shas['pc2']) "pc1 $($shas['pc1']) pc2 $($shas['pc2'])" }
 $first = $sideList[0]
-$kitDir = Join-Path $Root "w\${Tag}_$first"
+$kitDir = Join-Path $KitWork "${Tag}_$first"
 $summary = Get-Content -LiteralPath (Join-Path $kitDir 'SUMMARY.txt')
-$res.kit_summary = @($summary)
+# plain strings only: PS 5.1 ConvertTo-Json writes every Get-Content line with its PSPath / PSDrive / PSProvider
+# properties (bug check 2026-11-03 12:38: 20 MB of the 35 MB RESULT.json files were these properties)
+$res.kit_summary = [string[]]@($summary | ForEach-Object { [string]$_ })
 $wantIdent = if ($NoPatch) { 'node identity OFF: ALL OK' } else { 'node identity OFF + 1 option run(s): ALL OK' }
 Check 'kit_identity' ([bool]($summary -contains $wantIdent)) "SUMMARY: '$wantIdent'"
 Check 'kit_vfmadd0' ([bool](($summary | Where-Object { $_ -match '^forge_ltopgo_.* vfmadd 0$' }).Count -eq 1)) 'LTO+PGO exe has no vfmadd'
@@ -138,7 +142,7 @@ if (-not $NoPatch) {
 New-Item -ItemType Directory -Force -Path (Join-Path $Out 'kit') | Out-Null
 Copy-Item -LiteralPath (Join-Path $kitDir 'SUMMARY.txt') -Destination (Join-Path $Out "kit\SUMMARY_$first.txt")
 Get-ChildItem -LiteralPath (Join-Path $kitDir 'ident') -Filter '*.compare.txt' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $Out "kit\$($_.Name)") }
-if ($sideList.Count -eq 2) { Copy-Item -LiteralPath (Join-Path $Root "w\${Tag}_pc2\SUMMARY.txt") -Destination (Join-Path $Out 'kit\SUMMARY_pc2.txt') }
+if ($sideList.Count -eq 2) { Copy-Item -LiteralPath (Join-Path $KitWork "${Tag}_pc2\SUMMARY.txt") -Destination (Join-Path $Out 'kit\SUMMARY_pc2.txt') }
 # 3 the exe for the gate
 $exe = Join-Path $Out "forge_ltopgo_$Tag.exe"
 Copy-Item -LiteralPath (Join-Path $kitDir "src_copy\forge_ltopgo_${Tag}_$first.exe") -Destination $exe

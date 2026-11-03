@@ -171,7 +171,8 @@ def main():
         rng = random.Random(a.seed * 100003 + game)
         start = STARTS[(game - 1) % len(STARTS)]
         moves = []
-        clock = [base_ms, base_ms]  # [side to move at the start, the other side]
+        clock = [base_ms, base_ms]  # [White, Black]
+        start_white = start == 'startpos' or start.split()[2] == 'w'
         eng.send('ucinewgame')
         eng.send('isready')
         _, s = eng.until(lambda l: l == 'readyok', 30)
@@ -205,11 +206,12 @@ def main():
                 st['max_plies_games'] += 1
                 result = 'max_plies'
                 break
-            side = (ply - a.random_plies) % 2
-            white_to_move = (side == 0)  # clock[0] belongs to whoever moves first after the random plies
-            wt, bt = (clock[0], clock[1]) if white_to_move else (clock[1], clock[0])
+            # clock[0] = White's, clock[1] = Black's; the mover follows from the start position and the ply parity
+            # (bug check 2026-11-03 12:37: the clocks used to be indexed by "first mover", so Black was sent
+            # White's clock as its own)
+            side = 0 if (start_white != (ply % 2 == 1)) else 1
             t0 = time.monotonic()
-            eng.send(f'go wtime {max(1, wt)} btime {max(1, bt)} winc {inc_ms} binc {inc_ms}')
+            eng.send(f'go wtime {max(1, clock[0])} btime {max(1, clock[1])} winc {inc_ms} binc {inc_ms}')
             lines, s = eng.until(lambda l: l.startswith('bestmove'), clock[side] / 1000.0 + 10.0)
             used = int((time.monotonic() - t0) * 1000)
             if s != 'ok':
