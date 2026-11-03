@@ -222,3 +222,13 @@ Astra's BelowNormal jobs (affinity all CPUs) used about one core somewhere on th
   sha256 -> fixed (full sha256 given; `run` pins the probe sha256 per job). No code finding.
 - Checks: 75 / 75 tests (relative call), 1M prepare rows.tsv = the proof's, bridge PASS, measurement logs.
 - Next action: final report draft with the before / after table; bug hunt 02:30.
+
+## Bug hunt #1 (19:10-19:25, hourly hunts per Couns; self-review, NOT independent)
+Scope: everything written since ~17:00 (probe_bench.py, build_probe_opt.sh, measure_rates.sh, bridge_check.sh,
+label_stats.py, the R27 / R28 changes, the reason checks, item 1's fl_acceptance.sh and fl_abba.py).
+| # | finding | fix | check |
+|---|---|---|---|
+| R29 | probe_bench.py `abba` (and item 1's fl_abba.py) used Student t only for exactly 10 pairs and 1.96 otherwise: a too narrow CI for fewer pairs (every recorded result used 10 pairs, so they stand) | t table for 1-30 degrees of freedom, checked against scipy.stats.t.ppf(0.975): 0 mismatches | unchanged result for 10 pairs (t = 2.262) |
+| R30 | probe_bench.py and build_probe_opt.sh found lowrun.ps1 through `../../../o14b-l1/...`, a path into the fast-loader WORKTREE of this PC: in any other checkout of this branch both tools fail | own copy `opus_r14b/item2/lowrun.ps1` (same file, sha256 2c7fa58f...), both tools use it | probe_bench.py run on 20 positions: 20 answers |
+| - | item 1's b5_checks.sh has an absolute tools path on purpose (it is run as a copy elsewhere) | made overridable (`FL_TOOLS`) | bash -n |
+No other script reaches outside its own branch folder (grep for worktree paths: none left).
