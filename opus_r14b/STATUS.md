@@ -12,3 +12,12 @@
 | running | read-only watcher 21:23 -> 05:30 (C:/o14b/trainer_watch_night.tsv, every 5 min): the live npt trainer's CPU share on its own mask, the busiest other process there, the GPU utilisation of the same 5 minutes (21:19: trainer 0.4-0.6 cores of its 2 CPUs, which were 86-90 % busy with 10-14 % idle left - competition, not pure starvation; GPU 31-50 %) | - | - |
 | Couns ~20:53 (R15 corrections) | pins checked (no R14-B check used the wrong numbers); R15 waits for the final report; P6 crfix 4b537823 found at `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p6_checks_crfix.patch` (md5 4b537823b4c93aaf390413843299720b, file time 20:53:41; then (Couns ~20:57) applied with patch -p1 on opus-r13-p6-syzygy, rebuilt, P6 checks re-run: OFF = lock pins, WDL / DTZ 220/220, check50 20/20, fail-closed 9/9; pushed d1751ca1; CI run 41515843128 (started by hand) green: 70 tables, smoke 0 illegal / 0 sanitizer lines); the four exes verified in place | - | - |
 | final report | interim (updated 20:16) with the before/after table; final after the 1-h end review | opus-r14b-status | see git log |
+
+## Plan for the rest of the window (PC clock; written 21:50)
+- Hourly 20-minute bug hunts ~22:50, 23:50, 00:50, 01:50, 02:50, 03:50 (written scope first, every finding fixed and
+  recorded with clock times); improvements in between.
+- 05:00-06:00 final 1-hour bug hunt, then in this order: analyse `C:/o14b/trainer_watch_night.tsv` (trainer cores vs GPU
+  use) -> item 1 RESULTS + report; `bash /c/o14b/make_index_r14b.sh` (FILES.txt + SHA256SUMS of both item folders) and
+  `sha256sum -c` in fresh clones; `opus_r14b/checks/hash_sweep_r14b.sh` (0 unmatched); `opus.sh lint` (0 findings);
+  `opus.sh test` (26 / 26); refreeze.sh only if relabel2.py changed; FINAL_REPORT.md without "INTERIM", with
+  commit_span figures; memory + skills; last push of all branches before 06:00 and `git status -sb` in sync.
