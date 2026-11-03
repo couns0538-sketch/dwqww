@@ -58,6 +58,9 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    positions / s on 2 CPUs at BelowNormal, about 24x what the live line consumes (7.4-10.3 it/s x 16,384 = 121k-169k
    kept positions / s in its epoch logs). So `--num-workers 3` is enough even for a GPU-bound epoch; with the live
    line's `--num-workers 4` (the `_w4_` in its name) the fast loader would run 2 builders, one thread more than needed.
+   CPU cost (one logical CPU, live thread setting, 2026-11-02): old 2.45 vs fast 0.34 CPU-us per kept position, i.e.
+   feeding the live line takes 0.30-0.41 of a CPU with the default loader and 0.04-0.06 with the fast one - while the
+   Idle trainer process got only 0.4-0.6 cores next to BelowNormal crew jobs (RESULTS.md).
 5. Check the run log's first lines: `Fast loader: ON (<version>, <path>, sha256 9eb29b7d...)`. A trainer without the
    flag prints `Fast loader: off`.
 6. Roll back: remove `--npt-extra --fast-loader` (or `--npt-repo`); nothing else changes.
