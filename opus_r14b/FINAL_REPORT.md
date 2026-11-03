@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM 19:25, final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 20:16), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -45,9 +45,20 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   and 15:34:20 (shard 36), interrupted attempts kept, no orphaned probe; md5 train 6e9e4e5a..., val 8e639f41...,
   labels 2614e82d... for both.
 
+## Tools for Couns and Opus (Couns 19:46: "create tools scripts that you and i can use"; block 19:47-21:47)
+`opus_r14b/tools/` on opus-r14b-status, skill forge-opus-tools, one entry point `bash opus_r14b/tools/opus.sh help`:
+status (job + PC in one look), lint (doc_lint.py: control bytes, CRLF, mojibake, eaten Windows backslashes, broken
+GitHub tables, dead links - it found a broken RESULTS table on its first run and a path with lost backslashes in the
+memory index), abba (palindromic A/B timing of any two commands with identity check, t-CI and load capture), engine
+(fresh export + lock-recipe build + bench / perft pins of any engine ref), bisect (first commit that changed bench
+nodes, building each candidate from a `git archive` export), time (spans and pauses from commit times), load, test
+(test_tools.sh). Own review R14B-T-1 fixed 5 defects in the new tools (TOOLS.md).
+
 ## Review milestones (all after 13:45 are self-reviews, NOT independent)
 R14B-I1-1 (sub-agent, before the no-sub-agent rule), R14B-I1-2, R14B-I2-1 (7 findings), R14B-I2-2 (F8, R17, R25),
-R14B-I2-3 (handoff exe location); details in each RESULTS.md. Final 30-minute bug hunt: PENDING (02:30).
+R14B-I2-3 (handoff exe location), R14B-T-1 (tools); hourly bug hunts #1 19:05, #2 19:41, #3 20:04 (relabel2 `run`
+now logs a probe failure to sessions.log and lowers its priority before hashing; item 1 trainer path checked for
+use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:00-06:00.
 
 ## Deviations and incidents (honest record)
 - 15:22-16:27: dev test runs ran as a third Idle process next to the two proof probes on CPUs 2-3 (over the "<= 2
