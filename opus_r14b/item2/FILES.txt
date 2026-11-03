@@ -1,11 +1,12 @@
 # FILES index, R14-B item 2 resumable relabel, branch opus-r14b-relabel. path | bytes | sha256 | content
-# relabel2.py FROZEN at sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155
-RELABEL_HANDOFF.md | 13358 | dcb36915809cac05491feefb7763591a802522e18bbd581f8c57f050dadbb2d3 | handoff for Engine NNUE: state, commands, rules, 50M runbook, costs (start here)
-RESULTS.md | 48874 | ab65abf822104db57ad095ef5a200527630591781e6236b8f5a172f88fef21d9 | all checks, numbers and review records (chronological)
+# relabel2.py FROZEN at sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3
+RELABEL_HANDOFF.md | 14501 | 3a3a6c9b567b3e32e3f6e90bd144fc62e28eccf0d2bb063bfaa9674d03279b80 | handoff for Engine NNUE: state, commands, rules, 50M runbook, costs (start here)
+RESULTS.md | 53099 | 623d509f6bf6866e8a07c946b332072e6d2a7085ed4b275c1a39482a3d170384 | all checks, numbers and review records (chronological)
 bridge_check.sh | 2481 | e21bc1b26fe77bc0115a497241d57a384f60e638564e7a57df6e9f7345476278 | post-proof code vs the proof's outputs
 build_probe_opt.sh | 5418 | b0f83360a445a050c01f533f9a7396b4621b4ec760ee73ea2813a3bf759c0b07 | LTO / LTO+PGO builds of the R13 probe from the lock source in git
 fn_diff.py | 1075 | fbf55421c632e01080beeb311776ecbb98c2e0fd9924a7e9a71a10fba51a3f99 | function-level diff of two relabel2.py versions
 forge_probe.py | 8222 | 980c20ccca62dae8b332ba3614e22362d35e937a464360326493f44978375d82 | R13 probe client (unchanged copy)
+job_damage.py | 10251 | f67b773debb8a63051edaf30919d9ba77bac88f298f8e6b66c6457a5372a79ec | damaged job state x run / assemble / status: 102 runs, exit 4 / 3 / 2 with a reason or 0 (a case of test_relabel2.sh)
 label_stats.py | 3667 | 29306d5c3a1dcd385d73c33be5393ff1ce2a4f9e7bb882139dcc03260587cd99 | descriptive label statistics
 lowrun.ps1 | 2127 | cc7f28dd09482454e894dfe2c77cc05c9eb625c1146ec5e558323064fc71af11 | run one program at low priority on a CPU mask (exit 127 if it cannot start)
 measure_rates.sh | 3467 | 2ba5e63d61c09df4dc2e9365eba8d408941463c5bbe1c55148e62339021af06b | rate measurements next to the crew load
@@ -14,14 +15,15 @@ probe_bench.py | 6752 | ca46d0c56809dea9d1b41b837303191aa4732974f40555f2da4b627d
 probe_ref_500.tsv | 32912 | 28842eae834eb31bc7e1d2d3f12c586d40ef548e1ed5a6bd8d1f387c268d749d | 500 reference requests (rows 900,000-900,499 of the proof sample)
 probe_ref_500_r13.jsonl | 193326 | 0959350148f0f5da23a610b7ec2f5cbb4ab8dbfee07a193ffe1504ca7dca0ebf | the R13 probe's answers to them (20k nodes, Hash 1 MB)
 prove_resume.sh | 3107 | 8efc781f0ab1b86f13a4db2a0f8e70f4bfec4aa613e28ef6efddd51754135199 | the 1M kill / resume proof driver
-relabel2.py | 42808 | 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155 | the relabel tool: prepare / run / assemble / status (FROZEN)
+relabel2.py | 46112 | 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3 | the relabel tool: prepare / run / assemble / status (FROZEN)
 sort_normalized.py | 4281 | 630fdfe760a9b99fec50388ca4c3588bbbaab3cb0cd717cb51aec4acb202a9fc | sort Astra's normalized JSONL by (source, source_row), with a RAM check
-test_relabel2.sh | 19467 | 0c284f5e01cff02b50d3c275f27451d642c04afc3e8dd0d0a12862e3b55812c6 | test suite: exit codes with reasons, --jobs 2, game across files, disk floor, kill / resume
+test_relabel2.sh | 19770 | 9aa8f1068288b355c725ac6587396dfcd6a44e3e2a1c9b92fd4cfcd9c422a91a | test suite: exit codes with reasons, --jobs 2, game across files, disk floor, kill / resume
 astra/records.py | 5369 | 444e854e05d8cb5fcae04d2b149a5fa02141059ccec2692389bc1e33a5061866 | Astra's record parser (unchanged copy)
 logs/bridge_check.log | 813 | 49b64cd4049845aa212d5732e40dc9165af6e588969b4b798afc86803b4c41e8 | evidence log
 logs/bridge_load_before.txt | 333 | 43dfeb78b2b7813d62482ba15c3ace97b703fb83d1738c903de5d2f6d7645c9f | evidence log
 logs/conv_full_1M.txt | 418 | 24e49bb4878b4c6f39ae14df3854feb9583f8c9bc9a77132a1ae40aa63405e20 | evidence log
 logs/fn_diff_frozen_vs_0a81dd5f.txt | 417 | 30d44c4595ef404a00a41dccee3dc257de47b3b7952dccb8e567a5f7af0b39c8 | evidence log
+logs/fn_diff_frozen_vs_56eef0a6.txt | 436 | 585f63abca4ff573631d4333e1be38156f18dc42c4fd697dc4ac197ce09f19ec | evidence log
 logs/fn_diff_frozen_vs_88454db6.txt | 417 | 30d44c4595ef404a00a41dccee3dc257de47b3b7952dccb8e567a5f7af0b39c8 | evidence log
 logs/fn_diff_frozen_vs_88454db6_detail.txt | 13905 | ded5e7d3c0ed79076657fe7e100d54349f250b4f03553db8263932042ea65ba5 | evidence log
 logs/fn_diff_frozen_vs_post_proof.txt | 5605 | 9318e501bdd860d33ea2997c89644f9b7a3c843e4cfad150e3760fe9217219b7 | evidence log
@@ -55,6 +57,8 @@ logs/fuzz/prep_fuzz_jsonl_250_summary.txt | 674 | 1842d7b98448953c8f1471ee2913d7
 logs/fuzz/prep_fuzz_norm.py | 5047 | 44aedd515c5ebb6334c3f2d240e1cfa164fd63a1060daeea4b4d3461e0a59530 | evidence log
 logs/fuzz/prep_fuzz_text_300.tsv | 32743 | 2c69ee88c27e14c1c17b4899c8a3bb08cb9280c87587c4edae566a1e19111150 | evidence log
 logs/fuzz/prep_fuzz_text_300_summary.txt | 506 | a0ab8881303947bd0ff2f6aa15b449751c748cb6fde2c067c73739ebd9920b93 | evidence log
+logs/job_damage/cases_0a81dd5f_29_findings.tsv | 8928 | ce81bbf6a27d926fbc22aed5a632ac39f66dd003635b66db4fe28749b37bd7e4 | evidence log
+logs/job_damage/cases_56eef0a6_0_findings.tsv | 8935 | 2600f743cec9d2283248a9f5479b6e08f18ff4a719af8e8f1ba35650e633746c | evidence log
 logs/measure/post_chain.log | 6838 | 10aa24566f4dc0a0f27353c6c1bb6733bc2cc8aa8203ef9a30eaf0b4012479cb | evidence log
 logs/measure/post_chain.sh | 3389 | 3f758146e9753e5a2ea598ff7f2dce01602e5cbfe1924c6907f667513e03238c | evidence log
 logs/measure/prep_baseline.sh | 1541 | 09a85c84db8e79f648565c7d14b552d28eb7861444794924d7ce18c344101f32 | evidence log

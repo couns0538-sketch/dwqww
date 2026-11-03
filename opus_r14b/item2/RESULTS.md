@@ -6,10 +6,10 @@ sha256 444e854e...). Labels come from the R13 probe `C:\o13\p5\forge_data_probe.
 source d4f4312; transposition table, histories and caches cleared before every search). Engine NNUE decides whether
 any of these labels are used; nothing here is a strength claim. The 50M run is not started.
 
-**State (2026-11-02 22:03 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
-FROZEN at sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155 (re-frozen 22:03 after the prepare fuzz;
-first frozen 20:41 as 88454db6...). Test suite: 154 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's
-first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
+**State (2026-11-02 22:24 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
+FROZEN at sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3 (commit 51cccbce, re-frozen 22:22 after
+the damaged-job harness; earlier freezes 88454db6... at 20:41 and 0a81dd5f... at 22:03 after the prepare fuzz). Test
+suite: 155 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
 whole 1M sample with the LTO+PGO probe gave the proof's files byte for byte; Forge's fen2bin / hce_dump take all 1M
 rows. Probe builds from a fresh clone reproduce the tested exes. 50M: ~79 h on CPUs 2-3 with 2 workers (the whole-1M
 rate under load); runbook for R8 v5 shards 001-057 in RELABEL_HANDOFF.md. `FILES.txt` + `SHA256SUMS` index this
@@ -393,3 +393,43 @@ RESULTS.) With this, every step of the verify chain has passed on the frozen cod
   bad FENs and results, empty lines, trailing garbage, unicode source names, nested arrays) -> **0 findings**; the new
   range check refuses 99999999999 / -40000 / 32768 on this path as well (32767 is accepted). Scripts and case tables:
   logs/fuzz/ (the scripts as they ran from C:\o14b; their paths point at Opus's scratch).
+
+## Damaged job state and the third freeze (22:09-22:24 by the PC clock)
+- New check `job_damage.py` (in this folder, and a case of `test_relabel2.sh`): a finished small job (1,426 rows, 3
+  shards of 500 at 2,000 nodes, not assembled) is copied fresh for every run and damaged by renaming aside (nothing
+  deleted) or editing the copy; 34 kinds of damage x `run` / `assemble` / `status` = 102 runs. The expected exit
+  code of every run was written down before the first run: 4 with relabel2's "INTEGRITY:" line for damaged job
+  files, 3 / 2 for a configuration change / a folder that is not a job, 0 where nothing that matters is damaged; a
+  traceback, a silent exit 0 on damaged state or a refusal after publishing is a finding. Kinds: a published shard's
+  labels.tsv flipped / cut / missing, its manifest missing / `{}` / `[]` / cut, its summary missing / edited, two
+  shards swapped, one copied over another, a shard dir missing / replaced by a file, rows.tsv flipped / missing,
+  prepare.json missing / cut / `{}`, run_config.json missing / cut / `{}` / other nodes, status.json cut / a list, a
+  stale job.lock file, final/ present, junk and badly named attempt dirs, an out-of-range shard dir, a foreign name
+  in shards/, sessions.log missing, shards/ replaced by a file.
+- On the frozen 0a81dd5f: **29 findings** in 102 runs (logs/job_damage/cases_0a81dd5f_29_findings.tsv):
+  - J-1 (medium; the only silent one): run_config.json missing while shards are published -> `run` exit 0: it wrote
+    a new run_config.json from the current command line, so a resume with other `--nodes` / probe / hash would have
+    mixed labels of two settings in one job without a word.
+  - J-2 (low, 21 runs, all fail-closed: nothing published): a missing labels.tsv or rows.tsv, a manifest /
+    prepare.json / run_config.json that is not the expected JSON object, a shard name that is a file (after labelling
+    that shard once more), shards/ a file -> Python traceback and exit 1 instead of exit 4 with the file named.
+  - J-3 (low, 5): `status` crashed on a damaged status.json / run_config.json, on a cut prepare.json (traceback, not
+    exit 4) or on a foreign name in shards/; an out-of-range shard dir printed "4/3 shards, -46,648/1,426 rows".
+  - J-4 (low, 2): badly named attempt dirs (`final.part.x`, `shard_K.part.x`) crashed assemble / run.
+- Fix (51cccbce): `read_json` (missing, unreadable, not a JSON object or lacking a key -> exit 4 naming the file);
+  `verify_shard` reports every read error of a published shard as exit 4; `run` refuses to re-create a lost
+  run_config.json once shards are published (exit 4: restore it or start a new job) and refuses a shard name or
+  shards/ that is not a directory before any probe starts; attempt numbers ignore names that are not
+  `<stem>.part.<number>`; `status` warns instead of crashing and ignores shard dirs outside the job. Labelling,
+  game ids and the outputs are untouched.
+- After the fix: **0 findings** in the same 102 runs (logs/job_damage/cases_56eef0a6_0_findings.tsv, from the
+  re-freeze suite); the committed harness on the 0a81dd5f code tree still finds the 29 (it detects what it should).
+- Re-freeze (`opus_r14b/checks/refreeze.sh jd2216`, 22:16-22:22): suite 155 PASS / 0 FAIL in the worktree and in a
+  fresh clone (154 + the job_damage case), bridge PASS (rows.tsv of `--jobs 1` and `--jobs 2` = the proof's;
+  `run --accept-new-tool` on a copy of proof job A finds all 100 shards intact; assemble = the proof's three files),
+  function diff vs the proof code (logs/fn_diff_frozen_vs_56eef0a6.txt): label_shard, new_game, board_stats,
+  row_offsets, read_shard_rows, file_hash identical; load_prepare / verify_shard changed only in how damaged files
+  are reported. New frozen sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3 (commit 51cccbce),
+  written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.
+- RELABEL_HANDOFF.md "Rules for the big job": leave the job's files as written; keep a copy of run_config.json and
+  prepare.json next to the job (small, never change) so a lost one is a one-file restore.
