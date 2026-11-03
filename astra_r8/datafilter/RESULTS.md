@@ -10,6 +10,15 @@ The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
 the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
+At the 05:56 UTC checkpoint the two strict source-admission scans have checked
+more than 170 million rows, with zero rejections so far. They remain in progress
+and occupy both allowed CPU slots. Entrypoint regressions now also cover
+manifest replacement after verification, during runtime initialization, and
+immediately before delegation. These authored tests have not run yet. Focused
+review confirmed one additional draft union-receipt race: parsed JSON and its
+recorded digest must come from the same bytes. That repair is queued with its
+regression; it does not affect the running scans. No pending fix is accepted.
+
 User correction recorded in R12_HANDOFF.md: use only FD3A5190 and bench
 312866/862329/3024920/12389307/34048354; startpos/Kiwipete perft5 are
 4865609/193690690. Existing R8 native checks use the corrected bench pins;

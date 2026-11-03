@@ -1,5 +1,17 @@
 # Review log — UNPROVEN
 
+## Draft recheck while full admission scans run
+
+The same read-only reviewer confirmed the corrected actual-runtime comparison
+and the protected-v7 snapshot pin, and inspected the real 37-source integration
+fixture. Main identified a related race in the new union verifier's BoundInputs:
+separate hash/read/hash operations can bind temporarily substituted parsed JSON
+to a restored file's digest. The reviewer confirmed it. The queued fix hashes
+the exact parsed bytes and requires the closing path hash and earlier binding
+to agree. This changes only the new verifier, not the running audits' pins.
+Execution and acceptance remain pending. New entrypoint mutation regressions
+are also prepared; all mutations are limited to authored temporary fixtures.
+
 ## Native input consumer contract — confirmed by inspection, repair pending
 
 Main inspected the installed npt Position::trySet/fromFen and C ABI after tracing
