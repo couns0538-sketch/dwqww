@@ -106,14 +106,17 @@ def main():
         out.append('')
     if extras:
         out += ['## Existing exes, options never gated alone (not R15 patches; listed for the crew, not counted)', '',
-                '| line | exe (full path) | sha256 | setoption (ON) | ON bench d11 / d13 / d16 | OFF = pins | smoke | note |',
-                '|---|---|---|---|---|---|---|---|']
+                '| line | exe (full path) | sha256 | setoption (ON) | ON bench d11 / d13 / d16 | OFF = pins | smoke | verdict | note |',
+                '|---|---|---|---|---|---|---|---|---|']
         for r in extras:
             on = r.get('pin_on') or {}
             sm = r.get('smoke') or {}
+            verdict = r.get('verdict', '?')
+            if verdict != 'PASS':
+                verdict += ' - NOT GATEABLE: ' + '; '.join(p.replace('|', '/') for p in r.get('problems', []))
             out.append(f"| {r['name']} | `{r.get('exe', '')}` | `{r.get('exe_sha256', '')}` | "
                        f"`setoption name {r['option']} value {r['on']}` | {on.get('d11', '?')} / {on.get('d13', '?')} / "
-                       f"{on.get('d16', '?')} | {ok(r, 'pin_off')} | {sm.get('verdict', '-')} | {r.get('note', '')} |")
+                       f"{on.get('d16', '?')} | {ok(r, 'pin_off')} | {sm.get('verdict', '-')} | {verdict} | {r.get('note', '')} |")
         out.append('')
     if base:
         out += ['## Base re-verify (cand_pack -NoPatch self-test)', '']

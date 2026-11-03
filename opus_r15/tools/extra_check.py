@@ -69,10 +69,12 @@ def main():
     r = subprocess.run(ps + ['-Json', os.path.join(out, 'pin_off.json')], capture_output=True, text=True)
     check('pin_off', r.returncode == 0, 'bench d11-d22 + perft = lock pins')
     r = subprocess.run(ps + ['-Options', f'{a.option}={a.on}', '-Json', os.path.join(out, 'pin_on.json')], capture_output=True, text=True)
-    check('pin_on_live', r.returncode == 0, f'{a.option}={a.on} advertised, accepted, live, perft = pins')
-    pin_on = {}
+    pin_on, why = {}, []
     if os.path.exists(os.path.join(out, 'pin_on.json')):
-        pin_on = json.load(open(os.path.join(out, 'pin_on.json'), encoding='utf-8-sig')).get('bench', {})
+        rec = json.load(open(os.path.join(out, 'pin_on.json'), encoding='utf-8-sig'))
+        pin_on, why = rec.get('bench', {}), list(rec.get('problems', []))
+    check('pin_on_live', r.returncode == 0, f'{a.option}={a.on} advertised, accepted, live, perft = pins'
+                                            + ('' if r.returncode == 0 else ' - pin_check: ' + '; '.join(why)))
     r = subprocess.run([sys.executable, '-I', '-B', os.path.join(HERE, 'smoke2m.py'), exe, '--line', f'{a.option}={a.on}',
                         '--seconds', str(a.smoke_seconds), '--threads', '2', '--mask', '0x3', '--idle',
                         '--out', os.path.join(out, 'smoke_on')], capture_output=True, text=True)

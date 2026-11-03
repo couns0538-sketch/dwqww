@@ -34,7 +34,17 @@ C: >= 30 GB, no sub-agents, never delete / kill, commit + push about every 10 mi
 5. `python -I -B tools/index_check.py` before handing `D:\o15\cands\INDEX.md` to the crew. README.md per candidate:
    mechanism, one paragraph "why it should gain", OFF identity, own review (NOT independent). No Elo claims.
 
+## Same checks from any session: the forge-uci MCP server
+Registered at user scope (`bash opus_r15/mcp/setup_forge_mcp.sh`; `claude mcp get forge-uci` shows Connected). Tools:
+`pin_check` (exe, options, full, expect), `uci_options`, `bench` (depth 1-22, options), `perft` (startpos / kiwipete /
+FEN, depth 1-6), `gate_summary` (gate_dir, watch), `index_check`, `pc_status`. Engines run at Idle on CPUs 0-1.
+Self-test: `python -I -B opus_r15/mcp/test_forge_uci_mcp.py` (18 checks over the real stdio transport).
+
 ## Pitfalls (all hit on 2026-11-03)
+- Never edit a tool (smoke2m.py, cand_pack.ps1, kit_build_r15.sh, ...) while a queued chain may start it: the C6 pack
+  started smoke2m.py between two edits and died with a NameError (12:37). Edit after the chains, or work on a copy.
+- PS 5.1 ConvertTo-Json writes Get-Content lines with their PSPath / PSDrive / PSProvider properties: cast to
+  `[string]` before storing them in a record (the first five RESULT.json files were 35 MB each).
 - g++ by absolute path needs `C:\msys64\ucrt64\bin` on PATH or it exits 1 silently.
 - Do not set MSYS_NO_PATHCONV around bash scripts that call native git with `/d/...` paths.
 - PowerShell 5.1: `[ordered]` dict indexed by an int = by position; `>>` is UTF-16; native stderr + `2>&1` + 'Stop'
