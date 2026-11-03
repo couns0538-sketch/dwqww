@@ -157,6 +157,7 @@ load before the run in logs/bridge_load_before.txt):
 | the same with `--jobs 2` | exit 0 in 63 s; rows.tsv byte-identical (single runs, Idle next to crew work: not a speed measurement; measure_rates.sh does that) |
 | `run --accept-new-tool` on a copy of job A (rows.tsv, prepare.json, run_config.json, 100 published shards) | exit 0: all 100 shards re-verified, nothing left to do (`session_rows=0`, sessions.log names the new code hash) |
 | `assemble` on that copy | train.txt, val.txt, labels.tsv byte-identical to the proof's job A |
+
 Promotion: relabel2.py, test_relabel2.sh, measure_rates.sh, bridge_check.sh, label_stats.py copied from the dev copy
 (= patches/post_proof_changes.patch); relabel2.py on the branch is now 63be772c...; logs/fn_diff_frozen_vs_post_proof.txt
 re-made against the frozen file from git (5c88438f): the labelling / resume path is identical source.
@@ -234,6 +235,7 @@ label_stats.py, the R27 / R28 changes, the reason checks, item 1's fl_acceptance
 | R29 | probe_bench.py `abba` (and item 1's fl_abba.py) used Student t only for exactly 10 pairs and 1.96 otherwise: a too narrow CI for fewer pairs (every recorded result used 10 pairs, so they stand) | t table for 1-30 degrees of freedom, checked against scipy.stats.t.ppf(0.975): 0 mismatches | unchanged result for 10 pairs (t = 2.262) |
 | R30 | probe_bench.py and build_probe_opt.sh found lowrun.ps1 through `../../../o14b-l1/...`, a path into the fast-loader WORKTREE of this PC: in any other checkout of this branch both tools fail | own copy `opus_r14b/item2/lowrun.ps1` (same file, sha256 2c7fa58f...), both tools use it | probe_bench.py run on 20 positions: 20 answers |
 | - | item 1's b5_checks.sh has an absolute tools path on purpose (it is run as a copy elsewhere) | made overridable (`FL_TOOLS`) | bash -n |
+
 No other script reaches outside its own branch folder (grep for worktree paths: none left).
 
 ## Improvements for use in Forge (19:12-19:25; tests run once the full PGO run frees the core)
@@ -270,6 +272,7 @@ tools/hash_sweep.py, the .gitattributes files, and the documents against the cod
 | H2-3 | install_fast_loader.py --loader-dll printed "would copy" lines in a real install (its validation pass) | the validation pass is silent unless --check | check / install / second install on fresh copies of the live config.py + train.py: "would copy" only with --check, files copied with sha256 9eb29b7d... / 39af47b0..., second install exit 2; the fresh install is byte-identical to the tested trainer copy (config.py 5c41d7a7..., train.py d9c3ccef...) |
 | H2-4 | the documents called `F:\opus_scratch\rescore_d8\bin\fen2bin.exe` "Forge's own" converter; it is the build earlier Opus / R11 jobs used (sha256 24cb2e78...), its source is not in this repository and the live supervisor's converter was not compared | wording in RELABEL_HANDOFF.md, RESULTS.md, the skill and FINAL_REPORT.md | hash_sweep |
 | H2-6 | docs as tests: the RELABEL_HANDOFF.md command block run as written (placeholders filled, 300 rows, 5k nodes, 2 workers): prepare / run / run again / assemble / status all exit 0 - but a run on a job with every shard published still started its probes before finding nothing to do | `run` returns at once when all shards are published and re-verified ("nothing left to label" in sessions.log, no probe started) | test run_complete_job |
+
 Checked and kept: move_retry retries PermissionError only (an existing target still fails at once); every floor check
 runs before its write; the status line handles jobs never run (no run_config.json); the simulated-contention tests
 patch only the calls they target.
@@ -285,6 +288,7 @@ and item 1's trainer path (does the trainer copy a batch before the fast loader 
 | H3-3 | the docstring says every sessions.log line names the code hash; the disk-floor stop line did not | both stop lines carry tool=<sha256 prefix> | test greps the new line with its tool hash |
 | H3-4 | (advisor, 20:17) the new stop line said "exit 1" for every error, but a BadInput / IntegrityError raised inside the shard loop leaves with exit 2 / 4 | the line names the exit code main() will return | code read |
 | H3-5 | (advisor, 20:17) `--mask` above the PC's CPUs (e.g. 0x10000 on 16 CPUs) passed check_args and died with a SetProcessAffinityMask traceback (abba.py had this fix, relabel2.py not) | exit 2 "names a CPU this PC does not have" before anything starts, for prepare / run / assemble | 3 tests + reasons: run with `xyz`, run and prepare with 0x10000000000 (nothing created) |
+
 Checked, no finding: shard publish by directory rename (FileExistsError is not retried, so a published shard is never
 replaced); verify_shard on every published shard at start and twice in assemble; the game rule cannot split a game;
 the split hash; `--rows` cuts at a game boundary and closes the --jobs workers; inputs hashed before and after
@@ -297,6 +301,7 @@ Docs: exit code 1 described in RELABEL_HANDOFF.md and the skill forge-relabel-jo
 | # | finding | fix | check |
 |---|---|---|---|
 | L1 (20:25, found while converting the full 1M output) | `lowrun.ps1` (the launcher every R14-B tool uses to run a program at low priority on CPUs 2-3) ended with exit 0 when Start-Process could not start the program (missing file), and ran it with an invalid handle when a redirect folder did not exist - a caller trusting the exit code would count a program that never ran as a success | exit 127 with a message in both cases and for a missing stdin file; the program's own exit code otherwise. Same fixed file (sha256 cc7f28dd...) in all three branches | missing exe 127, missing stdout / stderr folder 127, missing stdin 127, `cmd /c exit 3` 3, echo with redirect 0 + output, stdin redirect works, Idle 0 |
+
 Every caller in item 2 (build_probe_opt.sh, probe_bench.py) also checks its outputs, so no recorded result was affected (the probe builds and the probe answers are checked by sha256 and by comparing answers).
 
 ## The full 1M proof sample with the LTO+PGO probe (18:48-20:24) and through Forge's converters (20:27)
