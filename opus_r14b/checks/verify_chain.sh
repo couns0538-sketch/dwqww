@@ -3,7 +3,8 @@
 # core): 1 test suite from the worktree, 2 bridge to the 1M proof, 3 fresh-clone checks (+ adoption rehearsal),
 # 4 loader ABBA in the live setting (old w4 vs fast with 2 builders), 5 prepare of R8 v5 shards 271 + 272 (--jobs 2),
 # 6 end to end on R8 v5 data (3,000 rows, PGO probe) through assemble and fen2bin.
-# Outputs under C:/o14b/vc_TAG (must not exist). A failing step is reported and the chain goes on.
+# Outputs under C:/o14b/vc_TAG (must not exist). A failing suite (step 1) stops the chain; any other failing step
+# is reported and the chain goes on.
 set -u
 tag=${1:?tag}
 out=/c/o14b/vc_$tag
@@ -20,7 +21,8 @@ step "0 code: relabel2.py $(sha256sum < "$I2/relabel2.py" | cut -c1-16), branch 
 step "1 test suite"
 bash "$I2/test_relabel2.sh" "$out/tests" > "$out/tests.log" 2>&1
 rc=$?; echo "exit=$rc PASS $(grep -c '^PASS' "$out/tests.log") FAIL $(grep -c '^FAIL' "$out/tests.log")"
-grep '^FAIL' "$out/tests.log" | head -5; [ $rc = 0 ] || fails=$((fails + 1))
+grep '^FAIL' "$out/tests.log" | head -5
+[ $rc = 0 ] || { echo "=== the suite failed: chain stopped (fix, then run the chain again) $(date '+%F %T')"; exit 1; }
 step "2 bridge to the 1M proof"
 bash "$I2/bridge_check.sh" /d/o14b/r2/proof "$out/bridge" > "$out/bridge.log" 2>&1
 rc=$?; cat "$out/bridge.log"; [ $rc = 0 ] || fails=$((fails + 1))
