@@ -6,16 +6,19 @@ converter, engine and installed npt files are unchanged. No training, GPU work,
 net export or strength gate has run. Engine NNUE owns training; Engine QA owns
 FD3A5190 UHO, separate 8moves_v3 and WAC300 qualification.
 
-Current candidate: reviewed native-input and manifest-identity fixes, plus
-Lichess evaluation selection and castling normalization. The current full CPU
-suite passes **544 tests and 11 subtests**. Fresh verification passes complete
-selected-cohort native-input admission, 100k legacy identity, 1,000 binary results
-plus mirrors, bounded repeat filtering and both v8 CPU recipe preflights.
-Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v8/manifest.json`,
-SHA256 `0695d8a630e2d6247fc9a60237117d00e3cad0e79258e5e6ef71fbf21c216f5b`.
-Current code must not be paired with the historical v7 manifest. v7 is protected evidence and remains
+Current candidate also validates original PGN FEN headers before library
+normalization and rejects SetUp=1 without an initial position. The complete CPU
+suite passes **564 tests and 11 subtests** in 532.82 seconds. Collection proves
+that running the larger checkpoint tests last omitted no cases. Fresh verification
+passes all 999,953 selected rows, both CPU recipe preflights and strict v9 checks.
+The earlier 100k legacy, 1,000 binary result/mirror and repeat-filter proofs retain
+their original identities; exact source comparison confines this repair to the
+PGN header method. See [source lineage](evidence/extension5h/verified_v9/pgn_fix_validation_v1/source_lineage.json).
+Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v9/manifest.json`,
+SHA256 `c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
+Current code must not be paired with historical v7/v8 manifests. v7 is protected evidence and remains
 unchanged at SHA256 52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
-Final review is reserved for 08:23–09:23 UTC. See [results](RESULTS.md),
+The final review is active from 08:25 through at least 09:25 UTC. See [results](RESULTS.md),
 [review log](REVIEW_LOG.md), [recipe commands](MIX_SPEC.md), and
 [R12 continuation constraints](R12_HANDOFF.md).
 
@@ -23,7 +26,7 @@ Both recipes retain the same 999,953 rows after explicit exclusion of 47
 board+STM matches against the complete 013/014 holdouts. The 10,000-row sample
 is 3,139,111 bytes, SHA256
 `c7394f11aebf2e76a2e5a1b8e834c8b5b92676180f5896e8ac30062472f7462c`.
-Fresh v8 selected-cohort Pearson correlation is 0.6635950368 with 1,000
+Fresh v9 selected-cohort Pearson correlation is 0.6635950368 with 1,000
 passing mirrors. The bounded 152.5M-position
 epoch recipe repeats this cohort, as disclosed in MIX_SPEC.md.
 
@@ -37,9 +40,12 @@ have different formats and are not byte-identical.
 The strict [complete admission union](evidence/extension5h/closed_0728/admission_union_v1/SUMMARY.json)
 passes all 304,999,573 rows in 37 original closed training shards, with zero
 rejections. It retains the audited records.py SHA256 a8ef0f43...7360be; the later
-Lichess-only repair is separately attributed. This proves parser admission,
-not native counter representability of every raw source, game-ID separation or
-full-corpus holdout clearance. Only the selected cohort has holdout clearance.
+Lichess and PGN repairs are separately attributed. The separate
+[numeric census](evidence/extension5h/native_counter_closed/CLOSURE.json) also
+passes all 304,999,573 rows for score and counter representation in 1,235.139s.
+Maximum halfmove is 99, fullmove 150 and zero-based ply 299; scores are -3000..3000.
+Neither audit executes native batches or grants game-ID/full-corpus holdout
+clearance. Only the selected cohort has holdout clearance.
 The [historical descriptive profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
 reports aggregate score/result correlation 0.6567069235 and 93.6105% retained
 at optional ply <=160. Its original validator attribution is retained.
@@ -88,6 +94,11 @@ before/after conversion. Legacy no-flag parsing and argument behavior is retaine
 The metadata sidecar preserves the original score; REC keeps the established
 `--clip` behavior. The audit reconstructs and verifies the clipped REC label from
 that original score rather than pretending that clipping never occurred.
+
+Original PGN FEN headers must already contain valid known clocks and state;
+normalization cannot supply missing clocks or repair invalid text. SetUp=1
+requires FEN. Ordinary PGNs without a custom setup still start from the standard
+position. The no-flag legacy converter retains its previous parser behavior.
 
 Normalized records contain original full FEN, source and source row, source kind,
 raw score and type, STM score, White and STM results, result mask, zero-based ply,

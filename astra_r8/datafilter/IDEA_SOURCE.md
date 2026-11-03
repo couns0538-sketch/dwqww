@@ -91,5 +91,5 @@ LICHESS_INPUT_REVIEW.md. The repair fixtures remain authored synthetic data.
 Installed npt `data_loader/cpp/lib/chess.h` and its C ABI wrapper were inspected
 to establish actual FEN parsing, failure handling and counter widths. Their
 implementation remains separately installed and unchanged; no GPL/AGPL source
-is copied. The planned boundary repair is original Python validation/argument
+is copied. The boundary repairs use original Python validation/argument
 construction in the local adapter, documented in NATIVE_INPUT_REVIEW.md.

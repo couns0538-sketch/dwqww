@@ -23,6 +23,7 @@ HELPER = Path('C:/astra8_data/quality6h_20261102/pack_completion.py')
 HELPER_SHA = '25a4626eb6a3116070600019eb636714a0267df02931afc8496a09f40e40f874'
 V7 = Path('C:/astra8_data/extension3h_20261103/handoff_v7')
 V7_SHA = '52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720'
+PGN_BASE_SHA = '6e2354dffa7d273eca732bafac8c54c2830fe8d9a677cc217801a8f599c43c00'
 
 
 def require(condition, message):
@@ -51,13 +52,56 @@ def source_set(mapping):
     return names
 
 
+def check_collection(bound, path, sources, arguments):
+    collection = exact_json(bound, path)
+    require(collection['status'] == 'PASS' and collection['source_files'] == sources,
+            'collection source identity differs from full suite')
+    targets = collection['targets']
+    paths = sorted((HERE/'tests').glob('test_*.py'))
+    integration = HERE/'tests/test_integration.py'
+    require(integration in paths, 'integration tests missing')
+    paths.remove(integration)
+    paths.append(integration)
+    require(targets == [p.relative_to(WORK).as_posix() for p in paths]
+            and arguments[7:] == targets, 'ordered full-suite file set differs')
+    entries = collection['collections']
+    require([entry['name'] for entry in entries] == ['broad', 'ordered'],
+            'both collection commands required')
+    node_sets = []
+    for entry in entries:
+        expected = ['astra_r8/datafilter'] if entry['name'] == 'broad' else targets
+        require(entry['exit_code'] == 0 and entry['command'][1:] ==
+                ['-B', '-m', 'pytest', '-q', '--collect-only', '-p', 'no:cacheprovider', *expected],
+                'collection command differs')
+        logs = {}
+        for stream in ('stdout', 'stderr'):
+            log_path = path.parent/(entry['name']+'.'+stream+'.log')
+            payload = log_path.read_bytes()
+            digest = hashlib.sha256(payload).hexdigest()
+            require(digest == entry[stream+'_sha256'] == sha256(log_path),
+                    'collection log bytes differ')
+            bound.files[str(log_path.resolve())] = digest
+            logs[stream] = payload
+        nodes = [line.strip() for line in logs['stdout'].decode('utf-8').splitlines()
+                 if line.startswith('astra_r8/datafilter/') and '::' in line]
+        require(nodes == entry['nodes'] and len(nodes) == len(set(nodes)) == collection['nodes']
+                and len(nodes) >= 564, 'collection nodes incomplete or duplicated')
+        node_sets.append(set(nodes))
+    require(node_sets[0] == node_sets[1], 'collection omitted or added cases')
+    return collection['nodes']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--suite', required=True, type=Path)
     parser.add_argument('--validation', required=True, type=Path)
     parser.add_argument('--handoff', required=True, type=Path)
+    parser.add_argument('--validation-mode', choices=('original', 'pgn'), default='original')
+    parser.add_argument('--collection', type=Path)
     args = parser.parse_args()
+    require((args.validation_mode == 'pgn') == (args.collection is not None),
+            'PGN mode requires its complete collection proof')
     low_priority()
     output = Path(storage_guard(args.output, allowance=15_000_000)['destination'])
     require(not os.path.lexists(output), 'refusing existing final pack')
@@ -90,19 +134,60 @@ def main():
             'validation source set incomplete or unexpected')
     for path,digest in complete['source_files'].items():
         pin(path,digest)
-    require(set(complete['receipts']) == {'shared_selfplay_source.json','native_admission.json',
-                                        'bounded_filter.json','published_verify.json'},
+    expected_receipts = ({'source_lineage.json', 'native_admission.json', 'published_verify.json'}
+                         if args.validation_mode == 'pgn' else
+                         {'shared_selfplay_source.json', 'native_admission.json',
+                          'bounded_filter.json', 'published_verify.json'})
+    require(set(complete['receipts']) == expected_receipts,
             'validation receipt set incomplete or unexpected')
-    require(set(complete['stages']) == {'identity','orientation'},
+    require(set(complete.get('stages', {})) ==
+            (set() if args.validation_mode == 'pgn' else {'identity','orientation'}),
             'validation stage set incomplete or unexpected')
+    if args.validation_mode == 'pgn':
+        require(complete['base_proof_sha256'] == PGN_BASE_SHA,
+                'preceding self-play proof identity differs')
     for name,item in complete['receipts'].items():
         require(Path(item['path']).resolve() == (args.validation/name).resolve(),
                 'validation receipt points to a different proof')
         pin(item['path'],item['sha256'])
-    for name,item in complete['stages'].items():
+    for name,item in complete.get('stages', {}).items():
         require(Path(item['receipt']).resolve() == (args.validation/(name+'_receipt.json')).resolve(),
                 'validation stage points to a different proof')
         pin(item['receipt'],item['sha256'])
+    if args.validation_mode == 'pgn':
+        base_path = args.validation.parent/'input_repair_validation/COMPLETE.json'
+        base = exact_json(bound, base_path)
+        require(bound.files[str(base_path.resolve())] == PGN_BASE_SHA,
+                'exact preceding proof bytes required')
+        inherited = {name:dict(path=item.get('path', item.get('receipt')), sha256=item['sha256'])
+                     for name,item in {**base['receipts'], **base['stages']}.items()}
+        lineage = exact_json(bound, args.validation/'source_lineage.json')
+        records_path = str(HERE/'records.py')
+        require(lineage['status'] == 'PASS' and lineage['base_proof_sha256'] == PGN_BASE_SHA
+                and lineage['inherited_receipts'] == inherited
+                and lineage['before_records_sha256'] == base['source_files'][records_path]
+                and lineage['current_records_sha256'] == complete['source_files'][records_path],
+                'PGN lineage does not bind the complete preceding proof')
+        mandatory = dict(complete['source_files'])
+
+        def add_required(path, digest):
+            key = str(Path(path).resolve())
+            require(mandatory.get(key, digest) == digest, 'conflicting inherited dependency')
+            mandatory[key] = digest
+
+        add_required(base_path, PGN_BASE_SHA)
+        add_required(HERE/'evidence/extension5h/verify_pgn_repair.py', complete['driver_sha256'])
+        add_required(args.validation.parent/'pgn_raw_fen_review/records_before.py.txt',
+                     base['source_files'][records_path])
+        add_required(args.validation.parent/'handoff_v8/manifest.json', base['manifest_sha256'])
+        add_required(args.handoff/'manifest.json', complete['manifest_sha256'])
+        for item in inherited.values():
+            add_required(item['path'], item['sha256'])
+        require(source_set(complete['bound_inputs']) == source_set(mandatory)
+                and complete['bound_inputs'] == mandatory,
+                'inherited dependency set is incomplete or conflicting')
+        for path, digest in mandatory.items():
+            pin(path, digest)
     published = verify(args.handoff/'manifest.json')
     require(published['manifest_sha256'] == complete['manifest_sha256'], 'handoff identity differs')
     manifest = exact_json(bound,args.handoff/'manifest.json')
@@ -119,17 +204,23 @@ def main():
         pin(path,digest)
     command = exact_json(bound, args.suite/'command.json')
     arguments = command['arguments']
-    require(len(arguments) == 8
+    require(len(arguments) >= 8
             and arguments[:6] == ['-B','-m','pytest','-q','-p','no:cacheprovider']
-            and arguments[6].startswith('--basetemp=')
-            and arguments[7] == 'astra_r8/datafilter',
+            and arguments[6].startswith('--basetemp='),
             'full-suite command was narrowed')
+    if args.validation_mode == 'pgn':
+        expected_count = check_collection(bound, args.collection, after, arguments)
+    else:
+        require(arguments[7:] == ['astra_r8/datafilter'], 'full-suite command was narrowed')
+        expected_count = None
     log = (args.suite/'pytest.log').read_bytes()
     require(hashlib.sha256(log).hexdigest() == suite['log_sha256'], 'full-suite log changed')
     pin(args.suite/'pytest.log',suite['log_sha256'])
     matches = re.findall(r'(\d+) passed,.*?(\d+) subtests passed in', log.decode('utf-8'))
     require(len(matches) == 1 and int(matches[0][0]) >= 544 and int(matches[0][1]) == 11,
             'full-suite completion count missing')
+    require(expected_count is None or int(matches[0][0]) == expected_count,
+            'executed full-suite count differs from collection')
     runtime_paths = list(args.suite.rglob('cpu_runtime_*.json'))
     require(len(runtime_paths) == 1, 'exactly one full-suite runtime receipt required')
     runtime = exact_json(bound, runtime_paths[0])
@@ -185,6 +276,7 @@ def main():
     write(output/'COMPLETE.json', dict(status='PASS', strength='UNPROVEN', candidate=candidate,
           source_files=pins, suite=str(args.suite), passed_tests=int(matches[0][0]), subtests=11,
           validation=str(args.validation), validation_sha256=sha256(args.validation/'COMPLETE.json'),
+          validation_mode=args.validation_mode,
           manifest_sha256=published['manifest_sha256'], protected_v7=protected,
           inventory_sha256=sha256(output/'full_output_hashes.json'), bound_receipts=bound.files,
           regular_files=len(inventory), resource=storage_guard(output, allowance=0),

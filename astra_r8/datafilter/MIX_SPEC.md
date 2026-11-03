@@ -1,15 +1,17 @@
 # Matched result-mask recipes — UNPROVEN
 
-The commands below target the verified v8 handoff, SHA256
-`0695d8a630e2d6247fc9a60237117d00e3cad0e79258e5e6ef71fbf21c216f5b`.
+The commands below target the verified v9 handoff, SHA256
+`c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
 Both CPU recipe preflights and strict published verification PASS. The current
 source intentionally rejects historical v7 runtime pins; v7 remains protected
 evidence with SHA256 52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
 The latest fixes bind native input and manifest identity and normalize supported
 Lichess records. They preserve the selected cohort and recipe parameters. The
-full suite passes 544 tests and 11 subtests; all 999,953 selected rows pass native
-input admission. Fresh legacy/result/mirror/filter proofs also PASS. All training
-remains crew-owned; the final review hour is pending.
+full suite passes 564 tests and 11 subtests; all 999,953 selected rows pass native
+input admission. The final PGN repair
+validates raw FEN headers and rejects SetUp=1 without FEN. Prior legacy/result/
+mirror/filter proofs retain their identities through exact source comparison.
+All training remains crew-owned; final evidence packaging is in progress.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input
@@ -38,7 +40,7 @@ is an opt-in that currently fails for these shards because they have no best mov
 Qsearch filtering fails capability preflight. There is no clipping, deduplication,
 random record skipping, relabeling or native binpack conversion in this path.
 
-The refreshed handoff manifest `C:/astra8_data/extension5h_20261103/handoff_v8/manifest.json`
+The refreshed handoff manifest `C:/astra8_data/extension5h_20261103/handoff_v9/manifest.json`
 pins source boundaries/hashes, normalized training/validation hashes, holdout
 audit, recipe settings, and actual imported npt/adapter Python files and native DLL.
 It must report `training_ready: true`; otherwise the entry point refuses training.
@@ -58,7 +60,7 @@ $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = (New-Item -ItemType Directory -Path 'C:/astra8_data/filter_reproduction_v8_tmp' -ErrorAction Stop).FullName
+$env:TEMP = (New-Item -ItemType Directory -Path 'C:/astra8_data/filter_reproduction_v9_tmp' -ErrorAction Stop).FullName
 $env:TMP = $env:TEMP
 & $py "$tools/filter_positions.py" $inputRows "$data/recipe_selection_new" --workers 2 --drop-in-check --drop-mate-scores
 ```
@@ -81,14 +83,14 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'C:/astra8_data/extension5h_20261103/handoff_v8/manifest.json'
+$manifest = 'C:/astra8_data/extension5h_20261103/handoff_v9/manifest.json'
 $env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
 $env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = (New-Item -ItemType Directory -Path 'C:/astra8_data/crew_training_v8_tmp' -ErrorAction Stop).FullName
+$env:TEMP = (New-Item -ItemType Directory -Path 'C:/astra8_data/crew_training_v9_tmp' -ErrorAction Stop).FullName
 $env:TMP = $env:TEMP
 $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"

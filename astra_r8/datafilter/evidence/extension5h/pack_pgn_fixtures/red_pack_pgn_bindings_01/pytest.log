@@ -1,0 +1,70 @@
+.FFF.                                                                    [100%]
+================================== FAILURES ===================================
+__________ test_pgn_inherited_dependencies_cannot_be_omitted[empty] ___________
+
+pgn = namespace(case=namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_pack_pgn_bindings_01/cases/test_pgn...\validation\\orientation_receipt.json', 'sha256': 'f600a2df4cf156663b04863ed09c5c367c06c9e87b6534fb7e02b2ce78af7ff5'}})
+damage = 'empty'
+
+    @pytest.mark.parametrize('damage',['empty','missing_snapshot','missing_identity','conflicting_identity'])
+    def test_pgn_inherited_dependencies_cannot_be_omitted(pgn,damage):
+        complete=pgn.complete
+        identity=pgn.inherited['identity']['path']
+        if damage=='empty':complete['bound_inputs']={}
+        elif damage=='missing_snapshot':complete['bound_inputs'].pop(str(pgn.snapshot))
+        elif damage=='missing_identity':complete['bound_inputs'].pop(identity)
+        elif damage=='conflicting_identity':complete['bound_inputs'][identity]='0'*64
+        put(pgn.case.validation/'COMPLETE.json',complete)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_pack_pgn_bindings.py:48: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 26, "candidate": "1111111111111111111111111111111111111111"}
+_____ test_pgn_inherited_dependencies_cannot_be_omitted[missing_snapshot] _____
+
+pgn = namespace(case=namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_pack_pgn_bindings_01/cases/test_pgn...\validation\\orientation_receipt.json', 'sha256': 'f600a2df4cf156663b04863ed09c5c367c06c9e87b6534fb7e02b2ce78af7ff5'}})
+damage = 'missing_snapshot'
+
+    @pytest.mark.parametrize('damage',['empty','missing_snapshot','missing_identity','conflicting_identity'])
+    def test_pgn_inherited_dependencies_cannot_be_omitted(pgn,damage):
+        complete=pgn.complete
+        identity=pgn.inherited['identity']['path']
+        if damage=='empty':complete['bound_inputs']={}
+        elif damage=='missing_snapshot':complete['bound_inputs'].pop(str(pgn.snapshot))
+        elif damage=='missing_identity':complete['bound_inputs'].pop(identity)
+        elif damage=='conflicting_identity':complete['bound_inputs'][identity]='0'*64
+        put(pgn.case.validation/'COMPLETE.json',complete)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_pack_pgn_bindings.py:48: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 26, "candidate": "1111111111111111111111111111111111111111"}
+_____ test_pgn_inherited_dependencies_cannot_be_omitted[missing_identity] _____
+
+pgn = namespace(case=namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_pack_pgn_bindings_01/cases/test_pgn...\validation\\orientation_receipt.json', 'sha256': 'f600a2df4cf156663b04863ed09c5c367c06c9e87b6534fb7e02b2ce78af7ff5'}})
+damage = 'missing_identity'
+
+    @pytest.mark.parametrize('damage',['empty','missing_snapshot','missing_identity','conflicting_identity'])
+    def test_pgn_inherited_dependencies_cannot_be_omitted(pgn,damage):
+        complete=pgn.complete
+        identity=pgn.inherited['identity']['path']
+        if damage=='empty':complete['bound_inputs']={}
+        elif damage=='missing_snapshot':complete['bound_inputs'].pop(str(pgn.snapshot))
+        elif damage=='missing_identity':complete['bound_inputs'].pop(identity)
+        elif damage=='conflicting_identity':complete['bound_inputs'][identity]='0'*64
+        put(pgn.case.validation/'COMPLETE.json',complete)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_pack_pgn_bindings.py:48: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 26, "candidate": "1111111111111111111111111111111111111111"}
+=========================== short test summary info ===========================
+FAILED ::test_pgn_inherited_dependencies_cannot_be_omitted[empty] - Failed: D...
+FAILED ::test_pgn_inherited_dependencies_cannot_be_omitted[missing_snapshot]
+FAILED ::test_pgn_inherited_dependencies_cannot_be_omitted[missing_identity]
+3 failed, 2 passed in 0.48s

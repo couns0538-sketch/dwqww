@@ -1,6 +1,6 @@
 # Additional developer-tool investigation — UNPROVEN
 
-Checked 2026-11-03; the latest extension schedules final review at 08:23–09:23 UTC.
+Checked 2026-11-03; the final review runs from 08:25 through at least 09:25 UTC.
 The work is Python conversion/filtering and proof handling. New C++ builds,
 sanitizer campaigns against modified engine code, training, GPU profiling and
 loader work remain outside scope. A plugin can supply access or workflow; its
@@ -10,7 +10,7 @@ presence does not establish correctness.
 
 | Tool | Concrete value here | Observed state and decision |
 |---|---|---|
-| CodeRabbit | Another review of a frozen code diff, especially parsing, publication and evidence assumptions | Signed native Windows CLI0.9.2 authenticates;10 included reviews were available. Two broad committed-review attempts were rejected for686 and750 files against a300-file limit, despite intended code/test filters. No findings or clean-review result. No paid override. |
+| CodeRabbit | Another review of a frozen code diff, especially parsing, publication and evidence assumptions | Signed native Windows CLI0.9.2 authenticates;10 included reviews were available. Two broad committed-review attempts were rejected for686 and750 files against a300-file limit, despite intended code/test filters. No findings or clean-review result for those broad attempts. A separate 114-file PGN milestone (624487cc to e7ad6a9d) completed in132.029s with zero findings, one unidentified unreviewed file and warning exit1. This is partial coverage, not a whole-branch clean review. No paid override. |
 | Ruff | Offline detection of undefined names, suspicious control flow and common Python mistakes | Existing pinned environment contains 0.16.0. Ran explicit F/B/PLE/PLW/S rules, one Rayon worker, no cache or fixes. 345 observations require triage; most are test assertions, non-security MD5/random usage and checked subprocesses. |
 | Hypothesis | Generate combinations of legal move histories, mirrored labels, malformed metadata and PGN whitespace; shrink failures to useful fixtures | Version 6.170.14 isolated with sortedcontainers 2.4.0. All 1,200 generated examples PASS on pre-fix source (400 per property), deterministic settings, no database. No installed npt package changed. |
 | Coverage.py | Find failure branches the existing tests do not execute; distinguish branch coverage from line coverage | Version 7.17.0 isolated beside Hypothesis. All 344 tests + 11 subtests pass in 390.47 seconds with branch tracing; 71% measured main-process coverage, including audit utilities. Earlier standalone audits and untraced child execution are outside this measurement. |

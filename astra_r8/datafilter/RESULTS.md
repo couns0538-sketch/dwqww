@@ -1,5 +1,35 @@
 # Astra R8 Job 2 — UNPROVEN
 
+## Current acceptance checks - 09:01 UTC, UNPROVEN
+
+Code is at 4a3d4671 with documentation/evidence descendants. All confirmed PGN
+and packer findings are fixed and independently rechecked. Full CPU suite:
+**564 tests + 11 subtests PASS**, 532.82s (command534.030s), source/runtime stable.
+V9 manifest: c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291.
+The final inventory/checker and the reserved review-hour closure remain pending.
+
+| Numbered success test | Current result |
+|---|---|
+| 1. Legacy identity | PASS: 100k input, all three old/new artifacts match; prior source identity retained through exact PGN-only lineage |
+| 2. Result orientation | PASS: 1,000 actual binary records and 1,000 mirrors; same historical attribution |
+| 3. Determinism | PASS: two million-row outputs match; current bounded replay also matches |
+| 4. Deliberate failures | PASS: complete 564-test/11-subtest suite, including raw PGN headers and setup guards |
+| 5. Rule rates/timing | PASS for measurable rules on two compute slots; capture uses a separate PGN cohort; true qsearch remains BLOCKED |
+| 6. Sign/mirror | PASS: fresh v9 Pearson0.66359503677808 and1,000 mirrors on999,953rows |
+| 7. Handoff | V9 sample, both CPU preflights and strict verification PASS; final pack/closure pending |
+
+The full numeric census passes304,999,573rows/37sources with no exclusions.
+No full-corpus holdout or game-ID clearance is claimed. The two cleared JSONL
+streams are intentionally identical:315,036,094bytes each, MD5
+ aa3e9272d686356ef6a9e25003c52546. Corrected exact-lock bench/perft5 checks PASS;
+protected v7 remains unchanged. No training, GPU work or engine changes.
+
+CodeRabbit's separate PGN milestone completed with zero findings but one
+unidentified unreviewed file, warning exit1; this is partial coverage. Broad
+CodeRabbit comparison remains blocked, and Sonar has no saved authentication.
+Earlier checkpoints below retain their original time, candidate and status.
+
+
 08:52 UTC: v9 verification PASS, manifest SHA256
 c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291.
 All 999,953 selected rows pass current native admission (59.664s), with zero

@@ -1,34 +1,39 @@
 # Current handoff evidence — UNPROVEN
 
-The current v8 handoff includes reviewed native-input, manifest-identity and
-Lichess repairs. Full suite:544 tests plus11 subtests PASS437.79s. Fresh selected
-cohort admission, legacy/results/mirrors/filter proofs and both CPU preflights
-PASS. Current implementation commit:d6e1aae8d3bfd542726ffcb8e0fd04d88b8fff7c.
-The final review hour and final artifact inventory are still pending. Earlier
-v6/v7 and native proofs retain their original source identities.
+The current v9 handoff includes the reviewed native-input, manifest-identity,
+Lichess and raw-PGN-header repairs. Full suite: 564 tests plus 11 subtests PASS
+in 532.82s, with identical broad/reordered collection sets and stable source and
+runtime identities. Current code commit: 4a3d46710f88d5760e50738715f412f0704b3b6e.
+Fresh selected-cohort admission, both CPU preflights and strict v9 checks PASS.
+The final review continues through 09:25 UTC; final packaging is in progress.
+Earlier measurements keep their original source identities.
 Use the two commands in [MIX_SPEC.md](MIX_SPEC.md); the crew owns training and gates.
 
-Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v8/manifest.json`.
-SHA256: `0695d8a630e2d6247fc9a60237117d00e3cad0e79258e5e6ef71fbf21c216f5b`.
-Its [repository copy](evidence/extension5h/verified_v8/handoff_v8/manifest.json) has identical bytes.
+Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v9/manifest.json`.
+SHA256: `c43e2498ec6256035d64e39f64093692b77239b585ed87eb5a74ba9361056291`.
+Its [repository copy](evidence/extension5h/verified_v9/handoff_v9/manifest.json) has identical bytes.
 
 | Required check | Current proof |
 |---|---|
 | 1. No-flag legacy identity on 100k input | [All three artifacts match](evidence/extension5h/verified_v8/input_repair_validation/identity_receipt.json) |
 | 2. Result sign and mirror | [1,000 actual binary records and 1,000 mirrors](evidence/extension5h/verified_v8/input_repair_validation/orientation_receipt.json) |
 | 3. Deterministic filter | [Million-row run A](evidence/quality6h/filter_budget_million/recipe_a.report.json), [run B](evidence/quality6h/filter_budget_million/recipe_b.report.json); matching payload and metadata hashes |
-| 4. Deliberate failures and all-off behavior | [544 tests + 11 subtests](evidence/extension5h/full_cpu_v2/pytest.log), including exact-byte/identity races, native transport, Lichess, optimized-Python checks and prior regressions |
+| 4. Deliberate failures and all-off behavior | [564 tests + 11 subtests](evidence/extension5h/full_cpu_v3/full_cpu_v3/pytest.log), including exact-byte/identity races, native transport, Lichess, optimized-Python checks and prior regressions |
 | 5. Per-rule keep rate and timing | [README table](README.md), [six-case command timing](evidence/quality6h/filter_budget_million/selfplay.exit.json), [separate capture timing](evidence/quality6h/filter_budget_million/capture.exit.json) |
-| 6. Selected-data sign and mirror | [Pearson 0.6635950368 and 1,000 mirrors](evidence/extension5h/verified_v8/handoff_v8/sign_audit.json) |
-| 7. Handoff | [Published verification](evidence/extension5h/verified_v8/input_repair_validation/published_verify.json), [both CPU preflights](evidence/extension5h/verified_v8/handoff_v8/verification.json), [review log](REVIEW_LOG.md) |
+| 6. Selected-data sign and mirror | [Pearson 0.6635950368 and 1,000 mirrors](evidence/extension5h/verified_v9/handoff_v9/sign_audit.json) |
+| 7. Handoff | [Published verification](evidence/extension5h/verified_v9/pgn_fix_validation_v1/published_verify.json), [both CPU preflights](evidence/extension5h/verified_v9/handoff_v9/verification.json), [review log](REVIEW_LOG.md) |
 
-[Fresh native input admission](evidence/extension5h/verified_v8/input_repair_validation/native_admission.json)
+[Fresh native input admission](evidence/extension5h/verified_v9/pgn_fix_validation_v1/native_admission.json)
 covers every999,953 selected row without native allocation. The
 [shared-source comparison](evidence/extension5h/verified_v8/input_repair_validation/shared_selfplay_source.json)
 binds unchanged self-play functions to the original audited records.py snapshot;
-it does not replace that historical whole-module identity. The fresh
+it does not replace that historical whole-module identity. The prior
 [bounded three-run filter proof](evidence/extension5h/verified_v8/input_repair_validation/bounded_filter.json)
-uses the unchanged10,000-row sample and is not a new million-row timing.
+uses the unchanged10,000-row sample and is not a new million-row timing. The new
+[PGN lineage proof](evidence/extension5h/verified_v9/pgn_fix_validation_v1/source_lineage.json)
+compares exact source outside end_headers, binds the prior proof and preserves
+its legacy/result/filter attribution. The PGN header method is the only further
+implementation change; the old whole-module proof is not relabelled.
 
 Million-row filter timings belong to source 88b7c6b1, before the later admission
 checks. The current validator [replays both complete measured cohorts](evidence/quality6h/material_validation/cohort_replay.json)
@@ -43,8 +48,9 @@ covers 304,999,573 rows across all 37 closed non-holdout sources using the
 historical profiler's Python board-validity check. The newer strict Forge
 [complete admission union](evidence/extension5h/closed_0728/admission_union_v1/SUMMARY.json)
 also passes every304,999,573 row, retaining records.py a8ef0f43...7360be attribution.
-It grants no
-full-corpus holdout or game-ID clearance. [Original-line replay](evidence/quality6h/reservoir_audit/reservoir_receipt.json)
+The [closed numeric census](evidence/extension5h/native_counter_closed/CLOSURE.json)
+passes the same 304,999,573 rows for score/counter representation, without native
+allocation. Neither audit grants full-corpus holdout or game-ID clearance. [Original-line replay](evidence/quality6h/reservoir_audit/reservoir_receipt.json)
 verifies 4,736 sampled labels; the [current native proof](evidence/quality6h/material_validation/native/report.json)
 checks those positions, seven edge cases and all mirrors (9,486 perft2 vectors),
 plus the five exact-lock bench pins. Perft establishes move/state compatibility,
@@ -61,7 +67,10 @@ Its own metadata directory is excluded to avoid self-reference and is bound
 separately by the [correctness record](evidence/quality6h/final_pack_v3/correctness_record.json).
 The [Forge checker](evidence/quality6h/final_pack_v3/checker.json) passes all 85
 references; its scope is consistency and hashes, not independent experiment truth.
-An expanded final inventory is pending after CodeRabbit and the final review hour.
+The pre-PGN extension pack is retained in evidence/extension5h/final_pack_v1.
+The post-repair inventory is pending final packaging. CodeRabbit completed a
+separate PGN-only milestone with zero findings and one unidentified unreviewed
+file (warning exit); broad comparison remains blocked by its file cap.
 
 The [fresh lock correction proof](evidence/extension5h/closed_0728/lock_correction_v1/REPORT.json)
 matches all five corrected bench pins and both supplied perft5 counts, directly
