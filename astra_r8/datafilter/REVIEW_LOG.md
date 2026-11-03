@@ -1,5 +1,18 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: v3 runtime and full-suite closure
+
+Source 7ba94a6c includes the approved single-line admission fix. The unchanged
+refresher passes both actual CPU-only recipe preflights and strict verification
+after publication; v3 manifest SHA256 is
+`9a7f019d757976955662381207efeededf8cc55181142271c5ae80552eef80be`.
+Full current suite: 290 tests + 11 subtests PASS in 155.93 seconds. Runtime files
+were unchanged throughout the tests. Only the identified owned profiler yielded
+its CPU slot, with zero CPU use while suspended and successful resume recorded.
+No new finding arose. This closes the reviewed fix's verification; it does not
+replace the reserved final review or qualify training/strength. Next: complete
+the disjoint raw-source scan, literal reservoir replay and expanded Forge proof.
+
 ## Six-hour continuation: single-line FEN admission
 
 Candidate base 5256855e; records.py SHA256

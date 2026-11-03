@@ -5,9 +5,22 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The v2 handoff is verified for its pinned source; the
-reviewed single-line FEN fix requires another refresh. Final review and the broader
-source-reservoir/native checks remain pending.
+their pinned source files. The current v3 handoff and 290-test suite are verified.
+Final review and the broader source-reservoir/native checks remain pending.
+
+| Success test | Current evidence |
+|---|---|
+| 1 Legacy identity | PASS: fresh 100k old/new train, validation and stats artifacts match exactly |
+| 2 Result orientation | PASS: fresh 1,000 converter records and 1,000 mirrors against literal oracle |
+| 3 Determinism | PASS: two million-row check/mate runs, identical full payload/metadata hashes |
+| 4 Deliberate failures | PASS: 290 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
+| 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
+| 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
+| 7 Handoff | v3 manifest, sample and both CPU preflights PASS; final review/expanded corpus proof pending |
+
+The original self-play shards have no stored best moves; their capture rate is
+unavailable. No game-ID or full-corpus holdout separation claim is made. No net
+was trained, exported or strength-tested. All recipes remain UNPROVEN.
 
 Saved the three user-requested future engine skills under `skills/`: build proof,
 exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT
@@ -158,6 +171,16 @@ Legacy no-flag routing remains unchanged. Fresh actual 100k all-artifact identit
 and 1,000-result/1,000-mirror reruns both PASS in 47.035 seconds; the runtime files
 remained unchanged. All three no-flag artifacts match the old converter exactly.
 Evidence: quality6h/converter_line_validation. Next: refresh the current handoff.
+
+Current-candidate closure at 01:27 UTC: full suite **290 tests + 11 subtests PASS**
+in 155.93 seconds. The exact owned complementary profiler yielded 156.547 seconds,
+used zero CPU during the yield and resumed successfully. No crew process changed.
+Warnings are the installed Torch deprecation and the deliberate no-optimizer-update
+scheduler/checkpoint test. Both recipe CPU preflights and strict published v3
+verification PASS on source 7ba94a6c. New manifest SHA256
+`9a7f019d757976955662381207efeededf8cc55181142271c5ae80552eef80be`,
+at `C:/astra8_data/quality6h_20261102/handoff_v3/manifest.json`.
+The selected payload/sample hashes, correlation and 1,000 mirrors are unchanged.
 
 ## 30-minute follow-up audit — complete and independently approved
 
