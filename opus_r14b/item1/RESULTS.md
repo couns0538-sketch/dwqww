@@ -133,3 +133,7 @@ difference).
 - `tools/fl_abba.py` used Student t only for exactly 10 pairs (1.96 otherwise: a too narrow CI for fewer pairs; the
   recorded 8.65x used 10 pairs, so its CI 8.58-8.69 stands): now a t table for 1-30 degrees of freedom, checked
   against scipy.stats.t.ppf(0.975) (0 mismatches). `tools/b5_checks.sh`: tools folder overridable (`FL_TOOLS`).
+- (19:20) A fresh clone on grok-pc (git's global `core.autocrlf=true`) would check `forge_fastloader.py` out with CRLF,
+  so its sha256 would not be the 39af47b0... that HANDOFF.md names: `opus_r14b/.gitattributes` now keeps code,
+  scripts and docs LF in every checkout (logs byte-exact). A rebuild of the DLL from a fresh clone follows (it must
+  give 9eb29b7d... again).
