@@ -185,6 +185,8 @@ class NewStream:
 
 
 def cmd_dump(a) -> int:
+    if a.batches < 1 or a.warmup < 0 or a.warmup >= a.batches:  # CR fix 2: else kept_per_s=0 from an empty timing
+        fail(f"--warmup {a.warmup} / --batches {a.batches}: need 0 <= warmup < batches")
     need_new_output(a.out)
     for path, what in ((a.dll, "--dll"), (a.data, "--data")):
         if not os.path.isfile(path):

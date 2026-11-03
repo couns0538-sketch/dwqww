@@ -8,6 +8,7 @@ over the timed batches (after the warm-up batches). ADVISORY: Engine QA does the
 usage: python -I -B fl_abba.py --out DIR --pairs 10 --a old:<dll>:2 --b fast:<dll>:2 [--batches 420 --warmup 20]
        [--mask 0xC] [--priority BelowNormal] [--data <binpack>]
 Writes DIR/run_XX_<arm>.tsv per run and DIR/summary.txt (per-run speeds, per-pair ratio B/A, median, mean, 95% CI).
+0 <= warm-up < batches (else nothing is timed: exit 2 before any run); a run reporting 0 kept/s stops it (exit 1).
 """
 
 import argparse
@@ -46,7 +47,11 @@ def run_one(arm, out_tsv, a):
         for line in f:
             if line.startswith("# batches="):
                 fields = dict(kv.split("=", 1) for kv in line[2:].split())
-                return float(fields["kept_per_s"])
+                speed = float(fields["kept_per_s"])
+                if not speed > 0:  # CR fix 2: a run that timed nothing never enters the ratios (no x/0, no 0x)
+                    raise RuntimeError(f"{out_tsv}: {speed:g} kept/s (batches {fields.get('batches')}, warm-up "
+                                       f"{fields.get('warmup')})")
+                return speed
     raise RuntimeError(f"no speed line in {out_tsv}")
 
 
@@ -68,6 +73,9 @@ def main() -> int:
                 for k, v in (("a", a.a), ("b", a.b)) if not parse_arm(v) or not os.path.isfile(parse_arm(v)[1])]
     if a.pairs < 2:
         problems.append("--pairs must be at least 2 (the confidence interval needs two pairs)")
+    if a.batches < 1 or a.warmup < 0 or a.warmup >= a.batches:  # CR fix 2: else nothing is timed (0 kept/s, x/0)
+        problems.append(f"--warmup {a.warmup} / --batches {a.batches}: need 0 <= warmup < batches (the speed is "
+                        "measured over the batches after the warm-up)")
     try:
         if int(a.mask, 16) <= 0:
             raise ValueError

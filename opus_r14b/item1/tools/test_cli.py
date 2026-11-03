@@ -27,6 +27,41 @@ def eq_dump(rows, settings="# settings batch=16384 window=1048576"):
     return f"{settings}\n" + "".join(f"{k}\t100\tabc{k}\n" for k in range(rows)) + "# batches=1 hashed=True\n"
 
 
+def abba_zero_speed(work, dll, data) -> str:
+    """fl_abba.main() in this process with subprocess.run replaced by a stub whose dump says kept_per_s=0 (as a timed
+    window of no batch did): '' when fl_abba stops with exit 1 before any ratio, else what went wrong (CR fix 2)."""
+    import contextlib
+    import importlib.util
+    import io
+    import types
+
+    spec = importlib.util.spec_from_file_location("fl_abba_under_test", os.path.join(HERE, "fl_abba.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    def stub_run(cmd, **_):
+        with open(cmd[cmd.index("--out") + 1], "x", encoding="utf-8", newline="\n") as fh:
+            fh.write("0\t1024\n# batches=1 seconds_total=0.100 warmup=0 seconds_timed=0.000 kept_per_s=0\n")
+
+    mod.subprocess = types.SimpleNamespace(run=stub_run, DEVNULL=subprocess.DEVNULL,
+                                           CalledProcessError=subprocess.CalledProcessError)
+    os.makedirs(work)
+    arm = f"fast:{dll}:1"
+    argv, err = sys.argv, io.StringIO()
+    sys.argv = ["fl_abba.py", "--out", os.path.join(work, "o"), "--pairs", "2", "--a", arm, "--b", arm, "--data", data,
+                "--batches", "2", "--warmup", "1"]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            rc = mod.main()
+    except Exception as e:  # noqa: BLE001 - the defect this test looks for is an exception
+        return f"{type(e).__name__}: {e}"
+    finally:
+        sys.argv = argv
+    if rc != 1 or "no speed figures" not in err.getvalue():
+        return f"exit {rc}, stderr {err.getvalue().strip()[:120]!r}"
+    return ""
+
+
 FIXTURES = {
     "stand_in.dll": "stand-in, never loaded\n",
     "stand_in.binpack": "stand-in, never read\n",
@@ -123,6 +158,19 @@ def main(scratch) -> int:
                                  "--out", "o"])
     case("abba_bad_mask", 2, abba + ["--out", "o", "--mask", "xyz"])
     case("abba_out_exists", 2, abba + ["--out", fx_dir])
+    # CR fix 2 (2026-11-03): a warm-up that is not below the batch count timed nothing - a 0 kept/s "speed" and then a
+    # ZeroDivisionError in the ratios; refused before the output folder is made (and by fl_equal.py dump itself)
+    case("abba_warmup_equals_batches", 2, abba + ["--out", "o", "--batches", "20", "--warmup", "20"])
+    case("abba_warmup_above_batches", 2, abba + ["--out", "o", "--batches", "20", "--warmup", "30"])
+    case("abba_negative_warmup", 2, abba + ["--out", "o", "--warmup", "-1"])
+    case("abba_zero_batches", 2, abba + ["--out", "o", "--batches", "0", "--warmup", "0"])
+    case("equal_dump_warmup_not_below_batches", 2, dump + ["--out", fx("new6.tsv"), "--batches", "5", "--warmup", "5"])
+    case("equal_dump_negative_warmup", 2, dump + ["--out", fx("new7.tsv"), "--warmup", "-1"])
+    case("equal_dump_zero_batches", 2, dump + ["--out", fx("new8.tsv"), "--batches", "0"])
+    problem = abba_zero_speed(os.path.join(scratch, "abba_zero_speed"), fx("stand_in.dll"), fx("stand_in.binpack"))
+    total += 1
+    fails += bool(problem)
+    print(f"{'FAIL' if problem else 'PASS'} abba_zero_speed_stops: {problem or 'a 0 kept/s run ends fl_abba with exit 1'}")
     ok = snapshot() == before
     total += 1
     fails += not ok

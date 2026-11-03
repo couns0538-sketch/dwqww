@@ -1,0 +1,47 @@
+start 2026-11-03 10:07:53
+RED run: test_cli.py with the new cases against fl_abba.py / fl_equal.py of b5461fea (unchanged in the worktree so far)
+PASS equal_no_arguments: fl_equal.py: error: the following arguments are required: cmd
+PASS equal_dump_out_exists: fl_equal.py: keep.txt: exists or its folder is missing (outputs are never overwritten)
+PASS equal_dump_out_folder_missing: fl_equal.py: nodir/x.tsv: exists or its folder is missing (outputs are never overwritten)
+PASS equal_dump_missing_dll: fl_equal.py: --dll nope.dll: file not found
+PASS equal_dump_missing_data: fl_equal.py: --data nope.binpack: file not found
+PASS equal_dump_bad_mask: fl_equal.py: --mask 'xyz' is not a hexadecimal CPU mask naming at least one CPU
+PASS equal_dump_zero_mask: fl_equal.py: --mask '0x0' is not a hexadecimal CPU mask naming at least one CPU
+PASS equal_compare_identical: eq_ok_a.tsv vs eq_ok_b.tsv: compared 3 batches (lengths 3 / 3), identical 3, first difference None
+PASS equal_compare_one_batch_differs:   B: 1	100	xyz1
+PASS equal_compare_no_batches: eq_none_a.tsv vs eq_none_b.tsv: no batch in either dump - nothing compared, no equality claim possible
+PASS equal_compare_junk: junk.txt: not a hashed dump (made with --no-hash): no equality claim possible
+PASS equal_compare_missing: fl_equal.py: nope.tsv: cannot read ([Errno 2] No such file or directory: 'C:/o14b/cr_1103/cli_red\\fixtures\\n
+PASS dataset_no_arguments: fl_dataset_equal.py: error: a dump needs --loader and --out (or --compare A B)
+PASS dataset_dump_out_exists: fl_dataset_equal: keep.txt: exists or its folder is missing (outputs are never overwritten; checked before the
+PASS dataset_dump_fast_without_dir: fl_dataset_equal: --loader fast needs FORGE_FAST_LOADER_DIR (the folder with forge_fastloader.dll + .py)
+PASS dataset_compare_identical: ds_ok_a.tsv vs ds_ok_b.tsv: 3 / 3 batches, identical 3, first difference None
+PASS dataset_compare_junk: fl_dataset_equal: junk.txt: not a completed fl_dataset_equal.py dump (no '# loader=... batches= val_batches=' 
+PASS dataset_compare_no_footer: fl_dataset_equal: ds_nofooter.tsv: not a completed fl_dataset_equal.py dump (no '# loader=... batches= val_bat
+PASS dataset_compare_short_dump: fl_dataset_equal: ds_short.tsv: 2 batch rows, the dump's last line promises 3
+PASS dataset_compare_no_batches: fl_dataset_equal: ds_empty.tsv: 0 batch rows, the dump's last line promises 0
+PASS dataset_compare_missing: fl_dataset_equal: nope.tsv: cannot read ([Errno 2] No such file or directory: 'C:/o14b/cr_1103/cli_red\\fixtur
+PASS distribution_no_arguments: fl_distribution.py: error: the following arguments are required: cmd
+PASS distribution_stats_out_exists: fl_distribution.py: keep.txt: exists or its folder is missing (outputs are never overwritten)
+PASS distribution_compare_not_stats: fl_distribution.py: dist_bad.json: not a fl_distribution.py stats file (KeyError: 'loader, workers, positions,
+PASS distribution_compare_junk: fl_distribution.py: junk.txt: not a fl_distribution.py stats file (JSONDecodeError: Expecting value: line 1 co
+PASS distribution_compare_missing: fl_distribution.py: nope1.json: not a fl_distribution.py stats file (FileNotFoundError: [Errno 2] No such file
+PASS abba_no_arguments: fl_abba.py: error: the following arguments are required: --out, --a, --b
+PASS abba_zero_pairs: fl_abba: --pairs must be at least 2 (the confidence interval needs two pairs)
+PASS abba_one_pair: fl_abba: --pairs must be at least 2 (the confidence interval needs two pairs)
+PASS abba_malformed_arm: fl_abba: --a 'fast' is not loader:dll:workers with loader old|fast, an existing DLL and workers >= 1
+PASS abba_missing_dll: fl_abba: --a 'fast:C:/o14b/cr_1103/cli_red\\fixtures\\nope.dll:1' is not loader:dll:workers with loader old|fa
+PASS abba_bad_mask: fl_abba: --mask 'xyz' is not a hexadecimal CPU mask naming at least one CPU
+PASS abba_out_exists: fl_abba: --out C:/o14b/cr_1103/cli_red\fixtures: exists or its folder is missing (outputs are never overwritte
+FAIL abba_warmup_equals_batches: exit 1, wanted 2; Python traceback; left ['o']
+FAIL abba_warmup_above_batches: exit 1, wanted 2; Python traceback; left ['o']
+FAIL abba_negative_warmup: exit 1, wanted 2; Python traceback; left ['o']
+FAIL abba_zero_batches: exit 1, wanted 2; Python traceback; left ['o']
+FAIL equal_dump_warmup_not_below_batches: exit 1, wanted 2; Python traceback
+FAIL equal_dump_negative_warmup: exit 1, wanted 2; Python traceback
+FAIL equal_dump_zero_batches: exit 1, wanted 2; Python traceback
+FAIL abba_zero_speed_stops: ZeroDivisionError: float division by zero
+PASS fixtures_unchanged: every fixture file still has its first bytes
+34 PASS / 8 FAIL
+exit 1
+end 2026-11-03 10:07:56
