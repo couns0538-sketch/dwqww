@@ -154,7 +154,7 @@ difference).
   any path imports its own modules and the installed forge_fastloader.py. The copy's opus_tools\guard_exec.py has the
   adapter's pinned md5 0a794fbe..., so the GPU_REQUEST command works as written.
 
-## Bug hunt #3 (20:12-20:16 for item 1; self-review, NOT independent)
+## Bug hunt #3 (20:07-20:09 by the PC clock for item 1; self-review, NOT independent)
 - Trainer path: does the trainer copy a batch out of the fast loader's ring buffer before
   `FastSparseBatchProvider.__next__` releases it? Yes: the live tree's `data_loader/_transport.py::_pin_and_move`
   always makes a new tensor (`torch.empty` + `copy_` / memmove; pinned or not, also for device "cpu"), and the
