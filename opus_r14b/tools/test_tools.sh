@@ -68,6 +68,10 @@ bash "$here/opus.sh" help > "$S/opus_help.out" 2>&1
 check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  bisect' '^  time' '^  load' '^  gpu' '^  test'
 bash "$here/opus.sh" nope > "$S/opus_nope.out" 2>&1
 check opus-unknown-command 2 $? "$S/opus_nope.out" "unknown command 'nope'"
+bash "$here/opus.sh" load xyz > "$S/opus_load_bad.out" 2>&1  # bug hunt #13: was exit 0 with an empty list
+check opus-load-bad-mask 2 $? "$S/opus_load_bad.out" "is not a hexadecimal CPU mask"
+bash "$here/opus.sh" status --cl > "$S/opus_status_bad.out" 2>&1  # bug hunt #13: a misspelt option became the glob
+check opus-status-unknown-option 2 $? "$S/opus_status_bad.out" "unknown option '--cl'"
 bash "$here/opus.sh" time --since "2026-11-02 12:00" --until "2026-11-02 13:00" origin/opus-r14b-fast-loader > "$S/opus_time.out" 2>&1
 check opus-time 0 $? "$S/opus_time.out" '^branch +commits' 'origin/opus-r14b-fast-loader'
 X="$S/bisect_repo"; mkdir -p "$X"

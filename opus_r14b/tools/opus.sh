@@ -8,7 +8,7 @@
 #   time [--since T] [BRANCH...]        commits, spans, pauses per branch (default: last 24 h, the R14-B branches)
 #   load [MASK] [SECONDS]               who uses the CPUs of MASK (default 0xC = CPUs 2-3, 5 s)
 #   gpu [--hours H | --from T --to T]   GPU utilisation from the keeper's HWiNFO log (read-only; --by-hour)
-#   test NEW_DIR                        the tools' own tests (26 checks)
+#   test NEW_DIR                        the tools' own tests (28 checks)
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}

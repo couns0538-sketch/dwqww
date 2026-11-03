@@ -172,3 +172,23 @@ Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to 
   the 22:35 fresh-clone rehearsal). forge-opus-tools: status, lint, test, time and gpu ran tonight; engine / bisect
   last ran 20:43-20:47 (builds, kept off CPUs 2-3 now).
 - doc_lint at work (23:21): my own hunt #10 record got a form-feed byte from a heredoc through the Bash tool (`\f` in a Windows path); doc_lint reported `[control] bytes ['0xc']` before the commit, fixed with chr(92).
+
+### Bug hunt #13 (01:08-01:10 by the PC clock; self-review, NOT independent): wrong or missing arguments
+Scope (written 00:26, before the hunt): every `opus.sh` command called with missing or wrong arguments must end with
+a nonzero exit and a clear message, no Python traceback and no work started; plus the launcher with spaces in a path.
+16 calls: no arguments (help, exit 0), an unknown command (2), abba / engine / bisect without arguments (2, usage),
+engine and bisect with unknown refs (2, "unknown ref", no output folder made), time with a missing option value (2)
+and an unknown branch (2, git's message), gpu with a bad number or date (2), test without a folder (1, usage), lint
+of a missing path (2), load with a bad seconds value (1, PowerShell's parameter message) - all fine. Two findings:
+- H13-1: `opus.sh load xyz` (cpu_users.ps1 with a mask that is not hexadecimal) printed a .NET exception and an
+  empty process list and exited **0** - a caller would have recorded "nobody uses these CPUs". Fixed: a mask that
+  is not hexadecimal, a mask of 0 and `-Seconds` below 1 are exit 2 with one line on stderr.
+- H13-2: `opus.sh status --bogus` ran a normal status: opus_status.sh took any first argument other than `--ci` as
+  the worktree glob, so a misspelt `--ci` was silently ignored (the same pattern as the installer's H6-1, harmless
+  here because status only reads). Fixed: an unknown option is exit 2 with the usage line.
+Launcher (lowrun.ps1, used by every R14-B tool): a copy of findstr.exe as `find str.exe` in a folder with spaces,
+an argument that is a quoted path with spaces, -Out / -Err files with spaces: exit 0 and the right line found; a
+missing exe there: exit 127 with "cannot start ...". No finding.
+Valid calls unchanged (`load 0xC 1`, `status --ci o14b-st*`). test_tools.sh: two new cases (opus-load-bad-mask,
+opus-status-unknown-option) -> **28 / 28 PASS** (01:09); the count is updated in opus.sh's help, the skill, STATUS,
+FINAL_REPORT and memory.

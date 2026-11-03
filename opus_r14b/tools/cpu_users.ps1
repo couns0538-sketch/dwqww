@@ -3,7 +3,10 @@
 # affinity and priority class. Write its output next to every speed number measured on a shared PC.
 # usage: powershell -NoProfile -File cpu_users.ps1 [-Mask 0xC] [-Seconds 5]
 param([string]$Mask = '0xC', [int]$Seconds = 5)
-$m = [Convert]::ToInt64($Mask.Replace('0x', ''), 16)
+# A mask that is not hexadecimal used to give an empty list and exit 0 (bug hunt #13): refuse it with exit 2.
+try { $m = [Convert]::ToInt64(($Mask -replace '^0[xX]', ''), 16) } catch { [Console]::Error.WriteLine("cpu_users: -Mask '$Mask' is not a hexadecimal CPU mask"); exit 2 }
+if ($m -le 0) { [Console]::Error.WriteLine("cpu_users: -Mask '$Mask' names no CPU"); exit 2 }
+if ($Seconds -lt 1) { [Console]::Error.WriteLine("cpu_users: -Seconds must be at least 1"); exit 2 }
 $t0 = @{}
 foreach ($p in Get-Process) {
     try { if (([int64]$p.ProcessorAffinity -band $m) -ne 0) { $t0[$p.Id] = $p.TotalProcessorTime.TotalSeconds } } catch {}

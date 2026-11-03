@@ -24,7 +24,7 @@ queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Id
 |---|---|---|---|
 | 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x (old w2 vs 1 builder) and **6.25x in the live thread setting** (old w4 vs 2 builders, 95% CI 6.13-6.60) - medians of 10 per-pair ratios, intervals of the mean ratio; distribution vs the live w4 layout: every total-variation distance < 0.001; **from a fresh clone: DLL rebuilt = b5, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) -> 261 / 261** (20:42, again 21:44 and 22:35-22:39 with the hardened installer); every out-of-scope setting refused with a clear message (test_scope.py 20 / 20); installer tests 25 / 25; HANDOFF.md | opus-r14b-fast-loader |
 | 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 e01caaf1...** (re-frozen 22:46 after shards started to record their settings; before that 56eef0a6... at 22:22 after the damaged-job harness: 29 findings, one silent - a lost run_config.json was re-created; earlier 88454db6... at 20:41 and 0a81dd5f... at 22:03 after a prepare fuzz finding); RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate) and a 50M runbook on R8 v5 shards 001-057; 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 then, 154 / 0 after the 22:03 re-freeze, 155 / 0 after the 22:22 and 22:46 ones, in the worktree and fresh clones, 157 / 0 at 23:06 with verify_job.py, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin and hce_dump: the final freeze's output = the first freeze's, byte for byte) | opus-r14b-relabel |
-| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 26 / 26; engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry run 22:56 8 / 8 steps | opus-r14b-status |
+| tools (Couns 19:46) | DONE: `opus_r14b/tools/` + `opus_r14b/checks/`, entry point `opus.sh`, skill forge-opus-tools; `checks/final_checks.sh` = the end-of-job check in one command | test_tools.sh 28 / 28 (01:09); engine tools on real builds; GPU baseline; verify chain / refreeze / hash sweep runs; final_checks.sh dry run 22:56 8 / 8 steps | opus-r14b-status |
 | P6 crfix 4b537823 (Couns ~20:57) | DONE: applied with patch -p1, rebuilt, P6 checks re-run, pushed | OFF = the corrected lock pins, WDL / DTZ 220 / 220, check50 20 / 20, fail-closed 9 / 9, CI 41515843128 green | opus-r13-p6-syzygy d1751ca1, 4bf626eb |
 
 ## Baseline and improvements (measured numbers only)
@@ -102,7 +102,7 @@ GitHub tables, dead links - it found a broken RESULTS table on its first run and
 memory index), abba (palindromic A/B timing of any two commands with identity check, t-CI and load capture), engine
 (fresh export + lock-recipe build + bench / perft pins of any engine ref), bisect (first commit that changed bench
 nodes, building each candidate from a `git archive` export), time (spans and pauses from commit times), load, test
-(test_tools.sh, 26 checks), gpu (gpu_util_stats.py: GPU utilisation from the keeper's HWiNFO log). `opus_r14b/checks/`
+(test_tools.sh, 28 checks), gpu (gpu_util_stats.py: GPU utilisation from the keeper's HWiNFO log). `opus_r14b/checks/`
 holds the verify chain, the fresh-clone checks, refreeze.sh, the hash sweep, the file index, the R8 v5 end-to-end
 check and `final_checks.sh` (all end-of-job checks in one command, ~1 minute). Validated on real data:
 engine builds of the lock and an R12 branch (ALL OK), a planted-change bisect (found), the frozen relabel code
@@ -120,7 +120,8 @@ range), #6 22:09-22:27 (damaged job state J-1..J-4; installer H6-1..H6-3), advis
 trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer's dataset calls: all covered), #10 23:20-23:21
 (relabel paths with spaces end to end: all exit 0), claims audit 23:21-23:24 (report numbers -> raw logs), #11
 00:08-00:09 (kept exes in place; one wrong note of mine corrected: the s31 line differs from the request only in the
-seed), #12 00:25 (relabel documents vs the code: consistent); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
+seed), #12 00:25 (relabel documents vs the code: consistent), #13 01:08-01:10 (tools with wrong
+arguments: two fixed - a bad CPU mask exited 0, a misspelt status option was ignored); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
 05:00-06:00.
 
 ## Deviations and incidents (honest record)

@@ -8,6 +8,9 @@
 set -u
 ci=0
 [ "${1:-}" = "--ci" ] && { ci=1; shift; }
+case "${1:-}" in  # a misspelt option (e.g. --cl) used to become the worktree glob silently (bug hunt #13)
+  -*) echo "opus_status: unknown option '$1' (usage: opus_status.sh [--ci] [WORKTREE_GLOB])" >&2; exit 2 ;;
+esac
 glob=${1:-o14b-*}
 here=$(cd "$(dirname "$0")" && pwd)
 wt=/d/grok-pc-data/dwqww/.claude/worktrees

@@ -7,7 +7,7 @@ description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (26 checks, ~40 s,
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (28 checks, ~40 s,
 must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
 
 ## opus.sh - one entry point (for Couns and Opus)
