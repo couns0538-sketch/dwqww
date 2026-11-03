@@ -346,6 +346,45 @@ def summarise(d, watch=False, last_min=60):
     return out
 
 
+def html_page(results):
+    """One self-contained page: a sortable table of every summarised gate (click a header to sort)."""
+    import html as h
+    cols = ['gate', 'candidate', 'opponent', 'state', 'games', 'W/D/L', 'Ptnml', 'Elo', '+/-', 'nElo', 'LLR', 'bounds',
+            'time forfeits', 'illegal', 'disconnects', 'games/h', 'printed block', 'problems']
+    rows = []
+    for o in results:
+        if o.get('skipped'):
+            continue
+        b = o.get('bounds') or ['', '']
+        llr = o.get('llr')
+        state = 'finished' if o.get('finished') else 'running / unknown'
+        if o.get('finished') and llr is not None:
+            state = 'H1' if llr >= 2.94 else ('H0' if llr <= -2.94 else 'cap / no decision')
+        chk = o.get('checks') or {}
+        rep = 'reproduced' if chk and all(v is True for k, v in chk.items() if k != 'note') else ('-' if not chk else 'DIFF')
+        vals = [o.get('gate'), o.get('candidate'), o.get('opponent'), state, o.get('games'),
+                f"{o.get('w')}/{o.get('d')}/{o.get('l')}", str(o.get('ptnml')), o.get('elo'), o.get('elo_err'),
+                o.get('nelo'), llr, f'[{b[0]}, {b[1]}]', o.get('time_forfeits'), o.get('illegal_moves'),
+                o.get('disconnects'), o.get('games_per_hour'), rep, '; '.join(o.get('problems', []))]
+        rows.append('<tr>' + ''.join(f'<td>{h.escape("" if v is None else str(v))}</td>' for v in vals) + '</tr>')
+    gen = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return ('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+            '<title>Forge gates</title><style>body{font:13px system-ui,sans-serif;margin:16px;background:#fff;color:#111}'
+            'table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:3px 6px;text-align:right;white-space:nowrap}'
+            'td:nth-child(-n+4),th:nth-child(-n+4){text-align:left}th{cursor:pointer;background:#eee;position:sticky;top:0}'
+            '@media (prefers-color-scheme:dark){body{background:#111;color:#eee}th{background:#333}td,th{border-color:#444}}'
+            '</style></head><body>'
+            f'<h1>Forge gates ({len(rows)})</h1><p>gate_summary.py, {h.escape(gen)} (PC clock). Numbers are recomputed '
+            'from each gate\'s own log and PGN; "reproduced" = the log games give the printed block exactly. Click a '
+            'header to sort.</p><table id="t"><thead><tr>' + ''.join(f'<th>{h.escape(c)}</th>' for c in cols) +
+            '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table><script>'
+            'document.querySelectorAll("th").forEach((th,i)=>th.onclick=()=>{const tb=document.querySelector("#t tbody");'
+            'const r=[...tb.rows];const dir=th.dataset.d=th.dataset.d==="1"?"-1":"1";'
+            'r.sort((a,b)=>{const x=a.cells[i].textContent,y=b.cells[i].textContent,nx=parseFloat(x),ny=parseFloat(y);'
+            'return (isNaN(nx)||isNaN(ny)?x.localeCompare(y):nx-ny)*dir;});r.forEach(x=>tb.appendChild(x));});'
+            '</script></body></html>\n')
+
+
 def fmt(o):
     if o.get('skipped'):
         return f"== {o['gate']}  SKIPPED: {o['skipped']}"
@@ -379,7 +418,11 @@ def main():
     ap.add_argument('--json', default='')
     ap.add_argument('--watch', action='store_true')
     ap.add_argument('--last-min', type=int, default=60)
+    ap.add_argument('--html', default='', help='also write one self-contained HTML page (sortable table, no network)')
     a = ap.parse_args()
+    if a.html and os.path.exists(a.html):
+        print(f'gate_summary: {a.html} exists (never overwritten)', file=sys.stderr)
+        return 2
     dirs = list(a.gates)
     if a.all:
         dirs += sorted(p for p in glob.glob(os.path.join(a.all, '*')) if os.path.isdir(p) and a.match in os.path.basename(p))
@@ -407,6 +450,10 @@ def main():
         with open(a.json, 'w', newline='\n') as f:
             json.dump(results, f, indent=1)
             f.write('\n')
+    if a.html:
+        with open(a.html, 'w', newline='\n', encoding='utf-8') as f:
+            f.write(html_page(results))
+        print(f'gate_summary: wrote {a.html}')
     skipped = sum(1 for o in results if o.get('skipped'))
     print(f'gate_summary: {len(results)} gate folder(s), {skipped} skipped (no PGN), {bad} with problems')
     return 1 if bad else 0

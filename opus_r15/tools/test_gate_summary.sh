@@ -28,6 +28,9 @@ case_ no_pgn_skipped 0 "$out/empty_gate"
 case_ no_args 2
 case_ json_exists 2 "$F/gate_stB_lmrttcapall1_vs_AL1" --json "$(cygpath -w "$out")\\six.json"
 case_ not_a_folder 1 "$out/no_such_gate"
+case_ html_page 0 "$F/gate_stB_lmrttcapall1_vs_AL1" "$F/gate_npts3_ep06_vs_AL1" --html "$(cygpath -w "$out")\\two.html"
+[ "$(grep -o '<tr>' "$out/two.html" | wc -l)" = 3 ] && grep -q '>H0<' "$out/two.html" || { echo "FAIL html_page: not 1 header + 2 rows with an H0 state"; fails=$((fails + 1)); }
+case_ html_exists 2 "$F/gate_stB_lmrttcapall1_vs_AL1" --html "$(cygpath -w "$out")\\two.html"
 echo "$((n - fails)) / $n cases as expected (+2 content checks)"
 [ $fails = 0 ] && echo "ALL PASS" || echo "FAILURES: $fails"
 exit $fails
