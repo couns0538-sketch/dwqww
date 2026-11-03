@@ -193,6 +193,8 @@ expect 3 assemble_disk_floor "$PY" -I -B "$R" assemble --job jm --run-id m --min
 check assemble_disk_floor_wrote_nothing test -z "$(ls -d jm/final* 2>/dev/null)"
 expect 0 assemble_full "$PY" -I -B "$R" assemble --job jm --run-id m
 check manifest_published_with_data test -f jm/final/MANIFEST.json
+expect 0 run_complete_job "$PY" -I -B "$R" run --job jm --run-id m --probe "$P" --nodes 20000 --shard-size 100
+check run_complete_job_no_work grep -q "nothing left to label" jm/sessions.log
 expect 0 status_complete "$PY" -I -B "$R" status --job jm
 check status_complete_progress grep -q "final published" status_complete.out
 check no_final_part_left test -z "$(ls -d jm/final.part.* 2>/dev/null)"

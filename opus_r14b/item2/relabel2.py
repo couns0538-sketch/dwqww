@@ -565,6 +565,11 @@ def cmd_run(a) -> int:
         threading.Thread(target=lambda: (time.sleep(a.test_kill_after_seconds), os._exit(137)), daemon=True).start()
     t0, rows_session, shards_session = time.monotonic(), 0, 0
     status = {"run_id": a.run_id, "session_start": now(), "shards_total": shards, "rows_total": n}
+    if len(done) == shards:  # every shard published and re-verified: no probe needs to start
+        append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={shards}/{shards} "
+                        f"session_rows=0 (nothing left to label)")
+        print(json.dumps(dict(status, shards_done=shards, rows_done=n, note="nothing left to label")))
+        return 0
     with ProbePool(a.probe, a.nodes, a.workers, None, hash_mb=a.hash_mb, timeout=300) as pool:
         for k in range(shards):
             if k in done:
