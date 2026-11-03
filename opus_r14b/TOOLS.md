@@ -56,3 +56,16 @@
 | CI | a GitHub Actions Windows runner | not used | MinGW builds + CTest on Windows (CI is Linux-only today) |
 | app | OpenBench, Ordo | not installed | Fishtest-style distributed SPRT, Elo from PGNs, if more than fastchess is wanted |
 Check every licence before installing (R14-B rule: no network installs of GPL tools; many chess tools are GPL).
+
+## Own tools for Couns and Opus (Couns 19:46: "create tools scripts that you and i can use"; `opus_r14b/tools/`)
+Skill `forge-opus-tools` has the full usage. All read-only towards other processes; outputs only in new folders.
+
+| tool | one command | why |
+|---|---|---|
+| opus_status.sh | `bash opus_r14b/tools/opus_status.sh [--ci]` | worktrees (head, ahead / behind, dirty, CI), own processes with priority / affinity, who uses CPUs 2-3, RAM / disks vs floors, npt keeper head - in ~10 s |
+| abba.py | `python -I -B abba.py --out NEW --a "CMD" --b "CMD" --pairs 10 [--metric RX --higher-better] [--identity RX --identity-ab]` | palindromic A/B of any two commands (loader, probe, prepare, builds); stops when outputs differ; t-CI on log ratios; load next to the number |
+| doc_lint.py | `python -I -B doc_lint.py opus_r14b skills` | control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead relative links |
+| hash_sweep.py | `python -I -B hash_sweep.py --docs ... --files ... --repo ... --allow hash_sweep_allow.txt` | every cited hash still matches a real file or commit |
+| engine_fresh_check.sh | `bash engine_fresh_check.sh REF NEW_DIR [--quick]` | clean export of an engine ref, lock-recipe build pinned low, exe sha256 + FMA count, bench / perft pins via the lock package's uci_check.py |
+| cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
+| test_tools.sh | `bash test_tools.sh NEW_DIR` | 11 checks of abba.py and doc_lint.py (exit codes and output lines) |
