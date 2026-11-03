@@ -2,6 +2,16 @@
 
 ## Current continuation — active, UNPROVEN
 
+08:20:41 UTC observation: numeric census has30 closed sources/241,913,894 rows,
+zero numeric exclusions so far. Worker12152 is BelowNormal; venv launcher6084
+has0CPU seconds. D:56,987,271,168bytes free. The scan remains IN_PROGRESS and
+all core/script pins remain frozen. Both crew training destinations are absent;
+all40 local links in6current handoff documents resolve and the v8 digest matches.
+An installed-trainer precision concern was assessed by read-only source inspection:
+the pinned normal path does not enable autocast/change dtype, so no supported-
+recipe defect or speculative adapter change is claimed. The final review starts
+08:23 and continues through09:23; the scan may overlap its first read-only minutes.
+
 08:04 numeric-census checkpoint:19 fixture checks PASS; focused reviewer approved
 the pilot, driver SHA256c2f610f1c0e6e97e5df9b90aba11baafe7170bc8a2c2e8835e117ea1537ee63c.
 The466,506-row pilot passes all three numeric limits in2.174s. Its projected

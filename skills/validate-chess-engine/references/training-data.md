@@ -289,6 +289,14 @@ config and source are on different Windows drives, pass the explicit source
 files on its CLI instead. A zero-file run is not a clean review. Keep findings
 separate from confirmed runtime defects; dynamic dictionaries and duck-typed
 streams can need manual inspection rather than automatic source changes.
+Evidence-heavy branches can exceed a remote reviewer's file cap even when the
+intended scope excludes archives. A schema-valid configuration does not prove
+the effective review scope. Preserve scope/error receipts, avoid treating a
+file-limit rejection as a clean review, and do not silently replace the requested
+comparison with a smaller one. Restore a task-created temporary configuration
+after verifying its preserved copy so later engine branches do not inherit
+narrow review filters. Continue independent review when the optional service
+cannot handle the comparison.
 
 When replaying admission over raw shards, use the same logical-line semantics as
 the actual reader. Binary LF iteration and text universal-newline iteration

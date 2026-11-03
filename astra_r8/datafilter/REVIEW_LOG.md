@@ -1,5 +1,21 @@
 # Review log — UNPROVEN
 
+## 2026-11-03 08:20 — pre-final handoff consistency check
+
+Main checked40 local links across6current handoff documents, the exact published
+v8 digest, and absence of both crew training output directories; all PASS.
+Record:evidence/extension5h/handoff_document_checks_v1.json. The GitHub connector
+returned no commit statuses or PR-triggered workflow runs for0f691a19; these empty
+responses are not CI passes, and that workflow endpoint covers only its first
+PR-triggered page.
+
+Main inspected installed train.py, trainer/engine.py and model loss dispatch for
+a possible lambda/scorenet precision mismatch. The pinned single-process path
+does not enable autocast or change dtype; the current float32 loss controls cover
+the supported recipe. No concrete defect was established and no speculative
+mixed-precision feature was added. Installed sources were read for semantics
+only, not copied. Final read-only review remains scheduled08:23–09:23.
+
 ## 2026-11-03 08:04 — reviewed numeric-only source census
 
 CodeRabbit is blocked by its300-file comparison limit; both failed attempts and
