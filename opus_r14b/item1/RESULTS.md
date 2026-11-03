@@ -89,6 +89,11 @@ rules, but the piece-count filter adapts per decode worker, so they are not the 
   4. LOW out-of-range double -> u64 at acceptance 0: CONFIRMED (both DLLs saturate via AVX-512 today; a plain cast
      elsewhere would not), fixed with explicit saturation; self-test (6) passes; old-vs-new with pc_y1 = 0 is in the
      matrix TODO.
+  (Note added in the final bug hunt, 2026-11-03 04:46: the TODOs of items 2-4 were done later - the 24-configuration
+  matrix incl. pc_y1 = 0 and 3,100 batches past a file wrap (b5 checks, 14:23), Dataset-level tensor hashes on the
+  trainer path, 261 / 261 incl. the 61 validation batches; a loss match WITH validation was not run - L1 1024 with
+  validation hit the RAM floor, so the recorded match uses L1 256 without validation (lm_run.sh), and the validation
+  batches are shown byte-identical instead.)
   5. LOW no unique-position (HLL) metrics: ACCEPTED as a documented difference (logging only); resume from an
      old-loader checkpoint now prints that its HLL state is ignored instead of dropping it silently.
   6. LOW fail-open spots: fixed - strict skip config (no silent defaults), `next_raw` after close raises, double /
