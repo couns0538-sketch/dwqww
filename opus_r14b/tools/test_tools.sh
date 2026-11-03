@@ -130,6 +130,32 @@ check trainer-watch-bad-until 2 $? "$S/tw_bad.out" 'UNTIL_EPOCH must be seconds'
 [ ! -e "$S/tw.tsv" ] || { echo "FAIL trainer-watch-bad-until wrote $S/tw.tsv"; fail=1; }
 powershell -NoProfile -File "$(cygpath -w "$here/pc_gate.ps1")" -Drive X -Quiet > "$S/gate_drive.out" 2>&1
 check pc-gate-unknown-drive 2 $? "$S/gate_drive.out" 'must be C, D or F'   # it used to say "wait" (exit 1) forever
+# CR fix 2026-11-03 (item 3): CPU counters that cannot be read make the gate FAIL (exit 1 with the reason) - it used to
+# take the missing load as 0 % and print ok=True. Get-Counter is replaced by a function of the same name in the calling
+# PowerShell session (a function wins over a cmdlet), so pc_gate.ps1 itself runs unchanged; 'good' is the control.
+cat > "$S/gate_fakes.ps1" <<'EOF'
+param([string]$Kind)
+function smp($n, $v) { $c = if ($null -ne $v) { [double]$v }; [pscustomobject]@{ InstanceName = $n; CookedValue = $c } }
+switch ($Kind) {
+  'throws'    { function global:Get-Counter { throw 'simulated counter failure' } }
+  'nothing'   { function global:Get-Counter { } }
+  'error'     { function global:Get-Counter { Write-Error 'simulated counter error' } }
+  'nototal'   { function global:Get-Counter { [pscustomobject]@{ CounterSamples = @(smp '0' 5.0; smp '1' 5.0) } } }
+  'nullvalue' { function global:Get-Counter { [pscustomobject]@{ CounterSamples = @(smp '_total' $null; smp '0' 5.0) } } }
+  'good'      { function global:Get-Counter { [pscustomobject]@{ CounterSamples = @(smp '_total' 7.0; 0..15 | ForEach-Object { smp "$_" 7.0 }) } } }
+  default     { throw "unknown kind $Kind" }
+}
+EOF
+gate_fake() {  # gate_fake KIND: pc_gate.ps1 with the fake Get-Counter KIND; generous limits, so only the CPU read decides
+  powershell -NoProfile -Command "& { . '$(cygpath -w "$S/gate_fakes.ps1")' -Kind $1; & '$(cygpath -w "$here/pc_gate.ps1")' -Drive C -NeedGB 0 -MaxCpu 100 -MinRamGB 0; exit \$LASTEXITCODE }" > "$S/gate_$1.out" 2>&1
+}
+for k in throws nothing error nototal nullvalue; do
+  gate_fake $k
+  check "pc-gate-counter-$k-fails" 1 $? "$S/gate_$k.out" 'pc_gate: CPU load could not be read .*the gate FAILS'
+  ! grep -q 'ok=True' "$S/gate_$k.out" || { echo "FAIL pc-gate-counter-$k printed ok=True"; fail=1; }
+done
+gate_fake good
+check pc-gate-counter-good 0 $? "$S/gate_good.out" 'cpu 7% \(max 100\)' 'ok=True' 'per-cpu 0:7 1:7 '
 "$PY" -I -B "$here/commit_span.py" --gap 0 origin/opus-r14b-status > "$S/span_gap.out" 2>&1
 check commit-span-gap-zero 2 $? "$S/span_gap.out" 'gap must be at least 1'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
