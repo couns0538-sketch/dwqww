@@ -16,6 +16,7 @@ rebuilds it byte for byte).
 """
 
 import hashlib
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -106,6 +107,17 @@ def patch(path: Path, pairs, check: bool) -> bool:
     return True
 
 
+def is_live(root: Path) -> bool:
+    """The live trainer folder under any spelling. The path comparison alone missed the \\\\?\\ form of the same folder
+    (final bug hunt 2026-11-03 04:31: shown on a stand-in, which it patched), so the file identity decides first."""
+    try:
+        if os.path.samefile(root, LIVE_TRAINER):
+            return True
+    except OSError:  # one of them missing (another PC): the paths decide
+        pass
+    return root.resolve() == LIVE_TRAINER.resolve()
+
+
 def copy_loader(root: Path, dll: Path, check: bool, quiet: bool = False) -> bool:
     """--loader-dll: the DLL and this branch's forge_fastloader.py next to train.py; refuses to overwrite. With check
     it only validates (and says what it would copy unless quiet)."""
@@ -144,7 +156,7 @@ def main() -> int:
         else:
             print(f"unknown or incomplete argument {rest[0]!r}\n{__doc__}")
             return 2
-    if not check and root.resolve() == LIVE_TRAINER.resolve():
+    if not check and is_live(root):
         print(f"{root} is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here")
         return 2
     ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)

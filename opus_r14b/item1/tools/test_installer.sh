@@ -63,6 +63,11 @@ fresh stand_in && sum_si=$(cat stand_in/*.py | sha256sum)
 check live_guard_copy_made "$PY" -I -B make_guard_copy.py "$I" guard_installer.py "$(cygpath -m "$PWD/stand_in")"
 expect 2 live_install_refused "is the live npt trainer" "$PY" -I -B guard_installer.py stand_in
 check live_install_refused_changed_nothing test "$(cat stand_in/*.py | sha256sum)" = "$sum_si"
+# final bug hunt (04:31): the \\?\ spelling of the same folder passed the path comparison and patched the stand-in;
+# the guard now compares file identity first. Other spellings (case, forward slashes, trailing slash) too.
+expect 2 live_install_refused_extended_path "is the live npt trainer" "$PY" -I -B guard_installer.py '\\?\'"$(cygpath -w "$PWD/stand_in")"
+expect 2 live_install_refused_other_spelling "is the live npt trainer" "$PY" -I -B guard_installer.py "$(cygpath -m "$PWD/STAND_IN")/"
+check live_install_spellings_changed_nothing test "$(cat stand_in/*.py | sha256sum)" = "$sum_si"
 expect 0 live_check_allowed "anchors OK" "$PY" -I -B "$I" "$live" --check
 expect 0 install "patched" "$PY" -I -B "$I" t1
 check install_patched_both test "$(grep -c fast_loader t1/config.py)" -ge 1 -a "$(grep -c fast_loader t1/train.py)" -ge 1

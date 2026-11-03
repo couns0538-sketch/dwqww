@@ -435,3 +435,22 @@ DLL loaded; stand-in files where a case needs an existing DLL / data); valid inp
 before, a fresh 2-batch old vs fast dump pair is identical (exit 0), `fl_abba.py` with 2 pairs exits 0;
 `test_scope.py` all PASS, `test_installer.sh` 25 / 25. The DLL, forge_fastloader.py, the installer and the patches are
 untouched.
+
+## Final 1-hour bug hunt (04:13-05:15 by the PC clock; self-review, NOT independent): the live-folder guard under other spellings
+Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). In this folder:
+- F-8 (found 04:28): the installer's live-folder guard compared `root.resolve() == LIVE_TRAINER.resolve()`. Eleven
+  spellings of `F:\opus_scratch\r6\nnue-pytorch-amd` were resolved (read-only, the installer not run): lower / upper
+  case, forward slashes, a trailing separator and `..` / `.` parts compare equal (an 8.3 short form does not exist
+  there: GetShortPathNameW returned the long path), but the
+  `\\?\F:\opus_scratch\r6\nnue-pytorch-amd` form does not (it is the same folder: `os.path.samefile` says True); the
+  UNC admin shares are not reachable on this PC. **Shown on a stand-in** (a copy of the installer whose LIVE_TRAINER
+  names a stand-in folder, as the installer test does since H6-4): the plain spelling was refused (exit 2), the
+  `\\?\` spelling was installed (exit 0, the stand-in's files patched). On the live folder that would have patched
+  the queue's trainer. Fixed: `is_live()` asks `os.path.samefile` first (file identity: every spelling, junctions
+  included) and falls back to the path comparison when one side does not exist; after the fix both spellings are
+  exit 2 and the stand-in stays unchanged. `tools/test_installer.sh` **28 / 28** (three new cases: the `\\?\`
+  spelling, an upper-case / forward-slash / trailing-slash spelling, files unchanged). The live folder itself was only
+  read (`--check`), as before.
+- The fresh-clone checks of 04:13-04:17 (HANDOFF steps 1-3b on a fresh copy of the live tree, 264 / 264, acceptance
+  261 / 261) ran on the installer before this fix; the change is the guard alone (`is_live`), which a non-live copy
+  never triggers.
