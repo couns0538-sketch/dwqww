@@ -39,7 +39,7 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   seeds per process from the clock).
 
 ## Item 2 - resumable relabel (`opus_r14b/item2/`)
-- relabel2.py bf714c67 (prepare / run / assemble / status), tests, proof driver, bridge, measurement scripts, probe
+- relabel2.py (branch head; its sha256 is fixed at tonight's code freeze) (prepare / run / assemble / status), tests, proof driver, bridge, measurement scripts, probe
   LTO / PGO build + bench, label statistics; skill forge-relabel-job.
 - Proof: 999,921 rows in 10,880 games (val 99 games / 8,844 rows, overlap 0); B's hard exits at 14:48:59 (shard 14)
   and 15:34:20 (shard 36), interrupted attempts kept, no orphaned probe; md5 train 6e9e4e5a..., val 8e639f41...,
