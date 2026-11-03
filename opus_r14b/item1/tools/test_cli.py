@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """test_cli.py - Opus R14-B item 1: exit-code tests of the loader tools with missing or wrong arguments and damaged
-inputs (bug hunt #16, own code, stdlib only): fl_equal.py, fl_dataset_equal.py, fl_distribution.py, fl_abba.py.
+inputs (bug hunt #16, own code, stdlib only): fl_equal.py, fl_dataset_equal.py, fl_distribution.py, fl_abba.py,
+fl_fuzz.py (since the Code Review fixes of 2026-11-03, with in-process checks of fl_abba's 0-speed stop and fl_fuzz's
+outcome / identity / disk-floor rules).
 
 usage: python -I -B test_cli.py SCRATCH_DIR      (SCRATCH_DIR must not exist)
 No DLL, binpack or torch is loaded: every case stops at an argument, file or output check (stand-in files take the
@@ -62,6 +64,46 @@ def abba_zero_speed(work, dll, data) -> str:
     return ""
 
 
+def fuzz_rules() -> str:
+    """fl_fuzz.py's rules, in-process (CR fix 4): exit 0 with no batch is 'empty' - a failure except where a case
+    expects it -, the identity verdicts against the default loader, the disk-floor arithmetic. '' when all hold."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("fl_fuzz_under_test", os.path.join(HERE, "fl_fuzz.py"))
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+        checks = [
+            ("exit 0 + 0 batches = empty", mod.classify("fast", 0, 0, [])[0] == "empty"),
+            ("exit 0 + 3 batches = ok", mod.classify("fast", 0, 3, [])[0] == "ok"),
+            ("exit 0 without a dump = OTHER", mod.classify("fast", 0, None, [])[0] == "OTHER"),
+            ("fast exit 1 with its message = error", mod.classify("fast", 1, None, ["fast loader: x"])[0] == "error"),
+            ("fast exit 1 without its message = OTHER", mod.classify("fast", 1, None, ["Traceback"])[0] == "OTHER"),
+            ("old exit 1 = error", mod.classify("old", 1, None, ["RuntimeError: x"])[0] == "error"),
+            ("Windows exception code = CRASH", mod.classify("old", 0xC0000005, None, [])[0] == "CRASH"),
+            ("empty fails 'any'", not mod.acceptable("any", "empty")),
+            ("empty fails 'ok'", not mod.acceptable("ok", "empty")),
+            ("empty passes 'empty'", mod.acceptable("empty", "empty")),
+            ("ok fails 'empty'", not mod.acceptable("empty", "ok")),
+            ("ok / error pass 'any'", mod.acceptable("any", "ok") and mod.acceptable("any", "error")),
+            ("HANG / CRASH / OTHER never pass", not any(mod.acceptable(e, o) for e in ("any", "ok", "error", "empty")
+                                                        for o in ("HANG", "CRASH", "OTHER"))),
+            ("identity same", mod.identity("ok", "ok", 0) == "same"),
+            ("identity DIFF", mod.identity("ok", "ok", 1) == "DIFF"),
+            ("identity compare refused", mod.identity("ok", "ok", 2) == "incomparable"),
+            ("identity both empty", mod.identity("empty", "empty", None) == "same-empty"),
+            ("identity old failed", mod.identity("ok", "error", None) == "old-error"),
+            ("identity old empty", mod.identity("ok", "empty", None) == "old-empty"),
+            ("only same / same-empty are good", [mod.identity_ok(v) for v in ("same", "same-empty", "DIFF", "old-error",
+                                                                              "incomparable")] == [1, 1, 0, 0, 0]),
+            ("disk floor: more than the free space is short", bool(mod.disk_short(HERE, 10 ** 18, 0))),
+            ("disk floor: nothing needed above floor 0 is fine", not mod.disk_short(HERE, 0, 0)),
+        ]
+    except Exception as e:  # noqa: BLE001 - a missing rule shows up as an exception
+        return f"{type(e).__name__}: {e}"
+    return "; ".join(name for name, ok in checks if not ok)
+
+
 FIXTURES = {
     "stand_in.dll": "stand-in, never loaded\n",
     "stand_in.binpack": "stand-in, never read\n",
@@ -100,7 +142,7 @@ def main(scratch) -> int:
     before = snapshot()
     fails = total = 0
 
-    def case(name, want, argv, env=None):
+    def case(name, want, argv, env=None, text=None):  # text: a reason the output must give (not just any exit 2)
         nonlocal fails, total
         d = os.path.join(scratch, name)
         os.makedirs(d)
@@ -110,6 +152,7 @@ def main(scratch) -> int:
         problems = [f"exit {p.returncode}, wanted {want}"] if p.returncode != want else []
         problems += ["Python traceback"] if "Traceback" in p.stderr + p.stdout else []
         problems += [f"left {left}"] if left else []
+        problems += [f"no '{text}' in the output"] if text and text not in p.stderr + p.stdout else []
         total += 1
         fails += bool(problems)
         msg = (p.stderr.strip().splitlines() or p.stdout.strip().splitlines() or [""])[-1]
@@ -171,6 +214,23 @@ def main(scratch) -> int:
     total += 1
     fails += bool(problem)
     print(f"{'FAIL' if problem else 'PASS'} abba_zero_speed_stops: {problem or 'a 0 kept/s run ends fl_abba with exit 1'}")
+    # CR fix 4 (2026-11-03): fl_fuzz.py's arguments are checked before it reads, pins or writes anything
+    fz = os.path.join(HERE, "fl_fuzz.py")
+    fuzz = [fz, "--dll", fx("stand_in.dll"), "--old-dll", fx("stand_in.dll"), "--binpack", fx("stand_in.binpack")]
+    case("fuzz_flips_over_cap", 2, fuzz + ["--out", "o", "--flips", "1001"], text="--flips 1001: must be 0..1000")
+    case("fuzz_negative_flips", 2, fuzz + ["--out", "o", "--flips", "-1"], text="--flips -1: must be 0..1000")
+    case("fuzz_without_old_dll", 2, [fz, "--dll", fx("stand_in.dll"), "--binpack", fx("stand_in.binpack"), "--out", "o"],
+         text="--old-dll")
+    case("fuzz_old_dll_missing", 2, [fz, "--dll", fx("stand_in.dll"), "--old-dll", fx("nope.dll"), "--binpack",
+                                     fx("stand_in.binpack"), "--out", "o"], text="nope.dll: file not found")
+    case("fuzz_bad_mask", 2, fuzz + ["--out", "o", "--mask", "xyz"], text="is not a hexadecimal CPU mask")
+    case("fuzz_zero_timeout", 2, fuzz + ["--out", "o", "--timeout", "0"], text="--timeout must be at least 1")
+    case("fuzz_disk_floor", 2, fuzz + ["--out", "o", "--min-free-gb", "1000000000"], text="disk floor")
+    case("fuzz_out_exists", 2, fuzz + ["--out", fx_dir], text="exists or its folder is missing")
+    problem = fuzz_rules()
+    total += 1
+    fails += bool(problem)
+    print(f"{'FAIL' if problem else 'PASS'} fuzz_rules: {problem or 'outcome, identity and disk-floor rules hold'}")
     ok = snapshot() == before
     total += 1
     fails += not ok
