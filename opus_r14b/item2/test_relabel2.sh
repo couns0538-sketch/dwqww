@@ -11,7 +11,7 @@ PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 P=${PROBE:-'C:\o13\p5\forge_data_probe.exe'}
 src=${SRC:-/d/grok-pc-data/selfplay_out/forge_selfplay_001.txt}
 # a missing tool or input would make every "expect exit 2" case pass for the wrong reason
-for f in "$R" "$PY" "$src"; do [ -f "$f" ] || { echo "not found: $f" >&2; exit 2; }; done
+for f in "$R" "$PY" "$src" "$P"; do [ -f "$f" ] || { echo "not found: $f (set PY / SRC / PROBE)" >&2; exit 2; }; done
 [ -e "$d" ] && { echo "refusing existing $d" >&2; exit 2; }
 mkdir -p "$d" && cd "$d" || exit 1
 fails=0
