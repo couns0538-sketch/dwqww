@@ -157,3 +157,14 @@ load before the run in logs/bridge_load_before.txt):
 Promotion: relabel2.py, test_relabel2.sh, measure_rates.sh, bridge_check.sh, label_stats.py copied from the dev copy
 (= patches/post_proof_changes.patch); relabel2.py on the branch is now 63be772c...; logs/fn_diff_frozen_vs_post_proof.txt
 re-made against the frozen file from git (5c88438f): the labelling / resume path is identical source.
+
+## Improvement 2 results: same labels, faster probe (17:53-18:05)
+| check | R13 probe (ed76de96, in use) vs LTO (565ddbf8) | R13 probe vs LTO+PGO (08299f9f) |
+|---|---|---|
+| answers on 10,000 positions (rows 900,000-909,999 of the proof sample, 20k nodes, Hash 1 MB; every field but timing: score, best move, depth, nodes, hce, flags) | **10,000 / 10,000 identical** | **10,000 / 10,000 identical** |
+| speed: palindromic ABBA, 10 pairs, 1,000 positions per run (rows 500,000-500,999), CPU 2 BelowNormal with its SMT sibling CPU 3 idle on our side (Astra's BelowNormal job on all CPUs: load files) | B/A median 1.080, mean 1.053, 95% CI 1.009-1.097; answers identical in all 20 runs | **B/A median 1.094, mean 1.075, 95% CI 1.044-1.106**; answers identical in all 20 runs |
+- So the LTO+PGO probe labels the same positions the same way about 7.5 % faster (ADVISORY: one core, one load
+  situation; QA times officially). Training input of the profile: the proof sample's rows 0-1,999 (disjoint from both
+  test sets). Evidence: logs/probe_pgo/ (identity_runs.txt, abba_r13_vs_pgo.txt, abba_r13_vs_lto.txt, load files).
+- Still to show (post_chain.sh, running): a second PGO build gives the same sha256; relabel2 run end to end with the
+  PGO probe reproduces the proof's labels.tsv prefix byte for byte.
