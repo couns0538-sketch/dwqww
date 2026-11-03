@@ -222,7 +222,7 @@ Hourly means 15:00-21:00: 53 / 43 / 40 / 42 / 56 / 43 / 40 %. This is the "GPU a
 does not by itself show that the loader is the cause (validation, checkpoints and the 2 s sampling are in it): the GPU
 window measures the same column with `--fast-loader` (GPU_REQUEST.md, same command) - item 1's target is >= 90 %.
 
-## Why the live line's GPU waits: the trainer's CPU side is starved (21:19-21:20; read-only measurements)
+## How much CPU the live trainer gets (21:19-21:32; read-only measurements; the "starved" wording of 21:20 corrected)
 - The old loader alone, on 2 free logical CPUs in the live thread setting, makes 772k kept positions / s (verify chain
   ABBA) - 4.6-6.4x what the live line consumes (7.4-10.3 it/s x 16,384 = 121k-169k / s). So on a free core it is not
   the limit; the question is how much CPU it gets in the live run.
@@ -230,10 +230,17 @@ window measures the same column with `--fast-loader` (GPU_REQUEST.md, same comma
   **0.57 cores over 10 s** - a quarter of its two CPUs - while two crew jobs at BelowNormal with affinity on all CPUs
   (Astra's `audit_forge_admission.py`, pids 8624 / 6376) used ~1.0 core each; BelowNormal always runs before Idle.
   GPU Utilization over the same minutes: mean 50 % (HWiNFO, 90 samples).
-- Reading: the trainer's data path runs on whatever CPU is left; a loader that needs ~6-8x less CPU per kept position
-  (8.65x / 6.25x in the ABBAs) delivers more batches from the same leftover CPU. The GPU window has to show the effect.
-  Whether to keep BelowNormal crew jobs off the trainer's CPUs, or give the trainer another class, is the crew's call
-  (FINAL_REPORT owner items); nothing was changed.
+- Per-CPU busy time at 21:32 (Windows counters, 5 samples of 2 s): CPU 0 90.5 %, CPU 1 85.7 % (the trainer's two),
+  CPU 2 67.6 %, CPU 3 82.7 %, the whole PC 93.4 %. So the trainer's CPUs were mostly busy with others' work, yet 10-14 %
+  of their time was still idle - time an Idle-class process can take. **The trainer is therefore not purely CPU-starved
+  at that moment**: part of its waiting is elsewhere (GPU, I/O). The heading of 21:20 ("starved") said more than the
+  data shows; corrected in hunt #5 (21:32).
+- Reading: the trainer's data path shares its CPUs with heavier-class work; a loader that needs ~7x less CPU per kept
+  position (next entry) leaves more of the trainer's share for the training loop. Whether that raises the GPU use, and
+  by how much, only the GPU window can show. Whether to keep BelowNormal crew jobs off the trainer's CPUs, or give the
+  trainer another class, is the crew's call (FINAL_REPORT owner items); nothing was changed. The overnight watcher
+  (C:\o14b\trainer_watch_night.tsv) logs the trainer's share and the GPU use every 5 min; its "others" column counts
+  processes ALLOWED on the trainer's CPUs (their CPU time may come from other CPUs), the trainer's own share is exact.
 
 ## CPU cost per position: both loaders on ONE logical CPU, live thread setting (21:23-21:27; logs/abba_1cpu/)
 `fl_abba.py --pairs 10 --mask 0x4 --priority BelowNormal`, old `--num-workers 4` vs fast with 2 builders, 420 batches
