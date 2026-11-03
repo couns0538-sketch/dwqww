@@ -203,6 +203,12 @@ the label. Pin the executable hash and preserve failed probes before correcting
 the runner. Perft checks FEN and move-state compatibility, not NNUE evaluation
 quality or training/export compatibility.
 
+Bind a native compatibility probe's sample before and after execution, not just
+by hashing whatever file exists afterward. Reject empty, invalid or multiline
+FEN input before constructing UCI commands. Check original numeric fields before
+library normalization: a board parser may repair fullmove0 to1 and then report a
+valid board. Preserve the original input identity and failed probe diagnostics.
+
 Preserve timeout diagnostics before re-raising an owned-child timeout; Python may
 return bytes even in text mode. Inventory only closed logs. A packaging process
 must exclude its own active stdout log, then pin that final log separately. Keep

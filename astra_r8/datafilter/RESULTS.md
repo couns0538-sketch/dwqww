@@ -94,6 +94,17 @@ command, ancestry and frozen runtime. Every slot receipt records successful
 resume and zero CPU use while suspended. No crew process was changed; profile
 elapsed times include these recorded yields and are not filter benchmarks.
 
+Native data-compatibility helper milestone: sample identity is now pinned before
+and after UCI execution. Empty, invalid-board, multiline and fullmove-zero FEN
+samples are refused before engine launch. Default24 source rows remain unchanged;
+an explicit bounded 1..10,000 limit supports the later corpus-reservoir check.
+Ten initial failing cases cover four proof/input defects and six new interface
+checks; reviewer found the library's fullmove-zero normalization, reproduced as
+one additional failure and fixed. Final12 helper tests PASS; focused recheck
+APPROVED source3480854bfbab2291967f88fdf192b6502d73172bbe72637581010b74011c391e.
+Actual expanded Forge proof is pending the complete reservoir. No engine code,
+binary, network or running crew process has changed. UNPROVEN.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

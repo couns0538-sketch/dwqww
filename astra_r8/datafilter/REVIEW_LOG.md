@@ -147,6 +147,24 @@ elapsed time. Next: combined data report after both scans; corrected filter
 million-row runs, refreshed handoff and final review. No report or timing result
 is claimed before those actual runs complete.
 
+## Six-hour continuation: native sample attribution and input admission
+
+Main reproduced four existing proof/input defects: a changed sample could be
+hashed after execution and attributed to earlier tested FENs; empty, invalid-board
+and multiline samples could reach the engine. A before/after full input identity
+now binds tested FENs, and those invalid inputs fail before launch. Six new tests
+also establish the bounded --max-positions interface while preserving default24.
+Ten red failures were recorded, then11 focused tests passed.
+
+Reused reviewer found one further concrete boundary: python-chess repairs an
+original fullmove0 to1 before is_valid. Main reproduced that failure and now
+checks the original sixth FEN field first. Final12 helper tests PASS. Focused
+recheck APPROVED source3480854bfbab2291967f88fdf192b6502d73172bbe72637581010b74011c391e
+for the bounded actual corpus-reservoir run. Exact FD3 executable, UCI options,
+five bench pins and120-second owned-child timeout remain unchanged. No engine
+invocation occurred in these mocked regression checks. Next: actual complete
+reservoir proof once both descriptive scans close, preserving any failure.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

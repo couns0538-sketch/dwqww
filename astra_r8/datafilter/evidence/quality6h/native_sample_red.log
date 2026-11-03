@@ -1,0 +1,202 @@
+.FFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+___________ test_changed_sample_cannot_be_attributed_to_tested_fens ___________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_changed_sample_cannot_be_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019428740>
+
+    def test_changed_sample_cannot_be_attributed_to_tested_fens(tmp_path, monkeypatch):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        original = json.dumps({'fen':chess.STARTING_FEN})+'\n'
+        sample.write_text(original)
+        def mutate(*args, **kwargs):
+            sample.write_text(original+original)
+            return healthy_reply(kwargs['input'])
+        monkeypatch.setattr(smoke.subprocess, 'run', mutate)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_native_smoke.py:59: Failed
+_______ test_empty_invalid_or_multiline_sample_never_launches_engine[] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956F740>
+fen = ''
+
+    @pytest.mark.parametrize('fen', ['', '8/8/8/8/8/8/8/8 w - - 0 1', chess.STARTING_FEN.replace(' ', '\n', 1)])
+    def test_empty_invalid_or_multiline_sample_never_launches_engine(tmp_path, monkeypatch, fen):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        sample.write_text('' if not fen else json.dumps({'fen':fen})+'\n')
+        def refuse(*args, **kwargs):
+            raise AssertionError('invalid sample reached the engine')
+        monkeypatch.setattr(smoke.subprocess, 'run', refuse)
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', sample)
+
+astra_r8\datafilter\tests\test_native_smoke.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\native_forge_smoke.py:45: in run
+    completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (['C:\\astra8_data\\quality6h_20261102\\native_sample_red\\pytest\\test_empty_invalid_or_multilin0\\fixture_engine.exe'],)
+kwargs = {'input': 'uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nseto... WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin0/native'), ...}
+
+    def refuse(*args, **kwargs):
+>       raise AssertionError('invalid sample reached the engine')
+E       AssertionError: invalid sample reached the engine
+
+astra_r8\datafilter\tests\test_native_smoke.py:71: AssertionError
+_ test_empty_invalid_or_multiline_sample_never_launches_engine[8/8/8/8/8/8/8/8 w - - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019614770>
+fen = '8/8/8/8/8/8/8/8 w - - 0 1'
+
+    @pytest.mark.parametrize('fen', ['', '8/8/8/8/8/8/8/8 w - - 0 1', chess.STARTING_FEN.replace(' ', '\n', 1)])
+    def test_empty_invalid_or_multiline_sample_never_launches_engine(tmp_path, monkeypatch, fen):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        sample.write_text('' if not fen else json.dumps({'fen':fen})+'\n')
+        def refuse(*args, **kwargs):
+            raise AssertionError('invalid sample reached the engine')
+        monkeypatch.setattr(smoke.subprocess, 'run', refuse)
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', sample)
+
+astra_r8\datafilter\tests\test_native_smoke.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\native_forge_smoke.py:45: in run
+    completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (['C:\\astra8_data\\quality6h_20261102\\native_sample_red\\pytest\\test_empty_invalid_or_multilin1\\fixture_engine.exe'],)
+kwargs = {'input': 'uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nseto... WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin1/native'), ...}
+
+    def refuse(*args, **kwargs):
+>       raise AssertionError('invalid sample reached the engine')
+E       AssertionError: invalid sample reached the engine
+
+astra_r8\datafilter\tests\test_native_smoke.py:71: AssertionError
+_ test_empty_invalid_or_multiline_sample_never_launches_engine[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000196159D0>
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', ['', '8/8/8/8/8/8/8/8 w - - 0 1', chess.STARTING_FEN.replace(' ', '\n', 1)])
+    def test_empty_invalid_or_multiline_sample_never_launches_engine(tmp_path, monkeypatch, fen):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        sample.write_text('' if not fen else json.dumps({'fen':fen})+'\n')
+        def refuse(*args, **kwargs):
+            raise AssertionError('invalid sample reached the engine')
+        monkeypatch.setattr(smoke.subprocess, 'run', refuse)
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', sample)
+
+astra_r8\datafilter\tests\test_native_smoke.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\native_forge_smoke.py:45: in run
+    completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (['C:\\astra8_data\\quality6h_20261102\\native_sample_red\\pytest\\test_empty_invalid_or_multilin2\\fixture_engine.exe'],)
+kwargs = {'input': 'uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nseto... WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_empty_invalid_or_multilin2/native'), ...}
+
+    def refuse(*args, **kwargs):
+>       raise AssertionError('invalid sample reached the engine')
+E       AssertionError: invalid sample reached the engine
+
+astra_r8\datafilter\tests\test_native_smoke.py:71: AssertionError
+______________ test_explicit_sample_limit_and_default_preserved _______________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_explicit_sample_limit_and0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000196178F0>
+
+    def test_explicit_sample_limit_and_default_preserved(tmp_path, monkeypatch):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        sample.write_text((json.dumps({'fen':chess.STARTING_FEN})+'\n')*30)
+        monkeypatch.setattr(smoke.subprocess, 'run', lambda *a,**kw:healthy_reply(kw['input']))
+        default = smoke.run(tmp_path/'default', sample)
+>       bounded = smoke.run(tmp_path/'bounded', sample, max_positions=30)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:83: TypeError
+_____________ test_invalid_sample_limit_rejected_before_output[0] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_invalid_sample_limit_reje0')
+limit = 0
+
+    @pytest.mark.parametrize('limit', [0, -1, True, 1.5, 10001])
+    def test_invalid_sample_limit_rejected_before_output(tmp_path, limit):
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', tmp_path/'missing.jsonl', max_positions=limit)
+E           TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:92: TypeError
+____________ test_invalid_sample_limit_rejected_before_output[-1] _____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_invalid_sample_limit_reje1')
+limit = -1
+
+    @pytest.mark.parametrize('limit', [0, -1, True, 1.5, 10001])
+    def test_invalid_sample_limit_rejected_before_output(tmp_path, limit):
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', tmp_path/'missing.jsonl', max_positions=limit)
+E           TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:92: TypeError
+___________ test_invalid_sample_limit_rejected_before_output[True] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_invalid_sample_limit_reje2')
+limit = True
+
+    @pytest.mark.parametrize('limit', [0, -1, True, 1.5, 10001])
+    def test_invalid_sample_limit_rejected_before_output(tmp_path, limit):
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', tmp_path/'missing.jsonl', max_positions=limit)
+E           TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:92: TypeError
+____________ test_invalid_sample_limit_rejected_before_output[1.5] ____________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_invalid_sample_limit_reje3')
+limit = 1.5
+
+    @pytest.mark.parametrize('limit', [0, -1, True, 1.5, 10001])
+    def test_invalid_sample_limit_rejected_before_output(tmp_path, limit):
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', tmp_path/'missing.jsonl', max_positions=limit)
+E           TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:92: TypeError
+___________ test_invalid_sample_limit_rejected_before_output[10001] ___________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_sample_red/pytest/test_invalid_sample_limit_reje4')
+limit = 10001
+
+    @pytest.mark.parametrize('limit', [0, -1, True, 1.5, 10001])
+    def test_invalid_sample_limit_rejected_before_output(tmp_path, limit):
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', tmp_path/'missing.jsonl', max_positions=limit)
+E           TypeError: run() got an unexpected keyword argument 'max_positions'
+
+astra_r8\datafilter\tests\test_native_smoke.py:92: TypeError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_changed_sample_cannot_be_attributed_to_tested_fens
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_empty_invalid_or_multiline_sample_never_launches_engine[]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_empty_invalid_or_multiline_sample_never_launches_engine[8/8/8/8/8/8/8/8 w - - 0 1]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_empty_invalid_or_multiline_sample_never_launches_engine[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_explicit_sample_limit_and_default_preserved
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_invalid_sample_limit_rejected_before_output[0]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_invalid_sample_limit_rejected_before_output[-1]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_invalid_sample_limit_rejected_before_output[True]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_invalid_sample_limit_rejected_before_output[1.5]
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_invalid_sample_limit_rejected_before_output[10001]
+10 failed, 1 passed in 5.06s

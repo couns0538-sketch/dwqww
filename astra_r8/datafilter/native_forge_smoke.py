@@ -6,7 +6,7 @@ import re
 import subprocess
 import time
 import chess
-from filter_positions import low_priority, sha256
+from filter_positions import low_priority, sha256, input_identity
 from resource_policy import storage_guard
 
 ENGINE=Path('C:/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe')
@@ -21,12 +21,23 @@ def perft2(board):
     return count
 
 
-def run(output, sample):
+def run(output, sample, *, max_positions=24):
+    if type(max_positions) is not int or not 1 <= max_positions <= 10000:
+        raise ValueError('sample limit must be an integer in 1..10000')
     output=Path(output);storage_guard(output);output.mkdir()
     if sha256(ENGINE)!=LOCK:raise ValueError('wrong lock executable')
+    original_sample=input_identity(sample)
     fens=[]
     with Path(sample).open(encoding='utf-8') as fh:
-        for _,line in zip(range(24),fh):fens.append(json.loads(line)['fen'])
+        for _,line in zip(range(max_positions),fh):
+            fen=json.loads(line)['fen']
+            if (not isinstance(fen,str) or len(fen.split())!=6 or '\n' in fen or '\r' in fen
+                    or int(fen.split()[5])<1
+                    or not chess.Board(fen).is_valid()):
+                raise ValueError('sample requires valid single-line complete FENs')
+            fens.append(fen)
+    sample_positions=len(fens)
+    if not sample_positions:raise ValueError('sample must contain at least one position')
     fens += [chess.STARTING_FEN,'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1',
              '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 81','4k3/P7/8/8/8/8/8/4K3 w - - 0 81',
              '4k3/8/8/8/8/8/4r3/4K3 w - - 0 1','7k/6Q1/6K1/8/8/8/8/8 b - - 0 1',
@@ -54,17 +65,28 @@ def run(output, sample):
                        elapsed_seconds=time.perf_counter()-started, strength='UNPROVEN')
         (output/'report.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
         raise
+    storage_guard(output,allowance=len(completed.stdout.encode('utf-8'))+len(completed.stderr.encode('utf-8'))+4*1024*1024)
     (output/'stdout.log').write_text(completed.stdout,encoding='utf-8')
     (output/'stderr.log').write_text(completed.stderr,encoding='utf-8')
     actual=[int(n) for n in re.findall(r'^nodes (\d+)\s*$',completed.stdout,re.M)]
     bench={int(d):int(n) for d,n in re.findall(r'bench depth (\d+) nodes (\d+)',completed.stdout)}
-    report={'status':'PASS' if completed.returncode==0 and actual==expected and bench==PINS else 'FAIL',
+    try:
+        final_sample=input_identity(sample)
+        sample_error=None
+    except (OSError,ValueError) as exc:
+        final_sample=None
+        sample_error=str(exc)
+    sample_unchanged=final_sample==original_sample
+    report={'status':'PASS' if completed.returncode==0 and actual==expected and bench==PINS and sample_unchanged else 'FAIL',
             'engine':str(ENGINE),'sha256':sha256(ENGINE),'expected_sha256':LOCK,
             'exit_code':completed.returncode,'elapsed_seconds':time.perf_counter()-started,
             'threads':1,'hash_mb':16,'UseNNUE':True,'priority':'BelowNormal',
             'option_basis':'Recorded lock OFF transcript uses default UseNNUE=true; OFF refers to candidate options, not disabling NNUE',
             'positions':len(fens),'fens':fens,'expected_perft2':expected,'actual_perft2':actual,
-            'bench_expected':PINS,'bench_actual':bench,'sample_sha256':sha256(sample),
+            'sample_positions':sample_positions,'max_sample_positions':max_positions,
+            'bench_expected':PINS,'bench_actual':bench,'sample_sha256':original_sample['sha256'],
+            'sample_identity':original_sample,'sample_identity_after':final_sample,
+            'sample_unchanged':sample_unchanged,'sample_error':sample_error,
             'reference':'python-chess legal-move tree; perft checks state/move compatibility, not eval',
             'strength':'UNPROVEN'}
     if report['sha256']!=LOCK:report['status']='FAIL'
@@ -75,4 +97,5 @@ def run(output, sample):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('output',type=Path);p.add_argument('sample',type=Path)
-    a=p.parse_args();low_priority();print(json.dumps(run(a.output,a.sample),indent=2))
+    p.add_argument('--max-positions',type=int,default=24,help='original sample rows before edge cases and mirrors, 1..10000')
+    a=p.parse_args();low_priority();print(json.dumps(run(a.output,a.sample,max_positions=a.max_positions),indent=2))

@@ -1,0 +1,38 @@
+...F                                                                     [100%]
+================================== FAILURES ===================================
+_ test_empty_invalid_or_multiline_sample_never_launches_engine[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/native_fullmove_red/pytest/test_empty_invalid_or_multilin3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000047D3C50>
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0'
+
+    @pytest.mark.parametrize('fen', ['', '8/8/8/8/8/8/8/8 w - - 0 1',
+                                     chess.STARTING_FEN.replace(' ', '\n', 1),
+                                     chess.STARTING_FEN.rsplit(' ',1)[0]+' 0'])
+    def test_empty_invalid_or_multiline_sample_never_launches_engine(tmp_path, monkeypatch, fen):
+        fake_lock(tmp_path, monkeypatch)
+        sample = tmp_path/'sample.jsonl'
+        sample.write_text('' if not fen else json.dumps({'fen':fen})+'\n')
+        def refuse(*args, **kwargs):
+            raise AssertionError('invalid sample reached the engine')
+        monkeypatch.setattr(smoke.subprocess, 'run', refuse)
+        with pytest.raises(ValueError):
+>           smoke.run(tmp_path/'native', sample)
+
+astra_r8\datafilter\tests\test_native_smoke.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\native_forge_smoke.py:55: in run
+    completed=subprocess.run([str(ENGINE)],input=request,text=True,capture_output=True,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (['C:\\astra8_data\\quality6h_20261102\\native_fullmove_red\\pytest\\test_empty_invalid_or_multilin3\\fixture_engine.exe'],)
+kwargs = {'input': 'uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nseto...indowsPath('C:/astra8_data/quality6h_20261102/native_fullmove_red/pytest/test_empty_invalid_or_multilin3/native'), ...}
+
+    def refuse(*args, **kwargs):
+>       raise AssertionError('invalid sample reached the engine')
+E       AssertionError: invalid sample reached the engine
+
+astra_r8\datafilter\tests\test_native_smoke.py:73: AssertionError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_native_smoke.py::test_empty_invalid_or_multiline_sample_never_launches_engine[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0]
+1 failed, 3 passed, 8 deselected in 4.68s
