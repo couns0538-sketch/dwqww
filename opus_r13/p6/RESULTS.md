@@ -73,8 +73,11 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
   9 / 9 PASS. Incident: the first run of that script wrote the local checksum.md5 in Git Bash's `hash *name` format, so
   the script took every name as missing and asked the public mirror for it: 3 GET requests to tablebase.sesse.net, all
   404, nothing downloaded; the re-run used the mirror's `hash  name` format and an unreachable local mirror address.
-- CI: this workflow's push filter does not include these files; its run is started by hand (workflow_dispatch) after the
-  push so the patched ci_fetch_tables.sh runs where it is used - result below.
+- CI: this workflow's push filter does not include these files, so its run was started by hand (workflow_dispatch) on
+  d1751ca1: **run 41515843128 green** (2026-11-02 20:04-20:08 UTC). The patched ci_fetch_tables.sh printed "tables: 70
+  present, 70 downloaded" (new cache key, as the script's hash changed) and passed its new count check; ASan+UBSan
+  self-play smoke PASS: default 4 games / 520 moves, tb, tb_pd4, tb_no50, tb_pd10 6 games each, 0 illegal moves and 0
+  sanitizer lines in every config (logs/crfix_4b537823/ci_41515843128.txt).
 
 ### Review milestone R14-P6-1 (structured self-review, NOT independent - no sub-agents in R14)
 - Reviewed: the kit evidence (both SUMMARY files, compares, warning lines), the R14 smoke / mate-probe output, CI log;
