@@ -14,6 +14,9 @@ src=${SRC:-/d/grok-pc-data/selfplay_out/forge_selfplay_001.txt}
 for f in "$R" "$PY" "$src" "$P"; do [ -f "$f" ] || { echo "not found: $f (set PY / SRC / PROBE)" >&2; exit 2; }; done
 [ -e "$d" ] && { echo "refusing existing $d" >&2; exit 2; }
 mkdir -p "$d" && cd "$d" || exit 1
+# relabel2's default disk floor is 50 GB: on a fuller drive every prepare / run / assemble case would fail on it
+free=$("$PY" -I -B -c "import shutil; print(int(shutil.disk_usage('.').free / 1024 ** 3))")
+[ "$free" -ge 51 ] || { echo "the scratch drive has $free GB free; relabel2 keeps 50 GB free: use a scratch folder on a drive with more space" >&2; exit 2; }
 fails=0
 expect() {  # expect CODE NAME CMD...
   local want=$1 name=$2; shift 2
