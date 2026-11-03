@@ -5,7 +5,8 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Current verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v5/manifest.json`,
+Last verified handoff (historical while the final material-admission repair is verified):
+`C:/astra8_data/quality6h_20261102/handoff_v5/manifest.json`,
 SHA256 `59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
@@ -26,8 +27,10 @@ original source lines. These establish data and interface compatibility; strengt
 remains UNPROVEN.
 
 The [complete source profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
-covers 304,999,573 rows in all 37 closed training shards, with no invalid boards,
-in-check positions or mate scores. Aggregate score/result correlation is
+covers 304,999,573 rows in all 37 closed training shards, with zero invalid boards
+under that historical profiler's Python board-validity check, zero in-check
+positions and zero mate scores. The newer strict Forge admission checks have
+not been replayed over every corpus row. Aggregate score/result correlation is
 0.6567069235. Ply <=160 keeps 285,511,513 rows (93.6105%); it remains optional.
 This descriptive audit produces no new training inputs or full-corpus holdout
 clearance. The recipes still use the separately cleared 999,953-row cohort.
@@ -67,6 +70,12 @@ the lock: no Unicode/control separators, Shredder rights, promotion markers or
 underscored/overflowing clocks. Spaces and tabs remain valid, and original valid
 text is preserved. The native probe uses the same validator. Legacy no-flag
 converter parsing remains unchanged.
+
+The final review also found impossible promotion inventories accepted by Python
+and rejected by Forge. The shared validator now requires enough missing pawns
+to account for extra queens, rooks, bishops and knights; current-source tests and
+a v6 handoff refresh are in progress. This is a necessary material constraint,
+not a proof of complete game-history reachability.
 
 `filter_positions.py INPUT NEW_OUTPUT --kind normalized --workers 2` uses one
 parser/writer process and one pool process, counting both toward the total budget.

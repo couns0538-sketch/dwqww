@@ -244,6 +244,13 @@ it. Refresh source-bound handoffs after any admission change. In regression
 fixtures, keep derived ply consistent so an unrelated metadata check cannot
 hide the parsing defect.
 
+Basic library board validity may omit necessary promotion inventory: extra
+non-pawn pieces require enough absent pawns. Verify the actual engine's behavior
+with both impossible fixtures and positive promotion controls, including mixed
+piece types and color mirrors. Keep descriptive whole-corpus claims tied to the
+validator actually used; a later stricter sample/selected-cohort check does not
+retroactively qualify every historical source row.
+
 Describe the exact timing interval: a processing timer may include a final
 input rehash while excluding startup and output hashing. Preserve command-level
 elapsed time separately, and bind both to their measured source and CPU budget.

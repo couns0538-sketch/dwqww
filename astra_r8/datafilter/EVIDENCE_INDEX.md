@@ -1,7 +1,8 @@
 # Current handoff evidence — UNPROVEN
 
 Runtime source: `3f9815fd3a0441c6a998fe2c7ba90bf3693ebb13`. Later checkpoints
-package evidence and documentation. Final reserved review is pending.
+package evidence and documentation. The final review rejected this candidate's
+material-admission gap; its focused repair and v6 verification are in progress.
 Use the two commands in [MIX_SPEC.md](MIX_SPEC.md); the crew owns training and gates.
 
 Current manifest: `C:/astra8_data/quality6h_20261102/handoff_v5/manifest.json`.
@@ -27,7 +28,9 @@ True static/root-qsearch comparison remains **BLOCKED** on FD3A5190; depth one i
 not substituted. Other filter rules remain off by default.
 
 The [complete descriptive profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
-covers 304,999,573 rows across all 37 closed non-holdout sources. It grants no
+covers 304,999,573 rows across all 37 closed non-holdout sources using the
+historical profiler's Python board-validity check. The newer strict Forge
+admission checks have not been applied to every corpus row. It grants no
 full-corpus holdout or game-ID clearance. [Original-line replay](evidence/quality6h/reservoir_audit/reservoir_receipt.json)
 verifies 4,736 sampled labels; the [current native proof](evidence/quality6h/fen_validation/native/report.json)
 checks those positions, seven edge cases and all mirrors (9,486 perft2 vectors),

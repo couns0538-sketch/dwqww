@@ -2,6 +2,15 @@
 
 ## Six-hour continuation — active
 
+Final review of 17f95b11 REJECTED acceptance: Python's validity check admits
+impossible promoted material that the exact Forge lock rejects. Main reproduced
+eight such positions/mirrors and eight positive controls through UCI, then eleven
+failing regressions. The shared inventory repair and v6 revalidation are in
+progress; prior v5/323-test results remain evidence for their frozen source.
+The focused fix is APPROVED, with all 87 affected tests PASS. Full 344-test
+verification is running. The user has now requested one additional full hour of
+final review after these fixes and verification finish, extending the old finish.
+
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
@@ -29,7 +38,9 @@ unavailable. No game-ID or full-corpus holdout separation claim is made. No net
 was trained, exported or strength-tested. All recipes remain UNPROVEN.
 
 Completed corpus evidence: 304,999,573 rows across all 37 closed non-holdout
-sources, zero invalid boards/check/mate rows, Pearson 0.6567069235. Optional
+sources, zero invalid boards under the historical Python profiler check, zero
+check/mate rows, Pearson 0.6567069235. Current strict Forge admission has not been
+replayed over every corpus row. Optional
 ply<=160 retains 285,511,513 (93.6105%). All 4,736 original-line reservoir checks
 PASS. Exact FD3A5190 matches all 9,486 perft2 results and five bench pins, using
 Threads=1, Hash=16, OwnBook=false and the recorded UseNNUE=true setting. The

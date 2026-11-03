@@ -63,6 +63,15 @@ def board_from_fen(fen):
     board = chess.Board(fen)
     if not board.is_valid():
         raise ValueError('invalid board')
+    # Every extra non-pawn needs a promotion, which consumes an absent pawn.
+    # Python's basic status checks do not enforce this necessary inventory bound.
+    for color in chess.COLORS:
+        missing_pawns = 8 - len(board.pieces(chess.PAWN, color))
+        promoted = sum(max(0, len(board.pieces(piece, color)) - original)
+                       for piece, original in ((chess.QUEEN, 1), (chess.ROOK, 2),
+                                               (chess.BISHOP, 2), (chess.KNIGHT, 2)))
+        if promoted > missing_pawns:
+            raise ValueError('impossible promoted material inventory')
     return board
 
 

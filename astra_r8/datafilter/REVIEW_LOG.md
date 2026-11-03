@@ -1,5 +1,39 @@
 # Review log — UNPROVEN
 
+## Final review: material admission finding
+
+Final review began after the complete v5 package was pushed, before the reserved
+03:21–03:51 UTC window. Candidate 17f95b1153233a07afe5328e857ce9b8d2cd701c.
+The reused independent read-only reviewer REJECTED final acceptance for the
+material gap reproduced by main: eight impossible inventories/mirrors pass
+Python admission but FD3A5190 rejects them, retaining the previous board; eight
+positive promotion controls match native perft1. No other implementation blocker
+was found in converter semantics/defaults, flags, runtime contracts, recipe
+commands, evidence, resources or licences. It independently checked source,
+manifest, inventory and sample hashes and ran no tests/native commands or agents.
+
+Main accepted the finding, reproduced eleven RED cases (ten publication cases
+and one native-launch guard), and added the necessary missing-pawn/promotion
+inventory bound to the shared validator. Ten positive controls cover exact
+promotion budgets, mixed queen/rook extras and both colors. Current docs now
+qualify the full-corpus validity result as the historical Python profiler check;
+the strict current admission was not applied to all 305M rows. Original profile
+evidence is unchanged. Focused recheck/full-suite/v6 closure are next; unresolved
+candidate is not accepted.
+
+Focused material recheck APPROVED records.py SHA256
+`a8ef0f43c700d8dc275c0234b01d1c0d27b26549bdb3d05fb2d743a3887360be`
+and test_forge_material_admission.py
+`69ca2090d1668d44152a1969976651aea45482a78690a1d9c8ddf6914104530c`.
+All 87 material/metadata/native checks PASS after the eleven RED failures.
+The reviewer confirmed summed budgets across piece types and both colors,
+positive exact-boundary cases and native prelaunch rejection, with no new scoped
+finding. Full 344-test verification is running; actual v6 closure remains pending.
+
+Latest user steering extends final review to one full hour after current fixes
+and verification finish. That additional hour will include fixes/retests and
+extends the earlier 03:51 UTC finish; the actual start/end will be recorded.
+
 ## Six-hour continuation: v5 and final inventory closure
 
 Actual execution of reviewed source 3f9815fd passes fresh 100k old/new converter

@@ -1,5 +1,11 @@
 # Six-hour quality continuation — UNPROVEN
 
+Latest user steering (2026-11-03): after the current fixes and verification finish,
+perform a full additional hour of final review, fixing and retesting findings.
+This extends the earlier 03:51 UTC finish. Record the actual one-hour start/end
+once the current material-admission repair and v6 handoff are verified. Preserve
+the existing no-training/resource/scope constraints and reuse the same reviewer.
+
 Authorized window: 2026-11-02 21:51 UTC through 2026-11-03 03:51 UTC.
 Reserve 03:21–03:51 UTC for final review, defect repair and verification. Redirect
 blocked work to the next useful converter/filter task; no training, GPU, engine,

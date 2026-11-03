@@ -3,7 +3,8 @@
 Current v5 handoff SHA256:
 `59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
 Both CPU preflights and strict published verification pass for source 3f9815fd.
-The entry point rejects stale runtime/tooling identities.
+This v5 manifest is historical while the final material-admission repair is
+verified and v6 is prepared. The entry point rejects stale runtime/tooling identities.
 The complete descriptive corpus audit and expanded native compatibility checks
 pass. The reserved final review remains pending.
 
