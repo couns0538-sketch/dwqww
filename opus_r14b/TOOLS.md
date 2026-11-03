@@ -309,3 +309,10 @@ status branch has none), so the pushes without `[skip ci]` started no run. ffl-s
 on the fast-loader head 05f0b120: run 41610632313 **success** (asan-ubsan success, tsan success).
 Also changed for the records: `checks/make_index_r14b.sh` (index descriptions with the new test counts), two reasoned
 entries in `tools/hash_sweep_allow.txt` (the CR notes' md5s; the hash sweep then had 0 unmatched tokens).
+
+End-of-job check after the fixes: `final_checks.sh C:/o14b/cr_1103/final_1031` (run from a private copy, Idle;
+PC load just before: 91 % total, CPUs 2-3 at 74 %, pc_gate ok=False - one short check, as in R14-B) 10:24:57-10:26:14:
+8 / 8 steps, 17 PASS, 0 failures - doc_lint 0 findings (108 files), indexes committed, fresh-clone `sha256sum -c`
+(fast-loader 05f0b120, relabel 60ecb5ff), hash sweep 0 unmatched, test_tools 43 / 43, test_installer 38 / 38,
+test_scope, test_cli 51 / 51, relabel2.py = frozen e01caaf1, test_helpers 77 / 77, R8 v5 end to end 11 / 11,
+verify_job --convert, all four worktrees clean and in sync (logs/cr_20261103/final_checks_1031.log).
