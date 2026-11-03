@@ -5,8 +5,9 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The current v2 handoff is verified; final review and
-the broader source-reservoir/native checks remain pending.
+their pinned source files. The v2 handoff is verified for its pinned source; the
+reviewed single-line FEN fix requires another refresh. Final review and the broader
+source-reservoir/native checks remain pending.
 
 Saved the three user-requested future engine skills under `skills/`: build proof,
 exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT
@@ -145,6 +146,18 @@ All 16 required tooling pins include the corrected filter and extended raw-label
 auditor. Rows/sample remain unchanged; Pearson 0.6635950368, 1,000 mirrors PASS.
 README/MIX_SPEC now point to v2 and an existing authorized temporary directory.
 Older manifest copies remain historical evidence. No training or GPU work ran.
+
+Single-line FEN milestone: main reproduced five failures where CR/LF inside a
+JSON FEN passed board validation and was published by the all-off filter, yet
+could not be used as one UCI command. Shared result-aware admission now rejects
+such input without rewriting valid original text. All 81 affected metadata,
+filter, converter and native-helper tests PASS. The reused focused reviewer
+APPROVED records.py SHA256
+`6b57af56f7b1da7161ce8c61d41a52014bfaa5b92c80f318315f92e1a77e66ac`.
+Legacy no-flag routing remains unchanged. Fresh actual 100k all-artifact identity
+and 1,000-result/1,000-mirror reruns both PASS in 47.035 seconds; the runtime files
+remained unchanged. All three no-flag artifacts match the old converter exactly.
+Evidence: quality6h/converter_line_validation. Next: refresh the current handoff.
 
 ## 30-minute follow-up audit — complete and independently approved
 

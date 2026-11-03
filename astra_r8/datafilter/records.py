@@ -48,8 +48,9 @@ def read_pgn_game(fh):
 
 def record(fen, score, score_type, result_white, source, source_row,
            source_kind, best_move=None, raw_score=None, depth=None):
-    if not isinstance(fen, str) or len(fen.split()) != 6 or int(fen.split()[5]) < 1:
-        raise ValueError('original full FEN required')
+    if (not isinstance(fen, str) or '\n' in fen or '\r' in fen
+            or len(fen.split()) != 6 or int(fen.split()[5]) < 1):
+        raise ValueError('original single-line full FEN required')
     board = chess.Board(fen)
     if not board.is_valid():
         raise ValueError('invalid board')

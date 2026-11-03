@@ -1,5 +1,23 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: single-line FEN admission
+
+Candidate base 5256855e; records.py SHA256
+`6b57af56f7b1da7161ce8c61d41a52014bfaa5b92c80f318315f92e1a77e66ac`;
+test_metadata_contract.py SHA256
+`7274807435f545c5c23379080f86009182c5a8587848596cec9ad5a491fd60c3`.
+Root cause: whitespace-tolerant board parsing accepted embedded CR/LF, whereas
+the native UCI boundary requires a single line. Five RED cases reproduced the
+gap, including actual all-off publication and Lichess admission. The shared
+record constructor now rejects CR/LF before parsing; the legacy no-flag branch
+is unchanged. All 81 affected tests PASS in 30.20 seconds.
+The reused read-only reviewer verified both hashes and APPROVED the focused
+delta with no blocking finding. It started no tests or native commands. Main
+extended the existing training-data skill. The separately named real 100k
+identity and 1,000-result/1,000-mirror reruns both PASS in 47.035 seconds. The
+recorded source hashes stayed unchanged, and all three old/new no-flag artifacts
+match. Next: refresh the tooling/runtime manifest and continue the corpus audit.
+
 ## Six-hour continuation: published v2 handoff
 
 Candidate source: 8ed3765941a1c736fb6db62a22531dba73983d2e. No source changes

@@ -223,6 +223,12 @@ FEN input before constructing UCI commands. Check original numeric fields before
 library normalization: a board parser may repair fullmove0 to1 and then report a
 valid board. Preserve the original input identity and failed probe diagnostics.
 
+Apply the same single-line FEN contract at shared data admission, including JSON
+and evaluation-only sources. A whitespace-tolerant board parser can accept CR/LF
+that breaks a later UCI command. Reproduce the gap through the actual all-off
+filter, reject before publication, and retain the original valid FEN unchanged.
+Keep explicitly compatible legacy conversion behavior separately qualified.
+
 Preserve timeout diagnostics before re-raising an owned-child timeout; Python may
 return bytes even in text mode. Inventory only closed logs. A packaging process
 must exclude its own active stdout log, then pin that final log separately. Keep

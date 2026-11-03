@@ -1,0 +1,107 @@
+...................FFF........FF                                         [100%]
+================================== FAILURES ===================================
+_ test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1] _
+
+field = 'fen'
+value = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1'
+
+    @pytest.mark.parametrize('field,value', [
+        ('depth', True), ('depth', -1), ('depth', '12'), ('depth', 1.5),
+        ('raw_score', True), ('raw_score', {}), ('raw_score', []), ('raw_score', ''),
+        ('raw_score', '  '), ('raw_score', None), ('source', '  '),
+        ('source_row', ' '), ('source_row', '0'), ('source_row', '0:2'),
+        ('source_row', '1:-1'), ('source_row', 'garbage'),
+        ('fen', None), ('fen', []), ('best_move', 123),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\nw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\rw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\r\nw ')),
+    ])
+    def test_malformed_normalized_metadata_rejected(field, value):
+        candidate = row()
+        candidate[field] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_metadata_contract.py:28: Failed
+_ test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\rw KQkq - 0 1] _
+
+field = 'fen'
+value = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\rw KQkq - 0 1'
+
+    @pytest.mark.parametrize('field,value', [
+        ('depth', True), ('depth', -1), ('depth', '12'), ('depth', 1.5),
+        ('raw_score', True), ('raw_score', {}), ('raw_score', []), ('raw_score', ''),
+        ('raw_score', '  '), ('raw_score', None), ('source', '  '),
+        ('source_row', ' '), ('source_row', '0'), ('source_row', '0:2'),
+        ('source_row', '1:-1'), ('source_row', 'garbage'),
+        ('fen', None), ('fen', []), ('best_move', 123),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\nw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\rw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\r\nw ')),
+    ])
+    def test_malformed_normalized_metadata_rejected(field, value):
+        candidate = row()
+        candidate[field] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_metadata_contract.py:28: Failed
+_ test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\r\nw KQkq - 0 1] _
+
+field = 'fen'
+value = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\r\nw KQkq - 0 1'
+
+    @pytest.mark.parametrize('field,value', [
+        ('depth', True), ('depth', -1), ('depth', '12'), ('depth', 1.5),
+        ('raw_score', True), ('raw_score', {}), ('raw_score', []), ('raw_score', ''),
+        ('raw_score', '  '), ('raw_score', None), ('source', '  '),
+        ('source_row', ' '), ('source_row', '0'), ('source_row', '0:2'),
+        ('source_row', '1:-1'), ('source_row', 'garbage'),
+        ('fen', None), ('fen', []), ('best_move', 123),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\nw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\rw ')),
+        ('fen', chess.STARTING_FEN.replace(' w ', '\r\nw ')),
+    ])
+    def test_malformed_normalized_metadata_rejected(field, value):
+        candidate = row()
+        candidate[field] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_metadata_contract.py:28: Failed
+_________ test_multiline_fen_never_becomes_a_published_filter_output __________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/fen_line_red/pytest/test_multiline_fen_never_becom0')
+
+    def test_multiline_fen_never_becomes_a_published_filter_output(tmp_path):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = candidate['fen'].replace(' w ', '\nw ')
+        source = tmp_path/'multiline.jsonl'
+        source.write_text(json.dumps(candidate)+'\n')
+>       with pytest.raises(ValueError, match='multiline.jsonl:1:'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_metadata_contract.py:69: Failed
+___________ test_multiline_lichess_fen_cannot_reach_native_consumer ___________
+
+    def test_multiline_lichess_fen_cannot_reach_native_consumer():
+        from records import lichess_record
+        candidate = {'fen': chess.STARTING_FEN.replace(' w ', '\nw '),
+                     'evals': [{'pvs': [{'cp': 20}]}]}
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_metadata_contract.py:78: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\nw KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\rw KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_malformed_normalized_metadata_rejected[fen-rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\r\nw KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_multiline_fen_never_becomes_a_published_filter_output
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_multiline_lichess_fen_cannot_reach_native_consumer
+5 failed, 27 passed in 4.99s

@@ -18,6 +18,9 @@ def row():
     ('source_row', ' '), ('source_row', '0'), ('source_row', '0:2'),
     ('source_row', '1:-1'), ('source_row', 'garbage'),
     ('fen', None), ('fen', []), ('best_move', 123),
+    ('fen', chess.STARTING_FEN.replace(' w ', '\nw ')),
+    ('fen', chess.STARTING_FEN.replace(' w ', '\rw ')),
+    ('fen', chess.STARTING_FEN.replace(' w ', '\r\nw ')),
 ])
 def test_malformed_normalized_metadata_rejected(field, value):
     candidate = row()
@@ -55,3 +58,22 @@ def test_type_error_includes_source_line(tmp_path):
     source.write_text(json.dumps(candidate)+'\n')
     with pytest.raises(ValueError, match='rows.jsonl:1:'):
         list(read_records(source))
+
+
+def test_multiline_fen_never_becomes_a_published_filter_output(tmp_path):
+    from filter_positions import run_filter
+    candidate = row()
+    candidate['fen'] = candidate['fen'].replace(' w ', '\nw ')
+    source = tmp_path/'multiline.jsonl'
+    source.write_text(json.dumps(candidate)+'\n')
+    with pytest.raises(ValueError, match='multiline.jsonl:1:'):
+        run_filter(source, tmp_path/'filtered')
+    assert not (tmp_path/'filtered').exists()
+
+
+def test_multiline_lichess_fen_cannot_reach_native_consumer():
+    from records import lichess_record
+    candidate = {'fen': chess.STARTING_FEN.replace(' w ', '\nw '),
+                 'evals': [{'pvs': [{'cp': 20}]}]}
+    with pytest.raises(ValueError):
+        lichess_record(candidate, 'fixture', 1)
