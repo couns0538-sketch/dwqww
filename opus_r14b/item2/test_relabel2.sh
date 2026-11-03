@@ -122,7 +122,7 @@ expect 3 run_disk_floor "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --
 check run_disk_floor_no_new_shard test -z "$(ls -d jg/shards/shard_00002* 2>/dev/null)"
 check run_disk_floor_logged grep -q "disk floor" jg/sessions.log
 expect 0 status_partial "$PY" -I -B "$R" status --job jg
-check status_partial_progress grep -q "2/3 shards, 200/300 rows" status_partial.out
+check status_partial_progress grep -q "2/3 shards, 200/240 rows" status_partial.out   # --rows 300 keeps whole games: 240
 expect 2 status_not_a_job "$PY" -I -B "$R" status --job no_such_job
 expect 2 run_not_a_job "$PY" -I -B "$R" run --job no_such_job --run-id g --probe "$P" --nodes 5000 --shard-size 100
 expect 2 run_missing_probe "$PY" -I -B "$R" run --job jg --run-id g --probe no_such_probe.exe --nodes 5000 --shard-size 100
