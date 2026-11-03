@@ -42,8 +42,9 @@ R11), turns the text into .pos files with the new scores (checked on 1,200 rows:
 result columns equal), and `hce_dump.exe in.txt out.hce` (sha256 a88e519d...) makes the .hce. On the full 1M output:
 fen2bin 991,077 + 8,844 records = every train / val row, 0 bad; hce_dump the same counts, 0 bad FEN, 0 clamped
 (logs/conv_full_1M.txt). Whether the live supervisor uses these same binaries was not checked. Exit codes: 2 bad input,
-3 configuration differs / job busy / target exists / disk floor, 4 integrity (a published file changed), 1 anything
-else, e.g. a probe that died, timed out or answered wrongly (`run` first writes "run stop ... <error>" to
+3 configuration differs / job busy / target exists / disk floor, 4 integrity (a published or job file changed, is
+missing or damaged, or a shard was labelled with other settings; the message names the file), 1 anything else, e.g. a
+probe that died, timed out or answered wrongly (`run` first writes "run stop ... <error>" to
 sessions.log; published shards stay; the same command resumes once the cause is fixed).
 
 ## Commands (PC rules: Idle, CPU mask, <= 2 probe workers; nothing is deleted or overwritten)
@@ -114,7 +115,9 @@ $PY -I -B "$R" run --job "$J" --run-id r8v5-50m --probe "$P" --nodes 20000 --wor
     --until "YYYY-MM-DD HH:MM"                                   # the same command again resumes
 $PY -I -B "$R" status --job "$J"                                 # progress, last rate, ETA, free disk
 $PY -I -B "$R" assemble --job "$J" --run-id r8v5-50m             # final/train.txt, val.txt, labels.tsv, MANIFEST.json
-F:/opus_scratch/rescore_d8/bin/fen2bin.exe "$J/final/train.txt" <out dir>/train.pos   # and val.txt; hce_dump.exe for .hce
+$PY -I -B "$(dirname "$R")/verify_job.py" "$J" --convert <new out dir>   # every output check, read-only; also
+                                                                 # writes train / val .pos (fen2bin) and .hce (hce_dump)
+F:/opus_scratch/rescore_d8/bin/fen2bin.exe "$J/final/train.txt" <out dir>/train.pos   # (the same conversion by hand)
 ```
 | phase | expected (measured basis) |
 |---|---|
