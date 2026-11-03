@@ -66,6 +66,11 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   label statistics), `measure_rates.sh workers|nodes|prepare` (cost numbers), `build_probe_opt.sh` + `probe_bench.py`
   (LTO / PGO probe builds, label identity, ABBA).
 
+## 50M runbook
+RELABEL_HANDOFF.md "50M runbook" has the commands for R8 v5 shards 001-057 (50,524,643 rows; `--rows 50000000` ends
+in 057), per-phase times (prepare ~0.8 h, run ~79 h on CPUs 2-3 with 2 workers, assemble minutes) and the checks
+before use. Its prepare command was run as written with `--rows 3000` (exit 0). Not started: Engine NNUE decides.
+
 ## Costs measured 2026-11-02 (details: RELABEL_HANDOFF.md; labels identical in every comparison)
 - Mask 0xC = the two SMT threads of ONE physical core. 20k nodes, 2 workers: R13 probe ~663k rows/h, LTO+PGO probe
   `C:\o14b\pgo2\pgo\forge_data_probe.exe` (08299f9f, reproducible build) ~691k rows/h -> 50M rows in 75.4 h / 72.4 h
