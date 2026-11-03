@@ -53,6 +53,7 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "pgo_train_2k.tsv=PGO training requests (rows 0-1,999 of the proof sample)" \
   --desc "label_stats.py=descriptive label statistics" \
   --desc "sort_normalized.py=sort Astra's normalized JSONL by (source, source_row), with a RAM check" \
+  --desc "test_helpers.py=exit-code tests of sort_normalized / label_stats / probe_bench with broken input (66 cases)" \
   --desc "forge_probe.py=R13 probe client (unchanged copy)" \
   --desc "astra/records.py=Astra's record parser (unchanged copy)" \
   --desc "patches/post_proof_changes.patch=relabel2.py changes after the proof code" \

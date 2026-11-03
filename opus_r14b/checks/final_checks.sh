@@ -8,8 +8,9 @@
 #   4 hash_sweep_r14b.sh: every cited hash matches a file, a commit or the allow list
 #   5 tools/test_tools.sh (abba.py, doc_lint.py)
 #   6 item 1 from its clone: tools/test_installer.sh, tools/test_scope.py
-#   7 item 2 from its clone: relabel2.py sha256 = the frozen value in RELABEL_HANDOFF.md; checks/e2e_r8v5.sh, then the
-#     clone's verify_job.py on that job (with --convert)
+#   7 item 2 from its clone: relabel2.py sha256 = the frozen value in RELABEL_HANDOFF.md; the clone's test_helpers.py
+#     (the helpers with broken input, no probe); checks/e2e_r8v5.sh, then the clone's verify_job.py on that job
+#     (with --convert)
 #   8 every worktree clean and in sync with its remote branch
 # Exit 0 = every step passed. About 1-2 minutes.
 set -u
@@ -59,6 +60,8 @@ frozen=$(grep -A1 "frozen at sha256" "$R2/RELABEL_HANDOFF.md" | grep -oE "[0-9a-
 now=$(sha256sum < "$R2/relabel2.py" | cut -d' ' -f1)
 echo "relabel2.py $now, RELABEL_HANDOFF.md says $frozen"
 res "relabel2.py = the frozen sha256" $([ -n "$frozen" ] && [ "$frozen" = "$now" ] && echo 0 || echo 1)
+"$PY" -I -B "$R2/test_helpers.py" "$out/test_helpers" > "$out/test_helpers.log" 2>&1
+rc=$?; tail -1 "$out/test_helpers.log"; res "test_helpers.py (sort_normalized / label_stats / probe_bench, broken input)" $rc
 bash "$C/e2e_r8v5.sh" "$out/e2e" > "$out/e2e.log" 2>&1
 rc=$?; echo "$(grep -c "^PASS" "$out/e2e.log") PASS, $(grep -c "^FAIL" "$out/e2e.log") FAIL"; res "e2e_r8v5.sh (worktree code = the frozen file above)" $rc
 "$PY" -I -B "$R2/verify_job.py" "$out/e2e/job" --convert "$out/e2e_verify_convert" > "$out/verify_job.log" 2>&1
