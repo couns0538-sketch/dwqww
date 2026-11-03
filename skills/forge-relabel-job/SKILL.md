@@ -35,7 +35,8 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   cross it, run stops before the next shard (logged); free space and run the same command again.
 - Output to FPOS with the converter earlier jobs used (sha256 24cb2e78...; not checked against the live supervisor's):
   `F:\opus_scratch\rescore_d8\bin\fen2bin.exe train.txt train.pos` (checked: the .pos score
-  column = the new labels, 1,200 / 1,200); `hce_dump.exe train.txt train.hce` for the .hce.
+  column = the new labels, 1,200 / 1,200; the whole 1M output: 991,077 + 8,844 records, 0 bad);
+  `hce_dump.exe train.txt train.hce` (sha256 a88e519d...) for the .hce (whole 1M output: 0 bad FEN, 0 clamped).
 
 ## Input rules (each one cost a finding on 2026-11-02)
 - Finished files only; the newest self-play file is still being written. prepare hashes each input before and after
@@ -66,7 +67,10 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
 ## Costs measured 2026-11-02 (details: RELABEL_HANDOFF.md; labels identical in every comparison)
 - Mask 0xC = the two SMT threads of ONE physical core. 20k nodes, 2 workers: R13 probe ~663k rows/h, LTO+PGO probe
   `C:\o14b\pgo2\pgo\forge_data_probe.exe` (08299f9f, reproducible build) ~691k rows/h -> 50M rows in 75.4 h / 72.4 h
-  (light crew load); 1 worker ~373k rows/h. 10k nodes 1 worker ~737k rows/h, 5k nodes ~1.19M rows/h.
+  (7-minute light-load windows); 1 worker ~373k rows/h. 10k nodes 1 worker ~737k rows/h, 5k nodes ~1.19M rows/h.
+- Plan with the whole-1M run (PGO probe, 2 workers, 18:49-20:24 through real crew load incl. the npt trainer's Idle
+  python on CPUs 0-3): 635,344 rows/h -> **78.7 h for 50M**; its train / val / labels files were byte-identical to
+  the proof's (R13 probe): all 999,921 labels equal.
 - prepare `--jobs 2` ~66M rows/h (50M in ~0.8 h), `--jobs 1` ~43M rows/h; disk ~341 MB per 1M rows (~17 GB / 50M).
 - Path.resolve() costs ~77 us on this PC: never call it per row (R27 doubled the one-process prepare time).
 
