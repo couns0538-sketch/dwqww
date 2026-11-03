@@ -165,7 +165,7 @@ difference).
   and builders; `next()` returns null on stop or error and the Python side raises the error text; a release of a
   batch that is not handed out stops the stream with an error): no finding. Code unchanged (b5 9eb29b7d).
 
-## After hunt #3: launcher fix (20:25-20:31; the same file on all three R14-B branches)
+## After hunt #3: launcher fix (20:24-20:27; the same file on all three R14-B branches)
 `tools/lowrun.ps1` ended with exit 0 when Start-Process could not start the program (missing file) and ran it with an
 invalid handle when a redirect folder did not exist. Now exit 127 with a message for a missing program, a missing
 stdout / stderr folder or a missing stdin file; the program's own exit code otherwise (sha256 cc7f28dd..., checked:
