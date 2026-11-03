@@ -5,7 +5,7 @@ only (IDEA_SOURCE.md). Nothing of the live npt line was touched: the reference D
 in `D:\o14b\npt` (its loader files are the superseded b4 - see HANDOFF.md). No Elo or training-quality claim; Engine
 NNUE / QA decide.
 
-**State (2026-11-02 21:52 PC clock; details in the dated sections below, the newest at the end):** candidate b5
+**State (2026-11-02 21:51 PC clock; details in the dated sections below, the newest at the end):** candidate b5
 (9eb29b7d...) unchanged since 13:39. From a fresh clone with this PC's default git settings: DLL rebuilt = b5,
 acceptance 261 / 261, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) 261 / 261
 (20:42 and again 21:48). Speed (ADVISORY): 8.65x (old w2 vs 1 builder), 6.25x in the live thread setting on CPUs 2-3,
