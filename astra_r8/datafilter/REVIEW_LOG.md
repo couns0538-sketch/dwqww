@@ -1,5 +1,26 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: v5 and final inventory closure
+
+Actual execution of reviewed source 3f9815fd passes fresh 100k old/new converter
+identity, 1,000 actual result labels and 1,000 mirrors, then complete read-only
+admission/serialization of both separate million-row cohorts with unchanged
+hashes. Exact FD3A5190 again matches 9,486 perft2 results and all five bench pins.
+Both CPU recipe preflights and published v5 verification PASS. Manifest SHA256
+`59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
+
+The reused reviewer found two gaps in the new packager: reservoir bytes were not
+bound to the original label-audit receipt, and the historical native reference
+receipt was not rehashed. Main fixed both and added explicit 9,486-vector length
+checks. The focused recheck APPROVED frozen pack_fen_completion.py SHA256
+`5e6dcdf84413a894e84385f694fa6016b18a4de17719180ef8b9750a885edaf9`.
+Actual packaging then PASS: 8,492 files freshly hashed, old changed source files
+attributed through exact Git blobs, current v5/source/runtime/native/payload
+proofs verified. Broad pytest collection finds all 323 tests, excluding archives.
+Forge checker PASS: 83 artifact references; consistency only, not strength.
+Main assessed the actual results. Next: reserved 03:21–03:51 final handoff review;
+this milestone does not assert its approval. No training or engine changes.
+
 ## Six-hour continuation: current full-suite closure
 
 Reviewed source 3f9815fd passes 323 tests + 11 subtests in 233.34 seconds. All

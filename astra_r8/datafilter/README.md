@@ -5,16 +5,16 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Last verified handoff (historical after the current FEN admission repair):
-`C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`,
-SHA256 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
+Current verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v5/manifest.json`,
+SHA256 `59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
 passes **323 tests + 11 subtests** on source 3f9815fd.
 Both actual recipe preflights and published-manifest verification pass on source
-87963077. Complete-corpus and expanded native checks pass; the reserved final
-review is still pending. The new shared FEN admission fix and duplicate-rights
-correction pass focused review and the full CPU suite; v5 refresh is in progress.
+3f9815fd. Complete-corpus and expanded native checks pass; the reserved final
+review is still pending. Both million-row cohorts pass current admission and
+serialize byte-for-byte identically. The new inventory hashes 8,492 retained
+files; the Forge consistency checker passes all 83 referenced artifacts.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
 Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
@@ -137,8 +137,9 @@ limited to checked epoch boundaries; sampler state itself can resume at any row.
 
 ## Evidence and handoff
 
-See RESULTS.md for statuses and REVIEW_LOG.md for candidate hashes, findings and
-fixes. The user's latest override puts new outputs under `C:/astra8_data/`, with
+See [EVIDENCE_INDEX.md](EVIDENCE_INDEX.md) for the current proof map, RESULTS.md
+for statuses and REVIEW_LOG.md for candidate hashes, findings and fixes.
+The user's latest override puts new outputs under `C:/astra8_data/`, with
 C: above 50 GB including planned allocation. Existing D:/F: artifacts are read-only
 and count with C: toward the 15 GB aggregate cap. The historical sample
 is at most 20 MB. Inputs, original logs and failed attempts are preserved.

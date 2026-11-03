@@ -8,8 +8,9 @@ Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
 their pinned source files. The reviewed standard-FEN admission repair now passes
 the full **323-test + 11-subtest** CPU suite in 233.34 seconds, with unchanged
 runtime files. Fresh 100k legacy identity and 1,000 actual result/mirror checks
-PASS. Current-cohort/native verification and v5 refresh are running; no final
-acceptance yet. Prior v4 and 301-test proofs remain historical.
+PASS. Both million-row cohorts retain serialized byte identity; all 9,486 native
+checks and five bench pins pass. Published v5 verification and both CPU recipe
+preflights PASS. Prior v4 and 301-test proofs remain historical.
 The complete source profile, original-line reservoir replay, native Forge checks
 and fresh full-output inventory PASS. The reserved final review remains pending.
 
@@ -21,7 +22,7 @@ and fresh full-output inventory PASS. The reserved final review remains pending.
 | 4 Deliberate failures | PASS: 323 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v4 manifest/sample/CPU preflights, expanded corpus/native proof and 7,001-file inventory PASS; final review pending |
+| 7 Handoff | v5 manifest/sample/CPU preflights, expanded corpus/native proof and 8,492-file inventory PASS; final review pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net
@@ -32,18 +33,21 @@ sources, zero invalid boards/check/mate rows, Pearson 0.6567069235. Optional
 ply<=160 retains 285,511,513 (93.6105%). All 4,736 original-line reservoir checks
 PASS. Exact FD3A5190 matches all 9,486 perft2 results and five bench pins, using
 Threads=1, Hash=16, OwnBook=false and the recorded UseNNUE=true setting. The
-native engine phase takes 24.430 seconds; reference plus engine takes 33.642.
+latest native engine phase takes 26.646 seconds; reference plus engine takes 37.172.
 Full profiles are descriptive only; recipes/holdout clearance remain bounded.
 
-Fresh packaging PASS on source a9378593: all 7,001 retained output files hashed,
+Fresh packaging PASS on source 3d5d164b (runtime code 3f9815fd): all 8,492 retained output files hashed,
 seven million-row payload pairs match their measured receipts, source/runtime
 pins remain stable, production converter/helpers and all twelve saved skill
 payloads unchanged. See evidence/quality6h/corpus_report, reservoir_audit,
-native_corpus and final_pack. The Forge consistency checker passed 81 artifact
-references at source 85412828; it is historical after the current admission
-repair and will be refreshed.
-Aggregate retained outputs remain below 15 GB (14.383 GB before packaging),
-C:145.85 GB and D:58.67 GB free at corpus completion.
+fen_validation and final_pack_v2. The Forge consistency checker passes all 83
+artifact references. Its scope is declared-record consistency and actual hashes,
+not independent reproduction or strength. Current v5 manifest SHA256:
+`59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
+Inventory SHA256:
+`21f450f7ec70f108e6864f8627c49cc1afbeed5169b16305267cca53bf92215a`.
+Aggregate retained outputs remain below 15 GB (14.475 GB after packaging),
+C:142.35 GB and D:58.51 GB free. All older proofs and failed attempts remain.
 
 Timing scope: per-rule times cover processing and final input verification,
 excluding initial fingerprinting and final output hashing. Complete six-case
