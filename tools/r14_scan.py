@@ -44,6 +44,8 @@ def parse_row(raw: bytes) -> Row:
     if not board or not set(board).issubset(PIECES):
         raise ValueError('invalid board character')
     ranks = board.split('/')
+    if re.search(r'[1-8]{2}', board):
+        raise ValueError('consecutive empty-square digits')
     expanded = [rank.translate(EXPAND) for rank in ranks]
     if len(ranks) != 8 or any(len(rank) != 8 for rank in expanded):
         raise ValueError('invalid board width')
@@ -153,6 +155,15 @@ def guard_selection(rows: list[tuple[int, int]], *, boundary: int, k: int):
     """
     if type(k) is not int or k < 8:
         raise ValueError('K at least eight required')
+    if type(boundary) is not int or boundary <= 0:
+        raise ValueError('positive boundary row ID required')
+    previous = 0
+    for row, ply in rows:
+        if type(row) is not int or row <= previous or type(ply) is not int or ply < 0:
+            raise ValueError('ordered unique positive row IDs and nonnegative integer plies required')
+        previous = row
+    if boundary not in {row for row, _ in rows}:
+        raise ValueError('boundary row not found')
     left = [(row, ply) for row, ply in rows if row <= boundary]
     right = [(row, ply) for row, ply in rows if row > boundary]
     if not left or not right:

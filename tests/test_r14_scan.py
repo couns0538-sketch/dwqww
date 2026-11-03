@@ -82,3 +82,41 @@ def test_pin_manifest_requires_successful_full_digest(tmp_path):
     pins.write_text(json.dumps(dict(path=str(tmp_path/'x'),match=False,actual_md5='a'*32,expected_md5='a'*32))+'\n')
     with pytest.raises(ValueError):
         load_pins(pins)
+
+
+def test_consecutive_fen_digits_are_parse_failures(tmp_path):
+    bad = b'4k3/8/8/8/8/8/8/4K111 w - - 0 1 | 0 | 0.5\n'
+    with pytest.raises(ValueError):
+        parse_row(bad)
+    path = tmp_path / 'bad.txt'
+    path.write_bytes(bad)
+    receipt = {}
+    list(iter_rows(path, hashlib.md5(bad).hexdigest(), receipt))
+    assert receipt['valid_key_rows'] == 0 and receipt['parse_failures'] == 1
+
+
+@pytest.mark.parametrize('rows', [[(2,5),(1,100),(3,1),(4,15)], [(1,5),(1,6),(2,1)], [(0,5),(1,6)], [(1,True),(2,1)]])
+def test_guard_rejects_unordered_or_invalid_rows(rows):
+    with pytest.raises(ValueError):
+        guard_selection(rows, boundary=1, k=8)
+
+
+def test_abandoned_iterator_never_claims_complete(tmp_path):
+    path = tmp_path / 'rows.txt'
+    data = ((START+' | 0 | 0.5\n')*2).encode()
+    path.write_bytes(data)
+    receipt = {}
+    iterator = iter_rows(path, hashlib.md5(data).hexdigest(), receipt)
+    next(iterator)
+    iterator.close()
+    assert receipt['complete'] is False and receipt['key_fill_rate'] is None
+
+
+def test_long_final_line_without_newline(tmp_path):
+    data = b'x'*10000
+    path = tmp_path / 'long.txt'
+    path.write_bytes(data)
+    receipt = {}
+    assert list(iter_rows(path, hashlib.md5(data).hexdigest(), receipt)) == [(1, None)]
+    assert receipt['actual_md5'] == hashlib.md5(data).hexdigest()
+    assert receipt['complete'] is True and receipt['parse_failures'] == 1
