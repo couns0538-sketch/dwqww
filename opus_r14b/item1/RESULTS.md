@@ -323,8 +323,9 @@ The watcher (C:\o14b\trainer_watch_night.tsv) shows the trainer's mask changing 
 trainer process at 22:34 (pid 13960 -> 11328); the keeper's STATUS names the new run
 `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s31`. Its command line (read 22:59) keeps everything the loader sees:
 `F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack`, the 013-014 holdout for validation, K32H3^, L1 1024,
-batch 16384, `--num-workers 4 --threads 2`, epoch 152.5M, `--no-filtered --no-wld-filtered`; only seed (5124),
-lr (0.000875) and gamma (0.72) differ. The trainer files are still the installer's base (264 / 264 in the 22:35
+batch 16384, `--num-workers 4 --threads 2`, epoch 152.5M, `--no-filtered --no-wld-filtered`; only the seed differs
+(5124 vs 5117) [corrected in bug hunt #11: this 22:59 text also named lr 0.000875 and gamma 0.72 as different;
+they are the same as the request's command - the run names share g072 / lam10]. The trainer files are still the installer's base (264 / 264 in the 22:35
 fresh-clone rehearsal), so GPU_REQUEST.md and HANDOFF.md apply to the new line unchanged (GPU_REQUEST.md notes it).
 GPU_REQUEST.md's pre-checks run as written (23:02, read-only): 1 finds the live trainer (2 processes match
 `nnue-pytorch-amd\train.py`, pids 8308 / 11328) -> "do not start", as it must while the npt line trains; 2 RAM free
@@ -372,3 +373,18 @@ the probe ABBA's MEAN (median 1.094, CI 1.0439-1.1056, logs/probe_pgo/abba_r13_v
 635,344 rows/h = 999,921 rows over the 5,665.77 s of labelling summed from the 100 shard summaries (the run's own
 wall-clock status: 635,313), both 78.7 h for 50M (item 2 logs/pgo_full_1M_rate.txt, new); proof md5s, rows, games
 and splits are in pgo_full_1M.log / conv_full_1M.txt.
+
+## Bug hunt #11 (00:08-00:09 by the PC clock; self-review, NOT independent)
+Scope (written 23:24, before the hunt): (a) superseded statements in this folder still marked as superseded; (b)
+GPU_REQUEST.md's command against the live trainer's current command line; (c) the lock exe and the four candidate
+exes Couns asked to keep (20:53) still in place with their sha256 (read-only).
+- (c) PASS (00:08): forge_ltopgo_x_al1s198_v23.exe fd3a5190... in forge_push\bin and in the lock folder;
+  forge_ltopgo_syz_pc1.exe 150374ff..., forge_ltopgo_sfs.exe 029d58e8..., forge_ltopgo_speed2_de20653c.exe
+  de20653c..., forge_data_probe.exe (PGO) 08299f9f... - file times unchanged (10-30 / 11-01 / 11-02).
+- (b) Finding H11-1 (mine, documents only): the live line (pid 11328, run ..._w4_s31) differs from the request's
+  command only in `--seed` (5124 vs 5117); every other argument is the same (features, L1, batch, workers, threads,
+  epoch, validation set and size, lr 0.000875, gamma 0.72, lambda 1.0, both binpacks, --no-filtered
+  --no-wld-filtered). My 22:59 note in GPU_REQUEST.md and in this file had also called lr and gamma different - an
+  unchecked claim. Fixed in both places (the RESULTS sentence keeps a correction marker); no other document carried it.
+- (a) PASS: the "starved" wording of 21:20 is corrected in its section; HANDOFF.md names the superseded b4 files in
+  D:\o14b\npt as superseded; counts in HANDOFF.md and GPU_REQUEST.md are current.
