@@ -168,3 +168,37 @@ re-made against the frozen file from git (5c88438f): the labelling / resume path
   test sets). Evidence: logs/probe_pgo/ (identity_runs.txt, abba_r13_vs_pgo.txt, abba_r13_vs_lto.txt, load files).
 - Still to show (post_chain.sh, running): a second PGO build gives the same sha256; relabel2 run end to end with the
   PGO probe reproduces the proof's labels.tsv prefix byte for byte.
+
+## Measurements after the proof (18:06-18:25, `post_chain.sh`; logs/measure/post_chain.log with the load before every step)
+Machine fact found on the way: CPUs 2-3 (the job's mask 0xC) are the two SMT threads of ONE physical core (AMD Ryzen 7
+9850X3D, 8 cores / 16 threads, siblings (0,1) (2,3) ...). Both proof runs shared that core. During these runs one of
+Astra's BelowNormal jobs (affinity all CPUs) used about one core somewhere on the PC.
+| measurement | result |
+|---|---|
+| PGO build reproducible | second build (C:\o14b\pgo3) PGO exe sha256 08299f9f... = the first (C:\o14b\pgo2) |
+| 1 vs 2 probe workers, 19,927 rows (forge_selfplay_003, not in the proof), 20k nodes, R13 probe, Idle, mask 0xC, order W1 W2 W2 W1 | W1 372,632 and 373,234 rows/h; W2 622,149 and 615,475 rows/h: **2 workers = 1.66x one worker** (both SMT threads of one core); labels.tsv md5 4939068e... identical in all four (labels do not depend on the worker count) |
+| node counts, 1 worker, 9,929 rows | 5,000 nodes: 1,194,436 rows/h (mean nodes 4,999); 10,000 nodes: 736,776 rows/h (9,997); 20,000 nodes (W1 above): ~373,000 rows/h |
+| prepare, 200,000 rows, order 1 2 2 1 (code 63be772c) | `--jobs 1` 36.5 s / 38.3 s; `--jobs 2` 12.6 s / 12.6 s; rows.tsv identical in all four; the two workers seen at Idle with affinity 0xC. The 2.96x of two workers on one physical core pointed at waste in the one-process path: see R27 |
+| end to end with the PGO probe: relabel2 prepare (proof inputs, `--rows 20000`) + run (2 workers) + assemble | **labels.tsv (19,945 rows) byte-identical to the first 19,945 rows of the proof's labels.tsv (R13 probe)** |
+| item 1: what the trainer gets, old loader w4 (the live layout) vs fast loader, 2,000 batches = 32.8M positions each | total-variation distance piece count 0.00048, side to move 0.00027, outcome 0.00007, queen bucket 0.00013, score (100-cp bins) 0.00057; mean score difference -1.17 SE: the same distribution (recorded in item 1's RESULTS too) |
+
+## R27 (18:25, found by the measurements): a filesystem call per row in the one-process prepare - fixed
+- The 2.96x of `--jobs 2` on one physical core was too good: the one-process path (`iter_rows`) called
+  `str(p.resolve())` for every row (added with the origin fix; the frozen code and the `--jobs 2` path resolve once
+  per file). `Path.resolve()` costs 76.7 us per call on this PC (20,000 calls: 1.53 s) = 15.3 s per 200,000 rows.
+  Fix: resolve once per file. Output unchanged by construction and checked: 75 / 75 tests, the 1M prepare gives the
+  proof's rows.tsv byte for byte again (87 s now, 196 s before the fix), logs/measure/resolvefix_check.log.
+- Prepare speed, 200,000 rows, order F J1 J2 J2 J1 F, same rows.tsv (f4ba9e93...) in all six
+  (logs/measure/prep_baseline_vs_current.log; nothing else of ours running, load sample in the log):
+  | code | run 1 | run 2 | rows / hour (mean) | vs the frozen proof code |
+  |---|---|---|---|---|
+  | frozen proof code 5c88438f (baseline, one process) | 16.0 s | 16.6 s | 44.2M | 1.00 |
+  | current bf714c67, `--jobs 1` | 16.7 s | 17.0 s | 42.7M | 0.97 (the added input checks: hashing twice, FEN text check) |
+  | current bf714c67, `--jobs 2` | 10.8 s | 11.1 s | 65.7M | **1.49x** |
+
+## R28 (18:25, found in the same step): test_relabel2.sh run from its own folder tested nothing
+- The script changed into the scratch folder before locating itself from `$0`; called as `bash test_relabel2.sh DIR`
+  (relative `$0`) it looked for relabel2.py in the scratch folder, and 32 "expect exit 2" cases passed for the wrong
+  reason (python: file not found = exit 2). Fix: locate first, then `cd`; refuse to start when relabel2.py, python or
+  the self-play sample is missing. Relative call now 75 / 75 PASS (logs/test_relabel2_branch_r27_r28.log); missing
+  input -> "not found: ..." exit 2. The other R14-B scripts locate themselves before any `cd` (checked).

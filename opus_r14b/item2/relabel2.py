@@ -181,12 +181,13 @@ def iter_rows(a, sources, counters, origins):
     last_key = None  # normalized input: (source, source_row) increases across all files, so no row comes twice
     for si, src in enumerate(sources):
         p = Path(src["path"])
+        path, file_origin = str(p), str(p.resolve())  # once per file: resolve() costs ~77 us per call on this PC
         src["read"] = True
         with open(p, encoding="utf-8-sig") as fh:
             for row_no, line in enumerate(fh, 1):
                 counters["read"] += 1
                 try:
-                    r, token = parse_line(bool(a.selfplay), str(p), row_no, line)
+                    r, token = parse_line(bool(a.selfplay), path, row_no, line)
                     if not a.selfplay:
                         key = (r["source"], r["source_row"])
                         if last_key is not None and key <= last_key:
@@ -201,7 +202,7 @@ def iter_rows(a, sources, counters, origins):
                     counters["terminal"] += 1
                     continue
                 r["stats"] = board_stats(r["fen"])
-                name, origin_row = (str(p.resolve()), row_no) if a.selfplay else (r["source"], r["source_row"])
+                name, origin_row = (file_origin, row_no) if a.selfplay else (r["source"], r["source_row"])
                 if name not in origin_index:
                     origin_index[name] = len(origins)
                     origins.append(name)

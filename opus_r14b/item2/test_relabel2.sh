@@ -5,13 +5,15 @@
 # 20000 for the kill / resume pair) on CPUs 2-3 at Idle. One PASS/FAIL line per case; exit 0 = all PASS.
 set -u
 d=${1:?scratch dir}
-[ -e "$d" ] && { echo "refusing existing $d" >&2; exit 2; }
-mkdir -p "$d" && cd "$d" || exit 1
-PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
-here=$(cd "$(dirname "$0")" && pwd)
+here=$(cd "$(dirname "$0")" && pwd)   # before the cd below: $0 may be relative
 R=$here/relabel2.py
+PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 P=${PROBE:-'C:\o13\p5\forge_data_probe.exe'}
 src=${SRC:-/d/grok-pc-data/selfplay_out/forge_selfplay_001.txt}
+# a missing tool or input would make every "expect exit 2" case pass for the wrong reason
+for f in "$R" "$PY" "$src"; do [ -f "$f" ] || { echo "not found: $f" >&2; exit 2; }; done
+[ -e "$d" ] && { echo "refusing existing $d" >&2; exit 2; }
+mkdir -p "$d" && cd "$d" || exit 1
 fails=0
 expect() {  # expect CODE NAME CMD...
   local want=$1 name=$2; shift 2
