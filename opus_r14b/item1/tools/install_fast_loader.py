@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt trainer (own code).
 
-usage: python -I -B install_fast_loader.py TRAINER_COPY_DIR [--check]
+usage: python -I -B install_fast_loader.py TRAINER_COPY_DIR [--check] [--loader-dll PATH]
 Edits config.py (new option `fast_loader`, default False) and train.py (make_data_loaders picks
 forge_fastloader.FastSparseBatchDataset for the training and the validation stream; start-up line with the DLL path,
 sha256 and version). Exact anchors, CRLF/LF kept as found; refuses a trainer that is already patched or whose anchor
 text differs (exit 2). --check only reports. Never run it on the live trainer folder: the queue's trainer is not ours
 to change; Engine NNUE / QA decide. The equivalent diff is patches/0005-fast-loader-switch.patch.
-The loader files (forge_fastloader.py + forge_fastloader.dll) go next to train.py or into FORGE_FAST_LOADER_DIR.
+The loader files (forge_fastloader.py + forge_fastloader.dll) go next to train.py or into FORGE_FAST_LOADER_DIR;
+--loader-dll PATH copies that DLL and this branch's fastloader/forge_fastloader.py next to train.py (never over an
+existing file) and prints both sha256 values (the tested DLL b5 is 9eb29b7d...; fastloader/build_fastloader.sh
+rebuilds it byte for byte).
 """
 
+import hashlib
+import shutil
 import sys
 from pathlib import Path
 
@@ -92,18 +97,51 @@ def patch(path: Path, pairs, check: bool) -> bool:
     return True
 
 
+def copy_loader(root: Path, dll: Path, check: bool) -> bool:
+    """--loader-dll: the DLL and this branch's forge_fastloader.py next to train.py; refuses to overwrite."""
+    py = Path(__file__).resolve().parent.parent / "fastloader" / "forge_fastloader.py"
+    pairs = [(dll, root / "forge_fastloader.dll"), (py, root / "forge_fastloader.py")]
+    for src, dst in pairs:
+        if not src.is_file():
+            print(f"{src}: not found")
+            return False
+        if dst.exists():
+            print(f"{dst}: exists, not overwritten")
+            return False
+    for src, dst in pairs:
+        digest = hashlib.sha256(src.read_bytes()).hexdigest()
+        if check:
+            print(f"would copy {src} -> {dst} (sha256 {digest})")
+        else:
+            shutil.copyfile(src, dst)
+            print(f"copied {src} -> {dst} (sha256 {digest})")
+    return True
+
+
 def main() -> int:
-    if len(sys.argv) < 2:
+    args = sys.argv[1:]
+    if not args or args[0].startswith("-"):
         print(__doc__)
         return 2
-    root = Path(sys.argv[1])
-    check = "--check" in sys.argv[2:]
+    root = Path(args[0])
+    check = "--check" in args[1:]
+    dll = None
+    if "--loader-dll" in args[1:]:
+        i = args.index("--loader-dll")
+        if i + 1 >= len(args):
+            print("--loader-dll needs a path")
+            return 2
+        dll = Path(args[i + 1])
     ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
+    if ok and dll is not None:
+        ok = copy_loader(root, dll, True)
     if not ok:
         return 2
     if not check:
         patch(root / "config.py", CONFIG, False)
         patch(root / "train.py", TRAIN, False)
+        if dll is not None:
+            copy_loader(root, dll, False)
     return 0
 
 
