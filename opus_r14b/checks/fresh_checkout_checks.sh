@@ -63,7 +63,8 @@ grep -h "fast loader:" "$base/l1_accept/ds_fast.log" | head -1
 echo "=== 5 adoption rehearsal (HANDOFF steps 1-3b) on a fresh copy of the live trainer tree $(date '+%T')"
 npt=$base/npt_copy
 mkdir -p "$npt"
-robocopy 'F:\opus_scratch\r6\nnue-pytorch-amd' "$(cygpath -w "$npt")" /E /NFL /NDL /NJH /NJS /NP > "$base/robocopy.log" 2>&1
+npt_w=$(cygpath -w "$npt")  # Git Bash rewrites /E into E:/ (robocopy exit 16): no path conversion for this call
+MSYS_NO_PATHCONV=1 robocopy 'F:\opus_scratch\r6\nnue-pytorch-amd' "$npt_w" /E /NFL /NDL /NJH /NJS /NP > "$base/robocopy.log" 2>&1
 rc=$?   # robocopy: 0-7 = success
 [ $rc -lt 8 ] || { echo "FAIL robocopy exit $rc"; fails=$((fails + 1)); }
 (cd "$npt" && sha256sum -c "$l1/trainer_manifest_b2614500.sha256" 2>/dev/null | grep -vc ': OK$' > "$base/manifest_bad.txt")
