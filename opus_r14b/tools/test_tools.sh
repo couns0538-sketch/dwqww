@@ -117,5 +117,20 @@ check lowrun-existing-out-refused 127 $? "$S/lr_keep.out" 'exists \(never overwr
 [ "$(cat "$S/lr_keep.txt")" = KEEP ] || { echo "FAIL lowrun-existing-out changed the file"; fail=1; }
 powershell -NoProfile -File "$LR" -Mask 0xC -Exe "$CMD" -ArgLine "/c echo ran" -Out "$(cygpath -w "$S/lr_ok.txt")" > "$S/lr_ok.out" 2>&1
 check lowrun-runs 0 $? "$S/lr_ok.txt" '^ran'
+# final bug hunt (04:15): wrong arguments of the other tools end with exit 2 and one line, never exit 0 / 1 / a traceback
+printf 'cites deadbeef01\n' > "$S/hs_doc.md"
+"$PY" -I -B "$here/hash_sweep.py" --docs "$S/hs_doc.md" --files "$S/no_such_dir" > "$S/hs_files.out" 2>&1
+check hash-sweep-missing-files 2 $? "$S/hs_files.out" '--files .*: not found'   # it used to hash nothing: every hash "unmatched"
+"$PY" -I -B "$here/../checks/analyze_watch.py" > "$S/aw_noargs.out" 2>&1
+check analyze-watch-no-arguments 2 $? "$S/aw_noargs.out" 'analyze_watch.py WATCH.tsv'
+"$PY" -I -B "$here/gpu_util_stats.py" --csv "$S/no_such.csv" > "$S/gpu_nocsv.out" 2>&1
+check gpu-util-missing-csv 2 $? "$S/gpu_nocsv.out" 'no such file'
+bash "$here/../checks/trainer_watch.sh" "$S/tw.tsv" abc > "$S/tw_bad.out" 2>&1
+check trainer-watch-bad-until 2 $? "$S/tw_bad.out" 'UNTIL_EPOCH must be seconds'   # it used to write a header and exit 0
+[ ! -e "$S/tw.tsv" ] || { echo "FAIL trainer-watch-bad-until wrote $S/tw.tsv"; fail=1; }
+powershell -NoProfile -File "$(cygpath -w "$here/pc_gate.ps1")" -Drive X -Quiet > "$S/gate_drive.out" 2>&1
+check pc-gate-unknown-drive 2 $? "$S/gate_drive.out" 'must be C, D or F'   # it used to say "wait" (exit 1) forever
+"$PY" -I -B "$here/commit_span.py" --gap 0 origin/opus-r14b-status > "$S/span_gap.out" 2>&1
+check commit-span-gap-zero 2 $? "$S/span_gap.out" 'gap must be at least 1'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail

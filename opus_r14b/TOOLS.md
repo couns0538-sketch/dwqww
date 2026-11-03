@@ -222,3 +222,36 @@ H15-7, found by re-running the hash sweep (02:35): two md5s cited in item 2's hu
 train.txt / labels.tsv of a scratch job under `C:/o14b/dir with spaces 2320/`) matched no repository file, so step 4
 of final_checks.sh would have failed at the end of the job (its dry runs were before hunt #10). Recomputed from the
 scratch files (equal) and added to the allow list with that reason; the sweep now reports 0 unmatched tokens.
+
+### Final 1-hour bug hunt (04:13-05:15 by the PC clock; self-review, NOT independent)
+Scope (written 03:36, before the hunt): (a) this branch's own tools with wrong arguments and broken input - the
+classes hunts #13-#16 found elsewhere; (b) the adoption rehearsal from fresh clones again, since hunts #15-#16
+changed lowrun.ps1 and the acceptance tools after its last run (22:35); (c) a second claims audit of the reports.
+
+(a) 26 calls of commit_span.py, hash_sweep.py, analyze_watch.py, gpu_util_stats.py, trainer_watch.sh and pc_gate.ps1
+(04:14); 12 were wrong, and reading pc_gate.ps1 found two more (a CPU that does not exist, the C: floor):
+| # | finding | fix |
+|---|---|---|
+| F-1 | `pc_gate.ps1 -Cpus 99` (a CPU this PC does not have) gave no samples, an average of 0 and so **"ok" whatever the load**; an unknown `-Drive` or a CPU list that is not numbers gave exit 1 = "wait" forever | exit 2 with one line for a drive other than C / D / F and for any `-Cpus` entry that is not a CPU of this PC |
+| F-2 | pc_gate.ps1 still applied the R13 floor C: >= 30 GB; Couns's rule for R14-B (14:40) is 50 | C: floor 50 (header and check) |
+| F-3 | `trainer_watch.sh OUT abc` (or an UNTIL_EPOCH in the past) wrote the header and exited 0: a watcher that silently records nothing | exit 2 before anything is written |
+| F-4 | `hash_sweep.py --files <misspelt path>` hashed nothing, so every cited hash looked unmatched (exit 1, as if the documents were wrong); a missing doc, allow file or repo: tracebacks | missing paths and a failing `git rev-list` are exit 2 with one line |
+| F-5 | analyze_watch.py without arguments or with a missing file, gpu_util_stats.py with a missing CSV: tracebacks | one line, exit 2 (gpu_util_stats.py's output is unchanged: the running watcher parses it - checked with the watcher's own sed) |
+| F-6 | `commit_span.py --gap -5` made every interval a "pause" | `--gap` must be >= 1 |
+
+Kept: commit_span.py with an unknown branch or a date git cannot read ends with exit 2 and git's own message.
+Valid use unchanged (04:17-04:22): the watcher's GPU columns from the fixed tool ("28.9 28.0"), analyze_watch.py on
+the night log (8 regimes), the hash sweep (0 unmatched), pc_gate on C: (prints, exit 1 at 93 % total CPU while the
+fresh-clone checks ran), commit_span.py (origin/opus-r14b-status: 120 commits 12:19 -> 03:36), trainer_watch.sh with a
+valid end (header + one sample, exit 0). `test_tools.sh` **37 / 37** (six new cases, 04:24).
+
+(b) `checks/fresh_checkout_checks.sh /c/o14b/fresh_0415` (04:13:51-04:17:25, BelowNormal on CPUs 2-3, the trainer on
+CPUs 0-1): **0 failures** - relabel suite from the clone 157 / 0, LTO / PGO probes rebuilt = 565ddbf8... / 08299f9f...,
+DLL rebuilt = b5 9eb29b7d..., forge_fastloader.py 39af47b0..., the loader self-test all passed, acceptance with the
+rebuilt DLL 261 / 261 identical (old 28 s, fast 5 s), and the HANDOFF steps 1-3b on a fresh copy of the live trainer
+tree: manifest 264 / 264, anchors OK, patched, both files copied with their sha256, acceptance 261 / 261 identical.
+So the tools changed in hunts #15-#16 (lowrun.ps1, the strict compare) work end to end from fresh clones.
+
+Seen during the hunt (not Opus's doing): at 04:13 D: had 48.88 GB free, under Couns's 50 GB floor (Opus's D:\o14b has
+been 3.7 GB since 22:07; tonight's scratch is on C:); at 04:22 51.97 GB again. Nothing of Opus's was moved or deleted;
+D: writes stayed at git commits.

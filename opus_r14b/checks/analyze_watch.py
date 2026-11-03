@@ -41,7 +41,12 @@ def describe(name, rows):
 
 def main(path):
     rows = []
-    for line in open(path, encoding="utf-8").read().splitlines()[1:]:
+    try:  # a missing or unreadable file was a traceback (final bug hunt, 04:15)
+        lines = open(path, encoding="utf-8").read().splitlines()
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"analyze_watch: {path}: cannot read ({e})", file=sys.stderr)
+        return 2
+    for line in lines[1:]:
         f = line.split("\t")
         if len(f) < 9 or f[1] == "none" or f[7] in ("na", ""):
             continue
@@ -63,4 +68,7 @@ def main(path):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
+        print(__doc__)
+        sys.exit(2)
     sys.exit(main(sys.argv[1]))

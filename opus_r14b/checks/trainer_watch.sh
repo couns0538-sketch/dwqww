@@ -5,6 +5,10 @@
 set -u
 out=${1:?out}; until=${2:?until epoch}
 [ -e "$out" ] && { echo "refusing existing $out"; exit 2; }
+# final bug hunt (04:15): a non-number or past UNTIL_EPOCH used to write the header only and exit 0 - a watcher that
+# silently records nothing
+case $until in '' | *[!0-9]*) echo "UNTIL_EPOCH must be seconds since 1970 (date -d 'YYYY-MM-DD HH:MM' +%s), not '$until'" >&2; exit 2 ;; esac
+[ "$until" -gt "$(date +%s)" ] || { echo "UNTIL_EPOCH $until is not in the future: nothing to watch" >&2; exit 2; }
 T=/d/grok-pc-data/dwqww/.claude/worktrees/o14b-status/opus_r14b/tools
 PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 printf 'time\ttrainer_pid\tmask\tpriority\ttrainer_cores\tothers_on_mask_cores\ttop_other\tgpu_util_mean_5min\tgpu_util_p50\n' > "$out"

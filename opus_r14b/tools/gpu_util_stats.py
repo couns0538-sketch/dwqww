@@ -67,6 +67,9 @@ def main():
     ap.add_argument("--by-hour", action="store_true")
     ap.add_argument("--min-samples", type=int, default=10)
     a = ap.parse_args()
+    if not os.path.isfile(a.csv):  # was a traceback (final bug hunt, 04:15)
+        print(f"gpu_util_stats: {a.csv}: no such file (the keeper's HWiNFO log; --csv)", file=sys.stderr)
+        return 2
     size = os.path.getsize(a.csv)
     with open(a.csv, "rb") as fh:
         header = [h.strip().strip('"') for h in fh.readline().decode("latin-1").rstrip("\r\n").split(",")]

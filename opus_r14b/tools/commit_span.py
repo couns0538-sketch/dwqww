@@ -48,6 +48,8 @@ def main():
     ap.add_argument("--until")
     ap.add_argument("--gap", type=int, default=30, help="report pauses longer than this many minutes")
     a = ap.parse_args()
+    if a.gap < 1:  # a gap of 0 or less made every interval between two commits a "pause" (final bug hunt, 04:15)
+        ap.error("--gap must be at least 1 minute")
     allc = []
     print(f"{'branch':<34} {'commits':>7}  {'first':<11}  {'last':<11}  span")
     for b in a.branches:

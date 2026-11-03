@@ -7,9 +7,10 @@ description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (31 checks, ~40 s,
-must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh, engine_bisect.sh's search, gpu_util_stats.py and
-lowrun.ps1's refusals).
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (37 checks, ~40 s,
+must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh, engine_bisect.sh's search, gpu_util_stats.py,
+lowrun.ps1's refusals, and wrong arguments of hash_sweep.py, analyze_watch.py, trainer_watch.sh, pc_gate.ps1 and
+commit_span.py - exit 2 with one line, never a traceback or a silent exit 0 / "wait": final bug hunt 04:15).
 
 ## opus.sh - one entry point (for Couns and Opus)
 `bash $T/opus.sh help` lists: `status [--ci]`, `lint [PATH...]` (default: every R14-B branch folder + the skills),
@@ -101,7 +102,9 @@ means 40-56 %. Use the same command for a GPU window with `--fast-loader` (item 
   first / last commit and span per branch, then one merged timeline with every pause > `--gap` minutes and commits per
   hour - the time figures for a report come from here, never from memory (memory rule "measure time from commits").
 - `cpu_users.ps1 -Mask 0xC -Seconds 5`: processes that used CPUs of the mask in the window, busiest first.
-- `pc_gate.ps1` (R13): load / RAM / disk gate before a heavy step.
+- `pc_gate.ps1` (R13): load / RAM / disk gate before a heavy step (exit 0 go, 1 wait, 2 bad arguments). Floors: C: /
+  D: / F: >= 50 GB (C: was 30 until the final bug hunt: Couns's R14-B rule is 50); `-Drive` must be C, D or F and
+  every `-Cpus` number a CPU of this PC (a CPU that does not exist used to make the CPU check pass with 0 %).
 - `lowrun.ps1 -Mask 0xC -Priority BelowNormal|Idle -Exe <prog> -ArgLine "<args>" [-In/-Out/-Err files]`: run one
   program (and its children) pinned at low priority; exit code = the program's, 127 when it did not start. Refuses
   (127, program not started) a mask that is not hexadecimal or names no CPU - before bug hunt #15 it then ran the

@@ -34,6 +34,15 @@ def main() -> int:
     ap.add_argument("--repo")
     ap.add_argument("--allow")
     a = ap.parse_args()
+    # final bug hunt (04:15): a missing doc / allow file / repo was a traceback, and a misspelt --files path hashed
+    # nothing, so every cited hash looked unmatched (exit 1, as if the documents were wrong)
+    problems = [f"--docs {d}: not a file" for d in a.docs if not os.path.isfile(d)]
+    problems += [f"--files {f}: not found" for f in a.files if not os.path.exists(f)]
+    if a.allow and not os.path.isfile(a.allow):
+        problems.append(f"--allow {a.allow}: not a file")
+    if problems:
+        print("hash_sweep: " + "\nhash_sweep: ".join(problems), file=sys.stderr)
+        return 2
     allowed = {}
     if a.allow:
         with open(a.allow, encoding="utf-8") as fh:
@@ -54,7 +63,10 @@ def main() -> int:
             known.setdefault(m, f"md5 {p}")
     commits = []
     if a.repo:
-        out = subprocess.run(["git", "-C", a.repo, "rev-list", "--all"], capture_output=True, text=True, check=True)
+        out = subprocess.run(["git", "-C", a.repo, "rev-list", "--all"], capture_output=True, text=True)
+        if out.returncode:
+            print(f"hash_sweep: --repo {a.repo}: git rev-list failed: {out.stderr.strip()[:200]}", file=sys.stderr)
+            return 2
         commits = out.stdout.split()
     print(f"{len(known) // 2} files hashed, {len(commits)} commits")
     unmatched, kinds = [], {"file": 0, "commit": 0, "allowed": 0}
