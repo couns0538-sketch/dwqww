@@ -126,3 +126,16 @@ that never started (found while converting the 1M output), a lock export that ne
 robocopy call broken by Git Bash path conversion (the verify chain's fresh-clone step).
 Not built: a gate-status reader - the gate folders carry known traps (stale names, mixed opponents / concurrency, see
 forge-gate-stats) and a quick reader could report wrong numbers.
+
+### Bug hunt #5 (from 21:31 by the PC clock; self-review, NOT independent; end time below)
+| # | finding | fix | check |
+|---|---|---|---|
+| H5-1 | gpu_util_stats.py: `--from` after `--to` only said "0 rows" | clear error, exit 2 | edge cases run |
+| H5-2 | gpu_util_stats.py: an empty window did not say what the file covers | the header line prints the file's first and last row times | edge cases; test expects the span |
+| H5-3 | my own claim "the trainer's CPU side is starved" (item 1 RESULTS, report, status, memory) went further than the data: Windows counters at 21:32 showed the trainer's CPUs 86-90 % busy with 10-14 % idle left | wording corrected everywhere to "competes for its CPUs, not purely starved"; the GPU window decides | per-CPU counters, 5 x 2 s |
+| H5-4 | doc_lint did not see text right after a table, which GitHub renders as one more table row: 11 such places in the R14-B documents (incl. the new 50M runbook) | new rule (a blank line or a block start must follow a table); the 11 places fixed | test_tools.sh 26 / 26; all documents 0 findings |
+| H5-5 | opus_status.sh's "own work" list did not know the tools written tonight, so it hid the overnight watcher | pattern extended (watcher, fuzz, engine tools, sweep, scratch exes under C:\o14b) | the watcher shows up |
+
+Read and kept (no finding): fl_distribution.py (bins, chi-square dof, SE over batch means), label_stats.py (result
+spellings, White's-view sign), fl_dataset_equal.py (every tensor hashed by dtype / shape / bytes, batch count
+required), fl_fuzz.py's verdict logic, the 50M runbook's commands (re-read; prepare already run as written).

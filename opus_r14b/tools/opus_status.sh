@@ -28,7 +28,7 @@ for d in $wt/$glob; do
 done
 echo "== own work (python / probes / builds / launchers)"
 powershell -NoProfile -Command "
-\$pat = 'relabel2|forge_data_probe|fl_equal|fl_abba|fl_dataset|lm_det|train\.py.*o14b|g\+\+|lowrun\.ps1|probe_bench|measure_rates|bridge_check|fresh_checkout|verify_chain|build_probe|build_fastloader'
+\$pat = 'relabel2|forge_data_probe|fl_equal|fl_abba|fl_dataset|fl_fuzz|lm_det|train\.py.*o14b|g\+\+|lowrun\.ps1|probe_bench|measure_rates|bridge_check|fresh_checkout|verify_chain|refreeze|build_probe|build_fastloader|trainer_watch|gpu_util_stats|engine_fresh_check|engine_bisect|hash_sweep|abba\.py|test_tools|forge_check\.exe|o14b\\\\'
 Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match \$pat -and \$_.CommandLine -notmatch 'Get-CimInstance|shell-snapshots' } | ForEach-Object {
   \$p = Get-Process -Id \$_.ProcessId -ErrorAction SilentlyContinue
   \$c = (\$_.CommandLine -replace '\s+', ' ' -replace '\"', '' -replace '[A-Za-z]:[/\\\\]grok-pc-data[/\\\\]dwqww[/\\\\]\.claude[/\\\\]worktrees[/\\\\]', '<wt>/' -replace '\S*python\.exe', 'py')
