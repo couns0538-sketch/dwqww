@@ -141,7 +141,7 @@ difference).
   API sets (api-ms-win-crt-*), and Python loads it and reads its version with PATH = `C:\WINDOWS\system32;C:\WINDOWS`
   only (the trainer started by the queue does not have MSYS2 / Git folders on its PATH).
 
-## Bug hunt #2 (19:41-20:01; self-review, NOT independent)
+## Bug hunt #2 (19:41-19:47 by the PC clock; self-review, NOT independent)
 - H2-3 installer: the validation pass of `--loader-dll` printed "would copy" in a real install -> silent unless
   --check. Check / install / second install on fresh copies of the live config.py + train.py: OK / patched + copied
   (9eb29b7d..., 39af47b0...) / exit 2; the fresh install equals the tested trainer copy byte for byte.
