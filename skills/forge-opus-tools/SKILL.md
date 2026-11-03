@@ -7,7 +7,7 @@ description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (25 checks, ~40 s,
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (26 checks, ~40 s,
 must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
 
 ## opus.sh - one entry point (for Couns and Opus)
@@ -49,7 +49,7 @@ $PY -I -B $T/abba.py --out C:/o14b/<new> --a "CMD A" --b "CMD B" --pairs 10 \
 / 2 bad args. Checks: `control` (bytes < 0x20 except TAB/LF, lone CR), `crlf` (in .sh .py .ps1 .cpp .md .yml .tsv
 .sha256), `utf8` (not UTF-8, U+FFFD, BOM before .sh/.py), `drive` (a drive letter glued to a name: eaten
 backslashes), `conflict` (merge markers), `table` (GitHub table rows with more / fewer cells than the header: a `|`
-inside `code` still splits a cell unless written `\|`), `link` (relative Markdown links to missing files). A line
+inside `code` still splits a cell unless written `|`; text right after a table without a blank line becomes a row), `link`\|`), `link` (relative Markdown links to missing files). A line
 containing `doc_lint: ignore` skips the drive / U+FFFD / link checks. logs/ folders are skipped unless asked.
 Run it on every branch folder and on `.claude/skills` before a push of documents (it found a broken RESULTS table
 on its first run, 2026-11-02).

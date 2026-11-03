@@ -55,6 +55,7 @@
 | app | sccache or ccache | not installed | faster engine / probe rebuilds |
 | CI | a GitHub Actions Windows runner | not used | MinGW builds + CTest on Windows (CI is Linux-only today) |
 | app | OpenBench, Ordo | not installed | Fishtest-style distributed SPRT, Elo from PGNs, if more than fastchess is wanted |
+
 Check every licence before installing (R14-B rule: no network installs of GPL tools; many chess tools are GPL).
 
 ## Own tools for Couns and Opus (Couns 19:46: "create tools scripts that you and i can use"; `opus_r14b/tools/`)
@@ -72,7 +73,7 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 | commit_span.py | `python -I -B commit_span.py --repo REPO --since "..." origin/<branch>...` | time per branch and pauses from commit times (for reports; no guessed hours) |
 | cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
 | engine_bisect.sh | `bash engine_bisect.sh GOOD BAD NEW_DIR [--depth 13]` | first commit that changed bench nodes (fresh export + lock-recipe build per candidate; skips failed builds; any predicate with --test) |
-| test_tools.sh | `bash test_tools.sh NEW_DIR` | 25 checks of abba.py, doc_lint.py, opus.sh and the bisect search (exit codes and output lines) |
+| test_tools.sh | `bash test_tools.sh NEW_DIR` | 26 checks of abba.py, doc_lint.py, opus.sh and the bisect search (exit codes and output lines) |
 
 ### Review R14B-T-1 (20:00-20:05 PC clock; structured self-review, NOT independent; no sub-agents)
 Reviewed: abba.py, doc_lint.py, engine_fresh_check.sh, commit_span.py, opus_status.sh at opus-r14b-status 6fc27230.
@@ -115,7 +116,7 @@ cc7f28dd...) on all three branches; engine_fresh_check.sh and engine_bisect.sh r
 
 ### Tools block result (Couns 19:46: "focus 2h on that"; 19:47-21:17 by the commit times, then back to the deliverables)
 Built and tested: opus.sh (entry point), opus_status.sh, abba.py, doc_lint.py, engine_fresh_check.sh, engine_bisect.sh,
-commit_span.py, gpu_util_stats.py, test_tools.sh (25 checks, ALL PASS), and in `opus_r14b/checks/` verify_chain.sh,
+commit_span.py, gpu_util_stats.py, test_tools.sh (26 checks, ALL PASS), and in `opus_r14b/checks/` verify_chain.sh,
 fresh_checkout_checks.sh, refreeze.sh, hash_sweep_r14b.sh; lowrun.ps1 fixed. Validated on real data, not only on
 fixtures: engine builds of the lock and an R12 branch (ALL OK), a real bisect and a planted-change bisect, the verify
 chain and refreeze on the frozen relabel code, a 6-hour GPU baseline from the keeper's log.

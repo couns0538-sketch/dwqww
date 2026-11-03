@@ -58,6 +58,10 @@ E="$S/lint_edge"; mkdir -p "$E/sub dir"; printf 'x\n' > "$E/sub dir/a b.md"
 printf '[ok](sub%%20dir/a%%20b.md)\n\n| a | b |\n|-|-|\n| 1 | 2 | 3 |\n' > "$E/t.md"
 "$PY" -I -B "$here/doc_lint.py" "$E" > "$S/lint_edge.out" 2>&1
 check doc_lint-one-dash-table-and-encoded-link 1 $? "$S/lint_edge.out" 't.md:5: \[table\] 3 cells' 'doc_lint: 2 files, 1 findings'
+A="$S/lint_after_table"; mkdir -p "$A"
+printf '| a | b |\n|---|---|\n| 1 | 2 |\ntext right after\n\n| c | d |\n|---|---|\n| 3 | 4 |\n- a list item ends it\n' > "$A/t.md"
+"$PY" -I -B "$here/doc_lint.py" "$A" > "$S/lint_after_table.out" 2>&1
+check doc_lint-text-after-table 1 $? "$S/lint_after_table.out" 't.md:4: \[table\] text right after a table' 'doc_lint: 1 files, 1 findings'
 "$PY" -I -B "$here/doc_lint.py" "$S/nonexistent" > "$S/lint_missing.out" 2>&1
 check doc_lint-missing-path 2 $? "$S/lint_missing.out" 'does not exist'
 bash "$here/opus.sh" help > "$S/opus_help.out" 2>&1

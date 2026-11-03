@@ -29,6 +29,7 @@ DRIVE = re.compile(r"(?<![A-Za-z0-9_$%:])[A-Z]:(?=[A-Za-z0-9_]{3,})(?=[A-Z_]*[a-
 DELIM = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")  # GitHub accepts one dash per cell
 CLEAN = bytes(range(32, 256)) + b"\t\n\r"
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
+BLOCK_START = re.compile(r"^\s*([-*+]\s|\d+[.)]\s|#{1,6}\s|```|~~~|>|<|(\*\s*){3,}$|(-\s*){3,}$|(_\s*){3,}$)")
 
 
 def cells(line):
@@ -103,6 +104,11 @@ def lint_file(path, out):
                     hint = "; escape | as \\|" if got > want else ""
                     out.append(f"{shown}:{j + 1}: [table] {got} cells, header {want} ({what}{hint})")
                 j += 1
+            # GitHub ends a table only at a blank line or a new block (list, heading, fence, quote, rule): a plain
+            # text line right after the last row becomes one more row
+            if j < len(lines) and lines[j].strip() and not BLOCK_START.match(lines[j]):
+                out.append(f"{shown}:{j + 1}: [table] text right after a table becomes a table row on GitHub "
+                           f"(add a blank line before it)")
     return len(out) - n0
 
 
