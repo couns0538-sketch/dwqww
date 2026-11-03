@@ -6,9 +6,11 @@ Edits config.py (new option `fast_loader`, default False) and train.py (make_dat
 forge_fastloader.FastSparseBatchDataset for the training and the validation stream; start-up line with the DLL path,
 sha256 and version). Exact anchors, CRLF/LF kept as found; refuses a trainer that is already patched or whose anchor
 text differs (exit 2). --check only reports. Never run it on the live trainer folder: the queue's trainer is not ours
-to change; Engine NNUE / QA decide (it refuses F:\opus_scratch\r6\nnue-pytorch-amd except with --check). Unknown
-arguments and a folder without readable config.py / train.py are exit 2 as well; nothing is changed unless every
-check passed. The equivalent diff is patches/0005-fast-loader-switch.patch.
+to change; Engine NNUE / QA decide (it refuses F:\opus_scratch\r6\nnue-pytorch-amd except with --check). A linked
+copy is refused too, with --check as well: config.py / train.py that are the same file as the live trainer's (by file
+identity, so no spelling hides it), a symbolic link, or a file with more than one hard link - writing it would change
+the other copy (CR fix 2026-11-03). Unknown arguments and a folder without readable config.py / train.py are exit 2 as
+well; nothing is changed unless every check passed. The equivalent diff is patches/0005-fast-loader-switch.patch.
 The loader files (forge_fastloader.py + forge_fastloader.dll) go next to train.py or into FORGE_FAST_LOADER_DIR;
 --loader-dll PATH copies that DLL and this branch's fastloader/forge_fastloader.py next to train.py (never over an
 existing file) and prints both sha256 values (the tested DLL b5 is 9eb29b7d...; fastloader/build_fastloader.sh
@@ -118,6 +120,32 @@ def is_live(root: Path) -> bool:
     return root.resolve() == LIVE_TRAINER.resolve()
 
 
+def linked_files(root: Path) -> list:
+    """config.py / train.py that are not files of their own: the same file as the live trainer's (a hard or symbolic
+    link to it, compared by file identity), any symbolic link, or a file with more than one hard link. Patching such
+    a file writes through the link into the other copy (CR fix 2026-11-03: a hard-linked "copy" patched the live
+    files; shown on a stand-in). One message per file; missing files are left to patch(), which reports them."""
+    problems = []
+    for name in ("config.py", "train.py"):
+        path = root / name
+        try:
+            if os.path.samefile(path, LIVE_TRAINER / name):
+                problems.append(f"{path}: the same file as the live npt trainer's {name} (a linked copy)")
+                continue
+        except OSError:  # one of them missing (another PC, no such file): the checks below decide
+            pass
+        if path.is_symlink():
+            problems.append(f"{path}: a symbolic link (a linked copy)")
+            continue
+        try:
+            links = path.stat().st_nlink
+        except OSError:
+            continue
+        if links > 1:
+            problems.append(f"{path}: {links} hard links to this file (a linked copy): patching it changes every name")
+    return problems
+
+
 def copy_loader(root: Path, dll: Path, check: bool, quiet: bool = False) -> bool:
     """--loader-dll: the DLL and this branch's forge_fastloader.py next to train.py; refuses to overwrite. With check
     it only validates (and says what it would copy unless quiet)."""
@@ -127,8 +155,8 @@ def copy_loader(root: Path, dll: Path, check: bool, quiet: bool = False) -> bool
         if not src.is_file():
             print(f"{src}: not found")
             return False
-        if dst.exists():
-            print(f"{dst}: exists, not overwritten")
+        if os.path.lexists(dst):  # lexists: a dangling symbolic link must not be written through (CR fix 2026-11-03)
+            print(f"{dst}: {'is a symbolic link' if os.path.islink(dst) else 'exists'}, not overwritten")
             return False
     for src, dst in pairs:
         digest = hashlib.sha256(src.read_bytes()).hexdigest()
@@ -159,7 +187,12 @@ def main() -> int:
     if not check and is_live(root):
         print(f"{root} is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here")
         return 2
-    ok = patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
+    linked = [] if check and is_live(root) else linked_files(root)  # --check of the live folder itself stays allowed
+    if linked:
+        print("\n".join(linked) + "\nrefused: install into a real copy (HANDOFF.md step 1), not one made of links; "
+              "nothing was changed")
+        return 2
+    ok =patch(root / "config.py", CONFIG, True) and patch(root / "train.py", TRAIN, True)
     if ok and dll is not None:
         ok = copy_loader(root, dll, True, quiet=not check)  # validate first: nothing is changed unless all is fine
     if not ok:

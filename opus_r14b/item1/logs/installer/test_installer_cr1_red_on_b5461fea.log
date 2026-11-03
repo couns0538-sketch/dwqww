@@ -1,0 +1,43 @@
+start 2026-11-03 10:06:06
+RED run: this commit's test_installer.sh against install_fast_loader.py of b5461fea (blob 06cb322a, copied with fastloader/forge_fastloader.py of b5461fea into C:/o14b/cr_1103/red_kit_inst2)
+PASS check_fresh (exit 0): t1\config.py: anchors OK t1\train.py: anchors OK 
+PASS check_changed_nothing
+PASS misspelt_check (exit 2): unknown or incomplete argument '--chek' install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt trainer (own
+PASS misspelt_check_changed_nothing
+PASS loader_dll_without_path (exit 2): unknown or incomplete argument '--loader-dll' install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt traine
+PASS no_folder (exit 2): no_such_dir\config.py: cannot read it as a trainer file (FileNotFoundError: [Errno 2] No such file or directory: 'no_such_dir\\config.py') 
+PASS not_utf8 (exit 2): t2\config.py: anchors OK t2\train.py: cannot read it as a trainer file (UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in positio
+PASS not_utf8_config_unchanged
+PASS already_patched (exit 2): t3\config.py: already patched 
+PASS already_patched_changed_nothing
+PASS anchor_changed (exit 2): t4\config.py: anchors OK t4\train.py: anchor not found exactly once: '    rank=0,' 
+PASS anchor_changed_changed_nothing
+PASS loader_target_exists (exit 2): t5\config.py: anchors OK t5\train.py: anchors OK t5\forge_fastloader.dll: exists, not overwritten 
+PASS loader_target_exists_changed_nothing
+PASS live_guard_names_live_folder
+PASS live_guard_copy_made
+PASS live_install_refused (exit 2): stand_in is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here 
+PASS live_install_refused_changed_nothing
+PASS live_install_refused_extended_path (exit 2): \\?\C:\o14b\cr_1103\inst_red3\stand_in is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here 
+PASS live_install_refused_other_spelling (exit 2): C:\o14b\cr_1103\inst_red3\STAND_IN is the live npt trainer: install into a COPY (HANDOFF.md step 1); --check is allowed here 
+PASS live_install_spellings_changed_nothing
+PASS linked_made_hard
+PASS linked_made_sym
+FAIL linked_hard_refused: exit 0, wanted 2 with 'the same file as the live npt trainer's config.py': hl\config.py: anchors OK hl\train.py: anchors OK hl\config.py: patched (CRLF) hl\train.py: patched (LF) 
+FAIL linked_sym_refused: exit 2, wanted 2 with 'the same file as the live npt trainer's train.py': sl\config.py: already patched 
+FAIL linked_check_refused: exit 2, wanted 2 with 'the same file as the live npt trainer's config.py': hl\config.py: already patched 
+FAIL linked_hard_refused_by_link_count: exit 2, wanted 2 with '2 hard links': hl\config.py: already patched 
+FAIL linked_sym_refused_by_link_type: exit 2, wanted 2 with 'a symbolic link': sl\config.py: already patched 
+FAIL linked_live_unchanged
+FAIL loader_target_dangling_link: exit 0, wanted 2 with 'forge_fastloader.py: is a symbolic link, not overwritten': t6\config.py: anchors OK t6\train.py: anchors OK t6\config.py: patched (CRLF) t6\train.py: patched (LF) copied F:\opus_scratch\r6\nnue-pytorch-amd\train.py -> t6\forge_fastloader.dll (sha256 bed2d764f193d13d6484cdeb35b952b13a5796fedc5eee9f4c3260c24c73a5c9) copied C:\o14b\cr_1103\red_kit_inst2\f
+FAIL loader_target_dangling_link_wrote_nothing
+PASS live_check_allowed (exit 0): F:\opus_scratch\r6\nnue-pytorch-amd\config.py: anchors OK F:\opus_scratch\r6\nnue-pytorch-amd\train.py: anchors OK 
+PASS install (exit 0): t1\config.py: anchors OK t1\train.py: anchors OK t1\config.py: patched (CRLF) t1\train.py: patched (LF) 
+PASS install_patched_both
+PASS install_line_ends_config.py
+PASS install_line_ends_train.py
+PASS second_install (exit 2): t1\config.py: already patched 
+PASS live_unchanged
+failures: 8
+exit 1
+end 2026-11-03 10:06:09

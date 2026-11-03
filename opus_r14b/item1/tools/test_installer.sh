@@ -4,7 +4,8 @@
 # F:/opus_scratch/r6/nnue-pytorch-amd). The live folder itself is only read (--check) and its two files are hashed
 # before and after; no install command is ever sent to it: the live-folder guard is tested on a copy of the installer
 # whose LIVE_TRAINER names a stand-in folder (so a broken guard would patch only the stand-in). One PASS / FAIL line
-# per case; exit 0 = all PASS. Bug hunt of 2026-11-02 22:2x (a misspelt --check used to install).
+# per case; exit 0 = all PASS. Bug hunt of 2026-11-02 22:2x (a misspelt --check used to install); CR fix 2026-11-03
+# (copies whose trainer files are hard / symbolic links, a dangling link in a loader target's place).
 set -u
 d=${1:?scratch dir}
 live=${2:-F:/opus_scratch/r6/nnue-pytorch-amd}
@@ -68,6 +69,31 @@ check live_install_refused_changed_nothing test "$(cat stand_in/*.py | sha256sum
 expect 2 live_install_refused_extended_path "is the live npt trainer" "$PY" -I -B guard_installer.py '\\?\'"$(cygpath -w "$PWD/stand_in")"
 expect 2 live_install_refused_other_spelling "is the live npt trainer" "$PY" -I -B guard_installer.py "$(cygpath -m "$PWD/STAND_IN")/"
 check live_install_spellings_changed_nothing test "$(cat stand_in/*.py | sha256sum)" = "$sum_si"
+# CR fix 2026-11-03 (item 1): a "copy" whose config.py / train.py are links to the live trainer's files - patching it
+# wrote through the links into the live files. Shown on the stand-in only (a hard link to a real live file would itself
+# change that file's link count, and F: is write-forbidden): hl/ = hard links, sl/ = symbolic links to the stand-in's
+# two files. The guard copy (stand-in = live) must refuse both by file identity, also with --check; the committed
+# installer (live = the real folder) by link count / link type alone, whatever the target.
+mklinks() {  # mklinks hard|sym DIR: both trainer files of DIR as links to the stand-in's
+  mkdir -p "$2" && "$PY" -I -B -c "import os, sys
+kind, d, si = sys.argv[1:]
+for f in ('config.py', 'train.py'):
+    (os.link if kind == 'hard' else os.symlink)(os.path.join(si, f), os.path.join(d, f))" "$1" "$2" "$(cygpath -w "$PWD/stand_in")"
+}
+check linked_made_hard mklinks hard hl
+check linked_made_sym mklinks sym sl
+expect 2 linked_hard_refused "the same file as the live npt trainer's config.py" "$PY" -I -B guard_installer.py hl
+expect 2 linked_sym_refused "the same file as the live npt trainer's train.py" "$PY" -I -B guard_installer.py sl
+expect 2 linked_check_refused "the same file as the live npt trainer's config.py" "$PY" -I -B guard_installer.py hl --check
+expect 2 linked_hard_refused_by_link_count "2 hard links" "$PY" -I -B "$I" hl
+expect 2 linked_sym_refused_by_link_type "a symbolic link" "$PY" -I -B "$I" sl
+check linked_live_unchanged test "$(cat stand_in/config.py stand_in/train.py | sha256sum)" = "$sum_si"
+# a dangling symbolic link in a loader target's place used to pass the "exists" test and be written through
+fresh t6 && "$PY" -I -B -c "import os, sys; os.symlink(os.path.join(sys.argv[1], 'forge_fastloader.py'), sys.argv[2])" \
+  "$(cygpath -w "$PWD/stand_in")" t6/forge_fastloader.py && sum6=$(cat t6/config.py t6/train.py | sha256sum)
+expect 2 loader_target_dangling_link "forge_fastloader.py: is a symbolic link, not overwritten" "$PY" -I -B "$I" t6 --loader-dll "$dll"
+check loader_target_dangling_link_wrote_nothing test ! -e stand_in/forge_fastloader.py -a ! -e t6/forge_fastloader.dll \
+  -a "$(cat t6/config.py t6/train.py | sha256sum)" = "$sum6"
 expect 0 live_check_allowed "anchors OK" "$PY" -I -B "$I" "$live" --check
 expect 0 install "patched" "$PY" -I -B "$I" t1
 check install_patched_both test "$(grep -c fast_loader t1/config.py)" -ge 1 -a "$(grep -c fast_loader t1/train.py)" -ge 1
