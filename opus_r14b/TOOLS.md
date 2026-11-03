@@ -33,3 +33,26 @@
 | Windows API via Python ctypes (GetLogicalProcessorInformation) | CPU topology | CPUs 2-3 are one physical core (SMT siblings): every rate re-read per core, skill + memory updated |
 | more own tools (18:00-18:50) | `item1/tools/fl_acceptance.sh` (one-command CPU acceptance check), `item2/label_stats.py`, `measure_rates.sh`, `bridge_check.sh`, `build_probe_opt.sh` + `probe_bench.py` | 261/261 acceptance; measured cost table; PGO probe proven same labels |
 | new skill | forge-relabel-job (commands, input rules, checks, measured costs, pitfalls); updates to forge-pc-rules, forge-ltopgo-pgo, forge-npt-fast-loader, forge-nnue-data, forge-nnue-pytorch-amd, forge-job-workflow | mirrored into `.claude/skills/` |
+
+## Recommended for Forge engine work (asked by Couns at 19:40; what exists here today, what to connect, what to install)
+| kind | name | state on this PC (2026-11-02) | what it would do for the engine work |
+|---|---|---|---|
+| CLI | GitHub CLI `gh` | connected | CI results (the loader's ASan / UBSan / TSan runs), PRs |
+| MCP | Context7 | connected | library docs (PyTorch, ctypes, CMake, GCC) - gave the torch seeding fact behind the `--seed` finding |
+| MCP | Parallel Search, Exa, Firecrawl (incl. its arXiv / paper tools) | connected | docs, forums, papers on NNUE / search; found the GCC .gcda naming rule that protected the probe PGO build |
+| MCP | Hugging Face | connected | paper search; optionally private, versioned storage of nets and datasets |
+| model | advisor | available | second opinion at checkpoints (today: stale claims, code-freeze plan) |
+| MCP | Unblocked | FAILED: "account isn't part of any team yet" | join / create a team: context search over this repo's 2,000+ commits and many branches |
+| MCP (engineering plugin) | Linear / Notion / Slack / Atlassian / Datadog | need sign-in | job and owner-item tracking, GPU-window requests, alerts on long runs - only if outside messages are allowed (the R14-B rules forbid them) |
+| MCP | Postman, Supabase, Vercel, Sentry | connected / sign-in | not useful for the engine (web / backend tooling) |
+| skills | superpowers: verification-before-completion, systematic-debugging, test-driven-development, receiving-code-review, writing-skills | installed | evidence before claims, failure triage, tests first, review handling, skill files |
+| skills | engineering: code-review, testing-strategy, tech-debt, documentation | installed | structured reviews and test plans |
+| skills | dataviz | installed | SPRT / Elo / NPS charts |
+| skills | project forge-* (22, incl. forge-relabel-job and forge-npt-fast-loader from today) | in `.claude/skills/` | the PC rules and every proven recipe |
+| app | AMD uProf | not installed | Zen 5 profiling (hot spots, cache / branch misses) for NPS work and PGO decisions |
+| app | ROCm profiler (rocprof) / Radeon GPU Profiler | not checked | GPU use of the npt trainer (item 1's open question) |
+| app | Windows Performance Toolkit (WPR / WPA) | not installed | CPU scheduling view (would have shown today's Idle starvation directly) |
+| app | sccache or ccache | not installed | faster engine / probe rebuilds |
+| CI | a GitHub Actions Windows runner | not used | MinGW builds + CTest on Windows (CI is Linux-only today) |
+| app | OpenBench, Ordo | not installed | Fishtest-style distributed SPRT, Elo from PGNs, if more than fastchess is wanted |
+Check every licence before installing (R14-B rule: no network installs of GPL tools; many chess tools are GPL).
