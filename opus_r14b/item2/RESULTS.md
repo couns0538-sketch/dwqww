@@ -259,7 +259,7 @@ No other script reaches outside its own branch folder (grep for worktree paths: 
 | R33 | sort_normalized.py holds its input in memory (~2.2x the file size): sorting Astra's 9.2M-row set would take ~3.7 GB and could push the PC below the RAM floor at which the crew's guards stop training | free physical RAM is checked before reading (`--min-free-ram-gb`, default 8): refuse with "split the input by source" when the sort would cross it | impossible floor: exit 2 before reading, nothing written; a randomly shuffled copy sorts back byte for byte; tests + reason check |
 | I4 | a rebuilt or new probe could only be checked against the R13 answers with Opus's scratch files | committed `probe_ref_500.tsv` (500 positions, rows 900,000-900,499 of the proof sample) + `probe_ref_500_r13.jsonl` (the R13 probe's answers, 20k nodes, Hash 1 MB): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl` then `probe_bench.py compare probe_ref_500_r13.jsonl new.jsonl` (exit 0 = all 500 identical) | ids and FENs of the two files match; used in the fresh-clone check |
 
-## Bug hunt #2 (19:41-20:01; self-review, NOT independent)
+## Bug hunt #2 (19:41-19:47 by the PC clock; self-review, NOT independent)
 Scope: every change since hunt #1 - relabel2.py (disk floor, status line, move_retry / write_status, python-chess
 check), test_relabel2.sh (new cases and reason checks), build_probe_opt.sh (git export of the lock source, committed
 training file), sort_normalized.py (RAM check), item 1's install_fast_loader.py / fl_acceptance.sh / fl_abba.py,
