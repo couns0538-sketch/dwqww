@@ -10,14 +10,17 @@ The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
 the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
-Latest observation at 06:26:42 UTC: 231,163,894 rows checked, 28 source files
+Latest observation at 06:36:56 UTC: 254,663,894 rows checked, 30 source files
 closed, zero rejections reported. Both workers remain BelowNormal/one thread;
-D: has 54,335,893,504 bytes free. This is IN_PROGRESS, not full-corpus proof.
-The observation is preserved as extension5h_20261103/progress_20261103_0626.json;
-the earlier 06:16 observation remains intact.
+D: has 57,489,690,624 bytes free. This is IN_PROGRESS, not full-corpus proof.
+The observation is preserved as extension5h_20261103/progress_20261103_0636.json;
+the earlier 06:16 and 06:26 observations remain intact.
 The exact audited records.py snapshot is retained with SHA256 a8ef0f43...7360be
 for later function attribution. All 12 saved build/SIMD/timing package files
 match their recorded Git source blobs, including the full MIT licences.
+Fresh Sonar status still reports no saved connection; its absolute executable
+and auth-login option names are verified. REVIEW_TOOLS_SETUP.md contains the
+PATH-independent manual command. No login or global configuration was started.
 
 At 06:00:23 UTC the two strict source-admission scans have checked
 172,413,894 rows, with zero rejections so far. This corrects the prior checkpoint's

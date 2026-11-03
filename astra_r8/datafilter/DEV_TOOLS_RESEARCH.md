@@ -58,6 +58,14 @@ on copying GPL/AGPL engine/training implementations.
 | CodeQL | Cross-function security queries over Python/C++ | Requires a CodeQL database and applicable GitHub licensing. No new CI workflow, repository setting or database is created here. Reconsider for a separate repository-wide security job. |
 | SonarQube | Additional static analysis and project issue tracking | CLI 1.11.0 installed, but user reports authentication failed; no analysis claimed. It does not block these other checks. |
 
+Fresh read-only check at 2026-11-03 06:30 UTC: the canonical executable
+`C:/Users/Administrator/AppData/Local/sonarqube-cli/bin/sonar.exe auth status`
+exits 1 with `No saved connection`. The executable is recognized when addressed
+by its absolute path; authentication remains unavailable. No login flow, CLI
+update, agent hook, container installation or global configuration change was
+started. The existing authenticated CodeRabbit route and local checks remain
+available; this Sonar status is not an analysis result.
+
 Plugin Management searches for coding/testing/static-analysis tools returned
 the already connected GitHub, Context7 and Superpowers integrations, plus
 unrelated application tools. No useful additional unconnected plugin was

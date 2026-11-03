@@ -44,6 +44,19 @@ The installed SonarQube integration skill also requires a running container
 runtime and a restarted agent session for MCP tools; CLI login alone does not
 configure that bridge. Verify CLI version/help before invoking a later review.
 
+Fresh check at 06:30 UTC: the absolute Sonar path runs, but `auth status` returns
+`No saved connection`. Its installed `auth login --help` confirms `--org` and
+`--server`. If `sonar` is still not recognized in your terminal, this bypasses
+PATH lookup (replace the placeholder with your Cloud organization key):
+
+```powershell
+& "$env:LOCALAPPDATA\sonarqube-cli\bin\sonar.exe" auth login --org YOUR_ORGANIZATION_KEY
+& "$env:LOCALAPPDATA\sonarqube-cli\bin\sonar.exe" auth status
+```
+
+The default is Cloud EU. Add `--server https://sonarqube.us` to the login command
+only for a Cloud US account. This job has not run login or accessed credentials.
+
 At 03:26 UTC the user had installed SonarQube CLI 1.11.0, verified by executing
 `%LOCALAPPDATA%/sonarqube-cli/bin/sonar.exe --version`. This agent's older PATH
 still did not include the directory. In an existing PowerShell window use:
