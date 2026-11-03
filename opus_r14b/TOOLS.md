@@ -127,7 +127,7 @@ robocopy call broken by Git Bash path conversion (the verify chain's fresh-clone
 Not built: a gate-status reader - the gate folders carry known traps (stale names, mixed opponents / concurrency, see
 forge-gate-stats) and a quick reader could report wrong numbers.
 
-### Bug hunt #5 (21:31-21:40 by the PC clock; self-review, NOT independent)
+### Bug hunt #5 (21:31-21:48 by the PC clock; self-review, NOT independent; item 1 findings H5-6 / H5-7 in item 1 RESULTS)
 | # | finding | fix | check |
 |---|---|---|---|
 | H5-1 | gpu_util_stats.py: `--from` after `--to` only said "0 rows" | clear error, exit 2 | edge cases run |
