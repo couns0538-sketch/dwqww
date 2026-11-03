@@ -197,6 +197,13 @@ consistent outcome marginals; distinguish genuine zero variance from impossible
 statistics. Missing game identifiers and missing oracle metadata remain explicit
 limitations regardless of how many source rows were inspected.
 
+Qualify abrupt interruption on an owned fixture child at a real flushed-output
+boundary. Preserve the partial directory, prove same-destination refusal, and
+compare a fresh retry with an uninterrupted result. Do not call fresh retry
+resume. Process cleanup must tolerate a Windows venv launcher exiting after its
+worker, and always wait for the exact owned child; never target by process name.
+Keep fixture proof distinct from production-corpus interruption qualification.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

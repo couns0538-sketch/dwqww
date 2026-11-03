@@ -50,6 +50,13 @@ only after both scans finish; reserve about 4.3 GB for the separately named full
 outputs and retain every earlier measurement as historical evidence. Do not
 attribute the old two-child timings to the corrected aggregate two-worker path.
 
+00:19 UTC: the first scan closed successfully at118,341,318 rows. To establish
+the corrected required timings sooner, use both compute slots for the seven
+million-row runs now while the exact owned complementary profiler yields its
+slot. Resume it in finally, with the yield included in its elapsed-time evidence.
+This replaces the earlier wait-for-both ordering, not the resource limits.
+Preflight the full worst-case output allocation; preserve all old outputs.
+
 Tool selection so far: Forge C++ engineering/evidence checker, Skill Creator,
 existing training-data validation guidance, Context7 official python-chess docs,
 GitHub connector read-only issue lookup. No matching open datafilter issue found.

@@ -105,6 +105,20 @@ APPROVED source3480854bfbab2291967f88fdf192b6502d73172bbe72637581010b74011c391e.
 Actual expanded Forge proof is pending the complete reservoir. No engine code,
 binary, network or running crew process has changed. UNPROVEN.
 
+First complete descriptive scan PASS: 118,341,318 rows across15 sources, finished
+2026-11-03 00:19:29 UTC. The wrapper confirms unchanged runtime and successful
+exit. Full original logs, summaries and bounded reservoirs are preserved in
+evidence/quality6h/profile_first/. The complementary22-source scan continues.
+
+Abrupt interruption proof PASS on5,000 authored normalized rows through the
+actual filter: only its exact owned fixture process tree was terminated after
+flushed partial output. Existing partial output is preserved/refused; fresh retry
+and uninterrupted hashes match. Reviewer identified a launcher-exit cleanup race;
+one red mocked case reproduced it, disappearance is now tolerated and wait is
+guaranteed. Focused recheck APPROVED. Current frozen full suite:274 tests +
+11 subtests PASS in123.98 seconds. This is fixture failure-handling proof, not
+production-cohort crash qualification or a resumable-loader claim.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

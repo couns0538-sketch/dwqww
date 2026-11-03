@@ -165,6 +165,25 @@ five bench pins and120-second owned-child timeout remain unchanged. No engine
 invocation occurred in these mocked regression checks. Next: actual complete
 reservoir proof once both descriptive scans close, preserving any failure.
 
+## Six-hour continuation: abrupt owned-filter interruption
+
+Actual filter implementation on5,000 authored normalized rows: one owned child
+blocks after its first flushed partial window; only its exact Popen process tree
+is terminated, including Windows venv's worker. Partial records and metadata
+survive, no final output is published, same-destination retry is refused, and
+fresh retry payload hashes equal an uninterrupted run. Original fixture identity
+remains unchanged. Initial real proof passed.
+
+Reused reviewer found a cleanup race: a launcher can exit between is_running and
+cmdline/kill after its worker dies. Main reproduced NoSuchProcess with a mocked
+disappearance, then tolerates disappearance around both ancestry and individual
+termination and guarantees child.wait in finally. Fresh frozen full suite:
+274 tests +11 subtests PASS, including the real interruption again. Focused
+recheck APPROVED test source64e8ee67e1da1b70877b535fbe545cae1b588f32b22ccc70134955c5c97c9918.
+No production implementation changed in this milestone. This proves the actual
+filter's fixture failure path and fresh retry, not resumable output or an unrun
+production-data interruption. Next: corrected full-cohort timing runs and handoff.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

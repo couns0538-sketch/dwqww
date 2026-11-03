@@ -12,7 +12,7 @@ we do not invent a permissive third-party licence for them or authorize external
 redistribution. No third-party permissive implementation was copied.
 
 Normalization, filtering, adapter, audit and tests in this directory are original
-task code. The installed python-chess, NumPy, PyTorch and npt packages are called
+task code. The installed python-chess, NumPy, PyTorch, psutil and npt packages are called
 through their APIs, not vendored. In particular, no GPL/AGPL npt, Stockfish,
 binpack-tool or Leela/Lc0 implementation was copied into Forge. Native npt feature
 extraction, model and loss remain in their separately installed environment.

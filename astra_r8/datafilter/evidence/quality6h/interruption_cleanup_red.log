@@ -1,0 +1,36 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________ test_owned_cleanup_tolerates_launcher_exit_and_always_waits _________
+
+    def test_owned_cleanup_tolerates_launcher_exit_and_always_waits():
+        class DisappearingOwner:
+            pid = 123
+            def is_running(self): return True
+            def create_time(self): return 42
+            def children(self, **kwargs): return []
+            def cmdline(self): raise psutil.NoSuchProcess(self.pid)
+            def kill(self): raise AssertionError('already disappeared')
+        class Child:
+            waited = False
+            def wait(self, **kwargs): self.waited = True
+        child = Child()
+>       assert stop_owned_tree(DisappearingOwner(), 42, child) == []
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_filter_interruption.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_filter_interruption.py:43: in stop_owned_tree
+    stopped.append({'pid':process.pid, 'created':process.create_time(), 'command':process.cmdline()})
+                                                                                  ^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_filter_interruption.test_owned_cleanup_tolerates_launcher_exit_and_always_waits.<locals>.DisappearingOwner object at 0x0000000004609AF0>
+
+>   def cmdline(self): raise psutil.NoSuchProcess(self.pid)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psutil.NoSuchProcess: process no longer exists (pid=123)
+
+astra_r8\datafilter\tests\test_filter_interruption.py:56: NoSuchProcess
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_filter_interruption.py::test_owned_cleanup_tolerates_launcher_exit_and_always_waits
+1 failed, 1 deselected in 3.67s
