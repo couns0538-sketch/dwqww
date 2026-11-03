@@ -30,7 +30,8 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   disk floor, 4 integrity (a published file changed). A changed relabel2.py resumes only with `--accept-new-tool`.
 - Disk floor `--min-free-gb` (default 50 GiB = the PC rule for C: and D:): prepare and assemble refuse a write that would
   cross it, run stops before the next shard (logged); free space and run the same command again.
-- Output to Forge's FPOS: `F:\opus_scratch\rescore_d8\bin\fen2bin.exe train.txt train.pos` (checked: the .pos score
+- Output to FPOS with the converter earlier jobs used (sha256 24cb2e78...; not checked against the live supervisor's):
+  `F:\opus_scratch\rescore_d8\bin\fen2bin.exe train.txt train.pos` (checked: the .pos score
   column = the new labels, 1,200 / 1,200); `hce_dump.exe train.txt train.hce` for the .hce.
 
 ## Input rules (each one cost a finding on 2026-11-02)

@@ -22,9 +22,11 @@ cleared before every search, 1 thread, Hash 1 MB), keeps the **original FEN** (c
 echoes the FEN and the tool checks it), splits validation **by game** (no game in both), and can be stopped at any
 moment and resumed with the same command. Outputs per job: `final/train.txt`, `final/val.txt` (self-play text format
 `FEN | new stm cp | white result`), `final/labels.tsv` (row id, game id, split, FEN, new and old score, result, depth,
-nodes), `final/MANIFEST.json` (md5 + sha256). Forge's own `F:\opus_scratch\rescore_d8\bin\fen2bin.exe in.txt out.pos`
-turns the text into FPOS .pos files with the new scores (checked on 1,200 rows: 0 bad lines; score, side to move and
-result columns equal), `hce_dump.exe in.txt out.hce` in the same folder makes the .hce. Exit codes: 2 bad input,
+nodes), `final/MANIFEST.json` (md5 + sha256). The FPOS converter earlier jobs used, `F:\opus_scratch\rescore_d8\bin\
+fen2bin.exe in.txt out.pos` (sha256 24cb2e78...; its sibling `hce_dump.exe` reproduces the production .hce exactly per
+R11), turns the text into .pos files with the new scores (checked on 1,200 rows: 0 bad lines; score, side to move and
+result columns equal), and `hce_dump.exe in.txt out.hce` makes the .hce (1,200 records, 0 bad). Whether the live
+supervisor uses these same binaries was not checked. Exit codes: 2 bad input,
 3 configuration differs / job busy / target exists, 4 integrity (a published file changed).
 
 ## Commands (PC rules: Idle, CPU mask, <= 2 probe workers; nothing is deleted or overwritten)
