@@ -172,3 +172,14 @@ stdout / stderr folder or a missing stdin file; the program's own exit code othe
 127 / 127 / 127 / 127 for the four failure cases, 3 for `cmd /c exit 3`, 0 with the expected output for a redirected
 echo and a stdin redirect). Item 1's callers (build_fastloader.sh, fl_acceptance.sh, lm_run.sh, b5_checks.sh) also
 check their outputs (DLL sha256, batch hashes), so no recorded result was affected.
+
+## Verify chain 20:29-20:39 (`opus_r14b/checks/verify_chain.sh 2030` on opus-r14b-status; logs/chain_2030/)
+- Fresh clone of this branch (ffa0fedc, git's default core.autocrlf=true): DLL rebuilt = **9eb29b7d** (b5),
+  forge_fastloader.py 39af47b0; acceptance with the rebuilt DLL on D:\o14b\npt: **261 / 261 batches identical**.
+- Loader ABBA in the live thread setting (old `--num-workers 4` vs fast with 2 builders = `--num-workers 4`), both on
+  CPUs 2-3 (one physical core) at BelowNormal, 10 pairs of 420 batches (20 warm-up), the J1 binpack: old median
+  772,284 vs fast 4,818,564 kept positions / s, per pair B/A 5.98-7.08, **median 6.25x, mean 6.37x, 95% CI 6.13-6.60**
+  (ADVISORY; the first old run, 666,849, was the slowest - cold start). The 8.65x of R14B-I1 compared old w2 with fast
+  1 builder (each 3 threads). A 1-second robocopy test of mine ran during pair 1-2 (20:35); the pairs are in the log.
+- Adoption rehearsal: failed for a reason outside the loader (Git Bash turned robocopy's `/E` into `E:/`, nothing was
+  copied); fixed (MSYS_NO_PATHCONV) and re-run from a new fresh clone - see the next entry.
