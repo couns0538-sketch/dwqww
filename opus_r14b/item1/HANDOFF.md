@@ -16,6 +16,9 @@ decoding a board and builds features in parallel. Evidence and numbers: RESULTS.
 | `forge_fastloader.py` (Dataset wrapper) | `39af47b0f347963c9f3ad470c7a90c2652b4ae361f18b71adfeeb3cbdf3a9605` | `fastloader/` on this branch, copy in `D:\o14b\fl\b5_install\` |
 | trainer switch | - | `patches/0005-fast-loader-switch.patch` = what `tools/install_fast_loader.py` applies |
 
+The DLL is built with `-march=znver5` for this PC's CPU (Ryzen 7 9850X3D); it imports only Windows DLLs (KERNEL32 +
+the UCRT API sets). On another CPU, rebuild with that CPU's `-march` and re-run the equality checks before use.
+
 ## Verified on the CPU (details in RESULTS.md)
 - Batches identical to the default loader's `--num-workers 1` stream: 1,000 / 1,000 training batches + the validation
   batches, a 24-configuration matrix, 3,100 batches past a file wrap, and every tensor on the trainer's own Dataset path.
