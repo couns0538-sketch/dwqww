@@ -18,8 +18,11 @@ R=<branch>/opus_r14b/item2/relabel2.py
 python $R prepare --job C:/<new dir> --run-id <id> --selfplay <files in name order> [--rows N] [--jobs 2]
 python $R run --job C:/<dir> --run-id <id> --probe 'C:\o13\p5\forge_data_probe.exe' --nodes 20000 --workers 2 --mask 0xC [--until "YYYY-MM-DD HH:MM"]
 python $R assemble --job C:/<dir> --run-id <id>        # final/train.txt, final/val.txt, final/labels.tsv, MANIFEST.json
-python $R status --job C:/<dir>
+python $R status --job C:/<dir>                      # one line: shards, rows (%), last rate, ETA, free disk
 ```
+- `--mask 0xC` = CPUs 2-3 = one physical core (SMT pair); choose production CPUs with the crew. `--workers` 1-2.
+- Windows renames that hit a transient PermissionError (virus scanner, indexer, a reader of status.json) are retried;
+  a status.json that stays locked is skipped with a warning (never fatal).
 - The same `run` command resumes (published shards are re-hashed; an interrupted `shard_K.part.N` stays as evidence and
   the shard is redone as `.part.N+1`). Bound a session with `--until` / `--max-shards`: on this PC the session cannot
   end processes and TaskStop only ends the outer shell.
@@ -43,8 +46,14 @@ python $R status --job C:/<dir>
 - The 1M sample had 0 duplicate FENs (self-play dedups), so a label cache saves nothing.
 
 ## Checks that exist
-- `test_relabel2.sh SCRATCH` (75 cases: bad inputs, configuration, busy job, tampering, --jobs 2 equivalence, a game
-  across two files, mini kill / resume with byte-identical output). Run it after any change.
+- `test_relabel2.sh SCRATCH` (every refusal with its exit code AND reason text, --jobs 2 equivalence, a game across two
+  files, disk floor, status line, rename retry under simulated Windows handle contention, missing python-chess,
+  sort_normalized round trip + RAM check, mini kill / resume with byte-identical output). Run it after any change;
+  it refuses to start without relabel2.py, python, the self-play sample or the probe (`PY` / `SRC` / `PROBE`).
+- A probe before a long run (10 s): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl`, then
+  `probe_bench.py compare probe_ref_500_r13.jsonl new.jsonl` (exit 0 = the R13 probe's answers on all 500).
+- `build_probe_opt.sh <new dir>` rebuilds the probes from the branch alone (lock source via `git archive d4f4312`,
+  committed `pgo_train_2k.tsv`): plain = R13's command, lto, pgo (tested PGO exe 08299f9f).
 - `prove_resume.sh` (1M rows, A uninterrupted vs B hard-exited twice via `--test-kill-after-seconds`), `bridge_check.sh`
   (new code vs the proof's outputs), `fn_diff.py` (function-level diff of two versions), `label_stats.py` (descriptive
   label statistics), `measure_rates.sh workers|nodes|prepare` (cost numbers), `build_probe_opt.sh` + `probe_bench.py`
