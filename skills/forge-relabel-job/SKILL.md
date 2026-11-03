@@ -11,8 +11,8 @@ the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96..., lock source 
 histories cleared per search: a label depends only on FEN + nodes + hash). It keeps the ORIGINAL FEN (castling, en
 passant, clocks) and splits validation by game. UNPROVEN as training data: Engine NNUE decides. Details and evidence:
 `RESULTS.md`, `RELABEL_HANDOFF.md` (cost table) in the same folder. Frozen version (2026-11-02, after the verify chain):
-sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3 (re-frozen 22:22 after the damaged-job harness; earlier
-88454db6... and 0a81dd5f...) - check it before a long run; after any change
+sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602 (re-frozen 22:46 after shards started to record their settings; earlier
+88454db6..., 0a81dd5f..., 56eef0a6...) - check it before a long run; after any change
 run `opus_r14b/checks/refreeze.sh TAG` (branch opus-r14b-status) and update the sha256 in the documents.
 
 ## Commands (python = `C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B`)
@@ -36,6 +36,8 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   `--accept-new-tool`. A damaged or missing job file (rows.tsv, prepare.json, run_config.json, a published shard's
   files) is exit 4 naming the file; a run_config.json lost after shards were published is exit 4, never re-created
   (a resume with other settings would mix labels): keep a copy of run_config.json + prepare.json next to the job.
+  Shards record node limit / hash / probe sha256 in summary.json (since e01caaf1); run and assemble refuse a shard of
+  other settings (exit 4). A shard that fails its check: rename it aside (never delete) and run the same command.
 - Disk floor `--min-free-gb` (default 50 GiB = the PC rule for C: and D:): prepare and assemble refuse a write that would
   cross it, run stops before the next shard (logged); free space and run the same command again.
 - Output to FPOS with the converter earlier jobs used (sha256 24cb2e78...; not checked against the live supervisor's):
@@ -58,8 +60,8 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
 ## Checks that exist
 - `test_relabel2.sh SCRATCH` (every refusal with its exit code AND reason text, --jobs 2 equivalence, a game across two
   files, disk floor, status line, rename retry under simulated Windows handle contention, missing python-chess,
-  sort_normalized round trip + RAM check, mini kill / resume with byte-identical output, and `job_damage.py`: 34 kinds
-  of damaged job state x run / assemble / status = 102 runs, each wanting exit 4 / 3 / 2 with a reason line or a clean
+  sort_normalized round trip + RAM check, mini kill / resume with byte-identical output, and `job_damage.py`: 35 kinds
+  of damaged job state x run / assemble / status = 105 runs, each wanting exit 4 / 3 / 2 with a reason line or a clean
   exit 0, never a traceback). Run it after any change; it refuses to start without relabel2.py, python, the self-play
   sample or the probe (`PY` / `SRC` / `PROBE`).
 - A probe before a long run (10 s): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl`, then

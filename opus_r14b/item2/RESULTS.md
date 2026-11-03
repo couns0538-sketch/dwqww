@@ -6,10 +6,10 @@ sha256 444e854e...). Labels come from the R13 probe `C:\o13\p5\forge_data_probe.
 source d4f4312; transposition table, histories and caches cleared before every search). Engine NNUE decides whether
 any of these labels are used; nothing here is a strength claim. The 50M run is not started.
 
-**State (2026-11-02 22:24 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
-FROZEN at sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3 (commit 51cccbce, re-frozen 22:22 after
-the damaged-job harness; earlier freezes 88454db6... at 20:41 and 0a81dd5f... at 22:03 after the prepare fuzz). Test
-suite: 155 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
+**State (2026-11-02 22:47 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
+FROZEN at sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602 (commit a3470e08, re-frozen 22:46 after
+shards started to record their settings; earlier freezes 88454db6... at 20:41, 0a81dd5f... at 22:03 after the prepare
+fuzz, 56eef0a6... at 22:22 after the damaged-job harness). Test suite: 155 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
 whole 1M sample with the LTO+PGO probe gave the proof's files byte for byte; Forge's fen2bin / hce_dump take all 1M
 rows. Probe builds from a fresh clone reproduce the tested exes. 50M: ~79 h on CPUs 2-3 with 2 workers (the whole-1M
 rate under load); runbook for R8 v5 shards 001-057 in RELABEL_HANDOFF.md. `FILES.txt` + `SHA256SUMS` index this
@@ -433,3 +433,27 @@ RESULTS.) With this, every step of the verify chain has passed on the frozen cod
   written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.
 - RELABEL_HANDOFF.md "Rules for the big job": leave the job's files as written; keep a copy of run_config.json and
   prepare.json next to the job (small, never change) so a lost one is a one-file restore.
+
+## Shards record their settings, and the fourth freeze (22:29-22:47 by the PC clock; advisor read 22:29)
+- Finding J-5 (low; needs a hand-edited run_config.json): a shard recorded rows and run id but not the settings its
+  labels came from, so run_config.json was the only pin. Edited to `"nodes": 3000` while the shards were labelled at
+  2,000, `run --nodes 3000` (matching the edit) passed the configuration check and `assemble` published the job as
+  if it were 3,000 (with an unpublished shard left, `run` would have labelled it at 3,000 in the same job). Shown with
+  two new expectations in `job_damage.py` (35 kinds, 105 runs): on 56eef0a6 3 findings
+  (logs/job_damage/cases_56eef0a6_3_findings_v105.tsv).
+- Fix (a3470e08): summary.json gets `nodes_limit`, `hash_mb`, `probe_sha256`; `run` (before any probe starts) and
+  `assemble` compare them with the job's configuration and refuse a mismatch (exit 4, "labelled with
+  nodes_limit=2000 but the job's configuration says 3000"). Shards of earlier versions (the 1M proof's) record no
+  settings and are checked as before; assemble now needs `nodes` / `hash_mb` / `probe_sha256` in run_config.json
+  (every run_config.json relabel2 wrote today has them). After the fix: 105 runs, 0 findings
+  (logs/job_damage/cases_e01caaf1_0_findings.tsv, from the re-freeze suite).
+- Checked and already covered: a second process on a busy job (`job.lock`) - suite case `run_busy_job` + its reason.
+- RELABEL_HANDOFF.md "Rules for the big job": the shard settings rule, and the remedy for a published shard that fails
+  its check: rename it aside (never delete) and run the same command (the harness case `shard_dir_missing` shows run
+  labelling such a shard again with exit 0).
+- Re-freeze (`refreeze.sh j5_2240`, 22:40-22:46): suite 155 / 0 in the worktree and a fresh clone (job_damage now 105
+  runs), bridge PASS (rows.tsv of `--jobs 1` / `--jobs 2` = the proof's; `run --accept-new-tool` on a copy of proof
+  job A accepts its 100 older shards; assemble = the proof's three files), function diff
+  (logs/fn_diff_frozen_vs_e01caaf1.txt): label_shard, new_game, board_stats, row_offsets, read_shard_rows, file_hash
+  identical. New frozen sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602 (commit a3470e08),
+  written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.

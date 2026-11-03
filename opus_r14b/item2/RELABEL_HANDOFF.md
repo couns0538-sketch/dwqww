@@ -1,22 +1,23 @@
 # RELABEL_HANDOFF - for Engine NNUE (R14-B item 2; UNPROVEN as training data, the 50M run is NOT started)
 
-## State (2026-11-02, updated 22:24 PC clock)
+## State (2026-11-02, updated 22:47 PC clock)
 - `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`), **frozen at sha256
-  56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3** (commit 51cccbce). Check the file you run
+  e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602** (commit a3470e08). Check the file you run
   against it. Earlier freezes: 88454db6... (20:41), 0a81dd5f... (22:03, after fuzzing prepare: an input score outside
-  -32767..32767 is exit 2); re-frozen 22:22 after the damaged-job harness `job_damage.py` (a run_config.json lost
-  while shards are published is now exit 4 instead of being re-created; damaged job files are exit 4 with the file
-  named instead of a Python traceback). The 1M kill / resume proof ran on 5c88438f and PASSED (A uninterrupted vs B
-  hard-exited twice: train.txt / val.txt / labels.tsv md5 identical). The functions that compute labels and game ids
-  are identical source to the proof's (label_shard, new_game, board_stats, row_offsets, read_shard_rows, file_hash;
-  logs/fn_diff_frozen_vs_56eef0a6.txt; load_prepare / verify_shard changed only in how damaged files are reported),
-  and the frozen version reproduced the proof's rows.tsv and final files byte for byte (bridge, again in the
-  re-freeze 22:19-22:22, including a resume of a copy of proof job A). Suite: 155 PASS / 0 FAIL in the worktree and
-  in a fresh clone (re-freeze); the verify chain 20:29-20:39 (RESULTS.md) also ran the R8 v5 prepare and an
-  end-to-end job through fen2bin. Tests: `test_relabel2.sh SCRATCH`
-  (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini kill / resume, a dead
-  probe, 102 damaged-job runs); run it after any change, and after a change to relabel2.py run
-  `opus_r14b/checks/refreeze.sh` (branch opus-r14b-status) and write the new sha256 here.
+  -32767..32767 is exit 2), 56eef0a6... (22:22, after the damaged-job harness `job_damage.py`: a run_config.json lost
+  while shards are published is exit 4 instead of being re-created; damaged job files are exit 4 with the file named
+  instead of a Python traceback); re-frozen 22:46 after shards started to record their settings (node limit, hash,
+  probe sha256), so that an edited run_config.json cannot mix two settings in one job. The 1M kill / resume proof ran
+  on 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5 identical). The
+  functions that compute labels and game ids are identical source to the proof's (label_shard, new_game, board_stats,
+  row_offsets, read_shard_rows, file_hash; logs/fn_diff_frozen_vs_e01caaf1.txt; load_prepare / verify_shard changed
+  only in how damaged or mismatched files are reported), and the frozen version reproduced the proof's rows.tsv and
+  final files byte for byte (bridge, again in the re-freeze 22:43-22:46, including a resume of a copy of proof job A,
+  whose older shards record no settings). Suite: 155 PASS / 0 FAIL in the worktree and in a fresh clone (re-freeze);
+  the verify chain 20:29-20:39 (RESULTS.md) also ran the R8 v5 prepare and an end-to-end job through fen2bin. Tests:
+  `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
+  kill / resume, a dead probe, a busy job, 105 damaged-job runs); run it after any change, and after a change to
+  relabel2.py run `opus_r14b/checks/refreeze.sh` (branch opus-r14b-status) and write the new sha256 here.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
   `build_probe_opt.sh NEW_OUT_DIR`: lock source from git, PGO profile from the committed `pgo_train_2k.tsv`; two builds
@@ -85,6 +86,12 @@ which holds its input in RAM, ~2.2x the file size, and refuses when that would l
   published, `run` refuses (exit 4) rather than re-create it from the command line, because a resume with other
   settings would mix labels. A copy of run_config.json and prepare.json kept next to the job (they are small and never
   change) makes that case a one-file restore. `status` only warns on damaged status / config files.
+- Every shard's summary.json records the node limit, hash size and probe sha256 it was labelled with; run and assemble
+  refuse (exit 4) a shard whose settings differ from run_config.json, so an edited run_config.json cannot mix two
+  settings in one job either (shards of versions before e01caaf1, such as the 1M proof's, do not record them).
+- A published shard that fails its check (exit 4 naming `shard_K`, e.g. a disk error after a power cut): rename that
+  folder aside (e.g. `shard_K.bad`; never delete it) and run the same `run` command - it labels that shard again in a
+  new attempt folder and publishes it; then `assemble`.
 
 ## 50M runbook - an example on R8 v5 (Engine NNUE picks the inputs, the node count and the probe; NOT started)
 Inputs, counted 2026-11-02 21:17 (read-only): R8 v5 shards 001-057 hold 50,524,643 rows (001-056: 49,599,490), so
@@ -94,7 +101,7 @@ newest one is still being written). Shards 271 + 272 (1.83M rows) held no positi
 cannot get a search label; prepare.json counts what was dropped).
 ```bash
 PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
-R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 56eef0a6...
+R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 e01caaf1...
 P=<your copy of the LTO+PGO probe>                               # sha256 08299f9f... (or the R13 probe ed76de96...)
 S=/d/grok-pc-data/selfplay_out_r8v5_20261029
 J=C:/<your folder>/relabel_r8v5_50m                              # a NEW folder on a drive with > 70 GB free
