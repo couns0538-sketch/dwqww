@@ -234,3 +234,15 @@ window measures the same column with `--fast-loader` (GPU_REQUEST.md, same comma
   (8.65x / 6.25x in the ABBAs) delivers more batches from the same leftover CPU. The GPU window has to show the effect.
   Whether to keep BelowNormal crew jobs off the trainer's CPUs, or give the trainer another class, is the crew's call
   (FINAL_REPORT owner items); nothing was changed.
+
+## CPU cost per position: both loaders on ONE logical CPU, live thread setting (21:23-21:27; logs/abba_1cpu/)
+`fl_abba.py --pairs 10 --mask 0x4 --priority BelowNormal`, old `--num-workers 4` vs fast with 2 builders, 420 batches
+per run (20 warm-up), the J1 training binpack; load before: two crew BelowNormal jobs on all CPUs (~1 core each).
+| | kept positions / s (median) | CPU-us per kept position | CPU to feed the live line (121k-169k / s) |
+|---|---|---|---|
+| old loader (live layout) | 407,670 | 2.45 | **0.30-0.41 of a CPU** |
+| fast loader | 2,909,398 | 0.34 | **0.04-0.06 of a CPU** |
+Per pair B/A 6.91-7.38, **median 7.19x, 95% CI 7.08-7.26** (ADVISORY). With the 0.4-0.6 cores the trainer process got
+at 21:19-21:22, the old loader alone needs most of that share to keep up, leaving little for the training loop
+(tensor copies, kernel launches); the fast loader needs about a tenth of it. This is CPU arithmetic, not a GPU
+measurement: the GPU window decides (GPU_REQUEST.md).
