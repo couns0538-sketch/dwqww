@@ -614,9 +614,10 @@ def cmd_run(a) -> int:
     except ConfigMismatch:
         raise  # the disk floor wrote its own stop line
     except Exception as e:  # a probe died / timed out / answered wrongly, rows.tsv changed, ...: say so
+        code = 4 if isinstance(e, IntegrityError) else 2 if isinstance(e, BadInput) else 1  # as main() maps them
         append_log(job, f"run stop run_id={a.run_id} tool={tool_hash[:16]} after {shards_session} new shards: "
-                        f"{type(e).__name__}: {str(e)[:500]} (exit 1; published shards stay, the interrupted attempt "
-                        f"dir is kept; the same command resumes once the cause is fixed)")
+                        f"{type(e).__name__}: {str(e)[:500]} (exit {code}; published shards stay, the interrupted "
+                        f"attempt dir is kept; the same command resumes once the cause is fixed)")
         raise
     append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
     print(json.dumps(status))
@@ -727,6 +728,8 @@ def check_args(a) -> None:
         try:
             if int(a.mask, 16) <= 0:
                 bad.append("--mask must name at least one CPU")
+            elif int(a.mask, 16) >= 1 << (os.cpu_count() or 64):
+                bad.append(f"--mask {a.mask} names a CPU this PC does not have ({os.cpu_count()} logical CPUs)")
         except ValueError:
             bad.append(f"--mask {a.mask!r} is not hexadecimal")
     if a.cmd == "prepare" and (a.rows < 0 or not 0 <= a.val_ppm <= 1_000_000):

@@ -274,7 +274,7 @@ Checked and kept: move_retry retries PermissionError only (an existing target st
 runs before its write; the status line handles jobs never run (no run_config.json); the simulated-contention tests
 patch only the calls they target.
 
-## Bug hunt #3 (20:04-20:08 by the PC clock; self-review, NOT independent)
+## Bug hunt #3 (20:04-20:09 and 20:17-20:21 by the PC clock; self-review, NOT independent, + the advisor's read)
 Scope: what hunts 1 and 2 did not read - relabel2.py run / assemble / prepare internals (shard loop, failure paths,
 game rule, split, input checks, status), the R13 probe client's failure behaviour (forge_probe.py, unchanged copy),
 and item 1's trainer path (does the trainer copy a batch before the fast loader reuses its memory?).
@@ -283,6 +283,8 @@ and item 1's trainer path (does the trainer copy a batch before the fast loader 
 | H3-1 | a probe that dies, times out or answers wrongly stopped `run` with a bare traceback (exit 1) and NO line in sessions.log: an operator resuming a 70-hour job could not see why the last session ended | the shard loop is wrapped: any such error writes "run stop run_id=.. tool=.. after N new shards: <type>: <message> (exit 1; published shards stay, ...)" to sessions.log and re-raises (exit 1 as documented); the disk floor keeps its own stop line | new test: a job run with `whoami.exe` as the "probe" -> exit 1, the stop line with ProbeError, attempt dir shard_00000.part.1 kept, nothing published (suite run after the full PGO run frees the core) |
 | H3-2 | `run` lowered itself to Idle on the CPU mask only after hashing rows.tsv, the probe and itself: for a 50M job that is ~4.5 GB of sha256 at the caller's priority on any CPU (Normal when started from a normal shell) | main() lowers priority for prepare, run and assemble before the command starts (as prepare / assemble already did) | code read; suite |
 | H3-3 | the docstring says every sessions.log line names the code hash; the disk-floor stop line did not | both stop lines carry tool=<sha256 prefix> | test greps the new line with its tool hash |
+| H3-4 | (advisor, 20:17) the new stop line said "exit 1" for every error, but a BadInput / IntegrityError raised inside the shard loop leaves with exit 2 / 4 | the line names the exit code main() will return | code read |
+| H3-5 | (advisor, 20:17) `--mask` above the PC's CPUs (e.g. 0x10000 on 16 CPUs) passed check_args and died with a SetProcessAffinityMask traceback (abba.py had this fix, relabel2.py not) | exit 2 "names a CPU this PC does not have" before anything starts, for prepare / run / assemble | 3 tests + reasons: run with `xyz`, run and prepare with 0x10000000000 (nothing created) |
 Checked, no finding: shard publish by directory rename (FileExistsError is not retried, so a published shard is never
 replaced); verify_shard on every published shard at start and twice in assemble; the game rule cannot split a game;
 the split hash; `--rows` cuts at a game boundary and closes the --jobs workers; inputs hashed before and after

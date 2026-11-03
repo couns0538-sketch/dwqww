@@ -143,6 +143,10 @@ expect 2 run_not_a_job "$PY" -I -B "$R" run --job no_such_job --run-id g --probe
 expect 2 run_missing_probe "$PY" -I -B "$R" run --job jg --run-id g --probe no_such_probe.exe --nodes 5000 --shard-size 100
 expect 2 run_shard_size_zero "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 0
 expect 2 run_bad_until "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --until tomorrow
+expect 2 run_mask_not_hex "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --mask xyz
+expect 2 run_mask_too_big "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --mask 0x10000000000
+expect 2 prepare_mask_too_big "$PY" -I -B "$R" prepare --job job_mask --run-id t --selfplay good.txt --mask 0x10000000000
+check prepare_mask_too_big_wrote_nothing test ! -e job_mask
 # a "probe" that dies at once (not a probe): exit 1, the stop and its cause in sessions.log, the attempt kept, nothing published
 expect 0 prepare_bad_probe_job "$PY" -I -B "$R" prepare --job jbp --run-id bp --selfplay good.txt --rows 300
 expect 1 run_bad_probe "$PY" -I -B "$R" run --job jbp --run-id bp --probe 'C:\Windows\System32\whoami.exe' --nodes 5000 --shard-size 100
@@ -238,6 +242,9 @@ run_not_a_job not a prepared job
 run_missing_probe probe no_such_probe.exe not found
 run_shard_size_zero --shard-size >= 1
 run_bad_until --until 'tomorrow' is not YYYY-MM-DD HH:MM
+run_mask_not_hex --mask 'xyz' is not hexadecimal
+run_mask_too_big names a CPU this PC does not have
+prepare_mask_too_big names a CPU this PC does not have
 run_bad_probe ProbeError
 run_other_nodes configuration differs from run_config.json: ['nodes']
 run_other_shard_size configuration differs from run_config.json: ['shard_size']
