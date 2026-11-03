@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# build_probe_opt.sh OUT_DIR TRAIN_REQUESTS - Opus R14-B item 2 improvement: build the R13 relabel probe
-# (opus_r13/p5/forge_data_probe.cpp on the lock source d4f4312, copy in C:\o13\p5\lock) with link-time optimisation
-# and profile-guided optimisation. Same source and the same flags as R13's plain build (-O3 -march=znver5
+# build_probe_opt.sh OUT_DIR [TRAIN_REQUESTS] - Opus R14-B item 2 improvement: build the R13 relabel probe
+# (opus_r13/p5/forge_data_probe.cpp on the lock source d4f4312, exported from this repository into OUT_DIR/lock, or
+# LOCK_DIR if set) with link-time optimisation and profile-guided optimisation. TRAIN_REQUESTS defaults to
+# pgo_train_2k.tsv next to this script (the profile of the tested PGO exe 08299f9f...: rows 0-1,999 of the 1M proof
+# sample). Same source and the same flags as R13's plain build (-O3 -march=znver5
 # -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256 -static), plus:
 #   OUT_DIR/plain/forge_data_probe.exe R13's exact command (checks the toolchain: only PE time stamp + checksum may differ)
 #   OUT_DIR/lto/forge_data_probe.exe   -flto
@@ -15,12 +17,17 @@
 # never overwrites (OUT_DIR must not exist).
 set -euo pipefail
 out=${1:?out dir}
-train=${2:?training request file (id TAB analyze TAB fen per line)}
-[ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
 here=$(cd "$(dirname "$0")" && pwd)
+train=${2:-$here/pgo_train_2k.tsv}   # id TAB analyze TAB fen per line
+[ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
+[ -f "$train" ] || { echo "no training requests: $train" >&2; exit 2; }
 src=$(cygpath -w "$here/../../opus_r13/p5/forge_data_probe.cpp")
 lowrun=$(cygpath -w "$here/lowrun.ps1")   # own copy of item 1's launcher
-lock=/c/o13/p5/lock
+lock=${LOCK_DIR:-$out/lock}
+if [ -z "${LOCK_DIR:-}" ]; then  # the lock source from this repository (= C:\o13\p5\lock, all 20 files identical)
+  mkdir -p "$lock"
+  git -C "$here" -c core.autocrlf=false archive d4f43124dde1d1e37de90e18930e374f32ea7ffa src include | tar -x -C "$lock"
+fi
 gxx='C:\msys64\ucrt64\bin\g++.exe'
 base="-O3 -DNDEBUG -std=gnu++20 -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
 base="$base -static -Iinclude"                                     # = R13's plain build (opus_r13/p5/run_p5.sh)
@@ -39,8 +46,12 @@ build() {  # build NAME "extra flags": link to the work path, then move the exe 
   echo "$1 $(sha256sum "$out/$1/forge_data_probe.exe" | cut -c1-64) missing-profile warnings: $(grep -c -i 'profile' "$out/$1/build.err" || true)"
 }
 build plain ""   # same command as R13: must differ from R13's exe only in the PE link time stamp + checksum bytes
-echo "plain vs R13 probe: $(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | wc -l) differing bytes, at (1-based)" \
-  "$(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | awk '{print $1}' | head -12 | tr '\n' ' ')"
+if [ -f "$r13" ]; then
+  echo "plain vs R13 probe: $(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | wc -l) differing bytes, at (1-based)" \
+    "$(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | awk '{print $1}' | head -12 | tr '\n' ' ')"
+else
+  echo "plain vs R13 probe: $r13 not found, comparison skipped"
+fi
 build lto "-flto $repro"
 # No -fprofile-dir: MinGW GCC 15 joins it with the absolute aux path ("DIR\C:\...\w\fdp-x.gcda": cannot be created,
 # the instrumented exe prints "Cannot create directory ... Skip" and writes nothing - R14-B, 2026-11-02 17:37).
