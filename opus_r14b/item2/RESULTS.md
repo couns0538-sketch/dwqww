@@ -509,3 +509,19 @@ R13 probe's bytes, `conv out`): prepare (`--jobs 2`), run (2 workers, 500-row sh
 `verify_job.py --convert` - every step exit 0, all PASS. train.txt / labels.tsv md5 (c675dd5b... / 489c57ae...) equal
 those of the 23:17 skill-command job on the same 1,426 rows, which used 10,000-row shards and the probe's own path:
 the output depends on neither the shard size nor the paths. No finding.
+
+## Bug hunt #12 (00:25-00:25 by the PC clock, started early; self-review, NOT independent): documents vs the code
+Scope (written 00:10, before the hunt): the commands, options, defaults and exit codes that RELABEL_HANDOFF.md, the
+skill forge-relabel-job and relabel2.py's own usage text give, against what the code's argument parser accepts.
+- relabel2.py `--help` per subcommand vs the documents: every option the documents use exists (prepare `--rows`,
+  `--jobs`, `--val-ppm`, `--salt`, `--drop-terminal`; run `--probe`, `--nodes`, `--workers`, `--mask`, `--until`,
+  `--max-shards`, `--accept-new-tool`; `--min-free-gb` on prepare / run / assemble; status `--job` only), and every
+  default the usage text names is the parser's (`--val-ppm 10000`, `--nodes 20000`, `--hash-mb 1`, `--workers 1`,
+  `--shard-size 10000`, `--mask 0xC`, `--min-free-gb 50`). The handoff and the skill pass `--workers 2` explicitly.
+- Exit codes: the usage text, RELABEL_HANDOFF.md "What you get" and the skill list the same meanings as `main()`
+  (2 bad input, 3 configuration / busy / target exists / disk floor, 4 integrity, 1 anything else).
+- sort_normalized.py `--min-free-ram-gb` default 8 and verify_job.py's `--convert` / `--bin` are as documented.
+- Known gap, left as it is: relabel2.py's usage block does not list `--mask` for prepare / assemble or
+  `--accept-new-tool` for run (the run text mentions it; `--help` lists all three). Changing the docstring would
+  change the frozen file's sha256 for no change in behaviour.
+No finding that needs a change.
