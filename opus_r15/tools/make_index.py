@@ -93,8 +93,17 @@ def main():
             f"d20 {on.get('d20', '?')}, d22 {on.get('d22', '?')}; perft startpos 4865609 / kiwipete 193690690",
             '- checks: ' + ', '.join(f"{k} {'PASS' if v.get('ok') else 'FAIL'}" for k, v in r.get('checks', {}).items()),
             f"- record: `{r['_path']}`",
+            '- fastchess engine A (the form of the crew\'s running gates; engine B = the lock with the same three options):',
+            f"  `-engine name=cand_r15_{r['name']} cmd={r.get('exe', '')} option.Threads=2 option.Hash=16 "
+            f"option.OwnBook=false option.{r['option']}={r['on']}`",
             '',
         ]
+    for r in extras:
+        out += [f"- extra {r['name']}: `-engine name=cand_r15_{r['name']} cmd={r.get('exe', '')} option.Threads=2 "
+                f"option.Hash=16 option.OwnBook=false option.{r['option']}={r['on']}` (exe copied from "
+                f"`{r.get('source_exe', '')}`)"]
+    if extras:
+        out.append('')
     if extras:
         out += ['## Existing exes, options never gated alone (not R15 patches; listed for the crew, not counted)', '',
                 '| line | exe (full path) | sha256 | setoption (ON) | ON bench d11 / d13 / d16 | OFF = pins | smoke | note |',

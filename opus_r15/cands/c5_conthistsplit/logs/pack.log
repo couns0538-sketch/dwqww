@@ -1,0 +1,43 @@
+2026-11-03 12:22:49 cand_pack c5_conthistsplit tag c5chs option [ContHistSplit=1] patch [D:\o15\wt\opus_r15\cands\c5_conthistsplit\c5_conthistsplit.patch] sides pc1 pc2 smoke 120 s
+fresh lock copy /d/o15/src_pack/c5chs: 20 files, base 3bab474
+checking file include/forge/search.hpp
+checking file src/search.cpp
+patching file include/forge/search.hpp
+patching file src/search.cpp
+ include/forge/search.hpp |  4 ++++
+ src/search.cpp           | 20 +++++++++++++++++---
+ 2 files changed, 21 insertions(+), 3 deletions(-)
+2026-11-03 12:22:49 check patch_applies          PASS  patch -p1 -F0 on a fresh d4f4312 copy (exit 0)
+cleanroom_lint: CLEAN (patches 1, message files 0, commits -)
+2026-11-03 12:22:49 check cleanroom_lint         PASS  no names / licence headers / protected files in the patch (exit 0)
+2026-11-03 12:22:49 kit: KIT_SIDES='pc1 pc2' bash '/d/o15/wt/opus_r15/tools/kit_build_r15.sh' '/d/o15/src_pack/c5chs' c5chs 'ContHistSplit=1'
+2026-11-03 12:27:46 check kit_build              PASS  kit_build_r15.sh exit 0 (2026-11-03 12:27:46 pc2 exit 0: 2026-11-03 12:27:46 RESULT PASS  exe for GATE_EXE: D:\o15\w\c5chs_pc2\src_copy\forge_ltopgo_c5chs_pc2.exe (binding: its sha256 must equal the other clean rebuild's, pc1 = pc2))
+2026-11-03 12:27:46 check pc1_equals_pc2         PASS  pc1 3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7 pc2 3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7
+2026-11-03 12:27:46 check kit_identity           PASS  SUMMARY: 'node identity OFF + 1 option run(s): ALL OK'
+2026-11-03 12:27:46 check kit_vfmadd0            PASS  LTO+PGO exe has no vfmadd
+2026-11-03 12:27:46 check kit_missing_profile0   PASS  kit build_log.txt: real missing-profile/coverage warnings: 0 (must be 0)
+2026-11-03 12:27:46 check kit_on_live            PASS  ident\opt1.compare.txt: option run differs from OFF
+2026-11-03 12:27:47 check exe_copy_sha256        PASS  copy = kit pc1 exe
+pin_check PASS  mode plain  exe D:\o15\cands\c5_conthistsplit\forge_ltopgo_c5chs.exe
+sha256 3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7  options []  priority Idle mask 0x3  27 s
+bench d11        312866  want       312866  ok
+bench d13        862329  want       862329  ok
+bench d16       3024920  want      3024920  ok
+bench d20      12389307  want     12389307  ok
+bench d22      34048354  want     34048354  ok
+perft5 startpos       4865609  want      4865609  ok
+perft5 kiwipete     193690690  want    193690690  ok
+2026-11-03 12:28:15 check pin_off                PASS  bench d11/13/16/20/22 + perft startpos/kiwipete = lock pins (pin_check -Full)
+pin_check LIVE  mode on-line  exe D:\o15\cands\c5_conthistsplit\forge_ltopgo_c5chs.exe
+sha256 3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7  options [ContHistSplit=1]  priority Idle mask 0x3  31 s
+advertised ContHistSplit -> ContHistSplit type spin default 0 min 0 max 1
+bench d11        323985  want  lock 312866  differs (live)
+bench d13        753650  want  lock 862329  differs (live)
+bench d16       3128498  want lock 3024920  differs (live)
+bench d20      11261436  want lock 12389307  differs (live)
+bench d22      29194446  want lock 34048354  differs (live)
+perft5 startpos       4865609  want      4865609  ok
+perft5 kiwipete     193690690  want    193690690  ok
+2026-11-03 12:28:48 check pin_on_live            PASS  ON line ContHistSplit=1 advertised, accepted, live, perft = pins
+SMOKE2M PASS line [ContHistSplit=1] games 20 finished 19 plies 2540 illegal 0 crashes 0 hangs 0 time_losses 0 overruns 6 option_errors 0 stderr no (120 s, Threads 2, tc 2000+20, margin 1000 ms)
+2026-11-03 12:30:48 check smoke                  PASS  20 games, 2540 plies, illegal 0, crashes 0, hangs 0, time losses 0 (120 s, Threads 2, 2000+20)
