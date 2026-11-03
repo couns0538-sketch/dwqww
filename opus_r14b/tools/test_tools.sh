@@ -61,10 +61,25 @@ check doc_lint-one-dash-table-and-encoded-link 1 $? "$S/lint_edge.out" 't.md:5: 
 "$PY" -I -B "$here/doc_lint.py" "$S/nonexistent" > "$S/lint_missing.out" 2>&1
 check doc_lint-missing-path 2 $? "$S/lint_missing.out" 'does not exist'
 bash "$here/opus.sh" help > "$S/opus_help.out" 2>&1
-check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  time' '^  load' '^  test'
+check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  bisect' '^  time' '^  load' '^  test'
 bash "$here/opus.sh" nope > "$S/opus_nope.out" 2>&1
 check opus-unknown-command 2 $? "$S/opus_nope.out" "unknown command 'nope'"
 bash "$here/opus.sh" time --since "2026-11-02 12:00" --until "2026-11-02 13:00" origin/opus-r14b-fast-loader > "$S/opus_time.out" 2>&1
 check opus-time 0 $? "$S/opus_time.out" '^branch +commits' 'origin/opus-r14b-fast-loader'
+X="$S/bisect_repo"; mkdir -p "$X"
+( cd "$X" && git init -q && git config user.name t && git config user.email t@local && git config core.autocrlf false &&
+  for i in $(seq 0 15); do if [ $i -lt 9 ]; then echo a > v; else echo b > v; fi; echo $i > n; git add v n;
+  git commit -q -m "c$i"; done ) || { echo "FAIL bisect fixture"; fail=1; }
+G=$(git -C "$X" rev-list --reverse HEAD | head -1); B=$(git -C "$X" rev-parse HEAD)
+isa="test \"\$(git -C '$X' show {sha}:v)\" = a"
+REPO="$X" bash "$here/engine_bisect.sh" "$G" "$B" "$S/bis_find" --test "$isa" > "$S/bis_find.out" 2>&1
+check bisect-finds-first-change 0 $? "$S/bis_find.out" "RESULT: first changed commit $(git -C "$X" rev-parse HEAD~6) .* c9\)"
+REPO="$X" bash "$here/engine_bisect.sh" "$G" "$B" "$S/bis_skip" \
+  --test "n=\$(git -C '$X' show {sha}:n); [ \$n = 8 ] || [ \$n = 9 ] && exit 125; $isa" > "$S/bis_skip.out" 2>&1
+check bisect-skipped-range 3 $? "$S/bis_skip.out" "one of the skipped commits .*: $(git -C "$X" rev-parse --short=12 HEAD~7) $(git -C "$X" rev-parse --short=12 HEAD~6) - or $(git -C "$X" rev-parse --short=12 HEAD~5)"
+REPO="$X" bash "$here/engine_bisect.sh" "$G" "$B" "$S/bis_none" --test true > "$S/bis_none.out" 2>&1
+check bisect-nothing-to-find 1 $? "$S/bis_none.out" 'nothing to find'
+REPO="$X" bash "$here/engine_bisect.sh" "$B" "$G" "$S/bis_order" --test true > "$S/bis_order.out" 2>&1
+check bisect-not-ancestor 2 $? "$S/bis_order.out" 'is not an ancestor'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail

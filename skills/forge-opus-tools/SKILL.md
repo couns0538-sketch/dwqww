@@ -1,18 +1,18 @@
 ---
 name: forge-opus-tools
-description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus.sh (one entry point: status, lint, abba, engine, time, load, test), opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
+description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus.sh (one entry point: status, lint, abba, engine, bisect, time, load, test), opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), engine_bisect.sh (first commit that changed bench nodes), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
 ---
 
 # forge-opus-tools (Opus R14-B, `opus_r14b/tools/` on `opus-r14b-status`)
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (17 checks, ~30 s,
-must end `ALL PASS`; covers abba.py and doc_lint.py).
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (21 checks, ~40 s,
+must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
 
 ## opus.sh - one entry point (for Couns and Opus)
 `bash $T/opus.sh help` lists: `status [--ci]`, `lint [PATH...]` (default: every R14-B branch folder + the skills),
-`abba ...`, `engine REF NEW_DIR [--quick]`, `time [--since T] [BRANCH...]` (default: last 24 h, the three R14-B
+`abba ...`, `engine REF NEW_DIR [--quick]`, `bisect GOOD BAD NEW_DIR [--depth D] [--test CMD]`, `time [--since T] [BRANCH...]` (default: last 24 h, the three R14-B
 branches; a branch made from an older branch also shows the base's commits in that window - give `--since` the job
 start for job accounting), `load [MASK] [SECONDS]`, `test NEW_DIR`. Unknown command: help + exit 2.
 
@@ -68,6 +68,16 @@ BelowNormal via lowrun.ps1, exe sha256 + FMA count (0 for the lock recipe), then
 startpos 4865609, kiwipete 193690690 (`--quick`: d11/13/16 + perft). Exit 0 ALL OK / 1 differs / 2 usage / 3 build.
 This is the "options OFF = lock" identity only; ON behaviour, CTest, sanitizers and LTO+PGO builds stay with
 forge-engine-verify, forge-candidate-checks and forge-ltopgo-pgo.
+
+## engine_bisect.sh - which commit changed the bench?
+`bash $T/engine_bisect.sh GOOD BAD C:/o14b/<new> [--depth 13] [--test "CMD"]`: binary search over
+`git rev-list --first-parent GOOD..BAD`; every candidate is a fresh `git archive` export (no checkout, the repository
+is not touched), built with the lock recipe on CPUs 2-3 at BelowNormal, then `bench DEPTH` (Threads 1, Hash 16, OwnBook
+false). "same" = GOOD's node count. A failed build / bench = skip (the search tries the nearest other candidate; if
+all in the range are skipped it lists them, exit 3). GOOD and BAD are tested first (BAD equal to GOOD -> exit 1,
+"nothing to find"). `--test "CMD"` replaces the engine build with any predicate (`{sha}`, `{dir}` placeholders; exit
+0 same / 1 changed / 125 skip, as `git bisect run`); `REPO=<path>` points it at another repository. Log:
+`<out>/bisect.log`. Cost: ~log2(N) + 2 builds of 2-4 min each.
 
 ## Small helpers
 - `commit_span.py --repo D:/grok-pc-data/dwqww --since "2026-11-02 12:00" origin/<b1> origin/<b2> ...`: commits,

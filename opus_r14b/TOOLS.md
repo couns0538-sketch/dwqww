@@ -70,7 +70,8 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 | engine_fresh_check.sh | `bash engine_fresh_check.sh REF NEW_DIR [--quick]` | clean export of an engine ref, lock-recipe build pinned low, exe sha256 + FMA count, bench / perft pins via the lock package's uci_check.py |
 | commit_span.py | `python -I -B commit_span.py --repo REPO --since "..." origin/<branch>...` | time per branch and pauses from commit times (for reports; no guessed hours) |
 | cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
-| test_tools.sh | `bash test_tools.sh NEW_DIR` | 17 checks of abba.py and doc_lint.py (exit codes and output lines) |
+| engine_bisect.sh | `bash engine_bisect.sh GOOD BAD NEW_DIR [--depth 13]` | first commit that changed bench nodes (fresh export + lock-recipe build per candidate; skips failed builds; any predicate with --test) |
+| test_tools.sh | `bash test_tools.sh NEW_DIR` | 21 checks of abba.py, doc_lint.py, opus.sh and the bisect search (exit codes and output lines) |
 
 ### Review R14B-T-1 (20:00-20:05 PC clock; structured self-review, NOT independent; no sub-agents)
 Reviewed: abba.py, doc_lint.py, engine_fresh_check.sh, commit_span.py, opus_status.sh at opus-r14b-status 6fc27230.
