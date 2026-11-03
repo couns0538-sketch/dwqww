@@ -18,7 +18,7 @@
 - Hourly 20-minute bug hunts ~23:20, 00:20, 01:20, 02:20, 03:20, 04:20 (written scope first, every finding fixed and
   recorded with clock times); improvements in between.
 - 05:00-06:00 final 1-hour bug hunt, then in this order: analyse `C:/o14b/trainer_watch_night.tsv` (trainer cores vs GPU
-  use) -> item 1 RESULTS + report; `bash /c/o14b/make_index_r14b.sh` (FILES.txt + SHA256SUMS of both item folders) and
+  use) -> item 1 RESULTS + report; `bash opus_r14b/checks/make_index_r14b.sh` (FILES.txt + SHA256SUMS of both item folders) and
   `sha256sum -c` in fresh clones; `opus_r14b/checks/hash_sweep_r14b.sh` (0 unmatched); `opus.sh lint` (0 findings);
   `opus.sh test` (26 / 26); refreeze.sh only if relabel2.py changed; FINAL_REPORT.md without "INTERIM", with
   commit_span figures; memory + skills; last push of all branches before 06:00 and `git status -sb` in sync.

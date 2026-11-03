@@ -20,3 +20,8 @@ a file, a commit or a reasoned allow-list entry. 20:48: 0 unmatched (88 file, 18
 tokens cited since then pointed at files outside its list (the lock exe, the four kept exes, the P6 crfix patch, two
 scratch builds); after adding them, 0 unmatched (107 file, 24 commit, 39 allow list). Refreeze run 21:04-21:10:
 0 failures. refreeze.sh validated on the frozen code.
+
+`make_index_r14b.sh` writes `FILES.txt` + `SHA256SUMS` of both item folders (forge-job-workflow "Finish", with the
+shared helpers in `F:\opus_scratch\tools`, read-only use) and runs `sha256sum -c` on them; re-run it after any edit in
+an item folder and commit both files with the edit. `fresh_checkout_checks.sh [OUT_DIR]` takes its output folder as an
+argument since 22:35 (default `C:\o14b\fresh`, which must not exist).
