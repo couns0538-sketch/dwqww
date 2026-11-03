@@ -258,3 +258,17 @@ No other script reaches outside its own branch folder (grep for worktree paths: 
 | R32 | prepare under a Python without python-chess reported `BAD INPUT: <file>:1: No module named 'chess'`, i.e. blamed the first input line | the imports are checked once before any input is read: "python-chess is needed ...; use C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe" (exit 2) | simulated missing module: exit 2, message, no job folder; test + reason check |
 | R33 | sort_normalized.py holds its input in memory (~2.2x the file size): sorting Astra's 9.2M-row set would take ~3.7 GB and could push the PC below the RAM floor at which the crew's guards stop training | free physical RAM is checked before reading (`--min-free-ram-gb`, default 8): refuse with "split the input by source" when the sort would cross it | impossible floor: exit 2 before reading, nothing written; a randomly shuffled copy sorts back byte for byte; tests + reason check |
 | I4 | a rebuilt or new probe could only be checked against the R13 answers with Opus's scratch files | committed `probe_ref_500.tsv` (500 positions, rows 900,000-900,499 of the proof sample) + `probe_ref_500_r13.jsonl` (the R13 probe's answers, 20k nodes, Hash 1 MB): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl` then `probe_bench.py compare probe_ref_500_r13.jsonl new.jsonl` (exit 0 = all 500 identical) | ids and FENs of the two files match; used in the fresh-clone check |
+
+## Bug hunt #2 (19:41-20:01; self-review, NOT independent)
+Scope: every change since hunt #1 - relabel2.py (disk floor, status line, move_retry / write_status, python-chess
+check), test_relabel2.sh (new cases and reason checks), build_probe_opt.sh (git export of the lock source, committed
+training file), sort_normalized.py (RAM check), item 1's install_fast_loader.py / fl_acceptance.sh / fl_abba.py,
+tools/hash_sweep.py, the .gitattributes files, and the documents against the code.
+| # | finding | fix | check |
+|---|---|---|---|
+| H2-1 | with the test scratch on a drive below 50 GB free (D: hovers at 52-56 GB), relabel2's own disk floor would fail case after case with a confusing cascade | test_relabel2.sh checks the scratch drive first (>= 51 GB) and stops with one message | bash -n; full suite in the next chain |
+| H2-3 | install_fast_loader.py --loader-dll printed "would copy" lines in a real install (its validation pass) | the validation pass is silent unless --check | check / install / second install on fresh copies of the live config.py + train.py: "would copy" only with --check, files copied with sha256 9eb29b7d... / 39af47b0..., second install exit 2; the fresh install is byte-identical to the tested trainer copy (config.py 5c41d7a7..., train.py d9c3ccef...) |
+| H2-4 | the documents called `F:\opus_scratch\rescore_d8\bin\fen2bin.exe` "Forge's own" converter; it is the build earlier Opus / R11 jobs used (sha256 24cb2e78...), its source is not in this repository and the live supervisor's converter was not compared | wording in RELABEL_HANDOFF.md, RESULTS.md, the skill and FINAL_REPORT.md | hash_sweep |
+Checked and kept: move_retry retries PermissionError only (an existing target still fails at once); every floor check
+runs before its write; the status line handles jobs never run (no run_config.json); the simulated-contention tests
+patch only the calls they target.
