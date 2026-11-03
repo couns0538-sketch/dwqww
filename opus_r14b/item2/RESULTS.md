@@ -474,7 +474,7 @@ cut as the 21:20 dry run), run 2,973 rows in 17 s (634,842 rows/h, the planning 
 2,855 records = the train lines, bad 0 (logs/runbook_as_written_2300.log). One note added to the runbook: GNU
 sha256sum prints a leading "\" before the hash when the path contains backslashes (as `$P` does here).
 
-## Memory at 50M rows (desk analysis of e01caaf1, 23:03; not measured at that size)
+## Memory at 50M rows (desk analysis of e01caaf1, 23:01; not measured at that size)
 Nothing in prepare / run / assemble holds the rows: prepare streams rows.tsv and keeps one game's rows at a time plus
 one length and one start ply per game (`lengths`, `starts`) - for 50M rows of ~85-row games about 0.6M games, i.e.
 two lists of ~0.6M small ints, a few tens of MB; with `--jobs 2` at most 2 x 2 + 1 blocks of 4,096 lines are in flight.
