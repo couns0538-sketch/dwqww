@@ -56,7 +56,7 @@
    contain no run id or time, so an interrupted-and-resumed job gives byte-identical files.
  """
  
-@@ -133,57 +146,183 @@
+@@ -133,57 +146,187 @@
      return c_pieces > p_pieces or not c_castle <= p_castle
  
  
@@ -106,6 +106,7 @@
 +    last_key = None  # normalized input: (source, source_row) increases across all files, so no row comes twice
 +    for si, src in enumerate(sources):
 +        p = Path(src["path"])
++        src["read"] = True
          with open(p, encoding="utf-8-sig") as fh:
              for row_no, line in enumerate(fh, 1):
                  counters["read"] += 1
@@ -177,6 +178,7 @@
 +        for src in sources:
 +            p = Path(src["path"])
 +            path, name = str(p), str(p.resolve())
++            src["read"] = True
 +            pending = collections.deque()
 +            with open(p, encoding="utf-8-sig") as fh:
 +                row_no, eof = 1, False
@@ -222,7 +224,8 @@
 +            if key in seen:
 +                raise BadInput(f"{p}: same file or same content as input {seen[key]} (each input once)")
 +            seen[key] = si
-+        sources.append({"index": si, "path": rp, "sha256": h, "kind": "selfplay" if a.selfplay else "normalized"})
++        sources.append({"index": si, "path": rp, "sha256": h, "kind": "selfplay" if a.selfplay else "normalized",
++                        "read": False})
 +    if a.selfplay:  # a game that runs from one shard into the next must meet its continuation right after it
 +        names = [s["path"].lower() for s in sources]
 +        if names != sorted(names):
@@ -251,7 +254,8 @@
 +
 +def open_job(job: Path):
 +    if not (job / "prepare.json").is_file():
-+        raise BadInput(f"{job}: not a prepared job (no prepare.json)")
++        raise BadInput(f"{job}: not a prepared job (no prepare.json; after an interrupted prepare, prepare again "
++                       "into a new folder)")
 +    return lock_job(job)
  
  
@@ -267,7 +271,7 @@
      tmp = job / "rows.tsv.part"
      st = {"rows": 0, "games": 0, "val_rows": 0, "val_games": 0, "row_id": 0}
      lengths, starts, game_no = [], [], {}
-@@ -210,25 +349,30 @@
+@@ -210,25 +353,30 @@
          starts.append(game[0][2]["ply"])
          return True
  
@@ -296,12 +300,12 @@
          if st["rows"] == 0:
              raise BadInput("no rows selected (input empty, or --rows smaller than the first game)")
 +        for src in sources:  # e.g. the self-play file that is still being written: its hash would not fit the rows
-+            if file_hash(src["path"]) != src["sha256"]:
++            if src["read"] and file_hash(src["path"]) != src["sha256"]:  # files after a --rows cut do not matter
 +                raise BadInput(f"{src['path']}: changed while prepare read it (use finished files only)")
      except BadInput as e:
          write_new(job / "prepare_failed.json", json.dumps({"run_id": a.run_id, "time": now(), "error": str(e)}) + "\n")
          raise
-@@ -239,11 +383,13 @@
+@@ -239,11 +387,13 @@
      info = {
          "run_id": a.run_id, "created": now(), "tool": TOOL, "tool_sha256": file_hash(__file__),
          "records_py_sha256": file_hash(HERE / "astra" / "records.py"), "inputs": sources,
@@ -317,7 +321,7 @@
          "game_length": {"min": lengths[0], "median": q(lengths, 0.5), "p99": q(lengths, 0.99), "max": lengths[-1]},
          "game_start_ply": {"min": starts[0], "median": q(starts, 0.5), "p99": q(starts, 0.99), "max": starts[-1]},
          "rows_tsv_sha256": file_hash(job / "rows.tsv"),
-@@ -329,6 +475,7 @@
+@@ -329,6 +479,7 @@
      from forge_probe import ProbePool  # R13 probe client, unchanged copy
  
      job = Path(a.job)
@@ -325,7 +329,7 @@
      info = load_prepare(job)
      if info["run_id"] != a.run_id:
          raise ConfigMismatch(f"run id {a.run_id} != job run id {info['run_id']}")
-@@ -338,13 +485,18 @@
+@@ -338,13 +489,18 @@
             "nodes": a.nodes, "hash_mb": a.hash_mb, "shard_size": a.shard_size,
             "prepare_json_sha256": file_hash(job / "prepare.json"), "tool": TOOL}
      rc = job / "run_config.json"
@@ -345,7 +349,7 @@
      lower_priority(int(a.mask, 16))
      n = info["rows"]
      shards = (n + a.shard_size - 1) // a.shard_size
-@@ -358,8 +510,8 @@
+@@ -358,8 +514,8 @@
              verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id)
              done.add(k)
      deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
@@ -356,7 +360,7 @@
      if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
          threading.Thread(target=lambda: (time.sleep(a.test_kill_after_seconds), os._exit(137)), daemon=True).start()
      t0, rows_session, shards_session = time.monotonic(), 0, 0
-@@ -400,7 +552,7 @@
+@@ -400,7 +556,7 @@
                            session_rows=rows_session, session_rows_per_hour=round(rate),
                            eta_hours=round(left / rate, 2) if rate else None, workers=a.workers, nodes=a.nodes)
              write_status(job / "status.json", status)
@@ -365,7 +369,7 @@
      print(json.dumps(status))
      return 0
  
-@@ -409,6 +561,7 @@
+@@ -409,6 +565,7 @@
  
  def cmd_assemble(a) -> int:
      job = Path(a.job)
@@ -373,7 +377,7 @@
      info = load_prepare(job)
      rc = json.loads((job / "run_config.json").read_text(encoding="utf-8"))
      if info["run_id"] != a.run_id or rc["run_id"] != a.run_id:
-@@ -463,13 +616,13 @@
+@@ -463,13 +620,13 @@
      finally:
          for f in fh.values():
              f.close()
@@ -391,7 +395,7 @@
      print(json.dumps({nm: files[nm]["md5"] for nm in names}))
      return 0
  
-@@ -483,6 +636,33 @@
+@@ -483,6 +640,33 @@
      return 0
  
  
@@ -425,7 +429,7 @@
  def main(argv=None) -> int:
      ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
      sub = ap.add_subparsers(dest="cmd", required=True)
-@@ -496,6 +676,7 @@
+@@ -496,6 +680,7 @@
      p.add_argument("--val-ppm", type=int, default=10000)
      p.add_argument("--salt", default="r14b")
      p.add_argument("--drop-terminal", action="store_true")
@@ -433,7 +437,7 @@
      p.add_argument("--mask", default="0xC")
      r = sub.add_parser("run")
      r.add_argument("--job", required=True)
-@@ -509,6 +690,7 @@
+@@ -509,6 +694,7 @@
      r.add_argument("--max-shards", type=int, default=0)
      r.add_argument("--until")
      r.add_argument("--test-kill-after-seconds", type=float, default=0.0, help=argparse.SUPPRESS)
@@ -441,7 +445,7 @@
      s = sub.add_parser("assemble")
      s.add_argument("--job", required=True)
      s.add_argument("--run-id", required=True)
-@@ -516,9 +698,10 @@
+@@ -516,9 +702,10 @@
      t = sub.add_parser("status")
      t.add_argument("--job", required=True)
      a = ap.parse_args(argv)
@@ -486,7 +490,7 @@
  head -n 400 "$src" > good.txt
  # bad inputs (exit 2), nothing published
  { head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 | 20 | 0.5'; } > bad_fen_fields.txt
-@@ -27,16 +33,81 @@
+@@ -27,16 +33,94 @@
  { head -n 50 good.txt; echo ''; head -n 60 good.txt | tail -n 10; } > bad_empty_line.txt
  { head -n 50 good.txt; echo '7k/6Q1/6K1/8/8/8/8/8 b - - 0 60 | -32000 | 1'; } > bad_terminal.txt
  { head -n 50 good.txt; echo 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 | 20 | ?'; } > bad_noresult.txt
@@ -523,6 +527,19 @@
 +relabel2.iter_rows = grow
 +sys.exit(relabel2.main(sys.argv[2:]))" "$here" prepare --job job_grow --run-id t --selfplay growing.txt
 +check prepare_input_changed_nothing_published test ! -e job_grow/rows.tsv
++# a file after the --rows cut may change (e.g. the live self-play file at the end of the list): it is never read
++head -n 450 "$src" | tail -n 50 > later.txt
++expect 0 prepare_unread_input_changed "$PY" -I -B -c "import sys
++sys.path.insert(0, sys.argv[1])
++import relabel2
++orig = relabel2.iter_rows
++def grow(*args):
++    with open('later.txt', 'a', newline='\n') as f:
++        f.write(open('good.txt').readline())
++    yield from orig(*args)
++relabel2.iter_rows = grow
++sys.exit(relabel2.main(sys.argv[2:]))" "$here" prepare --job job_unread --run-id t --selfplay good.txt later.txt --rows 300
++check prepare_unread_input_marked grep -q '"read": false' job_unread/prepare.json
 +# normalized input (Astra records): source order must hold across all files
 +"$PY" -I -B -c "import sys
 +sys.path.insert(0, sys.argv[1])
@@ -570,7 +587,7 @@
  expect 3 run_other_nodes "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 6000 --shard-size 100
  expect 3 run_other_shard_size "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 50
  expect 3 run_other_run_id "$PY" -I -B "$R" run --job jg --run-id other --probe "$P" --nodes 5000 --shard-size 100
-@@ -45,5 +116,20 @@
+@@ -45,5 +129,20 @@
  expect 4 run_tampered_shard "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
  printf 'x' >> jg/rows.tsv
  expect 4 run_tampered_rows "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
@@ -596,12 +613,13 @@
 @@ -0,0 +1,59 @@
 +#!/usr/bin/env bash
 +# measure_rates.sh STEP BASE_DIR - Opus R14-B item 2: the cost numbers for RELABEL_HANDOFF.md, measured, not estimated.
-+#   workers : 1 vs 2 probe workers on the same 20,000 rows (forge_selfplay_003.txt, not in the 1M proof), 20k nodes,
-+#             mask 0xC (CPUs 2-3), Idle, order W1 W2 W2 W1 (ABBA against load drift); every job is assembled and the
-+#             labels.tsv md5 must be the same for all four (labels do not depend on the worker count)
++# Input for every step: BASE_DIR/in220k.txt = the first 220,000 lines of forge_selfplay_003.txt (not in the 1M proof;
++# ~14 MB, so hashing the input stays out of the rates). Idle on CPUs 2-3 (mask 0xC) like a real job.
++#   workers : 1 vs 2 probe workers on the same 20,000 rows, 20k nodes, order W1 W2 W2 W1 (ABBA against load drift);
++#             every job is assembled and labels.tsv must have the same md5 in all four (labels do not depend on the
++#             worker count)
 +#   nodes   : 1 worker, 10,000 rows (the first half of the same rows) at 5,000 and at 10,000 nodes
-+#   prepare : prepare alone on 200,000 rows of forge_selfplay_003.txt (wall time incl. hashing the 645 MB input twice;
-+#             no probe runs), --jobs 1 vs 2 in the order 1 2 2 1, rows.tsv identical in all four
++#   prepare : prepare alone on 200,000 rows, --jobs 1 vs 2 in the order 1 2 2 1; rows.tsv identical in all four
 +# Every job is a new folder under BASE_DIR (nothing reused or overwritten). Prints one summary line per job.
 +set -u
 +step=${1:?step}
@@ -609,13 +627,14 @@
 +PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 +R=$(cd "$(dirname "$0")" && pwd)/relabel2.py
 +P=${PROBE:-'C:\o13\p5\forge_data_probe.exe'}
-+SP=/d/grok-pc-data/selfplay_out
 +mkdir -p "$base"
++in=$base/in220k.txt
++[ -e "$in" ] || head -n 220000 /d/grok-pc-data/selfplay_out/forge_selfplay_003.txt > "$in"
 +num() { sed -n "s/.*\"$2\": \([0-9]*\).*/\1/p" "$1" | head -1; }   # num FILE KEY: first integer value of KEY
 +job() {  # job NAME ROWS NODES WORKERS
 +  local j=$base/$1
 +  [ -e "$j" ] && { echo "refusing existing $j" >&2; exit 2; }
-+  "$PY" -I -B "$R" prepare --job "$j" --run-id "$1" --rows "$2" --selfplay "$SP/forge_selfplay_003.txt" >/dev/null || exit $?
++  "$PY" -I -B "$R" prepare --job "$j" --run-id "$1" --rows "$2" --selfplay "$in" >/dev/null || exit $?
 +  local t0 t1
 +  t0=$(date +%s.%N)
 +  "$PY" -I -B "$R" run --job "$j" --run-id "$1" --probe "$P" --nodes "$3" --workers "$4" --mask 0xC \
@@ -637,8 +656,6 @@
 +    job n5k 10000 5000 1
 +    job n10k 10000 10000 1 ;;
 +  prepare)  # --jobs 1 vs 2 in the order 1 2 2 1; rows.tsv must be the same file in all four
-+    in=$base/in220k.txt   # the first 220,000 lines (~14 MB): hashing time stays out of the per-row rate
-+    [ -e "$in" ] || head -n 220000 "$SP/forge_selfplay_003.txt" > "$in"
 +    for spec in "p1a 1" "p2a 2" "p2b 2" "p1b 1"; do
 +      set -- $spec
 +      j=$base/prep200k_$1
@@ -697,3 +714,89 @@
 +for f in train.txt val.txt labels.tsv; do ok cmp -s "$c/final/$f" "$proof/jobA/final/$f"; done
 +echo "failures: $fails"
 +exit $((fails > 0))
+--- a/opus_r14b/item2/label_stats.py
++++ b/opus_r14b/item2/label_stats.py
+@@ -0,0 +1,83 @@
++#!/usr/bin/env python3
++"""label_stats.py - Opus R14-B item 2: descriptive statistics of a relabel2.py labels.tsv (own code, stdlib only).
++
++usage: python -I -B label_stats.py LABELS.tsv [LABELS2.tsv ...]
++Reads one or more labels.tsv files (a job's final/labels.tsv or its shards' labels.tsv) and prints: rows, search depth
++and nodes, how far the new label is from the old self-play score (median / mean absolute difference, Pearson
++correlation inside +-2000 cp, same sign), mate-range labels (|score| >= 30000), and how often the sign of each score
++(White's view) matches the game result for decisive games. Descriptive only: no claim about training value.
++"""
++
++import math
++import statistics
++import sys
++
++MATE = 30000
++
++
++def main(paths) -> int:
++    n = 0
++    depth = {}
++    nodes_sum = 0
++    absdiff = []
++    sx = sy = sxx = syy = sxy = 0.0
++    m = 0
++    same_sign = nonzero = 0
++    mate_new = mate_old = 0
++    agree = {"new": 0, "old": 0}
++    decisive = 0
++    for path in paths:
++        with open(path, encoding="utf-8") as fh:
++            header = fh.readline().rstrip("\n").split("\t")
++            col = {name: i for i, name in enumerate(header)}
++            for line in fh:
++                f = line.rstrip("\n").split("\t")
++                new, old = int(f[col["score_stm"]]), int(f[col["old_score_stm"]])
++                d = int(f[col["depth"]])
++                depth[d] = depth.get(d, 0) + 1
++                nodes_sum += int(f[col["nodes"]])
++                n += 1
++                absdiff.append(abs(new - old))
++                mate_new += abs(new) >= MATE
++                mate_old += abs(old) >= MATE
++                if abs(new) < 2000 and abs(old) < 2000:
++                    m += 1
++                    sx += new
++                    sy += old
++                    sxx += new * new
++                    syy += old * old
++                    sxy += new * old
++                if new and old:
++                    nonzero += 1
++                    same_sign += (new > 0) == (old > 0)
++                result = f[col["result"]]
++                if result in ("0", "0.0", "1", "1.0"):  # decisive game: compare the sign in White's view
++                    decisive += 1
++                    white = f[col["fen"]].split()[1] == "w"
++                    win = 1 if result in ("1", "1.0") else -1
++                    for key, score in (("new", new), ("old", old)):
++                        sw = score if white else -score
++                        agree[key] += (sw > 0 and win > 0) or (sw < 0 and win < 0)
++    if not n:
++        print("no rows")
++        return 1
++    corr = (m * sxy - sx * sy) / math.sqrt((m * sxx - sx * sx) * (m * syy - sy * sy)) if m > 1 else float("nan")
++    absdiff.sort()
++    print(f"rows {n:,} from {len(paths)} file(s); mean nodes {nodes_sum / n:,.0f}")
++    print("depth: " + " ".join(f"{d}:{100 * c / n:.1f}%" for d, c in sorted(depth.items())))
++    print(f"|new - old| cp: median {statistics.median(absdiff):.0f}, mean {sum(absdiff) / n:.1f}, "
++          f"p90 {absdiff[int(0.9 * (n - 1))]}, p99 {absdiff[int(0.99 * (n - 1))]}")
++    print(f"Pearson r(new, old) on {m:,} rows with both |score| < 2000: {corr:.4f}; same sign {100 * same_sign / max(1, nonzero):.1f}% "
++          f"of {nonzero:,} rows with both nonzero")
++    print(f"mate-range (|score| >= {MATE}): new {mate_new:,}, old {mate_old:,}")
++    if decisive:
++        print(f"decisive-game rows {decisive:,}: score sign (White's view) = game result for new {100 * agree['new'] / decisive:.1f}%, "
++              f"old {100 * agree['old'] / decisive:.1f}%")
++    return 0
++
++
++if __name__ == "__main__":
++    if len(sys.argv) < 2:
++        print(__doc__)
++        sys.exit(2)
++    sys.exit(main(sys.argv[1:]))

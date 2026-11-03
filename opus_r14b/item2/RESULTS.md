@@ -101,3 +101,12 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 - Thread-budget note (honest record): the dev test runs at 15:22, 15:38, 15:43 and from 15:48 ran as a third Idle
   process on CPUs 2-3 next to the two proof probes (inside the 2-CPU mask, but three processes, over the "<= 2
   threads" rule); nothing further CPU-bound is started until the proof ends.
+
+## R17 (16:00, review R14B-I2-2 in progress): only inputs that were read must stay unchanged
+- prepare hashed every input before reading and re-hashed all of them at the end. With `--rows`, files after the cut
+  are never read; if one of them is the live self-play file (still growing), hours of prepare would end with exit 2
+  for rows that were not used. Fix (dev copy): each input records `"read": true/false` in prepare.json and only read
+  inputs must be unchanged. The message for a job without prepare.json now says what to do (prepare again into a new
+  folder). Dev test script: **75 / 75 PASS** (logs/test_relabel2_dev_final.log; new: an input after the cut grows ->
+  exit 0 and `"read": false`). The run took 39 min instead of ~2 min: Idle, starved next to the two proof probes and
+  Astra's two BelowNormal jobs.
