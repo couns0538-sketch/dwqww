@@ -1,5 +1,30 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: Forge-compatible FEN text
+
+Candidate base 85412828. Main's exact-FD3A5190 UCI repro showed Python-admitted
+Unicode separators/digits, control separators, Shredder castling, promotion
+markers and underscored/overflowing clocks being rejected by Forge, leaving the
+distinct previous board active. The shared board_from_fen validator now protects
+normalization and native probes, preserving accepted original ASCII text/tabs.
+Legacy no-flag converter parsing remains unchanged. Initial 98 related tests
+PASS. The reused reviewer found short duplicate castling rights (KK/QQ/kk/qq)
+still accepted; five RED cases reproduced it. Main added explicit uniqueness;
+all 66 metadata/native checks PASS. The reviewer rechecked and APPROVED for full
+CPU suite, v5 refresh and cohort/native verification, with no scoped finding.
+It made no edits and ran no tests, engine commands or additional agents.
+
+Frozen records.py SHA256:
+`4e831b4d66b2612a1937c6eb4fda2f28ef1e77d3b9e14ff123e6f19d9b9a6892`;
+native_forge_smoke.py:
+`b8deca4124e5f313f4664ec653d308c057643e4a5841a924293978693c0d882f`;
+metadata test `79c376c6e492adbe5289e2e5ba9e6c2caf255ca6729053137f23d6a0b28fdd63`;
+native test `90c02afa34daf0a98f68fd7b8e9fb53eff3792aff68852814882367fb7295410`.
+Evidence: quality6h/fen_compatibility. One preserved fixture attempt called an
+unavailable Board.ply API; corrected explicit arithmetic then reproduced all
+nine true admission failures. Prior v4 manifest/checker remain historical.
+Next: actual full-suite/current-cohort/native closure and final reserved review.
+
 ## Six-hour continuation: completed corpus and packaging evidence
 
 Previously approved completion and packaging wrappers ran without changes.

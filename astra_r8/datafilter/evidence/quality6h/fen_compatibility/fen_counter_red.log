@@ -1,0 +1,238 @@
+FFFFFFFFF                                                                [100%]
+================================== FAILURES ===================================
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\xa0w KQkq - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be0')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\xa0w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\u2003w KQkq - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be1')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\u2003w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\x1fw KQkq - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be2')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\x1fw KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 \u0661] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be3')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 \u0661'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be4')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[8/8/8/8/8/6k1/8/KR~6 w - - 0 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be5')
+fen = '8/8/8/8/8/6k1/8/KR~6 w - - 0 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1_0] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be6')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1_0'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 9223372036854775808] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be7')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 9223372036854775808'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+_ test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 9223372036854775808 1] _
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/final_pack/fen_counter_red/fixtures/test_non_uci_fen_text_never_be8')
+fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 9223372036854775808 1'
+
+    @pytest.mark.parametrize('fen', [
+        chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+        chess.STARTING_FEN.replace(' w ', '\u2003w '),
+        chess.STARTING_FEN.replace(' w ', '\x1fw '),
+        chess.STARTING_FEN[:-1] + '\u0661',
+        chess.STARTING_FEN.replace('KQkq', 'HAha'),
+        '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+        chess.STARTING_FEN[:-1] + '1_0',
+        chess.STARTING_FEN[:-1] + str(2**63),
+        chess.STARTING_FEN.rsplit(' ', 2)[0] + ' ' + str(2**63) + ' 1',
+    ])
+    def test_non_uci_fen_text_never_becomes_published_data(tmp_path, fen):
+        from filter_positions import run_filter
+        candidate = row()
+        candidate['fen'] = fen
+>       candidate['ply'] = chess.Board(fen).ply()
+                           ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Board' object has no attribute 'ply'
+
+astra_r8\datafilter\tests\test_metadata_contract.py:97: AttributeError
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\xa0w KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\u2003w KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\x1fw KQkq - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 \u0661]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[8/8/8/8/8/6k1/8/KR~6 w - - 0 1]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1_0]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 9223372036854775808]
+FAILED astra_r8/datafilter/tests/test_metadata_contract.py::test_non_uci_fen_text_never_becomes_published_data[rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 9223372036854775808 1]
+9 failed, 33 deselected in 3.47s

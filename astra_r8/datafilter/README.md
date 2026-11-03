@@ -5,14 +5,16 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Current verified handoff: `C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`,
+Last verified handoff (historical after the current FEN admission repair):
+`C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`,
 SHA256 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
 passes **301 tests + 11 subtests**.
 Both actual recipe preflights and published-manifest verification pass on source
 87963077. Complete-corpus and expanded native checks pass; the reserved final
-review is still pending.
+review is still pending. The new shared FEN admission fix passes 98 related tests;
+focused review, a v5 handoff refresh and the complete current-source suite follow.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
 Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
@@ -60,8 +62,11 @@ STM-relative; its result field is White-relative. Lichess cp/mate values are
 White-relative and outcomes remain unknown. Fastchess PGN evaluation comments
 label the position **before** the played move; a PGN source row is game:move index.
 Unlabelled PGN nodes are not evaluation records. Castling, EP and clocks are kept.
-Result-aware admission rejects CR/LF inside FEN strings so accepted data remains
-usable as a single UCI command. Valid original FEN text is preserved unchanged.
+Result-aware admission requires single-line ASCII standard FEN understood by
+the lock: no Unicode/control separators, Shredder rights, promotion markers or
+underscored/overflowing clocks. Spaces and tabs remain valid, and original valid
+text is preserved. The native probe uses the same validator. Legacy no-flag
+converter parsing remains unchanged.
 
 `filter_positions.py INPUT NEW_OUTPUT --kind normalized --workers 2` uses one
 parser/writer process and one pool process, counting both toward the total budget.
@@ -86,8 +91,9 @@ parser/writer plus one pool worker at BelowNormal priority (two total computing
 processes). Source 88b7c6b1, unchanged filter SHA256 beginning b3fdda81. Earlier
 two-pool-worker measurements remain historical evidence and are superseded here:
 
-The table measures the filter loop, excluding startup/source fingerprinting and
-final output hashing. End-to-end execution of all six self-play cases took
+The table measures processing and final input-identity verification, excluding
+startup/initial source fingerprinting and final output hashing. End-to-end
+execution of all six self-play cases took
 875.000 seconds for six million row visits (6,857 positions/s).
 
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |

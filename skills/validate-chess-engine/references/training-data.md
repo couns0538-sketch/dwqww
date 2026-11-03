@@ -234,6 +234,20 @@ that breaks a later UCI command. Reproduce the gap through the actual all-off
 filter, reject before publication, and retain the original valid FEN unchanged.
 Keep explicitly compatible legacy conversion behavior separately qualified.
 
+Python chess parsers may accept a wider notation than the native engine: Unicode
+separators/digits, promotion markers, Shredder rights and Python-style integer
+text can survive library validation. Reproduce a mismatch with a bounded UCI
+probe on the exact executable, including a distinct prior board to expose a
+rejected position command. Share the proven text contract between normalization
+and native probes; preserve accepted original text instead of silently repairing
+it. Refresh source-bound handoffs after any admission change. In regression
+fixtures, keep derived ply consistent so an unrelated metadata check cannot
+hide the parsing defect.
+
+Describe the exact timing interval: a processing timer may include a final
+input rehash while excluding startup and output hashing. Preserve command-level
+elapsed time separately, and bind both to their measured source and CPU budget.
+
 Preserve timeout diagnostics before re-raising an owned-child timeout; Python may
 return bytes even in text mode. Inventory only closed logs. A packaging process
 must exclude its own active stdout log, then pin that final log separately. Keep

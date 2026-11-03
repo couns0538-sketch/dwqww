@@ -46,14 +46,29 @@ def read_pgn_game(fh):
     return game
 
 
-def record(fen, score, score_type, result_white, source, source_row,
-           source_kind, best_move=None, raw_score=None, depth=None):
-    if (not isinstance(fen, str) or '\n' in fen or '\r' in fen
-            or len(fen.split()) != 6 or int(fen.split()[5]) < 1):
-        raise ValueError('original single-line full FEN required')
+def board_from_fen(fen):
+    """Accept full standard FEN text understood by the locked Forge UCI parser."""
+    if (not isinstance(fen, str) or not fen.isascii()
+            or any(ord(char) < 32 and char != '\t' for char in fen)):
+        raise ValueError('original single-line ASCII full FEN required')
+    fields = fen.split()
+    if (len(fields) != 6
+            or not re.fullmatch(r'[pnbrqkPNBRQK1-8/]+', fields[0])
+            or fields[2] != '-' and not re.fullmatch(r'[KQkq]+', fields[2])
+            or len(set(fields[2])) != len(fields[2])
+            or any(not re.fullmatch(r'\+?[0-9]+', value) for value in fields[4:])
+            or not 0 <= int(fields[4]) <= 2**63 - 1
+            or not 1 <= int(fields[5]) <= 2**63 - 1):
+        raise ValueError('original standard full FEN with signed-64-bit clocks required')
     board = chess.Board(fen)
     if not board.is_valid():
         raise ValueError('invalid board')
+    return board
+
+
+def record(fen, score, score_type, result_white, source, source_row,
+           source_kind, best_move=None, raw_score=None, depth=None):
+    board = board_from_fen(fen)
     if source_kind not in ('selfplay', 'pgn', 'lichess'):
         raise ValueError('unsupported source kind')
     if not isinstance(source, str) or not source.strip() or isinstance(source_row, bool) or not isinstance(source_row, (str, int)):

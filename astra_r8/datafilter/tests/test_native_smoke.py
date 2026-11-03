@@ -64,6 +64,14 @@ def test_changed_sample_cannot_be_attributed_to_tested_fens(tmp_path, monkeypatc
 
 @pytest.mark.parametrize('fen', ['', '8/8/8/8/8/8/8/8 w - - 0 1',
                                  chess.STARTING_FEN.replace(' ', '\n', 1),
+                                 chess.STARTING_FEN.replace(' w ', '\u00a0w '),
+                                 chess.STARTING_FEN.replace(' w ', '\x1fw '),
+                                 chess.STARTING_FEN[:-1]+'\u0661',
+                                 chess.STARTING_FEN.replace('KQkq', 'HAha'),
+                                 'r3k2r/8/8/8/8/8/8/R3K2R w KK - 0 1',
+                                 '8/8/8/8/8/6k1/8/KR~6 w - - 0 1',
+                                 chess.STARTING_FEN[:-1]+'1_0',
+                                 chess.STARTING_FEN[:-1]+str(2**63),
                                  chess.STARTING_FEN.rsplit(' ',1)[0]+' 0'])
 def test_empty_invalid_or_multiline_sample_never_launches_engine(tmp_path, monkeypatch, fen):
     fake_lock(tmp_path, monkeypatch)

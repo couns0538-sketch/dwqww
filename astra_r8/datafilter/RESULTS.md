@@ -5,7 +5,11 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The current v4 handoff and 301-test suite are verified.
+their pinned source files. The prior v4 handoff and 301-test suite are verified
+for their frozen source. A further FEN admission repair passes 98 related tests;
+The focused reviewer found and main fixed duplicate castling-letter admission;
+all 66 metadata/native checks PASS and the recheck APPROVED. Full current-source
+verification and v5 refresh are running next; no final acceptance yet.
 The complete source profile, original-line reservoir replay, native Forge checks
 and fresh full-output inventory PASS. The reserved final review remains pending.
 
@@ -35,11 +39,14 @@ Fresh packaging PASS on source a9378593: all 7,001 retained output files hashed,
 seven million-row payload pairs match their measured receipts, source/runtime
 pins remain stable, production converter/helpers and all twelve saved skill
 payloads unchanged. See evidence/quality6h/corpus_report, reservoir_audit,
-native_corpus and final_pack. Final consistency checker follows this checkpoint.
+native_corpus and final_pack. The Forge consistency checker passed 81 artifact
+references at source 85412828; it is historical after the current admission
+repair and will be refreshed.
 Aggregate retained outputs remain below 15 GB (14.383 GB before packaging),
 C:145.85 GB and D:58.67 GB free at corpus completion.
 
-Timing scope: per-rule table times cover the filter loop. Complete six-case
+Timing scope: per-rule times cover processing and final input verification,
+excluding initial fingerprinting and final output hashing. Complete six-case
 self-play execution is 875.000 seconds (6M visits,6,857 positions/s); capture
 execution is 156.812 seconds (1M,6,377 positions/s), excluding the separately
 reported 225.243-second PGN freeze. Measurements belong to source 88b7c6b1;

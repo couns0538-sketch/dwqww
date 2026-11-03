@@ -8,6 +8,7 @@ import time
 import chess
 from filter_positions import low_priority, sha256, input_identity
 from resource_policy import storage_guard
+from records import board_from_fen
 
 ENGINE=Path('C:/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe')
 LOCK='fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072'
@@ -31,10 +32,7 @@ def run(output, sample, *, max_positions=24):
     with Path(sample).open(encoding='utf-8') as fh:
         for _,line in zip(range(max_positions),fh):
             fen=json.loads(line)['fen']
-            if (not isinstance(fen,str) or len(fen.split())!=6 or '\n' in fen or '\r' in fen
-                    or int(fen.split()[5])<1
-                    or not chess.Board(fen).is_valid()):
-                raise ValueError('sample requires valid single-line complete FENs')
+            board_from_fen(fen)
             fens.append(fen)
     sample_positions=len(fens)
     if not sample_positions:raise ValueError('sample must contain at least one position')

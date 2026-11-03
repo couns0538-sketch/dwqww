@@ -3,7 +3,8 @@
 Current v4 handoff SHA256:
 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
 Both CPU preflights and strict published verification pass for source 87963077.
-The entry point rejects stale runtime/tooling identities.
+This manifest is historical after the current standard-FEN admission repair;
+v5 refresh is pending. The entry point rejects stale runtime/tooling identities.
 The complete descriptive corpus audit and expanded native compatibility checks
 pass. The reserved final review remains pending.
 
