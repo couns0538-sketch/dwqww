@@ -6,9 +6,9 @@ sha256 444e854e...). Labels come from the R13 probe `C:\o13\p5\forge_data_probe.
 source d4f4312; transposition table, histories and caches cleared before every search). Engine NNUE decides whether
 any of these labels are used; nothing here is a strength claim. The 50M run is not started.
 
-**State (2026-11-02 21:51 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
-FROZEN at sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 (after bug hunt 3 and the verify
-chain). Test suite: 150 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's
+**State (2026-11-02 22:03 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
+FROZEN at sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155 (re-frozen 22:03 after the prepare fuzz;
+first frozen 20:41 as 88454db6...). Test suite: 154 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's
 first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
 whole 1M sample with the LTO+PGO probe gave the proof's files byte for byte; Forge's fen2bin / hce_dump take all 1M
 rows. Probe builds from a fresh clone reproduce the tested exes. 50M: ~79 h on CPUs 2-3 with 2 workers (the whole-1M
@@ -371,3 +371,20 @@ RESULTS.) With this, every step of the verify chain has passed on the frozen cod
 - Docs as a test: the runbook's prepare command exactly as written (57 inputs, `--jobs 2 --drop-terminal`), only
   `--rows 3000` and a scratch job folder changed: exit 0, 57 inputs accepted in name order, 1 read (the cut), 2,973 rows
   (whole games), `terminal_dropped: 0`; `status` prints "not run yet". C:\o14b\runbook_dry_2120.
+
+## Prepare fuzz and re-freeze (21:53-22:03 by the PC clock)
+- `C:\o14b\prep_fuzz.py` (scratch): 300 damaged copies of the first 400 lines of forge_selfplay_001.txt (byte flips,
+  deleted / duplicated / cut lines, swapped fields, broken FEN fields, CRLF, NUL, BOM, bad scores and results, an
+  extra field, a cut last line, an empty file) into `prepare`: no traceback, no other exit code, no hang, nothing
+  published after a refusal; every refusal names file:line. CRLF lines are read cleanly (0 CR bytes reach rows.tsv).
+- Finding P-1: an input score such as 99999999999 passed (stored as the old score; training uses the new label, so no
+  output for training was affected). Fix: prepare refuses a score outside -32767..32767 (engine scores are int16; the
+  label check already used that range) - exit 2 with file:line. Test: bad_score_range for `--jobs 1` and `--jobs 2`
+  + reason check (suite 154 / 0, was 150).
+- Kept as it is: a duplicated input line is accepted and starts a new game id at the copy (the ply does not increase),
+  so the rest of that game gets a second id; real self-play files hold no duplicate lines (0 duplicate FENs in the
+  1M sample), so this only matters for damaged files.
+- Re-freeze (`opus_r14b/checks/refreeze.sh h6pre`, 21:57-22:03): suite 154 / 0 in the worktree and in a fresh clone,
+  bridge PASS (rows.tsv for `--jobs 1` and `--jobs 2` and the three final files = the proof's), labelling functions
+  identical (logs/fn_diff_frozen_vs_0a81dd5f.txt). New frozen sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155
+  (commit 3b190297), written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.

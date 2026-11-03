@@ -1,13 +1,15 @@
 # RELABEL_HANDOFF - for Engine NNUE (R14-B item 2; UNPROVEN as training data, the 50M run is NOT started)
 
-## State (2026-11-02, updated 20:41 PC clock)
+## State (2026-11-02, updated 22:03 PC clock)
 - `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`), **frozen at sha256
-  88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545** (commit f414e2d8, after bug hunt 3). Check the
-  file you run against it. The 1M kill / resume proof ran on 5c88438f and PASSED (A uninterrupted vs B hard-exited
-  twice: train.txt / val.txt / labels.tsv md5 identical). The frozen version keeps every labelling function as
-  identical source (logs/fn_diff_frozen_vs_88454db6.txt) and reproduced the proof's rows.tsv and final files byte for
-  byte (bridge, 20:30-20:33). Verify chain 20:29-20:39 (RESULTS.md): suite 150 PASS / 0 FAIL in the worktree and in a
-  fresh clone, bridge PASS, R8 v5 prepare and end to end through fen2bin PASS. Tests: `test_relabel2.sh SCRATCH`
+  0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155** (commit 3b190297). Check the file you run
+  against it. First frozen 20:41 as 88454db6...; re-frozen 22:03 after one more input check (an input score outside
+  -32767..32767 is now exit 2, found by fuzzing prepare). The 1M kill / resume proof ran on 5c88438f and PASSED (A
+  uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5 identical). The frozen version keeps every
+  labelling function as identical source (logs/fn_diff_frozen_vs_0a81dd5f.txt) and reproduced the proof's rows.tsv and
+  final files byte for byte (bridge, again in the re-freeze 21:59-22:03). Suite: 154 PASS / 0 FAIL in the worktree and
+  in a fresh clone (re-freeze); the verify chain 20:29-20:39 (RESULTS.md) also ran the R8 v5 prepare and an end-to-end
+  job through fen2bin. Tests: `test_relabel2.sh SCRATCH`
   (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini kill / resume, a dead
   probe); run it after any change, and after a change to relabel2.py run `opus_r14b/checks/refreeze.sh` (branch
   opus-r14b-status) and write the new sha256 here.
@@ -82,7 +84,7 @@ newest one is still being written). Shards 271 + 272 (1.83M rows) held no positi
 cannot get a search label; prepare.json counts what was dropped).
 ```bash
 PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
-R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 88454db6...
+R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 0a81dd5f...
 P=<your copy of the LTO+PGO probe>                               # sha256 08299f9f... (or the R13 probe ed76de96...)
 S=/d/grok-pc-data/selfplay_out_r8v5_20261029
 J=C:/<your folder>/relabel_r8v5_50m                              # a NEW folder on a drive with > 70 GB free

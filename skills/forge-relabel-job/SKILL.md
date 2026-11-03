@@ -11,7 +11,7 @@ the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96..., lock source 
 histories cleared per search: a label depends only on FEN + nodes + hash). It keeps the ORIGINAL FEN (castling, en
 passant, clocks) and splits validation by game. UNPROVEN as training data: Engine NNUE decides. Details and evidence:
 `RESULTS.md`, `RELABEL_HANDOFF.md` (cost table) in the same folder. Frozen version (2026-11-02, after the verify chain):
-sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 - check it before a long run; after any change
+sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155 (re-frozen 22:03; first frozen as 88454db6...) - check it before a long run; after any change
 run `opus_r14b/checks/refreeze.sh TAG` (branch opus-r14b-status) and update the sha256 in the documents.
 
 ## Commands (python = `C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B`)
