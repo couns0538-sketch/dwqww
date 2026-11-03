@@ -104,7 +104,18 @@ means 40-56 %. Use the same command for a GPU window with `--fast-loader` (item 
 - `lowrun.ps1 -Mask 0xC -Priority BelowNormal|Idle -Exe <prog> -ArgLine "<args>" [-In/-Out/-Err files]`: run one
   program (and its children) pinned at low priority; exit code = the program's.
 
+## Check scripts of R14-B (`opus_r14b/checks/`, README.md there)
+- `final_checks.sh OUT_DIR`: the end-of-job check in one command (~1 min): doc_lint, file indexes committed,
+  `sha256sum -c` in fresh clones, hash sweep, test_tools.sh, installer + scope tests, relabel2.py = frozen sha256 +
+  `e2e_r8v5.sh`, every worktree clean and in sync. Run it before a final report.
+- `refreeze.sh TAG` after any relabel2.py change (suite in worktree + fresh clone, bridge to the 1M proof, function
+  diff); `e2e_r8v5.sh OUT [ROWS]` the frozen relabel2 end to end on R8 v5 through fen2bin / hce_dump;
+  `fresh_checkout_checks.sh [OUT]` both items from fresh clones (probe builds, DLL = b5, adoption rehearsal);
+  `make_index_r14b.sh` FILES.txt + SHA256SUMS of both item folders; `hash_sweep_r14b.sh OUT`; `verify_chain.sh TAG`.
+
 ## Pitfalls met while building these (2026-11-02)
+- `sed 'a\ ...'` and `sed s///` lose a trailing backslash or `\\` sent through the Bash tool (a shell line
+  continuation vanished twice in make_index_r14b.sh): change such lines with the Edit tool and run `bash -n`.
 - The Write tool turns `\uXXXX` in file content into the real character: write `chr(0xFFFD)` in code instead.
 - Python 3.10 (the venv) rejects backslashes inside f-string braces: compute such values first.
 - `sed` replacements containing `|` and backticks are easy to get wrong: use the Edit tool for exact text, then
