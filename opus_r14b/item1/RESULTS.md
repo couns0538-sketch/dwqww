@@ -335,3 +335,16 @@ A CPU dry run of the GPU command's recipe (`tools/lm_run.sh fast` with validatio
 training run on CPUs 2-3, which the live trainer's mask has included since 22:29). Not worked around; nothing ran
 (no output folder). GPU_REQUEST.md lists it as optional pre-check 4, for a moment when no npt line trains. The
 trainer's CLI with `--fast-loader` did run in the afternoon's CPU loss match through the same launcher.
+
+## Bug hunt #8 (23:10-23:16 by the PC clock, started early; self-review, NOT independent): the DLL's lifecycle
+Scope (written first): forge_fastloader.cpp create / next / release / destroy, errors in its threads, and teardown
+while the trainer waits for a batch - a race there would show at the end of training or when a stream is dropped.
+Read: `Loader::~Loader` sets `stop_`, wakes every condition variable and joins the reader, filter and builder threads,
+but not an outside caller still inside `next()`: destroying a stream while another thread waits in `ffl_next` would
+free the mutex under it. Reachable from the trainer? No: the live trainer's `FixedNumBatchesDataset`
+(`F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\dataset.py`, read-only) fetches batches on one daemon prefetch thread
+that holds the iterator, so our provider (and its stream) is freed only after that thread has left `ffl_next`;
+`__del__` there sets a stop event and joins with a 1 s timeout. Errors raised in `ffl_next` reach the trainer through
+the prefetch queue. Worker-thread exceptions are caught (`guarded`) and become the stream's error; a double or foreign
+`ffl_release` stops the stream with an error (self-test case 7). No code change (a DLL change would void the b5
+evidence for no reachable failure); the contract is now LOADER_SPEC.md section 7.

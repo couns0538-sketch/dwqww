@@ -85,3 +85,12 @@ Windows alive at once: max(3, ceil(batch / window) + 2), so a window smaller tha
 reader thread (chunk queue) -> one filter thread (section 3 + window bookkeeping of section 4; shuffles a 4-byte
 index permutation instead of moving records) -> batch tasks in order -> N builder threads (section 5; batch k goes
 to output k, buffers are taken in task order so no deadlock) -> consumer takes batches in order.
+
+## 7. Threading contract of the C API (written down in bug hunt #8, 2026-11-02 23:16; unchanged code)
+One consumer thread per stream calls `ffl_next` / `ffl_release`; the loader's own threads (reader, filter, builders)
+are internal. `ffl_destroy` must not run while another thread is inside `ffl_next` or `ffl_release` of the same stream:
+the destructor stops and joins the internal threads, not outside callers. The trainer path keeps this by reference
+ownership: `FixedNumBatchesDataset`'s daemon prefetch thread holds the iterator (our provider), so the provider - and
+with it the stream - is freed only after that thread has left `next`; its `__del__` sets a stop event and joins with a
+1 s timeout, and a thread still waiting keeps the iterator alive until it returns. Errors inside `ffl_next` reach the
+trainer as `RuntimeError("fast loader: ...")`, which the prefetch thread queues and `__getitem__` raises.
