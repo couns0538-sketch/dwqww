@@ -235,15 +235,26 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
 - CR's fix files for Opus branches: `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\` (named by md5 in the briefs).
 - Lowering an OWN process (e.g. a venv launcher parent) to Idle by handle is fine; never re-prioritise anybody else's.
 
-## R14-B (2026-11-02 12:05 - 03:05 Nov 3, Couns's 15-hour job; binding until changed)
+## R14-B (2026-11-02 12:05 - 06:00 Nov 3 PC clock, Couns; binding until changed)
 - Scratch `D:\o14b\` <= 10 GB; C: may be used too (Couns 14:40: "c has 130gb free ... keep it above 50gb"): C: and D:
-  >= 50 GB free; F: write-forbidden. No sub-agents after 13:45 ("they burn tokens"); reviews every ~2 h are structured
-  self-reviews written down as NOT independent; a 30-minute bug hunt at the end ("forge must be able to use it").
+  >= 50 GB free; F: write-forbidden. No sub-agents after 13:45 ("they burn tokens"). Couns ~19:15: work to 06:00, a
+  20-minute bug hunt every hour with every finding fixed, "make sure it works in forge", a 1-hour bug hunt 05:00-06:00;
+  all reviews are structured self-reviews written down as NOT independent.
 - Never create STOP / PAUSE files; never edit forge_queue_state.json, forge_gates.json, CURRENT_LOCK.json or the trainer
   queue; never kill or re-prioritise crew processes; GPU only in a window Engine NNUE grants (none was granted).
 - Launcher `opus_r14b/item1/tools/lowrun.ps1` (branch opus-r14b-fast-loader): `-Mask 0x4 -Priority Idle|BelowNormal
   -Exe <exe> -ArgLine "<args>" [-In f] [-Out f] [-Err f]` sets the class and the affinity on its own PowerShell process
-  first, so every child inherits both from its first instruction (no window at normal priority on all CPUs).
+  first, so every child inherits both from its first instruction (no window at normal priority on all CPUs). Since
+  20:27 it exits 127 when the program cannot start or a redirect folder / stdin file is missing (before: exit 0 for a
+  program that never ran); the same file is in all three R14-B branches (`opus_r14b/tools/lowrun.ps1` on the status
+  branch).
+- Git Bash rewrites native Windows switches that look like paths: `robocopy SRC DST /E` got `E:/` (exit 16, nothing
+  copied). Prefix such calls with `MSYS_NO_PATHCONV=1`. A venv's `python.exe` is a launcher that starts the real
+  interpreter as its own child: to be able to end a hung child, start the base interpreter (`sys._base_executable`).
+- The npt keeper sets the trainer's mask itself (0x3 or 0xF; it was 0xF at 20:24 and 0x3 at 21:15 on 2026-11-02), so
+  the Idle trainer may share CPUs 2-3 with own Idle work. Measured 21:19-21:32: the trainer used 0.4-0.6 of its two
+  CPUs, which were 86-90 % busy (mostly heavier-class crew work) with 10-14 % idle left - read per-CPU busy time
+  (`Get-Counter '\Processor(N)\% Processor Time'`) before calling a process starved.
 - The session cannot end a process (`kill`, Stop-Process and even a command whose text says "kill" were refused), and
   TaskStop ends only the outer shell (see above). A kill / resume proof therefore uses a hard exit the tool inflicts on
   itself: a watchdog thread calls `os._exit(137)` after N seconds (no cleanup, no flush; relabel2.py
