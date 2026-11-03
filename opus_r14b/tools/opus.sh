@@ -7,7 +7,8 @@
 #   bisect GOOD BAD NEW_DIR [--depth D] first commit that changed bench nodes (builds each candidate; --test CMD)
 #   time [--since T] [BRANCH...]        commits, spans, pauses per branch (default: last 24 h, the R14-B branches)
 #   load [MASK] [SECONDS]               who uses the CPUs of MASK (default 0xC = CPUs 2-3, 5 s)
-#   test NEW_DIR                        the tools' own tests (23 checks)
+#   gpu [--hours H | --from T --to T]   GPU utilisation from the keeper's HWiNFO log (read-only; --by-hour)
+#   test NEW_DIR                        the tools' own tests (25 checks)
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
@@ -32,7 +33,8 @@ case "$cmd" in
     [ $# -eq 0 ] && set -- origin/opus-r14b-status origin/opus-r14b-fast-loader origin/opus-r14b-relabel
     exec "$PY" -I -B "$here/commit_span.py" --repo "$repo" ${opts[@]+"${opts[@]}"} "$@" ;;
   load) exec powershell -NoProfile -File "$(cygpath -w "$here/cpu_users.ps1")" -Mask "${1:-0xC}" -Seconds "${2:-5}" ;;
+  gpu) exec "$PY" -I -B "$here/gpu_util_stats.py" "$@" ;;
   test) exec bash "$here/test_tools.sh" "$@" ;;
-  help|-h|--help) sed -n 2,10p "$0" | sed 's/^# \{0,1\}//' ;;
-  *) echo "opus.sh: unknown command '$cmd'"; sed -n 2,10p "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  help|-h|--help) sed -n 2,11p "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "opus.sh: unknown command '$cmd'"; sed -n 2,11p "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

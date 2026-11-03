@@ -1,13 +1,13 @@
 ---
 name: forge-opus-tools
-description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus.sh (one entry point: status, lint, abba, engine, bisect, time, load, test), opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), engine_bisect.sh (first commit that changed bench nodes), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
+description: Small own tools (Opus R14-B, branch opus-r14b-status, folder opus_r14b/tools/) for day-to-day Forge work on grok-pc - opus.sh (one entry point: status, lint, abba, engine, bisect, time, load, gpu, test), gpu_util_stats.py (GPU utilisation from the keeper's HWiNFO log), opus_status.sh (one read-only look at worktrees, own processes, CPUs 2-3, RAM / disks, the npt keeper), abba.py (palindromic A/B timing of ANY two commands with identity check, Student-t CI and load capture), doc_lint.py (control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead links), hash_sweep.py (cited hashes still match real files / commits), engine_fresh_check.sh (fresh export of an engine ref, lock-recipe build, bench / perft pins), engine_bisect.sh (first commit that changed bench nodes), commit_span.py (time per branch and pauses from commit times), cpu_users.ps1, pc_gate.ps1, lowrun.ps1, and test_tools.sh. Use before timing anything, before a push of documents, when checking that an engine branch still equals the lock, when a report needs time figures, or when asked what is running / how the PC looks.
 ---
 
 # forge-opus-tools (Opus R14-B, `opus_r14b/tools/` on `opus-r14b-status`)
 
 All own code (stdlib Python, bash, PowerShell); nothing here changes or stops another process. Python: the venv
 `PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe` (3.10: no backslashes inside f-string braces), run
-with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (23 checks, ~40 s,
+with `-I -B`. `T=<worktree>/opus_r14b/tools`. Tests: `bash $T/test_tools.sh C:/o14b/<new folder>` (25 checks, ~40 s,
 must end `ALL PASS`; covers abba.py, doc_lint.py, opus.sh and engine_bisect.sh's search).
 
 ## opus.sh - one entry point (for Couns and Opus)
@@ -83,6 +83,17 @@ all in the range are skipped it lists them, exit 3). GOOD and BAD are tested fir
 Validated 2026-11-02 on real builds: lock d4f4312 .. opus-r12-pgo-net (38 commits) -> "nothing to find" (both 312,866
 nodes at d11, 34 s); a scratch clone with a comment commit, a planted `RfpMargin 72 -> 73` commit and another comment
 commit -> found the planted commit (312,866 -> 294,685 nodes; 4 builds, 65 s).
+
+## gpu_util_stats.py - how busy was the GPU? (read-only)
+`$PY -I -B $T/gpu_util_stats.py [--hours 6 | --from "YYYY-MM-DD HH:MM" --to "..."] [--by-hour]` (or `opus.sh gpu`):
+statistics from the HWiNFO log the crew's npt keeper reads (`C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\
+gpu_sensors.csv`, one row every ~2 s, ~260 MB, written live). Binary search by timestamp, so only the window is read
+(6 h in 0.24 s). Columns: GPU Utilization [%] (the keeper's "GPU util"), GPU Computing (Compute 0) Usage [%], GPU
+Memory Controller Utilization [%], GPU PPT (Sustained) [W]: n, mean, p10 / p50 / p90, min, max, share of samples
+>= 90 % and <= 10 %; `--by-hour` hourly means. HWiNFO quirks handled: d.m.yyyy dates, unpadded H:M:S, one unnamed
+value at the end of every row (the named columns line up), a half-written last row. Baseline 2026-11-02 (live npt
+line, default loader `--num-workers 4`): 15:14-21:14 mean 45.7 %, p50 48 %, >= 90 % in 4.0 % of samples; hourly
+means 40-56 %. Use the same command for a GPU window with `--fast-loader` (item 1's target: >= 90 %).
 
 ## Small helpers
 - `commit_span.py --repo D:/grok-pc-data/dwqww --since "2026-11-02 12:00" origin/<b1> origin/<b2> ...`: commits,

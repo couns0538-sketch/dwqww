@@ -61,7 +61,7 @@ check doc_lint-one-dash-table-and-encoded-link 1 $? "$S/lint_edge.out" 't.md:5: 
 "$PY" -I -B "$here/doc_lint.py" "$S/nonexistent" > "$S/lint_missing.out" 2>&1
 check doc_lint-missing-path 2 $? "$S/lint_missing.out" 'does not exist'
 bash "$here/opus.sh" help > "$S/opus_help.out" 2>&1
-check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  bisect' '^  time' '^  load' '^  test'
+check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  bisect' '^  time' '^  load' '^  gpu' '^  test'
 bash "$here/opus.sh" nope > "$S/opus_nope.out" 2>&1
 check opus-unknown-command 2 $? "$S/opus_nope.out" "unknown command 'nope'"
 bash "$here/opus.sh" time --since "2026-11-02 12:00" --until "2026-11-02 13:00" origin/opus-r14b-fast-loader > "$S/opus_time.out" 2>&1
@@ -90,5 +90,13 @@ REPO="$M" bash "$here/engine_bisect.sh" side HEAD "$S/bis_side" --test true > "$
 check bisect-good-off-first-parent-line 2 $? "$S/bis_side.out" 'not on the first-parent line'
 REPO="$M" bash "$here/engine_bisect.sh" HEAD~1~1 HEAD "$S/bis_line" --test true > "$S/bis_line.out" 2>&1
 check bisect-good-on-first-parent-line 1 $? "$S/bis_line.out" 'nothing to find'
+H="$S/hw.csv"   # HWiNFO layout: d.m.yyyy, unpadded H:M:S.fff, one unnamed value at the row end, a half-written last row
+{ printf 'Date,Time,"GPU Utilization [%%]","GPU Computing (Compute 0) Usage [%%]","Total Errors []",\n'
+  for i in $(seq 0 19); do printf '2.11.2026,10:%d:%d.000,%d.0,%d.0,0,7.0,\n' $((i / 6)) $(( (i % 6) * 10 )) $((i * 5)) $((i * 5)); done
+  printf '2.11.2026,10:9:59.000,50.0'; } > "$H"
+"$PY" -I -B "$here/gpu_util_stats.py" --csv "$H" --from "2026-11-02 10:00" --to "2026-11-02 10:05" > "$S/gpu.out" 2>&1
+check gpu-util-window 0 $? "$S/gpu.out" ' 20 rows ' 'GPU Utilization \[%\]: n 20, mean 47\.5, p10 10\.0, p50 50\.0, p90 90\.0' '>= 90 %: 10\.0 % of samples'
+"$PY" -I -B "$here/gpu_util_stats.py" --csv "$H" --from "2026-11-02 11:00" --to "2026-11-02 12:00" > "$S/gpu_empty.out" 2>&1
+check gpu-util-empty-window 2 $? "$S/gpu_empty.out" 'only 0 rows in the window'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail
