@@ -136,6 +136,10 @@ trainer path; threading contract in LOADER_SPEC.md); details in each RESULTS.md 
 - 22:29: the trainer's CPU mask changed from 0x3 to 0xF (the keeper's usual trainer pair) and at 22:34 a new trainer
   process started (pid 13960 -> 11328), not Opus's doing (watcher log). Opus's later checks on CPUs 2-3 share those
   CPUs with it; they are short (refreeze ~6 min, final checks ~1 min) and the long-running parts run at Idle.
+- 23:09: the session's permission check stopped a CPU dry run of the GPU command's recipe (`tools/lm_run.sh fast`,
+  4 training steps on CPUs 2-3) before it started ("Interfere With Workloads"); not worked around, nothing ran. From
+  then on Opus kept CPU-heavy work off CPUs 2-3 while the trainer shares them (checks of ~1 minute, desk reviews);
+  the dry run is optional pre-check 4 in GPU_REQUEST.md for a time when no npt line trains.
 
 ## Couns's message of ~20:53 (corrections to the R15 prompt) - what R14-B checked
 - Lock pins: only fd3a5190... (`forge_ltopgo_x_al1s198_v23.exe`) with bench d11 312866 / d13 862329 / d16 3024920 /
@@ -164,7 +168,8 @@ trainer path; threading contract in LOADER_SPEC.md); details in each RESULTS.md 
   sfs 029d58e8..., speed2 de20653c..., the relabel probe 08299f9f.... R14-B deletes nothing anywhere.
 
 ## Owner items
-- GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
+- GPU window for item 1 (GPU_REQUEST.md; optional pre-check 4 = a CPU dry run of the recipe while no npt line
+  trains); Engine NNUE decides on `--fast-loader` and patch 0006.
 - Engine NNUE decides on the 50M relabel (inputs, node count, probe); RELABEL_HANDOFF.md has commands and costs.
 - R15: start only after this report's final version; use the corrected pins; keep the four exes (P6 crfix: done above).
 - Crew: the npt trainer runs at Idle on its own mask (0x3 / 0xF, set by the keeper) and used 0.4-0.6 cores of its two
