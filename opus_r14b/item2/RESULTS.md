@@ -496,3 +496,7 @@ rewritten to match, one labels row dropped with MANIFEST rewritten to match, an 
 with the failing check named), final/ missing (exit 2), the intact copy (exit 0). Suite: two new cases
 (`verify_job_intact` exit 0, `verify_job_tampered` exit 4): **157 PASS / 0 FAIL** (23:05-23:06).
 RELABEL_HANDOFF.md "Checks before using the output" and the skill name the command.
+verify_job.py on the two 1M proof jobs (23:16, read-only): `D:\o14b\r2\proof\jobA` (uninterrupted) and `jobB`
+(hard-exited twice, interrupted attempts kept) - all PASS each, 100 shards re-hashed each; their train.txt / val.txt /
+labels.tsv are byte-identical (logs/verify_job/proof_jobA.log, proof_jobB.log): the proof's result again, through the
+new tool.
