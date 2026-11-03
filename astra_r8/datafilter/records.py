@@ -25,6 +25,8 @@ class ResultGameBuilder(chess.pgn.GameBuilder):
         return super().visit_header(tagname, tagvalue)
 
     def end_headers(self):
+        if 'FEN' in self.original_headers:
+            board_from_fen(self.original_headers['FEN'])
         board = self.game.headers.board()
         if type(board) is not chess.Board or board.chess960:
             raise ValueError('PGN must describe standard chess')
