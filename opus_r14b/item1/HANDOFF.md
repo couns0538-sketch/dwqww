@@ -38,7 +38,8 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    all OK = the trainer version the installer's anchors were written for). `D:\o14b\npt` is such a copy, already
    switched - but the loader files next to its train.py are the superseded **b4** (12:43, DLL a4f965aa...): use a fresh
    copy (steps 1-3), or give the b5 folder to the acceptance check (3b). Checked 2026-11-02 16:04 and again 20:41
-   (adoption rehearsal from a fresh clone): the live tree still matched (264 / 264).
+   (adoption rehearsal from a fresh clone): the live tree still matched (264 / 264); last on 2026-11-03 04:16
+   (rehearsal from fresh clones of the final tools: 264 / 264, install, acceptance 261 / 261).
 2. Build the DLL from this branch (`bash fastloader/build_fastloader.sh <new dir>`, ~1 minute; prints sha256, which
    must be 9eb29b7d...) or use `D:\o14b\fl\b5_install\forge_fastloader.dll`.
 3. `python -I -B tools/install_fast_loader.py <COPY> --check --loader-dll <DLL>`, then the same without `--check`: it
