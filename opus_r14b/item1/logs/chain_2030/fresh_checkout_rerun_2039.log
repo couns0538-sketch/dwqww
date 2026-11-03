@@ -1,0 +1,38 @@
+clone relabel at 7fac1de1 (core.autocrlf=true)
+clone fast-loader at 1a97de6b (core.autocrlf=true)
+=== 1 relabel tests from the clone 20:39:00
+exit=0 PASS 150 FAIL 0
+=== 2 probe builds from the clone 20:39:47
+plain vs R13 probe: 5 differing bytes, at (1-based) 137 138 139 217 218 
+lto 565ddbf8230b7c5714baf6bfb39570a7f91c038148334223a20aa66be32ffe1f missing-profile warnings: 0
+training answers: 2000, profile files: 8, profiler messages: 0
+pgo 08299f9f6f4bb8026900ff7111a0b0e7461f77c18e5b01eeefcb05498d3546e7 missing-profile warnings: 0
+PASS LTO probe (565ddbf8230b7c57)
+PASS PGO probe (08299f9f6f4bb802)
+500 answers in 6.47 s = 77.3 positions/s -> C:\o14b\vc_2030b\fresh\probe_ref_check.jsonl
+C:/o14b/vc_2030b/fresh/relabel/opus_r14b/item2/probe_ref_500_r13.jsonl vs C:/o14b/vc_2030b/fresh/probe_ref_check.jsonl: 500 / 500 answers, 500 identical, first difference None
+=== 3 DLL rebuild from the clone 20:41:10
+PASS fast loader DLL (9eb29b7d134a73eb)
+PASS forge_fastloader.py (39af47b0f347963c)
+=== 3b the loader self-test built on Windows (MinGW g++ -O2; CI runs it on Linux with sanitizers) 20:41:14
+self-test exit=0; (7) double release: release of a batch that is not handed out (double release?) ALL PASSED (0 failures) 
+=== 4 acceptance with the rebuilt DLL 20:41:22
+old loader D:\o14b\ref\libtraining_data_loader.dll (88c0146804524af3); fast loader folder C:\o14b\vc_2030b\fresh\l1_build (9eb29b7d134a73eb)
+old (--num-workers 1): 25 s; old train: 200 batches, 8 tensors each old val: 61 batches, 8 tensors each 
+fast (--num-workers 4): 5 s; fast train: 200 batches, 8 tensors each fast val: 61 batches, 8 tensors each 
+C:/o14b/vc_2030b/fresh/l1_accept/ds_old.tsv vs C:/o14b/vc_2030b/fresh/l1_accept/ds_fast.tsv: 261 / 261 batches, identical 261, first difference None
+fast loader: {'path': 'C:\\o14b\\vc_2030b\\fresh\\l1_build\\forge_fastloader.dll', 'sha256': '9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935', 'version': 'forge_fastloader 1 (Opus R14-B)'}
+=== 5 adoption rehearsal (HANDOFF steps 1-3b) on a fresh copy of the live trainer tree 20:41:52
+copy vs the installer's base manifest (from the clone): 264 files, not OK: 0
+C:\o14b\vc_2030b\fresh\npt_copy\config.py: anchors OK
+C:\o14b\vc_2030b\fresh\npt_copy\train.py: anchors OK
+C:\o14b\vc_2030b\fresh\npt_copy\config.py: patched (CRLF)
+C:\o14b\vc_2030b\fresh\npt_copy\train.py: patched (LF)
+copied C:\o14b\vc_2030b\fresh\l1_build\forge_fastloader.dll -> C:\o14b\vc_2030b\fresh\npt_copy\forge_fastloader.dll (sha256 9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935)
+copied C:\o14b\vc_2030b\fresh\fast-loader\opus_r14b\item1\fastloader\forge_fastloader.py -> C:\o14b\vc_2030b\fresh\npt_copy\forge_fastloader.py (sha256 39af47b0f347963c9f3ad470c7a90c2652b4ae361f18b71adfeeb3cbdf3a9605)
+old loader C:\o14b\vc_2030b\fresh\npt_copy\build\libtraining_data_loader.dll (88c0146804524af3); fast loader folder C:\o14b\vc_2030b\fresh\npt_copy (9eb29b7d134a73eb)
+old (--num-workers 1): 25 s; old train: 200 batches, 8 tensors each old val: 61 batches, 8 tensors each 
+fast (--num-workers 4): 6 s; fast train: 200 batches, 8 tensors each fast val: 61 batches, 8 tensors each 
+C:/o14b/vc_2030b/fresh/adopt_accept/ds_old.tsv vs C:/o14b/vc_2030b/fresh/adopt_accept/ds_fast.tsv: 261 / 261 batches, identical 261, first difference None
+fast loader: {'path': 'C:\\o14b\\vc_2030b\\fresh\\npt_copy\\forge_fastloader.dll', 'sha256': '9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935', 'version': 'forge_fastloader 1 (Opus R14-B)'}
+=== failures: 0 20:42:24

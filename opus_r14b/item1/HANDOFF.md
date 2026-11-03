@@ -36,7 +36,8 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    Git Bash prefix `MSYS_NO_PATHCONV=1`, else Git Bash turns `/E` into `E:/` and robocopy copies nothing, exit 16)
    and check it against the installer's base: `cd <COPY> && sha256sum -c <branch>/opus_r14b/item1/trainer_manifest_b2614500.sha256` (264 files,
    all OK = the trainer version the installer's anchors were written for). `D:\o14b\npt` is such a copy, already
-   switched. Checked 2026-11-02 16:04: the live tree still matched (264 / 264).
+   switched. Checked 2026-11-02 16:04 and again 20:41 (adoption rehearsal from a fresh clone): the live tree still
+   matched (264 / 264).
 2. Build the DLL from this branch (`bash fastloader/build_fastloader.sh <new dir>`, ~1 minute; prints sha256, which
    must be 9eb29b7d...) or use `D:\o14b\fl\b5_install\forge_fastloader.dll`.
 3. `python -I -B tools/install_fast_loader.py <COPY> --check --loader-dll <DLL>`, then the same without `--check`: it

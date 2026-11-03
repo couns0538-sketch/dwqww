@@ -184,3 +184,13 @@ check their outputs (DLL sha256, batch hashes), so no recorded result was affect
   no per-run times; ~6 s per run); no pair falls outside the 5.98-7.08 spread.
 - Adoption rehearsal: failed for a reason outside the loader (Git Bash turned robocopy's `/E` into `E:/`, nothing was
   copied); fixed (MSYS_NO_PATHCONV) and re-run from a new fresh clone - see the next entry.
+
+## Fresh-clone checks again after the robocopy fix (20:39-20:42; logs/chain_2030/fresh_checkout_rerun_2039.log): 0 failures
+- Clone of this branch at 1a97de6b: DLL rebuilt = 9eb29b7d (b5), forge_fastloader.py 39af47b0, Windows self-test
+  (MinGW -O2) ALL PASSED, acceptance with the rebuilt DLL 261 / 261.
+- **Adoption rehearsal (HANDOFF steps 1-3b) PASS**: a fresh robocopy of the live trainer tree
+  (`F:\opus_scratch\r6\nnue-pytorch-amd`, 382 files) matched the installer's base manifest at 20:41 (264 / 264);
+  `install_fast_loader.py <copy> --loader-dll <rebuilt DLL>`: anchors OK, config.py patched (CRLF kept), train.py
+  patched (LF), DLL and forge_fastloader.py copied next to train.py (sha256 9eb29b7d... / 39af47b0...); then
+  `fl_acceptance.sh <copy> <out>` with its defaults (the copy's own old DLL, the installed fast files): old w1 25 s,
+  fast w4 6 s, **261 / 261 batches identical**.
