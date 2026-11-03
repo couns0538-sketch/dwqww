@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fresh_checkout_checks.sh - Opus R14-B "works in Forge": run the deliverables from fresh clones of the branches made
+# fresh_checkout_checks.sh [OUT_DIR] - Opus R14-B "works in Forge": run the deliverables from fresh clones of the branches made
 # with this PC's default git settings (core.autocrlf=true), not from Opus's worktrees or scratch copies.
 #   1 relabel branch: the full test suite (exit codes + reasons, --jobs 2, game across files, disk floor, status, kill)
 #   2 relabel branch: build_probe_opt.sh with its defaults (lock source from git, committed training file):
@@ -7,7 +7,7 @@
 #   3 fast-loader branch: rebuild forge_fastloader.dll -> sha256 must equal the tested b5 DLL 9eb29b7d...
 #   4 fast-loader branch: the acceptance check with the REBUILT DLL and the clone's forge_fastloader.py
 set -u
-base=/c/o14b/fresh
+base=${1:-/c/o14b/fresh}   # OUT_DIR (must not exist); default /c/o14b/fresh
 [ -e "$base" ] && { echo "refusing existing $base" >&2; exit 2; }
 mkdir -p "$base"
 repo=/d/grok-pc-data/dwqww
