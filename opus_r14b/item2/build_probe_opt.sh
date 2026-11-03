@@ -6,7 +6,8 @@
 #   OUT_DIR/plain/forge_data_probe.exe R13's exact command (checks the toolchain: only PE time stamp + checksum may differ)
 #   OUT_DIR/lto/forge_data_probe.exe   -flto
 #   OUT_DIR/pgo/forge_data_probe.exe   -flto + -fprofile-use (profile from the instrumented build running TRAIN_REQUESTS)
-# GCC names the .gcda files after the OUTPUT file when a command compiles and links sources directly, so the
+# GCC names the .gcda files after the OUTPUT file when a command compiles and links sources directly (no -fprofile-dir:
+# see below), so the
 # instrumented and the optimised build both link to the same work path OUT_DIR/w/fdp.exe (moved away after each
 # build), and missing-profile warnings stay on and are counted (a silent non-PGO build is the trap).
 # The search is deterministic (fixed nodes, state cleared per position), so the labels must stay bit-identical:
@@ -41,12 +42,15 @@ build plain ""   # same command as R13: must differ from R13's exe only in the P
 echo "plain vs R13 probe: $(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | wc -l) differing bytes, at (1-based)" \
   "$(cmp -l "$out/plain/forge_data_probe.exe" "$r13" | awk '{print $1}' | head -12 | tr '\n' ' ')"
 build lto "-flto $repro"
-prof=$(cygpath -w "$out/prof")
-mkdir -p "$out/prof"
-build pgo_gen "-flto $repro -fprofile-generate -fprofile-update=single -fprofile-dir=$prof"
+# No -fprofile-dir: MinGW GCC 15 joins it with the absolute aux path ("DIR\C:\...\w\fdp-x.gcda": cannot be created,
+# the instrumented exe prints "Cannot create directory ... Skip" and writes nothing - R14-B, 2026-11-02 17:37).
+# Without it the .gcda files land next to the work exe (OUT_DIR/w/fdp-<source>.gcda), where -fprofile-use looks.
+build pgo_gen "-flto $repro -fprofile-generate -fprofile-update=single"
 # Training run: the same kind of work as the relabel (20k nodes, Hash 1 MB, one position after the other).
 powershell -NoProfile -File "$lowrun" -Mask 0x4 -Priority BelowNormal -Exe "$(cygpath -w "$out/pgo_gen/forge_data_probe.exe")" \
   -ArgLine "--nodes 20000 --hash-mb 1" -In "$(cygpath -w "$train")" -Out "$(cygpath -w "$out/pgo_gen/train_out.jsonl")" \
   -Err "$(cygpath -w "$out/pgo_gen/train.err")" || true
-echo "training answers: $(wc -l < "$out/pgo_gen/train_out.jsonl"), profile files: $(find "$out/prof" -name '*.gcda' | wc -l)"
-build pgo "-flto $repro -fprofile-use -fprofile-dir=$prof"
+gcda=$(find "$out/w" -name '*.gcda' | wc -l)
+echo "training answers: $(wc -l < "$out/pgo_gen/train_out.jsonl"), profile files: $gcda, profiler messages: $(wc -l < "$out/pgo_gen/train.err")"
+[ "$gcda" -gt 0 ] || { echo "no profile written: not building a PGO exe" >&2; exit 1; }
+build pgo "-flto $repro -fprofile-use"

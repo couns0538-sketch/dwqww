@@ -127,3 +127,20 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 - Checks: dev tests 75 / 75 PASS; scoped diff shows the labelling / resume path unchanged.
 - Next action: after the proof's `finish` (frozen code): bridge_check.sh, then promotion, then the full test script
   from the branch copy.
+
+## Improvement 2: LTO and LTO+PGO builds of the relabel probe (17:36-17:46; speed and label identity follow)
+- `build_probe_opt.sh OUT TRAIN` on CPU 2 (BelowNormal), MinGW g++ 15.2, lock source copy `C:\o13\p5\lock`, the
+  branch's probe source (sha256 d7e146be..., the same file R13 built from).
+- Toolchain check: R13's exact command rebuilt -> differs from the probe in use (`C:\o13\p5\forge_data_probe.exe`,
+  ed76de96...) in 5 bytes only, at offsets 137-139 and 217-218 (PE link time stamp and checksum), in both builds.
+- LTO exe sha256 565ddbf8230b7c57... in two separate builds (17:37 and 17:45): reproducible.
+- First PGO attempt (C:\o14b\pgo1) failed silently and was caught by the script's counters: with
+  `-fprofile-dir=C:\o14b\pgo1\prof` MinGW GCC 15 joins the directory with the absolute aux path
+  (`C:\o14b\pgo1\prof\C:\o14b\pgo1\w\fdp-forge_data_probe.gcda`), the instrumented exe prints
+  `profiling:...:Cannot create directory` / `Skip` and writes nothing; "profile files: 0" and 8 missing-profile warnings
+  in the use build (logs/probe_pgo/build_pgo1_profile_dir_failed.log, pgo1_train_err_profile_dir.txt). That exe is
+  not used. Fix: no `-fprofile-dir`; the .gcda files land next to the work exe (same `-o` in both phases), and the
+  script now stops when no profile was written.
+- Second build (C:\o14b\pgo2, logs/probe_pgo/build_pgo2.log): instrumented exe answered the 2,000 training positions
+  (rows 0-1999 of the proof sample, 20k nodes) and wrote 8 profiles (one per source file), 0 profiler messages; PGO
+  exe sha256 08299f9f6f4bb802... with 0 missing-profile warnings.
