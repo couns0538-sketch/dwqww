@@ -957,3 +957,19 @@ Checkpoint41e4ccea's document-edit precondition failed because the Windows
 text read omitted explicit UTF-8; the shell continued to commit/push. No data or
 code result was affected. This follow-up restores current RESULTS/REVIEW_LOG;
 subsequent multi-step commit commands check the edit process exit before staging.
+
+### PGN repair substantive recheck - 08:41 UTC
+
+Reviewer approved exact records.py8fe0e9e5...3af406 and tests9598365d...8bfd1.
+Missing raw clocks, repaired clocks and SetUp=1 without FEN now fail before
+normalization. Normal starts, valid custom state and legacy converter controls
+remain green. The 12-case RED and companion three-case RED are preserved;
+first affected suite101PASS97.96s, final PGN suite51PASS23.63s. Companion converter
+RED reached the later no-records exit, so it is not claimed to have published a
+fabricated row; it still missed the required raw-state boundary.
+
+The all-file and integration-last collection each produced564 unique identical
+node IDs. No tests are removed; reordering avoids consuming the large checkpoint
+fixture storage before conservative resource guards in other tests. New proof
+must retain earlier module identities for unchanged self-play checks and use
+separately named v9 outputs. Final approval remains conditional on those checks.

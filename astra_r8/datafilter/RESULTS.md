@@ -1,5 +1,14 @@
 # Astra R8 Job 2 — UNPROVEN
 
+08:41 UTC repair checkpoint: both raw-FEN and SetUp=1-without-FEN fixes are
+independently approved. Final reviewed records.py SHA256:
+8fe0e9e529bbd65ef3fcdf764ad96705696f66ec8d52188943676fc0623af406.
+The companion fix passes 51 PGN checks; the earlier broader affected run passed
+101 checks. Broad and reordered collection each contain exactly 564 unique test
+nodes with identical sets. Integration tests will run last to preserve budget
+headroom; no cases are omitted. Fresh v9 proof and full suite remain pending.
+
+
 ## Final review in progress - 2026-11-03 08:37 UTC
 
 The independent review of 624487cc found raw PGN FEN normalization bypassing

@@ -25,6 +25,8 @@ class ResultGameBuilder(chess.pgn.GameBuilder):
         return super().visit_header(tagname, tagvalue)
 
     def end_headers(self):
+        if self.original_headers.get('SetUp') == '1' and 'FEN' not in self.original_headers:
+            raise ValueError('original PGN FEN required when SetUp is 1')
         if 'FEN' in self.original_headers:
             board_from_fen(self.original_headers['FEN'])
         board = self.game.headers.board()

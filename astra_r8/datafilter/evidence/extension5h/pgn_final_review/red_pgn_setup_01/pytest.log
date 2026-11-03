@@ -1,0 +1,180 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+__________ test_setup_requires_the_declared_initial_position[reader] __________
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_pgn_setup_01/cases/test_setup_requires_the_declar0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000018BEBCE0>
+consumer = 'reader'
+
+    @pytest.mark.parametrize('consumer', ['reader', 'filter', 'result_converter'])
+    def test_setup_requires_the_declared_initial_position(tmp_path, monkeypatch, consumer):
+        source = tmp_path / 'missing-position.pgn'
+        source.write_text('[SetUp "1"]\n[Result "1-0"]\n\n1. e4 {+0.20/12} 1-0\n',
+                          encoding='utf-8')
+        output = tmp_path / 'output'
+>       with pytest.raises(ValueError, match='original .*FEN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_pgn_original_fen.py:56: Failed
+__________ test_setup_requires_the_declared_initial_position[filter] __________
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_pgn_setup_01/cases/test_setup_requires_the_declar1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001943CC80>
+consumer = 'filter'
+
+    @pytest.mark.parametrize('consumer', ['reader', 'filter', 'result_converter'])
+    def test_setup_requires_the_declared_initial_position(tmp_path, monkeypatch, consumer):
+        source = tmp_path / 'missing-position.pgn'
+        source.write_text('[SetUp "1"]\n[Result "1-0"]\n\n1. e4 {+0.20/12} 1-0\n',
+                          encoding='utf-8')
+        output = tmp_path / 'output'
+>       with pytest.raises(ValueError, match='original .*FEN'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_pgn_original_fen.py:56: Failed
+_____ test_setup_requires_the_declared_initial_position[result_converter] _____
+
+tmp_path = WindowsPath('C:/astra8_data/extension5h_20261103/red_pgn_setup_01/cases/test_setup_requires_the_declar2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019561DF0>
+consumer = 'result_converter'
+
+    @pytest.mark.parametrize('consumer', ['reader', 'filter', 'result_converter'])
+    def test_setup_requires_the_declared_initial_position(tmp_path, monkeypatch, consumer):
+        source = tmp_path / 'missing-position.pgn'
+        source.write_text('[SetUp "1"]\n[Result "1-0"]\n\n1. e4 {+0.20/12} 1-0\n',
+                          encoding='utf-8')
+        output = tmp_path / 'output'
+        with pytest.raises(ValueError, match='original .*FEN'):
+            if consumer == 'reader':
+                list(read_records(source, 'pgn'))
+            elif consumer == 'filter':
+                run_filter(source, output, kind='pgn')
+            else:
+>               converter(source, output, monkeypatch)
+
+astra_r8\datafilter\tests\test_pgn_original_fen.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+astra_r8\datafilter\tests\test_integrity_regressions.py:38: in converter
+    runpy.run_path(str(HERE / 'convert_forge.py'), run_name='__main__')
+<frozen runpy>:287: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    #!/usr/bin/env python3
+    """UNPROVEN. Forge PGNs (fastchess {+0.44/16 0.68s} comments) and/or forge_selfplay 'FEN | score | result'
+    lines -> quiet, deduped, shuffled 32-byte records (same REC as filter_lichess.py / train.py; score WHITE POV cp).
+    PGN: comment eval = mover's POV of the position BEFORE the move, at depth d; label that position, played move
+    = best move for quiet filter. Selfplay: score is STM POV -> flipped to White POV; result ignored (train.py uses score only).
+    Filters as data40m: not check, <=max-pieces, move not capture/promo, not game over, no mate, |cp| clipped to 3000.
+    Usage: nice -n 19 venv/bin/python convert_forge.py OUTDIR --pgn a.pgn ... --selfplay x.txt ... [--min-depth 10]"""
+    import os, re, sys, json, time, math, argparse, numpy as np, chess, chess.pgn
+    from pathlib import Path
+    from filter_lichess_rec import REC, encode_board
+    from records import record, selfplay_record, read_records, read_pgn_game, dumps
+    from result_codec import encode_result
+    from resource_policy import storage_guard
+    from filter_positions import low_priority, input_identity
+    ap = argparse.ArgumentParser(); ap.add_argument('outdir'); ap.add_argument('--pgn', nargs='*', default=[])
+    ap.add_argument('--selfplay', nargs='*', default=[]); ap.add_argument('--min-depth', type=int, default=10)
+    ap.add_argument('--clip', type=int, default=3000); ap.add_argument('--max-pieces', type=int, default=30)
+    ap.add_argument('--val', type=float, default=0.01); ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--max-load', type=float, default=4.0)
+    ap.add_argument('--keep-result', action='store_true')
+    ap.add_argument('--lichess', nargs='*', default=[])
+    ap.add_argument('--normalized', nargs='*', default=[])
+    a = ap.parse_args()
+    if a.keep_result:
+        if not 1 <= a.clip <= 32767: ap.error('--clip must be between 1 and 32767')
+        if not math.isfinite(a.val) or not 0 <= a.val < 1: ap.error('--val must be finite and between 0 (inclusive) and 1 (exclusive)')
+        if a.seed < 0: ap.error('--seed must be nonnegative')
+        if not 2 <= a.max_pieces <= 32: ap.error('--max-pieces must be between 2 and 32')
+        if a.min_depth < 0: ap.error('--min-depth must be nonnegative')
+    destination = Path(a.outdir)
+    partial = destination.with_name(destination.name + '.partial')
+    if os.path.lexists(destination) or os.path.lexists(partial): sys.exit('refusing existing output destination')
+    low_priority()
+    storage_guard(destination)
+    storage_guard(partial)
+    source_paths = a.pgn + a.selfplay + a.lichess + a.normalized
+    source_identities = [input_identity(f) for f in source_paths] if a.keep_result else []
+    metadata = []
+    current_metadata = None
+    def throttle():
+        return
+    EV = re.compile(r'^\s*([+-]?)(M?)(\d+(?:\.\d+)?)/(\d+)')
+    st = dict(games=0, moves=0, book_or_noeval=0, mate=0, shallow=0, check=0, pieces_gt_max=0, capture_promo=0,
+              gameover=0, clipped=0, sp_lines=0, sp_bad=0, kept=0); out = []
+    def keep(b, w, mv):
+        if b.is_check(): st['check'] += 1; return
+        if len(b.piece_map()) > a.max_pieces: st['pieces_gt_max'] += 1; return
+        if mv is not None and (b.is_capture(mv) or mv.promotion): st['capture_promo'] += 1; return
+        if b.is_game_over(): st['gameover'] += 1; return
+        if abs(w) > a.clip: st['clipped'] += 1; w = max(-a.clip, min(a.clip, w))
+        encoded = encode_board(b, w)
+        if a.keep_result:
+            encoded['rsv'][0] = encode_result(current_metadata['has_result'], current_metadata['result_stm'])
+            metadata.append(current_metadata)
+        out.append(encoded)
+    throttle()
+    for f in a.pgn:
+        fh = open(f, encoding='utf-8', errors='strict' if a.keep_result else 'ignore')
+        source_game = 0
+        while True:
+            g = read_pgn_game(fh) if a.keep_result else chess.pgn.read_game(fh)
+            if g is None: break
+            st['games'] += 1
+            source_game += 1
+            if st['games'] % 500 == 0: throttle()
+            if g.headers.get('Variant', 'Standard') not in ('Standard', '') or g.headers.get('FEN') and 'SetUp' in g.headers and False: pass
+            b = g.board()
+            for source_ply, node in enumerate(g.mainline()):
+                mv = node.move; st['moves'] += 1; m = EV.match(node.comment or '')
+                if not m: st['book_or_noeval'] += 1
+                elif m.group(2): st['mate'] += 1
+                elif int(m.group(4)) < a.min_depth: st['shallow'] += 1
+                else:
+                    cp = round(float(m.group(3)) * 100) * (-1 if m.group(1) == '-' else 1)
+                    if a.keep_result:
+                        rw = {'1-0': 1, '0-1': -1, '1/2-1/2': 0, '*': None}[g.headers.get('Result', '*')]
+                        current_metadata = record(b.fen(en_passant='fen'), cp, 'cp', rw, f,
+                                                  str(source_game) + ':' + str(source_ply), 'pgn', mv.uci(), node.comment, int(m.group(4)))
+                    keep(b, cp if b.turn else -cp, mv)
+                b.push(mv)
+    for f in a.selfplay:
+        if a.keep_result:
+            for current_metadata in read_records(f, 'selfplay'):
+                st['sp_lines'] += 1
+                b = chess.Board(current_metadata['fen']); s = current_metadata['score_stm']
+                keep(b, s if b.turn else -s, None)
+            continue
+        for source_row, line in enumerate(open(f, encoding='utf-8-sig'), 1):
+            if not line.strip() or line.startswith('#'): continue
+            st['sp_lines'] += 1
+            try: fen, sc, _ = [x.strip() for x in line.split('|')]; b = chess.Board(fen); s = int(sc)
+            except Exception: st['sp_bad'] += 1; continue
+            if not b.is_valid(): st['sp_bad'] += 1; continue
+            keep(b, s if b.turn else -s, None)   # selfplay already quiet-filtered by eligible_score
+    for kind, paths in [('lichess', a.lichess), ('normalized', a.normalized)]:
+        for f in paths:
+            for current_metadata in read_records(f, kind):
+                b = chess.Board(current_metadata['fen'])
+                if current_metadata['score_type'] == 'mate': st['mate'] += 1; continue
+                sc = current_metadata['score_stm']
+                mv = chess.Move.from_uci(current_metadata['best_move']) if current_metadata['best_move'] else None
+                keep(b, sc if b.turn else -sc, mv)
+>   if not out: sys.exit('no records')
+                ^^^^^^^^^^^^^^^^^^^^^^
+E   SystemExit: no records
+
+astra_r8\datafilter\convert_forge.py:103: SystemExit
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_pgn_original_fen.py::test_setup_requires_the_declared_initial_position[reader]
+FAILED astra_r8/datafilter/tests/test_pgn_original_fen.py::test_setup_requires_the_declared_initial_position[filter]
+FAILED astra_r8/datafilter/tests/test_pgn_original_fen.py::test_setup_requires_the_declared_initial_position[result_converter]
+3 failed in 8.57s
