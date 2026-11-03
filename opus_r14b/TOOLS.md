@@ -159,3 +159,7 @@ Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to 
   use the two-sided 95 % Student-t quantiles for 1-30 degrees of freedom (every value equals the table, e.g. 2.262
   at 9); abba.py's Cornish-Fisher expansion above 30 gives 2.0394 at 31 (exact 2.0395); both pair the A and B run of
   the same slot (AB / BA alternating) and abba.py takes the interval on log ratios (geometric mean).
+- Count sweep (23:17, the advisor's suggestion): every test / case / run count in the current-state documents
+  (STATUS, FINAL_REPORT, both handoffs, GPU_REQUEST, checks README, the three skills, the memory note) grepped
+  against the last measured values (suite 157, installer 25, scope 20, job_damage 35 kinds / 105 runs, test_tools
+  26): one stale line (FINAL_REPORT's before / after table said 155), fixed. RESULTS files keep dated history.
