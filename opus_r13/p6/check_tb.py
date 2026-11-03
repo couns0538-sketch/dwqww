@@ -78,8 +78,8 @@ def gen(a):
 def compare(a):
     oracle = [l.split() for l in open(a.out + '.oracle')]
     engine = [l.split() for l in open(a.engine)]
-    if len(oracle) != len(engine):
-        print(f'FAIL: {len(oracle)} oracle rows, {len(engine)} engine rows')
+    if len(oracle) != len(engine) or not oracle:
+        print(f'FAIL: {len(oracle)} oracle rows, {len(engine)} engine rows (both must be equal and non-zero)')
         sys.exit(1)
     wdl_ok = dtz_exact = dtz_rounded = 0
     bad = []

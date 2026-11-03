@@ -21,6 +21,11 @@ int main(int argc, char** argv) {
               << " pieces, rejected " << summary.rejected << "\n";
     if (summary.wdl_tables == 0) return 2;
     std::ifstream in(argv[2]);
+    if (!in) {
+        std::cerr << "cannot open " << argv[2] << "\n";
+        return 2;
+    }
+    long probed = 0;
     std::string fen;
     long line = 0;
     while (std::getline(in, fen)) {
@@ -33,6 +38,7 @@ int main(int argc, char** argv) {
             std::cerr << "line " << line << ": bad FEN (" << error << ")\n";
             return 1;
         }
+        ++probed;
         int wdl = 0;
         int dtz = 0;
         bool rounded = false;
@@ -43,6 +49,10 @@ int main(int argc, char** argv) {
             continue;
         }
         std::cout << wdl << ' ' << dtz << ' ' << (rounded ? 1 : 0) << '\n';
+    }
+    if (probed == 0) {
+        std::cerr << "no FENs in " << argv[2] << "\n";
+        return 2;
     }
     return 0;
 }

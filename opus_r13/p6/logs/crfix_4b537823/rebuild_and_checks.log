@@ -1,0 +1,25 @@
+=== 0 2026-11-02 20:59:55 branch 5e025387 + uncommitted crfix:  3 files changed, 15 insertions(+), 3 deletions(-)
+=== 1 port tree from git (lock d4f4312 + the branch's syzygy_port.patch)
+port patch exit 0
+PASS port tree = C:/o13/p6/syz (the source of the R13 builds and the kit exe 150374ff)
+=== 2 plain engine build (R13 plain_build.sh flags, CPUs 2-3 BelowNormal)
+plain build exit 0
+plain exe 8ca21beabd712b18; FMA 0; bytes differing from R13's C:/o13/p6/syz_plain/forge_plain.exe: 5 (PE timestamp + checksum only = 4 to 6)
+=== 3 OFF / ON benches (lp_check via R13 lpc.sh, CPU 2)
+OFF: 312866/862329/3024920/12389307/34048354/ perft 4865609 193690690 
+ON SyzygyPath: 313631/866959/2460490/11465604/31972996/
+ON SyzygyPath + ProbeDepth 4: 312794/847340/2563760/9925508/28519443/
+=== 4 tb_probe rebuilt from the patched tb_probe.cpp
+tb_probe build exit 0; 60569c83439f6850
+=== 5 WDL / DTZ vs python-chess (check_tb.py gen, seed 13601: must equal the committed tb200 sample)
+gen exit 0: 220 positions (20 cursed / blessed after 8806 tries) from 110 5-man materials -> C:/o14b/p6crfix/checks/tb200
+PASS fens = logs/tb200.fens
+PASS oracle = logs/tb200.oracle
+tb_probe exit 0
+loaded 145 WDL, 145 DTZ, up to 5 pieces, rejected 0
+220 positions (20 with WDL +-1): WDL 220/220 equal, DTZ 220 exact + 0 within 1 where the engine reports a rounded DTZ, 0 mismatches
+compare exit 0
+PASS engine answers = logs/tb200.engine (R13 tb_probe)
+=== 6 50-move rule cases (check50.py, as run_p6b.sh)
+check50 exit 0: 20/20 cursed / blessed positions handled as expected
+=== end 2026-11-02 21:02:05

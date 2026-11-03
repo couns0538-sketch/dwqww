@@ -1,4 +1,4 @@
-# R13 Phase 6 - Syzygy on the lock tree - READY: CR PASS both lines, gates queued by the crew (exe 150374ff); R14 evidence complete - UNPROVEN
+# R13 Phase 6 - Syzygy on the lock tree - READY: CR PASS both lines, gates queued by the crew (exe 150374ff); R14 evidence complete; CR crfix 4b537823 applied 2026-11-02 - UNPROVEN
 
 Branch `opus-r13-p6-syzygy` (from main). UNPROVEN: no Elo claim.
 - Source: Opus C1 (3fd235c8 + aa0b0a83; identical to the final opus-r3-stack / forge-bundle-int b7c17722 versions): the own
@@ -49,9 +49,32 @@ Gate lines (planned): `SyzygyPath D:\syzygy345`; `SyzygyPath D:\syzygy345` + `Sy
   perft OK, ON = the benches above, uci = lock 61 options + the 3 Syzygy lines, 4-game smoke OK; GATE_EXE
   `forge_ltopgo_x_syzygy_al1_150374ff.exe` (same sha256). Gates `uhoP6syz_path_1503_vs_AL1lp` and `uhoP6syz_pd4_1503_vs_AL1lp`
   on UHO, each with a HELD 8moves_v3 40+0.4 confirm, never pooled.
-- CR's LOW crfix `p6_checks_crfix.patch` (md5 4b537823, test tooling only) is not on the PC (not in
-  `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\`, not on GitHub): not applied. CR counts check_tb 211/211; this
-  branch's run counts 220/220 (200 random + 20 cursed / blessed) - CR's own selection, cause not visible without the patch.
+- CR's LOW crfix `p6_checks_crfix.patch` (md5 4b537823, test tooling only) was not on the PC during R13 / R14 (not
+  applied then). CR counts check_tb 211/211; this branch's run counts 220/220 (200 random + 20 cursed / blessed) - CR's
+  own selection. **Applied 2026-11-02 ~20:59 PC clock** - see the next section.
+
+### CR LOW crfix 4b537823 applied (Opus R14-B follow-up, Couns 2026-11-02 ~20:57; logs/crfix_4b537823/)
+- `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p6_checks_crfix.patch` (md5
+  4b537823b4c93aaf390413843299720b, file time 2026-11-02 20:53:41) applied with `patch -p1` at the repository root of
+  this branch (worktree o13-p6, head 5e025387): check_tb.py (+2 -2: a compare with 0 oracle rows fails), ci_fetch_tables.sh
+  (+3 -1: CI fails unless the 70 3-4 piece table files are present), tb_probe.cpp (+10: a missing or empty FEN file is
+  exit 2). LF kept, no .orig / .rej files. The engine source is untouched: exe 150374ff (the gated candidate) is unchanged.
+- Rebuild + the P6 checks again (`rebuild_and_checks.sh`, fresh folders under C:\o14b\p6crfix, CPUs 2-3 BelowNormal;
+  C:\o13\p6 only read): port tree from git (lock d4f4312 + syzygy_port.patch) = C:\o13\p6\syz (the source of the kit exe);
+  plain engine rebuilt (sha256 8ca21bea..., FMA 0; differs from R13's plain exe only in the PE TimeDateStamp + CheckSum
+  bytes 137-139 / 217-218); **OFF = the lock pins** 312866 / 862329 / 3024920 / 12389307 / 34048354, perft 4865609 /
+  193690690 (Couns's corrected pins, 2026-11-02 20:53); ON SyzygyPath 313631 / 866959 / 2460490 / 11465604 / 31972996 and
+  ON + ProbeDepth 4 312794 / 847340 / 2563760 / 9925508 / 28519443 = R13's; tb_probe rebuilt from the patched source
+  (sha256 60569c83...): check_tb gen (seed 13601) = the committed tb200 sample (fens and oracle byte-identical), **WDL
+  220/220, DTZ 220 exact**, answers identical to R13's tb_probe; check50 20/20.
+- The new fail-closed paths (`fail_closed.sh`, offline; each shown against the R13 version): tb_probe missing / empty FEN
+  file -> exit 2 (R13 build: exit 0 on an empty file); check_tb compare with an empty oracle -> FAIL exit 1 (R13: exit 0);
+  ci_fetch_tables.sh with 70 local tables -> "tables: 70 present, 0 downloaded", with 69 -> FAIL exit 1 (R13: exit 0).
+  9 / 9 PASS. Incident: the first run of that script wrote the local checksum.md5 in Git Bash's `hash *name` format, so
+  the script took every name as missing and asked the public mirror for it: 3 GET requests to tablebase.sesse.net, all
+  404, nothing downloaded; the re-run used the mirror's `hash  name` format and an unreachable local mirror address.
+- CI: this workflow's push filter does not include these files; its run is started by hand (workflow_dispatch) after the
+  push so the patched ci_fetch_tables.sh runs where it is used - result below.
 
 ### Review milestone R14-P6-1 (structured self-review, NOT independent - no sub-agents in R14)
 - Reviewed: the kit evidence (both SUMMARY files, compares, warning lines), the R14 smoke / mate-probe output, CI log;

@@ -22,4 +22,6 @@ while read -r sum name; do
   fetched=$((fetched + 1))
   sleep 0.3
 done < "$DEST/wanted.md5"
-echo "tables: $(ls "$DEST" | grep -c 'rtb[wz]$') present, $fetched downloaded"
+present=$(ls "$DEST" | grep -c 'rtb[wz]$' || true)
+echo "tables: $present present, $fetched downloaded"
+if [ "$present" -ne 70 ]; then echo "FAIL: expected 70 3-4 piece table files, found $present"; exit 1; fi
