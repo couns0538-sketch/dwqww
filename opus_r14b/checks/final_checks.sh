@@ -49,7 +49,7 @@ rc=$?; echo "$(grep -c '^PASS' "$out/test_tools.log") PASS, $(grep -c '^FAIL' "$
 step "6 item 1 from the clone"
 L1=$out/clone_fast-loader/opus_r14b/item1
 bash "$L1/tools/test_installer.sh" "$out/test_installer" > "$out/test_installer.log" 2>&1
-rc=$?; tail -1 "$out/test_installer.log"; res "test_installer.sh" $rc
+rc=$?; echo "$(grep -c "^PASS" "$out/test_installer.log") PASS, $(grep -c "^FAIL" "$out/test_installer.log") FAIL"; res "test_installer.sh" $rc
 "$PY" -I -B "$L1/tools/test_scope.py" > "$out/test_scope.log" 2>&1
 rc=$?; tail -1 "$out/test_scope.log"; res "test_scope.py" $rc
 step "7 item 2 from the clone"
@@ -59,7 +59,7 @@ now=$(sha256sum < "$R2/relabel2.py" | cut -d' ' -f1)
 echo "relabel2.py $now, RELABEL_HANDOFF.md says $frozen"
 res "relabel2.py = the frozen sha256" $([ -n "$frozen" ] && [ "$frozen" = "$now" ] && echo 0 || echo 1)
 bash "$C/e2e_r8v5.sh" "$out/e2e" > "$out/e2e.log" 2>&1
-rc=$?; tail -1 "$out/e2e.log"; res "e2e_r8v5.sh (worktree code = the frozen file above)" $rc
+rc=$?; echo "$(grep -c "^PASS" "$out/e2e.log") PASS, $(grep -c "^FAIL" "$out/e2e.log") FAIL"; res "e2e_r8v5.sh (worktree code = the frozen file above)" $rc
 step "8 worktrees in sync"
 for w in o14b-status o14b-l1 o14b-r2 o13-p6; do
   s=$(git -C "$W/$w" status -sb | head -1); d=$(git -C "$W/$w" status --porcelain | wc -l)

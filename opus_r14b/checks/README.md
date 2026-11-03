@@ -30,3 +30,8 @@ argument since 22:35 (default `C:\o14b\fresh`, which must not exist).
 prepare -> run (LTO+PGO probe, 20k nodes, 2 workers) -> status -> assemble -> fen2bin + hce_dump on both outputs, with
 11 checks (records = rows, 0 bad / clamped, rows and game overlap, shard settings, a second run / assemble). 22:53:
 11 / 11 PASS, output byte-identical to the 20:30 chain run on the first freeze.
+
+`final_checks.sh OUT_DIR` is the end-of-job check in one command (about one minute): doc_lint over all R14-B
+documents, the file indexes (must already be committed), `sha256sum -c` in fresh clones of both item branches, the
+hash sweep, test_tools.sh, the installer and scope tests from the item 1 clone, relabel2.py = the frozen sha256 of
+RELABEL_HANDOFF.md plus e2e_r8v5.sh, and every worktree clean and in sync. Dry run 22:56: 8 / 8 steps PASS.
