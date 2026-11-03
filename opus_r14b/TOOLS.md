@@ -171,3 +171,4 @@ Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to 
   as written (test_scope.py in final_checks from a clone; the installer with --loader-dll and fl_acceptance.sh in
   the 22:35 fresh-clone rehearsal). forge-opus-tools: status, lint, test, time and gpu ran tonight; engine / bisect
   last ran 20:43-20:47 (builds, kept off CPUs 2-3 now).
+- doc_lint at work (23:21): my own hunt #10 record got a form-feed byte from a heredoc through the Bash tool (`\f` in a Windows path); doc_lint reported `[control] bytes ['0xc']` before the commit, fixed with chr(92).

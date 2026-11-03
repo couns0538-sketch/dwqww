@@ -104,7 +104,8 @@ loader fuzzed with 371 damaged files: no crash / hang; engine_bisect needs GOOD 
 (the "starved" wording corrected; doc_lint table rule, 11 broken tables fixed), prepare fuzz 21:56 (P-1: input score
 range), #6 22:09-22:27 (damaged job state J-1..J-4; installer H6-1..H6-3), advisor read 22:29 (H6-4, J-5), #7
 22:49-22:52 (fast loader scope: no code finding), #8 23:10-23:11 (the DLL's lifecycle: no reachable race in the
-trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer's dataset calls: all covered); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
+trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer's dataset calls: all covered), #10 23:20-23:21
+(relabel paths with spaces end to end: all exit 0); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
 05:00-06:00.
 
 ## Deviations and incidents (honest record)
