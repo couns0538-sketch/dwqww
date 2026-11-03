@@ -10,6 +10,14 @@ The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
 the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
+Latest observation at 06:16:39 UTC: 209,163,894 rows checked, 26 source files
+closed, zero rejections reported. Both workers remain BelowNormal/one thread;
+D: has 57,465,634,816 bytes free. This is IN_PROGRESS, not full-corpus proof.
+The observation is preserved as extension5h_20261103/progress_20261103_0616.json.
+The exact audited records.py snapshot is retained with SHA256 a8ef0f43...7360be
+for later function attribution. All 12 saved build/SIMD/timing package files
+match their recorded Git source blobs, including the full MIT licences.
+
 At 06:00:23 UTC the two strict source-admission scans have checked
 172,413,894 rows, with zero rejections so far. This corrects the prior checkpoint's
 premature 05:56 timestamp for the rounded progress count. They remain in progress
