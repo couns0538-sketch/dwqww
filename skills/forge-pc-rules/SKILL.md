@@ -258,3 +258,7 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
   (all CPUs). BelowNormal beats Idle on CPUs 2-3 too: an own Idle prepare got 0.7 s of CPU in 150 s, and proof shards went
   from ~105 s to 140-188 s. Before timing anything, list who uses CPUs 2-3 (sample `TotalProcessorTime` of every
   process whose affinity includes 0xC over 5 s) and write that load next to every rate; compare builds only by ABBA.
+- Topology (checked 2026-11-02 with GetLogicalProcessorInformation): AMD Ryzen 7 9850X3D, 8 cores / 16 logical CPUs, SMT
+  siblings (0,1) (2,3) ... (14,15). The own budget "CPUs 2-3" (mask 0xC) is ONE physical core: two own threads there
+  share it (the R14-B proof's two probes did: ~340k rows/h each, ~680k per core), so 2 workers on 0xC give about the
+  SMT gain over 1 worker, not 2x. Time single-thread builds on one logical CPU with its sibling idle.
