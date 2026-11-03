@@ -5,17 +5,17 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Last verified handoff (historical while the final material-admission repair is verified):
-`C:/astra8_data/quality6h_20261102/handoff_v5/manifest.json`,
-SHA256 `59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
+Current verified handoff:
+`C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json`,
+SHA256 `669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
-passes **323 tests + 11 subtests** on source 3f9815fd.
+passes **344 tests + 11 subtests** on source de1de94b.
 Both actual recipe preflights and published-manifest verification pass on source
-3f9815fd. Complete-corpus and expanded native checks pass; the reserved final
+de1de94b. Complete-corpus and expanded native checks pass; the reserved final
 review is still pending. Both million-row cohorts pass current admission and
-serialize byte-for-byte identically. The new inventory hashes 8,492 retained
-files; the Forge consistency checker passes all 83 referenced artifacts.
+serialize byte-for-byte identically. The new inventory hashes 9,797 retained
+files; the Forge consistency checker passes all 85 referenced artifacts.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
 Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
@@ -73,8 +73,8 @@ converter parsing remains unchanged.
 
 The final review also found impossible promotion inventories accepted by Python
 and rejected by Forge. The shared validator now requires enough missing pawns
-to account for extra queens, rooks, bishops and knights; current-source tests and
-a v6 handoff refresh are in progress. This is a necessary material constraint,
+to account for extra queens, rooks, bishops and knights; 20 actual native boundary
+checks and the v6 handoff refresh pass. This is a necessary material constraint,
 not a proof of complete game-history reachability.
 
 `filter_positions.py INPUT NEW_OUTPUT --kind normalized --workers 2` uses one

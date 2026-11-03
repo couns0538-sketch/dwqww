@@ -1,5 +1,19 @@
 # Six-hour quality continuation — UNPROVEN
 
+Latest continuation replaces the earlier finish: user resumed at 2026-11-03
+03:37 UTC for two hours of improvement/tool research through 05:37 UTC, followed
+by a full review/fix/verification hour through 06:37 UTC. The prior pause lasted
+approximately 03:28–03:37. The additional final-review hour had not started.
+The v6 verification and inventory already passed before the pause; publish their
+closed evidence first. Research useful coding tools, run bounded checks, fix
+confirmed defects with regressions, and preserve all earlier artifacts. Use
+CodeRabbit in the final review window if allowance permits, with the same one
+reused independent reviewer for focused milestones. Do not spend extra paid
+credits without authorization. All original scope/resource limits still apply.
+Only about 430 MB remains under the aggregate 15 GB artifact cap; favor compact
+fixtures and receipts rather than duplicating million-row outputs. No cleanup
+of retained datasets or failed evidence is authorized or required.
+
 Latest user steering (2026-11-03): after the current fixes and verification finish,
 perform a full additional hour of final review, fixing and retesting findings.
 This extends the earlier 03:51 UTC finish. Record the actual one-hour start/end

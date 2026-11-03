@@ -1,5 +1,29 @@
 # Review log — UNPROVEN
 
+## Material repair: complete v6 verification and package
+
+Candidate de1de94bf2922f6ad21802e178644ba3799a2989 passes all 344 tests and
+11 subtests in 261.15 seconds, with unchanged imported runtime files. The 15
+warnings are expected Torch deprecations/no-update scheduler warnings. A separate
+actual UCI probe verifies 20 material boundaries, including both colors and mixed
+promotions. Fresh 100k legacy identity, 1,000 results plus mirrors, complete
+serialization/admission of both 1M cohorts, 9,486 native perft2 vectors and five
+lock bench pins all PASS. Both v6 CPU preflights and published verification PASS.
+Manifest SHA256 669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c.
+
+The reused reviewer APPROVED the derived packager (SHA256
+7a124d73f8fa20008d4dbd99b66c7c96fbbdb4ff82a470e3b5186eb375f35df7): only new
+paths, test count and descriptive labels changed; all earlier binding repairs
+remain intact. Actual package PASS: 9,797 retained files freshly hashed, seven
+million-row output pairs match measured receipts, preserved production/saved
+skills match, and current runtime/source/native identities agree. Broad pytest
+collection finds all 344 tests and excludes archives. Forge checker PASS on
+85 artifact references; it proves consistency, not strength or experiment truth.
+Evidence: quality6h/material_validation, full_material_green, handoff_v6 and
+final_pack_v3. Main read and assessed each result. Final handoff approval remains
+pending the newly authorized 05:37–06:37 UTC review/fix window; no unresolved
+material-admission finding remains. No engine changes or training occurred.
+
 ## Final review: material admission finding
 
 Final review began after the complete v5 package was pushed, before the reserved

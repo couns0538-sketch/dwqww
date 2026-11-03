@@ -1,37 +1,30 @@
 # Astra R8 Job 2 — UNPROVEN
 
-## Six-hour continuation — active
+## Current continuation — active, UNPROVEN
 
-Final review of 17f95b11 REJECTED acceptance: Python's validity check admits
-impossible promoted material that the exact Forge lock rejects. Main reproduced
-eight such positions/mirrors and eight positive controls through UCI, then eleven
-failing regressions. The shared inventory repair and v6 revalidation are in
-progress; prior v5/323-test results remain evidence for their frozen source.
-The focused fix is APPROVED, with all 87 affected tests PASS. Full 344-test
-verification is running. The user has now requested one additional full hour of
-final review after these fixes and verification finish, extending the old finish.
+User resumed at 2026-11-03 03:37 UTC: two further hours of improvement and useful
+coding-tool research, then a full review/fix hour from 05:37 to 06:37 UTC.
+The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
+No engine changes, training, GPU or crew-process interference is authorized.
 
-New authorization starts 2026-11-02 21:51 UTC; final review reserved for
-2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
-Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The reviewed standard-FEN admission repair now passes
-the full **323-test + 11-subtest** CPU suite in 233.34 seconds, with unchanged
-runtime files. Fresh 100k legacy identity and 1,000 actual result/mirror checks
-PASS. Both million-row cohorts retain serialized byte identity; all 9,486 native
-checks and five bench pins pass. Published v5 verification and both CPU recipe
-preflights PASS. Prior v4 and 301-test proofs remain historical.
-The complete source profile, original-line reservoir replay, native Forge checks
-and fresh full-output inventory PASS. The reserved final review remains pending.
+The material-admission repair is verified on source de1de94b: **344 tests +
+11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
+material boundary cases pass. Fresh 100k old/new identity, 1,000 results and
+1,000 mirrors, both complete 1M cohorts with serialized byte identity, all 9,486
+native perft2 vectors and five lock bench pins PASS. Both v6 CPU preflights and
+strict published verification PASS. The reviewed final pack hashes 9,797 retained
+files and the Forge checker passes all 85 references. Final handoff approval
+remains pending the additional review hour. Older proofs remain historical.
 
 | Success test | Current evidence |
 |---|---|
 | 1 Legacy identity | PASS: fresh 100k old/new train, validation and stats artifacts match exactly |
 | 2 Result orientation | PASS: fresh 1,000 converter records and 1,000 mirrors against literal oracle |
 | 3 Determinism | PASS: two million-row check/mate runs, identical full payload/metadata hashes |
-| 4 Deliberate failures | PASS: 323 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
+| 4 Deliberate failures | PASS: 344 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v5 manifest/sample/CPU preflights, expanded corpus/native proof and 8,492-file inventory PASS; final review pending |
+| 7 Handoff | v6 manifest/sample/CPU preflights, expanded corpus/native proof and 9,797-file inventory PASS; final review pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net
@@ -44,21 +37,21 @@ replayed over every corpus row. Optional
 ply<=160 retains 285,511,513 (93.6105%). All 4,736 original-line reservoir checks
 PASS. Exact FD3A5190 matches all 9,486 perft2 results and five bench pins, using
 Threads=1, Hash=16, OwnBook=false and the recorded UseNNUE=true setting. The
-latest native engine phase takes 26.646 seconds; reference plus engine takes 37.172.
+latest native engine phase takes 26.802 seconds; reference plus engine takes 37.360.
 Full profiles are descriptive only; recipes/holdout clearance remain bounded.
 
-Fresh packaging PASS on source 3d5d164b (runtime code 3f9815fd): all 8,492 retained output files hashed,
+Fresh packaging PASS on source de1de94b: all 9,797 retained output files hashed,
 seven million-row payload pairs match their measured receipts, source/runtime
 pins remain stable, production converter/helpers and all twelve saved skill
 payloads unchanged. See evidence/quality6h/corpus_report, reservoir_audit,
-fen_validation and final_pack_v2. The Forge consistency checker passes all 83
+material_validation and final_pack_v3. The Forge consistency checker passes all 85
 artifact references. Its scope is declared-record consistency and actual hashes,
-not independent reproduction or strength. Current v5 manifest SHA256:
-`59d407208dca07b448ef793cc4875a891033fb348736ce00439cb95f75a11399`.
+not independent reproduction or strength. Current v6 manifest SHA256:
+`669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
 Inventory SHA256:
-`21f450f7ec70f108e6864f8627c49cc1afbeed5169b16305267cca53bf92215a`.
-Aggregate retained outputs remain below 15 GB (14.475 GB after packaging),
-C:142.35 GB and D:58.51 GB free. All older proofs and failed attempts remain.
+`cd198d5165b40dad8b0869d8e5555d7be47149fad30d8c8fce8b5e00a68650cb`.
+Aggregate retained outputs remain below 15 GB (14.565 GB after packaging),
+C:135.60 GB and D:58.48 GB free. All older proofs and failed attempts remain.
 
 Timing scope: per-rule times cover processing and final input verification,
 excluding initial fingerprinting and final output hashing. Complete six-case
