@@ -248,3 +248,10 @@ No other script reaches outside its own branch folder (grep for worktree paths: 
 - Publish renames retry a transient PermissionError (virus scanners / indexers / readers hold handles on Windows) and a
   status.json that stays locked is skipped with a warning (a873b269; tests added: a shard publish failing twice, a
   status file that never unlocks).
+
+## More "works in Forge" fixes (19:26-19:31)
+| # | finding | fix | check |
+|---|---|---|---|
+| R32 | prepare under a Python without python-chess reported `BAD INPUT: <file>:1: No module named 'chess'`, i.e. blamed the first input line | the imports are checked once before any input is read: "python-chess is needed ...; use C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe" (exit 2) | simulated missing module: exit 2, message, no job folder; test + reason check |
+| R33 | sort_normalized.py holds its input in memory (~2.2x the file size): sorting Astra's 9.2M-row set would take ~3.7 GB and could push the PC below the RAM floor at which the crew's guards stop training | free physical RAM is checked before reading (`--min-free-ram-gb`, default 8): refuse with "split the input by source" when the sort would cross it | impossible floor: exit 2 before reading, nothing written; a randomly shuffled copy sorts back byte for byte; tests + reason check |
+| I4 | a rebuilt or new probe could only be checked against the R13 answers with Opus's scratch files | committed `probe_ref_500.tsv` (500 positions, rows 900,000-900,499 of the proof sample) + `probe_ref_500_r13.jsonl` (the R13 probe's answers, 20k nodes, Hash 1 MB): `probe_bench.py run --exe <probe> --req probe_ref_500.tsv --out new.jsonl` then `probe_bench.py compare probe_ref_500_r13.jsonl new.jsonl` (exit 0 = all 500 identical) | ids and FENs of the two files match; used in the fresh-clone check |
