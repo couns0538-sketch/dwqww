@@ -127,7 +127,7 @@ robocopy call broken by Git Bash path conversion (the verify chain's fresh-clone
 Not built: a gate-status reader - the gate folders carry known traps (stale names, mixed opponents / concurrency, see
 forge-gate-stats) and a quick reader could report wrong numbers.
 
-### Bug hunt #5 (from 21:31 by the PC clock; self-review, NOT independent; end time below)
+### Bug hunt #5 (21:31-21:40 by the PC clock; self-review, NOT independent)
 | # | finding | fix | check |
 |---|---|---|---|
 | H5-1 | gpu_util_stats.py: `--from` after `--to` only said "0 rows" | clear error, exit 2 | edge cases run |
@@ -139,3 +139,7 @@ forge-gate-stats) and a quick reader could report wrong numbers.
 Read and kept (no finding): fl_distribution.py (bins, chi-square dof, SE over batch means), label_stats.py (result
 spellings, White's-view sign), fl_dataset_equal.py (every tensor hashed by dtype / shape / bytes, batch count
 required), fl_fuzz.py's verdict logic, the 50M runbook's commands (re-read; prepare already run as written).
+Exercised for the first time on real work: `abba.py` on the two relabel probes (R13 vs LTO+PGO, 500 reference positions
+at 20k nodes, 6 pairs on CPU 2, the md5 of all 500 scores required equal: db2a2ce6... for both) -> **1.057x, 95% CI
+1.044-1.069**, matching the dedicated probe ABBA of 17:53 (1.075x, CI 1.044-1.106); its `--warmup` and `--cwd`; `commit_span.py --until`.
+Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to date (they said 03:05 and 14 checks); hash sweep 0 unmatched.
