@@ -348,3 +348,12 @@ that holds the iterator, so our provider (and its stream) is freed only after th
 the prefetch queue. Worker-thread exceptions are caught (`guarded`) and become the stream's error; a double or foreign
 `ffl_release` stops the stream with an error (self-test case 7). No code change (a DLL change would void the b5
 evidence for no reachable failure); the contract is now LOADER_SPEC.md section 7.
+
+## Bug hunt #9 (23:19-23:20 by the PC clock, started early; self-review, NOT independent): what the trainer asks of the dataset
+Scope (written first): every attribute of the training dataset the live trainer uses after the first batches - a
+missing one would fail only at an epoch end, a checkpoint or a resume, which the acceptance batches do not reach.
+Read (read-only, `F:\opus_scratch\r6\nnue-pytorch-amd`): `trainer/callbacks.py` calls, through
+`FixedNumBatchesDataset`, `get_unique_stats()` (ours: exact preskip / total, unique 0), `get_hll_state()` at every epoch
+end (ours: empty bytes -> the callback skips its unique-position merge and returns, no error) and
+`set_initial_hll()` on a resume (reaches our `_NoHll`, which says once that the checkpoint's HLL state is ignored);
+`get_io_stats()` (ours: an empty list). The CPU loss match ran a full epoch through these callbacks. No finding.
