@@ -216,6 +216,9 @@ expect 0 run_resume "$PY" -I -B "$R" run --job jk --run-id m --probe "$P" --node
 expect 0 assemble_resumed "$PY" -I -B "$R" assemble --job jk --run-id m
 for f in train.txt val.txt labels.tsv; do check "resumed_equals_uninterrupted_$f" cmp -s "jm/final/$f" "jk/final/$f"; done
 echo "interrupted attempts kept: $(ls -d jk/shards/*.part.* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
+# damaged job state (bug hunt 22:11): job_damage.py runs 34 cases x run / assemble / status, each on a fresh copy of a
+# finished small job, and wants exit 4 / 3 / 2 with relabel2's reason line or a clean exit 0 - never a traceback
+expect 0 job_damage "$PY" -I -B "$here/job_damage.py" job_damage_cases
 # every refusal must give the expected reason: a missing file or a crash can also end with exit 2 / 3 / 4
 while read -r name text; do
   check "reason_$name" grep -qF -- "$text" "$name.err"

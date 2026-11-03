@@ -33,7 +33,8 @@ disk floor would be crossed), 4 integrity failure (a published file changed or a
 - run: shard k = rows [k*S, (k+1)*S). A shard is labelled in shards/shard_K.part.N (labels.tsv, manifest.json with
   sha256, summary.json with the run id; all fsynced) and published by renaming the directory to shard_K. The same
   command resumes: the configuration and the relabel2.py hash are pinned in run_config.json (exit 3 on a change;
-  `--accept-new-tool` resumes on changed code, and every sessions.log line names the code hash), every published shard is
+  `--accept-new-tool` resumes on changed code, and every sessions.log line names the code hash; a run_config.json that
+  is lost or damaged while shards are published is exit 4, never re-created), every published shard is
   re-hashed (exit 4 on a mismatch), interrupted .part.N directories stay as evidence (nothing is deleted or modified)
   and the shard is redone as .part.N+1. Labels come from the R13 probe (lock source d4f4312; transposition table,
   histories and caches cleared before every search), so a label depends only on FEN, nodes and hash. This process
@@ -52,6 +53,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import threading
@@ -125,6 +127,27 @@ def write_status(path: Path, obj) -> None:
         move_retry(tmp, path, replace=True, tries=25)
     except PermissionError as e:
         print(f"warning: {path} not updated ({e}); the next shard tries again", file=sys.stderr)
+
+
+def read_json(path: Path, what: str, keys=()) -> dict:
+    """A job file that is missing, unreadable, not a JSON object or lacks a key is an integrity failure (exit 4)."""
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise IntegrityError(f"{what} is missing") from None
+    except (OSError, ValueError) as e:
+        raise IntegrityError(f"{what} is unreadable ({type(e).__name__}: {e})") from None
+    if not isinstance(obj, dict):
+        raise IntegrityError(f"{what} is not a JSON object")
+    missing = [k for k in keys if k not in obj]
+    if missing:
+        raise IntegrityError(f"{what} lacks {', '.join(missing)}")
+    return obj
+
+
+def numbered(parent: Path, stem: str):
+    """N of every parent/<stem>.N (attempt dirs); other names there are not ours and are ignored."""
+    return [int(m.group(1)) for p in parent.glob(stem + ".*") if (m := re.fullmatch(re.escape(stem) + r"\.(\d+)", p.name))]
 
 
 def append_log(job: Path, line: str) -> None:
@@ -454,8 +477,14 @@ def cmd_prepare(a) -> int:
 # ---------------------------------------------------------------- run
 
 def load_prepare(job: Path):
-    info = json.loads((job / "prepare.json").read_text(encoding="utf-8"))
-    if file_hash(job / "rows.tsv") != info["rows_tsv_sha256"]:
+    info = read_json(job / "prepare.json", "prepare.json", ("run_id", "rows", "train_rows", "val_rows", "rows_tsv_sha256"))
+    if not all(type(info[k]) is int and info[k] >= 0 for k in ("rows", "train_rows", "val_rows")) or info["rows"] < 1:
+        raise IntegrityError("prepare.json: rows / train_rows / val_rows are not counts")
+    try:
+        same = file_hash(job / "rows.tsv") == info["rows_tsv_sha256"]
+    except OSError as e:
+        raise IntegrityError(f"rows.tsv is unreadable ({type(e).__name__}: {e})") from None
+    if not same:
         raise IntegrityError("rows.tsv differs from prepare.json")
     return info
 
@@ -491,13 +520,16 @@ def verify_shard(d: Path, k: int, first: int, count: int, run_id: str) -> None:
     try:
         man = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
         summ = json.loads((d / "summary.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:
-        raise IntegrityError(f"{d.name}: unreadable manifest / summary: {e}") from None
-    if file_hash(d / "labels.tsv") != man["labels.tsv"]:
+        want = (man["labels.tsv"], man["summary.json"])
+        got = (summ["shard"], summ["first_row"], summ["rows"], summ["run_id"])
+        labels = file_hash(d / "labels.tsv")
+    except (OSError, ValueError, KeyError, TypeError) as e:  # missing / damaged files, a JSON that is not ours
+        raise IntegrityError(f"{d.name}: unreadable manifest / summary / labels: {type(e).__name__}: {e}") from None
+    if labels != want[0]:
         raise IntegrityError(f"{d.name}: labels.tsv sha256 differs from its manifest")
-    if file_hash(d / "summary.json") != man["summary.json"]:
+    if file_hash(d / "summary.json") != want[1]:
         raise IntegrityError(f"{d.name}: summary.json differs from its manifest")
-    if (summ["shard"], summ["first_row"], summ["rows"], summ["run_id"]) != (k, first, count, run_id):
+    if got != (k, first, count, run_id):
         raise IntegrityError(f"{d.name}: summary does not match the job (shard/rows/run id)")
 
 
@@ -537,8 +569,11 @@ def cmd_run(a) -> int:
            "prepare_json_sha256": file_hash(job / "prepare.json"), "tool": TOOL}
     rc = job / "run_config.json"
     tool_hash = file_hash(__file__)
+    sdir = job / "shards"
+    if sdir.exists() and not sdir.is_dir():
+        raise IntegrityError(f"{sdir} is not a directory")
     if rc.exists():
-        old = json.loads(rc.read_text(encoding="utf-8"))
+        old = read_json(rc, "run_config.json", tuple(cfg))
         diff = [k for k in cfg if old.get(k) != cfg[k] and k not in ("probe", "tool")]
         if diff:
             raise ConfigMismatch(f"configuration differs from run_config.json: {diff}")
@@ -547,11 +582,14 @@ def cmd_run(a) -> int:
             raise ConfigMismatch(f"relabel2.py changed since the job started ({str(old.get('tool_sha256'))[:8]} -> "
                                  f"{tool_hash[:8]}); pass --accept-new-tool to resume with it (logged)")
     else:
+        # run_config.json pins probe / nodes / hash / shard size: without it a resume could mix labels of two settings
+        if sdir.is_dir() and any(re.fullmatch(r"shard_\d{5}", p.name) for p in sdir.iterdir()):
+            raise IntegrityError("run_config.json is missing but shards are published: the job's configuration is "
+                                 "unknown, so a resume could mix labels; restore run_config.json or start a new job")
         write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=tool_hash), indent=1) + "\n")
     n = info["rows"]
     shards = (n + a.shard_size - 1) // a.shard_size
     offs = row_offsets(job, a.shard_size, n)
-    sdir = job / "shards"
     sdir.mkdir(exist_ok=True)
     done = set()
     for k in range(shards):
@@ -559,6 +597,8 @@ def cmd_run(a) -> int:
         if d.is_dir():
             verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id)
             done.add(k)
+        elif d.exists():
+            raise IntegrityError(f"{d.name} exists but is not a directory")
     deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
     append_log(job, f"run start run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} "
                     f"workers={a.workers} test_kill_after_s={a.test_kill_after_seconds}")
@@ -587,8 +627,7 @@ def cmd_run(a) -> int:
                     raise
                 first = k * a.shard_size
                 count = min(a.shard_size, n - first)
-                attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
-                part = sdir / f"shard_{k:05d}.part.{max(attempts, default=0) + 1}"
+                part = sdir / f"shard_{k:05d}.part.{max(numbered(sdir, f'shard_{k:05d}.part'), default=0) + 1}"
                 part.mkdir()
                 ts = time.monotonic()
                 rows = read_shard_rows(job, offs[k], count)
@@ -632,7 +671,9 @@ def cmd_assemble(a) -> int:
     job = Path(a.job)
     lock = open_job(job)  # noqa: F841 - held until the process ends
     info = load_prepare(job)
-    rc = json.loads((job / "run_config.json").read_text(encoding="utf-8"))
+    rc = read_json(job / "run_config.json", "run_config.json (written by run)", ("run_id", "shard_size"))
+    if type(rc["shard_size"]) is not int or rc["shard_size"] < 1:
+        raise IntegrityError("run_config.json: shard_size is not a positive integer")
     if info["run_id"] != a.run_id or rc["run_id"] != a.run_id:
         raise ConfigMismatch("run id differs from the job")
     n, size = info["rows"], rc["shard_size"]
@@ -647,8 +688,7 @@ def cmd_assemble(a) -> int:
         verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
     # train.txt + val.txt + labels.tsv: 157.8 MB per 1M rows in the proof; plan for 170 bytes per row
     disk_check(job, 170.0 * n, a.min_free_gb, "assemble")
-    tries = [int(x.name.rsplit(".", 1)[1]) for x in job.glob("final.part.*")]
-    tmpdir = job / f"final.part.{max(tries, default=0) + 1}"  # an interrupted attempt stays as it is
+    tmpdir = job / f"final.part.{max(numbered(job, 'final.part'), default=0) + 1}"  # an interrupted attempt stays as it is
     tmpdir.mkdir()
     names = ("train.txt", "val.txt", "labels.tsv")
     fh = {nm: open(tmpdir / nm, "x", encoding="utf-8", newline="\n") for nm in names}
@@ -703,18 +743,34 @@ def cmd_status(a) -> int:
     job = Path(a.job)
     if not (job / "prepare.json").is_file():
         raise BadInput(f"{job}: not a prepared job (no prepare.json)")
-    n = json.loads((job / "prepare.json").read_text(encoding="utf-8"))["rows"]
-    st = job / "status.json"
-    status = json.loads(st.read_text(encoding="utf-8")) if st.exists() else {}
-    sdir, rc = job / "shards", job / "run_config.json"
-    size = json.loads(rc.read_text(encoding="utf-8"))["shard_size"] if rc.exists() else 0
-    published = sorted(int(p.name[6:]) for p in sdir.glob("shard_?????")) if sdir.exists() else []
-    parts = sorted(p.name for p in sdir.glob("*.part.*")) if sdir.exists() else []
+    n = read_json(job / "prepare.json", "prepare.json", ("rows",))["rows"]
+    if type(n) is not int or n < 1:
+        raise IntegrityError("prepare.json: rows is not a positive count")
+
+    def info_file(path: Path) -> dict:  # status.json / run_config.json are information here: warn, never stop
+        try:
+            return read_json(path, path.name) if path.exists() else {}
+        except IntegrityError as e:
+            print(f"warning: {e}", file=sys.stderr)
+            return {}
+
+    status, cfg = info_file(job / "status.json"), info_file(job / "run_config.json")
+    sdir = job / "shards"
+    size = cfg.get("shard_size") if type(cfg.get("shard_size")) is int and cfg["shard_size"] > 0 else 0
+    total = (n + size - 1) // size if size else 0
+    found = sorted(int(p.name[6:]) for p in sdir.glob("shard_*") if re.fullmatch(r"shard_\d{5}", p.name)) if sdir.is_dir() else []
+    published = [k for k in found if k < total]
+    if found and not size:
+        print(f"warning: {len(found)} shard dirs but no readable run_config.json (shard size unknown)", file=sys.stderr)
+    elif found != published:
+        print(f"warning: shard dirs outside this job's {total} shards: "
+              f"{[f'shard_{k:05d}' for k in found if k not in published]}", file=sys.stderr)
+    parts = sorted(p.name for p in sdir.glob("*.part.*")) if sdir.is_dir() else []
     done = sum(min(size, n - k * size) for k in published)
-    rate = status.get("session_rows_per_hour") or 0
+    rate = status.get("session_rows_per_hour") if type(status.get("session_rows_per_hour")) in (int, float) else 0
     eta = f"{(n - done) / rate:.1f} h" if rate and done < n else "-"
     root = job.resolve().anchor or "."
-    progress = f"{len(published)}/{(n + size - 1) // size} shards" if size else "not run yet"
+    progress = f"{len(published)}/{total} shards" if size else "shard size unknown" if found else "not run yet"
     print(f"{job}: {progress}, {done:,}/{n:,} rows ({100 * done / n:.1f} %), final {'published' if (job / 'final').is_dir() else 'not yet'}; "
           f"last session {rate:,} rows/h (updated {status.get('updated', '-')}), ETA at that rate {eta}; "
           f"unpublished attempt dirs (interrupted; during a run the newest is the shard in progress): {parts or 'none'}; "
