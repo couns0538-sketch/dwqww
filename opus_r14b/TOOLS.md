@@ -67,5 +67,6 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 | doc_lint.py | `python -I -B doc_lint.py opus_r14b skills` | control bytes, CRLF, mojibake, eaten Windows backslashes, broken GitHub tables, dead relative links |
 | hash_sweep.py | `python -I -B hash_sweep.py --docs ... --files ... --repo ... --allow hash_sweep_allow.txt` | every cited hash still matches a real file or commit |
 | engine_fresh_check.sh | `bash engine_fresh_check.sh REF NEW_DIR [--quick]` | clean export of an engine ref, lock-recipe build pinned low, exe sha256 + FMA count, bench / perft pins via the lock package's uci_check.py |
+| commit_span.py | `python -I -B commit_span.py --repo REPO --since "..." origin/<branch>...` | time per branch and pauses from commit times (for reports; no guessed hours) |
 | cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
 | test_tools.sh | `bash test_tools.sh NEW_DIR` | 11 checks of abba.py and doc_lint.py (exit codes and output lines) |

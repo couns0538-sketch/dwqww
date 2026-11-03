@@ -64,6 +64,9 @@ This is the "options OFF = lock" identity only; ON behaviour, CTest, sanitizers 
 forge-engine-verify, forge-candidate-checks and forge-ltopgo-pgo.
 
 ## Small helpers
+- `commit_span.py --repo D:/grok-pc-data/dwqww --since "2026-11-02 12:00" origin/<b1> origin/<b2> ...`: commits,
+  first / last commit and span per branch, then one merged timeline with every pause > `--gap` minutes and commits per
+  hour - the time figures for a report come from here, never from memory (memory rule "measure time from commits").
 - `cpu_users.ps1 -Mask 0xC -Seconds 5`: processes that used CPUs of the mask in the window, busiest first.
 - `pc_gate.ps1` (R13): load / RAM / disk gate before a heavy step.
 - `lowrun.ps1 -Mask 0xC -Priority BelowNormal|Idle -Exe <prog> -ArgLine "<args>" [-In/-Out/-Err files]`: run one
