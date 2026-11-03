@@ -274,7 +274,7 @@ Checked and kept: move_retry retries PermissionError only (an existing target st
 runs before its write; the status line handles jobs never run (no run_config.json); the simulated-contention tests
 patch only the calls they target.
 
-## Bug hunt #3 (20:04-20:20 by the PC clock; self-review, NOT independent)
+## Bug hunt #3 (20:04-20:08 by the PC clock; self-review, NOT independent)
 Scope: what hunts 1 and 2 did not read - relabel2.py run / assemble / prepare internals (shard loop, failure paths,
 game rule, split, input checks, status), the R13 probe client's failure behaviour (forge_probe.py, unchanged copy),
 and item 1's trainer path (does the trainer copy a batch before the fast loader reuses its memory?).
