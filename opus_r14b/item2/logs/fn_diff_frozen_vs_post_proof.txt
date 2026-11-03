@@ -1,0 +1,61 @@
+identical: BadInput ConfigMismatch IntegrityError append_log board_stats cmd_status file_hash label_shard load_prepare lower_priority new_game now read_shard_rows row_offsets verify_shard write_new write_status
+changed: cmd_assemble cmd_prepare cmd_run iter_rows main
+only in old: -
+only in new: check_args check_block check_row input_sources iter_rows_parallel lock_job open_job parse_line
+
+--- diff of cmd_run
+--- frozen
++++ post-proof
+@@ -4,2 +4,3 @@
+     job = Path(a.job)
++    lock = open_job(job)  # noqa: F841 - held until the process ends
+     info = load_prepare(job)
+@@ -13,2 +14,3 @@
+     rc = job / "run_config.json"
++    tool_hash = file_hash(__file__)
+     if rc.exists():
+@@ -18,4 +20,8 @@
+             raise ConfigMismatch(f"configuration differs from run_config.json: {diff}")
++        # A job must not silently continue on other code: a changed relabel2.py resumes only when asked to.
++        if old.get("tool_sha256") != tool_hash and not a.accept_new_tool:
++            raise ConfigMismatch(f"relabel2.py changed since the job started ({str(old.get('tool_sha256'))[:8]} -> "
++                                 f"{tool_hash[:8]}); pass --accept-new-tool to resume with it (logged)")
+     else:
+-        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=file_hash(__file__)), indent=1) + "\n")
++        write_new(rc, json.dumps(dict(cfg, created=now(), tool_sha256=tool_hash), indent=1) + "\n")
+     lower_priority(int(a.mask, 16))
+@@ -33,4 +39,4 @@
+     deadline = dt.datetime.strptime(a.until, "%Y-%m-%d %H:%M") if a.until else None
+-    append_log(job, f"run start run_id={a.run_id} shards_done={len(done)}/{shards} workers={a.workers} "
+-                    f"test_kill_after_s={a.test_kill_after_seconds}")
++    append_log(job, f"run start run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} "
++                    f"workers={a.workers} test_kill_after_s={a.test_kill_after_seconds}")
+     if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
+@@ -75,3 +81,3 @@
+             write_status(job / "status.json", status)
+-    append_log(job, f"run end run_id={a.run_id} shards_done={len(done)}/{shards} session_rows={rows_session}")
++    append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
+     print(json.dumps(status))
+
+--- diff of cmd_assemble
+--- frozen
++++ post-proof
+@@ -2,2 +2,3 @@
+     job = Path(a.job)
++    lock = open_job(job)  # noqa: F841 - held until the process ends
+     info = load_prepare(job)
+@@ -56,5 +57,4 @@
+             f.close()
+-    os.rename(tmpdir, final)
+-    files = {nm: {"bytes": (final / nm).stat().st_size, "md5": file_hash(final / nm, "md5"),
+-                  "sha256": file_hash(final / nm)} for nm in names}
++    files = {nm: {"bytes": (tmpdir / nm).stat().st_size, "md5": file_hash(tmpdir / nm, "md5"),
++                  "sha256": file_hash(tmpdir / nm)} for nm in names}
+     man = {"run_id": a.run_id, "assembled": now(), "rows": n, "train_rows": counts["train"], "val_rows": counts["val"],
+@@ -62,3 +62,4 @@
+            "prepare_json_sha256": file_hash(job / "prepare.json"), "shard_labels_sha256": shard_hashes, "files": files}
+-    write_new(final / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
++    write_new(tmpdir / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
++    os.rename(tmpdir, final)  # publishes the data files and their manifest together
+     print(json.dumps({nm: files[nm]["md5"] for nm in names}))
+frozen 5c88438f8d953056 vs post-proof 63be772c97718cde

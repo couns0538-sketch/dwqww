@@ -84,3 +84,20 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 - Real data (dev copy): the last 5,000 rows of `forge_selfplay_fast_271.dedup.txt` + the first 5,000 of `_272` ->
   10,000 rows in 117 games, the game across the cut is one id (`s0g57`: row 4999 = origin 0 line 5000, row 5000 =
   origin 1 line 1), games start at ply 8-16 (median 8). C:\o14b\r2\r8v5chk.
+
+## What the 1M proof covers in the post-proof code (written before the bridge runs)
+- The proof ran relabel2.py 5c88438f. The code that ships after it differs, so the link is shown, not assumed:
+  `fn_diff.py` (logs/fn_diff_frozen_vs_post_proof.txt, re-made at promotion) compares the two function by function.
+  The labelling and resume path is **identical source**: `label_shard`, `read_shard_rows`, `row_offsets`,
+  `verify_shard`, `load_prepare`, `write_new`, `write_status`, `append_log`, `file_hash`, `lower_priority`, `new_game`,
+  `board_stats`. In `cmd_run` only the job lock, the tool-hash pin and the two log lines differ (the shard loop with
+  its `.part.N` attempts and the publish rename is unchanged); `cmd_assemble` only gains the lock and writes the
+  manifest before the rename. `cmd_prepare` / `iter_rows` changed (input checks, one input stream, `--jobs 2`).
+- What the bridge proves (`bridge_check.sh`, after `finish`): prepare of the proof's sample with the post-proof code
+  gives the proof's rows.tsv byte for byte with `--jobs 1` and `--jobs 2`; `run --accept-new-tool` re-verifies all
+  100 published shards of a copy of job A; `assemble` on that copy gives job A's train.txt / val.txt / labels.tsv.
+- What the dev tests prove on the post-proof code itself: the mini kill / resume (1,200 rows, 20k nodes, a hard exit
+  inside a shard) gives byte-identical final files, plus every exit-code case.
+- Thread-budget note (honest record): the dev test runs at 15:22, 15:38, 15:43 and from 15:48 ran as a third Idle
+  process on CPUs 2-3 next to the two proof probes (inside the 2-CPU mask, but three processes, over the "<= 2
+  threads" rule); nothing further CPU-bound is started until the proof ends.
