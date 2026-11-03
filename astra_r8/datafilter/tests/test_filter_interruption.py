@@ -90,7 +90,7 @@ def test_abrupt_owned_interruption_preserves_partial_and_new_retry_matches(tmp_p
     stopped = []
     with stdout.open('xb') as out, stderr.open('xb') as err:
         child = subprocess.Popen(command, stdout=out, stderr=err, env=env,
-                                 creationflags=subprocess.BELOW_NORMAL_PRIORITY_CLASS if os.name=='nt' else 0)
+                                 creationflags=subprocess.IDLE_PRIORITY_CLASS if os.name=='nt' else 0)
         owner = psutil.Process(child.pid)
         created = owner.create_time()
         try:

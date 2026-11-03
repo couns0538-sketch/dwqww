@@ -36,13 +36,13 @@ class ResourcePolicyTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     p.check_output_path(p.ARTIFACT_ROOT / 'link' / 'new')
 
-    def test_c_reserve_includes_next_allocation(self):
+    def test_d_reserve_includes_next_allocation(self):
         p = self.policy
         def usage(drive):
-            return SimpleNamespace(free=50_000_000_100 if str(drive).startswith('C:') else 60_000_000_000)
+            return SimpleNamespace(free=p.MINIMUM_FREE_BYTES+100 if str(drive).startswith('D:') else 60_000_000_000)
         with patch.object(p.shutil, 'disk_usage', side_effect=usage), patch.object(p, 'tree_bytes', return_value=0):
             p.storage_guard(allowance=99)
-            with self.assertRaisesRegex(OSError, 'C:.*reserve'):
+            with self.assertRaisesRegex(OSError, 'D:.*reserve'):
                 p.storage_guard(allowance=101)
 
     def test_f_read_only_low_space_does_not_block(self):
@@ -54,7 +54,7 @@ class ResourcePolicyTests(unittest.TestCase):
         with patch.object(p.shutil, 'disk_usage', side_effect=usage), patch.object(p, 'tree_bytes', return_value=0):
             p.storage_guard(allowance=100)
 
-    def test_d_read_only_reserve_is_preserved(self):
+    def test_d_write_reserve_is_preserved(self):
         p = self.policy
         def usage(drive):
             return SimpleNamespace(free=49_999_999_999 if str(drive).startswith('D:') else 60_000_000_000)
@@ -62,10 +62,10 @@ class ResourcePolicyTests(unittest.TestCase):
             with self.assertRaisesRegex(OSError, 'D:.*reserve'):
                 p.storage_guard(allowance=100)
 
-    def test_budget_counts_all_three_roots_and_allowance(self):
+    def test_budget_counts_owned_roots_and_allowance(self):
         p = self.policy
         with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=60_000_000_000)), \
-                patch.object(p, 'tree_bytes', return_value=5_000_000_000) as tree:
+                patch.object(p, 'tree_bytes', return_value=p.MAX_ARTIFACT_BYTES//len(p.BUDGET_ROOTS)) as tree:
             p.storage_guard(allowance=0)
             self.assertEqual(set(call.args[0] for call in tree.call_args_list), set(p.BUDGET_ROOTS))
             with self.assertRaisesRegex(OSError, 'artifact cap'):
@@ -81,9 +81,9 @@ class ResourcePolicyTests(unittest.TestCase):
                 p.storage_guard('D:/outside')
             disk.assert_not_called()
 
-    def test_c_reserve_must_remain_strictly_above_50gb(self):
+    def test_d_reserve_cannot_fall_one_byte_short(self):
         p = self.policy
-        with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=50*10**9+64)), \
+        with patch.object(p.shutil, 'disk_usage', return_value=SimpleNamespace(free=p.MINIMUM_FREE_BYTES+63)), \
                 patch.object(p, 'tree_bytes', return_value=0):
             with self.assertRaises(OSError):
                 p.storage_guard(allowance=64)

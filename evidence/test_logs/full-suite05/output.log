@@ -1,0 +1,120 @@
+{"command": ["D:\\a11\\runtime\\python\\python.exe", "-m", "pytest", "D:\\a13\\astra_r8\\datafilter\\tests", "D:\\a13\\tests", "-q", "-p", "no:cacheprovider", "--basetemp", "D:\\a13\\evidence\\runs\\full-suite05\\pytest", "--log-file", "D:\\a13\\evidence\\runs\\full-suite05\\pytest-logging.log"], "cpu": "0", "threads": 1}
+
+=================================== ERRORS ====================================
+_____ ERROR collecting astra_r8/datafilter/tests/test_input_pin_races.py ______
+astra_r8\datafilter\tests\test_input_pin_races.py:14: in <module>
+    import npt_adapter as adapter
+astra_r8\datafilter\npt_adapter.py:15: in <module>
+    import data_loader
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\__init__.py:1: in <module>
+    from ._native import FenBatchPtr, SparseBatchPtr
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_native.py:8: in <module>
+    from ._transport import CompactTransportPolicy, _pin_and_move, move_indices
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_transport.py:22: in <module>
+    from ._cuda_transport import unpack_sparse_indices
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_cuda_transport.py:4: in <module>
+    import triton
+F:\nnue_pytorch\venv\Lib\site-packages\triton\__init__.py:8: in <module>
+    from .runtime import (
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\__init__.py:1: in <module>
+    from .autotuner import (Autotuner, Config, Heuristics, autotune, heuristics)
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\autotuner.py:12: in <module>
+    from .jit import KernelInterface, JITFunction
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\jit.py:15: in <module>
+    from triton.backends import BaseBackend
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\__init__.py:66: in <module>
+    backends: dict[str, Backend] = _discover_backends()
+                                   ^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\__init__.py:60: in _discover_backends
+    driver = importlib.import_module(f"{ep.value}.driver")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py:55: in <module>
+    _rocm_root = _get_rocm_sdk_root()
+                 ^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py:27: in _get_rocm_sdk_root
+    result = subprocess.check_output(["rocm-sdk", "path", "--root"], stderr=subprocess.DEVNULL)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+D:\a11\runtime\python\Lib\subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:992: in __init__
+    errread, errwrite) = self._get_handles(stdin, stdout, stderr)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:1401: in _get_handles
+    errwrite = msvcrt.get_osfhandle(self._get_devnull())
+                                    ^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:1137: in _get_devnull
+    self._devnull = os.open(os.devnull, os.O_RDWR)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tools\run_policy.py:225: in audit
+    safe_path(path,write=True)
+tools\run_policy.py:27: in safe_path
+    raise ValueError('Windows device name is not a file path')
+E   ValueError: Windows device name is not a file path
+___ ERROR collecting astra_r8/datafilter/tests/test_manifest_entry_races.py ___
+astra_r8\datafilter\tests\test_manifest_entry_races.py:10: in <module>
+    import train_adapter as adapter
+astra_r8\datafilter\train_adapter.py:8: in <module>
+    from npt_adapter import (BatchStream, MaskedNNUE, RowFile, Sampler, NPT,
+astra_r8\datafilter\npt_adapter.py:15: in <module>
+    import data_loader
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\__init__.py:1: in <module>
+    from ._native import FenBatchPtr, SparseBatchPtr
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_native.py:8: in <module>
+    from ._transport import CompactTransportPolicy, _pin_and_move, move_indices
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_transport.py:22: in <module>
+    from ._cuda_transport import unpack_sparse_indices
+F:\opus_scratch\r6\nnue-pytorch-amd\data_loader\_cuda_transport.py:4: in <module>
+    import triton
+F:\nnue_pytorch\venv\Lib\site-packages\triton\__init__.py:8: in <module>
+    from .runtime import (
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\__init__.py:1: in <module>
+    from .autotuner import (Autotuner, Config, Heuristics, autotune, heuristics)
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\autotuner.py:12: in <module>
+    from .jit import KernelInterface, JITFunction
+F:\nnue_pytorch\venv\Lib\site-packages\triton\runtime\jit.py:15: in <module>
+    from triton.backends import BaseBackend
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\__init__.py:66: in <module>
+    backends: dict[str, Backend] = _discover_backends()
+                                   ^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\__init__.py:60: in _discover_backends
+    driver = importlib.import_module(f"{ep.value}.driver")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py:55: in <module>
+    _rocm_root = _get_rocm_sdk_root()
+                 ^^^^^^^^^^^^^^^^^^^^
+F:\nnue_pytorch\venv\Lib\site-packages\triton\backends\amd\driver.py:27: in _get_rocm_sdk_root
+    result = subprocess.check_output(["rocm-sdk", "path", "--root"], stderr=subprocess.DEVNULL)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:466: in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+D:\a11\runtime\python\Lib\subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:992: in __init__
+    errread, errwrite) = self._get_handles(stdin, stdout, stderr)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:1401: in _get_handles
+    errwrite = msvcrt.get_osfhandle(self._get_devnull())
+                                    ^^^^^^^^^^^^^^^^^^^
+D:\a11\runtime\python\Lib\subprocess.py:1137: in _get_devnull
+    self._devnull = os.open(os.devnull, os.O_RDWR)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tools\run_policy.py:225: in audit
+    safe_path(path,write=True)
+tools\run_policy.py:27: in safe_path
+    raise ValueError('Windows device name is not a file path')
+E   ValueError: Windows device name is not a file path
+=========================== short test summary info ===========================
+ERROR astra_r8/datafilter/tests/test_input_pin_races.py - ValueError: Windows...
+ERROR astra_r8/datafilter/tests/test_manifest_entry_races.py - ValueError: Wi...
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!
+2 errors in 5.83s

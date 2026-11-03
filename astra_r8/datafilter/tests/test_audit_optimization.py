@@ -94,7 +94,7 @@ def run_case(tmp_path, mode, optimization, corrupt):
                'corrupt' if corrupt else 'valid']
     result = subprocess.run(command, text=True, capture_output=True, timeout=30,
                             check=False, env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'),
-                            creationflags=subprocess.BELOW_NORMAL_PRIORITY_CLASS if os.name == 'nt' else 0)
+                            creationflags=subprocess.IDLE_PRIORITY_CLASS if os.name == 'nt' else 0)
     (tmp_path/'command.json').write_text(json.dumps(command, indent=2))
     (tmp_path/'stdout.log').write_text(result.stdout)
     (tmp_path/'stderr.log').write_text(result.stderr)

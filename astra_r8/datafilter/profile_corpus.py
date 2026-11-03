@@ -31,8 +31,8 @@ def low_priority():
         kernel = ctypes.WinDLL('kernel32', use_last_error=True)
         kernel.GetCurrentProcess.restype = wintypes.HANDLE
         kernel.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
-        if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), 0x4000):
-            raise OSError('cannot set BelowNormal priority')
+        if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), 0x40):
+            raise OSError('cannot set Idle priority')
     else:
         os.nice(10)
 

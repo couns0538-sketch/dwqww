@@ -1,17 +1,16 @@
-"""Read-only allocation checks for the explicitly authorized R8 output roots.
+"""R13 allocation policy: owned D:/a13 output, 50 GiB minimum free.
 
-The current user authorization puts new output on C: with a 50 GB reserve.
-Prior D:/F: artifacts remain read-only and still count against the 15 GB cap.
-This guard does not reserve space against other processes or modify any files.
+Historical roots are not enumerated. This check is not a filesystem quota;
+the parent launcher monitors free space and owns the bounded process tree.
 """
 import os
 from pathlib import Path
 import shutil
 import stat
 
-ARTIFACT_ROOT = Path('C:/astra8_data')
-PRESERVED_ARTIFACT_ROOT = Path('D:/grok-pc-data/dwqww/astra8_data')
-BUDGET_ROOTS = (ARTIFACT_ROOT, PRESERVED_ARTIFACT_ROOT, Path('F:/astra8_data'))
+ARTIFACT_ROOT = Path('D:/a13')
+BUDGET_ROOTS = (ARTIFACT_ROOT,)
+MINIMUM_FREE_BYTES = 50 * 1024**3
 MAX_ARTIFACT_BYTES = 15 * 10**9
 DEFAULT_ALLOWANCE = 64 * 1024 * 1024
 
@@ -73,17 +72,17 @@ def storage_guard(root=None, allowance=DEFAULT_ALLOWANCE):
 
     ``allowance`` is a conservative bound on the next allocation, not the entire
     run. Call before every bounded write batch and before final publication.
-    Read-only F: may remain below its historical reserve under current approval.
+    Other drives and historical evidence are read-only and never inventoried.
     """
     if type(allowance) is not int or allowance < 0:
         raise ValueError('allocation allowance must be a nonnegative integer')
     destination = check_output_path(ARTIFACT_ROOT if root is None else root)
     free = {}
-    for drive, reserve in (('C:/', 50 * 10**9), ('D:/', 50 * 10**9)):
+    for drive, reserve in (('D:/', MINIMUM_FREE_BYTES),):
         free[drive] = shutil.disk_usage(drive).free
-        needed = reserve + (allowance if drive == 'C:/' else 0)
-        if free[drive] < needed or (drive == 'C:/' and free[drive] == needed):
-            raise OSError(f'{drive} below 50 GB reserve plus planned allocation')
+        needed = reserve + allowance
+        if free[drive] < needed:
+            raise OSError(f'{drive} below 50 GiB reserve plus planned allocation')
     retained = sum(tree_bytes(path) for path in BUDGET_ROOTS)
     if retained + allowance > MAX_ARTIFACT_BYTES:
         raise OSError('15 GB aggregate artifact cap exceeded')
