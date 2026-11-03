@@ -86,6 +86,7 @@ Every option: `tune::` int, default 0, advertised; own constants only (derived f
 | C4 | `IirShallowTt` (1) | IIR also when the TT move exists but tt_depth < depth - IirDepth (pv or cut node, ~l.1031) | a very shallow TT entry orders the node little better than no TT move; reducing first saves nodes, the re-search depth comes back next iteration |
 | C5 | `ContHistSplit` (1) | continuation history tables split by (side was in check, move was a capture) of the move that indexes them; OFF uses table [0][0] = the lock's table (4 assignment sites + clear) | a piece-to-square follow-up after an evasion or capture means something else than after a quiet move; mixing them dilutes ordering |
 | C6 (stretch) | `QsFutilitySee` (1) or `LowPlyHist` (1) | qsearch: futile stand-pat + non-winning capture (SEE < 1) pruned; or ply < 4 history for ordering | only if C1-C5 are done |
+
 Per candidate (~30 min, kit build runs in the background while the next patch is written):
 1. Patch in a scratch lock export; plain build (lock g++ line + Expose, 0x3 Idle) -> pin_check OFF PASS, ON LIVE.
 2. `cand_pack.ps1` -> exe pc1 = pc2, kit SUMMARY (OFF ALL OK, ON differs from OFF, 0 missing-profile, vfmadd 0),
