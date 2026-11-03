@@ -290,6 +290,16 @@ files on its CLI instead. A zero-file run is not a clean review. Keep findings
 separate from confirmed runtime defects; dynamic dictionaries and duck-typed
 streams can need manual inspection rather than automatic source changes.
 
+When replaying admission over raw shards, use the same logical-line semantics as
+the actual reader. Binary LF iteration and text universal-newline iteration
+disagree on lone CR: a comment can otherwise hide a malformed following row.
+Hash original bytes below text decoding, test CRLF/lone-CR/BOM/buffer boundaries,
+and label normalized logical-line hashes separately from original byte hashes.
+Derive complete-corpus claims from the sealed reference source set, hashes and
+counts. A caller's completeness boolean is insufficient; a truncated plan must
+fail even if it retains that flag. Keep prefixes and disjoint partitions explicit
+until their complete union has been checked independently.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

@@ -1,6 +1,6 @@
 # Additional developer-tool investigation — UNPROVEN
 
-Checked 2026-11-03 during the newly authorized 03:37–06:37 UTC continuation.
+Checked 2026-11-03; the latest extension schedules final review at 08:23–09:23 UTC.
 The work is Python conversion/filtering and proof handling. New C++ builds,
 sanitizer campaigns against modified engine code, training, GPU profiling and
 loader work remain outside scope. A plugin can supply access or workflow; its
@@ -14,6 +14,7 @@ presence does not establish correctness.
 | Ruff | Offline detection of undefined names, suspicious control flow and common Python mistakes | Existing pinned environment contains 0.16.0. Ran explicit F/B/PLE/PLW/S rules, one Rayon worker, no cache or fixes. 345 observations require triage; most are test assertions, non-security MD5/random usage and checked subprocesses. |
 | Hypothesis | Generate combinations of legal move histories, mirrored labels, malformed metadata and PGN whitespace; shrink failures to useful fixtures | Version 6.170.14 isolated with sortedcontainers 2.4.0. All 1,200 generated examples PASS on pre-fix source (400 per property), deterministic settings, no database. No installed npt package changed. |
 | Coverage.py | Find failure branches the existing tests do not execute; distinguish branch coverage from line coverage | Version 7.17.0 isolated beside Hypothesis. All 344 tests + 11 subtests pass in 390.47 seconds with branch tracing; 71% measured main-process coverage, including audit utilities. Earlier standalone audits and untraced child execution are outside this measurement. |
+| Pyright (MIT) | Inspect optional values, call signatures and metadata interfaces | Isolated 1.1.414, verified public npm archive, existing Node with serial type checking. Actual scope: 23 files, 30 diagnostics, 5.434 seconds. Focused review found typing/interface limitations rather than a reachable runtime defect; dispositions are retained in evidence/extension3h/pyright_actual/TRIAGE.md. |
 | Context7 | Resolve exact documentation/API questions before writing tests or integration code | Connected. The reused research reviewer checked Hypothesis settings through its documentation tools. It is documentation support, not a validator. |
 | GitHub | Read current crew issues, PR feedback and CI status against exact commits | Connected; local git remains the publication path. Do not post review messages without authorization. |
 
@@ -52,7 +53,6 @@ on copying GPL/AGPL engine/training implementations.
 
 | Tool | Potential use | Decision for this run |
 |---|---|---|
-| Pyright (MIT) | Check optional values and call signatures | Existing Node/npm were discovered, so no Node installation is needed. A bounded isolated check is now being evaluated; dynamic JSON/native-adapter findings will need reproduction. |
 | mutmut | Check whether tests detect deliberately changed operators and control flow | Official requirements demand fork support, hence WSL on Windows. Do not change this machine's execution environment for it; the existing targeted fault-injection tests already exercise the confirmed audit risk. |
 | Semgrep CE | Original rules for unsafe deserialization, shell execution and output publication patterns; has a CLI/MCP interface | Native Windows is supported. Engine and rule licences are separate; no implementation/rules are copied. More setup than the available Ruff check, so deferred unless a specific remaining risk needs it. |
 | CodeQL | Cross-function security queries over Python/C++ | Requires a CodeQL database and applicable GitHub licensing. No new CI workflow, repository setting or database is created here. Reconsider for a separate repository-wide security job. |

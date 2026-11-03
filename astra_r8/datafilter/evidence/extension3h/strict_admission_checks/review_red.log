@@ -1,0 +1,121 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_________ test_lone_cr_comment_boundary_matches_actual_filter_reader __________
+
+tmp_path = WindowsPath('C:/astra8_data/extension3h_20261103/strict_admission_review_red/test_lone_cr_comment_boundary_0')
+
+    def test_lone_cr_comment_boundary_matches_actual_filter_reader(tmp_path):
+        from records import read_records
+        source, item = item_for(tmp_path, ['placeholder'])
+        source.write_bytes(b'# comment\rbroken\n'+chess.STARTING_FEN.encode()+b' | 0 | 0.5\n')
+        Path(item['sidecar']).write_text(hashlib.md5(source.read_bytes()).hexdigest()+'  '+source.name+'\n')
+        item = audit.freeze_plan([source])['sources'][0]
+        item.update(expected_sha256=hashlib.sha256(source.read_bytes()).hexdigest(), expected_data_rows=2)
+        with pytest.raises(ValueError):list(read_records(source,'selfplay'))
+>       report=audit.scan_source(item)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+
+astra_r8\datafilter\tests\test_strict_corpus_admission.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+item = {'path': 'C:\\astra8_data\\extension3h_20261103\\strict_admission_review_red\\test_lone_cr_comment_boundary_0\\forge_s...\\extension3h_20261103\\strict_admission_review_red\\test_lone_cr_comment_boundary_0\\forge_selfplay_003.txt.md5', ...}
+max_rows = None
+
+    def scan_source(item, *, max_rows=None):
+        if max_rows is not None and (type(max_rows) is not int or max_rows < 1):
+            raise ValueError('max rows must be a positive integer')
+        if (not re.fullmatch('[0-9a-f]{64}', item['expected_sha256'])
+                or type(item['expected_data_rows']) is not int or item['expected_data_rows'] < 0):
+            raise ValueError('invalid expected digest or row count')
+        path = Path(item['path'])
+        if stat_key(path) != item['identity']:
+            raise ValueError('source identity changed before admission audit')
+        if sha256(item['sidecar']) != item['sidecar_sha256']:
+            raise ValueError('producer sidecar changed before admission audit')
+        started = time.perf_counter()
+        digest, md5 = hashlib.sha256(), hashlib.md5()
+        rows = valid = invalid = known = unknown = skipped = 0
+        examples = []
+        complete = True
+        with path.open('rb') as source:
+            for source_row, raw in enumerate(source, 1):
+                digest.update(raw); md5.update(raw)
+                if max_rows is not None and rows >= max_rows:
+                    complete = False
+                    for block in iter(lambda: source.read(1024*1024), b''):
+                        digest.update(block); md5.update(block)
+                    break
+                try:
+                    line = raw.decode('utf-8-sig' if source_row == 1 else 'utf-8')
+                    if not line.strip() or line.lstrip().startswith('#'):
+                        skipped += 1
+                        continue
+                    row = selfplay_record(line, str(path), source_row)
+                except (ValueError, UnicodeError, OverflowError) as error:
+                    invalid += 1
+                    if len(examples) < 32:
+                        examples.append({'source_row': source_row, 'error': str(error)[:400],
+                                         'raw_sha256': hashlib.sha256(raw).hexdigest()})
+                else:
+                    valid += 1
+                    known += int(row['has_result'])
+                    unknown += int(not row['has_result'])
+                rows += 1
+                if rows % 250000 == 0:
+                    storage_guard(allowance=4096)
+                    print(json.dumps({'event':'admission_progress', 'source':path.name,
+                                      'rows':rows, 'invalid_rows':invalid,
+                                      'seconds':time.perf_counter()-started}), flush=True)
+        if stat_key(path) != item['identity']:
+            raise ValueError('source identity changed during admission audit')
+        if sha256(item['sidecar']) != item['sidecar_sha256']:
+            raise ValueError('producer sidecar changed during admission audit')
+        if digest.hexdigest() != item['expected_sha256'] or md5.hexdigest() != item['expected_md5']:
+            raise ValueError('full source digest differs from pinned reference')
+        if complete and rows != item['expected_data_rows']:
+>           raise ValueError('complete source row count differs from pinned reference')
+E           ValueError: complete source row count differs from pinned reference
+
+astra_r8\datafilter\audit_forge_admission.py:88: ValueError
+______________ test_unbound_complete_reference_claim_is_refused _______________
+
+tmp_path = WindowsPath('C:/astra8_data/extension3h_20261103/strict_admission_review_red/test_unbound_complete_referenc0')
+
+    def test_unbound_complete_reference_claim_is_refused(tmp_path):
+        source,item=item_for(tmp_path,[chess.STARTING_FEN+' | 0 | 0.5'])
+        plan={'schema':1,'sources':[item],'reference_profiles':[],'complete_reference_set':True}
+>       with pytest.raises(ValueError,match='reference'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_corpus_admission.py:172: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "admission_source_complete", "source": "C:\\astra8_data\\extension3h_20261103\\strict_admission_review_red\\test_unbound_complete_referenc0\\forge_selfplay_003.txt", "status": "PASS", "rows": 1}
+______________ test_truncated_plan_cannot_retain_complete_claim _______________
+
+tmp_path = WindowsPath('C:/astra8_data/extension3h_20261103/strict_admission_review_red/test_truncated_plan_cannot_ret0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195AB620>
+
+    def test_truncated_plan_cannot_retain_complete_claim(tmp_path,monkeypatch):
+        import report_corpus
+        source,item=item_for(tmp_path,[chess.STARTING_FEN+' | 0 | 0.5'])
+        reference=tmp_path/'reference.json';reference.write_text('{}')
+        inputs=[{'path':str(reference),'sha256':hashlib.sha256(reference.read_bytes()).hexdigest()}]
+        report={'path':str(source),'sha256':item['expected_sha256'],'data_rows':1,
+                'source_identity':item['identity'],'sidecar_sha256':item['sidecar_sha256'],
+                'expected_md5':item['expected_md5']}
+        missing={**report,'path':str(tmp_path/'forge_selfplay_004.txt')}
+        monkeypatch.setattr(report_corpus,'combine',lambda _: {'sources':[report,missing],'profile_inputs':inputs})
+        plan={'schema':1,'sources':[item],'reference_profiles':inputs,'complete_reference_set':True}
+>       with pytest.raises(ValueError,match='reference'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_strict_corpus_admission.py:188: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "admission_source_complete", "source": "C:\\astra8_data\\extension3h_20261103\\strict_admission_review_red\\test_truncated_plan_cannot_ret0\\forge_selfplay_003.txt", "status": "PASS", "rows": 1}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_strict_corpus_admission.py::test_lone_cr_comment_boundary_matches_actual_filter_reader
+FAILED astra_r8/datafilter/tests/test_strict_corpus_admission.py::test_unbound_complete_reference_claim_is_refused
+FAILED astra_r8/datafilter/tests/test_strict_corpus_admission.py::test_truncated_plan_cannot_retain_complete_claim
+3 failed, 19 deselected in 12.03s

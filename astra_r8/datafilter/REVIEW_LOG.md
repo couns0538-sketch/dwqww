@@ -1,5 +1,24 @@
 # Review log — UNPROVEN
 
+## Current-parser source audit, pre-pilot review
+
+New audit_forge_admission.py reuses source planning and the exact current
+selfplay parser; it emits only bounded receipts. Initial checks passed, then
+focused review found two blockers: binary LF splitting disagreed with the actual
+universal-newline reader, and complete_reference_set was caller-trusted. Three
+new regressions failed before repair. Main fixed both, added raw-byte hashing
+under universal text decoding and complete sealed-reference comparisons, and
+pinned report_corpus.py as part of the validator. BOM/CRLF/lone-CR/unterminated
+tails at 8K/16K boundaries are covered. The reviewer rechecked and APPROVED
+SHA256 17d64a3824e916f76f05bbb188f31060a08ff0e087985687d0650ef532c346c5
+for the pilot once tests passed. Actual result: 38 affected tests PASS in 46.51s.
+The 466,506-row pilot is the next action; full-corpus approval remains pending
+measured feasibility. No engine, training, production parser or data was changed.
+
+Pyright review: all 30 diagnostics were read and assessed against pinned code
+and installed interfaces. No reachable defect was established; the grouped
+dispositions are preserved without suppressions or a misleading clean-scan claim.
+
 ## Audit repair: fresh v7 verification
 
 The reused reviewer requested that the validation driver bind its own bytes and

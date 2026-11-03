@@ -43,10 +43,18 @@ and the corrected counter records missing values separately. No tool bug or
 training-data result is inferred from that harness repair.
 
 Isolated Pyright 1.1.414 analyzed all 23 core Python files in 5.434 seconds and
-reported 30 diagnostics, currently under focused triage. Its first configuration
+reported 30 diagnostics. Focused inspection found typing/interface limitations
+with no reachable runtime defect established; individual dispositions are saved.
+Its first configuration
 analyzed zero files because absolute config include paths were ignored; that
 attempt is preserved and explicitly is not clean evidence. No global tool or
 installed npt environment was changed. About 250 MB remains under the output cap.
+
+New current-parser corpus audit: 38 affected tests PASS after focused review
+found and main fixed two false-proof risks. The audit now matches the filter's
+universal-newline input handling, hashes the original bytes, and verifies complete
+reference coverage instead of trusting a flag. A 466,506-row pilot is running
+before choosing the affordable full-source scope. No large run is claimed yet.
 
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
