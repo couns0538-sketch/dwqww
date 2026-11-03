@@ -163,3 +163,11 @@ Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to 
   (STATUS, FINAL_REPORT, both handoffs, GPU_REQUEST, checks README, the three skills, the memory note) grepped
   against the last measured values (suite 157, installer 25, scope 20, job_damage 35 kinds / 105 runs, test_tools
   26): one stale line (FINAL_REPORT's before / after table said 155), fixed. RESULTS files keep dated history.
+- Skills' commands run as written (23:18, the advisor's suggestion; placeholders filled, nothing else changed):
+  forge-relabel-job's Commands block (prepare --jobs 2 / run with the R13 probe, 2 workers, --until / assemble /
+  status) on 1,500 rows of selfplay_001: every step exit 0 (23:17:43-23:17:52), then its verify_job.py line, also
+  with --convert on a job whose val.txt is empty (15 games, none drawn for validation): fen2bin / hce_dump write
+  header-only files, records 0 - PASS. forge-npt-fast-loader has no command blocks; its three commands ran tonight
+  as written (test_scope.py in final_checks from a clone; the installer with --loader-dll and fl_acceptance.sh in
+  the 22:35 fresh-clone rehearsal). forge-opus-tools: status, lint, test, time and gpu ran tonight; engine / bisect
+  last ran 20:43-20:47 (builds, kept off CPUs 2-3 now).
