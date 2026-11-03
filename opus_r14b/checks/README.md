@@ -25,3 +25,8 @@ scratch builds); after adding them, 0 unmatched (107 file, 24 commit, 39 allow l
 shared helpers in `F:\opus_scratch\tools`, read-only use) and runs `sha256sum -c` on them; re-run it after any edit in
 an item folder and commit both files with the edit. `fresh_checkout_checks.sh [OUT_DIR]` takes its output folder as an
 argument since 22:35 (default `C:\o14b\fresh`, which must not exist).
+
+`e2e_r8v5.sh OUT_DIR [ROWS]` runs the frozen relabel2.py end to end on R8 v5 data (the 50M runbook's input format):
+prepare -> run (LTO+PGO probe, 20k nodes, 2 workers) -> status -> assemble -> fen2bin + hce_dump on both outputs, with
+11 checks (records = rows, 0 bad / clamped, rows and game overlap, shard settings, a second run / assemble). 22:53:
+11 / 11 PASS, output byte-identical to the 20:30 chain run on the first freeze.
