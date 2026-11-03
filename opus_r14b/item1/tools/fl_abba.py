@@ -20,6 +20,11 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = r"F:\forge_j1_data\forge_train_001-039_ex013-014_j2.binpack"
+# Student t, two-sided 95 %, by degrees of freedom (pairs - 1), checked against scipy.stats.t.ppf(0.975, dof);
+# 1.96 beyond 30. (Until 2026-11-02 19:15 only 10 pairs used t; other counts used 1.96, a too narrow CI.)
+T975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262, 10: 2.228,
+        11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145, 15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086,
+        21: 2.080, 22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045, 30: 2.042}
 
 
 def run_one(arm, out_tsv, a):
@@ -65,7 +70,7 @@ def main() -> int:
     ratios = [b / x for x, b in zip(speeds["A"], speeds["B"])]
     mean = statistics.fmean(ratios)
     sd = statistics.stdev(ratios) if len(ratios) > 1 else 0.0
-    half = 2.262 * sd / math.sqrt(len(ratios)) if len(ratios) == 10 else 1.96 * sd / math.sqrt(len(ratios))
+    half = T975.get(len(ratios) - 1, 1.96) * sd / math.sqrt(len(ratios))
     lines += ["", f"A median {statistics.median(speeds['A']):,.0f} kept/s, B median {statistics.median(speeds['B']):,.0f}",
               "per-pair B/A: " + " ".join(f"{r:.3f}" for r in ratios),
               f"B/A median {statistics.median(ratios):.3f}, mean {mean:.3f}, 95% CI {mean - half:.3f} .. {mean + half:.3f}"

@@ -10,7 +10,7 @@ set -u
 out=${1:?out dir}
 [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
 mkdir -p "$out"
-T=/d/grok-pc-data/dwqww/.claude/worktrees/o14b-l1/opus_r14b/item1/tools
+T=${FL_TOOLS:-/d/grok-pc-data/dwqww/.claude/worktrees/o14b-l1/opus_r14b/item1/tools}  # the run copy lives elsewhere: set FL_TOOLS in another checkout
 PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 OLD='D:\o14b\ref\libtraining_data_loader.dll'
 NEW='D:\o14b\fl\b5\forge_fastloader.dll'
