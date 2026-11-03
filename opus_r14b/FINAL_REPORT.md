@@ -107,7 +107,9 @@ details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt: 05:00-06:00.
   note contains the wrong "273845 / 718758 / 3028212" (git grep of all three branches, 20:54); the only pin check
   R14-B ran (`engine_fresh_check.sh` through the lock package's `uci_check.py`) uses exactly the pins above, and
   `engine_bisect.sh` compares with the good commit's own count (312,866 at d11). Nothing passed against the wrong
-  numbers, so nothing needs a re-run.
+  numbers, so nothing needs a re-run. The lock exe itself (read-only, 21:30): both copies,
+  `forge_push\bin\` and `forge_push\locks\lock_AL1_s198_ltopgo_x_20261030\forge_ltopgo_x_al1s198_v23.exe`, have the
+  sha256 fd3a5190... from the message.
 - R15 is not started; it waits for this report's final version (R14-B ends 06:00 Nov 3 PC clock).
 - Code Review's LOW P6 crfix 4b537823: **on the PC now** -
   `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p6_checks_crfix.patch`, md5
