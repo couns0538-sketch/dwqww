@@ -35,10 +35,16 @@ $PY -I -B $R prepare --job C:/<new job dir> --run-id <id> --rows 50000000 --jobs
 $PY -I -B $R run --job C:/<job dir> --run-id <id> --probe <probe exe> --nodes 20000 --workers 2 --mask 0xC \
     [--until "YYYY-MM-DD HH:MM"]                     # the same command again = resume
 $PY -I -B $R assemble --job C:/<job dir> --run-id <id>
-$PY -I -B $R status --job C:/<job dir>
+$PY -I -B $R status --job C:/<job dir>          # one line: shards, rows (%), last rate, ETA, free disk
 ```
+- `--mask` picks the CPUs: 0xC = CPUs 2-3 = ONE physical core (SMT pair) on this PC, Opus's R14-B budget; agree the
+  production CPUs with the crew. `--workers` is 1 or 2 (the brief's limit; one constant in cmd_run / check_args).
+- prepare needs python-chess (the venv above); a Python without it gets one clear message (exit 2).
+- `--min-free-gb` (default 50) on prepare / run / assemble keeps the PC's disk floor (see Rules).
 Astra's filter (`filter_positions.py`, branch astra-r8-datafilter) runs before or after as Engine NNUE decides; its
-normalized JSONL output is accepted with `--normalized` when sorted by (source, source_row) (`sort_normalized.py`).
+normalized JSONL output is accepted with `--normalized` when sorted by (source, source_row) (`sort_normalized.py`,
+which holds its input in RAM, ~2.2x the file size, and refuses when that would leave less than `--min-free-ram-gb`
+(default 8) free: then sort per source and give the sorted files in source order).
 
 ## Rules for the big job
 - ONE job per dataset: game ids (`s<origin>g<n>`) and the split are per job; merging two jobs that share an input
