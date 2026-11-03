@@ -119,6 +119,23 @@ guaranteed. Focused recheck APPROVED. Current frozen full suite:274 tests +
 11 subtests PASS in123.98 seconds. This is fixture failure-handling proof, not
 production-cohort crash qualification or a resumable-loader claim.
 
+Corrected million-row measurements PASS, source88b7c6b1: all seven outputs use
+one coordinator plus one pool process. All-off/check/mate keep1,000,000; ply<=160
+keeps909,569; repeated check+mate outputs have identical full payload/metadata
+hashes. Separate capture keeps849,465 and reproduces preserved hash62e41480...
+Full measured times/rates are now in README; complete receipts and code pins are
+under evidence/quality6h/filter_budget_million/. The exact owned complementary
+profiler resumed successfully after1031.812 seconds, with zero CPU use during
+the yield. Retained artifacts are14.259 GB, below15 GB; old outputs preserved.
+
+Extended the existing raw-label audit for the later complete corpus reservoir:
+full-source rehash plus original-line full-FEN/score/literal-outcome comparison.
+Five red cases caught Boolean/float labels masquerading as integer outcomes or
+scores; explicit types now reject them. Eleven focused tests PASS. One reused
+reviewer APPROVED sourcec4e786682e571d94a6a5bd320ecdc3a9b4a821058e0567f9fbc88eb1728b1743.
+The actual4,736-row replay and expanded Forge proof remain pending completion of
+the complementary source scan. No training-readiness claim attaches to reservoirs.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:

@@ -204,6 +204,13 @@ resume. Process cleanup must tolerate a Windows venv launcher exiting after its
 worker, and always wait for the exact owned child; never target by process name.
 Keep fixture proof distinct from production-corpus interruption qualification.
 
+Before using an audit reservoir for a broad native proof, verify each numbered
+original source line, exact six-field FEN, score and outcome against a literal
+orientation oracle. Full-source digest checks also bind unselected bytes. A
+reservoir whose metadata hashes are self-consistent can still contain wrong
+labels; numerical equality alone also accepts Boolean/float impostors. Keep the
+reservoir explicitly audit-only and preserve its original source/sample hashes.
+
 For native compatibility checks, reproduce the archived UCI option transcript.
 An experiment labelled OFF may leave UseNNUE enabled; do not infer options from
 the label. Pin the executable hash and preserve failed probes before correcting

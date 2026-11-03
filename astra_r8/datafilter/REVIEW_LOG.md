@@ -184,6 +184,30 @@ No production implementation changed in this milestone. This proves the actual
 filter's fixture failure path and fresh retry, not resumable output or an unrun
 production-data interruption. Next: corrected full-cohort timing runs and handoff.
 
+## Six-hour continuation: corrected two-worker million-row execution
+
+Previously approved filter b3fdda81... and source88b7c6b1 executed all seven fresh
+million-row measurements. One parent plus one pool worker is recorded in every
+receipt. All required counts/hashes match preserved evidence, including the
+separate capture payload62e41480... and both repeated default selections. Complete
+commands, source/code pins, reports and logs are saved in filter_budget_million/.
+The original sources remained unchanged. Main's exact owned complementary audit
+yielded its slot for1031.812 seconds, zero CPU consumption, then resumed. No crew
+process changed. This actual run replaces historical three-process timing claims.
+
+## Six-hour continuation: original-source reservoir verification
+
+Extended audit_raw_labels.py rather than making another label-checking tool.
+The new optional profile mode requires all complete disjoint source profiles,
+rehashes full original sources, checks each selected source line with the literal
+outcome table and exact full FEN/score, and publishes a bounded audit-only reservoir
+after final source/profile/tool checks. Main's strict-type review reproduced five
+Boolean/float equality failures, then fixed them. All11 focused tests PASS.
+Reused read-only reviewer APPROVED sourcec4e786682e571d94a6a5bd320ecdc3a9b4a821058e0567f9fbc88eb1728b1743
+and testsb8f0bd68abfa45630cc3d9d471f0daae59e74f19a42f4982fe27310d169be2ef.
+No further findings or duplicate expensive tests. Approval covers implementation;
+the full original-source replay and subsequent native proof are still pending.
+
 ## 30-minute audit: findings and first fixes
 
 Base f05c5533. Independent read-only audit_npt_boundary and audit_data_integrity

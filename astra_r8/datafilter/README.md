@@ -80,26 +80,26 @@ row order. Their hashes are deterministic; reports also contain nondeterministic
 wall time and throughput. Failures retain unpublished `.partial` evidence, and
 existing final or partial destinations are refused.
 
-Historical single-rule measurements on the pinned 1,000,000 self-play rows used
-two pool workers plus the parser/writer parent at BelowNormal priority. Keep
-counts/hashes remain valid; these times do not establish the corrected two-total-
-worker budget. Fresh replacements are pending:
+Fresh single-rule measurements on the pinned 1,000,000 self-play rows use one
+parser/writer plus one pool worker at BelowNormal priority (two total computing
+processes). Source88b7c6b1, unchanged filter SHA256 beginningb3fdda81. Earlier
+two-pool-worker measurements remain historical evidence and are superseded here:
 
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |
 |---|---:|---:|---:|---:|
-| None | 1,000,000 | 100% | 70.715 | 14,141 |
-| Check | 1,000,000 | 100% | 73.420 | 13,620 |
-| Mate | 1,000,000 | 100% | 70.300 | 14,225 |
-| Ply <=160 | 909,569 | 90.9569% | 73.503 | 13,605 |
-| Check + mate, run A | 1,000,000 | 100% | 72.303 | 13,831 |
-| Check + mate, run B | 1,000,000 | 100% | 69.276 | 14,435 |
+| None | 1,000,000 | 100% | 145.579 | 6,869 |
+| Check | 1,000,000 | 100% | 142.983 | 6,994 |
+| Mate | 1,000,000 | 100% | 144.569 | 6,917 |
+| Ply <=160 | 909,569 | 90.9569% | 144.254 | 6,932 |
+| Check + mate, run A | 1,000,000 | 100% | 143.428 | 6,972 |
+| Check + mate, run B | 1,000,000 | 100% | 143.356 | 6,976 |
 
 Runs A/B have identical payload hashes. These prefiltered self-play shards have
 no stored best moves, so their capture rate is unavailable. Qsearch remains
 BLOCKED on the exact lock. On the **separate measurement-only gate PGN cohort**,
 all1,000,000 rows have genuine baseline searched best moves. Capture/promotion
-exclusion keeps **849,465 (84.9465%)**, dropping150,535 in **80.579 seconds**
-(12,410 positions/s, two workers). Freezing that cohort took154.903 seconds with
+exclusion keeps **849,465 (84.9465%)**, dropping150,535 in **154.994 seconds**
+(6,452 positions/s, two total workers). The strict PGN freeze took225.243 seconds with
 one worker. These rates cannot be substituted into the self-play table or pooled
 with it. Neither recipe uses the gate PGNs.
 

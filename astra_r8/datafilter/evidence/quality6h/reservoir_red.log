@@ -1,0 +1,184 @@
+....FFFFF..                                                              [100%]
+================================== FAILURES ===================================
+__________ test_rehashed_but_false_reservoir_is_rejected[bool_white] __________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/reservoir_red/pytest/test_rehashed_but_false_reserv3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F2990>
+damage = 'bool_white'
+
+    @pytest.mark.parametrize('damage',['score','white','stm','bool_white','bool_stm',
+                                      'float_score','float_white','float_stm','full_fen','source_row'])
+    def test_rehashed_but_false_reservoir_is_rejected(tmp_path,monkeypatch,damage):
+        path=prepare(tmp_path,monkeypatch)
+        sample=path.with_name('000.sample.jsonl')
+        rows=[json.loads(line) for line in sample.read_text().splitlines()]
+        if damage=='score':rows[0]['score_stm']=-100
+        elif damage=='white':rows[0]['result_white']=-1
+        elif damage=='stm':rows[0]['result_stm']=-1
+        elif damage=='bool_white':rows[0]['result_white']=True
+        elif damage=='bool_stm':rows[0]['result_stm']=True
+        elif damage=='float_score':rows[0]['score_stm']=100.0
+        elif damage=='float_white':rows[0]['result_white']=1.0
+        elif damage=='float_stm':rows[0]['result_stm']=1.0
+        elif damage=='full_fen':rows[0]['fen']=rows[0]['fen'].replace(' 0 1',' 1 1')
+        else:rows[0]['source_row']=100
+        sample.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        summary=json.loads(path.read_text())
+        summary['sources'][0]['sample_sha256']=audit.sha256(sample)
+        path.with_name('000.json').write_text(json.dumps(summary['sources'][0]))
+        path.write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):audit.audit_reservoirs([path],tmp_path/'audit')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_profile_reservoir.py:58: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv3\\forge_selfplay_003.txt", "rows": 8, "status": "PASS", "complete_scan": true}
+{"source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv3\\forge_selfplay_003.txt", "source_sha256": "addb6cd4deafebc4a45645ea8310df277784d2f12861e1e2108ccd1e0c073fa8", "source_md5": "9f10143adc82670ee55780e32cfdfc02", "source_lines": 8, "checked_rows": 8, "sample_sha256": "133e541388695bc86b34995b5c9e94af8e4435bc7be701ea5a307ff873a1178e"}
+___________ test_rehashed_but_false_reservoir_is_rejected[bool_stm] ___________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/reservoir_red/pytest/test_rehashed_but_false_reserv4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F3F20>
+damage = 'bool_stm'
+
+    @pytest.mark.parametrize('damage',['score','white','stm','bool_white','bool_stm',
+                                      'float_score','float_white','float_stm','full_fen','source_row'])
+    def test_rehashed_but_false_reservoir_is_rejected(tmp_path,monkeypatch,damage):
+        path=prepare(tmp_path,monkeypatch)
+        sample=path.with_name('000.sample.jsonl')
+        rows=[json.loads(line) for line in sample.read_text().splitlines()]
+        if damage=='score':rows[0]['score_stm']=-100
+        elif damage=='white':rows[0]['result_white']=-1
+        elif damage=='stm':rows[0]['result_stm']=-1
+        elif damage=='bool_white':rows[0]['result_white']=True
+        elif damage=='bool_stm':rows[0]['result_stm']=True
+        elif damage=='float_score':rows[0]['score_stm']=100.0
+        elif damage=='float_white':rows[0]['result_white']=1.0
+        elif damage=='float_stm':rows[0]['result_stm']=1.0
+        elif damage=='full_fen':rows[0]['fen']=rows[0]['fen'].replace(' 0 1',' 1 1')
+        else:rows[0]['source_row']=100
+        sample.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        summary=json.loads(path.read_text())
+        summary['sources'][0]['sample_sha256']=audit.sha256(sample)
+        path.with_name('000.json').write_text(json.dumps(summary['sources'][0]))
+        path.write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):audit.audit_reservoirs([path],tmp_path/'audit')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_profile_reservoir.py:58: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv4\\forge_selfplay_003.txt", "rows": 8, "status": "PASS", "complete_scan": true}
+{"source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv4\\forge_selfplay_003.txt", "source_sha256": "addb6cd4deafebc4a45645ea8310df277784d2f12861e1e2108ccd1e0c073fa8", "source_md5": "9f10143adc82670ee55780e32cfdfc02", "source_lines": 8, "checked_rows": 8, "sample_sha256": "bcdf49ccd940f41b1ea8969ecda29240c8781ebaf58a199f839e88c878092977"}
+_________ test_rehashed_but_false_reservoir_is_rejected[float_score] __________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/reservoir_red/pytest/test_rehashed_but_false_reserv5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F1E80>
+damage = 'float_score'
+
+    @pytest.mark.parametrize('damage',['score','white','stm','bool_white','bool_stm',
+                                      'float_score','float_white','float_stm','full_fen','source_row'])
+    def test_rehashed_but_false_reservoir_is_rejected(tmp_path,monkeypatch,damage):
+        path=prepare(tmp_path,monkeypatch)
+        sample=path.with_name('000.sample.jsonl')
+        rows=[json.loads(line) for line in sample.read_text().splitlines()]
+        if damage=='score':rows[0]['score_stm']=-100
+        elif damage=='white':rows[0]['result_white']=-1
+        elif damage=='stm':rows[0]['result_stm']=-1
+        elif damage=='bool_white':rows[0]['result_white']=True
+        elif damage=='bool_stm':rows[0]['result_stm']=True
+        elif damage=='float_score':rows[0]['score_stm']=100.0
+        elif damage=='float_white':rows[0]['result_white']=1.0
+        elif damage=='float_stm':rows[0]['result_stm']=1.0
+        elif damage=='full_fen':rows[0]['fen']=rows[0]['fen'].replace(' 0 1',' 1 1')
+        else:rows[0]['source_row']=100
+        sample.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        summary=json.loads(path.read_text())
+        summary['sources'][0]['sample_sha256']=audit.sha256(sample)
+        path.with_name('000.json').write_text(json.dumps(summary['sources'][0]))
+        path.write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):audit.audit_reservoirs([path],tmp_path/'audit')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_profile_reservoir.py:58: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv5\\forge_selfplay_003.txt", "rows": 8, "status": "PASS", "complete_scan": true}
+{"source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv5\\forge_selfplay_003.txt", "source_sha256": "addb6cd4deafebc4a45645ea8310df277784d2f12861e1e2108ccd1e0c073fa8", "source_md5": "9f10143adc82670ee55780e32cfdfc02", "source_lines": 8, "checked_rows": 8, "sample_sha256": "c1bfb1348ceb19cf95a64ff5cd3ab61540c812a5101b1058ada1bbb211a2b017"}
+_________ test_rehashed_but_false_reservoir_is_rejected[float_white] __________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/reservoir_red/pytest/test_rehashed_but_false_reserv6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F1FA0>
+damage = 'float_white'
+
+    @pytest.mark.parametrize('damage',['score','white','stm','bool_white','bool_stm',
+                                      'float_score','float_white','float_stm','full_fen','source_row'])
+    def test_rehashed_but_false_reservoir_is_rejected(tmp_path,monkeypatch,damage):
+        path=prepare(tmp_path,monkeypatch)
+        sample=path.with_name('000.sample.jsonl')
+        rows=[json.loads(line) for line in sample.read_text().splitlines()]
+        if damage=='score':rows[0]['score_stm']=-100
+        elif damage=='white':rows[0]['result_white']=-1
+        elif damage=='stm':rows[0]['result_stm']=-1
+        elif damage=='bool_white':rows[0]['result_white']=True
+        elif damage=='bool_stm':rows[0]['result_stm']=True
+        elif damage=='float_score':rows[0]['score_stm']=100.0
+        elif damage=='float_white':rows[0]['result_white']=1.0
+        elif damage=='float_stm':rows[0]['result_stm']=1.0
+        elif damage=='full_fen':rows[0]['fen']=rows[0]['fen'].replace(' 0 1',' 1 1')
+        else:rows[0]['source_row']=100
+        sample.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        summary=json.loads(path.read_text())
+        summary['sources'][0]['sample_sha256']=audit.sha256(sample)
+        path.with_name('000.json').write_text(json.dumps(summary['sources'][0]))
+        path.write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):audit.audit_reservoirs([path],tmp_path/'audit')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_profile_reservoir.py:58: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv6\\forge_selfplay_003.txt", "rows": 8, "status": "PASS", "complete_scan": true}
+{"source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv6\\forge_selfplay_003.txt", "source_sha256": "addb6cd4deafebc4a45645ea8310df277784d2f12861e1e2108ccd1e0c073fa8", "source_md5": "9f10143adc82670ee55780e32cfdfc02", "source_lines": 8, "checked_rows": 8, "sample_sha256": "78e32d5a94c394f7cb2e4dda689ff972c94fa129121357b7c18c4f307094c115"}
+__________ test_rehashed_but_false_reservoir_is_rejected[float_stm] ___________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/reservoir_red/pytest/test_rehashed_but_false_reserv7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195F15B0>
+damage = 'float_stm'
+
+    @pytest.mark.parametrize('damage',['score','white','stm','bool_white','bool_stm',
+                                      'float_score','float_white','float_stm','full_fen','source_row'])
+    def test_rehashed_but_false_reservoir_is_rejected(tmp_path,monkeypatch,damage):
+        path=prepare(tmp_path,monkeypatch)
+        sample=path.with_name('000.sample.jsonl')
+        rows=[json.loads(line) for line in sample.read_text().splitlines()]
+        if damage=='score':rows[0]['score_stm']=-100
+        elif damage=='white':rows[0]['result_white']=-1
+        elif damage=='stm':rows[0]['result_stm']=-1
+        elif damage=='bool_white':rows[0]['result_white']=True
+        elif damage=='bool_stm':rows[0]['result_stm']=True
+        elif damage=='float_score':rows[0]['score_stm']=100.0
+        elif damage=='float_white':rows[0]['result_white']=1.0
+        elif damage=='float_stm':rows[0]['result_stm']=1.0
+        elif damage=='full_fen':rows[0]['fen']=rows[0]['fen'].replace(' 0 1',' 1 1')
+        else:rows[0]['source_row']=100
+        sample.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        summary=json.loads(path.read_text())
+        summary['sources'][0]['sample_sha256']=audit.sha256(sample)
+        path.with_name('000.json').write_text(json.dumps(summary['sources'][0]))
+        path.write_text(json.dumps(summary))
+>       with pytest.raises(ValueError):audit.audit_reservoirs([path],tmp_path/'audit')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_profile_reservoir.py:58: Failed
+---------------------------- Captured stdout call -----------------------------
+{"event": "source_complete", "source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv7\\forge_selfplay_003.txt", "rows": 8, "status": "PASS", "complete_scan": true}
+{"source": "C:\\astra8_data\\quality6h_20261102\\reservoir_red\\pytest\\test_rehashed_but_false_reserv7\\forge_selfplay_003.txt", "source_sha256": "addb6cd4deafebc4a45645ea8310df277784d2f12861e1e2108ccd1e0c073fa8", "source_md5": "9f10143adc82670ee55780e32cfdfc02", "source_lines": 8, "checked_rows": 8, "sample_sha256": "2ae8222ed23fda589ce6dd4de499ee4a24832c559df4995aa7f2d0804f57254e"}
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_profile_reservoir.py::test_rehashed_but_false_reservoir_is_rejected[bool_white]
+FAILED astra_r8/datafilter/tests/test_profile_reservoir.py::test_rehashed_but_false_reservoir_is_rejected[bool_stm]
+FAILED astra_r8/datafilter/tests/test_profile_reservoir.py::test_rehashed_but_false_reservoir_is_rejected[float_score]
+FAILED astra_r8/datafilter/tests/test_profile_reservoir.py::test_rehashed_but_false_reservoir_is_rejected[float_white]
+FAILED astra_r8/datafilter/tests/test_profile_reservoir.py::test_rehashed_but_false_reservoir_is_rejected[float_stm]
+5 failed, 6 passed in 29.53s
