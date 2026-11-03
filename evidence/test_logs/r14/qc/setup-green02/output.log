@@ -1,0 +1,24 @@
+..F....                                                                  [100%]
+================================== FAILURES ===================================
+__________________ test_unset_caller_environment_is_restored __________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-green02/pytest/test_unset_caller_environment_0')
+
+    def test_unset_caller_environment_is_restored(tmp_path):
+        parent, _ = run_fixture(tmp_path, unset=True)
+>       assert parent['env'] == dict.fromkeys(KEYS)
+E       AssertionError: assert {'PIP_CACHE_D...CES': '', ...} == {'TEMP': None...E': None, ...}
+E         
+E         Differing items:
+E         {'PIP_CACHE_DIR': ''} != {'PIP_CACHE_DIR': None}
+E         {'TMP': ''} != {'TMP': None}
+E         {'PYTHONDONTWRITEBYTECODE': ''} != {'PYTHONDONTWRITEBYTECODE': None}
+E         {'HIP_VISIBLE_DEVICES': ''} != {'HIP_VISIBLE_DEVICES': None}
+E         {'MKL_NUM_THREADS': ''} != {'MKL_NUM_THREADS': None}...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+tests\test_r14_runtime_setup.py:85: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_runtime_setup.py::test_unset_caller_environment_is_restored
+1 failed, 6 passed in 5.91s

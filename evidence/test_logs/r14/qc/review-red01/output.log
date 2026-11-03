@@ -1,0 +1,76 @@
+...........FFFF...                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_aggregate_status_includes_reduced_key_overlap ______________
+
+    def test_aggregate_status_includes_reduced_key_overlap():
+        index = p5_qc.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+            index.add('new', 'val', FEN.replace('KQkq', '-'))
+            report = index.report('new')
+            assert report['keys']['six_field']['status'] == 'PASS'
+            assert report['keys']['board_stm']['status'] == 'FAIL'
+>           assert report['status'] == 'FAIL'
+E           AssertionError: assert 'PASS' == 'FAIL'
+E             
+E             - FAIL
+E             + PASS
+
+tests\test_r14_qc_fixes.py:149: AssertionError
+_________ test_unassigned_rejected_row_makes_all_reports_incomplete[] _________
+
+cohort = ''
+
+    @pytest.mark.parametrize('cohort', ['', None])
+    def test_unassigned_rejected_row_makes_all_reports_incomplete(cohort):
+        index = p5_qc.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+            with pytest.raises(ValueError):
+                index.add(cohort, 'val', FEN)
+            report = index.report('new')
+>           assert report['status'] == 'UNVERIFIED'
+E           AssertionError: assert 'PASS' == 'UNVERIFIED'
+E             
+E             - UNVERIFIED
+E             + PASS
+
+tests\test_r14_qc_fixes.py:162: AssertionError
+_______ test_unassigned_rejected_row_makes_all_reports_incomplete[None] _______
+
+cohort = None
+
+    @pytest.mark.parametrize('cohort', ['', None])
+    def test_unassigned_rejected_row_makes_all_reports_incomplete(cohort):
+        index = p5_qc.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+            with pytest.raises(ValueError):
+                index.add(cohort, 'val', FEN)
+            report = index.report('new')
+>           assert report['status'] == 'UNVERIFIED'
+E           AssertionError: assert 'PASS' == 'UNVERIFIED'
+E             
+E             - UNVERIFIED
+E             + PASS
+
+tests\test_r14_qc_fixes.py:162: AssertionError
+________________ test_invalid_split_is_not_a_fen_parse_failure ________________
+
+    def test_invalid_split_is_not_a_fen_parse_failure():
+        index = p5_qc.DuplicateIndex()
+        try:
+            with pytest.raises(ValueError):
+                index.add('new', 'unknown-split', FEN)
+            report = index.report('new')
+            assert report['status'] == 'UNVERIFIED'
+>           assert report['parse_failures'] == 0
+E           assert 1 == 0
+
+tests\test_r14_qc_fixes.py:177: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_qc_fixes.py::test_aggregate_status_includes_reduced_key_overlap
+FAILED tests/test_r14_qc_fixes.py::test_unassigned_rejected_row_makes_all_reports_incomplete[]
+FAILED tests/test_r14_qc_fixes.py::test_unassigned_rejected_row_makes_all_reports_incomplete[None]
+FAILED tests/test_r14_qc_fixes.py::test_invalid_split_is_not_a_fen_parse_failure
+4 failed, 14 passed in 0.18s

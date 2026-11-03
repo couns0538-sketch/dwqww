@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 import struct
 
+from run_policy import free_guard, safe_path
+
 MATE = 30000
 PIECES = ' PNBRQKpnbrqk'
 EDGES = (-30000, -10000, -3000, -1000, -300, -100, 0, 100, 300, 1000, 3000, 10000, 30000)
@@ -81,6 +83,126 @@ def fen_info(fen):
     phase = min(24, phase)
     return dict(fen=' '.join(fields), board=bytes(board), stm=fields[1], pieces=pieces,
                 phase=phase, phase_group='end' if phase <= 8 else 'middle' if phase <= 16 else 'early')
+
+
+class DuplicateIndex:
+    """Exact, RAM-only duplicate counts; supplied legacy paths are never created.
+
+    The full-FEN key preserves the prior whitespace-normalized text contract.
+    Reduced keys use decoded board bytes and canonical castling-right ordering.
+    A failed add remains in the coverage denominator if a caller catches it.
+    """
+    SEMANTICS = {
+        'six_field': 'six FEN fields; whitespace normalized; clocks/rights/EP retained',
+        'four_field': 'decoded board, side, canonical castling rights, literal EP; clocks excluded',
+        'board_stm': 'decoded board and side; rights, EP and clocks excluded',
+    }
+
+    def __init__(self, path=None):
+        if path is not None:
+            path = safe_path(path, write=True)
+            if path.exists():
+                raise ValueError('duplicate index already exists')
+        free_guard()
+        self._counts = {}
+        self._attempted = Counter()
+        self._invalid = Counter()
+        self._parse_failures = Counter()
+        self._routing_failures = Counter()
+        self._unassigned_rejected_rows = 0
+        self.count = 0
+        self._closed = False
+
+    def _open(self):
+        if self._closed:
+            raise ValueError('duplicate index is closed')
+
+    def add(self, cohort, split, fen):
+        self._open()
+        if not isinstance(cohort, str) or not cohort:
+            self._unassigned_rejected_rows += 1
+            raise ValueError('nonempty cohort required')
+        self._attempted[cohort] += 1
+        self.count += 1
+        if split not in ('train', 'val', 'unspecified'):
+            self._invalid[cohort] += 1
+            self._routing_failures[cohort] += 1
+            raise ValueError('known split required')
+        try:
+            info = fen_info(fen)
+        except (ValueError, TypeError):
+            self._invalid[cohort] += 1
+            if fen not in (None, ''):
+                self._parse_failures[cohort] += 1
+            raise
+        try:
+            if self.count % 4096 == 1:
+                free_guard()
+                import psutil
+                if psutil.virtual_memory().available < 8 * 1024**3 or psutil.Process().memory_info().rss > 2 * 1024**3:
+                    raise MemoryError('duplicate index memory admission refused')
+            fields = info['fen'].split()
+            board_stm = (info['board'], info['stm'])
+            rights = ''.join(right for right in 'KQkq' if right in fields[2]) or '-'
+            keys = {'six_field': info['fen'], 'four_field': (*board_stm, rights, fields[3]),
+                    'board_stm': board_stm}
+            cohort_counts = self._counts.setdefault(cohort, {})
+            for name, key in keys.items():
+                splits = cohort_counts.setdefault(name, {})
+                splits.setdefault(split, Counter())[key] += 1
+        except BaseException:
+            self._invalid[cohort] += 1
+            raise
+
+    def report(self, cohort):
+        self._open()
+        attempted = self._attempted[cohort]
+        invalid = self._invalid[cohort]
+        reports = {}
+        for name, semantics in self.SEMANTICS.items():
+            splits = self._counts.get(cohort, {}).get(name, {})
+            by_split = {}
+            distinct = valid = 0
+            previous = []
+            for split, counts in splits.items():
+                n, unique = sum(counts.values()), len(counts)
+                valid += n
+                distinct += sum(not any(key in earlier for earlier in previous) for key in counts)
+                previous.append(counts)
+                by_split[split] = dict(rows=n, unique_fens=unique, duplicate_rows=n-unique,
+                                       duplicate_rate=(n-unique)/n if n else None)
+            train, val = splits.get('train', {}), splits.get('val', {})
+            smaller = train if len(train) <= len(val) else val
+            shared = train_rows = val_rows = 0
+            for key in smaller:
+                if key in train and key in val:
+                    shared += 1
+                    train_rows += train[key]
+                    val_rows += val[key]
+            reports[name] = dict(
+                rows=attempted, valid_key_rows=valid, missing_key_rows=attempted-valid,
+                parse_failures=self._parse_failures[cohort], routing_failures=self._routing_failures[cohort],
+                unassigned_rejected_rows=self._unassigned_rejected_rows,
+                key_fill_rate=valid/attempted if attempted and not self._unassigned_rejected_rows else None,
+                failed_adds=invalid, unique_keys=distinct, duplicate_rows=valid-distinct,
+                duplicate_rate=(valid-distinct)/valid if valid else None,
+                train_val_shared_keys=shared, train_overlap_rows=train_rows,
+                val_overlap_rows=val_rows, by_split=by_split, key=semantics,
+                status='UNVERIFIED' if not attempted or invalid or valid != attempted or self._unassigned_rejected_rows else 'FAIL' if shared else 'PASS')
+        six = reports['six_field']
+        statuses = {report['status'] for report in reports.values()}
+        overall = 'UNVERIFIED' if 'UNVERIFIED' in statuses else 'FAIL' if 'FAIL' in statuses else 'PASS'
+        return dict(rows=attempted, unique_fens=six['unique_keys'],
+                    duplicate_rows=six['duplicate_rows'], duplicate_rate=six['duplicate_rate'],
+                    train_val_shared_fens=six['train_val_shared_keys'], by_split=six['by_split'],
+                    valid_key_rows=six['valid_key_rows'], missing_key_rows=six['missing_key_rows'],
+                    parse_failures=six['parse_failures'], key_fill_rate=six['key_fill_rate'],
+                    routing_failures=six['routing_failures'], unassigned_rejected_rows=self._unassigned_rejected_rows,
+                    status=overall, key=six['key'], keys=reports)
+
+    def close(self):
+        self._counts.clear()
+        self._closed = True
 
 
 def histogram_bucket(score):

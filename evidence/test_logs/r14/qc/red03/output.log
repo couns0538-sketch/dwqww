@@ -1,0 +1,24 @@
+....F.........                                                           [100%]
+================================== FAILURES ===================================
+_________________ test_three_key_overlap_counts_and_coverage __________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red03/pytest/test_three_key_overlap_counts_0')
+
+    def test_three_key_overlap_counts_and_coverage(tmp_path):
+        with patch.object(p5_qc, 'safe_path', side_effect=lambda value, **kwargs: Path(value)):
+            index = p5_qc.DuplicateIndex(tmp_path / 'index.sqlite')
+            try:
+                index.add('new', 'train', FEN)
+                index.add('new', 'train', FEN)
+                index.add('new', 'val', FEN.replace('0 1', '1 1'))
+                index.add('new', 'val', FEN.replace('KQkq', '-').replace('0 1', '2 1'))
+                report = index.report('new')
+                assert report['train_val_shared_fens'] == 0
+>               assert report['key_fill_rate'] == 1.0
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+E               KeyError: 'key_fill_rate'
+
+tests\test_r14_qc_fixes.py:55: KeyError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_qc_fixes.py::test_three_key_overlap_counts_and_coverage
+1 failed, 13 passed in 0.14s

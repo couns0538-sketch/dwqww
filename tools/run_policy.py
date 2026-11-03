@@ -1,4 +1,4 @@
-"""R13 containment and immutable-input receipts. No production mutation APIs."""
+"""R14 containment and immutable-input receipts. No production mutation APIs."""
 from __future__ import annotations
 import hashlib
 import json
@@ -10,10 +10,11 @@ import stat
 import sys
 import time
 
-ROOT = Path('D:/a13')
+ROOT = Path('D:/a14')
 FLOOR = 50 * 1024 ** 3
-PROTECTED = ('c:/forge_nnue_train', 'f:/forge_push')
-BLOCKED_COMPONENTS = {'handoff_v7', 'locks', 'gate', 'gates', 'live_gates', 'nnue-pytorch', 'forge_nnue_train'}
+C_FLOOR = 30 * 1024 ** 3
+PROTECTED = ('c:/forge_nnue_train', 'd:/forge_nnue_train', 'f:/forge_push', 'f:/nnue_pytorch')
+BLOCKED_COMPONENTS = {'handoff_v7', 'locks', 'gate', 'gates', 'live_gates', 'nnue-pytorch', 'nnue_pytorch', 'forge_nnue_train'}
 
 
 def safe_path(value, *, write=False):
@@ -28,7 +29,7 @@ def safe_path(value, *, write=False):
     lower = raw.lower().rstrip('/')
     if any(lower == p or lower.startswith(p + '/') for p in PROTECTED):
         raise ValueError('protected root')
-    if any(p.lower() in BLOCKED_COMPONENTS or p.lower().endswith('.nnue') or (p.lower().endswith('.lock') and not lower.startswith('d:/a13/')) for p in parts):
+    if any(p.lower() in BLOCKED_COMPONENTS or p.lower().endswith('.nnue') or p.lower().endswith('.lock') for p in parts):
         raise ValueError('protected component')
     path = Path(raw)
     # Check ancestors before resolving: do not follow a junction into protected data.
@@ -39,19 +40,22 @@ def safe_path(value, *, write=False):
                 raise ValueError(f'redirected path: {ancestor}')
     resolved = path.resolve()
     if write and not resolved.is_relative_to(ROOT.resolve()):
-        raise ValueError('write outside D:/a13')
+        raise ValueError('write outside D:/a14')
     return resolved
 
 
-def free_guard(required=0, *, free=None):
+def free_guard(required=0, *, free=None, c_free=None):
     if type(required) is not int or required < 0:
         raise ValueError('allocation must be a nonnegative integer')
     available = shutil.disk_usage('D:/').free if free is None else free
     if available < FLOOR + required:
         raise OSError(f'D: reserve breached: free={available}, floor={FLOOR}, next={required}')
-    deadline = os.environ.get('ASTRA_R13_DEADLINE')
+    available_c = shutil.disk_usage('C:/').free if c_free is None else c_free
+    if available_c < C_FLOOR:
+        raise OSError(f'C: reserve breached: free={available_c}, floor={C_FLOOR}')
+    deadline = os.environ.get('ASTRA_R14_DEADLINE', os.environ.get('ASTRA_R13_DEADLINE'))
     if deadline and time.time() >= float(deadline):
-        raise TimeoutError('R13 bounded-job deadline reached')
+        raise TimeoutError('R14 bounded-job deadline reached')
     return available
 
 

@@ -1,0 +1,169 @@
+FFFFFFFFF.                                                               [100%]
+================================== FAILURES ===================================
+________________ test_arbitrary_owned_source_is_not_production ________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_arbitrary_owned_source_is0')
+
+    def test_arbitrary_owned_source_is_not_production(tmp_path):
+        job = fixture(tmp_path)
+        with patch.object(p5_qc, 'ROOT', tmp_path):
+>           with pytest.raises(ValueError, match='approved source'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+tests\test_r14_qc_fixes.py:19: Failed
+____________________ test_explicit_fixture_mode_is_marked _____________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_explicit_fixture_mode_is_0')
+
+    def test_explicit_fixture_mode_is_marked(tmp_path):
+        job = fixture(tmp_path)
+>       result = p5_qc.audit_r14(job, run_policy.Inputs(), lambda row: None, fixture=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: audit_r14() got an unexpected keyword argument 'fixture'
+
+tests\test_r14_qc_fixes.py:25: TypeError
+__________________ test_duplicate_index_lives_in_shared_core __________________
+
+    def test_duplicate_index_lives_in_shared_core():
+>       assert qc_core.DuplicateIndex is p5_qc.DuplicateIndex
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'qc_core' has no attribute 'DuplicateIndex'
+
+tests\test_r14_qc_fixes.py:31: AttributeError
+________________ test_duplicate_index_never_creates_disk_index ________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_duplicate_index_never_cre0')
+
+    def test_duplicate_index_never_creates_disk_index(tmp_path):
+        path = tmp_path / 'index.sqlite'
+        with patch.object(p5_qc, 'safe_path', side_effect=lambda value, **kwargs: Path(value)):
+            index = p5_qc.DuplicateIndex(path)
+            try:
+                index.add('new', 'train', FEN)
+>               assert not path.exists()
+E               AssertionError: assert not True
+E                +  where True = exists()
+E                +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_duplicate_index_never_cre0/index.sqlite').exists
+
+tests\test_r14_qc_fixes.py:40: AssertionError
+_________________ test_three_key_overlap_counts_and_coverage __________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_three_key_overlap_counts_0')
+
+    def test_three_key_overlap_counts_and_coverage(tmp_path):
+        with patch.object(p5_qc, 'safe_path', side_effect=lambda value, **kwargs: Path(value)):
+            index = p5_qc.DuplicateIndex(tmp_path / 'index.sqlite')
+            try:
+                index.add('new', 'train', FEN)
+                index.add('new', 'train', FEN)
+                index.add('new', 'val', FEN.replace('0 1', '1 1'))
+                index.add('new', 'val', FEN.replace('KQkq', '-').replace('0 1', '2 1'))
+                report = index.report('new')
+                assert report['train_val_shared_fens'] == 0
+                expected = {'six_field': (0, 0, 0), 'four_field': (1, 2, 1),
+                            'board_stm': (1, 2, 2)}
+                for name, (keys, train_rows, val_rows) in expected.items():
+>                   value = report['keys'][name]
+                            ^^^^^^^^^^^^^^
+E                   KeyError: 'keys'
+
+tests\test_r14_qc_fixes.py:58: KeyError
+___________ test_invalid_key_attempt_cannot_leave_zero_overlap_pass ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/red01/pytest/test_invalid_key_attempt_canno0')
+
+    def test_invalid_key_attempt_cannot_leave_zero_overlap_pass(tmp_path):
+        with patch.object(p5_qc, 'safe_path', side_effect=lambda value, **kwargs: Path(value)):
+            index = p5_qc.DuplicateIndex(tmp_path / 'index.sqlite')
+            try:
+                index.add('new', 'train', FEN)
+                with pytest.raises(ValueError):
+>                   index.add('new', 'val', None)
+
+tests\test_r14_qc_fixes.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <p5_qc.DuplicateIndex object at 0x0000000003C709B0>, cohort = 'new'
+split = 'val', fen = None
+
+    def add(self, cohort, split, fen):
+        if self.count % 4096 == 0:
+            free_guard(8 * 1024 * 1024)
+            self.db.commit()
+>       self.db.execute('INSERT INTO fens VALUES(?,?,?,1) ON CONFLICT(cohort,fen,split) DO UPDATE SET n=n+1', (cohort,fen,split))
+E       sqlite3.IntegrityError: NOT NULL constraint failed: fens.fen
+
+tools\p5_qc.py:70: IntegrityError
+_______________ test_owned_root_is_r14_and_r13_write_is_refused _______________
+
+    def test_owned_root_is_r14_and_r13_write_is_refused():
+>       assert run_policy.safe_path('D:/a14/tmp/probe.json', write=True) == Path('D:/a14/tmp/probe.json')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r14_qc_fixes.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 'D:/a14/tmp/probe.json', write = True
+
+    def safe_path(value, *, write=False):
+        raw = str(value).replace('\\', '/')
+        if not re.match(r'^[A-Za-z]:/', raw) or raw.startswith('//'):
+            raise ValueError('absolute local drive path required')
+        parts = raw[3:].split('/')
+        if '//' in raw[3:] or any(p in ('.', '..') or p.endswith((' ', '.')) or any(c in p for c in ':*?"<>|') or any(ord(c)<32 for c in p) for p in parts if p):
+            raise ValueError('ambiguous path component')
+        if any(re.match(r'(?i)^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9���]|lpt[1-9���])(?:\.|$)',p) for p in parts):
+            raise ValueError('Windows device name is not a file path')
+        lower = raw.lower().rstrip('/')
+        if any(lower == p or lower.startswith(p + '/') for p in PROTECTED):
+            raise ValueError('protected root')
+        if any(p.lower() in BLOCKED_COMPONENTS or p.lower().endswith('.nnue') or (p.lower().endswith('.lock') and not lower.startswith('d:/a13/')) for p in parts):
+            raise ValueError('protected component')
+        path = Path(raw)
+        # Check ancestors before resolving: do not follow a junction into protected data.
+        for ancestor in reversed((path, *path.parents)):
+            if os.path.lexists(ancestor):
+                info = ancestor.lstat()
+                if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                    raise ValueError(f'redirected path: {ancestor}')
+        resolved = path.resolve()
+        if write and not resolved.is_relative_to(ROOT.resolve()):
+>           raise ValueError('write outside D:/a13')
+E           ValueError: write outside D:/a13
+
+tools\run_policy.py:42: ValueError
+________________ test_c_floor_is_checked_even_when_d_has_space ________________
+
+    def test_c_floor_is_checked_even_when_d_has_space():
+        def usage(drive):
+            return SimpleNamespace(free=80 * 1024**3 if str(drive).lower().startswith('d:') else 30 * 1024**3 - 1)
+        with patch.object(run_policy.shutil, 'disk_usage', side_effect=usage):
+>           with pytest.raises(OSError, match='C:'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE OSError
+
+tests\test_r14_qc_fixes.py:97: Failed
+_ test_protected_runtime_paths_refused[F:/nnue_pytorch/venv/Lib/site-packages/x.py] _
+
+path = 'F:/nnue_pytorch/venv/Lib/site-packages/x.py'
+
+    @pytest.mark.parametrize('path', ['F:/nnue_pytorch/venv/Lib/site-packages/x.py',
+                                     'F:/nnue-pytorch/x.py'])
+    def test_protected_runtime_paths_refused(path):
+>       with pytest.raises(ValueError, match='protected'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_r14_qc_fixes.py:104: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_r14_qc_fixes.py::test_arbitrary_owned_source_is_not_production
+FAILED tests/test_r14_qc_fixes.py::test_explicit_fixture_mode_is_marked - Typ...
+FAILED tests/test_r14_qc_fixes.py::test_duplicate_index_lives_in_shared_core
+FAILED tests/test_r14_qc_fixes.py::test_duplicate_index_never_creates_disk_index
+FAILED tests/test_r14_qc_fixes.py::test_three_key_overlap_counts_and_coverage
+FAILED tests/test_r14_qc_fixes.py::test_invalid_key_attempt_cannot_leave_zero_overlap_pass
+FAILED tests/test_r14_qc_fixes.py::test_owned_root_is_r14_and_r13_write_is_refused
+FAILED tests/test_r14_qc_fixes.py::test_c_floor_is_checked_even_when_d_has_space
+FAILED tests/test_r14_qc_fixes.py::test_protected_runtime_paths_refused[F:/nnue_pytorch/venv/Lib/site-packages/x.py]
+9 failed, 1 passed in 0.17s

@@ -108,7 +108,7 @@ class AuditTests(unittest.TestCase):
             job=fixture(Path(tmp))
             (job/'shards'/'shard_00000'/'leftover.part').write_text('retained')
             rows=[]
-            result=audit_r14(job, Inputs(), rows.append)
+            result=audit_r14(job, Inputs(), rows.append, fixture=True)
             self.assertEqual(result['rows'],1)
             self.assertEqual(rows[0]['score_stm'],30000)
             self.assertEqual(rows[0]['original_label']['score_stm'],'30000')
@@ -121,7 +121,7 @@ class AuditTests(unittest.TestCase):
             job=fixture(Path(tmp))
             (job/'shards'/'shard_00000'/'labels.tsv').unlink()
             with self.assertRaises((ValueError,FileNotFoundError)):
-                audit_r14(job,Inputs(),lambda row:None)
+                audit_r14(job,Inputs(),lambda row:None,fixture=True)
 
     def test_final_assembly_rehashed_but_changed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -132,7 +132,7 @@ class AuditTests(unittest.TestCase):
             manifest['files']['labels.tsv'].update(sha256=digest(target),md5=hashlib.md5(target.read_bytes()).hexdigest(),bytes=target.stat().st_size)
             put_json(job/'final'/'MANIFEST.json',manifest)
             with self.assertRaisesRegex(ValueError,'assembly'):
-                audit_r14(job,Inputs(),lambda row:None)
+                audit_r14(job,Inputs(),lambda row:None,fixture=True)
 
     def test_duplicate_index_full_fen_and_split_leak(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -155,7 +155,7 @@ class AuditTests(unittest.TestCase):
             manifest['files']['labels.tsv'].update(sha256=digest(target),md5=hashlib.md5(target.read_bytes()).hexdigest(),bytes=target.stat().st_size)
             put_json(job/'final'/'MANIFEST.json',manifest)
             with self.assertRaisesRegex(ValueError,'assembly'):
-                audit_r14(job,Inputs(),lambda row:None)
+                audit_r14(job,Inputs(),lambda row:None,fixture=True)
 
     def test_original_source_binding_not_only_row_count(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -170,7 +170,7 @@ class AuditTests(unittest.TestCase):
                 value['prepare_json_sha256']=digest(job/'prepare.json')
                 put_json(target,value)
             with self.assertRaisesRegex(ValueError,'original source row'):
-                audit_r14(job,Inputs(),lambda row:None)
+                audit_r14(job,Inputs(),lambda row:None,fixture=True)
 
     def test_boolean_publication_count_not_an_integer(self):
         for name,key in (('status.json','rows_done'),('final/MANIFEST.json','rows'),('final/MANIFEST.json','train_games')):
@@ -181,7 +181,7 @@ class AuditTests(unittest.TestCase):
                 value[key]=True
                 put_json(path,value)
                 with self.assertRaises(ValueError):
-                    audit_r14(job,Inputs(),lambda row:None)
+                    audit_r14(job,Inputs(),lambda row:None,fixture=True)
 
 if __name__=='__main__':
     unittest.main()

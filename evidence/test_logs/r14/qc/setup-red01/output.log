@@ -1,0 +1,48 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+___________ test_setup_preserves_caller_environment_and_priority[0] ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-red01/pytest/test_setup_preserves_caller_en0')
+exit_code = 0
+
+    @pytest.mark.parametrize('exit_code', [0, 7])
+    def test_setup_preserves_caller_environment_and_priority(tmp_path, exit_code):
+        parent, child_path = run_fixture(tmp_path, child_exit=exit_code)
+>       assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+E       AssertionError: assert {'TMP': 'D:\\...S': '-1', ...} == {'TEMP': 'sen...YTECODE', ...}
+E         
+E         Differing items:
+E         {'PYTHONNOUSERSITE': '1'} != {'PYTHONNOUSERSITE': 'sentinel-PYTHONNOUSERSITE'}
+E         {'OPENBLAS_NUM_THREADS': '1'} != {'OPENBLAS_NUM_THREADS': 'sentinel-OPENBLAS_NUM_THREADS'}
+E         {'CUDA_VISIBLE_DEVICES': '-1'} != {'CUDA_VISIBLE_DEVICES': 'sentinel-CUDA_VISIBLE_DEVICES'}
+E         {'TEMP': 'D:\\a14\\evidence\\test_logs\\r14\\qc\\setup-red01\\pytest\\test_setup_preserves_caller_en0\\tmp'} != {'TEMP': 'sentinel-TEMP'}
+E         {'OMP_NUM_THREADS': '1'} != {'OMP_NUM_THREADS': 'sentinel-OMP_NUM_THREADS'}...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+tests\test_r14_runtime_setup.py:66: AssertionError
+___________ test_setup_preserves_caller_environment_and_priority[7] ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-red01/pytest/test_setup_preserves_caller_en1')
+exit_code = 7
+
+    @pytest.mark.parametrize('exit_code', [0, 7])
+    def test_setup_preserves_caller_environment_and_priority(tmp_path, exit_code):
+        parent, child_path = run_fixture(tmp_path, child_exit=exit_code)
+>       assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+E       AssertionError: assert {'OPENBLAS_NU...n1\\tmp', ...} == {'TEMP': 'sen...YTECODE', ...}
+E         
+E         Differing items:
+E         {'PYTHONNOUSERSITE': '1'} != {'PYTHONNOUSERSITE': 'sentinel-PYTHONNOUSERSITE'}
+E         {'OPENBLAS_NUM_THREADS': '1'} != {'OPENBLAS_NUM_THREADS': 'sentinel-OPENBLAS_NUM_THREADS'}
+E         {'CUDA_VISIBLE_DEVICES': '-1'} != {'CUDA_VISIBLE_DEVICES': 'sentinel-CUDA_VISIBLE_DEVICES'}
+E         {'TEMP': 'D:\\a14\\evidence\\test_logs\\r14\\qc\\setup-red01\\pytest\\test_setup_preserves_caller_en1\\tmp'} != {'TEMP': 'sentinel-TEMP'}
+E         {'OMP_NUM_THREADS': '1'} != {'OMP_NUM_THREADS': 'sentinel-OMP_NUM_THREADS'}...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+tests\test_r14_runtime_setup.py:66: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_runtime_setup.py::test_setup_preserves_caller_environment_and_priority[0]
+FAILED tests/test_r14_runtime_setup.py::test_setup_preserves_caller_environment_and_priority[7]
+2 failed in 1.02s

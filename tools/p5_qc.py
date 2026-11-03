@@ -7,12 +7,11 @@ import hashlib
 from itertools import zip_longest
 import json
 from pathlib import Path
-import sqlite3
 import struct
 import sys
 import time
 
-from qc_core import Profile, decode_pos, fen_info, is_mate, outcome, signed_score
+from qc_core import DuplicateIndex, Profile, decode_pos, fen_info, is_mate, outcome, signed_score
 from run_policy import Inputs, Snapshot, ROOT, free_guard, new_directory, safe_path, write_json, strict_json_loads
 
 LABEL_FIELDS = ['row_id','game_id','split','fen','score_stm','old_score_stm','result','depth','nodes']
@@ -51,40 +50,8 @@ def read_text_record(line):
     return fen_info(fields[0].strip())['fen'], signed_score(fields[1].strip()), outcome(fields[2].strip())
 
 
-class DuplicateIndex:
-    def __init__(self, path):
-        path = safe_path(path, write=True)
-        require(not path.exists(), 'duplicate index already exists')
-        free_guard(128 * 1024 * 1024)
-        self.db = sqlite3.connect(path)
-        self.db.execute('PRAGMA journal_mode=DELETE')
-        self.db.execute('PRAGMA temp_store=MEMORY')
-        self.db.execute('PRAGMA cache_size=-8192')
-        self.db.execute('CREATE TABLE fens(cohort TEXT,fen TEXT,split TEXT,n INTEGER NOT NULL,PRIMARY KEY(cohort,fen,split)) WITHOUT ROWID')
-        self.count = 0
-
-    def add(self, cohort, split, fen):
-        if self.count % 4096 == 0:
-            free_guard(8 * 1024 * 1024)
-            self.db.commit()
-        self.db.execute('INSERT INTO fens VALUES(?,?,?,1) ON CONFLICT(cohort,fen,split) DO UPDATE SET n=n+1', (cohort,fen,split))
-        self.count += 1
-
-    def report(self, cohort):
-        self.db.commit()
-        total,unique = self.db.execute('SELECT COALESCE(SUM(n),0),COUNT(DISTINCT fen) FROM fens WHERE cohort=?',(cohort,)).fetchone()
-        shared = self.db.execute("SELECT COUNT(*) FROM (SELECT fen FROM fens WHERE cohort=? AND split IN ('train','val') GROUP BY fen HAVING COUNT(DISTINCT split)=2)",(cohort,)).fetchone()[0]
-        splits = {}
-        for split,n,u in self.db.execute('SELECT split,SUM(n),COUNT(*) FROM fens WHERE cohort=? GROUP BY split',(cohort,)):
-            splits[split] = dict(rows=n,unique_fens=u,duplicate_rows=n-u,duplicate_rate=(n-u)/n if n else None)
-        return dict(rows=total,unique_fens=unique,duplicate_rows=total-unique,duplicate_rate=(total-unique)/total if total else None,
-                    train_val_shared_fens=shared,by_split=splits,key='six FEN fields; whitespace normalized; clocks/rights/EP retained')
-
-    def close(self):
-        self.db.close()
-
-
-def audit_r14(job, inputs, consume):
+def audit_r14(job, inputs, consume, *, fixture=False):
+    require(type(fixture) is bool, 'fixture mode must be explicit boolean')
     job = safe_path(job)
     prepare = inputs.json(job/'prepare.json')
     config = inputs.json(job/'run_config.json')
@@ -115,7 +82,7 @@ def audit_r14(job, inputs, consume):
     for source in prepare['inputs']:
         source_id = integer(source['index'],'source index')
         path = safe_path(source['path'])
-        require(str(path).casefold() in SOURCE_PATHS or path.is_relative_to(ROOT), 'source outside approved source list')
+        require(str(path).casefold() in SOURCE_PATHS or fixture and path.is_relative_to(ROOT), 'source outside approved source list; use --fixture for owned test data')
         require(source_id not in sources and source['kind']=='selfplay', 'duplicate or unsupported source')
         snapshot = inputs.verify(path,source['sha256'])
         sources[source_id] = dict(iterator=iter(snapshot.lines()), line=0, selected=0)
@@ -192,7 +159,7 @@ def audit_r14(job, inputs, consume):
             pass # finish hashing complete original sources, including unselected suffixes
     overlap=len(games['train']&games['val'])
     require(overlap==0 and final['game_overlap']==0,'inferred group split overlap')
-    return dict(rows=seen,shards=shards,run_id=run_id,counts=dict(counts),inferred_group_overlap=overlap,
+    return dict(rows=seen,shards=shards,run_id=run_id,counts=dict(counts),inferred_group_overlap=overlap,fixture=fixture,
                 provenance_status='UNVERIFIED',authentic_game_overlap=None,
                 reason='IDs inferred from FEN/ply/result changes; no authenticated original-game binding')
 
@@ -265,7 +232,7 @@ def audit_old(job, inputs, consume):
 def run(args):
     output=new_directory(args.out,384*1024*1024)
     inputs=Inputs()
-    index=DuplicateIndex(output/'duplicates.sqlite')
+    index=DuplicateIndex()
     profiles={}
     mate_count=0
     start=time.monotonic()
@@ -287,7 +254,7 @@ def run(args):
                     free_guard(16384)
                     mates.write(json.dumps(dict(row,flag='abs(score_stm)>=30000'),sort_keys=True)+'\n')
                     mate_count+=1
-            r14=audit_r14(args.job_a,inputs,consume)
+            r14=audit_r14(args.job_a,inputs,consume,fixture=getattr(args,'fixture',False))
             print('R14 verified',r14['rows'],flush=True)
             old=audit_old(args.old_job,inputs,consume)
             print('Old labels verified',old['rows'],flush=True)
@@ -296,7 +263,7 @@ def run(args):
         other_labels=inputs.verify(job_b/'final'/'labels.tsv',other['files']['labels.tsv']['sha256'])
         first=inputs.get(safe_path(args.job_a)/'final'/'labels.tsv')
         require(first.hashes==other_labels.hashes,'job A/B final labels differ')
-        report=dict(schema=1,status='PASS',provenance_status='UNVERIFIED',mate_threshold=30000,mate_rows=mate_count,mate_ledger_schema=2,
+        report=dict(schema=2,status='PASS',fixture=getattr(args,'fixture',False),provenance_status='UNVERIFIED',mate_threshold=30000,mate_rows=mate_count,mate_ledger_schema=2,
                     cohorts={'r14b':r14,'old440k':old},profiles={key:value.report() for key,value in profiles.items()},
                     duplicates={key:index.report(key) for key in ('r14b','old440k')},
                     reproducibility=dict(status='PASS',relation='jobA/jobB final labels byte-content hashes identical',sha256=first.hashes['sha256']),
@@ -304,7 +271,7 @@ def run(args):
                     comparison='Unpaired different populations; no strength/label-quality inference',seconds=time.monotonic()-start)
         write_json(output/'statistics.json',report)
         write_json(output/'INPUTS.json',inputs.receipts())
-        write_json(output/'COMPLETE.json',dict(status='PASS',scope='QC integrity only',
+        write_json(output/'COMPLETE.json',dict(status='PASS',scope='fixture QC only' if getattr(args,'fixture',False) else 'QC integrity only',fixture=getattr(args,'fixture',False),
                    files={name:Snapshot(output/name).digest() for name in ('statistics.json','INPUTS.json','mate_rows.jsonl')}))
         print(json.dumps({key:report[key] for key in ('status','provenance_status','mate_rows','seconds')}),flush=True)
         return report
@@ -323,6 +290,7 @@ def main():
     parser.add_argument('--old-job',default='C:/o13/p5/job1')
     parser.add_argument('--out',required=True)
     parser.add_argument('--threads',type=int,choices=[1],required=True)
+    parser.add_argument('--fixture',action='store_true',help='Permit owned test sources; results remain fixture-only evidence')
     args=parser.parse_args()
     run(args)
 
