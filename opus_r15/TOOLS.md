@@ -15,6 +15,8 @@ re-runnable, refuses to overwrite its outputs, and has a self-test with planted 
 | make_index.py | INDEX.md from the RESULT.json + ci.json records | run by cand_pack; output `D:\o15\cands\INDEX.md` |
 | index_check.py | before queueing: hashes, record checks, CI, advertised option + range | `python -I -B test_index_check.py <new>` -> 8 / 8 |
 | gate_summary.py | gate W/D/L, Ptnml, Elo, nElo, exact LLR, problem games, games/h; `--watch` gate speed | `bash test_gate_summary.sh <new>` -> 6 / 6 + 2; all 62 F: gates with a PGN reproduce exactly |
+| extra_check.py | an existing exe whose option was never gated alone: copy, pin_check OFF / ON, smoke, "extra" record | runs x1 / x2 (INDEX "existing exes" section) |
+| ci_record.py | ties a green sanitizer CI run to the exact built patches, writes ci.json + evidence | `python -I -B test_ci_record.py <new>` -> 4 / 4 |
 | plain_build_r15.sh, fresh_lock.sh, export_src.sh | quick plain builds, fresh lock copies, clean exports | used for every candidate |
 | lowrun.ps1, pc_gate.ps1, cpu_users.ps1, doc_lint.py, hash_sweep.py, commit_span.py (R14-B); selfplay_smoke.py, run_pinned.py (R13) | copied unchanged | their own R14-B / R13 tests; pc_gate CR fix 3 re-verified in Job 0 |
 
