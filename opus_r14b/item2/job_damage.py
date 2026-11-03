@@ -8,7 +8,9 @@ of it; the damage is made by renaming aside (nothing is deleted) or by editing t
 case should give (0, or 2 / 3 / 4 with relabel2's own "BAD INPUT:" / "CONFIG MISMATCH:" / "INTEGRITY:" line) and
 nothing new published on a refusal; anything else (a traceback = exit 1, a silent exit 0 on damaged state, a refusal
 after publishing) is a FINDING. Exit 0 = no finding. Bug hunt of 2026-11-02 22:11: 29 findings on 0a81dd5f, 0 after
-the fix. Environment: PY (python with python-chess), PROBE (R13 probe), SRC (self-play text), R2 (relabel2.py).
+the fix. 22:37: a run_config.json edited to other settings is caught with a matching command line too (shards record
+their node limit / hash / probe sha256): 3 more runs that 56eef0a6 passes silently.
+Environment: PY (python with python-chess), PROBE (R13 probe), SRC (self-play text), R2 (relabel2.py).
 """
 import json
 import os
@@ -107,7 +109,7 @@ def J(*parts):
     return lambda j: os.path.join(j, *parts)
 
 
-# case -> (damage, {command: expected exit}); expected = what a careful tool does, decided before the first run
+# case -> (damage, {command: expected exit}[, --nodes for run]); expected = what a careful tool does, decided before the first run
 CASES = {
     "labels_flip": (lambda j: flip(S(j, 1, "labels.tsv")), {"run": 4, "assemble": 4, "status": 0}),
     "labels_trunc": (lambda j: trunc(S(j, 1, "labels.tsv")), {"run": 4, "assemble": 4, "status": 0}),
@@ -130,7 +132,10 @@ CASES = {
     "run_config_missing": (lambda j: aside(J("run_config.json")(j)), {"run": 4, "assemble": 4, "status": 0}),
     "run_config_garbage": (lambda j: put(J("run_config.json")(j), "{\"run_id\": \n"), {"run": 4, "assemble": 4, "status": 0}),
     "run_config_empty_obj": (lambda j: put(J("run_config.json")(j), "{}\n"), {"run": 4, "assemble": 4, "status": 0}),
-    "run_config_other_nodes": (lambda j: edit_json(J("run_config.json")(j), nodes=3000), {"run": 3, "assemble": 0, "status": 0}),
+    "run_config_other_nodes": (lambda j: edit_json(J("run_config.json")(j), nodes=3000), {"run": 3, "assemble": 4, "status": 0}),
+    # the same edit with a command line that matches it (run --nodes 3000): the shards were labelled at 2,000
+    "run_config_other_nodes_matching_command": (lambda j: edit_json(J("run_config.json")(j), nodes=3000),
+                                                {"run": 4, "assemble": 4, "status": 0}, "3000"),
     "status_garbage": (lambda j: put(J("status.json")(j), "{\"run_id\": \n"), {"run": 0, "assemble": 0, "status": 0}),
     "status_list": (lambda j: put(J("status.json")(j), "[1, 2]\n"), {"run": 0, "assemble": 0, "status": 0}),
     "stale_lock_file": (lambda j: put(J("job.lock")(j), "old\n"), {"run": 0, "assemble": 0, "status": 0}),
@@ -177,7 +182,7 @@ def main():
     bad = n = 0
     with open(os.path.join(out, "cases.tsv"), "x", encoding="utf-8", newline="\n") as log:
         log.write("case\tcommand\texpected\texit\tverdict\tseconds\tmessage\n")
-        for case, (damage, exp) in CASES.items():
+        for case, (damage, exp, *nodes) in CASES.items():
             if only and case not in only:
                 continue
             for cmd in ("run", "assemble", "status"):
@@ -185,7 +190,8 @@ def main():
                 shutil.copytree(job0, j, ignore=shutil.ignore_patterns("job.lock"))
                 damage(j)
                 before = published(j)
-                args = {"run": ["run", "--job", j, "--run-id", "jd"] + RUN_ARGS,
+                run_args = [nodes[0] if nodes and x == "2000" else x for x in RUN_ARGS]  # a case's own --nodes
+                args = {"run": ["run", "--job", j, "--run-id", "jd"] + run_args,
                         "assemble": ["assemble", "--job", j, "--run-id", "jd", "--mask", "0xC"],
                         "status": ["status", "--job", j]}[cmd]
                 t0 = time.monotonic()

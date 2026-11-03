@@ -31,7 +31,8 @@ disk floor would be crossed), 4 integrity failure (a published file changed or a
   the rows of --selfplay input in two worker processes (the same rows.tsv byte for byte). An interrupted prepare
   leaves its folder as it is (rows.tsv.part, never published): prepare again into a new folder.
 - run: shard k = rows [k*S, (k+1)*S). A shard is labelled in shards/shard_K.part.N (labels.tsv, manifest.json with
-  sha256, summary.json with the run id; all fsynced) and published by renaming the directory to shard_K. The same
+  sha256, summary.json with the run id and the settings it was labelled with - node limit, hash, probe sha256 -, which
+  run and assemble compare with run_config.json; all fsynced) and published by renaming the directory to shard_K. The same
   command resumes: the configuration and the relabel2.py hash are pinned in run_config.json (exit 3 on a change;
   `--accept-new-tool` resumes on changed code, and every sessions.log line names the code hash; a run_config.json that
   is lost or damaged while shards are published is exit 4, never re-created), every published shard is
@@ -516,7 +517,11 @@ def read_shard_rows(job: Path, offset: int, count: int):
     return out
 
 
-def verify_shard(d: Path, k: int, first: int, count: int, run_id: str) -> None:
+# (summary.json key, run_config.json key): the settings a shard records about its labels
+SHARD_SETTINGS = (("nodes_limit", "nodes"), ("hash_mb", "hash_mb"), ("probe_sha256", "probe_sha256"))
+
+
+def verify_shard(d: Path, k: int, first: int, count: int, run_id: str, cfg: dict) -> None:
     try:
         man = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
         summ = json.loads((d / "summary.json").read_text(encoding="utf-8"))
@@ -531,6 +536,10 @@ def verify_shard(d: Path, k: int, first: int, count: int, run_id: str) -> None:
         raise IntegrityError(f"{d.name}: summary.json differs from its manifest")
     if got != (k, first, count, run_id):
         raise IntegrityError(f"{d.name}: summary does not match the job (shard/rows/run id)")
+    for sk, ck in SHARD_SETTINGS:  # shards of earlier versions (the 1M proof's) do not record them
+        if sk in summ and summ[sk] != cfg.get(ck):
+            raise IntegrityError(f"{d.name}: labelled with {sk}={summ[sk]!r} but the job's configuration says "
+                                 f"{cfg.get(ck)!r}: shards of other settings must not be mixed")
 
 
 def label_shard(pool, rows, cfg):
@@ -595,7 +604,7 @@ def cmd_run(a) -> int:
     for k in range(shards):
         d = sdir / f"shard_{k:05d}"
         if d.is_dir():
-            verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id)
+            verify_shard(d, k, k * a.shard_size, min(a.shard_size, n - k * a.shard_size), a.run_id, cfg)
             done.add(k)
         elif d.exists():
             raise IntegrityError(f"{d.name} exists but is not a directory")
@@ -638,6 +647,7 @@ def cmd_run(a) -> int:
                 nodes = sum(int(x.split("\t")[8]) for x in lines)
                 summ = {"run_id": a.run_id, "shard": k, "first_row": first, "rows": count, "nodes_total": nodes,
                         "seconds": round(time.monotonic() - ts, 2), "attempt": part.name, "finished": now()}
+                summ.update({sk: cfg[ck] for sk, ck in SHARD_SETTINGS})  # the shard says how it was labelled
                 write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
                 write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
                                                               "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
@@ -671,7 +681,8 @@ def cmd_assemble(a) -> int:
     job = Path(a.job)
     lock = open_job(job)  # noqa: F841 - held until the process ends
     info = load_prepare(job)
-    rc = read_json(job / "run_config.json", "run_config.json (written by run)", ("run_id", "shard_size"))
+    rc = read_json(job / "run_config.json", "run_config.json (written by run)",
+                   ("run_id", "shard_size") + tuple(ck for _, ck in SHARD_SETTINGS))
     if type(rc["shard_size"]) is not int or rc["shard_size"] < 1:
         raise IntegrityError("run_config.json: shard_size is not a positive integer")
     if info["run_id"] != a.run_id or rc["run_id"] != a.run_id:
@@ -685,7 +696,7 @@ def cmd_assemble(a) -> int:
         d = job / "shards" / f"shard_{k:05d}"
         if not d.is_dir():
             raise IntegrityError(f"shard {k} is not published")
-        verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
+        verify_shard(d, k, k * size, min(size, n - k * size), a.run_id, rc)
     # train.txt + val.txt + labels.tsv: 157.8 MB per 1M rows in the proof; plan for 170 bytes per row
     disk_check(job, 170.0 * n, a.min_free_gb, "assemble")
     tmpdir = job / f"final.part.{max(numbered(job, 'final.part'), default=0) + 1}"  # an interrupted attempt stays as it is
@@ -701,7 +712,7 @@ def cmd_assemble(a) -> int:
             d = job / "shards" / f"shard_{k:05d}"
             if not d.is_dir():
                 raise IntegrityError(f"shard {k} is not published")
-            verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
+            verify_shard(d, k, k * size, min(size, n - k * size), a.run_id, rc)
             shard_hashes.append(json.loads((d / "manifest.json").read_text(encoding="utf-8"))["labels.tsv"])
             with open(d / "labels.tsv", encoding="utf-8") as lf:
                 if lf.readline() != LABELS_HEADER:
