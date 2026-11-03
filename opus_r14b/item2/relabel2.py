@@ -9,7 +9,7 @@ usage (python with python-chess, e.g. C:/Users/Administrator/grok-pc/nnue/.venv/
   relabel2.py run      --job DIR --run-id ID --probe EXE [--nodes 20000] [--hash-mb 1] [--workers 1]
                        [--shard-size 10000] [--mask 0xC] [--max-shards K] [--until "YYYY-MM-DD HH:MM"]
   relabel2.py assemble --job DIR --run-id ID
-  relabel2.py status   --job DIR
+  relabel2.py status   --job DIR       (one readable progress line, then status.json)
   prepare / run / assemble also take [--min-free-gb 50]: the job's drive keeps that much free (PC rule: C: and D:
   >= 50 GB); prepare and assemble refuse to start a write that would cross it, run stops before the shard that would.
 Exit codes: 0 done, 2 bad input, 3 configuration differs from the job (or a target exists, the job is busy, or the
@@ -661,11 +661,27 @@ def cmd_assemble(a) -> int:
 
 
 def cmd_status(a) -> int:
+    """One readable line (progress, last session's rate and ETA, kept attempts, free disk), then status.json."""
     job = Path(a.job)
+    if not (job / "prepare.json").is_file():
+        raise BadInput(f"{job}: not a prepared job (no prepare.json)")
+    n = json.loads((job / "prepare.json").read_text(encoding="utf-8"))["rows"]
     st = job / "status.json"
-    print(st.read_text(encoding="utf-8") if st.exists() else "{}")
-    parts = sorted(p.name for p in (job / "shards").glob("*.part.*")) if (job / "shards").exists() else []
-    print(f"published shards: {len(list((job / 'shards').glob('shard_?????')))}; interrupted attempts kept: {parts}")
+    status = json.loads(st.read_text(encoding="utf-8")) if st.exists() else {}
+    sdir, rc = job / "shards", job / "run_config.json"
+    size = json.loads(rc.read_text(encoding="utf-8"))["shard_size"] if rc.exists() else 0
+    published = sorted(int(p.name[6:]) for p in sdir.glob("shard_?????")) if sdir.exists() else []
+    parts = sorted(p.name for p in sdir.glob("*.part.*")) if sdir.exists() else []
+    done = sum(min(size, n - k * size) for k in published)
+    rate = status.get("session_rows_per_hour") or 0
+    eta = f"{(n - done) / rate:.1f} h" if rate and done < n else "-"
+    root = job.resolve().anchor or "."
+    progress = f"{len(published)}/{(n + size - 1) // size} shards" if size else "not run yet"
+    print(f"{job}: {progress}, {done:,}/{n:,} rows ({100 * done / n:.1f} %), final {'published' if (job / 'final').is_dir() else 'not yet'}; "
+          f"last session {rate:,} rows/h (updated {status.get('updated', '-')}), ETA at that rate {eta}; "
+          f"unpublished attempt dirs (interrupted; during a run the newest is the shard in progress): {parts or 'none'}; "
+          f"{root} free {shutil.disk_usage(root).free / GIB:.1f} GB")
+    print(json.dumps(status, indent=1))
     return 0
 
 

@@ -121,6 +121,9 @@ check prepare_disk_floor_wrote_nothing test ! -e job_disk
 expect 3 run_disk_floor "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --min-free-gb 100000
 check run_disk_floor_no_new_shard test -z "$(ls -d jg/shards/shard_00002* 2>/dev/null)"
 check run_disk_floor_logged grep -q "disk floor" jg/sessions.log
+expect 0 status_partial "$PY" -I -B "$R" status --job jg
+check status_partial_progress grep -q "2/3 shards, 200/300 rows" status_partial.out
+expect 2 status_not_a_job "$PY" -I -B "$R" status --job no_such_job
 expect 2 run_not_a_job "$PY" -I -B "$R" run --job no_such_job --run-id g --probe "$P" --nodes 5000 --shard-size 100
 expect 2 run_missing_probe "$PY" -I -B "$R" run --job jg --run-id g --probe no_such_probe.exe --nodes 5000 --shard-size 100
 expect 2 run_shard_size_zero "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 0
@@ -146,6 +149,8 @@ expect 3 assemble_disk_floor "$PY" -I -B "$R" assemble --job jm --run-id m --min
 check assemble_disk_floor_wrote_nothing test -z "$(ls -d jm/final* 2>/dev/null)"
 expect 0 assemble_full "$PY" -I -B "$R" assemble --job jm --run-id m
 check manifest_published_with_data test -f jm/final/MANIFEST.json
+expect 0 status_complete "$PY" -I -B "$R" status --job jm
+check status_complete_progress grep -q "final published" status_complete.out
 check no_final_part_left test -z "$(ls -d jm/final.part.* 2>/dev/null)"
 expect 3 assemble_again "$PY" -I -B "$R" assemble --job jm --run-id m
 expect 0 prepare_kill "$PY" -I -B "$R" prepare --job jk --run-id m --selfplay big.txt --rows 1200
@@ -191,6 +196,7 @@ assemble_again final exists
 prepare_disk_floor must stay free (--min-free-gb)
 run_disk_floor must stay free (--min-free-gb)
 assemble_disk_floor must stay free (--min-free-gb)
+status_not_a_job not a prepared job
 EOF
 echo "failures: $fails"
 exit $((fails > 0))
