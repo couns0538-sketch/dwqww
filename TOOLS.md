@@ -38,3 +38,24 @@ Existing compiler (read-only, no install): C:/msys64/ucrt64/bin/g++.exe15.2.0,
 MD5 9adc799dbc29227b304b84ab2476232c. Original native helper source:
 D:/a14/tools/r14_native/chain_native.cpp; build/qualification evidence is recorded
 separately per frozen executable. Static linking avoids external runtime loading.
+
+## Qualified native checker
+
+Executable: D:/a14/tools/r14_native/build/chain_native_r03.exe, MD5
+91427a99870d6b3775595db55f0a82e8; SHA256
+f1827f44d1e10ab503aed1ac9d1fb4bacc23d8a2cc1199d78ac0aea36a6c446a.
+Source MD5 e1dc4870316159c4156828e18db99f4e. Purpose: bounded original legal
+move generation and exact full-FEN continuation search through eight plies.
+
+Qualification report: D:/a14/sep/qualification-million01/REPORT.json, MD5
+b91461a33503289c3025b5723d202d72. One million randomized one-ply foundation
+comparisons resolved with zero disagreements. Extra strata resolved2053 pairs;
+twenty deep searches hit their node budgets and remain UNKNOWN. Complete legal
+successor comparisons covered10011 positions and260282 successors without a
+disagreement. This qualifies sampled helper behavior, not authentic game IDs.
+Reproduce with D:/a14/tools/Run-R14Qualification.ps1 using a fresh run name and
+normal workload/resource admission. Never reuse a previous output directory.
+
+R14 delivery paths use scoped Git byte-preservation attributes. This keeps
+committed evidence bytes identical to PC files rather than normalizing newlines;
+verify both Get-FileHash MD5 and repository blob identity when sealing delivery.

@@ -1,0 +1,319 @@
+......FFFFFF.............................                                [100%]
+================================== FAILURES ===================================
+_________ test_failed_publication_leaves_only_unpublished_part[write] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000004559B20>
+failure = 'write'
+
+    @pytest.mark.parametrize('failure', ['write', 'flush', 'fsync', 'close'])
+    def test_failed_publication_leaves_only_unpublished_part(tmp_path, monkeypatch, failure):
+        import r14_overlap
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+        original_open = Path.open
+    
+        class FailingSink:
+            def __init__(self, stream):
+                self.stream = stream
+    
+            def __enter__(self):
+                return self
+    
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                if args[0] is None and failure == 'close':
+                    raise OSError('fixture close failure')
+    
+            def write(self, payload):
+                if failure == 'write':
+                    self.stream.write(payload[:len(payload)//2])
+                    raise OSError('fixture write failure')
+                return self.stream.write(payload)
+    
+            def flush(self):
+                if failure == 'flush':
+                    raise OSError('fixture flush failure')
+                return self.stream.flush()
+    
+            def fileno(self):
+                return self.stream.fileno()
+    
+        def open_with_failure(path, mode='r', *args, **kwargs):
+            stream = original_open(path, mode, *args, **kwargs)
+            if mode == 'xb' and path.parent == out and path.name in ('REPORT.json', 'REPORT.json.part'):
+                return FailingSink(stream)
+            return stream
+    
+        def fail_fsync(fd):
+            raise OSError('fixture fsync failure')
+    
+        monkeypatch.setattr(Path, 'open', open_with_failure)
+        if failure == 'fsync':
+            monkeypatch.setattr(r14_overlap.os, 'fsync', fail_fsync)
+        report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                           publication_guard=lambda needed: None)
+        assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+        assert report['publication_status'] == 'REFUSED'
+>       assert not (out/'REPORT.json').exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves0/report') / 'REPORT.json').exists
+
+D:\a14\tests\test_r14_overlap.py:145: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"schema": 1, "scope": "position_keys_only", "status": "UNVERIFIED", "keys": {"four_field": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}, "board_stm": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}}, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "input_receipts": {"holdout": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves0\\h.txt", "expected_md5": "068a7848a784cf3d86f56f1a5ca515f6", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "068a7848a784cf3d86f56f1a5ca515f6"}], "train": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves0\\t.txt", "expected_md5": "febda24b0c49a1b98168658ca8eb51c3", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "febda24b0c49a1b98168658ca8eb51c3"}]}, "resolution_receipts": [], "game_identity_status": "UNVERIFIED", "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution", "index_storage": "RAM only; no disk indexes or copied source files", "complete": false, "elapsed_seconds": 0.0, "source_identities": null, "runtime": null, "publication_status": "REFUSED", "publication_reason": "fixture write failure"}
+_________ test_failed_publication_leaves_only_unpublished_part[flush] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000039F9160>
+failure = 'flush'
+
+    @pytest.mark.parametrize('failure', ['write', 'flush', 'fsync', 'close'])
+    def test_failed_publication_leaves_only_unpublished_part(tmp_path, monkeypatch, failure):
+        import r14_overlap
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+        original_open = Path.open
+    
+        class FailingSink:
+            def __init__(self, stream):
+                self.stream = stream
+    
+            def __enter__(self):
+                return self
+    
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                if args[0] is None and failure == 'close':
+                    raise OSError('fixture close failure')
+    
+            def write(self, payload):
+                if failure == 'write':
+                    self.stream.write(payload[:len(payload)//2])
+                    raise OSError('fixture write failure')
+                return self.stream.write(payload)
+    
+            def flush(self):
+                if failure == 'flush':
+                    raise OSError('fixture flush failure')
+                return self.stream.flush()
+    
+            def fileno(self):
+                return self.stream.fileno()
+    
+        def open_with_failure(path, mode='r', *args, **kwargs):
+            stream = original_open(path, mode, *args, **kwargs)
+            if mode == 'xb' and path.parent == out and path.name in ('REPORT.json', 'REPORT.json.part'):
+                return FailingSink(stream)
+            return stream
+    
+        def fail_fsync(fd):
+            raise OSError('fixture fsync failure')
+    
+        monkeypatch.setattr(Path, 'open', open_with_failure)
+        if failure == 'fsync':
+            monkeypatch.setattr(r14_overlap.os, 'fsync', fail_fsync)
+        report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                           publication_guard=lambda needed: None)
+        assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+        assert report['publication_status'] == 'REFUSED'
+>       assert not (out/'REPORT.json').exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves1/report') / 'REPORT.json').exists
+
+D:\a14\tests\test_r14_overlap.py:145: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"schema": 1, "scope": "position_keys_only", "status": "UNVERIFIED", "keys": {"four_field": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}, "board_stm": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}}, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "input_receipts": {"holdout": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves1\\h.txt", "expected_md5": "068a7848a784cf3d86f56f1a5ca515f6", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "068a7848a784cf3d86f56f1a5ca515f6"}], "train": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves1\\t.txt", "expected_md5": "febda24b0c49a1b98168658ca8eb51c3", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "febda24b0c49a1b98168658ca8eb51c3"}]}, "resolution_receipts": [], "game_identity_status": "UNVERIFIED", "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution", "index_storage": "RAM only; no disk indexes or copied source files", "complete": false, "elapsed_seconds": 0.0, "source_identities": null, "runtime": null, "publication_status": "REFUSED", "publication_reason": "fixture flush failure"}
+_________ test_failed_publication_leaves_only_unpublished_part[fsync] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000455AD50>
+failure = 'fsync'
+
+    @pytest.mark.parametrize('failure', ['write', 'flush', 'fsync', 'close'])
+    def test_failed_publication_leaves_only_unpublished_part(tmp_path, monkeypatch, failure):
+        import r14_overlap
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+        original_open = Path.open
+    
+        class FailingSink:
+            def __init__(self, stream):
+                self.stream = stream
+    
+            def __enter__(self):
+                return self
+    
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                if args[0] is None and failure == 'close':
+                    raise OSError('fixture close failure')
+    
+            def write(self, payload):
+                if failure == 'write':
+                    self.stream.write(payload[:len(payload)//2])
+                    raise OSError('fixture write failure')
+                return self.stream.write(payload)
+    
+            def flush(self):
+                if failure == 'flush':
+                    raise OSError('fixture flush failure')
+                return self.stream.flush()
+    
+            def fileno(self):
+                return self.stream.fileno()
+    
+        def open_with_failure(path, mode='r', *args, **kwargs):
+            stream = original_open(path, mode, *args, **kwargs)
+            if mode == 'xb' and path.parent == out and path.name in ('REPORT.json', 'REPORT.json.part'):
+                return FailingSink(stream)
+            return stream
+    
+        def fail_fsync(fd):
+            raise OSError('fixture fsync failure')
+    
+        monkeypatch.setattr(Path, 'open', open_with_failure)
+        if failure == 'fsync':
+            monkeypatch.setattr(r14_overlap.os, 'fsync', fail_fsync)
+        report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                           publication_guard=lambda needed: None)
+        assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+        assert report['publication_status'] == 'REFUSED'
+>       assert not (out/'REPORT.json').exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves2/report') / 'REPORT.json').exists
+
+D:\a14\tests\test_r14_overlap.py:145: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"schema": 1, "scope": "position_keys_only", "status": "UNVERIFIED", "keys": {"four_field": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}, "board_stm": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}}, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "input_receipts": {"holdout": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves2\\h.txt", "expected_md5": "068a7848a784cf3d86f56f1a5ca515f6", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "068a7848a784cf3d86f56f1a5ca515f6"}], "train": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves2\\t.txt", "expected_md5": "febda24b0c49a1b98168658ca8eb51c3", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "febda24b0c49a1b98168658ca8eb51c3"}]}, "resolution_receipts": [], "game_identity_status": "UNVERIFIED", "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution", "index_storage": "RAM only; no disk indexes or copied source files", "complete": false, "elapsed_seconds": 0.0, "source_identities": null, "runtime": null, "publication_status": "REFUSED", "publication_reason": "fixture fsync failure"}
+_________ test_failed_publication_leaves_only_unpublished_part[close] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000455B9B0>
+failure = 'close'
+
+    @pytest.mark.parametrize('failure', ['write', 'flush', 'fsync', 'close'])
+    def test_failed_publication_leaves_only_unpublished_part(tmp_path, monkeypatch, failure):
+        import r14_overlap
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+        original_open = Path.open
+    
+        class FailingSink:
+            def __init__(self, stream):
+                self.stream = stream
+    
+            def __enter__(self):
+                return self
+    
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                if args[0] is None and failure == 'close':
+                    raise OSError('fixture close failure')
+    
+            def write(self, payload):
+                if failure == 'write':
+                    self.stream.write(payload[:len(payload)//2])
+                    raise OSError('fixture write failure')
+                return self.stream.write(payload)
+    
+            def flush(self):
+                if failure == 'flush':
+                    raise OSError('fixture flush failure')
+                return self.stream.flush()
+    
+            def fileno(self):
+                return self.stream.fileno()
+    
+        def open_with_failure(path, mode='r', *args, **kwargs):
+            stream = original_open(path, mode, *args, **kwargs)
+            if mode == 'xb' and path.parent == out and path.name in ('REPORT.json', 'REPORT.json.part'):
+                return FailingSink(stream)
+            return stream
+    
+        def fail_fsync(fd):
+            raise OSError('fixture fsync failure')
+    
+        monkeypatch.setattr(Path, 'open', open_with_failure)
+        if failure == 'fsync':
+            monkeypatch.setattr(r14_overlap.os, 'fsync', fail_fsync)
+        report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                           publication_guard=lambda needed: None)
+        assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+        assert report['publication_status'] == 'REFUSED'
+>       assert not (out/'REPORT.json').exists()
+E       AssertionError: assert not True
+E        +  where True = exists()
+E        +    where exists = (WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_publication_leaves3/report') / 'REPORT.json').exists
+
+D:\a14\tests\test_r14_overlap.py:145: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"schema": 1, "scope": "position_keys_only", "status": "UNVERIFIED", "keys": {"four_field": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}, "board_stm": {"status": "PASS", "shared_exact_keys": 0, "train_overlap_rows": 0, "holdout_overlap_rows": 0, "hash_candidate_rows": 0, "hash_collision_rows": 0, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "examples": []}}, "holdout": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "train": {"rows": 1, "valid_key_rows": 1, "missing_key_rows": 0, "parse_failures": 0, "key_fill_rate": 1.0, "complete": true}, "input_receipts": {"holdout": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves3\\h.txt", "expected_md5": "068a7848a784cf3d86f56f1a5ca515f6", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "068a7848a784cf3d86f56f1a5ca515f6"}], "train": [{"path": "D:\\a14\\evidence\\test_logs\\r14\\overlap-publication-red01\\tmp\\test_failed_publication_leaves3\\t.txt", "expected_md5": "febda24b0c49a1b98168658ca8eb51c3", "rows": 1, "valid_key_rows": 1, "parse_failures": 0, "missing_key_rows": 0, "key_fill_rate": 1.0, "complete": true, "actual_md5": "febda24b0c49a1b98168658ca8eb51c3"}]}, "resolution_receipts": [], "game_identity_status": "UNVERIFIED", "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution", "index_storage": "RAM only; no disk indexes or copied source files", "complete": false, "elapsed_seconds": 0.0, "source_identities": null, "runtime": null, "publication_status": "REFUSED", "publication_reason": "fixture close failure"}
+___________ test_storage_refusal_after_close_prevents_report_rename ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_storage_refusal_after_clo0')
+
+    def test_storage_refusal_after_close_prevents_report_rename(tmp_path):
+        from r14_overlap import run_to_report
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+    
+        def refuse_after_write(needed):
+            if (out/'REPORT.json.part').is_file():
+                raise OSError('fixture post-write storage cap')
+    
+        report = run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                               publication_guard=refuse_after_write)
+>       assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+E       AssertionError: assert ('PASS' == 'UNVERIFIED'
+E         
+E         - UNVERIFIED
+E         + PASS)
+
+D:\a14\tests\test_r14_overlap.py:162: AssertionError
+________________ test_failed_rename_preserves_unpublished_part ________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/overlap-publication-red01/tmp/test_failed_rename_preserves_u0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000004559D60>
+
+    def test_failed_rename_preserves_unpublished_part(tmp_path, monkeypatch):
+        import r14_overlap
+        h, hm = source(tmp_path, 'h.txt', [FEN])
+        t, tm = source(tmp_path, 't.txt', [OTHER])
+        out = tmp_path/'report'
+        out.mkdir()
+    
+        def fail_rename(source_path, target_path):
+            raise OSError('fixture rename failure')
+    
+        monkeypatch.setattr(r14_overlap.os, 'rename', fail_rename)
+        report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                           publication_guard=lambda needed: None)
+>       assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+E       AssertionError: assert ('PASS' == 'UNVERIFIED'
+E         
+E         - UNVERIFIED
+E         + PASS)
+
+D:\a14\tests\test_r14_overlap.py:181: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_failed_publication_leaves_only_unpublished_part[write]
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_failed_publication_leaves_only_unpublished_part[flush]
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_failed_publication_leaves_only_unpublished_part[fsync]
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_failed_publication_leaves_only_unpublished_part[close]
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_storage_refusal_after_close_prevents_report_rename
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_failed_rename_preserves_unpublished_part
+6 failed, 35 passed in 0.27s

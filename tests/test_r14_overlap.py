@@ -89,3 +89,215 @@ def test_resource_refusal_prevents_final_report_allocation(tmp_path):
     assert report['status'] == 'UNVERIFIED' and report['complete'] is False
     assert report['publication_status'] == 'REFUSED'
     assert not (out/'REPORT.json').exists()
+
+
+@pytest.mark.parametrize('failure', ['write', 'flush', 'fsync', 'close'])
+def test_failed_publication_leaves_only_unpublished_part(tmp_path, monkeypatch, failure):
+    import r14_overlap
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    out = tmp_path/'report'
+    out.mkdir()
+    original_open = Path.open
+
+    class FailingSink:
+        def __init__(self, stream):
+            self.stream = stream
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.stream.__exit__(*args)
+            if args[0] is None and failure == 'close':
+                raise OSError('fixture close failure')
+
+        def write(self, payload):
+            if failure == 'write':
+                self.stream.write(payload[:len(payload)//2])
+                raise OSError('fixture write failure')
+            return self.stream.write(payload)
+
+        def flush(self):
+            if failure == 'flush':
+                raise OSError('fixture flush failure')
+            return self.stream.flush()
+
+        def fileno(self):
+            return self.stream.fileno()
+
+    def open_with_failure(path, mode='r', *args, **kwargs):
+        stream = original_open(path, mode, *args, **kwargs)
+        if mode == 'xb' and path.parent == out and path.name in ('REPORT.json', 'REPORT.json.part'):
+            return FailingSink(stream)
+        return stream
+
+    def fail_fsync(fd):
+        raise OSError('fixture fsync failure')
+
+    monkeypatch.setattr(Path, 'open', open_with_failure)
+    if failure == 'fsync':
+        monkeypatch.setattr(r14_overlap.os, 'fsync', fail_fsync)
+    report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                       publication_guard=lambda needed: None)
+    assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+    assert report['publication_status'] == 'REFUSED'
+    assert not (out/'REPORT.json').exists()
+    assert (out/'REPORT.json.part').is_file()
+
+
+def test_storage_refusal_after_close_prevents_report_rename(tmp_path):
+    from r14_overlap import run_to_report
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    out = tmp_path/'report'
+    out.mkdir()
+
+    def refuse_after_write(needed):
+        if (out/'REPORT.json.part').is_file():
+            raise OSError('fixture post-write storage cap')
+
+    report = run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                           publication_guard=refuse_after_write)
+    assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+    assert report['publication_status'] == 'REFUSED'
+    assert not (out/'REPORT.json').exists()
+    assert (out/'REPORT.json.part').is_file()
+
+
+def test_failed_rename_preserves_unpublished_part(tmp_path, monkeypatch):
+    import r14_overlap
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    out = tmp_path/'report'
+    out.mkdir()
+
+    def fail_rename(source_path, target_path):
+        raise OSError('fixture rename failure')
+
+    monkeypatch.setattr(r14_overlap.os, 'rename', fail_rename)
+    report = r14_overlap.run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                                       publication_guard=lambda needed: None)
+    assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+    assert report['publication_status'] == 'REFUSED'
+    assert not (out/'REPORT.json').exists()
+    assert (out/'REPORT.json.part').is_file()
+
+
+def test_successful_publication_seals_complete_report(tmp_path):
+    import json
+    from r14_overlap import run_to_report
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    out = tmp_path/'report'
+    out.mkdir()
+    report = run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                           publication_guard=lambda needed: None)
+    assert report['status'] == 'PASS' and report['complete'] is True
+    assert json.loads((out/'REPORT.json').read_text()) == report
+    assert not (out/'REPORT.json.part').exists()
+
+
+def test_publication_never_overwrites_existing_report(tmp_path):
+    from r14_overlap import run_to_report
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    out = tmp_path/'report'
+    out.mkdir()
+    final = out/'REPORT.json'
+    final.write_bytes(b'preserved prior evidence\n')
+    report = run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                           publication_guard=lambda needed: None)
+    assert report['status'] == 'UNVERIFIED' and report['complete'] is False
+    assert report['publication_status'] == 'REFUSED'
+    assert final.read_bytes() == b'preserved prior evidence\n'
+    assert not (out/'REPORT.json.part').exists()
+
+
+def test_failed_resolution_receipt_is_preserved(tmp_path):
+    from r14_overlap import run_to_report
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [FEN])
+    def mutate(item):
+        if item['stage'] == 'train_file_complete':
+            h.write_text(OTHER+' | 0 | 0.5\n')
+    out = tmp_path / 'report'
+    out.mkdir()
+    report = run_to_report([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, out,
+                           progress=mutate, publication_guard=lambda needed: None)
+    assert report['status'] == 'UNVERIFIED'
+    receipt = report['resolution_receipts'][0]
+    assert receipt['complete'] is False and receipt['rows'] == 1
+    assert receipt['expected_md5'] == hm and receipt['actual_md5'] != hm
+
+
+def test_runtime_inventory_rejects_unlisted_file(tmp_path):
+    import json
+    from r14_overlap import verify_runtime
+    runtime = tmp_path / 'runtime'
+    runtime.mkdir()
+    module = runtime / 'module.py'
+    module.write_bytes(b'pass\n')
+    inventory = tmp_path / 'inventory.jsonl'
+    inventory.write_text(json.dumps(dict(path=str(module),md5=hashlib.md5(module.read_bytes()).hexdigest()))+'\n')
+    pin = hashlib.md5(inventory.read_bytes()).hexdigest()
+    verify_runtime(runtime_root=runtime, inventory=inventory, expected_inventory_md5=pin)
+    (runtime/'unexpected.pth').write_text('unexpected\n')
+    with pytest.raises(ValueError, match='file set'):
+        verify_runtime(runtime_root=runtime, inventory=inventory, expected_inventory_md5=pin)
+
+
+def test_owned_dependency_marker_is_verified_read_only(tmp_path):
+    import json
+    from r14_overlap import verify_runtime
+    runtime = tmp_path / 'runtime'
+    marker = runtime/'python/Lib/site-packages/setuptools/_vendor/.lock'
+    marker.parent.mkdir(parents=True)
+    marker.write_bytes(b'')
+    inventory = tmp_path/'inventory.jsonl'
+    inventory.write_text(json.dumps(dict(path=str(marker),md5=hashlib.md5(b'').hexdigest()))+'\n')
+    report = verify_runtime(runtime_root=runtime, inventory=inventory,
+                            expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
+    assert report['verified_files'] == 1 and marker.read_bytes() == b''
+
+
+def test_runtime_inventory_rejects_external_root_before_inventory_read(tmp_path):
+    from r14_overlap import verify_runtime
+    with pytest.raises(ValueError, match='outside D:/a14'):
+        verify_runtime(runtime_root=Path('D:/a13/runtime'),
+                       inventory=tmp_path/'not-created.jsonl')
+
+
+def test_runtime_marker_exception_stays_inside_owned_root(tmp_path, monkeypatch):
+    import json
+    import run_policy
+    from r14_overlap import verify_runtime
+    owned = tmp_path/'owned'
+    owned.mkdir()
+    runtime = tmp_path/'external-runtime'
+    marker = runtime/'python/Lib/site-packages/setuptools/_vendor/.lock'
+    marker.parent.mkdir(parents=True)
+    marker.write_bytes(b'')
+    inventory = owned/'inventory.jsonl'
+    inventory.write_text(json.dumps(dict(path=str(marker), md5=hashlib.md5(b'').hexdigest()))+'\n')
+    monkeypatch.setattr(run_policy, 'ROOT', owned)
+    with pytest.raises(ValueError, match='outside D:/a14'):
+        verify_runtime(runtime_root=runtime, inventory=inventory,
+                       expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
+    assert marker.read_bytes() == b''
+
+
+@pytest.mark.parametrize('name', ['other.lock', '.lock.backup.lock'])
+def test_runtime_inventory_rejects_neighboring_locks(tmp_path, name):
+    import json
+    from r14_overlap import verify_runtime
+    runtime = tmp_path/'runtime'
+    neighbor = runtime/'python/Lib/site-packages/setuptools/_vendor'/name
+    neighbor.parent.mkdir(parents=True)
+    neighbor.write_bytes(b'')
+    inventory = tmp_path/'inventory.jsonl'
+    inventory.write_text(json.dumps(dict(path=str(neighbor), md5=hashlib.md5(b'').hexdigest()))+'\n')
+    with pytest.raises(ValueError, match='protected component'):
+        verify_runtime(runtime_root=runtime, inventory=inventory,
+                       expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
+    assert neighbor.read_bytes() == b''

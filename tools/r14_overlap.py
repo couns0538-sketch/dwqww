@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import os
+import stat
 import sys
 import time
 
@@ -112,6 +113,8 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
     matched = {name: set() for name in KEYS}
     holdout_overlap_rows = Counter()
     resolution_receipts = []
+    if state is not None:
+        state['resolution_receipts'] = resolution_receipts
     if any(candidates.values()):
         for path in holdouts:
             receipt = {}
@@ -198,19 +201,52 @@ def source_identities():
     return [file_identity(ROOT/'tools'/name) for name in ('r14_overlap.py', 'r14_scan.py', 'run_policy.py')]
 
 
-def verify_runtime():
-    inventory = ROOT/'evidence/r14/runtime-files.jsonl'
-    if file_identity(inventory)['md5'] != '0dee4106b1ab3160fb7f5759ef0ef972':
+def runtime_path(path, root):
+    candidate = Path(path)
+    marker = root/'python/Lib/site-packages/setuptools/_vendor/.lock'
+    if candidate != marker:
+        return safe_path(candidate)
+    # This installed package ships an empty marker. It is not a production lock;
+    # admit only this exact owned inventory entry for read-only identity checks.
+    parent = safe_path(candidate.parent)
+    info = candidate.lstat()
+    if not stat.S_ISREG(info.st_mode) or getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+        raise ValueError('redirected runtime marker')
+    return parent/candidate.name
+
+
+def runtime_file_digest(path, root):
+    checked = runtime_path(path, root)
+    with checked.open('rb') as stream:
+        return hashlib.file_digest(stream, 'md5').hexdigest()
+
+
+def verify_runtime(*, runtime_root=ROOT/'runtime', inventory=ROOT/'evidence/r14/runtime-files.jsonl',
+                   expected_inventory_md5='0dee4106b1ab3160fb7f5759ef0ef972'):
+    runtime_root = safe_path(runtime_root, write=True)
+    inventory = safe_path(inventory)
+    if file_identity(inventory)['md5'] != expected_inventory_md5:
         raise ValueError('runtime inventory identity changed')
     count = 0
+    expected_paths = set()
     with inventory.open(encoding='utf-8') as stream:
         for line in stream:
             item = json.loads(line)
-            path = safe_path(item['path'])
-            if not path.is_relative_to(ROOT/'runtime') or file_identity(path)['md5'] != item['md5']:
+            path = runtime_path(item['path'], runtime_root)
+            normalized = str(path).casefold()
+            if normalized in expected_paths or not path.is_relative_to(runtime_root) or runtime_file_digest(path, runtime_root) != item['md5']:
                 raise ValueError('runtime file identity changed')
+            expected_paths.add(normalized)
             count += 1
-    return dict(inventory=file_identity(inventory), verified_files=count, executable=file_identity(sys.executable))
+    actual_paths = set()
+    for path in runtime_root.rglob('*'):
+        checked = runtime_path(path, runtime_root)
+        if checked.is_file():
+            actual_paths.add(str(checked).casefold())
+    if actual_paths != expected_paths:
+        raise ValueError('runtime file set differs from pinned inventory')
+    return dict(inventory=file_identity(inventory), runtime_root=str(runtime_root), verified_files=count,
+                exact_file_set=True, executable=file_identity(sys.executable))
 
 
 def run_to_report(holdouts, training, pins, out, *, publication_guard, guard=lambda: None,
@@ -229,16 +265,23 @@ def run_to_report(holdouts, training, pins, out, *, publication_guard, guard=lam
         receipts = state.get('input_receipts', {'holdout': [], 'train': []})
         report = dict(schema=1, scope='position_keys_only', status='UNVERIFIED', complete=False,
                       error_type=type(exc).__name__, reason=str(exc), input_receipts=receipts,
+                      resolution_receipts=state.get('resolution_receipts', []),
                       partial_coverage={name: coverage(items) for name, items in receipts.items()},
                       game_identity_status='UNVERIFIED', keys=None)
     report.update(elapsed_seconds=time.monotonic()-started, source_identities=identities, runtime=runtime)
     payload = (json.dumps(report, indent=2)+'\n').encode('utf-8')
     try:
+        final = safe_path(Path(out)/'REPORT.json', write=True)
+        pending = safe_path(Path(out)/'REPORT.json.part', write=True)
+        if final.exists():
+            raise FileExistsError('final report already exists')
         publication_guard(len(payload)+1024*1024)
-        with safe_path(Path(out)/'REPORT.json', write=True).open('xb') as stream:
+        with pending.open('xb') as stream:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
+        publication_guard(1024*1024)
+        os.rename(safe_path(pending, write=True), safe_path(final, write=True))
     except BaseException as exc:
         report.update(status='UNVERIFIED', complete=False, publication_status='REFUSED', publication_reason=str(exc))
         print(json.dumps(report), flush=True)

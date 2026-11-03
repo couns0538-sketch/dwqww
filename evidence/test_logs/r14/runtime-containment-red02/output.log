@@ -1,0 +1,56 @@
+.........FF.......................                                       [100%]
+================================== FAILURES ===================================
+_____ test_runtime_inventory_rejects_external_root_before_inventory_read ______
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/runtime-containment-red02/tmp/test_runtime_inventory_rejects1')
+
+    def test_runtime_inventory_rejects_external_root_before_inventory_read(tmp_path):
+        from r14_overlap import verify_runtime
+        with pytest.raises(ValueError, match='outside D:/a14'):
+>           verify_runtime(runtime_root=Path('D:/a13/runtime'),
+                           inventory=tmp_path/'not-created.jsonl')
+
+D:\a14\tests\test_r14_overlap.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\a14\tools\r14_overlap.py:228: in verify_runtime
+    if file_identity(inventory)['md5'] != expected_inventory_md5:
+       ^^^^^^^^^^^^^^^^^^^^^^^^
+D:\a14\tools\r14_overlap.py:195: in file_identity
+    with path.open('rb') as stream:
+         ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/runtime-containment-red02/tmp/test_runtime_inventory_rejects1/not-created.jsonl')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\runtime-containment-red02\\tmp\\test_runtime_inventory_rejects1\\not-created.jsonl'
+
+pathlib.py:1013: FileNotFoundError
+____________ test_runtime_marker_exception_stays_inside_owned_root ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/runtime-containment-red02/tmp/test_runtime_marker_exception_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000451B170>
+
+    def test_runtime_marker_exception_stays_inside_owned_root(tmp_path, monkeypatch):
+        import json
+        import run_policy
+        from r14_overlap import verify_runtime
+        owned = tmp_path/'owned'
+        owned.mkdir()
+        runtime = tmp_path/'external-runtime'
+        marker = runtime/'python/Lib/site-packages/setuptools/_vendor/.lock'
+        marker.parent.mkdir(parents=True)
+        marker.write_bytes(b'')
+        inventory = owned/'inventory.jsonl'
+        inventory.write_text(json.dumps(dict(path=str(marker), md5=hashlib.md5(b'').hexdigest()))+'\n')
+        monkeypatch.setattr(run_policy, 'ROOT', owned)
+>       with pytest.raises(ValueError, match='outside D:/a14'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_overlap.py:161: Failed
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_runtime_inventory_rejects_external_root_before_inventory_read
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_runtime_marker_exception_stays_inside_owned_root
+2 failed, 32 passed in 0.40s

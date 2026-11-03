@@ -6,6 +6,8 @@ $out=Join-Path $root ('sep\overlap-'+$Name)
 $log=Join-Path $root ('evidence\r14\overlap-'+$Name+'.log')
 if ((Test-Path -LiteralPath $out) -or (Test-Path -LiteralPath $log)) { throw 'Existing run refused' }
 if ((Get-PSDrive D).Free -lt (50GB+16MB) -or (Get-PSDrive C).Free -lt 30GB) { throw 'Disk admission refused' }
+$ownedBytes=(Get-ChildItem -LiteralPath $root -File -Recurse -Force | Measure-Object -Property Length -Sum).Sum
+if ([long]$ownedBytes+16MB -ge 5000000000L) { throw 'Owned storage admission refused before log allocation' }
 $process=[Diagnostics.Process]::GetCurrentProcess()
 $oldPriority=$process.PriorityClass
 $names=@('TEMP','TMP','CUDA_VISIBLE_DEVICES','HIP_VISIBLE_DEVICES','OMP_NUM_THREADS','OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','ASTRA_R14_DEADLINE','ASTRA_R13_DEADLINE')

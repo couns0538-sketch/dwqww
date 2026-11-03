@@ -49,3 +49,24 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
   reachability cannot manufacture original identities. No export payload exists.
 - Next: launch guarded overlap and qualification, implement complete source
   segment mapping, and retain all group mismatches and unknown boundaries.
+
+## 13:45 Vienna checkpoint
+
+- Native qualification completed in399.375 seconds: one million foundation pairs
+  resolved with zero disagreements. All10011 legal-set comparisons matched,
+  covering260282 successors. Extra strata resolved2053 pairs;20 deep positive
+  searches remained UNKNOWN at the node limit. Report MD5
+  b91461a33503289c3025b5723d202d72. No authentic-identity claim follows.
+- Full overlap production03 is running onCPU2. At123.672 seconds,7208960 rows
+  of013 had valid keys; these partial counts do not establish zero overlap.
+- Runtime containment and atomic report publication passed focused rechecks;
+  their final targeted suite passed42 tests. Failed write/flush/fsync/close and
+  resource-admission cases cannot leave a published PASS report.
+- Hourly13:41:21 health: training9.78 iterations/second; gate570 games complete,
+  highest finished number572. D61.52GB free, C136.91GB; owned about502MB.
+- Group-to-observed-range mapper has13 passing tests and is under focused
+  review. Segment scanner construction continues. Exact source identity is
+  checked separately from observed chains; export remains blocked.
+- Scoped Git attributes now preserve exact PC bytes for R14 delivery paths.
+  Existing evidence is restaged with original PC newlines; this changes stored
+  newline bytes only, not measurements, and preserves old commit history.
