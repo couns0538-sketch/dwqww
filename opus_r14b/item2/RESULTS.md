@@ -293,13 +293,13 @@ before `FastSparseBatchProvider` releases the ring slot, and the packed-index pa
 native_owned + CUDA without HIP, which this ROCm trainer never takes - no use-after-release.
 Docs: exit code 1 described in RELABEL_HANDOFF.md and the skill forge-relabel-job.
 
-## After hunt #3: a launcher that reported success for a program that never started (20:25-20:31)
+## After hunt #3: a launcher that reported success for a program that never started (20:24-20:27)
 | # | finding | fix | check |
 |---|---|---|---|
 | L1 (20:25, found while converting the full 1M output) | `lowrun.ps1` (the launcher every R14-B tool uses to run a program at low priority on CPUs 2-3) ended with exit 0 when Start-Process could not start the program (missing file), and ran it with an invalid handle when a redirect folder did not exist - a caller trusting the exit code would count a program that never ran as a success | exit 127 with a message in both cases and for a missing stdin file; the program's own exit code otherwise. Same fixed file (sha256 cc7f28dd...) in all three branches | missing exe 127, missing stdout / stderr folder 127, missing stdin 127, `cmd /c exit 3` 3, echo with redirect 0 + output, stdin redirect works, Idle 0 |
 Every caller in item 2 (build_probe_opt.sh, probe_bench.py) also checks its outputs, so no recorded result was affected (the probe builds and the probe answers are checked by sha256 and by comparing answers).
 
-## The full 1M proof sample with the LTO+PGO probe (18:48-20:24) and through Forge's converters (20:31)
+## The full 1M proof sample with the LTO+PGO probe (18:48-20:24) and through Forge's converters (20:27)
 - `relabel2.py` (bf714c67 for prepare / run, the 20:2x branch code for assemble) on the proof's inputs (`--rows
   1000000 --jobs 2`, rows.tsv = the proof's), probe `C:\o14b\pgo2\pgo\forge_data_probe.exe` (LTO+PGO, sha256
   08299f9f...), 20k nodes, 2 workers, CPUs 2-3 Idle: **train.txt / val.txt / labels.tsv identical to the proof's
