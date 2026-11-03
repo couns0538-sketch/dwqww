@@ -70,3 +70,15 @@ Skill `forge-opus-tools` has the full usage. All read-only towards other process
 | commit_span.py | `python -I -B commit_span.py --repo REPO --since "..." origin/<branch>...` | time per branch and pauses from commit times (for reports; no guessed hours) |
 | cpu_users.ps1, pc_gate.ps1, lowrun.ps1 | see the skill | load sample, load / RAM / disk gate, run one program pinned at low priority |
 | test_tools.sh | `bash test_tools.sh NEW_DIR` | 14 checks of abba.py and doc_lint.py (exit codes and output lines) |
+
+### Review R14B-T-1 (20:00-20:05 PC clock; structured self-review, NOT independent; no sub-agents)
+Reviewed: abba.py, doc_lint.py, engine_fresh_check.sh, commit_span.py, opus_status.sh at opus-r14b-status 6fc27230.
+Findings and fixes (000182d7): abba.py crashed with a traceback on a non-hex `--mask`, a mask beyond the PC's 16 CPUs
+(after creating the output folder) and a metric group that is not a number - now clean exit-2 messages, the driver
+pins itself before it creates anything; doc_lint.py skipped GitHub tables written with one dash per delimiter cell,
+reported URL-encoded relative links (`a%20b.md`) as dead, and scanned bytes in a Python loop - fixed (C-speed scan);
+opus_status.sh labelled the load sample "CPUs 2-3" although it lists processes ALLOWED there - label made exact.
+Documented, not changed: wall times include the shell start (use --metric for short commands); `--shell cmd`
+cannot take inner double quotes. Checks after the fixes: test_tools.sh 14/14 PASS (3 new), doc_lint over all branch
+folders and skills 0 findings. Next: engine_fresh_check.sh build path on the lock and an engine branch once CPUs 2-3
+are free.

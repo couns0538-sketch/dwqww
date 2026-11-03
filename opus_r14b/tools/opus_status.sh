@@ -34,7 +34,7 @@ Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match \$pat -and
   \$c = (\$_.CommandLine -replace '\s+', ' ' -replace '\"', '' -replace '[A-Za-z]:[/\\\\]grok-pc-data[/\\\\]dwqww[/\\\\]\.claude[/\\\\]worktrees[/\\\\]', '<wt>/' -replace '\S*python\.exe', 'py')
   if (\$p) { '  {0,-6} {1,-18} {2,-11} aff 0x{3:X} cpu {4,7:N0}s  {5}' -f \$_.ProcessId, \$_.Name, \$p.PriorityClass, [int64]\$p.ProcessorAffinity, \$p.CPU, \$c.Substring(0, [Math]::Min(120, \$c.Length)) }
 }" 2>/dev/null
-echo "== CPUs 2-3"
+echo "== processes allowed on CPUs 2-3 that used CPU in the last 3 s (cores = their use on any CPU)"
 powershell -NoProfile -File "$(cygpath -w "$here/cpu_users.ps1")" -Mask 0xC -Seconds 3 2>/dev/null | tail -n +2 | head -6
 echo "== memory and disks (floors: C: / D: >= 50 GB; F: write-forbidden)"
 powershell -NoProfile -Command "
