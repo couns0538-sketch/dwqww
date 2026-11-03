@@ -6,7 +6,7 @@ sha256 444e854e...). Labels come from the R13 probe `C:\o13\p5\forge_data_probe.
 source d4f4312; transposition table, histories and caches cleared before every search). Engine NNUE decides whether
 any of these labels are used; nothing here is a strength claim. The 50M run is not started.
 
-**State (2026-11-02 21:52 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
+**State (2026-11-02 21:51 PC clock; details in the dated sections below, the newest at the end):** relabel2.py
 FROZEN at sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 (after bug hunt 3 and the verify
 chain). Test suite: 150 PASS / 0 FAIL in the worktree and in fresh clones (the 19 / 19 below is the afternoon's
 first version). The 1M kill / resume proof (frozen proof code 5c88438f) and the bridge tie the frozen code to it; the
