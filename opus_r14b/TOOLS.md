@@ -274,3 +274,14 @@ lines in the memory note. One more finding while reading the check scripts:
   files patched) where the plain one was refused. Fixed with a file-identity check first; `test_installer.sh` 28 / 28.
   Details: item 1 RESULTS.md. The Bash tool turned that path's backslashes into `\?` once more while two documents
   were being edited (FINAL_REPORT, the skill); fixed with the Edit tool and checked byte by byte.
+- More checks without a finding (04:33-04:46): the launcher's existing-output refusal also sees the `\\?\` spelling
+  of a file (Test-Path true, exit 127, file kept); the GPU command's `Set-Location D:\o14b\npt` reaches the started
+  program (cmd /c cd printed `D:\o14b\npt`), so its relative `train.py` resolves; RELABEL_HANDOFF's 50M job goes to
+  a new folder on C: (> 70 GB free); every absolute path the handoffs and the three R14-B skills cite exists (28
+  distinct; the only absent ones are the GPU run's future outputs and one `NNN` pattern); verify_job.py with wrong
+  arguments ends with exit 2 and one line (a misspelt `--conver` is argparse's abbreviation of `--convert`, so it ran
+  the full check); all eight skill copies on the branches equal `.claude/skills`; no own process runs besides the
+  watcher; final_checks.sh dry runs 04:33 and 04:39: 8 / 8 steps PASS.
+- F-9 (record): item 1 RESULTS' review record of 13:45 still listed three TODOs; a dated note now says what was done
+  later and that the loss match WITH validation was never run (RAM floor at L1 1024), the validation batches being
+  shown byte-identical instead.
