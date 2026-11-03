@@ -473,3 +473,12 @@ R8 v5 shards 001-057 with e01caaf1 and the LTO+PGO probe: prepare exit 0 (2,973 
 cut as the 21:20 dry run), run 2,973 rows in 17 s (634,842 rows/h, the planning rate), status, assemble, fen2bin
 2,855 records = the train lines, bad 0 (logs/runbook_as_written_2300.log). One note added to the runbook: GNU
 sha256sum prints a leading "\" before the hash when the path contains backslashes (as `$P` does here).
+
+## Memory at 50M rows (desk analysis of e01caaf1, 23:03; not measured at that size)
+Nothing in prepare / run / assemble holds the rows: prepare streams rows.tsv and keeps one game's rows at a time plus
+one length and one start ply per game (`lengths`, `starts`) - for 50M rows of ~85-row games about 0.6M games, i.e.
+two lists of ~0.6M small ints, a few tens of MB; with `--jobs 2` at most 2 x 2 + 1 blocks of 4,096 lines are in flight.
+run keeps one byte offset per shard (5,000 for 50M rows) and labels 256 rows per probe request batch. assemble streams
+the shards and keeps the game ids of each split in two sets (~0.6M short strings, tens of MB). So the 50M job needs
+about the memory of the 1M runs plus some tens of MB; the PC's RAM floor is not at risk. sort_normalized.py is the
+one tool that holds its input (R33: it checks the RAM first).
