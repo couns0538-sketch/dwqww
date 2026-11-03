@@ -7,6 +7,16 @@ coding-tool research, then a full review/fix hour from 05:37 to 06:37 UTC.
 The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
 No engine changes, training, GPU or crew-process interference is authorized.
 
+Developer-tool milestone: native CodeRabbit 0.9.2 is authenticated, with ten
+included reviews reported available; no remote review has run yet. Existing Ruff
+0.16.0 scanned the live Python/tests with no auto-fixes. Its 345 observations are
+being triaged, including a possible optimized-Python audit bypass. Hypothesis
+6.170.14 and Coverage.py 7.17.0 are isolated under C: (3.02 MB expanded, full
+licences retained), leaving installed npt/Python packages unchanged. A baseline
+branch-coverage run and bounded generated-input checks are pending. Research and
+tool selection are recorded in DEV_TOOLS_RESEARCH.md. GitHub searches found no
+PR for this branch or open issue matching datafilter at this checkpoint.
+
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
 material boundary cases pass. Fresh 100k old/new identity, 1,000 results and

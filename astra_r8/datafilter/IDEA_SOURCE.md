@@ -58,3 +58,13 @@ The strict PGN preflight is original code. The installed python-chess parser and
 its public visitor API were inspected, along with [upstream parser documentation](https://github.com/niklasf/python-chess/blob/master/chess/pgn.py)
 via Context7, to understand forgiving recovery and variant handling. No parser
 implementation was copied; the library still handles SAN legality and game trees.
+
+The additional developer-tool investigation is documented in
+DEV_TOOLS_RESEARCH.md. Ruff (MIT) is used from its existing installation.
+Hypothesis 6.170.14 (MPL-2.0), Coverage.py 7.17.0 (Apache-2.0) and
+sortedcontainers 2.4.0 (Apache-2.0) are separate, unmodified test-tool packages
+under C:/astra8_data/extension3h_20261103, with complete wheel licences preserved.
+They are not vendored into this repository or Forge; the generated-case harness
+and regressions are original task code. Exact download URLs, SHA256 values and
+sizes are retained in tools_install.json. No GPL/AGPL engine/training code or
+external chess dataset was copied for these checks.
