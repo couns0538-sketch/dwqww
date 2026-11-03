@@ -85,6 +85,11 @@ def main():
             start = dt.datetime.strptime(a.start, "%Y-%m-%d %H:%M") if a.start else end - dt.timedelta(hours=a.hours)
         except ValueError:
             ap.error("--from / --to must be YYYY-MM-DD HH:MM")
+        if start >= end:
+            ap.error(f"the window is empty: --from {start:%Y-%m-%d %H:%M} is not before --to {end:%Y-%m-%d %H:%M}")
+        fh.seek(0)
+        fh.readline()
+        first = next((t for t in (parse_time(fh.readline().decode("latin-1")) for _ in range(5)) if t), None)
         fh.seek(first_offset_at_or_after(fh, size, start))
         fh.readline()
         vals = {c: [] for c in idx}
@@ -111,7 +116,8 @@ def main():
             u = vals[COLUMNS[0]][-1] if vals[COLUMNS[0]] else None
             if u is not None:
                 hourly.setdefault(t.strftime("%m-%d %H:00"), []).append(u)
-    print(f"{a.csv}: {start:%Y-%m-%d %H:%M:%S} -> {end:%Y-%m-%d %H:%M:%S}, {rows} rows (last row in the file "
+    span = f"{first:%Y-%m-%d %H:%M:%S}" if first else "?"
+    print(f"{a.csv}: {start:%Y-%m-%d %H:%M:%S} -> {end:%Y-%m-%d %H:%M:%S}, {rows} rows (the file covers {span} -> "
           f"{last:%Y-%m-%d %H:%M:%S})")
     if rows < a.min_samples:
         print(f"gpu_util_stats: only {rows} rows in the window", file=sys.stderr)

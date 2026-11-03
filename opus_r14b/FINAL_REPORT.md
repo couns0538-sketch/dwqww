@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 21:29), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 21:33), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -43,8 +43,10 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   seeds per process from the clock).
 - The GPU use it should raise, measured (keeper's HWiNFO log, `tools/gpu_util_stats.py`): the live npt line with the
   default loader, 2026-11-02 15:14-21:14: GPU Utilization mean 45.7 %, p50 48 %, >= 90 % in only 4.0 % of samples;
-  hourly means 40-56 %. The trainer runs at Idle on 2-4 CPUs (the keeper sets the mask 0x3 / 0xF) and got 0.4-0.6
-  cores at 21:19-21:22 next to BelowNormal crew jobs. On one logical CPU in the live thread setting the default loader
+  hourly means 40-56 %. The trainer runs at Idle on 2-4 CPUs (the keeper sets the mask 0x3 / 0xF) and used 0.4-0.6
+  cores at 21:19-21:22 on CPUs that were 86-90 % busy, mostly with heavier-class work - but with 10-14 % idle time
+  left, so it was not purely CPU-starved (an early "starved" wording was corrected in hunt #5). On one logical CPU in
+  the live thread setting the default loader
   costs 2.45 and the fast loader 0.34 CPU-us per kept position (7.19x, CI 7.08-7.26): feeding the live line takes
   0.30-0.41 of a CPU with the default loader, 0.04-0.06 with the fast one. The GPU window must show the effect.
 - Robustness (bug hunt #4): 371 damaged-file runs incl. a bounds-checked build: clean errors, no crash, no hang; one
@@ -131,7 +133,8 @@ details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt: 05:00-06:00.
 - GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
 - Engine NNUE decides on the 50M relabel (inputs, node count, probe); RELABEL_HANDOFF.md has commands and costs.
 - R15: start only after this report's final version; use the corrected pins; keep the four exes (P6 crfix: done above).
-- Crew: the npt trainer runs at Idle on its own mask (0x3 / 0xF, set by the keeper) and got 0.4-0.6 cores of its two CPUs
-  at 21:19-21:22 while BelowNormal crew jobs with affinity on all CPUs (Astra's audit_forge_admission.py) used ~1 core
-  each; GPU 31-50 % in the same minutes. Keeping such jobs off the trainer's CPUs, or another priority class for the
+- Crew: the npt trainer runs at Idle on its own mask (0x3 / 0xF, set by the keeper) and used 0.4-0.6 cores of its two
+  CPUs at 21:19-21:22; those CPUs were 86-90 % busy (21:32), mostly with heavier-class work such as BelowNormal crew
+  jobs with affinity on all CPUs (Astra's audit_forge_admission.py, ~1 core each), with 10-14 % idle left; GPU 31-50 %
+  in the same minutes. Keeping such jobs off the trainer's CPUs, or another priority class for the
   trainer, is the crew's decision (item 1 RESULTS; the overnight watcher log has the series).

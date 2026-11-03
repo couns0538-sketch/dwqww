@@ -95,7 +95,7 @@ H="$S/hw.csv"   # HWiNFO layout: d.m.yyyy, unpadded H:M:S.fff, one unnamed value
   for i in $(seq 0 19); do printf '2.11.2026,10:%d:%d.000,%d.0,%d.0,0,7.0,\n' $((i / 6)) $(( (i % 6) * 10 )) $((i * 5)) $((i * 5)); done
   printf '2.11.2026,10:9:59.000,50.0'; } > "$H"
 "$PY" -I -B "$here/gpu_util_stats.py" --csv "$H" --from "2026-11-02 10:00" --to "2026-11-02 10:05" > "$S/gpu.out" 2>&1
-check gpu-util-window 0 $? "$S/gpu.out" ' 20 rows ' 'GPU Utilization \[%\]: n 20, mean 47\.5, p10 10\.0, p50 50\.0, p90 90\.0' '>= 90 %: 10\.0 % of samples'
+check gpu-util-window 0 $? "$S/gpu.out" ' 20 rows .the file covers 2026-11-02 10:00:00 -> ' 'GPU Utilization \[%\]: n 20, mean 47\.5, p10 10\.0, p50 50\.0, p90 90\.0' '>= 90 %: 10\.0 % of samples'
 "$PY" -I -B "$here/gpu_util_stats.py" --csv "$H" --from "2026-11-02 11:00" --to "2026-11-02 12:00" > "$S/gpu_empty.out" 2>&1
 check gpu-util-empty-window 2 $? "$S/gpu_empty.out" 'only 0 rows in the window'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
