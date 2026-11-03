@@ -1,11 +1,13 @@
 # RELABEL_HANDOFF - for Engine NNUE (R14-B item 2; UNPROVEN as training data, the 50M run is NOT started)
 
-## State (2026-11-02 18:45 PC clock)
-- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`): sha256 bf714c67... The 1M kill / resume
-  proof ran on the frozen 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt /
-  labels.tsv md5 identical). The current code keeps the labelling / resume path as identical source
-  (logs/fn_diff_frozen_vs_post_proof.txt) and reproduces the proof's rows.tsv and final files byte for byte
-  (bridge_check.sh, RESULTS.md). Tests: `test_relabel2.sh SCRATCH` 75 / 75 PASS.
+## State (2026-11-02, updated 19:20 PC clock)
+- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`): the branch head (sha256 in the latest
+  RESULTS.md entry; 64c311d3... since 19:15 adds the disk floor `--min-free-gb`). The 1M kill / resume proof ran on
+  the frozen 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5
+  identical). Later versions keep the labelling / resume path as identical source (logs/fn_diff_frozen_vs_post_proof.txt)
+  and reproduced the proof's rows.tsv and final files byte for byte (bridge_check.sh, RESULTS.md). Tests:
+  `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
+  kill / resume) - run it after any change.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
   `build_probe_opt.sh OUT D:\o14b\r2\pgo_req\train_2k.tsv`, two builds gave the same sha256). 10,000 / 10,000 answers
@@ -48,6 +50,9 @@ normalized JSONL output is accepted with `--normalized` when sorted by (source, 
   a game runs from one shard into the next (271 ends at move 57 of a game that 272 continues). relabel2 treats the
   inputs as one stream and only its game rule splits games, so give the files in name order from one folder (any
   other order is exit 2). The old `selfplay_out\forge_selfplay_NNN.txt` files end and start at game boundaries.
+- Disk floor: prepare, run and assemble take `--min-free-gb` (default 50 = the PC rule for C: and D:). prepare (~1.5x
+  its input) and assemble (~170 bytes per row: ~8.5 GB for 50M rows) refuse to start a write that would cross it;
+  run stops before the next shard (exit 3, logged in sessions.log; published shards stay, the same command resumes).
 - One process per job (`job.lock`; a second one stops with exit 3). The session tools on this PC cannot stop a
   process: bound a session with `--until` and run the same command again later.
 
