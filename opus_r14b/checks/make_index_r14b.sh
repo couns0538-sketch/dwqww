@@ -41,6 +41,7 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "relabel2.py=the relabel tool: prepare / run / assemble / status (FROZEN)" \
   --desc "test_relabel2.sh=test suite: exit codes with reasons, --jobs 2, game across files, disk floor, kill / resume" \
   --desc "job_damage.py=damaged job state x run / assemble / status: 105 runs, exit 4 / 3 / 2 with a reason or 0 (a case of test_relabel2.sh)" \
+  --desc "verify_job.py=read-only check of a finished job before its labels are used (hashes, rows, splits, shards, converters)" \
   --desc "prove_resume.sh=the 1M kill / resume proof driver" \
   --desc "bridge_check.sh=post-proof code vs the proof's outputs" \
   --desc "fn_diff.py=function-level diff of two relabel2.py versions" \
