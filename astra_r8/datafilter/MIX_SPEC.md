@@ -1,9 +1,10 @@
 # Matched result-mask recipes — UNPROVEN
 
-Current v3 handoff SHA256:
+Historical v3 handoff SHA256 (runtime-proof refresh pending):
 `9a7f019d757976955662381207efeededf8cc55181142271c5ae80552eef80be`.
 Both CPU preflights and strict published verification pass for source 7ba94a6c.
 The entry point rejects stale runtime/tooling identities.
+Current-source commands below require the next verified manifest before crew use.
 Final review and broader descriptive corpus checks remain in progress.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production

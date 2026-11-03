@@ -4,11 +4,13 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 from filter_positions import sha256, low_priority
 from clear_holdouts import EXPECTED_HOLDOUTS
 
 HERE=Path(__file__).resolve().parent
 APPROVED_PREVIOUS_SHA256='0b75136d5d3ead9881b8dc78f0b46ee55d918de499884272c790356f8001d4bb'
+APPROVED_MANIFEST=HERE/'evidence/handoff_manifest.json'
 MIN_MIRRORS=1000
 TOOLING=('convert_forge.py', 'result_codec.py', 'filter_positions.py', 'pgn_input.py',
          'resource_policy.py', 'filter_lichess_rec.py', 'signcheck.py',
@@ -20,6 +22,45 @@ EXPECTED_RECIPES={'filtered_eval_v1':{'selfplay_known_lambda':1.0,'other_lambda'
                   'filtered_wdl_v1':{'selfplay_known_lambda':0.8,'other_lambda':1.0}}
 EXPECTED_HYPERPARAMETERS={'features':'K32H3^','L1':1024,'batch_size':16384,
                          'epoch_size':152500000,'epochs':8,'lr':0.000875,'gamma':0.72,'seed':5108}
+
+
+def approved_runtime():
+    """Recover the complete installed-runtime contract from the immutable first handoff."""
+    payload=APPROVED_MANIFEST.read_bytes()
+    if hashlib.sha256(payload).hexdigest()!=APPROVED_PREVIOUS_SHA256:
+        raise ValueError('approved runtime contract manifest changed')
+    return json.loads(payload)['runtime']
+
+
+def verify_runtime(runtime, allowed):
+    expected=approved_runtime()
+    if not isinstance(runtime,dict) or runtime.keys()!=expected.keys():
+        raise ValueError('incomplete runtime identity')
+    if any(runtime[key]!=value for key,value in expected.items() if key!='files'):
+        raise ValueError('runtime versions differ from the approved contract')
+    files=runtime['files']
+    if not isinstance(files,dict) or not files:
+        raise ValueError('missing runtime file identities')
+    observed={}
+    for path,digest in files.items():
+        if (not isinstance(path,str) or not path or '\x00' in path
+                or not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest)):
+            raise ValueError('invalid runtime file identity')
+        resolved=Path(path).resolve()
+        if resolved in observed:
+            raise ValueError('duplicate resolved runtime file')
+        observed[resolved]=(path,digest)
+    pinned={Path(path).resolve():digest for path,digest in expected['files'].items()}
+    if observed.keys()!=pinned.keys():
+        raise ValueError('runtime file set differs from the approved contract')
+    local={Path(path).resolve() for path in REVIEWABLE_RUNTIME}
+    exempt={Path(path).resolve() for path in allowed}
+    for resolved,(path,digest) in observed.items():
+        if resolved not in local and digest!=pinned[resolved]:
+            raise ValueError('installed runtime identity differs from the approved contract')
+        if resolved not in exempt and sha256(path)!=digest:
+            raise ValueError('runtime hash mismatch: '+path)
+
 
 def count_value(value, name, minimum=0):
     if type(value) is not int or value < minimum:
@@ -101,6 +142,7 @@ def verify(path, *, allow_runtime_changes=()):
     if not allowed <= REVIEWABLE_RUNTIME:raise ValueError('runtime migration outside reviewed local modules')
     historical=bool(allowed) and manifest_digest==APPROVED_PREVIOUS_SHA256
     if allowed and not historical:raise ValueError('runtime migration requires the approved historical manifest')
+    verify_runtime(manifest['runtime'],allowed)
     if not historical:
         tooling=manifest.get('tooling')
         expected={(HERE/name).resolve() for name in TOOLING}
@@ -112,9 +154,6 @@ def verify(path, *, allow_runtime_changes=()):
     if manifest['train']['rows']!=manifest['metadata']['rows'] or manifest['train']['sha256']!=manifest['metadata']['sha256']:
         raise ValueError('metadata alignment mismatch')
     if Path(manifest['sample']['path']).stat().st_size>20*10**6: raise ValueError('sample over 20 MB')
-    for p,h in manifest['runtime']['files'].items():
-        if str(Path(p).resolve()) not in allowed and sha256(p)!=h:
-            raise ValueError('runtime hash mismatch: '+p)
     for p,h in manifest.get('tooling',{}).items():
         if sha256(p)!=h:raise ValueError('tooling hash mismatch: '+p)
     wrapper=manifest['baseline_wrapper']

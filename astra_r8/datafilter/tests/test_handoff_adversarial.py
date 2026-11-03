@@ -14,7 +14,11 @@ def fixture(tmp_path, monkeypatch):
     for name in ('train','metadata','validation','sample'):manifest[name]=dict(payload)
     wrapper=tmp_path/'wrapper.py';wrapper.write_bytes(b'# fixture\n')
     manifest['baseline_wrapper']={'path':str(wrapper),'sha256':v.sha256(wrapper)}
-    manifest['runtime']={'files':{str(wrapper):v.sha256(wrapper)}}
+    native=tmp_path/'native.dll';native.write_bytes(b'owned runtime fixture\n')
+    manifest['runtime']={'python':'fixture-python','torch':'fixture-torch',
+                         'files':{str(wrapper):v.sha256(wrapper),str(native):v.sha256(native)}}
+    approved=copy.deepcopy(manifest['runtime'])
+    monkeypatch.setattr(v,'approved_runtime',lambda:copy.deepcopy(approved),raising=False)
     manifest['cohort']={'count':2, 'source_order':[str(rows)],
                         'hashes':{'million.jsonl':payload['sha256']},
                         'sources':[{'path':str(rows),'sha256':v.sha256(rows),

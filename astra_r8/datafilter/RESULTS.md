@@ -5,8 +5,9 @@
 New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
-their pinned source files. The current v3 handoff and 290-test suite are verified.
-Final review and the broader source-reservoir/native checks remain pending.
+their pinned source files. The v3 handoff and 290-test suite are verified for their
+source. The approved runtime-proof fix requires a new manifest; final review and
+the broader source-reservoir/native checks remain pending.
 
 | Success test | Current evidence |
 |---|---|
@@ -16,7 +17,7 @@ Final review and the broader source-reservoir/native checks remain pending.
 | 4 Deliberate failures | PASS: 290 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v3 manifest, sample and both CPU preflights PASS; final review/expanded corpus proof pending |
+| 7 Handoff | v3 manifest/sample/CPU preflights PASS for pinned source; runtime-proof refresh and final review pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net
@@ -181,6 +182,17 @@ verification PASS on source 7ba94a6c. New manifest SHA256
 `9a7f019d757976955662381207efeededf8cc55181142271c5ae80552eef80be`,
 at `C:/astra8_data/quality6h_20261102/handoff_v3/manifest.json`.
 The selected payload/sample hashes, correlation and 1,000 mirrors are unchanged.
+
+Runtime proof milestone: nine RED cases reproduced standalone verification
+accepting omitted runtime pins/versions, duplicate or substituted paths, and
+changed installed fixture bytes with recomputed hashes. The verifier now binds
+the complete runtime set and versions to the exact immutable original manifest.
+Only already authorized local modules may differ, and their current hashes still
+must match. Installed npt, native DLL, loader and trainer remain unchanged.
+Fifty related tests then eleven focused boundary tests PASS. The reused reviewer
+APPROVED verifier SHA256
+`123e38a45bd14300e14ba9eb5cddf02f2269d55a4d5b0d85b7e5959c19ec3432`.
+Current-source v4 refresh follows; the original v3 proof remains preserved.
 
 ## 30-minute follow-up audit — complete and independently approved
 

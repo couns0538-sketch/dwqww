@@ -181,6 +181,11 @@ source consumption, retained/excluded conservation and sign/mirror evidence to
 the exact payload. If historical proofs need migration, authorize the specific
 historical digest and specific local modules; newly published proofs must satisfy
 the full current contract. Preserve old receipts instead of editing their pins.
+For installed-runtime proof, require the complete approved file set and versions,
+not just hashes of the entries supplied by a new manifest. Rehashing a changed
+installed DLL does not make it the approved runtime. Keep permitted local changes
+explicit and verify their actual current bytes; do not extend that exception to
+installed packages or duplicate resolved-path aliases.
 
 Count parsing/validation/serialization in the CPU budget, not only pool workers.
 For a two-process budget with a computing coordinator, permit one pool process.

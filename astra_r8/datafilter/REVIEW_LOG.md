@@ -1,5 +1,24 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: complete approved-runtime proof
+
+Candidate base 7cb2264a. Verifier SHA256
+`123e38a45bd14300e14ba9eb5cddf02f2269d55a4d5b0d85b7e5959c19ec3432`;
+test_runtime_proof.py `638434954d7f40c772e13dda3183e878c23257b8bcc3bbe08ece437729ff024a`;
+shared adversarial fixture `69f1b797b813bc2e20a299f4dbdedcc0366cf8b8ec323d414c5c37a995660baa`.
+Nine RED cases reproduced incomplete or replaced runtime evidence passing the
+standalone verifier. It now reads the approved original manifest from one byte
+snapshot, verifies its hard pin, and requires matching versions, the complete
+resolved file set and approved installed-file hashes. Existing local exceptions
+remain restricted and still require actual current hashes in published proofs.
+The historical migration gate is unchanged. Fifty related checks PASS, followed
+by eleven focused tests including local-change acceptance and changed-contract
+rejection. The reused reviewer verified all three source hashes, the original
+manifest pin and scoped whitespace, and APPROVED with no blocking finding.
+It ran no tests, native commands or agents and made no edits. Main accepted the
+review and extended the existing training-data skill. Next: v4 refresh; final
+full-suite/native/evidence review remains reserved. No loader/trainer changes.
+
 ## Six-hour continuation: v3 runtime and full-suite closure
 
 Source 7ba94a6c includes the approved single-line admission fix. The unchanged

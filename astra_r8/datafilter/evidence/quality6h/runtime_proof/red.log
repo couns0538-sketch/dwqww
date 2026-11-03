@@ -1,0 +1,328 @@
+FFFFFFFFF                                                                [100%]
+================================== FAILURES ===================================
+________ test_runtime_omission_or_replacement_cannot_pass[empty_files] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000190B3A10>
+damage = 'empty_files'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+_______ test_runtime_omission_or_replacement_cannot_pass[missing_file] ________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000194969F0>
+damage = 'missing_file'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+______ test_runtime_omission_or_replacement_cannot_pass[missing_python] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000195699A0>
+damage = 'missing_python'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+______ test_runtime_omission_or_replacement_cannot_pass[changed_python] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019547DD0>
+damage = 'changed_python'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+_______ test_runtime_omission_or_replacement_cannot_pass[changed_torch] _______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019569AC0>
+damage = 'changed_torch'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+________ test_runtime_omission_or_replacement_cannot_pass[extra_file] _________
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000019547E60>
+damage = 'extra_file'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+______ test_runtime_omission_or_replacement_cannot_pass[substitute_path] ______
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956A900>
+damage = 'substitute_path'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+_ test_runtime_omission_or_replacement_cannot_pass[rehash_changed_installed] __
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956ABD0>
+damage = 'rehash_changed_installed'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+__ test_runtime_omission_or_replacement_cannot_pass[duplicate_resolved_path] __
+
+tmp_path = WindowsPath('C:/astra8_data/quality6h_20261102/runtime_proof_red/pytest/test_runtime_omission_or_repla8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000001956AB10>
+damage = 'duplicate_resolved_path'
+
+    @pytest.mark.parametrize('damage', ['empty_files','missing_file','missing_python',
+                                      'changed_python','changed_torch','extra_file',
+                                      'substitute_path','rehash_changed_installed',
+                                      'duplicate_resolved_path'])
+    def test_runtime_omission_or_replacement_cannot_pass(tmp_path,monkeypatch,damage):
+        path,manifest,_=fixture(tmp_path,monkeypatch)
+        runtime=manifest['runtime']
+        native=tmp_path/'native.dll'
+        if damage=='empty_files':runtime['files']={}
+        elif damage=='missing_file':runtime['files'].pop(str(native))
+        elif damage=='missing_python':runtime.pop('python')
+        elif damage=='changed_python':runtime['python']='different-python'
+        elif damage=='changed_torch':runtime['torch']='different-torch'
+        elif damage in ('extra_file','substitute_path'):
+            extra=tmp_path/'different.dll';extra.write_bytes(native.read_bytes())
+            runtime['files'][str(extra)]=v.sha256(extra)
+            if damage=='substitute_path':runtime['files'].pop(str(native))
+        elif damage=='rehash_changed_installed':
+            native.write_bytes(b'changed owned runtime fixture\n')
+            runtime['files'][str(native)]=v.sha256(native)
+        else:
+            alias=str(native.parent)+os.sep+'.'+os.sep+native.name
+            runtime['files'][alias]=runtime['files'][str(native)]
+        path.write_text(json.dumps(manifest))
+>       with pytest.raises(ValueError,match='runtime'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+astra_r8\datafilter\tests\test_runtime_proof.py:36: Failed
+=========================== short test summary info ===========================
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[empty_files]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[missing_file]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[missing_python]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[changed_python]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[changed_torch]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[extra_file]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[substitute_path]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[rehash_changed_installed]
+FAILED astra_r8/datafilter/tests/test_runtime_proof.py::test_runtime_omission_or_replacement_cannot_pass[duplicate_resolved_path]
+9 failed in 3.87s
