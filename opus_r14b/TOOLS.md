@@ -155,3 +155,7 @@ Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to 
   first version printed the sub-scripts' last lines (one looked like its own end line): now PASS / FAIL counts.
 - Two shell lines lost their trailing `\` when I added them with `sed 'a\'` through the Bash tool (make_index): found
   by reading the result, fixed with the Edit tool; `bash -n` cannot catch it (the broken line is still valid shell).
+- Desk check (23:12, no finding): the speed statistics behind the reported ratios - abba.py and item 1's fl_abba.py
+  use the two-sided 95 % Student-t quantiles for 1-30 degrees of freedom (every value equals the table, e.g. 2.262
+  at 9); abba.py's Cornish-Fisher expansion above 30 gives 2.0394 at 31 (exact 2.0395); both pair the A and B run of
+  the same slot (AB / BA alternating) and abba.py takes the interval on log ratios (geometric mean).
