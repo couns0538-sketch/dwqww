@@ -6,7 +6,8 @@ User extended again at 2026-11-03 04:22 UTC: four further hours of improvements,
 then a full review/fix hour. Current schedule: 04:23–08:23 UTC improvements,
 08:23–09:23 UTC deep review, repairs and verification. The earlier 05:37–06:37
 review window had not started and is superseded.
-The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
+The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
+the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
 User correction recorded in R12_HANDOFF.md: use only FD3A5190 and bench
@@ -94,6 +95,11 @@ metadata preserved and all installed npt code unchanged. Adversarial tests are
 authored but not executed. NATIVE_INPUT_REVIEW.md records the exact contract.
 Protected v7 remains unchanged; a reviewed repaired adapter will require a new
 v8 handoff and both CPU preflights. At 05:20 UTC D: has 54,594,408,448 bytes free.
+Further focused inspection confirmed data-index and manifest-reload races in
+the original adapter. Planned identity checks bind hashes to actual read handles
+and parsed manifest bytes before referenced files are opened. Fixture-only
+regressions are prepared; no original dataset is modified. D: recovered to
+57,670,012,928 bytes at 05:31 UTC. The two scans continue without rejected rows.
 
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native

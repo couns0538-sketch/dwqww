@@ -1,0 +1,41 @@
+# Current bounded work queue — UNPROVEN
+
+Authorized schedule: 2026-11-03 04:23–08:23 UTC improvement; 08:23–09:23 UTC
+deep review, fixes and verification. Continue the original task across user
+steering/compaction. No engine edits, training, GPU, crew controls or data removal.
+
+1. Let the two reviewed single-worker admission scans finish with validator
+   files frozen. Both use BelowNormal and occupy the total two-worker budget.
+   Active artifacts: `C:/astra8_data/extension5h_20261103/admission_part0` and
+   `admission_part1` (currently `.partial`). Do not inventory active logs.
+2. When the first slot is free, run the new union/lock harness tests and safe
+   RED boundary/race regressions with one computing worker. Do not run the full
+   suite alongside the other scan because existing tests can use both slots.
+   Do not send unsafe pre-fix whitespace/overflow fixtures to the C ABI.
+3. Once both scans close, verify command exits, complete disjoint source union,
+   counts, source identities/hashes, validator identities and sealed references.
+   Record actual source attribution before changing records.py. Preserve all
+   failures; a prefix or a still-running job is not full-corpus evidence.
+4. Implement the reviewed Lichess selection/castling and native input/identity
+   repairs after actual RED reproductions. Keep board_from_fen, record and
+   selfplay_record unchanged if possible; record exact changed function hashes.
+   Run quick checks, request focused rechecks, and assess every finding.
+5. Verify corrected startpos/Kiwipete d5 and five bench pins through the exact
+   FD3A5190 UCI executable. Byte-compare and fully hash both cleared JSONL files.
+   Preserve the complete protected v7 tree; its manifest must retain the pin.
+6. Replay current native-input admission over the complete cleared cohort,
+   without native allocation or new full datasets. Run full CPU tests, fresh
+   legacy/result/bounded-filter proofs and a new v8 handoff with both CPU
+   preflights. No training command may be executed without --check.
+7. Use the reserved final hour for the scoped authenticated CodeRabbit review,
+   main assessment/fixes, focused reviewer rechecks and necessary validation.
+   No paid-credit override. Preserve exact reviewed code/config/log identities.
+8. Hash closed extension artifacts, bind historical evidence with original
+   source attribution, run the Forge evidence consistency checker, update the
+   handoff documents/skills and push the final branch tip. R12 inherits that
+   final reviewed tip, not e526fc12. All strength remains UNPROVEN.
+
+Draft tools and tests are locally prepared but have not passed execution yet;
+they must not be called accepted. If storage blocks the optional full-corpus
+bonus, preserve it and redirect work within the remaining authorized resource
+limits. D: must remain >=50 GB; C: >50 GB; aggregate retained artifacts <=15 GB.

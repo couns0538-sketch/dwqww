@@ -14,6 +14,16 @@ safe monitored-ABI failures and actual canonical tensor comparisons after repair
 Execution remains pending a free CPU slot. These are source-inspection findings,
 not a claim of an observed native crash. NATIVE_INPUT_REVIEW.md gives details.
 
+The reused reviewer then confirmed two input-identity races: RowFile captured
+its identity baseline after a separate hash/index sequence and checked only a
+path before fetching; Context reread a manifest after main discarded the
+verifier's digest. Main accepted the proposed input-boundary repairs and the
+reviewer's added requirement to check opened handles, not paths alone. The
+verified manifest identity must be checked before constructing any RowFile and
+again before PASS/delegation. Temporary-fixture mutation and redirection tests
+are authored. Implementation and actual RED/GREEN runs remain pending the CPU
+slot; no change to indexing order, sampler, recipes or installed code is planned.
+
 The lock-correction harness draft review found a snapshot race: v7 could change
 between its initial expected-hash check and the protected-tree snapshot. Main
 accepted the finding and requires the captured manifest hash to match the pin

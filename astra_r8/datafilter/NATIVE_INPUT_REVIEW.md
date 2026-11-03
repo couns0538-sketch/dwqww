@@ -42,3 +42,20 @@ local npt_adapter.py path in addition to the previously reviewed local files.
 Installed-runtime restrictions remain intact. A new v8 directory will carry
 fresh full-cohort admission, both CPU recipe preflights and strict verification;
 the protected `extension3h_20261103/handoff_v7` directory remains untouched.
+
+The same input-boundary review found two independent identity races. RowFile
+hashes the source, indexes it separately, then records the later size/mtime;
+an intervening rewrite can become the new accepted baseline. Its fetch checks
+only the path before reading. The planned repair binds complete file identity
+before/after indexing and the opened handle before/after each read, retaining
+the same offsets and sampler. This is metadata-based mutation detection between
+batches, not a claim to rehash the entire dataset for every batch.
+
+The entry point also discards the verified manifest digest before Context loads
+the manifest again. Context hashes a separate later read rather than the exact
+bytes it parsed. The planned repair binds the verifier's identity before either
+RowFile is constructed, hashes the parsed bytes, and rechecks the original path
+before preflight PASS or delegation. The reviewer confirmed both paths and
+required handle checks so temporary path redirection cannot evade path-only
+checks. Deterministic temporary-fixture mutation tests are authored; no original
+dataset or manifest is mutated by those tests.

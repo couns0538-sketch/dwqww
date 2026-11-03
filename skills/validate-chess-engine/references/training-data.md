@@ -319,6 +319,15 @@ deterministic tie handling. Unknown state requires an explicit schema and guards
 at every consumer; rejecting an incomplete source is safer than making its
 synthetic counters look known. Data licensing and code licensing are separate.
 
+A successful hash before a separate indexing pass does not bind the indexed
+bytes if the identity baseline is captured only afterward. Pin before and after
+indexing and check the opened handle as well as the path; a temporarily redirected
+path can otherwise evade path-only checks. Check file identity after fetching
+rows before returning them. Hash the exact manifest bytes that were parsed,
+bind them to the preceding verification result before opening referenced files,
+and recheck the original path before reporting PASS or delegating execution.
+Do not describe metadata-based mutation detection as per-batch full rehashing.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or
