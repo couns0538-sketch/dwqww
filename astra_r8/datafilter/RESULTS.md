@@ -10,8 +10,9 @@ The previous pause preserved all work. Current queue: EXTENSION5H_QUEUE.md;
 the repository-root QUALITY6H_PLAN.md preserves the earlier plan.
 No engine changes, training, GPU or crew-process interference is authorized.
 
-At the 05:56 UTC checkpoint the two strict source-admission scans have checked
-more than 170 million rows, with zero rejections so far. They remain in progress
+At 06:00:23 UTC the two strict source-admission scans have checked
+172,413,894 rows, with zero rejections so far. This corrects the prior checkpoint's
+premature 05:56 timestamp for the rounded progress count. They remain in progress
 and occupy both allowed CPU slots. Entrypoint regressions now also cover
 manifest replacement after verification, during runtime initialization, and
 immediately before delegation. These authored tests have not run yet. Focused

@@ -59,3 +59,12 @@ before preflight PASS or delegation. The reviewer confirmed both paths and
 required handle checks so temporary path redirection cannot evade path-only
 checks. Deterministic temporary-fixture mutation tests are authored; no original
 dataset or manifest is mutated by those tests.
+
+The per-batch identity check is deliberately a file/handle metadata check.
+Python 3.12 on Windows still reports creation time in st_ctime; it is not a
+portable last-change clock, and nanosecond fields do not imply nanosecond
+filesystem precision. Keep the device/file identifier and size/mtime checks,
+compare the actual opened handle, and run healthy Windows cases as well as
+mutation cases. Initial/final content hashes establish indexed input identity;
+metadata checks do not promise detection of adversarial same-size writes with
+restored timestamps. See the [Python 3.12 stat contract](https://docs.python.org/3.12/library/os.html#os.stat_result).

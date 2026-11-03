@@ -327,6 +327,13 @@ rows before returning them. Hash the exact manifest bytes that were parsed,
 bind them to the preceding verification result before opening referenced files,
 and recheck the original path before reporting PASS or delegating execution.
 Do not describe metadata-based mutation detection as per-batch full rehashing.
+Apply the same exact-byte rule to audit receipts: hash the payload passed to the
+JSON parser, then compare the current path hash and any prior binding. Separate
+hash/read/hash calls can accept temporary substituted content under a restored
+file's digest. Pair negative mutation fixtures with healthy cases through the
+same initialization path so unconditional rejection cannot masquerade as a fix.
+On Windows, do not treat st_ctime as a portable last-change timestamp; use the
+actual runtime's documented stat semantics and verify path/handle agreement.
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

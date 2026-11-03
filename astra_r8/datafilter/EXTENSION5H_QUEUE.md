@@ -12,6 +12,9 @@ steering/compaction. No engine edits, training, GPU, crew controls or data remov
    RED boundary/race regressions with one computing worker. Do not run the full
    suite alongside the other scan because existing tests can use both slots.
    Do not send unsafe pre-fix whitespace/overflow fixtures to the C ABI.
+   Include test_receipt_byte_identity.py and test_manifest_entry_races.py;
+   retain the latter's healthy CPU-check/stub-delegation controls. The draft
+   BoundInputs exact-byte repair is also pending an actual RED reproduction.
 3. Once both scans close, verify command exits, complete disjoint source union,
    counts, source identities/hashes, validator identities and sealed references.
    Record actual source attribution before changing records.py. Preserve all
