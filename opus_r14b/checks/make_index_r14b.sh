@@ -34,12 +34,12 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "tools/b5_checks.sh=b5 check script (config matrix, spanning batches)" \
   --desc "tools/lowrun.ps1=run one program at low priority on a CPU mask (exit 127 if it cannot start)"
 "$PY" -I -B "$MK" "$W/o14b-r2/opus_r14b/item2" --title "R14-B item 2 resumable relabel, branch opus-r14b-relabel" \
-  --header "relabel2.py FROZEN at sha256 56eef0a6097c223ae488a464e9f2af427eb19585a203cb7640c79e7977372bb3" \
+  --header "relabel2.py FROZEN at sha256 e01caaf1cf8814771033b3deb71727fd0d2eb45f39ee9b27ae54c7d2970f1602" \
   --desc "RELABEL_HANDOFF.md=handoff for Engine NNUE: state, commands, rules, 50M runbook, costs (start here)" \
   --desc "RESULTS.md=all checks, numbers and review records (chronological)" \
   --desc "relabel2.py=the relabel tool: prepare / run / assemble / status (FROZEN)" \
   --desc "test_relabel2.sh=test suite: exit codes with reasons, --jobs 2, game across files, disk floor, kill / resume" \
-  --desc "job_damage.py=damaged job state x run / assemble / status: 102 runs, exit 4 / 3 / 2 with a reason or 0 (a case of test_relabel2.sh)" \
+  --desc "job_damage.py=damaged job state x run / assemble / status: 105 runs, exit 4 / 3 / 2 with a reason or 0 (a case of test_relabel2.sh)" \
   --desc "prove_resume.sh=the 1M kill / resume proof driver" \
   --desc "bridge_check.sh=post-proof code vs the proof's outputs" \
   --desc "fn_diff.py=function-level diff of two relabel2.py versions" \
