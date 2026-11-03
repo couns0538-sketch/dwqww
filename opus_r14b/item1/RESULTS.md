@@ -137,3 +137,6 @@ difference).
   so its sha256 would not be the 39af47b0... that HANDOFF.md names: `opus_r14b/.gitattributes` now keeps code,
   scripts and docs LF in every checkout (logs byte-exact). A rebuild of the DLL from a fresh clone follows (it must
   give 9eb29b7d... again).
+- (19:27, works in Forge) The DLL needs no MinGW runtime: `objdump -p` lists only KERNEL32.dll and the Windows UCRT
+  API sets (api-ms-win-crt-*), and Python loads it and reads its version with PATH = `C:\WINDOWS\system32;C:\WINDOWS`
+  only (the trainer started by the queue does not have MSYS2 / Git folders on its PATH).
