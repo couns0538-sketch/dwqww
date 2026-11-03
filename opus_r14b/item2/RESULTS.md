@@ -89,10 +89,13 @@ every fix is in the dev copy `D:\o14b\r2\dev\relabel2.py` (sha256 b9878a40...) a
 - The proof ran relabel2.py 5c88438f. The code that ships after it differs, so the link is shown, not assumed:
   `fn_diff.py` (logs/fn_diff_frozen_vs_post_proof.txt, re-made at promotion) compares the two function by function.
   The labelling and resume path is **identical source**: `label_shard`, `read_shard_rows`, `row_offsets`,
-  `verify_shard`, `load_prepare`, `write_new`, `write_status`, `append_log`, `file_hash`, `lower_priority`, `new_game`,
-  `board_stats`. In `cmd_run` only the job lock, the tool-hash pin and the two log lines differ (the shard loop with
-  its `.part.N` attempts and the publish rename is unchanged); `cmd_assemble` only gains the lock and writes the
-  manifest before the rename. `cmd_prepare` / `iter_rows` changed (input checks, one input stream, `--jobs 2`).
+  `verify_shard`, `load_prepare`, `write_new`, `append_log`, `file_hash`, `lower_priority`, `new_game`,
+  `board_stats`. At promotion (17:55) `cmd_run` differed only by the job lock, the tool-hash pin and two log lines;
+  since 19:15-19:27 its shard loop also has the disk-floor check before each shard and publishes through
+  `move_retry` (the same rename, retried on a transient PermissionError), and `write_status` retries / skips a locked
+  status file. `cmd_assemble` gains the lock, writes the manifest before the rename and checks the disk floor.
+  `cmd_prepare` / `iter_rows` changed (input checks, one input stream, `--jobs 2`). (Updated 19:40 after the advisor
+  pointed out that the earlier wording had gone stale; the diff is re-made at the code freeze.)
 - What the bridge proves (`bridge_check.sh`, after `finish`): prepare of the proof's sample with the post-proof code
   gives the proof's rows.tsv byte for byte with `--jobs 1` and `--jobs 2`; `run --accept-new-tool` re-verifies all
   100 published shards of a copy of job A; `assemble` on that copy gives job A's train.txt / val.txt / labels.tsv.

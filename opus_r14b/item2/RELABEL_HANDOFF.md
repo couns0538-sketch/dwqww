@@ -1,11 +1,12 @@
 # RELABEL_HANDOFF - for Engine NNUE (R14-B item 2; UNPROVEN as training data, the 50M run is NOT started)
 
 ## State (2026-11-02, updated 19:20 PC clock)
-- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`): the branch head (sha256 in the latest
-  RESULTS.md entry; 64c311d3... since 19:15 adds the disk floor `--min-free-gb`). The 1M kill / resume proof ran on
-  the frozen 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5
-  identical). Later versions keep the labelling / resume path as identical source (logs/fn_diff_frozen_vs_post_proof.txt)
-  and reproduced the proof's rows.tsv and final files byte for byte (bridge_check.sh, RESULTS.md). Tests:
+- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`): use the branch head; its sha256 is written
+  here once the code is frozen (planned for tonight, after the next full check run). The 1M kill / resume proof ran
+  on the frozen 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5
+  identical). Later versions keep the labelling functions as identical source (logs/fn_diff_frozen_vs_post_proof.txt;
+  the shard loop adds a disk-floor check and a retrying publish rename) and reproduced the proof's rows.tsv and final
+  files byte for byte (bridge_check.sh, RESULTS.md; re-run on the frozen code). Tests:
   `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
   kill / resume) - run it after any change.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO

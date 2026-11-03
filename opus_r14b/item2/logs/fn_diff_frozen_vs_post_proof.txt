@@ -1,7 +1,7 @@
-identical: BadInput ConfigMismatch IntegrityError append_log board_stats cmd_status file_hash label_shard load_prepare lower_priority new_game now read_shard_rows row_offsets verify_shard write_new write_status
-changed: cmd_assemble cmd_prepare cmd_run iter_rows main
+identical: BadInput ConfigMismatch IntegrityError append_log board_stats file_hash label_shard load_prepare lower_priority new_game now read_shard_rows row_offsets verify_shard write_new
+changed: cmd_assemble cmd_prepare cmd_run cmd_status iter_rows main write_status
 only in old: -
-only in new: check_args check_block check_row input_sources iter_rows_parallel lock_job open_job parse_line
+only in new: check_args check_block check_row disk_check input_sources iter_rows_parallel lock_job move_retry open_job parse_line
 
 --- diff of cmd_run
 --- frozen
@@ -31,7 +31,20 @@ only in new: check_args check_block check_row input_sources iter_rows_parallel l
 +    append_log(job, f"run start run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} "
 +                    f"workers={a.workers} test_kill_after_s={a.test_kill_after_seconds}")
      if a.test_kill_after_seconds > 0:  # proof hook: abrupt exit at an arbitrary point (like a hard kill)
-@@ -75,3 +81,3 @@
+@@ -47,2 +53,7 @@
+                 break
++            try:  # a shard writes ~1 MB per 10,000 rows; stop before the drive crosses the floor
++                disk_check(job, 64 * 2 ** 20, a.min_free_gb, f"shard {k}")
++            except ConfigMismatch as e:
++                append_log(job, f"run stop run_id={a.run_id} before shard {k}: disk floor ({e})")
++                raise
+             first = k * a.shard_size
+@@ -64,3 +75,3 @@
+                                                           "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
+-            os.rename(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
++            move_retry(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
+             done.add(k)
+@@ -75,3 +86,3 @@
              write_status(job / "status.json", status)
 -    append_log(job, f"run end run_id={a.run_id} shards_done={len(done)}/{shards} session_rows={rows_session}")
 +    append_log(job, f"run end run_id={a.run_id} tool={tool_hash[:16]} shards_done={len(done)}/{shards} session_rows={rows_session}")
@@ -44,7 +57,12 @@ only in new: check_args check_block check_row input_sources iter_rows_parallel l
      job = Path(a.job)
 +    lock = open_job(job)  # noqa: F841 - held until the process ends
      info = load_prepare(job)
-@@ -56,5 +57,4 @@
+@@ -16,2 +17,4 @@
+         verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
++    # train.txt + val.txt + labels.tsv: 157.8 MB per 1M rows in the proof; plan for 170 bytes per row
++    disk_check(job, 170.0 * n, a.min_free_gb, "assemble")
+     tries = [int(x.name.rsplit(".", 1)[1]) for x in job.glob("final.part.*")]
+@@ -56,5 +59,4 @@
              f.close()
 -    os.rename(tmpdir, final)
 -    files = {nm: {"bytes": (final / nm).stat().st_size, "md5": file_hash(final / nm, "md5"),
@@ -52,10 +70,25 @@ only in new: check_args check_block check_row input_sources iter_rows_parallel l
 +    files = {nm: {"bytes": (tmpdir / nm).stat().st_size, "md5": file_hash(tmpdir / nm, "md5"),
 +                  "sha256": file_hash(tmpdir / nm)} for nm in names}
      man = {"run_id": a.run_id, "assembled": now(), "rows": n, "train_rows": counts["train"], "val_rows": counts["val"],
-@@ -62,3 +62,4 @@
+@@ -62,3 +64,4 @@
             "prepare_json_sha256": file_hash(job / "prepare.json"), "shard_labels_sha256": shard_hashes, "files": files}
 -    write_new(final / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
 +    write_new(tmpdir / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
-+    os.rename(tmpdir, final)  # publishes the data files and their manifest together
++    move_retry(tmpdir, final)  # publishes the data files and their manifest together
      print(json.dumps({nm: files[nm]["md5"] for nm in names}))
-frozen 5c88438f8d953056 vs post-proof 63be772c97718cde
+
+--- diff of write_status
+--- frozen
++++ post-proof
+@@ -1,3 +1,4 @@
+ def write_status(path: Path, obj) -> None:
+-    """Status files are replaced atomically; everything else is created once."""
++    """Status files are replaced atomically; everything else is created once. A status file that stays locked (someone
++    reading it) is skipped with a warning: it is information only and must never stop the labelling."""
+     tmp = path.with_name(path.name + ".tmp")
+@@ -7,2 +8,5 @@
+         os.fsync(fh.fileno())
+-    os.replace(tmp, path)+    try:
++        move_retry(tmp, path, replace=True, tries=25)
++    except PermissionError as e:
++        print(f"warning: {path} not updated ({e}); the next shard tries again", file=sys.stderr)frozen 5c88438f8d953056 vs branch file 12f38e0860b1dc22 at 2026-11-02 19:34:20
