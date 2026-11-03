@@ -9,7 +9,7 @@ any of these labels are used; nothing here is a strength claim. The 50M run is n
 ## What R13 had and what is new
 | R13 / R14 P5 (`opus_r13/p5/`) | R14-B `relabel2.py` |
 |---|---|
-| input .pos + FEN sidecar (sidecar fix proven on 1,000 rows) | input = self-play text (`FEN | stm cp | white result`) or Astra normalized JSONL: the original FEN with castling / en passant / clocks is the input itself |
+| input .pos + FEN sidecar (sidecar fix proven on 1,000 rows) | input = self-play text (`FEN \| stm cp \| white result`) or Astra normalized JSONL: the original FEN with castling / en passant / clocks is the input itself |
 | shards redone into `_r<attempt>` dirs; no kill / resume proof | `.part.N` shard dirs published by one rename after fsynced labels + manifest + summary; resume re-hashes every published shard; interrupted attempts kept |
 | no game ids; split by position (Astra's converter) | game id per input file and game (leak-safe rule), split by sha256(salt, game id) |
 | one slice per call | `prepare` / `run` / `assemble` / `status`; exit codes 2 bad input, 3 configuration differs, 4 integrity |
