@@ -287,3 +287,5 @@ lines in the memory note. One more finding while reading the check scripts:
   shown byte-identical instead.
 
 Closed 05:12 by the PC clock (read with `date` when this line was written): F-1..F-9 fixed and recorded, the fresh-clone checks and two final_checks dry runs with 0 failures, test_tools 37 / 37, test_installer 28 / 28. Anything found after this goes to FINAL_REPORT.md as an owner item.
+
+Last end-of-job check: `final_checks.sh C:/o14b/final_last_0533` 05:33:40-05:34:38 after the FINAL report (a4dfd966): 8 / 8 steps PASS, 0 failures - doc_lint 0 findings, indexes committed and verified, fresh-clone sha256sum -c of both items, hash sweep 0 unmatched, test_tools 37 / 37, test_installer 28 / 28, test_scope, test_cli 34 / 34, relabel2.py = frozen e01caaf1, test_helpers 77 / 77, R8 v5 end to end 11 / 11, verify_job --convert, all four worktrees clean and in sync. Only this line and the memory notes came after it.
