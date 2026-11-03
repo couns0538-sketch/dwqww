@@ -48,6 +48,13 @@ python $R status --job C:/<dir>
   label statistics), `measure_rates.sh workers|nodes|prepare` (cost numbers), `build_probe_opt.sh` + `probe_bench.py`
   (LTO / PGO probe builds, label identity, ABBA).
 
+## Costs measured 2026-11-02 (details: RELABEL_HANDOFF.md; labels identical in every comparison)
+- Mask 0xC = the two SMT threads of ONE physical core. 20k nodes, 2 workers: R13 probe ~663k rows/h, LTO+PGO probe
+  `C:\o14b\pgo2\pgo\forge_data_probe.exe` (08299f9f, reproducible build) ~691k rows/h -> 50M rows in 75.4 h / 72.4 h
+  (light crew load); 1 worker ~373k rows/h. 10k nodes 1 worker ~737k rows/h, 5k nodes ~1.19M rows/h.
+- prepare `--jobs 2` ~66M rows/h (50M in ~0.8 h), `--jobs 1` ~43M rows/h; disk ~341 MB per 1M rows (~17 GB / 50M).
+- Path.resolve() costs ~77 us on this PC: never call it per row (R27 doubled the one-process prepare time).
+
 ## Measuring next to crew work
 - Run `opus_r14b/tools/cpu_users.ps1 -Mask 0xC` (branch opus-r14b-status) before every timing and write its output next
   to the rate. Crew jobs at BelowNormal on all CPUs (Astra's profile_corpus.py, 2026-11-02) starve Idle work on CPUs
