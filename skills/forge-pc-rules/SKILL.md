@@ -212,7 +212,9 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
 - Windows will not rename a folder that is a process's working directory ("Device or resource busy"): rename files.
 
 ## R13 (2026-10-31, Couns's 30-hour job, $100 credits; binding until changed)
-- Own processes BelowNormal (Idle for long jobs), <= 2 threads; check load before heavy steps (`opus_r13/tools/pc_gate.ps1`).
+- Own processes BelowNormal (Idle for long jobs), <= 2 threads; check load before heavy steps (`opus_r13/tools/pc_gate.ps1`;
+  since 2026-11-03 use the fixed copy `opus_r14b/tools/pc_gate.ps1` on opus-r14b-status: the R13 original takes
+  unreadable CPU counters and a CPU that does not exist as 0 % load and keeps C: >= 30).
   On 2026-10-31 the gate held 0xFFF0 (8 engines), self-play Idle on 4-15, trainer Idle 0x000F at ~25%: use CPUs 2-3 (0xC).
 - Disks: C: >= 30 GB (Couns's order), D: and F: >= 50 GB; check before every write > 1 GB; scratch <= 20 GB in total
   (prompt says F:\o13; F: was at 45 GB, so C:\o13 was used and that is written in RESULTS.md).

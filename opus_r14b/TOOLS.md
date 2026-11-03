@@ -304,9 +304,14 @@ Items 1, 2 and 4: item 1 RESULTS "Code Review fixes" (branch opus-r14b-fast-load
 The RED of the control first failed on the fixture (numbers given to a PowerShell function as `7.0` were formatted
 as `7.0`, not `7`): the fake now casts them to [double]; the RED run was repeated with it (the log above).
 The test fixture technique (a function shadowing a cmdlet) is in the skill forge-opus-tools.
+Behaviour change to know: with `-ErrorAction Stop` a partial counter error (some instances fail, others return a value)
+now also fails the gate, where the old code computed a load from the surviving samples - fail closed, as the item
+asks; a "could not be read" line can therefore mean one bad counter instance, not a counter outage (the message
+carries Get-Counter's own text).
 CI: no workflow covers these files (ffl-sanitize runs only for `opus_r14b/item1/fastloader/**` and its own file; the
 status branch has none), so the pushes without `[skip ci]` started no run. ffl-sanitize dispatched by hand at 10:22:59
-on the fast-loader head 05f0b120: run 41610632313 **success** (asan-ubsan success, tsan success).
+on the fast-loader head 05f0b120: run 41610632313 **success** (asan-ubsan success, tsan success); again at 10:30:36 on
+the head 34ea50ee (the fl_abba smoke record): run 41611666712 **success** (asan-ubsan success, tsan success).
 Also changed for the records: `checks/make_index_r14b.sh` (index descriptions with the new test counts), two reasoned
 entries in `tools/hash_sweep_allow.txt` (the CR notes' md5s; the hash sweep then had 0 unmatched tokens).
 

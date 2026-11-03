@@ -272,6 +272,11 @@ logs kept), then against the fix. Self-review, NOT independent. The candidate DL
 
 CI: the commits carry no `[skip ci]`, but no workflow covers these files - ffl-sanitize (fast-loader branch) runs only
 for `opus_r14b/item1/fastloader/**` and its own file, and the status branch has no workflow - so the pushes started no
-run; ffl-sanitize was dispatched by hand on the fast-loader head 05f0b120 (run 41610632313, result in TOOLS.md).
+run; ffl-sanitize was dispatched by hand on the fast-loader heads 05f0b120 (run 41610632313) and 34ea50ee (run
+41611666712); results in TOOLS.md.
 Records: item 1 RESULTS "Code Review fixes", TOOLS.md "Code Review fixes", logs in `item1/logs/{installer,cli,fuzz}`
 and `opus_r14b/logs/cr_20261103/`.
+Owner item from these fixes: the R13 original of the load gate, `opus_r13/tools/pc_gate.ps1` on
+opus-r13-p1-nearmiss-ports, has the same Get-Counter pattern (unreadable counters = 0 % load), F-1's missing-CPU
+case and the C: >= 30 floor. It was not changed (outside the two R14-B branches named for these fixes); use
+`opus_r14b/tools/pc_gate.ps1` (the skill forge-pc-rules says so since 2026-11-03).
