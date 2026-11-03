@@ -521,3 +521,9 @@ Real fuzz runs with the new `fl_fuzz.py` (fast DLL b5 `D:\o14b\fl\b5_install`, d
   4 batches then and an error ("record without both kings") now - the H4-1 timing class (a builder working ahead stops
   the stream at a bad record later in the file; whether 4 batches were handed out first depends on thread timing; the
   dumps are now hashed, so the consumer is slower). No batch with a bad record is handed out in either case.
+- fl_abba's normal path after fix 2 (10:29:13-10:29:19, load before: 85 % total, CPUs 2-3 at 48 %): a 2-pair smoke,
+  old w1 vs fast w2, 30 batches with warm-up 5 on the holdout binpack: exit 0, 4 runs, summary written
+  (logs/cli/abba_smoke/). **Code path only, not a speed figure**: 30 batches of 16,384 stay inside the first
+  2^20-entry shuffle window, which both loaders seal before their first batch, so the 25 timed batches include no
+  file reading or filtering (the default loader's 8-13M kept/s there is not its rate); the speed figures stay the
+  420-batch ABBA runs above.
