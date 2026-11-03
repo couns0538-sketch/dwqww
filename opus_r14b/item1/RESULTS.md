@@ -210,3 +210,14 @@ truncations, random byte flips (1, 4 or 32 per file) and a file whose every scor
 | H4-1: flip_238 loads 4 batches on b5 but errors on the assertions build | not a data difference: with 100 batches requested both builds fail with "record without both kings" in all 3 runs each. A builder working ahead stops the whole stream the moment it meets a bad record (fail fast), so whether earlier batches were already handed out depends on thread timing. No batch with a bad record is ever handed out. Documented, no change |
 | H4-2: every score VALUE_NONE (the skip filter keeps nothing) | finite: 0 batches (old loader: 0 batches). **Cyclic: waits forever - the old loader does exactly the same** (both checked with a 20-s limit, 20:51; children ended, no leftovers). A property of the design shared with the default loader, impossible with the J1 data (~10 % kept per pass). Documented in HANDOFF.md's scope; a later version could raise an error after many whole passes without a kept position (b5 stays unchanged: it is the verified candidate) |
 Logs: logs/fuzz/. The fuzz cases are part of `tools/fl_fuzz.py` (the VALUE_NONE file in finite mode only).
+
+## The GPU use the fast loader is meant to raise: a measured baseline (21:14; read-only)
+`opus_r14b/tools/gpu_util_stats.py` (branch opus-r14b-status) on the HWiNFO log the crew's npt keeper reads (one sample
+every ~2 s), while the live npt line ran with the default loader (`--num-workers 4`):
+| window (2026-11-02, PC clock) | samples | GPU Utilization mean / p50 / p90 | >= 90 % | <= 10 % | Compute 0 usage mean | PPT mean |
+|---|---|---|---|---|---|---|
+| 15:14-21:14 (6 h) | 10,790 | **45.7 % / 48 % / 78 %** | **4.0 %** of samples | 13.5 % | 44.4 % | 104.2 W |
+| 12:00-21:00 (9 h) | 16,184 | 46.0 % / 48 % / 78 % | 3.8 % | 11.7 % | 44.9 % | 104.6 W |
+Hourly means 15:00-21:00: 53 / 43 / 40 / 42 / 56 / 43 / 40 %. This is the "GPU at 25-50 %" of the brief, measured. It
+does not by itself show that the loader is the cause (validation, checkpoints and the 2 s sampling are in it): the GPU
+window measures the same column with `--fast-loader` (GPU_REQUEST.md, same command) - item 1's target is >= 90 %.

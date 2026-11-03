@@ -43,7 +43,11 @@ not start with `runs_`. The run folder `C:\o14b\gpu\fl_e1` must not exist before
 ## During and after
 - GPU utilisation: the keeper's own source, HWiNFO CSV `C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv`
   (column `GPU Utilization [%]`), averaged over the training minutes only (from the first progress line to
-  "Epoch 0 (Train): 100%"), plus the 20 % / 40 % / 60 % / 80 % it/s lines of `fl_e1_stdout.log`.
+  "Epoch 0 (Train): 100%"), plus the 20 % / 40 % / 60 % / 80 % it/s lines of `fl_e1_stdout.log`. One command
+  (branch opus-r14b-status, read-only): `python -I -B opus_r14b/tools/gpu_util_stats.py --from "<first progress line,
+  YYYY-MM-DD HH:MM>" --to "<100 % line>" --by-hour` - the same tool gave the baseline of the live line with the
+  default loader (`--num-workers 4`) on 2026-11-02 15:14-21:14: mean 45.7 %, p50 48 %, >= 90 % in 4.0 % of the
+  samples (RESULTS.md).
 - Record: epoch minutes and it/s vs the control epochs; the startup line `Fast loader: ON (..., sha256 9eb29b7d...)`;
   `fl_e1_guard.jsonl` (`aborted: false`, min free RAM, peak private); train / val loss (sanity only: w4 and w1 streams
   are different samples, see RESULTS.md); checkpoint path (kept, never deleted).
