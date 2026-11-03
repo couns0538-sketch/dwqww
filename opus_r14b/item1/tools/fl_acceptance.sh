@@ -32,7 +32,9 @@ fi
 { [ -f "$fast\\forge_fastloader.dll" ] && [ -f "$fast\\forge_fastloader.py" ]; } || {
   echo "no forge_fastloader.dll + .py in $fast (install_fast_loader.py --loader-dll, or give the folder as the 4th argument)" >&2
   exit 2; }
-echo "old loader $old ($(sha256sum < "$old" | cut -c1-16)); fast loader folder $fast ($(sha256sum < "$fast\\forge_fastloader.dll" | cut -c1-16))"
+fsha=$(sha256sum < "$fast\\forge_fastloader.dll" | cut -c1-16)
+echo "old loader $old ($(sha256sum < "$old" | cut -c1-16)); fast loader folder $fast ($fsha)"
+[ "$fsha" = 9eb29b7d134a73eb ] || echo "note: that fast loader DLL is not the b5 candidate (9eb29b7d...) - check which files the folder holds"
 mkdir -p "$out"
 outw=$(cygpath -w "$(cd "$out" && pwd)")
 cd "$copy" || exit 2
@@ -42,7 +44,7 @@ for arm in old fast; do
   w=1; [ "$arm" = fast ] && w=4
   t0=$(date +%s)
   powershell -NoProfile -File "$T\\lowrun.ps1" -Mask 0xC -Priority BelowNormal -Exe 'F:\nnue_pytorch\venv\Scripts\python.exe' \
-    -ArgLine "-B $T\\fl_dataset_equal.py --loader $arm --workers $w --batches 200 --val-batches 61 --out $outw\\ds_$arm.tsv" \
+    -ArgLine "-B \"$T\\fl_dataset_equal.py\" --loader $arm --workers $w --batches 200 --val-batches 61 --out \"$outw\\ds_$arm.tsv\"" \
     -Out "$outw\\ds_$arm.log" -Err "$outw\\ds_$arm.err" || { echo "$arm arm failed: see $out/ds_$arm.err" >&2; exit 1; }
   echo "$arm (--num-workers $w): $(( $(date +%s) - t0 )) s; $(tail -2 "$out/ds_$arm.log" | tr '\n' ' ')"
 done

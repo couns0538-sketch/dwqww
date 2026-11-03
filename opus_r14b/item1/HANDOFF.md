@@ -36,8 +36,9 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    Git Bash prefix `MSYS_NO_PATHCONV=1`, else Git Bash turns `/E` into `E:/` and robocopy copies nothing, exit 16)
    and check it against the installer's base: `cd <COPY> && sha256sum -c <branch>/opus_r14b/item1/trainer_manifest_b2614500.sha256` (264 files,
    all OK = the trainer version the installer's anchors were written for). `D:\o14b\npt` is such a copy, already
-   switched. Checked 2026-11-02 16:04 and again 20:41 (adoption rehearsal from a fresh clone): the live tree still
-   matched (264 / 264).
+   switched - but the loader files next to its train.py are the superseded **b4** (12:43, DLL a4f965aa...): use a fresh
+   copy (steps 1-3), or give the b5 folder to the acceptance check (3b). Checked 2026-11-02 16:04 and again 20:41
+   (adoption rehearsal from a fresh clone): the live tree still matched (264 / 264).
 2. Build the DLL from this branch (`bash fastloader/build_fastloader.sh <new dir>`, ~1 minute; prints sha256, which
    must be 9eb29b7d...) or use `D:\o14b\fl\b5_install\forge_fastloader.dll`.
 3. `python -I -B tools/install_fast_loader.py <COPY> --check --loader-dll <DLL>`, then the same without `--check`: it
@@ -48,8 +49,12 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
 3b. Acceptance check, CPU only, GPU hidden (about 1 minute): `bash tools/fl_acceptance.sh <COPY> <new out dir>` runs
    the trainer's own Dataset -> FixedNumBatchesDataset -> DataLoader path with the old loader (w1; default: the copy's
    own `build\libtraining_data_loader.dll`) and the fast loader (w4; default: the files next to its train.py) and
-   compares every tensor of 200 training + 61 validation batches; exit 0 = identical. On `D:\o14b\npt` (2026-11-02
-   18:46): old 36 s, fast 6 s, **261 / 261 batches identical** (logs/acceptance/).
+   compares every tensor of 200 training + 61 validation batches; exit 0 = identical. It prints the fast DLL's sha256
+   and a note when that is not b5 (9eb29b7d...); a b4-era forge_fastloader.py stops it with a clear message. A
+   different folder for either loader goes in as the 3rd / 4th argument, e.g. on `D:\o14b\npt` (b4 files):
+   `bash tools/fl_acceptance.sh /d/o14b/npt <out> '' 'D:\o14b\fl\b5_install'` - 2026-11-02 18:46: old 36 s, fast 6 s,
+   **261 / 261 batches identical** with b5 (logs/acceptance/: the log names the b5 DLL); again 21:42 into a folder
+   whose name has spaces: 261 / 261. On the fresh-copy rehearsal (20:42) the defaults found the installed b5 files.
 4. Queue line (adapter `F:\forge_nnue_train\tools\train_resid_nnuepytorch_v2.py`): add `--npt-repo <COPY>` and, as the
    LAST arguments, `--npt-extra --fast-loader` (`--npt-extra` takes the rest of the command line). Everything else
    stays as it is. `--num-workers N` sets the fast loader's feature-builder threads to N - 2 (at least 1; plus one

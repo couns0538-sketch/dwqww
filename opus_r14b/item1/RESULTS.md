@@ -257,3 +257,9 @@ Per pair B/A 6.91-7.38, **median 7.19x, 95% CI 7.08-7.26** (ADVISORY). With the 
 at 21:19-21:22, the old loader alone needs most of that share to keep up, leaving little for the training loop
 (tensor copies, kernel launches); the fast loader needs about a tenth of it. This is CPU arithmetic, not a GPU
 measurement: the GPU window decides (GPU_REQUEST.md).
+
+## Bug hunt #5, item 1 part (21:40-21:44; self-review, NOT independent)
+| # | finding | fix | check |
+|---|---|---|---|
+| H5-6 | `tools/fl_acceptance.sh` passed the tools folder and the output folder unquoted inside lowrun's argument line: a path with a space (a checkout under `C:\Users\Some One\`) would split there | both paths quoted | acceptance into "C:\o14b\acc space test b5 2143": 261 / 261 |
+| H5-7 | since 19:24 the acceptance check takes the loader files next to the copy's train.py by default; `D:\o14b\npt` - the copy HANDOFF.md names - holds the superseded **b4** files (12:43), so the documented command on it now failed with an obscure AttributeError. Not a mix-up of evidence: the 18:46 run used the then-default b5 folder and its log names the b5 DLL (9eb29b7d...) | the check prints a note when the fast DLL is not b5; fl_dataset_equal.py stops with "forge_fastloader.py predates the b5 candidate" for a b4-era file; HANDOFF.md says what `D:\o14b\npt` holds and how to pass the b5 folder | stale copy: note + clear message (exit 1); b5 folder given: 261 / 261 |

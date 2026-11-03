@@ -45,6 +45,9 @@ def dump(a) -> int:
         spec = importlib.util.spec_from_file_location("forge_fastloader", os.path.join(fl_dir, "forge_fastloader.py"))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
+        if not hasattr(mod, "library_info"):  # b4 and older: no library_info (seen: D:\o14b\npt holds the b4 files)
+            raise SystemExit(f"{fl_dir}: forge_fastloader.py predates the b5 candidate (no library_info): install the "
+                             f"b5 files (install_fast_loader.py --loader-dll) or give the b5 folder")
         print("fast loader:", mod.library_info(), flush=True)
         cls = mod.FastSparseBatchDataset
     skip = DataloaderSkipConfig(filtered=False, wld_filtered=False)
