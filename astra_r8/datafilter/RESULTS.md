@@ -101,6 +101,14 @@ and parsed manifest bytes before referenced files are opened. Fixture-only
 regressions are prepared; no original dataset is modified. D: recovered to
 57,670,012,928 bytes at 05:31 UTC. The two scans continue without rejected rows.
 
+Latest progress checkpoint: 110,694,940 rows in closed per-source receipts and
+18,000,000 further rows in current progress logs, about 128.7M observed, with no
+rejections so far. This is not a complete-union claim. New tools/regressions are
+backed up as explicitly unexecuted `.py.txt` drafts under
+evidence/extension5h/draft_20261103_0542; DRAFT.json records exact source/copy
+hashes and capture time. They are not imported by pytest or treated as accepted
+code. Active audit logs remain outside this closed draft snapshot.
+
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
 material boundary cases pass. Fresh 100k old/new identity, 1,000 results and
