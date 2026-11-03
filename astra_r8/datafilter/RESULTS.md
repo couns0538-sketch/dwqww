@@ -9,6 +9,16 @@ review window had not started and is superseded.
 The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
 No engine changes, training, GPU or crew-process interference is authorized.
 
+User correction recorded in R12_HANDOFF.md: use only FD3A5190 and bench
+312866/862329/3024920/12389307/34048354; startpos/Kiwipete perft5 are
+4865609/193690690. Existing R8 native checks use the corrected bench pins;
+no rejected sequence was found in R8 tools/evidence or saved engine skills.
+The protected v7 manifest hash was rechecked and matches. R12 must be based on
+the final reviewed R8 tip (d080df79 or later), not e526fc12. The two cleared
+JSONL streams are intentionally identical; both are 315,036,094 bytes with the
+same recorded full SHA256. Fresh file hashing and perft5 are queued until a
+compute slot is free. D: had 58,082,119,680 bytes free at this checkpoint.
+
 Developer-tool milestone: Ruff exposed a confirmed false PASS under Python
 -O/-OO in audit proof checks. Six failures were reproduced before explicit
 runtime validation replaced the assertions. The focused reviewer APPROVED the
@@ -53,8 +63,13 @@ installed npt environment was changed. About 250 MB remains under the output cap
 New current-parser corpus audit: 38 affected tests PASS after focused review
 found and main fixed two false-proof risks. The audit now matches the filter's
 universal-newline input handling, hashes the original bytes, and verifies complete
-reference coverage instead of trusting a flag. A 466,506-row pilot is running
-before choosing the affordable full-source scope. No large run is claimed yet.
+reference coverage instead of trusting a flag. The pilot PASSES all 466,506 rows
+in 25.329 seconds (18,418 positions/s), matching complete SHA256/producer MD5.
+Reviewed full-source execution started at about 04:42 UTC: two single-worker
+BelowNormal partitions covering 143,016,179 and 161,983,394 rows respectively.
+Expected duration is about 2.4 hours, allowing three hours conservatively.
+Only receipts/logs are emitted. Both are in progress; no full-corpus admission
+claim is made until their disjoint 37-source union is independently verified.
 
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native

@@ -41,6 +41,28 @@ not been replayed over every corpus row. Aggregate score/result correlation is
 This descriptive audit produces no new training inputs or full-corpus holdout
 clearance. The recipes still use the separately cleared 999,953-row cohort.
 
+The stricter current-parser replay is now running in two disjoint single-worker
+partitions, after a reviewed 466,506-row pilot passed. It reads original shards
+and emits receipts only. Reproduce a bounded pilot in a new directory with:
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+F:/nnue_pytorch/venv/Scripts/python.exe astra_r8/datafilter/audit_forge_admission.py C:/astra8_data/NEW_admission_pilot --reference-profiles C:/astra8_data/quality6h_20261102/corpus_profile/SUMMARY.json C:/astra8_data/quality6h_20261102/corpus_profile_rest/SUMMARY.json --max-sources 1
+```
+
+The tool checks original SHA256/producer MD5, exact current self-play admission,
+source identity and sealed reference coverage. A bounded or partitioned summary
+does not claim full reference coverage. Do not start extra computation while
+both current partitions occupy the two-worker budget.
+
+The holdout-cleared `records.jsonl` and `metadata.jsonl` are intentionally
+byte-identical: each is the complete normalized record stream, not a reduced
+metadata projection. Each contains 999,953 rows in 315,036,094 bytes, with SHA256
+`0e73a87c2e1af035aed34f51fdd74daefc05833ce133f254845f09f23aeb5dce`.
+This does not imply that binary REC files and their converter sidecars are alike.
+See [R12 handoff constraints](R12_HANDOFF.md) for the corrected lock contract and
+the protected v7 artifact.
+
 ## Interfaces
 
 `convert_forge.py OUT --selfplay INPUT --keep-result` writes the established

@@ -1,5 +1,18 @@
 # Review log — UNPROVEN
 
+## Corrected lock and R12 inheritance contract
+
+Main inspected native_forge_smoke.py, saved lock-proof skills, R8 evidence and
+the holdout split writer after Couns's correction. Existing bench constants are
+the accepted 312866/862329/3024920/12389307/34048354; no use of rejected pins was
+found in the scoped search. The cleared JSONL writer intentionally emits each
+retained complete record to both records.jsonl and metadata.jsonl; recorded
+SHA256 and observed lengths agree. The protected v7 manifest was freshly hashed
+and matches 52f39e0c...720. No datasets or engine files were changed. Fresh full
+holdout file hashes and both canonical perft5 checks are queued behind current
+audits. R12 inheritance remains the eventual final reviewed R8 tip, never the
+obsolete base; see R12_HANDOFF.md.
+
 ## Current-parser source audit, pre-pilot review
 
 New audit_forge_admission.py reuses source planning and the exact current
@@ -12,8 +25,14 @@ pinned report_corpus.py as part of the validator. BOM/CRLF/lone-CR/unterminated
 tails at 8K/16K boundaries are covered. The reviewer rechecked and APPROVED
 SHA256 17d64a3824e916f76f05bbb188f31060a08ff0e087985687d0650ef532c346c5
 for the pilot once tests passed. Actual result: 38 affected tests PASS in 46.51s.
-The 466,506-row pilot is the next action; full-corpus approval remains pending
-measured feasibility. No engine, training, production parser or data was changed.
+The pilot then PASSED all 466,506 rows in 25.329 seconds, complete hashes/counts
+matching the original source. Based on measured feasibility, the reviewer
+APPROVED two disjoint single-worker partitions over 304,999,573 rows. They started
+around 04:42 UTC, with all validator files frozen, BelowNormal priority and no
+other owned compute suites while both are active. Each summary remains a partial
+reference-set claim until the full union is verified. Preserve owned commands,
+exit records and partial evidence. No engine, training, production parser or
+data was changed. Evidence root: C:/astra8_data/extension5h_20261103.
 
 Pyright review: all 30 diagnostics were read and assessed against pinned code
 and installed interfaces. No reachable defect was established; the grouped
