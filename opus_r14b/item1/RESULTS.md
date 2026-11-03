@@ -105,3 +105,20 @@ rules, but the piece-count filter adapts per decode worker, so they are not the 
   (standard, 24-config matrix, 3,100 spanning batches, trainer path); exact CPU loss match; ABBA; full-epoch run.
 - Open: the GPU-window epoch (GPU busy with the npt queue). Next action: Engine NNUE / QA decide about a window
   (GPU_REQUEST.md) and about adopting `--fast-loader` via `tools/install_fast_loader.py` on a trainer copy.
+
+## What the trainer gets: live layout (old loader, --num-workers 4) vs fast loader, as distributions (18:23-18:25)
+`tools/fl_distribution.py stats` on the J1 training binpack, 2,000 batches of 16,384 = 32,768,000 positions each
+(about 1.1 passes over the file), CPUs 2-3 BelowNormal; old = reference DLL copy `D:\o14b\ref` with 4 workers (the live
+layout: three decode workers with their own filter states, not reproducible), fast = b5 with 1 builder (= the old w1
+stream). `compare` (logs/distribution/compare.txt, the two JSON files beside it):
+| histogram | total-variation distance | chi-square (dof) |
+|---|---|---|
+| piece count (0-32) | 0.00048 | 25.3 (29) |
+| side to move | 0.00027 | 4.8 (1) |
+| outcome (0 / 0.5 / 1) | 0.00007 | 0.4 (2) |
+| queen bucket | 0.00013 | 5.2 (3) |
+| score, 100-cp bins | 0.00057 | 57.2 (60) |
+Mean score 0.08 vs 0.21 (internal units): difference -1.17 standard errors (batch-to-batch spread). Every distance is
+below 0.001: switching the live line from w4 to the fast loader changes the sample, not the distribution (chi-square
+values treat positions as independent, which positions inside one shuffle window are not, so they overstate any
+difference).
