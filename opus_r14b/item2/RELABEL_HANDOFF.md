@@ -74,6 +74,37 @@ which holds its input in RAM, ~2.2x the file size, and refuses when that would l
 - One process per job (`job.lock`; a second one stops with exit 3). The session tools on this PC cannot stop a
   process: bound a session with `--until` and run the same command again later.
 
+## 50M runbook - an example on R8 v5 (Engine NNUE picks the inputs, the node count and the probe; NOT started)
+Inputs, counted 2026-11-02 21:17 (read-only): R8 v5 shards 001-057 hold 50,524,643 rows (001-056: 49,599,490), so
+`--rows 50000000` ends at a game boundary inside shard 057. All 57 are finished files (286 shards existed at 20:22; the
+newest one is still being written). Shards 271 + 272 (1.83M rows) held no position without a legal move
+(`terminal_dropped: 0`); `--drop-terminal` is still given below, so that one such row cannot stop a 50M prepare (it
+cannot get a search label; prepare.json counts what was dropped).
+```bash
+PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
+R=<branch opus-r14b-relabel>/opus_r14b/item2/relabel2.py       # sha256 88454db6...
+P=<your copy of the LTO+PGO probe>                               # sha256 08299f9f... (or the R13 probe ed76de96...)
+S=/d/grok-pc-data/selfplay_out_r8v5_20261029
+J=C:/<your folder>/relabel_r8v5_50m                              # a NEW folder on a drive with > 70 GB free
+sha256sum "$R" "$P"                                              # compare with the values above first
+$PY -I -B "$R" prepare --job "$J" --run-id r8v5-50m --rows 50000000 --jobs 2 --drop-terminal \
+    --selfplay $(for i in $(seq -f %03g 1 57); do echo "$S/forge_selfplay_fast_$i.dedup.txt"; done)
+$PY -I -B "$R" run --job "$J" --run-id r8v5-50m --probe "$P" --nodes 20000 --workers 2 --mask 0xC \
+    --until "YYYY-MM-DD HH:MM"                                   # the same command again resumes
+$PY -I -B "$R" status --job "$J"                                 # progress, last rate, ETA, free disk
+$PY -I -B "$R" assemble --job "$J" --run-id r8v5-50m             # final/train.txt, val.txt, labels.tsv, MANIFEST.json
+F:/opus_scratch/rescore_d8/bin/fen2bin.exe "$J/final/train.txt" <out dir>/train.pos   # and val.txt; hce_dump.exe for .hce
+```
+| phase | expected (measured basis) |
+|---|---|
+| prepare `--jobs 2` | ~0.8 h (65.7M rows/h on 200k rows; R8 v5 271 + 272: 1.83M rows in 106 s = 62M rows/h) |
+| run, 20k nodes, 2 workers on CPUs 2-3 (one core), PGO probe | **~79 h** (the whole-1M rate 635k rows/h under real load; ~10 sessions of 8 h with `--until`) |
+| assemble | minutes (1M rows: a few seconds) |
+| fen2bin / hce_dump on the output | ~3 min / ~4 min (1M: 3 s / 5 s) |
+| disk on the job's drive | ~17.1 GB (rows.tsv ~4.5, shards ~4.7, final ~7.9) + .pos ~1.75 GB (35 B per row) + .hce ~0.1 GB |
+Checks before using the output: MANIFEST.json md5s, `game_overlap: 0`, train + val rows = prepare.json's rows, fen2bin
+`records` = lines with `bad=0`, hce_dump `bad_fen=0 clamped=0` (as on the 1M proof sample, logs/conv_full_1M.txt).
+
 ## Cost (measured 2026-11-02, labels identical in every comparison; load on CPUs 2-3 logged next to every number)
 CPUs 2-3 (mask 0xC) are the two SMT threads of ONE physical core of the Ryzen 7 9850X3D: "2 workers" = 2 threads
 sharing one core.

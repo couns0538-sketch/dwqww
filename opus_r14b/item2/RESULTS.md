@@ -349,3 +349,11 @@ plain = R13's exe except the 5 PE timestamp / checksum bytes (137-139, 217-218),
 08299f9f... = the tested exes byte for byte**; the clone-built PGO probe answered probe_ref_500 **500 / 500 identical**
 to the R13 reference. (Item 1's part of the same run - DLL, self-test, acceptance, adoption rehearsal: item 1
 RESULTS.) With this, every step of the verify chain has passed on the frozen code.
+
+## 50M runbook added to RELABEL_HANDOFF.md (21:17-21:19)
+- R8 v5 rows counted read-only (BelowNormal, CPUs 2-3): shards 001-057 = 50,524,643 rows, 001-056 = 49,599,490, so
+  `--rows 50000000` ends inside 057; per-phase times from the measured rates (prepare ~0.8 h, run ~79 h at the whole-1M
+  rate, assemble minutes, converters minutes), disk ~17.1 GB + outputs.
+- Docs as a test: the runbook's prepare command exactly as written (57 inputs, `--jobs 2 --drop-terminal`), only
+  `--rows 3000` and a scratch job folder changed: exit 0, 57 inputs accepted in name order, 1 read (the cut), 2,973 rows
+  (whole games), `terminal_dropped: 0`; `status` prints "not run yet". C:\o14b\runbook_dry_2120.
