@@ -133,3 +133,25 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
 - Binary decoder and jobA integration passed focused review;15 and9 tests
   respectively. The newly authored selected-suite and broader-boundary tools
   remain unaccepted while their targeted regressions/qualification are pending.
+
+## 14:58 Vienna checkpoint
+
+- Full position audit has passed223 million training rows; both holdouts were
+  completely indexed. All processed keys are filled. Digest matches remain
+  candidates pending final exact-key resolution, never reported as real overlap.
+- Production chain scan has passed5.5 million rows in013 with complete parsed
+  endpoint coverage. Whole-scan counts and verdict remain pending.
+- New seed39 NPT recovered to9.61 iterations/second at14:50; gate1075 completed.
+  D61.60GB and C128.45GB free; owned about563MB. No sustained extra workload
+  was admitted during the lower initial new-run reading.
+- Synthetic ambiguity proof passed seven tests and independent review. H1=one
+  game and H2=two games emit identical full row bytes, MD5
+  b1af6b6639edd55f9eab8eb3cbd6d505, with different original ID assignments.
+  Initial seen-state assumption is explicit; this is not an actual-shard leak
+  claim. Manifest MD5 0451c24a9ab8c18a183f7c59f5afeb95.
+- Boundary filter mathematics/core/qualifier passed review and36 quick checks.
+  The native driver needs three additional failure-path fixes: late native close,
+  failed stream close distinguished from successful close, and receipt-I/O pair
+  accounting. Do not start its qualification until bound source identities freeze.
+- Contiguous guarded-candidate plan and open-issue register were added under sep
+  and evidence. Their local proofs cannot substitute for authentic original IDs.

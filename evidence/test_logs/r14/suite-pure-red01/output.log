@@ -1,0 +1,57 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_______ test_import_guard_refuses_training_modules_without_loading_them _______
+
+    def test_import_guard_refuses_training_modules_without_loading_them():
+        import r14_suite
+        guard = r14_suite.ImportGuard()
+        for name in ('train', 'npt_adapter', 'train_adapter', 'torch', 'model.nnue', 'trainer.callbacks',
+                     'NPT_ADAPTER', 'MODEL.nnue'):
+>           with pytest.raises(ImportError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ImportError
+
+D:\a14\tests\test_r14_suite.py:35: Failed
+___________ test_postrun_identity_error_preserves_pytest_exit_code ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-pure-red01/tmp/test_postrun_identity_error_pr0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000003AADC10>
+
+    def test_postrun_identity_error_preserves_pytest_exit_code(tmp_path, monkeypatch):
+        import sys
+        import tempfile
+        import r14_suite
+        source = tmp_path/'test_fixture.py'
+        source.write_text('def test_one(): pass\n')
+        out = tmp_path/'run'
+        (out/'tmp').mkdir(parents=True)
+        original = r14_suite.identities
+        selected_reads = 0
+    
+        def late_read_failure(paths):
+            nonlocal selected_reads
+            if paths == [source]:
+                selected_reads += 1
+                if selected_reads == 2:
+                    raise OSError('fixture post-run identity failure')
+            return original(paths)
+    
+        monkeypatch.setattr(r14_suite, 'identities', late_read_failure)
+        monkeypatch.setattr(r14_suite, 'selected_files', lambda fixtures: [source])
+        monkeypatch.setattr(r14_suite, 'Resources', lambda seconds: lambda reserve=0: None)
+        monkeypatch.setattr(r14_suite, 'install_boundary', lambda output: None)
+        monkeypatch.setattr(tempfile, 'tempdir', tempfile.gettempdir())
+        monkeypatch.setenv('R14_SUITE_CHILD', str(out))
+        monkeypatch.setattr(sys, 'argv', ['r14_suite.py', '--out', str(out), '--seconds', '20'])
+        monkeypatch.setattr(pytest, 'main', lambda *args, **kwargs: 0)
+        assert r14_suite.main() == 2
+        receipt = json.loads((out/'worker-result.json.part').read_text())
+        assert receipt['status'] == 'UNVERIFIED'
+>       assert receipt['pytest_exit_code'] == 0
+E       assert 2 == 0
+
+D:\a14\tests\test_r14_suite.py:84: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_suite.py::test_import_guard_refuses_training_modules_without_loading_them
+FAILED ..\..\a14\tests\test_r14_suite.py::test_postrun_identity_error_preserves_pytest_exit_code
+2 failed, 7 deselected in 0.07s

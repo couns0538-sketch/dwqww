@@ -52,3 +52,9 @@ evidence and cannot leave a usable PASS report. Preserve original failed logs.
 The owned R14 helpers are catalogued in [the tool inventory](../../../TOOLS.md).
 Their position-only and observed-chain reports have deliberately limited scope.
 Apply the main skill's authentic-ID and full-state checks before export clearance.
+
+A generated [identity ambiguity example](../../../sep/identity-ambiguity/README.md)
+shows identical emitted row bytes from one legal game versus two legal games,
+under an explicitly stated initial seen-state assumption. It validates why those
+observations alone cannot supply original IDs; it does not assert ambiguity or
+leakage in any actual production shard.

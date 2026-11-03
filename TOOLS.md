@@ -59,3 +59,20 @@ normal workload/resource admission. Never reuse a previous output directory.
 R14 delivery paths use scoped Git byte-preservation attributes. This keeps
 committed evidence bytes identical to PC files rather than normalizing newlines;
 verify both Get-FileHash MD5 and repository blob identity when sealing delivery.
+
+## Completed identity and source mapping tools
+
+Prepared-row/source/range mapping: D:/a14/tools/r14_joba.py, MD5
+813cc79846583b5eef000fed369f3bdd. It binds the completed chain report, all helper
+identities and original source pins; checks full parse/mapping coverage; and
+reports original identities as UNVERIFIED. Reviewed launcher:
+D:/a14/tools/Run-R14JobA.ps1, MD5 22d4eea877a2521942adbe3c55812064.
+Completed report: D:/a14/sep/joba-map-complete01/REPORT.json, MD5
+13a5a7df60247a3517f7bbc59012eb16.
+
+Synthetic identity ambiguity: D:/a14/tools/r14_identity_ambiguity.py, MD5
+0b95e213be4941cc98a67a8f3a7cfa43. It independently replays legal histories and
+simulates the documented buffered first-four-field dedup rule. No real shard
+history is asserted. Verification: its seven tests and the sealed proof manifest
+D:/a14/sep/identity-ambiguity/MANIFEST.json, MD5
+0451c24a9ab8c18a183f7c59f5afeb95. Hash sets remain in RAM.
