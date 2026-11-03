@@ -485,3 +485,17 @@ work crowding the trainer's two CPUs, GPU use rose with the trainer's CPU share 
 GPU stayed at 36-41 % with no clear correlation (every interval spans 0). So CPU competition explains part of the
 low GPU use, not all of it: with free CPUs the default-loader trainer still keeps the GPU near 40 %. The GPU window
 with `--fast-loader` remains the measurement that decides (GPU_REQUEST.md).
+
+## Code Review fixes (2026-11-03, from 10:05 by the PC clock, after the job; self-review, NOT independent)
+Source: Couns's message of 2026-11-03 ("Fix before/with R15") with four items from Code Review's notes
+`CR_R14B_FINAL_HUNT_20261102.md` (md5 11ecb096) and `CR_R14B_FL_FUZZ_EED53145_20261102.md` (md5 ee4afdc3). Neither note
+file was found on the PC at 10:00 (searched by name in C:\Users\Administrator incl. the qa_* and cr_crfix folders,
+D:\grok-pc-data, C:\o14b, D:\o14b, F:\qa_xfer, F:\astra_qa, D:\qa_df), so the work follows the four items as written
+in the message. Items 1, 2 and 4 are in this folder; item 3 (`pc_gate.ps1`) is on opus-r14b-status. The candidate DLL
+b5 (9eb29b7d...) and forge_fastloader.py are unchanged: these are fixes of the tools around them. Each test was first
+run against the tools of b5461fea (RED, logs kept), then against the fix.
+| item | before (RED: the new test on the tools of b5461fea) | fix (commit) | after | logs |
+|---|---|---|---|---|
+| 1 installer: linked copies | a copy whose config.py / train.py were hard or symbolic links to the stand-in "live" files was patched through the links (the stand-in's two files patched); a dangling link in a loader target's place passed the "exists" test and created `stand_in/forge_fastloader.py`: 8 failures | `linked_files()`: exit 2 before any change (also with `--check`, except `--check` of the live folder itself) for a trainer file that is the same file as the live trainer's (`os.path.samefile` = file identity), a symbolic link, or a file with more than one hard link; loader targets tested with `os.path.lexists` (f124ed3f) | `test_installer.sh` **38 / 38** (10 new cases, all on the stand-in; the real live files were only read and hashed: unchanged) | logs/installer/test_installer_cr1_red_on_b5461fea.log, test_installer_cr1.log |
+| 2 fl_abba warm-up | `--warmup` >= `--batches`, a negative warm-up or `--batches 0`: exit 1, a traceback and an output folder left behind; a run reporting 0 kept/s ended in ZeroDivisionError after all runs: 8 failures | refused before the output folder is made (exit 2), in `fl_abba.py` and in `fl_equal.py dump`; a run that still reports 0 kept/s stops fl_abba with exit 1 instead of entering the ratios (e29bf186) | `test_cli.py` **42 / 42** (8 new, one in-process with a stub dump) | logs/cli/test_cli_cr2_red_on_b5461fea.log, test_cli_cr2.log |
+| 4 fl_fuzz | in progress | | | |
