@@ -7,7 +7,7 @@
 #   3 fresh clones of the two item branches with this PC's default git settings: sha256sum -c SHA256SUMS in each
 #   4 hash_sweep_r14b.sh: every cited hash matches a file, a commit or the allow list
 #   5 tools/test_tools.sh (abba.py, doc_lint.py)
-#   6 item 1 from its clone: tools/test_installer.sh, tools/test_scope.py
+#   6 item 1 from its clone: tools/test_installer.sh, tools/test_scope.py, tools/test_cli.py
 #   7 item 2 from its clone: relabel2.py sha256 = the frozen value in RELABEL_HANDOFF.md; the clone's test_helpers.py
 #     (the helpers with broken input, no probe); checks/e2e_r8v5.sh, then the clone's verify_job.py on that job
 #     (with --convert)
@@ -54,6 +54,8 @@ bash "$L1/tools/test_installer.sh" "$out/test_installer" > "$out/test_installer.
 rc=$?; echo "$(grep -c "^PASS" "$out/test_installer.log") PASS, $(grep -c "^FAIL" "$out/test_installer.log") FAIL"; res "test_installer.sh" $rc
 "$PY" -I -B "$L1/tools/test_scope.py" > "$out/test_scope.log" 2>&1
 rc=$?; tail -1 "$out/test_scope.log"; res "test_scope.py" $rc
+"$PY" -I -B "$L1/tools/test_cli.py" "$out/test_cli" > "$out/test_cli.log" 2>&1
+rc=$?; tail -1 "$out/test_cli.log"; res "test_cli.py (loader tools: wrong arguments, damaged dumps, existing outputs)" $rc
 step "7 item 2 from the clone"
 R2=$out/clone_relabel/opus_r14b/item2
 frozen=$(grep -A1 "frozen at sha256" "$R2/RELABEL_HANDOFF.md" | grep -oE "[0-9a-f]{64}" | head -1)

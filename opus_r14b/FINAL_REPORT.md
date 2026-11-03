@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 02:36), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 03:36), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -71,6 +71,14 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   a traceback (H6-2), a real install into the live trainer folder was not refused (H6-3): all fixed;
   `tools/test_installer.sh` 25 / 25, with the live-folder guard tested on a stand-in (H6-4); the patched files are
   byte-identical to the earlier rehearsal's, and the fresh-clone adoption rehearsal passed again (22:35-22:39).
+- Documents against the code (bug hunt #16, 03:25-03:35): every option of the GPU_REQUEST command was compared with the
+  live trainer's command line (s33): all accepted, only the intended ones differ; HANDOFF's switch, startup lines,
+  adapter options and thread rule, lm_run.sh's dry-run settings and LOADER_SPEC's names match the code. Fixed:
+  **the acceptance check's verdict (`fl_dataset_equal.py --compare`) passed two junk or empty dumps with exit 0** (now
+  a dump must be complete); the equality / distribution tools refused an existing `--out` only after the whole run;
+  fl_abba.py made its folder before failing on bad input; tracebacks; three document lines (HANDOFF 3b's 3rd argument
+  is a DLL file, the skill's missing `--data`, GPU_REQUEST's queue facts and two preconditions). `tools/test_cli.py`
+  34 / 34; recorded comparisons and a fresh 2-batch pair unchanged.
 
 ## Item 2 - resumable relabel (`opus_r14b/item2/`)
 - relabel2.py (prepare / run / assemble / status), FROZEN at sha256
@@ -140,9 +148,10 @@ trainer path; threading contract in LOADER_SPEC.md), #9 23:19-23:20 (the trainer
 seed), #12 00:25 (relabel documents vs the code: consistent), #13 01:08-01:10 (tools with wrong
 arguments: two fixed - a bad CPU mask exited 0, a misspelt status option was ignored), #14 02:08-02:20 (item 2's
 helpers with broken input: H14-1..H14-10 fixed, one of them an output file emptied by `probe_bench.py run`), #15
-02:25-02:34 (files overwritten, checks that pass on failure: H15-1..H15-6 fixed, among them the launcher running a
-program on every CPU when given a bad mask); details in each RESULTS.md and TOOLS.md. Final 1-hour bug hunt:
-04:15-05:15 (STATUS.md plan).
+02:25-02:34 (files overwritten, checks that pass on failure: H15-1..H15-7 fixed, among them the launcher running a
+program on every CPU when given a bad mask), #16 03:25-03:35 (item 1's documents against its code, its tools with
+wrong arguments: H16-1..H16-7 fixed, among them the acceptance compare passing junk); details in each RESULTS.md and
+TOOLS.md. Final 1-hour bug hunt: 04:15-05:15 (STATUS.md plan).
 
 ## Deviations and incidents (honest record)
 - 15:22-16:27: dev test runs ran as a third Idle process next to the two proof probes on CPUs 2-3 (over the "<= 2
