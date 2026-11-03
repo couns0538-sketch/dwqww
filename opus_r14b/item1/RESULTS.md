@@ -122,3 +122,9 @@ Mean score 0.08 vs 0.21 (internal units): difference -1.17 standard errors (batc
 below 0.001: switching the live line from w4 to the fast loader changes the sample, not the distribution (chi-square
 values treat positions as independent, which positions inside one shuffle window are not, so they overstate any
 difference).
+
+## Acceptance check for Engine NNUE (18:45-18:46): `tools/fl_acceptance.sh`
+- One command on a switched trainer copy, CPU only with the GPU hidden: the trainer's own Dataset ->
+  FixedNumBatchesDataset -> DataLoader path, old loader w1 vs fast loader w4, every tensor of 200 training and 61
+  validation batches hashed and compared. On `D:\o14b\npt`: old 36 s, fast 6 s, **261 / 261 batches identical**
+  (logs/acceptance/). The script locates itself before changing directory and refuses a copy without the switch.
