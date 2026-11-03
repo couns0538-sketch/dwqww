@@ -29,9 +29,9 @@
   found after that becomes a named owner item in FINAL_REPORT.md, not a rushed fix.
 - ~05:35 the watcher's series (last sample ~05:28) analysed per regime (one trainer process on one mask; 8 at 04:37:
   pids 13960 / 11328 on 0x3 and 0xF, 14160 / 4320 on 0x3, 12268 on 0xF and 0x3): the section in item 1 RESULTS
-  (drafted 04:40 with the numbers through 04:37) gets the final numbers -> `bash opus_r14b/checks/make_index_r14b.sh`
+  (drafted 04:38 with the numbers through 04:37) gets the final numbers -> `bash opus_r14b/checks/make_index_r14b.sh`
   -> push item 1.
-- FINAL_REPORT.md without "INTERIM", with the commit_span figures refreshed (section drafted 04:40) -> push status
+- FINAL_REPORT.md without "INTERIM", with the commit_span figures refreshed (section drafted 04:38) -> push status
   branch; every skill / STATUS / README edit before the last final_checks.sh (step 8 needs clean worktrees).
 - ~05:45 `bash opus_r14b/checks/final_checks.sh <new dir>` LAST among the checks (it verifies the indexes, hashes,
   tests and that every worktree is clean and in sync - running it before the report edits would pass on a state

@@ -193,7 +193,9 @@ Elo or training-quality claim.
   were unchanged (sha256 before = after = the installer's base manifest at 22:34), but a broken guard would have
   patched the live trainer. The test now uses a stand-in folder; only the read-only `--check` reads the live folder.
 - Times written ahead of the clock again in drafts (22:25, 22:40, 22:53 written at 22:23, 22:37, 22:51): corrected
-  from `date` before or right after the commit; every record carries the clock time it was checked against.
+  from `date` before or right after the commit; every record carries the clock time it was checked against. Once
+  more in the final hunt: "04:46" written at 04:42, "drafted 04:40" for 04:38, and the planned end "05:15" written
+  into two hunt headers as if it had happened (the advisor's read caught the TOOLS.md one); all corrected at 04:43.
 - 22:29: the trainer's CPU mask changed from 0x3 to 0xF (the keeper's usual trainer pair) and at 22:34 a new trainer
   process started (pid 13960 -> 11328), not Opus's doing (watcher log). Opus's later checks on CPUs 2-3 share those
   CPUs with it; they are short (refreeze ~6 min, final checks ~1 min) and the long-running parts run at Idle.

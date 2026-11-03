@@ -274,7 +274,7 @@ lines in the memory note. One more finding while reading the check scripts:
   files patched) where the plain one was refused. Fixed with a file-identity check first; `test_installer.sh` 28 / 28.
   Details: item 1 RESULTS.md. The Bash tool turned that path's backslashes into `\?` once more while two documents
   were being edited (FINAL_REPORT, the skill); fixed with the Edit tool and checked byte by byte.
-- More checks without a finding (04:33-04:46): the launcher's existing-output refusal also sees the `\\?\` spelling
+- More checks without a finding (04:33-04:42): the launcher's existing-output refusal also sees the `\\?\` spelling
   of a file (Test-Path true, exit 127, file kept); the GPU command's `Set-Location D:\o14b\npt` reaches the started
   program (cmd /c cd printed `D:\o14b\npt`), so its relative `train.py` resolves; RELABEL_HANDOFF's 50M job goes to
   a new folder on C: (> 70 GB free); every absolute path the handoffs and the three R14-B skills cite exists (28
