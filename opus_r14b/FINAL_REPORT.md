@@ -21,10 +21,12 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
 | relabel probe speed, 1 thread | R13 probe ed76de96 | LTO+PGO 08299f9f: **1.075x** (ABBA 10 pairs, 95% CI 1.044-1.106); LTO only 1.053x (CI 1.009-1.097) | 10,000 / 10,000 answers identical; answers identical in all ABBA runs |
 | relabel throughput, 2 workers on one core | R13: 662,337 / 663,485 rows/h | LTO+PGO: 687,266 / 694,693 rows/h = **1.042x** | 19,927 rows, order R P P R, labels md5 identical |
 | 50M rows at 20k nodes, 2 workers (light crew load) | 75.4 h (R13) | 72.4 h (LTO+PGO) | rows / measured rate |
+| the whole 1M proof sample with the LTO+PGO probe | the proof ran on the R13 probe | train / val / labels **byte-identical** to the proof's (all 999,921 labels); 635,344 rows/h through 94 min of real crew load -> **78.7 h for 50M** (the planning figure) | logs/pgo_full_1M.log |
 | R8 v5 input (games run across shard files) | 5c88438f gives a game crossing a file two game ids (leak risk) | one game id (one input stream in name order) | test + real shards 271 / 272 |
-| input / job safety | 19 tests | 75 tests + 30 reason checks (+ disk floor and status cases since 19:15): F1-F8, R17, R25, R27, R28 fixed with a test each; every refusal also checks its reason | test_relabel2.sh (relative call), RESULTS.md |
+| input / job safety | 19 tests | 150 PASS lines in test_relabel2.sh at 20:30 (cases + reason checks): F1-F8, R17, R25, R27, R28, H2-x, H3-x fixed with a test each; every refusal also checks its reason | test_relabel2.sh, RESULTS.md |
 | disk rule of the PC (C: / D: >= 50 GB) | not enforced by the tool | `--min-free-gb` (default 50): prepare / assemble refuse, run stops before the shard that would cross it | quick checks; test cases |
-| relabel output through the FPOS converters earlier jobs used | not checked | fen2bin carries the new labels 1,200 / 1,200; hce_dump: 1,200 records, 0 bad | conv_check, conv_check2 |
+| relabel output through the FPOS converters earlier jobs used | not checked | fen2bin carries the new labels 1,200 / 1,200; the whole 1M output: fen2bin 991,077 + 8,844 records = every row, 0 bad; hce_dump the same counts, 0 bad FEN, 0 clamped | conv_check, logs/conv_full_1M.txt |
+| failures that explain themselves | a probe that died ended `run` with a bare traceback and no log line; the launcher of every tool returned 0 when a program could not start | `run` writes "run stop ... <error> (exit N)" to sessions.log; lowrun.ps1 exits 127 (missing program / redirect folder / stdin file) | suite cases with a dead probe; 8 launcher cases |
 | fast loader adoption | GPU_REQUEST.md only | HANDOFF.md: adapter path (`--npt-repo` + `--npt-extra --fast-loader`), live trainer = installer base (264 / 264 files), thread advice, distribution check; one-command acceptance check (261 / 261); installer `--loader-dll` copies the loader files | item 1 HANDOFF.md, tools/fl_acceptance.sh |
 | works from a fresh clone | tools reached into other worktrees / scratch; a default clone (core.autocrlf=true) wrote CRLF and changed the documented hashes | own lowrun.ps1 copy; probe build exports the lock source from git and uses a committed training file; `opus_r14b/.gitattributes` keeps code LF (fresh clone: relabel2.py sha256 = the branch's) | fresh clone checks (more after the PGO run) |
 | regression caught by measuring | - | R27: a per-row `Path.resolve()` (76.7 us per call = 15.3 s per 200k rows) in the post-proof one-process prepare; the fix took it from 36.5 / 38.3 s to 17.9 / 18.1 s on the same 200k rows (2.05x, the same crew load: one BelowNormal job in both); output identical | logs/measure/resolvefix_check.log, post_chain.log |
@@ -39,7 +41,7 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   seeds per process from the clock).
 
 ## Item 2 - resumable relabel (`opus_r14b/item2/`)
-- relabel2.py (branch head; its sha256 is fixed at tonight's code freeze) (prepare / run / assemble / status), tests, proof driver, bridge, measurement scripts, probe
+- relabel2.py (prepare / run / assemble / status; freeze candidate 88454db6... in the verify chain since 20:29), tests, proof driver, bridge, measurement scripts, probe
   LTO / PGO build + bench, label statistics; skill forge-relabel-job.
 - Proof: 999,921 rows in 10,880 games (val 99 games / 8,844 rows, overlap 0); B's hard exits at 14:48:59 (shard 14)
   and 15:34:20 (shard 36), interrupted attempts kept, no orphaned probe; md5 train 6e9e4e5a..., val 8e639f41...,
