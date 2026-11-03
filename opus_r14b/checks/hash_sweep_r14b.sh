@@ -24,6 +24,8 @@ files="$files /c/o13/w/syz_pc1/src_copy/forge_ltopgo_syz_pc1.exe /c/o13/handoff/
 files="$files /d/o14a/handoff/speed2/forge_ltopgo_speed2_de20653c.exe"
 files="$files /c/Users/Administrator/qa_crfix_astra_r10/r13_patches/p6_checks_crfix.patch"
 files="$files /c/o14b/efc_lock_2043/forge_check.exe /c/o14b/ffl_assert_2053/forge_fastloader.dll"
+# the live trainer's two files the installer patches (only read here; item 1 H6-4 cites their sha256)
+files="$files /f/opus_scratch/r6/nnue-pytorch-amd/config.py /f/opus_scratch/r6/nnue-pytorch-amd/train.py"
 for f in $files; do [ -e "$f" ] || { echo "missing input $f" >&2; exit 2; }; done
 args="-I -B $(cygpath -w "$T/hash_sweep.py") --docs"
 for d in $docs; do args="$args $(cygpath -w "$d")"; done
