@@ -30,7 +30,9 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
 
 ## Adopting it in the queue (Engine NNUE decides; never edit the live trainer folder in place)
 1. Make a trainer copy (e.g. `robocopy F:\opus_scratch\r6\nnue-pytorch-amd <COPY> /E`) and check its files against the
-   live tree (sha256 list) - `D:\o14b\npt` is such a copy, already switched.
+   live tree (sha256 list) - `D:\o14b\npt` is such a copy, already switched. Checked 2026-11-02 16:10: the live tree
+   still equals the files that copy was made from (264 / 264 sha256 equal to `D:\o14b\npt_copy_manifest.txt`), so the
+   installer's anchors fit the trainer version the queue runs.
 2. `python -I -B tools/install_fast_loader.py <COPY> --check`, then without `--check` (exact anchors; refuses a trainer
    that differs or is already patched, exit 2).
 3. Copy `forge_fastloader.dll` (sha256 above) and `forge_fastloader.py` next to `<COPY>\train.py` (or set
