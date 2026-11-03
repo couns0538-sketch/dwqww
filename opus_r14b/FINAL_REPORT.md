@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 21:16), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 21:28), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -41,8 +41,10 @@ item 2 = relabel2.py 5c88438f (the proof code) with the R13 probe ed76de96, prep
   seeds per process from the clock).
 - The GPU use it should raise, measured (keeper's HWiNFO log, `tools/gpu_util_stats.py`): the live npt line with the
   default loader, 2026-11-02 15:14-21:14: GPU Utilization mean 45.7 %, p50 48 %, >= 90 % in only 4.0 % of samples;
-  hourly means 40-56 %. The trainer's loader threads run at Idle on 2-4 CPUs (the keeper sets the mask 0x3 / 0xF), so a
-  loader that needs ~6-8x less CPU per position is the matching remedy; the GPU window must show the effect.
+  hourly means 40-56 %. The trainer runs at Idle on 2-4 CPUs (the keeper sets the mask 0x3 / 0xF) and got 0.4-0.6
+  cores at 21:19-21:22 next to BelowNormal crew jobs. On one logical CPU in the live thread setting the default loader
+  costs 2.45 and the fast loader 0.34 CPU-us per kept position (7.19x, CI 7.08-7.26): feeding the live line takes
+  0.30-0.41 of a CPU with the default loader, 0.04-0.06 with the fast one. The GPU window must show the effect.
 - Robustness (bug hunt #4): 371 damaged-file runs incl. a bounds-checked build: clean errors, no crash, no hang; one
   limit shared with the default loader (a cyclic stream over a file in which nothing passes the skip filter waits).
 
