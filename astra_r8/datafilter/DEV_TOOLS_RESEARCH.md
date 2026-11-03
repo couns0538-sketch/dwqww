@@ -10,7 +10,7 @@ presence does not establish correctness.
 
 | Tool | Concrete value here | Observed state and decision |
 |---|---|---|
-| CodeRabbit | Another review of a frozen code diff, especially parsing, publication and evidence assumptions | Signed native Windows CLI 0.9.2; authentication succeeds. Usage reports 10 included reviews remaining and usage billing inactive. Reserve a scoped review for the final hour; no paid-credit override. No review has run yet. |
+| CodeRabbit | Another review of a frozen code diff, especially parsing, publication and evidence assumptions | Signed native Windows CLI0.9.2 authenticates;10 included reviews were available. Two broad committed-review attempts were rejected for686 and750 files against a300-file limit, despite intended code/test filters. No findings or clean-review result. No paid override. |
 | Ruff | Offline detection of undefined names, suspicious control flow and common Python mistakes | Existing pinned environment contains 0.16.0. Ran explicit F/B/PLE/PLW/S rules, one Rayon worker, no cache or fixes. 345 observations require triage; most are test assertions, non-security MD5/random usage and checked subprocesses. |
 | Hypothesis | Generate combinations of legal move histories, mirrored labels, malformed metadata and PGN whitespace; shrink failures to useful fixtures | Version 6.170.14 isolated with sortedcontainers 2.4.0. All 1,200 generated examples PASS on pre-fix source (400 per property), deterministic settings, no database. No installed npt package changed. |
 | Coverage.py | Find failure branches the existing tests do not execute; distinguish branch coverage from line coverage | Version 7.17.0 isolated beside Hypothesis. All 344 tests + 11 subtests pass in 390.47 seconds with branch tracing; 71% measured main-process coverage, including audit utilities. Earlier standalone audits and untraced child execution are outside this measurement. |
@@ -50,6 +50,20 @@ for this task are original code. This is separate from the user's prohibition
 on copying GPL/AGPL engine/training implementations.
 
 ## Evaluated but not installed
+
+The CodeRabbit attempts are preserved under evidence/extension5h/coderabbit_limits.
+The first used an explicit config argument; the second used a schema-validated
+temporary repository configuration, which was then removed after verifying its
+unchanged digest and preserved copy. Original configuration absence is restored;
+R12 will not inherit narrow review filters. No branch/base rewrite or paid-credit
+workaround was attempted. The [official CLI reference](https://docs.coderabbit.ai/cli/reference)
+confirms directory/base selectors; [configuration discovery](https://docs.coderabbit.ai/cli#configuration-discovery-during-local-reviews)
+was checked before the second attempt. Neither attempt establishes reviewed code.
+
+The skill creator's quick_validate.py could not import PyYAML from either the
+pinned Python or system Python. Its failed log is retained. No package was added
+to installed npt; existing saved skill blobs remain unchanged. Field/link and
+provenance checks are reported separately from that unavailable YAML validator.
 
 | Tool | Potential use | Decision for this run |
 |---|---|---|

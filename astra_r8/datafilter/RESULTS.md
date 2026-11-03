@@ -2,6 +2,26 @@
 
 ## Current continuation — active, UNPROVEN
 
+08:04 numeric-census checkpoint:19 fixture checks PASS; focused reviewer approved
+the pilot, driver SHA256c2f610f1c0e6e97e5df9b90aba11baafe7170bc8a2c2e8835e117ea1537ee63c.
+The466,506-row pilot passes all three numeric limits in2.174s. Its projected
+whole-corpus time is1421s, an estimate only. Main adjusted the earlier scheduling
+condition: the single-worker read-only full scan now runs while the first few
+minutes of the reserved final hour remain read-only review; code stays frozen.
+The full census is IN_PROGRESS, not accepted evidence. It creates only receipts
+and does not rerun board validity, allocate native batches or change any loader.
+Saved skill field/link checks pass for4skills; all12 upstream package blobs match.
+The optional generic YAML validator remains unavailable because PyYAML is absent.
+
+08:00 update: CodeRabbit broad review is BLOCKED by its300-file cap. Attempts
+counted686/750 changed files despite the intended filters, with stable code;
+neither produced findings. The task-created temporary configuration was removed
+after verifying its preserved copy and digest. No narrower review is substituted
+for a full review, and no paid override was used. Existing independent review
+continues. A separate numeric-only corpus census is under focused review after
+19 fixture passes; it will run only if its measured pilot cost fits the remaining
+improvement window. It creates receipts, not training data or loader changes.
+
 07:48 UTC: CodeRabbit authenticated, ten included reviews available; scoped
 deep committed review started on d6e1aae8 implementation, without paid override.
 61 selected Python files scanned with no credential-pattern match. Review is

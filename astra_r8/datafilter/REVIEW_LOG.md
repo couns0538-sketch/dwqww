@@ -1,5 +1,29 @@
 # Review log — UNPROVEN
 
+## 2026-11-03 08:04 — reviewed numeric-only source census
+
+CodeRabbit is blocked by its300-file comparison limit; both failed attempts and
+the temporary configuration restoration are preserved, with no clean-review
+claim. Main redirected available time to a read-only numeric census over the
+already admitted source bytes. The new tool binds the exact strict admission
+union, SHA256/producer MD5/counts and identities, checks numeric score/clock/ply
+ranges, and rechecks code, sidecars and receipts. It expressly does not rerun
+board validity, allocate native batches, train, relabel or measure loader speed.
+
+Nineteen authored fixtures PASS2.66s, including actual current Python/native-input
+guard comparisons at both signed-score limits, clock and off-by-one ply edges,
+plus mixed newlines/BOM/hash/count/UTF8 and source-change cases. Read-only review
+found no concrete defect and approved driver
+c2f610f1c0e6e97e5df9b90aba11baafe7170bc8a2c2e8835e117ea1537ee63c
+for a pilot. Pilot466,506 rows PASS2.174s, explicitly partial reference coverage.
+
+The reviewer conditioned full execution on fitting before08:23. Main assessed
+the1421s projection and changed that self-imposed schedule condition: one worker
+may overlap the opening read-only part of the final hour, keeping code frozen
+and leaving the complete08:23–09:23 review window intact. User storage/CPU/scope
+limits do not change. The reviewer was notified. Full execution is in progress;
+no full-corpus numeric claim is made until it closes and is verified.
+
 ## 2026-11-03 07:45 — fresh v8 qualification and final-packer review
 
 Current full suite:544 tests+11 subtests PASS437.79s; source/runtime stable.

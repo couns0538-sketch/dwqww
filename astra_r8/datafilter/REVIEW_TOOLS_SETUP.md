@@ -3,13 +3,17 @@
 Current check, 2026-11-03: the user installed CodeRabbit CLI 0.9.2 and SonarQube
 CLI 1.11.0. CodeRabbit's signed canonical Windows executable is authenticated;
 its usage command reports ten included reviews and usage billing inactive.
-The scoped final CodeRabbit review is scheduled but has not run yet. SonarQube
+Two scoped broad CodeRabbit attempts were rejected by the300-file cap (686/750
+files counted despite intended code/test filters); neither returned findings or
+a clean result. Authentication is working; this is a scope limit. Temporary local
+configuration was restored to its original absent state. SonarQube
 authentication remains unavailable. The earlier PATH/setup notes below are
 retained for troubleshooting; installing again is unnecessary.
 
 CodeRabbit executable: `C:/Users/Administrator/AppData/Local/Programs/coderabbit/coderabbit.exe`.
 SonarQube executable: `C:/Users/Administrator/AppData/Local/sonarqube-cli/bin/sonar.exe`.
-The independent reviewer and Forge evidence checker remain in use.
+The independent reviewer and Forge evidence checker remain in use. Attempt
+receipts: evidence/extension5h/coderabbit_limits; analysis: DEV_TOOLS_RESEARCH.md.
 
 Use PowerShell under the same Windows account as Codex. Official installers:
 

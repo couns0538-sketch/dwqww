@@ -4,6 +4,14 @@ Authorized schedule: 2026-11-03 04:23–08:23 UTC improvement; 08:23–09:23 UTC
 deep review, fixes and verification. Continue the original task across user
 steering/compaction. No engine edits, training, GPU, crew controls or data removal.
 
+08:04 update: CodeRabbit blocked twice by comparison file cap; configuration
+restored absent. Current core remains d6e1aae8 and v8/544+11 checks remain valid.
+An approved numeric-only census is running at one worker after its466,506-row
+pilot/19fixtures passed. It may overlap initial read-only final-hour review;
+freeze core and audit_native_counters.py until it closes. Do not package its
+active logs. Full scan is not complete evidence yet. Final packaging follows
+closed jobs and final review; all original resource limits remain in force.
+
 07:48 update: steps1–6 complete. Current full suite544+11 PASS; all999,953 native
 inputs and fresh v8 handoff PASS. CodeRabbit deep committed review started early
 on d6e1aae8 implementation to leave repair time before the reserved final hour;

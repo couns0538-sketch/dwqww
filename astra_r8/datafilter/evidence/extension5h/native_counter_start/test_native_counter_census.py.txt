@@ -1,0 +1,70 @@
+"""Authored numeric-only census controls; never mutate existing source shards."""
+import hashlib
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+PATH=Path('D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/evidence/extension5h/audit_native_counters.py')
+spec=importlib.util.spec_from_file_location('native_counter_census',PATH)
+census=importlib.util.module_from_spec(spec);spec.loader.exec_module(census)
+
+
+@pytest.mark.parametrize('turn,fullmove,halfmove,score',[
+    ('w',1,0,0),('b',1,0,0),('w',32768,255,-32768),('b',32767,255,32767),
+    ('b',32768,0,0),('w',32769,0,0),('w',1,256,0),('w',1,0,32768),
+    ('b',1,0,-32769),('w',2**40,0,0),('w',1,2**40,0),('b',150,99,-3000)])
+def test_numeric_ranges_match_current_native_input_guard(turn,fullmove,halfmove,score):
+    from npt_adapter import native_fen,torch
+    from records import record
+    torch.set_num_threads(1)
+    fen=f'4k3/8/8/8/8/8/8/4K3 {turn} - - {halfmove} {fullmove}'
+    row=record(fen,score,'cp',0,'fixture',1,'selfplay')
+    values,valid=census.numeric_fields(f'{fen} | {score} | 0.5')
+    assert values==(score,halfmove,fullmove,2*(fullmove-1)+(turn=='b'))
+    try:native_fen(row)
+    except ValueError:assert not all(valid)
+    else:assert all(valid)
+
+
+def fixture_item(tmp_path,payload,rows):
+    path=tmp_path/'source.txt';path.write_bytes(payload)
+    sidecar=tmp_path/'source.txt.md5';sidecar.write_text('authored fixture',encoding='utf-8')
+    return dict(path=str(path),identity=census.stat_key(path),sidecar=str(sidecar),
+                sidecar_sha256=census.sha256(sidecar),expected_data_rows=rows,
+                expected_sha256=hashlib.sha256(payload).hexdigest(),expected_md5=hashlib.md5(payload).hexdigest())
+
+
+def test_complete_mixed_newlines_hash_original_bytes(tmp_path):
+    fen='4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+    payload=('\ufeff# comment\r\n'+fen+' | 20 | 0.5\r'+fen+' | -20 | 1.0\n').encode()
+    item=fixture_item(tmp_path,payload,2);result=census.scan(item)
+    assert result['sha256']==item['expected_sha256']
+    assert result['counts']['rows']==result['counts']['numeric_eligible']==2
+    assert result['counts']['skipped']==1
+    assert result['minimum']==(-20,0,1,0) and result['maximum']==(20,0,1,0)
+
+
+def test_out_of_range_is_a_completed_failed_range_audit(tmp_path):
+    item=fixture_item(tmp_path,b'4k3/8/8/8/8/8/8/4K3 b - - 256 32768 | 32768 | 0.5\n',1)
+    result=census.scan(item)
+    assert result['status']=='PASS' and result['numeric_range_status']=='FAIL'
+    assert result['counts']['numeric_eligible']==0
+    assert result['excluded_examples'][0]['valid']==(False,False,False)
+
+
+@pytest.mark.parametrize('field,value',[('expected_sha256','0'*64),('expected_md5','0'*32),('expected_data_rows',2)])
+def test_unmatched_source_digest_or_count_is_rejected(tmp_path,field,value):
+    item=fixture_item(tmp_path,b'4k3/8/8/8/8/8/8/4K3 w - - 0 1 | 20 | 0.5\n',1)
+    with pytest.raises(ValueError,match='bytes/count'):census.scan({**item,field:value})
+
+
+def test_invalid_utf8_comment_fails_closed(tmp_path):
+    item=fixture_item(tmp_path,b'#\xff\n',0)
+    with pytest.raises(UnicodeError):census.scan(item)
+
+
+def test_source_changed_before_scan_is_rejected(tmp_path):
+    item=fixture_item(tmp_path,b'4k3/8/8/8/8/8/8/4K3 w - - 0 1 | 20 | 0.5\n',1)
+    Path(item['path']).write_bytes(b'changed')
+    with pytest.raises(ValueError,match='identity'):census.scan(item)

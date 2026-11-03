@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+reviews:
+  profile: assertive
+  path_filters:
+    - "astra_r8/datafilter/*.py"
+    - "astra_r8/datafilter/tests/*.py"
+    - "!astra_r8/datafilter/evidence/**"
+    - "!astra_r8/datafilter/sample/**"
+    - "!astra_r8/datafilter/baseline/**"
+  path_instructions:
+    - path: "astra_r8/datafilter/**"
+      instructions: |
+        Review actual converter/filter and supporting audit code, with concrete
+        defects and evidence. No engine/search/speed changes, training, GPU work,
+        relabel pipeline or fast data loader is authorized. Existing datasets,
+        networks, installed npt and original converter/helper baselines are read-only.
+        No-flag conversion must remain byte-identical to the frozen converter.
+        Result-aware REC stores STM WDL plus a mask; legacy schema zero is White POV.
+        JSONL scores are STM; REC scores remain White POV; missing game results
+        must stay unknown. Check metadata alignment, mirrors, capture/promotion,
+        check/mate/ply rules, strict input handling and evidence completeness.
+        All filter switches default off. True root-qsearch is explicitly blocked
+        because FD3A5190 lacks that UCI interface; do not suggest depth one as a proxy.
+        New outputs need fresh names and must not overwrite input or prior evidence.
+        Check source identity, alias handling, publication ordering, failure paths,
+        resource accounting and that audit checks remain active with Python -O/-OO.
+        Windows compute ceiling is two total computing processes, BelowNormal.
+        C output root and reserve follow the explicit current resource policy.
+        Playing strength remains UNPROVEN. Report defects, not style-only rewrites.
