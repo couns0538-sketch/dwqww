@@ -143,3 +143,15 @@ Exercised for the first time on real work: `abba.py` on the two relabel probes (
 at 20k nodes, 6 pairs on CPU 2, the md5 of all 500 scores required equal: db2a2ce6... for both) -> **1.057x, 95% CI
 1.044-1.069**, matching the dedicated probe ABBA of 17:53 (1.075x, CI 1.044-1.106); its `--warmup` and `--cwd`; `commit_span.py --until`.
 Memory note and the skills forge-pc-rules / forge-npt-fast-loader brought up to date (they said 03:05 and 14 checks); hash sweep 0 unmatched.
+
+### Check scripts added 22:35-22:59 (`opus_r14b/checks/`; self-reviewed, NOT independent)
+- `make_index_r14b.sh` moved into the repo (was only in Opus's scratch): FILES.txt + SHA256SUMS of both item folders.
+- `fresh_checkout_checks.sh [OUT_DIR]`: the output folder is an argument now (it was fixed to C:\o14b\fresh).
+- `hash_sweep_r14b.sh`: hashes the live trainer's config.py / train.py too (read only), because item 1 H6-4 cites
+  them; 0 unmatched again (22:49).
+- `e2e_r8v5.sh OUT [ROWS]`: the frozen relabel2.py end to end on R8 v5 through fen2bin and hce_dump, 11 checks
+  (22:53: 11 / 11, output = the first freeze's).
+- `final_checks.sh OUT`: every end-of-job check in one command (~1 min), 8 steps; dry run 22:56: 8 / 8 PASS. Its
+  first version printed the sub-scripts' last lines (one looked like its own end line): now PASS / FAIL counts.
+- Two shell lines lost their trailing `\` when I added them with `sed 'a\'` through the Bash tool (make_index): found
+  by reading the result, fixed with the Edit tool; `bash -n` cannot catch it (the broken line is still valid shell).
