@@ -78,7 +78,8 @@ Unchained binpack records only (the J1 binpacks are unchained, 34 B / record; ev
 records - a damaged chunk's partial tail would be skipped, not reported), exactly one file per stream,
 `--no-filtered --no-wld-filtered` without simple-eval skipping, loader feature set K32H3 (what the trainer hands the
 loader for `--features K32H3^`; the CPU loss match ran train.py with `--features K32H3^`), no DDP (world size 1).
-Anything else raises instead of silently differing from the default loader. Damaged files (bug hunt #4, 371 fuzz
+Anything else raises instead of silently differing from the default loader; each refusal and its message is tested by
+`tools/test_scope.py` (20 cases, standard library + the DLL, no GPU: bug hunt #7). Damaged files (bug hunt #4, 371 fuzz
 runs incl. a bounds-checked build): clean errors, no crash, no hang. One shared limit: a cyclic stream over a file in
 which the skip filter keeps nothing (e.g. every score VALUE_NONE) waits forever - the default loader does the same.
 
