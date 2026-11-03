@@ -100,14 +100,31 @@ def write_new(path: Path, text: str) -> None:
         os.fsync(fh.fileno())
 
 
+def move_retry(src: Path, dst: Path, replace: bool = False, tries: int = 50, wait: float = 0.2) -> None:
+    """os.rename (never over an existing target) or os.replace, retried on PermissionError: on Windows a virus
+    scanner, an indexer or a reader of the file can hold a handle for a moment; a rename that fails changes nothing."""
+    for i in range(tries):
+        try:
+            (os.replace if replace else os.rename)(src, dst)
+            return
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(wait)
+
+
 def write_status(path: Path, obj) -> None:
-    """Status files are replaced atomically; everything else is created once."""
+    """Status files are replaced atomically; everything else is created once. A status file that stays locked (someone
+    reading it) is skipped with a warning: it is information only and must never stop the labelling."""
     tmp = path.with_name(path.name + ".tmp")
     with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(obj, indent=1) + "\n")
         fh.flush()
         os.fsync(fh.fileno())
-    os.replace(tmp, path)
+    try:
+        move_retry(tmp, path, replace=True, tries=25)
+    except PermissionError as e:
+        print(f"warning: {path} not updated ({e}); the next shard tries again", file=sys.stderr)
 
 
 def append_log(job: Path, line: str) -> None:
@@ -402,7 +419,7 @@ def cmd_prepare(a) -> int:
     except BadInput as e:
         write_new(job / "prepare_failed.json", json.dumps({"run_id": a.run_id, "time": now(), "error": str(e)}) + "\n")
         raise
-    os.rename(tmp, job / "rows.tsv")
+    move_retry(tmp, job / "rows.tsv")
     lengths.sort()
     starts.sort()
     q = lambda v, f: v[min(len(v) - 1, int(len(v) * f))]  # noqa: E731
@@ -572,7 +589,7 @@ def cmd_run(a) -> int:
             write_new(part / "summary.json", json.dumps(summ, indent=1) + "\n")
             write_new(part / "manifest.json", json.dumps({"labels.tsv": file_hash(part / "labels.tsv"),
                                                           "summary.json": file_hash(part / "summary.json")}, indent=1) + "\n")
-            os.rename(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
+            move_retry(part, sdir / f"shard_{k:05d}")  # publish (fails if it exists: never overwrites)
             done.add(k)
             rows_session += count
             shards_session += 1
@@ -655,7 +672,7 @@ def cmd_assemble(a) -> int:
            "train_games": len(games["train"]), "val_games": len(games["val"]), "game_overlap": 0,
            "prepare_json_sha256": file_hash(job / "prepare.json"), "shard_labels_sha256": shard_hashes, "files": files}
     write_new(tmpdir / "MANIFEST.json", json.dumps(man, indent=1) + "\n")
-    os.rename(tmpdir, final)  # publishes the data files and their manifest together
+    move_retry(tmpdir, final)  # publishes the data files and their manifest together
     print(json.dumps({nm: files[nm]["md5"] for nm in names}))
     return 0
 

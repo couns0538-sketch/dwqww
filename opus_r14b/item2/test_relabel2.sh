@@ -140,6 +140,35 @@ printf 'x' >> jg/shards/shard_00001/labels.tsv   # tamper with this test's own p
 expect 4 run_tampered_shard "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
 printf 'x' >> jg/rows.tsv
 expect 4 run_tampered_rows "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100
+# Windows handle contention (a virus scanner or a reader holding a file for a moment): a shard publish that fails
+# twice with PermissionError is retried; a status.json that stays locked is skipped with a warning, the run goes on
+expect 0 prepare_retry "$PY" -I -B "$R" prepare --job jr --run-id r --selfplay good.txt --rows 300
+expect 0 run_publish_retry "$PY" -I -B -c "import os, sys
+sys.path.insert(0, sys.argv[1])
+import relabel2
+real, left = os.rename, [2]
+def flaky(src, dst):
+    if os.path.basename(str(dst)).startswith('shard_') and left[0] > 0:
+        left[0] -= 1
+        raise PermissionError(13, 'simulated: in use', str(dst))
+    return real(src, dst)
+os.rename = flaky
+sys.exit(relabel2.main(sys.argv[2:]))" "$here" run --job jr --run-id r --probe "$P" --nodes 5000 --shard-size 100
+check run_publish_retry_all_shards test "$(ls -d jr/shards/shard_????? | wc -l)" = 3
+expect 0 prepare_retry2 "$PY" -I -B "$R" prepare --job jr2 --run-id r --selfplay good.txt --rows 300
+expect 0 run_status_locked "$PY" -I -B -c "import os, sys, time
+sys.path.insert(0, sys.argv[1])
+import relabel2
+real = os.replace
+def locked(src, dst):
+    if os.path.basename(str(dst)) == 'status.json':
+        raise PermissionError(13, 'simulated: open in a reader', str(dst))
+    return real(src, dst)
+os.replace = locked
+time.sleep = lambda s: None
+sys.exit(relabel2.main(sys.argv[2:]))" "$here" run --job jr2 --run-id r --probe "$P" --nodes 5000 --shard-size 100
+check run_status_locked_warned grep -q "not updated" run_status_locked.err
+check run_status_locked_all_shards test "$(ls -d jr2/shards/shard_????? | wc -l)" = 3
 # mini kill / resume: 1,200 rows at 20000 nodes in shards of 100, a hard exit after 5 s, resume, assemble; the
 # assembled files must equal an uninterrupted job's byte for byte, and the manifest is published with them
 head -n 1500 "$src" > big.txt
