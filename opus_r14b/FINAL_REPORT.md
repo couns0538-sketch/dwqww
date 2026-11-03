@@ -87,9 +87,10 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
   `engine_bisect.sh` compares with the good commit's own count (312,866 at d11). Nothing passed against the wrong
   numbers, so nothing needs a re-run.
 - R15 is not started; it waits for this report's final version (R14-B ends 06:00 Nov 3 PC clock).
-- Code Review's LOW P6 crfix 4b537823: **on the PC now** - `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\
-  p6_checks_crfix.patch`, md5 4b537823b4c93aaf390413843299720b (sha256 5c572b72..., 2,311 bytes, file time
-  2026-11-02 20:53:41, i.e. it arrived after R14 ran). It patches opus_r13/p6/check_tb.py, ci_fetch_tables.sh and
+- Code Review's LOW P6 crfix 4b537823: **on the PC now** -
+  `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\p6_checks_crfix.patch`, md5
+  4b537823b4c93aaf390413843299720b (sha256 5c572b72..., 2,311 bytes, file time 2026-11-02 20:53:41, i.e. it arrived
+  after R14 ran). It patches opus_r13/p6/check_tb.py, ci_fetch_tables.sh and
   tb_probe.cpp (branch opus-r13-p6-syzygy); not R14-B scope, not applied here.
 - The four candidate exes to keep are in place with the given sha256 (checked 20:54, read-only): syz_pc1 150374ff...,
   sfs 029d58e8..., speed2 de20653c..., the relabel probe 08299f9f.... R14-B deletes nothing anywhere.
