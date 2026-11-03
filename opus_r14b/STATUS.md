@@ -23,7 +23,7 @@
   prove_resume.sh, build_probe_opt.sh, fn_diff.py) with missing or wrong arguments must refuse before any probe work.
 - 04:15-05:15 the final 1-hour bug hunt (the 04:10 slot merges into it); fixes and records until ~05:35 - anything
   found after that becomes a named owner item in FINAL_REPORT.md, not a rushed fix.
-- ~05:35 the watcher's series (last sample ~05:28) analysed per regime (one trainer process on one mask; 7 so far: 13960 and 11328 on 0x3 and 0xF, 14160 and 4320 on 0x3) ->
+- ~05:35 the watcher's series (last sample ~05:28) analysed per regime (one trainer process on one mask; 6 so far: 13960 and 11328 on 0x3 and 0xF, 14160 and 4320 on 0x3) ->
   item 1 RESULTS -> `bash opus_r14b/checks/make_index_r14b.sh` -> push item 1.
 - FINAL_REPORT.md without "INTERIM", with commit_span figures -> push status branch.
 - ~05:45 `bash opus_r14b/checks/final_checks.sh <new dir>` LAST among the checks (it verifies the indexes, hashes,
