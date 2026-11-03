@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 20:16), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 20:50), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -9,8 +9,8 @@ queue, gates, self-play or crew files was touched. Own work ran BelowNormal / Id
 ## Summary
 | item | state | key evidence | branch / head |
 |---|---|---|---|
-| 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x; distribution vs the live w4 layout: every total-variation distance < 0.001; HANDOFF.md | opus-r14b-fast-loader |
-| 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); RELABEL_HANDOFF.md with measured costs; 50M run not started (as asked) | logs/proof_finish.log; bridge_check.log; 75 / 75 tests | opus-r14b-relabel |
+| 1 fast npt loader (`--fast-loader`, default off) | DONE except the GPU window (requested in GPU_REQUEST.md, not granted: the npt queue holds the GPU to Nov 8) | batches bit-identical to the old loader's `--num-workers 1` stream (1,000 / 1,000 + validation, 24-config matrix, 3,100 batches past a wrap, trainer path 261 / 261); exact CPU loss match; loader ABBA 8.65x (old w2 vs 1 builder) and **6.25x in the live thread setting** (old w4 vs 2 builders, 95% CI 6.13-6.60); distribution vs the live w4 layout: every total-variation distance < 0.001; **from a fresh clone: DLL rebuilt = b5, adoption rehearsal on a fresh copy of the live trainer (264 / 264 = installer base) -> 261 / 261** (20:42); HANDOFF.md | opus-r14b-fast-loader |
+| 2 resumable relabel (`relabel2.py`) | DONE: 1M kill / resume proof PASSED (A uninterrupted vs B hard-exited twice: train / val / labels md5 identical); **the whole 1M with the LTO+PGO probe = the proof's files**; **frozen at sha256 88454db6...** after the verify chain; RELABEL_HANDOFF.md with measured costs (50M: 78.7 h at the whole-1M rate); 50M run not started (as asked) | logs/proof_finish.log, pgo_full_1M.log, chain_2030/ (suites 150 / 0 in the worktree and two fresh clones, bridge PASS, probe builds from a fresh clone = the tested exes, R8 v5 end to end through fen2bin) | opus-r14b-relabel |
 
 ## Baseline and improvements (measured numbers only)
 Baseline = what the two tasks asked for, as it stood when they were done: item 1 = candidate b5 (verified by 14:45);
@@ -70,6 +70,14 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
   memory file); fixed, all R14-B files scanned clean.
 - CPUs 2-3 are one physical core (SMT): every rate is per that core; crew BelowNormal jobs slowed Idle work at times
   (load samples logged next to each rate).
+- Times written from memory instead of the clock (bug hunt #3 "20:04-20:20" when it was 20:04-20:09; the launcher
+  fix "20:25-20:31" when the clock said 20:28; a robocopy overlap placed in "pair 1-2" without a per-run log): each
+  corrected within minutes from the clock or the log. Tool headers also carried a guessed "2-4 min per build"
+  (measured: ~15 s), corrected.
+- Two bugs reached the branches and were found only by the verify chain's fresh-clone step: build_probe_opt.sh's lock
+  export (git archive from a subfolder, broken since 19:18) and a robocopy call under Git Bash (`/E` -> `E:/`); both
+  fixed and re-verified from a new fresh clone (0 failures, 20:42). A 1-second robocopy test of mine overlapped the
+  live-setting loader ABBA (no outlier pair).
 
 ## Owner items
 - GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
