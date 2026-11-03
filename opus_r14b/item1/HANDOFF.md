@@ -24,8 +24,8 @@ the UCRT API sets). On another CPU, rebuild with that CPU's `-march` and re-run 
   batches, a 24-configuration matrix, 3,100 batches past a file wrap, and every tensor on the trainer's own Dataset path.
 - One epoch of CPU training (L1 256, 16 batches, seeded before the model is built, 1 thread, deterministic
   algorithms): the printed losses of old and fast are identical in all 5 values.
-- Speed (loader only, palindromic ABBA, 10 pairs, CPUs 2-3, BelowNormal): 468,494 vs 4,035,567 kept positions / s
-  = **8.65x**; a full 152.5M-position epoch through the fast loader alone: 29.8 s, peak 166 MB.
+- Speed (loader only, palindromic ABBA, 10 pairs, CPUs 2-3, BelowNormal): per-arm medians 468,494 vs 4,035,567 kept positions / s;
+  median of the 10 pair ratios **8.65x** (mean 8.64, 95% CI 8.58-8.69); a full 152.5M-position epoch through the fast loader alone: 29.8 s, peak 166 MB.
 - ASan + UBSan and TSan self-tests in GitHub CI: PASS.
 
 ## Not verified (needs the GPU window)

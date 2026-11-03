@@ -357,3 +357,18 @@ Read (read-only, `F:\opus_scratch\r6\nnue-pytorch-amd`): `trainer/callbacks.py` 
 end (ours: empty bytes -> the callback skips its unique-position merge and returns, no error) and
 `set_initial_hll()` on a resume (reaches our `_NoHll`, which says once that the checkpoint's HLL state is ignored);
 `get_io_stats()` (ours: an empty list). The CPU loss match ran a full epoch through these callbacks. No finding.
+
+## Claims audit (23:21-23:24 by the PC clock; self-review, NOT independent): report numbers -> raw logs
+Every key number of FINAL_REPORT.md was looked up in a committed raw log (not in prose). Item 1: the ABBA ratios are
+the MEDIANS of the 10 per-pair ratios, their intervals those of the MEAN ratio - 8.65x = median 8.653 (mean 8.635,
+95% CI 8.577-8.692, logs/b5checks/abba/summary.txt), 6.25x = median 6.248 (mean 6.365, CI 6.126-6.604,
+logs/chain_2030/abba_live.log), 7.19x = median 7.189 (mean 7.168, CI 7.078-7.257, logs/abba_1cpu/summary.txt); the
+"468,494 vs 4,035,567" of HANDOFF.md are the per-arm medians, whose quotient is 8.61, not the 8.65 printed next to
+them - wording fixed in HANDOFF.md, FINAL_REPORT.md and the skill (statistic named everywhere). CPU loss match
+11.4 / 40.2 min = 681.5 / 2,411.5 s and peak private 4.08 / 6.2 GB (logs/lossmatch/*guard.jsonl). The GPU baseline had
+no raw log: re-run read-only from the keeper's HWiNFO CSV, it gives the cited numbers exactly - 10,789 samples
+15:14-21:14, mean 45.7 %, p50 48 %, >= 90 % in 4.0 % (logs/gpu_baseline_1514_2114.txt). Item 2 (its logs): 1.075x is
+the probe ABBA's MEAN (median 1.094, CI 1.0439-1.1056, logs/probe_pgo/abba_r13_vs_pgo.txt) - the report now says so;
+635,344 rows/h = 999,921 rows over the 5,665.77 s of labelling summed from the 100 shard summaries (the run's own
+wall-clock status: 635,313), both 78.7 h for 50M (item 2 logs/pgo_full_1M_rate.txt, new); proof md5s, rows, games
+and splits are in pgo_full_1M.log / conv_full_1M.txt.

@@ -72,7 +72,7 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 ## Measured (2026-11-02, b5 9eb29b7d, ADVISORY - QA does official timing)
 - Equality: 1000/1000 train + 300/102 validation batches; trainer path 261/261 (every tensor); config matrix 24/24;
   3,100 batches of 10,000 (spanning windows) past the first file wrap; exact CPU loss match (5/5 logged values).
-- Loader-only ABBA (10 pairs, CPUs 2-3, same 3-thread layout): old 468k vs fast 4.04M kept positions/s = 8.65x.
+- Loader-only ABBA (10 pairs, CPUs 2-3, same 3-thread layout): old 468k vs fast 4.04M kept positions/s (per-arm medians); median of the 10 pair ratios 8.65x (95% CI of the mean 8.58-8.69).
   Live thread setting (old `--num-workers 4` vs fast 2 builders): 6.25x on CPUs 2-3 (772k vs 4.82M), 7.19x on ONE
   logical CPU (408k vs 2.91M): 2.45 vs 0.34 CPU-us per kept position; feeding the live line (121k-169k kept / s)
   takes 0.30-0.41 of a CPU with the default loader, 0.04-0.06 with the fast one.
