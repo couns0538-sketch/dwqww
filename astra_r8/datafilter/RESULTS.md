@@ -201,6 +201,15 @@ path `C:/astra8_data/quality6h_20261102/handoff_v4/manifest.json`.
 The owned complementary profiler resumed after a 172.5-second yield, with zero
 CPU use while suspended. All previous data and evidence remain preserved.
 
+At 02:01 UTC, completed descriptive reports cover 264,999,573 rows across 33
+sources, with zero invalid boards, in-check positions or mate scores. Four
+remaining sources are still being scanned; no full-corpus result is claimed yet.
+The sequential report/original-reservoir/native runner is queued behind successful
+closed profile receipts. One reused reviewer APPROVED its frozen orchestration
+and the final closed-output packager; execution evidence remains pending.
+Production converter/helpers and all three sample copies retain their pinned
+hashes. Git ignore checks confirm __pycache__/ and *.pyc are excluded.
+
 ## 30-minute follow-up audit — complete and independently approved
 
 2026-11-02 21:04–21:40 UTC (36 minutes). User requested an additional 30-minute bug/integration audit. Confirmed and fixed:
