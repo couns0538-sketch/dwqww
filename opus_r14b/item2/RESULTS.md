@@ -202,3 +202,11 @@ Astra's BelowNormal jobs (affinity all CPUs) used about one core somewhere on th
   reason (python: file not found = exit 2). Fix: locate first, then `cd`; refuse to start when relabel2.py, python or
   the self-play sample is missing. Relative call now 75 / 75 PASS (logs/test_relabel2_branch_r27_r28.log); missing
   input -> "not found: ..." exit 2. The other R14-B scripts locate themselves before any `cd` (checked).
+
+## The LTO+PGO probe with 2 workers (18:33-18:40, logs/measure/w2_pgo.log; light crew load on CPUs 2-3)
+- 19,927 rows, 20k nodes, 2 workers on mask 0xC (one physical core), order R P P R: R13 probe 662,337 / 663,485
+  rows/h, LTO+PGO probe 687,266 / 694,693 rows/h = **1.042x at 2 workers** (the single-thread ABBA gave 1.075x; two
+  SMT threads share one core). labels.tsv md5 4939068e... in all four (and in the four jobs of the worker
+  measurement). Input hashing speed: 645 MB in 0.45 s (1,443 MB/s, cached).
+- RELABEL_HANDOFF.md rewritten with these measured numbers (50M rows at 20k nodes, 2 workers: 75.4 h with the R13
+  probe, 72.4 h with the LTO+PGO probe, in this load; prepare 0.8 h with `--jobs 2`; ~17.1 GB on disk).
