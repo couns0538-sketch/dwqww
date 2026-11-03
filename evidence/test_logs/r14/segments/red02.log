@@ -1,0 +1,117 @@
+............FFFFFF.F.                                                    [100%]
+================================== FAILURES ===================================
+___________ test_fixture_audit_missing_pair_coverage_is_unverified ____________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+
+    def test_fixture_audit_missing_pair_coverage_is_unverified(module):
+        records = rows(module)
+        games = {(r.source_id, r.line): 'game' for r in records}
+        events = list(module.scan_pairs(records, oracle))[:-1]
+        result = module.fixture_audit(records, events, games, {key: 'train' for key in games})
+>       assert result['status'] == 'UNVERIFIED'
+E       AssertionError: assert 'PASS' == 'UNVERIFIED'
+E         
+E         - UNVERIFIED
+E         + PASS
+
+tests\test_r14_segments.py:183: AssertionError
+________________ test_fixture_audit_empty_input_is_unverified _________________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+
+    def test_fixture_audit_empty_input_is_unverified(module):
+>       assert module.fixture_audit([], [], {}, {})['status'] == 'UNVERIFIED'
+E       AssertionError: assert 'PASS' == 'UNVERIFIED'
+E         
+E         - UNVERIFIED
+E         + PASS
+
+tests\test_r14_segments.py:188: AssertionError
+______________ test_source_id_cannot_recur_after_another_source _______________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+
+    def test_source_id_cannot_recur_after_another_source(module):
+        original = rows(module)
+        records = [original[0], module.SourceRecord(14, 1, original[1].row, True),
+                   module.SourceRecord(13, 2, original[2].row, True)]
+>       with pytest.raises(ValueError, match='source identity'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_r14_segments.py:195: Failed
+___________________ test_window_scope_openness_is_explicit ____________________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/segments/pytest_red02/test_window_scope_openness_is_0')
+
+    def test_window_scope_openness_is_explicit(module, tmp_path):
+        records = rows(module)
+        data = b''.join((r.row.fen + ' | 0 | 0.5\n').encode() for r in records)
+        path = tmp_path / 'source.txt'
+        path.write_bytes(data)
+        receipt = {}
+        list(module.select_source(module.SourceSpec(13, 13, path, hashlib.md5(data).hexdigest(), 'edges', 1), receipt))
+>       assert receipt['chain_windows'] == [
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+            dict(first_line=1, last_line=1, open_left=False, open_right=True),
+            dict(first_line=4, last_line=4, open_left=True, open_right=False)]
+E       KeyError: 'chain_windows'
+
+tests\test_r14_segments.py:206: KeyError
+_________________ test_map_writer_rejects_unknown_stream_kind _________________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/segments/pytest_red02/test_map_writer_rejects_unknow0')
+
+    def test_map_writer_rejects_unknown_stream_kind(module, tmp_path):
+        writer = module.MapWriter(tmp_path / 'maps', lambda: None)
+        try:
+>           with pytest.raises(ValueError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+tests\test_r14_segments.py:214: Failed
+_________________ test_map_abort_does_not_flush_buffered_data _________________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/segments/pytest_red02/test_map_abort_does_not_flush_0')
+
+    def test_map_abort_does_not_flush_buffered_data(module, tmp_path):
+        writer = module.MapWriter(tmp_path / 'maps', lambda: None)
+        writer.append(13, 'pairs', (1, 250, 0))
+        path = next((tmp_path / 'maps').glob('*.bin'))
+        assert path.stat().st_size == 0
+>       writer.abort()
+        ^^^^^^^^^^^^
+E       AttributeError: 'MapWriter' object has no attribute 'abort'
+
+tests\test_r14_segments.py:225: AttributeError
+_________________ test_prefix_unscanned_tail_still_checks_pin _________________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/segments/pytest_red02/test_prefix_unscanned_tail_sti0')
+
+    def test_prefix_unscanned_tail_still_checks_pin(module, tmp_path):
+        records = rows(module)
+        data = b''.join((r.row.fen + ' | 0 | 0.5\n').encode() for r in records)
+        path = tmp_path / 'source.txt'
+        path.write_bytes(data)
+        receipt = {}
+>       with pytest.raises(ValueError, match='MD5'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'MD5'
+E         Actual message: 'input hash mismatch: D:\\a14\\evidence\\test_logs\\r14\\segments\\pytest_red02\\test_prefix_unscanned_tail_sti0\\source.txt'
+
+tests\test_r14_segments.py:249: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_segments.py::test_fixture_audit_missing_pair_coverage_is_unverified
+FAILED tests/test_r14_segments.py::test_fixture_audit_empty_input_is_unverified
+FAILED tests/test_r14_segments.py::test_source_id_cannot_recur_after_another_source
+FAILED tests/test_r14_segments.py::test_window_scope_openness_is_explicit - K...
+FAILED tests/test_r14_segments.py::test_map_writer_rejects_unknown_stream_kind
+FAILED tests/test_r14_segments.py::test_map_abort_does_not_flush_buffered_data
+FAILED tests/test_r14_segments.py::test_prefix_unscanned_tail_still_checks_pin
+7 failed, 14 passed in 0.24s

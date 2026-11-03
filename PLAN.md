@@ -23,6 +23,14 @@ exact identities: conservative blocks cannot qualify export on their own.
 Early completion or blockage reallocates time to other jobs and deeper proof.
 Safety stops override the duration. Record progress in evidence/R14_PROGRESS.md.
 
+14:13 Vienna scheduling refinement: the full production chain scan receives a
+five-hour maximum deadline so a slower complete-corpus pass can finish. The
+measured jobA pass took508.25 seconds for1049921 selected/context rows. Expected
+production work remains within the original main-job budget; the longer cap is
+contingency using time already saved on completed QC fixes. Resource checks and
+hourly workload monitoring continue throughout. The final30-minute bug hunt is
+still reserved at21:11 Vienna; no new expensive run may consume that reservation.
+
 ## Mandatory boundaries
 
 - All new files, Git metadata, runtime, temporary files and caches below D:/a14;

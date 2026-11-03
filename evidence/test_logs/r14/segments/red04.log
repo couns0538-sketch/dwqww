@@ -1,0 +1,82 @@
+.....................FFFF.......                                         [100%]
+================================== FAILURES ===================================
+______ test_positive_witness_must_be_legal_and_reach_exact_target[e2e5] _______
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+move = 'e2e5'
+
+    @pytest.mark.parametrize('move', ['e2e5', 'd2d4'])
+    def test_positive_witness_must_be_legal_and_reach_exact_target(module, move):
+        records = rows(module, ('e2e4',))
+        def forged(lines):
+            reply = oracle(lines)[0]
+            reply['witness'] = [move]
+            return [reply]
+>       with pytest.raises(module.TransportFailure, match='witness'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TransportFailure
+
+tests\test_r14_segments.py:275: Failed
+______ test_positive_witness_must_be_legal_and_reach_exact_target[d2d4] _______
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+move = 'd2d4'
+
+    @pytest.mark.parametrize('move', ['e2e5', 'd2d4'])
+    def test_positive_witness_must_be_legal_and_reach_exact_target(module, move):
+        records = rows(module, ('e2e4',))
+        def forged(lines):
+            reply = oracle(lines)[0]
+            reply['witness'] = [move]
+            return [reply]
+>       with pytest.raises(module.TransportFailure, match='witness'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TransportFailure
+
+tests\test_r14_segments.py:275: Failed
+___________ test_positive_witness_must_match_clocks_and_raw_ep[4-1] ___________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+field = 4, value = '1'
+
+    @pytest.mark.parametrize('field,value', [(4, '1'), (3, '-')])
+    def test_positive_witness_must_match_clocks_and_raw_ep(module, field, value):
+        records = rows(module, ('e2e4',))
+        fields = records[1].row.fen.split()
+        fields[field] = value
+        changed = parse_row((' '.join(fields) + ' | 0 | 0.5').encode())
+        records[1] = module.SourceRecord(13, 2, changed, True)
+        def forged(lines):
+            return [dict(id=lines[0].split('\t')[0], status='REACHABLE', reason='legal_witness',
+                         nodes=2, witness=['e2e4'])]
+>       with pytest.raises(module.TransportFailure, match='witness'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TransportFailure
+
+tests\test_r14_segments.py:289: Failed
+___________ test_positive_witness_must_match_clocks_and_raw_ep[3--] ___________
+
+module = <module 'r14_segments' from 'D:\\a14\\tools\\r14_segments.py'>
+field = 3, value = '-'
+
+    @pytest.mark.parametrize('field,value', [(4, '1'), (3, '-')])
+    def test_positive_witness_must_match_clocks_and_raw_ep(module, field, value):
+        records = rows(module, ('e2e4',))
+        fields = records[1].row.fen.split()
+        fields[field] = value
+        changed = parse_row((' '.join(fields) + ' | 0 | 0.5').encode())
+        records[1] = module.SourceRecord(13, 2, changed, True)
+        def forged(lines):
+            return [dict(id=lines[0].split('\t')[0], status='REACHABLE', reason='legal_witness',
+                         nodes=2, witness=['e2e4'])]
+>       with pytest.raises(module.TransportFailure, match='witness'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TransportFailure
+
+tests\test_r14_segments.py:289: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_r14_segments.py::test_positive_witness_must_be_legal_and_reach_exact_target[e2e5]
+FAILED tests/test_r14_segments.py::test_positive_witness_must_be_legal_and_reach_exact_target[d2d4]
+FAILED tests/test_r14_segments.py::test_positive_witness_must_match_clocks_and_raw_ep[4-1]
+FAILED tests/test_r14_segments.py::test_positive_witness_must_match_clocks_and_raw_ep[3--]
+4 failed, 28 passed in 0.20s

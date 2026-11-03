@@ -88,3 +88,27 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
 - Owned holdout skill records bounded-proof limits. Standard validation was
   attempted but blocked by its absent YAML dependency; no pinned runtime change
   was made. Independent scenario review kept export blocked as required.
+
+## 14:16 Vienna checkpoint
+
+- JobA source-chain scan completed in508.25 seconds. All3593220 source rows
+  parsed;1049921 rows were chain-scanned, including50000 trailing context rows.
+  Counts:1033537 reachable,11441 unreachable,4942 unknown. Unknown reasons:
+  815 gaps exceedK8;4127 node limits. Observed segments16384, not authentic IDs.
+- Source001|002 physical seam is UNREACHABLE by nonpositive absolute-ply gap.
+  Report MD5 77b76a460e569e50196da08f083e95d4. Prepared group comparison remains
+  pending; the source count is not a group-mapping PASS.
+- Corrected segment driver passed32 tests and exact-candidate real-native smoke;
+  independent review accepted legal witness replay and qualification gates.
+- Production chain attempt01 refusedCPU3 at72.7%; attempt02 admittedCPU1 and is
+  running with a five-hour contingency deadline. Overlap scan remains onCPU2.
+- The binary decoder independently checks every artifact hash, range/pair/
+  boundary coverage, physical seam coordinates/outcomes and aggregate counts.
+  Review fix passed15 tests and focused recheck. CLI provenance binding pending.
+- Fresh health14:13:14: training9.80 iterations/second; gate805 games completed.
+  D61.66GB free, C130.19GB; owned514MB. No sustained slowdown observed.
+- Broader boundary-search filter mathematics passed read-only review; new code
+  will require brute-force accounting and legal-path tests before any workload.
+- The new selected-suite runner is not accepted: its first green attempt found
+  integration failures. Those remain recorded and are being fixed; full suite
+  execution waits for resource admission and a stable reviewed selection.

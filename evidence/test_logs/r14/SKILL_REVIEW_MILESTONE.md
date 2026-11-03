@@ -20,4 +20,5 @@ start because its YAML dependency is absent. Log:
 D:/a14/evidence/test_logs/r14/skill-validator01.log. No runtime package was
 installed during the ongoing pinned audit. Frontmatter is unchanged. Syntax and
 all reference targets were checked read-only; do not call the standard validator
-passed. A focused recheck of the corrected sentence remains pending.
+passed. Independent focused recheck accepted the corrected sentence at MD5
+f5bc2151b035be5553639926cde6a6b7.
