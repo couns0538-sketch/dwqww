@@ -1,5 +1,31 @@
 # Review log — UNPROVEN
 
+## 2026-11-03 07:45 — fresh v8 qualification and final-packer review
+
+Current full suite:544 tests+11 subtests PASS437.79s; source/runtime stable.
+Approved input-repair driver completed all fresh proofs and new v8 handoff in
+164.920s (171.134s command wall). Source/runtime and protected v7 hashes remain
+unchanged. Native admission covers every999,953 selected row; no native batch
+allocation or training. Published manifest0695d8a...216f5b; full receipts under
+evidence/extension5h/verified_v8, current source commit d6e1aae8.
+
+The reused read-only reviewer found two draft packer defects: empty proof maps
+could satisfy all() checks, and linked evidence could change after its early
+validation but before inventorying. Main's first fixture attempt lacked an
+authored conftest file; that failed harness attempt is retained separately.
+After fixing the fixture, twelve actual regressions failed with two controls
+passing. Exact source/receipt/stage/runtime sets and closing digest checks fixed
+them;14 cases passed. Focused recheck identified one remaining substitution:
+required receipt keys could point at another proof's file. Two new RED cases
+reproduced it; exact key-to-path binding fixed it;16 cases PASS0.71s.
+
+Final read-only recheck APPROVED packer SHA256
+7badaee97c42687f084da45986d9c5807b7d359197f011c1b41de9952c620720
+for execution after all inventoried logs close. Original pre-first-fix source
+is preserved; the intermediate pre-alias source was not separately snapshotted,
+so its exact digest is not claimed. Packaging is still pending, not accepted
+as an executed check. The reserved final review hour remains08:23–09:23UTC.
+
 ## 2026-11-03 07:30 — exact proof-source binding recheck
 
 The reused reviewer approved the command-path fix for the fresh full suite.

@@ -1,67 +1,70 @@
 # Astra R8 Job 2: result-aware data tools — UNPROVEN
 
-The production converter and installed npt are untouched. This directory contains
-an isolated compatibility extension, an independent deterministic filter, and an
-original bounded Python adapter to installed npt. No training or GPU work is run
-by this job. Correct conversion and loss checks establish no playing-strength gain.
+This directory contains an isolated converter extension, a deterministic opt-in
+filter, and a bounded Python adapter to the installed npt recipe. The production
+converter, engine and installed npt files are unchanged. No training, GPU work,
+net export or strength gate has run. Engine NNUE owns training; Engine QA owns
+FD3A5190 UHO, separate 8moves_v3 and WAC300 qualification.
 
-Current verified v7 handoff (final review pending):
-`C:/astra8_data/extension3h_20261103/handoff_v7/manifest.json`,
-SHA256 `52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
-Ruff exposed a false audit PASS under Python -O/-OO. The reviewed fix preserves
-proof checks under optimization; 16 focused regressions and the full 360-test
-suite pass. Fresh 100k legacy identity, 1,000 binary results plus mirrors, bounded
-repeat filtering, both v7 CPU preflights and published verification pass.
-Current commands reject stale tooling identities. The converter, data parser,
-npt runtime and engine are unchanged by this audit repair.
-The six-hour continuation fixes strict PGN/schema admission, source identity,
-complete proof binding and aggregate CPU allocation. The latest full CPU suite
-passes **360 tests + 11 subtests** on the reviewed audit-repair source.
-Both actual recipe preflights and published-manifest verification pass on source
-de1de94b. Complete-corpus and expanded native checks pass; the reserved final
-review is still pending. Both million-row cohorts pass current admission and
-serialize byte-for-byte identically. The new inventory hashes 9,797 retained
-files; the Forge consistency checker passes all 85 referenced artifacts.
-The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
-Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
-Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
-deliberately fail current runtime/tooling checks after the reviewed local fixes.
-The exact FD3A5190 executable matches all 9,486 perft2 checks (4,736 source
-reservoir positions plus seven edge cases, each mirrored) and all five supplied
-bench counts. A separate replay verifies all 4,736 sampled labels against their
-original source lines. These establish data and interface compatibility; strength
-remains UNPROVEN.
+Current candidate: reviewed native-input and manifest-identity fixes, plus
+Lichess evaluation selection and castling normalization. The current full CPU
+suite passes **544 tests and 11 subtests**. Fresh verification passes complete
+selected-cohort native-input admission, 100k legacy identity, 1,000 binary results
+plus mirrors, bounded repeat filtering and both v8 CPU recipe preflights.
+Current manifest: `C:/astra8_data/extension5h_20261103/handoff_v8/manifest.json`,
+SHA256 `0695d8a630e2d6247fc9a60237117d00e3cad0e79258e5e6ef71fbf21c216f5b`.
+Current code must not be paired with the historical v7 manifest. v7 is protected evidence and remains
+unchanged at SHA256 52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
+Final review is reserved for 08:23–09:23 UTC. See [results](RESULTS.md),
+[review log](REVIEW_LOG.md), [recipe commands](MIX_SPEC.md), and
+[R12 continuation constraints](R12_HANDOFF.md).
 
-The [complete source profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
-covers 304,999,573 rows in all 37 closed training shards, with zero invalid boards
-under that historical profiler's Python board-validity check, zero in-check
-positions and zero mate scores. The newer strict Forge admission checks have
-not been replayed over every corpus row. Aggregate score/result correlation is
-0.6567069235. Ply <=160 keeps 285,511,513 rows (93.6105%); it remains optional.
-This descriptive audit produces no new training inputs or full-corpus holdout
-clearance. The recipes still use the separately cleared 999,953-row cohort.
+Both recipes retain the same 999,953 rows after explicit exclusion of 47
+board+STM matches against the complete 013/014 holdouts. The 10,000-row sample
+is 3,139,111 bytes, SHA256
+`c7394f11aebf2e76a2e5a1b8e834c8b5b92676180f5896e8ac30062472f7462c`.
+Fresh v8 selected-cohort Pearson correlation is 0.6635950368 with 1,000
+passing mirrors. The bounded 152.5M-position
+epoch recipe repeats this cohort, as disclosed in MIX_SPEC.md.
 
-The stricter current-parser replay is now running in two disjoint single-worker
-partitions, after a reviewed 466,506-row pilot passed. It reads original shards
-and emits receipts only. Reproduce a bounded pilot in a new directory with:
+The cleared `records.jsonl` and `metadata.jsonl` are intentionally byte-identical:
+each contains complete normalized records, 999,953 rows and 315,036,094 bytes.
+Fresh byte comparison and full hashes PASS. SHA256:
+`0e73a87c2e1af035aed34f51fdd74daefc05833ce133f254845f09f23aeb5dce`;
+MD5: `aa3e9272d686356ef6a9e25003c52546`. Binary REC files and their JSONL sidecars
+have different formats and are not byte-identical.
+
+The strict [complete admission union](evidence/extension5h/closed_0728/admission_union_v1/SUMMARY.json)
+passes all 304,999,573 rows in 37 original closed training shards, with zero
+rejections. It retains the audited records.py SHA256 a8ef0f43...7360be; the later
+Lichess-only repair is separately attributed. This proves parser admission,
+not native counter representability of every raw source, game-ID separation or
+full-corpus holdout clearance. Only the selected cohort has holdout clearance.
+The [historical descriptive profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
+reports aggregate score/result correlation 0.6567069235 and 93.6105% retained
+at optional ply <=160. Its original validator attribution is retained.
+
+A new bounded admission pilot can be reproduced with:
 
 ```powershell
 $env:PYTHONDONTWRITEBYTECODE = '1'
 F:/nnue_pytorch/venv/Scripts/python.exe astra_r8/datafilter/audit_forge_admission.py C:/astra8_data/NEW_admission_pilot --reference-profiles C:/astra8_data/quality6h_20261102/corpus_profile/SUMMARY.json C:/astra8_data/quality6h_20261102/corpus_profile_rest/SUMMARY.json --max-sources 1
 ```
 
-The tool checks original SHA256/producer MD5, exact current self-play admission,
-source identity and sealed reference coverage. A bounded or partitioned summary
-does not claim full reference coverage. Do not start extra computation while
-both current partitions occupy the two-worker budget.
+A bounded or partitioned receipt cannot claim complete reference coverage;
+`seal_admission.py` verifies the disjoint complete union and its original hashes.
+Completed scans used two total CPU slots at BelowNormal. Keep D: >=50 GB,
+C: >50 GB and aggregate task artifacts <=15 GB. Preserve all existing data.
 
-The holdout-cleared `records.jsonl` and `metadata.jsonl` are intentionally
-byte-identical: each is the complete normalized record stream, not a reduced
-metadata projection. Each contains 999,953 rows in 315,036,094 bytes, with SHA256
-`0e73a87c2e1af035aed34f51fdd74daefc05833ce133f254845f09f23aeb5dce`.
-This does not imply that binary REC files and their converter sidecars are alike.
-See [R12 handoff constraints](R12_HANDOFF.md) for the corrected lock contract and
-the protected v7 artifact.
+Fresh [exact-lock UCI checks](evidence/extension5h/closed_0728/lock_correction_v1/REPORT.json)
+match the five corrected bench pins plus startpos and Kiwipete perft5. Earlier
+9,486 perft2 vectors and a separate 5,484-vector generated check retain their
+original source identities. Perft establishes move/state compatibility, not
+NNUE evaluation quality or playing strength. True static/root-qsearch filtering
+remains blocked by the lock's UCI interface; no depth-one proxy is substituted.
+Raw four-field Lichess exports also remain blocked because their counters are
+unknown. Both recipes contain zero Lichess rows. See the focused
+[Lichess](LICHESS_INPUT_REVIEW.md) and [native-input](NATIVE_INPUT_REVIEW.md) reviews.
 
 ## Interfaces
 

@@ -1,0 +1,50 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_________ test_required_evidence_cannot_alias_another_proof[receipt] __________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_alias_01/cases/test_required_evidence_c...a8_data/extension5h_20261103/red_final_pack_alias_01/cases/test_required_evidence_cannot_0/owned/inventory_helper.py'))
+kind = 'receipt'
+
+    @pytest.mark.parametrize('kind',['receipt','stage'])
+    def test_required_evidence_cannot_alias_another_proof(case,kind):
+        complete=case.complete
+        if kind=='receipt':
+            complete['receipts']['native_admission.json']=complete['receipts']['shared_selfplay_source.json']
+            (case.validation/'native_admission.json').unlink()
+        else:
+            complete['stages']['orientation']=complete['stages']['identity']
+            (case.validation/'orientation_receipt.json').unlink()
+        put(case.validation/'COMPLETE.json',complete)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:105: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 20, "candidate": "1111111111111111111111111111111111111111"}
+__________ test_required_evidence_cannot_alias_another_proof[stage] ___________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_alias_01/cases/test_required_evidence_c...a8_data/extension5h_20261103/red_final_pack_alias_01/cases/test_required_evidence_cannot_1/owned/inventory_helper.py'))
+kind = 'stage'
+
+    @pytest.mark.parametrize('kind',['receipt','stage'])
+    def test_required_evidence_cannot_alias_another_proof(case,kind):
+        complete=case.complete
+        if kind=='receipt':
+            complete['receipts']['native_admission.json']=complete['receipts']['shared_selfplay_source.json']
+            (case.validation/'native_admission.json').unlink()
+        else:
+            complete['stages']['orientation']=complete['stages']['identity']
+            (case.validation/'orientation_receipt.json').unlink()
+        put(case.validation/'COMPLETE.json',complete)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:105: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 20, "candidate": "1111111111111111111111111111111111111111"}
+=========================== short test summary info ===========================
+FAILED ::test_required_evidence_cannot_alias_another_proof[receipt] - Failed:...
+FAILED ::test_required_evidence_cannot_alias_another_proof[stage] - Failed: D...
+2 failed, 14 deselected in 0.29s

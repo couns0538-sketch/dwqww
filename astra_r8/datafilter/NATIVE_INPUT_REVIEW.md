@@ -1,10 +1,15 @@
-# Native input boundary review — implemented, final verification pending, UNPROVEN
+# Native input boundary review — implemented and verified, UNPROVEN
 
 Current status: the boundary and identity repairs below are implemented. The
 affected 131-test run passes, including actual installed-native tensor comparisons.
-Focused recheck approves broader verification. Full selected-cohort admission,
-the full suite and new v8 handoff are pending. Historical inspection/planning
-notes below explain the chosen scope.
+Focused recheck approved broader verification, now complete: 544 tests plus
+11 subtests PASS; all 999,953 selected rows pass current native-input admission
+in 57.807 seconds with zero canonical-argument changes. Maximum halfmove is 99,
+ply 299 and fullmove 150; scores span -3000..3000. This pass allocates no native
+batches and makes no loader-throughput claim. Both new v8 CPU preflights and
+strict published verification PASS, preserving the complete v7 file set/hashes.
+Evidence: evidence/extension5h/verified_v8/input_repair_validation. Final review
+remains scheduled. Historical inspection/planning notes explain the chosen scope.
 
 Read-only inspection on 2026-11-03 found a mismatch between valid Forge FEN
 text and the installed npt parser. Forge accepts repeated ASCII spaces/tabs and

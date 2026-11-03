@@ -332,6 +332,15 @@ JSON parser, then compare the current path hash and any prior binding. Separate
 hash/read/hash calls can accept temporary substituted content under a restored
 file's digest. Pair negative mutation fixtures with healthy cases through the
 same initialization path so unconditional rejection cannot masquerade as a fix.
+Build emitted and delegated commands from the captured verified target, rather
+than resolving the original alias again after verification. Test the preflight
+command as well as stub delegation: a later loader rejection does not make an
+incorrect PASS command valid. Apply exact-byte binding to source-comparison
+proofs too; matching function text and a separately read module hash can describe
+different bytes. Preserve the original module snapshot when a later focused
+repair leaves shared admission functions unchanged, and retain the original
+whole-corpus source attribution. Put runtime scratch outside protected evidence
+directories, including in the ready-to-run documentation.
 On Windows, do not treat st_ctime as a portable last-change timestamp; use the
 actual runtime's documented stat semantics and verify path/handle agreement.
 Path stat and fstat may even report different ctime meanings in the same Python

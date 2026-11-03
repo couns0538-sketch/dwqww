@@ -7,7 +7,8 @@ plus 11 subtests. Focused independent recheck approved broader verification.
 The castling RED cases showed accepted but unnormalized aliases, not rejected
 castling. The old four-field case already rejected input; its diagnostic is now
 explicit. Remaining text describes the original finding and chosen design.
-Fresh legacy/native-admission/v8 handoff proofs remain pending. No Lichess data
+Fresh legacy/native-admission/v8 handoff proofs now PASS; the final full CPU
+suite passes 544 tests and 11 subtests after the command-path repair. No Lichess data
 was added to either recipe, and four-field input remains blocked.
 
 The official evaluation dump has four-field FENs: it omits both move counters.

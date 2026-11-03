@@ -1,0 +1,283 @@
+.FFFFFFFFFFF.F                                                           [100%]
+================================== FAILURES ===================================
+____________ test_incomplete_validation_is_rejected[source_files] _____________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_0/owned/inventory_helper.py'))
+field = 'source_files'
+
+    @pytest.mark.parametrize('field',['source_files','receipts','stages'])
+    def test_incomplete_validation_is_rejected(case,field):
+        put(case.validation/'COMPLETE.json',{**case.complete,field:{}})
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:79: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+______________ test_incomplete_validation_is_rejected[receipts] _______________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_1/owned/inventory_helper.py'))
+field = 'receipts'
+
+    @pytest.mark.parametrize('field',['source_files','receipts','stages'])
+    def test_incomplete_validation_is_rejected(case,field):
+        put(case.validation/'COMPLETE.json',{**case.complete,field:{}})
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:79: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+_______________ test_incomplete_validation_is_rejected[stages] ________________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_incomplete_validation_is_2/owned/inventory_helper.py'))
+field = 'stages'
+
+    @pytest.mark.parametrize('field',['source_files','receipts','stages'])
+    def test_incomplete_validation_is_rejected(case,field):
+        put(case.validation/'COMPLETE.json',{**case.complete,field:{}})
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:79: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+____________________ test_empty_suite_sources_are_rejected ____________________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_empty_suite_sources_are_r...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_empty_suite_sources_are_r0/owned/inventory_helper.py'))
+
+    def test_empty_suite_sources_are_rejected(case):
+        for name in ['source_before.json','source_after.json']:put(case.suite/name,{})
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:85: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+____________________ test_empty_tested_runtime_is_rejected ____________________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_empty_tested_runtime_is_r...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_empty_tested_runtime_is_r0/owned/inventory_helper.py'))
+
+    def test_empty_tested_runtime_is_rejected(case):
+        put(case.suite/'cpu_runtime_fixture.json',{'before':{'files':{}},'after':{'files':{}}})
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:91: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+________ test_linked_evidence_change_before_inventory_is_rejected[log] ________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be0/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000047425A0>
+which = 'log'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+______ test_linked_evidence_change_before_inventory_is_rejected[receipt] ______
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be1/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000047470B0>
+which = 'receipt'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+_______ test_linked_evidence_change_before_inventory_is_rejected[stage] _______
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be2/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000473D7F0>
+which = 'stage'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+______ test_linked_evidence_change_before_inventory_is_rejected[runtime] ______
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be3/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000004746120>
+which = 'runtime'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+_____ test_linked_evidence_change_before_inventory_is_rejected[manifest] ______
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be4/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000000000473E810>
+which = 'manifest'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+________ test_linked_evidence_change_before_inventory_is_rejected[v7] _________
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be5/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000004746690>
+which = 'v7'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+______ test_linked_evidence_change_before_inventory_is_rejected[helper] _______
+
+case = namespace(root=WindowsPath('C:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be...:/astra8_data/extension5h_20261103/red_final_pack_02/cases/test_linked_evidence_change_be7/owned/inventory_helper.py'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000000004747830>
+which = 'helper'
+
+    @pytest.mark.parametrize('which',['log','receipt','stage','runtime','manifest','v7','v7_extra','helper'])
+    def test_linked_evidence_change_before_inventory_is_rejected(case,monkeypatch,which):
+        targets={'log':case.suite/'pytest.log','receipt':case.validation/'native_admission.json',
+                 'stage':case.validation/'identity_receipt.json','runtime':case.installed,
+                 'manifest':case.handoff/'manifest.json','v7':case.v7/'manifest.json',
+                 'v7_extra':case.v7/'unapproved.json','helper':case.helper}
+        original=pack.input_identity
+        state={'changed':False}
+        def changed(path):
+            if not state['changed']:
+                state['changed']=True
+                target=targets[which]
+                target.write_bytes(target.read_bytes()+b' ' if target.exists() else b'{}')
+            return original(path)
+        monkeypatch.setattr(pack,'input_identity',changed)
+>       with pytest.raises(ValueError):pack.main()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+C:\astra8_data\extension5h_20261103\test_final_pack.py:110: Failed
+---------------------------- Captured stdout call -----------------------------
+{"status": "PASS", "files": 21, "candidate": "1111111111111111111111111111111111111111"}
+=========================== short test summary info ===========================
+FAILED ::test_incomplete_validation_is_rejected[source_files] - Failed: DID N...
+FAILED ::test_incomplete_validation_is_rejected[receipts] - Failed: DID NOT R...
+FAILED ::test_incomplete_validation_is_rejected[stages] - Failed: DID NOT RAI...
+FAILED ::test_empty_suite_sources_are_rejected - Failed: DID NOT RAISE ValueE...
+FAILED ::test_empty_tested_runtime_is_rejected - Failed: DID NOT RAISE ValueE...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[log] - Fail...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[receipt] - ...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[stage] - Fa...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[runtime] - ...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[manifest]
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[v7] - Faile...
+FAILED ::test_linked_evidence_change_before_inventory_is_rejected[helper] - F...
+12 failed, 2 passed in 0.79s

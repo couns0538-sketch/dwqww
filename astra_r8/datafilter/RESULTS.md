@@ -2,6 +2,31 @@
 
 ## Current continuation — active, UNPROVEN
 
+07:48 UTC: CodeRabbit authenticated, ten included reviews available; scoped
+deep committed review started on d6e1aae8 implementation, without paid override.
+61 selected Python files scanned with no credential-pattern match. Review is
+IN_PROGRESS, not a clean result. Core/tests remain frozen; the final hour is
+unchanged. The approved packer has16 current fixture passes with explicit
+before/after driver, fixture and helper pins; execution remains pending.
+
+07:45 UTC current result: full suite v2 PASS **544 tests + 11 subtests** in
+437.79 seconds (command438.959), with stable source and 50-file runtime identity.
+Fresh verification PASS in 164.920 seconds (command171.134): all 999,953 selected
+rows pass current native admission; 100k legacy outputs match, 1,000 binary
+outcomes and mirrors pass, all three 10k filter runs match, both CPU preflights
+and strict v8 verification pass. v8 manifest SHA256:
+0695d8a630e2d6247fc9a60237117d00e3cad0e79258e5e6ef71fbf21c216f5b.
+Fresh Pearson0.66359503677808, 1,000 passing mirrors. Protected v7 unchanged.
+Receipts: evidence/extension5h/full_cpu_v2 and verified_v8. No training/GPU use.
+
+The final packer is independently approved after fixing incomplete-proof and
+late linked-file changes. Twelve actual RED failures became 14 passes; a final
+two-case receipt-path substitution RED became 16 passes. The initial packer
+fixture attempt failed because its authored conftest file was absent; preserved,
+not counted as a product defect. Final packaging and the reserved 08:23–09:23
+review hour remain pending. Retained artifacts at v8 closure:14,885,630,564bytes;
+D:53,952,389,120bytes free. New allocations remain guarded under the15GBcap.
+
 2026-11-03 07:28 UTC checkpoint: both full admission scans and their union are
 closed PASS: 37 sources, 304,999,573 rows, zero invalid rows. The union digest is
 e125a32916ebfd751a21a03d79e10baf2b94d3f13bb32e6c9a3522afc24f9dd4.

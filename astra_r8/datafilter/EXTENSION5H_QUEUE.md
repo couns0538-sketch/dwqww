@@ -4,6 +4,14 @@ Authorized schedule: 2026-11-03 04:23–08:23 UTC improvement; 08:23–09:23 UTC
 deep review, fixes and verification. Continue the original task across user
 steering/compaction. No engine edits, training, GPU, crew controls or data removal.
 
+07:48 update: steps1–6 complete. Current full suite544+11 PASS; all999,953 native
+inputs and fresh v8 handoff PASS. CodeRabbit deep committed review started early
+on d6e1aae8 implementation to leave repair time before the reserved final hour;
+its log is active and must not be inventoried yet. Core/tests stay frozen during
+that review. Final packer approved after16 authored fixture checks; actual
+packaging stays queued until logs close. Runtime scratch in the ready commands
+now lives outside protected handoff directories. Final-hour schedule unchanged.
+
 07:28 update: steps 1–5 below are complete. Admission union: 304,999,573 rows
 PASS; corrected lock and intentional JSONL byte equality PASS; Lichess/native
 repairs reviewed and tested. Step 6 is active. Full suite v1 passed 542+11;
