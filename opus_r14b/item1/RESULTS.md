@@ -11,6 +11,7 @@ acceptance 261 / 261, adoption rehearsal on a fresh copy of the live trainer (26
 (20:42 and again 21:48). Speed (ADVISORY): 8.65x (old w2 vs 1 builder), 6.25x in the live thread setting on CPUs 2-3,
 7.19x on one logical CPU (2.45 vs 0.34 CPU-us per kept position). Damaged files: 371 fuzz runs, no crash / hang. The
 live line's GPU use with the default loader: mean 45.7 % (15:14-21:14). Open: the GPU window (GPU_REQUEST.md).
+Code Review fixes of 2026-11-03 (tools only; b5 unchanged): see the last section.
 `FILES.txt` + `SHA256SUMS` index this folder (`sha256sum -c --quiet SHA256SUMS` after a checkout).
 
 ## Candidates
@@ -489,13 +490,34 @@ with `--fast-loader` remains the measurement that decides (GPU_REQUEST.md).
 ## Code Review fixes (2026-11-03, from 10:05 by the PC clock, after the job; self-review, NOT independent)
 Source: Couns's message of 2026-11-03 ("Fix before/with R15") with four items from Code Review's notes
 `CR_R14B_FINAL_HUNT_20261102.md` (md5 11ecb096) and `CR_R14B_FL_FUZZ_EED53145_20261102.md` (md5 ee4afdc3). Neither note
-file was found on the PC at 10:00 (searched by name in C:\Users\Administrator incl. the qa_* and cr_crfix folders,
-D:\grok-pc-data, C:\o14b, D:\o14b, F:\qa_xfer, F:\astra_qa, D:\qa_df), so the work follows the four items as written
-in the message. Items 1, 2 and 4 are in this folder; item 3 (`pc_gate.ps1`) is on opus-r14b-status. The candidate DLL
+file is on the PC under that name (searched 10:00 in the qa_* / cr_crfix folders, and 10:09 recursively over all of
+C:\Users\Administrator, D:\ and F:\: no file `CR_R14B*`), so the work follows the four items as written in the message.
+Items 1, 2 and 4 are in this folder; item 3 (`pc_gate.ps1`, d3ad6881) is on opus-r14b-status. The candidate DLL
 b5 (9eb29b7d...) and forge_fastloader.py are unchanged: these are fixes of the tools around them. Each test was first
 run against the tools of b5461fea (RED, logs kept), then against the fix.
 | item | before (RED: the new test on the tools of b5461fea) | fix (commit) | after | logs |
 |---|---|---|---|---|
 | 1 installer: linked copies | a copy whose config.py / train.py were hard or symbolic links to the stand-in "live" files was patched through the links (the stand-in's two files patched); a dangling link in a loader target's place passed the "exists" test and created `stand_in/forge_fastloader.py`: 8 failures | `linked_files()`: exit 2 before any change (also with `--check`, except `--check` of the live folder itself) for a trainer file that is the same file as the live trainer's (`os.path.samefile` = file identity), a symbolic link, or a file with more than one hard link; loader targets tested with `os.path.lexists` (f124ed3f) | `test_installer.sh` **38 / 38** (10 new cases, all on the stand-in; the real live files were only read and hashed: unchanged) | logs/installer/test_installer_cr1_red_on_b5461fea.log, test_installer_cr1.log |
 | 2 fl_abba warm-up | `--warmup` >= `--batches`, a negative warm-up or `--batches 0`: exit 1, a traceback and an output folder left behind; a run reporting 0 kept/s ended in ZeroDivisionError after all runs: 8 failures | refused before the output folder is made (exit 2), in `fl_abba.py` and in `fl_equal.py dump`; a run that still reports 0 kept/s stops fl_abba with exit 1 instead of entering the ratios (e29bf186) | `test_cli.py` **42 / 42** (8 new, one in-process with a stub dump) | logs/cli/test_cli_cr2_red_on_b5461fea.log, test_cli_cr2.log |
-| 4 fl_fuzz | in progress | | | |
+| 4 fl_fuzz | no comparison with the default loader at all; a run with exit 0 and no batch counted as "ok"; no disk floor, no `--flips` limit; a bad `--mask` ended in a traceback: 9 failures of the new cases | every run the fast loader completes is repeated with the default loader (new required `--old-dll`, `--workers 1` = the deterministic stream; same file, mode, batch, window) and the hashed dumps are compared with `fl_equal.py compare`; exit 0 without a batch is "empty", a failure except for the VALUE_NONE file (its filter keeps nothing by design); `--min-free-gb` (default 50 GiB) checked before the first write against the whole run's size and before every case; `--flips` 0..1000; all arguments checked before anything is read, pinned or written (1656e093) | `test_cli.py` **51 / 51** (9 new, incl. the outcome / identity / disk-floor rules in-process); real runs below: 0 unexpected, 0 identity mismatches | logs/cli/test_cli_cr4_red_on_b5461fea.log, test_cli_cr4.log, logs/fuzz/fuzz_cr4_b5_46*, fuzz_cr4_b5_326* |
+
+Real fuzz runs with the new `fl_fuzz.py` (fast DLL b5 `D:\o14b\fl\b5_install`, default loader = the reference copy
+`D:\o14b\ref\libtraining_data_loader.dll`, the first 3 chunks of the J1 holdout binpack read-only, BelowNormal on CPUs
+2-3; load before each run in the `_load_before.txt` files: 83 % total, CPUs 2-3 at 40-41 %, the Idle npt trainer on 0xF):
+| run | runs | fast: ok / empty / error | identity with the default loader | unexpected | mismatches |
+|---|---|---|---|---|---|
+| seed 20261102, 20 flips (10:13:45-10:13:50) | 46 | 17 / 1 / 28 | 17 same (every batch bit-identical), 1 same-empty | 0 | 0 |
+| seed 7, 300 flips (10:15:05-10:15:42) | 326 | 174 / 1 / 151 | 174 same, 1 same-empty | 0 | 0 |
+
+- Reading: every damaged file the fast loader accepts (the partial tail, the chunk-boundary cut and the duplicated
+  chunk in both modes and runs; 11 + 168 byte-flip / truncation runs) gives the default loader's batches bit for bit,
+  finite and cyclic; the VALUE_NONE
+  file gives no batch in both. Files the fast loader rejects (chained-record flag, more than 32 pieces, a record
+  without both kings, truncated chunks, bad headers) are not compared: the item asks for the cases that load.
+- CR item 4 interpreted: "ok with 0 batches is a failure" holds for every case except the one designed to produce
+  none (all_value_none_finite now expects "empty"; H4-2's manual check of 2026-11-02, the default loader also gives 0
+  batches, is now an automatic one: same-empty).
+- Against the 326-run log of 2026-11-02 (same seed and cases): 324 / 326 outcomes equal; flip_238 and flip_244 gave
+  4 batches then and an error ("record without both kings") now - the H4-1 timing class (a builder working ahead stops
+  the stream at a bad record later in the file; whether 4 batches were handed out first depends on thread timing; the
+  dumps are now hashed, so the consumer is slower). No batch with a bad record is handed out in either case.

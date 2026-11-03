@@ -48,7 +48,10 @@ GPU utilisation and it/s of a real epoch, and the adapter path below (the adapte
    file; prints both sha256). (Without `--loader-dll`, copy the two files yourself, or set `FORGE_FAST_LOADER_DIR`; the
    adapter passes the queue's environment through.) Unknown or misspelt arguments are exit 2 (since 22:2x a typo can
    no longer turn `--check` into an install), and a real install into the live folder
-   `F:\opus_scratch\r6\nnue-pytorch-amd` is refused; `--check` there is allowed (read-only).
+   `F:\opus_scratch\r6\nnue-pytorch-amd` is refused; `--check` there is allowed (read-only). The copy must be made of
+   real files (robocopy, not links): since 2026-11-03 a copy whose config.py / train.py are the same file as the live
+   trainer's, a symbolic link or a file with more than one hard link is refused, `--check` included (exit 2, nothing
+   changed), and so is a link in a loader target's place.
 3b. Acceptance check, CPU only, GPU hidden (about 1 minute): `bash tools/fl_acceptance.sh <COPY> <new out dir>` runs
    the trainer's own Dataset -> FixedNumBatchesDataset -> DataLoader path with the old loader (w1; default: the copy's
    own `build\libtraining_data_loader.dll`) and the fast loader (w4; default: the files next to its train.py) and
@@ -83,8 +86,11 @@ loader for `--features K32H3^`; the CPU loss match ran train.py with `--features
 Anything else raises instead of silently differing from the default loader; each refusal and its message is tested by
 `tools/test_scope.py` (20 cases, standard library + the DLL, no GPU: bug hunt #7). The equality, distribution and
 speed tools refuse wrong arguments, damaged or empty dumps and existing outputs before any work, and their compare
-commands never pass two empty or junk files: `tools/test_cli.py` (34 cases, no DLL loaded: bug hunt #16). Damaged files (bug hunt #4, 371 fuzz
-runs incl. a bounds-checked build): clean errors, no crash, no hang. One shared limit: a cyclic stream over a file in
+commands never pass two empty or junk files: `tools/test_cli.py` (51 cases since the Code Review fixes of 2026-11-03,
+no DLL loaded: bug hunt #16). Damaged files (bug hunt #4, 371 fuzz runs incl. a bounds-checked build): clean errors, no
+crash, no hang; since 2026-11-03 `tools/fl_fuzz.py` also runs every damaged file the fast loader accepts through the
+default loader (`--old-dll`) and compares the batches bit for bit: 46 + 326 runs, every accepted file identical (RESULTS,
+"Code Review fixes"). One shared limit: a cyclic stream over a file in
 which the skip filter keeps nothing (e.g. every score VALUE_NONE) waits forever - the default loader does the same.
 
 ## What changes for training

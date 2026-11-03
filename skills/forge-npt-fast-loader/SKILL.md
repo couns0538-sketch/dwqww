@@ -34,9 +34,10 @@ description: The R14-B fast data loader for the npt (nnue-pytorch) trainer on gr
    --out X.tsv` (`--data` is required), then `compare A B` (refuses unhashed dumps, different settings and two dumps
    without a batch). Hashes the 3n-float + 66n-int blocks = every byte the trainer reads. `--skip key=value,...` for
    other skip settings, `--batch/--window/--finite` for other shapes. The tools check `--out` (must not exist), the
-   files and `--mask` BEFORE any work and exit 2 with one line otherwise: `tools/test_cli.py SCRATCH` (34 cases, bug
-   hunt #16; before it an existing `--out` was refused only after the whole run, and `fl_dataset_equal.py --compare`
-   passed two junk files with exit 0).
+   files and `--mask` BEFORE any work and exit 2 with one line otherwise: `tools/test_cli.py SCRATCH` (51 cases since
+   the Code Review fixes of 2026-11-03; bug hunt #16: before it an existing `--out` was refused only after the whole
+   run, and `fl_dataset_equal.py --compare` passed two junk files with exit 0). `dump` needs 0 <= `--warmup` <
+   `--batches` (else nothing is timed: kept_per_s=0).
 2. Trainer-path equality (trainer venv, GPU hidden): `tools/fl_dataset_equal.py` builds the streams exactly like the
    patched `make_data_loaders` (Dataset -> FixedNumBatchesDataset -> DataLoader) and hashes every tensor.
 3. Self-test `fastloader/ffl_selftest.cpp` (own fixtures; independent no-filter reference; thread-count invariance;
@@ -44,12 +45,18 @@ description: The R14-B fast data loader for the npt (nnue-pytorch) trainer on gr
    `.github/workflows/ffl-sanitize.yml` runs it under ASan+UBSan and TSan on Linux.
 4. CPU loss match: `tools/lm_run.sh old|fast DIR` (copy it before running - see pitfalls); `LM_L1=256 LM_VAL=0` keeps
    the old arm above the 7 GB RAM floor.
-5. Speed: `tools/fl_abba.py` (palindromic ABBA of loader-only runs; advisory; QA times officially).
+5. Speed: `tools/fl_abba.py` (palindromic ABBA of loader-only runs; advisory; QA times officially). 0 <= `--warmup` <
+   `--batches` or exit 2 before the folder is made; a run reporting 0 kept/s stops it with exit 1 (CR fix 2026-11-03:
+   it used to divide by that 0 after all runs).
+5b. Damaged files: `tools/fl_fuzz.py --dll <fast> --old-dll <COPY of the default loader DLL> --binpack <real> --out NEW`
+   - every damaged file the fast loader accepts is also run through the default loader (`--workers 1`) and the hashed
+   batches are compared bit for bit (identity same / same-empty / DIFF / old-<outcome>); exit 0 without a batch is
+   "empty", a failure except for the VALUE_NONE case; `--min-free-gb` (50) disk floor, `--flips` <= 1000.
 6. GPU window: `GPU_REQUEST.md` (one epoch of the live recipe with --fast-loader; GPU util from the keeper's HWiNFO CSV).
 
 ## Trainer switch
 `tools/install_fast_loader.py <trainer copy>` (exact anchors, keeps CRLF/LF, refuses a patched or changed trainer, unknown
-arguments and a real install into the live trainer folder - exit 2; `tools/test_installer.sh` checks all of it, 28 cases, without ever sending an install to the live folder; the guard compares file identity, so no spelling of the live path - `\\?\` prefix, case, slashes - gets past it: final bug hunt);
+arguments and a real install into the live trainer folder - exit 2; `tools/test_installer.sh` checks all of it, 38 cases, without ever sending an install to the live folder; the guard compares file identity, so no spelling of the live path - `\\?\` prefix, case, slashes - gets past it: final bug hunt; since the CR fix of 2026-11-03 it also refuses, `--check` included, a linked copy - config.py / train.py that are the same file as the live trainer's, a symbolic link or a file with more than one hard link - and a link in a loader target's place: a hard-linked "copy" used to be patched through the links, shown on a stand-in);
 same as `patches/0005-fast-loader-switch.patch`. Loader files from `FORGE_FAST_LOADER_DIR` (or next to train.py),
 loaded by explicit path; the start-up line prints the DLL path, sha256 and version. `--num-workers N` = N loader threads
 (reader + filter + N-2 builders). Never patch the live trainer folder; Engine NNUE / QA decide about adoption.
@@ -83,6 +90,9 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 - The live line's GPU use with the default loader (keeper's HWiNFO log, `opus_r14b/tools/gpu_util_stats.py` on
   opus-r14b-status): 15:14-21:14 mean 45.7 %, >= 90 % in 4 % of samples - the before figure for the GPU window.
 - Damaged files (`tools/fl_fuzz.py`, 371 runs incl. a `-D_GLIBCXX_ASSERTIONS` build): clean errors, no crash, no hang.
+  With the default-loader comparison (2026-11-03, b5 vs the reference copy `D:\o14b\ref\libtraining_data_loader.dll`):
+  46 + 326 runs, 0 unexpected, every accepted file bit-identical (17 + 174 same, 1 + 1 same-empty). Outcomes of a few
+  flip cases depend on thread timing (H4-1: fail fast at a bad record later in the file; flip_238 / flip_244).
   Shared limit with the default loader: a cyclic stream over a file in which nothing passes the skip filter waits.
 - A full trainer epoch (152.5M positions, 1.55 B records) through the fast loader alone: 29.8 s, 166 MB peak.
 - CPU training on 2 CPUs: 11.4 vs 40.2 min for the same 64 batches (old loader threads starve torch); peak private

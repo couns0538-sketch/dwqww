@@ -1,10 +1,10 @@
 # FILES index, R14-B item 1 fast npt loader, branch opus-r14b-fast-loader. path | bytes | sha256 | content
 # candidate b5: forge_fastloader.dll sha256 9eb29b7d134a73eb58d47b2ced38587ed450ffaf11fdfcb108898652cefcd935 (built by fastloader/build_fastloader.sh, not committed)
 GPU_REQUEST.md | 7160 | b7aa5461eb850174ab62a0f6e45c10dc953ab88fc926084e24f62499e30282aa | the GPU window request: commands, what to measure, done criteria
-HANDOFF.md | 9577 | 985a3e92777902e905e2071d4c4ecf1397d368294555a2078f708847ee8d1534 | adoption steps for Engine NNUE / QA (start here)
+HANDOFF.md | 10182 | d2cbee27031204d2ee9819cc238b2d1aebcab96958ace3a0337305a71d1db4d7 | adoption steps for Engine NNUE / QA (start here)
 IDEA_SOURCE.md | 1567 | 331213f557d86c3cce050088d0c8eabee865959d3b9093fc704adbb870535ff8 | sources: GPL loader read for behaviour only, own code
 LOADER_SPEC.md | 8486 | fef75d80fa5677038781e9808d98a889be99792573728d736f8b7f421325dc13 | what the old loader does and what the fast loader reproduces
-RESULTS.md | 52805 | 8fb82ee12f80517648bea666406b47c30134dde24bd5bda4e7f8ddadcea22789 | all checks, numbers and review records (chronological)
+RESULTS.md | 58244 | 50b916f51671b9cf87c9904faaf3cd0f316a3ce3634f1c51742f5d457eeff667 | all checks, numbers and review records (chronological)
 trainer_manifest_b2614500.sha256 | 26935 | fcab593f4a913122345814d83a180328a452ea4aaea00c86ca8b85d01999aaa8 | sha256 of the 264 trainer files the installer's anchors were written for
 fastloader/build_fastloader.sh | 1474 | e1722e53b5e8b0fa65ddb57af43a3b197112b1f2b4f0b7e4b28246ddacc3f9ea | build of the DLL (pc1 = pc2 byte-identical)
 fastloader/ffl_selftest.cpp | 21299 | 5d8654ca8e0e3a45b722f264f7f702f889c12aab6630d5a45ea599b13c64ba0d | self-test (CI: ASan+UBSan, TSan)
@@ -81,6 +81,10 @@ logs/b5checks/abba/summary.txt | 950 | f1c95198cffa05195a7a537091327d387fde1a90a
 logs/chain_2030/abba_live.log | 728 | b6804cb54f64694047c814da5ffa8c97308219d99c35b45a8048d7fe83ad74e6 | evidence log
 logs/chain_2030/abba_live_summary.txt | 958 | 4f43e0a0c659fb13bfc02fa2b89dcbbcedfff2f2db3bde6ea5ac69a966263fd7 | evidence log
 logs/chain_2030/fresh_checkout_rerun_2039.log | 3570 | 4991359a1604d7fe6cc3e069a14f5b2d9687af8f7dd122757d3547d78de5a510 | evidence log
+logs/cli/test_cli_cr2.log | 5051 | bd5a05261ac43a4538b4a96fef34a519d6707cc9cd06c7c1e1c40c2099948349 | evidence log
+logs/cli/test_cli_cr2_red_on_b5461fea.log | 4737 | c8ba7dc3ed84750bcfb71b805949f8ea633caa2229f9313bf4aefe4772bb5fd9 | evidence log
+logs/cli/test_cli_cr4.log | 5970 | a214c2e57fe45f27a7fc1710cb452b467bb3d26b96429f1b9baf56d9fa8a2adf | evidence log
+logs/cli/test_cli_cr4_red_on_b5461fea.log | 5717 | d0531a5b5ca4fe8335ae4904914536b8df219d56a9c2d1ea38f905f051c6b6bf | evidence log
 logs/dataset/ds_fast.log | 276 | cefa101953944d632a7f02d2079598395032bcc51fcf30bf139c8d7aac137412 | evidence log
 logs/dataset/ds_fast.tsv | 54582 | 14cfc170d36d2ee349f89eb35f0757cc68a0ce5bab7478cb7e1b2ce77a338262 | evidence log
 logs/dataset/ds_old.log | 77 | dfeafc1b9794c44603f542148b2681f28dccc042fbb8e124164161d52dc71b31 | evidence log
@@ -101,6 +105,14 @@ logs/equality/val_old_fin.tsv | 16859 | a087bd7466ab3c46fd2ef4d8f7c8675c8315dcad
 logs/fresh_2235/fresh_checkout_checks.log | 3550 | 1588b505ac0a1670cec70975d8c99319b1c29aff5fe8f8e84938183677379e68 | evidence log
 logs/fuzz/fuzz_assertions_326.tsv | 24455 | 482eaabf0298c9ef63e27cfe761e34125c32de80d40a590026d0c9257a4a6cf7 | evidence log
 logs/fuzz/fuzz_assertions_326_summary.txt | 205 | 1f517eb57a0a276bf46bf9e2ae236f53949d94753e939d26329f0e09376eef43 | evidence log
+logs/fuzz/fuzz_cr4_b5_326.log | 55126 | a60123a96a832bfcbb874f79d6f5b5818e8cf391000969719ec11e181ef34e21 | evidence log
+logs/fuzz/fuzz_cr4_b5_326.tsv | 40404 | f10afb565a2cb9f0fc850e1cd4187ba0c63443d6a9c6e0bb1334f2ea243b6ee0 | evidence log
+logs/fuzz/fuzz_cr4_b5_326_load_before.txt | 255 | 0ab037e004e4d599c8d885627248689e5609c38690198a3b78749eb6ffa45002 | evidence log
+logs/fuzz/fuzz_cr4_b5_326_summary.txt | 417 | 208f166cf1438e4e7ce31d8420ce0204e9e6079d86b5dc4362634f0bb0f73b07 | evidence log
+logs/fuzz/fuzz_cr4_b5_46.log | 8177 | 03adcc4e27d4a44df15e05b59ee37f8adbcb98f2da98980599e244211c2d385f | evidence log
+logs/fuzz/fuzz_cr4_b5_46.tsv | 6243 | cc80874c278bdc4e58c8161400ac70da51e6d57eb4698a11e6cbed075c5ab1cb | evidence log
+logs/fuzz/fuzz_cr4_b5_46_load_before.txt | 973 | 80a6b35f88f377246ed099c53fa76dafab6363bc214777341c5b8c343be953b9 | evidence log
+logs/fuzz/fuzz_cr4_b5_46_summary.txt | 419 | eeccb07f59e7500d6aab8567a7491652285626950e9c712e44978abb2ec462d4 | evidence log
 logs/fuzz/fuzz_release_b5_326.tsv | 24296 | c95e09bafac51b44384535b73fcd834e3130d3e2ff1232ac76e9abfed1245cc0 | evidence log
 logs/fuzz/fuzz_release_b5_326_summary.txt | 203 | a25ff0655f63b176ca479f902bcba217f4f1a99db88429603b0f4262808c6fd8 | evidence log
 logs/fuzz/fuzz_release_b5_45.tsv | 4340 | 31724f8f484cb10823af6d5b208be4b8b1f5d02db92d46462499ad391514f859 | evidence log
@@ -116,6 +128,8 @@ logs/installer/misspelt_check.out | 1371 | bc58a65c33c418bc47aa885e06f557fc46fe4
 logs/installer/no_folder.out | 140 | bc9c3673a440e1d04a4efecb41617ef458618343263f8f7c9d45b40fb83836e4 | evidence log
 logs/installer/not_utf8.out | 166 | daa149fc41ce2dbd3ceb19f42b07ebf7aff48b8fb13f9e4ad7737f4cb7fbcb7d | evidence log
 logs/installer/second_install.out | 31 | ea5b12378675d7868d7e0fb2ba49a0a8895288056386a34dbe5f0801266e7ec6 | evidence log
+logs/installer/test_installer_cr1.log | 3724 | 7e31d7a8b37568552ca08588047576e82621e987c6d191283e4b81a18099efd1 | evidence log
+logs/installer/test_installer_cr1_red_on_b5461fea.log | 3876 | 2db2b39af4adfefed4f66c9f15b461ce3988777ce6b1b3b2cdfb8a61c26815b3 | evidence log
 logs/installer/test_installer_new.log | 1920 | 385462c0b58165b2dbdc0ad598a52b23203008a8a3750b2a9f3015ed6286aefa | evidence log
 logs/installer/test_installer_on_previous_installer.log | 2635 | 11bce32d417c8af2f24d2c3e255b0635c64307c4346c4c1859b762797017fcd8 | evidence log
 logs/installer/test_installer_planted_guard_removed.log | 2238 | 53d49b4b708beee2d978d9453dd15e584806ef5c5a2a2a5f9ea99c0ce207c78d | evidence log
@@ -148,16 +162,16 @@ logs/scope/test_scope_planted_ddp_removed.log | 2212 | 0f818640a2065d4efbc0f0395
 patches/0005-fast-loader-switch.patch | 2691 | e93fd22f921ff0b5ae1efd78aa1738d6c62e797d585a6cec014926777596b6e2 | the trainer switch --fast-loader (default off)
 patches/0006-seed-before-model-OPTIONAL.patch | 627 | 184eba17086238ef11b8d56329486f883d71c8933df8cf42e86d54184b14a916 | optional: seed before the model is built (Engine NNUE decides)
 tools/b5_checks.sh | 5918 | 5378e45a4e71f145cb74319f163ed1e2f48fcdad9bab240ac81f2f5ec923331e | b5 check script (config matrix, spanning batches)
-tools/fl_abba.py | 6163 | 3b200e225440bd44d88cc13b02beb2beab2065b5170aff4a5d258755e087d3e2 | palindromic loader ABBA
+tools/fl_abba.py | 6900 | a7f0b110d3466c87e9cc6ec9fdf73bd9e044605f97f246cd895dfd21a6b34f2c | palindromic loader ABBA
 tools/fl_acceptance.sh | 3665 | 8d958f4316dcfe83cd8ba0b5ff0e40291b942b57fdb4287fca0c0ddd120b744d | one-command CPU acceptance check on a switched trainer copy
 tools/fl_dataset_equal.py | 6634 | d693d548b44830f9e36a46c36ad1d20cb719ad3ed77922117730ead0f3cb6788 | equality through the trainer's own Dataset path
 tools/fl_distribution.py | 6439 | a1dd2d73b77f171213b71b75c3c1861e631110972b8a90affb03e111e82d3350 | old w4 vs fast as distributions
-tools/fl_equal.py | 13334 | ec6d48eca999cc204c649fe0ef6586fd66287db3f4c77b53895d54a166deb575 | raw C API batch hashing and timing (old / fast)
-tools/fl_fuzz.py | 8505 | e98c7d2a3c73d6f309a6ffb7d7fedecabe78bcbf23876cb2a3c8a80e73e286b2 | damaged-file fuzzing (bug hunt #4)
-tools/install_fast_loader.py | 7454 | 18ea994e3789339816b6c5d2700fba66e7634d7d4a3de10518d16776f1af2b36 | installer for a trainer COPY (--check, --loader-dll)
+tools/fl_equal.py | 13538 | ec7efd9f180905232835f916c274d81a9a9ce11c4d01d74a47397ffcdd6ad903 | raw C API batch hashing and timing (old / fast)
+tools/fl_fuzz.py | 16127 | 040a4b3689361823fdb9ba920e467e71c2ea6bd8db78de83706429b83955cbb8 | damaged-file fuzzing, every accepted file compared bit for bit with the default loader (bug hunt #4, Code Review fix 2026-11-03)
+tools/install_fast_loader.py | 9477 | 6843997a7ef426f36f6509679cf9817771da9381d586b4a5f7d490f4985dcb6b | installer for a trainer COPY (--check, --loader-dll; refuses the live folder and linked copies)
 tools/lm_det.py | 1325 | 2a229a3c3324477742cc1faf408e73e384a8b126b54f00f302c806911ee1de9c | deterministic CPU loss-match driver
 tools/lm_run.sh | 3412 | cec3e8bd38e754944b40396e24a11bd47e42e16b10ea11e25613c9234515a3fd | loss-match run script
 tools/lowrun.ps1 | 2974 | 4f1052ba7af5f4a22408e8a1b1809181c74eebd9a346f100d1695b57dbca2a05 | run one program at low priority on a CPU mask (exit 127 if it cannot start; refuses a bad mask or an existing -Out / -Err)
-tools/test_cli.py | 7421 | 7a81ccf1ea93faecc52e7d7e8ba4b3b37613bbe6ac13e0caaa4017fdcb7bbbe4 | the loader tools with wrong arguments, damaged or empty dumps and existing outputs (34 cases, bug hunt #16)
-tools/test_installer.sh | 5852 | 92d7ffc1640228cbadfb32cb2ca6d1dc55ca3cf89c04b7d45fb58db1e8061ada | installer exit codes and file effects on copies of the live config.py + train.py (28 cases; the live-folder guard tested on a stand-in, under several spellings)
+tools/test_cli.py | 15004 | c8480b6c9351a487f9788bd483b569723ded150692c68df0e6107685945f6aca | the loader tools with wrong arguments, damaged or empty dumps and existing outputs (51 cases, bug hunt #16 + Code Review fixes 2026-11-03)
+tools/test_installer.sh | 8214 | 856df037735b21a42f3f69e065ab27f05b0c8fa87bcf56b2e51f487c328c3fcd | installer exit codes and file effects on copies of the live config.py + train.py (38 cases; the live-folder guard and linked copies tested on a stand-in, under several spellings)
 tools/test_scope.py | 6572 | 83249ee7eab8471b427c921f725033c8146c57824dbdc87388fe1f13761667ff | the fail-closed scope: every out-of-scope setting refused with a clear message (20 cases, bug hunt #7)
