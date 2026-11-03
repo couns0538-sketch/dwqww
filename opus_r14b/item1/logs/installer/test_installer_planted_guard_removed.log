@@ -1,0 +1,27 @@
+# test_installer.sh (v2, 22:34) with a PLANTED installer whose live-folder guard is removed: the two guard cases must FAIL (the install lands in the stand-in folder only)
+PASS check_fresh (exit 0): t1\config.py: anchors OK t1\train.py: anchors OK 
+PASS check_changed_nothing
+PASS misspelt_check (exit 2): unknown or incomplete argument '--chek' install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt trainer (own
+PASS misspelt_check_changed_nothing
+PASS loader_dll_without_path (exit 2): unknown or incomplete argument '--loader-dll' install_fast_loader.py - Opus R14-B: add the --fast-loader switch to a COPY of the npt traine
+PASS no_folder (exit 2): no_such_dir\config.py: cannot read it as a trainer file (FileNotFoundError: [Errno 2] No such file or directory: 'no_such_dir\\config.py') 
+PASS not_utf8 (exit 2): t2\config.py: anchors OK t2\train.py: cannot read it as a trainer file (UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in positio
+PASS not_utf8_config_unchanged
+PASS already_patched (exit 2): t3\config.py: already patched 
+PASS already_patched_changed_nothing
+PASS anchor_changed (exit 2): t4\config.py: anchors OK t4\train.py: anchor not found exactly once: '    rank=0,' 
+PASS anchor_changed_changed_nothing
+PASS loader_target_exists (exit 2): t5\config.py: anchors OK t5\train.py: anchors OK t5\forge_fastloader.dll: exists, not overwritten 
+PASS loader_target_exists_changed_nothing
+PASS live_guard_names_live_folder
+PASS live_guard_copy_made
+FAIL live_install_refused: exit 0, wanted 2 with 'is the live npt trainer': stand_in\config.py: anchors OK stand_in\train.py: anchors OK stand_in\config.py: patched (CRLF) stand_in\train.py: patched (LF) 
+FAIL live_install_refused_changed_nothing
+PASS live_check_allowed (exit 0): F:\opus_scratch\r6\nnue-pytorch-amd\config.py: anchors OK F:\opus_scratch\r6\nnue-pytorch-amd\train.py: anchors OK 
+PASS install (exit 0): t1\config.py: anchors OK t1\train.py: anchors OK t1\config.py: patched (CRLF) t1\train.py: patched (LF) 
+PASS install_patched_both
+PASS install_line_ends_config.py
+PASS install_line_ends_train.py
+PASS second_install (exit 2): t1\config.py: already patched 
+PASS live_unchanged
+failures: 2

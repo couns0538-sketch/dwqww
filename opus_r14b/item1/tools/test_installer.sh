@@ -2,8 +2,9 @@
 # test_installer.sh SCRATCH_DIR [LIVE_TRAINER] - Opus R14-B item 1: exit codes and file effects of
 # install_fast_loader.py on copies of the live trainer's config.py + train.py (read-only from LIVE_TRAINER, default
 # F:/opus_scratch/r6/nnue-pytorch-amd). The live folder itself is only read (--check) and its two files are hashed
-# before and after. One PASS / FAIL line per case; exit 0 = all PASS. Bug hunt of 2026-11-02 22:2x (a misspelt
-# --check used to install).
+# before and after; no install command is ever sent to it: the live-folder guard is tested on a copy of the installer
+# whose LIVE_TRAINER names a stand-in folder (so a broken guard would patch only the stand-in). One PASS / FAIL line
+# per case; exit 0 = all PASS. Bug hunt of 2026-11-02 22:2x (a misspelt --check used to install).
 set -u
 d=${1:?scratch dir}
 live=${2:-F:/opus_scratch/r6/nnue-pytorch-amd}
@@ -44,7 +45,24 @@ check anchor_changed_changed_nothing test "$(cat t4/*.py | sha256sum)" = "$sum4"
 fresh t5 && touch t5/forge_fastloader.dll && dll=$(cygpath -w "$live/train.py") && sum5=$(cat t5/*.py | sha256sum)
 expect 2 loader_target_exists "exists, not overwritten" "$PY" -I -B "$I" t5 --loader-dll "$dll"
 check loader_target_exists_changed_nothing test "$(cat t5/*.py | sha256sum)" = "$sum5"
-expect 2 live_install_refused "is the live npt trainer" "$PY" -I -B "$I" "$live"
+# the guard: the committed installer names the live folder, and a copy of it whose LIVE_TRAINER names a stand-in
+# (fresh copies of the two files) refuses a real install there
+check live_guard_names_live_folder grep -qF 'LIVE_TRAINER = Path(r"F:\opus_scratch\r6\nnue-pytorch-amd")' "$I"
+cat > make_guard_copy.py <<'EOF'
+import re
+import sys
+src, dst, stand_in = sys.argv[1:]
+with open(src, encoding="utf-8") as fh:
+    text = fh.read()
+new, k = re.subn(r'^LIVE_TRAINER = Path\(r"[^"]*"\)', 'LIVE_TRAINER = Path(r"' + stand_in + '")', text, flags=re.M)
+with open(dst, "x", encoding="utf-8", newline="") as fh:
+    fh.write(new)
+sys.exit(0 if k == 1 else 1)
+EOF
+fresh stand_in && sum_si=$(cat stand_in/*.py | sha256sum)
+check live_guard_copy_made "$PY" -I -B make_guard_copy.py "$I" guard_installer.py "$(cygpath -m "$PWD/stand_in")"
+expect 2 live_install_refused "is the live npt trainer" "$PY" -I -B guard_installer.py stand_in
+check live_install_refused_changed_nothing test "$(cat stand_in/*.py | sha256sum)" = "$sum_si"
 expect 0 live_check_allowed "anchors OK" "$PY" -I -B "$I" "$live" --check
 expect 0 install "patched" "$PY" -I -B "$I" t1
 check install_patched_both test "$(grep -c fast_loader t1/config.py)" -ge 1 -a "$(grep -c fast_loader t1/train.py)" -ge 1
