@@ -60,5 +60,11 @@ printf '[ok](sub%%20dir/a%%20b.md)\n\n| a | b |\n|-|-|\n| 1 | 2 | 3 |\n' > "$E/t
 check doc_lint-one-dash-table-and-encoded-link 1 $? "$S/lint_edge.out" 't.md:5: \[table\] 3 cells' 'doc_lint: 2 files, 1 findings'
 "$PY" -I -B "$here/doc_lint.py" "$S/nonexistent" > "$S/lint_missing.out" 2>&1
 check doc_lint-missing-path 2 $? "$S/lint_missing.out" 'does not exist'
+bash "$here/opus.sh" help > "$S/opus_help.out" 2>&1
+check opus-help 0 $? "$S/opus_help.out" '^  status' '^  lint' '^  abba' '^  engine' '^  time' '^  load' '^  test'
+bash "$here/opus.sh" nope > "$S/opus_nope.out" 2>&1
+check opus-unknown-command 2 $? "$S/opus_nope.out" "unknown command 'nope'"
+bash "$here/opus.sh" time --since "2026-11-02 12:00" --until "2026-11-02 13:00" origin/opus-r14b-fast-loader > "$S/opus_time.out" 2>&1
+check opus-time 0 $? "$S/opus_time.out" '^branch +commits' 'origin/opus-r14b-fast-loader'
 [ $fail = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
 exit $fail
