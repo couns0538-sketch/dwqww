@@ -84,3 +84,9 @@ Documented, not changed: wall times include the shell start (use --metric for sh
 cannot take inner double quotes. Checks after the fixes: test_tools.sh 14/14 PASS (3 new), doc_lint over all branch
 folders and skills 0 findings. Next: engine_fresh_check.sh build path on the lock and an engine branch once CPUs 2-3
 are free.
+
+### Launcher fix (20:25-20:31): `lowrun.ps1` reported success for a program that never started
+Found while converting the full 1M relabel output: Start-Process errors (missing program) ended with exit 0, and a
+redirect into a missing folder ran the program with an invalid handle. Now exit 127 with a message (missing program,
+missing stdout / stderr folder, missing stdin file); the program's exit code otherwise. Same file (sha256
+cc7f28dd...) on all three branches; engine_fresh_check.sh and engine_bisect.sh rely on it for the build exit code.
