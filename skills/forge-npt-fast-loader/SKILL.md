@@ -59,6 +59,8 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 - `kill` / `Stop-Process` are blocked by the session permissions. TaskStop of a background task ends its outer shell
   only: a child started through `lowrun.ps1` (Start-Process) keeps running as an orphan until it finishes. Never
   count on TaskStop as a kill; wait for the orphan before starting the next CPU step (thread budget).
+- Git Bash rewrites Windows switches that look like paths: `robocopy SRC DST /E` became `... E:/` (exit 16, nothing
+  copied, 2026-11-02 chain). Prefix such calls with `MSYS_NO_PATHCONV=1` (or run them from cmd / PowerShell).
 - No HIP runtime next to the live npt line: CPU tests hide the GPU with CUDA_/HIP_/ROCR_VISIBLE_DEVICES=-1.
 - npt training is not reproducible run to run, independent of the loader: train.py builds the model before applying
   `--seed`, and torch 2.11.0+rocm7.13.0 seeds its default generator from the clock per process. An exact loss match

@@ -32,8 +32,9 @@ the UCRT API sets). On another CPU, rebuild with that CPU's `-march` and re-run 
 GPU utilisation and it/s of a real epoch, and the adapter path below (the adapter starts a GPU run).
 
 ## Adopting it in the queue (Engine NNUE decides; never edit the live trainer folder in place)
-1. Make a trainer copy (e.g. `robocopy F:\opus_scratch\r6\nnue-pytorch-amd <COPY> /E`) and check it against the
-   installer's base: `cd <COPY> && sha256sum -c <branch>/opus_r14b/item1/trainer_manifest_b2614500.sha256` (264 files,
+1. Make a trainer copy (e.g. `robocopy F:\opus_scratch\r6\nnue-pytorch-amd <COPY> /E` from cmd / PowerShell; from
+   Git Bash prefix `MSYS_NO_PATHCONV=1`, else Git Bash turns `/E` into `E:/` and robocopy copies nothing, exit 16)
+   and check it against the installer's base: `cd <COPY> && sha256sum -c <branch>/opus_r14b/item1/trainer_manifest_b2614500.sha256` (264 files,
    all OK = the trainer version the installer's anchors were written for). `D:\o14b\npt` is such a copy, already
    switched. Checked 2026-11-02 16:04: the live tree still matched (264 / 264).
 2. Build the DLL from this branch (`bash fastloader/build_fastloader.sh <new dir>`, ~1 minute; prints sha256, which
