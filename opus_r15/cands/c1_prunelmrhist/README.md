@@ -36,3 +36,14 @@ OFF node identity ALL OK, bench d11-d22 and perft = the lock pins (pin_check), p
   small ON speed cost is possible (same for every R13-R15 option line).
 - Risk: more pruning of bad-history quiets that are actually good (history is noisy at low depth); the clamp keeps
   the change to at most two plies of depth either way.
+
+## Check results (generated)
+
+- exe `D:\o15\cands\c1_prunelmrhist\forge_ltopgo_c1plh.exe` sha256 `fe99a27db187980d1786be7300da17b72cfb323f15a041b9ec215950670cc47e` md5 `cd7b651f344032e75b1c5a1c10beb32b`; kit pc1 = pc2 `fe99a27db187980d1786be7300da17b72cfb323f15a041b9ec215950670cc47e`
+- ON bench d11 / d13 / d16 / d20 / d22: 294465 / 815919 / 2071386 / 14396694 / 33272164; OFF = the lock pins; perft 4865609 / 193690690 both ways
+- cand_pack checks: patch_applies PASS, cleanroom_lint PASS, kit_build PASS, pc1_equals_pc2 PASS, kit_identity PASS, kit_vfmadd0 PASS, kit_missing_profile0 PASS, kit_on_live PASS, exe_copy_sha256 PASS, pin_off PASS, pin_on_live PASS, smoke PASS
+- smoke with the fixed clock (12:37 fix): PASS - 19 games, 2603 plies, illegal 0, crashes 0, hangs 0, time losses 0
+- R13 cand_checks (T1 / T4 movetime smoke with perft-1 legality, mate probe 22 positions at 3M nodes): FAIL; mates OFF 19 / ON 19; strict-rule flips: mate lost: PruneLmrHist=1 3k4/8/8/8/7r/8/8/6K1 b - - 0 1 OFF mate 15 ON cp 540
+  - 30M re-probe (lost) `3k4/8/8/8/7r/8/8/6K1 b - - 0 1`: 3M OFF mate 15 / ON cp 540; 30M OFF mate 11 / ON mate 11 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/3k4/5R2/8/8/8/8/2K5 w - - 0 1`: 3M OFF cp 544 / ON mate 19; 30M OFF mate 14 / ON mate 13 -> horizon flip (both find it at N)
+- CI ASan+UBSan self-play: run 41628366851 success on 9fc59ea3c497 (patch sha256 = the built one)

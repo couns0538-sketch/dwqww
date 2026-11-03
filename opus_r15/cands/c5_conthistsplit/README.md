@@ -37,3 +37,15 @@ every mode (clear() memsets 4 MB per worker: time, never nodes).
 - Risk: four tables learn from fewer samples each (slower early learning) and the cache footprint grows; ON bench
   d11 323,985 / d13 753,650 / d16 3,128,498 (not strength).
 - PGO cold-path note as for every option line.
+
+## Check results (generated)
+
+- exe `D:\o15\cands\c5_conthistsplit\forge_ltopgo_c5chs.exe` sha256 `3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7` md5 `25f4015a2173f2c7b4ded606bea41b2a`; kit pc1 = pc2 `3b9f56da360852656514e7cd591c04fdb0ee4159e2070f26dd9060b32580f9f7`
+- ON bench d11 / d13 / d16 / d20 / d22: 323985 / 753650 / 3128498 / 11261436 / 29194446; OFF = the lock pins; perft 4865609 / 193690690 both ways
+- cand_pack checks: patch_applies PASS, cleanroom_lint PASS, kit_build PASS, pc1_equals_pc2 PASS, kit_identity PASS, kit_vfmadd0 PASS, kit_missing_profile0 PASS, kit_on_live PASS, exe_copy_sha256 PASS, pin_off PASS, pin_on_live PASS, smoke PASS
+- smoke with the fixed clock (12:37 fix): PASS - 21 games, 2514 plies, illegal 0, crashes 0, hangs 0, time losses 0
+- R13 cand_checks (T1 / T4 movetime smoke with perft-1 legality, mate probe 22 positions at 3M nodes): FAIL; mates OFF 19 / ON 20; strict-rule flips: mate lost: ContHistSplit=1 3k4/8/8/8/7r/8/8/6K1 b - - 0 1 OFF mate 15 ON cp 512
+  - 30M re-probe (lost) `3k4/8/8/8/7r/8/8/6K1 b - - 0 1`: 3M OFF mate 15 / ON cp 512; 30M OFF mate 11 / ON mate 11 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/1r6/8/8/8/4K2k/8/8 b - - 0 1`: 3M OFF cp 474 / ON mate 17; 30M OFF mate 14 / ON mate 14 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/3k4/5R2/8/8/8/8/2K5 w - - 0 1`: 3M OFF cp 544 / ON mate 15; 30M OFF mate 14 / ON mate 13 -> horizon flip (both find it at N)
+- CI ASan+UBSan self-play: run 41628366851 success on 9fc59ea3c497 (patch sha256 = the built one)

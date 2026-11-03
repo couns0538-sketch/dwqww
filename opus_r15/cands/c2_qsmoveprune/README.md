@@ -33,3 +33,12 @@ bench d11-d22 + perft = the lock pins.
   horizon; N = 3 (not smaller) and the victim-value-first order limit that. ON bench is higher at d16 / d20 than the
   lock (3,220,620 / 16,380,404): the main search changes too; node counts are not strength.
 - PGO cold-path note as for every option line (profile trained with the option OFF).
+
+## Check results (generated)
+
+- exe `D:\o15\cands\c2_qsmoveprune\forge_ltopgo_c2qmp.exe` sha256 `ff63a706e83e2e750b19f3ba61a1b2175033624696d9982f36611e86d8ffa9a2` md5 `2b0bdecee31448565a5ead2d93b15247`; kit pc1 = pc2 `ff63a706e83e2e750b19f3ba61a1b2175033624696d9982f36611e86d8ffa9a2`
+- ON bench d11 / d13 / d16 / d20 / d22: 363674 / 815943 / 3220620 / 16380404 / 35367903; OFF = the lock pins; perft 4865609 / 193690690 both ways
+- cand_pack checks: patch_applies PASS, cleanroom_lint PASS, kit_build PASS, pc1_equals_pc2 PASS, kit_identity PASS, kit_vfmadd0 PASS, kit_missing_profile0 PASS, kit_on_live PASS, exe_copy_sha256 PASS, pin_off PASS, pin_on_live PASS, smoke PASS
+- smoke with the fixed clock (12:37 fix): PASS - 19 games, 2365 plies, illegal 0, crashes 0, hangs 0, time losses 0
+- R13 cand_checks (T1 / T4 movetime smoke with perft-1 legality, mate probe 22 positions at 3M nodes): PASS; mates OFF 19 / ON 19; strict-rule flips: none
+- CI ASan+UBSan self-play: run 41628366851 success on 9fc59ea3c497 (patch sha256 = the built one)

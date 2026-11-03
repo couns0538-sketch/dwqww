@@ -34,3 +34,16 @@ knows.
 - Risk: positions where three more plies would find a refutation of a large fail-high (zugzwang-like, deep tactics);
   the margin and the 3-ply limit bound it. NMP verification and ProbCut keep their own guards.
 - PGO cold-path note as for every option line.
+
+## Check results (generated)
+
+- exe `D:\o15\cands\c3_ttprobcut\forge_ltopgo_c3tpc.exe` sha256 `4c48a25bdc051659795b653e3b30bf5a6063bf84813c9f0e8ab1bbb733a87723` md5 `92b69c3f81cb1b9a86e5106527674df8`; kit pc1 = pc2 `4c48a25bdc051659795b653e3b30bf5a6063bf84813c9f0e8ab1bbb733a87723`
+- ON bench d11 / d13 / d16 / d20 / d22: 322040 / 845712 / 2757689 / 9154533 / 20921486; OFF = the lock pins; perft 4865609 / 193690690 both ways
+- cand_pack checks: patch_applies PASS, cleanroom_lint PASS, kit_build PASS, pc1_equals_pc2 PASS, kit_identity PASS, kit_vfmadd0 PASS, kit_missing_profile0 PASS, kit_on_live PASS, exe_copy_sha256 PASS, pin_off PASS, pin_on_live PASS, smoke PASS
+- smoke with the fixed clock (12:37 fix): PASS - 21 games, 2574 plies, illegal 0, crashes 0, hangs 0, time losses 0
+- R13 cand_checks (T1 / T4 movetime smoke with perft-1 legality, mate probe 22 positions at 3M nodes): FAIL; mates OFF 19 / ON 21; strict-rule flips: mate lost: TtProbcut=360 3k4/8/8/8/7r/8/8/6K1 b - - 0 1 OFF mate 15 ON cp 549
+  - 30M re-probe (lost) `3k4/8/8/8/7r/8/8/6K1 b - - 0 1`: 3M OFF mate 15 / ON cp 549; 30M OFF mate 11 / ON mate 11 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/1r6/8/8/8/4K2k/8/8 b - - 0 1`: 3M OFF cp 474 / ON mate 17; 30M OFF mate 14 / ON mate 13 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/8/5K2/7r/8/8/k7/8 b - - 0 1`: 3M OFF cp 503 / ON mate 15; 30M OFF mate 14 / ON mate 14 -> horizon flip (both find it at N)
+  - 30M re-probe (gained) `8/3k4/5R2/8/8/8/8/2K5 w - - 0 1`: 3M OFF cp 544 / ON mate 25; 30M OFF mate 14 / ON mate 13 -> horizon flip (both find it at N)
+- CI ASan+UBSan self-play: run 41628366851 success on 9fc59ea3c497 (patch sha256 = the built one)
