@@ -221,3 +221,16 @@ every ~2 s), while the live npt line ran with the default loader (`--num-workers
 Hourly means 15:00-21:00: 53 / 43 / 40 / 42 / 56 / 43 / 40 %. This is the "GPU at 25-50 %" of the brief, measured. It
 does not by itself show that the loader is the cause (validation, checkpoints and the 2 s sampling are in it): the GPU
 window measures the same column with `--fast-loader` (GPU_REQUEST.md, same command) - item 1's target is >= 90 %.
+
+## Why the live line's GPU waits: the trainer's CPU side is starved (21:19-21:20; read-only measurements)
+- The old loader alone, on 2 free logical CPUs in the live thread setting, makes 772k kept positions / s (verify chain
+  ABBA) - 4.6-6.4x what the live line consumes (7.4-10.3 it/s x 16,384 = 121k-169k / s). So on a free core it is not
+  the limit; the question is how much CPU it gets in the live run.
+- At 21:19:47 the npt trainer process (Idle, mask 0x3 = CPUs 0-1, 28 threads: loader workers + the training loop) got
+  **0.57 cores over 10 s** - a quarter of its two CPUs - while two crew jobs at BelowNormal with affinity on all CPUs
+  (Astra's `audit_forge_admission.py`, pids 8624 / 6376) used ~1.0 core each; BelowNormal always runs before Idle.
+  GPU Utilization over the same minutes: mean 50 % (HWiNFO, 90 samples).
+- Reading: the trainer's data path runs on whatever CPU is left; a loader that needs ~6-8x less CPU per kept position
+  (8.65x / 6.25x in the ABBAs) delivers more batches from the same leftover CPU. The GPU window has to show the effect.
+  Whether to keep BelowNormal crew jobs off the trainer's CPUs, or give the trainer another class, is the crew's call
+  (FINAL_REPORT owner items); nothing was changed.
