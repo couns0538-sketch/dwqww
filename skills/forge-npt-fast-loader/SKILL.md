@@ -80,7 +80,13 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 ## Handing it over (opus_r14b/item1/HANDOFF.md)
 - Adoption without touching crew code: the adapter `train_resid_nnuepytorch_v2.py` already takes `--npt-repo <copy>`
   and `--npt-extra ...` (REMAINDER, so it goes last): `--npt-repo <switched copy> ... --npt-extra --fast-loader`.
+- Install into a COPY of the trainer: `python -I -B tools/install_fast_loader.py <copy> --loader-dll <built DLL>`
+  switches config.py / train.py and copies forge_fastloader.dll + forge_fastloader.py next to train.py (never over an
+  existing file; a second install is exit 2; `--check` = dry run that prints "would copy"). Check the copy first
+  against `trainer_manifest_b2614500.sha256` (`sha256sum -c`, 264 files).
 - Acceptance check before any GPU run: `bash tools/fl_acceptance.sh <trainer copy> <new out dir>` (CPU only, GPU
-  hidden, ~1 min: old w1 36 s, fast w4 6 s; 261 / 261 batches of every tensor identical on D:\o14b\npt).
+  hidden, ~1 min: old w1 36 s, fast w4 6 s; 261 / 261 batches of every tensor identical on D:\o14b\npt). With only
+  those two arguments it uses the copy's own `build\libtraining_data_loader.dll` (old) and the loader files next to
+  its train.py (fast), i.e. exactly what an installed copy will run.
 - `--num-workers N` = N - 2 builder threads (min 1) + reader + filter; `--num-workers 3` already gives ~24x the live
   line's consumption. The live tree still matched the installer's base copy (264 / 264 files) on 2026-11-02 16:04.
