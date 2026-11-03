@@ -4,7 +4,8 @@ Current v4 handoff SHA256:
 `ae0c454cf84c0ca30f4711afffc5854f6aa6b382dbef884e3b6e7c8e74ed95b5`.
 Both CPU preflights and strict published verification pass for source 87963077.
 The entry point rejects stale runtime/tooling identities.
-Final review and broader descriptive corpus checks remain in progress.
+The complete descriptive corpus audit and expanded native compatibility checks
+pass. The reserved final review remains pending.
 
 Baseline: Engine NNUE `train_resid_nnuepytorch_v2.py`, w4/s12. Observed production
 log identifies K32H3^, seed 5108, RangerLite lr 0.000875, self-play-only input

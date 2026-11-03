@@ -1,5 +1,21 @@
 # Review log — UNPROVEN
 
+## Six-hour continuation: completed corpus and packaging evidence
+
+Previously approved completion and packaging wrappers ran without changes.
+Completion source 66622302; package source a9378593. All 37 complete sources
+account for 304,999,573 valid rows. Main assessed the combined report, successful
+4,736-row original-line label replay, exact-lock 9,486-position native transcript
+and five bench counts. Descriptive profiling does not grant corpus holdout
+clearance; only the existing 999,953-row selection is used by the recipes.
+Fresh packaging verifies 7,001 retained files and all seven million-row output
+pairs against their committed measured receipts, rechecks strict v4 admission,
+actual native transcript vectors and unchanged installed runtime/source pins.
+Production converter/helpers and twelve upstream skill blobs remain unchanged.
+No new execution finding arose. Earlier approved wrapper hashes remain valid;
+their raw outputs are under evidence/quality6h. Next: consistency checker and
+the reserved 03:21–03:51 UTC final independent review; no final approval yet.
+
 ## Six-hour continuation: archive collection boundary
 
 New evidence/conftest.py SHA256

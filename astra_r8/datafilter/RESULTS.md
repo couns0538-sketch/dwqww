@@ -6,7 +6,8 @@ New authorization starts 2026-11-02 21:51 UTC; final review reserved for
 2026-11-03 03:21–03:51 UTC. Scope, storage and no-training limits remain unchanged.
 Plan: `QUALITY6H_PLAN.md` at repository root. Milestone approvals below cover
 their pinned source files. The current v4 handoff and 301-test suite are verified.
-Final review and the broader source-reservoir/native checks remain pending.
+The complete source profile, original-line reservoir replay, native Forge checks
+and fresh full-output inventory PASS. The reserved final review remains pending.
 
 | Success test | Current evidence |
 |---|---|
@@ -16,11 +17,33 @@ Final review and the broader source-reservoir/native checks remain pending.
 | 4 Deliberate failures | PASS: 301 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v4 manifest/sample/CPU preflights PASS; final review and expanded corpus proof pending |
+| 7 Handoff | v4 manifest/sample/CPU preflights, expanded corpus/native proof and 7,001-file inventory PASS; final review pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net
 was trained, exported or strength-tested. All recipes remain UNPROVEN.
+
+Completed corpus evidence: 304,999,573 rows across all 37 closed non-holdout
+sources, zero invalid boards/check/mate rows, Pearson 0.6567069235. Optional
+ply<=160 retains 285,511,513 (93.6105%). All 4,736 original-line reservoir checks
+PASS. Exact FD3A5190 matches all 9,486 perft2 results and five bench pins, using
+Threads=1, Hash=16, OwnBook=false and the recorded UseNNUE=true setting. The
+native engine phase takes 24.430 seconds; reference plus engine takes 33.642.
+Full profiles are descriptive only; recipes/holdout clearance remain bounded.
+
+Fresh packaging PASS on source a9378593: all 7,001 retained output files hashed,
+seven million-row payload pairs match their measured receipts, source/runtime
+pins remain stable, production converter/helpers and all twelve saved skill
+payloads unchanged. See evidence/quality6h/corpus_report, reservoir_audit,
+native_corpus and final_pack. Final consistency checker follows this checkpoint.
+Aggregate retained outputs remain below 15 GB (14.383 GB before packaging),
+C:145.85 GB and D:58.67 GB free at corpus completion.
+
+Timing scope: per-rule table times cover the filter loop. Complete six-case
+self-play execution is 875.000 seconds (6M visits,6,857 positions/s); capture
+execution is 156.812 seconds (1M,6,377 positions/s), excluding the separately
+reported 225.243-second PGN freeze. Measurements belong to source 88b7c6b1;
+later CR/LF admission/verifier fixes are not new throughput measurements.
 
 Saved the three user-requested future engine skills under `skills/`: build proof,
 exact SIMD parity and ABBA timing. All twelve payloads (including complete MIT

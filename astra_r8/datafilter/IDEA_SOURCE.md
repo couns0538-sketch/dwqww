@@ -17,7 +17,8 @@ through their APIs, not vendored. In particular, no GPL/AGPL npt, Stockfish,
 binpack-tool or Leela/Lc0 implementation was copied into Forge. Native npt feature
 extraction, model and loss remain in their separately installed environment.
 
-Data used by the audit is owned Forge self-play text, closed shards 001 then 002.
+Data used by the matched recipes is owned Forge self-play text, closed shards
+001 then 002.
 Holdout sources are the complete owned shards 013 and 014, read only. No external
 Lichess corpus is included: handling is demonstrated with authored synthetic
 records and unknown outcomes. No Leela/Lc0 data is used; uncertain-licence data
@@ -33,6 +34,9 @@ This work does not modify FD3A5190. The task lock is OFF bench
 312866/862329/3024920/12389307/34048354. The first follow-up used a bounded UCI
 handshake. The later 30-minute audit also reproduced all five bench counts and
 62 perft2 results on the exact executable, with the crew's recorded options.
+The six-hour continuation expands that proof to 9,486 perft2 checks from the
+4,736-row all-source reservoir, seven edge cases and their mirrors, and repeats
+all five bench pins. Original-line label replay separately verifies the reservoir.
 That establishes those compatibility checks, not full engine or strength qualification.
 
 The separate capture audit uses completed owned Forge gate PGNs under

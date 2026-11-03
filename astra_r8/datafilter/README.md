@@ -11,17 +11,24 @@ The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
 passes **301 tests + 11 subtests**.
 Both actual recipe preflights and published-manifest verification pass on source
-87963077. The final review and complete-corpus checks are still in progress.
+87963077. Complete-corpus and expanded native checks pass; the reserved final
+review is still pending.
 The 999,953 selected rows and 10,000-row sample remain byte-identical; fresh
 Pearson correlation is 0.6635950368 with 1,000 passing mirror checks.
 Ready-to-run commands are in MIX_SPEC.md. Older handoffs remain evidence and
 deliberately fail current runtime/tooling checks after the reviewed local fixes.
-Historical native proof covers 62 sample/edge/mirrored FENs and all five supplied
-FD3A5190 bench counts; the expanded corpus-reservoir proof is pending. These checks
-establish data and interface compatibility; strength remains UNPROVEN.
+The exact FD3A5190 executable matches all 9,486 perft2 checks (4,736 source
+reservoir positions plus seven edge cases, each mirrored) and all five supplied
+bench counts. A separate replay verifies all 4,736 sampled labels against their
+original source lines. These establish data and interface compatibility; strength
+remains UNPROVEN.
 
-The broader closed-source profile is still running. It creates descriptive
-histograms and bounded audit samples only; these are not new training inputs.
+The [complete source profile](evidence/quality6h/corpus_report/DATA_PROFILE.md)
+covers 304,999,573 rows in all 37 closed training shards, with no invalid boards,
+in-check positions or mate scores. Aggregate score/result correlation is
+0.6567069235. Ply <=160 keeps 285,511,513 rows (93.6105%); it remains optional.
+This descriptive audit produces no new training inputs or full-corpus holdout
+clearance. The recipes still use the separately cleared 999,953-row cohort.
 
 ## Interfaces
 
@@ -79,6 +86,10 @@ parser/writer plus one pool worker at BelowNormal priority (two total computing
 processes). Source 88b7c6b1, unchanged filter SHA256 beginning b3fdda81. Earlier
 two-pool-worker measurements remain historical evidence and are superseded here:
 
+The table measures the filter loop, excluding startup/source fingerprinting and
+final output hashing. End-to-end execution of all six self-play cases took
+875.000 seconds for six million row visits (6,857 positions/s).
+
 | Enabled rule | Kept | Keep rate | Seconds | Positions/s |
 |---|---:|---:|---:|---:|
 | None | 1,000,000 | 100% | 145.579 | 6,869 |
@@ -94,7 +105,8 @@ BLOCKED on the exact lock. On the **separate measurement-only gate PGN cohort**,
 all 1,000,000 rows have genuine baseline searched best moves. Capture/promotion
 exclusion keeps **849,465 (84.9465%)**, dropping 150,535 in **154.994 seconds**
 (6,452 positions/s, two total workers). The strict PGN freeze took 225.243 seconds with
-one worker. These rates cannot be substituted into the self-play table or pooled
+one worker. The capture filter's complete command took 156.812 seconds
+(6,377 positions/s). These rates cannot be substituted into the self-play table or pooled
 with it. Neither recipe uses the gate PGNs.
 
 The matched recipes use check/mate filtering and the same holdout-cleared rows:
