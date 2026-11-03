@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""test_helpers.py - Opus R14-B item 2: exit-code tests of the helpers around relabel2.py with broken input (bug hunt
-#14, own code, stdlib only): sort_normalized.py, label_stats.py and probe_bench.py (requests / run / compare / abba).
+"""test_helpers.py - Opus R14-B item 2: exit-code tests of the helpers around relabel2.py with broken input (bug hunts
+#14 / #15, own code, stdlib only): sort_normalized.py, label_stats.py, probe_bench.py (requests / run / compare /
+abba), fn_diff.py, and measure_rates.sh / bridge_check.sh / prove_resume.sh with wrong arguments (through bash).
 
 usage: python -I -B test_helpers.py SCRATCH_DIR      (SCRATCH_DIR must not exist)
 Every case runs in its own new folder with tiny own fixtures; no probe or engine is started (probe_bench `run` is only
@@ -14,12 +15,14 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PY = sys.executable
+BASH = shutil.which("bash")  # Git's bash on this PC (for the shell scripts' cases)
 START = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 BLACK = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
 LH = "row_id\tgame_id\tsplit\tfen\tscore_stm\told_score_stm\tresult\tdepth\tnodes\n"  # relabel2's LABELS_HEADER
@@ -70,6 +73,8 @@ FIXTURES = {
     "rows_badutf8.tsv": (RH + f"0\t0\ttrain\t{START}\t30\t1\t0\t5\n").encode() + b"1\t0\ttrain\t\xff\xfe\t-5\t1\t0\t6\n",
     "keep.txt": "KEEP THIS LINE\n",
     "req.tsv": f"0\tanalyze\t{START}\n",
+    "broken.py": "def f(:\n",
+    "stand_in_probe.exe": "stand-in: never started\n",
 }
 
 
@@ -98,14 +103,16 @@ def main(scratch) -> int:
         total += 1
         print(f"{'PASS' if ok else 'FAIL'} {name}: {detail}")
 
-    def case(name, want, argv, leaves=(), check=None, setup=None):
+    def case(name, want, argv, leaves=(), check=None, setup=None, env=None, shell=False):
         """Run one helper; PASS = exit `want`, no traceback, exactly the files `leaves` new in the case folder."""
         d = os.path.join(scratch, name)
         os.makedirs(d)
         if setup:
             setup(d)
         pre = set(os.listdir(d))
-        p = subprocess.run([PY, "-I", "-B"] + argv, cwd=d, capture_output=True, text=True, errors="replace")
+        cmd = [BASH] + argv if shell else [PY, "-I", "-B"] + argv
+        p = subprocess.run(cmd, cwd=d, capture_output=True, text=True, errors="replace",
+                           env=dict(os.environ, **env) if env else None)
         left = sorted(set(os.listdir(d)) - pre)
         problems = []
         if p.returncode != want:
@@ -206,6 +213,41 @@ def main(scratch) -> int:
     case("run_missing_exe", 2, [bench_py, "run", "--exe", "nope.exe", "--req", fx("req.tsv"), "--out", "out.jsonl"])
     case("run_missing_requests", 2, [bench_py, "run", "--exe", PY, "--req", fx("nope.tsv"), "--out", "out.jsonl"])
     case("run_out_folder_missing", 2, [bench_py, "run", "--exe", PY, "--req", fx("req.tsv"), "--out", "nodir/o.jsonl"])
+
+    # bug hunt #15: fn_diff.py and the shell scripts refuse wrong arguments before any work (no probe is started:
+    # every case below stops at an argument or file check; the stand-in probe is a text file)
+    fd = [os.path.join(HERE, "fn_diff.py")]
+    relabel = os.path.join(HERE, "relabel2.py")
+    case("fn_diff_no_arguments", 2, fd)
+    case("fn_diff_missing_file", 2, fd + [fx("nope.py"), relabel])
+    case("fn_diff_broken_python", 2, fd + [fx("broken.py"), relabel])
+    case("fn_diff_unknown_function", 2, fd + [relabel, relabel, "no_such_function"])
+    case("fn_diff_same_file", 0, fd + [relabel, relabel, "label_shard"])
+    if BASH:
+        mr, stand_in = [os.path.join(HERE, "measure_rates.sh")], {"PROBE": fx("stand_in_probe.exe")}
+
+        def short_input(d):
+            os.makedirs(os.path.join(d, "mr"))
+            open(os.path.join(d, "mr", "in220k.txt"), "w").write("".join(f"{START} | 0 | 0.5\n" for _ in range(10)))
+
+        def stale_input_part(d):
+            os.makedirs(os.path.join(d, "mr"))
+            open(os.path.join(d, "mr", "in220k.txt.part"), "w").write("left by a killed run\n")
+
+        def mr_untouched(*names):
+            return lambda d, p: [] if sorted(os.listdir(os.path.join(d, "mr"))) == sorted(names) else ["mr changed"]
+
+        case("measure_rates_unknown_step", 2, mr + ["bogus", "mr"], shell=True)
+        case("measure_rates_missing_probe", 2, mr + ["workers", "mr"], shell=True, env={"PROBE": fx("nope.exe")})
+        case("measure_rates_short_input", 2, mr + ["workers", "mr"], shell=True, env=stand_in, setup=short_input,
+             check=mr_untouched("in220k.txt"))
+        case("measure_rates_stale_input_part", 2, mr + ["nodes", "mr"], shell=True, env=stand_in,
+             setup=stale_input_part, check=mr_untouched("in220k.txt.part"))
+        case("bridge_check_wrong_proof_dir", 2, [os.path.join(HERE, "bridge_check.sh"), fx("no_proof"), "out"],
+             shell=True)
+        case("prove_resume_unknown_step", 2, [os.path.join(HERE, "prove_resume.sh"), "bogus", "base"], shell=True)
+    else:
+        report("shell_scripts", False, "no bash on PATH: the measure_rates / bridge_check / prove_resume cases did not run")
 
     # abba with a stand-in run_probe (no process): answers that change stop it with exit 1 and no speed figures
     sys.path.insert(0, HERE)

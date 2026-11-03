@@ -560,3 +560,19 @@ Checks (02:15-02:19):
   reference answers 5 / 5 identical, exit 0; a second `run` to the same `--out`: exit 2, the file's sha256 unchanged.
 - CPU used by the hunt: that probe run and four label_stats.py passes over the 1M labels at Idle (the old-vs-new check
   ran twice, before and after the per-line decoding; about 3 s per pass); the rest are tiny fixtures.
+
+## Bug hunt #15 (02:25-02:34 by the PC clock, started early; self-review, NOT independent): overwrites, checks that pass on failure
+Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). Changes in this folder:
+- `lowrun.ps1` = the fixed launcher on all three branches (sha256 4f1052ba...): a bad CPU mask is refused with exit
+  127 (it used to print an exception and run the program on every CPU with exit 0), and so is an existing `-Out` /
+  `-Err` file (it used to be emptied - the root of H14-1). `probe_bench.py`'s comment names the new hash.
+- `prove_resume.sh finish` exits 1 when job A's and job B's files differ (it printed DIFFERENT with exit 0).
+- `measure_rates.sh` checks the step, python, relabel2.py, the probe and the source file before anything (an unknown
+  step used to create BASE_DIR and write the 14 MB input first); the input is written through `.part` and must hold
+  220,000 lines (a killed `head` used to leave a short input that later runs reused); after the workers and prepare
+  steps it exits 1 unless the labels.tsv / rows.tsv files that must be identical are (they were only printed).
+- `bridge_check.sh` checks the proof job's files and the tools before the 1M-row prepare (a wrong PROOF_DIR used to
+  start minutes of CPU work before the first comparison failed).
+- `fn_diff.py`: one line and exit 2 for missing arguments, a missing or unparsable file, an unknown function.
+- `test_helpers.py` **77 / 77** (11 new cases for the above; none starts a probe). relabel2.py is untouched (frozen
+  e01caaf1); the recorded results of these scripts stand (their comparisons were read by hand and were identical).

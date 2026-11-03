@@ -14,10 +14,23 @@ base=${2:?base dir}
 PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 R=$(cd "$(dirname "$0")" && pwd)/relabel2.py
 P=${PROBE:-'C:\o13\p5\forge_data_probe.exe'}
+SRC=/d/grok-pc-data/selfplay_out/forge_selfplay_003.txt
+# bug hunt #15: an unknown step used to create BASE_DIR and write the 14 MB input before it was refused
+case $step in workers | nodes | prepare) ;; *) echo "unknown step $step (workers | nodes | prepare)" >&2; exit 2 ;; esac
+for f in "$PY" "$R" "$P" "$SRC"; do [ -f "$f" ] || { echo "not found: $f (set PY / PROBE)" >&2; exit 2; }; done
 mkdir -p "$base"
 in=$base/in220k.txt
-[ -e "$in" ] || head -n 220000 /d/grok-pc-data/selfplay_out/forge_selfplay_003.txt > "$in"
+if [ ! -e "$in" ]; then  # via .part: a killed head used to leave a short input that later runs reused silently
+  [ -e "$in.part" ] && { echo "refusing: $in.part exists (left by an interrupted run) - move it aside" >&2; exit 2; }
+  head -n 220000 "$SRC" > "$in.part" && mv "$in.part" "$in" || exit 2
+fi
+[ "$(wc -l < "$in")" = 220000 ] || { echo "$in does not hold 220,000 lines: not the measured input" >&2; exit 2; }
 num() { sed -n "s/.*\"$2\": \([0-9]*\).*/\1/p" "$1" | head -1; }   # num FILE KEY: first integer value of KEY
+same() {  # same WHAT FILE...: the files must be byte-identical; was printed for the reader only (bug hunt #15)
+  local what=$1 n; shift
+  n=$(for f in "$@"; do md5sum < "$f"; done | sort -u | wc -l)
+  if [ "$n" = 1 ]; then echo "PASS $what identical in all $#"; else echo "FAIL $what: $n different versions in $#"; exit 1; fi
+}
 job() {  # job NAME ROWS NODES WORKERS
   local j=$base/$1
   [ -e "$j" ] && { echo "refusing existing $j" >&2; exit 2; }
@@ -38,7 +51,9 @@ job() {  # job NAME ROWS NODES WORKERS
 }
 case $step in
   workers)
-    for spec in "w1a 1" "w2a 2" "w2b 2" "w1b 1"; do set -- $spec; job "$1" 20000 20000 "$2"; done ;;
+    for spec in "w1a 1" "w2a 2" "w2b 2" "w1b 1"; do set -- $spec; job "$1" 20000 20000 "$2"; done
+    same labels.tsv "$base"/w1a/final/labels.tsv "$base"/w2a/final/labels.tsv "$base"/w2b/final/labels.tsv \
+      "$base"/w1b/final/labels.tsv ;;
   nodes)
     job n5k 10000 5000 1
     job n10k 10000 10000 1 ;;
@@ -54,6 +69,8 @@ case $step in
       awk -v n="$1" -v w="$2" -v r="$(num "$j/prepare.json" rows)" -v a="$t0" -v b="$t1" -v now="$(date '+%T')" \
         -v h="$(sha256sum < "$j/rows.tsv" | cut -c1-16)" \
         'BEGIN {printf "prep200k_%s jobs=%d rows=%d wall_s=%.1f rows_per_hour=%.0f rows_tsv=%s %s\n", n, w, r, b - a, r * 3600 / (b - a), h, now}'
-    done ;;
+    done
+    same rows.tsv "$base"/prep200k_p1a/rows.tsv "$base"/prep200k_p2a/rows.tsv "$base"/prep200k_p2b/rows.tsv \
+      "$base"/prep200k_p1b/rows.tsv ;;
   *) echo "unknown step $step" >&2; exit 2 ;;
 esac

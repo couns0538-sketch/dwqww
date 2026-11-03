@@ -42,11 +42,14 @@ case $step in
     "$PY" -I -B "$R" run --job "$base/jobB" --run-id r14b-proof-B --probe "$P" --nodes "$NODES" --workers 1 --mask 0x8 ;;
   finish)
     for j in A B; do "$PY" -I -B "$R" assemble --job "$base/job$j" --run-id "r14b-proof-$j" || exit $?; done
+    differ=0
     for f in train.txt val.txt labels.tsv; do
       a=$(md5sum < "$base/jobA/final/$f" | cut -c1-32); b=$(md5sum < "$base/jobB/final/$f" | cut -c1-32)
       echo "$f A=$a B=$b $([ "$a" = "$b" ] && echo IDENTICAL || echo DIFFERENT)"
+      [ "$a" = "$b" ] || differ=$((differ + 1))
     done
     "$PY" -I -B "$R" status --job "$base/jobB" | tail -1
-    grep -h 'run start\|run end' "$base/jobB/sessions.log" ;;
+    grep -h 'run start\|run end' "$base/jobB/sessions.log"
+    exit $((differ > 0)) ;;  # DIFFERENT used to end with exit 0 (bug hunt #15)
   *) echo "unknown step $step" >&2; exit 2 ;;
 esac

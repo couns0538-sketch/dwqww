@@ -11,11 +11,16 @@ set -u
 proof=${1:?proof dir}
 out=${2:?out dir}
 [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }
-mkdir -p "$out"
 PY=${PY:-/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe}
 R=$(cd "$(dirname "$0")" && pwd)/relabel2.py
 P=${PROBE:-'C:\o13\p5\forge_data_probe.exe'}
 SP=/d/grok-pc-data/selfplay_out
+# bug hunt #15: a wrong PROOF_DIR used to start the 1M-row prepare (minutes of CPU) before the first comparison failed
+for f in "$PY" "$R" "$P" "$SP"/forge_selfplay_00{1,2,3,4}.txt "$proof"/jobA/{rows.tsv,prepare.json,run_config.json} \
+         "$proof"/jobA/final/{train.txt,val.txt,labels.tsv}; do
+  [ -f "$f" ] || { echo "not found: $f (PROOF_DIR must hold the finished proof job A; set PY / PROBE)" >&2; exit 2; }
+done
+mkdir -p "$out"
 fails=0
 ok() { if "$@"; then echo "PASS $*"; else echo "FAIL $*"; fails=$((fails + 1)); fi; }
 echo "code: $(sha256sum < "$R" | cut -c1-16) ($R)"

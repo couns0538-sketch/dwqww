@@ -24,7 +24,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LOWRUN = os.path.join(HERE, "lowrun.ps1")  # own copy of item 1's launcher (same file, sha256 cc7f28dd...)
+LOWRUN = os.path.join(HERE, "lowrun.ps1")  # own copy of item 1's launcher (same file, sha256 4f1052ba...)
 TIMING = {"elapsed_ns", "cpu_ns", "process_cpu_ns"}
 ROWS_PREFIX = "row_id\tgame_id\tsplit\tfen\t"  # relabel2's rows.tsv and labels.tsv both start with these columns
 # Student t, two-sided 95 %, by degrees of freedom (pairs - 1), checked against scipy.stats.t.ppf(0.975, dof);

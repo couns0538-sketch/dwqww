@@ -64,10 +64,12 @@ python $R status --job C:/<dir>                      # one line: shards, rows (%
   of damaged job state x run / assemble / status = 105 runs, each wanting exit 4 / 3 / 2 with a reason line or a clean
   exit 0, never a traceback). Run it after any change; it refuses to start without relabel2.py, python, the self-play
   sample or the probe (`PY` / `SRC` / `PROBE`).
-- `test_helpers.py SCRATCH` (66 cases, no probe started): sort_normalized.py, label_stats.py and probe_bench.py with
-  broken input -> exit 2 (1 = answers differ / failed) with the file and line, never a traceback, nothing written, no
-  output overwritten (`probe_bench.py run` used to empty an existing `--out`; `abba` used to exit 0 when answers
-  changed - bug hunt #14). Run it after a change to those three.
+- `test_helpers.py SCRATCH` (77 cases, no probe started): sort_normalized.py, label_stats.py, probe_bench.py and
+  fn_diff.py with broken input -> exit 2 (1 = answers differ / failed) with the file and line, never a traceback,
+  nothing written, no output overwritten (`probe_bench.py run` used to empty an existing `--out`; `abba` used to exit
+  0 when answers changed - bug hunt #14); measure_rates.sh / bridge_check.sh / prove_resume.sh refuse wrong
+  arguments before any work, and their "must be identical" checks now fail with exit 1 (hunt #15). Run it after a
+  change to any helper. lowrun.ps1 (all branches) refuses a bad CPU mask and an existing `-Out` / `-Err` (exit 127).
 - Before using a finished job's labels: `verify_job.py JOB --convert NEW_OUT_DIR` (read-only; MANIFEST hashes, counts,
   every row once and in order, train / val = those rows, no game in both splits, shards re-hashed, shard settings,
   fen2bin + hce_dump; exit 0 / 4). Whole 1M job: under 2 s without `--convert`.
