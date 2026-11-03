@@ -52,7 +52,8 @@ on copying GPL/AGPL engine/training implementations.
 
 | Tool | Potential use | Decision for this run |
 |---|---|---|
-| Pyright (MIT) | Check optional values and call signatures | Useful later if typed interfaces are expanded. Current dynamic JSON/native-adapter code would need careful triage; avoid adding Node solely for this check before the higher-value generated tests finish. |
+| Pyright (MIT) | Check optional values and call signatures | Existing Node/npm were discovered, so no Node installation is needed. A bounded isolated check is now being evaluated; dynamic JSON/native-adapter findings will need reproduction. |
+| mutmut | Check whether tests detect deliberately changed operators and control flow | Official requirements demand fork support, hence WSL on Windows. Do not change this machine's execution environment for it; the existing targeted fault-injection tests already exercise the confirmed audit risk. |
 | Semgrep CE | Original rules for unsafe deserialization, shell execution and output publication patterns; has a CLI/MCP interface | Native Windows is supported. Engine and rule licences are separate; no implementation/rules are copied. More setup than the available Ruff check, so deferred unless a specific remaining risk needs it. |
 | CodeQL | Cross-function security queries over Python/C++ | Requires a CodeQL database and applicable GitHub licensing. No new CI workflow, repository setting or database is created here. Reconsider for a separate repository-wide security job. |
 | SonarQube | Additional static analysis and project issue tracking | CLI 1.11.0 installed, but user reports authentication failed; no analysis claimed. It does not block these other checks. |
@@ -71,9 +72,11 @@ claim. CLI tools can provide the missing checks without another plugin.
 - [Ruff rule catalogue](https://docs.astral.sh/ruff/rules/)
 - [Hypothesis settings and determinism](https://hypothesis.readthedocs.io/en/latest/reference/api.html)
 - [Hypothesis example-count limitations](https://hypothesis.readthedocs.io/en/latest/explanation/test-case-count.html)
+- [Hypothesis stateful testing and when ordinary generated tests suffice](https://hypothesis.readthedocs.io/en/latest/stateful.html)
 - [Hypothesis licence](https://github.com/HypothesisWorks/hypothesis/blob/master/LICENSE.txt)
 - [Coverage.py branch measurement](https://coverage.readthedocs.io/en/latest/branch.html)
 - [Pyright installation](https://github.com/microsoft/pyright/blob/main/docs/installation.md)
+- [mutmut platform requirements](https://mutmut.readthedocs.io/en/latest/)
 - [Semgrep CLI, local scanning and MCP](https://docs.semgrep.dev/cli-reference)
 - [CodeQL CLI capabilities and licence eligibility](https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-cli)
 - [Context7 documentation service](https://context7.com/docs/overview)

@@ -1,5 +1,33 @@
 # Review log — UNPROVEN
 
+## Audit repair: fresh v7 verification
+
+The reused reviewer requested that the validation driver bind its own bytes and
+both final filter/publication receipts. Main accepted and fixed both gaps; the
+reviewer rechecked and APPROVED driver SHA256
+27de81ad14ea9d41c0399b1682df070131986ab6bd79f5bcd6ba1de5a1456b6b.
+Actual execution completed in 108.582 seconds: 100k old/new train/val/stats identity
+PASS (46.369 seconds), 1,000 binary outcomes plus mirrors PASS (6.044 seconds),
+three 10k filter passes with identical payloads PASS, v7 CPU preflights and strict
+published verification PASS. Source pins remained unchanged. Manifest SHA256:
+52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720.
+The bounded filter check is not a new million-row timing. Final review and
+extension inventory remain pending; all strength claims remain UNPROVEN.
+
+The next generated boundary harness received focused read-only approval. Main
+adopted its minor suggestion to record the imported Hypothesis version. It uses
+original synthetic PGN/FEN fixtures only; they never enter the training mixture.
+
+Generated execution PASS: 500 PGN streams, 2,735 unique FENs, 5,484 native perft2
+vectors and all five lock bench pins, 29.234 seconds. The first attempt exposed
+a harness-only int(None) counter bug on a terminal position without a best move.
+Main inspected matches()'s intentional tri-state contract, preserved the exact
+failed driver/receipt, and counted known captures and missing moves separately.
+No production source changed; the successful second run retains all named state
+categories. Generation shares python-chess board semantics but expected PGN
+move sequences are captured before the strict parser wrapper reads the stream.
+Evidence: extension3h/generated_boundaries and generated_boundaries_v2.
+
 ## Developer tools: proof assertions disabled by optimization
 
 Ruff's S101 observations led main to reproduce a false PASS: audit.orientation

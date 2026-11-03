@@ -283,6 +283,12 @@ For Hypothesis, database=None disables saved examples but does not disable its
 constants and Unicode caches. Set HYPOTHESIS_STORAGE_DIRECTORY to the authorized
 artifact root before importing it. Preserve exception notes or full tracebacks:
 the shrunk counterexample may live in notes rather than the exception message.
+Check the analyzed-file count before interpreting a static checker's empty
+diagnostics. Pyright config include/exclude paths must be relative; when the
+config and source are on different Windows drives, pass the explicit source
+files on its CLI instead. A zero-file run is not a clean review. Keep findings
+separate from confirmed runtime defects; dynamic dictionaries and duck-typed
+streams can need manual inspection rather than automatic source changes.
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

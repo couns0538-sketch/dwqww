@@ -2,8 +2,10 @@
 
 ## Current continuation — active, UNPROVEN
 
-User resumed at 2026-11-03 03:37 UTC: two further hours of improvement and useful
-coding-tool research, then a full review/fix hour from 05:37 to 06:37 UTC.
+User extended again at 2026-11-03 04:22 UTC: four further hours of improvements,
+then a full review/fix hour. Current schedule: 04:23–08:23 UTC improvements,
+08:23–09:23 UTC deep review, repairs and verification. The earlier 05:37–06:37
+review window had not started and is superseded.
 The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
 No engine changes, training, GPU or crew-process interference is authorized.
 
@@ -12,7 +14,11 @@ Developer-tool milestone: Ruff exposed a confirmed false PASS under Python
 runtime validation replaced the assertions. The focused reviewer APPROVED the
 seven-file repair; 56 affected tests and all 16 optimization tests PASS. A fresh
 full run PASSES 360 tests and 11 subtests in 340.70 seconds, with unchanged
-source/runtime pins; v6 is historical until the v7 tooling refresh.
+source/runtime pins. Fresh v7 verification PASSES: 100k legacy identity, 1,000
+binary outcomes and 1,000 mirrors, three bounded 10k filter passes, both CPU
+preflights and strict published verification. Manifest SHA256:
+`52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
+Older v6 evidence remains attributed to its original source.
 The two quick runs briefly overlapped and are excluded from resource evidence;
 full verification runs alone. No crew process was touched.
 
@@ -26,6 +32,21 @@ expanded), with full licences and no installed npt changes. CodeRabbit 0.9.2
 is authenticated with ten included reviews reported; no remote review yet.
 Research: DEV_TOOLS_RESEARCH.md. GitHub searches found no branch PR or open
 datafilter issue at this checkpoint.
+
+Additional generated checks PASS: 500 one-to-four-game PGN streams; 2,735 unique
+native fixtures, including 218 in check, three legal en-passant states, ten
+castling states and fourteen promotion states. Adding seven fixed edges and all
+mirrors gives 5,484 exact-lock perft2 checks; all five bench pins match. This took
+29.234 seconds overall. The first harness attempt failed only in its category
+counter on an intentionally missing best move; its source/logs are retained,
+and the corrected counter records missing values separately. No tool bug or
+training-data result is inferred from that harness repair.
+
+Isolated Pyright 1.1.414 analyzed all 23 core Python files in 5.434 seconds and
+reported 30 diagnostics, currently under focused triage. Its first configuration
+analyzed zero files because absolute config include paths were ignored; that
+attempt is preserved and explicitly is not clean evidence. No global tool or
+installed npt environment was changed. About 250 MB remains under the output cap.
 
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native
@@ -44,7 +65,7 @@ remains pending the additional review hour. Older proofs remain historical.
 | 4 Deliberate failures | PASS: 360 CPU tests + 11 subtests; rule fixtures, optimized audit failures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
-| 7 Handoff | v6 manifest/sample/CPU preflights, expanded corpus/native proof and 9,797-file inventory PASS; final review pending |
+| 7 Handoff | v7 manifest/sample/CPU preflights PASS; historical corpus/native proof and 9,797-file inventory retained; final review and extension inventory pending |
 
 The original self-play shards have no stored best moves; their capture rate is
 unavailable. No game-ID or full-corpus holdout separation claim is made. No net

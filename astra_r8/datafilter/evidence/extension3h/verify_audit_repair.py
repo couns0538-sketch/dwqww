@@ -33,7 +33,8 @@ def main():
     output = ROOT / 'audit_repair_validation'
     storage_guard(output, allowance=130_000_000)
     output.mkdir()
-    files = list(HERE.glob('*.py')) + list((HERE / 'tests').glob('*.py'))
+    files = (list(HERE.glob('*.py')) + list((HERE / 'tests').glob('*.py'))
+             + [Path(__file__).resolve()])
     source = {str(path): sha256(path) for path in files}
     run = {'source_commit': subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'], cwd=HERE, text=True).strip(),
@@ -75,7 +76,11 @@ def main():
         raise ValueError('candidate changed during verification')
     write(output / 'COMPLETE.json', {
         **run, 'status': 'PASS', 'seconds': time.perf_counter() - started,
-        'stages': stages, 'manifest': str(destination / 'manifest.json'),
+        'stages': stages,
+        'other_receipts': {name: {'path': str(output / name),
+                                 'sha256': sha256(output / name)}
+                           for name in ('bounded_filter.json', 'published_verify.json')},
+        'manifest': str(destination / 'manifest.json'),
         'manifest_sha256': sha256(destination / 'manifest.json'),
         'resource': storage_guard(output),
         'limitations': 'Bounded sample filter rerun is not a new million-row timing; '

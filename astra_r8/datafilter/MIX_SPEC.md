@@ -1,12 +1,13 @@
 # Matched result-mask recipes — UNPROVEN
 
-Last verified v6 handoff SHA256 (historical pending the audit-fix tooling refresh):
-`669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
-Both CPU preflights and strict published verification pass for source de1de94b.
-The material-admission repair passes the full 344-test suite and native checks.
+Current verified v7 handoff SHA256 (final review pending):
+`52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
+Both CPU preflights and strict published verification pass after the audit repair.
+The complete suite passes 360 tests and 11 subtests; native compatibility evidence
+remains bound to its unchanged source and exact engine.
 The entry point rejects stale runtime/tooling identities.
-The optimization-safe audit fix passes all 360 tests plus 11 subtests. A v7 manifest
-will replace these command paths after its actual CPU preflights pass.
+The optimization-safe audit fix passes fresh legacy identity, binary results,
+mirrors and bounded repeated filtering. The commands below use verified v7.
 The complete descriptive corpus audit and expanded native compatibility checks
 pass. The reserved final review remains pending.
 
@@ -37,7 +38,7 @@ is an opt-in that currently fails for these shards because they have no best mov
 Qsearch filtering fails capability preflight. There is no clipping, deduplication,
 random record skipping, relabeling or native binpack conversion in this path.
 
-The refreshed handoff manifest `C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json`
+The refreshed handoff manifest `C:/astra8_data/extension3h_20261103/handoff_v7/manifest.json`
 pins source boundaries/hashes, normalized training/validation hashes, holdout
 audit, recipe settings, and actual imported npt/adapter Python files and native DLL.
 It must report `training_ready: true`; otherwise the entry point refuses training.
@@ -51,13 +52,13 @@ is made. Complete holdout position audits are required for the selected cohort.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $tools = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter'
-$data = 'C:/astra8_data/quality6h_20261102'
+$data = 'C:/astra8_data/extension3h_20261103'
 $inputRows = 'D:/grok-pc-data/dwqww/astra8_data/cohort/million.jsonl'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = "$data/handoff_v6/tmp"
+$env:TEMP = "$data/handoff_v7/tmp"
 $env:TMP = $env:TEMP
 & $py "$tools/filter_positions.py" $inputRows "$data/recipe_selection_new" --workers 2 --drop-in-check --drop-mate-scores
 ```
@@ -80,14 +81,14 @@ trainer construction and stop before any training or optimizer update.
 ```powershell
 $py = 'F:/nnue_pytorch/venv/Scripts/python.exe'
 $entry = 'D:/grok-pc-data/dwqww/astra-r8-datafilter/astra_r8/datafilter/train_adapter.py'
-$manifest = 'C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json'
+$manifest = 'C:/astra8_data/extension3h_20261103/handoff_v7/manifest.json'
 $env:ASTRA_NPT_ROOT = 'F:/opus_scratch/r6/nnue-pytorch-amd'
 $env:NNUE_DATA_LOADER_LIB = 'F:/opus_scratch/r6/nnue-pytorch-amd/build/libtraining_data_loader.dll'
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:OMP_NUM_THREADS = '1'
 $env:MKL_NUM_THREADS = '1'
 $env:OPENBLAS_NUM_THREADS = '1'
-$env:TEMP = 'C:/astra8_data/quality6h_20261102/handoff_v6/tmp'
+$env:TEMP = 'C:/astra8_data/extension3h_20261103/handoff_v7/tmp'
 $env:TMP = $env:TEMP
 $env:TORCHINDUCTOR_CACHE_DIR = "$env:TEMP/inductor"
 $env:TRITON_CACHE_DIR = "$env:TEMP/triton"

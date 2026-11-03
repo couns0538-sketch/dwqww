@@ -68,3 +68,12 @@ They are not vendored into this repository or Forge; the generated-case harness
 and regressions are original task code. Exact download URLs, SHA256 values and
 sizes are retained in tools_install.json. No GPL/AGPL engine/training code or
 external chess dataset was copied for these checks.
+
+Pyright 1.1.414 (MIT) is a separate unmodified developer tool, extracted under
+the C: artifact root from its exact public npm archive after SHA512 integrity
+verification. Full package licence and third-party notices remain with the
+tool; no implementation is copied into Forge or this repository. The isolated
+installer and receipt retain the URL, SHA256, size and method; lifecycle scripts
+were not run. Existing Node is used without global package installation.
+The added native/PGN boundary fixtures are original synthetic test inputs and
+are never included in training recipes or described as genuine game outcomes.

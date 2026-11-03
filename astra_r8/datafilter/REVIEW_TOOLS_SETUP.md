@@ -1,8 +1,15 @@
 # Optional review-tool authentication
 
-Checked 2026-11-03: `coderabbit`, `sonar`, Docker, Podman and Nerdctl were absent
-from this Windows session's PATH. No CodeRabbit or SonarQube review is claimed.
-The existing independent reviewer and Forge evidence checker remain in use.
+Current check, 2026-11-03: the user installed CodeRabbit CLI 0.9.2 and SonarQube
+CLI 1.11.0. CodeRabbit's signed canonical Windows executable is authenticated;
+its usage command reports ten included reviews and usage billing inactive.
+The scoped final CodeRabbit review is scheduled but has not run yet. SonarQube
+authentication remains unavailable. The earlier PATH/setup notes below are
+retained for troubleshooting; installing again is unnecessary.
+
+CodeRabbit executable: `C:/Users/Administrator/AppData/Local/Programs/coderabbit/coderabbit.exe`.
+SonarQube executable: `C:/Users/Administrator/AppData/Local/sonarqube-cli/bin/sonar.exe`.
+The independent reviewer and Forge evidence checker remain in use.
 
 Use PowerShell under the same Windows account as Codex. Official installers:
 

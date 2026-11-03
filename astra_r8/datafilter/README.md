@@ -5,16 +5,18 @@ an isolated compatibility extension, an independent deterministic filter, and an
 original bounded Python adapter to installed npt. No training or GPU work is run
 by this job. Correct conversion and loss checks establish no playing-strength gain.
 
-Last verified handoff (historical while the optimization-safe audit repair is verified):
-`C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json`,
-SHA256 `669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
+Current verified v7 handoff (final review pending):
+`C:/astra8_data/extension3h_20261103/handoff_v7/manifest.json`,
+SHA256 `52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
 Ruff exposed a false audit PASS under Python -O/-OO. The reviewed fix preserves
 proof checks under optimization; 16 focused regressions and the full 360-test
-suite pass. The v7 handoff refresh is pending. Current commands reject stale
-tooling identities. The converter, data parser, npt runtime and engine are unchanged.
+suite pass. Fresh 100k legacy identity, 1,000 binary results plus mirrors, bounded
+repeat filtering, both v7 CPU preflights and published verification pass.
+Current commands reject stale tooling identities. The converter, data parser,
+npt runtime and engine are unchanged by this audit repair.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite
-passes **344 tests + 11 subtests** on source de1de94b.
+passes **360 tests + 11 subtests** on the reviewed audit-repair source.
 Both actual recipe preflights and published-manifest verification pass on source
 de1de94b. Complete-corpus and expanded native checks pass; the reserved final
 review is still pending. Both million-row cohorts pass current admission and

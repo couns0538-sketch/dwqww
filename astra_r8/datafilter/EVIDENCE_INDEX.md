@@ -1,27 +1,28 @@
 # Current handoff evidence — UNPROVEN
 
-The v6 proofs below are historical while the reviewed optimization-safe audit
-repair is verified and its tooling pins refreshed. Runtime/data/native source
-is unchanged; current training entrypoints reject the stale tooling manifest.
+The v7 handoff includes the reviewed optimization-safe audit repair. The current
+full suite passes 360 tests plus 11 subtests. Fresh legacy/result/bounded-filter
+checks and both CPU preflights pass; the final review hour remains pending.
 
 Runtime source: `de1de94bf2922f6ad21802e178644ba3799a2989`. Later checkpoints
 package evidence and documentation. The reviewed material-admission repair and
-v6 verification pass; the newly authorized final review remains pending.
+v6 verification pass historically. Audit repair commit bc99ba38 changes seven
+audit/filter proof guards; unchanged runtime/native results retain attribution.
 Use the two commands in [MIX_SPEC.md](MIX_SPEC.md); the crew owns training and gates.
 
-Current manifest: `C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json`.
-SHA256: `669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
-Its [repository copy](evidence/quality6h/handoff_v6/manifest.json) has identical bytes.
+Current manifest: `C:/astra8_data/extension3h_20261103/handoff_v7/manifest.json`.
+SHA256: `52f39e0ceeb6fc6c63422514296b928b308ede862754e8d69addde1aa44fc720`.
+Its [repository copy](evidence/extension3h/handoff_v7/manifest.json) has identical bytes.
 
 | Required check | Current proof |
 |---|---|
-| 1. No-flag legacy identity on 100k input | [All three artifacts match](evidence/quality6h/material_validation/identity_receipt.json) |
-| 2. Result sign and mirror | [1,000 actual binary records and 1,000 mirrors](evidence/quality6h/material_validation/orientation_receipt.json) |
+| 1. No-flag legacy identity on 100k input | [All three artifacts match](evidence/extension3h/audit_repair_validation/identity_receipt.json) |
+| 2. Result sign and mirror | [1,000 actual binary records and 1,000 mirrors](evidence/extension3h/audit_repair_validation/orientation_receipt.json) |
 | 3. Deterministic filter | [Million-row run A](evidence/quality6h/filter_budget_million/recipe_a.report.json), [run B](evidence/quality6h/filter_budget_million/recipe_b.report.json); matching payload and metadata hashes |
-| 4. Deliberate failures and all-off behavior | [344 tests + 11 subtests](evidence/quality6h/full_material_green/pytest.log), including malformed FEN/PGN, publication, interruption and result-mask checks |
+| 4. Deliberate failures and all-off behavior | [360 tests + 11 subtests](evidence/extension3h/full_optimization_green/pytest.log), including optimization bypass, malformed FEN/PGN, publication, interruption and result-mask checks |
 | 5. Per-rule keep rate and timing | [README table](README.md), [six-case command timing](evidence/quality6h/filter_budget_million/selfplay.exit.json), [separate capture timing](evidence/quality6h/filter_budget_million/capture.exit.json) |
-| 6. Selected-data sign and mirror | [Pearson 0.6635950368 and 1,000 mirrors](evidence/quality6h/handoff_v6/sign_audit.json) |
-| 7. Handoff | [Published verification](evidence/quality6h/final_pack_v3/published_verify.json), [both CPU preflights](evidence/quality6h/handoff_v6/verification.json), [review log](REVIEW_LOG.md) |
+| 6. Selected-data sign and mirror | [Pearson 0.6635950368 and 1,000 mirrors](evidence/extension3h/handoff_v7/sign_audit.json) |
+| 7. Handoff | [Published verification](evidence/extension3h/audit_repair_validation/published_verify.json), [both CPU preflights](evidence/extension3h/handoff_v7/verification.json), [review log](REVIEW_LOG.md) |
 
 Million-row filter timings belong to source 88b7c6b1, before the later admission
 checks. The current validator [replays both complete measured cohorts](evidence/quality6h/material_validation/cohort_replay.json)

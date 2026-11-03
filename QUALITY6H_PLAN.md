@@ -1,5 +1,19 @@
 # Six-hour quality continuation — UNPROVEN
 
+Latest user extension, 2026-11-03 04:22 UTC: improve the existing deliverables for
+four more hours, then spend a full hour on deep bug hunting and fixes. Schedule
+04:23–08:23 UTC for improvements and 08:23–09:23 UTC for final review, repairs and
+verification. This supersedes the unstarted 05:37–06:37 review window below.
+The existing goal stays active; all original scope/resource limits persist.
+Priorities: finish generated/native evidence and useful static analysis, address
+reproduced defects, assess a broader strict-admission audit against the remaining
+time, then review the exact final candidate with CodeRabbit and the one reused
+reviewer. Preserve failed probes and avoid repeating already-closed checks.
+About 250 MB remains in the 15 GB aggregate output allowance; favor streaming
+read-only audits and compact receipts. No new full-size filtered dataset is planned.
+
+Earlier extension history follows; it does not set the current finish time.
+
 Latest continuation replaces the earlier finish: user resumed at 2026-11-03
 03:37 UTC for two hours of improvement/tool research through 05:37 UTC, followed
 by a full review/fix/verification hour through 06:37 UTC. The prior pause lasted
