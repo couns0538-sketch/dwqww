@@ -23,8 +23,10 @@ python $R status --job C:/<dir>
 - The same `run` command resumes (published shards are re-hashed; an interrupted `shard_K.part.N` stays as evidence and
   the shard is redone as `.part.N+1`). Bound a session with `--until` / `--max-shards`: on this PC the session cannot
   end processes and TaskStop only ends the outer shell.
-- Exit codes: 2 bad input (names the file:line), 3 configuration differs / job busy (`job.lock`) / target exists,
-  4 integrity (a published file changed). A changed relabel2.py resumes only with `--accept-new-tool` (logged).
+- Exit codes: 2 bad input (names the file:line), 3 configuration differs / job busy (`job.lock`) / target exists /
+  disk floor, 4 integrity (a published file changed). A changed relabel2.py resumes only with `--accept-new-tool`.
+- Disk floor `--min-free-gb` (default 50 GiB = the PC rule for C: and D:): prepare and assemble refuse a write that would
+  cross it, run stops before the next shard (logged); free space and run the same command again.
 - Output to Forge's FPOS: `F:\opus_scratch\rescore_d8\bin\fen2bin.exe train.txt train.pos` (checked: the .pos score
   column = the new labels, 1,200 / 1,200); `hce_dump.exe train.txt train.hce` for the .hce.
 
