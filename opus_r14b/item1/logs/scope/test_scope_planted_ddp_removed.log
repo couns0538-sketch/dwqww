@@ -1,0 +1,23 @@
+# test_scope.py (22:51) against a PLANTED forge_fastloader.py copy whose DDP refusal is removed: scope_ddp_two_ranks must FAIL
+DLL 9eb29b7d134a73eb..., binpack C:\o14b\fuzz_2052\base.binpack
+PASS scope_feature_set_K32H3: no exception
+PASS scope_feature_set_bytes: no exception
+PASS scope_feature_set_other: ValueError: --fast-loader supports feature set K32H3 only, got 'HalfKAv2_hm'
+PASS scope_feature_set_virtual: ValueError: --fast-loader supports feature set K32H3 only, got 'K32H3^'
+PASS scope_two_files: ValueError: --fast-loader reads exactly one binpack per stream, got 2
+PASS scope_no_file: ValueError: --fast-loader reads exactly one binpack per stream, got 0
+PASS scope_ddp_one_rank: no exception
+FAIL scope_ddp_two_ranks: no exception, wanted ValueError
+PASS skip_live_line: no exception (accepted)
+PASS skip_filtered: ValueError: --fast-loader supports --no-filtered --no-wld-filtered without simple-eval skipping only
+PASS skip_wld_filtered: ValueError: --fast-loader supports --no-filtered --no-wld-filtered without simple-eval skipping only
+PASS skip_simple_eval: ValueError: --fast-loader supports --no-filtered --no-wld-filtered without simple-eval skipping only
+PASS skip_none: ValueError: fast loader: a skip config is required
+PASS skip_missing_field: ValueError: fast loader: skip config has no field 'pc_y3'
+PASS stream_filtered_refused_before_reading: ValueError: --fast-loader supports --no-filtered --no-wld-filtered without simple-eval skipping only
+PASS positive_control_live_settings: no exception (first batch of 1024 positions)
+PASS binpack_missing: RuntimeError: fast loader: cannot open C:\o14b\fuzz_2052\base.binpack.no_such_file
+PASS binpack_is_a_folder: RuntimeError: fast loader: cannot open C:\Users\Administrator\AppData\Local\Temp\ffl_scope_x4ueyv6r
+PASS dll_missing: FileNotFoundError: Could not find module 'C:\Users\Administrator\AppData\Local\Temp\ffl_scope_x4ueyv6r\forge_fastloader.dll' (or one of its dependencies). Try using the 
+PASS loader_dir_without_py: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\ffl_scope_x4ueyv6r\\forge_fastloader.py'
+test_scope: FAIL: scope_ddp_two_ranks

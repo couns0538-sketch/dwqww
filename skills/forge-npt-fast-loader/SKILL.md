@@ -90,6 +90,7 @@ loaded by explicit path; the start-up line prints the DLL path, sha256 and versi
 ## Handing it over (opus_r14b/item1/HANDOFF.md)
 - Adoption without touching crew code: the adapter `train_resid_nnuepytorch_v2.py` already takes `--npt-repo <copy>`
   and `--npt-extra ...` (REMAINDER, so it goes last): `--npt-repo <switched copy> ... --npt-extra --fast-loader`.
+- Scope refusals (feature set, files, DDP, filtering, missing DLL / loader file): `python -I -B tools/test_scope.py` (20 cases).
 - Install into a COPY of the trainer: `python -I -B tools/install_fast_loader.py <copy> --loader-dll <built DLL>`
   switches config.py / train.py and copies forge_fastloader.dll + forge_fastloader.py next to train.py (never over an
   existing file; a second install is exit 2; `--check` = dry run that prints "would copy"). Check the copy first

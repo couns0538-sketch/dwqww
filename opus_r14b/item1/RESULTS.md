@@ -299,3 +299,21 @@ reference answers), DLL rebuilt = b5 (9eb29b7d...), Windows self-test ALL PASSED
 adoption rehearsal with the fixed installer from the clone on a fresh copy of the live trainer tree (264 / 264 = the
 installer's base): anchors OK, patched, DLL + forge_fastloader.py copied, acceptance 261 / 261
 (logs/fresh_2235/fresh_checkout_checks.log).
+
+## Bug hunt #7 (22:49-22:52 by the PC clock, started early; self-review, NOT independent): the fail-closed scope
+Scope (written first): the fast loader claims to refuse everything outside its proven scope instead of giving batches
+that differ from the old loader; the refusals were in the code (forge_fastloader.py `_check_scope`, `make_config`;
+chained records in the DLL, tested by the self-test and fl_fuzz.py) but the Python ones had no test and no log.
+New `tools/test_scope.py` (standard library + the DLL; no torch, no GPU runtime): **20 / 20 PASS**
+(logs/scope/test_scope.log) - a feature set other than K32H3 (HalfKAv2_hm; also "K32H3^": the trainer passes
+`model.input_feature_name`, which is "K32H3" for the factorized K32H3^, as the acceptance runs show), two files or none,
+DDP with 2 ranks (1 rank accepted), filtered / wld_filtered / simple-eval skipping, no skip config, a skip config
+without `pc_y3`, a missing binpack and a folder given as binpack ("fast loader: cannot open ..."), a missing DLL
+(FileNotFoundError naming it) and, for patch 0005, a `FORGE_FAST_LOADER_DIR` without forge_fastloader.py
+(FileNotFoundError naming the file); positive control: the live line's settings on 3 chunks of the J1 holdout give a
+first batch of 1,024 positions. Planted check: with the DDP refusal removed from a copy of forge_fastloader.py,
+`scope_ddp_two_ranks` FAILs (logs/scope/test_scope_planted_ddp_removed.log).
+No finding in the code. Noted: the feature-set / file / DDP checks run when the trainer builds the dataset, the
+skip-setting checks when the stream starts (the first batch of the first step), still before any batch is given out;
+moving them earlier would change forge_fastloader.py (39af47b0..., pinned by the acceptance and fresh-clone checks)
+for no change in what is refused, so it stays as it is.
