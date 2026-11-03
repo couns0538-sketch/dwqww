@@ -26,7 +26,10 @@ lowrun=$(cygpath -w "$here/lowrun.ps1")   # own copy of item 1's launcher
 lock=${LOCK_DIR:-$out/lock}
 if [ -z "${LOCK_DIR:-}" ]; then  # the lock source from this repository (= C:\o13\p5\lock, all 20 files identical)
   mkdir -p "$lock"
-  git -C "$here" -c core.autocrlf=false archive d4f43124dde1d1e37de90e18930e374f32ea7ffa src include | tar -x -C "$lock"
+  top=$(git -C "$here" rev-parse --show-toplevel)  # git archive reads "src" relative to the folder it runs in
+  git -C "$top" -c core.autocrlf=false archive d4f43124dde1d1e37de90e18930e374f32ea7ffa src include | tar -x -C "$lock"
+  n=$(find "$lock" -type f | wc -l)
+  [ "$n" = 20 ] || { echo "lock export from git: $n files, expected 20" >&2; exit 3; }
 fi
 gxx='C:\msys64\ucrt64\bin\g++.exe'
 base="-O3 -DNDEBUG -std=gnu++20 -march=znver5 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"

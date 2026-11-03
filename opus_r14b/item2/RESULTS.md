@@ -313,3 +313,9 @@ Every caller in item 2 (build_probe_opt.sh, probe_bench.py) also checks its outp
   24cb2e78..., hce_dump a88e519d...) on the full output: fen2bin train 991,077 lines = 991,077 records, bad 0; val
   8,844 = 8,844, bad 0 (35 bytes per record); hce_dump train 991,077 records, bad_fen 0, clamped 0; val 8,844, 0, 0
   (`logs/conv_full_1M.txt`). Before: 1,200 rows of a test job.
+
+## Found by the verify chain's fresh-clone step (20:33-20:36)
+| # | finding | fix | check |
+|---|---|---|---|
+| C1 | `build_probe_opt.sh` (since I3 at 19:18) ran `git -C <its own folder> archive d4f4312 src include`; git reads those paths relative to the folder it runs in (`opus_r14b/item2/src`), so the lock export failed ("pathspec 'src' did not match") and the script stopped (set -e / pipefail) - in a fresh clone and in the worktree alike. The I3 check had exported from the repository root by hand, not through the script | archive from the repository's top level (`git rev-parse --show-toplevel`) and require exactly 20 exported files | export from the item2 folder: 20 files, identical to `C:\o13\p5\lock`; the probe builds from a fresh clone run again after the chain |
+| C2 | the chain's adoption rehearsal called `robocopy SRC DST /E ...` from Git Bash, which rewrote `/E` into `E:/` (robocopy exit 16, nothing copied; the manifest, installer and acceptance failures that followed were consequences) | `MSYS_NO_PATHCONV=1` for that call (fresh_checkout_checks.sh; item 1 HANDOFF notes it for Git Bash users) | 382 / 382 files copied, exit 1 (= files copied); the rehearsal runs again after the chain |
