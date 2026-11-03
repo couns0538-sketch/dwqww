@@ -1,0 +1,22 @@
+2026-11-03 12:43:17 cand_pack base_nopatch tag b0 option [=] patch [] sides pc1 pc2 smoke 60 s
+fresh lock copy /d/o15/src_pack/b0: 20 files, base 74dbfad
+2026-11-03 12:43:18 kit: KIT_SIDES='pc1 pc2' bash '/d/o15/wt/opus_r15/tools/kit_build_r15.sh' '/d/o15/src_pack/b0' b0
+2026-11-03 12:46:42 check kit_build              PASS  kit_build_r15.sh exit 0 (2026-11-03 12:46:42 pc2 exit 0: 2026-11-03 12:46:42 RESULT PASS  exe for GATE_EXE: D:\o15\w\b0_pc2\src_copy\forge_ltopgo_b0_pc2.exe (binding: its sha256 must equal the other clean rebuild's, pc1 = pc2))
+2026-11-03 12:46:42 check pc1_equals_pc2         PASS  pc1 fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072 pc2 fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072
+2026-11-03 12:46:42 check kit_identity           PASS  SUMMARY: 'node identity OFF: ALL OK'
+2026-11-03 12:46:42 check kit_vfmadd0            PASS  LTO+PGO exe has no vfmadd
+2026-11-03 12:46:42 check kit_missing_profile0   PASS  kit build_log.txt: real missing-profile/coverage warnings: 0 (must be 0)
+2026-11-03 12:46:42 check exe_copy_sha256        PASS  copy = kit pc1 exe
+2026-11-03 12:46:42 check nopatch_is_lock        PASS  unpatched lock source -> fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072 (lock fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072)
+pin_check PASS  mode plain  exe D:\o15\cands\base_nopatch\forge_ltopgo_b0.exe
+sha256 fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072  options []  priority Idle mask 0x3  26 s
+bench d11        312866  want       312866  ok
+bench d13        862329  want       862329  ok
+bench d16       3024920  want      3024920  ok
+bench d20      12389307  want     12389307  ok
+bench d22      34048354  want     34048354  ok
+perft5 startpos       4865609  want      4865609  ok
+perft5 kiwipete     193690690  want    193690690  ok
+2026-11-03 12:47:10 check pin_off                PASS  bench d11/13/16/20/22 + perft startpos/kiwipete = lock pins (pin_check -Full)
+SMOKE2M PASS line [] games 10 finished 9 plies 1243 illegal 0 crashes 0 hangs 0 time_losses 0 overruns 1 option_errors 0 stderr no (60 s, Threads 2, tc 2000+20, margin 1000 ms)
+2026-11-03 12:48:10 check smoke                  PASS  10 games, 1243 plies, illegal 0, crashes 0, hangs 0, time losses 0 (60 s, Threads 2, 2000+20)
