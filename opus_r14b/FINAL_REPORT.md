@@ -1,4 +1,4 @@
-# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 20:48), final at the end
+# Opus R14-B final report (Couns's job, 2026-11-02 12:05 -> 06:00 Nov 3 PC clock) - INTERIM (updated 20:55), final at the end
 
 Window: 15 hours at the start; Couns at ~19:15: work to 06:00, a 20-minute bug hunt every hour (every finding
 fixed), make sure everything works in Forge, a 1-hour bug hunt at the end; no sub-agents.
@@ -79,6 +79,22 @@ use-after-release: none); details in each RESULTS.md. Final 1-hour bug hunt: 05:
   fixed and re-verified from a new fresh clone (0 failures, 20:42). A 1-second robocopy test of mine overlapped the
   live-setting loader ABBA (no outlier pair).
 
+## Couns's message of ~20:53 (corrections to the R15 prompt) - what R14-B checked
+- Lock pins: only fd3a5190... (`forge_ltopgo_x_al1s198_v23.exe`) with bench d11 312866 / d13 862329 / d16 3024920 /
+  d20 12389307 / d22 34048354, perft startpos d5 4865609, kiwipete d5 193690690. No R14-B branch, skill or memory
+  note contains the wrong "273845 / 718758 / 3028212" (git grep of all three branches, 20:54); the only pin check
+  R14-B ran (`engine_fresh_check.sh` through the lock package's `uci_check.py`) uses exactly the pins above, and
+  `engine_bisect.sh` compares with the good commit's own count (312,866 at d11). Nothing passed against the wrong
+  numbers, so nothing needs a re-run.
+- R15 is not started; it waits for this report's final version (R14-B ends 06:00 Nov 3 PC clock).
+- Code Review's LOW P6 crfix 4b537823: **on the PC now** - `C:\Users\Administrator\qa_crfix_astra_r10\r13_patches\
+  p6_checks_crfix.patch`, md5 4b537823b4c93aaf390413843299720b (sha256 5c572b72..., 2,311 bytes, file time
+  2026-11-02 20:53:41, i.e. it arrived after R14 ran). It patches opus_r13/p6/check_tb.py, ci_fetch_tables.sh and
+  tb_probe.cpp (branch opus-r13-p6-syzygy); not R14-B scope, not applied here.
+- The four candidate exes to keep are in place with the given sha256 (checked 20:54, read-only): syz_pc1 150374ff...,
+  sfs 029d58e8..., speed2 de20653c..., the relabel probe 08299f9f.... R14-B deletes nothing anywhere.
+
 ## Owner items
 - GPU window for item 1 (GPU_REQUEST.md); Engine NNUE decides on `--fast-loader` and patch 0006.
 - Engine NNUE decides on the 50M relabel (inputs, node count, probe); RELABEL_HANDOFF.md has commands and costs.
+- R15: apply / review the P6 crfix above with the corrected pins; keep the four exes.
