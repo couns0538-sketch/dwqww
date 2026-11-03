@@ -14,7 +14,7 @@
   only in how damaged or mismatched files are reported), and the frozen version reproduced the proof's rows.tsv and
   final files byte for byte (bridge, again in the re-freeze 22:43-22:46, including a resume of a copy of proof job A,
   whose older shards record no settings). Suite: 155 PASS / 0 FAIL in the worktree and in a fresh clone at the re-freeze; 157 / 0 in the worktree at 23:06 with
-  two verify_job.py cases;
+  two verify_job.py cases, and 157 / 0 from a fresh clone of the final branch on 2026-11-03 04:13;
   the verify chain 20:29-20:39 (RESULTS.md) also ran the R8 v5 prepare and an end-to-end job through fen2bin. Tests:
   `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
   kill / resume, a dead probe, a busy job, 105 damaged-job runs); run it after any change, and after a change to
