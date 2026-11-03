@@ -12,13 +12,15 @@ presence does not establish correctness.
 |---|---|---|
 | CodeRabbit | Another review of a frozen code diff, especially parsing, publication and evidence assumptions | Signed native Windows CLI 0.9.2; authentication succeeds. Usage reports 10 included reviews remaining and usage billing inactive. Reserve a scoped review for the final hour; no paid-credit override. No review has run yet. |
 | Ruff | Offline detection of undefined names, suspicious control flow and common Python mistakes | Existing pinned environment contains 0.16.0. Ran explicit F/B/PLE/PLW/S rules, one Rayon worker, no cache or fixes. 345 observations require triage; most are test assertions, non-security MD5/random usage and checked subprocesses. |
-| Hypothesis | Generate combinations of legal move histories, mirrored labels, malformed metadata and PGN whitespace; shrink failures to useful fixtures | Version 6.170.14 acquired into an isolated C: tool directory, with sortedcontainers 2.4.0. Original bounded harness prepared. No installed npt package changed. |
-| Coverage.py | Find failure branches the existing tests do not execute; distinguish branch coverage from line coverage | Version 7.17.0 isolated beside Hypothesis. Baseline branch-coverage run started on the 344-test suite; results pending. No coverage percentage is yet claimed. |
+| Hypothesis | Generate combinations of legal move histories, mirrored labels, malformed metadata and PGN whitespace; shrink failures to useful fixtures | Version 6.170.14 isolated with sortedcontainers 2.4.0. All 1,200 generated examples PASS on pre-fix source (400 per property), deterministic settings, no database. No installed npt package changed. |
+| Coverage.py | Find failure branches the existing tests do not execute; distinguish branch coverage from line coverage | Version 7.17.0 isolated beside Hypothesis. All 344 tests + 11 subtests pass in 390.47 seconds with branch tracing; 71% measured main-process coverage, including audit utilities. Earlier standalone audits and untraced child execution are outside this measurement. |
 | Context7 | Resolve exact documentation/API questions before writing tests or integration code | Connected. The reused research reviewer checked Hypothesis settings through its documentation tools. It is documentation support, not a validator. |
 | GitHub | Read current crew issues, PR feedback and CI status against exact commits | Connected; local git remains the publication path. Do not post review messages without authorization. |
 
-Ruff's assertions warning is being tested against deliberately corrupted audit
-inputs under Python optimization. Its late-bound closure warnings in resource
+Ruff's assertions warning revealed a real false PASS on deliberately corrupted
+audit inputs under Python optimization. Six failing regressions preceded the
+explicit-exception repair; 16 optimized/normal positive and negative checks now
+pass, and independent review approved full verification. Its late-bound closure warnings in resource
 tests refer to functions invoked before the next loop iteration; they are not
 automatically defects. Subprocess calls already inspect return codes explicitly.
 MD5 is retained only to compare existing producer sidecars, alongside SHA256.

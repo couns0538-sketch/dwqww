@@ -7,15 +7,23 @@ coding-tool research, then a full review/fix hour from 05:37 to 06:37 UTC.
 The previous pause preserved all work. Plan: repository-root QUALITY6H_PLAN.md.
 No engine changes, training, GPU or crew-process interference is authorized.
 
-Developer-tool milestone: native CodeRabbit 0.9.2 is authenticated, with ten
-included reviews reported available; no remote review has run yet. Existing Ruff
-0.16.0 scanned the live Python/tests with no auto-fixes. Its 345 observations are
-being triaged, including a possible optimized-Python audit bypass. Hypothesis
-6.170.14 and Coverage.py 7.17.0 are isolated under C: (3.02 MB expanded, full
-licences retained), leaving installed npt/Python packages unchanged. A baseline
-branch-coverage run and bounded generated-input checks are pending. Research and
-tool selection are recorded in DEV_TOOLS_RESEARCH.md. GitHub searches found no
-PR for this branch or open issue matching datafilter at this checkpoint.
+Developer-tool milestone: Ruff exposed a confirmed false PASS under Python
+-O/-OO in audit proof checks. Six failures were reproduced before explicit
+runtime validation replaced the assertions. The focused reviewer APPROVED the
+seven-file repair; 56 affected tests and all 16 optimization tests PASS. A fresh
+full 360-test run is in progress; v6 is historical until the v7 tooling refresh.
+The two quick runs briefly overlapped and are excluded from resource evidence;
+full verification runs alone. No crew process was touched.
+
+The unchanged baseline passed all 344 tests with branch instrumentation in
+390.47 seconds. Measured main-process coverage is 71% including audit utilities;
+untraced child/earlier standalone experiments are not included in that percentage.
+All 1,200 original generated chess/metadata/PGN examples PASS on the pre-fix
+source. Hypothesis 6.170.14/Coverage.py 7.17.0 are isolated under C: (3.02 MB
+expanded), with full licences and no installed npt changes. CodeRabbit 0.9.2
+is authenticated with ten included reviews reported; no remote review yet.
+Research: DEV_TOOLS_RESEARCH.md. GitHub searches found no branch PR or open
+datafilter issue at this checkpoint.
 
 The material-admission repair is verified on source de1de94b: **344 tests +
 11 subtests PASS in 261.15 seconds**, runtime unchanged. Twenty actual native

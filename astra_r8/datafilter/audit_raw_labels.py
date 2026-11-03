@@ -25,13 +25,17 @@ def run(root):
                     token={'0.0':'0','1.0':'1','*':'?','':'?'}.get(result,result)
                     expected=ORACLE[(fen.split()[1],token)]
                     row=json.loads(next(normalized))
-                    assert row['fen']==fen and row['score_stm']==int(score)
-                    assert row['result_stm']==expected and row['has_result']==(expected is not None)
-                    assert Path(row['source'])==Path(source['path']) and row['source_row']==line_number
+                    if row['fen']!=fen or row['score_stm']!=int(score):
+                        raise ValueError('normalized FEN or score differs from original source')
+                    if row['result_stm']!=expected or row['has_result']!=(expected is not None):
+                        raise ValueError('normalized outcome differs from original source')
+                    if Path(row['source'])!=Path(source['path']) or row['source_row']!=line_number:
+                        raise ValueError('normalized provenance differs from original source')
                     checked.append(dict(source=source['path'],source_row=line_number,fen=fen,
                                         raw_white_result=result,expected_stm=expected,score_stm=int(score)))
             if len(checked)==1000:break
-    assert len(checked)==1000
+    if len(checked)!=1000:
+        raise ValueError('original-source orientation audit requires 1000 rows')
     destination=root/'actual_source_orientation1000.json'
     with open(destination,'x',encoding='utf-8') as fh:
         json.dump(dict(status='PASS',rows=len(checked),cases=checked),fh,indent=1)

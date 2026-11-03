@@ -28,7 +28,8 @@ def run(root):
             counts['check'] += b.is_check()
             counts['mate'] += r['score_type']=='mate' or abs(r['score_stm'])>=31872
             ply = (int(r['fen'].split()[5])-1)*2 + int(r['fen'].split()[1]=='b')
-            assert ply == r['ply']
+            if ply != r['ply']:
+                raise ValueError('derived ply differs from original FEN')
             counts['ply_gt160'] += ply > 160
             if not b.is_check() and r['score_type']!='mate' and abs(r['score_stm'])<31872:
                 counts['default_keep'] += 1
@@ -37,22 +38,29 @@ def run(root):
                     sample.write(line)
             if r['has_result']:
                 y = r['result_white'] if b.turn else -r['result_white']
-                assert y == r['result_stm']
+                if y != r['result_stm']:
+                    raise ValueError('side-to-move result has incorrect orientation')
                 source_results[f"{r['fen'].split()[1]}:{r['result_white']}"] += 1
                 x = r['score_stm']; n+=1; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y
             else:
-                assert r['result_stm'] is None
+                if r['result_stm'] is not None:
+                    raise ValueError('unknown outcome has a non-null result')
     sample.close()
     corr = (n*sxy-sx*sy)/math.sqrt((n*sxx-sx*sx)*(n*syy-sy*sy))
     default_report = json.loads((root/'filtered_default/report.json').read_text())
     a = json.loads((root/'filtered_a/report.json').read_text())
     b = json.loads((root/'filtered_b/report.json').read_text())
-    assert counts['total'] == default_report['input'] == 1000000
-    assert counts['default_keep'] == default_report['kept']
-    assert counts['check'] == a['independent']['check'] and counts['mate'] == a['independent']['mate']
-    assert counts['ply_gt160'] == a['independent']['ply']
+    if not counts['total'] == default_report['input'] == 1000000:
+        raise ValueError('cohort audit requires exactly one million input rows')
+    if counts['default_keep'] != default_report['kept']:
+        raise ValueError('independent default-selection count differs')
+    if counts['check'] != a['independent']['check'] or counts['mate'] != a['independent']['mate']:
+        raise ValueError('independent check or mate counts differ')
+    if counts['ply_gt160'] != a['independent']['ply']:
+        raise ValueError('independent ply count differs')
     for name in ('records.jsonl','metadata.jsonl'):
-        assert sha256(root/'filtered_a'/name) == sha256(root/'filtered_b'/name) == a['hashes'][name] == b['hashes'][name]
+        if not sha256(root/'filtered_a'/name) == sha256(root/'filtered_b'/name) == a['hashes'][name] == b['hashes'][name]:
+            raise ValueError('repeated filter output differs from its recorded hashes')
     report = dict(counts=dict(counts), known_result_count=n, result_distribution=dict(source_results),
                   pearson_stm_score_result=corr, sign_status='PASS' if corr>0.1 else 'FAIL',
                   deterministic='PASS', independent_rules='PASS', holdouts=[],
@@ -81,8 +89,10 @@ def run(root):
                         if not board.is_check() and abs(r['score_stm'])<31872:
                             validation.write(dumps(r)+'\n'); val_count+=1
             after=path.stat()
-            assert (before.st_size,before.st_mtime_ns)==(after.st_size,after.st_mtime_ns)
-            assert md5.hexdigest()==trusted[shard], 'holdout differs from pinned producer digest'
+            if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):
+                raise ValueError('holdout source changed during audit')
+            if md5.hexdigest()!=trusted[shard]:
+                raise ValueError('holdout differs from pinned producer digest')
             receipt=dict(shard=shard,path=str(path),rows=count,bytes=before.st_size,sha256=digest.hexdigest(),
                          trusted_md5=trusted[shard],overlap_rows=overlap_rows,overlap_unique_keys=len(overlapping),
                          validation_rows=val_count,complete_scan=True)

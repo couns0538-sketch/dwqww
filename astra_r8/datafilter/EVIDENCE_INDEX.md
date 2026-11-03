@@ -1,5 +1,9 @@
 # Current handoff evidence — UNPROVEN
 
+The v6 proofs below are historical while the reviewed optimization-safe audit
+repair is verified and its tooling pins refreshed. Runtime/data/native source
+is unchanged; current training entrypoints reject the stale tooling manifest.
+
 Runtime source: `de1de94bf2922f6ad21802e178644ba3799a2989`. Later checkpoints
 package evidence and documentation. The reviewed material-admission repair and
 v6 verification pass; the newly authorized final review remains pending.

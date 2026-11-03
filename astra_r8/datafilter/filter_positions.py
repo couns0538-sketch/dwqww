@@ -133,7 +133,8 @@ def run_filter(inp, out, *, kind='normalized', workers=1, drop_in_check=False,
                       capture_measurement='PASS' if coverage['best_move'] == count else 'BLOCKED: missing metadata',
                       qsearch_measurement='BLOCKED: unsupported oracle',
                       hashes={p.name: sha256(p) for p in partial.iterdir()})
-        assert count == kept + sum(first.values())
+        if count != kept + sum(first.values()):
+            raise ValueError('filter counts do not account for every input row')
         report_text = json.dumps(report, indent=2, sort_keys=True)
         storage_guard(partial, allowance=len(report_text.encode('utf-8')) + 1024*1024)
         with open(partial / 'report.json', 'x', encoding='utf-8', newline='\n') as receipt:

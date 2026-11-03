@@ -265,6 +265,21 @@ named test_*.py may have top-level process-control or file-writing code. Scope
 pytest collection exclusions to the evidence tree, preserve archived bytes, and
 verify that broad collection still finds the complete real correctness suite.
 
+Audit proof gates must not depend on Python assertions: -O and -OO remove both
+the check and its evaluation. Reproduce with a corrupted label, binary read or
+retained holdout row and require rejection before a success receipt is published.
+Use explicit exceptions for audit invariants; retain positive optimized controls.
+Do not claim a frozen legacy helper is optimization-safe merely because new
+audit entrypoints were repaired. Refresh manifests that pin changed audit tools.
+
+Use generated-input testing to explore combinations beyond authored regressions,
+then save small deterministic counterexamples when a defect appears. Record
+actual executed cases, seed/settings and source hashes; the requested example
+count is not necessarily the execution count. Coverage identifies unvisited
+branches in the measured processes, not all experiments run in other processes.
+Keep auxiliary tools isolated from the pinned training environment and preserve
+their versions, download hashes and licences without vendoring implementation.
+
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user
 steering, check collaborator status: sending a message does not resume an idle or

@@ -1,5 +1,31 @@
 # Review log — UNPROVEN
 
+## Developer tools: proof assertions disabled by optimization
+
+Ruff's S101 observations led main to reproduce a false PASS: audit.orientation
+accepted deliberately corrupted outcome encoding under -O while normal Python
+rejected it. The original exploratory run and false receipt remain preserved.
+Permanent regressions then reproduced six failures under -O/-OO in orientation,
+original-label and holdout-subset checks (six other cases passed). Explicit
+ValueError validation replaced proof assertions in seven original audit/filter
+files; frozen production/legacy converter helpers remain byte-identical.
+
+Quick checks: 56 affected tests PASS; expanded optimization suite 16 PASS,
+including actual 1000-record binary converter reads deliberately corrupted in
+memory and valid -OO controls. Two owned quick commands briefly overlapped after
+main misread a still-running session response. Both completed; no crew process
+was touched. These runs are not resource-compliance evidence. The full 360-test
+verification now runs as a single owned command with the normal two-slot budget.
+
+The reused independent reviewer APPROVED the exact seven-file diff versus
+7fcc5952 plus test_audit_optimization.py for isolated full-suite/v7 verification.
+It checked comparison polarity, chained equality, short-circuit behavior and
+publication ordering; no substantive finding remains. The review explicitly
+excludes frozen legacy-helper optimization safety. Source pins are preserved in
+extension3h/full_optimization_green/RUN.json. The v6 manifest is now historical
+until tooling pins are refreshed; unchanged runtime/data/native proofs remain
+attributed to their original source. No current handoff acceptance is asserted.
+
 ## Material repair: complete v6 verification and package
 
 Candidate de1de94bf2922f6ad21802e178644ba3799a2989 passes all 344 tests and

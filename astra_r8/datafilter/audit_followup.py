@@ -41,11 +41,15 @@ def run(stage, root):
         for name,options in cases:
             print('START '+name,flush=True)
             report[name]=run_filter(source,output/name,workers=2,**options)
-            assert report[name]['input']==1_000_000
+            if report[name]['input']!=1_000_000:
+                raise ValueError('filter did not inspect one million rows')
             print('DONE '+name+' '+json.dumps(report[name]),flush=True)
-        assert report['all_off']['kept']==1_000_000
-        assert report['all_off']['hashes']['records.jsonl']==expected
-        assert report['recipe_a']['hashes']==report['recipe_b']['hashes']
+        if report['all_off']['kept']!=1_000_000:
+            raise ValueError('all-off filter did not retain every row')
+        if report['all_off']['hashes']['records.jsonl']!=expected:
+            raise ValueError('all-off output differs from the original cohort')
+        if report['recipe_a']['hashes']!=report['recipe_b']['hashes']:
+            raise ValueError('repeated recipe output is not deterministic')
         if sha256(source)!=expected: raise ValueError('million source changed during audit')
         report['source_sha256']=expected
         report['capture']='BLOCKED on this cohort: no stored best moves'

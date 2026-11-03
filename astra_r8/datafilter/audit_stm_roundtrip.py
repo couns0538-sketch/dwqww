@@ -69,24 +69,33 @@ def run(root):
             records = np.fromfile(root/name/(split+'.bin'), dtype=REC)
             with (root/name/(split+'.metadata.jsonl')).open(encoding='utf-8') as fh:
                 metadata = [json.loads(line) for line in fh]
-            assert len(records) == len(metadata)
+            if len(records) != len(metadata):
+                raise ValueError('binary and metadata row counts differ')
             for binary, meta in zip(records,metadata):
                 row = meta['source_row']
-                assert row not in seen
+                if row in seen:
+                    raise ValueError('duplicate source row in converter roundtrip')
                 seen.add(row)
                 result, code = expected[row-1]
-                assert tuple(binary['rsv']) == (int(result is not None),code,1)
-                assert decode_result(binary['rsv'],binary['stm']) == result == meta['result_stm']
+                if tuple(binary['rsv']) != (int(result is not None),code,1):
+                    raise ValueError('binary outcome bytes differ from literal oracle')
+                if not decode_result(binary['rsv'],binary['stm']) == result == meta['result_stm']:
+                    raise ValueError('decoded outcome differs from literal oracle or metadata')
                 board, score, token = cases[row-1]
                 if mirror: board, token = board.mirror(), OPPOSITE[token]
-                assert meta['fen'] == board.fen(en_passant='fen')
-                assert meta['score_stm'] == score
-                assert int(binary['score']) * (1 if binary['stm']==0 else -1) == score
-        assert seen == set(range(1,1001))
+                if meta['fen'] != board.fen(en_passant='fen'):
+                    raise ValueError('metadata FEN differs from original fixture')
+                if meta['score_stm'] != score:
+                    raise ValueError('metadata score differs from original fixture')
+                if int(binary['score']) * (1 if binary['stm']==0 else -1) != score:
+                    raise ValueError('binary score differs from original fixture')
+        if seen != set(range(1,1001)):
+            raise ValueError('converter roundtrip source coverage is incomplete')
         reports[name] = dict(rows=len(seen), command=command,
                             hashes={p.name:sha256(p) for p in sorted((root/name).iterdir())})
-    assert all(ORACLE[('w' if b.turn else 'b',t)] ==
-               ORACLE[('b' if b.turn else 'w',OPPOSITE[t])] for b,s,t in cases)
+    if not all(ORACLE[('w' if b.turn else 'b',t)] ==
+               ORACLE[('b' if b.turn else 'w',OPPOSITE[t])] for b,s,t in cases):
+        raise ValueError('mirror outcomes disagree in the literal oracle')
     report = dict(status='PASS', cases=1000, mirrors=1000, format_version=1,
                   oracle='literal eight-cell outcome table; actual converter bytes', runs=reports)
     with (root/'report.json').open('x') as fh: json.dump(report,fh,indent=2)

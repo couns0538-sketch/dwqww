@@ -1,10 +1,12 @@
 # Matched result-mask recipes — UNPROVEN
 
-Current v6 handoff SHA256:
+Last verified v6 handoff SHA256 (historical pending the audit-fix tooling refresh):
 `669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
 Both CPU preflights and strict published verification pass for source de1de94b.
 The material-admission repair passes the full 344-test suite and native checks.
 The entry point rejects stale runtime/tooling identities.
+The optimization-safe audit fix is under full-suite verification. A v7 manifest
+will replace these command paths after its actual CPU preflights pass.
 The complete descriptive corpus audit and expanded native compatibility checks
 pass. The reserved final review remains pending.
 

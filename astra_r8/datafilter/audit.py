@@ -90,20 +90,25 @@ def legacy(root):
     from filter_lichess_rec import REC
     for split in ('train', 'val'):
         old, new = sha256(root/'old'/f'{split}.bin'), sha256(root/'new'/f'{split}.bin')
-        assert old == new
+        if old != new:
+            raise ValueError('legacy binary identity mismatch')
         arr = np.fromfile(root/'result'/f'{split}.bin', dtype=REC)
         rows = list(read_records(root/'result'/f'{split}.metadata.jsonl'))
-        assert len(arr) == len(rows)
+        if len(arr) != len(rows):
+            raise ValueError('binary and metadata row counts differ')
         from filter_lichess_rec import encode_board
         for item, row in zip(arr, rows):
             b = chess.Board(row['fen'])
             score = max(-3000, min(3000, row['score_stm'] * (1 if b.turn else -1)))
             expected = encode_board(b, score)[0]
             expected['rsv'] = encode_result(row['has_result'], row['result_stm'])
-            assert decode_result(item['rsv'], item['stm']) == row['result_stm']
-            assert item.tobytes() == expected.tobytes()
+            if decode_result(item['rsv'], item['stm']) != row['result_stm']:
+                raise ValueError('binary outcome differs from metadata')
+            if item.tobytes() != expected.tobytes():
+                raise ValueError('binary record differs from reconstructed metadata')
         stripped = arr.copy(); stripped['rsv'] = 0
-        assert stripped.tobytes() == (root/'old'/f'{split}.bin').read_bytes()
+        if stripped.tobytes() != (root/'old'/f'{split}.bin').read_bytes():
+            raise ValueError('result extension changed legacy record bytes')
         report[split] = dict(old_sha256=old, new_sha256=new, rows=len(arr), metadata_alignment='PASS')
     (logs/'identity.json').write_text(json.dumps(report, indent=2))
     return report
@@ -127,12 +132,15 @@ def orientation(root):
     for (turn, token), expected in oracle.items():
         for fen in by_turn[turn]:
             r = selfplay_record(f'{fen} | 123 | {token}', 'orientation-fixture', len(cases)+1)
-            assert (r['result_stm'], r['has_result'], encode_result(r['has_result'], r['result_stm'])[1]) == expected
+            if (r['result_stm'], r['has_result'], encode_result(r['has_result'], r['result_stm'])[1]) != expected:
+                raise ValueError('result orientation differs from literal oracle')
             opposite = {'0':'1', '1':'0', '0.5':'0.5', '?':'?'}[token]
             mirrored = selfplay_record(f'{chess.Board(fen).mirror().fen(en_passant="fen")} | 123 | {opposite}', 'mirror', 1)
-            assert (r['score_stm'],r['result_stm'],r['has_result']) == (mirrored['score_stm'],mirrored['result_stm'],mirrored['has_result'])
+            if (r['score_stm'],r['result_stm'],r['has_result']) != (mirrored['score_stm'],mirrored['result_stm'],mirrored['has_result']):
+                raise ValueError('mirrored score or result differs')
             cases.append(dict(fen=fen, raw_white_result=token, expected_stm=expected[0], mask=expected[1], byte30=expected[2]))
-    assert len(cases) == 1000
+    if len(cases) != 1000:
+        raise ValueError('orientation audit requires exactly 1000 cases')
     with open(destination, 'x', encoding='utf-8') as fh:
         json.dump(cases, fh, indent=1)
     return dict(cases=1000, mirrors=1000, status='PASS', oracle='independent reviewer literal 8-cell table')

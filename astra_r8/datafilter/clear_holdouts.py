@@ -29,7 +29,8 @@ def write_selection(source, output, blocked, publish=True):
     report=dict(input=count,kept=kept,holdout_excluded=count-kept,exclusions=exclusions,
                 policy='explicit conservative board+STM holdout exclusion; no deduplication or other changes',
                 records_sha256=sha256(partial/'records.jsonl'),metadata_sha256=sha256(partial/'metadata.jsonl'))
-    assert count==kept+len(exclusions)
+    if count!=kept+len(exclusions):
+        raise ValueError('holdout selection counts do not account for every input row')
     with open(partial/'selection.json','x') as fh: json.dump(report,fh,indent=2)
     if publish: partial.rename(output)
     return report
@@ -74,7 +75,8 @@ def run(root):
         for line in fh: remaining.add(key(json.loads(line)['fen']))
     # The receipts enumerate every held-out key present in the original selection.
     # Remaining is a subset of original, so this proves zero complete-holdout overlap.
-    assert remaining <= selected_keys and not remaining.intersection(blocked)
+    if not remaining <= selected_keys or remaining.intersection(blocked):
+        raise ValueError('retained selection is not a disjoint subset of the original')
     clearance=dict(status='PASS',original_selection_sha256=expected,selection=report,
                    complete_holdouts=receipts,blocked_unique_keys=len(blocked),
                    remaining_overlap_unique_keys=0,proof='complete hash-bound intersection receipts; retained subset disjoint from their union')
