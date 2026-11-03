@@ -15,7 +15,10 @@ including actual 1000-record binary converter reads deliberately corrupted in
 memory and valid -OO controls. Two owned quick commands briefly overlapped after
 main misread a still-running session response. Both completed; no crew process
 was touched. These runs are not resource-compliance evidence. The full 360-test
-verification now runs as a single owned command with the normal two-slot budget.
+verification ran as a single owned command with the normal two-slot budget:
+360 tests and 11 subtests PASS in 340.70 seconds. Before/after runtime receipts
+and current source-file hashes agree; log/runtime/closure are preserved under
+evidence/extension3h/full_optimization_green.
 
 The reused independent reviewer APPROVED the exact seven-file diff versus
 7fcc5952 plus test_audit_optimization.py for isolated full-suite/v7 verification.

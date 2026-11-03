@@ -9,8 +9,8 @@ Last verified handoff (historical while the optimization-safe audit repair is ve
 `C:/astra8_data/quality6h_20261102/handoff_v6/manifest.json`,
 SHA256 `669e11db6c1117191b73f9734096095bb5b99b7eefe615ef739b103a07278d5c`.
 Ruff exposed a false audit PASS under Python -O/-OO. The reviewed fix preserves
-proof checks under optimization; 16 focused regressions pass and the full
-360-test suite/v7 handoff refresh are pending. Current commands reject stale
+proof checks under optimization; 16 focused regressions and the full 360-test
+suite pass. The v7 handoff refresh is pending. Current commands reject stale
 tooling identities. The converter, data parser, npt runtime and engine are unchanged.
 The six-hour continuation fixes strict PGN/schema admission, source identity,
 complete proof binding and aggregate CPU allocation. The latest full CPU suite

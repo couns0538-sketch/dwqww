@@ -36,6 +36,12 @@ validation and exclusive writes. Coverage's inspected `.pth` file is inert:
 only an explicit import path is used, never `site.addsitedir` or installation
 into the existing environment. The first rejected extraction was retained.
 
+Operational detail: database=None does not disable Hypothesis's other caches.
+The first run created an owned `.hypothesis` cache in the worktree; after checking
+its resolved path, creation times and absence of reparse points, it was preserved
+as `hypothesis_cache_initial` under the C: artifact root. Subsequent harnesses set
+HYPOTHESIS_STORAGE_DIRECTORY before importing Hypothesis. No dataset was moved.
+
 Hypothesis is MPL-2.0 and remains a separate test tool; its implementation is
 not copied into Forge, the adapter or repository. Coverage.py and
 sortedcontainers are Apache-2.0; Ruff is MIT. Tests and audit harnesses authored

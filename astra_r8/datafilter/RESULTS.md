@@ -11,12 +11,14 @@ Developer-tool milestone: Ruff exposed a confirmed false PASS under Python
 -O/-OO in audit proof checks. Six failures were reproduced before explicit
 runtime validation replaced the assertions. The focused reviewer APPROVED the
 seven-file repair; 56 affected tests and all 16 optimization tests PASS. A fresh
-full 360-test run is in progress; v6 is historical until the v7 tooling refresh.
+full run PASSES 360 tests and 11 subtests in 340.70 seconds, with unchanged
+source/runtime pins; v6 is historical until the v7 tooling refresh.
 The two quick runs briefly overlapped and are excluded from resource evidence;
 full verification runs alone. No crew process was touched.
 
 The unchanged baseline passed all 344 tests with branch instrumentation in
-390.47 seconds. Measured main-process coverage is 71% including audit utilities;
+390.47 seconds. Measured main-process coverage is 73% statements and 66% branches
+(71% combined), including audit utilities;
 untraced child/earlier standalone experiments are not included in that percentage.
 All 1,200 original generated chess/metadata/PGN examples PASS on the pre-fix
 source. Hypothesis 6.170.14/Coverage.py 7.17.0 are isolated under C: (3.02 MB
@@ -39,7 +41,7 @@ remains pending the additional review hour. Older proofs remain historical.
 | 1 Legacy identity | PASS: fresh 100k old/new train, validation and stats artifacts match exactly |
 | 2 Result orientation | PASS: fresh 1,000 converter records and 1,000 mirrors against literal oracle |
 | 3 Determinism | PASS: two million-row check/mate runs, identical full payload/metadata hashes |
-| 4 Deliberate failures | PASS: 344 CPU tests + 11 subtests; rule fixtures, malformed input and publication failures |
+| 4 Deliberate failures | PASS: 360 CPU tests + 11 subtests; rule fixtures, optimized audit failures, malformed input and publication failures |
 | 5 Keep rates and timing | PASS for measurable rules at two total computing processes; separate PGN capture cohort; true qsearch BLOCKED |
 | 6 Sign and mirror | PASS: Pearson 0.6635950368 on 999,953 cleared rows; 1,000 mirrors |
 | 7 Handoff | v6 manifest/sample/CPU preflights, expanded corpus/native proof and 9,797-file inventory PASS; final review pending |

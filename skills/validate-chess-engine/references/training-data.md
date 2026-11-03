@@ -279,6 +279,10 @@ count is not necessarily the execution count. Coverage identifies unvisited
 branches in the measured processes, not all experiments run in other processes.
 Keep auxiliary tools isolated from the pinned training environment and preserve
 their versions, download hashes and licences without vendoring implementation.
+For Hypothesis, database=None disables saved examples but does not disable its
+constants and Unicode caches. Set HYPOTHESIS_STORAGE_DIRECTORY to the authorized
+artifact root before importing it. Preserve exception notes or full tracebacks:
+the shrunk counterexample may live in notes rather than the exception message.
 
 Preserve exact identities, commands, observed counts, measured/extrapolated costs,
 raw evidence locations, tested platforms and unresolved limitations. After user

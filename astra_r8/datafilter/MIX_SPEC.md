@@ -5,7 +5,7 @@ Last verified v6 handoff SHA256 (historical pending the audit-fix tooling refres
 Both CPU preflights and strict published verification pass for source de1de94b.
 The material-admission repair passes the full 344-test suite and native checks.
 The entry point rejects stale runtime/tooling identities.
-The optimization-safe audit fix is under full-suite verification. A v7 manifest
+The optimization-safe audit fix passes all 360 tests plus 11 subtests. A v7 manifest
 will replace these command paths after its actual CPU preflights pass.
 The complete descriptive corpus audit and expanded native compatibility checks
 pass. The reserved final review remains pending.
