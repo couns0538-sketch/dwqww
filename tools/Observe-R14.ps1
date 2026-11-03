@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Name)
+param([Parameter(Mandatory=$true)][string]$Name,[ValidateRange(1,1000000)][int]$TrainingSeed=39)
 $ErrorActionPreference='Stop'
 [Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'
 if ($Name -notmatch '^[a-z0-9_-]+$') { throw 'Invalid receipt name' }
@@ -8,8 +8,8 @@ if (Test-Path -LiteralPath $out) { throw 'Receipt exists' }
 $drives=@{}
 foreach ($drive in @('C','D')) { $drives[$drive]=(Get-PSDrive $drive).Free }
 if ($drives.D -lt 50GB -or $drives.C -lt 30GB) { throw 'Disk floor breached' }
-# These exact progress logs are read only for the requested workload-health check.
-$training='C:\forge_nnue_train\runs\npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s38\npt_try1.log'
+# Read only the progress log for the observed active seed, never its runtime.
+$training='C:\forge_nnue_train\runs\npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s'+$TrainingSeed+'\npt_try1.log'
 $gate='F:\forge_push\uhoE3a_evalmatscale12_r6k_vs_AL1lp\uhoE3a_evalmatscale12_r6k_vs_AL1lp.log'
 $trainLines=@(Get-Content -LiteralPath $training -Tail 100)
 $trainProgress=@($trainLines | Where-Object { $_ -match 'Epoch\s+\d+ \(Train\):\s+\d+%.*it/s' })

@@ -112,3 +112,24 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
 - The new selected-suite runner is not accepted: its first green attempt found
   integration failures. Those remain recorded and are being fixed; full suite
   execution waits for resource admission and a stable reviewed selection.
+
+## 14:36 Vienna checkpoint
+
+- Prepared-group audit completed in96.156 seconds on an admitted bounded
+  coordinator slot with reviewer idle. All999921 prepared rows match exact
+  original source locations and map to observed ranges;10880 groups,100% fill.
+  There are3982 groups containing unknown breaks, zero definite fragmented
+  groups and zero observed ranges shared between train/validation. These zeros
+  do not assert original identity or a nonadjacent all-pairs search.
+- Report MD5 13a5a7df60247a3517f7bbc59012eb16; complete group listing MD5
+  8185f061d3788d2794413c66b34b9840. R14B remains UNVERIFIED, export disabled.
+- Health monitoring found seed38 had reached final epoch7 validation and a new
+  seed39 training run started naturally at14:25. Only read-only process/run-log
+  metadata was inspected to follow the active log; no training action was taken.
+  Observe-R14 now accepts an explicit numeric seed and defaults to39.
+- At14:34:44, newepoch0 was40%,8.76 iterations/second; gate964 complete. New-run
+  rate will be compared again before any extra sustained CPU work. Both main
+  scans remain Idle and bound to CPUs1/2. D/C reserves remain well above floors.
+- Binary decoder and jobA integration passed focused review;15 and9 tests
+  respectively. The newly authored selected-suite and broader-boundary tools
+  remain unaccepted while their targeted regressions/qualification are pending.

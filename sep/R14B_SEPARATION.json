@@ -1,12 +1,22 @@
 {
   "schema": 1,
   "status": "UNVERIFIED",
-  "stage": "source_chain_scan_complete_group_mapping_pending",
+  "stage": "source_chain_scan_and_prepared_group_mapping_complete",
   "authentic_game_ids": "UNVERIFIED",
   "source_rows": 999921,
   "inferred_groups_reported_by_producer": 10880,
-  "group_chain_mismatches": null,
-  "cross_split_links": null,
+  "group_chain_mismatches": {
+    "definite_fragmented_groups": 0,
+    "unknown_fragmented_groups": 3982,
+    "original_identity_unverified_groups": 10880,
+    "mapping_fill_rate": 1.0
+  },
+  "cross_split_links": {
+    "observed_shared_chain_ranges": 0,
+    "mapping_fill_rate": 1.0,
+    "nonadjacent_all_pairs_search": "UNVERIFIED",
+    "scope": "shared observed contiguous chain ranges only"
+  },
   "key_fill_rate": 1.0,
   "source_chain_scan": {
     "path": "D:/a14/sep/segments-joba01/REPORT.json",
@@ -24,11 +34,23 @@
     "full_source_key_fill_rate": 1.0
   },
   "export_allowed": false,
+  "prepared_group_audit": {
+    "path": "D:/a14/sep/joba-map-complete01/REPORT.json",
+    "md5": "13a5a7df60247a3517f7bbc59012eb16",
+    "complete": true,
+    "prepared_rows": 999921,
+    "mapped_rows": 999921,
+    "groups": 10880,
+    "groups_path": "D:/a14/sep/joba-map-complete01/GROUPS.json",
+    "groups_md5": "8185f061d3788d2794413c66b34b9840"
+  },
   "reasons": [
     "Producer group IDs are inferred; original authenticated game identities are missing.",
     "User requires exact authenticated game identities; conservative blocks cannot independently qualify export.",
     "The completed source scan has 4942 unresolved adjacent links; observed segment labels are not original game identities.",
-    "Prepared-group mapping and any candidate replacement split remain pending."
+    "3982 prepared groups span unresolved observed-chain breaks; every group is listed in the bound GROUPS artifact.",
+    "Zero shared observed ranges has 100% prepared/source mapping fill, but is not an authentic-ID or nonadjacent all-pairs proof.",
+    "A conservative replacement split cannot satisfy the required exact original identities without additional provenance."
   ],
   "evidence": ["D:/a14/sep/WRITER_EVIDENCE.md", "D:/a14/evidence/r14/input-pins-all.jsonl"]
 }

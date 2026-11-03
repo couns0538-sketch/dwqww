@@ -31,6 +31,12 @@ contingency using time already saved on completed QC fixes. Resource checks and
 hourly workload monitoring continue throughout. The final30-minute bug hunt is
 still reserved at21:11 Vienna; no new expensive run may consume that reservation.
 
+The coordinator may execute a bounded, single-process correctness audit in its
+reserved slot while the independent reviewer is idle, provided admission allows
+it and the two background pipelines plus coordinator remain at most four CPU
+worker threads. This does not admit another native pipeline or subprocess test
+suite. Test suites that create descendants wait for a background slot to clear.
+
 ## Mandatory boundaries
 
 - All new files, Git metadata, runtime, temporary files and caches below D:/a14;
