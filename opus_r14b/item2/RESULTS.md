@@ -330,3 +330,14 @@ Candidate: relabel2.py sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d1
 | 4 loader ABBA, live thread setting | item 1 RESULTS (6.25x) |
 | 5 prepare of R8 v5 shards 271 + 272 (`--jobs 2`) | exit 0 in 106 s: 1,825,791 rows, 21,490 games (val 214 games / 18,253 rows) = 62.0M rows/h |
 | 6 R8 v5 end to end | prepare `--rows 3000` (cut at a game boundary: 2,859 rows) -> 3 shards at 20k nodes, PGO probe, 2 workers -> assemble -> status "3/3 shards ... final published" -> fen2bin: 2,804 train records = 2,804 rows, 0 bad (val 55 rows) - **PASS** |
+
+## Code freeze (after the verify chain)
+relabel2.py is frozen at sha256 88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545 (commit f414e2d8):
+suite 150 / 0 in the worktree and in two fresh clones (20:33, 20:39), bridge PASS, every labelling function identical
+to the proof's code (logs/fn_diff_frozen_vs_88454db6.txt: file_hash, label_shard, load_prepare, new_game,
+board_stats, read_shard_rows, row_offsets, verify_shard ...; changed: cmd_* / iter_rows / main / write_status for the
+checks, logging and disk floor). The whole 1M sample with the PGO probe also matched the proof (run on bf714c67,
+assembled with the branch code of 20:2x). Any later change to relabel2.py: `opus_r14b/checks/refreeze.sh TAG` (suite
+in the worktree and a fresh clone, bridge, function diff, new sha256) and the new sha256 in RELABEL_HANDOFF.md, this
+file, the skill, FINAL_REPORT.md and the memory note. Tools around it (build_probe_opt.sh, probe_bench.py,
+lowrun.ps1, ...) can change without touching the freeze; their checks are listed with each change.

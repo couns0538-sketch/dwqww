@@ -1,14 +1,16 @@
 # RELABEL_HANDOFF - for Engine NNUE (R14-B item 2; UNPROVEN as training data, the 50M run is NOT started)
 
-## State (2026-11-02, updated 19:20 PC clock)
-- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`): use the branch head; its sha256 is written
-  here once the code is frozen (planned for tonight, after the next full check run). The 1M kill / resume proof ran
-  on the frozen 5c88438f and PASSED (A uninterrupted vs B hard-exited twice: train.txt / val.txt / labels.tsv md5
-  identical). Later versions keep the labelling functions as identical source (logs/fn_diff_frozen_vs_post_proof.txt;
-  the shard loop adds a disk-floor check and a retrying publish rename) and reproduced the proof's rows.tsv and final
-  files byte for byte (bridge_check.sh, RESULTS.md; re-run on the frozen code). Tests:
-  `test_relabel2.sh SCRATCH` (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini
-  kill / resume) - run it after any change.
+## State (2026-11-02, updated 20:41 PC clock)
+- `relabel2.py` on branch `opus-r14b-relabel` (folder `opus_r14b/item2/`), **frozen at sha256
+  88454db6e17cf4e72cfa651ea253c9fc8599d1317a553d25d14dd96685570545** (commit f414e2d8, after bug hunt 3). Check the
+  file you run against it. The 1M kill / resume proof ran on 5c88438f and PASSED (A uninterrupted vs B hard-exited
+  twice: train.txt / val.txt / labels.tsv md5 identical). The frozen version keeps every labelling function as
+  identical source (logs/fn_diff_frozen_vs_88454db6.txt) and reproduced the proof's rows.tsv and final files byte for
+  byte (bridge, 20:30-20:33). Verify chain 20:29-20:39 (RESULTS.md): suite 150 PASS / 0 FAIL in the worktree and in a
+  fresh clone, bridge PASS, R8 v5 prepare and end to end through fen2bin PASS. Tests: `test_relabel2.sh SCRATCH`
+  (exit codes with their reasons, `--jobs 2`, a game across two files, disk floor, mini kill / resume, a dead
+  probe); run it after any change, and after a change to relabel2.py run `opus_r14b/checks/refreeze.sh` (branch
+  opus-r14b-status) and write the new sha256 here.
 - Probes (same labels, checked): the R13 probe `C:\o13\p5\forge_data_probe.exe` (sha256 ed76de96...) or its LTO+PGO
   build `C:\o14b\pgo2\pgo\forge_data_probe.exe` (sha256 08299f9f...; rebuild with
   `build_probe_opt.sh NEW_OUT_DIR`: lock source from git, PGO profile from the committed `pgo_train_2k.tsv`; two builds
