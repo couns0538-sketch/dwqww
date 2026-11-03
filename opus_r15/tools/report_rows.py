@@ -51,9 +51,13 @@ def main():
         cc = load(os.path.join(r['_dir'], 'cand_checks.json'))
         cct = 'n/a'
         if cc:
-            cct = 'PASS' if cc.get('pass', cc.get('ok')) else 'FAIL'
-            if isinstance(cc.get('mate'), dict):
-                cct += ' (mate probe ' + ', '.join(f'{k} {v}' for k, v in cc['mate'].items() if isinstance(v, (int, str)))[:80] + ')'
+            s = cc.get('summary') or {}
+            cct = f"{cc.get('result')}: mates at 3M OFF {s.get('OFF')} / ON {s.get(r['option'] + '=' + r['on'])}"
+            if cc.get('fail'):
+                cct += f" ({len(cc['fail'])} flip)"
+            mr = load(os.path.join(r['_dir'], 'mate_reprobe.json'))
+            if mr:
+                cct += '; 30M re-probe: ' + ', '.join(f"{f['off_N']} / {f['on_N']} -> {f['verdict']}" for f in mr['flips'])
         ci = load(os.path.join(r['_dir'], 'ci.json')) or {}
         print(f"| {r['name']} | " + ' | '.join(cells) + f" | {smt} | {cct} | {ci.get('conclusion', '?')} {ci.get('run', '')} |")
     print()

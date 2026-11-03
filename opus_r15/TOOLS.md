@@ -17,6 +17,9 @@ re-runnable, refuses to overwrite its outputs, and has a self-test with planted 
 | gate_summary.py | gate W/D/L, Ptnml, Elo, nElo, exact LLR, problem games, games/h; `--watch` gate speed; `--html` one sortable page of all gates (the "app": D:\o15\reports\gates_20261103.html, 63 gates) | `bash test_gate_summary.sh <new>` -> 8 / 8 + 2; all 62 F: gates with a PGN reproduce exactly |
 | extra_check.py | an existing exe whose option was never gated alone: copy, pin_check OFF / ON, smoke, "extra" record | runs x1 / x2 (INDEX "existing exes" section) |
 | ci_record.py | ties a green sanitizer CI run to the exact built patches, writes ci.json + evidence | `python -I -B test_ci_record.py <new>` -> 4 / 4 |
+| mate_reprobe.py | re-probes every flip of R13's mate probe (3M nodes) at 30M nodes, OFF and ON, and names REAL losses | its run on C1-C6 (cands/*/mate_reprobe.json); a lost mate ON misses at 30M while OFF finds it = exit 1 |
+| report_rows.py | the FINAL_REPORT tables straight from the records (no hand-copied hashes) | used for FINAL_REPORT.md |
+| final_checks_r15.sh | end-of-round checks: patches on fresh lock copies with exact ON nodes, index_check, all self-tests, lint, sync | its result line in FINAL_REPORT.md |
 | plain_build_r15.sh, fresh_lock.sh, export_src.sh | quick plain builds, fresh lock copies, clean exports | used for every candidate |
 | lowrun.ps1, pc_gate.ps1, cpu_users.ps1, doc_lint.py, hash_sweep.py, commit_span.py (R14-B); selfplay_smoke.py, run_pinned.py (R13) | copied unchanged | their own R14-B / R13 tests; pc_gate CR fix 3 re-verified in Job 0 |
 

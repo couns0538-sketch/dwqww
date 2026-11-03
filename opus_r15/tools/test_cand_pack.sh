@@ -15,6 +15,7 @@ sed "s|+int PruneLmrHist = 0;|+int PruneLmrHist = 0; // after $name0|" "$D/../ca
 sed 's|int FailLowContinuationBonus = 0;|int FailLowContinuationBonusX = 0;|' "$D/../cands/c1_prunelmrhist/c1_prunelmrhist.patch" > "$out/broken.patch"
 mkdir -p "$out/root/cands/c9_exists"; echo '{}' > "$out/root/cands/c9_exists/RESULT.json"
 mkdir -p "$out/root/src_pack/t9used"
+mkdir -p "$out/root/cands/c9_leftover"; echo '{}' > "$out/root/cands/c9_leftover/pin_off.json"
 fails=0; n=0
 case_() { name=$1; want=$2; shift 2; n=$((n + 1))
   powershell -NoProfile -ExecutionPolicy Bypass -File "$CP" "$@" -Root "$R" -BranchDir "$B" > "$out/$name.txt" 2>&1; rc=$?
@@ -26,6 +27,7 @@ case_ nopatch_with_patch 2 -Name c9_c -Tag t9c -NoPatch -Patch "$GOOD"
 case_ two_options 2 -Name c9_d -Tag t9d -Patch "$GOOD" -Option 'PruneLmrHist=1;QsMovePrune' -On 3
 case_ result_exists 2 -Name c9_exists -Tag t9e -Patch "$GOOD" -Option PruneLmrHist -On 1
 case_ tag_used 2 -Name c9_f -Tag t9used -Patch "$GOOD" -Option PruneLmrHist -On 1
+case_ leftover_outputs 2 -Name c9_leftover -Tag t9l -Patch "$GOOD" -Option PruneLmrHist -On 1
 case_ lint_fails 1 -Name c9_g -Tag t9g -Patch "$(cygpath -w "$out/named.patch")" -Option PruneLmrHist -On 1
 grep -q '"cleanroom_lint"' "$out/root/cands/c9_g/RESULT.json" 2>/dev/null || { echo "FAIL lint_fails: no RESULT.json with the lint check"; fails=$((fails + 1)); }
 case_ patch_not_applying 3 -Name c9_h -Tag t9h -Patch "$(cygpath -w "$out/broken.patch")" -Option PruneLmrHist -On 1

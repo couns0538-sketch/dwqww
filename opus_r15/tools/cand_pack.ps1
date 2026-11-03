@@ -43,6 +43,11 @@ if (-not $NoPatch) {
 } elseif ($Patch -or $Option) { Fail-Args '-NoPatch takes no -Patch / -Option' }
 $Out = Join-Path $Root "cands\$Name"
 if (Test-Path -LiteralPath (Join-Path $Out 'RESULT.json')) { Fail-Args "$Out\RESULT.json exists (never overwritten: use a new -Name)" }
+# Every output of a run must be new: a leftover pin / smoke / lint / kit file of an earlier attempt made the later
+# checks refuse to write AFTER the 7-minute kit (bug check 2026-11-03 13:00, C6 attempt 2) - refuse it up front.
+$left = @('pack.log', 'kit_build.log', 'cleanroom.json', 'pin_off.json', 'pin_on.json', 'smoke_on.json', 'smoke_on.stderr.txt',
+          'kit', "forge_ltopgo_$Tag.exe") | Where-Object { Test-Path -LiteralPath (Join-Path $Out $_) }
+if ($left) { Fail-Args "$Out holds outputs of an earlier run ($($left -join ', ')): move them into an attempts folder first" }
 $SrcRepo = Join-Path $Root "src_pack\$Tag"
 if (Test-Path -LiteralPath $SrcRepo) { Fail-Args "$SrcRepo exists (tag used before: use a new -Tag)" }
 # The kit's work dir is fixed by kit_build_r15.sh (D:\o15\w), whatever -Root says (bug check 2026-11-03 12:36: -Root
