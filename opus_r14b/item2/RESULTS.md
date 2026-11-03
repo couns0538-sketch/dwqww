@@ -500,3 +500,12 @@ verify_job.py on the two 1M proof jobs (23:16, read-only): `D:\o14b\r2\proof\job
 (hard-exited twice, interrupted attempts kept) - all PASS each, 100 shards re-hashed each; their train.txt / val.txt /
 labels.tsv are byte-identical (logs/verify_job/proof_jobA.log, proof_jobB.log): the proof's result again, through the
 new tool.
+
+## Bug hunt #10 (23:20-23:21 by the PC clock, started early; self-review, NOT independent): Windows paths with spaces
+Scope (written first): a probe copied to a folder of Engine NNUE's own may well sit in a path with spaces; the suite's
+paths had none. Run (CPU-light, ~9 s of probe time): input file, job folder, probe copy and the verify_job output
+folder all under `C:\o14b\dir with spaces 2320\` (`input file.txt`, `job dir`, `probe copy\forge_data_probe.exe` = the
+R13 probe's bytes, `conv out`): prepare (`--jobs 2`), run (2 workers, 500-row shards), assemble, status and
+`verify_job.py --convert` - every step exit 0, all PASS. train.txt / labels.tsv md5 (c675dd5b... / 489c57ae...) equal
+those of the 23:17 skill-command job on the same 1,426 rows, which used 10,000-row shards and the probe's own path:
+the output depends on neither the shard size nor the paths. No finding.
