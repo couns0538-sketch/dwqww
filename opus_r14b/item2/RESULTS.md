@@ -388,3 +388,8 @@ RESULTS.) With this, every step of the verify chain has passed on the frozen cod
   bridge PASS (rows.tsv for `--jobs 1` and `--jobs 2` and the three final files = the proof's), labelling functions
   identical (logs/fn_diff_frozen_vs_0a81dd5f.txt). New frozen sha256 0a81dd5f8fd39ab66f40ab2fa44cd1d83813e30283f7eb3e9894ecd4ad827155
   (commit 3b190297), written into RELABEL_HANDOFF.md, this file, the skill, FINAL_REPORT.md, STATUS.md and memory.
+- Normalized (Astra JSONL) path too (22:05-22:06, on the re-frozen code): 250 damaged copies of the suite's 100-record
+  JSONL (broken syntax, wrong types, missing / extra fields, source kind / row / order, duplicates, out-of-range scores,
+  bad FENs and results, empty lines, trailing garbage, unicode source names, nested arrays) -> **0 findings**; the new
+  range check refuses 99999999999 / -40000 / 32768 on this path as well (32767 is accepted). Scripts and case tables:
+  logs/fuzz/ (the scripts as they ran from C:\o14b; their paths point at Opus's scratch).
