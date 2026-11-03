@@ -115,6 +115,12 @@ expect 2 prepare_files_out_of_order "$PY" -I -B "$R" prepare --job jso --run-id 
 # a good job: run 2 shards, then a busy job and configuration changes (exit 3) and a tampered shard (exit 4)
 expect 0 prepare_good "$PY" -I -B "$R" prepare --job jg --run-id g --selfplay good.txt --rows 300
 expect 0 run_two_shards "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --max-shards 2
+# disk floor (PC rule, --min-free-gb): an impossible floor -> refuse before writing; run stops before the next shard
+expect 3 prepare_disk_floor "$PY" -I -B "$R" prepare --job job_disk --run-id t --selfplay good.txt --min-free-gb 100000
+check prepare_disk_floor_wrote_nothing test ! -e job_disk
+expect 3 run_disk_floor "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 100 --min-free-gb 100000
+check run_disk_floor_no_new_shard test -z "$(ls -d jg/shards/shard_00002* 2>/dev/null)"
+check run_disk_floor_logged grep -q "disk floor" jg/sessions.log
 expect 2 run_not_a_job "$PY" -I -B "$R" run --job no_such_job --run-id g --probe "$P" --nodes 5000 --shard-size 100
 expect 2 run_missing_probe "$PY" -I -B "$R" run --job jg --run-id g --probe no_such_probe.exe --nodes 5000 --shard-size 100
 expect 2 run_shard_size_zero "$PY" -I -B "$R" run --job jg --run-id g --probe "$P" --nodes 5000 --shard-size 0
@@ -136,6 +142,8 @@ expect 4 run_tampered_rows "$PY" -I -B "$R" run --job jg --run-id g --probe "$P"
 head -n 1500 "$src" > big.txt
 expect 0 prepare_full "$PY" -I -B "$R" prepare --job jm --run-id m --selfplay big.txt --rows 1200
 expect 0 run_full "$PY" -I -B "$R" run --job jm --run-id m --probe "$P" --nodes 20000 --shard-size 100
+expect 3 assemble_disk_floor "$PY" -I -B "$R" assemble --job jm --run-id m --min-free-gb 100000
+check assemble_disk_floor_wrote_nothing test -z "$(ls -d jm/final* 2>/dev/null)"
 expect 0 assemble_full "$PY" -I -B "$R" assemble --job jm --run-id m
 check manifest_published_with_data test -f jm/final/MANIFEST.json
 check no_final_part_left test -z "$(ls -d jm/final.part.* 2>/dev/null)"
@@ -180,6 +188,9 @@ assemble_unfinished shard 2 is not published
 run_tampered_shard shard_00001: labels.tsv sha256 differs from its manifest
 run_tampered_rows rows.tsv differs from prepare.json
 assemble_again final exists
+prepare_disk_floor must stay free (--min-free-gb)
+run_disk_floor must stay free (--min-free-gb)
+assemble_disk_floor must stay free (--min-free-gb)
 EOF
 echo "failures: $fails"
 exit $((fails > 0))

@@ -10,8 +10,10 @@ usage (python with python-chess, e.g. C:/Users/Administrator/grok-pc/nnue/.venv/
                        [--shard-size 10000] [--mask 0xC] [--max-shards K] [--until "YYYY-MM-DD HH:MM"]
   relabel2.py assemble --job DIR --run-id ID
   relabel2.py status   --job DIR
-Exit codes: 0 done, 2 bad input, 3 configuration differs from the job (or a target exists), 4 integrity failure
-(a published file changed or a check failed), 1 anything else.
+  prepare / run / assemble also take [--min-free-gb 50]: the job's drive keeps that much free (PC rule: C: and D:
+  >= 50 GB); prepare and assemble refuse to start a write that would cross it, run stops before the shard that would.
+Exit codes: 0 done, 2 bad input, 3 configuration differs from the job (or a target exists, the job is busy, or the
+disk floor would be crossed), 4 integrity failure (a published file changed or a check failed), 1 anything else.
 
 - prepare: every input row is validated with Astra's records.py (unchanged copy in astra/): original full FEN (castling,
   en passant, clocks kept), STM score, White result. A bad row stops with exit 2 and nothing is published. Game id =
@@ -50,6 +52,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import shutil
 import sys
 import threading
 import time
@@ -313,6 +316,19 @@ def lock_job(job: Path):
     return fh  # the caller keeps it open: closing it releases the lock
 
 
+GIB = 1024 ** 3  # the PC's disk tools (pc_gate.ps1, the crew's disk_guard) count GB as GiB
+
+
+def disk_check(path: Path, need_bytes: float, floor_gb: float, what: str) -> None:
+    """PC rule: the job's drive keeps >= floor_gb free (C: and D: >= 50 GB); refuse what would cross it (exit 3)."""
+    root = Path(path).resolve().anchor or "."
+    free = shutil.disk_usage(root).free
+    if free - need_bytes < floor_gb * GIB:
+        raise ConfigMismatch(f"{what} needs about {need_bytes / GIB:.2f} GB on {root} but only {free / GIB:.1f} GB are free "
+                             f"and {floor_gb:g} GB must stay free (--min-free-gb): free disk space, then run the same "
+                             f"command again")
+
+
 def open_job(job: Path):
     if not (job / "prepare.json").is_file():
         raise BadInput(f"{job}: not a prepared job (no prepare.json; after an interrupted prepare, prepare again "
@@ -325,6 +341,11 @@ def cmd_prepare(a) -> int:
     if job.exists():
         raise ConfigMismatch(f"job directory exists: {job}")
     sources = input_sources(a)
+    # rows.tsv is ~1.4x the self-play text it comes from (89.7 MB per 1M rows from ~64 MB): plan for 1.5x
+    need = 1.5 * sum(Path(s["path"]).stat().st_size for s in sources)
+    if a.rows:
+        need = min(need, 100.0 * a.rows)
+    disk_check(job, need, a.min_free_gb, "prepare")
     job.mkdir(parents=True)
     lock = lock_job(job)  # noqa: F841 - held until the process ends
     counters, origins = {"read": 0, "terminal": 0}, []
@@ -529,6 +550,11 @@ def cmd_run(a) -> int:
                 break
             if deadline and dt.datetime.now() >= deadline:
                 break
+            try:  # a shard writes ~1 MB per 10,000 rows; stop before the drive crosses the floor
+                disk_check(job, 64 * 2 ** 20, a.min_free_gb, f"shard {k}")
+            except ConfigMismatch as e:
+                append_log(job, f"run stop run_id={a.run_id} before shard {k}: disk floor ({e})")
+                raise
             first = k * a.shard_size
             count = min(a.shard_size, n - first)
             attempts = [int(p.name.rsplit(".", 1)[1]) for p in sdir.glob(f"shard_{k:05d}.part.*")]
@@ -581,6 +607,8 @@ def cmd_assemble(a) -> int:
         if not d.is_dir():
             raise IntegrityError(f"shard {k} is not published")
         verify_shard(d, k, k * size, min(size, n - k * size), a.run_id)
+    # train.txt + val.txt + labels.tsv: 157.8 MB per 1M rows in the proof; plan for 170 bytes per row
+    disk_check(job, 170.0 * n, a.min_free_gb, "assemble")
     tries = [int(x.name.rsplit(".", 1)[1]) for x in job.glob("final.part.*")]
     tmpdir = job / f"final.part.{max(tries, default=0) + 1}"  # an interrupted attempt stays as it is
     tmpdir.mkdir()
@@ -654,6 +682,8 @@ def check_args(a) -> None:
         bad.append("--rows >= 0 and 0 <= --val-ppm <= 1000000")
     if a.cmd == "prepare" and (a.jobs not in (1, 2) or (a.jobs > 1 and not a.selfplay)):
         bad.append("--jobs 1 or 2 (R14-B thread budget); --jobs 2 reads --selfplay input only")
+    if getattr(a, "min_free_gb", 0) < 0:
+        bad.append("--min-free-gb >= 0")
     if a.cmd == "run":
         if a.nodes < 1 or a.hash_mb < 1 or a.shard_size < 1 or a.max_shards < 0:
             bad.append("--nodes, --hash-mb, --shard-size >= 1 and --max-shards >= 0")
@@ -700,6 +730,9 @@ def main(argv=None) -> int:
     s.add_argument("--job", required=True)
     s.add_argument("--run-id", required=True)
     s.add_argument("--mask", default="0xC")
+    for sp in (p, r, s):
+        sp.add_argument("--min-free-gb", type=float, default=50.0,
+                        help="GB (GiB) the job's drive keeps free: refuse / stop instead of crossing it (PC rule: 50)")
     t = sub.add_parser("status")
     t.add_argument("--job", required=True)
     a = ap.parse_args(argv)
