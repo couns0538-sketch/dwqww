@@ -23,6 +23,7 @@ FIN=/f/opus_scratch/tools/finish_report.sh
   --desc "trainer_manifest_b2614500.sha256=sha256 of the 264 trainer files the installer's anchors were written for" \
   --desc "tools/install_fast_loader.py=installer for a trainer COPY (--check, --loader-dll)" \
   --desc "tools/test_installer.sh=installer exit codes and file effects on copies of the live config.py + train.py (25 cases; the live-folder guard tested on a stand-in)" \
+  --desc "tools/test_scope.py=the fail-closed scope: every out-of-scope setting refused with a clear message (20 cases, bug hunt #7)" \
   --desc "tools/fl_acceptance.sh=one-command CPU acceptance check on a switched trainer copy" \
   --desc "tools/fl_equal.py=raw C API batch hashing and timing (old / fast)" \
   --desc "tools/fl_dataset_equal.py=equality through the trainer's own Dataset path" \
