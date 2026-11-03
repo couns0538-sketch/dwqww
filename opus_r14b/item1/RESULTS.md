@@ -330,3 +330,8 @@ GPU_REQUEST.md's pre-checks run as written (23:02, read-only): 1 finds the live 
 `nnue-pytorch-amd\train.py`, pids 8308 / 11328) -> "do not start", as it must while the npt line trains; 2 RAM free
 15.3 GB, C: 131.7 GB, D: 53.5 GB -> pass; 3 the b5 DLL's sha256 9eb29b7d... and the switch in `D:\o14b\npt\train.py`
 (4 lines) -> pass.
+A CPU dry run of the GPU command's recipe (`tools/lm_run.sh fast` with validation, L1 1024, 4 steps, `--save-top-k
+1`) was stopped by the session's permission check at 23:09 before it started ("Interfere With Workloads": a CPU
+training run on CPUs 2-3, which the live trainer's mask has included since 22:29). Not worked around; nothing ran
+(no output folder). GPU_REQUEST.md lists it as optional pre-check 4, for a moment when no npt line trains. The
+trainer's CLI with `--fast-loader` did run in the afternoon's CPU loss match through the same launcher.

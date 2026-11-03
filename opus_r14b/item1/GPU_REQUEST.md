@@ -22,6 +22,11 @@ gamma 0.72 differ), so the fast loader's checked scope covers it and its epochs 
 2. Free RAM >= 12 GB (guard floor 6 GB like the queue, plus margin), C: >= 52 GB (Couns: keep C: >= 50 GB; the run writes one 1.5 GB checkpoint there), D: >= 50 GB.
 3. `D:\o14b\fl\b5_install\forge_fastloader.dll` has the sha256 above; `D:\o14b\npt` is the trainer copy with the
    `--fast-loader` switch (`tools/install_fast_loader.py`; files verified against `F:\opus_scratch\r6\nnue-pytorch-amd`).
+4. Optional, only while no npt line trains (it is a CPU training run on CPUs 2-3): a dry run of this recipe on the CPU
+   with GPUs hidden, 4 steps + 1 validation batch, to see the start-up line `Fast loader: ON (...)`, the validation
+   pass and the checkpoint save before the window: `LM_L1=1024 LM_VAL=16384 LM_EPOCH=65536 bash tools/lm_run.sh fast
+   <new dir> --save-top-k 1`. Opus did not run it on 2026-11-02 23:09 (the permission check stopped it next to the
+   live trainer); the same launcher ran the trainer's CLI with `--fast-loader` for the CPU loss match (RESULTS.md).
 
 ## Command (PowerShell; Idle on CPUs 0-3 like the queue's trainer; GPU visible)
 ```powershell
