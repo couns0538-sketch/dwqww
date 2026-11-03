@@ -103,6 +103,11 @@ F:/opus_scratch/rescore_d8/bin/fen2bin.exe "$J/final/train.txt" <out dir>/train.
 | fen2bin / hce_dump on the output | ~3 min / ~4 min (1M: 3 s / 5 s) |
 | disk on the job's drive | ~17.1 GB (rows.tsv ~4.5, shards ~4.7, final ~7.9) + .pos ~1.75 GB (35 B per row) + .hce ~0.1 GB |
 
+A stop of any kind during `run` - `--until`, a reboot, a power cut, a crash - loses at most the shard in progress
+(published shards are fsynced and renamed into place in one step; the 1M proof stopped B twice with a hard exit and
+the output was byte-identical): after a reboot, run the same `run` command again; it re-verifies every published
+shard and redoes the interrupted one in a new attempt folder (the old one is kept).
+
 Checks before using the output: MANIFEST.json md5s, `game_overlap: 0`, train + val rows = prepare.json's rows, fen2bin
 `records` = lines with `bad=0`, hce_dump `bad_fen=0 clamped=0` (as on the 1M proof sample, logs/conv_full_1M.txt).
 
