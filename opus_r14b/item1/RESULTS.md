@@ -292,3 +292,10 @@ cases that fail after it because the copy was already patched), H6-2 twice, H6-3
 (the old "--loader-dll needs a path" was already exit 2) (logs/installer/test_installer_on_previous_installer.log).
 The patching itself is unchanged: config.py / train.py installed by the fixed installer are byte-identical to those
 of the 21:44 adoption rehearsal (sha256 5c41d7a7... / d9c3ccef...), which passed acceptance 261 / 261.
+
+Fresh-clone checks again after H6-1..H6-4 (`fresh_checkout_checks.sh`, 22:35-22:39, clones 2c689948 / 886ae6f5 with
+this PC's default git settings): **0 failures** - relabel suite 155 / 0, probe builds = the tested exes (500 / 500
+reference answers), DLL rebuilt = b5 (9eb29b7d...), Windows self-test ALL PASSED, acceptance 261 / 261, and the
+adoption rehearsal with the fixed installer from the clone on a fresh copy of the live trainer tree (264 / 264 = the
+installer's base): anchors OK, patched, DLL + forge_fastloader.py copied, acceptance 261 / 261
+(logs/fresh_2235/fresh_checkout_checks.log).
