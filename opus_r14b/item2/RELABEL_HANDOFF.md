@@ -58,11 +58,11 @@ which holds its input in RAM, ~2.2x the file size, and refuses when that would l
   file could put a game in train and val.
 - Finished self-play files only (the newest file is still being written). Each input that is read is hashed before
   and after reading; a change is exit 2. The same file or the same content twice is exit 2.
-- R8 v5 self-play (`D:\grok-pc-data\selfplay_out_r8v5_20261029\forge_selfplay_fast_NNN.dedup.txt`, 273 shards on
-  2026-11-02; 894,187 rows in shard 001, 913,141 in 272, so 50M rows = ~55 shards) writes fixed 1M-position shards:
-  a game runs from one shard into the next (271 ends at move 57 of a game that 272 continues). relabel2 treats the
-  inputs as one stream and only its game rule splits games, so give the files in name order from one folder (any
-  other order is exit 2). The old `selfplay_out\forge_selfplay_NNN.txt` files end and start at game boundaries.
+- R8 v5 self-play (`D:\grok-pc-data\selfplay_out_r8v5_20261029\forge_selfplay_fast_NNN.dedup.txt`, 286 shards at
+  20:22 on 2026-11-02, one new shard every ~21 min (273 finished 15:36, 286 at 20:12); 894,187 rows in shard 001,
+  913,141 in 272, so 50M rows = ~55 shards) writes fixed 1M-position shards: a game runs from one shard into the
+  next (271 ends at move 57 of a game that 272 continues). relabel2 treats the inputs as one stream and only its
+  game rule splits games, so give the files in name order from one folder (any other order is exit 2). The old `selfplay_out\forge_selfplay_NNN.txt` files end and start at game boundaries.
 - Disk floor: prepare, run and assemble take `--min-free-gb` (default 50 = the PC rule for C: and D:). prepare (~1.5x
   its input) and assemble (~170 bytes per row: ~8.5 GB for 50M rows) refuse to start a write that would cross it;
   run stops before the next shard (exit 3, logged in sessions.log; published shards stay, the same command resumes).
