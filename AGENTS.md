@@ -35,9 +35,11 @@ verbatim text as below. This file merges that policy with the Opus rules (R14, 2
   npt line; GPU only in a window Engine NNUE gives (request in `opus_r14b/item1/GPU_REQUEST.md`).
 - A blocked item: write the blocker in its RESULTS.md, push, and spend the time on the other item.
 - Disks (Couns 14:40): C: may also hold scratch (e.g. C:/o14b) but must stay >= 50 GB free; D: >= 50 GB; F: no writes.
-- End of the job (Couns 18:45): "push and finish everything when it is midnight" (00:00 PC clock, instead of 03:05);
-  the next job follows. Plan: keep improving until ~23:10, 30-minute bug hunt ~23:15-23:45, final report and last
-  push before 00:00.
+- End of the job (Couns 18:45): "push and finish everything when it is midnight" (00:00 PC clock); withdrawn at 19:08:
+  "nvm continue improving what you build and fixing bugs and everything else needing to be fix upload to run a code
+  review every 2 hours for 20min and at the end for 1h". So: the full window again (to ~03:05), keep improving and
+  fixing, push; a 20-minute code review every 2 hours (~19:30, ~21:30, ~23:30), a 1-hour review at the end
+  (~02:00-03:00); reviews stay structured self-reviews (no sub-agents), recorded as NOT independent.
 
 ## Review, fix and verification policy (Couns, verbatim)
 
