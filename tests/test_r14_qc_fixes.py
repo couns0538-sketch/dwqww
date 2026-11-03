@@ -11,6 +11,37 @@ import run_policy
 from test_p5_audit import fixture
 
 FEN = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'
+MALFORMED_EMPTY_RUNS = (
+    FEN.replace('/8/', '/44/', 1),
+    FEN.replace('r3k2r', 'r12k2r'),
+    FEN.replace('R3K2R', 'R3K11R'),
+)
+
+
+@pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+def test_fen_info_rejects_consecutive_empty_digits(fen):
+    with pytest.raises(ValueError, match='consecutive empty'):
+        qc_core.fen_info(fen)
+
+
+@pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+def test_malformed_empty_run_cannot_count_as_filled_duplicate_key(fen):
+    index = qc_core.DuplicateIndex()
+    try:
+        index.add('new', 'train', FEN)
+        with pytest.raises(ValueError, match='consecutive empty'):
+            index.add('new', 'val', fen)
+        report = index.report('new')
+        assert report['status'] == 'UNVERIFIED'
+        for value in report['keys'].values():
+            assert value['status'] == 'UNVERIFIED'
+            assert value['rows'] == 2
+            assert value['valid_key_rows'] == 1
+            assert value['missing_key_rows'] == value['parse_failures'] == 1
+            assert value['key_fill_rate'] == 0.5
+            assert value['train_val_shared_keys'] == 0
+    finally:
+        index.close()
 
 
 def test_arbitrary_owned_source_is_not_production(tmp_path):
@@ -120,7 +151,7 @@ def test_reduced_keys_compare_board_state_not_fen_spelling():
     index = p5_qc.DuplicateIndex()
     try:
         index.add('new', 'train', FEN)
-        index.add('new', 'val', FEN.replace('/8/', '/44/', 1).replace('KQkq', 'qkQK'))
+        index.add('new', 'val', FEN.replace('KQkq', 'qkQK'))
         report = index.report('new')
         assert report['train_val_shared_fens'] == 0
         assert report['keys']['four_field']['train_val_shared_keys'] == 1

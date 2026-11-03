@@ -1,0 +1,37 @@
+..FF...........                                                          [100%]
+================================== FAILURES ===================================
+______ test_omitted_whole_segment_does_not_hide_a_proven_break[reasons0] ______
+
+reasons = ('UNREACHABLE', 'UNKNOWN')
+
+    @pytest.mark.parametrize('reasons', [('UNREACHABLE', 'UNKNOWN'), ('UNKNOWN', 'UNREACHABLE')])
+    def test_omitted_whole_segment_does_not_hide_a_proven_break(reasons):
+        ranges = {0: [Segment(1, 2, 1, 'source_start'), Segment(3, 4, 2, reasons[0]),
+                      Segment(5, 6, 3, reasons[1])]}
+        result = audit_groups([record(0, 'g', 'train', 1), record(1, 'g', 'train', 5)], ranges)
+>       assert result['comparison_status'] == 'FAIL'
+E       AssertionError: assert 'UNVERIFIED' == 'FAIL'
+E         
+E         - FAIL
+E         + UNVERIFIED
+
+tests\test_r14_group_map.py:39: AssertionError
+______ test_omitted_whole_segment_does_not_hide_a_proven_break[reasons1] ______
+
+reasons = ('UNKNOWN', 'UNREACHABLE')
+
+    @pytest.mark.parametrize('reasons', [('UNREACHABLE', 'UNKNOWN'), ('UNKNOWN', 'UNREACHABLE')])
+    def test_omitted_whole_segment_does_not_hide_a_proven_break(reasons):
+        ranges = {0: [Segment(1, 2, 1, 'source_start'), Segment(3, 4, 2, reasons[0]),
+                      Segment(5, 6, 3, reasons[1])]}
+        result = audit_groups([record(0, 'g', 'train', 1), record(1, 'g', 'train', 5)], ranges)
+        assert result['comparison_status'] == 'FAIL'
+        assert result['definite_fragmented_groups'] == 1
+>       assert result['unknown_fragmented_groups'] == 1
+E       assert 0 == 1
+
+tests\test_r14_group_map.py:41: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_group_map.py::test_omitted_whole_segment_does_not_hide_a_proven_break[reasons0]
+FAILED tests/test_r14_group_map.py::test_omitted_whole_segment_does_not_hide_a_proven_break[reasons1]
+2 failed, 13 passed in 0.09s

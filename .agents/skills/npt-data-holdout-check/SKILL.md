@@ -13,7 +13,14 @@ For inferred source IDs or PGN identity comparisons, read
 [movetext and inferred IDs](movetext-and-inferred-ids.md). Exact movetext hashes
 and authentic row bindings are distinct evidence; missing bindings keep overlap unknown.
 
+For deduplicated row streams, legal continuation searches or inferred source
+groups, read [bounded chain evidence](bounded-chain-evidence.md). It separates
+observed chains, possible continuations and authenticated original game identity.
+
 Inspect the actual trainer reader, source format, converter and provenance. A `.pos` board record cannot recover missing castling, en passant, clocks or authentic game IDs. Use the original row-aligned FEN sidecar and trustworthy original game identifiers. If IDs are absent or guessed, **game split is UNVERIFIED**; the earlier whole-shard policy does not satisfy this newly requested game-ID proof.
+
+Respect an explicit prohibition on trainer access or imports. Record the blocked
+reader check instead of accessing a protected runtime to satisfy this workflow.
 
 Freeze the complete real 013/014 shard hashes and row counts from a trusted crew manifest, not from an arbitrary supplied prefix. Freeze train/source identities, decoder versions and commands. Missing complete holdouts blocks real clearance. A synthetic fixture can test the checker only.
 

@@ -1,0 +1,85 @@
+FFFFFF............................                           [100%]
+================================== FAILURES ===================================
+_ test_fen_info_rejects_consecutive_empty_digits[r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1] _
+
+fen = 'r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_fen_info_rejects_consecutive_empty_digits(fen):
+>       with pytest.raises(ValueError, match='consecutive empty'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:23: Failed
+_ test_fen_info_rejects_consecutive_empty_digits[r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1] _
+
+fen = 'r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_fen_info_rejects_consecutive_empty_digits(fen):
+>       with pytest.raises(ValueError, match='consecutive empty'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:23: Failed
+_ test_fen_info_rejects_consecutive_empty_digits[r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1] _
+
+fen = 'r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_fen_info_rejects_consecutive_empty_digits(fen):
+>       with pytest.raises(ValueError, match='consecutive empty'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:23: Failed
+_ test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1] _
+
+fen = 'r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_malformed_empty_run_cannot_count_as_filled_duplicate_key(fen):
+        index = qc_core.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+>           with pytest.raises(ValueError, match='consecutive empty'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:32: Failed
+_ test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1] _
+
+fen = 'r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_malformed_empty_run_cannot_count_as_filled_duplicate_key(fen):
+        index = qc_core.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+>           with pytest.raises(ValueError, match='consecutive empty'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:32: Failed
+_ test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1] _
+
+fen = 'r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1'
+
+    @pytest.mark.parametrize('fen', MALFORMED_EMPTY_RUNS)
+    def test_malformed_empty_run_cannot_count_as_filled_duplicate_key(fen):
+        index = qc_core.DuplicateIndex()
+        try:
+            index.add('new', 'train', FEN)
+>           with pytest.raises(ValueError, match='consecutive empty'):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+D:\a14\tests\test_r14_qc_fixes.py:32: Failed
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_fen_info_rejects_consecutive_empty_digits[r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1]
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_fen_info_rejects_consecutive_empty_digits[r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1]
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_fen_info_rejects_consecutive_empty_digits[r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1]
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r3k2r/44/8/8/8/8/8/R3K2R w KQkq - 0 1]
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r12k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1]
+FAILED ..\..\a14\tests\test_r14_qc_fixes.py::test_malformed_empty_run_cannot_count_as_filled_duplicate_key[r3k2r/8/8/8/8/8/8/R3K11R w KQkq - 0 1]
+6 failed, 28 passed, 12 subtests passed in 0.58s

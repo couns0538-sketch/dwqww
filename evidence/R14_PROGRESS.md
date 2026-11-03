@@ -70,3 +70,21 @@ Start: 2026-11-03 12:41:11 Vienna. Nine-hour target: 21:41:11 Vienna.
 - Scoped Git attributes now preserve exact PC bytes for R14 delivery paths.
   Existing evidence is restaged with original PC newlines; this changes stored
   newline bytes only, not measurements, and preserves old commit history.
+
+## 13:57 Vienna checkpoint
+
+- Complete holdout indexing finished:013 and014 each contain10000000 rows with
+  100% key fill. The training scan has passed001,002,003 and is processing004.
+  Board/side digest matches are candidates only; exact resolution is pending.
+- Group mapper's omitted-boundary fix passed independent recheck,15 tests. The
+  original QC FEN decoder now rejects consecutive empty digits;49 tests plus36
+  subtests passed and the focused review accepted the change.
+- Segment driver passed its first21 tests and a real-native synthetic probe.
+  Review required independent legal replay of every positive witness and more
+  qualification-gate fixtures; these fixes are underway before production use.
+- Static suite scope identifies protected-import and external-temp legacy tests.
+  No protected collection/import ran. A receipt runner for the explicitly safe
+  selection is being implemented; static counts are not collected-test totals.
+- Owned holdout skill records bounded-proof limits. Standard validation was
+  attempted but blocked by its absent YAML dependency; no pinned runtime change
+  was made. Independent scenario review kept export blocked as required.

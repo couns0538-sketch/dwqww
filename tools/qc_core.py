@@ -55,6 +55,8 @@ def fen_info(fen):
     board = bytearray(32)
     pieces, phase = 0, 0
     for rank, text in enumerate(reversed(ranks)):
+        if re.search('[1-8]{2}', text):
+            raise ValueError('consecutive empty-square digits')
         file = 0
         for char in text:
             if char in '12345678':
