@@ -180,6 +180,7 @@ check their outputs (DLL sha256, batch hashes), so no recorded result was affect
   CPUs 2-3 (one physical core) at BelowNormal, 10 pairs of 420 batches (20 warm-up), the J1 binpack: old median
   772,284 vs fast 4,818,564 kept positions / s, per pair B/A 5.98-7.08, **median 6.25x, mean 6.37x, 95% CI 6.13-6.60**
   (ADVISORY; the first old run, 666,849, was the slowest - cold start). The 8.65x of R14B-I1 compared old w2 with fast
-  1 builder (each 3 threads). A 1-second robocopy test of mine ran during pair 1-2 (20:35); the pairs are in the log.
+  1 builder (each 3 threads). A 1-second robocopy test of mine (27 MB to C:) ran at about 20:35, i.e. during one of the middle pairs (the log has
+  no per-run times; ~6 s per run); no pair falls outside the 5.98-7.08 spread.
 - Adoption rehearsal: failed for a reason outside the loader (Git Bash turned robocopy's `/E` into `E:/`, nothing was
   copied); fixed (MSYS_NO_PATHCONV) and re-run from a new fresh clone - see the next entry.
