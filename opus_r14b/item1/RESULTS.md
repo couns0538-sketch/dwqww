@@ -388,3 +388,13 @@ exes Couns asked to keep (20:53) still in place with their sha256 (read-only).
   unchecked claim. Fixed in both places (the RESULTS sentence keeps a correction marker); no other document carried it.
 - (a) PASS: the "starved" wording of 21:20 is corrected in its section; HANDOFF.md names the superseded b4 files in
   D:\o14b\npt as superseded; counts in HANDOFF.md and GPU_REQUEST.md are current.
+
+## Bug hunt #15 (02:25-02:34 by the PC clock, started early; self-review, NOT independent)
+Full record in `opus_r14b/TOOLS.md` (branch opus-r14b-status). Changes in this folder:
+- `tools/lowrun.ps1` = the fixed launcher on all three branches (sha256 4f1052ba...): a bad CPU mask is refused with
+  exit 127 (it used to print an exception and run the program on every CPU with exit 0), and so is an existing
+  `-Out` / `-Err` file (it used to be emptied). Every item 1 caller writes into a fresh folder, so none changes.
+- `tools/b5_checks.sh` exits 1 when a check fails: it counted failures but always exited 0, its 4-builder comparison
+  was printed and never counted, and the ABBA / full-epoch steps hid their exit codes behind `tail`. Its recorded
+  run (all PASS, read line by line) stands.
+The DLL, forge_fastloader.py, the installer and every other item 1 file are untouched.

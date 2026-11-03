@@ -32,7 +32,11 @@ eq() {  # eq NAME DATA "args..."  -> old w1 vs fast 2 builders with the same set
 echo "== 1 standard config $(date '+%H:%M:%S')"
 eq std_train "$TRAIN" --batches 1000
 "$PY" -I -B "$T/fl_equal.py" dump --loader fast --dll "$NEW" --workers 4 --data "$TRAIN" --batches 1000 --out "$out/std_train.fast4.tsv" >/dev/null
-"$PY" -I -B "$T/fl_equal.py" compare "$out/std_train.old.tsv" "$out/std_train.fast4.tsv" | head -1
+if "$PY" -I -B "$T/fl_equal.py" compare "$out/std_train.old.tsv" "$out/std_train.fast4.tsv" > "$out/std_train4.cmp"; then
+  echo "PASS std_train_4_builders: $(head -1 "$out/std_train4.cmp" | sed 's/^.*compared/compared/')"
+else  # was printed only, never counted (bug hunt #15)
+  echo "FAIL std_train_4_builders: $(head -3 "$out/std_train4.cmp" | tr '\n' ' ')"; fails=$((fails + 1))
+fi
 eq std_val_cyc "$VAL" --batches 300
 eq std_val_fin "$VAL" --batches 100000 --finite
 echo "== 2 config matrix $(date '+%H:%M:%S')"
@@ -72,8 +76,11 @@ else
 fi
 echo "== 5 ABBA $(date '+%H:%M:%S')"
 "$PY" -I -B "$T/fl_abba.py" --out "$out/abba_w2_vs_f1" --pairs 10 --a "old:$OLD:2" --b "fast:$NEW:1" --batches 420 --warmup 20 | tail -3
+rc=${PIPESTATUS[0]}; [ "$rc" = 0 ] || { echo "FAIL abba: exit $rc"; fails=$((fails + 1)); }
 echo "== 6 one full trainer epoch through the fast loader alone (9,307 batches = 152.5M positions) $(date '+%H:%M:%S')"
 "$PY" -I -B "$T/fl_equal.py" dump --loader fast --dll "$NEW" --workers 2 --data "$TRAIN" --batches 9307 --warmup 20 \
   --no-hash --out "$out/full_epoch_fast.tsv" | tail -1
+rc=${PIPESTATUS[0]}; [ "$rc" = 0 ] || { echo "FAIL full epoch: exit $rc"; fails=$((fails + 1)); }
 grep '^#' "$out/full_epoch_fast.tsv"
 echo "== done $(date '+%H:%M:%S'), failures: $fails"
+exit $((fails > 0))  # the failures used to be counted but the exit code was always 0 (bug hunt #15)
