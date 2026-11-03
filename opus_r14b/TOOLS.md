@@ -112,3 +112,16 @@ cc7f28dd...) on all three branches; engine_fresh_check.sh and engine_bisect.sh r
   and a fresh clone, bridge PASS, labelling functions identical, sha256 88454db6... unchanged.
 - `opus_status.sh --ci` (never run before): the CI line works (the loader branch's last sanitizer run; "no runs" for
   branches with only [skip ci] commits).
+
+### Tools block result (Couns 19:46: "focus 2h on that"; 19:47-21:17 by the commit times, then back to the deliverables)
+Built and tested: opus.sh (entry point), opus_status.sh, abba.py, doc_lint.py, engine_fresh_check.sh, engine_bisect.sh,
+commit_span.py, gpu_util_stats.py, test_tools.sh (25 checks, ALL PASS), and in `opus_r14b/checks/` verify_chain.sh,
+fresh_checkout_checks.sh, refreeze.sh, hash_sweep_r14b.sh; lowrun.ps1 fixed. Validated on real data, not only on
+fixtures: engine builds of the lock and an R12 branch (ALL OK), a real bisect and a planted-change bisect, the verify
+chain and refreeze on the frozen relabel code, a 6-hour GPU baseline from the keeper's log.
+What they caught on this night (each fixed): a broken GitHub table in item 2 RESULTS and the same mistake in this file
+(doc_lint), two paths whose backslashes were eaten by sed (doc_lint), a launcher that reported success for a program
+that never started (found while converting the 1M output), a lock export that never worked from its own folder and a
+robocopy call broken by Git Bash path conversion (the verify chain's fresh-clone step).
+Not built: a gate-status reader - the gate folders carry known traps (stale names, mixed opponents / concurrency, see
+forge-gate-stats) and a quick reader could report wrong numbers.
