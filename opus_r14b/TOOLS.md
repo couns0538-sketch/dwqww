@@ -269,3 +269,8 @@ lines in the memory note. One more finding while reading the check scripts:
   `fresh_checkout_checks.sh OUT_DIR`; `bash -n` OK; the chain itself is not re-run (minutes of CPU incl. a 1M-row
   prepare) - the called script ran at 04:13 with 0 failures. checks/README.md says so and lists the newer final
   checks (test_cli.py, test_helpers.py, dry runs 22:56 and 02:37).
+- F-8 (04:28-04:31, item 1): **the installer's live-folder guard missed the `\\?\` spelling of the live trainer folder**
+  (a path comparison; `os.path.samefile` sees the same folder). Shown on a stand-in: that spelling installed (exit 0,
+  files patched) where the plain one was refused. Fixed with a file-identity check first; `test_installer.sh` 28 / 28.
+  Details: item 1 RESULTS.md. The Bash tool turned that path's backslashes into `\?` once more while two documents
+  were being edited (FINAL_REPORT, the skill); fixed with the Edit tool and checked byte by byte.
