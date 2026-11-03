@@ -930,3 +930,30 @@ evidence and all failed test attempts retained. Approval excludes training,
 training throughput and playing strength; capture/qsearch production measurements
 remain BLOCKED. No unresolved implementation finding or deferred minor remains.
 Next: authorized final checkpoint, then Engine NNUE and Engine QA handoff.
+
+## Final hour opened 2026-11-03 08:25 UTC - candidate 624487cc
+
+The reused read-only reviewer found raw PGN FEN headers normalized before strict
+admission. Main reproduced 12 failures with four healthy controls, then added
+raw-header admission; 101 affected checks PASS. The reviewer approved that fix
+and confirmed the companion SetUp=1-without-FEN missing-state case. Three new
+RED cases reproduce it; the companion repair is undergoing checks. No additional
+functional findings were reported in the remaining frozen code/proof review.
+The candidate remains unresolved pending recheck and refreshed v9 evidence.
+
+Census closure: exit0 at08:24:45, 37 sources and304,999,573 rows, no numeric
+exclusions. Main checked every report binding, source metadata/sidecar and code
+pin. Closed receipts preserve original source attribution. The pre-PGN pack
+passed at08:27 with29,078 files; its Forge checker passed90 references/16checks.
+This pack belongs to624487cc and must not be attributed to the later PGN repair.
+
+The scheduled08:23 review was entered at08:25 after context recovery; the finish
+is extended through at least09:25 to preserve the full hour. New verification
+must fit the15GB cap without deleting evidence; the old130MB proof driver will
+not be rerun. The fresh plan preserves the exact unchanged self-play evidence
+with explicit source lineage, refreshes admission/preflights and uses new paths.
+
+Checkpoint41e4ccea's document-edit precondition failed because the Windows
+text read omitted explicit UTF-8; the shell continued to commit/push. No data or
+code result was affected. This follow-up restores current RESULTS/REVIEW_LOG;
+subsequent multi-step commit commands check the edit process exit before staging.

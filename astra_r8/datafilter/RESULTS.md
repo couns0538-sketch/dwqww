@@ -1,5 +1,29 @@
 # Astra R8 Job 2 — UNPROVEN
 
+## Final review in progress - 2026-11-03 08:37 UTC
+
+The independent review of 624487cc found raw PGN FEN normalization bypassing
+strict admission. Twelve RED cases reproduce missing or repaired state; the
+initial fix passes 101 affected tests. The related SetUp=1-without-FEN case
+also reproduces in three consumers; its companion repair is now under test.
+The current code is not yet accepted. V8 and the 544+11 suite retain their
+pre-repair identity; v9 will be separately named. The final review began at
+08:25 UTC and continues through at least 09:25 UTC.
+
+The full numeric census is closed PASS: all 304,999,573 rows across 37 sources
+fit the three numeric bounds. Wall time 1235.139s; command 1237.270s. Score range
+-3000..3000; maximum halfmove 99, fullmove 150 and zero-based ply 299. See
+[evidence](evidence/extension5h/native_counter_closed/CLOSURE.json).
+This is not native execution or full-corpus holdout clearance.
+
+The pre-PGN-fix pack passed: 29,078 files, inventory SHA256
+8b83ec5f08b34ce5ee3962eea7c1d32e60263c6fceab85b08af957d2ce42ff30;
+the Forge checker passed 90 references and 16 declared checks. Those proofs
+belong to 624487cc. The 41e4ccea checkpoint omitted its intended RESULTS update
+because a document-edit precondition failed; this immediate follow-up corrects
+that bookkeeping error. No earlier evidence is relabelled.
+
+
 ## Current continuation — active, UNPROVEN
 
 08:20:41 UTC observation: numeric census has30 closed sources/241,913,894 rows,
