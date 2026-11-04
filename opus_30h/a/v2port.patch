@@ -1,0 +1,715 @@
+diff --git a/include/forge/nnue_v2.hpp b/include/forge/nnue_v2.hpp
+new file mode 100644
+index 0000000..9ddbca9
+--- /dev/null
++++ b/include/forge/nnue_v2.hpp
+@@ -0,0 +1,338 @@
++#pragma once
++
++// v2 networks, loaded from a file at run time (UCI EvalFileV2, empty = off): king-bucketed input layer and
++// output buckets by piece count. With EvalFileV2 empty nothing here runs and the compiled-in network
++// (forge/nnue.hpp) evaluates exactly as before. A file that cannot be loaded is reported over UCI and leaves
++// no v2 net active, never a silent fall-back to a different net.
++//
++// Feature of piece `pc` on `square` for perspective p (own king on `ksq`):
++//   r      = p == White ? square : square ^ 56       (rank flip, as forge/nnue.hpp)
++//   kr     = p == White ? ksq : ksq ^ 56
++//   flip   = (mirror flag && file_of(kr) >= 4) ? 7 : 0   (own king on files e-h)
++//   bucket = king_bucket_map[kr]                     (64 entries, indexed before mirroring)
++//   index  = bucket * 768 + ((colour(pc) == p ? 0 : 1) * 6 + type(pc) - 1) * 64 + (r ^ flip)
++// With one bucket and no mirroring this is nnue::feature_index(). The output layer has the compiled-in
++// architecture and arithmetic (SCReLU of the side-to-move and the opponent accumulators, sixteen ordered lanes,
++// one linear output); with output buckets the row of w2 / b2 is
++//   output bucket = output_bucket_map[popcount(occupied squares)]   (33 entries, kings included)
++// A residual net (flag bit 0) is a correction added to the hand-crafted evaluation, as the compiled-in net.
++//
++// File format v2 (little-endian):
++//   0   char[8] "FORGENN2"      8  u32 version = 2        12 u32 header_bytes = 160
++//   16  u32 feature_set = 0     20 u32 inputs = 768       24 u32 hidden (= nnue::HiddenSize)
++//   28  u32 king_buckets (1-32) 32 u32 output_buckets (1-16)  36 u32 flags (bit0 residual, bit1 mirror)
++//   40  f32 weight_scale 4096   44 f32 output_scale 4096  48 f32 sigmoid_k 2.25
++//   52  u8 king_bucket_map[64]  116 u8 output_bucket_map[33]   149 u8 reserved[11] = 0
++//   160 i16 w1[king_buckets][768][hidden], i16 b1[hidden], i16 w2[output_buckets][2*hidden], i16 b2[output_buckets],
++//       then u64 FNV-1a 64 of every preceding byte.
++// This engine reads feature_set 0 only (piece-square inputs); a file with any other feature bit is rejected.
++//
++// Exactness: weights are de-quantised like the compiled-in net (int16 / 4096), so every accumulator value is an
++// integer multiple of 2^-12 below 2^12 in magnitude and every float addition / subtraction on it is exact.
++// Incremental updates, the refresh cache and a full refresh give bit-identical accumulators in any order.
++
++#include "forge/board.hpp"
++#include "forge/nnue.hpp"
++
++#include <algorithm>
++#include <array>
++#include <cstddef>
++#include <cstdint>
++#include <memory>
++#include <new>
++#include <string>
++#include <vector>
++
++#if defined(__SSE__) || defined(_M_X64) || defined(_M_AMD64)
++#include <xmmintrin.h>
++#define FORGE_NNUE_V2_SSE 1
++#else
++#define FORGE_NNUE_V2_SSE 0
++#endif
++#if defined(__AVX2__)
++#include <immintrin.h>
++#endif
++// Test builds: -DFORGE_NNUE_V2_SCALAR=1 forces the scalar output kernel (parity of SIMD vs scalar).
++#ifndef FORGE_NNUE_V2_SCALAR
++#define FORGE_NNUE_V2_SCALAR 0
++#endif
++
++namespace forge::nnue::v2 {
++
++constexpr int MaxKingBuckets = 32;
++constexpr int MaxOutputBuckets = 16;
++constexpr int MaxWorkers = 256;   // refresh caches are per worker id (Threads max)
++constexpr int HeaderBytes = 160;
++
++struct KingKey {
++    int bucket = 0;
++    int flip = 0;   // 0, or 7 when the perspective's king stands on files e-h of a mirrored net
++    [[nodiscard]] bool operator==(const KingKey&) const = default;
++};
++
++// 64-byte aligned float array.
++class AlignedFloats {
++public:
++    AlignedFloats() = default;
++    AlignedFloats(const AlignedFloats&) = delete;
++    AlignedFloats& operator=(const AlignedFloats&) = delete;
++    ~AlignedFloats() { release(); }
++    void allocate(std::size_t count) {
++        release();
++        data_ = static_cast<float*>(::operator new(count * sizeof(float), std::align_val_t{64}));
++        size_ = count;
++        std::fill(data_, data_ + count, 0.0F);
++    }
++    [[nodiscard]] float* data() const { return data_; }
++    [[nodiscard]] std::size_t size() const { return size_; }
++
++private:
++    void release() {
++        if (data_ != nullptr) ::operator delete(data_, std::align_val_t{64});
++        data_ = nullptr;
++        size_ = 0;
++    }
++    float* data_ = nullptr;
++    std::size_t size_ = 0;
++};
++
++// Piece bitboards indexed by Piece code (index 0 unused).
++using Pieces = std::array<Bitboard, 13>;
++
++// Per-worker accumulator cache: for each (perspective, bucket, flip) the accumulator of the last piece placement
++// refreshed under that key; a refresh applies only the difference to that placement.
++struct RefreshCache {
++    struct Entry {
++        alignas(64) std::array<float, HiddenSize> values;
++        Pieces pieces;
++    };
++    std::vector<Entry> entries;   // index ((perspective * king_buckets + bucket) * 2 + (flip != 0))
++};
++
++struct Net {
++    std::string path;
++    int king_buckets = 1;
++    int output_buckets = 1;
++    bool mirror = false;
++    bool residual = false;
++    std::uint64_t checksum = 0;
++    std::array<std::uint8_t, 64> king_map{};
++    std::array<std::uint8_t, 33> output_map{};
++    AlignedFloats w1;   // [king_buckets][InputCount][HiddenSize]
++    AlignedFloats b1;   // [HiddenSize]
++    AlignedFloats w2;   // [output_buckets][2 * HiddenSize]
++    std::vector<float> b2;   // [output_buckets]
++    // Per worker id; slot i is created and used only by the worker with id i.
++    mutable std::array<std::unique_ptr<RefreshCache>, MaxWorkers> caches;
++};
++
++// ---- loading (src/nnue.cpp; never during a search) ----
++// Loads a v2 file and makes it the active net. The previous net is unloaded first, so after a failed load no
++// v2 net is active. The file size is checked against the header before anything is allocated.
++[[nodiscard]] bool load(const std::string& path, std::string* error);
++void unload();
++[[nodiscard]] const Net* loaded();
++// Size in bytes of a v2 file with these counts (header + weights + checksum).
++[[nodiscard]] std::uint64_t file_bytes(int king_buckets, int output_buckets);
++// "<path> king buckets N output buckets M hidden H mirrored|unmirrored residual|stand-alone fnv1a X".
++[[nodiscard]] std::string summary(const Net& net);
++// Allocates the refresh cache of one worker (on first use).
++[[nodiscard]] RefreshCache& make_cache(const Net& net, int worker_id);
++
++// The net the search evaluates with (nullptr: the compiled-in network).
++extern const Net* active_net;
++[[nodiscard]] inline const Net* active() { return active_net; }
++
++// ---- evaluation kernels ----
++[[nodiscard]] inline KingKey king_key(const Net& net, Color perspective, int king_square) {
++    const int relative = perspective == White ? king_square : king_square ^ 56;
++    return {net.king_map[static_cast<std::size_t>(relative)], net.mirror && (relative & 7) >= 4 ? 7 : 0};
++}
++
++[[nodiscard]] inline int feature(Color perspective, KingKey key, Piece piece, int square) {
++    const int relative_color = color_of(piece) == perspective ? 0 : 1;
++    const int relative_square = (perspective == White ? square : square ^ 56) ^ key.flip;
++    return key.bucket * InputCount + (relative_color * 6 + piece_type(piece) - 1) * 64 + relative_square;
++}
++
++[[nodiscard]] inline const float* column(const Net& net, Color perspective, KingKey key, Piece piece, int square) {
++    return net.w1.data() + static_cast<std::size_t>(feature(perspective, key, piece, square)) * HiddenSize;
++}
++
++[[nodiscard]] inline Pieces pieces_of(const Board& board) {
++    Pieces pieces{};
++    for (int code = WP; code <= BK; ++code) pieces[static_cast<std::size_t>(code)] = board.pieces(static_cast<Piece>(code));
++    return pieces;
++}
++
++// Takes back the piece changes of one move (`dirty`) on a piece placement.
++inline void undo(Pieces& pieces, const DirtyPieces& dirty) {
++    for (int i = 0; i < dirty.count; ++i) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++        Bitboard& bb = pieces[static_cast<std::size_t>(change.piece)];
++        if (change.add) bb &= ~square_bb(change.square);
++        else bb |= square_bb(change.square);
++    }
++}
++
++[[nodiscard]] inline RefreshCache& cache(const Net& net, int worker_id) {
++    const std::unique_ptr<RefreshCache>& slot = net.caches[static_cast<std::size_t>(std::clamp(worker_id, 0, MaxWorkers - 1))];
++    if (slot == nullptr) [[unlikely]] return make_cache(net, worker_id);
++    return *slot;
++}
++
++// dst = src - sub[0] - ... + add[0] + ... (exact; any order gives the same bits).
++template <int Subs, int Adds>
++inline void apply_columns(const float* src, float* dst, const float* const* sub, const float* const* add) {
++    for (int h = 0; h < HiddenSize; ++h) {
++        float value = src[h];
++        for (int i = 0; i < Subs; ++i) value -= sub[i][h];
++        for (int i = 0; i < Adds; ++i) value += add[i][h];
++        dst[h] = value;
++    }
++}
++
++// Accumulator of one perspective from scratch (reference implementation).
++inline void refresh(const Net& net, const Board& board, Color perspective, float* values) {
++    const KingKey key = king_key(net, perspective, board.king_square(perspective));
++    std::copy(net.b1.data(), net.b1.data() + HiddenSize, values);
++    Bitboard occupied = board.occupied();
++    while (occupied != 0) {
++        const int square = pop_lsb(occupied);
++        const float* col = column(net, perspective, key, board.piece_at(square), square);
++        for (int h = 0; h < HiddenSize; ++h) values[h] += col[h];
++    }
++}
++
++// Accumulator of one perspective for the placement `pieces` (own king on `king_square`) through the cache: only
++// the difference to the cached placement under the same key is applied; the entry is updated.
++inline void refresh_cached(const Net& net, RefreshCache& cache, const Pieces& pieces, int king_square,
++                           Color perspective, float* values) {
++    const KingKey key = king_key(net, perspective, king_square);
++    RefreshCache::Entry& entry = cache.entries[(static_cast<std::size_t>(perspective) * static_cast<std::size_t>(net.king_buckets) +
++                                                static_cast<std::size_t>(key.bucket)) * 2U + (key.flip != 0 ? 1U : 0U)];
++    // At most one removal and one addition per square.
++    std::array<const float*, 64> sub;
++    std::array<const float*, 64> add;
++    int subs = 0;
++    int adds = 0;
++    for (int code = WP; code <= BK; ++code) {
++        const Piece piece = static_cast<Piece>(code);
++        const Bitboard now = pieces[static_cast<std::size_t>(code)];
++        Bitboard removed = entry.pieces[static_cast<std::size_t>(code)] & ~now;
++        Bitboard added = now & ~entry.pieces[static_cast<std::size_t>(code)];
++        while (removed != 0) sub[static_cast<std::size_t>(subs++)] = column(net, perspective, key, piece, pop_lsb(removed));
++        while (added != 0) add[static_cast<std::size_t>(adds++)] = column(net, perspective, key, piece, pop_lsb(added));
++        entry.pieces[static_cast<std::size_t>(code)] = now;
++    }
++    constexpr int Chunk = 64;
++    static_assert(HiddenSize % Chunk == 0, "HiddenSize must be a multiple of the refresh chunk");
++    for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
++        float chunk[Chunk];
++        for (int k = 0; k < Chunk; ++k) chunk[k] = entry.values[static_cast<std::size_t>(h0 + k)];
++        for (int i = 0; i < subs; ++i) {
++            const float* col = sub[static_cast<std::size_t>(i)] + h0;
++            for (int k = 0; k < Chunk; ++k) chunk[k] -= col[k];
++        }
++        for (int i = 0; i < adds; ++i) {
++            const float* col = add[static_cast<std::size_t>(i)] + h0;
++            for (int k = 0; k < Chunk; ++k) chunk[k] += col[k];
++        }
++        for (int k = 0; k < Chunk; ++k) {
++            entry.values[static_cast<std::size_t>(h0 + k)] = chunk[k];
++            values[h0 + k] = chunk[k];
++        }
++    }
++}
++
++// Incremental update of one perspective whose king key did not change.
++inline void update(const Net& net, Color perspective, KingKey key, const float* parent, float* child,
++                   const DirtyPieces& dirty) {
++    std::array<const float*, 4> sub{};
++    std::array<const float*, 4> add{};
++    int subs = 0;
++    int adds = 0;
++    for (int i = 0; i < dirty.count; ++i) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++        const float* col = column(net, perspective, key, change.piece, change.square);
++        if (change.add) add[static_cast<std::size_t>(adds++)] = col;
++        else sub[static_cast<std::size_t>(subs++)] = col;
++    }
++    if (subs == 1 && adds == 1) apply_columns<1, 1>(parent, child, sub.data(), add.data());
++    else if (subs == 2 && adds == 1) apply_columns<2, 1>(parent, child, sub.data(), add.data());
++    else if (subs == 2 && adds == 2) apply_columns<2, 2>(parent, child, sub.data(), add.data());
++    else {
++        apply_columns<0, 0>(parent, child, sub.data(), add.data());
++        for (int i = 0; i < subs; ++i) apply_columns<1, 0>(child, child, &sub[static_cast<std::size_t>(i)], add.data());
++        for (int i = 0; i < adds; ++i) apply_columns<0, 1>(child, child, sub.data(), &add[static_cast<std::size_t>(i)]);
++    }
++}
++
++// Output bucket of a position: by the number of pieces on the board.
++[[nodiscard]] inline int output_bucket(const Net& net, const Board& board) {
++    return net.output_map[static_cast<std::size_t>(std::min(popcount(board.occupied()), 32))];
++}
++
++// Network output before the conversion to centipawns; the arithmetic of nnue::evaluate().
++[[nodiscard]] inline float output(const Net& net, const Board& board, const Accumulator& accumulator) {
++    const Color us = board.side_to_move();
++    const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
++    const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
++    const std::size_t bucket = static_cast<std::size_t>(output_bucket(net, board));
++    const float* w2 = net.w2.data() + bucket * 2U * HiddenSize;
++    constexpr int Lanes = 16;
++    static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
++    alignas(64) float lanes[Lanes];
++#if defined(__AVX2__) && !FORGE_NNUE_V2_SCALAR
++    const __m256 zero = _mm256_setzero_ps();
++    const __m256 one = _mm256_set1_ps(1.0F);
++    __m256 sums[2] = {zero, zero};
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int k = 0; k < 2; ++k) {
++            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
++            const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
++            const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
++            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w2 + base)),
++                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w2 + HiddenSize + base)));
++            sums[k] = _mm256_add_ps(sums[k], term);
++        }
++    }
++    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
++#elif FORGE_NNUE_V2_SSE && !FORGE_NNUE_V2_SCALAR
++    const __m128 zero = _mm_setzero_ps();
++    const __m128 one = _mm_set1_ps(1.0F);
++    __m128 sums[4] = {zero, zero, zero, zero};
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int k = 0; k < 4; ++k) {
++            const std::size_t base = static_cast<std::size_t>(h + 4 * k);
++            const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
++            const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
++            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w2 + base)),
++                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w2 + HiddenSize + base)));
++            sums[k] = _mm_add_ps(sums[k], term);
++        }
++    }
++    for (int k = 0; k < 4; ++k) _mm_store_ps(lanes + 4 * k, sums[k]);
++#else
++    for (float& lane : lanes) lane = 0.0F;
++    for (int h = 0; h < HiddenSize; h += Lanes) {
++        for (int j = 0; j < Lanes; ++j) {
++            const std::size_t index = static_cast<std::size_t>(h + j);
++            const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
++            const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
++            lanes[j] += a * a * w2[index] + b * b * w2[static_cast<std::size_t>(HiddenSize) + index];
++        }
++    }
++#endif
++    float out = net.b2[bucket];
++    for (int j = 0; j < Lanes; ++j) out += lanes[j];
++    return out;
++}
++
++// Side-to-move network output in centipawns (the residual correction for a residual net).
++[[nodiscard]] inline int evaluate(const Net& net, const Board& board, const Accumulator& accumulator) {
++    const float centipawns = output(net, board, accumulator) * 400.0F / SigmoidK;
++    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
++}
++
++} // namespace forge::nnue::v2
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index e976c71..6820d13 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -360,6 +360,8 @@ private:
+     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
++    // v2 net path (UCI EvalFileV2, forge/nnue_v2.hpp); called only while a v2 net is active.
++    [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+     void record_move(SearchStack* ss, const Board& board, const Move& move);
+     void record_null_move(SearchStack* ss);
+ };
+diff --git a/src/nnue.cpp b/src/nnue.cpp
+index e88cfc5..eae54b0 100644
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -1,9 +1,16 @@
+ #include "forge/nnue.hpp"
++#include "forge/nnue_v2.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+ #include <cstdint>
++#include <cstring>
++#include <fstream>
++#include <iomanip>
+ #include <memory>
++#include <sstream>
++#include <string>
++#include <vector>
+ 
+ // The output layer uses SSE min/max/mul/add directly: compilers may not turn a
+ // float clamp into min/max instructions without -ffast-math, which left the
+@@ -237,3 +244,187 @@ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+ }
+ 
+ } // namespace forge::nnue
++
++// ---------------------------------------------------------------------------
++// v2 networks (forge/nnue_v2.hpp): loading, all cold. Nothing above calls into this part and nothing here is
++// reached unless UCI EvalFileV2 names a file, so the compiled-in network's code is unchanged.
++namespace forge::nnue::v2 {
++
++// Constant-initialised: no dynamic initialisation or exit-time code.
++const Net* active_net = nullptr;
++
++namespace {
++
++Net* loaded_net = nullptr;   // owned; deleted by load() / unload()
++
++constexpr std::uint32_t FlagResidual = 1U;
++constexpr std::uint32_t FlagMirror = 2U;
++constexpr char Magic[8] = {'F', 'O', 'R', 'G', 'E', 'N', 'N', '2'};
++
++[[gnu::cold]] std::uint32_t read_u32(const unsigned char* bytes, std::size_t offset) {
++    return static_cast<std::uint32_t>(bytes[offset]) | static_cast<std::uint32_t>(bytes[offset + 1]) << 8U |
++           static_cast<std::uint32_t>(bytes[offset + 2]) << 16U | static_cast<std::uint32_t>(bytes[offset + 3]) << 24U;
++}
++
++[[gnu::cold]] float read_f32(const unsigned char* bytes, std::size_t offset) {
++    const std::uint32_t bits = read_u32(bytes, offset);
++    float value = 0.0F;
++    std::memcpy(&value, &bits, sizeof(value));
++    return value;
++}
++
++[[gnu::cold]] std::int16_t read_i16(const unsigned char* bytes, std::size_t offset) {
++    return static_cast<std::int16_t>(static_cast<std::uint16_t>(bytes[offset] | (bytes[offset + 1] << 8U)));
++}
++
++[[gnu::cold]] std::uint64_t fnv1a64(const unsigned char* data, std::size_t size) {
++    std::uint64_t hash = 0xcbf29ce484222325ULL;
++    for (std::size_t i = 0; i < size; ++i) {
++        hash ^= data[i];
++        hash *= 0x100000001b3ULL;
++    }
++    return hash;
++}
++
++[[gnu::cold]] bool fail(std::string* error, const std::string& text) {
++    if (error != nullptr) *error = text;
++    return false;
++}
++
++} // namespace
++
++[[gnu::cold]] std::uint64_t file_bytes(int king_buckets, int output_buckets) {
++    const std::uint64_t w1 = static_cast<std::uint64_t>(king_buckets) * InputCount * HiddenSize;
++    const std::uint64_t w2 = static_cast<std::uint64_t>(output_buckets) * 2U * HiddenSize;
++    return static_cast<std::uint64_t>(HeaderBytes) + 2U * (w1 + HiddenSize + w2 + static_cast<std::uint64_t>(output_buckets)) + 8U;
++}
++
++[[gnu::cold]] bool load(const std::string& path, std::string* error) {
++    // Whatever happens below, the previous net is gone: after a failed load no v2 net is active.
++    unload();
++    std::ifstream file(path, std::ios::binary);
++    if (!file) return fail(error, "cannot open " + path);
++    // The file size comes first: nothing is allocated or read before the size is the one the header implies.
++    file.seekg(0, std::ios::end);
++    const std::streamoff end = file.tellg();
++    if (!file || end < 0) return fail(error, "cannot determine the size of " + path);
++    const auto size = static_cast<std::uint64_t>(end);
++    const std::uint64_t largest = file_bytes(MaxKingBuckets, MaxOutputBuckets);
++    if (size < static_cast<std::uint64_t>(HeaderBytes) + 8U) {
++        return fail(error, "file too short for a v2 net (" + std::to_string(size) + " bytes)");
++    }
++    if (size > largest) {
++        return fail(error, "file too large for a v2 net (" + std::to_string(size) + " bytes; the largest valid file has " +
++                               std::to_string(largest) + ")");
++    }
++    std::array<unsigned char, HeaderBytes> header{};
++    file.seekg(0, std::ios::beg);
++    file.read(reinterpret_cast<char*>(header.data()), HeaderBytes);
++    if (!file) return fail(error, "cannot read the header of " + path);
++    const unsigned char* bytes = header.data();
++    if (std::memcmp(bytes, Magic, sizeof(Magic)) != 0) return fail(error, "bad magic (not a FORGENN2 file)");
++    if (read_u32(bytes, 8) != 2U) return fail(error, "unsupported version " + std::to_string(read_u32(bytes, 8)));
++    if (read_u32(bytes, 12) != static_cast<std::uint32_t>(HeaderBytes)) return fail(error, "unexpected header size");
++    const std::uint32_t feature_set = read_u32(bytes, 16);
++    if (feature_set != 0U) return fail(error, "feature set " + std::to_string(feature_set) + " not supported (piece-square inputs only)");
++    if (read_u32(bytes, 20) != static_cast<std::uint32_t>(InputCount)) return fail(error, "inputs per bucket must be 768");
++    if (read_u32(bytes, 24) != static_cast<std::uint32_t>(HiddenSize)) {
++        return fail(error, "hidden size " + std::to_string(read_u32(bytes, 24)) + " != engine hidden size " +
++                               std::to_string(HiddenSize));
++    }
++    const std::uint32_t king_buckets = read_u32(bytes, 28);
++    const std::uint32_t output_buckets = read_u32(bytes, 32);
++    const std::uint32_t flags = read_u32(bytes, 36);
++    if (king_buckets < 1U || king_buckets > static_cast<std::uint32_t>(MaxKingBuckets)) return fail(error, "king buckets out of range 1-32");
++    if (output_buckets < 1U || output_buckets > static_cast<std::uint32_t>(MaxOutputBuckets)) {
++        return fail(error, "output buckets out of range 1-" + std::to_string(MaxOutputBuckets));
++    }
++    if ((flags & ~(FlagResidual | FlagMirror)) != 0U) return fail(error, "unknown flag bits");
++    if (read_f32(bytes, 40) != WeightScale || read_f32(bytes, 44) != OutputScale || read_f32(bytes, 48) != SigmoidK) {
++        return fail(error, "quantisation scales / sigmoid K differ from the engine's (4096, 4096, 2.25)");
++    }
++    for (std::size_t i = 0; i < 64; ++i) {
++        if (bytes[52 + i] >= king_buckets) return fail(error, "king bucket map entry out of range");
++    }
++    for (std::size_t i = 0; i < 33; ++i) {
++        if (bytes[116 + i] >= output_buckets) return fail(error, "output bucket map entry out of range");
++    }
++    for (std::size_t i = 149; i < static_cast<std::size_t>(HeaderBytes); ++i) {
++        if (bytes[i] != 0U) return fail(error, "reserved header bytes are not zero");
++    }
++    const std::size_t w1_count = static_cast<std::size_t>(king_buckets) * InputCount * HiddenSize;
++    const std::size_t w2_count = static_cast<std::size_t>(output_buckets) * 2U * HiddenSize;
++    const std::uint64_t expected = file_bytes(static_cast<int>(king_buckets), static_cast<int>(output_buckets));
++    if (size != expected) {
++        return fail(error, "file size " + std::to_string(size) + " bytes does not match the " + std::to_string(expected) +
++                               " bytes implied by its header (" + std::to_string(king_buckets) + " king buckets, " +
++                               std::to_string(output_buckets) + " output buckets, hidden " + std::to_string(HiddenSize) +
++                               "); the weights were not read");
++    }
++    // Only now are the weights allocated and read.
++    std::vector<unsigned char> all(static_cast<std::size_t>(expected));
++    std::copy(header.begin(), header.end(), all.begin());
++    file.read(reinterpret_cast<char*>(all.data() + HeaderBytes), static_cast<std::streamsize>(expected - HeaderBytes));
++    if (!file) return fail(error, "cannot read the weights of " + path);
++    bytes = all.data();
++    std::uint64_t stored = 0;
++    for (std::size_t i = 8; i-- > 0;) stored = (stored << 8U) | bytes[all.size() - 8U + i];
++    const std::uint64_t checksum = fnv1a64(bytes, all.size() - 8U);
++    if (stored != checksum) return fail(error, "checksum mismatch (file damaged)");
++
++    auto net = std::make_unique<Net>();
++    net->path = path;
++    net->king_buckets = static_cast<int>(king_buckets);
++    net->output_buckets = static_cast<int>(output_buckets);
++    net->mirror = (flags & FlagMirror) != 0U;
++    net->residual = (flags & FlagResidual) != 0U;
++    net->checksum = checksum;
++    std::copy(bytes + 52, bytes + 116, net->king_map.begin());
++    std::copy(bytes + 116, bytes + 149, net->output_map.begin());
++    net->w1.allocate(w1_count);
++    net->b1.allocate(HiddenSize);
++    net->w2.allocate(w2_count);
++    net->b2.assign(output_buckets, 0.0F);
++    std::size_t offset = static_cast<std::size_t>(HeaderBytes);
++    // Same de-quantisation as the compiled-in network (weights(): int / scale).
++    for (std::size_t i = 0; i < w1_count; ++i, offset += 2) net->w1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
++    for (std::size_t i = 0; i < HiddenSize; ++i, offset += 2) net->b1.data()[i] = static_cast<float>(read_i16(bytes, offset)) / WeightScale;
++    for (std::size_t i = 0; i < w2_count; ++i, offset += 2) net->w2.data()[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
++    for (std::size_t i = 0; i < output_buckets; ++i, offset += 2) net->b2[i] = static_cast<float>(read_i16(bytes, offset)) / OutputScale;
++
++    loaded_net = net.release();
++    active_net = loaded_net;
++    return true;
++}
++
++[[gnu::cold]] void unload() {
++    active_net = nullptr;
++    delete loaded_net;
++    loaded_net = nullptr;
++}
++
++[[gnu::cold]] const Net* loaded() { return loaded_net; }
++
++[[gnu::cold]] std::string summary(const Net& net) {
++    std::ostringstream out;
++    out << net.path << " king buckets " << net.king_buckets << " output buckets " << net.output_buckets << " hidden "
++        << HiddenSize << (net.mirror ? " mirrored" : " unmirrored") << (net.residual ? " residual" : " stand-alone")
++        << " fnv1a " << std::hex << std::setw(16) << std::setfill('0') << net.checksum;
++    return out.str();
++}
++
++[[gnu::cold]] RefreshCache& make_cache(const Net& net, int worker_id) {
++    std::unique_ptr<RefreshCache>& slot = net.caches[static_cast<std::size_t>(std::clamp(worker_id, 0, MaxWorkers - 1))];
++    if (slot == nullptr) {
++        auto cache = std::make_unique<RefreshCache>();
++        cache->entries.resize(static_cast<std::size_t>(2 * net.king_buckets * 2));
++        for (RefreshCache::Entry& entry : cache->entries) {
++            std::copy(net.b1.data(), net.b1.data() + HiddenSize, entry.values.begin());
++            entry.pieces.fill(0);
++        }
++        slot = std::move(cache);
++    }
++    return *slot;
++}
++
++} // namespace forge::nnue::v2
+diff --git a/src/search.cpp b/src/search.cpp
+index 74de5d3..e321f7b 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/search.hpp"
++#include "forge/nnue_v2.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+@@ -596,7 +597,81 @@ namespace {
+ }
+ } // namespace
+ 
++// Static evaluation with a v2 network (UCI EvalFileV2; forge/nnue_v2.hpp). Reached only through the branch at
++// the top of Worker::static_evaluate while a v2 net is active; it lives in its own section so the default
++// build's search functions keep their layout.
++// Accumulators reuse SearchStack::accumulator (a v2 net has the engine's HiddenSize) with the lazy scheme of the
++// compiled-in network: an invalid ply walks back to the nearest valid ancestor and replays the recorded piece
++// changes, and every replayed ply becomes valid. For king buckets: on a ply where a king changes its own
++// perspective's (bucket, flip) key, that perspective is refreshed through the worker's refresh cache; the piece
++// placement of that ply is the board with the later plies' piece changes taken back.
++__attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate_v2(const Board& board, SearchStack* ss) {
++    const nnue::v2::Net* active = nnue::v2::active();
++    if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
++    const nnue::v2::Net& net = *active;
++    const bool residual = net.residual;
++    if (!ss->accumulator.valid) {
++        int back = 0;
++        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
++        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
++            nnue::v2::RefreshCache& cache = nnue::v2::cache(net, id_);
++            const nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
++            nnue::v2::refresh_cached(net, cache, pieces, board.king_square(White), White, ss->accumulator.values[White].data());
++            nnue::v2::refresh_cached(net, cache, pieces, board.king_square(Black), Black, ss->accumulator.values[Black].data());
++            ss->accumulator.valid = true;
++            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        } else {
++            // King squares of the ancestor position: take back the replayed king moves (changes[0] is always the
++            // moving piece, removed from `from`).
++            std::array<int, 2> king{board.king_square(White), board.king_square(Black)};
++            for (int i = 0; i <= back; ++i) {
++                const nnue::DirtyPieces& dirty = (ss - i)->dirty;
++                if (dirty.count > 0 && piece_type(dirty.changes[0].piece) == King) {
++                    king[static_cast<std::size_t>(color_of(dirty.changes[0].piece))] = dirty.changes[0].square;
++                }
++            }
++            std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king[0]),
++                                                 nnue::v2::king_key(net, Black, king[1])};
++            for (int i = back; i >= 0; --i) {
++                const SearchStack* parent = ss - i - 1;
++                SearchStack* child = ss - i;
++                const nnue::DirtyPieces& dirty = child->dirty;
++                for (const Color color : {White, Black}) {
++                    const std::size_t c = static_cast<std::size_t>(color);
++                    if (dirty.count > 0 && dirty.changes[0].piece == make_piece(color, King)) {
++                        // The king's destination: the added change of the same piece.
++                        int to = dirty.changes[0].square;
++                        for (int k = 1; k < dirty.count; ++k) {
++                            const nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(k)];
++                            if (change.add && change.piece == dirty.changes[0].piece) to = change.square;
++                        }
++                        const nnue::v2::KingKey moved = nnue::v2::king_key(net, color, to);
++                        if (!(moved == key[c])) [[unlikely]] {
++                            key[c] = moved;
++                            nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
++                            for (int k = 0; k < i; ++k) nnue::v2::undo(pieces, (ss - k)->dirty);
++                            nnue::v2::refresh_cached(net, nnue::v2::cache(net, id_), pieces, to, color,
++                                                     child->accumulator.values[c].data());
++                            continue;
++                        }
++                    }
++                    nnue::v2::update(net, color, key[c], parent->accumulator.values[c].data(),
++                                     child->accumulator.values[c].data(), dirty);
++                }
++                child->accumulator.valid = true;
++                if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
++            }
++        }
++    }
++    const int network = nnue::v2::evaluate(net, board, ss->accumulator);
++    if (!residual) return network;
++    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++    // A residual network is a learned correction on top of the hand-crafted evaluation.
++    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
++}
++
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
++    if (nnue::v2::active_net != nullptr) [[unlikely]] return static_evaluate_v2(board, ss);
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+@@ -1363,7 +1438,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         entry.accumulator.valid = false;
+         entry.runtime_psqt.valid = false;
+     }
+-    if (nnue::enabled && nnue::available()) {
++    // A v2 net (EvalFileV2) refreshes the root lazily in static_evaluate_v2.
++    if (nnue::v2::active_net == nullptr && nnue::enabled && nnue::available()) {
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3..fa979da 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -1,6 +1,7 @@
+ #include "forge/board.hpp"
+ #include "forge/book.hpp"
+ #include "forge/nnue.hpp"
++#include "forge/nnue_v2.hpp"
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
+ 
+@@ -171,6 +172,7 @@ int main() {
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++            std::cout << "option name EvalFileV2 type string default <empty>\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -259,6 +261,26 @@ int main() {
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
++            } else if (name == "EvalFileV2") {
++                // A v2 net file (forge/nnue_v2.hpp); empty or <empty> = off (the compiled-in network). A file that
++                // cannot be loaded leaves no v2 net active and says why.
++                std::string rest;
++                std::getline(input, rest);
++                std::string path = value_text + rest;
++                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
++                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                if (path.empty() || path == "<empty>") {
++                    forge::nnue::v2::unload();
++                    std::cout << "info string EvalFileV2 off: compiled-in network" << std::endl;
++                } else {
++                    std::string error;
++                    if (forge::nnue::v2::load(path, &error)) {
++                        std::cout << "info string EvalFileV2 loaded " << forge::nnue::v2::summary(*forge::nnue::v2::loaded()) << std::endl;
++                    } else {
++                        std::cout << "info string ERROR EvalFileV2 " << path << ": " << error << std::endl;
++                    }
++                }
++                searcher.clear_hash();
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
