@@ -1,0 +1,162 @@
+87ef93eeab1830f3c1c78c242af6b77d813323e3
+............................................................................................... [ 28%]
+........................................................................ [ 49%]
+..........................F...........................F................. [ 71%]
+................................................F.......F..F.... [ 90%]
+.................................                              [100%]
+================================== FAILURES ===================================
+_______________ test_floor_breach_after_hash_writes_no_receipt ________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont02/tmp/test_floor_breach_after_hash_w0')
+
+    def test_floor_breach_after_hash_writes_no_receipt(tmp_path):
+        # Execute the original script body with only its owned-output root relocated.
+        # The controlled hash cmdlet makes the floor fail immediately after hashing.
+        source = (ROOT / 'tools/Verify-R14Inputs.ps1').read_text()
+        source = source.replace("$root='D:\\a14'", f"$root='{tmp_path}'")
+        prefix = """
+    $script:hashed=$false
+    function Get-PSDrive { param([string]$Name)
+        [pscustomobject]@{Free=$(if($script:hashed){0L}else{100GB})}
+    }
+    function Get-FileHash { param($Algorithm,$LiteralPath)
+        $script:hashed=$true
+        [pscustomobject]@{Hash='78d231a89ca346bbe669f2242ae6329e'}
+    }
+    """
+        # Keep the parameter declaration as the first statement.
+        first, rest = source.split('\n', 1)
+        script = tmp_path / 'post_hash_breach.ps1'
+        script.write_text(first + '\n' + prefix + rest, encoding='utf-8')
+        (tmp_path / 'evidence/r14').mkdir(parents=True)
+        run = subprocess.run([PS5, '-NoProfile', '-File', str(script)], capture_output=True, text=True, timeout=30)
+>       assert run.returncode != 0
+E       assert 0 != 0
+E        +  where 0 = CompletedProcess(args=['C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', '-NoProfile', '-File', 'D:\\a..."1d7fd43dcd2f0d5553d940012cdc8bd7","time_vienna":"2026-11-04 13:55:03 Vienna","match":true,"bytes":1273}\n', stderr='').returncode
+
+D:\a14\tests\test_r14_preflight.py:42: AssertionError
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont02/tmp/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+        assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+        assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+>       child = json.loads(path.read_text(encoding='utf-8'))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\a14\tests\test_r14_runtime_setup.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont02/tmp/test_live_refusal_stops_only_o0/child.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont02\\tmp\\test_live_refusal_stops_only_o0\\child.json'
+
+pathlib.py:1013: FileNotFoundError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[False] ________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont02/tmp/test_real_pytest_receipts_are_0')
+collect_only = False
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        (tmp_path/'pytest.ini').write_text('[pytest]\npython_functions = test_pass\n')
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        hostile = dict(os.environ, PYTEST_ADDOPTS='-k test_pass')
+        hostile.pop('PYTEST_PLUGINS', None)
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65, env=hostile)
+        assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+        assert (out/'REPORT.json').is_file(), child.stdout+child.stderr
+        report = json.loads((out/'REPORT.json').read_text())
+        assert report['scope'] == 'runner_fixture'
+        assert report['collected'] == 6
+        assert report['files_unchanged'] is True
+        assert report['selected_before'] == report['selected_after']
+        assert report['configuration']['path'] == str(ROOT/'tools/r14_suite.ini')
+        assert report['pytest_arguments'][report['pytest_arguments'].index('-c')+1] == report['configuration']['path']
+        assert report['native']['md5'] == '91427a99870d6b3775595db55f0a82e8'
+        assert report['supervision']['candidate_before'][report['native']['path']] == report['native']['md5']
+        assert report['supervision']['candidate_after'][report['native']['path']] == report['native']['md5']
+        assert report['supervision']['stop_reason'] is None
+        assert report['started'].endswith(' Vienna') and report['finished'].endswith(' Vienna')
+        if collect_only:
+            assert report['status'] == 'COLLECTED'
+            assert report['test_counts']['not_run'] == 6
+            assert not report['reports']
+        else:
+            assert report['status'] == 'FAIL'
+>           assert report['test_counts'] == dict(passed=3, failed=1, skipped=1, error=1, not_run=0)
+E           AssertionError: assert {'passed': 2,...rror': 1, ...} == {'passed': 3,...rror': 1, ...}
+E             
+E             Omitting 3 identical items, use -vv to show
+E             Differing items:
+E             {'failed': 2} != {'failed': 1}
+E             {'passed': 2} != {'passed': 3}
+E             Use -v to get more diff
+
+D:\a14\tests\test_r14_suite.py:204: AssertionError
+___________ NativeFixtures.test_consecutive_fen_digits_are_invalid ____________
+
+self = <test_native.NativeFixtures testMethod=test_consecutive_fen_digits_are_invalid>
+
+    def test_consecutive_fen_digits_are_invalid(self):
+        bad = '4k3/8/8/8/8/8/8/4K111 w - - 0 1'
+        good = '4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+        pair_result = run_lines([pair(bad, good)])[0]
+        move_result = run_lines(['bad\t' + bad], '--moves')[0]
+        for result in (pair_result, move_result):
+>           self.assertEqual(result['status'], 'UNKNOWN')
+E           AssertionError: 'UNREACHABLE' != 'UNKNOWN'
+E           - UNREACHABLE
+E           + UNKNOWN
+
+D:\a14\tests\r14_native\test_native.py:185: AssertionError
+______________ NativeFixtures.test_interactive_reply_before_eof _______________
+
+self = <test_native.NativeFixtures testMethod=test_interactive_reply_before_eof>
+
+    def test_interactive_reply_before_eof(self):
+        a = chess.Board().fen(en_passant='fen')
+        line = pair(a, witness_end(a, ['e2e4']))
+        process = subprocess.Popen([str(EXE), '--pairs'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   env=dict(os.environ, CUDA_VISIBLE_DEVICES='-1', HIP_VISIBLE_DEVICES='-1'))
+        try:
+            process.stdin.write(line + '\n')
+            process.stdin.flush()
+            handle = ctypes.c_void_p(msvcrt.get_osfhandle(process.stdout.fileno()))
+            available = ctypes.c_ulong()
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                ok = ctypes.windll.kernel32.PeekNamedPipe(handle, None, 0, None, ctypes.byref(available), None)
+                self.assertTrue(ok, 'cannot inspect owned output pipe')
+                if available.value:
+                    break
+                time.sleep(0.01)
+>           self.assertGreater(available.value, 0, 'line protocol did not reply before input EOF')
+E           AssertionError: 0 not greater than 0 : line protocol did not reply before input EOF
+
+D:\a14\tests\r14_native\test_native.py:212: AssertionError
+=========================== short test summary info ===========================
+FAILED ::test_floor_breach_after_hash_writes_no_receipt - assert 0 != 0
+FAILED ::test_live_refusal_stops_only_owned_process_tree[guard] - FileNotFoun...
+FAILED ::test_real_pytest_receipts_are_exact_and_fixture_scoped[False] - Asse...
+FAILED test_native.py::NativeFixtures::test_consecutive_fen_digits_are_invalid
+FAILED test_native.py::NativeFixtures::test_interactive_reply_before_eof - As...
+5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)

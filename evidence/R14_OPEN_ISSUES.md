@@ -66,6 +66,36 @@
   - F-008 fixed (the three eaten spaces above).
   - F-017 fixed: TOOLS.md now has the section "R14 finish helper tools"
     (tools/opus_tools_md.py --check PASS).
-- Final R14-scope suite at the tip: see the entry added after the run (log
-  evidence/test_logs/r14/full-suite-r14cont02/output.log, first line = `git
-  rev-parse HEAD` of the tree it ran on).
+- Final R14-scope suite at the tip 87ef93eeab1830f3c1c78c242af6b77d813323e3
+  (log evidence/test_logs/r14/full-suite-r14cont02/output.log, first line = that
+  SHA; CPU 1 at Idle, 13:54:30-13:55:42, 72.10 s, exit 1): **5 failed, 331 passed,
+  67 subtests passed** over 26 tests\test_*.py files + tests\r14_native +
+  tests\r14_qualification (28 paths). The five:
+  - F-003 (1): test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False]
+    (pytest 9.2 subtest accounting; the three CPU-admission cases of F-003 passed
+    this time on the quiet CPU 1). Accepted, see above.
+  - F-005 (2): r14_native\test_native.py::NativeFixtures::test_consecutive_fen_digits_are_invalid
+    and ::test_interactive_reply_before_eof. Accepted, see above.
+  - F-006 (1): test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+    (FileNotFoundError: child.json not yet written when the guard fired). Still
+    timing-sensitive on a quiet CPU at Idle; accepted as the known timing item.
+  - NEW (1), not in run 3 of 10:37 and not caused by any R14-finish change (tool
+    and test untouched on the branch): test_r14_preflight.py::test_floor_breach_after_hash_writes_no_receipt,
+    `assert 0 != 0`. Diagnosis (evidence\test_logs\r14\full-suite-r14cont02\TRIAGE.md):
+    the test mocks Get-FileHash and Get-PSDrive with script-scope functions; in
+    Windows PowerShell 5.1 (5.1.26100.7462) Get-FileHash is a *function* exported by
+    Microsoft.PowerShell.Utility, and the first Utility cmdlet the script runs
+    (`New-Object System.Text.UTF8Encoding`, tools\Verify-R14Inputs.ps1 line 44)
+    auto-imports that module into the running scope, which replaces the mock with
+    the real function; the real hashes then match every pin, `$script:hashed`
+    stays false, the mocked floor never breaches and the script exits 0 (the
+    Get-PSDrive mock survives because a function wins over a cmdlet). Reproduced
+    alone at 13:59 and by two minimal scripts at 14:00-14:02. Proposed one-line
+    fix in the test's prefix, verified at 14:02: `Import-Module
+    Microsoft.PowerShell.Utility, Microsoft.PowerShell.Management` before the mock
+    definitions (then the mock hash, hashed=True and Free=0 all hold). Not applied:
+    the test is Astra's as-found code and the failure is outside the R14-finish
+    diff; owner item.
+- Every new or changed test of the R14 finish passed in that run (test_opus_ep,
+  test_opus_boardstm_probe, test_opus_boardstm_triage, test_opus_promote_export,
+  the r14_overlap listing tests, the qualification fixture-guard tests).
