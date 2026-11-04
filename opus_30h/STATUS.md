@@ -5,8 +5,20 @@ User goal (16:2x): work the full 30 hours (to about 22:17 on 2026-11-04, PC cloc
 the unblocked ones; 1-hour bug hunt at the end; check that it works in Forge.
 
 ## GPU
-Not released (npt keeper: window to 2026-11-08 00:00 PC). The nets are CPU fine-tunes of the lock net
-(`opus_30h/a/o30_fit.py`, warm start = the lock function); the GPU path (residual bullet mode, ROCm exe) is ready, unrun.
+Released by Couns 2026-11-04 ~10:06 PC clock for 4 hours + 6 CPU cores (quote: D:\o30\WINDOW.md, copy
+a/logs/gpu/WINDOW.md). Deviation from plan default D1 (written release from Engine QA): the owner's own release is
+used. The npt run s47 had already ended (no npt process, GPU 1-4 %, keeper STATUS stale since 09:48); nothing of npt
+was touched. Own guard a/o30_gpu_guard.py (thermal limits, yields to npt-like trainers). CPUs: 0-1 rematches, 3 Astra
+scan, 4-5 GPU trainer, 2 export / scoring.
+- 10:13 smoke01: the reader stopped after one chunk (inverted stop flag, fixed); 10:15 smoke02 PASS (parity 10000/10000
+  x 3, S31 consistent with the trainer loss); 2.8-3.0M positions/s.
+- 10:17 run 1: KB4 rank map, from scratch, 11.7G positions (ends ~11:26); checkpoints scored by a/gpu_ckpt_watch.sh.
+- 10:22 warm start proven byte-identical (import_v2r.py -> GPU load -> save -> export = lock-as-KB4 net).
+- Next: run 2 = warm start from the lock net (KB4), lr 2e-5 cosine, ~11.7G positions; run 3 by the scores (KB8 warm
+  start ready: D:\o30\gpu\init_lockkb8). Freed CPUs after ~12:00 go to sanity matches of the GPU nets.
+
+Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
+function).
 
 ## State (2026-11-04 08:2x PC clock)
 | item | state |
