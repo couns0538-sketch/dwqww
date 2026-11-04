@@ -70,3 +70,13 @@ with (`see_ge(move, -QsSeeMargin)`, piece-value units): 0 and 40 give the same s
 nodes - a tuner with a small c on it would only see noise. Evidence `D:\o30\logs\option_inventory_lock.txt`.
 Option lists (`uci`, sorted): gate exe ff856ba8 = the lock's 61 options + EvalFileV2; SPSA exe 7bf5dab3 = the lock's
 61 + 22 (none removed); the O30Tuned test build = the SPSA exe's + O30Tuned.
+
+## SPSA simulation test (plan B.3's sim tests; `b/sim/test_spsa_sim.py`, 2026-11-03 21:0x)
+The real tuner against a FAKE fastchess (`b/sim/fake_fastchess.bat` -> `fake_fastchess.py`) whose games follow a model
+with a known optimum (A = 160 / scale 40, B = 20 / scale 10, Elo = -60 * sum of squared scaled distances; outcomes
+seeded by the command line). Start A = 100, B = 60, 10 pairs per batch, 1,000 pairs: A -> 148.0, B -> 21.1 (distances
+60 -> 12.0 and 40 -> 1.1); resumed for 200 more pairs: records = history rows (120), k contiguous, batch numbers
+0..119, A 152.4, B 21.0. SPSA SIM PASS. This exercises what real short games cannot show through their noise: the sign
+of W - L (a win counts for the engine named plus, which plays theta + c * delta), the option values on the command
+line, the PGN parsing, the schedule and the resume. Side finding: a first try on CPU 1 waited correctly on the n2e
+match's fastchess (the gate-overlap check, live) and was stopped through the stop event.
