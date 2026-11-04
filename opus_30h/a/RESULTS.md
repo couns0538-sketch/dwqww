@@ -170,3 +170,16 @@ OB8, every bucket a copy): bench d11 / d13 / d16 / d20 / d22 = the lock pins exa
 The jobA drift differs a lot between runs of the same shape (decider n2e at 8.1e7: -7.6e-6; n2L at 7.1e7: +1.23e-4):
 the early-file positions are a small, out-of-distribution set. The written rule is NOT changed by this: a delivered net
 passes only with S31 b0.6 <= -2e-5 AND a paired jobA z <= +2; a net that fails it is still packaged, marked as failing.
+
+## KB4 decider n2e - to the end (3.5e8 positions, CPU 1, seed 212, lr 2e-5 cosine to 1e-7, output x2, mix 8)
+| checkpoint | positions | S31 b0.6 | S31 b1.0 | jobA b0.6 |
+|---|---|---|---|---|
+| 19:24 | 2.132e8 | 0.014264061 (-4.60e-5) | 0.004554096 (-1.83e-5) | 0.013268861 (-3.2e-6) |
+| 19:49 | 2.957e8 | 0.014254952 (-5.51e-5) | 0.004543182 (-2.92e-5) | 0.013300721 (+2.87e-5) |
+| final 20:06 | 3.500e8 | 0.014254268 (-5.58e-5) | 0.004543952 (-2.85e-5) | 0.013294160 (+2.21e-5) |
+
+The final checkpoint is the run's best on S31 (selection on the reporting holdout among 9 checkpoints; the last three
+differ by < 1e-6, so the selection effect is far below the -5.6e-5). Packed as `o30_kb4ob8_n2e` (net_pack.sh with the
+paired step): parity 10000/10000 on AVX2 / SSE / scalar (planted bug caught 3/3); paired vs the lock net S31 b0.6
+-5.576e-5 (SE 1.64e-6, z -34.0), jobA val +2.21e-5 (SE 1.80e-5, z +1.23) -> **offline rule PASS** (S31 <= -2e-5 and
+jobA z <= +2). Pins and ON benches: `D:\o30\nets\o30_kb4ob8_n2e\RESULT.json`.
