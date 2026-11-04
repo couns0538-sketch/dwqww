@@ -265,3 +265,13 @@ damaged file leaves no v2 net (lock pin); valid net -> empty value unloads (lock
 More "works in Forge" cases (20:4x): a net path with spaces (`D:/o30/tmp/dir with space/x.nnue2`) loads (the handler
 reads the rest of the line); `setoption EvalFileV2` sent during `go infinite` stops the search (one bestmove), loads,
 answers readyok in 0.08 s, and the next search works - now part of uci_conformance_o30.py (gate exe + n2e: 22 / 22).
+
+## How different is n2e from the lock net? (`a/o30_evalcmp.py`, 10,000 legal FENs, residual corrections in cp)
+| net | mean | sd | mean abs | p1 / p10 / p50 / p90 / p99 |
+|---|---|---|---|---|
+| lock net | +0.09 | 166.34 | 97.52 | -569 / -132 / -1 / +131 / +577 |
+| o30_kb4ob8_n2e | +0.39 | 168.25 | 98.50 | -574 / -133 / +0 / +134 / +589 |
+
+Correlation 0.9988, sd of the difference 8.3 cp, slope of n2e on the lock net 1.010, sign flips > 20 cp in 0.05 % of
+positions: n2e is a gentle refinement (about 8 cp rms), not a different evaluation, and its scale is the lock net's
+(+1 %) - search margins tuned with the lock net see the same magnitudes. (Diagnostic only; play strength is the gate's.)
