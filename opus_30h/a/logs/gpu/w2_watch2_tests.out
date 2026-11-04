@@ -1,0 +1,18 @@
+Review fixes W2-01 / W2-05 / W2-06 / W2-07 in a/gpu_ckpt_watch2.sh - tests on fake runs under D:\o30\tmp\cr12b\root (CPUs 3-5):
+== W2-05: no WATCH_MASK
+watch: set WATCH_MASK (no default: CPUs 0-2 and 6 run sanity matches)
+exit 78
+== W2-01: TSV step fails on the first try only (WATCH_TEST_FAIL_TSV=once), WATCH_TRIES=3
+pinned pid 5888: Idle, mask 0x38
+test: the TSV step is made to fail (WATCH_TEST_FAIL_TSV=1)
+2026-11-04 15:08:01 watch fakeE done
+exit 0
+files: forge_v2r_rank4_h256-1.done forge_v2r_rank4_h256-1.export.txt forge_v2r_rank4_h256-1.export.txt.try1 forge_v2r_rank4_h256-1.fails forge_v2r_rank4_h256-1.jobA.f64 forge_v2r_rank4_h256-1.jobA.f64.try1 forge_v2r_rank4_h256-1.jobA.json forge_v2r_rank4_h256-1.jobA.json.try1 forge_v2r_rank4_h256-1.nnue2 forge_v2r_rank4_h256-1.nnue2.try1 forge_v2r_rank4_h256-1.paired_jobA.json forge_v2r_rank4_h256-1.paired_jobA.json.try1 forge_v2r_rank4_h256-1.paired_s16.json forge_v2r_rank4_h256-1.paired_s16.json.try1 forge_v2r_rank4_h256-1.s16.f64 forge_v2r_rank4_h256-1.s16.f64.try1 forge_v2r_rank4_h256-1.s16.json forge_v2r_rank4_h256-1.s16.json.try1 
+errors: 2026-11-04 15:07:48 score failed for /d/o30/tmp/cr12b/root/fakeE/forge_v2r_rank4_h256-1 (try 1 of 3)
+export of try 2: wrote D:\o30\tmp\cr12b\root\fakeE_nets\forge_v2r_rank4_h256-1.nnue2: kb 4 (rank4
+tsv rows: forge_v2r_rank4_h256-1	0.014310027	0.0
+CR bytes in tsv: 0
+== W2-06: guard log with the new console-exit line
+pinned pid 5808: Idle, mask 0x38
+2026-11-04 15:08:08 GIVE UP: the guard log of fakeF has an ABORT / guard-exit line; no end line will come
+exit 4

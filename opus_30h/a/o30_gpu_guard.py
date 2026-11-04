@@ -117,6 +117,14 @@ def resume_pid(pid, create_time, expect_name):
     if name.lower() != expect_name.lower():
         print(f'refusing: pid {pid} is {name}, expected {expect_name}')
         return 2
+    try:   # review W2-03: a live guard owns suspend / resume of its trainer; resuming under it defeats the thermal hold
+        parent = p.parent()
+        if parent is not None and 'o30_gpu_guard.py' in ' '.join(parent.cmdline()):
+            print(f'refusing: the guard that started pid {pid} (pid {parent.pid}) is still running and owns its '
+                  f'suspend / resume; --resume-pid is only for a trainer whose guard is gone')
+            return 2
+    except psutil.Error as error:
+        print(f'note: the parent of pid {pid} is gone or unreadable ({type(error).__name__}): no live guard found')
     try:
         before = p.status()
         p.resume()
@@ -204,6 +212,9 @@ def main():
                 stats['polls'] += 1
                 if a.test_raise_after is not None and stats['polls'] > a.test_raise_after:
                     raise RuntimeError('test error injected by --test-raise-after')
+                # (review W2-03, second half, NOT done: psutil reports a suspended process as running while its threads
+                # sit in kernel waits; re-suspending on that reading stacked suspend counts in the 15:09 dummy test, so a
+                # later single resume would leave the trainer frozen. --resume-pid refuses while this guard lives.)
                 v = feed.read()
                 npt = npt_like()
                 want, why = False, ''
@@ -258,6 +269,12 @@ def main():
         code = child.poll()
         exit_code = child.returncode if code is not None else EXIT_ABORT
         if code is None and st['ctrl'] is not None:
+            try:   # review W2-04: the main loop may have suspended it after the handler ran; never leave it frozen here
+                if proc.is_running() and proc.status() == psutil.STATUS_STOPPED:
+                    proc.resume()
+                    say(f'console event {st["ctrl"]}: trainer {ident} was still suspended - resumed')
+            except psutil.Error as error:
+                say(f'console event {st["ctrl"]}: status / resume of {ident} failed ({type(error).__name__}: {error})')
             say(f'console event {st["ctrl"]}: guard exits; trainer ({ident}) left running to take the same event')
             exit_code = EXIT_CONSOLE
         elif code is None:

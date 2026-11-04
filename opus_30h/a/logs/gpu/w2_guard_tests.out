@@ -1,0 +1,52 @@
+Review fixes W2-03 (first half) / W2-04 in a/o30_gpu_guard.py - dummy-child tests (CPUs 3-5).
+
+== T3 (15:09-15:15, with a re-check of proc.status() that was then REMOVED): --resume-pid refused while the guard lives;
+   the status re-check misread a suspended dummy as running (15:14:44, nobody had resumed it) and re-suspended it,
+   stacking suspend counts (12 resumes were needed to free the dummy). Hence W2-03's second half is not done.
+pinned pid 13900: Idle, mask 0x38
+T3 15:09:43: guard alive + dummy suspended (--test-hot 30): --resume-pid must refuse; an outside resume must be re-suspended
+dummy 4928 1793833783.114
+refusing: the guard that started pid 4928 (pid 10944) is still running and owns its suspend / resume; --resume-pid is only for a trainer whose guard is gone
+resume-pid exit 2
+outside resume done, status running
+status after 6 s: stopped
+dummy done
+guard exit 0
+2026-11-04 15:09:43 start trainer pid 4928 create_time 1793833783.114 mask 0x38 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 40 D:\o30\tmp\guard_w2\t3_beats.txt
+2026-11-04 15:09:43 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:09:51 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:09:51 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:14:44 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:14:44 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:14:58 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:14:58 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:15:29 end: trainer exit 0, suspends 4, suspended 346 s, poll errors 0
+beats: 2
+-- t3.log (without the 'still suspended' lines):
+2026-11-04 15:09:43 start trainer pid 4928 create_time 1793833783.114 mask 0x38 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 40 D:\o30\tmp\guard_w2\t3_beats.txt
+2026-11-04 15:09:43 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:09:51 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:09:51 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:14:44 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:14:44 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:14:58 trainer pid 4928 create_time 1793833783.114 found RUNNING while marked suspended (resumed from outside?): re-checking now
+2026-11-04 15:14:58 SUSPEND pid 4928 create_time 1793833783.114: HARD hot 56.0 memj 78.0 (limits 30.0/86)
+2026-11-04 15:15:29 end: trainer exit 0, suspends 4, suspended 346 s, poll errors 0
+
+== T1c / T2c (15:16, the INSTALLED guard md5 fb4d6a38): hard exit -> --resume-pid; injected errors -> ABORT
+pinned pid 5612: Idle, mask 0x38
+installed guard md5 fb4d6a38ee9e9840f957ddb83f02e665
+T1c 15:16:01: hard self-termination while suspended, then --resume-pid (guard gone)
+guard exit 9
+beats with the guard gone: 0 -> 0
+2026-11-04 15:16:12 resumed pid 13664 (python.exe, create time 1793834161.671); status before stopped, after running
+resume exit 0
+beats after resume: 5
+T2c 15:16:16: injected errors -> ABORT
+dummy done
+guard exit 79
+2026-11-04 15:16:52 ABORT: 15 poll errors in a row, last RuntimeError: test error injected by --test-raise-after. Traine
+2026-11-04 15:16:52 resumed pid 7768 (python.exe, create time 1793834176.249); status before stopped, after running
+resume exit 0
+15:16:52
+dummy done
