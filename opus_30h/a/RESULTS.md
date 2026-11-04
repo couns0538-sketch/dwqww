@@ -373,3 +373,18 @@ same settings as the net matches (`D:\o30\control\lockkb4_v2exe`). Because the s
 away from 0 comes from the exe / v2 path (speed, build), not from an evaluation. Reading: if ~0, n2e's -25 belongs to
 its trained weights; if clearly negative, the exe / path costs Elo and every v2 net carries it. Brought forward from
 "only if n2L is negative too" because n2e's match already raised the question; SPSA paused at 184 pairs for it.
+
+## The v2 exe is slower in real games than the bench said (gate_summary --watch, 2026-11-04 04:4x)
+Mean depth per move at the same time per move (10+0.1, Threads 1):
+| match | moves per engine | candidate | lock | gap |
+|---|---|---|---|---|
+| control: v2 exe + the lock net as KB4 replicas (IDENTICAL evaluation) | ~15.2k (192 games) | 20.28 | 20.43 | -0.15 ply |
+| n2L | ~15.6k (193 games) | 19.55 | 19.70 | -0.15 ply |
+| n2e (all 400 games) | ~31.1k | 20.15 | 20.27 | -0.12 ply |
+Per-move depth varies by a few plies, so over 15-31k moves the gap is several standard errors, and it is the same in all
+three - including the control, whose evaluations and search trees are identical to the lock's. So it is speed:
+~0.15 ply ~ 7-11 % less search in real games (effective branching factor 1.6-2.0), worth very roughly 5-10 Elo. The
+bench ABBAs on this PC (0.90-0.98 raw, an A/A arm bias of ~0.945) could not show this reliably. Prime suspect: memory -
+a KB4 first layer is 3.1 MB of float32 (4 x 768 x 256 x 4 B) against the lock net's 0.79 MB that fits a core's L2;
+in games a 16 MB hash and an SMT sibling share that cache. Interim control score at 192 games: 34 / 108 / 50 (-29 +/-
+25) - the exe cost is not small, and n2e's -25 may be largely the exe, not its weights (n2L at 193 games: -5 +/- 27).
