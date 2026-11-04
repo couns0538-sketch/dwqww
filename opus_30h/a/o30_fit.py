@@ -17,7 +17,7 @@ Data: shards forge_selfplay_NNN.pos/.hce with role train in RUN_DATA/shards.json
 (holdout-overlap keys, |score| >= 30000, jobA val rows), jobA 20k-node labels from RUN_DATA/override/<shard>.npz.
 Order: chunk c (seed, c) picks a shard (weighted by rows) and a random contiguous block of --block rows, shuffled;
 a resumed run continues at the saved chunk / batch, so the stream does not depend on stops.
-Every --save-minutes: RUN/last.pt (atomic), RUN/nets/step<N>.nnue2, holdout scores (o30_score.exe on the S31 subset and
+Every --save-minutes: RUN/last.pt (atomic), RUN/nets/step<N>.nnue2, holdout scores (o30_score_v2.exe on the S31 subset and
 on jobA_val) appended to RUN/val.csv; RUN/best.pt + RUN/best.nnue2 follow the lowest S31 b0.6. Free RAM < 6 GB or the
 deadline -> save and exit. Never deletes anything; refuses to start a fresh run in an existing RUN.
 """
@@ -43,7 +43,7 @@ from o30_v2net import king_map, output_map, parse_inc, write_v2  # noqa: E402
 K = 2.25
 INPUTS = 768
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCORER = r'D:\o30\tools_bin\o30_score.exe'
+SCORER = r'D:\o30\tools_bin\o30_score_v2.exe'
 S16_POS = r'F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.pos'
 S16_HCE = r'F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.hce'
 LOCK_INC = r'D:\o30\repos\base\src\nnue_weights.inc'

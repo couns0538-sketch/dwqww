@@ -62,6 +62,15 @@ std::string row_fen(const unsigned char* board, int stm) {
 
 double sigmoid(double x) { return 1.0 / (1.0 + std::exp(-x)); }
 
+std::string json_escape(const std::string& in) {
+    std::string out;
+    for (const char c : in) {
+        if (c == '\\' || c == '"') out += '\\';
+        out += c;
+    }
+    return out;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -138,7 +147,7 @@ int main(int argc, char** argv) {
     }
     std::printf("{\"net\": \"%s\", \"pos\": \"%s\", \"rows\": %llu, \"used\": %llu, \"mate_rows_skipped\": %llu, "
                 "\"bad_fen\": %llu, \"stride\": %llu, \"residual\": %s, \"mse_b1.0\": %.9f, \"mse_b0.6\": %.9f, \"mse_b0.8\": %.9f",
-                net_path.c_str(), pos_path.c_str(), static_cast<unsigned long long>(n), static_cast<unsigned long long>(used),
+                json_escape(net_path).c_str(), json_escape(pos_path).c_str(), static_cast<unsigned long long>(n), static_cast<unsigned long long>(used),
                 static_cast<unsigned long long>(mates), static_cast<unsigned long long>(bad_fen),
                 static_cast<unsigned long long>(stride), net == nullptr ? "null" : (net->residual ? "true" : "false"),
                 used ? sums[0] / used : 0.0, used ? sums[1] / used : 0.0, used ? sums[2] / used : 0.0);

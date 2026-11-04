@@ -21,7 +21,7 @@ for side in $sides; do
   dfree=$(df -BG /d | awk 'NR==2 {gsub("G","",$4); print $4}'); cfree=$(df -BG /c | awk 'NR==2 {gsub("G","",$4); print $4}')
   if [ "${dfree:-0}" -lt 50 ] || [ "${cfree:-0}" -lt 30 ]; then echo "STOP: D: ${dfree} GB / C: ${cfree} GB below the R15 floor"; exit 76; fi
   ok=0; for i in $(seq 1 60); do
-    if powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pc_gate.ps1")" -Drive D -NeedGB 1 -MaxCpu 97 -Cpus 0,1 -MaxMyCpu 60; then ok=1; break; fi
+    if powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pc_gate.ps1")" -Drive D -NeedGB 1 -MaxCpu 97 -Cpus 0,1 -MaxMyCpu ${KIT_MAXMYCPU:-60}; then ok=1; break; fi
     sleep 60
   done
   [ $ok = 1 ] || { echo "pc_gate not OK for 60 min, stop"; exit 75; }
