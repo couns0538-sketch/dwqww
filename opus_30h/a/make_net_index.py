@@ -50,6 +50,9 @@ def main():
             wdl = next((l.strip() for l in fc['sanity'] if 'W/D/L' in l), '')
             elo = next((l.strip().split('  nElo')[0] for l in fc['sanity'] if l.strip().startswith('Elo ')), '')
             sanity = (wdl.split('  Ptnml')[0] + (f'; {elo}' if elo else '')) or '-'
+            ri = os.path.join(a.root, name, 'sanity', 'RUN_INFO.json')
+            if sanity != '-' and os.path.isfile(ri):   # which exe played it (a later, faster exe must not be mixed in)
+                sanity += f"; exe {json.load(open(ri, encoding='utf-8-sig'))['candidate']['sha256'][:8]}"
         if rule:
             lines.append(f"| {name} | {rule['s16_b06_diff']:+.2e} ({fmt_z(rule['s16_z'])}) | {rule['jobA_b06_diff']:+.2e} "
                          f"({fmt_z(rule['jobA_z'])}) | {'PASS' if rule['pass'] else 'FAIL'} | {r['all_checks_passed']} | {sanity} |")
