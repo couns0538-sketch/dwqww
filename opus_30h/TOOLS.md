@@ -17,12 +17,11 @@ CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / 
 | `net_pack.sh` | one step from a trained net to its evidence folder (copy, sha256, parity, holdout scores, OFF / ON pins, RESULT.json) | exit 0 = every check passed |
 | `sanity_match.py` | fixed-length match candidate vs lock with fastchess (sanity only) | RUN_INFO.json + `gate_summary.py <dir>` |
 | `net_final_checks.sh` | play-side checks of a packed net: 300 s smoke, NPS ABBA vs the lock, 400-game sanity match + gate_summary -> FINAL_CHECKS.json | exit 0 = smoke PASS and fastchess exit 0 |
-| `make_net_index.py` | `D:\o30
-ets\INDEX.md` for the crew queue from the per-net RESULT / FINAL_CHECKS / TRAINING json | final_checks_o30.sh check 12 re-hashes every cited file |
+| `make_net_index.py` | `D:\o30\nets\INDEX.md` for the crew queue from the per-net RESULT / FINAL_CHECKS / TRAINING json | final_checks_o30.sh check 12 re-hashes every cited file |
 | `o30_paired.py` (+ `o30_score_v3.exe --dump`) | paired holdout comparison of two nets: mean difference, its standard error (measurement error of the row set), z | S31 SE ~1.5e-6, jobA SE ~1.6e-5 on the job's nets |
 | `o30_joba_old.py` | the jobA val positions with their ORIGINAL 5k-node labels (separates label-fitting from a position shift) | boards equal to jobA_val.pos (printed) |
 | `prove_resume_fit.sh`, `fit_resume.sh` | trainer resume proof (interrupted + resumed run = uninterrupted run, bit for bit) / resume launcher | RESUME PROOF PASS (2026-11-03 19:01) |
-| `forge_v2_bullet_o30/` + `build_bullet_o30.bat` + `bullet_residual.patch` | GPU path: R14's trainer with a residual `r` mode on a private copy of the trainer library (D:\o30ullet) | mock + ROCm builds 0 errors; `rfeatures` + `check_rfeatures.py` = 0 mismatches vs o30_fit.py features |
+| `forge_v2_bullet_o30/` + `build_bullet_o30.bat` + `bullet_residual.patch` | GPU path: R14's trainer with a residual `r` mode on a private copy of the trainer library (D:\o30\bullet) | mock + ROCm builds 0 errors; `rfeatures` + `check_rfeatures.py` = 0 mismatches vs o30_fit.py features |
 | `export_v2r.py` | trainer-library checkpoint -> FORGENN2 residual net (KB map, mirror, OB8); `--make-test` writes a synthetic checkpoint | synthetic checkpoint -> engine parity 10000/10000 |
 | `o30_data_npy.py` | jobA overrides as plain .npy for the Rust reader | 988,336 rows written |
 | `o30_runs.py` | one table of every CPU fine-tune run (config, last / best holdout losses vs the lock net, rate) | - |
