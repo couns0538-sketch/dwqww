@@ -458,3 +458,15 @@ Patch with the fix: `opus_30h/a/v2port.patch` md5 926ada2cc6b2212c05cd72cf70feef
 pins d11-d22; n2e / n2L ON benches = their packed counts (333628 / 803134 / 2593172, 292397 / 836621 / 2200750). Verify
 build with the fix (`D:\o30\plain\v2root_verify`): 100 game positions at depth 12 with a kept hash (7.79M nodes) and
 bench 16 with n2L (2,200,750) - no accumulator mismatch.
+
+## New gate exe with the root fix: kit v2.5, tag v2p4 (2026-11-04 08:0x-08:1x)
+`D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe` sha256 a2a560cb4b6a2c1127a41867fc5287cad0834bcd207f0583571c248d363ee7ca
+(pc1 = pc2 PASS). OFF pin_check -Full PASS; the lock net as KB4 replicas = lock pins d11-d22; n2e / n2L ON benches =
+their packed counts; UCI conformance 22 / 22; loader fuzz 21 / 21. Game-position probe (nodes per second, identical
+trees, vs the lock exe FD3A5190; run-to-run noise ~+-3 %): OFF 0.933, KB1 0.980, KB4 replicas 0.929 (before the fix:
+KB1 0.887 on v2p3). The v2 path now runs at its own exe's OFF speed; what remains vs the lock exe (~2-7 %) is the kit
+v2.5 build vs the lock's kit v2.3 build, on the v1 path too - a QA item (kit tuning), not this patch.
+Rematches started 08:1x with v2p4, 400 games each (sanity only; written before the results): n2L on CPU 0
+(`D:\o30\nets\o30_kb4ob8_n2L\sanity_v2p4`) and the control (lock net as KB4 replicas, `D:\o30\control\lockkb4_v2p4`)
+on CPU 1. Reading: the control should move from -32 toward 0 (the build gap is worth a few Elo); n2L minus the control
+is the net's own effect.
