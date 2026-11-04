@@ -40,8 +40,10 @@ check 07_scorer_control scorer
 check 08_trainer_selfcheck "$PY" -I -B "$A/o30_fit.py" selfcheck --kb-map rank4 --ob 8
 check 09_mcp_selftest "$PY" -I -B "$W/opus_30h/mcp/test_forge_o30_mcp.py"
 lint() {   # must scan the branch's commits (a range that matches nothing would print CLEAN for nothing)
-  local out; out=$("$PY" -I -B "$T/cleanroom_lint.py" --patch "$(cygpath -w "$A/v2port.patch")" --patch "$(cygpath -w "$B/expose22.patch")" \
-    --patch "$(cygpath -w "$A/bullet_residual.patch")" ${O30_TUNED_PATCH:+--patch "$O30_TUNED_PATCH"} --commits main..HEAD --git-dir "$(cygpath -w "$W")") || { echo "$out"; return 1; }
+  local out extra=() p
+  for p in "$B"/o30tuned_*.patch; do [ -f "$p" ] && extra+=(--patch "$(cygpath -w "$p")"); done   # the O30Tuned patch(es)
+  out=$("$PY" -I -B "$T/cleanroom_lint.py" --patch "$(cygpath -w "$A/v2port.patch")" --patch "$(cygpath -w "$B/expose22.patch")" \
+    --patch "$(cygpath -w "$A/bullet_residual.patch")" "${extra[@]}" --commits main..HEAD --git-dir "$(cygpath -w "$W")") || { echo "$out"; return 1; }
   echo "$out"; echo "$out" | grep -qE '^cleanroom_lint: CLEAN .*: [1-9][0-9]* scanned\)$'
 }
 check 10_cleanroom lint
