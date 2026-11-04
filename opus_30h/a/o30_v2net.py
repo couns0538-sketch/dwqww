@@ -41,7 +41,7 @@ def fnv1a64_fast(data):
     return h
 
 
-KING_MAPS = ('one', 'rank4', 'rank4x2')
+KING_MAPS = ('one', 'rank4', 'rank4x2', 'rank4x4', 'rank4x8')
 
 
 def king_map(name):
@@ -53,6 +53,10 @@ def king_map(name):
         return [rank4(sq // 8) for sq in range(64)]
     if name == 'rank4x2':   # rank4 x board half (files a-d -> even bucket, e-h -> odd): 8 buckets, unmirrored
         return [rank4(sq // 8) * 2 + (1 if sq % 8 >= 4 else 0) for sq in range(64)]
+    if name == 'rank4x4':   # rank4 x file pair (a-b, c-d, e-f, g-h): 16 buckets, unmirrored
+        return [rank4(sq // 8) * 4 + (sq % 8) // 2 for sq in range(64)]
+    if name == 'rank4x8':   # rank4 x file: 32 buckets (the engine maximum), unmirrored
+        return [rank4(sq // 8) * 8 + sq % 8 for sq in range(64)]
     raise SystemExit(f'unknown king map {name!r}')
 
 
@@ -147,7 +151,7 @@ def main():
     a = sub.add_parser('from-lock')
     a.add_argument('inc')
     a.add_argument('out')
-    a.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2'])
+    a.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2', 'rank4x4', 'rank4x8'])
     a.add_argument('--ob', type=int, default=1)
     a.add_argument('--stand-alone', action='store_true', help='clear the residual flag (NOT the same function)')
     i = sub.add_parser('info')
@@ -156,7 +160,7 @@ def main():
     r.add_argument('out')
     r.add_argument('--seed', type=int, required=True)
     r.add_argument('--hidden', type=int, default=256)
-    r.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2'])
+    r.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2', 'rank4x4', 'rank4x8'])
     r.add_argument('--ob', type=int, default=8)
     r.add_argument('--mirror', action='store_true')
     r.add_argument('--stand-alone', action='store_true')

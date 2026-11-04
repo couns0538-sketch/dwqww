@@ -211,7 +211,7 @@ fn arg<T: std::str::FromStr>(a: &[String], i: usize, d: T) -> T {
 mod forge_r;
 
 /// Opus 30-h job: `r` mode - residual nets from the FPOS + FHCE shards (see forge_r.rs).
-/// usage: forge-v2-bullet r <data dir> <out dir> <kb map one|rank4|rank4x2> <mirror 0|1> [hidden=256] [superbatches=40]
+/// usage: forge-v2-bullet r <data dir> <out dir> <kb map one|rank4|rank4x2|rank4x4|rank4x8> <mirror 0|1> [hidden=256] [superbatches=40]
 ///        [batches_per_sb=1024] [threads=2] [seed] [lr=0.001] [wdl=0.4] [mix=8]
 ///        forge-v2-bullet rfeatures <data dir> <kb map> <mirror 0|1> <chunk> <count>   (features of the first rows of
 ///        a chunk: "S <stm indices>", "N <ntm indices>", "B <output bucket> H <hce> T <score> R <result>", for checks)
@@ -235,7 +235,18 @@ fn kmap_of(name: &str) -> ([u8; 64], usize) {
             }
             (m, 8)
         }
-        _ => panic!("king map must be one, rank4 or rank4x2"),
+        "rank4x4" | "rank4x8" => {
+            // rank4 x file pair (a-b, c-d, e-f, g-h): 16 buckets / rank4 x file: 32 buckets, as o30_v2net.king_map
+            let per: u8 = if name == "rank4x4" { 4 } else { 8 };
+            for (sq, v) in m.iter_mut().enumerate() {
+                let r = sq / 8;
+                let g: u8 = if r == 0 { 0 } else if r == 1 { 1 } else if r <= 3 { 2 } else { 3 };
+                let f = (sq % 8) as u8;
+                *v = g * per + if per == 4 { f / 2 } else { f };
+            }
+            (m, usize::from(per) * 4)
+        }
+        _ => panic!("king map must be one, rank4, rank4x2, rank4x4 or rank4x8"),
     }
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """import_v2r.py - Opus 30-h job: FORGENN2 residual net -> forge-v2-bullet checkpoint for a GPU warm start.
 
-usage: python -I -B import_v2r.py <net.nnue2> <out dir> --kb-map one|rank4|rank4x2 [--mirror]
+usage: python -I -B import_v2r.py <net.nnue2> <out dir> --kb-map one|rank4|rank4x2|rank4x4|rank4x8 [--mirror]
 Writes <out dir>/optimiser_state/weights.bin (+ momentum.bin / velocity.bin of zeros = a fresh AdamW) in the library's
 labelled-buffer format (per record: ASCII id, '\\n', u64 little-endian count, count x f32 little-endian), ids l0w, l0b,
 l1w, l1b. Values are int16 / 4096 exactly (every int16 / 4096 is exact in f32), so a save without training followed by
@@ -29,7 +29,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('net')
     ap.add_argument('out')
-    ap.add_argument('--kb-map', required=True, choices=['one', 'rank4', 'rank4x2'])
+    ap.add_argument('--kb-map', required=True, choices=['one', 'rank4', 'rank4x2', 'rank4x4', 'rank4x8'])
     ap.add_argument('--mirror', action='store_true')
     a = ap.parse_args()
     n = read_v2(a.net)

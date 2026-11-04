@@ -39,7 +39,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('checkpoint', nargs='?')
     ap.add_argument('out', nargs='?')
-    ap.add_argument('--kb-map', required=True, choices=['one', 'rank4', 'rank4x2'])
+    ap.add_argument('--kb-map', required=True, choices=['one', 'rank4', 'rank4x2', 'rank4x4', 'rank4x8'])
     ap.add_argument('--mirror', action='store_true')
     ap.add_argument('--hidden', type=int, default=256)
     ap.add_argument('--stand-alone', action='store_true')
