@@ -113,7 +113,9 @@ function Invoke-R14OwnedProcess([string]$Executable,[string[]]$Arguments) {
     }
 }
 
-function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5) {
+function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5,[string]$ExpectedSHA256) {
+    # Every download is SHA256-pinned (Code Review SHOULD); MD5 stays as a second check where it was pinned before.
+    if ($ExpectedSHA256 -notmatch '^[0-9a-f]{64}$') { throw 'Runtime download requires a SHA256 pin' }
     $null=Assert-R14OwnedPath $Destination
     if (-not (Test-Path -LiteralPath $Destination)) {
         Assert-R14Resources 32MB
@@ -121,7 +123,8 @@ function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5)
         [IO.File]::WriteAllText($helper, "param([string]`$Uri,[string]`$Destination)`n`$ErrorActionPreference='Stop'`nInvoke-WebRequest -Uri `$Uri -OutFile `$Destination`n", $utf8)
         Invoke-R14OwnedProcess (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-File',$helper,'-Uri',$Uri,'-Destination',$Destination)
     }
-    if ((Get-FileHash -Algorithm MD5 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedMD5) { throw 'Runtime download MD5 mismatch' }
+    if ($ExpectedMD5 -and (Get-FileHash -Algorithm MD5 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedMD5) { throw 'Runtime download MD5 mismatch' }
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedSHA256) { throw 'Runtime download SHA256 mismatch' }
     Assert-R14Resources
 }
 
@@ -149,7 +152,7 @@ try {
             New-Item -ItemType Directory -Force -Path $path | Out-Null
         }
         $archive=Join-Path $downloads 'python-3.12.10-embed-amd64.zip'
-        Get-R14Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip' $archive 'fe8ef205f2e9c3ba44d0cf9954e1abd3'
+        Get-R14Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip' $archive 'fe8ef205f2e9c3ba44d0cf9954e1abd3' '4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3'
         if (-not (Test-Path -LiteralPath $python)) {
             Assert-R14Resources 64MB
             Expand-Archive -LiteralPath $archive -DestinationPath $pythonRoot
@@ -159,17 +162,32 @@ try {
         $pth=Assert-R14OwnedPath (Join-Path $pythonRoot 'python312._pth')
         [IO.File]::WriteAllText($pth, "python312.zip`n.`nLib\site-packages`nD:\a14\tools`nimport site`n",$utf8)
         $bootstrap=Join-Path $downloads 'get-pip.py'
-        Get-R14Download 'https://bootstrap.pypa.io/get-pip.py' $bootstrap '8bae3e432175fb42da9d41cbe68217b0'
-        $requirements=Assert-R14OwnedPath (Join-Path $root 'tools\requirements-r14.txt')
+        Get-R14Download 'https://bootstrap.pypa.io/get-pip.py' $bootstrap '8bae3e432175fb42da9d41cbe68217b0' '356e0d0de21cdc348c3394084d90939b85e4246c4d14c76aee6ca4f46646ea98'
+        # Hash-pinned installs: every requirement carries --hash=sha256 (tools\requirements-r14-hashes.txt, made by
+        # tools\opus_pypi_hashes.py from PyPI metadata and proven with pip download --require-hashes).
+        $requirements=Assert-R14OwnedPath (Join-Path $root 'tools\requirements-r14-hashes.txt')
         $pins=Get-Content -LiteralPath $requirements
-        $buildPins=@($pins | Where-Object { $_ -match '^(pip|setuptools|wheel)==[0-9][0-9.]*$' })
-        if ($buildPins.Count -ne 3) { throw 'Pinned build dependencies missing' }
+        # Build tools come from SHA256-pinned wheels on disk; get-pip.py installs them with --no-index.
+        $wheelDir=Assert-R14OwnedPath (Join-Path $downloads 'wheels')
+        New-Item -ItemType Directory -Force -Path $wheelDir | Out-Null
+        $buildWheels=@(
+            @{Pin='pip==26.3'; Sha256='f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13'; Uri='https://files.pythonhosted.org/packages/07/25/ee8c38ae72d66b844ce8eb9711ba905dba21ca1a8a0c960057c41cd23337/pip-26.3-py3-none-any.whl'},
+            @{Pin='setuptools==84.2.1'; Sha256='ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2'; Uri='https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl'},
+            @{Pin='wheel==0.48.0'; Sha256='3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab'; Uri='https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl'}
+        )
+        foreach ($wheel in $buildWheels) {
+            # The hash-pinned requirements must name the same version and hash as the bootstrap wheel.
+            $line=@($pins | Where-Object { $_ -like ($wheel.Pin+' *') })
+            if ($line.Count -ne 1 -or $line[0] -notmatch ('--hash=sha256:'+$wheel.Sha256+'(\s|$)')) { throw ('Build pin mismatch: '+$wheel.Pin) }
+            Get-R14Download $wheel.Uri (Join-Path $wheelDir ($wheel.Uri -split '/')[-1]) '' $wheel.Sha256
+        }
         Assert-R14Resources 128MB
-        Invoke-R14OwnedProcess $python (@('-I','-B',$bootstrap,'--no-cache-dir','--disable-pip-version-check')+$buildPins)
+        Invoke-R14OwnedProcess $python (@('-I','-B',$bootstrap,'--no-cache-dir','--disable-pip-version-check','--no-index','--find-links',$wheelDir)+@($buildWheels | ForEach-Object { $_.Pin }))
         Assert-R14Resources 256MB
-        Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','install','--no-build-isolation','--no-cache-dir','--disable-pip-version-check','--no-deps','--requirement',$requirements)
+        Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','install','--require-hashes','--no-build-isolation','--no-cache-dir','--disable-pip-version-check','--no-deps','--requirement',$requirements)
         Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','freeze','--all')
         Get-FileHash -Algorithm MD5 -LiteralPath $python,$archive,$bootstrap,$requirements | ConvertTo-Json
+        Get-FileHash -Algorithm SHA256 -LiteralPath $python,$archive,$bootstrap,$requirements | ConvertTo-Json
     }
 } finally {
     foreach ($key in $oldEnvironment.Keys) {

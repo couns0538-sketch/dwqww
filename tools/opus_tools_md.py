@@ -36,6 +36,14 @@ TOOLS = [
     ('tools/opus_guardband_proof.py', 'Independent proof of a guard-band split: accounting, payload, three-key '
      'holdout check, train/val keys, chain cut, npt-data-holdout-check audit.',
      'read checks in sep/GUARDBAND_SEPARATION.json; re-run with a new --out / --big-dir'),
+    ('tools/opus_silent_sweep.py', 'Lists silent error handling: Python except bodies of only pass/.../continue (ast), '
+     'PowerShell empty catch, SilentlyContinue/Ignore, trap continue; --changed-list limits it to a git diff list.',
+     PY + r' D:\a14\tools\opus_silent_sweep.py --root D:\a14 --changed-list '
+     r'D:\a14\evidence\r14\r14_changed_files_11d38208_7636122b.txt (expect 0 findings)'),
+    ('tools/opus_pypi_hashes.py', 'Hash-pins a requirements file for this interpreter from PyPI metadata '
+     '(sys_tags-compatible wheels, else sdist); makes tools/requirements-r14-hashes.txt.',
+     PY + r' -m pip download --require-hashes --no-deps --no-build-isolation -r '
+     r'D:\a14\tools\requirements-r14-hashes.txt -d <new folder under D:\a14\tmp>'),
     ('tools/opus_tools_md.py', 'Prints this section; --check compares every md5 in TOOLS.md with the files.',
      PY + r' D:\a14\tools\opus_tools_md.py --check'),
 ]
