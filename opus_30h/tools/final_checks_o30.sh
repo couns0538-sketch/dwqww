@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # final_checks_o30.sh [out log] - Opus 30-h job: re-run every quick check of the job's deliverables (about 10 minutes,
-# CPUs 0-1 Idle). Prints one PASS / FAIL line per check and a total; exit 0 only if all pass.
+# Idle on O30_MASK, default 0x3 = CPUs 0-1). Prints one PASS / FAIL line per check and a total; exit 0 only if all pass.
 #  1 lock exe pins (-Full)                      2 v2 gate exe (kit v2.5) OFF pins (-Full)
 #  3 v2 gate exe: lock net as v2 = lock pins    4 SPSA exe (22 options) defaults = lock pins (-Full)
 #  5 parity: own reference vs AVX2 / SSE / scalar on the 4 test nets + planted bug
@@ -12,10 +12,13 @@
 # 13 every Windows / branch path the documents cite exists   14 loader fuzz: 18 damaged files refused, fallback
 # 15 every hash the documents cite matches a file / commit / hand-checked entry (tools/hash_allow_o30.txt)
 # 16 the multi-file patch scripts are all-or-nothing (test_patch_atomic.py)
+# 17 / 18 v2 gate exe: the lock net written as KB16 / KB32 = lock pins (the GPU-window-2 layouts)
+# 19 soup and layout-expansion tools on synthetic checkpoints (a/test_soup_tools.py)
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
-# pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
-. "$T/idle.sh"; o30_pin_self 0x3 || { echo "final_checks_o30: cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
+# pin this shell first: every check below inherits Idle + the mask (O30_MASK, default 0x3 = CPUs 0-1; fail closed)
+MASK="${O30_MASK:-0x3}"
+. "$T/idle.sh"; o30_pin_self "$MASK" || { echo "final_checks_o30: cannot pin to Idle / $MASK (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 LOCK='C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'
 V2EXE='D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe'   # the gate exe with the root fix (v2p3 = before it)
@@ -24,7 +27,7 @@ PINS='d11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354'
 stamp=$(date +%Y%m%d_%H%M%S); tmp=/d/o30/tmp/final_checks_$stamp; mkdir -p "$tmp"
 pass=0; fail=0
 check() { local name="$1"; shift; if "$@" > "$tmp/$name.log" 2>&1; then echo "PASS $name"; pass=$((pass+1)); else echo "FAIL $name (log $tmp/$name.log)"; fail=$((fail+1)); fi; }
-pc() { powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" "$@"; }
+pc() { powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Mask "$MASK" "$@"; }   # pin_check pins itself to 0x3 without -Mask
 check 01_lock_pins pc -Exe "$LOCK" -Full
 check 02_v2exe_off_pins pc -Exe "$V2EXE" -Full
 check 03_v2exe_lock_identity pc -Exe "$V2EXE" -Options 'EvalFileV2=D:\o30\nets\lockv2\lock_kbrank4_ob8.nnue2' -Expect "$PINS"
@@ -58,11 +61,11 @@ check 12_index_hashes indexsha
 # 13: every Windows / branch path the documents cite exists (WINDOW.md is written only if the GPU is released)
 paths() {
   (cd "$W/opus_30h" && "$PY" -I -B "$T/path_sweep.py" FINAL_REPORT.md TOOLS.md STATUS.md a/RESULTS.md b/RESULTS.md \
-    b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md')
+    b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md CR_FIXLIST_20261104_REPORT.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md')
 }
 check 13_paths paths
 # 14: the v2 loader refuses 18 kinds of damaged files with their reason and falls back to the compiled-in net
-fuzz() { "$PY" -I -B "$A/loader_fuzz_o30.py" "$V2EXE" 'D:\o30\nets\lockv2\rand_kbrank4m_ob8_s2.nnue2' "$(cygpath -w "$tmp/fuzz")" --mask 0x3; }
+fuzz() { "$PY" -I -B "$A/loader_fuzz_o30.py" "$V2EXE" 'D:\o30\nets\lockv2\rand_kbrank4m_ob8_s2.nnue2' "$(cygpath -w "$tmp/fuzz")" --mask "$MASK"; }
 check 14_loader_fuzz fuzz
 # 15: every hash the documents cite = a file hashed here, a commit of the branch, or a hand-checked entry with its
 #     reason in tools/hash_allow_o30.txt (input shard hashes, external commits, superseded versions, FNV checksums)
@@ -84,5 +87,8 @@ hashes() {
 check 15_doc_hashes hashes
 # 16: the multi-file patch scripts change all their files or none (Code Review 2026-11-04 on o30_v2int16.py)
 check 16_patch_atomic "$PY" -I -B "$A/test_patch_atomic.py"
+check 17_kb16_identity pc -Exe "$V2EXE" -Options 'EvalFileV2=D:/o30/nets/lockv2/lock_kbrank4x4_ob8.nnue2' -Expect "$PINS"
+check 18_kb32_identity pc -Exe "$V2EXE" -Options 'EvalFileV2=D:/o30/nets/lockv2/lock_kbrank4x8_ob8.nnue2' -Expect "$PINS"
+check 19_soup_tools "$PY" -I -B "$A/test_soup_tools.py"
 echo "final_checks_o30: $pass PASS, $fail FAIL (logs $tmp)"
 [ $fail = 0 ]
