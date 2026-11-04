@@ -304,7 +304,9 @@ impl DataReader<ForgeRow> for FposReader {
                     continue;
                 }
             }
-            if !f(slice) {
+            // bullet's contract (trainer/src/reader.rs, every library reader): the callback returns true to STOP.
+            // The first GPU smoke (2026-11-04 10:13) stopped after one chunk with the inverted test.
+            if f(slice) {
                 return;
             }
         }

@@ -261,7 +261,7 @@ fn main_r(a: &[String]) {
             println!("P {hex}\nS {}\nN {}\nB {} H {} T {} R {} M {}", s.join(" "), n.join(" "), PieceCount8.bucket(r), r.hce,
                      r.score, r.result, r.stm);
         }
-        let _ = reader.read_chunks(0, |c| { println!("first chunk rows {}", c.len()); false });
+        let _ = reader.read_chunks(0, |c| { println!("first chunk rows {}", c.len()); true });   // true = stop
         return;
     }
     assert!((6..=14).contains(&a.len()), "usage: forge-v2-bullet r <data dir> <out dir> <kb map> <mirror 0|1> [hidden] [sb] [bpsb] [threads] [seed] [lr] [wdl] [mix]");
