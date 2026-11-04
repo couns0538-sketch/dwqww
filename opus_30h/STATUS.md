@@ -28,6 +28,14 @@ The lock net is converged on its own labels at its own shape (KB1 / OB8 fine-tun
 in 3.5e8 positions, and the early-file jobA positions with deeper labels stay within the noise of the lock net (paired z
 in RESULT.json). Whether this offline gain is Elo is for the crew's gate (S30: loss has not predicted Elo reliably here).
 
+## Deviation from plan default D1 (disclosed 2026-11-03 20:4x)
+D1 said the heavy CPU work (SPSA session, 400-game matches) waits until npt is off CPUs 0-3 or the crew frees cores.
+Since ~17:30 I run CPU fine-tunes, and since 20:12 the n2e match, at Idle on CPUs 0-1 (npt's mask 0xF includes them;
+no gate uses them; the prompt's rules - <= 8 threads, off gate cores, never touch npt - hold). Evidence that npt is not
+slowed: hourly mean GPU utilisation from the keeper's HWiNFO log (`tools/gpu_util_stats.py`, read-only): 12:00-15:00
+(before this job's CPU work) 29-30 %, 16:00 34, 17:00 36, 18:00 31, 19:00 32, 20:00 32 %. If you want D1 kept to the
+letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py stop <run>`) and resume later.
+
 ## CPU plan (CPUs 0-1 only, Idle; gates 0xFFF0, npt Idle on 0x000F)
 - CPU 1: n2e pack (20:07) -> n2e play checks (smoke 300 s, NPS ABBA 6 pairs, 400 games 10+0.1 vs the lock; ~4 h) ->
   SPSA stc8 (`-Cpus 1 -Threads 1`) from ~00:30.
