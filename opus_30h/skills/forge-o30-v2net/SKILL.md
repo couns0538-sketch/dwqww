@@ -1,6 +1,6 @@
 ---
 name: forge-o30-v2net
-description: Forge v2 nets (FORGENN2) on the lock engine - the EvalFileV2 port (opus_30h/a/v2port.patch on the lock d4f4312), its proofs (lock net as v2 = lock pins, parity 10000/10000 x AVX2/SSE/scalar vs an own float32 reference, accumulator walk, in-search verify build), the holdout scorer that reproduces the crew's S31 numbers, the training-data audit, the CPU fine-tune trainer warm-started from the lock net, net_pack.sh, the sanity match, and the kit choice (v2.4 -PartialTraining, else the v2 path is cold). Use for any v2 / EvalFileV2 net, a new trained net to check or package, a holdout-loss question, or a speed question about an option-only code path in a kit exe.
+description: Forge v2 nets (FORGENN2) on the lock engine - the EvalFileV2 port (opus_30h/a/v2port.patch on the lock d4f4312), its proofs (lock net as v2 = lock pins, parity 10000/10000 x AVX2/SSE/scalar vs an own float32 reference, accumulator walk, in-search verify build), the holdout scorer that reproduces the crew's S31 numbers, the training-data audit, the CPU fine-tune trainer warm-started from the lock net, net_pack.sh (paired holdout diff vs the lock net + the offline rule verdict), net_final_checks.sh (smoke, NPS ABBA, sanity match), INDEX.md, and the kit choice (v2.5 workload v2n; v2.3 leaves the v2 path cold). Use for any v2 / EvalFileV2 net, a new trained net to check or package, a holdout-loss question, or a speed question about an option-only code path in a kit exe.
 ---
 
 # Forge v2 nets on the lock (Opus 30-h job, branch opus-30h-20261103)
@@ -21,8 +21,9 @@ round), own work at Idle on CPUs 0-1, D: >= 50 GB / C: >= 30 GB, never delete / 
 - Residual (flag bit 0) = the lock's HCE + the net, like the compiled-in net. FHCE files = the lock's
   `Evaluator::evaluate_uncached` on every holdout row (checked on 1,024,286 rows).
 - Kit: v2.3 profiles the OFF path only -> the v2 path is cold-optimised (0.71x the lock's speed on the same tree).
-  Build v2 exes with kit v2.4 `-PartialTraining` (`tools/kit24_build_o30.sh`, kit exported from opus-r12-pgo-net):
-  0.959x (CI 0.929-0.990). A plain build has no gap (0.998x).
+  Kit v2.4 `-PartialTraining` (`tools/kit24_build_o30.sh`): 0.959x. Kit v2.5 (`tools/kit25_build_o30.sh`, working copy
+  `D:\o30\kit25`, = v2.4 + workload v2n that also benches the lock net written as v2): ~1.0x (advisory) -> the gate exe
+  for v2 nets is `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` ff856ba8 (pc1 = pc2). A plain build: 0.998x.
 
 ## Checks (in this order)
 1. `pin_check.ps1 -Exe X -Full` (OFF pins); lock net as v2 + `-Expect` the lock pins (PASS); random net ON = LIVE;
@@ -34,9 +35,18 @@ round), own work at Idle on CPUs 0-1, D: >= 50 GB / C: >= 30 GB, never delete / 
 4. Holdout: `D:\o30\tools_bin\o30_score_v2.exe --net <file> --pos <S31 .pos> --hce <S31 .hce>`: lock as v2 = b0.6
    0.014310027 / b1.0 0.004572428 (the crew's AL1 numbers); jobA val (`D:\o30\data\jobA_val.*`, 20k-node labels):
    lock 0.013272058.
-5. A trained net: `bash net_pack.sh <name> <net> <kit exe> <harness dir>` -> D:\o30\nets\<name>\RESULT.json.
-6. Sanity match: `sanity_match.py --out <new dir> --cand-exe <exe> --cand-opt "EvalFileV2=<net>" --games 400 --conc 2`
-   then `tools/gate_summary.py <dir>`; sanity only, never an Elo claim.
+5. A trained net: `bash net_pack.sh <name> <net> <kit exe> <harness dir>` -> D:\o30\nets\<name>\RESULT.json (copy,
+   sha256 / md5, parity x 3 + planted bug, S31 + jobA scores with per-row dumps, PAIRED diff / SE / z vs the lock net's
+   dumps `D:\o30\dumps\{s16,jobA}_lock.f64` via `o30_paired.py`, `offline_rule` verdict, OFF pins -Full, ON bench twice).
+   Refuses an existing folder (no deletes: a failed try burns the name - test new packer code on old dumps first).
+   Then `net_training_json.py <run> <net> <folder>\TRAINING.json`.
+6. Play checks: `bash net_final_checks.sh <name> <exe> [games=400] [conc=2] [cpus=0,1]` -> smoke 300 s (Threads 2 on the
+   CPU list), NPS ABBA 6 pairs on the FIRST listed CPU, sanity match vs the lock 10+0.1 + gate_summary ->
+   FINAL_CHECKS.json (refuses an existing one). Keep it off the CPUs of a running SPSA session (the tuner treats any
+   other fastchess on its CPUs as a gate and waits). Sanity only, never an Elo claim.
+7. `make_net_index.py` -> `D:\o30\nets\INDEX.md` (summary table: paired diffs, z, rule verdict, sanity line).
+Offline rule (written before the results): S31 b0.6 >= 2e-5 below the lock net AND paired jobA z <= +2 (paired SE:
+S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is still packaged and marked.
 
 ## Training on the CPU (no GPU window)
 - Data: `o30_data.py --out <new dir>`: train = FPOS / FHCE shards 001-039 minus 013 / 014 = the npt binpack's
@@ -47,6 +57,11 @@ round), own work at Idle on CPUs 0-1, D: >= 50 GB / C: >= 30 GB, never delete / 
 - Measured: the lock net is converged on its data. KB1 / OB8 fine-tune, 30M positions: lr 5e-6 -> S31 b0.6 -0.8e-6,
   lr 2e-5 -> -0.4e-6 (seed noise of b0.6 ~7e-6; lr 1e-4 made it worse first). Gains need capacity (king buckets) or
   better labels, not more steps.
+- Use `--mix 8` (8 shards per 1M-row chunk): one-shard chunks pulled the output layer toward one self-play file and made
+  the jobA loss jump +1.5e-4 between checkpoints.
+- KB4 (rank map: king rank 1 / 2 / 3-4 / 5-8, unmirrored = exact warm start) + OB8, lr 2e-5, output layer x2, cosine to
+  1e-7: 3.5e8 positions (~2 h 20 min on one CPU) -> S31 b0.6 -5.58e-5 (paired z -34), jobA +2.2e-5 (z +1.23) = rule PASS
+  (net `D:\o30\nets\o30_kb4ob8_n2e`, sha256 998db5e9...). KB1 / OB8 at the same length: -1.4e-5 (fails the rule).
 
 ## Pitfalls (all hit on 2026-11-03)
 - Bash-tool commands collapse `\\` before `$var` -> a literal `$var` (a run dir named `runs$1`, a net path the engine
