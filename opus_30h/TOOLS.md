@@ -40,6 +40,9 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 fresh_lock.sh, export_src.sh, kit_build_o30.sh (kit v2.3), kit24_build_o30.sh (kit v2.4 -PartialTraining; both honour
 KIT_MAXMYCPU), plain_build_o30.sh, pin_check.ps1, smoke2m.py, selfplay_smoke.py, cleanroom_lint.py, pc_gate.ps1,
 cpu_users.ps1, lowrun.ps1, run_pinned.py, gate_summary.py, abba.py, commit_span.py, doc_lint.py, hash_sweep.py.
+Own additions: `idle.sh` + `pin_pid.py` (pin a shell and its children to Idle on a CPU mask, fail closed),
+`publish_o30.sh` (copies TOOLS.md / FINAL_REPORT.md to `D:\o30\` with a provenance line, regenerates
+`D:\o30\nets\INDEX.md`), `uci_conformance_o30.py` (below).
 
 ## Kit v2.5 (`opus_30h/kit25/`, working copy `D:\o30\kit25`)
 QA's kit v2.3 + R12's v2.4 + workload v2n (the training workload also benches the lock net written as a v2 file, so the
