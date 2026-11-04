@@ -320,7 +320,7 @@ more first-layer capacity would fit the shallow labels' noise further. CPU 1 wen
 A/A twice with byte-identical binaries: lock as A, copy as B -> 0.9447 (CI 0.906-0.985); copy as A, lock as B ->
 0.9455 (CI 0.917-0.975). Whichever command is arm B reads ~5.5 % slower under this load - an arm effect of the harness
 here, not a per-file effect. So every B / A ratio from abba.py on this PC this night carries ~0.945 of bias: n2e's
-0.899 corresponds to ~0.95 of the lock (0.899 / 0.945), the dry run's 0.976 to ~1.03. Speed claims stay QA's; the
+0.899 corresponds to ~0.95 of the lock (0.899 / 0.945) [WITHDRAWN 05:0x, see the correction below]. Speed claims stay QA's; the
 cause in abba.py is not found yet (listed for the bug hunt).
 
 ## Bucket seams? (`a/o30_bucketcmp.py`, 10,000 FENs, mean correction difference vs the lock net per bucket)
@@ -363,7 +363,7 @@ net on 10k FENs: corr 0.9956, 16.2 cp rms, scale 1.019; bucket steps <= 2.5 cp (
 <= 2.0 cp. Play checks started 02:50 on CPU 0 (smoke, ABBA, 400 games at 10+0.1; SPSA paused for the timing part).
 n2L play checks, first part (CPU 0, CPU 1 idle while SPSA was paused): smoke 300 s PASS (51 games, 6,389 plies, 0
 illegal / crashes / hangs / time losses, 1 overrun inside the margin); NPS ABBA vs the lock 0.970 (CI 0.905-1.040),
-net loaded in all 6 B runs (~1.03 after the measured ~0.945 arm bias). SPSA resumed 02:56:16 on CPU 1 at pair 182
+net loaded in all 6 B runs (raw; see the correction below - no arm-bias division). SPSA resumed 02:56:16 on CPU 1 at pair 182
 (batch 91: the resume continues the run). The 400-game match runs on CPU 0 until ~06:40.
 
 ## Control match: the v2 exe itself (started 2026-11-04 02:58, CPU 1; written before its result)
@@ -388,3 +388,11 @@ bench ABBAs on this PC (0.90-0.98 raw, an A/A arm bias of ~0.945) could not show
 a KB4 first layer is 3.1 MB of float32 (4 x 768 x 256 x 4 B) against the lock net's 0.79 MB that fits a core's L2;
 in games a 16 MB hash and an SMT sibling share that cache. Interim control score at 192 games: 34 / 108 / 50 (-29 +/-
 25) - the exe cost is not small, and n2e's -25 may be largely the exe, not its weights (n2L at 193 games: -5 +/- 27).
+
+## Correction (2026-11-04 05:0x): the arm-bias "correction" above was wrong
+Two paragraphs above divide bench ratios by the A/A value (n2e "0.899 / 0.945 ~ 0.95", the dry run "~1.03", n2L
+"~1.03"). The games contradict that: the identical-evaluation control searches 0.15 ply less than the lock in real
+games. The A/A result (0.945 twice) is the harness's NOISE magnitude on this loaded PC, not a factor to divide by.
+The record, kept separate: raw bench ratios vs the lock - KB1 lock-as-v2 0.976, KB4 replicas vs KB1 0.968 (product
+~0.945), n2e 0.899, n2L 0.970; A/A noise +-5 %; in-game mean depth (the measurement that decided): -0.12 to -0.15 ply
+for the v2 exe in all three matches. FINAL_REPORT cites the in-game depth, not corrected ratios.
