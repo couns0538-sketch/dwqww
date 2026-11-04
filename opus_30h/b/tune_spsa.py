@@ -26,8 +26,9 @@ CPU rules: the tuner pins itself (and so fastchess and every engine) to --cpus a
 anything. Before every batch it (1) waits while any fastchess.exe that is not its own has an affinity that overlaps
 --cpus (a running gate), (2) samples the busy share of --cpus for 3 s while none of its games run and uses one game
 slot per CPU of --cpus that is at most max_busy_percent (config, default 80) busy, never more than --threads (one game = one CPU: the two engines
-alternate), (3) waits while free RAM < 6 GB. Stops: --until, --max-pairs, --total-pairs, or the stop command (a named
-event the tuner creates and holds; no STOP files). It never stops a game and never kills anything.
+alternate), (3) waits while free RAM < 6 GB, (4) stops when free space on C: < 30 GB or D: < 51 GB (the job's floors,
+D: with 1 GB margin; resumable). Stops: --until, --max-pairs, --total-pairs, the disk floors, or the stop command (a
+named event the tuner creates and holds; no STOP files). It never stops a game and never kills anything.
 """
 import csv
 import ctypes
@@ -47,6 +48,20 @@ import psutil
 
 RESULT_RE = re.compile(r'^\[(White|Black|Result|Termination) "([^"]*)"\]', re.M)
 IDLE = 0x40
+DISK_FLOORS_GB = {"C:\\": 30.0, "D:\\": 51.0}   # the job's stop rule (D: 50 GB + 1 GB margin)
+
+
+def disk_low():
+    """Text naming every drive below its floor, '' when all are above (a missing drive is skipped)."""
+    out = []
+    for drive, floor in DISK_FLOORS_GB.items():
+        try:
+            free = shutil.disk_usage(drive).free / 2 ** 30
+        except OSError:
+            continue
+        if free < floor:
+            out.append(f"{drive} {free:.1f} GB free < {floor:.0f}")
+    return ", ".join(out)
 
 
 def now():
@@ -251,6 +266,9 @@ def cmd_run(cfg_path, run_dir, resume, until, max_pairs, total_pairs, threads, c
             run.log(f"stop: --until {until} reached"); break
         if k32.WaitForSingleObject(ev, 0) == 0:
             run.log("stop: stop requested"); break
+        low = disk_low()
+        if low:
+            run.log(f"stop: disk floor ({low}); resume with tune_spsa.ps1 -RunDir {d} after space is back"); break
         gates = foreign_gate_overlap(mask, run.my_pids)
         if gates:
             run.log(f"waiting: a fastchess not started by this tuner uses these CPUs {gates}")
