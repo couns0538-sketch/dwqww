@@ -14,10 +14,10 @@ CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / 
 | `o30_data.py` | data audit and training-set preparation (skip lists, jobA overrides, jobA val holdout, evidence JSON) | exit 0 only if jobA aligns 0 mismatches and Astra's mate list = the score rule; AUDIT.json totals |
 | `o30_fit.py` | CPU fine-tune of a v2 net (torch, 1 thread): warm start from the lock net, residual target, resumable checkpoints, holdout scores per checkpoint, `stop` via a named event, `selfcheck` | `selfcheck` = the scorer's numbers on the S31 subset |
 | `run_fit.sh`, `fit_bg.sh` | launchers (disk / RAM / supervisor checks; Idle + CPU mask; forward-slash paths) | log line with the checks; `fit_bg` prints the trainer's exit code |
-| `net_pack.sh` | one step from a trained net to its evidence folder (copy, sha256, parity, holdout scores, OFF / ON pins, RESULT.json) | exit 0 = every check passed |
+| `net_pack.sh` | one step from a trained net to its evidence folder (copy, sha256, parity, holdout scores with per-row dumps, paired diff + z vs the lock net on S31 and jobA val, the offline rule's verdict, OFF / ON pins, RESULT.json) | exit 0 = every check passed (the rule verdict is recorded, not an exit condition) |
 | `sanity_match.py` | fixed-length match candidate vs lock with fastchess (sanity only) | RUN_INFO.json + `gate_summary.py <dir>` |
 | `net_final_checks.sh` | play-side checks of a packed net: 300 s smoke, NPS ABBA vs the lock, 400-game sanity match + gate_summary -> FINAL_CHECKS.json | exit 0 = smoke PASS and fastchess exit 0 |
-| `make_net_index.py` | `D:\o30\nets\INDEX.md` for the crew queue from the per-net RESULT / FINAL_CHECKS / TRAINING json | final_checks_o30.sh check 12 re-hashes every cited file |
+| `make_net_index.py` | `D:\o30\nets\INDEX.md` for the crew queue from the per-net RESULT / FINAL_CHECKS / TRAINING json: a summary table (S31 / jobA paired diff and z, offline rule PASS / FAIL, pack checks, sanity line) + one section per net | final_checks_o30.sh check 12 re-hashes every cited file; render test `a/test_make_index.py` |
 | `o30_paired.py` (+ `o30_score_v3.exe --dump`) | paired holdout comparison of two nets: mean difference, its standard error (measurement error of the row set), z | S31 SE ~1.5e-6, jobA SE ~1.6e-5 on the job's nets |
 | `o30_joba_old.py` | the jobA val positions with their ORIGINAL 5k-node labels (separates label-fitting from a position shift) | boards equal to jobA_val.pos (printed) |
 | `prove_resume_fit.sh`, `fit_resume.sh` | trainer resume proof (interrupted + resumed run = uninterrupted run, bit for bit) / resume launcher | RESUME PROOF PASS (2026-11-03 19:01) |
@@ -30,7 +30,7 @@ CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / 
 | tool | what it is for | how to verify it |
 |---|---|---|
 | `o30_expose.py` -> `expose22.patch` | 22 more search constants as tune:: options, defaults = the lock's literals | pin_check -Full = lock pins; each option LIVE |
-| `tune_spsa.py` + `tune_spsa.ps1` | the SPSA tuner (params CSV, fastchess pairs, per-iteration CSV, resume, thread cap / CPU mask / gate check, deadline, stop event) | `selftest_10min.ps1 -Out <new dir>` prints SELFTEST PASS |
+| `tune_spsa.py` + `tune_spsa.ps1` | the SPSA tuner (params CSV, fastchess pairs, per-iteration CSV, resume, thread cap / CPU mask / gate check, deadline, stop event, stop at the C: 30 GB / D: 51 GB floors) | `selftest_10min.ps1 -Out <new dir>` prints SELFTEST PASS; `b/test_disk_low.py` = DISK FLOOR CHECK PASS |
 | `spsa_report.py` | report of a run: null-gradient sigma and z per parameter, convergence table at 10-100 %, SVG plot, TUNED_OPTIONS.txt / gate_options.txt | ran on selftest_2 |
 
 ## Shared (`opus_30h/tools/`, copies of R13-R15 tools with D:\o30 paths)
