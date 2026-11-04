@@ -60,3 +60,13 @@ No Elo claim: the crew gates (UHO [0,5] SPRT, 8moves_v3 confirm). Own games are 
 The 8 stc8 options at their start values on the SPSA exe 7bf5dab3: every name advertised with the CSV's range inside
 the option range, bench d11 / d13 / d16 = the lock pins (pin_check -Expect PASS) - the tuner's first batch starts from
 exactly the lock.
+
+## Inventory of the 41 constants the lock already advertises (plan B.1; `b/option_inventory.py`, lock exe, 20:5x-21:0x)
+Every option set explicitly to its default gives the lock pin (41 / 41). Moved by +-25 % (or +-1): 37 change bench d11
+at once. The other four: HistoryPruneDepth moves bench d13 (2: 862,381 vs 862,329); CaptureFutilityMultiplier /
+CaptureFutilityDepth act only when the feature is on (CaptureFutilityBase 0 = off by default; with Base 50: 312,043,
++ Multiplier 300: 312,256, + Depth 8: 312,038); QsSeeMargin is live only in steps of the exchange values it is compared
+with (`see_ge(move, -QsSeeMargin)`, piece-value units): 0 and 40 give the same search, 200 -> 350,185, 1000 -> 429,577
+nodes - a tuner with a small c on it would only see noise. Evidence `D:\o30\logs\option_inventory_lock.txt`.
+Option lists (`uci`, sorted): gate exe ff856ba8 = the lock's 61 options + EvalFileV2; SPSA exe 7bf5dab3 = the lock's
+61 + 22 (none removed); the O30Tuned test build = the SPSA exe's + O30Tuned.
