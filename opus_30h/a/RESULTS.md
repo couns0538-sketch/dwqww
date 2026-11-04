@@ -89,3 +89,15 @@ Kit v2.5 = kit v2.4 + workload v2n (opus_30h/kit25/README.md): the training work
 as a v2 file, so the v2 code gets a profile; its training log shows the v2 benches with exactly the v1 node counts
 (312866 / 862329 / 3024920). Exe `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` sha256
 ff856ba8a510921905e43a7505289b32ff9b3604186484fbf21f550bb0433210 (pc1 = pc2) = the gate exe for v2 nets.
+
+## Paired holdout comparisons (o30_score_v3.exe --dump + o30_paired.py; SE = measurement error of the fixed row set)
+| net vs the lock net | S31 b0.6 diff (SE, z) | jobA b0.6 diff (SE, z) |
+|---|---|---|
+| N1 at 76M (one-shard chunks) | -9.0e-6 (1.3e-6, -7.2) | -3.8e-5 (1.5e-5, -2.5) |
+| N1 at 95M | -9.9e-6 (1.3e-6, -7.3) | +1.10e-4 (1.5e-5, +7.2) |
+| old KB4 run at 65M (one-shard chunks) | -12.9e-6 (1.7e-6, -7.8) | +5.2e-5 (1.9e-5, +2.8) |
+Reading: on S31 the measurement error of a paired difference is ~1.5e-6, so these nets ARE better than the lock net on
+the lock net's own holdout (the 7.1e-6 seed spread is a different question: whether another run lands the same). On jobA
+(8,821 rows, 20k-node labels, positions of the early self-play files 001 / 002) the error is ~1.6e-5 and the 95M net is
+clearly WORSE: the one-shard chunks pulled the output layer toward whichever file it was reading. Rule refined (stricter
+than before, not looser): a net passes when its S31 b0.6 is >= 2e-5 below the lock net's AND its paired jobA z <= +2.

@@ -10,6 +10,7 @@
 // and counts rows where the two differ.
 // Rows with |score| >= --mate-cut (default 30000) are skipped and counted (Astra R13's mate-row definition).
 // usage: o30_score [--net <file.nnue2>] --pos <file.pos> --hce <file.hce> [--stride N] [--check-hce] [--mate-cut V]
+//        [--dump <new file>]   (per-row b0.6 squared errors, float64, -1 = skipped row; for paired comparisons)
 // Output: one JSON line.
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
@@ -78,6 +79,7 @@ int main(int argc, char** argv) {
     std::size_t stride = 1;
     bool check_hce = false;
     int mate_cut = 30000;
+    std::string dump_path;
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
         auto next = [&]() -> std::string { if (i + 1 >= argc) { std::cerr << "missing value for " << a << "\n"; std::exit(2); } return argv[++i]; };
@@ -87,6 +89,7 @@ int main(int argc, char** argv) {
         else if (a == "--stride") stride = static_cast<std::size_t>(std::stoul(next()));
         else if (a == "--check-hce") check_hce = true;
         else if (a == "--mate-cut") mate_cut = std::stoi(next());
+        else if (a == "--dump") dump_path = next();
         else { std::cerr << "unknown argument " << a << "\n"; return 2; }
     }
     if (pos_path.empty() || hce_path.empty() || stride == 0) {
@@ -114,6 +117,10 @@ int main(int argc, char** argv) {
     double sums[3] = {0, 0, 0};
     std::uint64_t used = 0, mates = 0, bad_fen = 0, hce_checked = 0, hce_diff = 0;
     auto acc = std::make_unique<forge::nnue::Accumulator>();
+    // --dump: the b0.6 squared error of every row as float64, -1 for a skipped row (a fixed row order, so two dumps
+    // of the same data compare row by row: o30_paired.py).
+    std::vector<double> dump;
+    if (!dump_path.empty()) dump.assign(static_cast<std::size_t>((n + stride - 1) / stride), -1.0);
     for (std::uint64_t r = 0; r < n; r += stride) {
         const auto score = static_cast<std::int16_t>(static_cast<std::uint16_t>(scores[2 * r] | (scores[2 * r + 1] << 8U)));
         const auto h = static_cast<std::int16_t>(static_cast<std::uint16_t>(hces[2 * r] | (hces[2 * r + 1] << 8U)));
@@ -142,6 +149,7 @@ int main(int argc, char** argv) {
         for (int b = 0; b < 3; ++b) {
             const double target = blends[b] * teacher + (1.0 - blends[b]) * stm_res;
             sums[b] += (pred - target) * (pred - target);
+            if (b == 1 && !dump.empty()) dump[static_cast<std::size_t>(r / stride)] = (pred - target) * (pred - target);
         }
         ++used;
     }
@@ -154,5 +162,12 @@ int main(int argc, char** argv) {
     if (check_hce) std::printf(", \"hce_checked\": %llu, \"hce_differs\": %llu", static_cast<unsigned long long>(hce_checked),
                                static_cast<unsigned long long>(hce_diff));
     std::printf("}\n");
+    if (!dump.empty()) {
+        std::FILE* f = std::fopen(dump_path.c_str(), "wbx");
+        if (f == nullptr) { std::cerr << "cannot create (or exists) " << dump_path << "\n"; return 2; }
+        const bool ok = std::fwrite(dump.data(), sizeof(double), dump.size(), f) == dump.size();
+        std::fclose(f);
+        if (!ok) { std::cerr << "short write " << dump_path << "\n"; return 2; }
+    }
     return 0;
 }
