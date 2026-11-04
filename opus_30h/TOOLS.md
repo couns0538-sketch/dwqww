@@ -35,6 +35,9 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 |---|---|---|
 | `o30_expose.py` -> `expose22.patch` | 22 more search constants as tune:: options, defaults = the lock's literals | pin_check -Full = lock pins; each option LIVE |
 | `tune_spsa.py` + `tune_spsa.ps1` | the SPSA tuner (params CSV, fastchess pairs, per-iteration CSV, resume, thread cap / CPU mask / gate check, deadline, stop event, stop at the C: 30 GB / D: 51 GB floors) | `selftest_10min.ps1 -Out <new dir>` prints SELFTEST PASS; `b/test_disk_low.py` = DISK FLOOR CHECK PASS |
+| `sim/test_spsa_sim.py [--cpus N]` (+ `sim/fake_fastchess.bat` / `.py`) | end-to-end simulation: the real tuner against a fake fastchess with a known optimum; checks direction (sign of W - L), option passing, PGN parsing, schedule, resume | SPSA SIM PASS (2026-11-03: A 100 -> 148 of 160, B 60 -> 21.1 of 20 in 1,000 pairs); run it on CPUs without another fastchess |
+| `option_inventory.py <exe> [--depth --pin --only]` | every advertised search constant: bench moves when changed, = the pin at its default | INVENTORY PASS on the lock (41 / 41 at default; all live, 4 only deeper / with their feature / in piece-value steps) |
+| `build_o30tuned.sh <TUNED_OPTIONS.txt> <run dir> <tag>` | from the session report to the checked one-switch exe (clone, patch, lint, kit pc1 = pc2, test_o30tuned) | last line O30TUNED EXE ... |
 | `o30_tuned_patch.py` + `test_o30tuned.sh` | one UCI check `O30Tuned` (default false) that sets a whole tuned set (true) or the lock values (false) on an expose22 tree | `test_o30tuned.sh <exe> <TUNED_OPTIONS.txt>` prints O30TUNED PASS (OFF pins, switch = explicit list, true then false = lock, invalid value rejected) |
 | `spsa_report.py` | report of a run: null-gradient sigma and z per parameter, convergence table at 10-100 %, SVG plot, TUNED_OPTIONS.txt / gate_options.txt | ran on selftest_2 |
 

@@ -53,3 +53,12 @@ Session 1 = a new run with a 5-minute deadline; session 2 = resumed and stopped 
 resumed for at most 2 pairs (3-minute deadline). Checks: every session exits 0; records = history rows; pair count and
 batch numbers continue across sessions; every theta inside its range; only normal game terminations; the config /
 params copies exist. Result on 2026-11-03 (`D:\o30\spsa\selftest_2`): 19 batches, 38 pairs, 3 sessions, SELFTEST PASS.
+
+## Simulation test (5 minutes, no engine games)
+```
+python -I -B sim\test_spsa_sim.py --cpus 0
+```
+The real tuner against a fake fastchess (`sim\fake_fastchess.bat`) whose results follow a model with a known optimum:
+both parameters must end at least twice as close to the optimum after 1,000 pairs, and a resume must continue the run.
+This is the check for the direction of the update (the sign of W - L), which short real games cannot show through
+their noise. Use CPUs without another fastchess (the tuner waits for those, by design). Result on 2026-11-03: PASS.
