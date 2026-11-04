@@ -71,3 +71,21 @@ Threads 2: success. (The run of f0023a88 was cancelled by the next push, not fai
 |---|---|---|---|---|
 | init 17:32 | 0 | 0.0143100 | 0.0045724 | 0.0132721 |
 | 17:57 | 7.61e7 | 0.0143010 (-9.0e-6) | 0.0045489 (-2.35e-5) | 0.0132339 (-3.8e-5) |
+| 18:05 (stopped for timing) | 9.50e7 | 0.0143001 (-9.9e-6) | 0.0045496 (-2.28e-5) | 0.0133822 (+1.11e-4) |
+
+N1 ends here: its chunks were 1M contiguous rows of ONE shard (61 consecutive batches from one stretch of one
+self-play file), and with the output layer at 4e-5 the jobA val loss jumped +1.5e-4 between two checkpoints. The loader
+now mixes 8 shards per chunk (`--mix 8`, default for new runs; old runs keep their stream exactly); N1b restarted from
+the lock net at 18:07 with mixed chunks and the output layer at x2 (lr 1e-5, cosine to 1e-7 over 1.6e9 positions).
+
+## Speed of the v2 path (advisory ABBA, `D:\o30\speed\*`, Idle, one CPU shared with the Idle npt trainer)
+| exe | v2 path (lock net as v2, node-identical) vs lock FD3A5190 | OFF path vs lock |
+|---|---|---|
+| plain build (no PGO), same exe both arms | 0.998 (CI 0.948-1.050) | - |
+| kit v2.3 df1f140b | 0.710 (CI 0.680-0.741) | - |
+| kit v2.4 -PartialTraining 8704d302 | 0.959 (CI 0.929-0.990) | 0.912 (CI 0.731-1.139, noisy) |
+| kit v2.5 workload v2n ff856ba8 | 1.066 (CI 0.987-1.152), median 1.085 | 1.021 (CI 0.906-1.152), median 0.996 |
+Kit v2.5 = kit v2.4 + workload v2n (opus_30h/kit25/README.md): the training workload also benches the lock net written
+as a v2 file, so the v2 code gets a profile; its training log shows the v2 benches with exactly the v1 node counts
+(312866 / 862329 / 3024920). Exe `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` sha256
+ff856ba8a510921905e43a7505289b32ff9b3604186484fbf21f550bb0433210 (pc1 = pc2) = the gate exe for v2 nets.

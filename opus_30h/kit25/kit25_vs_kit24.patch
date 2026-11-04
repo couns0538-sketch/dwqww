@@ -1,0 +1,103 @@
+--- kit/opus_r12/kit_v24/build_ltopgo.ps1	2026-10-30 22:52:10.000000000 -0700
++++ kit25/build_ltopgo.ps1	2026-11-03 18:00:38.233139700 -0800
+@@ -44,9 +44,10 @@
+   [int]$TrainTimeoutSec = 3600,
+   [int]$CheckTimeoutSec = 7200,
+   [switch]$Expose,
+-  [ValidateSet('v1','v2','v2t1')][string]$Workload = 'v1',
++  [ValidateSet('v1','v2','v2t1','v2n')][string]$Workload = 'v1',
+   [string]$NetE19 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e19_final_bf1e347c.nnue',
+   [string]$NetE9 = 'C:\Users\Administrator\grok-pc\forge_push\bin\r11_e9_best_5380f866.nnue',
++  [string]$NetV2 = 'D:\o30\nets\lockv2\lock_kbrank4_ob8.nnue2',
+   [switch]$PartialTraining,
+   [string[]]$CheckOptPins = @()
+ )
+@@ -63,11 +64,16 @@
+ $WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2.txt'; $NetsFile = Join-Path $Kit 'workload\nets_v2.txt'; $Driver = Join-Path $Kit 'tools\train_driver.py'
+ $WlV2Sha = '52B8299ED4A2412C5295ECA9438170AA9AF17C844FE528374033050931F6D2EE'
+ if ($Workload -eq 'v2t1') { $WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2t1.txt'; $WlV2Sha = 'DCA15F6620F8622AB0FBFEC29CB1A405607D394AAE831B0CC736B004A34767E2' }
++$NetsSha = '8448DAE96755CB65F8880226B9FCC0B3DDF8904B9435021F747E0E9C4E2C74D3'
++# v2.5 (Opus 30-h job): -Workload v2n = workload v1 + the same benches with EvalFileV2 = the lock net written as a v2
++# file (identical search trees, so the v2 evaluation code gets a profile); nets manifest nets_v2n.txt, net -NetV2.
++if ($Workload -eq 'v2n') { $WlV2File = Join-Path $Kit 'workload\frozen_train_cmds_v2n.txt'; $WlV2Sha = '57C8CF2EAF8208981329ADB0B7A509E42FDA5F19956F4A53371A1198A07FD672'; $NetsFile = Join-Path $Kit 'workload\nets_v2n.txt'; $NetsSha = '6DE8D8B4A52DE9461687750B08964C6BA1737DDF9E886688800FE6E63F4D1273' }
+ if ($Workload -ne 'v1') {
+   if ((Get-FileHash $WlV2File -Algorithm SHA256).Hash -ne $WlV2Sha) { throw "frozen workload $Workload sha256 mismatch" }
+-  if ((Get-FileHash $NetsFile -Algorithm SHA256).Hash -ne '8448DAE96755CB65F8880226B9FCC0B3DDF8904B9435021F747E0E9C4E2C74D3') { throw 'nets_v2 manifest sha256 mismatch' }
+-  if (@(Select-String -Path $WlV2File -Pattern '^setoption' | Where-Object { $_.Line -notmatch '^setoption name (Threads|EvalFileHalfKA) value ' }).Count) { throw 'workload v2 may only set Threads and EvalFileHalfKA' }
+-  foreach($toolPath in $Driver, $NetE19, $NetE9){ if (-not (Test-Path $toolPath)) { throw "missing: $toolPath" } }
++  if ((Get-FileHash $NetsFile -Algorithm SHA256).Hash -ne $NetsSha) { throw 'nets manifest sha256 mismatch' }
++  if (@(Select-String -Path $WlV2File -Pattern '^setoption' | Where-Object { $_.Line -notmatch '^setoption name (Threads|EvalFileHalfKA|EvalFileV2) value ' }).Count) { throw 'workload v2 may only set Threads, EvalFileHalfKA and EvalFileV2' }
++  $needNets = if ($Workload -eq 'v2n') { @($NetV2) } else { @($NetE19, $NetE9) }
++  foreach($toolPath in @($Driver) + $needNets){ if (-not (Test-Path $toolPath)) { throw "missing: $toolPath" } }
+ }
+ if ($CheckOptPins.Count -gt $CheckOpt.Count) { throw '-CheckOptPins has more entries than -CheckOpt' }
+ $leftovers = @(Get-ChildItem -Recurse -Force $SrcDir | Where-Object { ($_.PSIsContainer -and ($_.Name -like 'obj_*' -or $_.Name -like 'pgo_*')) -or (-not $_.PSIsContainer -and $_.Extension -in '.gcda','.o','.exe') })
+@@ -130,8 +136,9 @@
+     $wantBench = 3
+   } else {
+     # v2: the driver waits for bestmove/readyok; engine output -> train_engine_out.txt, driver log -> train_out.txt
+-    $trainRc = Invoke-Timed $Python @($Driver, "$Tree\forge_instr_$Tag.exe", $WlV2File, $NetsFile, (Join-Path $OutDir 'train_engine_out.txt'), '--net', "e19=$NetE19", '--net', "e9=$NetE9", '--timeout', "$TrainTimeoutSec") $null $TrainOut ($TrainTimeoutSec + 120)
+-    $wantBench = 9
++    $netArgs = if ($Workload -eq 'v2n') { @('--net', "lockv2=$NetV2") } else { @('--net', "e19=$NetE19", '--net', "e9=$NetE9") }
++    $trainRc = Invoke-Timed $Python (@($Driver, "$Tree\forge_instr_$Tag.exe", $WlV2File, $NetsFile, (Join-Path $OutDir 'train_engine_out.txt')) + $netArgs + @('--timeout', "$TrainTimeoutSec")) $null $TrainOut ($TrainTimeoutSec + 120)
++    $wantBench = if ($Workload -eq 'v2n') { 6 } else { 9 }
+   }
+   if ($trainRc -ne 0) { throw "training exe exit $trainRc" }
+   $trainEnd = Get-Date
+@@ -154,7 +161,8 @@
+   Say "gcda_manifest_nohdr sha256 $nohdrSha (record only; first 12 header bytes stripped, value-profile counters may still differ)"
+   $SummaryRows.Add("expose $([bool]$Expose)")
+   $SummaryRows.Add("workload $Workload partial_training $([bool]$PartialTraining)")
+-  if ($Workload -ne 'v1') { $SummaryRows.Add("nets e19 $((Get-FileHash $NetE19 -Algorithm SHA256).Hash) e9 $((Get-FileHash $NetE9 -Algorithm SHA256).Hash)") }
++  if ($Workload -eq 'v2n') { $SummaryRows.Add("nets lockv2 $((Get-FileHash $NetV2 -Algorithm SHA256).Hash)") }
++  elseif ($Workload -ne 'v1') { $SummaryRows.Add("nets e19 $((Get-FileHash $NetE19 -Algorithm SHA256).Hash) e9 $((Get-FileHash $NetE9 -Algorithm SHA256).Hash)") }
+   $SummaryRows.Add("gcda_manifest sha256 $gcdaSha (record only)"); $SummaryRows.Add("gcda_manifest_nohdr sha256 $nohdrSha (record only)")
+   $ArcsManifest = Join-Path $OutDir 'gcda_arcs_manifest.txt'
+   if ($HaveGcovDump) {
+--- kit/opus_r12/kit_v24/tools/train_driver.py	2026-10-30 22:52:10.000000000 -0700
++++ kit25/tools/train_driver.py	2026-11-03 18:00:38.233139700 -0800
+@@ -6,7 +6,7 @@
+ Workload v1 is plain stdin (bench only). v2 also has `go` searches at Threads=2, and a `go` is stopped by the next UCI
+ command, so v2 needs a driver that waits for `bestmove` before it sends the next line. Rules:
+   - {NET:name} placeholders are replaced by the --net path; that file's full sha256 must equal the manifest's.
+-  - Only `setoption name Threads` and `setoption name EvalFileHalfKA` are allowed (all other options stay at default).
++  - Only `setoption name Threads`, `EvalFileHalfKA` and (kit v2.5) `EvalFileV2` are allowed (all other options stay at default).
+   - Waits: uci -> uciok, isready -> readyok, bench N -> 'bench depth N nodes', go -> bestmove, quit -> process exit 0.
+   - Every EvalFileHalfKA setoption must print 'info string EvalFileHalfKA loaded' (no ERROR) before the next readyok.
+ Writes the engine output to OUT_TXT and the resolved input to OUT_TXT.input.txt (LF). Exit 0 only if all checks pass.
+@@ -20,7 +20,7 @@
+ import threading
+ import time
+ 
+-ALLOWED_SETOPTION = re.compile(r"^setoption name (Threads|EvalFileHalfKA) value \S")
++ALLOWED_SETOPTION = re.compile(r"^setoption name (Threads|EvalFileHalfKA|EvalFileV2) value \S")
+ 
+ 
+ def die(msg):
+@@ -123,7 +123,7 @@
+                 die("engine exited while waiting for " + rx)
+             if got.startswith("info string ERROR"):
+                 die("engine error: " + got)
+-            if got.startswith("info string EvalFileHalfKA loaded"):
++            if got.startswith("info string EvalFileHalfKA loaded") or got.startswith("info string EvalFileV2 loaded"):
+                 pending_load -= 1
+                 counts["load"] += 1
+             if r.search(got):
+@@ -146,7 +146,7 @@
+         elif cmd == "go":
+             wait_for(r"^bestmove ")
+             counts["go"] += 1
+-        elif l.startswith("setoption name EvalFileHalfKA"):
++        elif l.startswith("setoption name EvalFileHalfKA") or l.startswith("setoption name EvalFileV2"):
+             pending_load += 1
+     proc.stdin.close()
+     try:
+@@ -158,7 +158,7 @@
+         pass
+     log.close()
+     want_counts = {"bench": sum(l.startswith("bench ") for l in lines), "go": sum(l.startswith("go ") for l in lines),
+-                   "load": sum(l.startswith("setoption name EvalFileHalfKA") for l in lines)}
++                   "load": sum(l.startswith("setoption name EvalFileHalfKA") or l.startswith("setoption name EvalFileV2") for l in lines)}
+     print("counts bench %(bench)d go %(go)d load %(load)d" % counts, flush=True)
+     if counts != want_counts:
+         die("counts %s != workload %s" % (counts, want_counts))

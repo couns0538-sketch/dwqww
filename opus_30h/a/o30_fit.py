@@ -83,14 +83,11 @@ class Data:
                 self.override.append(None)
         self.block = block
         self.seed = seed
+        self.mix = 1
 
-    def chunk(self, c):
-        """rows of chunk c: (boards uint8 (m,32), score int16, meta uint8, hce int16), shuffled; deterministic in (seed, c)."""
-        rng = np.random.default_rng([self.seed, c])
-        s = int(rng.choice(len(self.shards), p=self.rows / self.rows.sum()))
+    def _piece(self, s, start, m):
+        """rows [start, start + m) of shard s, overrides applied, skipped rows dropped."""
         n = int(self.rows[s])
-        m = min(self.block, n)
-        start = int(rng.integers(0, n - m + 1))
         boards = np.fromfile(self.pos[s], np.uint8, count=32 * m, offset=16 + 32 * start).reshape(m, 32)
         score = np.fromfile(self.pos[s], '<i2', count=m, offset=16 + 32 * n + 2 * start).astype(np.int16)
         meta = np.fromfile(self.pos[s], np.uint8, count=m, offset=16 + 34 * n + start)
@@ -103,8 +100,36 @@ class Data:
         sk = self.skip[s]
         sk = sk[(sk >= start) & (sk < start + m)]
         keep[sk - start] = False
-        order = rng.permutation(np.flatnonzero(keep))
-        return self.shards[s], start, boards[order], score[order], meta[order], hce[order]
+        k = np.flatnonzero(keep)
+        return boards[k], score[k], meta[k], hce[k]
+
+    def chunk(self, c):
+        """rows of chunk c: (boards uint8 (m,32), score int16, meta uint8, hce int16), shuffled; deterministic in (seed, c).
+        mix = 1 (runs created before the mix option): one block of `block` rows from one shard (weighted by rows).
+        mix = k: k blocks of block / k rows from k shards drawn with replacement (weighted by rows), shuffled together,
+        so the batches of a chunk are not all from one stretch of one self-play file."""
+        rng = np.random.default_rng([self.seed, c])
+        p = self.rows / self.rows.sum()
+        if self.mix <= 1:
+            s = int(rng.choice(len(self.shards), p=p))
+            n = int(self.rows[s])
+            m = min(self.block, n)
+            start = int(rng.integers(0, n - m + 1))
+            b, sc, me, h = self._piece(s, start, m)
+            order = rng.permutation(len(sc))
+            return self.shards[s], start, b[order], sc[order], me[order], h[order]
+        parts = []
+        names = []
+        for _ in range(self.mix):
+            s = int(rng.choice(len(self.shards), p=p))
+            n = int(self.rows[s])
+            m = min(self.block // self.mix, n)
+            start = int(rng.integers(0, n - m + 1))
+            parts.append(self._piece(s, start, m))
+            names.append(self.shards[s][-3:])
+        b, sc, me, h = (np.concatenate([pt[i] for pt in parts]) for i in range(4))
+        order = rng.permutation(len(sc))
+        return '+'.join(names), 0, b[order], sc[order], me[order], h[order]
 
 
 def features(boards, stm, kmap, mirror):
@@ -189,7 +214,7 @@ def train(a):
         os.makedirs(os.path.join(run, 'nets'))
         cfg = {k: getattr(a, k) for k in ('data', 'pos_dir', 'hce_dir', 'init', 'kb_map', 'ob', 'stand_alone', 'blend', 'lr',
                                            'lr_end', 'positions', 'batch', 'block', 'save_minutes', 'seed', 'until', 'mirror',
-                                           'lr_out_mult')}
+                                           'lr_out_mult', 'mix')}
         cfg['created'] = time.strftime('%Y-%m-%d %H:%M:%S')
         with open(os.path.join(run, 'config.json'), 'w', newline='\n') as f:
             json.dump(cfg, f, indent=1)
@@ -207,6 +232,7 @@ def train(a):
         opt.load_state_dict(ck['opt'])
         state = ck['state']
     data = Data(cfg['data'], cfg['pos_dir'], cfg['hce_dir'], cfg['block'], cfg['seed'])
+    data.mix = int(cfg.get('mix', 1))   # runs from before the option keep their one-shard chunks
     omap = np.array(output_map(cfg['ob']), np.int64)
     deadline = dt.datetime.strptime(cfg['until'].replace('T', ' '), '%Y-%m-%d %H:%M') if cfg['until'] else None
     lim = 32767.0 / 4096.0
@@ -395,6 +421,7 @@ def main():
     t.add_argument('--lr', type=float, default=1e-4)
     t.add_argument('--lr-end', type=float, default=1e-6)
     t.add_argument('--lr-out-mult', type=float, default=1.0)
+    t.add_argument('--mix', type=int, default=8, help='shards per chunk (1 = one block of one shard)')
     t.add_argument('--positions', type=float, default=None)
     t.add_argument('--batch', type=int, default=16384)
     t.add_argument('--block', type=int, default=1_000_000)
