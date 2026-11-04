@@ -21,12 +21,19 @@ LOCK=/c/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.ex
 m=0; for c in ${cpus//,/ }; do m=$((m | (1 << c))); done; MASK=$(printf '0x%X' "$m")
 AMASK=$(printf '0x%X' $((1 << ${cpus%%,*})))
 echo "cpus $cpus -> smoke mask $MASK, abba mask $AMASK, sanity conc $conc"
+# pin this shell first (review R-T1): the python summaries below inherit Idle + the CPU list (fail closed)
+. "$T/idle.sh"; o30_pin_self "$MASK" || { echo "net_final_checks: cannot pin to Idle / $MASK (fail closed)" >&2; exit 78; }
 fail=0
 "$PY" -I -B "$T/smoke2m.py" "$EW" --line "EvalFileV2=$NF" --seconds 300 --threads 2 --hash 16 --mask "$MASK" --idle \
   --out "$(cygpath -w "$out/smoke_300s")" > "$out/smoke_300s.txt" 2>&1 || fail=1
 "$PY" -I -B "$T/abba.py" --out "$(cygpath -w "$out/abba_nps")" --a "printf 'bench 16\nquit\n' | $LOCK" \
   --b "printf 'setoption name EvalFileV2 value $NF\nbench 16\nquit\n' | $exe" --pairs 6 --metric 'nps (\d+)' \
-  --higher-better --mask "$AMASK" --priority Idle > "$out/abba_nps.txt" 2>&1 || fail=1
+  --identity 'bench depth 16 nodes (\d+)' --higher-better --mask "$AMASK" --priority Idle > "$out/abba_nps.txt" 2>&1 || fail=1
+# every B run must have loaded the net (an unloadable net prints ERROR and benches the compiled-in net instead)
+nb=$(grep -l 'info string EvalFileV2 loaded' "$out"/abba_nps/runs/*_B.txt 2>/dev/null | wc -l)
+ne=$(grep -l 'ERROR' "$out"/abba_nps/runs/*_B.txt 2>/dev/null | wc -l)
+if [ "$nb" -ge 6 ] && [ "$ne" = 0 ]; then echo "abba: net loaded in all $nb B runs" >> "$out/abba_nps.txt"
+else echo "abba: net loaded in $nb B runs, ERROR in $ne - the speed figure is not this net's" | tee -a "$out/abba_nps.txt"; fail=1; fi
 "$PY" -I -B "$A/sanity_match.py" --out "$(cygpath -w "$out/sanity")" --cand-exe "$EW" --cand-opt "EvalFileV2=$NF" \
   --games "$games" --conc "$conc" --cpus "$cpus" > "$out/sanity_run.txt" 2>&1 || fail=1
 "$PY" -I -B "$T/gate_summary.py" "$(cygpath -w "$out/sanity")" --json "$(cygpath -w "$out/sanity_summary.json")" > "$out/sanity_summary.txt" 2>&1
@@ -38,7 +45,7 @@ def tail(p, n=6):
         return [l.rstrip() for l in open(p, encoding='utf-8', errors='replace')][-n:]
     except OSError:
         return []
-rec = {'smoke_300s': tail(f'{out}/smoke_300s.txt', 4), 'abba_nps': [l for l in tail(f'{out}/abba_nps.txt', 12) if 'geometric' in l or 'median' in l],
+rec = {'smoke_300s': tail(f'{out}/smoke_300s.txt', 4), 'abba_nps': [l for l in tail(f'{out}/abba_nps.txt', 14) if 'geometric' in l or 'median' in l or 'net loaded' in l],
        'sanity': tail(f'{out}/sanity_summary.txt', 12), 'sanity_only_never_an_elo_claim': True, 'checks_passed': fail == '0'}
 with open(f'{out}/FINAL_CHECKS.json', 'x', newline='\n') as f:
     json.dump(rec, f, indent=1)

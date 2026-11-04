@@ -296,3 +296,15 @@ CPUs 0-3 (the only cores without BelowNormal gate work) and preempts Idle thread
 window were a sleep loop; n2L's checkpoint scoring came later (done 21:36:39). Reading: environment noise hitting both
 sides; kept as is (same settings for both candidates, so the two matches stay comparable); the 5-minute smoke (the
 prompt's "0 time loss" check) passed. The match is sanity only either way.
+
+## n2e play checks - final (2026-11-03 20:12 -> 23:58, CPU 1; FINAL_CHECKS.json)
+- 400-game sanity match vs the lock, 10+0.1, Threads 1, UHO, conc 1: **79 / 213 / 108, Elo -25.2 +/- 18.5** (nElo
+  -46.6 +/- 34.1, pentanomial [4, 62, 94, 39, 1]); time forfeits 3 (lock 2, candidate 1; the 21:3x stalls above);
+  0 illegal, 0 crashes; mean depth per move equal (20.1 vs 20.1). SANITY ONLY - but about 2.7 standard errors below
+  zero: the offline gain on S31 (5k-node labels, z -34) did NOT show up as play at 10+0.1. The deeper-label set pointed
+  the same way (jobA +2.2e-5, z +1.23): read with the old-vs-new-label analysis above, n2e fits the 5k-node self-play
+  labels better without being better on deeper labels. The offline rule (S31 AND jobA z <= 2) was too weak a filter.
+- A/A noise floor of the per-net ABBA (same conditions: CPU 1, n2L training on CPU 0): the lock vs a byte-identical copy,
+  6 pairs bench 16: 0.945 (CI 0.906-0.985), median 0.942 - identical binaries read ~5 % apart here (per-file effect,
+  as in R5B), so the 0.90 of n2e is within ~5 % of that bias band; speed figures from this PC stay advisory.
+- Walk on n2e (plan phase 1 asked for 1M plies): 4000 games, 1,106,215 plies, 139,267 king-key changes, 0 mismatches.
