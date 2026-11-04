@@ -1,0 +1,180 @@
+{
+ "schema": 1,
+ "status": "UNVERIFIED",
+ "scoped_checks": "PASS",
+ "authentic_game_ids": "UNVERIFIED",
+ "why_not_pass": "The npt-data-holdout-check audit returns UNVERIFIED when game_id is null, and every one of its 17,385,720 rows has none (no authentic game IDs exist). r14_scan.final_verdict(authenticated=False, complete, overlaps=0) is UNVERIFIED too.",
+ "checks": {
+  "position_overlap_vs_013_014": {
+   "status": "PASS",
+   "keys": {
+    "board_stm": {
+     "train": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     },
+     "val": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     }
+    },
+    "four_field_raw": {
+     "train": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     },
+     "val": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     }
+    },
+    "four_field_ep_normalised": {
+     "train": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     },
+     "val": {
+      "hash_candidates": 0,
+      "exact_overlap_rows": 0
+     }
+    }
+   },
+   "key_fill_rate": {
+    "holdout": 1.0,
+    "staged": 1.0
+   }
+  },
+  "train_val_overlap": {
+   "status": "PASS",
+   "rows": {
+    "board_stm": 0,
+    "four_field_raw": 0,
+    "four_field_ep_normalised": 0
+   }
+  },
+  "cross_split_chain_links_within_k": {
+   "status": "PASS",
+   "links": 0,
+   "cut_link": {
+    "code": 1,
+    "reason": "nonpositive_ply_gap",
+    "status": "UNREACHABLE"
+   },
+   "k": 8,
+   "min_retained_ply_distance": {
+    "left": 11,
+    "right": 9,
+    "k": 8
+   },
+   "scope": "observed adjacent-row links of the pinned jobA map only; no claim about interleaving, omitted continuations or nonadjacent relations"
+  },
+  "row_accounting": {
+   "status": "PASS",
+   "rows": 999921,
+   "train": 987194,
+   "val": 9951,
+   "dropped": 2776,
+   "cut_row_id": 989931
+  },
+  "payload_and_mate_rows": {
+   "status": "PASS",
+   "mismatched_rows": 0,
+   "mate_rows": 0
+  },
+  "npt_data_holdout_check_audit": {
+   "status": "UNVERIFIED",
+   "exit_code": 2,
+   "counters": {
+    "position_overlap_rows": 0,
+    "game_overlap_rows": 0,
+    "state_mismatch_rows": 0,
+    "unknown_game_id_rows": 17385720,
+    "source_rows": 999921,
+    "training_rows": 997145,
+    "holdout_rows": {
+     "forge_selfplay_013.jsonl": 10000000,
+     "forge_selfplay_014.jsonl": 6388575
+    }
+   },
+   "report": {
+    "path": "C:\\a14x\\guardband01_proof\\audit\\audit.json",
+    "md5": "1556e010d237d3e7b9f952bb50a8a305"
+   },
+   "tool_md5": "a9e291fbe51c18d4d211e0b00c458f16"
+  }
+ },
+ "split": {
+  "cut": {
+   "row_id": 989931,
+   "source_file": "forge_selfplay_002.txt",
+   "line": 523426,
+   "link_code": 1,
+   "link_reason": "nonpositive_ply_gap",
+   "link_status": "UNREACHABLE",
+   "left_endpoint": {
+    "row_id": 989930,
+    "ply": 123
+   },
+   "right_endpoint": {
+    "row_id": 989931,
+    "ply": 8
+   }
+  },
+  "retained": {
+   "train": 987194,
+   "val": 9951
+  },
+  "dropped_by_reason": {
+   "guard_left/train": 5,
+   "guard_right/val": 7,
+   "holdout_board_stm/train": 47,
+   "mate_score/train": 2685,
+   "mate_score/val": 32
+  },
+  "dropped_listing": {
+   "path": "D:\\a14\\sep\\guardband01\\DROPPED.tsv",
+   "md5": "b134521039739137e02d59e2eb7f4fd5"
+  },
+  "k": 8,
+  "val_fraction": 0.01
+ },
+ "export": {
+  "built": false,
+  "reason": "Job 3 step 6 builds the export only on a PASS proof; the proof is UNVERIFIED. Couns decides whether the guard-band evidence is enough for training.",
+  "staged_candidate": {
+   "train.txt": {
+    "path": "C:\\a14x\\guardband01_stage\\train.txt",
+    "md5": "2ab776b02dc100c52d4a741bcd3c6fa0",
+    "bytes": 63524376
+   },
+   "train.rowids": {
+    "path": "C:\\a14x\\guardband01_stage\\train.rowids",
+    "md5": "c3171e3882f31cfb1ffd0103548c06bb",
+    "bytes": 6799612
+   },
+   "val.txt": {
+    "path": "C:\\a14x\\guardband01_stage\\val.txt",
+    "md5": "2b02b68e7f558ea226885ae0c8135c1b",
+    "bytes": 646288
+   },
+   "val.rowids": {
+    "path": "C:\\a14x\\guardband01_stage\\val.rowids",
+    "md5": "3edab5f17bfc86406f5aecd11e64e622",
+    "bytes": 69657
+   }
+  },
+  "promote_command": "D:\\a14\\runtime\\python\\python.exe -I -B D:\\a14\\tools\\opus_promote_export.py --confirm-owner-decision"
+ },
+ "evidence": {
+  "split": {
+   "path": "D:\\a14\\sep\\guardband01\\SPLIT.json",
+   "md5": "f2304604a07ceab3d8baca0da3661a26"
+  },
+  "proof": {
+   "path": "D:\\a14\\sep\\guardband01\\PROOF.json",
+   "md5": "04da3cfa633aceeccd89dda67edf6837"
+  },
+  "plan": "D:/a14/sep/GUARD_BAND_PLAN.md"
+ },
+ "written_vienna": "2026-11-04 10:24 Vienna"
+}
