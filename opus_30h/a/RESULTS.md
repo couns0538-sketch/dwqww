@@ -409,3 +409,15 @@ After the two matches (~06:40), ~100 games each, metric = mean depth gap at equa
 - D-b, CPU 1: the gate exe with EvalFileV2 EMPTY (the lock's own v1 path, in the kit v2.5 build) vs the lock. Gap ~0
   expected; a gap -> the kit v2.5 build itself costs speed.
 Then fix what they name, prove the fix with one more ~100-game depth check, hard stop for this work at ~12:00.
+
+## Interim at ~278 games (2026-11-04 05:31): the control loses too
+| match | games | score | Elo (sanity) | depth cand / lock |
+|---|---|---|---|---|
+| control (v2 exe + lock net as KB4 replicas, identical evaluation) | 277 | 50 / 149 / 78 | -34.1 +/- 22.6 | 20.51 / 20.62 |
+| n2L | 279 | 63 / 146 / 70 | -8.8 +/- 23.4 | 19.80 / 19.93 |
+| n2e (final) | 400 | 79 / 213 / 108 | -25.2 +/- 18.5 | 20.15 / 20.27 |
+The control, whose evaluation and search tree equal the lock's, is ~3 standard errors below zero: the v2 EXE costs Elo
+in timed play. Measured against the control instead of the lock, the trained nets read n2e ~ +9 +/- 29 and n2L ~ +25 +/-
+32 - noise-compatible, but they say the "S31 does not predict play" reading of n2e's match may be wrong: n2e and n2L
+may be better evaluations carrying the exe's handicap. The depth gap alone suggests ~8 Elo (0.13 ply, ~9 % time), so
+part of the control's -34 is probably noise; the finals come at ~06:40, then the speed discriminators.
