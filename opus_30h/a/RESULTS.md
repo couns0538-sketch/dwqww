@@ -490,3 +490,15 @@ engines in their own long-lived process (hash, history and correction tables evo
 that match ply by ply with `go nodes 20000`: the lock exe and the gate exe v2p4 with the lock net as KB4 replicas give
 the SAME bestmove, score and node count at all 519 plies (LOCKSTEP PASS). So the control's search is identical to the
 lock's; with equal depth in games, any score away from 0 is timing noise and chance - the full 400 games decide.
+
+## Rematches on v2p4 - final (400 games each, 10+0.1, UHO, Threads 1, Hash 16; sanity only, no Elo claim; 2026-11-04 11:54)
+| match (gate exe v2p4 a2a560cb, CPU) | W / L / D | Elo vs the lock exe | pentanomial |
+|---|---|---|---|
+| n2L (`D:\o30\nets\o30_kb4ob8_n2L\sanity_v2p4`, CPU 0) | 97 / 94 / 209 | +2.6 +/- 19.2 | [1, 57, 82, 58, 2] |
+| control: the lock net as KB4 replicas (`D:\o30\control\lockkb4_v2p4`, CPU 1) | 83 / 107 / 210 | -20.9 +/- 18.5 | [5, 55, 101, 37, 2] |
+Both engines searched the same mean depth in both matches (control 20.82 vs 20.85, n2L 19.86 vs 19.89 at 256 games).
+Reading: the control's evaluation and search are identical to the lock's (lockstep 519 plies at 20k nodes and, since
+10:45, 727 plies at 200k nodes over 5 games: a/logs/bughunt/lockstep_200k_5g.out), so its deficit is the v2p4 exe's
+speed (kit v2.5 build, a QA item) plus chance; the earlier v2p3 control was -32.2 +/- 18.5. n2L minus the control =
++23.5 +/- 26.6 (two independent matches): the net's own effect on equal footing, the same reading as on v2p3
+(+22.6 +/- 26.6). Neither number is significant on its own; both point the same way.
