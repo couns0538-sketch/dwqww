@@ -1,0 +1,141 @@
+diff --git a/crates/bullet_lib/src/value.rs b/crates/bullet_lib/src/value.rs
+index e7321f1..ed0876b 100644
+--- a/crates/bullet_lib/src/value.rs
++++ b/crates/bullet_lib/src/value.rs
+@@ -41,6 +41,7 @@ pub struct ValueTrainerState<Inp: SparseInputType, Out> {
+     output_getter: Out,
+     blend_getter: B<Inp>,
+     weight_getter: Option<Wgt<Inp>>,
++    base_getter: Option<Wgt<Inp>>,
+     saved_format: Vec<SavedFormat>,
+     use_win_rate_model: bool,
+     wdl: bool,
+@@ -58,6 +59,7 @@ where
+         let inp = self.input_getter.clone();
+         let out = self.output_getter;
+         let wget = self.weight_getter;
++        let bget = self.base_getter;
+         let target_wdl = self.wdl;
+         let blend_getter = self.blend_getter;
+         let use_win_rate_model = self.use_win_rate_model;
+@@ -74,7 +76,9 @@ where
+             .add_dense("targets", (if target_wdl { 3 } else { 1 }, 1))
+             .add_dense("entry_weights", (1, 1));
+ 
+-        ModelInputsMapper::build(&inputs, move |pos, step, ((((stm, ntm), buckets), targets), weights)| {
++        macro_rules! fill {
++            ($pos:ident, $step:ident, $stm:ident, $ntm:ident, $buckets:ident, $targets:ident, $weights:ident) => {{
++                let (pos, step, stm, ntm, buckets, targets, weights) = ($pos, $step, $stm, $ntm, $buckets, $targets, $weights);
+             let mut cnt = 0;
+             inp.map_features(pos, |our, opp| {
+                 assert!(our < num && opp < num, "Input feature index exceeded input size!");
+@@ -114,7 +118,20 @@ where
+                 assert!((0.0..=1.0).contains(&blend), "WDL proportion must be in [0, 1]");
+                 targets[0] = blend * result + (1. - blend) * score;
+             }
+-        })
++            }};
++        }
++
++        if let Some(bg) = bget {
++            let inputs = inputs.add_dense("base", (1, 1));
++            ModelInputsMapper::build(&inputs, move |pos, step, (((((stm, ntm), buckets), targets), weights), base)| {
++                fill!(pos, step, stm, ntm, buckets, targets, weights);
++                base[0] = bg(pos);
++            })
++        } else {
++            ModelInputsMapper::build(&inputs, move |pos, step, ((((stm, ntm), buckets), targets), weights)| {
++                fill!(pos, step, stm, ntm, buckets, targets, weights);
++            })
++        }
+     }
+ 
+     pub fn make_read_map_loader<D>(
+diff --git a/crates/bullet_lib/src/value/builder.rs b/crates/bullet_lib/src/value/builder.rs
+index 7fd4cf4..d428424 100644
+--- a/crates/bullet_lib/src/value/builder.rs
++++ b/crates/bullet_lib/src/value/builder.rs
+@@ -26,6 +26,7 @@ pub struct ValueTrainerBuilder<O, I: SparseInputType, P, Out> {
+     output_buckets: Out,
+     blend_getter: B<I>,
+     weight_getter: Option<Wgt<I>>,
++    base_getter: Option<Wgt<I>>,
+     loss_fn: Option<LossFn>,
+     wdl_output: bool,
+     use_win_rate_model: bool,
+@@ -46,6 +47,7 @@ where
+             output_buckets: NoOutputBuckets,
+             blend_getter: |_, wdl| wdl,
+             weight_getter: None,
++            base_getter: None,
+             loss_fn: None,
+             wdl_output: false,
+             use_win_rate_model: false,
+@@ -110,6 +112,14 @@ where
+         self
+     }
+ 
++    /// Residual training: a per-datapoint value added to the network output before the loss (in output units,
++    /// i.e. logits for a sigmoid loss). The saved network is the output without it.
++    pub fn residual_base(mut self, f: Wgt<I>) -> Self {
++        assert!(self.base_getter.is_none(), "Residual base function already set!");
++        self.base_getter = Some(f);
++        self
++    }
++
+     pub fn use_win_rate_model(mut self) -> Self {
+         self.use_win_rate_model = true;
+         self
+@@ -152,6 +162,7 @@ where
+                 output_getter: buckets,
+                 blend_getter: self.blend_getter,
+                 weight_getter: self.weight_getter,
++                base_getter: self.base_getter,
+                 use_win_rate_model: self.use_win_rate_model,
+                 wdl: self.wdl_output,
+                 saved_format,
+@@ -167,11 +178,13 @@ where
+         Out::Inner: OutputBuckets<I::RequiredDataType>,
+     {
+         let loss = self.loss_fn.expect("Loss function not specified!");
++        let has_base = self.base_getter.is_some();
+ 
+-        self.build_custom_internal(|inputs, nnz, targets, builder| {
++        self.build_custom_internal(move |inputs, nnz, targets, builder| {
+             let out = f(inputs, nnz, builder);
++            let pred = if has_base { out + builder.new_dense_input("base", (1, 1)) } else { out };
+ 
+-            let raw_loss = loss(out, targets);
++            let raw_loss = loss(pred, targets);
+ 
+             assert_eq!(raw_loss.shape(), Shape::new(1, 1));
+ 
+@@ -235,6 +248,7 @@ where
+             output_buckets: self.output_buckets,
+             blend_getter: self.blend_getter,
+             weight_getter: self.weight_getter,
++            base_getter: self.base_getter,
+             loss_fn: self.loss_fn,
+             wdl_output: self.wdl_output,
+             use_win_rate_model: self.use_win_rate_model,
+@@ -263,6 +277,7 @@ where
+             output_buckets: OutputBucket(buckets),
+             blend_getter: self.blend_getter,
+             weight_getter: self.weight_getter,
++            base_getter: self.base_getter,
+             loss_fn: self.loss_fn,
+             wdl_output: self.wdl_output,
+             use_win_rate_model: self.use_win_rate_model,
+diff --git a/crates/bullet_lib/src/value/loader.rs b/crates/bullet_lib/src/value/loader.rs
+index ede3fae..3532f1e 100644
+--- a/crates/bullet_lib/src/value/loader.rs
++++ b/crates/bullet_lib/src/value/loader.rs
+@@ -10,6 +10,8 @@ pub use montybinpack::MontyBinpackLoader;
+ pub use sfbinpack::SfBinpackLoader;
+ pub use text::InMemoryTextLoader;
+ pub use viribinpack::{ViriBinpackLoader, ViriFilter};
++// Opus 30-h job (private copy): own readers outside this crate implement this trait.
++pub use bullet_trainer::reader::DataReader;
+ 
+ use bulletformat::BulletFormat;
+ 
