@@ -168,4 +168,5 @@ OB8, every bucket a copy): bench d11 / d13 / d16 / d20 / d22 = the lock pins exa
 | 19:28 | 7.06e7 | 0.0142976 (-1.24e-5) | 0.0045798 (+7.4e-6) | 0.0133952 (+1.23e-4) |
 
 The jobA drift differs a lot between runs of the same shape (decider n2e at 8.1e7: -7.6e-6; n2L at 7.1e7: +1.23e-4):
-the early-file positions are a small, out-of-distribution set; S31 (the lock net's own split) stays the primary metric.
+the early-file positions are a small, out-of-distribution set. The written rule is NOT changed by this: a delivered net
+passes only with S31 b0.6 <= -2e-5 AND a paired jobA z <= +2; a net that fails it is still packaged, marked as failing.
