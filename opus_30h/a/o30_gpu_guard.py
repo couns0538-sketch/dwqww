@@ -26,7 +26,10 @@ import time
 import psutil
 
 CSV = r'C:\Users\Administrator\grok-pc\nnue\tools\hwinfo\gpu_sensors.csv'
-NPT_MARKS = ('forge_j1_data', 'nnue-pytorch', 'forge_nnue_train')   # npt binpack, trainer tree, run root
+# npt binpack, trainer tree, run root, and the npt interpreter / venv tree F:\nnue_pytorch (review G-002). The npt
+# launch line seen on 2026-11-04 10:06 contains the first three; any python whose command line names one of these, or
+# cannot be read, makes the guard suspend the own trainer - never put these strings on an own python command line.
+NPT_MARKS = ('forge_j1_data', 'nnue-pytorch', 'forge_nnue_train', 'nnue_pytorch')
 
 
 def now():
@@ -119,48 +122,64 @@ def main():
     say(f'start trainer pid {child.pid} mask {a.mask} cmd {" ".join(cmd)}')
     suspended, reason, hold_until = False, '', 0.0
     hard_h = a.test_hot if a.test_hot else None
-    stats = dict(suspends=0, suspended_seconds=0.0)
-    t_susp = 0.0
+    stats = dict(suspends=0, suspended_seconds=0.0, errors=0)
+    t_susp, last_note = 0.0, 0.0
     try:
         while child.poll() is None:
-            v = feed.read()
-            npt = npt_like()
-            want, why = False, ''
-            if npt:
-                want, why = True, f'npt-like process {npt}'
-            elif v is None:
-                want, why = True, 'sensor feed stale/unreadable'
-            else:
-                hot, mj, pwm, util = v
-                fan = pwm >= 35
-                hh, hm, rh, rm = (76, 86, 72, 83) if fan else (74, 85, 70, 82)
-                if hard_h:
-                    hh, rh = hard_h, hard_h - 3
-                if hot >= 78 or mj >= 88:
-                    want, why, hold_until = True, f'EMERGENCY hot {hot} memj {mj}', time.time() + 60
-                elif hot >= hh or mj >= hm:
-                    want, why = True, f'HARD hot {hot} memj {mj} (limits {hh}/{hm})'
-                elif suspended and (hot > rh or mj > rm or time.time() < hold_until):
-                    want, why = True, f'cooling hot {hot} memj {mj} (resume <= {rh}/{rm})'
-            if want and not suspended:
-                if proc.is_running():
-                    proc.suspend()
-                    suspended, t_susp = True, time.time()
-                    stats['suspends'] += 1
-                    say(f'SUSPEND: {why}')
-            elif not want and suspended:
-                if proc.is_running():
-                    proc.resume()
-                    stats['suspended_seconds'] += time.time() - t_susp
-                    suspended = False
-                    say(f'RESUME: hot {v[0]} memj {v[1]}' if v else 'RESUME')
+            # review G-003: an error in one poll is logged and the next poll runs; the guard never just stops
+            # guarding a live trainer (a psutil / feed error used to end the loop with the trainer running on)
+            try:
+                v = feed.read()
+                npt = npt_like()
+                want, why = False, ''
+                if npt:
+                    want, why = True, f'npt-like process {npt}'
+                elif v is None:
+                    want, why = True, 'sensor feed stale/unreadable'
+                else:
+                    hot, mj, pwm, util = v
+                    fan = pwm >= 35
+                    hh, hm, rh, rm = (76, 86, 72, 83) if fan else (74, 85, 70, 82)
+                    if hard_h:
+                        hh, rh = hard_h, hard_h - 3
+                    if hot >= 78 or mj >= 88:
+                        want, why, hold_until = True, f'EMERGENCY hot {hot} memj {mj}', time.time() + 60
+                    elif hot >= hh or mj >= hm:
+                        want, why = True, f'HARD hot {hot} memj {mj} (limits {hh}/{hm})'
+                    elif suspended and (hot > rh or mj > rm or time.time() < hold_until):
+                        want, why = True, f'cooling hot {hot} memj {mj} (resume <= {rh}/{rm})'
+                if want and not suspended:
+                    if proc.is_running():
+                        proc.suspend()
+                        suspended, t_susp, last_note = True, time.time(), time.time()
+                        stats['suspends'] += 1
+                        say(f'SUSPEND: {why}')
+                elif not want and suspended:
+                    if proc.is_running():
+                        proc.resume()
+                        stats['suspended_seconds'] += time.time() - t_susp
+                        suspended = False
+                        say(f'RESUME: hot {v[0]} memj {v[1]}' if v else 'RESUME')
+                elif suspended and time.time() - last_note >= 300:   # review G-006: say it, do not go silent
+                    last_note = time.time()
+                    say(f'still suspended ({time.time() - t_susp:.0f} s): {why}')
+            except (psutil.Error, OSError, ValueError) as error:
+                stats['errors'] += 1
+                say(f'guard poll error {type(error).__name__}: {error}')
             time.sleep(2)
     finally:
-        if suspended and proc.is_running():
-            proc.resume()
-            say('guard exit: resumed the trainer')
+        try:
+            if suspended and proc.is_running():
+                proc.resume()
+                say('guard exit: resumed the trainer')
+        except psutil.Error as error:
+            say(f'guard exit: resume failed {type(error).__name__}: {error}')
         code = child.poll()
-        say(f'end: trainer exit {code}, suspends {stats["suspends"]}, suspended {stats["suspended_seconds"]:.0f} s')
+        if code is None:   # review G-003: only a finished trainer gets the 'end:' line the next run waits for
+            say(f'GUARD EXIT WHILE THE TRAINER RUNS (pid {child.pid}); no end line written')
+        else:
+            say(f'end: trainer exit {code}, suspends {stats["suspends"]}, suspended {stats["suspended_seconds"]:.0f} s, '
+                f'poll errors {stats["errors"]}')
         log.close()
     sys.exit(child.returncode if child.returncode is not None else 1)
 

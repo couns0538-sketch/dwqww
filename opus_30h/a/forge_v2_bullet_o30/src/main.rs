@@ -315,6 +315,8 @@ fn main_r(a: &[String]) {
         println!("AdamW weight clip +-{clip} decay {decay}");
     }
     if let Ok(dir) = std::env::var("O30_INIT_DIR") {
+        // review G-001: the default clip (+-1.98) would silently clip a loaded net at the first update
+        assert!(std::env::var("O30_CLIP").is_ok(), "O30_INIT_DIR needs O30_CLIP >= the max |weight| import_v2r.py printed");
         println!("warm start from {dir}/optimiser_state");
         trainer.load_from_checkpoint(&dir);
     }
