@@ -60,3 +60,6 @@ letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py 
 6. CI: the last run of the branch head green (no pushes while it runs).
 7. Own processes: nothing of mine still running except what the report says; memory file updated; time from commit
    spans (`tools/commit_span.py`).
+8. abba.py arm bias (A/A both ways: arm B ~5.5 % slower in nearly every slot, AB and BA alike; the code reads
+   symmetric): A/A with the IDENTICAL command in both arms on a quiet CPU - if B is still slower it is the harness /
+   launch path, else the command strings; fix or document before any speed figure leaves the job.
