@@ -275,3 +275,8 @@ answers readyok in 0.08 s, and the next search works - now part of uci_conforman
 Correlation 0.9988, sd of the difference 8.3 cp, slope of n2e on the lock net 1.010, sign flips > 20 cp in 0.05 % of
 positions: n2e is a gentle refinement (about 8 cp rms), not a different evaluation, and its scale is the lock net's
 (+1 %) - search margins tuned with the lock net see the same magnitudes. (Diagnostic only; play strength is the gate's.)
+
+## n2e in real games: depth per move (gate_summary --watch on the running sanity match, 20:5x, 65 games)
+cand (n2e): 4,769 moves, mean depth 20.08, 0.217 s / move; lock: 4,770 moves, mean depth 20.08, 0.218 s / move. The
+0.90x bench NPS does not cost depth at 10+0.1: n2e needs fewer nodes per depth (as on the bench), so both reach the same
+mean depth in the same time. (Interim; the final numbers with all 400 games go into FINAL_CHECKS / INDEX.)
