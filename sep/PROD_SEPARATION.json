@@ -4,7 +4,7 @@
   "stage": "position_and_chain_scans_complete",
   "status_by_check": {
     "position_overlap_board_stm": "FAIL",
-    "position_overlap_four_field": "PASS (en-passant normalisation not yet settled; see BOARDSTM_TRIAGE.json)",
+    "position_overlap_four_field": "raw PASS (0 keys) is an en-passant artifact; EP-normalised FAIL (4,088 keys)",
     "chain_segments": "UNVERIFIED",
     "authentic_game_ids": "UNVERIFIED"
   },
@@ -103,7 +103,14 @@
       "holdout_rows": 16388575
     },
     "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution",
-    "scope": "position_keys_only"
+    "scope": "position_keys_only",
+    "four_field_ep_normalised": {
+      "status": "FAIL",
+      "shared_exact_keys": 4088,
+      "train_overlap_rows": 4118,
+      "holdout_overlap_rows": 4090,
+      "scope": "exact over all rows: a normalised 4-field match implies a board+stm match, and the board+stm listing is complete"
+    }
   },
   "key_fill_rate": {
     "board_stm": {
@@ -117,7 +124,7 @@
   },
   "reasons": [
     "Position overlap FAIL on the board+side-to-move key: 7,610 shared keys, 7,700 train rows and 7,612 holdout rows, 0 hash collisions, key fill rate 1.0 on 304,999,573 train and 16,388,575 holdout rows.",
-    "The 4-field key shares 0 keys at fill rate 1.0. Without castling rights the two keys differ only in the en-passant field, so this PASS can be an en-passant formatting artifact until the triage settles it.",
+    "The raw 4-field key shares 0 keys at fill rate 1.0, but that PASS is an en-passant artifact: with EP normalised to legal-capture-only, 4,088 keys (4,118 train rows, 4,090 holdout rows) are the same position. Triage of the 7,610 keys: ep_format_diff 4,070, real_ep_diff 8, other 3,532 (castling rights differ or mixed pairs).",
     "Original game-to-row bindings have not been recovered.",
     "The inspected writer can import pre-existing shard files; current source and sidecars do not authenticate their production.",
     "Eligibility filtering and deduplication can omit more than K plies; bounded nonreachability cannot prove distinct original games.",
@@ -139,11 +146,30 @@
     {
       "path": "D:\\a14\\sep\\segments-production02\\MAPS_SEAL.json",
       "md5": "9b708a8994edc0f87ad8283c783440bb"
+    },
+    {
+      "path": "D:\\a14\\sep\\BOARDSTM_TRIAGE.json",
+      "md5": "e18f8fe3dd2880f9d3d1235278abfd84"
     }
   ],
   "evidence": [
     "D:/a14/sep/WRITER_EVIDENCE.md",
     "D:/a14/evidence/r14/input-pins-all.jsonl"
   ],
-  "updated_vienna": "2026-11-04 09:36 Vienna"
+  "updated_vienna": "2026-11-04 11:14 Vienna",
+  "triage": {
+    "path": "D:\\a14\\sep\\BOARDSTM_TRIAGE.json",
+    "md5": "e18f8fe3dd2880f9d3d1235278abfd84",
+    "keys_per_class": {
+      "ep_format_diff": 4070,
+      "real_ep_diff": 8,
+      "other": 3532
+    },
+    "key_reasons": {
+      "ep_format_diff": 4070,
+      "real_ep_diff": 8,
+      "castling_diff": 3514,
+      "mixed": 18
+    }
+  }
 }

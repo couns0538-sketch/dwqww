@@ -44,6 +44,20 @@ TOOLS = [
      '(sys_tags-compatible wheels, else sdist); makes tools/requirements-r14-hashes.txt.',
      PY + r' -m pip download --require-hashes --no-deps --no-build-isolation -r '
      r'D:\a14\tools\requirements-r14-hashes.txt -d <new folder under D:\a14\tmp>'),
+    ('tools/opus_inventory.py', 'File inventory for the report: full PC path, bytes and md5 of every file changed on '
+     'the branch plus extra output folders.',
+     PY + r' D:\a14\tools\opus_inventory.py --base 7636122b71ff27a5b4b781b6775757f926f8fdc4 --out <new file>'),
+    ('tools/opus_guardband_record.py', 'Writes sep/GUARDBAND_SEPARATION.json from SPLIT.json + PROOF.json with the '
+     'repository rule final_verdict (no typed numbers).', 'compare its output with the committed record'),
+    ('tools/opus_promote_export.py', 'Owner-only: turns the staged guard-band candidate into the export (refuses '
+     'without --confirm-owner-decision, a non-PASS proof, audit failures or changed md5s).',
+     PY + r' D:\a14\tools\opus_promote_export.py (prints the refusal; tool test: C:\a14x\promote_tooltest01)'),
+    ('.agents/skills/boardstm-overlap-triage/SKILL.md', 'Skill (by the reviewer agent): probe, EP normaliser, '
+     'triage - commands and how to read the records.', 'read it; every command in it was checked by its author'),
+    ('.agents/skills/guardband-split-proof/SKILL.md', 'Skill (by the reviewer agent): build -> proof -> record flow, '
+     'what each check proves, owner-only promotion.', 'read it'),
+    ('.agents/skills/r14-finish-helpers/SKILL.md', 'Skill (by the reviewer agent): the small helpers and the '
+     'pitfalls of this job.', 'read it'),
     ('tools/opus_tools_md.py', 'Prints this section; --check compares every md5 in TOOLS.md with the files.',
      PY + r' D:\a14\tools\opus_tools_md.py --check'),
 ]
