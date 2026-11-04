@@ -337,3 +337,17 @@ Why no control match now (v2 exe + the lock net as KB4 replicas vs the lock exe)
 the v2 path's cost - KB1 lock-as-v2 vs the lock exe 0.976 and KB4 replicas vs KB1 0.968, i.e. ~1.03 / ~1.02 after the
 measured ~0.945 arm bias - a few percent at most, worth a few Elo, not -25; and a 200-game control (+/- 26 Elo) could
 not resolve a cost that small. It becomes the first step only if n2L's match is negative too (FINAL_REPORT section 4).
+
+## n2L trajectory: the shallow-label holdout falls while the deeper-label set rises (val.csv, to 01:22)
+| checkpoint | positions | S31 b0.6 vs lock | jobA b0.6 vs lock |
+|---|---|---|---|
+| 19:28 | 7.1e7 | -1.25e-5 | +1.23e-4 |
+| 20:44 | 2.9e8 | -5.32e-5 | -4.04e-5 |
+| 22:26 | 5.7e8 | -8.66e-5 | +7.5e-6 |
+| 23:42 | 8.0e8 | -9.86e-5 | +1.78e-5 |
+| 00:32 | 9.6e8 | -1.06e-4 | +7.84e-5 |
+| 01:22 | 1.12e9 | -1.11e-4 | +9.29e-5 |
+jobA moves +-4-5e-5 between neighbouring checkpoints (the output layer drifts), far more than its 1.8e-5 measurement
+error, so picking a checkpoint by jobA would mostly pick noise; but its level rises with training length while S31
+keeps falling (full list: `D:\o30\runs\n2L_kb4_ob8_long\val.csv`). n2L's final (S31-best, the written procedure) is
+candidate #2 and its match tests the trend: it ends with far more S31 fitting and a worse jobA than n2e.
