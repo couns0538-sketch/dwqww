@@ -287,3 +287,12 @@ seed 232): an equal-length capacity test (KB4 vs KB8). Rule: n3 becomes candidat
 its paired S31 b0.6 is at least 1e-5 below n2e's (paired vs n2e's dumps) AND its paired jobA z vs the lock net is <= +2;
 otherwise it is reported offline only and CPU 1 goes to SPSA at once. Either way the result answers "does more
 king-bucket capacity pay at equal training?" for the GPU path.
+
+## Time forfeits in the n2e sanity match (found 21:4x at 163 games)
+3 time forfeits, all between 21:31 and 21:37 (PC clock): the lock lost 2, the candidate 1. Each is a stall, not a long
+think: the last moves took ~0.07-0.10 s, then "Black loses on time (2447ms overrun)" - over fastchess's 1000 ms margin.
+Both engines run at Idle on CPU 1 (CPU 0 = the n2L trainer, Idle); any Normal-priority burst on the PC is scheduled onto
+CPUs 0-3 (the only cores without BelowNormal gate work) and preempts Idle threads for seconds. My own commands in that
+window were a sleep loop; n2L's checkpoint scoring came later (done 21:36:39). Reading: environment noise hitting both
+sides; kept as is (same settings for both candidates, so the two matches stay comparable); the 5-minute smoke (the
+prompt's "0 time loss" check) passed. The match is sanity only either way.
