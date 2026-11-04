@@ -43,3 +43,15 @@ No Elo claim: the crew gates (UHO [0,5] SPRT, 8moves_v3 confirm). Own games are 
 - c_end >= 5 everywhere, so plus and minus never round to the same integer.
 - Found: own sanity matches (fastchess) on the tuner's CPUs make it wait (by design: they look like a gate) - run them on
   CPUs outside the tuner's list (resume with --cpus). Not a bug; recorded in the README's CPU section.
+
+## One switch for the tuned set: O30Tuned (prepared 2026-11-03 20:2x; built with the real values at the end)
+- `b/o30_tuned_patch.py --tuned <TUNED_OPTIONS.txt> --params <run params.csv> --repo <expose22 scratch repo>`: three
+  anchored edits in src/uci.cpp - a table (name, lock value, tuned value), `option name O30Tuned type check default
+  false` next to the tunables, and a setoption handler (true = the tuned values, false = the lock values, each clamped
+  to its option range, then tune::refresh()). Refuses a tree that already has it, a name that is not a tune parameter
+  of the tree, a value outside the CSV range.
+- `b/test_o30tuned.sh <exe> <TUNED_OPTIONS.txt> [mask]`: 1 OFF pins -Full, 2 O30Tuned=true bench == the explicit option
+  list's bench (and differs from the lock), 3 true then false = the lock pins, 4 advertised + an invalid value rejected.
+- Dry run with a DUMMY set (8 values moved by hand; scratch clone `D:\o30\repos\spsa_tunedtest` 2da9756, plain build
+  `D:\o30\plain\tunedtest_1\forge_plain.exe` sha256 14abbbc15fcaa83e51654b5e92dd6166606d5f76da87ebf84ceb163b2297561d,
+  0 warnings, vfmadd 0): O30TUNED PASS - 1 PASS; 2 PASS (d11 373948 / d13 1042797 / d16 2580989 both ways); 3 PASS; 4 PASS.

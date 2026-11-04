@@ -14,5 +14,5 @@ bash "$T/export_src.sh" "$repo" "$out/src" >/dev/null
 cd "$out/src"
 units=$(ls src/*.cpp | sort | tr '\n' ' ')
 args="-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -static -pthread -DFORGE_EXPOSE_TUNABLES=1 $* -Iinclude $units -o ../forge_plain.exe"
-powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/lowrun.ps1")" -Mask 0x3 -Priority Idle -Exe 'C:\msys64\ucrt64\bin\g++.exe' -ArgLine "$args" > ../build.log 2>&1 || { tail -20 ../build.log; exit 1; }
+powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/lowrun.ps1")" -Mask "${PLAIN_MASK:-0x3}" -Priority Idle -Exe 'C:\msys64\ucrt64\bin\g++.exe' -ArgLine "$args" > ../build.log 2>&1 || { tail -20 ../build.log; exit 1; }
 cd .. && echo "warnings: $(grep -c 'warning:' build.log || true)" && sha256sum forge_plain.exe && echo "vfmadd: $(/c/msys64/ucrt64/bin/objdump -d forge_plain.exe | grep -c vfmadd || true)"
