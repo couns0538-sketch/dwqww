@@ -122,3 +122,19 @@ Findings: none in the engine code. Risks kept: v2 hidden size is the compiled-in
 accumulator - follow-up); the kit must be v2.5 (v2.3 makes the v2 path 0.71x).
 Run 41682427163 (commit 2db5d468, adds a ThreadSanitizer job): success on all 4 jobs - tsan (the v2 port, Threads 4,
 the random KB4 mirrored / OB8 net, 2 games x 40k nodes, halt_on_error, no ThreadSanitizer report), lock, v2port, expose22.
+
+## Trainer resume proof (prove_resume_fit.sh p1, 2026-11-03 18:5x-19:01, CPU 1 Idle)
+Run U: 6.5M positions (KB4 / OB8, mix 8, seed 77) uninterrupted. Run I: the same configuration stopped by its deadline at
+step 200 (3.28M positions, inside chunk 3), saved, exited, then resumed (`fit_resume.sh`) to the end. Result: U and I end
+at the same state (step 397, positions 6,504,448, chunk 7) with BIT-IDENTICAL weights w1 / b1 / w2 / b2 - RESUME PROOF
+PASS (1 torch thread on the CPU is deterministic; the data stream depends only on (seed, chunk)).
+
+## Main runs, second checkpoints (mixed chunks)
+| run | positions | S31 b0.6 | S31 b1.0 | jobA b0.6 |
+|---|---|---|---|---|
+| KB4 decider n2e (lr 2e-5, out x2) 18:34 | 8.15e7 | 0.0142894 (-2.06e-5) | 0.0045651 (-7.3e-6) | 0.0132645 (-7.6e-6) |
+| KB4 decider n2e 18:59 | 1.457e8 | 0.0142790 (-3.10e-5) | 0.0045601 (-1.23e-5) | 0.0133016 (+2.95e-5) |
+| N1b KB1 (lr 1e-5, out x2) 18:33 | 7.33e7 | 0.0143061 (-3.9e-6) | 0.0045712 (-1.2e-6) | 0.0132904 (+1.8e-5) |
+| N1b 18:58 | 1.376e8 | 0.0142944 (-1.56e-5) | 0.0045499 (-2.25e-5) | 0.0133373 (+6.5e-5) |
+Caution: both get better on S31 (013/014, 5k-node self-play labels) while the jobA val loss (20k-node labels, positions
+of the early files 001 / 002) drifts up. The fine-tunes may be fitting the shallow labels' habits; reported as is.
