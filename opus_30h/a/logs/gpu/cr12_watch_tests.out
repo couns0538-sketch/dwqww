@@ -1,0 +1,34 @@
+CR item 12 - gpu_ckpt_watch.sh bounded retries + .done only on exit 0; tests on fake runs under D:\o30\tmp\cr12\root (WATCH_ROOT), CPU 1
+watcher md5 ef8d3e07b574d6446b7935b403708e46
+
+== test A 13:41:39: fake run, guard log without an end line, WATCH_MAX_MIN=1, WATCH_SLEEP=5
+pinned pid 14088: Idle, mask 0x2
+2026-11-04 13:42:43 GIVE UP: no end line in /d/o30/tmp/cr12/root/fakeA.guard.log after 1 min (WATCH_MAX_MIN)
+exit 3 after 64 s
+
+== test B 13:42:43: fake guard log with an ABORT line
+pinned pid 6752: Idle, mask 0x2
+2026-11-04 13:42:44 GIVE UP: the guard log of fakeB has an ABORT / guard-exit line; no end line will come
+exit 4
+
+== test C 13:43:00: real checkpoint (warmproof02), TSV step made to fail, WATCH_TRIES=2
+pinned pid 4476: Idle, mask 0x2
+test: the TSV step is made to fail (WATCH_TEST_FAIL_TSV=1)
+2026-11-04 13:43:13 GIVE UP on /d/o30/tmp/cr12/root/fakeC/forge_v2r_rank4_h256-1 after 2 failed tries (no .done written)
+2026-11-04 13:43:13 watch fakeC done, some checkpoints given up (see /d/o30/tmp/cr12/root/fakeC_scores.tsv.errors)
+exit 5
+files: forge_v2r_rank4_h256-1.export.txt forge_v2r_rank4_h256-1.fails forge_v2r_rank4_h256-1.gaveup forge_v2r_rank4_h256-1.jobA.f64 forge_v2r_rank4_h256-1.jobA.json forge_v2r_rank4_h256-1.nnue2 forge_v2r_rank4_h256-1.paired_jobA.json forge_v2r_rank4_h256-1.paired_s16.json forge_v2r_rank4_h256-1.s16.f64 forge_v2r_rank4_h256-1.s16.json 
+.done present: 0
+errors file:
+2026-11-04 13:43:07 score failed for /d/o30/tmp/cr12/root/fakeC/forge_v2r_rank4_h256-1 (try 1 of 2)
+2026-11-04 13:43:13 score failed for /d/o30/tmp/cr12/root/fakeC/forge_v2r_rank4_h256-1 (try 2 of 2)
+2026-11-04 13:43:13 GIVE UP on /d/o30/tmp/cr12/root/fakeC/forge_v2r_rank4_h256-1 after 2 failed tries (no .done written)
+tsv lines (header only expected): 1
+
+== test D 13:43:14: same checkpoint, normal TSV step (control)
+pinned pid 10828: Idle, mask 0x2
+2026-11-04 13:43:21 watch fakeD done
+exit 0
+.done present: 1
+forge_v2r_rank4_h256-1	0.014310027	0.004572428	0.0	None	0.013272058	0.0	None
+end 13:43:22

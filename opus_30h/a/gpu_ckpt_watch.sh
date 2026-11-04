@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
-# gpu_ckpt_watch.sh <run> <kb map one|rank4|rank4x2> [--mirror] - Opus 30-h job, GPU window: export + score every
-# checkpoint of D:\o30\gpu\<run> as it lands (Idle, CPU 2), until the run's guard log has its "end:" line and every
-# checkpoint is scored. Per checkpoint: export_v2r.py -> D:\o30\gpu\<run>_nets\<ckpt>.nnue2, o30_score_v3 on the S31
+# gpu_ckpt_watch.sh <run> <kb map one|rank4|rank4x2|rank4x4|rank4x8> [--mirror] - Opus 30-h job, GPU window: export +
+# score every checkpoint of <root>\<run> as it lands (Idle), until the run's guard log has its "end:" line and every
+# checkpoint is scored. Per checkpoint: export_v2r.py -> <root>\<run>_nets\<ckpt>.nnue2, o30_score_v3 on the S31
 # subset and jobA val (per-row dumps), o30_paired.py vs the lock net's dumps; one line per checkpoint in
-# D:\o30\gpu\<run>_scores.tsv: ckpt, S31 b0.6, b1.0, paired S31 diff + z, jobA, paired jobA diff + z.
+# <root>\<run>_scores.tsv: ckpt, S31 b0.6, b1.0, paired S31 diff + z, jobA, paired jobA diff + z.
+# A checkpoint gets <ckpt>.done only when every step, the TSV line included, exited 0 (CR item 12).
+# Bounded (CR item 12): a checkpoint that fails WATCH_TRIES times gets <ckpt>.gaveup and a GIVE UP line; the watch
+# itself gives up (exit 3) after WATCH_MAX_MIN minutes without the guard's end line, or at once (exit 4) when the guard
+# log shows an ABORT / guard-exit line (no end line will come). Exit 5 = run ended but some checkpoint was given up.
+# Env: WATCH_MASK (CPU mask, default 0x4 = CPU 2), WATCH_ROOT (default /d/o30/gpu), WATCH_MAX_MIN (default 720),
+# WATCH_TRIES (default 3), WATCH_SLEEP (seconds between scans, default 60), WATCH_TEST_FAIL_TSV=1 (test only: the
+# TSV step exits 1).
 set -uo pipefail
 run="$1"; kb="$2"; mir="${3:-}"
 A=/d/o30/wt/opus_30h/a; T="$A/../tools"
-. "$T/idle.sh"; o30_pin_self 0x4 || { echo "watch: cannot pin to Idle / CPU 2" >&2; exit 78; }
+MASK="${WATCH_MASK:-0x4}"; ROOT="${WATCH_ROOT:-/d/o30/gpu}"; MAXMIN="${WATCH_MAX_MIN:-720}"; TRIES="${WATCH_TRIES:-3}"
+. "$T/idle.sh"; o30_pin_self "$MASK" || { echo "watch: cannot pin to Idle / $MASK" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
-dir=/d/o30/gpu/$run; nets=/d/o30/gpu/${run}_nets; tsv=/d/o30/gpu/${run}_scores.tsv
+dir=$ROOT/$run; nets=$ROOT/${run}_nets; tsv=$ROOT/${run}_scores.tsv; glog=$ROOT/$run.guard.log
 mkdir -p "$nets"
 [ -f "$tsv" ] || printf 'ckpt\ts31_b06\ts31_b10\tpaired_s31\tz_s31\tjobA_b06\tpaired_jobA\tz_jobA\tsha256\n' > "$tsv"
 S16P='F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.pos'; S16H='F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.hce'
@@ -24,9 +32,11 @@ score_one() {
     --dump "$(cygpath -w "$nets/$name.jobA.f64")" > "$nets/$name.jobA.json" || return 1
   "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$nets/$name.s16.f64")" 'D:\o30\dumps\s16_lock.f64' > "$nets/$name.paired_s16.json" || return 1
   "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$nets/$name.jobA.f64")" 'D:\o30\dumps\jobA_lock.f64' > "$nets/$name.paired_jobA.json" || return 1
-  "$PY" -I -B - "$nets" "$name" "$(sha256sum "$N" | cut -c1-64)" >> "$tsv" <<'EOF'
+  "$PY" -I -B - "$nets" "$name" "$(sha256sum "$N" | cut -c1-64)" "${WATCH_TEST_FAIL_TSV:-0}" >> "$tsv" <<'EOF' || return 1
 import json, sys
-d, n, sha = sys.argv[1:4]
+d, n, sha, fail = sys.argv[1:5]
+if fail == '1':
+    sys.exit('test: the TSV step is made to fail (WATCH_TEST_FAIL_TSV=1)')
 s = json.load(open(f'{d}/{n}.s16.json')); j = json.load(open(f'{d}/{n}.jobA.json'))
 ps = json.load(open(f'{d}/{n}.paired_s16.json')); pj = json.load(open(f'{d}/{n}.paired_jobA.json'))
 def g(p, *keys):
@@ -38,18 +48,40 @@ print('\t'.join(str(x) for x in (n, s['mse_b0.6'], s['mse_b1.0'], g(ps, 'diff_a_
 EOF
   touch "$nets/$name.done"
 }
+t0=$(date +%s); gave=0
 while true; do
   for ck in $(ls -d "$dir"/*-[0-9]* 2>/dev/null | sort -t- -k2 -n); do
     # a checkpoint directory is complete once its quantised.bin has stopped growing for 20 s
     q="$ck/quantised.bin"; [ -f "$q" ] || continue
     age=$(( $(date +%s) - $(stat -c %Y "$q") )); [ "$age" -ge 20 ] || continue
-    score_one "$ck" || echo "$(date '+%F %T') score failed for $ck" >> "$tsv.errors"
+    b=$(basename "$ck"); [ -f "$nets/$b.gaveup" ] && continue
+    if ! score_one "$ck"; then
+      n=$(( $(cat "$nets/$b.fails" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$nets/$b.fails"
+      echo "$(date '+%F %T') score failed for $ck (try $n of $TRIES)" >> "$tsv.errors"
+      if [ "$n" -ge "$TRIES" ]; then
+        touch "$nets/$b.gaveup"; gave=1
+        echo "$(date '+%F %T') GIVE UP on $ck after $n failed tries (no .done written)" | tee -a "$tsv.errors"
+      fi
+    fi
   done
-  if grep -q ' end: ' "/d/o30/gpu/$run.guard.log" 2>/dev/null; then
+  if grep -q ' end: ' "$glog" 2>/dev/null; then
     left=0
-    for ck in "$dir"/*-[0-9]*; do [ -f "$nets/$(basename "$ck").done" ] || left=1; done
+    for ck in "$dir"/*-[0-9]*; do
+      [ -e "$ck" ] || continue
+      b=$(basename "$ck"); [ -f "$nets/$b.done" ] || [ -f "$nets/$b.gaveup" ] || left=1
+    done
     [ "$left" = 0 ] && break
+  elif grep -q -E 'ABORT|GUARD EXIT WHILE THE TRAINER RUNS' "$glog" 2>/dev/null; then
+    echo "$(date '+%F %T') GIVE UP: the guard log of $run has an ABORT / guard-exit line; no end line will come" | tee -a "$tsv.errors"
+    exit 4
   fi
-  sleep 60
+  if [ $(( ($(date +%s) - t0) / 60 )) -ge "$MAXMIN" ]; then
+    echo "$(date '+%F %T') GIVE UP: no end line in $glog after $MAXMIN min (WATCH_MAX_MIN)" | tee -a "$tsv.errors"
+    exit 3
+  fi
+  sleep "${WATCH_SLEEP:-60}"
 done
+if [ "$gave" = 1 ] || ls "$nets"/*.gaveup > /dev/null 2>&1; then
+  echo "$(date '+%F %T') watch $run done, some checkpoints given up (see $tsv.errors)"; exit 5
+fi
 echo "$(date '+%F %T') watch $run done"
