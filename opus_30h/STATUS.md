@@ -38,16 +38,15 @@ letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py 
 
 ## CPU plan (CPUs 0-1 only, Idle; gates 0xFFF0, npt Idle on 0x000F)
 - CPU 1: n2e pack (20:07) -> n2e play checks (until 23:58) -> A/A both ways + 1.1M-ply walk (done 00:03) -> SPSA stc8
-  since 00:03:59 (`D:\o30\spsa\stc8_main`, `-Cpus 1 -Threads 1`, until 19:30). The KB8 test n3 was NOT run (dated
+  00:03:59-02:49 and 02:56-02:57 (`D:\o30\spsa\stc8_main`, 184 pairs) -> control match 02:58-~06:40 (the gate exe +
+  the lock net as KB4 replicas vs the lock exe, `D:\o30\control\lockkb4_v2exe`). The KB8 test n3 was NOT run (dated
   reason in a/RESULTS.md: n2e's match showed S31 does not predict play).
-- CPU 0: n2L until 03:30 -> pack -> smoke + ABBA (SPSA paused by its stop event for ~20 min, then resumed on CPU 1) ->
-  n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until 19:30 (the kit builds take ~2 min per side, so the wrap-up needs less than planned).
-- From 19:30: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
-  FINAL_REPORT.
-- n2L at ~03:25: net_pack.sh -> TRAINING.json -> o30_bucketcmp.py + o30_evalcmp.py on the final (recorded with the pack)
-  -> `tune_spsa.ps1 -RunDir D:\o30\spsa\stc8_main -Stop` (waits for the batch) -> net_final_checks.sh <name> <exe> 400 1
-  0; once its abba_nps.txt has the "net loaded" line, resume SPSA with `-Cpus 1 -Threads 1`; after the match (~07:45)
-  resume with `-Cpus 0,1 -Threads 2`.
+- CPU 0: n2L done 02:47:53 -> packed 02:49 (offline rule FAIL: jobA z +2.55) -> smoke + ABBA (02:50-02:56, CPU 1 idle)
+  -> n2L 400 games until ~06:40.
+- ~06:40: record both matches; resume SPSA `tune_spsa.ps1 -RunDir D:\o30\spsa\stc8_main -Until '2026-11-04 19:30'
+  -Threads 2 -Cpus '0,1'` until 19:30 (~1,800 more pairs).
+- From 19:30: SPSA report + tuned-set exe (`b/build_o30tuned.sh`, ~10 min), final_checks_o30.sh, 1-hour bug hunt
+  (incl. the deliverables in Forge), FINAL_REPORT; job end ~22:17.
 
 ## End-of-job bug hunt (1 hour; the checklist, written early)
 1. `tools/final_checks_o30.sh`: 13 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
