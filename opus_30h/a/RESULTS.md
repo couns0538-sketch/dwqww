@@ -434,3 +434,21 @@ on the v2 path) costs ~20-50 Elo in timed play. Read against the control, the ne
 reading "S31 did not predict play; jobA is the better compass" is WITHDRAWN: n2L played better than n2e although its
 jobA was worse. The depth gap (0.11-0.13 ply) explains maybe ~8 Elo of the control's -32 by the usual time rule;
 the rest is unexplained or noise. Next: the two discriminators (running), then the speed fix, then n2L again.
+
+## FOUND AND FIXED: the v2 path's speed loss in games (2026-11-04 07:4x-08:1x)
+- Discriminators (100 games each, depth gap at equal time): D-a, the lock net as KB1 (the lock's own table size) on
+  the v2 path: -0.20 ply; D-b, the v2 exe with the net OFF: -0.08 ply. Table size is NOT the cause (the int16 store,
+  `a/o30_v2int16.py`, prepared as a hedge, was dropped).
+- A minutes-long testbed (`a/depth_probe_o30.py`): 200 positions from the match PGNs, `go movetime 200` in one
+  long-lived process, nodes per second with identical trees. Lock exe vs gate exe + KB1: 0.887 (CI 0.867-0.906); gate
+  exe OFF vs lock: 0.964 (0.942-0.986, the kit v2.5 build); plain build, v2 KB1 vs v1 in the SAME exe: 0.921
+  (0.897-0.946) - the v2 code itself; without `noinline` on static_evaluate_v2: 0.875 (no help).
+- Counters (`a/o30_v2stats.py`, test builds; `a/stats_run_o30.py`: 100 game positions, depth 12, hash kept as in a
+  game), identical trees (7,574,607 nodes): v1 4.14M evaluations, 5.45M walk plies, 100 root refreshes; v2 the same
+  evaluations but 12.6M walk plies, 777,451 evaluations with NO valid ancestor up to the root, 1.55M cached refreshes.
+  Cause: the port skipped the root refresh ("lazy"); in games the root's evaluation usually comes from the hash, so the
+  root accumulator was never built. The bench clears the hash per position, so it never showed this.
+- Fix (`a/o30_v2rootfix.py`, one branch in the search's root setup): evaluate the root once through
+  static_evaluate_v2 when a v2 net is active. Counters after: walk plies 5,450,890 (v1 5,450,790 + one root per
+  search), cached refreshes 200, nodes unchanged. Speed, plain build, v2 KB1 vs v1 in the same exe: **1.028 (CI
+  1.001-1.056)** - the gap is gone. Next: pins / identity / verify build / kit pc1 = pc2 / CI, then rematches.
