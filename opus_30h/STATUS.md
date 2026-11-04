@@ -35,3 +35,17 @@ in RESULT.json). Whether this offline gain is Elo is for the crew's gate (S30: l
   n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until ~18:00.
 - From ~18:00: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
   FINAL_REPORT.
+- After the n2e match ends: copy `D:\o30\tmp\net_final_checks.next.sh` over `a/net_final_checks.sh` (self-pin + ABBA
+  net-loaded / identity checks; not edited while bash runs it).
+
+## End-of-job bug hunt (1 hour; the checklist, written early)
+1. `tools/final_checks_o30.sh`: 13 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
+   selfcheck, MCP, clean-room lint incl. the O30Tuned patch and >= 1 commit scanned, doc_lint, INDEX hashes, paths).
+2. Forge as a GUI / the gate runner uses it: `tools/uci_conformance_o30.py` on the gate exe + each net, on the
+   O30Tuned exe with O30Tuned=true, on the SPSA exe and the lock exe.
+3. `b/test_o30tuned.sh` on the final O30Tuned exe; INDEX.md complete (both nets with FINAL_CHECKS, rule verdicts).
+4. hash_sweep + path_sweep over every document; publish_o30.sh copies = branch; skills user scope = branch copies.
+5. Re-read the diffs (v2port, expose22, O30Tuned) and every RESULTS claim against its evidence file.
+6. CI: the last run of the branch head green (no pushes while it runs).
+7. Own processes: nothing of mine still running except what the report says; memory file updated; time from commit
+   spans (`tools/commit_span.py`).
