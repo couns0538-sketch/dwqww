@@ -253,3 +253,12 @@ The verify build (`D:\o30\plain\v2port_verify\forge_plain.exe`, -DFORGE_NNUE_V2_
 evaluates is compared with a full refresh, abort on any difference) with `o30_kb4ob8_n2e`: bench 13 803,134 nodes, bench
 16 2,593,172 (both = the normal build's ON benches), bench 20 12,201,110 - no abort. Before this only random nets had
 run through the verify build; this covers the trained KB4 net's king-bucket switches in real searches.
+
+## Loader fuzz: damaged FORGENN2 files (2026-11-03 20:45, gate exe ff856ba8, `a/loader_fuzz_o30.py`)
+18 variants of a valid net, each with a valid checksum unless the checksum is the target (so only the targeted check
+can fire): truncated / one byte longer, bad magic, version 3, header size 161, feature set 1, inputs 769, hidden 512,
+king buckets 0 / 33, output buckets 0 / 17, unknown flag bit, weight scale 4095, king map entry = king buckets, output
+map entry = output buckets, reserved byte set, weight byte flipped. Every one is refused with its own reason in an
+`info string ERROR EvalFileV2 ...` line and the engine then benches the lock pin (d11 312866). Sequences: valid net ->
+damaged file leaves no v2 net (lock pin); valid net -> empty value unloads (lock pin); control: the valid net is live
+(d11 333628). LOADER FUZZ PASS, 21 / 21. Now check 14 of final_checks_o30.sh.

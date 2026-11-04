@@ -9,7 +9,7 @@
 #  8 trainer selfcheck (o30_fit.py)             9 MCP forge-o30 self-test
 # 10 cleanroom_lint on every patch and on the branch's commit messages since main
 # 11 doc_lint on the branch documents          12 INDEX.md: net sha256 + md5 and exe sha256 of every net section
-# 13 every Windows / branch path the documents cite exists
+# 13 every Windows / branch path the documents cite exists   14 loader fuzz: 18 damaged files refused, fallback
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 # pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
@@ -57,5 +57,8 @@ paths() {
     b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md')
 }
 check 13_paths paths
+# 14: the v2 loader refuses 18 kinds of damaged files with their reason and falls back to the compiled-in net
+fuzz() { "$PY" -I -B "$A/loader_fuzz_o30.py" "$V2EXE" 'D:\o30\nets\lockv2\rand_kbrank4m_ob8_s2.nnue2' "$(cygpath -w "$tmp/fuzz")" --mask 0x3; }
+check 14_loader_fuzz fuzz
 echo "final_checks_o30: $pass PASS, $fail FAIL (logs $tmp)"
 [ $fail = 0 ]
