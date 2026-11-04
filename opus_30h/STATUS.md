@@ -8,7 +8,7 @@ the unblocked ones; 1-hour bug hunt at the end; check that it works in Forge.
 Not released (npt keeper: window to 2026-11-08 00:00 PC). The nets are CPU fine-tunes of the lock net
 (`opus_30h/a/o30_fit.py`, warm start = the lock function); the GPU path (residual bullet mode, ROCm exe) is ready, unrun.
 
-## State (2026-11-03 20:1x PC clock)
+## State (2026-11-03 21:2x PC clock)
 | item | state |
 |---|---|
 | 0 base re-verify | kit v2.3 -Expose of the unpatched lock = fd3a5190... on pc1 and pc2 |
@@ -16,8 +16,8 @@ Not released (npt keeper: window to 2026-11-08 00:00 PC). The nets are CPU fine-
 | A gate exe | kit v2.5 `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` ff856ba8 (pc1 = pc2): OFF pins PASS, lock net as v2 = lock pins, v2 path ~1.0x the lock (advisory); kit v2.4 8704d302 0.96x, kit v2.3 0.71x (cold) |
 | A scorer / data | S31 control = AL1 0.014310027 / 0.004572428 (0 mate rows at the 30000 cut); 304,999,573 train rows, 7,706 holdout-overlap rows skipped, 988,336 jobA overrides, jobA val 8,821 rows |
 | A trainer | selfcheck PASS; resume proof PASS (bit-identical); mixed chunks (8 shards) after the one-shard jumps |
-| A net #1 `o30_kb4ob8_n2e` | KB4 rank map, OB8, residual, 3.5e8 positions: S31 b0.6 0.014254268 (-5.58e-5 vs the lock net), b1.0 0.004543952, jobA 0.013294160 (+2.21e-5); packing 20:07 (paired verdict in RESULT.json); play checks next on CPU 1 |
-| A net #2 n2L | same shape, 1.4e9 positions, seed 222, CPU 0 until 2026-11-04 03:30 |
+| A net #1 `o30_kb4ob8_n2e` | KB4 rank map, OB8, residual, 3.5e8 positions: S31 b0.6 0.014254268 (paired -5.58e-5, z -34), jobA +2.21e-5 (z +1.23) -> offline rule PASS; all pack checks PASS; smoke PASS; NPS 0.90x (same mean depth in games); verify build, fuzz, conformance 22/22 PASS; 400-game sanity match running on CPU 1 (104 games at 21:15: 20/57/27, sanity only) |
+| A net #2 n2L | same shape, 1.4e9 positions, seed 222, CPU 0 until ~03:25 (deadline 03:30); 21:09 checkpoint at 3.65e8: S31 0.014246212 (-6.4e-5), jobA +2.7e-5 |
 | B options | 22 new tunables (defaults = lock pins PASS), 22 / 22 live; kit v2.3 exe pc1 = pc2 7bf5dab3; CI green |
 | B tuner | tune_spsa + wrapper + README; SELFTEST PASS; disk-floor stop (C: 30 / D: 51 GB) added 20:00; main session stc8 starts on CPU 1 after net #1's play checks |
 | tools | MCP forge-o30 (5 tools, self-test 8/8), skills forge-o30-v2net / forge-o30-spsa, TOOLS.md, net_pack with paired rule verdict, INDEX summary table |
@@ -45,7 +45,9 @@ letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py 
 - From ~18:00: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
   FINAL_REPORT.
 - After the n2e match ends: copy `D:\o30\tmp\net_final_checks.next.sh` over `a/net_final_checks.sh` (self-pin + ABBA
-  net-loaded / identity checks; not edited while bash runs it).
+  net-loaded / identity checks; not edited while bash runs it); on the then free CPU 1: an A/A ABBA (the lock vs a
+  copy of the lock, 6 pairs bench 16 - the noise floor of the per-net ABBA, plan phase 6) and a walk of >= 1M plies on
+  n2e (plan phase 1 said 1M per net; done so far: 830k per random net); then start n3.
 
 ## End-of-job bug hunt (1 hour; the checklist, written early)
 1. `tools/final_checks_o30.sh`: 13 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
