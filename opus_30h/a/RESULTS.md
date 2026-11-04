@@ -207,6 +207,17 @@ Groups are not independent tests; this is the measurement error of a fixed row s
   (default true) answered from its book - the checks now run with OwnBook false, like the gates.
 - n2e play checks started 20:1x on CPU 1 (smoke, ABBA, 400 games 10+0.1 vs the lock, conc 1): ~4.2 h.
 
+## n2e play checks, first results (CPU 1; the match runs until ~00:30)
+- Smoke 300 s (EvalFileV2 = the net, Threads 2, 2+0.02): PASS - 50 games, 6,284 plies, 0 illegal / crashes / hangs /
+  time losses, 1 overrun inside the margin, empty stderr.
+- NPS ABBA vs the lock (bench 16, 6 pairs, CPU 1, advisory): 0.899 (CI 0.845-0.958). The trees differ: n2e searches
+  fewer nodes to the same depth (d16 2,593,172 vs 3,024,920; d13 803,134 vs 862,329; d11 333,628 vs 312,866), so its
+  bench-16 wall time is ~0.96x the lock's (2.59M / 1.567M nps = 1.65 s vs 3.02M / 1.750M = 1.73 s).
+- Is the 4x larger first layer (KB4: 3.1 MB of float32 weights vs the lock's 0.79 MB) the cost? Same-tree test: the
+  lock net written as KB1 vs as KB4 with 4 identical buckets (identical search, both = the lock pins), 8 pairs on CPU 0
+  next to the trainer: 0.968 (CI 0.900-1.040), median 0.991 -> the table size and the king-bucket refreshes cost little;
+  an int16 weight store (half the memory) is not worth a re-proof. Speed claims are QA's (official timing).
+
 ## Review R-T1: own processes outside Idle / CPUs 0-1 (found and fixed 2026-11-03 20:2x)
 Found while re-reading my bash tools: net_pack.sh and final_checks_o30.sh started python, the scorer and the parity
 harness directly, so those children ran at Normal priority on any CPU (gates run at BelowNormal on CPUs 4-15). The
