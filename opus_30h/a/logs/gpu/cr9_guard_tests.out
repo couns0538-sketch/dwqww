@@ -1,0 +1,92 @@
+CR item 9 - o30_gpu_guard.py tests on a dummy child only (never the live trainer); 2026-11-04 PC clock
+guard under test: D:\o30\tmp\guard_cr9\o30_gpu_guard.py md5 7899410083df7957516ae7b7ce9cbe11 = opus_30h/a/o30_gpu_guard.py md5 7899410083df7957516ae7b7ce9cbe11
+dummy: opus_30h/a/o30_guard_dummy.py (spins on one CPU, one heartbeat line per wall second, ends by itself); CPU 1 (mask 0x2), Idle
+
+First attempt 13:36-13:37 (kept for the record): the dummy was started through the venv python.exe, which is a launcher whose
+grandchild interpreter runs the code; suspending the launcher did not stop the heartbeats in T2 (37 -> 41 beats while
+'stopped'). Test artefact, not a guard fault: the real trainer exe is the guard's direct child. Rerun below with the base
+interpreter as the dummy (a direct child, like the trainer).
+
+===== rerun (T1b: hard exit + --resume-pid, T2b: injected errors -> ABORT) =====
+dummy = the base interpreter C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe (a direct child of the guard, like the trainer exe; the venv python.exe is a launcher whose grandchild runs the code)
+T1b start 13:38:23: --test-hot 30 -> SUSPEND; after 10 s suspended the guard ends itself with TerminateProcess
+guard exit 9 at 13:38:36
+2026-11-04 13:38:24 start trainer pid 12968 create_time 1793828304.558 mask 0x2 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 60 D:\o30\tmp\guard_cr9\t1b_beats.txt
+2026-11-04 13:38:24 SUSPEND pid 12968 create_time 1793828304.558: HARD hot 57.0 memj 80.0 (limits 30.0/86)
+2026-11-04 13:38:36 TEST: guard ends itself with TerminateProcess now (what taskkill /F does); pid 12968 create_time 1793828304.558 stays suspended
+beats with the guard gone: 0 -> 0 over 5 s (equal = frozen)
+dummy status stopped
+2026-11-04 13:38:41 resumed pid 12968 (python.exe, create time 1793828304.558); status before stopped, after running
+resume exit 0
+beats 5 s after --resume-pid: 0 -> 6 (more = running again)
+
+T2b start 13:38:47: every poll after the 3rd raises -> ABORT after 15 in a row
+guard exit 79 at 13:39:28
+2026-11-04 13:38:49 start trainer pid 5540 create_time 1793828329.562 mask 0x2 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 100 D:\o30\tmp\guard_cr9\t2b_beats.txt
+2026-11-04 13:39:28 ABORT: 15 poll errors in a row, last RuntimeError: test error injected by --test-raise-after. Trainer LEFT SUSPENDED (fail closed): pid 5540 create_time 1793828329.562. Check the GPU, then resume with o30_gpu_guard.py --resume-pid 5540 --create-time 1793828329.562 (or end it). No end line written.
+poll error lines: 15; first: 2026-11-04 13:39:00 guard poll error RuntimeError: test error injected by --test-raise-after (1 in a row, cap 15)
+beats after ABORT: 39 -> 39 over 5 s (equal = frozen)
+dummy status stopped
+2026-11-04 13:39:34 resumed pid 5540 (python.exe, create time 1793828329.562); status before stopped, after running
+resume exit 0
+beats 5 s after --resume-pid: 39 -> 45
+dummy done
+dummy done
+
+===== t1b.log =====
+2026-11-04 13:38:24 start trainer pid 12968 create_time 1793828304.558 mask 0x2 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 60 D:\o30\tmp\guard_cr9\t1b_beats.txt
+2026-11-04 13:38:24 SUSPEND pid 12968 create_time 1793828304.558: HARD hot 57.0 memj 80.0 (limits 30.0/86)
+2026-11-04 13:38:36 TEST: guard ends itself with TerminateProcess now (what taskkill /F does); pid 12968 create_time 1793828304.558 stays suspended
+
+===== t2b.log =====
+2026-11-04 13:38:49 start trainer pid 5540 create_time 1793828329.562 mask 0x2 cmd C:\Users\Administrator\grok-pc\nnue\pythons\cpython-3.10-windows-x86_64-none\python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 100 D:\o30\tmp\guard_cr9\t2b_beats.txt
+2026-11-04 13:39:00 guard poll error RuntimeError: test error injected by --test-raise-after (1 in a row, cap 15)
+2026-11-04 13:39:02 guard poll error RuntimeError: test error injected by --test-raise-after (2 in a row, cap 15)
+2026-11-04 13:39:04 guard poll error RuntimeError: test error injected by --test-raise-after (3 in a row, cap 15)
+2026-11-04 13:39:06 guard poll error RuntimeError: test error injected by --test-raise-after (4 in a row, cap 15)
+2026-11-04 13:39:08 guard poll error RuntimeError: test error injected by --test-raise-after (5 in a row, cap 15)
+2026-11-04 13:39:10 guard poll error RuntimeError: test error injected by --test-raise-after (6 in a row, cap 15)
+2026-11-04 13:39:12 guard poll error RuntimeError: test error injected by --test-raise-after (7 in a row, cap 15)
+2026-11-04 13:39:14 guard poll error RuntimeError: test error injected by --test-raise-after (8 in a row, cap 15)
+2026-11-04 13:39:16 guard poll error RuntimeError: test error injected by --test-raise-after (9 in a row, cap 15)
+2026-11-04 13:39:18 guard poll error RuntimeError: test error injected by --test-raise-after (10 in a row, cap 15)
+2026-11-04 13:39:20 guard poll error RuntimeError: test error injected by --test-raise-after (11 in a row, cap 15)
+2026-11-04 13:39:22 guard poll error RuntimeError: test error injected by --test-raise-after (12 in a row, cap 15)
+2026-11-04 13:39:24 guard poll error RuntimeError: test error injected by --test-raise-after (13 in a row, cap 15)
+2026-11-04 13:39:26 guard poll error RuntimeError: test error injected by --test-raise-after (14 in a row, cap 15)
+2026-11-04 13:39:28 guard poll error RuntimeError: test error injected by --test-raise-after (15 in a row, cap 15)
+2026-11-04 13:39:28 ABORT: 15 poll errors in a row, last RuntimeError: test error injected by --test-raise-after. Trainer LEFT SUSPENDED (fail closed): pid 5540 create_time 1793828329.562. Check the GPU, then resume with o30_gpu_guard.py --resume-pid 5540 --create-time 1793828329.562 (or end it). No end line written.
+
+===== first attempt (launcher artefact) =====
+T1 start 13:36:23: suspend (--test-hot 30), then the guard ends itself with TerminateProcess after 6 s suspended
+guard exit 9 at 13:36:29
+2026-11-04 13:36:23 start trainer pid 7136 create_time 1793828183.784 mask 0x2 cmd C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 45 D:\o30\tmp\guard_cr9\t1_beats.txt
+2026-11-04 13:36:23 SUSPEND pid 7136 create_time 1793828183.784: HARD hot 53.0 memj 76.0 (limits 30.0/86)
+2026-11-04 13:36:29 TEST: guard ends itself with TerminateProcess now (what taskkill /F does); pid 7136 create_time 1793828183.784 stays suspended
+dummy pid 7136 create_time 1793828183.784
+/usr/bin/bash: line 1: t1_beats.txt: No such file or directory
+/usr/bin/bash: line 1: t1_beats.txt: No such file or directory
+beats while the guard is gone:  ->  after 4 s (equal = still suspended)
+dummy status stopped
+-- wrong create time:
+refusing: pid 7136 has create time 1793828183.784, the log says 12345.000 (pid reused?)
+exit 2
+-- wrong exe name:
+refusing: pid 7136 is python.exe, expected forge-v2-bullet.exe
+exit 2
+-- correct:
+2026-11-04 13:36:34 resumed pid 7136 (python.exe, create time 1793828183.784); status before stopped, after running
+exit 0
+beats 4 s after --resume-pid:  -> 5 (more = running again)
+dummy done
+T2 start 13:36:50: every poll after the 3rd raises RuntimeError -> ABORT after 15 in a row, dummy left suspended
+guard exit 79 at 13:37:28
+2026-11-04 13:36:51 start trainer pid 7716 create_time 1793828211.250 mask 0x2 cmd C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B D:\o30\tmp\guard_cr9\dummy_busy.py 120 D:\o30\tmp\guard_cr9\t2_beats.txt
+2026-11-04 13:37:28 ABORT: 15 poll errors in a row, last RuntimeError: test error injected by --test-raise-after. Trainer LEFT SUSPENDED (fail closed): pid 7716 create_time 1793828211.250. Check the GPU, then resume with o30_gpu_guard.py --resume-pid 7716 --create-time 1793828211.250 (or end it). No end line written.
+poll error lines: 15
+beats after ABORT: 37 -> 41 after 4 s (equal = suspended)
+dummy status stopped
+2026-11-04 13:37:32 resumed pid 7716 (python.exe, create time 1793828211.250); status before stopped, after running
+resume exit 0
+beats 4 s after --resume-pid: 41 -> 46
+dummy done
