@@ -320,7 +320,7 @@ more first-layer capacity would fit the shallow labels' noise further. CPU 1 wen
 A/A twice with byte-identical binaries: lock as A, copy as B -> 0.9447 (CI 0.906-0.985); copy as A, lock as B ->
 0.9455 (CI 0.917-0.975). Whichever command is arm B reads ~5.5 % slower under this load - an arm effect of the harness
 here, not a per-file effect. So every B / A ratio from abba.py on this PC this night carries ~0.945 of bias: n2e's
-0.899 corresponds to ~0.95 of the lock (0.899 / 0.945) [WITHDRAWN 05:0x, see the correction below]. Speed claims stay QA's; the
+0.899 corresponds to ~0.95 of the lock (0.899 / 0.945) [WITHDRAWN 04:4x, see the correction below]. Speed claims stay QA's; the
 cause in abba.py is not found yet (listed for the bug hunt).
 
 ## Bucket seams? (`a/o30_bucketcmp.py`, 10,000 FENs, mean correction difference vs the lock net per bucket)
@@ -389,7 +389,7 @@ a KB4 first layer is 3.1 MB of float32 (4 x 768 x 256 x 4 B) against the lock ne
 in games a 16 MB hash and an SMT sibling share that cache. Interim control score at 192 games: 34 / 108 / 50 (-29 +/-
 25) - the exe cost is not small, and n2e's -25 may be largely the exe, not its weights (n2L at 193 games: -5 +/- 27).
 
-## Correction (2026-11-04 05:0x): the arm-bias "correction" above was wrong
+## Correction (2026-11-04 04:4x): the arm-bias "correction" above was wrong
 Two paragraphs above divide bench ratios by the A/A value (n2e "0.899 / 0.945 ~ 0.95", the dry run "~1.03", n2L
 "~1.03"). The games contradict that: the identical-evaluation control searches 0.15 ply less than the lock in real
 games. The A/A result (0.945 twice) is the harness's NOISE magnitude on this loaded PC, not a factor to divide by.
@@ -397,7 +397,7 @@ The record, kept separate: raw bench ratios vs the lock - KB1 lock-as-v2 0.976, 
 ~0.945), n2e 0.899, n2L 0.970; A/A noise +-5 %; in-game mean depth (the measurement that decided): -0.12 to -0.15 ply
 for the v2 exe in all three matches. FINAL_REPORT cites the in-game depth, not corrected ratios.
 
-## Where does the v2 exe's speed go? Two discriminators (written 2026-11-04 05:1x, BEFORE their results)
+## Where does the v2 exe's speed go? Two discriminators (written 2026-11-04 04:5x, BEFORE their results)
 Code reading first: the v2 hook does not bypass any eval reuse - the TT eval is reused at the call sites, before
 static_evaluate, for both paths; v2's own extras are king-key checks per replayed ply, one non-inlined call and a
 cached root refresh. The structural difference is the first-layer table: the lock net's 786 KB (float32) always serves
