@@ -148,3 +148,7 @@ of the early files 001 / 002) drifts up. The fine-tunes may be fitting the shall
 Reading: N1b is worse on these EARLY-file positions under both label types - a shift toward the bulk of the (later) data,
 not a fit to shallow-label habits; KB4 is neutral on the old labels and not significantly worse on the new ones. By the
 written rule KB4 passes so far (S31 -3.1e-5, jobA z +1.47); final call at the end of its run.
+| N1b stopped 19:03 (CPU 0 goes to a long KB4 run) | 1.507e8 | 0.0142957 (-1.43e-5); best 0.0142944 at 1.376e8 | 0.0045534 | 0.0132818 |
+Decision 19:03: KB4 is ahead of KB1 on S31 (-3.10e-5 vs -1.56e-5 at ~1.4e8) and neutral on jobA, so the two CPUs go to
+KB4: the decider n2e finishes on CPU 1 (3.5e8 positions, ~20:00) and a long KB4 run n2L (lr 2e-5, out x2, mix 8,
+1.4e9 positions, until 2026-11-04 03:30) runs on CPU 0. Two KB4 candidates of different training length + N1b's best.
