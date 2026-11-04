@@ -238,3 +238,12 @@ e-h), unmirrored - so the lock net written into all 8 buckets is still exactly t
 d11-d22 in the gate exe ff856ba8 PASS; 2 random rank4x2 / OB8 net parity 10000/10000 on AVX2 / SSE / scalar + planted
 bug caught PASS; 3 walk 500 games, 139,064 plies, 19,978 king-key changes, 0 mismatches PASS; 4 trainer selfcheck
 PASS. Whether a KB8 run gets a CPU is decided at ~00:30 from n2L's curve (does longer KB4 training still gain?).
+
+## Review R-T2: final_checks check 12 never compared a net hash (found and fixed 2026-11-03 20:4x)
+The regex of check 12 expected the sha256 right after a backticked path; INDEX.md puts the net's hashes on the next
+table row, so only the exe rows matched (shown on a copy of INDEX.md with a planted wrong net hash: the old check
+compared `forge_ltopgo_v2p3_pc1.exe` only and would have passed). New `tools/index_check_o30.py` parses every net
+section and compares the net's sha256 AND md5 and the exe's sha256; a missing row is a FAIL. Tests: the real INDEX.md
+3 / 3 ok; planted wrong net hash -> 1 problem; deleted hash row -> FAIL. New check 13 (`tools/path_sweep.py`): every
+Windows / branch path cited by the job's documents exists (allowed missing: `D:\o30\WINDOW.md`, written only on a GPU
+release).

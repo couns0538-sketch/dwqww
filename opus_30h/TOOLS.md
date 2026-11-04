@@ -44,7 +44,9 @@ KIT_MAXMYCPU), plain_build_o30.sh, pin_check.ps1, smoke2m.py, selfplay_smoke.py,
 cpu_users.ps1, lowrun.ps1, run_pinned.py, gate_summary.py, abba.py, commit_span.py, doc_lint.py, hash_sweep.py.
 Own additions: `idle.sh` + `pin_pid.py` (pin a shell and its children to Idle on a CPU mask, fail closed),
 `publish_o30.sh` (copies TOOLS.md / FINAL_REPORT.md to `D:\o30\` with a provenance line, regenerates
-`D:\o30\nets\INDEX.md`), `uci_conformance_o30.py` (below).
+`D:\o30\nets\INDEX.md`), `uci_conformance_o30.py` (below), `index_check_o30.py` (every INDEX.md net section: net
+sha256 + md5 and exe sha256; a missing row fails), `path_sweep.py <docs> [--allow P]` (every cited Windows / branch
+path exists).
 
 ## Kit v2.5 (`opus_30h/kit25/`, working copy `D:\o30\kit25`)
 QA's kit v2.3 + R12's v2.4 + workload v2n (the training workload also benches the lock net written as a v2 file, so the
@@ -57,8 +59,9 @@ log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~
 | `tools/uci_conformance_o30.py <exe> [--opt N=V]... [--expect-info text] [--mask 0x2]` | one engine process through uci / setoption / isready / ucinewgame / go depth, movetime, wtime+btime, nodes, infinite + stop (no bestmove before stop), mate in 1, one legal move, checkmate and stalemate (0000), Threads 2, quit; legality by python-chess, time limits, empty stderr; OwnBook off as the gates (the book-on `go infinite` case is reported as an observation) | 2026-11-03 20:1x: gate exe ff856ba8 + o30_kb4ob8_n2e 20 / 20, lock exe 18 / 18 |
 
 ## One-command re-check
-`bash opus_30h/tools/final_checks_o30.sh`: 12 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
-scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes).
+`bash opus_30h/tools/final_checks_o30.sh`: 13 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
+scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes,
+cited paths).
 
 ## MCP server forge-o30 (`opus_30h/mcp/`)
 net_info, net_score, runs_table, spsa_status, v2_bench; `setup_o30_mcp.sh` registers it at user scope (re-runnable,

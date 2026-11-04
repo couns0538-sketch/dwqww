@@ -8,7 +8,8 @@
 #  7 scorer control: the lock net as v2 on the S31 subset = 0.014310027 / 0.004572428
 #  8 trainer selfcheck (o30_fit.py)             9 MCP forge-o30 self-test
 # 10 cleanroom_lint on every patch and on the branch's commit messages since main
-# 11 doc_lint on the branch documents          12 D:\o30\nets\INDEX.md: every cited net / exe sha256 matches its file
+# 11 doc_lint on the branch documents          12 INDEX.md: net sha256 + md5 and exe sha256 of every net section
+# 13 every Windows / branch path the documents cite exists
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 # pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
@@ -45,20 +46,15 @@ lint() {
 check 10_cleanroom lint
 doclint() { "$PY" -I -B "$T/doc_lint.py" $(cd "$W" && git ls-files 'opus_30h/*.md' | sed "s#^#$W/#"); }
 check 11_doc_lint doclint
-indexsha() {
-  [ -f /d/o30/nets/INDEX.md ] || { echo "no INDEX.md yet"; return 0; }
-  "$PY" -I -B - <<'EOF'
-import hashlib, re, sys
-text = open(r'D:\o30\nets\INDEX.md', encoding='utf-8').read()
-bad = 0
-for m in re.finditer(r'`([A-Z]:\\[^`]+\.(?:nnue2|exe))`[^|]*?(?:\|\s*)?(?:sha256 )?([0-9a-f]{64})', text):
-    path, want = m.group(1), m.group(2)
-    h = hashlib.sha256(open(path, 'rb').read()).hexdigest()
-    print(('ok  ' if h == want else 'BAD ') + path)
-    bad += h != want
-sys.exit(1 if bad else 0)
-EOF
-}
+# 12: every net section of INDEX.md - net sha256 + md5 and the gate exe's sha256 (index_check_o30.py; the regex used
+#     here until 2026-11-03 20:4x matched the exe rows only and never compared a net hash)
+indexsha() { "$PY" -I -B "$T/index_check_o30.py" 'D:\o30\nets\INDEX.md'; }
 check 12_index_hashes indexsha
+# 13: every Windows / branch path the documents cite exists (WINDOW.md is written only if the GPU is released)
+paths() {
+  (cd "$W/opus_30h" && "$PY" -I -B "$T/path_sweep.py" FINAL_REPORT.md TOOLS.md STATUS.md a/RESULTS.md b/RESULTS.md \
+    b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md')
+}
+check 13_paths paths
 echo "final_checks_o30: $pass PASS, $fail FAIL (logs $tmp)"
 [ $fail = 0 ]
