@@ -365,3 +365,11 @@ n2L play checks, first part (CPU 0, CPU 1 idle while SPSA was paused): smoke 300
 illegal / crashes / hangs / time losses, 1 overrun inside the margin); NPS ABBA vs the lock 0.970 (CI 0.905-1.040),
 net loaded in all 6 B runs (~1.03 after the measured ~0.945 arm bias). SPSA resumed 02:56:16 on CPU 1 at pair 182
 (batch 91: the resume continues the run). The 400-game match runs on CPU 0 until ~06:40.
+
+## Control match: the v2 exe itself (started 2026-11-04 02:58, CPU 1; written before its result)
+Gate exe ff856ba8 with `EvalFileV2 = lock_kbrank4_ob8.nnue2` (the lock net written as KB4 / OB8 replicas: identical
+evaluations and node counts to the lock, bench d11-d22 = the lock pins) vs the lock exe FD3A5190, 400 games 10+0.1,
+same settings as the net matches (`D:\o30\control\lockkb4_v2exe`). Because the search tree is identical, any result
+away from 0 comes from the exe / v2 path (speed, build), not from an evaluation. Reading: if ~0, n2e's -25 belongs to
+its trained weights; if clearly negative, the exe / path costs Elo and every v2 net carries it. Brought forward from
+"only if n2L is negative too" because n2e's match already raised the question; SPSA paused at 184 pairs for it.
