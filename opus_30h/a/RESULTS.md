@@ -57,6 +57,7 @@ lock net offline". (Loss has not predicted Elo reliably here (S30): even a pass 
 | smoke2 (3M positions) | 1e-4 | 0.0143376 (+2.8e-5) | 0.0045756 | 0.0132169 |
 | probe lr 2e-5 | 2e-5 | 0.0143096 (-0.4e-6) | 0.0045624 | 0.0132834 |
 | probe lr 5e-6 (dir `D:\o30\runs$1`, a quoting slip) | 5e-6 | 0.0143092 (-0.8e-6) | 0.0045684 | 0.0132653 |
+
 Finding: the lock net is converged on its own data; output buckets alone barely move the loss in 30M positions.
 
 ## CI (opus-30h-ci, GitHub Actions, ASan + UBSan, lock source d4f4312 + patch)
@@ -85,6 +86,7 @@ the lock net at 18:07 with mixed chunks and the output layer at x2 (lr 1e-5, cos
 | kit v2.3 df1f140b | 0.710 (CI 0.680-0.741) | - |
 | kit v2.4 -PartialTraining 8704d302 | 0.959 (CI 0.929-0.990) | 0.912 (CI 0.731-1.139, noisy) |
 | kit v2.5 workload v2n ff856ba8 | 1.066 (CI 0.987-1.152), median 1.085 | 1.021 (CI 0.906-1.152), median 0.996 |
+
 Kit v2.5 = kit v2.4 + workload v2n (opus_30h/kit25/README.md): the training workload also benches the lock net written
 as a v2 file, so the v2 code gets a profile; its training log shows the v2 benches with exactly the v1 node counts
 (312866 / 862329 / 3024920). Exe `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` sha256
@@ -96,6 +98,7 @@ ff856ba8a510921905e43a7505289b32ff9b3604186484fbf21f550bb0433210 (pc1 = pc2) = t
 | N1 at 76M (one-shard chunks) | -9.0e-6 (1.3e-6, -7.2) | -3.8e-5 (1.5e-5, -2.5) |
 | N1 at 95M | -9.9e-6 (1.3e-6, -7.3) | +1.10e-4 (1.5e-5, +7.2) |
 | old KB4 run at 65M (one-shard chunks) | -12.9e-6 (1.7e-6, -7.8) | +5.2e-5 (1.9e-5, +2.8) |
+
 Reading: on S31 the measurement error of a paired difference is ~1.5e-6, so these nets ARE better than the lock net on
 the lock net's own holdout (the 7.1e-6 seed spread is a different question: whether another run lands the same). On jobA
 (8,821 rows, 20k-node labels, positions of the early self-play files 001 / 002) the error is ~1.6e-5 and the 95M net is
@@ -136,6 +139,7 @@ PASS (1 torch thread on the CPU is deterministic; the data stream depends only o
 | KB4 decider n2e 18:59 | 1.457e8 | 0.0142790 (-3.10e-5) | 0.0045601 (-1.23e-5) | 0.0133016 (+2.95e-5) |
 | N1b KB1 (lr 1e-5, out x2) 18:33 | 7.33e7 | 0.0143061 (-3.9e-6) | 0.0045712 (-1.2e-6) | 0.0132904 (+1.8e-5) |
 | N1b 18:58 | 1.376e8 | 0.0142944 (-1.56e-5) | 0.0045499 (-2.25e-5) | 0.0133373 (+6.5e-5) |
+
 Caution: both get better on S31 (013/014, 5k-node self-play labels) while the jobA val loss (20k-node labels, positions
 of the early files 001 / 002) drifts up. The fine-tunes may be fitting the shallow labels' habits; reported as is.
 
@@ -145,6 +149,7 @@ of the early files 001 / 002) drifts up. The fine-tunes may be fitting the shall
 |---|---|---|
 | KB4 decider at 146M | +1.6e-6 (1.9e-5, +0.09) | +2.96e-5 (2.0e-5, +1.47) |
 | N1b KB1 at 138M | +4.71e-5 (1.2e-5, +4.05) | +6.53e-5 (1.3e-5, +5.19) |
+
 Reading: N1b is worse on these EARLY-file positions under both label types - a shift toward the bulk of the (later) data,
 not a fit to shallow-label habits; KB4 is neutral on the old labels and not significantly worse on the new ones. By the
 written rule KB4 passes so far (S31 -3.1e-5, jobA z +1.47); final call at the end of its run.
