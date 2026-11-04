@@ -28,7 +28,10 @@ set TMP=D:\o30\tmp
 if "%GUARD_EXTRA%"=="" set GUARD_EXTRA=
 rem BULLET_EXE: another build (a running exe cannot be relinked); O30_INIT_DIR / O30_CLIP pass through to the trainer
 if "%BULLET_EXE%"=="" set BULLET_EXE=D:\o30\target_rocm\release\forge-v2-bullet.exe
-C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B D:\o30\wt\opus_30h\a\o30_gpu_guard.py --log D:\o30\gpu\%RUN%.guard.log --mask 0x30 %GUARD_EXTRA% -- %BULLET_EXE% r D:/o30/data D:/o30/gpu/%RUN%%ARGS% > D:\o30\gpu\%RUN%.out 2>&1
+rem GUARD_MASK: CPUs for the trainer (loader threads + GPU driver thread). 0x38 = CPUs 3-5 (run 1 used 0x30 = 4-5 and
+rem was loader-bound: GPU 45-55 percent busy, CPUs 4-5 at 78-95 percent).
+if "%GUARD_MASK%"=="" set GUARD_MASK=0x38
+C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B D:\o30\wt\opus_30h\a\o30_gpu_guard.py --log D:\o30\gpu\%RUN%.guard.log --mask %GUARD_MASK% %GUARD_EXTRA% -- %BULLET_EXE% r D:/o30/data D:/o30/gpu/%RUN%%ARGS% > D:\o30\gpu\%RUN%.out 2>&1
 set RC=%ERRORLEVEL%
 echo gpu run %RUN% exit %RC% (log D:\o30\gpu\%RUN%.out)
 exit /b %RC%
