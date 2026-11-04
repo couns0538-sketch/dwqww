@@ -1,0 +1,28 @@
+usage: opus_guardband_proof.py [-h] --split SPLIT --out OUT --big-dir BIG_DIR
+
+opus_guardband_proof.py - independent proof of a guard-band split (R14 finish Job 3 step 4, Opus; own code).
+
+Reads only pinned inputs and the staged candidate rows named in SPLIT.json; shares no state with the builder.
+  accounting   every jobA row id is exactly one of: staged train, staged val, DROPPED.tsv; train ids < cut <= val ids
+  payload      every staged row equals jobA rows.tsv (FEN, White result) and labels.tsv (score) for its row id;
+               no staged row has |score| >= 30000
+  holdout      three keys of every 013/014 row (md5 of every byte = pin): board+stm, raw 4-field (canonical castling
+               order) and EP-normalised 4-field (legal-capture-only, opus_ep) -> staged train and val rows must hit
+               none of them; key fill rate 1.0 on both sides (hash hits are resolved exactly)
+  train_val    the same three keys: no staged train row shares a key with a staged val row
+  chain        from the pinned jobA pairs map: the link at the cut is UNREACHABLE (codes 1-3); train and val share no
+               conservative component (runs of REACHABLE / UNKNOWN links); every retained row of the two cut
+               components lies more than K plies from its cut endpoint
+  audit        npt-data-holdout-check audit_exports.py on JSONL adapter exports (source = all jobA rows, train =
+               all staged rows, the two complete holdouts); game_id is null everywhere (no authentic IDs exist), so
+               the audit's own status can be at best UNVERIFIED; its failure counters are reported as they are
+Writes GUARDBAND_SEPARATION.json (refuses an existing file). Audit inputs and output go below --big-dir (C:).
+
+  opus_guardband_proof.py --split D:/a14/sep/guardband01/SPLIT.json --out D:/a14/sep/GUARDBAND_SEPARATION.json
+                          --big-dir C:/a14x/guardband01_proof
+
+options:
+  -h, --help         show this help message and exit
+  --split SPLIT
+  --out OUT
+  --big-dir BIG_DIR

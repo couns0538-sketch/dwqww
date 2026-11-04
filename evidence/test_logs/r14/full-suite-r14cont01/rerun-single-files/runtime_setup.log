@@ -1,0 +1,52 @@
+..FF....                                                                 [100%]
+================================== FAILURES ===================================
+__________________ test_unset_caller_environment_is_restored __________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/rerun-single-files/tmp_runtime_setup/test_unset_caller_environment_0')
+
+    def test_unset_caller_environment_is_restored(tmp_path):
+        parent, _ = run_fixture(tmp_path, unset=True)
+>       assert parent['env'] == dict.fromkeys(KEYS)
+E       AssertionError: assert {'HIP_VISIBLE...DIR': '', ...} == {'TEMP': None...E': None, ...}
+E         
+E         Differing items:
+E         {'HIP_VISIBLE_DEVICES': ''} != {'HIP_VISIBLE_DEVICES': None}
+E         {'PYTHONDONTWRITEBYTECODE': ''} != {'PYTHONDONTWRITEBYTECODE': None}
+E         {'OPENBLAS_NUM_THREADS': ''} != {'OPENBLAS_NUM_THREADS': None}
+E         {'PIP_CACHE_DIR': ''} != {'PIP_CACHE_DIR': None}
+E         {'TEMP': ''} != {'TEMP': None}...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+D:\a14\tests\test_r14_runtime_setup.py:86: AssertionError
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/rerun-single-files/tmp_runtime_setup/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+        assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+        assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+>       child = json.loads(path.read_text(encoding='utf-8'))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\a14\tests\test_r14_runtime_setup.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/rerun-single-files/tmp_runtime_setup/test_live_refusal_stops_only_o0/child.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont01\\rerun-single-files\\tmp_runtime_setup\\test_live_refusal_stops_only_o0\\child.json'
+
+pathlib.py:1013: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_runtime_setup.py::test_unset_caller_environment_is_restored
+FAILED ..\..\a14\tests\test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+2 failed, 6 passed in 17.62s

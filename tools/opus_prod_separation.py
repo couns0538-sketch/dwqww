@@ -4,6 +4,7 @@ read from commit aa78a56, so the tool can be re-run; only updated_vienna changes
 import datetime
 import hashlib
 import json
+import os
 import subprocess
 
 A14 = 'D:/a14/'
@@ -19,20 +20,29 @@ def md5(p):
     return hashlib.md5(open(p, 'rb').read()).hexdigest()
 
 
+def need(ok, why):
+    # explicit checks, not assert: they must hold even under python -O (review finding F-013)
+    if not ok:
+        raise SystemExit(f'refusing to write PROD_SEPARATION.json: {why}')
+
+
 ov = json.load(open(OV, encoding='utf-8'))
 sg = json.load(open(SG, encoding='utf-8'))
 base = subprocess.run(['git', '-C', A14, 'show', BASE_COMMIT + ':sep/PROD_SEPARATION.json'],
                       capture_output=True, check=True).stdout
-assert hashlib.md5(base).hexdigest() == BASE_MD5, 'base record is not the Step 0 version'
+need(hashlib.md5(base).hexdigest() == BASE_MD5, 'base record is not the Step 0 version')
 old = json.loads(base.decode('utf-8'))
-assert md5(OV) == '1607d19e2b66dbe3512d0997942523c4' and md5(SG) == 'fcb488f8c726326e013f648e1d202760'
-assert ov['complete'] is True and sg['complete'] is True
+need(md5(OV) == '1607d19e2b66dbe3512d0997942523c4' and md5(SG) == 'fcb488f8c726326e013f648e1d202760',
+     'a scan report changed (md5)')
+need(ov['complete'] is True and sg['complete'] is True, 'a scan report is not complete')
 bs, ff = ov['keys']['board_stm'], ov['keys']['four_field']
-assert (bs['status'], bs['shared_exact_keys'], bs['train_overlap_rows'], bs['holdout_overlap_rows']) == ('FAIL', 7610, 7700, 7612)
-assert (ff['status'], ff['shared_exact_keys']) == ('PASS', 0)
+need((bs['status'], bs['shared_exact_keys'], bs['train_overlap_rows'], bs['holdout_overlap_rows']) == ('FAIL', 7610, 7700, 7612),
+     'board+stm counts differ from 7,610 / 7,700 / 7,612')
+need((ff['status'], ff['shared_exact_keys']) == ('PASS', 0), 'four-field counts differ from 0')
 for side in ('train', 'holdout'):
     for k in (bs, ff):
-        assert k[side]['key_fill_rate'] == 1.0 and k[side]['complete'] is True and k[side]['parse_failures'] == 0
+        need(k[side]['key_fill_rate'] == 1.0 and k[side]['complete'] is True and k[side]['parse_failures'] == 0,
+             f'{side} coverage is not complete with fill rate 1.0')
 
 
 def key_view(k):
@@ -50,7 +60,7 @@ for p in sg['cross_file_adjacent_pairs']:
                   'right': f"forge_selfplay_{p['right_source']:03d}.txt line {p['right_line']}",
                   'status': p['status'], 'reason': p['reason'], 'crosses_train_holdout': crosses})
 cross = [s for s in seams if s['crosses_train_holdout']]
-assert len(cross) == 2 and all(s['status'] == 'UNREACHABLE' for s in cross)
+need(len(cross) == 2 and all(s['status'] == 'UNREACHABLE' for s in cross), 'train/holdout seams are not both UNREACHABLE')
 pc, rc = sg['pair_counts'], sg['reason_counts']
 now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
@@ -115,7 +125,28 @@ rec = {
     'evidence': old['evidence'],
     'updated_vienna': now + ' Vienna',
 }
-assert old['reasons'][4].startswith('Full production position and chain scans are running')
+need(old['reasons'][4].startswith('Full production position and chain scans are running'), 'base reasons changed')
+# Job 2 settled the 4-field question: fold the triage in once it exists (COMPLETE only; anything else refuses).
+TRIAGE = A14 + 'sep/BOARDSTM_TRIAGE.json'
+if os.path.exists(TRIAGE):
+    tr = json.load(open(TRIAGE, encoding='utf-8'))
+    if tr.get('status') != 'COMPLETE' or tuple(tr['totals']['expected']) != (7610, 7700, 7612):
+        raise SystemExit('BOARDSTM_TRIAGE.json is not COMPLETE for 7,610 / 7,700 / 7,612; refusing to fold it in')
+    n4, kc = tr['normalised_4field_recount'], tr['keys_per_class']
+    rec['status_by_check']['position_overlap_four_field'] = (
+        f"raw PASS (0 keys) is an en-passant artifact; EP-normalised FAIL ({n4['shared_keys']:,} keys)")
+    rec['position_overlap']['four_field_ep_normalised'] = dict(
+        status='FAIL' if n4['shared_keys'] else 'PASS', shared_exact_keys=n4['shared_keys'],
+        train_overlap_rows=n4['train_rows'], holdout_overlap_rows=n4['holdout_rows'], scope=n4['scope'])
+    rec['triage'] = dict(path=TRIAGE.replace('/', '\\'), md5=md5(TRIAGE), keys_per_class=kc,
+                         key_reasons=tr['key_reasons'])
+    rec['reasons'][1] = (
+        f"The raw 4-field key shares 0 keys at fill rate 1.0, but that PASS is an en-passant artifact: with EP "
+        f"normalised to legal-capture-only, {n4['shared_keys']:,} keys ({n4['train_rows']:,} train rows, "
+        f"{n4['holdout_rows']:,} holdout rows) are the same position. Triage of the 7,610 keys: ep_format_diff "
+        f"{kc.get('ep_format_diff', 0):,}, real_ep_diff {kc.get('real_ep_diff', 0):,}, other {kc.get('other', 0):,} "
+        f"(castling rights differ or mixed pairs).")
+    rec['reports'].append(dict(path=TRIAGE.replace('/', '\\'), md5=md5(TRIAGE)))
 text = json.dumps(rec, indent=2, ensure_ascii=False) + '\n'
 open(OUT, 'wb').write(text.encode('utf-8'))  # LF, like the original record
 print('written', OUT, md5(OUT), 'at', now, 'Vienna')

@@ -1,0 +1,25 @@
+usage: opus_ep.py [-h] --oracle ORACLE [--limit LIMIT]
+
+opus_ep.py - en-passant normaliser for FEN rows (R14 finish, Opus; own code, standard library only).
+
+"Legal-capture-only": a FEN keeps its en-passant square only when the side to move has a LEGAL en-passant capture
+(the capturing pawn stands next to the double-pushed pawn, and after the capture its own king is not attacked).
+Otherwise the field becomes "-". Two rows that differ only in a non-capturable EP square are then the same chess
+position (same pieces, side to move, castling rights and legal moves).
+
+  ep_status(placement, side, ep) -> 'none' | 'legal' | 'no_capture' | 'invalid'
+      none        the field is "-"
+      legal       at least one legal en-passant capture exists
+      no_capture  a well-formed EP square (a double-pushed pawn in front of it, the square and the pawn's origin
+                  empty) without a legal capture
+      invalid     the EP square does not fit the board (wrong rank for the side, no enemy pawn in front of it, the
+                  square or the origin square occupied); callers must fail closed on it, never normalise it away
+  normalize_fen(fen) -> fen with the EP field kept only for 'legal' (raises ValueError for 'invalid')
+
+CLI self-check against python-chess (used as a test oracle only, never by the normaliser):
+  python opus_ep.py --oracle <selfplay.txt> [--limit N]   compares every row with an EP square
+
+options:
+  -h, --help       show this help message and exit
+  --oracle ORACLE
+  --limit LIMIT

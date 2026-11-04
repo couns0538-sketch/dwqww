@@ -128,7 +128,7 @@ work and explicit training clearance. Inventory every delivery file by absolute
 path/full MD5; externally seal report/inventory. Commit logs under evidence/test_logs
 and verify remote HEAD. Preserve runtime/local artifacts with their own inventory.
 
-## R14-cont (finished by Opus on branch opus-astra-r14-finish from 7636122b; appended 2026-11-04 09:2x Vienna)
+## R14-cont (finished by Opus on branch opus-astra-r14-finish from 7636122b; committed 2026-11-04 09:24 Vienna, aa78a56)
 Astra is out of usage; Opus finishes R14 in the waits of its own 30-h job, which keeps CPUs 0-1 (this work runs at Idle
 on CPU 2 for short bursts, never on gate cores, never on D:\o30). Commits as Opus <opus@forge.local>; big outputs to
 C:\a14x; stop if D: < 50 GB or C: < 30 GB; D:\a14 < 5 GB; no GPU (CUDA/HIP_VISIBLE_DEVICES=-1); no training, no Elo.

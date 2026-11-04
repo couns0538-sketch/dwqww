@@ -1,0 +1,9 @@
+import json,os,sys,time,subprocess,psutil
+from pathlib import Path
+values={k:os.environ.get(k) for k in ['TEMP', 'TMP', 'PYTHONNOUSERSITE', 'PYTHONDONTWRITEBYTECODE', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'PIP_CACHE_DIR']}
+values['_pid']=os.getpid()
+values['_priority']=int(psutil.Process().nice())
+values['_descendant']=subprocess.Popen([sys.executable,'-I','-B','-c','import time;time.sleep(6)'],stdout=sys.stdout,stderr=sys.stderr).pid
+Path('D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont01\\rerun-single-files\\tmp_runtime_setup\\test_direct_exit_cannot_leave_0\\child.json').write_text(json.dumps(values))
+time.sleep(0)
+sys.exit(0)

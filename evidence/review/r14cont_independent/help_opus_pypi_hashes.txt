@@ -1,0 +1,16 @@
+usage: opus_pypi_hashes.py [-h] --requirements REQUIREMENTS --out OUT
+
+opus_pypi_hashes.py - hash-pin a requirements file for THIS interpreter (R14 finish, CR SHOULD; own code).
+
+For every `name==version` line of --requirements it reads PyPI's JSON metadata for that exact release
+(https://pypi.org/pypi/<name>/<version>/json) and keeps the sha256 of every distribution file this interpreter can
+install (wheel tags from packaging.tags.sys_tags(), the target runtime's own list); a release without such a wheel
+keeps its sdist hash. It prints a --require-hashes requirements file and fails if any line gets no hash.
+  python opus_pypi_hashes.py --requirements tools/requirements-r14.txt --out tools/requirements-r14-hashes.txt
+Verify the result without touching an installed runtime:
+  python -m pip download --require-hashes --no-deps -r tools/requirements-r14-hashes.txt -d <new tmp dir>
+
+options:
+  -h, --help            show this help message and exit
+  --requirements REQUIREMENTS
+  --out OUT

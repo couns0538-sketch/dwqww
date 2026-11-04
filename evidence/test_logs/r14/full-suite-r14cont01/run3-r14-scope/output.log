@@ -1,0 +1,224 @@
+.................................................... [ 15%]
+........................................... [ 28%]
+........................................................................ [ 50%]
+................................................FF...................... [ 72%]
+...........................................FFFF....F..F.....................................                                   [100%]
+================================== FAILURES ===================================
+__________________ test_unset_caller_environment_is_restored __________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_unset_caller_environment_0')
+
+    def test_unset_caller_environment_is_restored(tmp_path):
+        parent, _ = run_fixture(tmp_path, unset=True)
+>       assert parent['env'] == dict.fromkeys(KEYS)
+E       AssertionError: assert {'PIP_CACHE_D...ADS': '', ...} == {'TEMP': None...E': None, ...}
+E         
+E         Differing items:
+E         {'TEMP': ''} != {'TEMP': None}
+E         {'PYTHONDONTWRITEBYTECODE': ''} != {'PYTHONDONTWRITEBYTECODE': None}
+E         {'MKL_NUM_THREADS': ''} != {'MKL_NUM_THREADS': None}
+E         {'PYTHONNOUSERSITE': ''} != {'PYTHONNOUSERSITE': None}
+E         {'OPENBLAS_NUM_THREADS': ''} != {'OPENBLAS_NUM_THREADS': None}...
+E         
+E         ...Full output truncated, use '-vv' to show
+
+D:\a14\tests\test_r14_runtime_setup.py:86: AssertionError
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+        assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+        assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+>       child = json.loads(path.read_text(encoding='utf-8'))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\a14\tests\test_r14_runtime_setup.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_live_refusal_stops_only_o0/child.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont01\\run3-r14-scope\\tmp\\test_live_refusal_stops_only_o0\\child.json'
+
+pathlib.py:1013: FileNotFoundError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[False] ________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_real_pytest_receipts_are_0')
+collect_only = False
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        (tmp_path/'pytest.ini').write_text('[pytest]\npython_functions = test_pass\n')
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        hostile = dict(os.environ, PYTEST_ADDOPTS='-k test_pass')
+        hostile.pop('PYTEST_PLUGINS', None)
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65, env=hostile)
+        assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+>       assert (out/'REPORT.json').is_file(), child.stdout+child.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R14Suite.ps1:43
+E         Line |
+E           43 |  … $usage.PercentProcessorTime -gt 70) { throw 'CPU admission refused' }
+E              |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU admission refused
+E         
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = (WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_real_pytest_receipts_are_0/run') / 'REPORT.json').is_file
+
+D:\a14\tests\test_r14_suite.py:185: AssertionError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[True] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_real_pytest_receipts_are_1')
+collect_only = True
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        (tmp_path/'pytest.ini').write_text('[pytest]\npython_functions = test_pass\n')
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        hostile = dict(os.environ, PYTEST_ADDOPTS='-k test_pass')
+        hostile.pop('PYTEST_PLUGINS', None)
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65, env=hostile)
+>       assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R14Suite.ps1:43
+E         Line |
+E           43 |  … $usage.PercentProcessorTime -gt 70) { throw 'CPU admission refused' }
+E              |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU admission refused
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...sed' }\n     |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | CPU admission refused\n").returncode
+
+D:\a14\tests\test_r14_suite.py:184: AssertionError
+_____ test_supervisor_stops_only_fixture_job_without_publishing[deadline] _____
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_supervisor_stops_only_fix0')
+failure = 'deadline'
+
+    @pytest.mark.parametrize('failure', ['deadline', 'log_cap'])
+    def test_supervisor_stops_only_fixture_job_without_publishing(tmp_path, failure):
+        source = tmp_path/'test_bounded_fixture.py'
+        if failure == 'deadline':
+            source.write_text('def test_wait():\n import time\n time.sleep(30)\n')
+        else:
+            source.write_text("def test_noise():\n while True: print('x'*512, flush=True)\n")
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '2' if failure == 'deadline' else '20',
+                   '-LogBytes', '4096', '-FixtureJson', json.dumps([str(source)])]
+        child = subprocess.run(command, capture_output=True, text=True, timeout=40)
+>       assert child.returncode == 70, child.stdout+child.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R14Suite.ps1:43
+E         Line |
+E           43 |  … $usage.PercentProcessorTime -gt 70) { throw 'CPU admission refused' }
+E              |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU admission refused
+E         
+E       assert 1 == 70
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...sed' }\n     |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | CPU admission refused\n").returncode
+
+D:\a14\tests\test_r14_suite.py:223: AssertionError
+_____ test_supervisor_stops_only_fixture_job_without_publishing[log_cap] ______
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont01/run3-r14-scope/tmp/test_supervisor_stops_only_fix1')
+failure = 'log_cap'
+
+    @pytest.mark.parametrize('failure', ['deadline', 'log_cap'])
+    def test_supervisor_stops_only_fixture_job_without_publishing(tmp_path, failure):
+        source = tmp_path/'test_bounded_fixture.py'
+        if failure == 'deadline':
+            source.write_text('def test_wait():\n import time\n time.sleep(30)\n')
+        else:
+            source.write_text("def test_noise():\n while True: print('x'*512, flush=True)\n")
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '2' if failure == 'deadline' else '20',
+                   '-LogBytes', '4096', '-FixtureJson', json.dumps([str(source)])]
+        child = subprocess.run(command, capture_output=True, text=True, timeout=40)
+>       assert child.returncode == 70, child.stdout+child.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R14Suite.ps1:43
+E         Line |
+E           43 |  … $usage.PercentProcessorTime -gt 70) { throw 'CPU admission refused' }
+E              |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU admission refused
+E         
+E       assert 1 == 70
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...sed' }\n     |                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | CPU admission refused\n").returncode
+
+D:\a14\tests\test_r14_suite.py:223: AssertionError
+___________ NativeFixtures.test_consecutive_fen_digits_are_invalid ____________
+
+self = <test_native.NativeFixtures testMethod=test_consecutive_fen_digits_are_invalid>
+
+    def test_consecutive_fen_digits_are_invalid(self):
+        bad = '4k3/8/8/8/8/8/8/4K111 w - - 0 1'
+        good = '4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+        pair_result = run_lines([pair(bad, good)])[0]
+        move_result = run_lines(['bad\t' + bad], '--moves')[0]
+        for result in (pair_result, move_result):
+>           self.assertEqual(result['status'], 'UNKNOWN')
+E           AssertionError: 'UNREACHABLE' != 'UNKNOWN'
+E           - UNREACHABLE
+E           + UNKNOWN
+
+D:\a14\tests\r14_native\test_native.py:185: AssertionError
+______________ NativeFixtures.test_interactive_reply_before_eof _______________
+
+self = <test_native.NativeFixtures testMethod=test_interactive_reply_before_eof>
+
+    def test_interactive_reply_before_eof(self):
+        a = chess.Board().fen(en_passant='fen')
+        line = pair(a, witness_end(a, ['e2e4']))
+        process = subprocess.Popen([str(EXE), '--pairs'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   env=dict(os.environ, CUDA_VISIBLE_DEVICES='-1', HIP_VISIBLE_DEVICES='-1'))
+        try:
+            process.stdin.write(line + '\n')
+            process.stdin.flush()
+            handle = ctypes.c_void_p(msvcrt.get_osfhandle(process.stdout.fileno()))
+            available = ctypes.c_ulong()
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                ok = ctypes.windll.kernel32.PeekNamedPipe(handle, None, 0, None, ctypes.byref(available), None)
+                self.assertTrue(ok, 'cannot inspect owned output pipe')
+                if available.value:
+                    break
+                time.sleep(0.01)
+>           self.assertGreater(available.value, 0, 'line protocol did not reply before input EOF')
+E           AssertionError: 0 not greater than 0 : line protocol did not reply before input EOF
+
+D:\a14\tests\r14_native\test_native.py:212: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_runtime_setup.py::test_unset_caller_environment_is_restored
+FAILED ..\..\a14\tests\test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[True]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_supervisor_stops_only_fixture_job_without_publishing[deadline]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_supervisor_stops_only_fixture_job_without_publishing[log_cap]
+FAILED ..\..\a14\tests\r14_native\test_native.py::NativeFixtures::test_consecutive_fen_digits_are_invalid
+FAILED ..\..\a14\tests\r14_native\test_native.py::NativeFixtures::test_interactive_reply_before_eof
+8 failed, 323 passed, 67 subtests passed in 64.44s (0:01:04)

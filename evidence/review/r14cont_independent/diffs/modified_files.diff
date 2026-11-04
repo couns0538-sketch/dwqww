@@ -1,0 +1,1029 @@
+diff --git a/.gitattributes b/.gitattributes
+index 3ba9361..65b4be6 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -19,3 +19,5 @@ tools/r14_*/** -text
+ tests/test_r14*.py -text
+ tests/r14_*/** -text
+ .agents/skills/npt-data-holdout-check/** -text
++tools/opus_* -text
++tests/test_opus_*.py -text
+diff --git a/.gitignore b/.gitignore
+index 999f474..0ae0b01 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -10,3 +10,8 @@ __pycache__/
+ /pgnpack/runs/
+ /.pytest_cache/
+ /tools/r14_native/build/
++
++# R14 finish (Opus): test scratch dirs are never evidence; the 150 MB production maps are sealed by
++# sep/segments-production02/MAPS_SEAL.json (too big for the repository).
++/evidence/test_logs/**/tmp/
++/sep/segments-production02/maps/
+diff --git a/PLAN.md b/PLAN.md
+index af276ff..eb49c2a 100644
+--- a/PLAN.md
++++ b/PLAN.md
+@@ -127,3 +127,14 @@ FINAL_REPORT.md records Vienna times, verdicts/counts, test logs with MD5, unfin
+ work and explicit training clearance. Inventory every delivery file by absolute
+ path/full MD5; externally seal report/inventory. Commit logs under evidence/test_logs
+ and verify remote HEAD. Preserve runtime/local artifacts with their own inventory.
++
++## R14-cont (finished by Opus on branch opus-astra-r14-finish from 7636122b; appended 2026-11-04 09:2x Vienna)
++Astra is out of usage; Opus finishes R14 in the waits of its own 30-h job, which keeps CPUs 0-1 (this work runs at Idle
++on CPU 2 for short bursts, never on gate cores, never on D:\o30). Commits as Opus <opus@forge.local>; big outputs to
++C:\a14x; stop if D: < 50 GB or C: < 30 GB; D:\a14 < 5 GB; no GPU (CUDA/HIP_VISIBLE_DEVICES=-1); no training, no Elo.
++Review: AGENTS.md policy without a reviewer sub-agent (the owner's standing rule for Opus) - structured self-review at
++each milestone, stated as NOT independent.
++Time budget (Vienna): Step 0 verify 09:20-09:25 (done: 7 inputs + 25 maps PASS) | Job 1 commit PC-only work 09:25-10:00
++| Job 2 board+stm triage 10:00-11:45 | (11:50-12:15 the 30-h job's match results) | Job 3 guard-band split, proof,
++export only on PASS 12:15-15:30 | Job 4 QA notes, CR SHOULD (Setup-R14Runtime SHA256 pins), self-review, full suite,
++FINAL_REPORT, push 15:30-19:00. If a job ends early, deepen its proof.
+diff --git a/evidence/R14_OPEN_ISSUES.md b/evidence/R14_OPEN_ISSUES.md
+index ff2b36b..ed09c26 100644
+--- a/evidence/R14_OPEN_ISSUES.md
++++ b/evidence/R14_OPEN_ISSUES.md
+@@ -8,11 +8,12 @@
+   missing. JobA has3982 groups spanning unresolved observed-chain breaks.
+ - A guarded contiguous candidate is planned in sep/GUARD_BAND_PLAN.md. Its local
+   checks cannot replace the explicitly required original identities.
+-- Broader boundary search passed36 quick tests after receipt and qualification
+-  accounting fixes; independent review,100k-path filter qualification and real
+-  native integration remain required before a workload.
++- Broader boundary filter mathematics and qualifier passed independent review.
++  The native driver needs three publication/accounting failure-path fixes and
++  recheck, followed by100k-path qualification and real native integration.
+ - Selected-suite runner needs pytest environment/config isolation, the exact r03
+-  native pin and a refreshed final allowlist. Its subprocess integration fixtures
++  native pin and a refreshed final allowlist. Those changes are authored; their
++  validation is queued. Its subprocess integration fixtures
+   remain unaccepted; do not claim a full-suite pass from the earlier partial run.
+ - After the running scans release their frozen dependencies, tighten the reusable
+   guard_selection contract against nonmonotonic ply numbers on either side of a
+@@ -23,3 +24,5 @@
+   frontmatter/link/scenario review passed; the standard validator did not run.
+ - Final permitted-suite execution, complete changed-file review, final30-minute
+   bug hunt, file inventories/seals and FINAL_REPORT remain outstanding.
++- Deeper jobA node-limit retry is designed in sep/RETRY_PLAN.md and not yet
++  implemented. It preserves the original evidence and fixed K=8 proof scope.
+diff --git a/sep/PROD_SEPARATION.json b/sep/PROD_SEPARATION.json
+index 1a82ce6..6bdfdd1 100644
+--- a/sep/PROD_SEPARATION.json
++++ b/sep/PROD_SEPARATION.json
+@@ -1,20 +1,149 @@
+ {
+   "schema": 1,
+-  "status": "UNVERIFIED",
+-  "stage": "native_qualified_position_scan_running_chain_scan_pending",
++  "status": "FAIL",
++  "stage": "position_and_chain_scans_complete",
++  "status_by_check": {
++    "position_overlap_board_stm": "FAIL",
++    "position_overlap_four_field": "PASS (en-passant normalisation not yet settled; see BOARDSTM_TRIAGE.json)",
++    "chain_segments": "UNVERIFIED",
++    "authentic_game_ids": "UNVERIFIED"
++  },
+   "authentic_game_ids": "UNVERIFIED",
+   "writer_behavior": "inspected_hashed_source",
+   "historical_launcher_association": "supported_not_authenticated_per_shard",
+-  "segments": null,
+-  "cross_boundary_links": null,
+-  "position_overlap": null,
+-  "key_fill_rate": null,
++  "segments": {
++    "status": "UNVERIFIED",
++    "k": 8,
++    "node_limit": 100000,
++    "boundary_node_limit": 1000000,
++    "segment_count": 293783,
++    "range_count": 293784,
++    "adjacent_pair_outcomes": {
++      "REACHABLE": 16294792,
++      "UNKNOWN": 104569,
++      "UNREACHABLE": 189211
++    },
++    "reason_counts": {
++      "exhaustive_no_path": 14,
++      "gap_exceeds_k": 36457,
++      "legal_witness": 16294792,
++      "node_limit": 68112,
++      "nonpositive_ply_gap": 67730,
++      "result_mismatch": 121467
++    },
++    "scope": "only observed adjacent physical rows at source seams; no all-pairs cross-window search",
++    "sources": {
++      "012": {
++        "scanned_rows": 100000,
++        "valid_key_rows": 100000
++      },
++      "013": {
++        "scanned_rows": 10000000,
++        "valid_key_rows": 10000000
++      },
++      "014": {
++        "scanned_rows": 6388575,
++        "valid_key_rows": 6388575
++      },
++      "015": {
++        "scanned_rows": 100000,
++        "valid_key_rows": 100000
++      }
++    }
++  },
++  "cross_boundary_links": {
++    "train_holdout_seams_checked": 2,
++    "reachable": 0,
++    "unknown": 0,
++    "unreachable": 2,
++    "seams": [
++      {
++        "left": "forge_selfplay_012.txt line 2625970",
++        "right": "forge_selfplay_013.txt line 1",
++        "status": "UNREACHABLE",
++        "reason": "result_mismatch",
++        "crosses_train_holdout": true
++      },
++      {
++        "left": "forge_selfplay_013.txt line 10000000",
++        "right": "forge_selfplay_014.txt line 1",
++        "status": "REACHABLE",
++        "reason": "legal_witness",
++        "crosses_train_holdout": false
++      },
++      {
++        "left": "forge_selfplay_014.txt line 6388575",
++        "right": "forge_selfplay_015.txt line 1",
++        "status": "UNREACHABLE",
++        "reason": "nonpositive_ply_gap",
++        "crosses_train_holdout": true
++      }
++    ],
++    "scope": "observed adjacent physical rows at the file seams only; no all-pairs cross-window search"
++  },
++  "position_overlap": {
++    "board_stm": {
++      "status": "FAIL",
++      "shared_exact_keys": 7610,
++      "train_overlap_rows": 7700,
++      "holdout_overlap_rows": 7612,
++      "hash_candidate_rows": 7700,
++      "hash_collision_rows": 0,
++      "train_rows": 304999573,
++      "holdout_rows": 16388575
++    },
++    "four_field": {
++      "status": "PASS",
++      "shared_exact_keys": 0,
++      "train_overlap_rows": 0,
++      "holdout_overlap_rows": 0,
++      "hash_candidate_rows": 0,
++      "hash_collision_rows": 0,
++      "train_rows": 304999573,
++      "holdout_rows": 16388575
++    },
++    "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution",
++    "scope": "position_keys_only"
++  },
++  "key_fill_rate": {
++    "board_stm": {
++      "train": 1.0,
++      "holdout": 1.0
++    },
++    "four_field": {
++      "train": 1.0,
++      "holdout": 1.0
++    }
++  },
+   "reasons": [
++    "Position overlap FAIL on the board+side-to-move key: 7,610 shared keys, 7,700 train rows and 7,612 holdout rows, 0 hash collisions, key fill rate 1.0 on 304,999,573 train and 16,388,575 holdout rows.",
++    "The 4-field key shares 0 keys at fill rate 1.0. Without castling rights the two keys differ only in the en-passant field, so this PASS can be an en-passant formatting artifact until the triage settles it.",
+     "Original game-to-row bindings have not been recovered.",
+     "The inspected writer can import pre-existing shard files; current source and sidecars do not authenticate their production.",
+     "Eligibility filtering and deduplication can omit more than K plies; bounded nonreachability cannot prove distinct original games.",
+     "Native qualification passed one million resolved foundation pairs with zero disagreements; twenty extra deep searches remain unknown.",
+-    "Full production position scan is running and chain scanning remains pending; null counts are not zero-overlap claims."
++    "Chain scan (K=8, node limit 100,000) left 104,569 adjacent pairs UNKNOWN (node_limit 68,112, gap_exceeds_k 36,457) next to 16,294,792 REACHABLE and 189,211 UNREACHABLE; unresolved adjacent-pair checks remain.",
++    "Both train/holdout file seams are UNREACHABLE (012->013 result_mismatch, 014->015 nonpositive_ply_gap), but the chain scan checks only observed adjacent physical rows at source seams; it does not search all pairs across windows, so interleaved or reordered games are not excluded.",
++    "Observed segment IDs are inferred chain labels, not authenticated original game IDs.",
++    "Historical producer-to-shard binding remains unverified."
+   ],
+-  "evidence": ["D:/a14/sep/WRITER_EVIDENCE.md", "D:/a14/evidence/r14/input-pins-all.jsonl"]
++  "reports": [
++    {
++      "path": "D:\\a14\\sep\\overlap-production03\\REPORT.json",
++      "md5": "1607d19e2b66dbe3512d0997942523c4"
++    },
++    {
++      "path": "D:\\a14\\sep\\segments-production02\\REPORT.json",
++      "md5": "fcb488f8c726326e013f648e1d202760"
++    },
++    {
++      "path": "D:\\a14\\sep\\segments-production02\\MAPS_SEAL.json",
++      "md5": "9b708a8994edc0f87ad8283c783440bb"
++    }
++  ],
++  "evidence": [
++    "D:/a14/sep/WRITER_EVIDENCE.md",
++    "D:/a14/evidence/r14/input-pins-all.jsonl"
++  ],
++  "updated_vienna": "2026-11-04 09:36 Vienna"
+ }
+diff --git a/tests/r14_qualification/test_qualification.py b/tests/r14_qualification/test_qualification.py
+index f68392c..9b0ddc3 100644
+--- a/tests/r14_qualification/test_qualification.py
++++ b/tests/r14_qualification/test_qualification.py
+@@ -253,6 +253,32 @@ class QualificationTests(unittest.TestCase):
+         finally:
+             client.close()
+ 
++    def test_fixture_refuses_production_evidence_output(self):
++        target = Path('D:/a14/sep/qualification-fixture-refusal-test')
++        with mock.patch('sys.stderr', new_callable=io.StringIO) as err:
++            with self.assertRaises(SystemExit) as raised:
++                self.q.main(['--fixture', '--pairs', '10', '--out', str(target)])
++        self.assertEqual(raised.exception.code, 2)
++        self.assertIn('production evidence folder', err.getvalue())
++        self.assertFalse(target.exists())
++
++    def test_no_production_launcher_passes_fixture(self):
++        tools = SOURCE.parents[1]
++        callers = []
++        for pattern in ('*.ps1', '*.py', '*.bat', '*.cmd'):
++            for path in tools.glob(pattern):
++                for number, line in enumerate(path.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
++                    if 'qualify.py' in line and '--fixture' in line:
++                        callers.append(f'{path.name}:{number}')
++        self.assertEqual(callers, [])
++
++    def test_fixture_report_cannot_qualify_a_scanner(self):
++        sys.path.insert(0, str(SOURCE.parents[1]))
++        import r14_segments
++        report = dict(schema=1, status='PASS', complete=True, scope='qualification_smoke', requested_pairs=1000000)
++        with self.assertRaises(ValueError):
++            r14_segments.validate_qualification(report, {})
++
+ 
+ if __name__ == '__main__':
+     unittest.main(verbosity=2)
+diff --git a/tests/test_r14_overlap.py b/tests/test_r14_overlap.py
+index 6798871..61d85fb 100644
+--- a/tests/test_r14_overlap.py
++++ b/tests/test_r14_overlap.py
+@@ -301,3 +301,53 @@ def test_runtime_inventory_rejects_neighboring_locks(tmp_path, name):
+         verify_runtime(runtime_root=runtime, inventory=inventory,
+                        expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
+     assert neighbor.read_bytes() == b''
++
++
++THIRD = '4k3/8/8/8/8/8/8/5K2 w - - 0 1'
++
++
++def listing_fixture(tmp_path):
++    h, hm = source(tmp_path, 'h.txt', [FEN, OTHER, FEN.replace('0 1', '3 7')])
++    t1, t1m = source(tmp_path, 't1.txt', [THIRD, FEN.replace('0 1', '7 9')])
++    t2, t2m = source(tmp_path, 't2.txt', [OTHER, FEN])
++    pins = {str(p).casefold(): m for p, m in ((h, hm), (t1, t1m), (t2, t2m))}
++    return h, t1, t2, pins
++
++
++def test_listing_names_every_shared_train_and_holdout_row(tmp_path):
++    h, t1, t2, pins = listing_fixture(tmp_path)
++    result = overlap_audit([h], [t1, t2], pins, chunk_rows=1)
++    for name in ('board_stm', 'four_field'):
++        report = result['keys'][name]
++        assert report['status'] == 'FAIL' and report['listing_complete'] is True
++        assert report['shared_exact_keys'] == 2
++        assert report['train_overlap_rows'] == 3 and report['holdout_overlap_rows'] == 3
++        listing = {item['key'].split()[0]: item for item in report['shared_keys']}
++        assert len(listing) == 2
++        fen_board = '....k' + '.' * 55 + 'K...'
++        other_board = '....k' + '.' * 54 + 'K....'
++        assert listing[fen_board]['train'] == [
++            dict(path=str(t1), line=2, fen=FEN.replace('0 1', '7 9')), dict(path=str(t2), line=2, fen=FEN)]
++        assert listing[fen_board]['holdout'] == [
++            dict(path=str(h), line=1, fen=FEN), dict(path=str(h), line=3, fen=FEN.replace('0 1', '3 7'))]
++        assert listing[other_board]['train'] == [dict(path=str(t2), line=1, fen=OTHER)]
++        assert listing[other_board]['holdout'] == [dict(path=str(h), line=2, fen=OTHER)]
++
++
++def test_listing_over_cap_is_withheld_not_truncated(tmp_path, monkeypatch):
++    import r14_overlap
++    monkeypatch.setattr(r14_overlap, 'LISTING_ROW_CAP', 2)
++    h, t1, t2, pins = listing_fixture(tmp_path)
++    result = overlap_audit([h], [t1, t2], pins, chunk_rows=1)
++    report = result['keys']['board_stm']
++    assert report['status'] == 'FAIL' and report['train_overlap_rows'] == 3
++    assert report['listing_complete'] is False and report['shared_keys'] is None
++
++
++def test_listing_is_empty_and_complete_without_overlap(tmp_path):
++    h, hm = source(tmp_path, 'h.txt', [FEN])
++    t, tm = source(tmp_path, 't.txt', [OTHER])
++    result = overlap_audit([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, chunk_rows=1)
++    for name in ('board_stm', 'four_field'):
++        assert result['keys'][name]['listing_complete'] is True
++        assert result['keys'][name]['shared_keys'] == []
+diff --git a/tools/R14-OwnedJob.ps1 b/tools/R14-OwnedJob.ps1
+index 7ce28f2..04d5717 100644
+--- a/tools/R14-OwnedJob.ps1
++++ b/tools/R14-OwnedJob.ps1
+@@ -151,7 +151,7 @@ public sealed class R14OwnedJob : IDisposable {
+     } finally {
+         foreach ($name in $compileEnvironment.Keys) {
+             if ($compilePresent[$name]) { [Environment]::SetEnvironmentVariable($name,$compileEnvironment[$name],'Process') }
+-            else { Remove-Item -LiteralPath ('Env:'+$name) -ErrorAction SilentlyContinue }
++            else { [Environment]::SetEnvironmentVariable($name,$null,'Process') }
+         }
+     }
+ }
+diff --git a/tools/Setup-R14Runtime.ps1 b/tools/Setup-R14Runtime.ps1
+index 93a8c9a..900f345 100644
+--- a/tools/Setup-R14Runtime.ps1
++++ b/tools/Setup-R14Runtime.ps1
+@@ -113,7 +113,9 @@ function Invoke-R14OwnedProcess([string]$Executable,[string[]]$Arguments) {
+     }
+ }
+ 
+-function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5) {
++function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5,[string]$ExpectedSHA256) {
++    # Every download is SHA256-pinned (Code Review SHOULD); MD5 stays as a second check where it was pinned before.
++    if ($ExpectedSHA256 -notmatch '^[0-9a-f]{64}$') { throw 'Runtime download requires a SHA256 pin' }
+     $null=Assert-R14OwnedPath $Destination
+     if (-not (Test-Path -LiteralPath $Destination)) {
+         Assert-R14Resources 32MB
+@@ -121,7 +123,8 @@ function Get-R14Download([string]$Uri,[string]$Destination,[string]$ExpectedMD5)
+         [IO.File]::WriteAllText($helper, "param([string]`$Uri,[string]`$Destination)`n`$ErrorActionPreference='Stop'`nInvoke-WebRequest -Uri `$Uri -OutFile `$Destination`n", $utf8)
+         Invoke-R14OwnedProcess (Join-Path $PSHOME 'pwsh.exe') @('-NoProfile','-File',$helper,'-Uri',$Uri,'-Destination',$Destination)
+     }
+-    if ((Get-FileHash -Algorithm MD5 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedMD5) { throw 'Runtime download MD5 mismatch' }
++    if ($ExpectedMD5 -and (Get-FileHash -Algorithm MD5 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedMD5) { throw 'Runtime download MD5 mismatch' }
++    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $Destination).Hash.ToLowerInvariant() -ne $ExpectedSHA256) { throw 'Runtime download SHA256 mismatch' }
+     Assert-R14Resources
+ }
+ 
+@@ -149,7 +152,7 @@ try {
+             New-Item -ItemType Directory -Force -Path $path | Out-Null
+         }
+         $archive=Join-Path $downloads 'python-3.12.10-embed-amd64.zip'
+-        Get-R14Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip' $archive 'fe8ef205f2e9c3ba44d0cf9954e1abd3'
++        Get-R14Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip' $archive 'fe8ef205f2e9c3ba44d0cf9954e1abd3' '4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3'
+         if (-not (Test-Path -LiteralPath $python)) {
+             Assert-R14Resources 64MB
+             Expand-Archive -LiteralPath $archive -DestinationPath $pythonRoot
+@@ -159,22 +162,37 @@ try {
+         $pth=Assert-R14OwnedPath (Join-Path $pythonRoot 'python312._pth')
+         [IO.File]::WriteAllText($pth, "python312.zip`n.`nLib\site-packages`nD:\a14\tools`nimport site`n",$utf8)
+         $bootstrap=Join-Path $downloads 'get-pip.py'
+-        Get-R14Download 'https://bootstrap.pypa.io/get-pip.py' $bootstrap '8bae3e432175fb42da9d41cbe68217b0'
+-        $requirements=Assert-R14OwnedPath (Join-Path $root 'tools\requirements-r14.txt')
++        Get-R14Download 'https://bootstrap.pypa.io/get-pip.py' $bootstrap '8bae3e432175fb42da9d41cbe68217b0' '356e0d0de21cdc348c3394084d90939b85e4246c4d14c76aee6ca4f46646ea98'
++        # Hash-pinned installs: every requirement carries --hash=sha256 (tools\requirements-r14-hashes.txt, made by
++        # tools\opus_pypi_hashes.py from PyPI metadata and proven with pip download --require-hashes).
++        $requirements=Assert-R14OwnedPath (Join-Path $root 'tools\requirements-r14-hashes.txt')
+         $pins=Get-Content -LiteralPath $requirements
+-        $buildPins=@($pins | Where-Object { $_ -match '^(pip|setuptools|wheel)==[0-9][0-9.]*$' })
+-        if ($buildPins.Count -ne 3) { throw 'Pinned build dependencies missing' }
++        # Build tools come from SHA256-pinned wheels on disk; get-pip.py installs them with --no-index.
++        $wheelDir=Assert-R14OwnedPath (Join-Path $downloads 'wheels')
++        New-Item -ItemType Directory -Force -Path $wheelDir | Out-Null
++        $buildWheels=@(
++            @{Pin='pip==26.3'; Sha256='f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13'; Uri='https://files.pythonhosted.org/packages/07/25/ee8c38ae72d66b844ce8eb9711ba905dba21ca1a8a0c960057c41cd23337/pip-26.3-py3-none-any.whl'},
++            @{Pin='setuptools==84.2.1'; Sha256='ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2'; Uri='https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl'},
++            @{Pin='wheel==0.48.0'; Sha256='3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab'; Uri='https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl'}
++        )
++        foreach ($wheel in $buildWheels) {
++            # The hash-pinned requirements must name the same version and hash as the bootstrap wheel.
++            $line=@($pins | Where-Object { $_ -like ($wheel.Pin+' *') })
++            if ($line.Count -ne 1 -or $line[0] -notmatch ('--hash=sha256:'+$wheel.Sha256+'(\s|$)')) { throw ('Build pin mismatch: '+$wheel.Pin) }
++            Get-R14Download $wheel.Uri (Join-Path $wheelDir ($wheel.Uri -split '/')[-1]) '' $wheel.Sha256
++        }
+         Assert-R14Resources 128MB
+-        Invoke-R14OwnedProcess $python (@('-I','-B',$bootstrap,'--no-cache-dir','--disable-pip-version-check')+$buildPins)
++        Invoke-R14OwnedProcess $python (@('-I','-B',$bootstrap,'--no-cache-dir','--disable-pip-version-check','--no-index','--find-links',$wheelDir)+@($buildWheels | ForEach-Object { $_.Pin }))
+         Assert-R14Resources 256MB
+-        Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','install','--no-build-isolation','--no-cache-dir','--disable-pip-version-check','--no-deps','--requirement',$requirements)
++        Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','install','--require-hashes','--no-build-isolation','--no-cache-dir','--disable-pip-version-check','--no-deps','--requirement',$requirements)
+         Invoke-R14OwnedProcess $python @('-I','-B','-m','pip','freeze','--all')
+         Get-FileHash -Algorithm MD5 -LiteralPath $python,$archive,$bootstrap,$requirements | ConvertTo-Json
++        Get-FileHash -Algorithm SHA256 -LiteralPath $python,$archive,$bootstrap,$requirements | ConvertTo-Json
+     }
+ } finally {
+     foreach ($key in $oldEnvironment.Keys) {
+         if ($oldEnvironmentPresent[$key]) { [Environment]::SetEnvironmentVariable($key,$oldEnvironment[$key],'Process') }
+-        else { Remove-Item -LiteralPath ('Env:'+$key) -ErrorAction SilentlyContinue }
++        else { [Environment]::SetEnvironmentVariable($key,$null,'Process') }
+     }
+     $caller.PriorityClass=$oldPriority
+ }
+diff --git a/tools/r14_boundary_run.py b/tools/r14_boundary_run.py
+new file mode 100644
+index 0000000..a5d6dbc
+--- /dev/null
++++ b/tools/r14_boundary_run.py
+@@ -0,0 +1,471 @@
++"""Bounded native resolution and receipts for all boundary-window candidates."""
++from __future__ import annotations
++
++from collections import Counter
++import argparse
++from datetime import datetime
++import json
++import os
++from pathlib import Path
++import struct
++import sys
++import time
++
++sys.path.insert(0, str(Path(__file__).resolve().parent))
++import r14_boundary
++from r14_boundary import Population, parse_endpoint, candidate_chunks, count_candidates, ACCOUNTING_FIELDS, read_window
++from r14_segments import PairEvidence, SourceRecord, TransportFailure, validate_reply, Guard, validate_qualification
++from r14_qualification.qualify import hashes, resource_guard, Native, DEFAULT_CANDIDATE
++from r14_scan import load_pins
++from run_policy import safe_path
++
++QUERY_STRUCT = struct.Struct('<IIBBBI')
++
++
++class ReceiptWriter:
++    def __init__(self, directory, guard, chunk_bytes=10*1024**2):
++        self.directory = Path(directory)
++        guard()
++        self.directory.mkdir(exist_ok=False)
++        self.guard, self.chunk_bytes = guard, chunk_bytes
++        self.opened, self.parts, self.artifacts = {}, Counter(), []
++
++    def append(self, kind, payload):
++        if kind not in ('queries','positives') or len(payload) > self.chunk_bytes:
++            raise ValueError('invalid bounded receipt payload')
++        current = self.opened.get(kind)
++        if current is not None and current['bytes']+len(payload) > self.chunk_bytes:
++            self.finish(kind)
++            current = None
++        if current is None:
++            self.guard()
++            self.parts[kind] += 1
++            suffix = 'bin' if kind == 'queries' else 'jsonl'
++            destination = self.directory/f'{kind}_{self.parts[kind]:04}.{suffix}'
++            pending = destination.with_suffix(destination.suffix+'.part')
++            current = dict(path=destination,pending=pending,stream=pending.open('xb'),bytes=0,records=0,
++                           renamed=False,close_succeeded=False,seal_io_failed=False)
++            self.opened[kind] = current
++        if current['stream'].write(payload) != len(payload):
++            raise OSError('partial receipt write')
++        current['bytes'] += len(payload)
++        current['records'] += 1
++
++    def query(self,left,right,depth,attempt,evidence):
++        self.append('queries',QUERY_STRUCT.pack(left.line,right.line,depth,attempt,evidence.code,evidence.nodes))
++
++    def positive(self,left,right,depth,evidence):
++        payload = dict(left_line=left.line,right_line=right.line,depth=depth,nodes=evidence.nodes,
++                       witness=list(evidence.witness))
++        self.append('positives',(json.dumps(payload,sort_keys=True)+'\n').encode('ascii'))
++
++    def finish(self,kind):
++        self.guard()
++        current = self.opened[kind]
++        if current['seal_io_failed']:
++            raise OSError('prior receipt seal or close failed')
++        if not current['close_succeeded']:
++            if current['stream'].closed:
++                current['seal_io_failed'] = True
++                raise OSError('receipt handle closed without a successful close')
++            try:
++                current['stream'].flush()
++                os.fsync(current['stream'].fileno())
++                current['stream'].close()
++            except Exception:
++                current['seal_io_failed'] = True
++                raise
++            current['close_succeeded'] = True
++        stored_path = current['path'] if current['renamed'] else current['pending']
++        if stored_path.stat().st_size != current['bytes']:
++            raise OSError('receipt size mismatch')
++        self.guard()
++        if not current['renamed']:
++            os.rename(current['pending'],current['path'])
++            current['renamed'] = True
++        self.artifacts.append(dict(kind=kind,bytes=current['bytes'],records=current['records'],**hashes(current['path'])))
++        del self.opened[kind]
++
++    def close(self):
++        for kind in list(self.opened):
++            self.finish(kind)
++
++    def abort(self):
++        # A failed close leaves an unsealed part (never trusted); report it instead of swallowing it silently.
++        for kind, current in self.opened.items():
++            try:
++                current['stream'].raw.close()
++            except (OSError,ValueError) as error:
++                print(f'receipt abort: raw close of {kind} failed: {type(error).__name__}: {error}', file=sys.stderr)
++            try:
++                current['stream'].close()
++            except (OSError,ValueError) as error:
++                print(f'receipt abort: close of {kind} failed: {type(error).__name__}: {error}', file=sys.stderr)
++        self.opened.clear()
++
++
++def _record(endpoint):
++    return SourceRecord(endpoint.source_id,endpoint.line,endpoint.row(),True)
++
++
++def search_candidates(left,right,first_pass,query_many,writer,report,guard=lambda: None):
++    """Repeat enumeration, resolve bounded batches, and preserve every unknown."""
++    if first_pass.get('complete') is not True:
++        raise ValueError('complete first enumeration pass required')
++    report.clear()
++    report.update(complete=False,attempted_pairs=0,query_attempts=0,retried_pairs=0,
++                  candidate_pairs=first_pass['survivors'],unqueried_pairs=first_pass['survivors'],
++                  initial_counts={},retry_counts={},final_counts={},final_reasons={},
++                  query_receipts_written=0,positive_receipts_written=0,receipt_errors=0,
++                  unrecorded_query_attempts=0,unrecorded_positive_pairs=0,receipt_accounting_complete=False)
++    initial, retries, final, reasons = Counter(),Counter(),Counter(),Counter()
++    second, pending = {},[]
++    pending_bytes, ordinal = 0,0
++
++    def snapshot():
++        report.update(initial_counts=dict(initial),retry_counts=dict(retries),final_counts=dict(final),
++                      final_reasons=dict(reasons),second_pass=second,
++                      unqueried_pairs=first_pass['survivors']-report['attempted_pairs'],
++                      unrecorded_query_attempts=report['query_attempts']-report['query_receipts_written'],
++                      unrecorded_positive_pairs=final['REACHABLE']-report['positive_receipts_written'])
++        report['receipt_accounting_complete'] = bool(
++            report['receipt_errors'] == 0 and report['unrecorded_query_attempts'] == 0 and
++            report['unrecorded_positive_pairs'] == 0 and sum(final.values()) == report['attempted_pairs'])
++
++    def request(items,cap,attempt,previous=None):
++        guard()
++        if attempt == 2 and (previous is None or len(previous) != len(items)):
++            raise ValueError('retry requires its prior pair outcomes')
++        lines = []
++        for a,b,depth,ident in items:
++            lines.append('\t'.join((ident,a.fen,a.result,b.fen,b.result,'8',str(cap))))
++        report['query_attempts'] += len(items)
++        if attempt == 1:
++            report['attempted_pairs'] += len(items)
++        else:
++            report['retried_pairs'] += len(items)
++        request_error = None
++        try:
++            replies = query_many(lines)
++            if not isinstance(replies,list) or len(replies) != len(items):
++                raise TransportFailure('boundary reply count mismatch')
++            outcomes = [validate_reply(_record(a),_record(b),reply,ident,cap,8)
++                        for (a,b,_,ident),reply in zip(items,replies)]
++        except Exception as error:
++            request_error = error
++            outcomes = [PairEvidence(_record(a),_record(b),8) for a,b,_,_ in items]
++        # Commit every validated classification before any receipt allocation.
++        for index,event in enumerate(outcomes):
++            if attempt == 1:
++                initial[event.status] += 1
++            else:
++                retries[event.status] += 1
++                final[previous[index].status] -= 1
++                reasons[previous[index].reason] -= 1
++            final[event.status] += 1
++            reasons[event.reason] += 1
++        snapshot()
++        if request_error is not None:
++            resource_guard(reserve_bytes=1024**2)
++        try:
++            for (a,b,depth,_),event in zip(items,outcomes):
++                writer.query(a,b,depth,attempt,event)
++                report['query_receipts_written'] += 1
++                if event.code == 0:
++                    writer.positive(a,b,depth,event)
++                    report['positive_receipts_written'] += 1
++        except Exception as error:
++            report['receipt_errors'] += 1
++            report['receipt_error'] = f'{type(error).__name__}: {error}'
++            snapshot()
++            raise
++        snapshot()
++        if request_error is not None:
++            raise TransportFailure(f'boundary batch failed: {type(request_error).__name__}: {request_error}') from request_error
++        return outcomes
++
++    def flush():
++        nonlocal pending,pending_bytes
++        if not pending:
++            return
++        batch = pending
++        pending,pending_bytes = [],0
++        outcomes = request(batch,100000,1)
++        for (a,b,depth,ident),event in zip(batch,outcomes):
++            if event.code != 5:
++                continue
++            request([(a,b,depth,ident+'r')],1000000,2,[event])
++
++    try:
++        for chunk in candidate_chunks(left,right,second,guard):
++            for index in chunk.right_indices:
++                target = right.valid[int(index)]
++                ordinal += 1
++                ident = f'b{ordinal}'
++                line = '\t'.join((ident,chunk.left.fen,chunk.left.result,target.fen,target.result,'8','100000'))
++                size = len(line.encode('ascii'))+1
++                if size > 2048:
++                    raise ValueError('candidate request exceeds transport bound')
++                if len(pending) == 8 or pending_bytes+size > 2048:
++                    flush()
++                pending.append((chunk.left,target,chunk.depth,ident))
++                pending_bytes += size
++        flush()
++        if any(second.get(name) != first_pass.get(name) for name in (*ACCOUNTING_FIELDS,'total_pairs','complete')):
++            raise RuntimeError('candidate enumeration passes disagree')
++        if report['attempted_pairs'] != first_pass['survivors'] or sum(final.values()) != report['attempted_pairs']:
++            raise RuntimeError('native pair accounting mismatch')
++        snapshot()
++        if not report['receipt_accounting_complete']:
++            raise RuntimeError('native receipt accounting mismatch')
++        report['complete'] = True
++    finally:
++        snapshot()
++
++
++def no_link_verdict(first_pass,search):
++    if search.get('final_counts',{}).get('REACHABLE',0):
++        return 'FAIL'
++    if (first_pass.get('complete') is True and first_pass.get('total_pairs',0) > 0 and
++        first_pass.get('invalid_endpoint_pairs') == 0 and search.get('complete') is True and
++        search.get('attempted_pairs') == first_pass.get('survivors') and search.get('unqueried_pairs') == 0 and
++        search.get('final_counts',{}).get('UNKNOWN',0) == 0):
++        return 'PASS'
++    return 'UNVERIFIED'
++
++
++def seam_verdict(first_pass,search,*,receipts_complete,native_session_success=False):
++    if (receipts_complete is not True or native_session_success is not True or
++        search.get('receipt_accounting_complete') is not True):
++        return 'UNVERIFIED'
++    return no_link_verdict(first_pass,search)
++
++
++def close_native_session(child,seam):
++    try:
++        child.close()
++    except Exception as error:
++        seam['native_session_success'] = False
++        seam['native_session_failed'] = True
++        seam['complete'] = False
++        seam.setdefault('native_session_errors',[]).append(f'{type(error).__name__}: {error}')
++        raise
++    if not seam.get('native_session_failed',False):
++        seam['native_session_success'] = True
++
++
++def _publish(path,report):
++    payload = (json.dumps(report,sort_keys=True,indent=2)+'\n').encode('utf-8')
++    resource_guard(reserve_bytes=len(payload)+4096)
++    temporary = path.with_suffix(path.suffix+'.part')
++    with temporary.open('xb') as stream:
++        stream.write(payload)
++        stream.flush()
++        os.fsync(stream.fileno())
++    resource_guard(reserve_bytes=4096)
++    os.rename(temporary,path)
++
++
++def validate_filter_qualification(report,core_identity):
++    if (report.get('schema') != 1 or report.get('scope') != 'boundary_filter_qualification' or
++        report.get('status') != 'PASS' or report.get('complete') is not True):
++        raise ValueError('completed production filter qualification PASS required')
++    requested,resolved = report.get('requested_random_pairs'),report.get('resolved_random_pairs')
++    if type(requested) is not int or requested < 100000 or type(resolved) is not int or resolved < requested:
++        raise ValueError('100000 resolved random legal filter pairs required')
++    zero_fields = ('rejected_legal_pairs','special_failures','popcount_disagreements')
++    if any(type(report.get(field)) is not int or report[field] != 0 for field in zero_fields):
++        raise ValueError('filter qualification failures')
++    if type(report.get('special_pairs')) is not int or report['special_pairs'] < 10:
++        raise ValueError('filter qualification failures or missing special paths')
++    if type(report.get('popcount_checks')) is not int or report['popcount_checks'] < requested:
++        raise ValueError('filter qualification popcount coverage incomplete')
++    if report.get('core') != core_identity:
++        raise ValueError('filter qualification core identity mismatch')
++    identities = report.get('tool_identities')
++    if not isinstance(identities,list) or not identities:
++        raise ValueError('filter qualification dependency identities missing')
++    for identity in identities:
++        if not isinstance(identity,dict) or hashes(safe_path(identity.get('path',''))) != identity:
++            raise ValueError('filter qualification dependency identity mismatch')
++    return report
++
++
++def main(argv=None):
++    root = Path('D:/a14')
++    source = Path('D:/grok-pc-data/selfplay_out')
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--out',type=Path,required=True)
++    parser.add_argument('--pins',type=Path,default=root/'evidence/r14/input-pins-all.jsonl')
++    parser.add_argument('--qualification',type=Path,required=True)
++    parser.add_argument('--qualification-md5',required=True)
++    parser.add_argument('--filter-qualification',type=Path,required=True)
++    parser.add_argument('--filter-qualification-md5',required=True)
++    parser.add_argument('--native',type=Path,default=DEFAULT_CANDIDATE)
++    parser.add_argument('--cpu',type=int,default=3)
++    parser.add_argument('--seconds',type=float,default=5400)
++    args = parser.parse_args(argv)
++    guard = Guard(args.seconds,args.cpu)
++    native_identity = hashes(safe_path(args.native))
++    qualification = hashes(safe_path(args.qualification))
++    if qualification['md5'] != args.qualification_md5:
++        raise ValueError('qualification pin mismatch')
++    validate_qualification(json.loads(Path(qualification['path']).read_text()),native_identity)
++    filter_qualification = hashes(safe_path(args.filter_qualification))
++    if filter_qualification['md5'] != args.filter_qualification_md5:
++        raise ValueError('filter qualification pin mismatch')
++    core_identity = hashes(Path(r14_boundary.__file__))
++    validate_filter_qualification(json.loads(Path(filter_qualification['path']).read_text()),core_identity)
++    pin_identity = hashes(safe_path(args.pins))
++    pins = load_pins(Path(pin_identity['path']))
++    out = safe_path(args.out,write=True)
++    resource_guard(reserve_bytes=32*1024**2)
++    out.mkdir(parents=True,exist_ok=False)
++    for name in ('TEMP','TMP'):
++        os.environ[name] = str(out)
++    identities = [hashes(path) for path in (
++        Path(__file__),Path(r14_boundary.__file__),root/'tools/r14_segments.py',
++        root/'tools/r14_qualification/qualify.py',root/'tools/r14_scan.py',root/'tools/run_policy.py',
++        Path(sys.executable),Path(r14_boundary.chess.__file__),Path(r14_boundary.np.__file__))]
++    report = dict(schema=1,scope='all_pairs_bounded_boundary_windows',status='UNVERIFIED',
++                  authentic_game_separation='UNVERIFIED',bounded_no_link_status='UNVERIFIED',complete=False,
++                  k=8,window_rows=50000,initial_nodes=100000,retry_nodes=1000000,
++                  native=native_identity,qualification=qualification,pins=pin_identity,tool_identities=identities,
++                  filter_qualification=filter_qualification,
++                  start_vienna=datetime.now().strftime('%Y-%m-%d %H:%M:%S Vienna'),seams=[],reasons=[],
++                  query_format=dict(format='<IIBBBI',bytes=15,
++                                    fields=['left_line','right_line','depth','attempt','outcome_code','nodes']),
++                  verdict_scope='Every physical endpoint pair in each selected window, within 1..8 legal plies; original game identities are not established.')
++    began,last_progress = time.monotonic(),0.0
++    active_seam = None
++    child = writer = None
++
++    def progress(value=None):
++        nonlocal last_progress
++        now = time.monotonic()
++        if now-last_progress < 30:
++            return
++        resource_guard(reserve_bytes=1024**2)
++        value = dict(value or {})
++        value.update(elapsed_seconds=now-began,seam=active_seam.get('name') if active_seam else None,
++                     stage=active_seam.get('stage') if active_seam else 'initializing')
++        if active_seam:
++            value['first_pass'] = active_seam.get('first_pass',{})
++            search = active_seam.get('search',{})
++            value['search_counts'] = {key:search.get(key) for key in ('attempted_pairs','query_attempts','final_counts','unqueried_pairs')}
++        payload = json.dumps(value,sort_keys=True)
++        print(payload,flush=True)
++        with (out/'progress.jsonl').open('a',encoding='utf-8') as stream:
++            stream.write(payload+'\n')
++        last_progress = now
++
++    def check():
++        guard()
++        progress()
++
++    try:
++        for left_id,right_id in ((12,13),(14,15)):
++            guard()
++            active_seam = dict(name=f'{left_id:03}|{right_id:03}',left_source_id=left_id,right_source_id=right_id,
++                               stage='source_windows',complete=False,bounded_no_link_status='UNVERIFIED',
++                               first_pass={},search={},inputs=[],artifacts=[],receipt_seal_complete=False,
++                               native_session_success=False,native_session_failed=False,native_session_errors=[])
++            report['seams'].append(active_seam)
++            directory = out/f'seam_{left_id:03}_{right_id:03}'
++            resource_guard(reserve_bytes=1024**2)
++            directory.mkdir()
++            windows = []
++            for source_id,side in ((left_id,'last'),(right_id,'first')):
++                path = safe_path(source/f'forge_selfplay_{source_id:03}.txt')
++                pin = pins.get(str(path).casefold())
++                if pin is None:
++                    raise ValueError('missing source pin: '+str(path))
++                receipt = {}
++                active_seam['inputs'].append(receipt)
++                records,_ = read_window(path,pin,side,50000,source_id,check,progress,receipt)
++                windows.append(Population(records))
++            left,right = windows
++            active_seam['stage'] = 'count_all_candidates'
++            for _ in candidate_chunks(left,right,active_seam['first_pass'],check):
++                pass
++            active_seam['stage'] = 'resolve_candidates'
++            writer = ReceiptWriter(directory/'parts',check)
++            child = Native(args.native,'--pairs',directory/'native.stderr.log',guard.deadline)
++            guard.child = child
++            search_candidates(left,right,active_seam['first_pass'],child.query_many,writer,active_seam['search'],check)
++            close_native_session(child,active_seam)
++            child = None
++            guard.child = None
++            writer.close()
++            active_seam['artifacts'] = writer.artifacts
++            active_seam['receipt_seal_complete'] = True
++            writer = None
++            active_seam['bounded_no_link_status'] = seam_verdict(active_seam['first_pass'],active_seam['search'],
++                                                               receipts_complete=active_seam['receipt_seal_complete'],
++                                                               native_session_success=active_seam['native_session_success'])
++            active_seam['complete'] = True
++            active_seam['stage'] = 'complete'
++            progress()
++        report['complete'] = True
++    except Exception as error:
++        report['reasons'].append(f'{type(error).__name__}: {error}')
++        if isinstance(error,r14_boundary.InputHashMismatch):
++            report['stop_rule'] = 'input_md5_mismatch'
++    finally:
++        if child is not None:
++            try:
++                close_native_session(child,active_seam)
++            except Exception as error:
++                report['complete'] = False
++                report['reasons'].append(f'native close: {error}')
++        try:
++            resource_guard(reserve_bytes=32*1024**2)
++        except Exception as error:
++            if writer is not None:
++                writer.abort()
++            print(json.dumps(dict(status='UNVERIFIED',complete=False,hard_stop=str(error),report=report)),flush=True)
++            return 2
++        if writer is not None:
++            try:
++                writer.guard = lambda: resource_guard(reserve_bytes=32*1024**2)
++                writer.close()
++                active_seam['receipt_seal_complete'] = True
++            except Exception as error:
++                writer.abort()
++                active_seam['receipt_seal_complete'] = False
++                report['reasons'].append(f'receipt seal: {error}')
++            active_seam['artifacts'] = writer.artifacts
++        if active_seam is not None and active_seam.get('first_pass',{}).get('complete'):
++            active_seam['bounded_no_link_status'] = seam_verdict(active_seam['first_pass'],active_seam['search'],
++                                                               receipts_complete=active_seam['receipt_seal_complete'],
++                                                               native_session_success=active_seam['native_session_success'])
++        stable = True
++        for identity in [native_identity,qualification,filter_qualification,pin_identity,*identities]:
++            try:
++                unchanged = hashes(identity['path']) == identity
++            except Exception:
++                unchanged = False
++            if not unchanged:
++                stable = False
++                report['complete'] = False
++                report['reasons'].append('identity changed: '+identity['path'])
++        verdicts = [seam['bounded_no_link_status'] for seam in report['seams']]
++        if stable and 'FAIL' in verdicts:
++            report['bounded_no_link_status'] = 'FAIL'
++        elif stable and report['complete'] and len(verdicts) == 2 and all(value == 'PASS' for value in verdicts):
++            report['bounded_no_link_status'] = 'PASS'
++        report.update(elapsed_seconds=time.monotonic()-began,
++                      end_vienna=datetime.now().strftime('%Y-%m-%d %H:%M:%S Vienna'))
++        report['reasons'].append('Bounded reachability does not authenticate original game IDs or historical writer binding.')
++        try:
++            _publish(out/'REPORT.json',report)
++        except Exception as error:
++            print(json.dumps(dict(status='UNVERIFIED',complete=False,publication_error=str(error))),flush=True)
++            return 2
++        print(json.dumps(dict(status='UNVERIFIED',bounded_no_link_status=report['bounded_no_link_status'],
++                              complete=report['complete'],report=str(out/'REPORT.json'))),flush=True)
++    return 0 if report['complete'] else 2
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+diff --git a/tools/r14_overlap.py b/tools/r14_overlap.py
+index 87fa1bb..0606a6d 100644
+--- a/tools/r14_overlap.py
++++ b/tools/r14_overlap.py
+@@ -19,6 +19,9 @@ from run_policy import free_guard, safe_path
+ KEYS = ('four_field', 'board_stm')
+ ROOT = Path('D:/a14')
+ SOURCE = Path('D:/grok-pc-data/selfplay_out')
++# Every shared key is listed with all of its train and holdout rows (path, line, raw FEN) up to this many rows
++# per key kind and side; beyond it the listing is withheld (listing_complete false) instead of truncated.
++LISTING_ROW_CAP = 250_000
+ 
+ 
+ def hash64(value: bytes) -> int:
+@@ -67,9 +70,11 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
+     for values in indexes.values():
+         guard()
+         values.sort(kind='quicksort')
+-    # Candidate exact keys retain counts and bounded examples, not every row.
++    # Candidate exact keys retain counts, bounded examples and the row listing (capped, see LISTING_ROW_CAP).
+     candidates = {name: {} for name in KEYS}
+     candidate_rows = Counter()
++    listed_rows = {'train': Counter(), 'holdout': Counter()}
++    listing_overflow = {'train': set(), 'holdout': set()}
+ 
+     def check_chunk(chunk, path):
+         if not chunk:
+@@ -87,11 +92,16 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
+             for offset in hits:
+                 line, row = chunk[int(offset)]
+                 key = row.keys[name]
+-                entry = candidates[name].setdefault(key, dict(rows=0, examples=[]))
++                entry = candidates[name].setdefault(key, dict(rows=0, examples=[], listing=[]))
+                 entry['rows'] += 1
+                 candidate_rows[name] += 1
+                 if len(entry['examples']) < 3:
+                     entry['examples'].append(dict(path=str(path), line=line))
++                if listed_rows['train'][name] < LISTING_ROW_CAP:
++                    entry['listing'].append(dict(path=str(path), line=line, fen=row.fen))
++                    listed_rows['train'][name] += 1
++                else:
++                    listing_overflow['train'].add(name)
+         guard()
+ 
+     for path in training:
+@@ -112,6 +122,7 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
+     # exact keys and full pinned input hashes. No candidate means no second scan.
+     matched = {name: set() for name in KEYS}
+     holdout_overlap_rows = Counter()
++    holdout_listing = {name: {} for name in KEYS}
+     resolution_receipts = []
+     if state is not None:
+         state['resolution_receipts'] = resolution_receipts
+@@ -126,6 +137,12 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
+                         if key in candidates[name]:
+                             matched[name].add(key)
+                             holdout_overlap_rows[name] += 1
++                            if listed_rows['holdout'][name] < LISTING_ROW_CAP:
++                                holdout_listing[name].setdefault(key, []).append(
++                                    dict(path=str(path), line=line, fen=row.fen))
++                                listed_rows['holdout'][name] += 1
++                            else:
++                                listing_overflow['holdout'].add(name)
+                 if line % chunk_rows == 0:
+                     guard()
+                     progress(dict(stage='exact_resolution', path=str(path), rows=line))
+@@ -136,12 +153,21 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
+     for name in KEYS:
+         overlap_rows = sum(candidates[name][key]['rows'] for key in matched[name])
+         examples = [dict(key=key.decode('ascii'), train=candidates[name][key]['examples']) for key in sorted(matched[name])[:100]]
++        # Full listing: every shared key with ALL of its train and holdout rows. It is published only when no
++        # cap was hit and its row counts equal the audit's own counts; otherwise it is withheld (fail closed).
++        shared_keys = [dict(key=key.decode('ascii'), train=candidates[name][key]['listing'],
++                            holdout=holdout_listing[name].get(key, [])) for key in sorted(matched[name])]
++        listing_complete = (name not in listing_overflow['train'] and name not in listing_overflow['holdout']
++                            and sum(len(item['train']) for item in shared_keys) == overlap_rows
++                            and sum(len(item['holdout']) for item in shared_keys) == holdout_overlap_rows[name]
++                            and all(item['train'] and item['holdout'] for item in shared_keys))
+         key_reports[name] = dict(
+             status='UNVERIFIED' if not filled else 'FAIL' if overlap_rows else 'PASS',
+             shared_exact_keys=len(matched[name]), train_overlap_rows=overlap_rows,
+             holdout_overlap_rows=holdout_overlap_rows[name], hash_candidate_rows=candidate_rows[name],
+             hash_collision_rows=candidate_rows[name]-overlap_rows,
+-            holdout=holdout_coverage, train=train_coverage, examples=examples)
++            holdout=holdout_coverage, train=train_coverage, examples=examples,
++            listing_complete=listing_complete, shared_keys=shared_keys if listing_complete else None)
+     return dict(schema=1, scope='position_keys_only', status='UNVERIFIED' if not filled else 'FAIL' if any(r['train_overlap_rows'] for r in key_reports.values()) else 'PASS',
+                 keys=key_reports, holdout=holdout_coverage, train=train_coverage,
+                 input_receipts=receipts, resolution_receipts=resolution_receipts,
+diff --git a/tools/r14_qualification/qualify.py b/tools/r14_qualification/qualify.py
+index d9fc7e9..c0fb9ae 100644
+--- a/tools/r14_qualification/qualify.py
++++ b/tools/r14_qualification/qualify.py
+@@ -536,6 +536,13 @@ def main(argv=None):
+         parser.error(str(error))
+     if not args.fixture and args.pairs < 1000000:
+         parser.error('fewer than one million foundation pairs requires --fixture')
++    # QA note: a fixture run may exit 0 on smoke PASS (success_exit). Keep such runs out of the production evidence
++    # folder, so no production path can be fed by one; consumers also require scope production_helper_qualification.
++    if args.fixture:
++        evidence = (ROOT / 'sep').resolve()
++        target = args.out.resolve()
++        if target == evidence or evidence in target.parents:
++            parser.error('--fixture is a smoke run; it may not write into the production evidence folder D:/a14/sep')
+     psutil.Process().nice(psutil.IDLE_PRIORITY_CLASS)
+     if args.cpu not in (0, 1, 2, 3) or args.cpu not in psutil.Process().cpu_affinity():
+         parser.error('requested CPU is unavailable to this process')
+diff --git a/tools/r14_segments.py b/tools/r14_segments.py
+index 8e44414..609a3d5 100644
+--- a/tools/r14_segments.py
++++ b/tools/r14_segments.py
+@@ -395,16 +395,17 @@ class MapWriter:
+ 
+     def abort(self):
+         """Discard buffered tails after a hard stop, preserving only sealed parts."""
+-        for current in self.opened.values():
++        # A failed close leaves an unsealed part (never trusted); report it instead of swallowing it silently.
++        for key, current in self.opened.items():
+             try:
+                 current['stream'].raw.close()
+-            except (OSError, ValueError):
+-                pass
++            except (OSError, ValueError) as error:
++                print(f'map abort: raw close of {key} failed: {type(error).__name__}: {error}', file=sys.stderr)
+             finally:
+                 try:
+                     current['stream'].close()
+-                except (OSError, ValueError):
+-                    pass
++                except (OSError, ValueError) as error:
++                    print(f'map abort: close of {key} failed: {type(error).__name__}: {error}', file=sys.stderr)
+         self.opened.clear()
+ 
+ 

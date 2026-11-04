@@ -42,6 +42,8 @@ def main():
     proof = json.load(open(a.proof, encoding='utf-8'))
     if proof.get('scoped_checks') != 'PASS' or proof.get('problems'):
         sys.exit('refusing: the proof\'s scoped checks are not PASS')
+    if proof.get('audit_failure_counters_zero') is not True:   # review finding F-014
+        sys.exit('refusing: the npt-data-holdout-check audit reported position / game / state failures')
     if proof['split']['md5'] != digests(a.split)[0]:
         sys.exit('refusing: SPLIT.json changed after the proof')
     if os.path.exists(a.out):

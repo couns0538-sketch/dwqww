@@ -266,7 +266,7 @@ class QualificationTests(unittest.TestCase):
         tools = SOURCE.parents[1]
         callers = []
         for pattern in ('*.ps1', '*.py', '*.bat', '*.cmd'):
-            for path in tools.glob(pattern):
+            for path in tools.rglob(pattern):   # every launcher below tools/, not only the top level (F-015)
                 for number, line in enumerate(path.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
                     if 'qualify.py' in line and '--fixture' in line:
                         callers.append(f'{path.name}:{number}')

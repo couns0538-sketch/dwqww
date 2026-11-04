@@ -1,0 +1,22 @@
+usage: opus_promote_export.py [-h] [--split SPLIT] [--proof PROOF] [--out OUT]
+                              [--confirm-owner-decision]
+
+opus_promote_export.py - turn the staged guard-band candidate into the training export (R14 finish; own code).
+
+NOT run by the R14 finish: the Job 3 proof is UNVERIFIED (authentic game IDs missing; the npt-data-holdout-check
+audit returns UNVERIFIED for null game IDs). Couns decides whether the guard-band evidence is enough; this is the
+one command for that decision:
+  D:\a14\runtime\python\python.exe -I -B D:\a14\tools\opus_promote_export.py --confirm-owner-decision
+      [--split D:/a14/sep/guardband01/SPLIT.json] [--proof D:/a14/sep/guardband01/PROOF.json] [--out D:/a14/export]
+It refuses unless the proof's scoped checks are PASS and every staged file still has its SPLIT.json md5; it copies
+(never moves) train.txt / val.txt / *.rowids into --out (refused if it exists) and writes MANIFEST.json: rows per
+split, White-result counts, score histogram, md5 + sha256 of every file, the SPLIT / PROOF md5s, the proof's audit
+status and "authentic_game_ids": "UNVERIFIED". Mate rows are already excluded (|score| >= 30000); old440k is not
+part of jobA.
+
+options:
+  -h, --help            show this help message and exit
+  --split SPLIT
+  --proof PROOF
+  --out OUT
+  --confirm-owner-decision

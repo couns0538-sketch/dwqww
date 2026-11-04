@@ -1,0 +1,17 @@
+usage: opus_silent_sweep.py [-h] [--root ROOT] [--json JSON]
+                            [--changed-list CHANGED_LIST]
+
+opus_silent_sweep.py - list every place a script swallows an error silently (R14 finish Job 4; own code).
+
+Python (ast): an `except` handler whose body is only `pass`, `...` or `continue` (bare or typed).
+PowerShell (text): an empty `catch { }` block, `-ErrorAction SilentlyContinue` / `Ignore`, `trap { continue }`.
+  opus_silent_sweep.py [--root D:/a14] [--json out.json]   (skips runtime/, evidence/, .git/, tmp/)
+Each finding prints file:line, the kind and the source line; exit 0 always (the list is for review).
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT
+  --json JSON
+  --changed-list CHANGED_LIST
+                        file with repo-relative paths (git diff --name-only);
+                        only those are swept

@@ -204,7 +204,8 @@ def main():
                        f"identical_4field pairs {pair_reason['identical_4field']}")
     status = 'UNVERIFIED' if reasons else 'COMPLETE'
     if a.rows:
-        Path(a.rows).write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+        with open(a.rows, 'x', encoding='utf-8', newline='\n') as stream:   # never overwrite, like --out (F-011)
+            stream.write('\n'.join(lines) + '\n')
     record = dict(
         schema=1, tool='opus_boardstm_triage.py', tool_md5=dict(triage=md5(__file__),
                                                                  ep=md5(Path(__file__).with_name('opus_ep.py'))),

@@ -192,7 +192,7 @@ try {
 } finally {
     foreach ($key in $oldEnvironment.Keys) {
         if ($oldEnvironmentPresent[$key]) { [Environment]::SetEnvironmentVariable($key,$oldEnvironment[$key],'Process') }
-        else { [Environment]::SetEnvironmentVariable($key,$null,'Process') }
+        else { [Environment]::SetEnvironmentVariable($key,[NullString]::Value,'Process') }
     }
     $caller.PriorityClass=$oldPriority
 }

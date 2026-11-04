@@ -1,0 +1,29 @@
+usage: opus_boardstm_probe.py [-h] --out OUT [--seconds SECONDS]
+                              [--holdout HOLDOUT] [--train TRAIN]
+                              [--pins PINS]
+
+opus_boardstm_probe.py - fast raw-field board+side-to-move overlap probe (R14 finish, Opus; own code).
+
+Independent second implementation of the board+stm part of r14_overlap (RAM-only, no copied source rows):
+  pass 1  holdout files: 64-bit hash of the raw "board side" FEN prefix of every row -> sorted numpy index
+  pass 2  train files: every row whose prefix hash is in the index is kept as a candidate (path, line, raw FEN)
+  pass 3  holdout files again: rows whose hash matches a candidate are recorded; exact keys are compared, so a
+          hash collision never becomes an overlap
+Every pass hashes every consumed byte with md5 and compares it to the input pin (fail closed: a mismatch, a row
+that does not split into six FEN fields, or a deadline stops the probe with status INCOMPLETE).
+Why the raw prefix is exact: r14_scan.parse_row (fill rate 1.0 on these pinned files) rejects consecutive empty-
+square digits and bad rank widths, so every raw board field is the unique FEN placement of its board.
+Pass 1 + 2 also count en-passant fields per file (rows with an EP square, and how many allow a legal capture,
+opus_ep.ep_status), to show how each producer writes the EP field.
+
+  opus_boardstm_probe.py --out D:/a14/sep/boardstm-probe01 [--seconds 7200]
+Outputs (refuses an existing --out): PROBE.json (receipts, census, counts, tool md5s, Vienna times) and SHARED.jsonl
+(one line per shared key: key, train rows, holdout rows, each {path, line, fen}).
+
+options:
+  -h, --help         show this help message and exit
+  --out OUT
+  --seconds SECONDS
+  --holdout HOLDOUT
+  --train TRAIN
+  --pins PINS

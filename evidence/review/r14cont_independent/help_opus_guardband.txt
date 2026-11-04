@@ -1,0 +1,30 @@
+usage: opus_guardband.py [-h] --out OUT --shared SHARED --shared-md5
+                         SHARED_MD5 [--stage-dir STAGE_DIR] [--k K]
+                         [--val-fraction VAL_FRACTION]
+
+opus_guardband.py - guard-band split of the jobA rows (R14 finish Job 3, Opus; own code; plan sep/GUARD_BAND_PLAN.md).
+
+Builds a contiguous split of the 999,921 pinned jobA rows: a train prefix and a validation suffix near 1 %, cut only
+at an observed UNREACHABLE adjacent-row link (never inside a run of REACHABLE / UNKNOWN links = a conservative
+component). Then drops, each with its row id and reason:
+  guard_left / guard_right   rows within K plies of the cut endpoints, measured with absolute ply inside the two
+                             adjacent components (their plies must increase strictly, else fail closed)
+  holdout_board_stm          rows whose board+side-to-move key is a shared key with holdouts 013/014 (the complete
+                             Job 2 listing; a raw or EP-normalised 4-field match implies a board+stm match)
+  val_board_stm              train rows whose board+stm key also occurs in the retained validation rows
+  mate_score                 |relabelled score| >= 30000 (excluded from the export, Job 3 step 6)
+Writes (refuses an existing --out): SPLIT.json (inputs with md5, cut, components, guards, counts, WDL and score
+histograms per split) and DROPPED.tsv (row_id, source, line, side, reasons). It writes NO training payload; the
+candidate rows are written by --stage-dir (outside D:/a14 for size) for the proof step.
+
+  opus_guardband.py --out D:/a14/sep/guardband01 --shared D:/a14/sep/boardstm-probe01/SHARED.jsonl
+                    [--stage-dir C:/a14x/guardband01_stage] [--k 8] [--val-fraction 0.01]
+
+options:
+  -h, --help            show this help message and exit
+  --out OUT
+  --shared SHARED       SHARED.jsonl of the board+stm probe (complete listing)
+  --shared-md5 SHARED_MD5
+  --stage-dir STAGE_DIR
+  --k K
+  --val-fraction VAL_FRACTION

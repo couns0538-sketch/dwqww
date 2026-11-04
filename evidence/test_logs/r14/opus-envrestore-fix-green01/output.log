@@ -1,0 +1,32 @@
+...F....                                                                 [100%]
+================================== FAILURES ===================================
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/opus-envrestore-fix-green01/tmp/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+        assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+        assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+>       child = json.loads(path.read_text(encoding='utf-8'))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r14_runtime_setup.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/opus-envrestore-fix-green01/tmp/test_live_refusal_stops_only_o0/child.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\opus-envrestore-fix-green01\\tmp\\test_live_refusal_stops_only_o0\\child.json'
+
+pathlib.py:1013: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+1 failed, 7 passed in 18.10s

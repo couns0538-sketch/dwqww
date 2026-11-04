@@ -1,0 +1,32 @@
+usage: opus_boardstm_triage.py [-h] [--report REPORT] [--probe PROBE] --expect
+                               EXPECT --out OUT [--rows ROWS]
+
+opus_boardstm_triage.py - classify every train/holdout board+stm overlap (R14 finish Job 2; own code).
+
+Input: the full shared-key listing from r14_overlap (--report, keys.board_stm.shared_keys) and/or from
+opus_boardstm_probe (--probe PROBE.json, its SHARED.jsonl). With both, the two listings must be identical (same
+keys, same train and holdout rows with path, line and FEN) or the triage is UNVERIFIED.
+
+Per train/holdout row pair of a shared key (same board, same side to move):
+  other (castling_diff)      castling rights differ
+  other (identical_4field)   rights and raw EP equal: a 4-field overlap the scan said does not exist (fail closed)
+  ep_format_diff             raw EP fields differ, but both become the same field under legal-capture-only EP
+                             (opus_ep): the same chess position written two ways
+  real_ep_diff               the normalised EP fields still differ: one row allows a legal en-passant capture
+  other (invalid_ep)         an EP field that does not fit the board (fail closed)
+A key takes its pairs' class when they all agree, otherwise other (mixed).
+Recount (Job 2c): 4-field keys with EP normalised; a normalised 4-field match needs the same board+stm, so the
+recount over the complete board+stm listing is the recount over all rows.
+
+  opus_boardstm_triage.py --report R.json --probe P.json --expect 7610,7700,7612 --out sep/BOARDSTM_TRIAGE.json
+      [--rows sep/BOARDSTM_TRIAGE_ROWS.tsv]
+Status COMPLETE only if: listing complete, totals equal --expect, listings agree (when both given), no invalid EP,
+no identical 4-field pair. Otherwise UNVERIFIED with the reasons. Exit 0 = COMPLETE, 2 = UNVERIFIED.
+
+options:
+  -h, --help       show this help message and exit
+  --report REPORT
+  --probe PROBE
+  --expect EXPECT  keys,train_rows,holdout_rows
+  --out OUT
+  --rows ROWS

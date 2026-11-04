@@ -1,0 +1,18 @@
+usage: opus_seal.py [-h] {verify-report,seal,verify-seal} ...
+
+opus_seal.py - R14 finish (Opus): seal and verify file sets (own code, standard library only).
+
+  verify-report <REPORT.json> [--dir D]  every object in the report that names a file ("path" + "md5", optional
+                                          "bytes") must match the file; with --dir, the directory must hold exactly the
+                                          report's files below it (no extra, none missing). Exit 0 = PASS.
+  seal <dir> --out <hashlist.json>        hash list of every file below <dir>: relative path, bytes, md5, sha256
+                                          (the output file is refused inside <dir>, so it never lists itself).
+  verify-seal <hashlist.json> [--root R]  re-hash every listed file (root = the list's own "root" unless --root);
+                                          exit 0 only if every file exists with the listed bytes / md5 / sha256.
+Fail closed: an unreadable file, a missing field or an extra file is a FAIL, never a skip.
+
+positional arguments:
+  {verify-report,seal,verify-seal}
+
+options:
+  -h, --help            show this help message and exit

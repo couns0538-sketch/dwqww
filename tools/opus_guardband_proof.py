@@ -15,7 +15,9 @@ Reads only pinned inputs and the staged candidate rows named in SPLIT.json; shar
   audit        npt-data-holdout-check audit_exports.py on JSONL adapter exports (source = all jobA rows, train =
                all staged rows, the two complete holdouts); game_id is null everywhere (no authentic IDs exist), so
                the audit's own status can be at best UNVERIFIED; its failure counters are reported as they are
-Writes GUARDBAND_SEPARATION.json (refuses an existing file). Audit inputs and output go below --big-dir (C:).
+Writes the proof record given by --out (sep/guardband01/PROOF.json; refuses an existing file); the final
+sep/GUARDBAND_SEPARATION.json is written from it by opus_guardband_record.py. Audit inputs and output go below
+--big-dir (C:).
 
   opus_guardband_proof.py --split D:/a14/sep/guardband01/SPLIT.json --out D:/a14/sep/GUARDBAND_SEPARATION.json
                           --big-dir C:/a14x/guardband01_proof
