@@ -89,29 +89,56 @@ EDITS_SEARCH = [
 ]
 
 
-def apply(path, edits):
-    raw = path.read_bytes().decode('utf-8')
+def plan(path, edits):
+    """(path, original bytes, new bytes, edits) with every edit applied in memory, or an error text. Writes nothing."""
+    original = path.read_bytes()
+    raw = original.decode('utf-8')
     crlf = '\r\n' in raw
     text = raw.replace('\r\n', '\n')
     for old, new in edits:
         n = text.count(old)
         if n != 1:
-            sys.exit(f'{path}: anchor found {n} times: {old.splitlines()[0][:80]!r}')
+            return None, f'{path}: anchor found {n} times: {old.splitlines()[0][:80]!r}'
         text = text.replace(old, new, 1)
     if path.name == 'nnue.cpp' and '#include <cstdio>' not in text:
+        if text.count('#include <algorithm>\n') != 1:
+            return None, f'{path}: no unique #include <algorithm> to add <cstdio> after'
         text = text.replace('#include <algorithm>\n', '#include <algorithm>\n#include <cstdio>\n', 1)
-    path.write_bytes((text.replace('\n', '\r\n') if crlf else text).encode('utf-8'))
-    print(f'{path}: {len(edits)} edits')
+    return (path, original, (text.replace('\n', '\r\n') if crlf else text).encode('utf-8'), len(edits)), None
+
+
+def apply_all(jobs):
+    """All or nothing (the Code Review finding on o30_v2int16.py applies here too: three files, written one by one, could
+    leave a half-instrumented tree): every anchor of every file first, then all writes; a failed write restores."""
+    plans, errors = [], []
+    for path, edits in jobs:
+        p, err = plan(path, edits)
+        if err:
+            errors.append(err)
+        else:
+            plans.append(p)
+    if errors:
+        sys.exit('no file written:\n  ' + '\n  '.join(errors))
+    written = []
+    try:
+        for path, original, new, _ in plans:
+            path.write_bytes(new)
+            written.append((path, original))
+    except OSError as e:
+        for path, original in written:
+            path.write_bytes(original)
+        sys.exit(f'write failed ({e}); the files written before it were restored - no file changed')
+    for path, _, _, n in plans:
+        print(f'{path}: {n} edits')
 
 
 def main():
     repo = Path(sys.argv[1])
-    hpp = repo / 'include' / 'forge' / 'nnue_v2.hpp'
-    if 'FORGE_V2_STAT' in hpp.read_text(encoding='utf-8'):
-        sys.exit('refusing: counters already present')
-    apply(hpp, EDITS_HPP)
-    apply(repo / 'src' / 'nnue.cpp', EDITS_CPP)
-    apply(repo / 'src' / 'search.cpp', EDITS_SEARCH)
+    files = [(repo / 'include' / 'forge' / 'nnue_v2.hpp', EDITS_HPP), (repo / 'src' / 'nnue.cpp', EDITS_CPP),
+             (repo / 'src' / 'search.cpp', EDITS_SEARCH)]
+    if any('FORGE_V2_STAT' in p.read_text(encoding='utf-8') for p, _ in files):
+        sys.exit('refusing: the tree already has (part of) the counters')
+    apply_all(files)
 
 
 if __name__ == '__main__':

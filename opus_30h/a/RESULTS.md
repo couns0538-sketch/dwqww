@@ -470,3 +470,16 @@ Rematches started 08:1x with v2p4, 400 games each (sanity only; written before t
 (`D:\o30\nets\o30_kb4ob8_n2L\sanity_v2p4`) and the control (lock net as KB4 replicas, `D:\o30\control\lockkb4_v2p4`)
 on CPU 1. Reading: the control should move from -32 toward 0 (the build gap is worth a few Elo); n2L minus the control
 is the net's own effect.
+
+## Code Review: REQUEST CHANGES on o30_v2int16.py @ 55ccc842 - fixed (2026-11-04 08:2x)
+Finding (CR_O30_V2INT16_20261104.md on Couns's box, md5 77dd3a2f): the script wrote `nnue_v2.hpp` before it checked
+the `src/nnue.cpp` anchor; on a mismatch the tree stayed half-edited (int16 header + the float loader, which still
+compiles and mis-evaluates: CR measured bench d11 629401 instead of 635663) and the script refused a re-run. Reproduced
+here with the old script (a planted mismatch in nnue.cpp: header 9 edits written, then exit 1 -> half-edited). Fix:
+`plan()` applies every edit of every file in memory and checks every anchor first; only then are the files written,
+all or none, and a failed write restores the files already written; the refusal now also catches a half-edited tree.
+The same pattern was in `a/o30_v2stats.py` (3 files) - fixed the same way. The single-file scripts (o30_v2rootfix,
+o30_tuned_patch, o30_expose) already checked every anchor before their one write. Test `a/test_patch_atomic.py`
+(copies of the v2port files): planted mismatch in the LAST file -> refused, no file changed; clean tree -> all files
+changed; re-run -> refused, unchanged; half-edited tree -> refused, unchanged: PATCH ATOMIC PASS 8 / 8. The int16 path
+itself was never built (the speed hunt named the lazy root, not the table size); CR confirmed its arithmetic exact.

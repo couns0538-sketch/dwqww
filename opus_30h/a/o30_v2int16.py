@@ -127,17 +127,44 @@ EDITS_CPP = [
 ]
 
 
-def apply(path, edits):
-    raw = path.read_bytes().decode('utf-8')
+def plan(path, edits):
+    """(path, original bytes, new bytes, edits, crlf) with every edit applied in memory, or an error text. Writes nothing."""
+    original = path.read_bytes()
+    raw = original.decode('utf-8')
     crlf = '\r\n' in raw
     text = raw.replace('\r\n', '\n')
     for old, new in edits:
         n = text.count(old)
         if n != 1:
-            sys.exit(f'{path}: anchor found {n} times (need 1): {old.splitlines()[0][:80]!r}')
+            return None, f'{path}: anchor found {n} times (need 1): {old.splitlines()[0][:80]!r}'
         text = text.replace(old, new, 1)
-    path.write_bytes((text.replace('\n', '\r\n') if crlf else text).encode('utf-8'))
-    print(f'{path}: {len(edits)} edits ({"CRLF" if crlf else "LF"})')
+    return (path, original, (text.replace('\n', '\r\n') if crlf else text).encode('utf-8'), len(edits), crlf), None
+
+
+def apply_all(jobs):
+    """All or nothing (Code Review 2026-11-04, CR_O30_V2INT16_20261104: the header was written before the loader's anchor
+    was checked, and a half-edited tree builds and mis-evaluates): every anchor of every file is checked first; only then
+    are the files written, and a failed write restores the ones already written."""
+    plans, errors = [], []
+    for path, edits in jobs:
+        p, err = plan(path, edits)
+        if err:
+            errors.append(err)
+        else:
+            plans.append(p)
+    if errors:
+        sys.exit('no file written:\n  ' + '\n  '.join(errors))
+    written = []
+    try:
+        for path, original, new, _, _ in plans:
+            path.write_bytes(new)
+            written.append((path, original))
+    except OSError as e:
+        for path, original in written:
+            path.write_bytes(original)
+        sys.exit(f'write failed ({e}); the files written before it were restored - no file changed')
+    for path, _, _, n, crlf in plans:
+        print(f'{path}: {n} edits ({"CRLF" if crlf else "LF"})')
 
 
 def main():
@@ -145,10 +172,9 @@ def main():
         sys.exit(__doc__)
     repo = Path(sys.argv[1])
     hpp, cpp = repo / 'include' / 'forge' / 'nnue_v2.hpp', repo / 'src' / 'nnue.cpp'
-    if 'W1Unit' in hpp.read_text(encoding='utf-8'):
-        sys.exit('refusing: the tree already stores w1 as int16')
-    apply(hpp, EDITS_HPP)
-    apply(cpp, EDITS_CPP)
+    if 'W1Unit' in hpp.read_text(encoding='utf-8') or 'used * W1Unit' in cpp.read_text(encoding='utf-8'):
+        sys.exit('refusing: the tree already has (part of) the int16 change')
+    apply_all([(hpp, EDITS_HPP), (cpp, EDITS_CPP)])
 
 
 if __name__ == '__main__':
