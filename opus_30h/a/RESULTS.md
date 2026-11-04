@@ -333,3 +333,7 @@ that per-position losses cannot see (search meets them at every trade / king mov
 Bucket means are measured to ~0.2-0.5 cp, so the steps are real but small next to the per-position spread: no clear
 seam pattern, nothing structural to fix on the CPU. n2L moves the evaluation twice as far from the lock net as n2e
 (15.6 vs 8.3 cp rms, scale +1.7 %); its own match is the verdict.
+Why no control match now (v2 exe + the lock net as KB4 replicas vs the lock exe): the same-tree timings already bound
+the v2 path's cost - KB1 lock-as-v2 vs the lock exe 0.976 and KB4 replicas vs KB1 0.968, i.e. ~1.03 / ~1.02 after the
+measured ~0.945 arm bias - a few percent at most, worth a few Elo, not -25; and a 200-game control (+/- 26 Elo) could
+not resolve a cost that small. It becomes the first step only if n2L's match is negative too (FINAL_REPORT section 4).
