@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check_rfeatures.py <rfeatures output file> <kb map one|rank4> <mirror 0|1> - Opus 30-h job: the Rust feature map of
+"""check_rfeatures.py <rfeatures output file> <kb map one|rank4|rank4x2> <mirror 0|1> - Opus 30-h job: the Rust feature map of
 forge-v2-bullet `r` mode (forge_r.rs) against o30_fit.py's features() (which reproduces the engine through the scorer:
 o30_fit.py selfcheck), row by row: stm / ntm index lists, output bucket (piece count), stm, and the result / score / hce
 fields against the FPOS / FHCE decoding rules. Exit 0 = every row equal."""
