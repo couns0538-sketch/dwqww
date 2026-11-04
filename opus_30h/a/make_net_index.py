@@ -36,14 +36,18 @@ def main():
              'FD3A5190 (UHO [0,5] SPRT first, 8moves_v3 confirm). The exe advertises EvalFileV2; with it empty the exe plays the',
              'lock net with the lock pins (checked per net in pins_off.txt).', '',
              'Offline rule (written before the results, a/RESULTS.md): S31 b0.6 at least 2e-5 below the lock net AND a paired',
-             'jobA-val z <= +2. Paired = the same rows scored by both nets (o30_paired.py); z = diff / its measurement error.', '',
-             '| net | S31 b0.6 vs lock (z) | jobA val vs lock (z) | offline rule | pack checks | sanity match |',
+             'jobA-val z <= +2. Paired = the same rows scored by both nets (o30_paired.py); z = diff / its measurement error.',
+             'READ THE SANITY COLUMN TOO: o30_kb4ob8_n2e passed the offline rule and still scored -25 +/- 18.5 in its 400-game',
+             'sanity match - the S31 holdout (5k-node labels) has not predicted play here. Sanity matches are not gates.', '',
+             '| net | S31 b0.6 vs lock (z) | jobA val vs lock (z) | offline rule | pack checks | sanity match (SANITY ONLY) |',
              '|---|---|---|---|---|---|']
     for name, r, fc, tr in rows:
         rule = r.get('offline_rule')
         sanity = '-'
         if fc:
-            sanity = next((l.strip() for l in fc['sanity'] if 'W/D/L' in l or 'Games' in l), '-')[:80]
+            wdl = next((l.strip() for l in fc['sanity'] if 'W/D/L' in l), '')
+            elo = next((l.strip().split('  nElo')[0] for l in fc['sanity'] if l.strip().startswith('Elo ')), '')
+            sanity = (wdl.split('  Ptnml')[0] + (f'; {elo}' if elo else '')) or '-'
         if rule:
             lines.append(f"| {name} | {rule['s16_b06_diff']:+.2e} ({fmt_z(rule['s16_z'])}) | {rule['jobA_b06_diff']:+.2e} "
                          f"({fmt_z(rule['jobA_z'])}) | {'PASS' if rule['pass'] else 'FAIL'} | {r['all_checks_passed']} | {sanity} |")
