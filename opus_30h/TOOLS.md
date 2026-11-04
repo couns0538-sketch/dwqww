@@ -16,14 +16,38 @@ CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / 
 | `run_fit.sh`, `fit_bg.sh` | launchers (disk / RAM / supervisor checks; Idle + CPU mask; forward-slash paths) | log line with the checks; `fit_bg` prints the trainer's exit code |
 | `net_pack.sh` | one step from a trained net to its evidence folder (copy, sha256, parity, holdout scores, OFF / ON pins, RESULT.json) | exit 0 = every check passed |
 | `sanity_match.py` | fixed-length match candidate vs lock with fastchess (sanity only) | RUN_INFO.json + `gate_summary.py <dir>` |
+| `net_final_checks.sh` | play-side checks of a packed net: 300 s smoke, NPS ABBA vs the lock, 400-game sanity match + gate_summary -> FINAL_CHECKS.json | exit 0 = smoke PASS and fastchess exit 0 |
+| `make_net_index.py` | `D:\o30
+ets\INDEX.md` for the crew queue from the per-net RESULT / FINAL_CHECKS / TRAINING json | final_checks_o30.sh check 12 re-hashes every cited file |
+| `o30_paired.py` (+ `o30_score_v3.exe --dump`) | paired holdout comparison of two nets: mean difference, its standard error (measurement error of the row set), z | S31 SE ~1.5e-6, jobA SE ~1.6e-5 on the job's nets |
+| `o30_joba_old.py` | the jobA val positions with their ORIGINAL 5k-node labels (separates label-fitting from a position shift) | boards equal to jobA_val.pos (printed) |
+| `prove_resume_fit.sh`, `fit_resume.sh` | trainer resume proof (interrupted + resumed run = uninterrupted run, bit for bit) / resume launcher | RESUME PROOF PASS (2026-11-03 19:01) |
+| `forge_v2_bullet_o30/` + `build_bullet_o30.bat` + `bullet_residual.patch` | GPU path: R14's trainer with a residual `r` mode on a private copy of the trainer library (D:\o30ullet) | mock + ROCm builds 0 errors; `rfeatures` + `check_rfeatures.py` = 0 mismatches vs o30_fit.py features |
+| `export_v2r.py` | trainer-library checkpoint -> FORGENN2 residual net (KB map, mirror, OB8); `--make-test` writes a synthetic checkpoint | synthetic checkpoint -> engine parity 10000/10000 |
+| `o30_data_npy.py` | jobA overrides as plain .npy for the Rust reader | 988,336 rows written |
+| `o30_runs.py` | one table of every CPU fine-tune run (config, last / best holdout losses vs the lock net, rate) | - |
 
 ## Item B - SPSA (`opus_30h/b/`)
 | tool | what it is for | how to verify it |
 |---|---|---|
 | `o30_expose.py` -> `expose22.patch` | 22 more search constants as tune:: options, defaults = the lock's literals | pin_check -Full = lock pins; each option LIVE |
 | `tune_spsa.py` + `tune_spsa.ps1` | the SPSA tuner (params CSV, fastchess pairs, per-iteration CSV, resume, thread cap / CPU mask / gate check, deadline, stop event) | `selftest_10min.ps1 -Out <new dir>` prints SELFTEST PASS |
+| `spsa_report.py` | report of a run: null-gradient sigma and z per parameter, convergence table at 10-100 %, SVG plot, TUNED_OPTIONS.txt / gate_options.txt | ran on selftest_2 |
 
 ## Shared (`opus_30h/tools/`, copies of R13-R15 tools with D:\o30 paths)
 fresh_lock.sh, export_src.sh, kit_build_o30.sh (kit v2.3), kit24_build_o30.sh (kit v2.4 -PartialTraining; both honour
 KIT_MAXMYCPU), plain_build_o30.sh, pin_check.ps1, smoke2m.py, selfplay_smoke.py, cleanroom_lint.py, pc_gate.ps1,
 cpu_users.ps1, lowrun.ps1, run_pinned.py, gate_summary.py, abba.py, commit_span.py, doc_lint.py, hash_sweep.py.
+
+## Kit v2.5 (`opus_30h/kit25/`, working copy `D:\o30\kit25`)
+QA's kit v2.3 + R12's v2.4 + workload v2n (the training workload also benches the lock net written as a v2 file, so the
+EvalFileV2 code gets a PGO profile). Wrapper `tools/kit25_build_o30.sh <repo> <tag>`; verify: pc1 = pc2 and the training
+log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~1.0x the lock, advisory).
+
+## One-command re-check
+`bash opus_30h/tools/final_checks_o30.sh`: 12 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
+scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes).
+
+## MCP server forge-o30 (`opus_30h/mcp/`)
+net_info, net_score, runs_table, spsa_status, v2_bench; `setup_o30_mcp.sh` registers it at user scope (re-runnable,
+never rewrites an entry); `test_forge_o30_mcp.py` = 8 checks over the real stdio transport.
