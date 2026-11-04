@@ -42,7 +42,8 @@ while none of its CPUs is at most `max_busy_percent` (default 80) busy over 3 s;
 never more than the thread cap (8 at most). It never stops a game and never kills anything. Any other fastchess on its
 CPUs counts as a gate, own sanity matches included: give those CPUs outside the tuner's list (a resume may change
 `-Cpus` / `-Threads`). The busy test counts every process, own trainers included. Stopping = the deadline,
-`-MaxPairs` / `-TotalPairs`, or `-Stop` (a named event the tuner holds; no STOP files).
+`-MaxPairs` / `-TotalPairs`, `-Stop` (a named event the tuner holds; no STOP files), or free space below the job's
+floors (C: 30 GB, D: 51 GB) before a batch - the log says which; the same command resumes once space is back.
 
 ## Self-test (10 minutes)
 ```
