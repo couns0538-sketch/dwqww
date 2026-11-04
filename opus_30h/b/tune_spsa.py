@@ -25,7 +25,7 @@ a torn last line (killed run) is kept and skipped.
 CPU rules: the tuner pins itself (and so fastchess and every engine) to --cpus at Idle priority before it starts
 anything. Before every batch it (1) waits while any fastchess.exe that is not its own has an affinity that overlaps
 --cpus (a running gate), (2) samples the busy share of --cpus for 3 s while none of its games run and uses one game
-slot per CPU of --cpus that is at most 50 % busy, never more than --threads (one game = one CPU: the two engines
+slot per CPU of --cpus that is at most max_busy_percent (config, default 80) busy, never more than --threads (one game = one CPU: the two engines
 alternate), (3) waits while free RAM < 6 GB. Stops: --until, --max-pairs, --total-pairs, or the stop command (a named
 event the tuner creates and holds; no STOP files). It never stops a game and never kills anything.
 """
@@ -153,9 +153,9 @@ def foreign_gate_overlap(mask, mine):
     return hits
 
 
-def slots_now(cpus, threads):
+def slots_now(cpus, threads, max_busy):
     per = psutil.cpu_percent(interval=3.0, percpu=True)
-    free = [c for c in cpus if c < len(per) and per[c] <= 50.0]
+    free = [c for c in cpus if c < len(per) and per[c] <= max_busy]
     return min(threads, len(free)), {c: per[c] for c in cpus if c < len(per)}
 
 
@@ -239,6 +239,8 @@ def cmd_run(cfg_path, run_dir, resume, until, max_pairs, total_pairs, threads, c
             f"tc {cfg['tc']}, engine {cfg['engine']}, cpus {cpus} (mask 0x{mask:X}, Idle), threads <= {threads}, "
             f"until {until}")
     n_openings = cfg.get("book_openings", 100000)
+    max_busy = float(cfg.get("max_busy_percent", 80.0))
+    last_wait_log = 0.0
     done = 0
     while True:
         if total_pairs and k >= total_pairs:
@@ -255,11 +257,13 @@ def cmd_run(cfg_path, run_dir, resume, until, max_pairs, total_pairs, threads, c
             time.sleep(60); continue
         if psutil.virtual_memory().available / 2 ** 30 < 6.0:
             run.log("waiting: free RAM below 6 GB"); time.sleep(60); continue
-        conc, busy = slots_now(cpus, threads)
+        conc, busy = slots_now(cpus, threads, max_busy)
         if conc == 0:
-            if batch % 10 == 0:
-                run.log(f"waiting: every CPU of {cpus} is more than 50 % busy without this tuner ({busy})")
+            if time.time() - last_wait_log >= 600:
+                run.log(f"waiting: every CPU of {cpus} is more than {max_busy:.0f} % busy without this tuner ({busy})")
+                last_wait_log = time.time()
             time.sleep(30); continue
+        last_wait_log = 0.0
         ck, ak, delta = run.ck(k), run.ak(k), run.delta(k)
         plus, minus = run.values(theta, ck, delta, +1), run.values(theta, ck, delta, -1)
         start = k % n_openings + 1

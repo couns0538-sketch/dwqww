@@ -7,7 +7,7 @@
 #   every game finished normally (no time loss / crash / illegal move in the terminations); config.json + params.csv
 #   copies exist. Exit 0 = PASS, 1 = FAIL. -Out must be a new folder.
 # usage: powershell -NoProfile -ExecutionPolicy Bypass -File selftest_10min.ps1 -Out D:\o30\spsa\selftest_<tag>
-param([Parameter(Mandatory = $true)][string]$Out)
+param([Parameter(Mandatory = $true)][string]$Out, [string]$Cpus = '0,1', [int]$Threads = 2)
 $ErrorActionPreference = 'Stop'
 if (Test-Path -LiteralPath $Out) { [Console]::Error.WriteLine("selftest: $Out exists"); exit 2 }
 $here = $PSScriptRoot
@@ -21,16 +21,16 @@ function Run-Wrapper([string[]]$extra) {
     return $p.ExitCode
 }
 $t1 = (Get-Date).AddMinutes(5).ToString('yyyy-MM-dd HH:mm')
-$rc1 = Run-Wrapper @('-Config', $cfg, '-RunDir', $Out, '-Until', ('"' + $t1 + '"'))
+$rc1 = Run-Wrapper @('-Config', $cfg, '-RunDir', $Out, '-Until', ('"' + $t1 + '"'), '-Cpus', $Cpus, '-Threads', "$Threads")
 if ($rc1 -ne 0) { $fail.Add("session 1 exit $rc1") }
 $t2 = (Get-Date).AddMinutes(4).ToString('yyyy-MM-dd HH:mm')
-$p2 = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrap, '-RunDir', $Out, '-Until', ('"' + $t2 + '"')) -NoNewWindow -PassThru
+$p2 = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrap, '-RunDir', $Out, '-Until', ('"' + $t2 + '"'), '-Cpus', $Cpus, '-Threads', "$Threads") -NoNewWindow -PassThru
 Start-Sleep -Seconds 60
 $rcs = Run-Wrapper @('-RunDir', $Out, '-Stop')
 if ($rcs -ne 0) { $fail.Add("stop command exit $rcs") }
 $p2.WaitForExit()
 if ($p2.ExitCode -ne 0) { $fail.Add("session 2 exit $($p2.ExitCode)") }
-$rc3 = Run-Wrapper @('-RunDir', $Out, '-MaxPairs', '2')
+$rc3 = Run-Wrapper @('-RunDir', $Out, '-MaxPairs', '2', '-Cpus', $Cpus, '-Threads', "$Threads")
 if ($rc3 -ne 0) { $fail.Add("session 3 exit $rc3") }
 $check = @'
 import csv, json, sys

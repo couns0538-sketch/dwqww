@@ -188,7 +188,8 @@ def train(a):
             sys.exit(f'refusing: {run} exists (use --resume)')
         os.makedirs(os.path.join(run, 'nets'))
         cfg = {k: getattr(a, k) for k in ('data', 'pos_dir', 'hce_dir', 'init', 'kb_map', 'ob', 'stand_alone', 'blend', 'lr',
-                                           'lr_end', 'positions', 'batch', 'block', 'save_minutes', 'seed', 'until', 'mirror')}
+                                           'lr_end', 'positions', 'batch', 'block', 'save_minutes', 'seed', 'until', 'mirror',
+                                           'lr_out_mult')}
         cfg['created'] = time.strftime('%Y-%m-%d %H:%M:%S')
         with open(os.path.join(run, 'config.json'), 'w', newline='\n') as f:
             json.dump(cfg, f, indent=1)
@@ -196,7 +197,9 @@ def train(a):
     residual = not cfg['stand_alone']
     mirror = bool(cfg['mirror'])
     params, kmap = build_model(torch, cfg['init'], cfg['kb_map'], cfg['ob'])
-    opt = torch.optim.Adam(list(params.values()), lr=cfg['lr'])
+    # output layer (w2, b2) may learn faster than the shared input layer: lr * lr_out_mult
+    opt = torch.optim.Adam([{'params': [params['w1'], params['b1']], 'mult': 1.0},
+                            {'params': [params['w2'], params['b2']], 'mult': float(cfg.get('lr_out_mult', 1.0))}], lr=cfg['lr'])
     state = {'step': 0, 'positions': 0, 'chunk': 0, 'in_chunk': 0, 'best': None, 'seconds': 0.0}
     if ck is not None:
         for k2 in params:
@@ -205,7 +208,7 @@ def train(a):
         state = ck['state']
     data = Data(cfg['data'], cfg['pos_dir'], cfg['hce_dir'], cfg['block'], cfg['seed'])
     omap = np.array(output_map(cfg['ob']), np.int64)
-    deadline = dt.datetime.strptime(cfg['until'], '%Y-%m-%d %H:%M') if cfg['until'] else None
+    deadline = dt.datetime.strptime(cfg['until'].replace('T', ' '), '%Y-%m-%d %H:%M') if cfg['until'] else None
     lim = 32767.0 / 4096.0
     ev = ctypes.windll.kernel32.CreateEventW(None, True, False, event_name(run))   # held while training runs
     val_csv = os.path.join(run, 'val.csv')
@@ -280,7 +283,7 @@ def train(a):
             target = cfg['blend'] * teacher + (1.0 - cfg['blend']) * torch.from_numpy(stm_res.astype(np.float32))
             loss = ((pred - target) ** 2).mean()
             for g in opt.param_groups:
-                g['lr'] = lr_at(state['positions'])
+                g['lr'] = lr_at(state['positions']) * g.get('mult', 1.0)
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
@@ -391,6 +394,7 @@ def main():
     t.add_argument('--blend', type=float, default=0.6)
     t.add_argument('--lr', type=float, default=1e-4)
     t.add_argument('--lr-end', type=float, default=1e-6)
+    t.add_argument('--lr-out-mult', type=float, default=1.0)
     t.add_argument('--positions', type=float, default=None)
     t.add_argument('--batch', type=int, default=16384)
     t.add_argument('--block', type=int, default=1_000_000)
