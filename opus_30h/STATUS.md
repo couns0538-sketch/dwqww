@@ -22,8 +22,9 @@ Not released (npt keeper: live line s39, window to 2026-11-08 00:00 PC). Trainin
 ## Finding so far (17:4x, written early on purpose)
 Three facts point the same way: the crew's bigger pure nets lost ~100 Elo to the lock (4 gates); the lock net is
 converged on its own data (a KB1 / OB8 fine-tune moves S31 b0.6 by < 1e-6 in 30M positions at two learning rates);
-the only number that moved clearly was the jobA val loss, whose labels come from 20k-node searches instead of the
-5k-node self-play. The ceiling looks like the LABELS, not the architecture. Gate-next for the crew therefore includes
+the jobA val loss (20k-node labels instead of the 5k-node self-play labels) moved more than S31 only in the short
+lr 1e-4 smoke (-5.5e-5 while S31 got worse by +2.8e-5) - suggestive, not proven (the 30M probes moved it -6.8e-6 /
++1.1e-5). The ceiling may be the LABELS rather than the architecture; KB4 (more capacity) is the test of the other side. Gate-next for the crew therefore includes
 the 50M relabel (R14-B relabel2.py, costed at 78.7 h) feeding a v2 retrain - on the GPU path once a window exists.
 CPU plan: N1 (KB1 / OB8) runs on CPU 0; KB4 gets a 2-hour decider on CPU 1 after the SPSA self-test; if it does not
 clear the rule in a/RESULTS.md, CPU 1 goes to the SPSA main run at once.
