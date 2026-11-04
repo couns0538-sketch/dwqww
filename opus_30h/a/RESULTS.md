@@ -421,3 +421,16 @@ in timed play. Measured against the control instead of the lock, the trained net
 32 - noise-compatible, but they say the "S31 does not predict play" reading of n2e's match may be wrong: n2e and n2L
 may be better evaluations carrying the exe's handicap. The depth gap alone suggests ~8 Elo (0.13 ply, ~9 % time), so
 part of the control's -34 is probably noise; the finals come at ~06:40, then the speed discriminators.
+
+## Finals (2026-11-04 06:38): the exe, not the nets, is the problem - earlier reading CORRECTED
+| match (400 games each, 10+0.1, sanity only) | score | Elo | depth cand / lock |
+|---|---|---|---|
+| control: v2 exe + the lock net as KB4 replicas (identical evaluation) | 73 / 217 / 110 | **-32.2 +/- 18.5** | 20.47 / 20.58 |
+| n2L (`o30_kb4ob8_n2L`) | 90 / 209 / 101 | -9.6 +/- 19.0 | 19.65 / 19.78 |
+| n2e (`o30_kb4ob8_n2e`) | 79 / 213 / 108 | -25.2 +/- 18.5 | 20.15 / 20.27 |
+The control is ~3.4 standard errors below zero although its evaluation equals the lock's: the v2 EXE (gate exe ff856ba8
+on the v2 path) costs ~20-50 Elo in timed play. Read against the control, the nets are n2L +22.6 +/- 26.6 and n2e
++7.0 +/- 26.2 - noise-compatible, but ordered as S31 predicted (n2L < n2e < the lock net on S31 loss). The earlier
+reading "S31 did not predict play; jobA is the better compass" is WITHDRAWN: n2L played better than n2e although its
+jobA was worse. The depth gap (0.11-0.13 ply) explains maybe ~8 Elo of the control's -32 by the usual time rule;
+the rest is unexplained or noise. Next: the two discriminators (running), then the speed fix, then n2L again.
