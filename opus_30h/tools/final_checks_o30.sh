@@ -11,6 +11,7 @@
 # 11 doc_lint on the branch documents          12 INDEX.md: net sha256 + md5 and exe sha256 of every net section
 # 13 every Windows / branch path the documents cite exists   14 loader fuzz: 18 damaged files refused, fallback
 # 15 every hash the documents cite matches a file / commit / hand-checked entry (tools/hash_allow_o30.txt)
+# 16 the multi-file patch scripts are all-or-nothing (test_patch_atomic.py)
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 # pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
@@ -80,5 +81,7 @@ hashes() {
     --repo "$(cygpath -w "$W")" --allow "$(cygpath -w "$T/hash_allow_o30.txt")")
 }
 check 15_doc_hashes hashes
+# 16: the multi-file patch scripts change all their files or none (Code Review 2026-11-04 on o30_v2int16.py)
+check 16_patch_atomic "$PY" -I -B "$A/test_patch_atomic.py"
 echo "final_checks_o30: $pass PASS, $fail FAIL (logs $tmp)"
 [ $fail = 0 ]

@@ -71,9 +71,10 @@ log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~
 | `a/o30_evalcmp.py`, `a/o30_bucketcmp.py` | two nets' per-position outputs on the same FENs: scale, rms distance, sign flips; per-bucket mean offsets (seams) | - |
 
 ## One-command re-check
-`bash opus_30h/tools/final_checks_o30.sh`: 15 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
+`bash opus_30h/tools/final_checks_o30.sh`: 16 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
 scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes,
-cited paths, loader fuzz, cited hashes with `tools/hash_allow_o30.txt` for the hand-checked ones).
+cited paths, loader fuzz, cited hashes with `tools/hash_allow_o30.txt` for the hand-checked ones, all-or-nothing patch
+scripts).
 
 ## MCP server forge-o30 (`opus_30h/mcp/`)
 net_info, net_score, runs_table, spsa_status, v2_bench; `setup_o30_mcp.sh` registers it at user scope (re-runnable,

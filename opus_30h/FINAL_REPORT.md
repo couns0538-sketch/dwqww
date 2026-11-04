@@ -218,3 +218,11 @@ child, fail closed).
    change; dummy-set test PASS.
 6. Process hygiene (review R-T1, a/RESULTS.md): my bash tools' children ran at Normal priority on any CPU for seconds
    at a time until 20:2x; fixed with `tools/idle.sh` (fail closed); the running gate showed 0 time forfeits.
+7. **Code Review (external) REQUEST CHANGES on `a/o30_v2int16.py` @ 55ccc842** (CR_O30_V2INT16_20261104, md5 77dd3a2f):
+   the header was written before the loader's anchor was checked - a mismatch left a half-edited tree that builds and
+   mis-evaluates. Reproduced, fixed (all-or-nothing writes with restore), the same flaw fixed in `a/o30_v2stats.py`,
+   test `a/test_patch_atomic.py` 8 / 8 (now check 16). The int16 path was never built; it is not part of any exe.
+8. The root-fix patch (`a/o30_v2rootfix.py`, in v2port.patch 926ada2c): one branch in the root setup; the root is
+   evaluated once through static_evaluate_v2 (exact accumulators, no other side effect); nodes unchanged on bench and
+   on game positions, the verify build clean, CI green (run 41791001065). Found by my own counters, after my own port
+   had cost every v2 match of the job (R-A2 above).
