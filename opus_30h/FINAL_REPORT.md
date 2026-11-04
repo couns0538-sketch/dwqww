@@ -36,4 +36,21 @@ TOOLS.md; skills forge-o30-v2net / forge-o30-spsa (user scope + `opus_30h/skills
 (pending)
 
 ## 5. Own review of every patch (NOT independent: no sub-agents)
-(pending)
+1. `opus_30h/a/v2port.patch` (engine, EvalFileV2): see a/RESULTS.md review R-A1. Strengths: the default path changes by
+   two pointer tests (pins identical; OFF speed 1.02x advisory); the v2 code is Forge's own R3 code with the O6 / O7 parts
+   removed; every claim has a test (identity at d11-d22 with the lock net as v2, parity 10000/10000 x 3 SIMD paths vs an
+   independent reference, 830k-ply walk, in-search verify, ASan / UBSan / TSan CI). Weak spots: hidden size is fixed at
+   the compiled-in 256 (an H512 net needs a second accumulator); the gate exe must come from kit v2.5 (v2.3 makes the
+   v2 path 0.71x); `uci.cpp` gains one option (its `id` lines untouched).
+2. `opus_30h/b/expose22.patch` (engine, 22 options): R9's 18 proven literal sites, defaults = the literals, pins identical,
+   22 / 22 live, CI default / on / edge lines. Behaviour to know for TUNED values: the LMR terms are summed in 1/1024 ply
+   and divided by 1024 with C++ truncation toward zero, so a negative non-multiple rounds toward zero while a positive
+   one rounds down (identical at the defaults, which are whole plies); HistoryMalusPercent / AspirationGrowPercent use
+   integer percent arithmetic (bonus and delta are positive, so no sign issue).
+3. `opus_30h/kit25/` (kit v2.5 = kit v2.4 + workload v2n; tooling): the extra training input replays the v1 search trees
+   through the v2 code (identical node counts in the training log), frozen by sha256 like the other workloads, pc1 = pc2
+   on every build. Risk: it is my own kit variant, not QA's v2.3; the OFF path's profile has the same shape (counts
+   doubled), OFF speed 1.02x advisory - QA should time it before relying on it.
+4. `opus_30h/a/bullet_residual.patch` (trainer library, private copy; tool only): compiles (mock + ROCm), the trainer's
+   features equal the validated Python ones, the exporter round-trips through engine parity; NOT run on a GPU, so the
+   saved-file layout of a real run is the first thing to check in a window (GPU_PATH.md step 1).
