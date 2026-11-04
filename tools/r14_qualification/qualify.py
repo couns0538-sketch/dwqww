@@ -536,6 +536,13 @@ def main(argv=None):
         parser.error(str(error))
     if not args.fixture and args.pairs < 1000000:
         parser.error('fewer than one million foundation pairs requires --fixture')
+    # QA note: a fixture run may exit 0 on smoke PASS (success_exit). Keep such runs out of the production evidence
+    # folder, so no production path can be fed by one; consumers also require scope production_helper_qualification.
+    if args.fixture:
+        evidence = (ROOT / 'sep').resolve()
+        target = args.out.resolve()
+        if target == evidence or evidence in target.parents:
+            parser.error('--fixture is a smoke run; it may not write into the production evidence folder D:/a14/sep')
     psutil.Process().nice(psutil.IDLE_PRIORITY_CLASS)
     if args.cpu not in (0, 1, 2, 3) or args.cpu not in psutil.Process().cpu_affinity():
         parser.error('requested CPU is unavailable to this process')

@@ -253,6 +253,32 @@ class QualificationTests(unittest.TestCase):
         finally:
             client.close()
 
+    def test_fixture_refuses_production_evidence_output(self):
+        target = Path('D:/a14/sep/qualification-fixture-refusal-test')
+        with mock.patch('sys.stderr', new_callable=io.StringIO) as err:
+            with self.assertRaises(SystemExit) as raised:
+                self.q.main(['--fixture', '--pairs', '10', '--out', str(target)])
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn('production evidence folder', err.getvalue())
+        self.assertFalse(target.exists())
+
+    def test_no_production_launcher_passes_fixture(self):
+        tools = SOURCE.parents[1]
+        callers = []
+        for pattern in ('*.ps1', '*.py', '*.bat', '*.cmd'):
+            for path in tools.glob(pattern):
+                for number, line in enumerate(path.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
+                    if 'qualify.py' in line and '--fixture' in line:
+                        callers.append(f'{path.name}:{number}')
+        self.assertEqual(callers, [])
+
+    def test_fixture_report_cannot_qualify_a_scanner(self):
+        sys.path.insert(0, str(SOURCE.parents[1]))
+        import r14_segments
+        report = dict(schema=1, status='PASS', complete=True, scope='qualification_smoke', requested_pairs=1000000)
+        with self.assertRaises(ValueError):
+            r14_segments.validate_qualification(report, {})
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
