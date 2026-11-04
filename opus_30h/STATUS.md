@@ -8,7 +8,7 @@ the unblocked ones; 1-hour bug hunt at the end; check that it works in Forge.
 Not released (npt keeper: window to 2026-11-08 00:00 PC). The nets are CPU fine-tunes of the lock net
 (`opus_30h/a/o30_fit.py`, warm start = the lock function); the GPU path (residual bullet mode, ROCm exe) is ready, unrun.
 
-## State (2026-11-04 00:1x PC clock)
+## State (2026-11-04 08:2x PC clock)
 | item | state |
 |---|---|
 | 0 base re-verify | kit v2.3 -Expose of the unpatched lock = fd3a5190... on pc1 and pc2 |
@@ -43,13 +43,17 @@ letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py 
   reason in a/RESULTS.md: n2e's match showed S31 does not predict play).
 - CPU 0: n2L done 02:47:53 -> packed 02:49 (offline rule FAIL: jobA z +2.55) -> smoke + ABBA (02:50-02:56, CPU 1 idle)
   -> n2L 400 games until ~06:40.
-- ~06:40: record both matches; resume SPSA `tune_spsa.ps1 -RunDir D:\o30\spsa\stc8_main -Until '2026-11-04 19:30'
-  -Threads 2 -Cpus '0,1'` until 19:30 (~1,800 more pairs).
+- 06:38-07:33: speed discriminators (KB1 on the v2 path, the v2 exe OFF; 100 games each) -> 07:3x-08:1x the speed
+  hunt (game-position probe, counters) found the lazy-root bug -> fix, gate exe v2p4 (a2a560cb) -> 08:1x rematches on
+  v2p4, 400 games each: n2L (CPU 0, `D:\o30\nets\o30_kb4ob8_n2L\sanity_v2p4`), control (CPU 1, `D:\o30\control\
+  lockkb4_v2p4`), until ~11:55. 08:2x: Code Review fix (patch scripts all-or-nothing).
+- ~11:55: record both rematches; resume SPSA `tune_spsa.ps1 -RunDir D:\o30\spsa\stc8_main -Until '2026-11-04 19:30'
+  -Threads 2 -Cpus '0,1'` until 19:30 (paused at 184 pairs; ~1,000 more expected).
 - From 19:30: SPSA report + tuned-set exe (`b/build_o30tuned.sh`, ~10 min), final_checks_o30.sh, 1-hour bug hunt
   (incl. the deliverables in Forge), FINAL_REPORT; job end ~22:17.
 
 ## End-of-job bug hunt (1 hour; the checklist, written early)
-1. `tools/final_checks_o30.sh`: 13 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
+1. `tools/final_checks_o30.sh`: 16 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
    selfcheck, MCP, clean-room lint incl. the O30Tuned patch and >= 1 commit scanned, doc_lint, INDEX hashes, paths).
 2. Forge as a GUI / the gate runner uses it: `tools/uci_conformance_o30.py` on the gate exe + each net, on the
    O30Tuned exe with O30Tuned=true, on the SPSA exe and the lock exe.
