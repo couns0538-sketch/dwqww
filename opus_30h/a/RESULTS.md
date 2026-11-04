@@ -161,3 +161,11 @@ KB4: the decider n2e finishes on CPU 1 (3.5e8 positions, ~20:00) and a long KB4 
 ## The gate exe for v2 nets (kit v2.5, D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe, sha256 ff856ba8...)
 pin_check -Full (OFF, EvalFileV2 empty): PASS d11-d22 + perft. With EvalFileV2 = the lock net as a v2 file (KB4 rank map,
 OB8, every bucket a copy): bench d11 / d13 / d16 / d20 / d22 = the lock pins exactly (pin_check -Expect PASS, 67 s).
+
+## Long KB4 run n2L (lr 2e-5, output x2, mix 8, 1.4e9 positions planned, CPU 0, seed 222)
+| checkpoint | positions | S31 b0.6 | S31 b1.0 | jobA b0.6 |
+|---|---|---|---|---|
+| 19:28 | 7.06e7 | 0.0142976 (-1.24e-5) | 0.0045798 (+7.4e-6) | 0.0133952 (+1.23e-4) |
+
+The jobA drift differs a lot between runs of the same shape (decider n2e at 8.1e7: -7.6e-6; n2L at 7.1e7: +1.23e-4):
+the early-file positions are a small, out-of-distribution set; S31 (the lock net's own split) stays the primary metric.
