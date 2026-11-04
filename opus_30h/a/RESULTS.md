@@ -138,3 +138,13 @@ PASS (1 torch thread on the CPU is deterministic; the data stream depends only o
 | N1b 18:58 | 1.376e8 | 0.0142944 (-1.56e-5) | 0.0045499 (-2.25e-5) | 0.0133373 (+6.5e-5) |
 Caution: both get better on S31 (013/014, 5k-node self-play labels) while the jobA val loss (20k-node labels, positions
 of the early files 001 / 002) drifts up. The fine-tunes may be fitting the shallow labels' habits; reported as is.
+
+## jobA val with OLD vs NEW labels (o30_joba_old.py: the same 8,821 positions with their original 5k-node self-play
+## scores, D:\o30\data\jobA_val_old.pos/.hce; paired vs the lock net)
+| net | old labels diff (SE, z) | new 20k-node labels diff (SE, z) |
+|---|---|---|
+| KB4 decider at 146M | +1.6e-6 (1.9e-5, +0.09) | +2.96e-5 (2.0e-5, +1.47) |
+| N1b KB1 at 138M | +4.71e-5 (1.2e-5, +4.05) | +6.53e-5 (1.3e-5, +5.19) |
+Reading: N1b is worse on these EARLY-file positions under both label types - a shift toward the bulk of the (later) data,
+not a fit to shallow-label habits; KB4 is neutral on the old labels and not significantly worse on the new ones. By the
+written rule KB4 passes so far (S31 -3.1e-5, jobA z +1.47); final call at the end of its run.
