@@ -2,6 +2,7 @@
 # test_smoke2m.sh OUT_DIR - self-test of smoke2m.py: stub engines that play an illegal move, crash, hang or write to
 # stderr must FAIL; a legal stub and the lock exe copy (OFF, and with a live tunable) must PASS. Exit 0 = all as expected.
 set -u
+. "$(cd "$(dirname "$0")" && pwd)/idle.sh"; o30_pin_self 0x3 || { echo "cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 out=${1:?out dir}; [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }; mkdir -p "$out"
 D="$(cd "$(dirname "$0")" && pwd)"
 PY=/c/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe

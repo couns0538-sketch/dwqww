@@ -5,6 +5,7 @@
 # counts, at least one nonzero eval. Then a planted-bug run (--mutate) on the first net must FAIL (the comparison can
 # fail). Exit 0 only if every net passes and the planted bug is caught.
 set -uo pipefail
+. "$(cd "$(dirname "$0")" && pwd)/../tools/idle.sh"; o30_pin_self 0x3 || { echo "cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 W="$1"; FENS="$2"; H="$3"; shift 3
 A=$(cd "$(dirname "$0")" && pwd)
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe

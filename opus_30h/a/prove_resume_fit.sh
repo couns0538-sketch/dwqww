@@ -5,6 +5,7 @@
 # and the same step / positions / chunk state (1 torch thread on the CPU is deterministic and the data stream depends
 # only on (seed, chunk)). Runs D:/o30/runs/rz_<tag>_u and _i (refused when they exist); Idle on <mask> (default 0x2).
 set -uo pipefail
+. "$(cd "$(dirname "$0")" && pwd)/../tools/idle.sh"; o30_pin_self 0x3 || { echo "cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 tag="$1"; mask="${2:-0x2}"
 A=$(cd "$(dirname "$0")" && pwd)
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe

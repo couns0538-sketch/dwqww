@@ -2,6 +2,7 @@
 # test_pin_check.sh OUT_DIR - self-test of pin_check.ps1 on the lock exe copy (D:\o30\base\lock_copy.exe, sha256 fd3a5190...).
 # Every case has an expected exit code; a planted failure must fail. Exit 0 = all cases as expected.
 set -u
+. "$(cd "$(dirname "$0")" && pwd)/idle.sh"; o30_pin_self 0x3 || { echo "cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 out=${1:?out dir}; [ -e "$out" ] && { echo "refusing existing $out" >&2; exit 2; }; mkdir -p "$out"
 PC="$(cygpath -w "$(cd "$(dirname "$0")" && pwd)/pin_check.ps1")"
 LOCK='D:\o30\base\lock_copy.exe'
