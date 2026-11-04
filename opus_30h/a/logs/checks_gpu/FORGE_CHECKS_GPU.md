@@ -159,3 +159,9 @@ Checks per net: 1. smoke (`tools/smoke2m.py`, 300 s self-play at a real clock 20
   `D:/o30/checks_gpu/after_reps.txt`; helpers in `D:/o30/checks_gpu/scripts/`. Nothing in D:/o30/wt or D:/o30/nets was
   written; the nets were only read. The probe PGN `D:/o30/control/lockkb4_v2p4/lockkb4_v2p4.pgn` (md5
   95a432e46d38c7d30c12eccfb9cc73f3) is the finished control match of this exe (ended 11:49).
+
+## Note on the branch copy (added by the main session)
+The four uci_conformance.{txt,json} files in this folder are copies with one change: the value of the engine's own
+`id author` line (printed by the unchanged lock engine) is replaced by "[value redacted in this branch copy]", because
+this branch must not carry such names. The originals with their exact bytes, and the md5s cited above, are in
+D:\o30\checks_gpu\.
