@@ -1,20 +1,149 @@
 {
   "schema": 1,
-  "status": "UNVERIFIED",
-  "stage": "native_qualified_position_and_chain_scans_running",
+  "status": "FAIL",
+  "stage": "position_and_chain_scans_complete",
+  "status_by_check": {
+    "position_overlap_board_stm": "FAIL",
+    "position_overlap_four_field": "PASS (en-passant normalisation not yet settled; see BOARDSTM_TRIAGE.json)",
+    "chain_segments": "UNVERIFIED",
+    "authentic_game_ids": "UNVERIFIED"
+  },
   "authentic_game_ids": "UNVERIFIED",
   "writer_behavior": "inspected_hashed_source",
   "historical_launcher_association": "supported_not_authenticated_per_shard",
-  "segments": null,
-  "cross_boundary_links": null,
-  "position_overlap": null,
-  "key_fill_rate": null,
+  "segments": {
+    "status": "UNVERIFIED",
+    "k": 8,
+    "node_limit": 100000,
+    "boundary_node_limit": 1000000,
+    "segment_count": 293783,
+    "range_count": 293784,
+    "adjacent_pair_outcomes": {
+      "REACHABLE": 16294792,
+      "UNKNOWN": 104569,
+      "UNREACHABLE": 189211
+    },
+    "reason_counts": {
+      "exhaustive_no_path": 14,
+      "gap_exceeds_k": 36457,
+      "legal_witness": 16294792,
+      "node_limit": 68112,
+      "nonpositive_ply_gap": 67730,
+      "result_mismatch": 121467
+    },
+    "scope": "only observed adjacent physical rows at source seams; no all-pairs cross-window search",
+    "sources": {
+      "012": {
+        "scanned_rows": 100000,
+        "valid_key_rows": 100000
+      },
+      "013": {
+        "scanned_rows": 10000000,
+        "valid_key_rows": 10000000
+      },
+      "014": {
+        "scanned_rows": 6388575,
+        "valid_key_rows": 6388575
+      },
+      "015": {
+        "scanned_rows": 100000,
+        "valid_key_rows": 100000
+      }
+    }
+  },
+  "cross_boundary_links": {
+    "train_holdout_seams_checked": 2,
+    "reachable": 0,
+    "unknown": 0,
+    "unreachable": 2,
+    "seams": [
+      {
+        "left": "forge_selfplay_012.txt line 2625970",
+        "right": "forge_selfplay_013.txt line 1",
+        "status": "UNREACHABLE",
+        "reason": "result_mismatch",
+        "crosses_train_holdout": true
+      },
+      {
+        "left": "forge_selfplay_013.txt line 10000000",
+        "right": "forge_selfplay_014.txt line 1",
+        "status": "REACHABLE",
+        "reason": "legal_witness",
+        "crosses_train_holdout": false
+      },
+      {
+        "left": "forge_selfplay_014.txt line 6388575",
+        "right": "forge_selfplay_015.txt line 1",
+        "status": "UNREACHABLE",
+        "reason": "nonpositive_ply_gap",
+        "crosses_train_holdout": true
+      }
+    ],
+    "scope": "observed adjacent physical rows at the file seams only; no all-pairs cross-window search"
+  },
+  "position_overlap": {
+    "board_stm": {
+      "status": "FAIL",
+      "shared_exact_keys": 7610,
+      "train_overlap_rows": 7700,
+      "holdout_overlap_rows": 7612,
+      "hash_candidate_rows": 7700,
+      "hash_collision_rows": 0,
+      "train_rows": 304999573,
+      "holdout_rows": 16388575
+    },
+    "four_field": {
+      "status": "PASS",
+      "shared_exact_keys": 0,
+      "train_overlap_rows": 0,
+      "holdout_overlap_rows": 0,
+      "hash_candidate_rows": 0,
+      "hash_collision_rows": 0,
+      "train_rows": 304999573,
+      "holdout_rows": 16388575
+    },
+    "hash_algorithm": "BLAKE2b-64 little-endian with exact collision resolution",
+    "scope": "position_keys_only"
+  },
+  "key_fill_rate": {
+    "board_stm": {
+      "train": 1.0,
+      "holdout": 1.0
+    },
+    "four_field": {
+      "train": 1.0,
+      "holdout": 1.0
+    }
+  },
   "reasons": [
+    "Position overlap FAIL on the board+side-to-move key: 7,610 shared keys, 7,700 train rows and 7,612 holdout rows, 0 hash collisions, key fill rate 1.0 on 304,999,573 train and 16,388,575 holdout rows.",
+    "The 4-field key shares 0 keys at fill rate 1.0. Without castling rights the two keys differ only in the en-passant field, so this PASS can be an en-passant formatting artifact until the triage settles it.",
     "Original game-to-row bindings have not been recovered.",
     "The inspected writer can import pre-existing shard files; current source and sidecars do not authenticate their production.",
     "Eligibility filtering and deduplication can omit more than K plies; bounded nonreachability cannot prove distinct original games.",
     "Native qualification passed one million resolved foundation pairs with zero disagreements; twenty extra deep searches remain unknown.",
-    "Full production position and chain scans are running; null counts are not zero-overlap claims."
+    "Chain scan (K=8, node limit 100,000) left 104,569 adjacent pairs UNKNOWN (node_limit 68,112, gap_exceeds_k 36,457) next to 16,294,792 REACHABLE and 189,211 UNREACHABLE; unresolved adjacent-pair checks remain.",
+    "Both train/holdout file seams are UNREACHABLE (012->013 result_mismatch, 014->015 nonpositive_ply_gap), but the chain scan checks only observed adjacent physical rows at source seams; it does not search all pairs across windows, so interleaved or reordered games are not excluded.",
+    "Observed segment IDs are inferred chain labels, not authenticated original game IDs.",
+    "Historical producer-to-shard binding remains unverified."
   ],
-  "evidence": ["D:/a14/sep/WRITER_EVIDENCE.md", "D:/a14/evidence/r14/input-pins-all.jsonl"]
+  "reports": [
+    {
+      "path": "D:\\a14\\sep\\overlap-production03\\REPORT.json",
+      "md5": "1607d19e2b66dbe3512d0997942523c4"
+    },
+    {
+      "path": "D:\\a14\\sep\\segments-production02\\REPORT.json",
+      "md5": "fcb488f8c726326e013f648e1d202760"
+    },
+    {
+      "path": "D:\\a14\\sep\\segments-production02\\MAPS_SEAL.json",
+      "md5": "9b708a8994edc0f87ad8283c783440bb"
+    }
+  ],
+  "evidence": [
+    "D:/a14/sep/WRITER_EVIDENCE.md",
+    "D:/a14/evidence/r14/input-pins-all.jsonl"
+  ],
+  "updated_vienna": "2026-11-04 09:25 Vienna"
 }
