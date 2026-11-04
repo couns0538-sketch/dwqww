@@ -74,7 +74,8 @@ hashes() {
            /d/o30/plain/v2port_verify/forge_plain.exe /d/o30/target_mock/release/forge-v2-bullet.exe \
            /d/o30/target_rocm/release/forge-v2-bullet.exe /d/o30/tools_bin /d/o30/kit25 /d/o30/repos/base/src/nnue_weights.inc \
            /c/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe "$W/opus_30h/a" "$W/opus_30h/b" \
-           /d/o30/data/AUDIT.json /d/o30/w/*o30tuned*_pc1/src_copy/*.exe; do
+           /d/o30/data/AUDIT.json /d/o30/w/*tuned*_pc1/src_copy/*.exe /d/o30/target_rocm2/release/forge-v2-bullet.exe \
+           /d/o30/target_rocm3/release/forge-v2-bullet.exe /d/o30/target_rocm4/release/forge-v2-bullet.exe /c/o30g/gpu; do
     [ -e "$f" ] && files+=("$(cygpath -w "$f")")
   done
   (cd "$W" && "$PY" -I -B "$T/hash_sweep.py" --docs $(git ls-files 'opus_30h/*.md') --files "${files[@]}" \

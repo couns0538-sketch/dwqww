@@ -1,0 +1,60 @@
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3..ae0f364 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -18,6 +18,23 @@
+ #include <vector>
+ 
+ namespace {
++// O30Tuned (UCI check, default false): the tuned search constants of the SPSA session stc8_main of the Opus 30-h job in one switch.
++// true = the tuned values below, false = the lock values (each clamped to its option range).
++struct O30TunedValue {
++    std::string_view name;
++    int lock;
++    int tuned;
++};
++constexpr std::array<O30TunedValue, 8> O30TunedSet{{
++    {"LmrQuietBase", 85, 80},
++    {"LmrQuietDivisor", 220, 215},
++    {"LmrCutNode", 2048, 2038},
++    {"HistoryMalusPercent", 100, 99},
++    {"NmpEvalBase", 180, 174},
++    {"RfpMargin", 72, 65},
++    {"SeeQuietMultiplier", 24, 28},
++    {"SingularDoubleMargin", 24, 25},
++}};
+ 
+ void apply_position(forge::Board& board, std::istringstream& input) {
+     forge::Board candidate = board;
+@@ -178,6 +195,7 @@ int main() {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
++            std::cout << "option name O30Tuned type check default false\n";
+ #endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+@@ -214,6 +232,23 @@ int main() {
+                     forge::tune::refresh();
+                 }
+             }
++            if (name == "O30Tuned") {
++                handled_tunable = true;
++                if (value_text == "true" || value_text == "false") {
++                    const bool on = value_text == "true";
++                    for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
++                        for (const O30TunedValue& entry : O30TunedSet) {
++                            if (entry.name == parameter.name) {
++                                *parameter.value = std::clamp(on ? entry.tuned : entry.lock, parameter.minimum, parameter.maximum);
++                            }
++                        }
++                    }
++                    forge::tune::refresh();
++                } else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option O30Tuned" << std::endl;
++                }
++            }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
+             } else if (name == "Clear Hash") {

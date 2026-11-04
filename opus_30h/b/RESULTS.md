@@ -80,3 +80,31 @@ seeded by the command line). Start A = 100, B = 60, 10 pairs per batch, 1,000 pa
 of W - L (a win counts for the engine named plus, which plays theta + c * delta), the option values on the command
 line, the PGN parsing, the schedule and the resume. Side finding: a first try on CPU 1 waited correctly on the n2e
 match's fastchess (the gate-overlap check, live) and was stopped through the stop event.
+
+## Tuned exe for the stc8_main session at 184 pairs (tag tuned184; built 2026-11-04 13:40:43 - 13:44:34, checks to 13:47:31)
+No Elo claim, no convergence claim: 184 of 1800 planned pairs (92 batches, 368 games, +88 -77 =203, draw rate 55.2 %),
+only SeeQuietMultiplier beyond 2 sigma of the null-gradient noise (24 -> 28, z +2.11; with 8 parameters about 0.4 pass
+by chance); report `D:\o30\spsa\report_184pairs\REPORT.md`. The crew gates.
+- `build_o30tuned.sh D:\o30\spsa\report_184pairs\TUNED_OPTIONS.txt D:\o30\spsa\stc8_main tuned184` (log
+  `D:\o30\logs\build_o30tuned_tuned184.out`): clone of the expose22 repo (deabbd2) -> `D:\o30\repos\tuned184`
+  (574b018), patch `b/o30tuned_tuned184.patch` md5 eaa42c9fb3806a884c46a6f635548b93 (cleanroom_lint CLEAN), kit v2.3 -Expose on
+  CPUs 0-1 at Idle, pc1 + pc2.
+- Exe `D:\o30\w\tuned184_pc1\src_copy\forge_ltopgo_tuned184_pc1.exe` sha256 3b35f5cfa662f4f09916fa9c4b40f6bfc6a6d0d4ce7fa1f1b8f6970daadb66d1 = pc2 (binding);
+  kit pc1 / pc2 RESULT PASS (OFF pins d11-d22 + perft, node identity plain = ltopgo ALL OK, real missing-profile / coverage warnings 0, vfmadd 0); `uci` = the SPSA exe 7bf5dab3's option list + O30Tuned.
+- The set (O30Tuned=true): LmrQuietBase 85 -> 80, LmrQuietDivisor 220 -> 215, LmrCutNode 2048 -> 2038,
+  HistoryMalusPercent 100 -> 99, NmpEvalBase 180 -> 174, RfpMargin 72 -> 65, SeeQuietMultiplier 24 -> 28,
+  SingularDoubleMargin 24 -> 25 (false = the lock values; untouched = the expose22 exe).
+| check | result |
+|---|---|
+| kit pc1 / pc2: OFF pins d11-d22 + perft, node identity plain = ltopgo | RESULT PASS / RESULT PASS (sha256 identical) |
+| test_o30tuned.sh 1 OFF pins -Full | PASS |
+| 2 O30Tuned=true == explicit list, differs from the lock | PASS (d11 330152 / d13 745986 / d16 2436337 both ways; lock 312866 / 862329 / 3024920) |
+| 3 true then false = the lock pins | PASS |
+| 4 advertised + invalid value rejected | PASS |
+| UCI conformance (tools/uci_conformance_o30.py, CPU 1): switch untouched / O30Tuned=true | PASS 18 / 18 / PASS 21 / 21 |
+| smoke2m 120 s, O30Tuned=true, Threads 2, Hash 16, tc 2000+20, engine-side legality (CPU 1) | SMOKE2M PASS: 21 games (20 finished), 2450 plies, 0 illegal / crashes / hangs / time losses / overruns / option errors, stderr empty |
+Evidence: `D:\o30\checks_itemB\` (prep, waiter, option-list diff, conformance, smoke). Gate line: engine A = the exe
+above with `option.O30Tuned=true`; engine B = the lock FD3A5190 (no options); UHO [0,5] SPRT, then the 8moves_v3
+confirm. The same set without a new exe: the SPSA exe 7bf5dab3 with the explicit list in
+`D:\o30\spsa\report_184pairs\gate_options.txt` (check 2: bench(switch) == bench(list)).
+Full report of this step: `opus_30h/b/logs/itemB/ITEM_B_REPORT.md` (copies of the evidence beside it).
