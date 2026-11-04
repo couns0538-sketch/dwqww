@@ -396,3 +396,16 @@ games. The A/A result (0.945 twice) is the harness's NOISE magnitude on this loa
 The record, kept separate: raw bench ratios vs the lock - KB1 lock-as-v2 0.976, KB4 replicas vs KB1 0.968 (product
 ~0.945), n2e 0.899, n2L 0.970; A/A noise +-5 %; in-game mean depth (the measurement that decided): -0.12 to -0.15 ply
 for the v2 exe in all three matches. FINAL_REPORT cites the in-game depth, not corrected ratios.
+
+## Where does the v2 exe's speed go? Two discriminators (written 2026-11-04 05:1x, BEFORE their results)
+Code reading first: the v2 hook does not bypass any eval reuse - the TT eval is reused at the call sites, before
+static_evaluate, for both paths; v2's own extras are king-key checks per replayed ply, one non-inlined call and a
+cached root refresh. The structural difference is the first-layer table: the lock net's 786 KB (float32) always serves
+both perspectives, a KB4 net's 3.1 MB does not - with the two kings in different rank groups (e.g. g1 and g7) the two
+perspectives read two different 786 KB tables, a ~1.6 MB hot set against a 1 MB L2.
+After the two matches (~06:40), ~100 games each, metric = mean depth gap at equal time (SE ~0.04 ply at that size):
+- D-a, CPU 0: the gate exe + the lock net as KB1 / OB8 (786 KB, identical tree) vs the lock. Gap ~0 -> the KB4 table
+  size is the cause; gap ~-0.15 -> the v2 code path itself.
+- D-b, CPU 1: the gate exe with EvalFileV2 EMPTY (the lock's own v1 path, in the kit v2.5 build) vs the lock. Gap ~0
+  expected; a gap -> the kit v2.5 build itself costs speed.
+Then fix what they name, prove the fix with one more ~100-game depth check, hard stop for this work at ~12:00.
