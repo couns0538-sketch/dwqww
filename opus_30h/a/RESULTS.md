@@ -351,3 +351,13 @@ jobA moves +-4-5e-5 between neighbouring checkpoints (the output layer drifts), 
 error, so picking a checkpoint by jobA would mostly pick noise; but its level rises with training length while S31
 keeps falling (full list: `D:\o30\runs\n2L_kb4_ob8_long\val.csv`). n2L's final (S31-best, the written procedure) is
 candidate #2 and its match tests the trend: it ends with far more S31 fitting and a worse jobA than n2e.
+
+## Net #2 o30_kb4ob8_n2L - packed 2026-11-04 02:49 (n2L run: 1.4e9 positions reached 02:47:53, seed 222)
+Net = the run's S31-best checkpoint (step 83479, 1.368e9 positions; the written procedure), `D:\o30\nets\o30_kb4ob8_n2L\
+o30_kb4ob8_n2L.nnue2` sha256 1eec67bf943a1dee8a86bd8e3211b93b2c56692cb0ff77f7ff08545093ee2599, md5
+6ee4fe9b667270e38bc882a0d56dff10. Pack checks all PASS: parity 10000/10000 x AVX2 / SSE / scalar + planted bug caught;
+OFF pins -Full PASS; ON bench d11 292397 / d13 836621 / d16 2200750 (equal in two runs); perft 4865609 / 193690690.
+Holdout, paired vs the lock net: S31 b0.6 0.014196981 = -1.130e-4 (SE 2.7e-6, z -42.6), b1.0 0.004525147; jobA val
++7.53e-5 (SE 3.0e-5, z +2.55) -> **offline rule FAIL** (jobA z > 2; packaged anyway, as the rule says). Against the lock
+net on 10k FENs: corr 0.9956, 16.2 cp rms, scale 1.019; bucket steps <= 2.5 cp (OB3 +3.11 -> OB4 +0.61), king ranks
+<= 2.0 cp. Play checks started 02:50 on CPU 0 (smoke, ABBA, 400 games at 10+0.1; SPSA paused for the timing part).
