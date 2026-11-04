@@ -132,8 +132,9 @@ and verify remote HEAD. Preserve runtime/local artifacts with their own inventor
 Astra is out of usage; Opus finishes R14 in the waits of its own 30-h job, which keeps CPUs 0-1 (this work runs at Idle
 on CPU 2 for short bursts, never on gate cores, never on D:\o30). Commits as Opus <opus@forge.local>; big outputs to
 C:\a14x; stop if D: < 50 GB or C: < 30 GB; D:\a14 < 5 GB; no GPU (CUDA/HIP_VISIBLE_DEVICES=-1); no training, no Elo.
-Review: AGENTS.md policy without a reviewer sub-agent (the owner's standing rule for Opus) - structured self-review at
-each milestone, stated as NOT independent.
+Review: structured self-review at each milestone by the author, plus one review by a reviewer agent started by the owner's
+allowance, scope 7636122b..0883cee, not covering de1a1cd3 or the as-found tools (evidence\review\r14cont_independent\
+REVIEW.md, correction line of 2026-11-04). No independence is claimed beyond that scope.
 Time budget (Vienna): Step 0 verify 09:20-09:25 (done: 7 inputs + 25 maps PASS) | Job 1 commit PC-only work 09:25-10:00
 | Job 2 board+stm triage 10:00-11:45 | (11:50-12:15 the 30-h job's match results) | Job 3 guard-band split, proof,
 export only on PASS 12:15-15:30 | Job 4 QA notes, CR SHOULD (Setup-R14Runtime SHA256 pins), self-review, full suite,

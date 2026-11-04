@@ -18,7 +18,9 @@ scans showed about the dedup key.
     castling rights.
 
   That is the 7,610-key board+stm overlap: ep_format_diff 4,070 keys, castling_diff 3,514 keys
-  (sep/BOARDSTM_TRIAGE.json).
+  (sep/BOARDSTM_TRIAGE.json). The overlap is not resolved by the normalisation: after legal-capture-only EP
+  normalisation 4,088 keys are still shared (4,118 train rows, 4,090 holdout rows), the raw four-field "0 shared
+  keys" is only an en-passant formatting artefact, and the npt data stays BLOCKED (sep/PROD_SEPARATION.json, FAIL).
 
 ## File format
 

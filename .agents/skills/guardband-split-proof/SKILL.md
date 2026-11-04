@@ -66,7 +66,9 @@ UNREACHABLE); 987,194 train / 9,951 val / 2,776 dropped (5 guard_left, 7 guard_r
 - The input pins (paths + md5) are constants in opus_guardband.py; a new jobA needs new constants, never a bypass.
 - SPLIT.json, PROOF.json and the record are written with mode 'x': pick a new folder or a new name, never delete.
 - The record tool reads guardband01 by constant; check `evidence.proof.md5` against `md5sum PROOF.json`.
-- opus_promote_export.py checks scoped_checks, problems and the staged md5s, not the audit counters: read
-  `audit_failure_counters_zero` in PROOF.json yourself before promoting.
+- opus_promote_export.py refuses unless scoped_checks is PASS with no problems, `audit_failure_counters_zero` is true
+  (review finding F-014: the audit's position / game / state counters must all be 0), SPLIT.json still has the
+  proof's md5 and every staged file still has its SPLIT.json md5; the rules are `check_proof()` and are tested on
+  fixtures by tests\test_opus_promote_export.py. The audit's own status stays UNVERIFIED while game_id is null.
 - The proof's holdout pass writes 16.4 M JSONL rows to --big-dir (about 1.5 GB); keep it on C:\a14x.
 - A proof PASS is about separation of the staged rows; it is not a training-gain or Elo claim.

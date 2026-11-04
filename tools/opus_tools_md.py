@@ -19,8 +19,12 @@ TOOLS = [
     ('tools/opus_seal.py', 'Seal/verify tool: verify-report (every {path, md5, bytes} of a REPORT, exact file set '
      'with --dir), seal (hash list of a directory), verify-seal.',
      PY + r' D:\a14\tools\opus_seal.py verify-seal D:\a14\sep\segments-production02\MAPS_SEAL.json'),
-    ('tools/opus_prod_separation.py', 'Writes sep/PROD_SEPARATION.json from the two final scan reports '
-     '(md5-pinned; no typed numbers).', 'run it and compare with the committed record (only updated_vienna differs)'),
+    ('tools/opus_prod_separation.py', 'Writes sep/PROD_SEPARATION.json from the two final scan reports and the '
+     'mandatory BOARDSTM_TRIAGE.json (md5-pinned; no typed numbers; the raw 4-field "0 keys" is labelled as the '
+     'en-passant artifact, the EP-normalised 4,088-key FAIL is the verdict); output via <out>.part (mode x) + rename, '
+     'an existing output is refused; --replace-committed only for the git-tracked record unchanged since HEAD.',
+     PY + r' D:\a14\tools\opus_prod_separation.py --out <new file under D:\a14\tmp> (compare with the committed '
+     r'record: only updated_vienna differs); a second run into the same --out must refuse'),
     ('tools/opus_ep.py', 'EP normaliser: legal-capture-only en-passant status / FEN normalisation; invalid EP fails '
      'closed.', PY + r' -m pytest D:\a14\tests\test_opus_ep.py -q -p no:cacheprovider; '
      + PY + r' D:\a14\tools\opus_ep.py --oracle D:\grok-pc-data\selfplay_out\forge_selfplay_013.txt --limit 300000'),
@@ -53,8 +57,9 @@ TOOLS = [
     ('tools/opus_guardband_record.py', 'Writes sep/GUARDBAND_SEPARATION.json from SPLIT.json + PROOF.json with the '
      'repository rule final_verdict (no typed numbers).', 'compare its output with the committed record'),
     ('tools/opus_promote_export.py', 'Owner-only: turns the staged guard-band candidate into the export (refuses '
-     'without --confirm-owner-decision, a non-PASS proof, audit failures or changed md5s).',
-     PY + r' D:\a14\tools\opus_promote_export.py (prints the refusal; tool test: C:\a14x\promote_tooltest01)'),
+     'without --confirm-owner-decision, a non-PASS proof, audit failure counters (check_proof, F-014) or changed md5s).',
+     PY + r' -m pytest D:\a14\tests\test_opus_promote_export.py -q -p no:cacheprovider (refusal rules on fixtures; '
+     r'the command itself is the owner\'s call); tool test of 2026-11-04 10:24: C:\a14x\promote_tooltest01'),
     ('.agents/skills/boardstm-overlap-triage/SKILL.md', 'Skill (by the reviewer agent): probe, EP normaliser, '
      'triage - commands and how to read the records.', 'read it; every command in it was checked by its author'),
     ('.agents/skills/guardband-split-proof/SKILL.md', 'Skill (by the reviewer agent): build -> proof -> record flow, '

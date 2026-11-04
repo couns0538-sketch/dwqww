@@ -29,6 +29,18 @@ def digests(path):
     return md5.hexdigest(), sha.hexdigest()
 
 
+def check_proof(proof, split_md5):
+    """The refusal rules applied to a loaded PROOF.json before anything is copied; returns the refusal text or None.
+    Kept as a function so the rules can be tested on fixtures without running the promotion command."""
+    if proof.get('scoped_checks') != 'PASS' or proof.get('problems'):
+        return 'refusing: the proof\'s scoped checks are not PASS'
+    if proof.get('audit_failure_counters_zero') is not True:   # review finding F-014
+        return 'refusing: the npt-data-holdout-check audit reported position / game / state failures'
+    if proof.get('split', {}).get('md5') != split_md5:
+        return 'refusing: SPLIT.json changed after the proof'
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--split', default='D:/a14/sep/guardband01/SPLIT.json')
@@ -40,12 +52,9 @@ def main():
         sys.exit('refusing: the export needs the owner\'s decision (--confirm-owner-decision); see GUARDBAND_SEPARATION.json')
     split = json.load(open(a.split, encoding='utf-8'))
     proof = json.load(open(a.proof, encoding='utf-8'))
-    if proof.get('scoped_checks') != 'PASS' or proof.get('problems'):
-        sys.exit('refusing: the proof\'s scoped checks are not PASS')
-    if proof.get('audit_failure_counters_zero') is not True:   # review finding F-014
-        sys.exit('refusing: the npt-data-holdout-check audit reported position / game / state failures')
-    if proof['split']['md5'] != digests(a.split)[0]:
-        sys.exit('refusing: SPLIT.json changed after the proof')
+    refusal = check_proof(proof, digests(a.split)[0])
+    if refusal:
+        sys.exit(refusal)
     if os.path.exists(a.out):
         sys.exit(f'refusing: {a.out} exists')
     files = {}

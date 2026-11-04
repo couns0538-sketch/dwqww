@@ -4,6 +4,13 @@ Reviewer: an independent agent session (reviewer role of D:\a14\AGENTS.md). It d
 reviewed changes and shares no state with the author's session. Everything below was checked directly on the PC;
 no finding was taken over from the author's self-review. Started 2026-11-04 10:28 (PC clock, `date`).
 
+Correction 2026-11-04 (owner's fix list item 5, added by Opus; the findings below are unchanged): reviewer agent started
+by the owner's allowance, scope 7636122b..0883cee, not covering de1a1cd3 or the as-found tools. The commit de1a1cd3
+(F-001 fix in three .ps1 files, F-013 opus_prod_separation.py, F-014 promote check, F-015, opus_inventory.py, the three
+skills) and Astra's as-found tools and tests (r14_boundary*, r14_suite.py, Invoke-R14Suite.ps1, r14_qualification) were
+not re-reviewed; "independent" above means only that the reviewer session did not author the reviewed changes within
+that scope.
+
 ## Scope
 
 - Repository D:\a14, branch opus-astra-r14-finish, HEAD 0883cee88df4cdc6c302f4879e56ca3ec86c256a, base

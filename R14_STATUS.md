@@ -28,3 +28,11 @@ rechecked before every workload.
 
 Full inherited training-dependent suite remains subject to the protected-import
 restriction. The final report will distinguish executed and blocked checks.
+
+## 2026-11-04 (Opus, R14 finish)
+
+Both production scans are complete. Position overlap is FAIL: 7,610 board+side-to-move keys are shared
+between the npt training rows and the holdouts 013/014, and 4,088 of them stay shared after legal-capture-only
+en-passant normalisation (4,118 train rows, 4,090 holdout rows); the raw four-field "0 shared keys" is an en-passant
+formatting artefact. Authentic game IDs are still missing. npt data stays BLOCKED; no export exists
+(sep/PROD_SEPARATION.json, sep/GUARDBAND_SEPARATION.json, FINAL_REPORT.md).
