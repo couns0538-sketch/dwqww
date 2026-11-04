@@ -90,14 +90,25 @@ forge-o30 (5 tools); UCI conformance check `tools/uci_conformance_o30.py`; `tool
 child, fail closed).
 
 ## 2. Unfinished and how to resume
+- **The remaining exe gap (QA)**: the gate exe v2p4 (root fix) runs the v2 path at its own OFF speed, but on game
+  positions both paths are ~2-7 % behind the lock exe (OFF 0.933, KB1 0.980; `a/depth_probe_o30.py`) - the kit v2.5
+  build vs the lock's kit v2.3. Resume: QA times v2p4 vs FD3A5190 with its own method; if confirmed, profile which
+  functions the v2.5 workload (v2n + -PartialTraining) optimises differently, or build the v2 exe with QA's kit once
+  that kit can profile an option-only path. Until then every v2 gate carries that handicap.
 - **GPU training (the R14 ROCm path)**: not run - the GPU stayed booked by npt for the whole job. Ready: residual `r`
-  mode, ROCm exe, exporter, checks (a/GPU_PATH.md has the exact commands; step 1 is a 10-minute smoke that checks the
-  layout of a real saved file). Needs Engine QA's written window.
+  mode (maps one / rank4 / rank4x2), ROCm exe b1155cd4, exporter, checks (a/GPU_PATH.md has the exact commands; step 1
+  is a 10-minute smoke that checks the layout of a real saved file). Needs Engine QA's written window. Warm start
+  from a .nnue2 (the CPU nets' advantage): planned, not built - a/GPU_PATH.md "Warm start" has the steps and a
+  one-minute proof.
 - **Nets with H > 256**: the engine's v2 path uses the compiled-in hidden size (256); an H512 net needs a second
   accumulator array in the port (follow-up; the GPU path is where wider nets become affordable).
-- **Better labels**: the CPU fine-tunes point at the 5k-node self-play labels as the ceiling; the 50M relabel
-  (R14-B relabel2.py, 78.7 h planning figure) feeding the same reader (a second data source) is the next lever.
-- **Kit v2.5**: my variant of the kit; QA should time it (v2 path and OFF path) before gates rely on it.
+- **KB8 (rank4x2)**: proven ready (identity, parity, walk, selfcheck, Rust features, exporter), never trained.
+- **Labels**: the 50M relabel (R14-B relabel2.py, 78.7 h planning figure) feeding the same reader stays a lever, but this
+  job's evidence (read against the control) does not single it out; the exe came first.
+- **int16 first layer** (`a/o30_v2int16.py`, all-or-nothing after the Code Review): prepared and exact, not built, not
+  needed - the speed loss was the lazy root, not the table size.
+- **Kit v2.5**: my variant of the kit; QA should time it (v2 path and OFF path) before gates rely on it (see the first
+  item: its OFF path measured 0.933-0.964 of the lock's on game positions).
 - (more items are added at the end of the job: the SPSA session's state and any check that did not finish)
 
 ## 3. Every check result
