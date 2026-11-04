@@ -10,6 +10,7 @@
 # 10 cleanroom_lint on every patch and on the branch's commit messages since main
 # 11 doc_lint on the branch documents          12 INDEX.md: net sha256 + md5 and exe sha256 of every net section
 # 13 every Windows / branch path the documents cite exists   14 loader fuzz: 18 damaged files refused, fallback
+# 15 every hash the documents cite matches a file / commit / hand-checked entry (tools/hash_allow_o30.txt)
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 # pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
@@ -62,5 +63,22 @@ check 13_paths paths
 # 14: the v2 loader refuses 18 kinds of damaged files with their reason and falls back to the compiled-in net
 fuzz() { "$PY" -I -B "$A/loader_fuzz_o30.py" "$V2EXE" 'D:\o30\nets\lockv2\rand_kbrank4m_ob8_s2.nnue2' "$(cygpath -w "$tmp/fuzz")" --mask 0x3; }
 check 14_loader_fuzz fuzz
+# 15: every hash the documents cite = a file hashed here, a commit of the branch, or a hand-checked entry with its
+#     reason in tools/hash_allow_o30.txt (input shard hashes, external commits, superseded versions, FNV checksums)
+hashes() {
+  local f files=()
+  for f in /d/o30/nets /d/o30/w/v2p1_pc1/src_copy/forge_ltopgo_v2p1_pc1.exe /d/o30/w/v2p2_pc1/src_copy/forge_ltopgo_v2p2_pc1.exe \
+           /d/o30/w/v2p3_pc1/src_copy/forge_ltopgo_v2p3_pc1.exe /d/o30/w/sp1_pc1/src_copy/forge_ltopgo_sp1_pc1.exe \
+           /d/o30/plain/v2port_1/forge_plain.exe /d/o30/plain/spsa_1/forge_plain.exe /d/o30/plain/tunedtest_1/forge_plain.exe \
+           /d/o30/plain/v2port_verify/forge_plain.exe /d/o30/target_mock/release/forge-v2-bullet.exe \
+           /d/o30/target_rocm/release/forge-v2-bullet.exe /d/o30/tools_bin /d/o30/kit25 /d/o30/repos/base/src/nnue_weights.inc \
+           /c/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe "$W/opus_30h/a" "$W/opus_30h/b" \
+           /d/o30/data/AUDIT.json /d/o30/w/*o30tuned*_pc1/src_copy/*.exe; do
+    [ -e "$f" ] && files+=("$(cygpath -w "$f")")
+  done
+  (cd "$W" && "$PY" -I -B "$T/hash_sweep.py" --docs $(git ls-files 'opus_30h/*.md') --files "${files[@]}" \
+    --repo "$(cygpath -w "$W")" --allow "$(cygpath -w "$T/hash_allow_o30.txt")")
+}
+check 15_doc_hashes hashes
 echo "final_checks_o30: $pass PASS, $fail FAIL (logs $tmp)"
 [ $fail = 0 ]

@@ -63,9 +63,9 @@ log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~
 | `a/loader_fuzz_o30.py <exe> <valid net> <new dir> [--mask]` | 18 kinds of damaged FORGENN2 files (sizes, magic, version, header, feature set, inputs, hidden, bucket counts, flags, scale, map entries, reserved bytes, checksum) must each be refused with their reason and leave the compiled-in net playing; plus load-then-damaged and load-then-empty sequences | LOADER FUZZ PASS 21 / 21 (2026-11-03 20:45) |
 
 ## One-command re-check
-`bash opus_30h/tools/final_checks_o30.sh`: 14 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
+`bash opus_30h/tools/final_checks_o30.sh`: 15 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
 scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes,
-cited paths, loader fuzz).
+cited paths, loader fuzz, cited hashes with `tools/hash_allow_o30.txt` for the hand-checked ones).
 
 ## MCP server forge-o30 (`opus_30h/mcp/`)
 net_info, net_score, runs_table, spsa_status, v2_bench; `setup_o30_mcp.sh` registers it at user scope (re-runnable,
