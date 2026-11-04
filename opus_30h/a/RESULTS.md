@@ -330,6 +330,7 @@ that per-position losses cannot see (search meets them at every trade / king mov
 |---|---|---|---|
 | o30_kb4ob8_n2e | 8.3 cp | 1.8 cp (OB1 -0.56 -> OB2 +1.21) | 1.5 cp (rank 2 -0.32 -> ranks 3-4 +1.22) |
 | n2L at 7.98e8 (step 48712) | 15.6 cp | 2.2 cp (OB3 +2.93 -> OB4 +0.72) | 1.5 cp (rank 2 +0.35 -> ranks 3-4 +1.84) |
+
 Bucket means are measured to ~0.2-0.5 cp, so the steps are real but small next to the per-position spread: no clear
 seam pattern, nothing structural to fix on the CPU. n2L moves the evaluation twice as far from the lock net as n2e
 (15.6 vs 8.3 cp rms, scale +1.7 %); its own match is the verdict.
@@ -347,6 +348,7 @@ not resolve a cost that small. It becomes the first step only if n2L's match is 
 | 23:42 | 8.0e8 | -9.86e-5 | +1.78e-5 |
 | 00:32 | 9.6e8 | -1.06e-4 | +7.84e-5 |
 | 01:22 | 1.12e9 | -1.11e-4 | +9.29e-5 |
+
 jobA moves +-4-5e-5 between neighbouring checkpoints (the output layer drifts), far more than its 1.8e-5 measurement
 error, so picking a checkpoint by jobA would mostly pick noise; but its level rises with training length while S31
 keeps falling (full list: `D:\o30\runs\n2L_kb4_ob8_long\val.csv`). n2L's final (S31-best, the written procedure) is
@@ -381,6 +383,7 @@ Mean depth per move at the same time per move (10+0.1, Threads 1):
 | control: v2 exe + the lock net as KB4 replicas (IDENTICAL evaluation) | ~15.2k (192 games) | 20.28 | 20.43 | -0.15 ply |
 | n2L | ~15.6k (193 games) | 19.55 | 19.70 | -0.15 ply |
 | n2e (all 400 games) | ~31.1k | 20.15 | 20.27 | -0.12 ply |
+
 Per-move depth varies by a few plies, so over 15-31k moves the gap is several standard errors, and it is the same in all
 three - including the control, whose evaluations and search trees are identical to the lock's. So it is speed:
 ~0.15 ply ~ 7-11 % less search in real games (effective branching factor 1.6-2.0), worth very roughly 5-10 Elo. The
@@ -416,6 +419,7 @@ Then fix what they name, prove the fix with one more ~100-game depth check, hard
 | control (v2 exe + lock net as KB4 replicas, identical evaluation) | 277 | 50 / 149 / 78 | -34.1 +/- 22.6 | 20.51 / 20.62 |
 | n2L | 279 | 63 / 146 / 70 | -8.8 +/- 23.4 | 19.80 / 19.93 |
 | n2e (final) | 400 | 79 / 213 / 108 | -25.2 +/- 18.5 | 20.15 / 20.27 |
+
 The control, whose evaluation and search tree equal the lock's, is ~3 standard errors below zero: the v2 EXE costs Elo
 in timed play. Measured against the control instead of the lock, the trained nets read n2e ~ +9 +/- 29 and n2L ~ +25 +/-
 32 - noise-compatible, but they say the "S31 does not predict play" reading of n2e's match may be wrong: n2e and n2L
@@ -428,6 +432,7 @@ part of the control's -34 is probably noise; the finals come at ~06:40, then the
 | control: v2 exe + the lock net as KB4 replicas (identical evaluation) | 73 / 217 / 110 | **-32.2 +/- 18.5** | 20.47 / 20.58 |
 | n2L (`o30_kb4ob8_n2L`) | 90 / 209 / 101 | -9.6 +/- 19.0 | 19.65 / 19.78 |
 | n2e (`o30_kb4ob8_n2e`) | 79 / 213 / 108 | -25.2 +/- 18.5 | 20.15 / 20.27 |
+
 The control is ~3.4 standard errors below zero although its evaluation equals the lock's: the v2 EXE (gate exe ff856ba8
 on the v2 path) costs ~20-50 Elo in timed play. Read against the control, the nets are n2L +22.6 +/- 26.6 and n2e
 +7.0 +/- 26.2 - noise-compatible, but ordered as S31 predicted (n2L < n2e < the lock net on S31 loss). The earlier
@@ -496,6 +501,7 @@ lock's; with equal depth in games, any score away from 0 is timing noise and cha
 |---|---|---|---|
 | n2L (`D:\o30\nets\o30_kb4ob8_n2L\sanity_v2p4`, CPU 0) | 97 / 94 / 209 | +2.6 +/- 19.2 | [1, 57, 82, 58, 2] |
 | control: the lock net as KB4 replicas (`D:\o30\control\lockkb4_v2p4`, CPU 1) | 83 / 107 / 210 | -20.9 +/- 18.5 | [5, 55, 101, 37, 2] |
+
 Both engines searched the same mean depth in both matches (control 20.82 vs 20.85, n2L 19.86 vs 19.89 at 256 games).
 Reading: the control's evaluation and search are identical to the lock's (lockstep 519 plies at 20k nodes and, since
 10:45, 727 plies at 200k nodes over 5 games: a/logs/bughunt/lockstep_200k_5g.out), so its deficit is the v2p4 exe's

@@ -103,6 +103,7 @@ by chance); report `D:\o30\spsa\report_184pairs\REPORT.md`. The crew gates.
 | 4 advertised + invalid value rejected | PASS |
 | UCI conformance (tools/uci_conformance_o30.py, CPU 1): switch untouched / O30Tuned=true | PASS 18 / 18 / PASS 21 / 21 |
 | smoke2m 120 s, O30Tuned=true, Threads 2, Hash 16, tc 2000+20, engine-side legality (CPU 1) | SMOKE2M PASS: 21 games (20 finished), 2450 plies, 0 illegal / crashes / hangs / time losses / overruns / option errors, stderr empty |
+
 Evidence: `D:\o30\checks_itemB\` (prep, waiter, option-list diff, conformance, smoke). Gate line: engine A = the exe
 above with `option.O30Tuned=true`; engine B = the lock FD3A5190 (no options); UHO [0,5] SPRT, then the 8moves_v3
 confirm. The same set without a new exe: the SPSA exe 7bf5dab3 with the explicit list in
