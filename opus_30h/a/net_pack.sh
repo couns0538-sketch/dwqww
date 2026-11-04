@@ -31,9 +31,11 @@ S16P='F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.pos'; S16H='F:\opu
 # paired vs the lock net's per-row dumps (same scorer, same rows; D:\o30\dumps\*_lock.f64 = 0.014310027 / 0.013272058)
 "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$out/s16.f64")" 'D:\o30\dumps\s16_lock.f64' > "$out/paired_s16.json" || fail=1
 "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$out/jobA_val.f64")" 'D:\o30\dumps\jobA_lock.f64' > "$out/paired_jobA_val.json" || fail=1
-powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Full > "$out/pins_off.txt" 2>&1 || fail=1
+# pin_check.ps1 sets its own mask (default 0x3): pass the same override as this shell (O30_MASK), or it lands on 0-1
+PCMASK="${O30_MASK:-0x3}"
+powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Full -Mask "$PCMASK" > "$out/pins_off.txt" 2>&1 || fail=1
 for i in 1 2; do
-  powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Options "EvalFileV2=$NW" > "$out/pins_on_$i.txt" 2>&1 || fail=1
+  powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Options "EvalFileV2=$NW" -Mask "$PCMASK" > "$out/pins_on_$i.txt" 2>&1 || fail=1
 done
 on1=$(grep '^bench' "$out/pins_on_1.txt" | awk '{print $2"="$3}' | paste -sd, -); on2=$(grep '^bench' "$out/pins_on_2.txt" | awk '{print $2"="$3}' | paste -sd, -)
 [ -n "$on1" ] && [ "$on1" = "$on2" ] || { echo "ON bench differs between runs: $on1 / $on2"; fail=1; }
