@@ -47,6 +47,9 @@ TOOLS = [
     ('tools/opus_inventory.py', 'File inventory for the report: full PC path, bytes and md5 of every file changed on '
      'the branch plus extra output folders.',
      PY + r' D:\a14\tools\opus_inventory.py --base 7636122b71ff27a5b4b781b6775757f926f8fdc4 --out <new file>'),
+    ('tools/opus_step0_verify.py', 'Re-checks the seven Step 0 input md5s from the committed blobs (aa78a56, '
+     '7636122b) after later commits changed two of the files on purpose.',
+     PY + r' D:\a14\tools\opus_step0_verify.py (expect "step 0 re-check PASS: 7 files")'),
     ('tools/opus_guardband_record.py', 'Writes sep/GUARDBAND_SEPARATION.json from SPLIT.json + PROOF.json with the '
      'repository rule final_verdict (no typed numbers).', 'compare its output with the committed record'),
     ('tools/opus_promote_export.py', 'Owner-only: turns the staged guard-band candidate into the export (refuses '
