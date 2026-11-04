@@ -120,3 +120,5 @@ Read the whole diff (v2port.patch md5 378bf6bc...) against the R3 source it came
   root refresh; pins identical; OFF speed vs the lock 1.021 (kit v2.5, advisory, noisy).
 Findings: none in the engine code. Risks kept: v2 hidden size is the compiled-in 256 (an H512 net needs a separate
 accumulator - follow-up); the kit must be v2.5 (v2.3 makes the v2 path 0.71x).
+Run 41682427163 (commit 2db5d468, adds a ThreadSanitizer job): success on all 4 jobs - tsan (the v2 port, Threads 4,
+the random KB4 mirrored / OB8 net, 2 games x 40k nodes, halt_on_error, no ThreadSanitizer report), lock, v2port, expose22.
