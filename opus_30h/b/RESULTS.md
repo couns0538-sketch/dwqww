@@ -55,3 +55,8 @@ No Elo claim: the crew gates (UHO [0,5] SPRT, 8moves_v3 confirm). Own games are 
 - Dry run with a DUMMY set (8 values moved by hand; scratch clone `D:\o30\repos\spsa_tunedtest` 2da9756, plain build
   `D:\o30\plain\tunedtest_1\forge_plain.exe` sha256 14abbbc15fcaa83e51654b5e92dd6166606d5f76da87ebf84ceb163b2297561d,
   0 warnings, vfmadd 0): O30TUNED PASS - 1 PASS; 2 PASS (d11 373948 / d13 1042797 / d16 2580989 both ways); 3 PASS; 4 PASS.
+
+## SPSA pre-flight (2026-11-03 20:4x)
+The 8 stc8 options at their start values on the SPSA exe 7bf5dab3: every name advertised with the CSV's range inside
+the option range, bench d11 / d13 / d16 = the lock pins (pin_check -Expect PASS) - the tuner's first batch starts from
+exactly the lock.

@@ -247,3 +247,9 @@ section and compares the net's sha256 AND md5 and the exe's sha256; a missing ro
 3 / 3 ok; planted wrong net hash -> 1 problem; deleted hash row -> FAIL. New check 13 (`tools/path_sweep.py`): every
 Windows / branch path cited by the job's documents exists (allowed missing: `D:\o30\WINDOW.md`, written only on a GPU
 release).
+
+## Trained net in the in-search verify build (2026-11-03 20:4x, CPU 0)
+The verify build (`D:\o30\plain\v2port_verify\forge_plain.exe`, -DFORGE_NNUE_V2_VERIFY=1: every accumulator the search
+evaluates is compared with a full refresh, abort on any difference) with `o30_kb4ob8_n2e`: bench 13 803,134 nodes, bench
+16 2,593,172 (both = the normal build's ON benches), bench 20 12,201,110 - no abort. Before this only random nets had
+run through the verify build; this covers the trained KB4 net's king-bucket switches in real searches.
