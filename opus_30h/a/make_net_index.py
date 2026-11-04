@@ -15,6 +15,31 @@ def fmt_z(z):
     return 'n/a' if z is None else f'{z:+.2f}'
 
 
+def sanity_from_log(d):
+    """Latest fastchess summary of a sanity_match.py run in <net>/sanity or <net>/sanity2 (GPU nets have no
+    FINAL_CHECKS.json): 'Games: N, Wins ..., Points ... (x %)' + 'Elo: ...' + the candidate exe from RUN_INFO.json.
+    A folder without sanity.log (a placeholder) is skipped."""
+    for sub in ('sanity', 'sanity2'):
+        p = os.path.join(d, sub, 'sanity.log')
+        if not os.path.isfile(p):
+            continue
+        games = elo = ''
+        for line in open(p, encoding='utf-8', errors='replace'):
+            if line.startswith('Games:'):
+                games = line.strip()
+            elif line.startswith('Elo:'):
+                elo = line.strip().split(', nElo')[0]
+        if not games:
+            continue
+        out = f'{games}; {elo}' if elo else games
+        ri = os.path.join(d, sub, 'RUN_INFO.json')
+        if os.path.isfile(ri):
+            info = json.load(open(ri, encoding='utf-8-sig'))
+            out += f"; exe {info['candidate']['sha256'][:8]}; planned {info.get('games', '?')} games ({sub})"
+        return out
+    return '-'
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', default=r'D:\o30\nets')
@@ -42,15 +67,17 @@ def main():
              'conformance and the loader fuzz pass on it. Use v2p4, not ff856ba8.', '',
              'Offline rule (written before the results, a/RESULTS.md): S31 b0.6 at least 2e-5 below the lock net AND a paired',
              'jobA-val z <= +2. Paired = the same rows scored by both nets (o30_paired.py); z = diff / its measurement error.',
-             'READ THE SANITY COLUMN WITH THE CONTROL: the gate exe below playing the LOCK net (written as KB4 replicas, identical',
-             'evaluation and tree) scored -32.2 +/- 18.5 against the lock exe in the same 400-game setting (D:\\o30\\control\\',
-             'lockkb4_v2exe) - the v2 exe itself costs Elo. Compare each net with that control, not only with 0. Sanity',
+             'READ THE SANITY COLUMN WITH THE CONTROL: the gate exe v2p4 playing the LOCK net (written as KB4 replicas, identical',
+             'evaluation and tree) scored 47.0 % = -20.9 +/- 18.5 against the lock exe in the same 400-game setting',
+             '(D:\\o30\\control\\lockkb4_v2p4; on the older v2p3 exe -32.2 +/- 18.5, lockkb4_v2exe) - the v2 exe itself costs',
+             'Elo. Compare each net with that control, not only with 50 %. More king buckets cost speed on top (identity nets,',
+             'same trees, a/logs/checks_gpu_w2: KB16 0.968x, KB32 0.941x the nps of KB4). Sanity',
              'matches are not gates.', '',
              '| net | S31 b0.6 vs lock (z) | jobA val vs lock (z) | offline rule | pack checks | sanity match (SANITY ONLY) |',
              '|---|---|---|---|---|---|']
     for name, r, fc, tr in rows:
         rule = r.get('offline_rule')
-        sanity = '-'
+        sanity = sanity_from_log(os.path.join(a.root, name))
         if fc:
             wdl = next((l.strip() for l in fc['sanity'] if 'W/D/L' in l), '')
             elo = next((l.strip().split('  nElo')[0] for l in fc['sanity'] if l.strip().startswith('Elo ')), '')
@@ -90,6 +117,8 @@ def main():
                   f"| all pack checks passed | {r['all_checks_passed']} |"]
         if tr:
             lines.append(f"| training | {tr.get('summary', '')} |")
+        if not fc and sanity_from_log(os.path.join(a.root, name)) != '-':
+            lines.append(f"| sanity match (SANITY ONLY) | {sanity_from_log(os.path.join(a.root, name))} |")
         if fc:
             lines.append(f"| smoke 300 s | {' / '.join(fc['smoke_300s'][-2:])} |")
             lines.append(f"| speed vs lock (advisory, different trees) | {' / '.join(fc['abba_nps'])} |")
