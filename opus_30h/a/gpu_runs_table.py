@@ -4,6 +4,7 @@ named runs (D:\\o30\\gpu\\<run>_scores.tsv from gpu_ckpt_watch.sh): positions tr
 S31 b0.6 and its paired difference / z vs the lock net, jobA val b0.6 and its paired difference / z, and the offline
 rule written before any result (S31 at least 2e-5 below the lock AND paired jobA z <= +2). Read-only; own code."""
 import csv
+import os
 import sys
 
 POS_PER_SB = 1024 * 16384
@@ -13,7 +14,10 @@ def main():
     print('| run | checkpoint | positions | S31 b0.6 | S31 vs lock | z | jobA b0.6 | jobA vs lock | z | rule |')
     print('|---|---|---|---|---|---|---|---|---|---|')
     for run in sys.argv[1:]:
-        with open(f'D:/o30/gpu/{run}_scores.tsv', encoding='utf-8') as f:
+        path = f'D:/o30/gpu/{run}_scores.tsv'
+        if not os.path.exists(path):   # runs of the second window write to C:\o30g\gpu (D: near its floor)
+            path = f'C:/o30g/gpu/{run}_scores.tsv'
+        with open(path, encoding='utf-8') as f:
             for r in csv.DictReader(f, delimiter='\t'):
                 sb = int(r['ckpt'].rsplit('-', 1)[1])
                 ds, zs, dj, zj = (float(r[k]) for k in ('paired_s31', 'z_s31', 'paired_jobA', 'z_jobA'))

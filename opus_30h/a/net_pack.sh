@@ -8,12 +8,12 @@
 #   4. pin_check: OFF = lock pins (-Full), ON with the net: bench d11/d13/d16 twice (must be equal = deterministic),
 #      perft = pins;
 #   5. RESULT.json with every number.
-# CPUs 0-1 at Idle (pin_check / lowrun). Exit 0 = every check passed.
+# Idle on O30_MASK (default 0x3 = CPUs 0-1) for every step, pin_check included. Exit 0 = every check passed.
 set -uo pipefail
 name="$1"; net="$2"; exe="$3"; harness="$4"
 A=$(cd "$(dirname "$0")" && pwd); T="$A/../tools"
-# pin this shell first: every program below (python, scorer, harness, powershell) inherits Idle + CPUs 0-1
-. "$T/idle.sh"; o30_pin_self 0x3 || { echo "net_pack: cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
+# pin this shell first: every program below (python, scorer, harness, powershell) inherits Idle + the mask (O30_MASK, default 0x3)
+. "$T/idle.sh"; o30_pin_self "${O30_MASK:-0x3}" || { echo "net_pack: cannot pin to Idle / ${O30_MASK:-0x3} (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 out=/d/o30/nets/$name
 [ -e "$out" ] && { echo "refusing: $out exists" >&2; exit 2; }
