@@ -39,7 +39,9 @@ after every batch), `tuner.log`, `games/b<batch>_a<attempt>.{pgn,out,config.json
 The tuner pins itself (Idle) to the CPU list; fastchess and every engine inherit both. Before every batch it waits
 while a fastchess it did not start has an affinity overlapping its CPUs (a running gate), while free RAM < 6 GB, and
 while none of its CPUs is at most `max_busy_percent` (default 80) busy over 3 s; then it plays one game per free CPU,
-never more than the thread cap (8 at most). It never stops a game and never kills anything. Stopping = the deadline,
+never more than the thread cap (8 at most). It never stops a game and never kills anything. Any other fastchess on its
+CPUs counts as a gate, own sanity matches included: give those CPUs outside the tuner's list (a resume may change
+`-Cpus` / `-Threads`). The busy test counts every process, own trainers included. Stopping = the deadline,
 `-MaxPairs` / `-TotalPairs`, or `-Stop` (a named event the tuner holds; no STOP files).
 
 ## Self-test (10 minutes)
