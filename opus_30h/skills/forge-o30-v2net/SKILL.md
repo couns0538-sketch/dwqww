@@ -91,6 +91,20 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
   superbatch -> save -> export = the input net byte for byte.
 - From scratch (KB4, lr 1e-3): checkpoint at 1.46G positions S31 +7.7e-4 vs the lock (worse) - from-scratch nets must
   get through the whole cosine schedule before they can be judged.
+- Window 2 (2026-11-04 13:27-19:06) lessons: warm-start recipe lr 2e-5, 200 superbatches (~13-15 min at 3-4.4M pos/s)
+  is as good as 700 (lr 3e-5 is worse). More king buckets help offline: KB4 -1.41e-4, KB8 -1.65e-4, KB16 -1.80e-4,
+  KB32 -1.80e-4 (S31 paired vs the lock, same recipe; seed noise ~4e-6) - but cost engine speed (identity nets, same
+  trees: KB16 0.968x, KB32 0.941x the nps of KB4; layout_*_vs_kb4.txt). Maps rank4x4 (16) / rank4x8 (32) exist in the
+  trainer and the tools; the engine reads the 64-entry map from the file (no rebuild); prove a new layout with
+  `pin_check -Options EvalFileV2=<lock written in that layout>` (= lock pins) and net_pack's parity.
+- WEIGHT SOUPS are the best offline result: nets warm-started from the same lock net, rewritten exactly to one layout
+  (`a/o30_expand_kb.py --from rank4|rank4x2|rank4x4 --to rank4x4|rank4x8`) and averaged (`a/o30_soup.py`, scored like
+  a checkpoint by `a/soup_score.sh <name> <kb map> <quantised.bin>...`, table `a/soup_table.py`). Independent runs of
+  different length / layout make the gain (r3+r5+r7+r8 as KB32: S31 -2.25e-4, jobA z -2.70; best single -1.80e-4);
+  checkpoints of one run and seeds of one recipe add little; a weak-jobA member (KB4 run 2) hurts the soup's jobA.
+- Unattended GPU queue: `a/queue_runner.sh <guard log to wait for> [cutoff]` runs C:\o30g\gpu\plan.txt line by line
+  (edit the PLAN between runs, never a running .sh / .bat); run outputs on C:\o30g\gpu via a/gpu_run_o30c.bat when D:
+  is near its floor; the watcher takes WATCH_MASK / WATCH_ROOT and is bounded (CR item 12).
 
 ## Pitfalls (all hit on 2026-11-03)
 - Bash-tool commands collapse `\\` before `$var` -> a literal `$var` (a run dir named `runs$1`, a net path the engine
