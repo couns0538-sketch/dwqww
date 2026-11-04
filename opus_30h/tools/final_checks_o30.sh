@@ -17,7 +17,7 @@ W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 . "$T/idle.sh"; o30_pin_self 0x3 || { echo "final_checks_o30: cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 LOCK='C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'
-V2EXE='D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe'
+V2EXE='D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe'   # the gate exe with the root fix (v2p3 = before it)
 SPEXE='D:\o30\w\sp1_pc1\src_copy\forge_ltopgo_sp1_pc1.exe'
 PINS='d11=312866,d13=862329,d16=3024920,d20=12389307,d22=34048354'
 stamp=$(date +%Y%m%d_%H%M%S); tmp=/d/o30/tmp/final_checks_$stamp; mkdir -p "$tmp"
@@ -68,7 +68,7 @@ check 14_loader_fuzz fuzz
 hashes() {
   local f files=()
   for f in /d/o30/nets /d/o30/w/v2p1_pc1/src_copy/forge_ltopgo_v2p1_pc1.exe /d/o30/w/v2p2_pc1/src_copy/forge_ltopgo_v2p2_pc1.exe \
-           /d/o30/w/v2p3_pc1/src_copy/forge_ltopgo_v2p3_pc1.exe /d/o30/w/sp1_pc1/src_copy/forge_ltopgo_sp1_pc1.exe \
+           /d/o30/w/v2p3_pc1/src_copy/forge_ltopgo_v2p3_pc1.exe /d/o30/w/v2p4_pc1/src_copy/forge_ltopgo_v2p4_pc1.exe /d/o30/w/sp1_pc1/src_copy/forge_ltopgo_sp1_pc1.exe /d/o30/plain/v2root_1/forge_plain.exe /d/o30/plain/v2root_verify/forge_plain.exe \
            /d/o30/plain/v2port_1/forge_plain.exe /d/o30/plain/spsa_1/forge_plain.exe /d/o30/plain/tunedtest_1/forge_plain.exe \
            /d/o30/plain/v2port_verify/forge_plain.exe /d/o30/target_mock/release/forge-v2-bullet.exe \
            /d/o30/target_rocm/release/forge-v2-bullet.exe /d/o30/tools_bin /d/o30/kit25 /d/o30/repos/base/src/nnue_weights.inc \
