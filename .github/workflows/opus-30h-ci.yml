@@ -84,3 +84,35 @@ jobs:
             san_*${{ matrix.item }}*
             src_sha256.txt
             load*.txt
+  tsan:
+    # ThreadSanitizer on the v2 path at Threads 4 (per-worker refresh caches, the shared read-only net). selfplay_smoke.py
+    # only knows ASan / UBSan lines, so the engine runs with halt_on_error (a race ends it = a smoke failure) and the
+    # stderr files are searched for ThreadSanitizer reports as well.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: lock source + v2 port
+        run: |
+          git fetch -q --depth 1 origin d4f43124dde1d1e37de90e18930e374f32ea7ffa
+          mkdir lock && git archive FETCH_HEAD src include | tar -x -C lock
+          (cd lock && patch -p1 -F0 < "$GITHUB_WORKSPACE/opus_30h/a/v2port.patch")
+      - name: build TSan
+        run: |
+          sudo sysctl -w vm.mmap_rnd_bits=28
+          cd lock && g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=thread \
+            -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_tsan
+      - name: self-play smoke, Threads 4, random KB4 mirrored v2 net
+        env:
+          TSAN_OPTIONS: halt_on_error=1:exitcode=66:second_deadlock_stack=1
+        run: |
+          net="$GITHUB_WORKSPACE/opus_30h/a/testnets/rand_kbrank4m_ob8_s2.nnue2"
+          python3 opus_30h/tools/selfplay_smoke.py lock/forge_tsan --config on_t4 "EvalFileV2=$net" --games 2 --nodes 40000 --max-plies 100 --threads 4 --out tsan_v2
+          if grep -l "ThreadSanitizer" tsan_v2*.stderr; then echo "ThreadSanitizer report found"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsan_v2
+          path: tsan_v2*
