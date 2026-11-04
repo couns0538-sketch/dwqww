@@ -31,3 +31,20 @@ running, no production python on the GPU, RAM >= 8 GB, D: >= 51 GB).
    run from scratch has to beat that, so compare against n2e / n2L, not only against the lock net.)
 3. Better labels next: the 50M relabel (R14-B relabel2.py) as an extra data source of the same reader (a second
    FPOS-like source), since the CPU fine-tunes say the lock net is converged on the 5k-node self-play labels.
+
+## Warm start on the GPU (follow-up, planned 2026-11-03 20:5x; not built - it can only be proven with a GPU)
+Why: the CPU nets got their gain by STARTING at the lock function (S31 -5.6e-5 in 3.5e8 positions); a from-scratch
+GPU run of 671M positions has to beat the lock net's 7.4G presentations first. Facts checked in the library copy
+(`D:\o30\bullet`, read only):
+- `ValueTrainer::load_from_checkpoint(dir)` -> `Optimiser::load_from_checkpoint(dir/optimiser_state)`: reads
+  `weights.bin` into the host store (`ModelWeights::load_from`, labelled buffers: `utils::read_from_byte_buffer`, f32,
+  ids `l0w`, `l0b`, `l1w`, `l1b` here) and writes it to the device, then AdamW reads `momentum.bin` + `velocity.bin`
+  (same labelled format, same ids; zeros = a fresh optimiser).
+- `save_quantised` is host code: `cpu_weights().to_quantised_buffer(saved_format, pad)`; this trainer saves l0w and l0b
+  as stored and l1w transposed (`SavedFormat::id("l1w").transpose()`), which export_v2r.py reads back.
+- The mock backend refuses every device call ("can't actually do anything"), so loading cannot be shown on the CPU.
+Plan (~1 h + 1 GPU minute): `import_v2r.py <net.nnue2> <dir>` writes `optimiser_state/weights.bin` (l0w in the
+order export_v2r.py reads, values int16 / 4096 exactly; l1w transposed back) + zero momentum / velocity; forge-v2-bullet
+`r` gets `--init <dir>` (load_from_checkpoint before run, schedule from superbatch 1). Proof in the window, before any
+training: load n2e, save_quantised at once, export_v2r.py -> must be byte-identical to n2e (then the S31 score of the
+first checkpoint must start at n2e's 0.014254268, not at a random net's).
