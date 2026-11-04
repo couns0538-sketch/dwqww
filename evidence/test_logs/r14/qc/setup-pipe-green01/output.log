@@ -1,0 +1,21 @@
+......F.                                                                 [100%]
+================================== FAILURES ===================================
+__________ test_direct_exit_cannot_leave_descendant_holding_capture ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-pipe-green01/pytest/test_direct_exit_cannot_leave_0')
+
+    def test_direct_exit_cannot_leave_descendant_holding_capture(tmp_path):
+        started = time.monotonic()
+        parent, path = run_fixture(tmp_path, descendant=True, descendant_delay=6, delay=0, timeout=1)
+        elapsed = time.monotonic() - started
+        assert elapsed < 4, f'capture ignored timeout after direct child exit: {elapsed:.2f}s'
+        child = json.loads(path.read_text(encoding='utf-8'))
+>       assert not psutil.pid_exists(child['_descendant'])
+E       assert not True
+E        +  where True = <function pid_exists at 0x0000000003CDD9E0>(7192)
+E        +    where <function pid_exists at 0x0000000003CDD9E0> = psutil.pid_exists
+
+tests\test_r14_runtime_setup.py:117: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_runtime_setup.py::test_direct_exit_cannot_leave_descendant_holding_capture
+1 failed, 7 passed in 10.57s

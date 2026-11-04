@@ -1,0 +1,214 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+______________ test_selected_suite_excludes_training_collection _______________
+
+    def test_selected_suite_excludes_training_collection():
+>       import r14_suite
+E       ModuleNotFoundError: No module named 'r14_suite'
+
+D:\a14\tests\test_r14_suite.py:14: ModuleNotFoundError
+_________ test_fixture_selection_cannot_use_source_or_external_paths __________
+
+    def test_fixture_selection_cannot_use_source_or_external_paths():
+>       import r14_suite
+E       ModuleNotFoundError: No module named 'r14_suite'
+
+D:\a14\tests\test_r14_suite.py:24: ModuleNotFoundError
+_______ test_import_guard_refuses_training_modules_without_loading_them _______
+
+    def test_import_guard_refuses_training_modules_without_loading_them():
+>       import r14_suite
+E       ModuleNotFoundError: No module named 'r14_suite'
+
+D:\a14\tests\test_r14_suite.py:31: ModuleNotFoundError
+___________________ test_file_identity_change_is_incomplete ___________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-red01/tmp/test_file_identity_change_is_i0')
+
+    def test_file_identity_change_is_incomplete(tmp_path):
+>       import r14_suite
+E       ModuleNotFoundError: No module named 'r14_suite'
+
+D:\a14\tests\test_r14_suite.py:40: ModuleNotFoundError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[False] ________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-red01/tmp/test_real_pytest_receipts_are_0')
+collect_only = False
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65)
+>       assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+E       AssertionError: 
+E         Usage: pwsh[.exe] [-Login] [[-File] <filePath> [args]]
+E                           [-Command { - | <script-block> [-args <arg-array>]
+E                                         | <string> [<CommandParameters>] } ]
+E                           [-CommandWithArgs <string> [<CommandParameters>]
+E                           [-ConfigurationName <string>] [-ConfigurationFile <filePath>]
+E                           [-CustomPipeName <string>] [-EncodedCommand <Base64EncodedCommand>]
+E                           [-ExecutionPolicy <ExecutionPolicy>] [-InputFormat {Text | XML}]
+E                           [-Interactive] [-MTA] [-NoExit] [-NoLogo] [-NonInteractive] [-NoProfile]
+E                           [-NoProfileLoadTime] [-OutputFormat {Text | XML}]
+E                           [-SettingsFile <filePath>] [-SSHServerMode] [-STA]
+E                           [-Version] [-WindowStyle <style>]
+E                           [-WorkingDirectory <directoryPath>]
+E         
+E                pwsh[.exe] -h | -Help | -? | /?
+E         
+E         PowerShell Online Help https://aka.ms/powershell-docs
+E         
+E         All parameters are case-insensitive.
+E         The argument 'D:\a14\tools\Invoke-R14Suite.ps1' is not recognized as the name of a script file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+E         
+E       assert 64 == 1
+E        +  where 64 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...ipt file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\n").returncode
+
+D:\a14\tests\test_r14_suite.py:101: AssertionError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[True] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-red01/tmp/test_real_pytest_receipts_are_1')
+collect_only = True
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65)
+>       assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+E       AssertionError: 
+E         Usage: pwsh[.exe] [-Login] [[-File] <filePath> [args]]
+E                           [-Command { - | <script-block> [-args <arg-array>]
+E                                         | <string> [<CommandParameters>] } ]
+E                           [-CommandWithArgs <string> [<CommandParameters>]
+E                           [-ConfigurationName <string>] [-ConfigurationFile <filePath>]
+E                           [-CustomPipeName <string>] [-EncodedCommand <Base64EncodedCommand>]
+E                           [-ExecutionPolicy <ExecutionPolicy>] [-InputFormat {Text | XML}]
+E                           [-Interactive] [-MTA] [-NoExit] [-NoLogo] [-NonInteractive] [-NoProfile]
+E                           [-NoProfileLoadTime] [-OutputFormat {Text | XML}]
+E                           [-SettingsFile <filePath>] [-SSHServerMode] [-STA]
+E                           [-Version] [-WindowStyle <style>]
+E                           [-WorkingDirectory <directoryPath>]
+E         
+E                pwsh[.exe] -h | -Help | -? | /?
+E         
+E         PowerShell Online Help https://aka.ms/powershell-docs
+E         
+E         All parameters are case-insensitive.
+E         The argument 'D:\a14\tools\Invoke-R14Suite.ps1' is not recognized as the name of a script file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+E         
+E       assert 64 == 0
+E        +  where 64 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...ipt file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\n").returncode
+
+D:\a14\tests\test_r14_suite.py:101: AssertionError
+_____ test_supervisor_stops_only_fixture_job_without_publishing[deadline] _____
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-red01/tmp/test_supervisor_stops_only_fix0')
+failure = 'deadline'
+
+    @pytest.mark.parametrize('failure', ['deadline', 'log_cap'])
+    def test_supervisor_stops_only_fixture_job_without_publishing(tmp_path, failure):
+        source = tmp_path/'test_bounded_fixture.py'
+        if failure == 'deadline':
+            source.write_text('def test_wait():\n import time\n time.sleep(30)\n')
+        else:
+            source.write_text("def test_noise():\n while True: print('x'*512, flush=True)\n")
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '2' if failure == 'deadline' else '20',
+                   '-LogBytes', '4096', '-FixtureJson', json.dumps([str(source)])]
+        child = subprocess.run(command, capture_output=True, text=True, timeout=40)
+>       assert child.returncode == 70, child.stdout+child.stderr
+E       AssertionError: 
+E         Usage: pwsh[.exe] [-Login] [[-File] <filePath> [args]]
+E                           [-Command { - | <script-block> [-args <arg-array>]
+E                                         | <string> [<CommandParameters>] } ]
+E                           [-CommandWithArgs <string> [<CommandParameters>]
+E                           [-ConfigurationName <string>] [-ConfigurationFile <filePath>]
+E                           [-CustomPipeName <string>] [-EncodedCommand <Base64EncodedCommand>]
+E                           [-ExecutionPolicy <ExecutionPolicy>] [-InputFormat {Text | XML}]
+E                           [-Interactive] [-MTA] [-NoExit] [-NoLogo] [-NonInteractive] [-NoProfile]
+E                           [-NoProfileLoadTime] [-OutputFormat {Text | XML}]
+E                           [-SettingsFile <filePath>] [-SSHServerMode] [-STA]
+E                           [-Version] [-WindowStyle <style>]
+E                           [-WorkingDirectory <directoryPath>]
+E         
+E                pwsh[.exe] -h | -Help | -? | /?
+E         
+E         PowerShell Online Help https://aka.ms/powershell-docs
+E         
+E         All parameters are case-insensitive.
+E         The argument 'D:\a14\tools\Invoke-R14Suite.ps1' is not recognized as the name of a script file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+E         
+E       assert 64 == 70
+E        +  where 64 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...ipt file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\n").returncode
+
+D:\a14\tests\test_r14_suite.py:134: AssertionError
+_____ test_supervisor_stops_only_fixture_job_without_publishing[log_cap] ______
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-red01/tmp/test_supervisor_stops_only_fix1')
+failure = 'log_cap'
+
+    @pytest.mark.parametrize('failure', ['deadline', 'log_cap'])
+    def test_supervisor_stops_only_fixture_job_without_publishing(tmp_path, failure):
+        source = tmp_path/'test_bounded_fixture.py'
+        if failure == 'deadline':
+            source.write_text('def test_wait():\n import time\n time.sleep(30)\n')
+        else:
+            source.write_text("def test_noise():\n while True: print('x'*512, flush=True)\n")
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '2' if failure == 'deadline' else '20',
+                   '-LogBytes', '4096', '-FixtureJson', json.dumps([str(source)])]
+        child = subprocess.run(command, capture_output=True, text=True, timeout=40)
+>       assert child.returncode == 70, child.stdout+child.stderr
+E       AssertionError: 
+E         Usage: pwsh[.exe] [-Login] [[-File] <filePath> [args]]
+E                           [-Command { - | <script-block> [-args <arg-array>]
+E                                         | <string> [<CommandParameters>] } ]
+E                           [-CommandWithArgs <string> [<CommandParameters>]
+E                           [-ConfigurationName <string>] [-ConfigurationFile <filePath>]
+E                           [-CustomPipeName <string>] [-EncodedCommand <Base64EncodedCommand>]
+E                           [-ExecutionPolicy <ExecutionPolicy>] [-InputFormat {Text | XML}]
+E                           [-Interactive] [-MTA] [-NoExit] [-NoLogo] [-NonInteractive] [-NoProfile]
+E                           [-NoProfileLoadTime] [-OutputFormat {Text | XML}]
+E                           [-SettingsFile <filePath>] [-SSHServerMode] [-STA]
+E                           [-Version] [-WindowStyle <style>]
+E                           [-WorkingDirectory <directoryPath>]
+E         
+E                pwsh[.exe] -h | -Help | -? | /?
+E         
+E         PowerShell Online Help https://aka.ms/powershell-docs
+E         
+E         All parameters are case-insensitive.
+E         The argument 'D:\a14\tools\Invoke-R14Suite.ps1' is not recognized as the name of a script file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+E         
+E       assert 64 == 70
+E        +  where 64 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...ipt file. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.\n").returncode
+
+D:\a14\tests\test_r14_suite.py:134: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_suite.py::test_selected_suite_excludes_training_collection
+FAILED ..\..\a14\tests\test_r14_suite.py::test_fixture_selection_cannot_use_source_or_external_paths
+FAILED ..\..\a14\tests\test_r14_suite.py::test_import_guard_refuses_training_modules_without_loading_them
+FAILED ..\..\a14\tests\test_r14_suite.py::test_file_identity_change_is_incomplete
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[True]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_supervisor_stops_only_fixture_job_without_publishing[deadline]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_supervisor_stops_only_fixture_job_without_publishing[log_cap]
+8 failed in 1.72s

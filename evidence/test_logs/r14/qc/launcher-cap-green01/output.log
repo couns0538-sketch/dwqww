@@ -1,0 +1,92 @@
+...FF                                                                    [100%]
+================================== FAILURES ===================================
+_________ test_owned_cap_after_child_never_allocates_receipt[during] __________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/launcher-cap-green01/pytest/test_owned_cap_after_child_nev0')
+phase = 'during'
+
+    @pytest.mark.parametrize('phase', ['during', 'after'])
+    def test_owned_cap_after_child_never_allocates_receipt(tmp_path, phase):
+        probe = tmp_path / 'probe.py'
+        marker = tmp_path / 'child-started'
+        parent_out = tmp_path / 'parent.json'
+        probe.write_text('from pathlib import Path\nimport time\n'
+                         + f'Path({str(marker)!r}).touch()\n'
+                         + ('time.sleep(20)\n' if phase == 'during' else ''), encoding='utf-8')
+        run_name = 'cap-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        run_directory = ROOT / 'evidence/test_logs/r14/launchers' / run_name
+        harness = tmp_path / 'post-cap.ps1'
+        keys = ['TEMP', 'PYTHONPATH', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES']
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='BelowNormal'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + "$global:fixtureGetChildItem=Get-Command Microsoft.PowerShell.Management\\Get-ChildItem\n"
+                           + "function Get-ChildItem {\n[CmdletBinding()] param([string[]]$LiteralPath,[switch]$Recurse,[switch]$File,[switch]$Force)\n"
+                           + f"if ($LiteralPath.Count -eq 1 -and $LiteralPath[0] -eq 'D:\\a14' -and (Test-Path -LiteralPath '{marker}')) {{\n"
+                           + "return [pscustomobject]@{Length=5000000000L}\n}\n"
+                           + "& $global:fixtureGetChildItem @PSBoundParameters\n}\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$nativeExit=$LASTEXITCODE\n$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"@{{env=$values;priority=[string][Diagnostics.Process]::GetCurrentProcess().PriorityClass}} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $nativeExit\n", encoding='utf-8')
+        process = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert marker.exists(), process.stdout + process.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:54
+E         Line |
+E           54 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 2 admission refused: 88% busy
+E         
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/qc/launcher-cap-green01/pytest/test_owned_cap_after_child_nev0/child-started').exists
+
+tests\test_r14_launcher.py:97: AssertionError
+__________ test_owned_cap_after_child_never_allocates_receipt[after] __________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/launcher-cap-green01/pytest/test_owned_cap_after_child_nev1')
+phase = 'after'
+
+    @pytest.mark.parametrize('phase', ['during', 'after'])
+    def test_owned_cap_after_child_never_allocates_receipt(tmp_path, phase):
+        probe = tmp_path / 'probe.py'
+        marker = tmp_path / 'child-started'
+        parent_out = tmp_path / 'parent.json'
+        probe.write_text('from pathlib import Path\nimport time\n'
+                         + f'Path({str(marker)!r}).touch()\n'
+                         + ('time.sleep(20)\n' if phase == 'during' else ''), encoding='utf-8')
+        run_name = 'cap-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        run_directory = ROOT / 'evidence/test_logs/r14/launchers' / run_name
+        harness = tmp_path / 'post-cap.ps1'
+        keys = ['TEMP', 'PYTHONPATH', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES']
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='BelowNormal'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + "$global:fixtureGetChildItem=Get-Command Microsoft.PowerShell.Management\\Get-ChildItem\n"
+                           + "function Get-ChildItem {\n[CmdletBinding()] param([string[]]$LiteralPath,[switch]$Recurse,[switch]$File,[switch]$Force)\n"
+                           + f"if ($LiteralPath.Count -eq 1 -and $LiteralPath[0] -eq 'D:\\a14' -and (Test-Path -LiteralPath '{marker}')) {{\n"
+                           + "return [pscustomobject]@{Length=5000000000L}\n}\n"
+                           + "& $global:fixtureGetChildItem @PSBoundParameters\n}\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$nativeExit=$LASTEXITCODE\n$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"@{{env=$values;priority=[string][Diagnostics.Process]::GetCurrentProcess().PriorityClass}} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $nativeExit\n", encoding='utf-8')
+        process = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert marker.exists(), process.stdout + process.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:54
+E         Line |
+E           54 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 2 admission refused: 88% busy
+E         
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/qc/launcher-cap-green01/pytest/test_owned_cap_after_child_nev1/child-started').exists
+
+tests\test_r14_launcher.py:97: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_launcher.py::test_owned_cap_after_child_never_allocates_receipt[during]
+FAILED tests/test_r14_launcher.py::test_owned_cap_after_child_never_allocates_receipt[after]
+2 failed, 3 passed in 6.38s

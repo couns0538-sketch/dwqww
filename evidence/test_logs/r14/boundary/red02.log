@@ -1,0 +1,56 @@
+...............................FF                                        [100%]
+================================== FAILURES ===================================
+_____ test_receipt_seal_can_resume_after_guard_failure_with_closed_stream _____
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/boundary/pytest_red02/test_receipt_seal_can_resume_a0')
+
+    def test_receipt_seal_can_resume_after_guard_failure_with_closed_stream(module,tmp_path):
+        writer = None
+        refused = False
+        def guard():
+            nonlocal refused
+            if writer is not None and not refused and any(item['stream'].closed for item in writer.opened.values()):
+                refused = True
+                raise TimeoutError('fixture interruption after close')
+        writer = module.ReceiptWriter(tmp_path/'parts',guard)
+        left,right = population(module).valid[0],population(module,True).valid[0]
+        writer.query(left,right,1,1,module.PairEvidence(None,None,3,1))
+        with pytest.raises(TimeoutError,match='after close'):
+            writer.close()
+        assert not writer.artifacts
+>       writer.close()
+
+tests\test_r14_boundary_run.py:183: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tools\r14_boundary_run.py:75: in close
+    self.finish(kind)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <r14_boundary_run.ReceiptWriter object at 0x00000000047EDDF0>
+kind = 'queries'
+
+    def finish(self,kind):
+        self.guard()
+        current = self.opened[kind]
+>       current['stream'].flush()
+E       ValueError: flush of closed file
+
+tools\r14_boundary_run.py:63: ValueError
+______________ test_unsealed_receipts_cannot_yield_per_seam_pass ______________
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+
+    def test_unsealed_receipts_cannot_yield_per_seam_pass(module):
+        left,right,sink = population(module),population(module,True),Sink()
+        first,report = module.count_candidates(left,right),{}
+        module.search_candidates(left,right,first,negative,sink,report)
+>       assert module.seam_verdict(first,report,receipts_complete=False) == 'UNVERIFIED'
+               ^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'r14_boundary_run' has no attribute 'seam_verdict'
+
+tests\test_r14_boundary_run.py:191: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_boundary_run.py::test_receipt_seal_can_resume_after_guard_failure_with_closed_stream
+FAILED tests/test_r14_boundary_run.py::test_unsealed_receipts_cannot_yield_per_seam_pass
+2 failed, 31 passed in 1.94s

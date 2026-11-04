@@ -1,0 +1,52 @@
+...FF.F.                                                                 [100%]
+================================== FAILURES ===================================
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-pipe-green02/pytest/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+>       assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+E       AssertionError: assert 'resource refusal' in 'PIPE_DRAIN_TIMEOUT'
+
+tests\test_r14_runtime_setup.py:94: AssertionError
+__________ test_live_refusal_stops_only_owned_process_tree[timeout] ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-pipe-green02/pytest/test_live_refusal_stops_only_o1')
+kind = 'timeout'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+>       assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+E       AssertionError: assert 'timeout' in 'PIPE_DRAIN_TIMEOUT'
+
+tests\test_r14_runtime_setup.py:94: AssertionError
+__________ test_direct_exit_cannot_leave_descendant_holding_capture ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/qc/setup-pipe-green02/pytest/test_direct_exit_cannot_leave_0')
+
+    def test_direct_exit_cannot_leave_descendant_holding_capture(tmp_path):
+        started = time.monotonic()
+        parent, path = run_fixture(tmp_path, descendant=True, descendant_delay=6, delay=0, timeout=1)
+        elapsed = time.monotonic() - started
+        assert elapsed < 4, f'capture ignored timeout after direct child exit: {elapsed:.2f}s'
+        child = json.loads(path.read_text(encoding='utf-8'))
+        deadline = time.monotonic() + 2
+        while psutil.pid_exists(child['_descendant']) and time.monotonic() < deadline:
+            time.sleep(0.05)
+>       assert not psutil.pid_exists(child['_descendant'])
+E       assert not True
+E        +  where True = <function pid_exists at 0x0000000003BCD9E0>(9892)
+E        +    where <function pid_exists at 0x0000000003BCD9E0> = psutil.pid_exists
+
+tests\test_r14_runtime_setup.py:120: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+FAILED tests/test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[timeout]
+FAILED tests/test_r14_runtime_setup.py::test_direct_exit_cannot_leave_descendant_holding_capture
+3 failed, 5 passed in 71.56s (0:01:11)

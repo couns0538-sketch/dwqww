@@ -1,0 +1,74 @@
+.FF                                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_child_environment_and_parent_preserved _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/launcher-review-red01/tmp/test_child_environment_and_par0')
+
+    def test_child_environment_and_parent_preserved(tmp_path):
+        assert tmp_path.resolve().is_relative_to(ROOT)
+        probe = tmp_path / 'probe.py'
+        child_out = tmp_path / 'child.json'
+        parent_out = tmp_path / 'parent.json'
+        keys = ['CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'TEMP', 'PYTHONPATH', 'ASTRA_R14_DEADLINE', 'ASTRA_R13_DEADLINE']
+        probe.write_text('import os,json,sys\nfrom pathlib import Path\n'
+                         f'Path({str(child_out)!r}).write_text(json.dumps(dict(executable=sys.executable,env={{k:os.environ.get(k) for k in {keys!r}}})))\n', encoding='utf-8')
+        harness = tmp_path / 'harness.ps1'
+        run_name = 'launcher-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + ''.join(f"$env:{key}='{1 if key.endswith('DEADLINE') else 'sentinel-'+key}'\n" for key in keys)
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$exit=$LASTEXITCODE\n"
+                           + "$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"$values | ConvertTo-Json | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $exit\n", encoding='utf-8')
+        proc = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        parent = json.loads(parent_out.read_text(encoding='utf-8-sig'))
+        assert parent == {key: '1' if key.endswith('DEADLINE') else f'sentinel-{key}' for key in keys}
+        child = json.loads(child_out.read_text(encoding='utf-8'))
+        assert Path(child['executable']).is_relative_to(ROOT / 'runtime')
+        assert child['env']['CUDA_VISIBLE_DEVICES'] == '-1'
+        assert child['env']['HIP_VISIBLE_DEVICES'] == '-1'
+        assert Path(child['env']['TEMP']).is_relative_to(ROOT)
+        assert child['env']['PYTHONPATH'] == str(ROOT / 'tools')
+>       assert child['env']['ASTRA_R14_DEADLINE'] == child['env']['ASTRA_R13_DEADLINE']
+E       AssertionError: assert '1' == '1793739509'
+E         
+E         - 1793739509
+E         + 1
+
+D:\a14\tests\test_r14_launcher.py:48: AssertionError
+_________ test_storage_cap_rejects_before_child_and_preserves_parent __________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/launcher-review-red01/tmp/test_storage_cap_rejects_befor0')
+
+    def test_storage_cap_rejects_before_child_and_preserves_parent(tmp_path):
+        probe = tmp_path / 'probe.py'
+        marker = tmp_path / 'started'
+        probe.write_text(f'from pathlib import Path\nPath({str(marker)!r}).touch()\n', encoding='utf-8')
+        harness = tmp_path / 'storage.ps1'
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "$env:TEMP='unchanged'\n"
+                           "function Get-ChildItem { param($LiteralPath,[switch]$Recurse,[switch]$File,[switch]$Force)\n"
+                           "[pscustomobject]@{Length=5000000000L}\n}\n"
+                           f"try {{ & '{LAUNCHER}' -Script '{probe}' -RunName 'storage-test' -TimeoutSeconds 2; throw 'accepted' }}\n"
+                           "catch { if ($_.Exception.Message -notmatch 'storage cap') { throw } }\n"
+                           "if ($env:TEMP -ne 'unchanged') { throw 'parent environment changed' }\n", encoding='utf-8')
+        run = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=15)
+>       assert run.returncode == 0, run.stdout + run.stderr
+E       AssertionError: Exception: D:\a14\evidence\test_logs\r14\launcher-review-red01\tmp\test_storage_cap_rejects_befor0\storage.ps1:6
+E         Line |
+E            6 |  … obe.py' -RunName 'storage-test' -TimeoutSeconds 2; throw 'accepted' }
+E              |                                                       ~~~~~~~~~~~~~~~~
+E              | accepted
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\evidence\\test_logs\\r14\\launcher-review-red01\\tmp\\... throw 'accepted' }\n     |                                                       ~~~~~~~~~~~~~~~~\n     | accepted\n").returncode
+
+D:\a14\tests\test_r14_launcher.py:65: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_child_environment_and_parent_preserved
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_storage_cap_rejects_before_child_and_preserves_parent
+2 failed, 1 passed in 3.01s

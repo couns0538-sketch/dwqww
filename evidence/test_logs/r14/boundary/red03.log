@@ -1,0 +1,51 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+____ test_discarded_partial_path_cannot_expose_completed_feature_coverage _____
+
+module = <module 'r14_boundary_qualify' from 'D:\\a14\\tools\\r14_boundary_qualify.py'>
+
+    def test_discarded_partial_path_cannot_expose_completed_feature_coverage(module):
+        source = source_position()
+        original = source.fen()
+        target = source.copy()
+        assert target.is_capture(chess.Move.from_uci('h5f7'))
+        target.push_uci('h5f7')
+        assert target.is_checkmate()
+>       assert module.random_path(source,2,CaptureMate()) is None
+               ^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'r14_boundary_qualify' has no attribute 'random_path'
+
+tests\test_r14_boundary_qualify.py:42: AttributeError
+_________ test_completed_capture_path_retains_its_own_feature_counts __________
+
+module = <module 'r14_boundary_qualify' from 'D:\\a14\\tools\\r14_boundary_qualify.py'>
+
+    def test_completed_capture_path_retains_its_own_feature_counts(module):
+        source = source_position()
+>       target,witness,features = module.random_path(source,1,CaptureMate())
+                                  ^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'r14_boundary_qualify' has no attribute 'random_path'
+
+tests\test_r14_boundary_qualify.py:48: AttributeError
+________ test_endpoint_fill_does_not_claim_full_source_parse_coverage _________
+
+module = <module 'r14_boundary' from 'D:\\a14\\tools\\r14_boundary.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/boundary/pytest_red03/test_endpoint_fill_does_not_cl0')
+
+    def test_endpoint_fill_does_not_claim_full_source_parse_coverage(module,tmp_path):
+        row = (chess.STARTING_FEN+' | 0 | 0.5\n').encode()
+        payload = row+b'not a chess row\n'
+        path = tmp_path/'source.txt'
+        path.write_bytes(payload)
+        records,receipt = module.read_window(path,hashlib.md5(payload).hexdigest(),'first',1,12)
+        assert len(records) == 1 and receipt['rows'] == 2
+>       assert receipt['full_source_byte_hash_verified'] is True
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'full_source_byte_hash_verified'
+
+tests\test_r14_boundary.py:215: KeyError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_boundary_qualify.py::test_discarded_partial_path_cannot_expose_completed_feature_coverage
+FAILED tests/test_r14_boundary_qualify.py::test_completed_capture_path_retains_its_own_feature_counts
+FAILED tests/test_r14_boundary.py::test_endpoint_fill_does_not_claim_full_source_parse_coverage
+3 failed in 0.21s

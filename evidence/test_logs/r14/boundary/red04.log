@@ -1,0 +1,144 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+____ test_late_native_close_failure_is_sticky_even_if_final_close_returns _____
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/boundary/pytest_red04/test_late_native_close_failure0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000000046330E0>
+
+    def test_late_native_close_failure_is_sticky_even_if_final_close_returns(module,tmp_path,monkeypatch):
+        """Only synthetic endpoints and callbacks are used; no child is launched."""
+        class FixtureGuard:
+            def __init__(self,*args):
+                self.deadline = time.monotonic()+60
+                self.child = None
+            def __call__(self):
+                pass
+        class LateCloseFailure:
+            def __init__(self,*args):
+                self.closed = False
+            def query_many(self,lines):
+                return resolved_reply(lines)
+            def close(self):
+                if not self.closed:
+                    self.closed = True
+                    raise RuntimeError('fixture late native close failure')
+        captured = []
+        def fixture_window(path,pin,side,count,source_id,guard,progress,receipt):
+            receipt.update(path=str(tmp_path/'synthetic-source'),complete=True,window_rows=1,
+                           endpoint_key_fill_rate=1.0,endpoint_legal_state_fill_rate=1.0)
+            return records(module,source_id,wrong_clock=True),receipt
+        dependency = tmp_path/'synthetic-dependency.json'
+        dependency.write_text('{}')
+        native = tmp_path/'synthetic-native.identity'
+        native.write_text('synthetic identity only; no executable')
+        pins = {str(Path(f'D:/grok-pc-data/selfplay_out/forge_selfplay_{number:03}.txt').resolve()).casefold():'0'*32
+                for number in (12,13,14,15)}
+        monkeypatch.setattr(module,'Guard',FixtureGuard)
+        monkeypatch.setattr(module,'Native',LateCloseFailure)
+        monkeypatch.setattr(module,'resource_guard',lambda *args,**kwargs: None)
+        monkeypatch.setattr(module,'validate_qualification',lambda *args: None)
+        monkeypatch.setattr(module,'validate_filter_qualification',lambda *args: None)
+        monkeypatch.setattr(module,'load_pins',lambda *args: pins)
+        monkeypatch.setattr(module,'read_window',fixture_window)
+        monkeypatch.setattr(module,'_publish',lambda path,report: captured.append(json.loads(json.dumps(report))))
+        digest = module.hashes(dependency)['md5']
+        result = module.main(['--out',str(tmp_path/'output'),'--pins',str(dependency),
+                              '--qualification',str(dependency),'--qualification-md5',digest,
+                              '--filter-qualification',str(dependency),'--filter-qualification-md5',digest,
+                              '--native',str(native),'--cpu','3'])
+        assert result == 2 and len(captured) == 1
+        seam = captured[0]['seams'][0]
+        assert seam['search']['complete'] is True
+>       assert seam['bounded_no_link_status'] == 'UNVERIFIED'
+E       AssertionError: assert 'PASS' == 'UNVERIFIED'
+E         
+E         - UNVERIFIED
+E         + PASS
+
+tests\test_r14_boundary_publication.py:83: AssertionError
+---------------------------- Captured stdout call -----------------------------
+{"elapsed_seconds": 0.0, "first_pass": {"complete": false, "excluded_clock": 0, "excluded_material": 0, "excluded_piece_squares": 0, "excluded_ply": 0, "excluded_result": 0, "excluded_rights": 0, "invalid_endpoint_pairs": 0, "survivors": 0, "total_pairs": 1}, "seam": "012|013", "search_counts": {"attempted_pairs": null, "final_counts": null, "query_attempts": null, "unqueried_pairs": null}, "stage": "count_all_candidates"}
+{"status": "UNVERIFIED", "bounded_no_link_status": "UNVERIFIED", "complete": false, "report": "D:\\a14\\evidence\\test_logs\\r14\\boundary\\pytest_red04\\test_late_native_close_failure0\\output\\REPORT.json"}
+______ test_failed_close_with_closed_handle_cannot_be_retried_as_success ______
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/boundary/pytest_red04/test_failed_close_with_closed_0')
+
+    def test_failed_close_with_closed_handle_cannot_be_retried_as_success(module,tmp_path):
+        class CloseFailure:
+            def __init__(self,stream):
+                self.stream = stream
+            def __getattr__(self,name):
+                return getattr(self.stream,name)
+            def close(self):
+                self.stream.close()
+                raise OSError('fixture close failed after closing handle')
+        writer = module.ReceiptWriter(tmp_path/'parts',lambda: None)
+        left,right = records(module,12)[0],records(module,13)[0]
+        writer.query(left,right,1,1,module.PairEvidence(None,None,3,1))
+        writer.opened['queries']['stream'] = CloseFailure(writer.opened['queries']['stream'])
+        with pytest.raises(OSError,match='close failed'):
+            writer.close()
+        assert writer.opened['queries']['stream'].closed
+>       with pytest.raises(OSError,match='close|seal'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE OSError
+
+tests\test_r14_boundary_publication.py:104: Failed
+_ test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts[False] _
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+positive = False
+
+    @pytest.mark.parametrize('positive',[False,True])
+    def test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts(module,positive):
+        class FailingReceipts:
+            def query(self,*args):
+                raise OSError('fixture query receipt failure')
+            def positive(self,*args):
+                raise AssertionError('positive receipt cannot precede failed query receipt')
+        left = module.Population(records(module,12))
+        right = module.Population(records(module,13,count=2,wrong_clock=not positive))
+        first,report = module.count_candidates(left,right),{}
+        with pytest.raises(OSError,match='query receipt'):
+            module.search_candidates(left,right,first,lambda lines: resolved_reply(lines,positive),FailingReceipts(),report)
+        assert report['attempted_pairs'] == 2 and report['query_attempts'] == 2
+>       assert sum(report['final_counts'].values()) == report['attempted_pairs']
+E       assert 0 == 2
+E        +  where 0 = sum(dict_values([]))
+E        +    where dict_values([]) = <built-in method values of dict object at 0x0000000004774880>()
+E        +      where <built-in method values of dict object at 0x0000000004774880> = {}.values
+
+tests\test_r14_boundary_publication.py:124: AssertionError
+_ test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts[True] _
+
+module = <module 'r14_boundary_run' from 'D:\\a14\\tools\\r14_boundary_run.py'>
+positive = True
+
+    @pytest.mark.parametrize('positive',[False,True])
+    def test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts(module,positive):
+        class FailingReceipts:
+            def query(self,*args):
+                raise OSError('fixture query receipt failure')
+            def positive(self,*args):
+                raise AssertionError('positive receipt cannot precede failed query receipt')
+        left = module.Population(records(module,12))
+        right = module.Population(records(module,13,count=2,wrong_clock=not positive))
+        first,report = module.count_candidates(left,right),{}
+        with pytest.raises(OSError,match='query receipt'):
+            module.search_candidates(left,right,first,lambda lines: resolved_reply(lines,positive),FailingReceipts(),report)
+        assert report['attempted_pairs'] == 2 and report['query_attempts'] == 2
+>       assert sum(report['final_counts'].values()) == report['attempted_pairs']
+E       assert 0 == 2
+E        +  where 0 = sum(dict_values([]))
+E        +    where dict_values([]) = <built-in method values of dict object at 0x0000000004783D40>()
+E        +      where <built-in method values of dict object at 0x0000000004783D40> = {}.values
+
+tests\test_r14_boundary_publication.py:124: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r14_boundary_publication.py::test_late_native_close_failure_is_sticky_even_if_final_close_returns
+FAILED tests/test_r14_boundary_publication.py::test_failed_close_with_closed_handle_cannot_be_retried_as_success
+FAILED tests/test_r14_boundary_publication.py::test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts[False]
+FAILED tests/test_r14_boundary_publication.py::test_receipt_failure_preserves_classification_and_marks_unrecorded_attempts[True]
+4 failed in 0.26s

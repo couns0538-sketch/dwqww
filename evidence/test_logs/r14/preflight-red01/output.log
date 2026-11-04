@@ -1,0 +1,102 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+________________ test_observation_has_monotonic_clock_on_ps51 _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-red01/tmp/test_observation_has_monotonic0')
+
+    def test_observation_has_monotonic_clock_on_ps51(tmp_path):
+        name = 'ps51-' + tmp_path.name.lower().replace('_', '-')
+        run = subprocess.run([PS5, '-NoProfile', '-File', str(ROOT / 'tools/Observe-R14.ps1'), '-Name', name],
+                             capture_output=True, text=True, timeout=30)
+        assert run.returncode == 0, run.stdout + run.stderr
+        receipt = json.loads((ROOT / f'evidence/r14/health-{name}.json').read_text())
+>       assert receipt.get('monotonic_ticks', 0) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = <built-in method get of dict object at 0x0000000003B96900>('monotonic_ticks', 0)
+E        +    where <built-in method get of dict object at 0x0000000003B96900> = {'monotonic_ms': None, 'gate': {'last_write_wall': '2026-11-03 12:50:40', 'path': 'F:\\forge_push\\uhoE3a_evalmatscale...ing progress. No process or workload configuration changed.', 'free_bytes': {'D': 61405978624, 'C': 142161633280}, ...}.get
+
+D:\a14\tests\test_r14_preflight.py:16: AssertionError
+_______________ test_floor_breach_after_hash_writes_no_receipt ________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-red01/tmp/test_floor_breach_after_hash_w0')
+
+    def test_floor_breach_after_hash_writes_no_receipt(tmp_path):
+        # Execute the original script body with only its owned-output root relocated.
+        # The controlled hash cmdlet makes the floor fail immediately after hashing.
+        source = (ROOT / 'tools/Verify-R14Inputs.ps1').read_text()
+        source = source.replace("$root='D:\\a14'", f"$root='{tmp_path}'")
+        prefix = """
+    $script:hashed=$false
+    function Get-PSDrive { param([string]$Name)
+        [pscustomobject]@{Free=$(if($script:hashed){0L}else{100GB})}
+    }
+    function Get-FileHash { param($Algorithm,$LiteralPath)
+        $script:hashed=$true
+        [pscustomobject]@{Hash='78d231a89ca346bbe669f2242ae6329e'}
+    }
+    """
+        # Keep the parameter declaration as the first statement.
+        first, rest = source.split('\n', 1)
+        script = tmp_path / 'post_hash_breach.ps1'
+        script.write_text(first + '\n' + prefix + rest, encoding='utf-8')
+        (tmp_path / 'evidence/r14').mkdir(parents=True)
+        run = subprocess.run([PS5, '-NoProfile', '-File', str(script)], capture_output=True, text=True, timeout=30)
+        assert run.returncode != 0
+        receipt = tmp_path / 'evidence/r14/input-pins-small.jsonl'
+>       assert not receipt.exists(), 'A receipt was allocated after the disk floor failed'
+E       AssertionError: A receipt was allocated after the disk floor failed
+E       assert not True
+E        +  where True = exists()
+E        +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-red01/tmp/test_floor_breach_after_hash_w0/evidence/r14/input-pins-small.jsonl').exists
+
+D:\a14\tests\test_r14_preflight.py:43: AssertionError
+____________________ test_requires_seven_and_owns_runtime _____________________
+
+    def test_requires_seven_and_owns_runtime():
+        source = LAUNCHER.read_text(encoding='utf-8-sig')
+>       assert source.startswith('#Requires -Version 7')
+E       assert False
+E        +  where False = <built-in method startswith of str object at 0x0000000001C35930>('#Requires -Version 7')
+E        +    where <built-in method startswith of str object at 0x0000000001C35930> = "param(\n    [Parameter(Mandatory=$true)][string]$Script,\n    [string[]]$ScriptArguments = @(),\n    [Parameter(Manda...rr.log') -Tail 22\nif ((Get-PSDrive D).Free -lt 50GB) { throw 'Disk floor breached; no next job' }\nexit $nativeExit\n".startswith
+
+D:\a14\tests\test_r14_launcher.py:12: AssertionError
+_________________ test_child_environment_and_parent_preserved _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-red01/tmp/test_child_environment_and_par0')
+
+    def test_child_environment_and_parent_preserved(tmp_path):
+        assert tmp_path.resolve().is_relative_to(ROOT)
+        probe = tmp_path / 'probe.py'
+        child_out = tmp_path / 'child.json'
+        parent_out = tmp_path / 'parent.json'
+        keys = ['CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'TEMP', 'PYTHONPATH']
+        probe.write_text('import os,json,sys\nfrom pathlib import Path\n'
+                         f'Path({str(child_out)!r}).write_text(json.dumps(dict(executable=sys.executable,env={{k:os.environ.get(k) for k in {keys!r}}})))\n', encoding='utf-8')
+        harness = tmp_path / 'harness.ps1'
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName 'launcher-{tmp_path.name}' -Cpu 0 -TimeoutSeconds 30\n"
+                           + "$exit=$LASTEXITCODE\n"
+                           + "$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"$values | ConvertTo-Json | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $exit\n", encoding='utf-8')
+        proc = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert proc.returncode == 0, proc.stdout + proc.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:15
+E         Line |
+E           15 |  … gComparison]::OrdinalIgnoreCase)) { throw 'Path outside owned root' }
+E              |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | Path outside owned root
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\evidence\\test_logs\\r14\\preflight-red01\\tmp\\test_c...t' }\n     |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | Path outside owned root\n").returncode
+
+D:\a14\tests\test_r14_launcher.py:36: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_preflight.py::test_observation_has_monotonic_clock_on_ps51
+FAILED ..\..\a14\tests\test_r14_preflight.py::test_floor_breach_after_hash_writes_no_receipt
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_requires_seven_and_owns_runtime
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_child_environment_and_parent_preserved
+4 failed in 5.49s

@@ -1,0 +1,26 @@
+F...                                                                     [100%]
+================================== FAILURES ===================================
+________________ test_observation_has_monotonic_clock_on_ps51 _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-green01/tmp/test_observation_has_monotonic0')
+
+    def test_observation_has_monotonic_clock_on_ps51(tmp_path):
+        name = 'ps51-' + tmp_path.name.lower().replace('_', '-')
+        run = subprocess.run([PS5, '-NoProfile', '-File', str(ROOT / 'tools/Observe-R14.ps1'), '-Name', name],
+                             capture_output=True, text=True, timeout=30)
+>       assert run.returncode == 0, run.stdout + run.stderr
+E       AssertionError: Receipt exists
+E         At D:\a14\tools\Observe-R14.ps1:7 char:36
+E         + if (Test-Path -LiteralPath $out) { throw 'Receipt exists' }
+E         +                                    ~~~~~~~~~~~~~~~~~~~~~~
+E             + CategoryInfo          : OperationStopped: (Receipt exists:String) [], RuntimeException
+E             + FullyQualifiedErrorId : Receipt exists
+E          
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', '-NoProfile', '-File', 'D:\\a...  : OperationStopped: (Receipt exists:String) [], RuntimeException\n    + FullyQualifiedErrorId : Receipt exists\n \n").returncode
+
+D:\a14\tests\test_r14_preflight.py:14: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_preflight.py::test_observation_has_monotonic_clock_on_ps51
+1 failed, 3 passed in 10.35s

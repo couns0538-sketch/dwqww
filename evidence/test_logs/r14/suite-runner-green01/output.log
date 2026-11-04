@@ -1,0 +1,87 @@
+....FFF.                                                                 [100%]
+================================== FAILURES ===================================
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[False] ________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-green01/tmp/test_real_pytest_receipts_are_0')
+collect_only = False
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65)
+        assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+>       report = json.loads((out/'REPORT.json').read_text())
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\a14\tests\test_r14_suite.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-green01/tmp/test_real_pytest_receipts_are_0/run/REPORT.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\suite-runner-green01\\tmp\\test_real_pytest_receipts_are_0\\run\\REPORT.json'
+
+pathlib.py:1013: FileNotFoundError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[True] _________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-green01/tmp/test_real_pytest_receipts_are_1')
+collect_only = True
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65)
+>       assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+E       AssertionError: {"native_exit":2,"finished":"2026-11-03 14:12:13 Vienna","started":"2026-11-03 14:12:11 Vienna","candidate_after":{"D:\\a14\\tools\\R14-ChildGate.ps1":"7f3cb2bcdad114af9ac7a3ffc71e4ba4","D:\\a14\\runtime\\python\\python.exe":"0cfdf7db1b81d067d3dad75f6abb312b","D:\\a14\\tools\\R14-OwnedJob.ps1":"278f38548f241dcd1c584e84ff81d2c6","D:\\a14\\tools\\r14_suite.py":"cc67b1031ca7abbe7f41b944c8b7603e","D:\\a14\\tools\\Invoke-R14Suite.ps1":"15d3de102de6d38600a6db13b21a9ca9"},"exception":null,"log_bytes_limit":33554432,"cpu":1,"candidate_before":{"D:\\a14\\tools\\R14-ChildGate.ps1":"7f3cb2bcdad114af9ac7a3ffc71e4ba4","D:\\a14\\runtime\\python\\python.exe":"0cfdf7db1b81d067d3dad75f6abb312b","D:\\a14\\tools\\R14-OwnedJob.ps1":"278f38548f241dcd1c584e84ff81d2c6","D:\\a14\\tools\\r14_suite.py":"cc67b1031ca7abbe7f41b944c8b7603e","D:\\a14\\tools\\Invoke-R14Suite.ps1":"15d3de102de6d38600a6db13b21a9ca9"},"priority":"Idle","threads":1,"stop_reason":null}
+E         
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...voke-R14Suite.ps1":"15d3de102de6d38600a6db13b21a9ca9"},"priority":"Idle","threads":1,"stop_reason":null}\n', stderr='').returncode
+
+D:\a14\tests\test_r14_suite.py:101: AssertionError
+_____ test_supervisor_stops_only_fixture_job_without_publishing[deadline] _____
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/suite-runner-green01/tmp/test_supervisor_stops_only_fix0')
+failure = 'deadline'
+
+    @pytest.mark.parametrize('failure', ['deadline', 'log_cap'])
+    def test_supervisor_stops_only_fixture_job_without_publishing(tmp_path, failure):
+        source = tmp_path/'test_bounded_fixture.py'
+        if failure == 'deadline':
+            source.write_text('def test_wait():\n import time\n time.sleep(30)\n')
+        else:
+            source.write_text("def test_noise():\n while True: print('x'*512, flush=True)\n")
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '2' if failure == 'deadline' else '20',
+                   '-LogBytes', '4096', '-FixtureJson', json.dumps([str(source)])]
+        child = subprocess.run(command, capture_output=True, text=True, timeout=40)
+        assert child.returncode == 70, child.stdout+child.stderr
+>       assert ('DEADLINE' if failure == 'deadline' else 'LOG_CAP') in child.stdout
+E       assert 'DEADLINE' in '{"finished":"2026-11-03 14:12:18 Vienna","candidate_before":{"D:\\\\a14\\\\tools\\\\R14-ChildGate.ps1":"7f3cb2bcdad11...14Suite.ps1":"15d3de102de6d38600a6db13b21a9ca9"},"stop_reason":"LOG_CAP","cpu":1,"threads":1,"log_bytes_limit":4096}\n'
+E        +  where '{"finished":"2026-11-03 14:12:18 Vienna","candidate_before":{"D:\\\\a14\\\\tools\\\\R14-ChildGate.ps1":"7f3cb2bcdad11...14Suite.ps1":"15d3de102de6d38600a6db13b21a9ca9"},"stop_reason":"LOG_CAP","cpu":1,"threads":1,"log_bytes_limit":4096}\n' = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\tools\\Invoke-R14Suite.ps1', '-Output', 'D:\\a14\\evid...:"15d3de102de6d38600a6db13b21a9ca9"},"stop_reason":"LOG_CAP","cpu":1,"threads":1,"log_bytes_limit":4096}\n', stderr='').stdout
+
+D:\a14\tests\test_r14_suite.py:135: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[True]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_supervisor_stops_only_fixture_job_without_publishing[deadline]
+3 failed, 5 passed in 15.25s

@@ -1,0 +1,40 @@
+...F                                                                     [100%]
+================================== FAILURES ===================================
+_________________ test_child_environment_and_parent_preserved _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/preflight-green02/tmp/test_child_environment_and_par0')
+
+    def test_child_environment_and_parent_preserved(tmp_path):
+        assert tmp_path.resolve().is_relative_to(ROOT)
+        probe = tmp_path / 'probe.py'
+        child_out = tmp_path / 'child.json'
+        parent_out = tmp_path / 'parent.json'
+        keys = ['CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'TEMP', 'PYTHONPATH']
+        probe.write_text('import os,json,sys\nfrom pathlib import Path\n'
+                         f'Path({str(child_out)!r}).write_text(json.dumps(dict(executable=sys.executable,env={{k:os.environ.get(k) for k in {keys!r}}})))\n', encoding='utf-8')
+        harness = tmp_path / 'harness.ps1'
+        run_name = 'launcher-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$exit=$LASTEXITCODE\n"
+                           + "$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"$values | ConvertTo-Json | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $exit\n", encoding='utf-8')
+        proc = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert proc.returncode == 0, proc.stdout + proc.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:49
+E         Line |
+E           49 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 3 admission refused: 94% busy
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\evidence\\test_logs\\r14\\preflight-green02\\tmp\\test...                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | CPU 3 admission refused: 94% busy\n').returncode
+
+D:\a14\tests\test_r14_launcher.py:38: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_child_environment_and_parent_preserved
+1 failed, 3 passed in 5.76s

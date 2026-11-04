@@ -127,3 +127,14 @@ FINAL_REPORT.md records Vienna times, verdicts/counts, test logs with MD5, unfin
 work and explicit training clearance. Inventory every delivery file by absolute
 path/full MD5; externally seal report/inventory. Commit logs under evidence/test_logs
 and verify remote HEAD. Preserve runtime/local artifacts with their own inventory.
+
+## R14-cont (finished by Opus on branch opus-astra-r14-finish from 7636122b; appended 2026-11-04 09:2x Vienna)
+Astra is out of usage; Opus finishes R14 in the waits of its own 30-h job, which keeps CPUs 0-1 (this work runs at Idle
+on CPU 2 for short bursts, never on gate cores, never on D:\o30). Commits as Opus <opus@forge.local>; big outputs to
+C:\a14x; stop if D: < 50 GB or C: < 30 GB; D:\a14 < 5 GB; no GPU (CUDA/HIP_VISIBLE_DEVICES=-1); no training, no Elo.
+Review: AGENTS.md policy without a reviewer sub-agent (the owner's standing rule for Opus) - structured self-review at
+each milestone, stated as NOT independent.
+Time budget (Vienna): Step 0 verify 09:20-09:25 (done: 7 inputs + 25 maps PASS) | Job 1 commit PC-only work 09:25-10:00
+| Job 2 board+stm triage 10:00-11:45 | (11:50-12:15 the 30-h job's match results) | Job 3 guard-band split, proof,
+export only on PASS 12:15-15:30 | Job 4 QA notes, CR SHOULD (Setup-R14Runtime SHA256 pins), self-review, full suite,
+FINAL_REPORT, push 15:30-19:00. If a job ends early, deepen its proof.

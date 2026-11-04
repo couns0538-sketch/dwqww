@@ -1,0 +1,48 @@
+........F                                                                [100%]
+================================== FAILURES ===================================
+_____________ test_owned_dependency_marker_is_verified_read_only ______________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/runtime-marker-red01/tmp/test_owned_dependency_marker_i0')
+
+    def test_owned_dependency_marker_is_verified_read_only(tmp_path):
+        import json
+        from r14_overlap import verify_runtime
+        runtime = tmp_path / 'runtime'
+        marker = runtime/'python/Lib/site-packages/setuptools/_vendor/.lock'
+        marker.parent.mkdir(parents=True)
+        marker.write_bytes(b'')
+        inventory = tmp_path/'inventory.jsonl'
+        inventory.write_text(json.dumps(dict(path=str(marker),md5=hashlib.md5(b'').hexdigest()))+'\n')
+>       report = verify_runtime(runtime_root=runtime, inventory=inventory,
+                                expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
+
+D:\a14\tests\test_r14_overlap.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+D:\a14\tools\r14_overlap.py:214: in verify_runtime
+    path = safe_path(item['path'])
+           ^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 'D:\\a14\\evidence\\test_logs\\r14\\runtime-marker-red01\\tmp\\test_owned_dependency_marker_i0\\runtime\\python\\Lib\\site-packages\\setuptools\\_vendor\\.lock'
+write = False
+
+    def safe_path(value, *, write=False):
+        raw = str(value).replace('\\', '/')
+        if not re.match(r'^[A-Za-z]:/', raw) or raw.startswith('//'):
+            raise ValueError('absolute local drive path required')
+        parts = raw[3:].split('/')
+        if '//' in raw[3:] or any(p in ('.', '..') or p.endswith((' ', '.')) or any(c in p for c in ':*?"<>|') or any(ord(c)<32 for c in p) for p in parts if p):
+            raise ValueError('ambiguous path component')
+        if any(re.match(r'(?i)^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9���]|lpt[1-9���])(?:\.|$)',p) for p in parts):
+            raise ValueError('Windows device name is not a file path')
+        lower = raw.lower().rstrip('/')
+        if any(lower == p or lower.startswith(p + '/') for p in PROTECTED):
+            raise ValueError('protected root')
+        if any(p.lower() in BLOCKED_COMPONENTS or p.lower().endswith('.nnue') or p.lower().endswith('.lock') for p in parts):
+>           raise ValueError('protected component')
+E           ValueError: protected component
+
+D:\a14\tools\run_policy.py:33: ValueError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_overlap.py::test_owned_dependency_marker_is_verified_read_only
+1 failed, 8 passed in 0.14s

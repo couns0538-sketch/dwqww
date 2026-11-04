@@ -8,11 +8,12 @@
   missing. JobA has3982 groups spanning unresolved observed-chain breaks.
 - A guarded contiguous candidate is planned in sep/GUARD_BAND_PLAN.md. Its local
   checks cannot replace the explicitly required original identities.
-- Broader boundary search passed36 quick tests after receipt and qualification
-  accounting fixes; independent review,100k-path filter qualification and real
-  native integration remain required before a workload.
+- Broader boundary filter mathematics and qualifier passed independent review.
+  The native driver needs three publication/accounting failure-path fixes and
+  recheck, followed by100k-path qualification and real native integration.
 - Selected-suite runner needs pytest environment/config isolation, the exact r03
-  native pin and a refreshed final allowlist. Its subprocess integration fixtures
+  native pin and a refreshed final allowlist. Those changes are authored; their
+  validation is queued. Its subprocess integration fixtures
   remain unaccepted; do not claim a full-suite pass from the earlier partial run.
 - After the running scans release their frozen dependencies, tighten the reusable
   guard_selection contract against nonmonotonic ply numbers on either side of a
@@ -23,3 +24,5 @@
   frontmatter/link/scenario review passed; the standard validator did not run.
 - Final permitted-suite execution, complete changed-file review, final30-minute
   bug hunt, file inventories/seals and FINAL_REPORT remain outstanding.
+- Deeper jobA node-limit retry is designed in sep/RETRY_PLAN.md and not yet
+  implemented. It preserves the original evidence and fixed K=8 proof scope.
