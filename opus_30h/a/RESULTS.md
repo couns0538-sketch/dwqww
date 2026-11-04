@@ -361,3 +361,7 @@ Holdout, paired vs the lock net: S31 b0.6 0.014196981 = -1.130e-4 (SE 2.7e-6, z 
 +7.53e-5 (SE 3.0e-5, z +2.55) -> **offline rule FAIL** (jobA z > 2; packaged anyway, as the rule says). Against the lock
 net on 10k FENs: corr 0.9956, 16.2 cp rms, scale 1.019; bucket steps <= 2.5 cp (OB3 +3.11 -> OB4 +0.61), king ranks
 <= 2.0 cp. Play checks started 02:50 on CPU 0 (smoke, ABBA, 400 games at 10+0.1; SPSA paused for the timing part).
+n2L play checks, first part (CPU 0, CPU 1 idle while SPSA was paused): smoke 300 s PASS (51 games, 6,389 plies, 0
+illegal / crashes / hangs / time losses, 1 overrun inside the margin); NPS ABBA vs the lock 0.970 (CI 0.905-1.040),
+net loaded in all 6 B runs (~1.03 after the measured ~0.945 arm bias). SPSA resumed 02:56:16 on CPU 1 at pair 182
+(batch 91: the resume continues the run). The 400-game match runs on CPU 0 until ~06:40.
