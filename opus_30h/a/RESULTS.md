@@ -435,7 +435,7 @@ reading "S31 did not predict play; jobA is the better compass" is WITHDRAWN: n2L
 jobA was worse. The depth gap (0.11-0.13 ply) explains maybe ~8 Elo of the control's -32 by the usual time rule;
 the rest is unexplained or noise. Next: the two discriminators (running), then the speed fix, then n2L again.
 
-## FOUND AND FIXED: the v2 path's speed loss in games (2026-11-04 07:4x-08:1x)
+## FOUND AND FIXED: the v2 path's speed loss in games (2026-11-04 07:3x-07:5x)
 - Discriminators (100 games each, depth gap at equal time): D-a, the lock net as KB1 (the lock's own table size) on
   the v2 path: -0.20 ply; D-b, the v2 exe with the net OFF: -0.08 ply. Table size is NOT the cause (the int16 store,
   `a/o30_v2int16.py`, prepared as a hedge, was dropped).
@@ -452,3 +452,9 @@ the rest is unexplained or noise. Next: the two discriminators (running), then t
   static_evaluate_v2 when a v2 net is active. Counters after: walk plies 5,450,890 (v1 5,450,790 + one root per
   search), cached refreshes 200, nodes unchanged. Speed, plain build, v2 KB1 vs v1 in the same exe: **1.028 (CI
   1.001-1.056)** - the gap is gone. Next: pins / identity / verify build / kit pc1 = pc2 / CI, then rematches.
+Patch with the fix: `opus_30h/a/v2port.patch` md5 926ada2cc6b2212c05cd72cf70feefc9 (= `git diff fe0da8d 9037f2a` in
+`D:\o30\repos\v2root`; 378bf6bc + the root branch; cleanroom_lint CLEAN). Plain build of it
+(`D:\o30\plain\v2root_1\forge_plain.exe` 9630280d...): OFF pin_check -Full PASS; the lock net as KB4 replicas = lock
+pins d11-d22; n2e / n2L ON benches = their packed counts (333628 / 803134 / 2593172, 292397 / 836621 / 2200750). Verify
+build with the fix (`D:\o30\plain\v2root_verify`): 100 game positions at depth 12 with a kept hash (7.79M nodes) and
+bench 16 with n2L (2,200,750) - no accumulator mismatch.

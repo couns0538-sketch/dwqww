@@ -565,7 +565,7 @@ index e88cfc5..eae54b0 100644
 +
 +} // namespace forge::nnue::v2
 diff --git a/src/search.cpp b/src/search.cpp
-index 74de5d3..5c6922f 100644
+index 74de5d3..fb5a473 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -1,4 +1,5 @@
@@ -667,16 +667,21 @@ index 74de5d3..5c6922f 100644
      if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
      const bool residual = nnue::residual();
      if (!ss->accumulator.valid) {
-@@ -1363,7 +1449,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+@@ -1363,9 +1449,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
          entry.accumulator.valid = false;
          entry.runtime_psqt.valid = false;
      }
 -    if (nnue::enabled && nnue::available()) {
-+    // A v2 net (EvalFileV2) refreshes the root lazily in static_evaluate_v2.
 +    if (nnue::v2::active_net == nullptr && nnue::enabled && nnue::available()) {
          nnue::refresh(board, ss->accumulator);
          if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++    } else if (nnue::v2::active_net != nullptr && nnue::enabled) [[unlikely]] {
++        // A v2 net: build the root accumulators now, as above. Left lazy, a root whose evaluation comes from the
++        // hash table never gets them, and every subtree without an evaluated ancestor rebuilds from the cache.
++        (void)static_evaluate_v2(board, ss);
      }
+ 
+     Move previous_best = Move::none();
 diff --git a/src/uci.cpp b/src/uci.cpp
 index 607adf3..fa979da 100644
 --- a/src/uci.cpp
