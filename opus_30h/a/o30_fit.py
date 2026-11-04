@@ -327,6 +327,46 @@ def train(a):
     print(f'done: {reason}; best {state["best"]}', flush=True)
 
 
+def selfcheck(a):
+    """The trainer's own forward pass on the S31 holdout subset (no training) must reproduce the engine scorer's MSE:
+    checks feature indices, perspectives, output buckets, the residual term and the target of THIS file."""
+    import torch
+    torch.set_num_threads(1)
+    params, kmap = build_model(torch, a.init, a.kb_map, a.ob)
+    omap = np.array(output_map(a.ob), np.int64)
+    n = int.from_bytes(open(S16_POS, 'rb').read(16)[8:16], 'little')
+    boards = np.fromfile(S16_POS, np.uint8, count=32 * n, offset=16).reshape(n, 32)
+    sc = np.fromfile(S16_POS, '<i2', count=n, offset=16 + 32 * n)
+    meta = np.fromfile(S16_POS, np.uint8, count=n, offset=16 + 34 * n)
+    hce = np.fromfile(S16_HCE, '<i2', count=n, offset=16)
+    sums = {0.6: 0.0, 1.0: 0.0}
+    with torch.no_grad():
+        for i0 in range(0, n, 16384):
+            b = slice(i0, min(n, i0 + 16384))
+            stm = (meta[b] & 1).astype(np.int64)
+            white = (meta[b] >> 1) * 0.5
+            stm_res = np.where(stm == 0, white, 1.0 - white)
+            i_s, o_s, i_n, o_n, cnt = features(boards[b], stm, kmap, a.mirror)
+            ob = torch.from_numpy(omap[np.minimum(cnt, 32)])
+            acc_s = torch.nn.functional.embedding_bag(torch.from_numpy(i_s), params['w1'], torch.from_numpy(o_s), mode='sum') + params['b1']
+            acc_n = torch.nn.functional.embedding_bag(torch.from_numpy(i_n), params['w1'], torch.from_numpy(o_n), mode='sum') + params['b1']
+            a_s, a_n = acc_s.clamp(0, 1).square(), acc_n.clamp(0, 1).square()
+            w2 = params['w2'][ob]
+            H = a_s.shape[1]
+            out = ((a_s * w2[:, :H]).sum(1) + (a_n * w2[:, H:]).sum(1) + params['b2'][ob]).double()
+            logit = out + torch.from_numpy(hce[b].astype(np.float64)) * (K / 400.0)
+            pred = torch.sigmoid(logit).numpy()
+            teacher = 1.0 / (1.0 + np.exp(-np.clip(sc[b].astype(np.float64) * (K / 400.0), -40.0, 40.0)))
+            for bl in sums:
+                sums[bl] += float(np.sum((pred - (bl * teacher + (1.0 - bl) * stm_res)) ** 2))
+    res = {f'mse_b{bl}': sums[bl] / n for bl in sums}
+    print(json.dumps({'rows': n, **res}))
+    want = (0.014310027, 0.004572428)
+    ok = abs(res['mse_b0.6'] - want[0]) < 2e-8 and abs(res['mse_b1.0'] - want[1]) < 2e-8
+    print('SELFCHECK ' + ('PASS' if ok else 'FAIL') + f' (scorer: b0.6 {want[0]}, b1.0 {want[1]})')
+    sys.exit(0 if ok else 1)
+
+
 def stop(run):
     h = ctypes.windll.kernel32.OpenEventW(0x0002 | 0x00100000, False, event_name(os.path.abspath(run)))
     if not h:
@@ -360,9 +400,17 @@ def main():
     t.add_argument('--resume', action='store_true')
     s = sub.add_parser('stop')
     s.add_argument('run')
+    c = sub.add_parser('selfcheck')
+    c.add_argument('--init', default='lock')
+    c.add_argument('--kb-map', default='one', choices=['one', 'rank4'])
+    c.add_argument('--mirror', action='store_true')
+    c.add_argument('--ob', type=int, default=8)
     a = ap.parse_args()
     if a.cmd == 'stop':
         stop(a.run)
+        return
+    if a.cmd == 'selfcheck':
+        selfcheck(a)
         return
     if not a.resume and a.positions is None:
         a.positions = 2e9
