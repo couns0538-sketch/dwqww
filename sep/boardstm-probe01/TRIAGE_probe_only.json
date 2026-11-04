@@ -1,0 +1,424 @@
+{
+ "schema": 1,
+ "tool": "opus_boardstm_triage.py",
+ "tool_md5": {
+  "triage": "11fdf6016b3c9840724ad57dd082816e",
+  "ep": "1b142bc9941e0b8c791c65adbfb472db"
+ },
+ "status": "COMPLETE",
+ "reasons": [],
+ "sources": {
+  "probe": {
+   "path": "D:\\a14\\sep\\boardstm-probe01\\PROBE.json",
+   "md5": "ef049b82dce36eeb92e8434467612af6",
+   "shared_path": "D:\\a14\\sep\\boardstm-probe01\\SHARED.jsonl",
+   "shared_md5": "ea9d1e3024daf1fe0a3e70d11207e36b",
+   "status": "COMPLETE",
+   "shared_exact_keys": 7610,
+   "train_overlap_rows": 7700,
+   "holdout_overlap_rows": 7612,
+   "hash_collision_train_rows": 0
+  }
+ },
+ "definitions": {
+  "ep_format_diff": "raw EP fields differ; equal after legal-capture-only EP normalisation (same position)",
+  "real_ep_diff": "normalised EP fields still differ: a legal en-passant capture exists in one row only",
+  "other": "castling_diff, mixed pair classes, invalid_ep or identical_4field (the last two fail closed)",
+  "pair": "every train row x every holdout row of one shared board+stm key",
+  "normalised_4field": "board, side, castling (KQkq order), EP kept only with a legal capture (opus_ep)"
+ },
+ "totals": {
+  "shared_keys": 7610,
+  "train_rows": 7700,
+  "holdout_rows": 7612,
+  "expected": [
+   7610,
+   7700,
+   7612
+  ]
+ },
+ "keys_per_class": {
+  "ep_format_diff": 4070,
+  "real_ep_diff": 8,
+  "other": 3532
+ },
+ "key_reasons": {
+  "ep_format_diff": 4070,
+  "real_ep_diff": 8,
+  "castling_diff": 3514,
+  "mixed": 18
+ },
+ "pairs_per_class": {
+  "ep_format_diff": 4120,
+  "real_ep_diff": 8,
+  "other": 3574
+ },
+ "other_pair_reasons": {
+  "castling_diff": 3574
+ },
+ "rows_per_class": {
+  "ep_format_diff": {
+   "train": 4100,
+   "holdout": 4072
+  },
+  "real_ep_diff": {
+   "train": 8,
+   "holdout": 8
+  },
+  "other": {
+   "train": 3592,
+   "holdout": 3532
+  }
+ },
+ "raw_ep_patterns": [
+  {
+   "pair_class": "ep_format_diff",
+   "train": "train -",
+   "holdout": "holdout EP no_capture",
+   "pairs": 1933
+  },
+  {
+   "pair_class": "ep_format_diff",
+   "train": "train EP no_capture",
+   "holdout": "holdout -",
+   "pairs": 2007
+  },
+  {
+   "pair_class": "ep_format_diff",
+   "train": "train EP no_capture",
+   "holdout": "holdout EP no_capture",
+   "pairs": 180
+  },
+  {
+   "pair_class": "other",
+   "train": "train -",
+   "holdout": "holdout -",
+   "pairs": 2791
+  },
+  {
+   "pair_class": "other",
+   "train": "train -",
+   "holdout": "holdout EP legal",
+   "pairs": 1
+  },
+  {
+   "pair_class": "other",
+   "train": "train -",
+   "holdout": "holdout EP no_capture",
+   "pairs": 173
+  },
+  {
+   "pair_class": "other",
+   "train": "train EP legal",
+   "holdout": "holdout -",
+   "pairs": 1
+  },
+  {
+   "pair_class": "other",
+   "train": "train EP legal",
+   "holdout": "holdout EP legal",
+   "pairs": 5
+  },
+  {
+   "pair_class": "other",
+   "train": "train EP no_capture",
+   "holdout": "holdout -",
+   "pairs": 195
+  },
+  {
+   "pair_class": "other",
+   "train": "train EP no_capture",
+   "holdout": "holdout EP no_capture",
+   "pairs": 408
+  },
+  {
+   "pair_class": "real_ep_diff",
+   "train": "train -",
+   "holdout": "holdout EP legal",
+   "pairs": 2
+  },
+  {
+   "pair_class": "real_ep_diff",
+   "train": "train EP legal",
+   "holdout": "holdout -",
+   "pairs": 4
+  },
+  {
+   "pair_class": "real_ep_diff",
+   "train": "train EP legal",
+   "holdout": "holdout EP legal",
+   "pairs": 1
+  },
+  {
+   "pair_class": "real_ep_diff",
+   "train": "train EP no_capture",
+   "holdout": "holdout EP legal",
+   "pairs": 1
+  }
+ ],
+ "per_holdout_file": {
+  "forge_selfplay_013.txt": {
+   "ep_format_diff": 2471,
+   "real_ep_diff": 4,
+   "other": 2210
+  },
+  "forge_selfplay_014.txt": {
+   "ep_format_diff": 1601,
+   "other": 1322,
+   "real_ep_diff": 4
+  }
+ },
+ "per_piece_count": {
+  "3": {
+   "ep_format_diff": 123
+  },
+  "4": {
+   "ep_format_diff": 1204,
+   "real_ep_diff": 1
+  },
+  "5": {
+   "ep_format_diff": 697
+  },
+  "6": {
+   "ep_format_diff": 360
+  },
+  "7": {
+   "ep_format_diff": 141
+  },
+  "8": {
+   "ep_format_diff": 42
+  },
+  "9": {
+   "ep_format_diff": 26
+  },
+  "10": {
+   "ep_format_diff": 17
+  },
+  "11": {
+   "ep_format_diff": 4
+  },
+  "12": {
+   "ep_format_diff": 2
+  },
+  "14": {
+   "ep_format_diff": 1
+  },
+  "16": {
+   "ep_format_diff": 1
+  },
+  "17": {
+   "ep_format_diff": 1
+  },
+  "19": {
+   "other": 1
+  },
+  "21": {
+   "other": 3
+  },
+  "23": {
+   "other": 5
+  },
+  "24": {
+   "other": 2
+  },
+  "25": {
+   "other": 12
+  },
+  "26": {
+   "other": 24
+  },
+  "27": {
+   "other": 47,
+   "ep_format_diff": 3
+  },
+  "28": {
+   "other": 110,
+   "ep_format_diff": 15
+  },
+  "29": {
+   "other": 120,
+   "ep_format_diff": 12
+  },
+  "30": {
+   "other": 493,
+   "ep_format_diff": 76,
+   "real_ep_diff": 1
+  },
+  "31": {
+   "ep_format_diff": 104,
+   "other": 378
+  },
+  "32": {
+   "other": 2337,
+   "ep_format_diff": 1241,
+   "real_ep_diff": 6
+  }
+ },
+ "per_train_file": {
+  "forge_selfplay_001.txt": {
+   "ep_format_diff": 18,
+   "other": 9
+  },
+  "forge_selfplay_002.txt": {
+   "ep_format_diff": 76,
+   "other": 44
+  },
+  "forge_selfplay_003.txt": {
+   "ep_format_diff": 226,
+   "other": 113
+  },
+  "forge_selfplay_004.txt": {
+   "ep_format_diff": 176,
+   "other": 146
+  },
+  "forge_selfplay_005.txt": {
+   "ep_format_diff": 177,
+   "other": 149
+  },
+  "forge_selfplay_006.txt": {
+   "ep_format_diff": 155,
+   "other": 155
+  },
+  "forge_selfplay_007.txt": {
+   "ep_format_diff": 159,
+   "other": 134
+  },
+  "forge_selfplay_008.txt": {
+   "ep_format_diff": 147,
+   "other": 124
+  },
+  "forge_selfplay_009.txt": {
+   "ep_format_diff": 120,
+   "other": 113,
+   "real_ep_diff": 1
+  },
+  "forge_selfplay_010.txt": {
+   "ep_format_diff": 130,
+   "other": 80
+  },
+  "forge_selfplay_011.txt": {
+   "ep_format_diff": 3
+  },
+  "forge_selfplay_012.txt": {
+   "ep_format_diff": 40,
+   "other": 16
+  },
+  "forge_selfplay_015.txt": {
+   "ep_format_diff": 135,
+   "other": 102,
+   "real_ep_diff": 1
+  },
+  "forge_selfplay_016.txt": {
+   "ep_format_diff": 143,
+   "other": 147
+  },
+  "forge_selfplay_017.txt": {
+   "ep_format_diff": 31,
+   "other": 22
+  },
+  "forge_selfplay_018.txt": {
+   "ep_format_diff": 120,
+   "other": 137
+  },
+  "forge_selfplay_019.txt": {
+   "ep_format_diff": 27,
+   "other": 43
+  },
+  "forge_selfplay_020.txt": {
+   "ep_format_diff": 100,
+   "other": 58
+  },
+  "forge_selfplay_021.txt": {
+   "ep_format_diff": 133,
+   "real_ep_diff": 1,
+   "other": 84
+  },
+  "forge_selfplay_022.txt": {
+   "ep_format_diff": 125,
+   "other": 67
+  },
+  "forge_selfplay_023.txt": {
+   "ep_format_diff": 47,
+   "other": 38
+  },
+  "forge_selfplay_024.txt": {
+   "ep_format_diff": 111,
+   "other": 114
+  },
+  "forge_selfplay_025.txt": {
+   "ep_format_diff": 130,
+   "other": 137
+  },
+  "forge_selfplay_026.txt": {
+   "ep_format_diff": 135,
+   "other": 106
+  },
+  "forge_selfplay_027.txt": {
+   "ep_format_diff": 123,
+   "other": 111
+  },
+  "forge_selfplay_028.txt": {
+   "ep_format_diff": 127,
+   "other": 132
+  },
+  "forge_selfplay_029.txt": {
+   "ep_format_diff": 132,
+   "other": 148,
+   "real_ep_diff": 2
+  },
+  "forge_selfplay_030.txt": {
+   "ep_format_diff": 110,
+   "other": 150,
+   "real_ep_diff": 1
+  },
+  "forge_selfplay_031.txt": {
+   "ep_format_diff": 117,
+   "other": 111
+  },
+  "forge_selfplay_032.txt": {
+   "ep_format_diff": 135,
+   "other": 85
+  },
+  "forge_selfplay_033.txt": {
+   "ep_format_diff": 106,
+   "other": 158
+  },
+  "forge_selfplay_034.txt": {
+   "ep_format_diff": 114,
+   "other": 118,
+   "real_ep_diff": 1
+  },
+  "forge_selfplay_035.txt": {
+   "ep_format_diff": 96,
+   "other": 120
+  },
+  "forge_selfplay_036.txt": {
+   "ep_format_diff": 118,
+   "other": 108,
+   "real_ep_diff": 1
+  },
+  "forge_selfplay_037.txt": {
+   "ep_format_diff": 131,
+   "other": 103
+  },
+  "forge_selfplay_038.txt": {
+   "ep_format_diff": 94,
+   "other": 71
+  },
+  "forge_selfplay_039.txt": {
+   "ep_format_diff": 33,
+   "other": 39
+  }
+ },
+ "normalised_4field_recount": {
+  "shared_keys": 4088,
+  "train_rows": 4118,
+  "holdout_rows": 4090,
+  "scope": "exact over all rows: a normalised 4-field match implies a board+stm match, and the board+stm listing is complete"
+ },
+ "rows_file": {
+  "path": "D:\\a14\\sep\\boardstm-probe01\\TRIAGE_probe_only_ROWS.tsv",
+  "md5": "ec05042753b0f4466e36dfc0a148c064"
+ },
+ "written_vienna": "2026-11-04 09:51 Vienna"
+}
