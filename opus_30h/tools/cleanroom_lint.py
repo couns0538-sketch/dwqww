@@ -106,6 +106,7 @@ def main():
         print('cleanroom_lint: nothing to check (--patch / --message-file / --commits)', file=sys.stderr)
         return 2
     findings = []
+    n_commits = 0
     for p in a.patch:
         scan_patch(p, findings)
     for f in a.message_file:
@@ -124,11 +125,12 @@ def main():
             lines = block.strip().splitlines()
             if lines:
                 scan_text(f'commit {lines[0][:12]}', '\n'.join(lines[1:]), findings)
+                n_commits += 1
     for f in findings:
         print(f)
     verdict = 'CLEAN' if not findings else f'FINDINGS {len(findings)}'
     print(f'cleanroom_lint: {verdict} (patches {len(a.patch)}, message files {len(a.message_file)}, commits '
-          f'{a.commits or "-"})')
+          f'{a.commits or "-"}: {n_commits} scanned)')
     if a.json:
         with open(a.json, 'w', newline='\n') as fh:
             json.dump({'tool': 'cleanroom_lint.py', 'verdict': verdict, 'findings': findings, 'patches': a.patch,
