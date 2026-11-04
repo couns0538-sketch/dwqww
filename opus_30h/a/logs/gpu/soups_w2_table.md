@@ -12,3 +12,5 @@
 | soupK8a_r3ckpts | r3_kb8warm + r3_kb8warm + r3_kb8warm + r3_kb8warm | -1.597e-04 (-26.2) | -6.897e-05 (-1.04) | PASS |
 | soupK8b_r3_r5 | r3_kb8warm + r5_kb8short | -1.844e-04 (-37.3) | -1.211e-04 (-2.16) | PASS |
 | soupK8c_r3_r5_r6 | r3_kb8warm + r5_kb8short + r6_kb8lr3 | -1.864e-04 (-33.7) | -1.044e-04 (-1.72) | PASS |
+| soupK8d_r3_r5_r10 | r3_kb8warm + r5_kb8short + r10_kb8seed2 | -1.845e-04 (-40.1) | -9.957e-05 (-1.88) | PASS |
+| soupI16_r3_r5_r7_r9_r10 | r3_k16.bin + r5_k16.bin + r7_kb16short + r9_kb16seed + r10_k16.bin | -2.095e-04 (-48.1) | -1.153e-04 (-2.35) | PASS |
