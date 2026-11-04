@@ -13,7 +13,9 @@ scan, 4-5 GPU trainer, 2 export / scoring.
 - 10:13 smoke01: the reader stopped after one chunk (inverted stop flag, fixed); 10:15 smoke02 PASS (parity 10000/10000
   x 3, S31 consistent with the trainer loss); 2.8-3.0M positions/s.
 - 10:17 run 1: KB4 rank map, from scratch, 11.7G positions (ends ~11:26); checkpoints scored by a/gpu_ckpt_watch.sh.
-- 10:22 warm start proven byte-identical (import_v2r.py -> GPU load -> save -> export = lock-as-KB4 net).
+- 10:22 warm start proven byte-identical (import_v2r.py -> GPU load -> save -> export = lock-as-KB4 net). Re-proven 13:35-13:36 on the
+  current builds with the decay line and the exe md5 in each log (CR item 11): logs/gpu/warmproof02_rocm2.out (exe of runs 2-6),
+  warmproof03_rocm3.out (item-10 build), warmproof04_kb16.out (16-bucket build); each ends "COMPARE: byte-identical -> PASS".
 - Next: run 2 = warm start from the lock net (KB4), lr 2e-5 cosine, ~11.7G positions; run 3 by the scores (KB8 warm
   start ready: D:\o30\gpu\init_lockkb8). Freed CPUs after ~12:00 go to sanity matches of the GPU nets.
 
