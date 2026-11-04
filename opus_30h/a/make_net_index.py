@@ -37,8 +37,10 @@ def main():
              'lock net with the lock pins (checked per net in pins_off.txt).', '',
              'Offline rule (written before the results, a/RESULTS.md): S31 b0.6 at least 2e-5 below the lock net AND a paired',
              'jobA-val z <= +2. Paired = the same rows scored by both nets (o30_paired.py); z = diff / its measurement error.',
-             'READ THE SANITY COLUMN TOO: o30_kb4ob8_n2e passed the offline rule and still scored -25 +/- 18.5 in its 400-game',
-             'sanity match - the S31 holdout (5k-node labels) has not predicted play here. Sanity matches are not gates.', '',
+             'READ THE SANITY COLUMN WITH THE CONTROL: the gate exe below playing the LOCK net (written as KB4 replicas, identical',
+             'evaluation and tree) scored -32.2 +/- 18.5 against the lock exe in the same 400-game setting (D:\\o30\\control\\',
+             'lockkb4_v2exe) - the v2 exe itself costs Elo. Compare each net with that control, not only with 0. Sanity',
+             'matches are not gates.', '',
              '| net | S31 b0.6 vs lock (z) | jobA val vs lock (z) | offline rule | pack checks | sanity match (SANITY ONLY) |',
              '|---|---|---|---|---|---|']
     for name, r, fc, tr in rows:
