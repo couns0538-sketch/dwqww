@@ -72,11 +72,13 @@ child, fail closed).
 | missing net file | `info string ERROR EvalFileV2 ...` (no silent fall-back) |
 | parity vs own float32 reference, 10,000 FENs, AVX2 / SSE / scalar | 10000/10000 exact on every net tested (4 test nets, n2e, a KB8 net); planted bug caught every time |
 | accumulator walk (incremental + cache vs full refresh) | 830,820 plies per net x 3 nets x 3 builds + 139,064 plies on a KB8 net: 0 mismatches |
-| in-search verify build | no abort to d22 |
-| CI (GitHub Actions, ASan + UBSan self-play, TSan Threads 4) | runs 41676909751 and 41682427163 green (all rows); final run: PENDING |
+| in-search verify build | random KB4 nets: no abort to d22; the trained n2e: no abort to bench 20 (d13 / d16 node counts = the normal build's) |
+| loader fuzz (18 kinds of damaged files + load-then-damaged / load-then-empty) | 21 / 21: each refused with its reason, the compiled-in net plays on (bench = lock pin) |
+| `uci` option lists (sorted, diff vs the lock exe) | gate exe = lock + EvalFileV2 only; SPSA exe = lock + the 22 new tunables; O30Tuned build = SPSA exe + O30Tuned |
+| CI (GitHub Actions, ASan + UBSan self-play, TSan Threads 4) | runs 41676909751, 41682427163, 41705072728 green (all rows); final run: PENDING |
 | kit builds | v2.3 df1f140b (cold v2 path 0.71x), v2.4 8704d302 (0.96x), v2.5 ff856ba8 (~1.0x) - each pc1 = pc2 |
 | gate exe ff856ba8: OFF pins -Full; lock net as v2 d11-d22 | PASS; = lock pins |
-| UCI conformance (gate exe + n2e: uci, setoption, isready, go depth / movetime / clock / nodes / infinite + stop, mate in 1, one legal move, checkmate / stalemate, Threads 2, quit) | 20 / 20 PASS; the lock exe 18 / 18 |
+| UCI conformance (gate exe + n2e: uci, setoption, isready, go depth / movetime / clock / nodes / infinite + stop, setoption during go infinite, mate in 1, one legal move, checkmate / stalemate, Threads 2, quit; net paths with spaces) | 22 / 22 PASS; the lock exe 18 / 18 |
 
 ### Item A - data, scorer, trainer
 | check | result |
@@ -97,7 +99,7 @@ child, fail closed).
 | perft 5 + kiwipete 5 with the net | 4865609 / 193690690 | pending |
 | offline rule (S31 <= -2e-5 and jobA z <= +2) | PASS (-5.58e-5, z -34; jobA z +1.23) | pending |
 | smoke 300 s (0 illegal / crash / time loss) | PASS (50 games, 6,284 plies) | pending |
-| NPS ABBA vs the lock (6 pairs, advisory) | 0.899 (CI 0.845-0.958), different trees; bench-16 wall time ~0.96x | pending |
+| NPS ABBA vs the lock (6 pairs, advisory) | 0.899 (CI 0.845-0.958), different trees; bench-16 wall time ~0.96x; in games the same mean depth as the lock (20.08 vs 20.08 at 0.217 vs 0.218 s / move) | pending |
 | 400-game sanity match vs the lock, 10+0.1 (SANITY ONLY) | running | pending |
 
 ### Item B
@@ -110,6 +112,9 @@ child, fail closed).
 | tuner self-test (selftest_10min.ps1) | SELFTEST PASS (19 batches over 3 sessions: deadline, stop event, resume, max pairs) |
 | disk-floor stop | b/test_disk_low.py PASS |
 | O30Tuned dry run (dummy set) | O30TUNED PASS (OFF pins, switch = explicit list, true then false = lock, invalid value rejected) |
+| SPSA simulation (real tuner vs a fake fastchess with a known optimum) | SPSA SIM PASS: A 100 -> 148 (optimum 160), B 60 -> 21.1 (20) in 1,000 pairs; resume continuous |
+| inventory of the lock's 41 advertised search constants | 41 / 41 = the pin at their default; all live (4 only deeper / with their feature on / in piece-value steps) |
+| pre-flight: the 8 stc8 options at their start values | advertised, ranges inside the option ranges, bench = lock pins |
 | main session | PENDING |
 
 ### Tools / documents
@@ -126,7 +131,8 @@ child, fail closed).
    `EvalFileV2=<net path>` vs the lock FD3A5190, UHO [0,5] SPRT, then the 8moves_v3 confirm. Why first: the only item
    with a large, broad offline gain (S31 b0.6 -5.6e-5, paired z -34; every material / king / label group improves; jobA
    neutral). Why it may still fail: loss has not predicted Elo reliably here (S30), and the net searches a different
-   tree (NPS 0.90x, bench-16 wall time ~0.96x). If it gains, the next step is the same shape on the GPU (more positions,
+   tree (NPS 0.90x on the bench, though in games it reaches the lock's mean depth in the same time; its evaluation is
+   a gentle refinement: 8 cp rms from the lock net's). If it gains, the next step is the same shape on the GPU (more positions,
    KB8 - proven ready) with the trainer and exporter of a/GPU_PATH.md.
 2. **The SPSA tuned set** (`O30Tuned=true` on the Item B exe, or the explicit option list): only parameters that moved
    beyond 2 sigma of the null-gradient noise deserve a gate; with none beyond 2 sigma the honest expectation is ~0 and
