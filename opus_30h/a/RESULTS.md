@@ -280,3 +280,10 @@ positions: n2e is a gentle refinement (about 8 cp rms), not a different evaluati
 cand (n2e): 4,769 moves, mean depth 20.08, 0.217 s / move; lock: 4,770 moves, mean depth 20.08, 0.218 s / move. The
 0.90x bench NPS does not cost depth at 10+0.1: n2e needs fewer nodes per depth (as on the bench), so both reach the same
 mean depth in the same time. (Interim; the final numbers with all 400 games go into FINAL_CHECKS / INDEX.)
+
+## Plan for CPU 1 after the n2e match (written 2026-11-03 20:5x, BEFORE any KB8 number)
+KB8 run n3 = n2e's recipe with the rank4x2 map (lr 2e-5, output x2, cosine to 1e-7 over 3.5e8 positions, mix 8,
+seed 232): an equal-length capacity test (KB4 vs KB8). Rule: n3 becomes candidate #3 (pack + full play checks) only if
+its paired S31 b0.6 is at least 1e-5 below n2e's (paired vs n2e's dumps) AND its paired jobA z vs the lock net is <= +2;
+otherwise it is reported offline only and CPU 1 goes to SPSA at once. Either way the result answers "does more
+king-bucket capacity pay at equal training?" for the GPU path.
