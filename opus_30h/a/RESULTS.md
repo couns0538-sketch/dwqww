@@ -308,3 +308,17 @@ prompt's "0 time loss" check) passed. The match is sanity only either way.
   6 pairs bench 16: 0.945 (CI 0.906-0.985), median 0.942 - identical binaries read ~5 % apart here (per-file effect,
   as in R5B), so the 0.90 of n2e is within ~5 % of that bias band; speed figures from this PC stay advisory.
 - Walk on n2e (plan phase 1 asked for 1M plies): 4000 games, 1,106,215 plies, 139,267 king-key changes, 0 mismatches.
+
+## Deviation from the pre-registered KB8 step (decided 2026-11-04 00:0x, after the n2e match)
+n3 (KB8) was NOT run. Reason, dated: the n2e match (400 games, -25.2 +/- 18.5, written 23:58) shows that the S31 gain
+did not turn into play, and n3's rule is judged on S31 - every n3 outcome would need its own 4-hour match to mean
+anything, and the n2e pattern (better on the 5k-node labels, flat / worse on deeper labels, worse in play) suggests
+more first-layer capacity would fit the shallow labels' noise further. CPU 1 went to the SPSA session at 00:03:59
+(`D:\o30\spsa\stc8_main`, -Cpus 1 -Threads 1, until 19:30). KB8 stays proven and ready (check_kbmap, Rust path).
+
+## ABBA harness: an arm bias, measured (00:0x, CPU 1, n2L training on CPU 0)
+A/A twice with byte-identical binaries: lock as A, copy as B -> 0.9447 (CI 0.906-0.985); copy as A, lock as B ->
+0.9455 (CI 0.917-0.975). Whichever command is arm B reads ~5.5 % slower under this load - an arm effect of the harness
+here, not a per-file effect. So every B / A ratio from abba.py on this PC this night carries ~0.945 of bias: n2e's
+0.899 corresponds to ~0.95 of the lock (0.899 / 0.945), the dry run's 0.976 to ~1.03. Speed claims stay QA's; the
+cause in abba.py is not found yet (listed for the bug hunt).
