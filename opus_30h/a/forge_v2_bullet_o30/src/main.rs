@@ -303,12 +303,16 @@ fn main_r(a: &[String]) {
     // Warm start (GPU window 2026-11-04): O30_CLIP widens AdamW's weight clip (default +-1.98; a warm start from the
     // lock net needs about +-3.5, and +-7.99 still fits int16 at scale 4096); O30_INIT_DIR loads <dir>/optimiser_state
     // (weights.bin + zero momentum / velocity written by import_v2r.py) before the first superbatch. Unset = as before.
-    if let Ok(clip) = std::env::var("O30_CLIP") {
-        let clip: f32 = clip.parse().expect("O30_CLIP must be a number");
+    // O30_DECAY: AdamW's decoupled weight decay (default 0.01); 0 = plain Adam like the CPU fine-tunes (a warm start
+    // from a converged net would otherwise shrink by about 7 % over ~700k steps at lr 1e-5).
+    if std::env::var("O30_CLIP").is_ok() || std::env::var("O30_DECAY").is_ok() {
+        let clip: f32 = std::env::var("O30_CLIP").map(|s| s.parse().expect("O30_CLIP must be a number")).unwrap_or(1.98);
+        let decay: f32 = std::env::var("O30_DECAY").map(|s| s.parse().expect("O30_DECAY must be a number")).unwrap_or(0.01);
         assert!(clip > 0.0 && clip < 8.0, "O30_CLIP must be in (0, 8)");
+        assert!((0.0..=0.1).contains(&decay), "O30_DECAY must be in [0, 0.1]");
         use bullet_lib::nn::optimiser::AdamWParams;
-        trainer.optimiser.set_params(AdamWParams { decay: 0.01, beta1: 0.9, beta2: 0.999, min_weight: -clip, max_weight: clip });
-        println!("AdamW weight clip +-{clip}");
+        trainer.optimiser.set_params(AdamWParams { decay, beta1: 0.9, beta2: 0.999, min_weight: -clip, max_weight: clip });
+        println!("AdamW weight clip +-{clip} decay {decay}");
     }
     if let Ok(dir) = std::env::var("O30_INIT_DIR") {
         println!("warm start from {dir}/optimiser_state");

@@ -71,6 +71,27 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
   1e-7: 3.5e8 positions (~2 h 20 min on one CPU) -> S31 b0.6 -5.58e-5 (paired z -34), jobA +2.2e-5 (z +1.23) = rule PASS
   (net `D:\o30\nets\o30_kb4ob8_n2e`, sha256 998db5e9...). KB1 / OB8 at the same length: -1.4e-5 (fails the rule).
 
+## Training on the GPU (window from the owner, 2026-11-04; record in D:\o30\WINDOW.md first)
+- Trainer: ROCm build of `a/forge_v2_bullet_o30` (`build_bullet_o30.bat rocm <tag>`; BULLET_TARGET=<dir> builds into
+  another target dir - a running exe cannot be relinked). Run only through `a/gpu_run_o30.bat <run> <kb map> <mirror>
+  [hidden sb bpsb threads seed lr wdl mix]`: o30_gpu_guard.py starts it at Idle on CPUs 4-5, suspends it on the PC's
+  GPU limits (hot spot 76 / memory junction 86, resume 72 / 83, emergency 78 / 88; fail closed on a stale HWiNFO feed)
+  and while any npt-like python trainer runs (F:\forge_nnue_train\tools\gpu_guard.ps1 only watches npt itself).
+- Before the first GPU minute: no npt python process, GPU utilisation near zero (HWiNFO CSV), never touch npt.
+- Speed: 2.8-3.0M positions/s at H256 (KB1 and KB4), batch 16384, 2 loader threads; 1024 x 16384 per superbatch =
+  ~5.9 s; 700 superbatches = 11.7G positions = ~70 min; 8 checkpoints per run.
+- Reader contract: bullet's read_chunks callback returns TRUE to STOP. An inverted test ran one batch and died with
+  "Data loader ended before all scheduled batches completed" (fixed 2026-11-04; the CPU mock build cannot show it).
+- Every checkpoint: `a/gpu_ckpt_watch.sh <run> <kb map>` (Idle, CPU 2) exports (export_v2r.py), scores S31 + jobA and
+  pairs vs the lock -> D:\o30\gpu\<run>_scores.tsv.
+- Warm start: `import_v2r.py <net.nnue2> <dir> --kb-map rank4` (lock-as-KB4 = D:\o30\nets\lockv2\lock_kbrank4_ob8.nnue2;
+  `o30_v2net.py from-lock <lock nnue_weights.inc> <out> --kb-map rank4x2 --ob 8` for KB8), then run with
+  O30_INIT_DIR=<dir> O30_CLIP=7.99 O30_DECAY=0 (bullet's AdamW clips weights to +-1.98 by default - the lock net reaches
+  3.47 - and its decay 0.01 would shrink a warm start ~7 % over 700k steps). Proven: import -> GPU load -> lr-0
+  superbatch -> save -> export = the input net byte for byte.
+- From scratch (KB4, lr 1e-3): checkpoint at 1.46G positions S31 +7.7e-4 vs the lock (worse) - from-scratch nets must
+  get through the whole cosine schedule before they can be judged.
+
 ## Pitfalls (all hit on 2026-11-03)
 - Bash-tool commands collapse `\\` before `$var` -> a literal `$var` (a run dir named `runs$1`, a net path the engine
   could not open). Use forward slashes or `cygpath -w`.
