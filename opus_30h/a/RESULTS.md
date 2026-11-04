@@ -65,3 +65,9 @@ mirrored / OB8 net `testnets/rand_kbrank4m_ob8_s2.nnue2` sha256 6576e737... must
 ... king buckets 4 output buckets 8 mirrored residual`, a missing file must print the ERROR line), self-play smoke
 default / on / edge (UseNNUE=false with the net loaded) and Threads 2 on: success; expose22: default / on / edge +
 Threads 2: success. (The run of f0023a88 was cancelled by the next push, not failed.)
+
+## Main run N1 (KB1 / OB8, lr 1e-5, output layer x4, cosine to 1e-7 over 1.6e9 positions, CPU 0)
+| checkpoint (PC clock) | positions | S31 b0.6 | S31 b1.0 | jobA b0.6 |
+|---|---|---|---|---|
+| init 17:32 | 0 | 0.0143100 | 0.0045724 | 0.0132721 |
+| 17:57 | 7.61e7 | 0.0143010 (-9.0e-6) | 0.0045489 (-2.35e-5) | 0.0132339 (-3.8e-5) |
