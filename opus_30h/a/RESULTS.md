@@ -483,3 +483,10 @@ o30_tuned_patch, o30_expose) already checked every anchor before their one write
 (copies of the v2port files): planted mismatch in the LAST file -> refused, no file changed; clean tree -> all files
 changed; re-run -> refused, unchanged; half-edited tree -> refused, unchanged: PATCH ATOMIC PASS 8 / 8. The int16 path
 itself was never built (the speed hunt named the lazy root, not the table size); CR confirmed its arithmetic exact.
+
+## Lockstep: the v2 path behaves like the lock in game conditions (2026-11-04 08:5x, `a/lockstep_o30.py`)
+Asked by the v2p4 control's interim score (75 games: 10 / 40 / 25, -71 +/- 48, all games normal, depth gap ~0): both
+engines in their own long-lived process (hash, history and correction tables evolve as in a game), the same 3 games of
+that match ply by ply with `go nodes 20000`: the lock exe and the gate exe v2p4 with the lock net as KB4 replicas give
+the SAME bestmove, score and node count at all 519 plies (LOCKSTEP PASS). So the control's search is identical to the
+lock's; with equal depth in games, any score away from 0 is timing noise and chance - the full 400 games decide.
