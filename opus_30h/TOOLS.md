@@ -1,7 +1,9 @@
 # TOOLS - Opus 30-h job (branch opus-30h-20261103; copies under D:\o30\wt\opus_30h)
 
 Every tool is own code. Python = `C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B` (numpy, torch
-CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / the tools pin themselves).
+CPU, python-chess, psutil). Own processes run at Idle on CPUs 0-1 (lowrun.ps1 / the tools pin themselves). A tool that
+does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [args]` (pins its own bash via
+`pin_pid.py`, fail closed exit 78; children inherit Idle + the mask); net_pack.sh and final_checks_o30.sh source it.
 
 ## Item A - v2 net path, data, training, packaging (`opus_30h/a/`)
 | tool | what it is for | how to verify it |

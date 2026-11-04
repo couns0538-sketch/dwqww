@@ -206,3 +206,16 @@ Groups are not independent tests; this is the measurement error of a fixed row s
   stderr); the lock exe 18 / 18. A first version reported "0.00 s" for movetime searches: the engine's OwnBook
   (default true) answered from its book - the checks now run with OwnBook false, like the gates.
 - n2e play checks started 20:1x on CPU 1 (smoke, ABBA, 400 games 10+0.1 vs the lock, conc 1): ~4.2 h.
+
+## Review R-T1: own processes outside Idle / CPUs 0-1 (found and fixed 2026-11-03 20:2x)
+Found while re-reading my bash tools: net_pack.sh and final_checks_o30.sh started python, the scorer and the parity
+harness directly, so those children ran at Normal priority on any CPU (gates run at BelowNormal on CPUs 4-15). The
+same held for a few one-off analysis commands (scorer / numpy, seconds each) and for the UCI conformance driver
+(its engine was pinned only after start). Each run took seconds to about a minute (the 19:08 final-check run, the two
+packs, ad-hoc scoring). Fix: `tools/idle.sh` + `tools/pin_pid.py` pin the calling bash first (Idle + mask, read back,
+fail closed with exit 78); net_pack.sh and final_checks_o30.sh source it; the conformance driver pins itself before it
+starts the engine; ad-hoc tools run through `idle.sh 0x3 ...`. Checked: a child of a pinned bash reports affinity [1]
+and IDLE_PRIORITY_CLASS; a bad mask exits 78. Effect on the crew: the running gate uhoE3a_evalmatscale12 (3,443 games)
+shows 0 time forfeits, 0 illegal moves, 0 crashes (gate_summary, read-only, 20:2x). Not yet fixed: net_final_checks.sh
+(it is running the n2e checks; bash reads scripts while running, so it is edited after that run; its smoke, ABBA and
+match steps pin themselves already - only its two small python summaries do not).

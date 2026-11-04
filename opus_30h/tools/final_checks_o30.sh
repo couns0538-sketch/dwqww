@@ -11,6 +11,8 @@
 # 11 doc_lint on the branch documents          12 D:\o30\nets\INDEX.md: every cited net / exe sha256 matches its file
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
+# pin this shell first: every check below inherits Idle + CPUs 0-1 (fail closed)
+. "$T/idle.sh"; o30_pin_self 0x3 || { echo "final_checks_o30: cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 LOCK='C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'
 V2EXE='D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe'

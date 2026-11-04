@@ -12,6 +12,8 @@
 set -uo pipefail
 name="$1"; net="$2"; exe="$3"; harness="$4"
 A=$(cd "$(dirname "$0")" && pwd); T="$A/../tools"
+# pin this shell first: every program below (python, scorer, harness, powershell) inherits Idle + CPUs 0-1
+. "$T/idle.sh"; o30_pin_self 0x3 || { echo "net_pack: cannot pin to Idle / CPUs 0-1 (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 out=/d/o30/nets/$name
 [ -e "$out" ] && { echo "refusing: $out exists" >&2; exit 2; }

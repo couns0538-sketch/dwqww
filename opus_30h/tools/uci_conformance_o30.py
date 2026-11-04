@@ -91,6 +91,12 @@ def main():
     ap.add_argument('--mask', default='0x3')
     ap.add_argument('--json', default='')
     a = ap.parse_args()
+    # pin this driver first (Idle + mask, fail closed): the engine then inherits both from its creation on
+    k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    k32.GetCurrentProcess.restype = ctypes.c_void_p
+    me = ctypes.c_void_p(k32.GetCurrentProcess())
+    if not k32.SetPriorityClass(me, 0x40) or not k32.SetProcessAffinityMask(me, ctypes.c_size_t(int(a.mask, 16))):
+        sys.exit('cannot set Idle / CPU mask on this driver (fail closed)')
     results = []
 
     def check(name, ok, detail=''):
