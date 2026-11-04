@@ -27,7 +27,15 @@ Branch `opus-30h-20261103` (from main), worktree `D:\o30\wt`, scratch `D:\o30`. 
 TOOLS.md; skills forge-o30-v2net / forge-o30-spsa (user scope + `opus_30h/skills/`); MCP forge-o30 (5 tools).
 
 ## 2. Unfinished and how to resume
-(pending)
+- **GPU training (the R14 ROCm path)**: not run - the GPU stayed booked by npt for the whole job. Ready: residual `r`
+  mode, ROCm exe, exporter, checks (a/GPU_PATH.md has the exact commands; step 1 is a 10-minute smoke that checks the
+  layout of a real saved file). Needs Engine QA's written window.
+- **Nets with H > 256**: the engine's v2 path uses the compiled-in hidden size (256); an H512 net needs a second
+  accumulator array in the port (follow-up; the GPU path is where wider nets become affordable).
+- **Better labels**: the CPU fine-tunes point at the 5k-node self-play labels as the ceiling; the 50M relabel
+  (R14-B relabel2.py, 78.7 h planning figure) feeding the same reader (a second data source) is the next lever.
+- **Kit v2.5**: my variant of the kit; QA should time it (v2 path and OFF path) before gates rely on it.
+- (more items are added at the end of the job: the SPSA session's state and any check that did not finish)
 
 ## 3. Every check result
 (pending - per item RESULTS.md files hold them as they happen)
