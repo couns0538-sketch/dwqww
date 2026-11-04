@@ -31,8 +31,17 @@ round; own processes Idle on CPUs 0-1 (<= 8 threads, never on cores of a running
 - Self-test: `selftest_10min.ps1 -Out <new dir> [-Cpus 1 -Threads 1]` (3 sessions: deadline, stop event, max pairs;
   checks record = CSV rows, k / batch continuity, ranges, normal terminations) -> SELFTEST PASS.
 - The busy test counts every process on the CPUs, own trainers included: run the tuner on CPUs no own trainer uses.
+- Any other fastchess on the tuner's CPUs counts as a gate (it waits): run own sanity matches on other CPUs, or pause
+  the tuner (`-Stop`, then resume with the same command) for timing-sensitive checks (smoke, NPS ABBA).
+- Before every batch it stops (resumable) when C: < 30 GB or D: < 51 GB (`b/test_disk_low.py` checks the function).
+- Rates measured 2026-11-03: fastchess at 10+0.1, conc 1 on one CPU = ~100 games/h; 8+0.08 pairs ~1.2x faster.
 
 ## Packaging a tuned set
-Final theta rounded to integers -> TUNED_OPTIONS.txt (Name=Value lines) + the one exe; gate line = that exe with the
-options (or a single switch built in after the run, bench(switch) == bench(explicit options)). Report z vs the
-null-gradient sigma per parameter (R9 method); no Elo claim - the crew's UHO [0,5] SPRT + 8moves_v3 confirm decide.
+- `spsa_report.py <run dir> --out <new dir> [--exe X]` (safe on a running session: torn lines are skipped) ->
+  REPORT.md (z vs the null-gradient sigma per parameter, R9 method; convergence table; SVG), TUNED_OPTIONS.txt,
+  TUNED_OPTIONS_beyond2sigma.txt, gate_options.txt.
+- One switch: `python -I -B o30_tuned_patch.py --tuned <TUNED_OPTIONS.txt> --params <run>\params.csv --repo <fresh
+  clone of the expose22 scratch repo>` adds UCI check `O30Tuned` (default false; true = the set, false = the lock values);
+  build with the kit (`tools/kit_build_o30.sh <repo> <tag>`, pc1 = pc2), then `test_o30tuned.sh <exe> <TUNED_OPTIONS.txt>`
+  must print O30TUNED PASS (OFF pins -Full, bench(switch) == bench(explicit list), true then false = lock, invalid value
+  rejected). No Elo claim - the crew's UHO [0,5] SPRT + 8moves_v3 confirm decide; gate only parameters beyond 2 sigma.
