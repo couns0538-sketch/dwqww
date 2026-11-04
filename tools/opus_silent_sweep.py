@@ -63,9 +63,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--root', default='D:/a14', type=Path)
     ap.add_argument('--json')
+    ap.add_argument('--changed-list', help='file with repo-relative paths (git diff --name-only); only those are swept')
     a = ap.parse_args()
+    only = None
+    if a.changed_list:
+        only = {line.strip().replace('/', '\\').casefold() for line in open(a.changed_list, encoding='utf-8') if line.strip()}
     findings, scanned = [], 0
     for path in files(a.root):
+        if only is not None and str(path.relative_to(a.root)).casefold() not in only:
+            continue
         scanned += 1
         found = python_findings(path) if path.suffix == '.py' else powershell_findings(path)
         for f in found:
