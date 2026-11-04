@@ -11,6 +11,7 @@ each other. Refuses an existing output; prints each input's md5 and the max |dif
 import argparse
 import hashlib
 import os
+import re
 import sys
 
 import numpy as np
@@ -38,6 +39,12 @@ def main():
     pad = (b'bullet' * 11)[:pad_len]
     acc, tail, first = None, None, None
     for path in a.inputs:
+        # review W2-09: the size alone cannot tell two maps with the same bucket count apart (or a mirrored run); a
+        # checkpoint folder forge_v2r_<map>_h<H>-<n> must name --kb-map / --hidden (expanded copies carry no name)
+        for part in re.split(r'[\\/]', path):
+            m = re.match(r'forge_v2r_(\w+?)_h(\d+)-\d+$', part)
+            if m and (m.group(1) != a.kb_map or int(m.group(2)) != h):
+                raise SystemExit(f'{path}: its folder says {m.group(1)} H {m.group(2)}, not {a.kb_map} H {h}')
         raw = open(path, 'rb').read()
         if not (len(raw) == need or (len(raw) == need + pad_len and raw[need:] == pad)):
             raise SystemExit(f'{path}: {len(raw)} bytes, expected {need} (+{pad_len} padding) for {a.kb_map} H {h}')

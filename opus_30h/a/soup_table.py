@@ -15,7 +15,9 @@ def members(soup_txt):
             path = line.split(' md5 ')[0][len('input '):].replace('/', '\\')
             parts = path.split('\\')
             run = next((p for p in parts if re.match(r'r\d+_', p)), None)
-            out.append(run or os.path.splitext(parts[-1])[0])
+            ck = next((p.rsplit('-', 1)[1] for p in parts if re.match(r'forge_v2r_.*-\d+$', p)), None)
+            # review W2-08: run@checkpoint for a run folder, else the file stem (an expanded copy like r3_k16)
+            out.append(f'{run}@{ck}' if run and ck else (run or os.path.splitext(parts[-1])[0]))
     return out
 
 
@@ -27,12 +29,13 @@ def main():
     for tsv in sorted(glob.glob(os.path.join(root, '*_scores.tsv')), key=os.path.getmtime):
         name = os.path.basename(tsv)[:-len('_scores.tsv')]
         rows = [r.split('\t') for r in open(tsv, encoding='utf-8').read().splitlines()[1:] if r.strip()]
-        if not rows:
+        st = os.path.join(root, name + '.soup.txt')
+        mem = ' + '.join(members(st)) if os.path.isfile(st) else '?'
+        if not rows:   # review W2-08: a soup whose scoring failed is listed, not dropped
+            print(f'| {name} | {mem} | no score (see {name}_scores.tsv.errors) | - | - |')
             continue
         r = rows[-1]
         ds, zs, dj, zj = float(r[3]), float(r[4]), float(r[6]), float(r[7])
-        st = os.path.join(root, name + '.soup.txt')
-        mem = ' + '.join(members(st)) if os.path.isfile(st) else '?'
         rule = 'PASS' if ds <= -2e-5 and zj <= 2 else 'FAIL'
         print(f'| {name} | {mem} | {ds:+.3e} ({zs:+.1f}) | {dj:+.3e} ({zj:+.2f}) | {rule} |')
 

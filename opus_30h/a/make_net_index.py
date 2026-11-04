@@ -18,11 +18,11 @@ def fmt_z(z):
 def sanity_from_log(d):
     """Latest fastchess summary of a sanity_match.py run in <net>/sanity or <net>/sanity2 (GPU nets have no
     FINAL_CHECKS.json): 'Games: N, Wins ..., Points ... (x %)' + 'Elo: ...' + the candidate exe from RUN_INFO.json.
-    A folder without sanity.log (a placeholder) is skipped."""
-    for sub in ('sanity', 'sanity2'):
+    A folder without sanity.log (a placeholder) is skipped; the newest sanity.log wins (review W2-10), and a match that
+    has not reached its planned games is marked RUNNING."""
+    found = [s for s in ('sanity', 'sanity2') if os.path.isfile(os.path.join(d, s, 'sanity.log'))]
+    for sub in sorted(found, key=lambda s: os.path.getmtime(os.path.join(d, s, 'sanity.log')), reverse=True):
         p = os.path.join(d, sub, 'sanity.log')
-        if not os.path.isfile(p):
-            continue
         games = elo = ''
         for line in open(p, encoding='utf-8', errors='replace'):
             if line.startswith('Games:'):
@@ -35,7 +35,10 @@ def sanity_from_log(d):
         ri = os.path.join(d, sub, 'RUN_INFO.json')
         if os.path.isfile(ri):
             info = json.load(open(ri, encoding='utf-8-sig'))
-            out += f"; exe {info['candidate']['sha256'][:8]}; planned {info.get('games', '?')} games ({sub})"
+            planned = info.get('games')
+            played = int(games.split(',')[0].split(':')[1])
+            state = 'RUNNING, ' if isinstance(planned, int) and played < planned else ''
+            out = f"{state}{out}; exe {info['candidate']['sha256'][:8]}; planned {planned if planned else '?'} games ({sub})"
         return out
     return '-'
 

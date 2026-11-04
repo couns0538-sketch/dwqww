@@ -17,7 +17,8 @@
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
 # pin this shell first: every check below inherits Idle + the mask (O30_MASK, default 0x3 = CPUs 0-1; fail closed)
-MASK="${O30_MASK:-0x3}"
+[ -n "${O30_MASK:-}" ] || { echo "final_checks_o30: set O30_MASK (no default; review W2-05)" >&2; exit 78; }
+MASK="$O30_MASK"
 . "$T/idle.sh"; o30_pin_self "$MASK" || { echo "final_checks_o30: cannot pin to Idle / $MASK (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 LOCK='C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'
@@ -78,7 +79,7 @@ hashes() {
            /d/o30/target_rocm/release/forge-v2-bullet.exe /d/o30/tools_bin /d/o30/kit25 /d/o30/repos/base/src/nnue_weights.inc \
            /c/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe "$W/opus_30h/a" "$W/opus_30h/b" \
            /d/o30/data/AUDIT.json /d/o30/w/*tuned*_pc1/src_copy/*.exe /d/o30/target_rocm2/release/forge-v2-bullet.exe \
-           /d/o30/target_rocm3/release/forge-v2-bullet.exe /d/o30/target_rocm4/release/forge-v2-bullet.exe /c/o30g/gpu \
+           /d/o30/target_rocm3/release/forge-v2-bullet.exe /d/o30/target_rocm4/release/forge-v2-bullet.exe \
            /d/o30/checks_gpu /d/o30/control/lockkb4_v2p4 /d/o30/spsa/report_184pairs /d/o30/spsa/stc8_main/params.csv /d/a14/FINAL_REPORT.md; do
     [ -e "$f" ] && files+=("$(cygpath -w "$f")")
   done

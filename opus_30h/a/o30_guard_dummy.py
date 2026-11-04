@@ -1,4 +1,4 @@
-"""dummy_busy.py <seconds> <beats file> - test child for the guard (CR item 9): spins on one CPU and writes one
+"""o30_guard_dummy.py <seconds> <beats file> - test child for the guard (CR item 9): spins on one CPU and writes one
 heartbeat line per second (wall time) until <seconds> of wall time have passed, then exits by itself."""
 import sys
 import time

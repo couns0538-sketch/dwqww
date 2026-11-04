@@ -8,12 +8,14 @@
 #   4. pin_check: OFF = lock pins (-Full), ON with the net: bench d11/d13/d16 twice (must be equal = deterministic),
 #      perft = pins;
 #   5. RESULT.json with every number.
-# Idle on O30_MASK (default 0x3 = CPUs 0-1) for every step, pin_check included. Exit 0 = every check passed.
+# Idle on O30_MASK (required; review W2-05) for every step, pin_check included. Exit 0 = every check passed.
 set -uo pipefail
 name="$1"; net="$2"; exe="$3"; harness="$4"
 A=$(cd "$(dirname "$0")" && pwd); T="$A/../tools"
-# pin this shell first: every program below (python, scorer, harness, powershell) inherits Idle + the mask (O30_MASK, default 0x3)
-. "$T/idle.sh"; o30_pin_self "${O30_MASK:-0x3}" || { echo "net_pack: cannot pin to Idle / ${O30_MASK:-0x3} (fail closed)" >&2; exit 78; }
+# pin this shell first: every program below (python, scorer, harness, powershell) inherits Idle + the mask (O30_MASK)
+# review W2-05: no default mask - the old default 0x3 landed on the CPUs of running sanity matches
+[ -n "${O30_MASK:-}" ] || { echo "net_pack: set O30_MASK (the CPU mask for every step; no default)" >&2; exit 78; }
+. "$T/idle.sh"; o30_pin_self "$O30_MASK" || { echo "net_pack: cannot pin to Idle / $O30_MASK (fail closed)" >&2; exit 78; }
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 out=/d/o30/nets/$name
 [ -e "$out" ] && { echo "refusing: $out exists" >&2; exit 2; }
@@ -32,7 +34,7 @@ S16P='F:\opus_scratch\sol_S31\inputs\prod\holdout_013_014_s16.pos'; S16H='F:\opu
 "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$out/s16.f64")" 'D:\o30\dumps\s16_lock.f64' > "$out/paired_s16.json" || fail=1
 "$PY" -I -B "$A/o30_paired.py" "$(cygpath -w "$out/jobA_val.f64")" 'D:\o30\dumps\jobA_lock.f64' > "$out/paired_jobA_val.json" || fail=1
 # pin_check.ps1 sets its own mask (default 0x3): pass the same override as this shell (O30_MASK), or it lands on 0-1
-PCMASK="${O30_MASK:-0x3}"
+PCMASK="$O30_MASK"
 powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Full -Mask "$PCMASK" > "$out/pins_off.txt" 2>&1 || fail=1
 for i in 1 2; do
   powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$T/pin_check.ps1")" -Exe "$EW" -Options "EvalFileV2=$NW" -Mask "$PCMASK" > "$out/pins_on_$i.txt" 2>&1 || fail=1
