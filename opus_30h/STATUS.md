@@ -41,8 +41,8 @@ letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py 
   ~23:50) -> KB8 equal-length test n3 (~2 h; rule in a/RESULTS.md, written before) -> n3 play checks only if it
   qualifies -> SPSA stc8 (`-Cpus 1 -Threads 1`).
 - CPU 0: n2L until 03:30 -> pack -> smoke + ABBA (SPSA paused by its stop event for ~20 min, then resumed on CPU 1) ->
-  n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until ~18:00.
-- From ~18:00: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
+  n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until 19:30 (the kit builds take ~2 min per side, so the wrap-up needs less than planned).
+- From 19:30: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
   FINAL_REPORT.
 - After the n2e match ends: copy `D:\o30\tmp\net_final_checks.next.sh` over `a/net_final_checks.sh` (self-pin + ABBA
   net-loaded / identity checks; not edited while bash runs it); on the then free CPU 1: an A/A ABBA (the lock vs a
