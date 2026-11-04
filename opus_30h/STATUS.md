@@ -38,6 +38,17 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   0 time losses, UCI conformance 22/22, speed vs their lock-as-KB controls within noise (draft D:\o30\tmp\forge_checks_draft.md).
 - Sanity (400 games 10+0.1 vs the lock exe, sanity only, no Elo claim): run 2 at 160 games 50.31 %; run 5 started
   13:26 on CPU 2; run 3's queued start on CPU 5 was refused on purpose (placeholder note in its sanity folder).
+- 13:50-14:05 run 8 (KB32 rank4x8, same recipe): final S31 -1.80e-4 / jobA -5.4e-5 (= run 7 on S31, weaker on jobA);
+  first live run under the new guard (start line with pid + create time, end exit 0, 0 poll errors).
+- 13:55 engine identity of the new layouts: the lock net written as KB16 / KB32 gives the lock pins in v2p4.
+- 13:56 run 7 packed (D:\o30\nets\o30_gpu_kb16short_r7, all checks incl. parity at KB16); sanity on CPU 0 from 13:57.
+- 14:05 WEIGHT SOUPS: nets trained from the same lock warm start, rewritten exactly to one layout
+  (a/o30_expand_kb.py) and averaged (a/o30_soup.py, a/soup_score.sh), beat every single net offline: runs 3+5+7+8 as
+  KB32 S31 -2.25e-4 (z -50.2) / jobA -1.34e-4 (z -2.70); runs 3+5+7 as KB16 -2.09e-4 / -1.30e-4 (z -2.54). Run 2 (KB4)
+  hurts jobA in a soup. The KB32 soup is packed (D:\o30\nets\o30_gpu_soupC_r3r5r7r8, sha256 0dddfdc9, all checks,
+  parity 10000/10000 x 3) and plays its sanity match on CPU 1 from 14:12.
+- 14:12 layout speed (identity nets, same trees, gate exe, CPU 1): KB16 0.968x and KB32 0.941x the nps of KB4 ->
+  the GPU plan (C:\o30g\gpu\plan.txt, a/queue_runner.sh, cutoff 18:40) now makes KB16 and KB8 soup members only.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
