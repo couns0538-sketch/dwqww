@@ -37,8 +37,9 @@ slowed: hourly mean GPU utilisation from the keeper's HWiNFO log (`tools/gpu_uti
 letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py stop <run>`) and resume later.
 
 ## CPU plan (CPUs 0-1 only, Idle; gates 0xFFF0, npt Idle on 0x000F)
-- CPU 1: n2e pack (20:07) -> n2e play checks (smoke 300 s, NPS ABBA 6 pairs, 400 games 10+0.1 vs the lock; ~4 h) ->
-  SPSA stc8 (`-Cpus 1 -Threads 1`) from ~00:30.
+- CPU 1: n2e pack (20:07) -> n2e play checks (smoke 300 s, NPS ABBA 6 pairs, 400 games 10+0.1 vs the lock; until
+  ~23:50) -> KB8 equal-length test n3 (~2 h; rule in a/RESULTS.md, written before) -> n3 play checks only if it
+  qualifies -> SPSA stc8 (`-Cpus 1 -Threads 1`).
 - CPU 0: n2L until 03:30 -> pack -> smoke + ABBA (SPSA paused by its stop event for ~20 min, then resumed on CPU 1) ->
   n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until ~18:00.
 - From ~18:00: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
