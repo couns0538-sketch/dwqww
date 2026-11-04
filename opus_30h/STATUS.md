@@ -19,6 +19,26 @@ scan, 4-5 GPU trainer, 2 export / scoring.
 - Next: run 2 = warm start from the lock net (KB4), lr 2e-5 cosine, ~11.7G positions; run 3 by the scores (KB8 warm
   start ready: D:\o30\gpu\init_lockkb8). Freed CPUs after ~12:00 go to sanity matches of the GPU nets.
 
+- 11:5x-13:35 runs 2-6 (all warm starts from the lock net, exe D:\o30\target_rocm2 md5 04b6944a): finals in a/RESULTS.md;
+  run 6 (KB8, lr 3e-5, 800 superbatches) ended 13:35:14 at S31 -1.33e-4 / jobA -8.9e-6 (rule PASS, weaker than run 5).
+
+## GPU window 2 (owner's extra 5 h GPU + 5 h CPU, received ~13:18, recorded 13:27; read as ~14:06-19:06)
+Quote and reading in D:\o30\WINDOW.md (copy a/logs/gpu/WINDOW.md). CPUs: 3-5 GPU trainer (0x38) + checkpoint scoring,
+2 run-5 sanity match (since 13:26), 6 run-2 sanity match, 0-1 Item B kit build (agent, from 13:45), then sanity
+matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at 53 GB, floor 50; a/gpu_run_o30c.bat).
+- 13:28-13:45 CR items 9-13 of the owner's fix list (commits 8b57f4a8, 24d98b82, f9136f2f, 16e84bc9, 345cf411):
+  trainer refuses a warm start without O30_CLIP + O30_DECAY; guard fails closed with ABORT + --resume-pid (dummy-child
+  tests); warm proofs 02-04 byte-identical on the current builds; watcher bounded; two bug-hunt logs labelled.
+- 13:31 16 / 32 king-bucket layouts (rank4x4, rank4x8) in the trainer and the Python tools (b74033b4); Rust = Python
+  features on 3,000 rows; the engine reads the map from the file (no engine change).
+- 13:36 run 7: KB16 rank4x4, run 5's recipe (200 superbatches, lr 2e-5), exe D:\o30\target_rocm4 (md5 1a180f7b).
+  At 150 superbatches S31 -1.74e-4 (z -36.7), jobA -1.01e-4 (z -1.98): ahead of run 5 (KB8) at every checkpoint.
+- run 8 queued (a/queue_w2b.sh): KB32 rank4x8 warm proof, then the same recipe; watcher on C:\o30g\gpu.
+- Play checks (agent, CPU 0, 13:05-13:39): nets of runs 2 and 3 work in Forge - smoke 300 s 0 illegal / 0 crashes /
+  0 time losses, UCI conformance 22/22, speed vs their lock-as-KB controls within noise (draft D:\o30\tmp\forge_checks_draft.md).
+- Sanity (400 games 10+0.1 vs the lock exe, sanity only, no Elo claim): run 2 at 160 games 50.31 %; run 5 started
+  13:26 on CPU 2; run 3's queued start on CPU 5 was refused on purpose (placeholder note in its sanity folder).
+
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
 
