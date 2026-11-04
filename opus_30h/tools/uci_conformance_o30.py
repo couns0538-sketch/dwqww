@@ -174,6 +174,18 @@ def main():
                f'bestmove {bm} ' + (f'BEFORE stop ({t_early:.3f} s after go)' if t_early is not None
                                     else f'{secs:.3f} s after stop'))
     infinite('go infinite + stop: no bestmove before stop, then within 1 s (OwnBook false)', check)
+    if a.opt:   # a GUI changing the net / an option during analysis: the engine must stay responsive
+        n, v = a.opt[0].split('=', 1)
+        e.send('position startpos')
+        e.send('go infinite')
+        time.sleep(0.3)
+        e.send(f'setoption name {n} value {v}')
+        e.send('isready')
+        lines, secs = e.until(lambda l: l == 'readyok', 30)
+        bms = [l for l in lines if l.startswith('bestmove')]
+        check(f'setoption {n} during go infinite -> readyok', secs is not None,
+              f'{len(bms)} bestmove line(s) from the stopped search, readyok after {secs if secs is None else round(secs, 2)} s')
+        search('after setoption during a search: go depth 8', None, ['e2e4'], 'go depth 8', 10)
     lines, bm = search('mate in 1 found (depth 6)', '6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', [], 'go depth 6', 10)
     mate = [l for l in lines if ' score mate 1 ' in l + ' ']
     check('mate in 1: bestmove d1d8 and score mate 1', bm == 'd1d8' and bool(mate), f'bestmove {bm}')

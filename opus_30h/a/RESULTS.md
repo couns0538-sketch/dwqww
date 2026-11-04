@@ -262,3 +262,6 @@ map entry = output buckets, reserved byte set, weight byte flipped. Every one is
 `info string ERROR EvalFileV2 ...` line and the engine then benches the lock pin (d11 312866). Sequences: valid net ->
 damaged file leaves no v2 net (lock pin); valid net -> empty value unloads (lock pin); control: the valid net is live
 (d11 333628). LOADER FUZZ PASS, 21 / 21. Now check 14 of final_checks_o30.sh.
+More "works in Forge" cases (20:4x): a net path with spaces (`D:/o30/tmp/dir with space/x.nnue2`) loads (the handler
+reads the rest of the line); `setoption EvalFileV2` sent during `go infinite` stops the search (one bestmove), loads,
+answers readyok in 0.08 s, and the next search works - now part of uci_conformance_o30.py (gate exe + n2e: 22 / 22).
