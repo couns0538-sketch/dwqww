@@ -186,6 +186,15 @@ jobA z <= +2). Pins and ON benches: `D:\o30\nets\o30_kb4ob8_n2e\RESULT.json`: OF
 perft); ON bench d11 333628 / d13 803134 / d16 2593172, equal in two runs; perft = pins. sha256
 998db5e9e174fed02f9ed4474981ef4f09bed8d0a098e52d418e1aeef05c86f8, md5 64c967f0cfd8bdd086f6371a68d7456f.
 
+## Where the n2e gain comes from (`o30_breakdown.py`, paired per-row S31 differences; `D:\o30\nets\o30_kb4ob8_n2e\BREAKDOWN_S31.md`)
+Every group improves on its own (z -6 to -25), so the gain is not one odd subset of the holdout:
+- by material (OB8 bucket): endgames gain most per row (2-5 pieces -8.9e-5, 6-9 pieces -7.1e-5), the opening bucket
+  least (30-32 pieces -2.8e-5);
+- by king placement: the further up the board the side to move's king stands, the larger the gain (rank 1 -4.7e-5,
+  rank 2 -5.6e-5, ranks 3-4 -6.6e-5, ranks 5-8 -8.4e-5); the same for the other king - what 4 king buckets add;
+- by label size: 0-49 cp -6.0e-5 ... 150-399 cp -7.9e-5, 1000+ cp -0.8e-5 (big labels are saturated by the sigmoid).
+Groups are not independent tests; this is the measurement error of a fixed row set, not training noise.
+
 ## Play checks - pipeline dry run and UCI conformance (2026-11-03 20:0x-20:1x, CPU 1)
 - `net_final_checks.sh` had never run end to end, and it refuses an existing FINAL_CHECKS.json: dry run on the test
   net `test_lockv2_kb1_ob8` (the lock function as v2) with 2 games: smoke 300 s PASS (30 games, 3,645 plies, 0 illegal /
