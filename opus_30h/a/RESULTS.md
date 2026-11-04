@@ -58,3 +58,10 @@ lock net offline". (Loss has not predicted Elo reliably here (S30): even a pass 
 | probe lr 2e-5 | 2e-5 | 0.0143096 (-0.4e-6) | 0.0045624 | 0.0132834 |
 | probe lr 5e-6 (dir `D:\o30\runs$1`, a quoting slip) | 5e-6 | 0.0143092 (-0.8e-6) | 0.0045684 | 0.0132653 |
 Finding: the lock net is converged on its own data; output buckets alone barely move the loss in 30M positions.
+
+## CI (opus-30h-ci, GitHub Actions, ASan + UBSan, lock source d4f4312 + patch)
+Run 41676909751 (commit 0744d479): success on all 3 rows. lock (control); v2port: load check (the committed random KB4
+mirrored / OB8 net `testnets/rand_kbrank4m_ob8_s2.nnue2` sha256 6576e737... must print `info string EvalFileV2 loaded
+... king buckets 4 output buckets 8 mirrored residual`, a missing file must print the ERROR line), self-play smoke
+default / on / edge (UseNNUE=false with the net loaded) and Threads 2 on: success; expose22: default / on / edge +
+Threads 2: success. (The run of f0023a88 was cancelled by the next push, not failed.)
