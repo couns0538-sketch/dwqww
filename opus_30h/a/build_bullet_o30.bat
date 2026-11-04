@@ -29,6 +29,8 @@ echo cargo mock build exit %RC% (log %LOG%)
 exit /b %RC%
 :rocm
 set CARGO_TARGET_DIR=D:\o30\target_rocm
+rem BULLET_TARGET overrides the target dir (a running exe cannot be relinked in place)
+if not "%BULLET_TARGET%"=="" set CARGO_TARGET_DIR=%BULLET_TARGET%
 set SP=F:\nnue_pytorch\venv\Lib\site-packages
 set HIP_PATH=%SP%\_rocm_sdk_devel
 set PATH=%TC%;%SP%\_rocm_sdk_libraries_gfx110X_all\bin;%SP%\_rocm_sdk_devel\bin;%PATH%

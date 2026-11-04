@@ -26,7 +26,9 @@ set GCN_ARCH_NAME=gfx1100
 set TEMP=D:\o30\tmp
 set TMP=D:\o30\tmp
 if "%GUARD_EXTRA%"=="" set GUARD_EXTRA=
-C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B D:\o30\wt\opus_30h\a\o30_gpu_guard.py --log D:\o30\gpu\%RUN%.guard.log --mask 0x30 %GUARD_EXTRA% -- D:\o30\target_rocm\release\forge-v2-bullet.exe r D:/o30/data D:/o30/gpu/%RUN%%ARGS% > D:\o30\gpu\%RUN%.out 2>&1
+rem BULLET_EXE: another build (a running exe cannot be relinked); O30_INIT_DIR / O30_CLIP pass through to the trainer
+if "%BULLET_EXE%"=="" set BULLET_EXE=D:\o30\target_rocm\release\forge-v2-bullet.exe
+C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe -I -B D:\o30\wt\opus_30h\a\o30_gpu_guard.py --log D:\o30\gpu\%RUN%.guard.log --mask 0x30 %GUARD_EXTRA% -- %BULLET_EXE% r D:/o30/data D:/o30/gpu/%RUN%%ARGS% > D:\o30\gpu\%RUN%.out 2>&1
 set RC=%ERRORLEVEL%
 echo gpu run %RUN% exit %RC% (log D:\o30\gpu\%RUN%.out)
 exit /b %RC%

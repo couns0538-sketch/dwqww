@@ -300,6 +300,20 @@ fn main_r(a: &[String]) {
             let ntm_hidden = l0.forward(ntm_inputs).screlu();
             l1.forward(stm_hidden.concat(ntm_hidden)).select(output_buckets)
         });
+    // Warm start (GPU window 2026-11-04): O30_CLIP widens AdamW's weight clip (default +-1.98; a warm start from the
+    // lock net needs about +-3.5, and +-7.99 still fits int16 at scale 4096); O30_INIT_DIR loads <dir>/optimiser_state
+    // (weights.bin + zero momentum / velocity written by import_v2r.py) before the first superbatch. Unset = as before.
+    if let Ok(clip) = std::env::var("O30_CLIP") {
+        let clip: f32 = clip.parse().expect("O30_CLIP must be a number");
+        assert!(clip > 0.0 && clip < 8.0, "O30_CLIP must be in (0, 8)");
+        use bullet_lib::nn::optimiser::AdamWParams;
+        trainer.optimiser.set_params(AdamWParams { decay: 0.01, beta1: 0.9, beta2: 0.999, min_weight: -clip, max_weight: clip });
+        println!("AdamW weight clip +-{clip}");
+    }
+    if let Ok(dir) = std::env::var("O30_INIT_DIR") {
+        println!("warm start from {dir}/optimiser_state");
+        trainer.load_from_checkpoint(&dir);
+    }
     let schedule = TrainingSchedule {
         net_id: format!("forge_v2r_{}_h{hidden}", a[4]),
         eval_scale: 400.0 / SIGMOID_K,
