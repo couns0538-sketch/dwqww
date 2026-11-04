@@ -20,6 +20,7 @@ def members(soup_txt):
 
 
 def main():
+    sys.stdout.reconfigure(newline=chr(10))   # LF also when redirected to a file on Windows (doc_lint)
     root = sys.argv[1] if len(sys.argv) > 1 else 'C:/o30g/gpu/soups'
     print('| soup | members | S31 b0.6 vs lock (z) | jobA val vs lock (z) | rule |')
     print('|---|---|---|---|---|')

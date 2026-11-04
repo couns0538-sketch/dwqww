@@ -11,6 +11,7 @@ POS_PER_SB = 1024 * 16384
 
 
 def main():
+    sys.stdout.reconfigure(newline=chr(10))   # LF also when redirected to a file on Windows (doc_lint)
     print('| run | checkpoint | positions | S31 b0.6 | S31 vs lock | z | jobA b0.6 | jobA vs lock | z | rule |')
     print('|---|---|---|---|---|---|---|---|---|---|')
     for run in sys.argv[1:]:
