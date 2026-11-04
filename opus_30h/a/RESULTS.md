@@ -101,3 +101,22 @@ the lock net's own holdout (the 7.1e-6 seed spread is a different question: whet
 (8,821 rows, 20k-node labels, positions of the early self-play files 001 / 002) the error is ~1.6e-5 and the 95M net is
 clearly WORSE: the one-shard chunks pulled the output layer toward whichever file it was reading. Rule refined (stricter
 than before, not looser): a net passes when its S31 b0.6 is >= 2e-5 below the lock net's AND its paired jobA z <= +2.
+
+## Review R-A1: the port patch (structured self-review, NOT independent; 2026-11-03 PC clock 18:1x)
+Read the whole diff (v2port.patch md5 378bf6bc...) against the R3 source it came from. Checked, with the reason:
+- Thread safety: the Net is read-only during a search; refresh caches are per worker id (`net.caches[id_]`, created by
+  that worker only); unload / load only after `stop_search()` joins the search thread (uci.cpp). No shared mutable state.
+- Lifetime: `active_net` is cleared before the Net is deleted (unload); a failed load leaves no v2 net (unload first).
+- Root and lazy updates: the root is refreshed lazily (the root-refresh line is skipped while a v2 net is active and
+  every stack entry starts invalid each search); null moves replay as an empty update (copy); castling / ep / promotion
+  dirty lists (2-4 changes) map to apply_columns templates; a king move that changes its own (bucket, flip) key refreshes
+  that perspective from the board with the later plies' changes taken back. All covered by the walk (king-key changes
+  105k-120k) and the in-search verify build.
+- UseNNUE=false with a v2 net loaded: hand-crafted evaluation only (the v2 branch returns it before touching
+  accumulators); record_move then records nothing, as for the compiled-in net. CI edge line covers it.
+- Hash: cleared on every EvalFileV2 change (old scores came from another evaluation).
+- `info string` on success and on every error; the gate runner's "advertised" check passes (uci lists EvalFileV2).
+- OFF build: the only additions on the default path are one pointer test at the top of static_evaluate and one at the
+  root refresh; pins identical; OFF speed vs the lock 1.021 (kit v2.5, advisory, noisy).
+Findings: none in the engine code. Risks kept: v2 hidden size is the compiled-in 256 (an H512 net needs a separate
+accumulator - follow-up); the kit must be v2.5 (v2.3 makes the v2 path 0.71x).
