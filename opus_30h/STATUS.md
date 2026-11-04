@@ -37,17 +37,17 @@ slowed: hourly mean GPU utilisation from the keeper's HWiNFO log (`tools/gpu_uti
 letter, the tuner and trainers stop cleanly (`tune_spsa.ps1 -Stop`, `o30_fit.py stop <run>`) and resume later.
 
 ## CPU plan (CPUs 0-1 only, Idle; gates 0xFFF0, npt Idle on 0x000F)
-- CPU 1: n2e pack (20:07) -> n2e play checks (smoke 300 s, NPS ABBA 6 pairs, 400 games 10+0.1 vs the lock; until
-  ~23:50) -> KB8 equal-length test n3 (~2 h; rule in a/RESULTS.md, written before) -> n3 play checks only if it
-  qualifies -> SPSA stc8 (`-Cpus 1 -Threads 1`).
+- CPU 1: n2e pack (20:07) -> n2e play checks (until 23:58) -> A/A both ways + 1.1M-ply walk (done 00:03) -> SPSA stc8
+  since 00:03:59 (`D:\o30\spsa\stc8_main`, `-Cpus 1 -Threads 1`, until 19:30). The KB8 test n3 was NOT run (dated
+  reason in a/RESULTS.md: n2e's match showed S31 does not predict play).
 - CPU 0: n2L until 03:30 -> pack -> smoke + ABBA (SPSA paused by its stop event for ~20 min, then resumed on CPU 1) ->
   n2L 400 games on CPU 0 (~4 h) -> SPSA on both CPUs (`-Cpus 0,1 -Threads 2`) until 19:30 (the kit builds take ~2 min per side, so the wrap-up needs less than planned).
 - From 19:30: SPSA report + tuned-set exe, final_checks_o30.sh, 1-hour bug hunt (incl. the deliverables in Forge),
   FINAL_REPORT.
-- After the n2e match ends: copy `D:\o30\tmp\net_final_checks.next.sh` over `a/net_final_checks.sh` (self-pin + ABBA
-  net-loaded / identity checks; not edited while bash runs it); on the then free CPU 1: an A/A ABBA (the lock vs a
-  copy of the lock, 6 pairs bench 16 - the noise floor of the per-net ABBA, plan phase 6) and a walk of >= 1M plies on
-  n2e (plan phase 1 said 1M per net; done so far: 830k per random net); then start n3.
+- n2L at ~03:25: net_pack.sh -> TRAINING.json -> o30_bucketcmp.py + o30_evalcmp.py on the final (recorded with the pack)
+  -> `tune_spsa.ps1 -RunDir D:\o30\spsa\stc8_main -Stop` (waits for the batch) -> net_final_checks.sh <name> <exe> 400 1
+  0; once its abba_nps.txt has the "net loaded" line, resume SPSA with `-Cpus 1 -Threads 1`; after the match (~07:45)
+  resume with `-Cpus 0,1 -Threads 2`.
 
 ## End-of-job bug hunt (1 hour; the checklist, written early)
 1. `tools/final_checks_o30.sh`: 13 checks (pins of 3 exes + the O30Tuned exe added, identity, parity, walk, scorer,
