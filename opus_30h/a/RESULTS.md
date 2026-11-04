@@ -182,4 +182,18 @@ The final checkpoint is the run's best on S31 (selection on the reporting holdou
 differ by < 1e-6, so the selection effect is far below the -5.6e-5). Packed as `o30_kb4ob8_n2e` (net_pack.sh with the
 paired step): parity 10000/10000 on AVX2 / SSE / scalar (planted bug caught 3/3); paired vs the lock net S31 b0.6
 -5.576e-5 (SE 1.64e-6, z -34.0), jobA val +2.21e-5 (SE 1.80e-5, z +1.23) -> **offline rule PASS** (S31 <= -2e-5 and
-jobA z <= +2). Pins and ON benches: `D:\o30\nets\o30_kb4ob8_n2e\RESULT.json`.
+jobA z <= +2). Pins and ON benches: `D:\o30\nets\o30_kb4ob8_n2e\RESULT.json`: OFF pin_check -Full PASS (d11-d22,
+perft); ON bench d11 333628 / d13 803134 / d16 2593172, equal in two runs; perft = pins. sha256
+998db5e9e174fed02f9ed4474981ef4f09bed8d0a098e52d418e1aeef05c86f8, md5 64c967f0cfd8bdd086f6371a68d7456f.
+
+## Play checks - pipeline dry run and UCI conformance (2026-11-03 20:0x-20:1x, CPU 1)
+- `net_final_checks.sh` had never run end to end, and it refuses an existing FINAL_CHECKS.json: dry run on the test
+  net `test_lockv2_kb1_ob8` (the lock function as v2) with 2 games: smoke 300 s PASS (30 games, 3,645 plies, 0 illegal /
+  crashes / hangs / time losses), NPS ABBA 0.976 (CI 0.949-1.004; same tree, the v2 path's speed on this exe,
+  advisory), 2 games 0/2/0, gate_summary reproduces the block, exit 0. Rate at 10+0.1, conc 1: 97 games/h.
+- `tools/uci_conformance_o30.py` (new): gate exe ff856ba8 + o30_kb4ob8_n2e 20 / 20 PASS (the net loads with its
+  `info string`, every bestmove legal and inside its limit, movetime 500 -> 0.48 s, `go infinite` waits for `stop` and
+  answers it at once, mate in 1 with `score mate 1`, 0000 for checkmate / stalemate, Threads 2, clean quit, empty
+  stderr); the lock exe 18 / 18. A first version reported "0.00 s" for movetime searches: the engine's OwnBook
+  (default true) answered from its book - the checks now run with OwnBook false, like the gates.
+- n2e play checks started 20:1x on CPU 1 (smoke, ABBA, 400 games 10+0.1 vs the lock, conc 1): ~4.2 h.

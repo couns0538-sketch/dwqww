@@ -43,6 +43,11 @@ QA's kit v2.3 + R12's v2.4 + workload v2n (the training workload also benches th
 EvalFileV2 code gets a PGO profile). Wrapper `tools/kit25_build_o30.sh <repo> <tag>`; verify: pc1 = pc2 and the training
 log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~1.0x the lock, advisory).
 
+## Does it work in Forge like a GUI / the gate runner uses it?
+| tool | what it is for | how to verify it |
+|---|---|---|
+| `tools/uci_conformance_o30.py <exe> [--opt N=V]... [--expect-info text] [--mask 0x2]` | one engine process through uci / setoption / isready / ucinewgame / go depth, movetime, wtime+btime, nodes, infinite + stop (no bestmove before stop), mate in 1, one legal move, checkmate and stalemate (0000), Threads 2, quit; legality by python-chess, time limits, empty stderr; OwnBook off as the gates (the book-on `go infinite` case is reported as an observation) | 2026-11-03 20:1x: gate exe ff856ba8 + o30_kb4ob8_n2e 20 / 20, lock exe 18 / 18 |
+
 ## One-command re-check
 `bash opus_30h/tools/final_checks_o30.sh`: 12 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
 scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes).
