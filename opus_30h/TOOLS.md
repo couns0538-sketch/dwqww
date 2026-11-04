@@ -26,6 +26,7 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 | `prove_resume_fit.sh`, `fit_resume.sh` | trainer resume proof (interrupted + resumed run = uninterrupted run, bit for bit) / resume launcher | RESUME PROOF PASS (2026-11-03 19:01) |
 | `forge_v2_bullet_o30/` + `build_bullet_o30.bat` + `bullet_residual.patch` | GPU path: R14's trainer with a residual `r` mode on a private copy of the trainer library (D:\o30\bullet) | mock + ROCm builds 0 errors; `rfeatures` + `check_rfeatures.py` = 0 mismatches vs o30_fit.py features |
 | `export_v2r.py` | trainer-library checkpoint -> FORGENN2 residual net (KB map, mirror, OB8); `--make-test` writes a synthetic checkpoint | synthetic checkpoint -> engine parity 10000/10000 |
+| `check_kbmap.sh <map> [mask]` | the proofs a king map needs before training with it (maps: one, rank4, rank4x2 = rank4 x board half, 8 buckets): lock net as that map = lock pins d11-d22, random net parity x 3 + planted bug, walk, trainer selfcheck | prints KBMAP <map> PASS |
 | `o30_data_npy.py` | jobA overrides as plain .npy for the Rust reader | 988,336 rows written |
 | `o30_runs.py` | one table of every CPU fine-tune run (config, last / best holdout losses vs the lock net, rate) | - |
 
@@ -34,6 +35,7 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 |---|---|---|
 | `o30_expose.py` -> `expose22.patch` | 22 more search constants as tune:: options, defaults = the lock's literals | pin_check -Full = lock pins; each option LIVE |
 | `tune_spsa.py` + `tune_spsa.ps1` | the SPSA tuner (params CSV, fastchess pairs, per-iteration CSV, resume, thread cap / CPU mask / gate check, deadline, stop event, stop at the C: 30 GB / D: 51 GB floors) | `selftest_10min.ps1 -Out <new dir>` prints SELFTEST PASS; `b/test_disk_low.py` = DISK FLOOR CHECK PASS |
+| `o30_tuned_patch.py` + `test_o30tuned.sh` | one UCI check `O30Tuned` (default false) that sets a whole tuned set (true) or the lock values (false) on an expose22 tree | `test_o30tuned.sh <exe> <TUNED_OPTIONS.txt>` prints O30TUNED PASS (OFF pins, switch = explicit list, true then false = lock, invalid value rejected) |
 | `spsa_report.py` | report of a run: null-gradient sigma and z per parameter, convergence table at 10-100 %, SVG plot, TUNED_OPTIONS.txt / gate_options.txt | ran on selftest_2 |
 
 ## Shared (`opus_30h/tools/`, copies of R13-R15 tools with D:\o30 paths)

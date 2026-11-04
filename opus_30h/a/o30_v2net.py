@@ -41,15 +41,18 @@ def fnv1a64_fast(data):
     return h
 
 
+KING_MAPS = ('one', 'rank4', 'rank4x2')
+
+
 def king_map(name):
+    """64 bucket ids indexed by the king square seen from the perspective (a1 = 0; files are not flipped)."""
+    rank4 = lambda r: 0 if r == 0 else 1 if r == 1 else 2 if r <= 3 else 3
     if name == 'one':
         return [0] * 64
     if name == 'rank4':   # relative king rank: 1 -> 0, 2 -> 1, 3-4 -> 2, 5-8 -> 3
-        out = []
-        for sq in range(64):
-            r = sq // 8
-            out.append(0 if r == 0 else 1 if r == 1 else 2 if r <= 3 else 3)
-        return out
+        return [rank4(sq // 8) for sq in range(64)]
+    if name == 'rank4x2':   # rank4 x board half (files a-d -> even bucket, e-h -> odd): 8 buckets, unmirrored
+        return [rank4(sq // 8) * 2 + (1 if sq % 8 >= 4 else 0) for sq in range(64)]
     raise SystemExit(f'unknown king map {name!r}')
 
 
@@ -144,7 +147,7 @@ def main():
     a = sub.add_parser('from-lock')
     a.add_argument('inc')
     a.add_argument('out')
-    a.add_argument('--kb-map', default='one', choices=['one', 'rank4'])
+    a.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2'])
     a.add_argument('--ob', type=int, default=1)
     a.add_argument('--stand-alone', action='store_true', help='clear the residual flag (NOT the same function)')
     i = sub.add_parser('info')
@@ -153,7 +156,7 @@ def main():
     r.add_argument('out')
     r.add_argument('--seed', type=int, required=True)
     r.add_argument('--hidden', type=int, default=256)
-    r.add_argument('--kb-map', default='one', choices=['one', 'rank4'])
+    r.add_argument('--kb-map', default='one', choices=['one', 'rank4', 'rank4x2'])
     r.add_argument('--ob', type=int, default=8)
     r.add_argument('--mirror', action='store_true')
     r.add_argument('--stand-alone', action='store_true')

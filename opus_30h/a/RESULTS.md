@@ -230,3 +230,11 @@ and IDLE_PRIORITY_CLASS; a bad mask exits 78. Effect on the crew: the running ga
 shows 0 time forfeits, 0 illegal moves, 0 crashes (gate_summary, read-only, 20:2x). Not yet fixed: net_final_checks.sh
 (it is running the n2e checks; bash reads scripts while running, so it is edited after that run; its smoke, ABBA and
 match steps pin themselves already - only its two small python summaries do not).
+
+## A wider king map, ready before it is needed: rank4x2 (8 buckets, 2026-11-03 20:3x, CPU 0)
+rank4x2 = the rank4 groups (king on rank 1 / 2 / 3-4 / 5-8, seen from its own side) x the board half (files a-d or
+e-h), unmirrored - so the lock net written into all 8 buckets is still exactly the lock function (exact warm start).
+`a/check_kbmap.sh rank4x2` (evidence `D:\o30\kbmap_rank4x2_202819`): 1 lock net as rank4x2 / OB8 = lock pins
+d11-d22 in the gate exe ff856ba8 PASS; 2 random rank4x2 / OB8 net parity 10000/10000 on AVX2 / SSE / scalar + planted
+bug caught PASS; 3 walk 500 games, 139,064 plies, 19,978 king-key changes, 0 mismatches PASS; 4 trainer selfcheck
+PASS. Whether a KB8 run gets a CPU is decided at ~00:30 from n2L's curve (does longer KB4 training still gain?).
