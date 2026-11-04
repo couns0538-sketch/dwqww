@@ -275,6 +275,12 @@ fn main_r(a: &[String]) {
     let lr0: f32 = arg(a, 11, 0.001);
     let wdl: f32 = arg(a, 12, 0.4);
     let mix: usize = arg(a, 13, 8);
+    // CR item 10: refuse a warm start without explicit O30_CLIP and O30_DECAY before anything touches the GPU
+    if std::env::var("O30_INIT_DIR").is_ok() && (std::env::var("O30_CLIP").is_err() || std::env::var("O30_DECAY").is_err()) {
+        eprintln!("refusing: O30_INIT_DIR (warm start) needs O30_CLIP and O30_DECAY set explicitly; the defaults (clip +-1.98, \
+                   decay 0.01) would clip / shrink the loaded net");
+        std::process::exit(2);
+    }
     let inputs = ForgeV2R { kmap, kb, mirror };
     let n_in = inputs.num_inputs();
     println!("forge_v2_bullet r: kb {kb} ({}) mirror {mirror} hidden {hidden} superbatches {sbs} x {bpsb} seed {seed} lr {lr0} wdl {wdl} mix {mix}", a[4]);
@@ -315,8 +321,9 @@ fn main_r(a: &[String]) {
         println!("AdamW weight clip +-{clip} decay {decay}");
     }
     if let Ok(dir) = std::env::var("O30_INIT_DIR") {
-        // review G-001: the default clip (+-1.98) would silently clip a loaded net at the first update
-        assert!(std::env::var("O30_CLIP").is_ok(), "O30_INIT_DIR needs O30_CLIP >= the max |weight| import_v2r.py printed");
+        // review G-001 / CR item 10: the defaults (+-1.98 clip, 0.01 decay) would clip / shrink a loaded net
+        assert!(std::env::var("O30_CLIP").is_ok() && std::env::var("O30_DECAY").is_ok(),
+                "O30_INIT_DIR needs O30_CLIP (>= the max |weight| import_v2r.py printed) and O30_DECAY set explicitly");
         println!("warm start from {dir}/optimiser_state");
         trainer.load_from_checkpoint(&dir);
     }

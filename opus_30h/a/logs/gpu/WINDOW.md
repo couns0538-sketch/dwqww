@@ -15,3 +15,21 @@ Reading used (strict):
 - 6 CPU cores = six logical CPUs in total for all own work: 0-1 running rematches (to ~12:00), 3 the Astra overlap
   scan (to ~11:20), 4-5 the GPU trainer, 2 exports / scoring. Idle priority. Freed cores go to sanity matches of the
   new nets.
+
+## Extension: an additional 5-hour GPU + CPU window
+
+Second written message from the owner (Couns), received in this session at about 13:18 PC clock on 2026-11-04
+(recorded 2026-11-04 13:27 PC clock = Vienna):
+
+> "also you get an additonal 5 hour gpu window and 5hour cpu window so use the whole 5 hours of the gpu and cpu to its fullest"
+
+Reading used:
+- "additional" = appended to the first window: about 2026-11-04 14:06 to 19:06 PC clock, same terms as above
+  (yield-only GPU with the own guard, the same thermal limits, npt never touched; own CPU work at Idle on CPUs 0-6 only,
+  the crew gate keeps CPUs 7-15). If the owner meant 13:18 to 18:18 instead, the GPU queue stops at 18:18; nothing
+  else changes.
+- CPU plan inside the window: CPUs 3-5 = GPU trainer (mask 0x38, full loader speed) + checkpoint scoring, CPU 2 = the
+  run 5 sanity match, CPU 6 = the run 2 sanity match (then the run 3 one), CPUs 0-1 = the Item B kit build, then the
+  R14 suite and further sanity matches.
+- The first window's quote (above) cannot be verified from the branch; it is copied verbatim from the session
+  (owner asked in CR item 13 to confirm it).
