@@ -2,7 +2,7 @@
 """o30_expand_kb.py - Opus 30-h job: rewrite a forge-v2-bullet `r` checkpoint (raw f32 quantised.bin) of a coarser
 unmirrored king map as the 32-bucket map rank4x8, exactly (the same function).
 
-usage: python -I -B o30_expand_kb.py --from rank4|rank4x2|rank4x4 [--hidden 256] <in quantised.bin> <out quantised.bin>
+usage: python -I -B o30_expand_kb.py --from rank4|rank4x2|rank4x4 [--to rank4x8|rank4x4|rank4x2] [--hidden 256] <in> <out>
 Every king map here is rank4 x a file split of the same rank groups (relative rank 1, 2, 3-4, 5-8), so each rank4x8
 bucket (rank group g, file f) lies inside exactly one bucket of the coarser map; its 768 x H first-layer block is
 copied from that bucket. l0b, l1w, l1b are unchanged. The result evaluates every position exactly as the input does,
@@ -33,6 +33,7 @@ def layout(kb, h):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--from', dest='src', required=True, choices=['rank4', 'rank4x2', 'rank4x4'])
+    ap.add_argument('--to', dest='dst', default='rank4x8', choices=['rank4x2', 'rank4x4', 'rank4x8'])
     ap.add_argument('--hidden', type=int, default=256)
     ap.add_argument('inp')
     ap.add_argument('out')
@@ -40,16 +41,16 @@ def main():
     if os.path.exists(a.out):
         raise SystemExit(f'refusing: {a.out} exists')
     h = a.hidden
-    cmap, fmap = king_map(a.src), king_map('rank4x8')
+    cmap, fmap = king_map(a.src), king_map(a.dst)
     kc, kf = max(cmap) + 1, max(fmap) + 1
     # fine bucket -> coarse bucket, from the maps themselves; every square of a fine bucket must agree
     f2c = {}
     for sq in range(64):
         prev = f2c.setdefault(fmap[sq], cmap[sq])
         if prev != cmap[sq]:
-            raise SystemExit(f'rank4x8 bucket {fmap[sq]} spans coarse buckets {prev} and {cmap[sq]}')
+            raise SystemExit(f'{a.dst} bucket {fmap[sq]} spans {a.src} buckets {prev} and {cmap[sq]}')
     if sorted(f2c) != list(range(kf)):
-        raise SystemExit('rank4x8 map does not use every bucket')
+        raise SystemExit(f'{a.dst} map does not use every bucket')
     counts_c, need_c, pad_c = layout(kc, h)
     counts_f, need_f, pad_f = layout(kf, h)
     raw = open(a.inp, 'rb').read()
@@ -63,7 +64,7 @@ def main():
     assert len(data) == need_f
     with open(a.out, 'xb') as out:
         out.write(data + (pad_f if len(raw) > need_c else b''))
-    print(f'{a.inp} ({a.src}, {kc} buckets) -> {a.out} (rank4x8, {kf} buckets); bucket map fine->coarse '
+    print(f'{a.inp} ({a.src}, {kc} buckets) -> {a.out} ({a.dst}, {kf} buckets); bucket map fine->coarse '
           f'{[f2c[b] for b in range(kf)]}; md5 {hashlib.md5(open(a.out, "rb").read()).hexdigest()}')
 
 
