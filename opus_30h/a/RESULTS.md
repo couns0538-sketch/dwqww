@@ -152,3 +152,7 @@ written rule KB4 passes so far (S31 -3.1e-5, jobA z +1.47); final call at the en
 Decision 19:03: KB4 is ahead of KB1 on S31 (-3.10e-5 vs -1.56e-5 at ~1.4e8) and neutral on jobA, so the two CPUs go to
 KB4: the decider n2e finishes on CPU 1 (3.5e8 positions, ~20:00) and a long KB4 run n2L (lr 2e-5, out x2, mix 8,
 1.4e9 positions, until 2026-11-04 03:30) runs on CPU 0. Two KB4 candidates of different training length + N1b's best.
+
+## The gate exe for v2 nets (kit v2.5, D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe, sha256 ff856ba8...)
+pin_check -Full (OFF, EvalFileV2 empty): PASS d11-d22 + perft. With EvalFileV2 = the lock net as a v2 file (KB4 rank map,
+OB8, every bucket a copy): bench d11 / d13 / d16 / d20 / d22 = the lock pins exactly (pin_check -Expect PASS, 67 s).
