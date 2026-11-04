@@ -144,7 +144,7 @@ public sealed class R14SuiteCapture : Stream {
     $owner.PriorityClass=$oldPriority
     foreach ($name in $compileEnvironment.Keys) {
         if ($compileEnvironment[$name].present) { [Environment]::SetEnvironmentVariable($name,$compileEnvironment[$name].value,'Process') }
-        else { Remove-Item -LiteralPath ('Env:'+$name) -ErrorAction SilentlyContinue }
+        else { [Environment]::SetEnvironmentVariable($name,$null,'Process') }
     }
 }
 $supervision=@{started=$began;finished=((Get-Date -Format 'yyyy-MM-dd HH:mm:ss')+' Vienna');cpu=$Cpu;priority='Idle';threads=1;native_exit=$nativeExit;stop_reason=$stopReason;exception=$exception;log_bytes_limit=$LogBytes;candidate_before=$before}

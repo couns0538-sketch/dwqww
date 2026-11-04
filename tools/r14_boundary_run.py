@@ -91,15 +91,16 @@ class ReceiptWriter:
             self.finish(kind)
 
     def abort(self):
-        for current in self.opened.values():
+        # A failed close leaves an unsealed part (never trusted); report it instead of swallowing it silently.
+        for kind, current in self.opened.items():
             try:
                 current['stream'].raw.close()
-            except (OSError,ValueError):
-                pass
+            except (OSError,ValueError) as error:
+                print(f'receipt abort: raw close of {kind} failed: {type(error).__name__}: {error}', file=sys.stderr)
             try:
                 current['stream'].close()
-            except (OSError,ValueError):
-                pass
+            except (OSError,ValueError) as error:
+                print(f'receipt abort: close of {kind} failed: {type(error).__name__}: {error}', file=sys.stderr)
         self.opened.clear()
 
 

@@ -395,16 +395,17 @@ class MapWriter:
 
     def abort(self):
         """Discard buffered tails after a hard stop, preserving only sealed parts."""
-        for current in self.opened.values():
+        # A failed close leaves an unsealed part (never trusted); report it instead of swallowing it silently.
+        for key, current in self.opened.items():
             try:
                 current['stream'].raw.close()
-            except (OSError, ValueError):
-                pass
+            except (OSError, ValueError) as error:
+                print(f'map abort: raw close of {key} failed: {type(error).__name__}: {error}', file=sys.stderr)
             finally:
                 try:
                     current['stream'].close()
-                except (OSError, ValueError):
-                    pass
+                except (OSError, ValueError) as error:
+                    print(f'map abort: close of {key} failed: {type(error).__name__}: {error}', file=sys.stderr)
         self.opened.clear()
 
 

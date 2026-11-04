@@ -174,7 +174,7 @@ try {
 } finally {
     foreach ($key in $oldEnvironment.Keys) {
         if ($oldEnvironmentPresent[$key]) { [Environment]::SetEnvironmentVariable($key,$oldEnvironment[$key],'Process') }
-        else { Remove-Item -LiteralPath ('Env:'+$key) -ErrorAction SilentlyContinue }
+        else { [Environment]::SetEnvironmentVariable($key,$null,'Process') }
     }
     $caller.PriorityClass=$oldPriority
 }

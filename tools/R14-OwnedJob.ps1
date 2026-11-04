@@ -151,7 +151,7 @@ public sealed class R14OwnedJob : IDisposable {
     } finally {
         foreach ($name in $compileEnvironment.Keys) {
             if ($compilePresent[$name]) { [Environment]::SetEnvironmentVariable($name,$compileEnvironment[$name],'Process') }
-            else { Remove-Item -LiteralPath ('Env:'+$name) -ErrorAction SilentlyContinue }
+            else { [Environment]::SetEnvironmentVariable($name,$null,'Process') }
         }
     }
 }
