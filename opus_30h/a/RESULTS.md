@@ -322,3 +322,14 @@ A/A twice with byte-identical binaries: lock as A, copy as B -> 0.9447 (CI 0.906
 here, not a per-file effect. So every B / A ratio from abba.py on this PC this night carries ~0.945 of bias: n2e's
 0.899 corresponds to ~0.95 of the lock (0.899 / 0.945), the dry run's 0.976 to ~1.03. Speed claims stay QA's; the
 cause in abba.py is not found yet (listed for the bug hunt).
+
+## Bucket seams? (`a/o30_bucketcmp.py`, 10,000 FENs, mean correction difference vs the lock net per bucket)
+The lock net has one output bucket and one king bucket; a KB4 / OB8 net could carry steps between adjacent buckets
+that per-position losses cannot see (search meets them at every trade / king move across an edge).
+| net | sd vs lock | largest output-bucket step | largest king-bucket step |
+|---|---|---|---|
+| o30_kb4ob8_n2e | 8.3 cp | 1.8 cp (OB1 -0.56 -> OB2 +1.21) | 1.5 cp (rank 2 -0.32 -> ranks 3-4 +1.22) |
+| n2L at 7.98e8 (step 48712) | 15.6 cp | 2.2 cp (OB3 +2.93 -> OB4 +0.72) | 1.5 cp (rank 2 +0.35 -> ranks 3-4 +1.84) |
+Bucket means are measured to ~0.2-0.5 cp, so the steps are real but small next to the per-position spread: no clear
+seam pattern, nothing structural to fix on the CPU. n2L moves the evaluation twice as far from the lock net as n2e
+(15.6 vs 8.3 cp rms, scale +1.7 %); its own match is the verdict.
