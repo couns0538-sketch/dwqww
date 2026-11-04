@@ -17,7 +17,9 @@ $py = 'C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe'
 $fail = New-Object System.Collections.Generic.List[string]
 function Run-Wrapper([string[]]$extra) {
     $args2 = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrap) + $extra
-    $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $args2 -NoNewWindow -PassThru -Wait
+    $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $args2 -NoNewWindow -PassThru
+    $null = $p.Handle
+    $p.WaitForExit()
     return $p.ExitCode
 }
 $t1 = (Get-Date).AddMinutes(5).ToString('yyyy-MM-dd HH:mm')
@@ -25,12 +27,14 @@ $rc1 = Run-Wrapper @('-Config', $cfg, '-RunDir', $Out, '-Until', ('"' + $t1 + '"
 if ($rc1 -ne 0) { $fail.Add("session 1 exit $rc1") }
 $t2 = (Get-Date).AddMinutes(4).ToString('yyyy-MM-dd HH:mm')
 $p2 = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $wrap, '-RunDir', $Out, '-Until', ('"' + $t2 + '"'), '-Cpus', $Cpus, '-Threads', "$Threads") -NoNewWindow -PassThru
+$null = $p2.Handle   # PS 5.1: without this ExitCode stays empty after WaitForExit
 Start-Sleep -Seconds 60
 $rcs = Run-Wrapper @('-RunDir', $Out, '-Stop')
 if ($rcs -ne 0) { $fail.Add("stop command exit $rcs") }
 $p2.WaitForExit()
 if ($p2.ExitCode -ne 0) { $fail.Add("session 2 exit $($p2.ExitCode)") }
-$rc3 = Run-Wrapper @('-RunDir', $Out, '-MaxPairs', '2', '-Cpus', $Cpus, '-Threads', "$Threads")
+$t3 = (Get-Date).AddMinutes(3).ToString('yyyy-MM-dd HH:mm')
+$rc3 = Run-Wrapper @('-RunDir', $Out, '-MaxPairs', '2', '-Until', ('"' + $t3 + '"'), '-Cpus', $Cpus, '-Threads', "$Threads")
 if ($rc3 -ne 0) { $fail.Add("session 3 exit $rc3") }
 $check = @'
 import csv, json, sys

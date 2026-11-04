@@ -1,7 +1,10 @@
 # Opus 30-h job: ASan+UBSan self-play smoke of each engine patch on the lock tree (git d4f4312 = src_al1s198_clean).
-# Per item: lock source + `patch -p1 -F0` of the candidate patch, g++ -fsanitize=address,undefined, then
+# Per item: lock source + `patch -p1 -F0` of the patch, g++ -fsanitize=address,undefined, then
 # opus_30h/tools/selfplay_smoke.py (legality via the engine's own `go perft 1`, sanitizer lines counted from stderr)
-# for the item's configs (default = all OFF, the ON gate line, the option's max). Item "lock" is the unpatched control.
+# for the item's configs (default = all OFF, the ON line, an edge line). Item "lock" is the unpatched control.
+# v2port: the ON lines load a committed random v2 net (king buckets 4, mirrored, output buckets 8; @NET@ = its absolute
+# path) and a load check fails the job unless the engine answers "info string EvalFileV2 loaded" (the smoke itself does
+# not read info lines, so a failed load would otherwise test the compiled-in net).
 # Runs on every push to the branch (no paths filter); a newer push cancels an older run of the same branch.
 name: opus-30h-ci
 on:
@@ -22,11 +25,17 @@ jobs:
           - item: lock
             patch: '-'
             configs: 'default='
+          - item: v2port
+            patch: opus_30h/a/v2port.patch
+            configs: 'default=|on=EvalFileV2=@NET@|edge=EvalFileV2=@NET@;UseNNUE=false'
+          - item: expose22
+            patch: opus_30h/b/expose22.patch
+            configs: 'default=|on=LmrCutNode=1024;HistoryMalusPercent=80;NmpEvalBase=120;AspirationGrowPercent=80|edge=LmrTtPv=0;LmrInCheck=4096;ProbcutReduction=10;SingularDoubleLimit=0;QuietCheckBonus=40000'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: lock source + candidate patch
+      - name: lock source + patch
         run: |
           git fetch -q --depth 1 origin d4f43124dde1d1e37de90e18930e374f32ea7ffa
           mkdir lock && git archive FETCH_HEAD src include | tar -x -C lock
@@ -37,13 +46,24 @@ jobs:
           cd lock && g++ --version | head -1
           g++ -std=c++20 -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all \
             -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -march=x86-64-v3 -pthread -Iinclude src/*.cpp -o forge_san
+      - name: v2 net load check
+        if: matrix.item == 'v2port'
+        run: |
+          net="$GITHUB_WORKSPACE/opus_30h/a/testnets/rand_kbrank4m_ob8_s2.nnue2"
+          sha256sum "$net"
+          (printf 'uci\nsetoption name EvalFileV2 value %s\nisready\n' "$net"; sleep 2; printf 'quit\n') | lock/forge_san | tee load.txt
+          grep -q '^info string EvalFileV2 loaded .*king buckets 4 output buckets 8 .*mirrored residual' load.txt
+          (printf 'uci\nsetoption name EvalFileV2 value %s\nisready\n' "$net.missing"; sleep 2; printf 'quit\n') | lock/forge_san | tee load_bad.txt
+          grep -q '^info string ERROR EvalFileV2 ' load_bad.txt
       - name: self-play smoke
         env:
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
+          net="$GITHUB_WORKSPACE/opus_30h/a/testnets/rand_kbrank4m_ob8_s2.nnue2"
+          configs="${{ matrix.configs }}"; configs="${configs//@NET@/$net}"
           args=()
-          IFS='|' read -ra cfgs <<< "${{ matrix.configs }}"
+          IFS='|' read -ra cfgs <<< "$configs"
           for c in "${cfgs[@]}"; do args+=(--config "${c%%=*}" "${c#*=}"); done
           python3 opus_30h/tools/selfplay_smoke.py lock/forge_san "${args[@]}" --games 4 --nodes 20000 --max-plies 160 --out san_${{ matrix.item }}
       - name: self-play smoke, Threads 2 (ON line only)
@@ -52,7 +72,9 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
-          on=$(echo "${{ matrix.configs }}" | tr '|' '\n' | grep '^on=' | cut -d= -f2-)
+          net="$GITHUB_WORKSPACE/opus_30h/a/testnets/rand_kbrank4m_ob8_s2.nnue2"
+          configs="${{ matrix.configs }}"; configs="${configs//@NET@/$net}"
+          on=$(echo "$configs" | tr '|' '\n' | grep '^on=' | cut -d= -f2-)
           python3 opus_30h/tools/selfplay_smoke.py lock/forge_san --config on_t2 "$on" --games 2 --nodes 20000 --max-plies 120 --threads 2 --out san_t2_${{ matrix.item }}
       - uses: actions/upload-artifact@v4
         if: always()
@@ -61,3 +83,4 @@ jobs:
           path: |
             san_*${{ matrix.item }}*
             src_sha256.txt
+            load*.txt

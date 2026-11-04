@@ -43,3 +43,18 @@ AVX2 (x86-64-v3), SSE (x86-64-v2, 0 ymm instructions), scalar (`-DFORGE_NNUE_V2_
 | planted bug (`--mutate`, +1 on the first reference line) | caught: 3 of 3 builds FAIL (logs/parity_p1_planted_bug.txt) |
 | walk: random legal games from the start position, per ply incremental update + cached refresh vs full refresh, both perspectives, exact float equality | 3000 games, 830,820 plies per net, 0 mismatches on all 3 builds; king-key changes 119,568 (KB4 mirrored), 105,118 (KB4), 0 (KB1) |
 | in-search verify build (`-DFORGE_NNUE_V2_VERIFY=1`: every accumulator the search evaluates is compared with a full refresh, abort on a difference), bench d11-d22 with the random KB4 mirrored and unmirrored nets | no abort (141M / 240M nodes at d22); node counts equal to the normal build's (s1 d11 375866) |
+
+## CPU fine-tune: decision rule (written 2026-11-03 before the main-run numbers)
+A trained v2 net counts as an offline improvement only if its S31 b0.6 is at least 2e-5 below the lock net's 0.014310027
+(about 3 x the 7.1e-6 seed sd of final b0.6 measured over 43 runs, forge-nnue-data A7) AND its jobA-val b0.6 (20k-node
+labels) is not worse than the lock net's 0.013272058. Smaller differences are reported as "indistinguishable from the
+lock net offline". (Loss has not predicted Elo reliably here (S30): even a pass is only a reason to gate, not a claim.)
+
+## LR probes (warm start = the lock net as KB1 / OB8; 30M positions, cosine to 1e-7; CPU 0 / 1, Idle)
+| run | lr | S31 b0.6 | S31 b1.0 | jobA b0.6 |
+|---|---|---|---|---|
+| lock net (start) | - | 0.0143100 | 0.0045724 | 0.0132721 |
+| smoke2 (3M positions) | 1e-4 | 0.0143376 (+2.8e-5) | 0.0045756 | 0.0132169 |
+| probe lr 2e-5 | 2e-5 | 0.0143096 (-0.4e-6) | 0.0045624 | 0.0132834 |
+| probe lr 5e-6 (dir `D:\o30\runs$1`, a quoting slip) | 5e-6 | 0.0143092 (-0.8e-6) | 0.0045684 | 0.0132653 |
+Finding: the lock net is converged on its own data; output buckets alone barely move the loss in 30M positions.

@@ -18,3 +18,12 @@ Not released (npt keeper: live line s39, window to 2026-11-08 00:00 PC). Trainin
 | A data audit | running (`o30_data.py` -> D:\o30\data) |
 | B options | 22 new tunables (defaults = lock pins PASS), 22 / 22 live; kit build waiting for CPUs 0-1 |
 | B tuner | `tune_spsa.py` + `tune_spsa.ps1` + `selftest_10min.ps1` written; self-test not run yet |
+
+## Finding so far (17:4x, written early on purpose)
+Three facts point the same way: the crew's bigger pure nets lost ~100 Elo to the lock (4 gates); the lock net is
+converged on its own data (a KB1 / OB8 fine-tune moves S31 b0.6 by < 1e-6 in 30M positions at two learning rates);
+the only number that moved clearly was the jobA val loss, whose labels come from 20k-node searches instead of the
+5k-node self-play. The ceiling looks like the LABELS, not the architecture. Gate-next for the crew therefore includes
+the 50M relabel (R14-B relabel2.py, costed at 78.7 h) feeding a v2 retrain - on the GPU path once a window exists.
+CPU plan: N1 (KB1 / OB8) runs on CPU 0; KB4 gets a 2-hour decider on CPU 1 after the SPSA self-test; if it does not
+clear the rule in a/RESULTS.md, CPU 1 goes to the SPSA main run at once.
