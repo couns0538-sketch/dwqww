@@ -62,6 +62,14 @@ log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~
 | `tools/uci_conformance_o30.py <exe> [--opt N=V]... [--expect-info text] [--mask 0x2]` | one engine process through uci / setoption / isready / ucinewgame / go depth, movetime, wtime+btime, nodes, infinite + stop (no bestmove before stop), mate in 1, one legal move, checkmate and stalemate (0000), Threads 2, quit; legality by python-chess, time limits, empty stderr; OwnBook off as the gates (the book-on `go infinite` case is reported as an observation) | 2026-11-03 20:1x: gate exe ff856ba8 + o30_kb4ob8_n2e 20 / 20, lock exe 18 / 18 |
 | `a/loader_fuzz_o30.py <exe> <valid net> <new dir> [--mask]` | 18 kinds of damaged FORGENN2 files (sizes, magic, version, header, feature set, inputs, hidden, bucket counts, flags, scale, map entries, reserved bytes, checksum) must each be refused with their reason and leave the compiled-in net playing; plus load-then-damaged and load-then-empty sequences | LOADER FUZZ PASS 21 / 21 (2026-11-03 20:45) |
 
+## Speed in game conditions (the bench can hide a path's cost: it clears the hash per position)
+| tool | what it is for | how to verify it |
+|---|---|---|
+| `a/depth_probe_o30.py <pgn> <exe A> <exe B> [--opt-b N=V] [--n 200] [--movetime 200]` | positions from a match PGN, `go movetime` in one long-lived process per engine (hash kept, as in a game), A-B / B-A rounds; prints mean depth and the paired nodes-per-second ratio (identical trees -> the speed ratio) with a 95 % CI | lock exe vs itself ~1.0; found the v2 path's 0.887 -> 0.980 after the root fix |
+| `a/o30_v2stats.py <repo>` + `a/stats_run_o30.py <exe> <pgn> [--opt]` | TEST builds only (-DFORGE_NNUE_V2_STATS=1): per-path counters (evaluations, walk-backs, plies, updates, columns, cached / full refreshes, evaluations without a valid ancestor) printed at exit; the driver runs N game positions at a fixed depth, one `go` at a time | v1 vs v2 on identical trees: the counters named the lazy-root bug (777k no-ancestor evaluations) |
+| `a/o30_v2rootfix.py <repo>` | the fix: refresh the v2 root accumulator at search start | in v2port.patch md5 926ada2c; nodes unchanged, verify build clean |
+| `a/o30_evalcmp.py`, `a/o30_bucketcmp.py` | two nets' per-position outputs on the same FENs: scale, rms distance, sign flips; per-bucket mean offsets (seams) | - |
+
 ## One-command re-check
 `bash opus_30h/tools/final_checks_o30.sh`: 15 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
 scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes,

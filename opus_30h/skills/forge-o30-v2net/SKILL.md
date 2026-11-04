@@ -22,8 +22,16 @@ round), own work at Idle on CPUs 0-1, D: >= 50 GB / C: >= 30 GB, never delete / 
   `Evaluator::evaluate_uncached` on every holdout row (checked on 1,024,286 rows).
 - Kit: v2.3 profiles the OFF path only -> the v2 path is cold-optimised (0.71x the lock's speed on the same tree).
   Kit v2.4 `-PartialTraining` (`tools/kit24_build_o30.sh`): 0.959x. Kit v2.5 (`tools/kit25_build_o30.sh`, working copy
-  `D:\o30\kit25`, = v2.4 + workload v2n that also benches the lock net written as v2): ~1.0x (advisory) -> the gate exe
-  for v2 nets is `D:\o30\w\v2p3_pc1\src_copy\forge_ltopgo_v2p3_pc1.exe` ff856ba8 (pc1 = pc2). A plain build: 0.998x.
+  `D:\o30\kit25`, = v2.4 + workload v2n that also benches the lock net written as v2) -> the gate exe for v2 nets is
+  `D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe` a2a560cb (pc1 = pc2; patch md5 926ada2c WITH the root fix).
+  NOT ff856ba8 (v2p3): it lacks the root fix.
+- ROOT REFRESH (bug found 2026-11-04): the v2 path must build the root accumulator at search start like the compiled-in
+  net. Left lazy, in GAMES (hash kept between moves, the root's evaluation from the hash) 19 % of evaluations had no
+  valid ancestor and rebuilt from the cache: ~8 % slower, ~0.15 ply shallower, an identical-evaluation control lost
+  -32 +/- 18.5. The bench clears the hash per position and never showed it. Time any eval path with
+  `a/depth_probe_o30.py` (game positions, long-lived process, nodes-per-second ratio with a CI) and count work with
+  `a/o30_v2stats.py` + `a/stats_run_o30.py`; read every match against an identical-evaluation control (the lock net
+  written as v2 on the same exe), not only against 0.
 
 ## Checks (in this order)
 1. `pin_check.ps1 -Exe X -Full` (OFF pins); lock net as v2 + `-Expect` the lock pins (PASS); random net ON = LIVE;
