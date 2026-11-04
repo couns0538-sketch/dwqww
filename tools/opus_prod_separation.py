@@ -1,10 +1,14 @@
-"""Write D:/a14/sep/PROD_SEPARATION.json from the two final scan REPORTs (numbers read, never typed)."""
+"""Write D:/a14/sep/PROD_SEPARATION.json from the two final scan REPORTs (numbers read, never typed).
+The base record (reasons, writer facts) is Astra's last version as found on the PC (Step 0 md5 04ffdceb...),
+read from commit aa78a56, so the tool can be re-run; only updated_vienna changes between runs."""
 import datetime
 import hashlib
 import json
-import sys
+import subprocess
 
 A14 = 'D:/a14/'
+BASE_COMMIT = 'aa78a56'
+BASE_MD5 = '04ffdcebf3cb1aee4005b76f60187458'
 OV = A14 + 'sep/overlap-production03/REPORT.json'
 SG = A14 + 'sep/segments-production02/REPORT.json'
 SEAL = A14 + 'sep/segments-production02/MAPS_SEAL.json'
@@ -17,7 +21,10 @@ def md5(p):
 
 ov = json.load(open(OV, encoding='utf-8'))
 sg = json.load(open(SG, encoding='utf-8'))
-old = json.load(open(OUT, encoding='utf-8'))
+base = subprocess.run(['git', '-C', A14, 'show', BASE_COMMIT + ':sep/PROD_SEPARATION.json'],
+                      capture_output=True, check=True).stdout
+assert hashlib.md5(base).hexdigest() == BASE_MD5, 'base record is not the Step 0 version'
+old = json.loads(base.decode('utf-8'))
 assert md5(OV) == '1607d19e2b66dbe3512d0997942523c4' and md5(SG) == 'fcb488f8c726326e013f648e1d202760'
 assert ov['complete'] is True and sg['complete'] is True
 bs, ff = ov['keys']['board_stm'], ov['keys']['four_field']
@@ -110,5 +117,5 @@ rec = {
 }
 assert old['reasons'][4].startswith('Full production position and chain scans are running')
 text = json.dumps(rec, indent=2, ensure_ascii=False) + '\n'
-open(OUT, 'wb').write(text.replace('\n', '\r\n').encode('utf-8'))
+open(OUT, 'wb').write(text.encode('utf-8'))  # LF, like the original record
 print('written', OUT, md5(OUT), 'at', now, 'Vienna')

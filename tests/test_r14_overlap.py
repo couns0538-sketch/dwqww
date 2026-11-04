@@ -301,3 +301,53 @@ def test_runtime_inventory_rejects_neighboring_locks(tmp_path, name):
         verify_runtime(runtime_root=runtime, inventory=inventory,
                        expected_inventory_md5=hashlib.md5(inventory.read_bytes()).hexdigest())
     assert neighbor.read_bytes() == b''
+
+
+THIRD = '4k3/8/8/8/8/8/8/5K2 w - - 0 1'
+
+
+def listing_fixture(tmp_path):
+    h, hm = source(tmp_path, 'h.txt', [FEN, OTHER, FEN.replace('0 1', '3 7')])
+    t1, t1m = source(tmp_path, 't1.txt', [THIRD, FEN.replace('0 1', '7 9')])
+    t2, t2m = source(tmp_path, 't2.txt', [OTHER, FEN])
+    pins = {str(p).casefold(): m for p, m in ((h, hm), (t1, t1m), (t2, t2m))}
+    return h, t1, t2, pins
+
+
+def test_listing_names_every_shared_train_and_holdout_row(tmp_path):
+    h, t1, t2, pins = listing_fixture(tmp_path)
+    result = overlap_audit([h], [t1, t2], pins, chunk_rows=1)
+    for name in ('board_stm', 'four_field'):
+        report = result['keys'][name]
+        assert report['status'] == 'FAIL' and report['listing_complete'] is True
+        assert report['shared_exact_keys'] == 2
+        assert report['train_overlap_rows'] == 3 and report['holdout_overlap_rows'] == 3
+        listing = {item['key'].split()[0]: item for item in report['shared_keys']}
+        assert len(listing) == 2
+        fen_board = '....k' + '.' * 55 + 'K...'
+        other_board = '....k' + '.' * 54 + 'K....'
+        assert listing[fen_board]['train'] == [
+            dict(path=str(t1), line=2, fen=FEN.replace('0 1', '7 9')), dict(path=str(t2), line=2, fen=FEN)]
+        assert listing[fen_board]['holdout'] == [
+            dict(path=str(h), line=1, fen=FEN), dict(path=str(h), line=3, fen=FEN.replace('0 1', '3 7'))]
+        assert listing[other_board]['train'] == [dict(path=str(t2), line=1, fen=OTHER)]
+        assert listing[other_board]['holdout'] == [dict(path=str(h), line=2, fen=OTHER)]
+
+
+def test_listing_over_cap_is_withheld_not_truncated(tmp_path, monkeypatch):
+    import r14_overlap
+    monkeypatch.setattr(r14_overlap, 'LISTING_ROW_CAP', 2)
+    h, t1, t2, pins = listing_fixture(tmp_path)
+    result = overlap_audit([h], [t1, t2], pins, chunk_rows=1)
+    report = result['keys']['board_stm']
+    assert report['status'] == 'FAIL' and report['train_overlap_rows'] == 3
+    assert report['listing_complete'] is False and report['shared_keys'] is None
+
+
+def test_listing_is_empty_and_complete_without_overlap(tmp_path):
+    h, hm = source(tmp_path, 'h.txt', [FEN])
+    t, tm = source(tmp_path, 't.txt', [OTHER])
+    result = overlap_audit([h], [t], {str(h).casefold(): hm, str(t).casefold(): tm}, chunk_rows=1)
+    for name in ('board_stm', 'four_field'):
+        assert result['keys'][name]['listing_complete'] is True
+        assert result['keys'][name]['shared_keys'] == []

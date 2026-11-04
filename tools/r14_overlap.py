@@ -19,6 +19,9 @@ from run_policy import free_guard, safe_path
 KEYS = ('four_field', 'board_stm')
 ROOT = Path('D:/a14')
 SOURCE = Path('D:/grok-pc-data/selfplay_out')
+# Every shared key is listed with all of its train and holdout rows (path, line, raw FEN) up to this many rows
+# per key kind and side; beyond it the listing is withheld (listing_complete false) instead of truncated.
+LISTING_ROW_CAP = 250_000
 
 
 def hash64(value: bytes) -> int:
@@ -67,9 +70,11 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
     for values in indexes.values():
         guard()
         values.sort(kind='quicksort')
-    # Candidate exact keys retain counts and bounded examples, not every row.
+    # Candidate exact keys retain counts, bounded examples and the row listing (capped, see LISTING_ROW_CAP).
     candidates = {name: {} for name in KEYS}
     candidate_rows = Counter()
+    listed_rows = {'train': Counter(), 'holdout': Counter()}
+    listing_overflow = {'train': set(), 'holdout': set()}
 
     def check_chunk(chunk, path):
         if not chunk:
@@ -87,11 +92,16 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
             for offset in hits:
                 line, row = chunk[int(offset)]
                 key = row.keys[name]
-                entry = candidates[name].setdefault(key, dict(rows=0, examples=[]))
+                entry = candidates[name].setdefault(key, dict(rows=0, examples=[], listing=[]))
                 entry['rows'] += 1
                 candidate_rows[name] += 1
                 if len(entry['examples']) < 3:
                     entry['examples'].append(dict(path=str(path), line=line))
+                if listed_rows['train'][name] < LISTING_ROW_CAP:
+                    entry['listing'].append(dict(path=str(path), line=line, fen=row.fen))
+                    listed_rows['train'][name] += 1
+                else:
+                    listing_overflow['train'].add(name)
         guard()
 
     for path in training:
@@ -112,6 +122,7 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
     # exact keys and full pinned input hashes. No candidate means no second scan.
     matched = {name: set() for name in KEYS}
     holdout_overlap_rows = Counter()
+    holdout_listing = {name: {} for name in KEYS}
     resolution_receipts = []
     if state is not None:
         state['resolution_receipts'] = resolution_receipts
@@ -126,6 +137,12 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
                         if key in candidates[name]:
                             matched[name].add(key)
                             holdout_overlap_rows[name] += 1
+                            if listed_rows['holdout'][name] < LISTING_ROW_CAP:
+                                holdout_listing[name].setdefault(key, []).append(
+                                    dict(path=str(path), line=line, fen=row.fen))
+                                listed_rows['holdout'][name] += 1
+                            else:
+                                listing_overflow['holdout'].add(name)
                 if line % chunk_rows == 0:
                     guard()
                     progress(dict(stage='exact_resolution', path=str(path), rows=line))
@@ -136,12 +153,21 @@ def overlap_audit(holdouts, training, pins, *, chunk_rows=65536, guard=lambda: N
     for name in KEYS:
         overlap_rows = sum(candidates[name][key]['rows'] for key in matched[name])
         examples = [dict(key=key.decode('ascii'), train=candidates[name][key]['examples']) for key in sorted(matched[name])[:100]]
+        # Full listing: every shared key with ALL of its train and holdout rows. It is published only when no
+        # cap was hit and its row counts equal the audit's own counts; otherwise it is withheld (fail closed).
+        shared_keys = [dict(key=key.decode('ascii'), train=candidates[name][key]['listing'],
+                            holdout=holdout_listing[name].get(key, [])) for key in sorted(matched[name])]
+        listing_complete = (name not in listing_overflow['train'] and name not in listing_overflow['holdout']
+                            and sum(len(item['train']) for item in shared_keys) == overlap_rows
+                            and sum(len(item['holdout']) for item in shared_keys) == holdout_overlap_rows[name]
+                            and all(item['train'] and item['holdout'] for item in shared_keys))
         key_reports[name] = dict(
             status='UNVERIFIED' if not filled else 'FAIL' if overlap_rows else 'PASS',
             shared_exact_keys=len(matched[name]), train_overlap_rows=overlap_rows,
             holdout_overlap_rows=holdout_overlap_rows[name], hash_candidate_rows=candidate_rows[name],
             hash_collision_rows=candidate_rows[name]-overlap_rows,
-            holdout=holdout_coverage, train=train_coverage, examples=examples)
+            holdout=holdout_coverage, train=train_coverage, examples=examples,
+            listing_complete=listing_complete, shared_keys=shared_keys if listing_complete else None)
     return dict(schema=1, scope='position_keys_only', status='UNVERIFIED' if not filled else 'FAIL' if any(r['train_overlap_rows'] for r in key_reports.values()) else 'PASS',
                 keys=key_reports, holdout=holdout_coverage, train=train_coverage,
                 input_receipts=receipts, resolution_receipts=resolution_receipts,
