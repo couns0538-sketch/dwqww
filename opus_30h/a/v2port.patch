@@ -565,7 +565,7 @@ index e88cfc5..eae54b0 100644
 +
 +} // namespace forge::nnue::v2
 diff --git a/src/search.cpp b/src/search.cpp
-index 74de5d3..e321f7b 100644
+index 74de5d3..5c6922f 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -1,4 +1,5 @@
@@ -574,7 +574,7 @@ index 74de5d3..e321f7b 100644
  #include "forge/uci_output.hpp"
  
  #include <algorithm>
-@@ -596,7 +597,81 @@ namespace {
+@@ -596,7 +597,92 @@ namespace {
  }
  } // namespace
  
@@ -644,6 +644,17 @@ index 74de5d3..e321f7b 100644
 +            }
 +        }
 +    }
++#if defined(FORGE_NNUE_V2_VERIFY) && FORGE_NNUE_V2_VERIFY
++    // Test builds only: every accumulator the search evaluates must equal a full refresh, bit for bit.
++    for (const Color color : {White, Black}) {
++        alignas(64) std::array<float, nnue::HiddenSize> full{};
++        nnue::v2::refresh(net, board, color, full.data());
++        if (std::memcmp(full.data(), ss->accumulator.values[static_cast<std::size_t>(color)].data(), sizeof(full)) != 0) {
++            std::cerr << "v2 verify: accumulator mismatch at ply " << ss->ply << " fen " << board.fen() << std::endl;
++            std::abort();
++        }
++    }
++#endif
 +    const int network = nnue::v2::evaluate(net, board, ss->accumulator);
 +    if (!residual) return network;
 +    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
@@ -656,7 +667,7 @@ index 74de5d3..e321f7b 100644
      if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
      const bool residual = nnue::residual();
      if (!ss->accumulator.valid) {
-@@ -1363,7 +1438,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+@@ -1363,7 +1449,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
          entry.accumulator.valid = false;
          entry.runtime_psqt.valid = false;
      }

@@ -32,3 +32,14 @@ Mistake caught on the way: a loop wrote `"EvalFileV2=D:\\o30\\...\\$n.nnue2"`; t
 `$n`), the engine could not open the file and kept the compiled-in net. pin_check reported the engine's ERROR line,
 but the first look at the output was cut with `head` and missed it. All rows above were re-run with paths built by
 `cygpath -w` and full output.
+
+## Parity, walk and in-search verify (2026-11-03, PC clock 16:4x-16:53)
+Patch updated with a test-only block (`FORGE_NNUE_V2_VERIFY`, off in every real build): md5 378bf6bcb4d690d008a7ff18450d38fa.
+Harness `v2_eval_o30.cpp` built from the port by `build_harness_o30.sh` (-O2 -ffp-contract=off -fno-fast-math -static):
+AVX2 (x86-64-v3), SSE (x86-64-v2, 0 ymm instructions), scalar (`-DFORGE_NNUE_V2_SCALAR=1`); 0 warnings each.
+| check | result |
+|---|---|
+| parity: `o30_v2ref.py` (independent float32 reference from the format spec, python-chess FEN parsing) vs engine AVX2 / SSE / scalar, 10,000 legal FENs (`C:\o13\p4\fens10k.txt`) | 10000/10000 exact, max diff 0, on 4 nets x 3 builds: random KB4 rank map MIRRORED / OB8 (seed 30002), random KB4 unmirrored / OB8 (30001), random KB1 / OB8 (30003), the lock net as KB1 / OB8; nonzero evals 9889-9989 |
+| planted bug (`--mutate`, +1 on the first reference line) | caught: 3 of 3 builds FAIL (logs/parity_p1_planted_bug.txt) |
+| walk: random legal games from the start position, per ply incremental update + cached refresh vs full refresh, both perspectives, exact float equality | 3000 games, 830,820 plies per net, 0 mismatches on all 3 builds; king-key changes 119,568 (KB4 mirrored), 105,118 (KB4), 0 (KB1) |
+| in-search verify build (`-DFORGE_NNUE_V2_VERIFY=1`: every accumulator the search evaluates is compared with a full refresh, abort on a difference), bench d11-d22 with the random KB4 mirrored and unmirrored nets | no abort (141M / 240M nodes at d22); node counts equal to the normal build's (s1 d11 375866) |
