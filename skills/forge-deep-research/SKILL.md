@@ -88,6 +88,31 @@ there; paths are the ones of that job.
 - Refill the queue BEFORE it is empty (planner when fewer than 3 research tasks wait); planning only on an empty queue
   left 4 of 10 slots idle while the planner read the notes.
 
+## Worker cap, board and the 3-worker pool (2026-11-05)
+- Owner cap: at most 3 agents in total, agent types `fable` or `opus-max` only. A PreToolUse hook
+  (`<cfg>/hooks/worker_cap.ps1`) counts `agent-*.jsonl` transcripts written in the last 3 minutes (all projects,
+  workflow agents included) and refuses Agent / Task / Workflow calls at >= 3 - TaskStop too. A finished worker counts
+  for 3 more minutes: wait before launching. Agent calls inside a running workflow are not hooked: the script caps
+  itself (`N <= 3`).
+- Because TaskStop can be refused, every pool has a cooperative wrap-up note (`F:/odr/work/pool_wrapup.txt`): workers
+  test it before each source and every 10 minutes, save, free their slot and hand back with `wrapup_seen`, and the
+  script then starts nothing new.
+- Crew board `D:/grok-pc-data/dwqww/WORKER_BOARD.md` (three slot lines): `tools/board.py start S<n> "<worker>" "<task>"`
+  first, `... done S<n> ... "<result path>"` last (appends the done line). `start` takes another idle slot when the
+  named one is busy (two runs can share the board) and refuses after 10 minutes when all 3 are busy; `done` releases by
+  worker + task. `board.py check` exits 1 above 3.
+- `tools/workflows/deepres_pool3.js`: task fields `kind` (research / note; a Fable verifier goes to the queue front
+  after each research task), `agent` (fable | opus-max), `after` (keys `kind:key` that must be done first),
+  `latest_start` (minutes after 22:00), `outputs`, `verify_brief`, `minutes`, `max_cards`.
+- Agent types added after the session started are not in its registry: every `agentType: opus-max` spawn failed at
+  once (journal "failed", empty agentId, no tokens). The script now runs opus-max work as the session model at effort
+  max directly; `fable` works as an agent type.
+- When a pool has only sequential work left, its other slots sit idle: start a separate 1-worker run (same script,
+  fresh run) for a non-overlapping task, keep the total <= 3, add each run to STATUS and to `checkpoint.sh`.
+- Round 3 measured: POOL3 10 agents 1,690,105 tokens (65 min); 1-worker runs 334,288 (2 agents) and 514,776 (3).
+  Late-round yield: a lock-source audit against the bug checklist found nothing >= 1 Elo; mining a 20th-plus engine
+  gives 0-1 card; counter-evidence for the top 10, own-words specs and a Fable spec review changed the gate plan most.
+
 ## Checkpoints and the low-usage stop
 - Commit + push about every 10 minutes (the coordinator only; workers never commit). Update STATUS (track table,
   latest pushed commit), RESUME and the report state line each time; merge `notes/T<nn>/licences.md` into LICENCES.md.

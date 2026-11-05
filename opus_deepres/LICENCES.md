@@ -41,6 +41,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | AndyGrant/Ethereal | b552e36f88 | 2020-09-24 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
 | AndyGrant/Ethereal | f71ac4769a | 2023-03-17 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | AndyGrant/OpenBench | 230ed46e47 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
+| Bobingstern/Tarnished | 2bd208333e | 2025-11-26 | absent | no licence (all rights reserved) | - | api: GPL-3.0 | T04S | ideas only (no licence) |
 | Bobingstern/Tarnished | 79f10476c7 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04O | ideas only |
 | Ciekce/Stormphrax | 29e175a2f5 | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
 | Ciekce/Stormphrax | 3219c3021b | 2024-11-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
@@ -54,7 +55,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Ciekce/Stormphrax | e4b88b7a67 | 2026-02-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Ciekce/Stormphrax | eea6168441 | 2026-06-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Disservin/chess-library | 430266434a | 2026-11-03 | LICENSE | MIT | MIT License | api: MIT | T05C | copy with notice |
-| JonathanHallstrom/pawnocchio | bd860905d3 | 2026-07-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04O | ideas only |
+| JonathanHallstrom/pawnocchio | bd860905d3 | 2026-07-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04O, T04S | ideas only |
 | KierenP/Halogen | 50a42bca43 | 2025-08-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | KierenP/Halogen | f00b8e3417 | 2025-11-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | KierenP/Halogen | fe9b4dafc7 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
@@ -120,8 +121,15 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | lucametehau/CloverEngine | e647926a8f | 2025-09-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04R | ideas only |
 | lynx-chess/Lynx | 57bd72e93f | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | martinnovaak/motor | 033a63cf54 | 2026-10-31 | absent | no licence (all rights reserved) | - | api: none | T04O | ideas only (no licence) |
+| martinnovaak/motor | bee03e1952 | 2025-02-26 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
 | mcthouacbb/Sirius | 0aab371e4d | 2026-10-03 | absent | no licence (all rights reserved) | - | api: none | T04O | ideas only (no licence) |
+| mcthouacbb/Sirius | 3b2cd0247b | 2025-11-23 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | 9d808836c6 | 2025-11-17 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | a32c2f689b | 2025-10-20 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | b764a80a8e | 2025-03-24 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | b91b2a1e75 | 2024-12-21 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
 | official-clockwork/Clockwork | 2844edc8c0 | 2026-01-05 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06C | ideas only |
+| official-clockwork/Clockwork | 413106d9bc | 2025-09-28 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04S | ideas only |
 | official-clockwork/Clockwork | 753f88460c | 2026-01-25 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06C | ideas only |
 | official-stockfish/Stockfish | 1548538ede | 2026-09-18 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | 1591e5ac3b | 2022-09-11 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
@@ -172,7 +180,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | sebhofmann/sleepmind2 | 4f6cdfcc5a | 2026-11-03 | absent | no licence (all rights reserved) | - | api: none | T05E | ideas only (no licence) |
 | sroelants/simbelmyne | c0ee92c7a0 | 2026-09-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04R | ideas only |
 | yaneurao/YaneuraOu | 3a0e4fd239 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
-| zzzzz151/Starzix | 2a1577fb15 | 2025-05-10 | LICENSE | unknown (read the text) | DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE | api: WTFPL | T04O | check the text |
+| zzzzz151/Starzix | 2a1577fb15 | 2025-05-10 | LICENSE | unknown (read the text) | DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE | api: WTFPL | T04O, T04S | check the text |
 
 30-Oct table repos not read by this job (no check needed unless a card cites them): jdart1/Fathom (verify).
 <!-- merged:end -->
