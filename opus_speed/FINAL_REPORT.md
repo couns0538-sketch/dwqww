@@ -46,7 +46,16 @@ Tests:
 PENDING (abba_table.py of F:\ospd\abba\q2)
 
 ## 3. Job B - bit-exact hot-path changes
-PENDING (per change: switch, patch, bit-exact status, ABBA ratio; losers; the stack)
+Every change is a build switch (default 0, new code inside `#if`, lock text verbatim under `#else`); the kit takes no
+-D flags, so each pack flips the one `#define <SWITCH> 0` line in a copy (`src_kit`). Order of work followed the deep
+research's Track 5 ranking, restricted to what applies to this lock (its net has no L1 layer: VNNI / find-nnz /
+sparse-L1 items belong to the HalfKA path only). Each row: pack = LTO+PGO pc1 = pc2, bit-exact L1-L4 (L3 on the
+first 2,000 of the 12k FENs), then ABBA vs the lock at bench d20, 10 rounds ABBA/BAAB, CPU 2, net loaded, fresh
+copies per round; interval = 95 % Student-t of the per-round log ratios; A/A of the session (aa_lock_d20_s3): wall
+1.0066 [0.9968, 1.0111], cpu 1.0050 [0.9940, 1.0087].
+PENDING_B_TABLE
+Losers stay switches at 0 (no code path in the default build). Notes per change (design, lines, why node-identical,
+proofs incl. verify / poison / counter builds): `opus_speed/jobb/<name>.md`; patches `opus_speed/patches/`.
 
 ## 4. Job C - gate wall time (worker jobc, DONE 09:59; coordinator re-run 10:01 ALL PASS)
 Scripts for the crew to review; the running queue, its config, gate folders and the lock were read only. The crew
