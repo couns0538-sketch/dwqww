@@ -74,6 +74,16 @@ stop you at any moment; whatever is on disk is what survives.
   accumulator tiling, fastchess adjudication options, shared weights, Lichess puzzles / eval DB, small second net,
   bigger L1, CC0 books, Bayesian tuners, thread voting, chess-library, Arasan suites.
 
+## Round 2 (from 23:55; the owner asked for more improvements and more agents)
+- Sub-track folders `cards/T04B/` ... `cards/T05D/` etc. (your prompt names yours). At most 4 cards per sub-track
+  (top 2 full, the rest one-liners), at most 15 sources, at most 3 engines deep-read, same licence rules.
+- Before writing a card, check the 34 existing cards (`ls cards/*/`, `notes/T04/TABLE.md`, `notes/T05/SPEED_LIST.md`,
+  `notes/T02/TABLE.md`, `notes/T01/recipes.md`) and `notes/TRIED_GATES.md`: no duplicates. A better number for an
+  existing card's idea goes into your notes as "evidence for <card id>", not into a new card.
+- Gate rate for any cost estimate: 430-502 games/h measured for the crew's `*_vs_AL1*` gates (497 at Threads 2 /
+  conc 4); one SPRT at [0,10] nElo cap 12k means ~6.6k games (~13 h). The v2 identical-eval control is -20.9 +- 18.5
+  (post root fix), not -32.2.
+
 ## Hand-back (your final answer)
 A short list: card id | title | status | source number with conditions | Forge estimate (UNPROVEN) | effort; then
 dead ends (one line each), sources used (count), licence rows written, and anything left PENDING.
