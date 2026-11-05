@@ -37,7 +37,8 @@
 
 ## Next steps (owner / QA; this job locks nothing)
 1. QA times stack_w2 first, then trial_w6 (or stack_w5 without the weak NNUE_ZMM) on QA's own cores.
-2. QA tests from the patch review's section 4 that were not run here (stop / ponder, Threads soak, poison build of
-   the stacked source, extreme positions under ASan, net-off 2k subset).
+2. QA tests from the patch review's section 4 that were not run here (test 1's game-continuation replay at go depth
+   10, stop / ponder, Threads soak, poison build of the stacked source, extreme positions under ASan, net-off 2k
+   subset).
 3. Owner items in FINAL_REPORT section 8 (CR 637B LOW notes text, kit -Kit preflight, lock bad_captures_ bound,
    GPU guard date filter).

@@ -312,9 +312,12 @@ MSVC (handled in bitexact_check; the guard itself unchanged), L3 the zmm kernel 
 (checked: 0 `vfn?m(add|sub)` instructions in the lock and all six stack exes, 13:20), L4 PREFETCH_EARLY does
 useless work on a non-GNU compiler (not the kit's case), L5 the TT_NOTLS invariant is asserted only in the assert
 build (keep that build as a CI row). Its QA test list (warm TT, option changes, stop / ponder, Threads soak, poison
-build of the stacked source, extreme positions, net-off subset) is in its section 4; its tests 1, 2 and 8 (warm TT,
-option changes, first commands) were run here on all six stacks - IDENTICAL to the lock (`OWN_CHECKS.md` #11) -, the
-rest are QA items. The coordinator's own re-check
+build of the stacked source, extreme positions, net-off subset) is in its section 4. Run here on all six stacks,
+IDENTICAL to the lock (`OWN_CHECKS.md` #11): its test 2 (scaled up: 1,000 unrelated FENs, `go nodes 20000`, no
+ucinewgame), test 8 (first commands) and the option-change part of test 1. NOT run here: test 1's game-continuation
+replay (successive `position startpos moves ...` of one game at `go depth 10`, where later searches reuse the warm
+subtrees and so exercise TT aging / replacement on entries that are actually hit) - it stays on QA's list with the
+other tests. Scratch at the end: `F:\ospd` 5.7 GB (cap 8 GB), F: 55 GB free, C: 93 GB (13:38). The coordinator's own re-check
 (`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
 kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
 Owner items:
