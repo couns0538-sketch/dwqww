@@ -55,6 +55,24 @@ there; paths are the ones of that job.
 - Agent count follows the owner's latest word (2026-11-04: 2 at a time, then "up to 12"): when more are allowed, run the
   core tracks in parallel first (the low-usage risk favours finishing core tracks early), optional tracks next.
 
+## What one round cost and caught (2026-11-04, measured)
+- 7 tracks x (1 research + 1 verify) = 14 agents: 2,952,180 agent tokens for 14 agents of the two finished
+  workflows (~190-225k each), 45-55 min wall time with 7 in parallel. Researchers stop at the 6-card cap after 20-45
+  min, so once a track's cap is hit more research agents add nothing; use phase 2 instead: ONE cross-track critic
+  (coverage matrix of every brief question + a number-by-number check of the report against the cards) and ONE
+  independent second vote on the top cards (`tools/workflows/deepres_phase2_checks.js`). Phase-2 agents write only
+  their own note file; the coordinator applies fixes (no edit races).
+- Verifiers caught: a stale control number (pre-fix exe), a path that vanished because another job restructured a
+  folder (cite durable branch copies, not scratch paths), a tuned constant of another engine carried over as a Forge
+  value, wrong commit dates, licence-tool misreads. Keep the verifier step.
+- Give every worker a scratch folder (`F:/odr/work/T<nn>/`) in WORKER_RULES from the start: without it four of seven
+  first-round workers put temp files into the session scratchpad on C:.
+- `licence_at.py` guesses from the licence title first (the GPL-3.0 text names the Affero licence in section 13; LLVM's
+  file starts with Apache-2.0 WITH LLVM-exception but also carries MIT-like legacy text; CC0 is "Creative Commons
+  Legal Code"). Re-run every merged row with `merge_licences.py` after a tool fix.
+- Read hand-backs with `tools/handbacks.py <workflow transcript dir> --json out.json` instead of the long
+  notification text.
+
 ## Checkpoints and the low-usage stop
 - Commit + push about every 10 minutes (the coordinator only; workers never commit). Update STATUS (track table,
   latest pushed commit), RESUME and the report state line each time; merge `notes/T<nn>/licences.md` into LICENCES.md.

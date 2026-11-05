@@ -1,35 +1,34 @@
 # Forge deep research - RESUME (handoff)
 
-Read first: `STATUS.md` (track table, workflows, pushes), then `cards/` and `notes/` of the track you continue.
-Method and tools: `skills/forge-deep-research/SKILL.md` (also installed as a user-scope skill on grok-pc).
+Read first: `STATUS.md` (track table, workflows, pushes, observations), then `FINAL_REPORT.md` (state line says
+INTERIM / FINAL / STOPPED), then `cards/` and `notes/` of the part you continue. Method and tools:
+`skills/forge-deep-research/SKILL.md` (also installed as a user-scope skill on grok-pc).
 
-## Finished
+## Finished (verified)
 - Setup: branch `opus-deepres-20261104` from main 5176ddf7 in the partial + sparse clone `F:\odr\wt`
   (`git clone --filter=blob:none --depth 1 --branch main --no-checkout`, `MSYS_NO_PATHCONV=1 git sparse-checkout set
   --no-cone /opus_deepres/ /skills/`, `core.autocrlf false`, clean filter `novendor` = `tools/novendor_filter.py`).
-- Tools (`tools/`): mine_commits.py, licence_at.py (GPL/AGPL guess fixed 22:53-22:54), forge_has.sh, card_lint.py,
-  tried_gates.py, block_rule_check.py, merge_licences.py, workflow_prompts.py, novendor_filter.py; workflow scripts
-  and the exact worker prompts in `tools/workflows/`.
-- T2-card-1 = `cards/T02/T02-01-overlap-to-zero.md` (COMPLETE): drop key board+stm (the J1 binpack has no castling /
-  EP), 7,700 train rows from `D:\a14\sep\BOARDSTM_TRIAGE_ROWS.tsv` (minimum 4,118 for the EP-normalised key), rebuild
-  + 5 proofs, block rule measured (`notes/T02/block_rule_012_015.json`), costs from measured logs.
+- 34 cards, all lint-clean: T01 (6), T02 (6, incl. the coordinator's T02-01), T04 (6), T05 (4), T06 (5), T07 (2),
+  T12 (5); each track's verifier result in `notes/T<nn>/VERIFY.md`. Track deliverables: `notes/T01/recipes.md`,
+  `notes/T02/TABLE.md` + `MIX.md`, `notes/T04/TABLE.md` + `BUG_CHECKLIST.md`, `notes/T05/SPEED_LIST.md` +
+  `V2P4_GAP.md`, `notes/T06/FORMS.md` + `FIT_RECIPE.md`, `notes/T07/UCI_EDGE_CASES.md`, `notes/T12/PROTOCOLS.md`.
+- INTERIM report pushed at 23:42 (commit 22481219).
 
 ## Running (as of the last STATUS update)
-- `wf_b823f43e-496` core2: T1, T2 (both continuing the stopped first run's files), T4, T5; then one verifier each.
-- `wf_dcef6221-e3c` extra: T6, T7, T12; then one verifier each.
-- If this session ended: the workflows end with it. Every worker saves as it goes, so `cards/T<nn>/` and
-  `notes/T<nn>/sources.md` show exactly how far each track got; restart a track with `tools/workflows/deepres_tracks.js`
-  and a `continue_note` pointing at those files (see `tools/workflows/README.md`).
+- Phase 2 `wf_576c2a36-f48` (launched 23:43): critic -> `notes/CRITIC.md` (coverage matrix of every brief question,
+  report-vs-cards check); second vote on 12 top cards -> `notes/TOP_SECOND_VOTE.md`. Neither edits cards or reports.
+- If this session ended: the workflow ends with it; both agents write their file as they go, so the files show how
+  far they got. Re-run with `tools/workflows/deepres_phase2_checks.js` if they are empty.
 
 ## Next steps (coordinator)
-1. At each ~10-minute checkpoint: `python -I -B tools/merge_licences.py`, `python -I -B tools/card_lint.py`, update
-   STATUS (track table + latest pushed commit), commit through the filter, push, `git ls-remote` check.
-2. When a workflow finishes: read its hand-backs (journal.jsonl in the workflow transcript folder), rank every card by
-   expected Elo per crew-hour, write the INTERIM report (due ~02:23) and then the core report.
-3. With agents still allowed (up to 12): a second adversarial check of the top-10 cards and one completeness critic
-   over all tracks before the final report.
-4. 07:53: no new questions; 08:23: hard stop (report FINAL or STOPPED - TIME LIMIT).
+1. Apply the phase-2 findings: fix cards (with "(corrected by coordinator: ...)") and the report numbers; record
+   KEEP / DOWNGRADE / DROP verdicts in the ranking.
+2. Decide whether uncovered brief questions are worth one more small round (card caps: T05 has 2 card slots left,
+   T06 1, T12 1; T01 / T02 / T04 are at 6).
+3. Write the FINAL report (state FINAL), final STATUS / RESUME / LICENCES, commit, push, verify, then the final
+   message (strongest proposals, dead ends, unfinished, next three crew experiments, links, elapsed time, spend).
+4. Hard times: 07:53 no new questions; 08:23 stop.
 
 ## Blockers / open checks
-- USAGE UNKNOWN (no meter readable). Low-usage warning -> TaskStop both workflows, commit, push, verify, then mark the
-  report STOPPED EARLY - LOW USAGE.
+- USAGE UNKNOWN (no meter readable); measured agent spend is in STATUS.md. Low-usage warning -> TaskStop the running
+  workflow, commit, push, verify, then mark the report STOPPED EARLY - LOW USAGE.
