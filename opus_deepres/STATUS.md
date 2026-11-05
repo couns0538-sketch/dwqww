@@ -11,7 +11,9 @@ this job is written to D:.
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
 - Last update of this file: 23:40 (elapsed 1 h 17 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
-- Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s).
+- Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
+  workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
+  22:39-22:47, not reported by the tool). All 34 cards lint clean at 23:43.
 - Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
   any explicit low-usage warning triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
@@ -43,7 +45,8 @@ this job is written to D:.
 | T5 NNUE speed Zen 5 | VERIFIED (research -23:16, verify 23:20-23:33 per notes/T05/VERIFY.md) | T05-01..04 | - | 58 checks, 54 confirmed, 1 corrected, 3 unverifiable, 0 violations |
 | T6 eval post-processing | VERIFIED (research 22:45-23:11, verify 23:11-23:22) | T06-01..05 | - | 48 checks, 44 confirmed, 2 corrected |
 | T7 time management | VERIFIED (verify 23:09-23:17) | T07-01..02 | - | 40 checks, 31 confirmed, 5 corrected, 1 process note |
-| T12 testing / proofs | RESEARCH RUNNING | - | 5 cards on disk | |
+| T12 testing / proofs | VERIFIED (research 22:45-23:29, verify 23:30-23:40) | T12-01..05 | - | 51 checks, 44 confirmed, 4 corrected, 3 unverifiable, 0 violations |
+| Phase 2 cross-track checks | RUNNING (wf_576c2a36-f48, launched 23:43) | - | - | critic -> notes/CRITIC.md; second vote on 12 top cards -> notes/TOP_SECOND_VOTE.md |
 (Card states are the workers' until their verifier has run; "done" = verified. Verify times as the verifiers wrote
 them in notes/T<nn>/VERIFY.md.)
 
