@@ -503,8 +503,15 @@ child, fail closed).
 | lockstep at 200k nodes | lock exe vs v2p4 + lock-as-KB4: 5 games, 727 plies identical (bestmove, score, nodes) |
 | run 2 package o30_gpu_kb4warm_r2 | header OK; parity x3 + planted bug PASS; OFF pins -Full PASS; ON bench 307024 / 702759 / 2723318 twice; offline rule PASS (S31 -1.65e-4 z -32.3, jobA z +1.88); all_checks_passed true |
 | run 5 package o30_gpu_kb8short_r5 | header OK; parity x3 + planted bug PASS; OFF pins -Full PASS; ON bench 294850 / 679834 / 3128255 twice; offline rule PASS (S31 -1.65e-4 z -40.4, jobA -7.39e-5 z -1.53); all_checks_passed true |
-| sanity matches (sanity only) | run 2: running on CPU 6 since 12:15:58, 70 games in the PGN at 12:54 [PENDING]; run 5: not started [PENDING] |
+| sanity matches (sanity only; 10+0.1 vs the lock exe on v2p4; control 47.0 %) | run 2 400 games 49.62 % (-2.6 +/- 18.1); run 5 400 games 52.62 % (+18.3 +/- 18.0); run 7 400 games 50.62 % (+4.3 +/- 17.8); soupC 400 games 52.12 % (+14.8 +/- 18.0); U8 200 games 51.00 % (+7.0 +/- 29.3); P16 200 games 47.75 % (-15.7 +/- 23.7); V16 and Y8 see the window-2 sanity table (section 1); every match checked: 0 time losses, 0 illegal moves, 0 crashes, all terminations normal |
 | independent review of the window code | G-001..G-010 (section 5.9): G-001/2/3/6/10 fixed in 8860bac6, the rest documented |
+| CR items 9-13 (first owner list) | item 10: three refusal cases exit 2 before any GPU work; item 9: dummy tests (hard exit -> frozen -> --resume-pid; injected errors -> ABORT exit 79); item 11: warm proofs 02 / 03 / 04 byte-identical; item 12: watcher gives up (exit 3 / 4 / 5) and writes .done only after exit 0; item 13: logs labelled |
+| KB16 / KB32 layouts | Rust = Python features on 3,000 rows each; lock net written as KB16 / KB32 = lock pins on v2p4 (final checks 17 / 18); warm proofs 04 / 05 byte-identical; parity 10000/10000 x 3 + planted bug in every KB16 / KB32 package |
+| soup tools | test_soup_tools.py 5 / 5 (final check 19); run 7 expanded to KB32 scores exactly as run 7 |
+| packages of window 2 | o30_gpu_kb16short_r7, soupC, P16, Z32, V16, U8, Y8: header OK, parity x3 + planted bug PASS, OFF pins -Full PASS, ON benches twice equal, offline rule PASS, all_checks_passed true (D:\o30\nets\<name>\RESULT.json) |
+| Forge play checks of the final soups | smoke 300 s and UCI conformance 22 / 22 for Y8, U8, V16, Z32 (section 1 table); runs 2 / 3 earlier (a/logs/checks_gpu/) |
+| independent review of the window-2 code | W2-01..W2-12 (section 5.12): 0 BLOCKER; every finding fixed except W2-03's second half (dropped with a measured reason) |
+| second owner list items 1-5 | runner: stub 78-then-0 leaves plan.done empty until exit 0; guard: forced race after a console event -> resumed, CPU time rising; probe_extra: rc 75 reported; wording: 0 'beat every' hits, speeds as 3-4-run means; tuned184 logs committed |
 
 ### Item B
 | check | result |
