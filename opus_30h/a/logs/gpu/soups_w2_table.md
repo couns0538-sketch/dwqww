@@ -27,3 +27,6 @@
 | soupZ32_r3_r5_r7_r8_r12 | r3 + r5 + r7 + r8_kb32short@200 + r12 | -2.239e-04 (-47.9) | -1.450e-04 (-2.81) | PASS |
 | soupT8_r3_r5_r12_r14 | r3_kb8warm@700 + r5_kb8short@200 + r12_kb8long@600 + r14_kb8m400lr15@400 | -1.841e-04 (-36.4) | -1.224e-04 (-2.14) | PASS |
 | soupU8_r3_r5_r10_r12_r14 | r3_kb8warm@700 + r5_kb8short@200 + r10_kb8seed2@200 + r12_kb8long@600 + r14_kb8m400lr15@400 | -1.853e-04 (-38.5) | -1.106e-04 (-2.01) | PASS |
+| soupCHK_r7_r9_watch2 | r7_kb16short@200 + r9_kb16seed@200 | -1.886e-04 (-40.3) | -8.092e-05 (-1.56) | PASS |
+| soupX8_r3_r5_r12_r14_r15 | r3_kb8warm@700 + r5_kb8short@200 + r12_kb8long@600 + r14_kb8m400lr15@400 + r15_kb8long2@600 | -1.831e-04 (-35.3) | -1.111e-04 (-1.90) | PASS |
+| soupY8_r3_r5_r10_r12_r14_r15 | r3_kb8warm@700 + r5_kb8short@200 + r10_kb8seed2@200 + r12_kb8long@600 + r14_kb8m400lr15@400 + r15_kb8long2@600 | -1.851e-04 (-37.3) | -1.048e-04 (-1.86) | PASS |
