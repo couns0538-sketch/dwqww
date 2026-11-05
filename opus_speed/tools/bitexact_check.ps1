@@ -12,9 +12,11 @@
 #      'info depth' line and the bestmove must match; any 'info string ... invalid' line fails; a degenerate reference
 #      (< n/10 distinct rows) fails; 2 engines on CPUs 0 and 1 with a fixed chunking (same for ref and cand); ref results
 #      cached in F:\ospd\ref\<sha8 of ref>\ (one computation at a time per file, named mutex);
-#   L4 sanitizers on -SanSrc (+ -Define), bench 16 with the net: nodes = the candidate's d16 and no report:
-#      ASan = MSVC cl /fsanitize=address on a port copy (one extra TT-index branch, see New-MsvcPortCopy; N/A and said
-#      so in the verdict if MSVC cannot compile the source), UBSan = g++ -fsanitize=undefined -fsanitize-trap=all.
+#   L4 sanitizers on -SanSrc (+ -Define), bench 16 with the net, exit 0 and no report: UBSan = g++ -fsanitize=undefined
+#      -fsanitize-trap=all, nodes = the candidate's own d16; ASan = MSVC cl /fsanitize=address on a port copy (one extra
+#      TT-index branch, see New-MsvcPortCopy), nodes = the MSVC ASan nodes of the reference source -RefSrc (cached;
+#      MSVC's std::sort orders equal scores differently from libstdc++, so MSVC never matches the g++ count); ASan is
+#      N/A and said so in the verdict if MSVC cannot compile the source.
 # Exit 0 = BIT-EXACT (all levels run passed), 3 = NOT BIT-EXACT, 1 = error. Placement: CPUs 0-1 (0x3), Idle.
 param(
   [Parameter(Mandatory = $true)][string]$Cand,
@@ -29,8 +31,15 @@ param(
   [switch]$SanNdebug,
   [switch]$SkipSan,
   [switch]$NoStop,
-  [switch]$OnlyL4
+  [switch]$OnlyL4,
+  [string]$RefSrc = 'F:\ospd\src\lock',
+  [string]$ResumeFrom = ''
 )
+# -RefSrc: source of the reference exe, used for L4's MSVC ASan reference (an MSVC build cannot match g++ node counts:
+#   the two standard libraries order equal-score moves differently in std::sort, so the MSVC ASan nodes of the
+#   candidate are compared with the MSVC ASan nodes of this source; found 10:17 - b1_tt_notls 2,587,341 under MSVC).
+# -ResumeFrom <earlier -Out dir of the SAME cand and ref exe>: take its L1-L3 PASS lines (cand sha256, ref sha256,
+#   10 L1 + 2 L2 + 1 L3 PASS lines, no FAIL) instead of re-running them, then run L4.
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
 # -File passes a list as ONE comma-joined string: split every list parameter on commas
@@ -158,6 +167,44 @@ function New-MsvcPortCopy([string]$Src, [string]$Dst) {
   return 'ok'
 }
 
+function Invoke-MsvcAsanBuild([string]$Port, [string]$OutExe, [string]$SanDir, [string[]]$Defs, [string]$BuildLog) {
+  $units = @(Get-ChildItem (Join-Path $Port 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src\' + $_.Name })
+  $objDir = Join-Path $SanDir ('obj_' + [IO.Path]::GetFileNameWithoutExtension($OutExe)); New-Item -ItemType Directory -Force -Path $objDir | Out-Null
+  $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude',
+    ('/Fd' + [IO.Path]::ChangeExtension($OutExe, '.compile.pdb')), ('/Fo' + $objDir + '\'))
+  if ($SanNdebug) { $clArgs += '/DNDEBUG' }
+  foreach ($d in $Defs) { $clArgs += ('/D' + $d) }
+  # /STACK: Worker::clear() assigns a ~1.4 MB ContinuationHistory temporary on the stack; MSVC's default 1 MB stack
+  # overflows (seen 09:26 under ASan), MinGW's default is 2 MB. 64 MB here only for the sanitizer harness.
+  $clArgs += $units; $clArgs += @(('/Fe' + $OutExe), '/link', '/INCREMENTAL:NO', '/STACK:67108864')
+  return (Invoke-Native 'cl.exe' $clArgs $Port $BuildLog)
+}
+
+function Get-MsvcAsanRefNodes([string]$Src, [string]$SanDir, [string]$BuildLog) {
+  # bench 16 nodes of the MSVC ASan build of the REFERENCE source (cached per source content in F:\ospd\ref)
+  $lines = @(foreach ($sub in 'include', 'src') { Get-ChildItem -Recurse -File (Join-Path $Src $sub) | Sort-Object FullName | ForEach-Object { '{0} {1}' -f $_.FullName.Substring($Src.Length + 1).Replace('\', '/'), (Get-OspdSha256 $_.FullName) } })
+  $sha = New-Object System.Security.Cryptography.SHA256Managed
+  $h = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n")))) -replace '-', '').ToLower().Substring(0, 12)
+  $cache = "F:\ospd\ref\msvc_asan_b16_$h.txt"
+  $mx = New-Object System.Threading.Mutex($false, "Local\ospd_msvcref_$h")
+  $got = $false; try { $got = $mx.WaitOne([TimeSpan]::FromMinutes(60)) } catch [System.Threading.AbandonedMutexException] { $got = $true }
+  if (-not $got) { throw 'waited 60 min for the MSVC ASan reference' }
+  try {
+    if (-not (Test-Path $cache)) {
+      $port = Join-Path $SanDir 'ref_src_msvc'
+      $pc = New-MsvcPortCopy $Src $port
+      if ($pc -ne 'ok') { throw "reference MSVC port copy failed ($pc)" }
+      $exe = Join-Path $SanDir 'ref_asan_msvc.exe'
+      $rc = Invoke-MsvcAsanBuild $port $exe $SanDir @() $BuildLog
+      if ($rc -ne 0) { throw "reference MSVC ASan build failed (exit $rc, see $BuildLog)" }
+      $sb = Invoke-SanBench $exe $SanDir 'ref_asan_msvc'
+      if ($sb.Exit -ne 0 -or $sb.Reports -ne 0 -or -not $sb.Nodes) { throw "reference MSVC ASan bench failed: exit $($sb.Exit), reports $($sb.Reports), nodes '$($sb.Nodes)'" }
+      Write-OspdLf $cache @("nodes $($sb.Nodes)", "source $Src content hash $h", "made $(Get-OspdNow) by bitexact_check (MSVC cl /fsanitize=address, port copy, bench 16)")
+    }
+  } finally { $mx.ReleaseMutex() }
+  return ((Get-Content $cache -TotalCount 1) -replace '^nodes ', '')
+}
+
 function Invoke-SanBench([string]$Exe, [string]$Dir, [string]$Tag) {
   $in = Join-Path $Dir "$Tag.in.txt"; $outF = Join-Path $Dir "$Tag.out.txt"; $errF = Join-Path $Dir "$Tag.err.txt"
   Write-OspdLf $in @('uci', 'isready', 'bench 16', 'isready', 'quit')
@@ -189,7 +236,20 @@ try {
   Say "bitexact_check $(Get-OspdNow): ref $Ref (sha256 $refSha$(if ($refIsLock) { ', = lock FD3A5190' }))"
   Say "                cand $Cand (sha256 $candSha, md5 $(Get-OspdMd5 $Cand)); $diskMsg"
 
-  if ($OnlyL4) {
+  $allFens = @(); $n = 0
+  if ($ResumeFrom) {
+    $plog = Join-Path $ResumeFrom 'bitexact.log'
+    if (-not (Test-Path $plog)) { throw "resume: no $plog" }
+    $pl = @(Get-Content $plog)
+    if (-not ($pl | Where-Object { $_ -like "*ref * (sha256 $refSha*" }) -or -not ($pl | Where-Object { $_ -like "*cand * (sha256 $candSha,*" })) { throw "resume: $plog is not for this ref + cand (sha256 mismatch)" }
+    $l1 = @($pl | Where-Object { $_ -match '^L1 .*  PASS$' }); $l2 = @($pl | Where-Object { $_ -match '^L2 .*  PASS$' }); $l3 = @($pl | Where-Object { $_ -match '^L3 FENs .*  PASS$' })
+    if ($l1.Count -ne 10 -or $l2.Count -ne 2 -or $l3.Count -ne 1 -or @($pl | Where-Object { $_ -match '^L[123] .*FAIL' }).Count -ne 0) { throw "resume: $plog lacks a complete L1-L3 PASS set" }
+    foreach ($x in ($l1 + $l2 + $l3)) { Say ("{0}   (resumed from {1})" -f $x, $ResumeFrom) }
+    $sigF = Get-ChildItem (Join-Path $ResumeFrom 'cand') -Filter 'sig_*.json' | Select-Object -First 1
+    $c = Get-Content $sigF.FullName -Raw | ConvertFrom-Json
+    $nm = [regex]::Match($l3[0], ': (\d+) / (\d+) identical'); $n = [int]$nm.Groups[2].Value
+    $allFens = @(1..(12000)); if ($l3[0] -notmatch 'fens_12k_v2') { $allFens = @(1..$n) }
+  } elseif ($OnlyL4) {
     # sanitizer level alone (re-tests): compare against the lock pin, skip L1-L3
     $c = [pscustomobject]@{ on = [pscustomobject]@{ d16 = $script:OspdPinsOn['d16'] } }
     Say 'L1-L3 skipped (-OnlyL4); L4 nodes are compared with the lock pin d16'
@@ -265,14 +325,7 @@ try {
     $script:AsanNa = ''
     if ($pc -ne 'ok') { $script:AsanNa = "port copy anchor ($pc)"; Say "L4 asan: N/A - MSVC port copy failed ($pc); UBSan below must still pass" }
     else {
-      $units = @(Get-ChildItem (Join-Path $port 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src\' + $_.Name })
-      $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude', ('/Fd' + (Join-Path $sanDir 'asan.pdb')), ('/Fo' + $sanDir + '\'))
-      if ($SanNdebug) { $clArgs += '/DNDEBUG' }
-      foreach ($d in $Define) { $clArgs += ('/D' + $d) }
-      # /STACK: Worker::clear() assigns a ~1.4 MB ContinuationHistory temporary on the stack; MSVC's default 1 MB stack
-      # overflows (seen 09:26 under ASan), MinGW's default is 2 MB. 64 MB here only for the sanitizer harness.
-      $clArgs += $units; $clArgs += @(('/Fe' + $exeA), '/link', '/INCREMENTAL:NO', '/STACK:67108864')
-      $rcA = Invoke-Native 'cl.exe' $clArgs $port $blog
+      $rcA = Invoke-MsvcAsanBuild $port $exeA $sanDir $Define $blog
       # an MSVC compile failure means the source uses something MSVC lacks (e.g. a GCC builtin), not a node change:
       # ASan is then N/A for this source and said so in the verdict; the g++ UBSan-trap run below must still pass
       if ($rcA -ne 0) { $script:AsanNa = "MSVC cannot compile this source (exit $rcA, see $blog)"; Say "L4 asan: N/A - $($script:AsanNa)" } else { $runs += @{ Tag = 'asan_msvc'; Exe = $exeA } }
@@ -289,9 +342,13 @@ try {
     if ($rcU -ne 0) { Say "L4 ubsan: g++ build failed (exit $rcU, see $blog)"; $script:Fail++ } else { $runs += @{ Tag = 'ubsan_trap'; Exe = $exeU } }
     foreach ($run in $runs) {
       $sb = Invoke-SanBench $run.Exe $sanDir $run.Tag
-      $ok = ($sb.Exit -eq 0 -and $sb.Reports -eq 0 -and "$($sb.Nodes)" -eq "$($c.on.d16)")
+      # UBSan (g++, same standard library as the lock) must give the candidate's own d16; ASan (MSVC) must give the
+      # MSVC ASan nodes of the reference source - MSVC's std::sort orders equal scores differently from libstdc++
+      $want = "$($c.on.d16)"; $wantTxt = "cand g++ d16 $want"
+      if ($run.Tag -eq 'asan_msvc') { $want = "$(Get-MsvcAsanRefNodes $RefSrc $sanDir $blog)"; $wantTxt = "ref source under MSVC ASan $want" }
+      $ok = ($sb.Exit -eq 0 -and $sb.Reports -eq 0 -and "$($sb.Nodes)" -eq $want)
       $state = 'PASS'; if (-not $ok) { $state = 'FAIL'; $script:Fail++ }
-      Say ("L4 {0,-11} bench 16 nodes {1} (cand plain {2}), exit {3}, sanitizer reports {4}  {5}" -f $run.Tag, $sb.Nodes, $c.on.d16, $sb.Exit, $sb.Reports, $state)
+      Say ("L4 {0,-11} bench 16 nodes {1} (want {2}), exit {3}, sanitizer reports {4}  {5}" -f $run.Tag, $sb.Nodes, $wantTxt, $sb.Exit, $sb.Reports, $state)
     }
     $l4 = 'run'
     Stop-IfFailed 'L4'

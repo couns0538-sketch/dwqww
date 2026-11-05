@@ -15,3 +15,6 @@ Worker b2mg (fable). Log `F:/ospd/jobb/b2/chain_e.log`; copy `F:/ospd/src/b2_app
    `forge_stack_allon.exe` sha256 aedb654b..., warnings 0, vfmadd 0; lp_check net on vs the lock plain run with the pins:
    24/24 OK, NODE IDENTITY ALL OK (`stack_allon_neton.compare.log`).
 Not run for the stack: net-off lp_check, the verify builds (each proof was run per switch), the kit LTO+PGO build.
+Only the task's apply order was tested; the five patches are add-only with disjoint hunks, so another order should apply
+too (untested). `patches/b2_nnue_zmm_verify.patch` is a record of the verify variant: do NOT apply it (it carries a second
+define line and overlaps b2_nnue_zmm.patch).

@@ -20,8 +20,11 @@ param(
   [switch]$SkipAbba,
   [switch]$SanNdebug,
   [string]$Note = '',
-  [string[]]$ReuseBuildDirs = @()
+  [string[]]$ReuseBuildDirs = @(),
+  [string]$PriorBitexact = ''
 )
+# -PriorBitexact <bitexact folder of an earlier pack of the SAME exe>: bitexact_check -ResumeFrom (its L1-L3 PASS lines
+# are reused after a sha256 check; L4 runs again).
 # -ReuseBuildDirs '<pc1 build folder>,<pc2 build folder>': skip step (2) and reuse two finished build_variants folders
 # of an earlier pack (both SUMMARY 'RESULT PASS' with pins OK, no FAILED marker, equal exe sha256, and their src_copy
 # include\ + src\ files byte-identical to this pack's build source). For re-running a pack whose later step failed.
@@ -100,6 +103,7 @@ try {
   # (3) bit-exact proof
   $bxArgs = @{ Cand = $exe; Out = (Join-Path $Pack 'bitexact'); SanSrc = $buildSrc }
   if ($Quick) { $bxArgs.Quick = $true }
+  if ($PriorBitexact) { $bxArgs.ResumeFrom = $PriorBitexact }
   if ($SanNdebug) { $bxArgs.SanNdebug = $true }
   $bx = @(& "$PSScriptRoot\bitexact_check.ps1" @bxArgs); $bxRc = $LASTEXITCODE
   Set-OspdPlacement -Mask 0x3 -Priority 'Idle'
