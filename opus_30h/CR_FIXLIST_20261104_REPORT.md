@@ -50,6 +50,16 @@ md5s are of the file in that commit (`git show <commit>:<path> | md5sum`). No pr
 | 6 | 78d83508 (R14 branch) | D:\a14\tools\opus_prod_separation.py 7f0a3ae03e02a2b8ee551c3548aef782; D:\a14\TOOLS.md 89f181ae43a42bbe76422569f5d2d64b; D:\a14\sep\TOOL_MD5_CHAIN.md 038647fcf3ffe3763f3f31c6416ca444; evidence\test_logs\r14\opus-prodsep-relpath01\output.log 0875daed9ceff901fd078458ea9bcc30 + command.txt 23c39367611781287d3ccb04a3d1ee5c | "refusing to write PROD_SEPARATION.json: refusing: C:/a14x/prodsep_relpath_test/x.json not under D:/a14/", exit code 1, "traceback present: False", dummy md5 d11d325009336b0f249138a1abea9fdf unchanged, "RESULT PASS" (path C:\a14x instead of the list's C:\Users\Administrator\scratch: the job's own scratch, also another drive) |
 | 7 | 78d83508 + 179430bd (R14 branch) | D:\a14\tests\test_r14_preflight.py dfdf6235e5d88aed5f99bbfd2464cd51 (Import-Module of the two modules before the mocks); suite log evidence\test_logs\r14\full-suite-r14cont03\output.log 0e607316e0b09f1b746bf56c6d894b30 (first line 78d83508c7291321330ab356f14d8e1a9f8602f5); R14_OPEN_ISSUES.md 97913e353b975b300ddb692c0a8ce376 | "8 failed, 328 passed, 67 subtests passed in 64.54s (0:01:04)"; test_floor_breach_after_hash_writes_no_receipt passed (not in the failed list), so no "does not prove the floor rule" label was needed. Failures: F-003 (1), F-005 (2), F-006 (1) as before + 4 launcher cases refused by the CPU-admission guard ("CPU admission refused", the suite's own CPU above 70 %) - environmental, they passed on CPUs 1 and 2 earlier |
 
+Correction to item 1 (found in the end-of-job bug hunt, 19:2x): the retry of 73e4c828 could never start the run.
+The guard opens <run>.guard.log before its checks and the bat's redirect creates <run>.out; the bat refuses a
+run whose folder / .out / .guard.log exist (exit 4), so the retry landed in plan.failed (and queue_runner2.sh's
+retries in plan2.skipped). The item-1 stub created none of these files. Fixed in 1ab804be: before a retry both
+runners move the attempt's files aside as <file>.refused<N>; a/queue_runner.sh 841113255756ed419012eab8e5f46678,
+a/queue_runner2.sh d86daaf474879b162a02823967cded0d; verify a/logs/bughunt/runner_retry_test.out
+(defc3649981fa5f3fae993c5fc6a641d): old runner "stub call 2: ABORT: rX_test.out exists (the bat's check) -> exit 4",
+"plan.failed: [rX_test rc 4 ...]"; new runners "stub call 2: trainer started and ended (exit 0)", "plan.done: [rX_test ]".
+No refusal happened in the live window (plan2.refused and plan2.skipped empty), so no run was lost.
+
 R14 branch after the list: report commits ed068336 + 0e9f68e1; head 0e9f68e160c9a9a0b797331f2b0864c3e6f2cca5 = remote,
 CI run 41872225602 success, D:\a14\FINAL_REPORT.md md5 9a011f87f70ea8b7264b311fa6c040b8 (addendum "owner's fix list 2").
 Not done: none of items 1-7. Still open from earlier: item 6 of the first list (PROOF.json rerun, disk floor) and the
