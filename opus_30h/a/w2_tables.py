@@ -45,7 +45,10 @@ def run_row(run):
 
 
 def sanity(path):
-    log = os.path.join(path, 'sanity.log') if os.path.isdir(path) else path
+    log = path
+    if os.path.isdir(path):   # sanity.log, or the folder's own <name>.log (the v2p4 rematches: sanity_v2p4.log)
+        logs = [os.path.join(path, 'sanity.log')] + sorted(glob.glob(os.path.join(path, '*.log')))
+        log = next((l for l in logs if os.path.isfile(l)), '')
     if not os.path.isfile(log):
         return None
     games = elo = ''
