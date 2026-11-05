@@ -22,8 +22,11 @@
   FINAL_REPORT 3b), stacks w1-w5 + trial_w6 vs the lock, direct trial_w6 vs stack_w2 (+4.39 % WIN).
 - Proofs: every stack bit-exact L1-L4 + full 12k (stack_w5's 12k was the last run, 13:24 -> ~13:36,
   `F:\ospd\logs\bx_stack_w5_full12k.out`); QA's own kit rebuilt all six stack exes byte for byte (`F:\ospd\qakit`).
-- Warm-table identity (`tools/warm_identity.py`, 400 FENs, go nodes 20000, no ucinewgame, option changes) for
-  trial_w6 and stack_w2 vs the lock: `F:\ospd\logs\warm_<stack>.out`, transcripts in `F:\ospd\warm\<stack>\`.
+- Warm-table identity (`tools/warm_identity.py`, 1,000 FENs, go nodes 20000, no ucinewgame, 40 option changes):
+  all six stacks IDENTICAL to the lock (`F:\ospd\logs\warm2_<stack>.out`, transcripts `F:\ospd\warm2\<stack>\`).
+  The first attempt (`F:\ospd\warm\`, 13:21) hung on a wrong output pattern; its three idle processes (python PIDs
+  11168 / 7524, lock exe PID 11900) were left running under the no-kill rule (FINAL_REPORT section 8).
+- FINAL_REPORT.md is FINAL (13:36).
 - Independent patch review done (`REVIEW_PATCHES_INDEPENDENT.md`: no BLOCKER / SHOULD, 5 LOW).
 - Tests re-run after the timing queue: CR 13/13, move-order mutant 3/3.
 - If a later session continues: QA items are in FINAL_REPORT section 5 and the patch review's section 4.

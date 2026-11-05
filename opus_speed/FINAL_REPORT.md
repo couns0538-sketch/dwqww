@@ -1,6 +1,8 @@
-# Forge speed job - FINAL REPORT (DRAFT, filled as results land)
+# Forge speed job - FINAL REPORT
 
-State: DRAFT (started 10:15 PC clock = Vienna time). Job window 2026-11-05 08:38 -> 14:38; this report is due 14:08.
+State: FINAL 13:36 (PC clock = Vienna time; drafted from 10:15). Job window 2026-11-05 08:38 -> 14:38; due 14:08.
+Every timing and proof run of the job has finished; nothing of this job runs after the final push except the three
+idle processes named in section 8.
 Branch `opus-speed-20261105` (fresh from main 5176ddf7). Scratch `F:\ospd\`. Crew vote: A (speed-only lock path) >
 B (bit-exact hot-path changes) > C (gate wall time); D only if A-C are done. No Elo claims anywhere; speed numbers
 only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
@@ -161,7 +163,20 @@ from `abba_recheck.py --pool <first> <re-time>` (it refuses runs of different ex
 its noisy first run suggested (+2.9 % pooled, not +4.2 %).
 
 ### 3c. Stacks (each timed against the lock in its own session)
-PENDING_STACK_TABLE
+| pack | switches | exe (pc1 = pc2) | bit-exact | wall B/A [95 %] | cpu B/A [95 %] | verdict wall / cpu | runs.csv md5 |
+|---|---|---|---|---|---|---|---|
+| stack_w1 | NO_ZERO_MOVELISTS=2, SPEED2=1 | 05928226 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.0731 (+7.31%) [1.0565, 1.1031] | 1.0713 (+7.13%) [1.0657, 1.0881] | WIN / WIN | 87de6a9e |
+| stack_w2 | TT_NOTLS=1, NO_ZERO_MOVELISTS=2, SPEED2=1 | db957393 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.1148 (+11.48%) [1.0734, 1.1217] | 1.1134 (+11.34%) [1.0990, 1.1191] | WIN / WIN | 16368782 |
+| stack_w4 | TT_NOTLS=1, NO_ZERO_MOVELISTS=2, SPEED2=1, SLIDER_PEXT=1 | c883623c (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.1204 (+12.04%) [1.0929, 1.1388] | 1.1223 (+12.23%) [1.1003, 1.1350] | WIN / WIN | 0fc1fae1 |
+| stack_w3 | TT_NOTLS=1, NO_ZERO_MOVELISTS=2, SPEED2=1, PREFETCH_EARLY=1 | 4b49ae4b (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.1142 (+11.42%) [1.0869, 1.1548] | 1.1183 (+11.83%) [1.1036, 1.1339] | WIN / WIN | fc582ffe |
+| stack_w5 | TT_NOTLS=1, NO_ZERO_MOVELISTS=2, SPEED2=1, PREFETCH_EARLY=1, SLIDER_PEXT=1 | 060c578c (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.1194 (+11.94%) [1.1013, 1.1425] | 1.1260 (+12.60%) [1.1103, 1.1471] | WIN / WIN | ba6c47b4 |
+| trial_w6 | TT_NOTLS=1, NO_ZERO_MOVELISTS=2, SPEED2=1, PREFETCH_EARLY=1, SLIDER_PEXT=1, NNUE_ZMM=1 | 4181a589 (pc1 = pc2) | BIT-EXACT (L1-L3 on 2000 FENs = quick subset; L4 UBSan + MSVC ASan PASS in the 12:24 re-run with /D__BMI2__); full 12k: BIT-EXACT (L1-L3; L3 on 12000 FENs) | 1.1492 (+14.92%) [1.1351, 1.1666] | 1.1531 (+15.31%) [1.1387, 1.1698] | WIN / WIN | 5b0af24b |
+Direct comparison in one session (A = stack_w2, B = trial_w6, d20, 10 rounds ABBA/BAAB, `F:\ospd\abba\direct_w6_vs_w2_d20`, runs.csv md5 c5308b93): wall +4.39% [1.0305, 1.0643], cpu +4.15% [1.0307, 1.0647]; VERDICT wall WIN / cpu WIN = what PREFETCH_EARLY + SLIDER_PEXT + NNUE_ZMM add on top of stack_w2.
+Each stack row is timed against the lock in its own session; between sessions the lock itself ran at 2.15-2.19 M nps at d20, so stack-to-stack differences of a few percent across rows are not measured differences (only the direct row above is). Exes, candidate files: `F:\ospd\packs\<stack>\`, `opus_speed/candidates/<stack>.md`. Every stack row also has: the full-12k run (12,000 / 12,000, `bitexact_full12k`), a
+byte-identical rebuild by QA's own kit (`F:\ospd\qakit`), 0 FMA instructions, and warm-table identity with the lock
+over 1,000 `go nodes 20000` searches with 40 Hash / Clear Hash / UseNNUE changes and no ucinewgame
+(`tools/warm_identity.py`, `F:\ospd\warm2\<stack>\`, all six IDENTICAL, 13:27-13:35). Stack w4's candidate-file note
+"max winners-only stack" was written at 12:52, before PREFETCH_EARLY's re-time made it a winner; it is corrected there.
 
 Losers stay switches at 0 (no code path in the default build). Notes per change (design, lines, why node-identical,
 proofs incl. verify / poison / counter builds): `opus_speed/jobb/<name>.md`; patches `opus_speed/patches/`.
@@ -297,8 +312,9 @@ MSVC (handled in bitexact_check; the guard itself unchanged), L3 the zmm kernel 
 (checked: 0 `vfn?m(add|sub)` instructions in the lock and all six stack exes, 13:20), L4 PREFETCH_EARLY does
 useless work on a non-GNU compiler (not the kit's case), L5 the TT_NOTLS invariant is asserted only in the assert
 build (keep that build as a CI row). Its QA test list (warm TT, option changes, stop / ponder, Threads soak, poison
-build of the stacked source, extreme positions, net-off subset) is in its section 4; warm-TT + option changes +
-first-command checks were run here (`OWN_CHECKS.md`), the rest are QA items. The coordinator's own re-check
+build of the stacked source, extreme positions, net-off subset) is in its section 4; its tests 1, 2 and 8 (warm TT,
+option changes, first commands) were run here on all six stacks - IDENTICAL to the lock (`OWN_CHECKS.md` #11) -, the
+rest are QA items. The coordinator's own re-check
 (`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
 kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
 Owner items:
