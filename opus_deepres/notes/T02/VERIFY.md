@@ -82,3 +82,15 @@ One line per check: card | claim | CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLAT
 - T02-02 / T02-03 | w4 s41 is the current best w4 run | CONFIRMED | npt keeper best_history.txt 2026-11-03T21:08:54 (s24 -> s41)
 - T02-02 | 321,388,148 text lines in the 39 self-play files | UNVERIFIABLE | not in any cited record; a full line count of the 39 files was not run in the time box
 - T02-02 | the ply-recovery pass time (own guess 10-30 min) | UNVERIFIABLE (labelled as a guess) | not measured, as the card says
+- T02-03 (premise of the estimate) | `--no-wld-filtered` is the WDL-likelihood skip switch, so the skip was OFF in every w4 run | UNVERIFIABLE | own docs show only its use (skill forge-nnue-pytorch-amd SKILL.md line 126), not its meaning; PR 155 names the switch `--no-wld-fen-skipping`; the card says itself the match is by name only (trainer source not read, correctly)
+- T02-06 | the R8 driver already reads an openings file | CONFIRMED | skill forge-selfplay-datagen SKILL.md lines 35-36 (`--openings o.txt --no-dedup`)
+- T02-06 / T02-02 | every live game starts from startpos + 8 random plies; plies 9-28 are all in the data | CONFIRMED for the start (skill line 18: 8 uniformly random plies) / UNVERIFIABLE for "all in the data" | skill line 15: the live 6.2.0 exe has OwnBook default true, never switched off by the script; whether book moves after the random plies give recorded rows is not stated
+- T02-04 (title) | every w4 net 263-269 ON vs net-off 271-272 OFF | UNVERIFIABLE | cited only as "the owner's summary", no file; the one run re-read (s10) gives ON 267, OFF 272 / 273 - its OFF2 = 273 is outside the title's 271-272 (the card body discloses it)
+- notes/T02/*.md | vendor / model-company names, licence headers, re-run after all verify edits (23:31) | CONFIRMED none | card_lint name / header scan over every notes file: 0 hits
+
+## Totals (stopped 23:32 PC clock)
+68 checks: 54 CONFIRMED, 6 CORRECTED (T02-02 LTC +2.9 -> +2.85, a rounding-boundary case; T02-04 bench Mnps ranges;
+TABLE rows 1 and 7; the two licences.md licence columns), 7 UNVERIFIABLE (+ the "plies 9-28 all in the data" half of
+one CONFIRMED line), 1 VIOLATION (MIX.md G1 carries Caissa's x2 / first-10-plies node rule over as a Forge value;
+marked inline; no card has a reading-rule violation, so no Status line was changed). card_lint on cards/T02: clean.
+T02-01 was only read, never edited.

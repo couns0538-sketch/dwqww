@@ -36,9 +36,9 @@ this job is written to D:.
 |---|---|---|---|---|
 | T2-card-1 overlap to 0 | DONE | T02-01 | - | coordinator; drop key board+stm (7,700 train rows), block rule measured |
 | T1 v2 features + recipe | VERIFIED (research 22:48-23:09, verify -23:2x) | T01-01..06 | - | 54 checks, 47 confirmed, 5 corrected |
-| T2 data quality | RESEARCH DONE 23:20, verify running | T02-01 (coordinator) | T02-02..06 (not yet verified) | |
+| T2 data quality | VERIFIED (research -23:20, verify 23:20-23:32) | T02-01 (coordinator), T02-02..06 | - | 68 checks, 54 confirmed, 6 corrected, 7 unverifiable, 1 violation (MIX.md constant; fixed by the coordinator 23:34) |
 | T4 search features | VERIFIED (research 22:48-23:14, verify 23:15-23:25) | T04-01..06 | - | 55 checks, 46 confirmed, 7 corrected, 0 violations |
-| T5 NNUE speed Zen 5 | RESEARCH DONE, verify running | - | T05-01..04 (not yet verified) | |
+| T5 NNUE speed Zen 5 | VERIFIED (research -23:16, verify -23:3x per VERIFY.md) | T05-01..04 | - | 58 checks, 54 confirmed, 1 corrected, 3 unverifiable, 0 violations |
 | T6 eval post-processing | VERIFIED (research 22:45-23:11, verify 23:11-23:22) | T06-01..05 | - | 48 checks, 44 confirmed, 2 corrected |
 | T7 time management | VERIFIED (verify 23:09-23:17) | T07-01..02 | - | 40 checks, 31 confirmed, 5 corrected, 1 process note |
 | T12 testing / proofs | RESEARCH RUNNING | - | 5 cards on disk | |

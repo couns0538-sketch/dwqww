@@ -1,4 +1,4 @@
-# T05 adversarial verify (start 23:20 PC clock, stop 23:45)
+# T05 adversarial verify (start 23:20 PC clock, time box to 23:45, finished 23:33)
 
 Format: card | claim | CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLATION | evidence
 Order of work: lint, licence rows, lock greps, then the 3 full cards by expected gain (T05-01, T05-03, T05-02), then
@@ -9,9 +9,9 @@ Order of work: lint, licence rows, lock greps, then the 3 full cards by expected
 - all | card_lint.py cards/T05/*.md | CONFIRMED (0 findings, 0 PENDING on all 4 cards; re-run clean after the verify edits) | tools/card_lint.py, 23:21 and 23:29
 - licences.md | Stockfish ff7cee4244 GPL-3.0 row | CONFIRMED (re-run gives the identical row) | tools/licence_at.py official-stockfish/Stockfish ff7cee4244 --row
 - licences.md | llvm-project b537630299 row (tool says MIT, hand correction to Apache-2.0 WITH LLVM-exception) | CONFIRMED (tool row identical; LICENSE.TXT and bolt/LICENSE.TXT at b53763029964 both start "The LLVM Project is under the Apache License v2.0 with LLVM Exceptions", so the hand correction is right) | gh api repos/llvm/llvm-project/contents/LICENSE.TXT?ref=b5376302...
-- T05-01 | forge_has 'unique_ptr<float|/ WeightScale' = 3 hits nnue.cpp:47, :59, :61 | CONFIRMED | tools/forge_has.sh
+- T05-01 | forge_has with the alternation of 'unique_ptr<float' and '/ WeightScale' = 3 hits nnue.cpp:47, :59, :61 | CONFIRMED | tools/forge_has.sh
 - T05-01 | lock refresh src/nnue.cpp:84-97, update :99-157, :59 float(NnueW1) / WeightScale | CONFIRMED (WeightScale = 4096.0F at include/forge/nnue.hpp:20, so the scale is an exact 2^-12) | lock src/nnue.cpp (239 lines)
-- T05-03 | forge_has 'large_page|MEM_LARGE|madvise|huge' = 0 hits | CONFIRMED | tools/forge_has.sh
+- T05-03 | forge_has with the alternation of large_page, MEM_LARGE, madvise, huge = 0 hits | CONFIRMED | tools/forge_has.sh
 - T05-02 | static_evaluate src/search.cpp:599-621, root refresh :1367, weights() src/nnue.cpp:53-68 | CONFIRMED | lock src/search.cpp (1531 lines), src/nnue.cpp
 - T05-04 | lock prefetches only the child TT cluster: src/search.cpp:847, :1126 | CONFIRMED (forge_has 'prefetch' = 5 hits: search.hpp:112 comment, :125-127 TT::prefetch, search.cpp:847, :1126) | tools/forge_has.sh 'prefetch'
 - T05-04 | record_move src/search.cpp:623-630, called before make_move, computes the dirty pieces | CONFIRMED (comment at 624-625, dirty_pieces at 627) | lock src/search.cpp
@@ -21,7 +21,7 @@ Order of work: lint, licence rows, lock greps, then the 3 full cards by expected
 - T05-01 | bench ABBA KB4 replicas vs KB1 0.968 (CI 0.900-1.040), median 0.991 | CONFIRMED (number) | RESULTS.md:216-219
 - T05-01 | premise "the post-fix probe still shows ~5 % for KB4 vs KB1" | CONFIRMED as arithmetic (0.929 / 0.980 = 0.948), but NOT significant: the source reads the 0.968 ABBA as "the table size and the king-bucket refreshes cost little; an int16 weight store ... is not worth a re-proof" (RESULTS.md:218-219) and the post-fix probe as "the v2 path now runs at its own exe's OFF speed" (RESULTS.md:471-472); 0.948 is the ratio of two single runs of ~+-3 % each and the ABBA CI includes 1.0 -> verify note added in the card's Expected gain | RESULTS.md:216-219, :467-473
 - T05-01 | the 30-h job dropped int16 because the lazy root explained the in-game loss | CONFIRMED ("prepared and exact, not built, not needed - the speed loss was the lazy root, not the table size") | D:/o30/FINAL_REPORT.md:508-509
-- T05-01 | lock net max |w1| 14,227 (3.47), max |b1| 6,764, per-unit |b1| + 32 largest |w1| up to 342,331 (83.6), over 32,767 on all 256 units, below 2^24 | CONFIRMED (recomputed read-only from the lock's src/nnue_weights.inc: max 342,331, min 60,586, 256 / 256 units over 32,767) | own recompute, scratchpad script, 23:24
+- T05-01 | lock net max abs(w1) 14,227 (3.47), max abs(b1) 6,764, per-unit abs(b1) + 32 largest abs(w1) up to 342,331 (83.6), over 32,767 on all 256 units, below 2^24 | CONFIRMED (recomputed read-only from the lock's src/nnue_weights.inc: max 342,331, min 60,586, 256 / 256 units over 32,767) | own recompute, scratchpad script, 23:24
 - T05-01 | any int16 file: 33 x 32,768 < 2^24 | CONFIRMED (1,081,344 < 16,777,216) | arithmetic
 - T05-01 | sizes: KB4 3.1 MB -> 1.57 MB, one bucket 393 KB, KB32 25 -> 12.6 MB, lock 786 -> 393 KB | CONFIRMED (4 x 768 x 256 x 4 B = 3,145,728 B etc.) | arithmetic
 - T05-01 | Zen 5 L2 1 MB per core, 16-way | CONFIRMED by secondary sources only (web search 23:28: Wikipedia Zen 5, Hot Chips 2024 coverage; the deck itself not opened) | https://en.wikipedia.org/wiki/Zen_5
@@ -72,7 +72,7 @@ Order of work: lint, licence rows, lock greps, then the 3 full cards by expected
 - sources.md | PRs 6359 / 7041 "merged 2025-10-14 / 2026-08-10" | UNVERIFIABLE as "merged" (the API shows closed on exactly those dates with merged_at null; the project usually lands PRs by direct push) | gh api .../pulls/6359, /7041
 
 ## Reading rule, constants, names
-- all T05 cards and notes | links to source files of GPL / AGPL / unlicensed repos | none found (the only /blob/ link is llvm-project bolt/README.md: Apache-2.0, README) -> no VIOLATION | grep of every URL in cards/T05 and notes/T05
+- all T05 cards and notes | links to source files of GPL / AGPL / unlicensed repos | CONFIRMED (no violation: the only /blob/ link is llvm-project bolt/README.md, Apache-2.0, a README) | grep of every URL in cards/T05 and notes/T05
 - all | Stockfish read as PR text and fishtest pages only; no pasted / paraphrased code; no other engine's tuned constants proposed as Forge values | CONFIRMED (the Stockfish nps / Elo figures appear only as source numbers; all Forge ranges are own) | cards T05-01..04, SPEED_LIST rows 3, 6
 - all | no AI vendor / model-company names | CONFIRMED (card_lint clean on cards; on notes no name finding, only card-format findings that do not apply to notes; "grok" only in grok-pc paths; the only other hit is the job's own folder / branch names in local paths, accepted by the job's linter) | tools/card_lint.py
 - all | every Forge-side estimate labelled UNPROVEN | CONFIRMED (4 / 4 cards; SPEED_LIST header "every estimate UNPROVEN"; V2P4_GAP holds records only, labelled advisory) | cards, notes
@@ -82,4 +82,7 @@ Checked 58 (one line each above), confirmed 54 (of which 2 carry a significance 
 1 is partial - T05-02 pins, KB4 case only), corrected 1 (T05-03 2-MiB entries: 12, not 13, when aligned), unverifiable 3
 (T05-04 objdump counts, SPEED_LIST register-form / Agner rows, "merged" wording in sources.md), violations 0.
 Card edits: T05-03 correction + fishtest conditions (10+0.1, Threads 1, UHO_Lichess_4852_v1, nElo bounds) added;
-T05-01 verify note on the premise. Lint clean (cards/T05/*.md, 0 findings, re-run after the edits). Written 23:31.
+T05-01 verify note on the premise. Lint clean (cards/T05/*.md, 0 findings, re-run after the edits). Finished 23:33 PC
+clock (`date`), inside the time box (23:20-23:45).
+Process note: temporary fetches and one script of this verify went to the session scratchpad on C: (fishtest run JSON,
+the BOLT README copy, the weight-bound script) - none are job outputs; nothing deleted.
