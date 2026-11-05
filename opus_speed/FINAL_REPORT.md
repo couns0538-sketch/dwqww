@@ -17,12 +17,13 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
 - **Job B (vote 2) - DONE.** Seven own build switches (nine variants) plus the R14 SPEED2 switch rebased onto them,
   each OFF by default and proven bit-exact (bench net on + off, perft, 2,000 FENs per single / all 12,000 per stack,
   MSVC ASan + g++ UBSan); the all-switches-0 build of every stacked tree is the lock exe byte for byte. Protocol
-  (wall nps) winners vs the lock: NO_ZERO_MOVELISTS=2 +3.6 % (mode 1 alone +3.3 %), SPEED2 +3.2 %, TT_NOTLS +2.9 %
-  and SLIDER_PEXT +1.5 % (these two on 26 pooled rounds: first run + one 16-round re-time); PREFETCH_EARLY and
-  NNUE_ZMM: see section 3b; losers: PICKBEST 1 / 2, MATKEY_FAST. **stack_w2 = TT_NOTLS + NO_ZERO_MOVELISTS=2 +
-  SPEED2: +11.5 % wall / +11.3 % cpu vs the lock; every member a protocol winner; bit-exact incl. the full 12k set;
-  QA's own kit rebuilds it byte for byte.** It is the first thing for QA to time (section 5). No Elo claim; QA
-  re-times on its own cores.
+  (wall nps) winners vs the lock: NO_ZERO_MOVELISTS=2 +3.6 % (mode 1 alone +3.3 %), SPEED2 +3.2 %, and on 26 pooled
+  rounds (first run + one 16-round re-time) TT_NOTLS +2.9 %, SLIDER_PEXT +1.5 %, PREFETCH_EARLY +1.4 %, NNUE_ZMM
+  +1.4 % (weak: its re-time alone and its pooled cpu metric are NO-WIN); losers: PICKBEST 1 / 2, MATKEY_FAST.
+  **stack_w2 = TT_NOTLS + NO_ZERO_MOVELISTS=2 + SPEED2: +11.5 % wall / +11.3 % cpu vs the lock** - QA first
+  (section 5). **All six stacked (trial_w6): +14.9 % wall / +15.3 % cpu vs the lock** - the largest winners-only
+  stack, second step; stack_w5 = the same without the weak NNUE_ZMM. Every stack: bit-exact incl. the full 12k set,
+  switch-0 build = the lock exe, QA's own kit rebuilds it byte for byte. No Elo claim; QA re-times on its own cores.
 - **Job C (vote 3) - DONE** (worker jobc, coordinator re-run ALL PASS): gate replay / LLR projection / throughput /
   adjudication / book / pre-gate screen / concurrency tools; wall time is set by slot count x games; idle gaps are
   small except empty-queue periods.
@@ -147,7 +148,7 @@ rule itself was written at 12:22, after the first re-time (slider) had finished;
 |---|---|---|---|---|---|
 | TT_NOTLS | +4.19 % [0.9947, 1.0734] NO-WIN | +2.62 % [1.0108, 1.0344] WIN | **+2.86 % [1.0117, 1.0419]** / +2.97 % [1.0198, 1.0368] | **WIN** | ec2e8683 / 4368e42b |
 | SLIDER_PEXT | +1.37 % [0.9993, 1.0210] NO-WIN | +1.92 % [1.0045, 1.0305] WIN | **+1.52 % [1.0061, 1.0232]** / +1.43 % [1.0064, 1.0197] | **WIN** | 8e9c8e82 / 2b0788dd |
-| PREFETCH_EARLY | +1.11 % [0.9889, 1.0322] NO-WIN (cpu WIN) | PENDING (queued) | PENDING | PENDING | cfe32f4f / - |
+| PREFETCH_EARLY | +1.11 % [0.9889, 1.0322] NO-WIN (cpu WIN) | +1.49 % [1.0025, 1.0214] WIN | **+1.35 % [1.0021, 1.0205]** / +1.90 % [1.0089, 1.0219] | **WIN** | cfe32f4f / a3d720c7 |
 | NNUE_ZMM | +1.99 % [0.9999, 1.0578] NO-WIN | +0.98 % [0.9967, 1.0238] NO-WIN | **+1.41 % [1.0042, 1.0303]** / +0.93 % [1.0025, 1.0237] (cpu NO-WIN) | **WIN, weak** (re-time alone and pooled cpu NO-WIN) | bcc00d27 / 22093c2c |
 Folders: first runs `F:\ospd\packs\<pack>\abba_d20`, re-times `F:\ospd\abba\retime_<pack>_d20_r16`; pooled numbers
 from `abba_recheck.py --pool <first> <re-time>` (it refuses runs of different exes). The TT gain is smaller than
@@ -216,19 +217,22 @@ log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (ou
    12:34: QA's own kit v2.3 (`build_ltopgo.ps1 -Expose -Kit <kit folder>`) on `src_kit` gives this exe byte for byte
    (sha256 db957393...) and its plain-vs-LTO+PGO node identity is ALL OK. QA: rebuild pc1 + pc2 with the kit, re-run
    the pins / 12k identity, and time it on QA's own cores.
-2. **stack_w4** = stack_w2 + `FORGE_SPD_SLIDER_PEXT=1` (source: lock + `opus_speed/patches/trial_w6.patch`, with
-   PREFETCH_EARLY and NNUE_ZMM left at 0; `F:\ospd\packs\stack_w4\src_kit`): the largest stack whose every member
-   wins on BOTH metrics (pooled where re-timed). Its numbers: section 3c / `opus_speed/candidates/stack_w4.md`.
-   One more changed code path than stack_w2 (PEXT slider index; needs BMI2, which every CPU that runs a znver5 build
-   has). Time it after stack_w2, as the second step.
-3. The changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 %), r14_speed2_b (+3.2 %), b1_tt_notls_b
-   (+2.9 % pooled), b2_slider_pext (+1.5 % pooled).
-Not recommended for QA time: stack_w3 and trial_w6 contain PREFETCH_EARLY (it moves the lock's two TT prefetches,
-qsearch and main search, before make_move; SPEED2 adds prefetches at other sites, the null-move and ProbCut makes),
-which showed no measurable gain on top of stack_w2 (stack_w3 +11.42 % vs stack_w2 +11.48 %, two sessions) and is a
-wall NO-WIN as a single (re-time: section 3b). NNUE_ZMM is a weak winner (pooled wall +1.41 %; its re-time alone
-and the pooled cpu metric are NO-WIN) - worth a QA re-time on its own before any stacking. Nothing here is locked
-or queued by this job; QA decides.
+2. **trial_w6** = all six switches ON (source: lock + `opus_speed/patches/trial_w6.patch`, defaults flipped in
+   `F:\ospd\packs\trial_w6\src_kit`): every member is a protocol winner (TT_NOTLS, SLIDER_PEXT, PREFETCH_EARLY,
+   NNUE_ZMM on 26 pooled rounds, by the rule set before any re-time finished), so this is the largest winners-only
+   stack. Exe sha256 4181a589..., pc1 = pc2; bit-exact L1-L4 (ASan via the 12:24 re-run) + full 12k 12,000 /
+   12,000; QA's own kit rebuilds it byte for byte; ABBA vs the lock wall **+14.92 % [1.1351, 1.1666]**, cpu +15.31 %
+   [1.1387, 1.1698] (`opus_speed/candidates/trial_w6.md`). Six changed code paths instead of three; the PEXT slider
+   index needs BMI2 and the output kernel AVX-512F, both present on every CPU that can run the lock's znver5 build.
+   Time it after stack_w2, as the second step.
+3. **stack_w5** = trial_w6 without NNUE_ZMM, the one weak winner (pooled wall +1.41 %, but its re-time alone and its
+   pooled cpu metric are NO-WIN): every member wins on BOTH metrics. Numbers: section 3c /
+   `opus_speed/candidates/stack_w5.md`. The choice between 2 and 3 is QA's (one more, weakly proven, kernel).
+4. The changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 %), r14_speed2_b (+3.2 %), b1_tt_notls_b
+   (+2.9 % pooled), b2_slider_pext (+1.5 % pooled), b1_prefetch_early (+1.4 % pooled), b2_nnue_zmm_c (+1.4 % pooled, weak).
+stack_w1, stack_w3 and stack_w4 are intermediate data points (section 3c), not separate recommendations. PREFETCH_EARLY
+moves the lock's two TT prefetches (qsearch, main search) before make_move; SPEED2 adds prefetches at other sites
+(the null-move and ProbCut makes), so the two do not overlap. Nothing here is locked or queued by this job; QA decides.
 
 ## 6. Skills created or improved (on this branch; the project copies on D: were not touched)
 - NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol with wall as the
