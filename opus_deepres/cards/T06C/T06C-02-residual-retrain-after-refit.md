@@ -12,7 +12,7 @@ Status: COMPLETE
   "retrain the net on the re-fit HCE" number was found.
 
 ## Licence
-Ethereal GPL-3.0 (LICENSE at b552e36f88): ideas only - commit text and test pages read, never source.
+Ethereal GPL-3.0 (LICENSE at 8d02577b5f and b552e36f88): ideas only - commit text and test pages read, never source.
 
 ## Mechanism
 Own recipe: the second half of one block-coordinate round. After T06C-01 picks a new table T1, the residual target

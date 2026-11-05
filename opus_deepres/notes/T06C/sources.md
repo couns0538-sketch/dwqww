@@ -28,3 +28,11 @@ Started 00:48 PC clock (research stop 01:38).
 - notes/TRIED_GATES.md via tools/tried_gates.py --grep texel|hce|eval_param|table|retune|psqt | own | 0 of 110 gates | T06C-01
 
 Sources used: 13 external fetches (Ethereal 7 incl. 3 commit lists, Stockfish 2, chessprogramming wiki 1, web search 1, Clockwork 2) + own-code / own-skill reads. Engines deep-read (commit text only): Ethereal, Stockfish, Clockwork (= cap 3).
+- licence rows added at every cited commit (Ethereal 8d02577b5f / 513a93c232 / 5e25d42142, Clockwork 753f88460c): all GPL-3.0 / AGPL-3.0 at the exact commit (notes/T06C/licences.md)
+
+## Pending / not done
+- Whether Ethereal's tuner kept the net output inside the sigmoid at b552e36 (commit text silent; tuner source is GPL, not read).
+- hce_dump rate per row not measured (T06C-02 .hce regeneration cost is an own guess, 1-3 h).
+- No MIT engine read (engine cap of 3 reached with Ethereal, Stockfish, Clockwork).
+- Skill forge-o30-v2net (CPU fine-tune trainer, EvalFileV2 path) cited from the skill listing only; its SKILL.md is not in the project skills folder.
+- The lock net's .hce header names forge=1ab50b2d; that this build used the lock table was not compared here (table identity was checked only between the h256_e12 tree and the lock).

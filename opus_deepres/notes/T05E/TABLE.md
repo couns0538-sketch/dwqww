@@ -33,7 +33,9 @@ Cost model and the missing measurement: notes/T05E/HALFKA_COST.md.
   built so far puts it on large pages - R13 P2 `opus_r13/p2/stack/stack_s1_port.patch` changes only the TT and the lock
   w1 allocation (probe lines "LargePages: on (2 MiB NNUE w1)", "on (32 MiB TT)"), and `stack_align.patch` gives the
   HalfKA ft_weight an aligned std::vector allocator, not large pages (git `origin/opus-r13-p2-sparse-l1`). The 30-Oct
-  report S1 named "the 66 MiB int8 HalfKA weights"; that part is still open.
+  report S1 named "the 66 MiB int8 HalfKA weights"; that part is still open. Zen 5 has a 96-entry L1 DTLB and a 4,096-entry
+  L2 DTLB (AMD Hot Chips 2024 deck as reported by hwbusters; search summary, deck not opened): 4 KB pages reach 16 MB,
+  a quarter of the table, while 33 pages of 2 MB would cover it.
 - evidence for T05-04 (prefetch at record_move): on the HalfKA path the update from the parent costs 124.5 ns per
   perspective at L1 1024 vs 31.4 ns at L1 256 (R10 tool, `docs/OPUS_R10_HALFKA.md`), about 600 cycles for 3 KB of rows,
   i.e. memory-bound; R10 "next speedups" item 4 proposed the same prefetch for this path; record_move already knows the

@@ -10,18 +10,18 @@ list, "really rarely triggered", PR 6235), /commit/ee515ad (root PV longer than 
 (overflowed tried-move list; T04 row 8).
 
 ## Licence
-Lock, fix and fixture: own. Stockfish @1548538ede / @23df82905b GPL-3.0 (notes/T12B/licences.md): ideas only, commit
+Lock, fix and fixture: own. Stockfish @c56bd10cb5 GPL-3.0 (row in notes/T12B/licences.md): ideas only, commit
 messages read, no source or diff. Caissa MIT (row in notes/T04/licences.md).
 
 ## Mechanism
 In a main-search node that is not in check, the GoodCaptures stage tests every generated noisy move (pseudo-legal
 captures plus all four pieces of every promotion, before the legality test) with SEE >= 0 and appends each loser to
-bad_captures_ with no size test. The 65th loser lands at index 64, which is the first 4 bytes of bad_count_ (declared
-directly after the array; Move is four one-byte fields, so there is no padding): the counter becomes the move's bytes.
-The next loser is then written far past the picker (wild stack write), and the BadCaptures stage hands out
-"moves" read past the array until bad_index_ reaches the garbage count; search.cpp:1051 calls is_legal (not
-is_pseudo_legal) on them, so from/to bytes up to 255 index the 64-square board: undefined behaviour, crash or a
-corrupted position. Reachable: the buffix census (the engine's own board code) found a set_fen-accepted, not-in-check
+bad_captures_ with no size test. The 65th loser lands at index 64 = the low 4 bytes of bad_count_ (declared directly
+after the 256-byte array, no padding), so the counter becomes that move's bytes, at least 2^24 because a noisy move's
+flags byte is non-zero. With exactly 65 losers this is benign by luck (read-back gives the 65th move, then a zero word =
+none, which ends the loop). From the 66th loser on, writes land 64 MiB or more past the array (wild write, typically an
+access violation), and read-back hands a 65th move whose from byte was advanced by the extra count to is_legal
+(search.cpp:1051, no pseudo-legality test): undefined behaviour. Reachable: the buffix census (the engine's own board code) found a set_fen-accepted, not-in-check
 FEN with 69 noisy and 68 SEE-losing moves (4 promotions): `3r4/Pn1Q1p2/1Q1n1QpN/1p1Q1pRB/1Qbp1QpN/2bQ1pRB/3r1QpK/2k2q2
 w - - 0 1`. It needs many promoted queens, so gates and self-play will practically never meet it; any GUI user, fuzz
 run or imported FEN can. This corrects T04 row 9 ("likely unreachable").

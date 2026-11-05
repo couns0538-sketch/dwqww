@@ -1,4 +1,4 @@
-# T01B licence rows (tools/licence_at.py --row at the exact commit read; run 00:59 PC clock)
+# T01B licence rows (tools/licence_at.py --row at the exact commit read; run 00:59-01:00 PC clock; the clock read after the run printed 01:00)
 
 | repo | HEAD read | date | file | licence | first line | api |
 |---|---|---|---|---|---|---|

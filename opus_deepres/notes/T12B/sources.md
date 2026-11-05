@@ -59,3 +59,26 @@ tier | what it gave | card id or "no card".
   capture maximum stated | T12B-02, T12B-04
 - (search, no source) WebSearch "chess position maximum 218 legal moves FEN ... pseudo-legal moves maximum" -> E5; no
   page states a maximum number of pseudo-legal moves or of captures
+- E6 | Witek902/Caissa commit titles since 2019-01-01 (tools/mine_commits.py --grep 'overflow|sanitiz|asan|ubsan|out of
+  bound|crash|buffer|MaxMoves|max moves|stack', 943 cached) | MIT, titles only | 1 hit: 136d3d0 (already T04 row 8) | no card
+- (denied, not retried) gh api search/commits for "sanitizer" in the Stockfish repo: refused by the session's permission
+  check; the local mine_commits cache (E3) was used instead
+- E7 | https://github.com/official-stockfish/Stockfish/commit/3d92950859 (message via mine_commits --show; PR 5383) |
+  GPL-3.0, commit message only | "Limit depth after extensions to avoid asserts": extensions let depth exceed MAX_PLY;
+  repro `position fen 7K/P1p1p1p1/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1` + `go nodes 1000000` on a debug build;
+  non-regression STC 143,936 games LLR 2.93 <-1.75,0.25>. The FEN passes Forge's set_fen rules by hand count (8 + 5
+  pawns, kings h8/h6 apart, black not in check) | T12B-02 fixture F4
+
+## Own side, added during writing (not counted)
+- lock src/book.cpp (grep of every size / index use, lines 140-182 read): Polyglot reader takes whole 16-byte records only
+  (book.cpp:104-107); probe works on matched moves | own | safe, no row needed | no card
+- D:/o30/plain/spsa_1, D:/o30/plain/v2port_1, D:/o30/harness/h1 src/src/search.cpp (grep) and D:/o15/cands (grep, 0 hits)
+  | own | every lock-line tree checked still has the 64-entry unguarded buffer | T12B-01
+- fable-review-buffix a9cea71f (git show src/search.cpp): array sized MoveList::Capacity + static_assert, value-init `{}`
+  kept (zero-fill grows 256 B -> 1 KiB per picker) | own | T12B-01; cards/T05C/T05C-02 lines 17-32 (memset 0x800 + 0x400
+  per picker in the lock exe) | own | interplay note in TABLE.md section C
+- F:/opus_scratch/fable_review/buffix64/fable_nnue_losing_search2.py:4-5 imports python-chess (GPL-3.0) | own | T12B-02
+  replaces it with an own annealer
+
+Research stop 01:14 PC clock (measured with date; sources used: 7 external of 15, 1 web search, 1 forum thread of 5;
+engines deep-read: 0, commit titles and messages only).

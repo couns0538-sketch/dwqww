@@ -35,6 +35,10 @@ def lint(path):
             out.append(f'{path}:{i}: vendor/model name "{m.group(1)}"')
         if HEADER_RX.search(l):
             out.append(f'{path}:{i}: licence/copyright header line')
+    head = ' '.join(lines[:3])
+    if lines and len(lines) <= 3 and (lines[0].startswith('MERGED into') or
+                                      (lines[0].startswith('Status:') and re.search(r'DUPLICATE|MERGED', head))):
+        return out, 0  # merge marker of a duplicate folded into a TABLE.md row (not a card); names / headers still checked
     if lines and lines[0].startswith('ONE-LINE |'):
         parts = [p.strip() for p in lines[0].split('|')]
         if len(parts) < 8:

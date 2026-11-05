@@ -49,8 +49,8 @@ Crew 5 h (table 1 h, diff + one-pass multi-row apply 1.5 h, counters 0.5 h, proo
 
 ## Test plan
 0. Counter build: refreshes per 1M nodes by cause (king move, mirror flip, state change, no valid ancestor), cache hit
-   rate, rows per cached refresh. 1. OFF pins (bench d11-d22, perft); ON bench nodes at switch 1 = switch 0 for e19 / e9
-   (373062 / 831975 / 4115992 / 17885060 / 37006232) and an npt net. 2. Skill forge-halfka-parity-test: 12k-FEN parity,
+   rate, rows per cached refresh. 1. OFF pins (bench d11-d22, perft); ON bench nodes at switch 1 = switch 0 for e19
+   (373062 / 831975 / 4115992 / 17885060 / 37006232), e9 and an npt net. 2. Skill forge-halfka-parity-test: 12k-FEN parity,
    walk incremental == refresh, verify build (`-DFORGE_HALFKA_VERIFY`) at Threads 1 and 3, CTest, AVX2 + znver5, scalar.
 3. Gate route: node-identical speed change = nps ABBA only (palindromic, fresh exe copies, A/A first), d16 and d20, e19
    and an npt L1 1024 net; keep only if the lower bound clears +1 %.

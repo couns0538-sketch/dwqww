@@ -23,8 +23,8 @@ stays on e-h, queenside castling crosses once; the refresh cache absorbs repeats
 `bash tools/forge_has.sh 'king.?bucket|kbucket|mirror'` = 0 hits (the lock has no king buckets). v2 already carries
 it: FORGENN2 flag bit 1 = mirror (opus_30h/a/o30_v2net.py:16, :31), engine "king buckets 1-32 + mirror" (v2port.patch,
 forge-o30-v2net skill), trainer argument mirror 0|1 (forge_v2_bullet_o30/src/main.rs:214, :280), import / export
---mirror (import_v2r.py:33, export_v2r.py:43). Lacks: every 30-h net used an unmirrored rank map, because only an
-unmirrored map is an exact lock warm start (o30_v2net.py:8; from-lock has no --mirror, :6). Own shape for the A/B:
+--mirror (import_v2r.py:33, export_v2r.py:43). Lacks a mirrored net: from-lock writes unmirrored maps only (o30_v2net.py:6-8,
+exact lock warm start) and the forge-o30-v2net skill names only unmirrored rank maps for the 30-h runs. Own shape for the A/B:
 mirrored KB8 = rank groups 1 / 2 / 3-4 / 5-8 (as rank4x2) x file pairs a-b / c-d on the a-d half. Start: the lock
 weights written into it = exact for kings on a-d, the lock on the reflected board for kings on e-h (approximate).
 Change: one map name in the trainer (main.rs:222-249) + o30_v2net.king_map, a from-lock --mirror writer.
@@ -32,10 +32,13 @@ Change: one map name in the trainer (main.rs:222-249) + o30_v2net.king_map, a fr
 ## Expected gain
 No source isolates mirroring at an equal bucket count and L1. Stormphrax PR 166 (with L1 1536): 25k nodes +34.97 +-
 9.51 (2,522 g), STC 8+0.08 -4.84 +- 4.02 (9,190 g, FAILED [0,3]), LTC 40+0.4 +4.90 +- 2.91 (14,550 g, LLR 2.89 [0,3]).
-Obsidian d8e8007f (4 mirrored buckets, L1 768, 8 output buckets, ~25 % faster than the old large-input net): STC
+Obsidian d8e8007f (4 mirrored buckets, L1 768, 8 output buckets; "25% speedup", old net had "the 150MB table"): STC
 10+0.1 +10.18 +- 5.92 (6,898 g, LLR 2.91 [0,3]). Leorik: "+20 Elo" with "nps goes down by 10%", no TC / games / error.
-No book named anywhere. Forge estimate: 0 to +2 Elo over the unmirrored KB8 net of the same recipe, before the d/e
-refresh cost (nps unmeasured) **UNPROVEN**.
+No book named anywhere. Counterpoint (forum, https://talkchess.com/viewtopic.php?p=954027): 64 unmirrored king
+squares vs 32 mirrored "not even 1 Elo on UHO", mirrored HalfKA "basically nil" (no TC / games) - at that fine
+resolution mirroring only halves the weights; our case is the reverse (equal count, finer shape).
+Forge estimate: 0 to +2 Elo over the unmirrored KB8 net of the same recipe, before the d/e refresh cost (nps
+unmeasured) **UNPROVEN**.
 
 ## Effort
 Crew ~2-3 h (map name, writer, random mirrored KB8 checks, packaging). GPU: 2 warm-start runs of the 30-h recipe (lr

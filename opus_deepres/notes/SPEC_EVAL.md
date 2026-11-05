@@ -101,8 +101,8 @@ what the ply guard bounds.
 ### Identity proof (OFF)
 At ReSearchAdjust = 0 the block never runs and research_depth == new_depth at both uses, so every child search has
 the lock's depth, window and cut flag: same tree, the five lock pins, perft unchanged. Run the OFF pins a second time
-with the six other knobs at extreme values (DeeperBase 0, ShallowerBase 100, MaxPlyPct 100, Pv 0) and the switch at
-0: still the lock pins (proves they are read only under the switch). No struct or stack change (one local).
+with the six other knobs at extreme values (DeeperBase 0, DeeperPerDepth 20, ShallowerBase 100, ShallowerPerDepth
+10, MaxPlyPct 100, Pv 0) and the switch at 0: still the lock pins (proves they are read only under the switch). No struct or stack change (one local).
 
 ### ON-live check
 ReSearchAdjust = 1: all five bench depths differ from the lock pins and repeat exactly on a second run (bench is one
@@ -127,7 +127,9 @@ DeeperPerDepth 0 -> 5, ShallowerPerDepth 0 -> 5: each must change at least one b
 Candidate: fresh LF lock copy + this patch (skill forge-lock-port), kit v2.3 `-Expose` build with pc1 = pc2 (skill
 forge-r15-candidates, `cand_pack.ps1`). Crew form (Common) with `option.ReSearchAdjust=1` only, STC [0,10] nElo cap
 12k; if not H0, LTC 30+0.3 [0,15] cap 6k. packb gates 12 / 35 / 40 / 41 are not results for this line (bundle, old
-bases, copied constants).
+bases, copied constants). The option NAME is packb's, so tag the candidate distinctly (exe name and INDEX entry e.g.
+`rsa2_own`, gate tag `uhoRSA2_researchadjust_own_vs_AL1lp`) so that a later `tried_gates.py --grep ReSearch` does not fold
+the new result into gates 12 / 35 / 40 / 41.
 
 ### Crew hours
 Port ~1 h (about 12 lines in the block, 7 table rows, 7 declarations in `search.hpp`); proofs ~2 h (OFF pins twice,

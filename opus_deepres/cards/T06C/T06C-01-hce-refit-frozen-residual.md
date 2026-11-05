@@ -10,7 +10,7 @@ Status: COMPLETE
 - Missing: whether Ethereal's tuner kept the net output inside the sigmoid (not in the commit text; source not read).
 
 ## Licence
-Ethereal GPL-3.0 (LICENSE at b552e36f88), Clockwork AGPL-3.0 (LICENSE at 2844edc8c0): ideas only - commit titles,
+Ethereal GPL-3.0 (LICENSE at b552e36f88 and 513a93c232), Clockwork AGPL-3.0 (at 2844edc8c0): ideas only - commit titles,
 messages and test pages read, never source; no constants carried over.
 
 ## Mechanism
@@ -22,14 +22,14 @@ is linear in the table, so the frozen net is one per-row constant (white point o
 the table gradient is the existing one taken at the sum: the table only moves where HCE + net is still wrong. Never
 ship a stand-alone re-tune (net absent) with the old net: the net already corrects the old table's errors, a table
 that fixes them too double-counts. Data: own self-play FPOS train shards (013/014 out), subsampled for RAM; FPOS has
-no castling / ep / clocks, which neither the HCE nor the net reads (hce_dump makes the production .hce from them).
+no castling / ep / clocks; eval.cpp and the 768 net inputs read none (hce_dump re-makes the production .hce exactly).
 
 ## Forge fit
 Parts exist, the joint fit does not. forge_has.sh 'texel|eval_params|EvalParam': include/forge/eval_params.hpp:10
 (layout shared with the tuner), src/eval_params.cpp:8-11. Tuner tools/tune/texel.cpp (read in the src_h256_e12 tree;
 the lock tree holds only include/ and src/): Adam on a coefficient trace, own K scan (:181-196), no per-row net term.
 Lock table src/eval_params_table.inc:1 (61,536 games, 4.67M quiet positions, 10k nodes) is byte-identical to
-h256_e12's: every residual net since was fit on top of it, and it was never re-fit under them. search.cpp:620 sums
+h256_e12's (no table change between that tree and the lock; a later re-fit was not found). search.cpp:620 sums
 HCE + net for every static eval; SEE uses fixed SeeValue (board.cpp:17); pawn cache eval.hpp:52-65. TRIED_GATES: 0 of
 110 rows match texel / hce / eval_param / table / psqt. T06-02 (two runtime weights) is a 2-scalar special case: gate
 T06C-01 alone. Change: tuner per-row net column + fixed --k; row writer = notes/T06/FIT_RECIPE.md step 1; new table.

@@ -32,7 +32,7 @@ Change: activation flag in FORGENN2, output kernel variant (AVX2 / SSE / scalar)
 Obsidian beaa1374: "now using pairwise CReLU instead of SCReLU", STC 6+0.06 1 thread 16 MB +3.18 +- 2.10 (29,514 g,
 penta 138/3441/7356/3657/165, LLR 2.90 for [0,2.5]); the author flags the TC itself ("false tc due to broken nps");
 lower 95 % bound ~+1.1; no LTC, no book, no nps number; Obsidian's hidden size at that commit is not stated (1280
-since 132e8653). Stormphrax PR 237 (pairwise -> CSReLU -> CReLU, new layer stack and L1 1792 in one change): LTC
+at 132e8653; the later 62f32032 arch is not named). Stormphrax PR 237 (pairwise -> CSReLU -> CReLU, new layer stack and L1 1792 in one change): LTC
 40+0.4 +22.69 +- 6.51 (2,730 g) - not attributable to pairwise.
 Forge estimate: 0 to +2 Elo at equal width over an SCReLU twin of the same recipe; negative while the from-scratch
 start stays behind the lock **UNPROVEN**.

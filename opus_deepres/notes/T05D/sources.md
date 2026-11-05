@@ -8,8 +8,9 @@ SearchStack layout, branch hints, other bit-exact search-overhead cuts). Worker 
 - L2. R7 J3 report `opus-r7-nps:opus_r7/j3/REPORT.md` (git show, read-only) | own | perf hotspots (HCE 14.4 %, MovePicker::next
   10.9 %, TT probe 10.7 %), R7TtExclusive +3.59 % [+1.38, +5.84] d16 / +3.97 % [+1.23, +6.77] d20 wall (15 runs, PC,
   73 % busy), callgrind -1.26 % Ir; R7PrefetchEarly no gain (+0.84 % Ir); R7QuietGen / R7EvalPrefetch neutral | T05D-01, T05D-02
-- L3. Lock exe disassembly `F:/odr/work/T05C/lock_v23.dis` (T05C's objdump of forge_ltopgo_x_al1s198_v23.exe, read
-  only): 4 call sites of `__emutls_get_address` in the search path (Worker::search 0x1400ee166 inside the inlined TT
+- L3. Lock exe disassembly `F:/odr/work/T05C/lock_v23.dis` (T05C's objdump of
+  C:/Users/Administrator/grok-pc/forge_push/locks/lock_AL1_s198_ltopgo_x_20261030/forge_ltopgo_x_al1s198_v23.exe,
+  sha256 re-hashed by T05D at 01:10: fd3a51903e73dc1f..., read only): 4 call sites of `__emutls_get_address` in the search path (Worker::search 0x1400ee166 inside the inlined TT
   probe, 0x1400f2152; Worker::qsearch 0x1400facc5; TranspositionTable::store 0x1400fe605); emutls -> pthread_getspecific
   = GetLastError + once check + TlsGetValue + pthread_spin_lock (`xchg` with memory = locked, a full fence) +
   pthread_spin_unlock + SetLastError | own | T05D-01 (the lock still pays the TLS path R7TtExclusive removed)

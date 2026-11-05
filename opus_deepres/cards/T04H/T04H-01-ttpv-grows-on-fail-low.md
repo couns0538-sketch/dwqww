@@ -20,7 +20,8 @@ the leaf is the last one in search tree". Own words: a node whose parent was a t
 and which fails low (no move raised alpha, so the parent's move into it looks good for the parent) is flagged ttpv
 when its result is written to the TT; later visits then treat it as a former-PV node. Only this "add" half is
 proposed: the "remove" half was dropped by e31f97e. The depth condition of the source is not in any text read; the
-start value below is own.
+start value below is own. (Verify 2026-11-05: the STC run's own note reads "If previous node is ttPv and we find a
+good move, consider child node as ttPv", which is this reading; 1b31e26's message says a depth condition existed.)
 
 ## Forge fit
 `bash tools/forge_has.sh 'tt_pv'` -> 10 hits: `ss->tt_pv` is set once per visit at `src/search.cpp:919` (pv node or

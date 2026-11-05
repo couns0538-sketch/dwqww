@@ -14,8 +14,8 @@ Own code and own data.
 
 ## Mechanism
 For its first 4 picks per stage, pick_best scans [index_, count_) for the first maximum (strict `>`) and swaps it
-to index_. The "new maximum" branch depends on the data: for n random scores it is taken about ln n + 0.58 times
-(~4 for n = 30) and mostly mispredicted (~12-15 cycles each on Zen 5), on top of a loop-carried compare chain.
+to index_. The "new maximum" branch depends on the data: for n random scores it is taken about ln n - 0.42 times
+(~3 for n = 30; corrected by verify: H_n - 1, the first element takes no branch) and mostly mispredicted (~12-15 cycles each on Zen 5), on top of a loop-carried compare chain.
 Replace only the scan by a branch-free reduction over 64-bit keys key_i = (score_i << 32) | (0xFFFFFFFF - i): the
 largest key has the highest score and, among equal scores, the LOWEST index - exactly the element the strict `>`
 scan picks. AVX-512: load 8 Scored (64 B) per zmm (score is the high half of each little-endian 8-B Scored), mask

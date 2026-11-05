@@ -36,7 +36,7 @@ The forward grows little with L1 (219 ns at 256, 279 at 1024); updates and refre
   (a) more refreshes in search than the tool's 9.4 %: each evaluated child of an unevaluated king-move node refreshes
       on its own -> T05E-02 (backward fill), T05E-01 (cache);
   (b) lazy walks over 2+ plies (TT-eval and in-check gaps): one more full 2-KB pass per ply and perspective -> T05E-04;
-  (c) cold rows in search: the 69 MB table on 4 KB pages (16,896 pages) while the TT, histories and stacks compete for
+  (c) cold rows in search: the 69 MB table on 4 KB pages (16,896 pages vs a 4,096-entry Zen 5 L2 DTLB, sources.md 14) while the TT, histories and stacks compete for
       L2 / L3; the tool re-uses each position 50 times -> evidence for T05-03 (2 MB pages) and T05-04 (prefetch at
       record_move);
   (d) more evaluations per node in the ON tree (it is about 60 % bigger to the same depth; qsearch share unknown) ->
