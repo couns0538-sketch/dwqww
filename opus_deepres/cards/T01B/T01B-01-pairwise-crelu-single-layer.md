@@ -15,7 +15,8 @@ and PR text read, never source. bullet MIT at da426a49 (T01 row) = copy with not
 SCReLU squares each clipped hidden value. The pairwise form cuts each perspective's accumulator into two equal halves,
 clips both to [0, 1] and multiplies neuron i of the first half with neuron i of the second; the output layer reads
 half as many values per perspective. The net learns products of two features instead of squares of one. A product of
-two clipped values has the same bound as a square, so the integer path's magnitude bounds carry over.
+two clipped values has the same bound as a square, so the output path's magnitude bounds carry over (corrected by verify:
+Forge's lock and v2 paths accumulate in float32, not integers - nnue.hpp:20; the bound remark holds either way).
 
 ## Forge fit
 `bash tools/forge_has.sh 'pairwise|crelu|screlu'` = 1 hit, include/forge/nnue.hpp:11 (SCReLU, lock net). v2 port: SCReLU

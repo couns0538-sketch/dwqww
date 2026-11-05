@@ -82,6 +82,11 @@ there; paths are the ones of that job.
   clock lags by up to one task length.
 - Stopping a workflow (TaskStop) and relaunching its unfinished tasks as continuations (files on disk + a
   `continue_note`) worked twice in this job; nothing written by the stopped agents was lost.
+- NEVER resume (resumeFromRunId) a pooled workflow: its cache replays an order-dependent prefix of agent() calls, and
+  a pool's call order changes on replay, so finished agents start again live (2026-11-05 01:25-01:29: verifiers,
+  research and specs restarted; stopped within ~2 min). Start a FRESH run seeded with only the remaining tasks.
+- Refill the queue BEFORE it is empty (planner when fewer than 3 research tasks wait); planning only on an empty queue
+  left 4 of 10 slots idle while the planner read the notes.
 
 ## Checkpoints and the low-usage stop
 - Commit + push about every 10 minutes (the coordinator only; workers never commit). Update STATUS (track table,

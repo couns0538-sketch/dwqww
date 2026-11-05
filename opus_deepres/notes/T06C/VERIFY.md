@@ -59,7 +59,7 @@ tools/licence_at.py --row, lock lines re-read from src_al1s198_clean, tried gate
   AGPL repo named anywhere; Stockfish and nnue-pytorch source not read. VIOLATIONS: none.
 - Constants: K 2.25 and blend 0.6 are Forge's own trainer values (skill forge-nnue-data); T06C-03 ranges are own; no other
   engine's tuned value proposed as a Forge value. ok.
-- Names: grep for vendor / model-company names and `train_res` over cards/T06C and notes/T06C: none.
+- Names: grep for vendor / model-company names and the residual trainer's forbidden process-name prefix over cards/T06C and notes/T06C: none.
 - Duplicates: all 71 other cards listed; grep texel / HCE table / king danger / refit / re-tune hits only T06-05 (own E3
   refit, a different idea). T06-02 is a two-scalar HCE-vs-net re-weighting (card T06C-01 already separates it); T06-01
   material scale, T06-05 rule50 damp, E3 = post-processing. No HCE-table refit or king-danger unit fit among the 110 tried
