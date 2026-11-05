@@ -38,6 +38,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | AndyGrant/Ethereal | 7f6b2d3945 | 2018-07-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05B | ideas only |
 | AndyGrant/Ethereal | 8d02577b5f | 2020-09-28 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
 | AndyGrant/Ethereal | b552e36f88 | 2020-09-24 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
+| AndyGrant/Ethereal | f71ac4769a | 2023-03-17 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | AndyGrant/OpenBench | 230ed46e47 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | Ciekce/Stormphrax | 29e175a2f5 | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
 | Ciekce/Stormphrax | 3219c3021b | 2024-11-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
@@ -50,6 +51,8 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Ciekce/Stormphrax | e4b88b7a67 | 2026-02-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Ciekce/Stormphrax | eea6168441 | 2026-06-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Disservin/chess-library | 430266434a | 2026-11-03 | LICENSE | MIT | MIT License | api: MIT | T05C | copy with notice |
+| KierenP/Halogen | 50a42bca43 | 2025-08-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
+| KierenP/Halogen | f00b8e3417 | 2025-11-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | KierenP/Halogen | fe9b4dafc7 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | Luecx/Koivisto | 6de225ad85 | 2023-02-08 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | Matthies/RubiChess | 263f15d796 | 2026-11-03 | copying | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
@@ -65,7 +68,8 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Witek902/Caissa | 2fd8f56e40 | 2023-10-12 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
 | Witek902/Caissa | 434bbda5c3 | 2024-01-03 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
 | Witek902/Caissa | 47fc56acc5 | 2023-10-21 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
-| Witek902/Caissa | 57cae7ef71 | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T01, T02B, T04, T04F, T05C, T06 | copy with notice |
+| Witek902/Caissa | 4b2cf654a3 | 2025-09-26 | LICENSE | MIT | MIT License | api: MIT | T05F | copy with notice |
+| Witek902/Caissa | 57cae7ef71 | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T01, T02B, T04, T04F, T05C, T05F, T06 | copy with notice |
 | Witek902/Caissa | 8d2454c72f | 2026-10-17 | LICENSE | MIT | MIT License | api: MIT | T02 | copy with notice |
 | Witek902/Caissa | a677c890f9 | 2023-08-23 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
 | Witek902/Caissa | b02c47fa35 | 2026-05-24 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |

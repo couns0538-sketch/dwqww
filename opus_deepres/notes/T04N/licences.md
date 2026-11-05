@@ -7,3 +7,8 @@ All four: ideas only (GPL-3.0). Read: commit titles / messages, PR text, release
 | AndyGrant/Ethereal | 0e47e9b67f | 2024-06-11 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
 | KierenP/Halogen | fe9b4dafc7 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
 | Matthies/RubiChess | 263f15d796 | 2026-11-03 | copying | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+
+Rows at the exact commits cited by cards (tools/licence_at.py --row):
+| AndyGrant/Ethereal | f71ac4769a | 2023-03-17 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+| KierenP/Halogen | f00b8e3417 | 2025-11-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+| KierenP/Halogen | 50a42bca43 | 2025-08-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
