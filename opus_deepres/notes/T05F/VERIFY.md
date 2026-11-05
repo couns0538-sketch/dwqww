@@ -1,4 +1,4 @@
-# T05F verify (adversarial verifier, 2026-11-05, 02:18-02:3x PC clock)
+# T05F verify (adversarial verifier, 2026-11-05, 02:18-02:31 PC clock)
 
 Scope: 1 full card (T05F-01), 0 one-liner cards (the "two one-liners" check is N/A), 16 TABLE rows, sources.md, licences.md.
 Cards per sub-track: 1 of at most 4. Scratch: F:/odr/work/T05F-verify/ (one raw Caissa file, MIT).
@@ -30,3 +30,10 @@ Verdicts: CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLATION / DUPLICATE. Nothing 
 | TABLE rows 7, 9, 12 | material_key at :642 / :655; see_ge :360 with threshold 0 (:479), :838, :1008, :1082-1083, :1112-1113; record_null_move :632-636 | CONFIRMED | sed on the lock source. |
 | V1 | fetch cap | VIOLATION (minor, caps, self-disclosed) | sources.md W3: Caissa Search.cpp (2,385 lines) and Evaluate.cpp (367) fetched whole, over the ~300-line fetch cap. MIT, only the cited ranges read, no licence impact. Marked in the card's Status line. Disclosure: this verification fetched the same whole Search.cpp via gh api to F:/odr/work/T05F-verify/ and read only the cited ranges. |
 | V2 | licence rows | VIOLATION (minor) | notes/T05F/licences.md had Caissa rows only; W2 (Patricia, Altair commit titles) and W5 (Stockfish commit messages) had no licence_at.py --row line. Rows added by verify (marked) in licences.md. |
+| T05F-01 | Licence line "Arasan (T05B row 10): MIT doc only" | CORRECTED (tier) | notes/T05B/licences.md rows 6-7: no LICENSE file at 2dbc0649dc (the commit of the doc/CHANGES read), MIT at HEAD 6e432a21ef; a changelog may be read in either tier; nothing copied. Marked in the card. |
+| T05F-01 | notes-wide duplicate grep (eval cache / memo outside T05F) | NONE | notes/T04E/TABLE.md row 50 (Viridithas #236, raw eval cached in the TT earlier) is the TT-write family, not a memo; notes/T05B row 10 as above. |
+| T05F-01 | RuntimePsqt is integer | CONFIRMED | include/forge/eval.hpp:38-42: Score + int phase + bool valid (Score type checked in the final command, see hand-back). |
+| final | card_lint after the edits | # cards\T05F\T05F-01-eval-memo-unstored-exits.md: 0 finding(s), 0 PENDING field(s)  |
+
+Verify finished 02:30 PC clock. Written: notes/T05F/VERIFY.md; notes/T05F/licences.md (3 rows appended); notes/T05F/TABLE.md and sources.md (link marker); cards/T05F/T05F-01 (Status line + 3 markers). Scratch: F:/odr/work/T05F-verify/caissa_Search_57cae7.cpp.
+| T05F-01 | RuntimePsqt Score type | CONFIRMED | include/forge/eval.hpp:14 using Score = int |
