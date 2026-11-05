@@ -1,18 +1,20 @@
 # Forge deep research - FINAL REPORT
 
-**State: INTERIM 3** - written from 04:57 PC clock on 2026-11-05 (finish time in the last line). Rounds 1-2 and most
-of round 3 (after the usage reset, from 03:42) are researched, verified and ranked; still running at this writing: the
-T04R verifier, FIXER3 (card fixes), the speed specs + their review, the spec fixes + a third second vote. The state
-line will say FINAL, STOPPED - TIME LIMIT or STOPPED EARLY - LOW USAGE at the end.
+**State: INTERIM 4 (final draft)** - written from 05:41 PC clock on 2026-11-05 (finish time in the last line).
+Rounds 1-3 are researched, verified, second-voted, specified and ranked; still running at this writing: the last
+research run (T04T: logs of engines never read; T06D: hand-crafted eval terms the lock lacks, each with a Fable
+verifier) and, after it, a Fable critic of this report. The state line will say FINAL, STOPPED - TIME LIMIT or
+STOPPED EARLY - LOW USAGE at the end.
 
 Started 2026-11-04 22:23:27 PC clock; deadline 2026-11-05 08:23:27. Branch `opus-deepres-20261104`. No Elo claim for
 Forge anywhere: every source number is quoted with its link and conditions in the card; every Forge-side estimate is
-labelled UNPROVEN; the crew gates. Cards `cards/T<nn>[X]/`; per-track tables, diffs, notes and the verifiers' findings
-`notes/T<nn>[X]/` (`TABLE.md`, `DIFF.md`, `VERIFY.md`); the full ranked table `notes/RANKING_FINAL.md` (supersedes
-`notes/RANKING_DRAFT.md`); cross-track checks `notes/CRITIC.md`, `notes/CRITIC2.md`, CRITIC3 at the end of
-RANKING_FINAL; second votes `notes/TOP_SECOND_VOTE.md`, `notes/TOP_SECOND_VOTE2.md`; counter-evidence
-`notes/T12C/COUNTER.md`; implementation specs `notes/SPEC_SEARCH.md`, `SPEC_SEARCH2.md`, `SPEC_SEARCH3.md`,
-`SPEC_EVAL.md` (+ `SPEC_REVIEW.md`); fixes `notes/FIXES_APPLIED.md`; licences at the commits read `LICENCES.md`.
+labelled UNPROVEN; the crew gates. Cards `cards/T<nn>[X]/` (98 card files incl. one-liners and merge markers); per-track
+tables, diffs, notes and the verifiers' findings `notes/T<nn>[X]/` (`TABLE.md`, `DIFF.md`, `VERIFY.md`); the full
+ranked table `notes/RANKING_FINAL.md` (supersedes `notes/RANKING_DRAFT.md`); cross-track checks `notes/CRITIC.md`,
+`notes/CRITIC2.md`, CRITIC3 at the end of RANKING_FINAL; second votes `notes/TOP_SECOND_VOTE.md`, `..._VOTE2.md`,
+`..._VOTE3.md`; counter-evidence `notes/T12C/COUNTER.md`; implementation specs `notes/SPEC_SEARCH.md`,
+`SPEC_SEARCH2.md`, `SPEC_SEARCH3.md`, `SPEC_EVAL.md`, `SPEC_SPEED.md` (reviews `SPEC_REVIEW.md`,
+`SPEC_SPEED_REVIEW.md`); fixes `notes/FIXES_APPLIED.md` (rounds 1-6); licences at the commits read `LICENCES.md`.
 
 ## 0. First: the data blocker (T2-card-1, card T02-01, COMPLETE, verified)
 The J1 npt train binpack is written from FPOS rows (no castling, no en passant, no clocks), so the net sees board + side
@@ -25,30 +27,31 @@ train/holdout seams are breaks, so the 013/014 split is block-aligned. Under 30 
 logs), 10.4 GB on C:, crew ~2 h. Direct Elo: none expected (enabler for every net card).
 
 ## 1. Top 10 by expected Elo per crew-hour (lock-direct class), after the final ranking and the counter-evidence
-Metric (brief): midpoint of the card's UNPROVEN range / the card's crew hours. Ranges after `notes/T12C/COUNTER.md`
-(failed / neutral / reverted tests of the same ideas elsewhere). Crew hours are small for every row; gate-PC hours
-(6-7 h per capped run, section 2) are the real cost and are the same for every row.
+Metric (brief): midpoint of the card's UNPROVEN range / the card's crew hours; ties by the larger midpoint. Ranges
+after `notes/T12C/COUNTER.md` (failed / neutral / reverted tests of the same ideas elsewhere). Crew hours are small for
+every row; gate-PC hours (6-7 h per capped run, section 2) are the real cost and the same for every row.
 
 | # | card(s) | idea | best source evidence (all conditions + links in the card) | Forge est. UNPROVEN | crew h | per crew-h | ready |
 |---|---|---|---|---|---|---|---|
 | 1 | T06-05 | rule-50 damping at the fitted strength | SF 7b06475 STC +4.15 / LTC +2.94; own UE3C D=30 +1.51 (3,000 g, capped); own holdout fit favours D=81 | 0 to +3 | 0.5 | 3.0 | E3 exe, `EvalRule50Damp=60` (~81 needs a range-extended build) |
 | 2 | T04P-01 | fail-high TT cutoff needs a one-ply-deeper entry (form B: only for scores within a margin above beta) | Caissa 9d566cc form B vs form A +1.35 +- 1.06 (112,192 g); Caissa d39fcfb form A +2.11 +- 1.55 (48,018 g, 40+0.4 only); PlentyChess 373 STC H0 / LTC +1.73 | 0 to +2 (form B) | 0.5 | 2.0 | own port caissa_c123 built and CR-passed, never gated: `TtCutExtraMargin=72` |
 | 3 | T04-01 | singular verification search as a non-cut node | Caissa 1b7a871 STC +4.20 +- 2.23 (25,044 g); no counter-evidence found | 0 to +3 | 1 | 1.5 | spec (SPEC_SEARCH) |
-| 4 | T04E-02 (+ T04N-02 stacked) | no null move when the hash move captures a valuable piece | Reckless STC +3.43 / LTC +3.67; Viridithas LTC +1.88 +- 1.48 (49,814 g) | +1 to +3 | 1.5 | 1.33 | spec (SPEC_SEARCH2) + review code fix |
+| 4 | T04E-02 (+ T04N-02 stacked) | no null move when the hash move captures a valuable piece | Reckless STC +3.43 / LTC +3.67 (early stop); Viridithas LTC +1.88 +- 1.48 (49,814 g) | +1 to +3 | 1.5 | 1.33 | spec (SPEC_SEARCH2, with the review's pseudo-legality fix) |
 | 5 | T04F-01 | qsearch in check: stop after the first evasion that is not mated | Caissa a677c89 +3.29 +- 2.6 (25,531 g, TC not stated); Stockfish chose a milder form | +1 to +3, low end | 1.5 | 1.33 | spec (SPEC_SEARCH3); after the P27R extension |
 | 6 | T04-02 | LMR re-search deeper / shallower after a reduced fail-high | Caissa 434bbda STC +6.93 / LTC +5.14; Patricia PR 137 +5.55; Stockfish reverted an extra-deep variant twice (search explosions) | +1 to +4 | 2 | 1.25 | spec (SPEC_EVAL), own constants, ply guard mandatory |
-| 7 | T04E-03 (+ C-04, D-03, G-03) | quiet-move malus that shrinks with the try index | four engines at both TCs (SF a016abd STC +3.78 / LTC +2.18; Berserk 7451fd7; Reckless 1038; Patricia 172 LTC) | +1 to +3 | 2 | 1.0 | spec (SPEC_SEARCH2); first gate = base of every history stack |
-| 8 | T04C-02 | lower singular beta at former-PV (ttpv) nodes | SF 1591e5a LTC +1.04 +- 0.64 (235,592 g); SF 4e89864 LTC +1.83; the 2020 form was simplified away first | ~+1 within 0 to +3 | 1 | 1.0 | spec (SPEC_SEARCH3); after T04N-01 on the singular chain |
-| 9 | T04D-02 | low-depth TT cutoff only when its direction matches the node type | SF 43e100a STC +2.72 / LTC +1.02 +- 0.62 (270,888 g); its depth part simplified later | 0 to +2 | 1 | 1.0 | spec (SPEC_SEARCH2), form 1 first |
-| 10 | T04N-01 | negative extension of the TT move when its score is at or below alpha | Ethereal f71ac47 STC +4.66 / LTC +2.44 (57,696 g); akimbo 3e29e57 STC +2.29 (MIT); Caissa bundle | +0.5 to +2 | 1.5 | 0.83 | spec (SPEC_SEARCH3); first on the singular chain |
+| 7 | T04S-01 | continuation-history update with the summed continuation score as the gravity base | Tarnished #132 STC +2.23 +- 1.70 / LTC +2.53 +- 1.85 (39,808 / 32,122 g); Sirius #328 STC +5.86 / LTC +14.38 (HCE engine, blend form at STC); Clockwork #234 STC +14.67 | +1 to +4 | 2.5 | 1.0 | card (option ContHistSumBase, own start 60, sweep incl. 100) |
+| 8 | T04E-03 (+ C-04, D-03, G-03) | quiet-move malus that shrinks with the try index | four engines at both TCs (SF a016abd STC +3.78 / LTC +2.18; Berserk 7451fd7; Reckless 1038; Patricia 172 LTC) | +1 to +3 | 2 | 1.0 | spec (SPEC_SEARCH2); first gate = base of every history stack |
+| 9 | T04C-02 | lower singular beta at former-PV (ttpv) nodes | SF 1591e5a LTC +1.04 +- 0.64 (235,592 g); SF 4e89864 LTC +1.83; the 2020 form was simplified away first | ~+1 within 0 to +3 | 1 | 1.0 | spec (SPEC_SEARCH3); after T04N-01 on the singular chain |
+| 10 | T04D-02 | low-depth TT cutoff only when its direction matches the node type | SF 43e100a STC +2.72 / LTC +1.02 +- 0.62 (270,888 g); its depth part simplified later | 0 to +2 | 1 | 1.0 | spec (SPEC_SEARCH2), form 1 first |
 
-Moved down by the counter-evidence: T04D-01 (0 to +1.5: Stockfish simplified the term away and re-added it at about
-+1; 0.75 per crew-h) and the T04B-01 family (+0.5 to +2.5: Stockfish's 2024 retry +1.08 LTC at 244k games; the
-Stormphrax +6.48 LTC is a 10k-game DFRC run; 0.75). Close behind: T12-04 (SPSA of 20 live constants, 1.25 per crew-h
-but 33-67 h of tuning games), T04E-01, T04G-05, T04-05, T04C-05, T04D-05, T04H-03 (each ~1.0), new T04R-01 (best-move
-history bonus scaled by its child fail-highs; Renegade +3.35 +- 2.29 at 10+0.1, MIT; 0 to +3, ~2 h; verifier running).
-Not new: #1 and #6 exist in our own packb code (FiftyDamp, ReSearchAdjust), gated only as one bundle with copied
-constants on old bases (gates 12 / 35 / 40 / 41, no decision); #2 exists as an own port that was never gated.
+Next: T04N-01 (0.83; Ethereal STC +4.66 / LTC +2.44, akimbo, Caissa bundle), T04R-01 (0.75; best-move history bonus
+scaled by its child fail-highs, Renegade +3.35 +- 2.29, early stop, MIT), T04D-01 and the T04B-01 family (0.75 each,
+lowered by the counter-evidence: Stockfish simplified D-01's term away and re-added it at about +1; its 2024 retry of
+B-01 gave +1.08 LTC at 244k games and the Stormphrax +6.48 LTC is a 10k-game DFRC run), T12-04 (SPSA of 20 live
+constants, 1.25 per crew-h but 33-67 h of tuning games), T04E-01, T04G-05, T04-05, T04C-05, T04D-05, T04H-03 (~1.0
+each, single-engine or small evidence), T04S-02 (upcoming-repetition test in search, Sirius STC +5.29, Viridithas LTC
++2.27; 0.33 at 5-7 crew h). Not new: #1 and #6 exist in our own packb code (FiftyDamp, ReSearchAdjust), gated only as
+one bundle with copied constants on old bases (gates 12 / 35 / 40 / 41, no decision); #2 is an own port never gated.
 
 ## 2. What the crew's gate decision means for these cards (arithmetic, not a proposal)
 Threads=1, SPRT [0,5] normalized Elo, alpha = beta = 0.05, pentanomial, cap 3,000 games, capped = UNPROVEN with one
@@ -58,59 +61,73 @@ only if the running estimate is near +12 Elo (near -10 Elo for H0), so a true +2
 single in section 1 will most likely log UNPROVEN at the cap. The capped run is then a point-estimate screen (+-5.9)
 whose sign decides the one extension, and only stacks worth roughly +10 Elo can decide inside the cap - which is why
 the gate plan ends in stacks by site group. Cost: 6-7 gate-PC hours per capped run at the measured 430-502 games/h
-(measured at Threads 2 / conc 4; no Threads=1 rate exists in any input).
+(measured at Threads 2 / conc 4; no Threads=1 rate exists in any input). Cards written before the decision may still
+quote the old [0,10] / 12k-game cost (6.6k games, 13-15 h); read them with this paragraph.
 
 ## 3. Round 3 (after the usage reset, 03:42 on): what is new
-- **T04P-01** (verified 04:07): the deeper-entry rule CRITIC2 found uncarded. Forge already has form B as its own
-  port (`forge_push/qa_ltopgo_al1_stage/cands/caissa_c123`, option `TtCutExtraMargin` 0-200, LTO+PGO exe
+- **T04P-01** (verified 04:07, second vote KEEP): the deeper-entry rule CRITIC2 found uncarded. Forge already has form B
+  as its own port (`forge_push/qa_ltopgo_al1_stage/cands/caissa_c123`, option `TtCutExtraMargin` 0-200, LTO+PGO exe
   `forge_push/bin/forge_ltopgo_x_caissa_c123_al1_8924099a.exe`, OFF = lock pins, CR-passed 2026-10-30, never gated):
   a 0.5-1 crew-hour gate item. Evidence is thinner than CRITIC2 said: Stockfish b280d2f (+3.91 STC) measured the
   fail-LOW relaxation the lock already has; PlentyChess 373 failed its STC; form B vs the lock's rule was never
   measured anywhere. The port needs its MIT notice before any merge.
-- **T04Q lock audit** (verified 04:17): the lock's search code against the 25-pattern pre-gate checklist plus nine
-  classic spots. No bug worth >= 1 Elo: 3 minor hits (a TT mate score is not checked against the 50-move clock, < 1
-  Elo; quiet promotions only ever get the capture-history malus, < 1 Elo; quiet futility's skip switch also drops later
-  quiet checks = T04E-01 bit 2, already carded). No card.
-- **T04O** (permissive engines, verified 04:36): no new card; evidence rows: akimbo 7120b4b isolates king-bucket
-  mirroring on a 768-input one-bucket net (the lock net's shape; so T01B-02's "no source isolates mirroring" is
-  wrong), akimbo 3e29e57 is a third engine for T04N-01.
-- **T04R** (engines never read: Renegade MIT; Clover and Simbelmyne GPL-3.0, logs only): T04R-01 (full card, above),
-  one-liners T04R-02 (pawn-structure refutation move) and T04R-03 (full history update when alpha was raised without a
-  cutoff); Fable verifier running.
-- **Counter-evidence** (`notes/T12C/COUNTER.md`): lowers T04-02, T04D-01, T04D-02, T04C-02, T04B-01 (section 1);
-  keeps T06-05, T04-01, T04E-02, T04F-01 (low end), T04E-03.
-- **Second vote 2** (Fable, round-2 top cards): KEEP T04D-01, T04F-01, T04B-01, T04E-04, T04E-03; KEEP-WITH-FIX
-  T04D-02, T04C-02, T04E-02, T04N-01; DOWNGRADE T04N-02 (one-liner, stacked only).
-- **Specs**: 18 options are now specified in own words against the lock (SPEC_SEARCH: T04-01/03/04/05/06; SPEC_EVAL:
-  T04-02, T06-05, T06-04; SPEC_SEARCH2: E-03, E-02, B-01, D-01, D-02; SPEC_SEARCH3: C-02, F-01, N-01, N-02, P-01). The
-  Fable review of the ten new ones (`notes/SPEC_REVIEW.md`): no blocker, every OFF path node-identical; one code fix
-  (T04E-02 must validate the TT move with the lock's own pseudo-legality test, search.cpp:325, before reading its
-  victim or calling see_ge) and three wording fixes. Speed specs (`notes/SPEC_SPEED.md`) running.
-- **Fixes**: round 3 (FIXER2: CRITIC2's card items) done; round 4 (FIXER3: second-vote-2 items, wrong "Forge lacks it"
-  lines, counter-evidence lines on the cards) running.
+- **T04Q lock audit** (verified): the lock's search against the 25-pattern pre-gate checklist plus nine classic spots.
+  No bug worth >= 1 Elo: 3 minor hits (a TT mate score is not checked against the 50-move clock, < 1 Elo; quiet
+  promotions only ever get the capture-history malus, < 1 Elo; quiet futility's skip switch also drops later quiet
+  checks = T04E-01 bit 2, already carded). No card.
+- **New engines**: T04O (permissive engines; 0 cards; akimbo 7120b4b now isolates king-bucket mirroring on a 768-input
+  one-bucket net, applied to T01B-02; akimbo 3e29e57 a third engine for T04N-01). T04R (Renegade MIT; Clover, Simbelmyne
+  logs): T04R-01 + one-liners T04R-02 (pawn-structure refutation move) and T04R-03 (full history update when alpha was
+  raised without a cutoff). T04S (logs-only from Sirius, motor, Tarnished PR bodies, the engines T04O skipped for
+  licence): T04S-01 (section 1, #7) and T04S-02 (upcoming repetition). All verified (0 violations, 0 duplicates).
+- **Counter-evidence** (`notes/T12C/COUNTER.md`): lowers T04-02, T04D-01, T04D-02, T04C-02, T04B-01 (section 1, now
+  also on the cards as a "Counter-evidence (T12C)" sentence); keeps T06-05, T04-01, T04E-02, T04F-01 (low end), T04E-03.
+- **Second votes 2 and 3** (Fable): round-2 top cards KEEP D-01, F-01, B-01, E-04, E-03; KEEP-WITH-FIX D-02, C-02, E-02,
+  N-01; DOWNGRADE N-02 (now a one-liner, stacked only). Third vote: KEEP P-01, T05F-01; KEEP-WITH-FIX R-01, N-03,
+  E-01, G-05 (all fixes applied, round 6).
+- **Specs**: 22 options / switches specified in own words against the lock: SPEC_SEARCH (T04-01/03/04/05/06), SPEC_EVAL
+  (T04-02, T06-05, T06-04), SPEC_SEARCH2 (E-03 `QuietMalusDecay`, E-02 `NmpTtCaptureMin`, B-01 `NoisySeeHistDiv`, D-01
+  `CutNoTtLmr`, D-02 `TtCutNodeDepth`), SPEC_SEARCH3 (C-02 `SingularTtPvMargin`, F-01 `QsEvasionLimit`, N-01
+  `NegExtTtAlpha`, N-02 `NmpCutOnly`, P-01 `TtCutExtraMargin`), SPEC_SPEED (build switches `FORGE_NO_ZERO_MOVELISTS`,
+  `FORGE_SLIDER_ATTACKS`, `FORGE_MATKEY_FAST`, `FORGE_TT_NOTLS`). Fable reviews: search specs no blocker, every OFF path
+  node-identical, one code fix (E-02 validates the TT move with the lock's own pseudo-legality test, board.cpp:600 as
+  used at search.cpp:326, before reading its victim or calling see_ge) and three wording fixes, all applied (round
+  5); speed specs no blocker, 10 FIX items on the ABBA budget and order (not applied; listed in SPEC_SPEED_REVIEW).
+- **Fixes**: rounds 3-6 (`notes/FIXES_APPLIED.md`): CRITIC2's card items, second-vote fixes, wrong "Forge lacks it"
+  lines (T04D-02 own port, T01B-02 mirroring source, T05E-01 own caches), counter-evidence sentences, crew-cap cost
+  lines on 9 cards.
 
-## 4. Gate plan (RANKING_FINAL's phases, adjusted by the counter-evidence)
+## 4. Gate plan (RANKING_FINAL's phases, adjusted by the counter-evidence and the third vote)
 - Phase 0, no crew code (4 runs, 24-28 h of gate PC): (a) the P27R-AL1 `QsEvasionSeeNonPv=1` extension (its capped
   +4.63 is positive, so the crew rule itself owes one extension; T04F-01 waits on it); (b) E3 exe `EvalRule50Damp=60`
-  (T06-05); (c) caissa_c123 `TtCutExtraMargin=72` (T04P-01); (d) R15 C5 ContHistSplit (T04F-02 folded into it).
+  (T06-05); (c) caissa_c123 `TtCutExtraMargin=72` (T04P-01; last of phase 0 if gate PC is short); (d) R15 C5
+  ContHistSplit (T04F-02 folded into it).
 - Phase 1, one kit -Expose build carrying the five SPEC_SEARCH2 options (one OFF pin proof, one ON-live bench per
-  option): T04E-03 `QuietMalusDecay` first (base of every history stack), T04E-02 `NmpTtCaptureMin` (with the review's
-  pseudo-legality fix), T04B-01 `NoisySeeHistDiv`, T04D-02 `TtCutNodeDepth` form 1, T04D-01 `CutNoTtLmr` last.
+  option): T04E-03 `QuietMalusDecay` first (base of every history stack), T04E-02 `NmpTtCaptureMin`, T04B-01
+  `NoisySeeHistDiv`, T04D-02 `TtCutNodeDepth` form 1, T04D-01 `CutNoTtLmr` last.
 - Phase 2, singles that need new code: T04-02 alone with own constants and the ply guard; T04-01; T04N-01 then T04C-02
-  (singular chain); T04F-01 after (a); T04E-04 bit 2; T04R-01 after its verify; T04-06 at LTC; T04H-01 last of the ttpv
-  cards; everything else only as gate PC allows.
-- Phase 3, stacks of the positives by site group: history (E-03 base), null move (E-02 + N-02 + T04-03), singular
-  chain (N-01 + T04-01 + C-02), TT cutoff (D-02 + P-01), SEE (B-01 + E-04).
-- Beside the gate PC: node-identical lock speed by nps ABBA after the T12-03 bench + fuzz proof (T05D-01 = port of the
-  own R7TtExclusive, +3.6-4 % on another tree, NOT in the lock; T05C-02; T05C-03; T05B-02; specs in SPEC_SPEED); GPU
-  window: T02-01 first, the T02-04 equal-node WAC diagnostic, then T02-03, T01-06; owner item T12B-01 (port own fix).
-- Budget: phases 0 + 1 = 9 runs = 54-63 h of gate PC; all 43 lock-direct singles = 260-300 h at the cap.
+  (singular chain); T04F-01 after (a); T04S-01 and T04R-01 in the history group after E-03 (each alone, never R-01 and
+  G-05 in one run); T04E-04 bit 2, then T04E-01; T04G-05; T04-06 at LTC; T04H-01 last of the ttpv cards; T04N-03 and
+  T04S-02 at the tail.
+- Phase 3, stacks of the positives by site group: history (E-03 base + S-01 / R-01 / G-05), null move (E-02 + N-02 +
+  T04-03), singular chain (N-01 + T04-01 + C-02), TT cutoff (D-02 + P-01), SEE (B-01 + E-04).
+- Beside the gate PC: node-identical lock speed by nps ABBA after the T12-03 bench + fuzz proof, specs in SPEC_SPEED:
+  T05D-01 `FORGE_TT_NOTLS` (port of the own R7TtExclusive, +3.6-4 % on another tree, NOT in the lock), T05C-02
+  `FORGE_NO_ZERO_MOVELISTS`, T05C-03 `FORGE_SLIDER_ATTACKS` (microbench first), T05B-02 `FORGE_MATKEY_FAST` (timed as a
+  stack with T05C-03), T05F-01 (step-0 counter first, memo only on go). GPU window: T02-01 first, the T02-04 equal-node
+  WAC diagnostic, then T02-03, T01-06. Owner item T12B-01 (port own fix).
+- Budget: phases 0 + 1 = 9 runs = 54-63 h of gate PC; all ~48 lock-direct singles = about 290-340 h at the cap.
+
+**Next three crew experiments** (no new code, in this order after the owed P27R extension): (1) the E3 exe with
+`EvalRule50Damp=60` vs the lock; (2) the caissa_c123 exe with `TtCutExtraMargin=72` vs the lock; (3) the Phase 1 kit
+build with `QuietMalusDecay=8` as its first ON line (spec ready; 2-2.5 crew h).
 
 ## 5. All cards ranked
 `notes/RANKING_FINAL.md` (Fable, 04:36-04:51): one row per idea family, 81 rows in five classes (L lock-direct SPRT 44,
 G GPU-conditional 11, V net-line speed ABBA 8, S lock speed ABBA 9, E enabler / diagnostic 9; % nps and Elo never
 converted into each other), each with source number, UNPROVEN estimate, crew hours, gate route, per-hour value and vote
-state; then the top 10, the phased gate order and CRITIC3 (13 items). Cards written after it: T04R-01..03.
+state; then the top 10, the phased gate order and CRITIC3 (13 items). Its ranks use the card estimates before the
+counter-evidence; section 1 here applies it. Cards written after it: T04R-01..03, T04S-01..02 (+ T04T / T06D, if any).
 
 ## 6. Cross-track facts this report uses
 - Gate rate 430-502 games/h measured for every `*_vs_AL1*` gate (497 at Threads 2 / conc 4); the ~1,000 games/h in some
@@ -129,9 +146,11 @@ qsearch TT 50-move guard; negative extensions (-2 / -1) and IIR (variants prepar
 per-iteration falling-eval TM, soft / hard tunables, node-effort TM; history gravity on the main history; per-worker
 refresh caches on the v2 and v3 paths (not on HalfKA); E3 options EvalMatScale / EvalOptimism / EvalRule50Damp /
 DrawJitter; packb FiftyDamp and ReSearchAdjust (bundled tries); CorrUpdateMode (gravity-style correction update, gates
-63 / 68); the deeper-entry TT cutoff as form B (own caissa_c123 port, never gated); NMP non-pawn-material condition,
-lazy accumulators, TT prefetch, correction history (T04O re-greps); self-play rows already drop in-check, capture /
-promotion best moves, mate and bound scores, |cp| > 3000.
+63 / 68); the deeper-entry TT cutoff as form B (own caissa_c123 port, never gated); NMP non-pawn-material and TT-bound
+conditions, LMR by child fail-high count, SEE threshold from the LMR depth, cut-node -1 extension, skipping quiets
+after futility / LMP, lazy accumulators, TT prefetch, correction history (T04O / T04S re-greps); a quarter main-history
+bonus for a quiet PV best move without a cutoff; self-play rows already drop in-check, capture / promotion best moves,
+mate and bound scores, |cp| > 3000.
 
 ## 8. Dead ends (one line each; the hand-backs and TABLE verdicts hold the rest)
 Merged king planes (neutral) | wider L1 (fixed-node gain vanishes at real TC) | distillation without a stronger teacher
@@ -140,7 +159,9 @@ and eval-level TM (both removed later by the source) | asymmetric optimism | dra
 moves not advancing rule50 | int16 accumulators (bound 342,331 > 32,767) | int8 first layer (15-bit weights) | BOLT
 on PE | shared correction tables (only if gates stay Threads=1) | fail-firm RFP (gate 86) | EvalOptimism=40 (rerun H0)
 | a lock bug worth >= 1 Elo (T04Q audit: none found) | more permissive engines (T04O: two sources in a row without a
-card) | Stockfish b280d2f as evidence for the fail-high deeper-entry rule (it measured the fail-low side).
+card) | Stockfish b280d2f as evidence for the fail-high deeper-entry rule (it measured the fail-low side) | Sirius #268
+qsearch recapture rule (reverted as broken) and #222 / #219 (reverted: faulty test worker) | motor #178 correction
+target (a correction-weight knob on Forge's additive update).
 
 ## 9. Owner items
 1. DECIDED by the crew (7-0): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension. Consequence in section 2.
@@ -155,12 +176,15 @@ card) | Stockfish b280d2f as evidence for the fail-high deeper-entry rule (it me
    (b0c3882b, T12B-01; a crafted 68-capture fixture aborts the mutant); port it with the sanitizer fixture suite T12B-02.
 9. `C:\o13` was restructured outside this job between ~22:50 and 23:00 (STATUS observations).
 10. tmfit gates 227 / 228 are not in FORGE_RESULTS.csv (stale pointer in the brief).
-11. T04O left five permissive repos unread (it stopped after two sources in a row without a card, the caps rule).
+11. The R15 C5 gate line in `D:/o15/cands/INDEX.md` (crew file) lacks T04F-02's source numbers.
+12. Pointers for later tracks: Tarnished #82 complexity-based time management (STC +4.54, LTC +6.63; mechanism not in the
+    PR text) for a time-management worker.
 
 ## 10. Skills, scripts and tools created or improved
 - Skill `skills/forge-deep-research/SKILL.md` (new; also installed as a user-scope skill on grok-pc): setup, tools,
   worker rules, the per-track and pooled workflows, verification, checkpoints, the low-usage stop, measured costs,
-  lessons (one pooled workflow; refill before the queue empties; never resume a pool).
+  lessons (one pooled workflow; refill before the queue empties; never resume a pool; the owner's 3-worker hook, which
+  also refuses TaskStop, the board, agent types missing from the registry, 1-worker runs on idle slots).
 - Skill `skills/forge-pc-rules/SKILL.md` (branch copy with this job's section; the D: project copy untouched).
 - `opus_deepres/tools/`: `mine_commits.py`, `licence_at.py` (GPL / AGPL title, LLVM Apache, CC0 fixes), `forge_has.sh`,
   `card_lint.py` (merge markers accepted), `tried_gates.py`, `block_rule_check.py`, `merge_licences.py` (cached),
@@ -168,24 +192,28 @@ card) | Stockfish b280d2f as evidence for the fail-high deeper-entry rule (it me
   a slot, take another idle one when the named one is busy, wait / refuse when all 3 are busy, release by worker +
   task, done line; tested on a copy); workflows in `tools/workflows/` (`deepres_tracks.js`, `deepres_phase2_checks.js`,
   `deepres_round2_tracks.js`, `deepres_pool.js`, `deepres_pool3.js` = the 3-worker pool with task dependencies,
-  latest-start times, a Fable verifier after each research task and a cooperative wrap-up note).
+  latest-start times, a Fable verifier after each research task, agent types with a fallback and a cooperative
+  wrap-up note).
 
 ## 11. Incomplete work, deviations, spend
 - Not done: sub-tracks T04I-T04M (LMR inputs, extensions, null move, futility, qsearch) DROPPED at 01:35 as overlapping
-  the per-engine mining (owner: no two agents on the same thing); every PENDING item in the cards; at this writing
-  the round-3 items listed in the state line.
+  the per-engine mining (owner: no two agents on the same thing); the 10 SPEC_SPEED_REVIEW fix items (ABBA budget and
+  order) are not applied to SPEC_SPEED; older cards keep their pre-decision cost lines (section 2); every PENDING item
+  in the cards; at this writing T04T / T06D and the report critic.
 - Deviations: workflows stopped and relaunched five times before 01:35 (22:47 re-plan; 00:20 into one pool; 01:24-01:29
   two pool resumes that re-ran finished agents for ~2 min each before being stopped; 01:35 usage warning); after the
-  reset four 1-worker runs were started next to POOL3 to use slots it left idle (total never above 3; the owner's hook
-  refused one launch while a finished worker was still inside its 3-minute window); the `opus-max` agent type is not in
-  this session's agent registry, so those tasks ran as Opus 5.5 at effort max (5 refused spawns logged as "failed", no
-  agent started); four first-round workers put temp files into this session's scratchpad on C: (left in place); a
-  dataset name equal to a model name was pushed once in 8131d711 (filtered since); several times were first written as
-  estimates and corrected from the clock (also 04:24 -> 04:22 and 04:26 -> 04:25 in STATUS); the first licence tool
+  reset, 1-worker runs were started next to POOL3 to use slots it left idle (total never above 3; the owner's hook
+  refused four launches while finished workers were still inside its 3-minute window); the `opus-max` agent type was
+  missing from this session's agent registry until ~05:16, so those tasks ran as Opus 5.5 at effort max (8 refused
+  spawns logged as "failed", no agent started); two workers' log sections interleaved in FIXES_APPLIED (a heading was
+  added); four first-round workers put temp files into this session's scratchpad on C: (left in place); a dataset name
+  equal to a model name was pushed once in 8131d711 (filtered since); several times were first written as estimates and
+  corrected from the clock (also 04:24 -> 04:22, 04:26 -> 04:25 and 05:04 -> 05:03 in STATUS); the first licence tool
   misread GPL-3.0 and LLVM texts (fixed, table re-run).
 - Measured agent spend (workflow summaries): round-1 core 1,802,872 tokens (8 agents), extra 1,149,308 (6), phase 2
-  541,874 (2), light pool 1,667,660 (10), POOL3 1,690,105 (10), POOL3C 334,288 (2); the stopped runs report no total;
-  POOL3B / POOL3D / the last run at the end. Owner's readings: "running out" before 01:35; 77 % of the 5-hour window
-  used at ~02:26, reset ~03:40; no reading since.
+  541,874 (2), light pool 1,667,660 (10); after the reset POOL3 1,690,105 (10), POOL3B 514,776 (3), POOL3C 334,288 (2),
+  POOL3D 596,161 (3), POOL3E 325,548 (2), POOL3F 389,429 (2), POOL3G 150,775 (1) = 4,001,082 for round 3 so far;
+  measured total of the finished workflows 9,162,796 agent tokens before the last run; the stopped runs report no total. Owner's readings: "running out" before 01:35; 77 % of the 5-hour
+  window used at ~02:26, reset ~03:40; no reading since.
 
-INTERIM 3 finished 04:57 PC clock (from `date`).
+INTERIM 4 finished 05:41 PC clock (from `date`).
