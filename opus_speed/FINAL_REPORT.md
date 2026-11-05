@@ -111,6 +111,27 @@ off everywhere - fishtest-like draw / resign rules would save ~11-14 % of engine
 broken candidates in under a minute (lock PASS in 58 s). The cheapest wall-time lever is therefore keeping the queue
 full and the slot count right (concurrency_plan.py), not per-game settings.
 
+## 4b. Job D - faster net pipeline (optional; worker jobd, DONE 11:54; plans and read-only scripts only)
+Started after A-C were in their machine-bound phase; no GPU use, no trainer process touched, nothing written outside
+`opus_speed/jobd/`. Plan `opus_speed/jobd/PLAN.md` (ranked D1-D9, measurement protocol, what not to do); read-only
+log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (outputs in `jobd/logs/`). Top items
+(effects UNPROVEN; owner / QA decisions):
+- **D1 (owner item, biggest): the GPU guard throttles training since 2026-11-01.** Its HWiNFO row filter
+  (`F:\forge_nnue_train\tools\gpu_guard.ps1`, `Read-Row`: `'^\d\d\.\d\d\.\d{4}'`) needs a two-digit day, but HWiNFO
+  writes `5.11.2026,12:5:28.561`, so every November row before the 10th is dropped and the guard falls back to the
+  ADLX feed (`src=adlx` in every window since 2026-10-31 23:51:46) with the no-fan thresholds. Daily run_frac went
+  from 0.90-1.00 (Oct 28-31) to 0.33-0.64 (Nov 1-5); same recipe epochs from 8.3-9.2 min (Oct 31) to 15.0-16.7 min
+  (Nov 4) while the running it/s is unchanged. Coordinator re-check (read only, 12:0x): the regex line and the
+  HWiNFO row format are as described; the last guard lines read `src=adlx ... run_frac=0.501` and `0.368`. Prediction
+  the owner can check for free: on 2026-11-10 the day becomes two-digit, `src` flips back to `hwinfo` and run_frac
+  rises (until 2026-12-01). Months 1-9 would never match either.
+- D2: the trainer's RAM floor (free < 6 GB -> exit 97) fires during its own end-of-epoch validation / checkpoint and
+  repeats whole epochs on resume (s47 today: 4 aborts, epoch 6 trained five times, ~50 min of finished training
+  lost + 29 min backoff); suggested: never abort during the own save, resume at the next epoch, shorter backoff.
+- D3: the R14-B fast loader's gain is bounded while D1 throttles (the GPU is the limit while the trainer runs);
+  its RAM saving helps D2. Not bottlenecks (measured): export 5-15 s per net, validation 1-15 s per epoch,
+  conversion 6.3 min per 305 M records.
+
 ## 5. What QA should time first
 1. **stack_w2** = lock source + `opus_speed/patches/trial_w2.patch` (md5 80f8124f; = b1_tt_notls + b2_no_zero_movelists +
    r14_speed2_after_nzm) with `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1` flipped in
