@@ -447,8 +447,8 @@ child, fail closed).
   generated file: re-run `a/make_net_index.py` for the final lines). Every result must be read against the v2p4 control
   (47.0 %, -20.9 +/- 18.5): a v2 net "beats" nothing until it is clearly above that control, and the crew gate is the
   only rating evidence. Run 3 and run 6 got no sanity match of their own (run 3 is a soup member; run 6 is weaker).
-- **Packaging**: runs 2, 3, 5 and 7 and the soups C / P16 (plus the KB8 soup of window 2) are packaged in
-  `D:\o30\nets` (INDEX.md); run 6 (weaker, lr 3e-5) is not. Recipe: `O30_MASK=<mask> net_pack.sh <name>
+- **Packaging**: runs 2, 3, 5 and 7 and the soups C, P16, Z32, V16, U8 and Y8 are packaged in `D:\o30\nets`
+  (INDEX.md); the other runs and soups are not (scores in the run / soup tables). Recipe: `O30_MASK=<mask> net_pack.sh <name>
   <net.nnue2> <v2p4 exe> D:\o30\harness\h1` (O30_MASK is required since review W2-05).
 - **Item B**: the SPSA session stopped at 184 of 1,800 pairs; resume with `b/tune_spsa.ps1 -Config configs\stc8.json
   -RunDir D:\o30\spsa\stc8_main` (append-only state) if the crew wants more pairs before gating the set. The tuned
@@ -457,11 +457,10 @@ child, fail closed).
   `a/gpu_ckpt_watch2.sh` (review W2-01 / 05 / 06 / 07).
 - **VRAM on yield (G-005)**: measure the trainer's GPU memory (HWiNFO has a column) and state it in WINDOW.md, or make
   the guard terminate on npt detection (checkpoints exist every 87 superbatches).
-- The remaining exe gap (kit v2.5 build vs the lock's kit v2.3, ~2-7 % on game positions) is unchanged - QA item.
 - **Nets with H > 256**: the engine's v2 path uses the compiled-in hidden size (256); an H512 net needs a second
   accumulator array in the port (follow-up; the GPU path is where wider nets become affordable).
 - **KB8 (rank4x2)**: proven ready (identity, parity, walk, selfcheck, Rust features, exporter) and trained in the GPU
-  window from the lock-as-KB8 replica (runs 3, 5, 6; run 5 packaged: section 1, GPU window).
+  windows from the lock-as-KB8 replica (runs 3, 5, 6, 10, 12, 14-20, 23; run 5 and the soups U8 / Y8 packaged).
 - **Labels**: the 50M relabel (R14-B relabel2.py, 78.7 h planning figure) feeding the same reader stays a lever, but this
   job's evidence (read against the control) does not single it out; the exe came first.
 - **int16 first layer** (`a/o30_v2int16.py`, all-or-nothing after the Code Review): prepared and exact, not built, not
