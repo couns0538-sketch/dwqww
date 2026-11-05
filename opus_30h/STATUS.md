@@ -65,6 +65,15 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   KB16 0.969x, KB32 0.942x of KB4; end to end v2p4 + Y8 0.893x and v2p4 + Z32 0.849x the lock exe's nps.
 - 19:00 final offline soups (all 11 KB8 runs -1.86e-4 = the KB8 plateau); 19:01 window 2 over (GPU idle from 18:59).
 
+## End of the job (after the windows: CPUs 0-1 only)
+- 19:08-19:31 bug hunt, part 1 (reading + stub tests while V16 / Y8 play on CPUs 0-1): seven findings BH-1..BH-7, all
+  fixed or handed over, none changes a cited result (FINAL_REPORT 6.1). The one that matters for later use: a GPU run
+  refused at start could never start on the retry (the bat refuses existing <run>.out / .guard.log with exit 4), also
+  in the version delivered for fix list 2 item 1 - fixed in 1ab804be with a stub that does the bat's checks, and a
+  correction note in CR_FIXLIST_20261104_REPORT.md. Fix list 2 report-back (items 1-7) complete in that file.
+- Next: V16 ends ~20:26 -> CPU 1: abba.py A/A with the identical command (checklist item 8), final_checks_o30.sh;
+  Y8 ends ~21:21 -> result tables, INDEX.md, final checks again, CI, publish copies, job end ~22:17.
+
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
 
