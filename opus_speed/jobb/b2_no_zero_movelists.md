@@ -1,12 +1,15 @@
-STATE: IN PROGRESS
+STATE: READY FOR TIMING
 
 # b2_no_zero_movelists: FORGE_SPD_NO_ZERO_MOVELISTS (spec S1: no zero fill of the move arrays; value 2 adds quiets-only generation)
 
-Worker b2mg (fable), job B part 2, branch opus-speed-20261105. Builds 09:20-09:30, checks from 09:30 PC clock (`date`).
-Patch: `F:/ospd/wt/opus_speed/patches/b2_no_zero_movelists.patch` (275 lines, +195 / -3; files board.hpp, board.cpp, search.cpp;
-applies with `patch -p1` to a fresh lock copy and reproduces `F:/ospd/src/b2_no_zero_movelists`: apply test in
+Worker b2mg (fable), job B part 2, branch opus-speed-20261105. Builds 09:20-09:30, checks 09:30-09:48 PC clock (chain log
+`F:/ospd/jobb/b2/no_zero_movelists/chain_a.log`), notes finished 09:50 (`date`).
+Patch: `F:/ospd/wt/opus_speed/patches/b2_no_zero_movelists.patch` (adds 192 lines, removes none; files board.hpp, board.cpp,
+search.cpp; applies with `patch -p1` to a fresh lock copy and reproduces `F:/ospd/src/b2_no_zero_movelists`: apply test in
 `F:/ospd/src/b2_applytest_no_zero_movelists`). One switch line `#define FORGE_SPD_NO_ZERO_MOVELISTS 0` in board.hpp
-(flip to 1 = steps 1-2, to 2 = steps 1-3). Verify variant (not for stacking): `F:/ospd/src/b2_no_zero_movelists_verify`.
+(flip to 1 = steps 1-2, to 2 = steps 1-3; both values were checked). Verify variant (not for stacking, no patch written):
+`F:/ospd/src/b2_no_zero_movelists_verify`. Deliverable patches of this job: b2_nnue_zmm, b2_no_zero_movelists, b2_matkey_fast,
+b2_pickbest, b2_slider_pext (b2_nnue_zmm_verify.patch in the same folder is a record of the verify variant, not a deliverable).
 
 ## Design (own words)
 Value 1 (spec steps 1-2): `Move` loses its four `= 0` default member initialisers, so it is trivially default-constructible.
@@ -47,7 +50,13 @@ has_legal_move and perft keep the lock's generator (they only lose the fill thro
     `nzm_verify1_neton.compare.log`) -> no read depends on the fill.
     poison + assertion build value 2 `forge_nzm_verify2.exe` (7018ea78...; poison as above, and at every generate_quiets
     call the lock's filtered full list is compared element by element with the quiets list, abort on a difference,
-    count printed at exit): PENDING (chain A running: lp_check net on, bench 16, 12k FENs d2).
+    count printed at exit):
+    - lp_check net on: 24/24 OK, NODE IDENTITY ALL OK (`nzm_verify2_neton.compare.log`);
+    - `bench 16`: nodes 3024920 (= pin), "FORGE_SPD_NO_ZERO_MOVELISTS_ASSERT: 296865 generate_quiets calls compared,
+      0 mismatches" (`nzm_verify2_bench16.log`, `.stderr`);
+    - 12k FENs (`fens_12k_v2.txt`: `fens_12k.txt` holds placement-only lines the lock rejects, "FEN must contain six fields";
+      `go depth 2`, one process, driver `F:/ospd/jobb/b2/tools/uci_fens.py`): 12000/12000 answered, engine exit 0,
+      "51059 generate_quiets calls compared, 0 mismatches" (`nzm_verify2_12k_d2.run.log`, `.tsv`, `.tsv.stderr`).
     objdump liveness (plain -O3 builds, `objdump/`): lock plain has memset calls of 0x800 + 0x400 in Worker::search (2 x) and
     qsearch (1 x) and 0x408 (MoveList) in legal_moves, has_legal_move, pseudo_legal_moves, perft, parse_uci; value 1 / 2:
     all of those are gone (0x800: 6 -> 3, 0x400: 7 -> 4, 0x408: 6 -> 0); the survivors sit in Searcher::set_threads, the

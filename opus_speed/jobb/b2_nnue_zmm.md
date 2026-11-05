@@ -61,7 +61,8 @@ FENs at d13 with the net on, plus the net-off run (kernel not used: a layout-onl
     - 12k FENs (`fens_12k_v2.txt`, `go depth 2`, one process, driver `F:/ospd/jobb/b2/tools/uci_fens.py`): 12000/12000 FENs
       answered, "744964 evaluations compared, 0 mismatches", engine exit 0 (`zmm_verify_12k_d2.run.log`, `.tsv`, `.tsv.stderr`).
     - objdump: vfmadd / vfnmadd / vfmsub / vfnmsub count 0 in the off, on and verify exes (build logs).
-(d) 12k exe identity (switch-on exe vs lock plain exe, same driver, depth 2): see the appendix line at the end (added when run).
+(d) 12k exe identity of the plain switch-on exe vs the lock exe: NOT run here on purpose (the coordinator's note of ~09:27:
+    no long engine runs on the shared core; his pipeline runs the full bit-exact L1-L4 on the kit exe).
 
 ## Codegen evidence (`F:/ospd/jobb/b2/nnue_zmm/objdump/`, plain -O3 znver5 builds, not LTO+PGO)
 - `evaluate` lock plain (`lock_plain_evaluate.dis`, 91 lines): loop over 16 iterations, each 2 x {2 vmovups ymm, 2 vcmpgtps +

@@ -1,0 +1,53 @@
+Thu Nov  5 09:38:50 PST 2026
+=== 1 lock exe, all defaults (must PASS)
+[   0.00s] file     PASS  C:/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe: 3859374 bytes, PE image
+[   0.06s] uci      PASS  uciok after 63 lines; id name 'Chess Engine Forge 6.4.24 candidate'; 61 options
+[   0.19s] options  PASS  required ['Threads', 'Hash', 'OwnBook', 'UseNNUE'] + []: all advertised; vs reference: 0 changed, 0 added [], 0 removed []
+[   0.19s] ready    PASS  readyok
+[   0.48s] bench11  PASS  nodes 312866 want 312866 (297 ms, nps 1053420)
+[   1.27s] bench13  PASS  nodes 862329 want 862329 (789 ms, nps 1092939)
+[   4.16s] bench16  PASS  nodes 3024920 want 3024920 (2880 ms, nps 1050319)
+[  16.20s] bench20  PASS  nodes 12389307 want 12389307 (12047 ms, nps 1028414)
+[  42.95s] bench22  PASS  nodes 34048354 want 34048354 (26750 ms, nps 1272835)
+[  43.02s] perft    PASS  startpos perft 5 nodes 4865609 want 4865609
+[  45.58s] perft    PASS  kiwipete perft 5 nodes 193690690 want 193690690
+[  49.14s] smoke    PASS  20 six-field FENs at go movetime 200: 0 bad [], max 0.20 s, late 0 []
+[  57.70s] wac      PASS  55/60 solved at go nodes 100000 (floor 0)
+[  57.70s] inputs   PASS  no engine line reported a rejected input
+[  57.70s] quit     PASS  exit code 0
+pregate_screen: PASS in 57.7 s (budget 300 s): file PASS, uci PASS, options PASS, ready PASS, bench11 PASS, bench13 PASS, bench16 PASS, bench20 PASS, bench22 PASS, perft PASS, perft PASS, smoke PASS, wac PASS, inputs PASS, quit PASS
+exit=0
+Thu Nov  5 09:39:48 PST 2026
+=== 2 non-engine exe whoami.exe (must FAIL)
+[   0.00s] file     PASS  C:/Windows/System32/whoami.exe: 98304 bytes, PE image
+[   0.27s] uci      FAIL  no uciok: engine closed its output
+pregate_screen: FAIL in 0.3 s (budget 300 s): file PASS, uci FAIL
+exit=1
+=== 3 lock exe with a wrong pin list (must FAIL)
+[   0.00s] file     PASS  C:/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe: 3859374 bytes, PE image
+[   0.09s] uci      PASS  uciok after 63 lines; id name 'Chess Engine Forge 6.4.24 candidate'; 61 options
+[   0.09s] options  PASS  required ['Threads', 'Hash', 'OwnBook', 'UseNNUE'] + []: all advertised
+[   0.09s] ready    PASS  readyok
+[   0.31s] bench11  PASS  nodes 312866 want 312866 (209 ms, nps 1496966)
+[   0.88s] bench13  FAIL  nodes 862329 want 1 (568 ms, nps 1518184)
+pregate_screen: FAIL in 0.9 s (budget 300 s): file PASS, uci PASS, options PASS, ready PASS, bench11 PASS, bench13 FAIL
+exit=1
+=== 4 text file renamed .exe (must FAIL)
+[   0.00s] file     FAIL  F:/ospd/jobc/tmp/notengine.exe: 14 bytes, not a PE image
+pregate_screen: FAIL in 0.0 s (budget 300 s): file FAIL
+exit=1
+=== 5 lock exe with UseNNUE=false option, net off (must PASS; option ON pins differ only for bench, which runs at defaults)
+[   0.00s] file     PASS  C:/Users/Administrator/grok-pc/forge_push/bin/forge_ltopgo_x_al1s198_v23.exe: 3859374 bytes, PE image
+[   0.06s] uci      PASS  uciok after 63 lines; id name 'Chess Engine Forge 6.4.24 candidate'; 61 options
+[   0.06s] options  PASS  required ['Threads', 'Hash', 'OwnBook', 'UseNNUE'] + ['UseNNUE']: all advertised
+[   0.06s] ready    PASS  readyok
+[   0.25s] bench11  PASS  nodes 312866 want 312866 (196 ms, nps 1596255)
+[   0.31s] perft    PASS  startpos perft 5 nodes 4865609 want 4865609
+[   3.56s] perft    PASS  kiwipete perft 5 nodes 193690690 want 193690690
+[   5.14s] smoke    PASS  10 six-field FENs at go movetime 200: 0 bad [], max 0.20 s, late 0 []
+[   8.86s] wac      PASS  29/30 solved at go nodes 100000 (floor 0)
+[   8.86s] inputs   PASS  no engine line reported a rejected input
+[   8.88s] quit     PASS  exit code 0
+pregate_screen: PASS in 8.9 s (budget 300 s): file PASS, uci PASS, options PASS, ready PASS, bench11 PASS, perft PASS, perft PASS, smoke PASS, wac PASS, inputs PASS, quit PASS
+exit=0
+Thu Nov  5 09:40:00 PST 2026

@@ -1,6 +1,6 @@
 # Job C results - cut gate wall time (measurements and tests, 2026-11-05)
 
-Worker jobc (fable), branch opus-speed-20261105, folder `F:/ospd/wt/opus_speed/jobc/`. All numbers come from the
+Worker jobc, branch opus-speed-20261105, folder `F:/ospd/wt/opus_speed/jobc/`. All numbers come from the
 files named next to them (gate folders under `F:/forge_push` and `D:/grok-pc-data/forge_push`, read-only; outputs
 under `F:/ospd/jobc/out/`, scratch copies under `F:/ospd/jobc/tmp/`). Every tool ran on CPUs 0-1 at Idle next to the
 crew's NNUE trainer and the other workers' processes, so the wall times quoted here are not speed measurements.
@@ -206,14 +206,41 @@ screen that fed a bad FEN would fail instead of passing on the old position.
 
 ## 7. llr_project.py - projections (planning only)
 
-Source: `F:/ospd/jobc/out/proj_*.json` and `series_*.csv` (the LLR after every pair from gate_replay.py). Validation
-idea: take the counts at an early pair of a finished gate, project with the tool, compare with what happened.
-(filled in below from the background run)
+Source: `F:/ospd/jobc/out/proj_*.json` and `series_*.csv` (the LLR after every pair from gate_replay.py; copies in
+`results/`). Validation idea: take the counts at an early pair of a finished gate (from its series), project with
+the tool (Dirichlet posterior, 1000 paths, seed 1, exact LLR after every pair), compare with what happened.
+
+| gate, state used | Ptnml at that pair, LLR | P(H1) / P(H0) before cap / P(cap) | decided paths: median (p90) more pairs | what actually happened |
+|---|---|---|---|---|
+| uhoO30U8soup [0,5] cap 4000, at pair 300 | [2,71,147,78,2], 0.13 | 0.167 / 0.038 / 0.795 | 1279 (1592) | H1 at pair 1264 (964 more pairs) |
+| gate_stB_lmrttcapall1 [0,10] cap 3000, at pair 400 | [4,68,256,68,4], -0.33 | 0.079 / 0.293 / 0.628 | 715 (1024) | cap at pair 1500, LLR -2.88, no decision |
+| gateR7_ttexclusive [-10,0] cap 3000, at pair 400 | [2,58,278,57,5], 0.67 | 0.469 / 0.026 / 0.505 | 625 (957) | H1 at pair 1267 (867 more pairs) |
+
+Reading: at 300-400 pairs the posterior is wide, so the tool says "most likely still undecided at the cap" for all
+three, and the two gates that did decide did so late (864-964 more pairs, inside the projected decided-path range).
+The Brownian plug-in column (point estimate, no cap) is over-confident (P(H1) 0.998 / 0.035 / 0.999) because it
+ignores the uncertainty of the current estimate; the simulation is the number to use for ordering. Run time at
+step 1 pair: 77-183 s per projection (1000 paths, 1300-2800 pairs) on this CPU budget.
 
 ## 8. book_load_check.py - book loading (measure only)
 
-Source: `F:/ospd/jobc/out/book_load_check.json`, console `book_load_console.txt`; copies under `F:/ospd/jobc/tmp/`.
-(filled in below from the background run)
+Source: `F:/ospd/jobc/out/book_load_check2.json` (the valid run; `book_load_check.json` is the first attempt, whose
+fastchess A/B measured nothing because fastchess checks the engine path BEFORE indexing - with a non-existent
+engine it exits in 0.1 s without reading the book). Copies under `F:/ospd/jobc/tmp/` (8moves_v3.pgn 8.0 MB,
+UHO_Lichess_4852_v1.epd 174.9 MB, the converted 8moves_v3.epd 2.3 MB, 34700 lines; F: had 58.2 GB free before
+the 175 MB copy). Minimum of 3 repeats, wall clock on CPUs 0-1 at Idle; files were in the OS cache (the copies had
+just been written), so these are warm numbers.
+
+| book | raw read | python parse | fastchess index (launch-to-exit minus the 1-line EPD baseline of 1.075 s) |
+|---|---|---|---|
+| 8moves_v3.pgn (34700 games, 555200 moves) | 0.002 s | 0.215 s | 0.379 s |
+| 8moves_v3 converted to EPD (34700 FENs, python-chess, conversion 39.8 s once) | - | 0.006 s | 0.093 s |
+| UHO_Lichess_4852_v1.epd (2632036 lines) | 0.045 s | 0.441 s | 1.337 s |
+
+Cross-check on real gates (`throughput_all.json`, field setup_s = first PGN GameStartTime minus RUN_INFO
+started_pc, 118 gates): median 0 s, p90 1 s, max 2 s for both books. Verdict: book loading costs under 1.5 s per
+gate (0.4 s for the PGN book; an EPD conversion of 8moves_v3 would save ~0.3 s per gate, i.e. nothing against
+a 6 h gate). Not worth a change; the per-gate transition cost is elsewhere (section 3: the candidate bench).
 
 ## 9. What is unverified / open
 - The replay's completion-order model (fastchess checks the SPRT after every completed pair) is confirmed on 13

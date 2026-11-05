@@ -113,5 +113,7 @@ early-key mismatches 0; bench d16 = 3024920; log `jobb\b1\prefetch_early\count_s
   the assert build and the counter above catch a mismatch, the `-DNDEBUG` build would only lose the prefetch's
   benefit (a wrong cluster prefetched), never the node identity.
 - Stacking with FORGE_SPD_TT_NOTLS: disjoint lines (board.hpp / board.cpp / search.cpp prefetch sites vs the TT class
-  and TT call sites); not built together here.
+  and TT call sites). Both patches apply together to a fresh lock copy, and a plain build with both switches at 1
+  (`jobb\b1\stack\s11\forge.exe`) gives bench d16 = 3024920 and the lock's 8 FEN node counts and bestmoves at
+  `go depth 13` (see `b1_tt_notls.md`, "Stack note"); the stack was not run net off, at d20 / d22 or for perft.
 - Not run here (coordinator / crew): kit pc1 = pc2 build, 12k-FEN identity (`fens_12k_v2.txt`), ABBA.

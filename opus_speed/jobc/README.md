@@ -48,7 +48,11 @@ nElo and the exact fastchess 1.8.2 GSPRT LLR reused from opus_r15/tools/gate_sum
 - gate_replay.py needs the gate's own log for the exact completion order; without it the PGN GameEndTime (1 s
   resolution) orders the pairs and singles are refused.
 - llr_project.py assumes the future pairs follow the current counts (Dirichlet posterior or plug-in); early in a
-  gate the projection is wide. It is an ordering aid, not a stop rule.
+  gate the projection is wide. It is an ordering aid, not a stop rule. At `--step 1` it needs about 1 min per
+  1000 remaining pairs with 1000 paths on two Idle CPUs; `--step 5` is 5x faster (a simulated stop can then be
+  late by up to 4 pairs).
+- `results/` holds copies of the small output files that RESULTS.md cites (the scratch originals stay under
+  `F:/ospd/jobc/out/`; the PGN copies of the failure tests and the book copies under `F:/ospd/jobc/tmp/`).
 - pregate_screen.py runs ONE engine at a time on the caller's CPU mask / priority (CPUs 0-1 at Idle in this job);
   its times are not speed measurements. A hung engine is killed (it is the tool's own child process).
 - adjudication_audit.py simulates the rules on the recorded scores; a rule that had been active would also have

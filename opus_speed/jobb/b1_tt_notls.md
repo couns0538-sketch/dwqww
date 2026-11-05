@@ -1,7 +1,8 @@
 STATE: READY FOR TIMING
 # B1 change 1: FORGE_SPD_TT_NOTLS (TT probe / store without the emulated-TLS lease check)
 
-Worker b1tt (Job B part 1), started 09:18 PC clock. Status: checks (a), (b), (c) PASS at 09:37 (plain builds);
+Worker b1tt (Job B part 1), started 09:18 PC clock. Status: checks (a), (b), (c1)-(c4) PASS, notes final 09:49
+(plain builds; worker scratch total ~105 MB: `F:\ospd\src\b1_*` 8 x ~1.5 MB, `F:\ospd\jobb\b1` 93 MB);
 switch default line `#define FORGE_SPD_TT_NOTLS 0` (one line, `include/forge/search.hpp` only).
 Spec: `opus-deepres-20261104:notes/SPEC_SPEED.md` section S4 (review fixes S4-1, S4-2 applied), card T05D-01.
 Patch: `opus_speed/patches/b1_tt_notls.patch` (against the lock source `F:\ospd\src\lock`, apply with `patch -p1`
@@ -158,3 +159,15 @@ deterministic and are not compared. Not run: the TSan CI row (no TSan on this to
 - `probe_owned` / `store_owned` are private; only Worker (friend under the switch) can call them.
 - Not run here (coordinator / crew): kit pc1 = pc2 build, 12k-FEN identity (`fens_12k_v2.txt`), T12-03 level 3/5,
   TSan CI row, ABBA.
+
+## Stack note (09:47, extra; not part of the brief's checks)
+`b1_tt_notls.patch` then `b1_prefetch_early.patch` apply together to one fresh lock copy (`F:\ospd\src\b1_stack_ptest`;
+the second patch's search.cpp hunks land at offsets 90 / 102, no fuzz). Plain build with both switches at 1
+(`jobb\b1\stack\s11\forge.exe`, sha256 df63457d..., no warnings, 0 vfmadd): `bench 16` = 3024920 and the 8 bench FENs
+at `go depth 13` give the lock's nodes (72062 209792 125478 51234 80137 64111 174097 85418) and bestmoves; log
+`jobb\b1\stack\s11\run_bench16_fens13.log`. Not run on the stack: net off, d20 / d22, perft, switch-0 cmp.
+
+## Disclosure
+At 09:14 one scratch diff of this patch was written outside the job's write area, to Git Bash `/tmp`
+(`C:\Users\Administrator\AppData\Local\Temp\b1_tt_notls_check.diff`, 12,623 bytes, identical content to the patch
+body); left in place (no deletes).

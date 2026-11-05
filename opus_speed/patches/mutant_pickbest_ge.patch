@@ -1,0 +1,12 @@
+diff -ruN /f/ospd/src/lock/src/search.cpp /f/ospd/src/mut_pickbest_ge/src/search.cpp
+--- /f/ospd/src/lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ /f/ospd/src/mut_pickbest_ge/src/search.cpp	2026-11-05 09:49:31.382559700 -0800
+@@ -490,7 +490,7 @@
+             if (index_ - list_start_ < 4) {
+                 std::size_t best = index_;
+                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+-                    if (moves_[i].score > moves_[best].score) best = i;
++                    if (moves_[i].score >= moves_[best].score) best = i;
+                 }
+                 std::swap(moves_[index_], moves_[best]);
+             } else {

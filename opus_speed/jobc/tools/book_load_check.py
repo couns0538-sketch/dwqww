@@ -11,9 +11,10 @@ Steps (all on COPIES under --tmp; the originals are read once to copy them):
   3 python parse time: PGN book -> games (headers + movetext split, no move validation) ; EPD -> lines
   4 convert the PGN book to EPD with python-chess (play the moves, write the six-field FEN of each game's last
     position) -> <tmp>/<name>.epd, and time the line parse of that file
-  5 fastchess's own indexing time, A/B: launch fastchess with the book copy and an engine path that does not exist;
-    fastchess prints 'Indexing opening suite...' and dies when the engine cannot start, so the wall time from launch to
-    exit minus the same run with a 1-line EPD is the index cost. No game is ever played (no engine exists).
+  5 fastchess's own indexing time, A/B: launch fastchess with the book copy and an exe that is not a UCI engine
+    (C:/Windows/System32/whoami.exe); fastchess prints 'Indexing opening suite...', indexes the book, starts game 1 and
+    dies with 'engine startup failure' when no uciok arrives, so the wall time from launch to exit minus the same run
+    with a 1-line EPD is the index cost. No game is ever played. (fastchess writes its autosave config.json into --tmp.)
 Reports the minimum of --repeats runs. Numbers are wall-clock seconds on the caller's CPU mask / priority.
 """
 import argparse
@@ -91,9 +92,14 @@ def convert_pgn_to_epd(src, dst):
     return time.perf_counter() - t0, n
 
 
+NON_UCI_EXE = 'C:/Windows/System32/whoami.exe'   # exists, exits at once, never answers 'uciok'
+
+
 def t_fastchess_index(fastchess, book, fmt, tmp, repeats):
-    """Wall time of fastchess from launch to exit with a non-existent engine (book indexed, no game)."""
-    bogus = os.path.join(tmp, 'no_such_engine_for_book_check.exe')
+    """Wall time of fastchess from launch to exit with an exe that is not a UCI engine: fastchess prints
+    'Indexing opening suite...', indexes the book, starts game 1, gets no uciok and dies ('engine startup failure').
+    No game is played. (A non-existent engine path does NOT work: fastchess checks the path before indexing.)"""
+    bogus = NON_UCI_EXE
     args = [fastchess, '-engine', f'cmd={bogus}', 'name=a', '-engine', f'cmd={bogus}', 'name=b', '-each', 'tc=1+0.01', 'proto=uci',
             '-openings', f'file={book}', f'format={fmt}', 'order=random', '-games', '2', '-rounds', '1', '-concurrency', '1', '-srand', '1']
     best = None
@@ -134,7 +140,7 @@ def main():
     fc_base, fc_note = t_fastchess_index(a.fastchess, base_epd, 'epd', a.tmp, a.repeats) if os.path.exists(a.fastchess) else (None, 'no fastchess')
     rep['fastchess_baseline_1line_epd_s'] = round(fc_base, 3) if fc_base is not None else None
     rep['fastchess_baseline_output'] = fc_note
-    print(f'fastchess launch-to-exit with a 1-line EPD and a non-existent engine: {fc_base:.3f} s  ({fc_note[:120]})' if fc_base is not None else 'no fastchess')
+    print(f'fastchess launch-to-exit with a 1-line EPD and the non-UCI exe: {fc_base:.3f} s  ({fc_note[:120]})' if fc_base is not None else 'no fastchess')
     for src in a.books:
         name = os.path.basename(src)
         size = os.path.getsize(src)
