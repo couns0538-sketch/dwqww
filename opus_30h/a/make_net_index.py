@@ -43,6 +43,32 @@ def sanity_from_log(d):
     return '-'
 
 
+def rematch_v2p4(d):
+    """The rematch on the gate exe v2p4 in <net>/sanity_v2p4 (the CPU nets n2e / n2L were first played on v2p3,
+    ff856ba8): latest 'Games: ...' + 'Elo: ...' of its fastchess log + the candidate exe from RUN_INFO.json, or ''."""
+    sub = os.path.join(d, 'sanity_v2p4')
+    log = os.path.join(sub, 'sanity_v2p4.log')
+    if not os.path.isfile(log):
+        return ''
+    games = elo = ''
+    for line in open(log, encoding='utf-8', errors='replace'):
+        if line.startswith('Games:'):
+            games = line.strip()
+        elif line.startswith('Elo:'):
+            elo = line.strip().split(', nElo')[0]
+    if not games:
+        return ''
+    out = f'{games}; {elo}' if elo else games
+    ri = os.path.join(sub, 'RUN_INFO.json')
+    if os.path.isfile(ri):
+        info = json.load(open(ri, encoding='utf-8-sig'))
+        planned = info.get('games')
+        played = int(games.split(',')[0].split(':')[1])
+        state = 'RUNNING, ' if isinstance(planned, int) and played < planned else ''
+        out = f"{state}{out}; exe {info['candidate']['sha256'][:8]}"
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', default=r'D:\o30\nets')
@@ -88,6 +114,9 @@ def main():
             ri = os.path.join(a.root, name, 'sanity', 'RUN_INFO.json')
             if sanity != '-' and os.path.isfile(ri):   # which exe played it (a later, faster exe must not be mixed in)
                 sanity += f"; exe {json.load(open(ri, encoding='utf-8-sig'))['candidate']['sha256'][:8]}"
+        rm = rematch_v2p4(os.path.join(a.root, name))
+        if rm:   # bug hunt 2026-11-04: the rematch on the gate exe was missing from the index
+            sanity += f'; REMATCH on the gate exe v2p4: {rm}'
         if rule:
             lines.append(f"| {name} | {rule['s16_b06_diff']:+.2e} ({fmt_z(rule['s16_z'])}) | {rule['jobA_b06_diff']:+.2e} "
                          f"({fmt_z(rule['jobA_z'])}) | {'PASS' if rule['pass'] else 'FAIL'} | {r['all_checks_passed']} | {sanity} |")
@@ -126,6 +155,9 @@ def main():
             lines.append(f"| smoke 300 s | {' / '.join(fc['smoke_300s'][-2:])} |")
             lines.append(f"| speed vs lock (advisory, different trees) | {' / '.join(fc['abba_nps'])} |")
             lines.append(f"| sanity match (SANITY ONLY) | {' / '.join(l for l in fc['sanity'] if 'Elo' in l or 'W/D/L' in l or 'Games' in l)[:400]} |")
+        rm = rematch_v2p4(os.path.join(a.root, name))
+        if rm:
+            lines.append(f"| sanity rematch on the gate exe v2p4 (SANITY ONLY; `sanity_v2p4\\`) | {rm} |")
         lines.append('')
     tmp = os.path.join(a.root, 'INDEX.md.new')
     with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
