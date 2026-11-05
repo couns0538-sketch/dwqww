@@ -1,14 +1,15 @@
 diff -ruN lock/src/search.cpp b2_pickbest/src/search.cpp
 --- lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
-+++ b2_pickbest/src/search.cpp	2026-11-05 09:37:23.581926800 -0800
-@@ -316,6 +316,14 @@
++++ b2_pickbest/src/search.cpp	2026-11-05 09:57:10.189654200 -0800
+@@ -316,6 +316,15 @@
  // ---------------------------------------------------------------------------
  // Move picker
  
 +// Build switch (default 0 = the lock code): 1 = the move picker's selection
 +// scan finds the first maximum branch-free over 64-bit keys (score in the
 +// high half, inverted index in the low half) and swaps exactly the element
-+// the lock's strict `>` scan swaps.
++// the lock's strict `>` scan swaps; 2 = the same scan kept scalar (the
++// compiler may not vectorise it), for lists too short for a vector loop.
 +#ifndef FORGE_SPD_PICKBEST
 +#define FORGE_SPD_PICKBEST 0
 +#endif
@@ -16,7 +17,7 @@ diff -ruN lock/src/search.cpp b2_pickbest/src/search.cpp
  class MovePicker {
  public:
      enum class Mode { Main, Quiescence };
-@@ -483,15 +491,31 @@
+@@ -483,15 +492,34 @@
                 board_.is_pseudo_legal(move);
      }
  
@@ -37,6 +38,9 @@ diff -ruN lock/src/search.cpp b2_pickbest/src/search.cpp
              if (index_ - list_start_ < 4) {
 +#if FORGE_SPD_PICKBEST
 +                std::int64_t best_key = pick_key(index_);
++#if FORGE_SPD_PICKBEST >= 2
++#pragma GCC novector
++#endif
 +                for (std::size_t i = index_ + 1; i < count_; ++i) best_key = std::max(best_key, pick_key(i));
 +                const std::size_t best = 0xFFFFFFFFU - static_cast<std::uint32_t>(best_key);
 +#else

@@ -226,12 +226,15 @@ the tool (Dirichlet posterior, 1000 paths, seed 1, exact LLR after every pair), 
 | uhoO30U8soup [0,5] cap 4000, at pair 300 | [2,71,147,78,2], 0.13 | 0.167 / 0.038 / 0.795 | 1279 (1592) | H1 at pair 1264 (964 more pairs) |
 | gate_stB_lmrttcapall1 [0,10] cap 3000, at pair 400 | [4,68,256,68,4], -0.33 | 0.079 / 0.293 / 0.628 | 715 (1024) | cap at pair 1500, LLR -2.88, no decision |
 | gateR7_ttexclusive [-10,0] cap 3000, at pair 400 | [2,58,278,57,5], 0.67 | 0.469 / 0.026 / 0.505 | 625 (957) | H1 at pair 1267 (867 more pairs) |
+| uhoE3b_r6k [0,10] cap 6000, at pair 300 | [2,75,151,71,1], -0.58 | 0.108 / 0.710 / 0.182 | 766 (1944) | H0 at pair 1180 (880 more pairs) |
+| uhoO30R5kb8short [0,5] cap 4000, RUNNING, its log block at 1090 pairs (read-only) | [9,223,523,324,11], 2.58 | 0.994 / 0.000 / 0.006 | 128 (326) | still running at hand-back; `proj_running_R5kb8short.json` |
 
-Reading: at 300-400 pairs the posterior is wide, so the tool says "most likely still undecided at the cap" for all
-three, and the two gates that did decide did so late (864-964 more pairs, inside the projected decided-path range).
-The Brownian plug-in column (point estimate, no cap) is over-confident (P(H1) 0.998 / 0.035 / 0.999) because it
-ignores the uncertainty of the current estimate; the simulation is the number to use for ordering. Run time at
-step 1 pair: 77-183 s per projection (1000 paths, 1300-2800 pairs) on this CPU budget.
+Reading: at 300-400 pairs the posterior is wide, so for three of the four finished gates the tool says "most likely
+still undecided at the cap" and for the clear H0 case it gives H0 71 %; the three gates that did decide did so late
+(864-964 more pairs, inside the projected decided-path ranges) and the cap case was projected as the most likely
+outcome. The Brownian plug-in column (point estimate, no cap) is over-confident (P(H1) 0.998 / 0.035 / 0.999 / 0.0)
+because it ignores the uncertainty of the current estimate; the simulation is the number to use for ordering. Run
+time at step 1 pair: 77-215 s per projection (1000 paths, 1300-2800 pairs) on this CPU budget.
 
 ## 8. book_load_check.py - book loading (measure only)
 

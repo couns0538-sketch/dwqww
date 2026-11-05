@@ -83,7 +83,13 @@ function Invoke-Training([string]$Exe, [string]$Wl, [string]$Dir) {
   # next input line). The instrumented exe must exit normally (quit) so its .gcda files get written.
   $out = Join-Path $Dir 'train_out.txt'
   if ($Wl -eq 'v1' -or $Wl -eq 'wnonet') {
-    $file = $KitWl
+    # private copy of the frozen workload (bug of 09:56: Start-Process -RedirectStandardInput holds its input file
+    # exclusively, so two builds training at the same time on QA's one file collided - "cannot access the file")
+    $file = Join-Path $Dir 'frozen_train_cmds.txt'
+    for ($try = 1; -not (Test-Path $file); $try++) {
+      try { Copy-Item -LiteralPath $KitWl -Destination $file -ErrorAction Stop } catch { if ($try -ge 30) { throw "cannot copy the frozen workload: $($_.Exception.Message)" }; Start-Sleep -Seconds 2 }
+    }
+    if ((Get-OspdSha256 $file) -ne '1d52720a2662153120c394bba7a0971537dfcad3c40b0550d37e6a27676ace30') { throw 'frozen workload copy sha256 mismatch' }
     if ($Wl -eq 'wnonet') {
       $file = Join-Path $Dir 'train_wnonet.txt'
       Write-OspdLf $file @('uci', 'setoption name UseNNUE value false', 'isready', 'bench 11', 'bench 13', 'bench 16', 'isready', 'quit')
