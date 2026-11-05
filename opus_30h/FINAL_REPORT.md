@@ -732,3 +732,24 @@ names and took over between runs.
 - Job end: the clock at the final commit; `tools/publish_o30.sh` copies this file and TOOLS.md to `D:\o30\`.
 
 ### 6.1 Bug hunt (1 hour at the end)
+Started 19:08 while the last two sanity matches held CPUs 0-1: reading of every script changed after the independent
+window-2 review (ee316963..HEAD), of the engine patch v2port (loader, accumulator replay, king-key refresh, root fix,
+setoption handling) and of the report's key numbers against their files; tests with stubs only (no CPU work outside
+CPUs 0-1). Checks that need a CPU (final_checks_o30.sh, the abba.py A/A) follow when CPU 1 frees.
+
+| # | finding | effect on cited results | fix (commit) + evidence |
+|---|---|---|---|
+| BH-1 | a/soup_score.sh still defaulted O30_MASK to 0x38 (the window-2 trainer CPUs), bypassing the required WATCH_MASK of gpu_ckpt_watch2.sh (review W2-05); stale "default" comments in gpu_ckpt_watch2.sh and final_checks_o30.sh | none (every soup was scored inside the window with an explicit mask) | mask required (6efb9bde); a/logs/bughunt/soup_score_mask_test.out: unset -> exit 78, no folder |
+| BH-2 | a/cpu_waiter.sh and a/cpu6_final.sh logged `$?` after `$(date)` in the same echo, so the "exit" they printed was date's / basename's status (always 0) - the class of fix list 2 item 3 | none: every finished match's own output says "fastchess exit 0" (D:\o30\logs\sanity_*.out); all six layout probes printed their result line, which depth_probe_ab.py prints only on success. The two waiters still running (Y8, V16) will print "sanity exit 0" whatever happens - read their sanity_*.out instead | rc taken on its own line (4897f2f8); a/logs/bughunt/exit_status_after_cmdsubst.out: old form prints exit 0 for a command that exits 7 |
+| BH-3 | a/final_soups.sh named the expanded KB16 copies by index and reused an existing file: a later call with other members would average a stale file | none: all nine copies of the 19:00 run were written fresh (19:00:20-21), their md5s are in soupH16_all.soup.txt | named by source run + checkpoint, exit 3 on a failed expansion (f7ed3fa6) |
+| BH-4 | soup counts in the documents were stale ("~22", "~14"): 33 soups were scored (C:\o30g\gpu\soups), 30 when the last candidate (Y8) was chosen at 17:41 | wording only (selection bias is larger than stated) | exact counts in FINAL_REPORT, STATUS.md and the v2net skill (4fafbf25) |
+| BH-5 | a run refused at start could never start on the retry: the guard opens `<run>.guard.log` before its checks and the bat's redirect creates `<run>.out`; the bat refuses a run whose folder / .out / .guard.log exist (exit 4). The retry of fix list 2 item 1 (73e4c828) therefore landed in plan.failed, and queue_runner2.sh's retries in plan2.skipped; the item-1 stub created none of these files | none: no refusal happened in the live window (plan2.refused and plan2.skipped empty) | both runners move the attempt's files aside as `<file>.refused<N>` before a retry (1ab804be); a/logs/bughunt/runner_retry_test.out: old runner "ABORT: rX_test.out exists -> exit 4", new runners "trainer started and ended (exit 0)", plan.done [rX_test] |
+
+Read and found correct (no change): v2port.patch (loader size / header / checksum checks before allocation; replay
+walk and king squares of the ancestor; refresh through the cache with the later plies taken back; residual psqt kept
+with the accumulator; root accumulators built at search start; Threads max 256 = MaxWorkers; every setoption stops
+and joins the search first, so EvalFileV2 never frees a net in use); o30_gpu_guard.py console-exit change;
+o30_soup.py folder check; make_net_index.py newest-log / RUNNING logic; soup_table.py; w2_tables.py (superbatches /
+lr / seed columns equal the guard logs and plan2.txt; sanity Elo is the candidate's side: "Results of cand vs lock");
+kb8b_candidate.sh selection; report numbers of section 0 (runs 7 / 12, Z32 / V16 / Y8 paired diffs and z, jobA val
+8,821 rows, layout speed ranges) equal their files.
