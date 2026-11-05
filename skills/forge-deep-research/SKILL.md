@@ -72,6 +72,16 @@ there; paths are the ones of that job.
   Legal Code"). Re-run every merged row with `merge_licences.py` after a tool fix.
 - Read hand-backs with `tools/handbacks.py <workflow transcript dir> --json out.json` instead of the long
   notification text.
+- For a long run with a fixed agent count (owner 2026-11-04: "10 agents for 5 hours, then 5"), use ONE dynamic
+  workflow, not several rounds (owner's suggestion): `tools/workflows/deepres_pool.js` = a task queue + N worker loops
+  (promise-based wait / notify), verify tasks pushed to the queue FRONT after each research task, a planner agent that
+  proposes new sub-tracks when the queue is empty (keys checked against a used set), late tasks (critic, ranking draft)
+  queued at a clock threshold. Workflow scripts cannot read the clock (no Date): every schema carries a `clock` field
+  (`date +%H:%M` at hand-back) and the script switches the pool size / stops new tasks from the latest clock seen
+  (minutes after 22:00, midnight handled). Each prompt also has its own "stop at <time>" rule because the script's
+  clock lags by up to one task length.
+- Stopping a workflow (TaskStop) and relaunching its unfinished tasks as continuations (files on disk + a
+  `continue_note`) worked twice in this job; nothing written by the stopped agents was lost.
 
 ## Checkpoints and the low-usage stop
 - Commit + push about every 10 minutes (the coordinator only; workers never commit). Update STATUS (track table,
