@@ -1,0 +1,34 @@
+date 2026-11-04 13:50:13 host FoxOS tag warmproof05_kb32
+exe D:\o30\target_rocm4\release\forge-v2-bullet.exe md5 1a180f7be8302970d5072b90094a9de0 sha256 fcc2ad820c15fb657cd0466ca0044889cc2702be9835c0c94e8fad1fde597e64
+branch head at start 30e1bc1f93ae388e4967235266860ca0777708c8; main.rs md5 in the worktree a24eb5d68529dcbac08d4bf9053477c3
+env O30_INIT_DIR=D:\o30\gpu\init_lockkb32 O30_CLIP=7.99 O30_DECAY=0 HIP_PATH=F:\nnue_pytorch\venv\Lib\site-packages\_rocm_sdk_devel; Idle, affinity 0x38
+cmd forge-v2-bullet.exe r D:/o30/data C:/o30g/gpu/warmproof05_kb32 rank4x8 0 256 1 8 2 30201 0 0.4 8
+forge_v2_bullet r: kb 32 (rank4x8) mirror false hidden 256 superbatches 1 x 8 seed 30201 lr 0 wdl 0.4 mix 8
+HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll
+AdamW weight clip +-7.99 decay 0
+warm start from D:\o30\gpu\init_lockkb32/optimiser_state
+training rows (shards with role train): 304999573
+Training Preamble
+Net Name               : forge_v2r_rank4x8_h256
+Batch Size             : 16384
+Batches / Superbatch   : 8
+Positions / Superbatch : 131072
+Start Superbatch       : 1
+End Superbatch         : 1
+Eval Scale             : 178
+Save Rate              : 1
+WDL Scheduler          : constant 0.4
+LR Scheduler           : start at 0 and cosine decay to 0 at superbatch 1
+Threads                : 2
+Output Path            : C:/o30g/gpu/warmproof05_kb32
+Training on ROCm Device (unknown)
+superbatch 1 [12.5% (1/8 batches, 29039 pos/sec)]
+Saved [forge_v2r_rank4x8_h256-1]
+Total Training Time: 0h 0m 4s
+trainer exit 0
+wrote C:/o30g/gpu/warmproof05_kb32/warm.nnue2: kb 32 (rank4x8) hidden 256 output buckets 8 residual fnv1a 0b95070ed4beb431
+export exit 0
+md5 exported  dbdb27131680a44858155fbe0110c930 /c/o30g/gpu/warmproof05_kb32/warm.nnue2
+md5 reference dbdb27131680a44858155fbe0110c930 /d/o30/nets/lockv2/lock_kbrank4x8_ob8.nnue2
+COMPARE: byte-identical -> PASS
+end 2026-11-04 13:50:22
