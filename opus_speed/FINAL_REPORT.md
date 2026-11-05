@@ -82,4 +82,35 @@ PENDING
 See `CR_637B_REPORT.md` (BLOCKER + SHOULD 1-3 fixed, tests 13/13; the 3 LOW notes were not visible on the PC).
 
 ## 8. Deviations, incidents, owner items
-PENDING
+Deviations (each disclosed where it happened):
+- One read-only `find` during orientation (08:4x) listed three tool paths under D:\o30\wt before the "don't touch
+  D:\o30" rule was applied; nothing was read or written there afterwards.
+- D: writes: only the worker-board lines the owner's worker rule requires (claim / release / done lines).
+- Application restart by the owner at ~09:32: the new session process ran at 0xFFFF / Normal until 09:33 (one status
+  query ran in that window), then was pinned to 0x3 Idle; own jobs started before the restart kept running.
+- ABBA protocol: rounds alternate A B B A / B A A B (default; `-Order ABBA` keeps the literal order) and the process
+  CPU time of the bench window is evaluated next to the engine's wall-clock nps. Reason: A/A runs on this shared PC
+  showed per-slot differences of ~1-2 % and wall-clock noise up to 3.8 %/round; the balanced A/A at d20 has
+  ~1 %/round for both metrics. Every summary states the order and both verdicts; the WIN rule is applied per metric.
+- L4 sanitizers: ASan from MSVC (`cl /fsanitize=address`) on a port copy with one extra TT-index line, compared with
+  the MSVC ASan build of the lock source; UBSan from the lock's g++ in trap mode. Reason: MSYS2 g++ has no ASan
+  runtime and the PC's LLVM 18 does not accept the installed MSVC STL.
+- Candidate packs use L3 on the first 2,000 of the 12k FENs (`-Quick`) for screening; the final stack and any exe
+  handed to QA as a lock candidate get the full 12k set.
+- No co-author trailer in commits (the brief bans model-company names), as in the deep-research job.
+- Worker b1tt wrote one scratch diff outside its write area (C:\...\Temp\b1_tt_notls_check.diff, 12.6 KB, 09:14,
+  self-reported); left in place (no-delete rule).
+Own tool bugs found and fixed during the job (all before any candidate was called valid): fail-open pin DIFF (Code
+Review blocker), ordered-dictionary int indexing (all pins looked DIFF at 637be9af), swallowed L1/L2 lines,
+`-File` list parameters, native stderr under `Stop`, placement-only FENs (L3 compared one position; withdrawn),
+slot-order bias in plain ABBA, `speed_pack.ps1` not parsing under PS 5.1, a BEL byte in a log path (heredoc),
+`-Twice` never reporting REPRO (output-stream pollution), stdin-file sharing between two trainings, a race on the
+shared L3 reference cache (three packs superseded), MSVC vs g++ node counts in L4 (four packs re-run).
+Owner items:
+- The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
+- QA: re-time the WIN candidates on QA's own cores before any lock (this job never locks anything).
+- Robustness note, no Elo / node effect: `Worker::clear()` assigns a ~1.4 MB `ContinuationHistory{}` temporary on the
+  stack; MSVC's 1 MB default stack overflowed under ASan (MinGW's 2 MB default hides it). An in-place reset would
+  remove the dependence (not changed here: not a speed item).
+- Two different files named `fens_12k.txt` exist (branch file: six fields; scratch copy: placement only); see
+  `opus_speed/data/README.md`. Earlier jobs used the six-field branch file (their 12k results stand).

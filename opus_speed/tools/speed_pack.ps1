@@ -132,6 +132,12 @@ try {
     $abbaTxt = ($abOut -join "`n")
   }
   # (5) records
+  $patchFile = Join-Path $RepoDir ("patches\{0}.patch" -f (Split-Path $SrcDir -Leaf))
+  $patchTxt = "no patch file (source = the lock or a stack made by make_stack.sh)"
+  if (Test-Path -LiteralPath $patchFile) { $patchTxt = "patch opus_speed/patches/{0} md5 {1}" -f (Split-Path $patchFile -Leaf), (Get-OspdMd5 $patchFile) }
+  $headTxt = 'branch head at pack time: unknown'
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try { $hd = @(& git -C (Split-Path -Parent $RepoDir) rev-parse --short=8 HEAD 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0 -and $hd.Count) { $headTxt = "branch head at pack time: $($hd[0])" } } catch {} finally { $ErrorActionPreference = $eap }
   $gver = (& 'C:\msys64\ucrt64\bin\g++.exe' --version | Select-Object -First 1)
   $flags = @(Get-Content (Join-Path $Pack 'build_SUMMARY_pc1.txt') | Where-Object { $_ -like 'flags*' -or $_ -like 'training*' })
   $csvMd5 = ''; if (Test-Path (Join-Path $abbaDir 'runs.csv')) { $csvMd5 = Get-OspdMd5 (Join-Path $abbaDir 'runs.csv') }
@@ -140,7 +146,7 @@ try {
     '',
     "- State: $bxState; ABBA verdict below. Speed numbers come only from the ABBA CSV named here; anything else is UNPROVEN.",
     "- Exe: ``$exe`` md5 ``$md5`` sha256 ``$sha`` ($repro)",
-    "- Source: ``$SrcDir``$(if ($Define.Count) { " with defaults flipped in ``$buildSrc``: $($Define -join ', ')" }); patch / commit: see opus_speed/patches and the branch commit that adds this file.",
+    "- Source: ``$SrcDir``$(if ($Define.Count) { " with defaults flipped in ``$buildSrc``: $($Define -join ', ')" }); $patchTxt; $headTxt (the candidate file itself is added in a later commit)",
     "- Build: build_variants.ps1 -Variant $Variant -Twice (QA kit v2.3 command lines, -Expose); compiler $gver",
     ($flags | ForEach-Object { "  - $_" }),
     "- Bench signature: $sigTxt",

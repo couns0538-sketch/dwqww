@@ -247,6 +247,8 @@ try {
     foreach ($x in ($l1 + $l2 + $l3)) { Say ("{0}   (resumed from {1})" -f $x, $ResumeFrom) }
     $sigF = Get-ChildItem (Join-Path $ResumeFrom 'cand') -Filter 'sig_*.json' | Select-Object -First 1
     $c = Get-Content $sigF.FullName -Raw | ConvertFrom-Json
+    if ($c.sha256 -ne $candSha) { throw "resume: signature file $($sigF.FullName) belongs to another exe" }
+    Copy-Item -LiteralPath $sigF.FullName -Destination $candCache   # the pack reads the bench signature from here
     $nm = [regex]::Match($l3[0], ': (\d+) / (\d+) identical'); $n = [int]$nm.Groups[2].Value
     $allFens = @(1..(12000)); if ($l3[0] -notmatch 'fens_12k_v2') { $allFens = @(1..$n) }
   } elseif ($OnlyL4) {

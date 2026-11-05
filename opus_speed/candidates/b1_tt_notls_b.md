@@ -19,3 +19,4 @@ A/A aa_lock_d20_s3: wall n=10 median 1.0066 95% [0.9968, 1.0111] sd 0.99%; cpu m
 VERDICT wall NO-WIN / cpu WIN (rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt
 ```
 - Note: Re-run of b1_tt_notls: L1-L3 PASS reused, L4 with the MSVC reference fix
+- Bench signature (L1-L2 of the resumed run, F:/ospd/packs/b1_tt_notls/bitexact/cand/sig_9b6aae65ebd243f9.json): sha256 9b6aae65ebd243f9; net on d11/13/16/20/22 312866/862329/3024920/12389307/34048354; net off 375354/907205/2448617/13573040/24506465; perft 5 startpos 4865609 kiwipete 193690690 (= lock pins)
