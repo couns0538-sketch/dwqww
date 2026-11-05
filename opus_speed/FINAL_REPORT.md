@@ -103,7 +103,43 @@ sparse-L1 items belong to the HalfKA path only). Each row: pack = LTO+PGO pc1 = 
 first 2,000 of the 12k FENs), then ABBA vs the lock at bench d20, 10 rounds ABBA/BAAB, CPU 2, net loaded, fresh
 copies per round; interval = 95 % Student-t of the per-round log ratios; A/A of the session (aa_lock_d20_s3): wall
 1.0066 [0.9968, 1.0111], cpu 1.0050 [0.9940, 1.0087].
+The PROTOCOL verdict is the wall one (the engine's own bench nps, as the brief defines it); the CPU-time metric is
+advisory (it removes preemption by other programs, not SMT-sibling contention). The changes (switch = value):
+- `FORGE_SPD_TT_NOTLS=1`: the worker that holds the TT's exclusive lease (one-thread search) probes / stores without
+  `lock_stripe()`, whose emulated-TLS lookup and lease walk only ever returned an unlocked lock there.
+- `FORGE_SPD_NO_ZERO_MOVELISTS=1|2`: 1 = move arrays are no longer zero-filled at construction (every slot is written
+  before it is read); 2 = also a quiets-only generation mode for the move picker (same quiets, same order as the
+  lock's full list after its filter).
+- `FORGE_SEARCH_SPEED2=1`: the R14 switch (TT prefetch after every make, MovePicker history / piece hoist, table
+  piece_type), rebased onto the NZM code (`r14_speed2_after_nzm.patch`) for stacking.
+- `FORGE_SPD_PREFETCH_EARLY=1`: prefetch the child's TT cluster before make_move from an exact cheap key.
+- `FORGE_SPD_SLIDER_PEXT=1`: slider attack tables indexed with PEXT (same tables and attack sets, no magic search).
+- `FORGE_SPD_NNUE_ZMM=1`: the net's output layer in one AVX-512 register per 16 hidden units, same lane order and
+  reduction, separate multiply and add (no FMA).
+- `FORGE_SPD_MATKEY_FAST=1`, `FORGE_SPD_PICKBEST=1|2`: cheaper material-key update; branch-free pick_best.
+
+### 3a. Single changes (pack per change; `python -I -B tools/pack_table.py`)
 PENDING_B_TABLE
+
+### 3b. Borderline singles: one 16-round re-time each, decision on the pooled rounds
+Rule: a single whose first run is not a wall WIN but has a median of at least +1 % or a cpu WIN got ONE 16-round
+re-time against the lock (queued 12:01 TT, 12:06 slider + prefetch, 12:12 zmm - before any re-time had finished).
+Its status is decided on all 26 rounds pooled (`abba_recheck.py --pool`), never on the re-time alone. The pooling
+rule itself was written at 12:22, after the first re-time (slider) had finished; it is the stricter reading there
+(slider re-time alone +1.92 %, pooled +1.52 %).
+| change | first run, 10 rounds: wall [95 %] | re-time, 16 rounds: wall [95 %] | POOLED 26 rounds: wall [95 %] / cpu [95 %] | status (pooled wall) | runs.csv md5 (first / re-time) |
+|---|---|---|---|---|---|
+| TT_NOTLS | +4.19 % [0.9947, 1.0734] NO-WIN | +2.62 % [1.0108, 1.0344] WIN | **+2.86 % [1.0117, 1.0419]** / +2.97 % [1.0198, 1.0368] | **WIN** | ec2e8683 / 4368e42b |
+| SLIDER_PEXT | +1.37 % [0.9993, 1.0210] NO-WIN | +1.92 % [1.0045, 1.0305] WIN | **+1.52 % [1.0061, 1.0232]** / +1.43 % [1.0064, 1.0197] | **WIN** | 8e9c8e82 / 2b0788dd |
+| PREFETCH_EARLY | +1.11 % [0.9889, 1.0322] NO-WIN (cpu WIN) | PENDING (queued) | PENDING | PENDING | cfe32f4f / - |
+| NNUE_ZMM | +1.99 % [0.9999, 1.0578] NO-WIN | PENDING (queued) | PENDING | PENDING | bcc00d27 / - |
+Folders: first runs `F:\ospd\packs\<pack>\abba_d20`, re-times `F:\ospd\abba\retime_<pack>_d20_r16`; pooled numbers
+from `abba_recheck.py --pool <first> <re-time>` (it refuses runs of different exes). The TT gain is smaller than
+its noisy first run suggested (+2.9 % pooled, not +4.2 %).
+
+### 3c. Stacks (each timed against the lock in its own session)
+PENDING_STACK_TABLE
+
 Losers stay switches at 0 (no code path in the default build). Notes per change (design, lines, why node-identical,
 proofs incl. verify / poison / counter builds): `opus_speed/jobb/<name>.md`; patches `opus_speed/patches/`.
 
@@ -160,8 +196,10 @@ log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (ou
    the source (`F:\ospd\packs\stack_w2\src_kit`, so QA's kit builds it without -D flags). Exe
    `F:\ospd\packs\stack_w2\forge_stack_w2.exe` sha256 db957393 78e21771 e0b03e42 e258f551 ebeb3b66 f1151f23 2f4f1b89 e7f933a9
    (md5 1d4080bc), pc1 = pc2. Bit-exact: L1-L4 + full 12k L3 12,000 / 12,000. This job's ABBA vs the lock: wall +11.48 %
-   [1.0734, 1.1217], cpu +11.34 % [1.0990, 1.1191] (candidate file `opus_speed/candidates/stack_w2.md`). QA: rebuild
-   `src_kit` with the kit (must give sha256 db957393...), re-run the pins / 12k identity, and time it on QA's own cores.
+   [1.0734, 1.1217], cpu +11.34 % [1.0990, 1.1191] (candidate file `opus_speed/candidates/stack_w2.md`). Verified
+   12:34: QA's own kit v2.3 (`build_ltopgo.ps1 -Expose -Kit <kit folder>`) on `src_kit` gives this exe byte for byte
+   (sha256 db957393...) and its plain-vs-LTO+PGO node identity is ALL OK. QA: rebuild pc1 + pc2 with the kit, re-run
+   the pins / 12k identity, and time it on QA's own cores.
 2. The same three changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 / +4.3 %), r14_speed2_b (+3.2 / +2.9 %),
    b1_tt_notls_b (cpu +3.7 %).
 3. stack_w3 (= stack_w2 + prefetch_early): see section 3 for its ABBA; only worth it if it beats stack_w2.
@@ -208,10 +246,22 @@ Review blocker), ordered-dictionary int indexing (all pins looked DIFF at 637be9
 `-File` list parameters, native stderr under `Stop`, placement-only FENs (L3 compared one position; withdrawn),
 slot-order bias in plain ABBA, `speed_pack.ps1` not parsing under PS 5.1, a BEL byte in a log path (heredoc),
 `-Twice` never reporting REPRO (output-stream pollution), stdin-file sharing between two trainings, a race on the
-shared L3 reference cache (three packs superseded), MSVC vs g++ node counts in L4 (four packs re-run).
+shared L3 reference cache (three packs superseded), MSVC vs g++ node counts in L4 (four packs re-run), L4 ASan N/A
+for PEXT sources (MSVC lacks `__BMI2__`; fixed 12:2x, both PEXT builds re-run: ASan PASS), an `-OnlyL4` run printing
+the full-proof verdict text (fixed 12:2x; the two L4-only logs of 12:24-12:27 carry the old text and prove L4 only).
+Review passes: independent tool review (worker toolrev, `REVIEW_TOOLS_INDEPENDENT.md`, fixes in `REVIEW_FIXES.md`);
+independent patch review (worker patchrev, `REVIEW_PATCHES_INDEPENDENT.md`, started 12:25); the coordinator's own
+re-check (`OWN_CHECKS.md`, NOT independent: every headline ABBA recomputed with the exact t quantile, patches =
+timed sources, kit sources = patched trees + switch lines only).
 Owner items:
 - The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
 - QA: re-time the WIN candidates on QA's own cores before any lock (this job never locks anything).
+- QA kit v2.3 (`kit_v23\build_ltopgo.ps1`) under Windows PowerShell 5.1 without `-Kit`: `$PSScriptRoot` is empty in
+  the param default, so `$Kit` is empty, every `Join-Path $Kit ...` fails, and with `$ErrorActionPreference =
+  'Continue'` the preflight sha256 checks of the frozen workload and bench FENs are skipped silently (the `if`
+  statements abort before their `throw`). The run then fails closed at training ("training gave 0 bench lines",
+  FAILED marker; seen 12:31 in `F:\ospd\qakit\qakit_stack_w2_pc1`). Passing `-Kit <kit folder>` avoids it; a
+  `if (-not $Kit) { throw }` line would make the preflight fail closed too. Not changed here (QA's file).
 - Robustness note, no Elo / node effect: `Worker::clear()` assigns a ~1.4 MB `ContinuationHistory{}` temporary on the
   stack; MSVC's 1 MB default stack overflowed under ASan (MinGW's 2 MB default hides it). An in-place reset would
   remove the dependence (not changed here: not a speed item).
