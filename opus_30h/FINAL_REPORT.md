@@ -175,6 +175,8 @@ at 12:54):
 | r3_kb8warm | 435 | 7.30G | 0.014158 | -1.52e-04 | -25.1 | 0.013283 | +1.14e-05 | +0.17 | PASS |
 | r3_kb8warm | 522 | 8.76G | 0.014156 | -1.54e-04 | -25.2 | 0.013226 | -4.60e-05 | -0.69 | PASS |
 | r3_kb8warm | 609 | 10.22G | 0.014153 | -1.57e-04 | -25.6 | 0.013182 | -8.96e-05 | -1.33 | PASS |
+| r3_kb8warm | 696 | 11.68G | 0.014151 | -1.59e-04 | -25.9 | 0.013148 | -1.24e-04 | -1.84 | PASS |
+| r3_kb8warm | 700 | 11.74G | 0.014151 | -1.59e-04 | -25.9 | 0.013141 | -1.31e-04 | -1.95 | PASS |
 | r4_kb4short | 25 | 0.42G | 0.014245 | -6.49e-05 | -25.2 | 0.013317 | +4.46e-05 | +1.51 | PASS |
 | r4_kb4short | 50 | 0.84G | 0.014217 | -9.34e-05 | -30.8 | 0.013372 | +9.98e-05 | +2.88 | FAIL |
 | r4_kb4short | 75 | 1.26G | 0.014199 | -1.11e-04 | -33.5 | 0.013463 | +1.91e-04 | +5.05 | FAIL |
@@ -192,7 +194,15 @@ at 12:54):
 | r5_kb8short | 175 | 2.94G | 0.014146 | -1.64e-04 | -40.1 | 0.013215 | -5.75e-05 | -1.19 | PASS |
 | r5_kb8short | 200 | 3.36G | 0.014145 | -1.65e-04 | -40.4 | 0.013198 | -7.39e-05 | -1.53 | PASS |
 | r6_kb8lr3 | 100 | 1.68G | 0.014201 | -1.09e-04 | -20.9 | 0.013378 | +1.06e-04 | +1.84 | PASS |
-[PENDING: rerun at the end of the window for the final checkpoints of runs 3 and 6.]
+| r6_kb8lr3 | 200 | 3.36G | 0.014193 | -1.17e-04 | -19.0 | 0.013221 | -5.07e-05 | -0.74 | PASS |
+| r6_kb8lr3 | 300 | 5.03G | 0.014198 | -1.12e-04 | -16.9 | 0.013187 | -8.49e-05 | -1.20 | PASS |
+| r6_kb8lr3 | 400 | 6.71G | 0.014194 | -1.16e-04 | -16.8 | 0.013235 | -3.66e-05 | -0.51 | PASS |
+| r6_kb8lr3 | 500 | 8.39G | 0.014191 | -1.19e-04 | -16.9 | 0.013324 | +5.23e-05 | +0.71 | PASS |
+| r6_kb8lr3 | 600 | 10.07G | 0.014182 | -1.28e-04 | -18.1 | 0.013273 | +1.43e-06 | +0.02 | PASS |
+| r6_kb8lr3 | 700 | 11.74G | 0.014177 | -1.33e-04 | -18.8 | 0.013274 | +2.15e-06 | +0.03 | PASS |
+| r6_kb8lr3 | 800 | 13.42G | 0.014177 | -1.33e-04 | -18.9 | 0.013263 | -8.88e-06 | -0.12 | PASS |
+
+(Final checkpoints of runs 3 and 6 added at 16:1x; window-2 runs 7 on are in the window-2 section below.)
 
 **Packaged net from run 2** (`net_pack.sh`, 12:15-12:16, `D:\o30\nets\o30_gpu_kb4warm_r2\RESULT.json`):
 `D:\o30\nets\o30_gpu_kb4warm_r2\o30_gpu_kb4warm_r2.nnue2` sha256
@@ -230,7 +240,7 @@ read-only; the author's own checks were a structured self-review):
 
 | ID | severity | finding (file) | disposition |
 |---|---|---|---|
-| G-001 | SHOULD | warm start without an explicit O30_CLIP keeps the default clip +-1.98 and silently clips the loaded lock weights (max 3.47) at step 1 (main.rs) | fixed in 8860bac6 (main.rs: `assert!(std::env::var("O30_CLIP").is_ok(), "O30_INIT_DIR needs O30_CLIP >= the max |weight| import_v2r.py printed")` before the load) |
+| G-001 | SHOULD | warm start without an explicit O30_CLIP keeps the default clip +-1.98 and silently clips the loaded lock weights (max 3.47) at step 1 (main.rs) | fixed in 8860bac6 (main.rs: `assert!(std::env::var("O30_CLIP").is_ok(), "O30_INIT_DIR needs O30_CLIP >= the max \|weight\| import_v2r.py printed")` before the load) |
 | G-002 | SHOULD | the yield predicate's marks did not include the npt interpreter / venv tree (underscore spelling) (o30_gpu_guard.py) | fixed in 8860bac6: NPT_MARKS now also `nnue_pytorch` (line 32) |
 | G-003 | NIT | psutil calls in the poll loop unwrapped; an uncaught exception would end the guard with the trainer unguarded and a misleading `end:` line | fixed in 8860bac6: psutil errors caught and counted ("poll errors" in the end line, e.g. run 2: 0) |
 | G-004 | SHOULD | the checkpoint watcher cannot finish on a run without a checkpoint or with a permanently failing export (no --hidden; nullglob), and takes kb map / mirror from the operator | documented, not changed: the live watchers run `gpu_ckpt_watch.sh`, which must not be edited while bash executes it |
@@ -248,13 +258,71 @@ HWiNFO CSV (one column per prefix, newest row parsed), the thresholds and hyster
 end_superbatch. Not verified by the review: the owner's gpu_guard.ps1 thresholds (not read), the keeper's real npt launch
 line, the trainer's VRAM footprint.
 
+### GPU window 2 (owner's extra 5 h GPU + 5 h CPU; received ~13:18, read as ~14:06-19:06 PC clock)
+Quote and reading in `D:\o30\WINDOW.md` (copy `a/logs/gpu/WINDOW.md`; the owner was asked to confirm both window
+quotes). CPUs: 3-5 the GPU trainer (mask 0x38) plus checkpoint scoring, 0 / 1 / 2 / 6 sanity matches, 0-1 the Item B
+kit build (13:40-13:47). Run outputs from run 8 on are on `C:\o30g\gpu` (D: was at 53 GB against its 50 GB floor; the
+owner allowed C: when D: is short), started by `a/gpu_run_o30c.bat` (a copy of `a/gpu_run_o30.bat` with the C: paths).
+- King-bucket layouts rank4x4 (KB16: rank group x file pair) and rank4x8 (KB32: rank group x file) in the Rust trainer
+  and the Python tools (b74033b4). The engine reads the 64-entry map from the net file, so no engine change; engine
+  identity: the lock net written in each layout gives the lock pins (`a/logs/gpu/pins_lockrank4x{4,8}_v2p4.txt`, final
+  checks 17 / 18); trainer features = Python on 3,000 rows each; warm-start round trips byte-identical (warmproof04 KB16,
+  warmproof05 KB32).
+- Weight soups: nets trained from the same warm start (the lock net) are rewritten exactly into one layout
+  (`a/o30_expand_kb.py`; proof: run 7 as KB32 scores exactly as run 7) and averaged uniformly (`a/o30_soup.py`,
+  `a/soup_score.sh`, table `a/soup_table.py`, tests `a/test_soup_tools.py` = final check 19).
+- Unattended queue: `a/queue_runner.sh` (13:58-15:18), then `a/queue_runner2.sh` (independent review W2-02; plan
+  `C:\o30g\gpu\plan2.txt`, cutoff 18:40); plans `a/logs/gpu/plan*_w2_*.txt`. Checkpoint watcher `a/gpu_ckpt_watch2.sh`.
+- Layout speed on the gate exe (identity nets, same trees, `a/logs/checks_gpu_w2/`, SINGLE RUNS each; earlier probes
+  scattered +-2-3 %): KB8 0.9965x, KB16 0.968x and 0.956x, KB32 0.941x the nps of KB4.
+
+### What window 2 taught about these nets (for the next net job)
+- The warm start from the lock net is the method; the short recipe (lr 2e-5 cosine over 200 superbatches = 3.4G
+  positions, 13-15 min at 3-4.4M positions/s) is as good as longer runs at KB4 / KB8 / KB16 alone; lr 3e-5 is worse; a
+  600-superbatch KB16 run is clearly worse alone (S31 -1.42e-4 vs -1.80e-4), a 600-superbatch KB8 run is not (-1.65e-4,
+  with the best single-net jobA of the job, -1.46e-4).
+- Seed noise of the recipe on S31 is about 4e-6 (run 7 vs run 9; run 5 vs run 10), below the layout effects: S31 paired
+  vs the lock at the same recipe KB4 -1.41e-4, KB8 -1.65e-4, KB16 -1.80e-4, KB32 -1.80e-4; jobA moves within its noise.
+- More king buckets cost engine speed through accumulator refreshes on lateral king moves (KB16 / KB32 above); KB8
+  (board halves) costs nothing measurable. A layout must earn its speed cost in games.
+- Uniform weight soups gave the best offline numbers of the job: best of ~14 soups offline, selection-biased (chosen and
+  judged on the same S31 / jobA sets); UNPROVEN in play, needs an SPRT gate. The gain came from independent runs of
+  different length / layout; checkpoints of one run and extra seeds of one short recipe added ~0.
+- Offline loss has not predicted play reliably in this job (n2e on 2026-11-03); the sanity matches below are 200-400
+  games each, sanity only.
+
+### Owner's fix lists of 2026-11-04
+- First list (items 0-13): items 9-13 on this branch, `opus_30h/CR_FIXLIST_20261104_REPORT.md` (commits 8b57f4a8,
+  24d98b82, f9136f2f, 16e84bc9, 345cf411); items 0-8 on opus-astra-r14-finish (head cdc487a8, CI green, report
+  `D:\a14\FINAL_REPORT.md` md5 1e99b1a1c6ddb1ec4905dec002814dcd; item 6's PROOF.json rerun not done: disk floor).
+- Second list ("remaining real problems", items 1-7): items 1-5 on this branch - 73e4c828 (queue_runner.sh marks a run
+  done only after exit 0, retries exit 78 unmarked), 8f473e8a + 0b245bbc (guard: console exit resumes a trainer the loop
+  suspended after the handler; dummy test), 3bc5cd88 (probe_extra.sh rc), 101379e6 (soup / speed wording), 6085d7b2
+  (tuned184 build logs); items 6-7 on opus-astra-r14-finish [result: see section 6].
+- The overlap (4,088 shared board+side-to-move keys after en-passant normalisation) is still unresolved; npt data stays
+  BLOCKED.
+- Disclosure: commit 05ab620a (pushed) carried the engine's own `id author` value inside four copied conformance logs;
+  redacted at 30e1bc1f; history not rewritten (no-rewrite rule).
+
 ### Item B - SPSA
 - `opus_30h/b/expose22.patch` (md5 73cd35917a872d2a00b8ce6219d6f7d7): 22 more search constants as options; exe kit v2.3
   `D:\o30\w\sp1_pc1\src_copy\forge_ltopgo_sp1_pc1.exe` sha256 7bf5dab39a53d0aa562083a27b598a7ed47619c97190d0a1a491738a796fcaef
   (pc1 = pc2); tuner `b/tune_spsa.py` + `b/tune_spsa.ps1`, README, self-test PASS, disk-floor stop.
-- One switch for the tuned set: `b/o30_tuned_patch.py` (UCI check `O30Tuned`, default false) + `b/test_o30tuned.sh`;
-  dry run with a dummy set PASS (the real build follows the session).
-- Tuning session: (pending - stc8, 8 parameters, 8+0.08, from ~00:30 2026-11-04)
+- One switch for the tuned set: `b/o30_tuned_patch.py` (UCI check `O30Tuned`, default false) + `b/test_o30tuned.sh`.
+- Tuning session stc8_main (8 search constants from the lock values, 8+0.08, UHO, Threads 1, Hash 16, Idle on CPUs 0-1):
+  92 batches = 184 pairs = 368 games (+88 -77 =203, draw rate 55.2 %) of the 1,800 planned, 00:05-02:58 on 2026-11-04,
+  then stopped for the CPU plan. Only SeeQuietMultiplier moved beyond 2 sigma of the null-gradient noise (24 -> 28,
+  z +2.11; with 8 parameters about 0.4 pass by chance): no convergence claim; the honest expectation for the set is ~0
+  until a gate says otherwise (`D:\o30\spsa\report_184pairs\REPORT.md`, TUNED_OPTIONS.txt).
+- Tuned exe (tag tuned184, built 13:40:43-13:44:34 by a sub-agent, committed cf354f86; build logs committed in 6085d7b2):
+  `D:\o30\w\tuned184_pc1\src_copy\forge_ltopgo_tuned184_pc1.exe` sha256
+  3b35f5cfa662f4f09916fa9c4b40f6bfc6a6d0d4ce7fa1f1b8f6970daadb66d1 = pc2 (kit v2.3 -Expose), patch
+  `b/o30tuned_tuned184.patch` md5 eaa42c9fb3806a884c46a6f635548b93 (src/uci.cpp only, cleanroom_lint CLEAN). O30Tuned
+  false (default) = the lock pins d11-d22 + perft (kit pc1 / pc2 logs `b/logs/itemB/tuned184_pc{1,2}.out`); true =
+  LmrQuietBase 80, LmrQuietDivisor 215, LmrCutNode 2038, HistoryMalusPercent 99, NmpEvalBase 174, RfpMargin 65,
+  SeeQuietMultiplier 28, SingularDoubleMargin 25 (bench d11 330152 / d13 745986 / d16 2436337 = the explicit list);
+  true then false = the lock pins; invalid value rejected; UCI conformance 18 / 18 and 21 / 21; 120-s smoke with the
+  switch on PASS (21 games, 2450 plies, 0 illegal / crashes / hangs / time losses). Report `b/logs/itemB/ITEM_B_REPORT.md`.
 
 ### Tools, skills, MCP
 TOOLS.md (every tool with its check); skills forge-o30-v2net / forge-o30-spsa (user scope + `opus_30h/skills/`); MCP
