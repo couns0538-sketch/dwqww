@@ -104,9 +104,9 @@ there; paths are the ones of that job.
 - `tools/workflows/deepres_pool3.js`: task fields `kind` (research / note; a Fable verifier goes to the queue front
   after each research task), `agent` (fable | opus-max), `after` (keys `kind:key` that must be done first),
   `latest_start` (minutes after 22:00), `outputs`, `verify_brief`, `minutes`, `max_cards`.
-- Agent types added after the session started are not in its registry: every `agentType: opus-max` spawn failed at
-  once (journal "failed", empty agentId, no tokens). The script now runs opus-max work as the session model at effort
-  max directly; `fable` works as an agent type.
+- Agent types added after the session started are missing from its registry until it reloads: every
+  `agentType: opus-max` spawn failed at once (journal "failed", empty agentId, no tokens) until the registry picked the
+  file up (~05:16); the script tries the agent type and falls back to the session model at effort max.
 - When a pool has only sequential work left, its other slots sit idle: start a separate 1-worker run (same script,
   fresh run) for a non-overlapping task, keep the total <= 3, add each run to STATUS and to `checkpoint.sh`.
 - Round 3 measured: POOL3 10 agents 1,690,105 tokens (65 min); 1-worker runs 334,288 (2 agents) and 514,776 (3).

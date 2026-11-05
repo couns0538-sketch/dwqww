@@ -1,4 +1,4 @@
-# T04S licences (tools/licence_at.py --row at the merge commit of each cited PR, or HEAD for selection-only rows; read 2026-11-05 PC clock, see header time)
+# T04S licences (tools/licence_at.py --row at the merge commit of each cited PR, or HEAD for selection-only rows; read 2026-11-05 05:10 PC clock)
 Use: Sirius, motor = no LICENSE file (all rights reserved): PR text / commit messages / test logs only. Tarnished, pawnocchio = GPL-3.0, Clockwork = AGPL-3.0: ideas only (PR text, messages, test logs). Starzix = WTFPL (not on the MIT/BSD/Apache list; read as ideas-only like the others). No source file or diff of any of them was opened.
 
 | repo | sha | date | file | spdx | first line | api |
