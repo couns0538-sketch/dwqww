@@ -16,9 +16,11 @@ Integral (no licence) = ideas only, PR text only. All start values below are our
 All three keep the 30-h method (the lock net written exactly into KB8 + OB8, H256, AdamW clip +-7.99, decay 0,
 batch 16,384, 1,024 batches per SB) and add ONE lever, so a paired offline diff isolates it:
 - R1 (no code): a final stage on the game result only (WDL 1.0) on our best warm-start KB8 single net (not a soup):
-  200 SB, cosine 1e-5 -> 1e-7 (range 5e-6 .. 2e-5), fresh AdamW; also score the 100-SB checkpoint.
+  200 SB, cosine 1e-5 -> 1e-7 (range 5e-6 .. 2e-5), fresh AdamW or the parent run's own optimiser state; also score
+  the 100-SB checkpoint.
 - R2: + sparse BINARY threats (T01-01), threat block initialised to zero so step 0 is the lock function; 400 SB at
-  WDL 0.4, cosine 5e-5 -> 5e-7 (range 2e-5 .. 1e-4: the new block starts at zero, the rest is converged).
+  WDL 0.4, cosine 2e-5 -> 2e-7 (our proven warm-start rate: 3e-5 was worse; Adam's per-weight step still lets the
+  zero block grow over ~410k steps; try 4e-5 only if its weights stay near zero at the checkpoints).
 - R3: R2 with Ranger instead of AdamW, same seed / data / length; zero-init pawn pairs only as an R2 variant once R2
   passes offline.
 Not ranked: a from-scratch L1 768+ threat net like the bullet example (~110G positions seen); our data is 305M rows

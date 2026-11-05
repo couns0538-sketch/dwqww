@@ -47,6 +47,6 @@ net (seed noise of the recipe ~4e-6 on S31). Keep Ranger only if it wins beyond 
 UHO SPRT [0,5] at STC, then LTC, against the identical-evaluation v2 control.
 
 ## OFF-by-default design
-Trainer-side only: a switch such as O30_OPT=adamw|ranger (default adamw = today's runs bit for bit). Own start values:
-lookahead every 6 steps (range 4-10), fraction 0.5 (0.3-0.7), decay 0, clip as O30_CLIP. The engine is unchanged
-(EvalFileV2 empty = off = lock pins).
+Trainer-side only: a switch such as O30_OPT=adamw|ranger (default adamw = today's runs bit for bit). Start values =
+bullet's own RangerParams defaults (lookahead every 6 steps, fraction 0.5; MIT, allowed), own ranges 4-10 / 0.3-0.7;
+decay 0 and clip as O30_CLIP. The engine is unchanged (EvalFileV2 empty = off = lock pins).

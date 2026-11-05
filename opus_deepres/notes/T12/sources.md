@@ -37,3 +37,11 @@ what it gave | card id.
   (110 gates with Ptnml): book profiles (UHO nElo/Elo 1.91, pair sd 0.185, pent/trin variance 0.618; 8moves 2.10,
   0.167, 0.90), unit check of the Brownian LLR vs printed LLR (82 of 85 capped gates within 0.15 at [0,10]), MC table of
   P(H1) / games / P(decided by cap) per bound, truncated-SPRT error rates | T12-01, PROTOCOLS.md
+- (navigation, no card) https://github.com/official-stockfish/fishtest/wiki (page list: SPSA lives only as sections of
+  Creating-my-first-test; no book or TC page); WebSearch "fishtest wiki SPSA ..." gave no SPSA page
+- E2b https://github.com/official-stockfish/fishtest/wiki/Creating-my-first-test#tuning-with-spsa and #spsa-tests |
+  same page as E2 (docs) | SPSA mechanics: params name,start,min,max,c_end,r_end; mini match at value -+ ck; update
+  value += ck*rk*(W-L); ck = c0/(1+k)^gamma, ak = a0/(A+1+k)^alpha, rk = ak/ck^2 (1 iteration = 2 games); c must be
+  "large enough to have a measurable Elo difference" (scale values x10 so c >= ~5); many values at once = random change;
+  "values barely changing after a few thousand games -> useless, stop"; search params at normal TC (Hash 16 at 20+0.2,
+  64 at 60+0.6); no numeric defaults on the page | T12-04

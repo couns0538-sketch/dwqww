@@ -33,8 +33,7 @@ Forge estimate: +0 to +2 Elo at STC, +1 to +4 at LTC **UNPROVEN** (Forge's NMP h
 has; the discount acts on a different base rule).
 
 ## Effort
-Crew 2 h (field + clear + increment + option, OFF identity, ON bench, smoke). CPU: STC SPRT [0, 5] then LTC; given
-the source's TC trend, the LTC run is the deciding one. No GPU.
+Crew 2 h (field + clear + increment + option, OFF identity, ON bench, smoke). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that. STC SPRT [0, 5], then LTC; given the source's TC trend, the LTC run decides. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; null-move try / cutoff counts per 1M nodes OFF vs ON

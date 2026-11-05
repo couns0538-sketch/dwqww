@@ -16,13 +16,13 @@ own words, own constants.
 ## Mechanism
 When a late move searched at reduced depth unexpectedly beats alpha, the lock re-searches it at the unreduced depth.
 The refinement uses how far the reduced score beat the best score so far: well above it, the move is likely a new
-best move and gets one ply more than the normal depth; barely above (or below) the best score, the re-search is done
+best move and gets one ply more than the normal depth; only barely above the best score, the re-search is done
 one ply shallower. PV re-searches use the adjusted depth too; the root keeps the plain depth (Caissa 105979c).
 
 ## Forge fit
 `bash tools/forge_has.sh 'full_depth_needed'` -> `src/search.cpp:1136-1159`: after a reduced fail-high the lock
 re-searches at the fixed `new_depth` (declared `const` at line 1117); no deeper / shallower step. Not among the R15
-candidates or FB2-J3 options. Tried gates `--grep 'deeper|shallow'`: 4 rows, all packd Hindsight (gates 51-54, -3.0
+candidates or FB2-J3 options. Tried gates `--grep 'deeper|shallow'`: 4 rows, all packd Hindsight (gates 51-54, -6.3
 to +4.6, 1,500 games each) - a different rule (depth change at node entry from the parent's reduction), not this one.
 Lines to touch: ~8 in the LMR block (make `new_depth` mutable, two comparisons, root guard).
 
@@ -34,8 +34,7 @@ Forge estimate: +2 to +6 Elo at STC and LTC **UNPROVEN** (both sources gained at
 reductions are table-driven like theirs).
 
 ## Effort
-Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re-search depths). CPU: one STC SPRT
-[0, 5] at the gate rate, then one LTC. No GPU.
+Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re-search depths). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that. One STC SPRT [0, 5], then one LTC. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; perft unchanged; assert that the adjusted depth stays

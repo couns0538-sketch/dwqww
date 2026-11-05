@@ -13,11 +13,12 @@ factors (best-move stability 3/6 iterations, node-fraction effort, falling eval 
 fishtest JSON API returned an empty body; a retry with another user agent was refused by the session's safety check
 and not attempted again -> fishtest book / threads for T07-01 stay "not checked")
 6 | https://chess.swehosting.se/test/14310/ (OpenBench test page, Alexandria LTC) | GPL-3.0 project, test log only | branch tm-scoreloss-iso vs master, 40.0+0.40, Threads 1, Hash 64 MB, book UHO_Lichess_4852_v1.epd, [0,3], LLR 2.91, 16844 games, Penta [5,1777,4662,1975,3], +4.00+-2.49 | T07-02
+7 | https://github.com/PGG106/Alexandria/pull/618 commits + issue comments (gh api pulls/618/commits, issues/618/comments; no files / patch) | GPL-3.0 ideas only | the only code commit is titled "Add TM score-loss scaling factor" (then "bump version"); no comments -> #618 measures score LOSS, not hold-still; T07-02 re-based on #438 for the hold-still term | T07-02
 
 ## Dead ends (one line each)
 - tmfit pointer stale: `grep -i tmfit` = 0 hits in D:/o15/reports/gates_20261103.html (read-only) and in FORGE_RESULTS.csv; gates 227/228 not present there, so TmFitModel's exact scope was not verified (brief taken as given).
 - Best-move stability scaling: the lock has it (src/search.cpp:1436-1438, 3/6 stable iterations + unstable factor) -> no card.
-- Falling-eval extension: the lock has it vs the previous iteration (1451-1454) -> no card; the cross-move reference variant has no fresh logged gain found.
+- Falling-eval extension: the lock has it vs the previous iteration (1451-1454) -> no own card; the cross-move reference is only variant B inside T07-02 (no separate logged gain found).
 - Node-fraction effort: done (lock 1441-1449, plus the crew's node-fraction TM) -> excluded by the brief.
 - Complexity-based TM: Stockfish 2b03723 (2022-01-17, STC ~+2.44 n=39664, LTC ~+1.30 n=127656) was simplified away by 38a80c0 (2023-04-01, STC ~+1.11 / LTC ~+0.51 neutral) -> net zero, no card.
 - Eval-level TM: Stockfish e636f73 (2024-03-29, STC ~+1.41 / LTC ~+2.08) removed by ec8288f (2024-07-06, neutral simplification) -> no card.

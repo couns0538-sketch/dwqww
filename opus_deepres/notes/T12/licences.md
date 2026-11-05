@@ -7,3 +7,4 @@
 Notes
 - fishtest: the tool finds no root LICENSE file at 5a8a229a52; WORKER_RULES list fishtest as GPL-3.0. Either way the
   tier is "ideas only": only the wiki pages (Fishtest-mathematics, Creating-my-first-test) were read, no source file.
+| AndyGrant/OpenBench | 230ed46e47 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |

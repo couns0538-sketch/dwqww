@@ -7,7 +7,9 @@
   The R8 driver gives +33 % positions per hour on the same rules; the owner's rate is ~1.24M positions per hour.
 - Training set: J1 binpack 304,999,573 rows (001-039 without the 013/014 holdout); npt nets overfit after epoch 7
   (owner); lambda is decided (Lichess 1.0, self-play 0.7-0.9). The brief calls the set "305M Lichess plus self-play
-  rows", but 304,999,573 is exactly the self-play J1 binpack: where the Lichess rows are and how many: PENDING (crew).
+  rows", but 304,999,573 is exactly the self-play J1 binpack, and the w4 runs train on it alone (npt keeper config +
+  the s41 run log: `--start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered`). Where the Lichess rows
+  are and how many: PENDING (crew).
 - npt K32H3^ L1-1024 nets vs AL1: -86 to -116 Elo (FORGE_RESULTS.csv); WAC gap and its test: card T02-04.
 - Relabel tool (forge-relabel-job): lock probe at 20k nodes ~635k rows/h on 2 threads (50M rows ~79 h); 5k nodes
   ~1.19M rows/h, 10k ~0.74M rows/h per worker.
@@ -20,8 +22,9 @@
 - 2021-11 onward: Leela T60 / T74 data + own fixed-node data (5000 nodes, multipv 2), Syzygy-rescored external sets
   (PR 3808 / 3816); 2022-2024: mostly filtered + TB-rescored Leela data (T60-T80) plus own DFRC 5000-node data;
   2024-03 the own DFRC data was removed (bd579ab5d1, confounded +1.14 / +2.06).
-- Cadence: a new master every 1-4 weeks, almost always "retraining the master net" on an extended set (fine-tune
-  from the previous best, not from scratch); new data added in month-sized slices; early-ply cut 28-30.
+- Cadence (2022-12 to 2024-05 commit dates): a new master every 1-5 weeks, almost always "retraining the master net"
+  on an extended set (fine-tune from the previous best, not from scratch); new data added in month-sized slices;
+  early-ply cut 27-30.
 
 ## Engine 2 - Caissa (external net -> own self-play), MIT, README + SelfPlay.cpp @8d2454c72f + commit messages
 - History: PeSTO HCE -> v0.6 temporarily used an external (Stockfish) net -> v0.7+ own nets, first from a few million
@@ -44,7 +47,8 @@
    each; keep the epoch count below the epoch-7 overfit point.
 3. **Generation G2:** when an npt net passes the gate vs AL1, it becomes the datagen engine; purge the oldest 6.2.0
    rows once G1 + G2 rows reach ~300M (Caissa-style progressive purge, Stockfish-style removal of its weaker own data).
-   One generation = ~100M new rows; cadence ~1-2 weeks.
+   One generation = ~100M new rows (~1.1M games at ~90 recorded rows per game; T02-01 measured 87.7 rows per block);
+   cadence ~1-2 weeks.
 4. **Adjudication / openings:** keep the 8 random plies; add Syzygy adjudication at <= 5 pieces where TB files exist
    (PENDING) so endgame results are exact for lambda 0.7-0.9; keep win adjudication but test 4 -> 8 plies; no draw
    adjudication. Add a 1-5 % endgame-book subset (card T02-06).

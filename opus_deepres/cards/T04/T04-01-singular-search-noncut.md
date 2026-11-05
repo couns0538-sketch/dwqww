@@ -36,12 +36,11 @@ Forge estimate: 0 to +3 Elo at STC **UNPROVEN** (Forge's cut-node LMR term is +2
 the distortion exists; but part of the source's gain came from its cut-node-only null move, which Forge lacks).
 
 ## Effort
-Crew 1 h (option + OFF pin check + ON bench + 2-minute smoke). CPU: one STC SPRT [0, 5] at the gate rate (a 3,000-
-game cap at the crew's usual pace); LTC only after an STC H1. No GPU.
+Crew 1 h (option + OFF pin check + ON bench + 2-minute smoke). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that. One STC SPRT [0, 5]; LTC only after an STC H1. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench d11/d13/d16/d20/d22 = the lock pins (node-identical by construction); ON bench differs (live);
-perft unchanged; count singular extensions per 1M nodes OFF vs ON on the bench set (expect fewer extensions ON);
+perft unchanged; count singular extensions per 1M nodes OFF vs ON on the bench set (the source reasoning predicts fewer ON; a rise means the flipped child node types dominate);
 mate probe OFF/ON. Gate: UHO SPRT [0, 5] at STC, then LTC.
 
 ## OFF-by-default design

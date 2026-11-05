@@ -40,9 +40,9 @@ Change: a binary threat encoding in ForgeV2 (Rust map_features) + exporter + eng
 Viridithas PR 425: threat inputs (SFNNv12-style set, every threat with a king excluded, 60,144 mirrored inputs); the
 same PR cut L1 2560 -> 1024 and widened L2 16 -> 32, so the number is threats NET of a capacity / speed trade. 25k
 nodes +27.43 +- 7.91 (3,046 g); STC 8+0.08 +2.98 +- 2.09 (30,040 g, LLR 3.06, [0,3]); LTC 40+0.4 +5.38 +- 2.97
-(12,730 g, LLR 2.98, [0,3]); ~87 % of the old speed (AVX-512); book not stated. Integral PR 243 (new net with threat
-inputs, layout not in the text): LTC 40+0.4 +24.43 +- 7.77 (1,866 g, LLR 2.89 [0,4]); its PR 266 merged the threat
-and piece-square accumulators (+6 % speed, STC +1.70 +- 1.36). The bullet example itself carries no Elo.
+(12,730 g, LLR 2.98, [0,3]); ~87 % of the old speed (AVX-512); book not stated. Integral PR 243 (new threat net; its
+README today: 59,808 threats + 4,560 pawn pairs = the bullet example's counts, L1 768): LTC 40+0.4 +24.43 +- 7.77
+(1,866 g, LLR 2.89 [0,4]); PR 266 merged threat + piece-square accumulators (+6 % speed). bullet example: no Elo.
 Forge estimate: 0 to +5 Elo at LTC vs a v2 control net without threats **UNPROVEN**; vs the lock exe it also carries
 the v2 path's own cost (identical-eval control -32.2 +- 18.5, D:/o30/FINAL_REPORT.md) and the threat update cost.
 

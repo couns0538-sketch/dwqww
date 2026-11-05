@@ -1,5 +1,5 @@
 # T06-02-hce-residual-rebalance: re-weight HCE vs residual net when piece material is level
-Status: PARTIAL (every unfinished field says PENDING)
+Status: COMPLETE
 
 ## Source
 - Stockfish commit text + fishtest logs (no source): https://github.com/official-stockfish/Stockfish/commit/a2f01c07eb
@@ -18,7 +18,8 @@ Forge already has the two parts as separate numbers: the final eval is the HCE p
 "what the HCE gets wrong"). Own Forge form: if the non-pawn material of the two sides differs by less than an
 exchange (rook minus minor, from Forge's own PieceValueMg), final = (1 - h) HCE + (1 + r) residual; otherwise the
 lock's plain sum. h and r are signed per-mille options; SPSA picks them (no Stockfish ratio carried over). Applied
-on the raw eval before E3's post-processing, so the TT keeps one raw value per position (same rule as E3).
+inside static_evaluate, so the rebalanced sum is the raw value the TT stores (deterministic per position); E3's own
+post-steps, when ON, still run on it afterwards.
 
 ## Forge fit
 Lock src/search.cpp:620 returns clamp(HCE_runtime + network): both parts exist there, nothing is re-weighted. E3 does
@@ -34,11 +35,11 @@ Forge estimate: 0 to +3 Elo **UNPROVEN**.
 
 ## Effort
 Crew: ~1.5 h code (two options, threshold from PieceValueMg) + ~2 h proofs. CPU: one 2-parameter SPSA (~3,000 STC
-pairs) + one STC and one LTC SPRT; hours = games / the crew's gate games-per-hour. GPU: none.
+pairs = 6,000 games, ~14 h at the measured ~437 games/h of uhoE3a r6k) + one STC and one LTC SPRT. GPU: none.
 
 ## Test plan
-Pre-gate: OFF bench / perft = lock pins; ON bench differs; check on the E3 data (FIT_RECIPE) that the level-material
-subset is a large share of gate positions (it decides how often the branch fires). SPSA on (h, r) from (0, 0), then
+Pre-gate: OFF bench / perft = lock pins; ON bench differs; from the FIT_RECIPE step-1 extraction (per-side material
+columns) count the share of gate positions with level piece material (it decides how often the branch fires). SPSA on (h, r) from (0, 0), then
 UHO SPRT [0,5] at STC vs the lock, then LTC.
 
 ## OFF-by-default design

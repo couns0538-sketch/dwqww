@@ -1,5 +1,5 @@
 # T02-02: Filter-only retrain: drop capture-best-move rows by a short search, skip early plies
-Status: PARTIAL (the trainer flags of the npt w4 runs and the Lichess rows' write-time filters are PENDING, crew)
+Status: COMPLETE (w4 trainer flags read from the run log; the Lichess question moved out: w4 trains on J1 only)
 
 ## Source
 - Stockfish PR 4314 (net nn-60fa44e376d9; its fishtest runs started 2022-12-29): https://github.com/official-stockfish/Stockfish/pull/4314
@@ -26,7 +26,9 @@ best move is a capture / ep / promotion, in-check rows, mate scores, |cp| > 3000
 write time for self-play rows (with the writer's own search, not a separate multipv-2 pass). The J1 / R11 binpack
 writer stores a constant ply 40 and a null king move in every record, so the trainer's ply skip and move-based skip
 cannot act on Forge binpacks: (2) is NOT done, and plies 9-28 (after the 8 random opening plies) are all in the data.
-Whether the Lichess rows were capture / check filtered when written: PENDING (crew).
+The best w4 run (log `D:\forge_nnue_train\runs\..._w4_s41.log`) trains on the J1 binpack only, with `--no-filtered`
+and no early-ply flag, so nothing ply-based acts today. Lichess rows are not in the w4 data; if they join later,
+their write-time filters need the same check (crew).
 Change: carry the true game ply into the binpack at conversion (or cut rows with ply <= P there; own start P = 20,
 range 12-32). Filtering only removes rows, so the 4,088-key overlap cannot grow; re-run the T02-01 check anyway.
 Later Stockfish practice (TABLE.md row 6, confounded): skip only best-move captures with SEE >= 0, keeping losing-
@@ -43,8 +45,10 @@ write time for self-play rows; only the ply cut is new; a weaker net may react m
 
 ## Effort
 Crew 2-4 h (converter flag keeping the real ply or cutting ply <= P, row counts per ply bucket, overlap re-check).
-CPU: one conversion pass (R11-sized, a few hours on 3 threads). GPU: two npt runs of the w4 size and length at the
-same seed (cut vs no cut).
+CPU: one pass over the 39 self-play text files (321,388,148 lines) to recover the ply from the FEN move number (not
+measured; own guess 10-30 min on one core), then the
+FPOS -> binpack conversion (39 shards 6 min 19 s incl. verify, T02-01). GPU: two npt runs of the w4 recipe (8 x
+152.5M positions) at the same seed (cut vs no cut).
 
 ## Test plan
 Pre-gate: row counts per ply bucket before / after; overlap 0 (T02-01 tool); export parity 12k exact; lock OFF bench

@@ -3,11 +3,12 @@ Status: COMPLETE
 
 ## Source
 Stockfish PR 7113, commit https://github.com/official-stockfish/Stockfish/commit/5ca4bfe72b (2026-09-09, "Decrease
-time usage if engine has time disadvantage"). Logs: STC https://tests.stockfishchess.org/tests/view/6a8738495b1b38ebda864ed0
+time usage if engine has time disadvantage"). Logs:
+STC https://tests.stockfishchess.org/tests/view/6a8738495b1b38ebda864ed0 ,
 LTC https://tests.stockfishchess.org/tests/view/6a8ade7a08c0f6a39c9e79cc , 15+0 non-regression
 https://tests.stockfishchess.org/tests/view/6a94002a08c0f6a39c9e8b31 , 40/10 non-regression link printed cut short in
 the commit (.../6a967e3408c0f6a39c9e91). Numbers below are from the commit / PR text; the fishtest pages were not
-readable (bot check).
+readable (bot check). (corrected by verify: fishtest API get_run of the STC / LTC runs is readable; numbers match.)
 
 ## Licence
 GPL-3.0 at 5ca4bfe72b (notes/T07/licences.md) -> ideas only. Read: commit title, PR 7113 text with its result blocks.
@@ -32,7 +33,8 @@ untouched; Forge has no nodestime, so the source's first skip case does not aris
 Source: STC 10+0.1 +1.13 +- 0.90 (95 %, own pentanomial calc from the printed Ptnml 169/13235/36487/13589/200),
 127,360 games, LLR 2.97 (-2.94, 2.94) bounds [0.00, 2.00]; LTC 60+0.6 +1.08 +- 0.69, 191,328 games, LLR 2.94
 bounds [0.50, 2.50]; non-regression 15+0 +2.23 +- 1.81 (33,984 games) and 40/10 +1.44 +- 1.51 (47,872 games), both
-[-1.75, 0.25]. Book and thread count: not checked (pages unreadable). Stockfish dev vs master.
+[-1.75, 0.25]. Book and thread count: not checked (pages unreadable). (corrected by verify: get_run: Threads 1,
+book UHO_Lichess_4852_v1.epd at STC and LTC; per the commit the 40/10 run also includes PR 7117's cyclic-TM fix.) Stockfish dev vs master.
 Forge estimate: 0 to +2 Elo, centre about +1 - at the job's drop line; kept only because the source passed both STC
 and LTC **UNPROVEN**. The crew's logged gates stop at 1000-1500 games ("Cap with no decision", notes/TRIED_GATES.md),
 which cannot resolve 1 Elo; a [0,5] SPRT needs about 7-12k games (own estimate from a UHO-type pentanomial variance)
@@ -40,7 +42,9 @@ and a true +1 would most likely end H0.
 
 ## Effort
 Crew 3 h (parser + fields + factor 1 h, OFF inspection + box test 1 h, packaging 1 h). CPU: STC SPRT about 10-12k
-games = 10-19 h at the 640-980 games/h seen in D:/o15/reports/gates_20261103.html; LTC only after an STC pass. GPU 0.
+games = 10-19 h at the 640-980 games/h seen in D:/o15/reports/gates_20261103.html (corrected by verify: those rates are the older gates vs
+h256e12 / ep10; the UHO gates vs the lock (uho*_vs_AL1lp) in that file ran 430.6-455.7 games/h, all *_vs_AL1* rows
+430-502, so 10-12k games = about 20-28 h); LTC only after an STC pass. GPU 0.
 
 ## Test plan
 Pre-gate: bench / perft pins OFF and ON equal the lock - by construction, since bench is depth-limited and never
