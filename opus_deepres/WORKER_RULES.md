@@ -42,7 +42,10 @@ stop you at any moment; whatever is on disk is what survives.
 - Missing evidence is written as missing, never invented. If a number cannot be found, say so.
 
 ## Names
-- No AI vendor or model-company names anywhere (files, cards, notes). The machine name grok-pc is fine.
+- No AI vendor or model-company names anywhere (files, cards, notes). The machine name grok-pc is fine. Local paths
+  through the agent configuration folder are written with `<cfg>` for that folder name (e.g.
+  `D:/grok-pc-data/dwqww/<cfg>/skills/forge-nnue-data/SKILL.md`), or name a skill by its name only. (The
+  coordinator's git clean filter also does this for everything committed.)
 - No licence or copyright headers in anything you write.
 - Never type or run any name that starts with `train_res` followed by `id` (a crew supervisor adopts such
   processes); call it "the residual trainer".
