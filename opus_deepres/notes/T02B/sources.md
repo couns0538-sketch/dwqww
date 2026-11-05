@@ -39,7 +39,7 @@
   (grep of datagen words; `--show` d53071eff4, 85f8ee6199; b939c80513 grep lines only; no new fetch) | GPL-3.0, commit
   messages only (no source) | d53071eff4 (PR 3521, nn-7e66505906a6, 2021-06-03): previous 64B binpack + a 2B binpack
   generated from an opening book of positions whose static eval differs strongly from a depth-9 search ("wrongNNUE"
-  book), same arch HalfKAv2^, retrained 40 epochs: STC 10+0.1 [-0.5,2.5] passed, W 6254 L 6028 D 52310 (64,592
+  book), same arch HalfKAv2^, retrained (max_epochs 400, epoch-359 net; corrected by verify from "40 epochs"): STC 10+0.1 [-0.5,2.5] passed, W 6254 L 6028 D 52310 (64,592
   games, ~+1.22); LTC 60+0.6 [0.5,3.5] passed, W 1998 L 1826 D 41736 (45,560 games, ~+1.31) (tests 60b7c79a457376eb8bcaa104
   / 60b85307457376eb8bcaa182); generator settings in the same message: depth 9, multipv-2 random moves within 100 cp,
   3 random moves up to ply 8, eval_limit 32000 (= no cap). 85f8ee6199 (2022-07-04): data + DFRC data AND a modified loss:
@@ -91,7 +91,7 @@
   | evidence for MIX.md G1 (net teacher beats HCE labels) and the relabel pipeline; no card
 - (own data, no licence) D:/grok-pc-data/selfplay_out/forge_selfplay_020.txt first 1,000,000 rows (read-only, awk,
   3.6 s): cp == 0 rows 25,881 = 2.588 %, of them 84.6 % from drawn games (drawn-game rows overall 30.4 %); |cp| <= 10
-  5.21 %, |cp| <= 25 27.50 % | TABLE row (zero-score skip: Forge share)
+  6.98 %, |cp| <= 25 12.89 % (corrected by verify 2026-11-05: two recounts agree; the worker's 5.21 / 27.50 did not reproduce) | TABLE row (zero-score skip: Forge share)
 - web search (in-check question, 1 of 1): "NNUE training data skip positions in check filter Elo test result
   datagen" | - | no isolated in-check Elo anywhere in the results (arXiv 2412.17948 = the Xiangqi study T02 already
   read; SF PR 4314 = card T02-02; forum anecdotes) | TABLE row: explicit NOT FOUND

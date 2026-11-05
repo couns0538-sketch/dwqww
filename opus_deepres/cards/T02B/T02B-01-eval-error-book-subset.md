@@ -37,9 +37,9 @@ net; the sample bounds the pass (5M rows = ~1.4 h at 1,000 rows/s, ~8 min at 10,
 
 ## Expected gain
 Source: 64B-position set + a 2B binpack from the eval-error book (~3 % new rows), same arch (HalfKAv2^), retrained
-40 epochs. STC 10+0.1, 1 thread, book noob_3moves.epd, SPRT [-0.5,2.5] (fishtest elo_model normalized) passed,
+(corrected by verify: --max_epochs=400 in the training command, tested net = epoch 359; the card said 40 epochs). STC 10+0.1, 1 thread, book noob_3moves.epd, SPRT [-0.5,2.5] (fishtest elo_model normalized) passed,
 64,592 games, W 6254 L 6028 D 52310 = ~+1.22 Elo (from W/L/D). LTC 60+0.6, same book, [0.5,3.5] passed, 45,560 games,
-W 1998 L 1826 D 41736 = ~+1.31 Elo. One change (data added), but a passed SPRT is selection-biased upwards.
+W 1998 L 1826 D 41736 = ~+1.31 Elo. One change as read (data added; the base net's recipe is not restated in the commit), but a passed SPRT is selection-biased upwards.
 Forge estimate: +0 to +3 Elo **UNPROVEN** (Forge's nets may misjudge more positions than the source's, so the subset
 may be worth more, or the book may just repeat label noise of the 5000-node HCE labels).
 
