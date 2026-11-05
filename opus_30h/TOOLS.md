@@ -43,6 +43,8 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 | `o30_expand_kb.py` | rewrite a KB4 / KB8 / KB16 checkpoint exactly as a finer king map (rank4x2 / rank4x4 / rank4x8) | `logs/gpu/expand_r7_to_kb32.out` (scores identical) + check 19 |
 | `kb8_candidate.sh`, `kb8b_candidate.sh`, `cpu_waiter.sh`, `cpu6_final.sh`, `final_soups.sh` | window-2 orchestration: build and pack a candidate soup, start its sanity match when a CPU frees, last-hour checks, final soups (the copies that ran are in D:\o30\gpu; the branch copies carry the bug-hunt fixes BH-2 / BH-3) | their logs in `logs/gpu/` and `logs/checks_gpu_w2/` |
 | `npt_busy.py` | the guard's npt-like process count, for scripts | prints 0 when no npt-like trainer runs |
+| `play_w3.sh`, `cpu1_w3.sh`, `final_soups3.sh` | window 3: one sanity match of a packed net on given CPUs with an opening seed (`play_w3.sh <net> <folder> <games> <cpus> <conc> <seed>`); CPU 1's sequence after V16 (A/A, final-checks pre-run, more r5 games); the end-of-window soups | `C:\o30g\gpu\cpu1_w3.log`, `C:\o30g\gpu\final_soups3.log`, the matches' own fastchess logs |
+| `combine_sanity.py <log> [<log> ...]` | pools the game pairs (pentanomial) of several sanity matches of ONE net, e.g. a first match + extra games on other openings: score, Elo +/- (sanity only) | `logs/gpu/combine_sanity_selfcheck.txt`: on each single log it equals fastchess's own Elo line |
 
 ## Item B - SPSA (`opus_30h/b/`)
 | tool | what it is for | how to verify it |
@@ -86,10 +88,12 @@ log's v2 benches = the v1 node counts. Gate exe of this job: ff856ba8 (v2 path ~
 | `a/o30_evalcmp.py`, `a/o30_bucketcmp.py` | two nets' per-position outputs on the same FENs: scale, rms distance, sign flips; per-bucket mean offsets (seams) | - |
 
 ## One-command re-check
-`bash opus_30h/tools/final_checks_o30.sh`: 16 checks in ~10 minutes (pins of the three exes, identity, parity, walk,
-scorer control, trainer selfcheck, MCP self-test, clean-room lint of patches + commit messages, doc_lint, INDEX hashes,
-cited paths, loader fuzz, cited hashes with `tools/hash_allow_o30.txt` for the hand-checked ones, all-or-nothing patch
-scripts).
+`O30_MASK=<cpu mask> bash opus_30h/tools/final_checks_o30.sh`: 19 checks in ~3-10 minutes (pins of the lock, gate
+and SPSA exes, identity incl. KB16 / KB32, parity, walk, scorer control, trainer selfcheck, MCP self-test, clean-room
+lint of patches + commit messages, doc_lint, INDEX hashes, cited paths, loader fuzz, cited hashes with
+`tools/hash_allow_o30.txt` for the hand-checked ones, all-or-nothing patch scripts, soup tools). The mask is required
+(no default). After document edits only: `O30_MASK=<mask> bash opus_30h/tools/doc_checks_o30.sh` (checks 10-13 and 15,
+the same functions, ~1 minute).
 
 ## MCP server forge-o30 (`opus_30h/mcp/`)
 net_info, net_score, runs_table, spsa_status, v2_bench; `setup_o30_mcp.sh` registers it at user scope (re-runnable,
