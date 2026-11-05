@@ -104,9 +104,18 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
   a checkpoint by `a/soup_score.sh <name> <kb map> <quantised.bin>...`, table `a/soup_table.py`). Independent runs of
   different length / layout make the gain (r3+r5+r7+r8 as KB32: S31 -2.25e-4, jobA z -2.70; best single -1.80e-4);
   checkpoints of one run and seeds of one recipe add little; a weak-jobA member (KB4 run 2) hurts the soup's jobA.
-- Unattended GPU queue: `a/queue_runner.sh <guard log to wait for> [cutoff]` runs C:\o30g\gpu\plan.txt line by line
-  (edit the PLAN between runs, never a running .sh / .bat); run outputs on C:\o30g\gpu via a/gpu_run_o30c.bat when D:
-  is near its floor; the watcher takes WATCH_MASK / WATCH_ROOT and is bounded (CR item 12).
+- Unattended GPU queue: `a/queue_runner2.sh <guard log to wait for> [cutoff]` runs C:\o30g\gpu\plan2.txt line by line
+  (edit the PLAN between runs, never a running .sh / .bat; a refused start is retried, marked done only after the
+  trainer started); run outputs on C:\o30g\gpu via a/gpu_run_o30c.bat when D: is near its floor; the watcher
+  `a/gpu_ckpt_watch2.sh` needs WATCH_MASK and is bounded; net_pack.sh / final_checks_o30.sh need O30_MASK.
+- Play (sanity, 10+0.1 vs the lock exe on v2p4, control = the same exe playing the lock net = 47.0 %): run 5 (KB8)
+  52.6 % / 400, soupC (KB32 soup) 52.1 % / 400, U8 (KB8 soup) 51.0 % / 200, run 7 (KB16) 50.6 % / 400, run 2 (KB4)
+  49.6 % / 400, P16 (KB16 soup) 47.75 % / 200 - all within noise; KB16 reads lowest in play. End to end the gate exe
+  with a KB8 soup runs at 0.893x and with a KB32 soup at 0.849x the lock exe's nps (different trees): closing the v2
+  path's speed gap is worth more than another 1e-5 of S31. Candidates + gate lines: FINAL_REPORT section 4.
+- Forge checks for any new net before handing it on: `smoke2m.py <v2 exe> --line EvalFileV2=<net> --seconds 300
+  --threads 2 --hash 16 --mask <cpu> --idle` and `uci_conformance_o30.py <v2 exe> --opt EvalFileV2=<net>
+  --expect-info "EvalFileV2 loaded"` (examples in a/cpu6_final.sh).
 
 ## Pitfalls (all hit on 2026-11-03)
 - Bash-tool commands collapse `\\` before `$var` -> a literal `$var` (a run dir named `runs$1`, a net path the engine
