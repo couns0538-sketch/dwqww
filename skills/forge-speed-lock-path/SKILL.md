@@ -41,9 +41,13 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
   [0.9968, 1.0111] sd 0.99 %, cpu 1.0050 [0.9940, 1.0087] (aa_lock_d20_s3). Per-run noise varies with the load
   (sd 1-5.6 %/round): re-time borderline results with 16 rounds instead of believing one run.
 - The lock's 12k reference is deterministic (a byte copy reproduces 12,000 / 12,000) and has 12,000 distinct rows.
-- Results vs the lock (d20, 10 rounds, wall = protocol): no build flag / mode beats LTO+PGO v1; PGO trained with the
-  net OFF -29 %; NO_ZERO_MOVELISTS=2 +3.6 %, SPEED2 +3.2 %, TT_NOTLS +4.2 % wall (noisy) / +3.7 % cpu; stack of the
-  three +11.5 % wall / +11.3 % cpu, bit-exact incl. the full 12k; its switch-0 build = FD3A5190 byte for byte.
+- Results vs the lock (d20, wall = protocol): no build flag / mode beats LTO+PGO v1; PGO trained with the net OFF
+  -29 %; NO_ZERO_MOVELISTS=2 +3.6 %, SPEED2 +3.2 % (10 rounds); TT_NOTLS +2.9 %, SLIDER_PEXT +1.5 % (pooled 26
+  rounds; TT's first noisy run said +4.2 %); stack NZM2 + SPEED2 +7.3 %, + TT_NOTLS +11.5 % wall / +11.3 % cpu,
+  bit-exact incl. the full 12k; switch-0 builds = FD3A5190 byte for byte; QA's own kit (with `-Kit`) rebuilds the
+  stack exes byte for byte.
+- QA kit v2.3 under Windows PowerShell 5.1: always pass `-Kit <kit folder>` (its `$PSScriptRoot` default is empty
+  there; the preflight hash checks are then skipped and the run fails only at training).
 - SPEED2 and NO_ZERO_MOVELISTS both rewrite MovePicker::generate_quiets: stack them with `r14_speed2_after_nzm.patch`
   (hand-merged), not the plain SPEED2 patch.
 

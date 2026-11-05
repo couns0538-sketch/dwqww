@@ -14,12 +14,15 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
   variant got a full pack). Independent review: no BLOCKER; its 4 SHOULD and 11 LOW items are fixed. No compiler
   flag or build mode beats the lock's own LTO+PGO recipe; a PGO profile taken with the net OFF would cost 29 % - the
   lock is safe from that because its embedded net is ON in the frozen workload.
-- **Job B (vote 2) - DONE.** 10 bit-exact switches written and proven (all OFF by default; the default build of the
-  final stack is the lock exe byte for byte). Protocol (wall nps) winners: no-zero move lists + quiets-only
-  generation (+3.6 %) and the R14 SPEED2 switch (+3.2 %); TT access without the TLS lease check is +3.7 % on CPU
-  time (+4.2 % wall in a noisy run, re-timed). **Stack TT_NOTLS + NO_ZERO_MOVELISTS=2 + SPEED2: +11.5 % wall /
-  +11.3 % cpu vs the lock, bit-exact incl. the full 12k set** (stack_w2; stack_w3 with prefetch-early +11.4 % /
-  +11.8 %). This is the first thing for QA to time (section 5). No Elo claim; QA re-times on its own cores.
+- **Job B (vote 2) - DONE.** Seven own build switches (nine variants) plus the R14 SPEED2 switch rebased onto them,
+  each OFF by default and proven bit-exact (bench net on + off, perft, 2,000 FENs per single / all 12,000 per stack,
+  MSVC ASan + g++ UBSan); the all-switches-0 build of every stacked tree is the lock exe byte for byte. Protocol
+  (wall nps) winners vs the lock: NO_ZERO_MOVELISTS=2 +3.6 % (mode 1 alone +3.3 %), SPEED2 +3.2 %, TT_NOTLS +2.9 %
+  and SLIDER_PEXT +1.5 % (these two on 26 pooled rounds: first run + one 16-round re-time); PREFETCH_EARLY and
+  NNUE_ZMM: see section 3b; losers: PICKBEST 1 / 2, MATKEY_FAST. **stack_w2 = TT_NOTLS + NO_ZERO_MOVELISTS=2 +
+  SPEED2: +11.5 % wall / +11.3 % cpu vs the lock; every member a protocol winner; bit-exact incl. the full 12k set;
+  QA's own kit rebuilds it byte for byte.** It is the first thing for QA to time (section 5). No Elo claim; QA
+  re-times on its own cores.
 - **Job C (vote 3) - DONE** (worker jobc, coordinator re-run ALL PASS): gate replay / LLR projection / throughput /
   adjudication / book / pre-gate screen / concurrency tools; wall time is set by slot count x games; idle gaps are
   small except empty-queue periods.
@@ -110,8 +113,9 @@ advisory (it removes preemption by other programs, not SMT-sibling contention). 
 - `FORGE_SPD_NO_ZERO_MOVELISTS=1|2`: 1 = move arrays are no longer zero-filled at construction (every slot is written
   before it is read); 2 = also a quiets-only generation mode for the move picker (same quiets, same order as the
   lock's full list after its filter).
-- `FORGE_SEARCH_SPEED2=1`: the R14 switch (TT prefetch after every make, MovePicker history / piece hoist, table
-  piece_type), rebased onto the NZM code (`r14_speed2_after_nzm.patch`) for stacking.
+- `FORGE_SEARCH_SPEED2=1`: the R14 switch (TT prefetch after every make - it adds one after the null-move and
+  ProbCut makes, which the lock does not prefetch -, MovePicker history / piece hoist, table piece_type), rebased
+  onto the NZM code (`r14_speed2_after_nzm.patch`) for stacking.
 - `FORGE_SPD_PREFETCH_EARLY=1`: prefetch the child's TT cluster before make_move from an exact cheap key.
 - `FORGE_SPD_SLIDER_PEXT=1`: slider attack tables indexed with PEXT (same tables and attack sets, no magic search).
 - `FORGE_SPD_NNUE_ZMM=1`: the net's output layer in one AVX-512 register per 16 hidden units, same lane order and
@@ -119,7 +123,19 @@ advisory (it removes preemption by other programs, not SMT-sibling contention). 
 - `FORGE_SPD_MATKEY_FAST=1`, `FORGE_SPD_PICKBEST=1|2`: cheaper material-key update; branch-free pick_best.
 
 ### 3a. Single changes (pack per change; `python -I -B tools/pack_table.py`)
-PENDING_B_TABLE
+| pack | switches | exe (pc1 = pc2) | bit-exact | wall B/A [95 %] | cpu B/A [95 %] | verdict wall / cpu | runs.csv md5 |
+|---|---|---|---|---|---|---|---|
+| b1_tt_notls_b | FORGE_SPD_TT_NOTLS = 1 | 9b6aae65 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0419 (+4.19%) [0.9947, 1.0734] | 1.0369 (+3.69%) [1.0147, 1.0492] | NO-WIN / WIN | ec2e8683 |
+| b2_nzm2 | FORGE_SPD_NO_ZERO_MOVELISTS = 2 | ac287b2d (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0361 (+3.61%) [1.0161, 1.0606] | 1.0426 (+4.26%) [1.0360, 1.0479] | WIN / WIN | 664d3b5d |
+| b2_nzm1 | FORGE_SPD_NO_ZERO_MOVELISTS = 1 | 3e52ed13 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0326 (+3.26%) [1.0177, 1.0442] | 1.0275 (+2.75%) [1.0160, 1.0460] | WIN / WIN | 1f41b6d0 |
+| r14_speed2_b | FORGE_SEARCH_SPEED2 = 1 | de20653c (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0315 (+3.15%) [1.0165, 1.0443] | 1.0287 (+2.87%) [1.0157, 1.0425] | WIN / WIN | 1166c21b |
+| b2_nnue_zmm_c | FORGE_SPD_NNUE_ZMM = 1 | 809f03df (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0199 (+1.99%) [0.9999, 1.0578] | 1.0156 (+1.56%) [0.9987, 1.0449] | NO-WIN / NO-WIN | bcc00d27 |
+| b2_slider_pext | FORGE_SPD_SLIDER_PEXT = 1 | 46bf171b (pc1 = pc2) | BIT-EXACT (L1-L3; L3 on 2000 FENs = quick subset; L4 UBSan PASS, MSVC ASan PASS in the 12:25 re-run with /D__BMI2__) | 1.0137 (+1.37%) [0.9993, 1.0210] | 1.0122 (+1.22%) [0.9982, 1.0195] | NO-WIN / NO-WIN | 8e9c8e82 |
+| b1_prefetch_early | FORGE_SPD_PREFETCH_EARLY = 1 | ec5af9b0 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0111 (+1.11%) [0.9889, 1.0322] | 1.0152 (+1.52%) [1.0026, 1.0288] | NO-WIN / WIN | cfe32f4f |
+| b2_pickbest1 | FORGE_SPD_PICKBEST = 1 | 13e34185 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0108 (+1.08%) [0.9909, 1.0214] | 1.0113 (+1.13%) [0.9981, 1.0198] | NO-WIN / NO-WIN | 81c03507 |
+| b2_matkey_fast | FORGE_SPD_MATKEY_FAST = 1 | 434920e5 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0084 (+0.84%) [0.9887, 1.0379] | 1.0077 (+0.77%) [0.9919, 1.0258] | NO-WIN / NO-WIN | f97da2f0 |
+| b2_pickbest2 | FORGE_SPD_PICKBEST = 2 | 2e86d2c7 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0008 (+0.08%) [0.9833, 1.0293] | 1.0034 (+0.34%) [0.9965, 1.0208] | NO-WIN / NO-WIN | 04132c8c |
+Rows sorted by the wall median. Status column = this 10-round run only; TT_NOTLS and SLIDER_PEXT are protocol winners on the pooled rounds (3b); NO_ZERO_MOVELISTS=1 is a winner too but is a subset of mode 2, which the stacks use.
 
 ### 3b. Borderline singles: one 16-round re-time each, decision on the pooled rounds
 Rule: a single whose first run is not a wall WIN but has a median of at least +1 % or a cpu WIN got ONE 16-round
@@ -132,7 +148,7 @@ rule itself was written at 12:22, after the first re-time (slider) had finished;
 | TT_NOTLS | +4.19 % [0.9947, 1.0734] NO-WIN | +2.62 % [1.0108, 1.0344] WIN | **+2.86 % [1.0117, 1.0419]** / +2.97 % [1.0198, 1.0368] | **WIN** | ec2e8683 / 4368e42b |
 | SLIDER_PEXT | +1.37 % [0.9993, 1.0210] NO-WIN | +1.92 % [1.0045, 1.0305] WIN | **+1.52 % [1.0061, 1.0232]** / +1.43 % [1.0064, 1.0197] | **WIN** | 8e9c8e82 / 2b0788dd |
 | PREFETCH_EARLY | +1.11 % [0.9889, 1.0322] NO-WIN (cpu WIN) | PENDING (queued) | PENDING | PENDING | cfe32f4f / - |
-| NNUE_ZMM | +1.99 % [0.9999, 1.0578] NO-WIN | PENDING (queued) | PENDING | PENDING | bcc00d27 / - |
+| NNUE_ZMM | +1.99 % [0.9999, 1.0578] NO-WIN | +0.98 % [0.9967, 1.0238] NO-WIN | **+1.41 % [1.0042, 1.0303]** / +0.93 % [1.0025, 1.0237] (cpu NO-WIN) | **WIN, weak** (re-time alone and pooled cpu NO-WIN) | bcc00d27 / 22093c2c |
 Folders: first runs `F:\ospd\packs\<pack>\abba_d20`, re-times `F:\ospd\abba\retime_<pack>_d20_r16`; pooled numbers
 from `abba_recheck.py --pool <first> <re-time>` (it refuses runs of different exes). The TT gain is smaller than
 its noisy first run suggested (+2.9 % pooled, not +4.2 %).
@@ -200,10 +216,19 @@ log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (ou
    12:34: QA's own kit v2.3 (`build_ltopgo.ps1 -Expose -Kit <kit folder>`) on `src_kit` gives this exe byte for byte
    (sha256 db957393...) and its plain-vs-LTO+PGO node identity is ALL OK. QA: rebuild pc1 + pc2 with the kit, re-run
    the pins / 12k identity, and time it on QA's own cores.
-2. The same three changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 / +4.3 %), r14_speed2_b (+3.2 / +2.9 %),
-   b1_tt_notls_b (cpu +3.7 %).
-3. stack_w3 (= stack_w2 + prefetch_early): see section 3 for its ABBA; only worth it if it beats stack_w2.
-Nothing here is locked or queued by this job; QA decides.
+2. **stack_w4** = stack_w2 + `FORGE_SPD_SLIDER_PEXT=1` (source: lock + `opus_speed/patches/trial_w6.patch`, with
+   PREFETCH_EARLY and NNUE_ZMM left at 0; `F:\ospd\packs\stack_w4\src_kit`): the largest stack whose every member
+   wins on BOTH metrics (pooled where re-timed). Its numbers: section 3c / `opus_speed/candidates/stack_w4.md`.
+   One more changed code path than stack_w2 (PEXT slider index; needs BMI2, which every CPU that runs a znver5 build
+   has). Time it after stack_w2, as the second step.
+3. The changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 %), r14_speed2_b (+3.2 %), b1_tt_notls_b
+   (+2.9 % pooled), b2_slider_pext (+1.5 % pooled).
+Not recommended for QA time: stack_w3 and trial_w6 contain PREFETCH_EARLY (it moves the lock's two TT prefetches,
+qsearch and main search, before make_move; SPEED2 adds prefetches at other sites, the null-move and ProbCut makes),
+which showed no measurable gain on top of stack_w2 (stack_w3 +11.42 % vs stack_w2 +11.48 %, two sessions) and is a
+wall NO-WIN as a single (re-time: section 3b). NNUE_ZMM is a weak winner (pooled wall +1.41 %; its re-time alone
+and the pooled cpu metric are NO-WIN) - worth a QA re-time on its own before any stacking. Nothing here is locked
+or queued by this job; QA decides.
 
 ## 6. Skills created or improved (on this branch; the project copies on D: were not touched)
 - NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol with wall as the

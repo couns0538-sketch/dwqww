@@ -17,14 +17,16 @@
   std::sort != libstdc++ (L4 ASan must compare with the MSVC build of the lock source); PS output-stream pollution in
   functions; Start-Process stdin file locking; heredoc backslash collapse; reference-cache race.
 
-## Running at 12:18 (logs in F:\ospd\logs; ABBA runs serialise on the timing mutex, one at a time on CPU 2)
-- 16-round re-times vs the lock: `F:\ospd\abba\retime_tt_notls_d20_r16`, `retime_b2_slider_pext_d20_r16`,
-  `retime_b1_prefetch_early_d20_r16`, `retime_b2_nnue_zmm_d20_r16` (logs retime_*.out).
-- Packs waiting for their ABBA: stack_w1 (NZM2 + SPEED2 = wall winners only; then its full 12k ->
-  `F:\ospd\logs\bx_stack_w1_full12k.out`), b2_nzm1 (chain 4, last item), trial_w6 (all six switches ON = ceiling; then
-  full 12k -> `bx_trial_w6_full12k.out`). Source trees `F:\ospd\src\stack_w1src`, `F:\ospd\src\trial_w6` (patch
-  `opus_speed/patches/trial_w6.patch`); the switch-0 kit build of trial_w6 = FD3A5190 byte for byte (12:13).
-- Done and recorded: all single packs, stack_w2 / stack_w3 (full 12k), variant queue q2, lock-copy 12k.
+## Running at 12:41 (logs in F:\ospd\logs; ABBA runs serialise on the timing mutex, one at a time on CPU 2)
+- Done: TT re-time (pooled WIN +2.86 %), slider re-time (pooled WIN +1.52 %), stack_w1 ABBA (+7.31 % WIN) and its
+  full 12k, QA kit rebuilds of stack_w2 / stack_w1 / trial_w6 (= pack exes), L4 MSVC ASan of the PEXT builds (PASS).
+- Still running: re-times `F:\ospd\abba\retime_b1_prefetch_early_d20_r16`, `retime_b2_nnue_zmm_d20_r16`; b2_nzm1
+  ABBA; trial_w6 ABBA then its full 12k (`bx_trial_w6_full12k.out`); direct ABBA trial_w6 vs stack_w2
+  (`F:\ospd\abba\direct_w6_vs_w2_d20`, starts after both re-times); worker patchrev (independent patch review ->
+  `opus_speed/REVIEW_PATCHES_INDEPENDENT.md`, due 13:20).
+- Decide the final winners stack from the pooled re-times: all six winners -> trial_w6 is it; otherwise pack the
+  subset from `F:\ospd\src\trial_w6` with `speed_pack -Define` (only the winners' switches), -Quick, then full 12k.
+- After the timing queue: re-run tests/test_cr_637b.ps1 and tests/test_moveorder_mutant.ps1 (builds; not during ABBA).
 
 ## Re-run recipe for a pack whose L1-L3 passed but L4 used the old MSVC comparison
 `speed_pack.ps1 -SrcDir F:/ospd/src/<src> -Name <name>_b -Define <SW>=<v> -Quick -AaCsv F:\ospd\abba\aa_lock_d20_s3\runs.csv
