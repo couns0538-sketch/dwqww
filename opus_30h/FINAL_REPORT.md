@@ -721,10 +721,14 @@ deliverables.
 The live runs were never touched: the running watcher / runner / .bat files were not edited; the new versions have new
 names and took over between runs.
 
-## 6. PENDING at the time of this merged draft (filled at the end of the job)
+## 6. End of the job
 
-- [PENDING Item B] the SPSA session numbers, the tuned-set exe (`b/build_o30tuned.sh`) and its checks: see D:\o30\tmp\itemB_draft.md (drafted separately, expected ~15:25).
-- [PENDING sanity] the 400-game sanity matches of the GPU nets (run 2, run 5; runs 3 / 6 after packaging): result lines, read against the v2p4 control -20.9 +/- 18.5 (sanity only).
-- [PENDING final checks] `tools/final_checks_o30.sh` on every exe and net (section 3, Tools / documents).
-- [PENDING CI] the final CI run of the branch head (section 3, Item A - engine port).
-- [PENDING end time] the job end (clock at the final commit) and the final publish_o30.sh copies.
+- Item B (SPSA) and its tuned exe: done (sections 1 and 3).
+- Sanity matches: finished ones in section 1 / 3; the last two (V16 on CPU 1, Y8 on CPU 0) ran past the window on the
+  normal CPUs 0-1 and their final lines are in the window-2 sanity table.
+- Final checks: `O30_MASK=<cpu mask> tools/final_checks_o30.sh` - result in section 3 (Tools / documents).
+- CI: the last run of the branch head - section 3 (Item A - engine port).
+- End-of-job bug hunt (1 hour, checklist in STATUS.md): section 6.1.
+- Job end: the clock at the final commit; `tools/publish_o30.sh` copies this file and TOOLS.md to `D:\o30\`.
+
+### 6.1 Bug hunt (1 hour at the end)
