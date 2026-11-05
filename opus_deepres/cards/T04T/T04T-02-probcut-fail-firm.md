@@ -34,7 +34,7 @@ Difference: here the removed amount is exactly the margin the node added itself,
 pawnocchio #57, Threads=1, book not named (missing): STC 10+0.1 Hash 16 MB +2.18 +- 1.85, n=34,816, [0,3], LLR 2.42 of
 2.89 (did NOT conclude), penta [76, 4048, 8937, 4276, 71] (own conversion +4.3 nElo); LTC 40+0.4 Hash 64 MB
 +2.92 +- 2.05, n=25,426, [0,3] LLR 2.90 (passed), penta [12, 2773, 6930, 2985, 13] (+6.1 nElo).
-Reckless #759 (via T04E): STC +2.37 +- 1.76 n=39,016; LTC +3.35 +- 2.23 n=20,920 (TC / bounds as in T04E's notes).
+Reckless #759 (via T04E): STC +2.37 +- 1.76 n=39,016; LTC +3.35 +- 2.23 n=20,920 (corrected by verify, PR body re-read: STC 8+0.08 LLR 3.04 and LTC 40+0.4 LLR 2.89, Threads=1, [0,3], both passed, book missing; its title is "Standardize fail-firm in ProbCut"; whether ProbCut already had a fail-firm form there or only now received the engine's standard one is not stated, so its weight as a second introduction is uncertain).
 Two engines with an LTC pass; pawnocchio's STC alone would not meet the bar.
 Forge estimate: +0 to +2 Elo **UNPROVEN** (rare exit; the blend family is 0 for 3 in Forge gates).
 

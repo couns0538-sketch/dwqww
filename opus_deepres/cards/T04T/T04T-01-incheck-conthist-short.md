@@ -53,7 +53,7 @@ T1 smoke, no illegal moves. Gate route (crew rule): Threads=1, UHO book, SPRT [0
 0.05, pentanomial, cap 3,000 games; capped = UNPROVEN / no decision, one extension if positive; then LTC on pass.
 Gate it alone first; if T04S-01 passes later, re-test this on top of it (the source says the two interact).
 Not a tried line: gates 31-33 tuned ContHist4Pct, a pack option outside the lock (`forge_has.sh 'ContHist4'` = 0
-hits in the lock); this card changes no weight, it only skips ply-4 writes at in-check nodes.
+hits in the lock); this card changes no weight, it only skips ply-4 writes at in-check nodes. (verify: bundle gate 68 also carried ContHist4Pct=45 and passed H1 at [0,10]; a re-test on that bundle port is the natural follow-up.)
 
 ## OFF-by-default design
 UCI spin `ContHistCheckShort`, default 0, range 0-1. At 0 the update loop runs exactly as the lock (no new branch

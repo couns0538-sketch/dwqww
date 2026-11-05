@@ -6,3 +6,6 @@
 | official-stockfish/Stockfish | 691a8ce271 | 2016-07-07 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |  (PR 722 test-merge commit; PR 2415 test-merge b3292e06eb not found by the API, same repo licence)
 | official-clockwork/Clockwork | bedb1e8b26 | 2026-04-07 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |
 | official-clockwork/Clockwork | 92b9cb844a | 2026-02-03 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |
+| official-clockwork/Clockwork | ef52bf5ce9 | 2026-02-05 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |  (added by verify: #367, cited by T06D-03)
+| official-clockwork/Clockwork | 4dd87cf3d2 | 2026-02-08 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |  (added by verify: #368, cited by T06D-03)
+| official-stockfish/Stockfish | 6c048ce44f | 2019-11-16 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |  (added by verify: PR 2415 head commit; its merge sha b3292e06eb is not in the repo)
