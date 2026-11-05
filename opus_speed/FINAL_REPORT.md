@@ -6,7 +6,27 @@ B (bit-exact hot-path changes) > C (gate wall time); D only if A-C are done. No 
 only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
 
 ## 0. Summary
-PENDING
+- **Job A (vote 1) - DONE.** A one-command speed-only lock path: `speed_pack.ps1` turns a source tree into an LTO+PGO
+  exe built with QA's kit command lines (it reproduces the lock exe FD3A5190 byte for byte), checks pc1 = pc2, runs
+  the bit-exact proof (bench net on + off d11-d22, perft, 12k six-field FENs at depth 13, MSVC ASan + g++ UBSan) and
+  an ABBA nps comparison against the lock, and writes a QA hand-off file. All three success tests pass (lock-vs-lock
+  pack inside the A/A band; a one-constant mutant and a move-order mutant both fail before any ABBA; the best flag
+  variant got a full pack). Independent review: no BLOCKER; its 4 SHOULD and 11 LOW items are fixed. No compiler
+  flag or build mode beats the lock's own LTO+PGO recipe; a PGO profile taken with the net OFF would cost 29 % - the
+  lock is safe from that because its embedded net is ON in the frozen workload.
+- **Job B (vote 2) - DONE.** 10 bit-exact switches written and proven (all OFF by default; the default build of the
+  final stack is the lock exe byte for byte). Protocol (wall nps) winners: no-zero move lists + quiets-only
+  generation (+3.6 %) and the R14 SPEED2 switch (+3.2 %); TT access without the TLS lease check is +3.7 % on CPU
+  time (+4.2 % wall in a noisy run, re-timed). **Stack TT_NOTLS + NO_ZERO_MOVELISTS=2 + SPEED2: +11.5 % wall /
+  +11.3 % cpu vs the lock, bit-exact incl. the full 12k set** (stack_w2; stack_w3 with prefetch-early +11.4 % /
+  +11.8 %). This is the first thing for QA to time (section 5). No Elo claim; QA re-times on its own cores.
+- **Job C (vote 3) - DONE** (worker jobc, coordinator re-run ALL PASS): gate replay / LLR projection / throughput /
+  adjudication / book / pre-gate screen / concurrency tools; wall time is set by slot count x games; idle gaps are
+  small except empty-queue periods.
+- **Job D (optional) - DONE as a plan** (worker jobd): the GPU guard has throttled training since Nov 1 because its
+  HWiNFO date filter needs a two-digit day (owner item, re-checked).
+- Code Review CR_OPUS_SPEED_TOOLS_637B: BLOCKER and SHOULD 1-3 fixed with tests (13/13); the 3 LOW notes were not
+  visible on the PC.
 
 ## 1. Job A - the speed-only lock path (tools, opus_speed/tools)
 | tool | what it does | usage |

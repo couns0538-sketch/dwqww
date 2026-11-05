@@ -1,6 +1,6 @@
 ---
 name: forge-speed-lock-path
-description: One-command speed-only lock path for Forge (speed job 2026-11-05, branch opus-speed-20261105, opus_speed/tools) - build_variants.ps1 (QA kit v2.3 lines token for token, reproduces lock FD3A5190 byte for byte; O3 / LTO / PGO / LTO+PGO, flag and PGO-workload variants, pc1 = pc2), bitexact_check.ps1 (bench net on + off, perft, 12k FENs at depth 13, clang ASan+UBSan), abba.ps1 (A B B A rounds on one CPU, fresh copies, median + t-interval + A/A band, WIN rule), abba_queue.ps1, speed_pack.ps1 (source tree in, pack + candidate file out), the CPU / disk rules and the PowerShell 5.1 pitfalls. Use for any node-identical speed change, build-flag or PGO-workload question, an nps comparison, or a lock-candidate pack for QA.
+description: One-command speed-only lock path for Forge (speed job 2026-11-05, branch opus-speed-20261105, opus_speed/tools) - build_variants.ps1 (QA kit v2.3 lines token for token, reproduces lock FD3A5190 byte for byte; O3 / LTO / PGO / LTO+PGO, flag and PGO-workload variants, pc1 = pc2, fail-closed pins), bitexact_check.ps1 (bench net on + off, perft, 12k six-field FENs at depth 13, MSVC ASan vs the MSVC build of the lock + g++ UBSan trap, -ResumeFrom), abba.ps1 (ABBA/BAAB rounds on one CPU, fresh copies, wall = protocol verdict, CPU time advisory, A/A band, WIN rule), speed_pack.ps1 (source tree in, pack + verified candidate file out, -ReuseBuildDirs / -PriorBitexact), make_stack.sh, pack_table.py, the day's results (stack +11 %), the CPU / disk rules and the PowerShell 5.1 pitfalls. Use for any node-identical speed change, build-flag or PGO-workload question, an nps comparison, a stack of speed switches, or a lock-candidate pack for QA.
 ---
 
 # Forge speed-only lock path (speed job, 2026-11-05)
@@ -20,11 +20,14 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 | tool | what |
 |---|---|
 | `build_variants.ps1 -SrcDir <tree> -Tag <t> -Variant a,b [-Define N=V] [-Twice]` | fresh copy per build under `F:\ospd\builds\<t>_<v>[_pc1/_pc2]`; variants o3, lto, pgo, lp_v1 (= lock recipe), lp_z4, lp_noplt, lp_nosi, lp_af64, lp_ppt, lp_ipapta, lp_part1, lp_pvw256/512, lp_wnonet, lp_w12k, lp_wmix, custom (-Extra -Workload); checks gcda count, 0 missing-profile, vfmadd 0, LTO IR, quick pins |
-| `bitexact_check.ps1 -Cand <exe> -Out <dir> [-Quick] [-SanSrc <tree> -Define ..]` | L1 bench d11-22 net on + off, L2 perft, L3 12k FENs go depth 13 (OwnBook false, ucinewgame each, 2 engines on CPUs 0/1, ref cached by sha256 in `F:\ospd\ref`), L4 clang ASan+UBSan bench 16; stops at the first FAIL |
-| `abba.ps1 -A <lock> -B <cand> -Out <dir> [-Depth 20 -Rounds 10 -AaCsv ..]` | A B B A per round, fresh process per run, fresh byte copies per round, engine's own bench nps; runs.csv + summary.txt (5 lines) |
+| `bitexact_check.ps1 -Cand <exe> -Out <dir> [-Quick] [-SanSrc <tree>] [-ResumeFrom <dir>] [-SkipSan]` | L1 bench d11-22 net on + off, L2 perft, L3 `data\fens_12k_v2.txt` at go depth 13 (OwnBook false, ucinewgame each, 2 engines on CPUs 0/1, reference cached per lock sha256 in `F:\ospd\ref` under a named mutex; -Quick = first 2,000), L4 MSVC ASan (port copy, compared with the MSVC ASan build of the lock source) + g++ UBSan trap (compared with the candidate's own d16); stops at the first FAIL; exit 0 / 3 / 1 |
+| `abba.ps1 -A <lock> -B <cand> -Out <dir> [-Depth 20 -Rounds 10 -AaCsv ..] [-Order ABBA]` | ABBA/BAAB alternating rounds, fresh process + fresh byte copies per round, engine's bench nps (PROTOCOL verdict) and the process CPU time of the bench window (advisory); summary_<run id>.txt + runs.csv + history log |
 | `abba_queue.ps1 -List <name TAB exe> -AaCsv ..` | back-to-back ABBA vs the lock; identical exes are not timed; results.tsv |
-| `speed_pack.ps1 -SrcDir <tree> -Name <n> [-Define N=1]` | flips switch defaults in a kit source copy, pc1 = pc2 build, full bit-exact proof, ABBA vs lock, `F:\ospd\packs\<n>` + `opus_speed/candidates/<n>.md` |
-| `pgn_positions.py`, `name_lint.py` | full-FEN game positions for workloads; vendor-name lint for code files |
+| `speed_pack.ps1 -SrcDir <tree> -Name <n> [-Define SW=1,..] [-Quick] [-ReuseBuildDirs a,b] [-PriorBitexact dir]` | flips switch defaults in a kit source copy (`src_kit`), pc1 = pc2, bit-exact proof, ABBA vs lock, `F:\ospd\packs\<n>` + `opus_speed/candidates/<n>.md` (patch verified against the source, branch head, bench signature) |
+| `make_stack.sh <name> <p1.patch> ..` | patches on a fresh lock copy, no fuzz, switch defaults checked, stacked patch written (never overwritten) |
+| `pack_table.py`, `abba_table.py` | markdown tables from pack folders / ABBA folders (sorted by the wall median) |
+| `commit_push.sh <msg>` | gated commit + push (code-name lint, control bytes, PS 5.1 parse) |
+| `pgn_positions.py`, `name_lint.py`, `ctrl_char_check.py`, `ps_parse_check.ps1` | game positions with provenance, vendor-name lint, control bytes, PS 5.1 parse |
 
 ## Proven facts (2026-11-05)
 - `build_variants lp_v1` on the exact lock source = lock exe FD3A5190 byte for byte (sha256 fd3a5190..., 1.5 min).
@@ -33,7 +36,15 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 - MSYS2 g++ 15.2 defaults here: stack protector off, `-fcf-protection=full` listed but the PE exe has 0 endbr64,
   `-mprefer-vector-width=none` for znver5 (the lock exe uses zmm).
 - A/A on CPU 2 at d16 with fresh copies (CPUs 2-3 busy with other programs, 53-74 %): sd per round 3.8 %, 95 %
-  interval [0.983, 1.038] -> d16 cannot resolve +1 %; decisions use d20 (see the job's FINAL_REPORT for its A/A).
+  interval [0.983, 1.038] -> d16 cannot resolve +1 %; decisions use d20. Balanced ABBA/BAAB A/A at d20: wall 1.0066
+  [0.9968, 1.0111] sd 0.99 %, cpu 1.0050 [0.9940, 1.0087] (aa_lock_d20_s3). Per-run noise varies with the load
+  (sd 1-5.6 %/round): re-time borderline results with 16 rounds instead of believing one run.
+- The lock's 12k reference is deterministic (a byte copy reproduces 12,000 / 12,000) and has 12,000 distinct rows.
+- Results vs the lock (d20, 10 rounds, wall = protocol): no build flag / mode beats LTO+PGO v1; PGO trained with the
+  net OFF -29 %; NO_ZERO_MOVELISTS=2 +3.6 %, SPEED2 +3.2 %, TT_NOTLS +4.2 % wall (noisy) / +3.7 % cpu; stack of the
+  three +11.5 % wall / +11.3 % cpu, bit-exact incl. the full 12k; its switch-0 build = FD3A5190 byte for byte.
+- SPEED2 and NO_ZERO_MOVELISTS both rewrite MovePicker::generate_quiets: stack them with `r14_speed2_after_nzm.patch`
+  (hand-merged), not the plain SPEED2 patch.
 
 ## Pitfalls hit while building these tools
 - PS 5.1 + `$ErrorActionPreference = 'Stop'`: a native tool's stderr line (`lto-wrapper: warning: using serial

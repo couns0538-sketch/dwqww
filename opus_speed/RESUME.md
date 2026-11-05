@@ -17,19 +17,21 @@
   std::sort != libstdc++ (L4 ASan must compare with the MSVC build of the lock source); PS output-stream pollution in
   functions; Start-Process stdin file locking; heredoc backslash collapse; reference-cache race.
 
-## Running at 10:25 (each writes F:\ospd\logs\pack_<name>.out; a monitor greps verdicts)
-- ABBA queue q2 (variants vs lock): remaining ipapta, part1, pvw256, wnonet, wmix, w12k.
-- Packs: r14_speed2 (chain 1), b1_prefetch_early (chain 2), locklock_v1b + b2_nnue_zmm_b (L3; L4 will FAIL on the
-  old MSVC comparison -> re-run with -ReuseBuildDirs + -PriorBitexact), b1_tt_notls_b (L4 re-run with the fix),
-  chain 4: b2_nzm2 -> b2_matkey_fast -> b2_slider_pext -> b2_nzm1, chain 5: b2_pickbest1 -> b2_pickbest2.
-- Orphan full 12k lock-copy check (since 09:27): F:\ospd\logs\bx_lockcopy_full12k.out.
+## Running at 12:18 (logs in F:\ospd\logs; ABBA runs serialise on the timing mutex, one at a time on CPU 2)
+- 16-round re-times vs the lock: `F:\ospd\abba\retime_tt_notls_d20_r16`, `retime_b2_slider_pext_d20_r16`,
+  `retime_b1_prefetch_early_d20_r16`, `retime_b2_nnue_zmm_d20_r16` (logs retime_*.out).
+- Packs waiting for their ABBA: stack_w1 (NZM2 + SPEED2 = wall winners only; then its full 12k ->
+  `F:\ospd\logs\bx_stack_w1_full12k.out`), b2_nzm1 (chain 4, last item), trial_w6 (all six switches ON = ceiling; then
+  full 12k -> `bx_trial_w6_full12k.out`). Source trees `F:\ospd\src\stack_w1src`, `F:\ospd\src\trial_w6` (patch
+  `opus_speed/patches/trial_w6.patch`); the switch-0 kit build of trial_w6 = FD3A5190 byte for byte (12:13).
+- Done and recorded: all single packs, stack_w2 / stack_w3 (full 12k), variant queue q2, lock-copy 12k.
 
 ## Re-run recipe for a pack whose L1-L3 passed but L4 used the old MSVC comparison
 `speed_pack.ps1 -SrcDir F:/ospd/src/<src> -Name <name>_b -Define <SW>=<v> -Quick -AaCsv F:\ospd\abba\aa_lock_d20_s3\runs.csv
  -ReuseBuildDirs F:\ospd\builds\pack_<name>_lp_v1_pc1,F:\ospd\builds\pack_<name>_lp_v1_pc2 -PriorBitexact F:\ospd\packs\<name>\bitexact`
 
 ## Next steps
-1. Winners (ABBA WIN, bit-exact) -> `make_stack.sh stack_final <patches>` -> switch-0 build = FD3A5190 check ->
-   speed_pack of the stack with all winner switches ON, FULL 12k (no -Quick) -> ABBA vs lock.
-2. Job A test 3: best flag / workload variant from q2 -> full pack (no -Quick), report its ratio whatever it is.
-3. FINAL_REPORT.md (draft exists) by 14:08; skills update; memory; final push; stop by 14:38.
+1. When the re-times land: `python -I -B opus_speed/tools/abba_table.py` over the retime folders; a change whose
+   16-round WALL verdict is WIN counts as a protocol winner. Fill FINAL_REPORT section 3 (PENDING_B_TABLE ->
+   `pack_table.py --only ...` output + re-time table) and section 5 (which stack QA times first).
+2. FINAL_REPORT.md by 14:08; STATUS.md; memory file; final push via commit_push.sh; stop by 14:38.
