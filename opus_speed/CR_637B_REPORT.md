@@ -53,6 +53,17 @@ No speed candidate has been called valid before these fixes (none was called val
   and records the process CPU time of the bench window as a second metric. Balanced A/A at d20 (09:24-09:31): wall
   median 1.0066 [0.9968, 1.0111] sd 0.99 %/round, cpu 1.0050 [0.9940, 1.0087] sd 1.02 %/round.
 
+## Regressions found after the fix commit (both mine, fixed in the next commit)
+- My SHOULD 1 edit wrote the history-log path through a Bash heredoc that collapsed `\\`, so `abba.ps1` held
+  `F:\ospd<BEL>bba<BEL>bba_history.log`: the first queued ABBA run after it (o3, 09:41-09:47) ended with "Illegal
+  characters in path" AFTER writing its runs.csv and summaries (data intact, the queue marked it ERROR). Repaired with
+  the new `tools/ctrl_char_check.py --fix-bell-paths`; a scan of all job files finds 0 control bytes now.
+- `build_variants.ps1 -Twice` never printed REPRO: its log helper wrote to the PowerShell output stream inside
+  `Build-One`, so the function returned [log strings..., build object] and the pc1 = pc2 check never saw exactly two
+  builds; speed_pack then stopped with "BUILD FAILED or NOT REPRODUCIBLE (rc 0)" although pc1 = pc2 (b2_nnue_zmm:
+  809f03df both sides, pins OK). The helper now writes straight to stdout. T3 of the CR test only covered the failing
+  side; the lock-vs-lock pack (Job A test 1) is the positive end-to-end check of `-Twice`.
+
 ## The 3 LOW notes
 Not visible here (the note file is not on the PC). Please paste them; each will be fixed with a test and listed here.
 

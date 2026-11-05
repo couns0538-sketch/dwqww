@@ -3,10 +3,11 @@ STATE: READY FOR TIMING
 # b2_nnue_zmm: FORGE_SPD_NNUE_ZMM (AVX-512 output kernel of the lock NNUE, bit-identical)
 
 Worker b2mg (fable), job B part 2, branch opus-speed-20261105. Checks (a)-(c) done 09:13-09:19 PC clock (`date`); notes written 09:21.
-Patch: `F:/ospd/wt/opus_speed/patches/b2_nnue_zmm.patch` (96 lines, +88 / -8 counting the context-free lines; files nnue.hpp, nnue.cpp; applies with
+Patch: `F:/ospd/wt/opus_speed/patches/b2_nnue_zmm.patch` (adds 44 lines, removes none; files nnue.hpp, nnue.cpp; applies with
 `patch -p1` to a fresh lock copy and reproduces `F:/ospd/src/b2_nnue_zmm` exactly: apply test in `F:/ospd/src/b2_applytest_nnue_zmm`).
-Source copy: `F:/ospd/src/b2_nnue_zmm` (LF, like the lock). Verify variant (not for stacking): `F:/ospd/src/b2_nnue_zmm_verify`,
-`patches/b2_nnue_zmm_verify.patch`. 12k FENs: `fens_12k.txt` holds placement-only lines that the lock rejects
+Source copy: `F:/ospd/src/b2_nnue_zmm` (LF, like the lock). Verify variant (not for stacking): `F:/ospd/src/b2_nnue_zmm_verify`;
+`patches/b2_nnue_zmm_verify.patch` is a record of it, NOT a deliverable (deliverables: b2_nnue_zmm, b2_no_zero_movelists,
+b2_matkey_fast, b2_pickbest, b2_slider_pext). 12k FENs: `fens_12k.txt` holds placement-only lines that the lock rejects
 ("FEN must contain six fields", tested on the lock plain exe), so the runs use `F:/opus_scratch/r10/parity/fens_12k_v2.txt`
 (same 12,000 placements with side / castling / ep / clocks, same read-only folder). No timing was run; no nps number here.
 

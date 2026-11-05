@@ -65,7 +65,10 @@ $Table = @{
   lp_wmix = @{ Mode = 'lp'; Extra = ''; Use = ''; Wl = 'wmix' }
 }
 
-function Say([string]$Msg) { $line = "$(Get-OspdNow) $Msg"; Write-Output $line; if ($script:BuildLog) { Add-OspdLf $script:BuildLog $line } }
+# Say writes straight to stdout, NOT to the PowerShell output stream: Build-One calls it, and anything a function
+# writes to the output stream becomes part of its return value (bug of 09:51: the returned build object came back as
+# [strings..., object], so -Twice never saw exactly two builds and never printed REPRO).
+function Say([string]$Msg) { $line = "$(Get-OspdNow) $Msg"; [Console]::Out.WriteLine($line); if ($script:BuildLog) { Add-OspdLf $script:BuildLog $line } }
 function Invoke-Gpp([string]$What, [string]$StageLog, [object[]]$GppArgs) {
   Add-OspdLf $StageLog ("-- $What : g++ " + ($GppArgs -join ' '))
   # native stderr (e.g. the lto-wrapper 'serial compilation' warning) must not become a terminating error (PS 5.1)

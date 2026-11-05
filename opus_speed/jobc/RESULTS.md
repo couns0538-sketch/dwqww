@@ -8,9 +8,11 @@ No Elo claim and no speed claim for Forge is made; the queue, its config and the
 
 ## 1. gate_replay.py - replay of 13 finished gates (test a)
 
-Source: `F:/ospd/jobc/out/tests_20261105_091738.md` (first test run; the replay rows are unchanged by the later
-fixes, which touched the csv formula check and the screen). Recorded = RESULT.md verdict class; replay = the
-first pair whose exact fastchess LLR crosses a bound (H1 / H0) else CAP; LLR compared at the printed pair count.
+Source: `F:/ospd/jobc/out/tests_20261105_094859.md` (final run of `tests/run_tests.py`, 09:48:58-09:50:06 PC
+clock, ALL PASS; copy in `results/`; the first run `tests_20261105_091738.md` had the same replay rows and only
+failed its csv formula check because it assumed [0,10] bounds for four gates that play with other bounds).
+Recorded = RESULT.md verdict class; replay = the first pair whose exact fastchess LLR crosses a bound (H1 / H0)
+else CAP; LLR compared at the printed pair count.
 
 | gate | why it is in the set | recorded | replay | decided at pair (games) | LLR recorded / replay | singles | exit | s |
 |---|---|---|---|---|---|---|---|---|
@@ -32,9 +34,9 @@ first pair whose exact fastchess LLR crosses a bound (H1 / H0) else CAP; LLR com
 decided gate the crossing pair equals the printed pair count (fastchess stopped at the first crossing); the
 singles are the partner games aborted in flight at the stop (gate68: games 1391 and 1393 have a `Started game`
 line, no `Finished game` line, and are not in the PGN). `--verify-moves` (python-chess replay of every move) on
-gate_npts3_ep06_vs_AL1: 288 games in 2.2 s, verdict H0 = recorded, PASS. Formula check on FORGE_RESULTS.csv: 111
+gate_npts3_ep06_vs_AL1: 288 games in 4.1 s, verdict H0 = recorded, PASS. Formula check on FORGE_RESULTS.csv: 111
 rows with a Ptnml; with the bounds read from each gate folder (gate101 [-3,1], R5D-MF [-10,0], R7-PFE [-0.5,0.5],
-UO30U8 [0,5]) LLR / Elo / nElo all agree within 0.006 (see the final test run below).
+UO30U8 [0,5]) LLR / Elo / nElo of all 111 rows agree within 0.006 (worst LLR difference 0.0050).
 
 ## 2. gate_replay.py - deliberate failures (test b)
 
@@ -95,15 +97,20 @@ RUN_INFO started_pc):
 
 Findings (all from `throughput_all.json`):
 - Gate-to-gate gaps: 108 transitions, median 94 s, 95 of them under 5 min; the 99 gaps under 30 min add up to 3.26 h
-  (1.25 % of the 260.7 h of game windows). The first game starts 0-2 s after `started_pc` (median 0 s), so the
-  ~100 s between gates is the runner's own work: RESULT.md / option check after the gate and the candidate's
-  pre-gate bench d11-d22 OFF and ON before the next one (each `bench 22` alone is ~27 s at the lock's nps).
+  (1.25 % of the 260.7 h of game windows). Composition, measured on 13 consecutive F: gates (2026-11-01..03) from
+  the previous gate's last GameEndTime, its RESULT.md mtime, the next gate's PREBENCH.txt mtime, RUN_INFO
+  started_pc and first GameStartTime: post-gate work (RESULT.md, option check) 6-176 s (median 29 s), the
+  candidate's pre-gate bench d11-d22 OFF and ON until PREBENCH.txt is written 47-96 s (median 56 s), RUN_INFO and
+  fastchess start 0-1 s. So about half of a typical transition is the pre-gate bench (ten `bench` runs, the two
+  `bench 22` alone take ~27 s each on a free core), the rest is the post-processing of the previous gate.
 - Five gaps over 30 min dominate the idle time: 38908 s (gate_auto_e48f029_confirm -> gate101), 16874 s (gate101 ->
   gate109), 8008 s (gate72_B4 -> gateR5A_1), 7965 s (gateR7_prefetchearly -> gateR5A_2), 35305 s
   (uhoE3a_r6k -> uhoE3b_r6k) = 29.7 h of an empty or paused queue. Keeping the queue fed is worth more than any
   per-gate saving below.
-- uhoE3b_evaloptimism40_r6k_vs_AL1lp ran at concurrency 2 (RUN_INFO.json `concurrency: 2`): 215 games/h, 11.0 h for
-  2360 games; at the usual concurrency 4 the same games take ~5.4 h. Worth a look at how that gate was queued.
+- uhoE3b_evaloptimism40_r6k_vs_AL1lp ran at concurrency 2 (RUN_INFO.json `concurrency: 2`, `cap_warning: null`, no
+  note that explains it; runner forge_queue.ps1 v3-6day r8d2, affinity 0xFFF0 as always): 215 games/h, 11.0 h for
+  2360 games; at concurrency 4 the same games take ~5.4 h. Whether that was intended (a GPU / training window)
+  the RUN_INFO does not say; worth a look at how that gate was queued.
 - Per slot the rate is stable: 108-124 games/h per concurrency slot across every setting; a 10+0.1 game lasts 28.4 s
   (8moves_v3) to 32.7 s (UHO) on average with 0.5-1.5 s of overhead per game per slot. The Threads=2 conc 4 setting
   (8 engine threads on the 12 logical CPUs 4-15) gives 431-502 games/h; Threads=1 conc 8 gave 993 games/h.
@@ -124,11 +131,13 @@ overhead per group; the game length at 10+0.1 does not depend on Threads).
 | uho_lichess_v1 | 33.2 | 8 | 867 | 3.5 / 4.6 / 6.9 |
 | uho_lichess_v1 | 33.2 | 12 | 1301 | 2.3 / 3.1 / 4.6 |
 
-CPUs 4-15 of the queue are 6 physical cores / 12 logical CPUs. 6 games at once (one per physical core) keep the
-nodes per game of the Threads=1 gates; 12 games at once double the games/h at the same clock but each engine
-searches fewer nodes (SMT siblings share a core) - a different gate, the crew's call. The current Threads=2 conc 4
-setting uses 8 of the 12 logical CPUs and gets 431-502 games/h; Threads=1 conc 8 measured 993 games/h on the same
-CPUs (2026-10-27..29 gates, D: and F: layouts).
+CPUs 4-15 of the queue are 6 physical cores / 12 logical CPUs, and every gate's RUN_INFO says affinity 0xFFF0
+(CPUs 4-15), the conc-8 Threads=1 gates included (gateR5A_1, gate39 checked). So the 993 games/h baseline was
+already 8 single-threaded games on 6 physical cores (at least two games on SMT siblings at any time), and the
+Threads=2 conc 4 setting is 8 engine threads on the same 12 logical CPUs. Games per hour at a wall-clock TC do not
+tell how many nodes each game searched: 6 games on 6 physical cores would search more nodes per game than the
+conc-8 baseline, 12 games fewer; either is a different gate from the recorded ones, the crew's call. The table
+above is throughput only.
 
 ## 5. adjudication_audit.py - settings, endings and what adjudication would save
 
@@ -198,11 +207,13 @@ Source: `F:/ospd/jobc/out/pregate_chain_console.txt`, `pregate_lock2.json`, `pre
 | 4 | a 14-byte text file renamed .exe | FAIL, exit 1 | 0.0 s | file FAIL: not a PE image |
 | 5 | lock exe with --opt UseNNUE=false (net off in the smoke / WAC phase; bench at defaults) | PASS, exit 0 | 8.9 s | d11 pin, both perft pins, 10 FENs smoke 0 bad, WAC 29/30 at 100k nodes (different subset than run 1) |
 
-The bench pins take 43 s of the 58 s (d22 alone 27 s at ~1.27 Mnps); perft 5 kiwipete 2.6 s; the 20-position
-smoke 3.6 s; 60 WAC positions at 100k nodes 8.6 s. The lock rejects a placement-only FEN with
-`info string invalid FEN: FEN must contain six fields` and keeps its old position (checked by hand on the lock):
-the screen sends six-field FENs only (python-chess `fen()`) and any such line is a FAIL (`inputs` check), so a
-screen that fed a bad FEN would fail instead of passing on the old position.
+| 6 | lock exe with `--fen-selftest` (the tool sends ONE placement-only FEN before the smoke) | FAIL, exit 1 | 1.2 s | smoke FAIL: "selftest placement-only FEN: engine reported 'info string invalid FEN: FEN must contain six fields' (the screen fails on it, as required)"; `pregate_chain2_console.txt`, `pregate_fenselftest.json` |
+| 7 | real candidate forge_ltopgo_x_sf26bundle_al1_e417a34e.exe, `--ref-exe` lock, `--opt Sf26Bundle=14`, pins d11/d13 | PASS, exit 0 | 3.7 s | 65 options: 0 changed vs the lock, 4 added (Sf26Bundle, Sf26RazorAllRelief, Sf26NmpPriorBonus, Sf26LmrAlphaGap), 0 removed; OFF pins d11 312866 / d13 862329 at defaults; perft startpos pin; 5-FEN smoke 0 bad; WAC 10/10; `pregate_sf26cand.json` |
+
+The bench pins take 43 s of the 58 s of run 1 (d22 alone 27 s); perft 5 kiwipete 2.6 s; the 20-position smoke
+3.6 s; 60 WAC positions at 100k nodes 8.6 s. The lock rejects a placement-only FEN with
+`info string invalid FEN: FEN must contain six fields` and keeps its old position: the screen sends six-field
+FENs only (python-chess `fen()`), any such engine line is a FAIL, and run 6 shows that path end to end.
 
 ## 7. llr_project.py - projections (planning only)
 
@@ -253,6 +264,11 @@ a 6 h gate). Not worth a change; the per-gate transition cost is elsewhere (sect
   games it does not end. The saved plies / seconds are an upper bound of a projection, not a measurement.
 - The screen's WAC floor is informational (default 0); a floor for candidates needs the crew's number (the lock
   solves 55/60 of positions 21-80 at 100k nodes with the net, 29/30 of positions 11-40 with the net off).
+- The gap composition (section 3) is measured on 13 transitions of one runner version (r8d2); the D: layout gates
+  have no PREBENCH.txt mtime trail and were not decomposed.
+- No jobc process was left running across the coordinator restart (checked with Get-CimInstance at 09:36); the
+  scratch under `F:/ospd/jobc/` (190 MB: book copies, failure-test PGNs, fastchess's autosave config.json) stays
+  in place as the rules ask.
 - llr_project.py at step 1 pair takes about 30 s per 1000 paths and 1500 pairs on this CPU budget; `--step 5`
   is 5x faster and can delay a simulated stop by up to 4 pairs.
 - Times are PC wall clock from the PGN tags; the "-0700/-0800" zone labels in the tags do not match the Vienna

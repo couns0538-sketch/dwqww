@@ -148,6 +148,8 @@ def main():
     ap.add_argument('--positions', type=int, default=20)
     ap.add_argument('--movetime', type=int, default=200)
     ap.add_argument('--budget-s', type=float, default=300)
+    ap.add_argument('--fen-selftest', action='store_true',
+                    help='send ONE placement-only FEN before the smoke to prove end to end that the screen fails on the engine\'s rejected-input line')
     ap.add_argument('--json')
     ap.add_argument('--log')
     a = ap.parse_args()
@@ -299,6 +301,18 @@ def main():
     if len(fens) < a.positions:
         fens += [full_fen(f) for f in BUILTIN_FENS[:a.positions - len(fens)]]
     bad, slow, maxt = [], [], 0.0
+    if a.fen_selftest:
+        # deliberately bad input: the engine must report it and the screen must fail on that line (checks 'smoke' / 'inputs')
+        eng.send('position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+        eng.send('go nodes 1000')
+        try:
+            eng.until(lambda l: l.startswith('bestmove'), 10)
+        except (TimeoutError, EOFError) as e:
+            bad.append(f'selftest: {e}')
+        if eng.bad:
+            bad.append(f'selftest placement-only FEN: engine reported {eng.bad[-1]!r} (the screen fails on it, as required)')
+        else:
+            bad.append('selftest placement-only FEN: the engine did NOT report it (it would search its old position)')
     for i, fen in enumerate(fens):
         b = chess.Board(fen)
         eng.send('ucinewgame')

@@ -1,0 +1,190 @@
+diff -ruN /f/ospd/src/lock/include/forge/board.hpp /f/ospd/src/r14_speed2/include/forge/board.hpp
+--- /f/ospd/src/lock/include/forge/board.hpp	2026-11-05 08:55:23.250683500 -0800
++++ /f/ospd/src/r14_speed2/include/forge/board.hpp	2026-11-05 09:53:52.056987500 -0800
+@@ -2,6 +2,12 @@
+ 
+ #include "forge/bitboard.hpp"
+ 
++// FORGE_SEARCH_SPEED2 (R14 build switch, default 0 = lock code): speed-only, node-identical search changes
++// (TT prefetch after every make, MovePicker history / piece hoist, table piece_type). See src/search.cpp.
++#ifndef FORGE_SEARCH_SPEED2
++#define FORGE_SEARCH_SPEED2 0
++#endif
++
+ #include <array>
+ #include <cassert>
+ #include <cstddef>
+@@ -196,7 +202,16 @@
+ 
+ [[nodiscard]] constexpr bool is_white(Piece piece) { return piece >= WP && piece <= WK; }
+ [[nodiscard]] constexpr bool is_black(Piece piece) { return piece >= BP && piece <= BK; }
++#if FORGE_SEARCH_SPEED2
++namespace detail {
++// Piece type for every Piece value: Empty=0 -> 0, WP..WK=1..6 -> 1..6, BP..BK=7..12 -> 1..6. Entries 13..15 only pad
++// the table to 16 so the index mask stays in bounds; no valid Piece reaches them (same values as the modulo form).
++inline constexpr std::array<std::uint8_t, 16> PieceTypeTable{0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 0, 0, 0};
++} // namespace detail
++[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piece) & 15U]; }
++#else
+ [[nodiscard]] constexpr int piece_type(Piece piece) { return piece == Empty ? 0 : ((static_cast<int>(piece) - 1) % 6) + 1; }
++#endif
+ [[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }
+ [[nodiscard]] constexpr Piece make_piece(Color color, int type) {
+     return static_cast<Piece>((color == White ? 0 : 6) + type);
+diff -ruN /f/ospd/src/lock/src/search.cpp /f/ospd/src/r14_speed2/src/search.cpp
+--- /f/ospd/src/lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ /f/ospd/src/r14_speed2/src/search.cpp	2026-11-05 09:53:52.058992800 -0800
+@@ -165,6 +165,20 @@
+     return value;
+ }
+ 
++#if FORGE_SEARCH_SPEED2
++// Quiet history of one move: main history row of the side to move plus the continuation history of the two
++// previous plies, summed in this order (= Worker::quiet_history).
++[[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
++                                           const PieceToHistory* cont1, const PieceToHistory* cont2, Piece piece,
++                                           Move move) {
++    const std::size_t p = static_cast<std::size_t>(piece);
++    int score = main[move.from][move.to];
++    if (cont1 != nullptr) score += (*cont1)[p][move.to];
++    if (cont2 != nullptr) score += (*cont2)[p][move.to];
++    return score;
++}
++#endif
++
+ std::string format_score(int score) {
+     if (is_mate_score(score)) {
+         const int distance = MateValue - std::abs(score);
+@@ -476,6 +490,30 @@
+         return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
+     }
+ 
++#if FORGE_SEARCH_SPEED2
++    // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and both continuation tables
++    // are fixed for one generation, so they are read once, and the moved piece once per move.
++    struct QuietScorer {
++        const std::array<std::array<std::int16_t, 64>, 64>& main;
++        const PieceToHistory* cont1;
++        const PieceToHistory* cont2;
++        const Board& board;
++
++        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
++            : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
++              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
++              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
++              board(b) {}
++
++        [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
++            const Piece piece = board.piece_at(move.from);
++            int value = quiet_history_sum(main, cont1, cont2, piece, move);
++            if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
++            return value;
++        }
++    };
++#endif
++
+     [[nodiscard]] static int move_score_threshold(Move) { return 0; }
+ 
+     [[nodiscard]] bool is_valid_quiet(Move move) const {
+@@ -512,8 +550,19 @@
+         board_.generate_pseudo_legal(buffer_, true);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const CaptureHistory& capture_history = *searcher_.capture_history_;
++#endif
+         for (const Move move : buffer_) {
++#if FORGE_SEARCH_SPEED2
++            const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
++            const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
++            int value = SeePieceValue[victim];
++            if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
++            int score = 10 * value + capture_history[moved][move.to][victim];
++#else
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
++#endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
+             moves_[count_++] = Scored{move, score};
+         }
+@@ -526,12 +575,20 @@
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++        for (const Move move : buffer_) {
++            if (move.is_capture() || move.is_promotion()) continue;
++            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++        }
++#else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             moves_[count_++] = Scored{move, score};
+         }
++#endif
+         sort_moves();
+     }
+ 
+@@ -541,13 +598,20 @@
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++#endif
+         for (const Move move : buffer_) {
+             int score;
+             if (move.is_capture() || move.is_promotion()) {
+                 score = 1'000'000 + 10 * capture_value(board_, move) -
+                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+             } else {
++#if FORGE_SEARCH_SPEED2
++                score = scorer.score(move, check_squares_);
++#else
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++#endif
+             }
+             moves_[count_++] = Scored{move, score};
+         }
+@@ -702,6 +766,11 @@
+ }
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
++#if FORGE_SEARCH_SPEED2
++    return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
++                             ss != nullptr ? (ss - 1)->continuation : nullptr,
++                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move);
++#else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     if (ss != nullptr) {
+@@ -709,6 +778,7 @@
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+     }
+     return score;
++#endif
+ }
+ 
+ int Worker::capture_history_value(const Board& board, Move move) const {
+@@ -976,6 +1046,9 @@
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
++#if FORGE_SEARCH_SPEED2
++            shared_.tt.prefetch(board.key());
++#endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1013,6 +1086,9 @@
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#if FORGE_SEARCH_SPEED2
++                shared_.tt.prefetch(board.key());
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);

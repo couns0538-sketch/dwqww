@@ -185,10 +185,10 @@ try {
   $lines = @("run $runId") + $lines
   $sumAll = ($lines + @('', 'per-round wall ratios: ' + (($ratios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), 'per-round cpu ratios: ' + (($cpuRatios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), "runs.csv md5 $(Get-OspdMd5 $csv)") + (Get-Content $loadFile))
   # Code Review SHOULD 1: every run writes a NEW summary file (run id in the name); nothing is overwritten, and one
-  # line per run is appended to F:\ospdbbabba_history.log so earlier results stay readable
+  # line per run is appended to F:\ospd\abba\abba_history.log so earlier results stay readable
   Write-OspdLf (Join-Path $Out ("summary_{0}.txt" -f $runId)) $sumAll
   Write-OspdLf (Join-Path $Out 'summary.txt') $sumAll
-  Add-OspdLf 'F:\ospdbbabba_history.log' ("{0}`t{1}`t{2}" -f $runId, $Out, (($lines | Select-Object -Skip 2) -join ' | '))
+  Add-OspdLf 'F:\ospd\abba\abba_history.log' ("{0}`t{1}`t{2}" -f $runId, $Out, (($lines | Select-Object -Skip 2) -join ' | '))
   $lines | ForEach-Object { Write-Output $_ }
   exit 0
 } catch {

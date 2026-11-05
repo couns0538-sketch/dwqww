@@ -1,12 +1,14 @@
-STATE: IN PROGRESS
+STATE: READY FOR TIMING
 
 # b2_matkey_fast: FORGE_SPD_MATKEY_FAST (spec S3 variant (a): closed-form 14-bit material index)
 
-Worker b2mg (fable), job B part 2, branch opus-speed-20261105. Source edits 09:22-09:25 PC clock; unit test 09:29 (`date`).
-Patch: `F:/ospd/wt/opus_speed/patches/b2_matkey_fast.patch` (90 lines; file search.cpp only; applies with `patch -p1` to a fresh
-lock copy and reproduces `F:/ospd/src/b2_matkey_fast`: apply test in `F:/ospd/src/b2_applytest_matkey_fast`). One switch line
-`#define FORGE_SPD_MATKEY_FAST 0` in search.cpp. Verify variant (not for stacking): `F:/ospd/src/b2_matkey_fast_verify`;
-planted mutant: `F:/ospd/src/b2_matkey_fast_mutant` (drops the White-pawn term).
+Worker b2mg (fable), job B part 2, branch opus-speed-20261105. Source edits 09:22-09:25 PC clock; unit test 09:29; builds and
+checks 09:49-09:54 (chain log `F:/ospd/jobb/b2/chain_b.log`); notes finished 09:55 (`date`).
+Patch: `F:/ospd/wt/opus_speed/patches/b2_matkey_fast.patch` (adds 54 lines, removes none; file search.cpp only; applies with
+`patch -p1` to a fresh lock copy and reproduces `F:/ospd/src/b2_matkey_fast`: apply test in `F:/ospd/src/b2_applytest_matkey_fast`).
+One switch line `#define FORGE_SPD_MATKEY_FAST 0` in search.cpp. Verify variant (not for stacking, no patch written):
+`F:/ospd/src/b2_matkey_fast_verify`; planted mutant: `F:/ospd/src/b2_matkey_fast_mutant` (drops the White-pawn term).
+Deliverable patches of this job: b2_nnue_zmm, b2_no_zero_movelists, b2_matkey_fast, b2_pickbest, b2_slider_pext.
 
 ## Design (own words)
 The lock's `material_key` (search.cpp:588-596) is Horner over the ten counts c_j (White then Black, Pawn..Queen):
@@ -36,7 +38,20 @@ material-correction entry is read and written at every node: same corrected eval
      vectors), 10^6 random vectors with counts 0..10, 10^5 with counts 0..64: "checked 1112100 count vectors, 0 mismatches: PASS".
      Printed table: K0 = 0x1f14; K_j = 0x238f 0x10b5 0x1ff7 0x1ead 0x2e1f 0x33e5 0x3807 0x3e5d 0x17af 0x3c15 = exactly the
      values the spec derived independently (SPEC_SPEED.md S3, matkey_check.py).
-(a), (b), (c2) verify build over bench d13 + 12k FENs, (c3) mutant, codegen: PENDING (chain B, after chain A).
+(a) switch-0 exe `F:/ospd/jobb/b2/matkey_fast/forge_mk_off.exe` (sha256 f9f3dade...) vs the lock plain exe: `cmp -l` differs only
+    at bytes 137 138 217 218. PASS.
+(b) switch-on exe `forge_mk_on.exe` (e4b5f8d3...): net on vs `lock_plain_neton.json` with the pins: 24/24 OK, NODE IDENTITY ALL OK
+    (`mk_on_neton.compare.log`); net off (UseNNUE=false) with the net-off pins: 24/24 OK (`mk_on_netoff.compare.log`).
+(c2) verify exe `forge_mk_verify.exe` (d8ee6bda...; the lock's Horner form runs next to the closed form at both use sites, abort on a
+    different index, count at exit): `bench 13` nodes 862329 (= pin), "FORGE_SPD_MATKEY_FAST_VERIFY: 750427 material indices
+    compared, 0 mismatches" (`mk_verify_bench13.log`, `.stderr`); first 2000 of the 12k FENs at depth 2 (trimmed to a short run
+    per the coordinator's note): 2000/2000, engine exit 0, "209637 material indices compared, 0 mismatches"
+    (`mk_verify_2k_d2.run.log`, `.tsv.stderr`).
+(c3) mutant `forge_mk_mutant.exe` (f2d5a179...; White-pawn term dropped): bench 11 = 332774 (pin 312866), bench 13 = 673007
+    (pin 862329): the node counts move, so the pins and the verify build can fail (`mk_mutant_bench.log`).
+    codegen (`objdump/mk_on.dis` vs the lock plain listing): lines holding the Horner multiplier 0x100000001b3 2 -> 0; the
+    immediate 0x3c15 (= K_9 = G mod 2^14) 2 -> 2 (now the last term's multiplier); K0 = 0x1f14 appears at the use sites
+    (1 -> 3); popcnt count 155 -> 155 (the ten popcounts stay); vfmadd 0 in every exe (build logs).
 
 ## Risks
 - The gain is a few cycles of dependent latency per corrected_eval / update_correction call (spec: +0 to +1.5 %, UNPROVEN,

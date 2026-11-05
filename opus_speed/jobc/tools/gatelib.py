@@ -497,7 +497,7 @@ def game_points(g, cand):
     return 1.0 if (white_won == (t['White'] == cand)) else 0.0
 
 
-def build_pairs(games, cand, log=None, concurrency=None, strict=True):
+def build_pairs(games, cand, log=None, concurrency=None):
     """Pairs of a '-games 2 -repeat' match in completion order.
     Returns (pairs, info). Each pair: {'round', 'cell' (0..4), 'order' (completion index), 'before_block'}.
     Rules: a round must hold exactly 2 games with the colours swapped between the same two players. A single
@@ -531,7 +531,7 @@ def build_pairs(games, cand, log=None, concurrency=None, strict=True):
             own_no = 2 * r - 1 if g['tags']['White'] == cand else 2 * r
             partner = 2 * r if own_no == 2 * r - 1 else 2 * r - 1
             ok = bool(log) and stopped and partner in log['started'] and partner not in fin_by_no
-            if not ok or not strict and False:
+            if not ok:
                 why = ('no log to prove the partner game was aborted in flight' if not log else
                        'the match did not stop by SPRT' if not stopped else
                        f'partner game {partner} finished in the log but is missing from the PGN' if partner in fin_by_no else
