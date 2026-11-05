@@ -104,6 +104,10 @@ Hand back (with clock): the files you wrote, the main items (one line each), sum
 }
 
 async function spawn(prompt, opts, type) {
+  // 'opus-max' is not in this session's agent registry (its file was added after the session started): every
+  // agentType 'opus-max' spawn failed at once (5 in POOL3, no agent started), so opus-max work runs as the session
+  // model (Opus 5.5) at effort max directly; 'fable' uses its agent type.
+  if (type === 'opus-max') return await agent(prompt, { ...opts, effort: 'max' })
   try {
     return await agent(prompt, { ...opts, agentType: type, effort: 'max' })
   } catch (e) {
