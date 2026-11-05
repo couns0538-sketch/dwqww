@@ -27,6 +27,7 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 | `make_stack.sh <name> <p1.patch> ..` | patches on a fresh lock copy, no fuzz, switch defaults checked, stacked patch written (never overwritten) |
 | `pack_table.py`, `abba_table.py` | markdown tables from pack folders / ABBA folders (sorted by the wall median) |
 | `abba_recheck.py <dir>.. / --pool <dir> <dir>..` | recomputes summaries from runs.csv with the exact t quantile (independent of abba.ps1's series); `--pool` joins a borderline run and its re-time so the decision uses all rounds, never the re-time alone |
+| `warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` | warm-table identity: `go nodes` over N FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` first, `bench 13` last; transcripts compared without nps / time |
 | `commit_push.sh <msg>` | gated commit + push (code-name lint, control bytes, PS 5.1 parse) |
 | `pgn_positions.py`, `name_lint.py`, `ctrl_char_check.py`, `ps_parse_check.ps1` | game positions with provenance, vendor-name lint, control bytes, PS 5.1 parse |
 
@@ -77,6 +78,11 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 - Re-timing a borderline result until it says WIN is optional stopping: every borderline single gets ONE 16-round
   re-time and the decision uses the pooled rounds (`abba_recheck.py --pool first second`); report both runs.
 - In this Bash tool `"F:\\ospd\\packs\\$p\\x.exe"` loses the variable (`packs$p`): write paths with forward slashes.
+  The same collapse turns `\b` inside a Python heredoc into a backspace byte: write such scripts with the Write tool
+  (commit_push's control-byte gate caught two of them).
+- The engine prints bench results as `info string bench depth D nodes N ...` in a UCI session: match `bench depth`
+  anywhere in the line. An interactive driver must read through a thread + queue with a timeout; a bare readline
+  waiting for a line that never comes blocks for good (and the no-kill rule then leaves the processes running).
 - ABBA on this PC: plain A B B A showed slot-position effects of ~1-2 % in A/A runs; alternate ABBA / BAAB (default)
   and read the process CPU time of the bench window as a second metric (preemption by other programs is not counted).
   Noise depends on the moment's load: per-round sd 1 % (quiet) to 5.6 % (builds on the other core).

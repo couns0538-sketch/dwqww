@@ -22,8 +22,10 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
   +1.4 % (weak: its re-time alone and its pooled cpu metric are NO-WIN); losers: PICKBEST 1 / 2, MATKEY_FAST.
   **stack_w2 = TT_NOTLS + NO_ZERO_MOVELISTS=2 + SPEED2: +11.5 % wall / +11.3 % cpu vs the lock** - QA first
   (section 5). **All six stacked (trial_w6): +14.9 % wall / +15.3 % cpu vs the lock** - the largest winners-only
-  stack, second step; stack_w5 = the same without the weak NNUE_ZMM. Every stack: bit-exact incl. the full 12k set,
-  switch-0 build = the lock exe, QA's own kit rebuilds it byte for byte. No Elo claim; QA re-times on its own cores.
+  stack, second step; stack_w5 = the same without the weak NNUE_ZMM. Measured in one session, trial_w6 is +4.4 %
+  faster than stack_w2 (WIN). Every stack: bit-exact incl. the full 12k set, switch-0 build = the lock exe, QA's own
+  kit rebuilds it byte for byte. Independent review of the six patches: no BLOCKER, no SHOULD (5 LOW). No Elo claim;
+  QA re-times on its own cores.
 - **Job C (vote 3) - DONE** (worker jobc, coordinator re-run ALL PASS): gate replay / LLR projection / throughput /
   adjudication / book / pre-gate screen / concurrency tools; wall time is set by slot count x games; idle gaps are
   small except empty-queue periods.
@@ -43,6 +45,7 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
 | make_stack.sh | stacks patches on a fresh lock copy (no fuzz, switch defaults checked) | `bash make_stack.sh <name> <p1.patch> ...` |
 | abba_recheck.py | recomputes ABBA summaries from runs.csv with the exact t quantile; `--pool` joins a borderline run and its re-time | `python -I -B abba_recheck.py <dir>..` / `--pool <dir> <dir>` |
 | pack_table.py | one markdown table of pack folders (switches, exe, bit-exact state, wall / cpu, verdicts, CSV md5) | `python -I -B pack_table.py F:/ospd/packs --only a,b` |
+| warm_identity.py | warm-table identity vs the lock: N FENs with `go nodes`, no ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` as first commands, `bench 13` at the end | `python -I -B warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` |
 | commit_push.sh, name_lint.py, ctrl_char_check.py, ps_parse_check.ps1, pgn_positions.py | checked commits, vendor-name lint, control bytes, PS 5.1 parse, game positions | |
 Facts the tools are built on (checked 2026-11-05):
 - The lock's net is embedded (`nnue_weights.inc`) and ON by default (`UseNNUE` default true). QA's frozen v1 PGO
@@ -64,8 +67,9 @@ Tests:
 - Test 2 (one search constant changed, HistoryMax 16384 -> 16000): bitexact_check FAILS at L1 (10/10 bench lines
   differ), no ABBA (09:15); with the Code Review fix the build itself already fails closed on the pin DIFF.
 - Job B test 2 (move order changed, pick_best tie-break `>` -> `>=`): speed_pack stops with exit 3 before any ABBA,
-  and bitexact_check on the kept exe says NOT BIT-EXACT at L1 (test_moveorder_mutant 3/3 PASS, 09:53).
-- Code Review tests: 13/13 PASS (`tests/test_cr_637b.ps1`).
+  and bitexact_check on the kept exe says NOT BIT-EXACT at L1 (test_moveorder_mutant 3/3 PASS, 09:53; again 3/3 at
+  13:20-13:23 after all tool fixes).
+- Code Review tests: 13/13 PASS (`tests/test_cr_637b.ps1`; again 13/13 at 13:18-13:20 after all tool fixes).
 - Test 1 (lock-vs-lock pack) and test 3 (best variant full pack): see section 2.
 
 ## 2. Job A results - build modes, flags and PGO workloads (ABBA vs the lock, d20 x 10, CPU 2)
@@ -136,7 +140,9 @@ advisory (it removes preemption by other programs, not SMT-sibling contention). 
 | b2_pickbest1 | FORGE_SPD_PICKBEST = 1 | 13e34185 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0108 (+1.08%) [0.9909, 1.0214] | 1.0113 (+1.13%) [0.9981, 1.0198] | NO-WIN / NO-WIN | 81c03507 |
 | b2_matkey_fast | FORGE_SPD_MATKEY_FAST = 1 | 434920e5 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0084 (+0.84%) [0.9887, 1.0379] | 1.0077 (+0.77%) [0.9919, 1.0258] | NO-WIN / NO-WIN | f97da2f0 |
 | b2_pickbest2 | FORGE_SPD_PICKBEST = 2 | 2e86d2c7 (pc1 = pc2) | BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset) | 1.0008 (+0.08%) [0.9833, 1.0293] | 1.0034 (+0.34%) [0.9965, 1.0208] | NO-WIN / NO-WIN | 04132c8c |
-Rows sorted by the wall median. Status column = this 10-round run only; TT_NOTLS and SLIDER_PEXT are protocol winners on the pooled rounds (3b); NO_ZERO_MOVELISTS=1 is a winner too but is a subset of mode 2, which the stacks use.
+Rows sorted by the wall median. Verdict column = this 10-round run only; TT_NOTLS, SLIDER_PEXT, PREFETCH_EARLY and
+NNUE_ZMM (weak) are protocol winners on the pooled rounds (3b); NO_ZERO_MOVELISTS=1 is a winner too but is a subset
+of mode 2, which the stacks use. Losers: PICKBEST 1 / 2 and MATKEY_FAST (switches stay at 0).
 
 ### 3b. Borderline singles: one 16-round re-time each, decision on the pooled rounds
 Rule: a single whose first run is not a wall WIN but has a median of at least +1 % or a cpu WIN got ONE 16-round
@@ -237,7 +243,7 @@ moves the lock's two TT prefetches (qsearch, main search) before make_move; SPEE
 ## 6. Skills created or improved (on this branch; the project copies on D: were not touched)
 - NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol with wall as the
   protocol verdict, bit-exact levels incl. the MSVC ASan comparison, re-time / pooling rule, stacking with
-  make_stack, proven facts and the day's results, 16 pitfalls hit today). Also installed user-scope
+  make_stack, warm-table identity, proven facts and the day's results, 17 pitfalls hit today). Also installed user-scope
   (`C:\Users\Administrator\<cfg>\skills\forge-speed-lock-path\`), like forge-gate-walltime.
 - NEW `skills/forge-gate-walltime/SKILL.md`: Job C tools, the facts they rely on, the measured gate numbers.
 - IMPROVED `skills/forge-ltopgo-pgo/SKILL.md` (copy + section "Speed job 2026-11-05"): the lock's net is embedded and
@@ -246,7 +252,8 @@ moves the lock's two TT prefetches (qsearch, main search) before make_move; SPEE
 - IMPROVED `skills/forge-pc-rules/SKILL.md` (copy + section "Speed job"): CPUs 0-3 rule set, restart re-pin, heredoc
   backslash and `$1` pitfalls, `git rm` refusal.
 - Helper scripts (opus_speed/tools): commit_push.sh (gated commits), make_stack.sh, pack_table.py, abba_table.py,
-  ctrl_char_check.py, name_lint.py, ps_parse_check.ps1, pgn_positions.py.
+  abba_recheck.py (exact-t re-check + pooling), warm_identity.py (warm-table identity), ctrl_char_check.py,
+  name_lint.py, ps_parse_check.ps1, pgn_positions.py.
 
 ## 7. Code Review 637B report-back
 See `CR_637B_REPORT.md` (BLOCKER + SHOULD 1-3 fixed, tests 13/13; the 3 LOW notes were not visible on the PC).
@@ -268,6 +275,11 @@ Deviations (each disclosed where it happened):
 - Candidate packs use L3 on the first 2,000 of the 12k FENs (`-Quick`) for screening; the final stack and any exe
   handed to QA as a lock candidate get the full 12k set.
 - No co-author trailer in commits (the brief bans model-company names), as in the deep-research job.
+- Three own processes left running, idle (no-kill rule): the first warm_identity attempt (13:21) waited for a line
+  starting with `bench depth`, but the engine prints `info string bench depth ...`, so its reader blocked for good:
+  python.exe PIDs 11168 and 7524 and the lock exe PID 11900 (run in place, read-only, as bitexact_check does),
+  0.05 s CPU, ~61 MB in total, mask 0x3 Idle. The tool was fixed (reader thread + timeout + `quit`, never a hang)
+  and re-run; the owner may end those three PIDs at any time (nothing is written by them).
 - Worker b1tt wrote one scratch diff outside its write area (C:\...\Temp\b1_tt_notls_check.diff, 12.6 KB, 09:14,
   self-reported); left in place (no-delete rule).
 Own tool bugs found and fixed during the job (all before any candidate was called valid): fail-open pin DIFF (Code
@@ -279,12 +291,26 @@ shared L3 reference cache (three packs superseded), MSVC vs g++ node counts in L
 for PEXT sources (MSVC lacks `__BMI2__`; fixed 12:2x, both PEXT builds re-run: ASan PASS), an `-OnlyL4` run printing
 the full-proof verdict text (fixed 12:2x; the two L4-only logs of 12:24-12:27 carry the old text and prove L4 only).
 Review passes: independent tool review (worker toolrev, `REVIEW_TOOLS_INDEPENDENT.md`, fixes in `REVIEW_FIXES.md`);
-independent patch review (worker patchrev, `REVIEW_PATCHES_INDEPENDENT.md`, started 12:25); the coordinator's own
-re-check (`OWN_CHECKS.md`, NOT independent: every headline ABBA recomputed with the exact t quantile, patches =
-timed sources, kit sources = patched trees + switch lines only).
+independent patch review of all six switches (worker patchrev, 12:26-12:46, `REVIEW_PATCHES_INDEPENDENT.md`):
+**no BLOCKER, no SHOULD**, five LOW - L1 a pre-existing lock bound (below, owner item), L2 the `__BMI2__` guard vs
+MSVC (handled in bitexact_check; the guard itself unchanged), L3 the zmm kernel relies on `-ffp-contract=off`
+(checked: 0 `vfn?m(add|sub)` instructions in the lock and all six stack exes, 13:20), L4 PREFETCH_EARLY does
+useless work on a non-GNU compiler (not the kit's case), L5 the TT_NOTLS invariant is asserted only in the assert
+build (keep that build as a CI row). Its QA test list (warm TT, option changes, stop / ponder, Threads soak, poison
+build of the stacked source, extreme positions, net-off subset) is in its section 4; warm-TT + option changes +
+first-command checks were run here (`OWN_CHECKS.md`), the rest are QA items. The coordinator's own re-check
+(`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
+kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
 Owner items:
 - The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
+- D: free space read 50.0 GB at 12:29 (`pc_status`), i.e. at the brief's floor; this job wrote only worker-board
+  lines there, the space is used by other jobs.
 - QA: re-time the WIN candidates on QA's own cores before any lock (this job never locks anything).
+- Lock correctness item (patch review L1, PLAUSIBLE, pre-existing, NOT changed by any switch): `MovePicker` writes
+  `bad_captures_[bad_count_++]` without a bound against its 64 slots (`src/search.cpp` of the lock, the write path the
+  patches keep), unlike `quiets_tried` / `captures_tried`. A contrived node with more than 64 SEE-negative captures /
+  promotions would overflow; not reached by bench, the 12k FENs or gate play as far as the proofs show. A bound (or
+  256 slots) is a separate engine change with its own gate decision, not part of the speed stack.
 - QA kit v2.3 (`kit_v23\build_ltopgo.ps1`) under Windows PowerShell 5.1 without `-Kit`: `$PSScriptRoot` is empty in
   the param default, so `$Kit` is empty, every `Join-Path $Kit ...` fails, and with `$ErrorActionPreference =
   'Continue'` the preflight sha256 checks of the frozen workload and bench FENs are skipped silently (the `if`

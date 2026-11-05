@@ -17,23 +17,24 @@
   std::sort != libstdc++ (L4 ASan must compare with the MSVC build of the lock source); PS output-stream pollution in
   functions; Start-Process stdin file locking; heredoc backslash collapse; reference-cache race.
 
-## Running at 12:41 (logs in F:\ospd\logs; ABBA runs serialise on the timing mutex, one at a time on CPU 2)
-- Done: TT re-time (pooled WIN +2.86 %), slider re-time (pooled WIN +1.52 %), stack_w1 ABBA (+7.31 % WIN) and its
-  full 12k, QA kit rebuilds of stack_w2 / stack_w1 / trial_w6 (= pack exes), L4 MSVC ASan of the PEXT builds (PASS).
-- Still running: re-times `F:\ospd\abba\retime_b1_prefetch_early_d20_r16`, `retime_b2_nnue_zmm_d20_r16`; b2_nzm1
-  ABBA; trial_w6 ABBA then its full 12k (`bx_trial_w6_full12k.out`); direct ABBA trial_w6 vs stack_w2
-  (`F:\ospd\abba\direct_w6_vs_w2_d20`, starts after both re-times); worker patchrev (independent patch review ->
-  `opus_speed/REVIEW_PATCHES_INDEPENDENT.md`, due 13:20).
-- Decide the final winners stack from the pooled re-times: all six winners -> trial_w6 is it; otherwise pack the
-  subset from `F:\ospd\src\trial_w6` with `speed_pack -Define` (only the winners' switches), -Quick, then full 12k.
-- After the timing queue: re-run tests/test_cr_637b.ps1 and tests/test_moveorder_mutant.ps1 (builds; not during ABBA).
+## State at 13:25 (job finishing; nothing of the job runs after the final push)
+- All timing done (abba_history.log has every run): singles, four 16-round re-times (pooled decisions in
+  FINAL_REPORT 3b), stacks w1-w5 + trial_w6 vs the lock, direct trial_w6 vs stack_w2 (+4.39 % WIN).
+- Proofs: every stack bit-exact L1-L4 + full 12k (stack_w5's 12k was the last run, 13:24 -> ~13:36,
+  `F:\ospd\logs\bx_stack_w5_full12k.out`); QA's own kit rebuilt all six stack exes byte for byte (`F:\ospd\qakit`).
+- Warm-table identity (`tools/warm_identity.py`, 400 FENs, go nodes 20000, no ucinewgame, option changes) for
+  trial_w6 and stack_w2 vs the lock: `F:\ospd\logs\warm_<stack>.out`, transcripts in `F:\ospd\warm\<stack>\`.
+- Independent patch review done (`REVIEW_PATCHES_INDEPENDENT.md`: no BLOCKER / SHOULD, 5 LOW).
+- Tests re-run after the timing queue: CR 13/13, move-order mutant 3/3.
+- If a later session continues: QA items are in FINAL_REPORT section 5 and the patch review's section 4.
 
 ## Re-run recipe for a pack whose L1-L3 passed but L4 used the old MSVC comparison
 `speed_pack.ps1 -SrcDir F:/ospd/src/<src> -Name <name>_b -Define <SW>=<v> -Quick -AaCsv F:\ospd\abba\aa_lock_d20_s3\runs.csv
  -ReuseBuildDirs F:\ospd\builds\pack_<name>_lp_v1_pc1,F:\ospd\builds\pack_<name>_lp_v1_pc2 -PriorBitexact F:\ospd\packs\<name>\bitexact`
 
-## Next steps
-1. When the re-times land: `python -I -B opus_speed/tools/abba_table.py` over the retime folders; a change whose
-   16-round WALL verdict is WIN counts as a protocol winner. Fill FINAL_REPORT section 3 (PENDING_B_TABLE ->
-   `pack_table.py --only ...` output + re-time table) and section 5 (which stack QA times first).
-2. FINAL_REPORT.md by 14:08; STATUS.md; memory file; final push via commit_push.sh; stop by 14:38.
+## Next steps (owner / QA; this job locks nothing)
+1. QA times stack_w2 first, then trial_w6 (or stack_w5 without the weak NNUE_ZMM) on QA's own cores.
+2. QA tests from the patch review's section 4 that were not run here (stop / ponder, Threads soak, poison build of
+   the stacked source, extreme positions under ASan, net-off 2k subset).
+3. Owner items in FINAL_REPORT section 8 (CR 637B LOW notes text, kit -Kit preflight, lock bad_captures_ bound,
+   GPU guard date filter).
