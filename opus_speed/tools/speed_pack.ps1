@@ -33,7 +33,7 @@ try {
   if (Test-Path $Pack) { throw "$Pack exists; use a new -Name" }
   $null = Assert-OspdDisk -PlannedGB 0.4
   New-Item -ItemType Directory -Path $Pack | Out-Null
-  Say "speed_pack $Name: src $SrcDir variant $Variant defines [$($Define -join ' ')] $Note"
+  Say "speed_pack ${Name}: src $SrcDir variant $Variant defines [$($Define -join ' ')] $Note"
   # (1) kit source variant
   $buildSrc = $SrcDir
   if ($Define.Count -gt 0) {
@@ -59,6 +59,9 @@ try {
   $exeLine = @($bv | Where-Object { $_ -like 'EXE *_pc1 *' }) | Select-Object -First 1
   $repro = @($bv | Where-Object { $_ -like 'REPRO *' }) | Select-Object -First 1
   if ($bvRc -ne 0 -or -not $exeLine -or -not $repro) { Say "BUILD FAILED or NOT REPRODUCIBLE (rc $bvRc): $($bv -join ' | ')"; exit 3 }
+  # fail closed (Code Review blocker): both sides must report 'pins OK'; anything else stops the pack
+  $pinLines = @($bv | Where-Object { $_ -like 'EXE *' })
+  if ($pinLines.Count -lt 2 -or @($pinLines | Where-Object { $_ -notmatch ' pins OK ' }).Count -ne 0) { Say "PINS NOT OK: $($pinLines -join ' | ')"; exit 3 }
   $builtExe = ($exeLine -split ' ')[2]
   $exe = Join-Path $Pack ("forge_{0}.exe" -f $Name)
   Copy-Item -LiteralPath $builtExe -Destination $exe
@@ -72,7 +75,7 @@ try {
   $bx = @(& "$PSScriptRoot\bitexact_check.ps1" @bxArgs); $bxRc = $LASTEXITCODE
   Set-OspdPlacement -Mask 0x3 -Priority 'Idle'
   $bxVerdict = @($bx | Where-Object { $_ -like 'VERDICT*' -or $_ -like 'ERROR*' }) -join ' '
-  Say "bitexact rc $bxRc: $bxVerdict"
+  Say "bitexact rc ${bxRc}: $bxVerdict"
   $sigFile = Get-ChildItem (Join-Path $Pack 'bitexact\cand') -Filter 'sig_*.json' | Select-Object -First 1
   $sig = $null; if ($sigFile) { $sig = Get-Content $sigFile.FullName -Raw | ConvertFrom-Json }
   $sigTxt = 'n/a'
@@ -116,8 +119,10 @@ try {
   )
   $md = @($md | ForEach-Object { $_ })
   Write-OspdLf (Join-Path $Pack 'SUMMARY.md') $md
-  Write-OspdLf (Join-Path $RepoDir ("candidates\{0}.md" -f $Name)) $md
-  Say "pack written: $Pack ; candidate file opus_speed\candidates\$Name.md"
+  $candFile = Join-Path $RepoDir ("candidates\{0}.md" -f $Name)
+  if (Test-Path -LiteralPath $candFile) { $candFile = Join-Path $RepoDir ("candidates\{0}_{1}.md" -f $Name, (New-OspdRunId)) }   # new file per run
+  Write-OspdLf $candFile $md
+  Say "pack written: $Pack ; candidate file $candFile"
   if ($bxRc -ne 0) { exit 3 }
   exit 0
 } catch {

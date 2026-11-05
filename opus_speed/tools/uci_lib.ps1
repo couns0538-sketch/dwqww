@@ -50,8 +50,23 @@ function Assert-OspdDisk([double]$PlannedGB = 0.1) {
 function Get-OspdSha256([string]$Path) { (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLower() }
 function Get-OspdMd5([string]$Path) { (Get-FileHash -Algorithm MD5 -LiteralPath $Path).Hash.ToLower() }
 
-function Write-OspdLf([string]$Path, [string[]]$Lines) {
+function Write-OspdLf([string]$Path, [string[]]$Lines, [switch]$Force) {
+  # never overwrites an existing file (Code Review, SHOULD 1: no run may replace an earlier run's output) unless -Force
+  if ((Test-Path -LiteralPath $Path) -and -not $Force) { throw "refusing to overwrite existing file $Path" }
   [System.IO.File]::WriteAllText($Path, (($Lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+}
+function New-OspdRunId { '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), $PID }
+
+function ConvertTo-OspdFen([string]$Line) {
+  # six-field FEN for the engine (Code Review, SHOULD 2): the lock rejects anything shorter ('FEN must contain six
+  # fields') and then keeps its previous position. A placement-only line gets side to move 'w', no castling, no ep,
+  # clocks 0 1; missing trailing fields get the same defaults.
+  $f = @($Line.Trim() -split '\s+' | Where-Object { $_ })
+  $def = @('w', '-', '-', '0', '1')
+  if ($f.Count -lt 1 -or $f.Count -gt 6) { throw "not a FEN: '$Line'" }
+  if (($f[0] -split '/').Count -ne 8) { throw "FEN placement needs 8 ranks: '$Line'" }
+  while ($f.Count -lt 6) { $f += $def[$f.Count - 1] }
+  return ($f -join ' ')
 }
 function Add-OspdLf([string]$Path, [string]$Line) {
   [System.IO.File]::AppendAllText($Path, ($Line + "`n"), (New-Object System.Text.UTF8Encoding($false)))
@@ -154,7 +169,10 @@ function Invoke-OspdSearch($Eng, [string]$Fen, [string]$GoArgs, [switch]$NewGame
   Send-OspdUci $Eng ("go " + $GoArgs)
   $r = Wait-OspdUci $Eng '^bestmove (\S+)' 3600 -Collect
   $last = $null
-  foreach ($l in $r.Lines) { if ($l.StartsWith('info depth ')) { $last = $l } }
+  foreach ($l in $r.Lines) {
+    if ($l.StartsWith('info string') -and $l -match 'invalid') { throw "engine rejected the position: $l (fen $Fen)" }
+    if ($l.StartsWith('info depth ')) { $last = $l }
+  }
   $d = ''; $s = ''; $n = ''
   if ($last) {
     $mm = [regex]::Match($last, '^info depth (\d+) .*? score (cp -?\d+|mate -?\d+)(?: (?:lowerbound|upperbound))? nodes (\d+)')

@@ -1,0 +1,50 @@
+diff -ruN lock/src/search.cpp b2_pickbest/src/search.cpp
+--- lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ b2_pickbest/src/search.cpp	2026-11-05 09:37:23.581926800 -0800
+@@ -316,6 +316,14 @@
+ // ---------------------------------------------------------------------------
+ // Move picker
+ 
++// Build switch (default 0 = the lock code): 1 = the move picker's selection
++// scan finds the first maximum branch-free over 64-bit keys (score in the
++// high half, inverted index in the low half) and swaps exactly the element
++// the lock's strict `>` scan swaps.
++#ifndef FORGE_SPD_PICKBEST
++#define FORGE_SPD_PICKBEST 0
++#endif
++
+ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+@@ -483,15 +491,31 @@
+                board_.is_pseudo_legal(move);
+     }
+ 
++#if FORGE_SPD_PICKBEST
++    // key_i = score_i * 2^32 + (2^32 - 1 - i) as a signed 64-bit value: the
++    // keys order by score first and, among equal scores, by lower index, and
++    // no two keys are equal, so the largest key names the first maximum.
++    [[nodiscard]] std::int64_t pick_key(std::size_t i) const {
++        return static_cast<std::int64_t>((static_cast<std::uint64_t>(static_cast<std::uint32_t>(moves_[i].score)) << 32U) |
++                                         (0xFFFFFFFFU - static_cast<std::uint32_t>(i)));
++    }
++#endif
++
+     // Most nodes need only the first few moves: select those on demand and
+     // sort the remainder once if the search gets that far.
+     [[nodiscard]] Move pick_best() {
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
++#if FORGE_SPD_PICKBEST
++                std::int64_t best_key = pick_key(index_);
++                for (std::size_t i = index_ + 1; i < count_; ++i) best_key = std::max(best_key, pick_key(i));
++                const std::size_t best = 0xFFFFFFFFU - static_cast<std::uint32_t>(best_key);
++#else
+                 std::size_t best = index_;
+                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+                     if (moves_[i].score > moves_[best].score) best = i;
+                 }
++#endif
+                 std::swap(moves_[index_], moves_[best]);
+             } else {
+                 std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),

@@ -1,0 +1,121 @@
+diff -ruN lock/include/forge/board.hpp b1_prefetch_early/include/forge/board.hpp
+--- lock/include/forge/board.hpp	2026-11-05 08:55:23.250683500 -0800
++++ b1_prefetch_early/include/forge/board.hpp	2026-11-05 09:19:56.293208400 -0800
+@@ -11,6 +11,12 @@
+ #include <string_view>
+ #include <vector>
+ 
++#ifndef FORGE_SPD_PREFETCH_EARLY
++// Build switch, default 0 (= the lock's code): search prefetches the child's TT
++// cluster before make_move from Board::key_after where that key is cheap and exact.
++#define FORGE_SPD_PREFETCH_EARLY 0
++#endif
++
+ namespace forge {
+ 
+ enum Piece : int {
+@@ -113,6 +119,13 @@
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++    // Key of the position after `move`, without making it (for an early TT
++    // prefetch). Returns true with the exact key, or false when an en-passant
++    // term could change it (an en-passant square now, an en-passant capture, or a
++    // double push next to an enemy pawn): then the caller prefetches after make_move.
++    [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
++#endif
+     [[nodiscard]] bool make_move(const Move& move, Undo& undo);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+diff -ruN lock/src/board.cpp b1_prefetch_early/src/board.cpp
+--- lock/src/board.cpp	2026-11-05 08:55:23.248425600 -0800
++++ b1_prefetch_early/src/board.cpp	2026-11-05 09:20:14.058687500 -0800
+@@ -716,6 +716,34 @@
+     return false;
+ }
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++bool Board::key_after(const Move& move, std::uint64_t& key) const {
++    // make_move's key terms in closed form (xor order does not matter). The
++    // en-passant terms need has_legal_en_passant_capture(): those cases return false.
++    if (ep_square_ >= 0 || (move.flags & EnPassant) != 0U) return false;
++    const Color us = side_;
++    if ((move.flags & DoublePush) != 0U &&
++        (attacks::pawn(us, (move.from + move.to) / 2) & pieces(opposite(us), Pawn)) != 0) {
++        return false;
++    }
++    const Piece moving = squares_[move.from];
++    // piece_key(square, Empty) is 0, so the captured term vanishes for a non-capture.
++    std::uint64_t next = key_ ^ piece_key(move.to, squares_[move.to]) ^ piece_key(move.from, moving);
++    next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : moving);
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
++        next ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++    }
++    const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
++    next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;
++    key = next;
++    return true;
++}
++#endif
++
+ bool Board::make_move(const Move& move, Undo& undo) {
+     const Color us = side_;
+     const Color them = opposite(us);
+diff -ruN lock/src/search.cpp b1_prefetch_early/src/search.cpp
+--- lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ b1_prefetch_early/src/search.cpp	2026-11-05 09:20:30.340069100 -0800
+@@ -837,6 +837,11 @@
+             }
+             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
++#if FORGE_SPD_PREFETCH_EARLY
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -844,7 +849,12 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++#if FORGE_SPD_PREFETCH_EARLY
++        assert(!early_key || child_key == board.key());
++        if (!early_key) shared_.tt.prefetch(board.key());
++#else
+         shared_.tt.prefetch(board.key());
++#endif
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+@@ -1116,6 +1126,11 @@
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         const int new_depth = depth - 1 + extension;
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ss->current_move = move;
+         ss->moved_piece = moved;
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+@@ -1123,7 +1138,12 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++#if FORGE_SPD_PREFETCH_EARLY
++        assert(!early_key || child_key == board.key());
++        if (!early_key) shared_.tt.prefetch(board.key());
++#else
+         shared_.tt.prefetch(board.key());
++#endif
+         const std::uint64_t nodes_before = local_nodes_;
+         std::size_t root_effort_index = 0;
+         if (root_node) {

@@ -20,7 +20,8 @@
 # Checks per exe: g++ exit codes, gcda count = units (PGO), 0 real missing-profile warnings, vfmadd = 0, LTO IR in every
 # object (LTO), quick pins bench 11/13/16 with the net (defaults) = lock pins. -Twice builds _pc1 and _pc2 and compares
 # the exe sha256 (binding rule for LTO+PGO exes). Placement: CPUs 0-1 (0x3), Idle. Output: SUMMARY.txt per build and
-# one line per exe on stdout: 'EXE <variant> <path> sha256 <..> md5 <..> pins <OK|DIFF> ...'. Exit 0 / 1.
+# one line per exe on stdout: 'EXE <variant> <path> sha256 <..> md5 <..> pins OK ...' (only for a build that passed every
+# check; a pin DIFF or any other failure prints 'FAIL <variant> : <reason>', writes FAILED + 'RESULT FAIL' and exits 1).
 param(
   [Parameter(Mandatory = $true)][string]$SrcDir,
   [Parameter(Mandatory = $true)][string]$Tag,
@@ -100,13 +101,13 @@ function Invoke-Training([string]$Exe, [string]$Wl, [string]$Dir) {
   Send-OspdUci $e 'setoption name OwnBook value false'; Send-OspdUci $e 'isready'; $null = Wait-OspdUci $e '^readyok' 60
   $src = ''
   if ($Wl -eq 'w12k') {
-    $src = Join-Path $DataDir 'fens_12k.txt'
-    $fens = @(Get-Content $src)
+    $src = Join-Path $DataDir 'fens_12k_v2.txt'   # full six-field FENs (the placement-only fens_12k.txt is rejected)
+    $fens = @(Get-Content $src | Where-Object { $_.Trim() -and -not $_.StartsWith('#') } | ForEach-Object { ConvertTo-OspdFen $_ })
     for ($i = 0; $i -lt $fens.Count; $i += 40) { $null = Invoke-OspdSearch $e $fens[$i] 'depth 10' -NewGame }
   } elseif ($Wl -eq 'wmix') {
     $src = Join-Path $DataDir 'game_positions_300.tsv'
     $last = ''
-    foreach ($row in (Get-Content $src)) {
+    foreach ($row in (Get-Content $src | Where-Object { $_.Trim() -and -not $_.StartsWith('#') })) {
       $f = $row -split "`t"; $ng = ($f[0] -ne $last); $last = $f[0]
       if ($ng) { $null = Invoke-OspdSearch $e $f[2] 'nodes 20000' -NewGame } else { $null = Invoke-OspdSearch $e $f[2] 'nodes 20000' }
     }
@@ -191,8 +192,16 @@ function Build-One([string]$Name, [hashtable]$Spec, [string]$Dir) {
     $got = @(); foreach ($d in 11, 13, 16) { $got += (Invoke-OspdBench $e $d).Nodes }
     $null = Stop-OspdEngine $e
     $want = @($script:OspdPinsOn['d11'], $script:OspdPinsOn['d13'], $script:OspdPinsOn['d16'])
+    # fail closed (Code Review CR_OPUS_SPEED_TOOLS_637B blocker): a pin table that yields no value, or any pin DIFF,
+    # is a FAILED build with a non-zero exit - never 'RESULT PASS'
+    if (@($want | Where-Object { -not $_ }).Count -ne 0) { throw "pin table lookup failed (got '$($want -join '/')')" }
     $pins = 'OK'; if (($got -join '/') -ne ($want -join '/')) { $pins = 'DIFF' }
-    $summary.Add("exe $tree\$exeName sha256 $sha md5 $md5 vfmadd 0"); $summary.Add("quick pins bench 11/13/16 net on: $($got -join '/') $pins")
+    $summary.Add("exe $tree\$exeName sha256 $sha md5 $md5 vfmadd 0"); $summary.Add("quick pins bench 11/13/16 net on: $($got -join '/') (lock pins $($want -join '/')) $pins")
+    if ($pins -ne 'OK') {
+      $summary.Add("RESULT FAIL $Name : quick pins DIFF")
+      Write-OspdLf (Join-Path $Dir 'SUMMARY.txt') $summary
+      throw "quick pins DIFF: bench 11/13/16 net on = $($got -join '/'), lock pins $($want -join '/') (exe kept at $tree\$exeName for analysis, not for use)"
+    }
     $summary.Add("RESULT PASS $Name")
     Write-OspdLf (Join-Path $Dir 'SUMMARY.txt') $summary
     return [pscustomobject]@{ Name = $Name; Exe = (Join-Path $tree $exeName); Sha = $sha; Md5 = $md5; Pins = $pins; Got = ($got -join '/') }
@@ -220,6 +229,7 @@ try {
         Set-Content -Path (Join-Path $dir 'FAILED') -Value "FAILED $(Get-OspdNow): $($_.Exception.Message)"
         Write-Output "FAIL $v$side : $($_.Exception.Message)"
         $rcAll = 1
+        break   # with -Twice: no pc2 after a failed pc1
       }
     }
     if ($Twice -and $built.Count -eq 2) {

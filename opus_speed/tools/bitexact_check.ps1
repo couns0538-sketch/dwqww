@@ -19,13 +19,14 @@ param(
   [string]$Ref = '',
   [switch]$Quick,
   [int]$FenCount = 0,
-  [string]$Fens = 'F:\ospd\wt\opus_speed\data\fens_12k.txt',
+  [string]$Fens = 'F:\ospd\wt\opus_speed\data\fens_12k_v2.txt',
   [int]$FenDepth = 13,
   [string]$SanSrc = '',
   [string[]]$Define = @(),
   [switch]$SanNdebug,
   [switch]$SkipSan,
-  [switch]$NoStop
+  [switch]$NoStop,
+  [switch]$OnlyL4
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
@@ -99,6 +100,8 @@ function Invoke-FenSet([string]$Exe, [string[]]$FenList, [int]$Depth, [string]$O
     if ($s.State -eq 'ready') {
       if ($line -eq 'readyok') { $s.Eng.In.WriteLine('position fen ' + $FenList[$s.Cur]); $s.Eng.In.WriteLine("go depth $Depth"); $s.State = 'search' }
     } elseif ($s.State -eq 'search') {
+      # the lock answers a bad FEN with 'info string invalid FEN: ...' and keeps the old position: fail, never compare
+      if ($line.StartsWith('info string') -and $line -match 'invalid') { throw "engine rejected FEN $($s.Cur): $line" }
       if ($line.StartsWith('info depth ')) { $s.Info = $line }
       elseif ($line.StartsWith('bestmove ')) {
         $best = ($line -split ' ')[1]; $dd = ''; $sc = ''; $nn = ''
@@ -183,6 +186,11 @@ try {
   Say "bitexact_check $(Get-OspdNow): ref $Ref (sha256 $refSha$(if ($refIsLock) { ', = lock FD3A5190' }))"
   Say "                cand $Cand (sha256 $candSha, md5 $(Get-OspdMd5 $Cand)); $diskMsg"
 
+  if ($OnlyL4) {
+    # sanitizer level alone (re-tests): compare against the lock pin, skip L1-L3
+    $c = [pscustomobject]@{ on = [pscustomobject]@{ d16 = $script:OspdPinsOn['d16'] } }
+    Say 'L1-L3 skipped (-OnlyL4); L4 nodes are compared with the lock pin d16'
+  } else {
   # L1 + L2
   $r = Get-L1L2 $Ref $cacheDir; $c = Get-L1L2 $Cand $candCache
   foreach ($d in $script:OspdDepths) { $pin = $null; if ($refIsLock) { $pin = $script:OspdPinsOn["d$d"] }; Verdict-Line 'L1' "bench d$d net on" $r.on."d$d" $c.on."d$d" $pin }
@@ -192,7 +200,9 @@ try {
   Stop-IfFailed 'L2'
 
   # L3
-  $allFens = @(Get-Content $Fens | Where-Object { $_.Trim() })
+  $rawFens = @(Get-Content $Fens | Where-Object { $_.Trim() -and -not $_.StartsWith('#') })
+  $allFens = @($rawFens | ForEach-Object { ConvertTo-OspdFen $_ })   # Code Review SHOULD 2: six fields, side to move added
+  $normalized = @(for ($i = 0; $i -lt $rawFens.Count; $i++) { if ($rawFens[$i].Trim() -ne $allFens[$i]) { $i } }).Count
   $n = $allFens.Count
   if ($Quick) { $n = [Math]::Min(2000, $n) }
   if ($FenCount -gt 0) { $n = [Math]::Min($FenCount, $allFens.Count) }
@@ -200,7 +210,7 @@ try {
   $fmd5 = Get-OspdMd5 $Fens
   $refTsv = Join-Path $cacheDir ("fens_{0}_n{1}_d{2}_ob0.tsv" -f $fmd5.Substring(0, 8), $n, $FenDepth)
   if (-not (Test-Path $refTsv)) {
-    $part = $refTsv + '.part'
+    $part = $refTsv + ".part$PID"
     $sec = Invoke-FenSet $Ref $fenList $FenDepth $part (Join-Path $cacheDir 'fens.uci.log')
     Move-Item -LiteralPath $part -Destination $refTsv
     Say ("L3 ref FEN set computed in {0:N0} s -> {1}" -f $sec, $refTsv)
@@ -208,12 +218,16 @@ try {
   $candTsv = Join-Path $Out ("fens_n{0}_d{1}.tsv" -f $n, $FenDepth)
   $sec = Invoke-FenSet $Cand $fenList $FenDepth $candTsv (Join-Path $Out 'fens.uci.log')
   $ra = Get-Content $refTsv; $ca = Get-Content $candTsv
+  # degenerate-set guard (bug of 09:2x: placement-only FENs were rejected and every row searched the same position)
+  $distinct = @($ra | ForEach-Object { ($_ -split "`t", 2)[1] } | Sort-Object -Unique).Count
+  if ($n -ge 100 -and $distinct -lt [int]($n / 10)) { throw "L3 reference is degenerate: only $distinct distinct results for $n FENs" }
   $same = 0; $diffs = @()
   for ($i = 0; $i -lt $n; $i++) { if ($ra[$i] -eq $ca[$i] -and $ra[$i] -match "`t\d+`t") { $same++ } else { if ($diffs.Count -lt 10) { $diffs += "  FEN $i ref [$($ra[$i])] cand [$($ca[$i])]" } } }
   $state = 'PASS'; if ($same -ne $n) { $state = 'FAIL'; $script:Fail++ }
-  Say ("L3 FENs {0} (md5 {1}) go depth {2}: {3} / {4} identical (depth, score, nodes, bestmove), cand {5:N0} s  {6}" -f (Split-Path $Fens -Leaf), $fmd5.Substring(0, 8), $FenDepth, $same, $n, $sec, $state)
+  Say ("L3 FENs {0} (md5 {1}; {7} lines completed to six fields) go depth {2}: {3} / {4} identical (depth, score, nodes, bestmove; {8} distinct ref results), cand {5:N0} s  {6}" -f (Split-Path $Fens -Leaf), $fmd5.Substring(0, 8), $FenDepth, $same, $n, $sec, $state, $normalized, $distinct)
   foreach ($d in $diffs) { Say $d }
   Stop-IfFailed 'L3'
+  }
 
   # L4
   if ($SkipSan -or -not $SanSrc) {
@@ -237,7 +251,9 @@ try {
       $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude', ('/Fd' + (Join-Path $sanDir 'asan.pdb')), ('/Fo' + $sanDir + '\'))
       if ($SanNdebug) { $clArgs += '/DNDEBUG' }
       foreach ($d in $Define) { $clArgs += ('/D' + $d) }
-      $clArgs += $units; $clArgs += @(('/Fe' + $exeA), '/link', '/INCREMENTAL:NO')
+      # /STACK: Worker::clear() assigns a ~1.4 MB ContinuationHistory temporary on the stack; MSVC's default 1 MB stack
+      # overflows (seen 09:26 under ASan), MinGW's default is 2 MB. 64 MB here only for the sanitizer harness.
+      $clArgs += $units; $clArgs += @(('/Fe' + $exeA), '/link', '/INCREMENTAL:NO', '/STACK:67108864')
       $rcA = Invoke-Native 'cl.exe' $clArgs $port $blog
       if ($rcA -ne 0) { Say "L4 asan: MSVC build failed (exit $rcA, see $blog)"; $script:Fail++ } else { $runs += @{ Tag = 'asan_msvc'; Exe = $exeA } }
     }

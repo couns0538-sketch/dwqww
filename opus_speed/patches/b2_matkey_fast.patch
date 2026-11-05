@@ -1,0 +1,90 @@
+diff -ruN lock/src/search.cpp b2_matkey_fast/src/search.cpp
+--- lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ b2_matkey_fast/src/search.cpp	2026-11-05 09:23:38.398464100 -0800
+@@ -583,7 +583,54 @@
+     for (SearchStack& ss : stack_) ss = SearchStack{};
+ }
+ 
++// Build switch (default 0 = the lock code): 1 = the material-correction index
++// (material_key(board) & (CorrectionSize - 1)) comes from a closed form with
++// ten independent multiply-adds instead of the serial multiply chain.
++#ifndef FORGE_SPD_MATKEY_FAST
++#define FORGE_SPD_MATKEY_FAST 0
++#endif
++
+ namespace {
++#if FORGE_SPD_MATKEY_FAST
++// The lock's material_key is G * sum_j (c_j + 1) * P^(9 - j) mod 2^64 over the
++// ten counts c_j (White then Black, Pawn .. Queen; P and G are the lock's two
++// literals), which is K0 + sum_j c_j * K_j with K_j = G * P^(9 - j) and
++// K0 = sum_j K_j, all mod 2^64. Both users keep only bits 0-13 (the mask
++// CorrectionSize - 1), and the low 14 bits of a sum or product depend only on
++// the low 14 bits of the operands, so the terms are kept mod 2^14 and summed
++// in 32 bits: the same index for every position.
++constexpr std::uint64_t MatKeyMultiplier = 1099511628211ULL;
++constexpr std::uint64_t MatKeyFinal = 0x9E3779B97F4A7C15ULL;
++constexpr std::uint32_t MatKeyMask = static_cast<std::uint32_t>(CorrectionSize - 1U);
++constexpr std::array<std::uint32_t, 10> MatKeyTerms = [] {
++    std::array<std::uint32_t, 10> terms{};
++    std::uint64_t power = 1;
++    for (int j = 9; j >= 0; --j) {
++        terms[static_cast<std::size_t>(j)] = static_cast<std::uint32_t>((MatKeyFinal * power) & MatKeyMask);
++        power *= MatKeyMultiplier;
++    }
++    return terms;
++}();
++constexpr std::uint32_t MatKeyBase = [] {
++    std::uint32_t base = 0;
++    for (const std::uint32_t term : MatKeyTerms) base += term;
++    return base & MatKeyMask;
++}();
++static_assert(CorrectionSize == (1U << 14U), "the closed form is derived for a 14-bit index");
++static_assert(MatKeyTerms[9] == static_cast<std::uint32_t>(MatKeyFinal & MatKeyMask), "K_9 is G mod 2^14");
++
++// Equals the lock's material_key(board) & (CorrectionSize - 1).
++[[nodiscard]] std::size_t material_index(const Board& board) {
++    std::uint32_t sum = MatKeyBase;
++    std::size_t j = 0;
++    for (const Color color : {White, Black}) {
++        for (int type = Pawn; type <= Queen; ++type) {
++            sum += static_cast<std::uint32_t>(popcount(board.pieces(color, static_cast<PieceType>(type)))) * MatKeyTerms[j++];
++        }
++    }
++    return sum & MatKeyMask;
++}
++#else
+ // Hash of the piece counts of both sides, for material-indexed statistics.
+ [[nodiscard]] std::uint64_t material_key(const Board& board) {
+     std::uint64_t key = 0;
+@@ -594,6 +641,7 @@
+     }
+     return key * 0x9E3779B97F4A7C15ULL;
+ }
++#endif
+ } // namespace
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+@@ -639,7 +687,11 @@
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
++#if FORGE_SPD_MATKEY_FAST
++        correction += (*material_correction_)[side][material_index(board)] * tune::MaterialCorrectionWeight / 100;
++#else
+         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
++#endif
+     }
+     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+ }
+@@ -652,7 +704,11 @@
+         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+     };
+     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
++#if FORGE_SPD_MATKEY_FAST
++    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_index(board)]);
++#else
+     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
++#endif
+ }
+ 
+ std::int64_t Worker::elapsed_ms() const {

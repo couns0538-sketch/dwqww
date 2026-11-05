@@ -4,12 +4,14 @@
 usage: python -I -B pgn_positions.py <games.pgn> <out.tsv> [--games 30] [--per-game 10] [--min-ply 16] [--seed 20261105]
 
 Reads the PGN with python-chess, takes --games games chosen by a seeded shuffle of the game list, and from each game
---per-game positions at evenly spaced plies from --min-ply on (past the opening book). Output lines: game number, ply,
-FEN (all six fields), tab separated, in game order (a workload can keep the TT warm inside one game). Positions with no
-legal move are skipped. Prints the output md5 and the source's md5 so both can be recorded.
+--per-game positions at evenly spaced plies from --min-ply on (past the opening book). Output: two '#' header lines
+(source PGN path + md5, generator settings), then game number, ply, FEN (all six fields), tab separated, in game order
+(a workload can keep the TT warm inside one game). Positions with no legal move are skipped. Refuses to overwrite an
+existing output. Prints the output md5 and the source's md5 so both can be recorded.
 """
 import argparse
 import hashlib
+import os
 import random
 import sys
 
@@ -62,10 +64,16 @@ def main():
             used += 1
             for ply, fen in pick:
                 rows.append('%d\t%d\t%s' % (gi, ply, fen))
-    data = ('\n'.join(rows) + '\n').encode()
+    src_md5 = hashlib.md5(open(a.pgn, 'rb').read()).hexdigest()
+    # provenance header (Code Review SHOULD 3): readers skip lines that start with '#'
+    head = ['# pgn_positions.py source %s md5 %s' % (a.pgn.replace('\\', '/'), src_md5),
+            '# games %d of %d, per_game %d, min_ply %d, seed %d; columns: game index, ply, FEN (six fields)' % (
+                used, len(offsets), a.per_game, a.min_ply, a.seed)]
+    data = ('\n'.join(head + rows) + '\n').encode()
+    if os.path.exists(a.out):
+        sys.exit('refusing to overwrite ' + a.out)
     with open(a.out, 'wb') as f:
         f.write(data)
-    src_md5 = hashlib.md5(open(a.pgn, 'rb').read()).hexdigest()
     print('%d positions from %d games of %d -> %s md5 %s (source md5 %s)' % (
         len(rows), used, len(offsets), a.out, hashlib.md5(data).hexdigest(), src_md5))
 

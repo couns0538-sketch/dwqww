@@ -1,0 +1,89 @@
+diff -ruN lock/include/forge/bitboard.hpp b2_slider_pext/include/forge/bitboard.hpp
+--- lock/include/forge/bitboard.hpp	2026-11-05 08:55:23.252687100 -0800
++++ b2_slider_pext/include/forge/bitboard.hpp	2026-11-05 09:42:24.230743500 -0800
+@@ -4,6 +4,19 @@
+ #include <bit>
+ #include <cstdint>
+ 
++// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
++// are indexed with PEXT over the relevant mask (same table sizes, same attack
++// sets, another entry order; no magic search at start-up). Needs BMI2.
++#ifndef FORGE_SPD_SLIDER_PEXT
++#define FORGE_SPD_SLIDER_PEXT 0
++#endif
++#if FORGE_SPD_SLIDER_PEXT
++#if !defined(__BMI2__)
++#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
++#endif
++#include <immintrin.h>
++#endif
++
+ namespace forge {
+ 
+ using Bitboard = std::uint64_t;
+@@ -140,6 +153,16 @@
+ extern std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask;
+ extern std::array<Bitboard, 64> KingZoneMask;
+ 
++#if FORGE_SPD_SLIDER_PEXT
++struct Magic {
++    Bitboard mask = 0;
++    Bitboard* table = nullptr;
++
++    [[nodiscard]] std::size_t index(Bitboard occupancy) const {
++        return static_cast<std::size_t>(_pext_u64(occupancy, mask));
++    }
++};
++#else
+ struct Magic {
+     Bitboard mask = 0;
+     Bitboard magic = 0;
+@@ -150,6 +173,7 @@
+         return static_cast<std::size_t>(((occupancy & mask) * magic) >> shift);
+     }
+ };
++#endif
+ 
+ extern std::array<Magic, 64> RookMagics;
+ extern std::array<Magic, 64> BishopMagics;
+diff -ruN lock/src/bitboard.cpp b2_slider_pext/src/bitboard.cpp
+--- lock/src/bitboard.cpp	2026-11-05 08:55:23.248939000 -0800
++++ b2_slider_pext/src/bitboard.cpp	2026-11-05 09:42:00.927309400 -0800
+@@ -60,6 +60,29 @@
+     std::uint64_t sparse() { return next() & next() & next(); }
+ };
+ 
++#if FORGE_SPD_SLIDER_PEXT
++// Every subset of the relevant mask has its own PEXT index in [0, 2^popcount(mask)),
++// so the tables stay dense with the lock's sizes; the entry order differs.
++void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
++    const auto& directions = rook ? RookDirections : BishopDirections;
++    std::size_t offset = 0;
++    for (int square = 0; square < 64; ++square) {
++        const Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(rank_of(square))) |
++                               ((FileABB | FileHBB) & ~file_bb(file_of(square)));
++        Magic& m = magics[static_cast<std::size_t>(square)];
++        m.mask = sliding_attack(directions, square, 0) & ~edges;
++        m.table = table + offset;
++        std::size_t size = 0;
++        Bitboard subset = 0;
++        do {
++            m.table[m.index(subset)] = sliding_attack(directions, square, subset);
++            ++size;
++            subset = (subset - m.mask) & m.mask;
++        } while (subset != 0);
++        offset += size;
++    }
++}
++#else
+ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
+     const auto& directions = rook ? RookDirections : BishopDirections;
+     static std::array<Bitboard, 4096> occupancies;
+@@ -106,6 +129,7 @@
+         offset += size;
+     }
+ }
++#endif
+ 
+ } // namespace
+ 

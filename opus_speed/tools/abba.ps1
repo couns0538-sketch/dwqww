@@ -29,8 +29,13 @@ param(
   [string]$LabelA = 'A',
   [string]$LabelB = 'B',
   [switch]$AllowNodeDiff,
+  [ValidateSet('Alternate', 'ABBA')][string]$Order = 'Alternate',
   [int]$MutexWaitMin = 240
 )
+# -Order Alternate (default): odd rounds A B B A, even rounds B A A B, and the arm copied first alternates with it.
+# Reason (A/A runs of 2026-11-05): per-slot means differed by up to ~1-2 % between slot positions (in one A/A the
+# middle slots - always arm B in plain ABBA - were faster); counterbalancing cancels any slot / copy-order effect over
+# every pair of rounds. -Order ABBA keeps the literal A B B A order in every round.
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
 # -File passes a list as ONE comma-joined string: split every list parameter on commas
@@ -113,20 +118,22 @@ try {
   $ratios = @(); $cpuRatios = @()
   for ($r = 1; $r -le $Rounds; $r++) {
     $exe = @{ A = $A; B = $B }
+    $armOrder = @('A', 'B', 'B', 'A'); $copyOrder = @('A', 'B')
+    if ($Order -eq 'Alternate' -and ($r % 2 -eq 0)) { $armOrder = @('B', 'A', 'A', 'B'); $copyOrder = @('B', 'A') }
     if ($CopyMode -eq 'Round') {
-      foreach ($arm in 'A', 'B') {
+      foreach ($arm in $copyOrder) {
         $dst = Join-Path $Out ("copies\{0}_r{1:D2}.exe" -f $arm, $r)
         Copy-Item -LiteralPath $exe[$arm] -Destination $dst
         $exe[$arm] = $dst
         $w = Start-OspdEngine $dst $log
         $null = Initialize-OspdEngine $w $Option
-        $null = Invoke-OspdBench $w 1 120
+        $null = Invoke-OspdBench $w 10 120
         $null = Stop-OspdEngine $w
       }
     }
     $sum = @{ A = 0.0; B = 0.0 }; $csum = @{ A = 0.0; B = 0.0 }
     $slot = 0
-    foreach ($arm in 'A', 'B', 'B', 'A') {
+    foreach ($arm in $armOrder) {
       $slot++
       Start-Sleep -Seconds $Cooldown
       $e = Start-OspdEngine $exe[$arm] $log
@@ -168,13 +175,20 @@ try {
   $verdict = 'NO-WIN'; if ($win) { $verdict = 'WIN' }
   $cverdict = 'NO-WIN'; if ($cwin) { $cverdict = 'WIN' }
   $lines = @(
-    ("ABBA {0} (A, md5 {1}) vs {2} (B, md5 {3}); bench d{4}, {5} rounds x ABBA, CPU {6} BelowNormal, net {7}, copies {8}; nodes A {9} B {10} ({11})" -f $LabelA, $md5A, $LabelB, $md5B, $Depth, $Rounds, $Core, $(if ($netOn) { 'on' } else { 'off' }), $CopyMode, $nodes.A, $nodes.B, $(if ($nodes.A -eq $nodes.B) { 'equal' } else { 'DIFFERENT' })),
+    ("ABBA {0} (A, md5 {1}) vs {2} (B, md5 {3}); bench d{4}, {5} rounds, order {6}, CPU {7} BelowNormal, net {8}, copies {9}; nodes A {10} B {11} ({12})" -f $LabelA, $md5A, $LabelB, $md5B, $Depth, $Rounds, $(if ($Order -eq 'Alternate') { 'ABBA/BAAB alternating' } else { 'ABBA every round' }), $Core, $(if ($netOn) { 'on' } else { 'off' }), $CopyMode, $nodes.A, $nodes.B, $(if ($nodes.A -eq $nodes.B) { 'equal' } else { 'DIFFERENT' })),
     ("wall (engine nps): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $st.Median, (100 * ($st.Median - 1)), $st.Lo, $st.Hi, $st.SdPct, $st.BootLo, $st.BootHi),
     ("cpu (nodes / process CPU time of the bench window): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $cst.Median, (100 * ($cst.Median - 1)), $cst.Lo, $cst.Hi, $cst.SdPct, $cst.BootLo, $cst.BootHi),
     $aaLine,
     ("VERDICT wall {0} / cpu {1} (rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt" -f $verdict, $cverdict)
   )
-  Write-OspdLf (Join-Path $Out 'summary.txt') ($lines + @('', 'per-round wall ratios: ' + (($ratios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), 'per-round cpu ratios: ' + (($cpuRatios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), "runs.csv md5 $(Get-OspdMd5 $csv)") + (Get-Content $loadFile))
+  $runId = New-OspdRunId
+  $lines = @("run $runId") + $lines
+  $sumAll = ($lines + @('', 'per-round wall ratios: ' + (($ratios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), 'per-round cpu ratios: ' + (($cpuRatios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), "runs.csv md5 $(Get-OspdMd5 $csv)") + (Get-Content $loadFile))
+  # Code Review SHOULD 1: every run writes a NEW summary file (run id in the name); nothing is overwritten, and one
+  # line per run is appended to F:\ospdbbabba_history.log so earlier results stay readable
+  Write-OspdLf (Join-Path $Out ("summary_{0}.txt" -f $runId)) $sumAll
+  Write-OspdLf (Join-Path $Out 'summary.txt') $sumAll
+  Add-OspdLf 'F:\ospdbbabba_history.log' ("{0}`t{1}`t{2}" -f $runId, $Out, (($lines | Select-Object -Skip 2) -join ' | '))
   $lines | ForEach-Object { Write-Output $_ }
   exit 0
 } catch {
