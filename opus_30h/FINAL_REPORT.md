@@ -300,11 +300,16 @@ owner allowed C: when D: is short), started by `a/gpu_run_o30c.bat` (a copy of `
 ### Owner's fix lists of 2026-11-04
 - First list (items 0-13): items 9-13 on this branch, `opus_30h/CR_FIXLIST_20261104_REPORT.md` (commits 8b57f4a8,
   24d98b82, f9136f2f, 16e84bc9, 345cf411); items 0-8 on opus-astra-r14-finish (head cdc487a8, CI green, report
-  `D:\a14\FINAL_REPORT.md` md5 1e99b1a1c6ddb1ec4905dec002814dcd; item 6's PROOF.json rerun not done: disk floor).
+  `D:\a14\FINAL_REPORT.md` md5 1e99b1a1c6ddb1ec4905dec002814dcd at that head; item 6's PROOF.json rerun not done:
+  disk floor).
 - Second list ("remaining real problems", items 1-7): items 1-5 on this branch - 73e4c828 (queue_runner.sh marks a run
   done only after exit 0, retries exit 78 unmarked), 8f473e8a + 0b245bbc (guard: console exit resumes a trainer the loop
   suspended after the handler; dummy test), 3bc5cd88 (probe_extra.sh rc), 101379e6 (soup / speed wording), 6085d7b2
-  (tuned184 build logs); items 6-7 on opus-astra-r14-finish [result: see section 6].
+  (tuned184 build logs); items 6-7 on opus-astra-r14-finish by the R14-finish agent, verified by the author: 78d83508
+  (opus_prod_separation.py refuses an output on another drive with one line, no traceback; the preflight test imports the
+  PowerShell modules before its mocks and now PASSES), 179430bd (suite at 78d83508: 8 failed / 328 passed, the 4 new
+  failures are the launcher's own CPU-admission refusals on the busy CPU 6), report ed068336 / 0e9f68e1; head 0e9f68e1 =
+  remote, CI run 41872225602 success, `D:\a14\FINAL_REPORT.md` md5 9a011f87f70ea8b7264b311fa6c040b8.
 - The overlap (4,088 shared board+side-to-move keys after en-passant normalisation) is still unresolved; npt data stays
   BLOCKED.
 - Disclosure: commit 05ab620a (pushed) carried the engine's own `id author` value inside four copied conformance logs;
