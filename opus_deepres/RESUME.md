@@ -1,34 +1,31 @@
 # Forge deep research - RESUME (handoff)
 
-Read first: `STATUS.md` (track table, workflows, pushes, observations), then `FINAL_REPORT.md` (state line says
-INTERIM / FINAL / STOPPED), then `cards/` and `notes/` of the part you continue. Method and tools:
-`skills/forge-deep-research/SKILL.md` (also installed as a user-scope skill on grok-pc).
+Read first: `STATUS.md` (track table, workflows, owner instructions, usage readings), then `FINAL_REPORT.md` (state line:
+INTERIM 2 at 02:29), `notes/RANKING_DRAFT.md` (all cards ranked) and `notes/CRITIC2.md` (duplicates, corrections). Method
+and tools: `skills/forge-deep-research/SKILL.md` (also installed as a user-scope skill on grok-pc).
 
-## Finished (verified)
-- Setup: branch `opus-deepres-20261104` from main 5176ddf7 in the partial + sparse clone `F:\odr\wt`
-  (`git clone --filter=blob:none --depth 1 --branch main --no-checkout`, `MSYS_NO_PATHCONV=1 git sparse-checkout set
-  --no-cone /opus_deepres/ /skills/`, `core.autocrlf false`, clean filter `novendor` = `tools/novendor_filter.py`).
-- 34 cards, all lint-clean: T01 (6), T02 (6, incl. the coordinator's T02-01), T04 (6), T05 (4), T06 (5), T07 (2),
-  T12 (5); each track's verifier result in `notes/T<nn>/VERIFY.md`. Track deliverables: `notes/T01/recipes.md`,
-  `notes/T02/TABLE.md` + `MIX.md`, `notes/T04/TABLE.md` + `BUG_CHECKLIST.md`, `notes/T05/SPEED_LIST.md` +
-  `V2P4_GAP.md`, `notes/T06/FORMS.md` + `FIT_RECIPE.md`, `notes/T07/UCI_EDGE_CASES.md`, `notes/T12/PROTOCOLS.md`.
-- INTERIM report pushed at 23:42 (commit 22481219).
+## Finished
+- Round 1: T02-01 (coordinator) + T01, T02, T04, T05, T06, T07, T12 (34 cards), each verified; phase 2 critic + second
+  vote; card fixer (`notes/FIXES_APPLIED.md`).
+- Round 2: T04B-T04H, T05B-T05E, T06B, T06C, T02B, T01B, T12B, T04N, T05F (92 card files incl. 5 merge markers), each
+  with a Fable verifier except T05F (verifier running at 02:29); specs `notes/SPEC_SEARCH.md`, `notes/SPEC_EVAL.md`;
+  CRITIC2 and RANKING_DRAFT.
+- INTERIM 2 report pushed at 02:29 (59f107e0).
 
-## Running (as of the last STATUS update)
-- Phase 2 `wf_576c2a36-f48` (launched 23:43): critic -> `notes/CRITIC.md` (coverage matrix of every brief question,
-  report-vs-cards check); second vote on 12 top cards -> `notes/TOP_SECOND_VOTE.md`. Neither edits cards or reports.
-- If this session ended: the workflow ends with it; both agents write their file as they go, so the files show how
-  far they got. Re-run with `tools/workflows/deepres_phase2_checks.js` if they are empty.
+## Not finished / dropped
+- Dropped as overlapping (owner 01:35, "no two agents on the same thing"): T04I-T04M topic sub-tracks; dropped for
+  usage: T04O (more permissive engines). Not carded yet: "a fail-high TT cutoff needs a deeper entry" (CRITIC2 section 1).
+- CRITIC2's card-level fixes are NOT applied yet (T04H-02 downgrade, T04-04 estimate 0 to +2, T04F-02 fold into a
+  one-liner for R15 C5, notes/T04/TABLE.md rows 33 and 46, notes/T05/SPEED_LIST.md R7TtExclusive wording, T04C-02 cite
+  the larger-n Stockfish pair, T04E-03 own start values check, "768 KiB (786 KB)").
 
-## Next steps (coordinator)
-1. Apply the phase-2 findings: fix cards (with "(corrected by coordinator: ...)") and the report numbers; record
-   KEEP / DOWNGRADE / DROP verdicts in the ranking.
-2. Decide whether uncovered brief questions are worth one more small round (card caps: T05 has 2 card slots left,
-   T06 1, T12 1; T01 / T02 / T04 are at 6).
-3. Write the FINAL report (state FINAL), final STATUS / RESUME / LICENCES, commit, push, verify, then the final
-   message (strongest proposals, dead ends, unfinished, next three crew experiments, links, elapsed time, spend).
-4. Hard times: 07:53 no new questions; 08:23 stop.
+## Plan after the usage-window reset (owner: reset ~03:40)
+A fresh pool (never resume a pool) of 5 workers, only non-overlapping tasks: (1) card for the deeper-entry TT-cutoff
+rule from the existing TABLE rows; (2) T04O permissive engines; (3) Fable second vote on the round-2 top cards (T04D-01,
+T04D-02, T04C-02, T04E-02, T04F-01, T04B-01, T04E-04, T04E-03, T04N-01, T04N-02); (4) own-words specs for T04E-03,
+T04E-02, T04B-01, T04D-01, T04D-02; (5) fixer for the CRITIC2 items above; (6) at ~06:30 a refreshed ranking + a short
+critic; then FINAL report by ~07:50, push, verify; 07:53 no new questions; 08:23 hard stop.
 
 ## Blockers / open checks
-- USAGE UNKNOWN (no meter readable); measured agent spend is in STATUS.md. Low-usage warning -> TaskStop the running
-  workflow, commit, push, verify, then mark the report STOPPED EARLY - LOW USAGE.
+- Usage: owner reading 77 % of the 5-hour window at ~02:26 (reset ~03:40). Low-usage rule (<= 10 % left or a warning):
+  TaskStop the running workflow, commit, push, verify, mark the report STOPPED EARLY - LOW USAGE.
