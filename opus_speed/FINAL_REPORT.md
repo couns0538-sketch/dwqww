@@ -27,7 +27,9 @@ Facts the tools are built on (checked 2026-11-05):
   fd3a5190...; 09:10, and again as pc1 = pc2 inside the lock-vs-lock pack) = our pipeline is QA's kit.
 - The R14 SPEED2 switch ported with R14's own script and built here gives exe de20653c..., R14's kit exe byte for byte.
 - `fens_12k.txt` (placement-only) is rejected by the lock; L3 uses `fens_12k_v2.txt` (md5 e7dbf2c8): the lock's
-  full 12k reference has 12,000 distinct rows (2,261 s on two Idle CPUs under load).
+  full 12k reference has 12,000 distinct rows (2,261 s on two Idle CPUs under load), and a byte copy of the lock exe
+  reproduces it 12,000 / 12,000 (2,463 s; `F:\ospd\logs\bx_lockcopy_full12k\bitexact.log`): the reference is
+  deterministic, so any L3 difference is the candidate's.
 - MSVC builds can never match g++ node counts (std::sort orders equal scores differently), so L4's ASan run is
   compared with the MSVC ASan build of the lock source, UBSan (g++) with the candidate's own count.
 - BOLT: one recorded try = not possible here (no llvm-bolt on the PC; BOLT handles ELF only, deep research T5).
