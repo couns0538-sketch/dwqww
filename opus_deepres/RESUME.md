@@ -20,6 +20,9 @@ and tools: `skills/forge-deep-research/SKILL.md` (also installed as a user-scope
   the larger-n Stockfish pair, T04E-03 own start values check, "768 KiB (786 KB)").
 
 ## Plan after the usage-window reset (owner: reset ~03:40)
+RUNNING since 03:42: wf_8ee06337-6bc (tools/workflows/deepres_pool3.js) with T04Q (lock audit), T04P, FIXER2, VOTE2 (Fable),
+SPEC2, T04O and RANK3 (Fable; after all others, not after 06:50), a Fable verifier after each research task. If this
+session ends: never resume the pool; start a fresh run with only the tasks whose output files are missing.
 A fresh pool (never resume a pool) of 3 workers (owner cap; board D:/grok-pc-data/dwqww/WORKER_BOARD.md), only non-overlapping tasks: (1) card for the deeper-entry TT-cutoff
 rule from the existing TABLE rows; (2) T04O permissive engines; (3) Fable second vote on the round-2 top cards (T04D-01,
 T04D-02, T04C-02, T04E-02, T04F-01, T04B-01, T04E-04, T04E-03, T04N-01, T04N-02); (4) own-words specs for T04E-03,

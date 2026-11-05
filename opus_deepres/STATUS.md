@@ -9,7 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 23:40 (elapsed 1 h 17 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
+- Last update of this file: 03:47 (elapsed 5 h 24 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
@@ -19,6 +19,10 @@ this job is written to D:.
   14min" = 23 % left, reset about 03:40. Plan: no new agents until the reset (the light pool's last verifier finishes
   by itself), the coordinator writes the FINAL report now; after 03:40 a 3-worker pool (owner cap: at most 3 parallel workers, fable / opus-max only, coordinated via D:\grok-pc-data\dwqww\WORKER_BOARD.md) on non-overlapping tasks until
   07:20. The low-usage rule (<= 10 % left) still triggers the immediate save-and-push.
+- POOL3 started 03:42 (wf_8ee06337-6bc, right after the reset). Stop path: the owner's worker-cap hook refuses every Agent /
+  Task / Workflow tool call, TaskStop included, while 3 agents are active, so the pool has a cooperative wrap-up
+  note for its own workers (`F:/odr/work/pool_wrapup.txt`; every worker checks it before each source and every
+  10 minutes, saves, frees its board slot and hands back; no new task starts after one sees it).
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
   inherit both; checked on a child process), so every command runs at Idle on at most 2 logical CPUs, never on
   CPUs 7-15. Disk at start: C: 84.6 GB, D: 51.8 GB, F: 59.6 GB free; RAM 23.1 GB free.
@@ -60,6 +64,7 @@ this job is written to D:.
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
+| POOL3 (after the reset) | RUNNING since 03:42 (wf_8ee06337-6bc, tools/workflows/deepres_pool3.js; 3 workers = owner cap, agent types opus-max / fable, board slots S1-S3) | - | - | queue: T04Q lock-source audit against notes/T04/BUG_CHECKLIST.md, T04P deeper-entry TT cutoff (1 card), FIXER2 (open CRITIC2 fixes), VOTE2 (Fable second vote on 10 round-2 top cards), SPEC2 (specs for T04E-03, T04E-02, T04B-01, T04D-01, T04D-02), T04O (permissive engines not mined yet), RANK3 (Fable, final ranking + CRITIC3, only after all others, not after 06:50); a Fable verifier after each research task; nothing new after 07:20 |
 | T2-card-1 overlap to 0 | DONE | T02-01 | - | coordinator; drop key board+stm (7,700 train rows), block rule measured |
 | T1 v2 features + recipe | VERIFIED (research 22:48-23:09, verify -23:2x) | T01-01..06 | - | 54 checks, 47 confirmed, 5 corrected |
 | T2 data quality | VERIFIED (research -23:20, verify 23:20-23:32) | T02-01 (coordinator), T02-02..06 | - | 68 checks, 54 confirmed, 6 corrected, 7 unverifiable, 1 violation (MIX.md constant; fixed by the coordinator 23:34) |
