@@ -13,3 +13,8 @@
 
 Own sources (no licence): r10fix1 branch code and docs, R13 P2 RESULTS / patches, QA J3 / J5 ABBA csv, the 30-Oct
 research report, npt net files in forge_push/bin (sizes only).
+
+Exact cited commits (added by verify, second pass; same licences as the rows above):
+| TimAnthonyAlexander/chessgo | 3eedea13d6 | 2026-07-07 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+| ovnice-dev/onechess | 928d53d2eb | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+| rektdie/Eleanor | 134af1abde | 2026-10-03 | LICENSE | MIT | MIT License | api: MIT |

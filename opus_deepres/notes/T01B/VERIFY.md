@@ -95,3 +95,31 @@ Scope: only what the first pass left unverifiable, plus the task's checks 4-6 re
 | check 6 | 3 files (<= 4); T01B-01 and T01B-02 57 lines each, stub 1 line; crew hours; UNPROVEN labels; names | CONFIRMED | card_lint re-run at 01:34: 0 findings, 0 PENDING in all 3; vendor / model-company grep over cards/T01B + notes/T01B clean |
 | T01B-03 / TABLE row 5 | Viridithas v99 25k nodes +7.81 +- 4.08 (11,082 g) "(fixed nodes only)" | number CONFIRMED; qualifier CORRECTED | viridithas-networks release v99 (2025-05-18, CC0 release text, gh api): "fresh retrain using whole-network factorisation", 25k +7.81 +- 4.08, LLR 2.99 [0,3], 3261/3012/4809 -> +7.81 recomputed; the release ALSO lists LTC 40+0.4 Threads 1 Hash 128 MB +2.06 +- 1.61 (47,132 g, LLR 2.96 [0,3]) - so not "fixed nodes only"; confounded with the retrain and a whole-network (not king-bucket-only) factoriser, so the row 5 verdict (row only, cheap offline A/B) stands; annotated at the end of TABLE.md |
 | T01B-01 / sources row 7 | local bullet copy D:/o30/bullet = da426a49 | CONFIRMED by file identity | no git metadata in D:/o30/bullet, but examples/progression/3_input_buckets.rs (103 lines) and Cargo.toml fetched at da426a49b2 (gh api contents, MIT) are byte-identical to the local copies (diff -q); id itself from notes/T01/licences.md row 1 (jw1912/bullet da426a49b2 2026-10-26 MIT) |
+
+## Continuation (third verifier; start 01:39 PC clock, written at 01:41, stop by 01:54)
+Scope: only what passes 1-2 left open (TABLE rows 2, 7, 9, section B traces, sources row 1 titles), check 2 for T01B-02
+(pass 1 recorded it for T01B-01 only), the annotations' presence on disk, lint. Same method and Elo recompute.
+| card / note | claim | verdict | evidence |
+|---|---|---|---|
+| TABLE row 7 | SP commit 12ddec9f "support networks with merged king planes", no test | CONFIRMED | gh api commit 12ddec9f63: message = title "(#179)" + "Bench: 5554869" only; PR 179 body length 0 |
+| TABLE row 7 | V PR 221 merged king planes non-regression +0.29 +- 1.74 ([-3,0]) | CONFIRMED | gh api PR text: 2+0.02 Threads 1 Hash 16 MB, LLR 2.95 [-3,0], 60,412 g; 16996/16945/26471 -> +0.29 recomputed; merge 1aa7a0e3 = notes/T01 row 8 |
+| TABLE row 7 | "768 per bucket (o30_expand_kb.py:27)" | CONFIRMED | D:/o30/wt/opus_30h/a/o30_expand_kb.py:27 counts = [kb * 768 * h, ...] |
+| TABLE row 9 | OB8 at o30_expand_kb.py:23 | CONFIRMED | line 23 = BUCKETS = 8 |
+| TABLE row 2 | V v92 LTC +9.44 +- 4.12 (from notes/T01 row 11) | CONFIRMED | viridithas-networks release v92 "hyperstition" (2024-08-09, CC0 text, gh api): 40+0.4 Threads 1 Hash 128 MB, LLR 2.98 [0,3], 7,028 g; 1661/1470/3897 -> +9.45 recomputed; arch 2048x2 -(pairwise)-> 16 -> 32 -> 1 = a layer stack, so row 2's "pairwise inside a new layer stack / no card" classification holds and T01B-01 rightly does not cite it |
+| sources row 1 | SP PR titles: #71 "8 buckets 1024 L1", #179 merged king planes, #206 "return to 1536 L1", #246 sparse FT->L1 | CONFIRMED | gh api titles: "8 buckets, 1024 L1" (merged 2024-03-25), "support networks with merged king planes" (body empty), "return to 1536 l1", "compute FT -> L1 matmul in sparse blocks" |
+| TABLE section B | rows traced to notes/T01 only: v61 963M / 768 no buckets, v84 1536 4 mirrored, v91 2048 + 16 buckets (T01 row 11); v107 1024 (T01 row 10); V PR 425 ~87 % speed (T01 row 3); V PR 445 pawn pairs (T01 row 4); I PR 266 +6 % merged accumulator (T01 row 6); I README "hundreds of millions" of games, L1 768 vs PR 266 1024 (T01 row 12) | CONFIRMED (trace only) | every item found verbatim in notes/T01/sources.md rows 3, 4, 6, 10, 11, 12; those release / PR / README pages were not re-opened here (v92 and PR 221 were) |
+| TABLE row 4 | "no source compares shapes at an equal count (web search 00:49 found none)" | UNVERIFIABLE | a negative search result; not re-run (no card rests on it: row 4 is the own second arm inside T01B-02 without a source number) |
+| T01B-02 / check 2 | reading rule, own words, no foreign constant, no code | CONFIRMED | lines 7-32 read: Mechanism in own words (reflection on files e-h, refresh on the d/e crossing); the only foreign numbers are the sources' logged test numbers and net sizes quoted as such; the KB8 shape, start weights and the warm-start recipe (lr 2e-5, 200 SB = 30-h job values, pass 1) are own; OFF design = no engine change, net file under EvalFileV2, gate vs the v2 control |
+| corrections on disk | pass-1 and pass-2 annotations present | CONFIRMED | T01B-01 line 18 "(corrected by verify: ...)"; TABLE.md lines 63-64 verify notes (PR 256 qualifier, V v99 qualifier); card Status lines COMPLETE / COMPLETE / MERGED stub (no violation or duplicate to mark) |
+| check 6 | lint, counts, lengths | CONFIRMED | card_lint re-run at 01:41: 0 findings, 0 PENDING in all 3 files; 57 / 57 / 1 lines; 3 files <= 4 cards |
+
+## Final verdict (all three passes)
+- Rows checked: 44 (pass 1) + 14 (pass 2) + 11 (pass 3) = 69. Pass 2 resolved all 4 pass-1 unverifiables (62f32032, V v99,
+  bullet da426a49, TABLE rows 8 / 11 / 13 + section C PRs), so the final state is: 61 confirmed, 3 corrected (T01B-01 float32
+  wording; TABLE row 6 / section C "more training" qualifier; TABLE row 5 "fixed nodes only" qualifier), 1 unverifiable
+  (TABLE row 4 negative web search) plus the section-B traces confirmed at the notes/T01 level only, 0 violations, 0 duplicates.
+- Every source number a T01B card rests on was re-opened and recomputed from W/L/D (passes 1-3); all 8 licence rows re-run
+  identical; forge_has greps re-run (1 hit nnue.hpp:11 SCReLU; 0 hits king bucket / mirror / factori); TRIED_GATES.md
+  (packa, packb, E3, Sf26Bundle, CorrHistPlus, SingularV2) has no net-architecture gate; no duplicate among the 85 card files.
+- Lint clean. Nothing written outside notes/T01B/ (cards untouched in pass 3; F:/odr/work/T01B-verify/ unused).
+- Pass 3 written at 01:41 PC clock (clock read in the same step).

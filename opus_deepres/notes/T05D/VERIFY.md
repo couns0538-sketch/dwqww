@@ -72,3 +72,32 @@ Counts after both passes: 46 claims checked, 42 confirmed, 1 corrected (T05D-02 
 mispredict cycles, a general figure without a source; the two full-card Forge estimates, UNPROVEN by rule),
 0 violations, 0 duplicates. Lint clean. Not re-checked here: the Patricia test page 14363 (TABLE row 18, out of the
 sub-track; the first pass confirmed the figures from the commit message) and the furybench page (first pass fetched it).
+
+## Continuation 3 (third verifier, start 01:39 PC clock; the second pass above was stopped by a re-plan without an end clock)
+Only what the two passes had not covered: the Patricia test page 14363 itself, the TABLE rows whose lock lines no pass
+had re-read (6-11, 13-17, 19, 21, 22), the pick_best initialisation behind the record-count correction, the names the
+T05D-01 design relies on (ExclusiveLease, TTAccess), cards changed after 01:24, licence rows re-run, lint. Scratch:
+F:/odr/work/T05D-verify/ (licence_rows_pass3.txt, dl_patricia/test14363.html).
+
+| card | claim | verdict | evidence |
+|---|---|---|---|
+| T05D-02 | record-count correction (H_n - 1 taken branches, ~3 for n = 30) | CONFIRMED | search.cpp:491-494 re-read: best = index_, loop from index_ + 1, strict `>`: the first element becomes best with no branch; a random permutation has H_n left-to-right maxima, so H_n - 1 = 2.99 taken branches at n = 30; the key-max rule (highest score, then lowest index) picks the same element as this scan |
+| T05D-01 | names the design uses: ExclusiveLease, TTAccess::Exclusive, a Searcher::search parameter | CONFIRMED | search.hpp:139-153 (class ExclusiveLease, thread_local active_lease_ at :153), :374 enum class TTAccess { Shared, Exclusive }, :381 search(..., TTAccess table_access = TTAccess::Shared) |
+| TABLE row 18 | Patricia test 14363: +3.29 +- 2.38, 8.0+0.08s Threads=1 Hash=16MB, [0, 3], LLR 2.96, N 31,038 | CONFIRMED (row completed "verify:": W/L/D, book, benches) | https://chess.swehosting.se/test/14363/ fetched with curl (saved to scratch): dev sha eeb786dd5a (branch movepick, a fork of Patricia) vs base f7f3b484 main, Threads=1 Hash=16, 8.0+0.08, book UHO_Lichess_4852_v1.epd, LLR 2.96 (-2.94, 2.94) [0.00, 3.00], W 6766 L 6472 D 17800, penta [506, 3629, 7052, 3729, 603]; recomputed 15666 / 31038 = 0.50474 -> +3.29; dev bench 3187856 vs base 3279654 (the node count changes: the OUT-of-sub-track verdict stands) |
+| TABLE rows 8, 9, 10 | ContinuationHistory 13x64x13x64 int16 = 1,384,448 B, PieceToHistory 1,664 B; CorrectionHistory [2][16384] int32 = 128 KiB per table, two tables = 256 KiB, entries clamped to +-8192 (CorrectionLimit = 32 x 256); make_unique allocation; the Empty row inside the 13 | CONFIRMED | search.hpp:252-260 (types, constants), search.cpp:564-569 (make_unique), :649-653 (clamp to +-CorrectionLimit) |
+| TABLE row 11 | SearchStack: pv 516 B first, hot scalars, accumulator alignas 32 of 2,048 B, psqt + dirty after; frame 2,720 B | CONFIRMED in part | search.hpp:55 MaxPly = 128 (pv = 129 x 4 B = 516 B), :262-284 field order as described, nnue.hpp:31-32 Accumulator alignas(32) float[2][HiddenSize] (2,048 B at HiddenSize 256, the rules' Forge fact); the 2,720-B total and the 576 offset were not recomputed (no sizeof run; a dropped row) |
+| TABLE rows 7, 14 | :1058 recomputes quiet_history in the move loop, picker scores at :531-532, update_continuation at :1156 between generation and use, history pruning :1070, LMR :1146; update_continuation :720-727 tests previous->continuation / current_move per call and is called per quiet at :744-749 | CONFIRMED | lines re-read, roles as described |
+| TABLE rows 15, 16, 17, 19, 21, 22 | should_stop() at every node under node_limit_specified_ (:774, :885); hashfull takes lock_stripe per sampled cluster (:304-314); TTProbe fields entry / hit / owner_ / cluster_ / slot_ / epoch_ / key_ (hpp:98-108; the 64-B size not computed); cluster_for = multiply-high with u128 (hpp:175-182); probe = hit loop then replacement loop with strict `<` = first minimum (:261-280); record_move computes dirty_pieces before make_move (:623-630) | CONFIRMED | lines re-read |
+| TABLE row 13 | no branch hints in the lock | CONFIRMED | forge_has 'likely|__builtin_expect' re-run: 0 hits |
+| TABLE row 6 | std::sort is a plain insertion sort for n <= 16 | UNVERIFIABLE here | a libstdc++ threshold stated from general knowledge; the header was not opened; a dropped row (add-on only) |
+| licences | 4 rows re-run | CONFIRMED | tools/licence_at.py --row x 4 at 01:40: identical to notes/T05D/licences.md (diff empty), F:/odr/work/T05D-verify/licence_rows_pass3.txt |
+| duplicates (cards changed after 01:24; keyword grep over all 88 cards in 29 folders) | one card modified at 01:24 (T01B-01, already in the second pass's list of 9); keyword hits outside T05D: T04C-05, T05-04, T05C-02 (judged unrelated by the first pass) and T04D-02 line 36, which only names R7TtExclusive as "locking" in its tried-gates note | NO DUPLICATE | find -newermt + grep (pick_best, emutls, thread_local, TLS, lock_stripe, prefetch x correction, key-max, first-maximum, branch-free, vpmaxsq, TtExclusive, exclusive lease) |
+| folder rules | 3 cards (max 4), 60 / 58 / 1 lines, card_lint 0 findings x 3, 0 PENDING, crew hours and UNPROVEN in all three, no vendor / model-company name (grep over cards/T05D and notes/T05D: 0 hits; opus-* branch names as before) | CONFIRMED | re-run 01:41 |
+
+Counts after three passes: 58 claims checked (46 + 12), 53 confirmed (42 + 11), 1 corrected (T05D-02 record count,
+first pass) plus 2 completions (T05D-01 gate line W/L/D, second pass; TABLE row 18 W/L/D + book + benches, this pass;
+no wrong number in either), 4 unverifiable (T05D-02 mispredict cycles; the two full-card Forge estimates, UNPROVEN by
+rule; TABLE row 6 libstdc++ threshold), 0 violations, 0 duplicates. Lint clean. Nothing refuted; the brief's checks
+(1)-(6) are all covered now.
+Verify end clock (third pass): 01:43 PC (start 01:39).
+Hand-back clock: 01:45 PC.

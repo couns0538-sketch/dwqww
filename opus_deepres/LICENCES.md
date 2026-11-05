@@ -60,6 +60,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | SH11235/rshogi | f248c52c84 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | TerjeKir/weiss | c735b8f3d2 | 2026-08-13 | COPYING.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
 | TerjeKir/weiss | ff59b2741d | 2020-10-26 | COPYING.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05B | ideas only |
+| TimAnthonyAlexander/chessgo | 3eedea13d6 | 2026-07-07 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | TimAnthonyAlexander/chessgo | cdbe8eea5f | 2026-08-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | Witek902/Caissa | 2fd8f56e40 | 2023-10-12 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
 | Witek902/Caissa | 434bbda5c3 | 2024-01-03 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
@@ -135,7 +136,9 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-stockfish/nnue-pytorch | b26145006e | 2026-10-28 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
 | official-stockfish/nnue-pytorch | c625702757 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02 | ideas only |
 | official-stockfish/nnue-pytorch | f5c9d01569 | 2026-04-15 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
+| ovnice-dev/onechess | 928d53d2eb | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | ovnice-dev/onechess | e9d1c500d6 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
+| rektdie/Eleanor | 134af1abde | 2026-10-03 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | rektdie/Eleanor | 2c81f2fc4e | 2026-10-12 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | sebhofmann/sleepmind2 | 4f6cdfcc5a | 2026-11-03 | absent | no licence (all rights reserved) | - | api: none | T05E | ideas only (no licence) |
 | yaneurao/YaneuraOu | 3a0e4fd239 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |

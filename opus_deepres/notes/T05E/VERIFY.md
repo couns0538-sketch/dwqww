@@ -75,3 +75,37 @@ notes-only items above). CORRECTED: 0. VIOLATION: 0. DUPLICATE: 0. Cards changed
   nothing of it was copied. Keep citing the title only.
 - T05E-01's +3 to +8 % reproduces to +3.9 to +6.0 % at the tool's 9.4 % refresh share; the top of the range depends
   on the in-search refresh share, which the card itself names as unmeasured (the counter build in HALFKA_COST.md).
+
+## Continuation (second verifier, 2026-11-05 01:39-01:47 PC clock)
+Scope: only what the pass above did not cover. The four cards are unchanged since it (file times 01:04-01:14, this file
+01:24); nothing was edited in cards/T05E/. Same method; scratch F:/odr/work/T05E-verify/.
+
+| card | claim | verdict | evidence |
+|---|---|---|---|
+| T05E-01 | "one 1-KB int8 row per piece", 2-KB int16 accumulator row | CONFIRMED | include/forge/nnue_halfka.hpp:5 "an int8 feature transformer with int16 biases"; refresh() / apply() take std::int16_t rows (:48, :51); 1024 x 1 B = 1 KB, 1024 x 2 B = 2 KB |
+| T05E-01 | "the 30-Oct report, section 10" | CONFIRMED | 6f27150d research/*_deep_research_20261030.md:505 "## 10. Checked and dropped", :508 the Finny line |
+| T05E-01 / TABLE row 1 | PlentyChess PR 183 STC +10.04 +- 5.65 (6,300 games), UNVERIFIABLE in the pass above | CONFIRMED | gh api pulls/183 body: "Elo 10.04 +- 5.65 (95%)", "8.0+0.08s Threads=1 Hash=16MB", LLR 2.94 [0.00, 3.00], N 6300, Penta [13, 622, 1708, 784, 23], merged 2024-06-11; own pentanomial recompute +10.04 +- 4.24 (the 5.65 is the test server's own error model); notes/T01B/TABLE.md row 8 reads the same |
+| T05E-03 | 8132dbc (title only in the card) | CONFIRMED | gh api: 2026-04-02 "split affine_transform on VNNI as well", 184,544 games, "speedup = 0.30782% +/- 0.163%" (not used by the card) |
+| all (check 4) | TRIED_GATES: Sf26Bundle, CorrHistPlus, SingularV2, HalfKA | CONFIRMED no overlap | tools/tried_gates.py --grep: Sf26Bundle rows SF26B14 / UT2 / USF26B1 and CorrHistPlus rows R5A-1 / UR5A1 are search options; "Singular" = 0 rows in notes/TRIED_GATES.md; the only HalfKA rows are six EvalFileHalfKA net gates (NPT104-06 ... NPTW4S4-07, -86 to -116 Elo) = net gates, not speed changes |
+| all (check 5) | duplicates: 88 cards now (85 in the pass above) | CONFIRMED no duplicate | newest three by file time: T05D-01 (TT access without TLS), T05D-02 (pick best key max), T01B-01 (pairwise CReLU single layer); grep finny / refresh cache / backfill / backward / VNNI / interleav / double incremental / perspectives together / one-pass over cards/*/ = only T01B-02, T05-03 and the four T05E cards; grep halfka / K32H3 / accumulator adds T01-01, T01B-01, T02-02..04, T02B-01, T05-01 (int16 first-layer store for the v2 / lock float paths, DOWNGRADED) - none proposes a HalfKA-path speed change |
+| all (check 6) | 4 cards, lint | CONFIRMED | card_lint.py cards/T05E/*.md re-run: 0 findings, 0 PENDING, exit 0 |
+| TABLE row 5 | R10 stage table: AVX-512 refresh 627 ns at L1 1024 slower than v1's AVX2 540 ns | CONFIRMED | docs/OPUS_R10_HALFKA.md:100 "540.2 -> 626.5", :153 "(172 -> 189 ns, 540 -> 627 ns)" |
+| TABLE row 6 | Stockfish PR 4796 +13.3 % / +12.6 % nps, Zen 4 +17.3 % gcc (30-Oct S3); c17a657 n=34,944 | CONFIRMED | report 6f27150d :421-426 (i9-7980XE avx512 100 runs, i7-11800H vnni512, Ryzen 7 Pro 7840U gcc 13); gh api c17a657 2023-10-08 "Total: 34944" (the "+4.0 % clang" figure not re-opened) |
+| TABLE row 7 | e08dfa8049 +7.0 % avx512icl / +5.2 % avx2 / +10.7 % sse41 (Ice Lake server, 1 thread); STC +4.50 +- 2.23 (20,768); node counts identical | CONFIRMED | commit message; ptnml 23-2092-5888-2355-26 recomputes to +4.50 +- 2.23; "node counts are identical to master" |
+| TABLE row 7 | "vpmovsxbw per row, src/nnue_halfka.cpp:465, :477" | CONFIRMED | :465 `_mm512_cvtepi8_epi16(_mm256_loadu_si256(... rows[c] + j))`, :477 the AVX2 twin |
+| TABLE row 8 | 453f220763 +0.64 % nps; STC +1.44 +- 1.09 (86,752); c6a1e7f n=67,712 | CONFIRMED | "speedup = +0.0064"; ptnml 200-8676-25260-9045-195 recomputes to +1.44 +- 1.09; c6a1e7f 2024-05-23 "Total: 67712" (the "100 runs" wording not seen in the lines read) |
+| TABLE row 8 | pairwise() AVX2 only in the znver5 build (src/nnue_halfka.cpp:172-191) | CONFIRMED | :173 `#if defined(__AVX2__)`, 0 occurrences of AVX512 in :172-191 |
+| TABLE row 9 | 4c78ba8 n=327,136; 1c384d3 n=262,624; scalar activation loops :505-516 | CONFIRMED | gh api both 2026-07-16, "Total: 327136" / "Total: 262624"; :505-507 scalar loop over l2 with sqr() / lin() |
+| TABLE row 10 | fff35786bf (2026-05-19): avx2/bmi2 20,992, avxvnni 47,328, NEON 29,600 (all [0, 2]); avx512icl non-regression [-1.75, 0.25] 90,112 | CONFIRMED | commit message, all four blocks verbatim |
+| TABLE row 12 / evidence T05-03 | S1 patch covers the TT and the lock w1 only; FT table 67,584 x 1024 = 69,206,016 B = 16,896 x 4 KB = 33 x 2 MB | CONFIRMED | stack_s1_port.patch :442-443, :461, :474 describe only "TT" and "NNUE w1"; hpp:23 NumFeatures 67,584 (96 x 704); 69,206,016 / 4,096 = 16,896 and / 2,097,152 = 33 exactly |
+| TABLE row 14 | align1 vs align0 e19: d16 +0.37 % [-0.76, +0.47], d20 +0.89 % [-1.42, +2.48], neutral | CONFIRMED | opus_r13/p2/RESULTS.md:45-46 verbatim, :47 "Verdict: neutral" |
+| TABLE row 19 / HALFKA_COST | forward 218.8 ns at L1 256 vs 279.2 at 1024; update 31.4 vs 124.5; refresh 189.4 vs 626.5 | CONFIRMED | docs :100-102 table, :163 |
+| HALFKA_COST | per-evaluation split 279 / 226 / 118 = 622 (45 / 36 / 19 %); OFF 344-356 = 55-58 + 46-49 + 243-249; 32 layer stacks x about 33 KB; npt deficit -86 to -116 Elo | CONFIRMED | 2 x 0.906 x 124.5 = 225.6, 2 x 0.094 x 626.5 = 117.8; docs :106 "46-49 ns ... 243-249 ns" (the 55-58 ns FORGENN2 update figure not re-opened); hpp:24 NumStacks = 32, 1024 x 32 B = 32 KB per stack; TRIED_GATES NPT rows -86.17 ... -116.23 |
+| TABLE rows 5 / 11 / 18 | rshogi "tile application", ce7254b, 8307191, 8bc5caa, dbe600b (titles / mine_commits summaries) | UNVERIFIABLE here | not re-opened (time cap); no card uses them |
+| notes | Zen 5 L1 DTLB 96 entries; Eleanor PR 170 +6.88 +- 5.27 | UNVERIFIABLE (unchanged) | not re-opened in this continuation; no card depends on them |
+
+## Counts after the continuation
+New distinct claims: 19 (18 CONFIRMED, 1 UNVERIFIABLE); PlentyChess PR 183 moves from UNVERIFIABLE to CONFIRMED.
+Total: 66 checked. CONFIRMED 59. UNVERIFIABLE 7 (the four Forge estimates, UNPROVEN by design; Zen 5 L1 DTLB 96;
+Eleanor PR 170; the title-only commits of TABLE rows 5 / 11 / 18). CORRECTED 0. VIOLATION 0. DUPLICATE 0. Cards
+changed: none. Lint: clean (exit 0). Nothing in the cards or notes was refuted.
