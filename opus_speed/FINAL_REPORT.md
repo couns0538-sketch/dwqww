@@ -314,10 +314,14 @@ useless work on a non-GNU compiler (not the kit's case), L5 the TT_NOTLS invaria
 build (keep that build as a CI row). Its QA test list (warm TT, option changes, stop / ponder, Threads soak, poison
 build of the stacked source, extreme positions, net-off subset) is in its section 4. Run here on all six stacks,
 IDENTICAL to the lock (`OWN_CHECKS.md` #11): its test 2 (scaled up: 1,000 unrelated FENs, `go nodes 20000`, no
-ucinewgame), test 8 (first commands) and the option-change part of test 1. NOT run here: test 1's game-continuation
-replay (successive `position startpos moves ...` of one game at `go depth 10`, where later searches reuse the warm
-subtrees and so exercise TT aging / replacement on entries that are actually hit) - it stays on QA's list with the
-other tests. Scratch at the end: `F:\ospd` 5.7 GB (cap 8 GB), F: 55 GB free, C: 93 GB (13:38). The coordinator's own re-check
+ucinewgame), test 8 (first commands) and the option-change part of test 1. Not run in the job itself: test 1's
+game-continuation replay and the rest of that list. **Follow-up 14:13-14:52 (`PATCHREV_QA.md`, NOT independent):** on
+all six stacks vs the lock, the game-continuation replay (gate game 379, 177 plies, `go depth 10`, two passes, option
+changes) is IDENTICAL, stop / ponder PASS, the Threads 2-4 soak PASS (soak only, not a lock proof), the 0xA5 poison build
+of every stacked source BIT-EXACT and a move-order mutant of every stack stops speed_pack before any ABBA, the extreme
+positions (kit, UBSan and MSVC ASan exes; `data/extreme_fens.tsv`) PASS; test 7's net-off 2k subset was not in the
+follow-up brief and was not run. bitexact_check.ps1 and the skill now state that BIT-EXACT + ABBA is not a lock until
+the warm-table identity and a Threads 2-4 smoke have passed. Scratch at the end: `F:\ospd` 5.7 GB (cap 8 GB), F: 55 GB free, C: 93 GB (13:38). The coordinator's own re-check
 (`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
 kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
 Owner items:

@@ -14,7 +14,8 @@ usage: python -I -B patchrev_qa.py <test> --out <new dir> [--mask 0xC] [--stacks
             ponderhit, exit code 0; the deterministic parts (after ucinewgame) must equal the lock's.
   soak      (1c) --mask 0xF: 60 game positions x go movetime 300, Threads 2 -> 3 -> 4 before every search, Hash every 10
             searches, one Clear Hash; every bestmove legal and in time; then Threads 1, Hash 32 and 50 FENs with
-            ucinewgame + go depth 13 that must equal the lock's cached L3 reference rows; bench 13 = 862329; exit 0.
+            ucinewgame + go depth 13 that must equal the lock's cached L3 reference rows and the lock's own tail;
+            bench 13 = 862329; exit 0. The timed Threads 2-4 searches are never compared line by line.
             SOAK ONLY: no node identity is possible at Threads > 1 and no TSan exists here - not a lock proof.
   extreme   (1e) data/extreme_fens.tsv: set A (accepted) ucinewgame + go depth 8 + go perft 3; set R (illegal in normal
             play) must be rejected with the expected `info string invalid FEN: <reason>` and keep the previous position
@@ -271,6 +272,7 @@ class Result:
     def __init__(self, name, exe):
         self.name, self.exe, self.fails, self.notes = name, exe, [], []
         self.rc = self.pid = None
+        self.det, self.perft = [], []   # deterministic parts, filled by the scripts that have them
 
     def fail(self, msg):
         self.fails.append(msg)
@@ -486,6 +488,7 @@ def soak_script(pos60, fens50, ref_rows, movetime):
         e.send('setoption name Hash value 32')
         e.sync()
         same = 0
+        r.det = []
         for j, fen in enumerate(fens50):
             e.send('ucinewgame')
             e.sync()
@@ -494,6 +497,7 @@ def soak_script(pos60, fens50, ref_rows, movetime):
             last = [s for s in seg if s.startswith('info depth ')]
             m = INFO_RX.match(last[-1]) if last else None
             row = f'{j}\t{m.group(1)}\t{m.group(2)}\t{m.group(3)}\t{line.split()[1]}' if m else f'{j}\t?'
+            r.det.append(row)
             if row == ref_rows[j]:
                 same += 1
             elif len([f for f in r.fails if f.startswith('tail')]) < 3:
@@ -634,7 +638,9 @@ def main():
         base = ref[grp]
         if r is base:
             continue
-        if a.test == 'protocol':
+        if a.test in ('protocol', 'soak'):
+            # timed searches (and Threads > 1) are not reproducible: only the deterministic parts are compared
+            # (protocol: S4-S6 after ucinewgame; soak: the Threads 1 tail rows, also checked against the L3 reference)
             d = first_diff(base.det, r.det)
             if d is not None:
                 r.fail(f'deterministic part differs from the lock at line {d}: {r.det[d] if d < len(r.det) else "<end>"}')

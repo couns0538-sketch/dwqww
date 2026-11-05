@@ -1,6 +1,6 @@
 ---
 name: forge-speed-lock-path
-description: One-command speed-only lock path for Forge (speed job 2026-11-05, branch opus-speed-20261105, opus_speed/tools) - build_variants.ps1 (QA kit v2.3 lines token for token, reproduces lock FD3A5190 byte for byte; O3 / LTO / PGO / LTO+PGO, flag and PGO-workload variants, pc1 = pc2, fail-closed pins), bitexact_check.ps1 (bench net on + off, perft, 12k six-field FENs at depth 13, MSVC ASan vs the MSVC build of the lock + g++ UBSan trap, -ResumeFrom), abba.ps1 (ABBA/BAAB rounds on one CPU, fresh copies, wall = protocol verdict, CPU time advisory, A/A band, WIN rule), speed_pack.ps1 (source tree in, pack + verified candidate file out, -ReuseBuildDirs / -PriorBitexact), make_stack.sh, pack_table.py, the day's results (stack +11 %), the CPU / disk rules and the PowerShell 5.1 pitfalls. Use for any node-identical speed change, build-flag or PGO-workload question, an nps comparison, a stack of speed switches, or a lock-candidate pack for QA.
+description: One-command speed-only lock path for Forge (speed job 2026-11-05, branch opus-speed-20261105, opus_speed/tools) - build_variants.ps1 (QA kit v2.3 lines token for token, reproduces lock FD3A5190 byte for byte; O3 / LTO / PGO / LTO+PGO, flag and PGO-workload variants, pc1 = pc2, fail-closed pins), bitexact_check.ps1 (bench net on + off, perft, 12k six-field FENs at depth 13, MSVC ASan vs the MSVC build of the lock + g++ UBSan trap, -ResumeFrom), abba.ps1 (ABBA/BAAB rounds on one CPU, fresh copies, wall = protocol verdict, CPU time advisory, A/A band, WIN rule), speed_pack.ps1 (source tree in, pack + verified candidate file out, -ReuseBuildDirs / -PriorBitexact), make_stack.sh, pack_table.py, the lock path (BIT-EXACT + L3b warm_identity.py + Threads 2-4 smoke + ABBA; BIT-EXACT + ABBA alone is not a lock), patchrev_qa.py (game replay, ponder / stop, Threads soak, extreme FENs) + poison / mutant tests, the day's results (stack +11 %), the CPU / disk rules and the PowerShell 5.1 pitfalls. Use for any node-identical speed change, build-flag or PGO-workload question, an nps comparison, a stack of speed switches, or a lock-candidate pack for QA.
 ---
 
 # Forge speed-only lock path (speed job, 2026-11-05)
@@ -60,8 +60,20 @@ Rules first:
   there; the preflight hash checks are then skipped and the run fails only at training).
 - SPEED2 and NO_ZERO_MOVELISTS both rewrite MovePicker::generate_quiets: stack them with `r14_speed2_after_nzm.patch`
   (hand-merged), not the plain SPEED2 patch.
+- Patch review QA tests on all six stacks (follow-up, `opus_speed/PATCHREV_QA.md`): game-continuation replay IDENTICAL
+  to the lock, ponder / stop PASS, Threads 2-4 soak PASS (soak only), 0xA5 poison builds BIT-EXACT, a move-order mutant
+  of every stack stops speed_pack (exit 3) before any ABBA with stack + mutant = lock + mutant nodes, extreme FENs on
+  kit / UBSan / MSVC ASan exes PASS. The lock's `set_fen` rejects impossible FENs (piece inventory, adjacent kings,
+  back-rank pawns, castling right without rook, side not to move in check, bad e.p.) with `info string invalid FEN:
+  <reason>` and keeps its position, so "illegal" test FENs are checked as identical rejections.
 
 ## Pitfalls hit while building these tools
+- (follow-up) Python's `time.monotonic()` ticks in ~15.6 ms on Windows (a latency once printed -15 ms): time UCI answers
+  with `time.perf_counter()` read before the command goes out.
+- (follow-up) Any `g++ -E` or compile check of a SLIDER_PEXT source needs the build's `-march=znver5`, or the source's
+  own `#error` (no `__BMI2__`) fires and the check fails although the source is fine.
+- (follow-up) Search a constructed test FEN on the lock first (an eight-queen "high-capture" node was a mate in 1, 947
+  nodes), and never diff whole transcripts of timed or Threads > 1 searches: compare only the deterministic parts.
 - PS 5.1 + `$ErrorActionPreference = 'Stop'`: a native tool's stderr line (`lto-wrapper: warning: using serial
   compilation`) redirected with `2>&1` becomes a terminating error. Wrap native calls in `'Continue'` (QA's kit does).
 - `[ordered]@{ 11 = ... }[11]` reads by POSITION (OrderedDictionary int indexer), not by key: use string keys.

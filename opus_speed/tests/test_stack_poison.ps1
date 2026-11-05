@@ -46,9 +46,10 @@ foreach ($s in $Stacks) {
   Check "$s.P2" ($brc -eq 0 -and $null -ne $em) "o3 poison build exit $brc, quick pins $(if ($em) { 'OK' } else { 'NOT OK' })"
   if ($brc -ne 0 -or $null -eq $em) { $tsv += "$s`t$dst`t-`t-`tFAIL`t-`t-`t-`tFAIL"; continue }
   $exe = $em.Groups[1].Value; $sha = $em.Groups[2].Value
-  # P3: the define reaches the code (preprocessor view of the poison copy), plus an objdump count for information
+  # P3: the define reaches the code (preprocessor view of the poison copy), plus an objdump count for information.
+  # -march=znver5 as in the build: a SLIDER_PEXT source stops at its own '#error' without __BMI2__ (first run, 14:2x)
   Push-Location $dst
-  try { $pp = Invoke-Tool $Gpp @('-std=c++20', '-E', '-P', '-DFORGE_NNUE_HIDDEN=256', '-DFORGE_EXPOSE_TUNABLES=1', '-DFORGE_SPD_NO_ZERO_MOVELISTS_POISON=1', '-Iinclude', 'src\search.cpp') } finally { Pop-Location }
+  try { $pp = Invoke-Tool $Gpp @('-std=c++20', '-E', '-P', '-march=znver5', '-DFORGE_NNUE_HIDDEN=256', '-DFORGE_EXPOSE_TUNABLES=1', '-DFORGE_SPD_NO_ZERO_MOVELISTS_POISON=1', '-Iinclude', 'src\search.cpp') } finally { Pop-Location }
   $fills = @($pp.Out | Where-Object { $_ -match 'memset\(&\w+, 0xA5' }).Count
   $od = Invoke-Tool $Objdump @('-d', '--no-show-raw-insn', $exe)
   $a5 = @($od.Out | Where-Object { $_ -match '\$0xa5\b|\$0xffffffa5\b|0xa5a5a5a5' }).Count
@@ -60,7 +61,9 @@ foreach ($s in $Stacks) {
   $lp = @($xo | Where-Object { $_ -like 'LOCK PROOF INCOMPLETE:*' }).Count
   $ok4 = ($xrc -eq 0 -and $v -like 'VERDICT BIT-EXACT*' -and $lp -eq 1)
   Check "$s.P4" $ok4 "bitexact_check exit $xrc, $v; LOCK PROOF INCOMPLETE line $lp"
-  $all = ($mp.Rc -eq 0 -and $brc -eq 0 -and $fills -eq 6 -and $ok4)
+  # the TSV verdict needs every check line, P3's g++ -E exit code included (the 14:17 run wrote PASS rows for w4-w6
+  # while their P3 lines said FAIL)
+  $all = ($mp.Rc -eq 0 -and $brc -eq 0 -and $pp.Rc -eq 0 -and $fills -eq 6 -and $ok4)
   $tsv += ("{0}`t{1}`t{2}`t{3}`tOK`t{4}`t{5}`t{6}`t{7}" -f $s, $dst, $exe, $sha, $fills, $a5, $v, $(if ($all) { 'PASS' } else { 'FAIL' }))
 }
 Write-OspdLf (Join-Path $outRoot 'results.tsv') $tsv
