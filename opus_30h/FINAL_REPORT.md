@@ -560,9 +560,9 @@ child, fail closed).
 | check | result |
 |---|---|
 | MCP forge-o30 self-test | 8 / 8 over stdio |
-| final_checks_o30.sh (12 checks) | PENDING (end of job) |
-| cleanroom_lint (patches + commit messages) | PENDING (end of job) |
-| doc_lint | PENDING (end of job) |
+| final_checks_o30.sh (19 checks) | 19 PASS, 0 FAIL (20:28-20:33 on CPU 1; logs/final_checks/final_checks_w3pre_2028.out + per-check logs); after the last document edits the document checks again (tools/doc_checks_o30.sh): FINAL-DOC-CHECKS |
+| cleanroom_lint (patches + commit messages) | CLEAN: 4 patches, commits main..HEAD 217 scanned (final check 10, 20:2x) |
+| doc_lint | 22 branch documents, 0 findings (final check 11, 20:2x) |
 
 ## 4. Gate next (ranked by the evidence below; the ranking is a judgement, no number is a rating claim)
 
