@@ -775,13 +775,18 @@ names and took over between runs.
 
 ## 6. End of the job
 
+- Job end ~22:1x PC clock (30 h from 2026-11-03 16:17). The final commit is named in the provenance line of
+  `D:\o30\FINAL_REPORT.md` (written by `tools/publish_o30.sh`, which also copies TOOLS.md and regenerates
+  `D:\o30\nets\INDEX.md`); its CI run is in the final message. Last green CI before the final edits: run
+  41907590271 (6cb2aba8, all rows).
 - Item B (SPSA) and its tuned exe: done (sections 1 and 3).
-- Sanity matches: finished ones in section 1 / 3; the last two (V16 on CPU 1, Y8 on CPU 0) ran past the window on the
-  normal CPUs 0-1 and their final lines are in the window-2 sanity table.
-- Final checks: `O30_MASK=<cpu mask> tools/final_checks_o30.sh` - result in section 3 (Tools / documents).
-- CI: the last run of the branch head - section 3 (Item A - engine port).
-- End-of-job bug hunt (1 hour, checklist in STATUS.md): section 6.1.
-- Job end: the clock at the final commit; `tools/publish_o30.sh` copies this file and TOOLS.md to `D:\o30\`.
+- Sanity matches: all finished before the report (window-2 sanity table in section 1, pooled lines in the window-3
+  section); 0 time forfeits, 0 illegal moves, 0 crashes in every match (gate_summary.py on each folder).
+- Final checks: 19 PASS at 20:28-20:33; the document checks again after the last edit (section 3, Tools / documents).
+- Still running at the end, by design: r27 (native KB32, 400 superbatches; trainer + watcher on CPUs 5-6 under the
+  guard, ends ~22:05, scores in `C:\o30g\gpu\r27_kb32m400_scores.tsv`) - read the TSV for its result. Two orphaned
+  read-only processes of the 13:40 monitor (pids 6828 tail, 10272 grep) are idle (BH-7). Nothing else of the job runs.
+- End-of-job bug hunt (checklist in STATUS.md): section 6.1. Time: section 6.2.
 
 ### 6.1 Bug hunt (1 hour at the end)
 Started 19:08 while the last two sanity matches held CPUs 0-1: reading of every script changed after the independent
@@ -809,3 +814,39 @@ o30_soup.py folder check; make_net_index.py newest-log / RUNNING logic; soup_tab
 lr / seed columns equal the guard logs and plan2.txt; sanity Elo is the candidate's side: "Results of cand vs lock");
 kb8b_candidate.sh selection; report numbers of section 0 (runs 7 / 12, Z32 / V16 / Y8 paired diffs and z, jobA val
 8,821 rows, layout speed ranges) equal their files.
+
+### 6.2 Time (from commit times, `tools/commit_span.py --since "2026-11-03 16:00" --gap 30 opus-30h-20261103`)
+```
+branch                             commits  first        last         span
+opus-30h-20261103                      231  11-03 16:19  11-04 21:38  29h19
+
+all: 231 distinct commits, 11-03 16:19 -> 11-04 21:38 (29h19)
+pauses > 30 min with no commit on any branch: 18 (total 16h36)
+  11-03 18:20 -> 11-03 18:50  0h30
+  11-03 19:30 -> 11-03 20:00  0h30
+  11-03 21:17 -> 11-03 21:47  0h30
+  11-03 21:47 -> 11-03 23:59  2h11
+  11-04 00:09 -> 11-04 01:45  1h36
+  11-04 01:45 -> 11-04 02:50  1h04
+  11-04 02:59 -> 11-04 04:15  1h16
+  11-04 04:52 -> 11-04 05:31  0h39
+  11-04 05:31 -> 11-04 06:38  1h07
+  11-04 06:40 -> 11-04 07:57  1h16
+  11-04 08:24 -> 11-04 08:55  0h31
+  11-04 08:55 -> 11-04 10:17  1h22
+  11-04 10:47 -> 11-04 11:18  0h30
+  11-04 11:54 -> 11-04 13:01  1h06
+  11-04 14:44 -> 11-04 15:17  0h32
+  11-04 15:22 -> 11-04 16:03  0h41
+  11-04 17:10 -> 11-04 17:43  0h32
+  11-04 17:48 -> 11-04 18:23  0h34
+commits per hour: 16:00 3, 17:00 10, 18:00 8, 19:00 14, 20:00 30, 21:00 8, 23:00 1, 00:00 6, 01:00 1, 02:00 5, 04:00 6, 05:00 1, 06:00 3, 07:00 1, 08:00 10, 10:00 7, 11:00 3, 13:00 14, 14:00 16, 15:00 3, 16:00 14, 17:00 11, 18:00 7, 19:00 27, 20:00 16, 21:00 6
+```
+
+What the commit-free gaps of more than 30 minutes were: long runs that needed no commit while they ran, plus the
+10-minute push rule not kept during them - 2026-11-03 21:47 to 2026-11-04 02:50: the n2e play checks (smoke, ABBA, 400
+games on CPU 1), the n2L CPU training (CPU 0, 1.4e9 positions) and the SPSA session from 00:04 (CPU 1); 02:59-07:57: the
+n2L match and the control match (CPUs 0-1; SPSA paused at 184 pairs); 08:24-10:17: the rematches on the root-fixed
+exe v2p4; 10:47-13:01 and 14:44-18:23: GPU runs and sanity matches of windows 1 and 2; window 3 (19:38-22:1x) had
+no such gap. What the time did not buy: an
+SPRT gate of any net (the crew's), a v2 exe as fast as the lock exe (QA build item), the 1,800 planned SPSA pairs (184).
