@@ -18,6 +18,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 <!-- merged:start -->
 | repo | commit read | date | file | licence | first line | GitHub API | tracks | use |
 |---|---|---|---|---|---|---|---|---|
+| 1337crisis/svart | f3bf4c1ce0 | 2025-11-18 | LICENSE | MIT | MIT License | api: MIT | T04O | copy with notice |
 | Adam-Kulju/Patricia | 36b2889435 | 2026-08-02 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |
 | Adam-Kulju/Patricia | 67cdfcb55f | 2025-07-07 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
 | Adam-Kulju/Patricia | 67d83d7056 | 2026-09-12 | LICENSE | MIT | MIT License | api: MIT | T02B, T04, T04G, T05C, T05F, T06 | copy with notice |
@@ -96,7 +97,6 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | cosmobobak/viridithas | 591aa39bd4 | 2026-02-01 | LICENSE | MIT | MIT License | api: AGPL-3.0 | T04E | copy with notice |
 | cosmobobak/viridithas | 7489e701bb | 2026-11-04 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T01, T02B, T04E | ideas only |
 | cosmobobak/viridithas-networks | d3da3953e4 | 2026-06-08 | LICENSE | CC0-1.0 | Creative Commons Legal Code | api: CC0-1.0 | T01 | free use (public-domain dedication) |
-| feliskio/svart | 5f7d00413b | 2025-09-26 | absent | no licence (all rights reserved) | - | api: none | T04O | ideas only (no licence) |
 | gab8192/Obsidian | 2079f0879a | 2024-01-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
 | gab8192/Obsidian | 720614a61e | 2025-09-27 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B, T04B, T04H | ideas only |
 | gab8192/Obsidian | beaa13742e | 2024-08-15 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |

@@ -1,5 +1,6 @@
 # T04O candidates: permissive engines not mined yet (brief list: Sirius, Akimbo, Starzix, Svart, Pawnocchio, Motor, Tarnished)
-Licence gate (notes/T04O/licences.md): only jw1912/akimbo is MIT at HEAD; the other six are skipped unread.
+Licence gate (notes/T04O/licences.md): jw1912/akimbo and 1337crisis/svart are MIT at HEAD; the other five are skipped
+unread (Sirius, motor: no LICENSE; Starzix: WTFPL; pawnocchio, Tarnished: GPL-3.0).
 Lock = src_al1s198_clean (`s:` = src/search.cpp). Bar for a card: >= +2 STC with an LTC result, or >= +3 STC.
 akimbo tests: own instance chess.swehosting.se, STC 8+0.08 / LTC 40+0.4 or 60+0.6, Threads=1, Hash 32 MB, bounds as
 stated. Numbers copied from the commit text (tools/mine_commits.py --show), links below.
@@ -16,7 +17,11 @@ stated. Numbers copied from the commit text (tools/mine_commits.py --show), link
 | 8 | horizontally mirrored net (own king on e-h -> board reflected) | [akimbo 7120b4b](https://github.com/jw1912/akimbo/commit/7120b4be24) | MIT | STC +17.16 +- 6.88 n=4,864 [0,3] | LACKS on the lock net (768 inputs, no mirror); bullet configs cover king buckets | evidence for T01B-02 (mirroring), net-training line, not search |
 | 9 | "Bucketed Net" | [akimbo 2611b64](https://github.com/jw1912/akimbo/commit/2611b64c92) | MIT | STC +16.68 +- 6.83 n=5,024 | bucket kind not read (no fetch) | no card (net line; king / output buckets already done) |
 | 10 | hidden layer 1024 | [akimbo 6f1059c](https://github.com/jw1912/akimbo/commit/6f1059c) | MIT | fixed nodes +35.59 +- 14.37; STC -0.37 +- 9.07 n=2,794 | bigger L1 = 30-Oct round | no card |
-| 11 | "Joined the Dark Side" | [akimbo f65305c](https://github.com/jw1912/akimbo/commit/f65305c843) | MIT | LTC 40+0.4 +87.81 +- 15.43 n=998, Hash 128 MB | mechanism not read (title only; likely a net / data switch) | PENDING (one diff-stat fetch would tell) |
-| 12 | LMR passer adjustment removed | [akimbo c34a103](https://github.com/jw1912/akimbo/commit/c34a103858) | MIT | STC +1.54 +- 3.05 [-3,1] | lock never had a passer term in search (grep `pass(ed|er)` s: 0 hits) | no card |
+| 11 | "Joined the Dark Side": net and data-source switch (net.bin replaced, own datagen code deleted, README rewritten) | [akimbo f65305c](https://github.com/jw1912/akimbo/commit/f65305c843) (message + changed-file list) | MIT | LTC 40+0.4 +87.81 +- 15.43 n=998, Hash 128 MB | net / data line, not search | no card |
+| 12 | LMR passer adjustment removed | [akimbo c34a103](https://github.com/jw1912/akimbo/commit/c34a103858) | MIT | STC +1.54 +- 3.05 [-3,1] | lock never had a passer term in search (grep for passed / passer in s: 0 hits) | no card |
 | 13 | lower WDL share in net training | [akimbo d9438d8](https://github.com/jw1912/akimbo/commit/d9438d8) | MIT | STC +2.57 +- 2.48 n=38,174 | lambda decided (Lichess 1.0, self-play 0.7-0.9) | no card |
 | 14 | SPSA tunes (5b8ec0d, c85123a) | akimbo | MIT | +4.66 +- 4.76 LTC; +4.14 +- 3.39 STC / +3.40 +- 4.51 LTC | own SPSA done (R9 / 30-h) | no card |
+| 15 | Svart: nothing since 2024 | [1337crisis/svart](https://github.com/1337crisis/svart) (MIT at f3bf4c1ce0) | MIT | 2 commits since 2024-01-01, both README edits, 0 tests | - | no card (engine development ended in 2023, outside the brief's since-2024 window) |
+
+Result: 0 new cards. Two mined sources in a row (akimbo, Svart) gave no new card, so the track stops by the cap rule.
+Evidence rows for other tracks: row 1 -> T04N-01, row 7 -> T06-01 (weak), row 8 -> T01B-02.
