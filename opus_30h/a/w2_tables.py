@@ -15,7 +15,7 @@ import sys
 
 RUNS = ['r6_kb8lr3', 'r7_kb16short', 'r8_kb32short', 'r9_kb16seed', 'r10_kb8seed2', 'r11_kb16long', 'r12_kb8long',
         'r13_kb16m400lr15', 'r14_kb8m400lr15', 'r15_kb8long2', 'r16_kb8s200lr1', 'r17_kb8m300', 'r18_kb8s200lr3',
-        'r19_kb8m300b']
+        'r19_kb8m300b', 'r20_kb8s100']
 LAYOUT = {'rank4': 'KB4', 'rank4x2': 'KB8', 'rank4x4': 'KB16', 'rank4x8': 'KB32', 'one': 'KB1'}
 
 
