@@ -122,7 +122,7 @@ Section B gives the Caissa commit and its logged test for every LACKS / DIFFERS 
 | 70 | butterfly history | indexed by side, from-attacked, to-attacked, from, to (MOh:74, MO:221-230) | side, from, to (`h:252`) | DONE (ThreatHist gate 64 TRIED) |
 | 71 | continuation history index | previous move: capture or not, both colours, piece, to (MOh:75, MO:158-176) | coloured piece + to of the previous move, no capture split (`h:253-254`, `s:842`, `s:1121`) | DIFFERS (see B) |
 | 72 | continuation plies written | 1, 2, 3, 4, 6 with per-ply weights (MO:257-266) | 1, 2, 4 (ply 4 at half bonus), `s:720-727` | DIFFERS |
-| 73 | continuation plies READ (ordering, pruning stat, LMR) | ordering 1, 2, 4, 6 (MO:433-437); move stat for pruning / LMR 1, 2, 4 (S:1908-1915) | 1 and 2 only, `s:704-712`; the ply-4 table is written (`s:721`) but never read | DIFFERS (see B: lock writes a table it never reads) |
+| 73 | continuation plies READ (ordering, pruning stat, LMR) | ordering 1, 2, 4, 6 (MO:433-437); move stat for pruning / LMR 1, 2, 4 (S:1908-1915) | 1 and 2 only, `s:704-712` (one shared table: the ply-4 write at `s:721` lands in sub-tables that other nodes read as their ply 1 / 2) | DIFFERS on the offsets read; the 4-ply term is the crew's ContHist4Pct (Pack E P15, gates 31-33): TRIED |
 | 74 | pawn-structure history | MOh:77, MO:300-303, MO:430-431 | none | DONE (PawnHist gates 29 / 37 / 44 TRIED) |
 | 75 | capture history index | side, attacker, victim, to (MOh:76) | coloured attacker, to, victim (`h:255`) | HAS |
 | 76 | killers | one per ply (MOh:80), cleared for the next ply at node entry (S:1571) | two per ply, grandchildren cleared (`s:907`, `s:733-736`) | DIFFERS (see B: 2b51bb9) |
@@ -147,3 +147,60 @@ Section B gives the Caissa commit and its logged test for every LACKS / DIFFERS 
 | 91 | aspiration fail high | re-search at one ply less (bounded), S:1059-1065 | same depth, `s:1396-1397` | LACKS (see B) |
 | 92 | aspiration widening | window += window / k, full window past a cap, S:1095-1097 | `delta += delta / 2 + 4`, `s:1401` | DIFFERS (tunable-sized) |
 | 93 | no deeper re-search at the root | S:2159 | n/a (no deeper re-search) | n/a |
+
+## B. Caissa commit and logged test per LACKS / DIFFERS row
+Source of every number: the Caissa commit message (tools/mine_commits.py --since 2022-01-01, cached; --show), link
+https://github.com/Witek902/Caissa/commit/SHA. OpenBench / furybench blocks give TC, Threads, Hash, SPRT bounds,
+LLR, N; older (2022-2023) cutechess blocks give W-L-D, Elo +- error and LLR but often no TC and no Elo bounds
+("TC n/s"). 1 thread unless noted. Books are never stated. "bundle" = several changes in one test.
+
+| row | Caissa commit (date) | what it changed | logged result | verdict for Forge |
+|---|---|---|---|---|
+| 1 | 50b25dc (2022-07-07) "Upcoming repetition detection"; b58f4a8 (2022-07-05) early exit | cuckoo cycle test added | none logged (message is the title only) | LACKS; number missing; table only |
+| 1 | 8e9ce37 (2024-02-23) | cycle test also in qsearch | +1.03 +- 1.33, 10+0.1, [0,2], LLR 2.05 (not passed), n=124,388 | below the bar |
+| 2 | 47fc56a (2023-10-21) "Better repetition handling" | twofold only in non-PV; no twofold on the root; cycle test only in non-PV (bundle) | +6.4 +- 5.3, 8+0.08, cutechess H1 llr 2.95, n=7,704 | card T04F-03 (one-line; part of the bundle only) |
+| 16 | gravity form at HEAD (commit not looked up) | corr update with gravity | - | TRIED on the lock side: CorrUpdateMode (S1 CorrGravity), gates 63 / 68 (T04 TABLE A9) |
+| 19 | b02c47f (2026-05-24) "Speedup: Prefetch correction histories" | prefetch of the child's corr entries | +2.40 +- 1.60, 5+0.05, n=49,432 (speed change measured in games) | LACKS; speed-only (nps ABBA route); lock corr tables 2 x 128 KB, cont table 1.38 MB; table only (T05 domain) |
+| 23 | b746e2b (2024-02-10) | improving discounted when the opponent threatens a capture (RFP) | +1.41 +- 1.44, 8+0.08, n=106,544 | below the bar |
+| 23 | 324f1f9 (2026-10-20) | RFP margin smaller when no TT entry | +1.18 +- 1.16 | below the bar |
+| 23 | c44b34f (2024-05-20) "Tweak RFP" | margin floor (never below a small constant) | 8+0.08 +3.08 +- 2.65 [0,2.5] n=31,518; 30+0.3 +3.52 +- 3.31 [0,3] LLR 2.65 n=19,148 | n/a: fixes a zero margin at depth 1 improving; the lock's margin there is 72 - 40 = 32 cp, never 0 |
+| 27-28 | 336745a (2023-11-19), 7081a74 (2023-06-15) | NMP parameter tweaks; the improving term and the reduce-depth-on-fail-high form predate 2022 (not found by title) | +1.58 +- 1.64 10+0.1 n=79,944; +2.9 +- 2.4 n=36,831 TC n/s | number for the mechanism missing; table only |
+| 31 | e137a02 (2024-02-05) "In-check probcut" | TT-based probcut when in check | +2.01 +- 2.00, 8+0.08, n=54,628 | below the bar (STC only, under 3) |
+| 37 | b990faf (2023-03-10) | history term in the futility margin + skip quiets | "+4.5 Elo" free text, no TC / games | number unusable; same idea as Stormphrax PR 272 in T04B's notes |
+| 37 | 8e30145 (2026-10-20) | futility depth limit removed | +2.69 +- 2.61 non-reg [-3,0] 10+0.1 n=17,572 | lock: FutilityDepth is a tunable (raise it in SPSA), no code |
+| 38 | d19eff8 (2024-09-08) | history term in the quiet SEE threshold | +1.04 +- 1.10, 10+0.1, n=177,074 | below the bar |
+| 42 | 90670d9 (2026-09-01) | tighter singular margin on an exact TT bound | +1.48 +- 1.13; second test +0.85 +- 1.47 | below the bar (T04 TABLE B retune row) |
+| 44-47 | fd723a2 (2024-02-19) "Singular Extensions tweaks" | TT depth gate depth-2 -> depth-3; TT score >= beta: -2 PV / -3 non-PV; new -1 when TT score <= alpha (bundle) | +3.81 +- 3.05, 10+0.1, [0,2.5], n=23,502 | lock has depth-3; -3 non-PV is in SingularV2 (branch fable-fb2-j3 src/search.cpp:1227-1228, never gated); the "TT score <= alpha -> -1" part has no number of its own: evidence for SingularV2 / T04-06, no card |
+| 44 | c6c7cbd (2023-11-18) "Tweak extensions" | singular / double-extension margins and cap values | +4.56 +- 3.67, 20+0.2, Hash 128 MB, [0,3], n=15,474 | parameter values only: SPSA, not code |
+| 48 | d1a2867 (2025-11-17) "Recapture extension" | PV-node TT-move recapture +1 | +0.94 +- 0.75, 10+0.1, n=221,198 | below the bar |
+| 49 | 607753e (2025-06-29) "Simplify extensions" | check extension, queen-promotion and 7th-rank pawn extensions removed | +1.98 +- 2.25 non-reg [-2.5,0.5] 10+0.1 n=24,776 | lock keeps a check extension (`s:1112-1115`): a simplification line with non-regression bounds if the crew wants one; table only |
+| 51-53 | b5c60ac (2023-10-29) "Tweaking LMR" | bundle: LMR for PV quiets from move 2, cut-node +2 / +1, TT promotion counts as capture, recapture term removed | +2.93 +- 2.75, 8+0.08, [0,3], n=28,796 | lock already has the main terms; below the bar as a code change |
+| 52 | refutation term at HEAD (commit not found by title) | killer / counter reduced less | - | number missing; table only |
+| 58 | d9f2914 (2025-09-30) | PV TT move never dropped into qsearch | +1.08 +- 1.03, 40+0.4, n=107,784 | below the bar |
+| 59 | AlphaImprovementMinDepth at HEAD (commit not found by title grep) | depth - 1 after alpha is raised | - | number missing here; Stormphrax PR 284 "reduce after alpha raised" is in T04B's list |
+| 60 | a1aa5e5 (2025-12-28) "Fail high adjustments" | fail-high score blended toward beta | +1.84 +- 1.34, 10+0.1, n=71,362 | below the bar |
+| 60 | cecdba1 (2026-01-02) | same blend in multicut | +2.02 +- 1.42 | DONE (multicut blend queued crew line) |
+| 63 | c8a30a7 (2023-08-17) "QSearch tweaks" | stop at the first quiet evasion in check (bundle with a futility retune) | +5.9 +- 4.8, cutechess H1 llr 3.18 [-3.18,3.18], n=8,606, TC n/s | card T04F-01 |
+| 63 | a677c89 (2023-08-23) "QSearch: Aggressive check evasion pruning" | stop after the first evasion | +3.3 +- 2.6, cutechess H1 llr 2.95, n=25,531, TC n/s | card T04F-01 |
+| 65 | a677c89 / c8a30a7 keep "skip underpromotions" | - | - | TRIED: QsQueenPromoOnly gate 58 (+4.40, 1,500 games, no decision) |
+| 68 | qsearch capture-history update (commit not looked up) | - | - | number missing; table only |
+| 71 | 2fd8f56 (2023-10-12) "Improve continuation history" | key bit "previous move was a capture" + one table for all plies + pointers across null moves (bundle) | +6.5 +- 5.3, 6+0.06, cutechess H1 llr 2.95, n=7,745 | card T04F-02 (capture bit only transfers) |
+| 72-73 | 80efe30 (2023-02-24) "Continuation history change" | plies 1/2/4/6 read and written | none logged | ply-4 weight TRIED (ContHist4Pct gates 31-33); 6-ply read: number missing |
+| 72-73 | 40f313f (2023-12-28) | lower weight of the 4- and 6-ply reads | +1.30 +- 1.33, 10+0.1, n=122,284 | below the bar |
+| 72 | ce8e364 (2025-02-10) | also update the 3-ply table | +0.72 +- 0.62, n=332,766 | below the bar |
+| 76 | 2b51bb9 (2023-11-17) "Only one killer move" | 2 killers -> 1 | +1.78 +- 2.09, 8+0.08, [-0.5,2.5], n=49,522 | below the bar |
+| 78 | 294f63e (2024-01-27) | history bonus grows with the score gap above beta | +1.01 +- 1.07, 10+0.1, n=188,774 | below the bar (lock has a one-step version, `s:1198`) |
+| 78 | 1b9935c (2023-10-21) | SPSA of history bonus values | +4.5 +- 4.2, 8+0.08, n=12,012 | values only: SPSA |
+| 79 | no-update-when-one-move rule (commit not looked up) | - | - | number missing; table only |
+| 80 | fc8c746 (2025-03-29) "Clear history tables with non-zero value" | positive start values | +1.50 +- 1.16, 8+0.08, n=96,590 | below the bar |
+| 81 | 74a0957 / 22c8670 (2026-07) | 50 % -> 75 % -> 87.5 % kept between searches | STC +4.34 / LTC +0.81; +1.15 | T04 TABLE B: lock keeps 100 %, no change |
+| 85 | caa3a6b (2022-07-04) "Bonus for moving hanging pieces" | first escape bonus | none logged | - |
+| 85 | bc921e8 (2023-01-17) | escape / enter bonus by attacker class (minor-pawn, rook-minor, queen-rook) | +3.0 +- 2.7, cutechess, n=32,463, TC n/s, no SPRT line | DONE/parked: crew P14 ThreatOrderPct (static threat order bonus) parked after a tactics loss and d22 +91 % nodes; A1 HistRework (threat-keyed learned history with "lesser attacker" classes) built, never gated; table only |
+| 85 | 357a686 (2023-06-07) "Bonus for pawn push threats" | quiet pawn push that attacks a piece gets a bonus | +2.8 +- 2.3, cutechess H1, n=46,463, TC n/s | below the bar; same family as P14 |
+| 86 | eb1dc04 (2023-02-04) "Introduce NodeCache" | node-count ordering at ply < 3 | none logged | number missing; table only |
+| 90-92 | ebe60f8 (2022-08-25) | fail-high re-search depth - 1, fail-low beta = midpoint, score-scaled window (bundle) | +9.0 +- 4.0, cutechess, n=16,179, TC n/s | fail-high reduce TRIED: AspFailHighReduce (packc gates 15 / 28, +5.91 / +9.27 capped; packc 28 near-miss port DONE) |
+| 90-92 | 723807a (2024-09-12) | re-search may lose more depth on fail high | +1.15 +- 1.26, 10+0.1, n=134,784 | as above |
+| 90 | f042a6f (2023-11-11), 0dbc287 (2023-06-05), cc7d02c (2023-09-19) | window schedule, score scaling, averaged base score | +2.22 +- 2.22 8+0.08; +4.0 +- 3.1 n=24,755; +3.0 +- 2.3 n=40,006 (TC n/s) | window values: SPSA; score averaging: T04 TABLE C (836ffcf / ecbcc95, gain vanished at LTC) |
+| 6 | d84b705 (2024-01-04) "Smaller TT entries" | 16 -> 10-byte entries, 3 per 32-byte cluster | 5+0.05 Threads=4 Hash 8 MB +4.30 +- 3.00 [0,2] n=23,832; 8+0.08 Hash 4 MB +2.79 +- 2.28 [0,2] n=41,766 | table only: both tests at 4-8 MB hash; the crew gate uses Hash=16 at 10+0.1, so the number does not transfer |
+| 9 | 9d566cc (2026-09-24) "Tweak TT cutoff margin" | margin of the depth+1 rule | +1.35 +- 1.06 | evidence for T04 TABLE A4 (d39fcfb) |
+| 8 | 08b6fa0 (2026-09-14) | overwrite entries from earlier searches regardless of depth | +1.69 +- 1.26 | lock already overwrites an older generation (`s:294`) |

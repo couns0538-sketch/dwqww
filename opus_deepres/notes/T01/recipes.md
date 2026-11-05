@@ -44,7 +44,7 @@ Engines: Viridithas (V, PR text + CC0 release text), Integral (I, PR text). "+x"
 ## 3. Ranked bullet configs (each <= ~1 GPU-day on one RX 7900 XT 20 GB; offline check before any SPRT)
 Common base (the 30-h method): warm start = the lock net written exactly into KB8 (rank4x2) + OB8, H256, residual
 on the hand-crafted eval, AdamW clip +-7.99 decay 0, batch 16,384, 1,024 batches per SB (16.8M positions), the
-305M-row train set, mix 8, scale 400 / 2.25. Own start values throughout (R3 starts from bullet's own Ranger
+305M-row train set (review fix, critic: 304,999,573 J1 self-play rows, card T02-01), mix 8, scale 400 / 2.25. Own start values throughout (R3 starts from bullet's own Ranger
 defaults, MIT); none is taken from another engine.
 Offline check for every net (fixed before the run): paired S31 + jobA holdout vs the lock net (rule: S31 >= 2e-5
 below, jobA z <= +2) AND vs the run's parent / control net beyond the recipe's seed noise (~4e-6 on S31); a net
@@ -57,5 +57,5 @@ that fails is not gated. Gate: UHO SPRT [0,5] at STC, then LTC, against the iden
 | R3 | R2 with Ranger instead of AdamW (start = bullet's RangerParams defaults, lookahead every 6 steps, fraction 0.5, MIT; own ranges 4-10 / 0.3-0.7), same seed / data / length; pawn pairs (zero-init) only as an R2 variant after R2 passes offline | I PR 266, V v108 (ideas only / CC0 text); bullet Ranger type (MIT) | STC +3.22 +- 2.26 (I); LTC +8.98 +- 3.92 (V) | 0 to +1 Elo on a warm start, more only from scratch **UNPROVEN** | as R2 | as R2 | optimiser switch in the trainer (~1-2 crew h) |
 
 Not ranked: a from-scratch L1 768+ threat net like the bullet example (~110G positions seen per run): our data is
-305M rows (the example would see each row ~360 times) and our from-scratch nets lost (npt L1 1024 -86 to -116 Elo;
+305M rows (review fix, critic: 304,999,573 J1 rows, card T02-01) (the example would see each row ~360 times) and our from-scratch nets lost (npt L1 1024 -86 to -116 Elo;
 bullet KB4 from scratch worse than the lock at 1.46G positions). Revisit after the 50M relabel / more self-play data.

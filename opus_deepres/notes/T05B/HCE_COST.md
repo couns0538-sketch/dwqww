@@ -39,8 +39,16 @@ king-square-dependent pawn term.
 
 Pawn-cache entry layout: `{uint64 key; Score score; 4 B padding; Bitboard passed[2]; bool valid; 7 B padding}` =
 40 B; 32,768 x 40 B = **1.25 MiB per worker** (> the 1 MiB L2 of a Zen 5 core); with a 40 B stride **half of all
-entries straddle two 64-B lines** (4 of every 8, for any 16-B-aligned base). `valid` is redundant: a zeroed entry
-(key 0, score 0, passed 0) is the correct entry for key 0 (no pawns -> score 0, no passers).
+entries straddle two 64-B lines** (4 of every 8, for any 16-B-aligned base). For TODAY's contents `valid` is
+redundant: a zeroed entry (key 0, score 0, passed 0) is the correct entry for key 0 (no pawns -> score 0, no
+passers). That stops being true as soon as king terms join the entry (T05B-01): with no pawns the shelter loop still
+adds ShelterDistance + 0 and KingFileOpen per file, so king slots need their own sentinel.
+
+Static disassembly of the lock exe (forge_ltopgo_x_al1s198_v23.exe, sha256 fd3a5190..., objdump -d, no run):
+`evaluate_position<false>.constprop.0` = 2,968 static instructions (79 imul, 69 popcnt, 331 branches, 63 cmov);
+material_key survives LTO+PGO as 10 popcnt + 9 dependent imul by 0x100000001b3 + lea, then imul $0x3c15 and
+and $0x3fff, inlined three times (search: corrected_eval 0x1400ee33e, update_correction 0x1400ef925; qsearch
+0x1400fae4d); the material-correction load issues only after the chain.
 
 ## 3. Per-call work of evaluate_position<false> (cache-hit path), counted from the code
 Middlegame example: per side 8 pawns, 2 N, 2 B, 2 R, 1 Q. "op" = one x86 instruction, rough.
@@ -77,8 +85,10 @@ threat target loops, passer loops. The shelter loop alone has 2-3 data-dependent
    ~1,650-1,900 instructions on most calls, plus the shelter loop's mispredictions. Estimate **+0.5 to +1.5 % nps
    UNPROVEN**.
 2. T05B-02: material key without the multiply chain - incremental in Board (exactly the lock's value, the key is
-   linear in the piece counts mod 2^64) or a closed-form table sum. Estimate **+0.5 to +1.5 % nps UNPROVEN** (part of
-   corrected_eval's 2.76 %).
+   linear in the piece counts mod 2^64) or a closed-form table sum. Estimate **+0 to +1.5 % nps UNPROVEN** (bounded by
+   corrected_eval's 2.76 %; out-of-order execution may hide part of the chain).
+   Both are below the PC's per-file effect alone (BH-8 up to 3-5 %): time them in ONE speed exe; the microbench
+   (HCE / corrected_eval ns per call, same binary) is the primary go / no-go evidence.
 3. Below +1 % each (TABLE.md, no card): queen attack reuse, pawn-only masks in the entry, PassedRank folded into the
    pawn score, 32-B pawn entries without the valid flag, material-config table for scale_factor, pawn-entry prefetch
    (measured: no gain, R7EvalPrefetch).

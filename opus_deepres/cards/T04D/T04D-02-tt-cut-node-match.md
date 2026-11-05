@@ -25,7 +25,7 @@ mismatch the node is searched normally. The follow-up changed only the depth lim
 likely stale for the current path, and a shallow re-search is cheap.
 
 ## Forge fit
-`bash tools/forge_has.sh 'tt_depth >= depth &&'` -> `src/search.cpp:921`: the lock's cutoff (`:920-925`) needs a
+`bash tools/forge_has.sh 'tt_depth >= depth &&'` -> `src/search.cpp:921`: the lock's cutoff (`:921-926`) needs a
 non-PV node, no excluded move, a usable score, tt_depth >= depth, halfmove clock < 90 and a bound pointing the right
 way; there is no node-type term, although `cut_node` is a parameter of `search` (`:875`). Change: one extra
 condition at `:921` for depth <= TtCutNodeDepth. qsearch's own TT cutoff (no node type there) stays as is.

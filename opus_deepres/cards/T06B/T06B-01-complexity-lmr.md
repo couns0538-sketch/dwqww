@@ -32,6 +32,10 @@ Lock has no complexity term (tools/forge_has.sh 'complex': 0 hits). The LMR bloc
 (main search, from the TT eval or static_evaluate); PieceValueMg is include/forge/eval.hpp:30. The correction-size
 signal is NOT proposed: the crew gated it (gate 16, LmrCorrThreshold=30, 1,000 games, -0.69, cap, older base).
 Change: compute C once per node when the option is ON (popcounts + one subtraction), one branch in the LMR block.
+Scope flag: a search use of an eval-derived signal; notes/T06/FORMS.md lists complexity-in-search outside T06's
+eval scope - carded here because it is the only Forge-lacking item of this sweep with STC + LTC gains; reroute to
+a T04 track if the coordinator prefers. Not a duplicate of T06-03: same kind of signal (its C = |residual| is the
+variant above), different use (T06-03 changes the eval itself, this changes only the reduction).
 
 ## Expected gain
 Alexandria 7de97e7: STC +2.14 +- 1.67 (8+0.08, 46,374 games, [0,3], LLR 2.93); LTC +2.63 +- 1.92 (40+0.4, 30,154

@@ -3,7 +3,9 @@
 Result: 54 checks; 47 CONFIRMED, 5 CORRECTED (6 card notes: T01-01, T01-02, T01-03 x2, T01-04 x2), 2 UNVERIFIABLE,
 0 VIOLATION; card_lint on cards/T01/*.md clean after the notes. The one correction that changes the track's reading:
 the -32.2 +- 18.5 "v2 path cost" quoted in T01-01 / T01-03 was the pre-root-fix exe's control; the root fix
-(926ada2c, 2026-11-04) may have removed most of it and no post-fix control exists in the cited report.
+(926ada2c, 2026-11-04) may have removed most of it and no post-fix control exists in the cited report. (review fix,
+critic: the last clause is wrong - the gate exe v2p4 IS built from 926ada2c with the root fix (notes/T05/V2P4_GAP.md:3-4),
+so its control -20.9 +- 18.5 (D:/o30/FINAL_REPORT.md:28-29, sanity only) is the post-fix control; card notes corrected.)
 
 Method: PR / release text re-fetched with gh api (repos/OWNER/REPO/pulls/N, releases/tags/T); licence rows re-run with
 tools/licence_at.py --row; lock greps re-run with tools/forge_has.sh; local records re-read at the cited file:line.
@@ -21,7 +23,7 @@ Format: card | claim | verdict | evidence.
 - T01-01 | bullet example: threat cap 128 active, pawn pairs 4,560 (96*95/2) with cap 120 (16*15/2) | CONFIRMED | D:/o30/bullet examples/advanced/inputs.rs:95-96, 224-225 (MIT). 59,808 threat total is computed at run time, not a literal; corroborated by viridithas-networks v107 release text (59808 + 4560) and the Integral README
 - T01-01 | "2.8-4.4M pos/s at H256" on our ROCm bullet | CONFIRMED | D:/o30/FINAL_REPORT.md:150 (2.78M, r1_kb4), :151 (4.20M), :153 (4.37M)
 - T01-01 | ours: R13 P4 ForgeV2 stage b = O6 threats 9216 count-valued, c = O7 pawn pairs 1792 | CONFIRMED | D:/grok-pc-data/dwqww/<cfg>/worktrees/o13-p4/opus_r13/p4/RESULTS.md:17-18
-- T01-01, T01-03 | "vs the lock exe it also carries the v2 path's own cost (identical-eval control -32.2 +- 18.5)" | CORRECTED | D:/o30/FINAL_REPORT.md:48, 691-695, 721-724: -32.2 +- 18.5 was the OLD exe's control (patch 378bf6bc, lazy root accumulator, R-A2); fixed 2026-11-04 by patch 926ada2c; the gate exe v2p4 control read -20.9 +- 18.5 (FINAL_REPORT.md:28-29, sanity only); no control of the root-fixed exe is in the cited lines. Note added in both cards
+- T01-01, T01-03 | "vs the lock exe it also carries the v2 path's own cost (identical-eval control -32.2 +- 18.5)" | CORRECTED | D:/o30/FINAL_REPORT.md:48, 691-695, 721-724: -32.2 +- 18.5 was the OLD exe's control (patch 378bf6bc, lazy root accumulator, R-A2); fixed 2026-11-04 by patch 926ada2c; the gate exe v2p4 control read -20.9 +- 18.5 (FINAL_REPORT.md:28-29, sanity only); no control of the root-fixed exe is in the cited lines. Note added in both cards (review fix, critic: v2p4 is the root-fixed exe (V2P4_GAP.md:3-4), so -20.9 +- 18.5 is the post-fix control; both card notes corrected)
 - T01-02 | Integral PR 266 Ranger vs AdamW STC 10+0.1 1 thread 16 MB +3.22 +- 2.26, 25,378 g, penta 116/2941/6356/3144/132, LLR 2.90 [0,3], merge c06f3e1f 2026-10-27 | CONFIRMED | https://github.com/aronpetko/integral/pull/266. Note: the same PR also raised L1 to 1024 and merged accumulators; the text does not say which net size the Ranger test used
 - T01-02 | Viridithas v108 LTC 40+0.4 1 thread 128 MB +8.98 +- 3.92, 7,004 g, penta 5/888/1896/709/4, LLR 2.98 [0,3], viri.dev 676 | CONFIRMED | https://github.com/cosmobobak/viridithas-networks/releases/tag/v108
 - T01-02 | v108 is "vs the Adam-trained net" and a "threat + pawn-pair net (v107 arch)" | CORRECTED | the v108 release text says only "Trained with Ranger, instead of Adam."; baseline and arch are an inference from v107 (published 2026-06-20, arch with 59808 + 4560). Note added in the card

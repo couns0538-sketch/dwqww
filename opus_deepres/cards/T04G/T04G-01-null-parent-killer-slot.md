@@ -32,7 +32,9 @@ in a null child already (`:738` needs a real previous move).
 ## Expected gain
 Altair PR 105: +4.07 +- 3.28 Elo (95 %), 8+0.08, Threads=1, Hash 32 MB, SPRT [0,5] (-2.94, 2.94), LLR 2.95,
 n=22,696 (W 6,120 L 5,854 D 10,722); book not stated; no LTC. Mid-2023 Altair (weaker, hand-crafted era), so the
-error bar spans roughly +0.8 to +7.4 and transfer is uncertain.
+error bar spans roughly +0.8 to +7.4 and transfer is uncertain. Altair clears killers only at each search start
+(`src/search.cpp:56-66`, called at `:1490`), so its slot-1 killer is long-lived and costly to lose; the lock refreshes
+ply p+1 whenever the grandparent starts (`:907`), so the source gain is closer to an upper bound for Forge.
 Forge estimate: 0 to +3 Elo **UNPROVEN**.
 
 ## Effort

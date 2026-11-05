@@ -27,6 +27,10 @@ Not found: any relabel of the same positions by a deeper search of the SAME engi
 size (Stockfish moved to a stronger teacher instead; Forge's own 20k-node relabel pilot has no gate yet). One web
 search found no such test; the closest study (arXiv 2412.17948, Xiangqi, CC BY 4.0: in-check exclusion plus static
 vs quiescence / negamax gap filters) reports no Elo or games for any filter or label choice.
+Not found (review fix, critic: made explicit): an in-check row filter with a measured Elo at a fixed net size - the
+study above has no Elo; Forge's writer already drops in-check rows. Not searched in this round (gaps named by the
+critic; one search each, not done in review): a row |eval| cap (Forge drops |cp| > 3000 at write time; whether 3000
+is the right cap is open) and a result-balance (draw-ratio) skew of the data (only the WDL-consistency skip, T02-03).
 
 Leela-scored binpacks (one line): Lc0 training data, licence **ODbL 1.0** (Stockfish README @ff7cee4244 lines
 125-126), raw at https://storage.lczero.org/files/training_data ; Stockfish's filtered / TB-rescored binpacks at

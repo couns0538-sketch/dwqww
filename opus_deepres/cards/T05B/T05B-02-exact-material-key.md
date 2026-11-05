@@ -1,31 +1,55 @@
-# T05B-02: exact material key without the serial multiply chain (incremental or closed form)
-Status: PARTIAL (every unfinished field says PENDING)
+# T05B-02: exact material key without the serial multiply chain (closed form, or incremental in Board)
+Status: COMPLETE
 
 ## Source
-Own code: lock src/search.cpp:588-596 (material_key: 10 popcounts in a Horner chain of multiply-adds), :638-645
-(corrected_eval), :647-656 (update_correction), :50 (MaterialCorrectionWeight = 100). Own profile: R7 J3 perf
-(corrected_eval 2.76 % self time). Other engines: PENDING.
+Own: lock src/search.cpp:588-596 (material_key, Horner form), :638-645 (corrected_eval), :647-656 (update_correction),
+:50 (MaterialCorrectionWeight = 100). Own profile: R7 J3 perf bench 16, corrected_eval 2.76 % self time
+(opus-r7-nps `opus_r7/j3/logs/ci_prof1_base/perf_self_off.txt`). Own static disassembly of the lock exe
+(forge_ltopgo_x_al1s198_v23.exe, sha256 fd3a5190...): three inlined copies, each 10 popcnt + 9 dependent imul by
+0x100000001b3 + lea, then imul $0x3c15 and $0x3fff before the material-correction load (search 0x1400ee33e,
+0x1400ef925; qsearch 0x1400fae4d). Precedent: Stockfish keeps its material key incrementally and feeds a material
+correction history: https://github.com/official-stockfish/Stockfish/commit/ddc9f48bc3e0b1d22b2d1259d5d45d4640e0374d ,
+/commit/e9aa20ad132b569c7a9e60322a25aeef94a3375a , and the bug + fix PRs https://github.com/official-stockfish/Stockfish/pull/6891 ,
+https://github.com/official-stockfish/Stockfish/pull/6894 .
 
 ## Licence
-Own code. Other engines: PENDING.
+Own code and own exe. Stockfish 86f1df7134: GPL-3.0, ideas only - commit messages and PR text only, no source.
 
 ## Mechanism
-PENDING (draft): the lock's key is G * sum_j (c_j + 1) * P^(9-j) mod 2^64 (c_j = count of piece kind j), linear in
-the counts, so Board can keep the exact same 64-bit value incrementally (add or subtract a per-kind constant on
-captures and promotions), or corrected_eval can compute it as a constant plus a sum of 10 table entries indexed by
-the counts, without the dependent multiply chain.
+The lock's key is G * sum_j (c_j + 1) * P^(9-j) mod 2^64 (c_j = count of the 10 pawn..queen kinds, P and G the two
+literals at :592 and :595). That is a constant K0 plus sum_j c_j * K_j with K_j = G * P^(9-j) mod 2^64, exactly,
+because unsigned arithmetic mod 2^64 is a ring. (a) Closed form, no Board change: compute K0 and K_j at compile time
+from the same literals; the key is K0 plus 10 independent products (or 10 small table entries indexed by the counts),
+summed as a tree: same 64-bit value, latency ~10 cycles instead of ~40. (b) Incremental: Board keeps the value
+(set_fen from (a); make_move subtracts K_j for a capture or en passant, swaps pawn for piece on a promotion; unmake
+restores it from Undo); corrected_eval and update_correction read one field.
 
 ## Forge fit
-PENDING
+`forge_has.sh 'material_key|materialKey|material_table|MaterialEntry'`: only search.cpp:588, :642, :655 - no material
+key in Board, no material table. Runs at every non-check node that reaches the eval step (TT-eval reuse included)
+and at each correction update. More keys (card T04-04 minor / major correction keys) would add more such chains, so
+(b) is also the base for those.
 
 ## Expected gain
-PENDING
+Source numbers: none for this exact change (Stockfish's key has been incremental since 2009; no nps logged). Forge:
+bounded by corrected_eval's 2.76 % self time; the key is 31 of its ~56 instructions and ~40-50 of the ~70-80 cycles
+on its dependent path (counted from the disassembly); out-of-order execution may hide part of it. Forge estimate: **+0 to +1.5 % nps UNPROVEN** (~1 % if
+half of corrected_eval's time is the chain); (b) also saves the ~30 instructions.
 
 ## Effort
-PENDING
+(a) crew ~1-2 h, (b) ~3-4 h (Board, Undo, set_fen, debug check, CTest); CPU ~1 h (kit build, pins, identity, probe).
+No SPRT; GPU 0.
 
 ## Test plan
-PENDING
+1. Unit test: closed form == lock Horner function on every count vector 0..10 per kind (or 10^6 random vectors) and
+   on every node of bench 13; for (b) a debug-build check board key == recomputed at every make / unmake (the
+   Stockfish PR 6894 lesson: an incremental material key broke silently in a do_move reorder).
+2. Static check: objdump of the ON exe shows no imul chain by 0x100000001b3 at the corrected_eval sites.
+3. ON exe with the kit (pc1 = pc2): bench d11-d22 + perft pins, 12k-FEN exe identity; planted mutant (drop one K_j
+   term) must change bench nodes.
+4. Gate route: node-identical = nps ABBA only (standard probe, fresh copies, A/A arm), timed in one speed exe with
+   T05B-01 (alone it is below the PC's per-file effect).
 
 ## OFF-by-default design
-PENDING
+Build switch FORGE_MATKEY_FAST (0 = lock source, lock pins by construction; 1 = closed form (a); 2 = incremental (b)).
+Not a UCI option (hot path; cold OFF paths under the kit's PGO workload). OFF / ON identity as above.
