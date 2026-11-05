@@ -9,12 +9,12 @@ fishtest but verifiable from the assembly goes straight to a PR). Stockfish comm
 engine output) and 73018a0337 (pathological positions where the search explodes). Own: forge-ltopgo-pgo (pins, 12k FENs).
 
 ## Licence
-OpenBench @230ed46e47 GPL-3.0, Stockfish @5c617e579c GPL-3.0, fishtest @5a8a229a52 (no root LICENSE file found):
-ideas only. Wiki pages and commit messages were read, no source or test file. The checklist is own work.
+OpenBench @230ed46e47 GPL-3.0, Stockfish @5c617e579c GPL-3.0 (verify: also GPL-3.0 at a06e7004c1 and 73018a0337,
+rows in notes/T12/licences.md), fishtest @5a8a229a52 (no root LICENSE file found): ideas only. Wiki pages and commit messages were read, no source or test file. The checklist is own work.
 
 ## Mechanism
 A change is node-identical when every search output matches at every level below, not just the bench total. Forge's
-bench (src/uci.cpp:377-408) sums nodes over 8 FENs at one depth, with a 16 MB TT cleared before each FEN, and prints
+bench (src/uci.cpp:377-408 (corrected by verify: 377-410)) sums nodes over 8 FENs at one depth, with a 16 MB TT cleared before each FEN, and prints
 only the total. So it never checks a warm TT, other Hash sizes, per-position bestmove / score / PV, Threads, or rare
 move types.
 Checklist (Threads=1, `go depth` / `go nodes` only, never time limits; A = lock or parent, B = change):

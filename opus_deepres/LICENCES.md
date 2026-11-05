@@ -36,6 +36,8 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | llvm/llvm-project | f7d11195ab | 2026-11-04 | LICENSE.TXT | Apache-2.0 WITH LLVM-exception | ====================================================================== | api: NOASSERTION | T12 | copy with notice |
 | official-stockfish/Stockfish | 5c617e579c | 2025-02-27 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | 5ca4bfe72b | 2026-09-09 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
+| official-stockfish/Stockfish | 73018a0337 | 2021-09-23 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
+| official-stockfish/Stockfish | a06e7004c1 | 2024-09-17 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | d212e663bb | 2024-07-06 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06 | ideas only |
 | official-stockfish/Stockfish | ff7cee4244 | 2026-10-28 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02, T04, T05 | ideas only |
 | official-stockfish/books | a804a97e70 | 2026-10-16 | LICENSE | CC0-1.0 | Creative Commons Legal Code | api: CC0-1.0 | T12 | free use (public-domain dedication) |
@@ -50,5 +52,19 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
   the tree (recursive tree listing, 23:05) and GitHub detects none. Treated as no licence: ideas only (its test pages
   and logs are read, never its code) - the same use as GPL, so nothing changes for the cards.
 
-## Datasets and tools
-PENDING (collected from the cards at the next report update).
+## Datasets and tools named by the cards (licence as stated by the source; use)
+| dataset / tool | licence | where it was read | use in the cards |
+|---|---|---|---|
+| Lc0 (Leela) training data and the Leela-scored / TB-rescored binpacks | ODbL 1.0 (Stockfish README @ff7cee4244 lines 125-126) | notes/T02/TABLE.md (one line) | optional external teacher slice only after G1 (MIX.md 5); attribution needed; sets of 328-514 GB do not fit F: |
+| Lichess open game database / evaluations | CC0 per database.lichess.org (30-Oct round); NOT re-checked in this job | notes/T06/FIT_RECIPE.md D4 | optional check data only |
+| cosmobobak/viridithas-networks @d3da3953e4 | CC0-1.0 (LICENSE "Creative Commons Legal Code"; GitHub: CC0-1.0) | notes/T01/licences.md | none used (nets of another engine; no card trains on them) |
+| aronpetkovski/integral-datasets (Hugging Face, main 3e8d6ac1) | card field "license: mit" | notes/T01/licences.md | no data files on main today; training on another engine's data = owner decision |
+| Viridithas at tag v20.0.0 (0631113e22) | MIT at that tag (AGPL-3.0-only from v21) | notes/T01/licences.md | read as ideas only in this job; reading v20 source would be allowed by its licence - owner decision |
+| bullet @da426a49 (trainer) | MIT | LICENCES table above | T01 configs (copy with notice) |
+| nnue-pytorch @c625702757 (trainer) | GPL-3.0 | LICENCES table above | run-only tool of the crew; PR text read, never source |
+| fastchess (match runner) | MIT (30-Oct round; not re-checked) | crew tool | gates (T12) |
+| UHO_Lichess_4852_v1.epd and other Stockfish books | CC0 (30-Oct round, books repo; not re-checked) | fishtest run data quoted by T05 / T07 verifiers | gate book |
+| uops.info measurement tables; Agner Fog instruction_tables.pdf (2025-09-20) | facts / documentation (no code copied) | notes/T05/sources.md 1-4 | Zen 5 latency / throughput figures |
+| LLVM BOLT README @b537630299 | Apache-2.0 WITH LLVM-exception | notes/T05/sources.md 5 | the one-line "BOLT on Windows: no" |
+| Syzygy tablebase files | free to use; the generator syzygy1/tb is GPL-2.0 (30-Oct round) | T02-05 | presence on grok-pc PENDING |
+| arXiv 2412.17948 (Xiangqi NNUE data study) | CC BY 4.0 | notes/T02/sources.md | dead end (no Elo) |

@@ -10,6 +10,8 @@ card"). Nothing may exist only in your conversation.** The coordinator commits y
 stop you at any moment; whatever is on disk is what survives.
 
 ## Where to write (all under `F:\odr\wt\opus_deepres\`)
+- Temporary files (downloads, listings, helper scripts, PDF text): ONLY `F:\odr\work\T<nn>\` (create it). Not the
+  session scratchpad, not C:, not D: (added 23:38 after three first-round workers used the scratchpad on C:).
 - Only `cards/T<nn>/<id>.md` and `notes/T<nn>/*.md` of YOUR track. Licence checks go to `notes/T<nn>/licences.md`
   (one `tools/licence_at.py --row` line per repo). Never touch STATUS.md, FINAL_REPORT.md, RESUME.md, LICENCES.md,
   WORKER_RULES.md, other tracks' folders, the tools, or anything outside `F:\odr\`. Never write to D: or C:.

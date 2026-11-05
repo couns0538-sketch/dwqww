@@ -9,7 +9,9 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 23:31 (elapsed 1 h 08 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
+- Last update of this file: 23:40 (elapsed 1 h 17 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
+- INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
+- Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s).
 - Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
   any explicit low-usage warning triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
@@ -38,7 +40,7 @@ this job is written to D:.
 | T1 v2 features + recipe | VERIFIED (research 22:48-23:09, verify -23:2x) | T01-01..06 | - | 54 checks, 47 confirmed, 5 corrected |
 | T2 data quality | VERIFIED (research -23:20, verify 23:20-23:32) | T02-01 (coordinator), T02-02..06 | - | 68 checks, 54 confirmed, 6 corrected, 7 unverifiable, 1 violation (MIX.md constant; fixed by the coordinator 23:34) |
 | T4 search features | VERIFIED (research 22:48-23:14, verify 23:15-23:25) | T04-01..06 | - | 55 checks, 46 confirmed, 7 corrected, 0 violations |
-| T5 NNUE speed Zen 5 | VERIFIED (research -23:16, verify -23:3x per VERIFY.md) | T05-01..04 | - | 58 checks, 54 confirmed, 1 corrected, 3 unverifiable, 0 violations |
+| T5 NNUE speed Zen 5 | VERIFIED (research -23:16, verify 23:20-23:33 per notes/T05/VERIFY.md) | T05-01..04 | - | 58 checks, 54 confirmed, 1 corrected, 3 unverifiable, 0 violations |
 | T6 eval post-processing | VERIFIED (research 22:45-23:11, verify 23:11-23:22) | T06-01..05 | - | 48 checks, 44 confirmed, 2 corrected |
 | T7 time management | VERIFIED (verify 23:09-23:17) | T07-01..02 | - | 40 checks, 31 confirmed, 5 corrected, 1 process note |
 | T12 testing / proofs | RESEARCH RUNNING | - | 5 cards on disk | |
