@@ -76,8 +76,14 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   and U8 200 more games (seed 31, sanity2) on CPU 4; 19:42 GPU plan 3 on CPUs 5-6 (queue_runner2.sh, RUNNER_GPU_MASK
   0x60; 2.7M positions/s with two loader CPUs): r21 / r22 = lr 5e-6 fine-tunes warm-started from the soups Y8 / Z32,
   r23-r25 = r5-recipe KB8 seeds + one KB32 run; cutoff 21:10.
-- Next: V16 ends ~20:26 -> CPU 1: abba.py A/A with the identical command (checklist item 8), final_checks_o30.sh,
-  then more games; Y8 ends ~21:21 -> result tables, INDEX.md, final soups of plan 3, final checks, CI, publish copies.
+- 19:55-20:08 soup fine-tunes: r21 (from Y8) ends WORSE than Y8 (paired S31 z +10.7, jobA z +2.4), r22 (from Z32)
+  level with Z32 (z -1.6 / +0.7) -> no; r25 changed to a second KB32 seed. 20:30 r23 (KB8 seed of the r5 recipe)
+  S31 -1.64e-4 / jobA -5.5e-5 = r5 / r10 (the recipe replicates).
+- 20:28 V16 final 300 games 51.33 % (+9.3 +/- 22.0). 20:28 abba.py A/A with the identical command: B/A 1.014 (CI
+  0.985-1.044) = no harness bias (BH-8: the night's 5.5 % came with two exe files). 20:29-20:33 final checks pre-run
+  on CPU 1: 19 PASS, 0 FAIL. 20:33 CPU 1 plays 120 more r5 games (seed 31, to ~21:38).
+- Next: Y8 ends ~21:20, Z32 / U8 ~21:30, r5 extra ~21:38; GPU queue ends ~21:17 -> final_soups3 + a KB32 soup with
+  r24 + r25; then tables, INDEX.md, document checks, CI, publish copies, job end ~22:17.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
