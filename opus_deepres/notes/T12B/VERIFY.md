@@ -12,7 +12,7 @@ Format: card | claim | verdict | evidence.
 - T12B-01 | bench pins d11/13/16/20/22 = 312866/862329/3024920/12389307/34048354 | CONFIRMED | same string in the project skills (engine-verify / ltopgo).
 - T12B-01 | O30 trees spsa_1 / v2port_1 / harness/h1 still 64 entries; R15 cands 0 hits | CONFIRMED | grep: spsa_1 search.cpp:497, v2port_1 :454, h1 :454 `std::array<Move, 64> bad_captures_{}`; D:/o15/cands 0 files.
 - T12B-01 | Stockfish c56bd10cb5 = PR 6235, "really rarely triggered", found via a wrong bench; ee515ad = root PV longer than MAX_PLY; Caissa 136d3d0 overflown-move history | CONFIRMED | mine_commits --show (messages only); 136d3d0 title "Fix lack of history bonus for overflown best move".
-- T12B-01 | "identity bench x5 / perft5 / kiwipete ALL OK" | UNVERIFIABLE in 15 min | identity.log is in commit a9cea71f (fable_review/logs/identity.log, 8 lines) but was not opened; no number in the card depends on it.
+- T12B-01 | "identity bench x5 / perft5 / kiwipete ALL OK" | CONFIRMED | git show a9cea71f:fable_review/logs/identity.log: bench d11-d22 = 312866/862329/3024920/12389307/34048354 OK, perft5 4865609 OK, kiwipete 193690690 OK, ALL OK.
 - T12B-01 | no Elo claim, estimate 0 Elo UNPROVEN, nps effect UNPROVEN, crew 1-1.5 h | CONFIRMED | card text.
 - T12B-01 | duplicate? | NOT A DUPLICATE | no card in cards/*/ (88 files) proposes the fix; T04 BUG_CHECKLIST row 9 is a checklist row ("likely unreachable") that this card corrects; T05C-02 is the zero-fill speed card and is cited as a pairing, not repeated. TRIED_GATES grep 'bad_capt|buffix|sanitiz|fuzz|assert|uci|fen' = 0 of 110.
 
@@ -23,7 +23,8 @@ Format: card | claim | verdict | evidence.
 - T12B-02 | 3d92950859 = PR 5383, repro FEN 7K/P1p1p1p1/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1 + go nodes 1000000, STC 143,936 LLR 2.93 | CONFIRMED | message.
 - T12B-02 | sanitizer CI since 2019: 7ede1ed (2019-04-27 "Allow for address sanitizer" #2119), 98cbaa6 (2021-06-03 "Enhance CI to error on leaks"), 4be94f4 (2023-08-13 "Update sanitizer CI to ubuntu 22.04") | CONFIRMED | gh api commits (titles only; outside the miner cache).
 - T12B-02 | talkchess p=801104: FEN 3Q4/1Q4Q1/4Q3/2Q4R/Q4Q2/3Q4/1Q4Rp/1K1BBNNk w - - 0 1, "Reachable or not this is 218 moves", "so 256 is needed", one engine's list 128 from a testing maximum of 100, no pseudo-legal or capture maximum stated | CONFIRMED with a note | fetched first page (10 of 30 posts). Thread title is "max number of pseudo legal move" (2019-06-09), not the phrase quoted in sources.md E5; the OP calls 218 "pseudo legal moves". The card's "`go perft 1` should list 218 ... not run here" is honest; 218 stays an external count until the fixture is run.
-- T12B-02 | existing CI: opus-r13-san.yml = self-play smoke (4 games x <= 160 plies, go nodes 20000, go perft 1 legality, stderr scan), g++ 13 ASan+UBSan; every CI build defines NDEBUG | CONFIRMED | skill forge-candidate-checks lines 33-37; skill forge-engine-verify lines 36-37.
+- T12B-02 | existing CI: opus-r13-san.yml = self-play smoke (4 games x <= 160 plies, go nodes 20000, go perft 1 legality, stderr scan), g++ 13 ASan+UBSan | CONFIRMED | skill forge-candidate-checks lines 33-37.
+- T12B-02 | "today's sanitizer row is built with NDEBUG: it cannot fire the MoveList assert" | CORRECTED | the NDEBUG statement in skill forge-engine-verify (lines 36-37) covers the three CMake CI build types only; opus-r13-san.yml at 3cfdb975 (main repo) compiles with a plain `g++ -std=c++20 -O1 -g -fsanitize=address,undefined ...` line, 0 hits for NDEBUG, so asserts are live in that row. The row still has no crafted positions, no -D_GLIBCXX_ASSERTIONS and never meets a 65-loser node, and the lock's bad_captures_ write has no assert at all, so the card's delta stands; the card sentence now carries the correction. notes/T12B/TABLE.md row A2 ("compiled out in every CI build") is wrong in the same way (not edited).
 - T12B-02 | forge_has 'Capacity|assert\(' -> board.hpp:55, 57 only asserts; :51 Capacity 256, :71 array | CONFIRMED | grep.
 - T12B-02 | buffix annealer imports python-chess (GPL) at fable_nnue_losing_search2.py:4 | CONFIRMED | line 4 `import ... chess`, line 5 `from chess import ...`.
 - T12B-02 | no Elo claim; crew 4-6 h; UNPROVEN label | CONFIRMED | card text.
@@ -39,10 +40,10 @@ Format: card | claim | verdict | evidence.
 ## Rules
 - Reading rule | CONFIRMED | all Stockfish items are commit messages via tools/mine_commits.py or gh api commit titles; no source file, diff or test file opened by the worker (sources.md) or by this verify. Caissa (MIT) title only.
 - Tuned constants | CONFIRMED | none carried over; the only size proposed (MoveList::Capacity 256) is the lock's own constant.
-- Licence rows | CONFIRMED | tools/licence_at.py --row re-run for c56bd10cb5, 7316ef4e86, 5380403393, 1548538ede, 3d92950859, 23df82905b: GPL-3.0 (Copying.txt), identical to notes/T12B/licences.md. df01cb7ed3 and b7f17346e5 rows not re-run (cited in notes only).
+- Licence rows | CONFIRMED | tools/licence_at.py --row re-run for c56bd10cb5, 7316ef4e86, 5380403393, 1548538ede, 3d92950859, 23df82905b: GPL-3.0 (Copying.txt), identical to notes/T12B/licences.md. df01cb7ed3 and b7f17346e5 rows not re-run (cited in notes only); the Caissa (MIT) row lives in notes/T04/licences.md and was not re-run either.
 - Names | CONFIRMED | grep for vendor / model-company names in cards/T12B and notes/T12B: 0 hits; card_lint 0 findings.
 - Caps | CONFIRMED | 3 cards (2 full + 1 one-liner) <= 4; 7 external sources; 0 engines deep-read; crew hours in every card.
 - Lint | CLEAN | card_lint: 3 cards, 0 findings, 0 PENDING (re-run after the T12B-03 correction).
 
 ## Counts
-checked 30 claims: CONFIRMED 26, CORRECTED 1 (T12B-03 uci.cpp:46 wording), UNVERIFIABLE 2 (T12B-01 identity.log not opened; T12B-03 fastchess FEN format inferred), VIOLATION 0, DUPLICATE 0.
+checked 33 items (11 on T12B-01, 12 on T12B-02, 5 on T12B-03, 5 rule checks): CONFIRMED 30 (the two duplicate checks counted as confirmed not-duplicate), CORRECTED 2 (T12B-02 sanitizer-row NDEBUG claim; T12B-03 uci.cpp:46 wording), UNVERIFIABLE 1 (T12B-03 fastchess six-field FEN inferred), VIOLATION 0, DUPLICATE 0. Lint clean after both corrections.

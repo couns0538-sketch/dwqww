@@ -14,7 +14,7 @@ only. The buffix annealer imports python-chess (GPL-3.0, fable_nnue_losing_searc
 ## Mechanism
 Delta to T12-03: T12-03 compares outputs to prove node identity of speed patches; this suite pushes each fixed buffer to
 its limit in a build where every bound is checked. Today's sanitizer row is a short self-play smoke (start positions
-not stated; none crafted) built with NDEBUG: it cannot fire the MoveList assert and is not built to meet a 65-loser node. Fixtures (all accepted by set_fen):
+not stated; none crafted) (corrected by verify: opus-r13-san.yml 3cfdb975 = plain `g++ -O1 -g`, no -DNDEBUG, so the MoveList assert IS live there; it lacks crafted positions, -D_GLIBCXX_ASSERTIONS and any 65-loser node; the bad_captures_ write has no assert at all). Fixtures (all accepted by set_fen):
 F1 bad_captures_ (A1): the 68-loser FEN of T12B-01 plus two annealed variants (one black to move), go depth 1-6.
 F2 MoveList 256, moves_, root arrays (A2, A3, A7): 3Q4/1Q4Q1/4Q3/2Q4R/Q4Q2/3Q4/1Q4Rp/1K1BBNNk w - - 0 1 (16 white men,
    0 pawns, 8 promoted: inventory rule passes; `go perft 1` should list 218, the thread's count, not run here); plus
