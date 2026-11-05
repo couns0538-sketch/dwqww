@@ -43,7 +43,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | AndyGrant/Ethereal | f71ac4769a | 2023-03-17 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | AndyGrant/OpenBench | 230ed46e47 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | Bobingstern/Tarnished | 2bd208333e | 2025-11-26 | absent | no licence (all rights reserved) | - | api: GPL-3.0 | T04S | ideas only (no licence) |
-| Bobingstern/Tarnished | 79f10476c7 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04O | ideas only |
+| Bobingstern/Tarnished | 79f10476c7 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04O, T04U | ideas only |
 | Ciekce/Stormphrax | 29e175a2f5 | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
 | Ciekce/Stormphrax | 3219c3021b | 2024-11-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
 | Ciekce/Stormphrax | 3f7ae35295 | 2026-04-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12C | ideas only |
@@ -85,6 +85,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Witek902/Caissa | c8a30a7d11 | 2023-08-17 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
 | Witek902/Caissa | d39fcfb0d6 | 2025-06-28 | LICENSE | MIT | MIT License | api: MIT | T04P | copy with notice |
 | Witek902/Caissa | fbebb1440d | 2026-03-20 | LICENSE | MIT | MIT License | api: MIT | T12C | copy with notice |
+| Yoshie2000/Clockwork | 277b0cc44f | 2025-10-09 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04U | ideas only |
 | Yoshie2000/PlentyChess | 5c8c8c7b46 | 2025-12-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | Yoshie2000/PlentyChess | 5fe2d9cd7e | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | Yoshie2000/PlentyChess | 7cb061e068 | 2025-06-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |

@@ -9,7 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 06:06 (elapsed 7 h 42 min).
+- Last update of this file: 06:24 (elapsed 8 h 01 min).
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
@@ -64,7 +64,8 @@ this job is written to D:.
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
-| POOL3J (last card run) | RUNNING since 06:06 (wf_9c238198-477, 1 worker) | - | - | T04U: Clockwork #281 (check extension moved into LMR; T04T's best uncarded candidate), then the unread PR pages (Clockwork 4+, Tarnished 2+, motor 3+); max 3 cards; research 30 min + Fable verify 10 min |
+| POOL3K (HCE leads + speed-spec fixes) | RUNNING since 06:24 (wf_e583e970-4e2, 2 workers) | - | - | T06E: the HCE leads T06D left unread (queen threats SF 6d8f583 / 1093047 + Berserk PR 219, Sirius PR 185 / 258, Perseus PR 100), max 3 cards + Fable verify; SPECFIX2: the 10 SPEC_SPEED_REVIEW fix items into SPEC_SPEED (round 7) |
+| POOL3J (last card run) | DONE 06:06-06:24 (2 agents, 299,582 agent tokens; T04U-01 check extension moved into LMR (Clockwork #281 STC +5.82 / LTC +3.35, [0,5], UHO; 0 to +3 UNPROVEN, ~2 crew h); verify 26 of 26 confirmed); started (wf_9c238198-477, 1 worker) | - | - | T04U: Clockwork #281 (check extension moved into LMR; T04T's best uncarded candidate), then the unread PR pages (Clockwork 4+, Tarnished 2+, motor 3+); max 3 cards; research 30 min + Fable verify 10 min |
 | POOL3I (report critic) | DONE 05:42-05:56 (1 agent, 222,633 agent tokens; notes/CRITIC4.md: 13 findings, 3 wrong / 2 misleading / 8 wording; finding 3 rejected after a check: T02-01 names the 37 train files at lines 19 and 22); started (wf_eb0e5f99-576, 1 worker; total 3 with POOL3H) | - | - | CRITIC4: Fable check of FINAL_REPORT.md INTERIM 4 (numbers vs cards / notes, five greps, brief coverage vs notes/CRITIC.md Part A, rule checks, section 2 arithmetic) -> notes/CRITIC4.md |
 | POOL3H (last research run) | DONE 05:39-06:05 (4 agents, 695,899 agent tokens; T04T 3 cards (Clockwork, pawnocchio PR bodies; 3 confirmed), T06D 3 cards (king flank attacks, pin-aware eval one-liner, endgame winnability; 3 confirmed, 1 correction)); started (wf_11a93894-6db, 2 workers; total 2 + the coordinator's report critic later = 3) | - | - | T04T: logs of engines never read (pawnocchio, Clockwork search PRs, Seer, Carp, Willow, Horsie; max 3 cards) + Fable verify; T06D: hand-crafted eval terms with logged Elo that the lock's HCE lacks (new angle: the lock is HCE + a residual net; fit with the residual frozen; max 3 cards) + Fable verify |
 | POOL3G (POOL3E's slot) | DONE 05:26-05:34 (1 agent, 150,775 agent tokens; FIXER4 round 6 on T04R-01, T04N-03, T04E-01, T04G-05; anchor :1153 corrected to :1154-1156); started (wf_ac834933-860, 1 worker; the hook refused two launches at 05:22 and 05:24 while finished workers were still inside its 3-minute window) | - | - | FIXER4: VOTE3 KEEP-WITH-FIX items on T04R-01, T04N-03, T04E-01, T04G-05 (round 6) |
