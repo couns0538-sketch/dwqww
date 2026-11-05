@@ -12,6 +12,7 @@
 #   lp_z4     -march=znver4            lp_noplt  -fno-plt            lp_nosi   -fno-semantic-interposition
 #   lp_af64   -falign-functions=64     lp_ppt    -fprofile-partial-training (use stage)
 #   lp_ipapta -fipa-pta                lp_part1  -flto-partition=one lp_nossp  -fno-stack-protector
+#   lp_pvw256 / lp_pvw512 -mprefer-vector-width=256 / 512 (g++ 15 default for znver5: none = tuning decides)
 #   lp_wnonet workload: UseNNUE=false + bench 11/13/16
 #   lp_w12k   workload: v1 + 300 FENs of the 12k set (every 40th) at go depth 10, OwnBook false, ucinewgame each
 #   lp_wmix   workload: v1 + 300 game positions (data\game_positions_300.tsv) at go nodes 20000, TT kept per game
@@ -34,7 +35,10 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
-$Kit = 'C:\Users\Administrator\grok-pc\forge_push\qa_ltopgo_al1_stage\kit_v23'
+# -File passes a list as ONE comma-joined string: split every list parameter on commas
+$Variant = @($Variant | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$Define = @($Define | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$Kit ='C:\Users\Administrator\grok-pc\forge_push\qa_ltopgo_al1_stage\kit_v23'
 $KitWl = Join-Path $Kit 'workload\frozen_train_cmds.txt'
 $Gpp = 'C:\msys64\ucrt64\bin\g++.exe'; $Objdump = 'C:\msys64\ucrt64\bin\objdump.exe'
 $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
@@ -53,6 +57,8 @@ $Table = @{
   lp_ipapta = @{ Mode = 'lp'; Extra = '-fipa-pta'; Use = ''; Wl = 'v1' }
   lp_part1 = @{ Mode = 'lp'; Extra = '-flto-partition=one'; Use = ''; Wl = 'v1' }
   lp_nossp = @{ Mode = 'lp'; Extra = '-fno-stack-protector'; Use = ''; Wl = 'v1' }
+  lp_pvw256 = @{ Mode = 'lp'; Extra = '-mprefer-vector-width=256'; Use = ''; Wl = 'v1' }
+  lp_pvw512 = @{ Mode = 'lp'; Extra = '-mprefer-vector-width=512'; Use = ''; Wl = 'v1' }
   lp_wnonet = @{ Mode = 'lp'; Extra = ''; Use = ''; Wl = 'wnonet' }
   lp_w12k = @{ Mode = 'lp'; Extra = ''; Use = ''; Wl = 'w12k' }
   lp_wmix = @{ Mode = 'lp'; Extra = ''; Use = ''; Wl = 'wmix' }

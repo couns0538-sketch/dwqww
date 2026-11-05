@@ -23,6 +23,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
+# -File passes a list as ONE comma-joined string: split every list parameter on commas
+$Define = @($Define | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $RepoDir = Split-Path -Parent $PSScriptRoot
 $Pack = Join-Path 'F:\ospd\packs' $Name
 function Say([string]$Msg) { $l = "$(Get-OspdNow) $Msg"; Write-Output $l; Add-OspdLf (Join-Path $Pack 'pack.log') $l }

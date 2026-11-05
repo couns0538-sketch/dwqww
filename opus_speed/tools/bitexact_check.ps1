@@ -29,6 +29,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
+# -File passes a list as ONE comma-joined string: split every list parameter on commas
+$Define = @($Define | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 if (-not $Ref) { $Ref = $script:OspdLockExe }
 $script:Fail = 0
 $script:LogFile = ''
@@ -123,28 +125,37 @@ function Get-VcEnv {
   return $vcv.FullName
 }
 
-function Invoke-SanBuild([string]$Src, [string]$OutExe, [string[]]$Sanitize, [string]$BuildLog) {
-  $clang = 'C:\Program Files\LLVM\bin\clang++.exe'
-  $units = @(Get-ChildItem (Join-Path $Src 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src/' + $_.Name })
-  $args1 = @('-std=c++20', '-O1', '-g', '-gcodeview', '-fno-omit-frame-pointer', '-march=znver4', '-ffp-contract=off', '-DFORGE_NNUE_HIDDEN=256',
-    '-DFORGE_EXPOSE_TUNABLES=1', '-Iinclude') + $Sanitize
-  if ($SanNdebug) { $args1 += '-DNDEBUG' }
-  foreach ($d in $Define) { $args1 += ('-D' + $d) }
-  $args1 += $units; $args1 += @('-o', $OutExe)
-  Add-OspdLf $BuildLog ("-- $(Get-OspdNow) clang++ " + ($args1 -join ' '))
-  Push-Location $Src
+function Invoke-Native([string]$Tool, [object[]]$ToolArgs, [string]$Cwd, [string]$BuildLog) {
+  Add-OspdLf $BuildLog ("-- $(Get-OspdNow) $Tool " + ($ToolArgs -join ' '))
+  Push-Location $Cwd
   $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-  try { $o = @(& $clang @args1 2>&1 | ForEach-Object { "$_" }); $rc = $LASTEXITCODE } finally { Pop-Location; $ErrorActionPreference = $eap }
-  if ($o.Count) { foreach ($l in $o) { Add-OspdLf $BuildLog $l } }
+  try { $o = @(& $Tool @ToolArgs 2>&1 | ForEach-Object { "$_" }); $rc = $LASTEXITCODE } finally { Pop-Location; $ErrorActionPreference = $eap }
+  foreach ($l in $o) { Add-OspdLf $BuildLog $l }
   Add-OspdLf $BuildLog "-- exit $rc"
   return $rc
+}
+
+function New-MsvcPortCopy([string]$Src, [string]$Dst) {
+  # MSVC has no unsigned __int128, so the source's own fallback would index the TT by key % count (a different TT
+  # index = a different search). The sanitizer-only copy gets ONE extra branch giving the identical index via
+  # __umulh (high 64 bits of key * count, = the __int128 path). Nothing else changes; bench nodes = pin proves it.
+  Copy-Item -Recurse -LiteralPath $Src -Destination $Dst
+  Get-ChildItem -Recurse -File $Dst | ForEach-Object { $_.IsReadOnly = $false }
+  $h = Join-Path $Dst 'include\forge\search.hpp'
+  $t = [System.IO.File]::ReadAllText($h)
+  $anchor = "#else`n        return clusters_[static_cast<std::size_t>(key % cluster_count_)];"
+  $nl = "`n"; if ($t.Contains("`r`n")) { $anchor = $anchor.Replace("`n", "`r`n"); $nl = "`r`n" }
+  $cnt = ([regex]::Matches($t, [regex]::Escape($anchor))).Count
+  if ($cnt -ne 1) { return "anchor found $cnt times" }
+  $t = $t.Replace($anchor, "#elif defined(_MSC_VER)$nl        return clusters_[static_cast<std::size_t>(__umulh(key, static_cast<std::uint64_t>(cluster_count_)))];$nl$anchor")
+  [System.IO.File]::WriteAllText($h, ("#ifdef _MSC_VER$nl#include <intrin.h>$nl#endif$nl" + $t), (New-Object System.Text.UTF8Encoding($false)))
+  return 'ok'
 }
 
 function Invoke-SanBench([string]$Exe, [string]$Dir, [string]$Tag) {
   $in = Join-Path $Dir "$Tag.in.txt"; $outF = Join-Path $Dir "$Tag.out.txt"; $errF = Join-Path $Dir "$Tag.err.txt"
   Write-OspdLf $in @('uci', 'isready', 'bench 16', 'isready', 'quit')
-  $rtDir = (Get-ChildItem 'C:\Program Files\LLVM\lib\clang\*\lib\windows' -Directory | Select-Object -First 1).FullName
-  $env:PATH = $rtDir + ';' + $env:PATH
+  # the MSVC ASan runtime DLL is on the PATH that vcvars64 set (VC\Tools\MSVC\<ver>\bin\Hostx64\x64)
   $env:ASAN_OPTIONS = 'halt_on_error=1:detect_leaks=0'
   $env:UBSAN_OPTIONS = 'halt_on_error=1:print_stacktrace=1'
   $p = Start-Process -FilePath $Exe -RedirectStandardInput $in -RedirectStandardOutput $outF -RedirectStandardError $errF -NoNewWindow -PassThru -WorkingDirectory $Dir
@@ -213,18 +224,33 @@ try {
     $sanDir = Join-Path $Out 'san'; New-Item -ItemType Directory -Path $sanDir | Out-Null
     $blog = Join-Path $sanDir 'build.log'
     Add-OspdLf $blog "vcvars: $vc"
-    $exeAU = Join-Path $sanDir 'forge_asan_ubsan.exe'
-    $rc = Invoke-SanBuild $SanSrc $exeAU @('-fsanitize=address,undefined', '-fno-sanitize-recover=undefined', '-fms-runtime-lib=dll') $blog
+    # The PC has no ASan for g++ (MinGW) and its LLVM 18 does not accept the installed MSVC STL (needs clang 20+), so:
+    # ASan = MSVC cl /fsanitize=address on a port copy (one TT-index line, see New-MsvcPortCopy); UBSan = the lock's
+    # g++ with -fsanitize=undefined in trap mode (no runtime library needed) on the unchanged source.
     $runs = @()
-    if ($rc -eq 0) { $runs += @{ Tag = 'asan_ubsan'; Exe = $exeAU } }
+    $port = Join-Path $sanDir 'src_msvc'
+    $pc = New-MsvcPortCopy $SanSrc $port
+    $exeA = Join-Path $sanDir 'forge_asan_msvc.exe'
+    if ($pc -ne 'ok') { Say "L4 asan: port copy failed ($pc) -> ASan NOT RUN"; $script:Fail++ }
     else {
-      Say "L4 combined ASan+UBSan build failed (exit $rc, see $blog); trying separate builds"
-      $exeA = Join-Path $sanDir 'forge_asan.exe'; $exeU = Join-Path $sanDir 'forge_ubsan_trap.exe'
-      $rcA = Invoke-SanBuild $SanSrc $exeA @('-fsanitize=address', '-fms-runtime-lib=dll') $blog
-      $rcU = Invoke-SanBuild $SanSrc $exeU @('-fsanitize=undefined', '-fsanitize-trap=undefined') $blog
-      if ($rcA -ne 0 -or $rcU -ne 0) { throw "sanitizer builds failed (asan $rcA, ubsan $rcU); see $blog" }
-      $runs += @{ Tag = 'asan'; Exe = $exeA }; $runs += @{ Tag = 'ubsan_trap'; Exe = $exeU }
+      $units = @(Get-ChildItem (Join-Path $port 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src\' + $_.Name })
+      $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude', ('/Fd' + (Join-Path $sanDir 'asan.pdb')), ('/Fo' + $sanDir + '\'))
+      if ($SanNdebug) { $clArgs += '/DNDEBUG' }
+      foreach ($d in $Define) { $clArgs += ('/D' + $d) }
+      $clArgs += $units; $clArgs += @(('/Fe' + $exeA), '/link', '/INCREMENTAL:NO')
+      $rcA = Invoke-Native 'cl.exe' $clArgs $port $blog
+      if ($rcA -ne 0) { Say "L4 asan: MSVC build failed (exit $rcA, see $blog)"; $script:Fail++ } else { $runs += @{ Tag = 'asan_msvc'; Exe = $exeA } }
     }
+    $exeU = Join-Path $sanDir 'forge_ubsan_trap.exe'
+    $units2 = @(Get-ChildItem (Join-Path $SanSrc 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src/' + $_.Name })
+    $gArgs = @('-std=c++20', '-O1', '-DFORGE_NNUE_HIDDEN=256', '-ffp-contract=off', '-fno-fast-math', '-march=znver5', '-static', '-pthread',
+      '-DFORGE_EXPOSE_TUNABLES=1', '-fsanitize=undefined', '-fsanitize-trap=all', '-fno-sanitize-recover=all', '-Iinclude')
+    if ($SanNdebug) { $gArgs += '-DNDEBUG' }
+    foreach ($d in $Define) { $gArgs += ('-D' + $d) }
+    $gArgs += $units2; $gArgs += @('-o', $exeU)
+    $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
+    $rcU = Invoke-Native 'C:\msys64\ucrt64\bin\g++.exe' $gArgs $SanSrc $blog
+    if ($rcU -ne 0) { Say "L4 ubsan: g++ build failed (exit $rcU, see $blog)"; $script:Fail++ } else { $runs += @{ Tag = 'ubsan_trap'; Exe = $exeU } }
     foreach ($run in $runs) {
       $sb = Invoke-SanBench $run.Exe $sanDir $run.Tag
       $ok = ($sb.Exit -eq 0 -and $sb.Reports -eq 0 -and "$($sb.Nodes)" -eq "$($c.on.d16)")

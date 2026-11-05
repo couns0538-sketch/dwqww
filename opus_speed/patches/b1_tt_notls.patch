@@ -1,0 +1,268 @@
+diff -ruN lock/include/forge/search.hpp b1_tt_notls/include/forge/search.hpp
+--- lock/include/forge/search.hpp	2026-11-05 08:55:23.250683500 -0800
++++ b1_tt_notls/include/forge/search.hpp	2026-11-05 09:12:58.250249500 -0800
+@@ -14,6 +14,12 @@
+ #include <thread>
+ #include <vector>
+ 
++#ifndef FORGE_SPD_TT_NOTLS
++// Build switch, default 0 (= the lock's code): the Worker that runs on the thread
++// holding the table's ExclusiveLease calls TT probe / store without lock_stripe.
++#define FORGE_SPD_TT_NOTLS 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -153,6 +159,20 @@
+     static thread_local const ExclusiveLease* active_lease_;
+     [[nodiscard]] bool has_exclusive_access() const;
+     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
++#if FORGE_SPD_TT_NOTLS
++    // One body per access with a compile-time "take the stripe lock" parameter.
++    // probe / store keep lock_stripe; probe_owned / store_owned run the same body
++    // without it and are only for the Worker on the lease's thread (tt_owned_).
++    friend class Worker;
++    template <bool TakeLock>
++    [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
++    template <bool TakeLock>
++    void store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                    bool pv, std::uint16_t halfmove_clock);
++    [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
++    void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                     bool pv, std::uint16_t halfmove_clock);
++#endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+     std::atomic<bool> exclusive_requested_{false};
+@@ -311,6 +331,9 @@
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
++#if FORGE_SPD_TT_NOTLS
++    friend class Searcher;
++#endif
+ 
+     SharedSearchState& shared_;
+     int id_ = 0;
+@@ -337,6 +360,11 @@
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
+     bool aborted_ = false;
++#if FORGE_SPD_TT_NOTLS
++    // True only while Searcher::search runs this (main) worker on the thread that
++    // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
++    bool tt_owned_ = false;
++#endif
+     int seldepth_ = 0;
+     int root_depth_ = 0;
+     std::size_t root_history_index_ = 0;
+@@ -345,6 +373,17 @@
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
+ 
++#if FORGE_SPD_TT_NOTLS
++    // The six TT call sites of search / qsearch: one predictable branch per access.
++    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
++        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
++    }
++    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                  bool pv, std::uint16_t halfmove_clock) {
++        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    }
++#endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+     [[nodiscard]] bool should_stop();
+diff -ruN lock/src/search.cpp b1_tt_notls/src/search.cpp
+--- lock/src/search.cpp	2026-11-05 08:55:23.244904000 -0800
++++ b1_tt_notls/src/search.cpp	2026-11-05 09:14:01.274538600 -0800
+@@ -243,6 +243,87 @@
+     ++epoch_;
+ }
+ 
++#if FORGE_SPD_TT_NOTLS
++template <bool TakeLock>
++TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
++    TTCluster& cluster = cluster_for(key);
++    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
++    // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
++    // back a deferred (unlocked) lock, after a thread_local lookup per call.
++    const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
++    auto snapshot = [&](const TTEntry& entry, bool hit) {
++        TTProbe result;
++        result.entry = entry;
++        result.hit = hit;
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    const std::uint32_t key32 = verification_key(key);
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            // Reused entries remain recent even when search returns a TT cutoff.
++            if (entry.generation() != generation_) {
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
++            }
++            return snapshot(entry, true);
++        }
++    }
++    const TTEntry* replace = &cluster.entries[0];
++    auto relative_age = [this](const TTEntry& entry) {
++        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
++    };
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return snapshot(entry, false);
++        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++    }
++    return snapshot(*replace, false);
++}
++
++TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
++
++TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
++    assert(has_exclusive_access());
++    return probe_body<false>(key);
++}
++
++template <bool TakeLock>
++void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                                    Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    // Reject default, foreign or lifecycle-stale handles without touching storage.
++    // Lifecycle operations themselves must not run concurrently with search.
++    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
++        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
++    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
++    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    const std::uint32_t key32 = verification_key(key);
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    if (!move.is_none() || !same_position) entry->move = move;
++    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
++void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++}
++
++void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    assert(has_exclusive_access());
++    store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++}
++#else
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+@@ -300,6 +381,7 @@
+         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
+ }
++#endif
+ 
+ int TranspositionTable::hashfull() const {
+     int count = 0;
+@@ -783,7 +865,11 @@
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+ 
++#if FORGE_SPD_TT_NOTLS
++    const TTProbe tt_probe = probe_tt(board.key());
++#else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
++#endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -814,7 +900,11 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++#if FORGE_SPD_TT_NOTLS
++            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++#else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++#endif
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+@@ -865,7 +955,11 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#if FORGE_SPD_TT_NOTLS
++    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++#else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++#endif
+     return best_score;
+ }
+ 
+@@ -907,7 +1001,11 @@
+     (ss + 2)->killers = {};
+ 
+     // Transposition table probe.
++#if FORGE_SPD_TT_NOTLS
++    const TTProbe tt_probe = probe_tt(board.key());
++#else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
++#endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -1020,7 +1118,11 @@
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++#if FORGE_SPD_TT_NOTLS
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#endif
+                     return value;
+                 }
+             }
+@@ -1211,7 +1313,11 @@
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
++#if FORGE_SPD_TT_NOTLS
++        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++#else
+         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++#endif
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+@@ -1513,6 +1619,19 @@
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++#if FORGE_SPD_TT_NOTLS
++    // This thread holds the lease (if one was taken) and runs the main worker
++    // below; helpers exist only without a lease. Saved and restored, so a throw
++    // or a nested search leaves the flag as it was.
++    struct TtOwnedScope {
++        Worker& worker;
++        const bool previous;
++        TtOwnedScope(Worker& w, bool owned) : worker(w), previous(w.tt_owned_) { worker.tt_owned_ = owned; }
++        ~TtOwnedScope() { worker.tt_owned_ = previous; }
++        TtOwnedScope(const TtOwnedScope&) = delete;
++        TtOwnedScope& operator=(const TtOwnedScope&) = delete;
++    } tt_owned_scope(*workers_.front(), exclusive.has_value());
++#endif
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+         helpers.emplace_back([this, i, board, &worker_limits, &all]() {

@@ -1,0 +1,150 @@
+diff -ruN lock/include/forge/nnue.hpp b2_nnue_zmm_verify/include/forge/nnue.hpp
+--- lock/include/forge/nnue.hpp	2026-11-05 08:55:23.250683500 -0800
++++ b2_nnue_zmm_verify/include/forge/nnue.hpp	2026-11-05 09:12:35.553150300 -0800
+@@ -21,6 +21,14 @@
+ constexpr float OutputScale = 4096.0F;   // quantisation of w2 / b2
+ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units of K/400 per centipawn
+ 
++// Build switch (default 0 = the lock code): 1 = the output layer runs one
++// AVX-512 register of 16 lanes per 16 hidden units (lane j = h mod 16, the
++// same per-lane order and the same final reduction as the 16-lane design in
++// src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
++#ifndef FORGE_SPD_NNUE_ZMM
++#define FORGE_SPD_NNUE_ZMM 0
++#endif
++
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -29,7 +37,12 @@
+ }
+ 
+ struct Accumulator {
++#if FORGE_SPD_NNUE_ZMM
++    // 64-byte alignment: the output kernel loads whole 512-bit registers.
++    alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
++#else
+     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
++#endif
+     bool valid = false;
+ };
+ 
+diff -ruN lock/src/nnue.cpp b2_nnue_zmm_verify/src/nnue.cpp
+--- lock/src/nnue.cpp	2026-11-05 08:55:23.244904000 -0800
++++ b2_nnue_zmm_verify/src/nnue.cpp	2026-11-05 09:13:09.480921900 -0800
+@@ -19,6 +19,34 @@
+ #include <immintrin.h>
+ #endif
+ 
++#if FORGE_SPD_NNUE_ZMM
++#if !defined(__AVX512F__)
++#error "FORGE_SPD_NNUE_ZMM=1 needs an AVX-512F target (the lock builds with -march=znver5)"
++#endif
++#include <immintrin.h>
++#endif
++
++// Verify build only (never in the patch): run the lock's AVX2 kernel next to
++// the zmm kernel on every evaluation, compare all sixteen lanes bit for bit,
++// abort on the first mismatch and report the count at exit.
++#ifndef FORGE_SPD_NNUE_ZMM_VERIFY
++#define FORGE_SPD_NNUE_ZMM_VERIFY 0
++#endif
++#if FORGE_SPD_NNUE_ZMM_VERIFY
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++namespace {
++unsigned long long spd_verify_count = 0;
++struct SpdVerifyReport {
++    ~SpdVerifyReport() {
++        std::fprintf(stderr, "FORGE_SPD_NNUE_ZMM_VERIFY: %llu evaluations compared, 0 mismatches\n", spd_verify_count);
++        std::fflush(stderr);
++    }
++} spd_verify_report;
++} // namespace
++#endif
++
+ #if __has_include("nnue_weights.inc")
+ #include "nnue_weights.inc"
+ #define FORGE_HAS_NNUE 1
+@@ -46,7 +74,11 @@
+ struct Weights {
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
+     alignas(32) std::array<float, HiddenSize> b1{};
++#if FORGE_SPD_NNUE_ZMM
++    alignas(64) std::array<float, 2 * HiddenSize> w2{};
++#else
+     alignas(32) std::array<float, 2 * HiddenSize> w2{};
++#endif
+     float b2 = 0.0F;
+ };
+ 
+@@ -168,6 +200,60 @@
+     constexpr int Lanes = 16;
+     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+     alignas(64) float lanes[Lanes];
++#if FORGE_SPD_NNUE_ZMM
++    // One 512-bit register holds all sixteen lanes: lane j takes the hidden
++    // units h + j for h = 0, 16, 32, ... in increasing order, which is the
++    // lane order of the two 256-bit halves below (lane j of sums[j / 8]), and
++    // every term is formed with the same separate multiplies and additions in
++    // the same order, so each lane ends with the same bits as the AVX2 kernel.
++    {
++        const __m512 zero = _mm512_setzero_ps();
++        const __m512 one = _mm512_set1_ps(1.0F);
++        __m512 sum = zero;
++        for (int h = 0; h < HiddenSize; h += Lanes) {
++            const std::size_t base = static_cast<std::size_t>(h);
++            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(ours.data() + base), zero), one);
++            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(theirs.data() + base), zero), one);
++            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
++                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
++            sum = _mm512_add_ps(sum, term);
++        }
++        _mm512_store_ps(lanes, sum);
++    }
++#if FORGE_SPD_NNUE_ZMM_VERIFY
++    {
++        alignas(32) float lanes_ref[Lanes];
++        const __m256 zero = _mm256_setzero_ps();
++        const __m256 one = _mm256_set1_ps(1.0F);
++        __m256 sums[2] = {zero, zero};
++        for (int h = 0; h < HiddenSize; h += Lanes) {
++            for (int k = 0; k < 2; ++k) {
++                const std::size_t base = static_cast<std::size_t>(h + 8 * k);
++                const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
++                const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
++                const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
++                                                _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
++                sums[k] = _mm256_add_ps(sums[k], term);
++            }
++        }
++        for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes_ref + 8 * k, sums[k]);
++        ++spd_verify_count;
++        if (std::memcmp(lanes, lanes_ref, sizeof(lanes)) != 0) {
++            std::fprintf(stderr, "FORGE_SPD_NNUE_ZMM_VERIFY MISMATCH at evaluation %llu fen %s\n", spd_verify_count, board.fen().c_str());
++            for (int j = 0; j < Lanes; ++j) {
++                std::uint32_t x = 0;
++                std::uint32_t y = 0;
++                std::memcpy(&x, lanes + j, sizeof(x));
++                std::memcpy(&y, lanes_ref + j, sizeof(y));
++                std::fprintf(stderr, "  lane %2d zmm %08x ymm %08x%s\n", j, x, y, x == y ? "" : "  <-- differs");
++            }
++            std::fflush(stderr);
++            std::abort();
++        }
++        std::memcpy(lanes, lanes_ref, sizeof(lanes));
++    }
++#endif
++#else
+ #if defined(__AVX2__)
+     const __m256 zero = _mm256_setzero_ps();
+     const __m256 one = _mm256_set1_ps(1.0F);
+@@ -209,6 +295,7 @@
+         }
+     }
+ #endif
++#endif
+     float out = w.b2;
+     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+     const float centipawns = out * 400.0F / SigmoidK;

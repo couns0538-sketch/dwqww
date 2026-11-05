@@ -33,6 +33,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
+# -File passes a list as ONE comma-joined string: split every list parameter on commas
+$Option = @($Option | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 
 $T975 = @{ 1 = 12.706; 2 = 4.303; 3 = 3.182; 4 = 2.776; 5 = 2.571; 6 = 2.447; 7 = 2.365; 8 = 2.306; 9 = 2.262; 10 = 2.228;
   11 = 2.201; 12 = 2.179; 13 = 2.160; 14 = 2.145; 15 = 2.131; 16 = 2.120; 17 = 2.110; 18 = 2.101; 19 = 2.093; 20 = 2.086;
@@ -64,13 +66,14 @@ function Get-RatioStats([double[]]$R) {
   return [pscustomobject]@{ N = $n; Median = (Get-Median $R); Geo = [Math]::Exp($mean); Lo = [Math]::Exp($mean - $half);
     Hi = [Math]::Exp($mean + $half); SdPct = 100 * $sd; BootLo = $meds[249]; BootHi = $meds[9749] }
 }
-function Read-RoundRatios([string]$Csv) {
+function Read-RoundRatios([string]$Csv, [string]$Col = 'nps') {
   $rows = Import-Csv $Csv
+  if ($rows.Count -gt 0 -and -not ($rows[0].PSObject.Properties.Name -contains $Col)) { return [double[]]@() }
   $byRound = @{}
   foreach ($r in $rows) {
     $arm = ($r.order -split ':')[1]
     if (-not $byRound.ContainsKey($r.round)) { $byRound[$r.round] = @{ A = 0.0; B = 0.0; NA = 0; NB = 0 } }
-    if ($arm -eq 'A') { $byRound[$r.round].A += [double]$r.nps; $byRound[$r.round].NA++ } else { $byRound[$r.round].B += [double]$r.nps; $byRound[$r.round].NB++ }
+    if ($arm -eq 'A') { $byRound[$r.round].A += [double]$r.$Col; $byRound[$r.round].NA++ } else { $byRound[$r.round].B += [double]$r.$Col; $byRound[$r.round].NB++ }
   }
   $out = @()
   foreach ($k in ($byRound.Keys | Sort-Object { [int]$_ })) { $v = $byRound[$k]; if ($v.NA -eq 2 -and $v.NB -eq 2) { $out += $v.B / $v.A } }
@@ -102,12 +105,12 @@ try {
   New-Item -ItemType Directory -Path $Out | Out-Null
   New-Item -ItemType Directory -Path (Join-Path $Out 'copies') | Out-Null
   $csv = Join-Path $Out 'runs.csv'; $log = Join-Path $Out 'uci.log'; $loadFile = Join-Path $Out 'load.txt'
-  Add-OspdLf $csv 'round,order,exe,md5,depth,nodes,ms,nps,core,timestamp'
+  Add-OspdLf $csv 'round,order,exe,md5,depth,nodes,ms,nps,core,timestamp,cpu_ms,cpu_nps'
   $md5A = Get-OspdMd5 $A; $md5B = Get-OspdMd5 $B
   $netOn = -not ($Option | Where-Object { $_ -match '^UseNNUE=' })
   Add-OspdLf $loadFile ("$(Get-OspdNow) start: " + (Get-CpuLoad $Core) + "; $diskMsg")
   $nodes = @{ A = $null; B = $null }
-  $ratios = @()
+  $ratios = @(); $cpuRatios = @()
   for ($r = 1; $r -le $Rounds; $r++) {
     $exe = @{ A = $A; B = $B }
     if ($CopyMode -eq 'Round') {
@@ -121,7 +124,7 @@ try {
         $null = Stop-OspdEngine $w
       }
     }
-    $sum = @{ A = 0.0; B = 0.0 }
+    $sum = @{ A = 0.0; B = 0.0 }; $csum = @{ A = 0.0; B = 0.0 }
     $slot = 0
     foreach ($arm in 'A', 'B', 'B', 'A') {
       $slot++
@@ -129,34 +132,49 @@ try {
       $e = Start-OspdEngine $exe[$arm] $log
       $uciLines = Initialize-OspdEngine $e $Option
       if ($netOn -and -not ((Get-OspdUciOptionLine $uciLines 'UseNNUE') -match 'default true')) { $null = Stop-OspdEngine $e; Write-Output "FAIL: $($exe[$arm]) does not advertise UseNNUE default true (net not loaded)"; exit 2 }
+      # process CPU time of the bench window (engine idle before and after it): time slices taken by other programs on
+      # this CPU do not count here, unlike the engine's own wall-clock nps (both are recorded and evaluated)
+      $e.Proc.Refresh(); $c0 = $e.Proc.TotalProcessorTime.TotalMilliseconds
       $res = Invoke-OspdBench $e $Depth
+      $e.Proc.Refresh(); $cpuMs = $e.Proc.TotalProcessorTime.TotalMilliseconds - $c0
       $null = Stop-OspdEngine $e
       if ($null -eq $nodes[$arm]) { $nodes[$arm] = $res.Nodes } elseif ($nodes[$arm] -ne $res.Nodes) { Write-Output "FAIL: nodes of $arm changed ($($nodes[$arm]) -> $($res.Nodes))"; exit 2 }
       $md5 = $md5A; if ($arm -eq 'B') { $md5 = $md5B }
-      Add-OspdLf $csv ("{0},{1}:{2},{3},{4},{5},{6},{7},{8},{9},{10}" -f $r, $slot, $arm, $exe[$arm], $md5, $Depth, $res.Nodes, $res.Ms, $res.Nps, $Core, (Get-OspdNow))
-      $sum[$arm] += [double]$res.Nps
+      $cpuNps = 0; if ($cpuMs -gt 0) { $cpuNps = [long]($res.Nodes * 1000.0 / $cpuMs) }
+      Add-OspdLf $csv ("{0},{1}:{2},{3},{4},{5},{6},{7},{8},{9},{10},{11:F0},{12}" -f $r, $slot, $arm, $exe[$arm], $md5, $Depth, $res.Nodes, $res.Ms, $res.Nps, $Core, (Get-OspdNow), $cpuMs, $cpuNps)
+      $sum[$arm] += [double]$res.Nps; $csum[$arm] += [double]$cpuNps
     }
     $ratios += $sum.B / $sum.A
+    if ($csum.A -gt 0) { $cpuRatios += $csum.B / $csum.A }
     if (-not $AllowNodeDiff -and $nodes.A -ne $nodes.B) { Write-Output "FAIL: nodes differ A $($nodes.A) vs B $($nodes.B) at bench $Depth (not bit-exact)"; exit 2 }
   }
   Add-OspdLf $loadFile ("$(Get-OspdNow) end: " + (Get-CpuLoad $Core))
   $st = Get-RatioStats ([double[]]$ratios)
   $win = ($st.Lo -gt 1.0) -and ($st.Median -ge 1.010)
+  $cst = Get-RatioStats ([double[]]$cpuRatios)
+  $cwin = ($cst.Lo -gt 1.0) -and ($cst.Median -ge 1.010)
   $aaLine = 'A/A: none given (-AaCsv)'
   if ($AaCsv) {
-    $aa = Get-RatioStats (Read-RoundRatios $AaCsv)
-    $flag = ''; if ($aa.Lo -gt 1.0 -or $aa.Hi -lt 1.0) { $flag = '  WARNING: the A/A interval excludes 1.000' }
-    $aaLine = ("A/A ({0}): n={1} median {2:N4} 95% [{3:N4}, {4:N4}] sd {5:N2}%{6}" -f $AaCsv, $aa.N, $aa.Median, $aa.Lo, $aa.Hi, $aa.SdPct, $flag)
+    $aa = Get-RatioStats (Read-RoundRatios $AaCsv 'nps')
+    $flag = ''; if ($aa.Lo -gt 1.0 -or $aa.Hi -lt 1.0) { $flag = ' (WARNING: excludes 1.000)' }
+    $aaLine = ("A/A {0}: wall n={1} median {2:N4} 95% [{3:N4}, {4:N4}] sd {5:N2}%{6}" -f (Split-Path (Split-Path $AaCsv -Parent) -Leaf), $aa.N, $aa.Median, $aa.Lo, $aa.Hi, $aa.SdPct, $flag)
+    $aac = Read-RoundRatios $AaCsv 'cpu_nps'
+    if ($aac.Count -gt 1) {
+      $aa2 = Get-RatioStats $aac
+      $flag2 = ''; if ($aa2.Lo -gt 1.0 -or $aa2.Hi -lt 1.0) { $flag2 = ' (WARNING: excludes 1.000)' }
+      $aaLine += ("; cpu median {0:N4} 95% [{1:N4}, {2:N4}] sd {3:N2}%{4}" -f $aa2.Median, $aa2.Lo, $aa2.Hi, $aa2.SdPct, $flag2)
+    } else { $aaLine += '; cpu: not in that CSV' }
   }
   $verdict = 'NO-WIN'; if ($win) { $verdict = 'WIN' }
+  $cverdict = 'NO-WIN'; if ($cwin) { $cverdict = 'WIN' }
   $lines = @(
-    ("ABBA {0} (A, md5 {1}) vs {2} (B, md5 {3}); bench d{4}, {5} rounds x ABBA, CPU {6} BelowNormal, net {7}, copies {8}" -f $LabelA, $md5A, $LabelB, $md5B, $Depth, $Rounds, $Core, $(if ($netOn) { 'on' } else { 'off' }), $CopyMode),
-    ("nodes A {0} B {1} ({2})" -f $nodes.A, $nodes.B, $(if ($nodes.A -eq $nodes.B) { 'equal' } else { 'DIFFERENT' })),
-    ("B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], geo mean {4:N4}, sd/round {5:N2}%, bootstrap median CI [{6:N4}, {7:N4}]" -f $st.Median, (100 * ($st.Median - 1)), $st.Lo, $st.Hi, $st.Geo, $st.SdPct, $st.BootLo, $st.BootHi),
+    ("ABBA {0} (A, md5 {1}) vs {2} (B, md5 {3}); bench d{4}, {5} rounds x ABBA, CPU {6} BelowNormal, net {7}, copies {8}; nodes A {9} B {10} ({11})" -f $LabelA, $md5A, $LabelB, $md5B, $Depth, $Rounds, $Core, $(if ($netOn) { 'on' } else { 'off' }), $CopyMode, $nodes.A, $nodes.B, $(if ($nodes.A -eq $nodes.B) { 'equal' } else { 'DIFFERENT' })),
+    ("wall (engine nps): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $st.Median, (100 * ($st.Median - 1)), $st.Lo, $st.Hi, $st.SdPct, $st.BootLo, $st.BootHi),
+    ("cpu (nodes / process CPU time of the bench window): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $cst.Median, (100 * ($cst.Median - 1)), $cst.Lo, $cst.Hi, $cst.SdPct, $cst.BootLo, $cst.BootHi),
     $aaLine,
-    ("VERDICT {0} (rule: interval low end > 1.000 and median >= +1.0%); load: see load.txt" -f $verdict)
+    ("VERDICT wall {0} / cpu {1} (rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt" -f $verdict, $cverdict)
   )
-  Write-OspdLf (Join-Path $Out 'summary.txt') ($lines + @('', 'per-round ratios: ' + (($ratios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), "runs.csv md5 $(Get-OspdMd5 $csv)") + (Get-Content $loadFile))
+  Write-OspdLf (Join-Path $Out 'summary.txt') ($lines + @('', 'per-round wall ratios: ' + (($ratios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), 'per-round cpu ratios: ' + (($cpuRatios | ForEach-Object { '{0:N4}' -f $_ }) -join ' '), "runs.csv md5 $(Get-OspdMd5 $csv)") + (Get-Content $loadFile))
   $lines | ForEach-Object { Write-Output $_ }
   exit 0
 } catch {
