@@ -94,10 +94,12 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
 - Window 2 (2026-11-04 13:27-19:06) lessons: warm-start recipe lr 2e-5, 200 superbatches (~13-15 min at 3-4.4M pos/s)
   is as good as 700 (lr 3e-5 is worse). More king buckets help offline: KB4 -1.41e-4, KB8 -1.65e-4, KB16 -1.80e-4,
   KB32 -1.80e-4 (S31 paired vs the lock, same recipe; seed noise ~4e-6) - but cost engine speed (identity nets, same
-  trees: KB16 0.968x, KB32 0.941x the nps of KB4; layout_*_vs_kb4.txt). Maps rank4x4 (16) / rank4x8 (32) exist in the
+  trees, SINGLE RUNS each, probes scatter +-2-3 %: KB8 0.9965x, KB16 0.968x and 0.956x, KB32 0.941x the nps of KB4;
+  layout_*_vs_kb4*.txt). Maps rank4x4 (16) / rank4x8 (32) exist in the
   trainer and the tools; the engine reads the 64-entry map from the file (no rebuild); prove a new layout with
   `pin_check -Options EvalFileV2=<lock written in that layout>` (= lock pins) and net_pack's parity.
-- WEIGHT SOUPS are the best offline result: nets warm-started from the same lock net, rewritten exactly to one layout
+- WEIGHT SOUPS gave the best offline numbers (best of ~14 soups, selection-biased: chosen and judged on the same S31 /
+  jobA sets; UNPROVEN in play, needs an SPRT gate): nets warm-started from the same lock net, rewritten exactly to one layout
   (`a/o30_expand_kb.py --from rank4|rank4x2|rank4x4 --to rank4x4|rank4x8`) and averaged (`a/o30_soup.py`, scored like
   a checkpoint by `a/soup_score.sh <name> <kb map> <quantised.bin>...`, table `a/soup_table.py`). Independent runs of
   different length / layout make the gain (r3+r5+r7+r8 as KB32: S31 -2.25e-4, jobA z -2.70; best single -1.80e-4);
