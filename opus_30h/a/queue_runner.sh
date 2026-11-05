@@ -10,6 +10,8 @@
 # under the guard (exe D:\o30\target_rocm4, O30_CLIP 7.99, O30_DECAY 0, wdl 0.4, 1024 batches per superbatch, 2 loader
 # threads, GUARD_MASK 0x38). No run starts after the cutoff (default 18:40). Idle, CPUs 3-5.
 # Since 15:19 the live queue is a/queue_runner2.sh (review fix W2-02, plan2.txt); this file was fixed afterwards.
+# Before a retry the refused attempt's <run> folder / .out / .guard.log move aside as <file>.refused<N> (bug hunt
+# 2026-11-04: the bat refuses existing ones with exit 4, so the retry of the fix-list version could never start).
 # Test hooks: RUNNER_ROOT (default /c/o30g/gpu), RUNNER_PLAN (default <root>/plan.txt), RUNNER_CMD (a stub run instead of
 # the .bat, called with the plan fields), RUNNER_NO_WATCH=1 (no watcher), RUNNER_RETRY_SLEEP.
 set -u
@@ -48,7 +50,13 @@ while true; do
     if [ "$rc" = 0 ]; then
         echo "$name" >> "$DONE"
     elif [ "$rc" = 78 ]; then
-        echo "$(date '+%F %T') $name refused at start (exit 78): not marked; retry in $RETRY s"
+        # bug hunt 2026-11-04: the refused attempt left <run>.out (the bat's redirect) and <run>.guard.log (the guard
+        # opens it before its checks); the bat refuses a run whose folder / .out / .guard.log exist (exit 4), so a
+        # retry without this step could never start. They move aside as <file>.refused<N>; the watcher stays (it
+        # follows the guard log by its path and picks up the retry).
+        k=1; while [ -e "$G/$name.out.refused$k" ] || [ -e "$G/$name.guard.log.refused$k" ]; do k=$((k+1)); done
+        for f in "$G/$name" "$G/$name.out" "$G/$name.guard.log"; do [ -e "$f" ] && mv "$f" "$f.refused$k"; done
+        echo "$(date '+%F %T') $name refused at start (exit 78): not marked; its files moved aside (.refused$k); retry in $RETRY s"
         sleep "$RETRY"
         continue
     else

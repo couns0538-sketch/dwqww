@@ -1,0 +1,46 @@
+runner retry test 2026-11-04 19:22:58, O30_MASK 0x2, stub md5 be8d39d36749fe912c8d5eb8a536e8a5
+== old_runner1: queue_runner_73e4c828.sh md5 36de6806d5cfd7be663f504709ee10b0
+   pinned pid 2164: Idle, mask 0x2
+   2026-11-04 19:22:58 previous run ended (/d/o30/tmp/runner_retry_bh/old_runner1/prev.guard.log); plan /d/o30/tmp/runner_retry_bh/old_runner1/plan.txt, cutoff 23:59
+   2026-11-04 19:22:59 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   stub call 1: guard refuses (exit 78)
+   2026-11-04 19:22:59 rX_test exit 78
+   2026-11-04 19:23:00 rX_test refused at start (exit 78): not marked; retry in 2 s
+   2026-11-04 19:23:02 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   stub call 2: ABORT: rX_test.out exists (the bat's check) -> exit 4
+   2026-11-04 19:23:03 rX_test exit 4
+   2026-11-04 19:23:03 rX_test failed (exit 4): recorded in /d/o30/tmp/runner_retry_bh/old_runner1/plan.failed, next line
+   2026-11-04 19:23:03 plan has no open run: queue ends
+   runner exit 0; stub calls: 2
+   plan.failed: [rX_test rc 4 2026-11-04 19:23:03 ]
+   files: rX_test.guard.log rX_test.out 
+== new_runner1: queue_runner.sh md5 841113255756ed419012eab8e5f46678
+   pinned pid 5248: Idle, mask 0x2
+   2026-11-04 19:23:04 previous run ended (/d/o30/tmp/runner_retry_bh/new_runner1/prev.guard.log); plan /d/o30/tmp/runner_retry_bh/new_runner1/plan.txt, cutoff 23:59
+   2026-11-04 19:23:04 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   stub call 1: guard refuses (exit 78)
+   2026-11-04 19:23:05 rX_test exit 78
+   2026-11-04 19:23:05 rX_test refused at start (exit 78): not marked; its files moved aside (.refused1); retry in 2 s
+   2026-11-04 19:23:08 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   stub call 2: trainer started and ended (exit 0)
+   2026-11-04 19:23:09 rX_test exit 0
+   2026-11-04 19:23:09 plan has no open run: queue ends
+   runner exit 0; stub calls: 2
+   plan.done: [rX_test ]
+   files: rX_test rX_test.guard.log rX_test.guard.log.refused1 rX_test.out rX_test.out.refused1 
+== new_runner2: queue_runner2.sh md5 d86daaf474879b162a02823967cded0d
+   pinned pid 12248: Idle, mask 0x2
+   2026-11-04 19:23:10 previous run ended (/d/o30/tmp/runner_retry_bh/new_runner2/prev.guard.log); plan /d/o30/tmp/runner_retry_bh/new_runner2/plan2.txt, cutoff 23:59
+   2026-11-04 19:23:11 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   2026-11-04 19:23:16 rX_test exit 78 (started 0)
+   2026-11-04 19:23:17 rX_test refused at start: its files moved aside (.refused1); retry in 2 s
+   2026-11-04 19:23:20 starting rX_test: kb rank4x2 sb 200 seed 1 lr 0.00002 init D:\o30\gpu\init_lockkb8
+   2026-11-04 19:23:25 rX_test exit 0 (started 1)
+   2026-11-04 19:23:25 plan has no open run: queue ends
+   runner exit 0; stub calls: 2
+   plan2.done: [rX_test ]
+   plan2.skipped: []
+   plan2.refused: [rX_test 2026-11-04 19:23:16 rc 78 ]
+   files: rX_test rX_test.guard.log rX_test.guard.log.refused1 rX_test.out rX_test.out.refused1 rX_test.runner.txt rX_test.runner.txt.refused1 
+   last runner.txt: stub call 2: trainer started and ended (exit 0) 
+expected: old_runner1 call 2 aborts (exit 4, plan.failed); new_runner1 and new_runner2 start the run on call 2
