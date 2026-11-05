@@ -23,6 +23,14 @@ def gh(args, allow_fail=False):
 
 
 def guess(text):
+    # the title decides first: the GPL-3.0 text itself names the Affero licence in its section 13
+    head = ' '.join(text.split()[:40]).lower()
+    for title, spdx in (('gnu affero general public license', 'AGPL'), ('gnu lesser general public license', 'LGPL'),
+                        ('gnu general public license', 'GPL')):
+        if title in head:
+            v = '3.0' if 'version 3' in head else ('2.0' if 'version 2' in head else ('2.1' if 'version 2.1' in head
+                                                                                     else '?'))
+            return f'{spdx}-{v}'
     t = ' '.join(text.split()).lower()
     if 'gnu affero general public license' in t:
         v = '3.0' if 'version 3' in t else '?'
