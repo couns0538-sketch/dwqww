@@ -96,3 +96,6 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   only | T05C-03
 - W10. gh search commits official-stockfish/Stockfish "initialization moves" / "uninitialized" (commit titles only,
   GPL) | GPL ideas only | no commit about zero-filling move lists; nothing usable | no card
+- W11. https://uops.info/html-instr/PEXT_R64_R64_R64.html | measurement table (facts) | PEXT r64: Zen 5 latency 3 / 3,
+  throughput 0.33 c (1 uop); Zen 3 and Zen 4 latency 3, TP 1.00 (ALU1); Zen 2 latency 18 (mask operand), TP 19.00,
+  7 uops (microcoded); Zen+ TP 18.00; Alder Lake-P latency 3, TP 1.00. PDEP not fetched | T05C-03

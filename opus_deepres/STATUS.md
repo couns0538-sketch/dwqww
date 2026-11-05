@@ -38,7 +38,7 @@ this job is written to D:.
 ## Owner instruction of ~23:55 (round 2)
 - Received before 23:55:24 (clock read right after it): "use 10 agents for the next 5 hours then 5 agents for 5 hours
   and only finish when the 10h window is done find more improvements for forge even if more agents are needed and dont
-  use sonnet or haiku use yourself opus 5.5 at max or fable 5.1 at max".
+  use [name withheld] or [name withheld] use yourself opus 5.5 at max or fable 5.1 at max".
 - Read as: 10 agents at a time until ~04:55, then 5 agents until the job's 10-hour window ends at 08:23 (the brief's hard
   deadline stays; the owner was told this reading and can extend it). Agents: research workers inherit this session's
   model at max effort; verifiers run as Fable 5.1 at max effort; no smaller models. More cards than the brief's

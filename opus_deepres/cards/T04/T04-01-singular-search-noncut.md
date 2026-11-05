@@ -28,6 +28,9 @@ verification search, and the lock's LMR adds +2 plies for cut nodes (`src/search
 above exists in Forge. Not in the R15 candidates (C1-C6, x1, x2b) nor in FB2-J3 SingularV2 (triple / PV double
 extensions, multicut on the singular score, deeper negative extensions). Tried gates: nothing on this flag
 (`tools/tried_gates.py --grep 'singular|cutnode'` = 0 rows). Change: one argument at line 1095 behind an option.
+(review fix, second vote, optional item: in the verification node `cut_node` drives LMR +2 (:1141), the child flags of
+the full-depth re-searches (:1151, :1160) and, a third and rare use, IIR (:1031, only when the TT move is gone);
+NMP / razor / RFP / ProbCut are skipped there anyway (excluded move, :952), so only the reduction side transfers.)
 
 ## Expected gain
 Source: Caissa, OpenBench SPRT [0.00, 2.00], 10+0.1, 1 thread, Hash 16 MB, n=25,044 (W 5993 L 5690 D 13361),

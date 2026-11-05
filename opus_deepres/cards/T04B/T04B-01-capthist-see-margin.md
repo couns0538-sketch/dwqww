@@ -27,7 +27,8 @@ branch also holds quiet checks, whose `history` is the quiet sum: apply the term
 shortcut at `:1082` (picker's good-capture stage and threshold <= 0 skips SEE) stays valid while the threshold is
 <= 0; a positive threshold must call SEE. Not the TRIED CaptSeeDiv (packf2 P16a, gates 47 / 48: +3.24 / -3.94 at
 1,500 games): that moved the picker's good / bad capture split (ordering, relax-only), not the pruning. Not in R15
-C1-C6, Sf26Bundle bits, round-1 O5 CorrMargins or sol-A1 HistRework. Lines to touch: ~3.
+C1-C6, Sf26Bundle bits, round-1 O5 CorrMargins or sol-A1 HistRework. Lines to touch: ~3. Sibling card T04E-04 shifts
+the qsearch SEE test (`src/search.cpp:838`) the same way: a different site, gate the two separately.
 
 ## Expected gain
 Source: Stormphrax PR 269, OpenBench SPRT [0, 3], Threads=1: STC 8+0.08 Hash 16 MB n=28,964 (W 6991 L 6734

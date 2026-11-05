@@ -126,7 +126,7 @@ description: Binding safety rules for ANY command run on the Forge PC (chess eng
   - Never two heavy runs back to back without re-checking.
   - If the trainer dies: stop all GPU/torch work, report the exact error, checkpoint and time, do not restart it
     yourself, and leave the restart to the owner.
-- Another agent can be active on the PC: **Grok Bot** (`Grok Bot.exe` -> powershell -> uv/python) installed
+- Another agent can be active on the PC: **[name withheld] Bot** (`[name withheld] Bot.exe` -> powershell -> uv/python) installed
   packages into `F:\nnue_pytorch\venv` during R6. Before relying on a shared tree or venv, list processes
   (`Get-CimInstance Win32_Process`, trace ParentProcessId), work in your own clone, and never edit its files.
 - Git identity is not configured. Commit with

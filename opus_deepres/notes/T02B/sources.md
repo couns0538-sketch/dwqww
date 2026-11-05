@@ -31,7 +31,7 @@
   8+0.08, 5,714 games (ob.expositor.dev/test/19), confounded; (d) loader shuffle: random skipping 0.75 -14.31 +- 2.64
   STC 20+0.2 (20,022 games, /test/189), skipping 5/6 + warmup +3.12 (/test/192) - loader, not datagen | evidence
   for MIX.md item 3 (recency purge); no card
-- 4 (cont.). same file, lines 186-232 (gemstone / gemini) | AGPL-3.0, docs | "gemini" = gemstone's 963M-position set
+- 4 (cont.). same file, lines 186-232 (gemstone / [name withheld]) | AGPL-3.0, docs | "[name withheld]" = gemstone's 963M-position set
   + ~250M extra DFRC positions (~21 % of the set), same arch: classical STC 8+0.08 -5.11 +- 4.22, SPRT [0,3] failed,
   12,912 games; DFRC STC +18.36 +- 6.96 (4,488 games) vs gemstone; "grimoire" (+444M classical positions) -0.37 +-
   2.90 (27,224 games) | TABLE row (DFRC openings: drop for a classical gate); no card

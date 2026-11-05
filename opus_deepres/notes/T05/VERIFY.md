@@ -74,7 +74,7 @@ Order of work: lint, licence rows, lock greps, then the 3 full cards by expected
 ## Reading rule, constants, names
 - all T05 cards and notes | links to source files of GPL / AGPL / unlicensed repos | CONFIRMED (no violation: the only /blob/ link is llvm-project bolt/README.md, Apache-2.0, a README) | grep of every URL in cards/T05 and notes/T05
 - all | Stockfish read as PR text and fishtest pages only; no pasted / paraphrased code; no other engine's tuned constants proposed as Forge values | CONFIRMED (the Stockfish nps / Elo figures appear only as source numbers; all Forge ranges are own) | cards T05-01..04, SPEED_LIST rows 3, 6
-- all | no AI vendor / model-company names | CONFIRMED (card_lint clean on cards; on notes no name finding, only card-format findings that do not apply to notes; "grok" only in grok-pc paths; the only other hit is the job's own folder / branch names in local paths, accepted by the job's linter) | tools/card_lint.py
+- all | no AI vendor / model-company names | CONFIRMED (card_lint clean on cards; on notes no name finding, only card-format findings that do not apply to notes; "[name withheld]" only in grok-pc paths; the only other hit is the job's own folder / branch names in local paths, accepted by the job's linter) | tools/card_lint.py
 - all | every Forge-side estimate labelled UNPROVEN | CONFIRMED (4 / 4 cards; SPEED_LIST header "every estimate UNPROVEN"; V2P4_GAP holds records only, labelled advisory) | cards, notes
 
 ## Counts
