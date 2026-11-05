@@ -438,7 +438,8 @@ child, fail closed).
 
 ## 2. Unfinished and how to resume
 - **The remaining exe gap (QA)**: the gate exe v2p4 (root fix) runs the v2 path at its own OFF speed, but on game
-  positions both paths are ~2-7 % behind the lock exe (OFF 0.933, KB1 0.980; `a/depth_probe_o30.py`) - the kit v2.5
+  positions both paths are ~2-7 % behind the lock exe (OFF 0.933, KB1 0.980; `a/depth_probe_o30.py`; two exe files,
+  so part of it may be the per-file effect of BH-8 - the control match's -20.9 says the deficit is real) - the kit v2.5
   build vs the lock's kit v2.3. Resume: QA times v2p4 vs FD3A5190 with its own method; if confirmed, profile which
   functions the v2.5 workload (v2n + -PartialTraining) optimises differently, or build the v2 exe with QA's kit once
   that kit can profile an option-only path. Until then every v2 gate carries that handicap.
@@ -614,7 +615,8 @@ below are from each net's RESULT.json.
 8. **QA item:** the v2 exe's own deficit (-20.9 +/- 18.5 with an identical evaluation; kit v2.5 build ~2-7 % slower
    than the lock's kit v2.3 on game positions) - closing it helps every v2 line above. End to end, the gate exe with
    the KB8 soup Y8 runs at 0.893x and with the KB32 soup Z32 at 0.849x the lock exe's nodes per second (different trees,
-   advisory; 0.32 / 0.47 plies shallower at equal time; `a/logs/checks_gpu_w2/speed_vs_lockexe_*.txt`).
+   advisory; 0.32 / 0.47 plies shallower at equal time; `a/logs/checks_gpu_w2/speed_vs_lockexe_*.txt`; two exe files,
+   so up to ~5 % may be a per-file effect, BH-8).
 
 ## 5. Review of every patch: the author's own structured review, plus the independent reviews of 2026-11-04
 
@@ -773,6 +775,7 @@ CPUs 0-1). Checks that need a CPU (final_checks_o30.sh, the abba.py A/A) follow 
 | BH-5 | a run refused at start could never start on the retry: the guard opens `<run>.guard.log` before its checks and the bat's redirect creates `<run>.out`; the bat refuses a run whose folder / .out / .guard.log exist (exit 4). The retry of fix list 2 item 1 (73e4c828) therefore landed in plan.failed, and queue_runner2.sh's retries in plan2.skipped; the item-1 stub created none of these files | none: no refusal happened in the live window (plan2.refused and plan2.skipped empty) | both runners move the attempt's files aside as `<file>.refused<N>` before a retry (1ab804be); a/logs/bughunt/runner_retry_test.out: old runner "ABORT: rX_test.out exists -> exit 4", new runners "trainer started and ended (exit 0)", plan.done [rX_test]; the watcher that queue_runner.sh starts before the run keeps waiting through the move and ends on the retried run's log (a/logs/bughunt/watch_after_moveaside_test.out, "watcher exit 0") |
 | BH-6 | D:\o30\nets\INDEX.md showed n2L only with its first match on the older exe v2p3 (ff856ba8, -9.6 +/- 19.0); the rematch on the gate exe v2p4 (50.38 %, +2.6 +/- 19.2, `sanity_v2p4\`) that section 4 cites was missing | the index under-reported; the report was right | make_net_index.py reads `<net>\sanity_v2p4\sanity_v2p4.log` into the summary column and a detail row; test_make_index.py INDEX RENDER PASS; INDEX.md regenerated (f75ad318) |
 | BH-7 | own processes left running: three wait loops of the morning GPU window (waiting for run-4 / run-5 score lines that will never come), a loop polling `git ls-remote` every 30 s for the R14 head, and an orphaned `tail -f` + `grep` pair (pids 6828 / 10272, 13:40) of the Item B build monitor | none (idle loops; the ls-remote loop made a network call every 30 s) | the four loops stopped with TaskStop between 19:28 and 19:30 (gone from the process list); the two orphans have no parent left and are idle and read-only - the job never kills processes, so they stay for the owner (`Stop-Process -Id 6828,10272`) |
+| BH-8 | checklist item 8: abba.py showed arm B ~5.5 % slower in both A/A runs of the night (lock exe vs a byte copy, B/A 0.9447 and 0.9455 with the files swapped). With the IDENTICAL command in both arms (10 pairs, CPU 1, 20:28) B/A = 1.0142, 95 % CI 0.9854-1.0439, median 1.0012 - no harness bias. The earlier deficit followed the arm, not the file, and appears only with two different files: consistent with the per-file / first-launched-file effect seen in R5B (byte copies of one exe differ by up to +-2.8 %), cause not isolated | speed ratios between two different exe files (kit v2.4 0.96x / v2.5 ~1.0x, the v2p4-vs-lock end-to-end 0.893x / 0.849x, n2e / n2L NPS ABBA 0.899) may carry up to ~5 % of this; the layout probes (one exe, two nets) and the 0.71x of kit v2.3 do not depend on it | no code change; the rule for the next timing: identical-command A/A first, fresh copies per slot (R5B --copies) for two exes; a/logs/bughunt/abba_aa_identical_2028_summary.txt (+ the two night runs and runs.tsv files) |
 
 Read and found correct (no change): v2port.patch (loader size / header / checksum checks before allocation; replay
 walk and king squares of the ancestor; refresh through the cache with the later plies taken back; residual psqt kept
