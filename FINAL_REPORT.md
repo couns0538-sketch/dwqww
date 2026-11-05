@@ -6,7 +6,7 @@ big outputs in `C:\a14x`. Repository: https://github.com/couns0538-sketch/dwqww/
 This file replaces the R13 report that the branch inherited at `FINAL_REPORT.md` (R13 copy, 9,305 bytes, md5
 e9132aa24b6563326e3c45bd6110e144 at 7636122b; its content stays in the history).
 
-Last content commit of the branch: `e3957e1fd7cecad906b9b4665f02676dbe3e0ab5` (14:04 Vienna). The final head is the commit that adds
+Last content commit of the branch: `179430bd73cfe2097b3657bca60037942eb97886` (17:52 Vienna). The final head is the commit that adds
 this report; a file cannot carry its own md5 or its own commit hash, so both are given in the hand-back message and
 can be read with `git -C D:/a14 log -1` and `git -C D:/a14 ls-remote origin refs/heads/opus-astra-r14-finish`. A first
 version of this report (commit 3daa18ffa6c5294972f878243178a91c6d93871d, 14:06, pushed at 14:07) is superseded by this
@@ -16,8 +16,8 @@ history rewritten; every other file is identical in both commits.
 Times (Vienna = PC clock, every figure from the clock or from commit times): Astra's R14 started 2026-11-03 12:41:11
 (evidence/R14_PROGRESS.md). This finish: Step 0 2026-11-04 09:20 (PLAN.md), first commit aa78a56 09:24:54; the owner's
 fix list (items 0-8, `C:\a14x\cr_fixlist_20261104_from_owner.txt`, md5 ab620242623a045eba6500357802bc3c) arrived at
-13:27 and moved the hard end to 18:15; fix commit 87ef93ee 13:45:35; last content commit 14:04; this report
-written 2026-11-04 14:10:22 (`date` at the final write). No training, no GPU, no engine change, no production-data change, no
+13:27 and moved the hard end to 18:15; fix commit 87ef93ee 13:45:35; last content commit 17:52; this report
+written 2026-11-04 17:52:43 (`date` at the final write). No training, no GPU, no engine change, no production-data change, no
 rating claim.
 
 ## Is the npt data unblocked?
@@ -219,6 +219,7 @@ done here. Nothing here can clear (2) for the existing shards; `D:\a14\sep\GAMES
 | after the fixes (CPU 2) | tests\test_r14_runtime_setup.py | 7 passed, 1 failed (F-006), 18.10 s | `opus-envrestore-fix-green01\output.log` (65cc78a98dc11d88d53bbd262ba9a0f7) |
 | after the fixes (CPU 2) | tests of the changed tools | 32 passed, 0.41 s | `opus-review-fixes-green01\output.log` (71240553f423c00a3c284d95e0db05e3) |
 | **final (R14 scope at the tip 87ef93e; CPU 1)** | same selection rule, now 26 test_*.py files (+ tests\test_opus_promote_export.py) + the two folders = 28 paths | **5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)** (13:54:30-13:55:42, exit 1) | `D:\a14\evidence\test_logs\r14\full-suite-r14cont02\output.log` (9288da127aa2e43b37a687838c872883; first line = `git rev-parse HEAD` = 87ef93eeab1830f3c1c78c242af6b77d813323e3); command in `command.txt` (daff245380bf6fe6357d4be983d6d61c) |
+| rerun after fix list 2 item 7 (tip 78d8350; CPU 6, see the addendum) | same selection rule, 28 paths | **8 failed, 328 passed, 67 subtests passed in 64.54s (0:01:04)** (17:50:11-17:51:16, exit 1) | `full-suite-r14cont03\output.log` (0e607316e0b09f1b746bf56c6d894b30; first line = 78d83508c7291321330ab356f14d8e1a9f8602f5); `command.txt` (d6b82f9ba2cf4ba480ce700139c568e5) |
 
   Final run triage: 5 failed = F-003 (1: test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False], pytest 9.2 subtest accounting; the three CPU-admission cases of F-003 passed this time on the quiet CPU 1), F-005 (2: the two tests\r14_native cases, the default exe), F-006 (1: test_live_refusal_stops_only_owned_process_tree[guard], child.json not yet written when the guard fired) and one NEW environmental failure not caused by the R14 finish: tests\test_r14_preflight.py::test_floor_breach_after_hash_writes_no_receipt (`assert 0 != 0`; neither the test nor tools\Verify-R14Inputs.ps1 changed on this branch and the test passed in run 3). Diagnosis in `D:\a14\evidence\test_logs\r14\full-suite-r14cont02\TRIAGE.md` and R14_OPEN_ISSUES.md: in Windows PowerShell 5.1 Get-FileHash is a function exported by Microsoft.PowerShell.Utility, and the script's `New-Object` line auto-imports that module into the running scope, replacing the test's script-scope Get-FileHash mock with the real function (reproduced alone at 13:59 and by three minimal scripts at 14:00-14:02); the real hashes match every pin, the mocked floor never breaches and the script exits 0. A verified one-line fix (import the two modules before defining the mocks) is proposed, not applied (as-found test outside the R14-finish diff). F-004, F-008 and F-017 are findings, not tests: F-004 accepted, F-008 and F-017 fixed. Run 3's eight failures minus the fixed F-001 and the three admission cases that now pass, plus the new one, give the five.
   CPU check before the final run (read-only, `tmp\opus_cpu01_check.ps1`): at 13:54:05 no forge_ltopgo / fastchess / kit-build process had CPU 0 or 1 in its affinity (CPU 0 14.1 %, CPU 1 9.4 %), which was the coordinator's state condition (the Item B kit build had finished early; at 13:57 the coordinator reserved CPU 1 for this suite and started a sanity match on CPU 0 - after the run); at 13:56:09, after the run, still none (CPU 0 12.4 %, CPU 1 8.5 %).
@@ -233,8 +234,8 @@ done here. Nothing here can clear (2) for the existing shards; `D:\a14\sep\GAMES
 
 ## Owner's fix list of 2026-11-04 (items 0-8; items 9-13 belong to the 30-h job and were not touched)
 Source: `C:\a14x\cr_fixlist_20261104_from_owner.txt` (md5 ab620242623a045eba6500357802bc3c, read in full at 13:27).
-Rules kept: tooling, evidence and docs only; every fix a new commit (87ef93ee at 13:45:35, then e3957e1 at
-14:04 for the suite log, receipts and counts); nothing pushed was rewritten; the promotion command was not
+Rules kept: tooling, evidence and docs only; every fix a new commit (87ef93ee at 13:45:35, then 179430b at
+17:52 for the suite log, receipts and counts); nothing pushed was rewritten; the promotion command was not
 run. Pre-edit md5s were taken with `certutil -hashfile` and compared with the list's b221b71f blob md5s: PLAN.md
 (5eae7d72), REVIEW.md (9a9cab81), SKILL.md (b4b16296) and opus_prod_separation.py (a56624db) matched; PROD_SEPARATION.json
 did not (75956771 on disk vs 7ae9cc04 in the list: regenerated at 11:14 in a9ef81e, after the review) and was re-read
@@ -247,12 +248,12 @@ before the change; R14_OPEN_ISSUES.md (a485ab07), GAMES_SIDECAR_PROPOSAL.md (672
 | 0 | 87ef93ee | statement added to `D:\a14\sep\PROD_SEPARATION.json`, `D:\a14\sep\GAMES_SIDECAR_PROPOSAL.md` (5a911c209c7d3039fbbd1d33311274ea), `D:\a14\evidence\R14_OPEN_ISSUES.md`, `D:\a14\R14_STATUS.md` (589debc45017d648baa0f82c5ad955fe) and this report | "shared keys after EP normalisation: 4088 status FAIL" (tmp\opus_item1_verify.py); the overlap is NOT resolved, npt data BLOCKED |
 | 1 | 87ef93ee | `D:\a14\sep\PROD_SEPARATION.json` (3bccfa9b074a3050d436f08a29dd1b7e; schema 2; `four_field` renamed `four_field_raw` with status "PASS on the raw 4-field key only (0 shared raw keys): an en-passant artifact, not a separation PASS; EP-normalised FAIL (4,088 keys), see four_field_ep_normalised"); `D:\a14\sep\GAMES_SIDECAR_PROPOSAL.md` (5a911c209c7d3039fbbd1d33311274ea, 4,088 + BLOCKED stated; every file it cites exists: `Test-Path` True at 14:08 for sep\FUTURE_GAME_IDS.md, sep\WRITER_EVIDENCE.md, sep\boardstm-probe01\PROBE.json, sep\BOARDSTM_TRIAGE.json, sep\PROD_SEPARATION.json, tools\opus_ep.py and .agents\skills\npt-data-holdout-check\scripts\audit_exports.py) | `tmp\opus_item1_verify.py` (the prescribed `python -c` one-liner needs a backslash path inside `-c`, which this job's rules forbid; the helper does the same): 7 cited paths ok, 3 four-field statuses labelled, "item 1 verify PASS"; `Test-Path` True for all 6 distinct cited paths; `grep -i "four.field.*PASS" sep\*.json sep\*.md` returns only PROD_SEPARATION.json line 7 "raw PASS (0 keys) is an en-passant artifact; EP-normalised FAIL (4,088 keys)" |
 | 2 | 87ef93ee | `D:\a14\tools\opus_prod_separation.py` (17ffcc20834142754443853db772e752: `--out` refused if it or its `.part` exists, `.part` opened with mode 'x', flush + fsync, rename; `--replace-committed` only for a git-tracked output unchanged since HEAD; `--test-hold-seconds` test hook; the "PASS (not yet settled)" wording removed, BOARDSTM_TRIAGE.json mandatory) | scratch run 1: "written D:/a14/tmp/prodsep_verify01/PROD_SEPARATION.json d950bb9744cabe14a5fae81561e2d161"; run 2: "refusing: ... exists (pick a new --out ...)", exit 1, md5 still d950bb9744cabe14a5fae81561e2d161; mid-write test (`tmp\opus_killtest.py`: own child started with a 25 s hold after the `.part` was written, then terminated): ".part exists during hold: True / final exists: False", after the kill ".part exists: True / final exists: False", "RESULT PASS"; a rerun into that folder refuses because the `.part` exists |
-| 3 | e3957e1 | `D:\a14\evidence\test_logs\r14\full-suite-r14cont02\output.log` (9288da127aa2e43b37a687838c872883), `command.txt` (daff245380bf6fe6357d4be983d6d61c), `command.ps1` (efffacc683cd949138a8f31d88f0dccd), `selected_files.txt`, `timing.txt`, `exit.txt`; counts in `R14_OPEN_ISSUES.md` (e1f6a15fff38c72478a22277fa7ae03b) and in this report | first log line = 87ef93eeab1830f3c1c78c242af6b77d813323e3 = the tip the suite ran on (87ef93ee, the fix commit; the later commits add only logs, counts and this report); summary "5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)"; known failures listed: F-003 / F-005 / F-006 (test failures), F-004 / F-008 / F-017 (findings, not tests: F-004 accepted, F-008 and F-017 fixed) |
+| 3 | 179430b | `D:\a14\evidence\test_logs\r14\full-suite-r14cont02\output.log` (9288da127aa2e43b37a687838c872883), `command.txt` (daff245380bf6fe6357d4be983d6d61c), `command.ps1` (efffacc683cd949138a8f31d88f0dccd), `selected_files.txt`, `timing.txt`, `exit.txt`; counts in `R14_OPEN_ISSUES.md` (97913e353b975b300ddb692c0a8ce376) and in this report | first log line = 87ef93eeab1830f3c1c78c242af6b77d813323e3 = the tip the suite ran on (87ef93ee, the fix commit; the later commits add only logs, counts and this report); summary "5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)"; known failures listed: F-003 / F-005 / F-006 (test failures), F-004 / F-008 / F-017 (findings, not tests: F-004 accepted, F-008 and F-017 fixed) |
 | 4 | 87ef93ee | `NOTE_FAILURES.md` beside the four listed logs - `opus-envrestore-fix-green01` (c4038b5872315366ff439556ccd4e633, F-006), `preflight-green01` (751296bc68e60fef662a2c6ed3467a2a), `preflight-green02` (d6734a236bf8f0ab8397541ac454a894), `suite-runner-green01` (70e2338557d78de229479b7e9571b194, owner's pointer F-006 and the review's F-003) - and beside the six other committed "green" logs with failures that the verify condition covers: `qc\launcher-cap-green01` (891918cd783cf0d0fdb7b9cc748b501d), `qc\launcher-cap-green02` (b6618c21b59b426ad6ffa23ad4847a56), `qc\launcher-cap-green03` (07b6d726c2ac6e33efd2b90e54d75656), `qc\setup-green02` (86356657d26d29529c7c04f0699720d1), `qc\setup-pipe-green01` (7c1fdfc8ca3f2db9dcb5552025391b88), `qc\setup-pipe-green02` (b9772761415ee44fead3bc325c971bc4); all under `D:\a14\evidence\test_logs\r14\`; the logs themselves are unchanged and nothing was renamed (no deletes) | the four logs were found by md5 (65cc78a9..., 439c5f5c..., 3600cf60..., 5121aa92...); every committed `*green*` log with "N failed" > 0 now has a note beside it: 10 of 10 "noted", 0 "MISSING" |
 | 5 | 87ef93ee | `D:\a14\PLAN.md` (d7c20b402a5619255ea457cc5d135e6f, lines 135-137), `D:\a14\evidence\review\r14cont_independent\REVIEW.md` (671fbf66b8d8935afee7df1f5a60b84f, dated correction lines 7-12 before "## Scope"; findings unchanged) | `grep -n -i independent` shows PLAN.md:136 and REVIEW.md:11 with the same wording "reviewer agent started by the owner's allowance, scope 7636122b..0883cee, not covering de1a1cd3 or the as-found tools" (grep of that exact string hits both files); REVIEW.md's original title and line 3 stay as the record, qualified by the correction |
 | 6 | 87ef93ee | `D:\a14\sep\boardstm-probe01\TRIAGE_probe_only_tip.json` (495d50516a677db302396502fe0b09f5, rerun with the tip triage tool 63e82e3a820a5495c258fa25efcd2b8f; the old file kept); `D:\a14\sep\TOOL_MD5_CHAIN.md` (290295317497eb12062486549c8c01b2) naming the build of every record | recorded tool md5 inside TRIAGE_probe_only_tip.json = certutil of `tools\opus_boardstm_triage.py` at the tip (63e82e3a820a5495c258fa25efcd2b8f); every count identical to the 09:51 record. NOT done: the PROOF.json rerun - it writes about 2 GB below --big-dir, C:\a14x is read-only for this job and D: had 52.6 GB free against the 50 GB floor; PROOF.json keeps the 3b43d18 build identity 37319c6e103b508d0fdcc23a17b035ad (tip 6c974b2e446182ba875a74a4a32fb334, docstring-only change, diff in the chain note) |
 | 7 | 87ef93ee | `D:\a14\.agents\skills\guardband-split-proof\SKILL.md` (b7f7728af02b22e7b88e34d24fa8dfdb, stale line replaced); `D:\a14\tools\opus_promote_export.py` (0bc94d4267529aec152a8ad92927c7db, the refusal rules moved unchanged into `check_proof()`); `D:\a14\tests\test_opus_promote_export.py` (36ba9f2f79a5f5d1ec0505edec86c659) | `grep -n -i audit SKILL.md` lines 69-72 state the F-014 behaviour; `pytest tests\test_opus_promote_export.py`: "5 passed in 0.06s" (bad audit counters refused, missing counter field refused, non-PASS / problems refused, changed SPLIT refused, flag-less command refuses before reading anything). The CLI was NOT run with `--confirm-owner-decision` (binding rule); the counter refusal is proven at the function level on fixtures |
-| 8 | 87ef93ee + e3957e1 | `D:\a14\evidence\R14_OPEN_ISSUES.md` (e1f6a15fff38c72478a22277fa7ae03b): the three eaten spaces fixed, the accepted list (F-003, F-004, F-005 accepted with reasons; F-006 per the final run; F-008 and F-017 fixed), the export-scope note (999,921-row jobA set only; audit UNVERIFIED, game_id null in all 17,385,720 rows), the final suite counts | counts in R14_OPEN_ISSUES.md = the log summary "5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)"; `grep -n "by100k\|has3982\|final30" evidence\R14_OPEN_ISSUES.md` prints exactly two lines, 37-38, which are the dated fix note quoting the three names ("Three eaten spaces fixed above ("has3982", "by100k" = review finding F-008, "final30-minute") ..."); the three original lines (8, 13, 25) no longer contain them |
+| 8 | 87ef93ee + 179430b | `D:\a14\evidence\R14_OPEN_ISSUES.md` (97913e353b975b300ddb692c0a8ce376): the three eaten spaces fixed, the accepted list (F-003, F-004, F-005 accepted with reasons; F-006 per the final run; F-008 and F-017 fixed), the export-scope note (999,921-row jobA set only; audit UNVERIFIED, game_id null in all 17,385,720 rows), the final suite counts | counts in R14_OPEN_ISSUES.md = the log summary "5 failed, 331 passed, 67 subtests passed in 72.10s (0:01:12)"; `grep -n "by100k\|has3982\|final30" evidence\R14_OPEN_ISSUES.md` prints exactly two lines, 37-38, which are the dated fix note quoting the three names ("Three eaten spaces fixed above ("has3982", "by100k" = review finding F-008, "final30-minute") ..."); the three original lines (8, 13, 25) no longer contain them |
 
 The overlap (4,088 shared keys after EP normalisation) is still unresolved; nothing in this list changed that.
 
@@ -301,14 +302,29 @@ sidecar proposal | 17db812 10:01 sweep fixes | 9df2fe0 10:01 sweep evidence | 3b
 GUARDBAND_SEPARATION.json | de1a1cd 11:01 review by the reviewer agent + fixes, suite logs, skills | b221b71 11:02 -text
 for the skills and review folder | a9ef81e 11:14 full listing scan, cross-checked triage, PROD_SEPARATION settled |
 f1df9ca 11:30 evidence gaps of the draft (Step 0 re-check, pip hash proof, test command) | 87ef93ee 13:45 owner's fix
-list items 1-2 and 4-8 | e3957e1 14:04 final suite log at the tip, receipts, counts (item 3) |
-then the commit that adds this report (final head).
+list items 1-2 and 4-8 | e3957e1 14:04 final suite log at the tip 87ef93ee, receipts, counts (item 3) | 3daa18f 14:06
+first version of this report | cdc487a 14:10 report with two verify cells corrected (reviewed tip of fix list 2) |
+78d8350 16:11 owner's fix list 2 items 6-7 (relpath refusal, Import-Module before the mocks) | 179430b
+17:52 suite rerun log full-suite-r14cont03 at the tip 78d8350, receipts, open-issues entry | then the
+commit that adds this report (final head).
+
+## Addendum - owner's fix list 2 of 2026-11-04 (items 6-7; items 1-5 belong to the 30-h job and were not touched)
+Source: `C:\a14x\cr_fixlist2_20261104_from_owner.txt` (md5 f494be7a6adca9582c80b45853840702, read in full at 16:08).
+Pre-edit `certutil -hashfile` md5s equalled the list's cdc487a8 blobs for both files (opus_prod_separation.py
+17ffcc20834142754443853db772e752, test_r14_preflight.py abb6be63083824b00aa69d31a1116af9). Promotion not run.
+
+| item | done in | changed files (new md5) | verify output |
+|---|---|---|---|
+| 6 | 78d83508c7291321330ab356f14d8e1a9f8602f5 (16:11:00) | `D:\a14\tools\opus_prod_separation.py` (7f0a3ae03e02a2b8ee551c3548aef782: `os.path.relpath(OUT, A14)` wrapped in try/except ValueError -> `need(False, f'refusing: {OUT} not under {A14}')`; the helper definitions moved above the argument block so `need` exists there); `D:\a14\TOOLS.md` (89f181ae43a42bbe76422569f5d2d64b, section refreshed, `--check` PASS 18/18); `D:\a14\sep\TOOL_MD5_CHAIN.md` (038647fcf3ffe3763f3f31c6416ca444, PROD_SEPARATION row names the new build) | `D:\a14\evidence\test_logs\r14\opus-prodsep-relpath01\output.log` (0875daed9ceff901fd078458ea9bcc30) + `command.txt` (23c39367611781287d3ccb04a3d1ee5c): `--out C:\a14x\prodsep_relpath_test\x.json --replace-committed` against an existing dummy (md5 d11d325009336b0f249138a1abea9fdf) -> exit 1, exactly one line "refusing to write PROD_SEPARATION.json: refusing: C:/a14x/prodsep_relpath_test/x.json not under D:/a14/", no traceback, dummy md5 unchanged, folder listing unchanged (no .part), "RESULT PASS". The C:\a14x path was used instead of the list's C:\Users\Administrator\scratch because C:\a14x is this job's allowed scratch and is still on another drive than D:\a14. A scratch run of the new build into D:\a14\tmp\prodsep_verify03 reproduces the committed record except updated_vienna, and a second run refuses. |
+| 7 | 78d83508c7291321330ab356f14d8e1a9f8602f5 + 179430b | `D:\a14\tests\test_r14_preflight.py` (dfdf6235e5d88aed5f99bbfd2464cd51: `Import-Module Microsoft.PowerShell.Utility, Microsoft.PowerShell.Management` as the first line of the mock prefix, on the owner's order); suite rerun `D:\a14\evidence\test_logs\r14\full-suite-r14cont03\output.log` (0e607316e0b09f1b746bf56c6d894b30; first line = `git rev-parse HEAD` = 78d83508c7291321330ab356f14d8e1a9f8602f5), `command.txt` (d6b82f9ba2cf4ba480ce700139c568e5), `command.ps1`, `selected_files.txt`, `timing.txt`, `exit.txt`; `R14_OPEN_ISSUES.md` (97913e353b975b300ddb692c0a8ce376) | new log starts with the tip SHA 78d83508c7291321330ab356f14d8e1a9f8602f5; "8 failed, 328 passed, 67 subtests passed in 64.54s" (CPU 6 at Idle, 17:50:11-17:51:16); test_floor_breach_after_hash_writes_no_receipt PASSED, so the floor rule is proven again and no "does not prove the floor rule" label was needed. The eight failures: F-003 (1), F-005 (2), F-006 (1) as before, plus four tests/test_r14_launcher.py cases (test_child_environment_and_parent_preserved, test_owned_cap_after_child_never_allocates_receipt[during] and [after], test_exited_child_cannot_leave_descendant_holding_pipes) that failed on the launcher CPU-admission guard ("CPU admission refused", Invoke-R13.ps1 line 55: PercentProcessorTime > 70 on the CPU the child picks, which is the CPU the suite itself occupies) - they passed on CPU 1 (13:54) and CPU 2 (10:37) and are the same cases as in Astra qc/launcher-cap-green0* logs; environmental, not caused by items 6-7. The record also names the health probe evidence/r14/health-ps51-f3a987e49960.json written by the run. |
+
+The 4,088-key residual overlap is unchanged by this list; npt data stays BLOCKED.
 
 ## Appendix - every file by full PC path and md5
-Generated by `D:\a14\tools\opus_inventory.py` at 14:05:04-14:05:08, after the last content commit e3957e1:
+Generated by `D:\a14\tools\opus_inventory.py` at 17:52 (after the last content commit 179430bd), after the last content commit 179430b:
 `--base 7636122b71ff27a5b4b781b6775757f926f8fdc4 --extra C:\a14x\guardband01_stage --extra
 D:\a14\sep\segments-production02\maps --extra C:\a14x\guardband01_proof --extra C:\a14x\promote_tooltest01 --exclude
-D:\a14\FINAL_REPORT.md`: 702 entries, 2,463,074,830 bytes. Every file of `git diff --name-only 7636122b HEAD`
+D:\a14\FINAL_REPORT.md`: 712 entries, 2,463,112,592 bytes. Every file of `git diff --name-only 7636122b HEAD`
 plus every file below the four extra folders, sorted by path; FINAL_REPORT.md is excluded because it cannot list itself.
 The 92 entries marked "deleted on the branch" are pytest's `...current` pointer entries of the as-found
 boundary and launcher logs (git mode 120000 symlinks), which are not regular files on disk.
@@ -342,6 +358,7 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\evidence\r14\health-ps51-1fc845190287.json | 6656 | 416c3a758701b2421754cb04ce967404 |
 | D:\a14\evidence\r14\health-ps51-d0602b990d33.json | 5590 | 5327bbeb13066091fc226eb670bbbd73 |
 | D:\a14\evidence\r14\health-ps51-d748073904c2.json | 7874 | 9f47023c6989a1ac9f3664440c9813e9 |
+| D:\a14\evidence\r14\health-ps51-f3a987e49960.json | 7889 | d789947e3e78267b25616b748e1a9527 |
 | D:\a14\evidence\r14\opus_silent_sweep_after.json | 7853 | 46d756edee6119af37ee812194edf7b9 |
 | D:\a14\evidence\r14\opus_silent_sweep_r14_range.json | 35 | 2620cfee40919426d0cd57828dc5a4f0 |
 | D:\a14\evidence\r14\opus_telemetry.md | 1171 | b15163ab1bc4c113f80f78dd168182f6 |
@@ -349,7 +366,7 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\evidence\r14\overlap-production04.log | 142396 | 25d30542f80e35cf224af78c96eb2334 |
 | D:\a14\evidence\r14\r14_changed_files_11d38208_7636122b.txt | 48216 | 43a27e270df95ef3916ecf4c0e597e36 |
 | D:\a14\evidence\r14\segments-production02.log | 60656 | 4c90a81861d2cfb9fc973008b618594a |
-| D:\a14\evidence\R14_OPEN_ISSUES.md | 7358 | e1f6a15fff38c72478a22277fa7ae03b |
+| D:\a14\evidence\R14_OPEN_ISSUES.md | 8812 | 97913e353b975b300ddb692c0a8ce376 |
 | D:\a14\evidence\review\r14cont_independent\bytes_check.out | 7664 | bcf2b7be8908d89241b2d9717097545f |
 | D:\a14\evidence\review\r14cont_independent\diffs\modified_files.diff | 54801 | c481b9b47570261d532c7981f2707f21 |
 | D:\a14\evidence\review\r14cont_independent\env_restore_probe.out | 266 | 4c83f278da7cfe49f383bff4b6def08b |
@@ -484,6 +501,12 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\evidence\test_logs\r14\full-suite-r14cont02\selected_files.txt | 980 | 603a78b6be6a6a93ac5dc2076b5e6622 |
 | D:\a14\evidence\test_logs\r14\full-suite-r14cont02\timing.txt | 74 | 2d62a5fc2a3973b5f69c3745f3975df5 |
 | D:\a14\evidence\test_logs\r14\full-suite-r14cont02\TRIAGE.md | 4502 | 66fcb4303dc7f4eb6189a3d8cd5f464e |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\command.ps1 | 2565 | 9582fd39ef1c6c7fc89ac58dbea9a691 |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\command.txt | 1675 | d6b82f9ba2cf4ba480ce700139c568e5 |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\exit.txt | 8 | e5bc9ae3753e7edd5bc9b3ff42a6b9b7 |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\output.log | 19537 | 0e607316e0b09f1b746bf56c6d894b30 |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\selected_files.txt | 980 | 603a78b6be6a6a93ac5dc2076b5e6622 |
+| D:\a14\evidence\test_logs\r14\full-suite-r14cont03\timing.txt | 74 | a975762e8e1afedf275f02ddb139302f |
 | D:\a14\evidence\test_logs\r14\identity-ambiguity-command.ps1 | 1544 | 69673554529d0e3364c3f797169fe829 |
 | D:\a14\evidence\test_logs\r14\IDENTITY_AMBIGUITY_MILESTONE.md | 3652 | 0cec85aad81cd4d04cfabe8c2e196749 |
 | D:\a14\evidence\test_logs\r14\launcher-review-green01\output.log | 100 | 70af4de5f9373fa209f20b5906cff136 |
@@ -585,6 +608,8 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\evidence\test_logs\r14\opus-pip-require-hashes01\command.txt | 664 | f125861d5d1f77c17cdcdbf05b2d6635 |
 | D:\a14\evidence\test_logs\r14\opus-pip-require-hashes01\output.log | 3328 | 45bd3448f7bc2cfcb1a462a0746e4bc9 |
 | D:\a14\evidence\test_logs\r14\opus-probe-green01\output.log | 101 | e18ee4e6068e06f03667afa0482dc71c |
+| D:\a14\evidence\test_logs\r14\opus-prodsep-relpath01\command.txt | 378 | 23c39367611781287d3ccb04a3d1ee5c |
+| D:\a14\evidence\test_logs\r14\opus-prodsep-relpath01\output.log | 614 | 0875daed9ceff901fd078458ea9bcc30 |
 | D:\a14\evidence\test_logs\r14\opus-qualify-fixture-green01\output.log | 101 | 870686becf8c3627a443f5bc843e3de7 |
 | D:\a14\evidence\test_logs\r14\opus-review-fixes-green01\command.txt | 467 | 2fbefeb7ba6b72ccd39d95b192e694a8 |
 | D:\a14\evidence\test_logs\r14\opus-review-fixes-green01\output.log | 101 | 71240553f423c00a3c284d95e0db05e3 |
@@ -975,7 +1000,7 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\sep\segments-production02\native.stderr.log | 0 | d41d8cd98f00b204e9800998ecf8427e |
 | D:\a14\sep\segments-production02\progress.jsonl | 60468 | 8d5697058a7dcc10c9b90c7f2368f57e |
 | D:\a14\sep\segments-production02\REPORT.json | 36889 | fcb488f8c726326e013f648e1d202760 |
-| D:\a14\sep\TOOL_MD5_CHAIN.md | 3965 | 290295317497eb12062486549c8c01b2 |
+| D:\a14\sep\TOOL_MD5_CHAIN.md | 4281 | 038647fcf3ffe3763f3f31c6416ca444 |
 | D:\a14\tests\r14_qualification\test_qualification.py | 13787 | c62cce4fbd40fe5b4cc00c2cfef7181f |
 | D:\a14\tests\test_opus_boardstm_probe.py | 2921 | f45ced07034f7738d359ecc2029eeafd |
 | D:\a14\tests\test_opus_boardstm_triage.py | 4106 | 25812dba613a439b34f43ebf9a51bd5d |
@@ -986,8 +1011,9 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\tests\test_r14_boundary_qualify.py | 1467 | 58c975f15ad5319f5fb66fab2ecd1a4f |
 | D:\a14\tests\test_r14_boundary_run.py | 8394 | e6104e46872859ed293b7923963b8249 |
 | D:\a14\tests\test_r14_overlap.py | 15521 | 8c3c5d91fce110dc3444816b8a8c8fc3 |
+| D:\a14\tests\test_r14_preflight.py | 2099 | dfdf6235e5d88aed5f99bbfd2464cd51 |
 | D:\a14\tests\test_r14_suite.py | 10357 | d223977476a26d68fb4dd2e8749b897a |
-| D:\a14\TOOLS.md | 10940 | e08fa2572c12fe9991464c119c507faf |
+| D:\a14\TOOLS.md | 10940 | 89f181ae43a42bbe76422569f5d2d64b |
 | D:\a14\tools\Invoke-R14Suite.ps1 | 10313 | bfb2096320d5cabe7040b123688b910a |
 | D:\a14\tools\opus_boardstm_probe.py | 12373 | ab989d17cca0b703b9b281855a71a81d |
 | D:\a14\tools\opus_boardstm_triage.py | 12294 | 63e82e3a820a5495c258fa25efcd2b8f |
@@ -997,7 +1023,7 @@ boundary and launcher logs (git mode 120000 symlinks), which are not regular fil
 | D:\a14\tools\opus_guardband_record.py | 4505 | 1b8c9e77bb99ee13c0966c32653199b3 |
 | D:\a14\tools\opus_inventory.py | 2574 | 1b63d0c0b6e7573942709c63d2aa17a7 |
 | D:\a14\tools\opus_lowrun.py | 1755 | 0787fcaa38297f6df4c0fb8ae59b74bb |
-| D:\a14\tools\opus_prod_separation.py | 12157 | 17ffcc20834142754443853db772e752 |
+| D:\a14\tools\opus_prod_separation.py | 12330 | 7f0a3ae03e02a2b8ee551c3548aef782 |
 | D:\a14\tools\opus_promote_export.py | 4617 | 0bc94d4267529aec152a8ad92927c7db |
 | D:\a14\tools\opus_pypi_hashes.py | 3169 | 50e32a68a8dd5b832d128c1c69ca137b |
 | D:\a14\tools\opus_seal.py | 5463 | 6742803a4cb4908bee3e266768b02823 |
