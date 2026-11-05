@@ -603,6 +603,26 @@ de1a1cd; 5 SHOULD; 11 NIT) with the full-suite logs under `D:\a14\evidence\test_
 The dispositions are recorded in that job's own report (D:\a14\FINAL_REPORT.md); nothing of it is part of this job's
 deliverables.
 
+### 5.12 Independent review of the window-2 code (14:35-14:58, sub-agent; logs/review_w2/REVIEW.md md5 8492b231e0600c11fcc8760e1efcff28)
+0 BLOCKER, 6 SHOULD, 6 NIT; each verified and handled by the author (15:00-15:22):
+| ID | finding (short) | outcome |
+|---|---|---|
+| W2-01 | watcher retries could never succeed (exporter / scorer refuse existing outputs) | fixed in a/gpu_ckpt_watch2.sh (failed try's outputs moved aside as .try<N>); test: second try exports and scores |
+| W2-02 | runner marks a refused run done and can burn the plan in minutes | fixed in a/queue_runner2.sh (validate, npt check, mark after "start trainer", retry after 5 min, skip after 3); took over at run 11's end via plan2.txt |
+| W2-03 | --resume-pid could resume a trainer a live guard holds | fixed (refuses while the guard lives); the second half (re-check proc.status() each poll) was tried and dropped: psutil reads a suspended process as running while its threads wait in the kernel and the re-suspends stacked suspend counts in the dummy test |
+| W2-04 | console path could log "left running" for a frozen trainer | fixed: resumes a still-suspended trainer first |
+| W2-05 | default masks 0x3 / 0x4 land on sanity-match CPUs | fixed: WATCH_MASK / O30_MASK required (exit 78) in the watcher, net_pack.sh, final_checks_o30.sh |
+| W2-06 | the new guard's console-exit text not recognised by the watcher | fixed in gpu_ckpt_watch2.sh; test exit 4 |
+| W2-07 | TSV rows CRLF | fixed in gpu_ckpt_watch2.sh (rows LF) |
+| W2-08 | soup member labels lose the checkpoint; failed soups vanish | fixed (run@checkpoint; "no score" rows) |
+| W2-09 | soup shape checked by size only | fixed (folder map / hidden must match) |
+| W2-10 | index takes the first sanity folder; running = finished | fixed (newest log; RUNNING mark) |
+| W2-11 | stale names in usage texts | dummy fixed; gpu_run_o30c.bat waits until no run uses it |
+| W2-12 | hash sweep hashed all of C:\o30g\gpu | fixed (removed; documents cite the packed nets in D:\o30\nets) |
+
+The live runs were never touched: the running watcher / runner / .bat files were not edited; the new versions have new
+names and took over between runs.
+
 ## 6. PENDING at the time of this merged draft (filled at the end of the job)
 
 - [PENDING Item B] the SPSA session numbers, the tuned-set exe (`b/build_o30tuned.sh`) and its checks: see D:\o30\tmp\itemB_draft.md (drafted separately, expected ~15:25).
