@@ -1,9 +1,9 @@
 # T05F-01: Node-identical eval memo for the evaluations the TT never keeps (RFP / null-move exits, razor re-entry, re-search revisits)
-Status: COMPLETE (no source logs an nps or hit-rate number for an eval memo - missing; step 0 of the test plan is the counter that decides go / no-go)
+Status: COMPLETE (no source logs an nps or hit-rate number for an eval memo - missing; step 0 of the test plan is the counter that decides go / no-go). Verified 2026-11-05 02:2x (notes/T05F/VERIFY.md): all cited numbers and lock lines CONFIRMED; two corrections marked below (T04L link, break-even range); VIOLATION (minor, caps, self-disclosed in sources.md W3): two Caissa files fetched whole, over the ~300-line fetch cap, MIT, no licence impact; no duplicate.
 
 ## Source
 - Own lock source (notes/T05F/sources.md L1): exits that return without a TT store - reverse futility `return eval` src/search.cpp:960-963, null-move cutoffs :984-998; razoring re-enters qsearch on the same node (:953-958), whose second probe (:786) misses again and re-runs static_evaluate (:808) and corrected_eval (:809). Stores that keep the raw eval: :817, :868, :1023, :1214; reuse: :807, :935.
-- Predecessor row: notes/T05B/TABLE.md row 10 ("separate eval cache keyed by the full key ... no card: counter first") framed the misses as TT replacement only; notes/T04L/TABLE.md row 12 found that the RFP / NMP / razor exits store nothing (the Elo-side fix is the EvalOnlyStore near-miss port).
+- Predecessor row: notes/T05B/TABLE.md row 10 ("separate eval cache keyed by the full key ... no card: counter first") framed the misses as TT replacement only; notes/T04F/DIFF.md row 12 (corrected by verify: the card first cited notes/T04L/TABLE.md row 12, which has no rows) found that the RFP / NMP / razor exits store nothing (the Elo-side fix is the EvalOnlyStore near-miss port).
 - Design reference (MIT): Caissa writes an eval-only TT entry right after each evaluation, https://github.com/Witek902/Caissa/blob/57cae7ef71e87c1d02b5a1b1baea98ea79ee5452/src/backend/Search.cpp lines 1680-1686 (search) and 1285-1290 (qsearch), so its razoring qsearch (lines 1765-1771) re-reads the stored eval; qsearch variant https://github.com/Witek902/Caissa/commit/4b2cf654a3 (test https://furybench.com/test/3041/).
 - One web search (W4) found no logged nps or hit rate for an eval cache / eval hash in any engine.
 
@@ -18,7 +18,7 @@ Has it? NO: forge_has 'eval_?cache|eval_?memo|EvalCache|EvalMemo' = 0 hits. The 
 
 ## Expected gain
 Source number: none for a memo (missing). Related Elo-side numbers (TT writes, NOT node-identical): Caissa 4b2cf65 +1.34 +- 1.08 Elo, 5.0+0.05s Threads=4 Hash=32MB, SPRT [0, 2.5], LLR 2.95, N=105,626; Forge gate49 (EvalOnlyStore, MinDepth 2) +8.57 Elo / +19.19 nElo, 1,500 games, cap, no decision; gate50 (MinDepth 4) -0.93; gate68bnd (bundle incl. EvalOnlyStore) H1 at [0, 10], +14.51 Elo, 1,390 games (notes/TRIED_GATES.md).
-Break-even (own arithmetic): a memo read + write costs ~5-15 ns per static_evaluate call (L2-resident) against ~280-400 ns saved per hit and ~450 ns per average node (2.24M nps probe, notes/T05/SPEED_LIST.md row 5), so +1 % nps needs about 6-8 % of static_evaluate calls to hit, +3 % about 12-18 %.
+Break-even (own arithmetic): a memo read + write costs ~5-15 ns per static_evaluate call (L2-resident) against ~280-400 ns saved per hit and ~450 ns per average node (2.24M nps probe, notes/T05/SPEED_LIST.md row 5), so +1 % nps needs about 6-8 % of static_evaluate calls to hit, +3 % about 12-18 % (corrected by verify: those are the mid case of the stated inputs; over the full ranges 0.3-0.5 evaluations per node, 5-15 ns, 280-400 ns the span is ~4-11 % for +1 % and ~8-21 % for +3 %).
 Forge estimate: 0 to +4 % nps **UNPROVEN** (lock, EvalOnlyStore OFF); much less if EvalOnlyStore is adopted (its TT entries then catch the depth >= MinDepth exits) - re-count on that build.
 
 ## Effort

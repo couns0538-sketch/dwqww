@@ -28,14 +28,14 @@ Linux -O3); S37 search-case static eval 403.1 ns (HCE ~232 ns, net update + outp
 | 12 | Null-move child shares the parent's accumulator instead of a 2 x 1 KiB copy | own (L1) | own | none | record_null_move :632-636 + update with 0 dirty pieces | dropped (small share of nodes, ~30-60 cycles each); HCE part = T05B row 18 |
 | 13 | TT prefetch at ProbCut make_move | [Stockfish e277dda](https://github.com/official-stockfish/Stockfish/commit/e277dda7166992536124891e212d6d6a866f8a12) (commit message only) | GPL-3.0 (ideas only) | +0.33 % nps (100 runs); STC [0, 2] LLR 2.93, N=101,344 | lock: none at :1013-1016; R14 SPEED2 adds the null-move / ProbCut sites (notes/T05/SPEED_LIST.md row 7) | **evidence for SPEED2** (done) |
 | 14 | Re-evaluate small-net positions with the main net | [Stockfish 0b08953](https://github.com/official-stockfish/Stockfish/commit/0b08953174d222270100690b45fad0dc47c01f98) (commit message only) | GPL-3.0 (ideas only) | STC [0, 2] LLR 2.93, N=92,320 | lock has one net | not applicable (changes evals) |
-| 15 | qsearch eval-only TT write before the move loop | [Caissa 4b2cf65](https://github.com/Witek902/Caissa/commit/4b2cf654a3) | MIT | +1.34 +- 1.08, 5.0+0.05s Threads=4 Hash=32MB, [0, 2.5], LLR 2.95, N=105,626 | lock qsearch stores at :817 (no TT hit only) and :868 | Elo path, not node-identical: **evidence for the EvalOnlyStore port** (notes/T04L/TABLE.md row 12, gates 49 / 50 / 68bnd) |
+| 15 | qsearch eval-only TT write before the move loop | [Caissa 4b2cf65](https://github.com/Witek902/Caissa/commit/4b2cf654a3) | MIT | +1.34 +- 1.08, 5.0+0.05s Threads=4 Hash=32MB, [0, 2.5], LLR 2.95, N=105,626 | lock qsearch stores at :817 (no TT hit only) and :868 | Elo path, not node-identical: **evidence for the EvalOnlyStore port** (notes/T04F/DIFF.md row 12 (corrected by verify; was cited as T04L row 12), gates 49 / 50 / 68bnd) |
 | 16 | Skip the eval where it is not needed (lazy eval) | general practice | - | - | every visit uses it (improving, razor, RFP, NMP, ProbCut, futility; qsearch stand pat) | excluded: a margin-based skip changes values |
 
 ## Evidence for existing cards (not new cards)
 - T05B-02 (exact material key): row 7 - material_key runs twice per main-search node end (corrected_eval :642 at entry, update_correction :655 at exit) for the same position.
 - T05E-02 (HalfKA backward fill): row 8 - Caissa's eager EnsureAccumulatorUpdated at TT-eval nodes (MIT, readable design).
 - SPEED2 (R14, done): row 13 - Stockfish e277dda measured +0.33 % nps for the ProbCut TT prefetch.
-- EvalOnlyStore (T04L row 12, done as a near-miss port): row 15 - Caissa's qsearch-side variant passed [0, 2.5] at +1.34.
+- EvalOnlyStore (T04F DIFF row 12 - corrected by verify, done as a near-miss port): row 15 - Caissa's qsearch-side variant passed [0, 2.5] at +1.34.
 - notes/T05B/TABLE.md row 10 (eval cache, "no card"): superseded by card T05F-01 (new: the misses come from the store-less RFP / NMP exits and re-search revisits, plus the bit-exactness argument).
 
 ## Microbenchmark plan (node-identical counting build, not for gating)

@@ -37,10 +37,11 @@ the three cards were corrected (Ethereal: Pohl.epd; Halogen: UHO_Lichess_4852_v1
 | T04N-03 | own constant 40 cp per ply, range 0-120 | CONFIRMED (rule) / UNVERIFIABLE (coincidence) | declared own; the source's value cannot be compared without reading its source, which the rule forbids |
 | T04N-03 | one-liner format | CONFIRMED (remark) | has an extra "Effort" field (9 fields, the rule lists 8); lint accepts it and crew hours are required by the verify brief |
 | track | caps: 3 cards <= 4, 54 / 49 / 1 lines <= 60, names clean, licences.md 4 HEAD + 3 commit rows, TABLE.md 38 rows, scratch only F:/odr/work/T04N/, no source file in scratch | CONFIRMED | greps / wc / ls |
+| T04N-01 / -02 | our own prior code (R15 Caissa port caissa_c123, D:/o15 INDEX, FB2-J3) has neither an NMP cut-node term nor a below-alpha negative extension | CONFIRMED | caissa_c123 search.cpp: options RfpOppWorse / OppWorseMargin / RfpNoTtDepth / TtCutExtraMargin only (Caissa 1df3a863, 324f1f90, 9d566ccb), null child !cut_node at :1001, chain :1130-1132 = -2 / -1; D:/o15/cands/INDEX.md has no null / extension candidate; fable-fb2-j3 null move :1067 equals the lock's condition |
 | track | source cap | REMARK | 25 Halogen PR bodies + 14 RubiChess PR bodies were read and counted as three batch "sources" (9 outside sources in all). The 15-source cap holds only under that batch count. PR text is allowed reading, so no reading-rule violation; not a card violation |
 | hand-back | dead end "none move keeps the old TT move (s:294)" | CORRECTED (hand-back only) | the line is s:293 (`if (!move.is_none() || !same_position) entry->move = move;`); not in any card |
 
-Totals: 29 claims checked, 21 CONFIRMED, 6 CORRECTED (3 books, the row-21 wording, the RFP tried-gates note, one
-hand-back line number), 1 UNVERIFIABLE (whether 40 cp coincides with the source's constant: unknowable by rule),
-1 REMARK (source-cap batch count). Violations: none. Duplicates: none. Lint after the edits: card_lint exit 0,
+Totals: 31 rows checked, 24 CONFIRMED (one of them, the 40 cp start value, is rule-confirmed but UNVERIFIABLE as to
+coincidence with the source's constant), 6 CORRECTED (3 books, the row-21 wording, the RFP tried-gates note, one
+hand-back line number), 1 REMARK (source-cap batch count). Violations: none. Duplicates: none. Lint after the edits: card_lint exit 0,
 cards 55 / 49 / 1 lines. Verify ran 02:08-02:17 PC.

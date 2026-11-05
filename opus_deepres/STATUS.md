@@ -14,8 +14,11 @@ this job is written to D:.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
   22:39-22:47, not reported by the tool). All 34 cards lint clean at 23:43.
-- Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
-  any explicit low-usage warning triggers the immediate save-and-push.
+- Usage: this session cannot read a usage meter itself. Readings given by the owner: before 01:35 "usage limit of 5h
+  is running out" (agents cut from 10 to 3); just before 02:26:51 "5 hour window is at 77 percent resets in 1 hour
+  14min" = 23 % left, reset about 03:40. Plan: no new agents until the reset (the light pool's last verifier finishes
+  by itself), the coordinator writes the FINAL report now; after 03:40 a 5-worker pool on non-overlapping tasks until
+  07:20. The low-usage rule (<= 10 % left) still triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
   inherit both; checked on a child process), so every command runs at Idle on at most 2 logical CPUs, never on
   CPUs 7-15. Disk at start: C: 84.6 GB, D: 51.8 GB, F: 59.6 GB free; RAM 23.1 GB free.

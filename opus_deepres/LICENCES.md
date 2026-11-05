@@ -20,14 +20,14 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 |---|---|---|---|---|---|---|---|---|
 | Adam-Kulju/Patricia | 36b2889435 | 2026-08-02 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |
 | Adam-Kulju/Patricia | 67cdfcb55f | 2025-07-07 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
-| Adam-Kulju/Patricia | 67d83d7056 | 2026-09-12 | LICENSE | MIT | MIT License | api: MIT | T02B, T04, T04G, T05C, T06 | copy with notice |
+| Adam-Kulju/Patricia | 67d83d7056 | 2026-09-12 | LICENSE | MIT | MIT License | api: MIT | T02B, T04, T04G, T05C, T05F, T06 | copy with notice |
 | Adam-Kulju/Patricia | bf655244b6 | 2025-01-19 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
 | Adam-Kulju/Patricia | eeb786dd5a | 2026-07-30 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |
 | Alex2262/AltairChessEngine | 12ac55a0e2 | 2026-01-21 | LICENSE | MIT | MIT License | api: MIT | T05C | copy with notice |
 | Alex2262/AltairChessEngine | 2639e58f60 | 2025-12-31 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |
 | Alex2262/AltairChessEngine | 6bddce6de2 | 2024-06-14 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
 | Alex2262/AltairChessEngine | 99df021453 | 2023-09-21 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
-| Alex2262/AltairChessEngine | b2447b825b | 2026-04-19 | LICENSE | MIT | MIT License | api: MIT | T02B, T04, T04G, T06B | copy with notice |
+| Alex2262/AltairChessEngine | b2447b825b | 2026-04-19 | LICENSE | MIT | MIT License | api: MIT | T02B, T04, T04G, T05F, T06B | copy with notice |
 | Alex2262/AltairChessEngine | b38d5ea001 | 2023-07-03 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
 | Alex2262/AltairChessEngine | b68643baab | 2023-07-08 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
 | Alex2262/AltairChessEngine | cbb5e27ab2 | 2024-07-18 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
@@ -134,6 +134,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-stockfish/Stockfish | df01cb7ed3 | 2026-04-09 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | e0bafa1911 | 2020-08-30 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
 | official-stockfish/Stockfish | e17725f445 | 2026-04-26 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05C | ideas only |
+| official-stockfish/Stockfish | e277dda716 | 2023-11-03 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05F | ideas only |
 | official-stockfish/Stockfish | ff7cee4244 | 2026-10-28 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02, T04, T04D, T05 | ideas only |
 | official-stockfish/books | a804a97e70 | 2026-10-16 | LICENSE | CC0-1.0 | Creative Commons Legal Code | api: CC0-1.0 | T12 | free use (public-domain dedication) |
 | official-stockfish/fishtest | 5a8a229a52 | 2026-10-13 | absent | no licence (all rights reserved) | - | api: none | T12 | ideas only (no licence) |
