@@ -3,19 +3,20 @@
 **State: FINAL** - written from 06:09 PC clock on 2026-11-05 (finish time in the last line). All tracks of the
 brief's core set and the after-report set (T6, T7, T12) are researched and verified; round 3 (after the usage reset,
 from 03:42) added new engines, a lock audit, counter-evidence, three second votes, 22 implementation specs with
-reviews, a final ranking and a critic of this report (`notes/CRITIC4.md`, applied). T04U (06:06-06:24) added T04U-01; at this writing a last run (T06E: the HCE leads T06D left unread; SPECFIX2: the
-speed-spec review fixes) is running; its results are added below and in STATUS.
+reviews, a final ranking and a critic of this report (`notes/CRITIC4.md`, applied). T04U (06:06-06:24) added T04U-01; T06E and SPECFIX2 (06:24-06:41) closed the T06D pending list (T06E-01, T06E-02) and
+applied the speed-spec review; at this writing a last run on two brief gaps (T02C |eval| caps, T01C the T1 cost table)
+is running; its results are added below and in STATUS.
 
 Started 2026-11-04 22:23:27 PC clock; deadline 2026-11-05 08:23:27. Branch `opus-deepres-20261104`. No Elo claim for
 Forge anywhere: every source number is quoted with its link and conditions in the card; every Forge-side estimate is
-labelled UNPROVEN; the crew gates. Cards `cards/T<nn>[X]/` (105 card files incl. one-liners and merge markers);
+labelled UNPROVEN; the crew gates. Cards `cards/T<nn>[X]/` (107 card files incl. one-liners and merge markers);
 per-track tables, diffs, notes and the verifiers' findings `notes/T<nn>[X]/` (`TABLE.md`, `DIFF.md`, `VERIFY.md`);
 the full ranked table `notes/RANKING_FINAL.md` (supersedes `notes/RANKING_DRAFT.md`); cross-track checks
 `notes/CRITIC.md` (coverage matrix of the brief), `notes/CRITIC2.md`, CRITIC3 at the end of RANKING_FINAL,
 `notes/CRITIC4.md` (this report); second votes `notes/TOP_SECOND_VOTE.md`, `..._VOTE2.md`, `..._VOTE3.md`;
 counter-evidence `notes/T12C/COUNTER.md`; specs `notes/SPEC_SEARCH.md`, `SPEC_SEARCH2.md`, `SPEC_SEARCH3.md`,
 `SPEC_EVAL.md`, `SPEC_SPEED.md` (reviews `SPEC_REVIEW.md`, `SPEC_SPEED_REVIEW.md`); fixes `notes/FIXES_APPLIED.md`
-(rounds 1-6); licences at the commits read `LICENCES.md`. Section 12 maps every brief deliverable to its file.
+(rounds 1-7); licences at the commits read `LICENCES.md`. Section 12 maps every brief deliverable to its file.
 
 ## 0. First: the data blocker (T2-card-1, card T02-01, COMPLETE, verified)
 The J1 npt train binpack is written from FPOS rows (no castling, no en passant, no clocks), so the net sees board + side
@@ -52,7 +53,8 @@ eval), T04C-02 (lower singular beta at former-PV nodes; Stockfish's 2020 form wa
 +1.04 at 236k games), T04D-02 (low-depth TT cutoff by node type; top lowered to +2), T04T-02 (ProbCut fail-firm;
 pawnocchio LTC +2.92, Reckless STC +2.37 / LTC +3.35), T04-05, T04C-05, T04D-05, T04H-03. Then T04N-01 (0.83),
 T04R-01, T04U-01, T04D-01, the T04B-01 family (0.75 each; D-01 and B-01 lowered by the counter-evidence), T04T-01 (0.67),
-T06D-01 (king flank attacks, 0.4), T04S-02 (upcoming repetition, 0.33), T06D-03 (endgame winnability, 0.2). Not new:
+T06D-01 (king flank attacks, 0.4), T04S-02 (upcoming repetition, 0.33), T06E-02 (blocked pawn storm, 0.25), T06D-03 (endgame
+winnability, 0.2), T06E-01 (queen threats of the next move, 0.2). Not new:
 #1 and #6 exist in our own packb code (FiftyDamp, ReSearchAdjust), gated only as one bundle with copied constants on
 old bases (gates 12 / 35 / 40 / 41, no decision); #2 is an own port never gated.
 
@@ -96,7 +98,10 @@ this paragraph.
   defences as new HCE rows (Sirius 267 STC +10.77, 7,290 g; Clockwork 387 STC +18.10, 4,266 g; HCE engines; 0 to +4,
   ~5 crew h with the fit), one-liner T06D-02 pin-aware HCE, T06D-03 endgame winnability term on the eg score (Clockwork
   364 STC +2.95 / LTC +7.04; 0 to +2, ~5 h). Each is fitted with the residual net frozen (T06C-01 recipe) and discounts
-  what the residual may already capture. Verified: 3 confirmed, 1 correction.
+  what the residual may already capture. Verified: 3 confirmed, 1 correction. T06E closed the pending list: T06E-01
+  queen threats of the next move (SF 6d8f583 STC +2.91 / LTC +2.30, SF 1093047 STC +3.73 / LTC +5.42, Sirius #271 STC
+  +3.08; 0 to +2, ~5 h), one-liner T06E-02 blocked pawn storm (Sirius #185 STC +3.88; 0 to +1.5, ~3 h); Sirius #258
+  (non-linear king safety) is evidence for T06C-03. Verified: no correction, no violation.
 - **Counter-evidence** (`notes/T12C/COUNTER.md`): lowers T04-02, T04D-01, T04D-02, T04C-02, T04B-01 (now also on the
   cards as a "Counter-evidence (T12C)" sentence); keeps T06-05, T04-01, T04E-02, T04F-01 (low end), T04E-03.
 - **Second votes 2 and 3** (Fable): round-2 top cards KEEP D-01, F-01, B-01, E-04, E-03; KEEP-WITH-FIX D-02, C-02, E-02,
@@ -110,8 +115,8 @@ this paragraph.
   Fable reviews: search specs no blocker, every OFF path node-identical, one code fix (E-02 validates the TT move with
   the lock's own pseudo-legality test, board.cpp:600 as used at search.cpp:326, before reading its victim or calling
   see_ge) and three wording fixes, all applied (round 5); speed specs no blocker, 10 FIX items on the ABBA budget and
-  order (listed in SPEC_SPEED_REVIEW, not applied to SPEC_SPEED).
-- **Fixes**: rounds 3-6 (`notes/FIXES_APPLIED.md`): CRITIC2's card items, second-vote fixes, wrong "Forge lacks it"
+  order, all applied (round 7; one softened: a true +0.75 % change passes the +1 % filter about 1 time in 4 to 6).
+- **Fixes**: rounds 3-7 (`notes/FIXES_APPLIED.md`): CRITIC2's card items, second-vote fixes, wrong "Forge lacks it"
   lines (T04D-02 own port, T01B-02 mirroring source, T05E-01 own caches), counter-evidence sentences, crew-cap cost
   lines on 9 cards.
 
@@ -130,14 +135,14 @@ this paragraph.
   runs off the gate queue on its own CPU budget, then one tuned-set SPRT.
 - Phase 3, stacks of the positives by site group: history (E-03 base + S-01 / R-01 / G-05 / T-01), null move (E-02 +
   N-02 + T04-03), singular chain (N-01 + T04-01 + C-02), TT cutoff (D-02 + P-01), SEE (B-01 + E-04).
-- Eval line (CPU fit, then gate): T06D-01 / T06D-03 only after the T06C-01 frozen-residual refit passes its holdout
+- Eval line (CPU fit, then gate): T06D-01 / T06D-03 / T06E-01 / T06E-02 only after the T06C-01 frozen-residual refit passes its holdout
   filter, each fitted with the residual frozen.
 - Beside the gate PC: node-identical lock speed by nps ABBA after the T12-03 bench + fuzz proof, specs in SPEC_SPEED:
   T05D-01 `FORGE_TT_NOTLS` (port of the own R7TtExclusive, NOT in the lock; own +3.6-4 % on another tree, lock +2 to
   +4 % nps UNPROVEN), T05C-02 `FORGE_NO_ZERO_MOVELISTS`, T05C-03 `FORGE_SLIDER_ATTACKS` (microbench first), T05B-02
   `FORGE_MATKEY_FAST` (timed as a stack with T05C-03), T05F-01 (step-0 counter first, memo only on go). GPU window:
   T02-01 first, the T02-04 equal-node WAC diagnostic, then T02-03, T01-06. Owner item T12B-01 (port own fix).
-- Budget: phases 0 + 1 = 9 runs = 54-63 h of gate PC; all ~55 lock-direct singles = about 330-385 h at the cap.
+- Budget: phases 0 + 1 = 9 runs = 54-63 h of gate PC; all ~57 lock-direct singles = about 340-400 h at the cap.
 
 **Next three crew experiments** (no new code for the first two; after the P27R extension the crew rule already owes):
 (1) the E3 exe with `EvalRule50Damp=60` vs the lock; (2) the caissa_c123 exe with `TtCutExtraMargin=72` vs the lock;
@@ -149,7 +154,7 @@ G GPU-conditional 11, V net-line speed ABBA 8, S lock speed ABBA 9, E enabler / 
 converted into each other), each with source number, UNPROVEN estimate, crew hours, gate route, per-hour value and vote
 state; then the top 10, the phased gate order and CRITIC3 (13 items). Its ranks use the card estimates before the
 counter-evidence; section 1 here applies it. Cards written after it: T04R-01..03, T04S-01..02, T04T-01..03,
-T06D-01..03, T04U-01 (placed in sections 1 and 4).
+T06D-01..03, T04U-01, T06E-01..02 (placed in sections 1 and 4).
 
 ## 6. Cross-track facts this report uses
 - Gate rate 430-502 games/h measured for every `*_vs_AL1*` gate (497 at Threads 2 / conc 4); the ~1,000 games/h in some
@@ -203,8 +208,8 @@ Seer (only ideas Forge has or has tried).
 10. tmfit gates 227 / 228 are not in FORGE_RESULTS.csv (stale pointer in the brief).
 11. The R15 C5 gate line in `D:/o15/cands/INDEX.md` (crew file) lacks T04F-02's source numbers.
 12. Pointers for later work: Tarnished #82 complexity-based time management (STC +4.54, LTC +6.63; mechanism not in the
-    PR text); Perseus PR 100 (credited for king flank attacks) and the older Stockfish / Ethereal numbers for the
-    initiative term were not read (T06D pending list).
+    PR text); the older Stockfish / Ethereal numbers for the initiative term
+    (T06D-03) were not read; T06E closed the rest of the T06D pending list.
 
 ## 10. Skills, scripts and tools created or improved
 - Skill `skills/forge-deep-research/SKILL.md` (new; also installed as a user-scope skill on grok-pc): setup, tools,
@@ -226,7 +231,7 @@ Seer (only ideas Forge has or has tried).
   the per-engine mining (owner: no two agents on the same thing); brief questions not covered: see `notes/CRITIC.md`
   "Uncovered or partly covered questions" (3 NOT COVERED: the T1 data size / L1 / nps per feature set table, T2 |eval|
   caps, T2-card-1 within-train board+stm duplicates as a crew measurement; about 20 covered with a qualifier; T6
-  `FORMS.md:79-81` PENDING); the 10 SPEC_SPEED_REVIEW fix items are not applied to SPEC_SPEED; older cards keep their
+  `FORMS.md:79-81` PENDING); older cards keep their
   pre-decision cost lines (section 2); unread pages listed in `notes/T04T/sources.md` and `notes/T04U/TABLE.md` (motor page 3+); every PENDING item in the cards.
 - Deviations: workflows stopped and relaunched five times before 01:35 (22:47 re-plan; 00:20 into one pool; 01:24-01:29
   two pool resumes that re-ran finished agents for ~2 min each before being stopped; 01:35 usage warning); after the
@@ -241,8 +246,8 @@ Seer (only ideas Forge has or has tried).
 - Measured agent spend (workflow summaries): round-1 core 1,802,872 tokens (8 agents), extra 1,149,308 (6), phase 2
   541,874 (2), light pool 1,667,660 (10); after the reset POOL3 1,690,105 (10), POOL3B 514,776 (3), POOL3C 334,288 (2),
   POOL3D 596,161 (3), POOL3E 325,548 (2), POOL3F 389,429 (2), POOL3G 150,775 (1), POOL3H 695,899 (4), POOL3I 222,633
-  (1), POOL3J 299,582 (2) = 5,219,196 for round 3; measured total of the finished workflows 10,380,910
-  agent tokens (POOL3K running at this writing); the stopped runs report no total. Owner's readings: "running out" before 01:35; 77 % of the 5-hour
+  (1), POOL3J 299,582 (2), POOL3K 429,249 (3) = 5,648,445 for round 3; measured total of the finished
+  workflows 10,810,159 agent tokens (POOL3L running at this writing); the stopped runs report no total. Owner's readings: "running out" before 01:35; 77 % of the 5-hour
   window used at ~02:26, reset ~03:40; no reading since.
 
 ## 12. Where each brief deliverable is
