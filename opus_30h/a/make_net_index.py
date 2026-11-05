@@ -7,6 +7,10 @@ usage: python -I -B make_net_index.py [--root D:\\o30\\nets] [--skip-prefix test
 import argparse
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import combine_sanity  # noqa: E402  (own module next to this file: pooled pentanomial)
 
 LOCK = {'s16': 0.014310027, 'jobA': 0.013272058}
 
@@ -15,14 +19,27 @@ def fmt_z(z):
     return 'n/a' if z is None else f'{z:+.2f}'
 
 
+def match_log(d, sub):
+    """The fastchess log of the sanity_match.py run in <net>/<sub>: sanity_match.py names it after the folder
+    (<sub>/<sub>.log; bug hunt 2026-11-04: <sub>/sanity.log only exists for the folder 'sanity')."""
+    for name in (sub + '.log', 'sanity.log'):
+        p = os.path.join(d, sub, name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
 def sanity_from_log(d):
-    """Latest fastchess summary of a sanity_match.py run in <net>/sanity or <net>/sanity2 (GPU nets have no
-    FINAL_CHECKS.json): 'Games: N, Wins ..., Points ... (x %)' + 'Elo: ...' + the candidate exe from RUN_INFO.json.
-    A folder without sanity.log (a placeholder) is skipped; the newest sanity.log wins (review W2-10), and a match that
-    has not reached its planned games is marked RUNNING."""
-    found = [s for s in ('sanity', 'sanity2') if os.path.isfile(os.path.join(d, s, 'sanity.log'))]
-    for sub in sorted(found, key=lambda s: os.path.getmtime(os.path.join(d, s, 'sanity.log')), reverse=True):
-        p = os.path.join(d, sub, 'sanity.log')
+    """Every sanity_match.py run of a net in <net>/sanity, sanity2, sanity3 (GPU nets have no FINAL_CHECKS.json):
+    'Games: N, Wins ..., Points ... (x %)' + 'Elo: ...' + the candidate exe and the opening seed from RUN_INFO.json; a
+    match below its planned games is marked RUNNING. A folder without a log or without a summary (a placeholder) is
+    skipped. With two or more matches the game pairs are also POOLED (combine_sanity.py; window 3 played extra games of
+    a net on other openings) - review W2-10's "newest log wins" is replaced by listing every match."""
+    texts, logs, seeds = [], [], []
+    for sub in ('sanity', 'sanity2', 'sanity3'):
+        p = match_log(d, sub)
+        if p is None:
+            continue
         games = elo = ''
         for line in open(p, encoding='utf-8', errors='replace'):
             if line.startswith('Games:'):
@@ -32,15 +49,30 @@ def sanity_from_log(d):
         if not games:
             continue
         out = f'{games}; {elo}' if elo else games
+        seed = '?'
         ri = os.path.join(d, sub, 'RUN_INFO.json')
         if os.path.isfile(ri):
             info = json.load(open(ri, encoding='utf-8-sig'))
             planned = info.get('games')
             played = int(games.split(',')[0].split(':')[1])
             state = 'RUNNING, ' if isinstance(planned, int) and played < planned else ''
-            out = f"{state}{out}; exe {info['candidate']['sha256'][:8]}; planned {planned if planned else '?'} games ({sub})"
-        return out
-    return '-'
+            cmd = info.get('cmd', [])
+            seed = cmd[cmd.index('-srand') + 1] if '-srand' in cmd and cmd.index('-srand') + 1 < len(cmd) else '?'
+            out = (f"{state}{out}; exe {info['candidate']['sha256'][:8]}; planned {planned if planned else '?'} games, "
+                   f"opening seed {seed} ({sub})")
+        texts.append(out)
+        logs.append(p)
+        seeds.append(seed)
+    if not texts:
+        return '-'
+    if len(texts) == 1:
+        return texts[0]
+    pairs = [0] * 5
+    for p in logs:
+        pairs = [a + b for a, b in zip(pairs, combine_sanity.ptnml(p))]
+    n, mean, e, pm = combine_sanity.summary(pairs)
+    same = ' - SAME openings, the pool repeats them' if len(set(seeds)) < len(seeds) else ''
+    return ' / '.join(texts) + f' / POOLED {2 * n} games {mean * 100:.2f} %, Elo {e:+.2f} +/- {pm:.2f}{same}'
 
 
 def rematch_v2p4(d):
