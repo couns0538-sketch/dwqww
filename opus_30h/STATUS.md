@@ -90,7 +90,9 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
 - Sanity finals: Y8 400 g 50.75 % (21:21), U8 +200 g 51.00 % = pooled 400 g 51.00 % (21:28), Z32 400 g 49.62 % (21:31),
   r5 +120 g 47.50 % = pooled 520 g 51.44 % (21:37); 21:31 A/A on a quiet core B/A 0.9998 (BH-8 confirmed). 21:32 Z32c
   first read, 120 games on CPUs 0 / 2 / 3 / 4 (to ~21:50).
-- Next: Z32c's read into the report, tables, INDEX.md, document checks, CI, publish copies; job end ~22:17.
+- 21:48 Z32c first read 120 games 52.08 % (+14.5 +/- 32.5; too few to rank it). 21:49-21:5x final report pass
+  (section 4 pick: U8 first, then run 5), tables and INDEX.md (13 nets) regenerated, document checks, final commit;
+  then CI and publish_o30.sh. r27 trains until ~22:05 (scores in C:\o30g\gpu\r27_kb32m400_scores.tsv).
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
