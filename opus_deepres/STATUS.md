@@ -9,7 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 22:46 (elapsed 0 h 23 min).
+- Last update of this file: 22:52 (elapsed 0 h 29 min).
 - Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
   any explicit low-usage warning triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
@@ -21,26 +21,31 @@ this job is written to D:.
   no per-source licence gate and no card output, and the 30-Oct round was stopped before its verify phase for
   usage. Instead two custom workflows: one worker per track writes cards to disk as it reads (WORKER_RULES.md), then
   one adversarial verifier per track re-checks numbers, links, licences, the reading rule and the Forge greps.
-- Agents: 2 at a time at first; the owner allowed up to 12 at ~22:43 ("i allow you to launch more agents in the deep
-  research up to 12"), so the optional tracks T6 / T7 / T12 started early in parallel (5 agents active).
-- Workflow `wf_5cef37bf-0b9` (core): chain A = T1 then T4, chain B = T2 then T5, then the four verifiers.
-- Workflow `wf_dcef6221-e3c` (extra): T6, T7, T12 in parallel, each followed by its verifier.
+- Agents: 2 at a time at first; then the owner allowed up to 12 ("i allow you to launch more agents in the deep
+  research up to 12"; received before 22:45 - the next workflow's script file is stamped 22:45; the exact minute was
+  not recorded). Used for: the optional tracks T6 / T7 / T12 in parallel, and the core tracks all in parallel.
+- Workflow `wf_5cef37bf-0b9` (first core run, script stamped 22:39): chain A = T1 then T4, chain B = T2 then T5;
+  STOPPED at 22:47 to re-plan (its T1 / T2 workers' files stayed on disk and are continued, not redone).
+- Workflow `wf_b823f43e-496` (core2, 22:48): T1, T2 (continuing), T4, T5 in parallel, each followed by its verifier.
+- Workflow `wf_dcef6221-e3c` (extra, 22:45): T6, T7, T12 in parallel, each followed by its verifier.
+- 7 research workers active from 22:48.
 - The coordinator (this session) did T2-card-1 and owns STATUS / FINAL_REPORT / RESUME / LICENCES and every commit.
 
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
 | T2-card-1 overlap to 0 | DONE | T02-01 | - | coordinator; drop key board+stm (7,700 train rows), block rule measured |
-| T1 v2 features + recipe | RUNNING (core chain A) | - | T01-01 | worker started ~22:38 |
-| T2 data quality | RUNNING (core chain B) | - | T02-02, T02-03 | worker started ~22:38 |
-| T4 search features | QUEUED (chain A, after T1) | - | - | |
-| T5 NNUE speed Zen 5 | QUEUED (chain B, after T2) | - | - | |
-| T6 eval post-processing | RUNNING (extra) | - | - | started early (12-agent allowance) |
-| T7 time management | RUNNING (extra) | - | - | started early |
-| T12 testing / proofs | RUNNING (extra) | - | - | started early |
+| T1 v2 features + recipe | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | T01-01 | |
+| T2 data quality | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | T02-02, T02-03 | |
+| T4 search features | RUNNING (core2 since 22:48) | - | - | |
+| T5 NNUE speed Zen 5 | RUNNING (core2 since 22:48) | - | - | |
+| T6 eval post-processing | RUNNING (extra since 22:45) | - | T06-01, T06-02, T06-03 | started early (12-agent allowance) |
+| T7 time management | RUNNING (extra since 22:45) | - | T07-01 | started early |
+| T12 testing / proofs | RUNNING (extra since 22:45) | - | - | started early |
 
 ## Pushes
-- 72c0de40 (22:27) start files; 69deca20 (22:36) tools + worker rules; next: this checkpoint.
+- 72c0de40 (22:27) start files; 69deca20 (22:36) tools + worker rules; d97bee72 (22:46) T02-01; 8a505482 (22:50)
+  workflow scripts + prompts + redaction filter; next: this checkpoint (skills).
 
 ## Blockers / stopping reason
 - none

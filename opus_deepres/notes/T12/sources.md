@@ -24,3 +24,12 @@ what it gave | card id.
   6000) and a 3000-pair pentanomial [30, 686, 1509, 744, 31] used as Forge's own variance profile | T12-01
 
 ## External (cap 15)
+- E1 https://github.com/official-stockfish/fishtest/wiki/Fishtest-mathematics | GPL-3.0 repo, wiki page (docs, ideas
+  only) | overview only: bounds in normalised Elo, pentanomial model "substantial saving", GSPRT = MLE in place of
+  unknowns, expected duration depends only on the bounds (independent of draw ratio / book); numbers sit in linked
+  PDFs (normalized_elo_practical, sprta, GSPRT_approximation, accounting_identity) | T12-01
+- E2 https://github.com/official-stockfish/fishtest/wiki/Creating-my-first-test | GPL-3.0 repo, wiki (docs) |
+  STC 10+0.1, LTC 60+0.6, SMP 8 threads; non-regression bounds <-1.75,0.25> in example commit messages; "Bench:"
+  line / "No functional change"; speed-ups: several bench runs mean+sd, target ~0.5 %, "about 0.25 % speedup at STC
+  and about 0.7 % at LTC for a 50 % passing chance", "1 % speedups pass with an 85 % chance"; SPSA usually at normal
+  TC | T12-01, T12-02, T12-03
