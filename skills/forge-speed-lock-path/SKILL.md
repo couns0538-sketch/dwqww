@@ -44,3 +44,18 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 - Number formatting follows the PC's culture (decimal comma): set InvariantCulture before writing CSV / summaries.
 - `go` is aborted by the next UCI line: drive searches and wait for `bestmove`; bench and `go perft` are synchronous.
 - OwnBook defaults to true in the lock: identity runs on FEN sets set OwnBook=false, or book hits skip the search.
+- The lock REJECTS placement-only FENs (`info string invalid FEN: FEN must contain six fields`) and keeps searching
+  its previous position: `opus_r10/parity/fens_12k.txt` is placement-only, so an L3 on it compared ONE position 2,000
+  times (withdrawn). Use `fens_12k_v2.txt` (md5 e7dbf2c8) or `ConvertTo-OspdFen`, fail on any `invalid` info string,
+  and refuse a degenerate result set (< n/10 distinct rows).
+- Inside a PowerShell function, anything written to the output stream (Write-Output in a log helper) becomes part of
+  the return value: `Build-One` returned [log lines..., object] and `-Twice` never saw two builds. Log helpers inside
+  functions write with `[Console]::Out.WriteLine`.
+- `Start-Process -RedirectStandardInput <file>` opens the file exclusively: two builds training from QA's one
+  workload file at the same moment collide. Copy the workload into each build folder first (sha256-checked).
+- Bash heredocs collapse `\\`: a Windows path `F:\\ospd\\abba` written from a heredoc into a file became
+  `F:\ospd<BEL>bba`. Write files with the Write / Edit tools; `tools/ctrl_char_check.py` finds such bytes.
+- A fresh session process after an application restart runs at 0xFFFF / Normal: pin it to 0x3 Idle first.
+- ABBA on this PC: plain A B B A showed slot-position effects of ~1-2 % in A/A runs; alternate ABBA / BAAB (default)
+  and read the process CPU time of the bench window as a second metric (preemption by other programs is not counted).
+  Noise depends on the moment's load: per-round sd 1 % (quiet) to 5.6 % (builds on the other core).

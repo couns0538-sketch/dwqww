@@ -209,12 +209,26 @@ try {
   $fenList = [string[]]$allFens[0..($n - 1)]
   $fmd5 = Get-OspdMd5 $Fens
   $refTsv = Join-Path $cacheDir ("fens_{0}_n{1}_d{2}_ob0.tsv" -f $fmd5.Substring(0, 8), $n, $FenDepth)
-  if (-not (Test-Path $refTsv)) {
-    $part = $refTsv + ".part$PID"
-    $sec = Invoke-FenSet $Ref $fenList $FenDepth $part (Join-Path $cacheDir 'fens.uci.log')
-    Move-Item -LiteralPath $part -Destination $refTsv
-    Say ("L3 ref FEN set computed in {0:N0} s -> {1}" -f $sec, $refTsv)
-  } else { Say "L3 ref FEN set from cache $refTsv" }
+  # one computation per reference file: concurrent checks (several packs at once) wait for the first one instead of
+  # each computing the same reference (seen 10:00: three quick checks computed the n=2000 reference in parallel)
+  $refMutex = New-Object System.Threading.Mutex($false, ('Local\ospd_ref_' + (Split-Path $refTsv -Leaf)))
+  $haveRef = $false
+  try { $haveRef = $refMutex.WaitOne([TimeSpan]::FromMinutes(120)) } catch [System.Threading.AbandonedMutexException] { $haveRef = $true }
+  if (-not $haveRef) { throw "waited 120 min for another process computing $refTsv" }
+  try {
+    if (-not (Test-Path $refTsv)) {
+      $part = $refTsv + ".part$PID"
+      $sec = Invoke-FenSet $Ref $fenList $FenDepth $part (Join-Path $cacheDir 'fens.uci.log')
+      if (Test-Path $refTsv) {
+        # written meanwhile by a process without the mutex (older code): the two must agree byte for byte
+        if ((Get-OspdSha256 $part) -ne (Get-OspdSha256 $refTsv)) { throw "reference $refTsv differs from this run's $part (non-deterministic reference?)" }
+        Say ("L3 ref FEN set computed in {0:N0} s; equals the cached copy written meanwhile" -f $sec)
+      } else {
+        Move-Item -LiteralPath $part -Destination $refTsv
+        Say ("L3 ref FEN set computed in {0:N0} s -> {1}" -f $sec, $refTsv)
+      }
+    } else { Say "L3 ref FEN set from cache $refTsv" }
+  } finally { $refMutex.ReleaseMutex() }
   $candTsv = Join-Path $Out ("fens_n{0}_d{1}.tsv" -f $n, $FenDepth)
   $sec = Invoke-FenSet $Cand $fenList $FenDepth $candTsv (Join-Path $Out 'fens.uci.log')
   $ra = Get-Content $refTsv; $ca = Get-Content $candTsv
