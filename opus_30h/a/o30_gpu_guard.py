@@ -142,6 +142,8 @@ def main():
     ap.add_argument('--test-hot', type=float)
     ap.add_argument('--test-raise-after', type=int)
     ap.add_argument('--test-hard-exit-after', type=float)
+    ap.add_argument('--test-console-after', type=float, help='test: call the console handler after S seconds')
+    ap.add_argument('--test-race-suspend', action='store_true', help='test: suspend the child right after that call')
     ap.add_argument('--resume-pid', type=int)
     ap.add_argument('--create-time', type=float)
     ap.add_argument('--expect-name', default='forge-v2-bullet.exe')
@@ -204,6 +206,7 @@ def main():
     hard_h = a.test_hot if a.test_hot else None
     stats = dict(suspends=0, suspended_seconds=0.0, errors=0, polls=0)
     t_susp, last_note, in_row, abort = 0.0, 0.0, 0, None
+    t_start = time.time()
     try:
         while child.poll() is None and st['ctrl'] is None:
             # review G-003 / CR item 9: an error in one poll is logged and the next poll runs; ERROR_CAP errors in a
@@ -262,6 +265,15 @@ def main():
                 say(f'TEST: guard ends itself with TerminateProcess now (what taskkill /F does); {ident} stays suspended')
                 log.close()
                 k32.TerminateProcess(me, 9)
+            if (a.test_console_after is not None and st['ctrl'] is None
+                    and time.time() - t_start >= a.test_console_after):
+                say('TEST: the console handler is called now as the console would on Ctrl+Break (event 1)')
+                on_console(1)
+                if a.test_race_suspend and proc.is_running():   # the race of fix list 2 item 2, forced
+                    proc.suspend()
+                    st['suspended'], t_susp = True, time.time()
+                    say(f'TEST: SUSPEND {ident} right after the console event (forced race)')
+                continue
             time.sleep(2)
     except BaseException as error:   # noqa: BLE001 - anything that escapes the loop ends the guard fail closed
         abort = f'unexpected {type(error).__name__}: {error}'
@@ -269,13 +281,20 @@ def main():
         code = child.poll()
         exit_code = child.returncode if code is not None else EXIT_ABORT
         if code is None and st['ctrl'] is not None:
-            try:   # review W2-04: the main loop may have suspended it after the handler ran; never leave it frozen here
-                if proc.is_running() and proc.status() == psutil.STATUS_STOPPED:
+            # owner's fix list 2 item 2 (and review W2-04): the main loop may have suspended the trainer after the console
+            # handler ran. The guard's own record (st['suspended']) decides - psutil's status can read a suspended process
+            # as running while its threads sit in kernel waits - and the line written states what was done.
+            final = 'not suspended by the guard'
+            try:
+                if proc.is_running() and (st['suspended'] or proc.status() == psutil.STATUS_STOPPED):
                     proc.resume()
-                    say(f'console event {st["ctrl"]}: trainer {ident} was still suspended - resumed')
+                    st['suspended'] = False
+                    final = 'it was suspended by the guard and has just been resumed'
+                if not proc.is_running():
+                    final = 'it has already exited'
             except psutil.Error as error:
-                say(f'console event {st["ctrl"]}: status / resume of {ident} failed ({type(error).__name__}: {error})')
-            say(f'console event {st["ctrl"]}: guard exits; trainer ({ident}) left running to take the same event')
+                final = f'resume FAILED ({type(error).__name__}: {error}) - check it, --resume-pid once the guard is gone'
+            say(f'console event {st["ctrl"]}: guard exits; trainer ({ident}): {final}; left to take the same event')
             exit_code = EXIT_CONSOLE
         elif code is None:
             abort = abort or 'guard loop ended while the trainer runs'
