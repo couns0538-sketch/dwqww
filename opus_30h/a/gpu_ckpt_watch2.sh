@@ -13,7 +13,7 @@
 # Bounded (CR item 12): a checkpoint that fails WATCH_TRIES times gets <ckpt>.gaveup and a GIVE UP line; the watch
 # itself gives up (exit 3) after WATCH_MAX_MIN minutes without the guard's end line, or at once (exit 4) when the guard
 # log shows an ABORT / guard-exit line (no end line will come). Exit 5 = run ended but some checkpoint was given up.
-# Env: WATCH_MASK (CPU mask, default 0x4 = CPU 2), WATCH_ROOT (default /d/o30/gpu), WATCH_MAX_MIN (default 720),
+# Env: WATCH_MASK (CPU mask, required - no default, W2-05), WATCH_ROOT (default /d/o30/gpu), WATCH_MAX_MIN (default 720),
 # WATCH_TRIES (default 3), WATCH_SLEEP (seconds between scans, default 60), WATCH_TEST_FAIL_TSV=1 (test only: the
 # TSV step exits 1).
 set -uo pipefail

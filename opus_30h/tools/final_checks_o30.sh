@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# final_checks_o30.sh [out log] - Opus 30-h job: re-run every quick check of the job's deliverables (about 10 minutes,
-# Idle on O30_MASK, default 0x3 = CPUs 0-1). Prints one PASS / FAIL line per check and a total; exit 0 only if all pass.
+# final_checks_o30.sh [out log] - Opus 30-h job: re-run every quick check of the job's deliverables (about 3-10 minutes,
+# Idle on O30_MASK, required - no default). Prints one PASS / FAIL line per check and a total; exit 0 only if all pass.
 #  1 lock exe pins (-Full)                      2 v2 gate exe (kit v2.5) OFF pins (-Full)
 #  3 v2 gate exe: lock net as v2 = lock pins    4 SPSA exe (22 options) defaults = lock pins (-Full)
 #  5 parity: own reference vs AVX2 / SSE / scalar on the 4 test nets + planted bug
@@ -16,7 +16,7 @@
 # 19 soup and layout-expansion tools on synthetic checkpoints (a/test_soup_tools.py)
 set -u
 W=/d/o30/wt; T=$W/opus_30h/tools; A=$W/opus_30h/a; B=$W/opus_30h/b
-# pin this shell first: every check below inherits Idle + the mask (O30_MASK, default 0x3 = CPUs 0-1; fail closed)
+# pin this shell first: every check below inherits Idle + the mask (O30_MASK, required; fail closed)
 [ -n "${O30_MASK:-}" ] || { echo "final_checks_o30: set O30_MASK (no default; review W2-05)" >&2; exit 78; }
 MASK="$O30_MASK"
 . "$T/idle.sh"; o30_pin_self "$MASK" || { echo "final_checks_o30: cannot pin to Idle / $MASK (fail closed)" >&2; exit 78; }
