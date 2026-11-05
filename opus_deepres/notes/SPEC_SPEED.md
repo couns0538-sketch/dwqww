@@ -1,7 +1,8 @@
 # SPEC_SPEED: implementation specs for the node-identical speed rows S1-S4 (T05C-02, T05C-03, T05B-02, T05D-01)
 
 Started 05:06 PC clock (`date`), planned stop 05:41. Status: COMPLETE (all four specs and the shared part written by
-05:18 `date`; own review only, not independent). Layout as notes/SPEC_SEARCH2.md where it fits. Lock FD3A5190 = AL1 s198 source, read-only:
+05:18 `date`; own review only, not independent; the 10 FIX items of notes/SPEC_SPEED_REVIEW.md (SPECREV2, no blocker) were applied
+by SPECFIX2, each marked "(review fix) [id]", log in notes/FIXES_APPLIED.md Round 7). Layout as notes/SPEC_SEARCH2.md where it fits. Lock FD3A5190 = AL1 s198 source, read-only:
 `C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean`. Nothing here edits, builds or runs
 the engine; every Forge-side number is UNPROVEN. No card was edited.
 
@@ -26,7 +27,8 @@ the engine; every Forge-side number is UNPROVEN. No card was edited.
   is a preprocessor integer, default 0, set only through the kit's compiler flags. At 0 the preprocessor yields the
   lock text, so the switch-0 kit exe must equal FD3A5190 byte for byte (sha256), as SPEED2 de20653c did; kit pc1 = pc2
   is binding for every exe. Byte identity at 0 is a stronger OFF proof than the pins. It holds only if every
-  restructure (shared bodies, mode enums, new helpers) lives inside the `#if` and the lock text stands verbatim under
+  restructure (shared bodies, mode enums, new helpers, and new data members / arrays, which change the class layout or
+  the symbol table when they exist at 0 (review fix) [C5]) lives inside the `#if` and the lock text stands verbatim under
   `#else`, duplicated if needed; if a helper must exist at 0, drop the byte-identity claim for that switch and say
   the OFF proof is pins + 12k only (review fix).
 - ON identity (the forge-speed-stack method plus T12-03; Threads=1, depth / node limits only, never time):
@@ -35,8 +37,9 @@ the engine; every Forge-side number is UNPROVEN. No card was edited.
      4,865,609; kiwipete 5 = 193,690,690.
   3. 12k-FEN exe identity: skill step 5, `r12_fens12k.py --cpu 2 --fens opus-r10-halfka:opus_r10/parity/fens_12k.txt
      --depth 2 --exe L=<lock exe> --exe X=<ON exe>` (with the gate's net setting) = 12000/12000; plus T12-03 level 4
-     at `go nodes 20000` (bestmove, score, nodes per FEN). Whether r12_fens12k.py takes a node limit was not checked
-     here; if not, a small driver (crew ~0.5 h).
+     at `go nodes 20000` (bestmove, score, nodes per FEN). r12_fens12k.py has no node limit (flags --out --cpu --net
+     --fens --depth --exe --deep-n --deep-depth --wait-timeout; it sends `go depth`): add `--nodes N` to a copy of the
+     tool or write a small driver, a fixed one-time cost (crew ~0.5 h, order step 0) (review fix) [C1].
   4. T12-03 level 3 (every info line of the 8 bench FENs at d11-d22, fresh `ucinewgame`) and level 5 (warm-TT replay
      of 50 gate games at `go nodes 50000`, no `ucinewgame`): they catch what one bench total can hide.
   5. Planted mutant per switch (one deliberate wrong bit in the new code) must fail step 2, 3 or the unit test: shows
@@ -46,13 +49,23 @@ the engine; every Forge-side number is UNPROVEN. No card was edited.
   idle (CPUs 2-3 = one core, forge-opus-tools), Idle class, boost state fixed and recorded, 30 repetitions, median and
   IQR. It is a no-go filter before the ABBA, never the keep decision.
 - nps ABBA (T12-02 + skill step 6): arms A = lock exe, B = ON exe, A' = a copy of A (the A/A arm); a fresh byte copy
-  of the exe for every slot (R12: an exe vs its own copy read -3.0 % at d16, a fixed per-file bias); palindromic
-  blocks with A' interleaved; workloads bench d16 and d20 plus the 200-position game probe. Pilot 20 pairs to measure
-  s (per-pair sd of the log ratio, %), then n = 8.6 s^2 pairs (s 2 % -> 35, 3 % -> 78, 5 % -> 215). Tool:
+  of the exe for every slot (R12: an exe vs its own copy read -3.0 % at d16, a fixed per-file bias); each fresh
+  copy runs once untimed (bench d1) before its first timed slot, or the ABBA folder is excluded from real-time scanning
+  (Windows scans the first run of every new file and the image starts cold; mechanism UNPROVEN, the warm-up is free;
+  the slot order stays palindromic) (review fix) [C4]; palindromic
+  blocks with A' interleaved; decision workload bench d16; d20 and the 200-position game probe only as a confirmation
+  of a candidate that already passed at d16 (review fix) [C2]. Pilot first: 20 pairs of A vs A' only (two fresh copies
+  of the lock exe, no B) to measure s (per-pair sd of the log ratio, %) and the per-file bias; B enters the blocks only
+  after that pilot's interval contains 0; then n = 8.6 s^2 pairs from the pilot s at d16 (s 2 % -> 35, 3 % -> 78,
+  4 % -> ~140, 5 % -> 215; T12-02's own A/A over 15 runs implies s of about 4 %) (review fix) [C2]. Tool:
   `r12_speed.py --cpu 2 --ignore-idle --pairs N --aa-pairs M --depths 16 20 --exe A0=.. --exe A1=..`; its missing
   copy-per-run flag (T12-02) = copy by hand or add `--fresh-copy-per-run` (crew ~2 h, once, T12-02). Not on a gate's
   cores; read the skill's own-process pitfall first. Accept "B faster" only if the A/A interval contains 0 and the B/A
-  one-sided 95 % lower bound is > 0; keep only at a point estimate >= +1 % (WORKER_RULES drop rule).
+  one-sided 95 % lower bound is > 0; keep only at a point estimate >= +1 % (WORKER_RULES drop rule). The sized n gives
+  90 % power to the lower-bound test ("faster than the lock") at a true +1 %; the point estimate >= +1 % is a stricter
+  extra filter that a true +1 % change passes only about half the time at that n, and a true 0.75 % change (S3) only a
+  minority of the time (about 1 in 4 to 1 in 6, own normal-approximation arithmetic); the crew decision on sub-1 %
+  members of a stack (S3) stays open (review fix) [C3].
 - Route: node-identical = nps ABBA only, no SPRT (crew rule). Any identity difference = not a speed change: stop and
   find the cause, never gate it as an Elo change.
 - Common no-go: switch-0 kit exe not byte-identical to FD3A5190; any difference in steps 2-4; ABBA point < +1 % or an
@@ -80,7 +93,7 @@ not a controlled A/B; no search-nps number for this change exists (missing). RAN
      `Move{from, to, promo, flags}` keep their values; only bare `Move x;` loses the zero (audit list above).
   2. search.cpp :450, :453, :459, :1034, :1035: drop `{}` under the switch (keep :447, :448).
   3. Board::generate_pseudo_legal gets a quiets-only mode (own design, all of it inside the `#if`: a three-value mode;
-     the bool entry stays as a wrapper so lock callers are unchanged; at 0 the lock function text stands). Quiets mode: single pushes :453-458, double pushes :459-462, then for
+     the bool entry stays as a wrapper so lock callers are unchanged; at 0 the lock function text stands; the mode enum and the wrapper are under the switch too (review fix) [C5]). Quiets mode: single pushes :453-458, double pushes :459-462, then for
      N, B, R, Q, K the targets mask = empty squares, then castling :517-539 with the same `checkers_ == 0` test; skip
      the promotion-push loop :464-468, the pawn-capture loop :469-479 and the en-passant block :480-485.
   4. MovePicker::generate_quiets :523-536 calls the quiets mode and drops the filter :530 (under the switch).
@@ -127,11 +140,15 @@ throughput 0.33 c (uops.info; Zen 2: 18, microcoded). RANKING_FINAL S2: PEXT alo
   2. Mode 2 (16-bit entries): add a second per-square mask ray = sliding_attack(sq, 0) including the edges (rook 14
      bits, bishop 7-13). Entry = uint16 pext(attacks, ray); lookup = pdep(entry, ray). Tables 102,400 x 2 B = 200 KiB
      rook and 5,248 x 2 B = 10.25 KiB bishop (lock: 800 KiB + 41 KiB of 8 B entries). Own layout: three 64-entry arrays
-     per piece (mask, ray, uint32 offset).
+     per piece (mask, ray, uint32 offset), under the switch like mode 1's {mask, table*} array (at 0 the lock's Magic
+     arrays and tables stand) (review fix) [C5].
   3. Mode 3 (only after mode 2 keeps): the mode-2 tables emitted at build time into read-only data (a generator that
-     writes a header, or constexpr), so concurrent gate processes of one exe share the pages.
+     writes a header, preferred; constexpr only as a fallback: a 102,400-entry table built through a constexpr pext
+     emulation can hit GCC's constexpr operation limit (review fix) [S2-3]), so concurrent gate processes of one exe share the pages.
   4. queen() stays bishop | rook. Modes 1-3 need BMI2: `#error` unless `__BMI2__` is defined; only the -march=znver5
-     kit exe sets the switch (never a Zen 1 / 2 or generic side).
+     kit exe sets the switch (never a Zen 1 / 2 or generic side). The CI sanitizer row with the switch ON passes
+     `-mbmi2` explicitly (a runner build without -march would stop at the `#error`); on Zen 1 / 2 PEXT / PDEP are
+     microcoded (slow, still correct), so a wrong machine is a speed matter, never a wrong result (review fix) [S2-2].
 - Proof (beyond Common): exhaustive CTest per mode: every square x every subset of its relevant mask (102,400 rook +
   5,248 bishop cases): new lookup == lock magic lookup == sliding_attack; plus 1M random occupancies with bits outside
   the mask (both index functions ignore them; tested anyway). Mutant: one flipped bit in one entry must fail it.
@@ -142,7 +159,12 @@ throughput 0.33 c (uops.info; Zen 2: 18, microcoded). RANKING_FINAL S2: PEXT alo
   = skip its ABBA and go to mode 2; mode 2 not faster in (iii) = stop before the ABBA.
 - ABBA: Common, single process. Mode 3 adds one ABBA with 8 copies of each exe running at once (gate-like load, only
   in a window without gates or training on those cores), per-process nps; still no SPRT.
-- Expected: mode 1 0 to +1 %; mode 2 +0.5 to +3 % single-process nps **UNPROVEN** (card).
+- Expected: mode 1 0 to +1 %; mode 2 0 to +2 % single-process nps **UNPROVEN** (card: +0.5 to +3 %). Per lookup the
+  mode-2 chain pext -> load -> pdep is not shorter in latency than the lock's and -> imul -> shr -> load (mode 1 saves
+  about two cycles), so a single-process gain can come only from the smaller footprint (210 KiB vs 841 KiB; Zen 5 L1D
+  48 KiB, L2 1 MB per core); the cited numbers that name a cause point at page sharing between processes (mode 3) or
+  at a software fallback as the baseline. The perft microbench (iii) stays the gate in front of the
+  ABBA (review fix) [S2-1].
 - Crew hours: 3.5 (RANKING_FINAL; card 3-4) + 3-4 for mode 3; hyperbola quintessence (card, 6-10 h) not first.
 - No-go: any exhaustive-test mismatch (a bug: fix before anything else); mode 2 not faster in the microbench; ABBA
   mode 2 < +1 %; a kit side without BMI2.
@@ -206,7 +228,8 @@ qsearch, and in the out-of-line store. RANKING_FINAL S4: +2 to +4 % [3 %], 7 h.
   :1516-1521 exist only when size > 1; the main worker runs at :1522 on the calling thread (the lease owner). uci.cpp
   :357 (go) and :403 (bench) pass TTAccess::Exclusive, so gate games at Threads=1 and bench take the lease.
 - Change (own steps; R7's tree has another layout, so re-written with the forge-lock-port recipe, not cherry-picked):
-  1. Worker gets `bool tt_owned_ = false` (own name). In Searcher::search, right after the lease is emplaced
+  1. Worker gets `bool tt_owned_ = false` (own name); this member and the Searcher scope guard below are under the
+     switch, else the switch-0 exe differs (review fix) [S4-1 = C5 for S4]. In Searcher::search, right after the lease is emplaced
      (:1514), set it on workers_.front() and restore the previous value after :1522 returns (a scope guard that saves
      and restores, so an exception or a nested search, which the lease's previous_ chain allows, leaves it right).
      No helper can see it: helpers exist only when size > 1, and then no lease is taken.
@@ -226,8 +249,10 @@ qsearch, and in the out-of-line store. RANKING_FINAL S4: +2 to +4 % [3 %], 7 h.
   hashfull (a handful); its bench nodes must equal the plain build's. Static: objdump shows no emutls call on the hot
   path of Worker::search / qsearch; the locking probe / store stays reachable through step 3's branch, so a surviving
   call in a cold partition or the out-of-line probe / store is expected, not a failure. The verify build's assert holds
-  over bench d16 and the 12k FENs; T12-03 level 5 (warm-TT replay) is the key level here; Threads 2 / 4 bench run without a hang
-  or crash (not node-deterministic) and the TSan CI row stays clean.
+  over bench d16 and the 12k FENs; T12-03 level 5 (warm-TT replay) is the key level here; `go depth 12` searches / short games
+  at Threads 2 / 4 run without a hang or crash (not node-deterministic) and the TSan CI row stays clean; not bench:
+  bench builds its own one-thread Searcher (uci.cpp:395 `Searcher bench_searcher(16)`, search.hpp:375 default
+  `threads = 1`), so it ignores Threads (review fix) [S4-2].
 - Microbench: one 16 MB table under an ExclusiveLease, 10M probe + store pairs on keys from a fixed generator, plus a
   cache-resident variant (64 KiB of keys) that isolates the call cost from DRAM misses; ns per pair, probe/store vs
   probe_owned/store_owned.
@@ -236,7 +261,7 @@ qsearch, and in the out-of-line store. RANKING_FINAL S4: +2 to +4 % [3 %], 7 h.
 - Crew hours: 7 (RANKING_FINAL; card 6-8: switch, plain + kit pc1 = pc2, pins, 12k, objdump, CI row, ABBA).
 - No-go: switch-0 exe not byte-identical; the ON counter build still counts has_exclusive_access() per TT access, or
   the emutls call still sits on the hot path (not just in a cold partition: check before timing); any identity
-  difference; a TSan report or a Threads > 1 hang;
+  difference; a TSan report or a hang in the Threads 2 / 4 `go depth 12` runs (review fix) [S4-2];
   ABBA < +1 %.
 
 ## Shared build, order
@@ -250,10 +275,13 @@ qsearch, and in the out-of-line store. RANKING_FINAL S4: +2 to +4 % [3 %], 7 h.
   for the stack. Keep / drop needs per-switch evidence: build single-switch exes for S1, S2 (mode 2) and S4, each ABBA
   vs the lock; S3 as stack-with vs stack-without; the final number is the kept stack vs the lock, then QA's timing.
 - Order (own reading, no Elo claim): 0 one-time tooling (copy-per-run in the ABBA tool ~2 h; a node-limit 12k driver
-  ~0.5 h if missing; the T12-03 level 3 / 5 compare driver per T12-03); 1 S1 (best rate 0.67 %/h; its poison and
+  ~0.5 h, needed: r12_fens12k.py has none (review fix) [C1]; the T12-03 level 3 / 5 compare driver per T12-03); 1 S1 (best rate 0.67 %/h; its poison and
   assertion builds also exercise the identity tooling); 2 S2 microbench, ABBA only if mode 2 passes it; 3 S4 (largest
   midpoint, own code with a prior own measurement; the line-146 plan names S1, S2 and S4 for ABBA); 4 S3 (a) timed in
   the kept stack; S3 (b) only when T04-04 / T05D-03 need a Board key (RANKING_FINAL: cost the key once for T05D-03).
 - Crew hours total: 15 (3 + 3.5 + 1.5 + 7) + ~2.5 one-time tooling; optional S2 mode 3 +3-4 and S3 (b) +2 over (a).
-  CPU: < 30 min of one core per ABBA comparison (T12-02), about 5 comparisons plus microbenches: ~3-4 h of one core.
+  CPU: at s of about 4 % (n ~140 pairs, three arms) a d16-only comparison is ~20-30 min of one core; with d20 and the
+  game probe one pair is 40-60 s, so the confirmation of a candidate that passed at d16 costs 1.5-3.5 h of one core
+  (140-215 pairs; n grows with s^2: size it from the pilot). About 5 d16 comparisons plus microbenches: ~3-4 h of one
+  core, + 1.5-3.5 h per confirmed candidate (review fix) [C2].
   No SPRT, no GPU.

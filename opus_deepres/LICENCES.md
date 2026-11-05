@@ -70,6 +70,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | SH11235/rshogi | f248c52c84 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | TerjeKir/weiss | c735b8f3d2 | 2026-08-13 | COPYING.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
 | TerjeKir/weiss | ff59b2741d | 2020-10-26 | COPYING.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05B | ideas only |
+| TheRealGioviok/Perseus-Engine | 3c95481452 | 2025-03-19 | LICENSE.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06E | ideas only |
 | TimAnthonyAlexander/chessgo | 3eedea13d6 | 2026-07-07 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | TimAnthonyAlexander/chessgo | cdbe8eea5f | 2026-08-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | Witek902/Caissa | 2fd8f56e40 | 2023-10-12 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
@@ -116,6 +117,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | gab8192/Obsidian | e144325d52 | 2025-06-20 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | jdart1/arasan-chess | 2dbc0649dc | 2021-05-31 | absent | no licence (all rights reserved) | - | api: NOASSERTION | T05B | ideas only (no licence) |
 | jdart1/arasan-chess | 6e432a21ef | 2026-11-04 | LICENSE | MIT | ---------------------------------------------------------------------- | api: NOASSERTION | T05B | copy with notice |
+| jhonnold/berserk | 5a5ec85439 | 2021-07-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06E | ideas only |
 | jhonnold/berserk | 8c72a1d869 | 2024-01-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | jhonnold/berserk | a3a6f62397 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B, T04C, T04H | ideas only |
 | jw1912/akimbo | f7dd7677d6 | 2025-02-07 | LICENSE | MIT | MIT License | api: MIT | T04O | copy with notice |
@@ -127,9 +129,12 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | lynx-chess/Lynx | 57bd72e93f | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | martinnovaak/motor | 033a63cf54 | 2026-10-31 | absent | no licence (all rights reserved) | - | api: none | T04O | ideas only (no licence) |
 | martinnovaak/motor | bee03e1952 | 2025-02-26 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | 08def86738 | 2025-03-14 | absent | no licence (all rights reserved) | - | api: none | T06E | ideas only (no licence) |
 | mcthouacbb/Sirius | 0aab371e4d | 2026-10-03 | absent | no licence (all rights reserved) | - | api: none | T04O | ideas only (no licence) |
 | mcthouacbb/Sirius | 3a2c3d72d1 | 2025-03-23 | absent | no licence (all rights reserved) | - | api: none | T06D | ideas only (no licence) |
 | mcthouacbb/Sirius | 3b2cd0247b | 2025-11-23 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
+| mcthouacbb/Sirius | 64b845b139 | 2025-04-01 | absent | no licence (all rights reserved) | - | api: none | T06E | ideas only (no licence) |
+| mcthouacbb/Sirius | 867546045e | 2024-09-15 | absent | no licence (all rights reserved) | - | api: none | T06E | ideas only (no licence) |
 | mcthouacbb/Sirius | 8fb68a9d72 | 2025-12-04 | absent | no licence (all rights reserved) | - | api: none | T06D | ideas only (no licence) |
 | mcthouacbb/Sirius | 9d808836c6 | 2025-11-17 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
 | mcthouacbb/Sirius | a32c2f689b | 2025-10-20 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
@@ -147,6 +152,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-clockwork/Clockwork | b10cbf0133 | 2026-03-16 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04T | ideas only |
 | official-clockwork/Clockwork | bedb1e8b26 | 2026-04-07 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06D | ideas only |
 | official-clockwork/Clockwork | ef52bf5ce9 | 2026-02-05 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06D | ideas only |
+| official-stockfish/Stockfish | 1093047e7d | 2018-03-09 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06E | ideas only |
 | official-stockfish/Stockfish | 1548538ede | 2026-09-18 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | 1591e5ac3b | 2022-09-11 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | official-stockfish/Stockfish | 23df82905b | 2026-10-25 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
@@ -161,6 +167,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-stockfish/Stockfish | 5ca4bfe72b | 2026-09-09 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
 | official-stockfish/Stockfish | 691a8ce271 | 2016-07-07 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06D | ideas only |
 | official-stockfish/Stockfish | 6c048ce44f | 2019-11-16 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06D | ideas only |
+| official-stockfish/Stockfish | 6d8f583af2 | 2018-03-07 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06E | ideas only |
 | official-stockfish/Stockfish | 71e0b5385e | 2020-01-28 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | official-stockfish/Stockfish | 73018a0337 | 2021-09-23 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | 7316ef4e86 | 2026-10-24 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
