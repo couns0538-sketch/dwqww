@@ -45,7 +45,8 @@ for rep in rep2 rep3; do
         "$PY" -I -B 'D:\o30\checks_gpu\scripts\depth_probe_ab.py' 'D:\o30\control\lockkb4_v2p4\lockkb4_v2p4.pgn' "$EXE" "$EXE" \
             --opt-a 'EvalFileV2=D:/o30/nets/lockv2/lock_kbrank4_ob8.nnue2' --opt-b "EvalFileV2=D:/o30/nets/lockv2/lock_kb${k}_ob8.nnue2" \
             --mask 0x40 --json "$(cygpath -w "$t.json")" > "$t.txt" 2>&1
-        echo "$(date '+%T') $(basename "$t") exit $?: $(grep 'nps B / A' "$t.txt" | cut -c1-110)"
+        rc=$?   # bug hunt: taken before $(date) / $(basename) run (inside the echo, $? read basename's status)
+        echo "$(date '+%T') $(basename "$t") exit $rc: $(grep 'nps B / A' "$t.txt" | cut -c1-110)"
     done
 done
 echo "$(date '+%F %T') cpu6_final done"

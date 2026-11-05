@@ -21,4 +21,5 @@ cd /d/o30/control || exit 1
 C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe -I -B 'D:\o30\wt\opus_30h\a\sanity_match.py' --out "$out" \
     --cand-exe 'D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe' --cand-opt "EvalFileV2=$net" --games "$games" \
     --conc 1 --cpus "$cpu" > "/d/o30/logs/sanity_${name}_${sub}.out" 2>&1
-echo "$(date '+%F %T') sanity exit $?"
+rc=$?   # bug hunt: taken before $(date) runs - inside the echo, $? read date's status (always 0); same class as fix list 2 item 3
+echo "$(date '+%F %T') sanity exit $rc"
