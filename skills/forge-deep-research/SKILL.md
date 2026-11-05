@@ -99,14 +99,29 @@ there; paths are the ones of that job.
   script then starts nothing new.
 - Crew board `D:/grok-pc-data/dwqww/WORKER_BOARD.md` (three slot lines): `tools/board.py start S<n> "<worker>" "<task>"`
   first, `... done S<n> ... "<result path>"` last (appends the done line). `start` takes another idle slot when the
-  named one is busy (two runs can share the board) and refuses after 10 minutes when all 3 are busy; `done` releases by
+  named one is busy (two runs can share the board), is idempotent per worker + task (a second start returns the held
+  slot) and refuses after 10 minutes when all 3 are busy; `done` releases by
   worker + task. `board.py check` exits 1 above 3.
 - `tools/workflows/deepres_pool3.js`: task fields `kind` (research / note; a Fable verifier goes to the queue front
   after each research task), `agent` (fable | opus-max), `after` (keys `kind:key` that must be done first),
   `latest_start` (minutes after 22:00), `outputs`, `verify_brief`, `minutes`, `max_cards`.
 - Agent types added after the session started are missing from its registry until it reloads: every
   `agentType: opus-max` spawn failed at once (journal "failed", empty agentId, no tokens) until the registry picked the
-  file up (~05:16); the script tries the agent type and falls back to the session model at effort max.
+  file up (~05:16). The old fallback (the same task again without the agent type: session model or the `fable` alias)
+  was a Code Review blocker (2cdf70ff, 2026-11-05) and is gone: `spawn()` pins agent type + model id + effort max on
+  its ONE call per task (ids `<vendor>-opus-5-5` / `<vendor>-fable-5-1`, the prefix joined at run time because the
+  committed files carry no vendor name), never retries and never switches model; a throw or a null result fails the
+  task, frees its slot and retires it for the run, so a registry miss fails closed (N failed tasks, the rest queued).
+  `node tools/workflows/test_pool3_mock.js tools/workflows/deepres_pool3.js` checks this without agents; a pinned
+  spawn's `agent-*.meta.json` carries `model`, an unpinned one has none (live pin test wf_e44dea41-545 passed).
+- A failed or killed agent may still hold its board slot: release it from the coordinator with the run's
+  `failed[].board_release` command (or `board.py done <slot> "<worker>" "<task>" "FAILED ..."`). A session restart
+  (`/clear`) kills the running workflows (state file "killed", transcripts end with an interrupt; POOL3M 07:09):
+  release their slots, mark their files partial and unverified, start a fresh run if time is left.
+- The cap hook counts transcript FILES written in the last 3 minutes, so finished agents and the copies a session
+  restart makes of a running workflow's transcripts count too ("active=4" at 05:22:46 with 2 agents running).
+  `tools/worker_audit.py [--since "YYYY-MM-DD HH:MM"]` recounts every hook line against the agents really running,
+  the peak, and every agent's model and pin from the transcripts (cap period 2026-11-05: peak 3, 0 other models).
 - When a pool has only sequential work left, its other slots sit idle: start a separate 1-worker run (same script,
   fresh run) for a non-overlapping task, keep the total <= 3, add each run to STATUS and to `checkpoint.sh`.
 - Round 3 measured: POOL3 10 agents 1,690,105 tokens (65 min); 1-worker runs 334,288 (2 agents) and 514,776 (3).

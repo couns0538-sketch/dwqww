@@ -1,8 +1,8 @@
 # Forge deep research - FINAL REPORT
 
-**State: IN PROGRESS - last round** (from 07:23 PC clock: Engine QA's last list, the pool-script fix of Code Review
-2cdf70ff, the end of POOL3M); the text below was written from 06:09 PC clock on 2026-11-05; the state line changes
-only when this round is done, with the real end time in the last line. All tracks of the
+**State: FINAL** - text written from 06:09 PC clock on 2026-11-05; last round 07:23-07:38 (Engine QA's last list,
+the pool-script fix of Code Review 2cdf70ff, POOL3M killed at 07:09:00): every change after 07:20 is marked
+unverified and listed in `notes/FIXES_APPLIED.md` Round 8. Finish time in the last line. All tracks of the
 brief's core set and the after-report set (T6, T7, T12) are researched and verified; round 3 (after the usage reset,
 from 03:42) added new engines, a lock audit, counter-evidence, three second votes, 22 implementation specs with
 reviews, a final ranking and a critic of this report (`notes/CRITIC4.md`, applied). T04U (06:06-06:24) added T04U-01; T06E and SPECFIX2 (06:24-06:41) closed the T06D pending list (T06E-01, T06E-02) and
@@ -73,8 +73,8 @@ section 1 will most likely log UNPROVEN at the cap and the capped run acts as a 
 decides the one extension. Mean run lengths: about 6,900 games at a true +6, about 3,800 at +10, about 3,100 at +12
 (CRITIC4), so a stack near +10 Elo decides inside the cap only about one time in three. Cost: 6-7 gate-PC hours per
 capped run at the measured 430-502 games/h (measured at Threads 2 / conc 4; no Threads=1 rate exists in any input).
-Cards written before the decision may still quote the old [0,10] / 12k-game cost (6.6k games, 13-15 h); read them with
-this paragraph.
+The old [0,10] / 12k-game cost text (6.6k games, 13-15 h) was replaced in 18 cards in the last round (unverified,
+`notes/FIXES_APPLIED.md` Round 8); T12-01 keeps those numbers as its SPRT model.
 
 ## 3. Round 3 (after the usage reset, 03:42 on): what is new
 - **T04P-01** (verified, second vote KEEP): the deeper-entry rule CRITIC2 found uncarded. Forge already has form B as
@@ -229,8 +229,10 @@ Seer (only ideas Forge has or has tried) | a lower, WDL-skew or phase-dependent 
   a slot, take another idle one when the named one is busy, wait / refuse when all 3 are busy, release by worker +
   task, done line; tested on a copy); workflows in `tools/workflows/` (`deepres_tracks.js`, `deepres_phase2_checks.js`,
   `deepres_round2_tracks.js`, `deepres_pool.js`, `deepres_pool3.js` = the 3-worker pool with task dependencies,
-  latest-start times, a Fable verifier after each research task, agent types with a fallback and a cooperative
-  wrap-up note).
+  latest-start times, a Fable verifier after each research task, agent type + model id + effort max pinned on one
+  call per task with no retry or fallback since the last round (Code Review 2cdf70ff; a failed task frees and retires
+  its slot; `tools/workflows/test_pool3_mock.js`) and a cooperative wrap-up note); `tools/worker_audit.py` = hook
+  log vs agents really running, peak, models and pins from the transcripts.
 
 ## 11. Incomplete work, deviations, spend
 - Not done: sub-tracks T04I-T04M (LMR inputs, extensions, null move, futility, qsearch) DROPPED at 01:35 as overlapping
@@ -275,4 +277,4 @@ section 6, specs in `notes/SPEC_SPEED.md`. T6: `notes/T06/FORMS.md`, `notes/T06/
 cards T06, T06B, T06C, T06D. T7: `cards/T07/` (2 cards) and `notes/T07/UCI_EDGE_CASES.md`. T12: `notes/T12/PROTOCOLS.md`,
 `notes/T12/sprt_model.md`, cards T12 / T12B, the checklist card `cards/T12/T12-03-bench-fuzz-checklist.md`.
 
-Text of 06:09-07:04 finished 07:04 PC clock (from `date`); last round in progress from 07:23 (see the state line).
+FINAL finished 07:38 PC clock (clock read at write time): text of 06:09-07:04 plus the last round 07:23-07:38.

@@ -12,7 +12,7 @@ this job is written to D:.
   times as Vienna times; the UTC they imply is 9 h too late (GitHub shows them 9 h in the future).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 07:06 (elapsed 8 h 42 min).
+- Last update of this file: 07:38 (elapsed 9 h 15 min).
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
@@ -63,11 +63,13 @@ this job is written to D:.
 ## Crew decisions and owner cap (received before 02:37)
 - Crew decision (7-0 vote, received 2026-11-05 before 02:37): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension.
 - Owner cap: at most 3 parallel workers (not 5), fable or opus-max agents only, coordinating via `D:\grok-pc-data\dwqww\WORKER_BOARD.md` (three slot lines, so never more than 3 active; `tools/board.py`); "usage is very low": the coordinator works alone until 03:41, then the 3-worker pool starts.
+- Cap audit (last round, unverified; `tools/worker_audit.py --since "2026-11-05 02:37"` over the transcripts): at most 3 agents ran at once (peak 3 at 03:47:18); the hook's "active=4" at 05:22:46 counted 4 transcript files of the 3 minutes before while only 2 agents were running (verify:T04S, SPEC4) - finished agents stay in its 3-minute window; 0 agents ran a model other than opus-5-5 / fable-5-1; 38 of 40 spawns carried no model pin in their meta file (right model by agent type or session inheritance, not by pin; the 2 pinned ones are the post-fix PINTEST run). Round 1's verifiers (22:48-23:26) ran on the session model (Opus 5.5 max), not Fable; Fable verifiers from round 2 (23:57) on.
 
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
 | POOL3M (final research run) | KILLED 07:09:00 (wf_196398f4-207, 2 workers, launched 07:05:56; the workflow was aborted when the coordinator session restarted: state file "killed" / "Workflow aborted", both transcripts end with an interrupt at 07:09:00); 0 cards, no TABLE, no verifier: partial source lists notes/T06F/sources.md (1 source) and notes/T02D/sources.md + licences.md (3 sources), marked unverified; the two dead workers still held board slots S1 / S2, released by the coordinator at 07:23 | - | - | T06F: more HCE terms from Clockwork / Sirius eval PRs (max 2 cards) + Fable verify; T02D: piece-count and other data filters with passed net tests, Alexandria PR 599 first (max 2 cards) + Fable verify |
+| PINTEST (pool-script fix check) | DONE 07:26-07:29 (wf_e44dea41-545, 2 agents, 187,530 agent tokens; no research): the fixed deepres_pool3.js ran PINTEST1 as opus-max on opus-5-5 and PINTEST2 as fable on fable-5-1, both at effort max (their meta files carry the pinned model, every request matches); board start twice kept one slot ("already holds this worker + task"), done released it; failed 0, retired 0 | - | - | Code Review 2cdf70ff check (notes/FIXES_APPLIED.md Round 8) |
 | POOL3L (brief gaps) | DONE 06:42-07:04 (3 agents, 464,996 agent tokens; T01C = notes/T01/FEATURE_COST_TABLE.md, 51 rows; T02C = NOT FOUND, no card, notes/T02C/TABLE.md; verify: no licence / number violation, one caps-rule overrun logged); started (wf_4e1627ff-d7c, 2 workers) | - | - | two brief questions CRITIC.md marks NOT COVERED: T02C (|eval| caps as a training-data filter; max 2 cards + Fable verify) and T01C (the T1 table data size / L1 / nps cost per feature set -> notes/T01/FEATURE_COST_TABLE.md) |
 | POOL3K (HCE leads + speed-spec fixes) | DONE 06:24-06:41 (3 agents, 429,249 agent tokens; T06E-01 queen threats of the next move (SF 6d8f583 / 1093047 STC + LTC, Sirius #271), T06E-02 blocked pawn storm (one-liner), Sirius #258 as evidence for T06C-03; verify: no correction, no violation; SPECFIX2 round 7 = all 10 speed-spec fixes); started (wf_e583e970-4e2, 2 workers) | - | - | T06E: the HCE leads T06D left unread (queen threats SF 6d8f583 / 1093047 + Berserk PR 219, Sirius PR 185 / 258, Perseus PR 100), max 3 cards + Fable verify; SPECFIX2: the 10 SPEC_SPEED_REVIEW fix items into SPEC_SPEED (round 7) |
 | POOL3J (last card run) | DONE 06:06-06:24 (2 agents, 299,582 agent tokens; T04U-01 check extension moved into LMR (Clockwork #281 STC +5.82 / LTC +3.35, [0,5], UHO; 0 to +3 UNPROVEN, ~2 crew h); verify 26 of 26 confirmed); started (wf_9c238198-477, 1 worker) | - | - | T04U: Clockwork #281 (check extension moved into LMR; T04T's best uncarded candidate), then the unread PR pages (Clockwork 4+, Tarnished 2+, motor 3+); max 3 cards; research 30 min + Fable verify 10 min |
@@ -115,8 +117,9 @@ them in notes/T<nn>/VERIFY.md.)
   next: this checkpoint (23:06).
 
 ## Blockers / stopping reason
-- none. State FINAL at 07:04 (report, STATUS, RESUME, LICENCES pushed in a8d7d66f); one more research run (POOL3M) was
-  started at 07:05 for the owner's goal of finding improvements until the window ends; its results are added after
-  it finishes (no new task after 07:30, report final by ~07:50). The open brief item left is a crew measurement
+- none. State FINAL at 07:38 after the last round (07:23-07:38: Engine QA's last list, the pool-script fix of Code
+  Review 2cdf70ff with its pin test, the cap audit). POOL3M, started 07:05 for the owner's goal of finding
+  improvements until the window ends, was killed at 07:09:00 and left partial notes only. Every change after 07:20
+  is marked unverified (notes/FIXES_APPLIED.md Round 8). The open brief item left is a crew measurement
   (within-train board+stm duplicates). Measured agent spend over the finished workflows: 11,275,155 tokens (stopped runs report
   no total). No usage reading since the owner's 77 % at ~02:26.

@@ -162,3 +162,25 @@ notes/SPEC_SPEED.md | S4 proof: "Threads 2 / 4 bench run without a hang or crash
 notes/SPEC_SPEED.md | header Status line: one clause naming the review, SPECFIX2, the marker and this log section | bookkeeping
 (check) literal "(review fix)" count in SPEC_SPEED.md = 18 = 16 fix markers + 1 header mention + 1 pre-existing SPEC4 marker (:31 OFF-proof sentence; the S4 "(the real proof, review fix)" is SPEC4's too, not mine); every id C1-C5, S2-1, S2-2, S2-3, S4-1, S4-2 present; old wordings ("was not checked", "if missing", "Threads 2 / 4 bench", "Threads > 1 hang", "+0.5 to +3 % single", "< 30 min", "or constexpr)") gone (grep: 0 hits); line endings unchanged (CRLF working copy, git diff 47+ / 19-); mechanisms, anchors and order S1, S2 microbench, S4, S3 unchanged; not touched: any card, any other spec file, SPEC_SPEED_REVIEW.md, RANKING_FINAL.md, FINAL_REPORT.md, cards/T06E, notes/T06E; no web read, no engine source of another engine opened
 Round 7 (SPECFIX2) stopped 06:31 PC clock (`date`, same step); files written: notes/SPEC_SPEED.md and this section; scratch F:/odr/work/SPECFIX2/round7.txt (this text before the CRLF conversion).
+
+## Round 8 (last round, coordinator, after 07:20, unverified)
+Started 07:23 PC clock: Engine QA's last list (items 1-9) and Code Review 2cdf70ff (pool script). No verifier pass is left
+before 08:23, so every line below is unverified (QA item 7).
+tools/workflows/deepres_pool3.js | spawn(): agent type + model id (opus-5-5 / fable-5-1) + effort max pinned on the one agent() call per task; no retry, no fallback model; a throw or a null result fails the task, frees its slot and retires it; failed[] with board release commands in the return value | CR 2cdf70ff
+tools/workflows/test_pool3_mock.js | new: mocked agent() check of the rules above (4 scenarios pass; the old script spawned each failing task twice, the second time unpinned) | CR 2cdf70ff
+wf_e44dea41-545 (PINTEST1 / PINTEST2, 07:26-07:29, 2 agents, 187,530 tokens) | live pin test of the fixed script: meta files carry the pinned models, requests match, effort max, failed 0 | CR 2cdf70ff
+tools/board.py | start idempotent per worker + task (no second slot); set_slot with a function replacement; FORGE_WORKER_BOARD for tests | QA 2
+tools/worker_audit.py | new: hook log lines vs agents really running, peak, models and pins from the transcripts | CR verify
+D:/grok-pc-data/dwqww/WORKER_BOARD.md | S1 / S2 still held by the two killed POOL3M workers: released 07:23 with done lines | QA 1, CR
+notes/T02D/*, notes/T06F/sources.md | partial notes of the killed POOL3M run committed with a PARTIAL / unverified status line | QA 1
+FINAL_REPORT.md | line-252 edit committed; state line not FINAL during the round; POOL3M outcome; old-cost sentence; pool3 description; FINAL with the end time | QA 1
+cards/T04E/T04E-03, notes/TOP_SECOND_VOTE2.md:69, notes/RANKING_FINAL.md:52 / 137 | gate 67 quoted exactly (1,500 games, -7.41, 95 % interval -15.8 .. +1.0 Elo from its pentanomial 7/157/456/121/9, includes 0); NOT changed to "not inside noise": the tried-gates row's -15.55 / -2.54 are nElo and LLR (FORGE_RESULTS.csv columns nelo / llr), not an interval | QA 5 (pushed back)
+notes/SPEC_SEARCH3.md:136 / 218 / 225 | T04N-02 stack-only (NMP stack) or tail, no gate line of its own; firm STC lines 5 -> 4 (24-28 h, 36-42 h with the two conditional lines) | QA 3
+18 cards (the 13 listed + T04G-02, T04G-04, T06B-02, T06C-02, T06C-03 with the same text) | stale [0,10] / 12k cost text -> "3,000 games = 6-7 h, +6-7 h one extension if positive"; T12-01 keeps its SPRT model numbers | QA 4
+LICENCES.md, notes/T04O/licences.md | akimbo 7120b4be24 row (MIT, 2024-01-12, tools/licence_at.py) | QA 6
+notes/T04R/TABLE.md | T04R-04 not written: reason line (3-card cap, no pending card, row 4 already evidence for T04D row 15) | QA 6
+cards/T04T/T04T-01, notes/RANKING_FINAL.md | ply-4 continuation writes leak into the ply-1 / ply-2 reads: a lock quirk of its own; "no ply-4 write" = separate gateable screen | QA 8
+cards/T06D/T06D-01 | UCI spin HceKingFlank 0/1 (was "UCI check") | QA 9
+STATUS.md | -0800 commits are Vienna time; POOL3M killed row; PINTEST row; cap audit; round-1 verifiers ran on the session model | QA 9, CR verify
+skills/forge-deep-research/SKILL.md (+ the user-level copy) | pin rule replaces the fallback sentence; board idempotent start; failed / killed slots; hook window; worker_audit.py | CR
+Round 8 stopped 07:38 PC clock (clock read at write time).

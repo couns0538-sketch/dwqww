@@ -17,8 +17,11 @@ and tools: `skills/forge-deep-research/SKILL.md` (also installed as a user-scope
   rounds 3-7, RANKING_FINAL, CRITIC4, FINAL report.
 
 ## Open
-- Nothing is running: every workflow run finished by 07:04 (ids, times and tokens in STATUS). A later session runs only
-  new tasks in a FRESH run (never resume a run), at most 3 workers on the board.
+- Nothing is running: the last research run POOL3M was killed at 07:09:00 (session restart; partial notes, unverified)
+  and the pin test of the fixed pool script ran 07:26-07:29 (ids, times and tokens in STATUS). A later session runs only
+  new tasks in a FRESH run (never resume a run), at most 3 workers on the board; the pool script pins agent type +
+  model id + effort max on its one call per task (Code Review 2cdf70ff: no retry, no fallback); after a failed or
+  killed run release its board slots (`failed[].board_release`) and check the run with `tools/worker_audit.py`.
 - Not covered by any track: see FINAL_REPORT section 11 (CRITIC.md "Uncovered or partly covered" list); PENDING items
   in the cards; unread PR pages in notes/T04T/sources.md and notes/T04U/TABLE.md.
 
