@@ -110,8 +110,9 @@ the owner's own release was used (STATUS.md).
 - Convention check `a/logs/gpu/lock_train_020.json` / `lock_train_031.json`: the lock net as KB4
   (`D:\o30\nets\lockv2\lock_kbrank4_ob8.nnue2`) scored on two TRAIN shards with stride 10 (020: 668,615 of 6,686,147
   rows, b0.6 0.013996126 / b1.0 0.004438888; 031: 1,000,000 of 10,000,000 rows, b0.6 0.014518351 / b1.0 0.004610929;
-  0 mate rows, 0 bad FENs). [PENDING: the author's one-line reading of what this checks - presumably the trainer's
-  printed loss against the scorer's b0.6 on train data; no text in RESULTS.md / STATUS.md names it.]
+  0 mate rows, 0 bad FENs). Reading: the scorer gives the lock net the same scale on training shards (0.0140 / 0.0145)
+  as on the S31 holdout (0.01431), so the trainer's printed b0.6 loss and the holdout numbers are on one convention and
+  the holdout is neither systematically easier nor harder for the lock net than the training rows.
 - Warm start proven byte-identical (10:22, `a/logs/gpu/warmproof01.out`): `import_v2r.py` wrote the lock-as-KB4 net as
   `D:\o30\gpu\init_lockkb4\optimiser_state` (weights + zero momentum / velocity), the trainer loaded it with
   O30_CLIP=7.99, ran one superbatch of 8 batches at lr 0, saved; `export_v2r.py` of that checkpoint = the input net
@@ -140,10 +141,10 @@ the owner's own release was used (STATUS.md).
 |---|---|---|---|---|---|---|
 | r1_kb4 (10:17:28-11:27:51) | KB4 rank4, H256, from scratch, seed 30101 | 1e-3 cosine to 1e-5 | 0x30 (4-5) | 1 h 10 m 21 s (2.78M pos/s), 0 suspends | final (700): S31 0.014251, -5.91e-5 (z -5.9); jobA 0.013738, +4.66e-4 (z +4.54): FAIL | from scratch the KB4 shape reaches the lock net's S31 only after ~10.2G positions and ends below it by 5.9e-5 with a clearly worse jobA: not a candidate; it fixes the scale of the warm start's advantage |
 | r2_kb4warm (11:28:03-12:14:46) | KB4 rank4, H256, warm start from the lock net (init_lockkb4), seed 30102, O30_CLIP 7.99, O30_DECAY 0 | 2e-5 cosine to 2e-7 | 0x38 (3-5) | 46 m 39 s (4.20M pos/s), 0 suspends, 0 poll errors | final (700): S31 0.014145, -1.65e-4 (z -32.3); jobA 0.013376, +1.04e-4 (z +1.88): PASS; every checkpoint from 1.46G on is PASS except 174 (jobA z +2.14) | the best offline net of the job (n2L was -1.13e-4 with jobA z +2.55); S31 improves monotonically and flattens after ~7G; packaged (below), sanity match running |
-| r3_kb8warm (11:53:59-) | KB8 rank4x2, H256, warm start from the lock net (init_lockkb8), seed 30103, same clip / decay | 2e-5 | 0x3 (0-1) | running at 12:54 (sharing the GPU with runs 4, 5, 6 in turn); 6 suspends of 4-6 s each on the memory-junction limit (86 C) between 12:24 and 12:34 | every checkpoint PASS; ckpt 609 (10.22G): S31 0.014153, -1.57e-4 (z -25.6); jobA 0.013182, -8.96e-5 (z -1.33); jobA at or below the lock at every checkpoint except 435 (+1.14e-5, z +0.17) | improves BOTH holdouts throughout [PENDING: final checkpoint 700, packaging, sanity] |
+| r3_kb8warm (11:53:59-12:59:33) | KB8 rank4x2, H256, warm start from the lock net (init_lockkb8), seed 30103, same clip / decay | 2e-5 | 0x3 (0-1) | 1 h 5 m (sharing the GPU with runs 4, 5, 6 in turn); 6 suspends of 4-6 s each (26 s) on the memory-junction limit (86 C) | final (700): S31 0.014151, -1.59e-4 (z -25.9); jobA 0.013141, -1.31e-4 (z -1.95): PASS; every checkpoint PASS; jobA at or below the lock at every checkpoint except 435 (+1.14e-5, z +0.17) | improves BOTH holdouts throughout; packaged as o30_gpu_kb8warm_r3 (all checks), Forge play checks PASS (`a/logs/checks_gpu/`); its own sanity match was not played (the CPUs went to the soups); it is a member of the soups |
 | r4_kb4short (12:14:56-12:27:48) | KB4 rank4, H256, warm start, seed 30104, 200 superbatches (3.36G positions) | 2e-5 | 0x38 (3-5) | 12 m 49 s (4.37M pos/s while sharing the GPU), 1 suspend (4 s) | final (200): S31 0.014169, -1.41e-4 (z -40.2); jobA 0.013338, +6.63e-5 (z +1.69): PASS (checkpoints 50, 75, 100, 150 FAIL on jobA z 2.7-5.1, then PASS) | the KB4 gain needs no 11.7G positions: 3.36G gives -1.41e-4 (run 2 had -1.47e-4 at 5.84G); jobA sits at the rule's edge for KB4 |
-| r5_kb8short (12:27:55-12:41:24) | KB8 rank4x2, H256, warm start, seed 30105, 200 superbatches (3.36G positions) | 2e-5 | 0x38 (3-5) | 13 m 24 s (4.18M pos/s), 5 suspends (22 s) on the memory-junction limit | final (200): S31 0.014145, -1.65e-4 (z -40.4); jobA 0.013198, -7.39e-5 (z -1.53): PASS; every checkpoint PASS | the best offline net of the job on both holdouts; packaged as o30_gpu_kb8short_r5 (below) [PENDING: sanity] |
-| r6_kb8lr3 (12:41:35-) | KB8 rank4x2, H256, warm start, seed 30106, 800 superbatches (13.4G positions) | 3e-5 | 0x38 (3-5) | running at 12:54, 0 suspends so far | ckpt 100 (1.68G): S31 0.014201, -1.09e-4 (z -20.9); jobA 0.013378, +1.06e-4 (z +1.84): PASS | [PENDING: a higher learning rate on the KB8 warm start - at 1.68G it trails run 5's 1.68G checkpoint (-1.43e-4 / -4.79e-5)] |
+| r5_kb8short (12:27:55-12:41:24) | KB8 rank4x2, H256, warm start, seed 30105, 200 superbatches (3.36G positions) | 2e-5 | 0x38 (3-5) | 13 m 24 s (4.18M pos/s), 5 suspends (22 s) on the memory-junction limit | final (200): S31 0.014145, -1.65e-4 (z -40.4); jobA 0.013198, -7.39e-5 (z -1.53): PASS; every checkpoint PASS | the best offline single net of the first window on both holdouts; packaged as o30_gpu_kb8short_r5 (below); its sanity match is in the window-2 sanity table |
+| r6_kb8lr3 (12:41:35-13:35:14) | KB8 rank4x2, H256, warm start, seed 30106, 800 superbatches (13.4G positions) | 3e-5 | 0x38 (3-5) | 53 m 39 s, 0 suspends, 0 poll errors | final (800): S31 0.014177, -1.33e-4 (z -18.9); jobA 0.013263, -8.88e-6 (z -0.12): PASS | a higher learning rate on the KB8 warm start is worse: it trails run 5 (-1.65e-4) at every comparable point; not packaged |
 
 Checkpoint table (the full output of `gpu_runs_table.py r1_kb4 r2_kb4warm r3_kb8warm r4_kb4short r5_kb8short r6_kb8lr3`
 at 12:54):
@@ -340,13 +341,14 @@ child, fail closed).
   need `net_pack.sh` + a sanity match each [PENDING]. Every result must be read against the v2p4 control
   (-20.9 +/- 18.5): a v2 net "beats" nothing until it is clearly above that control, and the crew gate is the only
   rating evidence.
-- **Packaging of runs 3 and 6** (runs 2 and 5 are packaged): `net_pack.sh <name> D:\o30\gpu\<run>_nets\forge_v2r_<map>_h256-<ckpt>.nnue2 <v2p4 exe>
-  <harness dir>` on the final (or S31-best) checkpoint; INDEX.md rows; `final_checks_o30.sh` with the new nets
-  [PENDING: run 3 was at checkpoint 609 of 700 at 12:54; run 6 at 100 of 800].
-- **Item B tuned exe**: the SPSA session (stc8) was paused for the rematches and the window; the tuned-set exe
-  (`b/build_o30tuned.sh`) and its checks follow the session [PENDING, as in the current section 2].
-- **Watcher robustness (G-004)**: after the live watchers end, add nullglob, a retry cap and a --hidden / mirror / map
-  check from the run's first log line before `gpu_ckpt_watch.sh` is used again.
+- **Packaging**: runs 2, 3, 5 and 7 and the soups C / P16 (plus the KB8 soup of window 2) are packaged in
+  `D:\o30\nets` (INDEX.md); run 6 (weaker, lr 3e-5) is not. Recipe: `O30_MASK=<mask> net_pack.sh <name>
+  <net.nnue2> <v2p4 exe> D:\o30\harness\h1` (O30_MASK is required since review W2-05).
+- **Item B**: the SPSA session stopped at 184 of 1,800 pairs; resume with `b/tune_spsa.ps1 -Config configs\stc8.json
+  -RunDir D:\o30\spsa\stc8_main` (append-only state) if the crew wants more pairs before gating the set. The tuned
+  exe (tuned184) is built and checked.
+- **Watcher robustness (G-004)**: done - bounded retries and .done only after exit 0 (CR item 12, 16e84bc9), then
+  `a/gpu_ckpt_watch2.sh` (review W2-01 / 05 / 06 / 07).
 - **VRAM on yield (G-005)**: measure the trainer's GPU memory (HWiNFO has a column) and state it in WINDOW.md, or make
   the guard terminate on npt detection (checkpoints exist every 87 superbatches).
 - The remaining exe gap (kit v2.5 build vs the lock's kit v2.3, ~2-7 % on game positions) is unchanged - QA item.
@@ -438,7 +440,8 @@ child, fail closed).
 | SPSA simulation (real tuner vs a fake fastchess with a known optimum) | SPSA SIM PASS: A 100 -> 148 (optimum 160), B 60 -> 21.1 (20) in 1,000 pairs; resume continuous |
 | inventory of the lock's 41 advertised search constants | 41 / 41 = the pin at their default; all live (4 only deeper / with their feature on / in piece-value steps) |
 | pre-flight: the 8 stc8 options at their start values | advertised, ranges inside the option ranges, bench = lock pins |
-| main session | PENDING |
+| main session stc8_main | 92 batches = 184 pairs = 368 games (+88 -77 =203) of 1,800 planned; only SeeQuietMultiplier beyond 2 sigma (z +2.11; ~0.4 such by chance with 8 parameters): no convergence claim (`D:\o30\spsa\report_184pairs\REPORT.md`) |
+| tuned exe tuned184 (O30Tuned) | kit pc1 = pc2 sha256 3b35f5cf...; OFF = lock pins d11-d22 + perft; true = explicit list (d11 330152 / d13 745986 / d16 2436337); true then false = lock pins; invalid value rejected; UCI conformance 18 / 18 and 21 / 21; smoke 120 s PASS (`b/logs/itemB/`) |
 
 ### Tools / documents
 | check | result |
@@ -483,8 +486,10 @@ pins; both lines are in each net's RESULT.json (pins_off / pins_on).
    run 5's checkpoint at 1.68G. Neither is an independent candidate.
 6. **Not a candidate: run 1 (from scratch)** - S31 -5.9e-5 only after 11.74G positions and jobA worse than the lock
    (z +4.5): the warm start from the lock net is the method, from-scratch training of this shape is not.
-7. The SPSA tuned set and any combination (best net + tuned set, only after both pass on their own) stay as before
-   [PENDING Item B].
+7. **The SPSA tuned set (Item B)**: `D:\o30\w\tuned184_pc1\src_copy\forge_ltopgo_tuned184_pc1.exe` (sha256
+   3b35f5cfa662f4f09916fa9c4b40f6bfc6a6d0d4ce7fa1f1b8f6970daadb66d1) with `option.O30Tuned=true` vs the lock FD3A5190,
+   UHO [0,5] SPRT then 8moves_v3 confirm. Expectation ~0 (184 pairs, one parameter beyond 2 sigma); a combination with
+   a net only after both pass on their own.
 
 ## 5. Review of every patch: the author's own structured review, plus the independent reviews of 2026-11-04
 
