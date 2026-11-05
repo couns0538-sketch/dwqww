@@ -9,6 +9,18 @@ No Elo claim for Forge anywhere: every source number is quoted with its link and
 Forge-side estimate is labelled UNPROVEN; the crew gates. Cards: `cards/T<nn>/`; per-track tables, notes and the
 verifiers' findings: `notes/T<nn>/` (`VERIFY.md`); licences at the exact commits read: `LICENCES.md`.
 
+### Addendum 01:36 (owner's usage warning; this INTERIM text above and below is from 23:40)
+Since the INTERIM: phase 2 (critic `notes/CRITIC.md`, second vote `notes/TOP_SECOND_VOTE.md`) found that T04-02 and
+T06-05 already exist as our own packb code (ReSearchAdjust / FiftyDamp), gated only as a bundle on old bases with the
+source engines' constants (new angle: gate each alone on the lock with own constants), and downgraded T05-01 / T05-03
+/ T05-04 (target cost not shown beyond noise). The card fixer applied the card-level findings (`notes/FIXES_APPLIED.md`).
+Round 2 (owner: more improvements, more agents) added sub-tracks T04B-T04H, T05B-T05E, T06B, T06C, T02B, T01B, T12B
+(88 card files, 5 of them merge markers of duplicates; each sub-track with a Fable verifier; T05D, T05E, T01B and T12B
+verifiers still finishing); implementation specs `notes/SPEC_SEARCH.md`, `notes/SPEC_EVAL.md`. Strongest new
+multi-engine idea: a quiet-move history malus that shrinks with the move index (Stockfish a016abd STC +3.78 / LTC
++2.18; Berserk 7451fd7 +2.26 / +2.04; Reckless PR 1038 STC +4.67; Patricia PR 172 LTC +2.39) = card T04E-03 with the
+other three merged into it. The ranking below is still the INTERIM one; the FINAL ranking will merge round 2.
+
 ## 0. First: the data blocker (T2-card-1, card T02-01, COMPLETE)
 The J1 npt train binpack is written from FPOS rows, which carry no castling, no en passant and no clocks, so the net
 sees board + side to move only: that is the leak key, and it subsumes the 4,088 EP-normalised keys. Drop the 7,700
