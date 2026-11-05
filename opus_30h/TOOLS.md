@@ -30,6 +30,20 @@ does not pin itself runs through `bash opus_30h/tools/idle.sh <mask> <program> [
 | `o30_data_npy.py` | jobA overrides as plain .npy for the Rust reader | 988,336 rows written |
 | `o30_runs.py` | one table of every CPU fine-tune run (config, last / best holdout losses vs the lock net, rate) | - |
 
+## GPU windows of 2026-11-04 (`opus_30h/a/`)
+| tool | what it is for | how to verify it |
+|---|---|---|
+| `gpu_run_o30.bat` / `gpu_run_o30c.bat` | start one trainer run under the guard (outputs `D:\o30\gpu` / `C:\o30g\gpu`); refuse an existing run, log or guard log; never edit while a run uses it | a run's guard log: start line with pid + create time, then `end:` |
+| `o30_gpu_guard.py` | thermal + npt-yield guard for the trainer: suspend / resume, fail closed with ABORT, `--resume-pid` (refused while the guard lives), console handler | dummy-child tests `logs/gpu/cr9_guard_tests.out`, `logs/gpu/w2_guard_tests.out`, `logs/fix2/item2_guard_race_test.out`, `logs/fix2/item2_guard_regression.out` |
+| `gpu_ckpt_watch.sh` / `gpu_ckpt_watch2.sh` | export + score every checkpoint (S31, jobA, paired vs the lock net) into `<run>_scores.tsv`; bounded retries; watch2 = the review fixes (retry moves outputs aside, mask required, LF rows) | `logs/gpu/cr12_watch_tests.out`, `logs/gpu/w2_watch2_tests.out` |
+| `import_v2r.py` | a FORGENN2 net -> the trainer's warm-start folder (`optimiser_state`) | lr-0 warm proofs byte-identical: `logs/gpu/warmproof0[2-5]*.out` |
+| `queue_runner.sh` / `queue_runner2.sh` | unattended GPU plan (plan file re-read before every run, cutoff 18:40, a refused start is retried, never burned) | `logs/fix2/item1_runner_test.out`; `logs/gpu/queue_runner2.log` |
+| `gpu_runs_table.py`, `w2_tables.py` | tables of every scored checkpoint, of the window-2 runs and of the sanity matches | the numbers equal the TSV / log files they read |
+| `o30_soup.py`, `soup_score.sh`, `soup_table.py` | uniform weight soups of same-shape checkpoints, scored like a checkpoint, tabled with members | `a/test_soup_tools.py` (final check 19) |
+| `o30_expand_kb.py` | rewrite a KB4 / KB8 / KB16 checkpoint exactly as a finer king map (rank4x2 / rank4x4 / rank4x8) | `logs/gpu/expand_r7_to_kb32.out` (scores identical) + check 19 |
+| `kb8_candidate.sh`, `kb8b_candidate.sh`, `cpu_waiter.sh`, `cpu6_final.sh`, `final_soups.sh` | window-2 orchestration: build and pack a candidate soup, start its sanity match when a CPU frees, last-hour checks, final soups | their logs in `logs/gpu/` and `logs/checks_gpu_w2/` |
+| `npt_busy.py` | the guard's npt-like process count, for scripts | prints 0 when no npt-like trainer runs |
+
 ## Item B - SPSA (`opus_30h/b/`)
 | tool | what it is for | how to verify it |
 |---|---|---|
