@@ -387,7 +387,9 @@ GPU plan 3 (queue log `C:\o30g\gpu\queue_runner3.log`):
   The fresh optimiser state first moves the net off the soup's point (r21 at superbatch 12: S31 -1.77e-4 vs Y8's
   -1.85e-4) and the decaying lr does not bring it back.
 - r23 = a KB8 seed of the r5 recipe; r24 / r25 = two native KB32 seeds (r25 was a KB8 seed in the first plan, changed
-  at 19:56 after r21: the KB8 soups sit at their plateau, the KB32 family had one native KB32 run). Results: PENDING (filled when the runs end).
+  at 19:56 after r21: the KB8 soups sit at their plateau, the KB32 family had one native KB32 run). Final checkpoints, paired vs the lock net: r23 (KB8) S31
+  -1.64e-4 (z -40.1) / jobA -5.5e-5 (z -1.14) = runs 5 and 10 of the same recipe (-1.65e-4 / -7.4e-5 and -5.1e-5): the
+  recipe replicates; r24 (KB32) -1.83e-4 (z -35.1) / -9.4e-5 (z -1.68) vs run 8's -1.80e-4 / -5.4e-5; r25: R25-PENDING.
 - End-of-window soups (a/final_soups3.sh + one by hand): PENDING (after the queue ends, ~21:15).
 
 Sanity results of the window (10+0.1 vs the lock exe on v2p4; control 47.0 %, -20.9 +/- 18.5; SANITY ONLY):
