@@ -43,7 +43,7 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
 - 13:55 engine identity of the new layouts: the lock net written as KB16 / KB32 gives the lock pins in v2p4.
 - 13:56 run 7 packed (D:\o30\nets\o30_gpu_kb16short_r7, all checks incl. parity at KB16); sanity on CPU 0 from 13:57.
 - 14:05 WEIGHT SOUPS: nets trained from the same lock warm start, rewritten exactly to one layout
-  (a/o30_expand_kb.py) and averaged (a/o30_soup.py, a/soup_score.sh): best of the soups scored (14 by 14:36, 33 by 19:00), selection-biased
+  (a/o30_expand_kb.py) and averaged (a/o30_soup.py, a/soup_score.sh): best of the soups scored (14 by 14:36, 33 by 19:00, 37 by 21:19), selection-biased
   (chosen and judged on the same S31 / jobA sets); UNPROVEN in play, needs an SPRT gate. Runs 3+5+7+8 as
   KB32 S31 -2.25e-4 (z -50.2) / jobA -1.34e-4 (z -2.70); runs 3+5+7 as KB16 -2.09e-4 / -1.30e-4 (z -2.54). Run 2 (KB4)
   hurts jobA in a soup. The KB32 soup is packed (D:\o30\nets\o30_gpu_soupC_r3r5r7r8, sha256 0dddfdc9, all checks,

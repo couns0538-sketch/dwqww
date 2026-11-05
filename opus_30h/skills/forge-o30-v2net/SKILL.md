@@ -98,7 +98,7 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
   layout_*_vs_kb4*.txt). Maps rank4x4 (16) / rank4x8 (32) exist in the
   trainer and the tools; the engine reads the 64-entry map from the file (no rebuild); prove a new layout with
   `pin_check -Options EvalFileV2=<lock written in that layout>` (= lock pins) and net_pack's parity.
-- WEIGHT SOUPS gave the best offline numbers (best of 33 soups scored on 2026-11-04, selection-biased: chosen and judged on the same S31 /
+- WEIGHT SOUPS gave the best offline numbers (best of 37 soups scored on 2026-11-04, selection-biased: chosen and judged on the same S31 /
   jobA sets; UNPROVEN in play, needs an SPRT gate): nets warm-started from the same lock net, rewritten exactly to one layout
   (`a/o30_expand_kb.py --from rank4|rank4x2|rank4x4 --to rank4x4|rank4x8`) and averaged (`a/o30_soup.py`, scored like
   a checkpoint by `a/soup_score.sh <name> <kb map> <quantised.bin>...`, table `a/soup_table.py`). Independent runs of

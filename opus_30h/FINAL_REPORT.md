@@ -304,7 +304,7 @@ Runs (final checkpoint each; runs 1-6 are in the first-window table above):
 | r19_kb8m300b | KB8 | 300 / lr 1.5e-05 | 300 (ended) | -1.67e-04 (-39.5) | -6.13e-05 (-1.22) | PASS |
 | r20_kb8s100 | KB8 | 100 / lr 2.0e-05 | 100 (ended) | -1.41e-04 (-44.2) | -4.35e-05 (-1.15) | PASS |
 
-Key soups (offline, selection-biased: best of 33 soups scored, chosen and judged on the same sets; full table
+Key soups (offline, selection-biased: best of 37 soups scored in windows 2-3, chosen and judged on the same sets; full table
 `a/logs/gpu/soups_w2_table.md`):
 
 | soup | layout | S31 vs lock (z) | jobA vs lock (z) | note |
@@ -360,7 +360,7 @@ generated):
   vs the lock at the same recipe KB4 -1.41e-4, KB8 -1.65e-4, KB16 -1.80e-4, KB32 -1.80e-4; jobA moves within its noise.
 - More king buckets cost engine speed through accumulator refreshes on lateral king moves (KB16 / KB32 above); KB8
   (board halves) costs ~1 %. A layout must earn its speed cost in games.
-- Uniform weight soups gave the best offline numbers of the job: best of 33 soups scored (C:\o30g\gpu\soups), selection-biased (chosen and
+- Uniform weight soups gave the best offline numbers of the job: best of 37 soups scored (C:\o30g\gpu\soups), selection-biased (chosen and
   judged on the same S31 / jobA sets); UNPROVEN in play, needs an SPRT gate. The gain came from independent runs of
   different length / layout; checkpoints of one run and extra seeds of one short recipe added ~0.
 - A short fine-tune of a soup does not improve it (window 3): 100 superbatches at lr 5e-6 with fresh AdamW state made
@@ -578,7 +578,7 @@ child, fail closed).
 Caveat first: what exists for these nets is the offline rule (S31 paired vs the lock net; jobA z) and sanity matches
 of 200-400 games at 10+0.1 on one CPU at Idle. The v2p4 exe itself measured -20.9 +/- 18.5 (47.0 %) when it played the
 lock's own evaluation (control, lockstep-identical search), so every v2 result is read against that control, and only
-the crew gate decides. The soups' offline numbers are the best of 33 soups scored (30 when Y8 was chosen at 17:41), chosen and judged on the same S31 /
+the crew gate decides. The soups' offline numbers are the best of 37 soups scored (30 when Y8 was chosen at 17:41; Z32c is from window 3), chosen and judged on the same S31 /
 jobA sets (selection-biased). Gate exe for every line: `D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe` sha256
 a2a560cb4b6a2c1127a41867fc5287cad0834bcd207f0583571c248d363ee7ca (pc1 = pc2; OFF pins -Full PASS; lock net as replicas
 = lock pins in every layout), vs the lock FD3A5190, UHO [0,5] SPRT, then the 8moves_v3 confirm, with
