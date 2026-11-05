@@ -1,0 +1,1 @@
+ONE-LINE | PEXT (BMI2) slider index on Zen 5 instead of the multiply-shift magic, optional PDEP 16-bit tables | PENDING | PENDING | PENDING | NO: lock include/forge/bitboard.hpp:143-171 fancy magics only (forge_has 'pext|pdep|bmi2': 0 real hits) | nps ABBA only | PENDING **UNPROVEN**

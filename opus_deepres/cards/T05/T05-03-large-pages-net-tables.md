@@ -1,5 +1,5 @@
 # T05-03: 2 MB pages for the v2 first-layer tables and refresh caches (KB8-KB32 nets)
-Status: COMPLETE
+Status: COMPLETE - DOWNGRADED by review: (second vote) the gain lands only on v2 nets, and no v2 net has a gate result yet - the next picks are KB8 nets whose whole speed cost is ~1 %, so this can recover at most ~1 % there; KB4 / KB8 estimates sit at the +1 % nps drop line. Conditional on a KB16 / KB32 v2 net reaching the gate; then reuse S1's allocator as written. Kept as a full card, not a one-liner, because the TLB arithmetic and the S1 measurements below are the evidence that build needs.
 
 ## Source
 - Stockfish PR 6359 "Use huge pages for worker data" (PR text): https://github.com/official-stockfish/Stockfish/pull/6359 ,
@@ -34,11 +34,15 @@ Sources: Stockfish 6359 ~+1.2 % nps for 14 MB of worker data (20 runs on a large
 LLR 2.95, 166,272 games, W 43479 L 42993 D 79800 (about +1.0 Elo computed); Stockfish 7041 +1.04 % nps (200 runs,
 paired t 3.415, p 0.0008), STC [0, 2] passed, LLR 3.42, 231,360 games, W 60152 L 59553 (about +0.9 Elo computed) (verify: both fishtest runs 10+0.1, Threads 1,
 book UHO_Lichess_4852_v1.epd, bounds [0, 2] in normalized Elo; 7041 D 111655; read from tests.stockfishchess.org/api/get_run).
-Own: S1 on the lock (TT + 786 KB w1) ABBA nps x1.011-1.016 at Hash 64 and x1.027-1.032 at Hash 256.
+(review fix, second vote: PR 6359's own text gives only +0.3 % with 28 MB of worker data vs +1.2 % at 14 MB, so
+"bigger tables gain more" is not shown by the source.)
+Own: S1 on the lock (TT + 786 KB w1) ABBA nps x1.011-1.016 at Hash 64 and x1.027-1.032 at Hash 256 (second vote recomputed the CSVs: x1.011-1.015 / x1.027-1.032).
 Forge estimate (v2 path, on top of S1's TT part): KB4 +0-1 %, KB8 +0.5-1.5 %, KB16 / KB32 +1-3 % nps **UNPROVEN**.
 It also tells how much of the measured layout cost (KB32 0.942 vs KB4) is TLB rather than refresh work.
 Why a full card although the Stockfish Elo is ~+1 at STC only: for a node-identical change the source number is nps
-(+1.0-1.2 %), judged by the +1 % nps line; our own S1 data on the lock reaches +2.7-3.2 % at Hash 256.
+(+1.0-1.2 %), judged by the +1 % nps line (review fix, second vote: the former second reason, "our own S1 data on
+the lock reaches +2.7-3.2 % at Hash 256", is dropped - that is the TT's gain, which grows with Hash while w1 stays the
+same 786 KB, so it says nothing about v2 tables).
 
 ## Effort
 Crew ~2-3 h (reuse S1's allocator and its fallback / info line; one more table kind). CPU ~1-2 h of nps ABBA on

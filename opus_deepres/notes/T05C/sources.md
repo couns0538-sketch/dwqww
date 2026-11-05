@@ -64,3 +64,35 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   102,400 + 5,248-entry table (AttackData {mask, uint32 offset}); without BMI2 a magic path with hand-optimised index
   widths (some squares one bit narrower, "5 bits -> 4 bits optimized") and smaller tables of 84,480 + 4,800 entries
   (MagicData {mask, magic, uint32 shift, uint32 offset}) | T05C-01
+- L5. Static disassembly (objdump -d, no run) of the lock exe C:/Users/Administrator/grok-pc/forge_push/locks/
+  lock_AL1_s198_ltopgo_x_20261030/forge_ltopgo_x_al1s198_v23.exe (sha256 fd3a51903e73dc1f...), listing kept at
+  F:/odr/work/T05C/lock_v23.dis: Worker::search (recursive, 0x1400edd40) calls the CRT memset (an import thunk,
+  jmp *__imp_memset) with 0x800 = 2,048 B (MovePicker moves_) and 0x400 = 1,024 B (MoveList data) per picker, plus 19
+  inline 64-B zmm zero stores in the function (bad_captures_, quiets_tried, captures_tried); Worker::qsearch
+  (0x1400fa980) the same two memset calls (0x800, 0x400) plus 4 zmm zero stores; Board::has_legal_move (0x14000aa00)
+  calls memset 0x408 = 1,032 B on its fallback path (the pawn-push witness failed); Board::perft (0x140101786)
+  rep stos 0x102 dwords = 1,032 B per node; Board::see_ge has one rep stos (the inlined promotion exchange's 256-B
+  gain array, rare path). The exe has NO pext / pdep instruction for sliders (slider index = imul + shr) | own |
+  T05C-02, T05C-01, BOARD_COST
+- Note on fetch size: cl_movegen.hpp (888 lines) and ca_Bitboard.cpp (740 lines) were downloaded whole by mistake
+  (over the ~300-line cap); only the grep hits and the line windows named in W3 / W5 were read.
+- W6. tools/mine_commits.py Adam-Kulju/Patricia --since 2023-01-01 (grep speed / legal / pin / movegen / pext / SEE,
+  and the top 40 by Elo) | MIT | no board / movegen speed commit with a logged number | no card
+- W7. Stockfish commit messages (GPL-3.0: commit text only, no source): e17725f445 "Constexpr attacks (pext only)"
+  (2026-04-26, PR 6706): compile-time tables shared through the binary, "Using pdep reduces table size 4x", STC SPRT
+  [0,2] LLR 2.97, 38,400 games W 10057 L 9749 D 18594, no functional change; ee72cf49fe "Optimize RankAttacks"
+  (2026-07-26, PR 6998): RankAttacks 4x smaller and compile-time, STC [0,2] LLR 3.01, 212,800 games W 55208 L 54665;
+  99489f57dd "Simplify out pext attacks" (2026-07-03, PR 6939): after PR 6845 "pext attacks are slower or equal to
+  parallel-hyperbola attacks", non-regression <-1.75,0.25> passed on avx512icl (81,632 games) and bmi2 (78,112) |
+  GPL ideas only | T05C-03 (re-framed: small / shared / table-free slider attacks)
+- W8. https://github.com/official-stockfish/Stockfish/pull/6845 "HQ attacks for AVX2" (PR text only, GPL-3.0): hyperbola
+  quintessence for file and bishop attacks in parallel plus a much smaller rank lookup table instead of magics; STC
+  SPRT [0,2] LLR 2.93, 29,792 games W 7759 L 7465 D 14568; local speed test 100 runs: master 1,136,025 nps vs patch
+  1,171,370 nps, diff +35,346 +- 3,275, speedup +3.11 %, P(speedup > 0) = 1.0; the PR text credits the smaller table |
+  GPL ideas only | T05C-03
+- W9. https://github.com/official-stockfish/Stockfish/pull/6706 "Constexpr attacks (pext only)" (PR text only, GPL):
+  same SPRT as W7 (LLR 2.97, 38,400 games); pdep "reduces table size by 4x"; compile-time generation lengthens the
+  build; for non-pext tables the generation "takes forrrever, and bloats the binary"; no nps number given | GPL ideas
+  only | T05C-03
+- W10. gh search commits official-stockfish/Stockfish "initialization moves" / "uninitialized" (commit titles only,
+  GPL) | GPL ideas only | no commit about zero-filling move lists; nothing usable | no card

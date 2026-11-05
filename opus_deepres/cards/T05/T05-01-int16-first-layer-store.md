@@ -1,5 +1,5 @@
 # T05-01: int16 first-layer store (w1 as int16, exact float or int32 accumulators) for the v2 and lock paths
-Status: COMPLETE
+Status: COMPLETE - DOWNGRADED by review: (second vote) the cost it targets is not shown beyond noise (post-fix KB4 probe = its exe's OFF speed; bench ABBA CI 0.900-1.040 spans 1.0; D:/o30/FINAL_REPORT.md:508-509 "not needed"), the lock path (-1 to +1 %) is under the +1 % nps line, and no v2 net has a gate result yet - the next picks are KB8 nets whose whole speed cost is ~1 %, so this can recover at most ~1 % there; revisit for a KB16 / KB32 net. Size first (V2P4_GAP P2, fresh copies), build only for a KB8+ net headed to the gate. Kept as a full card, not a one-liner, because the exactness bounds below are the evidence any later build needs.
 
 ## Source
 - Own: D:/o30/wt/opus_30h/a/o30_v2int16.py (anchored edit script, all-or-nothing after the Code Review, never built),

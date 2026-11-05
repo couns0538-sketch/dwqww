@@ -1,9 +1,9 @@
 # T04-02: LMR re-search depth adjustment (search deeper / shallower after a reduced fail-high)
-Status: COMPLETE
+Status: COMPLETE (review: KEEP-WITH-FIX by the second vote; NOT new - own packb ReSearchAdjust, see Forge fit)
 
 ## Source
 - Caissa commit 434bbda "Deeper search" (2024-01-03), two OpenBench blocks in the message, diff read
-  (`src/backend/Search.cpp`, LMR / PVS block): https://github.com/Witek902/Caissa/commit/434bbda5c342501ac5de4ecb6934e85151a225fe
+  (`src/backend/Search.cpp`, LMR / PVS block): https://github.com/Witek902/Caissa/commit/434bbda5c342501ac5de4ecb6934e85151a225fe (review fix, second vote: the message credits the idea to another engine, Stockfish; no constant from it is used)
 - Patricia PR 137 "search deeper if we found a great move" (merged 2025-01-26, merge aa32588b), OpenBench block in the
   PR text: https://github.com/Adam-Kulju/Patricia/pull/137 (test https://chess.swehosting.se/test/9584/)
 - Caissa 105979c "Search: No 'deeper' at root node" (+2.37 +- 1.59, 10+0.1, n=50298):
@@ -24,6 +24,15 @@ one ply shallower. PV re-searches use the adjusted depth too; the root keeps the
 re-searches at the fixed `new_depth` (declared `const` at line 1117); no deeper / shallower step. Not among the R15
 candidates or FB2-J3 options. Tried gates `--grep 'deeper|shallow'`: 4 rows, all packd Hindsight (gates 51-54, -6.3
 to +4.6, 1,500 games each) - a different rule (depth change at node entry from the parent's reduction), not this one.
+(review fix, second vote: NOT new - that grep missed own prior code. packb `ReSearchAdjust`
+(C:/Users/Administrator/grok-pc/forge_push/src_packb_h256/src/search.cpp:1170-1179: deeper if score > best + 60 +
+2 x new_depth, shallower if score < best + 1 x new_depth, never below the reduced depth, no root, PV re-search not
+adjusted) was gated 4 times, always bundled with FiftyDamp=1 (T06-05): gate 12 +3.82 (1,000 g vs ep10), gates 35 / 40
+/ 41 -1.16 / +5.79 / +1.39 (1,500 g each vs h256e12), all "cap, no decision" (notes/TRIED_GATES.md, `--grep
+'packb|ReSearch|Fifty'`); those bases are older than the lock FD3A5190, so the "no decision" is stale too. packb's
+60 + 2 x depth is Patricia PR 137's exact tuned rule and 1 x depth Caissa 434bbda's: do not reuse them. New angle of
+this card: gate the rule ALONE on the lock with own constants (70 / 10 cp below), PV re-search adjusted, a ply guard;
+best done by lock-porting the packb code with these own defaults rather than writing a new option.)
 Lines to touch: ~8 in the LMR block (make `new_depth` mutable, two comparisons, root guard).
 
 ## Expected gain
@@ -39,8 +48,12 @@ Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re
 ## Test plan
 Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; perft unchanged; assert that the adjusted depth stays
 in [reduced_depth, new_depth + 1] (debug build); mate probe OFF/ON. Gate: UHO SPRT [0, 5] at STC, then LTC.
+(review fix, second vote: the assert is per node only - also compare max seldepth and nodes per depth ON vs OFF on the bench set for the ply guard; and re-search only when the adjusted depth is above the reduced depth (as packb does), or the shallower step repeats the reduced search at the same depth with only the cut flag flipped.)
 
 ## OFF-by-default design
 UCI spins `LmrDeeperMargin` default 0 (0 = off, range 0-200 cp, own start 70) and `LmrShallowerMargin` default -1
 (-1 = off, range 0-40 cp, own start 10). At the defaults the re-search depth is the lock's `new_depth`, so every node
-and the bench pins are unchanged. Root nodes never go deeper. (verify note: notes/T04/TABLE.md row 1 gives the deeper range as 30-150 cp, this card 0-200 cp; start 70 and 10 checked against both source diffs: neither is a copy of a source constant.)
+and the bench pins are unchanged. Root nodes keep new_depth (no deeper, no shallower step) (review fix, second vote:
+Caissa's root guard skips both). Ply guard on the ON path (review fix, second vote): spin `LmrDeeperMaxPlyPct`, no
+deeper step once ply >= this % of the root depth, own start 250, range 100-400 (Caissa's own path guard is 2 x root
+depth, so 200 is not taken as the start); read only when LmrDeeperMargin > 0, so OFF stays the lock. (verify note: notes/T04/TABLE.md row 1 gave the deeper range as 30-150 cp, this card 0-200 cp (review fix, critic: TABLE row 1 now says 0-200 like this card); start 70 and 10 checked against both source diffs: neither is a copy of a source constant.)

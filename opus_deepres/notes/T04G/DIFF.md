@@ -1,0 +1,50 @@
+# T04G DIFF - move ordering, history and staged picker: lock vs Altair vs Patricia
+
+Lock = FD3A5190 source `src_al1s198_clean` (`src/search.cpp` = S, `include/forge/search.hpp` = H). Altair =
+Alex2262/AltairChessEngine@b2447b825b (MIT; `src/` files: mo.h / mo.inl / mo.cpp = move_ordering.*, sr = search.cpp,
+sh = search.h, sp = search_parameters.h, co = constants.h). Patricia = Adam-Kulju/Patricia@67d83d7056 (MIT;
+`engine/src/` files: mp = movepick.h, ps = search.h, ut = utils.h). Line numbers are at those commits. Mechanisms in
+own words; no code and no tuned constants carried over. "Gap" = lock lacks it and a logged test exists (see TABLE.md).
+
+| technique | Altair | Patricia | lock | file:line (lock / Altair / Patricia) |
+|---|---|---|---|---|
+| history gravity (update rule) | entry += b - entry x abs(b) / max, with b = raw bonus x 32 and a separate max per table (quiet, noisy, continuation; SPSA rows) | same rule with one divisor 16384 for every move-ordering table (correction tables use 1024) | same rule, bonus clamped to +-16384 first, one HistoryMax 16384 for all tables | S:107, S:157-160 / sr:328-331, sp:73-75 / ps:12-17 |
+| bonus size | d x (d + 1 + nullsearch + pv + improving) - 1 (then x32), d = depth + 1 when the new alpha is at least the static eval; no cap (gravity limits it) | linear: HistBonus x (depth - 1 + 1 if best beat beta by a margin), capped at HistMax | quadratic + linear in depth, capped at HistoryBonusMax; depth + 1 when best > beta + 100 | S:153-155, S:1198 / sr:1103-1104 / ps:1011-1012 |
+| when histories update | on EVERY alpha raise (bonus to the raiser, malus to all moves tried before it), killers only at the cutoff | at the fail high only | at the fail high only; a non-cutoff PV best move gets bonus/4 on the main table; optional fail-low bonus to the parent move (FailLowContinuationBonus, default 0) | S:1196-1210 / sr:1095-1106 / ps:1005-1079 |
+| malus for tried quiets | same size as the bonus, every tried quiet | shrinks with the quiet's index in the tried list (bigger than the bonus for the first few, a fraction of it for late ones; PR 172) | same size as the bonus for every tried quiet (HistMalusPct uniform scale TRIED, gate 67) | S:744-749 / sr:367-386 / ps:1029-1055 |
+| main quiet history shape | piece x to x (from attacked?) x (to attacked?): 4-way split by "attacked by any enemy piece" bits | piece x to | butterfly colour x from x to | H:252, S:706 / sh:95, mo.cpp:56-58 / ut:38, mp:156 |
+| threat-aware history | yes, the main table itself is split by from / to attacked (PR 184) | no | no; TRIED as an any-attacker butterfly twin (ThreatHist, gate 64), lesser-attacker variant A1 PREPARED | - / mo.cpp:56-58, sr:344-345 (threat bits = union of all enemy attacks, position.cpp:128-156) / - |
+| capture history shape | SEE class (winning / losing) x piece x victim x to (PR 120) | piece x to (no victim, no class) | piece x to x victim type, one class | H:255, S:714-718 / sh:96 / ut:41 |
+| capture malus | only captures of the SAME SEE class as the best capture | every tried capture | every tried capture, also when the best move is quiet | S:752-766 / sr:388-404 / ps:1072-1078 |
+| continuation plies read for ordering | 1, 2, 4 at full weight | 1 (x2 weight), 2, 4 | 1, 2 only (4th-ply read = ContHist4Pct, TRIED gates 31-33, in bundle 68) | S:704-712 / co:46-47, mo.cpp:60-64 / mp:158-174 |
+| continuation plies updated | 1, 2, 4 at full bonus | 1, 2 full, 4 at half | 1, 2 full, 4 at half | S:720-727 / sr:353-357 / ps:1043-1067 |
+| continuation in the pruning / LMR history | yes (1, 2, 4) (PR 130) | not read | yes (1, 2) via quiet_history | S:1058 / sr:838-852 / - |
+| pawn history | no | no | no; TRIED (PawnHist gates 29 / 37 / 44, bundle 68) | - |
+| killers | 2 per ply, scored inside the quiet + bad-capture list as margin PLUS the move's quiet and continuation history (PR 89), so history can reorder them; in a null-search node (null-move child, NMP verification, singular search) a cutoff fills slot 2 only when slot 1 is set (PR 105) | 1 per ply, scored inside the quiet list; next ply's killer cleared before each move loop (PR 65) | 2 per ply as separate picker stages; grandchildren cleared at node entry, so children see cousins' killers; null / singular / verification cutoffs shift slot 1 like any other | S:368-375, S:733-736, S:907 / sr:1128-1136, sr:584 / ps:764, ps:1069, mp:144-152 |
+| counter move | no | no | yes, piece x to of the previous move, own stage after the killers | S:334-340, S:376-381, S:737-740 / - / - |
+| staged picker | TT; good noisy (SEE class known at scoring); quiets AND bad noisy merged in one scored list (bad noisy carry a negative base); heap after the first pick when the list is long | TT; captures (SEE split shifted by capture history); quiets (killer in the list); bad captures in deferral order | TT; good captures (lazy SEE >= 0 when picked); killer 1; killer 2; counter; quiets; bad captures in deferral order | S:343-426, S:433-437 / mo.h:55-64, mo.inl:20-90 / mp:3-10, mp:43-209 |
+| good / bad capture split | SEE at scoring time against a slightly negative threshold (SPSA row) | SEE threshold shifted by capture history / divisor, clamped (PR 209; T04 A7) | SEE >= 0 when picked; threshold hook is a stub returning 0 (CaptSeeDiv relax-by-ordering-score TRIED, gates 22 / 47 / 48) | S:360, S:479 / mo.cpp:87-98, sp:49 / mp:100-112 |
+| capture ordering score | 3 x victim - attacker (MVV-LVA table) + class capture history + class margin; promotions: queen big bonus, under-promotions malus | 100 x victim - attacker + capture history; queen promotion bonus | 10 x victim (SEE value, + promotion gain) + capture history; queen promotion +, under-promotion - | S:510-521 / mo.cpp:100-115 / mp:54-86 |
+| quiet ordering extras | killer bonuses, castling bonus | killer score | +12000 for a direct check (CheckOrderSee TRIED, gate 65) | S:523-536 / mo.cpp:32-34, 51-54 / mp:149-152 |
+| quiet check ordering | none | none | static direct-check bonus (quiet and evasion lists) | S:474-477, S:532, S:550 |
+| evasions | not a separate picker mode (same stages) | not a separate mode (generator honours checkers) | own mode: captures first by MVV-LVA, then quiets by history + check bonus | S:538-555 / - / mp:55-56, 122-123 |
+| SEE caching | SEE class stored per scored move, reused for the capture-history index and the malus filter | none seen (SEE in the picker; pruning SEE not read) | picker answers "last move passed SEE >= 0" for the good-capture stage only; bad-stage captures and checks re-run SEE | S:430, S:1082, S:1113 / mo.cpp:91-96 / - |
+| lazy legality | pseudo-legal lists; TT move pseudo-legal check (legality test site not read) | pseudo-legal lists; TT move pseudo-legal check (PR 57 / 83 titles: legality split from make_move, faster is_legal; bodies not read) | pseudo-legal lists + is_legal per picked move; TT move pseudo-legal check | S:326, S:829, S:1051 / mo.inl:27, 35-36 / mp:48-49 |
+| move selection | selection sort per pick; binary heap for long quiet lists (PR 196, T04 A10) | selection per pick (get_next_move) | selection for the first 4 picks, then one sort | S:486-503 / mo.inl:3-18, mo.cpp:145-194 / mp:90-92 |
+| qsearch history updates | yes: a small fixed bonus to the capture (or quiet) history of every move that raises alpha in qsearch (PR 4, no number) | not seen | none (stats only in the main search) | S:1198, S:1200 / sr:532-544 / - |
+| history in LMR | quiet history and capture history both adjust reduction (divisor row) | quiet history / HistDiv | quiets only, clamp +-2 plies (captures TRIED) | S:1146 / sp:22 / ps:899 |
+| history pruning | quiet history below -divisor x depth (rows) | quiet history below a fixed factor x lmr depth | quiet history below -HistoryPruneMultiplier x depth at lmr depth <= 3 | S:1070 / sp:30-31 / ps:822-824 |
+
+## Gaps with a logged test (cards)
+- Null-search cutoffs fill only killer slot 2 when slot 1 is set: Altair PR 105 -> T04G-01.
+- Capture history split by SEE class (+ class-local malus): Altair PR 120 -> T04G-02.
+- Quiet malus shrinking with the move's index: Patricia PR 172 (LTC only) -> T04G-03, a DUPLICATE of T04E-03 (Reckless) and T04C-04 (Berserk): evidence only.
+- Killer / counter order by quiet history instead of fixed stages: Altair PR 89 -> T04G-04 (one-line).
+
+## Differences with no logged number (no card; see TABLE.md section B)
+- Bonus / malus on every alpha raise instead of only at the cutoff (Altair sr:1095-1106).
+- Small fixed history bonus in qsearch on alpha raise (Altair sr:532-544; PR 4 has a bench line only).
+- Separate gravity limit per table (Altair sp:73-75; PR 174 says "no effective change", limits SPSA-tuned later).
+- Bad captures merged with quiets by score (Altair stage Q_BN); the base-margin PR 117 is +1.89 +- 1.29 (under +3).
+- Piece-to instead of butterfly main history (both engines); no A/B number found.
+- No counter move and no check bonus in either engine; no removal test found for Forge's forms.

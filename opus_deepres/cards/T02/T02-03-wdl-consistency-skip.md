@@ -24,8 +24,9 @@ the effective training distribution shifts towards label / outcome agreement.
 ## Forge fit
 Lock source: no WDL model or datagen code (`tools/forge_has.sh 'wdl|win_rate|winrate'` = 0 hits); data / trainer side
 only. The w4 runs pass `--start-lambda 1.0 --end-lambda 1.0 --no-filtered --no-wld-filtered` on the J1 binpack only:
-the skip was OFF (by its name `--no-wld-filtered` is the current form of PR 155's switch; trainer source not read,
-as the rules require) and, with lambda 1.0, the result never entered training at all. The labels are 5000-node HCE
+the skip was OFF (review fix, second vote: documented, not inferred - trainer PR 405 "Use Tyro for CLI Args", merged
+2026-02-25, renamed `--no-wld-fen-skipping` to `--wld-filtered` / `--no-wld-filtered`, help text "If disabled,
+WLD-based fen skipping is turned off. (default: True)") and, with lambda 1.0, the result never entered training at all. The labels are 5000-node HCE
 scores of the old 6.2.0 build - the noisy case this filter targets. Not checked here: the residual CPU trainer and
 the bullet configs. With the decided lambda for the next runs (self-play 0.7-0.9) the result enters the loss; the
 skip is then a second, overlapping lever, so test it at that lambda.
@@ -34,6 +35,7 @@ trainers: drop a row with probability rising in |expected score - result| (own s
 S19; strength k start 0.5, range 0-1; 0 = today's bytes).
 Counter-evidence (MIT, Caissa 71f434458f): a decisive-score skip plus two other loader filters lost about 11 Elo (no
 TC / games given); Stockfish's stronger skip (f12035c88c) came with an optimizer change: test one filter at a time.
+(review fix, second vote: Caissa's `--decisiveSkip` drops rows whose decisive score AGREES with the result - the opposite direction of this skip, so it is weak evidence only; f12035c88c ran lambda 1.0 -> 0.7, so the skip was used below lambda 1.0 too (supports testing at the decided lambda); PR 3808 ran it at lambda 1.0 = the w4 setting, so a lambda-1.0 skip on / off pair is the closest source match if GPU time allows.)
 
 ## Expected gain
 Source numbers are confounded (filter and new data in the same retrain, same arch HalfKAv2_hm):

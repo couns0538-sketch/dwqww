@@ -44,7 +44,7 @@ nodes +27.43 +- 7.91 (3,046 g); STC 8+0.08 +2.98 +- 2.09 (30,040 g, LLR 3.06, [0
 README today: 59,808 threats + 4,560 pawn pairs = the bullet example's counts, L1 768): LTC 40+0.4 +24.43 +- 7.77
 (1,866 g, LLR 2.89 [0,4]); PR 266 merged threat + piece-square accumulators (+6 % speed). bullet example: no Elo.
 Forge estimate: 0 to +5 Elo at LTC vs a v2 control net without threats **UNPROVEN**; vs the lock exe it also carries
-the v2 path's own cost (identical-eval control -32.2 +- 18.5, D:/o30/FINAL_REPORT.md) and the threat update cost. (corrected by verify: -32.2 +- 18.5 was measured on the pre-root-fix exe 378bf6bc; the root fix 926ada2c of 2026-11-04 may remove this cost; the v2p4 gate exe's control read -20.9 +- 18.5; no control of the root-fixed exe in FINAL_REPORT.md:28-29, 48, 691-695)
+the v2 path's own cost (identical-eval control -20.9 +- 18.5, D:/o30/FINAL_REPORT.md:28-29, sanity only) and the threat update cost. (corrected by verify: -32.2 +- 18.5 was measured on the pre-root-fix exe 378bf6bc) (review fix, critic: the root-fixed control DOES exist - the gate exe v2p4 is built from v2port 926ada2c WITH the root fix (notes/T05/V2P4_GAP.md:3-4), and its sanity match with the lock net itself read -20.9 +- 18.5; the earlier verify wording "no control of the root-fixed exe" was wrong)
 
 ## Effort
 Crew ~6-10 h (Rust input type, exporter, engine features, parity 10k + walk). GPU: recipe T01-03 R2 (speed unmeasured: smoke

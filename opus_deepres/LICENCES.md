@@ -18,19 +18,37 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 <!-- merged:start -->
 | repo | commit read | date | file | licence | first line | GitHub API | tracks | use |
 |---|---|---|---|---|---|---|---|---|
-| Adam-Kulju/Patricia | 67d83d7056 | 2026-09-12 | LICENSE | MIT | MIT License | api: MIT | T04, T06 | copy with notice |
+| Adam-Kulju/Patricia | 67d83d7056 | 2026-09-12 | LICENSE | MIT | MIT License | api: MIT | T04, T04G, T05C, T06 | copy with notice |
 | Adam-Kulju/Patricia | bf655244b6 | 2025-01-19 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
 | Alex2262/AltairChessEngine | 6bddce6de2 | 2024-06-14 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
-| Alex2262/AltairChessEngine | b2447b825b | 2026-04-19 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
+| Alex2262/AltairChessEngine | b2447b825b | 2026-04-19 | LICENSE | MIT | MIT License | api: MIT | T04, T04G, T06B | copy with notice |
 | AndyGrant/OpenBench | 230ed46e47 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
+| Ciekce/Stormphrax | 29e175a2f5 | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| Ciekce/Stormphrax | 639efd5c08 | 2025-11-10 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
+| Ciekce/Stormphrax | d1468d99e3 | 2026-08-29 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| Ciekce/Stormphrax | e410c4214f | 2024-01-07 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| Disservin/chess-library | 430266434a | 2026-11-03 | LICENSE | MIT | MIT License | api: MIT | T05C | copy with notice |
 | PGG106/Alexandria | 49391d7b70 | 2026-07-22 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
+| PGG106/Alexandria | 7de97e77aa | 2024-09-29 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
+| PGG106/Alexandria | 829daf405e | 2026-11-02 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | PGG106/Alexandria | 8e3fc66e52 | 2024-06-24 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
 | Witek902/Caissa | 434bbda5c3 | 2024-01-03 | LICENSE | MIT | MIT License | api: MIT | T04 | copy with notice |
-| Witek902/Caissa | 57cae7ef71 | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T01, T04, T06 | copy with notice |
+| Witek902/Caissa | 57cae7ef71 | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T01, T02B, T04, T04F, T05C, T06 | copy with notice |
 | Witek902/Caissa | 8d2454c72f | 2026-10-17 | LICENSE | MIT | MIT License | api: MIT | T02 | copy with notice |
+| Yoshie2000/PlentyChess | 5c8c8c7b46 | 2025-12-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
+| Yoshie2000/PlentyChess | fdbdbccab8 | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | aronpetko/integral | 29456bb34c | 2026-11-04 | absent | no licence (all rights reserved) | - | api: none | T01 | ideas only (no licence) |
-| cosmobobak/viridithas | 7489e701bb | 2026-11-04 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T01 | ideas only |
+| codedeliveryservice/Reckless | aec5cb2e80 | 2026-10-29 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04E | ideas only |
+| cosmobobak/viridithas | 7489e701bb | 2026-11-04 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T01, T02B, T04E | ideas only |
 | cosmobobak/viridithas-networks | d3da3953e4 | 2026-06-08 | LICENSE | CC0-1.0 | Creative Commons Legal Code | api: CC0-1.0 | T01 | free use (public-domain dedication) |
+| gab8192/Obsidian | 2079f0879a | 2024-01-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| gab8192/Obsidian | 720614a61e | 2025-09-27 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| gab8192/Obsidian | d5f3e454dc | 2024-12-20 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04B | ideas only |
+| gab8192/Obsidian | e144325d52 | 2025-06-20 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
+| jdart1/arasan-chess | 2dbc0649dc | 2021-05-31 | absent | no licence (all rights reserved) | - | api: NOASSERTION | T05B | ideas only (no licence) |
+| jdart1/arasan-chess | 6e432a21ef | 2026-11-04 | LICENSE | MIT | ---------------------------------------------------------------------- | api: NOASSERTION | T05B | copy with notice |
+| jhonnold/berserk | 8c72a1d869 | 2024-01-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
+| jhonnold/berserk | a3a6f62397 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | jw1912/bullet | da426a49b2 | 2026-10-26 | LICENSE | MIT | MIT License | api: MIT | T01 | copy with notice |
 | llvm/llvm-project | b537630299 | 2026-10-20 | LICENSE.TXT | Apache-2.0 WITH LLVM-exception | ====================================================================== | api: NOASSERTION | T05 | copy with notice |
 | llvm/llvm-project | f7d11195ab | 2026-11-04 | LICENSE.TXT | Apache-2.0 WITH LLVM-exception | ====================================================================== | api: NOASSERTION | T12 | copy with notice |
@@ -39,12 +57,13 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-stockfish/Stockfish | 73018a0337 | 2021-09-23 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | a06e7004c1 | 2024-09-17 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | d212e663bb | 2024-07-06 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06 | ideas only |
-| official-stockfish/Stockfish | ff7cee4244 | 2026-10-28 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02, T04, T05 | ideas only |
+| official-stockfish/Stockfish | d53071eff4 | 2021-06-03 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
+| official-stockfish/Stockfish | ff7cee4244 | 2026-10-28 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02, T04, T04D, T05 | ideas only |
 | official-stockfish/books | a804a97e70 | 2026-10-16 | LICENSE | CC0-1.0 | Creative Commons Legal Code | api: CC0-1.0 | T12 | free use (public-domain dedication) |
 | official-stockfish/fishtest | 5a8a229a52 | 2026-10-13 | absent | no licence (all rights reserved) | - | api: none | T12 | ideas only (no licence) |
 | official-stockfish/nnue-pytorch | c625702757 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02 | ideas only |
 
-30-Oct table repos not read by this job (no check needed unless a card cites them): jdart1/Fathom (verify), jhonnold/berserk (GPL-3.0), gab8192/Obsidian (GPL-3.0), Yoshie2000/PlentyChess (GPL-3.0), Ciekce/Stormphrax (GPL-3.0), Luecx/Koivisto (GPL-3.0), AndyGrant/Ethereal (GPL-3.0), KierenP/Halogen (GPL-3.0), Matthies/RubiChess (GPL-3.0), codedeliveryservice/Reckless (AGPL).
+30-Oct table repos not read by this job (no check needed unless a card cites them): jdart1/Fathom (verify), Luecx/Koivisto (GPL-3.0), AndyGrant/Ethereal (GPL-3.0), KierenP/Halogen (GPL-3.0), Matthies/RubiChess (GPL-3.0).
 <!-- merged:end -->
 
 ## Differences from the 30-Oct table

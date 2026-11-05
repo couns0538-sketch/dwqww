@@ -18,14 +18,14 @@ main.rs:40, 217-218, MIT = allowed, so not "own"; the end 1e-7 is our trainer's 
 All three keep the 30-h method (the lock net written exactly into KB8 + OB8, H256, AdamW clip +-7.99, decay 0,
 batch 16,384, 1,024 batches per SB) and add ONE lever, so a paired offline diff isolates it:
 - R1 (no code): a final stage on the game result only (WDL 1.0) on our best warm-start KB8 single net (not a soup):
-  200 SB, cosine 1e-5 -> 1e-7 (range 5e-6 .. 2e-5), fresh AdamW or the parent run's own optimiser state; also score
+  200 SB, cosine 1e-5 -> 1e-7 (range 5e-6 .. 2e-5; review fix, second vote: 200 SB / 1e-5 / WDL 1.0 are the bullet example's stage-3 values, MIT, used with notice - an own start inside the range is the alternative), fresh AdamW or the parent run's own optimiser state; also score
   the 100-SB checkpoint.
 - R2: + sparse BINARY threats (T01-01), threat block initialised to zero so step 0 is the lock function; 400 SB at
   WDL 0.4, cosine 2e-5 -> 2e-7 (our proven warm-start rate: 3e-5 was worse; Adam's per-weight step still lets the
   zero block grow over ~410k steps; try 4e-5 only if its weights stay near zero at the checkpoints).
 - R3: R2 with Ranger instead of AdamW, same seed / data / length; zero-init pawn pairs only as an R2 variant once R2
   passes offline.
-Not ranked: a from-scratch L1 768+ threat net like the bullet example (~110G positions seen); our data is 305M rows
+Not ranked: a from-scratch L1 768+ threat net like the bullet example (~110G positions seen); our data is 305M rows (review fix, critic: 304,999,573 J1 self-play rows, card T02-01)
 and our from-scratch nets lost (npt L1 1024: -86 to -116 Elo; bullet KB4 from scratch worse than the lock at 1.46G).
 
 ## Forge fit
@@ -38,9 +38,10 @@ Sources: pure-WDL fine-tune Viridithas v102 LTC +2.38 +- 1.74 (36,436 g, [0,3]);
 2.09 / LTC +5.38 +- 2.97 ([0,3], with an L1 cut), Integral LTC +24.43 +- 7.77 ([0,4], new arch); Ranger Integral STC
 +3.22 +- 2.26, Viridithas LTC +8.98 +- 3.92. Forge estimate: R1 0 to +2, R2 0 to +5, R3 0 to +1 Elo over the
 respective parent / control net **UNPROVEN**; vs the lock exe each also carries the v2 path's own cost
-(identical-eval control -32.2 +- 18.5) until that is closed. (corrected by verify: -32.2 +- 18.5 was measured on the
-pre-root-fix exe 378bf6bc; the root fix 926ada2c of 2026-11-04 may remove this cost; the v2p4 gate exe's control
-read -20.9 +- 18.5; no control of the root-fixed exe in D:/o30/FINAL_REPORT.md:28-29, 48, 691-695)
+(identical-eval control -20.9 +- 18.5, sanity only) until that is closed. (corrected by verify: -32.2 +- 18.5 was the
+pre-root-fix exe 378bf6bc) (review fix, critic: the root-fixed control DOES exist - v2p4 = v2port 926ada2c WITH the
+root fix (notes/T05/V2P4_GAP.md:3-4), lock net on it vs the lock -20.9 +- 18.5, D:/o30/FINAL_REPORT.md:28-29; the
+earlier verify wording "no control of the root-fixed exe" was wrong)
 
 ## Effort
 R1: ~1.5 GPU h (2 parents x 2 LRs at our measured 3-4.4M pos/s), no crew code. R2: ~8-12 crew h (input type,
