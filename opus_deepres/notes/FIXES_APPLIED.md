@@ -57,3 +57,15 @@ notes/T01/recipes.md | lines 47 and 60: "305M rows" cite 304,999,573 J1 rows, ca
 notes/T01/VERIFY.md | lines 5-6 and 24: annotated - the root-fixed control exists (v2p4 = 926ada2c, -20.9 +- 18.5); verify wording kept, correction appended | critic (B cards T01-01 / T01-03 vs V2P4_GAP, summary h)
 notes/T02/TABLE.md | "Not found" block: explicit in-check-filter not-found line; |eval| cap and result-balance skew recorded as NOT searched (gaps, one search each) | critic (Part A T2 in-check / |eval| caps / WDL skew)
 notes/T05/SPEED_LIST.md | rows 1, 3, 4: DOWNGRADED markers pointing to the cards | second vote (T05-01 / T05-03 / T05-04 DOWNGRADE)
+
+## Continuation (second fixer, started 00:43 PC clock `date`, stop 01:13; second vote fully applied above, only critic items left)
+cards/T04/T04-01-singular-search-noncut.md | Effort: R7 J4 1,000 games/h kept; added the current UHO *_vs_AL1* rate 430-502 games/h (497 at Threads 2 / conc 4) -> 3,000-game cap about 6-7 h | critic (B FINAL_REPORT:76-77, summary e)
+cards/T04/T04-02-lmr-deeper-shallower.md | Effort: same rate note as T04-01 | critic (B FINAL_REPORT:76-77, summary e)
+cards/T04/T04-03-nmp-cutoff-count-margin.md | Effort: same rate note as T04-01 | critic (B FINAL_REPORT:76-77, summary e)
+cards/T07/T07-01-time-disadvantage.md | Expected gain: unit of [0,5] stated - 7-12k games = logistic Elo (~[0,9.5] nElo, T12-01:26); as nElo ~26k mean (T12-01:32); owner's bounds decision replaces the route | critic (B FINAL_REPORT:49-57, summary c)
+cards/T07/T07-02-score-stability.md | Effort: same [0,5] unit note as T07-01 | critic (B FINAL_REPORT:49-57, summary c)
+notes/T05/SPEED_LIST.md | Zen 5 table, VPCOMPRESSD register row: marked "not re-checked by the T05 verifier" (register row + Agner entries, T05 VERIFY:65) | critic (B FINAL_REPORT:83-84; Part A T5 uops/Agner row)
+cards/T02/T02-01-overlap-to-zero.md | Mechanism 4: "16 pairs apart in 189k" kept, qualified as the net break difference (189,181 vs 189,197); per class 25 / 41 apart, >= 41 pairs classified differently | critic (B FINAL_REPORT:17-18; T02 VERIFY:11)
+notes/REPORT_ITEMS.md | NOT written: the harness refused the new report file for a sub-agent ("return findings as text"); the 42 report-only lines (FINAL_REPORT wording + Part A gaps + ranking impact) are in this fixer's hand-back for the coordinator to file | critic B (FINAL_REPORT rows), critic Part A uncovered list, second vote ranking items
+(check) all earlier log lines re-checked on disk for T02-03 (PR 405, decisiveSkip), T01-06 (bullet example values), SPEED_LIST rows 1/3/4 (DOWNGRADED), FIT_RECIPE D4 (CC0), T04-01..06, T05-01/03/04, T06-04/05: present; every in-scope one-liner has "crew h:"; card_lint on T01/T02/T04/T05/T06/T07/T12 = 0 findings, max 60 lines | -
+Continuation stopped 00:52 PC clock (`date`, run in the same step).

@@ -37,7 +37,7 @@ bounds [0.50, 2.50]; non-regression 15+0 +2.23 +- 1.81 (33,984 games) and 40/10 
 book UHO_Lichess_4852_v1.epd at STC and LTC; per the commit the 40/10 run also includes PR 7117's cyclic-TM fix.) Stockfish dev vs master.
 Forge estimate: 0 to +2 Elo, centre about +1 - at the job's drop line; kept only because the source passed both STC
 and LTC **UNPROVEN**. The crew's logged gates stop at 1000-1500 games ("Cap with no decision", notes/TRIED_GATES.md),
-which cannot resolve 1 Elo; a [0,5] SPRT needs about 7-12k games (own estimate from a UHO-type pentanomial variance)
+which cannot resolve 1 Elo; a [0,5] SPRT needs about 7-12k games (own estimate from a UHO-type pentanomial variance) (review fix, critic summary (c) / B FINAL_REPORT:49-57: this count reads [0,5] as logistic Elo, ~[0,9.5] nElo on UHO = the cost of the [0,10] nElo gates, T12-01:26; read as nElo, [0,5] needs a mean ~26k games, T12-01:32 model; the owner's bounds decision replaces this route)
 and a true +1 would most likely end H0.
 
 ## Effort

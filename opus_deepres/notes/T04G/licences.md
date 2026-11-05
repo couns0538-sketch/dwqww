@@ -25,3 +25,16 @@
 - Altair PR 25 / 31 / 34 (May 2023) predate Altair's LICENSE commit 7f28fb4127 (2023-05-28): only their PR text (title
   and test block) was read, which the rules allow for any repo; no patch of theirs was opened.
 - Patricia engine/src/search.h at 67d83d7056 (MIT, row above) was grepped and two windows read for DIFF.md.
+
+## Verify rows (tools/licence_at.py --row, re-run 00:36-00:45 PC clock by the adversarial verifier)
+
+| repo | sha | date | file | licence | first line | api |
+|---|---|---|---|---|---|---|
+| Alex2262/AltairChessEngine | e42311036d | 2023-07-17 | LICENSE | MIT | MIT License | api: MIT |
+| Alex2262/AltairChessEngine | b38d5ea001 | 2023-07-03 | LICENSE | MIT | MIT License | api: MIT |
+| Alex2262/AltairChessEngine | 99df021453 | 2023-09-21 | LICENSE | MIT | MIT License | api: MIT |
+| Adam-Kulju/Patricia | 67cdfcb55f | 2025-07-07 | LICENSE | MIT | MIT License | api: MIT |
+
+- e42311036d = merge of Altair PR 105 (T04G-01), b38d5ea001 = PR 89 (T04G-04), 99df021453 = PR 120 (T04G-02),
+  67cdfcb55f = merge of Patricia PR 172 (TABLE.md row 3): the patches read for the cards are MIT at their own merge
+  commits too; the five rows of the workers above were re-run and are identical. Nothing copied.

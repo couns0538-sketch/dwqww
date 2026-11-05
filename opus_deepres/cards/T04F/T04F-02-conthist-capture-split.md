@@ -1,5 +1,7 @@
 # T04F-02: Continuation history keyed also by "the earlier move was a capture"
-Status: COMPLETE
+Status: COMPLETE - DUPLICATE (verify 2026-11-05: already PREPARED as R15 C5 `ContHistSplit`, D:/o15/cands/INDEX.md
+section c5_conthistsplit, index = capture and / or evasion of the indexing move, exe + patch, pins and smoke PASS,
+not gated; this card's option is C5's capture half and its STC / LTC numbers are evidence for that line, no new gate)
 
 ## Source
 - Caissa 2fd8f56 "Improve continuation history" (2023-10-12): https://github.com/Witek902/Caissa/commit/2fd8f56e40
@@ -27,11 +29,13 @@ index already carries the side), so only the capture bit is new for Forge.
 `bash tools/forge_has.sh 'continuation_history_\)\['` -> `src/search.cpp:842`, `:974`, `:1011`, `:1121`, `:1355`: the
 pointer for each ply is `(*continuation_history_)[moved piece][to]` (type `include/forge/search.hpp:253-254`); it is
 read at plies 1 and 2 (`src/search.cpp:704-712`) and written at plies 1, 2 and 4 (`:720-727`). No capture key
-anywhere. Not in TRIED_GATES (ContHist4Pct, gates 31-33, tuned the 4-ply weight only) nor in R15 / FB2 options.
+anywhere. Not in TRIED_GATES (ContHist4Pct, gates 31-33, tuned the 4-ply weight only). (corrected by verify: it IS
+in R15: C5 `ContHistSplit`, D:/o15/cands/INDEX.md, patch c5_conthistsplit.patch, routes the same three pointer sites
+through a chooser keyed by in-check and capture of the indexing move into 3 extra tables; prepared, not gated.)
 Change: a leading dimension of 2 on the table and `move.is_capture()` as its index at the pointer sites.
 
 ## Expected gain
-Caissa 2fd8f56: 6+0.06, 1 thread, cutechess SPRT llr 2.95 (bounds -2.94 / 2.94), n=7,745 (W 1914 L 1770 D 4061),
+Caissa 2fd8f56: 6+0.06, threads not stated (corrected by verify), cutechess SPRT llr 2.95 (bounds -2.94 / 2.94), n=7,745 (W 1914 L 1770 D 4061),
 +6.5 +- 5.3; book not stated; bundle (capture bit + table merge + null-move pointers); no LTC.
 Stockfish 2e96c51 (fishtest, Threads 1, book 2moves_v1): STC 10+0.1 SPRT [0.5,4.5] BayesElo LLR 2.95 N=79,702
 (W 17,720 L 17,164 D 44,818, about +2.4 Elo from W/D/L); LTC 60+0.6 [0,3.5] LLR 2.96 N=29,147 (W 4,907 L 4,651

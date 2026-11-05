@@ -25,7 +25,7 @@ LACKS the eval test. `bash tools/forge_has.sh 'best_score > beta \+ 100'` -> `sr
 `depth + (best_score > beta + 100)`); capture stats use plain depth (`:1200`); the PV best move without a cutoff gets
 history_bonus(depth) / 4 (`:1203-1205`). The lock's `eval` (`:929-943`) is the same quantity as Altair's; in check
 it is ValueNone 32002 (`include/forge/search.hpp:59`), so `best_score >= eval` is false there with no special case; in
-a singular search it is the plain static eval. history_bonus = min(2048, 20 d^2 + 48 d - 32) (`:153-155`), so +1
+a singular search it is the corrected static eval without the TT adjustment (`:932-933`; corrected by verify: was "plain static eval"). history_bonus = min(2048, 20 d^2 + 48 d - 32) (`:153-155`), so +1
 ply is x4 at d 1, +48 % at d 4, +24 % at d 8 and nothing from d 10 (cap). T04 TABLE.md row "history depth bonus"
 judged PR 182 HAS from its title; the patch shows the eval condition, not a beta margin, so this is a new angle.
 Not in TRIED_GATES (`tools/tried_gates.py --grep 'Hist|Bonus'`: PawnHist, ContHist4Pct, ThreatHist, HistMalusPct

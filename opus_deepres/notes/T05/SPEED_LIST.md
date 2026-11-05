@@ -38,7 +38,7 @@ identical-command A/A first (BH-8: up to ~3-5 % per-file / arm effect on this PC
 | instruction | Zen 5 | Zen 4 | Intel (ICL / ADL-P / EMR) | source |
 |---|---|---|---|---|
 | VPDPBUSD zmm,zmm,zmm | latency 3, TP 0.50 c, 1 uop FP01 (uops.info); Agner: 1 op, latency 4, TP 0.5, P01 | latency 4, measured TP 1.00 | latency 5, TP 1.00 (ICL / ADL-P); EMR TP 0.50 | uops.info VPDPBUSD_ZMM_ZMM_ZMM; Agner instruction_tables.pdf 2025-09-20 |
-| VPCOMPRESSD zmm{k},zmm (register) | latency 4 (mask 9), TP 1.00 c, 2 uops FP12; Agner: 2 ops, latency 5 | latency 5, TP 1.33 | latency 3, TP 2.00 | uops.info VPCOMPRESSD_ZMM_K_ZMM; Agner |
+| VPCOMPRESSD zmm{k},zmm (register) | latency 4 (mask 9), TP 1.00 c, 2 uops FP12; Agner: 2 ops, latency 5 | latency 5, TP 1.33 | latency 3, TP 2.00 | uops.info VPCOMPRESSD_ZMM_K_ZMM; Agner (review fix, critic B FINAL_REPORT:83-84 / T05 VERIFY:65: this register row and the Agner entries of this table were not re-checked by the T05 verifier, UNVERIFIABLE in its time box) |
 | VPCOMPRESSD m512{k},zmm (store) | 8 uops, TP 3.00 c (computed 1.00), latency <= 46 | 144 uops, TP 72.50 c | 4 uops, TP 2.00 | uops.info VPCOMPRESSD_M512_K_ZMM (Agner prints no store row) |
 Reading: on Zen 5 the store form is no longer the Zen 4 trap (3 c vs 72.5 c), but the register form plus a plain store
 is still cheaper; the int8 dot product runs 2 per cycle, so skipping zero blocks saves less than on Zen 4.

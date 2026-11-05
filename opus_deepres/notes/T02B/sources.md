@@ -31,7 +31,7 @@
   8+0.08, 5,714 games (ob.expositor.dev/test/19), confounded; (d) loader shuffle: random skipping 0.75 -14.31 +- 2.64
   STC 20+0.2 (20,022 games, /test/189), skipping 5/6 + warmup +3.12 (/test/192) - loader, not datagen | evidence
   for MIX.md item 3 (recency purge); no card
-- 4 (cont.). same file, lines 186-232 (gemstone / [name withheld]) | AGPL-3.0, docs | "[name withheld]" = gemstone's 963M-position set
+- 4 (cont.). same file, lines 186-232 (gemstone and a Viridithas dataset built on it) | AGPL-3.0, docs | a Viridithas dataset = gemstone's 963M-position set
   + ~250M extra DFRC positions (~21 % of the set), same arch: classical STC 8+0.08 -5.11 +- 4.22, SPRT [0,3] failed,
   12,912 games; DFRC STC +18.36 +- 6.96 (4,488 games) vs gemstone; "grimoire" (+444M classical positions) -0.37 +-
   2.90 (27,224 games) | TABLE row (DFRC openings: drop for a classical gate); no card
@@ -118,4 +118,12 @@
   "placeholder" row: same game (ply rising), previous |score| > 100, decisive result, score == 0 (line 36-38), plus
   VALUE_NONE rows; filtered / wld_filtered / simple_eval_skipping are rejected at start-up (line 41) | TABLE row
   (zero-score skip = EXISTING in the npt line)
-- stop rule reached at 00:44: sources 7, 8, 9 and 10 gave no new card in a row (rule: stop after 2); research ended.
+- stop rule reached at 00:42: sources 7, 8, 9 and 10 gave no new card in a row (rule: stop after 2); research ended.
+- (own data, no licence) same shard 020 sample, per derived game block (11,438 blocks, 87.4 rows each): White's result
+  46.7 % W / 27.5 % D / 25.9 % L; stored cp is side-to-move (turned to White's view, every decisive block's last row
+  agrees with its result: 4,500 W blocks end >= +1000, 2,320 L blocks end <= -1000, none the other way) | TABLE rows 4-5
+- (own records) F:/opus_scratch/r6/nnue-pytorch-amd (the live npt build): HEAD 1902d02, `git merge-base --is-ancestor
+  f5c9d01569 HEAD` exit 0 (log titles only); skill forge-halfka-parity-test lines 12-13 (`halfka_tool eval <net> <fens>
+  <out>`) | TABLE row 6, card T02B-01 scorer
+- wrap-up 00:52: 10 sources used (1-10); card T02B-01 finished as PARTIAL (lint 0 findings, 60 lines); TABLE.md 21
+  rows, no PENDING verdict; licences.md 17 rows.

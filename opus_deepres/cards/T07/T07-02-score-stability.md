@@ -40,7 +40,7 @@ from a loss measure that Forge partly has) **UNPROVEN**.
 
 ## Effort
 Crew 3-4 h (A: counter + factor + options 1 h; B: 1 h; OFF inspection + box test 1 h; packaging 1 h). CPU: STC SPRT
-[0,5] about 7k games at a true +4, about 15-18k at +1.5 (likely H0; own estimate) = 7-28 h at the 640-980 games/h
+[0,5] about 7k games at a true +4, about 15-18k at +1.5 (likely H0; own estimate) (review fix, critic summary (c) / B FINAL_REPORT:49-57: these counts read [0,5] as logistic Elo, ~[0,9.5] nElo on UHO = the cost of the [0,10] nElo gates, T12-01:26; read as nElo, [0,5] needs a mean ~26k games, T12-01:32 model; the owner's bounds decision replaces this route) = 7-28 h at the 640-980 games/h
 in D:/o15/reports/gates_20261103.html (corrected by verify: the UHO gates vs the lock ran 430.6-455.7 games/h
 there, all *_vs_AL1* rows 430-502, so 7k-18k games = about 14-42 h); LTC after an STC pass. Optional short SPSA of W / Step / Gmin. GPU 0.
 

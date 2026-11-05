@@ -5,3 +5,5 @@
 | Yoshie2000/PlentyChess | fdbdbccab8 | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
 | jhonnold/berserk | a3a6f62397 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
 | PGG106/Alexandria | 829daf405e | 2026-11-02 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+| Ciekce/Stormphrax | 76c5178883 | 2026-05-19 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+(added by verify 2026-11-05: Stormphrax at the merge commit of PR 334, the second engine of T04C-05; the row was missing from notes/T04B/licences.md)

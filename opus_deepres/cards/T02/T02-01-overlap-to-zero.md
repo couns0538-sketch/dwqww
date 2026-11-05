@@ -26,7 +26,7 @@ Own code and own data; nothing external.
    a new block starts when the result changes or the ply does not increase (writer invariants: one game = one block in
    play order with one result), so blocks are unions of games and never cut one. Measured on the R14 scan range (last
    100k rows of 012, 013, 014, first 100k of 015; 16,588,575 rows in 17.6 s): 189,182 blocks (87.7 rows each);
-   result_mismatch 121,492 / nonpositive_ply_gap 67,689 vs the R14 scan's 121,467 / 67,730 (16 pairs apart in 189k).
+   result_mismatch 121,492 / nonpositive_ply_gap 67,689 vs the R14 scan's 121,467 / 67,730 (16 pairs apart in 189k) (review fix, critic B FINAL_REPORT:17-18 / T02 VERIFY:11: 16 is the net difference of all breaks, 189,181 vs 189,197; per class the counts are 25 / 41 apart, so at least 41 pairs are classified differently).
    Both train/holdout seams are block breaks (012:2,625,970 -> 013:1 result_mismatch; 014:6,388,575 -> 015:1
    nonpositive_ply_gap), so the 013/014 file split is already block-aligned. Any NEW split (a validation slice inside
    training files) must cut at block breaks only. New data: the `.games` sidecar gives authentic IDs.

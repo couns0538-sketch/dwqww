@@ -30,8 +30,8 @@ QsEvasionSeeNonPv (P27R-AL1, SEE filter per non-PV evasion, +4.63 after 3,000 ga
 R15 C2 QsMovePrune (prepared, D:/o15/cands/INDEX.md) acts only out of check (patch inside `!in_check`): no overlap.
 
 ## Expected gain
-Caissa a677c89: cutechess SPRT llr 2.95 (bounds -2.94 / 2.94; Elo bounds, TC and book not in the message), 1 thread,
-n=25,531 (W 5052 L 4810 D 15669), +3.3 +- 2.6; c8a30a7 bundle +5.9 +- 4.8, n=8,606; no LTC logged.
+Caissa a677c89: cutechess SPRT llr 2.95 (bounds -2.94 / 2.94; Elo bounds, TC, book and thread count not in the
+message; corrected by verify: "1 thread" was not stated), n=25,531 (W 5052 L 4810 D 15669), +3.3 +- 2.6; c8a30a7 bundle +5.9 +- 4.8, n=8,606; no LTC logged.
 Stockfish 392b529 (other rule): STC 10+0.1, Threads 1, noob_3moves, SPRT [-0.25,1.25] logistic, LLR 2.97, N=22,632
 (W 2,433 L 2,264 D 17,935, about +2.6); LTC 60+0.6 [0.25,1.25] LLR 2.94 N=105,432 (about +1.0). Stormphrax PR 203
 (guard only): 8+0.08 +3.91 +- 2.57 n=20,596 [0,3]; 40+0.4 +3.36 +- 2.27 n=22,018.

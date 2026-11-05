@@ -8,6 +8,7 @@ Collects every (repo, commit) row from notes/T*/licences.md, re-runs tools/licen
 listed as "not read by this job".
 """
 import glob
+import json
 import os
 import re
 import subprocess
@@ -53,18 +54,34 @@ def main():
                 seen.setdefault(key, {'tracks': set(), 'row': line.strip()})['tracks'].add(track)
     out = ['| repo | commit read | date | file | licence | first line | GitHub API | tracks | use |',
            '|---|---|---|---|---|---|---|---|---|']
+    cache_path = 'F:/odr/cache/licence_rows.json'
+    try:
+        cache = json.load(open(cache_path, encoding='utf-8'))
+    except (OSError, ValueError):
+        cache = {}
+    tool_mtime = str(os.path.getmtime(os.path.join(HERE, 'licence_at.py')))
     for (repo, sha), v in sorted(seen.items()):
         row = v['row']
         if recheck:
-            r = subprocess.run([sys.executable, '-I', '-B', os.path.join(HERE, 'licence_at.py'), repo, sha, '--row'],
-                               capture_output=True, text=True, encoding='utf-8')
-            if r.returncode == 0 and r.stdout.strip().startswith('|'):
-                row = r.stdout.strip().splitlines()[0]
+            ck = f'{repo}@{sha}'
+            hit = cache.get(ck)
+            if hit and hit.get('tool') == tool_mtime:
+                row = hit['row']
+            else:
+                r = subprocess.run([sys.executable, '-I', '-B', os.path.join(HERE, 'licence_at.py'), repo, sha, '--row'],
+                                   capture_output=True, text=True, encoding='utf-8')
+                if r.returncode == 0 and r.stdout.strip().startswith('|'):
+                    row = r.stdout.strip().splitlines()[0]
+                    cache[ck] = {'row': row, 'tool': tool_mtime}
         cells = [c.strip() for c in row.strip('|').split('|')]
         while len(cells) < 7:
             cells.append('')
         lic = cells[4]
         out.append('| ' + ' | '.join(cells[:7] + [', '.join(sorted(v['tracks'])), use_of(lic)]) + ' |')
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    with open(cache_path + '.part', 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(cache, f)
+    os.replace(cache_path + '.part', cache_path)
     read = {k[0] for k in seen}
     out.append('')
     out.append('30-Oct table repos not read by this job (no check needed unless a card cites them): ' +

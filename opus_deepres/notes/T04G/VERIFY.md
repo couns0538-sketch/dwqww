@@ -4,7 +4,7 @@ Scratch: F:/odr/work/T04G-verify/ (PR texts and patches via gh api, Elo recomput
 CORRECTED / UNVERIFIABLE / VIOLATION / DUPLICATE. Sources re-opened: the five PR texts (gh api pulls/N), the four
 Altair PR patches (MIT, pulls/N/files), the Patricia PR 172 patch (MIT), the Altair HEAD windows from the worker's
 saved raw file (F:/odr/work/T04G/altair/, b2447b825b), the lock source lines, notes/TRIED_GATES.md, FORGE_RESULTS.md,
-the packc / packb / packa / E3 option lists, all 54 card files (ls cards/*/).
+the packc / packb / packa / E3 option lists, all 69 card files (ls cards/*/, pointer files included).
 
 ## Source numbers (check 1) - recomputed from W/L/D in the PR bodies
 | card | claim | verdict | evidence |
@@ -52,7 +52,7 @@ the packc / packb / packa / E3 option lists, all 54 card files (ls cards/*/).
 S:516, S:714-717, S:757, S:764, S:1058 (10 hits); 'Killer1|Killer2|CounterMove:' -> S:366-381, S:434 (6 hits). All
 as the cards say. CONFIRMED.
 
-## Duplicates (check 5) - all 54 card files listed
+## Duplicates (check 5) - all 69 card files listed
 - T04G-05 vs T04C-03 (merged pointer: eval-difference quiet history = packc EvalSwing), T04B-01 / T04B-02 (capture
   history in SEE pruning / pruning), T04F-02 (continuation keyed by capture), T04D-04 (root decay): different
   mechanisms. Not a duplicate. T04 TABLE row 33 covers the same PR with the wrong verdict (HAS); T04G-05 corrects it.
@@ -71,8 +71,8 @@ as the cards say. CONFIRMED.
 - Names: grep for vendor / model-company names and the agent-config folder name over cards/T04G and notes/T04G: no hit.
 - Cards: 4 real cards (2 full, 2 one-line) + 1 pointer file; crew hours in all 4; every Forge estimate UNPROVEN; no
   Forge Elo claim.
-- card_lint: the 4 cards exit 0 with 0 findings; the folder glob exits 1 with 9 findings, all on the T04G-03 pointer
-  line (the same 9 findings as the T04C-03 / T04D-03 pointer files of other tracks: job-wide convention, not a card).
+- card_lint: the 4 cards exit 0 with 0 findings; the folder glob exits 1 with 8 findings (9 before the DUPLICATE Status line was added), all on the
+  T04G-03 pointer line (the T04C-03 / T04D-03 pointer files of other tracks lint the same way: job-wide convention, not a card).
 - VIOLATION (track level, self-reported in the hand-back): notes/T04G/sources.md has 20 entries, 17 external
   (cap 15); the last three external entries (Altair commit miner, Patricia search.h windows, Altair legality grep)
   gave no card, so the "stop after 2 sources in a row with no new card" rule was also passed by one. The over-cap
@@ -82,3 +82,13 @@ as the cards say. CONFIRMED.
 ## Not re-opened in the window (UNVERIFIABLE here)
 TABLE.md rows 6-38 beyond the carded ones and the DIFF.md cells (Patricia movepick / search.h line cites) were not
 re-read; only the lines named in the four cards and row 3 were checked.
+
+## Late checks (00:45 PC clock)
+- T04G-05 "the score that raised alpha": CONFIRMED - Altair HEAD raw :1095-1097 sets alpha = return_eval inside the
+  "move has raised alpha" block, two lines above the depth test at :1103, so the test compares the raising score with eval.
+- Card length: T04G-01 52 lines, T04G-05 56 lines (<= 60). CONFIRMED.
+- Licence rows for the merge commits of PR 89 (b38d5ea001), PR 120 (99df021453) and Patricia PR 172 (67cdfcb55f):
+  MIT (rows appended to notes/T04G/licences.md with e42311036d). CONFIRMED.
+- Edits made by verify: T04G-02 (two corrections), T04G-05 (singular-search eval wording), T04G-03 (DUPLICATE Status
+  line), TABLE.md row 22 and DIFF.md (gate 22 removed), licences.md (4 rows). No card deleted; nothing written outside
+  cards/T04G/, notes/T04G/ and F:/odr/work/T04G-verify/.

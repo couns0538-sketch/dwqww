@@ -43,7 +43,7 @@ Forge estimate: +2 to +6 Elo at STC and LTC **UNPROVEN** (both sources gained at
 reductions are table-driven like theirs).
 
 ## Effort
-Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re-search depths). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that. One STC SPRT [0, 5], then one LTC. No GPU.
+Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re-search depths). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that (review fix, critic summary (e) / B FINAL_REPORT:76-77: that rate is the older R7 J4 setting, Threads 1 / conc 8; the current UHO *_vs_AL1* gates run 430-502 games/h (497 at Threads 2 / conc 4; T07 VERIFY:44, WORKER_RULES round 2), so a 3,000-game cap is about 6-7 h there). One STC SPRT [0, 5], then one LTC. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; perft unchanged; assert that the adjusted depth stays

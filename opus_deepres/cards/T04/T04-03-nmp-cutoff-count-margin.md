@@ -39,7 +39,7 @@ cut-node condition, Caissa's has; review fix, second vote: the former "+1 to +4 
 the shallow-term form is live at depth 3-7 only, a share that shrinks at LTC).
 
 ## Effort
-Crew 2 h (field + clear + increment + option, OFF identity, ON bench, smoke). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that. STC SPRT [0, 5], then LTC; given the source's TC trend, the LTC run decides (review fix, critic / T04 verifier: STC is the no-loss check; the source's TC trend is suggestive only). No GPU.
+Crew 2 h (field + clear + increment + option, OFF identity, ON bench, smoke). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that (review fix, critic summary (e) / B FINAL_REPORT:76-77: that rate is the older R7 J4 setting, Threads 1 / conc 8; the current UHO *_vs_AL1* gates run 430-502 games/h (497 at Threads 2 / conc 4; T07 VERIFY:44, WORKER_RULES round 2), so a 3,000-game cap is about 6-7 h there). STC SPRT [0, 5], then LTC; given the source's TC trend, the LTC run decides (review fix, critic / T04 verifier: STC is the no-loss check; the source's TC trend is suggestive only). No GPU.
 
 ## Test plan
 Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; null-move try / cutoff counts per 1M nodes OFF vs ON
