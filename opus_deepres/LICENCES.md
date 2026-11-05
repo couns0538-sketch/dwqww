@@ -71,14 +71,17 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Witek902/Caissa | 4b2cf654a3 | 2025-09-26 | LICENSE | MIT | MIT License | api: MIT | T05F | copy with notice |
 | Witek902/Caissa | 57cae7ef71 | 2026-11-04 | LICENSE | MIT | MIT License | api: MIT | T01, T02B, T04, T04F, T05C, T05F, T06 | copy with notice |
 | Witek902/Caissa | 8d2454c72f | 2026-10-17 | LICENSE | MIT | MIT License | api: MIT | T02 | copy with notice |
+| Witek902/Caissa | 9d566ccbd5 | 2026-09-24 | LICENSE | MIT | MIT License | api: MIT | T04P | copy with notice |
 | Witek902/Caissa | a677c890f9 | 2023-08-23 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
 | Witek902/Caissa | b02c47fa35 | 2026-05-24 | LICENSE | MIT | MIT License | api: MIT | T05D | copy with notice |
 | Witek902/Caissa | c84df9fce5 | 2026-07-25 | LICENSE | MIT | MIT License | api: MIT | T02B | copy with notice |
 | Witek902/Caissa | c8a30a7d11 | 2023-08-17 | LICENSE | MIT | MIT License | api: MIT | T04F | copy with notice |
+| Witek902/Caissa | d39fcfb0d6 | 2025-06-28 | LICENSE | MIT | MIT License | api: MIT | T04P | copy with notice |
 | Yoshie2000/PlentyChess | 5c8c8c7b46 | 2025-12-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | Yoshie2000/PlentyChess | 5fe2d9cd7e | 2024-11-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | Yoshie2000/PlentyChess | 7cb061e068 | 2025-06-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | Yoshie2000/PlentyChess | 9686668c65 | 2024-07-23 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
+| Yoshie2000/PlentyChess | 9c520de7b7 | 2025-06-27 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04P | ideas only |
 | Yoshie2000/PlentyChess | fbc64b5ba8 | 2025-10-12 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Yoshie2000/PlentyChess | fdbdbccab8 | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B, T04C | ideas only |
 | aronpetko/integral | 29456bb34c | 2026-11-04 | absent | no licence (all rights reserved) | - | api: none | T01 | ideas only (no licence) |
@@ -124,6 +127,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-stockfish/Stockfish | 9451419912 | 2021-12-08 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | official-stockfish/Stockfish | 9bdf2f8d4c | 2026-04-15 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |
 | official-stockfish/Stockfish | a06e7004c1 | 2024-09-17 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
+| official-stockfish/Stockfish | b280d2f065 | 2024-05-30 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04P | ideas only |
 | official-stockfish/Stockfish | b7f17346e5 | 2024-11-22 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | c02b3a4c7a | 2020-08-30 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04H | ideas only |
 | official-stockfish/Stockfish | c3ce220408 | 2023-04-25 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B | ideas only |

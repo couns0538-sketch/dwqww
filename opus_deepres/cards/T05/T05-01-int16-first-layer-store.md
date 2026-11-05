@@ -22,7 +22,7 @@ The output layer (float, 16 ordered lanes) is unchanged, so evaluations and node
 Not exact / not safe: int16 ACCUMULATORS (the simple bound exceeds 32,767 on all 256 units of the lock net - computed
 here from the lock's weights), int8 weights (|k| up to 14,227 needs 15 bits).
 Bytes per column read halve (1 KB -> 512 B). KB4 table 3.1 MB -> 1.57 MB, so the two perspectives' hot buckets
-(2 x 393 KB) fit a Zen 5 core's 1 MB L2 again; KB32 25 MB -> 12.6 MB; the lock's 786 KB -> 393 KB.
+(2 x 393 KB) fit a Zen 5 core's 1 MB L2 again; KB32 25 MB -> 12.6 MB; the lock's 768 KiB (786 KB) -> 393 KB.
 
 ## Forge fit
 Lock: src/nnue.cpp:47 `std::unique_ptr<float[]> w1`, :59 converts NnueW1 / WeightScale to float at load; updates at
@@ -39,7 +39,7 @@ shows ~5 % for KB4 vs KB1 (V2P4_GAP.md, part P2). No outside number (missing).
 (verify note: RESULTS.md:216-219 reads the 0.968 ABBA as "cost little", :471-472 the post-fix probe as "runs at its own
 exe's OFF speed" (OFF 0.933, KB4 0.929); 0.948 = ratio of two single runs of ~+-3 % each, bench CI includes 1.0 -> the
 ~5 % cost is not shown beyond noise; size it (V2P4_GAP P2 split, fresh copies) before building.)
-Forge estimate: v2 KB4 / KB8 +1-4 % nps, KB16 / KB32 +2-5 %, lock path (KB1, 786 KB already in L2) -1 to +1 %
+Forge estimate: v2 KB4 / KB8 +1-4 % nps, KB16 / KB32 +2-5 %, lock path (KB1, 768 KiB (786 KB) already in L2) -1 to +1 %
 **UNPROVEN**: design (a) needs about 4 vector ops per 16 weights instead of 2 (sign-extend, convert, scale, add), so
 where the table is not the bottleneck it can lose; design (b) (sign-extend + integer add) is the one to build if KB1 matters.
 

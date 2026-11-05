@@ -6,10 +6,12 @@ Status: COMPLETE
   https://github.com/Yoshie2000/PlentyChess/pull/286 ; tests https://chess.aronpetkovski.com/test/6088/ (STC) and
   https://chess.aronpetkovski.com/test/6089/ (LTC); that host now serves only furybench.com's certificate, so the test
   pages (book) could not be read.
+- Stockfish [4e89864](https://github.com/official-stockfish/Stockfish/commit/4e8986483a) (PR 2550), [1591e5a](https://github.com/official-stockfish/Stockfish/commit/1591e5ac3b) (PR 4159): commit messages only (review fix, CRITIC2).
 
 ## Licence
 PlentyChess @fdbdbccab8: GPL-3.0 (notes/T04C/licences.md) = ideas only. Read: the PR title and its OpenBench blocks;
 no source, no diff, no description text. The margin below is own design; no constant carried over.
+Stockfish @4e8986483a and @1591e5ac3b: GPL-3.0 (tools/licence_at.py, Copying.txt) = ideas only; two commit messages read, no source.
 
 ## Mechanism
 Own words. The singular test asks whether every alternative to the TT move fails below singular_beta = TT score minus a
@@ -34,7 +36,12 @@ PlentyChess 286: STC 8+0.08, 1 thread, 16 MB, SPRT [0, 3]: +5.21 +- 3.51, n=9,93
 (-2.25, 2.89); LTC 40+0.4, 64 MB, [0, 3]: +5.34 +- 3.21, n=10,536 (W 2,577 L 2,415 D 5,544), LLR 2.50. Neither SPRT
 finished; the PR was merged on these numbers. Book not stated (test pages unreadable). No second engine's log found for
 this term in Berserk or Alexandria (their titles do not mention it).
-Forge estimate: 0 to +3 Elo **UNPROVEN** (one engine, two unfinished SPRTs with wide errors; Forge's singular margin is
+Better evidence, both TCs and large n (review fix, CRITIC2; Stockfish fishtest numbers from the commit messages, TC / book not
+in them; Elo from W/D/L, +- 95 % from the pentanomial, own arithmetic): 4e89864 (2020; lowers singular beta at nodes that were
+on the PV but are not PV nodes now = this rule) STC {-0.50,1.50} LLR 2.94 n=154,953 +0.93 +- 1.05, LTC {0.25,1.75} LLR 2.95
+n=70,974 +1.83 +- 1.28; 1591e5a (2022, "Do less singular extensions for former PVnode", by its message a re-introduction in
+another form of logic simplified away earlier) STC <0.00,2.00> LLR 2.94 n=23,296 +4.41 +- 2.29, LTC <0.50,2.50> LLR 2.94 n=235,592 +1.04 +- 0.64.
+Forge estimate: 0 to +3 Elo **UNPROVEN** (PlentyChess: two unfinished SPRTs with wide errors; the three Stockfish runs with n > 70k are +0.9 to +1.8; Forge's singular margin is
 already small at 2 cp per ply, so the relative change is large).
 
 ## Effort

@@ -31,8 +31,9 @@ identical-command A/A first (BH-8: up to ~3-5 % per-file / arm effect on this PC
 - 64 B alignment: FORGE_ALIGN_WEIGHTS (lock w1 at 48 mod 64 -> 0) measured neutral within ~3 % A/A; v2 tables are
   64-B aligned already. 2 MB: item 3.
 - Weight permutation (FTP1), find-nnz sparse L1, AccumTile / SharedWeights: HalfKA path, done or lost (WORKER_RULES).
-- TT locking: UCI go runs TTAccess::Exclusive (src/uci.cpp:357), so Threads=1 games take no stripe locks (R7TtExclusive
-  is in the lock).
+- TT locking: UCI go runs TTAccess::Exclusive (src/uci.cpp:357): no stripe lock at Threads=1; the R7 exclusive probe /
+  store (no TLS read) is NOT in the lock - card T05D-01 (review fix, CRITIC2: was "R7TtExclusive is in the lock";
+  `bash tools/forge_has.sh 'R7TtExclusive|probe_exclusive|store_exclusive'` = 0 hits, re-run by FIXER2).
 
 ## Zen 5 instruction facts (asked by the brief; HalfKA path only)
 | instruction | Zen 5 | Zen 4 | Intel (ICL / ADL-P / EMR) | source |

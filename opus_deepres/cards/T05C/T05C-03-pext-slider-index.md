@@ -26,7 +26,7 @@ NO. Lock include/forge/bitboard.hpp:143-171 (Magic struct, index, bishop / rook 
 (tables 0x19000 + 0x1480 entries), :63-108 (runtime magic search). forge_has.sh 'pext|pdep|bmi2': 0 real hits (4
 false hits on RfpDepth); the -march=znver5 lock exe contains 0 pext / 0 pdep, 487 imul (objdump). Lookups per node:
 board.cpp has 27 call sites (movegen, is_legal, gives_check, checkers, SEE), the HCE in eval.cpp 10 (mobility and
-x-rays at every static eval). One search thread's hot set (841 KiB attack tables + 768 KiB float w1 (corrected by verify: 768 x 256 x 4 B = 786,432 B = 768 KiB, not 786 KiB) + ~1.55 MiB
+x-rays at every static eval). One search thread's hot set (841 KiB attack tables + 768 KiB (786 KB) float w1 (corrected by verify: 768 x 256 x 4 B = 786,432 B = 768 KiB, not 786 KiB) + ~1.55 MiB
 histories) exceeds Zen 5's 1 MiB L2.
 
 ## Expected gain
