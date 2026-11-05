@@ -215,15 +215,17 @@ unmirrored, residual, fnv1a 8ad8b3133ed0a15c); parity 10000/10000 x AVX2 / SSE /
 0.004543494, paired vs the lock -1.650709e-4 (se 5.11e-6, z -32.31); jobA b0.6 0.013375883, paired +1.038251e-4
 (se 5.52e-5, z +1.88); offline rule PASS; all_checks_passed true. Sanity match (sanity only): 400 games 10+0.1, UHO,
 Threads 1, Hash 16, v2p4 + this net vs the lock exe FD3A5190, CPU 6, started 12:15:58
-(`D:\o30\nets\o30_gpu_kb4warm_r2\sanity\RUN_INFO.json`) - running at 12:16 (two games finished, the third started;
-sanity.log) [PENDING: result, read against the v2p4 control -20.9 +/- 18.5].
+(`D:\o30\nets\o30_gpu_kb4warm_r2\sanity\`), ended ~15:57: 400 games, 92 W / 95 L / 213 D = 49.62 %, -2.6 +/- 18.1
+(sanity only; the v2p4 control read 47.0 %, -20.9 +/- 18.5); 0 time losses, 0 illegal moves, 0 crashes.
 
 **Packaged net from run 5** (`net_pack.sh`, `D:\o30\nets\o30_gpu_kb8short_r5\RESULT.json`):
 `D:\o30\nets\o30_gpu_kb8short_r5\o30_gpu_kb8short_r5.nnue2` sha256
 27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc (md5 9cf175aae2364f1e2a7129132d4a95f2; KB8 rank4x2,
 H256, 8 output buckets, residual); parity, OFF pins -Full PASS on v2p4; ON bench d11 294850 / d13 679834 / d16 3128255
 (twice, equal); S31 b0.6 0.014144725, paired vs the lock -1.653016e-4 (z -40.37); jobA b0.6 0.013198198, paired
--7.385980e-5 (z -1.53); offline rule PASS; all_checks_passed true. Sanity match: not started at 12:54 [PENDING].
+-7.385980e-5 (z -1.53); offline rule PASS; all_checks_passed true. Sanity match (CPU 2, 13:26-17:06,
+`D:\o30\nets\o30_gpu_kb8short_r5\sanity\`): 400 games, 102 W / 81 L / 217 D = 52.62 %, +18.3 +/- 18.0 (sanity only;
+control 47.0 %); 0 time losses, 0 illegal moves, 0 crashes.
 
 **Throughput facts.** Run 1 on CPUs 4-5 (mask 0x30): 11.74G positions in 1 h 10 m 21 s = 2.78M positions/s, loader-bound
 (the trainer's two loader threads and the GPU driver thread shared two logical CPUs; 2c968ad2 notes GPU 45-55 % busy,
@@ -338,11 +340,11 @@ child, fail closed).
   build vs the lock's kit v2.3. Resume: QA times v2p4 vs FD3A5190 with its own method; if confirmed, profile which
   functions the v2.5 workload (v2n + -PartialTraining) optimises differently, or build the v2 exe with QA's kit once
   that kit can profile an option-only path. Until then every v2 gate carries that handicap.
-- **Sanity matches of the GPU nets** (sanity only): run 2's packaged net vs the lock exe (CPU 6, started 12:15:58, 400
-  games; 70 in the PGN at 12:54) [PENDING result]; run 5's packaged net [PENDING: match]; run 3's final net and run 6
-  need `net_pack.sh` + a sanity match each [PENDING]. Every result must be read against the v2p4 control
-  (-20.9 +/- 18.5): a v2 net "beats" nothing until it is clearly above that control, and the crew gate is the only
-  rating evidence.
+- **Sanity matches still running at the job end** (sanity only): the soups' matches that end after the report was
+  written are listed with their state in the window-2 sanity table (section 1) and in `D:\o30\nets\INDEX.md` (a
+  generated file: re-run `a/make_net_index.py` for the final lines). Every result must be read against the v2p4 control
+  (47.0 %, -20.9 +/- 18.5): a v2 net "beats" nothing until it is clearly above that control, and the crew gate is the
+  only rating evidence. Run 3 and run 6 got no sanity match of their own (run 3 is a soup member; run 6 is weaker).
 - **Packaging**: runs 2, 3, 5 and 7 and the soups C / P16 (plus the KB8 soup of window 2) are packaged in
   `D:\o30\nets` (INDEX.md); run 6 (weaker, lr 3e-5) is not. Recipe: `O30_MASK=<mask> net_pack.sh <name>
   <net.nnue2> <v2p4 exe> D:\o30\harness\h1` (O30_MASK is required since review W2-05).
