@@ -28,6 +28,17 @@ SEAL = A14 + 'sep/segments-production02/MAPS_SEAL.json'
 OUT = A14 + 'sep/PROD_SEPARATION.json'
 TRIAGE = A14 + 'sep/BOARDSTM_TRIAGE.json'
 
+
+def md5(p):
+    return hashlib.md5(open(p, 'rb').read()).hexdigest()
+
+
+def need(ok, why):
+    # explicit checks, not assert: they must hold even under python -O (review finding F-013)
+    if not ok:
+        raise SystemExit(f'refusing to write PROD_SEPARATION.json: {why}')
+
+
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument('--out', default=OUT, help='output path (default: the production record); refused if it exists')
 ap.add_argument('--replace-committed', action='store_true',
@@ -42,21 +53,14 @@ if os.path.exists(PART):
 if os.path.exists(OUT):
     if not args.replace_committed:
         raise SystemExit(f'refusing: {OUT} exists (pick a new --out; --replace-committed is only for the tracked record)')
-    rel = os.path.relpath(OUT, A14).replace('\\', '/')
+    try:
+        rel = os.path.relpath(OUT, A14).replace('\\', '/')
+    except ValueError:  # another drive: relpath has no answer on Windows (owner's fix list 2, item 6)
+        need(False, f'refusing: {OUT} not under {A14}')
     tracked = subprocess.run(['git', '-C', A14, 'ls-files', '--error-unmatch', '--', rel], capture_output=True)
     same = subprocess.run(['git', '-C', A14, 'diff', '--quiet', 'HEAD', '--', rel])
     if rel.startswith('..') or tracked.returncode != 0 or same.returncode != 0:
         raise SystemExit(f'refusing: {OUT} is not a git-tracked file unchanged since HEAD; --replace-committed does not apply')
-
-
-def md5(p):
-    return hashlib.md5(open(p, 'rb').read()).hexdigest()
-
-
-def need(ok, why):
-    # explicit checks, not assert: they must hold even under python -O (review finding F-013)
-    if not ok:
-        raise SystemExit(f'refusing to write PROD_SEPARATION.json: {why}')
 
 
 ov = json.load(open(OV, encoding='utf-8'))

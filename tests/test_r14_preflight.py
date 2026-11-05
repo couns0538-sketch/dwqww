@@ -24,6 +24,7 @@ def test_floor_breach_after_hash_writes_no_receipt(tmp_path):
     source = (ROOT / 'tools/Verify-R14Inputs.ps1').read_text()
     source = source.replace("$root='D:\\a14'", f"$root='{tmp_path}'")
     prefix = """
+Import-Module Microsoft.PowerShell.Utility, Microsoft.PowerShell.Management
 $script:hashed=$false
 function Get-PSDrive { param([string]$Name)
     [pscustomobject]@{Free=$(if($script:hashed){0L}else{100GB})}
