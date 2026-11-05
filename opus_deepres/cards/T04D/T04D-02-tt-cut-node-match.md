@@ -46,8 +46,8 @@ Forge estimate: 0 to +3 Elo **UNPROVEN** (two passes on one rule in the source; 
 simpler, and the right depth limit for Forge is unknown: SPSA it after a first STC run). Counter-evidence (T12C): Stockfish 76c319f (2025-02-24, "Simplify ttcut depth condition", GPL-3.0, message only) simplified the follow-up's depth limit at zero cost (non-regression [-1.75,0.25]: STC +0.00 +- 0.73, 235,328 g; LTC +0.97 +- 1.29, 63,744 g) while the node-type rule stayed, and the source's own LTC gain is only +1.02 +- 0.62 at 270,888 g: top lowered, 0 to +2 Elo **UNPROVEN**; gate it after T04D-01 is decided, not as a pair.
 
 ## Effort
-Crew 1 h (condition + option, OFF pins, ON bench, smoke). CPU at 430-502 games/h: 3,000-game STC cap ~6-7 h, SPRT
-[0,10] nElo cap 12k ~6.6k games (~13 h), LTC ~k times that; SPSA of the depth limit (forge-o30-spsa) after STC.
+Crew 1 h (condition + option, OFF pins, ON bench, smoke). CPU at 430-502 games/h: 3,000-game STC cap = 6-7 h,
++6-7 h one extension if positive (crew route [0,5] nElo) [last round, coordinator, unverified], LTC ~k times that; SPSA of the depth limit (forge-o30-spsa) after STC.
 
 ## Test plan
 Pre-gate: OFF bench d11/d13/d16/d20/d22 = lock pins; ON bench differs (live); perft unchanged; on the bench set count

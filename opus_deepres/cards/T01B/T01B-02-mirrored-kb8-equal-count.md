@@ -44,7 +44,7 @@ unmeasured) **UNPROVEN**.
 ## Effort
 Crew ~2-3 h (map name, writer, random mirrored KB8 checks, packaging). GPU: 2 warm-start runs of the 30-h recipe (lr
 2e-5, 200 SB, ~13-15 min each): mirrored KB8 and an unmirrored back-rank arm (rank 1: 4 file pairs, rank 2: 2 halves,
-ranks 3-4: 1, ranks 5-8: 1 = 8 buckets, own shape, exact lock start), control = KB8 run 5. CPU: STC + LTC SPRT ~13 h each.
+ranks 3-4: 1, ranks 5-8: 1 = 8 buckets, own shape, exact lock start), control = KB8 run 5. CPU: STC + LTC SPRT, 3,000 games = 6-7 h, +6-7 h one extension if positive, each [last round, coordinator, unverified].
 
 ## Test plan
 Offline: score the approximate mirrored start itself (S31 + jobA vs the lock = the warm-start penalty), then each arm

@@ -41,8 +41,8 @@ Counter-evidence (T12C): Stockfish 5d1505d (2025-08-04, "Reintroduce reduction t
 
 ## Effort
 Crew 1 h (one line + option, OFF pin check, ON bench, 2-minute smoke). CPU: 430-502 games/h for the crew's
-`*_vs_AL1*` gates (WORKER_RULES round 2), so a 3,000-game STC cap is about 6-7 h; an SPRT [0,10] nElo capped at 12k
-averages ~6.6k games (~13 h); an LTC at k times the STC time per game costs about k times that. No GPU.
+`*_vs_AL1*` gates (WORKER_RULES round 2), so a 3,000-game STC cap is about 6-7 h, +6-7 h one extension if positive
+(crew route) [last round, coordinator, unverified]; an LTC at k times the STC time per game costs about k times that. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench d11/d13/d16/d20/d22 = the lock pins (node-identical by construction); ON bench differs (live);

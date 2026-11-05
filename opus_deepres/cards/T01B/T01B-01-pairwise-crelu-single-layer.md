@@ -42,7 +42,7 @@ start stays behind the lock **UNPROVEN**.
 Crew ~6-8 h (trainer switch, exporter flag, engine kernel x3 ISAs, parity 10k, walk). GPU: two from-scratch runs of one
 own recipe (SCReLU twin + pairwise; KB8 + OB8 H256, lr 1e-3 cosine to 1e-5, WDL 0.4, 700 SB = 11.7G positions,
 ~70 min each at 2.8-3M pos/s if pairwise trains at the same speed; range lr 5e-4 .. 2e-3). CPU: STC + LTC SPRT at
-430-502 games/h (~13 h per ~6.6k-game SPRT).
+430-502 games/h (crew route: 3,000 games = 6-7 h, +6-7 h one extension if positive) [last round, coordinator, unverified].
 
 ## Test plan
 Offline first: pairwise vs its SCReLU twin (same data, seed, length), paired S31 + jobA beyond the ~4e-6 seed noise;

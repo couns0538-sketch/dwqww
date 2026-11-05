@@ -38,8 +38,8 @@ ply p+1 whenever the grandparent starts (`:907`), so the source gain is closer t
 Forge estimate: 0 to +3 Elo **UNPROVEN**.
 
 ## Effort
-Crew ~1.5 h (6 lines + option, OFF pins, ON-live bench, pin_check, smoke). CPU: one STC SPRT [0,5] ~6.6k games
-~13-15 h at 430-502 games/h; LTC only if STC passes. No GPU.
+Crew ~1.5 h (6 lines + option, OFF pins, ON-live bench, pin_check, smoke). CPU: one STC SPRT [0,5] at 430-502 games/h,
+3,000 games = 6-7 h, +6-7 h one extension if positive [last round, coordinator, unverified]; LTC only if STC passes. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench / perft pins equal to the lock FD3A5190; ON bench nodes differ (live); planted-bug check (swap the

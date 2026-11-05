@@ -11,6 +11,7 @@ description says it is a repo-takeover proof; 0 stars, README only, not read fur
 |---|---|---|---|---|---|---|
 | mcthouacbb/Sirius | 0aab371e4d | 2026-10-03 | absent | no licence (all rights reserved) | - | api: none |
 | jw1912/akimbo | f7dd7677d6 | 2025-02-07 | LICENSE | MIT | MIT License | api: MIT |
+| jw1912/akimbo | 7120b4be24 | 2024-01-12 | LICENSE | MIT | MIT License | api: MIT | [last round, coordinator, unverified] (the commit row 8 cites)
 | martinnovaak/motor | 033a63cf54 | 2026-10-31 | absent | no licence (all rights reserved) | - | api: none |
 | feliskio/svart (placeholder behind the crippa1337/svart redirect, not the engine) | 5f7d00413b | 2025-09-26 | absent | no licence (all rights reserved) | - | api: none |
 | 1337crisis/svart | f3bf4c1ce0 | 2025-11-18 | LICENSE | MIT | MIT License | api: MIT |

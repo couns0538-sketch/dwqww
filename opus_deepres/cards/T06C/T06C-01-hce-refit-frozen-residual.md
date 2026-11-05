@@ -46,7 +46,7 @@ table + lock net is clearly below 0.014310 (a filter only - loss has not predict
 ## Effort
 Crew ~6 h: tuner net column + fixed K ~1.5 h, row writer (FPOS -> trace + lock-net cp) ~2 h, option + pins ~1.5 h,
 holdout scoring ~1 h. CPU ~2-4 h fit at <= 3 threads Idle (own estimate ~0.3-0.4 KB per row in RAM, so <= ~15M rows
-under the 7 GB guard); STC SPRT ~13-15 h (~6.6k games at 430-502 games/h), LTC ~3x per game. GPU none.
+under the 7 GB guard); STC SPRT at 430-502 games/h, 3,000 games = 6-7 h, +6-7 h one extension if positive [last round, coordinator, unverified], LTC ~3x per game. GPU none.
 
 ## Test plan
 1. Holdout: S31 scorer, lock net + .hce of the refit table (hce_dump rebuilt) on holdout_013_014_s16; filter above.

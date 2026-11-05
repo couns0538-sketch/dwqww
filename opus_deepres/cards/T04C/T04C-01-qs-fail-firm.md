@@ -45,8 +45,8 @@ Change: ~6 lines (two return points; the TT store at `:868` takes the blended va
 Forge estimate: 0 to +2 Elo at STC and at LTC **UNPROVEN** (one LTC pass, three LTC-flat relatives).
 
 ## Effort
-Crew ~1.5 h (two return points, option, mate guards, debug check, pins). CPU: UHO SPRT [0, 5] at STC ~6.6k games ~13-15 h
-at 430-502 games/h (cap 12k ~24-28 h); LTC ~3x per game. GPU: none.
+Crew ~1.5 h (two return points, option, mate guards, debug check, pins). CPU: UHO SPRT [0, 5] at STC, 3,000 games = 6-7 h
+at 430-502 games/h, +6-7 h one extension if positive [last round, coordinator, unverified]; LTC ~3x per game. GPU: none.
 
 ## Test plan
 Pre-gate: OFF bench pins d11 312866 / d13 862329 / d16 3024920 / d20 12389307 / d22 34048354 + perft; ON bench differs

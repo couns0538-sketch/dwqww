@@ -47,7 +47,7 @@ may be worth more, or the book may just repeat label noise of the 5000-node HCE 
 Crew: ~5 h (book builder 1-2 h, driver FEN-start option + unchanged-OFF equivalence check 2 h, mix + run sheet 1 h).
 CPU: scoring <= ~1.4 h for 5M rows (if >= 1,000 rows/s), lock probe of 200k-1M candidates ~10-50 min at 1.19M
 rows/h (5k nodes, forge-relabel-job), datagen 5 % of 305M = ~15M rows = ~12 h at 1.24M/h beside the live run.
-GPU: 2 npt runs (wall time PENDING, crew). Gate: 430-502 games/h; [0,10] cap 12k = ~6.6k games (~13 h), [0,5] longer.
+GPU: 2 npt runs (wall time PENDING, crew). Gate: 430-502 games/h; crew route [0,5] nElo, 3,000 games = 6-7 h, +6-7 h one extension if positive [last round, coordinator, unverified].
 
 ## Test plan
 Pre-gate: driver with the option OFF = byte-identical output (the R8 60-game equivalence test); assert 0 book keys

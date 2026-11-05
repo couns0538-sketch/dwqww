@@ -125,6 +125,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | jhonnold/berserk | 5a5ec85439 | 2021-07-14 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06E | ideas only |
 | jhonnold/berserk | 8c72a1d869 | 2024-01-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | jhonnold/berserk | a3a6f62397 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B, T04C, T04H | ideas only |
+| jw1912/akimbo | 7120b4be24 | 2024-01-12 | LICENSE | MIT | MIT License | api: MIT | T04O (row 8) [last round, coordinator, unverified] | copy with notice |
 | jw1912/akimbo | f7dd7677d6 | 2025-02-07 | LICENSE | MIT | MIT License | api: MIT | T04O | copy with notice |
 | jw1912/bullet | da426a49b2 | 2026-10-26 | LICENSE | MIT | MIT License | api: MIT | T01, T02C | copy with notice |
 | liamt19/Horsie | a2ac89c5d8 | 2026-05-29 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04R, T04T | ideas only |

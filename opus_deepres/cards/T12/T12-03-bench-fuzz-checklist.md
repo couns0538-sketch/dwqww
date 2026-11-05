@@ -43,8 +43,8 @@ bench and perft only).
 
 ## Expected gain
 Source: OpenBench requires the same bench nodes on every client (no mismatch rule stated). Fishtest: "1 % speedups pass with an
-85 % chance". No Elo number for the proof itself. Forge estimate: each bit-exact speed change saves one [0,10] SPRT
-(mean ~6.6k games, ~13 h at 497 games/h, T12-01) - **UNPROVEN**.
+85 % chance". No Elo number for the proof itself. Forge estimate: each bit-exact speed change saves one crew-route SPRT
+(3,000 games = 6-7 h, +6-7 h one extension if positive) [last round, coordinator, unverified] - **UNPROVEN**.
 
 ## Effort
 Crew ~4-6 h once: a compare driver for levels 3-6 plus the FEN/game lists. Then < 30 min of one core per exe pair

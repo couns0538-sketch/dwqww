@@ -42,7 +42,7 @@ Crew ~6 h: hce_dump rebuild with T1 and .hce regeneration for train + holdout ~1
 (int 0 mismatches) and pins ~3 h, packaging ~1.5 h. CPU: .hce regeneration one pass over ~305M rows (rate not
 measured here; own guess 1-3 h); fine-tune ~10 CPU h per 1G position presentations at ~95M per CPU hour
 (a full retrain at the lock's ~7.4G presentations would be ~78 CPU h; own arithmetic from skill numbers); STC SPRT
-~13-15 h, LTC ~3x per game. GPU optional (R11 pipeline), not required.
+3,000 games = 6-7 h, +6-7 h one extension if positive [last round, coordinator, unverified], LTC ~3x per game. GPU optional (R11 pipeline), not required.
 
 ## Test plan
 Holdout first (b0.6, holdout_013_014_s16, S31 scorer): T1 + fine-tuned net vs T1 + lock net vs lock; drop unless it

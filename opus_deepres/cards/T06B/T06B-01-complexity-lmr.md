@@ -46,7 +46,7 @@ Forge estimate: 0 to +2 Elo **UNPROVEN** (the engines' complexity formula is unk
 
 ## Effort
 Crew: ~2 h code (C at the static-eval site, one LMR branch, two options, expose build) + ~2 h proofs. CPU: one STC
-SPRT, capped ~6.6k games = ~13-15 h at 430-502 games/h; optional 1-parameter SPSA on T first (~14 h); LTC only if
+SPRT at 430-502 games/h, 3,000 games = 6-7 h, +6-7 h one extension if positive [last round, coordinator, unverified]; optional 1-parameter SPSA on T first (~14 h); LTC only if
 STC is positive. GPU: none.
 
 ## Test plan
