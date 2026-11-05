@@ -62,7 +62,8 @@ check 12_index_hashes indexsha
 # 13: every Windows / branch path the documents cite exists (WINDOW.md is written only if the GPU is released)
 paths() {
   (cd "$W/opus_30h" && "$PY" -I -B "$T/path_sweep.py" FINAL_REPORT.md TOOLS.md STATUS.md a/RESULTS.md b/RESULTS.md \
-    b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md CR_FIXLIST_20261104_REPORT.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md')
+    b/README.md a/DATA.md a/GPU_PATH.md kit25/README.md CR_FIXLIST_20261104_REPORT.md /d/o30/nets/INDEX.md --allow 'D:\o30\WINDOW.md' \
+    --allow 'C:\Users\Administrator\scratch')   # the owner's suggested scratch path for fix list 2 item 6, cited as not used
 }
 check 13_paths paths
 # 14: the v2 loader refuses 18 kinds of damaged files with their reason and falls back to the compiled-in net
