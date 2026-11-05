@@ -16,7 +16,7 @@ CR pass note). PlentyChess GPL-3.0 at 9c520de7b7, Stockfish GPL-3.0 at b280d2f06
 ## Mechanism
 The lock takes a stored score as a cutoff at a non-PV node from an entry of equal depth whatever the result. The rule asks
 one more ply when the stored score is >= beta (fail high), equal depth below beta. Form A (Caissa d39fcfb, PlentyChess 373;
-Stockfish's state after b280d2f, whose own step went from "deeper for every cutoff" to "equal depth for fail lows"): every
+Stockfish's state after b280d2f, whose own step went from "deeper for every cutoff" to "equal depth for fail lows"; verify: its boundary is score > beta, Caissa's >= beta): every
 fail high needs it. Form B (Caissa 9d566cc): only beta <= score < beta + M; a score clearly above beta cuts at equal depth.
 The side of beta decides, not the bound (an exact entry above beta counts). Own reading (unproven): a same-depth cutoff just
 above beta is the one most likely to flip with one more ply, and a false fail high drops a whole subtree.
@@ -35,7 +35,7 @@ built. Same line as T04D-02 (node-type match): both only remove cutoffs; gate ap
   -1.26 +- 2.03; LTC 40+0.4 LLR 3.02 passed, N 61,338 W 15,088 L 14,782 D 31,468, +1.73 +- 1.31. Books not in the logs.
 - Form B vs form A: Caissa 9d566cc 10+0.1 Threads=1, [0.00, 2.00] LLR 2.95, N 112,192 W 26,924 L 26,487 D 58,781, +1.35 +- 1.06.
 - Not this rule: Stockfish b280d2f (equal depth for fail lows; the lock has it): STC 10+0.1 1 thread UHO_Lichess_4852_v1
-  [0,2] normalized LLR 2.93, 26,592 games W 6,944 L 6,645 D 13,003 (+3.91); LTC 60+0.6 [0.5,2.5] LLR 2.96, 142,572 games (+1.31).
+  [0,2] normalized LLR 2.93, 26,592 games W 6,944 L 6,645 D 13,003 (+3.91 +- 2.13 by verify); LTC 60+0.6 [0.5,2.5] LLR 2.96, 142,572 games (+1.31 +- 0.86 by verify).
 Forge estimate: form B 0 to +2 Elo, form A -1 to +2 (TC-dependent) **UNPROVEN**; at [0,5] nElo with a 3,000-game cap a
 +1 to +2 effect most likely ends capped (no decision).
 
