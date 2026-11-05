@@ -2,17 +2,21 @@
 Status: COMPLETE
 
 ## Source
-Two engines, same idea, tested independently:
+Two engines, same idea (the Viridithas test branch has the Reckless branch's name, so it is likely a port of the
+idea; the test is still a second engine's):
 - Reckless PR #671 "Guard NMP on valuable piece TT captures", commit
   https://github.com/codedeliveryservice/Reckless/commit/845f49d3f1 (2026-01-14), PR
   https://github.com/codedeliveryservice/Reckless/pull/671; logs https://recklesschess.space/test/10664/ (STC),
-  https://recklesschess.space/test/10665/ (LTC). The message credits an earlier commit of the Seer engine (not read).
+  https://recklesschess.space/test/10665/ (LTC) (text fields read; dev branch "nmp-tt-capture-condition"). The
+  message credits an earlier commit of the Seer engine (not read).
 - Viridithas PR #412 "Disable NMP when TT-move is a great capture",
-  https://github.com/cosmobobak/viridithas/pull/412 (2026-02-01); log https://viri.dev/test/510/.
+  https://github.com/cosmobobak/viridithas/pull/412 (2026-02-01); log https://viri.dev/test/510/ (text fields read;
+  dev branch "nmp-tt-capture-condition").
 
 ## Licence
 Both AGPL-3.0 (Reckless at aec5cb2e80, Viridithas at 7489e701bb; notes/T04E/licences.md): ideas only. Read: titles,
-PR text (test blocks only, no prose), commit message. No source file, no diff. Thresholds of either engine unknown.
+PR text (test blocks only, no prose), commit message, test-log text fields. No source file, no diff. Thresholds of
+either engine unknown.
 
 ## Mechanism
 Null-move pruning passes the turn and expects a reduced search to still beat beta. When the hash move of the node is
@@ -31,7 +35,8 @@ piece on `tt_move.to` is the opponent's (a colliding hash move then never trigge
 ## Expected gain
 Reckless, 1 thread: STC 8+0.08 +3.43 +- 2.31 (95 %), n=22,374, LLR 2.92 [0,3]; LTC 40+0.4 +3.67 +- 2.27,
 n=20,816, LLR 3.17 [0,3]. Viridithas: LTC 40+0.4, 1 thread, 128 MB, +1.88 +- 1.48, n=49,814, LLR +2.95 [0,3]
-(no STC logged). Books not stated in these logs.
+(no STC logged). Book UHO_Lichess_4852_v1 in all three logs; Reckless Hash 16 / 64 MB, W/L/D STC 5,700 / 5,479 /
+11,195, LTC 5,169 / 4,949 / 10,698; Viridithas W/D/L 11,868 / 26,348 / 11,598.
 Forge estimate: +1 to +3 Elo **UNPROVEN** (the lock already has a static-eval NMP margin and a TT-bound guard).
 
 ## Effort

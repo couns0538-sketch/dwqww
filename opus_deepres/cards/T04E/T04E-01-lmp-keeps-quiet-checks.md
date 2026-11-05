@@ -5,12 +5,14 @@ Status: COMPLETE
 Reckless PR #818 "Guard LMP for moves that give checks", squash commit
 https://github.com/codedeliveryservice/Reckless/commit/5e5443d798 (2026-03-25), PR
 https://github.com/codedeliveryservice/Reckless/pull/818 (text = the two test blocks only, no prose), test logs
-https://recklesschess.space/test/12650/ (STC) and https://recklesschess.space/test/12663/ (LTC) (pages not opened).
+https://recklesschess.space/test/12650/ (STC) and https://recklesschess.space/test/12663/ (LTC) (text fields read;
+dev branch "lmp-is-direct-check-again").
 Context in the same history: #735 (2026-02-27) "10k movepicker bonus for direct checks", STC +3.13 / LTC +5.09.
 
 ## Licence
 AGPL-3.0 at aec5cb2e80 (tools/licence_at.py, notes/T04E/licences.md): ideas only. Read: PR title, PR text, commit
-message, test blocks. No source file and no diff read; the exact rule (direct checks only? depth limit?) is unknown.
+message, test blocks, test-log text fields. No source file and no diff read; the exact rule is unknown (the branch
+name points to direct checks; a depth limit, if any, is not stated).
 
 ## Mechanism
 Once a node has tried "enough" quiet moves (the late-move-pruning count), engines stop trying the remaining quiets.
@@ -32,7 +34,9 @@ Change: a "checks only" quiet stage - when LMP fires, the picker still generates
 
 ## Expected gain
 Reckless, 1 thread: STC 8+0.08 +2.84 +- 2.04 (95 %), n=28,536, LLR 2.92 [0,3]; LTC 40+0.4 +9.46 +- 4.06, n=6,500,
-LLR 2.93 [0,3]. Book not stated in the log (the #1038 test page of the same instance used UHO_Lichess_4852_v1).
+LLR 2.93 [0,3]. Book UHO_Lichess_4852_v1 (both logs), Hash 16 / 64 MB; W/L/D STC 7,260 / 7,027 / 14,249, LTC
+1,681 / 1,504 / 3,315; adjudication win 3 x 400 cp, draw from move 30 6 x 10 cp. The LTC run stopped early (6,500
+games), so its +9.46 is likely an overestimate.
 Forge estimate: +1 to +4 Elo at STC, more at LTC **UNPROVEN** (Forge already sends direct checks early; the LTC
 number has a wide error and comes from a single engine).
 

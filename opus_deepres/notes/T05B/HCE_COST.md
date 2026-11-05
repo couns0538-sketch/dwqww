@@ -1,4 +1,6 @@
 # T05B: where the lock's hand-crafted eval spends its time (from reading the code), and what is cached today
+Status: COMPLETE (first worker 23:57-00:20; finished by the continuation worker 00:22-00:57 PC clock: sections 4-8
+checked against the lock source again, sections 7-8 added).
 
 Lock FD3A5190 source, read-only: `C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean`.
 All file:line below are in that tree. No engine was built or run for this note; measured numbers are the crew's own
@@ -32,6 +34,7 @@ removed work is average work; branchy work is worth more per instruction).
 | **pawn structure** (score of evaluate_pawn_structure + both passed-pawn sets) | per-worker pawn cache, 32,768 entries, index pawn_key & 32767, full 64-bit key check + valid flag | include/forge/eval.hpp:52-65, src/eval.cpp:397-415, 471-480, 519-522 |
 | static eval of a TT position | the TT entry stores the raw eval (HCE + net); qsearch and search reuse it before calling static_evaluate | src/search.cpp:807-808, 935-936, 817, 868 |
 | NNUE accumulators | incremental, lazy, per stack frame | src/search.cpp:602-616 |
+
 NOT cached / NOT incremental: everything else in evaluate_position (below), the **material key** (recomputed from 10
 popcounts in a serial multiply chain at every corrected_eval and update_correction, src/search.cpp:588-596, 642, 655,
 with MaterialCorrectionWeight = 100 by default, src/search.cpp:50), any material-config table (none exists), any
@@ -77,6 +80,9 @@ threat target loops, passer loops. The shelter loop alone has 2-3 data-dependent
   `material_key(board)`: 10 popcounts and a **serial chain of 10 multiply-adds** (Horner form, :590-595) plus a final
   multiply -> ~40 ops and ~35-40 cycles of dependent latency before the material-correction load can even issue. The
   pawn-correction load uses the incremental pawn key and starts at once. perf: corrected_eval 2.76 % self.
+  Only bits 0-13 of the key are ever used: both callers mask with CorrectionSize - 1 (CorrectionSize = 1 << 14,
+  include/forge/search.hpp:257); LTO+PGO already narrowed the final multiply to imul $0x3c15 + and $0x3fff, but the
+  10-deep 64-bit chain before it stays (T05B-02 keeps its constants mod 2^14).
 - `static_evaluate` (:599-621): the lazy walk-back of the accumulator and RuntimePsqt, then HCE + net + clamp.
 
 ## 5. Node-identical options that follow from this (cards / table)
@@ -92,13 +98,46 @@ threat target loops, passer loops. The shelter loop alone has 2-3 data-dependent
 3. Below +1 % each (TABLE.md, no card): queen attack reuse, pawn-only masks in the entry, PassedRank folded into the
    pawn score, 32-B pawn entries without the valid flag, material-config table for scale_factor, pawn-entry prefetch
    (measured: no gain, R7EvalPrefetch).
+4. Own-code ideas added by the continuation (TABLE rows 17-18): threat target loops (eval.cpp:287-296) as per-type
+   popcounts (< 0.3 %); the null-move child's HCE from the parent's pre-tempo packed sum (the HCE reads the side to
+   move only for Tempo and the final sign, eval.cpp:452, :466) - break-even for +1 % nps needs > ~7 % of HCE calls at
+   null-move children, a share nobody has counted (the lock counts only null_tries_).
+5. Overlaps with the parallel sub-track T05C: PEXT slider index = T05C-03 (not proposed here; it also speeds the
+   HCE's slider lookups, 10 call sites in eval.cpp per T05C-03); the material key in Board = T05C-04, same target as
+   T05B-02 (the coordinator keeps one).
 
 ## 6. How to measure before any gate (proposal; no run in this job)
-- Counters build (not for gating): count HCE calls, pawn-cache hits / misses, king-square hits per colour, bench 13
-  and 200 game positions at movetime 200; gives the hit rates the estimates above assume (none are logged today).
+- Counters build (not for gating): count HCE calls, pawn-cache hits / misses, king-square hits per colour, HCE calls
+  at null-move children (TABLE row 18), HCE calls on positions whose TT entry was replaced (row 10), bench 13 and 200
+  game positions at movetime 200; gives the hit rates the estimates above assume (none are logged today).
 - Microbenchmark: extend S37's `forge_nnue_microbench` (opus-sol-S37 `tools/nnue_microbench.cpp`, links forge_core) with
   a region that times `evaluate_runtime` on the same 10,000 positions + 346,182 children with the old and the new
   code in one binary; checksum of every eval must be equal (the tool already prints per-position FNV-1a of HCE and
   total eval).
 - Identity: bench pins d11-d22 + perft, 12k-FEN exe identity (eval + bestmove per FEN) with the kit; then the
   standard nps probe (T05 SPEED_LIST header) with fresh exe copies and an A/A arm.
+
+## 7. Outside designs and logged numbers (details and links: sources.md, TABLE.md)
+| engine (licence, what was read) | design | logged number |
+|---|---|---|
+| Arasan v22.3.0, 2dbc0649dc (MIT, doc/license.txt; src/scoring.h structure declarations + doc/CHANGES) | pawn hash with per-colour pawn-only masks beside the scores; a SEPARATE king-pawn hash per colour (own hash code) for king cover, storm, pawn attacks near the king, king endgame score; 18.2 merged the endgame-score cache into the king-cover cache | none for any cache (11.0: magic bitboards "About 20-25% speedup", 2008, move generation) |
+| Stockfish (GPL-3.0, commit messages only) | 2009: king shelter cached in the pawn entry, "not so fast to calculate", no functional change; material key kept incrementally, feeding material correction history (2024) | no nps for the shelter cache; material correction STC <0,2> 189,472 g / LTC <0.5,2.5> 224,190 g is an Elo change |
+| Ethereal (GPL-3.0, commit messages only) | Pawn-King evaluation table (pawn + king terms cached together, key without a separate zobrist) | shelter term +Elo SPRT 5+0.05 [0,5] 13,175 g; PK-key change non-regression +1.72 +- 2.89, 23,620 g; no nps |
+| Weiss (GPL-3.0, PR text only) | pawn-structure cache as a pure speed change | "about 80-90% hitrate"; +10.11 +- 6.10 Elo, 10+0.1, 5,776 g, SPRT [0, 5]; no nps |
+| own R7 J3 (opus-r7-nps) | prefetch of the child's pawn entry after make_move | -0.60 % [-2.36, +1.18] d16 wall nps, 5 runs -> kept OFF |
+
+The designs that cache king-pawn terms need the king placement in the lookup (Arasan: its own king-pawn hash code
+per colour; Ethereal: a Pawn-King table key; the Stockfish 2009 message gives no detail); none logs a speed-up.
+Caissa, Altair and Patricia (MIT) were not read: their current evals are NNUE (PENDING, not needed for the two cards).
+
+## 8. Proof recipe in order (node-identical = bench pins equal by construction)
+1. Build switch OFF (default): the preprocessed source equals the lock's, so the lock pins hold by construction
+   (still checked once on the kit build).
+2. Microbench per change, old and new code in ONE binary (section 6): 0 eval-checksum mismatches over the 10,000
+   positions + 346,182 children, then HCE / corrected_eval ns per call. Go only if the change saves time there.
+3. One speed exe with every change that passed 2 (T05B-01 + T05B-02; rows 5 / 17 only if their microbench gains),
+   kit build pc1 = pc2, bench d11-d22 + perft pins, 12k-FEN exe identity vs the lock, planted mutants (T05B-01: skip
+   the king-square compare; T05B-02: drop one K_j term) must change bench nodes.
+4. nps: palindromic ABBA (protocol T12-02, standard probe from the T05 SPEED_LIST header, fresh exe copies, A/A arm
+   first). No SPRT: the search tree for a given node count is unchanged, so only speed can differ; the gate route is
+   nps ABBA only.

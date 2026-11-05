@@ -20,7 +20,7 @@ Scale: the lock's game-position probe runs ~2.24 Mnps (T05 SPEED_LIST, 30-h coun
 | 9 | see_ge (board.cpp:932-1023; search.cpp:360, :838, :1008, :1071, :1083, :1113) | every good-capture pick, qsearch captures, SEE pruning of quiets and captures, check extension | early exits; otherwise attackers_to (2 lookups) + per exchange step a fresh pin scan (3 table tests + 2 empty-board lookups + between() per aligned enemy slider) | none found: the per-step pin scan uses the CURRENT occupancy (pins can appear / vanish during the exchange), so a per-node pin cache changes results; hoisting only the empty-board lookups saves well under 1 % | dead end |
 | 10 | static_exchange (board.cpp:1025-1034, a binary search of ~12 see_ge) | NO caller in search.cpp (grep: only board.hpp / board.cpp) | - | - | dead end (not hot) |
 | 11 | is_pseudo_legal (board.cpp:600-669; search.cpp:326, :370-379) | TT move per picker, killers / counter (<= 3) when the stage is reached | branchy; one lookup for a slider | fine as is | none |
-| 12 | material_key (search.cpp:588-596) in corrected_eval (:641-642, from :809 / :937) and update_correction (:655, from :1222); MaterialCorrectionWeight = 100 by default (search.cpp:50) | every node that computes a static eval, and each correction update | 10 popcounts + a 10-deep dependent multiply chain + 1 multiply (~35-45 cycles latency) | keep the value in Board, recompute with the SAME formula only after a capture or promotion, restore from Undo | T05C-04 |
+| 12 | material_key (search.cpp:588-596) in corrected_eval (:641-642, from :809 / :937) and update_correction (:655, from :1222); MaterialCorrectionWeight = 100 by default (search.cpp:50) | every node that computes a static eval, and each correction update | 10 popcounts + a 10-deep dependent multiply chain + 1 multiply (~35-45 cycles latency) | keep the value in Board, recompute with the SAME formula only after a capture or promotion, restore from Undo | T05B-02 (existing card; T05C-04 was a duplicate, MERGED into TABLE row 18) |
 | 13 | key_history_ push / pop (board.cpp:788, 793, 838, 842) | every make / unmake | std::vector push_back (capacity check; reserve 512 at board.cpp:176) | fixed array + index | none (< 1 %) |
 | 14 | Move list layout: Move = 4 x uint8 (board.hpp:34-47), MoveList = 256 x Move + size_t (1,032 B), Scored = {Move, int} (8 B), Undo 40 B (board.hpp:75-85), Board mailbox squares_ = 64 x int Piece = 256 B (board.hpp:170) | - | - | uint8 Piece mailbox (64 B) touches 1 line instead of 4; not counted as a card (< 1 % expected) | none |
 
@@ -34,7 +34,19 @@ Scale: the lock's game-position probe runs ~2.24 Mnps (T05 SPEED_LIST, 30-h coun
   attack tables + 786 KiB lock float w1 + ~1.55 MiB histories) is larger than Zen 5's 1 MiB L2, so the compressed form
   is the variant worth timing (T05C-03).
 
-## Proof recipe (shared by T05C-01 .. -04; follows T12-03, T12-02)
+## Per-card static budget (counted, not measured; every figure UNPROVEN until step 0 of the microbenchmark plan)
+| card | rows above | what goes away per node | what is added per node | static estimate |
+|---|---|---|---|---|
+| T05C-01 check info | 1, 4 (fast path), 5, 6, 7 | per picked move: the king-attack test (2 lookups) and most of gives_check (up to 4 lookups); per make_move without check: attackers_to (2 lookups); per non-check node: the has_legal_move fallback (memset 1,032 B + full list) when the pawn-push witness fails | one lazy build per node of pinned / blockers (2 x-ray lookups + a loop over aligned sliders) and check squares (2 lookups + table reads) | +1 to +3 % nps, more in endgames without a free pawn push |
+| T05C-02 no zero fill | 2, 3 | 2 CRT memset calls (3 KiB) + 4-19 zmm stores per picker; the captures / promotions generated twice in the quiet stage | one mode flag in the generator | +1 to +3 % nps (quiets-only part +0 to +1 %) |
+| T05C-03 PEXT slider index | every lookup in rows 1-9 and the HCE's 10 call sites | and + imul + shr per lookup; with 16-bit entries 841 KiB -> 210 KiB of slider tables in the L2-contended set | one pext (+ one pdep for value 2 / 3) per lookup | 0 to +1 % (value 1), +0.5 to +3 % (value 2 / 3) |
+The cards touch disjoint code (T05C-01 board.cpp tests, T05C-02 search.cpp picker arrays + generator mode, T05C-03
+bitboard tables), so they can be timed one by one and then together in one speed exe; T05C-01 and T05C-03 overlap in
+benefit (fewer lookups vs cheaper lookups), so the combined gain is less than the sum. Order: T05C-02 first (smallest
+change, simplest proof), T05C-03 value 2 second (exhaustive table test), T05C-01 last (largest proof surface).
+Every candidate considered, with its verdict: notes/T05C/TABLE.md.
+
+## Proof recipe (shared by T05C-01 .. -03; follows T12-03, T12-02)
 1. Build: kit pc1 = pc2 exe sha256; the switch OFF build must equal the lock exe's behaviour (pins below).
 2. Pins: bench d11 / d13 / d16 / d20 / d22 = 312866 / 862329 / 3024920 / 12389307 / 34048354; perft startpos 5 =
    4,865,609; kiwipete 5 = 193,690,690; plus a perft suite (the chess-library README FENs: positions 3-6 incl. the

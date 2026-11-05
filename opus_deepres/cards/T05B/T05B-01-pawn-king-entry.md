@@ -19,10 +19,11 @@ The shelter / storm / open-file loop and the king-pawn distance depend only on t
 square. Per colour, the pawn entry also stores the king square they were computed for (sentinel 0xFF = none), their
 summed packed Score, and the summed middlegame part (the `shelter` integer king danger divides by shelter_divisor).
 Pawn-key hit and same king square: add the stored Score, hand the stored integer to king danger. Otherwise compute
-as today and store. A pawn-key refill sets both king slots to the sentinel (with no pawns the loop still adds
-ShelterDistance + 0 and KingFileOpen, so a zeroed slot is NOT valid). Castling rights are not part of the key: the lock's
-shelter never reads them. The traced path (tuner) keeps computing everything. Integer sums are order-free, so every
-eval, and thus every node, is unchanged. Optional step 2: the passer king-distance part (both king squares).
+as today and store. A pawn-key refill and the default entry of clear() set both king slots to the sentinel (with
+no pawns the loop still adds ShelterDistance + 0 and KingFileOpen, eval.cpp:221, :227: a zeroed slot is NOT valid).
+Castling rights are not read by the shelter, so not keyed. Lifetime as today's entry (the engine never writes
+params::table, eval_params.hpp:64-66; clear() at search.cpp:576). The traced path (tuner) computes everything.
+Integer sums are order-free, so every eval and every node is unchanged. Optional step 2: passer king distances.
 
 ## Forge fit
 Lacks it: `forge_has.sh 'shelter|king_safety_cache|KingEntry|pk_key|pawn_king'` hits only the loop (eval.cpp:207-250)
@@ -34,8 +35,10 @@ probe; 16,384 (1 MiB) or 32,768 (2 MiB) entries is a microbench knob - both node
 Sources: no nps number logged anywhere (Stockfish "not so fast to calculate", no number; Arasan CHANGES none; Ethereal
 none). Weiss PR 374, pawn-only cache: "about 80-90% hitrate", +10.11 +- 6.10 Elo at 10+0.1, 5,776 g, SPRT [0, 5].
 Forge: HCE 14.43 % of samples (R7 perf bench 16); shelter + KPD ~175-205 of ~1,650-1,900 instructions per HCE call,
-2-3 data-dependent branches per file; at 70-90 % reuse this removes ~1.0-1.6 % of node time before the bigger
-entry's cost. Forge estimate: **+0.5 to +1.5 % nps UNPROVEN**.
+2-3 data-dependent branches per file. Reuse = pawn hit x same king square: Weiss logs 80-90 % pawn hits, the
+king-square share is logged nowhere (counters build, test plan step 1; lower in endgames, where kings walk). At
+70-90 % reuse this removes ~1.0-1.6 % of node time before the bigger entry's cost (at 55 %: ~0.7-1.0 %).
+Forge estimate: **+0.5 to +1.5 % nps UNPROVEN**.
 
 ## Effort
 Crew ~4 h (eval.cpp / eval.hpp behind a build switch, microbench region, counters build, proofs); CPU ~1-2 h (two
@@ -47,8 +50,8 @@ kit builds, pins, 12k-FEN identity, microbench, probe); no SPRT; GPU 0.
    10,000 positions + 346,182 children in one binary: 0 checksum mismatches, HCE ns per call delta.
 3. ON exe with the kit (pc1 = pc2): bench d11-d22 + perft pins, 12k-FEN exe identity vs the lock; planted mutant
    (skip the king-square compare) must change bench nodes.
-4. Gate route: node-identical = nps ABBA only (standard probe, fresh exe copies, A/A arm). Alone it may sit under the
-   per-file effect (BH-8 up to 3-5 %): time it in one speed exe with T05B-02.
+4. Gate route: node-identical = nps ABBA only (standard probe, protocol T12-02, fresh copies, A/A arm). Alone it may
+   sit under the per-file effect (BH-8 up to 3-5 %): time it in one speed exe with T05B-02.
 
 ## OFF-by-default design
 Build switch FORGE_HCE_PKCACHE (default 0 = lock source unchanged, so the lock pins by construction); not a UCI

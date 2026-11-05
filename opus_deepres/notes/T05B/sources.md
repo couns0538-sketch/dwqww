@@ -1,11 +1,14 @@
 # T05B sources (one line per source read: url or repo@sha | licence tier | what it gave | card id or "no card")
 
 Sub-track T05B: node-identical speed of the hand-crafted eval (own code) - pawn / material caches, attack-map reuse.
-Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the latest.
+Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the latest. That worker was stopped
+at 00:20 to move the job into one pooled workflow. Continuation worker: start 00:22 PC clock (2026-11-05), research
+stop 00:57; it read no new web source (the stop rule - two sources in a row without a new card - was already reached:
+no web source gave a new card, both cards come from own code) and only re-read own code and records (L7, L8). Note:
+the "recorded 00:21-00:29" times in web rows 4-7 are later than this file's last write by the first worker (00:16,
+file time) and its stop (00:20): treat those times as unreliable; the rows' contents were not re-checked.
 
 ## Local (own code and records, read-only; not counted as web sources)
-
-## Web sources
 - L1. Lock source (read-only) C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean:
   src/eval.cpp (530 lines, read in full), include/forge/eval.hpp (PawnEntry 40 B, PawnCacheSize 1<<15, RuntimePsqt),
   include/forge/eval_params.hpp (flat table + KingSafetyWeights), include/forge/bitboard.hpp + src/bitboard.cpp (magics,
@@ -34,6 +37,18 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   0x1400ee33e, Worker::search update_correction at 0x1400ef925, Worker::qsearch at 0x1400fae4d); the material-correction
   load issues only after the chain. evaluate_position<false>.constprop.0 = 2,968 static instructions (79 imul, 69
   popcnt, 331 branches, 63 cmov) | own | T05B-02, HCE_COST
+- L7. Continuation re-read of the lock source (00:25-00:33): src/eval.cpp:195-330 and :370-530, include/forge/eval.hpp:1-70,
+  src/search.cpp:45-52 and :584-660, include/forge/search.hpp:257 (CorrectionSize = 1 << 14), eval_params.hpp extern
+  lines (table :64-66 "the engine never writes to it", king_safety :84), search.cpp:576 (evaluator_.clear()),
+  search.cpp null-move lines :964-996 (null_tries_ / null_cutoffs_ counters).
+  Confirms both cards' file:line claims and the king-slot sentinel (eval.cpp:221, :227 add terms with no pawns); new:
+  only bits 0-13 of material_key are ever used (T05B-02); the HCE reads the side to move only for Tempo and the final
+  sign (eval.cpp:452, :466), so a null-move child's HCE follows from the parent's pre-tempo sum (TABLE row 18); the
+  threat loops at eval.cpp:287-296 can be per-type popcounts (TABLE row 17) | own | T05B-01, T05B-02, TABLE 17-18
+- L8. Other tracks' files for the duplicate check (00:28-00:31): cards/T05C/T05C-03-pext-slider-index.md (PEXT slider
+  index = T05C's, not proposed here), cards/T05C/T05C-04-material-key-cache.md + notes/T05C/BOARD_COST.md row 12 (same
+  target as T05B-02: overlap noted in the card), notes/T05/SPEED_LIST.md header (standard probe), cards/T12/T12-02-nps-protocol.md
+  (nps protocol), grep of cards/*/ and notes for shelter / pawn cache / material key (no other overlap) | own | T05B-01, T05B-02
 
 ## Web sources
 1. https://github.com/AndyGrant/Ethereal commits via tools/mine_commits.py --grep (652 commits since 2017 cached) +

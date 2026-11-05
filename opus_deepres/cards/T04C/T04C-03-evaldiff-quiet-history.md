@@ -1,1 +1,1 @@
-ONE-LINE | PENDING (TT replacement that favours the most recent position; Berserk PR 575) | https://github.com/jhonnold/berserk/commit/fe1363af6b | PENDING | PENDING | PENDING | PENDING | PENDING
+MERGED into notes/T04C/TABLE.md row B1 (its content: TT replacement favouring the recent position, Berserk fe1363a; the lock already favours recent entries) and row B2 (the idea in its file name: eval-difference quiet history = evidence for the crew's prepared packc 28 EvalSwing)

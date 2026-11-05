@@ -22,19 +22,23 @@ because unsigned arithmetic mod 2^64 is a ring. (a) Closed form, no Board change
 from the same literals; the key is K0 plus 10 independent products (or 10 small table entries indexed by the counts),
 summed as a tree: same 64-bit value, latency ~10 cycles instead of ~40. (b) Incremental: Board keeps the value
 (set_fen from (a); make_move subtracts K_j for a capture or en passant, swaps pawn for piece on a promotion; unmake
-restores it from Undo); corrected_eval and update_correction read one field.
+restores it from Undo); corrected_eval and update_correction read one field. Only bits 0-13 are ever used (both
+callers mask with CorrectionSize - 1, CorrectionSize = 1 << 14 at include/forge/search.hpp:257; the lock exe already
+narrows the last multiply to imul $0x3c15), so K0 and K_j can be kept mod 2^14 and summed in 32 bits: same index.
 
 ## Forge fit
 `forge_has.sh 'material_key|materialKey|material_table|MaterialEntry'`: only search.cpp:588, :642, :655 - no material
 key in Board, no material table. Runs at every non-check node that reaches the eval step (TT-eval reuse included)
 and at each correction update. More keys (card T04-04 minor / major correction keys) would add more such chains, so
-(b) is also the base for those.
+(b) is also the base for those. Overlap: T05C-04 (one-line, same target; design = recompute with the same formula
+only after a capture or promotion, restore from Undo; no number) - the coordinator keeps one; this card adds the
+closed form (a), the 14-bit index, the disassembly, the unit test and the planted mutant.
 
 ## Expected gain
-Source numbers: none for this exact change (Stockfish's key has been incremental since 2009; no nps logged). Forge:
-bounded by corrected_eval's 2.76 % self time; the key is 31 of its ~56 instructions and ~40-50 of the ~70-80 cycles
-on its dependent path (counted from the disassembly); out-of-order execution may hide part of it. Forge estimate: **+0 to +1.5 % nps UNPROVEN** (~1 % if
-half of corrected_eval's time is the chain); (b) also saves the ~30 instructions.
+Source numbers: none for this exact change (Stockfish's key is incremental since at least 2009; no nps logged).
+Forge: bounded by corrected_eval's 2.76 % self time; the key is 31 of its ~56 instructions and ~40-50 of its
+~70-80-cycle dependent path (disassembly); out-of-order execution may hide part. (b) also saves ~30 instructions.
+Forge estimate: **+0 to +1.5 % nps UNPROVEN** (~1 % if half of corrected_eval's time is the chain).
 
 ## Effort
 (a) crew ~1-2 h, (b) ~3-4 h (Board, Undo, set_fen, debug check, CTest); CPU ~1 h (kit build, pins, identity, probe).
@@ -47,8 +51,8 @@ No SPRT; GPU 0.
 2. Static check: objdump of the ON exe shows no imul chain by 0x100000001b3 at the corrected_eval sites.
 3. ON exe with the kit (pc1 = pc2): bench d11-d22 + perft pins, 12k-FEN exe identity; planted mutant (drop one K_j
    term) must change bench nodes.
-4. Gate route: node-identical = nps ABBA only (standard probe, fresh copies, A/A arm), timed in one speed exe with
-   T05B-01 (alone it is below the PC's per-file effect).
+4. Gate route: node-identical = nps ABBA only (standard probe, protocol T12-02, fresh copies, A/A arm), timed in one
+   speed exe with T05B-01 (alone it is below the PC's per-file effect).
 
 ## OFF-by-default design
 Build switch FORGE_MATKEY_FAST (0 = lock source, lock pins by construction; 1 = closed form (a); 2 = incremental (b)).

@@ -58,3 +58,37 @@
   (chess.swehosting.se/test/10790) vs delenda; "umwelt" from-scratch net + more 25k-node data -2.18 +- 2.79 (24,186
   games, /test/10275) - both confounded; together with "perseverance" (+7.24 / +8.44) the recency-purge evidence is
   mixed | TABLE rows (recency, nodes per move); no card
+- continuation worker start 00:22 (date); stop researching at 01:02 (start + 40 min, earlier than 07:30). Read first:
+  WORKER_RULES.md (incl. Round 2), cards/TEMPLATE.md, this folder (1 card, sources 1-6), notes/CRITIC.md rows 52-72 +
+  171-174, notes/T02/TABLE.md, notes/T02/MIX.md, skill forge-selfplay-datagen (64 lines), tools/tried_gates.py
+  --grep 'zero|skip|filter|datagen|draw|adjud|book|opening' (1 of 110 gates, a book trial; no data-filter gate).
+- 7. official-stockfish/nnue-pytorch commit messages (cache 2021-11-01__now, grep of filter words) + PR 450 text
+  (gh api pulls/450) + commit metadata of d87c248fbe (title "update", 12 added lines in the C++ data loader; diff NOT
+  opened) + gh compare | GPL-3.0, commit titles / PR text only | "skip zero evals (#450)" = squash commit f5c9d01569
+  (2026-04-15): the loader skips rows whose score is exactly 0; Forge's npt pin b26145006e (F:/nnue_pytorch
+  SETUP_REPORT.md) is 106 commits ahead of f5c9d01569 and 0 behind = the pin contains it (whether it is unconditional
+  is not stated in the PR text; source not read). Also "Implement simple_eval_skipping (#321)" (2025-06-28, a
+  material-imbalance skip used for a small second net) and "Skip positions with score equal to VALUE_NONE (#219)" |
+  TABLE rows (zero-score skip; simple-eval skip)
+- 8. official-stockfish/Stockfish 9bdf2f8d4c (2026-04-15, nn-f68ec79f0fe3, PR 6730 text via gh api) + fishtest
+  records api/get_run/69db95f43ca80bdf151d4913 and /69ddd9003ca80bdf151d4c4d | GPL-3.0, commit message / PR text /
+  test logs only | net trained with a recipe yaml (Disservin/nettest@8da0a21503 threats.yaml, not opened) + the
+  zero-eval skip, vs master (net nn-7bf13f9655c8, trained by another author, recipe not stated): STC 10+0.1,
+  UHO_Lichess_4852_v1.epd, 1 thread, SPRT [0,2] normalized accepted, 106,272 games W 27916 L 27489 D 50867 (~+1.40);
+  LTC 60+0.6, same book, [0.5,2.5] accepted, 29,748 games W 7775 L 7470 D 14503 (~+3.56). The PR text says the zero
+  rows "are actually mostly skipped" already "except a very small percentage" = confounded with the recipe | TABLE
+  row (zero-score skip), evidence only
+- 9. commit-title sweep of 9 cached repos (Ciekce/Stormphrax, Yoshie2000/PlentyChess, gab8192/Obsidian,
+  jhonnold/berserk, PGG106/Alexandria, codedeliveryservice/Reckless, Adam-Kulju/Patricia, Alex2262/AltairChessEngine,
+  TerjeKir/weiss; grep of datagen / in-check / adjudication / eval-limit / DFRC / random-move / multipv words) |
+  commit titles only (GPL / AGPL titles; MIT ones not opened) | datagen commits ("datagen tweaks", "datagen setting
+  changes", "dont do mat scaling in datagen", "update datagen for incheck", ...) carry NO Elo; in-check hits are all
+  search changes | no card
+- 4 (cont.). viri_networkhistory_7489e701bb.txt lines 10-60 + 1229-1256 | AGPL-3.0, docs | early rows without TC /
+  game counts: viri12 / viri14 / viri18 = data re-analysed with the newest own net +50 / +25 / +23.9 +- 7.2 (vs the
+  previous net); viri22 = same data re-evaluated with the HCE at depth 8: -10.5 +- 4.5 vs viri21; "oculist" (maybe
+  opening-filtered data, author unsure): 25k nodes -11.33 +- 5.31 (6,654 games, ob.expositor.dev/test/15) - confounded
+  | evidence for MIX.md G1 (net teacher beats HCE labels) and the relabel pipeline; no card
+- (own data, no licence) D:/grok-pc-data/selfplay_out/forge_selfplay_020.txt first 1,000,000 rows (read-only, awk,
+  3.6 s): cp == 0 rows 25,881 = 2.588 %, of them 84.6 % from drawn games (drawn-game rows overall 30.4 %); |cp| <= 10
+  5.21 %, |cp| <= 25 27.50 % | TABLE row (zero-score skip: Forge share)

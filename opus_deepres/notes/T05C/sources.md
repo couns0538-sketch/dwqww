@@ -1,7 +1,10 @@
 # T05C sources (one line per source read: url or repo@sha | licence tier | what it gave | card id or "no card")
 
 Sub-track T05C: node-identical speed of board, move generation, make/unmake, legality and SEE (own code).
-Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the latest.
+Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the latest. That worker was stopped at
+00:20 (job moved into one pooled workflow). Continuation worker: start 00:22 (2026-11-05, `date`), research stop 00:57.
+Card ids below were renumbered at 00:18-00:19 and are corrected here: T05C-01 = check-info legality, T05C-02 = move
+lists without zero fill, T05C-03 = PEXT slider index, T05C-04 = material key (MERGED: duplicate of T05B-02).
 
 ## Local (own code and records, read-only; not counted as web sources)
 
@@ -10,7 +13,7 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   "fancy" magics (struct Magic {mask, magic, table*, shift} = 32 B per square, index = ((occ & mask) * magic) >> shift,
   bitboard.hpp:143-171), magics searched at start-up from a fixed PRNG + per-rank seeds (bitboard.cpp:63-108), shared
   tables 0x19000 rook + 0x1480 bishop entries (= 800 KiB + 41 KiB), no PEXT/BMI2 path anywhere; Between/Line 64x64
-  tables (32 KiB each); pop_lsb / countr_zero helpers | own | T05C-01 (PEXT), BOARD_COST
+  tables (32 KiB each); pop_lsb / countr_zero helpers | own | T05C-03 (PEXT), BOARD_COST
 - L2. Lock source include/forge/board.hpp (205 lines), read in full: Move = 4 x uint8 (from, to, promotion, flags),
   MoveList = std::array<Move,256> + size_t (1,032 B), Undo = 40 B struct (captured, castling, ep, halfmove, fullmove,
   key, pawn_key, checkers, plies_from_null), Board = mailbox squares_[64] (Piece is int: 256 B) + 13 piece bitboards +
@@ -24,7 +27,7 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   ep key (733); see_ge (932-1023) is a threshold swap loop that recomputes pins from scratch at every exchange step
   (972-993); static_exchange (1025-1034) is a binary search over see_ge (~12 calls); is_pseudo_legal (600-669);
   perft (872-890) = pseudo-legal gen + is_legal per move; Zobrist table constexpr (115-141), pawn key incremental
-  | own | T05C-02, T05C-03, BOARD_COST
+  | own | T05C-01, T05C-02 (perft fill), BOARD_COST
 - L4. Lock source src/search.cpp, the board calls (grep + read of 319-556, 599-630, 692-702, 775-864, 1035-1170):
   MovePicker (319-556) holds moves_ std::array<Scored,256>{} (2 KiB), bad_captures_ std::array<Move,64>{} and a
   MoveList buffer_ (1,032 B; Move has default member initialisers, so the array is constructed element by element)
@@ -46,24 +49,25 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
   slider index by _pext_u64(occ, mask) behind the build macro CHESS_USE_PEXT (struct Magic {mask, attacks*} = 16 B)
   else the fancy-magic multiply-shift (mask, magic, attacks*, shift = 32 B); the SAME table sizes 0x19000 / 0x1480 as
   Forge; tables filled by walking the mask subsets with the chosen index function; Movelist = std::array<Move,256> +
-  int size with Move() = default and 2 x 16-bit members (move, score), so a new list is not zero-filled | T05C-01,
+  int size with Move() = default and 2 x 16-bit members (move, score), so a new list is not zero-filled | T05C-03,
   T05C-02
 - W3. https://github.com/Disservin/chess-library/blob/430266434aeb42f19bb5baa84597d671824889ff/src/movegen.hpp (grep +
   lines 55-200, 286-302 skimmed) | MIT (copy with notice) | fully legal generation: checkMask (55) = checker + the
   squares between it and the king, pinMask (104) split into straight / diagonal pin rays, seenSquares (123) = enemy
   attacks with our king removed, for king moves; pawns / pieces are masked by both before emitting; ep checked
-  separately (286) | T05C-03 (pin / check masks for the boolean tests), dead end (legal generation in the picker)
+  separately (286) | T05C-01 (pin / check masks for the boolean tests), dead end (legal generation in the picker)
 - W4. tools/mine_commits.py Witek902/Caissa --grep speed/pext/movegen/legal + --show 7ed119c 0dc61c8 5a6f623
   | MIT (copy with notice) | 7ed119c "Fix pext/pdep and MulHi64 falling back to software on non-Windows builds", no
   functional change: +3.01 +- 1.84, 5+0.05 Threads=1 Hash=8MB, SPRT [0,2] LLR 2.95, N=37,274 (hardware pext/pdep vs a
   software fallback, nps not logged); 0dc61c8 "Use threats info to generate less illegal king moves" +1.31 +- 1.92,
   8+0.08, [-1,2], N=59,368; 5a6f623 movegen / threat codegen tuning (no functional change) -0.03 +- 1.27, 5+0.05,
-  [-3,0], N=81,872 | T05C-01 (evidence that slider-lookup speed shows up in Elo), TABLE (dead end for codegen-only)
+  [-3,0], N=81,872 | T05C-03 (evidence that slider-lookup speed shows up in Elo), T05C-01 (0dc61c8 = nearest
+  logged number for cheaper king-move legality), TABLE (dead end for codegen-only)
 - W5. https://github.com/Witek902/Caissa/blob/57cae7ef71/src/backend/Bitboard.cpp (lines 10-44, 186-200, 290-330)
   | MIT (copy with notice) | under USE_BMI2 the slider index is ParallelBitsExtract(blockers, mask) into a plain
   102,400 + 5,248-entry table (AttackData {mask, uint32 offset}); without BMI2 a magic path with hand-optimised index
   widths (some squares one bit narrower, "5 bits -> 4 bits optimized") and smaller tables of 84,480 + 4,800 entries
-  (MagicData {mask, magic, uint32 shift, uint32 offset}) | T05C-01
+  (MagicData {mask, magic, uint32 shift, uint32 offset}) | T05C-03
 - L5. Static disassembly (objdump -d, no run) of the lock exe C:/Users/Administrator/grok-pc/forge_push/locks/
   lock_AL1_s198_ltopgo_x_20261030/forge_ltopgo_x_al1s198_v23.exe (sha256 fd3a51903e73dc1f...), listing kept at
   F:/odr/work/T05C/lock_v23.dis: Worker::search (recursive, 0x1400edd40) calls the CRT memset (an import thunk,
@@ -99,3 +103,26 @@ Worker start 23:57 PC clock (2026-11-04); research stop at 01:17 (80 min) at the
 - W11. https://uops.info/html-instr/PEXT_R64_R64_R64.html | measurement table (facts) | PEXT r64: Zen 5 latency 3 / 3,
   throughput 0.33 c (1 uop); Zen 3 and Zen 4 latency 3, TP 1.00 (ALU1); Zen 2 latency 18 (mask operand), TP 19.00,
   7 uops (microcoded); Zen+ TP 18.00; Alder Lake-P latency 3, TP 1.00. PDEP not fetched | T05C-03
+- W12. tools/mine_commits.py Alex2262/AltairChessEngine --since 2022-01-01 --grep speed / nps / movegen / legal / pin /
+  pext / magic / perft / attack / bitboard (841 commits cached, 41 shown, no logged result parsed) + --show 12ac55a
+  db61b04 33292b9 c48daa4 + PR text of #195, #196, #198 + the #198 patch of attacks.h / fixed_vector.h / move.h /
+  move.cpp (gh api; repo MIT at 12ac55a0e2) | MIT (copy with notice) | #196 "Varied movegen" (merge 33292b9, 2026-01-03):
+  a binary max-heap picks moves in certain nodes ("Q_BN" in the commit message, not expanded by the author), author's speed test master 1,342,447.6 vs dev 1,365,878.2 nps
+  ("-1.705 % +/- 1.249 %" = dev about +1.7 % faster; runs, TC and machine not stated) - a different pick order for
+  equal scores, so NOT node-identical for Forge (pick_best swaps + unstable std::sort); #195 "~1% speedup" (move
+  ordering, no data); #198 const / template clean-ups (constexpr board_edge, const size()), no number; commit messages
+  carry only Bench lines | no card (TABLE rows 19-20)
+- W4b. (same repo as W4, second grep; counted with W4) tools/mine_commits.py Witek902/Caissa --since 2021-01-01 --grep
+  uninit / initiali / zero / memset / move list / pinned / legal / gives check / checkers (943 commits cached, 22 shown)
+  | MIT | titles only, no new number: 11a18e7 "Introduce Position::GivesCheck_Approx" (an approximate test, would change
+  nodes if used for ordering / pruning), c73ac9b "Refactor and optimize move generation" (no result logged), d7956c8
+  "Fix potentially uninitialized memory in MoveOrderer" (the risk T05C-02's poison build and memcheck guard against)
+  | no card (TABLE rows 26-27)
+- W13. tools/mine_commits.py Disservin/chess-library --since 2021-01-01 --grep speed / faster / perf / init / zero /
+  movelist / pin / legal / check / pext / attack (576 commits cached, 84 shown, no result parsed) + PR text of #229,
+  #237, #183, #230, #244, #232 (gh api) | MIT (copy with notice) | PR 229 "IsGameOver(): avoid unnecessarily generating
+  all moves" (merge 3dd41be, 2026-03-10): a compile-time generation mode that stops at the first legal move, for the
+  game-over test - the same goal as T05C-01's has_legal_move part, no number; PR 230 isLegal for a given move, PR 244
+  / 232 givesCheck improvements and in-double-check helper, PR 237 movelist copy constructor: no numbers anywhere |
+  evidence (mechanism only) for T05C-01; no card. Second source in a row without a new card: research stopped here
+  (stop rule).
