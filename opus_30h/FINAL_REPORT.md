@@ -313,6 +313,7 @@ Runs (final checkpoint each; runs 1-6 are in the first-window table above):
 | r23_kb8s200b | KB8 | 200 / lr 2.0e-05 | 200 (ended) | -1.64e-04 (-40.1) | -5.48e-05 (-1.14) | PASS |
 | r24_kb32s200b | KB32 | 200 / lr 2.0e-05 | 200 (ended) | -1.83e-04 (-35.1) | -9.38e-05 (-1.68) | PASS |
 | r25_kb32s200c | KB32 | 200 / lr 2.0e-05 | 200 (ended) | -1.85e-04 (-35.4) | -6.41e-05 (-1.10) | PASS |
+| r27_kb32m400 | KB32 | 400 / lr 2.0e-05 | 400 (ended) | -1.43e-04 (-20.9) | -2.11e-05 (-0.29) | PASS |
 
 Key soups (offline, selection-biased: best of 37 soups scored in windows 2-3, chosen and judged on the same sets; full table
 `a/logs/gpu/soups_w2_table.md`):
@@ -379,6 +380,9 @@ generated):
   different length / layout; checkpoints of one run and extra seeds of one short recipe added ~0.
 - A short fine-tune of a soup does not improve it (window 3): 100 superbatches at lr 5e-6 with fresh AdamW state made
   the KB8 soup Y8 worse on both sets (paired S31 z +10.7, jobA z +2.4) and left the KB32 soup Z32 level (z -1.6 / +0.7).
+- Longer is not better for the finer layouts alone: a 400-superbatch native KB32 run (r27) ends at S31 -1.43e-4 vs
+  -1.80e-4 .. -1.85e-4 for 200 superbatches (window 3), as the 600-superbatch KB16 run did; native KB32 seeds do
+  help a KB32 soup (Z32 -2.24e-4 -> Z32c -2.34e-4).
 - Offline loss has not predicted play reliably in this job (n2e on 2026-11-03); the sanity matches below are 200-400
   games each, sanity only.
 
@@ -404,6 +408,11 @@ GPU plan 3 (queue log `C:\o30g\gpu\queue_runner3.log`):
   at 19:56 after r21: the KB8 soups sit at their plateau, the KB32 family had one native KB32 run). Final checkpoints, paired vs the lock net: r23 (KB8) S31
   -1.64e-4 (z -40.1) / jobA -5.5e-5 (z -1.14) = runs 5 and 10 of the same recipe (-1.65e-4 / -7.4e-5 and -5.1e-5): the
   recipe replicates; r24 (KB32) -1.83e-4 (z -35.1) / -9.4e-5 (z -1.68) vs run 8's -1.80e-4 / -5.4e-5; r25 (KB32) -1.85e-04 (z -35.4) / -6.41e-05 (z -1.10).
+- r27 = the GPU's last hour after plan 3 (plan3c, 21:17-22:02): a longer native KB32 run (400 superbatches, lr 2e-5)
+  is WORSE alone than the 200-superbatch KB32 runs: final S31 -1.43e-4 (z -20.9) / jobA -2.1e-5 (z -0.29) vs
+  -1.80e-4 .. -1.85e-4 (a/logs/gpu/w3_r27_scores.txt) - like the 600-superbatch KB16 run; only KB8's long runs
+  helped (jobA). Runner 3b (plan3b) was started with CPU 0 in its mask by mistake; TaskStop did not end it, so its
+  plan was emptied and it ended by itself without starting anything (a/logs/gpu/queue_runner3b.log).
 - End-of-window soups (a/final_soups3.sh, a/final_soups3b.sh; logs a/logs/gpu/final_soups3*.log), paired vs the lock
   net: Y8b = Y8 + r23 (KB8, 7 members) S31 -1.86e-4 (z -38.6) / jobA -1.00e-4 (z -1.83) = Y8 (the KB8 plateau);
   Z32b = Z32 + r24 (KB32, 6) -2.31e-4 (z -50.1) / -1.50e-4 (z -2.94); Z32c = Z32 + r24 + r25 (KB32, 7) -2.34e-4
@@ -803,9 +812,9 @@ names and took over between runs.
 - Sanity matches: all finished before the report (window-2 sanity table in section 1, pooled lines in the window-3
   section); 0 time forfeits, 0 illegal moves, 0 crashes in every match (gate_summary.py on each folder).
 - Final checks: 19 PASS at 20:28-20:33; the document checks again after the last edit (section 3, Tools / documents).
-- Still running at the end, by design: r27 (native KB32, 400 superbatches; trainer + watcher on CPUs 5-6 under the
-  guard, ends ~22:05, scores in `C:\o30g\gpu\r27_kb32m400_scores.tsv`) - read the TSV for its result. Two orphaned
-  read-only processes of the 13:40 monitor (pids 6828 tail, 10272 grep) are idle (BH-7). Nothing else of the job runs.
+- Nothing of the job runs any more: r27 (the GPU's last run) ended 22:01:56 and its last checkpoint was scored
+  22:0x (window-3 section). Two orphaned read-only processes of the 13:40 monitor (pids 6828 tail, 10272 grep) are
+  idle (BH-7); end them with `Stop-Process -Id 6828,10272` if wanted.
 - End-of-job bug hunt (checklist in STATUS.md): section 6.1. Time: section 6.2.
 
 ### 6.1 Bug hunt (1 hour at the end)

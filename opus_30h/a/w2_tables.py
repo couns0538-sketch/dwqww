@@ -17,7 +17,7 @@ RUNS = ['r6_kb8lr3', 'r7_kb16short', 'r8_kb32short', 'r9_kb16seed', 'r10_kb8seed
         'r13_kb16m400lr15', 'r14_kb8m400lr15', 'r15_kb8long2', 'r16_kb8s200lr1', 'r17_kb8m300', 'r18_kb8s200lr3',
         'r19_kb8m300b', 'r20_kb8s100',
         # window 3 (r21 / r22 = fine-tunes warm-started from the soups Y8 / Z32, not from the lock net)
-        'r21_y8ft', 'r22_z32ft', 'r23_kb8s200b', 'r24_kb32s200b', 'r25_kb32s200c', 'r26_kb8m300c']
+        'r21_y8ft', 'r22_z32ft', 'r23_kb8s200b', 'r24_kb32s200b', 'r25_kb32s200c', 'r26_kb8m300c', 'r27_kb32m400']
 LAYOUT = {'rank4': 'KB4', 'rank4x2': 'KB8', 'rank4x4': 'KB16', 'rank4x8': 'KB32', 'one': 'KB1'}
 
 

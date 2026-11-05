@@ -92,7 +92,9 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   first read, 120 games on CPUs 0 / 2 / 3 / 4 (to ~21:50).
 - 21:48 Z32c first read 120 games 52.08 % (+14.5 +/- 32.5; too few to rank it). 21:49-21:5x final report pass
   (section 4 pick: U8 first, then run 5), tables and INDEX.md (13 nets) regenerated, document checks, final commit;
-  then CI and publish_o30.sh. r27 trains until ~22:05 (scores in C:\o30g\gpu\r27_kb32m400_scores.tsv).
+  then CI and publish_o30.sh. 21:55 CI 41910495479 of c9268212 success.
+- 22:02 r27 (native KB32, 400 superbatches) final S31 -1.43e-4 / jobA -2.1e-5: worse alone than 200 superbatches;
+  the GPU queue ended; nothing of the job runs except the two idle orphans of BH-7. Job end ~22:1x.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
