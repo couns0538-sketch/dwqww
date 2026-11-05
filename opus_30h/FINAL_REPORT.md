@@ -389,7 +389,7 @@ GPU plan 3 (queue log `C:\o30g\gpu\queue_runner3.log`):
 - r23 = a KB8 seed of the r5 recipe; r24 / r25 = two native KB32 seeds (r25 was a KB8 seed in the first plan, changed
   at 19:56 after r21: the KB8 soups sit at their plateau, the KB32 family had one native KB32 run). Final checkpoints, paired vs the lock net: r23 (KB8) S31
   -1.64e-4 (z -40.1) / jobA -5.5e-5 (z -1.14) = runs 5 and 10 of the same recipe (-1.65e-4 / -7.4e-5 and -5.1e-5): the
-  recipe replicates; r24 (KB32) -1.83e-4 (z -35.1) / -9.4e-5 (z -1.68) vs run 8's -1.80e-4 / -5.4e-5; r25: R25-PENDING.
+  recipe replicates; r24 (KB32) -1.83e-4 (z -35.1) / -9.4e-5 (z -1.68) vs run 8's -1.80e-4 / -5.4e-5; r25 (KB32) -1.85e-04 (z -35.4) / -6.41e-05 (z -1.10).
 - End-of-window soups (a/final_soups3.sh, a/final_soups3b.sh; logs a/logs/gpu/final_soups3*.log), paired vs the lock
   net: Y8b = Y8 + r23 (KB8, 7 members) S31 -1.86e-4 (z -38.6) / jobA -1.00e-4 (z -1.83) = Y8 (the KB8 plateau);
   Z32b = Z32 + r24 (KB32, 6) -2.31e-4 (z -50.1) / -1.50e-4 (z -2.94); Z32c = Z32 + r24 + r25 (KB32, 7) -2.34e-4
