@@ -136,6 +136,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | mcthouacbb/Sirius | b764a80a8e | 2025-03-24 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
 | mcthouacbb/Sirius | b91b2a1e75 | 2024-12-21 | absent | no licence (all rights reserved) | - | api: none | T04S | ideas only (no licence) |
 | official-clockwork/Clockwork | 2844edc8c0 | 2026-01-05 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06C | ideas only |
+| official-clockwork/Clockwork | 305e45878f | 2025-10-09 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04U | ideas only |
 | official-clockwork/Clockwork | 413106d9bc | 2025-09-28 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04S | ideas only |
 | official-clockwork/Clockwork | 4915ccded1 | 2025-11-24 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T04T | ideas only |
 | official-clockwork/Clockwork | 4dd87cf3d2 | 2026-02-08 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06D | ideas only |
