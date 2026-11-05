@@ -37,7 +37,7 @@ Source number (own, R7 J3, PC, plain -O3 znver5 build of opus-r5d-matefix 5882c3
 run, rotated order, PC 73 % busy, 95 % t-intervals): +3.59 % [+1.38, +5.84] d16 wall and +3.97 % [+1.23, +6.77] d20
 wall nps over 15 runs (A/A -0.02 % [-2.24, +2.25] / -0.98 % [-2.51, +0.57]); second exe +1.54 % [-2.23, +5.45] d16,
 +5.45 % [+3.31, +7.63] d20 (6 runs); callgrind bench 13 -1.26 % instructions on Linux (native TLS there, so no fence).
-Gate R7-TTX, non-regression SPRT [-10, 0]: 2,534 games, +3.84 Elo, LLR 2.96, H1 (same R7 tree).
+Gate R7-TTX, non-regression SPRT [-10, 0]: 2,534 games, +3.84 Elo, LLR 2.96, H1 (same R7 tree; verify, gate log: 10+0.1 1t Hash=16 8moves_v3, W 305 / L 277 / D 1952, +3.84 +- 5.71 recomputed).
 Forge estimate on the LTO+PGO lock: +2 to +4 % nps **UNPROVEN** (same four opaque calls; PGO cannot remove them).
 
 ## Effort

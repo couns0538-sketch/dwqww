@@ -32,6 +32,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Alex2262/AltairChessEngine | b68643baab | 2023-07-08 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
 | Alex2262/AltairChessEngine | cbb5e27ab2 | 2024-07-18 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
 | Alex2262/AltairChessEngine | e42311036d | 2023-07-17 | LICENSE | MIT | MIT License | api: MIT | T04G | copy with notice |
+| AndyGrant/Ethereal | 0e47e9b67f | 2024-06-11 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | AndyGrant/Ethereal | 513a93c232 | 2020-09-19 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
 | AndyGrant/Ethereal | 5e25d42142 | 2022-01-16 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06C | ideas only |
 | AndyGrant/Ethereal | 7f6b2d3945 | 2018-07-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05B | ideas only |
@@ -49,6 +50,9 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | Ciekce/Stormphrax | e4b88b7a67 | 2026-02-22 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Ciekce/Stormphrax | eea6168441 | 2026-06-13 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T01B | ideas only |
 | Disservin/chess-library | 430266434a | 2026-11-03 | LICENSE | MIT | MIT License | api: MIT | T05C | copy with notice |
+| KierenP/Halogen | fe9b4dafc7 | 2026-11-01 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
+| Luecx/Koivisto | 6de225ad85 | 2023-02-08 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
+| Matthies/RubiChess | 263f15d796 | 2026-11-03 | copying | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04N | ideas only |
 | PGG106/Alexandria | 49391d7b70 | 2026-07-22 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
 | PGG106/Alexandria | 7de97e77aa | 2024-09-29 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T06B | ideas only |
 | PGG106/Alexandria | 829daf405e | 2026-11-02 | LICENSE.md | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T02B, T04C | ideas only |
@@ -136,7 +140,7 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | sebhofmann/sleepmind2 | 4f6cdfcc5a | 2026-11-03 | absent | no licence (all rights reserved) | - | api: none | T05E | ideas only (no licence) |
 | yaneurao/YaneuraOu | 3a0e4fd239 | 2026-11-03 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 
-30-Oct table repos not read by this job (no check needed unless a card cites them): jdart1/Fathom (verify), Luecx/Koivisto (GPL-3.0), KierenP/Halogen (GPL-3.0), Matthies/RubiChess (GPL-3.0).
+30-Oct table repos not read by this job (no check needed unless a card cites them): jdart1/Fathom (verify).
 <!-- merged:end -->
 
 ## Differences from the 30-Oct table

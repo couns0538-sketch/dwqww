@@ -59,3 +59,6 @@ Leorik mirroring (-10 %). Our own KB nps numbers are the only clean equal-tree b
   STC -3.08 +- 2.89 FAILED, LTC +1.78 +- 1.37 (58,474 g): the update cost can eat the whole gain at STC.
 - T01-04 (more king buckets): SP PR 177 (16 buckets + L1 1280; previous count not stated) STC +13.72 +- 5.42 (5,296 g); PC PR
   256 (7 factorised buckets + longer training) STC +4.96 +- 2.96 / LTC +3.95 +- 2.52; both confounded.
+
+Verify note (01:34 PC clock): row 6 / section C - PR 256 text does not say 0057r had less training; the longer-training step is the separate pair 0058 vs 0058-320 (+4.46 / +4.46). The +4.96 / +3.95 pair (0058-320 vs 0057r) is confounded by unstated differences, not by "more training".
+Verify note (01:35 PC clock): row 5 - the Viridithas v99 release text also carries LTC 40+0.4 +2.06 +- 1.61 (47,132 g, LLR 2.96 [0,3]), so "(fixed nodes only)" is wrong; v99 is a "fresh retrain using whole-network factorisation" (confounded; not king-bucket-only). Verdict unchanged.

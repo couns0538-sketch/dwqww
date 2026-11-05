@@ -1,0 +1,5 @@
+# T04I sources (LMR inputs and formula) - one line per source read
+Format: source | licence tier | what it gave | card id or "no card". Started 01:31 PC clock (research stop 02:26).
+
+- own notes (no licence needed): notes/T04F/DIFF.md (Caissa vs lock, LMR rows 50-59, 98-99), notes/T04G/DIFF.md (Altair / Patricia vs lock, history-in-LMR rows), notes/T04*/TABLE.md + notes/T06B/TABLE.md (LMR rows already judged), notes/TRIED_GATES.md (LmrCorrThreshold gate 16, LmrTtCapAll STB1, LmrCapVictim STB2, Sf26Bundle 14) | own | the list of LMR ideas already carded / tried / judged | no card
+- lock source src_al1s198_clean src/search.cpp:13-64 (tunables), :125-147 (reduction table), :1136-1158 (LMR block) | own code | the lock's LMR inputs: log x log whole-ply table (quiet / noisy), tt_pv -1, !improving +1, cut_node +2, TT-capture +1 (quiets), gives_check -1, in_check -1, child cutoffs > 3 +1, quiet history / 6000 clamped +-2 (quiets only), reduced depth clamped to [1, new_depth], plain re-search | no card
