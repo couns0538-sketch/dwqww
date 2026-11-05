@@ -3,7 +3,8 @@
 **State: INTERIM 4 (final draft)** - written from 05:41 PC clock on 2026-11-05 (finish time in the last line).
 Rounds 1-3 are researched, verified, second-voted, specified and ranked; still running at this writing: the last
 research run (T04T: logs of engines never read; T06D: hand-crafted eval terms the lock lacks, each with a Fable
-verifier) and, after it, a Fable critic of this report. The state line will say FINAL, STOPPED - TIME LIMIT or
+verifier). The Fable critic of this draft is done (`notes/CRITIC4.md`, 05:42-05:56: 13 findings, nothing blocking; being
+applied for the FINAL state; its finding 3 is rejected: card T02-01 names the 37 train files at its lines 19 and 22). The state line will say FINAL, STOPPED - TIME LIMIT or
 STOPPED EARLY - LOW USAGE at the end.
 
 Started 2026-11-04 22:23:27 PC clock; deadline 2026-11-05 08:23:27. Branch `opus-deepres-20261104`. No Elo claim for

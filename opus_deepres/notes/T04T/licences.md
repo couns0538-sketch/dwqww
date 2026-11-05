@@ -10,3 +10,11 @@ Clockwork = AGPL-3.0: ideas only (commit titles, commit messages, PR text, test 
 | liamt19/Horsie | a2ac89c5d8 | 2026-05-29 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
 | official-clockwork/Clockwork | 641d9f54d6 | 2026-10-24 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |
 | JonathanHallstrom/pawnocchio | bd860905d3 | 2026-07-09 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |
+
+At the merge commits of the cited PRs (tools/licence_at.py --row, 2026-11-05 05:47 PC clock):
+
+| repo | sha | date | file | spdx | first line | api |
+|---|---|---|---|---|---|---|
+| official-clockwork/Clockwork | b10cbf0133 | 2026-03-16 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |
+| official-clockwork/Clockwork | 4915ccded1 | 2025-11-24 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 |
+| JonathanHallstrom/pawnocchio | 64a744b5ee | 2026-04-17 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 |

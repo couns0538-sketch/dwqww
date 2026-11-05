@@ -9,7 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 05:39 (elapsed 7 h 16 min).
+- Last update of this file: 05:42 (elapsed 7 h 19 min).
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
@@ -64,6 +64,7 @@ this job is written to D:.
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
+| POOL3I (report critic) | RUNNING since 05:42 (wf_eb0e5f99-576, 1 worker; total 3 with POOL3H) | - | - | CRITIC4: Fable check of FINAL_REPORT.md INTERIM 4 (numbers vs cards / notes, five greps, brief coverage vs notes/CRITIC.md Part A, rule checks, section 2 arithmetic) -> notes/CRITIC4.md |
 | POOL3H (last research run) | RUNNING since 05:39 (wf_11a93894-6db, 2 workers; total 2 + the coordinator's report critic later = 3) | - | - | T04T: logs of engines never read (pawnocchio, Clockwork search PRs, Seer, Carp, Willow, Horsie; max 3 cards) + Fable verify; T06D: hand-crafted eval terms with logged Elo that the lock's HCE lacks (new angle: the lock is HCE + a residual net; fit with the residual frozen; max 3 cards) + Fable verify |
 | POOL3G (POOL3E's slot) | DONE 05:26-05:34 (1 agent, 150,775 agent tokens; FIXER4 round 6 on T04R-01, T04N-03, T04E-01, T04G-05; anchor :1153 corrected to :1154-1156); started (wf_ac834933-860, 1 worker; the hook refused two launches at 05:22 and 05:24 while finished workers were still inside its 3-minute window) | - | - | FIXER4: VOTE3 KEEP-WITH-FIX items on T04R-01, T04N-03, T04E-01, T04G-05 (round 6) |
 | POOL3F (POOL3B's slot) | DONE 05:03-05:34 (2 agents, 389,429 agent tokens; T04S logs-only from Sirius, motor, Tarnished PR bodies: T04S-01 continuation-history update with the summed continuation score as gravity base (Sirius STC +5.86 / LTC +14.38, Tarnished STC +2.23 / LTC +2.53, Clockwork STC +14.67), T04S-02 upcoming-repetition test in search (Sirius STC +5.29, Viridithas LTC +2.27); Fable verify: 2 confirmed, 1 correction (the Sirius STC was a blend form; pure sum vs blend +3.23 at 29k games)); started (wf_7f411aab-ab9, 1 worker) | - | - | T04S: logs-only mining (titles, messages, PR text, test logs; no source) of the five engines T04O skipped for licence (Sirius, Motor, Starzix, Pawnocchio, Tarnished; CRITIC3 item 10 coverage gap), max 3 cards, + Fable verifier |
