@@ -51,6 +51,19 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
 - 14:12 layout speed (identity nets, same trees, gate exe; 3-4 runs each by 18:21, single runs scatter +-1-2 %):
   nps vs KB4 KB8 mean 0.988 (0.983-0.997), KB16 mean 0.969 (0.956-0.985), KB32 mean 0.942 (0.940-0.944) ->
   the GPU plan (C:\o30g\gpu\plan.txt, a/queue_runner.sh, cutoff 18:40) now makes KB16 and KB8 soup members only.
+- 14:35-15:22 independent review of the window-2 code (12 findings) and its fixes (runner2 / watch2 / guard; W2-03's
+  second half dropped: psutil reads a suspended process as running, re-suspending stacked suspend counts on a dummy);
+  15:19 runner2 took over between runs.
+- 15:19-18:59 runs 12-20 (KB8 / KB16, 100-600 superbatches, lr 1e-5 / 1.5e-5 / 2e-5 / 3e-5); the 600-superbatch KB16 run
+  is worse alone, the 600-superbatch KB8 run has the best single-net jobA (-1.46e-4). Soups packed: P16, Z32, V16, U8, Y8.
+- 16:07-18:11 second owner list: items 1-5 here (73e4c828, 8f473e8a, 3bc5cd88, 101379e6, 6085d7b2), items 6-7 on the
+  R14 branch by the agent (0e9f68e1, CI green).
+- Sanity finals (vs the lock exe; control 47.0 %): r2 49.62 %, r5 52.62 %, r7 50.62 %, soupC 52.12 % (400 games each),
+  U8 51.00 %, P16 47.75 % (200 each); 0 time losses / illegal moves / crashes. V16 (CPU 1, 300 games) and Y8 (CPU 0,
+  400 games) play on after the window on the normal CPUs 0-1.
+- 17:51-18:32 Forge smoke 300 s + UCI conformance 22/22 for Y8, U8, V16, Z32; layout speed 3-4 runs: KB8 0.988x,
+  KB16 0.969x, KB32 0.942x of KB4; end to end v2p4 + Y8 0.893x and v2p4 + Z32 0.849x the lock exe's nps.
+- 19:00 final offline soups (all 11 KB8 runs -1.86e-4 = the KB8 plateau); 19:01 window 2 over (GPU idle from 18:59).
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
