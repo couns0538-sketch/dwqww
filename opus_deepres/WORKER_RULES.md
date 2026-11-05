@@ -41,6 +41,11 @@ stop you at any moment; whatever is on disk is what survives.
 - No Elo claim for Forge. Quote the source's number with link, TC, book, games, LLR / bounds, engine. Label every
   Forge-side estimate **UNPROVEN**. Every card has a gate route: UHO SPRT [0,5] at STC, then LTC; node-identical
   speed changes = nps ABBA only. Anything under +1 Elo (or +1 % nps) expected is dropped.
+- Crew decision (7-0 vote, received 2026-11-05 before 02:37): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension.
+- Board: read `D:/grok-pc-data/dwqww/WORKER_BOARD.md` first; claim your slot at your start with
+  `python -I -B tools/board.py start S<n> "<worker>" "<task>"` and release it as your last step with
+  `python -I -B tools/board.py done S<n> "<worker>" "<task>" "<result path>"` (three slots: never more than 3
+  active workers). This board file is the only file outside F:/odr that a worker may write.
 - Missing evidence is written as missing, never invented. If a number cannot be found, say so.
 
 ## Names

@@ -47,8 +47,9 @@ constants (plus 33-67 h of tuning games), T04E-01 LMP keeps quiet checks, T04G-0
 T01-04 (G class). Demoted by CRITIC2: T04H-02 (the source reverted it after three days), T04-04 (estimate now 0 to +2:
 two loose early-stopped SPRTs, and Reckless later removed both keys without loss).
 
-**Gate order** (gate-PC hours decide: a [0,10] nElo SPRT capped at 12k averages ~6.6k games, ~13-15 h at the measured
-430-502 games/h; owner decisions on bounds and Threads first, section 6): (1) T04E-03 (four engines); (2) T04-02 alone
+**Gate order** under the crew's decision (section 6, item 1: Threads=1, SPRT [0,5] normalized Elo, alpha = beta =
+0.05, pentanomial, cap 3,000 games = ~6-7 gate-hours at the measured 430-502 games/h; a capped run is UNPROVEN / no
+decision, a positive one gets exactly one extension): (1) T04E-03 (four engines); (2) T04-02 alone
 with own constants; (3) T04E-02; (4) T04B-01, then T04E-04 alone, then stacked; (5) T04D-01 and T04D-02; (6) T06-05 (no
 build); (7) the singular bit-set option (T04-01, then T04C-02, then the T04-06 triple at LTC); (8) T04F-01. Without
 SPRTs, after the T12-03 bench + fuzz proof (nps ABBA, T12-02 protocol): lock speed T05D-01 (port of the R7 exclusive TT
@@ -73,8 +74,10 @@ deeper entry" (Caissa d39fcfb / 9d566cc, SF b280d2f STC +3.91, PlentyChess 373).
 - Gate rate 430-502 games/h measured for every `*_vs_AL1*` gate (497 at Threads 2 / conc 4); the ~1,000 games/h in some
   cards is the older R7 J4 rate (Threads 1, conc 8). v2 identical-eval control: -20.9 +- 18.5 (post root fix, sanity
   only); the pre-fix -32.2 is stale.
-- `[0,5]` in the cards' gate routes: the unit is OPEN - T12-01 shows the gates ran [0,10] nElo and that [0,5] nElo needs
-  ~26k games on average; the owner's bounds decision replaces every card's route.
+- Gate route: DECIDED by the crew - [0,5] normalized Elo, alpha = beta = 0.05, pentanomial, cap 3,000, Threads=1,
+  capped = UNPROVEN / no decision with one extension when positive. By T12-01's model [0,5] nElo rarely decides a
+  +1 to +3 Elo effect within 3,000 games (+ one extension), so most cards here will end UNPROVEN: expected, not a
+  failure of the idea. Every card's "UHO SPRT [0,5]" route is read with this decision.
 - T5: v2p4 at 0.85-0.89x = build ~0.98 x KB4 table + refreshes ~0.95 x finer layout (KB8 0.988, KB32 0.942) x an
   unmeasured ~0.97 (`notes/T05/V2P4_GAP.md`); int8 / VNNI / find-nnz apply to the HalfKA path only; Zen 5 VPDPBUSD zmm
   latency 3 / 0.5 c, VPCOMPRESSD store 8 uops (Zen 4: 144). BOLT on MSYS2 / Windows: **no** (ELF only, bolt/README.md).
@@ -98,8 +101,7 @@ moves not advancing rule50 | int16 accumulators (bound 342,331 > 32,767) | int8 
 on PE | shared correction tables (only if gates stay Threads=1) | fail-firm RFP (gate 86) | EvalOptimism=40 (rerun H0).
 
 ## 6. Owner items
-1. Gate Threads (brief: 1; UHO gates' RUN_INFO and R15 lines: 2) and gate bounds / caps (79 of 110 gates ended capped;
-   T12-01: [0,10] nElo cap 12k or [0,15] cap 6k); the `[0,5]` unit in the cards.
+1. DECIDED by the crew (7-0): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension.
 2. EvalOptimism=40 rerun H0 (-5.30 +- 7.20, 2,360 g): the optimism line looks closed.
 3. Viridithas v20.0.0 is MIT at its tag 0631113e22 (source readable there); Integral's MIT-carded dataset holds no files.
 4. lambda 1.0 in the w4 runs vs the decided 0.7-0.9; where the Lichess rows are; Syzygy files on grok-pc?

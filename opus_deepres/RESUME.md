@@ -20,7 +20,7 @@ and tools: `skills/forge-deep-research/SKILL.md` (also installed as a user-scope
   the larger-n Stockfish pair, T04E-03 own start values check, "768 KiB (786 KB)").
 
 ## Plan after the usage-window reset (owner: reset ~03:40)
-A fresh pool (never resume a pool) of 5 workers, only non-overlapping tasks: (1) card for the deeper-entry TT-cutoff
+A fresh pool (never resume a pool) of 3 workers (owner cap; board D:/grok-pc-data/dwqww/WORKER_BOARD.md), only non-overlapping tasks: (1) card for the deeper-entry TT-cutoff
 rule from the existing TABLE rows; (2) T04O permissive engines; (3) Fable second vote on the round-2 top cards (T04D-01,
 T04D-02, T04C-02, T04E-02, T04F-01, T04B-01, T04E-04, T04E-03, T04N-01, T04N-02); (4) own-words specs for T04E-03,
 T04E-02, T04B-01, T04D-01, T04D-02; (5) fixer for the CRITIC2 items above; (6) at ~06:30 a refreshed ranking + a short

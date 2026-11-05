@@ -17,7 +17,7 @@ this job is written to D:.
 - Usage: this session cannot read a usage meter itself. Readings given by the owner: before 01:35 "usage limit of 5h
   is running out" (agents cut from 10 to 3); just before 02:26:51 "5 hour window is at 77 percent resets in 1 hour
   14min" = 23 % left, reset about 03:40. Plan: no new agents until the reset (the light pool's last verifier finishes
-  by itself), the coordinator writes the FINAL report now; after 03:40 a 5-worker pool on non-overlapping tasks until
+  by itself), the coordinator writes the FINAL report now; after 03:40 a 3-worker pool (owner cap: at most 3 parallel workers, fable / opus-max only, coordinated via D:\grok-pc-data\dwqww\WORKER_BOARD.md) on non-overlapping tasks until
   07:20. The low-usage rule (<= 10 % left) still triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
   inherit both; checked on a child process), so every command runs at Idle on at most 2 logical CPUs, never on
@@ -52,6 +52,10 @@ this job is written to D:.
   + Alexandria logs, T04D Stockfish search commits since 2024, T04E Reckless + Viridithas, T04F feature diff vs Caissa,
   T04G move ordering / history diff vs Altair + Patricia, T05B HCE eval speed (own code), T05C board / movegen / SEE
   speed (own code); each followed by a Fable verifier. With phase 2's two agents: 10 agents active.
+
+## Crew decisions and owner cap (received before 02:37)
+- Crew decision (7-0 vote, received 2026-11-05 before 02:37): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension.
+- Owner cap: at most 3 parallel workers (not 5), fable or opus-max agents only, coordinating via `D:\grok-pc-data\dwqww\WORKER_BOARD.md` (three slot lines, so never more than 3 active; `tools/board.py`); "usage is very low": the coordinator works alone until 03:41, then the 3-worker pool starts.
 
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
