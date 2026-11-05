@@ -43,7 +43,35 @@ Tests:
 - Test 1 (lock-vs-lock pack) and test 3 (best variant full pack): see section 2.
 
 ## 2. Job A results - build modes, flags and PGO workloads (ABBA vs the lock, d20 x 10, CPU 2)
-PENDING (abba_table.py of F:\ospd\abba\q2)
+All variants are built from the exact lock source by build_variants.ps1 (bench pins checked fail-closed) and timed
+against the lock exe FD3A5190 with abba.ps1 (net loaded, ABBA/BAAB, fresh copies; `F:\ospd\abba\q2\<run>\`).
+Session A/A (aa_lock_d20_s3): wall 1.0066 [0.9968, 1.0111] sd 0.99 %, cpu 1.0050 [0.9940, 1.0087] sd 1.02 %.
+| run | wall B/A median [95 %] sd | cpu B/A median [95 %] sd | verdict wall / cpu | runs.csv md5 |
+|---|---|---|---|---|
+| lp_part1 (-flto-partition=one) | 1.0100 (+1.00%) [0.9875, 1.0323] 3.10% | 1.0081 (+0.81%) [0.9902, 1.0202] 2.09% | NO-WIN / NO-WIN | a173d744 |
+| lp_wmix (PGO + 300 game positions, go nodes 20000) | 1.0149 (+1.49%) [0.9814, 1.0390] 3.99% | 1.0074 (+0.74%) [0.9939, 1.0238] 2.08% | NO-WIN / NO-WIN | 382e6bd4 |
+| lp_ipapta (-fipa-pta) | 1.0051 (+0.51%) [0.9957, 1.0218] 1.80% | 1.0069 (+0.69%) [0.9940, 1.0214] 1.90% | NO-WIN / NO-WIN | 38813037 |
+| lp_af64 (-falign-functions=64) | 0.9951 (-0.49%) [0.9777, 1.0108] 2.33% | 1.0043 (+0.43%) [0.9796, 1.0134] 2.37% | NO-WIN / NO-WIN | 320122d5 |
+| lp_z4 (-march=znver4) | 0.9917 (-0.83%) [0.9809, 1.0107] 2.10% | 0.9972 (-0.28%) [0.9820, 1.0122] 2.12% | NO-WIN / NO-WIN | 49a48d15 |
+| lp_ppt (-fprofile-partial-training) | 0.9973 (-0.27%) [0.9846, 1.0111] 1.86% | 0.9959 (-0.41%) [0.9844, 1.0114] 1.89% | NO-WIN / NO-WIN | 40c25b4f |
+| lp_pvw256 (-mprefer-vector-width=256) | 0.9925 (-0.75%) [0.9761, 1.0195] 3.04% | 0.9932 (-0.68%) [0.9817, 1.0036] 1.54% | NO-WIN / NO-WIN | 1ad33c8d |
+| pgo (PGO without LTO) | 0.9891 (-1.09%) [0.9730, 1.0170] 3.09% | 0.9877 (-1.23%) [0.9738, 1.0151] 2.90% | NO-WIN / NO-WIN | f636124d |
+| lto (LTO without PGO) | 0.9747 (-2.53%) [0.9589, 0.9902] 2.24% | 0.9750 (-2.50%) [0.9650, 0.9801] 1.09% | NO-WIN / NO-WIN | b022da54 |
+| o3 (plain lock line) | 0.9711 (-2.89%) [0.9318, 1.0088] 5.56% | 0.9664 (-3.36%) [0.9518, 0.9895] 2.71% | NO-WIN / NO-WIN | a69dafc0 |
+| **lp_wnonet (PGO trained with UseNNUE=false)** | **0.7090 (-29.10%) [0.6880, 0.7194]** 3.12% | **0.7057 (-29.43%) [0.6964, 0.7104]** 1.40% | NO-WIN / NO-WIN | 75bd6e62 |
+| lp_noplt, lp_nosi, lp_pvw512 | = lock exe (byte-identical, not timed) | | | |
+| lp_w12k (PGO + 300 of the 12k FENs, go depth 10) | PENDING_W12K | | | |
+Reading: the lock's own recipe (LTO+PGO, frozen v1 workload) is the fastest build mode here; no flag beats it inside
+the noise, and three flags change nothing at all on a static PE exe. The PGO workload matters a lot: a profile taken
+with the net OFF makes the net-on engine **29 % slower** (2.14 M -> 1.50 M nps at bench d20) - the risk the brief named.
+The lock is not exposed to it: its embedded net is ON by default, so the frozen v1 workload already runs the net path;
+richer net-on workloads (game positions, 12k sample) add nothing measurable. Job A test 3 (full pack of the best flag
+variant, lp_part1): pc1 = pc2 (33ed7a53), bit-exact L1-L4 with the full 12k L3, ABBA cpu +0.66 % [0.9895, 1.0181] /
+wall -0.01 % [0.9792, 1.0432] = NO-WIN (`opus_speed/candidates/var_lp_part1.md`). Job A test 1 (lock-vs-lock pack,
+locklock_v1c): the lock source through the whole path gives pc1 = pc2 = FD3A5190 (the lock exe byte for byte), bench
+signature = the lock pins net on and net off, bit-exact L1-L4, and ABBA vs the lock cpu -0.29 % [0.9866, 1.0054],
+wall -0.98 % [0.9522, 1.0269] - both intervals contain 1.000 and sit inside the session's A/A band: PASS
+(`opus_speed/candidates/locklock_v1c.md`).
 
 ## 3. Job B - bit-exact hot-path changes
 Every change is a build switch (default 0, new code inside `#if`, lock text verbatim under `#else`); the kit takes no
@@ -84,7 +112,17 @@ broken candidates in under a minute (lock PASS in 58 s). The cheapest wall-time 
 full and the slot count right (concurrency_plan.py), not per-game settings.
 
 ## 5. What QA should time first
-PENDING
+1. **stack_w2** = lock source + `opus_speed/patches/trial_w2.patch` (md5 80f8124f; = b1_tt_notls + b2_no_zero_movelists +
+   r14_speed2_after_nzm) with `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1` flipped in
+   the source (`F:\ospd\packs\stack_w2\src_kit`, so QA's kit builds it without -D flags). Exe
+   `F:\ospd\packs\stack_w2\forge_stack_w2.exe` sha256 db957393 78e21771 e0b03e42 e258f551 ebeb3b66 f1151f23 2f4f1b89 e7f933a9
+   (md5 1d4080bc), pc1 = pc2. Bit-exact: L1-L4 + full 12k L3 12,000 / 12,000. This job's ABBA vs the lock: wall +11.48 %
+   [1.0734, 1.1217], cpu +11.34 % [1.0990, 1.1191] (candidate file `opus_speed/candidates/stack_w2.md`). QA: rebuild
+   `src_kit` with the kit (must give sha256 db957393...), re-run the pins / 12k identity, and time it on QA's own cores.
+2. The same three changes one by one, if QA prefers single steps: b2_nzm2 (+3.6 / +4.3 %), r14_speed2_b (+3.2 / +2.9 %),
+   b1_tt_notls_b (cpu +3.7 %).
+3. stack_w3 (= stack_w2 + prefetch_early): see section 3 for its ABBA; only worth it if it beats stack_w2.
+Nothing here is locked or queued by this job; QA decides.
 
 ## 6. Skills created or improved
 PENDING
