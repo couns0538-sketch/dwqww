@@ -82,8 +82,15 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
 - 20:28 V16 final 300 games 51.33 % (+9.3 +/- 22.0). 20:28 abba.py A/A with the identical command: B/A 1.014 (CI
   0.985-1.044) = no harness bias (BH-8: the night's 5.5 % came with two exe files). 20:29-20:33 final checks pre-run
   on CPU 1: 19 PASS, 0 FAIL. 20:33 CPU 1 plays 120 more r5 games (seed 31, to ~21:38).
-- Next: Y8 ends ~21:20, Z32 / U8 ~21:30, r5 extra ~21:38; GPU queue ends ~21:17 -> final_soups3 + a KB32 soup with
-  r24 + r25; then tables, INDEX.md, document checks, CI, publish copies, job end ~22:17.
+- 20:53 r24 (native KB32 seed) S31 -1.83e-4 / jobA -9.4e-5; 21:17 r25 -1.85e-4 / -6.4e-5; 21:17 r27 (native KB32, 400
+  superbatches) starts for the GPU's last hour (plan3c, ends ~22:05, scores in C:\o30g\gpu\r27_kb32m400_scores.tsv).
+- 21:17-21:19 window-3 soups: Y8b (+r23) = Y8 (KB8 plateau); Z32b (+r24) -2.31e-4 / -1.50e-4; Z32c (+r24 +r25)
+  -2.34e-4 / -1.45e-4 = the best S31 of the job (37 soups scored). 21:22 Z32c packed (all checks PASS, sha256 e4b58944),
+  21:23-21:28 its Forge smoke 300 s + conformance 22/22 PASS on CPU 0.
+- Sanity finals: Y8 400 g 50.75 % (21:21), U8 +200 g 51.00 % = pooled 400 g 51.00 % (21:28), Z32 400 g 49.62 % (21:31),
+  r5 +120 g 47.50 % = pooled 520 g 51.44 % (21:37); 21:31 A/A on a quiet core B/A 0.9998 (BH-8 confirmed). 21:32 Z32c
+  first read, 120 games on CPUs 0 / 2 / 3 / 4 (to ~21:50).
+- Next: Z32c's read into the report, tables, INDEX.md, document checks, CI, publish copies; job end ~22:17.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
