@@ -4,7 +4,7 @@ rem forge-v2-bullet (ROCm) under o30_gpu_guard.py (thermal limits, yields to npt
 rem (default 0x38 = CPUs 3-5), GUARD_EXTRA, O30_INIT_DIR / O30_CLIP / O30_DECAY. Never edit while a run uses it.
 rem Copy of gpu_run_o30.bat with the run outputs on C:\o30g\gpu (D: near its 50 GB floor, owner: use C: when D: is short).
 setlocal EnableExtensions
-if "%~1"=="" (echo usage: gpu_run_o30.bat run kbmap mirror [args] & exit /b 2)
+if "%~1"=="" (echo usage: gpu_run_o30c.bat run kbmap mirror [args] & exit /b 2)
 if not exist D:\o30\WINDOW.md (echo ABORT: no D:\o30\WINDOW.md & exit /b 3)
 if not exist C:\o30g\gpu mkdir C:\o30g\gpu
 set RUN=%~1
