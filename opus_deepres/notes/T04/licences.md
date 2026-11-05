@@ -12,3 +12,11 @@
 
 - Stockfish: GPL-3.0 (row run 23:13 PC clock): ideas only. Read: commit titles and commit messages (with their fishtest
   blocks) via tools/mine_commits.py, nothing else; no source file, no diff.
+
+- Verify re-run (T04 adversarial verify): the rows above match a fresh `--row` run at the same SHAs. Diffs were read at
+  older commits, so the LICENSE was also checked at the oldest commit whose diff was read; the LICENSE file of each repo
+  was touched by exactly one commit (Caissa e485cb984e 2021-10-25, Patricia ffc0f5f6f5 2024-01-07, Altair 7f28fb4127
+  2023-05-28), so MIT holds at every commit read:
+| Witek902/Caissa | 434bbda5c3 | 2024-01-03 | LICENSE | MIT | MIT License | api: MIT |
+| Adam-Kulju/Patricia | bf655244b6 | 2025-01-19 | LICENSE | MIT | MIT License | api: MIT |
+| Alex2262/AltairChessEngine | 6bddce6de2 | 2024-06-14 | LICENSE | MIT | MIT License | api: MIT |

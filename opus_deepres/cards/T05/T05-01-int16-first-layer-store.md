@@ -36,7 +36,13 @@ Source number (own, the cost this targets): lock net as KB4 replicas vs as KB1 o
 positions: 0.929 vs 0.980 (= 0.948; one probe run each, run-to-run noise ~+-3 %); bench ABBA 0.968 (CI 0.900-1.040,
 median 0.991). The 30-h job dropped int16 when the lazy root explained the in-game loss; the post-fix probe still
 shows ~5 % for KB4 vs KB1 (V2P4_GAP.md, part P2). No outside number (missing).
-Forge estimate: v2 KB4 / KB8 +1-4 % nps, KB16 / KB32 +2-5 %, lock path 0 to +1.5 % **UNPROVEN**.
+(verify note: RESULTS.md:216-219 reads the 0.968 bench ABBA as "the table size and the king-bucket refreshes cost
+little", and RESULTS.md:471-472 reads the post-fix probe as "the v2 path now runs at its own exe's OFF speed" (OFF
+0.933, KB4 0.929); 0.948 is the ratio of two single runs of ~+-3 % each and the bench CI includes 1.0, so the ~5 %
+cost is not shown beyond noise - size it (V2P4_GAP P2 split, fresh copies) before building.)
+Forge estimate: v2 KB4 / KB8 +1-4 % nps, KB16 / KB32 +2-5 %, lock path (KB1, 786 KB already in L2) -1 to +1 %
+**UNPROVEN**: design (a) needs about 4 vector ops per 16 weights instead of 2 (sign-extend, convert, scale, add), so
+where the table is not the bottleneck it can lose; design (b) (sign-extend + integer add) is the one to build if KB1 matters.
 
 ## Effort
 Crew 2-4 h (script exists: apply, plain + kit builds pc1 = pc2, re-run the proofs). CPU ~2 h (parity x3 builds, walk
@@ -46,9 +52,10 @@ Crew 2-4 h (script exists: apply, plain + kit builds pc1 = pc2, re-run the proof
 Pre-gate: OFF pins (bench d11-d22, perft) = lock; lock-as-v2 KB1 / KB4 = lock pins; trained nets' ON benches = their
 packed counts (n2L 292397 / 836621 / 2200750); parity 10000/10000 on AVX2 / SSE / scalar; walk 0 mismatches; in-search
 verify build clean. Gate route: node-identical speed change = nps ABBA only: depth_probe_ab.py game positions (200
-positions, movetime 200, AB + BA), KB4 and KB8 nets, fresh copies per slot and an identical-command A/A first (BH-8).
+positions, movetime 200, AB + BA), KB4 and KB8 nets plus the lock net (KB1 = the regression check), fresh copies per
+slot and an identical-command A/A first (BH-8).
 
 ## OFF-by-default design
 Build switch `FORGE_NNUE_W1_INT16` (default 0 = today's float tables, the lock's code byte for byte); 1 changes the
-storage only. Node-identical by the exactness rule (pins equal), so no UCI option is needed; it can become the default
-after the ABBA.
+storage only. Node-identical by the exactness rule (pins equal), so no UCI option is needed. Default only if the ABBA shows no
+KB1 regression; otherwise choose the storage per net at load (int16 for KB4+, float for KB1).

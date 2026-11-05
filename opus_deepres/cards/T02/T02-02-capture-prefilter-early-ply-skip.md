@@ -39,7 +39,7 @@ this is a reason to test the ply cut first and leave the write-time capture filt
 Source (PR 4314, filter-only retrain, fixed arch HalfKAv2_hm, same data): local fixed 25k nodes +5.1 +- 1.5; fishtest
 STC 10+0.1, book UHO_XXL_+0.90_+1.19, 1 thread: passed SPRT [0, 2], 36,504 games, W 9847 L 9538 D 17119 = +2.9 Elo
 (computed from W/L/D); LTC 60+0.6, same book: passed SPRT [0.5, 2.5], 36,592 games, W 10017 L 9717 D 16858 = +2.9 Elo
-(computed). The two filters were never tested apart.
+(computed) (corrected by verify: these W/L/D give +2.85, i.e. +2.8). The two filters were never tested apart.
 Forge estimate: +0 to +5 Elo for the next npt net of the same size, **UNPROVEN** (the capture part is already done at
 write time for self-play rows; only the ply cut is new; a weaker net may react more or less to the same noise).
 

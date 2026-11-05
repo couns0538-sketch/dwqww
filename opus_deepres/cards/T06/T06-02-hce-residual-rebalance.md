@@ -35,7 +35,7 @@ Forge estimate: 0 to +3 Elo **UNPROVEN**.
 
 ## Effort
 Crew: ~1.5 h code (two options, threshold from PieceValueMg) + ~2 h proofs. CPU: one 2-parameter SPSA (~3,000 STC
-pairs = 6,000 games, ~14 h at the measured ~437 games/h of uhoE3a r6k) + one STC and one LTC SPRT. GPU: none.
+pairs = 6,000 games, ~14 h at the measured ~437 games/h of uhoE3a r6k; verify: that gate ran Threads=2 Hash=16) + one STC and one LTC SPRT. GPU: none.
 
 ## Test plan
 Pre-gate: OFF bench / perft = lock pins; ON bench differs; from the FIT_RECIPE step-1 extraction (per-side material

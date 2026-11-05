@@ -47,7 +47,7 @@ Forge estimate: 0 to +4 Elo over the EvalMatScale=12 line **UNPROVEN**.
 
 ## Effort
 Crew: ~2 h code (two options + expose build) + ~2 h proofs. CPU: one 2-parameter SPSA (~3,000 STC pairs = 6,000
-games, ~14 h at the measured ~437 games/h of uhoE3a r6k, concurrency 4) plus up to ~14 h per capped SPRT. GPU: none.
+games, ~14 h at the measured ~437 games/h of uhoE3a r6k, concurrency 4; verify: that gate ran Threads=2 Hash=16) plus up to ~14 h per capped SPRT. GPU: none.
 
 ## Test plan
 Pre-gate: OFF bench / perft = the E3 OFF pins (= lock pins), ON bench differs, mateN d18 screen, WAC300 OFF/ON/OFF.

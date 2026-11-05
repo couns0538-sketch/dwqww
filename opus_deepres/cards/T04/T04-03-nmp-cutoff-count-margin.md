@@ -2,7 +2,7 @@
 Status: COMPLETE
 
 ## Source
-- Caissa commit e53fe6e "Search: NMP eval margin discount on cutoff count" (2025-08-05), two OpenBench blocks in the
+- Caissa commit e53fe6e "Search: NMP eval margin discount on cutoff count" (2026-08-05; corrected by verify: was 2025-08-05, committer date 2026-08-05, author 2026-08-04), two OpenBench blocks in the
   message (LTC first, then STC), diff read (`src/backend/Search.cpp`, `Search.hpp`):
   https://github.com/Witek902/Caissa/commit/e53fe6ebf2a48af382fd5d3355e36e3ef63aa173 (LTC test link in the message:
   https://furybench.com/test/6982/)
@@ -28,7 +28,7 @@ meaning). NMP threshold today: `eval >= beta` and `static_eval >= beta - 24*dept
 ## Expected gain
 Source: Caissa, OpenBench, 1 thread: LTC 60+0.6, Hash 128 MB, SPRT [0, 3], n=10,918 (W 2568 L 2381 D 5969)
 +5.95 +- 3.14, LLR 2.95; STC 10+0.1, Hash 16 MB, SPRT [0, 2], n=61,474 (W 14682 L 14329 D 32463) +2.00 +- 1.41,
-LLR 2.95. Book: not stated. Larger at LTC than at STC: a TC-scaling term.
+LLR 2.95. Book: not stated. Larger at LTC than at STC: a TC-scaling term (verify note: the 95 % intervals overlap, LTC 2.81-9.09 vs STC 0.59-3.41, and both runs stopped at an SPRT bound, so the TC trend is suggestive, not shown).
 Forge estimate: +0 to +2 Elo at STC, +1 to +4 at LTC **UNPROVEN** (Forge's NMP has no cut-node condition, Caissa's
 has; the discount acts on a different base rule).
 
@@ -43,5 +43,5 @@ Pre-gate: OFF bench pins d11-d22 equal the lock; ON bench live; null-move try / 
 ## OFF-by-default design
 UCI spins `NmpFewCutoffs` default 0 (0 = off; own start 3, range 1-6: counter at or below it triggers the discount)
 and `NmpFewCutoffsDiscount` default 0 (own start 24 cp = one ply of the lock's own NMP slope, range 0-72) lowering the
-`static_eval` condition at `:965`. The new counter is written but never read at the defaults, so the tree and the
+`static_eval` condition at `:965` (verify note: the Caissa diff lowers the margin of its `eval >= beta + margin` test, which can go below beta; this design keeps the lock's `eval >= beta` and lowers only the `static_eval` term, a narrower change than the source's, so its number transfers less directly). The new counter is written but never read at the defaults, so the tree and the
 bench pins equal the lock (prove with the pins; check nps ABBA if the extra store shows).

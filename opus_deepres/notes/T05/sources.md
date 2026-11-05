@@ -74,3 +74,6 @@ histories".
 - Zen 5 L2 latency: not found; the Zen 5 deck itself was not fetched (facts from search summaries).
 - tools/licence_at.py reads llvm-project's LICENSE.TXT as MIT; it is Apache-2.0 WITH LLVM-exception (corrected in licences.md).
 - PENDING (crew measurements, no engine runs in this job): P4 (Y8 vs KB8 replicas on one exe), bytes vs refresh split of P2 / P3 (30-h counters on KB4 / KB8 / KB32 replicas), per-file share of P1 (fresh copies + A/A).
+- Note for the coordinator (23:20): temporary tool outputs of this worker went to the session scratchpad on C: (objdump
+  listings of the lock and v2p4 exes, the Agner PDF copy and its pdftotext output, the BOLT README copy) - none of the
+  job's outputs; not deleted (no-deletes rule).

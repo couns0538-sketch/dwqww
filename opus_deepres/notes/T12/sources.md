@@ -4,19 +4,19 @@ Worker start 22:45 PC clock (PST -0800), research stop 23:45. One line per sourc
 what it gave | card id.
 
 ## Own side (read-only, not counted in the 15-source cap)
-- D:/grok-pc-data/dwqww/<cfg>/skills/forge-gate-stats/SKILL.md | own | fastchess 1.8.2 exact GSPRT (fishtest LLRcalc
+- project skill forge-gate-stats/SKILL.md | own | fastchess 1.8.2 exact GSPRT (fishtest LLRcalc
   MLE), bounds +-ln(19)=+-2.944, pentanomial Elo/nElo formulas, net early stop rule, winner's-curse numbers | T12-01
-- D:/grok-pc-data/dwqww/<cfg>/skills/forge-spsa-tuning/SKILL.md | own | R9 tuner schedule (c_k=c_end N^0.101, a_k,
+- project skill forge-spsa-tuning/SKILL.md | own | R9 tuner schedule (c_k=c_end N^0.101, a_k,
   A=0.1N), 832 pairs at 8+0.08 -> 0 of 16 beyond 2 sigma, ~280 pairs/h at conc 4, r_end 0.002 vs 0.012 | T12-04
-- C:/Users/Administrator/<cfg>/skills/forge-o30-spsa/SKILL.md | own | 41+10 exposed lock constants + 22 more
+- user skill forge-o30-spsa/SKILL.md | own | 41+10 exposed lock constants + 22 more
   (o30_expose.py), tuner config keys, ~100 games/h at 10+0.1 conc 1 one CPU, O30Tuned packaging | T12-04
-- C:/Users/Administrator/<cfg>/skills/forge-gate-summary/SKILL.md | own | gate rate ~497 games/h (conc 4, Threads 2,
+- user skill forge-gate-summary/SKILL.md | own | gate rate ~497 games/h (conc 4, Threads 2,
   10+0.1, CPUs 4-15), LLRcalc details (empty cells 1e-3, 10 MLE steps) | T12-01
-- D:/grok-pc-data/dwqww/<cfg>/skills/forge-ltopgo-pgo/SKILL.md (lines 47-75) | own | lock pins, 12k-FEN identity,
+- project skill forge-ltopgo-pgo/SKILL.md (lines 47-75) | own | lock pins, 12k-FEN identity,
   r12_speed palindromic blocks, per-file A/A -3.0 % at d16 | T12-03, T12-02
-- D:/grok-pc-data/dwqww/<cfg>/skills/forge-opus-tools/SKILL.md (abba.py, lines 29-48) | own | ABBA slots, Student-t CI
+- project skill forge-opus-tools/SKILL.md (abba.py, lines 29-48) | own | ABBA slots, Student-t CI
   on log ratios, --identity, CPUs 2-3 = one physical core | T12-02
-- D:/grok-pc-data/dwqww/<cfg>/skills/forge-engine-verify/SKILL.md (grep) | own | nps_opts_ab A/A -0.02 % [-2.24,
+- project skill forge-engine-verify/SKILL.md (grep) | own | nps_opts_ab A/A -0.02 % [-2.24,
   +2.25] on the loaded PC; "count before timing" | T12-02
 - notes/TRIED_GATES.md (109 gates) | own | caps 1000/1500/3000/6000, bounds [0,10] nElo, most caps inside +-2 LLR | T12-01
 - F:/forge_push/uhoE3a_evalmatscale12_r6k_vs_AL1lp/RESULT.md + RUN_INFO.json | own | UHO gate settings (fastchess
@@ -74,3 +74,13 @@ what it gave | card id.
 - E9 https://github.com/official-stockfish/books/blob/a804a97e70/README.md | CC0-1.0 (data + docs) | book sizes:
   UHO_Lichess_4852_v1.epd 2,632,036 positions (1,457,270 white / 1,174,766 black to move, 2-16 plies); 8moves_v3.pgn
   34,700 (16 plies); UHO_4060_v4 241,670; noob_3moves 150,932 | T12-05
+- E10 https://learn.microsoft.com/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfboostmode
+  (MicrosoftDocs commit 3879557abb, docs) | vendor docs, ideas only | powercfg alias PERFBOOSTMODE (GUID
+  be337238-0d82-4146-a960-4f3749d470c7, hidden): index 0 = Disabled (no boost above nominal), 1 Enabled, 2
+  Aggressive (CPPC); applies to Windows 11 x64 | T12-02
+- (dead end) https://dl.acm.org/doi/10.1145/1508244.1508275 (Mytkowicz et al., ASPLOS 2009) | HTTP 403; cited only
+  through E6's pointer, no number taken from it
+- E11 official-stockfish/Stockfish commit messages a06e7004c1 ("Port instrumented testing to python": CI test suites
+  that assert the engine's output, run as tests/instrumented.py against a binary) and 73018a0337 ("Detect search
+  explosions": pathological positions where double extensions stop the search finishing) | GPL-3.0, commit messages
+  only (no test file read) | T12-03 (output-assertion suite, pathological-position class)

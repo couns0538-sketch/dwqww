@@ -16,7 +16,7 @@ here, the mechanism is described in own words.
 The singular verification search re-searches the current node without the hash move at half depth and a null window
 just below the hash score. It inherits the node's cut-node flag, so in an expected cut node the replies inside the
 verification get the cut-node LMR penalty: the verification is shallower than intended and the hash move is called
-singular (extended) more often. Searching the verification as a non-cut node removes that penalty at the
+singular (extended) more often (verify note: the Caissa commit message gives no rationale; this explanation is the card's own and unproven). Searching the verification as a non-cut node removes that penalty at the
 verification node; the node-type flags further down flip with it (its full-depth children become cut nodes). The
 verification frame's flag is restored afterwards. Caveat: Caissa runs null move only in cut nodes (47604ad,
 2025-08-04, before this commit), so its +4.20 also contains a null-move change further down the verification tree;

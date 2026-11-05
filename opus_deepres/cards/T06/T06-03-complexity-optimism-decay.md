@@ -39,7 +39,7 @@ Forge estimate: (b) 0 to +1.5 Elo; (a) 0 to +2 Elo only if a refitted optimism g
 
 ## Effort
 Crew: ~2 h code (C in the stack, two options, expose build) + ~2 h proofs. CPU: one STC SPRT per part (a capped
-6,000-game gate took ~14 h at concurrency 4, uhoE3a r6k) plus LTC if positive. GPU: none.
+6,000-game gate took ~14 h at concurrency 4, uhoE3a r6k; verify: Threads=2 Hash=16) plus LTC if positive. GPU: none.
 
 ## Test plan
 Pre-gate: OFF bench / perft = lock pins; ON bench differs; mateN d18 screen; WAC300 OFF/ON/OFF. Offline: FIT_RECIPE

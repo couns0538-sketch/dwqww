@@ -43,4 +43,4 @@ in [reduced_depth, new_depth + 1] (debug build); mate probe OFF/ON. Gate: UHO SP
 ## OFF-by-default design
 UCI spins `LmrDeeperMargin` default 0 (0 = off, range 0-200 cp, own start 70) and `LmrShallowerMargin` default -1
 (-1 = off, range 0-40 cp, own start 10). At the defaults the re-search depth is the lock's `new_depth`, so every node
-and the bench pins are unchanged. Root nodes never go deeper.
+and the bench pins are unchanged. Root nodes never go deeper. (verify note: notes/T04/TABLE.md row 1 gives the deeper range as 30-150 cp, this card 0-200 cp; start 70 and 10 checked against both source diffs: neither is a copy of a source constant.)

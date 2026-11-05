@@ -35,8 +35,9 @@ proven to give the lock pins d11-d22 (KB1 / OB1, KB1 / OB8, KB4 replicas), so th
 ## Expected gain
 Source numbers (own): profile coverage alone moved the v2 path 0.71x -> 0.959x -> ~1.0x (bench); what is left on game
 positions is P1 = 0.980 on the v2 path and 0.933-0.964 on v2p4's OFF path (V2P4_GAP.md), partly per-file noise.
-Forge estimate: +2-5 % nps for the v2 gate exe, 0 for the lock path **UNPROVEN** (first strip the per-file term with
-fresh copies; if P1 vanishes there, this card shrinks to the BOLT answer).
+Forge estimate: +0-2 % nps on the v2 path (P1 = 0.980), 0 for the lock path **UNPROVEN**; the 4-7 % figure (P1',
+0.933-0.964) applies only to an exe that also serves OFF gates. First strip the per-file term with fresh copies; if P1
+vanishes there, this card shrinks to the BOLT answer.
 
 ## Effort
 Crew 4-8 h (loader from the compiled-in arrays into a v2 Net, the one-path switch, kit build pc1 = pc2, identity).

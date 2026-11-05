@@ -44,7 +44,7 @@ One line per check: card | claim | CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLAT
 - T06-03 | own forms v' = v - v min(C,Cmax)/Kd and o' = o (1 + C/Ko) | UNVERIFIABLE that they are not paraphrases of Stockfish code (that check needs the forbidden source); both follow the commit-message wording (4c4cb18 "decays a little ... up to a few percent", 1066119 "increases the optimism bonus") and use own symbols | commit messages above
 - no VIOLATION found.
 
-## 3. Licence rows (tools/licence_at.py --row re-run 23:12)
+## 3. Licence rows (tools/licence_at.py --row re-run at the start, after 23:11)
 - official-stockfish/Stockfish | d212e663bb 2024-07-06 Copying.txt GPL-3.0 | CONFIRMED (identical row)
 - Witek902/Caissa | 57cae7ef71 2026-11-04 LICENSE MIT | CONFIRMED (identical row)
 - Adam-Kulju/Patricia | 67d83d7056 2026-09-12 LICENSE MIT | CONFIRMED (identical row)
@@ -60,3 +60,15 @@ One line per check: card | claim | CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLAT
 - all 5 cards | Forge estimate labelled UNPROVEN | CONFIRMED (card_lint checks it; 0 findings)
 - all files | no vendor / model-company names | CONFIRMED by card_lint name list on cards; notes grep clean. Note: own branch / folder names opus-r13-p7-e3fit and opus_r13/p7 appear in T06-01, T06-05, FIT_RECIPE.md, sources.md (not on the lint list; the coordinator's clean filter is the backstop)
 - card_lint cards/T06/*.md after the two verify edits | CLEAN (5 x 0 findings, exit 0)
+- T06-01 | E3 form 1 + s(2M - M0)/M0, s = EvalMatScale/100, pawns at MG 82; E3 order raw -> post -> correction (TT keeps raw) | CONFIRMED (README_E3_CANDIDATE.md lines 57, 72-78, 99; lock include/forge/eval.hpp:30 PieceValueMg pawn 82) | e3_evalpost_al1_src.zip, lock source
+- T06-02 | "applied inside static_evaluate" (rebalanced sum is the TT raw value; deterministic per position, unlike E3's root-dependent optimism, so storing it is sound) | CONFIRMED location (Worker::static_evaluate at src/search.cpp:599) | lock source
+
+## Tally and summary (23:18 PC clock)
+47 checks: 44 CONFIRMED (two with notes: the Threads=2 caveat on the 437 games/h rate, and "survives in 2025" resting on a Dec 2024 message), 1 CORRECTED (T06-01 own path C:/o13/p7/fit_e3.json -> opus_r13/p7/logs/fit_e3.json on branch opus-r13-p7-e3fit, edited in the card), 2 UNVERIFIABLE (T06-03 "(a) complexity-weighted optimism still present in 2025", annotated in the card; T06-03 own forms not checkable against the off-limits source), 0 VIOLATION. card_lint CLEAN after the edits.
+Every external number re-opened in the three full cards and the two spot-checked one-liners matches its source when the Elo is recomputed from the W/L/D in the message or PR body. The Forge-side records hold: the EvalOptimism=40 rerun is H0 (RESULT.md), the MatScale=12 rerun is a 6,000-game cap, and TRIED_GATES.md (22:35) predates the rerun's end (22:53). The weak points are framing, not numbers. Both E3 reruns ran Threads=2 Hash=16 (not the Threads=1 of WORKER_RULES), so a re-gate must say which setting it uses. T06-03's complexity C = abs(residual) is the net-vs-HCE gap, not Stockfish's material-vs-net gap; the E3 README itself says the residual setup has no material-only eval, and the card states the difference. T06-03 (b) sits near the +1 Elo drop line (source +0.85 STC / +1.30 LTC; estimate 0 to +1.5).
+
+## Addendum (after the tally)
+- notes/T06/sources.md line 9 | maps the 2018-21 Stockfish mining to "T06-06" | CORRECTED: there is no T06-06 card; the rule50 numbers on that line (7b06475, 3af083a) are T06-05's source -> edited to T06-05 with a "(corrected by verify ...)" tag. Line 7 also maps the Caissa source to T06-03, which cites no Caissa; left as is (FORMS.md is the real user of that line) | notes/T06/sources.md
+- T06-01 / T06-02 / T06-03 effort fields | ~437 games/h, ~14 h per 6,000 games | ANNOTATED in each card ("verify: ... Threads=2 Hash=16"), no line added; the number itself stays CONFIRMED
+- DEAD_ENDS.md numbers (908811c, f9d8717, 97d2cc9, 770c8d9, 7684b6e) | not re-opened (outside the top-3 + 2 spot-check scope; stop time) | UNVERIFIABLE by this pass
+- Final tally: 48 checks: 44 CONFIRMED, 2 CORRECTED (T06-01 own path; sources.md T06-06 -> T06-05), 2 UNVERIFIABLE (T06-03 "(a) still present in 2025"; T06-03 forms vs the off-limits source), 0 VIOLATION; DEAD_ENDS numbers not re-opened. card_lint on cards/T06/*.md CLEAN after all verify edits.

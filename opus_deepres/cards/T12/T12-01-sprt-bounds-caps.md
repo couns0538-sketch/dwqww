@@ -19,9 +19,11 @@ only on the width and the true effect. Pairing: at UHO the pentanomial variance 
 independent-games value (8moves_v3: 0.90), so pairs save ~38 % of the games on UHO.
 
 ## Forge fit
-Already in use: fastchess 1.8.2 pentanomial GSPRT (forge-gate-stats). Bounds in use: [0,10] nElo on 82 of 85 capped
-gates (model LLR = printed LLR within 0.15). 85 of 110 gates ended at a cap (median 1,500 games, capped nElo 10/50/90 %
-= -12.9 / +6.6 / +17.8). Book scale: UHO 1 Elo = 1.91 nElo (n=6 gates), 8moves_v3 2.10 (n=63). No engine code involved.
+Already in use: fastchess 1.8.2 pentanomial GSPRT (forge-gate-stats). Bounds in use: [0,10] nElo on 82 of the 85
+undecided gates (model LLR = printed LLR within 0.15). 79 of 110 gates ended "Cap with no decision" (55 at 1,500
+games, 14 at 3,000, 9 at 1,000, 1 at 6,000; nElo 10/50/90 % = -9.0 / +7.4 / +18.2), 4 more by the net early stop.
+Book scale: UHO 1 Elo = 1.91 nElo (n=6 gates), 8moves_v3 2.10 (n=63). No engine code involved. No gate ran [0,5];
+it is read here as nElo (as the brief says). If it meant logistic Elo, it is ~[0,9.5] nElo on UHO: same cost as [0,10].
 
 ## Expected gain
 No Elo claim: the gain is decided gates per CPU hour. Model (UHO, 497 games/h, games = 2 x pairs):
@@ -34,8 +36,9 @@ No Elo claim: the gain is decided gates per CPU hour. Model (UHO, 497 games/h, g
 - Fishtest-size [0,2] or [-1.75,0.25]: mean ~165k games (330 h): out of reach. Forge non-regression [-10,0] = [0,10] cost.
 - Truncated rule (decide by the LLR sign at the cap): [0,10] cap 3000 false accept 0.22 / power 0.78; cap 6000
   0.13 / 0.86; cap 12000 0.07 / 0.93. [0,20] cap 3000: 0.07 / 0.93 at +20 nElo, 0.50 at +10.
-Forge estimate: with [0,10] and a 12k cap, ~88 % of gates at the bound ends decide instead of ~20 % at 3k, about
-2x the mean CPU per gate - **UNPROVEN** (model, not yet replayed on the gate PGNs).
+Forge estimate: with [0,10] and a 12k cap, ~88 % of gates at the bound ends decide instead of ~20 % at 3k. Cost:
+mean 6.6k games at the ends and 9-11k near +5 nElo (the capped median is +7.4) vs today's 1,500, i.e. ~4-6x the CPU
+per gate - **UNPROVEN** (model, not yet replayed on the gate PGNs).
 
 ## Effort
 Crew ~1-2 h: a manifest change (bounds, cap) plus one replay of the 85 capped Ptnml profiles with the S44 simulator

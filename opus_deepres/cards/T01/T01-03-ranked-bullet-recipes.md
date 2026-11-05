@@ -11,8 +11,8 @@ Status: COMPLETE
 ## Licence
 bullet MIT at da426a49 = copy with notice; viridithas-networks CC0-1.0 (release text); Viridithas AGPL-3.0 and
 Integral (no licence) = ideas only, PR text only. All start values below are our own, none from another engine.
-(corrected by verify: R1's 200 SB, LR 1e-5 -> 1e-7 and WDL 1.0 equal the bullet example's stage 3, examples/advanced/
-main.rs:40, 217-218, MIT = allowed, so not "own"; R1's range 5e-6 .. 2e-5 and the R2 values are ours)
+(corrected by verify: R1's 200 SB, start LR 1e-5 and WDL 1.0 equal the bullet example's stage 3, examples/advanced/
+main.rs:40, 217-218, MIT = allowed, so not "own"; the end 1e-7 is our trainer's fixed lr0 / 100, main.rs:346)
 
 ## Mechanism
 All three keep the 30-h method (the lock net written exactly into KB8 + OB8, H256, AdamW clip +-7.99, decay 0,

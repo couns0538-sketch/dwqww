@@ -37,10 +37,13 @@
   +2.62 STC, +47.8 on an endgame book (TABLE.md row 2). Three loader filters together: about -11 Elo (row 8).
 
 ## Recommendation for Forge (own values; every number UNPROVEN; Forge has no Elo claim here)
-1. **Generation G1 = change the teacher, not the filters.** Generate new self-play with the lock engine (AL1 s198 /
-   FD3A5190, or the forge_data_probe lock build) through the R8 driver instead of 6.2.0 HCE. Nodes per move: own start
-   8,000 soft nodes (range 5,000-20,000), x2 for the first 10 plies, hard cap 4x soft. The 6.2.0 -> lock strength gap
-   at 5000 nodes: PENDING (one 200-game fixed-node match, ~1 CPU-hour).
+1. **Generation G1 = change the teacher, not the filters.** Generate new self-play with the lock exe (AL1 s198 /
+   FD3A5190) through the R8 driver instead of 6.2.0 HCE. Nodes per move: plain `go nodes N`, own start N = 8,000
+   (range 5,000-20,000), the driver doubling N for the first 10 plies [VIOLATION marked by verify: "x2 for the first
+   10 plies" is Caissa's generator default (line 33), carried over as a Forge value with no own start value or range;
+   needs an own value + range or removal] - no engine change (the lock has no soft-node
+   limit: `tools/forge_has.sh 'soft.?node|SoftNodes|maxNodesSoft'` = 0 hits; a soft limit would be a separate
+   OFF-default option). The 6.2.0 -> lock strength gap at 5000 nodes: PENDING (one 200-game fixed-node match).
 2. **Mix for the G1 net:** all 305M existing rows + the new lock rows, the new rows sampled at 30 % of each epoch
    (range 20-50 %) until they are >= 100M rows (~3.5 days at ~1.24M/h if the lock engine keeps that rate; its rate at
    8k nodes: PENDING), then plain concatenation. Retrain from the best npt checkpoint (fine-tune) and from scratch once
