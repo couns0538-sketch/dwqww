@@ -30,8 +30,9 @@ HistRework. ~4 lines.
 
 ## Expected gain
 Source: Stormphrax PR 201, OpenBench SPRT [0, 3], Threads=1: STC 8+0.08 Hash 32 MB n=13,814 (W 3470 L 3256 D 7088)
-+5.38 +- 3.11, LLR 2.93; LTC 40+0.4 Hash 128 MB n=14,602 (W 3375 L 3178 D 8049) +4.69 +- 2.76, LLR 2.93. Book not
-stated (OpenBench default, unknown).
++5.38 +- 3.11, LLR 2.93; LTC 40+0.4 Hash 128 MB n=14,602 (W 3375 L 3178 D 8049) +4.69 +- 2.76, LLR 2.93. Book (corrected by
+verify 00:45, read from the OpenBench pages 8996 / 8999): UHO_Lichess_4852_v1.epd, both runs (standard chess, the same
+book family as the Forge gate); adjudication win movecount=3 score=400, draw movenumber=40 movecount=8 score=10.
 Forge estimate: +1 to +4 Elo **UNPROVEN** (overlaps T04B-01 at the same pruning site; Forge's capture history is
 updated only at beta cutoffs with the lock's bonus, `src/search.cpp:752-765`, so its scale differs from the source's).
 

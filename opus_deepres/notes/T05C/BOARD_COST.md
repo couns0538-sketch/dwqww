@@ -31,7 +31,7 @@ Scale: the lock's game-position probe runs ~2.24 Mnps (T05 SPEED_LIST, 30-h coun
 - PEXT is a single fast instruction on Zen 3 and later (it was microcoded and slow on Zen 1 / Zen 2), so on this PC the
   BMI2 index costs one pext instead of and + imul + shr; the table stays 841 KiB unless the attack sets are stored as
   16-bit PEXT-compressed values and re-expanded with PDEP (~210 KiB). The working set of one search thread (841 KiB
-  attack tables + 786 KiB lock float w1 + ~1.55 MiB histories) is larger than Zen 5's 1 MiB L2, so the compressed form
+  attack tables + 768 KiB lock float w1 (corrected by verify: 768 x 256 x 4 B = 786,432 B = 768 KiB) + ~1.55 MiB histories) is larger than Zen 5's 1 MiB L2, so the compressed form
   is the variant worth timing (T05C-03).
 
 ## Per-card static budget (counted, not measured; every figure UNPROVEN until step 0 of the microbenchmark plan)

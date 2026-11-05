@@ -22,7 +22,7 @@ expected type (PR text: "allow TT cutoffs only if cutNode matches previous TT re
 beta (fail high) only in an expected cut node, a stored score below it (fail low) only in an expected all node. On a
 mismatch the node is searched normally. The follow-up changed only the depth limit (no text). Own reading
 (unproven): a mismatch means the tree's node-type guess and the stored bound disagree, so the stored result is more
-likely stale for the current path, and a shallow re-search is cheap.
+likely stale for the current path, and a shallow re-search is cheap. (corrected by verify: the commit text states only the fail-high half, "fail high with TT only when expected cutnode"; the PR text "matches previous TT results" is ambiguous, so the fail-low half above and the two-sided rule in the design below are the card's own reading, not the source's stated mechanism.)
 
 ## Forge fit
 `bash tools/forge_has.sh 'tt_depth >= depth &&'` -> `src/search.cpp:921`: the lock's cutoff (`:921-926`) needs a

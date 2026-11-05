@@ -33,9 +33,12 @@ the qsearch SEE test (`src/search.cpp:838`) the same way: a different site, gate
 ## Expected gain
 Source: Stormphrax PR 269, OpenBench SPRT [0, 3], Threads=1: STC 8+0.08 Hash 16 MB n=28,964 (W 6991 L 6734
 D 15239) +3.08 +- 2.21, LLR 2.95; LTC 40+0.4 Hash 128 MB n=10,130 (W 2245 L 2056 D 5829) +6.48 +- 3.34, LLR 2.93.
-Book not stated in the PR (OpenBench default, unknown). The gain was larger at LTC.
-Forge estimate: +1 to +4 Elo **UNPROVEN** (Forge's capture history has no threat / defended dimension - Stormphrax
-added one later, PR 209 - so the signal may be weaker here).
+Book (corrected by verify 00:44, read from the OpenBench pages 12560 / 12563): DFRC_4852_v1.epd, a double Fischer
+random book, both runs; adjudication win movecount=3 score=492, draw movenumber=40 movecount=8 score=7. The source
+gain is therefore a DFRC-opening result; Forge gates play standard chess from UHO. The gain was larger at LTC.
+Forge estimate: +1 to +4 Elo **UNPROVEN** (Forge's capture history has no threat / defended dimension; the source's
+already had one when PR 269 was tested - PR 209, merged 2024-12-04, corrected by verify: it was not "added later" - so
+the signal may be weaker here).
 
 ## Effort
 Crew 2 h (option, OFF identity, ON bench, smoke, one debug assert). CPU: one STC SPRT [0, 5], about 3-6k games at the

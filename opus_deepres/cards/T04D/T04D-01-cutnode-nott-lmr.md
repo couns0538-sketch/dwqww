@@ -13,11 +13,12 @@ Stockfish GPL-3.0 (Copying.txt at ff7cee4244, 2026-10-28, `tools/licence_at.py`)
 title and message and the two fishtest run records. No source file or diff was read.
 
 ## Mechanism
-In late-move reductions, a move searched at an expected cut node gets one extra ply of reduction when the node has
-no TT move. The commit text calls it the same signal as internal iterative reduction (no stored move: the node was
-never searched well, so its late moves matter less), applied per move inside LMR instead of to the node depth, and
-expects it to keep its value at longer TC because extra reduction at cut nodes "is in general good" there; the
-logged LTC result (+3.35) is indeed above the STC one (+2.72).
+In late-move reductions, a move searched at an expected cut node gets more reduction when the node has no TT move
+(corrected by verify: the commit text says only "do more reductions" and "somewhat similar to IIR"; the one-ply
+amount and the reading "no stored move: the node was never searched well, so its late moves matter less" are the
+card's own). The text places it per move inside LMR instead of on the node depth, and expects it to keep its value
+at longer TC because extra reduction at cut nodes "is in general good" there; the logged LTC result (+3.35 +- 1.81)
+is not below the STC one (+2.72 +- 1.74), inside the error bars (corrected by verify: no scaling is shown).
 
 ## Forge fit
 `bash tools/forge_has.sh 'cut_node\) r|tt_move.is_none\(\) && \(pv_node'` -> `src/search.cpp:1141` adds a flat 2

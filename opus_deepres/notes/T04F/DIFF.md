@@ -4,7 +4,8 @@ Lock = FD3A5190 source `src_al1s198_clean`: `s` = `src/search.cpp` (1,531 lines)
 (408 lines), `board.cpp` for repetition. Caissa = github.com/Witek902/Caissa @ 57cae7ef71 (MIT, read 2026-11-05 00:00):
 `S` = `src/backend/Search.cpp` (2,385 lines), `MO` / `MOh` = `MoveOrderer.cpp` / `.hpp`, `MP` = `MovePicker.cpp`,
 `TT` / `TTh` = `TranspositionTable.cpp` / `.hpp`, `SU` = `SearchUtils.cpp`. Read: those files only, in <= 300-line
-windows. Mechanisms are described in own words; no Caissa constant is proposed as a Forge value.
+windows (plus, in sections C-D, Stockfish commit messages, Stormphrax PR text and fishtest run records, never their
+source). Mechanisms are described in own words; no Caissa constant is proposed as a Forge value.
 Verdict: HAS (same idea), DIFFERS (both have it, other rule), LACKS (Forge has nothing like it), CAISSA-LACKS (Forge
 has it, Caissa does not), DONE (already ported / tried / prepared by the crew: see WORKER_RULES, notes/T04/TABLE.md).
 Section B gives the Caissa commit and its logged test for every LACKS / DIFFERS row that was looked up.
@@ -14,7 +15,7 @@ Section B gives the Caissa commit and its logged test for every LACKS / DIFFERS 
 ### A1. Draws, repetition, mate distance
 | # | technique | Caissa (file:line) | lock (file:line) | verdict |
 |---|---|---|---|---|
-| 1 | upcoming-repetition (game cycle) test: alpha raised to the draw score when one reversible move can repeat a position (cuckoo table), non-PV, alpha < 0, in search and qsearch | S:1229-1238, S:1540-1549, SU:68-113 | none (`forge_has.sh 'cuckoo|upcoming|game_cycle'` = 0 hits) | LACKS |
+| 1 | upcoming-repetition (game cycle) test: alpha raised to the draw score when one reversible move can repeat a position (cuckoo table), non-PV, alpha < 0, in search and qsearch | S:1229-1238, S:1540-1549, SU:68-113 | none (forge_has.sh for cuckoo, upcoming or game_cycle: 0 hits) | LACKS |
 | 2 | in-tree repetition: twofold = draw only in non-PV nodes, PV needs threefold; no twofold on the root | S:1114-1158, S:1561 | twofold after the root = draw in every node type, `board.cpp:903-916`, used `s:700` | DIFFERS |
 | 3 | stalemate detection at every node before TT / stand pat | none (only "no legal move" at the end, S:2276-2285) | `s:692-702` (`has_legal_move` in `is_draw`) | CAISSA-LACKS (speed cost on the lock side, kept for correctness) |
 | 4 | insufficient material checked only after a capture | S:1241, S:1559 | every node, `s:700` | DIFFERS (speed only) |
@@ -88,7 +89,7 @@ Section B gives the Caissa commit and its logged test for every LACKS / DIFFERS 
 | # | technique | Caissa | lock | verdict |
 |---|---|---|---|---|
 | 50 | table units | 1/1024 ply, separate quiet / capture tables, S:238-266 | whole plies, quiet / noisy tables, `s:125-147` | DIFFERS (T04 TABLE B: fractional LMR, small) |
-| 51 | which moves | move index > 1; in PV nodes quiets only, S:2083-2085 | `depth >= 2`, move > 1 (+1 at root), `quiet || !tt_pv || move_count > 4`, `s:1137` | DIFFERS |
+| 51 | which moves | move index > 1; in PV nodes quiets only, S:2083-2085 | `depth >= 2`, move > 1 (+1 at root), `quiet` or `!tt_pv` or `move_count > 4`, `s:1137` | DIFFERS |
 | 52 | quiet terms | non-PV +, TT move capture +, killer / counter (refutation) -, history (main + cont 1/2/4) -, cut node +, not improving +, gives check - | tt_pv -1, not improving +1, cut node +2, TT capture +1, gives check -1, in check -1, child cutoffs +1, history (main + cont 1/2) +-2, `s:1138-1146` | DIFFERS: refutation term LACKS (see B) |
 | 53 | capture terms | winning-bucket capture -, bad-bucket capture +, cut node +, improving, gives check -, S:2107-2121 | table only + the shared terms, `s:1138-1146` | DIFFERS (capture LMR variants TRIED: LmrCapVictim, LmrTtCapAll) |
 | 54 | PV low-ply term, deep TT entry term | S:2125-2130 | none | LACKS (T04 TABLE B 9a11bf6 / 2e6175e, under 3 Elo STC) |
@@ -204,3 +205,48 @@ LLR, N; older (2022-2023) cutechess blocks give W-L-D, Elo +- error and LLR but 
 | 6 | d84b705 (2024-01-04) "Smaller TT entries" | 16 -> 10-byte entries, 3 per 32-byte cluster | 5+0.05 Threads=4 Hash 8 MB +4.30 +- 3.00 [0,2] n=23,832; 8+0.08 Hash 4 MB +2.79 +- 2.28 [0,2] n=41,766 | table only: both tests at 4-8 MB hash; the crew gate uses Hash=16 at 10+0.1, so the number does not transfer |
 | 9 | 9d566cc (2026-09-24) "Tweak TT cutoff margin" | margin of the depth+1 rule | +1.35 +- 1.06 | evidence for T04 TABLE A4 (d39fcfb) |
 | 8 | 08b6fa0 (2026-09-14) | overwrite entries from earlier searches regardless of depth | +1.69 +- 1.26 | lock already overwrites an older generation (`s:294`) |
+
+## C. Rows added in the continuation pass (from 00:22; numbering continues section A)
+Same sources and verdict words as above; the Caissa commit and its logged test are given inline (TC n/s = cutechess
+block without TC, 1 thread). HEAD lines are from the 57cae7ef71 copy already read.
+
+| # | technique | Caissa | lock | verdict | Caissa commit, logged test |
+|---|---|---|---|---|---|
+| 94 | move-loop pruning at the root and in check | in check yes; root no (`!isRootNode` guard, S:1929) | in check yes for LMP / history / SEE, futility not in check; root no (`s:1061-1083`) | HAS | 8bd0321 (2023-10-18) "Allow pruning in root node and when in check" +5.0 +- 4.6 n=9,299 H1 TC n/s; its root part is gone at HEAD |
+| 95 | best move recorded only when the score beats alpha | since 411f352 (diff not read) | `s:1172-1173` | HAS | 411f352 (2023-06-15) +15.2 +- 7.3 n=3,747 H1 TC n/s |
+| 96 | fail-soft TT cutoff (return the TT score) | S:1599-1609 | `s:925` | HAS | a728a15 (2023-06-07) +5.9 +- 4.1 n=13,963 H1 TC n/s |
+| 97 | TT cutoff from a shallower entry when the TT score is far below alpha | gone at HEAD (one depth rule, S:1599) | one depth rule, `s:921` | n/a (source dropped it) | added 222642f (2023-07-27) +3.6 +- 3.5 n=17,336 H1 TC n/s; removed by d940dec (2025-06-30) "Simplify TT alpha cutoffs" 10+0.1 +2.05 +- 2.29 n=24,206 |
+| 98 | more LMR when the TT move is a recapture | gone at HEAD | none | n/a (dropped by b5c60ac, row 51-53) | 1c17dae (2023-07-24) +4.1 +- 4.0 n=12,069 H1 TC n/s |
+| 99 | less LMR in PV nodes | PV terms in the LMR block S:2083-2130 | tt_pv -1, `s:1138-1146` | HAS | 98688fc (2023-08-20) +2.3 +- 2.5 n=36,874 H1 TC n/s |
+| 100 | less time when the opponent played the predicted move | time manager (not read; outside the search diff) | ponder move only printed, `uci.cpp:366-374` | LACKS (time management) | 188fec4 (2024-02-19) 10+0.1 +2.08 +- 2.09 n=49,714; 10+0.0 +2.94 +- 2.34 n=40,484 |
+| 101 | no aspiration window when the previous score is a mate score | S:1012-1013 | window at any score from depth 4, `s:1384-1386` | LACKS (tiny) | not looked up |
+
+## D. Result of the diff (continuation pass, written 00:36, updated 00:40, research stop 01:07)
+- Cards (bar: +3 Elo at STC, or +2 at STC with an LTC result): T04F-01 qsearch one evasion in check (row 63; a677c89
+  +3.3 +- 2.6, c8a30a7 +5.9 +- 4.8), T04F-02 continuation history capture bit (row 71; 2fd8f56 +6.5 +- 5.3 bundle),
+  T04F-03 twofold only in non-PV nodes (row 2; 47fc56a +6.4 +- 5.3 bundle, one-line card). The Caissa numbers are
+  2023 cutechess runs (TC partly not stated, no LTC, wide error bars). Second engine (GPL-3.0, commit messages and
+  fishtest records only): T04F-02 = Stockfish 2e96c51 (10+0.1 ~+2.4 N=79,702; 60+0.6 ~+3.1 N=29,147) and 472de89
+  (~+2.3 / ~+2.2), the same capture key; T04F-01 = Stockfish 392b529 (10+0.1 ~+2.6 N=22,632; 60+0.6 ~+1.0
+  N=105,432), same family with another rule (normal qsearch pruning in check under the mate guard); its SEE form is
+  the tried P27R QsEvasionSeeNonPv line, so the card adds no option for it. Every Forge estimate is UNPROVEN.
+- No fourth card. Gaps checked against the bar and rejected: score-scaled aspiration start window (row 90: the term
+  is older than every commit read, ebe60f8 only changed its form inside a +9.0 bundle whose fail-high part the crew
+  already TRIED; no own number), depth - 1 after alpha is raised (row 59: no Caissa number; T04B SP 284 and T04E
+  Viridithas #431 / Reckless #714 do not meet the STC bar), upcoming-repetition test (row 1: no Caissa number; T04E
+  row Viridithas #465 LTC only), in-check ProbCut (row 31, +2.01 STC only), corr-entry prefetch (row 19, speed, +2.40
+  STC), TT-recapture LMR and shallow below-alpha TT cutoff (rows 97-98: the source removed them again).
+- Evidence for existing cards / rows (no new card): fd723a2 +3.81 +- 3.05 10+0.1 [0,2.5] n=23,502 (bundle) for T04-06 /
+  SingularV2 (deeper negative extensions); cecdba1 +2.02 +- 1.42 for the queued multicut-blend line (T04 TABLE B);
+  9d566cc +1.35 +- 1.06 for T04 TABLE A4 (d39fcfb); cc7d02c +3.0 +- 2.3 n=40,006 (averaged aspiration base) for T04
+  TABLE C (the averaging gain vanished at LTC there); 222642f then d940dec as a caution for the TT-cutoff-direction
+  family (T04D-02, SP 195): the source added a below-alpha cutoff rule and later removed it with a passing
+  simplification. Stormphrax PR 203 (STC +3.91 / LTC +3.36) is the guard the lock already has (T04B TABLE row 50),
+  kept as the safety rule in T04F-01.
+- Corrections made in this pass: row 90 (0dbc287 has no score term; f042a6f only changed the divisor; ebe60f8 changed
+  the form), TABLE row 16 / DIFF row 94 (Caissa HEAD does not prune at the root).
+- PENDING (number missing; full-message greps of the cached 2022+ commit list found nothing, so these features likely
+  predate 2022 and finding them needs file history, which the caps forbid): refutation
+  term in LMR (row 52), depth - 1 after alpha raise (row 59), capture-history update in qsearch (row 68), no history
+  update when only one move was tried (row 79), node-count ordering (row 86), NMP improving term and NMP fail-high
+  depth cut (rows 27-28), origin of the abs(score) aspiration term (row 90).

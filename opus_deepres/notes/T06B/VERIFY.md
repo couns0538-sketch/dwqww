@@ -1,0 +1,49 @@
+# T06B verify (adversarial pass, started 00:33 PC clock; stop 00:53)
+
+Method: every number re-opened at its source (cache `F:/odr/cache/commits` via `tools/mine_commits.py --show`, PR text via
+`gh api`, test pages by direct fetch into `F:/odr/work/T06B-verify/`), Elo recomputed from W/L/D (and from the pentanomial
+where given), licence rows re-run with `tools/licence_at.py --row`, lock lines re-read, `tools/forge_has.sh` re-run,
+`tools/tried_gates.py --grep` re-run, duplicates checked against `ls cards/*/` and own prior code (packa, packb, E3).
+
+card | claim | verdict | evidence
+---|---|---|---
+T06B-01 | Alexandria 7de97e7 (#472) STC +2.14 +- 1.67, 8+0.08, 46,374 g, [0,3], LLR 2.93 | CONFIRMED | cache commit message: W 11381 L 11096 D 23897 -> recomputed +2.14 (N 46,374); LLR 2.93 (-2.25, 2.89) [0.00, 3.00]; Threads=1 Hash=16MB
+T06B-01 | Alexandria 7de97e7 LTC +2.63 +- 1.92, 40+0.4, 30,154 g, [0,3], LLR 2.90 | CONFIRMED | cache: W 6857 L 6629 D 16668 -> +2.63 (N 30,154); LLR 2.90 [0.00, 3.00]; Hash=64MB
+T06B-01 | "PR #472 empty body; the commit message holds the test blocks; no formula, no direction" | CONFIRMED | commit message = two test blocks + "Originality points gained: 4." + bench; nothing on the formula or sign
+T06B-01 | Obsidian e144325 +2.51 +- 1.94, 10+0.1, 31,056 g, [0,2], LLR 2.05, merged before a full pass, no LTC | CONFIRMED | cache: W 7795 L 7571 D 15690 -> +2.51 (N 31,056); LLR 2.05 (-2.25, 2.89) [0.00, 2.00] (2.05 < 2.89 = merged early); message has no second block
+T06B-01 | Stormphrax #212 STC +1.39 +- 1.12 (105,114 g, [0,3], LLR 2.91, test 9263) / LTC +2.10 +- 1.63 (42,242 g, LLR 2.90, test 9275) | CONFIRMED | gh api PR body + both test pages (HTTP 200): W/L/D 25451/25031/54632 -> +1.39; 9769/9514/22959 -> +2.10; book UHO_Lichess_4852_v1; merge 2587a730ce, 2024-12-18
+T06B-01 | "All OpenBench, Threads=1, the engines' own books" | CONFIRMED | all five blocks say Threads=1; Stormphrax book from the test pages (UHO_Lichess_4852_v1); Alexandria / Obsidian book not in the commit messages (not contradicted)
+T06B-01 | Lock has no complexity term; LMR block src/search.cpp:1136-1146; raw_eval at :935-936; PieceValueMg include/forge/eval.hpp:30 | CONFIRMED | forge_has 'complex' = 0 hits; lock lines read: :935 `raw_eval = tte.eval` / :936 `static_evaluate`, :1137-1146 LMR +-1 steps, eval.hpp:30 PieceValueMg{0, 82, 337, 365, 477, 1025, 0}
+T06B-01 | gate 16 LmrCorrThreshold=30, 1,000 games, -0.69, cap | CONFIRMED | tried_gates --grep: `16 | gate16_p7_epa_vs_ep10 | option.LmrCorrThreshold=30 | 1000 | -0.69 | -1.50 | -0.54 | Cap with no decision`
+T06B-01 | not a duplicate of T06-03 (eval decay / optimism, C = abs(residual)) | CONFIRMED | grep 'complex' over cards/*/ hits only T06-03 and T06B-01; T06-03 changes the eval, T06B-01 only the reduction; no T04* card and no notes/T04/TABLE.md row on complexity; notes/T06/FORMS.md:57 lists complexity-in-search as out of T06 scope (no card made of it)
+T06B-01 | reading rule / own constants | CONFIRMED | three GPL repos: only commit messages, PR text, test pages read (sources.md lines 11-16); start T = 150 cp and step +-1 are own values; the sources give no constant to copy
+T06B-02 | PlentyChess #443 STC non-regression +1.35 +- 2.12, 8+0.08, 22,590 g, [-3,1], LLR 2.92 | CONFIRMED | gh api PR body: W 5602 L 5514 D 11474 -> +1.35 (N 22,590); LLR 2.92 [-3.00, 1.00]; merge 5c8c8c7b46, 2025-12-22; test furybench 4242, book UHO_4060_v2
+T06B-02 | fortress test +4.39 +- 1.97, 10,058 g, [0,2.5], LLR 2.90, penta [1,353,4196,476,3], "a drawish special book" | CONFIRMED (book caveat strengthened) | PR body: W 1825 L 1698 D 6535 -> +4.39; penta sum 5,029 pairs = 10,058 games, score 0.50631 -> +4.39; test page furybench 4210 names the book: fortresses_150_250.epd (a fortress book, not the engine's normal UHO book)
+T06B-02 | "fix #448" | CONFIRMED (number added to the note) | #448 "Fix TT hash calculation with regard to fifty-move rule zobrists": +0.13 +- 1.57, 46,242 g, [-3,1], LLR 1.93 (not reached), merged 2025-12-27 (W 11316 L 11299 D 23627 -> +0.13)
+T06B-02 | Obsidian 455c812 "Include 50MR in zobrist" has no number | CONFIRMED | cache message = title + bench only
+T06B-02 | lock: clock stored per entry, score admitted only if both clocks < 90 or equal (include/forge/search.hpp:75-85), no bucket below 90 | CONFIRMED | search.hpp:75 `rule50_clock` (capped at 100), :83-85 `score_usable`: `(rule50_clock < 90 && capped < 90) || rule50_clock == capped`
+T06B-02 | not a duplicate of own prior code (packb FiftyDamp / ReSearchAdjust, packa, E3) | CONFIRMED | packb src: FiftyDamp = eval damp (search.cpp:656-660), TT admission unchanged (:807 same score_usable); packa search.hpp:75-85 identical to the lock; E3 (EvalRule50Damp) = eval damp, see row below; gates 12/35/40/41 and UE3C are damping gates, no TT-bucket gate in TRIED_GATES.md
+T06B-02 | mechanism as an own Forge form (admission compare, no key change) | CONFIRMED as own form | the PlentyChess PR title is "Add a zobrist KEY based on the fifty-move rule" (and Obsidian's too): the sources change the hash key; the card's admission-compare form is Forge's own adaptation and says so ("no key change is needed")
+T06B-01, T06B-02 | licence rows | CONFIRMED | all six `licence_at.py --row` lines re-run 00:35: identical sha / date / file / SPDX / api columns for Altair b2447b825b MIT, Alexandria 7de97e77aa, Obsidian e144325d52, PlentyChess 5c8c8c7b46, Stormphrax 639efd5c08, berserk 8c72a1d869 (all GPL-3.0)
+folder | at most 4 cards, crew hours, UNPROVEN labels, names, lint | CONFIRMED | 2 cards; T06B-01 "Crew: ~2 h code + ~2 h proofs", T06B-02 "crew h: 3"; both estimates carry UNPROVEN; vendor / model-company grep over cards/T06B and notes/T06B = 0 hits; card_lint 00:34: 0 findings, 0 PENDING in both; T06B-01 is exactly 60 lines (limit <= 60)
+T06B-02 | E3 options (EvalMatScale / EvalOptimism / EvalRule50Damp) do not already hold a TT clock bucket | UNVERIFIABLE (by description only) | the E3 engine source was not located in the window: branch opus-r13-p7-e3fit holds only the fit tools (opus_r13/p7/), no remote branch's src/search.cpp contains EvalRule50Damp, and forge_push has no src_*e3* folder; T06-05 and WORKER_RULES describe E3 as eval post-processing (raw -> optimism -> scale -> rule50 -> clamp), so a TT-admission bucket there is unlikely but not read; the lock has none of the E3 options (forge_has: 0 hits)
+notes/TABLE.md | Berserk #551 (43bea21) +232.54 +- 3.70 (21,566 g) with Contempt=24 vs +223.13 +- 3.90 (18,358 g), 10+0.1, tests 35847 / 35846 | CONFIRMED | cache message; W 12928 L 322 = a far weaker opponent, so "fixed-length runs vs a weaker engine" is right
+notes/TABLE.md | Obsidian 9603d25 +0.75 +- 1.96 (30+0.3, 54,916 g, [0,2.5], LLR 0.34) | CONFIRMED | cache message ("Not willing to run so many games at LTC")
+notes/TABLE.md | Obsidian 4e23d86 +4.50 +- 11.03 (8+0.08, 2023, no game count) and 9781e8b +16.1 +- 17.5 (800 games, cutechess) | CONFIRMED | 2023 cache (--since 2023-01-01): 4e23d86 block has Elo + SPRT lines only; 9781e8b = cutechess summary 231-194-375
+notes/TABLE.md | Obsidian 2d4c4c1 +2.15 +- 3.08 (6+0.06, 12,794 g) | CONFIRMED (precision added) | cache: bounds [-3.00, 0.00] non-regression, LLR 1.81, author stopped it early ("Idc about completing it")
+notes/TABLE.md | Obsidian baa75cc +10.19 +- 8.00 (3,444 g, LLR 1.31, merged early); e11fbdc STC -2.10 +- 2.12 (26,584 g, LLR -2.27) / LTC +2.04 +- 2.37 (19,422 g, LLR 1.03); 8684e5a no block, bench unchanged | CONFIRMED | cache messages; 8684e5a bench 3411349 = the bench of 9603d25 the day before
+notes/TABLE.md | Alexandria e9735de +0.49 +- 1.22 (80,216 g) | CONFIRMED (precision added) | cache: 8+0.08, [0,3], LLR -1.08 = did not pass
+notes/TABLE.md | Alexandria 991a22d (#443) eval grain +2.20 +- 1.69 at 40+0.4 (40,008 g); a138bcf, c94d360, 70cf91c no block | CONFIRMED | cache: LLR 2.91 [0,3]; the three others are title + bench only
+notes/TABLE.md | Alexandria #521 STC +2.55 +- 1.91 (33,716 g) / LTC +1.74 +- 1.40 (55,766 g), [0,3], LLR 2.89; #530 STC -1.11 +- 2.17 (24,646 g, LLR -2.28) / LTC +2.05 +- 1.59 (41,666 g, LLR 2.90) | CONFIRMED | gh api PR bodies (merge fe95d06353 / d22f59740b)
+notes/TABLE.md | Stormphrax #264 no test block; #301 STC +2.83 +- 2.07 (31,944 g, LLR 2.95) / LTC +4.14 +- 2.55 (16,716 g, LLR 2.92); #200 +10.47 +- 4.53 (6,474 g, LLR 2.89); #338 STC -6.44 +- 4.58 (6,366 g) / LTC -0.68 +- 4.42 (4,624 g); #322 STC -7.17 / LTC +0.04 / VLTC -0.41 | CONFIRMED | gh api PR bodies: #264 body carries no Elo line (number missing stays PENDING, as the note says); the rest match line by line (#338 and #322 are [-3,1] non-regression)
+notes/TABLE.md | PlentyChess #472 STC +0.38 +- 0.72 (224,652 g, LLR -2.30) / LTC +1.27 +- 1.12 (82,866 g, LLR 2.43); #336 +1.15 +- 1.10 (98,664 g, LLR 2.07); #127 +2.54 +- 2.61 (31,040 g, [0,5]); #71 +3.19 +- 3.01 (25,138 g, [0,5]) | CONFIRMED | gh api PR bodies
+notes/sources.md, licences.md | 15 source lines, 6 licence rows | CONFIRMED | sources.md has 15 entries (cap 15; line 17 = the cache re-grep counted as source 15, no network fetch); licences.md has the six rows re-run above
+cards/T06B | folder rules | CONFIRMED | 2 cards (<= 4); 1 full + 1 one-liner; no violation, no duplicate; Status lines untouched
+
+## Summary (00:40 PC clock)
+- Checked 32 claims (18 in the two cards, 13 in the notes, 1 folder check): 31 CONFIRMED, 0 CORRECTED, 1 UNVERIFIABLE
+  (E3 engine source not located; T06B-02's "no own bucket" rests on the lock, packa and packb sources, which were read, and
+  on E3's description), 0 VIOLATION, 0 DUPLICATE.
+- Edits made: verify annotations only (T06B-01 line 44: Stormphrax book; T06B-02 numbers field: books, #448 number, own-form
+  note). No Status line changed, nothing deleted.
+- Scratch: F:/odr/work/T06B-verify/ (four fetched test pages).

@@ -34,7 +34,8 @@ probe; 16,384 (1 MiB) or 32,768 (2 MiB) entries is a microbench knob - both node
 ## Expected gain
 Sources: no nps number logged anywhere (Stockfish "not so fast to calculate", no number; Arasan CHANGES none; Ethereal
 none). Weiss PR 374, pawn-only cache: "about 80-90% hitrate", +10.11 +- 6.10 Elo at 10+0.1, 5,776 g, SPRT [0, 5].
-Forge: HCE 14.43 % of samples (R7 perf bench 16); shelter + KPD ~175-205 of ~1,650-1,900 instructions per HCE call,
+Forge: HCE 14.43 % of samples (R7 perf bench 16); shelter + KPD ~175-205 of ~1,650-1,900 instructions per HCE call
+(verify: the 0.55 evaluations-per-node basis of the 1,650-1,900 figure is not traceable in the 30-h records),
 2-3 data-dependent branches per file. Reuse = pawn hit x same king square: Weiss logs 80-90 % pawn hits, the
 king-square share is logged nowhere (counters build, test plan step 1; lower in endgames, where kings walk). At
 70-90 % reuse this removes ~1.0-1.6 % of node time before the bigger entry's cost (at 55 %: ~0.7-1.0 %).

@@ -41,7 +41,7 @@ variant above), different use (T06-03 changes the eval itself, this changes only
 Alexandria 7de97e7: STC +2.14 +- 1.67 (8+0.08, 46,374 games, [0,3], LLR 2.93); LTC +2.63 +- 1.92 (40+0.4, 30,154
 games, [0,3], LLR 2.90). Obsidian e144325: +2.51 +- 1.94 (10+0.1, 31,056 games, [0,2], LLR 2.05, merged before a
 full pass, no LTC). Related signal Stormphrax #212: STC +1.39 +- 1.12 (8+0.08, 105,114 games, [0,3], LLR 2.91), LTC
-+2.10 +- 1.63 (40+0.4, 42,242 games, LLR 2.90). All OpenBench, Threads=1, the engines' own books.
++2.10 +- 1.63 (40+0.4, 42,242 games, LLR 2.90). All OpenBench, Threads=1, the engines' own books (verify 00:40: all five blocks re-read and recomputed from W/L/D; Stormphrax's two tests on UHO_Lichess_4852_v1).
 Forge estimate: 0 to +2 Elo **UNPROVEN** (the engines' complexity formula is unknown; Forge's C is an own definition).
 
 ## Effort

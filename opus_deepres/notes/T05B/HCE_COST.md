@@ -1,5 +1,5 @@
 # T05B: where the lock's hand-crafted eval spends its time (from reading the code), and what is cached today
-Status: COMPLETE (first worker 23:57-00:20; finished by the continuation worker 00:22-00:57 PC clock: sections 4-8
+Status: COMPLETE (first worker 23:57-00:20; finished by the continuation worker 00:22-00:35 PC clock: sections 4-8
 checked against the lock source again, sections 7-8 added).
 
 Lock FD3A5190 source, read-only: `C:/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/src_al1s198_clean`.
@@ -104,7 +104,10 @@ threat target loops, passer loops. The shelter loop alone has 2-3 data-dependent
    null-move children, a share nobody has counted (the lock counts only null_tries_).
 5. Overlaps with the parallel sub-track T05C: PEXT slider index = T05C-03 (not proposed here; it also speeds the
    HCE's slider lookups, 10 call sites in eval.cpp per T05C-03); the material key in Board = T05C-04, same target as
-   T05B-02 (the coordinator keeps one).
+   T05B-02 (verify: T05C-04 has since been merged into notes/T05C/TABLE.md row 18 as a duplicate of T05B-02).
+   Verify notes: the lock-exe tallies were recounted from the same dump (2,967 instructions, 79 / 69 / 331 / 63 exact);
+   the "0.55 evaluations per node (30-h counters)" basis of the per-call instruction estimate was not found in the
+   30-h records (UNVERIFIABLE); see notes/T05B/VERIFY.md.
 
 ## 6. How to measure before any gate (proposal; no run in this job)
 - Counters build (not for gating): count HCE calls, pawn-cache hits / misses, king-square hits per colour, HCE calls

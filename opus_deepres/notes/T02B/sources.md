@@ -92,3 +92,30 @@
 - (own data, no licence) D:/grok-pc-data/selfplay_out/forge_selfplay_020.txt first 1,000,000 rows (read-only, awk,
   3.6 s): cp == 0 rows 25,881 = 2.588 %, of them 84.6 % from drawn games (drawn-game rows overall 30.4 %); |cp| <= 10
   5.21 %, |cp| <= 25 27.50 % | TABLE row (zero-score skip: Forge share)
+- web search (in-check question, 1 of 1): "NNUE training data skip positions in check filter Elo test result
+  datagen" | - | no isolated in-check Elo anywhere in the results (arXiv 2412.17948 = the Xiangqi study T02 already
+  read; SF PR 4314 = card T02-02; forum anecdotes) | TABLE row: explicit NOT FOUND
+- web search (|eval| cap question, 1 of 1): "chess NNUE training data maximum eval cutoff filter positions |score|
+  above threshold removed Elo gain test" | - | no test of a plain |eval| cap; nearest: SF dataset-filter commits
+  (c3ce220408, 37160c4b16 "positions with only one legal move were removed", both confounded, TABLE row 9 of T02) |
+  TABLE row: explicit NOT FOUND
+- web search (draw-ratio question, 1 of 1): "self-play training data draw rate rebalance downsample drawn games NNUE
+  chess engine Elo" | - | no measured Elo for draw down-sampling / result rebalancing in an NNUE engine (a 2018 Lc0
+  mailing-list thread on temperature and draw rate, not NNUE; arXiv 2412.17948 eval-band targets without Elo) |
+  TABLE row: explicit NOT FOUND
+- 10. https://talkchess.com/viewtopic.php?p=965869 ("Best practices for NNUE training data generation?", 8 posts,
+  2024-06-27..30; forum thread 1 of 5) | forum | settings only (fixed 5-10k nodes, a couple of random plies, skip
+  capture best moves and in-check positions, 100M+ positions), NO Elo, TC or games anywhere | no card
+- 5 (cont.). Stockfish c3ce220408 (2023-04-25) and 37160c4b16 commit messages from the cache | GPL-3.0, messages only |
+  c3ce220408: dedup preferring the later score + filter extension + binpack minimiser, local 25k nodes 1.2 +- 2.6,
+  confounded; 37160c4b16 adds "all positions with only one legal move were removed" (T02 TABLE row 9, confounded) | no card
+- 1 / 9 (cont.). cached commit messages: Reckless 460b614e37 (2024-10-14, "Improve data generation method": opening
+  book for datagen + draw adjudication; NO Elo); Caissa c84df9fce5 (2026-07-25, random quiet near-equal positions as a
+  plain-FEN self-play book; "no functional change", NO Elo) and the Caissa net commits since 2026-05 (no isolated
+  datagen-setting test) | AGPL titles / MIT messages | no card
+- (own record, no licence) D:/grok-pc-data/dwqww git show opus-r14b-fast-loader:opus_r14b/item1/LOADER_SPEC.md
+  lines 32-57 (the crew's own-words spec of the npt loader) | own | the live npt line already skips a zero-score
+  "placeholder" row: same game (ply rising), previous |score| > 100, decisive result, score == 0 (line 36-38), plus
+  VALUE_NONE rows; filtered / wld_filtered / simple_eval_skipping are rejected at start-up (line 41) | TABLE row
+  (zero-score skip = EXISTING in the npt line)
+- stop rule reached at 00:44: sources 7, 8, 9 and 10 gave no new card in a row (rule: stop after 2); research ended.

@@ -31,7 +31,8 @@ narrows the last multiply to imul $0x3c15), so K0 and K_j can be kept mod 2^14 a
 key in Board, no material table. Runs at every non-check node that reaches the eval step (TT-eval reuse included)
 and at each correction update. More keys (card T04-04 minor / major correction keys) would add more such chains, so
 (b) is also the base for those. Overlap: T05C-04 (one-line, same target; design = recompute with the same formula
-only after a capture or promotion, restore from Undo; no number) - the coordinator keeps one; this card adds the
+only after a capture or promotion, restore from Undo; no number) (corrected by verify: T05C-04 has since been merged
+into notes/T05C/TABLE.md row 18, which marks it a duplicate of this card - this is the only card); this card adds the
 closed form (a), the 14-bit index, the disassembly, the unit test and the planted mutant.
 
 ## Expected gain
