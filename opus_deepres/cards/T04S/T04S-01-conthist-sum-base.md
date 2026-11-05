@@ -36,7 +36,7 @@ quiet_history settles lower, so HistoryPruneMultiplier / LmrHistoryDivisor (old 
 
 ## Expected gain
 Sirius (hand-crafted eval engine): STC 8+0.08 +5.86 +- 3.36 n=13,748 [0,3] LLR 2.95 (own nElo +10.1); LTC 40+0.4 +14.38
-+- 5.27 n=4,642 [0,3] LLR 2.97 (+27.3 nElo). Tarnished (NNUE): STC 8+0.08 +2.23 +- 1.70 n=39,808 [0,3] LLR 2.95 (+4.5
++- 5.27 n=4,642 [0,3] LLR 2.97 (+27.3 nElo) (corrected by verify: the PR body labels the +5.86 STC run "base = 3/4 x summed score + 1/4 x entry", a blend; its test 1092 then ran the pure-sum base against that blend, +3.23 +- 2.30 n=29,086 [0,3] LLR 2.97, so the form merged is the pure sum, as the Tarnished / Clockwork titles say, and the LTC's variant is not labelled; the first ON sweep should include p = 100, not only the start 60). Tarnished (NNUE): STC 8+0.08 +2.23 +- 1.70 n=39,808 [0,3] LLR 2.95 (+4.5
 nElo); LTC 40+0.4 +2.53 +- 1.85 n=32,122 [0,3] LLR 2.96 (+5.2 nElo). Clockwork (hand-crafted eval): STC 8+0.08 +14.67
 +- 7.14 n=3,460 [0,5] LLR 3.04; a VLTC "+34" is only quoted in the Sirius text (test 503 not fetched). Stage 2: Sirius
 +4.50 +- 2.83 n=18,604 [0,3], no LTC. All Threads=1; books not named (missing). Viridithas #370 LTC +2.84 +- 2.00. The

@@ -33,22 +33,24 @@ Change: a "checks only" quiet stage - when LMP fires, the picker still generates
 `direct_check` ones (check squares are already computed at `:462-472`); bit 2 also keeps them after futility.
 
 ## Expected gain
-Reckless, 1 thread: STC 8+0.08 +2.84 +- 2.04 (95 %), n=28,536, LLR 2.92 [0,3]; LTC 40+0.4 +9.46 +- 4.06, n=6,500,
-LLR 2.93 [0,3]. Book UHO_Lichess_4852_v1 (both logs), Hash 16 / 64 MB; W/L/D STC 7,260 / 7,027 / 14,249, LTC
-1,681 / 1,504 / 3,315; adjudication win 3 x 400 cp, draw from move 30 6 x 10 cp. The LTC run stopped early (6,500
-games), so its +9.46 is likely an overestimate.
+Reckless, 1 thread, SPRT [0,3] (-2.25, 2.89), early stop (both runs): STC 8+0.08 +2.84 +- 2.04 (95 %), n=28,536,
+LLR 2.92; LTC 40+0.4 +9.46 +- 4.06, n=6,500, LLR 2.93. Book UHO_Lichess_4852_v1 (both logs), Hash 16 / 64 MB; W/L/D
+STC 7,260 / 7,027 / 14,249, LTC 1,681 / 1,504 / 3,315; adjudication win 3 x 400 cp, draw from move 30 6 x 10 cp. The
+LTC run stopped early (6,500 games), so its +9.46 is likely an overestimate.
 Forge estimate: +1 to +4 Elo at STC, more at LTC **UNPROVEN** (Forge already sends direct checks early; the LTC
 number has a wide error and comes from a single engine).
 
 ## Effort
-Crew ~2-3 h (picker stage flag + loop line + option + proofs). CPU: STC SPRT [0,5] up to the 12k-game cap,
-~13-25 h at 430-502 games/h; LTC confirmation about 4x the time per game. No GPU.
+Crew ~2-3 h (picker stage flag + loop line + option + proofs). CPU: one STC SPRT [0,5] up to the crew cap: 3,000
+games = 6-7 h at 430-502 games/h measured at Threads 2 / conc 4, no Threads=1 rate measured, +6-7 h for the one
+extension if positive; LTC confirmation about 4x the time per game. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench / perft pins equal to the lock; ON bench changes (expected), ON-at-0 identical; picker unit
 check: a quiet direct check ordered past the LMP count is still returned with the option ON; T1/T4 movetime
-smoke with engine-side legality; mate probe OFF/ON. Gate: UHO SPRT [0,5] at STC, then LTC (LTC decides: the source
-gain tripled at LTC).
+smoke with engine-side legality; mate probe OFF/ON; ON/OFF nps at fixed depth (paired ABBA bench): ON still
+generates and scans quiets after LMP where the lock skips them (`:383` / `:387`), a cost the estimate does not count.
+Gate: UHO SPRT [0,5] at STC, then LTC (LTC decides: the source gain tripled at LTC).
 
 ## OFF-by-default design
 UCI option `LmpKeepChecks` (int 0-3, default 0): bit 1 = after LMP the quiet stage returns direct checks only,

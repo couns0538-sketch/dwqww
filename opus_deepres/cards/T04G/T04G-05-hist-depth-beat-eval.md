@@ -41,11 +41,14 @@ Forge estimate: 0 to +3 Elo **UNPROVEN**.
 
 ## Effort
 Crew ~1.5 h (4 lines + 2 options, OFF pins, ON-live bench, planted bug, pin_check, smoke). CPU: one STC SPRT [0,5]
-~6.6k games ~13-15 h at 430-502 games/h; LTC only if STC passes. No GPU.
+up to the crew cap: 3,000 games = 6-7 h at 430-502 games/h measured at Threads 2 / conc 4, no Threads=1 rate
+measured, +6-7 h for the one extension if positive; LTC only if STC passes. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench / perft pins equal to the lock FD3A5190; ON bench nodes differ (live); planted bug (test
-inverted to best_score < eval) gives other ON nodes; T1 smoke. Gate: UHO SPRT [0,5] at STC (Threads=1), then LTC.
+inverted to best_score < eval) gives other ON nodes; T1 smoke; ON box test: cutoffs (`:1196`) counted by eval < beta (at
+margin 0 the ply is then always paid: best_score >= beta > eval), eval >= beta and in check (eval = ValueNone `:931`,
+never paid), to show how much of the update it moves. Gate: UHO SPRT [0,5] at STC (Threads=1), then LTC.
 Bit 1 alone (quiets only) or a non-zero margin only as a second line after the first is decided.
 
 ## OFF-by-default design
