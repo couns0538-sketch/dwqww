@@ -453,45 +453,55 @@ child, fail closed).
 | cleanroom_lint (patches + commit messages) | PENDING (end of job) |
 | doc_lint | PENDING (end of job) |
 
-## 4. Gate next (ranked by the offline evidence; the ranking is a judgement, no number below is a rating claim)
+## 4. Gate next (ranked by the evidence below; the ranking is a judgement, no number is a rating claim)
 
-Caveat first: all that exists for these nets is the offline rule (S31 paired vs the lock net; jobA z) and 400-game
-sanity matches at 10+0.1 on one CPU at Idle. The v2p4 exe itself measured -20.9 +/- 18.5 when it played the lock's own
-evaluation (control, lockstep-identical search), so every v2 result must be read against that control, and only the
-crew gate decides. Gate exe for every line: `D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe` sha256
-a2a560cb4b6a2c1127a41867fc5287cad0834bcd207f0583571c248d363ee7ca (pc1 = pc2; OFF pins -Full PASS; lock net as
-replicas = lock pins), vs the lock FD3A5190, UHO [0,5] SPRT, then the 8moves_v3 confirm. Recipe (review E-001): before
-any gate, run pin_check's ON line with the net (`-Options EvalFileV2=<net>`): its bench must DIFFER from the lock pins
-(a mistyped path makes the exe play the lock net and the gate measures nothing), and the OFF line must equal the lock
-pins; both lines are in each net's RESULT.json (pins_off / pins_on).
+Caveat first: what exists for these nets is the offline rule (S31 paired vs the lock net; jobA z) and sanity matches
+of 200-400 games at 10+0.1 on one CPU at Idle. The v2p4 exe itself measured -20.9 +/- 18.5 (47.0 %) when it played the
+lock's own evaluation (control, lockstep-identical search), so every v2 result is read against that control, and only
+the crew gate decides. The soups' offline numbers are the best of ~22 soups tried, chosen and judged on the same S31 /
+jobA sets (selection-biased). Gate exe for every line: `D:\o30\w\v2p4_pc1\src_copy\forge_ltopgo_v2p4_pc1.exe` sha256
+a2a560cb4b6a2c1127a41867fc5287cad0834bcd207f0583571c248d363ee7ca (pc1 = pc2; OFF pins -Full PASS; lock net as replicas
+= lock pins in every layout), vs the lock FD3A5190, UHO [0,5] SPRT, then the 8moves_v3 confirm, with
+`option.EvalFileV2=<net path below>`. Recipe (review E-001): before any gate, pin_check's ON line with the net must
+DIFFER from the lock pins (a mistyped path makes the exe play the lock net and the gate measures nothing); the ON benches
+below are from each net's RESULT.json.
 
-1. **Run 5 - warm start KB8 (rank4x2), 3.36G positions**
-   (`EvalFileV2=D:\o30\nets\o30_gpu_kb8short_r5\o30_gpu_kb8short_r5.nnue2`, sha256
-   27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc): the only packaged net that improves BOTH
-   holdouts - S31 -1.65e-4 (z -40.4) and jobA -7.39e-5 (z -1.53), offline rule PASS, all pack checks PASS, ON bench
-   294850 / 679834 / 3128255. Sanity match [PENDING]: if it reads clearly above the control, this is the first gate
-   line; if at or below the control, no v2 net goes to the gate before QA closes the exe gap.
-2. **Run 2 - warm start KB4, 11.74G positions** (`EvalFileV2=D:\o30\nets\o30_gpu_kb4warm_r2\o30_gpu_kb4warm_r2.nnue2`,
-   sha256 08faa2f0301de7583611fd9ae045f596de501bd01657aba36e141a7f7c8da369): the same S31 gain (-1.65e-4, z -32.3) with
-   jobA inside the rule but above the lock (+1.04e-4, z +1.88); all pack checks PASS; ON bench 307024 / 702759 /
-   2723318; sanity match running (70 games at 12:54) [PENDING result]. Same speed class as run 5 (4 vs 8 king
-   buckets change the first-layer table, not the per-node work).
-3. **Run 3 - warm start KB8, 11.74G positions** [PENDING: final checkpoint 700, `net_pack.sh`, sanity]: S31 -1.57e-4
-   with jobA -8.96e-5 (z -1.33) at 10.22G - behind run 5 on both holdouts despite three times the positions; if its
-   final checkpoint and package come out ahead of run 5, it moves to 1 (gate line: the exe above with
-   `EvalFileV2=D:\o30\nets\<packaged name>\<packaged name>.nnue2` [PENDING path]).
-4. **n2L (CPU fine-tune)** (`EvalFileV2=D:\o30\nets\o30_kb4ob8_n2L\o30_kb4ob8_n2L.nnue2`, sha256 1eec67bf...): S31
-   -1.13e-4 but offline rule FAIL (jobA z +2.55); on v2p4 it read +2.6 +/- 19.2 vs the lock exe and +23.5 +/- 26.6 vs
-   the control - the only net with a finished sanity match on v2p4; behind runs 5 / 2 / 3 on the offline numbers.
-5. **Runs 4 and 6 (cost probes)** [PENDING for 6]: run 4 (KB4, 3.36G) shows the KB4 gain needs no 11.7G positions
-   (S31 -1.41e-4, jobA z +1.69, PASS) but is dominated by run 5 at the same cost; run 6 (KB8, lr 3e-5, 13.4G) trailed
-   run 5's checkpoint at 1.68G. Neither is an independent candidate.
-6. **Not a candidate: run 1 (from scratch)** - S31 -5.9e-5 only after 11.74G positions and jobA worse than the lock
-   (z +4.5): the warm start from the lock net is the method, from-scratch training of this shape is not.
+1. **KB8 (free in the engine): run 5 and the KB8 soups.**
+   - Run 5 (`D:\o30\nets\o30_gpu_kb8short_r5\o30_gpu_kb8short_r5.nnue2`, sha256
+     27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc; ON bench 294850 / 679834 / 3128255): S31
+     -1.65e-4 / jobA -7.39e-5 (z -1.53); sanity 400 games 52.62 % (+18.3 +/- 18.0) - the strongest finished play evidence.
+   - Soup Y8 = runs 3+5+10+12+14+15 (`D:\o30\nets\o30_gpu_soupY8r3r5r10r12r14r15\o30_gpu_soupY8r3r5r10r12r14r15.nnue2`,
+     sha256 2066544b21aec5047bcbcb823a7417e54a609a4671d0453b55c86aee51026322; ON bench 289038 / 938620 / 2698787):
+     S31 -1.85e-4 / jobA -1.05e-4; sanity [see the window-2 sanity table].
+   - Soup U8 = runs 3+5+10+12+14 (`D:\o30\nets\o30_gpu_soupU8r3r5r10r12r14\o30_gpu_soupU8r3r5r10r12r14.nnue2`, sha256
+     dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7; ON bench 356115 / 952259 / 2514975): S31
+     -1.85e-4 / jobA -1.11e-4 (z -2.01); sanity [see the table].
+   Gate first whichever of these reads highest in its sanity match at the end (section 1 table); KB8 costs nothing in
+   nodes per second vs KB4 (single run), so the offline gain does not have to pay for speed.
+2. **KB32 soups (best offline, ~6 % fewer nodes per second):** Z32 = runs 3+5+7+8+12
+   (`D:\o30\nets\o30_gpu_soupZ32_r3r5r7r8r12\o30_gpu_soupZ32_r3r5r7r8r12.nnue2`, sha256
+   3ec0c824bbeeae189fc590176e1b4e322060e678c6f806ce15d030a68030f849; ON bench 349733 / 833439 / 2882276): S31 -2.24e-4 /
+   jobA -1.45e-4 (z -2.81), not played; soupC = runs 3+5+7+8 (`D:\o30\nets\o30_gpu_soupC_r3r5r7r8\o30_gpu_soupC_r3r5r7r8.nnue2`,
+   sha256 0dddfdc97c555ed7933ff5376458310d3f37f3efb299d96df99c1fe14e6af670; ON bench 342800 / 1069442 / 3286376):
+   S31 -2.25e-4 / jobA -1.34e-4 (z -2.70); sanity [see the table].
+3. **KB16 soups and run 7 (~3-4.5 % fewer nodes per second):** V16 = runs 3+5+7+11+12+13
+   (`D:\o30\nets\o30_gpu_soupV16_r3r5r7r11r12r13\o30_gpu_soupV16_r3r5r7r11r12r13.nnue2`, sha256
+   031f50201f096893d49cf7aaff41b6abcec2ecf1d4d025c3fce889fe4d1671dd; ON bench 289581 / 769342 / 2773314): S31 -2.18e-4 /
+   jobA -1.40e-4; P16 = runs 3+5+7+11+12 (sha256 76e7174479a3ee797840ab22c4110f907f98337c1c9b16a75c0a3a2c3df18d16):
+   -2.16e-4 / -1.41e-4; run 7 (sha256 6f4663d6252fbce14e7838151451f05d20e38749bce517c7cb828bc856eb12fd): -1.80e-4 /
+   -9.10e-5, sanity 400 games 50.62 % (+4.3 +/- 17.8); the soups' sanity [see the table].
+4. **Run 3 (KB8, 700 superbatches) and run 2 (KB4)**: soup members; run 3 S31 -1.59e-4 / jobA -1.31e-4 (sha256
+   c32b9879bf2013e13ab0387b3f0e9610876a2883ca3d69cfb2f7478e5e3dea30, play checks PASS, no sanity match); run 2
+   -1.65e-4 / +1.04e-4 (jobA z +1.88), sanity 400 games 49.62 % (-2.6 +/- 18.1).
+5. **n2L (CPU fine-tune)** (sha256 1eec67bf...): offline rule FAIL (jobA z +2.55); on v2p4 +2.6 +/- 19.2 vs the lock exe.
+6. **Not candidates:** run 1 (from scratch: S31 -5.9e-5 after 11.74G, jobA z +4.5), runs 4 / 6 / 9 / 10 / 11 / 13-19
+   (cost probes and soup members; each in the window-2 run table).
 7. **The SPSA tuned set (Item B)**: `D:\o30\w\tuned184_pc1\src_copy\forge_ltopgo_tuned184_pc1.exe` (sha256
    3b35f5cfa662f4f09916fa9c4b40f6bfc6a6d0d4ce7fa1f1b8f6970daadb66d1) with `option.O30Tuned=true` vs the lock FD3A5190,
    UHO [0,5] SPRT then 8moves_v3 confirm. Expectation ~0 (184 pairs, one parameter beyond 2 sigma); a combination with
    a net only after both pass on their own.
+8. **QA item:** the v2 exe's own deficit (-20.9 +/- 18.5 with an identical evaluation; kit v2.5 build ~2-7 % slower
+   than the lock's kit v2.3 on game positions) - closing it helps every v2 line above.
 
 ## 5. Review of every patch: the author's own structured review, plus the independent reviews of 2026-11-04
 
