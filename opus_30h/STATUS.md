@@ -65,14 +65,19 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   KB16 0.969x, KB32 0.942x of KB4; end to end v2p4 + Y8 0.893x and v2p4 + Z32 0.849x the lock exe's nps.
 - 19:00 final offline soups (all 11 KB8 runs -1.86e-4 = the KB8 plateau); 19:01 window 2 over (GPU idle from 18:59).
 
-## End of the job (after the windows: CPUs 0-1 only)
+## End of the job (CPUs 0-1 from 19:06; window 3 from 19:38)
 - 19:08-19:31 bug hunt, part 1 (reading + stub tests while V16 / Y8 play on CPUs 0-1): seven findings BH-1..BH-7, all
   fixed or handed over, none changes a cited result (FINAL_REPORT 6.1). The one that matters for later use: a GPU run
   refused at start could never start on the retry (the bat refuses existing <run>.out / .guard.log with exit 4), also
   in the version delivered for fix list 2 item 1 - fixed in 1ab804be with a stub that does the bat's checks, and a
   correction note in CR_FIXLIST_20261104_REPORT.md. Fix list 2 report-back (items 1-7) complete in that file.
-- Next: V16 ends ~20:26 -> CPU 1: abba.py A/A with the identical command (checklist item 8), final_checks_o30.sh;
-  Y8 ends ~21:21 -> result tables, INDEX.md, final checks again, CI, publish copies, job end ~22:17.
+- 19:38 WINDOW 3 (owner: "another 2h 40min for cpu 0-6 and the whole gpu"; quote in WINDOW.md): ~19:38-22:18, the
+  job's own end ~22:17, so runs and matches end by ~21:50. 19:41 Z32 (KB32 soup, never played) 400 games on CPUs 2-3
+  and U8 200 more games (seed 31, sanity2) on CPU 4; 19:42 GPU plan 3 on CPUs 5-6 (queue_runner2.sh, RUNNER_GPU_MASK
+  0x60; 2.7M positions/s with two loader CPUs): r21 / r22 = lr 5e-6 fine-tunes warm-started from the soups Y8 / Z32,
+  r23-r25 = r5-recipe KB8 seeds + one KB32 run; cutoff 21:10.
+- Next: V16 ends ~20:26 -> CPU 1: abba.py A/A with the identical command (checklist item 8), final_checks_o30.sh,
+  then more games; Y8 ends ~21:21 -> result tables, INDEX.md, final soups of plan 3, final checks, CI, publish copies.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock
 function).
