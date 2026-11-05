@@ -21,3 +21,7 @@
 | soupQ16_r3_r5_r7_r9_r11_r12 | r3_k16.bin + r5_k16.bin + r7_kb16short@200 + r9_kb16seed@200 + r11_kb16long@600 + r12_k16.bin | -2.193e-04 (-44.4) | -1.325e-04 (-2.49) | PASS |
 | soupR16_r3_r5_r7_r12 | r3_k16.bin + r5_k16.bin + r7_kb16short@200 + r12_k16.bin | -2.064e-04 (-42.6) | -1.417e-04 (-2.63) | PASS |
 | soupS8_r3_r5_r12 | r3_kb8warm@700 + r5_kb8short@200 + r12_kb8long@600 | -1.834e-04 (-35.2) | -1.339e-04 (-2.30) | PASS |
+| soupV16_r3_r5_r7_r11_r12_r13 | r3_k16.bin + r5_k16.bin + r7_kb16short@200 + r11_kb16long@600 + r12_k16.bin + r13_kb16m400lr15@400 | -2.184e-04 (-43.1) | -1.400e-04 (-2.58) | PASS |
+| soupW16_r3_r5_r7_r9_r11_r12_r13 | r3_k16.bin + r5_k16.bin + r7_kb16short@200 + r9_kb16seed@200 + r11_kb16long@600 + r12_k16.bin + r13_kb16m400lr15@400 | -2.194e-04 (-44.2) | -1.336e-04 (-2.50) | PASS |
+| soupY32_r3_r5_r7_r8_r11_r12_r13 | r3 + r5 + r7 + r8_kb32short@200 + r11 + r12 + r13 | -2.275e-04 (-46.0) | -1.383e-04 (-2.60) | PASS |
+| soupZ32_r3_r5_r7_r8_r12 | r3 + r5 + r7 + r8_kb32short@200 + r12 | -2.239e-04 (-47.9) | -1.450e-04 (-2.81) | PASS |
