@@ -9,8 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 23:06 (elapsed 0 h 43 min). Disk at 23:04: C: 98.8 GB, D: 50.9 GB, F: 61.3 GB free;
-  RAM 20.3 GB free; F:\odr uses 5.9 MB.
+- Last update of this file: 23:31 (elapsed 1 h 08 min). Disk at 23:30: C: 98.7 GB, D: 50.9 GB, F: 61.2 GB free.
 - Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
   any explicit low-usage warning triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
@@ -36,14 +35,25 @@ this job is written to D:.
 | track | state | done | partial | notes |
 |---|---|---|---|---|
 | T2-card-1 overlap to 0 | DONE | T02-01 | - | coordinator; drop key board+stm (7,700 train rows), block rule measured |
-| T1 v2 features + recipe | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | 6 cards on disk at 23:04 | |
-| T2 data quality | RUNNING (core2 since 22:48; first worker 22:39-22:47) | T02-01 | 3 worker cards at 23:04 | |
-| T4 search features | RUNNING (core2 since 22:48) | - | 6 cards at 23:04 | |
-| T5 NNUE speed Zen 5 | RUNNING (core2 since 22:48) | - | 3 cards at 23:04 | |
-| T6 eval post-processing | RUNNING (extra since 22:45) | - | 5 cards at 23:04 | started early (12-agent allowance) |
-| T7 time management | RUNNING (extra since 22:45) | - | 2 cards at 23:04 | started early |
-| T12 testing / proofs | RUNNING (extra since 22:45) | - | 3 cards at 23:04 | started early |
-(Card states are the workers' until their verifier has run; "done" = verified.)
+| T1 v2 features + recipe | VERIFIED (research 22:48-23:09, verify -23:2x) | T01-01..06 | - | 54 checks, 47 confirmed, 5 corrected |
+| T2 data quality | RESEARCH DONE 23:20, verify running | T02-01 (coordinator) | T02-02..06 (not yet verified) | |
+| T4 search features | VERIFIED (research 22:48-23:14, verify 23:15-23:25) | T04-01..06 | - | 55 checks, 46 confirmed, 7 corrected, 0 violations |
+| T5 NNUE speed Zen 5 | RESEARCH DONE, verify running | - | T05-01..04 (not yet verified) | |
+| T6 eval post-processing | VERIFIED (research 22:45-23:11, verify 23:11-23:22) | T06-01..05 | - | 48 checks, 44 confirmed, 2 corrected |
+| T7 time management | VERIFIED (verify 23:09-23:17) | T07-01..02 | - | 40 checks, 31 confirmed, 5 corrected, 1 process note |
+| T12 testing / proofs | RESEARCH RUNNING | - | 5 cards on disk | |
+(Card states are the workers' until their verifier has run; "done" = verified. Verify times as the verifiers wrote
+them in notes/T<nn>/VERIFY.md.)
+
+## Observations outside this job
+- `C:\o13` was restructured by something outside this job between about 22:50 and 23:00 PC clock: at ~22:44 a grep
+  found `C:\o13\p7\fit_e3.json` (a T06 source); at 23:15 `C:\o13` held only `p1` and `p4` (both created 23:00), and
+  C: free space had risen from 84.6 GB (22:23) to 98.8 GB (23:04). A scan of every tool call of this job's workers
+  (`F:\odr\work\scan_o13.py` over the workflow transcripts) shows only reads there (ls, grep, git show). The E3 fit's
+  durable copy is `opus_r13/p7/logs/fit_e3.json` on branch opus-r13-p7-e3fit (the T06 verifier's correction).
+- Process notes from workers (self-reported): the T07 worker and the T05 worker put temporary helper files into this
+  session's scratchpad folder on C: (a pentanomial helper; objdump listings, a PDF copy and its text) instead of
+  F:\odr; no job output is there and nothing was deleted.
 
 ## Pushes
 - 72c0de40 (22:27) start files; 69deca20 (22:36) tools + worker rules; d97bee72 (22:46) T02-01; 8a505482 (22:50)

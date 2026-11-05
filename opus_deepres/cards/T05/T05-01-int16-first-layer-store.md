@@ -36,10 +36,9 @@ Source number (own, the cost this targets): lock net as KB4 replicas vs as KB1 o
 positions: 0.929 vs 0.980 (= 0.948; one probe run each, run-to-run noise ~+-3 %); bench ABBA 0.968 (CI 0.900-1.040,
 median 0.991). The 30-h job dropped int16 when the lazy root explained the in-game loss; the post-fix probe still
 shows ~5 % for KB4 vs KB1 (V2P4_GAP.md, part P2). No outside number (missing).
-(verify note: RESULTS.md:216-219 reads the 0.968 bench ABBA as "the table size and the king-bucket refreshes cost
-little", and RESULTS.md:471-472 reads the post-fix probe as "the v2 path now runs at its own exe's OFF speed" (OFF
-0.933, KB4 0.929); 0.948 is the ratio of two single runs of ~+-3 % each and the bench CI includes 1.0, so the ~5 %
-cost is not shown beyond noise - size it (V2P4_GAP P2 split, fresh copies) before building.)
+(verify note: RESULTS.md:216-219 reads the 0.968 ABBA as "cost little", :471-472 the post-fix probe as "runs at its own
+exe's OFF speed" (OFF 0.933, KB4 0.929); 0.948 = ratio of two single runs of ~+-3 % each, bench CI includes 1.0 -> the
+~5 % cost is not shown beyond noise; size it (V2P4_GAP P2 split, fresh copies) before building.)
 Forge estimate: v2 KB4 / KB8 +1-4 % nps, KB16 / KB32 +2-5 %, lock path (KB1, 786 KB already in L2) -1 to +1 %
 **UNPROVEN**: design (a) needs about 4 vector ops per 16 weights instead of 2 (sign-extend, convert, scale, add), so
 where the table is not the bottleneck it can lose; design (b) (sign-extend + integer add) is the one to build if KB1 matters.

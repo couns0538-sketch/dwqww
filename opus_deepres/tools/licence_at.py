@@ -31,6 +31,11 @@ def guess(text):
             v = '3.0' if 'version 3' in head else ('2.0' if 'version 2' in head else ('2.1' if 'version 2.1' in head
                                                                                      else '?'))
             return f'{spdx}-{v}'
+    # LLVM-style files start with "Apache License v2.0 with LLVM Exceptions" and also carry legacy MIT-like text
+    if 'apache license' in head:
+        return 'Apache-2.0 WITH LLVM-exception' if 'llvm exception' in head else 'Apache-2.0'
+    if 'mit license' in head:
+        return 'MIT'
     t = ' '.join(text.split()).lower()
     if 'gnu affero general public license' in t:
         v = '3.0' if 'version 3' in t else '?'
