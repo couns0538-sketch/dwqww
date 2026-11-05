@@ -33,3 +33,18 @@ Reading used:
   R14 suite and further sanity matches.
 - The first window's quote (above) cannot be verified from the branch; it is copied verbatim from the session
   (owner asked in CR item 13 to confirm it).
+
+## Extension 2: another 2 h 40 min of CPUs 0-6 and the whole GPU
+
+Third written message from the owner (Couns), received in this session at about 19:38 PC clock on 2026-11-04
+(recorded 2026-11-04 19:40 PC clock = Vienna):
+
+> "you got another 2h 40min for  cpu 0-6 and the whole gpu use it in the most efficient way please"
+
+Reading used:
+- Window: about 19:38 to 22:18 PC clock, same terms as before (yield-only GPU under the own guard with the same thermal
+  limits, npt never touched; own work at Idle on CPUs 0-6 only, the crew gate keeps CPUs 7-15). The 30-h job itself
+  ends ~22:17, so every run and match is planned to finish by ~21:50 and the rest is reporting.
+- CPU plan: 2-3 = a 400-game sanity match of the KB32 soup Z32 (never played), 4 = 200 more games of the KB8 soup U8
+  (new opening seed), 5-6 = the GPU trainer's loader + checkpoint scoring, 0-1 = the running Y8 / V16 matches, then the
+  final checks, the abba.py A/A and more games.

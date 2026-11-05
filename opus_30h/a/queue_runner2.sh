@@ -15,13 +15,16 @@
 # Test hooks (as queue_runner.sh): RUNNER_ROOT (default /c/o30g/gpu), RUNNER_PLAN (default <root>/plan2.txt; .done /
 # .skipped / .refused next to it), RUNNER_CMD (a stub instead of the .bat, called with the plan fields; no npt check),
 # RUNNER_NO_WATCH=1 (no watcher), RUNNER_RETRY_SLEEP (default 300).
+# RUNNER_GPU_MASK (default 0x38 = CPUs 3-5): the CPU mask of the runner, the guard + trainer and the watcher (window 3
+# of 2026-11-04 ran on 0x60 = CPUs 5-6, beside sanity matches on CPUs 0-4).
 set -u
 A=/d/o30/wt/opus_30h/a; G="${RUNNER_ROOT:-/c/o30g/gpu}"; P="${RUNNER_PLAN:-$G/plan2.txt}"
 DONE="${P%.txt}.done"; SKIP="${P%.txt}.skipped"; REF="${P%.txt}.refused"; RETRY="${RUNNER_RETRY_SLEEP:-300}"
+GM="${RUNNER_GPU_MASK:-0x38}"
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 CUTOFF="${2:-18:40}"
 . "$A/../tools/idle.sh"
-o30_pin_self 0x38 || { echo "queue_runner2: cannot pin to Idle / CPUs 3-5 (fail closed)"; exit 78; }
+O30_MASK="$GM" o30_pin_self "$GM" || { echo "queue_runner2: cannot pin to Idle / $GM (fail closed)"; exit 78; }
 until grep -q ' end: ' "$1" 2>/dev/null; do sleep 15; done
 [ -n "${RUNNER_CMD:-}" ] || sleep 20
 echo "$(date '+%F %T') previous run ended ($1); plan $P, cutoff $CUTOFF"
@@ -55,7 +58,7 @@ while true; do
     if [ -n "${RUNNER_CMD:-}" ]; then
         "$RUNNER_CMD" "$name" "$kb" "$sb" "$seed" "$lr" "$init" > "$G/$name.runner.txt" 2>&1 &
     else
-        GUARD_MASK=0x38 BULLET_EXE='D:\o30\target_rocm4\release\forge-v2-bullet.exe' O30_INIT_DIR="$init" O30_CLIP=7.99 \
+        GUARD_MASK="$GM" BULLET_EXE='D:\o30\target_rocm4\release\forge-v2-bullet.exe' O30_INIT_DIR="$init" O30_CLIP=7.99 \
             O30_DECAY=0 cmd //d //c 'D:\o30\wt\opus_30h\a\gpu_run_o30c.bat' "$name" "$kb" 0 256 "$sb" 1024 2 "$seed" "$lr" 0.4 8 \
             > "$G/$name.runner.txt" 2>&1 &
     fi
@@ -65,7 +68,7 @@ while true; do
     if grep -q 'start trainer' "$G/$name.guard.log" 2>/dev/null; then
         started=1
         echo "$name" >> "$DONE"
-        [ -n "${RUNNER_NO_WATCH:-}" ] || ( WATCH_ROOT=$G WATCH_MASK=0x38 WATCH_MAX_MIN=240 bash "$A/gpu_ckpt_watch2.sh" "$name" "$kb" > "$G/${name}_watch.log" 2>&1 & )
+        [ -n "${RUNNER_NO_WATCH:-}" ] || ( WATCH_ROOT=$G WATCH_MASK="$GM" WATCH_MAX_MIN=240 bash "$A/gpu_ckpt_watch2.sh" "$name" "$kb" > "$G/${name}_watch.log" 2>&1 & )
     fi
     wait "$bpid"; rc=$?
     echo "$(date '+%F %T') $name exit $rc (started $started)"

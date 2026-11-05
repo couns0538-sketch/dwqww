@@ -1,0 +1,11 @@
+# GPU plan 3, window 3 (owner, ~19:38-22:18: CPUs 0-6 + the whole GPU) for a/queue_runner2.sh, RUNNER_GPU_MASK 0x60
+# (trainer loader + watcher on CPUs 5-6; CPUs 0-4 play sanity matches). Columns: name kbmap superbatches seed lr init_dir.
+# r21 / r22: can a soup be improved further? Short low-lr fine-tunes warm-started from the soups Y8 (KB8) and Z32 (KB32).
+# r23-r25: more members of the r5 recipe (KB8, 200 superbatches, lr 2e-5; run 5 = the best sanity result so far) and one
+# KB32 run, for a final KB8 / KB32 soup. Cutoff 21:10: nothing starts later, so every run is scored by ~21:35.
+r21_y8ft rank4x2 100 30121 0.000005 C:\o30g\gpu\init_soupY8
+r22_z32ft rank4x8 100 30122 0.000005 C:\o30g\gpu\init_soupZ32
+r23_kb8s200b rank4x2 200 30123 0.00002 D:\o30\gpu\init_lockkb8
+r24_kb32s200b rank4x8 200 30124 0.00002 D:\o30\gpu\init_lockkb32
+r25_kb8s200c rank4x2 200 30125 0.00002 D:\o30\gpu\init_lockkb8
+r26_kb8m300c rank4x2 300 30126 0.000015 D:\o30\gpu\init_lockkb8
