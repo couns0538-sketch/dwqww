@@ -559,7 +559,7 @@ below are from each net's RESULT.json.
      S31 -1.85e-4 / jobA -1.05e-4; sanity [see the window-2 sanity table].
    - Soup U8 = runs 3+5+10+12+14 (`D:\o30\nets\o30_gpu_soupU8r3r5r10r12r14\o30_gpu_soupU8r3r5r10r12r14.nnue2`, sha256
      dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7; ON bench 356115 / 952259 / 2514975): S31
-     -1.85e-4 / jobA -1.11e-4 (z -2.01); sanity [see the table].
+     -1.85e-4 / jobA -1.11e-4 (z -2.01); sanity 200 games 51.00 % (+7.0 +/- 29.3).
    Gate first whichever of these reads highest in its sanity match at the end (section 1 table); KB8 costs ~1 % in
    nodes per second vs KB4 (3 runs, 0.983-0.997), so the offline gain pays little for speed.
 2. **KB32 soups (best offline, ~6 % fewer nodes per second):** Z32 = runs 3+5+7+8+12
@@ -567,19 +567,20 @@ below are from each net's RESULT.json.
    3ec0c824bbeeae189fc590176e1b4e322060e678c6f806ce15d030a68030f849; ON bench 349733 / 833439 / 2882276): S31 -2.24e-4 /
    jobA -1.45e-4 (z -2.81), not played; soupC = runs 3+5+7+8 (`D:\o30\nets\o30_gpu_soupC_r3r5r7r8\o30_gpu_soupC_r3r5r7r8.nnue2`,
    sha256 0dddfdc97c555ed7933ff5376458310d3f37f3efb299d96df99c1fe14e6af670; ON bench 342800 / 1069442 / 3286376):
-   S31 -2.25e-4 / jobA -1.34e-4 (z -2.70); sanity [see the table].
-3. **KB16 soups and run 7 (~3-4.5 % fewer nodes per second):** V16 = runs 3+5+7+11+12+13
+   S31 -2.25e-4 / jobA -1.34e-4 (z -2.70); sanity 400 games 52.12 % (+14.8 +/- 18.0).
+3. **KB16 soups and run 7 (~3 % fewer nodes per second; 4 runs, 0.956-0.985):** V16 = runs 3+5+7+11+12+13
    (`D:\o30\nets\o30_gpu_soupV16_r3r5r7r11r12r13\o30_gpu_soupV16_r3r5r7r11r12r13.nnue2`, sha256
    031f50201f096893d49cf7aaff41b6abcec2ecf1d4d025c3fce889fe4d1671dd; ON bench 289581 / 769342 / 2773314): S31 -2.18e-4 /
    jobA -1.40e-4; P16 = runs 3+5+7+11+12 (sha256 76e7174479a3ee797840ab22c4110f907f98337c1c9b16a75c0a3a2c3df18d16):
-   -2.16e-4 / -1.41e-4; run 7 (sha256 6f4663d6252fbce14e7838151451f05d20e38749bce517c7cb828bc856eb12fd): -1.80e-4 /
-   -9.10e-5, sanity 400 games 50.62 % (+4.3 +/- 17.8); the soups' sanity [see the table].
+   -2.16e-4 / -1.41e-4, sanity 200 games 47.75 % (-15.7 +/- 23.7); run 7 (sha256 6f4663d6252fbce14e7838151451f05d20e38749bce517c7cb828bc856eb12fd): -1.80e-4 /
+   -9.10e-5, sanity 400 games 50.62 % (+4.3 +/- 17.8); V16's sanity [see the table].
 4. **Run 3 (KB8, 700 superbatches) and run 2 (KB4)**: soup members; run 3 S31 -1.59e-4 / jobA -1.31e-4 (sha256
    c32b9879bf2013e13ab0387b3f0e9610876a2883ca3d69cfb2f7478e5e3dea30, play checks PASS, no sanity match); run 2
    -1.65e-4 / +1.04e-4 (jobA z +1.88), sanity 400 games 49.62 % (-2.6 +/- 18.1).
 5. **n2L (CPU fine-tune)** (sha256 1eec67bf...): offline rule FAIL (jobA z +2.55); on v2p4 +2.6 +/- 19.2 vs the lock exe.
-6. **Not candidates:** run 1 (from scratch: S31 -5.9e-5 after 11.74G, jobA z +4.5), runs 4 / 6 / 9 / 10 / 11 / 13-19
-   (cost probes and soup members; each in the window-2 run table).
+6. **Not candidates:** run 1 (from scratch: S31 -5.9e-5 after 11.74G, jobA z +4.5), runs 4, 6 and 8-20 (cost probes
+   and soup members; each in the window-2 run table; run 12 has the best single-net jobA, -1.46e-4 (z -2.28), but
+   was not packed or played on its own).
 7. **The SPSA tuned set (Item B)**: `D:\o30\w\tuned184_pc1\src_copy\forge_ltopgo_tuned184_pc1.exe` (sha256
    3b35f5cfa662f4f09916fa9c4b40f6bfc6a6d0d4ce7fa1f1b8f6970daadb66d1) with `option.O30Tuned=true` vs the lock FD3A5190,
    UHO [0,5] SPRT then 8moves_v3 confirm. Expectation ~0 (184 pairs, one parameter beyond 2 sigma); a combination with
