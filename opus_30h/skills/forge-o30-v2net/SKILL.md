@@ -104,6 +104,8 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
   a checkpoint by `a/soup_score.sh <name> <kb map> <quantised.bin>...`, table `a/soup_table.py`). Independent runs of
   different length / layout make the gain (r3+r5+r7+r8 as KB32: S31 -2.25e-4, jobA z -2.70; best single -1.80e-4);
   checkpoints of one run and seeds of one recipe add little; a weak-jobA member (KB4 run 2) hurts the soup's jobA.
+- Do not fine-tune a soup: 100 superbatches at lr 5e-6 from the soup (fresh AdamW) made the KB8 soup Y8 worse (paired
+  S31 z +10.7, jobA z +2.4) and left the KB32 soup Z32 level (a/logs/gpu/w3_r21_vs_Y8.txt, w3_r22_vs_Z32.txt).
 - Unattended GPU queue: `a/queue_runner2.sh <guard log to wait for> [cutoff]` runs C:\o30g\gpu\plan2.txt line by line
   (edit the PLAN between runs, never a running .sh / .bat; a refused start is retried after its <run>.out /
   .guard.log / .runner.txt move aside - the bat refuses existing ones with exit 4 -, marked done only after the

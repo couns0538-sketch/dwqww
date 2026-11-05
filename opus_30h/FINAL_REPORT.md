@@ -363,8 +363,35 @@ generated):
 - Uniform weight soups gave the best offline numbers of the job: best of 33 soups scored (C:\o30g\gpu\soups), selection-biased (chosen and
   judged on the same S31 / jobA sets); UNPROVEN in play, needs an SPRT gate. The gain came from independent runs of
   different length / layout; checkpoints of one run and extra seeds of one short recipe added ~0.
+- A short fine-tune of a soup does not improve it (window 3): 100 superbatches at lr 5e-6 with fresh AdamW state made
+  the KB8 soup Y8 worse on both sets (paired S31 z +10.7, jobA z +2.4) and left the KB32 soup Z32 level (z -1.6 / +0.7).
 - Offline loss has not predicted play reliably in this job (n2e on 2026-11-03); the sanity matches below are 200-400
   games each, sanity only.
+
+### GPU window 3 (owner: "another 2h 40min for cpu 0-6 and the whole gpu"; received ~19:38, read as ~19:38-22:18)
+Quote and reading in `D:\o30\WINDOW.md` (copy a/logs/gpu/WINDOW.md). The job itself ends ~22:17, so every run and match
+was planned to end by ~21:50.
+
+CPU use (Idle; the crew gate keeps CPUs 7-15): 2-3 = the first sanity match of the KB32 soup Z32 (400 games; it had
+never played), 4 = 200 more games of the KB8 soup U8 (opening seed 31, `sanity2`), 5-6 = the GPU trainer's loader +
+checkpoint scoring (a/queue_runner2.sh with RUNNER_GPU_MASK=0x60, plan `C:\o30g\gpu\plan3.txt`, copy
+a/logs/gpu/plan3_w3.txt; 2.6-2.7M positions/s with two loader CPUs vs 4.0M with three - the third CPU played games
+instead), 0-1 = the Y8 / V16 matches of window 2, then on CPU 1 (a/cpu1_w3.sh) the abba.py A/A with the identical
+command, a final-checks pre-run and 120 more games of run 5 (seed 31, `sanity2`). Launcher a/play_w3.sh.
+
+GPU plan 3 (queue log `C:\o30g\gpu\queue_runner3.log`):
+- r21 / r22 = can a soup be improved by a short fine-tune? Warm start from the soup itself (a/import_v2r.py of the packed
+  net), 100 superbatches, lr 5e-6 cosine, fresh AdamW state. Paired against the soup it started from (same rows):
+  r21 from Y8 (KB8) ends WORSE on both sets (S31 +6.5e-6, z +10.7; jobA +1.5e-5, z +2.4; a/logs/gpu/w3_r21_vs_Y8.txt);
+  r22 from Z32 (KB32) ends level (S31 -1.8e-6, z -1.6; jobA +8.3e-6, z +0.7; a/logs/gpu/w3_r22_vs_Z32.txt). So: no.
+  The fresh optimiser state first moves the net off the soup's point (r21 at superbatch 12: S31 -1.77e-4 vs Y8's
+  -1.85e-4) and the decaying lr does not bring it back.
+- r23 = a KB8 seed of the r5 recipe; r24 / r25 = two native KB32 seeds (r25 was a KB8 seed in the first plan, changed
+  at 19:56 after r21: the KB8 soups sit at their plateau, the KB32 family had one native KB32 run). Results: PENDING (filled when the runs end).
+- End-of-window soups (a/final_soups3.sh + one by hand): PENDING (after the queue ends, ~21:15).
+
+Sanity results of the window (10+0.1 vs the lock exe on v2p4; control 47.0 %, -20.9 +/- 18.5; SANITY ONLY):
+PENDING (the matches end ~21:40; the window-2 sanity table above gets the final lines).
 
 ### Owner's fix lists of 2026-11-04
 - First list (items 0-13): items 9-13 on this branch, `opus_30h/CR_FIXLIST_20261104_REPORT.md` (commits 8b57f4a8,
