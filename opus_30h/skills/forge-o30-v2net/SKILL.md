@@ -94,7 +94,7 @@ S31 ~1.6e-6, jobA ~1.8e-5; seed spread of final b0.6 ~7e-6). A failing net is st
 - Window 2 (2026-11-04 13:27-19:06) lessons: warm-start recipe lr 2e-5, 200 superbatches (~13-15 min at 3-4.4M pos/s)
   is as good as 700 (lr 3e-5 is worse). More king buckets help offline: KB4 -1.41e-4, KB8 -1.65e-4, KB16 -1.80e-4,
   KB32 -1.80e-4 (S31 paired vs the lock, same recipe; seed noise ~4e-6) - but cost engine speed (identity nets, same
-  trees, SINGLE RUNS each, probes scatter +-2-3 %: KB8 0.9965x, KB16 0.968x and 0.956x, KB32 0.941x the nps of KB4;
+  trees, 3-4 runs each, single runs scatter +-1-2 %: KB8 ~0.988x, KB16 ~0.969x, KB32 ~0.942x the nps of KB4;
   layout_*_vs_kb4*.txt). Maps rank4x4 (16) / rank4x8 (32) exist in the
   trainer and the tools; the engine reads the 64-entry map from the file (no rebuild); prove a new layout with
   `pin_check -Options EvalFileV2=<lock written in that layout>` (= lock pins) and net_pack's parity.

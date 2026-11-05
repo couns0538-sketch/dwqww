@@ -48,8 +48,8 @@ matches of the new nets. GPU run outputs from run 8 on are on C:\o30g\gpu (D: at
   KB32 S31 -2.25e-4 (z -50.2) / jobA -1.34e-4 (z -2.70); runs 3+5+7 as KB16 -2.09e-4 / -1.30e-4 (z -2.54). Run 2 (KB4)
   hurts jobA in a soup. The KB32 soup is packed (D:\o30\nets\o30_gpu_soupC_r3r5r7r8, sha256 0dddfdc9, all checks,
   parity 10000/10000 x 3) and plays its sanity match on CPU 1 from 14:12.
-- 14:12 layout speed (identity nets, same trees, gate exe, CPU 1), SINGLE RUNS (earlier probes scattered +-2-3 %):
-  KB16 0.968x and KB32 0.941x the nps of KB4; later single runs on CPU 6: KB8 0.9965x, KB16 repeat 0.956x ->
+- 14:12 layout speed (identity nets, same trees, gate exe; 3-4 runs each by 18:21, single runs scatter +-1-2 %):
+  nps vs KB4 KB8 mean 0.988 (0.983-0.997), KB16 mean 0.969 (0.956-0.985), KB32 mean 0.942 (0.940-0.944) ->
   the GPU plan (C:\o30g\gpu\plan.txt, a/queue_runner.sh, cutoff 18:40) now makes KB16 and KB8 soup members only.
 
 Before the window: the nets were CPU fine-tunes of the lock net (`opus_30h/a/o30_fit.py`, warm start = the lock

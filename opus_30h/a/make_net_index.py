@@ -74,7 +74,7 @@ def main():
              'evaluation and tree) scored 47.0 % = -20.9 +/- 18.5 against the lock exe in the same 400-game setting',
              '(D:\\o30\\control\\lockkb4_v2p4; on the older v2p3 exe -32.2 +/- 18.5, lockkb4_v2exe) - the v2 exe itself costs',
              'Elo. Compare each net with that control, not only with 50 %. More king buckets cost speed on top (identity nets,',
-             'same trees, a/logs/checks_gpu_w2: KB16 0.968x, KB32 0.941x the nps of KB4). Sanity',
+             'same trees, a/logs/checks_gpu_w2, 3-4 runs: KB8 ~0.988x, KB16 ~0.969x, KB32 ~0.942x the nps of KB4). Sanity',
              'matches are not gates.', '',
              '| net | S31 b0.6 vs lock (z) | jobA val vs lock (z) | offline rule | pack checks | sanity match (SANITY ONLY) |',
              '|---|---|---|---|---|---|']

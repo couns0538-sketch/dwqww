@@ -1,0 +1,126 @@
+{
+ "exe": "D:/o30/w/v2p4_pc1/src_copy/forge_ltopgo_v2p4_pc1.exe",
+ "options": [
+  "EvalFileV2=D:/o30/nets/o30_gpu_soupV16_r3r5r7r11r12r13/o30_gpu_soupV16_r3r5r7r11r12r13.nnue2"
+ ],
+ "checks": [
+  {
+   "check": "uci -> uciok",
+   "ok": true,
+   "detail": "62 options, id: id name Chess Engine Forge 6.4.24 candidate; id author [value redacted in this branch copy]"
+  },
+  {
+   "check": "option advertised: EvalFileV2",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "setoption + isready -> readyok",
+   "ok": true,
+   "detail": "0.02 s"
+  },
+  {
+   "check": "no ERROR info line after setoption",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "info string contains \"EvalFileV2 loaded\"",
+   "ok": true,
+   "detail": "info string EvalFileV2 loaded D:/o30/nets/o30_gpu_soupV16_r3r5r7r11r12r13/o30_gpu_soupV16_r3r5r7r11r12r13.nnue2 king buckets 16 output buckets 8 hidden 256 unmirrored residual fnv1a 28992d7b14edf07b"
+  },
+  {
+   "check": "go depth 10 (startpos)",
+   "ok": true,
+   "detail": "bestmove d2d4 legal=True, 0.00 s (limit 20 + 1.5)"
+  },
+  {
+   "check": "go movetime 500 (after 1.e4 e5)",
+   "ok": true,
+   "detail": "bestmove g1f3 legal=True, 0.48 s (limit 0.5 + 0.5)"
+  },
+  {
+   "check": "go wtime 2000 btime 2000 winc 20 binc 20",
+   "ok": true,
+   "detail": "bestmove e7e6 legal=True, 0.09 s (limit 2.0 + 0.2)"
+  },
+  {
+   "check": "go nodes 20000",
+   "ok": true,
+   "detail": "bestmove f1c4 legal=True, 0.02 s (limit 10 + 1.5)"
+  },
+  {
+   "check": "go infinite + stop: no bestmove before stop, then within 1 s (OwnBook false)",
+   "ok": true,
+   "detail": "bestmove d2d4 0.000 s after stop"
+  },
+  {
+   "check": "setoption EvalFileV2 during go infinite -> readyok",
+   "ok": true,
+   "detail": "1 bestmove line(s) from the stopped search, readyok after 0.01 s"
+  },
+  {
+   "check": "after setoption during a search: go depth 8",
+   "ok": true,
+   "detail": "bestmove c7c6 legal=True, 0.00 s (limit 10 + 1.5)"
+  },
+  {
+   "check": "mate in 1 found (depth 6)",
+   "ok": true,
+   "detail": "bestmove d1d8 legal=True, 0.00 s (limit 10 + 1.5)"
+  },
+  {
+   "check": "mate in 1: bestmove d1d8 and score mate 1",
+   "ok": true,
+   "detail": "bestmove d1d8"
+  },
+  {
+   "check": "one legal move (depth 8)",
+   "ok": true,
+   "detail": "bestmove a8a7 legal=True, 0.00 s (limit 10 + 1.5)"
+  },
+  {
+   "check": "checkmated side to move -> no move",
+   "ok": true,
+   "detail": "bestmove '0000' with no legal move, 0.00 s"
+  },
+  {
+   "check": "stalemated side to move -> no move",
+   "ok": true,
+   "detail": "bestmove '0000' with no legal move, 0.00 s"
+  },
+  {
+   "check": "Threads 2: go depth 12",
+   "ok": true,
+   "detail": "bestmove a2a3 legal=True, 0.06 s (limit 30 + 1.5)"
+  },
+  {
+   "check": "second ucinewgame + isready",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "after ucinewgame: go movetime 300",
+   "ok": true,
+   "detail": "bestmove e7e5 legal=True, 0.30 s (limit 0.3 + 0.5)"
+  },
+  {
+   "check": "quit -> process exits within 3 s",
+   "ok": true,
+   "detail": "exit code 0"
+  },
+  {
+   "check": "stderr empty",
+   "ok": true,
+   "detail": ""
+  }
+ ],
+ "observations": [
+  {
+   "observation": "OwnBook true (the default) + go infinite in a book position",
+   "uci_conform": true,
+   "detail": "bestmove d2d4 0.000 s after stop"
+  }
+ ],
+ "pass": true
+}
