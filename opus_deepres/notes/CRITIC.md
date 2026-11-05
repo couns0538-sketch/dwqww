@@ -1,6 +1,6 @@
 # Cross-track critic (phase 2)
 
-Started 23:43 PC clock (PST as printed by `date`); stop 00:23. Inputs: the track briefs as relayed to the workers
+Started 23:43 PC clock (PST as printed by `date`); stop 00:23; finished 23:59. Inputs: the track briefs as relayed to the workers
 (`tools/workflows/prompts_core2/research_T0{1,2,4,5}.md`, `prompts_extra/research_T{06,07,12}.md`; the owner's brief
 itself was NOT in the critic's message, so these relayed track briefs are the question list; T2-card-1 from
 FINAL_REPORT / RESUME / card T02-01), all cards, all notes, all VERIFY.md files, FINAL_REPORT.md (INTERIM, 23:40).
@@ -77,7 +77,7 @@ Part B rows: where | claim | verdict (OK / MISMATCH / UNSOURCED / CONTRADICTION)
 - T6 | draw handling | notes/T06/FORMS.md:14, :29, :32-33; DEAD_ENDS.md:4 | draws return 0 in the lock; SF draw jitter under +1 at STC/LTC (VLTC +2.5) -> dropped, DrawJitter ungated | COVERED
 - T6 | complexity / winnable scaling | notes/T06/FORMS.md:53-55; card T06-03 (b); DEAD_ENDS.md:7 | SF 4c4cb18 decay +0.85 / +1.30; C = |residual| own definition; winnable HCE terms out of track | COVERED
 - T6 | any other post-net transform with logged Elo | notes/T06/FORMS.md:42-43, :56, :61-77; cards T06-02, T06-04 | level-material re-weighting (a2f01c0), eval grain (d212e66); Caissa / Patricia transforms without numbers. NOT read: Altair (MIT) and the GPL engines' logs (Berserk, Obsidian, Stormphrax, PlentyChess, Alexandria) - FORMS.md:79-81 marks them PENDING | COVERED (3 engines only; rest PENDING)
-- T6 | fit recipe on licence-clean data, licence of every dataset | notes/T06/FIT_RECIPE.md:7-14, :31-57 | own gate PGNs D1 main set, own self-play D2, relabel D3; Lichess D4 "CC0 per database.lichess.org - NOT re-checked (PENDING)"; UHO book provenance not re-checked | COVERED (Lichess licence still PENDING)
+- T6 | fit recipe on licence-clean data, licence of every dataset | notes/T06/FIT_RECIPE.md:7-14, :31-57 | own gate PGNs D1 main set, own self-play D2, relabel D3; Lichess D4 "CC0 per database.lichess.org - NOT re-checked (PENDING)"; UHO book provenance not re-checked | COVERED (Lichess licence still PENDING in the note -> answered by the critic: CC0, section at the end)
 - T6 | only forms E3 lacks, or a better fit / combination (joint fit, per-phase scaling) | cards T06-01..05; FIT_RECIPE.md steps | per-phase scaling = T06-01; refit strength = T06-05; joint fit of the retained terms = FIT_RECIPE step 8 (line 52), K alone and jointly with MatScale (line 45) | COVERED
 ### T7 (brief: tools/workflows/prompts_extra/research_T07.md)
 - T7 | at most 2 TM cards that are neither tmfit nor node-fraction TM, each with logged STC/LTC Elo | cards T07-01, T07-02 | time-disadvantage scaling (SF 5ca4bfe72b STC +1.13 / LTC +1.08), score-stability soft-limit scaling (Alexandria PR 438 STC +1.42 / LTC +1.71) | COVERED
@@ -161,4 +161,38 @@ Part B rows: where | claim | verdict (OK / MISMATCH / UNSOURCED / CONTRADICTION)
 - card ids / titles cited in the report | 34 ids | OK | every id in sections 1-2 exists as a card file with the same idea (T01-01..06, T02-01..06, T04-01..06, T05-01..04, T06-01..05, T07-01..02, T12-01..05) | -
 
 ## Answered by the critic (one source)
-- T6 | Lichess database licence (notes/T06/FIT_RECIPE.md:13 D4 "CC0 ... NOT re-checked, PENDING") | https://database.lichess.org/ fetched 23:56 PC clock | "Database exports are released under the Creative Commons CC0 license." (page-wide statement; it covers the game, evaluation and puzzle exports listed there) | answered by the critic: D4 = CC0 confirmed at the source; the FIT_RECIPE row can drop PENDING
+- T6 | Lichess database licence (notes/T06/FIT_RECIPE.md:13 D4 "CC0 ... NOT re-checked, PENDING") | https://database.lichess.org/ fetched 23:56 PC clock | page-wide statement "Database exports are released under the Creative Commons CC0 license."; the standard-games section itself was not in the part of the page read (first 100k of 267k characters) | answered by the critic: D4 = CC0 confirmed at the source; the FIT_RECIPE row can drop PENDING
+
+## Uncovered or partly covered questions (pulled out of Part A)
+- T1: data size / L1 size / nps per feature set as one table - NOT COVERED (sources state no data size; write "missing" per row).
+- T1: king-bucket map SHAPES at an equal bucket count - partial (bucket counts only).
+- T1: pairwise multiplication - one confounded number (V v92 LTC +9.44), no card.
+- T1: the owner's bullet "sb08" recipe is not a row of the side-by-side table.
+- T2: |eval| caps - NOT COVERED (no row, no search; Forge's |cp| > 3000 drop is stated only as a fact).
+- T2: in-check filter - no source Elo found, but not written as an explicit "not found" row.
+- T2: WDL skew - read only as the WDL-consistency skip; a result-balance (draw-ratio) skew is not discussed.
+- T2-card-1: within-train board+stm duplicates - NOT COVERED (open by design, a crew measurement).
+- T4: history gravity - "has it" only; no source number for a gravity variant.
+- T5: TT prefetch placement - no outside number (only the R7 capped SPRT +2.78).
+- T5: VPCOMPRESSD register-form and Agner rows - not re-checked by the T05 verifier.
+- T6: Altair (MIT) and the GPL engines' logs for post-net forms - PENDING (FORMS.md:79-81).
+- T12: which book decides a patch faster - unresolved (a paired 6k-games-per-book study is proposed).
+
+## Summary
+The owner's brief text was not in the critic's message; the track briefs relayed to the workers
+(tools/workflows/prompts_*/research_T*.md) served as the question list, T2-card-1 as restated in FINAL_REPORT / RESUME.
+Part A: 82 rows over 8 tracks; 3 NOT COVERED (T1 per-feature-set table, T2 |eval| caps, T2-card-1 within-train
+duplicates), about 20 covered with a qualifier (thin, partial, no source number). Part B: 51 rows - 27 OK (several
+with a caveat), 8 MISMATCH, 8 UNSOURCED, 8 CONTRADICTION. Findings that change the ranking or the gate route, not only
+the wording: (a) T05-01's P2 = 0.948 is not significant per the T05 verifier, and rows 4 and 7 (~1.7 per crew-h) rest
+on it; (b) T04-03's 1.0 per crew-h uses the union range 0..+4, and the gate order "straight to LTC" overrides the
+card's STC-then-LTC route although the T04 verifier calls the TC trend only suggestive; (c) the unit of "[0,5]" -
+every card's route vs T12-01 (26k games mean at [0,5] nElo, never reachable) vs T07 (7-18k games) - is the one
+cross-track item the owner must settle before any line is queued; (d) 11 ranked items (T06-05, T04-04/05/06, T05-04,
+T06-04, T01-04/05/06, T02-05/06) use crew hours that no card states (one-line cards have no effort field); (e) the
+"~1,000 games/h unmeasured" wording contradicts the T04 verifier (measured in R7 J4), and the cards use three rates
+(1,000 / 437 / 430-502 games/h); (f) the "shared correction tables (SMP only)" dead end contradicts owner item 1
+(UHO gates run Threads=2); (g) "break classes within 16 pairs" is a net figure (per class 25 / 41 apart); (h) the v2
+control "lock-as-KB4" is not in the 30-h report, and the T01 verify notes contradict V2P4_GAP on whether a root-fixed
+control exists. Answered by the critic from one source: the Lichess database exports are CC0.
+Finished 23:59 PC clock (`date`); temporary files only in F:/odr/work/CRITIC/ (partB.md, partB_rows.txt).

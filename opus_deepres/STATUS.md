@@ -61,7 +61,9 @@ this job is written to D:.
 | T6 eval post-processing | VERIFIED (research 22:45-23:11, verify 23:11-23:22) | T06-01..05 | - | 48 checks, 44 confirmed, 2 corrected |
 | T7 time management | VERIFIED (verify 23:09-23:17) | T07-01..02 | - | 40 checks, 31 confirmed, 5 corrected, 1 process note |
 | T12 testing / proofs | VERIFIED (research 22:45-23:29, verify 23:30-23:40) | T12-01..05 | - | 51 checks, 44 confirmed, 4 corrected, 3 unverifiable, 0 violations |
-| Phase 2 cross-track checks | RUNNING (wf_576c2a36-f48, launched 23:43) | - | - | critic -> notes/CRITIC.md; second vote on 12 top cards -> notes/TOP_SECOND_VOTE.md |
+| Phase 2 cross-track checks | DONE (wf_576c2a36-f48, 23:43-00:01; 541,874 agent tokens) | notes/CRITIC.md (82-row coverage matrix, report check), notes/TOP_SECOND_VOTE.md (12 cards: 4 KEEP, 6 KEEP-WITH-FIX, 3 DOWNGRADE incl. one counted twice, 0 DROP) | - | main finding: T04-02 and T06-05 already exist in own packb code (ReSearchAdjust / FiftyDamp), gated only as a bundle on old bases |
+| Round 2A (8 sub-tracks) | RUNNING (wf_3b675c3a-16b, script 23:57:02) | - | - | T04B-T04G, T05B, T05C; Fable verifiers |
+| Round 2B | RUNNING (wf_d0a63a18-8e5, script 00:04:06) | - | - | card fixer (applies phase-2 card findings, log notes/FIXES_APPLIED.md) + T06B post-net forms + T02B data filters / datagen; 11 agents active |
 (Card states are the workers' until their verifier has run; "done" = verified. Verify times as the verifiers wrote
 them in notes/T<nn>/VERIFY.md.)
 

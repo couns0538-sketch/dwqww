@@ -1,3 +1,8 @@
 # T04E sources (Reckless + Viridithas search gains; AGPL: PR text, commit messages, release notes, test logs only)
 Format: n | url or repo@sha | licence tier | what it gave | card id or "no card"
 
+1 | codedeliveryservice/Reckless commits API since 2024-01-01 (1,344 commits; tools/mine_commits.py, titles + parsed test blocks; listing in F:/odr/work/T04E/reckless_all.txt) | AGPL-3.0, ideas only (commit titles / messages) | 194 non-net commits with STC + LTC blocks (8+0.08 / 40+0.4); candidate list for TABLE.md | no card yet
+2 | cosmobobak/viridithas commits API since 2024-01-01 (566 commits; tools/mine_commits.py; listing F:/odr/work/T04E/viri_all.txt) | AGPL-3.0, ideas only | commit titles only (no test blocks in Viridithas commit messages) | no card
+3 | cosmobobak/viridithas merged PR texts since 2024-01-01 (348 PRs, GraphQL title + body, parsed test blocks only; F:/odr/work/T04E/viri_prs2.txt, parser F:/odr/work/T04E/scripts/viri_parse2.py) | AGPL-3.0, ideas only (PR text) | 89 non-net PRs with LLR / Elo / TC / games (#312-#480, Aug 2025 - Nov 2026); older PRs carry no parsable block | no card yet
+4 | codedeliveryservice/Reckless@5e669a65b4 commit message (PR #1038 "Apply decay to quiet move malus") | AGPL-3.0, ideas only | test blocks only: STC 8+0.08 +4.67 +- 2.78 n=15,778 LLR 2.98 [0,3] (test 14855); LTC 40+0.4 +5.18 +- 2.88 n=12,682 LLR 2.96 [0,3] (test 14857); no mechanism text | T04E-01 (pending mechanism)
+5 | codedeliveryservice/Reckless@5e5443d798 commit message (PR #818 "Guard LMP for moves that give checks") | AGPL-3.0, ideas only | STC 8+0.08 +2.84 +- 2.04 n=28,536 LLR 2.92 [0,3] (test 12650); LTC 40+0.4 +9.46 +- 4.06 n=6,500 LLR 2.93 [0,3] (test 12663); no mechanism text | T04E-02 (pending mechanism)

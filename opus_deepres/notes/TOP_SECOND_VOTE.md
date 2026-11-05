@@ -1,6 +1,6 @@
 # Second vote on the report's top cards (independent re-check from the sources)
 
-Started 23:43 PC clock; stop 00:23. One line per finding: card id | claim | verdict | fix.
+Started 23:43 PC clock (planned stop 00:23; finished 00:01). One line per finding: card id | claim | verdict | fix.
 Cards: T06-05, T04-02, T04-01, T05-01, T04-05, T04-03, T05-04, T05-03, T04-06, T04-04, T02-03, T01-06.
 
 T04-01 | source re-read (Caissa 1b7a871 msg + diff, MIT at 1b7a871): +4.20 +-2.23, 10+0.1 T1 16MB, [0,2] LLR 2.94, N 25044 W5993 L5690 D13361 (recomputed +4.20), committer 2025-12-29; 47604ad (NMP only in cut nodes, committer 2025-08-04, +1.07 n=168198) and 6ec347d (+4.03 +-2.19 n=26636) confirmed | KEEP | none
@@ -29,3 +29,24 @@ T05-04 | lock check: record_move :623-630 sets (ss+1)->dirty before make_move; p
 T04-06 | FB2-J3 SingularV2 (git fable-fb2-j3 src/search.cpp:1216-1220) triple step = non-PV, singular_score < singular_beta - 80, inherited doubles <= 4, not a TT capture; 80 / 4 are own values (Caissa 50-51, Patricia 125 - no copy); it also changes :1116's `(extension == 2)` to `(extension >= 2)` so triples count against the per-path budget | KEEP | port note: carry the `>= 2` change with the triple step (OFF identical: extension <= 2 when off), or triples escape the cap; port the triple step alone (SingularV2 also bundles multicut, PV doubles, -3 / -2 negative extensions)
 T04-01 / T04-03 | tried gates --grep 'singular|cutnode|nmp|null|triple' = 0 rows (re-run); D:/o15/cands/INDEX.md has no singular / null / cut-node line | KEEP | none
 ALL | item 3 (OFF keeps the bench pins): T04-01 / T04-02 / T04-03 / T04-04 / T04-05 / T04-06 / T06-05 option default = lock code path (T04-03 adds an unread counter, T04-04 must skip both read AND update at weight 0 like MaterialCorrectionWeight at :641 / :655); T05-01 / T05-03 / T05-04 node-identical even ON; T02-03 / T01-06 no engine change | KEEP | none
+T04-04 | CorrHistPlus bits checked on git opus-r5a-singles src/search/correction_plus.inc:62-74: Continuation, MinorPiece (bit 2, CorrMinorWeight) and NonPawn (bit 4, per colour) - card's "minor = bit 2" right; the non-pawn key (bit 4 and packa NonPawnCorr) is the overlapping lever | KEEP-WITH-FIX | as above
+
+## Per-card verdicts (second vote, 23:43 to 00:01 PC clock, 2026-11-04/05)
+- T06-05 KEEP-WITH-FIX: numbers right; add packb FiftyDamp gates 12/35/40/41 (same linear rule50 damping, ~D=50, bundled, no decision) as prior tries.
+- T04-02 KEEP-WITH-FIX: numbers right; NOT new - packb ReSearchAdjust is this rule (gates 12/35/40/41, always bundled with FiftyDamp, no decision) and used Patricia's / Caissa's exact constants; new angle = alone, own constants, PV re-search, ply guard.
+- T04-01 KEEP: numbers, lock lines and OFF design all check out.
+- T05-01 DOWNGRADE: targeted cost not shown beyond noise; 30-h report says "not needed"; lock path under the +1 % line.
+- T04-05 KEEP: numbers and lock line right; one-liner is correct.
+- T04-03 KEEP-WITH-FIX: numbers right; the card's ON form acts on a different term (shallow static margin, depth 3-7) than the source (corrected eval vs raw eval); add the raw-eval form, drop the LTC-scaling estimate.
+- T05-04 DOWNGRADE: ~0 on the lock, target nets not adopted, no source number.
+- T05-03 DOWNGRADE: numbers right but the source itself shows +0.3 % at 28 MB, the Hash-256 S1 gain is the TT's, and v2 nets are not adopted.
+- T04-06 KEEP: numbers right; port the triple step with the `extension >= 2` budget change.
+- T04-04 KEEP-WITH-FIX: numbers right; name the non-pawn correction overlap (packa / bundle 68 / CorrHistPlus bit 4) and the loose early-stopped SPRTs.
+- T02-03 KEEP-WITH-FIX: numbers right; cite trainer PR 405 for the flag rename; Caissa counter-evidence is an opposite-direction filter.
+- T01-06 KEEP-WITH-FIX (minor): numbers right; R1 start values are the bullet example's stage values - label them or pick an own start.
+
+## Additions after the advisor check (written 00:01 PC clock)
+T04-02 / T06-05 | packb's gates ran against older bases (gate 12 vs ep10, gates 35/40/41 vs h256e12), not the lock FD3A5190 / AL1, so their "no decision" is also stale; packb damps ss->static_eval at both eval sites (src_packb_h256/src/search.cpp:826 qsearch, :955 search), E3 damps the raw static eval | KEEP-WITH-FIX | state the old bases in both cards
+packb (own prior code, item 4) | ReSearchAdjust's defaults (60 + 2 x depth deeper, 1 x depth shallower) are Patricia PR 137's and Caissa 434bbda's exact tuned rules, and FiftyDamp's x (200 - clock) / 200 is Patricia PR 153's exact form | FLAG | do NOT lock-port packb as-is: port the code, but with own start values and ranges (e.g. the T04-02 card's 70 / 10 cp) and the E3 fitted strength for the damping
+T05-01 / T05-03 / T05-04 | v2 status: no EvalFileV2 row in FORGE_RESULTS.csv (0 hits); the 30-h report's next gate picks are U8 and run 5, both KB8 with "~1 % speed cost", then KB32 / KB16 nets that "cost 3-6 % speed for no play gain" (D:/o30/FINAL_REPORT.md:35-36) | DOWNGRADE (unchanged) | reword "not adopted" to "no v2 net has a gate result yet; the next picks are KB8 nets whose whole speed cost is ~1 %, so these three items can recover at most ~1 % there; revisit for a KB16 / KB32 net"
+Time span of this vote: 23:43 to 00:01 PC clock (2026-11-04/05).
