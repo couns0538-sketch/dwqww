@@ -57,4 +57,12 @@ No speed candidate has been called valid before these fixes (none was called val
 Not visible here (the note file is not on the PC). Please paste them; each will be fixed with a test and listed here.
 
 ## Test run
-(filled in after the run)
+- `powershell -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_637b.ps1` on the fixes of commit
+  54fa02b5 (CPUs 0-1, Idle): run 20261105-094413-13436, 09:44:13-09:45:56, **13 / 13 PASS, exit 0**. Log
+  `opus_speed/logs/test_cr_637b_20261105-094413-13436.log` (md5 cb58826e). Mutant build exit 1 with `FAIL o3 : quick
+  pins DIFF`, lock build `pins OK` exit 0, speed_pack on the mutant exit 3 without a candidate file, overwrite refused,
+  completed FEN accepted by the lock (bestmove e3d2) while the raw placement-only FEN is detected as rejected, TSV
+  header md5 = f25a04e2 recomputed.
+- A first run at 09:40:45 gave the same 13 PASS lines but printed `12 / 13` and its failure count was wrong: the
+  counter matched the word FAIL inside T1b's description. Fixed to count the status field only; the run above is the
+  record.
