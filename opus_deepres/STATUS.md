@@ -44,7 +44,8 @@ this job is written to D:.
   model at max effort; verifiers run as Fable 5.1 at max effort; no smaller models. More cards than the brief's
   6-per-track / 60-total caps are wanted now: new sub-tracks (T04B ... T05C) have at most 4 cards each, and the total
   can exceed 60 - that is the owner's call of 23:55, recorded here.
-- Workflow `wf_3b675c3a-16b` (round 2A, launched 23:58): T04B Stormphrax + Obsidian logs, T04C PlentyChess + Berserk
+- Workflow `wf_3b675c3a-16b` (round 2A, script file stamped 23:57:02; an earlier push of this line said "23:58",
+  written before the clock was read - corrected): T04B Stormphrax + Obsidian logs, T04C PlentyChess + Berserk
   + Alexandria logs, T04D Stockfish search commits since 2024, T04E Reckless + Viridithas, T04F feature diff vs Caissa,
   T04G move ordering / history diff vs Altair + Patricia, T05B HCE eval speed (own code), T05C board / movegen / SEE
   speed (own code); each followed by a Fable verifier. With phase 2's two agents: 10 agents active.
