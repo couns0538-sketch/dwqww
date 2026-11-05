@@ -9,7 +9,7 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 06:42 (elapsed 8 h 19 min).
+- Last update of this file: 07:05 (elapsed 8 h 41 min).
 - INTERIM report: written 23:40 (FINAL_REPORT.md state line), well before the 02:23 due time.
 - Measured agent spend so far: core workflow wf_b823f43e-496 = 1,802,872 agent tokens (8 agents, 2,710 s); extra
   workflow wf_dcef6221-e3c = 1,149,308 (6 agents, 3,325 s); together 2,952,180, plus the stopped first run (2 agents,
@@ -64,7 +64,7 @@ this job is written to D:.
 ## Tracks (state / cards done / cards partial)
 | track | state | done | partial | notes |
 |---|---|---|---|---|
-| POOL3L (brief gaps) | RUNNING since 06:42 (wf_4e1627ff-d7c, 2 workers) | - | - | two brief questions CRITIC.md marks NOT COVERED: T02C (|eval| caps as a training-data filter; max 2 cards + Fable verify) and T01C (the T1 table data size / L1 / nps cost per feature set -> notes/T01/FEATURE_COST_TABLE.md) |
+| POOL3L (brief gaps) | DONE 06:42-07:04 (3 agents, 464,996 agent tokens; T01C = notes/T01/FEATURE_COST_TABLE.md, 51 rows; T02C = NOT FOUND, no card, notes/T02C/TABLE.md; verify: no licence / number violation, one caps-rule overrun logged); started (wf_4e1627ff-d7c, 2 workers) | - | - | two brief questions CRITIC.md marks NOT COVERED: T02C (|eval| caps as a training-data filter; max 2 cards + Fable verify) and T01C (the T1 table data size / L1 / nps cost per feature set -> notes/T01/FEATURE_COST_TABLE.md) |
 | POOL3K (HCE leads + speed-spec fixes) | DONE 06:24-06:41 (3 agents, 429,249 agent tokens; T06E-01 queen threats of the next move (SF 6d8f583 / 1093047 STC + LTC, Sirius #271), T06E-02 blocked pawn storm (one-liner), Sirius #258 as evidence for T06C-03; verify: no correction, no violation; SPECFIX2 round 7 = all 10 speed-spec fixes); started (wf_e583e970-4e2, 2 workers) | - | - | T06E: the HCE leads T06D left unread (queen threats SF 6d8f583 / 1093047 + Berserk PR 219, Sirius PR 185 / 258, Perseus PR 100), max 3 cards + Fable verify; SPECFIX2: the 10 SPEC_SPEED_REVIEW fix items into SPEC_SPEED (round 7) |
 | POOL3J (last card run) | DONE 06:06-06:24 (2 agents, 299,582 agent tokens; T04U-01 check extension moved into LMR (Clockwork #281 STC +5.82 / LTC +3.35, [0,5], UHO; 0 to +3 UNPROVEN, ~2 crew h); verify 26 of 26 confirmed); started (wf_9c238198-477, 1 worker) | - | - | T04U: Clockwork #281 (check extension moved into LMR; T04T's best uncarded candidate), then the unread PR pages (Clockwork 4+, Tarnished 2+, motor 3+); max 3 cards; research 30 min + Fable verify 10 min |
 | POOL3I (report critic) | DONE 05:42-05:56 (1 agent, 222,633 agent tokens; notes/CRITIC4.md: 13 findings, 3 wrong / 2 misleading / 8 wording; finding 3 rejected after a check: T02-01 names the 37 train files at lines 19 and 22); started (wf_eb0e5f99-576, 1 worker; total 3 with POOL3H) | - | - | CRITIC4: Fable check of FINAL_REPORT.md INTERIM 4 (numbers vs cards / notes, five greps, brief coverage vs notes/CRITIC.md Part A, rule checks, section 2 arithmetic) -> notes/CRITIC4.md |
@@ -111,4 +111,8 @@ them in notes/T<nn>/VERIFY.md.)
   next: this checkpoint (23:06).
 
 ## Blockers / stopping reason
-- none
+- none. State FINAL: the FINAL report, STATUS, RESUME and LICENCES are written and pushed; every workflow run finished
+  by 07:04 (POOL3L last). The job stops before the 07:53 no-new-questions mark: the open brief item left is a crew
+  measurement (within-train board+stm duplicates), and the last research tracks ended on the caps rule (two sources in
+  a row without a new card). Measured agent spend over the finished workflows: 11,275,155 tokens (stopped runs report
+  no total). No usage reading since the owner's 77 % at ~02:26.

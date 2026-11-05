@@ -4,8 +4,8 @@
 brief's core set and the after-report set (T6, T7, T12) are researched and verified; round 3 (after the usage reset,
 from 03:42) added new engines, a lock audit, counter-evidence, three second votes, 22 implementation specs with
 reviews, a final ranking and a critic of this report (`notes/CRITIC4.md`, applied). T04U (06:06-06:24) added T04U-01; T06E and SPECFIX2 (06:24-06:41) closed the T06D pending list (T06E-01, T06E-02) and
-applied the speed-spec review; at this writing a last run on two brief gaps (T02C |eval| caps, T01C the T1 cost table)
-is running; its results are added below and in STATUS.
+applied the speed-spec review; T01C and T02C (06:42-07:04) answered two of the three brief questions CRITIC.md had
+marked NOT COVERED (section 11). All runs are finished; nothing is running.
 
 Started 2026-11-04 22:23:27 PC clock; deadline 2026-11-05 08:23:27. Branch `opus-deepres-20261104`. No Elo claim for
 Forge anywhere: every source number is quoted with its link and conditions in the card; every Forge-side estimate is
@@ -191,7 +191,8 @@ on PE | shared correction tables (only if gates stay Threads=1) | fail-firm RFP 
 card) | Stockfish b280d2f as evidence for the fail-high deeper-entry rule (it measured the fail-low side) | Sirius #268
 qsearch recapture rule (reverted as broken) and #222 / #219 (reverted: faulty test worker) | motor #178 correction
 target (a correction-weight knob on Forge's additive update) | Carp, Willow (no tested commits since 2024) | Horsie,
-Seer (only ideas Forge has or has tried).
+Seer (only ideas Forge has or has tried) | a lower, WDL-skew or phase-dependent |eval| cap on training rows
+(T02C: no source measures one at a fixed net size).
 
 ## 9. Owner items
 1. DECIDED by the crew (7-0): every search gate runs Threads=1; SPRT [0,5] in normalized Elo (not BayesElo), alpha = beta = 0.05, pentanomial, cap 3,000 games; a run that hits the cap without a decision is logged UNPROVEN / no decision (not H0, not a pass), and if its Elo is positive it gets exactly one extension. Consequence in section 2.
@@ -229,8 +230,11 @@ Seer (only ideas Forge has or has tried).
 ## 11. Incomplete work, deviations, spend
 - Not done: sub-tracks T04I-T04M (LMR inputs, extensions, null move, futility, qsearch) DROPPED at 01:35 as overlapping
   the per-engine mining (owner: no two agents on the same thing); brief questions not covered: see `notes/CRITIC.md`
-  "Uncovered or partly covered questions" (3 NOT COVERED: the T1 data size / L1 / nps per feature set table, T2 |eval|
-  caps, T2-card-1 within-train board+stm duplicates as a crew measurement; about 20 covered with a qualifier; T6
+  "Uncovered or partly covered questions" (3 NOT COVERED at 02:00; two answered in round 3: the T1 data size / L1 / nps
+  per feature set table is `notes/T01/FEATURE_COST_TABLE.md` (51 rows, "missing" wherever a source states nothing; the
+  only clean equal-tree layout costs are our own v2 numbers KB8 0.988x / KB16 0.969x / KB32 0.942x of KB4), and T2 |eval|
+  caps are NOT FOUND at a fixed net size (`notes/T02C/TABLE.md`, no card; the WDL-skew form belongs to T02-03); still
+  open: T2-card-1 within-train board+stm duplicates as a crew measurement; about 20 covered with a qualifier; T6
   `FORMS.md:79-81` PENDING); older cards keep their
   pre-decision cost lines (section 2); unread pages listed in `notes/T04T/sources.md` and `notes/T04U/TABLE.md` (motor page 3+); every PENDING item in the cards.
 - Deviations: workflows stopped and relaunched five times before 01:35 (22:47 re-plan; 00:20 into one pool; 01:24-01:29
@@ -242,17 +246,19 @@ Seer (only ideas Forge has or has tried).
   heading was added); four first-round workers put temp files into this session's scratchpad on C: (left in place); a
   dataset name equal to a model name was pushed once in 8131d711 (filtered since); several times were first written as
   estimates and corrected from the clock or file stamps (also 04:24 -> 04:22, 04:26 -> 04:25, 05:04 -> 05:03, 05:43 ->
-  05:42, 06:04 -> 06:05 in STATUS); the first licence tool misread GPL-3.0 and LLVM texts (fixed, table re-run).
+  05:42, 06:04 -> 06:05 in STATUS); the first licence tool misread GPL-3.0 and LLVM texts (fixed, table re-run); the T02C worker read on past the
+  two-sources-without-a-card stop to cover every source its brief named (logged by its verifier).
 - Measured agent spend (workflow summaries): round-1 core 1,802,872 tokens (8 agents), extra 1,149,308 (6), phase 2
   541,874 (2), light pool 1,667,660 (10); after the reset POOL3 1,690,105 (10), POOL3B 514,776 (3), POOL3C 334,288 (2),
   POOL3D 596,161 (3), POOL3E 325,548 (2), POOL3F 389,429 (2), POOL3G 150,775 (1), POOL3H 695,899 (4), POOL3I 222,633
-  (1), POOL3J 299,582 (2), POOL3K 429,249 (3) = 5,648,445 for round 3; measured total of the finished
-  workflows 10,810,159 agent tokens (POOL3L running at this writing); the stopped runs report no total. Owner's readings: "running out" before 01:35; 77 % of the 5-hour
+  (1), POOL3J 299,582 (2), POOL3K 429,249 (3), POOL3L 464,996 (3) = 6,113,441 for round 3; measured
+  total of the finished workflows 11,275,155 agent tokens; the stopped runs report no total. Owner's readings: "running out" before 01:35; 77 % of the 5-hour
   window used at ~02:26, reset ~03:40; no reading since.
 
 ## 12. Where each brief deliverable is
 T2-card-1: section 0 and `cards/T02/T02-01-*`. T1 (features and recipe): `notes/T01/recipes.md` (ranked recipes, the
-npt / bullet / open-recipe side-by-side), `cards/T01/`, `cards/T01B/`. T2 (data quality): `notes/T02/TABLE.md` (ranked
+npt / bullet / open-recipe side-by-side), `notes/T01/FEATURE_COST_TABLE.md` (data size / L1 / nps cost per
+feature set), `cards/T01/`, `cards/T01B/`. T2 (data quality): `notes/T02C/TABLE.md` (|eval| caps: not found), `notes/T02/TABLE.md` (ranked
 filters / relabels), `notes/T02/MIX.md` (self-play vs external mix, nodes per move, generations), `cards/T02/`,
 `cards/T02B/`. T4 (search): `notes/T04/TABLE.md` plus the sub-track TABLEs, `notes/T04/BUG_CHECKLIST.md` (21 Elo-losing
 patterns with example commit, symptom and box test), the lock audit `notes/T04Q/AUDIT.md`, cards T04-T04T. T5 (speed):
@@ -261,4 +267,4 @@ section 6, specs in `notes/SPEC_SPEED.md`. T6: `notes/T06/FORMS.md`, `notes/T06/
 cards T06, T06B, T06C, T06D. T7: `cards/T07/` (2 cards) and `notes/T07/UCI_EDGE_CASES.md`. T12: `notes/T12/PROTOCOLS.md`,
 `notes/T12/sprt_model.md`, cards T12 / T12B, the checklist card `cards/T12/T12-03-bench-fuzz-checklist.md`.
 
-FINAL finished 06:09 PC clock (from `date`).
+FINAL finished 07:04 PC clock (from `date`).
