@@ -34,6 +34,8 @@ Integral PR 266, nets trained with Ranger vs AdamW: STC 10+0.1, 1 thread, 16 MB,
 penta 116/2941/6356/3144/132, LLR 2.90 for [0,3]; no LTC, no book named, net = Integral's threat net of that PR.
 Viridithas v108 vs the Adam-trained net: LTC 40+0.4, 1 thread, 128 MB, +8.98 +- 3.92, 7,004 g, penta
 5/888/1896/709/4, LLR 2.98 for [0,3]; threat + pawn-pair net (v107 arch); no book named. Two engines, same sign.
+(corrected by verify: the v108 release text says only "Trained with Ranger, instead of Adam."; the Adam baseline and
+the v107 arch are inferred from v107's release, not stated for v108)
 Forge estimate: 0 to +4 Elo for a net trained long from scratch, 0 to +1 for the warm-start fine-tune at lr 2e-5
 (few steps for Lookahead to matter) **UNPROVEN**.
 

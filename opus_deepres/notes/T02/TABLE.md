@@ -24,7 +24,9 @@ pages read; no source); Caissa MIT (commit messages, README and SelfPlay.cpp rea
 | 12 | Stronger teacher: mix 72 % own self-play (depth 9, 16e9 positions) with 28 % Leela positions (6.3e9) | no clean number: the default-net commit is a hex-edited derivative of that net (+1.55 STC [-0.5,2.5], 50,888 games; +2.18 LTC [0.5,3.5], 25,480) | https://github.com/official-stockfish/Stockfish/commit/14b673d90f (PR 3564) | GPL-3.0, ideas only | see the Leela line below and MIX.md |
 
 Not found: any relabel of the same positions by a deeper search of the SAME engine with an Elo test at a fixed net
-size (Stockfish moved to a stronger teacher instead; Forge's own 20k-node relabel pilot has no gate yet).
+size (Stockfish moved to a stronger teacher instead; Forge's own 20k-node relabel pilot has no gate yet). One web
+search found no such test; the closest study (arXiv 2412.17948, Xiangqi, CC BY 4.0: in-check exclusion plus static
+vs quiescence / negamax gap filters) reports no Elo or games for any filter or label choice.
 
 Leela-scored binpacks (one line): Lc0 training data, licence **ODbL 1.0** (Stockfish README @ff7cee4244 lines
 125-126), raw at https://storage.lczero.org/files/training_data ; Stockfish's filtered / TB-rescored binpacks at

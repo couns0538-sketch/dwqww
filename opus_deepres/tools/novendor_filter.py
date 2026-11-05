@@ -10,8 +10,10 @@ everything else passes through byte for byte. The folder name is assembled at ru
 import re
 import sys
 
-NAME = '.' + 'cla' + 'ude'
-RX = re.compile(rb'(?<![A-Za-z0-9])' + re.escape(NAME.encode()) + rb'(?=[\\/])')
+NAME = 'cla' + 'ude'
+# ".<name>/" anywhere, and a bare "<name>" path segment between separators (e.g. a temp folder named after it)
+RX = re.compile(rb'(?<![A-Za-z0-9])\.' + re.escape(NAME.encode()) + rb'(?=[\\/])|(?<=[\\/])'
+                + re.escape(NAME.encode()) + rb'(?=[\\/])')
 
 
 def main():

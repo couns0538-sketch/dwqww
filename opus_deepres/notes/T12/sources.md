@@ -45,3 +45,32 @@ what it gave | card id.
   "large enough to have a measurable Elo difference" (scale values x10 so c >= ~5); many values at once = random change;
   "values barely changing after a few thousand games -> useless, stop"; search params at normal TC (Hash 16 at 20+0.2,
   64 at 60+0.6); no numeric defaults on the page | T12-04
+- (navigation) https://github.com/AndyGrant/OpenBench/wiki (page list) and README.md@230ed46e47 (10 lines, points to
+  the wiki) | GPL-3.0 (docs only) | no card
+- E3 https://github.com/AndyGrant/OpenBench/wiki/Requirements-For-Public-Engines | GPL-3.0, docs | "./binary bench" must
+  print final nodes + nps; "All engines must be deterministic across multiple runs, on all supported machines"; every
+  client benches and "must produce the same nodes result every time"; bench used "to affirm that the build is correct"
+  and "to determine the relative speed of the clients CPU"; AVX vs AVX2 machines can be a source of non-determinism
+  | T12-03
+- E4 https://github.com/AndyGrant/OpenBench/wiki/SPSA-Tuning-Workloads | GPL-3.0, docs | alpha 0.602, gamma 0.101,
+  A-ratio 0.1; "ideal R_end 0.0020"; "C_end about 1/20th the reasonable range"; integer C at least 0.50 (OpenBench
+  raises it); 8 pairs per point for LTC tunes; Batched reporting + Single distribution; "hundreds of thousands of games"
+  | T12-04
+- E5 https://github.com/AndyGrant/OpenBench/wiki/SPRT-and-Fixed%E2%80%90Game-Workloads | GPL-3.0, docs | bounds +
+  confidence [alpha, beta] fields, 0.05 "generally a good value", calculator link uses elo-model=Normalized elo-0=0
+  elo-1=2; workload size in game pairs; 250 ms time margin; no default bounds stated | T12-01 (support), T12-05
+- E6 https://llvm.org/docs/Benchmarking.html | LLVM docs (Apache-2.0 with LLVM exception) | disable the SMT pair of
+  the benchmark CPUs; disable frequency scaling, Turbo Boost and ASLR; reserve cores (cset shield, kernel threads
+  moved out); avoid storage (tmpfs); run multiple times (perf stat -r 10); "variations of less than 0.1%" with all
+  of this; "low noise is required, but not sufficient. It does not exclude measurement bias" (Mytkowicz et al. 2009)
+  | T12-02
+- E7 official-stockfish/Stockfish commit titles + logged results since 2023-06-01 (tools/mine_commits.py --grep
+  'spsa|tune', 1,200 commits cached, 56 shown) | GPL-3.0, commit messages only | SPSA-tune commits pass with a few
+  Elo, e.g. 5c617e5 "VVLTC Search Tune" STC ~+5.2 n=15,788 / LTC ~+6.4 n=13,622; 94e6c04 LTC ~+6.7 n=12,800;
+  738ac2a "tuned TM values" STC ~+0.3 n=491,872 / LTC ~+1.0 n=154,824 (~ = Elo computed from W/L/D by the tool) | T12-04
+- E8 https://github.com/official-stockfish/Stockfish/commit/5c617e579c (full message) | GPL-3.0, commit message |
+  STC bounds <0.00,2.00>, LTC bounds <0.50,2.50> (normalised), LLR +-2.94; Ptnml [0, 1324, 5009, 1560, 1] at 15,788
+  games; Bench line; SPSA game budget not stated in the message | T12-01, T12-04
+- E9 https://github.com/official-stockfish/books/blob/a804a97e70/README.md | CC0-1.0 (data + docs) | book sizes:
+  UHO_Lichess_4852_v1.epd 2,632,036 positions (1,457,270 white / 1,174,766 black to move, 2-16 plies); 8moves_v3.pgn
+  34,700 (16 plies); UHO_4060_v4 241,670; noob_3moves 150,932 | T12-05

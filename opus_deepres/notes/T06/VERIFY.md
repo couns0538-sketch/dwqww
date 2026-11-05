@@ -35,3 +35,28 @@ One line per check: card | claim | CONFIRMED / CORRECTED / UNVERIFIABLE / VIOLAT
 - T06-03 | E3 README names the NNUE-vs-material agreement weighting as a follow-up | CONFIRMED (README_E3_CANDIDATE.md line 83; same line says the residual setup has no separate material-only eval, so the card's C = abs(residual) is the net-vs-HCE gap, an own definition, not 1066119's material-vs-net gap - the card says so) | D:/grok-pc-data/opus30h_inputs/e3/e3_evalpost_al1_src.zip
 - T06-02 / DEAD_ENDS | FORGE_IDEA_BOARD rules out drawish scaling of the residual (double count) | CONFIRMED (README_E3_CANDIDATE.md line 69) | same zip
 - FORMS.md | Caissa (MIT @57cae7ef) net output scaled by a piece phase that leaves pawns out, below 1 in bare endgames and above 1 in the opening | CONFIRMED (Evaluate.cpp at 57cae7ef, the phase-scaling lines near 342-344; MIT, read allowed; no constant carried into any card) | gh api contents src/backend/Evaluate.cpp?ref=57cae7ef71
+- T06-03 | "Titles show both (b) decay and (a) complexity-weighted optimism still present, simplified, in 2025" | UNVERIFIABLE for (a): 45b2b06 message and PR 5886 text (Feb 2025) name only the "nnue complexity adjustment"; PR 5305 ("Simplify blending eval with nnue complexity", 2024) likewise; no text read says optimism is still complexity-weighted (only the source would, which is off-limits). (b)-type complexity adjustment present in Feb 2025: CONFIRMED. Annotated in the card | https://github.com/official-stockfish/Stockfish/pull/5886 , /pull/5305
+- T06-01 / FORMS.md | Patricia (MIT @67d83d70) multiplier linear in total material + extra cut in low material; 50mr linear damping | CONFIRMED in words (search.h lines ~183-198 at 67d83d70; MIT, read allowed; no constant carried into a card) | gh api contents engine/src/search.h?ref=67d83d7056
+
+## 2. Reading rule
+- all cards + notes | no /blob/ or raw links to any repo; every Stockfish link is a /commit/ page, a PR or a tests.stockfishchess.org log | CONFIRMED (grep of https?://...(blob|raw) over cards/T06 and notes/T06: 0 hits) | grep
+- all cards | no tuned constant of another engine proposed as a Forge value (checked against the constants visible in the messages / MIT files I opened: a2f01c0 ratio, ee53f8e TUNE values, d212e66 grain, a5a89b2 factor range, Caissa phase weights, Patricia multiplier / 50mr divisor) | CONFIRMED (number grep: only PR numbers match; ranges and start values are own: -50..50 %, -150..150 per mille, Kd 0..20000, Ko 0..2000, EvalGrain 1..32 default 1, D 60 / ~81 from the own fit) | cards/T06/*.md
+- T06-03 | own forms v' = v - v min(C,Cmax)/Kd and o' = o (1 + C/Ko) | UNVERIFIABLE that they are not paraphrases of Stockfish code (that check needs the forbidden source); both follow the commit-message wording (4c4cb18 "decays a little ... up to a few percent", 1066119 "increases the optimism bonus") and use own symbols | commit messages above
+- no VIOLATION found.
+
+## 3. Licence rows (tools/licence_at.py --row re-run 23:12)
+- official-stockfish/Stockfish | d212e663bb 2024-07-06 Copying.txt GPL-3.0 | CONFIRMED (identical row)
+- Witek902/Caissa | 57cae7ef71 2026-11-04 LICENSE MIT | CONFIRMED (identical row)
+- Adam-Kulju/Patricia | 67d83d7056 2026-09-12 LICENSE MIT | CONFIRMED (identical row)
+
+## 4. Forge has it (lock src_al1s198_clean, read-only)
+- T06-01/02/03 | final eval = clamp(HCE runtime + network) at src/search.cpp:616-620, nothing re-weighted or scaled | CONFIRMED (616 network, 620 return clamp(evaluate_runtime + network)); forge_has 'optimism|complexit|matscale|mat_scale|materialist|positional|EvalGrain|Rule50Damp' = 0 hits
+- T06-01 | scale_factor() at src/eval.cpp:346 scales only the HCE eg term | CONFIRMED (eval.cpp:457-458 eg = eg*scale/64 before the taper)
+- T06-04 | no eval grain; CorrectionGrain 256 = correction fixed point at include/forge/search.hpp:258, src/search.cpp:644 | CONFIRMED (forge_has 'CorrectionGrain|grain': 4 hits, all correction history)
+- T06-05 / FORMS | rule50 only for the draw at 100 and the TT guard (search.hpp:75-85); null moves advance the clock (board.cpp:823-835); draws return 0 (search.cpp:692-700, 780, 893) | CONFIRMED
+- note | the cards give file:line but not the forge_has regex they used (WORKER_RULES asks for the grep line); the re-greps above stand in for it
+
+## 5. Labels, names, lint
+- all 5 cards | Forge estimate labelled UNPROVEN | CONFIRMED (card_lint checks it; 0 findings)
+- all files | no vendor / model-company names | CONFIRMED by card_lint name list on cards; notes grep clean. Note: own branch / folder names opus-r13-p7-e3fit and opus_r13/p7 appear in T06-01, T06-05, FIT_RECIPE.md, sources.md (not on the lint list; the coordinator's clean filter is the backstop)
+- card_lint cards/T06/*.md after the two verify edits | CLEAN (5 x 0 findings, exit 0)

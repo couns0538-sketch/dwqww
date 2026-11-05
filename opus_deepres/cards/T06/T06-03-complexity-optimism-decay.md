@@ -18,7 +18,8 @@ Stockfish GPL-3.0 (Copying.txt at d212e663bb): ideas only - commit text, PR text
 Complexity = how far the sophisticated eval is from a plain material count. Two uses, each tested on its own:
 (b) the eval itself is decayed by up to a few per cent when complexity is large, so a defender prefers chaotic lines
 and an attacker prefers stable ones at the same nominal score; (a) the optimism bonus grows with complexity. Titles
-show both still present, simplified, in 2025.
+show both still present, simplified, in 2025 (verify: UNVERIFIABLE for (a) - the 2025 texts read, 45b2b06 / PR
+5886, name only the "nnue complexity adjustment", not optimism).
 Forge form (own): complexity C = |residual net output| (the net's disagreement with the HCE, already a separate
 number at search.cpp:616) - no extra eval. (b) v' = v - v min(C, Cmax)/Kd; (a) o' = o (1 + C/Ko). Start values from
 the FIT_RECIPE C-bucket slope curve, not from Stockfish. Placed inside E3's `e3_post_eval` (raw -> optimism ->

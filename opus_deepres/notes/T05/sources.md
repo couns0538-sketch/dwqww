@@ -63,3 +63,14 @@ AVX512ICL", 6776 "Simplify out double_inc_update", 7225 "Pair int8 weight rows i
 "Specialize some accumulator updates", 7251 "Unroll NNUE feature updates", 6233 "Speedup write_moves using
 _mm512_mask_compressstoreu_epi16", 6681 "Add 1GB page support on x86 Linux", 7025 "Prefetch continuation correction
 histories".
+
+## Dead ends (one line each) and PENDING (written 23:17 PC clock)
+- Agner's instruction_tables.pdf through the web fetcher: binary PDF, no text; the saved copy was converted with pdftotext locally (worked, no. 4).
+- Stockfish PRs 7006 / 7115: threat-feature decoding and move-scoring stores - nothing for Forge's 768-input float path.
+- No outside engine with a measured float -> int16 first-layer table number (MISSING; the stop rule ended the search).
+- int16 accumulators: excluded by the bound (342,331 > 32,767 on all 256 units of the lock net); int8 first layer: excluded (15-bit weights).
+- AVX-512 output kernel (bit-exact with the 16-lane order) and large pages for the ~1.55 MB of worker histories: each < 1 % expected -> dropped (SPEED_LIST rows 5, 6).
+- BOLT: ELF only -> no for Forge's PE exes.
+- Zen 5 L2 latency: not found; the Zen 5 deck itself was not fetched (facts from search summaries).
+- tools/licence_at.py reads llvm-project's LICENSE.TXT as MIT; it is Apache-2.0 WITH LLVM-exception (corrected in licences.md).
+- PENDING (crew measurements, no engine runs in this job): P4 (Y8 vs KB8 replicas on one exe), bytes vs refresh split of P2 / P3 (30-h counters on KB4 / KB8 / KB32 replicas), per-file share of P1 (fresh copies + A/A).

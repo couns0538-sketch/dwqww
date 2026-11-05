@@ -107,4 +107,5 @@ NPTW4S4-07 | gate_nptw4s4_ep07_vs_AL1 | option.EvalFileHalfKA=C:\Users\Administr
 STB1 | gate_stB_lmrttcapall1_vs_AL1 | option.LmrTtCapAll=1 | 3000 | -3.01 | -6.60 | -2.88 | Cap with no decision
 STB2 | gate_stB_lmrcapvictim1_vs_AL1 | option.LmrCapVictim=1 | 1070 | -12.34 | -28.59 | -2.97 | H0 accepted (SPRT: no
 UE3A-R6K | uhoE3a_evalmatscale12_r6k_vs_AL1lp | option.EvalMatScale=12 | 6000 | 3.47 | 6.58 | 0.78 | Cap with no decision
-# 109 of 109 gates shown (C:/Users/Administrator/grok-pc/forge_push/FORGE_RESULTS.csv)
+UE3B-R6K | uhoE3b_evaloptimism40_r6k_vs_AL1lp | option.EvalOptimism=40 | 2360 | -5.30 | -10.32 | -2.99 | H0 accepted (SPRT: no
+# 110 of 110 gates shown (C:/Users/Administrator/grok-pc/forge_push/FORGE_RESULTS.csv)

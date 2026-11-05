@@ -14,7 +14,8 @@ Own Forge code and records (no third-party code or constants). Zen 5 facts: vend
 ## Mechanism
 Keep w1 as the file's int16 (2 B per weight, not 4) and keep the accumulators exact. Every lock / v2 value is an
 integer k times 2^-12: weights |k| <= 14,227 (3.47), and the per-unit bound bias + 32 largest |w| is 342,331 (83.6)
-for the lock net - below 2^24, so float32 sums are exact and order-free (the reviewers' rule). Two exact designs:
+for the lock net - below 2^24, so float32 sums are exact and order-free (the reviewers' rule); for ANY int16 file
+(v2 nets included) |k| <= 33 x 32,768 < 2^24 holds too. Two exact designs:
 (a) float accumulators that add float(w) * 2^-12, converted on the fly (the prepared script); (b) int32 accumulators
 in units of 2^-12 (sign-extend + integer add), converted once per evaluation (int -> float, then x 2^-12, both exact).
 The output layer (float, 16 ordered lanes) is unchanged, so evaluations and node counts are identical.
