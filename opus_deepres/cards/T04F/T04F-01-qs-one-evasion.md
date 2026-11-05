@@ -39,8 +39,8 @@ Forge estimate: +1 to +3 Elo at STC **UNPROVEN** (in the lock a qsearch node in 
 only, so the node share may be smaller than in the sources).
 
 ## Effort
-Crew 1-2 h (option, OFF pins, ON bench, mate probe, WAC count). CPU: one STC SPRT [0, 5]; at the measured 430-502
-games/h a 6,000-game run is about 12-14 h of the gate PC; LTC only after an STC H1. No GPU.
+Crew 1-2 h (option, OFF pins, ON bench, mate probe, WAC count). CPU: one STC SPRT [0, 5]; 3,000-game cap = 6-7 h at 430-502
+games/h (measured at Threads 2 / conc 4; no Threads=1 rate measured); 6,000 games, about 12-14 h of the gate PC, = the cap + the one extension if capped positive (review fix, FIXER3: crew cap); queue it after the P27R-AL1 QsEvasionSeeNonPv=1 extension result, not beside it (second vote 2); LTC only after an STC H1. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench d11/d13/d16/d20/d22 = the lock pins; perft unchanged; ON bench nodes drop (record d13 and d22:

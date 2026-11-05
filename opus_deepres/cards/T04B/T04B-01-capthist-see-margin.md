@@ -31,14 +31,14 @@ C1-C6, Sf26Bundle bits, round-1 O5 CorrMargins or sol-A1 HistRework. Lines to to
 the qsearch SEE test (`src/search.cpp:838`) the same way: a different site, gate the two separately.
 
 ## Expected gain
-Source: Stormphrax PR 269, OpenBench SPRT [0, 3], Threads=1: STC 8+0.08 Hash 16 MB n=28,964 (W 6991 L 6734
+Source: Stormphrax PR 269, OpenBench SPRT [0, 3] (-2.25, 2.89), early stop, Threads=1: STC 8+0.08 Hash 16 MB n=28,964 (W 6991 L 6734
 D 15239) +3.08 +- 2.21, LLR 2.95; LTC 40+0.4 Hash 128 MB n=10,130 (W 2245 L 2056 D 5829) +6.48 +- 3.34, LLR 2.93.
 Book (corrected by verify 00:44, read from the OpenBench pages 12560 / 12563): DFRC_4852_v1.epd, a double Fischer
 random book, both runs; adjudication win movecount=3 score=492, draw movenumber=40 movecount=8 score=7. The source
 gain is therefore a DFRC-opening result; Forge gates play standard chess from UHO. The gain was larger at LTC.
 Forge estimate: +1 to +4 Elo **UNPROVEN** (Forge's capture history has no threat / defended dimension; the source's
 already had one when PR 269 was tested - PR 209, merged 2024-12-04, corrected by verify: it was not "added later" - so
-the signal may be weaker here).
+the signal may be weaker here). Counter-evidence (T12C): Stockfish 5d72032 (2024-05-01, GPL-3.0, message only) adopted the same idea after an earlier attempt "without results": STC [0,2] +2.51 +- 1.64 (45,760 g), LTC [0.5,2.5] +1.08 +- 0.67 (243,828 g), the largest-n test of it, while Stormphrax's +6.48 LTC is a DFRC-book 10k-game run: lowered to +0.5 to +2.5 Elo **UNPROVEN**; keep it behind T04E-03 / T04-02 / T04E-02 in the gate list.
 
 ## Effort
 Crew 2 h (option, OFF identity, ON bench, smoke, one debug assert). CPU: one STC SPRT [0, 5], about 3-6k games at the

@@ -27,7 +27,7 @@ does not matter, and the loader's bound (|bias| + 32 x max|w| <= 32767 per outpu
 ## Forge fit
 Lock: `bash tools/forge_has.sh 'halfka|refresh_cache|RefreshCache|finny|AccumulatorCache'` = 0 hits (no HalfKA path; the
 lock's 768-input net has no king buckets). r10fix1 rebuilds from scratch on every orientation change
-(`src/search.cpp:668-675`), no cache (the 30-Oct report, section 10, dropped the idea only because FB1's FORGENN3 path
+(`src/search.cpp:668-675`), no cache on the HalfKA path; own caches to port from (review fix, FIXER3 from CRITIC2 l.38): FORGENN3 v3 path (branch fable-nnue-arch, `include/forge/nnue_v3.hpp:130` RefreshCache, `:205` refresh_cached, entries set at `src/nnue_v3.cpp:530`) and the v2 port (branch opus-30h-20261103, `opus_30h/a/v2port.patch:215` refresh_cached, called at `:600-601`) (the 30-Oct report, section 10, dropped the idea only because FB1's FORGENN3 path
 has one). Change: a per-worker table beside `AccumulatorStack` (`include/forge/nnue_halfka.hpp:66-81`), sized in
 ensure(): 384 x (2 KB + 96 B) = about 0.8 MB at L1 1024 (0.2 MB at L1 256); cleared at net load, ucinewgame, ensure().
 

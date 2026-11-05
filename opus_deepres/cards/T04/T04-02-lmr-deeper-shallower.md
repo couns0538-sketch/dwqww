@@ -40,7 +40,7 @@ Source 1: Caissa, OpenBench SPRT [0, 2], 1 thread: STC 10+0.1 n=14,696 +6.93 +- 
 n=18,914 +5.14 +- 3.35 (LLR 2.95). Source 2: Patricia PR 137, SPRT [0, 3], 8+0.08, Hash 16 MB, n=14,514 (W 2978
 L 2746 D 8790) +5.55 +- 3.25, LLR 2.95; no LTC. Books: not stated (OpenBench defaults, unknown).
 Forge estimate: +2 to +6 Elo at STC and LTC **UNPROVEN** (both sources gained at both TCs where measured; Forge's
-reductions are table-driven like theirs).
+reductions are table-driven like theirs). Counter-evidence (T12C): in Stockfish (GPL-3.0, messages and titles only) the extra-deep re-search step was reverted for search explosions "most visible with TB" (955edf1, 2022-12-12), reintroduced, removed again (b59786e) and later re-added in another form, and the shallower form was simplified at zero cost (87814d2: STC -0.01 +- 0.72, 242,336 g; LTC +0.31 +- 0.92, 128,100 g); later gaining edits of this block are about +0.9 to +2.3 at LTC: lowered to +1 to +4 Elo **UNPROVEN**; the ply guard is mandatory, and the pre-gate box tests add mate / TB positions.
 
 ## Effort
 Crew 2 h (option, OFF identity, ON bench, smoke, a node-count sanity check of re-search depths). CPU: the crew gate runs about 1,000 games/h at concurrency 8 (R7 J4 measurement, 28.3 s per STC game), so a 3,000-game STC cap is about 3 h of the gate PC; an LTC at k times the STC time costs about k times that (review fix, critic summary (e) / B FINAL_REPORT:76-77: that rate is the older R7 J4 setting, Threads 1 / conc 8; the current UHO *_vs_AL1* gates run 430-502 games/h (497 at Threads 2 / conc 4; T07 VERIFY:44, WORKER_RULES round 2), so a 3,000-game cap is about 6-7 h there). One STC SPRT [0, 5], then one LTC. No GPU.

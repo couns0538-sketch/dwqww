@@ -25,7 +25,8 @@ port tree. No card was edited.
 
 ## Common parts (all five)
 Exactly as notes/SPEC_SEARCH2.md "Common parts" (which refers to notes/SPEC_SEARCH.md): option recipe (tune:: int +
-row + extern, uci.cpp untouched, spin only, every row admits 0), kit `-Expose` pc1 = pc2, OFF proof `pin_check -Full`
+row + extern, uci.cpp untouched, spin only; every master row admits 0 and defaults to 0, a secondary row admits its
+own default and is dead at master 0 (review fix)), kit `-Expose` pc1 = pc2, OFF proof `pin_check -Full`
 = the lock pins, ON-live rule (bench d13 != 862329, else d16 / d20), counter build FORGE_SPEC_COUNTERS (its bench
 nodes = the plain build's), box FENs F1-F5 at `go depth 16` (0.5x-2x per-FEN stop rule, bench d22 ON within 0.7x-1.5x
 of OFF), sanity FENs S1-S5 at depth 12 (mate in 1, stalemate, stalemate trap, 50-move draw, mate on the hundredth
@@ -193,6 +194,7 @@ Source (card): form B Caissa 9d566cc (MIT; message + one-line diff read by the c
 - Gate line: candidate = the 8924099a exe vs lock FD3A5190, `setoption name TtCutExtraMargin value 72` (RfpOppWorse,
   RfpNoTtDepth left at 0); crew line; form A (value 200) only at LTC and only after B. The port's comment names the
   source engine and its values: before any merge add the MIT notice (card) or strip the comment; not needed for a gate.
+  The review file and the INDEX line quote 72 only, never the port's comment or its values (review fix).
 - This exe is another tree than the four-option build below: merging needs a re-port of the one line (0.5 h).
 - Crew hours: 0.5 (card: pin re-check, ON box at 72, smoke, INDEX line) + 0.5 counter build.
 

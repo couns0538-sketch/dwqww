@@ -42,10 +42,10 @@ on the PV but are not PV nodes now = this rule) STC {-0.50,1.50} LLR 2.94 n=154,
 n=70,974 +1.83 +- 1.28; 1591e5a (2022, "Do less singular extensions for former PVnode", by its message a re-introduction in
 another form of logic simplified away earlier) STC <0.00,2.00> LLR 2.94 n=23,296 +4.41 +- 2.29, LTC <0.50,2.50> LLR 2.94 n=235,592 +1.04 +- 0.64.
 Forge estimate: 0 to +3 Elo **UNPROVEN** (PlentyChess: two unfinished SPRTs with wide errors; the three Stockfish runs with n > 70k are +0.9 to +1.8; Forge's singular margin is
-already small at 2 cp per ply, so the relative change is large).
+already small at 2 cp per ply, so the relative change is large). Counter-evidence (T12C): Stockfish's 2020 form (4e89864) was simplified away and re-added in another form in 2022 (1591e5a, LTC +1.04 +- 0.64 at 235,592 g), and PlentyChess fixed a wrong ttpv flag in the excluded search four months after PR 286 (9f2cfbc, PR 334, GPL-3.0, title only), so PR 286's +5.21 / +5.34 pre-date that fix: expected value lowered to about +1 Elo inside the 0 to +3 range **UNPROVEN**; keep it after T04-01 and N-01 on the singular chain.
 
 ## Effort
-Crew ~1 h (term, option, pins). CPU: UHO SPRT [0, 5] at STC ~6.6k games ~13-15 h at 430-502 games/h (cap 12k ~24-28 h),
+Crew ~1 h (term, option, pins). CPU: UHO SPRT [0, 5] at STC, 3,000-game cap = 6-7 h at 430-502 games/h (measured at Threads 2 / conc 4; no Threads=1 rate measured), +6-7 h for the one extension if capped positive (review fix, FIXER3: crew cap),
 then LTC (~3x per game). GPU: none.
 
 ## Test plan

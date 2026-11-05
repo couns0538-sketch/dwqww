@@ -41,8 +41,8 @@ Forge estimate: +0.5 to +2 Elo at STC **UNPROVEN** - below the source, because t
 which the source did not do when it measured; the source LTC interval is +0.5 to +4.4.
 
 ## Effort
-Crew 1.5 h (option, about 6 lines, OFF pins, ON smoke). CPU: one STC SPRT [0,5] up to ~6.6k games, about 13-15 h
-at the measured 430-502 games/h; an LTC confirm costs the same or more. GPU 0.
+Crew 1.5 h (option, about 6 lines, OFF pins, ON smoke). CPU: one STC SPRT [0,5], 3,000-game cap = 6-7 h
+at 430-502 games/h (measured at Threads 2 / conc 4; no Threads=1 rate measured), +6-7 h for the one extension if capped positive (review fix, FIXER3: crew cap); an LTC confirm costs the same or more. GPU 0.
 
 ## Test plan
 1. OFF: bench and perft pins equal the lock (default 0, branch never taken). 2. ON: bench node count changes (option

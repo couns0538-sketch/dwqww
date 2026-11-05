@@ -124,12 +124,14 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | official-clockwork/Clockwork | 2844edc8c0 | 2026-01-05 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06C | ideas only |
 | official-clockwork/Clockwork | 753f88460c | 2026-01-25 | LICENSE | AGPL-3.0 | GNU AFFERO GENERAL PUBLIC LICENSE | api: AGPL-3.0 | T06C | ideas only |
 | official-stockfish/Stockfish | 1548538ede | 2026-09-18 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
+| official-stockfish/Stockfish | 1591e5ac3b | 2022-09-11 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | official-stockfish/Stockfish | 23df82905b | 2026-10-25 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | 2e96c513ad | 2019-10-06 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
 | official-stockfish/Stockfish | 392b529c3f | 2020-11-08 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
 | official-stockfish/Stockfish | 3d92950859 | 2024-06-15 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | 472de897cb | 2019-10-18 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04F | ideas only |
 | official-stockfish/Stockfish | 49ef4c935a | 2024-04-24 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
+| official-stockfish/Stockfish | 4e8986483a | 2020-02-10 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T04C | ideas only |
 | official-stockfish/Stockfish | 5380403393 | 2026-08-24 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12B | ideas only |
 | official-stockfish/Stockfish | 5c617e579c | 2025-02-27 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T12 | ideas only |
 | official-stockfish/Stockfish | 5ca4bfe72b | 2026-09-09 | Copying.txt | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T07 | ideas only |
@@ -162,6 +164,9 @@ Affero licence in its section 13); workers noticed and noted it; the merged rows
 | ovnice-dev/onechess | 928d53d2eb | 2026-10-30 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | ovnice-dev/onechess | e9d1c500d6 | 2026-11-04 | LICENSE | GPL-3.0 | GNU GENERAL PUBLIC LICENSE | api: GPL-3.0 | T05E | ideas only |
 | pkrisz99/Renegade | 2a134aecbc | 2026-10-13 | LICENSE | MIT | MIT License | api: MIT | T04R | copy with notice |
+| pkrisz99/Renegade | 74f88cf831 | 2025-04-09 | LICENSE | MIT | MIT License | api: MIT | T04R | copy with notice |
+| pkrisz99/Renegade | a3ef409470 | 2026-06-01 | LICENSE | MIT | MIT License | api: MIT | T04R | copy with notice |
+| pkrisz99/Renegade | a7d8f48c92 | 2025-04-14 | LICENSE | MIT | MIT License | api: MIT | T04R | copy with notice |
 | rektdie/Eleanor | 134af1abde | 2026-10-03 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | rektdie/Eleanor | 2c81f2fc4e | 2026-10-12 | LICENSE | MIT | MIT License | api: MIT | T05E | copy with notice |
 | sebhofmann/sleepmind2 | 4f6cdfcc5a | 2026-11-03 | absent | no licence (all rights reserved) | - | api: none | T05E | ideas only (no licence) |

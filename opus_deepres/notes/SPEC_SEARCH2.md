@@ -22,7 +22,9 @@ unlicensed = ideas only, and nothing of theirs was opened here) plus the lock so
 - Option recipe, kit `-Expose` build (pc1 = pc2), OFF proof `pin_check -Full` = the lock pins (bench d11-d22 + perft),
   ON-live rule (bench d13 != 862329, else d16 / d20; equal at d20 = not wired), counter build FORGE_SPEC_COUNTERS
   (search increments, never reads; its bench nodes must equal the plain build's): all exactly as in
-  notes/SPEC_SEARCH.md "Common parts". Defaults are 0 = the lock path; a `tune::parameters()` row must admit 0.
+  notes/SPEC_SEARCH.md "Common parts". Every master row admits 0 and defaults to 0 = the lock path; a secondary row
+  (QuietMalusStart {100,150} default 100, NoisySeeHistCap {50,400} default 150, TtCutNodeForm {1,2} default 1) admits
+  its own default and is dead at master 0, so the OFF proof (all masters 0) is unchanged (review fix).
 - Gate line (crew decision, WORKER_RULES "Numbers"; it replaces SPEC_SEARCH.md's pending-bounds text): candidate vs
   lock FD3A5190, UHO book, Threads=1, SPRT [0,5] normalized Elo, alpha = beta = 0.05, pentanomial, cap 3,000 games.
   A run that hits the cap without a decision = UNPROVEN / no decision (not H0, not a pass); if its Elo is positive it
@@ -87,15 +89,21 @@ LTC 40+0.4 +3.67 +- 2.27 n=20,816 [0,3]; Viridithas PR 412 (read as ideas only):
 - Lock lines: tt_move :913, tt_capture :918; NMP condition :965-968 (depth >= NullMoveMinDepth 3, eval >= beta,
   static margin, null_move_allowed, previous move not null, own non-pawn material, TT upper-bound guard :968);
   null_tries_ :969, null_cutoffs_ :985 / :995 (reset :1241). Victim = captured_piece(tt_move) (board.hpp:164-167).
-  tt_move is not validated before :965 (a colliding entry can carry another position's move), and color_of(Empty) is
-  White (board.hpp:200), so the guard below tests Empty explicitly.
+  tt_move is not validated before :965 (a colliding entry can carry another position's move; the lock validates it only
+  in the MovePicker, `board_.is_pseudo_legal(tt_move_)` at :326, after NMP), so the guard below runs the lock's own
+  test `board.is_pseudo_legal(tt_move)` (board.cpp:600) before it reads the victim or calls see_ge (review fix).
 - Options (spin): `NmpTtCaptureMin` default 0 = off, range 0-5, own start 4 (rook or queen; 2 = minor or better, 1 =
   any capture). Variant B `NmpTtCaptureSee` (cp) default 0 = off, range 0-900, own start 300. Both > 0: either blocks.
 - Change (own pseudo-steps), one term appended last to :965-968 (so it is evaluated only when NMP would run):
-  1. plausible = tt_capture and victim != Empty and mover = moved_piece(tt_move) != Empty and color_of(mover) ==
-     side to move and color_of(victim) != side to move and piece_type(victim) <= Queen.
+  1. plausible = tt_capture and board.is_pseudo_legal(tt_move) (review fix) (the lock's own test, as at :326, replaces
+     a hand-made victim / mover / colour test that a stale EnPassant flag passes; see_ge board.cpp:932 reads from / to
+     and the en-passant square straight from the move, and the lock calls it only on generated or checked moves).
+     Passing it means a real capture: mover ours (board.cpp:604), target not ours and not a King (:606), en passant
+     only on the live ep square with the Capture flag (:641), Capture needs a piece on `to` (:646 / :658); so the
+     victim is Pawn..Queen of the other side.
   2. block = (NmpTtCaptureMin > 0 and plausible and piece_type(victim) >= NmpTtCaptureMin) or
-     (NmpTtCaptureSee > 0 and plausible and see_ge(tt_move, NmpTtCaptureSee)).
+     (NmpTtCaptureSee > 0 and plausible and see_ge(tt_move, NmpTtCaptureSee)); plausible (one is_pseudo_legal call)
+     is evaluated only after a `> 0` test, and the victim is read only after plausible (review fix).
   3. NMP runs only if not block; else the node goes on to ProbCut :1000 and the move loop (TT move first).
   En passant victims are pawns (type 1): below every start value.
 - OFF node-identical: both 0 -> the term is constant true and reads nothing -> pins. ON live: `NmpTtCaptureMin=4`
@@ -158,6 +166,9 @@ one-ply amount is the card's own. Card estimate 0 to +3 Elo at STC **UNPROVEN**.
   cut-node term). Not SPSA (two values).
 - Change (own pseudo-steps): 1. after :1141: if CutNoTtLmr > 0 and cut_node and tt_move is none: r += CutNoTtLmr.
   2. Nothing else: :1147 keeps reduced_depth in [1, new_depth].
+  IIR stays (review fix): at depth >= IirDepth 4 (:38), not in check, such a cut node already lost one ply at :1031,
+  so the term stacks a second ply on each late move there. This stacking is intended; read the box test "share
+  clamped at reduced_depth 1" with it in mind.
 - OFF node-identical: 0 -> no term -> pins. ON live: `CutNoTtLmr=1` bench d13 != 862329.
 - Box tests (counter build, F1-F5 d16, S1-S5): LMR searches at cut nodes without a TT move per 1M nodes (live share);
   share clamped at reduced_depth 1 OFF vs ON; re-search rate :1149 at those nodes OFF vs ON (a large rise eats the
@@ -207,8 +218,9 @@ text states only the fail-high half; the two-sided rule is the card's reading. C
   vs the lock exe (cold code at five sites, profile trained OFF; expect noise, report; a slowdown beyond the A/A
   spread = build single-option exes instead). Each gate line sets exactly one option family; a combined line only
   after each passes alone, with its own ON-live bench and gate.
-- Order (own reading, no Elo claim): 1 T04E-03 (four engines passed the idea; the lock's malus is flat; the tried
-  gate 67 HistMalusPct=125 went the other way); 2 T04D-01 (1 h, one line); 3 T04E-02 (A, then B only after A's
+- Order (own reading, no Elo claim): 1 T04E-03 (four engines passed the idea; the lock's malus is flat; colour only,
+  not lock evidence (review fix): tried gate 67 gate67_omnis_s12b_vs_h256e12, option HistMalusPct=125, on another
+  base and opponent, 1,500 games, -7.41 (-15.55 .. -2.54), cap with no decision); 2 T04D-01 (1 h, one line); 3 T04E-02 (A, then B only after A's
   H0 / capped <= 0); 4 T04D-02 (form 1, then form 2 on the same condition); 5 T04B-01 (DFRC-book evidence only;
   before T04E-03's capture variant). Five firm STC lines = 30-35 h worst case at the cap (430-502 games/h), up to
   seven with the two conditional lines (42-49 h), plus extensions and LTC runs after H1.

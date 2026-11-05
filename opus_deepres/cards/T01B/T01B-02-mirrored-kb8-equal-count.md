@@ -30,7 +30,8 @@ weights written into it = exact for kings on a-d, the lock on the reflected boar
 Change: one map name in the trainer (main.rs:222-249) + o30_v2net.king_map, a from-lock --mirror writer.
 
 ## Expected gain
-No source isolates mirroring at an equal bucket count and L1. Stormphrax PR 166 (with L1 1536): 25k nodes +34.97 +-
+One source isolates mirroring at an equal bucket count and L1 (review fix, FIXER3: notes/T04O/TABLE.md row 8 and notes/T04O/VERIFY.md; was "no source"): akimbo [7120b4b](https://github.com/jw1912/akimbo/commit/7120b4be24) (MIT) on a 768-input, 1-bucket net (the lock net's shape; old and new net 1,184,320 bytes each, same input count and L1): STC 8+0.08 [0,3] LLR 2.91, Threads=1, Hash 32 MB, +17.16 +- 6.88 (4,864 g); caveats: a different net file (training recipe equality unverified), the gain includes the d/e refresh cost, n is small, and it is the 1-bucket case, not KB8 vs rank4x2.
+Stormphrax PR 166 (with L1 1536): 25k nodes +34.97 +-
 9.51 (2,522 g), STC 8+0.08 -4.84 +- 4.02 (9,190 g, FAILED [0,3]), LTC 40+0.4 +4.90 +- 2.91 (14,550 g, LLR 2.89 [0,3]).
 Obsidian d8e8007f (4 mirrored buckets, L1 768, 8 output buckets; "25% speedup", old net had "the 150MB table"): STC
 10+0.1 +10.18 +- 5.92 (6,898 g, LLR 2.91 [0,3]). Leorik: "+20 Elo" with "nps goes down by 10%", no TC / games / error.

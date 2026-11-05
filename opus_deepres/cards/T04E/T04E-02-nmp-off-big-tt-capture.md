@@ -37,15 +37,15 @@ non-pawn material and one TT guard (upper bound below beta), nothing about the h
 piece on `tt_move.to` is the opponent's (a colliding hash move then never triggers). Variant B: SEE of the move.
 
 ## Expected gain
-Reckless, 1 thread: STC 8+0.08 +3.43 +- 2.31 (95 %), n=22,374, LLR 2.92 [0,3]; LTC 40+0.4 +3.67 +- 2.27,
+Reckless, 1 thread, SPRT [0,3] (-2.25, 2.89), early stop: STC 8+0.08 +3.43 +- 2.31 (95 %), n=22,374, LLR 2.92 [0,3]; LTC 40+0.4 +3.67 +- 2.27,
 n=20,816, LLR 3.17 [0,3]. Viridithas: LTC 40+0.4, 1 thread, 128 MB, +1.88 +- 1.48, n=49,814, LLR +2.95 [0,3]
 (no STC logged). Book UHO_Lichess_4852_v1 in all three logs; Reckless Hash 16 / 64 MB, W/L/D STC 5,700 / 5,479 /
 11,195, LTC 5,169 / 4,949 / 10,698; Viridithas W/D/L 11,868 / 26,348 / 11,598.
 Forge estimate: +1 to +3 Elo **UNPROVEN** (the lock already has a static-eval NMP margin and a TT-bound guard).
 
 ## Effort
-Crew ~1-2 h (one condition + option + proofs). CPU: STC SPRT [0,5] up to the 12k-game cap, ~13-25 h at 430-502
-games/h; LTC run after a pass. No GPU.
+Crew ~1-2 h (one condition + option + proofs). CPU: STC SPRT [0,5], 3,000-game cap = 6-7 h at 430-502 games/h
+(measured at Threads 2 / conc 4; no Threads=1 rate measured), +6-7 h for the one extension if capped positive (review fix, FIXER3: crew cap); LTC run after a pass. No GPU.
 
 ## Test plan
 Pre-gate: OFF bench / perft pins equal to the lock; ON bench differs; null-move counters (`null_tries_`) fall on

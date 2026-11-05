@@ -10,6 +10,7 @@ of Alexandria (GPL-3.0; its source not read). Read with tools/mine_commits.py --
 ## Licence
 pkrisz99/Renegade LICENSE at 2a134aecbc (HEAD, 2026-10-13) = MIT (tools/licence_at.py --row, notes/T04R/licences.md):
 copy with notice allowed; the cited diff (125 lines) was read, nothing is copied, the mechanism below is own words.
+(corrected by verify: LICENSE at the cited commit a7d8f48c92 = MIT as well; tools/licence_at.py --row, row in licences.md.)
 
 ## Mechanism
 Inside the move loop each searched move gets a counter of how many of its child searches came back above alpha: the
@@ -22,7 +23,9 @@ a move that only fails high once (no reduction, non-PV) gets the old bonus, so m
 ## Forge fit
 Lacks it: `bash tools/forge_has.sh 'fail_?high_?count|fh_count|failHighCount|cutoff_?count'` finds only the per-ply
 `cutoff_count` used by LMR (`include/forge/search.hpp:273`, `src/search.cpp:905/1145/1180`), no per-move child
-fail-high count. Child searches: reduced `src/search.cpp:1148`, re-search `:1151`, null-window full `:1160`, PV full
+fail-high count (corrected by verify: partly - `src/search.cpp:1153-1156` already gives a quiet move whose reduced
+search beat alpha a fixed half continuation-history bonus, once; the gap is the count-scaled bonus at the final cutoff
+in main / capture history). Child searches: reduced `src/search.cpp:1148`, re-search `:1151`, null-window full `:1160`, PV full
 window `:1163`. Update at the cutoff: `update_quiet_stats(..., depth + (best_score > beta + 100), ...)` `:1198` and
 `update_capture_stats` `:1200`; both use ONE `bonus = history_bonus(depth)` (`:731`, `:753`) for the best move and,
 negated, for the malus; `apply_history` clamps to +-HistoryMax (`:157-160`), so a larger bonus stays in range.

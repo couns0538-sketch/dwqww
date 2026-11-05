@@ -37,6 +37,7 @@ LTC 60+0.6, same book, SPRT [0.5,2.5]: LLR 2.95, 32,334 games, W 8,386 L 8,074 D
 3,748 / 31 = +3.35 +- 1.81 Elo. Engine: Stockfish master of 2025-02-13 (NNUE, its own LMR and IIR).
 Forge estimate: 0 to +3 Elo at STC, possibly more at LTC **UNPROVEN** (Forge's whole-ply reductions make the step
 coarser than the source's; Forge already reduces these nodes twice, by IIR and by the cut-node term).
+Counter-evidence (T12C): Stockfish 5d1505d (2025-08-04, "Reintroduce reduction term in LMR for cutnodes", GPL-3.0, message only): a term of this family (more reduction at cut nodes without a TT move) had been simplified away and was re-added at STC [0,2] +1.01 +- 0.81 (187,616 g) / LTC [0.5,2.5] +1.31 +- 0.86 (140,280 g), at the job's +1 drop line: lowered to 0 to +1.5 Elo **UNPROVEN**; move it down the gate order (after T04B-01 and T04F-01).
 
 ## Effort
 Crew 1 h (one line + option, OFF pin check, ON bench, 2-minute smoke). CPU: 430-502 games/h for the crew's
