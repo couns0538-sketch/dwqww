@@ -23,6 +23,15 @@ q8b=(); for c in "${KB8[@]}"; do case "$c" in *r18_*|*r20_*) ;; *) q8b+=("$c/qua
 O30_MASK=0x38 bash "$S" soupG8_kb8_sel rank4x2 "${q8b[@]}" > G8.out 2>&1; echo "G8 KB8 without r18 / r20: $(tail -2 G8.out | head -1 | cut -f2,4,5,6,7,8)"
 # KB16: V16 members + every KB8 run expanded to KB16
 q16=(/d/o30/gpu/r7_kb16short/forge_v2r_rank4x4_h256-200/quantised.bin "$G/r11_kb16long/forge_v2r_rank4x4_h256-600/quantised.bin" "$G/r13_kb16m400lr15/forge_v2r_rank4x4_h256-400/quantised.bin")
-i=0; for c in "${q8b[@]}"; do i=$((i+1)); o="$X/f16_$i.bin"; [ -e "$o" ] || "$PY" -I -B "$A/o30_expand_kb.py" --from rank4x2 --to rank4x4 "$(cygpath -w "$c")" "$(cygpath -w "$o")" > /dev/null; q16+=("$o"); done
+# bug hunt: the expanded copy is named after its source (run + checkpoint), not after its index - an index name reused
+# by a later call with other members would have averaged a stale file; a failed expansion stops the script
+for c in "${q8b[@]}"; do
+    ck=$(basename "$(dirname "$c")"); run=$(basename "$(dirname "$(dirname "$c")")"); o="$X/f16_${run}_${ck##*-}.bin"
+    if [ ! -e "$o" ]; then
+        "$PY" -I -B "$A/o30_expand_kb.py" --from rank4x2 --to rank4x4 "$(cygpath -w "$c")" "$(cygpath -w "$o")" > /dev/null \
+            || { echo "expand of $c failed" >&2; exit 3; }
+    fi
+    q16+=("$o")
+done
 O30_MASK=0x38 bash "$S" soupH16_all rank4x4 "${q16[@]}" > H16.out 2>&1; echo "H16 KB16 + KB8 expanded: $(tail -2 H16.out | head -1 | cut -f2,4,5,6,7,8)"
 echo "$(date '+%F %T') final_soups done"
