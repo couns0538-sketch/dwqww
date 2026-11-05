@@ -29,6 +29,9 @@ cannot act on Forge binpacks: (2) is NOT done, and plies 9-28 (after the 8 rando
 Whether the Lichess rows were capture / check filtered when written: PENDING (crew).
 Change: carry the true game ply into the binpack at conversion (or cut rows with ply <= P there; own start P = 20,
 range 12-32). Filtering only removes rows, so the 4,088-key overlap cannot grow; re-run the T02-01 check anyway.
+Later Stockfish practice (TABLE.md row 6, confounded): skip only best-move captures with SEE >= 0, keeping losing-
+capture best moves (sacrifices); Forge's writer drops every capture best move (17.5 % of searches). With T02-04 H2
+this is a reason to test the ply cut first and leave the write-time capture filter for a later, separate test.
 
 ## Expected gain
 Source (PR 4314, filter-only retrain, fixed arch HalfKAv2_hm, same data): local fixed 25k nodes +5.1 +- 1.5; fishtest

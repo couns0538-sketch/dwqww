@@ -50,6 +50,10 @@ def guess(text):
         return 'Unlicense'
     if 'mozilla public license' in t:
         return 'MPL-2.0'
+    if 'cc0 1.0 universal' in t or ('creative commons' in t and 'cc0' in t):
+        return 'CC0-1.0'
+    if 'creative commons' in t:
+        return 'CC (read the text: which licence and version)'
     return 'unknown (read the text)'
 
 

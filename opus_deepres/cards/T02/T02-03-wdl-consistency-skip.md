@@ -28,6 +28,10 @@ are 5000-node HCE scores from the old 6.2.0 build, i.e. noisy, which is the case
 fixed (Lichess 1.0, self-play 0.7-0.9) the result already enters the loss; the skip is a second, independent lever.
 Change: an offline pass at conversion that drops a row with probability rising in |expected score - result|, with
 an own scale (start: the Forge cp-to-WDL fit of S19; strength k start 0.5, range 0-1); 0 = today's bytes.
+The w4 net names carry `lam10` (lambda 1.0): in those runs the result reached training only through this skip (if
+on). Test it at the decided self-play lambda (0.7-0.9), where skip and lambda overlap. Counter-evidence (MIT, Caissa
+commit 71f434458f): a decisive-score skip plus two other loader filters lost about 11 Elo (no TC / games given), and
+Stockfish's stronger skip (f12035c88c) came with an optimizer change: test one filter at a time.
 
 ## Expected gain
 Source numbers are confounded (filter and new data in the same retrain, same arch HalfKAv2_hm):

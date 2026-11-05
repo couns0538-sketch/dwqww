@@ -31,6 +31,8 @@ def use_of(lic):
     l = lic.upper()
     if l.startswith(('MIT', 'BSD', 'APACHE', 'UNLICENSE')):
         return 'copy with notice'
+    if l.startswith('CC0'):
+        return 'free use (public-domain dedication)'
     if 'GPL' in l:
         return 'ideas only'
     if 'NO LICENCE' in l or 'ABSENT' in l:

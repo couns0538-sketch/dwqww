@@ -9,7 +9,8 @@ this job is written to D:.
   the Vienna wall time - all times here are the PC clock as printed).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
-- Last update of this file: 22:52 (elapsed 0 h 29 min).
+- Last update of this file: 23:06 (elapsed 0 h 43 min). Disk at 23:04: C: 98.8 GB, D: 50.9 GB, F: 61.3 GB free;
+  RAM 20.3 GB free; F:\odr uses 5.9 MB.
 - Usage: **USAGE UNKNOWN** - this session cannot read a usage meter; the regular 10-minute checkpoints are kept and
   any explicit low-usage warning triggers the immediate save-and-push.
 - Process limits: this session's own process was set to Idle with affinity CPUs 0-1 at 22:26 (all tool processes
@@ -35,17 +36,19 @@ this job is written to D:.
 | track | state | done | partial | notes |
 |---|---|---|---|---|
 | T2-card-1 overlap to 0 | DONE | T02-01 | - | coordinator; drop key board+stm (7,700 train rows), block rule measured |
-| T1 v2 features + recipe | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | T01-01 | |
-| T2 data quality | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | T02-02, T02-03 | |
-| T4 search features | RUNNING (core2 since 22:48) | - | - | |
-| T5 NNUE speed Zen 5 | RUNNING (core2 since 22:48) | - | - | |
-| T6 eval post-processing | RUNNING (extra since 22:45) | - | T06-01, T06-02, T06-03 | started early (12-agent allowance) |
-| T7 time management | RUNNING (extra since 22:45) | - | T07-01 | started early |
-| T12 testing / proofs | RUNNING (extra since 22:45) | - | - | started early |
+| T1 v2 features + recipe | RUNNING (core2 since 22:48; first worker 22:39-22:47) | - | 6 cards on disk at 23:04 | |
+| T2 data quality | RUNNING (core2 since 22:48; first worker 22:39-22:47) | T02-01 | 3 worker cards at 23:04 | |
+| T4 search features | RUNNING (core2 since 22:48) | - | 6 cards at 23:04 | |
+| T5 NNUE speed Zen 5 | RUNNING (core2 since 22:48) | - | 3 cards at 23:04 | |
+| T6 eval post-processing | RUNNING (extra since 22:45) | - | 5 cards at 23:04 | started early (12-agent allowance) |
+| T7 time management | RUNNING (extra since 22:45) | - | 2 cards at 23:04 | started early |
+| T12 testing / proofs | RUNNING (extra since 22:45) | - | 3 cards at 23:04 | started early |
+(Card states are the workers' until their verifier has run; "done" = verified.)
 
 ## Pushes
 - 72c0de40 (22:27) start files; 69deca20 (22:36) tools + worker rules; d97bee72 (22:46) T02-01; 8a505482 (22:50)
-  workflow scripts + prompts + redaction filter; next: this checkpoint (skills).
+  workflow scripts + prompts + redaction filter; 223ad8c4 (22:53) skills; 298a09b0 (22:55) licence fix + resume;
+  next: this checkpoint (23:06).
 
 ## Blockers / stopping reason
 - none

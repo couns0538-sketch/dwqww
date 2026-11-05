@@ -33,3 +33,7 @@ what it gave | card id.
   line / "No functional change"; speed-ups: several bench runs mean+sd, target ~0.5 %, "about 0.25 % speedup at STC
   and about 0.7 % at LTC for a 50 % passing chance", "1 % speedups pass with an 85 % chance"; SPSA usually at normal
   TC | T12-01, T12-02, T12-03
+- (own analysis, not a source) scratchpad t12/sprt_plan.py on C:/Users/Administrator/grok-pc/forge_push/FORGE_RESULTS.csv
+  (110 gates with Ptnml): book profiles (UHO nElo/Elo 1.91, pair sd 0.185, pent/trin variance 0.618; 8moves 2.10,
+  0.167, 0.90), unit check of the Brownian LLR vs printed LLR (82 of 85 capped gates within 0.15 at [0,10]), MC table of
+  P(H1) / games / P(decided by cap) per bound, truncated-SPRT error rates | T12-01, PROTOCOLS.md

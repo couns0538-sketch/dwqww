@@ -1,18 +1,16 @@
 # T01-01: sparse threat + pawn-pair inputs on the training side (bullet examples/advanced)
-Status: PARTIAL (Integral threat number PENDING)
+Status: COMPLETE
 
 ## Source
 - bullet da426a49 (= the bullet commit our ForgeV2 trainer is built on): examples/advanced/inputs.rs and main.rs,
   crates/bullet_lib/src/game/inputs.rs (SparseInputType). https://github.com/jw1912/bullet/tree/da426a49b2/examples/advanced
-- Elo / nps: Viridithas PR 425 (merge c14c332a, 2026-04-15) https://github.com/cosmobobak/viridithas/pull/425 + PR 434
-  text; its tests are viri.dev 604 / 605 / 607 (cited in the PR, not opened here).
-- Our side: opus_r13/p4/RESULTS.md (ForgeV2 stage b = 768 + O6 threats 9,216 count-valued, stage c = + O7 pawn pairs
-  1,792); the owner's note that our dense threat + pawn-pair bundle trained about 51x slower.
+- Elo / nps: Viridithas PR 425 (merge c14c332a) https://github.com/cosmobobak/viridithas/pull/425 + PR 434 text (tests
+  viri.dev 604 / 605 / 607, not opened); Integral PRs 243 / 266 https://github.com/aronpetko/integral/pull/243
+- Ours: opus_r13/p4/RESULTS.md (ForgeV2 stage b = 768 + O6 threats 9,216 count-valued, c = + O7 pawn pairs 1,792).
 
 ## Licence
-bullet: MIT at da426a49 (tools/licence_at.py) = copy with notice allowed. Viridithas: AGPL-3.0 at 7489e701bb = ideas
-only (PR text and release notes read, never source). The bullet config names a third engine's net and reads
-Viridithas-format data (viri.vf); only the bullet files were read.
+bullet: MIT at da426a49 (tools/licence_at.py) = copy with notice. Viridithas AGPL-3.0 at 7489e701bb, Integral no
+licence at 29456bb34c = ideas only (PR / release text read, never source). Only bullet files were read of the config.
 
 ## Mechanism
 - Threats are plain sparse binary features, never stored in the data: the loader's map threads compute them per
@@ -42,14 +40,15 @@ Change: a binary threat encoding in ForgeV2 (Rust map_features) + exporter + eng
 Viridithas PR 425: threat inputs (SFNNv12-style set, every threat with a king excluded, 60,144 mirrored inputs); the
 same PR cut L1 2560 -> 1024 and widened L2 16 -> 32, so the number is threats NET of a capacity / speed trade. 25k
 nodes +27.43 +- 7.91 (3,046 g); STC 8+0.08 +2.98 +- 2.09 (30,040 g, LLR 3.06, [0,3]); LTC 40+0.4 +5.38 +- 2.97
-(12,730 g, LLR 2.98, [0,3]); ~87 % of the old speed (AVX-512); book not stated. Release v20 vs v19 (all changes incl.
-threats + pawn pairs): +60.84 +- 5.92 at 60+0.6, 3,000 g. The bullet example itself carries no Elo.
+(12,730 g, LLR 2.98, [0,3]); ~87 % of the old speed (AVX-512); book not stated. Integral PR 243 (new net with threat
+inputs, layout not in the text): LTC 40+0.4 +24.43 +- 7.77 (1,866 g, LLR 2.89 [0,4]); its PR 266 merged the threat
+and piece-square accumulators (+6 % speed, STC +1.70 +- 1.36). The bullet example itself carries no Elo.
 Forge estimate: 0 to +5 Elo at LTC vs a v2 control net without threats **UNPROVEN**; vs the lock exe it also carries
 the v2 path's own cost (identical-eval control -32.2 +- 18.5, D:/o30/FINAL_REPORT.md) and the threat update cost.
 
 ## Effort
-Crew ~6-10 h (Rust input type, exporter, engine features, parity 10k + walk). GPU: recipe T01-03 R2 (PENDING smoke
-speed). CPU: STC + LTC SPRT at the gate rate.
+Crew ~6-10 h (Rust input type, exporter, engine features, parity 10k + walk). GPU: recipe T01-03 R2 (speed unmeasured: smoke
+first). CPU: STC + LTC SPRT at the gate rate.
 
 ## Test plan
 New input type vs a brute-force feature list (3,000 positions x 2 views), export parity 10000/10000, incremental ==
