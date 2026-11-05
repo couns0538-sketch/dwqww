@@ -509,7 +509,9 @@ below are from each net's RESULT.json.
    UHO [0,5] SPRT then 8moves_v3 confirm. Expectation ~0 (184 pairs, one parameter beyond 2 sigma); a combination with
    a net only after both pass on their own.
 8. **QA item:** the v2 exe's own deficit (-20.9 +/- 18.5 with an identical evaluation; kit v2.5 build ~2-7 % slower
-   than the lock's kit v2.3 on game positions) - closing it helps every v2 line above.
+   than the lock's kit v2.3 on game positions) - closing it helps every v2 line above. End to end, the gate exe with
+   the KB8 soup Y8 runs at 0.893x and with the KB32 soup Z32 at 0.849x the lock exe's nodes per second (different trees,
+   advisory; 0.32 / 0.47 plies shallower at equal time; `a/logs/checks_gpu_w2/speed_vs_lockexe_*.txt`).
 
 ## 5. Review of every patch: the author's own structured review, plus the independent reviews of 2026-11-04
 
