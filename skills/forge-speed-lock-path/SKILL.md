@@ -5,8 +5,15 @@ description: One-command speed-only lock path for Forge (speed job 2026-11-05, b
 
 # Forge speed-only lock path (speed job, 2026-11-05)
 
-A change that searches exactly the same nodes and only runs faster locks on a bench-signature match + an ABBA nps win,
-no Elo gate. These tools turn a source tree into a lock-candidate exe and its proof pack. Rules first:
+A change that searches exactly the same nodes and only runs faster needs no Elo gate, but **BIT-EXACT + an ABBA nps
+win is NOT a lock**: every bitexact_check level runs on a cold table at Threads 1. The lock path is (1) bitexact_check
+BIT-EXACT (L1-L4, full 12k L3), (2) **L3b warm-table identity** vs the lock (`warm_identity.py`: no ucinewgame, Hash /
+Clear Hash / UseNNUE changes), (3) a **Threads 2-4 go-movetime smoke** (`patchrev_qa.py soak`: no crash, every bestmove
+legal, Threads 1 tail = the lock's reference; soak only), (4) the ABBA WIN (wall), then (5) QA's own re-time. A stack
+handed to QA also carries the patch review's QA tests (`patchrev_qa.py replay / protocol / extreme`,
+`tests/test_stack_poison.ps1`, `tests/test_stack_mutants.ps1`). bitexact_check prints a `LOCK PROOF INCOMPLETE` line
+after every BIT-EXACT verdict to say so. These tools turn a source tree into a lock-candidate exe and its proof pack.
+Rules first:
 [[forge-pc-rules]] plus the job rules below. Kit facts: [[forge-ltopgo-pgo]]. Older speed work: [[forge-speed-stack]].
 
 ## Job rules these tools enforce
@@ -20,14 +27,16 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 | tool | what |
 |---|---|
 | `build_variants.ps1 -SrcDir <tree> -Tag <t> -Variant a,b [-Define N=V] [-Twice]` | fresh copy per build under `F:\ospd\builds\<t>_<v>[_pc1/_pc2]`; variants o3, lto, pgo, lp_v1 (= lock recipe), lp_z4, lp_noplt, lp_nosi, lp_af64, lp_ppt, lp_ipapta, lp_part1, lp_pvw256/512, lp_wnonet, lp_w12k, lp_wmix, custom (-Extra -Workload); checks gcda count, 0 missing-profile, vfmadd 0, LTO IR, quick pins |
-| `bitexact_check.ps1 -Cand <exe> -Out <dir> [-Quick] [-SanSrc <tree>] [-ResumeFrom <dir>] [-SkipSan]` | L1 bench d11-22 net on + off, L2 perft, L3 `data\fens_12k_v2.txt` at go depth 13 (OwnBook false, ucinewgame each, 2 engines on CPUs 0/1, reference cached per lock sha256 in `F:\ospd\ref` under a named mutex; -Quick = first 2,000), L4 MSVC ASan (port copy, compared with the MSVC ASan build of the lock source) + g++ UBSan trap (compared with the candidate's own d16); stops at the first FAIL; exit 0 / 3 / 1 |
+| `bitexact_check.ps1 -Cand <exe> -Out <dir> [-Quick] [-SanSrc <tree>] [-ResumeFrom <dir>] [-SkipSan]` | L1 bench d11-22 net on + off, L2 perft, L3 `data\fens_12k_v2.txt` at go depth 13 (OwnBook false, ucinewgame each, 2 engines on CPUs 0/1, reference cached per lock sha256 in `F:\ospd\ref` under a named mutex; -Quick = first 2,000), L4 MSVC ASan (port copy, compared with the MSVC ASan build of the lock source) + g++ UBSan trap (compared with the candidate's own d16); stops at the first FAIL; exit 0 / 3 / 1; **not a lock by itself** (cold table, Threads 1): after BIT-EXACT it prints `LOCK PROOF INCOMPLETE: ...` (a line that does not start with VERDICT, so speed_pack / pack_table keep parsing the verdict alone) |
 | `abba.ps1 -A <lock> -B <cand> -Out <dir> [-Depth 20 -Rounds 10 -AaCsv ..] [-Order ABBA]` | ABBA/BAAB alternating rounds, fresh process + fresh byte copies per round, engine's bench nps (PROTOCOL verdict) and the process CPU time of the bench window (advisory); summary_<run id>.txt + runs.csv + history log |
 | `abba_queue.ps1 -List <name TAB exe> -AaCsv ..` | back-to-back ABBA vs the lock; identical exes are not timed; results.tsv |
 | `speed_pack.ps1 -SrcDir <tree> -Name <n> [-Define SW=1,..] [-Quick] [-ReuseBuildDirs a,b] [-PriorBitexact dir]` | flips switch defaults in a kit source copy (`src_kit`), pc1 = pc2, bit-exact proof, ABBA vs lock, `F:\ospd\packs\<n>` + `opus_speed/candidates/<n>.md` (patch verified against the source, branch head, bench signature) |
 | `make_stack.sh <name> <p1.patch> ..` | patches on a fresh lock copy, no fuzz, switch defaults checked, stacked patch written (never overwritten) |
 | `pack_table.py`, `abba_table.py` | markdown tables from pack folders / ABBA folders (sorted by the wall median) |
 | `abba_recheck.py <dir>.. / --pool <dir> <dir>..` | recomputes summaries from runs.csv with the exact t quantile (independent of abba.ps1's series); `--pool` joins a borderline run and its re-time so the decision uses all rounds, never the re-time alone |
-| `warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` | warm-table identity: `go nodes` over N FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` first, `bench 13` last; transcripts compared without nps / time |
+| `warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` | **L3b, required for a lock**: warm-table identity: `go nodes` over N FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` first, `bench 13` last; transcripts compared without nps / time |
+| `patchrev_qa.py replay\|protocol\|soak\|extreme --out <new dir> [--mask 0xC] [--stacks a,b]` | the patch review's QA tests, lock vs each stack through the identical script (venv python with python-chess; sets and re-reads its own mask + Idle, fails closed; never kills, reports survivors): **replay** = one gate game ply by ply at go depth 10 without ucinewgame, 2nd pass on the aged table with option changes, transcripts = lock; **protocol** = go infinite / ponder -> stop / ponderhit, go mate 3, 20 x movetime 100, legal bestmove + ponder move; **soak** (`--mask 0xF`, = the lock path's Threads 2-4 smoke) = 60 x movetime 300 at Threads 2/3/4 with Hash changes, Threads 1 tail = the lock's cached L3 rows, bench 13; **extreme** = `data/extreme_fens.tsv` at go depth 8 + perft 3 on kit, UBSan and MSVC ASan exes, rejected FENs keep the position |
+| `make_poison.py <src_kit> <dst>`, `tests/test_stack_poison.ps1`, `tests/test_stack_mutants.ps1` | poison copy (the authors' 0xA5 fills of every array that lost its zero fill) -> o3 build -> bitexact -Quick must stay BIT-EXACT; mutant (pick_best `>=`) of each stack's own LF source + defines -> speed_pack must exit 3 before any ABBA. Verify builds only |
 | `commit_push.sh <msg>` | gated commit + push (code-name lint, control bytes, PS 5.1 parse) |
 | `pgn_positions.py`, `name_lint.py`, `ctrl_char_check.py`, `ps_parse_check.ps1` | game positions with provenance, vendor-name lint, control bytes, PS 5.1 parse |
 

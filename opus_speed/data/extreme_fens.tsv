@@ -1,0 +1,22 @@
+# extreme_fens.tsv - small named set of extreme / edge positions for the speed job follow-up (patch review section 4
+# test 6; no such list existed in the tree). Columns: id, set, FEN, why, source, expect. Set A = accepted by the
+# lock's set_fen: ucinewgame, go depth 8, go perft 3, compared across exes; expect = a published perft 3 count or
+# a root move count where certain, else -. Set R = illegal in normal play and rejected by the lock: expect = the text
+# after "info string invalid FEN: "; the previous position must stay (go perft 1 before = after). Used by
+# tools/patchrev_qa.py extreme.
+A1	A	R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1	218 legal moves (the known maximum), nine queens	patch review section 4 test 6	moves=218
+A2	A	k7/P1P1P1P1/8/8/8/8/p1p1p1p1/K7 w - - 0 1	mass promotion on both sides	patch review section 4 test 6	-
+A3	A	2rr2k1/1p1pbppp/p1p1pn2/8/2QQQQ2/8/PPP3PP/6K1 w - - 0 1	high-capture node: four queens facing a pawn chain defended by pawns, rooks, bishop, knight and king; all 9 root captures are queen captures onto defended squares (SEE-negative, they go to bad_captures_), no quick mate (lock go depth 10: cp 2447, 20,237 nodes; the first try with 8 queens was a mate in 1); far below the 64 slots - the L1 overflow is not provoked	built for this test	-
+A4	A	8/8/8/K1pP3r/8/8/8/7k w - c6 0 1	e.p. capture d5xc6 is pseudo-legal but illegal (rank pin a5-h5): e.p. legality and the e.p. key term	built for this test	-
+A5	A	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1	perft position 3 (e.p., pins, checks)	standard perft suite	perft3=2812
+A6	A	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1	perft position 4 (capture promotions, castling, checks)	standard perft suite	perft3=9467
+A7	A	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8	perft position 5	standard perft suite	perft3=62379
+A8	A	7k/5Q2/6K1/8/8/8/8/8 b - - 0 1	stalemate (no legal move, not in check)	built for this test	moves=0
+A9	A	7k/6Q1/6K1/8/8/8/8/8 b - - 0 1	checkmate (no legal move, in check)	built for this test	moves=0
+A10	A	8/8/8/4k3/8/8/8/4K3 w - - 0 1	bare kings (also the base position kept across the R rows)	built for this test	moves=5
+R1	R	k7/pppppppp/p7/8/8/8/8/K7 b - - 0 1	nine black pawns	built for this test	impossible piece inventory
+R2	R	4k3/8/8/8/8/8/8/4K3 w K - 0 1	castling right without a rook	built for this test	castling right without king and rook
+R3	R	4k3/8/8/8/8/8/4R3/4K3 w - - 0 1	side not to move in check (rook e2 on the open e-file: a slider-attack test)	built for this test	side that moved left its king in check
+R4	R	P3k3/8/8/8/8/8/8/4K3 w - - 0 1	white pawn on rank 8	built for this test	pawn on promotion rank
+R5	R	8/8/8/3kK3/8/8/8/8 w - - 0 1	adjacent kings	built for this test	kings may not be adjacent
+R6	R	4k3/8/8/8/8/8/8/4K3 w - e6 0 1	e.p. square without the pawn that just moved	built for this test	inconsistent en-passant square

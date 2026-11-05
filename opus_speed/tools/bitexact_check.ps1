@@ -18,6 +18,13 @@
 #      MSVC's std::sort orders equal scores differently from libstdc++, so MSVC never matches the g++ count); ASan is
 #      N/A and said so in the verdict if MSVC cannot compile the source.
 # Exit 0 = BIT-EXACT (all levels run passed), 3 = NOT BIT-EXACT, 1 = error. Placement: CPUs 0-1 (0x3), Idle.
+# NOT A LOCK BY ITSELF: BIT-EXACT here plus an ABBA WIN is not enough to lock a speed change. Every proof above runs on
+#   a cold table (bench clears per FEN, L3 sends ucinewgame per FEN) at Threads 1. The lock path also needs L3b
+#   warm-table identity vs the lock (tools\warm_identity.py: go nodes over 1,000 FENs without ucinewgame, Hash /
+#   Clear Hash / UseNNUE changes) and a Threads 2-4 go-movetime smoke (tools\patchrev_qa.py soak: no crash, every
+#   bestmove legal, the Threads 1 tail equal to the lock reference), then the ABBA WIN and the QA re-time; see the
+#   skill forge-speed-lock-path. After every BIT-EXACT verdict the script prints a LOCK PROOF INCOMPLETE line saying so
+#   (it does not start with VERDICT, so the parsers of speed_pack.ps1 / pack_table.py keep reading the verdict alone).
 param(
   [Parameter(Mandatory = $true)][string]$Cand,
   [Parameter(Mandatory = $true)][string]$Out,
@@ -378,6 +385,7 @@ try {
   }
   $scope = 'L1-L3'; if ($l4 -eq 'run') { $scope = 'L1-L4'; if ($script:AsanNa) { $scope = "L1-L4 with L4 = UBSan only, ASan N/A: $($script:AsanNa)" } }
   Say ("VERDICT BIT-EXACT ({0}; L3 on {1} FENs{2})" -f $scope, $n, $(if ($n -lt $allFens.Count) { ' = quick subset' } else { '' }))
+  Say 'LOCK PROOF INCOMPLETE: BIT-EXACT is not a lock until L3b warm-table identity (tools\warm_identity.py vs the lock) and a Threads 2-4 go-movetime smoke (tools\patchrev_qa.py soak) have passed; then the ABBA WIN and the QA re-time'
   exit 0
 } catch {
   Write-Output "ERROR: $($_.Exception.Message)"
