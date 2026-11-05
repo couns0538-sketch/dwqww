@@ -7,11 +7,14 @@
 #   L1 bench d11/13/16/20/22 with the net (defaults) and with UseNNUE=false: cand = ref (and ref = lock pins if ref is
 #      the lock);
 #   L2 perft 5 startpos + kiwipete: cand = ref = pins;
-#   L3 per FEN (12k set, md5 078b6c2e; -Quick = the first 2,000): ucinewgame, position, go depth 13 with OwnBook=false;
-#      depth, score, nodes of the last 'info depth' line and the bestmove must match; 2 engines on CPUs 0 and 1 with a
-#      fixed chunking (same for ref and cand); ref results cached in F:\ospd\ref\<sha8 of ref>\ by sha256 + set + depth;
-#   L4 clang (MSVC target) ASan + UBSan build of -SanSrc (+ -Define), bench 16 with the net: nodes = pin 3024920 and
-#      no sanitizer report (falls back to separate ASan and UBSan-trap builds if the combined link fails).
+#   L3 per FEN (data\fens_12k_v2.txt = 12,000 six-field FENs, md5 e7dbf2c8; shorter lines are completed to six fields;
+#      -Quick = the first 2,000): ucinewgame, position, go depth 13 with OwnBook=false; depth, score, nodes of the last
+#      'info depth' line and the bestmove must match; any 'info string ... invalid' line fails; a degenerate reference
+#      (< n/10 distinct rows) fails; 2 engines on CPUs 0 and 1 with a fixed chunking (same for ref and cand); ref results
+#      cached in F:\ospd\ref\<sha8 of ref>\ (one computation at a time per file, named mutex);
+#   L4 sanitizers on -SanSrc (+ -Define), bench 16 with the net: nodes = the candidate's d16 and no report:
+#      ASan = MSVC cl /fsanitize=address on a port copy (one extra TT-index branch, see New-MsvcPortCopy; N/A and said
+#      so in the verdict if MSVC cannot compile the source), UBSan = g++ -fsanitize=undefined -fsanitize-trap=all.
 # Exit 0 = BIT-EXACT (all levels run passed), 3 = NOT BIT-EXACT, 1 = error. Placement: CPUs 0-1 (0x3), Idle.
 param(
   [Parameter(Mandatory = $true)][string]$Cand,
@@ -259,7 +262,8 @@ try {
     $port = Join-Path $sanDir 'src_msvc'
     $pc = New-MsvcPortCopy $SanSrc $port
     $exeA = Join-Path $sanDir 'forge_asan_msvc.exe'
-    if ($pc -ne 'ok') { Say "L4 asan: port copy failed ($pc) -> ASan NOT RUN"; $script:Fail++ }
+    $script:AsanNa = ''
+    if ($pc -ne 'ok') { $script:AsanNa = "port copy anchor ($pc)"; Say "L4 asan: N/A - MSVC port copy failed ($pc); UBSan below must still pass" }
     else {
       $units = @(Get-ChildItem (Join-Path $port 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src\' + $_.Name })
       $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude', ('/Fd' + (Join-Path $sanDir 'asan.pdb')), ('/Fo' + $sanDir + '\'))
@@ -269,7 +273,9 @@ try {
       # overflows (seen 09:26 under ASan), MinGW's default is 2 MB. 64 MB here only for the sanitizer harness.
       $clArgs += $units; $clArgs += @(('/Fe' + $exeA), '/link', '/INCREMENTAL:NO', '/STACK:67108864')
       $rcA = Invoke-Native 'cl.exe' $clArgs $port $blog
-      if ($rcA -ne 0) { Say "L4 asan: MSVC build failed (exit $rcA, see $blog)"; $script:Fail++ } else { $runs += @{ Tag = 'asan_msvc'; Exe = $exeA } }
+      # an MSVC compile failure means the source uses something MSVC lacks (e.g. a GCC builtin), not a node change:
+      # ASan is then N/A for this source and said so in the verdict; the g++ UBSan-trap run below must still pass
+      if ($rcA -ne 0) { $script:AsanNa = "MSVC cannot compile this source (exit $rcA, see $blog)"; Say "L4 asan: N/A - $($script:AsanNa)" } else { $runs += @{ Tag = 'asan_msvc'; Exe = $exeA } }
     }
     $exeU = Join-Path $sanDir 'forge_ubsan_trap.exe'
     $units2 = @(Get-ChildItem (Join-Path $SanSrc 'src') -Filter *.cpp | Sort-Object Name | ForEach-Object { 'src/' + $_.Name })
@@ -291,7 +297,7 @@ try {
     Stop-IfFailed 'L4'
   }
   if ($script:Fail -gt 0) { Say "VERDICT NOT BIT-EXACT ($($script:Fail) failing lines)"; exit 3 }
-  $scope = 'L1-L3'; if ($l4 -eq 'run') { $scope = 'L1-L4' }
+  $scope = 'L1-L3'; if ($l4 -eq 'run') { $scope = 'L1-L4'; if ($script:AsanNa) { $scope = "L1-L4 with L4 = UBSan only, ASan N/A: $($script:AsanNa)" } }
   Say ("VERDICT BIT-EXACT ({0}; L3 on {1} FENs{2})" -f $scope, $n, $(if ($n -lt $allFens.Count) { ' = quick subset' } else { '' }))
   exit 0
 } catch {

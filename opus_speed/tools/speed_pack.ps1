@@ -19,8 +19,12 @@ param(
   [switch]$Quick,
   [switch]$SkipAbba,
   [switch]$SanNdebug,
-  [string]$Note = ''
+  [string]$Note = '',
+  [string[]]$ReuseBuildDirs = @()
 )
+# -ReuseBuildDirs '<pc1 build folder>,<pc2 build folder>': skip step (2) and reuse two finished build_variants folders
+# of an earlier pack (both SUMMARY 'RESULT PASS' with pins OK, no FAILED marker, equal exe sha256, and their src_copy
+# include\ + src\ files byte-identical to this pack's build source). For re-running a pack whose later step failed.
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
 # -File passes a list as ONE comma-joined string: split every list parameter on commas
@@ -51,7 +55,31 @@ try {
       Say "kit default flipped: $nm = $val in $f"
     }
   }
-  # (2) build twice
+  # (2) build twice (or reuse two verified build folders)
+  $ReuseBuildDirs = @($ReuseBuildDirs | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+  if ($ReuseBuildDirs.Count -gt 0) {
+    if ($ReuseBuildDirs.Count -ne 2) { throw '-ReuseBuildDirs needs exactly two folders (pc1, pc2)' }
+    $shas = @()
+    foreach ($bd in $ReuseBuildDirs) {
+      $sm = Join-Path $bd 'SUMMARY.txt'
+      if (-not (Test-Path $sm) -or (Test-Path (Join-Path $bd 'FAILED'))) { throw "reuse: $bd has no SUMMARY or a FAILED marker" }
+      $st = Get-Content $sm -Raw
+      if ($st -notmatch 'RESULT PASS' -or $st -notmatch 'quick pins .* OK') { throw "reuse: $bd is not RESULT PASS with pins OK" }
+      $ex = @(Get-ChildItem (Join-Path $bd 'src_copy') -Filter "forge_$Variant.exe")
+      if ($ex.Count -ne 1) { throw "reuse: no forge_$Variant.exe in $bd\src_copy" }
+      $shas += (Get-OspdSha256 $ex[0].FullName)
+      foreach ($sub in 'include', 'src') {
+        foreach ($f in (Get-ChildItem -Recurse -File (Join-Path $buildSrc $sub))) {
+          $twin = Join-Path (Join-Path $bd 'src_copy') ($f.FullName.Substring($buildSrc.Length + 1))
+          if (-not (Test-Path -LiteralPath $twin) -or (Get-OspdSha256 $f.FullName) -ne (Get-OspdSha256 $twin)) { throw "reuse: $twin differs from this pack's build source" }
+        }
+      }
+    }
+    if ($shas[0] -ne $shas[1]) { Say "NOT REPRODUCIBLE (reused): $($shas -join ' vs ')"; exit 3 }
+    $builtExe = Join-Path (Join-Path $ReuseBuildDirs[0] 'src_copy') "forge_$Variant.exe"
+    $repro = "REPRO $Variant pc1 = pc2 sha256 $($shas[0]) (reused build folders $($ReuseBuildDirs -join ', '); sources byte-identical to this pack's)"
+    Say $repro
+  } else {
   $bv = @(& "$PSScriptRoot\build_variants.ps1" -SrcDir $buildSrc -Tag ("pack_" + $Name) -Variant $Variant -Twice -Work 'F:\ospd\builds')
   $bvRc = $LASTEXITCODE
   $bv | ForEach-Object { Add-OspdLf (Join-Path $Pack 'build_variants.out') "$_" }
@@ -63,6 +91,7 @@ try {
   $pinLines = @($bv | Where-Object { $_ -like 'EXE *' })
   if ($pinLines.Count -lt 2 -or @($pinLines | Where-Object { $_ -notmatch ' pins OK ' }).Count -ne 0) { Say "PINS NOT OK: $($pinLines -join ' | ')"; exit 3 }
   $builtExe = ($exeLine -split ' ')[2]
+  }
   $exe = Join-Path $Pack ("forge_{0}.exe" -f $Name)
   Copy-Item -LiteralPath $builtExe -Destination $exe
   $sha = Get-OspdSha256 $exe; $md5 = Get-OspdMd5 $exe
@@ -83,10 +112,12 @@ try {
     $sigTxt = ("net on d11/13/16/20/22 {0}/{1}/{2}/{3}/{4}; net off {5}/{6}/{7}/{8}/{9}; perft 5 startpos {10} kiwipete {11}" -f $sig.on.d11, $sig.on.d13, $sig.on.d16, $sig.on.d20, $sig.on.d22, $sig.off.d11, $sig.off.d13, $sig.off.d16, $sig.off.d20, $sig.off.d22, $sig.perft.startpos, $sig.perft.kiwipete)
     Write-OspdLf (Join-Path $Pack 'signature.txt') @("exe $exe sha256 $sha", $sigTxt)
   }
-  if ($bxRc -ne 0) { Say "NOT BIT-EXACT or check error: no ABBA (pack kept as a record)"; $abbaTxt = 'not run (not bit-exact)' }
+  $bxState = 'CHECK ERROR (no verdict: the proof did not finish)'; if ($bxRc -eq 0) { $bxState = 'BIT-EXACT' } elseif ($bxRc -eq 3) { $bxState = 'NOT BIT-EXACT' }
+  if ($bxRc -ne 0) { Say "$bxState : no ABBA (pack kept as a record)" }
   # (4) ABBA
   $abbaDir = Join-Path $Pack ("abba_d{0}" -f $Depth)
   $abbaTxt = 'skipped (-SkipAbba)'
+  if ($bxRc -ne 0) { $abbaTxt = "not run: $bxState" }
   if ($bxRc -eq 0 -and -not $SkipAbba) {
     $ab = @{ A = $script:OspdLockExe; B = $exe; Out = $abbaDir; Depth = $Depth; Rounds = $Rounds; LabelA = 'lock FD3A5190'; LabelB = $Name }
     if ($AaCsv) { $ab.AaCsv = $AaCsv }
@@ -103,7 +134,7 @@ try {
   $md = @(
     "# Speed candidate $Name",
     '',
-    "- State: $(if ($bxRc -eq 0) { 'BIT-EXACT' } else { 'NOT BIT-EXACT / check error' }); ABBA verdict below. Speed numbers come only from the ABBA CSV named here; anything else is UNPROVEN.",
+    "- State: $bxState; ABBA verdict below. Speed numbers come only from the ABBA CSV named here; anything else is UNPROVEN.",
     "- Exe: ``$exe`` md5 ``$md5`` sha256 ``$sha`` ($repro)",
     "- Source: ``$SrcDir``$(if ($Define.Count) { " with defaults flipped in ``$buildSrc``: $($Define -join ', ')" }); patch / commit: see opus_speed/patches and the branch commit that adds this file.",
     "- Build: build_variants.ps1 -Variant $Variant -Twice (QA kit v2.3 command lines, -Expose); compiler $gver",
@@ -123,7 +154,8 @@ try {
   if (Test-Path -LiteralPath $candFile) { $candFile = Join-Path $RepoDir ("candidates\{0}_{1}.md" -f $Name, (New-OspdRunId)) }   # new file per run
   Write-OspdLf $candFile $md
   Say "pack written: $Pack ; candidate file $candFile"
-  if ($bxRc -ne 0) { exit 3 }
+  if ($bxRc -eq 3) { exit 3 }
+  if ($bxRc -ne 0) { exit 1 }
   exit 0
 } catch {
   Write-Output "ERROR: $($_.Exception.Message)"
