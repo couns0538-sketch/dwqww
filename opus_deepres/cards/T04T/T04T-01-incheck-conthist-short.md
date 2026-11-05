@@ -33,7 +33,7 @@ Caveat: the lock never reads at offset 4 (`forge_has.sh 'ss - 4'` = 1 hit, `:948
 share one continuation table set chosen by the earlier move (`ss->continuation`, `:1121`), and ordering reads it at
 offsets 1 and 2 only (`quiet_history`, `:708-709`). So the ply-4 writes land in entries that are later read as 1- or
 2-ply pairs: skipping them at in-check nodes does change the tree, but through that indirect path, not through a
-4-ply ordering term as in the source.
+4-ply ordering term as in the source. Check before any gate [last round, coordinator, unverified]: this indirect path is a lock quirk on its own - every ply-4 update leaks into the ply-1 / ply-2 reads of the same table set - so a plain "no ply-4 write" option (all nodes) is a separate, gateable screen; gate it apart from this card, never stacked untested.
 
 ## Expected gain
 Clockwork #380, Threads=1, OpenBench, book not named in the PR (missing):

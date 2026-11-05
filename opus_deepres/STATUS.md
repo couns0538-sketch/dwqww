@@ -7,6 +7,9 @@ this job is written to D:.
 ## Clock and limits
 - Start: **2026-11-04 22:23:27 PC clock** (first `date` of the job; the PC prints PST -0800, earlier notes call it
   the Vienna wall time - all times here are the PC clock as printed).
+- Time zone (last round, coordinator): the PC clock shows Vienna wall time (CET, UTC+1), but the PC's time-zone setting
+  is PST (-0800), so every git commit of this branch carries -0800 while its wall time is Vienna time. Read commit
+  times as Vienna times; the UTC they imply is 9 h too late (GitHub shows them 9 h in the future).
 - Hard deadline (10 h): **2026-11-05 08:23:27**. No new research questions after **07:53:27** (9 h 30 min).
 - INTERIM report due: about **2026-11-05 02:23** (4 h).
 - Last update of this file: 07:06 (elapsed 8 h 42 min).

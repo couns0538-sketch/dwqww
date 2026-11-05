@@ -133,7 +133,7 @@ estimate +0.5 to +2 Elo at STC **UNPROVEN**.
   its STC number).
 - Crew hours: 1.5 (card) + 0.5 counters.
 
-## T04N-02 NmpCutOnly (null move only at expected cut nodes)
+## T04N-02 NmpCutOnly (null move only at expected cut nodes) - DOWNGRADED: stack-only, no gate line of its own [last round, coordinator, unverified]
 Source (card; ideas only): Halogen PR 808 (GPL-3.0; PR text and OpenBench blocks; UHO_Lichess_4852_v1 per verify): STC
 8+0.08 Threads=1 [0,3] +4.05 +- 2.64 n=20,498 LLR 2.95; LTC 40+0.4 Threads=1 [0,3] +1.95 +- 1.53 n=49,716 LLR 2.96.
 Counter-evidence: Caissa 47604ad (MIT) +1.07 +- 0.86 n=168,198. Card estimate +0.5 to +2 Elo at STC **UNPROVEN**.
@@ -215,16 +215,16 @@ Source (card): form B Caissa 9d566cc (MIT; message + one-line diff read by the c
     to T04N-01), IIR :1031.
   - T04F-01: no shared line (T04E-04 is qsearch SEE :838, out of check). The tried QsEvasionSeeNonPv (P27R-AL1,
     +4.63 after 3,000 games, no decision) prunes the same node class: if re-run, gate apart, never stacked untested.
-- One build for the four new options (T04C-02, T04F-01, T04N-01, T04N-02): separate tune:: ints, default 0, each behind
+- One build for the four new options (T04C-02, T04F-01, T04N-01, T04N-02; T04N-02 only for its stack, see the order [last round, coordinator, unverified]): separate tune:: ints, default 0, each behind
   its own `> 0` test; one OFF pin proof, one ON-live bench per option, one nps ABBA OFF exe vs the lock exe (as
   SPEC_SEARCH2; it may be the same exe as SPEC_SEARCH2's five, nine options, if the crew prefers one exe). T04P-01
   gates on its existing exe. Each gate line sets exactly one option family.
 - Order (own reading, no Elo claim): 1 T04P-01 (no build: it can run while the four-option build is made; lowest
   expectation, likely capped); 2 T04C-02 (two engines, four passes at both TCs; before T04N-01 and T04-06 in the
   singular queue); 3 T04N-01 (alone vs the lock; if T04C-02 passed and is adopted, gate it on top with ON-live
-  re-checked); 4 T04N-02 (source STC + LTC pass, large-n counter-evidence +1; before any T04E-02 / T04-03 combination);
-  5 T04F-01 (one source, no LTC, tactical risk: WAC check first). Five firm STC lines = 30-35 h worst case at the cap;
-  with the two conditional lines (QsEvasionLimit 2, NegExtTtAlpha 2) up to 42-49 h; plus extensions and LTC runs after
+  re-checked); 4 T04F-01 (one source, no LTC, tactical risk: WAC check first). T04N-02 has no gate line of its own [last round, coordinator, unverified]: DOWNGRADED by second vote 2 (its card's Status line), it runs only inside the NMP stack E-02 + N-02 +
+  T04-03 (notes/RANKING_FINAL.md Phase 3) or at the tail of the queue. Four firm STC lines = 24-28 h worst case at
+  the cap; with the two conditional lines (QsEvasionLimit 2, NegExtTtAlpha 2) up to 36-42 h; plus extensions and LTC runs after
   H1. Against SPEC_SEARCH2's queue any interleaving works, since each line runs alone vs the lock; the coupling rules
   above decide only combinations.
 - Crew hours total: 8 summed per spec incl. counters (1.5 + 2 + 2 + 1.5 + 1), before any gate time.

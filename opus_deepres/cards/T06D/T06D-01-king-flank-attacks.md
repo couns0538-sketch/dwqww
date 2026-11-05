@@ -55,6 +55,6 @@ UHO, Threads=1, SPRT [0,5] nElo, alpha = beta = 0.05, pentanomial, cap 3,000; ca
 extension if positive; STC, then LTC; alone, not stacked with T06C-01 / T06D-02 / T06D-03 before each has a result.
 
 ## OFF-by-default design
-UCI check `HceKingFlank`, default false. New rows in their own small array (not params::table): params::Count, the
+UCI spin `HceKingFlank` 0/1, default 0 (a spin as in the other cards) [last round, coordinator, unverified]. New rows in their own small array (not params::table): params::Count, the
 639-row tuner layout and T06C-01's 639-entry `HceParamsFile` check stay as they are; the traced path emits the extra
 coefficients for the fit tool only. OFF skips the block, reads no new row -> node-identical (bench / perft pins).
