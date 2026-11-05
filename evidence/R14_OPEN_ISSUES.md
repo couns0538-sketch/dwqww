@@ -99,3 +99,22 @@
 - Every new or changed test of the R14 finish passed in that run (test_opus_ep,
   test_opus_boardstm_probe, test_opus_boardstm_triage, test_opus_promote_export,
   the r14_overlap listing tests, the qualification fixture-guard tests).
+
+## 2026-11-04 17:51 (Opus; owner fix list 2, item 7)
+
+- tests/test_r14_preflight.py now imports Microsoft.PowerShell.Utility and
+  Microsoft.PowerShell.Management before defining the floor-breach mocks (commit
+  78d83508, on the owner order). Suite rerun at the tip 78d83508c7291321330ab356f14d8e1a9f8602f5
+  (log evidence/test_logs/r14/full-suite-r14cont03/output.log, first line = that SHA;
+  CPU 6 at Idle, 17:50:11-17:51:16, 64.54 s, exit 1): 8 failed, 328 passed, 67 subtests
+  passed over the same 28 paths. test_floor_breach_after_hash_writes_no_receipt PASSED:
+  the floor rule is proven again and the "does not prove the floor rule" label is not needed.
+  The eight: F-003 (1: test_r14_suite [False], subtest accounting), F-005 (2: r14_native),
+  F-006 (1: [guard] timing), and four tests/test_r14_launcher.py cases
+  (test_child_environment_and_parent_preserved, test_owned_cap_after_child_never_allocates_receipt
+  [during] and [after], test_exited_child_cannot_leave_descendant_holding_pipes) that all
+  failed on the launcher CPU-admission guard ("CPU admission refused", tools/Invoke-R13.ps1:55,
+  PercentProcessorTime > 70 on the CPU the child picks = the CPU the suite itself occupies);
+  they passed in the runs on CPU 1 (13:54) and CPU 2 (10:37) and are the same cases Astra
+  recorded in the qc/launcher-cap-green0* logs - environmental, not caused by items 6-7
+  (which touch only opus_prod_separation.py and test_r14_preflight.py).

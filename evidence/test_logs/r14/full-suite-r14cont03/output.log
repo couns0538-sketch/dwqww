@@ -1,0 +1,292 @@
+78d83508c7291321330ab356f14d8e1a9f8602f5
+............................................................................................... [ 28%]
+....................................................................F.FF [ 49%]
+F.....................................................F................. [ 71%]
+................................................F.......F..F.... [ 90%]
+.................................                              [100%]
+================================== FAILURES ===================================
+_________________ test_child_environment_and_parent_preserved _________________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_child_environment_and_par0')
+
+    def test_child_environment_and_parent_preserved(tmp_path):
+        assert tmp_path.resolve().is_relative_to(ROOT)
+        probe = tmp_path / 'probe with spaces.py'
+        child_out = tmp_path / 'child.json'
+        parent_out = tmp_path / 'parent.json'
+        keys = ['CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'TEMP', 'PYTHONPATH', 'ASTRA_R14_DEADLINE', 'ASTRA_R13_DEADLINE']
+        probe.write_text('import os,json,sys\nfrom pathlib import Path\n'
+                         f'Path({str(child_out)!r}).write_text(json.dumps(dict(executable=sys.executable,arguments=sys.argv[1:],env={{k:os.environ.get(k) for k in {keys!r}}})))\n'
+                         + "print('native_stdout')\nprint('native_stderr',file=sys.stderr)\n", encoding='utf-8')
+        harness = tmp_path / 'harness.ps1'
+        run_name = 'launcher-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + ''.join(f"$env:{key}='{1 if key.endswith('DEADLINE') else 'sentinel-'+key}'\n" for key in keys)
+                           + f"& '{LAUNCHER}' -Script '{probe}' -ScriptArguments @('space arg','quote\"arg','trail\\','') -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$exit=$LASTEXITCODE\n"
+                           + "$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"$values | ConvertTo-Json | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $exit\n", encoding='utf-8')
+        proc = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert proc.returncode == 0, proc.stdout + proc.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:55
+E         Line |
+E           55 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 3 admission refused: 88% busy
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['pwsh', '-NoProfile', '-File', 'D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont03\\tmp\\t...                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n     | CPU 3 admission refused: 88% busy\n').returncode
+
+D:\a14\tests\test_r14_launcher.py:43: AssertionError
+_________ test_owned_cap_after_child_never_allocates_receipt[during] __________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_owned_cap_after_child_nev0')
+phase = 'during'
+
+    @pytest.mark.parametrize('phase', ['during', 'after'])
+    def test_owned_cap_after_child_never_allocates_receipt(tmp_path, phase):
+        probe = tmp_path / 'probe.py'
+        marker = tmp_path / 'child-started'
+        parent_out = tmp_path / 'parent.json'
+        probe.write_text('from pathlib import Path\nimport time\n'
+                         + f'Path({str(marker)!r}).touch()\n'
+                         + ('time.sleep(20)\n' if phase == 'during' else ''), encoding='utf-8')
+        run_name = 'cap-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        run_directory = ROOT / 'evidence/test_logs/r14/launchers' / run_name
+        harness = tmp_path / 'post-cap.ps1'
+        keys = ['TEMP', 'PYTHONPATH', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES']
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='BelowNormal'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + "$global:fixtureGetChildItem=Get-Command Microsoft.PowerShell.Management\\Get-ChildItem\n"
+                           + "function Get-ChildItem {\n[CmdletBinding()] param([string[]]$LiteralPath,[switch]$Recurse,[switch]$File,[switch]$Force)\n"
+                           + f"if ($LiteralPath.Count -eq 1 -and $LiteralPath[0] -eq 'D:\\a14' -and (Test-Path -LiteralPath '{marker}')) {{\n"
+                           + "return [pscustomobject]@{Length=5000000000L}\n}\n"
+                           + "& $global:fixtureGetChildItem @PSBoundParameters\n}\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$nativeExit=$LASTEXITCODE\n$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"@{{env=$values;priority=[string][Diagnostics.Process]::GetCurrentProcess().PriorityClass}} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $nativeExit\n", encoding='utf-8')
+        process = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert marker.exists(), process.stdout + process.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:55
+E         Line |
+E           55 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 0 admission refused: 100% busy
+E         
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_owned_cap_after_child_nev0/child-started').exists
+
+D:\a14\tests\test_r14_launcher.py:101: AssertionError
+__________ test_owned_cap_after_child_never_allocates_receipt[after] __________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_owned_cap_after_child_nev1')
+phase = 'after'
+
+    @pytest.mark.parametrize('phase', ['during', 'after'])
+    def test_owned_cap_after_child_never_allocates_receipt(tmp_path, phase):
+        probe = tmp_path / 'probe.py'
+        marker = tmp_path / 'child-started'
+        parent_out = tmp_path / 'parent.json'
+        probe.write_text('from pathlib import Path\nimport time\n'
+                         + f'Path({str(marker)!r}).touch()\n'
+                         + ('time.sleep(20)\n' if phase == 'during' else ''), encoding='utf-8')
+        run_name = 'cap-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        run_directory = ROOT / 'evidence/test_logs/r14/launchers' / run_name
+        harness = tmp_path / 'post-cap.ps1'
+        keys = ['TEMP', 'PYTHONPATH', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES']
+        harness.write_text("$ErrorActionPreference='Stop'\n"
+                           "[Diagnostics.Process]::GetCurrentProcess().PriorityClass='BelowNormal'\n"
+                           + ''.join(f"$env:{key}='sentinel-{key}'\n" for key in keys)
+                           + "$global:fixtureGetChildItem=Get-Command Microsoft.PowerShell.Management\\Get-ChildItem\n"
+                           + "function Get-ChildItem {\n[CmdletBinding()] param([string[]]$LiteralPath,[switch]$Recurse,[switch]$File,[switch]$Force)\n"
+                           + f"if ($LiteralPath.Count -eq 1 -and $LiteralPath[0] -eq 'D:\\a14' -and (Test-Path -LiteralPath '{marker}')) {{\n"
+                           + "return [pscustomobject]@{Length=5000000000L}\n}\n"
+                           + "& $global:fixtureGetChildItem @PSBoundParameters\n}\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{run_name}' -TimeoutSeconds 30\n"
+                           + "$nativeExit=$LASTEXITCODE\n$values=@{}\n"
+                           + ''.join(f"$values['{key}']=$env:{key}\n" for key in keys)
+                           + f"@{{env=$values;priority=[string][Diagnostics.Process]::GetCurrentProcess().PriorityClass}} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath '{parent_out}' -Encoding utf8\n"
+                           + "exit $nativeExit\n", encoding='utf-8')
+        process = subprocess.run(['pwsh', '-NoProfile', '-File', str(harness)], capture_output=True, text=True, timeout=45)
+>       assert marker.exists(), process.stdout + process.stderr
+E       AssertionError: Exception: D:\a14\tools\Invoke-R13.ps1:55
+E         Line |
+E           55 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E              |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E              | CPU 3 admission refused: 93% busy
+E         
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_owned_cap_after_child_nev1/child-started').exists
+
+D:\a14\tests\test_r14_launcher.py:101: AssertionError
+___________ test_exited_child_cannot_leave_descendant_holding_pipes ___________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_exited_child_cannot_leave0')
+
+    def test_exited_child_cannot_leave_descendant_holding_pipes(tmp_path):
+        probe = tmp_path / 'pipe_probe.py'
+        child_out = tmp_path / 'descendant.json'
+        probe.write_text('import json,subprocess,sys,time\nfrom pathlib import Path\n'
+                         "child=subprocess.Popen([sys.executable,'-I','-B','-c','import time;time.sleep(6)'],stdout=sys.stdout,stderr=sys.stderr)\n"
+                         + f'Path({str(child_out)!r}).write_text(json.dumps(dict(pid=child.pid,started=time.monotonic())))\n', encoding='utf-8')
+        name = 'pipes-' + hashlib.sha256(str(tmp_path).encode()).hexdigest()[:12]
+        harness = tmp_path / 'pipes.ps1'
+        harness.write_text("[Diagnostics.Process]::GetCurrentProcess().PriorityClass='Idle'\n"
+                           + f"& '{LAUNCHER}' -Script '{probe}' -RunName '{name}' -TimeoutSeconds 2\nexit $LASTEXITCODE\n", encoding='utf-8')
+        process = subprocess.Popen(['pwsh', '-NoProfile', '-File', str(harness)], stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        admission_deadline = time.monotonic() + 12
+        child = None
+        while child is None and process.poll() is None and time.monotonic() < admission_deadline:
+            try:
+                child = json.loads(child_out.read_text())
+            except (FileNotFoundError, json.JSONDecodeError):
+                time.sleep(0.02)
+        if child is None:
+            stdout, stderr = process.communicate(timeout=15)
+>           pytest.fail(stdout + stderr + '\nchild marker missing')
+E           Failed: Exception: D:\a14\tools\Invoke-R13.ps1:55
+E           Line |
+E             55 |  … e -gt 70) { throw "CPU $Cpu admission refused: $($usage.PercentProces …
+E                |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E                | CPU 3 admission refused: 81% busy
+E           
+E           child marker missing
+
+D:\a14\tests\test_r14_launcher.py:132: Failed
+___________ test_live_refusal_stops_only_owned_process_tree[guard] ____________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_live_refusal_stops_only_o0')
+kind = 'guard'
+
+    @pytest.mark.parametrize('kind', ['guard', 'timeout'])
+    def test_live_refusal_stops_only_owned_process_tree(tmp_path, kind):
+        parent, path = run_fixture(tmp_path, guard_after=1 if kind == 'guard' else 0,
+                                   timeout=1 if kind == 'timeout' else 30, delay=30, descendant=True)
+        assert ('resource refusal' if kind == 'guard' else 'timeout') in parent['failure']
+        assert parent['env'] == {key: f'sentinel-{key}' for key in KEYS}
+>       child = json.loads(path.read_text(encoding='utf-8'))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+D:\a14\tests\test_r14_runtime_setup.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+pathlib.py:1027: in read_text
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_live_refusal_stops_only_o0/child.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+>   ???
+E   FileNotFoundError: [Errno 2] No such file or directory: 'D:\\a14\\evidence\\test_logs\\r14\\full-suite-r14cont03\\tmp\\test_live_refusal_stops_only_o0\\child.json'
+
+pathlib.py:1013: FileNotFoundError
+________ test_real_pytest_receipts_are_exact_and_fixture_scoped[False] ________
+
+tmp_path = WindowsPath('D:/a14/evidence/test_logs/r14/full-suite-r14cont03/tmp/test_real_pytest_receipts_are_0')
+collect_only = False
+
+    @pytest.mark.parametrize('collect_only', [False, True])
+    def test_real_pytest_receipts_are_exact_and_fixture_scoped(tmp_path, collect_only):
+        source = tmp_path/'test_runner_fixture.py'
+        source.write_text(FIXTURE)
+        (tmp_path/'pytest.ini').write_text('[pytest]\npython_functions = test_pass\n')
+        out = tmp_path/'run'
+        command = ['pwsh', '-NoProfile', '-File', str(ROOT/'tools/Invoke-R14Suite.ps1'),
+                   '-Output', str(out), '-Cpu', str(psutil.Process().cpu_affinity()[0]),
+                   '-TimeoutSeconds', '45', '-FixtureJson', json.dumps([str(source)])]
+        if collect_only:
+            command.append('-CollectOnly')
+        hostile = dict(os.environ, PYTEST_ADDOPTS='-k test_pass')
+        hostile.pop('PYTEST_PLUGINS', None)
+        child = subprocess.run(command, capture_output=True, text=True, timeout=65, env=hostile)
+        assert child.returncode == (0 if collect_only else 1), child.stdout+child.stderr
+        assert (out/'REPORT.json').is_file(), child.stdout+child.stderr
+        report = json.loads((out/'REPORT.json').read_text())
+        assert report['scope'] == 'runner_fixture'
+        assert report['collected'] == 6
+        assert report['files_unchanged'] is True
+        assert report['selected_before'] == report['selected_after']
+        assert report['configuration']['path'] == str(ROOT/'tools/r14_suite.ini')
+        assert report['pytest_arguments'][report['pytest_arguments'].index('-c')+1] == report['configuration']['path']
+        assert report['native']['md5'] == '91427a99870d6b3775595db55f0a82e8'
+        assert report['supervision']['candidate_before'][report['native']['path']] == report['native']['md5']
+        assert report['supervision']['candidate_after'][report['native']['path']] == report['native']['md5']
+        assert report['supervision']['stop_reason'] is None
+        assert report['started'].endswith(' Vienna') and report['finished'].endswith(' Vienna')
+        if collect_only:
+            assert report['status'] == 'COLLECTED'
+            assert report['test_counts']['not_run'] == 6
+            assert not report['reports']
+        else:
+            assert report['status'] == 'FAIL'
+>           assert report['test_counts'] == dict(passed=3, failed=1, skipped=1, error=1, not_run=0)
+E           AssertionError: assert {'passed': 2,...rror': 1, ...} == {'passed': 3,...rror': 1, ...}
+E             
+E             Omitting 3 identical items, use -vv to show
+E             Differing items:
+E             {'failed': 2} != {'failed': 1}
+E             {'passed': 2} != {'passed': 3}
+E             Use -v to get more diff
+
+D:\a14\tests\test_r14_suite.py:204: AssertionError
+___________ NativeFixtures.test_consecutive_fen_digits_are_invalid ____________
+
+self = <test_native.NativeFixtures testMethod=test_consecutive_fen_digits_are_invalid>
+
+    def test_consecutive_fen_digits_are_invalid(self):
+        bad = '4k3/8/8/8/8/8/8/4K111 w - - 0 1'
+        good = '4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+        pair_result = run_lines([pair(bad, good)])[0]
+        move_result = run_lines(['bad\t' + bad], '--moves')[0]
+        for result in (pair_result, move_result):
+>           self.assertEqual(result['status'], 'UNKNOWN')
+E           AssertionError: 'UNREACHABLE' != 'UNKNOWN'
+E           - UNREACHABLE
+E           + UNKNOWN
+
+D:\a14\tests\r14_native\test_native.py:185: AssertionError
+______________ NativeFixtures.test_interactive_reply_before_eof _______________
+
+self = <test_native.NativeFixtures testMethod=test_interactive_reply_before_eof>
+
+    def test_interactive_reply_before_eof(self):
+        a = chess.Board().fen(en_passant='fen')
+        line = pair(a, witness_end(a, ['e2e4']))
+        process = subprocess.Popen([str(EXE), '--pairs'], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   env=dict(os.environ, CUDA_VISIBLE_DEVICES='-1', HIP_VISIBLE_DEVICES='-1'))
+        try:
+            process.stdin.write(line + '\n')
+            process.stdin.flush()
+            handle = ctypes.c_void_p(msvcrt.get_osfhandle(process.stdout.fileno()))
+            available = ctypes.c_ulong()
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline:
+                ok = ctypes.windll.kernel32.PeekNamedPipe(handle, None, 0, None, ctypes.byref(available), None)
+                self.assertTrue(ok, 'cannot inspect owned output pipe')
+                if available.value:
+                    break
+                time.sleep(0.01)
+>           self.assertGreater(available.value, 0, 'line protocol did not reply before input EOF')
+E           AssertionError: 0 not greater than 0 : line protocol did not reply before input EOF
+
+D:\a14\tests\r14_native\test_native.py:212: AssertionError
+=========================== short test summary info ===========================
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_child_environment_and_parent_preserved
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_owned_cap_after_child_never_allocates_receipt[during]
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_owned_cap_after_child_never_allocates_receipt[after]
+FAILED ..\..\a14\tests\test_r14_launcher.py::test_exited_child_cannot_leave_descendant_holding_pipes
+FAILED ..\..\a14\tests\test_r14_runtime_setup.py::test_live_refusal_stops_only_owned_process_tree[guard]
+FAILED ..\..\a14\tests\test_r14_suite.py::test_real_pytest_receipts_are_exact_and_fixture_scoped[False]
+FAILED ..\..\a14\tests\r14_native\test_native.py::NativeFixtures::test_consecutive_fen_digits_are_invalid
+FAILED ..\..\a14\tests\r14_native\test_native.py::NativeFixtures::test_interactive_reply_before_eof
+8 failed, 328 passed, 67 subtests passed in 64.54s (0:01:04)
