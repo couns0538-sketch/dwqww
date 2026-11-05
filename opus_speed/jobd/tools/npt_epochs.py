@@ -204,6 +204,7 @@ def main():
         aborts = 0
         backoff = 0
         soft = 0
+        abort_at = []
         lost_partial = 0.0
         kept_epoch_min = 0.0
         n_epochs = 0
@@ -214,10 +215,18 @@ def main():
                 aborts += 1
             backoff += t["backoff"]
             soft += t["soft"]
-            if abort and last and last[1] < 100:
-                # minutes of the epoch that was running when the guard aborted (elapsed at its last progress mark)
+            if abort and last:
+                # training minutes thrown away by the abort: the elapsed time at the last progress mark of the epoch
+                # that was running (or had just finished its steps, 100 %, and died in validation / checkpoint save)
+                # unless that epoch's checkpoint was recorded by this try
                 marks = ep.get(last[0], {}).get("marks") or []
-                lost_partial += marks[-1][3] / 60.0 if marks else 0.0
+                if marks and last[0] not in {c[1] for c in t["ckpts"]}:
+                    lost_partial += marks[-1][3] / 60.0
+                    abort_at.append(f"e{last[0]}@{last[1]}%")
+                else:
+                    abort_at.append(f"e{last[0]}@ckpt")
+            elif abort:
+                abort_at.append("startup")
             prev = t["start"]
             for (ts, e, step) in t["ckpts"]:
                 d = ep.get(e, {})
@@ -258,22 +267,26 @@ def main():
                 print_rows.append(row)
                 prev = ts
         if tries:
-            t0 = tries[0]["start"]
-            t_end = max([t["exit_ts"] or t["start"] for t in tries] + [c[0] for t in tries for c in t["ckpts"]])
-            wall_h = (t_end - t0).total_seconds() / 3600.0
+            # active wall = sum of each try's span (start line -> child exit or last checkpoint) + its backoff minutes;
+            # gaps between adapter invocations (a resume a day later) are not the run's time.
+            wall_h = 0.0
+            for t in tries:
+                t_end = max([t["exit_ts"] or t["start"]] + [c[0] for c in t["ckpts"]])
+                wall_h += (t_end - t["start"]).total_seconds() / 3600.0 + t["backoff"] / 60.0
             twice = sum(v - 1 for v in epochs_seen.values() if v > 1)
             summary.append((run, len(tries), aborts, soft, n_epochs, twice, backoff, lost_partial, wall_h,
-                            kept_epoch_min))
+                            kept_epoch_min, ",".join(abort_at)))
     if not a.summary:
         for r in print_rows:
             print("\t".join(r))
         print()
-    print("run\ttries\taborts97\tsoft_susp\tepochs_done\tepochs_repeated\tbackoff_min\tpartial_lost_min\twall_h\tepoch_share")
-    for (run, nt, ab, so, ne, tw, bo, lp, wh, km) in summary:
-        # epoch_share = minutes spent inside completed epochs (repeated ones included) / wall minutes of the run;
-        # the rest is start-up, backoff and aborted partial epochs. Repeated epochs are counted in epochs_repeated.
+    print("run\ttries\taborts97\tsoft_susp\tepochs_done\tepochs_repeated\tbackoff_min\tlost_train_min\twall_h\tepoch_share\tabort_at")
+    for (run, nt, ab, so, ne, tw, bo, lp, wh, km, aa) in summary:
+        # epoch_share = minutes spent inside checkpointed epochs (repeated ones included) / active wall minutes of the
+        # run; the rest is start-up, backoff and training thrown away by aborts (lost_train_min, where abort_at says
+        # at which epoch / progress mark each abort hit; "@100%" = died in the end-of-epoch validation / checkpoint).
         share = km / max(wh * 60, 1e-9)
-        print(f"{run}\t{nt}\t{ab}\t{so}\t{ne}\t{tw}\t{bo}\t{lp:.0f}\t{wh:.2f}\t{share:.2f}")
+        print(f"{run}\t{nt}\t{ab}\t{so}\t{ne}\t{tw}\t{bo}\t{lp:.0f}\t{wh:.2f}\t{share:.2f}\t{aa}")
     return 0
 
 

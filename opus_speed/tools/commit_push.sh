@@ -12,7 +12,8 @@ MSG="$1"
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 cd /f/ospd/wt || exit 2
 [ -f "$MSG" ] || { echo "commit_push: no message file $MSG"; exit 2; }
-CODE=$(git ls-files -mo --exclude-standard opus_speed skills | grep -E '\.(ps1|py|sh)$' || true)
+# modified, untracked AND already staged code files (review LOW 10)
+CODE=$( { git ls-files -mo --exclude-standard opus_speed skills; git diff --cached --name-only -- opus_speed skills; } | sort -u | grep -E '\.(ps1|py|sh)$' || true)
 if [ -n "$CODE" ]; then
   $PY -I -B opus_speed/tools/name_lint.py $CODE > /f/ospd/tmp/lint_code.txt; rc=$?
   if [ $rc -ne 0 ]; then cat /f/ospd/tmp/lint_code.txt; echo "commit_push: vendor names in code files - not committed"; exit 1; fi

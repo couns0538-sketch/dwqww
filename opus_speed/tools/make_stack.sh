@@ -28,9 +28,11 @@ done
 find . -name '*.rej' | grep -q . && { echo "make_stack: .rej files left - check"; exit 1; }
 bad=0
 for sw in $(grep -rhoE '^#ifndef (FORGE_SPD_[A-Z0-9_]+|FORGE_SEARCH_[A-Z0-9_]+)' include src | awk '{print $2}' | sort -u); do
-  n=$(grep -rhE "^#define $sw 0\r?$" include src | wc -l)
+  # strip CR first: '\r' is not an escape in GNU ERE (review LOW 9)
+  n=$(cat $(grep -rl "$sw" include src) | tr -d '\r' | grep -cE "^#define $sw 0$")
   if [ "$n" -ne 1 ]; then echo "make_stack: switch $sw default line count $n (want 1)"; bad=1; else echo "switch $sw default 0"; fi
 done
 [ $bad -eq 0 ] || exit 1
-cd "$SRC" && diff -ruN lock "$NAME" > "$PATCHDIR/$NAME.patch"
+[ -e "$PATCHDIR/$NAME.patch" ] && { echo "make_stack: $PATCHDIR/$NAME.patch exists (never overwritten)"; exit 2; }
+cd "$SRC" && { diff -ruN lock "$NAME" > "$PATCHDIR/$NAME.patch"; rc=$?; [ $rc -le 1 ] || { echo "make_stack: diff failed (exit $rc)"; exit 1; }; }
 echo "make_stack: $DST ready; stacked patch $PATCHDIR/$NAME.patch ($(grep -c '^+' "$PATCHDIR/$NAME.patch") added lines, $(grep -c '^-[^-]' "$PATCHDIR/$NAME.patch") removed lines)"

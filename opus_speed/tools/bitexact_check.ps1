@@ -49,7 +49,8 @@ $script:Fail = 0
 $script:LogFile = ''
 function Say([string]$Msg) { Write-Output $Msg; if ($script:LogFile) { Add-OspdLf $script:LogFile $Msg } }
 function Verdict-Line([string]$Level, [string]$What, $RefVal, $CandVal, $Pin = $null) {
-  $ok = ("$RefVal" -eq "$CandVal")
+  # empty = empty is NOT a match (a missing or corrupt signature must fail; review LOW 1)
+  $ok = ("$RefVal" -eq "$CandVal") -and ("$RefVal" -ne '') -and ("$CandVal" -ne '')
   if ($null -ne $Pin) { $ok = $ok -and ("$CandVal" -eq "$Pin") }
   $pinTxt = ''; if ($null -ne $Pin) { $pinTxt = " pin $Pin" }
   $state = 'PASS'; if (-not $ok) { $state = 'FAIL'; $script:Fail++ }
@@ -66,7 +67,7 @@ function Get-L1L2([string]$Exe, [string]$CacheDir) {
   $cache = Join-Path $CacheDir ("sig_{0}.json" -f $sha.Substring(0, 16))
   if (Test-Path $cache) { return (Get-Content $cache -Raw | ConvertFrom-Json) }
   $res = [ordered]@{ sha256 = $sha; exe = $Exe; on = [ordered]@{}; off = [ordered]@{}; perft = [ordered]@{} }
-  $log = Join-Path $CacheDir ("sig_{0}.uci.log" -f $sha.Substring(0, 16))
+  $log = Join-Path $CacheDir ("sig_{0}.{1}.uci.log" -f $sha.Substring(0, 16), $PID)   # per process: no shared log (review LOW 2)
   $e = Start-OspdEngine $Exe $log
   $null = Initialize-OspdEngine $e @()
   foreach ($d in $script:OspdDepths) { $res.on["d$d"] = (Invoke-OspdBench $e $d).Nodes }
@@ -183,6 +184,10 @@ function Invoke-MsvcAsanBuild([string]$Port, [string]$OutExe, [string]$SanDir, [
 function Get-MsvcAsanRefNodes([string]$Src, [string]$SanDir, [string]$BuildLog) {
   # bench 16 nodes of the MSVC ASan build of the REFERENCE source (cached per source content in F:\ospd\ref)
   $lines = @(foreach ($sub in 'include', 'src') { Get-ChildItem -Recurse -File (Join-Path $Src $sub) | Sort-Object FullName | ForEach-Object { '{0} {1}' -f $_.FullName.Substring($Src.Length + 1).Replace('\', '/'), (Get-OspdSha256 $_.FullName) } })
+  # the key also covers the compiler and the flags, so a cl update or -SanNdebug never reuses a stale count (LOW 3)
+  $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try { $clVer = (@(& cl.exe 2>&1 | ForEach-Object { "$_" }) | Select-Object -First 1) } finally { $ErrorActionPreference = $eap }
+  $lines += @("cl $clVer", 'flags /std:c++20 /EHsc /O2 /Zi /fsanitize=address /arch:AVX512 /STACK:67108864 port-copy-v1', "ndebug $([bool]$SanNdebug)")
   $sha = New-Object System.Security.Cryptography.SHA256Managed
   $h = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n")))) -replace '-', '').ToLower().Substring(0, 12)
   $cache = "F:\ospd\ref\msvc_asan_b16_$h.txt"
@@ -250,6 +255,9 @@ try {
     if ($c.sha256 -ne $candSha) { throw "resume: signature file $($sigF.FullName) belongs to another exe" }
     Copy-Item -LiteralPath $sigF.FullName -Destination $candCache   # the pack reads the bench signature from here
     $nm = [regex]::Match($l3[0], ': (\d+) / (\d+) identical'); $n = [int]$nm.Groups[2].Value
+    # the reused L3 must be on the same FEN file and depth as this run would use (review LOW 4)
+    $fm = [regex]::Match($l3[0], '\(md5 ([0-9a-f]{8})'); $dm = [regex]::Match($l3[0], 'go depth (\d+)')
+    if (-not $fm.Success -or $fm.Groups[1].Value -ne (Get-OspdMd5 $Fens).Substring(0, 8) -or -not $dm.Success -or [int]$dm.Groups[1].Value -ne $FenDepth) { throw "resume: the reused L3 line is for another FEN file or depth: $($l3[0])" }
     $allFens = @(1..(12000)); if ($l3[0] -notmatch 'fens_12k_v2') { $allFens = @(1..$n) }
   } elseif ($OnlyL4) {
     # sanitizer level alone (re-tests): compare against the lock pin, skip L1-L3
@@ -283,7 +291,7 @@ try {
   try {
     if (-not (Test-Path $refTsv)) {
       $part = $refTsv + ".part$PID"
-      $sec = Invoke-FenSet $Ref $fenList $FenDepth $part (Join-Path $cacheDir 'fens.uci.log')
+      $sec = Invoke-FenSet $Ref $fenList $FenDepth $part (Join-Path $cacheDir ("{0}.{1}.uci.log" -f [IO.Path]::GetFileNameWithoutExtension($refTsv), $PID))
       if (Test-Path $refTsv) {
         # written meanwhile by a process without the mutex (older code): the two must agree byte for byte
         if ((Get-OspdSha256 $part) -ne (Get-OspdSha256 $refTsv)) { throw "reference $refTsv differs from this run's $part (non-deterministic reference?)" }
@@ -300,6 +308,8 @@ try {
   # degenerate-set guard (bug of 09:2x: placement-only FENs were rejected and every row searched the same position)
   $distinct = @($ra | ForEach-Object { ($_ -split "`t", 2)[1] } | Sort-Object -Unique).Count
   if ($n -ge 100 -and $distinct -lt [int]($n / 10)) { throw "L3 reference is degenerate: only $distinct distinct results for $n FENs" }
+  # a row needs a numeric field: a position answered with a bare bestmove (no info line) counts as a DIFF even when ref
+  # and cand agree - fail-closed by design; none in the 12k set (review LOW 8)
   $same = 0; $diffs = @()
   for ($i = 0; $i -lt $n; $i++) { if ($ra[$i] -eq $ca[$i] -and $ra[$i] -match "`t\d+`t") { $same++ } else { if ($diffs.Count -lt 10) { $diffs += "  FEN $i ref [$($ra[$i])] cand [$($ca[$i])]" } } }
   $state = 'PASS'; if ($same -ne $n) { $state = 'FAIL'; $script:Fail++ }

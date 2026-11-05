@@ -60,7 +60,7 @@ Session A/A (aa_lock_d20_s3): wall 1.0066 [0.9968, 1.0111] sd 0.99 %, cpu 1.0050
 | o3 (plain lock line) | 0.9711 (-2.89%) [0.9318, 1.0088] 5.56% | 0.9664 (-3.36%) [0.9518, 0.9895] 2.71% | NO-WIN / NO-WIN | a69dafc0 |
 | **lp_wnonet (PGO trained with UseNNUE=false)** | **0.7090 (-29.10%) [0.6880, 0.7194]** 3.12% | **0.7057 (-29.43%) [0.6964, 0.7104]** 1.40% | NO-WIN / NO-WIN | 75bd6e62 |
 | lp_noplt, lp_nosi, lp_pvw512 | = lock exe (byte-identical, not timed) | | | |
-| lp_w12k (PGO + 300 of the 12k FENs, go depth 10) | PENDING_W12K | | | |
+| lp_w12k (PGO + 300 of the 12k FENs, go depth 10) | 0.9940 (-0.60%) [0.9500, 1.0492] 6.94% | 0.9954 (-0.46%) [0.9777, 1.0197] 2.94% | NO-WIN / NO-WIN | d9040545 |
 Reading: the lock's own recipe (LTO+PGO, frozen v1 workload) is the fastest build mode here; no flag beats it inside
 the noise, and three flags change nothing at all on a static PE exe. The PGO workload matters a lot: a profile taken
 with the net OFF makes the net-on engine **29 % slower** (2.14 M -> 1.50 M nps at bench d20) - the risk the brief named.
@@ -124,8 +124,17 @@ full and the slot count right (concurrency_plan.py), not per-game settings.
 3. stack_w3 (= stack_w2 + prefetch_early): see section 3 for its ABBA; only worth it if it beats stack_w2.
 Nothing here is locked or queued by this job; QA decides.
 
-## 6. Skills created or improved
-PENDING
+## 6. Skills created or improved (on this branch; the project copies on D: were not touched)
+- NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol, bit-exact
+  levels, job rules they enforce, proven facts, 15 pitfalls hit today).
+- NEW `skills/forge-gate-walltime/SKILL.md`: Job C tools, the facts they rely on, the measured gate numbers.
+- IMPROVED `skills/forge-ltopgo-pgo/SKILL.md` (copy + section "Speed job 2026-11-05"): the lock's net is embedded and
+  ON (v1 workload profiles it), net-off profile -29 %, flags that give the identical exe, flag / build-mode table,
+  switch-0 = lock byte for byte, SPEED2 reproduction.
+- IMPROVED `skills/forge-pc-rules/SKILL.md` (copy + section "Speed job"): CPUs 0-3 rule set, restart re-pin, heredoc
+  backslash and `$1` pitfalls, `git rm` refusal.
+- Helper scripts (opus_speed/tools): commit_push.sh (gated commits), make_stack.sh, pack_table.py, abba_table.py,
+  ctrl_char_check.py, name_lint.py, ps_parse_check.ps1, pgn_positions.py.
 
 ## 7. Code Review 637B report-back
 See `CR_637B_REPORT.md` (BLOCKER + SHOULD 1-3 fixed, tests 13/13; the 3 LOW notes were not visible on the PC).

@@ -99,6 +99,7 @@ try {
   if ($Core -lt 0 -or $Core -gt 3) { throw "-Core must be 0-3 (job rule)" }
   if ($Rounds -lt 10) { throw "-Rounds must be >= 10 (protocol)" }
   foreach ($x in $A, $B) { if (-not (Test-Path -LiteralPath $x)) { throw "missing exe $x" } }
+  if ($AaCsv -and -not (Test-Path -LiteralPath $AaCsv)) { throw "missing -AaCsv $AaCsv (checked before the runs, review LOW 5)" }
   if (Test-Path $Out) { throw "$Out exists; use a new folder" }
   $mutex = New-Object System.Threading.Mutex($false, 'Local\ospd_abba_timing')
   $got = $false
@@ -140,7 +141,9 @@ try {
       $uciLines = Initialize-OspdEngine $e $Option
       if ($netOn -and -not ((Get-OspdUciOptionLine $uciLines 'UseNNUE') -match 'default true')) { $null = Stop-OspdEngine $e; Write-Output "FAIL: $($exe[$arm]) does not advertise UseNNUE default true (net not loaded)"; exit 2 }
       # process CPU time of the bench window (engine idle before and after it): time slices taken by other programs on
-      # this CPU do not count here, unlike the engine's own wall-clock nps (both are recorded and evaluated)
+      # this CPU do not count here, unlike the engine's own wall-clock nps (both are recorded and evaluated). It removes
+      # PREEMPTION only: a busy SMT sibling still slows the run, and Windows counts CPU time in 15.625 ms ticks (about
+      # 0.1-0.3 % of a d20 run). The protocol verdict is the wall one; the cpu one is advisory (review LOW 6, SHOULD 4).
       $e.Proc.Refresh(); $c0 = $e.Proc.TotalProcessorTime.TotalMilliseconds
       $res = Invoke-OspdBench $e $Depth
       $e.Proc.Refresh(); $cpuMs = $e.Proc.TotalProcessorTime.TotalMilliseconds - $c0
@@ -179,7 +182,7 @@ try {
     ("wall (engine nps): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $st.Median, (100 * ($st.Median - 1)), $st.Lo, $st.Hi, $st.SdPct, $st.BootLo, $st.BootHi),
     ("cpu (nodes / process CPU time of the bench window): B/A median {0:N4} ({1:+0.00;-0.00}%), 95% t-interval [{2:N4}, {3:N4}], sd/round {4:N2}%, bootstrap median CI [{5:N4}, {6:N4}]" -f $cst.Median, (100 * ($cst.Median - 1)), $cst.Lo, $cst.Hi, $cst.SdPct, $cst.BootLo, $cst.BootHi),
     $aaLine,
-    ("VERDICT wall {0} / cpu {1} (rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt" -f $verdict, $cverdict)
+    ("VERDICT wall {0} / cpu {1} (PROTOCOL verdict = wall, the engine's own bench nps; cpu = advisory: it removes preemption by other programs but not SMT-sibling contention; rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt" -f $verdict, $cverdict)
   )
   $runId = New-OspdRunId
   $lines = @("run $runId") + $lines

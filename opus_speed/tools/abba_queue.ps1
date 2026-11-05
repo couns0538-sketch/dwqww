@@ -37,6 +37,7 @@ while ($true) {
   Write-Output "$(Get-OspdNow) $($todo.Name): ABBA d$Depth x $Rounds vs lock"
   $o = @(& "$PSScriptRoot\abba.ps1" -A $script:OspdLockExe -B $todo.Exe -Out $todo.Dir -Depth $Depth -Rounds $Rounds -AaCsv $AaCsv -LabelA 'lock FD3A5190' -LabelB $todo.Name)
   $rc = $LASTEXITCODE
+  Set-OspdPlacement -Mask 0x3 -Priority 'Idle'   # abba pinned this process to the timing CPU (review LOW 7)
   $o | ForEach-Object { Write-Output "  $_" }
   if ($rc -ne 0) {
     New-Item -ItemType Directory -Force -Path $todo.Dir | Out-Null

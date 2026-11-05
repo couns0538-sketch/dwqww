@@ -76,6 +76,12 @@ try {
           $twin = Join-Path (Join-Path $bd 'src_copy') ($f.FullName.Substring($buildSrc.Length + 1))
           if (-not (Test-Path -LiteralPath $twin) -or (Get-OspdSha256 $f.FullName) -ne (Get-OspdSha256 $twin)) { throw "reuse: $twin differs from this pack's build source" }
         }
+        # and the other direction: no extra file in the reused tree (review SHOULD 1)
+        $copySub = Join-Path (Join-Path $bd 'src_copy') $sub
+        foreach ($g in (Get-ChildItem -Recurse -File $copySub)) {
+          $mine = Join-Path $buildSrc ($g.FullName.Substring((Join-Path $bd 'src_copy').Length + 1))
+          if (-not (Test-Path -LiteralPath $mine)) { throw "reuse: $($g.FullName) has no twin in this pack's build source (extra file)" }
+        }
       }
     }
     if ($shas[0] -ne $shas[1]) { Say "NOT REPRODUCIBLE (reused): $($shas -join ' vs ')"; exit 3 }
@@ -98,6 +104,7 @@ try {
   $exe = Join-Path $Pack ("forge_{0}.exe" -f $Name)
   Copy-Item -LiteralPath $builtExe -Destination $exe
   $sha = Get-OspdSha256 $exe; $md5 = Get-OspdMd5 $exe
+  if ($repro -notmatch [regex]::Escape($sha)) { throw "pack exe sha256 $sha is not the REPRO sha256 ($repro) (review LOW 11)" }
   Say "exe $exe sha256 $sha md5 $md5 ($repro)"
   Copy-Item -LiteralPath (Join-Path (Split-Path -Parent (Split-Path -Parent $builtExe)) 'SUMMARY.txt') -Destination (Join-Path $Pack 'build_SUMMARY_pc1.txt')
   # (3) bit-exact proof
@@ -117,6 +124,9 @@ try {
     Write-OspdLf (Join-Path $Pack 'signature.txt') @("exe $exe sha256 $sha", $sigTxt)
   }
   $bxState = 'CHECK ERROR (no verdict: the proof did not finish)'; if ($bxRc -eq 0) { $bxState = 'BIT-EXACT' } elseif ($bxRc -eq 3) { $bxState = 'NOT BIT-EXACT' }
+  # the qualifier belongs in the state line, not only in the quoted verdict (review SHOULD 3)
+  if ($bxRc -eq 0 -and $bxVerdict -match 'ASan N/A') { $bxState = 'BIT-EXACT with L4 = UBSan only (ASan N/A for this source under MSVC)' }
+  if ($bxRc -eq 0 -and $bxVerdict -match 'quick subset') { $bxState += '; L3 on the first 2,000 of the 12k FENs (quick)' }
   if ($bxRc -ne 0) { Say "$bxState : no ABBA (pack kept as a record)" }
   # (4) ABBA
   $abbaDir = Join-Path $Pack ("abba_d{0}" -f $Depth)
@@ -134,7 +144,19 @@ try {
   # (5) records
   $patchFile = Join-Path $RepoDir ("patches\{0}.patch" -f (Split-Path $SrcDir -Leaf))
   $patchTxt = "no patch file (source = the lock or a stack made by make_stack.sh)"
-  if (Test-Path -LiteralPath $patchFile) { $patchTxt = "patch opus_speed/patches/{0} md5 {1}" -f (Split-Path $patchFile -Leaf), (Get-OspdMd5 $patchFile) }
+  if (Test-Path -LiteralPath $patchFile) {
+    $patchTxt = "patch opus_speed/patches/{0} md5 {1}" -f (Split-Path $patchFile -Leaf), (Get-OspdMd5 $patchFile)
+    # verify that lock + patch IS the built source (review SHOULD 2): diff the lock against -SrcDir now and compare the
+    # hunks with the patch file, ignoring the '--- ' / '+++ ' / 'diff ' header lines (they carry paths and times)
+    $srcParent = Split-Path -Parent ($SrcDir -replace '/', '\')
+    if ((Resolve-Path $srcParent).Path -eq (Resolve-Path 'F:\ospd\src').Path) {
+      $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+      try { Push-Location 'F:\ospd\src'; $now = @(& 'C:\Program Files\Git\usr\bin\diff.exe' -ruN lock (Split-Path $SrcDir -Leaf) 2>&1 | ForEach-Object { "$_" }) } finally { Pop-Location; $ErrorActionPreference = $eap }
+      $body = { param($ls) @($ls | Where-Object { $_ -notmatch '^(--- |\+\+\+ |diff )' }) -join "`n" }
+      if ((& $body $now) -eq (& $body (Get-Content $patchFile))) { $patchTxt += ' (verified: lock + this patch = the built source)' }
+      else { $patchTxt += ' (WARNING: the patch DOES NOT MATCH the built source; see the source tree)' }
+    } else { $patchTxt += ' (not verified: the source is not under F:\ospd\src)' }
+  }
   $headTxt = 'branch head at pack time: unknown'
   $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
   try { $hd = @(& git -C (Split-Path -Parent $RepoDir) rev-parse --short=8 HEAD 2>&1 | ForEach-Object { "$_" }); if ($LASTEXITCODE -eq 0 -and $hd.Count) { $headTxt = "branch head at pack time: $($hd[0])" } } catch {} finally { $ErrorActionPreference = $eap }

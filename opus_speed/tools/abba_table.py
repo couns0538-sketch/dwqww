@@ -5,7 +5,8 @@ usage: python -I -B abba_table.py <folder with <name>_d<depth> subfolders> [<mor
 Reads every <name>_d<D>/summary.txt (abba.ps1 output) or IDENTICAL.txt (abba_queue: exe = lock file) and prints
 name, depth, wall median + 95 % t-interval + sd/round, cpu median + interval + sd, the two verdicts, the runs.csv md5
 and the order (ABBA every round / alternating). Reads the summaries, not the queue's results.tsv, so a run whose
-summary was written is listed even if a later step of its runner failed. Sorted by cpu median, best first.
+summary was written is listed even if a later step of its runner failed. Sorted by the wall median (the protocol
+metric), best first; the cpu column is advisory.
 """
 import pathlib
 import re
@@ -51,9 +52,10 @@ def main():
                     rows.append(r)
 
     def key(r):
-        if r['identical'] or not r.get('cpu'):
+        # sorted by the WALL median: the protocol metric is the engine's own nps; cpu is advisory (review SHOULD 4)
+        if r['identical'] or not r.get('wall'):
             return 0.0
-        return -float(r['cpu'][0])
+        return -float(r['wall'][0])
     rows.sort(key=key)
     lines = ['| run | wall B/A median [95 %] sd | cpu B/A median [95 %] sd | verdict wall / cpu | order | runs.csv md5 |',
              '|---|---|---|---|---|---|']
