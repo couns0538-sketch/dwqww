@@ -19,3 +19,5 @@ A/A aa_lock_d20_s3: wall n=10 median 1.0066 95% [0.9968, 1.0111] sd 0.99%; cpu m
 VERDICT wall WIN / cpu WIN (rule per metric: interval low end > 1.000 and median >= +1.0%); load: see load.txt
 ```
 - Note: Stack of all ABBA winners at 11:18: TT_NOTLS + NO_ZERO_MOVELISTS=2 + SPEED2 (rebased after NZM) + PREFETCH_EARLY (cpu WIN, narrow); full 12k L3 run separately
+- Full 12k L3 (separate run 11:27-11:39, `F:\ospd\packs\stack_w3\bitexact_full12k\bitexact.log`): L1 net on + off and L2 PASS again, 12000 / 12000 FENs identical (depth, score, nodes, bestmove) at go depth 13 with the 12k six-field set (md5 e7dbf2c8; 12000 distinct reference rows), candidate 705 s -> VERDICT BIT-EXACT (L1-L3 on 12000 FENs); with the pack run above: L1-L4 complete.
+- Protocol note (added 12:2x): the ABBA verdict that counts is the wall (engine nps) one; cpu is advisory. Members' status: NZM2 and SPEED2 are wall winners; TT_NOTLS and PREFETCH_EARLY were cpu-only winners in their single packs (16-round wall re-times in FINAL_REPORT section 3).

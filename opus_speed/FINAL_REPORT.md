@@ -37,6 +37,8 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
 | abba_queue.ps1 / abba_table.py | back-to-back ABBA list, one table from the summaries | |
 | speed_pack.ps1 | source tree in -> pack out: flip switch defaults (kit takes no -D), pc1 = pc2, bit-exact proof, ABBA, candidate file | `speed_pack.ps1 -SrcDir <tree> -Name <n> [-Define SW=1] [-Quick] [-ReuseBuildDirs a,b]` |
 | make_stack.sh | stacks patches on a fresh lock copy (no fuzz, switch defaults checked) | `bash make_stack.sh <name> <p1.patch> ...` |
+| abba_recheck.py | recomputes ABBA summaries from runs.csv with the exact t quantile; `--pool` joins a borderline run and its re-time | `python -I -B abba_recheck.py <dir>..` / `--pool <dir> <dir>` |
+| pack_table.py | one markdown table of pack folders (switches, exe, bit-exact state, wall / cpu, verdicts, CSV md5) | `python -I -B pack_table.py F:/ospd/packs --only a,b` |
 | commit_push.sh, name_lint.py, ctrl_char_check.py, ps_parse_check.ps1, pgn_positions.py | checked commits, vendor-name lint, control bytes, PS 5.1 parse, game positions | |
 Facts the tools are built on (checked 2026-11-05):
 - The lock's net is embedded (`nnue_weights.inc`) and ON by default (`UseNNUE` default true). QA's frozen v1 PGO
@@ -166,8 +168,10 @@ log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (ou
 Nothing here is locked or queued by this job; QA decides.
 
 ## 6. Skills created or improved (on this branch; the project copies on D: were not touched)
-- NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol, bit-exact
-  levels, job rules they enforce, proven facts, 15 pitfalls hit today).
+- NEW `skills/forge-speed-lock-path/SKILL.md`: the whole speed-only lock path (tools, ABBA protocol with wall as the
+  protocol verdict, bit-exact levels incl. the MSVC ASan comparison, re-time / pooling rule, stacking with
+  make_stack, proven facts and the day's results, 16 pitfalls hit today). Also installed user-scope
+  (`C:\Users\Administrator\<cfg>\skills\forge-speed-lock-path\`), like forge-gate-walltime.
 - NEW `skills/forge-gate-walltime/SKILL.md`: Job C tools, the facts they rely on, the measured gate numbers.
 - IMPROVED `skills/forge-ltopgo-pgo/SKILL.md` (copy + section "Speed job 2026-11-05"): the lock's net is embedded and
   ON (v1 workload profiles it), net-off profile -29 %, flags that give the identical exe, flag / build-mode table,

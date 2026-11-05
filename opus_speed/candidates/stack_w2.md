@@ -22,3 +22,4 @@ VERDICT wall WIN / cpu WIN (rule per metric: interval low end > 1.000 and median
 
 - Full 12k L3 (separate run 11:06-11:26, `F:\ospd\packs\stack_w2\bitexact_full12k\bitexact.log`): 12000 / 12000 FENs identical (depth, score, nodes, bestmove) at go depth 13 with the 12k six-field set (md5 e7dbf2c8) -> VERDICT BIT-EXACT (L1-L3 on 12000 FENs); with the pack run above: L1-L4 complete.
 - Stack members: patches b1_tt_notls.patch + b2_no_zero_movelists.patch + r14_speed2_after_nzm.patch (stacked patch trial_w2.patch); with every switch at 0 the same tree builds to the lock exe FD3A5190 byte for byte (builds\w2off_lp_v1).
+- Protocol note (added 12:2x): the ABBA verdict that counts is the wall (engine nps) one; cpu is advisory. Members: NZM2 and SPEED2 are wall winners on their own; TT_NOTLS was a cpu-only winner in its single pack (wall +4.19 % with a wide interval); its 16-round wall re-time is in FINAL_REPORT section 3. The stack itself is a WIN on both metrics.

@@ -174,6 +174,10 @@ function Invoke-MsvcAsanBuild([string]$Port, [string]$OutExe, [string]$SanDir, [
   $clArgs = @('/nologo', '/std:c++20', '/EHsc', '/O2', '/Zi', '/fsanitize=address', '/arch:AVX512', '/DFORGE_NNUE_HIDDEN=256', '/DFORGE_EXPOSE_TUNABLES=1', '/Iinclude',
     ('/Fd' + [IO.Path]::ChangeExtension($OutExe, '.compile.pdb')), ('/Fo' + $objDir + '\'))
   if ($SanNdebug) { $clArgs += '/DNDEBUG' }
+  # MSVC never defines __BMI2__ (its _pext_u64 needs no /arch switch). A source that guards PEXT code with that macro
+  # (FORGE_SPD_SLIDER_PEXT) gets it here: every /arch:AVX512 target and the lock's znver5 have BMI2, and g++ defines
+  # it for -march=znver5. Sources that never mention the macro (the lock) get the same command line as before.
+  if (@(Get-ChildItem -Path @((Join-Path $Port 'include'), (Join-Path $Port 'src')) -Recurse -File | Select-String -SimpleMatch '__BMI2__' -List).Count -gt 0) { $clArgs += '/D__BMI2__=1' }
   foreach ($d in $Defs) { $clArgs += ('/D' + $d) }
   # /STACK: Worker::clear() assigns a ~1.4 MB ContinuationHistory temporary on the stack; MSVC's default 1 MB stack
   # overflows (seen 09:26 under ASan), MinGW's default is 2 MB. 64 MB here only for the sanitizer harness.
@@ -366,6 +370,12 @@ try {
     Stop-IfFailed 'L4'
   }
   if ($script:Fail -gt 0) { Say "VERDICT NOT BIT-EXACT ($($script:Fail) failing lines)"; exit 3 }
+  if ($OnlyL4) {
+    # a sanitizer-only re-test proves L4 alone; it must never read like a full proof (fixed 12:2x)
+    $l4txt = 'UBSan + MSVC ASan'; if ($script:AsanNa) { $l4txt = "UBSan only, ASan N/A: $($script:AsanNa)" }
+    Say "VERDICT L4 PASS ($l4txt; L1-L3 NOT run here: -OnlyL4, see the candidate's full bit-exact log)"
+    exit 0
+  }
   $scope = 'L1-L3'; if ($l4 -eq 'run') { $scope = 'L1-L4'; if ($script:AsanNa) { $scope = "L1-L4 with L4 = UBSan only, ASan N/A: $($script:AsanNa)" } }
   Say ("VERDICT BIT-EXACT ({0}; L3 on {1} FENs{2})" -f $scope, $n, $(if ($n -lt $allFens.Count) { ' = quick subset' } else { '' }))
   exit 0

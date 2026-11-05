@@ -26,6 +26,7 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 | `speed_pack.ps1 -SrcDir <tree> -Name <n> [-Define SW=1,..] [-Quick] [-ReuseBuildDirs a,b] [-PriorBitexact dir]` | flips switch defaults in a kit source copy (`src_kit`), pc1 = pc2, bit-exact proof, ABBA vs lock, `F:\ospd\packs\<n>` + `opus_speed/candidates/<n>.md` (patch verified against the source, branch head, bench signature) |
 | `make_stack.sh <name> <p1.patch> ..` | patches on a fresh lock copy, no fuzz, switch defaults checked, stacked patch written (never overwritten) |
 | `pack_table.py`, `abba_table.py` | markdown tables from pack folders / ABBA folders (sorted by the wall median) |
+| `abba_recheck.py <dir>.. / --pool <dir> <dir>..` | recomputes summaries from runs.csv with the exact t quantile (independent of abba.ps1's series); `--pool` joins a borderline run and its re-time so the decision uses all rounds, never the re-time alone |
 | `commit_push.sh <msg>` | gated commit + push (code-name lint, control bytes, PS 5.1 parse) |
 | `pgn_positions.py`, `name_lint.py`, `ctrl_char_check.py`, `ps_parse_check.ps1` | game positions with provenance, vendor-name lint, control bytes, PS 5.1 parse |
 
@@ -67,6 +68,11 @@ no Elo gate. These tools turn a source tree into a lock-candidate exe and its pr
 - Bash heredocs collapse `\\`: a Windows path `F:\\ospd\\abba` written from a heredoc into a file became
   `F:\ospd<BEL>bba`. Write files with the Write / Edit tools; `tools/ctrl_char_check.py` finds such bytes.
 - A fresh session process after an application restart runs at 0xFFFF / Normal: pin it to 0x3 Idle first.
+- MSVC never defines `__BMI2__`, so a source that guards PEXT code with `#if !defined(__BMI2__) #error` cannot build
+  for the ASan run: bitexact_check adds `/D__BMI2__=1` for such sources only (the lock source never mentions it).
+- Re-timing a borderline result until it says WIN is optional stopping: every borderline single gets ONE 16-round
+  re-time and the decision uses the pooled rounds (`abba_recheck.py --pool first second`); report both runs.
+- In this Bash tool `"F:\\ospd\\packs\\$p\\x.exe"` loses the variable (`packs$p`): write paths with forward slashes.
 - ABBA on this PC: plain A B B A showed slot-position effects of ~1-2 % in A/A runs; alternate ABBA / BAAB (default)
   and read the process CPU time of the bench window as a second metric (preemption by other programs is not counted).
   Noise depends on the moment's load: per-round sd 1 % (quiet) to 5.6 % (builds on the other core).
