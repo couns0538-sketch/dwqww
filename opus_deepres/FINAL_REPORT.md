@@ -1,12 +1,16 @@
 # Forge deep research - FINAL REPORT
 
-**State: FINAL** - written from 06:09 PC clock on 2026-11-05 (finish time in the last line). All tracks of the
+**State: IN PROGRESS - last round** (from 07:23 PC clock: Engine QA's last list, the pool-script fix of Code Review
+2cdf70ff, the end of POOL3M); the text below was written from 06:09 PC clock on 2026-11-05; the state line changes
+only when this round is done, with the real end time in the last line. All tracks of the
 brief's core set and the after-report set (T6, T7, T12) are researched and verified; round 3 (after the usage reset,
 from 03:42) added new engines, a lock audit, counter-evidence, three second votes, 22 implementation specs with
 reviews, a final ranking and a critic of this report (`notes/CRITIC4.md`, applied). T04U (06:06-06:24) added T04U-01; T06E and SPECFIX2 (06:24-06:41) closed the T06D pending list (T06E-01, T06E-02) and
 applied the speed-spec review; T01C and T02C (06:42-07:04) answered two of the three brief questions CRITIC.md had
-marked NOT COVERED (section 11). A last 2-worker run (07:05 on: T06F more HCE terms, T02D data filters with passed net
-tests) adds its results at the end of section 3.
+marked NOT COVERED (section 11). The last 2-worker run (POOL3M, wf_196398f4-207, started 07:05:56: T06F more HCE
+terms, T02D data filters with passed net tests) was killed at 07:09:00 when the coordinator session restarted (the
+workflow state says "killed", both workers' transcripts end with an interrupt at 07:09:00): no card, no verifier, only
+partial source lists (`notes/T06F/sources.md` 1 source, `notes/T02D/sources.md` 3 sources), all unverified.
 
 Started 2026-11-04 22:23:27 PC clock; deadline 2026-11-05 08:23:27. Branch `opus-deepres-20261104`. No Elo claim for
 Forge anywhere: every source number is quoted with its link and conditions in the card; every Forge-side estimate is
@@ -249,7 +253,7 @@ Seer (only ideas Forge has or has tried) | a lower, WDL-skew or phase-dependent 
   estimates and corrected from the clock or file stamps (also 04:24 -> 04:22, 04:26 -> 04:25, 05:04 -> 05:03, 05:43 ->
   05:42, 06:04 -> 06:05 in STATUS); the first licence tool misread GPL-3.0 and LLVM texts (fixed, table re-run); the
   brief's caps of 60 cards in total was passed after the owner's instruction to find more improvements with more agents
-  (23:55, and the goal of 22:5x to keep going until the window ends): 107 card files incl. one-liners and merge
+  (received before 23:55:24, with the goal to keep going until the window ends): 107 card files incl. one-liners and merge
   markers, per-track caps (6, and 4 per round-2 / round-3 sub-track) kept; the T02C worker read on past the
   two-sources-without-a-card stop to cover every source its brief named (logged by its verifier).
 - Measured agent spend (workflow summaries): round-1 core 1,802,872 tokens (8 agents), extra 1,149,308 (6), phase 2
@@ -271,4 +275,4 @@ section 6, specs in `notes/SPEC_SPEED.md`. T6: `notes/T06/FORMS.md`, `notes/T06/
 cards T06, T06B, T06C, T06D. T7: `cards/T07/` (2 cards) and `notes/T07/UCI_EDGE_CASES.md`. T12: `notes/T12/PROTOCOLS.md`,
 `notes/T12/sprt_model.md`, cards T12 / T12B, the checklist card `cards/T12/T12-03-bench-fuzz-checklist.md`.
 
-FINAL finished 07:04 PC clock (from `date`).
+Text of 06:09-07:04 finished 07:04 PC clock (from `date`); last round in progress from 07:23 (see the state line).

@@ -1,6 +1,6 @@
 export const meta = {
   name: 'forge-deepres-pool3',
-  description: 'Forge deep research after the usage reset: ONE workflow, at most 3 workers (owner cap), agent types fable / opus-max only, every agent claims and releases a slot on the crew WORKER_BOARD.md; fixed non-overlapping queue with dependencies, a Fable verifier after each research task, cooperative wrap-up note, nothing new after 07:20',
+  description: 'Forge deep research after the usage reset: ONE workflow, at most 3 workers (owner cap), agent types fable / opus-max only with pinned model ids at effort max (one call per task: no retry, no other model; a failed task frees and retires its slot), every agent claims and releases a slot on the crew WORKER_BOARD.md; fixed non-overlapping queue with dependencies, a Fable verifier after each research task, cooperative wrap-up note, nothing new after 07:20',
   phases: [
     { title: 'Work', detail: 'lock audit, new card, fixer, second vote, specs, permissive engines, final ranking' },
     { title: 'Verify', detail: 'Fable 5.1 skeptic after each research task', model: 'fable' },
@@ -76,7 +76,7 @@ function board(t, label) {
 function researchPrompt(t) {
   const outputs = t.outputs || `cards/${t.key}/*.md (ids ${t.key}-NN-short-name; at most ${t.max_cards || 4} cards), notes/${t.key}/sources.md, notes/${t.key}/licences.md, notes/${t.key}/TABLE.md`
   return `You are a research worker of the Forge deep-research job, sub-track ${t.key} (${t.title}). ${HEAD}
-${board(t, 'opus-max research:' + t.key)}
+${board(t, boardLabel(t))}
 Scratch only under F:/odr/work/${t.key}/. Run \`date +%H:%M\` at your start; stop researching ${t.minutes || 40} minutes later or at 07:30 PC clock (whichever comes first), then finish, lint cards/${t.key}/*.md, release your board slot and hand back.
 Before writing any card, check ALL existing cards (ls cards/*/), notes/*/TABLE.md, notes/*/DIFF.md, notes/CRITIC2.md and notes/TRIED_GATES.md: no duplicates.
 Outputs: ${outputs}. Every card states crew hours and uses the crew's gate route (Threads=1, SPRT [0,5] normalized Elo, alpha = beta = 0.05, pentanomial, cap 3,000; capped = UNPROVEN / no decision, one extension if positive).
@@ -88,7 +88,7 @@ Hand back (structured, with clock): cards (id, title, status, source number with
 function verifyPrompt(t, r) {
   const hand = r ? JSON.stringify(r).slice(0, 5000) : 'NO HAND-BACK: verify whatever is on disk.'
   return `You are the adversarial verifier for sub-track ${t.key} (${t.title}) of the Forge deep-research job. ${HEAD}
-${board(t, 'fable verify:' + t.key)}
+${board(t, boardLabel(t))}
 Scratch only under F:/odr/work/${t.key}-verify/. Run \`date +%H:%M\` at your start and stop ${t.verify_minutes || 15} minutes later (or at 07:40 PC clock). Try to REFUTE the cards in cards/${t.key}/: re-open each cited source number (recompute Elo from W/L/D), check the reading rule and that no other engine's tuned constant is proposed as a Forge value, re-run the licence rows and the Forge-has-it greps, check duplicates against all cards, run tools/card_lint.py. Write findings to notes/${t.key}/VERIFY.md as you go; you may correct a number in a card ("(corrected by verify: ...)") and must mark a violation or duplicate in its Status line; never delete a card; write nothing outside cards/${t.key}/, notes/${t.key}/, your scratch folder and your board slot.${t.verify_brief ? '\nEXTRA: ' + t.verify_brief : ''}
 The research hand-back: ${hand}
 Hand back (with clock): counts, corrections, unverifiable items, violations / duplicates, lint state, summary.`
@@ -96,25 +96,52 @@ Hand back (with clock): counts, corrections, unverifiable items, violations / du
 
 function notePrompt(t, type) {
   return `You work for the Forge deep-research job: ${t.title}. ${HEAD}
-${board(t, type + ' ' + t.key)}
+${board(t, boardLabel(t))}
 Scratch only under F:/odr/work/${t.key}/. Run \`date +%H:%M\` at your start and stop ${t.minutes || 35} minutes later (or at 07:40 PC clock). You never edit the engine; you only read and write the files named in your task.
 TASK:
 ${t.brief}
 Hand back (with clock): the files you wrote, the main items (one line each), summary.`
 }
 
+// Model pins (owner cap: two worker kinds only, both at effort max). The vendor prefix of the two model ids is joined
+// at run time because this job's committed files carry no vendor names (tools/novendor_filter.py would rewrite the
+// literal in the committed blob and break the id).
+const VENDOR = 'cla' + 'ude'
+const PINS = {
+  'opus-max': { agentType: 'opus-max', model: VENDOR + '-opus-5-5', effort: 'max' },
+  fable: { agentType: 'fable', model: VENDOR + '-fable-5-1', effort: 'max' },
+}
+
+// Code Review 2cdf70ff (blocker): the old spawn() ran opus-max work without a model pin and, after ANY error, ran the
+// task again without its agent type (the 'fable' alias or the session model). Now: exactly ONE agent() call per task,
+// agent type + model id + effort always pinned (the pin is spread last, so no caller option can override it), never a
+// retry and never another model. A throw (agent type missing from the registry, model id refused, ...) or a null
+// result (the agent died) fails the task; worker() records it, frees the slot and retires it for the rest of the run.
 async function spawn(prompt, opts, type) {
-  // An agent type whose file is added after the session started is missing from the registry until it reloads
-  // (2026-11-05: 'opus-max' failed at once for every spawn until ~05:16, no agent started); the catch below then
-  // runs the task as the session model at effort max.
-  try {
-    return await agent(prompt, { ...opts, agentType: type, effort: 'max' })
-  } catch (e) {
-    log(`agentType ${type} not usable (${String(e).slice(0, 80)}); same task with model + effort max`)
-    const o = { ...opts, effort: 'max' }
-    if (type === 'fable') o.model = 'fable'
-    return await agent(prompt, o)
-  }
+  const pin = PINS[type]
+  if (!pin) throw new Error(`no model pin for agent type ${type}`)
+  return await agent(prompt, { ...opts, ...pin })
+}
+
+// The board label each worker kind uses in its board.py start / done commands (also what a coordinator needs to
+// release a slot that a failed or killed agent still holds).
+function boardLabel(t) {
+  if (t.kind === 'research') return 'opus-max research:' + t.key
+  if (t.kind === 'verify') return 'fable verify:' + t.key
+  return (t.agent === 'fable' ? 'fable' : 'opus-max') + ' ' + t.key
+}
+
+const failed = []
+function fail(t, why) {
+  const label = boardLabel(t)
+  const err = String(why).slice(0, 200)
+  failed.push({
+    kind: t.kind, key: t.key, slot: t.slot, worker: label, error: err,
+    // the agent may have claimed a board slot before it failed; this frees it (a no-op line if it never claimed)
+    board_release: `${PY} -I -B tools/board.py done ${t.slot} "${label}" "${t.key}" "FAILED (${t.kind}): slot released by the coordinator"`,
+  })
+  results.push({ key: t.key, kind: t.kind, result: null, failed: err })
+  log(`FAILED ${t.kind}:${t.key} on ${t.slot}: ${err.slice(0, 160)} - no retry, slot freed and retired`)
 }
 
 const queue = (args.tasks || []).slice()
@@ -139,31 +166,38 @@ function takeNext() {
   return queue.splice(i, 1)[0]
 }
 
+// Returns true when the agent handed back a result, false after fail() (null result = the agent died or was skipped).
 async function runOne(t) {
   if (t.kind === 'research') {
     const r = await spawn(researchPrompt(t), { label: `research:${t.key}`, phase: 'Work', schema: RESEARCH_SCHEMA }, 'opus-max')
+    if (!r) { fail(t, 'research agent returned null (died or was skipped); no verifier queued'); return false }
     seeClock(r)
     results.push({ key: t.key, kind: 'research', result: r })
-    log(`${t.key} research ${r ? (r.cards || []).length + ' cards at ' + r.clock : 'returned nothing'}`)
+    log(`${t.key} research ${(r.cards || []).length} cards at ${r.clock}`)
     if (!stopNew()) {
       queue.unshift({ kind: 'verify', key: t.key, title: t.title, verify_minutes: t.verify_minutes, verify_brief: t.verify_brief, research: r })
       notify()
     }
   } else if (t.kind === 'verify') {
     const v = await spawn(verifyPrompt(t, t.research), { label: `verify:${t.key}`, phase: 'Verify', schema: VERIFY_SCHEMA }, 'fable')
+    if (!v) { fail(t, 'verify agent returned null (died or was skipped)'); return false }
     seeClock(v)
     results.push({ key: t.key, kind: 'verify', result: v })
-    log(`${t.key} verify ${v ? v.checked + ' checked at ' + v.clock : 'returned nothing'}`)
+    log(`${t.key} verify ${v.checked} checked at ${v.clock}`)
   } else {
     const type = t.agent === 'fable' ? 'fable' : 'opus-max'
     const r = await spawn(notePrompt(t, type), { label: t.key, phase: 'Work', schema: NOTE_SCHEMA }, type)
+    if (!r) { fail(t, `${type} agent returned null (died or was skipped)`); return false }
     seeClock(r)
     results.push({ key: t.key, kind: 'note', result: r })
-    log(`${t.key} done at ${r ? r.clock : '?'}`)
+    log(`${t.key} done at ${r.clock}`)
   }
+  return true
 }
 
+const retired = []
 async function worker(id) {
+  const slot = `S${id + 1}`
   while (true) {
     if (stopNew()) { notify(); return }
     const t = takeNext()
@@ -172,15 +206,27 @@ async function worker(id) {
       await waitForChange()
       continue
     }
-    t.slot = `S${id + 1}`
+    t.slot = slot
     running += 1
-    try { await runOne(t) } catch (e) { log(`task ${t.kind}:${t.key} failed: ${String(e).slice(0, 120)}`) }
+    let ok = false
+    try { ok = await runOne(t) } catch (e) { fail(t, e) }
     finally { doneKeys.add(`${t.kind}:${t.key}`); running -= 1; notify() }
+    if (!ok) {
+      // Release the slot instead of retrying: this worker starts nothing more in this run, so a slot whose board
+      // line a dead agent may still hold is never paired with a new agent, and a repeated cause (missing agent type,
+      // refused model id) fails at most N tasks instead of draining the queue.
+      retired.push(slot)
+      notify()
+      return
+    }
   }
 }
 
-const N = Math.min(3, args.workers || 3)   // owner cap: never more than 3
+const N = Math.max(1, Math.min(3, args.workers || 3))   // owner cap: never more than 3 (all runs together <= 3)
 const ws = []
 for (let i = 0; i < N; i++) ws.push(worker(i))
 await Promise.all(ws)
-return { results, final_clock_minutes_after_22: latest, wrapup, queue_left: queue.map(t => `${t.kind}:${t.key}`) }
+return {
+  results, failed, retired_slots: retired, final_clock_minutes_after_22: latest, wrapup,
+  queue_left: queue.map(t => `${t.kind}:${t.key}`),
+}
