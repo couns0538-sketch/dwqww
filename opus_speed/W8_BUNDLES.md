@@ -1,4 +1,4 @@
-# W8 bundles: T12B-01 + AVX512 NNUE switches on top of trial_w6 (follow-up, 2026-11-05 from 17:00 PC clock)
+# W8 bundles: T12B-01 + AVX512 NNUE switches on top of trial_w6 (follow-up, 2026-11-05, logged 17:30-17:53 PC clock)
 
 Brief (owner, leftover usage): add QA's two separately timed bit-exact winners as default-0 build switches,
 build bundles (a)-(d) with the existing speed_pack / LTO+PGO path (lp_v1 = QA kit v2.3 lines, `-Twice`, pc1 = pc2) on
@@ -40,7 +40,21 @@ Source `F:/ospd/src/trial_w8`. `speed_pack.ps1 -Quick -SkipAbba`; each pack flip
 
 | bundle | switches on | exe sha256 | pins: L1 net on + off d11/13/16/20/22, L2 perft 5 x2 | extra: L3 2,000 FENs d13, L4 sanitizers |
 |---|---|---|---|---|
-| (a) `bundle_a_w6_t12b` | the six (TT_NOTLS, NZM=2, SPEED2, PREFETCH_EARLY, SLIDER_PEXT, NNUE_ZMM) + T12B_BADCAP | (pending) | (pending) | (pending) |
-| (b) `bundle_b_w6_avx512` | five (ZMM dropped) + NNUE_AVX512 | (pending) | (pending) | (pending) |
-| (c) `bundle_c_t12b_avx512` | T12B_BADCAP + NNUE_AVX512 (none of the six) | (pending) | (pending) | (pending) |
-| (d) `bundle_d_w6_t12b_avx512` | five (ZMM dropped) + T12B_BADCAP + NNUE_AVX512; started after (a)-(c) had a verdict | (pending) | (pending) | (pending) |
+| (a) `bundle_a_w6_t12b` | the six (TT_NOTLS, NZM=2, SPEED2, PREFETCH_EARLY, SLIDER_PEXT, NNUE_ZMM) + T12B_BADCAP | `3f3e734416a17f9f16ecc0dd68d5acfb2fe8dd3fb39137f3a6a7a9d2adf7818d` | **PASS**: L1 10 / 10, L2 2 / 2 | L3 2,000 / 2,000 PASS; L4 MSVC ASan 2587341 (= lock source under ASan) + UBSan 3024920, 0 reports, PASS |
+| (b) `bundle_b_w6_avx512` | five (ZMM dropped) + NNUE_AVX512 | `e005003b04f5fc03c4e9b021d6b91906fcd5df6097e292895c8b4b4ff715d1da` | **PASS**: L1 10 / 10, L2 2 / 2 | L3 2,000 / 2,000 PASS; L4 ASan + UBSan PASS |
+| (c) `bundle_c_t12b_avx512` | T12B_BADCAP + NNUE_AVX512 (none of the six) | `a30dd384607e14a80e12a424e8fff9f44a89716de0a93466ed955854b71e085b` | **PASS**: L1 10 / 10, L2 2 / 2 | L3 2,000 / 2,000 PASS; L4 ASan + UBSan PASS |
+| (d) `bundle_d_w6_t12b_avx512` | five (ZMM dropped) + T12B_BADCAP + NNUE_AVX512; started after (a)-(c) had a verdict (17:48:53) | `ad0611a0c59ee07b16b546457e9447fd406249392466c55ca100606ef97291c0` | **PASS**: L1 10 / 10, L2 2 / 2 | L3 2,000 / 2,000 PASS; L4 ASan + UBSan PASS |
+
+Every pack's facts:
+- Built twice with pc1 = pc2: same sha256, quick pins OK on both sides.
+- speed_pack confirmed `lock + trial_w8.patch = the built source` (md5 ba7f733f).
+- Verdict `BIT-EXACT (L1-L4; L3 on 2000 FENs = quick subset)`.
+
+Pin values: net on 312866 / 862329 / 3024920 / 12389307 / 34048354, net off 375354 / 907205 / 2448617 / 13573040 / 24506465, perft 5 startpos 4865609 and kiwipete 193690690. The bundles equal the lock on every one.
+
+Records:
+- packs: `F:\ospd\packs\bundle_*` (SUMMARY.md, signature.txt, `bitexact\bitexact.log`, `src_kit`);
+- candidate files: `opus_speed/candidates/bundle_*.md`;
+- chain log: `F:\ospd\logs\w8_chain.out`.
+
+**No ABBA and no lock.** Speed is UNPROVEN until QA times the bundles. The skill's lock path also needs L3b warm-table identity, a Threads 2-4 smoke and QA's re-time, and none of these ran here.

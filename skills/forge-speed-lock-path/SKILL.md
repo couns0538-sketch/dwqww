@@ -68,6 +68,16 @@ Rules first:
   <reason>` and keeps its position, so "illegal" test FENs are checked as identical rejections.
 
 ## Pitfalls hit while building these tools
+- (W8, 2026-11-05) Start these PS 5.1 tools from the **Bash tool** (`powershell.exe -NoProfile -ExecutionPolicy Bypass
+  -File ...`), never from the agent's PowerShell tool. Launched from there, `Start-OspdEngine` engines never see `uci` and
+  exit 0 when stdin closes. build_variants then fails at its quick pins with `engine timeout after 60 s`, although the
+  exe is fine (the w8sw0 exe was the lock's exact bytes). From Git Bash the same script gets `uciok` in 0.11 s.
+  Engine-free `g++ -E` checks work from either shell, but need `C:\msys64\ucrt64\bin` on PATH (without it g++ exits 1
+  silently).
+- (W8) Two switches that rewrite the same lines (NNUE_ZMM and NNUE_AVX512 share the output kernel and two alignas lines):
+  make the shared lines `#if A || B` and add `#if A && B` -> `#error`, so a bundle cannot double-apply them.
+  Equality with a source QA timed: `g++ -E -P` with the kit flags, blank lines stripped, then diff the code after the
+  first own line (system-header blocks move when includes are ordered differently).
 - (follow-up) Python's `time.monotonic()` ticks in ~15.6 ms on Windows (a latency once printed -15 ms): time UCI answers
   with `time.perf_counter()` read before the command goes out.
 - (follow-up) Any `g++ -E` or compile check of a SLIDER_PEXT source needs the build's `-march=znver5`, or the source's
