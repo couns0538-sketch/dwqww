@@ -37,15 +37,21 @@ Owner Couns. Brief = the leftover /plan of 2026-11-06 (jobs 1-4; this is job 4).
   - Both spins are advertised as specified.
   - d11 329842, d13 936622 (!= 862329), d16 3034926, d20 **12816428**, d22 34919651.
 
+- P3, identity bit-exact (`logs/bx_id.log`): **BIT-EXACT** L1-L3. Net on + off d11-d22 = pins, perft = pins,
+  2,000 / 2,000 FENs.
+- P4, gate OFF at the defaults, started 03:39:50 (`logs/bx_gate_off.log`): **BIT-EXACT** L1-L3 vs trial_w6.
+- P5: README.md (gate line, CR notes, rebuild), BENCH.md, IDEA_SOURCE.md, logs.
+- **Pack milestone: READY FOR CODE REVIEW.**
+
 ## In progress
-- `bitexact_check -Quick -SkipSan` of the identity exe and of the gate exe at its defaults ->
-  `F:\ospd\nmp_tt_capture\out\bx_id`, `bx_gate_off`.
+- Nothing. The pack waits for Code Review. All four jobs of the brief are done.
 
 ## Exact next step
-1. Record both bit-exact verdicts in BENCH.md and here.
-2. Mark the pack READY FOR CODE REVIEW and push.
-3. Then Code Review. QA / Strength run the SPRT with `setoption name NmpTtCaptureMin value 4` vs trial_w6. Variant B
-   comes only after A's H0 / cap <= 0.
+Code Review of this pack: the patch (above all the `is_pseudo_legal`-before-victim order), BENCH.md and README.md. After
+CR, QA / Strength run the SPRT:
+- cand = the gate exe with `setoption name NmpTtCaptureMin value 4`;
+- base = trial_w6 4181A589;
+- variant B only after A's H0 / cap <= 0.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-nmp-tt-capture-20261105 && git -C /f/ospd/wt log --oneline -3`
