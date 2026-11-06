@@ -6,25 +6,43 @@
 #      .md / .txt / .tsv pass through the 'novendor' clean filter on commit);
 #   2. ctrl_char_check on everything (no BEL / BS / FF bytes from collapsed backslashes);
 #   3. PowerShell 5.1 parse check of every .ps1.
-# Then: stage opus_speed/ and skills/, unstage bytecode caches, commit as couns0538-sketch (no trailer), push.
+# Then: stage the branch's folders, unstage bytecode caches, commit as couns0538-sketch (no trailer), push.
+# Branch-aware since 2026-11-06 (SingularNonCut job): the checked-out branch picks the staged folders and the literal
+# push line; any other branch exits 2 before anything is staged.
+#   opus-speed-20261105           -> opus_speed skills (unchanged)
+#   opus-singular-noncut-20261105 -> opus_singular_noncut opus_speed skills
 set -u
 MSG="$1"
 PY=C:/Users/Administrator/grok-pc/nnue/.venv/Scripts/python.exe
 cd /f/ospd/wt || exit 2
 [ -f "$MSG" ] || { echo "commit_push: no message file $MSG"; exit 2; }
+BR=$(git rev-parse --abbrev-ref HEAD)
+case "$BR" in
+  opus-speed-20261105) DIRS="opus_speed skills" ;;
+  opus-singular-noncut-20261105) DIRS="opus_singular_noncut opus_speed skills" ;;
+  *) echo "commit_push: branch '$BR' is not a branch of this script - nothing committed"; exit 2 ;;
+esac
+for d in $DIRS; do [ -d "$d" ] || { echo "commit_push: folder $d missing on $BR - nothing committed"; exit 2; }; done
 # modified, untracked AND already staged code files (review LOW 10)
-CODE=$( { git ls-files -mo --exclude-standard opus_speed skills; git diff --cached --name-only -- opus_speed skills; } | sort -u | grep -E '\.(ps1|py|sh)$' || true)
+CODE=$( { git ls-files -mo --exclude-standard $DIRS; git diff --cached --name-only -- $DIRS; } | sort -u | grep -E '\.(ps1|py|sh)$' || true)
 if [ -n "$CODE" ]; then
   $PY -I -B opus_speed/tools/name_lint.py $CODE > /f/ospd/tmp/lint_code.txt; rc=$?
   if [ $rc -ne 0 ]; then cat /f/ospd/tmp/lint_code.txt; echo "commit_push: vendor names in code files - not committed"; exit 1; fi
 fi
-$PY -I -B opus_speed/tools/ctrl_char_check.py opus_speed skills > /f/ospd/tmp/ctrl.txt; rc=$?
+$PY -I -B opus_speed/tools/ctrl_char_check.py $DIRS > /f/ospd/tmp/ctrl.txt; rc=$?
 if [ $rc -ne 0 ]; then cat /f/ospd/tmp/ctrl.txt; echo "commit_push: control bytes - not committed"; exit 1; fi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\ps_parse_check.ps1' -Dir 'F:\ospd\wt\opus_speed' > /f/ospd/tmp/parse.txt; rc=$?
 if [ $rc -ne 0 ]; then grep -v ': ok$' /f/ospd/tmp/parse.txt; echo "commit_push: PowerShell parse errors - not committed"; exit 1; fi
-git add -A opus_speed skills
+if [ "$BR" = opus-singular-noncut-20261105 ]; then
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\ps_parse_check.ps1' -Dir 'F:\ospd\wt\opus_singular_noncut' > /f/ospd/tmp/parse_snc.txt; rc=$?
+  if [ $rc -ne 0 ]; then grep -v ': ok$' /f/ospd/tmp/parse_snc.txt; echo "commit_push: PowerShell parse errors - not committed"; exit 1; fi
+fi
+git add -A $DIRS
 git restore --staged opus_speed/jobc/tools/__pycache__ 2>/dev/null || true
 if git diff --cached --quiet; then echo "commit_push: nothing to commit"; exit 0; fi
 git -c user.name=couns0538-sketch -c user.email=couns0538@gmail.com commit -q -F "$MSG" || exit 1
-git push -q -u origin opus-speed-20261105 || exit 1
+case "$BR" in
+  opus-speed-20261105) git push -q -u origin opus-speed-20261105 || exit 1 ;;
+  opus-singular-noncut-20261105) git push -q -u origin opus-singular-noncut-20261105 || exit 1 ;;
+esac
 echo "commit_push: $(git log --oneline -1)"
