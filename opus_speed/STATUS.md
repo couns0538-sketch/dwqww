@@ -65,3 +65,10 @@ profiles); packs stay in `F:\ospd\packs\h<N>_*`.
 | - | session A/A 3 trial_w6 vs itself (21:34-21:39) | - | - | 0.9924 [0.9683, 1.0081] sd 2.82 %, per-round range 8.36 % | 0.9902 [0.9703, 1.0010] sd 2.17 % | 4181a589 | NOT SANE: CPU 2 71-79 % and CPU 3 62-67 % busy before / after the run; the live trainer restarted 21:39:04 (new PID 9380, Idle, 0xF, ~190-200 % CPU) - not touched. Timing moved behind the H5-H9 CPU steps; A/A 4 first, A/A 5 brackets the block |
 | - | session A/A 4a (22:18-22:24, gate try 1) | - | - | 0.9982 [0.9735, 1.0191] sd 3.20 %, per-round range 11.34 % | 0.9966 [0.9815, 1.0133] sd 2.23 % | 4181a589 | NOT SANE: the trainer stopped ~22:19 (CPU 2 / 3 at 3 / 5 % at the start) and came back mid-run at ~190-200 % (new PIDs); the gate waits 8 min and tries again |
 | - | session A/A 4b (22:32-22:37, gate try 2) | - | - | 0.9898 [0.9624, 1.0094] sd 3.33 %, per-round range 12.58 % | 0.9957 [0.9579, 1.0096] sd 3.67 % | 4181a589 | NOT SANE with the trainer steady at ~190-220 % (no restart in the run): the current trainer regime itself makes CPU 2 timing noisy (~3 % / round) |
+
+### Quiet window (QA update, Couns-approved, received 22:57 PC clock): NNUE training, gates and self-play paused for this hunt
+CPUs 0-6 + GPU free for the hunt until usage runs out. Timing stays on CPU 2 with its SMT sibling CPU 3 idle (one
+ABBA at a time, no other own load beside it), strict protocol (d20, 10 rounds, A/A gate with the normal rule first).
+Large pages: probe 6 / 6 OK at 22:57 (0.19-2.5 ms) -> H1 / H7 get timed (probe repeated right before each). "DONE-QUIET"
+is written here when the hunt ends or usage is nearly out, so QA restarts production.
+| - | H2 run 1 (22:51-22:56, before the pause took effect: cpu2 / 3 78 / 72 % at the start) | - | - | 1.0048 [0.9784, 1.0271] sd 3.39 % | 1.0047 [0.9946, 1.0248] sd 2.09 % | 8c3f2747 | information (taken next to a failed A/A); runs.csv 77ccf5f5 |

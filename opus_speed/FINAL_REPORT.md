@@ -470,6 +470,8 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | H1 run 1 | 21:39-21:45 | 72 / 70 -> 100 / 100 % | 1.0139 [0.9886, 1.0304] 2.90 % | 1.0104 [0.9891, 1.0183] 2.03 % | NO-WIN / NO-WIN (fallback path, see below) | b9d82cba |
 | A/A 4a (gate try 1) | 22:18-22:24 | 3 / 5 -> 83 / 86 % (trainer restart mid-run) | 0.9982 [0.9735, 1.0191] 3.20 % (range 11.34 %) | 0.9966 [0.9815, 1.0133] 2.23 % | NOT SANE | (aa_w6_d20_s4a) |
 | A/A 4b (gate try 2) | 22:32-22:37 | 62 / 61 -> 76 / 70 % (trainer steady ~190-220 %) | 0.9898 [0.9624, 1.0094] 3.33 % (range 12.58 %) | 0.9957 [0.9579, 1.0096] 3.67 % | NOT SANE | (aa_w6_d20_s4b) |
+| A/A 4c (gate try 3) | 22:45-22:51 | 69 / 61 -> 90 / 96 % | 1.0065 [0.9833, 1.0275] 3.07 % (range 10.38 %) | 0.9977 [0.9879, 1.0103] 1.56 % | NOT SANE (gate exhausted) | (aa_w6_d20_s4c) |
+| H2 run 1 | 22:51-22:56 | 78 / 72 -> 13 / 2 % (QA pause took effect) | 1.0048 [0.9784, 1.0271] 3.39 % | 1.0047 [0.9946, 1.0248] 2.09 % | NO-WIN / NO-WIN (information: next to a failed A/A) | 77ccf5f5 |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
@@ -496,3 +498,6 @@ Notes:
 - H1 / H7: allocation only; failure leaves the lock's allocation and contents; no output.
 - H4 / H9: proven by their harness / static_assert; H4 needs SLIDER_PEXT (#error otherwise).
 No issue found. The H6 verify copy and the H1 large-page verify copy are scratch builds outside the patches.
+- 22:5x: QA paused NNUE training, gates and self-play for this hunt (Couns-approved; CPUs 0-6 + GPU free until usage
+  runs out). From then on: A/A gate with the normal rule, then fresh 10-round ABBAs of every pack on CPU 2 with CPU 3
+  idle, one at a time. Large pages were available again at 22:57 (probe 6 / 6 OK), so H1 / H7 are timed.
