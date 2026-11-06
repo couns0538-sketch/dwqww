@@ -105,11 +105,18 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
     changes): the tool exits 3 on the expected extra `uci` option line. With that one line dropped, the transcripts
     are IDENTICAL (12,829 lines). So runtime 0 = trial_w6 with warm tables too (`logs/warm_gate_off.txt`).
 
+- Threads 2 ON smoke: **NOT RUN**. `smoke_run.ps1 -Mask 0xF -Concurrency 1 -Threads 2 -Rounds 10` refused to start
+  at 02:40:56 on its own disk gate: "D: has 43.1 GB free (< 50.3)".
+  - `smoke_run.ps1` now takes `-Threads` and checks that concurrency x Threads fits the mask's CPUs.
+  - Since then nothing of this job writes to D:; this commit's message file is on F:\ospd\tmp.
+- **Owner item, D: space.** This job's folder `D:\opus_singular_noncut` is 303 MB, mostly written before 02:04. Yet
+  the crew's `D:\grok-pc-data\disk_guard.log` shows D: free 53.37 (02:04) -> 50.47 (02:14) -> 46.14 (02:24) ->
+  43.21 GB (02:34), about 3-4 GB per 10 min, and `df` read 42 GB at 02:41. Another process writes ~20 GB/h to D:.
+  Not touched (not mine); the guard's own target is 40 GB and its floor 30 GB.
+
 ## In progress
-- Threads 2 ON smoke, started 02:41: `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_t2 -Mask 0xF
-  -Concurrency 1 -Threads 2 -Rounds 10 -Srand 20261108`. 20 games, CPUs 0-3 Idle; the crew gate plays Threads 2.
-  `smoke_run.ps1` now takes `-Threads` and checks concurrency x Threads <= the mask's CPUs. Afterwards the job waits
-  for Code Review.
+- Nothing. The job waits for Code Review. Optional and owed: the Threads 2 ON smoke above, once D: is back above
+  50 GB, or with an owner-approved output drive.
 
 ## Exact next step
 Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
