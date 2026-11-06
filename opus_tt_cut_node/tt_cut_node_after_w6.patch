@@ -1,0 +1,79 @@
+diff -ruN trial_w6/include/forge/search.hpp tcn/include/forge/search.hpp
+--- trial_w6/include/forge/search.hpp	2026-11-06 03:18:30.061938200 -0800
++++ tcn/include/forge/search.hpp	2026-11-06 03:18:42.684632600 -0800
+@@ -20,6 +20,13 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++#ifndef FORGE_TT_CUT_NODE_DEPTH
++// Build switch, default 0 (= the parent's code, no new option). 1 adds the spin options TtCutNodeDepth (0-14,
++// default 0) and TtCutNodeForm (1-2, default 1): at depth <= TtCutNodeDepth a main-search TT cutoff also needs the
++// stored direction to match the node type (form 1: a cutoff at >= beta needs a cut node; form 2: both directions).
++#define FORGE_TT_CUT_NODE_DEPTH 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -263,6 +270,10 @@
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++#if FORGE_TT_CUT_NODE_DEPTH
++extern int TtCutNodeDepth;        // TT cutoffs at depth <= this need the node-type match (0 = off)
++extern int TtCutNodeForm;         // 1 = fail-high half, 2 = both halves (read only when TtCutNodeDepth > 0)
++#endif
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff -ruN trial_w6/src/search.cpp tcn/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-06 03:18:30.065946800 -0800
++++ tcn/src/search.cpp	2026-11-06 03:18:51.266746700 -0800
+@@ -62,6 +62,10 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++#if FORGE_TT_CUT_NODE_DEPTH
++int TtCutNodeDepth = 0;
++int TtCutNodeForm = 1;
++#endif
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +101,9 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++#if FORGE_TT_CUT_NODE_DEPTH
++        {"TtCutNodeDepth", &TtCutNodeDepth, 0, 14},              {"TtCutNodeForm", &TtCutNodeForm, 1, 2},
++#endif
+     };
+     return table;
+ }
+@@ -1134,12 +1141,26 @@
+     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+     ss->tt_pv = pv_node || (tt_hit && tte.pv());
+ 
++#if FORGE_TT_CUT_NODE_DEPTH
++    // TtCutNodeDepth > 0: at depth <= TtCutNodeDepth the cutoff also needs the stored direction to match the node
++    // type (non-PV nodes are null-window, so tt_score >= beta is the direction for all three bounds). Form 1: a
++    // cutoff at >= beta needs a cut node; form 2: (tt_score >= beta) == cut_node. A refused cutoff searches the node.
++    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
++        board.halfmove_clock() < 90 &&
++        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
++         (tt_bound == BoundUpper && tt_score <= alpha)) &&
++        (tune::TtCutNodeDepth == 0 || depth > tune::TtCutNodeDepth ||
++         (tune::TtCutNodeForm == 2 ? ((tt_score >= beta) == cut_node) : (tt_score < beta || cut_node)))) {
++        return tt_score;
++    }
++#else
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+          (tt_bound == BoundUpper && tt_score <= alpha))) {
+         return tt_score;
+     }
++#endif
+ 
+     // Static evaluation.
+     int eval;
