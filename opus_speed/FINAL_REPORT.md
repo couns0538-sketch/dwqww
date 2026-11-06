@@ -456,3 +456,24 @@ Skipped after reading the code / profile: moving quiets_tried / captures_tried o
 over 4 KB, so ___chkstk_ms (0.55 %) stays); a SIMD pick_best scan (PICKBEST's vectorised scan already lost, and a 64-byte
 load over fresh 8-byte stores would stall); int16 w1 (research: -1..+1 % for this net, rewrites the NNUE_ZMM input);
 pawn-cache entry layout (its probe is ~0.3 %).
+
+### 9.3 Timing vs trial_w6 (abba.ps1, d20, ABBA/BAAB alternating, fresh copies per round, CPU 2 BelowNormal)
+Definitions: "per-round range" = max - min of the 10 round ratios (B1 + B2) / (A1 + A2); an A/A is SANE when its
+median is within +-1.0 % and its per-round range <= 4.0 % (`tools/aa_sane.py`). Resolution: a 10-round run's 95 %
+half-width is about 2.26 x sd / sqrt(10) = 1.0 % at sd 1.4 % (A/A 2) and 2.1 % at sd 2.9 % (H1 run 1): under A/A 3
+conditions a true +2 % cannot reach WIN, so every result taken next to a failed A/A is information, not a verdict.
+| run | when (PC clock) | load cpu2 / cpu3 start -> end | wall B/A [95 %] sd | cpu B/A [95 %] sd | verdict wall / cpu | runs.csv md5 |
+|---|---|---|---|---|---|---|
+| A/A 1 | 20:42-20:47 | 38 / 36 -> 44 / 38 % | 0.9961 [0.9730, 1.0319] 4.10 % (range 11.72 %) | 0.9995 [0.9825, 1.0225] 2.79 % | NOT SANE | b3e7cd37 |
+| A/A 2 | 21:20-21:26 | 58 / 56 -> 72 / 58 % | 0.9945 [0.9828, 1.0026] 1.40 % (range 4.32 %) | 0.9968 [0.9891, 1.0022] 0.92 % | NOT SANE (range just over) | e7d0f995 |
+| A/A 3 | 21:34-21:39 | 71 / 62 -> 79 / 67 % | 0.9924 [0.9683, 1.0081] 2.82 % (range 8.36 %) | 0.9902 [0.9703, 1.0010] 2.17 % | NOT SANE | (aa_w6_d20_s3) |
+| H1 run 1 | 21:39-21:45 | 72 / 70 -> 100 / 100 % | 1.0139 [0.9886, 1.0304] 2.90 % | 1.0104 [0.9891, 1.0183] 2.03 % | NO-WIN / NO-WIN (fallback path, see below) | b9d82cba |
+Notes:
+- The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
+  0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
+  was the A/A's BelowNormal engine on CPU 2; free RAM 12.3 GB of 31.6 GB at 21:50 (the trainer's floor is 6 GB).
+- H1 / H7 (large pages) depend on the PC's memory state: the probe got 16 MB of 2 MB pages at 20:53, but at 21:51 every
+  request failed with ERROR_NO_SYSTEM_RESOURCES (1450) - in 5 / 5 fresh processes of a verify copy driven exactly as
+  abba.ps1 drives the exe (UCI searcher 32 MB + bench 1 16 MB + bench 20 16 MB) and in the standalone probe (each failed
+  attempt 3-14 ms). H1 run 1 therefore measured the silent fallback (4 KB pages), not large pages. Large-page ABBAs now
+  run only when the probe succeeds in the same step (runner v3 `abba_lp`).
