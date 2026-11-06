@@ -76,4 +76,6 @@ were not retimed or locked.
   `tools/commit_push.sh` keeps its PC-specific venv path (the commit gate).
 - Skill rows: `test_stack_poison.ps1 -Py`, and a new row for `test_cr_should_w8.ps1 -Py`. The user-scope mirror was
   copied (md5 56c55eba).
-- `tests/test_cr_637b.ps1` re-run after the default-lock change (o3 builds only, no ABBA): RUNNING at this push.
+- `tests/test_cr_637b.ps1` re-run after the default-lock change (o3 builds only, no ABBA; run 20261105-201312-4460,
+  20:13-20:14): **13 / 13 PASS**. T3 speed_pack on the mutant still exits 3 before any ABBA. T5b: the default lock
+  (now trial_w6) accepts the completed FEN. Output: `F:\ospd\logs\test_cr_637b_after_leftovers.out`.

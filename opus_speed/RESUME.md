@@ -68,8 +68,9 @@
 - 20:15 extras:
   - pin_check of the default lock exe: PASS.
   - test_stack_poison.ps1 takes `-Py`.
-  - `tests/test_cr_637b.ps1` re-run in the background (o3 builds on CPUs 0-1 Idle, no ABBA). Its output goes to
-    `F:\ospd\logs\test_cr_637b_after_leftovers.out`.
+  - `tests/test_cr_637b.ps1` re-run (o3 builds on CPUs 0-1 Idle, no ABBA): 13 / 13 PASS (20261105-201312-4460).
+    Output: `F:\ospd\logs\test_cr_637b_after_leftovers.out`.
+  - Nothing is running now.
 - State 20:10: leftover jobs 1-3 are DONE. Open for QA / owner:
   - L3b warm_identity, a Threads 2-4 soak and an independent ABBA vs trial_w6 before any lock;
   - the LOW notes in `CR_SHOULD_W8.md`.

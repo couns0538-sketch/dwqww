@@ -369,7 +369,9 @@ Details: `CR_SHOULD_W8.md`.
   - `pin_check` of the default lock exe trial_w6: PASS (bench d11-d22 + perft5 = the pin tables).
   - `tests/test_stack_poison.ps1` takes `-Py` / OSPD_PY.
   - Skill rows for both tests.
-  - `tests/test_cr_637b.ps1` re-run after the default-lock change: RUNNING at this push.
+  - `tests/test_cr_637b.ps1` re-run after the default-lock change: 13 / 13 PASS (20261105-201312-4460, o3 builds
+    only, no ABBA).
+  - Nothing of this follow-up is running.
 - Live lock trial_w6, 4181A589..., is not touched. KING_LINES and bundles a-d were not retimed or locked. No ABBA,
   soak, 12k or L3b ran.
 Owner items:

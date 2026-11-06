@@ -39,5 +39,6 @@ Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lo
   - pin_check of the default lock exe trial_w6: PASS (d11-d22 + perft5 = the pin tables).
   - test_stack_poison.ps1 takes `-Py`.
   - Skill rows added.
-  - test_cr_637b re-run: RUNNING (o3 builds, no ABBA). Details in `CR_SHOULD_W8.md`.
+  - test_cr_637b re-run: 13 / 13 PASS (20261105-201312-4460; o3 builds, no ABBA). Details in `CR_SHOULD_W8.md`.
+  - Nothing of the job is running.
 KING_LINES and bundles a-d were not retimed or locked.
