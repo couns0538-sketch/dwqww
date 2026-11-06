@@ -1,0 +1,80 @@
+diff -ruN trial_w6/include/forge/search.hpp ntc/include/forge/search.hpp
+--- trial_w6/include/forge/search.hpp	2026-11-06 03:19:23.546090100 -0800
++++ ntc/include/forge/search.hpp	2026-11-06 03:19:35.621386400 -0800
+@@ -20,6 +20,13 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++#ifndef FORGE_NMP_TT_CAPTURE_MIN
++// Build switch, default 0 (= the parent's code, no new option). 1 adds the spin options NmpTtCaptureMin (0-5,
++// default 0) and NmpTtCaptureSee (0-900, default 0): no null move when the TT move is a real capture of a piece of
++// type >= NmpTtCaptureMin, or (variant B) a capture with see_ge(tt_move, NmpTtCaptureSee).
++#define FORGE_NMP_TT_CAPTURE_MIN 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -263,6 +270,10 @@
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++#if FORGE_NMP_TT_CAPTURE_MIN
++extern int NmpTtCaptureMin;       // no NMP when the TT move captures a piece of this type or more (0 = off)
++extern int NmpTtCaptureSee;       // no NMP when the TT move is a capture with see_ge(move, this) (cp, 0 = off)
++#endif
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff -ruN trial_w6/src/search.cpp ntc/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-06 03:19:23.551110300 -0800
++++ ntc/src/search.cpp	2026-11-06 03:19:45.602084800 -0800
+@@ -62,6 +62,10 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++#if FORGE_NMP_TT_CAPTURE_MIN
++int NmpTtCaptureMin = 0;
++int NmpTtCaptureSee = 0;
++#endif
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +101,9 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++#if FORGE_NMP_TT_CAPTURE_MIN
++        {"NmpTtCaptureMin", &NmpTtCaptureMin, 0, 5},             {"NmpTtCaptureSee", &NmpTtCaptureSee, 0, 900},
++#endif
+     };
+     return table;
+ }
+@@ -1178,10 +1185,27 @@
+             return eval;
+         }
+         // Null move pruning.
++#if FORGE_NMP_TT_CAPTURE_MIN
++        // NmpTtCaptureMin / NmpTtCaptureSee > 0: no null move when the TT move is a real capture of a valuable piece
++        // (or one that passes see_ge). The TT move is checked with the lock's own is_pseudo_legal first (a colliding
++        // entry can carry another position's move); the victim is read and see_ge called only after that check.
++        // Appended last to the condition, so it runs only where NMP would otherwise run.
++        const auto nmp_tt_capture_block = [&]() {
++            if (tune::NmpTtCaptureMin <= 0 && tune::NmpTtCaptureSee <= 0) return false;
++            if (!tt_capture || !board.is_pseudo_legal(tt_move)) return false;
++            if (tune::NmpTtCaptureMin > 0 && piece_type(board.captured_piece(tt_move)) >= tune::NmpTtCaptureMin) return true;
++            return tune::NmpTtCaptureSee > 0 && board.see_ge(tt_move, tune::NmpTtCaptureSee);
++        };
++        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
++            board.has_non_pawn_material(board.side_to_move()) &&
++            !(tt_hit && tt_bound == BoundUpper && tt_score < beta) && !nmp_tt_capture_block()) {
++#else
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++#endif
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
