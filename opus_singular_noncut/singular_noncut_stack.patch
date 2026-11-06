@@ -1,0 +1,1069 @@
+diff -ruN lock/include/forge/bitboard.hpp snc/include/forge/bitboard.hpp
+--- lock/include/forge/bitboard.hpp	2026-11-06 01:30:37.043653200 -0800
++++ snc/include/forge/bitboard.hpp	2026-11-06 01:30:57.170254000 -0800
+@@ -4,6 +4,19 @@
+ #include <bit>
+ #include <cstdint>
+ 
++// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
++// are indexed with PEXT over the relevant mask (same table sizes, same attack
++// sets, another entry order; no magic search at start-up). Needs BMI2.
++#ifndef FORGE_SPD_SLIDER_PEXT
++#define FORGE_SPD_SLIDER_PEXT 0
++#endif
++#if FORGE_SPD_SLIDER_PEXT
++#if !defined(__BMI2__)
++#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
++#endif
++#include <immintrin.h>
++#endif
++
+ namespace forge {
+ 
+ using Bitboard = std::uint64_t;
+@@ -140,6 +153,16 @@
+ extern std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask;
+ extern std::array<Bitboard, 64> KingZoneMask;
+ 
++#if FORGE_SPD_SLIDER_PEXT
++struct Magic {
++    Bitboard mask = 0;
++    Bitboard* table = nullptr;
++
++    [[nodiscard]] std::size_t index(Bitboard occupancy) const {
++        return static_cast<std::size_t>(_pext_u64(occupancy, mask));
++    }
++};
++#else
+ struct Magic {
+     Bitboard mask = 0;
+     Bitboard magic = 0;
+@@ -150,6 +173,7 @@
+         return static_cast<std::size_t>(((occupancy & mask) * magic) >> shift);
+     }
+ };
++#endif
+ 
+ extern std::array<Magic, 64> RookMagics;
+ extern std::array<Magic, 64> BishopMagics;
+diff -ruN lock/include/forge/board.hpp snc/include/forge/board.hpp
+--- lock/include/forge/board.hpp	2026-11-06 01:30:37.043653200 -0800
++++ snc/include/forge/board.hpp	2026-11-06 01:30:57.170254000 -0800
+@@ -2,6 +2,12 @@
+ 
+ #include "forge/bitboard.hpp"
+ 
++// FORGE_SEARCH_SPEED2 (R14 build switch, default 0 = lock code): speed-only, node-identical search changes
++// (TT prefetch after every make, MovePicker history / piece hoist, table piece_type). See src/search.cpp.
++#ifndef FORGE_SEARCH_SPEED2
++#define FORGE_SEARCH_SPEED2 0
++#endif
++
+ #include <array>
+ #include <cassert>
+ #include <cstddef>
+@@ -11,6 +17,12 @@
+ #include <string_view>
+ #include <vector>
+ 
++#ifndef FORGE_SPD_PREFETCH_EARLY
++// Build switch, default 0 (= the lock's code): search prefetches the child's TT
++// cluster before make_move from Board::key_after where that key is cheap and exact.
++#define FORGE_SPD_PREFETCH_EARLY 0
++#endif
++
+ namespace forge {
+ 
+ enum Piece : int {
+@@ -31,11 +43,28 @@
+     Promotion = 32
+ };
+ 
++// Build switch (default 0 = the lock code). 1: Move has no default member
++// initialisers, so the move arrays and lists whose slots are always written
++// before they are read are no longer zero-filled at construction (Move{} and
++// Move::none() stay all-zero through value-initialisation). 2: in addition a
++// quiets-only generation mode for the move picker, which yields the same
++// quiet moves in the same order as the lock's full list after its filter.
++#ifndef FORGE_SPD_NO_ZERO_MOVELISTS
++#define FORGE_SPD_NO_ZERO_MOVELISTS 0
++#endif
++
+ struct Move {
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    std::uint8_t from;
++    std::uint8_t to;
++    std::uint8_t promotion;
++    std::uint8_t flags;
++#else
+     std::uint8_t from = 0;
+     std::uint8_t to = 0;
+     std::uint8_t promotion = 0;
+     std::uint8_t flags = 0;
++#endif
+ 
+     [[nodiscard]] bool operator==(const Move&) const = default;
+     [[nodiscard]] bool is_capture() const { return (flags & (Capture | EnPassant)) != 0U; }
+@@ -106,13 +135,30 @@
+     // is_legal() filters them. Captures-only generation also includes every
+     // quiet promotion, so search sees every material-changing move.
+     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++    // Quiets: the non-capturing, non-promoting moves of the full list in the
++    // same order. The bool entry stays for the lock's callers.
++    enum class GenMode : int { All, Captures, Quiets };
++    void generate_pseudo_legal(MoveList& moves, GenMode mode) const;
++    void generate_pseudo_legal(MoveList& moves, bool captures_only) const {
++        generate_pseudo_legal(moves, captures_only ? GenMode::Captures : GenMode::All);
++    }
++#else
+     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
++#endif
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     [[nodiscard]] bool has_legal_move() const;
+     [[nodiscard]] bool is_legal(const Move& move) const;
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++    // Key of the position after `move`, without making it (for an early TT
++    // prefetch). Returns true with the exact key, or false when an en-passant
++    // term could change it (an en-passant square now, an en-passant capture, or a
++    // double push next to an enemy pawn): then the caller prefetches after make_move.
++    [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
++#endif
+     [[nodiscard]] bool make_move(const Move& move, Undo& undo);
+     void unmake_move(const Move& move, const Undo& undo);
+     void make_null_move(NullUndo& undo);
+@@ -196,7 +242,16 @@
+ 
+ [[nodiscard]] constexpr bool is_white(Piece piece) { return piece >= WP && piece <= WK; }
+ [[nodiscard]] constexpr bool is_black(Piece piece) { return piece >= BP && piece <= BK; }
++#if FORGE_SEARCH_SPEED2
++namespace detail {
++// Piece type for every Piece value: Empty=0 -> 0, WP..WK=1..6 -> 1..6, BP..BK=7..12 -> 1..6. Entries 13..15 only pad
++// the table to 16 so the index mask stays in bounds; no valid Piece reaches them (same values as the modulo form).
++inline constexpr std::array<std::uint8_t, 16> PieceTypeTable{0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 0, 0, 0};
++} // namespace detail
++[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piece) & 15U]; }
++#else
+ [[nodiscard]] constexpr int piece_type(Piece piece) { return piece == Empty ? 0 : ((static_cast<int>(piece) - 1) % 6) + 1; }
++#endif
+ [[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }
+ [[nodiscard]] constexpr Piece make_piece(Color color, int type) {
+     return static_cast<Piece>((color == White ? 0 : 6) + type);
+diff -ruN lock/include/forge/nnue.hpp snc/include/forge/nnue.hpp
+--- lock/include/forge/nnue.hpp	2026-11-06 01:30:37.043653200 -0800
++++ snc/include/forge/nnue.hpp	2026-11-06 01:30:57.170254000 -0800
+@@ -21,6 +21,14 @@
+ constexpr float OutputScale = 4096.0F;   // quantisation of w2 / b2
+ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units of K/400 per centipawn
+ 
++// Build switch (default 0 = the lock code): 1 = the output layer runs one
++// AVX-512 register of 16 lanes per 16 hidden units (lane j = h mod 16, the
++// same per-lane order and the same final reduction as the 16-lane design in
++// src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
++#ifndef FORGE_SPD_NNUE_ZMM
++#define FORGE_SPD_NNUE_ZMM 0
++#endif
++
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -29,7 +37,12 @@
+ }
+ 
+ struct Accumulator {
++#if FORGE_SPD_NNUE_ZMM
++    // 64-byte alignment: the output kernel loads whole 512-bit registers.
++    alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
++#else
+     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
++#endif
+     bool valid = false;
+ };
+ 
+diff -ruN lock/include/forge/search.hpp snc/include/forge/search.hpp
+--- lock/include/forge/search.hpp	2026-11-06 01:30:37.043653200 -0800
++++ snc/include/forge/search.hpp	2026-11-06 01:31:03.522197600 -0800
+@@ -14,6 +14,18 @@
+ #include <thread>
+ #include <vector>
+ 
++#ifndef FORGE_SPD_TT_NOTLS
++// Build switch, default 0 (= the lock's code): the Worker that runs on the thread
++// holding the table's ExclusiveLease calls TT probe / store without lock_stripe.
++#define FORGE_SPD_TT_NOTLS 0
++#endif
++
++#ifndef FORGE_SINGULAR_NONCUT
++// Build switch, default 0 (= the parent's code, no new option). 1 adds the spin option
++// SingularNonCut (0-1, default 0); at 1 the singular verification search runs as a non-cut node.
++#define FORGE_SINGULAR_NONCUT 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -153,6 +165,20 @@
+     static thread_local const ExclusiveLease* active_lease_;
+     [[nodiscard]] bool has_exclusive_access() const;
+     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
++#if FORGE_SPD_TT_NOTLS
++    // One body per access with a compile-time "take the stripe lock" parameter.
++    // probe / store keep lock_stripe; probe_owned / store_owned run the same body
++    // without it and are only for the Worker on the lease's thread (tt_owned_).
++    friend class Worker;
++    template <bool TakeLock>
++    [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
++    template <bool TakeLock>
++    void store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                    bool pv, std::uint16_t halfmove_clock);
++    [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
++    void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                     bool pv, std::uint16_t halfmove_clock);
++#endif
+     mutable std::array<Stripe, StripeCount> stripes_{};
+     mutable std::mutex exclusive_gate_;
+     std::atomic<bool> exclusive_requested_{false};
+@@ -243,6 +269,9 @@
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++#if FORGE_SINGULAR_NONCUT
++extern int SingularNonCut;        // 1 = the singular verification search runs as a non-cut node (0 = off)
++#endif
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+@@ -311,6 +340,9 @@
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
++#if FORGE_SPD_TT_NOTLS
++    friend class Searcher;
++#endif
+ 
+     SharedSearchState& shared_;
+     int id_ = 0;
+@@ -337,6 +369,11 @@
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
+     bool aborted_ = false;
++#if FORGE_SPD_TT_NOTLS
++    // True only while Searcher::search runs this (main) worker on the thread that
++    // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
++    bool tt_owned_ = false;
++#endif
+     int seldepth_ = 0;
+     int root_depth_ = 0;
+     std::size_t root_history_index_ = 0;
+@@ -345,6 +382,17 @@
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
+ 
++#if FORGE_SPD_TT_NOTLS
++    // The six TT call sites of search / qsearch: one predictable branch per access.
++    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
++        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
++    }
++    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
++                  bool pv, std::uint16_t halfmove_clock) {
++        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++    }
++#endif
+     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+     [[nodiscard]] bool should_stop();
+diff -ruN lock/src/bitboard.cpp snc/src/bitboard.cpp
+--- lock/src/bitboard.cpp	2026-11-06 01:30:37.045664300 -0800
++++ snc/src/bitboard.cpp	2026-11-06 01:30:57.172263700 -0800
+@@ -60,6 +60,29 @@
+     std::uint64_t sparse() { return next() & next() & next(); }
+ };
+ 
++#if FORGE_SPD_SLIDER_PEXT
++// Every subset of the relevant mask has its own PEXT index in [0, 2^popcount(mask)),
++// so the tables stay dense with the lock's sizes; the entry order differs.
++void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
++    const auto& directions = rook ? RookDirections : BishopDirections;
++    std::size_t offset = 0;
++    for (int square = 0; square < 64; ++square) {
++        const Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(rank_of(square))) |
++                               ((FileABB | FileHBB) & ~file_bb(file_of(square)));
++        Magic& m = magics[static_cast<std::size_t>(square)];
++        m.mask = sliding_attack(directions, square, 0) & ~edges;
++        m.table = table + offset;
++        std::size_t size = 0;
++        Bitboard subset = 0;
++        do {
++            m.table[m.index(subset)] = sliding_attack(directions, square, subset);
++            ++size;
++            subset = (subset - m.mask) & m.mask;
++        } while (subset != 0);
++        offset += size;
++    }
++}
++#else
+ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
+     const auto& directions = rook ? RookDirections : BishopDirections;
+     static std::array<Bitboard, 4096> occupancies;
+@@ -106,6 +129,7 @@
+         offset += size;
+     }
+ }
++#endif
+ 
+ } // namespace
+ 
+diff -ruN lock/src/board.cpp snc/src/board.cpp
+--- lock/src/board.cpp	2026-11-06 01:30:37.043653200 -0800
++++ snc/src/board.cpp	2026-11-06 01:30:57.172263700 -0800
+@@ -422,6 +422,133 @@
+     return attackers_to(king, occupied()) & occupied(opposite(side_));
+ }
+ 
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++// The full list (All) emits pawn pushes, promotion pushes, pawn captures, en
++// passant, then for N, B, R, Q, K the targets (~own) in bit order with
++// captures and quiets interleaved, then castling. Quiets emits the pushes,
++// then the same piece loops over the empty squares only, then castling: the
++// subsequence of All that the move picker's filter keeps, in the same order.
++void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
++    const bool captures_only = mode == GenMode::Captures;
++    const bool quiets_only = mode == GenMode::Quiets;
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard own = occupied(us);
++    const Bitboard enemy = occupied(them);
++    const Bitboard occ = own | enemy;
++    const Bitboard empty = ~occ;
++    const int up = pawn_push_delta(us);
++
++    auto push = [&](int from, int to, std::uint8_t flags) {
++        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
++    };
++    auto push_promotions = [&](int from, int to, std::uint8_t flags) {
++        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
++                             static_cast<std::uint8_t>(flags | Promotion)});
++        for (const int promotion : {Rook, Bishop, Knight}) {
++            moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
++                                 static_cast<std::uint8_t>(flags | Promotion)});
++        }
++    };
++
++    const Bitboard pawns = pieces(us, Pawn);
++    const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
++    const Bitboard third = us == White ? Rank3BB : Rank6BB;
++    const Bitboard promoting = pawns & seventh;
++    const Bitboard regular = pawns & ~seventh;
++
++    if (!captures_only) {
++        Bitboard single = pawn_push(us, regular) & empty;
++        Bitboard twice = pawn_push(us, single & third) & empty;
++        while (single != 0) {
++            const int to = pop_lsb(single);
++            push(to - up, to, Quiet);
++        }
++        while (twice != 0) {
++            const int to = pop_lsb(twice);
++            push(to - 2 * up, to, DoublePush);
++        }
++    }
++    if (!quiets_only) {
++        Bitboard promo_push = pawn_push(us, promoting) & empty;
++        while (promo_push != 0) {
++            const int to = pop_lsb(promo_push);
++            push_promotions(to - up, to, Quiet);
++        }
++        Bitboard capturers = pawns;
++        while (capturers != 0) {
++            const int from = pop_lsb(capturers);
++            Bitboard targets = attacks::pawn(us, from) & enemy;
++            const bool promotes = (square_bb(from) & seventh) != 0;
++            while (targets != 0) {
++                const int to = pop_lsb(targets);
++                if (promotes) push_promotions(from, to, Capture);
++                else push(from, to, Capture);
++            }
++        }
++        if (ep_square_ >= 0) {
++            Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
++            while (ep_attackers != 0) {
++                push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
++            }
++        }
++    }
++
++    const Bitboard targets_mask = captures_only ? enemy : (quiets_only ? empty : ~own);
++    auto emit = [&](int from, Bitboard targets) {
++        while (targets != 0) {
++            const int to = pop_lsb(targets);
++            push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
++        }
++    };
++    Bitboard knights = pieces(us, Knight);
++    while (knights != 0) {
++        const int from = pop_lsb(knights);
++        emit(from, attacks::knight(from) & targets_mask);
++    }
++    Bitboard bishops = pieces(us, Bishop);
++    while (bishops != 0) {
++        const int from = pop_lsb(bishops);
++        emit(from, attacks::bishop(from, occ) & targets_mask);
++    }
++    Bitboard rooks = pieces(us, Rook);
++    while (rooks != 0) {
++        const int from = pop_lsb(rooks);
++        emit(from, attacks::rook(from, occ) & targets_mask);
++    }
++    Bitboard queens = pieces(us, Queen);
++    while (queens != 0) {
++        const int from = pop_lsb(queens);
++        emit(from, attacks::queen(from, occ) & targets_mask);
++    }
++    const int king = king_square(us);
++    emit(king, attacks::king(king) & targets_mask);
++
++    if (!captures_only && checkers_ == 0) {
++        if (us == White && king == 4) {
++            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
++                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
++                push(4, 6, KingCastle);
++            }
++            if ((castling_ & WhiteQueenSide) != 0U &&
++                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
++                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
++                push(4, 2, QueenCastle);
++            }
++        } else if (us == Black && king == 60) {
++            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
++                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
++                push(60, 62, KingCastle);
++            }
++            if ((castling_ & BlackQueenSide) != 0U &&
++                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
++                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
++                push(60, 58, QueenCastle);
++            }
++        }
++    }
++}
++#else
+ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+     const Color us = side_;
+     const Color them = opposite(us);
+@@ -538,6 +665,7 @@
+         }
+     }
+ }
++#endif
+ 
+ MoveList Board::pseudo_legal_moves(bool captures_only) const {
+     MoveList moves;
+@@ -716,6 +844,34 @@
+     return false;
+ }
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++bool Board::key_after(const Move& move, std::uint64_t& key) const {
++    // make_move's key terms in closed form (xor order does not matter). The
++    // en-passant terms need has_legal_en_passant_capture(): those cases return false.
++    if (ep_square_ >= 0 || (move.flags & EnPassant) != 0U) return false;
++    const Color us = side_;
++    if ((move.flags & DoublePush) != 0U &&
++        (attacks::pawn(us, (move.from + move.to) / 2) & pieces(opposite(us), Pawn)) != 0) {
++        return false;
++    }
++    const Piece moving = squares_[move.from];
++    // piece_key(square, Empty) is 0, so the captured term vanishes for a non-capture.
++    std::uint64_t next = key_ ^ piece_key(move.to, squares_[move.to]) ^ piece_key(move.from, moving);
++    next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : moving);
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
++        next ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
++    }
++    const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
++    next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;
++    key = next;
++    return true;
++}
++#endif
++
+ bool Board::make_move(const Move& move, Undo& undo) {
+     const Color us = side_;
+     const Color them = opposite(us);
+diff -ruN lock/src/nnue.cpp snc/src/nnue.cpp
+--- lock/src/nnue.cpp	2026-11-06 01:30:37.046668200 -0800
++++ snc/src/nnue.cpp	2026-11-06 01:30:57.172263700 -0800
+@@ -19,6 +19,13 @@
+ #include <immintrin.h>
+ #endif
+ 
++#if FORGE_SPD_NNUE_ZMM
++#if !defined(__AVX512F__)
++#error "FORGE_SPD_NNUE_ZMM=1 needs an AVX-512F target (the lock builds with -march=znver5)"
++#endif
++#include <immintrin.h>
++#endif
++
+ #if __has_include("nnue_weights.inc")
+ #include "nnue_weights.inc"
+ #define FORGE_HAS_NNUE 1
+@@ -46,7 +53,11 @@
+ struct Weights {
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
+     alignas(32) std::array<float, HiddenSize> b1{};
++#if FORGE_SPD_NNUE_ZMM
++    alignas(64) std::array<float, 2 * HiddenSize> w2{};
++#else
+     alignas(32) std::array<float, 2 * HiddenSize> w2{};
++#endif
+     float b2 = 0.0F;
+ };
+ 
+@@ -168,6 +179,27 @@
+     constexpr int Lanes = 16;
+     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+     alignas(64) float lanes[Lanes];
++#if FORGE_SPD_NNUE_ZMM
++    // One 512-bit register holds all sixteen lanes: lane j takes the hidden
++    // units h + j for h = 0, 16, 32, ... in increasing order, which is the
++    // lane order of the two 256-bit halves below (lane j of sums[j / 8]), and
++    // every term is formed with the same separate multiplies and additions in
++    // the same order, so each lane ends with the same bits as the AVX2 kernel.
++    {
++        const __m512 zero = _mm512_setzero_ps();
++        const __m512 one = _mm512_set1_ps(1.0F);
++        __m512 sum = zero;
++        for (int h = 0; h < HiddenSize; h += Lanes) {
++            const std::size_t base = static_cast<std::size_t>(h);
++            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(ours.data() + base), zero), one);
++            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(theirs.data() + base), zero), one);
++            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
++                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
++            sum = _mm512_add_ps(sum, term);
++        }
++        _mm512_store_ps(lanes, sum);
++    }
++#else
+ #if defined(__AVX2__)
+     const __m256 zero = _mm256_setzero_ps();
+     const __m256 one = _mm256_set1_ps(1.0F);
+@@ -209,6 +241,7 @@
+         }
+     }
+ #endif
++#endif
+     float out = w.b2;
+     for (int j = 0; j < Lanes; ++j) out += lanes[j];
+     const float centipawns = out * 400.0F / SigmoidK;
+diff -ruN lock/src/search.cpp snc/src/search.cpp
+--- lock/src/search.cpp	2026-11-06 01:30:37.046668200 -0800
++++ snc/src/search.cpp	2026-11-06 01:31:08.729453300 -0800
+@@ -62,6 +62,9 @@
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++#if FORGE_SINGULAR_NONCUT
++int SingularNonCut = 0;
++#endif
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -97,6 +100,9 @@
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++#if FORGE_SINGULAR_NONCUT
++        {"SingularNonCut", &SingularNonCut, 0, 1},
++#endif
+     };
+     return table;
+ }
+@@ -165,6 +171,20 @@
+     return value;
+ }
+ 
++#if FORGE_SEARCH_SPEED2
++// Quiet history of one move: main history row of the side to move plus the continuation history of the two
++// previous plies, summed in this order (= Worker::quiet_history).
++[[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
++                                           const PieceToHistory* cont1, const PieceToHistory* cont2, Piece piece,
++                                           Move move) {
++    const std::size_t p = static_cast<std::size_t>(piece);
++    int score = main[move.from][move.to];
++    if (cont1 != nullptr) score += (*cont1)[p][move.to];
++    if (cont2 != nullptr) score += (*cont2)[p][move.to];
++    return score;
++}
++#endif
++
+ std::string format_score(int score) {
+     if (is_mate_score(score)) {
+         const int distance = MateValue - std::abs(score);
+@@ -243,6 +263,87 @@
+     ++epoch_;
+ }
+ 
++#if FORGE_SPD_TT_NOTLS
++template <bool TakeLock>
++TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
++    TTCluster& cluster = cluster_for(key);
++    const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
++    // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
++    // back a deferred (unlocked) lock, after a thread_local lookup per call.
++    const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
++    auto snapshot = [&](const TTEntry& entry, bool hit) {
++        TTProbe result;
++        result.entry = entry;
++        result.hit = hit;
++        result.owner_ = this;
++        result.cluster_ = index;
++        result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
++        result.epoch_ = epoch_;
++        result.key_ = key;
++        return result;
++    };
++    const std::uint32_t key32 = verification_key(key);
++    for (TTEntry& entry : cluster.entries) {
++        if (entry.key32 == key32 && entry.occupied()) {
++            // Reused entries remain recent even when search returns a TT cutoff.
++            if (entry.generation() != generation_) {
++                entry.gen_bound = static_cast<std::uint8_t>(
++                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
++            }
++            return snapshot(entry, true);
++        }
++    }
++    const TTEntry* replace = &cluster.entries[0];
++    auto relative_age = [this](const TTEntry& entry) {
++        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
++    };
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return snapshot(entry, false);
++        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++    }
++    return snapshot(*replace, false);
++}
++
++TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
++
++TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
++    assert(has_exclusive_access());
++    return probe_body<false>(key);
++}
++
++template <bool TakeLock>
++void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                                    Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    // Reject default, foreign or lifecycle-stale handles without touching storage.
++    // Lifecycle operations themselves must not run concurrently with search.
++    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
++        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
++    const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
++    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    const std::uint32_t key32 = verification_key(key);
++    const bool same_position = entry->key32 == key32 && entry->occupied();
++    if (!move.is_none() || !same_position) entry->move = move;
++    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++        entry->key32 = key32;
++        entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
++        entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
++        entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
++        entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
++        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
++    }
++}
++
++void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                               Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++}
++
++void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
++                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
++    assert(has_exclusive_access());
++    store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
++}
++#else
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+@@ -300,6 +401,7 @@
+         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
+ }
++#endif
+ 
+ int TranspositionTable::hashfull() const {
+     int count = 0;
+@@ -447,16 +549,31 @@
+     std::array<Move, 2> killers_{};
+     Move counter_{};
+     Stage stage_;
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    // Every slot read is written first (moves_[index_ < count_], bad_captures_
++    // [bad_index_ < bad_count_], check_squares_[1..6] after init_check_squares):
++    // no zero fill at construction.
++    std::array<Scored, 256> moves_;
++#else
+     std::array<Scored, 256> moves_{};
++#endif
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    std::array<Move, 64> bad_captures_;
++#else
+     std::array<Move, 64> bad_captures_{};
++#endif
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+     MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    std::array<Bitboard, 7> check_squares_;
++#else
+     std::array<Bitboard, 7> check_squares_{};
++#endif
+ 
+     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+     void init_check_squares() {
+@@ -476,6 +593,30 @@
+         return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
+     }
+ 
++#if FORGE_SEARCH_SPEED2
++    // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and both continuation tables
++    // are fixed for one generation, so they are read once, and the moved piece once per move.
++    struct QuietScorer {
++        const std::array<std::array<std::int16_t, 64>, 64>& main;
++        const PieceToHistory* cont1;
++        const PieceToHistory* cont2;
++        const Board& board;
++
++        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
++            : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
++              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
++              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
++              board(b) {}
++
++        [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
++            const Piece piece = board.piece_at(move.from);
++            int value = quiet_history_sum(main, cont1, cont2, piece, move);
++            if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
++            return value;
++        }
++    };
++#endif
++
+     [[nodiscard]] static int move_score_threshold(Move) { return 0; }
+ 
+     [[nodiscard]] bool is_valid_quiet(Move move) const {
+@@ -512,8 +653,19 @@
+         board_.generate_pseudo_legal(buffer_, true);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const CaptureHistory& capture_history = *searcher_.capture_history_;
++#endif
+         for (const Move move : buffer_) {
++#if FORGE_SEARCH_SPEED2
++            const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
++            const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
++            int value = SeePieceValue[victim];
++            if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
++            int score = 10 * value + capture_history[moved][move.to][victim];
++#else
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
++#endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
+             moves_[count_++] = Scored{move, score};
+         }
+@@ -521,18 +673,49 @@
+     }
+ 
+     void generate_quiets() {
++#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
++        // The quiets-only list is the full list minus every capture and
++        // promotion, in the same order, so the filter is gone.
++        init_check_squares();
++        buffer_.clear();
++        board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
++        index_ = 0;
++        count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++        for (const Move move : buffer_) {
++            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++        }
++#else
++        for (const Move move : buffer_) {
++            int score = searcher_.quiet_history(board_, ss_, move);
++            if (direct_check(move)) score += 12000;
++            moves_[count_++] = Scored{move, score};
++        }
++#endif
++        sort_moves();
++#else
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++        for (const Move move : buffer_) {
++            if (move.is_capture() || move.is_promotion()) continue;
++            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++        }
++#else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+             moves_[count_++] = Scored{move, score};
+         }
++#endif
+         sort_moves();
++#endif
+     }
+ 
+     void generate_evasions() {
+@@ -541,13 +724,20 @@
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++#if FORGE_SEARCH_SPEED2
++        const QuietScorer scorer(board_, searcher_, ss_);
++#endif
+         for (const Move move : buffer_) {
+             int score;
+             if (move.is_capture() || move.is_promotion()) {
+                 score = 1'000'000 + 10 * capture_value(board_, move) -
+                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+             } else {
++#if FORGE_SEARCH_SPEED2
++                score = scorer.score(move, check_squares_);
++#else
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
++#endif
+             }
+             moves_[count_++] = Scored{move, score};
+         }
+@@ -702,6 +892,11 @@
+ }
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
++#if FORGE_SEARCH_SPEED2
++    return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
++                             ss != nullptr ? (ss - 1)->continuation : nullptr,
++                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move);
++#else
+     const Piece piece = board.moved_piece(move);
+     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+     if (ss != nullptr) {
+@@ -709,6 +904,7 @@
+         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+     }
+     return score;
++#endif
+ }
+ 
+ int Worker::capture_history_value(const Board& board, Move move) const {
+@@ -783,7 +979,11 @@
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+ 
++#if FORGE_SPD_TT_NOTLS
++    const TTProbe tt_probe = probe_tt(board.key());
++#else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
++#endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -814,7 +1014,11 @@
+         }
+         best_score = eval;
+         if (best_score >= beta) {
++#if FORGE_SPD_TT_NOTLS
++            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++#else
+             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
++#endif
+             return best_score;
+         }
+         if (best_score > alpha) alpha = best_score;
+@@ -837,6 +1041,11 @@
+             }
+             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
++#if FORGE_SPD_PREFETCH_EARLY
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ss->current_move = move;
+         ss->moved_piece = board.moved_piece(move);
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+@@ -844,7 +1053,12 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++#if FORGE_SPD_PREFETCH_EARLY
++        assert(!early_key || child_key == board.key());
++        if (!early_key) shared_.tt.prefetch(board.key());
++#else
+         shared_.tt.prefetch(board.key());
++#endif
+         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+         board.unmake_move(move, undo);
+         if (aborted_) return 0;
+@@ -865,7 +1079,11 @@
+     if (in_check && move_count == 0) return mated_in(ply);
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#if FORGE_SPD_TT_NOTLS
++    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++#else
+     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
++#endif
+     return best_score;
+ }
+ 
+@@ -907,7 +1125,11 @@
+     (ss + 2)->killers = {};
+ 
+     // Transposition table probe.
++#if FORGE_SPD_TT_NOTLS
++    const TTProbe tt_probe = probe_tt(board.key());
++#else
+     const TTProbe tt_probe = shared_.tt.probe(board.key());
++#endif
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+@@ -976,6 +1198,9 @@
+             record_null_move(ss);
+             NullUndo undo;
+             board.make_null_move(undo);
++#if FORGE_SEARCH_SPEED2
++            shared_.tt.prefetch(board.key());
++#endif
+             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+             board.unmake_null_move(undo);
+             if (aborted_) return 0;
+@@ -1013,6 +1238,9 @@
+                 record_move(ss, board, move);
+                 Undo undo;
+                 (void)board.make_move(move, undo);
++#if FORGE_SEARCH_SPEED2
++                shared_.tt.prefetch(board.key());
++#endif
+                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+                 if (value >= probcut_beta && !aborted_) {
+                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+@@ -1020,7 +1248,11 @@
+                 board.unmake_move(move, undo);
+                 if (aborted_) return 0;
+                 if (value >= probcut_beta) {
++#if FORGE_SPD_TT_NOTLS
++                    store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#else
+                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
++#endif
+                     return value;
+                 }
+             }
+@@ -1031,8 +1263,14 @@
+     if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 
+     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
++#if FORGE_SPD_NO_ZERO_MOVELISTS
++    // Read only below their counts (update_quiet_stats / update_capture_stats).
++    std::array<Move, 128> quiets_tried;
++    std::array<Move, 64> captures_tried;
++#else
+     std::array<Move, 128> quiets_tried{};
+     std::array<Move, 64> captures_tried{};
++#endif
+     int quiet_count = 0;
+     int capture_count = 0;
+     int best_score = -Infinite;
+@@ -1092,7 +1330,13 @@
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
++#if FORGE_SINGULAR_NONCUT
++            // SingularNonCut 1: the verification search runs as a non-cut node (0 = inherit cut_node).
++            const bool verify_cut = tune::SingularNonCut > 0 ? false : cut_node;
++            const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, verify_cut);
++#else
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
++#endif
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -1116,6 +1360,11 @@
+         ss->double_extensions = inherited_double_extensions + (extension == 2);
+         const int new_depth = depth - 1 + extension;
+ 
++#if FORGE_SPD_PREFETCH_EARLY
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ss->current_move = move;
+         ss->moved_piece = moved;
+         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+@@ -1123,7 +1372,12 @@
+         record_move(ss, board, move);
+         Undo undo;
+         (void)board.make_move(move, undo);
++#if FORGE_SPD_PREFETCH_EARLY
++        assert(!early_key || child_key == board.key());
++        if (!early_key) shared_.tt.prefetch(board.key());
++#else
+         shared_.tt.prefetch(board.key());
++#endif
+         const std::uint64_t nodes_before = local_nodes_;
+         std::size_t root_effort_index = 0;
+         if (root_node) {
+@@ -1211,7 +1465,11 @@
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
++#if FORGE_SPD_TT_NOTLS
++        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++#else
+         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
++#endif
+     }
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+@@ -1513,6 +1771,19 @@
+     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+         exclusive.emplace(shared_.tt);
+     }
++#if FORGE_SPD_TT_NOTLS
++    // This thread holds the lease (if one was taken) and runs the main worker
++    // below; helpers exist only without a lease. Saved and restored, so a throw
++    // or a nested search leaves the flag as it was.
++    struct TtOwnedScope {
++        Worker& worker;
++        const bool previous;
++        TtOwnedScope(Worker& w, bool owned) : worker(w), previous(w.tt_owned_) { worker.tt_owned_ = owned; }
++        ~TtOwnedScope() { worker.tt_owned_ = previous; }
++        TtOwnedScope(const TtOwnedScope&) = delete;
++        TtOwnedScope& operator=(const TtOwnedScope&) = delete;
++    } tt_owned_scope(*workers_.front(), exclusive.has_value());
++#endif
+     std::vector<std::thread> helpers;
+     for (std::size_t i = 1; i < workers_.size(); ++i) {
+         helpers.emplace_back([this, i, board, &worker_limits, &all]() {

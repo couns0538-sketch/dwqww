@@ -14,22 +14,44 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   `opus_singular_noncut opus_speed skills` and pushes this branch; on `opus-speed-20261105` it behaves as before.
 
 ## Done
-- S1 01:27-01:29: branch created; `commit_push.sh` branch-aware; `IDEA_SOURCE.md` (Caissa 1b7a871, MIT notice
-  verbatim); this file.
+- S1 01:27-01:30: branch created; `commit_push.sh` branch-aware; `IDEA_SOURCE.md` (Caissa 1b7a871, MIT notice
+  verbatim); this file. The first push 948e0334 carried only the script: the sparse checkout (`/opus_speed/`,
+  `/skills/`) skipped the new folder and the old script committed the rest anyway. Fixed in 12db033c:
+  `/opus_singular_noncut/` added to the sparse patterns, and `commit_push.sh` now exits 1 when `git add` fails or
+  leaves files unstaged.
+- S2 01:30-01:32, source + patch:
+  - D: copies: the lock copy passes `sha256sum -c lock_SOURCES.sha256` (20 / 20); both copies = the F: trees by
+    content; `diff -ruN lock trial_w6` = `opus_speed/patches/trial_w6.patch` (timestamps stripped, md5 9b9ea01b).
+  - The five edits in `D:\opus_singular_noncut\src\snc` (search.hpp + search.cpp only):
+    `singular_noncut_after_w6.patch` (md5 442bb4fb) and `singular_noncut_stack.patch` (vs the lock, md5 f22eccfd).
+  - Apply proofs: fresh lock copy + trial_w6.patch + after_w6.patch, and lock + stack.patch, both with
+    `patch -p1 -F0`: no offset, fuzz or reject; `diff -r` = `snc` for both.
+  - Preprocessor check (`logs/pp_neutrality.txt`): `g++ -E -P` with the kit flags + the six trial_w6 values, blank
+    lines stripped. Macro 0: all 8 units = trial_w6's token stream. Macro 1: search.cpp differs only by the extern,
+    the int, the table row and the call (`verify_cut`); uci.cpp only by the extern from search.hpp.
+  - `tools/snc_controls.sh` (01:32): `snc_id` = the six flipped (macro stays 0); `snc_gate` = the six + macro 1.
+    Every flip hit exactly one `#define X 0` line; no CR bytes (`logs/snc_controls.out.txt`).
 
 ## In progress
-- S2: source tree on D: (lock copy check, trial_w6 copy check, five edits), patches, apply proofs, preprocessor
-  neutrality check.
+- S3 builds, started 01:32-01:33 in parallel (each `build_variants.ps1` pins itself to CPUs 0-1 Idle; D: 54 GB free):
+  - identity `-SrcDir D:\opus_singular_noncut\src\snc_id -Tag snc_id -Variant lp_v1`;
+  - gate `-SrcDir D:\opus_singular_noncut\src\snc_gate -Tag snc_gate -Variant lp_v1 -Twice`;
+  - both with `-Work D:\opus_singular_noncut\build`; logs `D:\opus_singular_noncut\out\build_snc_*.out`.
 
 ## Exact next step
-Copy `F:\ospd\src\lock` and `F:\ospd\src\trial_w6` to `D:\opus_singular_noncut\src\`. Check the lock copy with
-`sha256sum -c F:/ospd/src/lock_SOURCES.sha256`. Check that `diff -ruN lock trial_w6 | md5sum` = 5786e9b8 (=
-`opus_speed/patches/trial_w6.patch`). Copy trial_w6 to `snc` and make the five edits from the plan.
+Identity: the `EXE lp_v1` line must show sha256 4181a589... (= trial_w6) and pins OK. Gate: `REPRO lp_v1 pc1 = pc2`
+and pins OK at default 0. Then S4: bitexact_check -Quick -SkipSan on the identity exe, and bitexact_check full 12k
+-SkipSan on the gate exe (reference cached, so nothing is written on F:); MCP pin_check with SingularNonCut=1.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
 - Push: write a message file under `D:\opus_singular_noncut\msg\`, then
   `bash /f/ospd/wt/opus_speed/tools/commit_push.sh <message file>`.
+- Rebuild the trees from git: copy `F:\ospd\src\lock` (check `lock_SOURCES.sha256`) to `D:\...\src\snc`, then
+  `patch -p1 -F0 < opus_singular_noncut/singular_noncut_stack.patch`, then `bash opus_singular_noncut/tools/snc_controls.sh`.
+- Builds (from Git Bash, never the PowerShell tool): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+  'F:\ospd\wt\opus_speed\tools\build_variants.ps1' -SrcDir 'D:\opus_singular_noncut\src\snc_id' -Tag <new tag>
+  -Variant lp_v1 -Work 'D:\opus_singular_noncut\build'` (gate: `snc_gate`, add `-Twice`); a new tag per run.
 
 ## Unproven claims
 - Any Elo effect of SingularNonCut=1 in Forge (card estimate 0 to +3 at STC; Caissa's +4.20 is Caissa's own result).

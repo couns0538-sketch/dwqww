@@ -1,0 +1,24 @@
+g++ -E -P (kit flags + six trial_w6 values), blank lines stripped, 2026-11-06 01:32:06
+bitboard.cpp macro 0 = trial_w6
+board.cpp macro 0 = trial_w6
+book.cpp macro 0 = trial_w6
+eval.cpp macro 0 = trial_w6
+eval_params.cpp macro 0 = trial_w6
+nnue.cpp macro 0 = trial_w6
+search.cpp macro 0 = trial_w6
+uci.cpp macro 0 = trial_w6
+search.cpp macro 1 vs trial_w6:
+130301a130302
+> extern int SingularNonCut;
+138612a138614
+> int SingularNonCut = 0;
+138646a138649
+>         {"SingularNonCut", &SingularNonCut, 0, 1},
+139556c139559,139560
+<             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+---
+>             const bool verify_cut = tune::SingularNonCut > 0 ? false : cut_node;
+>             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, verify_cut);
+uci.cpp macro 1 vs trial_w6:
+130332a130333
+> extern int SingularNonCut;
