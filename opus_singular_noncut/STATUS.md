@@ -66,16 +66,30 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   - Logs: `logs/smoke_a_SUMMARY.txt`, `logs/smoke_a_fastchess.out.txt`. PGN and engine log stay in
     `D:\opus_singular_noncut\out\smoke_a`.
 
+- S6 smoke B, 01:53:57-02:10:00: **CLEAN**.
+  - Same settings as A with `-Srand 20261107 -Out D:\opus_singular_noncut\out\smoke_b -MaxMinutes 19`, on CPUs 4-6
+    (gate: A's 15:52 + 3 min ended before the 02:27 window end). Stricter regex.
+  - 100 / 100 games, 0 time losses, 0 disconnect / illegal / crash / stall / error / warning / responsive lines.
+  - Information only: W 9 / D 83 / L 8, Ptnml [0, 7, 35, 8, 0].
+  - Logs: `logs/smoke_b_SUMMARY.txt`, `logs/smoke_b_fastchess.out.txt`.
+- **Smoke total: 200 games, gate exe ON vs trial_w6, 0 time losses, 0 crash / illegal / disconnect lines**
+  (W 16 / D 167 / L 17, Ptnml [0, 15, 71, 14, 0]; not a verdict).
+- CPU window compliance:
+  - Every smoke process ran on 0x70 (CPUs 4-6) at Idle, and the last one ended 02:10:00. No GPU use at any time.
+  - Sweep at 02:10:28 of [name withheld].exe 1700 + all descendants: 4 of 17 processes had 0xFFFF. They were the two MCP
+    servers (forge-uci, forge-o30, python venv launchers + their conhost), started 2026-11-05 09:32:10 at the app
+    restart, before the session was re-pinned. Normal priority, 0.0 s CPU; their engines ran on 0x3 Idle as the
+    servers set them. My plan's "children inherit 0x3" did not hold for these four.
+  - Re-pinned by handle (name / parent / start time checked first) to 0x3 Idle. Re-sweep 02:11:06: 0 of 17 own
+    processes with affinity bits above 0xF.
+
 ## In progress
-- Smoke B started 01:53:57, same settings with `-Srand 20261107 -Out D:\opus_singular_noncut\out\smoke_b -MaxMinutes 19`,
-  on CPUs 4-6. Gate: A's 15:52 + 3 min from the start ends before the 02:27 window end. Fastchess checked on 0x70 Idle.
+- Nothing of mine runs on CPUs 4-15. A background clock check at 02:23:30 (bash, 0x3 Idle) re-checks the process
+  list; a last sweep follows after the window end.
 
 ## Exact next step
-1. When smoke B ends: copy its SUMMARY into `logs/` and push.
-2. If B still runs at 02:23: move my own fastchess + its two engine children to CPU 2 (0x4) by handle; record the
-   game number at that moment (later games ran under other conditions).
-3. After 02:27: one sweep that no own process has affinity bits above 0xF; write that line here.
-4. Then the pack waits for Code Review. After CR, QA / Strength run the SPRT with the gate line in README.md.
+1. After 02:27: one more sweep (no own process above 0xF), written here.
+2. The pack waits for Code Review. After CR, QA / Strength run the SPRT with the gate line in README.md.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
