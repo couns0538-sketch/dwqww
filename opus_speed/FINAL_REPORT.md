@@ -365,6 +365,11 @@ Details: `CR_SHOULD_W8.md`.
 - Bug-hunt pass 20:08-20:10 (own, NOT independent): one whitespace glitch fixed (`CYCLE =[`); re-run 14 / 14 PASS
   (20261105-200930-9164). Two LOW notes are left in `CR_SHOULD_W8.md`: two other scripts still name the venv python,
   and warm_identity's fixed 0x3 mask.
+- Extras 20:12-20:15:
+  - `pin_check` of the default lock exe trial_w6: PASS (bench d11-d22 + perft5 = the pin tables).
+  - `tests/test_stack_poison.ps1` takes `-Py` / OSPD_PY.
+  - Skill rows for both tests.
+  - `tests/test_cr_637b.ps1` re-run after the default-lock change: RUNNING at this push.
 - Live lock trial_w6, 4181A589..., is not touched. KING_LINES and bundles a-d were not retimed or locked. No ABBA,
   soak, 12k or L3b ran.
 Owner items:

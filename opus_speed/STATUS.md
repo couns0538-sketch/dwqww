@@ -34,6 +34,10 @@ Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lo
   - 3c: the test takes `-Py` / OSPD_PY and fails closed without one.
   - Test 14 / 14 PASS (run 20261105-200713-5164).
 - Bug-hunt pass 20:08-20:10 (own): one whitespace glitch fixed (`CYCLE =[` in warm_identity.py); re-run 14 / 14 PASS
-  (20261105-200930-9164). Two LOWs left as notes (`CR_SHOULD_W8.md`). Jobs 1, 2, 3a, 3b, 3c are all done; nothing
-  of the job is running.
+  (20261105-200930-9164). Two LOWs left as notes (`CR_SHOULD_W8.md`). Jobs 1, 2, 3a, 3b, 3c are all done.
+- Extras 20:12-20:15:
+  - pin_check of the default lock exe trial_w6: PASS (d11-d22 + perft5 = the pin tables).
+  - test_stack_poison.ps1 takes `-Py`.
+  - Skill rows added.
+  - test_cr_637b re-run: RUNNING (o3 builds, no ABBA). Details in `CR_SHOULD_W8.md`.
 KING_LINES and bundles a-d were not retimed or locked.

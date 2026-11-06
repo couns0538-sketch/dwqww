@@ -65,7 +65,12 @@
 - Test run: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_should_w8.ps1 -Py
   C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe` (or set OSPD_PY): 14 / 14 PASS (20261105-200713-5164;
   after the 20:09 whitespace fix again 14 / 14, 20261105-200930-9164).
-- State 20:10: leftover jobs 1-3 are DONE and nothing is running. Open for QA / owner:
+- 20:15 extras:
+  - pin_check of the default lock exe: PASS.
+  - test_stack_poison.ps1 takes `-Py`.
+  - `tests/test_cr_637b.ps1` re-run in the background (o3 builds on CPUs 0-1 Idle, no ABBA). Its output goes to
+    `F:\ospd\logs\test_cr_637b_after_leftovers.out`.
+- State 20:10: leftover jobs 1-3 are DONE. Open for QA / owner:
   - L3b warm_identity, a Threads 2-4 soak and an independent ABBA vs trial_w6 before any lock;
   - the LOW notes in `CR_SHOULD_W8.md`.
 - Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d untouched.

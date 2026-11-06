@@ -8,12 +8,13 @@
 # LOCK PROOF INCOMPLETE line follows it. A read of an unwritten slot would see 0xA5 garbage and change nodes.
 # Verify builds only, never for QA. usage: powershell -NoProfile -ExecutionPolicy Bypass -File test_stack_poison.ps1
 #   [-Stacks stack_w1,..] ; exit 0 = every stack PASS, 1 = a FAIL or an error.
-param([string[]]$Stacks = @('stack_w1', 'stack_w2', 'stack_w3', 'stack_w4', 'stack_w5', 'trial_w6'))
+#   -Py <python.exe> (or set OSPD_PY): the interpreter for make_poison.py (stdlib only); none is hard-coded here.
+param([string[]]$Stacks = @('stack_w1', 'stack_w2', 'stack_w3', 'stack_w4', 'stack_w5', 'trial_w6'), [string]$Py = $env:OSPD_PY)
 $ErrorActionPreference = 'Stop'
 $Tools = Join-Path (Split-Path -Parent $PSScriptRoot) 'tools'
 . "$Tools\uci_lib.ps1"
 $Stacks = @($Stacks | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
-$Py = 'C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe'
+if (-not $Py) { throw 'test_stack_poison: pass -Py <python.exe> or set OSPD_PY (no interpreter is hard-coded)' }
 $Gpp = 'C:\msys64\ucrt64\bin\g++.exe'; $Objdump = 'C:\msys64\ucrt64\bin\objdump.exe'
 $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH
 Set-OspdPlacement -Mask 0x3 -Priority 'Idle'

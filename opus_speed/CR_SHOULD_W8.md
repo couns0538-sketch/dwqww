@@ -65,3 +65,15 @@ were not retimed or locked.
   the venv python.
 - LOW, not changed: `warm_identity.py` pins to 0x3 by design (`MASK`). A QA run on other cores must change that
   constant, or the run is refused.
+
+**Extras after the bug hunt (20:12-20:15, own, NOT independent; owner goal "finish as much as you can"):**
+- `pin_check` (forge-uci MCP, full, Idle 0x3, 20:12:37-20:12:59) of the default lock exe
+  `forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe` (sha256 4181a589): PASS. Bench d11-d22 =
+  312866 / 862329 / 3024920 / 12389307 / 34048354 and perft5 4865609 / 193690690 = the uci_lib pin tables. The
+  net-off pins are not part of this tool.
+- The first LOW above is fixed for `tests/test_stack_poison.ps1`: `-Py` / OSPD_PY, no venv path, and it throws
+  before any build without one (checked: exit 1). The full poison test (builds + bitexact) was not re-run.
+  `tools/commit_push.sh` keeps its PC-specific venv path (the commit gate).
+- Skill rows: `test_stack_poison.ps1 -Py`, and a new row for `test_cr_should_w8.ps1 -Py`. The user-scope mirror was
+  copied (md5 56c55eba).
+- `tests/test_cr_637b.ps1` re-run after the default-lock change (o3 builds only, no ABBA): RUNNING at this push.
