@@ -123,3 +123,5 @@ gets LARGE for the 32 MB UCI table and the 16 MB bench table). Runner v4 times o
 full 12k proofs run on CPUs 0-1 (core 0): A/A gate r (same conditions), then H1 and H7 decision runs, each only after a
 probe 6 / 6 OK and a verify run with every allocation LARGE, then a closing A/A. The GPU has no role in CPU engine
 timing. DONE-QUIET is written again when this block ends.
+| - | A/A ra (00:21-00:26, second quiet window; runner v3's full 12k on CPUs 0-1 throughout) | - | - | 0.9971 [0.9853, 0.9999] sd 1.03 %, width 1.46 % | - | 4181a589 | SANE (QA rule) -> band of the second block (WIN needs low > 1.000 and gain > 0.73 %) |
+| H1 | h1_largepages quiet decision run (00:26-00:31, cpu2 / cpu3 1 / 1 -> 1 / 0 %) | - | BIT-EXACT (pack) | 0.9981 (-0.19 %) [0.9741, 1.0104] sd 2.56 % | 0.9973 (-0.27 %) [0.9749, 1.0111] sd 2.55 % | cecc4d92 | NO-WIN - QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN; runs.csv 57453ffb |

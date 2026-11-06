@@ -513,6 +513,8 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | H4 h4_slider_pdep16 q | 23:50-23:55 | 1 / 0 -> 86 / 48 % (quiet) | 0.9990 (-0.10 %) [0.9914, 1.0206] sd 2.02 % | 1.0000 (+0.00 %) [0.9919, 1.0207] sd 2.00 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | a903cfb0 |
 | H1 h1_largepages q | 23:55-00:00 | 88 / 54 -> 86 / 48 % (quiet) | 1.0160 (+1.60 %) [1.0069, 1.0300] sd 1.59 % | 1.0174 (+1.74 %) [1.0067, 1.0311] sd 1.68 % | WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall WIN / cpu WIN) | 9bdf200f |
 | closing A/A q2 | 00:00-00:05 | 87 / 49 -> 78 / 56 % (trainer back since 23:54:38) | 1.0074 [0.9944, 1.0184] 1.67 % (width 2.40 %) | - | NOT SANE (median +0.74 %) | (aa_w6_d20_q2) |
+| A/A ra (second quiet window) | 00:21-00:26 | 17 / 1 -> 1 / 0 % (full 12k on CPUs 0-1) | 0.9971 [0.9853, 0.9999] 1.03 % (width 1.46 %) | - | SANE: band of the second block | (aa_w6_d20_ra) |
+| H1 h1_largepages r_d20 | 00:26-00:31 | 1 / 1 -> 1 / 0 % (quiet) | 0.9981 (-0.19 %) [0.9741, 1.0104] sd 2.56 % | 0.9973 (-0.27 %) [0.9749, 1.0111] sd 2.55 % | NO-WIN (QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN) | 57453ffb |
 Notes:
 - The live NNUE trainer came back on its own at 23:54:38 (PID 11564, Idle 0xF, ~210 % CPU) during the quiet window;
   H1's run (23:55-00:00) and the closing A/A q2 lay inside it, H4's run ended ~30 s after it. Not touched.
