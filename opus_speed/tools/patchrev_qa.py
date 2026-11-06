@@ -52,8 +52,11 @@ from ctypes import wintypes
 import chess
 import chess.pgn
 
-LOCK_SHA = 'fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072'
-LOCK = 'F:/ospd/qa2/bin/lock_fd3a5190.exe'
+# the LIVE lock = trial_w6, published by QA (was FD3A5190 until then; Code Review SHOULD 'patchrev lock = trial_w6').
+# LOCK_ASAN and --ref-tsv stay the FD3A5190-source search-identity references: trial_w6 searches the same nodes
+# (BIT-EXACT incl. the full 12k, warm-table identity), so they are identity data, not a lock decision.
+LOCK_SHA = '4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0'
+LOCK = 'F:/ospd/packs/trial_w6/forge_trial_w6.exe'
 LOCK_ASAN = 'F:/ospd/packs/b2_nzm1/bitexact/san/ref_asan_msvc.exe'
 TIMING_MUTEX = 'Local\\ospd_abba_timing'   # abba.ps1's named mutex: one timing run at a time on this PC
 TIMING_CPUS = 0xC                          # CPUs 2 (nps timing) and 3 (its SMT sibling, kept free of own work)
@@ -628,7 +631,7 @@ def main():
     head.append('# timing mutex ' + TIMING_MUTEX + (': held for this run (mask touches CPUs 2-3)' if mask & TIMING_CPUS
                                                     else ': not needed (mask inside 0x3)'))
     if sha256(LOCK) != LOCK_SHA:
-        raise SystemExit(f'{LOCK} is not the lock FD3A5190')
+        raise SystemExit(f'{LOCK} is not the live lock trial_w6 (sha256 {LOCK_SHA[:8].upper()}...)')
     exes = [('lock', LOCK, None)] + [(s, kit_exe(s), None) for s in stacks]
     results, refs = [], {}
     if a.test == 'replay':

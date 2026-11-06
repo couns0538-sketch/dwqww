@@ -21,3 +21,19 @@
 **Test bug fixed by the main session (W2b).** The first run was 4 / 5. Its `python -c` one-liner held `exec("...")`, and
 PowerShell 5.1 strips embedded double quotes from native-program arguments, so Python got `exec(try:` and raised a
 SyntaxError. The snippet now goes through a file in the run folder, and the second run passed 5 / 5.
+
+## Leftovers of the independent CR of 73f4041d..00d19e56 (APPROVE, 0 BLOCKER, 4 SHOULD) - 2026-11-05 from 19:43 PC clock
+
+Main session, start tip 00d19e56. Live lock = trial_w6, sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0.
+Reading change: note 4 above ("skill CPU-contradict wording") was read as the CPU-mask wording. The CR's leftover 2
+shows that the intended rule is CPU-time nps vs wall nps; row 2 adds it now.
+
+| # | leftover | fix | test |
+|---|---|---|---|
+| 1 | warm_identity self-pin | IN PROGRESS | - |
+| 2 | skill verdict rules | `skills/forge-speed-lock-path/SKILL.md`: new section "Verdict rules". Wall nps of ONE run decides. A wall WIN with a CPU-time NO-WIN is a contradiction, not a lock WIN. CPU time never turns a wall NO-WIN into a WIN. `--pool` is information only and never overrides a wall that does not WIN on its own. Lock-path step 5 = QA's independent ABBA vs the live lock trial_w6. The abba and `--pool` rows, the re-time pitfall and the description no longer let pooled rounds decide. Copied to the user-scope mirror. | doc change (no code) |
+| 3 | FINAL_REPORT owner item | Section 8: before ANY lock, QA runs L3b warm_identity vs trial_w6, a Threads 2-4 soak and an independent ABBA vs trial_w6 4181A589... (not FD3A5190), judged by the verdict rules. Section 3b: the pooled statuses are screening labels (NNUE_ZMM: both of its own runs wall NO-WIN). | doc change (no code) |
+| 4 | patchrev_qa lock | `tools/patchrev_qa.py`: LOCK_SHA = 4181a589...6fb0 and LOCK = `F:/ospd/packs/trial_w6/forge_trial_w6.exe` (its sha256 is the live lock's). The refusal reads `... is not the live lock trial_w6 (sha256 4181A589...)`. LOCK_ASAN and `--ref-tsv` stay the FD3A5190-source search-identity references. STACKS still lists trial_w6, so a default run now also compares the lock with itself (a harmless A/A). Soak, mutex and mask are unchanged. | pending (W4a / W4b) |
+
+Not done on purpose: no ABBA, soak, warm or 12k run. KING_LINES (W9) and bundles a-d were not retimed, restacked or
+locked. The `uci_lib.ps1` lock defaults are unchanged (owner item in FINAL_REPORT section 8).

@@ -2,7 +2,10 @@
 
 Owner Couns. Job window 2026-11-05 08:38 -> 14:38 (PC clock = Vienna time); FINAL_REPORT due 14:08.
 Branch `opus-speed-20261105` (fresh from main 5176ddf7). Plan: `opus_speed/PLAN.md`. Scratch `F:\ospd\` (<= 8 GB).
-Lock: exe FD3A5190 (`forge_push\bin\forge_ltopgo_x_al1s198_v23.exe`), source = exact copy `F:\ospd\src\lock` (20 files).
+Lock: exe FD3A5190 (`forge_push\bin\forge_ltopgo_x_al1s198_v23.exe`), source = exact copy `F:\ospd\src\lock` (20 files):
+the job's reference and the search-identity pins. **Live lock since QA's publish: trial_w6, sha256
+4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0** (`F:\ospd\packs\trial_w6\forge_trial_w6.exe` = these
+bytes); every lock decision is against trial_w6.
 Session restart at ~09:32 (application restart by the owner); workers resumed 09:35; jobs started before it kept running.
 
 | job | state | candidates | last update |
@@ -14,3 +17,8 @@ Session restart at ~09:32 (application restart by the owner); workers resumed 09
 | D net pipeline | DONE 11:54 (worker jobd, plans + read-only log tools only, no GPU): opus_speed/jobd/PLAN.md; D1 owner item (coordinator re-checked): the GPU guard drops HWiNFO rows with a one-digit day since 2026-11-01 and throttles on the ADLX fallback (run_frac 0.33-0.64 vs 0.90-1.00 in October); D2 RAM-floor aborts repeat epochs | - | 12:08 |
 
 FINAL_REPORT.md: FINAL 13:36 (all runs finished). QA order: stack_w2 first, then trial_w6 or stack_w5.
+
+CR leftovers (independent CR of 73f4041d..00d19e56: APPROVE, 0 BLOCKER, 4 SHOULD), from 19:43 PC clock, start tip
+00d19e56: SHOULD 4 patchrev_qa LOCK = trial_w6 DONE; SHOULD 2 skill verdict rules DONE; SHOULD 3 FINAL_REPORT QA owner
+item DONE; SHOULD 1 warm_identity self-pin + read-back IN PROGRESS. KING_LINES (W9) and bundles a-d were not retimed
+or locked. Details: `CR_SHOULD_W8.md`.

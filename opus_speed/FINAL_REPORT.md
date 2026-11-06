@@ -156,7 +156,9 @@ of mode 2, which the stacks use. Losers: PICKBEST 1 / 2 and MATKEY_FAST (switche
 ### 3b. Borderline singles: one 16-round re-time each, decision on the pooled rounds
 Rule: a single whose first run is not a wall WIN but has a median of at least +1 % or a cpu WIN got ONE 16-round
 re-time against the lock (queued 12:01 TT, 12:06 slider + prefetch, 12:12 zmm - before any re-time had finished).
-Its status is decided on all 26 rounds pooled (`abba_recheck.py --pool`), never on the re-time alone. The pooling
+Its status is decided on all 26 rounds pooled (`abba_recheck.py --pool`), never on the re-time alone. **Rule since
+the CR leftovers of 00d19e56 (skill verdict rules):** these pooled statuses are screening labels, not verdicts - a pool
+never decides a lock; NNUE_ZMM's own two runs are both wall NO-WIN, so its "WIN, weak" exists only in the pool. The pooling
 rule itself was written at 12:22, after the first re-time (slider) had finished; it is the stricter reading there
 (slider re-time alone +1.92 %, pooled +1.52 %).
 | change | first run, 10 rounds: wall [95 %] | re-time, 16 rounds: wall [95 %] | POOLED 26 rounds: wall [95 %] / cpu [95 %] | status (pooled wall) | runs.csv md5 (first / re-time) |
@@ -334,11 +336,29 @@ follow-up brief and was not run. bitexact_check.ps1 and the skill now state that
 the warm-table identity and a Threads 2-4 smoke have passed. Scratch at the end: `F:\ospd` 5.7 GB (cap 8 GB), F: 55 GB free, C: 93 GB (13:38). The coordinator's own re-check
 (`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
 kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
+**CR leftovers, 2026-11-05 from 19:43 PC clock (start tip 00d19e56, NOT independent):** the independent Code Review of
+73f4041d..00d19e56 (APPROVE, 0 BLOCKER) left 4 SHOULD tooling notes: (1) `tools/warm_identity.py` pins itself to 0x3
+Idle and reads mask + class back on itself and on every engine it starts, fail closed - IN PROGRESS; (2) the skill's
+verdict rules (wall nps decides, CPU time must not contradict it, `abba_recheck.py --pool` never decides) - DONE;
+(3) the QA owner item below (L3b + Threads 2-4 soak + independent ABBA vs trial_w6 before any lock) - DONE;
+(4) `tools/patchrev_qa.py` LOCK / LOCK_SHA = the live lock trial_w6 (`F:\ospd\packs\trial_w6\forge_trial_w6.exe` =
+sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0) - DONE. The live lock was published by QA
+and is not touched here. KING_LINES (W9) and bundles a-d were NOT retimed, restacked or locked; no ABBA, soak or
+12k run. Details and tests: `CR_SHOULD_W8.md`.
 Owner items:
 - The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
 - D: free space read 50.0 GB at 12:29 (`pc_status`), i.e. at the brief's floor; this job wrote only worker-board
   lines there, the space is used by other jobs.
-- QA: re-time the WIN candidates on QA's own cores before any lock (this job never locks anything).
+- QA, before ANY lock of a WIN candidate (the six stacks, bundles a-d, KING_LINES; this job never locks anything):
+  (a) L3b `tools/warm_identity.py` vs the live lock trial_w6 (IDENTICAL), (b) a Threads 2-4 soak (`patchrev_qa.py
+  soak --mask 0xF`, soak only), and (c) an independent ABBA on QA's own cores vs the **live lock trial_w6** (sha256
+  4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0), not vs the old lock FD3A5190, judged by the
+  skill's verdict rules (wall nps decides, CPU time must not contradict it, a pooled run never decides). Every ABBA
+  number in this report is vs FD3A5190.
+- `tools/uci_lib.ps1` `$OspdLockExe` / `$OspdLockSha` (the defaults of abba_queue / speed_pack / bitexact_check /
+  build_variants) still name FD3A5190. That is right for search identity (its pins, its cached L3 rows), but an ABBA
+  through these defaults times against FD3A5190, not the live lock: pass the trial_w6 exe explicitly, or change the
+  default as a separate item (not part of the CR leftovers).
 - Lock correctness item (patch review L1, PLAUSIBLE, pre-existing, NOT changed by any switch): `MovePicker` writes
   `bad_captures_[bad_count_++]` without a bound against its 64 slots (`src/search.cpp` of the lock, the write path the
   patches keep), unlike `quiets_tried` / `captures_tried`. A contrived node with more than 64 SEE-negative captures /
