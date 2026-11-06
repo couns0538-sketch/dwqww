@@ -2,8 +2,10 @@
 # (own code, 2026-11-06, PowerShell 5.1). Not a verdict: W/D/L is information only; the check is 0 crashes /
 # disconnects / illegal moves / stalls and the time losses per engine.
 # usage (from Git Bash, never the PowerShell tool):
-#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File smoke_run.ps1 -Out <new dir under D:\opus_singular_noncut\out>
-#     [-Mask 0x4] [-Concurrency 1] [-Rounds 100] [-Srand 20261106] [-Tc 10+0.1] [-Start 1]
+#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File smoke_run.ps1 -Out <new dir under D:\opus_singular_noncut\out or F:\ospd>
+#     [-Mask 0x4] [-Concurrency 1] [-Threads 1] [-Rounds 100] [-Srand 20261106] [-Tc 10+0.1] [-Start 1]
+# Output drive: D:\opus_singular_noncut\out\ (as before) or F:\ospd\ outside the worktree F:\ospd\wt\ (since 2026-11-06,
+# D: below its 50 GB floor); the drive that takes the output must have >= 50.3 GB free (50 GB floor + margin).
 # Placement: sets Idle + -Mask on itself first and reads both back (fastchess and both engines inherit them); fails
 # closed. Masks inside CPUs 0-3 are always allowed; CPUs 4-6 only before the owner's window end (2026-11-06 02:27 PC
 # clock), and only if the run cannot overrun it by the -MaxMinutes estimate. Settings = the crew gate's
@@ -46,10 +48,12 @@ try {
   $nCpu = 0; for ($i = 0; $i -lt 7; $i++) { if ($m -band (1L -shl $i)) { $nCpu++ } }
   if ($Concurrency -lt 1 -or $Concurrency -gt $nCpu) { throw "concurrency $Concurrency > $nCpu CPUs in $Mask" }
   if ($Threads -lt 1 -or ($Concurrency * $Threads) -gt $nCpu) { throw "concurrency $Concurrency x Threads $Threads > $nCpu CPUs in $Mask" }
-  if (-not $Out.StartsWith('D:\opus_singular_noncut\out\')) { throw "output must be under D:\opus_singular_noncut\out\" }
+  if ($Out.StartsWith('D:\opus_singular_noncut\out\')) { $drv = 'D' }
+  elseif ($Out.StartsWith('F:\ospd\') -and -not $Out.StartsWith('F:\ospd\wt\')) { $drv = 'F' }
+  else { throw "output must be under D:\opus_singular_noncut\out\ or F:\ospd\ (not the worktree F:\ospd\wt\)" }
   if (Test-Path $Out) { throw "$Out exists; use a new folder" }
-  $dFree = (Get-PSDrive D).Free / 1GB
-  if ($dFree -lt 50.3) { throw ("D: has {0:N1} GB free (< 50.3)" -f $dFree) }
+  $dFree = (Get-PSDrive $drv).Free / 1GB
+  if ($dFree -lt 50.3) { throw ("{0}: has {1:N1} GB free (< 50.3)" -f $drv, $dFree) }
   foreach ($x in $Cand, $Base, $Book, $Fastchess) { if (-not (Test-Path -LiteralPath $x)) { throw "missing $x" } }
   if ((Sha $Cand) -ne $CandSha) { throw "cand sha256 mismatch" }
   if ((Sha $Base) -ne $BaseSha) { throw "base sha256 mismatch" }

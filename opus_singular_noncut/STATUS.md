@@ -115,17 +115,26 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   Not touched (not mine); the guard's own target is 40 GB and its floor 30 GB.
 
 ## In progress
-- Nothing. The job waits for Code Review. Optional and owed: the Threads 2 ON smoke above, once D: is back above
-  50 GB, or with an owner-approved output drive.
+- Leftover brief 2026-11-06 (Couns, job 1): the owed Threads 2 ON smoke, with its output on F:.
+  - `smoke_run.ps1` now accepts `-Out` under `F:\ospd\` (outside the worktree `F:\ospd\wt\`), then checks that F: has
+    >= 50.3 GB free.
+  - Unchanged: the D: path with its D: >= 50.3 GB gate, the sha256 checks, Idle + mask read-back, the Threads x
+    concurrency check and the CLEAN rule.
+  - Negative tests: `-Out F:\ospd\wt\x_t` and `-Out E:\x_t` are refused with exit 1, and nothing is created.
+  - Nothing of this job writes to D:.
 
 ## Exact next step
-Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
+1. Run the Threads 2 ON smoke (20 games, CPUs 0-3, Idle), from Git Bash:
+   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "F:\ospd\wt\opus_singular_noncut\tools\smoke_run.ps1" -Out "F:\ospd\out\smoke_t2" -Mask 0xF -Concurrency 1 -Threads 2 -Rounds 10 -Srand 20261108`.
+   Then copy `SUMMARY.txt` and `fastchess.out.txt` to `logs/smoke_t2_*`. It is a crash / time-loss / illegal-move check
+   and queues no SPRT.
+2. Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
 Strength run the SPRT with the gate line in README.md (cand = the gate exe with `setoption name SingularNonCut value 1`,
 base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / Threads.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
-- Push: write a message file under `D:\opus_singular_noncut\msg\`, then
+- Push: write a message file under `F:\ospd\tmp\` (not D: since 2026-11-06), then
   `bash /f/ospd/wt/opus_speed/tools/commit_push.sh <message file>`.
 - Rebuild the trees from git: copy `F:\ospd\src\lock` (check `lock_SOURCES.sha256`) to `D:\...\src\snc`, then
   `patch -p1 -F0 < opus_singular_noncut/singular_noncut_stack.patch`, then `bash opus_singular_noncut/tools/snc_controls.sh`.
