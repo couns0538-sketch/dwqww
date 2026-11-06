@@ -55,3 +55,13 @@ Test runs (Git Bash, CPUs 0-1 Idle, the default lock exe only): 20261105-200352-
 20261105-200713-5164 (20:07, after job 3, with `-Py`) **14 / 14 PASS**. The skill and its user-scope mirror now name the
 lock defaults and warm_identity's self-pin. Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d
 were not retimed or locked.
+
+**Bug-hunt pass over 00d19e56..33601a5b (20:08-20:10, own, NOT independent):**
+- One glitch found and fixed: the SHOULD 1 edit had turned `CYCLE = [` into `CYCLE =[` in `warm_identity.py`. It was
+  whitespace only, with no behaviour change. The test was re-run: 14 / 14 PASS (20261105-200930-9164).
+- No trailing whitespace in any added code line.
+- The only FD3A5190 path left in the Python tools is patchrev_qa's `--ref-tsv` (kept on purpose).
+- LOW, not changed (outside the NIT's line): `tests/test_stack_poison.ps1:16` and `tools/commit_push.sh` still name
+  the venv python.
+- LOW, not changed: `warm_identity.py` pins to 0x3 by design (`MASK`). A QA run on other cores must change that
+  constant, or the run is refused.

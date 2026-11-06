@@ -1,6 +1,8 @@
 # Forge speed job - FINAL REPORT
 
 State: FINAL 13:36 (PC clock = Vienna time; drafted from 10:15). Job window 2026-11-05 08:38 -> 14:38; due 14:08.
+Follow-ups after FINAL (records in section 8): CR SHOULD leftovers 19:43-19:47 and leftover jobs 1-3 19:5x-20:10.
+The live lock since QA's publish is trial_w6 (sha256 4181A589...), and every lock decision is against it.
 Every timing and proof run of the job has finished; nothing of this job runs after the final push except the three
 idle processes named in section 8.
 Branch `opus-speed-20261105` (fresh from main 5176ddf7). Scratch `F:\ospd\`. Crew vote: A (speed-only lock path) >
@@ -360,6 +362,9 @@ Details: `CR_SHOULD_W8.md`.
     both KING_LINES patches were regenerated and proven to apply to a fresh lock copy (`W9_KING_LINES.md`).
   - 3c: the CR test takes `-Py` / OSPD_PY instead of a hard-coded interpreter and fails closed without one.
   - Test 14 / 14 PASS (run 20261105-200713-5164).
+- Bug-hunt pass 20:08-20:10 (own, NOT independent): one whitespace glitch fixed (`CYCLE =[`); re-run 14 / 14 PASS
+  (20261105-200930-9164). Two LOW notes are left in `CR_SHOULD_W8.md`: two other scripts still name the venv python,
+  and warm_identity's fixed 0x3 mask.
 - Live lock trial_w6, 4181A589..., is not touched. KING_LINES and bundles a-d were not retimed or locked. No ABBA,
   soak, 12k or L3b ran.
 Owner items:

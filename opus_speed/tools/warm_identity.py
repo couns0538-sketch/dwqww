@@ -37,7 +37,7 @@ from ctypes import wintypes
 
 MASK = 0x3    # CPUs 0-1: the job's check pair (CPU 2 = nps timing, CPU 3 = its SMT sibling, kept free)
 IDLE = 0x40   # IDLE_PRIORITY_CLASS
-CYCLE =['setoption name Hash value 1', 'setoption name Hash value 64', 'setoption name Clear Hash',
+CYCLE = ['setoption name Hash value 1', 'setoption name Hash value 64', 'setoption name Clear Hash',
          'setoption name UseNNUE value false', 'setoption name UseNNUE value true', 'setoption name Hash value 16']
 STRIP = re.compile(r' (nps|time) \d+')
 

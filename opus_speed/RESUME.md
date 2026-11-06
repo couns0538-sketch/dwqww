@@ -63,6 +63,10 @@
     `F:\ospd\tmp\k3proof_20261105-200606`.
   - 3c: the test takes `-Py`.
 - Test run: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_should_w8.ps1 -Py
-  C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe` (or set OSPD_PY): 14 / 14 PASS (20261105-200713-5164).
+  C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe` (or set OSPD_PY): 14 / 14 PASS (20261105-200713-5164;
+  after the 20:09 whitespace fix again 14 / 14, 20261105-200930-9164).
+- State 20:10: leftover jobs 1-3 are DONE and nothing is running. Open for QA / owner:
+  - L3b warm_identity, a Threads 2-4 soak and an independent ABBA vs trial_w6 before any lock;
+  - the LOW notes in `CR_SHOULD_W8.md`.
 - Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d untouched.
 - Not done on purpose: no ABBA / soak / 12k; KING_LINES and bundles a-d untouched (QA owns their timings).
