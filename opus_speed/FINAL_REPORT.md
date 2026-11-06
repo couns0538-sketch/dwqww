@@ -508,7 +508,10 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | H9 h9_ptype_arith q | 23:45-23:50 | 1 / 0 -> 1 / 1 % (quiet) | 0.9990 (-0.10 %) [0.9715, 1.0178] sd 3.25 % | 0.9962 (-0.38 %) [0.9702, 1.0154] sd 3.18 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | e6ae0763 |
 | H4 h4_slider_pdep16 q | 23:50-23:55 | 1 / 0 -> 86 / 48 % (quiet) | 0.9990 (-0.10 %) [0.9914, 1.0206] sd 2.02 % | 1.0000 (+0.00 %) [0.9919, 1.0207] sd 2.00 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | a903cfb0 |
 | H1 h1_largepages q | 23:55-00:00 | 88 / 54 -> 86 / 48 % (quiet) | 1.0160 (+1.60 %) [1.0069, 1.0300] sd 1.59 % | 1.0174 (+1.74 %) [1.0067, 1.0311] sd 1.68 % | WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall WIN / cpu WIN) | 9bdf200f |
+| closing A/A q2 | 00:00-00:05 | 87 / 49 -> 78 / 56 % (trainer back since 23:54:38) | 1.0074 [0.9944, 1.0184] 1.67 % (width 2.40 %) | - | NOT SANE (median +0.74 %) | (aa_w6_d20_q2) |
 Notes:
+- The live NNUE trainer came back on its own at 23:54:38 (PID 11564, Idle 0xF, ~210 % CPU) during the quiet window;
+  H1's run (23:55-00:00) and the closing A/A q2 lay inside it, H4's run ended ~30 s after it. Not touched.
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
   was the A/A's BelowNormal engine on CPU 2; free RAM 12.3 GB of 31.6 GB at 21:50 (the trainer's floor is 6 GB).

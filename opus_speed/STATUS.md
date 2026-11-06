@@ -113,3 +113,4 @@ day: the closing A/A q2 (CPU 2, under load: information) and the full 12k L3 pro
 | H9 | piece_type by arithmetic | FORGE_SPD_PTYPE_ARITH=1 | BIT-EXACT | -0.10 % [0.9715, 1.0178] | -0.38 % [0.9702, 1.0154] | 96004e91 | NO-WIN |
 No idea changed the search (all nine packs BIT-EXACT vs trial_w6 with the net on and off). One screening WIN (H5) - no
 stack (the brief stacks winners only; one winner needs none). Nothing locked or published; QA re-times.
+| - | closing A/A q2 (00:00-00:05, trainer back: cpu2 / 3 87 / 49 -> 78 / 56 %) | - | - | 1.0074 [0.9944, 1.0184] sd 1.67 %, width 2.40 % | - | 4181a589 | NOT SANE (median +0.74 % > 0.5 %): confirms the conditions of H1's run were not the quiet ones |
