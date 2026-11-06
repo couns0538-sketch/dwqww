@@ -140,3 +140,25 @@ Rules first:
 - ABBA on this PC: plain A B B A showed slot-position effects of ~1-2 % in A/A runs; alternate ABBA / BAAB (default)
   and read the process CPU time of the bench window as a second metric (preemption by other programs is not counted).
   Noise depends on the moment's load: per-round sd 1 % (quiet) to 5.6 % (builds on the other core).
+
+## Hunt vs trial_w6 (2026-11-05 evening): profiling + one-switch pipeline
+- Profile the exact exe: `python -I -B tools/rip_sampler.py <exe> <new out dir> --bench 20 --repeat 3` (pins itself 0x3
+  Idle, engine narrowed to CPU 1, Suspend / GetThreadContext / Resume of the busy thread ~500 samples/s, RIP rebased by
+  the runtime module base - the kit exes have DYNAMIC_BASE - and mapped with `nm -n`; the kit exes keep their symbols).
+  Fails closed when < 90 % of the samples land in .text. `--remap <run dir>` re-attributes a finished run. Section
+  labels (`.text.hot`) share the address of the first function of their section: prefer the real name (fixed).
+- A `-g` twin (`build_variants -Variant custom -Extra '-g'`) is NOT codegen-neutral under LTO+PGO here (.text +0x500
+  bytes): profile the twin itself and read lines with `addr2line -a -f -i -C` (`tools/line_profile.py <run dir>`).
+- Store-forwarding stalls were the clearest bit-exact targets: a narrow store reloaded by a wider load (record_move's
+  DirtyPieces temporary copied with one 32-byte load; a bool spilled as one byte and reloaded as eight). A linear scan of
+  the hot functions' disassembly finds them (`tools/stlf_scan.py <exe> <addresses.tsv> <start> <end> ..`, weighted
+  by the profile's samples; an empty addresses.tsv just lists the patterns of another exe).
+- Per idea: `make_stack.sh h<N>_<x> trial_w6.patch h<N>_<x>_after_w6.patch`; `tools/hunt_candidate.sh <tree>
+  <SWITCH>=<v>` = `tools/hunt_identity.sh` (all switches 0 = FD3A5190 and the six ON + new OFF = 4181A589 byte for byte,
+  builds in C:\ospd_hunt\builds) then `speed_pack -Quick -SkipAbba`; the ABBA runs afterwards, alone, with
+  `abba.ps1 -Out C:/ospd_hunt/abba/<tree>_d20` (forward slashes: a `"...\$t..."` in the Bash tool loses the variable).
+- Queues: a private runner script outside the repo reads a task file line by line (cpu / abba / aa / stop); add work by
+  appending lines; stop it with a `stop` line (cooperative; never kill). Never edit a running bash script.
+- Large pages: the PC's account holds SeLockMemoryPrivilege (`whoami /priv`: listed, Disabled = not yet enabled); an
+  engine enables it in its own token (AdjustTokenPrivileges + check ERROR_SUCCESS) and gets 16 MB of 2 MB pages in
+  0.2-9.4 ms (`tests/lp_probe.cpp`). The switch must stay silent (no info string, no option).

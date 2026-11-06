@@ -436,3 +436,23 @@ inside .text (`C:\ospd_hunt\prof\w6_b20_r1\`, `profile_remap.txt` after the sect
 | record_move (out-of-line clone, qsearch) | 0.5 % | 36 of its 40 samples on the same DirtyPieces reload |
 Reading: two store-forwarding stalls (record_move's DirtyPieces copy, ~3.8 % of all samples; a bool spill in the net
 update, ~1.5 %) and the TT cluster's first touch (~2 %) are the clearest bit-exact targets; the HCE is spread out.
+
+### 9.2 The ideas (each one switch, default 0, new code under `#if`, the trial_w6 text under `#else`)
+All trees: `make_stack.sh h<N>_<x> trial_w6.patch h<N>_<x>_after_w6.patch`; identity builds all switches 0 = FD3A5190
+and the six ON + new OFF = 4181A589 byte for byte (`tools/hunt_identity.sh`); candidate = `tools/hunt_candidate.sh`
+(the six trial_w6 values + the new one, speed_pack -Quick -SkipAbba).
+| # | switch | what changes | why the nodes cannot change | own proof besides bitexact |
+|---|---|---|---|---|
+| H1 | FORGE_SPD_LARGEPAGES=1 | TT clusters in 2 MB pages (the engine enables SeLockMemoryPrivilege in its own token; silent fallback to new TTCluster[n]()) | same cluster count, zeroed + constructed as before, same index function: every probe / store sees the same entries | lp_probe: the privilege enables, 16 MB in 0.2-9.4 ms |
+| H2 | FORGE_SPD_DIRTY_INPLACE=1 | record_move writes the dirty pieces straight into (ss+1)->dirty | same entries, same order, same count; every reader stops at count | tests/dirty_inplace_diff.cpp: 18.9M moves, 0 mismatches; mutant FAIL |
+| H3 | FORGE_SPD_NNUE_COLUMNS=1 | nnue::update takes each change's w1 column for both perspectives from one integer computation | the same column as feature_index(); the same float operations in the same order | tests/nnue_update_diff.cpp: update == refresh byte for byte, 2.03M updates; mutant FAIL |
+| H4 | FORGE_SPD_SLIDER_PDEP16=1 | slider entries stored as 16 bits (PEXT over the empty-board rays), rebuilt with PDEP (rook table 800 -> 200 KB) | pdep(pext(a, rays), rays) = a for every attack set a inside its rays | tests/slider_pdep16_diff.cpp: 4.43M lookups = ray walk; mutant FAIL |
+| H5 | FORGE_SPD_MOVE_STORE32=1 | the NZM2 generator writes each Move with one 32-bit store | the same four bytes in the same slots | tests/movegen_hash.cpp: switch 0 = 1 over 4.75M lists; mutant changes the hash |
+| H6 | FORGE_SPD_PICK_FIRST=1 | the scoring loops keep the first maximum; the first pick of a list uses it instead of the scan | the scan's result (first maximum, strict >) over the same unchanged array | scratch verify build: 1,732,892 first picks = scan; bench 13 / 16 = pins |
+| H7 | FORGE_SPD_LARGEPAGES=2 | H1 + net w1 + one block per worker for the six history / correction tables | same sizes, value-initialised as before, same indexing | as H1 |
+| H8 | FORGE_SPD_HCE_LOCALS=1 | evaluate_pieces keeps its five accumulated fields in locals, stored once | nothing else in that function reads them: the same final values and the same adds | tests/hce_hash.cpp: same HCE incl. traced coefficients over 1.58M evaluations; mutant changes it |
+| H9 | FORGE_SPD_PTYPE_ARITH=1 | piece_type() = p > 6 ? p - 6 : p instead of the table load | equal to the table for all 13 Piece values (static_assert) | compile-time proof |
+Skipped after reading the code / profile: moving quiets_tried / captures_tried out of the search frame (the frame stays
+over 4 KB, so ___chkstk_ms (0.55 %) stays); a SIMD pick_best scan (PICKBEST's vectorised scan already lost, and a 64-byte
+load over fresh 8-byte stores would stall); int16 w1 (research: -1..+1 % for this net, rewrites the NNUE_ZMM input);
+pawn-cache entry layout (its probe is ~0.3 %).
