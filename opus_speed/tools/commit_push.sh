@@ -37,7 +37,11 @@ if [ "$BR" = opus-singular-noncut-20261105 ]; then
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\ps_parse_check.ps1' -Dir 'F:\ospd\wt\opus_singular_noncut' > /f/ospd/tmp/parse_snc.txt; rc=$?
   if [ $rc -ne 0 ]; then grep -v ': ok$' /f/ospd/tmp/parse_snc.txt; echo "commit_push: PowerShell parse errors - not committed"; exit 1; fi
 fi
-git add -A $DIRS
+# fail closed (2026-11-06): in a sparse checkout `git add` skips folders outside the sparse patterns with exit 1 and the
+# old script committed and pushed the rest anyway (948e0334 lost the new pack files)
+git add -A $DIRS || { echo "commit_push: git add failed (sparse-checkout patterns: git sparse-checkout list) - not committed"; exit 1; }
+LEFT=$(git ls-files -mo --exclude-standard $DIRS | grep -v '__pycache__' || true)
+[ -z "$LEFT" ] || { echo "commit_push: not staged after git add - not committed:"; echo "$LEFT"; exit 1; }
 git restore --staged opus_speed/jobc/tools/__pycache__ 2>/dev/null || true
 if git diff --cached --quiet; then echo "commit_push: nothing to commit"; exit 0; fi
 git -c user.name=couns0538-sketch -c user.email=couns0538@gmail.com commit -q -F "$MSG" || exit 1
