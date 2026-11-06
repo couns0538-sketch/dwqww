@@ -469,6 +469,7 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | A/A 3 | 21:34-21:39 | 71 / 62 -> 79 / 67 % | 0.9924 [0.9683, 1.0081] 2.82 % (range 8.36 %) | 0.9902 [0.9703, 1.0010] 2.17 % | NOT SANE | (aa_w6_d20_s3) |
 | H1 run 1 | 21:39-21:45 | 72 / 70 -> 100 / 100 % | 1.0139 [0.9886, 1.0304] 2.90 % | 1.0104 [0.9891, 1.0183] 2.03 % | NO-WIN / NO-WIN (fallback path, see below) | b9d82cba |
 | A/A 4a (gate try 1) | 22:18-22:24 | 3 / 5 -> 83 / 86 % (trainer restart mid-run) | 0.9982 [0.9735, 1.0191] 3.20 % (range 11.34 %) | 0.9966 [0.9815, 1.0133] 2.23 % | NOT SANE | (aa_w6_d20_s4a) |
+| A/A 4b (gate try 2) | 22:32-22:37 | 62 / 61 -> 76 / 70 % (trainer steady ~190-220 %) | 0.9898 [0.9624, 1.0094] 3.33 % (range 12.58 %) | 0.9957 [0.9579, 1.0096] 3.67 % | NOT SANE | (aa_w6_d20_s4b) |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
@@ -478,3 +479,20 @@ Notes:
   abba.ps1 drives the exe (UCI searcher 32 MB + bench 1 16 MB + bench 20 16 MB) and in the standalone probe (each failed
   attempt 3-14 ms). H1 run 1 therefore measured the silent fallback (4 KB pages), not large pages. Large-page ABBAs now
   run only when the probe succeeds in the same step (runner v3 `abba_lp`).
+
+### 9.4 Own review of the nine patches (22:40 PC clock; structured self-review, NOT independent)
+- H2: fill_dirty_pieces writes the same entries as dirty_pieces (mover removed, captured piece removed at the ep square
+  when en passant, mover or promoted piece added, the two rook entries when castling), the same count; slots at or
+  above count are never read (update / update_runtime_psqt loop below count; the lock itself leaves stale slots after
+  record_null_move, which only sets count = 0).
+- H3: the three update paths keep the lock's per-lane order ((src - rem) + add; ((src - rem0) - rem1) + add; copy then
+  add / sub in change order); null move (count 0) and castling (count 4) take the generic path as before;
+  change_columns equals feature_index for every Piece the search can pass (1..12).
+- H5: bits = from | to << 8 | promotion << 16 | flags << 24 is the Move's byte order (static_assert on the offsets);
+  `flags | Promotion` is cast to 8 bits exactly as the lock's cast.
+- H6: only a generation resets index_ / list_start_, so index_ == list_start_ means the untouched fresh list; quiet,
+  capture, evasion and ProbCut / qsearch pickers each recompute first_best_ when they generate.
+- H8: no reader of the five fields between the loop and the write-back; the trace path is the same template.
+- H1 / H7: allocation only; failure leaves the lock's allocation and contents; no output.
+- H4 / H9: proven by their harness / static_assert; H4 needs SLIDER_PEXT (#error otherwise).
+No issue found. The H6 verify copy and the H1 large-page verify copy are scratch builds outside the patches.
