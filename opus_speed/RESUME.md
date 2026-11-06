@@ -99,3 +99,12 @@
   movegen_hash.cpp (H5); H6 = scratch verify copy `C:\ospd_hunt\harness\h6verify` (not a patch).
 - Stacking note: H2 and H3 both insert after the NNUE_ZMM block in nnue.hpp, so a stack of both needs a hand-merged
   patch (make_stack applies with -F0, no fuzz).
+- 21:56: runner v2 (`C:\ospd_hunt\logs\hunt_runner2.sh`, tasks2.txt) builds + proves H6-H9, then reads its `stop`
+  line; runner v3 (`hunt_runner3.sh`, tasks3.txt, log hunt_runner3.out) then runs the timing block: `aa_gate s4 3 8`
+  (A/A until `tools/aa_sane.py` says SANE, max 3, 8 min apart), ABBA H2, H3, H6, H5, H8, H9, H4, `abba_lp` H1 (16
+  rounds = its one re-time) / H7 only if `tests/lp_probe` gets large pages at that moment, A/A 5 to bracket.
+- Large pages fail since the trainer restart (error 1450): H1 run 1 measured the fallback. CPU sampler log
+  `C:\ospd_hunt\logs\cpu_sampler.log` (ends by itself after 240 min).
+- Scratch merge of the seven non-LP switches on trial_w6 (`C:\ospd_hunt\merge\m1`): all patches apply (H3 fuzz 1 in
+  nnue.hpp, checked), all-on and six-only compile. A stack of winners = only the winners' patches on trial_w6, then
+  make_stack + hunt_candidate with the comma-joined new defines.
