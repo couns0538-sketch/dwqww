@@ -464,7 +464,12 @@ the second reading, the width of the A/A's 95 % interval, is given next to every
 3.98 %, 4a 4.56 %, 4b 4.70 %, 4c 4.42 %, quiet qa 2.56 %). Even on the quiet PC the per-round sd is ~1.8 % (abba.ps1
 times fresh byte copies every round on purpose; earlier jobs measured 3-5 % between copies of one exe), so ten rounds
 almost always span more than 4 %: the per-round reading can fail on a quiet machine, the width reading cannot unless
-the noise is real. Verdicts below say which reading their A/A meets. Resolution: a 10-round run's 95 %
+the noise is real. Verdicts below say which reading their A/A meets.
+**QA rule (23:1x, Couns-approved; binding for this table):** "range" = the width of the A/A's 95 % interval. A/A SANE =
+|median| <= 0.5 % and width <= 4.0 % (`tools/aa_sane.py`); the per-round spread is information only. A candidate is a
+WIN only if its 95 % interval lies fully above 1.000 and its median gain beats the A/A width / 2
+(`tools/qa_verdict.py`: wall decides, the same test on CPU time must not contradict). By it A/A 1-4c are NOT SANE
+(median or width), the quiet A/As qa and qb are SANE. Resolution: a 10-round run's 95 %
 half-width is about 2.26 x sd / sqrt(10) = 1.0 % at sd 1.4 % (A/A 2) and 2.1 % at sd 2.9 % (H1 run 1): under A/A 3
 conditions a true +2 % cannot reach WIN, so every result taken next to a failed A/A is information, not a verdict.
 | run | when (PC clock) | load cpu2 / cpu3 start -> end | wall B/A [95 %] sd | cpu B/A [95 %] sd | verdict wall / cpu | runs.csv md5 |
@@ -478,7 +483,8 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | A/A 4c (gate try 3) | 22:45-22:51 | 69 / 61 -> 90 / 96 % | 1.0065 [0.9833, 1.0275] 3.07 % (range 10.38 %) | 0.9977 [0.9879, 1.0103] 1.56 % | NOT SANE (gate exhausted) | (aa_w6_d20_s4c) |
 | H2 run 1 | 22:51-22:56 | 78 / 72 -> 13 / 2 % (QA pause took effect) | 1.0048 [0.9784, 1.0271] 3.39 % | 1.0047 [0.9946, 1.0248] 2.09 % | NO-WIN / NO-WIN (information: next to a failed A/A) | 77ccf5f5 |
 | H3 run 1 | 22:56-23:01 | 23 / 0 -> 3 / 1 % (quiet) | 1.0057 [0.9862, 1.0120] 1.80 % | 1.0048 [0.9835, 1.0119] 1.99 % | NO-WIN / NO-WIN (information: before the quiet gate) | d4df0016 |
-| quiet A/A qa (gate try 1) | 23:01-23:06 | 41 / 1 -> 4 / 2 % (quiet) | 1.0003 [0.9919, 1.0175] 1.78 % (range 6.50 %, width 2.56 %) | 1.0000 [0.9909, 1.0154] 1.71 % | per-round reading NOT SANE / width reading SANE | (aa_w6_d20_qa) |
+| quiet A/A qa (gate try 1) | 23:01-23:06 | 41 / 1 -> 4 / 2 % (quiet) | 1.0003 [0.9919, 1.0175] 1.78 % (range 6.50 %, width 2.56 %) | 1.0000 [0.9909, 1.0154] 1.71 % | SANE (QA rule; per-round spread 6.50 % = information) | (aa_w6_d20_qa) |
+| quiet A/A qb (gate try 2) | 23:08-23:13 | 7 / 1 -> 1 / 1 % (quiet) | 1.0018 [0.9920, 1.0112] 1.34 % (spread 4.23 %, width 1.92 %) | 1.0019 [0.9918, 1.0129] | SANE (QA rule) | (aa_w6_d20_qb) |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3

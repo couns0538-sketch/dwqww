@@ -74,3 +74,9 @@ is written here when the hunt ends or usage is nearly out, so QA restarts produc
 | - | H2 run 1 (22:51-22:56, before the pause took effect: cpu2 / 3 78 / 72 % at the start) | - | - | 1.0048 [0.9784, 1.0271] sd 3.39 % | 1.0047 [0.9946, 1.0248] sd 2.09 % | 8c3f2747 | information (taken next to a failed A/A); runs.csv 77ccf5f5 |
 | - | H3 run 1 (22:56-23:01, quiet PC: total load 1-4 %, before the quiet A/A gate) | - | - | 1.0057 [0.9862, 1.0120] sd 1.80 % | 1.0048 [0.9835, 1.0119] sd 1.99 % | 9bcdef73 | NO-WIN / NO-WIN (information: before the gate); runs.csv d4df0016 |
 | - | quiet A/A qa (23:01-23:06, gate try 1; total load 2-8 %) | - | - | 1.0003 [0.9919, 1.0175] sd 1.78 %, per-round range 6.50 % (interval width 2.56 %) | 1.0000 [0.9909, 1.0154] sd 1.71 % | 4181a589 | NOT SANE by the per-round-range reading, SANE by the interval-width reading (see FINAL_REPORT 9.3): the protocol's fresh copies per round give ~1.8 % / round even on the quiet PC |
+QA rule (received 23:14 PC clock): A/A SANE = |median| <= 0.5 % and width of its 95 % interval <= 4.0 % (per-round spread =
+information only); candidate WIN only if its 95 % interval lies fully above 1.000 AND its median gain beats the A/A
+width / 2 (`tools/aa_sane.py`, `tools/qa_verdict.py`, wall = verdict, the same test on cpu must not contradict).
+Under it: A/A 1-4c NOT SANE (median or width), quiet A/A qa SANE (+0.03 %, width 2.56 %), qb SANE (+0.18 %, width 1.92 %);
+H1 run 1, H2 run 1, H3 run 1 NO-WIN (information, before the quiet gate).
+| - | quiet A/A qb (23:08-23:13, gate try 2) | - | - | 1.0018 [0.9920, 1.0112] sd 1.34 %, width 1.92 % (spread 4.23 %) | 1.0019 [0.9918, 1.0129] | 4181a589 | SANE by the QA rule (its gate check ran on the old reading; qc runs anyway) |
