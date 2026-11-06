@@ -85,3 +85,36 @@ CR, QA / Strength run the SPRT:
 - Resume (Git Bash): `tail D:/oleft2/chain1.log`; a step that did not end rc=0 is re-run with a NEW -Out:
   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:/oleft2/tools/bitexact_check.ps1' -Cand <gate exe>
   -Out 'D:/oleft2/<p>/fens12k_off_r2' -SkipSan [-FenOptions 'UseNNUE=false']`.
+
+### Leftover jobs 2 + 3 DONE (2026-11-06 11:56-12:02 PC clock)
+- **Job 2, mate probe** of the gate exe 1c6e105e, OFF (defaults) vs ON `NmpTtCaptureMin=4`:
+  - Crew set `tools/mate_probe.epd` (md5 df9a6967, 22 FENs) at nodes 3M: mates OFF 19, ON 19. All 22 are identical
+    (score and bestmove), with no flag, so no 30M re-run was needed.
+  - S1-S5 at depth 12: OFF = ON, right classes. **No mate lost or longer.**
+- **Job 3, counter box test** (test-only counter build, never the gate exe):
+  - Patch `nmp_tt_capture_counters_test.patch`. o3 exe sha256 bbac0e55..., pins OK.
+  - bench 16 OFF 3024920 and ON 3034926 are the gate's nodes.
+  - Only rook and queen victims are blocked. At bench 16 ON, blocked 1,582 = v4 617 + v5 965, which is every real TT
+    capture of a rook or queen at an NMP-eligible node; v1-v3 are 0.
+  - Null tries fall (the card's check): per 1M nodes (F1-F5) 31.9k -> 27.8k, cutoffs 21.9k -> 19.2k. At bench 16,
+    null_tries = eligible - blocked (60,693 = 62,275 - 1,582).
+  - F1-F5 d16, ON / OFF nodes: 0.871 / 0.914 / 0.761 / 1.004 / 1.176, total 0.930. Every bestmove is legal and the same
+    as OFF on all 10 FENs. F3: OFF cp 120 b4f4, ON cp 187 b4f4 (same class and move). S1-S5 are identical.
+  - FLAGS none.
+- Notes for jobs 2 / 3:
+  - The `rc=` fields in `D:\oleft2\chain*.log` are `date`'s exit status (a bug in my chain scripts), not the tools'. The
+    verdicts come from each tool's own SUMMARY.txt / bitexact.log.
+  - box_run.py ran on the read-only venv python (python-chess for legality).
+  - The first cnl box start failed closed on a ctypes placement bug, fixed before any box ran. Every box run here is
+    Idle with CPU mask 0xC, read back; the 30M mate runs were Idle on 0xC too.
+  - Logs: `logs/mate/` (SUMMARY + TSV per run, the two FEN sets) and `logs/box/` (SUMMARY, rows, bench logs, build out).
+    Tools: `tools/mate_probe.ps1`, `tools/mk_counters.py`, `tools/box_run.py`.
+- NOT DONE: job 1 (chain still running; the results follow in this file), job 4 (ON / OFF nps). Not done inside job 3:
+  the spec's "agreement"-type shares, which need node-exit tracking.
+- Resume, job 2: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/mate_probe.ps1 -Exe <gate exe> -OnOptions
+  '<ON line>' -Epd tools/mate_probe.epd -Out <new dir> [-Go 'nodes 30000000'] -Mask 0xC [-Index 'i,j']`.
+- Resume, job 3:
+  1. Copy `<x>_gate`.
+  2. Run `python -I -B tools/mk_counters.py <cnl|tcn|ntc> <copy>`.
+  3. Run `build_variants.ps1 -SrcDir <copy> -Tag <new> -Variant o3 -Define FORGE_SPEC_COUNTERS=1 -Work <dir>`.
+  4. Run `python -I -B tools/box_run.py --port <p> --exe <o3 exe> --on '<ON line>' --out <new dir> --mask 0xC`.

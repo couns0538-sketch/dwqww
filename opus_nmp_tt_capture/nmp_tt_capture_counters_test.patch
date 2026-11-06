@@ -1,0 +1,78 @@
+--- ntc_gate/src/search.cpp
++++ ntc_cnt/src/search.cpp
+@@ -109,6 +109,29 @@
+ }
+ } // namespace tune
+ 
++#ifndef FORGE_SPEC_COUNTERS
++#define FORGE_SPEC_COUNTERS 0
++#endif
++#if FORGE_SPEC_COUNTERS
++// Box-test counters (test build only, never in a gate exe): search increments them and never reads them. Plain
++// globals: valid for Threads 1. One line at process exit = the totals of everything the process searched.
++namespace spec_counters {
++std::uint64_t eligible = 0, blocked = 0, tt_capture_victim[8] = {}, blocked_victim[8] = {}, null_tries = 0,
++              null_cutoffs = 0;
++struct Printer {
++    ~Printer() {
++        std::cout << "info string spec_counters nmp_eligible " << eligible << " blocked " << blocked;
++        for (int t = 1; t <= 5; ++t) std::cout << " ttcap_v" << t << " " << tt_capture_victim[t];
++        for (int t = 1; t <= 5; ++t) std::cout << " blocked_v" << t << " " << blocked_victim[t];
++        std::cout << " null_tries " << null_tries << " null_cutoffs " << null_cutoffs << std::endl;
++    }
++} printer;
++} // namespace spec_counters
++#define SPEC_INC(x) (++spec_counters::x)
++#else
++#define SPEC_INC(x) ((void)0)
++#endif
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1196,6 +1219,18 @@
+             if (tune::NmpTtCaptureMin > 0 && piece_type(board.captured_piece(tt_move)) >= tune::NmpTtCaptureMin) return true;
+             return tune::NmpTtCaptureSee > 0 && board.see_ge(tt_move, tune::NmpTtCaptureSee);
+         };
++#if FORGE_SPEC_COUNTERS
++        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
++            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
++            board.has_non_pawn_material(board.side_to_move()) &&
++            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            ++spec_counters::eligible;
++            const bool spec_real = tt_capture && board.is_pseudo_legal(tt_move);
++            const int spec_vt = spec_real ? static_cast<int>(piece_type(board.captured_piece(tt_move))) & 7 : 0;
++            if (spec_real) ++spec_counters::tt_capture_victim[spec_vt];
++            if (nmp_tt_capture_block()) { ++spec_counters::blocked; ++spec_counters::blocked_victim[spec_vt]; }
++        }
++#endif
+         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+@@ -1206,7 +1241,7 @@
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+ #endif
+-            ++null_tries_;
++            ++null_tries_; SPEC_INC(null_tries);
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+             ss->current_move = Move::none();
+@@ -1225,7 +1260,7 @@
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+                 if (depth < 14) {
+-                    ++null_cutoffs_;
++                    ++null_cutoffs_; SPEC_INC(null_cutoffs);
+                     return null_score;
+                 }
+                 // Verification search at high depth guards against zugzwang.
+@@ -1235,7 +1270,7 @@
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+                 if (verification >= beta) {
+-                    ++null_cutoffs_;
++                    ++null_cutoffs_; SPEC_INC(null_cutoffs);
+                     return null_score;
+                 }
+             }
