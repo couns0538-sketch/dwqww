@@ -71,7 +71,9 @@ base: forge_ltopgo_x_al1s198_trial_w6.exe (4181A589)   no options
 1. Copy `F:\ospd\src\lock` to `D:\opus_singular_noncut\src\snc` and check it with `sha256sum -c
    F:/ospd/src/lock_SOURCES.sha256`.
 2. Apply `patch -p1 -F0 < singular_noncut_stack.patch`.
-3. Run `bash opus_singular_noncut/tools/snc_controls.sh`.
+3. Run `bash opus_singular_noncut/tools/snc_controls.sh`. It never overwrites: on this PC `snc_id` / `snc_gate`
+   already exist under `D:\opus_singular_noncut\src`, so first rename them or point `S=` in the script to a fresh
+   folder.
 4. From Git Bash: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed/tools/build_variants.ps1
    -SrcDir D:\opus_singular_noncut\src\snc_gate -Tag <new tag> -Variant lp_v1 -Twice -Work D:\opus_singular_noncut\build`.
    It must print `REPRO` with sha256 5f6be7c5....

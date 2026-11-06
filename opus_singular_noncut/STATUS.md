@@ -53,21 +53,29 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   their hunt times).
 - **Pack milestone: READY FOR CODE REVIEW** (patch, IDEA_SOURCE, BENCH, README, STATUS, logs).
 
+- S6 smoke A (optional; a crash / time-loss / illegal-move check, NOT a verdict), 01:37:48-01:53:40, in the owner's
+  CPU window: **CLEAN**.
+  - Command: `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_a -Mask 0x70 -Concurrency 3 -Rounds 50
+    -Srand 20261106 -MaxMinutes 30`.
+  - CPUs 4-6 at Idle, checked on all 7 processes. Gate exe ON vs trial_w6, tc 10+0.1 timemargin 1000, Hash 16,
+    Threads 1, 8moves_v3 random.
+  - 100 / 100 games, 0 time losses (either engine), 0 disconnect / illegal / crash / stall / error lines.
+  - A ran with the first script version. Its regex lacked `warning|responsive`; the A output re-grepped with the
+    stricter pattern afterwards: 0 lines.
+  - Information only: W 7 / D 84 / L 9, Ptnml [0, 8, 36, 6, 0]. 100 games say nothing about strength.
+  - Logs: `logs/smoke_a_SUMMARY.txt`, `logs/smoke_a_fastchess.out.txt`. PGN and engine log stay in
+    `D:\opus_singular_noncut\out\smoke_a`.
+
 ## In progress
-- S6 optional smoke, in the owner's CPU window. Not a verdict: a crash / time-loss / illegal-move check.
-  - Smoke A started 01:37:48: `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_a -Mask 0x70 -Concurrency 3
-    -Rounds 50 -Srand 20261106 -MaxMinutes 30`.
-  - CPUs 4-6 at Idle, checked on all 7 processes. 100 games, gate exe ON vs trial_w6, tc 10+0.1 timemargin 1000,
-    Hash 16, Threads 1, 8moves_v3 random.
-  - 53 games done at 01:46: 0 time losses, 0 warning / illegal / crash / disconnect lines.
+- Smoke B started 01:53:57, same settings with `-Srand 20261107 -Out D:\opus_singular_noncut\out\smoke_b -MaxMinutes 19`,
+  on CPUs 4-6. Gate: A's 15:52 + 3 min from the start ends before the 02:27 window end. Fastchess checked on 0x70 Idle.
 
 ## Exact next step
-1. When smoke A ends (about 16 min per 100 games at concurrency 3): run smoke B with the same settings and
-   `-Srand 20261107 -Out ...\smoke_b`.
-   - Use 0x70 only if it can end before 02:27 (`-MaxMinutes 25`; the script refuses otherwise).
-   - Otherwise use `-Mask 0x4` (CPU 2) with concurrency 1.
-2. Push the smoke summaries into `logs/`.
-3. Code Review of the pack; after CR, QA / Strength run the SPRT with the gate line in README.md.
+1. When smoke B ends: copy its SUMMARY into `logs/` and push.
+2. If B still runs at 02:23: move my own fastchess + its two engine children to CPU 2 (0x4) by handle; record the
+   game number at that moment (later games ran under other conditions).
+3. After 02:27: one sweep that no own process has affinity bits above 0xF; write that line here.
+4. Then the pack waits for Code Review. After CR, QA / Strength run the SPRT with the gate line in README.md.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
