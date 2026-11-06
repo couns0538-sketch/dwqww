@@ -83,13 +83,19 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   - Re-pinned by handle (name / parent / start time checked first) to 0x3 Idle. Re-sweep 02:11:06: 0 of 17 own
     processes with affinity bits above 0xF.
 
+  - Check 02:23:38: no smoke process (fastchess / gate exe / trial_w6 exe) of mine left.
+  - **After the window end, sweep 02:27:35: 14 own processes ([name withheld].exe 1700 + descendants), 0 with affinity bits
+    above 0xF.** Back to CPUs 0-3 only.
+- Skill `forge-speed-lock-path` (user scope + repo mirror `skills/forge-speed-lock-path/SKILL.md`, kept identical):
+  the restart pitfall now says to pin the MCP servers too.
+
 ## In progress
-- Nothing of mine runs on CPUs 4-15. A background clock check at 02:23:30 (bash, 0x3 Idle) re-checks the process
-  list; a last sweep follows after the window end.
+- Nothing. The job is DONE and waits for Code Review.
 
 ## Exact next step
-1. After 02:27: one more sweep (no own process above 0xF), written here.
-2. The pack waits for Code Review. After CR, QA / Strength run the SPRT with the gate line in README.md.
+Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
+Strength run the SPRT with the gate line in README.md (cand = the gate exe with `setoption name SingularNonCut value 1`,
+base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / Threads.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`

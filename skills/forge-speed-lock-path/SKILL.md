@@ -125,7 +125,9 @@ Rules first:
   workload file at the same moment collide. Copy the workload into each build folder first (sha256-checked).
 - Bash heredocs collapse `\\`: a Windows path `F:\\ospd\\abba` written from a heredoc into a file became
   `F:\ospd<BEL>bba`. Write files with the Write / Edit tools; `tools/ctrl_char_check.py` finds such bytes.
-- A fresh session process after an application restart runs at 0xFFFF / Normal: pin it to 0x3 Idle first.
+- A fresh session process after an application restart runs at 0xFFFF / Normal: pin it to 0x3 Idle first. Its MCP
+  servers (forge-uci, forge-o30 venv launchers + conhost) start before that and keep 0xFFFF / Normal: sweep the
+  session's descendants and pin them by handle too (found 2026-11-06 02:10, SingularNonCut job).
 - MSVC never defines `__BMI2__`, so a source that guards PEXT code with `#if !defined(__BMI2__) #error` cannot build
   for the ASan run: bitexact_check adds `/D__BMI2__=1` for such sources only (the lock source never mentions it).
 - Re-timing a borderline result until it says WIN is optional stopping: every borderline single gets ONE 16-round
