@@ -356,10 +356,12 @@ Owner items:
   4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0), not vs the old lock FD3A5190, judged by the
   skill's verdict rules (wall nps decides, CPU time must not contradict it, a pooled run never decides). Every ABBA
   number in this report is vs FD3A5190.
-- `tools/uci_lib.ps1` `$OspdLockExe` / `$OspdLockSha` (the defaults of abba_queue / speed_pack / bitexact_check /
-  build_variants) still name FD3A5190. That is right for search identity (its pins, its cached L3 rows), but an ABBA
-  through these defaults times against FD3A5190, not the live lock: pass the trial_w6 exe explicitly, or change the
-  default as a separate item (not part of the CR leftovers).
+- DONE 20:02 (leftover job 1, start tip 38559f1b): `tools/uci_lib.ps1` `$OspdLockExe` / `$OspdLockSha` now name the
+  live lock trial_w6 (`forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`, sha256 4181A589...). These are the
+  defaults of abba_queue, speed_pack and bitexact_check, and their "lock" labels now say trial_w6. The FD3A5190 exe
+  stays as `$OspdOldLockExe` and its source as `$OspdLockSrc`, for search identity only. The pin tables are
+  unchanged. The first bitexact_check with the default -Ref builds a new reference cache `F:\ospd\ref\4181a589\`;
+  the FD3A5190 cache stays.
 - Lock correctness item (patch review L1, PLAUSIBLE, pre-existing, NOT changed by any switch): `MovePicker` writes
   `bad_captures_[bad_count_++]` without a bound against its 64 slots (`src/search.cpp` of the lock, the write path the
   patches keep), unlike `quiets_tried` / `captures_tried`. A contrived node with more than 64 SEE-negative captures /

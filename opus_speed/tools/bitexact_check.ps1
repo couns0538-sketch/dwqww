@@ -1,7 +1,7 @@
 # bitexact_check.ps1 - bit-exact proof of the speed job (PowerShell 5.1). Prints PASS / FAIL per line, stops at the
 # first FAIL (so a node-changing candidate never reaches the ABBA).
 # usage: powershell -NoProfile -ExecutionPolicy Bypass -File bitexact_check.ps1 -Cand <exe> -Out <new dir>
-#          [-Ref <exe, default lock FD3A5190>] [-Quick] [-FenCount N] [-Fens <file>] [-FenDepth 13]
+#          [-Ref <exe, default live lock trial_w6>] [-Quick] [-FenCount N] [-Fens <file>] [-FenDepth 13]
 #          [-SanSrc <source dir> [-Define 'N=V',..] [-SanNdebug]] [-SkipSan] [-NoStop]
 # Levels (Threads 1, depth / node limits only, never time):
 #   L1 bench d11/13/16/20/22 with the net (defaults) and with UseNNUE=false: cand = ref (and ref = lock pins if ref is
@@ -249,7 +249,7 @@ try {
   $cacheDir = Join-Path 'F:\ospd\ref' $refSha.Substring(0, 8); New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
   $candCache = Join-Path $Out 'cand'; New-Item -ItemType Directory -Path $candCache | Out-Null
   $refIsLock = ($refSha -eq $script:OspdLockSha.ToLower())
-  Say "bitexact_check $(Get-OspdNow): ref $Ref (sha256 $refSha$(if ($refIsLock) { ', = lock FD3A5190' }))"
+  Say "bitexact_check $(Get-OspdNow): ref $Ref (sha256 $refSha$(if ($refIsLock) { ', = live lock trial_w6' }))"
   Say "                cand $Cand (sha256 $candSha, md5 $(Get-OspdMd5 $Cand)); $diskMsg"
 
   $allFens = @(); $n = 0

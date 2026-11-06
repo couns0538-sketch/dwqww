@@ -22,3 +22,9 @@ CR leftovers (independent CR of 73f4041d..00d19e56: APPROVE, 0 BLOCKER, 4 SHOULD
 00d19e56, WIP 8b170996: all 4 DONE. SHOULD 4: patchrev_qa LOCK = trial_w6. SHOULD 2: skill verdict rules. SHOULD 3:
 FINAL_REPORT QA owner item. SHOULD 1: warm_identity self-pin + read-back. Test 8 / 8 PASS (run
 20261105-194720-5676). KING_LINES (W9) and bundles a-d were not retimed or locked. Details: `CR_SHOULD_W8.md`.
+
+Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lock trial_w6 4181A589...):
+- Job 1 (tool defaults = trial_w6): DONE 20:02.
+- Job 2 (warm_identity refusal test): IN PROGRESS.
+- Job 3 (CR NITs 3a / 3b / 3c): next.
+KING_LINES and bundles a-d were not retimed or locked.

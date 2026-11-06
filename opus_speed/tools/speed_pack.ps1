@@ -133,7 +133,7 @@ try {
   $abbaTxt = 'skipped (-SkipAbba)'
   if ($bxRc -ne 0) { $abbaTxt = "not run: $bxState" }
   if ($bxRc -eq 0 -and -not $SkipAbba) {
-    $ab = @{ A = $script:OspdLockExe; B = $exe; Out = $abbaDir; Depth = $Depth; Rounds = $Rounds; LabelA = 'lock FD3A5190'; LabelB = $Name }
+    $ab = @{ A = $script:OspdLockExe; B = $exe; Out = $abbaDir; Depth = $Depth; Rounds = $Rounds; LabelA = 'live lock trial_w6'; LabelB = $Name }
     if ($AaCsv) { $ab.AaCsv = $AaCsv }
     $abOut = @(& "$PSScriptRoot\abba.ps1" @ab); $abRc = $LASTEXITCODE
     Set-OspdPlacement -Mask 0x3 -Priority 'Idle'

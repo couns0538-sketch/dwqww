@@ -49,4 +49,12 @@
 - DONE (19:47): SHOULD 4 (patchrev_qa LOCK = trial_w6), 2 (skill verdict rules + mirror), 3 (FINAL_REPORT QA owner
   item), 1 (warm_identity self-pin + read-back). `tests/test_cr_should_w8.ps1` 8 / 8 PASS from Git Bash (run
   20261105-194720-5676). Nothing of this follow-up is running.
+
+## State 20:02 PC clock - leftover jobs 1-3 (start tip 38559f1b)
+- Job 1 DONE: `tools/uci_lib.ps1` defaults = the live lock trial_w6 (`$OspdLockExe` / `$OspdLockSha`). FD3A5190 stays
+  as `$OspdOldLockExe` / `$OspdLockSrc` (search identity). Labels in abba_queue, bitexact_check and speed_pack were
+  updated. Test W6a and W4b now use these.
+- Next: job 2 (`tests/warm_refusal_check.py`, W5a-d), then job 3a (patchrev mutex before placement), 3b (K3 comment
+  in the trial_w9 / w9dev board.hpp + regenerated patches), 3c (test `-Py` / OSPD_PY).
+- Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d untouched.
 - Not done on purpose: no ABBA / soak / 12k; KING_LINES and bundles a-d untouched (QA owns their timings).

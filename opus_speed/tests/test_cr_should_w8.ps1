@@ -86,7 +86,7 @@ $w4b = Join-Path $outRoot 'w4b'
 $pyFile4 = Join-Path $outRoot 'w4_lock.py'
 Write-OspdLf $pyFile4 @('import sys', "sys.path.insert(0, r'$Tools')", 'import patchrev_qa as p',
   "print('lock_sha', p.LOCK_SHA)", "print('lock_file_ok' if p.sha256(p.LOCK) == p.LOCK_SHA else 'lock_file_BAD')",
-  "p.LOCK = r'$lock'",
+  "p.LOCK = r'$($script:OspdOldLockExe)'",
   "sys.argv = ['patchrev_qa.py', 'protocol', '--out', r'$w4b', '--mask', '0x3', '--stacks', 'no_such_stack_w8']",
   'try:', '    p.main()', "    print('w4b not refused')", 'except SystemExit as x:', "    print('w4b refused:', x)")
 $r5 = Invoke-Tool $Py @('-I', '-B', $pyFile4)
@@ -94,6 +94,10 @@ $r5.Out | ForEach-Object { Add-OspdLf $log "  W4> $_" }
 $t5 = $r5.Out -join ' '
 Check 'W4a' ($r5.Rc -eq 0 -and $t5 -match 'lock_sha 4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0' -and $t5 -match 'lock_file_ok') "patchrev_qa LOCK_SHA = trial_w6 4181A589... and sha256(LOCK) = LOCK_SHA"
 Check 'W4b' ($t5 -match 'w4b refused: .*is not the live lock trial_w6 \(sha256 4181A589' -and -not (Test-Path (Join-Path $w4b 'lock.log'))) "protocol with the FD3A5190 exe as LOCK: refused before any engine, the refusal names trial_w6, no lock.log"
+
+# W6a (leftover job 1): the tools' default lock is the live lock trial_w6 (file sha256 = OspdLockSha = 4181a589...)
+$defSha = Get-OspdSha256 $script:OspdLockExe
+Check 'W6a' ($defSha -eq $script:OspdLockSha -and $defSha -eq '4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0') "uci_lib default lock $($script:OspdLockExe): sha256 $($defSha.Substring(0, 8)) = OspdLockSha = live lock trial_w6"
 
 $nf = @($results | Where-Object { $_ -match '^W\S+ FAIL ' }).Count
 $fin = "test_cr_should_w8 run $run end $(Get-OspdNow): $($results.Count - $nf) / $($results.Count) PASS; log $log"

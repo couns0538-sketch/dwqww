@@ -2,12 +2,15 @@
 # Placement (affinity + priority class, checked, fail closed), disk gates, hashing, LF files, and a small UCI driver
 # that waits for real engine output (no sleeps). Engines inherit this process's affinity and class from their first
 # instruction, so callers place themselves first (Set-OspdPlacement) and only then start engines.
-# Lock facts used as defaults: pins of exe FD3A5190 (net on = defaults; net off = UseNNUE false).
+# Lock facts used as defaults: the LIVE lock trial_w6 (sha256 4181A589..., published by QA; every default lock path,
+# label and lock decision uses it). Its pins = the old lock FD3A5190's (node-identical; net on = defaults; net off =
+# UseNNUE false). FD3A5190 stays only as the search-identity reference: OspdLockSrc builds to it byte for byte (lp_v1).
 
 [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture   # dot decimals in every number we write
-$script:OspdLockExe = 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'
-$script:OspdLockSha = 'FD3A51903E73DC1FA20263F1DCC7A4EEC506592E9F25E50B8F8739CA36873072'
-$script:OspdLockSrc = 'F:\ospd\src\lock'
+$script:OspdLockExe = 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe'
+$script:OspdLockSha = '4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0'
+$script:OspdLockSrc = 'F:\ospd\src\lock'   # source of the OLD lock FD3A5190 (search-identity reference, L4 MSVC ASan)
+$script:OspdOldLockExe = 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_v23.exe'   # FD3A5190, not a lock default
 # string keys: an [ordered] dictionary indexed with an int reads by POSITION, not by key (bug found 09:10)
 $script:OspdDepths = @(11, 13, 16, 20, 22)
 $script:OspdPinsOn = @{ d11 = 312866; d13 = 862329; d16 = 3024920; d20 = 12389307; d22 = 34048354 }

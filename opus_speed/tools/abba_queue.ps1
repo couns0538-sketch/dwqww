@@ -29,13 +29,13 @@ while ($true) {
   $sha = Get-OspdSha256 $todo.Exe
   if ($sha -eq $lockSha) {
     New-Item -ItemType Directory -Force -Path $todo.Dir | Out-Null
-    Write-OspdLf (Join-Path $todo.Dir 'IDENTICAL.txt') @("$($todo.Exe) sha256 $sha = lock FD3A5190: identical file, not timed")
+    Write-OspdLf (Join-Path $todo.Dir 'IDENTICAL.txt') @("$($todo.Exe) sha256 $sha = live lock trial_w6: identical file, not timed")
     Add-OspdLf $Results ("{0}`t{1}`t{2}`t{3}`t0`t1`t1`t1`t0`t1`t1`t1`t0`tIDENTICAL-EXE`tIDENTICAL-EXE`t{4}" -f (Get-OspdNow), $todo.Name, $sha.Substring(0, 8), $Depth, $todo.Dir)
     Write-Output "$(Get-OspdNow) $($todo.Name): identical to the lock exe"
     continue
   }
   Write-Output "$(Get-OspdNow) $($todo.Name): ABBA d$Depth x $Rounds vs lock"
-  $o = @(& "$PSScriptRoot\abba.ps1" -A $script:OspdLockExe -B $todo.Exe -Out $todo.Dir -Depth $Depth -Rounds $Rounds -AaCsv $AaCsv -LabelA 'lock FD3A5190' -LabelB $todo.Name)
+  $o = @(& "$PSScriptRoot\abba.ps1" -A $script:OspdLockExe -B $todo.Exe -Out $todo.Dir -Depth $Depth -Rounds $Rounds -AaCsv $AaCsv -LabelA 'live lock trial_w6' -LabelB $todo.Name)
   $rc = $LASTEXITCODE
   Set-OspdPlacement -Mask 0x3 -Priority 'Idle'   # abba pinned this process to the timing CPU (review LOW 7)
   $o | ForEach-Object { Write-Output "  $_" }
