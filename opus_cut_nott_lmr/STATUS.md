@@ -1,0 +1,76 @@
+# CutNoTtLmr (T04D-01) - STATUS
+
+Owner Couns. Brief = the leftover /plan of 2026-11-06 (jobs 1-4; this is job 2). Plan file
+`C:\Users\Administrator\.claude\plans\compiled-wobbling-hamming.md` (approved before 03:14 PC clock).
+- Branch `opus-cut-nott-lmr-20261105`, cut from 277a8f90 (the final tip of `opus-speed-20261105`, the same parent
+  SingularNonCut used). It is not stacked on SingularNonCut.
+- Worktree `F:\ospd\wt` (sparse checkout; `/opus_cut_nott_lmr/` added).
+- Builds and outputs only under `F:\ospd\cut_nott_lmr\` (src, build, out, pack). Message files go in `F:\ospd\tmp\`.
+  Nothing is written to D:.
+- Parent exe = the live lock trial_w6, sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0.
+- Names (exact SPEC):
+  - compile macro `FORGE_CUT_NO_TT_LMR`, default 0;
+  - UCI spin `CutNoTtLmr` 0-2, default 0, gate build only;
+  - gate ON value 1.
+- Push only with `opus_speed/tools/commit_push.sh`. On this branch it is the SingularNonCut branch's branch-aware,
+  fail-closed version, with the three port branches added (each with its pack folder and its literal push line; the
+  pack's .ps1 files get the parse check).
+
+## Done
+- P0, branch and tooling: branch from 277a8f90, `commit_push.sh` as above, sparse pattern added.
+- P1, source and patch:
+  - Parents:
+    - `F:\ospd\src\lock` passes `sha256sum -c lock_SOURCES.sha256` (20 / 20).
+    - `diff -ruN lock trial_w6`, timestamps stripped, has md5 9b9ea01b = `opus_speed/patches/trial_w6.patch`.
+    - The copies in `F:\ospd\cut_nott_lmr\src\{lock,trial_w6}` equal the F: trees.
+  - Tree `cnl` = trial_w6 + 5 hunks:
+    - search.hpp: the macro default block and the extern;
+    - search.cpp: the int, the `parameters()` row, and the use site right after `if (cut_node) r += 2;` (trial_w6
+      `:1383`): `if (tune::CutNoTtLmr > 0 && cut_node && tt_move.is_none()) r += tune::CutNoTtLmr;`.
+  - `cut_nott_lmr_after_w6.patch` has md5 66432f98 and `cut_nott_lmr_stack.patch` (vs the lock) has md5 bf5ce9ea, both
+    with the `---` / `+++` timestamps stripped.
+  - Apply proofs with `patch -p1 -F0`: lock + trial_w6.patch + after_w6.patch, and lock + stack.patch. No offset, fuzz or
+    reject; `diff -r` = `cnl` for both.
+  - `tools/port_controls.sh` is snc_controls.sh with the folder, tree and macro as arguments:
+    - `cnl_id` = the six flipped, with the macro still 0;
+    - `cnl_gate` = the six flipped + macro 1;
+    - every flip hit exactly one `#define X 0` line, and there are no CR bytes.
+- P3, identity build (started 03:26:16): **IDENTITY PASS**.
+  - `F:\ospd\cut_nott_lmr\build\cnl_id_lp_v1\src_copy\forge_lp_v1.exe` has sha256
+    4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0 = trial_w6
+    (`forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`). `cmp` says byte-identical.
+  - Quick pins 312866 / 862329 / 3024920 OK.
+  - So the parent 277a8f90 still builds trial_w6's exact exe, and macro 0 adds nothing. There is no new UCI option,
+    because the bytes are the same.
+- P4, gate build: **REPRO pc1 = pc2**, sha256 dcdec9a7d71aec370cba9516ed75183f2ee433f71f6024ebdfa4e23c8a56a0c4.
+  - Quick pins OK at the default 0.
+  - Handoff copy: `F:\ospd\cut_nott_lmr\pack\forge_cut_nott_lmr_gate_dcdec9a7.exe`.
+
+## In progress
+- `bitexact_check -Quick -SkipSan` of the identity exe (net on + off pins d11-d22, perft, 2k FENs) ->
+  `F:\ospd\cut_nott_lmr\out\bx_id`.
+
+## Exact next step
+1. Gate OFF `bitexact_check -Quick -SkipSan` of `forge_cut_nott_lmr_gate_dcdec9a7.exe`.
+2. MCP `uci_options`: expect `CutNoTtLmr type spin default 0 min 0 max 2`.
+3. MCP `pin_check -Full CutNoTtLmr=1`: d13 must differ from 862329, and perft must equal the pins.
+4. BENCH.md, README gate line, then hand to Code Review.
+
+## Resume commands
+- `git -C /f/ospd/wt switch opus-cut-nott-lmr-20261105 && git -C /f/ospd/wt log --oneline -3`
+- Push: write a message file under `F:\ospd\tmp\`, then `bash /f/ospd/wt/opus_speed/tools/commit_push.sh <message file>`.
+- Rebuild the trees:
+  1. Copy `F:\ospd\src\lock` (check `lock_SOURCES.sha256` from inside it) to `<dir>\lock`, and make `<dir>\cnl` the same way.
+  2. In `cnl`, run `patch -p1 -F0 < opus_cut_nott_lmr/cut_nott_lmr_stack.patch`.
+  3. `bash opus_cut_nott_lmr/tools/port_controls.sh <dir> cnl FORGE_CUT_NO_TT_LMR`.
+- Builds (from Git Bash, never the PowerShell tool): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+  'F:\ospd\wt\opus_speed\tools\build_variants.ps1' -SrcDir 'F:\ospd\cut_nott_lmr\src\cnl_id' -Tag <new tag> -Variant
+  lp_v1 -Work 'F:\ospd\cut_nott_lmr\build'`. For the gate, use `cnl_gate` and add `-Twice`. Use a new tag per run.
+
+## Unproven claims (and what is not done)
+- Any Elo effect of CutNoTtLmr=1 in Forge: no Forge game result exists. The card estimates 0 to +3 at STC; the source's
+  numbers are the source's own.
+- ON nps: not measured. The PGO profile is trained with the option at 0, so the ON path is cold-optimised.
+- Not done (not in this brief): the counter-build box tests of the spec, the mate probe, L4 sanitizers, the full 12k gate
+  OFF run, and Threads > 1 smokes.
+- Code Review of this pack has not happened. Every review so far is my own (NOT independent).
