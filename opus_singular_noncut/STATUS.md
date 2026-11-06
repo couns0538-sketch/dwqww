@@ -32,16 +32,20 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   - `tools/snc_controls.sh` (01:32): `snc_id` = the six flipped (macro stays 0); `snc_gate` = the six + macro 1.
     Every flip hit exactly one `#define X 0` line; no CR bytes (`logs/snc_controls.out.txt`).
 
+- S3 identity build 01:32:53-01:33:52: **IDENTITY PASS**. `D:\opus_singular_noncut\build\snc_id_lp_v1\src_copy\forge_lp_v1.exe`
+  sha256 4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0 = the live lock trial_w6
+  (`forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`), `cmp` byte-identical; quick pins bench 11/13/16 net on
+  312866 / 862329 / 3024920 OK. So the parent still builds trial_w6's exact exe, and macro 0 adds nothing.
+
 ## In progress
-- S3 builds, started 01:32-01:33 in parallel (each `build_variants.ps1` pins itself to CPUs 0-1 Idle; D: 54 GB free):
-  - identity `-SrcDir D:\opus_singular_noncut\src\snc_id -Tag snc_id -Variant lp_v1`;
-  - gate `-SrcDir D:\opus_singular_noncut\src\snc_gate -Tag snc_gate -Variant lp_v1 -Twice`;
-  - both with `-Work D:\opus_singular_noncut\build`; logs `D:\opus_singular_noncut\out\build_snc_*.out`.
+- S3 gate build (started 01:32, in parallel): `-SrcDir D:\opus_singular_noncut\src\snc_gate -Tag snc_gate -Variant lp_v1
+  -Twice -Work D:\opus_singular_noncut\build`, log `D:\opus_singular_noncut\out\build_snc_gate.out`.
+- S4 identity bit-exact (started 01:34): `bitexact_check.ps1 -Cand <identity exe> -Out D:\opus_singular_noncut\out\bx_id
+  -Quick -SkipSan` (L1 net on + off d11-d22, L2 perft, L3 2,000 FENs vs the cached trial_w6 reference).
 
 ## Exact next step
-Identity: the `EXE lp_v1` line must show sha256 4181a589... (= trial_w6) and pins OK. Gate: `REPRO lp_v1 pc1 = pc2`
-and pins OK at default 0. Then S4: bitexact_check -Quick -SkipSan on the identity exe, and bitexact_check full 12k
--SkipSan on the gate exe (reference cached, so nothing is written on F:); MCP pin_check with SingularNonCut=1.
+Gate: `REPRO lp_v1 pc1 = pc2` and pins OK at default 0. Then bitexact_check full 12k -SkipSan on the gate exe
+(reference cached, so nothing is written on F:), MCP uci_options on both exes, MCP pin_check with SingularNonCut=1.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
