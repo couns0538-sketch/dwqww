@@ -52,3 +52,6 @@ profiles); packs stay in `F:\ospd\packs\h<N>_*`.
 | # | idea | define | bit-exact net on / net off | wall vs trial_w6 | cpu vs trial_w6 | exe sha256 | verdict |
 |---|---|---|---|---|---|---|---|
 | - | session A/A 1 trial_w6 vs itself (20:42-20:47) | - | - | 0.9961 [0.9730, 1.0319] sd 4.10 %, per-round range 11.7 % | 0.9995 [0.9825, 1.0225] sd 2.79 % | 4181a589 | NOT SANE (range > 4 %): live trainer PID 3940 (Idle, 0xF, ~73 % of a CPU) shares CPUs 2-3; re-run before any decision |
+| H1 | TT in 2 MB pages (silent fallback to the lock's allocation) | FORGE_SPD_LARGEPAGES=1 | identity all-0 = FD3A5190 OK, six ON + new OFF = 4181A589 OK; pack running | | | cecc4d92 (pc1 = pc2) | pending |
+| H2 | record_move writes the dirty pieces in place (no wide reload of fresh narrow stores) | FORGE_SPD_DIRTY_INPLACE=1 | harness 18.9M moves 0 mismatches (mutant FAIL); queued | | | | pending |
+| H3 | net update takes both perspectives' columns from integer arithmetic (no byte spill reloaded as qword) | FORGE_SPD_NNUE_COLUMNS=1 | harness 2.03M updates = refresh() byte for byte (mutant FAIL); queued | | | | pending |

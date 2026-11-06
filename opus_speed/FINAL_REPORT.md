@@ -417,3 +417,22 @@ lock, no publish; QA re-times. Start tip 3ca407b3.
   trial_w6); `abba.ps1` vs trial_w6 alone on CPU 2 (d20, 10 rounds); verdict rules of the skill (wall decides, cpu
   must not contradict, a pool never decides, one 16-round re-time for a borderline run).
 - Results: see the table in `STATUS.md` (filled per idea) and the subsections below.
+
+### 9.1 Profile of trial_w6 (rip_sampler, 2026-11-05 ~20:50 PC clock)
+`tools/rip_sampler.py` on a byte copy of the live lock exe (4181a589), bench 20 x 3 (12,389,307 nodes each; 2.40 / 2.11
+/ 2.42 M nps while the live trainer shared CPUs 0-3), engine on CPU 1 Idle, sampler 0x3 Idle: 7,734 samples, 98.9 %
+inside .text (`C:\ospd_hunt\prof\w6_b20_r1\`, `profile_remap.txt` after the section-label fix). Flat self time:
+| function | share | hottest spot |
+|---|---|---|
+| Worker::search | 28.3 % | +0x145d 3.3 %: record_move's 32-byte reload of the DirtyPieces temporary right after its narrow stores (store-forwarding stall); +0x3dc 1.2 %: first key compare of the TT probe (cluster load) |
+| evaluate_position (HCE) | 17.2 % | rook PEXT table loads (800 KB table) 0.6 % + 0.5 % |
+| static_evaluate (net update + output, inlined) | 12.2 % | +0x23e 1.5 %: 8-byte reload of a 1-byte bool spill (setg -> mov qword); output kernel's add chain 1.0 % |
+| qsearch | 12.0 % | TT probe first compare 0.8 %; material-correction load 0.6 % |
+| MovePicker::next | 11.0 % | pick_best selection scan |
+| generate_pseudo_legal | 6.2 % | |
+| see_ge | 5.1 % | |
+| std::sort parts (insertion + introsort) | 3.2 % | |
+| make_move | 1.8 % | |
+| record_move (out-of-line clone, qsearch) | 0.5 % | 36 of its 40 samples on the same DirtyPieces reload |
+Reading: two store-forwarding stalls (record_move's DirtyPieces copy, ~3.8 % of all samples; a bool spill in the net
+update, ~1.5 %) and the TT cluster's first touch (~2 %) are the clearest bit-exact targets; the HCE is spread out.

@@ -1,0 +1,107 @@
+diff -ruN trial_w6/include/forge/nnue.hpp h3dev_nnue_columns/include/forge/nnue.hpp
+--- trial_w6/include/forge/nnue.hpp	2026-11-05 12:12:59.770428000 -0800
++++ h3dev_nnue_columns/include/forge/nnue.hpp	2026-11-05 20:58:58.468962100 -0800
+@@ -29,6 +29,16 @@
+ #define FORGE_SPD_NNUE_ZMM 0
+ #endif
+ 
++// Build switch (default 0 = the lock code): 1 = update() takes the w1 column of every
++// piece change for both perspectives from one integer computation (the same index as
++// feature_index(): colour * 6 + type and the square for White, (1 - colour) * 6 + type
++// and square ^ 56 for Black) instead of a per-perspective bool test; the lock build
++// spilled that bool as one byte and reloaded it as eight (a store-forwarding stall).
++// Same columns, same float operations in the same order.
++#ifndef FORGE_SPD_NNUE_COLUMNS
++#define FORGE_SPD_NNUE_COLUMNS 0
++#endif
++
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+diff -ruN trial_w6/src/nnue.cpp h3dev_nnue_columns/src/nnue.cpp
+--- trial_w6/src/nnue.cpp	2026-11-05 12:12:59.772433400 -0800
++++ h3dev_nnue_columns/src/nnue.cpp	2026-11-05 20:59:26.261400000 -0800
+@@ -107,6 +107,75 @@
+     accumulator.valid = true;
+ }
+ 
++#if FORGE_SPD_NNUE_COLUMNS
++namespace {
++// w1 column offsets (in floats) of one piece change for the White and the Black
++// perspective: feature_index() as integer arithmetic (relative colour = colour for
++// White and 1 - colour for Black; relative square = square or square ^ 56).
++struct ChangeColumns {
++    std::size_t white;
++    std::size_t black;
++};
++
++inline ChangeColumns change_columns(const PieceChange& change) {
++    const std::size_t colour = static_cast<std::size_t>(color_of(change.piece));
++    const std::size_t type = static_cast<std::size_t>(piece_type(change.piece) - 1);
++    const std::size_t square = change.square;
++    return {((colour * 6U + type) * 64U + square) * static_cast<std::size_t>(HiddenSize),
++            (((1U - colour) * 6U + type) * 64U + (square ^ 56U)) * static_cast<std::size_t>(HiddenSize)};
++}
++} // namespace
++
++void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    const float* const w1 = weights().w1.get();
++    // The lock's three paths with the same per-lane operation order; only the
++    // column addresses come from change_columns().
++    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
++        const ChangeColumns removed = change_columns(dirty.changes[0]);
++        const ChangeColumns added = change_columns(dirty.changes[1]);
++        auto apply = [](const std::array<float, HiddenSize>& source, std::array<float, HiddenSize>& destination,
++                        const float* removed_column, const float* added_column) {
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = (source[index] - removed_column[index]) + added_column[index];
++            }
++        };
++        apply(parent.values[White], child.values[White], w1 + removed.white, w1 + added.white);
++        apply(parent.values[Black], child.values[Black], w1 + removed.black, w1 + added.black);
++        child.valid = true;
++        return;
++    }
++    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
++        const ChangeColumns removed0 = change_columns(dirty.changes[0]);
++        const ChangeColumns removed1 = change_columns(dirty.changes[1]);
++        const ChangeColumns added = change_columns(dirty.changes[2]);
++        auto apply = [](const std::array<float, HiddenSize>& source, std::array<float, HiddenSize>& destination,
++                        const float* removed0_column, const float* removed1_column, const float* added_column) {
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
++            }
++        };
++        apply(parent.values[White], child.values[White], w1 + removed0.white, w1 + removed1.white, w1 + added.white);
++        apply(parent.values[Black], child.values[Black], w1 + removed0.black, w1 + removed1.black, w1 + added.black);
++        child.valid = true;
++        return;
++    }
++    std::array<ChangeColumns, 4> columns{};
++    for (int i = 0; i < dirty.count; ++i) columns[static_cast<std::size_t>(i)] = change_columns(dirty.changes[static_cast<std::size_t>(i)]);
++    for (const Color perspective : {White, Black}) {
++        auto& acc = child.values[static_cast<std::size_t>(perspective)];
++        acc = parent.values[static_cast<std::size_t>(perspective)];
++        for (int i = 0; i < dirty.count; ++i) {
++            const ChangeColumns& c = columns[static_cast<std::size_t>(i)];
++            const float* column = w1 + (perspective == White ? c.white : c.black);
++            if (dirty.changes[static_cast<std::size_t>(i)].add) add_feature(acc, column);
++            else sub_feature(acc, column);
++        }
++    }
++    child.valid = true;
++}
++#else
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+     const Weights& w = weights();
+     // Quiet moves (including noncapturing promotions) remove one feature and
+@@ -166,6 +235,7 @@
+     }
+     child.valid = true;
+ }
++#endif
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
+     const Weights& w = weights();
