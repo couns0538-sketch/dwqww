@@ -1,0 +1,108 @@
+diff -ruN trial_w6/include/forge/bitboard.hpp h4dev_slider_pdep16/include/forge/bitboard.hpp
+--- trial_w6/include/forge/bitboard.hpp	2026-11-05 12:12:59.223855700 -0800
++++ h4dev_slider_pdep16/include/forge/bitboard.hpp	2026-11-05 21:03:30.109598200 -0800
+@@ -16,6 +16,16 @@
+ #endif
+ #include <immintrin.h>
+ #endif
++// Build switch, default 0 (= the lock's tables): 1 = on top of FORGE_SPD_SLIDER_PEXT
++// every slider table entry is the attack set's PEXT over the square's empty-board rays
++// (16 bits: a rook reaches at most 14 squares) and a lookup rebuilds the set with PDEP:
++// the same attack sets from tables a quarter of the size (rook 800 KB -> 200 KB).
++#ifndef FORGE_SPD_SLIDER_PDEP16
++#define FORGE_SPD_SLIDER_PDEP16 0
++#endif
++#if FORGE_SPD_SLIDER_PDEP16 && !FORGE_SPD_SLIDER_PEXT
++#error "FORGE_SPD_SLIDER_PDEP16=1 needs FORGE_SPD_SLIDER_PEXT=1"
++#endif
+ 
+ namespace forge {
+ 
+@@ -156,7 +166,12 @@
+ #if FORGE_SPD_SLIDER_PEXT
+ struct Magic {
+     Bitboard mask = 0;
++#if FORGE_SPD_SLIDER_PDEP16
++    Bitboard rays = 0;               // every square reached on an empty board, edges included
++    std::uint16_t* table = nullptr;  // PEXT(attack set, rays)
++#else
+     Bitboard* table = nullptr;
++#endif
+ 
+     [[nodiscard]] std::size_t index(Bitboard occupancy) const {
+         return static_cast<std::size_t>(_pext_u64(occupancy, mask));
+@@ -183,6 +198,16 @@
+ [[nodiscard]] inline Bitboard pawn(Color color, int square) {
+     return PawnTable[static_cast<std::size_t>(color)][static_cast<std::size_t>(square)];
+ }
++#if FORGE_SPD_SLIDER_PDEP16
++[[nodiscard]] inline Bitboard bishop(int square, Bitboard occupancy) {
++    const Magic& m = BishopMagics[static_cast<std::size_t>(square)];
++    return _pdep_u64(m.table[m.index(occupancy)], m.rays);
++}
++[[nodiscard]] inline Bitboard rook(int square, Bitboard occupancy) {
++    const Magic& m = RookMagics[static_cast<std::size_t>(square)];
++    return _pdep_u64(m.table[m.index(occupancy)], m.rays);
++}
++#else
+ [[nodiscard]] inline Bitboard bishop(int square, Bitboard occupancy) {
+     const Magic& m = BishopMagics[static_cast<std::size_t>(square)];
+     return m.table[m.index(occupancy)];
+@@ -191,6 +216,7 @@
+     const Magic& m = RookMagics[static_cast<std::size_t>(square)];
+     return m.table[m.index(occupancy)];
+ }
++#endif
+ [[nodiscard]] inline Bitboard queen(int square, Bitboard occupancy) {
+     return bishop(square, occupancy) | rook(square, occupancy);
+ }
+diff -ruN trial_w6/src/bitboard.cpp h4dev_slider_pdep16/src/bitboard.cpp
+--- trial_w6/src/bitboard.cpp	2026-11-05 12:12:59.224366400 -0800
++++ h4dev_slider_pdep16/src/bitboard.cpp	2026-11-05 21:03:41.485132300 -0800
+@@ -20,8 +20,13 @@
+ 
+ namespace {
+ 
++#if FORGE_SPD_SLIDER_PDEP16
++std::array<std::uint16_t, 0x19000> RookAttackTable{};
++std::array<std::uint16_t, 0x1480> BishopAttackTable{};
++#else
+ std::array<Bitboard, 0x19000> RookAttackTable{};
+ std::array<Bitboard, 0x1480> BishopAttackTable{};
++#endif
+ 
+ constexpr bool on_board_step(int square, int file_delta, int rank_delta) {
+     const int file = file_of(square) + file_delta;
+@@ -60,7 +65,31 @@
+     std::uint64_t sparse() { return next() & next() & next(); }
+ };
+ 
+-#if FORGE_SPD_SLIDER_PEXT
++#if FORGE_SPD_SLIDER_PEXT && FORGE_SPD_SLIDER_PDEP16
++// The PEXT tables below with each entry stored as PEXT(attack set, rays): every attack
++// set lies inside the square's empty-board rays, so PDEP(entry, rays) is the set again.
++void init_magics(bool rook, std::uint16_t* table, std::array<Magic, 64>& magics) {
++    const auto& directions = rook ? RookDirections : BishopDirections;
++    std::size_t offset = 0;
++    for (int square = 0; square < 64; ++square) {
++        const Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(rank_of(square))) |
++                               ((FileABB | FileHBB) & ~file_bb(file_of(square)));
++        Magic& m = magics[static_cast<std::size_t>(square)];
++        m.rays = sliding_attack(directions, square, 0);
++        m.mask = m.rays & ~edges;
++        m.table = table + offset;
++        std::size_t size = 0;
++        Bitboard subset = 0;
++        do {
++            const Bitboard attack = sliding_attack(directions, square, subset);
++            m.table[m.index(subset)] = static_cast<std::uint16_t>(_pext_u64(attack, m.rays));
++            ++size;
++            subset = (subset - m.mask) & m.mask;
++        } while (subset != 0);
++        offset += size;
++    }
++}
++#elif FORGE_SPD_SLIDER_PEXT
+ // Every subset of the relevant mask has its own PEXT index in [0, 2^popcount(mask)),
+ // so the tables stay dense with the lock's sizes; the entry order differs.
+ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
