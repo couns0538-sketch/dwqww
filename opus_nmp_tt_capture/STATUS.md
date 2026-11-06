@@ -126,5 +126,24 @@ CR, QA / Strength run the SPRT:
   - wall (engine nps): B/A median 0.9923 (-0.77%), 95% t-interval [0.9842, 1.0243], sd/round 2.79%, bootstrap median CI [0.9837, 1.0276]
   - cpu (nodes / process CPU time of the bench window): B/A median 0.9971 (-0.29%), 95% t-interval [0.9904, 1.0194], sd/round 2.02%, bootstrap median CI [0.9851, 1.0286]
 - **The PC was not quiet.** load.txt: CPU 2 68-84 % busy, its sibling CPU 3 31-90 % busy (not mine: the trainer and others), total 58-69 %. Chain 1 (12k) ran on CPUs 0-1 at the same time.
-- The ON tree differs from OFF (bench 16 nodes nodes A 3024920 B 3034926), so this is nps per node of a different tree. It is not a cost of the code itself, and time to depth is not measured here. The PGO profile is trained with the option at 0.
+- The ON tree differs from OFF (bench 16 nodes A 3024920 B 3034926), so this is nps per node of a different tree. It is not a cost of the code itself, and time to depth is not measured here. The PGO profile is trained with the option at 0.
 - NOT DONE now: job 1 only (chain running, results follow).
+
+### Leftover job 1: full 12k at the defaults vs trial_w6, net on and net off (written 2026-11-06 12:55:56 PC clock)
+- Ref = trial_w6 4181A589, the default lock exe in forge_push\bin (read-only, as in every earlier run). Cand = the gate
+  exe, run in place (sha256 in each log).
+- L3 = fens_12k_v2.txt (md5 e7dbf2c8) at go depth 13, OwnBook=false, ucinewgame per FEN, two engines on CPUs 0 / 1 Idle.
+  L1 (bench d11-d22 net on + off) and L2 (perft 5) ran in both runs too.
+- Net on uses the cached ref. Net off adds `-FenOptions UseNNUE=false`; that ref was computed once in this chain
+  (`F:\ospd\ref\4181a589\fens_e7dbf2c8_n12000_d13_ob0_UseNNUE-false.tsv`, about 320 KB on F:).
+- **net on**: `VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)`, 12000 / 12000 identical.
+  - Node totals over the 12,000 FENs: ref 1534521761, cand 1534521761.
+  - md5: `logs/fens12k/bitexact_neton.log` a283b04d62d77e913a5d89af3b437ce2, cand TSV 4db620da5fa9051a4e2a08bceb69f027, ref TSV 4db620da5fa9051a4e2a08bceb69f027.
+  - The TSVs stay in `D:\oleft2\ntc\fens12k_on\` and in the F: ref cache.
+- **net off**: `VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)`, 12000 / 12000 identical.
+  - Node totals over the 12,000 FENs: ref 1578228148, cand 1578228148.
+  - md5: `logs/fens12k/bitexact_netoff.log` 91d634dcc6b59969967ecb86e29db678, cand TSV bd7275929565a563786e79438bdb3f79, ref TSV bd7275929565a563786e79438bdb3f79.
+  - The TSVs stay in `D:\oleft2\ntc\fens12k_off\` and in the F: ref cache.
+- Job 1 verdict: **BIT-EXACT net on AND net off on all 12,000 FENs.**
+- NOT DONE (this brief): none.
+- Outside this brief: L4 sanitizers, Threads > 1 smokes, and the spec's agreement-type box shares.
