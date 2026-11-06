@@ -17,6 +17,7 @@ param(
   [int]$Srand = 20261106,
   [string]$Tc = '10+0.1',
   [int]$MaxMinutes = 0,
+  [int]$Threads = 1,
   [string]$Cand = 'D:\opus_singular_noncut\pack\forge_singular_noncut_gate_5f6be7c5.exe',
   [string]$CandSha = '5f6be7c55ba318790c26690b0a96edec678aab786334247a8e7a630c5610d117',
   [string]$Base = 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe',
@@ -44,6 +45,7 @@ try {
   }
   $nCpu = 0; for ($i = 0; $i -lt 7; $i++) { if ($m -band (1L -shl $i)) { $nCpu++ } }
   if ($Concurrency -lt 1 -or $Concurrency -gt $nCpu) { throw "concurrency $Concurrency > $nCpu CPUs in $Mask" }
+  if ($Threads -lt 1 -or ($Concurrency * $Threads) -gt $nCpu) { throw "concurrency $Concurrency x Threads $Threads > $nCpu CPUs in $Mask" }
   if (-not $Out.StartsWith('D:\opus_singular_noncut\out\')) { throw "output must be under D:\opus_singular_noncut\out\" }
   if (Test-Path $Out) { throw "$Out exists; use a new folder" }
   $dFree = (Get-PSDrive D).Free / 1GB
@@ -59,13 +61,13 @@ try {
   if ("$($me.PriorityClass)" -ne 'Idle') { throw "priority not applied" }
   New-Item -ItemType Directory -Path $Out | Out-Null
   $script:Sum = Join-Path $Out 'SUMMARY.txt'
-  Line "smoke_run start $(Now): mask $Mask ($nCpu CPUs) Idle, concurrency $Concurrency, rounds $Rounds (games $(2 * $Rounds)), tc $Tc, srand $Srand"
+  Line "smoke_run start $(Now): mask $Mask ($nCpu CPUs) Idle, concurrency $Concurrency, Threads $Threads, rounds $Rounds (games $(2 * $Rounds)), tc $Tc, srand $Srand"
   Line "cand $Cand sha256 $CandSha option SingularNonCut=1; base $Base sha256 $BaseSha; book $Book order=random"
   $pgn = Join-Path $Out 'smoke.pgn'; $elog = Join-Path $Out 'engine_io.log'
   $fargs = @(
     '-engine', "cmd=$Cand", 'name=snc_on', 'option.SingularNonCut=1',
     '-engine', "cmd=$Base", 'name=trial_w6',
-    '-each', "tc=$Tc", 'timemargin=1000', 'proto=uci', 'option.Threads=1', 'option.Hash=16', 'option.OwnBook=false',
+    '-each', "tc=$Tc", 'timemargin=1000', 'proto=uci', "option.Threads=$Threads", 'option.Hash=16', 'option.OwnBook=false',
     '-openings', "file=$Book", 'format=pgn', 'order=random',
     '-srand', "$Srand", '-games', '2', '-repeat', '-rounds', "$Rounds", '-concurrency', "$Concurrency", '-recover',
     '-pgnout', "file=$pgn", 'timeleft=true',

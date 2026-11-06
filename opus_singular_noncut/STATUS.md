@@ -106,7 +106,10 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
     are IDENTICAL (12,829 lines). So runtime 0 = trial_w6 with warm tables too (`logs/warm_gate_off.txt`).
 
 ## In progress
-- Nothing. The job waits for Code Review.
+- Threads 2 ON smoke, started 02:41: `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_t2 -Mask 0xF
+  -Concurrency 1 -Threads 2 -Rounds 10 -Srand 20261108`. 20 games, CPUs 0-3 Idle; the crew gate plays Threads 2.
+  `smoke_run.ps1` now takes `-Threads` and checks concurrency x Threads <= the mask's CPUs. Afterwards the job waits
+  for Code Review.
 
 ## Exact next step
 Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
