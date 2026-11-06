@@ -491,6 +491,7 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | H6 h6_pick_first q | 23:30-23:35 | 1 / 0 -> 3 / 0 % (quiet) | 1.0060 (+0.60 %) [0.9994, 1.0248] sd 1.75 % | 1.0067 (+0.67 %) [0.9969, 1.0259] sd 2.00 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | 77befd39 |
 | H5 h5_move_store32 q | 23:35-23:40 | 2 / 0 -> 1 / 0 % (quiet) | 1.0121 (+1.21 %) [1.0024, 1.0194] sd 1.18 % | 1.0125 (+1.25 %) [1.0033, 1.0213] sd 1.25 % | WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall WIN / cpu WIN) | 552ea065 |
 | H8 h8_hce_locals q | 23:40-23:45 | 1 / 0 -> 1 / 0 % (quiet) | 0.9984 (-0.16 %) [0.9919, 1.0039] sd 0.84 % | 0.9962 (-0.38 %) [0.9901, 1.0009] sd 0.75 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | f682fd21 |
+| H9 h9_ptype_arith q | 23:45-23:50 | 1 / 0 -> 1 / 1 % (quiet) | 0.9990 (-0.10 %) [0.9715, 1.0178] sd 3.25 % | 0.9962 (-0.38 %) [0.9702, 1.0154] sd 3.18 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | e6ae0763 |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
@@ -520,3 +521,17 @@ No issue found. The H6 verify copy and the H1 large-page verify copy are scratch
 - 22:5x: QA paused NNUE training, gates and self-play for this hunt (Couns-approved; CPUs 0-6 + GPU free until usage
   runs out). From then on: A/A gate with the normal rule, then fresh 10-round ABBAs of every pack on CPU 2 with CPU 3
   idle, one at a time. Large pages were available again at 22:57 (probe 6 / 6 OK), so H1 / H7 are timed.
+
+### 9.5 Screening WIN: H5 FORGE_SPD_MOVE_STORE32 (one 32-bit store per generated move)
+- What: the NZM2 move generator writes each Move's four bytes (from, to, promotion, flags) with one 32-bit store
+  instead of four byte stores; the move picker reads fresh moves back as 32-bit loads (picker +0xa4b `vmovd
+  xmm0,[r10+0x950]` = buffer_[0] right after generation), which can now be forwarded from the store. Same bytes in the
+  same slots -> same move lists (tests/movegen_hash.cpp: switch 0 = switch 1 over 4.75M lists / 106.5M moves).
+- Proof: identity all switches 0 = FD3A5190 and six ON + new OFF = 4181A589 byte for byte; pack exe 5dec3fa7 (pc1 =
+  pc2) BIT-EXACT vs trial_w6: L1 bench d11-d22 net on 312866 / 862329 / 3024920 / 12389307 / 34048354 and net off
+  375354 / 907205 / 2448617 / 13573040 / 24506465 = pins, L2 perft 5 4865609 / kiwipete 193690690, L3 2,000 / 2,000,
+  L4 MSVC ASan 2587341 + g++ UBSan 3024920, 0 reports. Full 12k: see 9.6.
+- Timing (quiet window, A/A qc band): wall +1.21 % [1.0024, 1.0194] sd 1.18 %, cpu +1.25 % [1.0033, 1.0213] ->
+  WIN / WIN by QA's rule (need low > 1.000, gain > 0.96 %); runs.csv md5 552ea065.
+- Patches: h5_move_store32_after_w6.patch (md5 479610c9), h5_move_store32.patch (md5 09cc36dd). Candidate file
+  `candidates/h5_move_store32.md`. NOT a lock: QA's own re-time, L3b warm identity and the Threads 2-4 smoke are owed.

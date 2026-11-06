@@ -14,3 +14,15 @@
 skipped (-SkipAbba)
 ```
 - Note: hunt H5: one 32-bit store per generated move
+
+## Quiet decision ABBA vs the live lock trial_w6 (hunt 2026-11-05, QA quiet window)
+- Run `C:\ospd_hunt\abba\h5_move_store32_q_d20` (23:35-23:40 PC clock, NNUE training / gates / self-play paused by QA,
+  CPU 2 with CPU 3 idle, d20, 10 rounds ABBA/BAAB, fresh copies): wall 1.0121 (+1.21 %) [1.0024, 1.0194] sd 1.18 %,
+  cpu 1.0125 (+1.25 %) [1.0033, 1.0213] sd 1.25 %; runs.csv md5 552ea065. abba_recheck.py: PASS.
+- Block A/A `aa_w6_d20_qc` (23:15-23:20): 1.0003 [0.9891, 1.0082], width 1.91 % -> SANE by QA's rule.
+- QA rule: WIN = interval fully above 1.000 and median gain > A/A width / 2 = 0.96 % -> wall WIN, cpu WIN (no
+  contradiction) -> **screening WIN** (also WIN by the skill rule: low > 1.000, median >= 1.010). Not a lock.
+- Patches: `patches/h5_move_store32_after_w6.patch` md5 479610c9 (trial_w6 -> tree), `patches/h5_move_store32.patch`
+  md5 09cc36dd (lock -> tree). Exe sha256 5dec3fa7e2dc8b58089b4750c3f5dec2a348e68f82cb81d7aa3e132dac6341d3 (md5
+  421cd7c0), pc1 = pc2; identity all-0 = FD3A5190, six ON + new OFF = 4181A589.
+- Full 12k L3 vs trial_w6: queued after the closing A/A (runner v3 `full`), result below when it lands.
