@@ -346,6 +346,16 @@ sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0) - DONE.
 and is not touched here. KING_LINES (W9) and bundles a-d were NOT retimed, restacked or locked; no ABBA, soak or
 12k run. Tests: `tests/test_cr_should_w8.ps1` 8 / 8 PASS (run 20261105-194720-5676, lock exe only, CPUs 0-1 Idle).
 Details: `CR_SHOULD_W8.md`.
+**Leftover jobs 1-3, 2026-11-05 from 19:5x PC clock (start tip 38559f1b, owner brief, NOT independent):**
+- Job 1 DONE 20:02: the tool default lock is the live lock trial_w6 (see the owner item below).
+- Job 2 DONE 20:03: the warm_identity refusal path is tested by fault injection (`tests/warm_refusal_check.py`).
+  - A mask or Idle read-back that does not match (a setter that reports success but changes nothing) gives exit 1
+    before the out dir or any engine.
+  - An engine that inherits a wrong mask / class is refused and gets quit + EOF; its PID ends.
+  - `tests/test_cr_should_w8.ps1`: 14 / 14 PASS (run 20261105-200352-9252).
+- Job 3 (CR NITs 3a / 3b / 3c): IN PROGRESS.
+- Live lock trial_w6, 4181A589..., is not touched. KING_LINES and bundles a-d were not retimed or locked. No ABBA,
+  soak, 12k or L3b ran.
 Owner items:
 - The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
 - D: free space read 50.0 GB at 12:29 (`pc_status`), i.e. at the brief's floor; this job wrote only worker-board

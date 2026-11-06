@@ -40,3 +40,15 @@ seconds of engine time): **8 / 8 PASS**. Log: `F:\ospd\logs\cr_should_w8_2026110
 
 Not done on purpose: no ABBA, soak, warm or 12k run. KING_LINES (W9) and bundles a-d were not retimed, restacked or
 locked. The `uci_lib.ps1` lock defaults are unchanged (owner item in FINAL_REPORT section 8).
+
+## Leftover jobs 1-3 (owner brief) - 2026-11-05 from 19:5x PC clock, main session, start tip 38559f1b
+
+| job | what | fix | test |
+|---|---|---|---|
+| 1 | tool default lock = trial_w6 | `tools/uci_lib.ps1`: `$OspdLockExe` = `forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`, `$OspdLockSha` = 4181A589...6FB0 (file hash checked). New `$OspdOldLockExe` = FD3A5190 (search identity only). `$OspdLockSrc` and the pin tables are unchanged. The default-lock labels in abba_queue (IDENTICAL.txt, `-LabelA`), bitexact_check (usage, ref log line) and speed_pack (`LabelA`) say "live lock trial_w6". The lp_v1 = FD3A5190 lines and historical notes stay. bitexact_check's first default-Ref run builds the cache `F:\ospd\ref\4181a589\`. | **W6a** PASS: the default lock file's sha256 = `$OspdLockSha` = 4181a589. **W4b** now uses `$OspdOldLockExe`. |
+| 2 | warm_identity refusal path | New `tests/warm_refusal_check.py` (fault injection; the tool is unchanged). | **W5a** PASS: silent SetProcessAffinityMask on 0x1 gives exit 1 before the out dir / any engine. **W5b** PASS: silent SetPriorityClass while BelowNormal gives exit 1 the same way. **W5c** / **W5d** PASS: an engine inheriting 0x1 Idle / 0x3 BelowNormal is refused, and its PID ended (quit + EOF). **W5e** PASS: no IDENTICAL, no engine claimed pinned. |
+| 3a | patchrev mutex before placement | IN PROGRESS | - |
+| 3b | KING_LINES is_legal contract comment | next | - |
+| 3c | test python not hard-coded | next | - |
+
+Test run 20261105-200352-9252 (20:03, Git Bash, CPUs 0-1 Idle, lock exe only): **14 / 14 PASS**.

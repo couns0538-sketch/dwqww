@@ -25,6 +25,7 @@ FINAL_REPORT QA owner item. SHOULD 1: warm_identity self-pin + read-back. Test 8
 
 Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lock trial_w6 4181A589...):
 - Job 1 (tool defaults = trial_w6): DONE 20:02.
-- Job 2 (warm_identity refusal test): IN PROGRESS.
+- Job 2 (warm_identity refusal test): DONE 20:03. Fault injection `tests/warm_refusal_check.py`, W5a-e; test 14 / 14
+  PASS (run 20261105-200352-9252).
 - Job 3 (CR NITs 3a / 3b / 3c): next.
 KING_LINES and bundles a-d were not retimed or locked.

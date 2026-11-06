@@ -95,6 +95,21 @@ $t5 = $r5.Out -join ' '
 Check 'W4a' ($r5.Rc -eq 0 -and $t5 -match 'lock_sha 4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0' -and $t5 -match 'lock_file_ok') "patchrev_qa LOCK_SHA = trial_w6 4181A589... and sha256(LOCK) = LOCK_SHA"
 Check 'W4b' ($t5 -match 'w4b refused: .*is not the live lock trial_w6 \(sha256 4181A589' -and -not (Test-Path (Join-Path $w4b 'lock.log'))) "protocol with the FD3A5190 exe as LOCK: refused before any engine, the refusal names trial_w6, no lock.log"
 
+# W5a-e (leftover job 2): warm_identity's refusal path by fault injection (tests\warm_refusal_check.py): a mask or Idle
+# read-back that does not match gives exit 1 at placement, or a refused engine - never an engine claimed pinned
+$r6 = Invoke-Tool $Py @('-I', '-B', (Join-Path $PSScriptRoot 'warm_refusal_check.py'), $Tools, $lock, $f2, (Join-Path $outRoot 'w5'))
+$r6.Out | ForEach-Object { Add-OspdLf $log "  W5> $_" }
+$t6 = $r6.Out -join ' '
+Check 'W5a' ($t6 -match 'ERROR: placement: mask 0x1 class 0x40, want mask 0x3 Idle \(0x40\) - not pinned' -and $t6 -match 'W5a rc 1 outdir absent') 'mask read-back mismatch (silent SetProcessAffinityMask): exit 1 before the out dir or any engine'
+Check 'W5b' ($t6 -match 'ERROR: placement: mask 0x3 class 0x4000, want mask 0x3 Idle \(0x40\) - not pinned' -and $t6 -match 'W5b rc 1 outdir absent') 'Idle read-back mismatch (silent SetPriorityClass): exit 1 before the out dir or any engine'
+foreach ($c in @('W5c|mask 0x1 class 0x40', 'W5d|mask 0x3 class 0x4000')) {
+  $id, $what = $c -split '\|'
+  $m = [regex]::Match($t6, "$id refused: engine PID (\d+): $what, want mask 0x3 Idle \(0x40\) - not pinned")
+  $alive = $m.Success -and [bool](Get-Process -Id ([int]$m.Groups[1].Value) -ErrorAction SilentlyContinue)
+  Check $id ($m.Success -and -not $alive) "engine inherits $what`: refused, engine PID $(if ($m.Success) { $m.Groups[1].Value } else { '?' }) ended (quit + EOF, no kill)"
+}
+Check 'W5e' ($r6.Rc -eq 0 -and ($r6.Out -contains 'done') -and $t6 -notmatch 'IDENTICAL' -and $t6 -notmatch 'engine PID \d+: mask 0x3 Idle \(read back\)' -and $t6 -notmatch 'NOT refused') 'every case refused: no IDENTICAL, no engine claimed pinned'
+
 # W6a (leftover job 1): the tools' default lock is the live lock trial_w6 (file sha256 = OspdLockSha = 4181a589...)
 $defSha = Get-OspdSha256 $script:OspdLockExe
 Check 'W6a' ($defSha -eq $script:OspdLockSha -and $defSha -eq '4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0') "uci_lib default lock $($script:OspdLockExe): sha256 $($defSha.Substring(0, 8)) = OspdLockSha = live lock trial_w6"
