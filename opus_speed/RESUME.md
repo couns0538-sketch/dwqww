@@ -117,3 +117,11 @@
   pages failed partway); H7 was not timed. Both are BIT-EXACT packs.
 - Owed to QA for H5 before any lock: own re-time vs trial_w6, L3b warm_identity, Threads 2-4 soak (skill lock path).
 - Runner v3 ends with a `stop` line after the two full 12k runs; the CPU sampler ends by itself (240 min from 21:52).
+
+## State 00:41 PC clock - FINAL (hunt finished, DONE-QUIET written twice; last at 00:41)
+- One screening WIN: H5 FORGE_SPD_MOVE_STORE32 (pack `F:\ospd\packs\h5_move_store32`, exe 5dec3fa7, full 12k BIT-EXACT,
+  quiet ABBA +1.21 % wall / +1.25 % cpu vs trial_w6). Everything else NO-WIN (STATUS.md final table; FINAL_REPORT 9).
+- H1 / H7 large pages re-timed in the second quiet window with large pages proven available: NO-WIN (-0.19 %, +0.61 %).
+- Runners v3 / v4 stopped; nothing of the hunt runs except the read-only CPU sampler (ends by itself ~01:52).
+- Next (QA): own re-time of H5 vs trial_w6 on QA's cores, L3b warm_identity, Threads 2-4 soak; optional re-times of H2 /
+  H3 (intervals above 1.000, medians +0.53 % / +0.81 %); a lock decision is QA's.

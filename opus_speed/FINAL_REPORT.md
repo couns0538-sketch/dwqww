@@ -426,14 +426,14 @@ lock, no publish; QA re-times. Start tip 3ca407b3.
   three A/As were SANE by QA's rule and the decision runs were taken vs trial_w6 with A/A qc as the band (WIN =
   interval fully above 1.000 and median gain > 0.96 %).
 - **Screening WIN: H5 FORGE_SPD_MOVE_STORE32** (the move generator writes each Move with one 32-bit store): wall
-  +1.21 % [1.0024, 1.0194], cpu +1.25 % [1.0033, 1.0213] (9.5). Small real gains below the bar: H3 +0.81 %, H2 +0.53 %
-  (intervals above 1.000), H6 +0.60 %. No gain: H8, H9, H4. H1 (TT in large pages) read +1.60 % but was measured after
-  the trainer came back on its own (23:54:38), and the run is consistent with large pages failing partway (probe 6 / 6
-  OK right before, 6 / 6 failed right after, round ratios ~+2.6 % in rounds 1-5 vs ~+0.7 % in rounds 6-10; the engine
-  is silent by design, so this is inferred): not a valid quiet decision, re-time owed (quiet PC + lp_probe 6 / 6 OK right
-  before + the LP verify copy showing LARGE for all three allocations of a fresh process). H2 and H3 have intervals
-  fully above 1.000 with medians +0.53 % / +0.81 %: by the skill's definition not borderline (median < 1 %, no cpu
-  WIN), so no re-time was run; QA may choose to. H4's run had its last ~30 s under the returned trainer. H7 not timed (large pages unavailable at its probe).
+  +1.21 % [1.0024, 1.0194], cpu +1.25 % [1.0033, 1.0213] (9.5), full 12k BIT-EXACT (9.6). Small real gains below the
+  bar: H3 +0.81 %, H2 +0.53 % (intervals above 1.000), H6 +0.60 %. No gain: H8, H9, H4. H2 / H3 are not borderline by
+  the skill (median < 1 %, no cpu WIN): no re-time was run; QA may choose to.
+- Large pages: the first H1 runs had invalid conditions (21:39: every allocation fell back; 23:55: under the returned
+  trainer, consistent with pages failing partway). In the second quiet window (user, 00:19: training off again) both
+  were timed with large pages proven available right before (probe 6 / 6 + a fresh verify process all LARGE; for H1
+  also right after, by H7's gate): H1 -0.19 % [0.9741, 1.0104] NO-WIN, H7 (TT + w1 + worker tables) +0.61 % [1.0006, 1.0227]
+  NO-WIN (A/A ra band: gain must exceed 0.73 %). Both packs are BIT-EXACT (H1 incl. the full 12k).
 - Not a lock: QA's own re-time, L3b warm identity and the Threads 2-4 smoke are owed for H5; nothing was published.
 
 ### 9.1 Profile of trial_w6 (rip_sampler, 2026-11-05 ~20:50 PC clock)
@@ -516,6 +516,7 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | A/A ra (second quiet window) | 00:21-00:26 | 17 / 1 -> 1 / 0 % (full 12k on CPUs 0-1) | 0.9971 [0.9853, 0.9999] 1.03 % (width 1.46 %) | - | SANE: band of the second block | (aa_w6_d20_ra) |
 | H1 h1_largepages r_d20 | 00:26-00:31 | 1 / 1 -> 1 / 0 % (quiet) | 0.9981 (-0.19 %) [0.9741, 1.0104] sd 2.56 % | 0.9973 (-0.27 %) [0.9749, 1.0111] sd 2.55 % | NO-WIN (QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN) | 57453ffb |
 | H7 h7_largepages2 r_d20 | 00:31-00:36 | 4 / 1 -> 0 / 1 % (quiet) | 1.0061 (+0.61 %) [1.0006, 1.0227] sd 1.53 % | 1.0076 (+0.76 %) [1.0000, 1.0228] sd 1.57 % | NO-WIN (QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN) | 39146413 |
+| closing A/A r2 | 00:36-00:41 | 9 / 1 -> 37 / 1 % | 1.0020 [0.9913, 1.0196] 1.97 % (width 2.83 %) | - | SANE: brackets the second block | (aa_w6_d20_r2) |
 Notes:
 - The live NNUE trainer came back on its own at 23:54:38 (PID 11564, Idle 0xF, ~210 % CPU) during the quiet window;
   H1's run (23:55-00:00) and the closing A/A q2 lay inside it, H4's run ended ~30 s after it. Not touched.

@@ -108,13 +108,14 @@ day: the closing A/A q2 (CPU 2, under load: information) and the full 12k L3 pro
 | H4 | 16-bit slider entries + PDEP | FORGE_SPD_SLIDER_PDEP16=1 | BIT-EXACT | -0.10 % [0.9914, 1.0206] (quiet except its last ~30 s: the trainer returned 23:54:38) | +0.00 % [0.9919, 1.0207] | dcc1e022 | NO-WIN |
 | H5 | one 32-bit store per generated move | FORGE_SPD_MOVE_STORE32=1 | BIT-EXACT incl. full 12k (12,000 / 12,000, 00:23) | **+1.21 % [1.0024, 1.0194]** | +1.25 % [1.0033, 1.0213] | 5dec3fa7 | **screening WIN** |
 | H6 | first pick from the scoring pass | FORGE_SPD_PICK_FIRST=1 | BIT-EXACT | +0.60 % [0.9994, 1.0248] | +0.67 % [0.9969, 1.0259] | 921d1cf7 | NO-WIN |
-| H7 | large pages mode 2 (TT + w1 + worker tables) | FORGE_SPD_LARGEPAGES=2 | BIT-EXACT | not timed (large pages failed 6 / 6 at its probe) | - | 344e6113 | not timed |
+| H7 | large pages mode 2 (TT + w1 + worker tables) | FORGE_SPD_LARGEPAGES=2 | BIT-EXACT | +0.61 % [1.0006, 1.0227] (second quiet window, A/A ra band; large-page gate passed right before; not re-checked after) | +0.76 % [1.0000, 1.0228] | 344e6113 | NO-WIN (interval above 1.000, median under 0.73 %) |
 | H8 | HCE piece-loop accumulators in locals | FORGE_SPD_HCE_LOCALS=1 | BIT-EXACT | -0.16 % [0.9919, 1.0039] | -0.38 % [0.9901, 1.0009] | 89ac3f1f | NO-WIN |
 | H9 | piece_type by arithmetic | FORGE_SPD_PTYPE_ARITH=1 | BIT-EXACT | -0.10 % [0.9715, 1.0178] | -0.38 % [0.9702, 1.0154] | 96004e91 | NO-WIN |
 No idea changed the search (all nine packs BIT-EXACT vs trial_w6 with the net on and off). H2 and H3 have intervals fully above
 1.000 with medians +0.53 % and +0.81 %: by the skill's definition neither is borderline (median < 1 %, no cpu WIN), so no
 re-time was run; QA may choose to. One screening WIN (H5) - no
-stack (the brief stacks winners only; one winner needs none). Nothing locked or published; QA re-times.
+stack (the brief stacks winners only; one winner needs none). H1 / H7 were re-timed in the second quiet
+window with large pages proven available (probe + verify copy) - the first H1 run had invalid conditions. Nothing locked or published; QA re-times.
 | - | closing A/A q2 (00:00-00:05, trainer back: cpu2 / 3 87 / 49 -> 78 / 56 %) | - | - | 1.0074 [0.9944, 1.0184] sd 1.67 %, width 2.40 % | - | 4181a589 | NOT SANE (median +0.74 % > 0.5 %): confirms the conditions of H1's run were not the quiet ones |
 
 ### Second quiet window (user, 00:21 PC clock: "cpu 0-6 and training is off again ... use them")
@@ -126,3 +127,10 @@ timing. DONE-QUIET is written again when this block ends.
 | - | A/A ra (00:21-00:26, second quiet window; runner v3's full 12k on CPUs 0-1 throughout) | - | - | 0.9971 [0.9853, 0.9999] sd 1.03 %, width 1.46 % | - | 4181a589 | SANE (QA rule) -> band of the second block (WIN needs low > 1.000 and gain > 0.73 %) |
 | H1 | h1_largepages quiet decision run (00:26-00:31, cpu2 / cpu3 1 / 1 -> 1 / 0 %) | - | BIT-EXACT (pack) | 0.9981 (-0.19 %) [0.9741, 1.0104] sd 2.56 % | 0.9973 (-0.27 %) [0.9749, 1.0111] sd 2.55 % | cecc4d92 | NO-WIN - QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN; runs.csv 57453ffb |
 | H7 | h7_largepages2 quiet decision run (00:31-00:36, cpu2 / cpu3 4 / 1 -> 0 / 1 %) | - | BIT-EXACT (pack) | 1.0061 (+0.61 %) [1.0006, 1.0227] sd 1.53 % | 1.0076 (+0.76 %) [1.0000, 1.0228] sd 1.57 % | 344e6113 | NO-WIN - QA rule vs aa_w6_d20_ra (need low > 1.000, gain > 0.73 %): wall NO-WIN / cpu NO-WIN; runs.csv 39146413 |
+| - | closing A/A r2 (00:36-00:41) | - | - | 1.0020 [0.9913, 1.0196] sd 1.97 %, width 2.83 % | - | 4181a589 | SANE (QA rule): the second block (H1, H7) is bracketed by two sane A/As |
+
+**DONE-QUIET (00:41 PC clock, final):** all timing is finished (second quiet window: A/A ra SANE, H1 and H7 decision runs,
+A/A r2 SANE); runners v3 and v4 have stopped; no own engine, build or check is running. QA may restart NNUE training,
+gates and self-play now. Result: one screening WIN, H5 FORGE_SPD_MOVE_STORE32 (+1.21 % wall / +1.25 % cpu vs trial_w6,
+BIT-EXACT incl. the full 12k); everything else NO-WIN; nothing locked or published. Owed to QA for H5 before any
+lock: QA's own re-time vs trial_w6, L3b warm_identity, Threads 2-4 soak.
