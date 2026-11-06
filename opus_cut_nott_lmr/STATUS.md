@@ -45,16 +45,27 @@ Owner Couns. Brief = the leftover /plan of 2026-11-06 (jobs 1-4; this is job 2).
 - P4, gate build: **REPRO pc1 = pc2**, sha256 dcdec9a7d71aec370cba9516ed75183f2ee433f71f6024ebdfa4e23c8a56a0c4.
   - Quick pins OK at the default 0.
   - Handoff copy: `F:\ospd\cut_nott_lmr\pack\forge_cut_nott_lmr_gate_dcdec9a7.exe`.
+- P3, identity bit-exact (`logs/bx_id.log`): **BIT-EXACT** L1-L3.
+  - Net on + off d11-d22 = pins.
+  - perft 5 startpos + kiwipete = pins.
+  - 2,000 / 2,000 FENs identical at depth 13.
+- P4, gate OFF (runtime default 0), started 03:29:14 (`logs/bx_gate_off.log`): **BIT-EXACT** L1-L3 vs trial_w6 on the
+  same set. So the gate exe at its default searches trial_w6's nodes.
+- P4, gate ON, MCP `pin_check -Full CutNoTtLmr=1`, 03:29:18-03:29:54: **LIVE**, perft = pins.
+  - Advertised: `CutNoTtLmr type spin default 0 min 0 max 2`.
+  - Net on: d11 318696, d13 780755 (!= 862329), d16 2738962, d20 **16243524**, d22 26960018. Table in BENCH.md.
+- P5: README.md (gate line, CR notes, rebuild), BENCH.md, IDEA_SOURCE.md, logs.
+- **Pack milestone: READY FOR CODE REVIEW.**
 
 ## In progress
-- `bitexact_check -Quick -SkipSan` of the identity exe (net on + off pins d11-d22, perft, 2k FENs) ->
-  `F:\ospd\cut_nott_lmr\out\bx_id`.
+- Nothing for this pack. It waits for Code Review. Job 3 (TtCutNodeDepth) goes on in its own branch.
 
 ## Exact next step
-1. Gate OFF `bitexact_check -Quick -SkipSan` of `forge_cut_nott_lmr_gate_dcdec9a7.exe`.
-2. MCP `uci_options`: expect `CutNoTtLmr type spin default 0 min 0 max 2`.
-3. MCP `pin_check -Full CutNoTtLmr=1`: d13 must differ from 862329, and perft must equal the pins.
-4. BENCH.md, README gate line, then hand to Code Review.
+Code Review of this pack: the patch, BENCH.md, README.md, `tools/port_controls.sh`, and the extended
+`opus_speed/tools/commit_push.sh`. After CR, QA / Strength run the SPRT with the gate line in README.md:
+- cand = the gate exe with `setoption name CutNoTtLmr value 1`;
+- base = trial_w6 4181A589.
+- The owner decides TC / book / bounds / Threads for that SPRT.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-cut-nott-lmr-20261105 && git -C /f/ospd/wt log --oneline -3`

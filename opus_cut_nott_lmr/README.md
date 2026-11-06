@@ -35,11 +35,11 @@ One more LMR term. At a cut node with no TT move, a late move is reduced `CutNoT
 
 ## Exes (on F:, not in git)
 - Identity: `F:\ospd\cut_nott_lmr\build\cnl_id_lp_v1\src_copy\forge_lp_v1.exe`, sha256 = trial_w6 (see BENCH.md).
-- Gate: `F:\ospd\cut_nott_lmr\pack\forge_cut_nott_lmr_gate_@GATE8@.exe`, sha256 `@GATESHA@`, pc1 = pc2.
+- Gate: `F:\ospd\cut_nott_lmr\pack\forge_cut_nott_lmr_gate_dcdec9a7.exe`, sha256 `dcdec9a7d71aec370cba9516ed75183f2ee433f71f6024ebdfa4e23c8a56a0c4`, pc1 = pc2.
 
 ## Gate line (for QA / Strength after Code Review; nothing is queued by this job)
 ```
-cand: forge_cut_nott_lmr_gate_@GATE8@.exe   setoption name CutNoTtLmr value 1
+cand: forge_cut_nott_lmr_gate_dcdec9a7.exe   setoption name CutNoTtLmr value 1
 base: trial_w6  sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0
 ```
 - Spec crew line: SPRT [0,5] normalized Elo, UHO book, Threads 1, STC first, LTC only after an STC H1.
