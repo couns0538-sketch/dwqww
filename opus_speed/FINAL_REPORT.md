@@ -428,8 +428,12 @@ lock, no publish; QA re-times. Start tip 3ca407b3.
 - **Screening WIN: H5 FORGE_SPD_MOVE_STORE32** (the move generator writes each Move with one 32-bit store): wall
   +1.21 % [1.0024, 1.0194], cpu +1.25 % [1.0033, 1.0213] (9.5). Small real gains below the bar: H3 +0.81 %, H2 +0.53 %
   (intervals above 1.000), H6 +0.60 %. No gain: H8, H9, H4. H1 (TT in large pages) read +1.60 % but was measured after
-  the trainer came back on its own (23:54:38) and with large pages failing partway (~+2.6 % in the rounds that had them):
-  not a valid quiet decision, re-time owed. H7 not timed (large pages unavailable at its probe).
+  the trainer came back on its own (23:54:38), and the run is consistent with large pages failing partway (probe 6 / 6
+  OK right before, 6 / 6 failed right after, round ratios ~+2.6 % in rounds 1-5 vs ~+0.7 % in rounds 6-10; the engine
+  is silent by design, so this is inferred): not a valid quiet decision, re-time owed (quiet PC + lp_probe 6 / 6 OK right
+  before + the LP verify copy showing LARGE for all three allocations of a fresh process). H2 and H3 have intervals
+  fully above 1.000 with medians +0.53 % / +0.81 %: by the skill's definition not borderline (median < 1 %, no cpu
+  WIN), so no re-time was run; QA may choose to. H4's run had its last ~30 s under the returned trainer. H7 not timed (large pages unavailable at its probe).
 - Not a lock: QA's own re-time, L3b warm identity and the Threads 2-4 smoke are owed for H5; nothing was published.
 
 ### 9.1 Profile of trial_w6 (rip_sampler, 2026-11-05 ~20:50 PC clock)
