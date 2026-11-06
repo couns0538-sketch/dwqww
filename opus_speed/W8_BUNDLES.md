@@ -57,4 +57,10 @@ Records:
 - candidate files: `opus_speed/candidates/bundle_*.md`;
 - chain log: `F:\ospd\logs\w8_chain.out`.
 
+**Independent review:** `REVIEW_W8_INDEPENDENT.md` (worker patchrev, read-only, 17:44-17:55) found no BLOCKER and no SHOULD, and two LOW notes:
+- W1 (timing only): bundle (c) zero-fills 1 KB of `bad_captures_` per MovePicker, as QA's own T12B source does.
+- W2: `sizeof(MovePicker)` grows 3488 -> 4256 B. By estimate the stack margin stays positive. The review suggests a deep-ply stress FEN per T12B bundle for QA.
+
+It also confirms the switch-0 preprocessed text equals the lock for all 8 units, and that the alignment and `__restrict` uses are sound. The file went into commit 146cabf8: `commit_push.sh`'s `git add -A` took it in while the worker was finishing, and it is unchanged since.
+
 **No ABBA and no lock.** Speed is UNPROVEN until QA times the bundles. The skill's lock path also needs L3b warm-table identity, a Threads 2-4 smoke and QA's re-time, and none of these ran here.

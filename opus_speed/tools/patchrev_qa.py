@@ -17,17 +17,25 @@ usage: python -I -B patchrev_qa.py <test> --out <new dir> [--mask 0xC] [--stacks
             ucinewgame + go depth 13 that must equal the lock's cached L3 reference rows and the lock's own tail;
             bench 13 = 862329; exit 0. The timed Threads 2-4 searches are never compared line by line.
             SOAK ONLY: no node identity is possible at Threads > 1 and no TSan exists here - not a lock proof.
+            Mask 0xF (four threads need four logical CPUs) is the job's ONE sanctioned use of CPUs 2-3 besides nps
+            timing: like every mask here that touches CPUs 2-3 it is taken only while this process holds abba.ps1's
+            named timing mutex (below), so a soak never runs beside an ABBA.
   extreme   (1e) data/extreme_fens.tsv: set A (accepted) ucinewgame + go depth 8 + go perft 3; set R (illegal in normal
             play) must be rejected with the expected `info string invalid FEN: <reason>` and keep the previous position
             (go perft 1). g++ group (lock, stack kit exes, stack UBSan-trap exes) and MSVC group (ASan build of the lock
             source, stack ASan exes) must each equal their lock transcript, perft equal across groups, no sanitizer line,
             exit 0.
 Every engine is started by this process, which first sets its own CPU mask (inside CPUs 0-3) and Idle class and reads
-both back (fail closed); engines inherit both. Engines are never killed: every run ends with stop, quit, stdin close and
-a 30 s wait; a process still alive then is reported as a survivor with its PID. Writes only under --out.
-Exit 0 = every exe PASS, 3 = a FAIL, 1 = error.
+both back (fail closed); engines inherit both. A mask that touches CPUs 2-3 (the ABBA timing CPU and its SMT sibling;
+job rule: checks on 0x3, timing on CPU 2, CPU 3 free) is used only while this process holds the named mutex
+Local\\ospd_abba_timing that abba.ps1 holds during a timing run (--mutex-wait-min, default 240 like abba.ps1; 0 = refuse
+at once); it is acquired before the first engine starts and released at exit (Code Review SHOULD 'patchrev soak mask
+0xF'). Engines are never killed: every run ends with stop, quit, stdin close and a 30 s wait; a process still alive
+then is reported as a survivor with its PID. Writes only under --out.
+Exit 0 = every exe PASS, 3 = a FAIL, 1 = error (incl. a refused mask).
 """
 import argparse
+import atexit
 import ctypes
 import glob
 import hashlib
@@ -47,6 +55,8 @@ import chess.pgn
 LOCK_SHA = 'fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072'
 LOCK = 'F:/ospd/qa2/bin/lock_fd3a5190.exe'
 LOCK_ASAN = 'F:/ospd/packs/b2_nzm1/bitexact/san/ref_asan_msvc.exe'
+TIMING_MUTEX = 'Local\\ospd_abba_timing'   # abba.ps1's named mutex: one timing run at a time on this PC
+TIMING_CPUS = 0xC                          # CPUs 2 (nps timing) and 3 (its SMT sibling, kept free of own work)
 STACKS = ['stack_w1', 'stack_w2', 'stack_w3', 'stack_w4', 'stack_w5', 'trial_w6']
 DATA = pathlib.Path(__file__).resolve().parent.parent / 'data'
 PIN13 = '862329'
@@ -97,6 +107,29 @@ def place(mask):
     if k32.GetPriorityClass(h) != 0x40:
         raise SystemExit('Idle class not applied')
     return f'placement mask 0x{mask:X} Idle (pid {os.getpid()})'
+
+
+def hold_timing_mutex(mask, wait_min):
+    """A mask that touches CPUs 2-3 runs only while holding abba.ps1's timing mutex, so it never overlaps an ABBA (Code
+    Review SHOULD 'patchrev soak mask 0xF'). Returns a release function (a no-op for masks inside 0x3). WAIT_ABANDONED
+    counts as acquired, like abba.ps1's AbandonedMutexException; WAIT_TIMEOUT refuses the run before any engine starts."""
+    if not mask & TIMING_CPUS:
+        return lambda: None
+    k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    k32.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+    k32.CreateMutexW.restype = wintypes.HANDLE
+    k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    k32.WaitForSingleObject.restype = wintypes.DWORD
+    k32.ReleaseMutex.argtypes = [wintypes.HANDLE]
+    k32.ReleaseMutex.restype = wintypes.BOOL
+    h = k32.CreateMutexW(None, False, TIMING_MUTEX)
+    if not h:
+        raise SystemExit(f'cannot open the timing mutex {TIMING_MUTEX} (error {ctypes.get_last_error()})')
+    rc = k32.WaitForSingleObject(h, int(wait_min * 60000))
+    if rc not in (0x0, 0x80):   # WAIT_OBJECT_0, WAIT_ABANDONED
+        raise SystemExit(f'mask 0x{mask:X} touches CPUs 2-3 but an ABBA timing run holds {TIMING_MUTEX} '
+                         f'(waited {wait_min:g} min, wait result 0x{rc:X}): run later, or on a mask inside 0x3')
+    return lambda: k32.ReleaseMutex(h)
 
 
 def sha256(path):
@@ -580,14 +613,20 @@ def main():
     ap.add_argument('--depth', type=int, default=0)
     ap.add_argument('--movetime', type=int, default=300)
     ap.add_argument('--ref-tsv', default='F:/ospd/ref/fd3a5190/fens_e7dbf2c8_n2000_d13_ob0.tsv')
+    ap.add_argument('--mutex-wait-min', type=float, default=240.0,
+                    help='minutes to wait for the timing mutex when --mask touches CPUs 2-3 (0 = refuse at once)')
     a = ap.parse_args()
     mask = int(a.mask, 0)
     if a.test == 'soak' and mask != 0xF:
-        raise SystemExit('soak runs on CPUs 0-3: --mask 0xF')
+        raise SystemExit('soak runs on CPUs 0-3: --mask 0xF (held under the timing mutex)')
     stacks = [s for s in a.stacks.split(',') if s]
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=False)
     head = [f'# patchrev_qa.py {a.test} {time.strftime("%Y-%m-%d %H:%M:%S")}', '# ' + place(mask)]
+    # CPUs 2-3 only under abba.ps1's timing mutex (released at exit); refused before any engine or exe check
+    atexit.register(hold_timing_mutex(mask, a.mutex_wait_min))
+    head.append('# timing mutex ' + TIMING_MUTEX + (': held for this run (mask touches CPUs 2-3)' if mask & TIMING_CPUS
+                                                    else ': not needed (mask inside 0x3)'))
     if sha256(LOCK) != LOCK_SHA:
         raise SystemExit(f'{LOCK} is not the lock FD3A5190')
     exes = [('lock', LOCK, None)] + [(s, kit_exe(s), None) for s in stacks]

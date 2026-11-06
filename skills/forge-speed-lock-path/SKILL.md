@@ -17,9 +17,13 @@ Rules first:
 [[forge-pc-rules]] plus the job rules below. Kit facts: [[forge-ltopgo-pgo]]. Older speed work: [[forge-speed-stack]].
 
 ## Job rules these tools enforce
-- CPUs 0-3 only: builds and checks pin themselves to 0x3 (CPUs 0-1) at Idle; timing pins itself to ONE CPU (default 2)
-  at BelowNormal; CPU 3 (CPU 2's SMT sibling) gets no own work. Every script sets affinity + class on itself first
-  (children inherit them from their first instruction), re-reads both and fails closed.
+- CPUs 0-3 (mask 0xF) are the job's envelope; inside it: builds and checks pin themselves to 0x3 (CPUs 0-1) at Idle;
+  nps timing pins itself to ONE CPU (default 2) at BelowNormal and CPU 3 (CPU 2's SMT sibling) gets no own work while a
+  timing run can be on CPU 2. The ONE exception is the Threads 2-4 soak (`patchrev_qa.py soak --mask 0xF`, Idle: four
+  threads need four logical CPUs): it - like any `patchrev_qa.py` mask that touches CPUs 2-3 - holds the timing mutex
+  `Local\ospd_abba_timing` for its whole run, so it never overlaps an ABBA (the soak of record, 14:47, ran with no
+  timing run active). Every script sets affinity + class on itself first (children inherit them from their first
+  instruction), re-reads both and fails closed.
 - Disk: scratch only under `F:\ospd` (<= 8 GB), F: >= 50 GB and C: >= 30 GB after the planned write, nothing on D:.
 - Named mutex `Local\ospd_abba_timing`: one timing run at a time.
 
@@ -34,8 +38,8 @@ Rules first:
 | `make_stack.sh <name> <p1.patch> ..` | patches on a fresh lock copy, no fuzz, switch defaults checked, stacked patch written (never overwritten) |
 | `pack_table.py`, `abba_table.py` | markdown tables from pack folders / ABBA folders (sorted by the wall median) |
 | `abba_recheck.py <dir>.. / --pool <dir> <dir>..` | recomputes summaries from runs.csv with the exact t quantile (independent of abba.ps1's series); `--pool` joins a borderline run and its re-time so the decision uses all rounds, never the re-time alone |
-| `warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` | **L3b, required for a lock**: warm-table identity: `go nodes` over N FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` first, `bench 13` last; transcripts compared without nps / time |
-| `patchrev_qa.py replay\|protocol\|soak\|extreme --out <new dir> [--mask 0xC] [--stacks a,b]` | the patch review's QA tests, lock vs each stack through the identical script (venv python with python-chess; sets and re-reads its own mask + Idle, fails closed; never kills, reports survivors): **replay** = one gate game ply by ply at go depth 10 without ucinewgame, 2nd pass on the aged table with option changes, transcripts = lock; **protocol** = go infinite / ponder -> stop / ponderhit, go mate 3, 20 x movetime 100, legal bestmove + ponder move; **soak** (`--mask 0xF`, = the lock path's Threads 2-4 smoke) = 60 x movetime 300 at Threads 2/3/4 with Hash changes, Threads 1 tail = the lock's cached L3 rows, bench 13; **extreme** = `data/extreme_fens.tsv` at go depth 8 + perft 3 on kit, UBSan and MSVC ASan exes, rejected FENs keep the position |
+| `warm_identity.py <lock> <cand> <fens> <out> --n 1000 --nodes 20000` | **L3b, required for a lock**: warm-table identity: `go nodes` over N FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, `bench 1` + `go perft 1` first, `bench 13` last; transcripts compared without nps / time; fails closed (exit 1) on any `info string ... invalid` line (a rejected FEN keeps the previous position on both exes) and on a degenerate reference (< n/10 distinct result rows), as L3 does |
+| `patchrev_qa.py replay\|protocol\|soak\|extreme --out <new dir> [--mask 0xC] [--stacks a,b]` | the patch review's QA tests, lock vs each stack through the identical script (venv python with python-chess; sets and re-reads its own mask + Idle, fails closed; never kills, reports survivors): **replay** = one gate game ply by ply at go depth 10 without ucinewgame, 2nd pass on the aged table with option changes, transcripts = lock; **protocol** = go infinite / ponder -> stop / ponderhit, go mate 3, 20 x movetime 100, legal bestmove + ponder move; **soak** (`--mask 0xF` = the one sanctioned use of CPUs 2-3 besides timing, taken only under `Local\ospd_abba_timing`; = the lock path's Threads 2-4 smoke) = 60 x movetime 300 at Threads 2/3/4 with Hash changes, Threads 1 tail = the lock's cached L3 rows, bench 13; **extreme** = `data/extreme_fens.tsv` at go depth 8 + perft 3 on kit, UBSan and MSVC ASan exes, rejected FENs keep the position |
 | `make_poison.py <src_kit> <dst>`, `tests/test_stack_poison.ps1`, `tests/test_stack_mutants.ps1` | poison copy (the authors' 0xA5 fills of every array that lost its zero fill) -> o3 build -> bitexact -Quick must stay BIT-EXACT; mutant (pick_best `>=`) of each stack's own LF source + defines -> speed_pack must exit 3 before any ABBA. Verify builds only |
 | `commit_push.sh <msg>` | gated commit + push (code-name lint, control bytes, PS 5.1 parse) |
 | `pgn_positions.py`, `name_lint.py`, `ctrl_char_check.py`, `ps_parse_check.ps1` | game positions with provenance, vendor-name lint, control bytes, PS 5.1 parse |

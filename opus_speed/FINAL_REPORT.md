@@ -6,6 +6,11 @@ idle processes named in section 8.
 Branch `opus-speed-20261105` (fresh from main 5176ddf7). Scratch `F:\ospd\`. Crew vote: A (speed-only lock path) >
 B (bit-exact hot-path changes) > C (gate wall time); D only if A-C are done. No Elo claims anywhere; speed numbers
 only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
+**Status tag for every speed number in this report** (lock-path rule, `skills/forge-speed-lock-path/SKILL.md`: 1 BIT-EXACT
+incl. the full 12k, 2 L3b warm-table identity, 3 Threads 2-4 smoke, 4 ABBA WIN, 5 QA's own re-time): the six stacks of
+sections 3c / 5 have steps 1-4 and are **NOT a lock** - step 5 is owed to QA; the single changes of 3a / 3b have BIT-EXACT
+on 2,000 FENs + ABBA only (no L3b, no smoke) and are screening results, not lock candidates on their own. BIT-EXACT +
+ABBA alone is never a lock. Nothing in this report is locked.
 
 ## 0. Summary
 - **Job A (vote 1) - DONE.** A one-command speed-only lock path: `speed_pack.ps1` turns a source tree into an LTO+PGO
@@ -27,7 +32,9 @@ only from this job's ABBA CSVs (named per row); everything else is UNPROVEN.
   stack, second step; stack_w5 = the same without the weak NNUE_ZMM. Measured in one session, trial_w6 is +4.4 %
   faster than stack_w2 (WIN). Every stack: bit-exact incl. the full 12k set, switch-0 build = the lock exe, QA's own
   kit rebuilds it byte for byte. Independent review of the six patches: no BLOCKER, no SHOULD (5 LOW). No Elo claim;
-  QA re-times on its own cores.
+  QA re-times on its own cores. **Status of these headline numbers: lock-path steps 1-4 done for every stack (BIT-EXACT
+  full 12k, L3b warm-table identity IDENTICAL 13:27-13:35, Threads 2-4 soak PASS 14:47 - soak only -, ABBA WIN); NOT a
+  lock until QA's own re-time (step 5).** The single-change percentages are BIT-EXACT (2,000 FENs) + ABBA only.
 - **Job C (vote 3) - DONE** (worker jobc, coordinator re-run ALL PASS): gate replay / LLR projection / throughput /
   adjudication / book / pre-gate screen / concurrency tools; wall time is set by slot count x games; idle gaps are
   small except empty-queue periods.
@@ -229,6 +236,9 @@ log profilers `jobd/tools/npt_epochs.py`, `guard_duty.py`, `export_times.py` (ou
   conversion 6.3 min per 305 M records.
 
 ## 5. What QA should time first
+Status of items 1-3 (lock-path rule in `skills/forge-speed-lock-path/SKILL.md`): steps 1-4 done - BIT-EXACT incl. the
+full 12k, L3b warm-table identity IDENTICAL, Threads 2-4 soak PASS (soak only), ABBA WIN - and **NOT a lock** until QA's
+own re-time (step 5). Item 4's single changes: BIT-EXACT on 2,000 FENs + ABBA only (no L3b, no soak).
 1. **stack_w2** = lock source + `opus_speed/patches/trial_w2.patch` (md5 80f8124f; = b1_tt_notls + b2_no_zero_movelists +
    r14_speed2_after_nzm) with `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1` flipped in
    the source (`F:\ospd\packs\stack_w2\src_kit`, so QA's kit builds it without -D flags). Exe

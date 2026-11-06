@@ -12,7 +12,11 @@ tests 1, 2 and 8):
     for bestmove before the next line (a `go` is aborted by the next UCI line in this engine);
   - every 25 FENs one state change from a fixed cycle: Hash 1, Hash 64, Clear Hash, UseNNUE false, UseNNUE true,
     Hash 16;
-  - at the end `bench 13` (its node count must be the lock pin 862329 on both) and quit.
+  - at the end `bench 13` (its node count must be the lock pin 862329 on both) and quit;
+  - fail closed (exit 1) on any `info string ... invalid` line after a `position`: the engine keeps its PREVIOUS position
+    on a rejected FEN, so both exes would agree on the wrong position (the withdrawn placement-only L3 of 09:2x); the
+    reference result rows must also not be degenerate (n >= 100 and fewer than n / 10 distinct rows = exit 1), as in
+    bitexact_check L3 (Code Review SHOULD 'warm_identity invalid-FEN').
 Both transcripts are normalised (the `nps` and `time` fields removed from info lines, bench timing fields too) and
 compared line by line. Exit 0 = identical, 3 = a difference (first one printed), 1 = error. The engines inherit this
 process's CPU mask and priority class (run it from a 0x3 / Idle shell). Reads the exes and the FEN file only;
@@ -93,18 +97,27 @@ def run(exe, fens, nodes):
         e.until(lambda s: s == 'uciok')
         e.send('setoption name OwnBook value false')
         e.sync()
+        rows = []
         for i, fen in enumerate(fens):
             if i and i % 25 == 0:
                 e.send(CYCLE[(i // 25 - 1) % len(CYCLE)])
                 e.sync()
+            mark = len(log)
             e.send('position fen ' + fen)
             e.send(f'go nodes {nodes}')
-            e.until(lambda s: s.startswith('bestmove'))
+            best = e.until(lambda s: s.startswith('bestmove'))
+            # a rejected FEN ('info string invalid FEN: <reason>') leaves the engine on its previous position and the
+            # search below runs there on BOTH exes: never compare, fail closed (Code Review SHOULD 'warm_identity invalid-FEN')
+            bad = [s for s in log[mark:] if s.startswith('info string') and 'invalid' in s]
+            if bad:
+                raise RuntimeError(f'engine rejected FEN {i} ({fen}): {bad[0]}')
+            last = [s for s in log[mark:] if s.startswith('info depth ')]
+            rows.append(STRIP.sub('', last[-1]) + ' | ' + best if last else best)
         e.send('bench 13')
         bench = e.until(lambda s: 'bench depth' in s)
     finally:
         e.close()
-    return log, bench
+    return log, bench, rows
 
 
 def norm(lines):
@@ -135,10 +148,16 @@ def main():
     res = {}
     for tag, exe in (('ref', ref), ('cand', cand)):
         t0 = time.time()
-        log, bench = run(exe, fens, nodes)
+        log, bench, rows = run(exe, fens, nodes)
         (outd / f'{tag}.log').write_text('\n'.join(log) + '\n', encoding='utf-8', newline='\n')
         res[tag] = (norm(log), bench, time.time() - t0)
         print(f'{tag}: {len(log)} lines, {time.time() - t0:.0f} s, last bench: {bench}')
+        if tag == 'ref':
+            # degenerate-reference guard as in bitexact_check L3: a list that searches (almost) one position is no proof
+            distinct = len(set(rows))
+            if len(rows) >= 100 and distinct < len(rows) // 10:
+                raise RuntimeError(f'degenerate reference: only {distinct} distinct result rows for {len(rows)} FENs')
+            print(f'ref: {distinct} distinct result rows (depth / score / nodes / bestmove) for {len(rows)} FENs')
     r, c = res['ref'][0], res['cand'][0]
     searches = sum(1 for s in r if s.startswith('bestmove'))
     diff = next((i for i, (x, y) in enumerate(zip(r, c)) if x != y), None)
