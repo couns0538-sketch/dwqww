@@ -26,3 +26,7 @@ skipped (-SkipAbba)
   md5 09cc36dd (lock -> tree). Exe sha256 5dec3fa7e2dc8b58089b4750c3f5dec2a348e68f82cb81d7aa3e132dac6341d3 (md5
   421cd7c0), pc1 = pc2; identity all-0 = FD3A5190, six ON + new OFF = 4181A589.
 - Full 12k L3 vs trial_w6: queued after the closing A/A (runner v3 `full`), result below when it lands.
+- Full 12k L3 vs trial_w6 (00:05-00:23): VERDICT BIT-EXACT (L1-L4; L3 on 12000 FENs), 12,000 / 12,000 identical, 12,000
+  distinct reference rows; log `F:\ospd\packs\h5_move_store32\bitexact_full12k\bitexact.log`. The live lock's 12k
+  reference equals the old lock's byte for byte (md5 4db620da). Pack complete; still owed to QA before any lock: QA's
+  own re-time vs trial_w6, L3b warm_identity, Threads 2-4 soak.

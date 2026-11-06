@@ -558,3 +558,15 @@ No issue found. The H6 verify copy and the H1 large-page verify copy are scratch
   WIN / WIN by QA's rule (need low > 1.000, gain > 0.96 %); runs.csv md5 552ea065.
 - Patches: h5_move_store32_after_w6.patch (md5 479610c9), h5_move_store32.patch (md5 09cc36dd). Candidate file
   `candidates/h5_move_store32.md`. NOT a lock: QA's own re-time, L3b warm identity and the Threads 2-4 smoke are owed.
+
+### 9.6 Full 12k proof of the screening WIN H5 (runner v3 `full`, 00:05-00:23 PC clock)
+`bitexact_check.ps1` without -Quick on `F:\ospd\packs\h5_move_store32\forge_h5_move_store32.exe` vs the live lock trial_w6
+(`F:\ospd\packs\h5_move_store32\bitexact_full12k\bitexact.log`): L1 bench d11-d22 net on and net off = pins, L2 perft 5
+4865609 / kiwipete 193690690, L3 12,000 / 12,000 FENs identical (depth, score, nodes, bestmove at go depth 13; 12,000
+distinct reference rows; candidate 476 s), L4 MSVC ASan 2587341 + g++ UBSan 3024920 with 0 reports -> **VERDICT BIT-EXACT
+(L1-L4; L3 on 12000 FENs)**. The first run built the live lock's 12k reference `F:\ospd\ref\4181a589\
+fens_e7dbf2c8_n12000_d13_ob0.tsv` (473 s); it is byte-identical to the old lock's reference built at 10:05 (`F:\ospd\ref\
+fd3a5190\...`, md5 4db620da both): the reference is deterministic and trial_w6 searches the 12k set exactly as FD3A5190.
+H5's pack is complete: source tree `F:\ospd\src\h5_move_store32`, patches (after_w6 479610c9, full 09cc36dd), exe
+5dec3fa7 (pc1 = pc2), pins net on / off, perft, 2k + 12k L3, L4, quiet ABBA CSV `C:\ospd_hunt\abba\h5_move_store32_q_d20\
+runs.csv` (md5 552ea065) + log `C:\ospd_hunt\logs\abba_h5_move_store32_q_d20.out`, wall +1.21 % / cpu +1.25 %.
