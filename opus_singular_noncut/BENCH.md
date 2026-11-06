@@ -80,3 +80,39 @@ Pin tables = `opus_speed/tools/uci_lib.ps1` (the old lock FD3A5190's pins; trial
 - The spec's sanity band (d22 ON within 0.7x-1.5x of OFF): 0.842, inside it.
 - Fewer nodes at d20 / d22 do NOT mean stronger or faster play. Node counts at fixed depth are no Elo evidence; the
   SPRT decides.
+
+## L4 sanitizers (gate source `snc_gate`), 02:32:51-02:34:58
+- `bitexact_check -OnlyL4 -SanSrc D:\opus_singular_noncut\src\snc_gate` (`logs/bx_gate_l4.log`): **L4 PASS** at the
+  default (OFF). Builds are in `D:\opus_singular_noncut\out\bx_gate_l4\san`; the MSVC reference nodes of the lock
+  source come from the existing cache, read only.
+  - MSVC ASan: bench 16 = 2587341 (= the reference source under MSVC ASan), exit 0, 0 reports.
+  - g++ UBSan-trap: bench 16 = 3024920 (= the candidate's d16 = pin), exit 0, 0 reports.
+- ON path, the same two exes with `setoption name SingularNonCut value 1` + `bench 16` (`logs/san_on/`): UBSan-trap
+  3254758 (= the gate exe's ON d16), MSVC ASan 2505351 (MSVC orders equal scores differently; differs from its
+  OFF 2587341, so the option is live there too). Both: exit 0, 0 sanitizer lines.
+
+## Box test (the spec's counter build), 02:34-02:35
+- Counter build, test only and never a gate exe: `singular_noncut_counters_test.patch` on `snc_gate` adds
+  `FORGE_SPEC_COUNTERS` (default 0).
+  - Built as `build_variants -Variant o3 -Define FORGE_SPEC_COUNTERS=1` (sha256 5ffd4e04..., quick pins OK).
+  - Plain globals, valid at Threads 1; one `info string spec_counters` line at process exit.
+- Counters do not touch the tree: the counter build's bench nodes equal the gate exe's in all four runs (OFF d16
+  3024920 / d20 12389307 = pins; ON d16 3254758 / d20 10207303).
+- 8 bench FENs, one process per run (`logs/box/`):
+
+| run | tries | at cut nodes | +1 | +2 | multicut return | -2 | -1 | 0 | nodes in verifications | per try |
+|---|---|---|---|---|---|---|---|---|---|---|
+| OFF d16 | 15645 | 13819 (88.3 %) | 3364 | 3195 | 3577 | 2127 | 2789 | 593 | 296975 | 19.0 |
+| ON d16 | 12622 | 10540 (83.5 %) | 2830 | 2380 | 3071 | 1872 | 1857 | 612 | 263551 | 20.9 |
+| OFF d20 | 92597 | 84976 (91.8 %) | 14929 | 16464 | 21770 | 15420 | 21705 | 2309 | 1735132 | 18.7 |
+| ON d20 | 52478 | 46515 (88.6 %) | 9272 | 8845 | 13314 | 8993 | 10364 | 1690 | 1166879 | 22.2 |
+
+- Readings (box facts, no strength claims):
+  - Live share: 88-92 % of all singular tries are at cut nodes, so OFF -> ON changes most verifications.
+  - ON spends more nodes per verification (d20 22.2 vs 18.7, d16 20.9 vs 19.0). That matches the card's reasoning
+    (no cut-node LMR penalty inside the verification).
+  - The extension share per try hardly moves: +1 / +2 together are 34.5 % ON vs 33.9 % OFF at d20, 41.3 % vs 41.9 %
+    at d16. The +2 share drops a little at both depths (d20 16.9 % vs 17.8 %, d16 18.9 % vs 20.4 %).
+  - So the card's "fewer +1 / +2" holds only for the +2 part. The spec says to report this; it is no stop.
+  - Tries per 1M nodes drop at d20 (5141 ON vs 7474 OFF). The tree shape changes (d20 total 0.82x), not only the
+    verifications.

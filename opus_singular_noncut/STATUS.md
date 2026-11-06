@@ -89,8 +89,15 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
 - Skill `forge-speed-lock-path` (user scope + repo mirror `skills/forge-speed-lock-path/SKILL.md`, kept identical):
   the restart pitfall now says to pin the MCP servers too.
 
+- Owner message after DONE (keep working on the remaining jobs, push every 10 min); the crew items, from 02:32:
+  - L4 sanitizers on `snc_gate`: **PASS** (MSVC ASan 2587341 = reference, UBSan-trap 3024920 = pin, 0 reports).
+    The ON path on the same exes is clean too (UBSan ON 3254758 = gate ON d16, ASan ON 2505351, exit 0, 0 lines).
+  - Box test with the counter build (`singular_noncut_counters_test.patch`, test only, `FORGE_SPEC_COUNTERS`):
+    nodes = the gate exe's in all 4 runs. Live share 88-92 % of tries at cut nodes; ON has more nodes per
+    verification (d20 22.2 vs 18.7); +1 / +2 share per try about the same, +2 slightly lower. Table in BENCH.md.
+
 ## In progress
-- Nothing. The job is DONE and waits for Code Review.
+- Mate probe OFF / ON (the last crew item of the spec).
 
 ## Exact next step
 Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /

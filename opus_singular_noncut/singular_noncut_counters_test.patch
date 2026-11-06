@@ -1,0 +1,77 @@
+diff -ruN snc_gate/src/search.cpp snc_cnt/src/search.cpp
+--- snc_gate/src/search.cpp	2026-11-06 01:32:42.414155500 -0800
++++ snc_cnt/src/search.cpp	2026-11-06 02:34:00.691377800 -0800
+@@ -108,6 +108,26 @@
+ }
+ } // namespace tune
+ 
++#ifndef FORGE_SPEC_COUNTERS
++#define FORGE_SPEC_COUNTERS 0
++#endif
++#if FORGE_SPEC_COUNTERS
++// Box-test counters (test build only, never in a gate exe): search increments them and never reads them. Plain
++// globals: valid for Threads 1 (bench). One line at process exit = the totals of everything the process searched.
++namespace spec_counters {
++std::uint64_t tries = 0, tries_cut = 0, ext1 = 0, ext2 = 0, multicut = 0, neg2 = 0, neg1 = 0, verify_nodes = 0;
++struct Printer {
++    ~Printer() {
++        const std::uint64_t none = tries - ext1 - ext2 - multicut - neg2 - neg1;
++        std::cout << "info string spec_counters singular_tries " << tries << " tries_cut_node " << tries_cut
++                  << " ext_plus1 " << ext1 << " ext_plus2 " << ext2 << " multicut_return " << multicut
++                  << " ext_minus2 " << neg2 << " ext_minus1 " << neg1 << " ext_zero_or_aborted " << none
++                  << " verify_nodes " << verify_nodes << std::endl;
++    }
++} printer;
++} // namespace spec_counters
++#endif
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1330,6 +1350,11 @@
+             const int singular_depth = (depth - 1) / 2;
+             const bool saved_tt_pv = ss->tt_pv;
+             ss->excluded_move = move;
++#if FORGE_SPEC_COUNTERS
++            ++spec_counters::tries;
++            if (cut_node) ++spec_counters::tries_cut;
++            const std::uint64_t spec_nodes_before = local_nodes_;
++#endif
+ #if FORGE_SINGULAR_NONCUT
+             // SingularNonCut 1: the verification search runs as a non-cut node (0 = inherit cut_node).
+             const bool verify_cut = tune::SingularNonCut > 0 ? false : cut_node;
+@@ -1337,6 +1362,9 @@
+ #else
+             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+ #endif
++#if FORGE_SPEC_COUNTERS
++            spec_counters::verify_nodes += local_nodes_ - spec_nodes_before;
++#endif
+             ss->tt_pv = saved_tt_pv;
+             ss->double_extensions = inherited_double_extensions;
+             ss->excluded_move = Move::none();
+@@ -1346,12 +1374,24 @@
+                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+                     extension = 2;
+                 }
++#if FORGE_SPEC_COUNTERS
++                if (extension == 2) ++spec_counters::ext2; else ++spec_counters::ext1;
++#endif
+             } else if (singular_beta >= beta) {
++#if FORGE_SPEC_COUNTERS
++                ++spec_counters::multicut;
++#endif
+                 return singular_beta;
+             } else if (tt_score >= beta) {
+                 extension = -2;
++#if FORGE_SPEC_COUNTERS
++                ++spec_counters::neg2;
++#endif
+             } else if (cut_node) {
+                 extension = -1;
++#if FORGE_SPEC_COUNTERS
++                ++spec_counters::neg1;
++#endif
+             }
+         } else if (gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
