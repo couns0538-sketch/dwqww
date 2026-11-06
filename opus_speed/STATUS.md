@@ -116,3 +116,10 @@ No idea changed the search (all nine packs BIT-EXACT vs trial_w6 with the net on
 re-time was run; QA may choose to. One screening WIN (H5) - no
 stack (the brief stacks winners only; one winner needs none). Nothing locked or published; QA re-times.
 | - | closing A/A q2 (00:00-00:05, trainer back: cpu2 / 3 87 / 49 -> 78 / 56 %) | - | - | 1.0074 [0.9944, 1.0184] sd 1.67 %, width 2.40 % | - | 4181a589 | NOT SANE (median +0.74 % > 0.5 %): confirms the conditions of H1's run were not the quiet ones |
+
+### Second quiet window (user, 00:21 PC clock: "cpu 0-6 and training is off again ... use them")
+Trainer stopped ~00:19 (sampler: 0 %, no processes). Large pages available again (probe 6 / 6 OK; the LP verify copy
+gets LARGE for the 32 MB UCI table and the 16 MB bench table). Runner v4 times on CPU 2 (CPU 3 idle) while runner v3's
+full 12k proofs run on CPUs 0-1 (core 0): A/A gate r (same conditions), then H1 and H7 decision runs, each only after a
+probe 6 / 6 OK and a verify run with every allocation LARGE, then a closing A/A. The GPU has no role in CPU engine
+timing. DONE-QUIET is written again when this block ends.
