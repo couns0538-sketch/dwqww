@@ -81,6 +81,15 @@ Pin tables = `opus_speed/tools/uci_lib.ps1` (the old lock FD3A5190's pins; trial
 - Fewer nodes at d20 / d22 do NOT mean stronger or faster play. Node counts at fixed depth are no Elo evidence; the
   SPRT decides.
 
+### Runtime 0 with warm tables = trial_w6 (02:39)
+- Run: `warm_identity.py` trial_w6 (ref) vs the gate exe at its default (cand), `--n 1000 --nodes 20000`: `go nodes`
+  over 1,000 FENs without ucinewgame, Hash / Clear Hash / UseNNUE changes every 25 FENs, bench 1 + perft 1 first,
+  bench 13 last (`logs/warm_gate_off.txt`).
+- The tool exits 3. Its first difference is the `uci` option list (line 85: the cand also advertises SingularNonCut),
+  which is expected.
+- With that single line dropped (and time / nps / hashfull stripped, as the tool normalises): **IDENTICAL**, 12,829
+  lines each, 1,000 bestmoves. The cand's closing bench 13 = 862329.
+
 ## L4 sanitizers (gate source `snc_gate`), 02:32:51-02:34:58
 - `bitexact_check -OnlyL4 -SanSrc D:\opus_singular_noncut\src\snc_gate` (`logs/bx_gate_l4.log`): **L4 PASS** at the
   default (OFF). Builds are in `D:\opus_singular_noncut\out\bx_gate_l4\san`; the MSVC reference nodes of the lock

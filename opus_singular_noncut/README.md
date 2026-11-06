@@ -65,7 +65,9 @@ base: forge_ltopgo_x_al1s198_trial_w6.exe (4181A589)   no options
   - the spec's counter-build box test (`singular_noncut_counters_test.patch`, test only, `FORGE_SPEC_COUNTERS`);
   - the mate probe OFF / ON (`tools/mate_probe.ps1`);
   - L4 sanitizers, OFF and the ON path.
-- Not done: Threads > 1 with ON beyond the Threads 1 smoke; warm-table identity.
+- Also: warm-table identity of the gate exe at its default vs trial_w6, identical apart from the one extra `uci`
+  option line.
+- Not done: Threads > 1 with ON beyond the Threads 1 smoke.
 
 ## Rebuild
 1. Copy `F:\ospd\src\lock` to `D:\opus_singular_noncut\src\snc` and check it with `sha256sum -c

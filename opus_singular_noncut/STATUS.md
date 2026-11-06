@@ -100,8 +100,10 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
     - at 3M nodes, mate found OFF 19, ON 19, both mate-in-1 found by both sides;
     - two deep KRK horizon flips (one each way); at 30M nodes both are mates on both sides;
     - no mate lost by ON. Details in BENCH.md.
-  - All spec crew items are now done: counter box test, mate probe, L4. Not run: warm-table identity (not needed
-    for a search candidate).
+  - All spec crew items are now done: counter box test, mate probe, L4.
+  - Warm-table identity, 02:39 (`warm_identity.py`, 1,000 FENs, no ucinewgame, Hash / Clear Hash / UseNNUE
+    changes): the tool exits 3 on the expected extra `uci` option line. With that one line dropped, the transcripts
+    are IDENTICAL (12,829 lines). So runtime 0 = trial_w6 with warm tables too (`logs/warm_gate_off.txt`).
 
 ## In progress
 - Nothing. The job waits for Code Review.
@@ -129,8 +131,8 @@ base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / T
 - Threads > 1 with ON: only what the smoke shows (it plays Threads 1).
 - Done after the first DONE (02:32-02:38): the counter-build box test, the mate probe OFF / ON, L4 sanitizers (OFF +
   ON path).
-- Not done: a warm-table identity run. bitexact L1-L3 are cold-table, Threads 1, which is enough for "runtime 0 =
-  trial_w6" at a cold start; in-game tables are covered only by the smoke.
+- Warm-table identity: done 02:39 (identical apart from the one expected option line). Not done: Threads > 1 with ON
+  beyond the Threads 1 smoke.
 - The box-test counters are plain globals (valid at Threads 1 only). They live in a test-only patch, never in the
   gate exe.
 - Code Review of this pack has not happened. Every review so far is my own (NOT independent).
