@@ -29,8 +29,9 @@ Every engine is started by this process, which first sets its own CPU mask (insi
 both back (fail closed); engines inherit both. A mask that touches CPUs 2-3 (the ABBA timing CPU and its SMT sibling;
 job rule: checks on 0x3, timing on CPU 2, CPU 3 free) is used only while this process holds the named mutex
 Local\\ospd_abba_timing that abba.ps1 holds during a timing run (--mutex-wait-min, default 240 like abba.ps1; 0 = refuse
-at once); it is acquired before the first engine starts and released at exit (Code Review SHOULD 'patchrev soak mask
-0xF'). Engines are never killed: every run ends with stop, quit, stdin close and a 30 s wait; a process still alive
+at once); it is acquired before this process moves onto the mask (a waiting run never sits on CPUs 2-3) and before any
+engine starts, and released at exit (Code Review SHOULD 'patchrev soak mask 0xF', NIT 'mutex before placement').
+Engines are never killed: every run ends with stop, quit, stdin close and a 30 s wait; a process still alive
 then is reported as a survivor with its PID. Writes only under --out.
 Exit 0 = every exe PASS, 3 = a FAIL, 1 = error (incl. a refused mask).
 """
@@ -625,9 +626,13 @@ def main():
     stacks = [s for s in a.stacks.split(',') if s]
     out = pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=False)
-    head = [f'# patchrev_qa.py {a.test} {time.strftime("%Y-%m-%d %H:%M:%S")}', '# ' + place(mask)]
-    # CPUs 2-3 only under abba.ps1's timing mutex (released at exit); refused before any engine or exe check
+    if mask <= 0 or mask & ~0xF:
+        raise SystemExit(f'mask 0x{mask:X} is outside CPUs 0-3')   # at once, never after a mutex wait
+    # CPUs 2-3 only under abba.ps1's timing mutex (released at exit), taken BEFORE this process moves onto the mask, so
+    # a run waiting up to --mutex-wait-min never sits on CPUs 2-3 meanwhile (Code Review NIT 'mutex before placement');
+    # refused before any engine or exe check
     atexit.register(hold_timing_mutex(mask, a.mutex_wait_min))
+    head = [f'# patchrev_qa.py {a.test} {time.strftime("%Y-%m-%d %H:%M:%S")}', '# ' + place(mask)]
     head.append('# timing mutex ' + TIMING_MUTEX + (': held for this run (mask touches CPUs 2-3)' if mask & TIMING_CPUS
                                                     else ': not needed (mask inside 0x3)'))
     if sha256(LOCK) != LOCK_SHA:

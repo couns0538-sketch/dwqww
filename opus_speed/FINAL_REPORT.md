@@ -353,7 +353,13 @@ Details: `CR_SHOULD_W8.md`.
     before the out dir or any engine.
   - An engine that inherits a wrong mask / class is refused and gets quit + EOF; its PID ends.
   - `tests/test_cr_should_w8.ps1`: 14 / 14 PASS (run 20261105-200352-9252).
-- Job 3 (CR NITs 3a / 3b / 3c): IN PROGRESS.
+- Job 3 DONE 20:07 (the CR NITs of 00d19e56):
+  - 3a: `patchrev_qa.py` takes the timing mutex before it moves onto the mask; an invalid mask is still refused at
+    once.
+  - 3b: a K3 contract comment at the `is_legal` declaration of the trial_w9 / w9dev board.hpp. It is comment only;
+    both KING_LINES patches were regenerated and proven to apply to a fresh lock copy (`W9_KING_LINES.md`).
+  - 3c: the CR test takes `-Py` / OSPD_PY instead of a hard-coded interpreter and fails closed without one.
+  - Test 14 / 14 PASS (run 20261105-200713-5164).
 - Live lock trial_w6, 4181A589..., is not touched. KING_LINES and bundles a-d were not retimed or locked. No ABBA,
   soak, 12k or L3b ran.
 Owner items:

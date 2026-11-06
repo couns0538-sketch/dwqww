@@ -39,6 +39,17 @@ technique is textbook and the lock's own `see_ge` already uses it. No code from 
 | `w9/kl_diff.cpp` | d9050912 | differential harness (own code): a restatement of the lock's `is_legal` / `gives_check` rules through public accessors, run against the switched board |
 | `w9/kl_diff_kl1_12k.txt`, `w9/kl_diff_bundled_12k.txt` | c9245871 (both) | harness results, switch alone / with bundle (d)'s board defines |
 
+**Update 2026-11-05 20:06 PC clock (leftover job 3b, CR NIT = self-review K3; comment only):**
+- Three comment lines now sit above the `is_legal` declaration in `include/forge/board.hpp` of both `F:\ospd\src\trial_w9`
+  and `F:\ospd\src\w9dev`. They say the KING_LINES fast path is exact only for already pseudo-legal moves.
+- Both patches were regenerated with the recipe that reproduced the old files byte for byte first:
+  - `trial_w9.patch`: ddefd1fe -> 8bf44bab;
+  - `b4_king_lines_after_w8.patch`: 21ecde2e -> d680f9bf.
+- The old and new patches differ only in the comment, the hunk offsets and one timestamp line. `patch -p1 -F0` onto a
+  fresh lock copy (and trial_w8.patch + b4) equals the trial_w9 tree (`F:\ospd\tmp\k3proof_20261105-200606`).
+- No code changed; nothing was rebuilt, retimed or locked. The packs above (bde33433, 5f5f4ece) and the md5 column
+  are from the source before the comment.
+
 ## Results
 - **Switch-0 identity** (18:00:37-18:01:08): `build_variants lp_v1` of `F:\ospd\src\trial_w9` gives sha256
   `fd3a51903e73dc1fa20263f1dcc7a4eec506592e9f25e50b8f8739ca36873072`, the lock FD3A5190 byte for byte. Quick pins OK.

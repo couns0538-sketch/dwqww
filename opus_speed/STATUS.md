@@ -27,5 +27,10 @@ Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lo
 - Job 1 (tool defaults = trial_w6): DONE 20:02.
 - Job 2 (warm_identity refusal test): DONE 20:03. Fault injection `tests/warm_refusal_check.py`, W5a-e; test 14 / 14
   PASS (run 20261105-200352-9252).
-- Job 3 (CR NITs 3a / 3b / 3c): next.
+- Job 3 (CR NITs): DONE 20:07.
+  - 3a: patchrev_qa takes the timing mutex before it moves onto the mask.
+  - 3b: K3 comment at `is_legal` in the trial_w9 / w9dev board.hpp. The patches were regenerated (trial_w9 8bf44bab,
+    b4 d680f9bf); the apply proofs are identical.
+  - 3c: the test takes `-Py` / OSPD_PY and fails closed without one.
+  - Test 14 / 14 PASS (run 20261105-200713-5164).
 KING_LINES and bundles a-d were not retimed or locked.

@@ -129,3 +129,5 @@ corrupt PGN -> error exit, no verdict.
 
 Follow-up 2026-11-05 19:43-19:47 PC clock (start tip 00d19e56): the 4 CR SHOULD leftovers only. Live lock = trial_w6
 4181A589.... No timing, and no retune / lock of KING_LINES or bundles a-d. Record: `CR_SHOULD_W8.md`.
+Follow-up 2026-11-05 19:5x-20:07 PC clock (start tip 38559f1b): leftover jobs 1 (default lock = trial_w6), 2 (warm_identity
+refusal test), 3a-3c (CR NITs). The same limits applied. Record: `CR_SHOULD_W8.md`.

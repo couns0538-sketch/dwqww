@@ -1,6 +1,6 @@
 diff -ruN trial_w8/include/forge/board.hpp w9dev/include/forge/board.hpp
 --- trial_w8/include/forge/board.hpp	2026-11-05 17:29:00.629870000 -0800
-+++ w9dev/include/forge/board.hpp	2026-11-05 17:53:26.449245000 -0800
++++ w9dev/include/forge/board.hpp	2026-11-05 20:06:01.544607000 -0800
 @@ -53,6 +53,19 @@
  #define FORGE_SPD_NO_ZERO_MOVELISTS 0
  #endif
@@ -59,7 +59,17 @@ diff -ruN trial_w8/include/forge/board.hpp w9dev/include/forge/board.hpp
  };
  
  class Board {
-@@ -228,6 +258,12 @@
+@@ -148,6 +178,9 @@
+ #endif
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     [[nodiscard]] bool has_legal_move() const;
++    // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
++    // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
++    // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
+     [[nodiscard]] bool is_legal(const Move& move) const;
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+@@ -228,6 +261,12 @@
      // Plies since the last null move; bounds search-level repetition scans.
      std::uint16_t plies_from_null_ = 1024;
      std::vector<std::uint64_t> key_history_;

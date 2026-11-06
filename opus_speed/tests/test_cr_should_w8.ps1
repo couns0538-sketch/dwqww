@@ -10,13 +10,18 @@
 # CR leftovers of 00d19e56: W3a 'warm_identity self-pin': the W1c run printed the mask 0x3 + Idle read-back of itself
 #    and of both engines. W4a 'patchrev lock = trial_w6': LOCK_SHA = 4181a589... and the LOCK file has that sha256;
 #    W4b with LOCK pointed at the FD3A5190 exe, `protocol --mask 0x3` refuses before any engine and names trial_w6.
-# Engines: the lock exe only, 7 x go nodes 2000 + bench 1 / bench 13 (a few seconds), CPUs 0-1 at Idle. Run it from Git
-# Bash: powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_should_w8.ps1 ; exit 0 = all PASS.
+# Leftover jobs (owner brief after 38559f1b): W5a-e warm_identity's refusal path by fault injection
+#    (tests\warm_refusal_check.py); W6a the tools' default lock (uci_lib) is the live lock trial_w6.
+# Engines: the default lock exe only, 7 x go nodes 2000 + bench 1 / bench 13 + two start / quit (a few seconds), CPUs
+# 0-1 at Idle. Run it from Git Bash: powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+# opus_speed\tests\test_cr_should_w8.ps1 -Py <python.exe with python-chess> (or set OSPD_PY; no interpreter is
+# hard-coded here - Code Review NIT); exit 0 = all PASS.
+param([string]$Py = $env:OSPD_PY)
 $ErrorActionPreference = 'Stop'
 $Tools = Join-Path (Split-Path -Parent $PSScriptRoot) 'tools'
 . "$Tools\uci_lib.ps1"
 Set-OspdPlacement -Mask 0x3 -Priority 'Idle'
-$Py = 'C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe'
+if (-not $Py) { throw 'test_cr_should_w8: pass -Py <python.exe with python-chess> or set OSPD_PY (no interpreter is hard-coded)' }
 $run = New-OspdRunId
 $outRoot = "F:\ospd\logs\cr_should_w8_$run"; New-Item -ItemType Directory -Path $outRoot | Out-Null
 $log = Join-Path $outRoot 'test.log'
@@ -31,7 +36,9 @@ function Invoke-Tool([string]$Exe, [object[]]$ToolArgs) {
   try { $o = @(& $Exe @ToolArgs 2>&1 | ForEach-Object { "$_" }); $rc = $LASTEXITCODE } finally { $ErrorActionPreference = $eap }
   return [pscustomobject]@{ Rc = $rc; Out = $o }
 }
-Add-OspdLf $log "test_cr_should_w8 run $run start $(Get-OspdNow)"
+$pc = Invoke-Tool $Py @('-I', '-c', 'import chess')
+if ($pc.Rc -ne 0) { throw "test_cr_should_w8: $Py cannot import chess (patchrev_qa.py needs python-chess): $($pc.Out -join ' ')" }
+Add-OspdLf $log "test_cr_should_w8 run $run start $(Get-OspdNow) python $Py"
 $lock = $script:OspdLockExe
 # three six-field FENs (= data\fens_12k_v2.txt rows 1-3) and one placement-only line the lock rejects
 $good = @('rnbqkb1r/2ppnppp/pp2p3/8/1P6/3PBN2/P1P1PPPP/RN1QKB1R w KQkq - 1 5',

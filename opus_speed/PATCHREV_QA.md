@@ -4,6 +4,8 @@
 > trial_w6 as LOCK (sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0,
 > `F:\ospd\packs\trial_w6\forge_trial_w6.exe`). The results of record below were run with LOCK = FD3A5190 (14:13-14:53)
 > and were not re-run. Since trial_w6 is in the default STACKS, a default run now also compares the lock with itself.
+> Since 20:07 (leftover job 3a), main() takes the timing mutex BEFORE it moves onto the mask, so a soak waiting for
+> the mutex no longer sits on 0xF meanwhile. An invalid mask is still refused at once.
 
 Owner Couns. Branch `opus-speed-20261105`, follow-up from tip c845d886 (first command 14:13:45 PC clock). The patch
 review (`REVIEW_PATCHES_INDEPENDENT.md` section 4) listed tests the job had not run; they ran here on stack_w1, stack_w2,

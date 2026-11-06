@@ -56,7 +56,13 @@
   updated. Test W6a and W4b now use these.
 - Job 2 DONE 20:03: `tests/warm_refusal_check.py` (W5a-e) + W6a. `tests/test_cr_should_w8.ps1` 14 / 14 PASS (run
   20261105-200352-9252).
-- Next: job 3a (patchrev mutex before placement), 3b (K3 comment
-  in the trial_w9 / w9dev board.hpp + regenerated patches), 3c (test `-Py` / OSPD_PY).
+- Job 3 DONE 20:07:
+  - 3a: patchrev_qa: mask range check, then the timing mutex, then placement.
+  - 3b: K3 comment at `is_legal` in the trial_w9 / w9dev board.hpp. `patches/trial_w9.patch` (8bf44bab) and
+    `b4_king_lines_after_w8.patch` (d680f9bf) were regenerated with `diff -ruN` in F:/ospd/src. Proof:
+    `F:\ospd\tmp\k3proof_20261105-200606`.
+  - 3c: the test takes `-Py`.
+- Test run: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_should_w8.ps1 -Py
+  C:\Users\Administrator\grok-pc\nnue\.venv\Scripts\python.exe` (or set OSPD_PY): 14 / 14 PASS (20261105-200713-5164).
 - Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d untouched.
 - Not done on purpose: no ABBA / soak / 12k; KING_LINES and bundles a-d untouched (QA owns their timings).

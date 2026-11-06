@@ -48,7 +48,7 @@ diff -ruN lock/include/forge/bitboard.hpp trial_w9/include/forge/bitboard.hpp
  extern std::array<Magic, 64> BishopMagics;
 diff -ruN lock/include/forge/board.hpp trial_w9/include/forge/board.hpp
 --- lock/include/forge/board.hpp	2026-11-05 08:55:23.250683500 -0800
-+++ trial_w9/include/forge/board.hpp	2026-11-05 18:00:14.491641700 -0800
++++ trial_w9/include/forge/board.hpp	2026-11-05 20:05:59.531117000 -0800
 @@ -2,6 +2,12 @@
  
  #include "forge/bitboard.hpp"
@@ -155,7 +155,7 @@ diff -ruN lock/include/forge/board.hpp trial_w9/include/forge/board.hpp
  };
  
  class Board {
-@@ -106,13 +165,30 @@
+@@ -106,13 +165,33 @@
      // is_legal() filters them. Captures-only generation also includes every
      // quiet promotion, so search sees every material-changing move.
      [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
@@ -172,6 +172,9 @@ diff -ruN lock/include/forge/board.hpp trial_w9/include/forge/board.hpp
 +#endif
      [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
      [[nodiscard]] bool has_legal_move() const;
++    // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
++    // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
++    // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
      [[nodiscard]] bool is_legal(const Move& move) const;
      [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
      [[nodiscard]] bool gives_check(const Move& move) const;
@@ -186,7 +189,7 @@ diff -ruN lock/include/forge/board.hpp trial_w9/include/forge/board.hpp
      [[nodiscard]] bool make_move(const Move& move, Undo& undo);
      void unmake_move(const Move& move, const Undo& undo);
      void make_null_move(NullUndo& undo);
-@@ -182,6 +258,12 @@
+@@ -182,6 +261,12 @@
      // Plies since the last null move; bounds search-level repetition scans.
      std::uint16_t plies_from_null_ = 1024;
      std::vector<std::uint64_t> key_history_;
@@ -199,7 +202,7 @@ diff -ruN lock/include/forge/board.hpp trial_w9/include/forge/board.hpp
  
      void put_piece(Piece piece, int square);
      void remove_piece(int square);
-@@ -196,7 +278,16 @@
+@@ -196,7 +281,16 @@
  
  [[nodiscard]] constexpr bool is_white(Piece piece) { return piece >= WP && piece <= WK; }
  [[nodiscard]] constexpr bool is_black(Piece piece) { return piece >= BP && piece <= BK; }
