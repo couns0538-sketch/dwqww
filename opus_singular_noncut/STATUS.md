@@ -37,15 +37,32 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   (`forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`), `cmp` byte-identical; quick pins bench 11/13/16 net on
   312866 / 862329 / 3024920 OK. So the parent still builds trial_w6's exact exe, and macro 0 adds nothing.
 
+- S3 gate build 01:32:53-01:34:46: **REPRO pc1 = pc2** sha256 5f6be7c55ba318790c26690b0a96edec678aab786334247a8e7a630c5610d117;
+  quick pins OK at the default 0; vfmadd 0. Handoff copy `D:\opus_singular_noncut\pack\forge_singular_noncut_gate_5f6be7c5.exe`.
+- S4 identity bit-exact 01:34:07-01:37:41: **BIT-EXACT** L1-L3. Net on + off d11-d22 = pins, perft 5 startpos +
+  kiwipete = pins, 2,000 / 2,000 FENs identical (`logs/bx_id.log`).
+- S4 gate exe `uci`: `SingularNonCut type spin default 0 min 0 max 1` advertised (MCP uci_options).
+- S4 ON, MCP pin_check `-Full SingularNonCut=1`, 01:38:30-01:39:07: **LIVE**, perft = pins.
+  - net on: d11 368386, d13 863236, d16 3254758, d20 **10207303**, d22 28667881;
+  - net off: d13 873459, d20 12554284;
+  - pc2 repeat d20 = 10207303.
+- `BENCH.md` + `README.md` written (gate line, rebuild, CR notes).
+
 ## In progress
-- S3 gate build (started 01:32, in parallel): `-SrcDir D:\opus_singular_noncut\src\snc_gate -Tag snc_gate -Variant lp_v1
-  -Twice -Work D:\opus_singular_noncut\build`, log `D:\opus_singular_noncut\out\build_snc_gate.out`.
-- S4 identity bit-exact (started 01:34): `bitexact_check.ps1 -Cand <identity exe> -Out D:\opus_singular_noncut\out\bx_id
-  -Quick -SkipSan` (L1 net on + off d11-d22, L2 perft, L3 2,000 FENs vs the cached trial_w6 reference).
+- S4 gate OFF, full 12k (started 01:35): `bitexact_check.ps1 -Cand <gate pc1 exe> -Out
+  D:\opus_singular_noncut\out\bx_gate_off_12k -SkipSan`. L1 + L2 PASS; L3 on 12,000 FENs is running.
+- S6 smoke A in the CPU window (started 01:37:48), `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_a
+  -Mask 0x70 -Concurrency 3 -Rounds 50 -Srand 20261106 -MaxMinutes 30`:
+  - CPUs 4-6 at Idle, checked on all 7 processes;
+  - 100 games, gate exe ON vs trial_w6, tc 10+0.1 timemargin 1000, Hash 16, Threads 1, 8moves_v3 random;
+  - ~37 s per game per slot.
 
 ## Exact next step
-Gate: `REPRO lp_v1 pc1 = pc2` and pins OK at default 0. Then bitexact_check full 12k -SkipSan on the gate exe
-(reference cached, so nothing is written on F:), MCP uci_options on both exes, MCP pin_check with SingularNonCut=1.
+1. When the 12k ends: copy `bitexact.log` to `logs/bx_gate_off_12k.log` and put the L3 line in BENCH.md.
+2. When smoke A ends (expected ~01:58): smoke B with the same settings and `-Srand 20261107 -Out ...\smoke_b`, on 0x70
+   only if it can end before 02:27 (`-MaxMinutes 25`, the script refuses otherwise). Otherwise run it on `-Mask 0x4`
+   (CPU 2) with concurrency 1.
+3. Then stop for Code Review.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
