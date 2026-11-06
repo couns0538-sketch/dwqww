@@ -101,3 +101,43 @@ Code Review of this pack: the patch, BENCH.md, README.md, `tools/port_controls.s
 - Resume (Git Bash): `tail D:/oleft2/chain1.log`; a step that did not end rc=0 is re-run with a NEW -Out:
   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:/oleft2/tools/bitexact_check.ps1' -Cand <gate exe>
   -Out 'D:/oleft2/<p>/fens12k_off_r2' -SkipSan [-FenOptions 'UseNNUE=false']`.
+
+### Leftover jobs 2 + 3 DONE (2026-11-06 11:54-12:01 PC clock)
+- **Job 2, mate probe** of the gate exe dcdec9a7, OFF (defaults) vs ON `CutNoTtLmr=1`:
+  - Crew set `tools/mate_probe.epd` (md5 df9a6967, 22 FENs) at nodes 3M: mates OFF 19, ON 19.
+    - Fen 1 LOST: OFF mate 15, ON cp 581.
+    - Fen 8 LONGER: 14 -> 15.
+    - Fen 12 GAINED: cp 544 -> mate 16.
+  - Re-run of fens 1, 8 and 12 at 30M nodes: OFF / ON mate 11 / 11, 12 / 12 and 14 / 13. So **no mate is lost or longer**
+    at 30M: the 3M flags were horizon effects.
+  - S1-S5 at depth 12: OFF = ON and the right classes: mate 1 d1d8; 0000 cp 0; mate 1 e6c8; cp 0; mate 1 a1a8.
+- **Job 3, counter box test** (test-only counter build, never the gate exe):
+  - Patch `cut_nott_lmr_counters_test.patch`. o3 exe sha256 5ab51a3d..., pins 312866 / 862329 / 3024920.
+  - bench 16 OFF 3024920 and ON 2738962 are the gate's nodes, so the counters do not change the search.
+  - The rule fires only ON, and at every cut node without a TT move: `applied` = `lmr_cut_nott` = 117,422 at bench 16
+    (0 OFF).
+  - F1-F5 d16, ON / OFF nodes: 1.692 / 1.136 / 0.600 / 0.716 / 1.057, total 1.103. Every bestmove is legal and the same
+    as OFF on all 10 FENs; S1-S5 are identical.
+  - Per 1M nodes (F1-F5), OFF -> ON, at cut nodes without a TT move:
+    - LMR searches 41.3k -> 41.1k;
+    - share clamped at reduced depth 1: 88.8 % -> 94.1 %;
+    - re-search rate 8.05 % -> 8.36 %;
+    - boosts 3.72k -> 3.87k.
+  - FLAGS none.
+- Notes for jobs 2 / 3:
+  - The `rc=` fields in `D:\oleft2\chain*.log` are `date`'s exit status (a bug in my chain scripts), not the tools'. The
+    verdicts come from each tool's own SUMMARY.txt / bitexact.log.
+  - box_run.py ran on the read-only venv python (python-chess for legality).
+  - The first cnl box start failed closed on a ctypes placement bug, fixed before any box ran. Every box run here is
+    Idle with CPU mask 0xC, read back; the 30M mate runs were Idle on 0xC too.
+  - Logs: `logs/mate/` (SUMMARY + TSV per run, the two FEN sets) and `logs/box/` (SUMMARY, rows, bench logs, build out).
+    Tools: `tools/mate_probe.ps1`, `tools/mk_counters.py`, `tools/box_run.py`.
+- NOT DONE: job 1 (chain still running; the results follow in this file), job 4 (ON / OFF nps). Not done inside job 3:
+  the spec's "agreement"-type shares, which need node-exit tracking.
+- Resume, job 2: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/mate_probe.ps1 -Exe <gate exe> -OnOptions
+  '<ON line>' -Epd tools/mate_probe.epd -Out <new dir> [-Go 'nodes 30000000'] -Mask 0xC [-Index 'i,j']`.
+- Resume, job 3:
+  1. Copy `<x>_gate`.
+  2. Run `python -I -B tools/mk_counters.py <cnl|tcn|ntc> <copy>`.
+  3. Run `build_variants.ps1 -SrcDir <copy> -Tag <new> -Variant o3 -Define FORGE_SPEC_COUNTERS=1 -Work <dir>`.
+  4. Run `python -I -B tools/box_run.py --port <p> --exe <o3 exe> --on '<ON line>' --out <new dir> --mask 0xC`.
