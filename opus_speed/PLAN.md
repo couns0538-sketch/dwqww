@@ -126,3 +126,6 @@ corrupt PGN -> error exit, no verdict.
 - Job C: replay table = recorded verdicts on >= 5 gates; corrupt / truncated PGN -> nonzero exit.
 - Final: re-run bitexact_check + one ABBA of the kept stack vs the lock after the bug hunt; disk/CPU rules re-checked
   (no own process outside CPUs 0-3, F: >= 50 GB).
+
+Follow-up 2026-11-05 19:43-19:47 PC clock (start tip 00d19e56): the 4 CR SHOULD leftovers only. Live lock = trial_w6
+4181A589.... No timing, and no retune / lock of KING_LINES or bundles a-d. Record: `CR_SHOULD_W8.md`.

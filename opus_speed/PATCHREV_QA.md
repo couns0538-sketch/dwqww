@@ -1,5 +1,10 @@
 # Patch review QA tests on the six stacks (speed job follow-up, 2026-11-05)
 
+> Note (CR leftovers, 2026-11-05 19:47 PC clock, start tip 00d19e56): `tools/patchrev_qa.py` now takes the LIVE lock
+> trial_w6 as LOCK (sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0,
+> `F:\ospd\packs\trial_w6\forge_trial_w6.exe`). The results of record below were run with LOCK = FD3A5190 (14:13-14:53)
+> and were not re-run. Since trial_w6 is in the default STACKS, a default run now also compares the lock with itself.
+
 Owner Couns. Branch `opus-speed-20261105`, follow-up from tip c845d886 (first command 14:13:45 PC clock). The patch
 review (`REVIEW_PATCHES_INDEPENDENT.md` section 4) listed tests the job had not run; they ran here on stack_w1, stack_w2,
 stack_w3, stack_w4, stack_w5 and trial_w6 against the lock FD3A5190. These are the coordinator's own checks (NOT

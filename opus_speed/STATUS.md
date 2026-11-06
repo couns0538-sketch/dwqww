@@ -18,7 +18,7 @@ Session restart at ~09:32 (application restart by the owner); workers resumed 09
 
 FINAL_REPORT.md: FINAL 13:36 (all runs finished). QA order: stack_w2 first, then trial_w6 or stack_w5.
 
-CR leftovers (independent CR of 73f4041d..00d19e56: APPROVE, 0 BLOCKER, 4 SHOULD), from 19:43 PC clock, start tip
-00d19e56: SHOULD 4 patchrev_qa LOCK = trial_w6 DONE; SHOULD 2 skill verdict rules DONE; SHOULD 3 FINAL_REPORT QA owner
-item DONE; SHOULD 1 warm_identity self-pin + read-back IN PROGRESS. KING_LINES (W9) and bundles a-d were not retimed
-or locked. Details: `CR_SHOULD_W8.md`.
+CR leftovers (independent CR of 73f4041d..00d19e56: APPROVE, 0 BLOCKER, 4 SHOULD), 19:43-19:47 PC clock, start tip
+00d19e56, WIP 8b170996: all 4 DONE. SHOULD 4: patchrev_qa LOCK = trial_w6. SHOULD 2: skill verdict rules. SHOULD 3:
+FINAL_REPORT QA owner item. SHOULD 1: warm_identity self-pin + read-back. Test 8 / 8 PASS (run
+20261105-194720-5676). KING_LINES (W9) and bundles a-d were not retimed or locked. Details: `CR_SHOULD_W8.md`.

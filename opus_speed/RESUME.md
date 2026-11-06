@@ -46,7 +46,7 @@
 ## State 19:43 PC clock - CR leftovers (4 SHOULD, independent CR of 73f4041d..00d19e56), start tip 00d19e56
 - Live lock = trial_w6, sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0 (QA's publish;
   CURRENT_LOCK.json / gates / queue untouched). FD3A5190 = the old lock, still the search-identity reference.
-- DONE: SHOULD 4 (patchrev_qa LOCK = trial_w6), 2 (skill verdict rules + mirror), 3 (FINAL_REPORT QA owner item).
-  IN PROGRESS: SHOULD 1 (warm_identity self-pin + read-back) and the tests W3a / W4a / W4b in
-  `tests/test_cr_should_w8.ps1` (run from Git Bash).
+- DONE (19:47): SHOULD 4 (patchrev_qa LOCK = trial_w6), 2 (skill verdict rules + mirror), 3 (FINAL_REPORT QA owner
+  item), 1 (warm_identity self-pin + read-back). `tests/test_cr_should_w8.ps1` 8 / 8 PASS from Git Bash (run
+  20261105-194720-5676). Nothing of this follow-up is running.
 - Not done on purpose: no ABBA / soak / 12k; KING_LINES and bundles a-d untouched (QA owns their timings).

@@ -7,6 +7,9 @@
 #    patchrev_qa.py soak --mask 0xF --mutex-wait-min 0 must refuse before any exe check or engine start (exit != 0, the
 #    refusal names the mutex, no lock.log in its out folder); W2b hold_timing_mutex() is a no-op for a mask inside 0x3 and,
 #    for 0xF, acquires + releases when the mutex is free or refuses when it is held (no engine).
+# CR leftovers of 00d19e56: W3a 'warm_identity self-pin': the W1c run printed the mask 0x3 + Idle read-back of itself
+#    and of both engines. W4a 'patchrev lock = trial_w6': LOCK_SHA = 4181a589... and the LOCK file has that sha256;
+#    W4b with LOCK pointed at the FD3A5190 exe, `protocol --mask 0x3` refuses before any engine and names trial_w6.
 # Engines: the lock exe only, 7 x go nodes 2000 + bench 1 / bench 13 (a few seconds), CPUs 0-1 at Idle. Run it from Git
 # Bash: powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_speed\tests\test_cr_should_w8.ps1 ; exit 0 = all PASS.
 $ErrorActionPreference = 'Stop'
@@ -49,6 +52,9 @@ $r2 = Invoke-Tool $Py @('-I', '-B', (Join-Path $Tools 'warm_identity.py'), $lock
 $r2.Out | ForEach-Object { Add-OspdLf $log "  W1c> $_" }
 $t2 = $r2.Out -join ' '
 Check 'W1c' ($r2.Rc -eq 0 -and $t2 -match 'IDENTICAL: .* 3 searches' -and $t2 -match 'ref: 3 distinct result rows') "positive control: exit $($r2.Rc) (want 0), IDENTICAL with 3 searches, 3 distinct ref rows"
+# W3a: that run pinned itself to 0x3 Idle and read both back, on itself and on each of its two engines
+$nEng = ([regex]::Matches($t2, 'engine PID \d+: mask 0x3 Idle \(read back\)')).Count
+Check 'W3a' ($t2 -match 'placement: mask 0x3 Idle \(read back\)' -and $nEng -eq 2) "warm_identity read back mask 0x3 + Idle on itself and on $nEng / 2 engines"
 
 # W2: the soak's 0xF (any mask touching CPUs 2-3) must be refused while the timing mutex is held
 $mutex = New-Object System.Threading.Mutex($false, 'Local\ospd_abba_timing')
@@ -74,6 +80,20 @@ $r4 = Invoke-Tool $Py @('-I', '-B', $pyFile)
 $r4.Out | ForEach-Object { Add-OspdLf $log "  W2b> $_" }
 $t4 = $r4.Out -join ' '
 Check 'W2b' ($r4.Rc -eq 0 -and $t4 -match 'inside-0x3 ok' -and $t4 -match '0xF (acquired and released|refused while held elsewhere)') "hold_timing_mutex: no-op inside 0x3; 0xF: $(if ($t4 -match '0xF acquired') { 'acquired + released (mutex was free)' } elseif ($t4 -match 'refused') { 'refused (an ABBA holds the mutex)' } else { 'NO RESULT' })"
+
+# W4a / W4b: patchrev_qa's lock is the live lock trial_w6; an FD3A5190 exe as LOCK is refused before any engine
+$w4b = Join-Path $outRoot 'w4b'
+$pyFile4 = Join-Path $outRoot 'w4_lock.py'
+Write-OspdLf $pyFile4 @('import sys', "sys.path.insert(0, r'$Tools')", 'import patchrev_qa as p',
+  "print('lock_sha', p.LOCK_SHA)", "print('lock_file_ok' if p.sha256(p.LOCK) == p.LOCK_SHA else 'lock_file_BAD')",
+  "p.LOCK = r'$lock'",
+  "sys.argv = ['patchrev_qa.py', 'protocol', '--out', r'$w4b', '--mask', '0x3', '--stacks', 'no_such_stack_w8']",
+  'try:', '    p.main()', "    print('w4b not refused')", 'except SystemExit as x:', "    print('w4b refused:', x)")
+$r5 = Invoke-Tool $Py @('-I', '-B', $pyFile4)
+$r5.Out | ForEach-Object { Add-OspdLf $log "  W4> $_" }
+$t5 = $r5.Out -join ' '
+Check 'W4a' ($r5.Rc -eq 0 -and $t5 -match 'lock_sha 4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0' -and $t5 -match 'lock_file_ok') "patchrev_qa LOCK_SHA = trial_w6 4181A589... and sha256(LOCK) = LOCK_SHA"
+Check 'W4b' ($t5 -match 'w4b refused: .*is not the live lock trial_w6 \(sha256 4181A589' -and -not (Test-Path (Join-Path $w4b 'lock.log'))) "protocol with the FD3A5190 exe as LOCK: refused before any engine, the refusal names trial_w6, no lock.log"
 
 $nf = @($results | Where-Object { $_ -match '^W\S+ FAIL ' }).Count
 $fin = "test_cr_should_w8 run $run end $(Get-OspdNow): $($results.Count - $nf) / $($results.Count) PASS; log $log"

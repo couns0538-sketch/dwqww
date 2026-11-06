@@ -18,10 +18,14 @@ tests 1, 2 and 8):
     reference result rows must also not be degenerate (n >= 100 and fewer than n / 10 distinct rows = exit 1), as in
     bitexact_check L3 (Code Review SHOULD 'warm_identity invalid-FEN').
 Both transcripts are normalised (the `nps` and `time` fields removed from info lines, bench timing fields too) and
-compared line by line. Exit 0 = identical, 3 = a difference (first one printed), 1 = error. The engines inherit this
-process's CPU mask and priority class (run it from a 0x3 / Idle shell). Reads the exes and the FEN file only;
-writes only <out dir>.
+compared line by line. Exit 0 = identical, 3 = a difference (first one printed), 1 = error. Placement (Code Review
+SHOULD 'warm_identity self-pin'): before the out dir, the FEN file or any engine, this process sets its own CPU mask
+0x3 (CPUs 0-1, the job's check pair) and the Idle class and reads both back; every engine it starts inherits both and
+is read back too (on its process handle, before its first command). A failed call or a mismatch is exit 1 (fail
+closed): no comparison runs on a process that is not pinned. Reads the exes and the FEN file only; writes only
+<out dir>.
 """
+import ctypes
 import pathlib
 import queue
 import re
@@ -29,10 +33,48 @@ import subprocess
 import sys
 import threading
 import time
+from ctypes import wintypes
 
-CYCLE = ['setoption name Hash value 1', 'setoption name Hash value 64', 'setoption name Clear Hash',
+MASK = 0x3    # CPUs 0-1: the job's check pair (CPU 2 = nps timing, CPU 3 = its SMT sibling, kept free)
+IDLE = 0x40   # IDLE_PRIORITY_CLASS
+CYCLE =['setoption name Hash value 1', 'setoption name Hash value 64', 'setoption name Clear Hash',
          'setoption name UseNNUE value false', 'setoption name UseNNUE value true', 'setoption name Hash value 16']
 STRIP = re.compile(r' (nps|time) \d+')
+
+
+def kernel32():
+    k32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    k32.GetCurrentProcess.restype = wintypes.HANDLE
+    k32.SetPriorityClass.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    k32.SetPriorityClass.restype = wintypes.BOOL
+    k32.GetPriorityClass.argtypes = [wintypes.HANDLE]
+    k32.GetPriorityClass.restype = wintypes.DWORD
+    k32.SetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.c_size_t]
+    k32.SetProcessAffinityMask.restype = wintypes.BOOL
+    k32.GetProcessAffinityMask.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_size_t), ctypes.POINTER(ctypes.c_size_t)]
+    k32.GetProcessAffinityMask.restype = wintypes.BOOL
+    return k32
+
+
+def read_back(k32, h, what):
+    """The CPU mask and priority class of process handle h must be MASK and Idle, else fail closed (Code Review
+    SHOULD 'warm_identity self-pin')."""
+    pm, sm = ctypes.c_size_t(), ctypes.c_size_t()
+    if not k32.GetProcessAffinityMask(h, ctypes.byref(pm), ctypes.byref(sm)):
+        raise RuntimeError(f'{what}: GetProcessAffinityMask failed (error {ctypes.get_last_error()}) - not pinned')
+    pc = k32.GetPriorityClass(h)
+    if pm.value != MASK or pc != IDLE:
+        raise RuntimeError(f'{what}: mask 0x{pm.value:X} class 0x{pc:X}, want mask 0x{MASK:X} Idle (0x40) - not pinned')
+    return f'{what}: mask 0x{MASK:X} Idle (read back)'
+
+
+def place():
+    """Idle class + MASK on this process, read back; engines started afterwards inherit both (and are read back)."""
+    k32 = kernel32()
+    h = k32.GetCurrentProcess()
+    if not k32.SetPriorityClass(h, IDLE) or not k32.SetProcessAffinityMask(h, MASK):
+        raise RuntimeError(f'placement failed (error {ctypes.get_last_error()}) - not pinned')
+    return k32, read_back(k32, h, 'placement')
 
 
 class Engine:
@@ -85,10 +127,13 @@ class Engine:
         self.until(lambda s: s == 'readyok')
 
 
-def run(exe, fens, nodes):
+def run(exe, fens, nodes, k32):
     log = []
     e = Engine(exe, log)
     try:
+        # the engine inherits this process's mask + class: read both back on its own handle before its first command
+        # (printed only, never part of the compared transcript; a mismatch leaves through close(): quit + EOF)
+        print(read_back(k32, int(e.p._handle), f'engine PID {e.p.pid}'), flush=True)
         e.send('bench 1')
         e.until(lambda s: 'bench depth' in s)
         e.send('go perft 1')
@@ -142,13 +187,15 @@ def main():
         print(__doc__)
         return 1
     ref, cand, fenf, out = a
+    k32, placed = place()          # before the out dir, the FEN file and any engine (fail closed)
+    print(placed, flush=True)
     outd = pathlib.Path(out)
     outd.mkdir(parents=True, exist_ok=False)
     fens = [l.strip() for l in open(fenf, encoding='utf-8') if l.strip() and not l.startswith('#')][:n]
     res = {}
     for tag, exe in (('ref', ref), ('cand', cand)):
         t0 = time.time()
-        log, bench, rows = run(exe, fens, nodes)
+        log, bench, rows = run(exe, fens, nodes, k32)
         (outd / f'{tag}.log').write_text('\n'.join(log) + '\n', encoding='utf-8', newline='\n')
         res[tag] = (norm(log), bench, time.time() - t0)
         print(f'{tag}: {len(log)} lines, {time.time() - t0:.0f} s, last bench: {bench}')

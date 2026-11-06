@@ -336,15 +336,16 @@ follow-up brief and was not run. bitexact_check.ps1 and the skill now state that
 the warm-table identity and a Threads 2-4 smoke have passed. Scratch at the end: `F:\ospd` 5.7 GB (cap 8 GB), F: 55 GB free, C: 93 GB (13:38). The coordinator's own re-check
 (`OWN_CHECKS.md`, NOT independent): every ABBA summary recomputed with the exact t quantile, patches = timed sources,
 kit sources = patched trees + switch lines only, QA's kit rebuilds all six stacks byte for byte.
-**CR leftovers, 2026-11-05 from 19:43 PC clock (start tip 00d19e56, NOT independent):** the independent Code Review of
-73f4041d..00d19e56 (APPROVE, 0 BLOCKER) left 4 SHOULD tooling notes: (1) `tools/warm_identity.py` pins itself to 0x3
-Idle and reads mask + class back on itself and on every engine it starts, fail closed - IN PROGRESS; (2) the skill's
+**CR leftovers, 2026-11-05 19:43-19:47 PC clock (start tip 00d19e56, WIP 8b170996, NOT independent):** the independent
+Code Review of 73f4041d..00d19e56 (APPROVE, 0 BLOCKER) left 4 SHOULD tooling notes, all fixed: (1) `tools/warm_identity.py`
+pins itself to 0x3 Idle and reads mask + class back on itself and on every engine it starts, fail closed - DONE; (2) the skill's
 verdict rules (wall nps decides, CPU time must not contradict it, `abba_recheck.py --pool` never decides) - DONE;
 (3) the QA owner item below (L3b + Threads 2-4 soak + independent ABBA vs trial_w6 before any lock) - DONE;
 (4) `tools/patchrev_qa.py` LOCK / LOCK_SHA = the live lock trial_w6 (`F:\ospd\packs\trial_w6\forge_trial_w6.exe` =
 sha256 4181A5893F15E732D08A2F4FCFBAFFB23618B2567B9F30F9ACD58BE2E69B6FB0) - DONE. The live lock was published by QA
 and is not touched here. KING_LINES (W9) and bundles a-d were NOT retimed, restacked or locked; no ABBA, soak or
-12k run. Details and tests: `CR_SHOULD_W8.md`.
+12k run. Tests: `tests/test_cr_should_w8.ps1` 8 / 8 PASS (run 20261105-194720-5676, lock exe only, CPUs 0-1 Idle).
+Details: `CR_SHOULD_W8.md`.
 Owner items:
 - The 3 LOW notes of Code Review CR_OPUS_SPEED_TOOLS_637B were not visible on the PC; please send their text.
 - D: free space read 50.0 GB at 12:29 (`pc_status`), i.e. at the brief's floor; this job wrote only worker-board
