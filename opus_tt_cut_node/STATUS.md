@@ -83,3 +83,47 @@ lines:
 - Resume (Git Bash): `tail D:/oleft2/chain1.log`; a step that did not end rc=0 is re-run with a NEW -Out:
   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:/oleft2/tools/bitexact_check.ps1' -Cand <gate exe>
   -Out 'D:/oleft2/<p>/fens12k_off_r2' -SkipSan [-FenOptions 'UseNNUE=false']`.
+
+### Leftover jobs 2 + 3 DONE (2026-11-06 11:55-12:01 PC clock)
+- **Job 2, mate probe** of the gate exe 8151e220, OFF (defaults) vs ON `TtCutNodeDepth=6` + `TtCutNodeForm=1`:
+  - Crew set `tools/mate_probe.epd` (md5 df9a6967, 22 FENs) at nodes 3M: mates OFF 19, ON 21.
+    - Fen 1 LOST: mate 15 -> cp 514.
+    - Fen 10 LONGER: 7 -> 8.
+    - Fens 5 / 9 / 12 GAINED; fen 13 SHORTER.
+  - Re-run of fens 1, 5, 9, 10, 12 and 13 at 30M nodes: all six are mates on both sides. ON = OFF on 1 (11), 10 (7) and
+    13 (13); ON is shorter on 5, 9 and 12. So **no mate is lost or longer** at 30M.
+  - S1-S5 at depth 12: OFF = ON, right classes.
+- **Job 3, counter box test** (test-only counter build, never the gate exe):
+  - Patch `tt_cut_node_counters_test.patch`. o3 exe sha256 f2ff2973..., pins OK.
+  - bench 16 OFF 3024920 and ON 3049356 are the gate's nodes.
+  - Refused cutoffs are only "fail high at a non-cut node", and only at depth <= 6: at bench 16 ON, d1-2 5,573, d3-4
+    1,890, d5-6 302, d7+ 0. Fail-low refusals are 0 (form 1).
+  - F1-F5 d16, ON / OFF nodes: 1.230 / 0.845 / 0.589 / 0.992 / 1.380, total 0.977. Every bestmove is legal and the same
+    as OFF on all 10 FENs; S1-S5 are identical.
+  - TT cutoffs per 1M nodes, OFF -> ON:
+
+    | depth | OFF | ON |
+    |---|---|---|
+    | 1-2 | 46.97k | 44.32k |
+    | 3-4 | 10.34k | 9.00k |
+    | 5-6 | 2.97k | 2.71k |
+    | 7+ | 1.62k | 1.35k |
+
+  - FLAGS none.
+- Notes for jobs 2 / 3:
+  - The `rc=` fields in `D:\oleft2\chain*.log` are `date`'s exit status (a bug in my chain scripts), not the tools'. The
+    verdicts come from each tool's own SUMMARY.txt / bitexact.log.
+  - box_run.py ran on the read-only venv python (python-chess for legality).
+  - The first cnl box start failed closed on a ctypes placement bug, fixed before any box ran. Every box run here is
+    Idle with CPU mask 0xC, read back; the 30M mate runs were Idle on 0xC too.
+  - Logs: `logs/mate/` (SUMMARY + TSV per run, the two FEN sets) and `logs/box/` (SUMMARY, rows, bench logs, build out).
+    Tools: `tools/mate_probe.ps1`, `tools/mk_counters.py`, `tools/box_run.py`.
+- NOT DONE: job 1 (chain still running; the results follow in this file), job 4 (ON / OFF nps). Not done inside job 3:
+  the spec's "agreement"-type shares, which need node-exit tracking.
+- Resume, job 2: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/mate_probe.ps1 -Exe <gate exe> -OnOptions
+  '<ON line>' -Epd tools/mate_probe.epd -Out <new dir> [-Go 'nodes 30000000'] -Mask 0xC [-Index 'i,j']`.
+- Resume, job 3:
+  1. Copy `<x>_gate`.
+  2. Run `python -I -B tools/mk_counters.py <cnl|tcn|ntc> <copy>`.
+  3. Run `build_variants.ps1 -SrcDir <copy> -Tag <new> -Variant o3 -Define FORGE_SPEC_COUNTERS=1 -Work <dir>`.
+  4. Run `python -I -B tools/box_run.py --port <p> --exe <o3 exe> --on '<ON line>' --out <new dir> --mask 0xC`.

@@ -1,0 +1,51 @@
+--- tcn_gate/src/search.cpp
++++ tcn_cnt/src/search.cpp
+@@ -109,6 +109,27 @@
+ }
+ } // namespace tune
+ 
++#ifndef FORGE_SPEC_COUNTERS
++#define FORGE_SPEC_COUNTERS 0
++#endif
++#if FORGE_SPEC_COUNTERS
++// Box-test counters (test build only, never in a gate exe): search increments them and never reads them. Plain
++// globals: valid for Threads 1. One line at process exit = the totals of everything the process searched.
++namespace spec_counters {
++std::uint64_t eligible[4] = {}, cut[4] = {}, refused_high_noncut[4] = {}, refused_low_cut[4] = {};
++struct Printer {
++    ~Printer() {
++        static const char* names[4] = {"d1-2", "d3-4", "d5-6", "d7+"};
++        std::cout << "info string spec_counters";
++        for (int b = 0; b < 4; ++b)
++            std::cout << " " << names[b] << " eligible " << eligible[b] << " cut " << cut[b] << " refused_high_noncut "
++                      << refused_high_noncut[b] << " refused_low_cut " << refused_low_cut[b];
++        std::cout << std::endl;
++    }
++} printer;
++} // namespace spec_counters
++#endif
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1145,6 +1166,20 @@
+     // TtCutNodeDepth > 0: at depth <= TtCutNodeDepth the cutoff also needs the stored direction to match the node
+     // type (non-PV nodes are null-window, so tt_score >= beta is the direction for all three bounds). Form 1: a
+     // cutoff at >= beta needs a cut node; form 2: (tt_score >= beta) == cut_node. A refused cutoff searches the node.
++#if FORGE_SPEC_COUNTERS
++    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
++        board.halfmove_clock() < 90 &&
++        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
++         (tt_bound == BoundUpper && tt_score <= alpha))) {
++        const int spec_b = depth <= 2 ? 0 : depth <= 4 ? 1 : depth <= 6 ? 2 : 3;
++        const bool spec_ok = tune::TtCutNodeDepth == 0 || depth > tune::TtCutNodeDepth ||
++                             (tune::TtCutNodeForm == 2 ? ((tt_score >= beta) == cut_node) : (tt_score < beta || cut_node));
++        ++spec_counters::eligible[spec_b];
++        if (spec_ok) ++spec_counters::cut[spec_b];
++        else if (tt_score >= beta) ++spec_counters::refused_high_noncut[spec_b];
++        else ++spec_counters::refused_low_cut[spec_b];
++    }
++#endif
+     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+         board.halfmove_clock() < 90 &&
+         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
