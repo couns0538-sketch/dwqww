@@ -134,10 +134,15 @@ def load_symbols(exe, nm):
         if not m:
             continue
         a = int(m.group(1), 16)
+        name = m.group(3)
         if addrs and addrs[-1] == a:
+            # several names at one address: a section label ('.text.hot', '.text$x') shares the address of the first
+            # function in its section (found 2026-11-05: generate_pseudo_legal / static_evaluate showed as '.text.hot')
+            if names[-1].startswith('.') and not name.startswith('.'):
+                names[-1] = name
             continue
         addrs.append(a)
-        names.append(m.group(3))
+        names.append(name)
     if len(addrs) < 100:
         fail('only %d text symbols from nm' % len(addrs))
     return addrs, names
@@ -227,6 +232,8 @@ class Engine:
 
 
 def main():
+    if len(sys.argv) >= 3 and sys.argv[1] == '--remap':
+        return remap(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else 'C:/msys64/ucrt64/bin/nm.exe')
     ap = argparse.ArgumentParser()
     ap.add_argument('exe')
     ap.add_argument('out')
@@ -326,6 +333,28 @@ def main():
     inside = total - outside
     if total == 0 or inside < 0.9 * total:
         fail('only %d of %d samples inside .text (context layout or rebase wrong?)' % (inside, total))
+    with open(out / 'addresses.tsv', 'w', encoding='utf-8', newline='\n') as f:
+        f.write('vma\tsamples\n')
+        for v, c in sorted(counts.items()):
+            f.write('%x\t%d\n' % (v, c))
+    head = ['exe %s sha256 %s' % (a.exe, sha),
+            'bench %d x %d: %s' % (a.bench, a.repeat, ', '.join('%d nodes %d ms %d nps' % (b['nodes'], b['ms'], b['nps']) for b in benches)),
+            'samples %d, inside .text %d (%.1f %%), outside %d, failed %d; self mask 0x%X Idle, engine mask 0x%X Idle'
+            % (total, inside, 100.0 * inside / total, outside, failed, a.self_mask, a.engine_mask)]
+    meta = {'exe': a.exe, 'sha256': sha, 'bench': a.bench, 'repeat': a.repeat, 'benches': benches, 'samples': total,
+            'inside': inside, 'outside': outside, 'failed': failed, 'image_base': hex(image_base),
+            'text': [hex(text_lo), hex(text_hi)], 'self_mask': a.self_mask, 'engine_mask': a.engine_mask,
+            'engine_exited': exited, 'head': head}
+    (out / 'meta.json').write_text(json.dumps(meta, indent=1) + '\n', encoding='utf-8', newline='\n')
+    lines = report(out, counts, addrs, names, inside, head, '')
+    print('\n'.join(lines[:3 + 25]))
+    if not exited:
+        print('rip_sampler: WARNING engine pid %d did not exit (left running, no-kill rule)' % eng.p.pid)
+    return 0
+
+
+def report(out, counts, addrs, names, inside, head, suffix):
+    """functions<suffix>.tsv + profile<suffix>.txt from {rebased vma: samples}; returns the profile lines."""
     func = {}
     for v, c in counts.items():
         i = bisect.bisect_right(addrs, v) - 1
@@ -334,19 +363,11 @@ def main():
         func[name][0] += c
         func[name][1][v] = c
     ranked = sorted(func.items(), key=lambda kv: -kv[1][0])
-    with open(out / 'functions.tsv', 'w', encoding='utf-8', newline='\n') as f:
+    with open(out / ('functions%s.tsv' % suffix), 'w', encoding='utf-8', newline='\n') as f:
         f.write('samples\tpct\tsymbol\n')
         for name, (c, _) in ranked:
             f.write('%d\t%.2f\t%s\n' % (c, 100.0 * c / inside, name))
-    with open(out / 'addresses.tsv', 'w', encoding='utf-8', newline='\n') as f:
-        f.write('vma\tsamples\n')
-        for v, c in sorted(counts.items()):
-            f.write('%x\t%d\n' % (v, c))
-    lines = ['exe %s sha256 %s' % (a.exe, sha),
-             'bench %d x %d: %s' % (a.bench, a.repeat, ', '.join('%d nodes %d ms %d nps' % (b['nodes'], b['ms'], b['nps']) for b in benches)),
-             'samples %d, inside .text %d (%.1f %%), outside %d, failed %d; self mask 0x%X Idle, engine mask 0x%X Idle'
-             % (total, inside, 100.0 * inside / total, outside, failed, a.self_mask, a.engine_mask),
-             '', 'top functions (self samples, % of inside):']
+    lines = list(head) + ['', 'top functions (self samples, % of inside):']
     for name, (c, _) in ranked[:40]:
         lines.append('%7d %6.2f%%  %s' % (c, 100.0 * c / inside, name[:150]))
     lines.append('')
@@ -354,15 +375,25 @@ def main():
         lines.append('hottest addresses in %s:' % name[:120])
         for v, cc in sorted(per.items(), key=lambda kv: -kv[1])[:12]:
             lines.append('   %x %6d %5.2f%%' % (v, cc, 100.0 * cc / inside))
-    (out / 'profile.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
-    meta = {'exe': a.exe, 'sha256': sha, 'bench': a.bench, 'repeat': a.repeat, 'benches': benches, 'samples': total,
-            'inside': inside, 'outside': outside, 'failed': failed, 'image_base': hex(image_base),
-            'text': [hex(text_lo), hex(text_hi)], 'self_mask': a.self_mask, 'engine_mask': a.engine_mask,
-            'engine_exited': exited}
-    (out / 'meta.json').write_text(json.dumps(meta, indent=1) + '\n', encoding='utf-8', newline='\n')
+    (out / ('profile%s.txt' % suffix)).write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return lines
+
+
+def remap(run_dir, nm):
+    """Re-attribute a finished run (its addresses.tsv) with the current symbol rules; writes *_remap files."""
+    run = pathlib.Path(run_dir)
+    meta = json.loads((run / 'meta.json').read_text(encoding='utf-8'))
+    _, _, sha = pe_info(meta['exe'])
+    if sha != meta['sha256']:
+        fail('exe %s changed since the run (sha256 %s, run %s)' % (meta['exe'], sha, meta['sha256']))
+    addrs, names = load_symbols(meta['exe'], nm)
+    counts = {}
+    for line in (run / 'addresses.tsv').read_text(encoding='utf-8').splitlines()[1:]:
+        v, c = line.split('\t')
+        counts[int(v, 16)] = int(c)
+    head = meta.get('head') or ['exe %s sha256 %s (remapped run %s)' % (meta['exe'], sha, run)]
+    lines = report(run, counts, addrs, names, meta['inside'], head, '_remap')
     print('\n'.join(lines[:3 + 25]))
-    if not exited:
-        print('rip_sampler: WARNING engine pid %d did not exit (left running, no-kill rule)' % eng.p.pid)
     return 0
 
 

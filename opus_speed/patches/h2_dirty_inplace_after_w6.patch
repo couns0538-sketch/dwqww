@@ -1,0 +1,77 @@
+diff -ruN trial_w6/include/forge/nnue.hpp h2dev_dirty_inplace/include/forge/nnue.hpp
+--- trial_w6/include/forge/nnue.hpp	2026-11-05 12:12:59.770428000 -0800
++++ h2dev_dirty_inplace/include/forge/nnue.hpp	2026-11-05 20:55:28.312582600 -0800
+@@ -29,6 +29,15 @@
+ #define FORGE_SPD_NNUE_ZMM 0
+ #endif
+ 
++// Build switch (default 0 = the lock code): 1 = the search writes a move's piece
++// changes straight into the child's DirtyPieces (the same entries in the same order
++// and the same count as dirty_pieces()) instead of building a temporary and copying
++// all four slots back; the copy reloaded fresh narrow stores with one wide load (a
++// store-forwarding stall). Every reader of DirtyPieces stops at count.
++#ifndef FORGE_SPD_DIRTY_INPLACE
++#define FORGE_SPD_DIRTY_INPLACE 0
++#endif
++
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -74,5 +83,10 @@
+ 
+ // Piece changes implied by a move about to be played on `board`.
+ [[nodiscard]] DirtyPieces dirty_pieces(const Board& board, const Move& move);
++#if FORGE_SPD_DIRTY_INPLACE
++// dirty_pieces(board, move) written into `dirty` in place: count and the used slots
++// (the slots at or above count keep old values; nothing reads them).
++void fill_dirty_pieces(DirtyPieces& dirty, const Board& board, const Move& move);
++#endif
+ 
+ } // namespace forge::nnue
+diff -ruN trial_w6/src/nnue.cpp h2dev_dirty_inplace/src/nnue.cpp
+--- trial_w6/src/nnue.cpp	2026-11-05 12:12:59.772433400 -0800
++++ h2dev_dirty_inplace/src/nnue.cpp	2026-11-05 20:55:37.876201200 -0800
+@@ -269,4 +269,28 @@
+     return dirty;
+ }
+ 
++#if FORGE_SPD_DIRTY_INPLACE
++void fill_dirty_pieces(DirtyPieces& dirty, const Board& board, const Move& move) {
++    // The entries of dirty_pieces() above, in the same order, written in place.
++    const Color us = board.side_to_move();
++    const Piece moved = board.piece_at(move.from);
++    const Piece captured = board.captured_piece(move);
++    std::size_t count = 0;
++    dirty.changes[count++] = PieceChange{moved, move.from, false};
++    if (captured != Empty) {
++        const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(us) : move.to;
++        dirty.changes[count++] = PieceChange{captured, static_cast<std::uint8_t>(captured_square), false};
++    }
++    dirty.changes[count++] = PieceChange{move.is_promotion() ? make_piece(us, move.promotion) : moved, move.to, true};
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        dirty.changes[count++] = PieceChange{make_piece(us, Rook), static_cast<std::uint8_t>(rook_from), false};
++        dirty.changes[count++] = PieceChange{make_piece(us, Rook), static_cast<std::uint8_t>(rook_to), true};
++    }
++    dirty.count = static_cast<int>(count);
++}
++#endif
++
+ } // namespace forge::nnue
+diff -ruN trial_w6/src/search.cpp h2dev_dirty_inplace/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-05 12:12:59.005573300 -0800
++++ h2dev_dirty_inplace/src/search.cpp	2026-11-05 20:55:39.761866300 -0800
+@@ -808,7 +808,11 @@
+     // Called before make_move: the child's accumulator becomes stale and the
+     // piece changes are remembered for the lazy update.
+     if (!nnue::enabled || !nnue::available()) return;
++#if FORGE_SPD_DIRTY_INPLACE
++    nnue::fill_dirty_pieces((ss + 1)->dirty, board, move);
++#else
+     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
++#endif
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
+ }

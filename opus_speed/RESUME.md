@@ -84,3 +84,8 @@
 - Per idea: identity builds (all 0 = FD3A5190, six ON + new OFF = 4181A589) -> speed_pack -Quick -SkipAbba (the six +
   the new define) -> abba.ps1 alone vs trial_w6 into `C:\ospd_hunt\abba\` -> WIN: full 12k + pack.
 - Session A/A: `C:\ospd_hunt\abba\aa_w6_d20_s1` (started 20:42).
+- 20:57: profile done (`C:\ospd_hunt\prof\w6_b20_r1`, rip_sampler; table in FINAL_REPORT 9.1). H1 `h1_largepages`
+  (FORGE_SPD_LARGEPAGES=1): identity all-0 = FD3A5190 OK, six ON + new OFF = 4181A589 OK; speed_pack -Quick -SkipAbba
+  running (log `C:\ospd_hunt\logs\h1_largepages.out`). H2 `h2_dirty_inplace` (FORGE_SPD_DIRTY_INPLACE=1): tree ready,
+  harness `tests/dirty_inplace_diff.cpp` PASS (18.9M moves, 0 mismatches; mutant FAIL); its hunt_candidate.sh is next.
+  Then: A/A 2 (alone) and the ABBAs of H1 / H2 (alone, `C:\ospd_hunt\abba`).
