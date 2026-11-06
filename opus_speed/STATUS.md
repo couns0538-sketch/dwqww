@@ -80,3 +80,5 @@ width / 2 (`tools/aa_sane.py`, `tools/qa_verdict.py`, wall = verdict, the same t
 Under it: A/A 1-4c NOT SANE (median or width), quiet A/A qa SANE (+0.03 %, width 2.56 %), qb SANE (+0.18 %, width 1.92 %);
 H1 run 1, H2 run 1, H3 run 1 NO-WIN (information, before the quiet gate).
 | - | quiet A/A qb (23:08-23:13, gate try 2) | - | - | 1.0018 [0.9920, 1.0112] sd 1.34 %, width 1.92 % (spread 4.23 %) | 1.0019 [0.9918, 1.0129] | 4181a589 | SANE by the QA rule (its gate check ran on the old reading; qc runs anyway) |
+| - | quiet A/A qc (23:15-23:20, gate try 3) | - | - | 1.0003 [0.9891, 1.0082] sd 1.34 %, width 1.91 % | (see summary) | 4181a589 | SANE (QA rule) -> gate open; the band of the quiet decision block (WIN needs low > 1.000 and gain > 0.96 %) |
+| H2 | h2_dirty_inplace quiet decision run (23:20-23:25, cpu2 / cpu3 2 / 1 -> 1 / 1 %) | - | BIT-EXACT (pack) | 1.0053 (+0.53 %) [1.0006, 1.0151] sd 1.01 % | 1.0019 (+0.19 %) [0.9981, 1.0135] sd 1.07 % | 8c3f2747 | NO-WIN - QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN; runs.csv 832eaf3b |

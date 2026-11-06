@@ -485,6 +485,8 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | H3 run 1 | 22:56-23:01 | 23 / 0 -> 3 / 1 % (quiet) | 1.0057 [0.9862, 1.0120] 1.80 % | 1.0048 [0.9835, 1.0119] 1.99 % | NO-WIN / NO-WIN (information: before the quiet gate) | d4df0016 |
 | quiet A/A qa (gate try 1) | 23:01-23:06 | 41 / 1 -> 4 / 2 % (quiet) | 1.0003 [0.9919, 1.0175] 1.78 % (range 6.50 %, width 2.56 %) | 1.0000 [0.9909, 1.0154] 1.71 % | SANE (QA rule; per-round spread 6.50 % = information) | (aa_w6_d20_qa) |
 | quiet A/A qb (gate try 2) | 23:08-23:13 | 7 / 1 -> 1 / 1 % (quiet) | 1.0018 [0.9920, 1.0112] 1.34 % (spread 4.23 %, width 1.92 %) | 1.0019 [0.9918, 1.0129] | SANE (QA rule) | (aa_w6_d20_qb) |
+| quiet A/A qc (gate try 3) | 23:15-23:20 | quiet | 1.0003 [0.9891, 1.0082] 1.34 % (width 1.91 %) | - | SANE (QA rule): band of the quiet decision block | (aa_w6_d20_qc) |
+| H2 h2_dirty_inplace q | 23:20-23:25 | 2 / 1 -> 1 / 1 % (quiet) | 1.0053 (+0.53 %) [1.0006, 1.0151] sd 1.01 % | 1.0019 (+0.19 %) [0.9981, 1.0135] sd 1.07 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | 832eaf3b |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
