@@ -50,9 +50,17 @@ Pin tables = `opus_speed/tools/uci_lib.ps1` (the old lock FD3A5190's pins; trial
 - `uci` (MCP uci_options): `option name SingularNonCut type spin default 0 min 0 max 1`, listed after
   FailLowContinuationBonus. 62 options.
 
-### Runtime 0 (default) = trial_w6 node for node
-- bitexact_check **full 12k** `-SkipSan` started 01:35 (`logs/bx_gate_off_12k.log` when done).
-- L1 (net on + off d11-d22 = pins) and L2 (perft = pins) PASS. L3 on 12,000 FENs: running.
+### Runtime 0 (default) = trial_w6 node for node: BIT-EXACT on the full 12k
+- bitexact_check **full 12k** `-SkipSan`, 01:35:16-01:45:55 (`logs/bx_gate_off_12k.log`): **VERDICT BIT-EXACT (L1-L3;
+  L3 on 12000 FENs)**.
+  - L1: net on d11-d22 = 312866 / 862329 / 3024920 / 12389307 / 34048354; net off = 375354 / 907205 / 2448617 /
+    13573040 / 24506465. Cand = trial_w6 = pins.
+  - L2: perft 5 startpos 4865609, kiwipete 193690690 = pins.
+  - L3: fens_12k_v2.txt (md5 e7dbf2c8) go depth 13, OwnBook false, ucinewgame per FEN: 12000 / 12000 identical
+    (depth, score, nodes, bestmove; 12000 distinct reference rows; reference = the cached trial_w6 rows in
+    `F:\ospd\ref\4181a589`, read only).
+- The tool's closing `LOCK PROOF INCOMPLETE` line is its generic speed-lock note. This exe is a search candidate for
+  an SPRT, not a speed lock.
 
 ### Runtime 1 (`setoption name SingularNonCut value 1`): LIVE
 - MCP pin_check `-Full`, 01:38:30-01:39:07: advertised, accepted and live; perft = pins.

@@ -83,7 +83,7 @@ try {
   $timeBase = @($fin | Where-Object { ($_ -match '\(trial_w6 vs snc_on\)' -and $_ -match 'White loses on time') -or ($_ -match '\(snc_on vs trial_w6\)' -and $_ -match 'Black loses on time') }).Count
   $timeAll = @($fin | Where-Object { $_ -match 'loses on time' }).Count
   if ($timeAll -ne ($timeCand + $timeBase)) { Line "time-loss lines $timeAll do not split into the two engines ($timeCand + $timeBase): read fastchess.out.txt" }
-  $bad = @($txt | Where-Object { $_ -match '(?i)disconnect|illegal|crash|stall|timeout|error' })
+  $bad = @($txt | Where-Object { $_ -match '(?i)disconnect|illegal|crash|stall|timeout|error|warning|responsive' })
   Line "finished games $($fin.Count) of $(2 * $Rounds); time losses snc_on $timeCand, trial_w6 $timeBase; disconnect / illegal / crash / stall / error lines $($bad.Count)"
   foreach ($b in ($bad | Select-Object -First 20)) { Line "  $b" }
   foreach ($r in ($txt | Where-Object { $_ -match '^(Results of|Elo:|LOS:|Games:|Ptnml|Points:|Draw)' } | Select-Object -Last 8)) { Line "  $r" }

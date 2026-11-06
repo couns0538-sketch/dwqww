@@ -48,21 +48,26 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   - pc2 repeat d20 = 10207303.
 - `BENCH.md` + `README.md` written (gate line, rebuild, CR notes).
 
+- S4 gate OFF, full 12k, 01:35:16-01:45:55: **BIT-EXACT** L1-L3 on all 12,000 FENs (`logs/bx_gate_off_12k.log`). So
+  the gate exe at its default searches trial_w6's nodes. Nothing was written on F: (the reference cache files keep
+  their hunt times).
+- **Pack milestone: READY FOR CODE REVIEW** (patch, IDEA_SOURCE, BENCH, README, STATUS, logs).
+
 ## In progress
-- S4 gate OFF, full 12k (started 01:35): `bitexact_check.ps1 -Cand <gate pc1 exe> -Out
-  D:\opus_singular_noncut\out\bx_gate_off_12k -SkipSan`. L1 + L2 PASS; L3 on 12,000 FENs is running.
-- S6 smoke A in the CPU window (started 01:37:48), `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_a
-  -Mask 0x70 -Concurrency 3 -Rounds 50 -Srand 20261106 -MaxMinutes 30`:
-  - CPUs 4-6 at Idle, checked on all 7 processes;
-  - 100 games, gate exe ON vs trial_w6, tc 10+0.1 timemargin 1000, Hash 16, Threads 1, 8moves_v3 random;
-  - ~37 s per game per slot.
+- S6 optional smoke, in the owner's CPU window. Not a verdict: a crash / time-loss / illegal-move check.
+  - Smoke A started 01:37:48: `tools/smoke_run.ps1 -Out D:\opus_singular_noncut\out\smoke_a -Mask 0x70 -Concurrency 3
+    -Rounds 50 -Srand 20261106 -MaxMinutes 30`.
+  - CPUs 4-6 at Idle, checked on all 7 processes. 100 games, gate exe ON vs trial_w6, tc 10+0.1 timemargin 1000,
+    Hash 16, Threads 1, 8moves_v3 random.
+  - 53 games done at 01:46: 0 time losses, 0 warning / illegal / crash / disconnect lines.
 
 ## Exact next step
-1. When the 12k ends: copy `bitexact.log` to `logs/bx_gate_off_12k.log` and put the L3 line in BENCH.md.
-2. When smoke A ends (expected ~01:58): smoke B with the same settings and `-Srand 20261107 -Out ...\smoke_b`, on 0x70
-   only if it can end before 02:27 (`-MaxMinutes 25`, the script refuses otherwise). Otherwise run it on `-Mask 0x4`
-   (CPU 2) with concurrency 1.
-3. Then stop for Code Review.
+1. When smoke A ends (about 16 min per 100 games at concurrency 3): run smoke B with the same settings and
+   `-Srand 20261107 -Out ...\smoke_b`.
+   - Use 0x70 only if it can end before 02:27 (`-MaxMinutes 25`; the script refuses otherwise).
+   - Otherwise use `-Mask 0x4` (CPU 2) with concurrency 1.
+2. Push the smoke summaries into `logs/`.
+3. Code Review of the pack; after CR, QA / Strength run the SPRT with the gate line in README.md.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-singular-noncut-20261105 && git -C /f/ospd/wt log --oneline -3`
@@ -74,6 +79,16 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   'F:\ospd\wt\opus_speed\tools\build_variants.ps1' -SrcDir 'D:\opus_singular_noncut\src\snc_id' -Tag <new tag>
   -Variant lp_v1 -Work 'D:\opus_singular_noncut\build'` (gate: `snc_gate`, add `-Twice`); a new tag per run.
 
-## Unproven claims
-- Any Elo effect of SingularNonCut=1 in Forge (card estimate 0 to +3 at STC; Caissa's +4.20 is Caissa's own result).
-- Nothing is built or measured yet.
+## Unproven claims (and what is not done)
+- Any Elo effect of SingularNonCut=1 in Forge: no Forge game result exists. The card estimates 0 to +3 at STC;
+  Caissa's +4.20 is Caissa's own result. Fewer ON nodes at bench d20 / d22 (0.82 / 0.84 of OFF) are no strength
+  evidence.
+- ON nps: not measured. The PGO profile is trained with the option at 0, so the ON path is cold-optimised.
+- Threads > 1 with ON: only what the smoke shows (it plays Threads 1).
+- Not done (crew items):
+  - the spec's counter-build box tests (singular tries / outcomes / nodes in the verification);
+  - the mate probe OFF / ON;
+  - the L4 sanitizer builds;
+  - a warm-table identity run (bitexact L1-L3 are cold-table, Threads 1; enough for "runtime 0 = trial_w6" at cold
+    start, while in-game tables are covered only by the smoke).
+- Code Review of this pack has not happened. Every review so far is my own (NOT independent).
