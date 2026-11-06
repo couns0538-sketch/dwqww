@@ -38,14 +38,21 @@ Owner Couns. Brief = the leftover /plan of 2026-11-06 (jobs 1-4; this is job 3).
   - Both spins are advertised as specified.
   - d11 354466, d13 759020 (!= 862329), d16 3049356, d20 **10771342**, d22 25468915.
 
+- P3, identity bit-exact (`logs/bx_id.log`): **BIT-EXACT** L1-L3. Net on + off d11-d22 = pins, perft = pins,
+  2,000 / 2,000 FENs.
+- P4, gate OFF at the defaults, started 03:33:50 (`logs/bx_gate_off.log`): **BIT-EXACT** L1-L3 vs trial_w6.
+- P5: README.md (gate lines, CR notes, rebuild), BENCH.md, IDEA_SOURCE.md, logs.
+- **Pack milestone: READY FOR CODE REVIEW.**
+
 ## In progress
-- `bitexact_check -Quick -SkipSan` of the identity exe and of the gate exe at its defaults (OFF) ->
-  `F:\ospd\tt_cut_node\out\bx_id`, `bx_gate_off`.
+- Nothing for this pack. It waits for Code Review. Job 4 (NmpTtCaptureMin) goes on in its own branch.
 
 ## Exact next step
-1. Record both bit-exact verdicts in BENCH.md and here.
-2. Mark the pack READY FOR CODE REVIEW and push.
-3. Then Code Review. QA / Strength run the SPRT with the README gate lines; form 2 only after a form-1 H0 / cap <= 0.
+Code Review of this pack: the patch, BENCH.md, README.md. After CR, QA / Strength run the SPRT with the README gate
+lines:
+- cand = the gate exe with `TtCutNodeDepth 6` + `TtCutNodeForm 1`;
+- base = trial_w6 4181A589;
+- form 2 only after a form-1 H0 or a cap at <= 0.
 
 ## Resume commands
 - `git -C /f/ospd/wt switch opus-tt-cut-node-20261105 && git -C /f/ospd/wt log --oneline -3`
