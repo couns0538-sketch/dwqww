@@ -89,3 +89,13 @@
   running (log `C:\ospd_hunt\logs\h1_largepages.out`). H2 `h2_dirty_inplace` (FORGE_SPD_DIRTY_INPLACE=1): tree ready,
   harness `tests/dirty_inplace_diff.cpp` PASS (18.9M moves, 0 mismatches; mutant FAIL); its hunt_candidate.sh is next.
   Then: A/A 2 (alone) and the ABBAs of H1 / H2 (alone, `C:\ospd_hunt\abba`).
+- 21:22: pipeline state. Packs BIT-EXACT: h1_largepages (cecc4d92), h2_dirty_inplace (8c3f2747), h3_nnue_columns
+  (9bcdef73). Timing block 1 runs from the private queue `C:\ospd_hunt\logs\queue2.sh` (log `queue2.out`): A/A 2
+  `C:\ospd_hunt\abba\aa_w6_d20_s2`, then ABBA `C:\ospd_hunt\abba\h1_largepages_d20`, `h2_..._d20`, `h3_..._d20`,
+  then H4's CPU steps. After it the task runner `C:\ospd_hunt\logs\hunt_runner.sh` (log `hunt_runner.out`) works
+  through `C:\ospd_hunt\logs\tasks.txt` (cpu h5, cpu h6, aa s3, abba h4-h6); append lines to add work, a line
+  `stop` ends it (cooperative; never kill). Trees h4_slider_pdep16, h5_move_store32, h6_pick_first are ready.
+- Harnesses (tests/): dirty_inplace_diff.cpp (H2), nnue_update_diff.cpp (H3), slider_pdep16_diff.cpp (H4),
+  movegen_hash.cpp (H5); H6 = scratch verify copy `C:\ospd_hunt\harness\h6verify` (not a patch).
+- Stacking note: H2 and H3 both insert after the NNUE_ZMM block in nnue.hpp, so a stack of both needs a hand-merged
+  patch (make_stack applies with -F0, no fuzz).

@@ -1,0 +1,83 @@
+diff -ruN trial_w6/src/eval.cpp h8dev_hce_locals/src/eval.cpp
+--- trial_w6/src/eval.cpp	2026-11-05 12:12:58.033086400 -0800
++++ h8dev_hce_locals/src/eval.cpp	2026-11-05 21:25:58.379830600 -0800
+@@ -7,6 +7,15 @@
+ #include <cstdlib>
+ #include <limits>
+ 
++// Build switch, default 0 (= the lock code): 1 = evaluate_pieces() accumulates the five
++// fields its piece loop updates (attacked_twice / attacked_by[0] / attacked_by[type] of
++// the side, king_attackers / king_attack_units of the other side) in locals and stores
++// them once; nothing else in that function reads them, so every value is the lock's.
++// The lock build kept them as memory read-modify-write chains (or [mem], reg).
++#ifndef FORGE_SPD_HCE_LOCALS
++#define FORGE_SPD_HCE_LOCALS 0
++#endif
++
+ namespace forge {
+ namespace {
+ 
+@@ -114,7 +123,16 @@
+     constexpr Bitboard LongDiagonals = 0x8142241818244281ULL;
+     constexpr Bitboard CenterFour = CenterSquares;
+ 
++#if FORGE_SPD_HCE_LOCALS
++    Bitboard attacked_twice = info.attacked_twice[Us];
++    Bitboard attacked_all = info.attacked_by[Us][0];
++    int king_attackers = info.king_attackers[Them];
++    int king_attack_units = info.king_attack_units[Them];
++#endif
+     for (int type = Knight; type <= Queen; ++type) {
++#if FORGE_SPD_HCE_LOCALS
++        Bitboard attacked_type = info.attacked_by[Us][static_cast<std::size_t>(type)];
++#endif
+         Bitboard pieces = board.pieces(Us, static_cast<PieceType>(type));
+         while (pieces != 0) {
+             const int square = pop_lsb(pieces);
+@@ -130,9 +148,15 @@
+                 break;
+             default: attacks_bb = attacks::queen(square, occupied); break;
+             }
++#if FORGE_SPD_HCE_LOCALS
++            attacked_twice |= attacked_all & attacks_bb;
++            attacked_all |= attacks_bb;
++            attacked_type |= attacks_bb;
++#else
+             info.attacked_twice[Us] |= info.attacked_by[Us][0] & attacks_bb;
+             info.attacked_by[Us][0] |= attacks_bb;
+             info.attacked_by[Us][static_cast<std::size_t>(type)] |= attacks_bb;
++#endif
+ 
+             const int mobility = popcount(attacks_bb & info.mobility_area[Us]);
+             switch (type) {
+@@ -144,8 +168,13 @@
+ 
+             const Bitboard zone_hits = attacks_bb & enemy_king_zone;
+             if (zone_hits != 0) {
++#if FORGE_SPD_HCE_LOCALS
++                ++king_attackers;
++                king_attack_units += king_attack_weight(type) * popcount(zone_hits);
++#else
+                 ++info.king_attackers[Them];
+                 info.king_attack_units[Them] += king_attack_weight(type) * popcount(zone_hits);
++#endif
+             }
+ 
+             if (type == Knight || type == Bishop) {
+@@ -192,7 +221,16 @@
+                 if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);
+             }
+         }
++#if FORGE_SPD_HCE_LOCALS
++        info.attacked_by[Us][static_cast<std::size_t>(type)] = attacked_type;
++#endif
+     }
++#if FORGE_SPD_HCE_LOCALS
++    info.attacked_twice[Us] = attacked_twice;
++    info.attacked_by[Us][0] = attacked_all;
++    info.king_attackers[Them] = king_attackers;
++    info.king_attack_units[Them] = king_attack_units;
++#endif
+ }
+ 
+ template <bool Trace, Color Us>

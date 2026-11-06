@@ -1,0 +1,350 @@
+diff -ruN trial_w6/include/forge/large_pages.hpp h7dev_largepages2/include/forge/large_pages.hpp
+--- trial_w6/include/forge/large_pages.hpp	1969-12-31 16:00:00.000000000 -0800
++++ h7dev_largepages2/include/forge/large_pages.hpp	2026-11-05 21:23:52.810880900 -0800
+@@ -0,0 +1,20 @@
++#pragma once
++
++#include <cstddef>
++
++// Build switch, default 0 (= the lock's code): large (2 MB) pages for the engine's big
++// tables when the process can enable SeLockMemoryPrivilege; on any failure the lock's
++// allocation is used, silently. 1 = the transposition table's clusters; 2 = also the
++// network's first-layer weights and one block per search worker for its six history /
++// correction tables. Same sizes, same zeroed contents, same indexing: only the page size
++// of the memory changes (fewer TLB misses), never a value the search reads.
++#ifndef FORGE_SPD_LARGEPAGES
++#define FORGE_SPD_LARGEPAGES 0
++#endif
++
++namespace forge::large_pages {
++// A zeroed large-page block of at least `bytes` (its size in block_bytes), or nullptr when
++// large pages are not available. Defined at the end of src/search.cpp.
++void* alloc(std::size_t bytes, std::size_t& block_bytes);
++void release(void* block);
++} // namespace forge::large_pages
+diff -ruN trial_w6/include/forge/search.hpp h7dev_largepages2/include/forge/search.hpp
+--- trial_w6/include/forge/search.hpp	2026-11-05 12:12:58.109831700 -0800
++++ h7dev_largepages2/include/forge/search.hpp	2026-11-05 21:28:21.377071500 -0800
+@@ -20,6 +20,9 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++// FORGE_SPD_LARGEPAGES (build switch, default 0) and the large-page block functions.
++#include "forge/large_pages.hpp"
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -97,6 +100,14 @@
+ };
+ static_assert(sizeof(TTEntry) == 16);
+ static_assert(sizeof(TTCluster) == 64);
++#if FORGE_SPD_LARGEPAGES
++// Deleter of the table's clusters: large_bytes != 0 -> they sit in a large-page block
++// of that size (VirtualFree); 0 -> they came from new TTCluster[n]() as in the lock.
++struct TTClusterDeleter {
++    std::size_t large_bytes = 0;
++    void operator()(TTCluster* clusters) const;
++};
++#endif
+ 
+ class TranspositionTable;
+ 
+@@ -177,7 +188,11 @@
+     mutable std::mutex exclusive_gate_;
+     std::atomic<bool> exclusive_requested_{false};
+     std::uint64_t epoch_ = 0;
++#if FORGE_SPD_LARGEPAGES
++    std::unique_ptr<TTCluster[], TTClusterDeleter> clusters_;
++#else
+     std::unique_ptr<TTCluster[]> clusters_;
++#endif
+     std::size_t cluster_count_ = 0;
+     std::uint8_t generation_ = 0;
+ 
+@@ -312,6 +327,11 @@
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+ };
+ 
++#if FORGE_SPD_LARGEPAGES >= 2
++// Offsets inside Worker::TableBlock: every table starts on a 64-byte boundary.
++[[nodiscard]] constexpr std::size_t table_block_round(std::size_t bytes) { return (bytes + 63U) / 64U * 64U; }
++#endif
++
+ // One search thread: owns its histories, stack and evaluation cache.
+ class Worker {
+ public:
+@@ -338,12 +358,47 @@
+     SharedSearchState& shared_;
+     int id_ = 0;
+     Evaluator evaluator_;
++#if FORGE_SPD_LARGEPAGES >= 2
++    // The six tables below share one block (large pages when available, else one ordinary
++    // block); it is declared first, so it is released after them. Each table is value-
++    // initialised in place like make_unique<T>(); the pointers only borrow (no-op delete).
++    struct TableBlock {
++        static constexpr std::size_t Align = 64;
++        static constexpr std::size_t MainAt = 0;
++        static constexpr std::size_t CaptureAt = MainAt + table_block_round(sizeof(ButterflyHistory));
++        static constexpr std::size_t ContinuationAt = CaptureAt + table_block_round(sizeof(CaptureHistory));
++        static constexpr std::size_t CounterAt = ContinuationAt + table_block_round(sizeof(ContinuationHistory));
++        static constexpr std::size_t CorrectionAt = CounterAt + table_block_round(sizeof(CounterMoveTable));
++        static constexpr std::size_t MaterialAt = CorrectionAt + table_block_round(sizeof(CorrectionHistory));
++        static constexpr std::size_t Bytes = MaterialAt + table_block_round(sizeof(CorrectionHistory));
++        unsigned char* block = nullptr;
++        std::size_t large_bytes = 0;   // 0: the block came from operator new
++        TableBlock();
++        ~TableBlock();
++        TableBlock(const TableBlock&) = delete;
++        TableBlock& operator=(const TableBlock&) = delete;
++        template <class T>
++        T* make(std::size_t offset) { return ::new (static_cast<void*>(block + offset)) T(); }
++    };
++    struct Borrowed {
++        template <class T>
++        void operator()(T*) const {}
++    };
++    TableBlock tables_;
++    std::unique_ptr<ButterflyHistory, Borrowed> main_history_;
++    std::unique_ptr<CaptureHistory, Borrowed> capture_history_;
++    std::unique_ptr<ContinuationHistory, Borrowed> continuation_history_;
++    std::unique_ptr<CounterMoveTable, Borrowed> counter_moves_;
++    std::unique_ptr<CorrectionHistory, Borrowed> correction_history_;
++    std::unique_ptr<CorrectionHistory, Borrowed> material_correction_;
++#else
+     std::unique_ptr<ButterflyHistory> main_history_;
+     std::unique_ptr<CaptureHistory> capture_history_;
+     std::unique_ptr<ContinuationHistory> continuation_history_;
+     std::unique_ptr<CounterMoveTable> counter_moves_;
+     std::unique_ptr<CorrectionHistory> correction_history_;
+     std::unique_ptr<CorrectionHistory> material_correction_;
++#endif
+     std::array<SearchStack, MaxPly + 8> stack_{};
+     std::array<Move, 256> root_effort_moves_{};
+     std::array<std::uint64_t, 256> root_move_nodes_{};
+diff -ruN trial_w6/src/nnue.cpp h7dev_largepages2/src/nnue.cpp
+--- trial_w6/src/nnue.cpp	2026-11-05 12:12:59.772433400 -0800
++++ h7dev_largepages2/src/nnue.cpp	2026-11-05 21:24:43.809745000 -0800
+@@ -1,4 +1,5 @@
+ #include "forge/nnue.hpp"
++#include "forge/large_pages.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -50,8 +51,24 @@
+ 
+ namespace {
+ 
++#if FORGE_SPD_LARGEPAGES >= 2
++// w1 in a large-page block when available (large_bytes != 0), else new float[n]() as in the lock.
++struct W1Deleter {
++    std::size_t large_bytes = 0;
++    void operator()(float* values) const {
++        if (values == nullptr) return;
++        if (large_bytes != 0) large_pages::release(values);
++        else delete[] values;
++    }
++};
++#endif
++
+ struct Weights {
++#if FORGE_SPD_LARGEPAGES >= 2
++    std::unique_ptr<float[], W1Deleter> w1;   // [InputCount][HiddenSize]
++#else
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
++#endif
+     alignas(32) std::array<float, HiddenSize> b1{};
+ #if FORGE_SPD_NNUE_ZMM
+     alignas(64) std::array<float, 2 * HiddenSize> w2{};
+@@ -64,7 +81,23 @@
+ const Weights& weights() {
+     static const Weights instance = [] {
+         Weights w;
++#if FORGE_SPD_LARGEPAGES >= 2
++        {
++            // Value-initialised like make_unique<float[]>(n): a large-page block arrives zeroed.
++            const std::size_t count = static_cast<std::size_t>(InputCount) * HiddenSize;
++            std::size_t large_bytes = 0;
++            float* values = static_cast<float*>(large_pages::alloc(count * sizeof(float), large_bytes));
++            if (values != nullptr) {
++                for (std::size_t i = 0; i < count; ++i) ::new (static_cast<void*>(values + i)) float(0.0F);
++            } else {
++                large_bytes = 0;
++                values = new float[count]();
++            }
++            w.w1 = std::unique_ptr<float[], W1Deleter>(values, W1Deleter{large_bytes});
++        }
++#else
+         w.w1 = std::make_unique<float[]>(static_cast<std::size_t>(InputCount) * HiddenSize);
++#endif
+ #if FORGE_HAS_NNUE
+         for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) {
+             w.w1[i] = static_cast<float>(NnueW1[i]) / WeightScale;
+diff -ruN trial_w6/src/search.cpp h7dev_largepages2/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-05 12:12:59.005573300 -0800
++++ h7dev_largepages2/src/search.cpp	2026-11-05 21:24:28.328721700 -0800
+@@ -7,6 +7,9 @@
+ #include <iostream>
+ #include <limits>
+ #include <optional>
++#if FORGE_SPD_LARGEPAGES
++#include <new>
++#endif
+ 
+ namespace forge {
+ 
+@@ -241,10 +244,35 @@
+     }
+ }
+ 
++#if FORGE_SPD_LARGEPAGES
++// large_pages::alloc / release (include/forge/large_pages.hpp) are defined at the end of
++// this file, after <windows.h>, so its macros reach no other code.
++void TTClusterDeleter::operator()(TTCluster* clusters) const {
++    if (clusters == nullptr) return;
++    if (large_bytes != 0) large_pages::release(clusters);   // TTCluster is trivially destructible
++    else delete[] clusters;
++}
++#endif
++
+ void TranspositionTable::resize(std::size_t mb) {
+     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
+     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
++#if FORGE_SPD_LARGEPAGES
++    // Same count as the lock; only the block may be rounded up to whole large pages.
++    // A large-page block arrives zeroed and is constructed like new TTCluster[n](),
++    // which is make_unique<TTCluster[]>(n) of the lock: the same initial contents.
++    std::size_t block_bytes = 0;
++    TTCluster* storage = static_cast<TTCluster*>(large_pages::alloc(new_count * sizeof(TTCluster), block_bytes));
++    if (storage != nullptr) {
++        for (std::size_t i = 0; i < new_count; ++i) ::new (static_cast<void*>(storage + i)) TTCluster{};
++    } else {
++        block_bytes = 0;
++        storage = new TTCluster[new_count]();
++    }
++    std::unique_ptr<TTCluster[], TTClusterDeleter> new_clusters(storage, TTClusterDeleter{block_bytes});
++#else
+     auto new_clusters = std::make_unique<TTCluster[]>(new_count);
++#endif
+     clusters_ = std::move(new_clusters);
+     cluster_count_ = new_count;
+     generation_ = 0;
+@@ -742,6 +770,33 @@
+ // ---------------------------------------------------------------------------
+ // Searcher
+ 
++#if FORGE_SPD_LARGEPAGES >= 2
++Worker::TableBlock::TableBlock() {
++    block = static_cast<unsigned char*>(large_pages::alloc(Bytes, large_bytes));
++    if (block == nullptr) {
++        large_bytes = 0;
++        block = static_cast<unsigned char*>(::operator new(Bytes, std::align_val_t{Align}));
++    }
++}
++
++Worker::TableBlock::~TableBlock() {
++    // The tables are trivially destructible arrays of integers and moves.
++    if (large_bytes != 0) large_pages::release(block);
++    else ::operator delete(block, std::align_val_t{Align});
++}
++
++Worker::Worker(SharedSearchState& shared, int id)
++    : shared_(shared),
++      id_(id),
++      main_history_(tables_.make<ButterflyHistory>(TableBlock::MainAt)),
++      capture_history_(tables_.make<CaptureHistory>(TableBlock::CaptureAt)),
++      continuation_history_(tables_.make<ContinuationHistory>(TableBlock::ContinuationAt)),
++      counter_moves_(tables_.make<CounterMoveTable>(TableBlock::CounterAt)),
++      correction_history_(tables_.make<CorrectionHistory>(TableBlock::CorrectionAt)),
++      material_correction_(tables_.make<CorrectionHistory>(TableBlock::MaterialAt)) {
++    clear();
++}
++#else
+ Worker::Worker(SharedSearchState& shared, int id)
+     : shared_(shared),
+       id_(id),
+@@ -753,6 +808,7 @@
+       material_correction_(std::make_unique<CorrectionHistory>()) {
+     clear();
+ }
++#endif
+ 
+ Worker::~Worker() = default;
+ 
+@@ -1788,3 +1844,76 @@
+ }
+ 
+ } // namespace forge
++
++#if FORGE_SPD_LARGEPAGES
++// Large pages for the transposition table (build switch FORGE_SPD_LARGEPAGES). Kept at
++// the end of the translation unit: the Windows headers' macros reach no other code.
++#if defined(_WIN32)
++#ifndef NOMINMAX
++#define NOMINMAX
++#endif
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#ifndef NOGDI
++#define NOGDI
++#endif
++#include <windows.h>
++#if defined(_MSC_VER)
++#pragma comment(lib, "advapi32.lib")   // token calls; MinGW links advapi32 by default
++#endif
++#endif
++
++namespace forge::large_pages {
++#if defined(_WIN32)
++namespace {
++// Once per process: enable SeLockMemoryPrivilege in the own token and read the large
++// page size; 0 means "no large pages" (the account lacks the right, or a call failed).
++// AdjustTokenPrivileges also returns nonzero when it could not enable the privilege
++// (ERROR_NOT_ALL_ASSIGNED), so the last error decides.
++std::size_t page_size() {
++    static const std::size_t size = [] {
++        HANDLE token = nullptr;
++        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token)) return std::size_t{0};
++        TOKEN_PRIVILEGES privileges{};
++        bool enabled = false;
++        if (LookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &privileges.Privileges[0].Luid)) {
++            privileges.PrivilegeCount = 1;
++            privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
++            SetLastError(ERROR_SUCCESS);
++            enabled = AdjustTokenPrivileges(token, FALSE, &privileges, 0, nullptr, nullptr) != 0 &&
++                      GetLastError() == ERROR_SUCCESS;
++        }
++        CloseHandle(token);
++        return enabled ? static_cast<std::size_t>(GetLargePageMinimum()) : std::size_t{0};
++    }();
++    return size;
++}
++} // namespace
++#endif
++
++void* alloc(std::size_t bytes, std::size_t& block_bytes) {
++    block_bytes = 0;
++#if defined(_WIN32)
++    const std::size_t page = page_size();
++    if (page == 0 || bytes == 0) return nullptr;
++    const std::size_t rounded = (bytes + page - 1) / page * page;
++    void* block = VirtualAlloc(nullptr, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
++    if (block != nullptr) block_bytes = rounded;
++    return block;
++#else
++    (void)bytes;
++    return nullptr;
++#endif
++}
++
++void release(void* block) {
++#if defined(_WIN32)
++    if (block != nullptr) (void)VirtualFree(block, 0, MEM_RELEASE);
++#else
++    (void)block;
++#endif
++}
++
++} // namespace forge::large_pages
++#endif
