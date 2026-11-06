@@ -1,0 +1,160 @@
+diff -ruN w8dev_t12b/include/forge/nnue.hpp w8dev_avx/include/forge/nnue.hpp
+--- w8dev_t12b/include/forge/nnue.hpp	2026-11-05 12:12:59.770428000 -0800
++++ w8dev_avx/include/forge/nnue.hpp	2026-11-05 17:28:22.216352400 -0800
+@@ -29,6 +29,22 @@
+ #define FORGE_SPD_NNUE_ZMM 0
+ #endif
+ 
++// Build switch (default 0 = the lock code): 1 = the float AVX-512 NNUE path of
++// the crew pack crew-nnue-avx512-pc-20261105 (src/nnue.cpp md5 08d8f5b3 with
++// FORGE_NNUE_USE_AVX512 = 1 and VNNI 0; its int16 VNNI path is not carried):
++// feature add / sub, the quiet and capture updates and the refresh run in
++// 16-lane 512-bit registers with the lock's per-lane order ((src - removed) +
++// added, ((src - removed0) - removed1) + added), accumulators, b1 and w2 are
++// 64-byte aligned, and the output layer uses the 16-lane kernel of
++// FORGE_SPD_NNUE_ZMM (the same kernel and alignment lines, so a build with this
++// switch leaves FORGE_SPD_NNUE_ZMM at 0). Needs __AVX512F__.
++#ifndef FORGE_SPD_NNUE_AVX512
++#define FORGE_SPD_NNUE_AVX512 0
++#endif
++#if FORGE_SPD_NNUE_ZMM && FORGE_SPD_NNUE_AVX512
++#error "FORGE_SPD_NNUE_AVX512 already holds the FORGE_SPD_NNUE_ZMM output kernel: leave FORGE_SPD_NNUE_ZMM at 0"
++#endif
++
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+     const int relative_color = color_of(piece) == perspective ? 0 : 1;
+     const int type = piece_type(piece) - 1;
+@@ -37,7 +53,7 @@
+ }
+ 
+ struct Accumulator {
+-#if FORGE_SPD_NNUE_ZMM
++#if FORGE_SPD_NNUE_ZMM || FORGE_SPD_NNUE_AVX512
+     // 64-byte alignment: the output kernel loads whole 512-bit registers.
+     alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
+ #else
+diff -ruN w8dev_t12b/src/nnue.cpp w8dev_avx/src/nnue.cpp
+--- w8dev_t12b/src/nnue.cpp	2026-11-05 12:12:59.772433400 -0800
++++ w8dev_avx/src/nnue.cpp	2026-11-05 17:28:42.457811100 -0800
+@@ -19,9 +19,9 @@
+ #include <immintrin.h>
+ #endif
+ 
+-#if FORGE_SPD_NNUE_ZMM
++#if FORGE_SPD_NNUE_ZMM || FORGE_SPD_NNUE_AVX512
+ #if !defined(__AVX512F__)
+-#error "FORGE_SPD_NNUE_ZMM=1 needs an AVX-512F target (the lock builds with -march=znver5)"
++#error "FORGE_SPD_NNUE_ZMM=1 / FORGE_SPD_NNUE_AVX512=1 need an AVX-512F target (the lock builds with -march=znver5)"
+ #endif
+ #include <immintrin.h>
+ #endif
+@@ -52,8 +52,12 @@
+ 
+ struct Weights {
+     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
++#if FORGE_SPD_NNUE_AVX512
++    alignas(64) std::array<float, HiddenSize> b1{};
++#else
+     alignas(32) std::array<float, HiddenSize> b1{};
+-#if FORGE_SPD_NNUE_ZMM
++#endif
++#if FORGE_SPD_NNUE_ZMM || FORGE_SPD_NNUE_AVX512
+     alignas(64) std::array<float, 2 * HiddenSize> w2{};
+ #else
+     alignas(32) std::array<float, 2 * HiddenSize> w2{};
+@@ -78,6 +82,48 @@
+     return instance;
+ }
+ 
++#if FORGE_SPD_NNUE_AVX512
++inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
++    static_assert(HiddenSize % 16 == 0, "HiddenSize must be a multiple of 16 for AVX-512");
++    for (int h = 0; h < HiddenSize; h += 16) {
++        const __m512 a = _mm512_load_ps(acc.data() + h);
++        const __m512 c = _mm512_loadu_ps(column + h);
++        _mm512_store_ps(acc.data() + h, _mm512_add_ps(a, c));
++    }
++}
++
++inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column) {
++    for (int h = 0; h < HiddenSize; h += 16) {
++        const __m512 a = _mm512_load_ps(acc.data() + h);
++        const __m512 c = _mm512_loadu_ps(column + h);
++        _mm512_store_ps(acc.data() + h, _mm512_sub_ps(a, c));
++    }
++}
++
++// Quiet update, per lane (src - removed) + added, as in the lock's loop.
++inline void update_quiet(float* __restrict destination, const float* __restrict source,
++                         const float* __restrict removed_column, const float* __restrict added_column) {
++    for (int h = 0; h < HiddenSize; h += 16) {
++        const __m512 s = _mm512_load_ps(source + h);
++        const __m512 r = _mm512_loadu_ps(removed_column + h);
++        const __m512 a = _mm512_loadu_ps(added_column + h);
++        _mm512_store_ps(destination + h, _mm512_add_ps(_mm512_sub_ps(s, r), a));
++    }
++}
++
++// Capture update, per lane ((src - removed0) - removed1) + added, as in the lock's loop.
++inline void update_capture(float* __restrict destination, const float* __restrict source,
++                           const float* __restrict removed0_column, const float* __restrict removed1_column,
++                           const float* __restrict added_column) {
++    for (int h = 0; h < HiddenSize; h += 16) {
++        const __m512 s = _mm512_load_ps(source + h);
++        const __m512 r0 = _mm512_loadu_ps(removed0_column + h);
++        const __m512 r1 = _mm512_loadu_ps(removed1_column + h);
++        const __m512 a = _mm512_loadu_ps(added_column + h);
++        _mm512_store_ps(destination + h, _mm512_add_ps(_mm512_sub_ps(_mm512_sub_ps(s, r0), r1), a));
++    }
++}
++#else
+ inline void add_feature(std::array<float, HiddenSize>& acc, const float* column) {
+     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] += column[h];
+ }
+@@ -85,6 +131,7 @@
+ inline void sub_feature(std::array<float, HiddenSize>& acc, const float* column) {
+     for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
+ }
++#endif
+ 
+ } // namespace
+ 
+@@ -122,10 +169,14 @@
+                 static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
+             const float* added_column = w.w1.get() +
+                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++#if FORGE_SPD_NNUE_AVX512
++            update_quiet(destination.data(), source.data(), removed_column, added_column);
++#else
+             for (int h = 0; h < HiddenSize; ++h) {
+                 const std::size_t index = static_cast<std::size_t>(h);
+                 destination[index] = (source[index] - removed_column[index]) + added_column[index];
+             }
++#endif
+         }
+         child.valid = true;
+         return;
+@@ -145,10 +196,14 @@
+                 static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
+             const float* added_column = w.w1.get() +
+                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
++#if FORGE_SPD_NNUE_AVX512
++            update_capture(destination.data(), source.data(), removed0_column, removed1_column, added_column);
++#else
+             for (int h = 0; h < HiddenSize; ++h) {
+                 const std::size_t index = static_cast<std::size_t>(h);
+                 destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
+             }
++#endif
+         }
+         child.valid = true;
+         return;
+@@ -179,7 +234,7 @@
+     constexpr int Lanes = 16;
+     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+     alignas(64) float lanes[Lanes];
+-#if FORGE_SPD_NNUE_ZMM
++#if FORGE_SPD_NNUE_ZMM || FORGE_SPD_NNUE_AVX512
+     // One 512-bit register holds all sixteen lanes: lane j takes the hidden
+     // units h + j for h = 0, 16, 32, ... in increasing order, which is the
+     // lane order of the two 256-bit halves below (lane j of sums[j / 8]), and

@@ -1,0 +1,49 @@
+diff -ruN trial_w6/include/forge/search.hpp w8dev_t12b/include/forge/search.hpp
+--- trial_w6/include/forge/search.hpp	2026-11-05 12:12:58.109831700 -0800
++++ w8dev_t12b/include/forge/search.hpp	2026-11-05 17:28:03.497088900 -0800
+@@ -20,6 +20,13 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++#ifndef FORGE_SPD_T12B_BADCAP
++// Build switch, default 0 (= the lock's code): QA item T12B-01 - MovePicker's
++// bad_captures_ holds MoveList::Capacity moves instead of 64 (room for every
++// capture a position can have), with an assert before each write.
++#define FORGE_SPD_T12B_BADCAP 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+diff -ruN trial_w6/src/search.cpp w8dev_t12b/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-05 12:12:59.005573300 -0800
++++ w8dev_t12b/src/search.cpp	2026-11-05 17:28:07.314487700 -0800
+@@ -454,6 +454,9 @@
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+                     if (!board_.see_ge(move, -move_score_threshold(move))) {
++#if FORGE_SPD_T12B_BADCAP
++                        assert(bad_count_ < bad_captures_.size());
++#endif
+                         bad_captures_[bad_count_++] = move;
+                         continue;
+                     }
+@@ -554,10 +557,18 @@
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
++#if FORGE_SPD_T12B_BADCAP
++    std::array<Move, MoveList::Capacity> bad_captures_;
++#else
+     std::array<Move, 64> bad_captures_;
++#endif
++#else
++#if FORGE_SPD_T12B_BADCAP
++    std::array<Move, MoveList::Capacity> bad_captures_{};
+ #else
+     std::array<Move, 64> bad_captures_{};
+ #endif
++#endif
+     std::size_t bad_count_ = 0;
+     std::size_t bad_index_ = 0;
+     MoveList buffer_;
