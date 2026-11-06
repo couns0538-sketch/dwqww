@@ -108,3 +108,12 @@
 - Scratch merge of the seven non-LP switches on trial_w6 (`C:\ospd_hunt\merge\m1`): all patches apply (H3 fuzz 1 in
   nnue.hpp, checked), all-on and six-only compile. A stack of winners = only the winners' patches on trial_w6, then
   make_stack + hunt_candidate with the comma-joined new defines.
+
+## State 00:02 PC clock - hunt finished (DONE-QUIET written; final table in STATUS.md, summary FINAL_REPORT 9.0)
+- Screening WIN: H5 `h5_move_store32` (FORGE_SPD_MOVE_STORE32=1, exe 5dec3fa7, pack `F:\ospd\packs\h5_move_store32`,
+  quiet ABBA `C:\ospd_hunt\abba\h5_move_store32_q_d20`). Full 12k L3 vs trial_w6 runs from runner v3 (`full`); its
+  result goes to `F:\ospd\packs\h5_move_store32\bitexact_full12k` and FINAL_REPORT 9.6.
+- H1 (large pages) needs a quiet re-time with large pages available (its run was under the returned trainer and the
+  pages failed partway); H7 was not timed. Both are BIT-EXACT packs.
+- Owed to QA for H5 before any lock: own re-time vs trial_w6, L3b warm_identity, Threads 2-4 soak (skill lock path).
+- Runner v3 ends with a `stop` line after the two full 12k runs; the CPU sampler ends by itself (240 min from 21:52).

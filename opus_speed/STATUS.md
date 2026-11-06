@@ -98,3 +98,18 @@ re-time with large pages available is owed to QA. H4's run ended ~30 s after the
 H3, H6, H5, H8, H9, H4 clean; H7 skipped: large pages failed 6 / 6 at its probe). The NNUE trainer is already running again
 (restarted 23:54:38 on its own). QA may restart gates and self-play now. Still running from here, on CPUs 0-3 only as all
 day: the closing A/A q2 (CPU 2, under load: information) and the full 12k L3 proof of the screening WIN H5 (CPUs 0-1 Idle).
+
+### Final table of the hunt (decision = the quiet run vs trial_w6, band A/A qc, QA rule: interval fully above 1.000 and median gain > 0.96 %)
+| # | idea | define | bit-exact net on / net off | wall vs trial_w6 | cpu vs trial_w6 | exe sha256 | verdict |
+|---|---|---|---|---|---|---|---|
+| H1 | TT in 2 MB pages | FORGE_SPD_LARGEPAGES=1 | BIT-EXACT (L1 net on + off = pins, L2, L3 2k, L4) | +1.60 % [1.0069, 1.0300] - trainer back, large pages failed partway | +1.74 % [1.0067, 1.0311] | cecc4d92 | WIN on paper, NOT a valid quiet decision (re-time owed) |
+| H2 | record_move writes the dirty pieces in place | FORGE_SPD_DIRTY_INPLACE=1 | BIT-EXACT | +0.53 % [1.0006, 1.0151] | +0.19 % [0.9981, 1.0135] | 8c3f2747 | NO-WIN |
+| H3 | net update columns by integer arithmetic | FORGE_SPD_NNUE_COLUMNS=1 | BIT-EXACT | +0.81 % [1.0009, 1.0262] | +0.86 % [1.0017, 1.0254] | 9bcdef73 | NO-WIN |
+| H4 | 16-bit slider entries + PDEP | FORGE_SPD_SLIDER_PDEP16=1 | BIT-EXACT | -0.10 % [0.9914, 1.0206] | +0.00 % [0.9919, 1.0207] | dcc1e022 | NO-WIN |
+| H5 | one 32-bit store per generated move | FORGE_SPD_MOVE_STORE32=1 | BIT-EXACT (full 12k running) | **+1.21 % [1.0024, 1.0194]** | +1.25 % [1.0033, 1.0213] | 5dec3fa7 | **screening WIN** |
+| H6 | first pick from the scoring pass | FORGE_SPD_PICK_FIRST=1 | BIT-EXACT | +0.60 % [0.9994, 1.0248] | +0.67 % [0.9969, 1.0259] | 921d1cf7 | NO-WIN |
+| H7 | large pages mode 2 (TT + w1 + worker tables) | FORGE_SPD_LARGEPAGES=2 | BIT-EXACT | not timed (large pages failed 6 / 6 at its probe) | - | 344e6113 | not timed |
+| H8 | HCE piece-loop accumulators in locals | FORGE_SPD_HCE_LOCALS=1 | BIT-EXACT | -0.16 % [0.9919, 1.0039] | -0.38 % [0.9901, 1.0009] | 89ac3f1f | NO-WIN |
+| H9 | piece_type by arithmetic | FORGE_SPD_PTYPE_ARITH=1 | BIT-EXACT | -0.10 % [0.9715, 1.0178] | -0.38 % [0.9702, 1.0154] | 96004e91 | NO-WIN |
+No idea changed the search (all nine packs BIT-EXACT vs trial_w6 with the net on and off). One screening WIN (H5) - no
+stack (the brief stacks winners only; one winner needs none). Nothing locked or published; QA re-times.
