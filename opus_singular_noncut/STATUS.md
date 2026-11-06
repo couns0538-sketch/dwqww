@@ -114,21 +114,32 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
   43.21 GB (02:34), about 3-4 GB per 10 min, and `df` read 42 GB at 02:41. Another process writes ~20 GB/h to D:.
   Not touched (not mine); the guard's own target is 40 GB and its floor 30 GB.
 
-## In progress
-- Leftover brief 2026-11-06 (Couns, job 1): the owed Threads 2 ON smoke, with its output on F:.
-  - `smoke_run.ps1` now accepts `-Out` under `F:\ospd\` (outside the worktree `F:\ospd\wt\`), then checks that F: has
-    >= 50.3 GB free.
+- S7, the leftover brief 2026-11-06 (Couns, job 1): the owed Threads 2 ON smoke, with its output on F:.
+  - Script change 2c5f4d1e: `smoke_run.ps1` now accepts `-Out` under `F:\ospd\` (outside the worktree `F:\ospd\wt\`)
+    and then checks that F: has >= 50.3 GB free.
   - Unchanged: the D: path with its D: >= 50.3 GB gate, the sha256 checks, Idle + mask read-back, the Threads x
     concurrency check and the CLEAN rule.
   - Negative tests: `-Out F:\ospd\wt\x_t` and `-Out E:\x_t` are refused with exit 1, and nothing is created.
-  - Nothing of this job writes to D:.
+  - Smoke 03:15:33-03:25:32: **CLEAN**, fastchess exit 0.
+    - Command: `tools/smoke_run.ps1 -Out F:\ospd\out\smoke_t2 -Mask 0xF -Concurrency 1 -Threads 2 -Rounds 10 -Srand 20261108`.
+    - Gate exe 5f6be7c5 with SingularNonCut=1 vs trial_w6 4181A589. Settings: tc 10+0.1 timemargin 1000, Hash 16,
+      **Threads 2** for both engines, 8moves_v3 random, CPUs 0-3 at Idle.
+    - 20 / 20 games, 0 time losses (either engine), 0 disconnect / illegal / crash / stall / error / warning /
+      responsive lines.
+  - Load on CPUs 0-3 (`logs/smoke_t2_cpu03_load.txt`), read 03:15:24 (before) and 03:25:50 (after): the live NNUE
+    trainer (python 1392, Idle, mask 0xF) used about 2.4 CPUs each time, and CPUs 0-3 were 46-90 % busy. The engines
+    shared the four CPUs with it at the same Idle priority.
+  - Time losses are listed separately and are not part of CLEAN, by the script's design. Here there were none.
+  - Information only: W 1 / D 16 / L 3, Ptnml [0, 3, 6, 1, 0]. 20 games say nothing about strength.
+  - Logs: `logs/smoke_t2_SUMMARY.txt`, `logs/smoke_t2_fastchess.out.txt`. The PGN (md5 9fbcb23c) and engine_io.log
+    (12.9 MB) stay in `F:\ospd\out\smoke_t2`.
+  - Nothing of this job wrote to D:. The gate exe was only read from D:.
+
+## In progress
+- Nothing. The job waits for Code Review.
 
 ## Exact next step
-1. Run the Threads 2 ON smoke (20 games, CPUs 0-3, Idle), from Git Bash:
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "F:\ospd\wt\opus_singular_noncut\tools\smoke_run.ps1" -Out "F:\ospd\out\smoke_t2" -Mask 0xF -Concurrency 1 -Threads 2 -Rounds 10 -Srand 20261108`.
-   Then copy `SUMMARY.txt` and `fastchess.out.txt` to `logs/smoke_t2_*`. It is a crash / time-loss / illegal-move check
-   and queues no SPRT.
-2. Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
+1. Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
 Strength run the SPRT with the gate line in README.md (cand = the gate exe with `setoption name SingularNonCut value 1`,
 base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / Threads.
 
@@ -147,11 +158,12 @@ base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / T
   Caissa's +4.20 is Caissa's own result. Fewer ON nodes at bench d20 / d22 (0.82 / 0.84 of OFF) are no strength
   evidence.
 - ON nps: not measured. The PGO profile is trained with the option at 0, so the ON path is cold-optimised.
-- Threads > 1 with ON: only what the smoke shows (it plays Threads 1).
+- Threads > 1 with ON: only what the smokes show. The Threads 2 smoke S7 (20 games) was CLEAN, which is a crash /
+  time-loss / illegal-move check only. Threads 3-4 with ON were not run.
 - Done after the first DONE (02:32-02:38): the counter-build box test, the mate probe OFF / ON, L4 sanitizers (OFF +
   ON path).
-- Warm-table identity: done 02:39 (identical apart from the one expected option line). Not done: Threads > 1 with ON
-  beyond the Threads 1 smoke.
+- Warm-table identity: done 02:39 (identical apart from the one expected option line). Not done: Threads 3-4 with ON
+  (Threads 2: the S7 smoke, 20 games).
 - The box-test counters are plain globals (valid at Threads 1 only). They live in a test-only patch, never in the
   gate exe.
 - Code Review of this pack has not happened. Every review so far is my own (NOT independent).
