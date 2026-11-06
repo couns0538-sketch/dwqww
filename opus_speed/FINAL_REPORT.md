@@ -488,6 +488,7 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | quiet A/A qc (gate try 3) | 23:15-23:20 | quiet | 1.0003 [0.9891, 1.0082] 1.34 % (width 1.91 %) | - | SANE (QA rule): band of the quiet decision block | (aa_w6_d20_qc) |
 | H2 h2_dirty_inplace q | 23:20-23:25 | 2 / 1 -> 1 / 1 % (quiet) | 1.0053 (+0.53 %) [1.0006, 1.0151] sd 1.01 % | 1.0019 (+0.19 %) [0.9981, 1.0135] sd 1.07 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | 832eaf3b |
 | H3 h3_nnue_columns q | 23:25-23:30 | 3 / 1 -> 0 / 1 % (quiet) | 1.0081 (+0.81 %) [1.0009, 1.0262] sd 1.74 % | 1.0086 (+0.86 %) [1.0017, 1.0254] sd 1.64 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | e8c5ead1 |
+| H6 h6_pick_first q | 23:30-23:35 | 1 / 0 -> 3 / 0 % (quiet) | 1.0060 (+0.60 %) [0.9994, 1.0248] sd 1.75 % | 1.0067 (+0.67 %) [0.9969, 1.0259] sd 2.00 % | NO-WIN (QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN) | 77befd39 |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
