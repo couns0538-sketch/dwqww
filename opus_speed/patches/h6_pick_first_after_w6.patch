@@ -1,0 +1,128 @@
+diff -ruN trial_w6/src/search.cpp h6dev_pick_first/src/search.cpp
+--- trial_w6/src/search.cpp	2026-11-05 12:12:59.005573300 -0800
++++ h6dev_pick_first/src/search.cpp	2026-11-05 21:17:38.267518200 -0800
+@@ -412,6 +412,18 @@
+ // ---------------------------------------------------------------------------
+ // Move picker
+ 
++// Build switch, default 0 (= the lock code): 1 = the scoring pass of every move list
++// remembers the first maximum score as it writes the list (strict >, so the earliest
++// of equal scores, as the scan in pick_best() keeps), and the first pick_best() of that
++// list takes it instead of scanning; every later pick, the swap and the sort are the
++// lock's. The same move at every pick: the same move order.
++#ifndef FORGE_SPD_PICK_FIRST
++#define FORGE_SPD_PICK_FIRST 0
++#endif
++#if FORGE_SPD_PICK_FIRST && !(FORGE_SEARCH_SPEED2 && FORGE_SPD_NO_ZERO_MOVELISTS >= 2)
++#error "FORGE_SPD_PICK_FIRST=1 is written for FORGE_SEARCH_SPEED2=1 with FORGE_SPD_NO_ZERO_MOVELISTS=2"
++#endif
++
+ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+@@ -563,6 +575,9 @@
+     MoveList buffer_;
+     std::size_t list_start_ = 0;
+     bool sorted_ = false;
++#if FORGE_SPD_PICK_FIRST
++    std::size_t first_best_ = 0;   // index of the first maximum of the list last generated
++#endif
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Bitboard, 7> check_squares_;
+ #else
+@@ -624,6 +639,11 @@
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
+                 std::size_t best = index_;
++#if FORGE_SPD_PICK_FIRST
++                if (index_ == list_start_) {
++                    best = first_best_;   // nothing moved since the generation: the scan's result
++                } else
++#endif
+                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+                     if (moves_[i].score > moves_[best].score) best = i;
+                 }
+@@ -650,6 +670,10 @@
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
++#if FORGE_SPD_PICK_FIRST
++        int first_score = 0;
++        std::size_t first = 0;
++#endif
+         for (const Move move : buffer_) {
+ #if FORGE_SEARCH_SPEED2
+             const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
+@@ -661,8 +685,17 @@
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
++#if FORGE_SPD_PICK_FIRST
++            if (count_ == 0 || score > first_score) {
++                first_score = score;
++                first = count_;
++            }
++#endif
+             moves_[count_++] = Scored{move, score};
+         }
++#if FORGE_SPD_PICK_FIRST
++        first_best_ = first;
++#endif
+         sort_moves();
+     }
+ 
+@@ -677,9 +710,25 @@
+         count_ = 0;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
++#if FORGE_SPD_PICK_FIRST
++        int first_score = 0;
++        std::size_t first = 0;
++#endif
+         for (const Move move : buffer_) {
++#if FORGE_SPD_PICK_FIRST
++            const int score = scorer.score(move, check_squares_);
++            if (count_ == 0 || score > first_score) {
++                first_score = score;
++                first = count_;
++            }
++            moves_[count_++] = Scored{move, score};
++#else
+             moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++#endif
+         }
++#if FORGE_SPD_PICK_FIRST
++        first_best_ = first;
++#endif
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+@@ -721,6 +770,10 @@
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+ #endif
++#if FORGE_SPD_PICK_FIRST
++        int first_score = 0;
++        std::size_t first = 0;
++#endif
+         for (const Move move : buffer_) {
+             int score;
+             if (move.is_capture() || move.is_promotion()) {
+@@ -733,8 +786,17 @@
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+ #endif
+             }
++#if FORGE_SPD_PICK_FIRST
++            if (count_ == 0 || score > first_score) {
++                first_score = score;
++                first = count_;
++            }
++#endif
+             moves_[count_++] = Scored{move, score};
+         }
++#if FORGE_SPD_PICK_FIRST
++        first_best_ = first;
++#endif
+         sort_moves();
+     }
+ };
