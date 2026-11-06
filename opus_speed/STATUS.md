@@ -42,3 +42,13 @@ Leftover jobs 1-3 (owner brief, from 19:5x PC clock, start tip 38559f1b; live lo
   - test_cr_637b re-run: 13 / 13 PASS (20261105-201312-4460; o3 builds, no ABBA). Details in `CR_SHOULD_W8.md`.
   - Nothing of the job is running.
 KING_LINES and bundles a-d were not retimed or locked.
+
+## Hunt vs the live lock trial_w6 (owner /plan brief, from 2026-11-05 20:41 PC clock; plan `PLAN_HUNT.md`)
+Start tip 3ca407b3. One new bit-exact switch per idea on top of trial_w6 (six switches ON), timed against trial_w6
+(4181A589..., `forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe`) by wall nps (d20, 10 rounds ABBA/BAAB, CPU 2).
+Screening only: nothing is locked or published; QA re-times. Hunt scratch `C:\ospd_hunt\` (ABBA, identity builds,
+profiles); packs stay in `F:\ospd\packs\h<N>_*`.
+
+| # | idea | define | bit-exact net on / net off | wall vs trial_w6 | cpu vs trial_w6 | exe sha256 | verdict |
+|---|---|---|---|---|---|---|---|
+| - | session A/A 1 trial_w6 vs itself (20:42-20:47) | - | - | 0.9961 [0.9730, 1.0319] sd 4.10 %, per-round range 11.7 % | 0.9995 [0.9825, 1.0225] sd 2.79 % | 4181a589 | NOT SANE (range > 4 %): live trainer PID 3940 (Idle, 0xF, ~73 % of a CPU) shares CPUs 2-3; re-run before any decision |

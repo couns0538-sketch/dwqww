@@ -76,3 +76,11 @@
   - the LOW notes in `CR_SHOULD_W8.md`.
 - Not done on purpose: no ABBA / soak / 12k / L3b; KING_LINES and bundles a-d untouched.
 - Not done on purpose: no ABBA / soak / 12k; KING_LINES and bundles a-d untouched (QA owns their timings).
+
+## State 20:41 PC clock - bit-exact speed hunt vs trial_w6 (owner /plan brief; plan `opus_speed/PLAN_HUNT.md`)
+- Start tip 3ca407b3. Live lock trial_w6 4181A589... (both paths checked); FD3A5190 = search-identity reference.
+- Hunt scratch `C:\ospd_hunt\` (abba\, builds\, ctl\, prof\, harness\, logs\); packs `F:\ospd\packs\h<N>_*`,
+  trees `F:\ospd\src\h<N>_*` (make_stack.sh trial_w6.patch + `patches/h<N>_*_after_w6.patch`).
+- Per idea: identity builds (all 0 = FD3A5190, six ON + new OFF = 4181A589) -> speed_pack -Quick -SkipAbba (the six +
+  the new define) -> abba.ps1 alone vs trial_w6 into `C:\ospd_hunt\abba\` -> WIN: full 12k + pack.
+- Session A/A: `C:\ospd_hunt\abba\aa_w6_d20_s1` (started 20:42).

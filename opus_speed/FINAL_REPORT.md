@@ -406,3 +406,14 @@ Owner items:
   remove the dependence (not changed here: not a speed item).
 - Two different files named `fens_12k.txt` exist (branch file: six fields; scratch copy: placement only); see
   `opus_speed/data/README.md`. Earlier jobs used the six-field branch file (their 12k results stand).
+
+## 9. Hunt vs the live lock trial_w6 (2026-11-05 from 20:41 PC clock; owner /plan brief; plan `PLAN_HUNT.md`)
+Sections 0-8 above are the earlier job's records and stay as written (their ABBA numbers are vs FD3A5190). This
+section is the next job: NEW bit-exact switches on top of trial_w6 (all six ON), each proven node-identical (bench
+net on and net off, perft, 2,000 / 12,000 FENs, sanitizers) and timed against trial_w6 itself. Screening only: no
+lock, no publish; QA re-times. Start tip 3ca407b3.
+- Method per idea: switch `FORGE_SPD_<X>` default 0; identity builds all switches 0 = FD3A5190 and six ON + new OFF =
+  4181A589 (byte for byte); `speed_pack -Quick -SkipAbba` with the six + the new define (pc1 = pc2, bitexact vs
+  trial_w6); `abba.ps1` vs trial_w6 alone on CPU 2 (d20, 10 rounds); verdict rules of the skill (wall decides, cpu
+  must not contradict, a pool never decides, one 16-round re-time for a borderline run).
+- Results: see the table in `STATUS.md` (filled per idea) and the subsections below.
