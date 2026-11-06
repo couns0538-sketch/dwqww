@@ -89,3 +89,12 @@ H1 run 1, H2 run 1, H3 run 1 NO-WIN (information, before the quiet gate).
 | H9 | h9_ptype_arith quiet decision run (23:45-23:50, cpu2 / cpu3 1 / 0 -> 1 / 1 %) | - | BIT-EXACT (pack) | 0.9990 (-0.10 %) [0.9715, 1.0178] sd 3.25 % | 0.9962 (-0.38 %) [0.9702, 1.0154] sd 3.18 % | 96004e91 | NO-WIN - QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN; runs.csv e6ae0763 |
 | H4 | h4_slider_pdep16 quiet decision run (23:50-23:55, cpu2 / cpu3 1 / 0 -> 86 / 48 %) | - | BIT-EXACT (pack) | 0.9990 (-0.10 %) [0.9914, 1.0206] sd 2.02 % | 1.0000 (+0.00 %) [0.9919, 1.0207] sd 2.00 % | dcc1e022 | NO-WIN - QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall NO-WIN / cpu NO-WIN; runs.csv a903cfb0 |
 | H1 | h1_largepages quiet decision run (23:55-00:00, cpu2 / cpu3 88 / 54 -> 86 / 48 %) | - | BIT-EXACT (pack) | 1.0160 (+1.60 %) [1.0069, 1.0300] sd 1.59 % | 1.0174 (+1.74 %) [1.0067, 1.0311] sd 1.68 % | cecc4d92 | WIN - QA rule vs aa_w6_d20_qc (need low > 1.000, gain > 0.96 %): wall WIN / cpu WIN; runs.csv 9bdf200f |
+H1 note: its run (23:55-00:00) lay entirely inside the trainer's return (PID 11564 started 23:54:38 by itself, Idle 0xF,
+~210 % CPU; CPU 3 at 48-62 %) and large pages failed partway (round ratios 1.019-1.057 in rounds 1-5, 0.997-1.013 in
+rounds 6-10; the probe right after: 6 / 6 failed with 1450). Its WIN on paper is NOT a valid quiet decision: a quiet
+re-time with large pages available is owed to QA. H4's run ended ~30 s after the trainer came back.
+
+**DONE-QUIET (00:01 PC clock):** the timing that needs a quiet PC is finished (quiet A/As qa / qb / qc SANE; decision runs H2,
+H3, H6, H5, H8, H9, H4 clean; H7 skipped: large pages failed 6 / 6 at its probe). The NNUE trainer is already running again
+(restarted 23:54:38 on its own). QA may restart gates and self-play now. Still running from here, on CPUs 0-3 only as all
+day: the closing A/A q2 (CPU 2, under load: information) and the full 12k L3 proof of the screening WIN H5 (CPUs 0-1 Idle).
