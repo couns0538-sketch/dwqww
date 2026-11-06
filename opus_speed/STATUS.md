@@ -72,3 +72,4 @@ ABBA at a time, no other own load beside it), strict protocol (d20, 10 rounds, A
 Large pages: probe 6 / 6 OK at 22:57 (0.19-2.5 ms) -> H1 / H7 get timed (probe repeated right before each). "DONE-QUIET"
 is written here when the hunt ends or usage is nearly out, so QA restarts production.
 | - | H2 run 1 (22:51-22:56, before the pause took effect: cpu2 / 3 78 / 72 % at the start) | - | - | 1.0048 [0.9784, 1.0271] sd 3.39 % | 1.0047 [0.9946, 1.0248] sd 2.09 % | 8c3f2747 | information (taken next to a failed A/A); runs.csv 77ccf5f5 |
+| - | H3 run 1 (22:56-23:01, quiet PC: total load 1-4 %, before the quiet A/A gate) | - | - | 1.0057 [0.9862, 1.0120] sd 1.80 % | 1.0048 [0.9835, 1.0119] sd 1.99 % | 9bcdef73 | NO-WIN / NO-WIN (information: before the gate); runs.csv d4df0016 |

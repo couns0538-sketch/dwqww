@@ -472,6 +472,7 @@ conditions a true +2 % cannot reach WIN, so every result taken next to a failed 
 | A/A 4b (gate try 2) | 22:32-22:37 | 62 / 61 -> 76 / 70 % (trainer steady ~190-220 %) | 0.9898 [0.9624, 1.0094] 3.33 % (range 12.58 %) | 0.9957 [0.9579, 1.0096] 3.67 % | NOT SANE | (aa_w6_d20_s4b) |
 | A/A 4c (gate try 3) | 22:45-22:51 | 69 / 61 -> 90 / 96 % | 1.0065 [0.9833, 1.0275] 3.07 % (range 10.38 %) | 0.9977 [0.9879, 1.0103] 1.56 % | NOT SANE (gate exhausted) | (aa_w6_d20_s4c) |
 | H2 run 1 | 22:51-22:56 | 78 / 72 -> 13 / 2 % (QA pause took effect) | 1.0048 [0.9784, 1.0271] 3.39 % | 1.0047 [0.9946, 1.0248] 2.09 % | NO-WIN / NO-WIN (information: next to a failed A/A) | 77ccf5f5 |
+| H3 run 1 | 22:56-23:01 | 23 / 0 -> 3 / 1 % (quiet) | 1.0057 [0.9862, 1.0120] 1.80 % | 1.0048 [0.9835, 1.0119] 1.99 % | NO-WIN / NO-WIN (information: before the quiet gate) | d4df0016 |
 Notes:
 - The live NNUE trainer restarted at 21:39:04 (new PID 9380, Idle, mask 0xF) and has run at ~190-200 % CPU on CPUs
   0-3 since (the old PID 3940 ran at ~73 %). Observed, not caused: at that moment the only own process on CPUs 0-3
