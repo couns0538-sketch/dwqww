@@ -24,6 +24,7 @@ param(
   [int]$Rounds = 10,
   [int]$Cooldown = 3,
   [string[]]$Option = @(),
+  [string[]]$OptionB = @(),
   [ValidateSet('Round', 'None')][string]$CopyMode = 'Round',
   [string]$AaCsv = '',
   [string]$LabelA = 'A',
@@ -40,6 +41,10 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
 # -File passes a list as ONE comma-joined string: split every list parameter on commas
 $Option = @($Option | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+# -OptionB 'Name=Value,...' (2026-11-06, leftover checks): extra UCI options for arm B only, after -Option (e.g. the same
+# gate exe OFF vs ON; needs -AllowNodeDiff when the option changes the tree). Default empty = the old run.
+$OptionB = @($OptionB | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+function Get-ArmOptions([string]$Arm) { if ($Arm -eq 'B') { return @($Option + $OptionB) } return @($Option) }
 
 $T975 = @{ 1 = 12.706; 2 = 4.303; 3 = 3.182; 4 = 2.776; 5 = 2.571; 6 = 2.447; 7 = 2.365; 8 = 2.306; 9 = 2.262; 10 = 2.228;
   11 = 2.201; 12 = 2.179; 13 = 2.160; 14 = 2.145; 15 = 2.131; 16 = 2.120; 17 = 2.110; 18 = 2.101; 19 = 2.093; 20 = 2.086;
@@ -127,7 +132,7 @@ try {
         Copy-Item -LiteralPath $exe[$arm] -Destination $dst
         $exe[$arm] = $dst
         $w = Start-OspdEngine $dst $log
-        $null = Initialize-OspdEngine $w $Option
+        $null = Initialize-OspdEngine $w (Get-ArmOptions $arm)
         $null = Invoke-OspdBench $w 10 120
         $null = Stop-OspdEngine $w
       }
@@ -138,7 +143,7 @@ try {
       $slot++
       Start-Sleep -Seconds $Cooldown
       $e = Start-OspdEngine $exe[$arm] $log
-      $uciLines = Initialize-OspdEngine $e $Option
+      $uciLines = Initialize-OspdEngine $e (Get-ArmOptions $arm)
       if ($netOn -and -not ((Get-OspdUciOptionLine $uciLines 'UseNNUE') -match 'default true')) { $null = Stop-OspdEngine $e; Write-Output "FAIL: $($exe[$arm]) does not advertise UseNNUE default true (net not loaded)"; exit 2 }
       # process CPU time of the bench window (engine idle before and after it): time slices taken by other programs on
       # this CPU do not count here, unlike the engine's own wall-clock nps (both are recorded and evaluated). It removes

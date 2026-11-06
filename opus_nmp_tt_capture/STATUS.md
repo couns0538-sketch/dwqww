@@ -118,3 +118,13 @@ CR, QA / Strength run the SPRT:
   2. Run `python -I -B tools/mk_counters.py <cnl|tcn|ntc> <copy>`.
   3. Run `build_variants.ps1 -SrcDir <copy> -Tag <new> -Variant o3 -Define FORGE_SPEC_COUNTERS=1 -Work <dir>`.
   4. Run `python -I -B tools/box_run.py --port <p> --exe <o3 exe> --on '<ON line>' --out <new dir> --mask 0xC`.
+
+### Leftover job 4 DONE: nps ON vs OFF (2026-11-06 12:07-12:16 PC clock; logs/abba/)
+- Tool: `opus_speed/tools/abba.ps1 -OptionB 'NmpTtCaptureMin=4'`, the same gate exe on both arms, ON on arm B only, `-AllowNodeDiff`.
+- Protocol: bench d16, **10 rounds**, ABBA / BAAB alternating, fresh copies, CPU 2 BelowNormal. The brief said 4 pairs, but abba.ps1 refuses fewer than 10 rounds (QA protocol), so 10 were run.
+- Result (B = ON, A = OFF):
+  - wall (engine nps): B/A median 0.9923 (-0.77%), 95% t-interval [0.9842, 1.0243], sd/round 2.79%, bootstrap median CI [0.9837, 1.0276]
+  - cpu (nodes / process CPU time of the bench window): B/A median 0.9971 (-0.29%), 95% t-interval [0.9904, 1.0194], sd/round 2.02%, bootstrap median CI [0.9851, 1.0286]
+- **The PC was not quiet.** load.txt: CPU 2 68-84 % busy, its sibling CPU 3 31-90 % busy (not mine: the trainer and others), total 58-69 %. Chain 1 (12k) ran on CPUs 0-1 at the same time.
+- The ON tree differs from OFF (bench 16 nodes nodes A 3024920 B 3034926), so this is nps per node of a different tree. It is not a cost of the code itself, and time to depth is not measured here. The PGO profile is trained with the option at 0.
+- NOT DONE now: job 1 only (chain running, results follow).
