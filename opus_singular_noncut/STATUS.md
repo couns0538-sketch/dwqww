@@ -96,8 +96,15 @@ Owner Couns. Brief = the /plan args of 2026-11-06 (one item: SingularNonCut). Pl
     nodes = the gate exe's in all 4 runs. Live share 88-92 % of tries at cut nodes; ON has more nodes per
     verification (d20 22.2 vs 18.7); +1 / +2 share per try about the same, +2 slightly lower. Table in BENCH.md.
 
+  - Mate probe OFF / ON, 02:37-02:38 (`tools/mate_probe.ps1`, crew set opus_r13 mate_probe.epd, 22 FENs):
+    - at 3M nodes, mate found OFF 19, ON 19, both mate-in-1 found by both sides;
+    - two deep KRK horizon flips (one each way); at 30M nodes both are mates on both sides;
+    - no mate lost by ON. Details in BENCH.md.
+  - All spec crew items are now done: counter box test, mate probe, L4. Not run: warm-table identity (not needed
+    for a search candidate).
+
 ## In progress
-- Mate probe OFF / ON (the last crew item of the spec).
+- Nothing. The job waits for Code Review.
 
 ## Exact next step
 Code Review of this pack: the patch, BENCH.md, README.md, and the branch-aware commit_push.sh. After CR, QA /
@@ -120,10 +127,10 @@ base = trial_w6 4181A589). Owner decisions for that SPRT: TC / book / bounds / T
   evidence.
 - ON nps: not measured. The PGO profile is trained with the option at 0, so the ON path is cold-optimised.
 - Threads > 1 with ON: only what the smoke shows (it plays Threads 1).
-- Not done (crew items):
-  - the spec's counter-build box tests (singular tries / outcomes / nodes in the verification);
-  - the mate probe OFF / ON;
-  - the L4 sanitizer builds;
-  - a warm-table identity run (bitexact L1-L3 are cold-table, Threads 1; enough for "runtime 0 = trial_w6" at cold
-    start, while in-game tables are covered only by the smoke).
+- Done after the first DONE (02:32-02:38): the counter-build box test, the mate probe OFF / ON, L4 sanitizers (OFF +
+  ON path).
+- Not done: a warm-table identity run. bitexact L1-L3 are cold-table, Threads 1, which is enough for "runtime 0 =
+  trial_w6" at a cold start; in-game tables are covered only by the smoke.
+- The box-test counters are plain globals (valid at Threads 1 only). They live in a test-only patch, never in the
+  gate exe.
 - Code Review of this pack has not happened. Every review so far is my own (NOT independent).

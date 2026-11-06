@@ -61,11 +61,11 @@ base: forge_ltopgo_x_al1s198_trial_w6.exe (4181A589)   no options
   nps can be a little lower than OFF. It is not measured; the SPRT includes it.
 - `cut_node` is a by-value parameter: the flip affects only the verification call, and the node's own flag stays as it
   was (Caissa had to restore its field; Forge has nothing to restore).
-- Not done (crew items):
-  - the spec's counter build (FORGE_SPEC_COUNTERS: singular tries, outcomes, nodes inside the verification);
-  - the mate probe OFF / ON;
-  - the sanitizer level L4;
-  - Threads > 1 with ON (beyond the smoke).
+- Also done (BENCH.md):
+  - the spec's counter-build box test (`singular_noncut_counters_test.patch`, test only, `FORGE_SPEC_COUNTERS`);
+  - the mate probe OFF / ON (`tools/mate_probe.ps1`);
+  - L4 sanitizers, OFF and the ON path.
+- Not done: Threads > 1 with ON beyond the Threads 1 smoke; warm-table identity.
 
 ## Rebuild
 1. Copy `F:\ospd\src\lock` to `D:\opus_singular_noncut\src\snc` and check it with `sha256sum -c

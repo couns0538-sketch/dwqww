@@ -116,3 +116,16 @@ Pin tables = `opus_speed/tools/uci_lib.ps1` (the old lock FD3A5190's pins; trial
   - So the card's "fewer +1 / +2" holds only for the +2 part. The spec says to report this; it is no stop.
   - Tries per 1M nodes drop at d20 (5141 ON vs 7474 OFF). The tree shape changes (d20 total 0.82x), not only the
     verifications.
+
+## Mate probe OFF / ON (gate exe), 02:37-02:38
+- Set: the crew's `opus_r13/tools/data/mate_probe.epd` (branch opus-r13-p1-nearmiss-ports 759acc6d, md5 df9a6967; copy
+  in `logs/mate/`): 20 KRK / KQK (both colours) + 2 mate-in-1.
+- Run: `tools/mate_probe.ps1`; per FEN ucinewgame, OwnBook false, Hash 16, `go nodes 3000000`; CPUs 0-1 Idle.
+- 3M nodes (`logs/mate/run1_3m.*`): **mate found OFF 19 / 22, ON 19 / 22**; same score + bestmove in 14.
+  - Both mate-in-1 found OFF and ON (d1d8, h5f7).
+  - Fens 0 / 8 / 17 / 18: mate on both sides, different length or move.
+  - Fens 5 / 9: cp on both sides.
+  - Flips: fen 1 OFF mate 15 / ON cp 508; fen 12 OFF cp 544 / ON mate 19. These are the deep KRK horizon flips the
+    recipe warns about, in both directions.
+- Re-probe of the two flips at 30M nodes (`logs/mate/run2_30m.*`): mate on both sides in both positions (fen 1 same
+  mate + move; fen 12 OFF mate 14 / ON mate 13, same move c1c2). No mate is lost by ON.
