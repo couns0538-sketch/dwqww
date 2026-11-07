@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 20:55 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 21:11 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -80,7 +80,12 @@ Updated: 2026-11-06 20:55 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   8moves (`build/t1_books/uho1500_n15k`, `8moves1500_n15k`), chain log `logs/t1b_chain.log`; ~70 games/min.
   - UHO half DONE 20:13:49-20:54:35: fastchess nElo +133.54 +/- 12.43, Elo +91.46, W/L/D 1275/503/1222,
     Ptnml [23, 188, 511, 550, 228].
-  - The 8moves half runs 20:54:35 -> ~21:36.
+  - The 8moves half started 20:54:35.
+  - Around 21:0x the PC ran critically low on memory, and the session harness stopped the chain's bash wrapper (task
+    bxiyom1vz "killed": low memory while idle). The wrapper is not restarted (harness note: do not restart unasked).
+    The fastchess child (pid 5288) and its 4 engines kept running and finish the 8moves half by themselves. The
+    wrapper's `end` line in run_info.txt and the chain log line will be missing; completion is read from stdout
+    "Finished match".
 
 ## Exact next step
 - After T1b: `python -I -B tools/t1_analyze.py --engine n20k 8moves=build/t1_books/8moves1500_n15k/games.pgn,build/t1_books/8moves1500_n15k/stdout.txt uho=build/t1_books/uho1500_n15k/games.pgn,build/t1_books/uho1500_n15k/stdout.txt --json repo/opus_oss_scout/trials/t1_books/t1b_result.json`
@@ -96,6 +101,15 @@ Updated: 2026-11-06 20:55 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   This job's footprint ~1.1 GB (llvm-mingw 0.9 GB of it).
 - Update 20:16: C: 44.5 GB, still ~0.5 GB/min. That crosses 30 GB ~20:45 and fills ~21:45 at this rate. This job
   makes no more downloads below 30 GB; its footprint is 1.5 GB (incl. the 354 MB WPR trace).
+- Update 21:10 (supervisor.log, read-only):
+  - Run s86 DONE 20:24:56.
+  - Run s87 (launched 20:24:59) "ended without 'Finished' but made checkpoint progress (epoch006-step000055842.pt) ->
+    needs_resume" at 21:03:04, in the same window as the PC's low-memory event. The resume was launched at 21:03:07
+    but was not running at 21:10.
+  - The supervisor launched s88 at 21:10:10.
+  - C: free was 72.5 GB at 21:10 (cleaned by someone else). A second claude session started 20:59; Firefox was
+    started 20:32:47 by a process that had already exited (not by this job).
+  - This job's processes at 21:10: fastchess + 4 engines (~60 MB in all). Nothing of the trainer was touched.
 
 ## Resume commands
 - Gate before any heavy step: `pwsh -NoProfile -File C:\opus_5h\oss_scout\tools\scout_gate.ps1 -Step "<what>" -PlannedGB <n>`
