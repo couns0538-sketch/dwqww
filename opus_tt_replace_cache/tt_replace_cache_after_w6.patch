@@ -1,0 +1,109 @@
+diff -ruN w6/include/forge/search.hpp trc/include/forge/search.hpp
+--- w6/include/forge/search.hpp	2026-11-06 16:58:24.244218700 -0800
++++ trc/include/forge/search.hpp	2026-11-06 16:59:03.533220700 -0800
+@@ -20,7 +20,17 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++#ifndef FORGE_SPD_TT_REPLACE_CACHE
++// Build switch, default 0 (= the lock's code; nothing of it is compiled): 1 adds the UCI option TtReplaceCache
++// (default 0) that keeps the TT replace metric of the current pick instead of recomputing it per slot.
++#define FORGE_SPD_TT_REPLACE_CACHE 0
++#endif
++
+ namespace forge {
++#if FORGE_SPD_TT_REPLACE_CACHE
++// Runtime switch of the cached replace metric (UCI TtReplaceCache, false = the lock loop).
++extern bool tt_replace_cache;
++#endif
+ 
+ struct SearchLimits {
+     int depth = 64;
+diff -ruN w6/src/search.cpp trc/src/search.cpp
+--- w6/src/search.cpp	2026-11-06 16:58:24.249307800 -0800
++++ trc/src/search.cpp	2026-11-06 16:59:03.533220700 -0800
+@@ -9,6 +9,9 @@
+ #include <optional>
+ 
+ namespace forge {
++#if FORGE_SPD_TT_REPLACE_CACHE
++bool tt_replace_cache = false;
++#endif
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -291,6 +294,22 @@
+     auto relative_age = [this](const TTEntry& entry) {
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
++#if FORGE_SPD_TT_REPLACE_CACHE
++    if (tt_replace_cache) {
++        // TtReplaceCache=1: the current pick's metric is kept instead of recomputed per slot. Same slot order 0..3,
++        // the first empty slot still returns at once, the same strict '<' (a tie keeps the earlier slot).
++        int replace_value = replace->depth - 4 * relative_age(*replace);
++        for (const TTEntry& entry : cluster.entries) {
++            if (!entry.occupied()) return snapshot(entry, false);
++            const int value = entry.depth - 4 * relative_age(entry);
++            if (value < replace_value) {
++                replace = &entry;
++                replace_value = value;
++            }
++        }
++        return snapshot(*replace, false);
++    }
++#endif
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+@@ -368,6 +387,22 @@
+     auto relative_age = [this](const TTEntry& entry) {
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
++#if FORGE_SPD_TT_REPLACE_CACHE
++    if (tt_replace_cache) {
++        // TtReplaceCache=1: the current pick's metric is kept instead of recomputed per slot. Same slot order 0..3,
++        // the first empty slot still returns at once, the same strict '<' (a tie keeps the earlier slot).
++        int replace_value = replace->depth - 4 * relative_age(*replace);
++        for (const TTEntry& entry : cluster.entries) {
++            if (!entry.occupied()) return snapshot(entry, false);
++            const int value = entry.depth - 4 * relative_age(entry);
++            if (value < replace_value) {
++                replace = &entry;
++                replace_value = value;
++            }
++        }
++        return snapshot(*replace, false);
++    }
++#endif
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+diff -ruN w6/src/uci.cpp trc/src/uci.cpp
+--- w6/src/uci.cpp	2026-11-06 16:58:24.249307800 -0800
++++ trc/src/uci.cpp	2026-11-06 16:59:03.533220700 -0800
+@@ -171,6 +171,9 @@
+                          "option name Book Depth type spin default 30 min 0 max 100\n"
+                          "option name Book Variety type spin default 30 min 0 max 100\n";
+             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
++#if FORGE_SPD_TT_REPLACE_CACHE
++            std::cout << "option name TtReplaceCache type spin default 0 min 0 max 1\n";
++#endif
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
+@@ -267,6 +270,15 @@
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+                 searcher.clear_hash();
++#if FORGE_SPD_TT_REPLACE_CACHE
++            } else if (name == "TtReplaceCache") {
++                if (value_text == "0") forge::tt_replace_cache = false;
++                else if (value_text == "1") forge::tt_replace_cache = true;
++                else {
++                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option TtReplaceCache" << std::endl;
++                }
++#endif
+             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
