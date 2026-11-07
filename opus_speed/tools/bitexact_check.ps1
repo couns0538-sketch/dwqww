@@ -40,8 +40,12 @@ param(
   [switch]$NoStop,
   [switch]$OnlyL4,
   [string]$RefSrc = 'F:\ospd\src\lock',
-  [string]$ResumeFrom = ''
+  [string]$ResumeFrom = '',
+  [string[]]$FenOptions = @()
 )
+# -FenOptions 'Name=Value,...' (2026-11-06, leftover checks): extra UCI options for L3 only, on BOTH ref and cand (e.g.
+#   UseNNUE=false = the 12k set net off). Default empty = the old run, the old cache names. A non-empty list gets its own
+#   ref cache name (suffix _<options>), so a run with options is never compared with a reference made without them.
 # -RefSrc: source of the reference exe, used for L4's MSVC ASan reference (an MSVC build cannot match g++ node counts:
 #   the two standard libraries order equal-score moves differently in std::sort, so the MSVC ASan nodes of the
 #   candidate are compared with the MSVC ASan nodes of this source; found 10:17 - b1_tt_notls 2,587,341 under MSVC).
@@ -51,6 +55,8 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\uci_lib.ps1"
 # -File passes a list as ONE comma-joined string: split every list parameter on commas
 $Define = @($Define | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$FenOptions = @($FenOptions | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$fenOptTag = ''; if ($FenOptions.Count -gt 0) { $fenOptTag = '_' + (($FenOptions -join '_') -replace '[^A-Za-z0-9_]', '-') }
 if (-not $Ref) { $Ref = $script:OspdLockExe }
 $script:Fail = 0
 $script:LogFile = ''
@@ -97,7 +103,7 @@ function Invoke-FenSet([string]$Exe, [string[]]$FenList, [int]$Depth, [string]$O
   for ($c = 0; $c -lt 2; $c++) {
     if ($chunks[$c].From -ge $chunks[$c].To) { continue }
     $e = Start-OspdEngine $Exe ("{0}.c{1}" -f $Log, $c) ([long](1 -shl $c))
-    $null = Initialize-OspdEngine $e @('OwnBook=false')
+    $null = Initialize-OspdEngine $e (@('OwnBook=false') + $FenOptions)
     $engs += [pscustomobject]@{ Eng = $e; Next = $chunks[$c].From; To = $chunks[$c].To; State = 'idle'; Cur = -1; Info = $null }
   }
   $rows = New-Object 'string[]' $n
@@ -265,7 +271,20 @@ try {
     $c = Get-Content $sigF.FullName -Raw | ConvertFrom-Json
     if ($c.sha256 -ne $candSha) { throw "resume: signature file $($sigF.FullName) belongs to another exe" }
     Copy-Item -LiteralPath $sigF.FullName -Destination $candCache   # the pack reads the bench signature from here
-    $nm = [regex]::Match($l3[0], ': (\d+) / (\d+) identical'); $n = [int]$nm.Groups[2].Value
+    # bind ResumeFrom to FenOptions (CR SHOULD leftover tools 2026-11-06): prior default/net-on must not resume a FenOptions/net-off request
+    $priorOptLines = @($pl | Where-Object { $_ -match '^L3 options \(ref and cand\):' })
+    if ($FenOptions.Count -gt 0) {
+      $wantOptLine = 'L3 options (ref and cand): OwnBook=false, ' + ($FenOptions -join ', ')
+      if ($priorOptLines.Count -ne 1 -or $priorOptLines[0] -ne $wantOptLine) {
+        throw ("resume: FenOptions mismatch (this run: {0}; prior: {1})" -f ($FenOptions -join ', '), ($(if ($priorOptLines.Count) { $priorOptLines -join ' | ' } else { '(none)' })))
+      }
+    } elseif ($priorOptLines.Count -ne 0) {
+      throw "resume: prior L3 used FenOptions but this run has none: $($priorOptLines[0])"
+    }
+    # L3 emits "go depth {d}:{n} / {n}" (no space after colon on tip aa87b6f0); accept optional space via \s*
+    $nm = [regex]::Match($l3[0], ':\s*(\d+) / (\d+) identical')
+    if (-not $nm.Success -or [int]$nm.Groups[1].Value -le 0 -or [int]$nm.Groups[2].Value -le 0) { throw "resume: cannot parse L3 identical counts from: $($l3[0])" }
+    $n = [int]$nm.Groups[2].Value
     # the reused L3 must be on the same FEN file and depth as this run would use (review LOW 4)
     $fm = [regex]::Match($l3[0], '\(md5 ([0-9a-f]{8})'); $dm = [regex]::Match($l3[0], 'go depth (\d+)')
     if (-not $fm.Success -or $fm.Groups[1].Value -ne (Get-OspdMd5 $Fens).Substring(0, 8) -or -not $dm.Success -or [int]$dm.Groups[1].Value -ne $FenDepth) { throw "resume: the reused L3 line is for another FEN file or depth: $($l3[0])" }
@@ -292,7 +311,7 @@ try {
   if ($FenCount -gt 0) { $n = [Math]::Min($FenCount, $allFens.Count) }
   $fenList = [string[]]$allFens[0..($n - 1)]
   $fmd5 = Get-OspdMd5 $Fens
-  $refTsv = Join-Path $cacheDir ("fens_{0}_n{1}_d{2}_ob0.tsv" -f $fmd5.Substring(0, 8), $n, $FenDepth)
+  $refTsv = Join-Path $cacheDir ("fens_{0}_n{1}_d{2}_ob0{3}.tsv" -f $fmd5.Substring(0, 8), $n, $FenDepth, $fenOptTag)
   # one computation per reference file: concurrent checks (several packs at once) wait for the first one instead of
   # each computing the same reference (seen 10:00: three quick checks computed the n=2000 reference in parallel)
   $refMutex = New-Object System.Threading.Mutex($false, ('Local\ospd_ref_' + (Split-Path $refTsv -Leaf)))
@@ -324,6 +343,7 @@ try {
   $same = 0; $diffs = @()
   for ($i = 0; $i -lt $n; $i++) { if ($ra[$i] -eq $ca[$i] -and $ra[$i] -match "`t\d+`t") { $same++ } else { if ($diffs.Count -lt 10) { $diffs += "  FEN $i ref [$($ra[$i])] cand [$($ca[$i])]" } } }
   $state = 'PASS'; if ($same -ne $n) { $state = 'FAIL'; $script:Fail++ }
+  if ($FenOptions.Count -gt 0) { Say ("L3 options (ref and cand): OwnBook=false, {0}" -f ($FenOptions -join ', ')) }
   Say ("L3 FENs {0} (md5 {1}; {7} lines completed to six fields) go depth {2}: {3} / {4} identical (depth, score, nodes, bestmove; {8} distinct ref results), cand {5:N0} s  {6}" -f (Split-Path $Fens -Leaf), $fmd5.Substring(0, 8), $FenDepth, $same, $n, $sec, $state, $normalized, $distinct)
   foreach ($d in $diffs) { Say $d }
   Stop-IfFailed 'L3'
