@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 21:45 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 21:47 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -82,10 +82,14 @@ Updated: 2026-11-06 21:45 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   - Around 21:0x the PC ran critically low on memory, and the session harness stopped the outer chain shell (task
     bxiyom1vz). fastchess and the inner runner finished anyway (end line rc 0). Fixed nodes: games unaffected.
 - T6 DONE 21:36-21:39: the lock solves 96.0 % (20k nodes) / 98.8 % (200k) of 2,000 puzzles; 2500+ band 73.5 / 86.7 %.
-- REPORT.md FINAL: ranked table, ideas-only section, unproven claims, owner items.
+- REPORT.md FINAL: ranked table, ideas-only section, unproven claims, owner items (item 9 = trainer run s87).
+- T4 build DONE 21:45:09-21:46:24: bullet upstream 5d701776 `advanced` with `--features rocm`.
+  - rc 0, 0 warnings; `build/t4/target/release/examples/advanced.exe` sha256 59a496ad.
+  - It imports amdhip64_7 / hipblas / hiprtc (ROCm backend). No GPU run.
+  - First attempt: Git Bash `MSYS_NO_PATHCONV=1 cmd //d //c` never ran the .bat; PowerShell `& cmd.exe /d /c` did.
 
 ## In progress
-- Nothing of this job is running (T1b's fastchess ended 21:36; T6 ended 21:39).
+- Nothing of this job is running (T1b's fastchess ended 21:36; T6 ended 21:39; T4 build ended 21:46).
 
 ## Exact next step (for the crew; this job is finished)
 - QA: official lock path for the T2 clang build (REPORT section 5, item 3).

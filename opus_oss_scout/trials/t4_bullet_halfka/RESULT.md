@@ -1,11 +1,21 @@
-# T4 bullet for the K32H3^ HalfKA shape - RESULT (design check; no build, no GPU)
+# T4 bullet for the K32H3^ HalfKA shape - RESULT (design check + compile-only ROCm build; no GPU run)
 
-State: **design done, nothing built or run in this job.** Reasons:
-- The GPU is busy (the npt trainer at 62-84 % compute; npt holds the GPU to Nov 8), and bullet has no CPU backend
-  (README: "Training is supported on NVIDIA (`cuda`), AMD (`rocm`) and Apple Silicon (`metal`) GPUs").
-- The bullet ROCm build itself is already proven on this PC (R14 P4 `D:\o14a\p4\target_rocm`, 30-h job
-  `build_bullet_o30.bat`, snapshot of 2026-11-03).
-- CPU time in this job went to T1b; a cargo build would have broken the 2-thread cap. Owner items below.
+State: **upstream head builds with ROCm here; design mapping done; nothing run on the GPU.**
+
+## Build (21:45:09-21:46:24 PC clock, `tools/t4_build_bullet.bat r1`, log `logs/t4_bullet_build_r1.log`)
+- Upstream head 5d70177680437b0ddf958bd4722d95afa78b0c (clone `dl/bullet`), example `advanced`, `--features rocm`.
+  This is the graph closest to K32H3^: mirrored king buckets, factoriser, pairwise FT, concat + `abs_pow`, output
+  buckets.
+- Environment: as the 30-h job (VS 18 vcvars64, the read-only Rust 1.99.1 toolchain in `F:\bullet_hip`, the read-only
+  HIP SDK of the npt venv, `GCN_ARCH_NAME=gfx1100`). `CARGO_HOME`, target and TEMP were on C:; 2 jobs, Idle, CPUs 2-3.
+- **Result: rc 0 in 1 min 14 s, 0 warnings.** `advanced.exe` is 4,647,424 bytes, sha256
+  59a496ad9a77033c3861fcf0e9353cf865c6de315d8d752afa16490e454bf1b3.
+  - It imports `amdhip64_7.dll`, `hipblas.dll` and `hiprtc07013.dll`, i.e. the ROCm backend.
+  - GPU kernels are compiled at run time through hiprtc, so they are first checked in a GPU window.
+- Not run: the GPU is busy (the npt trainer at 62-85 % compute; npt holds the GPU to Nov 8), and bullet has no CPU
+  backend (README: "Training is supported on NVIDIA (`cuda`), AMD (`rocm`) and Apple Silicon (`metal`) GPUs").
+- Earlier crew builds of a 2026-11-03 snapshot exist: R14 P4 `D:\o14a\p4\target_rocm`, 30-h job
+  `build_bullet_o30.bat`. This build shows the 2026-11-05 head with the advanced graph also builds.
 
 ## Licence finding (applies to every bullet build, including the crew's)
 `crates/bullet_lib/Cargo.toml` at upstream head 5d701776 (2026-11-05) depends on these crates.io crates:

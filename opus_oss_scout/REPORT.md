@@ -1,8 +1,8 @@
 # REPORT - OSS scout for Forge (2026-11-06)
 
 State: **FINAL for this job**: 69 catalog entries and six trials.
-- T1, T2, T3, T5 and T6 ran with measured results.
-- T4 is a design check without a build (GPU busy, no CPU backend).
+- Five trials ran with measured results: T1, T2, T3, T5, T6.
+- T4 is a design check plus a compile-only ROCm build; its GPU run is owed to an owner window.
 
 Top 3:
 1. clang 23 + MSYS2 libstdc++ ThinLTO + IR PGO: node-identical, +4.72 % nps screening.
@@ -74,12 +74,14 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
     table the probe is inlined into search.
 
 ### T4 bullet for the K32H3^ shape (bullet MIT, links GPL-3.0 sfbinpack + AGPL-3.0 montyformat)
-- Design check only: every K32H3^ piece has an equivalent in bullet's upstream `examples/advanced`.
-- Missing:
+- Design check: every K32H3^ piece has an equivalent in bullet's upstream `examples/advanced`.
+- Compile-only build of upstream head 5d701776 `advanced` with `--features rocm`: **rc 0 in 1 min 14 s**, 0 warnings.
+  `advanced.exe` sha256 59a496ad... imports `amdhip64_7.dll` / `hipblas.dll` / `hiprtc07013.dll`. GPU kernels compile
+  at run time (hiprtc).
+- Not run (the GPU is busy; bullet has no CPU backend). Missing:
   - an exporter to npt's `.nnue` container,
   - one GPU-window run,
   - an owner decision on the GPL / AGPL crates.
-- Nothing built (the GPU is busy; bullet has no CPU backend).
 
 ### T5 Fathom oracle (MIT) for Forge's own Syzygy reader
 - 50,000 random legal 3-5 piece positions: **WDL 50000 / 50000, DTZ 49678 / 49678 exact, AGREE**. That is about
@@ -100,7 +102,7 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
 | 1 | clang 23 via llvm-mingw, built against MSYS2 libstdc++, ThinLTO + IR PGO (T2) | ISC (llvm-mingw scripts), Apache-2.0 WITH LLVM-exception (LLVM) | node-identical to the lock (d11-d22, perft, net-off, options); **+4.72 % [+3.78, +5.66]** nps bench 20 vs the g++ LTO+PGO kit exe (A/A SANE, trainer 1.6-1.9 cores on 0xF) | speed only: ~+4-5 % nps if QA confirms; Elo not measured | QA lock path (12k BIT-EXACT, L3b warm identity, Threads 2-4 soak, own ABBA); add a clang line to the kit; try CS-IRPGO and other workloads | QA / Coder |
 | 2 | WPR (built-in) + samply import + `t3_samply_top.py` (T3) | Microsoft (WPR), MIT OR Apache-2.0 (samply), own tool | works with no install; symbolized hotspot tables of the bench and of the lock in live gate games | enables targeted speed work: `std::sort` 3.6-4.8 %, `Move::operator==` 3.4 %, HCE 19-20 % | speed crew: bit-exact Move compare; decide on a library-independent move sort (new lock); profile TB / SMP gates the same way | Coder |
 | 3 | Fathom (T5) | MIT | **AGREE** with Forge's reader on 50,000 positions; WDL probe 0.54 vs 0.97 us | correctness evidence for the Syzygy line; no Elo by itself | keep as the regression oracle for `syzygy.inc` changes; 50-move / cursed cases next | QA |
-| 4 | bullet for K32H3^ (T4) | MIT + GPL-3.0 / AGPL-3.0 crates | design mapping only | if bullet beats npt's ~200-350k pos/s for HalfKA L1 1024, faster net iterations (unmeasured) | exporter to `.nnue` + parity; one GPU-window run (batch 16k / 64k, 2-3 loader threads); licence decision | NNUE |
+| 4 | bullet for K32H3^ (T4) | MIT + GPL-3.0 / AGPL-3.0 crates | design mapping; upstream head + `advanced` example builds with ROCm here (1 min 14 s, 0 warnings); no GPU run | if bullet beats npt's ~200-350k pos/s for HalfKA L1 1024, faster net iterations (unmeasured) | exporter to `.nnue` + parity; one GPU-window run (batch 16k / 64k, 2-3 loader threads); licence decision | NNUE |
 | 5 | UHO_Lichess_4852_v1 book (T1) | CC0-1.0 | nElo ratio UHO / 8moves: 2:1 node odds **0.870** [0.794, 0.947]; 1.33:1 **1.102** [0.949, 1.255]; UHO games ~9 % shorter | rises toward UHO as the gap shrinks. If T1b's ratio held at gate size, ~17 % fewer SPRT pairs (extrapolation, unproven) | near-zero changes at gate TC on both books (TUNING.md 1-2) before any book switch; bounds policy if switched | QA |
 | 6 | Lichess puzzles + `t6_solve.py` (T6) | CC0-1.0 (data), own tool | lock solves 96.0 % (20k nodes) / 98.8 % (200k) of 2,000; 2500+ band 73.5 % / 86.7 %; ~10 ms per puzzle at 20k | a fast, load-independent tactical regression screen before gates (no Elo) | freeze a >= 2000-rated sample; paired lock-vs-candidate sign test | QA / Strength |
 | - | AMD uProf 5.3 | proprietary EULA + driver | not tried (system install) | hardware counters on Zen 5 (cache / branch) | owner decision on installing it | Coder |
@@ -136,7 +138,7 @@ Unproven (labelled so in the trial files):
   warm identity, no Threads 2-4 soak yet. No Elo claim.
 - T1: no statement about UHO at gate time control or for gate-size changes. T1a / T1b cover 2:1 and 1.33:1 node odds
   at 10k-20k nodes per move only. The "~17 % fewer pairs" figure is an extrapolation.
-- T4: no HalfKA throughput for bullet on this PC.
+- T4: no HalfKA throughput for bullet on this PC. The build compiles, but GPU kernels (hiprtc) are not exercised.
 - T5's speed ratio is one run on a shared core.
 
 Owner items:
