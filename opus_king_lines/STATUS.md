@@ -76,21 +76,52 @@ How it got there:
     refuses to start ("Out exists"). Nothing was stopped or killed.
   - **Output:** `C:\opus_5h\king_lines\bx_on_netoff_c`, started 18:02:08 PC clock. It passed the disk guard.
 
+### Step 5 - L3b warm_identity, ON vs OFF, net on and net off: **IDENTICAL**
+The owner's later brief (2026-11-06, about 18:50 PC clock) asks for the warm-table identity check (L3b) for KING_LINES
+ON vs OFF. No soak and no timing.
+- **Verdict: IDENTICAL.** Exit 0. Run 18:56:51-18:57:19 PC clock (14 s per exe).
+  - Harness line: `IDENTICAL: 12827 normalised lines, 1000 searches (go nodes 20000, 1000 FENs, warm TT, 40 state
+    changes), bench 13 = 862329 on both`.
+  - **Per position** (depth, score, nodes, bestmove; `tools/wi_tally.py` run on the harness's own logs, exit 0):
+    - **net on: 850 / 850 identical;**
+    - **net off: 150 / 150 identical;**
+    - whole rows (with seldepth and pv): the same counts. First mismatch: none.
+  - Net-off blocks (FEN index // 25): 4, 10, 16, 22, 28, 34. These come from the harness's cycle; each log has 12
+    UseNNUE lines.
+  - The ref has 1000 distinct result rows for 1000 FENs, so the degenerate guard passed. Both engines read back mask
+    0x3 Idle.
+- **Method:** the same tool and parameters as the six earlier stacks (opus_speed OWN_CHECKS #11).
+  - `opus_speed/tools/warm_identity.py` md5 3523f351. The file is the same on opus-speed 1ad0d295 and on this branch.
+  - 1000 FENs of `fens_12k_v2.txt` (md5 e7dbf2c8), `go nodes 20000`, Threads 1, no ucinewgame (warm TT).
+  - Every 25 FENs it makes one change: Hash 1 / Hash 64 / Clear Hash / UseNNUE false / UseNNUE true / Hash 16.
+  - `bench 1` and `go perft 1` run first, `bench 13` last.
+  - The harness has no net-off-only mode, so the net-off share (150 of 1000) is its own UseNNUE blocks.
+- **Exes:**
+  - ref = OFF 4181a5893f15e732..., the lock's bytes;
+  - cand = ON 44fd0137e7aa48e6...;
+  - both are sha256-checked copies of the pack exes, in `C:\opus_5h\king_lines\wi_exe\`.
+- **Outputs (C: only):**
+  - `C:\opus_5h\king_lines\wi_on_vs_off\`: ref.log md5 125e3316 and cand.log md5 ad0fd1f3, 12829 lines each;
+  - console `logs/wi_on_vs_off.console.txt` (md5 291e132d);
+  - tally `logs/wi_tally.txt`.
+- The commit was made from a shallow sparse clone on C: (`C:\opus_5h\king_lines\repo`). Nothing was written to F:.
+
 ## Summary
 - **The rebase is clean.** KING_LINES (the committed b4 patch d680f9bf) applies to trial_w6, and the switch-0 source is
   preprocessor-identical to trial_w6.
 - **OFF build** = 4181a589 = the lock, byte for byte (pc1 = pc2).
 - **ON build** 44fd0137 (pc1 = pc2): every pin holds, net on and net off, plus both perfts.
 - **Full 12k:** BIT-EXACT net on (12000 / 12000) and net off (12000 / 12000).
+- **L3b warm_identity** (warm TT, 40 option changes): IDENTICAL. Per position: net on 850 / 850, net off 150 / 150.
 
 ## In progress
-None. The own F: retry loop (`D:\opus_5h\king_lines\retry_step4.sh`) keeps polling until about 18:38. F: was at
-46.62 GiB at 18:10 PC clock. If F: recovers, the run refuses to start ("Out exists"), so nothing is re-run.
+None. Step 5 finished at 18:57:19 PC clock. The step-4 F: retry loop (`D:\opus_5h\king_lines\retry_step4.sh`) was set to
+poll until about 18:38; this was not re-checked. Its -Out folder exists, so it re-runs nothing.
 
 ## Exact next step
 1. Code Review of the pack.
-2. Then QA's lock-path items: L3b warm_identity, the Threads 2-4 soak and the quiet ABBA. The owner's follow-up did not
-   ask for them, and QA owns the ABBA.
+2. Then QA's remaining lock-path items: the Threads 2-4 soak (`patchrev_qa.py soak`) and QA's own quiet ABBA vs
+   trial_w6. QA owns both. L3b warm_identity is done (step 5).
 3. Not a lock. Nothing is queued.
 
 ## Resume commands
@@ -103,10 +134,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\t
   -Out 'D:\opus_5h\king_lines\<new dir>' -SkipSan [-FenOptions UseNNUE=false]
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\build_variants.ps1' \
   -SrcDir 'D:\opus_5h\king_lines\src\kl_gate' -Tag kl_gate -Variant lp_v1 -Twice -Work 'D:\opus_5h\king_lines\builds'
+# step 5 (Git Bash, cwd C:/opus_5h/king_lines; the out dir must not exist yet)
+python -I -B F:/ospd/wt/opus_speed/tools/warm_identity.py C:/opus_5h/king_lines/wi_exe/forge_king_lines_off_4181a589.exe \
+  C:/opus_5h/king_lines/wi_exe/forge_king_lines_on_44fd0137.exe F:/ospd/wt/opus_speed/data/fens_12k_v2.txt \
+  C:/opus_5h/king_lines/<new dir> --n 1000 --nodes 20000
+python -I -B opus_king_lines/tools/wi_tally.py C:/opus_5h/king_lines/<new dir>
 ```
 
 ## Unproven / not claimed
 - Not a lock.
 - **No speed claim:** there is no ABBA; QA owns it.
-- **Not run in this brief:** L3b warm_identity, the Threads 2-4 soak and the deep-ply stress. They were in the original
-  job-4 text, but the owner's follow-up asks only for steps 1-4.
+- **Not run:** the Threads 2-4 soak and the deep-ply stress. These are QA items.
+- **L3b net-off coverage:** 150 warm searches, which is the harness's own share. It is not a net-off-only run of 1000.
