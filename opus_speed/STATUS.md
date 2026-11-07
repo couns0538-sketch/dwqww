@@ -8,6 +8,21 @@ the job's reference and the search-identity pins. **Live lock since QA's publish
 bytes); every lock decision is against trial_w6.
 Session restart at ~09:32 (application restart by the owner); workers resumed 09:35; jobs started before it kept running.
 
+## 2026-11-06 5-hour brief: jobs 2-4 (pointers; each pack has its own STATUS.md)
+- **Job 2, int8 VNNI:** DONE through 2e. Branch `opus-nnue-int8-vnni-20261106`, tip 84489e36.
+  - Identity lp_v1 = 4181a589 (pc1 = pc2). Gate 81741f2b: ON d16 3282449.
+  - CR / QA item: the gate's PGO workload trains OFF only, so the ON path is cold (see BENCH.md).
+- **Job 3, TtReplaceCache:** DONE. Branch `opus-tt-replace-cache-20261106`, tip 87bf3c7e.
+  - Identity = 4181a589. Gate ec1cb55e: ON node-identical.
+- **Job 4, KING_LINES-alone qualification: NOT STARTED** (usage).
+  - FORGE_SPD_KING_LINES is not in trial_w6.
+  - `F:\ospd\src\w9dev` vs `F:\ospd\src\lock` is 833 changed lines in 8 files (w8 switches + KING_LINES). The diff
+    is saved at `D:\opus_5h\king_lines\w9dev_vs_lock.patch`.
+  - A dry run on trial_w6 fails 3 of 8 board.hpp hunks.
+  - Exact next step: extract the KING_LINES-only hunks (board.hpp / board.cpp) and rebase them onto a trial_w6 copy as
+    default-OFF. Prove identity OFF = 4181a589. Then run warm_identity.py (1,000 FENs), the patchrev_qa.py Threads 2-4
+    soak and a 100+ seldepth go depth 20 stress, all at 0xF Idle.
+
 ## 2026-11-06 runner audit (owner 5-hour brief, job 1) - DONE 16:42 PC clock; hand to Code Review
 - **Done:**
   - `opus_speed/tools/bitexact_check.ps1` = CR-approved 4d1c8d52 on all four tips (tools-only commits):
