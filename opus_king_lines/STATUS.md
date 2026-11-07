@@ -30,12 +30,22 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   - Perft: 4865609 / 193690690.
 - **Net off** (`logs/netoff_pins.txt`): OFF and ON both give 375354 / 907205 / 2448617 / 13573040 / 24506465 = the pins.
 
+### Step 3 - full 12k bitexact, ON vs the lock, net on (this commit)
+- **Verdict: BIT-EXACT (L1-L3; L3 on 12000 FENs).** Exit 0. Run 2026-11-06 17:24:58 PC clock; the cand took 658 s.
+- Ref: the lock exe trial_w6 4181a589 (forge_push\bin, read only). Cand: the ON exe 44fd0137.
+- Runner: bitexact_check.ps1 4d1c8d52, with -SkipSan (L4 not run).
+- L1: 10 / 10 PASS (bench d11-d22, net on and net off, = pins).
+- L2: 2 / 2 PASS (perft 5 startpos 4865609, kiwipete 193690690).
+- L3: **12000 / 12000 identical** (depth, score, nodes, bestmove) on fens_12k_v2.txt (md5 e7dbf2c8) at go depth 13,
+  12000 distinct ref results.
+- Log: `logs/bitexact_on_neton.log`.
+
 ## In progress
-Step 3: the full 12k bitexact check, ON exe vs the lock, net on. Output goes to `D:\opus_5h\king_lines\bx_on_neton`.
+Step 4: the full 12k bitexact check, ON vs the lock, net off (-FenOptions UseNNUE=false). Output goes to
+`D:\opus_5h\king_lines\bx_on_netoff`.
 
 ## Exact next step
-When step 3 has passed, run step 4: the same command with `-FenOptions UseNNUE=false` and
-`-Out D:\opus_5h\king_lines\bx_on_netoff`.
+When step 4 has passed: write its line here, push, and hand the pack to Code Review. Nothing is queued.
 
 ## Resume commands
 ```
