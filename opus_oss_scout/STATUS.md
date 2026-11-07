@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 19:26 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 19:39 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -31,11 +31,23 @@ Updated: 2026-11-06 19:26 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   OK, log `logs\scout_gate.jsonl`).
 - Shallow sparse clone `C:\opus_5h\oss_scout\repo` (sparse `/opus_oss_scout/`), branch created.
 
+- Step 1 pushed (058dea3b).
+- Step 2: `opus_oss_scout/CATALOG.md`, 69 entries (A 9, B 13, C 19, D 19, E 5, F 4). Licence finding: bullet_lib links
+  crates.io sfbinpack (GPL-3.0) and montyformat (AGPL-3.0) -> any bullet build is GPL/AGPL-encumbered (tool use only).
+- T1 setup: own fastchess 1.8.2-alpha (zip sha256 007CE550..., exe C6D7E445...), lock copy 4181A589 (pin_check PASS
+  19:27), books copied (8moves 5835239F, UHO 7A7F6470); smoke 4 games OK.
+
 ## In progress
-- Step 1: first commit + push of this file.
+- T1 (background, started 19:28): `tools/t1_run.sh uho 600 uho600` then `8moves 600 8moves600`, chain log
+  `logs/t1_chain.log`, outputs `build/t1_books/<tag>/` (stdout.txt, games.pgn).
 
 ## Exact next step
-- Step 2: survey -> `repo\opus_oss_scout\CATALOG.md` (metadata via `gh api repos/<r>`; licence files for NOASSERTION).
+- Step 3: ranking section in REPORT.md; then T2 (clang build of the lock source) after T1 ends.
+
+## Owner alert (not touched)
+- C: free falls fast because the live npt run `..._s85` writes ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`
+  (4.3 GB in 20 min at 19:36; C: 65.7 GB at 19:06 -> 58.4 GB at 19:37). At that rate C: reaches 30 GB in ~2 h and fills
+  in ~4-5 h, which would stop the trainer. This job's own footprint on C: is ~0.2 GB.
 
 ## Resume commands
 - Gate before any heavy step: `pwsh -NoProfile -File C:\opus_5h\oss_scout\tools\scout_gate.ps1 -Step "<what>" -PlannedGB <n>`
