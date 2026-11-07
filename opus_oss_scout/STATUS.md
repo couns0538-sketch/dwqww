@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 20:13 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 20:17 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -59,15 +59,32 @@ Updated: 2026-11-06 20:13 (PC clock). Branch `opus-oss-scout-20261106` (from mai
     - With `--sysroot=C:/msys64/ucrt64 -stdlib=libstdc++ -rtlib=libgcc -unwindlib=libgcc` (MSYS2 GCC 15.2 runtime):
       m0_lsx 3785AD3B PASS, m1_lsx (ThinLTO) DC0705A1 PASS, m2use_lsx (ThinLTO + IR PGO, workload v1) F982D177 PASS
       full (d11-d22 + perft), net-off d11 / d16 = 375354 / 2448617 = lock, 61 UCI options = lock.
+- T2 DONE (pushed d2bd296): ABBA bench 20 on CPU 2 BelowNormal.
+  - A/A 1.0052 [0.9977, 1.0127] (SANE).
+  - lock vs m2use_lsx **1.0472 [1.0378, 1.0566]** (median +4.53 %, 10/10 pairs > +2.9 %): WIN by the QA rule,
+    SCREENING only.
+- T3 DONE (pushed 2de37f7):
+  - `samply record` needs xperf (ADK, not allowed). Instead: built-in `wpr -start CPU` / `wpr -stop` + `samply import`.
+  - Hotspot tables for the clang bench (PDB) and for the lock in the live gate (COFF symbols).
+  - `std::sort` in the MovePicker = 3.6-4.8 %; `Move::operator==` 3.4 %.
+  - WPR is system-wide (6 s, disclosed).
+- T5 DONE (pushed 71258c9): Forge's own Syzygy reader vs Fathom on 50,000 positions: WDL 50000/50000, DTZ
+  49678/49678 exact, VERDICT AGREE. Warm WDL probe Forge ~0.97 us vs Fathom ~0.54 us.
+- T4 written (design only; no build, no GPU): every K32H3^ piece maps to bullet's advanced example; exporter to the npt
+  `.nnue` layout missing; GPU-window plan in `trials/t4_bullet_halfka/TUNING.md`.
+- T6 prepared: 2000 Lichess puzzles (CC0, dataset-viewer API, seed 20261106, ratings 399-3025, median 1400) in
+  `build/t6/puzzles_2000.jsonl`; solver `tools/t6_solve.py`.
 
 ## In progress
-- T2 ABBA (background task b6hz6791h, CPU 2 BelowNormal): A/A lock vs lock copy (6 pairs, `build/t2/abba_aa_lock`),
-  then lock vs m2use_lsx (10 pairs, `build/t2/abba_lock_vs_m2use`); bench 20, metric engine nps, identity = bench nodes.
+- T1b (background task bxiyom1vz, started 20:13): `T1_NODES_A=20000 T1_NODES_B=15000`, 1500 pairs per book, UHO then
+  8moves (`build/t1_books/uho1500_n15k`, `8moves1500_n15k`), chain log `logs/t1b_chain.log`; ~70 games/min -> ends
+  ~21:40.
 
 ## Exact next step
-- T2 RESULT.md from the two summary.txt files; then T3 samply on m2use_lsx (PDB `build/t2/m2use_lsx/forge_m2use_lsx.pdb`)
-  and on the lock exe; then T5 (build tb_probe, run both probers on 50k FENs, compare); then T1b (20000 vs 15000 nodes,
-  2000 pairs per book) in the background.
+- After T1b: `python -I -B tools/t1_analyze.py --engine n20k 8moves=build/t1_books/8moves1500_n15k/games.pgn,build/t1_books/8moves1500_n15k/stdout.txt uho=build/t1_books/uho1500_n15k/games.pgn,build/t1_books/uho1500_n15k/stdout.txt --json repo/opus_oss_scout/trials/t1_books/t1b_result.json`
+  -> T1 RESULT.md (T1b section).
+- Then T6: `python -I -B tools/t6_solve.py C:/opus_5h/oss_scout/build/lock/forge_trial_w6.exe build/t6/puzzles_2000.jsonl --nodes 20000 --nodes 200000 --out repo/opus_oss_scout/trials/t6_puzzles/t6_result.json`.
+- Then REPORT.md sections 3 + 5, final checks (check_catalog.py, re-hash, time grep), advisor, final push.
 
 ## Owner alert (not touched)
 - C: free falls fast because the live npt run `..._s85` writes ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`
@@ -75,6 +92,8 @@ Updated: 2026-11-06 20:13 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   in ~4-5 h, which would stop the trainer. This job's own footprint on C: is ~0.2 GB.
 - Update 19:56: C: 50.3 GB (58.2 at 19:42), i.e. ~0.5 GB/min. Trainer pid changed 2188 -> 14296 -> 1036 (new runs).
   This job's footprint ~1.1 GB (llvm-mingw 0.9 GB of it).
+- Update 20:16: C: 44.5 GB, still ~0.5 GB/min. That crosses 30 GB ~20:45 and fills ~21:45 at this rate. This job
+  makes no more downloads below 30 GB; its footprint is 1.5 GB (incl. the 354 MB WPR trace).
 
 ## Resume commands
 - Gate before any heavy step: `pwsh -NoProfile -File C:\opus_5h\oss_scout\tools\scout_gate.ps1 -Step "<what>" -PlannedGB <n>`
