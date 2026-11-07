@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 19:44 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 19:51 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -36,13 +36,24 @@ Updated: 2026-11-06 19:44 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   crates.io sfbinpack (GPL-3.0) and montyformat (AGPL-3.0) -> any bullet build is GPL/AGPL-encumbered (tool use only).
 - T1 setup: own fastchess 1.8.2-alpha (zip sha256 007CE550..., exe C6D7E445...), lock copy 4181A589 (pin_check PASS
   19:27), books copied (8moves 5835239F, UHO 7A7F6470); smoke 4 games OK.
+- Step 3: ranking in REPORT.md section 1 (pushed d07e21f); ideas-only section 4 written.
+- T1 UHO half DONE (19:28-19:41): 600 pairs, pentanomial [1, 25, 130, 239, 205] = fastchess, nElo +296.3
+  [+276.7, +316.0], draw ratio 0.303. Gate-TC context (8moves, 10+0.1): draw ratio 0.797
+  (`trials/t1_books/logs/gate_context_8moves.txt`).
+- T2 prepared: source `build/t2/src_w6` = d4f4312 (LF) + trial_w6.patch (md5 5786e9b8, 8 files, no rejects); build
+  script `tools/t2_build.ps1`; workload copy `data/frozen_train_cmds.txt` (sha256 1D52720A = QA kit v2.3 v1).
+- T3 prepared: samply 0.13.1 zip (sha256 8fed74da = the release's .sha256) unpacked in `dl/samply-0.13.1/x`.
+- T5 prepared: Fathom c9c6fef0 in `dl/fathom`; P6 tree `build/t5/src_p6` = d4f4312 + syzygy_port.patch (md5 4342d24f)
+  + tb_probe.cpp (P6 tip 4bf626eb); 50k FENs `build/t5/data/t5_50k.fens` (sha256 a1b3ca09, seed 20261106, 145
+  materials); batch prober source `tools/t5_fathom_batch.c`.
 
 ## In progress
-- T1 (background, started 19:28): `tools/t1_run.sh uho 600 uho600` then `8moves 600 8moves600`, chain log
-  `logs/t1_chain.log`, outputs `build/t1_books/<tag>/` (stdout.txt, games.pgn).
+- T1 8moves half (background chain, task bpu3ql2pc): `build/t1_books/8moves600/`, then
+  `python -I -B tools/t1_analyze.py ...` (command in `trials/t1_books/CMDS.md`).
 
 ## Exact next step
-- Step 3: ranking section in REPORT.md; then T2 (clang build of the lock source) after T1 ends.
+- After T1: t1_analyze -> trials/t1_books/RESULT.md; then T2 builds g0 -> c0 -> pin_check each (MCP) -> c1 / c2 -> ABBA
+  on CPU 2; then T3 samply on the c1/c2 PDB build.
 
 ## Owner alert (not touched)
 - C: free falls fast because the live npt run `..._s85` writes ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`

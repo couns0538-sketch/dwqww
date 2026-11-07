@@ -35,7 +35,23 @@ PC-specific tuning ideas (`trials/<name>/TUNING.md`).
 
 ## 4. Ideas only (GPL / AGPL / unlicensed)
 
-(pending)
+These may be read to understand them. No code is copied into Forge; mechanisms must be rewritten in own words.
+
+| Source | Licence | Idea worth an own implementation | Owner |
+|---|---|---|---|
+| nnue-pytorch (A3) | GPL-3.0 | already the live trainer (run-only). Ideas to port into an own or bullet-based pipeline: the feature factoriser, the loss / lambda schedule, `--validation-*` handling | NNUE |
+| Stockfish data tools (B5), binpack-rust (B1), pgn2binpack (B2), chess-binpack-utils (B3) | GPL-3.0 | game-chained binpack storage (far smaller than FPOS 32 B rows); filters (skip captures / in-check / TB-decided rows); PGN -> training rows from the gate PGNs, ~2,100 games per gate already on F: | NNUE |
+| montyformat / Monty (F4) | AGPL-3.0 | compact game records with policy data (only via bullet; see A-1) | NNUE |
+| marlinflow (A6), CudAD (A5) | GPL-3.0 | older trainer designs (Rust loader + PyTorch; CUDA kernels): nothing that bullet lacks | - |
+| fishtest (C6) | no root LICENSE | pentanomial SPRT practice, SPSA schedule (a / c decay); its server code names `UHO_Lichess_4852_v1` (GitHub code search: `server/fishtest/views.py`, `rundb.py`, `util.py`, `worker/games.py`) | QA |
+| OpenBench (C4) | GPL-3.0 | SPSA with per-parameter c / r end values, workload splitting | Strength |
+| spsa (C12), texel-tuner (C13) | GPL-3.0 | Texel tuning of HCE terms against game results: Forge's lock adds HCE + net, so an own permissive Texel tuner could move HCE weights | Strength |
+| WDL_model (C14) | GPL-3.0 | fit of win rate vs eval and material, to set the eval scale so that "100 cp = 50 % win chance at some ply" (input for E3 eval post-processing) | Strength / NNUE |
+| cutechess (C2), c-chess-cli (C3) | GPL-3.0 | nothing over fastchess for the gates | - |
+| Ordo (C15), BayesElo (C16), pgn-extract (C19), python-chess (C18) | GPL | rating lists across many gates; PGN filters. python-chess stays a run-only test tool in the crew venv | QA |
+| Very Sleepy (D4) | GPL-2.0 | sampling without admin rights (samply needs elevation) | Coder |
+| Syzygy generator (E3), lila-tablebase (E4) | GPL-2.0 / AGPL-3.0 | none needed: the tables are downloadable, and Forge has an own reader | - |
+| Grapheus (A4), viriformat repo (B4), lczero-training (F2), lc0-data-packing (F3) | no LICENSE file | Lc0 data conversion details (how T80-T91 became binpacks: TB rescoring, filters) | NNUE |
 
 ## 5. Unproven claims and owner items
 

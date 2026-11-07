@@ -14,10 +14,14 @@ sed -i -E "0,/^Updated: .*\(PC clock\)/s//Updated: ${now} (PC clock)/" "$SCOUT/S
 sed -i -E "s/^Updated: @NOW@ \(PC clock\)/Updated: ${now} (PC clock)/" "$SCOUT/STATUS.md"
 mkdir -p "$DEST/tools"
 cp "$SCOUT/STATUS.md" "$DEST/STATUS.md"
-for f in "$SCOUT"/tools/*.ps1 "$SCOUT"/tools/*.py "$SCOUT"/tools/*.sh; do
+for f in "$SCOUT"/tools/*.ps1 "$SCOUT"/tools/*.py "$SCOUT"/tools/*.sh "$SCOUT"/tools/*.c; do
   [ -f "$f" ] || continue
   cp "$f" "$DEST/tools/"
 done
+if [ -d "$SCOUT/tools/abba" ]; then
+  mkdir -p "$DEST/tools/abba"
+  cp "$SCOUT"/tools/abba/*.py "$SCOUT"/tools/abba/*.ps1 "$DEST/tools/abba/" 2>/dev/null || true
+fi
 msg=$SCOUT/tmp/commit_msg.txt
 printf '%s\n' "$subject" > "$msg"
 if [ -n "$body" ] && [ -f "$body" ]; then printf '\n' >> "$msg"; cat "$body" >> "$msg"; fi
