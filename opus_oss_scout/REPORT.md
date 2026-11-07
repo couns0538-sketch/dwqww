@@ -152,3 +152,14 @@ Owner items:
 6. AMD uProf install (hardware counters) - owner decision.
 7. Data provenance policy for Stockfish / Lc0-derived data sets (catalog B7, B10, B11).
 8. WPR traces are system-wide; this job ran one 6 s trace (20:07:04-20:07:10) while gates were playing.
+9. **Trainer run ended during a PC-wide low-memory event** (from `F:\forge_nnue_train\supervisor.log`, read-only).
+   - The run: `npt_k32h3_l1024_bs16k_e6x152m5_g072_lam10_w4_s87`, launched 20:24:59.
+   - 21:03:04: "ended without 'Finished' but made checkpoint progress ('' -> epoch006-step000055842.pt) ->
+     needs_resume, counted as progress not a fail (try 1/20)".
+   - 21:03:07: the supervisor launched the resume (PID 6568). It was not running at 21:10.
+   - 21:10:10: the supervisor launched `..._s88` from its queue.
+   - In the same window, the session harness stopped this job's idle background shell for "critically low memory".
+     Free RAM was 21.5 GB again at 21:09.
+   - This job's processes at that moment: fastchess + 4 engines with Hash 16, ~60 MB in all. A second agent session
+     had started at 20:59; Firefox had been started at 20:32:47 by an already-exited process.
+   - **The cause is not established.** Nothing of the trainer was touched. The resume / run choice is the owner's.
