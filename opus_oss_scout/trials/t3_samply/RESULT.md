@@ -51,7 +51,8 @@ table (no inline information). Full table: `logs/hotspots_lock_in_live_gate.md`.
 ## Compared with R7 (older engine, Linux perf): HCE eval 14.4 %, MovePicker 10.9 %, TT probe 10.7 %
 - HCE is larger now: 18.6-20.4 % physical.
 - The move picker is about the same: 11.7 % in games for `next` plus 3.6 % sort.
-- The TT probe dropped a lot (3.1 % + 1.1 % in the bench build), in line with the speed job's TT_NOTLS / NZM changes.
+- The TT probe dropped a lot: `probe_owned` is 3.1 % as its own physical function in the bench build. That fits the
+  speed job's TT_NOTLS / NZM changes, though both builds and engine versions differ from R7.
 
 ## Speed leads from the profile (for the Coder / speed crew; none measured here)
 1. **`std::sort` in the move picker: 3.6 % (games) to 4.8 % (bench).** A specialised insertion / partial sort of the

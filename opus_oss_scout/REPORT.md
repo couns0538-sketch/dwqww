@@ -57,7 +57,8 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
   - HCE `evaluate_position` 18.6-20.4 %.
   - MovePicker `next` 11.7 % + `std::sort` 3.6-4.8 %.
   - `Move::operator==` 3.4 %.
-  - TT probe ~4 % (R7: 10.7 %).
+  - TT probe: `probe_owned` 3.1 % as its own function in the bench build (R7, older engine: 10.7 %). In the gate
+    table the probe is inlined into search.
 
 ### T4 bullet for the K32H3^ shape (bullet MIT, links GPL-3.0 sfbinpack + AGPL-3.0 montyformat)
 - Design check only: every K32H3^ piece has an equivalent in bullet's upstream `examples/advanced`.
@@ -98,7 +99,7 @@ These may be read to understand them. No code is copied into Forge; mechanisms m
 | Source | Licence | Idea worth an own implementation | Owner |
 |---|---|---|---|
 | nnue-pytorch (A3) | GPL-3.0 | already the live trainer (run-only). Ideas to port into an own or bullet-based pipeline: the feature factoriser, the loss / lambda schedule, `--validation-*` handling | NNUE |
-| Stockfish data tools (B5), binpack-rust (B1), pgn2binpack (B2), chess-binpack-utils (B3) | GPL-3.0 | game-chained binpack storage (far smaller than FPOS 32 B rows); filters (skip captures / in-check / TB-decided rows); PGN -> training rows from the gate PGNs, ~2,100 games per gate already on F: | NNUE |
+| Stockfish data tools (B5), binpack-rust (B1), pgn2binpack (B2), chess-binpack-utils (B3) | GPL-3.0 | game-chained binpack storage (far smaller than FPOS 32 B rows); filters (skip captures / in-check / TB-decided rows); PGN -> training rows from the gate PGNs (each finished gate keeps its full PGN on F:, e.g. 2,128 games in gate_tm_scoreloss1_vs_AL1) | NNUE |
 | montyformat / Monty (F4) | AGPL-3.0 | compact game records with policy data (only via bullet; see A-1) | NNUE |
 | marlinflow (A6), CudAD (A5) | GPL-3.0 | older trainer designs (Rust loader + PyTorch; CUDA kernels): nothing that bullet lacks | - |
 | fishtest (C6) | no root LICENSE | pentanomial SPRT practice, SPSA schedule (a / c decay); its server code names `UHO_Lichess_4852_v1` (GitHub code search: `server/fishtest/views.py`, `rundb.py`, `util.py`, `worker/games.py`) | QA |
