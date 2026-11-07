@@ -1,6 +1,6 @@
 # NnueInt8Vnni - STATUS
 
-**Last update:** step 2b, 2026-11-06 ~16:55 PC clock.
+**Last update:** step 2c, 2026-11-06 ~16:58 PC clock.
 
 ## Done
 
@@ -29,17 +29,26 @@
 - **Mate probe.** `tools/mate_probe.ps1`, 22 FENs, 3M nodes, plain gate exe d44b6a0e, NnueInt8Vnni 0 vs 1.
   - Mate found: OFF 19, ON 21.
   - LOST (or sign flip) by ON: **0**. LONGER by ON: 4 (fens 1, 8, 10, 13). GAINED: 2. SHORTER: 1.
-  - A 30M re-check of the 4 LONGER positions is running and will be in the next commit.
+  - 30M re-check of the 4 LONGER positions: all 4 now give the same mate and the same bestmove OFF and ON (LOST 0,
+    LONGER 0; `logs/mate_probe_2b_30m_SUMMARY.txt`).
 - **Note:** the hand-crafted part of the "total" is the public `Evaluator::evaluate`. `evaluate_runtime` is private to
   Worker. The same value enters both totals.
+
+### 2c - overflow bounds (this commit)
+- `tools/int8_bounds.py` and BOUNDS.md: ALL BOUNDS HOLD.
+  - FT \|A\| <= 21,236 < 32,767.
+  - Activation <= 254; c*c + 128 <= 65,153 (fits u16).
+  - L1 \|sum\| <= 1,608,582 < 2^24.
+  - vpdpbusd lane <= 1,032,256.
+  - An AVX2 pmaddubsw pair can saturate (64,516), so there is no AVX2 fallback.
 
 ## In progress
 - The LTO+PGO identity build of `D:\opus_5h\int8_vnni\src\int8_id` (lp_v1 -Twice). It must give 4181A589 for both pc1
   and pc2.
-- The 30M mate re-check.
 
 ## Exact next step
-2c: `tools/int8_bounds.py` + BOUNDS.md. Then 2d (the SIMD kernel), only after 2c is pushed.
+2d: the AVX-512 VNNI kernel in `int8_l1_sum`, the proof that the kernel equals the scalar reference on every harness
+position, and a verify build.
 
 ## Resume commands
 ```
@@ -55,7 +64,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\t
 ## Unproven / not claimed
 - No strength or speed claim.
 - The eval diffs above are measured on the 2001-root slice and its walks, not on the full 12k set.
-- The int16 FT bound is not yet proven (2c). The 6293 above is measured, not a bound.
 - There is no SIMD kernel yet: `int8_l1_sum` is still the scalar reference, so "kernel == scalar" holds trivially.
 
 ## Disk

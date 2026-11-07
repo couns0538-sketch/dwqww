@@ -1,0 +1,5 @@
+1 FT int16 (1/256 units): worst |A| bound 21236 at hidden unit 100 (limit 32767): HOLDS; headroom x1.54
+2 SCReLU: c*c + 128 <= 65153 (< 65536: True), a <= 254 (u8: True)
+3 L1: sum|W2q| = 6333, |sum| <= 1608582 (< 2^24 = 16777216: True; < 2^31: True); per int32 lane <= 1032256
+4 AVX2 pmaddubsw pair max 64516 vs int16 32767: CAN SATURATE (an AVX2 fallback needs a <= 128 or another kernel)
+VERDICT ALL BOUNDS HOLD
