@@ -1,6 +1,6 @@
 # NnueInt8Vnni - STATUS
 
-**Last update:** step 2d, 2026-11-06 ~17:00 PC clock.
+**Last update:** step 2e, 2026-11-06 ~17:05 PC clock. Pack ready for Code Review (UNPROVEN, no SPRT queued).
 
 ## Done
 
@@ -44,7 +44,7 @@
 
 - 2b identity: LTO+PGO lp_v1 of `int8_id` (the 2b source): pc1 = pc2 = 4181a589 = trial_w6, byte for byte.
 
-### 2d - AVX-512 VNNI kernel (this commit)
+### 2d - AVX-512 VNNI kernel (commit 46939edf)
 - **The kernel.** `int8_l1_sum` works on 64 hidden units per step:
   - clip 0..255, then `mullo_epi16` +128 `>> 8` in 16-bit lanes;
   - `packus_epi16` to 64 u8, with the weights pre-permuted (`w2p`) to match the byte order;
@@ -64,15 +64,23 @@
 - **Verify build.** Bench with the scalar check on every eval (`logs/verify_2d_bench.txt`): ON d13 760,289 and d16
   3,282,449, no abort; OFF d13 862,329 = lock pin.
 
+### 2e - builds + bench report (this commit; BENCH.md)
+- **Identity build** `int8v2_id`, lp_v1: pc1 = pc2 = **4181a589** = trial_w6, byte for byte.
+- **Gate build** `int8v2_gate`, lp_v1: pc1 = pc2 = **81741f2b**. The exe is
+  `D:\opus_5h\int8_vnni\pack\forge_nnue_int8_vnni_gate_81741f2b.exe`.
+- **Gate OFF:** all lock pins hold, net on and net off, and both perfts.
+- **Gate ON** (`NnueInt8Vnni=1`): d11 326976, d13 760289, **d16 3282449**, d20 11638305, d22 27267033. Perft is
+  unchanged.
+- **Advisory nps:** the LTO+PGO gate runs ON at about 0.5x OFF, because the PGO workload is OFF-only and the int8 code is
+  cold. The plain -O3 build runs ON at about OFF's speed. CR / QA item: in BENCH.md.
+
 ## In progress
-- 2e LTO+PGO builds: `int8v2_id` (must give 4181a589 for pc1 and pc2) and `int8v2_gate` (pc1 = pc2), both lp_v1 -Twice.
+None.
 
 ## Exact next step
-2e: once the builds finish:
-1. Check the gate exe: pins OFF (net on + net off), both perfts.
-2. Record ON bench d11 / d13 / d16 / d20 / d22.
-3. Write BENCH.md and pack the exe to `D:\opus_5h\int8_vnni\pack\`.
-4. Hand the pack to Code Review.
+1. Code Review of the pack: the patch md5 9a2ad0b4 + BOUNDS.md + harness logs.
+2. QA decides the gate exe's PGO recipe (BENCH.md item) before any SPRT. The gate line is `setoption name NnueInt8Vnni
+   value 1` vs trial_w6.
 
 ## Resume commands
 ```
@@ -87,6 +95,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\t
 
 ## Unproven / not claimed
 - No strength or speed claim.
+- The ON nps of the LTO+PGO gate exe is not representative (cold PGO path); see BENCH.md.
 - The eval diffs above are measured on the 2001-root slice and its walks, not on the full 12k set.
 - The kernel was proven against the scalar reference on 203,724 positions plus every eval of bench d13/d16. That is
   not a proof for all inputs. The integer argument for all inputs is in BOUNDS.md.
