@@ -9,7 +9,7 @@ The owner follow-up brief (2026-11-06, after the 5-hour brief) asks for these st
 Commit + push after every step. No exe, lock, queue or gate file is touched. This is not a lock.
 
 ## Done
-### Step 1 - rebase (this commit)
+### Step 1 - rebase (commit 343d1da3)
 - `D:\opus_5h\king_lines\src\kl` = a trial_w6 copy + `opus_speed/patches/b4_king_lines_after_w8.patch` (d680f9bf), the
   committed KING_LINES-only patch.
   - It applies cleanly (`patch -p1 -F0`, with a dry run first).
@@ -21,20 +21,30 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   - `kl_id`: six lock flips, FORGE_SPD_KING_LINES 0;
   - `kl_gate`: six + FORGE_SPD_KING_LINES 1 (the ON build).
 
+### Step 2 - builds, identity, pins, perft (logs commit 7b523fd5)
+- **OFF build** `kl_id` (lp_v1 -Twice): pc1 = pc2 = **4181a5893f15e732...** = trial_w6, byte for byte.
+- **ON build** `kl_gate` (lp_v1 -Twice): pc1 = pc2 = **44fd0137e7aa48e62302ef88145c5cbc353b1ebc4a0b6f4147f3a729199c14fb**.
+- **Copies:** `D:\opus_5h\king_lines\pack\forge_king_lines_off_4181a589.exe` and `..._on_44fd0137.exe`.
+- **pin_check full** (`logs/pin_check_step2.txt`): OFF and ON both PASS.
+  - Net on: 312866 / 862329 / 3024920 / 12389307 / 34048354.
+  - Perft: 4865609 / 193690690.
+- **Net off** (`logs/netoff_pins.txt`): OFF and ON both give 375354 / 907205 / 2448617 / 13573040 / 24506465 = the pins.
+
 ## In progress
-Step 2: LTO+PGO builds of kl_id and kl_gate (lp_v1 -Twice).
+Step 3: the full 12k bitexact check, ON exe vs the lock, net on. Output goes to `D:\opus_5h\king_lines\bx_on_neton`.
 
 ## Exact next step
-1. Check kl_id: pc1 = pc2, and both must be 4181a589.
-2. Check kl_gate: pc1 = pc2.
-3. Run pin_check (full) on both exes, plus the net-off pins and perft.
-4. Then step 3: `bitexact_check.ps1 -Cand <ON exe> -Out D:\opus_5h\king_lines\bx_on_neton -SkipSan`.
-5. Then step 4: the same with `-FenOptions UseNNUE=false`.
+When step 3 has passed, run step 4: the same command with `-FenOptions UseNNUE=false` and
+`-Out D:\opus_5h\king_lines\bx_on_netoff`.
 
 ## Resume commands
 ```
 cd /f/ospd/wt && git checkout opus-king-lines-20261106
 bash opus_king_lines/tools/pp_identity.sh /f/ospd/src/trial_w6 /d/opus_5h/king_lines/src/kl
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\bitexact_check.ps1' \
+  -Cand 'D:\opus_5h\king_lines\pack\forge_king_lines_on_44fd0137.exe' \
+  -Ref 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe' \
+  -Out 'D:\opus_5h\king_lines\<new dir>' -SkipSan [-FenOptions UseNNUE=false]
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\tools\build_variants.ps1' \
   -SrcDir 'D:\opus_5h\king_lines\src\kl_gate' -Tag kl_gate -Variant lp_v1 -Twice -Work 'D:\opus_5h\king_lines\builds'
 ```
