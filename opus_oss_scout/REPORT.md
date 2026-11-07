@@ -24,10 +24,17 @@ Elo or speed claim.
 
 ## 2. Trial results (step 4)
 
-Filled in per trial: tool, licence, exact build / run, measured result with the crew load next to it, SHA256SUMS,
-PC-specific tuning ideas (`trials/<name>/TUNING.md`).
+Per trial: tool, licence, the exact build / run (`trials/<name>/CMDS.md`), the measured result with the crew load next
+to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
 
-(pending)
+### T1 book resolution (UHO_Lichess_4852_v1 vs 8moves_v3; Stockfish books CC0, fastchess 1.8.2 MIT)
+- **T1a, 2:1 node odds** (lock at 20000 vs 10000 nodes, 600 pairs per book; fixed nodes, so the load does not matter):
+  - 8moves: nElo +340.5 [+320.9, +360.2].
+  - UHO: nElo +296.3 [+276.7, +316.0].
+  - Ratio UHO / 8moves 0.870 [0.794, 0.947]: **at a large gap UHO resolves worse**.
+- The gates' own regime is different: 8moves at 10+0.1 has 79.7 % draws (gate_tm_scoreloss1_vs_AL1). T1a does not
+  test that regime.
+- T1b (1.33:1 node odds) follows; see `trials/t1_books/RESULT.md`.
 
 ## 3. Ranked table (step 6)
 

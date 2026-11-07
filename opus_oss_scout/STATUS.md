@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 19:56 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 20:06 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -46,19 +46,35 @@ Updated: 2026-11-06 19:56 (PC clock). Branch `opus-oss-scout-20261106` (from mai
 - T5 prepared: Fathom c9c6fef0 in `dl/fathom`; P6 tree `build/t5/src_p6` = d4f4312 + syzygy_port.patch (md5 4342d24f)
   + tb_probe.cpp (P6 tip 4bf626eb); 50k FENs `build/t5/data/t5_50k.fens` (sha256 a1b3ca09, seed 20261106, 145
   materials); batch prober source `tools/t5_fathom_batch.c`.
+- T1a DONE (pushed 7147dd6): at 2:1 node odds, 8moves nElo +340.5 [+320.9, +360.2] vs UHO +296.3 [+276.7, +316.0];
+  ratio UHO / 8moves 0.870 [0.794, 0.947]. UHO is NOT better in this large-gap proxy; small changes still untested (T1b).
+- T2 builds:
+  - g0 (g++ plain) 758608C8 pin_check PASS (source identity).
+  - c0 (installed LLVM 18, MSVC target): FAILS to compile. The VS 18 STL 14.51 asserts "expected Clang 20 or newer"
+    (STL1000) and uses `__is_layout_compatible`.
+  - llvm-mingw 20261104 (clang 23.1.5, zip sha256 552191b5, 737 MB in `dl/llvm-mingw-20261104/x`):
+    - With its libc++: m0 EA0645FB bench DIFF (d11 369996, net-off d11 369292).
+    - Cause: libc++ vs libstdc++. The MovePicker's `std::sort` has unstable tie order (search.cpp:632); the LMR table
+      uses `std::log`.
+    - With `--sysroot=C:/msys64/ucrt64 -stdlib=libstdc++ -rtlib=libgcc -unwindlib=libgcc` (MSYS2 GCC 15.2 runtime):
+      m0_lsx 3785AD3B PASS, m1_lsx (ThinLTO) DC0705A1 PASS, m2use_lsx (ThinLTO + IR PGO, workload v1) F982D177 PASS
+      full (d11-d22 + perft), net-off d11 / d16 = 375354 / 2448617 = lock, 61 UCI options = lock.
 
 ## In progress
-- T1 8moves half (background chain, task bpu3ql2pc): `build/t1_books/8moves600/`, then
-  `python -I -B tools/t1_analyze.py ...` (command in `trials/t1_books/CMDS.md`).
+- T2 ABBA (background task b6hz6791h, CPU 2 BelowNormal): A/A lock vs lock copy (6 pairs, `build/t2/abba_aa_lock`),
+  then lock vs m2use_lsx (10 pairs, `build/t2/abba_lock_vs_m2use`); bench 20, metric engine nps, identity = bench nodes.
 
 ## Exact next step
-- After T1: t1_analyze -> trials/t1_books/RESULT.md; then T2 builds g0 -> c0 -> pin_check each (MCP) -> c1 / c2 -> ABBA
-  on CPU 2; then T3 samply on the c1/c2 PDB build.
+- T2 RESULT.md from the two summary.txt files; then T3 samply on m2use_lsx (PDB `build/t2/m2use_lsx/forge_m2use_lsx.pdb`)
+  and on the lock exe; then T5 (build tb_probe, run both probers on 50k FENs, compare); then T1b (20000 vs 15000 nodes,
+  2000 pairs per book) in the background.
 
 ## Owner alert (not touched)
 - C: free falls fast because the live npt run `..._s85` writes ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`
   (4.3 GB in 20 min at 19:36; C: 65.7 GB at 19:06 -> 58.4 GB at 19:37). At that rate C: reaches 30 GB in ~2 h and fills
   in ~4-5 h, which would stop the trainer. This job's own footprint on C: is ~0.2 GB.
+- Update 19:56: C: 50.3 GB (58.2 at 19:42), i.e. ~0.5 GB/min. Trainer pid changed 2188 -> 14296 -> 1036 (new runs).
+  This job's footprint ~1.1 GB (llvm-mingw 0.9 GB of it).
 
 ## Resume commands
 - Gate before any heavy step: `pwsh -NoProfile -File C:\opus_5h\oss_scout\tools\scout_gate.ps1 -Step "<what>" -PlannedGB <n>`

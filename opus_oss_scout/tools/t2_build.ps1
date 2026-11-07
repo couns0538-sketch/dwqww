@@ -13,7 +13,8 @@ param(
     [string]$Src = 'C:\opus_5h\oss_scout\build\t2\src_w6',
     [string]$OutRoot = 'C:\opus_5h\oss_scout\build\t2',
     [string]$Profdata = '',
-    [string]$Tag = ''
+    [string]$Tag = '',
+    [switch]$LibStdCxx
 )
 $ErrorActionPreference = 'Stop'
 $name = if ($Tag) { "$Variant`_$Tag" } else { $Variant }
@@ -44,7 +45,41 @@ function Run([string]$exe, [string[]]$argv) {
     if ($p.ExitCode -ne 0) { throw "$exe failed with exit $($p.ExitCode); see $log" }
 }
 
-if ($Variant -eq 'g0') {
+if ($Variant -match '^m') {
+    # llvm-mingw 20261104 (clang 23.1.5, x86_64-w64-windows-gnu, UCRT, libc++): the MinGW ABI of the lock's g++.
+    # The installed LLVM 18 cannot use the VS 18 STL (STL1000: "expected Clang 20 or newer"), see RESULT.md.
+    $lm = 'C:\opus_5h\oss_scout\dl\llvm-mingw-20261104\x\llvm-mingw-20261104-ucrt-x86_64\bin'
+    $env:PATH = $lm + ';' + $env:PATH   # process-local
+    $clang = Join-Path $lm 'clang++.exe'
+    $common = @('-std=c++20', '-O3') + $defs + @('-ffp-contract=off', '-fno-fast-math', '-march=znver5', '-pthread',
+        '-g', '-gcodeview', $inc)
+    if ($LibStdCxx) {
+        # Use the MSYS2 ucrt64 GCC 15.2 runtime (libstdc++, libgcc, mingw-w64 CRT) like the lock's g++ build, so that
+        # library code (std::sort tie order, std::log) is the same as in the lock.
+        $common += @('--sysroot=C:/msys64/ucrt64', '-stdlib=libstdc++', '-rtlib=libgcc', '-unwindlib=libgcc')
+    }
+    $lto = @(); $prof = @()
+    switch ($Variant) {
+        'm0' { }
+        'm1' { $lto = @('-flto=thin') }
+        'm2gen' { $lto = @('-flto=thin'); $prof = @('-fprofile-instr-generate') }
+        'm2use' { if (-not (Test-Path $Profdata)) { throw 'm2use needs -Profdata' }; $lto = @('-flto=thin'); $prof = @("-fprofile-instr-use=$Profdata", '-Wno-profile-instr-unprofiled', '-Wno-profile-instr-out-of-date') }
+        'm3gen' { if (-not (Test-Path $Profdata)) { throw 'm3gen needs -Profdata' }; $lto = @('-flto=thin'); $prof = @("-fprofile-instr-use=$Profdata", '-fcs-profile-generate', '-Wno-profile-instr-unprofiled') }
+        'm3use' { if (-not (Test-Path $Profdata)) { throw 'm3use needs -Profdata' }; $lto = @('-flto=thin'); $prof = @("-fprofile-instr-use=$Profdata", '-Wno-profile-instr-unprofiled', '-Wno-profile-instr-out-of-date') }
+        default { throw "unknown variant $Variant" }
+    }
+    $objDir = Join-Path $out 'obj'
+    New-Item -ItemType Directory -Path $objDir | Out-Null
+    $objs = @()
+    foreach ($u in $units) {
+        $o = Join-Path $objDir (([IO.Path]::GetFileNameWithoutExtension($u)) + '.o')
+        Run $clang ($common + $lto + $prof + @('-c', $u, '-o', $o))
+        $objs += $o
+    }
+    $exeOut = Join-Path $out "forge_$name.exe"
+    $pdb = Join-Path $out "forge_$name.pdb"
+    Run $clang ($common + $lto + $prof + @('-fuse-ld=lld', '-static') + $objs + @('-o', $exeOut, "-Wl,--pdb=$pdb", '-Wl,--no-insert-timestamp'))
+} elseif ($Variant -eq 'g0') {
     $gpp = 'C:\msys64\ucrt64\bin\g++.exe'
     $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH   # process-local: cc1plus / as / ld helpers
     $exeOut = Join-Path $out 'forge_g0.exe'

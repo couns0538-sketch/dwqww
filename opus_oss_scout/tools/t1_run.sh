@@ -2,7 +2,8 @@
 # t1_run.sh <book_key> <rounds> <out_tag> - OSS scout trial T1 (book resolution): one fastchess match of the lock exe
 # at 20000 nodes per move vs the same exe at 10000 nodes per move on one book. Fixed nodes, Threads 1: results do not
 # depend on CPU load. Runs at the session's Idle priority on CPUs 2-3 (inherited). Refuses to overwrite an output dir.
-# book_key: uho | 8moves
+# book_key: uho | 8moves. Node limits: env T1_NODES_A (default 20000) and T1_NODES_B (default 10000); the engine names
+# are n<A/1000>k and n<B/1000>k (T1a: n20k vs n10k; T1b: T1_NODES_B=15000 -> n20k vs n15k).
 set -euo pipefail
 book=${1:?book key uho|8moves}
 rounds=${2:?rounds}
@@ -20,9 +21,14 @@ if [ -e "$OUT" ]; then echo "refusing: $OUT exists"; exit 2; fi
 mkdir -p "$OUT"
 echo "start $(date '+%Y-%m-%d %H:%M:%S') book=$book rounds=$rounds" > "$OUT/run_info.txt"
 # shellcheck disable=SC2086
+NA=${T1_NODES_A:-20000}
+NB=${T1_NODES_B:-10000}
+NAMEA=n$((NA / 1000))k
+NAMEB=n$((NB / 1000))k
+echo "nodes A=$NA ($NAMEA) B=$NB ($NAMEB)" >> "$OUT/run_info.txt"
 "$FC" \
-  -engine cmd=$EXE name=n20k nodes=20000 \
-  -engine cmd=$EXE name=n10k nodes=10000 \
+  -engine cmd=$EXE name=$NAMEA nodes=$NA \
+  -engine cmd=$EXE name=$NAMEB nodes=$NB \
   -each proto=uci option.OwnBook=false option.Hash=16 option.Threads=1 \
   -openings $open \
   -srand 20261106 -games 2 -repeat -rounds "$rounds" -concurrency 2 \
