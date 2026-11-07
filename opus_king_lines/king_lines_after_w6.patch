@@ -1,0 +1,305 @@
+diff -ruN w6/include/forge/board.hpp kl/include/forge/board.hpp
+--- w6/include/forge/board.hpp	2026-11-06 17:18:35.710506500 -0800
++++ kl/include/forge/board.hpp	2026-11-06 17:18:35.955233200 -0800
+@@ -53,6 +53,19 @@
+ #define FORGE_SPD_NO_ZERO_MOVELISTS 0
+ #endif
+ 
++// Build switch (default 0 = the lock code). 1: the board keeps per-position
++// "king lines" - the side to move's pieces that alone block an enemy slider's
++// line to their own king (pinned), its pieces that alone block one of its own
++// sliders' lines to the enemy king (discovered-check candidates), and the
++// squares from which each piece type checks the enemy king. They are computed
++// once on first use and kept across make / unmake through Undo. is_legal and
++// gives_check answer normal moves from them; en passant, castling, promotions,
++// king moves and positions in check keep the lock's full tests. Every answer
++// equals the lock's, so the search visits the same nodes.
++#ifndef FORGE_SPD_KING_LINES
++#define FORGE_SPD_KING_LINES 0
++#endif
++
+ struct Move {
+ #if FORGE_SPD_NO_ZERO_MOVELISTS
+     std::uint8_t from;
+@@ -101,6 +114,17 @@
+     std::size_t size_ = 0;
+ };
+ 
++#if FORGE_SPD_KING_LINES
++// Per-position king lines of the side to move (see the switch comment above).
++// Index of check_squares = piece type; King and NoPieceType stay 0.
++struct KingLines {
++    bool valid = false;
++    Bitboard pinned = 0;
++    Bitboard discoverers = 0;
++    std::array<Bitboard, 7> check_squares{};
++};
++#endif
++
+ struct Undo {
+     Piece captured = Empty;
+     std::uint8_t castling = 0;
+@@ -111,6 +135,9 @@
+     std::uint64_t pawn_key = 0;
+     Bitboard checkers = 0;
+     std::uint16_t plies_from_null = 0;
++#if FORGE_SPD_KING_LINES
++    KingLines king_lines;
++#endif
+ };
+ 
+ struct NullUndo {
+@@ -119,6 +146,9 @@
+     std::uint16_t halfmove = 0;
+     std::uint16_t plies_from_null = 0;
+     Bitboard checkers = 0;
++#if FORGE_SPD_KING_LINES
++    KingLines king_lines;
++#endif
+ };
+ 
+ class Board {
+@@ -148,6 +178,9 @@
+ #endif
+     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
+     [[nodiscard]] bool has_legal_move() const;
++    // Contract with FORGE_SPD_KING_LINES on (self-review K3): the fast path of is_legal is exact only for a move that
++    // is already pseudo-legal in this position. Every current caller passes such moves (generated, or checked with
++    // is_pseudo_legal first); an unvalidated move may get a different answer than the lock.
+     [[nodiscard]] bool is_legal(const Move& move) const;
+     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
+     [[nodiscard]] bool gives_check(const Move& move) const;
+@@ -228,6 +261,12 @@
+     // Plies since the last null move; bounds search-level repetition scans.
+     std::uint16_t plies_from_null_ = 1024;
+     std::vector<std::uint64_t> key_history_;
++#if FORGE_SPD_KING_LINES
++    // Lazily computed for the current position; invalidated by every make and
++    // restored by every unmake (each search thread owns its Board copy).
++    mutable KingLines king_lines_;
++    void refresh_king_lines() const;
++#endif
+ 
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+diff -ruN w6/src/board.cpp kl/src/board.cpp
+--- w6/src/board.cpp	2026-11-06 17:18:35.713014100 -0800
++++ kl/src/board.cpp	2026-11-06 17:18:35.955233200 -0800
+@@ -350,6 +350,9 @@
+     candidate.key_ = candidate.compute_key();
+     candidate.pawn_key_ = candidate.compute_pawn_key();
+     candidate.checkers_ = candidate.compute_checkers();
++#if FORGE_SPD_KING_LINES
++    candidate.king_lines_.valid = false;
++#endif
+     candidate.plies_from_null_ = 1024;
+     candidate.key_history_.clear();
+     candidate.key_history_.push_back(candidate.key_);
+@@ -702,9 +705,18 @@
+     return false;
+ }
+ 
++#if FORGE_SPD_KING_LINES
+ bool Board::is_legal(const Move& move) const {
+     const Color us = side_;
+     const Piece moving = squares_[move.from];
++    // Not in check, not en passant, not a king move: the own king can only
++    // become attacked when a pinned piece leaves the line to its pinner. A
++    // capture keeps its target square occupied, so it never opens a line.
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++        if (!king_lines_.valid) refresh_king_lines();
++        return (king_lines_.pinned & square_bb(move.from)) == 0 ||
++               attacks::aligned(king_square(us), move.from, move.to);
++    }
+     Bitboard occupancy = occupied() & ~square_bb(move.from);
+     int captured_square = move.to;
+     if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
+@@ -724,6 +736,30 @@
+     const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
+     return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
+ }
++#else
++bool Board::is_legal(const Move& move) const {
++    const Color us = side_;
++    const Piece moving = squares_[move.from];
++    Bitboard occupancy = occupied() & ~square_bb(move.from);
++    int captured_square = move.to;
++    if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
++    Bitboard removed = 0;
++    if (move.is_capture()) {
++        removed = square_bb(captured_square);
++        occupancy &= ~removed;
++    }
++    occupancy |= square_bb(move.to);
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        occupancy &= ~square_bb(rook_from);
++        occupancy |= square_bb(rook_to);
++    }
++    const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
++    return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
++}
++#endif
+ 
+ bool Board::is_pseudo_legal(const Move& move) const {
+     if (move.from >= 64 || move.to >= 64 || move.from == move.to) return false;
+@@ -796,10 +832,21 @@
+     return (reach & square_bb(move.to)) != 0;
+ }
+ 
++#if FORGE_SPD_KING_LINES
+ bool Board::gives_check(const Move& move) const {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const int ksq = king_square(them);
++    // Normal moves: a direct check comes from a square that already sees the
++    // enemy king (the vacated origin lies on that line only when the mover
++    // checked the king before the move, which a legal position excludes); a
++    // discovered check comes from a sole blocker leaving its line.
++    if ((move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U) {
++        if (!king_lines_.valid) refresh_king_lines();
++        const int type = piece_type(squares_[move.from]);
++        if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;
++        return (king_lines_.discoverers & square_bb(move.from)) != 0 && !attacks::aligned(ksq, move.from, move.to);
++    }
+     const Bitboard king_bit = square_bb(ksq);
+     Bitboard occ = (occupied() ^ square_bb(move.from)) | square_bb(move.to);
+     if ((move.flags & EnPassant) != 0U) occ &= ~square_bb(move.to - pawn_push_delta(us));
+@@ -828,6 +875,75 @@
+     return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
+ }
+ 
++namespace {
++// Pieces of either colour that alone stand between `king` and one of the
++// given rook-like / bishop-like sliders (the lock's see_ge uses the same walk
++// over the empty-board rays and the between masks).
++[[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
++    Bitboard snipers = (attacks::rook(king, 0) & rook_like) | (attacks::bishop(king, 0) & bishop_like);
++    Bitboard blockers = 0;
++    while (snipers != 0) {
++        const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
++        if (between != 0 && !more_than_one(between)) blockers |= between;
++    }
++    return blockers;
++}
++} // namespace
++
++void Board::refresh_king_lines() const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const Bitboard occupancy = occupied();
++    const int our_king = king_square(us);
++    const int their_king = king_square(them);
++    KingLines& lines = king_lines_;
++    lines.pinned = single_blockers(our_king, pieces(them, Rook) | pieces(them, Queen),
++                                   pieces(them, Bishop) | pieces(them, Queen), occupancy) & occupied(us);
++    lines.discoverers = single_blockers(their_king, pieces(us, Rook) | pieces(us, Queen),
++                                        pieces(us, Bishop) | pieces(us, Queen), occupancy) & occupied(us);
++    lines.check_squares[NoPieceType] = 0;
++    lines.check_squares[Pawn] = attacks::pawn(them, their_king);
++    lines.check_squares[Knight] = attacks::knight(their_king);
++    lines.check_squares[Bishop] = attacks::bishop(their_king, occupancy);
++    lines.check_squares[Rook] = attacks::rook(their_king, occupancy);
++    lines.check_squares[Queen] = lines.check_squares[Bishop] | lines.check_squares[Rook];
++    lines.check_squares[King] = 0;
++    lines.valid = true;
++}
++#else
++bool Board::gives_check(const Move& move) const {
++    const Color us = side_;
++    const Color them = opposite(us);
++    const int ksq = king_square(them);
++    const Bitboard king_bit = square_bb(ksq);
++    Bitboard occ = (occupied() ^ square_bb(move.from)) | square_bb(move.to);
++    if ((move.flags & EnPassant) != 0U) occ &= ~square_bb(move.to - pawn_push_delta(us));
++    if (move.is_castle()) {
++        const bool king_side = (move.flags & KingCastle) != 0U;
++        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
++        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
++        occ = (occ & ~square_bb(rook_from)) | square_bb(rook_to);
++        if ((attacks::rook(rook_to, occ) & king_bit) != 0) return true;
++    }
++    const int type = move.is_promotion() ? move.promotion : piece_type(squares_[move.from]);
++    Bitboard direct = 0;
++    switch (type) {
++    case Pawn: direct = attacks::pawn(us, move.to); break;
++    case Knight: direct = attacks::knight(move.to); break;
++    case Bishop: direct = attacks::bishop(move.to, occ); break;
++    case Rook: direct = attacks::rook(move.to, occ); break;
++    case Queen: direct = attacks::queen(move.to, occ); break;
++    default: break;
++    }
++    if ((direct & king_bit) != 0) return true;
++    const Bitboard moved = square_bb(move.from);
++    const Bitboard diagonals = (pieces(us, Bishop) | pieces(us, Queen)) & ~moved;
++    const Bitboard lines = (pieces(us, Rook) | pieces(us, Queen)) & ~moved;
++    if (diagonals != 0 && (attacks::bishop(ksq, occ) & diagonals) != 0) return true;
++    return lines != 0 && (attacks::rook(ksq, occ) & lines) != 0;
++}
++#endif
++
+ bool Board::has_legal_en_passant_capture() const {
+     if (ep_square_ < 0) return false;
+     const Color us = side_;
+@@ -885,6 +1001,9 @@
+     undo.pawn_key = pawn_key_;
+     undo.checkers = checkers_;
+     undo.plies_from_null = plies_from_null_;
++#if FORGE_SPD_KING_LINES
++    undo.king_lines = king_lines_;
++#endif
+ 
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+@@ -942,6 +1061,9 @@
+     checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
++#if FORGE_SPD_KING_LINES
++    king_lines_.valid = false;
++#endif
+     return true;
+ }
+ 
+@@ -974,6 +1096,9 @@
+     pawn_key_ = undo.pawn_key;
+     checkers_ = undo.checkers;
+     plies_from_null_ = undo.plies_from_null;
++#if FORGE_SPD_KING_LINES
++    king_lines_ = undo.king_lines;
++#endif
+ }
+ 
+ void Board::make_null_move(NullUndo& undo) {
+@@ -982,6 +1107,9 @@
+     undo.halfmove = halfmove_;
+     undo.plies_from_null = plies_from_null_;
+     undo.checkers = checkers_;
++#if FORGE_SPD_KING_LINES
++    undo.king_lines = king_lines_;
++#endif
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+@@ -992,6 +1120,9 @@
+     plies_from_null_ = 0;
+     checkers_ = 0;
+     key_history_.push_back(key_);
++#if FORGE_SPD_KING_LINES
++    king_lines_.valid = false;
++#endif
+ }
+ 
+ void Board::unmake_null_move(const NullUndo& undo) {
+@@ -1002,6 +1133,9 @@
+     halfmove_ = undo.halfmove;
+     plies_from_null_ = undo.plies_from_null;
+     checkers_ = undo.checkers;
++#if FORGE_SPD_KING_LINES
++    king_lines_ = undo.king_lines;
++#endif
+ }
+ 
+ std::optional<Move> Board::parse_uci(std::string_view text) {
