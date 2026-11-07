@@ -14,7 +14,7 @@ All tools live in `opus_oss_scout/tools/` on branch `opus-oss-scout-20261106`; t
   `'\GPU Adapter Memory(*)\Dedicated Usage'`. `tools/scout_gate.ps1` does disk / RAM / CPU 0-3 / GPU / gate counts in
   one call and appends JSON to `logs/scout_gate.jsonl`.
 - The live npt trainer runs Idle with mask 0xF (CPUs 0-3) and its pid changes between runs. Own work: narrow the
-  session process to 0xC (`(Get-Process -Id <claude pid>).ProcessorAffinity = [IntPtr]0xC`) and keep at most 2 heavy
+  session process to 0xC (`(Get-Process -Id <session pid>).ProcessorAffinity = [IntPtr]0xC`) and keep at most 2 heavy
   threads.
 - E: is a 3 GB volume; any "every drive >= N GB" rule can only mean C:, D: and F:.
 - The live npt runs write ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`, so C: can fall ~0.5 GB/min. Watch it.

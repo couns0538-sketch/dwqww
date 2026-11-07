@@ -1,6 +1,13 @@
 # REPORT - OSS scout for Forge (2026-11-06)
 
-State: **IN PROGRESS**. Trial results are filled in as they finish; STATUS.md shows what is still open.
+State: **FINAL for this job**: 69 catalog entries and six trials.
+- T1, T2, T3, T5 and T6 ran with measured results.
+- T4 is a design check without a build (GPU busy, no CPU backend).
+
+Top 3:
+1. clang 23 + MSYS2 libstdc++ ThinLTO + IR PGO: node-identical, +4.72 % nps screening.
+2. WPR + samply profiling with symbols: hotspot tables, including the lock in live gate games.
+3. Fathom as the Syzygy oracle: AGREE on 50,000 positions.
 
 ## 1. Ranking (step 3)
 
@@ -80,7 +87,11 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
 - Fathom's warm WDL probe is ~1.8x faster (0.54 vs 0.97 us). Small in search.
 
 ### T6 Lichess puzzles (CC0) as a fixed-node tactical screen
-(pending: runs after T1b)
+- 2,000 seeded puzzles (dataset-viewer API, no parquet tools); the lock at Threads 1.
+- Solved: 96.0 % at 20k nodes (21 s), 98.8 % at 200k nodes (166 s).
+- The signal sits in the 2000+ bands: 2000-2499 88.7 -> 97.3 %, 2500+ 73.5 -> 86.7 %. Below 2000 the lock is at
+  ~99-100 %.
+- A sensitive screen should use only rated >= 2000 puzzles, paired lock vs candidate. No Elo claim.
 
 ## 3. Ranked table (step 6)
 
@@ -91,7 +102,7 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
 | 3 | Fathom (T5) | MIT | **AGREE** with Forge's reader on 50,000 positions; WDL probe 0.54 vs 0.97 us | correctness evidence for the Syzygy line; no Elo by itself | keep as the regression oracle for `syzygy.inc` changes; 50-move / cursed cases next | QA |
 | 4 | bullet for K32H3^ (T4) | MIT + GPL-3.0 / AGPL-3.0 crates | design mapping only | if bullet beats npt's ~200-350k pos/s for HalfKA L1 1024, faster net iterations (unmeasured) | exporter to `.nnue` + parity; one GPU-window run (batch 16k / 64k, 2-3 loader threads); licence decision | NNUE |
 | 5 | UHO_Lichess_4852_v1 book (T1) | CC0-1.0 | nElo ratio UHO / 8moves: 2:1 node odds **0.870** [0.794, 0.947]; 1.33:1 **1.102** [0.949, 1.255]; UHO games ~9 % shorter | rises toward UHO as the gap shrinks. If T1b's ratio held at gate size, ~17 % fewer SPRT pairs (extrapolation, unproven) | near-zero changes at gate TC on both books (TUNING.md 1-2) before any book switch; bounds policy if switched | QA |
-| 6 | Lichess puzzles (T6) | CC0-1.0 | pending | a fast tactical regression screen (no Elo) | pending | QA / Strength |
+| 6 | Lichess puzzles + `t6_solve.py` (T6) | CC0-1.0 (data), own tool | lock solves 96.0 % (20k nodes) / 98.8 % (200k) of 2,000; 2500+ band 73.5 % / 86.7 %; ~10 ms per puzzle at 20k | a fast, load-independent tactical regression screen before gates (no Elo) | freeze a >= 2000-rated sample; paired lock-vs-candidate sign test | QA / Strength |
 | - | AMD uProf 5.3 | proprietary EULA + driver | not tried (system install) | hardware counters on Zen 5 (cache / branch) | owner decision on installing it | Coder |
 | - | Tracy | BSD-3-Clause | not tried | SMP / time-management timelines | an off-by-default zone build switch | Coder |
 | - | chess-tuning-tools / optuna / nevergrad | Apache-2.0 / MIT / MIT | not tried | few-parameter tuning (time management) beside the own SPSA | optional | Strength |

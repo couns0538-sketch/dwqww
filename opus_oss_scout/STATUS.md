@@ -1,11 +1,11 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 21:37 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 21:41 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
 - Research and sandbox trials only: no engine edits, no Elo claims, no helper agents.
-- Own work: Idle priority, CPUs 2-3 (mask 0xC). The session process claude.exe pid 4532 was narrowed from 0xF to 0xC
+- Own work: Idle priority, CPUs 2-3 (mask 0xC). The session process (pid 4532) was narrowed from 0xF to 0xC
   at 19:24 (PC clock); its children inherit Idle + 0xC. At most 2 heavy threads.
 - Never touch: live gates, fastchess, forge_queue, self-play, NNUE training runs or their run dirs, locks, nets in use,
   datasets (copies of small samples only), other bots' configs, F:\ospd, C:\ospd_hunt. No deletes, no kills, no
@@ -75,23 +75,22 @@ Updated: 2026-11-06 21:37 (PC clock). Branch `opus-oss-scout-20261106` (from mai
 - T6 prepared: 2000 Lichess puzzles (CC0, dataset-viewer API, seed 20261106, ratings 399-3025, median 1400) in
   `build/t6/puzzles_2000.jsonl`; solver `tools/t6_solve.py`.
 
-## In progress
-- T1b (background task bxiyom1vz, started 20:13): `T1_NODES_A=20000 T1_NODES_B=15000`, 1500 pairs per book, UHO then
-  8moves (`build/t1_books/uho1500_n15k`, `8moves1500_n15k`), chain log `logs/t1b_chain.log`; ~70 games/min.
-  - UHO half DONE 20:13:49-20:54:35: fastchess nElo +133.54 +/- 12.43, Elo +91.46, W/L/D 1275/503/1222,
-    Ptnml [23, 188, 511, 550, 228].
-  - The 8moves half started 20:54:35.
-  - Around 21:0x the PC ran critically low on memory, and the session harness stopped the chain's bash wrapper (task
-    bxiyom1vz "killed": low memory while idle). The wrapper is not restarted (harness note: do not restart unasked).
-    The fastchess child (pid 5288) and its 4 engines kept running and finish the 8moves half by themselves. The
-    wrapper's `end` line in run_info.txt and the chain log line will be missing; completion is read from stdout
-    "Finished match".
+- T1b DONE: 1.33:1 node odds, 1500 pairs per book.
+  - UHO 20:13:49-20:54:35, nElo +133.5 [+121.1, +146.0].
+  - 8moves 20:54:35-21:36:01, nElo +121.2 [+108.8, +133.6].
+  - Ratio 1.102 [0.949, 1.255].
+  - Around 21:0x the PC ran critically low on memory, and the session harness stopped the outer chain shell (task
+    bxiyom1vz). fastchess and the inner runner finished anyway (end line rc 0). Fixed nodes: games unaffected.
+- T6 DONE 21:36-21:39: the lock solves 96.0 % (20k nodes) / 98.8 % (200k) of 2,000 puzzles; 2500+ band 73.5 / 86.7 %.
+- REPORT.md FINAL: ranked table, ideas-only section, unproven claims, owner items.
 
-## Exact next step
-- After T1b: `python -I -B tools/t1_analyze.py --engine n20k 8moves=build/t1_books/8moves1500_n15k/games.pgn,build/t1_books/8moves1500_n15k/stdout.txt uho=build/t1_books/uho1500_n15k/games.pgn,build/t1_books/uho1500_n15k/stdout.txt --json repo/opus_oss_scout/trials/t1_books/t1b_result.json`
-  -> T1 RESULT.md (T1b section).
-- Then T6: `python -I -B tools/t6_solve.py C:/opus_5h/oss_scout/build/lock/forge_trial_w6.exe build/t6/puzzles_2000.jsonl --nodes 20000 --nodes 200000 --out repo/opus_oss_scout/trials/t6_puzzles/t6_result.json`.
-- Then REPORT.md sections 3 + 5, final checks (check_catalog.py, re-hash, time grep), advisor, final push.
+## In progress
+- Nothing of this job is running (T1b's fastchess ended 21:36; T6 ended 21:39).
+
+## Exact next step (for the crew; this job is finished)
+- QA: official lock path for the T2 clang build (REPORT section 5, item 3).
+- QA: the near-zero gate-TC book test (trials/t1_books/TUNING.md 1-2).
+- NNUE: the bullet K32H3^ exporter + a GPU window (trials/t4_bullet_halfka/TUNING.md).
 
 ## Owner alert (not touched)
 - C: free falls fast because the live npt run `..._s85` writes ~1.4 GB checkpoints to `C:\forge_nnue_train\runs`
@@ -99,7 +98,8 @@ Updated: 2026-11-06 21:37 (PC clock). Branch `opus-oss-scout-20261106` (from mai
   in ~4-5 h, which would stop the trainer. This job's own footprint on C: is ~0.2 GB.
 - Update 19:56: C: 50.3 GB (58.2 at 19:42), i.e. ~0.5 GB/min. Trainer pid changed 2188 -> 14296 -> 1036 (new runs).
   This job's footprint ~1.1 GB (llvm-mingw 0.9 GB of it).
-- Update 20:16: C: 44.5 GB, still ~0.5 GB/min. That crosses 30 GB ~20:45 and fills ~21:45 at this rate. This job
+- Update 20:16: C: 44.5 GB, still ~0.5 GB/min. At that rate (a projection) it would cross 30 GB within ~30 min and fill
+  within ~1.5 h. This job
   makes no more downloads below 30 GB; its footprint is 1.5 GB (incl. the 354 MB WPR trace).
 - Update 21:10 (supervisor.log, read-only):
   - Run s86 DONE 20:24:56.
@@ -107,16 +107,24 @@ Updated: 2026-11-06 21:37 (PC clock). Branch `opus-oss-scout-20261106` (from mai
     needs_resume" at 21:03:04, in the same window as the PC's low-memory event. The resume was launched at 21:03:07
     but was not running at 21:10.
   - The supervisor launched s88 at 21:10:10.
-  - C: free was 72.5 GB at 21:10 (cleaned by someone else). A second claude session started 20:59; Firefox was
+  - C: free was 72.5 GB at 21:10 (cleaned by someone else). A second agent session started 20:59; Firefox was
     started 20:32:47 by a process that had already exited (not by this job).
   - This job's processes at 21:10: fastchess + 4 engines (~60 MB in all). Nothing of the trainer was touched.
 
 ## Resume commands
 - Gate before any heavy step: `pwsh -NoProfile -File C:\opus_5h\oss_scout\tools\scout_gate.ps1 -Step "<what>" -PlannedGB <n>`
-- Re-pin the session after an app restart: find the new claude.exe pid (parent chain of `$PID`), then
+- Re-pin the session after an app restart: find the new session process pid (parent chain of `$PID`), then
   `(Get-Process -Id <pid>).ProcessorAffinity = [IntPtr]0xC` (priority must stay Idle).
 - Commit: copy `C:\opus_5h\oss_scout\STATUS.md` to `repo\opus_oss_scout\STATUS.md`, then in `C:\opus_5h\oss_scout\repo`:
   `git -c user.name=couns0538-sketch -c user.email=couns0538@gmail.com commit -F <msgfile>` and the literal push.
 
+- Re-run a trial: commands in `opus_oss_scout/trials/<name>/CMDS.md`. Re-check the records:
+  `python -I -B tools/check_catalog.py repo/opus_oss_scout/CATALOG.md`, `python -I -B tools/verify_sums.py repo/opus_oss_scout/trials`.
+
 ## Unproven claims
-- None yet.
+- T2 +4.72 % nps: a screening ABBA on a shared PC with the bench-only PGO workload. Not a lock: QA timing, 12k
+  BIT-EXACT, warm identity and the Threads 2-4 soak are still owed. No Elo.
+- T1: nothing proven for gate TC / gate-size changes; the ~17 % fewer-pairs figure is an extrapolation of T1b.
+- T4: no bullet HalfKA throughput on this PC (design only).
+- T5 speed ratio (Fathom ~1.8x faster WDL probe): one run on a shared core.
+- T6: puzzle rates are not Elo.
