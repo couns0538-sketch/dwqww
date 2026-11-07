@@ -38,7 +38,13 @@ fastchess.exe \
   the ratio between the books is known to about +-10 %.
 - OwnBook=false: the lock defaults to OwnBook true, and the gates set it false too.
 
-## Analysis
+## T1b (1.33:1 node odds)
+`T1_NODES_A=20000 T1_NODES_B=15000 bash tools/t1_run.sh uho 1500 uho1500_n15k`, then the same for `8moves 1500 8moves1500_n15k`.
+- One background chain, started 20:13 (log `logs/t1b_chain.log`). The runner now reads the node limits from the
+  environment (sha256 in SHA256SUMS); with the defaults it behaves exactly like the T1a version.
+- Analysis: `python -I -B tools/t1_analyze.py --engine n20k 8moves=build/t1_books/8moves1500_n15k/games.pgn,build/t1_books/8moves1500_n15k/stdout.txt uho=build/t1_books/uho1500_n15k/games.pgn,build/t1_books/uho1500_n15k/stdout.txt --json repo/opus_oss_scout/trials/t1_books/t1b_result.json`.
+
+## Analysis (T1a)
 ```
 python -I -B tools/t1_analyze.py --engine n20k \
   8moves=build/t1_books/8moves600/games.pgn,build/t1_books/8moves600/stdout.txt \

@@ -30,10 +30,29 @@ Tool: Stockfish books (CC0-1.0), UHO_Lichess_4852_v1.epd vs the gates' 8moves_v3
 [8, 176, 727, 145, 8] (68 % of pairs DD/WL). That is far more drawish than T1a (34 %). UHO books exist for that regime,
 which T1a does not test.
 
-## Verdict so far
-- At 2:1 node odds and 20k / 10k nodes, **UHO is not better for Forge**: about 13 % less nElo per pair.
-- This is a large-gap proxy at low depth. It says nothing final about gate-size changes (0-10 nElo) at 10+0.1, where
-  draws are 80 %.
-- Next (T1b): the same runner at 20000 vs 15000 nodes (1.33:1), 2000 pairs per book, to see where the ratio goes as
-  the gap shrinks.
-- **UNPROVEN** for gates in both directions.
+## T1b: 1.33:1 node odds (20000 vs 15000 nodes), 1500 pairs per book (`logs/t1b_analyze.txt`, `t1b_result.json`)
+
+| Book | Pairs | W / D / L (n20k) | Draw ratio | Pentanomial [LL, LD, DD+WL, WD, WW] | Score | Elo | nElo (95 %) | Mean plies |
+|---|---|---|---|---|---|---|---|---|
+| 8moves_v3 | 1500 | 1123 / 1450 / 427 | 0.483 | [23, 201, 540, 529, 207] | 0.6160 | +82.1 | **+121.2** [+108.8, +133.6] | 152.2 |
+| UHO_Lichess_4852_v1 | 1500 | 1275 / 1222 / 503 | 0.407 | [23, 188, 511, 550, 228] | 0.6287 | +91.5 | **+133.5** [+121.1, +146.0] | 138.3 |
+
+- Pentanomials equal fastchess's final lines (MATCH), 0 broken pairs.
+- **Resolution ratio nElo(UHO) / nElo(8moves) = 1.102, 95 % ~[0.949, 1.255].** UHO is now slightly ahead, but the
+  interval includes 1.
+- Wall time: UHO 20:13:49-20:54:35, 8moves 20:54:35-21:36:01 (PC clock), conc 2 on CPUs 2-3 at Idle.
+  - Around 21:0x the PC ran critically low on memory, and the session harness stopped the outer chain shell.
+  - fastchess and the inner runner kept going and wrote their end line (rc 0).
+  - Fixed nodes: neither event changes any game.
+
+## Verdict
+- Trend with the size of the gap:
+  - 2:1 node odds: ratio 0.870 [0.794, 0.947] (UHO worse).
+  - 1.33:1: ratio 1.102 [0.949, 1.255] (UHO slightly better, not significant).
+  - The ratio rises as the gap shrinks. That is the direction expected for gate-size changes, which are smaller still
+    and are played at 10+0.1 with ~80 % draws (8moves).
+- UHO games are ~9 % shorter (138 vs 152 plies here), so there are more games per hour at the same time per move.
+- If the T1b ratio held for gate-size changes, Wald arithmetic gives ~17 % fewer pairs for a +10 nElo change
+  (2953 vs 3554). That is an extrapolation, **not a measurement**.
+- **UNPROVEN for gates.** The next step that would decide it: near-zero changes at gate TC on both books (TUNING.md 1-2).
+  Until then there is no case for switching the gate book; there is also no case against it.

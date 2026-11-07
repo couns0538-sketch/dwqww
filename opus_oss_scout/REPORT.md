@@ -37,9 +37,15 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
   - 8moves: nElo +340.5 [+320.9, +360.2].
   - UHO: nElo +296.3 [+276.7, +316.0].
   - Ratio UHO / 8moves 0.870 [0.794, 0.947]: **at a large gap UHO resolves worse**.
-- The gates' own regime is different: 8moves at 10+0.1 has 79.7 % draws (gate_tm_scoreloss1_vs_AL1). T1a does not
-  test that regime.
-- T1b (1.33:1 node odds) follows; see `trials/t1_books/RESULT.md`.
+- **T1b, 1.33:1 node odds** (20000 vs 15000 nodes, 1500 pairs per book):
+  - 8moves: nElo +121.2 [+108.8, +133.6].
+  - UHO: nElo +133.5 [+121.1, +146.0].
+  - Ratio 1.102 [0.949, 1.255]: UHO slightly ahead, not significant.
+- The ratio rises as the gap shrinks: 0.87 at 2:1, 1.10 at 1.33:1. UHO games are ~9 % shorter (138 vs 152 plies).
+- The gates' own regime is different again: 8moves at 10+0.1 has 79.7 % draws (gate_tm_scoreloss1_vs_AL1). Neither
+  T1a nor T1b tests that regime.
+- **Verdict: no evidence yet for or against a gate book switch**. The decisive test (near-zero changes at gate TC) is an
+  owner / QA item.
 
 ### T2 clang build of the lock source (llvm-mingw clang 23.1.5, ISC + LLVM licence)
 - The installed LLVM 18 cannot build against the VS 18 STL (STL1000: needs clang >= 20).
@@ -84,7 +90,7 @@ to it (`RESULT.md`), `SHA256SUMS`, and PC-specific tuning ideas (`TUNING.md`).
 | 2 | WPR (built-in) + samply import + `t3_samply_top.py` (T3) | Microsoft (WPR), MIT OR Apache-2.0 (samply), own tool | works with no install; symbolized hotspot tables of the bench and of the lock in live gate games | enables targeted speed work: `std::sort` 3.6-4.8 %, `Move::operator==` 3.4 %, HCE 19-20 % | speed crew: bit-exact Move compare; decide on a library-independent move sort (new lock); profile TB / SMP gates the same way | Coder |
 | 3 | Fathom (T5) | MIT | **AGREE** with Forge's reader on 50,000 positions; WDL probe 0.54 vs 0.97 us | correctness evidence for the Syzygy line; no Elo by itself | keep as the regression oracle for `syzygy.inc` changes; 50-move / cursed cases next | QA |
 | 4 | bullet for K32H3^ (T4) | MIT + GPL-3.0 / AGPL-3.0 crates | design mapping only | if bullet beats npt's ~200-350k pos/s for HalfKA L1 1024, faster net iterations (unmeasured) | exporter to `.nnue` + parity; one GPU-window run (batch 16k / 64k, 2-3 loader threads); licence decision | NNUE |
-| 5 | UHO_Lichess_4852_v1 book (T1) | CC0-1.0 | T1a (2:1 node odds): **UHO resolves 13 % worse** (ratio 0.870 [0.794, 0.947]); T1b pending | none shown so far; gate-size changes untested | T1b result; then a near-zero test at gate TC before any book switch | QA |
+| 5 | UHO_Lichess_4852_v1 book (T1) | CC0-1.0 | nElo ratio UHO / 8moves: 2:1 node odds **0.870** [0.794, 0.947]; 1.33:1 **1.102** [0.949, 1.255]; UHO games ~9 % shorter | rises toward UHO as the gap shrinks. If T1b's ratio held at gate size, ~17 % fewer SPRT pairs (extrapolation, unproven) | near-zero changes at gate TC on both books (TUNING.md 1-2) before any book switch; bounds policy if switched | QA |
 | 6 | Lichess puzzles (T6) | CC0-1.0 | pending | a fast tactical regression screen (no Elo) | pending | QA / Strength |
 | - | AMD uProf 5.3 | proprietary EULA + driver | not tried (system install) | hardware counters on Zen 5 (cache / branch) | owner decision on installing it | Coder |
 | - | Tracy | BSD-3-Clause | not tried | SMP / time-management timelines | an off-by-default zone build switch | Coder |
@@ -117,7 +123,8 @@ These may be read to understand them. No code is copied into Forge; mechanisms m
 Unproven (labelled so in the trial files):
 - T2's +4.72 % is a screening ABBA on a shared PC with a bench-only PGO workload. No QA timing, no 12k BIT-EXACT, no
   warm identity, no Threads 2-4 soak yet. No Elo claim.
-- T1: no statement yet about UHO at gate time control or for gate-size changes; T1a covers 2:1 node odds only.
+- T1: no statement about UHO at gate time control or for gate-size changes. T1a / T1b cover 2:1 and 1.33:1 node odds
+  at 10k-20k nodes per move only. The "~17 % fewer pairs" figure is an extrapolation.
 - T4: no HalfKA throughput for bullet on this PC.
 - T5's speed ratio is one run on a shared core.
 
