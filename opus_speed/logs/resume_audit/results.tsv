@@ -1,0 +1,23 @@
+case	expected	got	exit	reason_ok	last_line
+K1_on_default	ACCEPT	ACCEPT	0	yes	VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)
+K2_off_usennue	ACCEPT	ACCEPT	0	yes	VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)
+K3_cut_after_L3	ACCEPT	ACCEPT	0	yes	VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)
+A1_off_prior_no_opts	REJECT	REJECT	1	yes	ERROR: resume: prior L3 used FenOptions but this run has none: L3 options (ref and cand): OwnBook=false, UseNNUE=false
+A2_on_prior_usennue_false	REJECT	REJECT	1	yes	ERROR: resume: FenOptions mismatch (this run: UseNNUE=false; prior: (none))
+A3_off_prior_other_opt	REJECT	REJECT	1	yes	ERROR: resume: FenOptions mismatch (this run: Hash=64; prior: L3 options (ref and cand): OwnBook=false, UseNNUE=false)
+B1_other_cand	REJECT	REJECT	1	yes	ERROR: resume: D:\oleft2\cnl\fens12k_on\bitexact.log is not for this ref + cand (sha256 mismatch)
+B2_other_ref	REJECT	REJECT	1	yes	ERROR: resume: D:\oleft2\cnl\fens12k_on\bitexact.log is not for this ref + cand (sha256 mismatch)
+B3_sig_json_other_sha	REJECT	REJECT	1	yes	ERROR: resume: signature file D:\opus_5h\runner_audit\priors\B3_sig_json_other_sha\cand\sig_dcdec9a7d71aec37.json belongs to another exe
+C1_other_fen_file	REJECT	REJECT	1	yes	ERROR: resume: the reused L3 line is for another FEN file or depth: L3 FENs fens_12k_v2.txt (md5 e7dbf2c8; 0 lines completed to six fields) go depth 13:12000 / 12000 identical (depth, score, nodes, bestmove; 12000 distin
+C2_other_depth	REJECT	REJECT	1	yes	ERROR: resume: the reused L3 line is for another FEN file or depth: L3 FENs fens_12k_v2.txt (md5 e7dbf2c8; 0 lines completed to six fields) go depth 13:12000 / 12000 identical (depth, score, nodes, bestmove; 12000 distin
+C3_l3_md5_edited	REJECT	REJECT	1	yes	ERROR: resume: the reused L3 line is for another FEN file or depth: L3 FENs fens_12k_v2.txt (md5 00000000; 0 lines completed to six fields) go depth 13:12000 / 12000 identical (depth, score, nodes, bestmove; 12000 distin
+D1_cut_in_L1	REJECT	REJECT	1	yes	ERROR: resume: D:\opus_5h\runner_audit\priors\D1_cut_in_L1\bitexact.log lacks a complete L1-L3 PASS set
+D2_cut_before_L3	REJECT	REJECT	1	yes	ERROR: resume: D:\opus_5h\runner_audit\priors\D2_cut_before_L3\bitexact.log lacks a complete L1-L3 PASS set
+D3_l3_zero	REJECT	REJECT	1	yes	ERROR: resume: cannot parse L3 identical counts from: L3 FENs fens_12k_v2.txt (md5 e7dbf2c8; 0 lines completed to six fields) go depth 13:0 / 12000 identical (depth, score, nodes, bestmove; 12000 distinct ref results), c
+D4_l3_garbled	REJECT	REJECT	1	yes	ERROR: resume: cannot parse L3 identical counts from: L3 FENs fens_12k_v2.txt (md5 e7dbf2c8; 0 lines completed to six fields) go depth 13:twelve-k / 12000 identical (depth, score, nodes, bestmove; 12000 distinct ref resu
+D5_l3_total_zero	REJECT	REJECT	1	yes	ERROR: resume: cannot parse L3 identical counts from: L3 FENs fens_12k_v2.txt (md5 e7dbf2c8; 0 lines completed to six fields) go depth 13:12000 / 0 identical (depth, score, nodes, bestmove; 12000 distinct ref results), c
+D6_extra_fail_line	REJECT	REJECT	1	yes	ERROR: resume: D:\opus_5h\runner_audit\priors\D6_extra_fail_line\bitexact.log lacks a complete L1-L3 PASS set
+D7_no_log	REJECT	REJECT	1	yes	ERROR: resume: no D:\opus_5h\runner_audit\priors\D7_no_log\bitexact.log
+D8_no_sig_json	REJECT	REJECT	1	yes	ERROR: Cannot bind argument to parameter 'Path' because it is null.
+X1_l3_k_lt_n_pass	REJECT	ACCEPT	0	no	VERDICT BIT-EXACT (L1-L3; L3 on 12000 FENs)
+X2_chained_resume	REJECT	REJECT	1	yes	ERROR: resume: D:\opus_5h\runner_audit\runs\K1_on_default\bitexact.log lacks a complete L1-L3 PASS set

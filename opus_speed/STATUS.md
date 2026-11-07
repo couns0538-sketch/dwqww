@@ -8,6 +8,27 @@ the job's reference and the search-identity pins. **Live lock since QA's publish
 bytes); every lock decision is against trial_w6.
 Session restart at ~09:32 (application restart by the owner); workers resumed 09:35; jobs started before it kept running.
 
+## 2026-11-06 runner audit (owner 5-hour brief, job 1) - DONE 16:42 PC clock; hand to Code Review
+- **Done:**
+  - `opus_speed/tools/bitexact_check.ps1` = CR-approved 4d1c8d52 on all four tips (tools-only commits):
+    - speed deefef64 (was 5038452d)
+    - cnl 0e796eb2 (was f382cdc2)
+    - tcn 8b7b728e (was f382cdc2)
+    - ntc a8f00c42 (was f382cdc2)
+  - Resume proof: 22 cases, see `logs/RESUME_LEDGER.md`.
+    - Required REJECT 17 / 17 with the expected guard text; controls ACCEPT 3 / 3.
+    - Ledger total: 18 REJECT, 4 ACCEPT.
+    - Extra probe X1 (`11999 / 12000 ... PASS`, hand-edited) is ACCEPTED: a CR finding, no guard (not a required case).
+    - No guard was added, so the shipped md5 = 4d1c8d52 everywhere.
+  - New tool `tools/resume_cases.sh` (makes the cases, runs the shipped runner with -ResumeFrom -SkipSan).
+- **In progress:** none.
+- **Exact next step:** Code Review of the deploy plus ledger findings 2-5. QA owns any queue use. Nothing was queued.
+- **Resume / re-check:** `bash opus_speed/tools/resume_cases.sh D:/opus_5h/runner_audit_rerun` (writes a new folder only).
+- **Unproven / not claimed:**
+  - k == n is not checked on resume (X1).
+  - The case-insensitive option compare was not tested.
+  - Not tested: resume for a -Quick prior (it reports "= quick subset").
+
 | job | state | candidates | last update |
 |---|---|---|---|
 | CR 637B (owner, done first after the restart) | DONE except the 3 LOW notes (note file not on the PC): BLOCKER pin DIFF fail-closed, SHOULD 1-3, test 13/13 PASS (be0e4e37); report `CR_637B_REPORT.md` | - | 09:47 |
