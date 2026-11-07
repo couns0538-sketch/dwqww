@@ -40,7 +40,17 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   12000 distinct ref results.
 - Log: `logs/bitexact_on_neton.log`.
 
-### Step 4 - full 12k bitexact, ON vs the lock, net off: BLOCKED by the F: disk floor
+### Step 4 - full 12k bitexact, ON vs the lock, net off: **BIT-EXACT** (run on C:, see below)
+- **Verdict: BIT-EXACT (L1-L3; L3 on 12000 FENs).** Exit 0. Run 2026-11-06 18:02:06 PC clock; the cand took 468 s.
+  - L1: 10 / 10 PASS (bench d11-d22, net on and net off, = pins).
+  - L2: 2 / 2 PASS (perft 5 startpos 4865609, kiwipete 193690690).
+  - L3 options (ref and cand): `OwnBook=false, UseNNUE=false`.
+  - L3: **12000 / 12000 identical** (depth, score, nodes, bestmove) on fens_12k_v2.txt (md5 e7dbf2c8) at go depth 13,
+    12000 distinct ref results.
+  - Reference: the cached lock net-off set, sha256 e25cac43, the same bytes as the F: cache.
+  - Log: `logs/bitexact_on_netoff.log` (md5 b354ae3f).
+
+How it got there:
 - **17:37:17 PC clock:** the runner refused to start. Its fail-closed guard said "ERROR: F: would drop to 49.3 GB free
   (< 50)", exit 1 (`D:\opus_5h\king_lines\bx_on_netoff.console.txt`).
 - **F: at 17:38:** 49.59 GiB free.
@@ -66,12 +76,22 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
     refuses to start ("Out exists"). Nothing was stopped or killed.
   - **Output:** `C:\opus_5h\king_lines\bx_on_netoff_c`, started 18:02:08 PC clock. It passed the disk guard.
 
+## Summary
+- **The rebase is clean.** KING_LINES (the committed b4 patch d680f9bf) applies to trial_w6, and the switch-0 source is
+  preprocessor-identical to trial_w6.
+- **OFF build** = 4181a589 = the lock, byte for byte (pc1 = pc2).
+- **ON build** 44fd0137 (pc1 = pc2): every pin holds, net on and net off, plus both perfts.
+- **Full 12k:** BIT-EXACT net on (12000 / 12000) and net off (12000 / 12000).
+
 ## In progress
-Step 4 on C: (full 12k, ON vs the lock, net off).
+None. The own F: retry loop (`D:\opus_5h\king_lines\retry_step4.sh`) keeps polling until about 18:38. F: was at
+46.62 GiB at 18:10 PC clock. If F: recovers, the run refuses to start ("Out exists"), so nothing is re-run.
 
 ## Exact next step
-1. Read the verdict in `C:\opus_5h\king_lines\bx_on_netoff_c.console.txt`, copy the log to `logs/`, write the line, push.
-2. Hand the pack to Code Review. Nothing is queued.
+1. Code Review of the pack.
+2. Then QA's lock-path items: L3b warm_identity, the Threads 2-4 soak and the quiet ABBA. The owner's follow-up did not
+   ask for them, and QA owns the ABBA.
+3. Not a lock. Nothing is queued.
 
 ## Resume commands
 ```
