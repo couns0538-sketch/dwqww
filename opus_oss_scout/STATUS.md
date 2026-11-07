@@ -1,6 +1,6 @@
 # OSS scout for Forge - STATUS (handoff file)
 
-Updated: 2026-11-06 20:22 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
+Updated: 2026-11-06 20:55 (PC clock). Branch `opus-oss-scout-20261106` (from main 5176ddf7), repo copy of this file:
 `opus_oss_scout/STATUS.md`. Plan: `C:\Users\Administrator\.claude\plans\velvet-seeking-meerkat.md`.
 
 ## Rules in force (brief of 2026-11-06 + findings)
@@ -77,8 +77,10 @@ Updated: 2026-11-06 20:22 (PC clock). Branch `opus-oss-scout-20261106` (from mai
 
 ## In progress
 - T1b (background task bxiyom1vz, started 20:13): `T1_NODES_A=20000 T1_NODES_B=15000`, 1500 pairs per book, UHO then
-  8moves (`build/t1_books/uho1500_n15k`, `8moves1500_n15k`), chain log `logs/t1b_chain.log`; ~70 games/min -> ends
-  ~21:40.
+  8moves (`build/t1_books/uho1500_n15k`, `8moves1500_n15k`), chain log `logs/t1b_chain.log`; ~70 games/min.
+  - UHO half DONE 20:13:49-20:54:35: fastchess nElo +133.54 +/- 12.43, Elo +91.46, W/L/D 1275/503/1222,
+    Ptnml [23, 188, 511, 550, 228].
+  - The 8moves half runs 20:54:35 -> ~21:36.
 
 ## Exact next step
 - After T1b: `python -I -B tools/t1_analyze.py --engine n20k 8moves=build/t1_books/8moves1500_n15k/games.pgn,build/t1_books/8moves1500_n15k/stdout.txt uho=build/t1_books/uho1500_n15k/games.pgn,build/t1_books/uho1500_n15k/stdout.txt --json repo/opus_oss_scout/trials/t1_books/t1b_result.json`
