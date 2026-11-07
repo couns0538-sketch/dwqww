@@ -95,6 +95,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\t
 
 ## Unproven / not claimed
 - No strength or speed claim.
+- Threads > 1 is not tested with NnueInt8Vnni=1: there was no Threads 2-4 soak. The flag is a global read-only during searches, and each thread refreshes its own root accumulator.
 - The ON nps of the LTO+PGO gate exe is not representative (cold PGO path); see BENCH.md.
 - The eval diffs above are measured on the 2001-root slice and its walks, not on the full 12k set.
 - The kernel was proven against the scalar reference on 203,724 positions plus every eval of bench d13/d16. That is
