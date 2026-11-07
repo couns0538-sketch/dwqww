@@ -1,0 +1,41 @@
+--- /f/ospd/wt/opus_speed/tools/bitexact_check.ps1	2026-11-06 16:39:27.379148200 -0800
++++ /c/opus_5h/king_lines/tools/bitexact_check.ps1	2026-11-06 18:01:52.631364000 -0800
+@@ -207,7 +207,7 @@
+   $lines += @("cl $clVer", 'flags /std:c++20 /EHsc /O2 /Zi /fsanitize=address /arch:AVX512 /STACK:67108864 port-copy-v1', "ndebug $([bool]$SanNdebug)")
+   $sha = New-Object System.Security.Cryptography.SHA256Managed
+   $h = ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n")))) -replace '-', '').ToLower().Substring(0, 12)
+-  $cache = "F:\ospd\ref\msvc_asan_b16_$h.txt"
++  $cache = "C:\opus_5h\ref\msvc_asan_b16_$h.txt"
+   $mx = New-Object System.Threading.Mutex($false, "Local\ospd_msvcref_$h")
+   $got = $false; try { $got = $mx.WaitOne([TimeSpan]::FromMinutes(60)) } catch [System.Threading.AbandonedMutexException] { $got = $true }
+   if (-not $got) { throw 'waited 60 min for the MSVC ASan reference' }
+@@ -252,7 +252,7 @@
+   New-Item -ItemType Directory -Path $Out | Out-Null
+   $script:LogFile = Join-Path $Out 'bitexact.log'
+   $refSha = Get-OspdSha256 $Ref; $candSha = Get-OspdSha256 $Cand
+-  $cacheDir = Join-Path 'F:\ospd\ref' $refSha.Substring(0, 8); New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
++  $cacheDir = Join-Path 'C:\opus_5h\ref' $refSha.Substring(0, 8); New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+   $candCache = Join-Path $Out 'cand'; New-Item -ItemType Directory -Path $candCache | Out-Null
+   $refIsLock = ($refSha -eq $script:OspdLockSha.ToLower())
+   Say "bitexact_check $(Get-OspdNow): ref $Ref (sha256 $refSha$(if ($refIsLock) { ', = live lock trial_w6' }))"
+--- /f/ospd/wt/opus_speed/tools/uci_lib.ps1	2026-11-05 20:01:49.622048400 -0800
++++ /c/opus_5h/king_lines/tools/uci_lib.ps1	2026-11-06 18:01:52.631364000 -0800
+@@ -17,7 +17,7 @@
+ $script:OspdPinsOff = @{ d11 = 375354; d13 = 907205; d16 = 2448617; d20 = 13573040; d22 = 24506465 }
+ $script:OspdPerftPins = [ordered]@{ startpos = 4865609; kiwipete = 193690690 }
+ $script:OspdKiwi = 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'
+-$script:OspdScratch = 'F:\ospd'
++$script:OspdScratch = 'C:\opus_5h'   # C: run copy (owner 2026-11-06: use C:)
+ $script:OspdAllowedMask = 0xF   # CPUs 0-3 only (job rule)
+ 
+ function Get-OspdNow { Get-Date -Format 'yyyy-MM-dd HH:mm:ss' }
+@@ -43,8 +43,7 @@
+ function Assert-OspdDisk([double]$PlannedGB = 0.1) {
+   # Job rule: C: >= 30 GB, F: >= 50 GB free (after the planned write), F:\ospd <= 8 GB; nothing is ever written to D:.
+   $c = (Get-PSDrive C).Free / 1GB; $f = (Get-PSDrive F).Free / 1GB
+-  if ($c -lt 30) { throw ("C: has {0:N1} GB free (< 30)" -f $c) }
+-  if (($f - $PlannedGB) -lt 50) { throw ("F: would drop to {0:N1} GB free (< 50)" -f ($f - $PlannedGB)) }
++  if (($c - $PlannedGB) -lt 50) { throw ("C: would drop to {0:N1} GB free (< 50; C: run copy, owner 2026-11-06)" -f ($c - $PlannedGB)) }
+   $used = (Get-OspdDirBytes $script:OspdScratch) / 1GB
+   if (($used + $PlannedGB) -gt 8) { throw ("F:\ospd would hold {0:N2} GB (> 8)" -f ($used + $PlannedGB)) }
+   return ("disk ok: C {0:N1} GB, F {1:N1} GB free, F:\ospd {2:N2} GB" -f $c, $f, $used)

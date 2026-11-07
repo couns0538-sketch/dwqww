@@ -52,13 +52,26 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   it runs the step-4 command with `-Out D:\opus_5h\king_lines\bx_on_netoff_r2`. The result goes into
   `bx_on_netoff_r2.console.txt`.
 
+- **Owner, ~18:00:** "use c drive it has space". So step 4 runs on C: (C: had 81.6 GiB free; the floor is 50 GB, per the
+  owner's earlier rule).
+  - **Run copy:** `C:\opus_5h\king_lines\tools\` holds the approved bitexact_check.ps1 4d1c8d52 and the branch
+    uci_lib.ps1. The copies are md5 7f150cc5 and a97d7db7.
+  - **What the copy changes** (`tools/runner_c_drive.diff`, md5 2f691372, 5 lines; the check logic is unchanged):
+    - the reference cache root `F:\ospd\ref` becomes `C:\opus_5h\ref` (two lines);
+    - the scratch root `F:\ospd` becomes `C:\opus_5h`;
+    - the disk guard `C: >= 30 GB and F: >= 50 GB` becomes `C: >= 50 GB after the planned write`.
+  - **Cache seeded on C:.** The two files the run reads were copied from `F:\ospd\ref\4181a589\` with the same sha256:
+    `sig_4181a5893f15e732.json` (1a74bf20...) and `fens_e7dbf2c8_n12000_d13_ob0_UseNNUE-false.tsv` (e25cac43...).
+  - **The F: retry is defused:** `D:\opus_5h\king_lines\bx_on_netoff_r2\` was created, so if F: recovers that run
+    refuses to start ("Out exists"). Nothing was stopped or killed.
+  - **Output:** `C:\opus_5h\king_lines\bx_on_netoff_c`, started 18:02:08 PC clock. It passed the disk guard.
+
 ## In progress
-Step 4 retry, waiting for F: >= 50.4 GiB free.
+Step 4 on C: (full 12k, ON vs the lock, net off).
 
 ## Exact next step
-1. If `D:\opus_5h\king_lines\bx_on_netoff_r2.console.txt` shows the verdict: copy the log here, write the line, push.
-2. If F: stays below the floor: run the step-4 resume command below by hand once F: is back above 50.3 GiB free.
-3. Then hand the pack to Code Review. Nothing is queued.
+1. Read the verdict in `C:\opus_5h\king_lines\bx_on_netoff_c.console.txt`, copy the log to `logs/`, write the line, push.
+2. Hand the pack to Code Review. Nothing is queued.
 
 ## Resume commands
 ```
