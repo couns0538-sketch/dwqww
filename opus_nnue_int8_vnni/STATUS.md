@@ -1,13 +1,13 @@
 # NnueInt8Vnni - STATUS
 
-**Last update:** step 2c, 2026-11-06 ~16:58 PC clock.
+**Last update:** step 2d, 2026-11-06 ~17:00 PC clock.
 
 ## Done
 
 ### 2a - QUANT_SCHEME.md + `tools/int8_convert.py` (commit f6d2da2c)
 - The converter output is `gen/nnue_int8_weights.inc`, md5 25982cc2.
 
-### 2b - scalar int8 path + eval-diff proof (this commit)
+### 2b - scalar int8 path + eval-diff proof (commit 9dfd9b30)
 - **Source change.** `int8_vnni_after_w6.patch` (md5 d8c37703) is the diff from trial_w6 (all switches at their source
   default 0). It touches four files: include/forge/nnue.hpp, src/nnue.cpp, src/nnue_int8_weights.inc (new) and
   src/uci.cpp.
@@ -34,7 +34,7 @@
 - **Note:** the hand-crafted part of the "total" is the public `Evaluator::evaluate`. `evaluate_runtime` is private to
   Worker. The same value enters both totals.
 
-### 2c - overflow bounds (this commit)
+### 2c - overflow bounds (commit a472d836)
 - `tools/int8_bounds.py` and BOUNDS.md: ALL BOUNDS HOLD.
   - FT \|A\| <= 21,236 < 32,767.
   - Activation <= 254; c*c + 128 <= 65,153 (fits u16).
@@ -42,18 +42,42 @@
   - vpdpbusd lane <= 1,032,256.
   - An AVX2 pmaddubsw pair can saturate (64,516), so there is no AVX2 fallback.
 
+- 2b identity: LTO+PGO lp_v1 of `int8_id` (the 2b source): pc1 = pc2 = 4181a589 = trial_w6, byte for byte.
+
+### 2d - AVX-512 VNNI kernel (this commit)
+- **The kernel.** `int8_l1_sum` works on 64 hidden units per step:
+  - clip 0..255, then `mullo_epi16` +128 `>> 8` in 16-bit lanes;
+  - `packus_epi16` to 64 u8, with the weights pre-permuted (`w2p`) to match the byte order;
+  - one `vpdpbusd` per step, into two accumulators;
+  - a final `reduce_add`.
+- **ISA guard.** `#error` unless AVX-512 F + BW + VNNI are present.
+- **Verify macro.** `FORGE_NNUE_INT8_VERIFY` is a test-only macro, default 0.
+- **Patch.** `int8_vnni_after_w6.patch` is now md5 9a2ad0b4. Apply-proof: identical tree. pp_identity at macro 0:
+  IDENTICAL in all 8 units again.
+- **Kernel == scalar.** Run on the full 12k set (12,001 roots) + 16-ply walks = 203,724 positions
+  (`logs/evaldiff_2d_12k.txt`):
+  - kernel != scalar: **0**;
+  - incremental != refresh: **0** (191,723 walk positions);
+  - net |diff| vs float: max 33 cp, mean 3.52 cp, mean signed +1.31 cp; >= 20 cp: 302; >= 50 cp: 0;
+  - sign flips of the total: 635 (0.31 %);
+  - max |A| = 6509.
+- **Verify build.** Bench with the scalar check on every eval (`logs/verify_2d_bench.txt`): ON d13 760,289 and d16
+  3,282,449, no abort; OFF d13 862,329 = lock pin.
+
 ## In progress
-- The LTO+PGO identity build of `D:\opus_5h\int8_vnni\src\int8_id` (lp_v1 -Twice). It must give 4181A589 for both pc1
-  and pc2.
+- 2e LTO+PGO builds: `int8v2_id` (must give 4181a589 for pc1 and pc2) and `int8v2_gate` (pc1 = pc2), both lp_v1 -Twice.
 
 ## Exact next step
-2d: the AVX-512 VNNI kernel in `int8_l1_sum`, the proof that the kernel equals the scalar reference on every harness
-position, and a verify build.
+2e: once the builds finish:
+1. Check the gate exe: pins OFF (net on + net off), both perfts.
+2. Record ON bench d11 / d13 / d16 / d20 / d22.
+3. Write BENCH.md and pack the exe to `D:\opus_5h\int8_vnni\pack\`.
+4. Hand the pack to Code Review.
 
 ## Resume commands
 ```
 cd /f/ospd/wt && git checkout opus-nnue-int8-vnni-20261106
-# trees: D:\opus_5h\int8_vnni\src\{w6 (parent copy), int8 (macro source default 0), int8_id, int8_gate}
+# trees: D:\opus_5h\int8_vnni\src\{w6 (parent copy), int8 = int8v2 (2d source, macro 0), int8v2_id, int8v2_gate}; int8_id = 2b
 bash opus_nnue_int8_vnni/tools/pp_identity.sh /f/ospd/src/trial_w6 /d/opus_5h/int8_vnni/src/int8
 bash opus_nnue_int8_vnni/tools/build_harness.sh /d/opus_5h/int8_vnni/src/int8_gate <new dir>
 <new dir>/int8_evaldiff.exe F:/ospd/wt/opus_speed/data/fens_12k_v2.txt 2000 16 20261106
@@ -64,7 +88,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'F:\ospd\wt\opus_speed\t
 ## Unproven / not claimed
 - No strength or speed claim.
 - The eval diffs above are measured on the 2001-root slice and its walks, not on the full 12k set.
-- There is no SIMD kernel yet: `int8_l1_sum` is still the scalar reference, so "kernel == scalar" holds trivially.
+- The kernel was proven against the scalar reference on 203,724 positions plus every eval of bench d13/d16. That is
+  not a proof for all inputs. The integer argument for all inputs is in BOUNDS.md.
 
 ## Disk
 D: had 47.8 GiB free at the start, below the 50 GB floor of earlier jobs. This brief names D: for builds. The own

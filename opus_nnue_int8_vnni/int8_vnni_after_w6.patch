@@ -50,8 +50,8 @@ diff -ruN w6/include/forge/nnue.hpp int8/include/forge/nnue.hpp
  void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
 diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
 --- w6/src/nnue.cpp	2026-11-06 16:53:25.939709900 -0800
-+++ int8/src/nnue.cpp	2026-11-06 16:48:33.448973500 -0800
-@@ -43,10 +43,20 @@
++++ int8/src/nnue.cpp	2026-11-06 16:56:21.274438100 -0800
+@@ -43,10 +43,30 @@
  static_assert(sizeof(NnueB1) / sizeof(NnueB1[0]) == static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc b1 size");
  static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
  #endif
@@ -59,8 +59,18 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
 +#if !FORGE_HAS_NNUE
 +#error "FORGE_NNUE_INT8_VNNI=1 needs the compiled-in network (nnue_weights.inc)"
 +#endif
++#if !defined(__AVX512F__) || !defined(__AVX512BW__) || !defined(__AVX512VNNI__)
++#error "FORGE_NNUE_INT8_VNNI=1 needs AVX-512 F + BW + VNNI (the lock builds with -march=znver5)"
++#endif
++#include <immintrin.h>
++#include <cstdio>
++#include <cstdlib>
 +// int8 output weights made by opus_nnue_int8_vnni/tools/int8_convert.py from nnue_weights.inc
 +#include "nnue_int8_weights.inc"
++// Test builds only: 1 = every int8 evaluation also runs the scalar reference and aborts on a different sum.
++#ifndef FORGE_NNUE_INT8_VERIFY
++#define FORGE_NNUE_INT8_VERIFY 0
++#endif
 +#endif
  
  namespace forge::nnue {
@@ -72,7 +82,7 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
  
  namespace {
  
-@@ -86,6 +96,96 @@
+@@ -86,6 +106,107 @@
      for (int h = 0; h < HiddenSize; ++h) acc[static_cast<std::size_t>(h)] -= column[h];
  }
  
@@ -89,6 +99,9 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
 +    std::unique_ptr<std::int16_t[]> w1;   // [InputCount][HiddenSize]
 +    alignas(64) std::array<std::int16_t, HiddenSize> b1{};
 +    alignas(64) std::array<std::int8_t, 2 * HiddenSize> w2{};
++    // w2 in the byte order of the kernel's packus_epi16 output (per 64 hidden units: 128-bit lane L holds units
++    // L*8..L*8+7 of the first 32 and then L*8..L*8+7 of the second 32); the dot product is order-free in integers.
++    alignas(64) std::array<std::int8_t, 2 * HiddenSize> w2p{};
 +};
 +
 +inline std::int16_t int8_ft_quant(std::int16_t v) {
@@ -102,6 +115,14 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
 +        for (std::size_t i = 0; i < static_cast<std::size_t>(InputCount) * HiddenSize; ++i) w.w1[i] = int8_ft_quant(NnueW1[i]);
 +        for (std::size_t i = 0; i < HiddenSize; ++i) w.b1[i] = int8_ft_quant(NnueB1[i]);
 +        for (std::size_t i = 0; i < 2 * HiddenSize; ++i) w.w2[i] = NnueInt8W2[i];
++        static_assert(HiddenSize % 64 == 0, "the int8 kernel takes 64 hidden units per step");
++        for (std::size_t block = 0; block < 2 * HiddenSize; block += 64) {
++            for (std::size_t k = 0; k < 64; ++k) {
++                const std::size_t lane = k / 16, j = k % 16;
++                const std::size_t unit = j < 8 ? lane * 8 + j : 32 + lane * 8 + (j - 8);
++                w.w2p[block + k] = w.w2[block + unit];
++            }
++        }
 +        return w;
 +    }();
 +    return instance;
@@ -169,7 +190,7 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
  } // namespace
  
  bool available() { return FORGE_HAS_NNUE != 0; }
-@@ -93,6 +193,12 @@
+@@ -93,6 +214,12 @@
  bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
  
  void refresh(const Board& board, Accumulator& accumulator) {
@@ -182,7 +203,7 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
      const Weights& w = weights();
      for (const Color perspective : {White, Black}) {
          auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
-@@ -108,6 +214,12 @@
+@@ -108,6 +235,12 @@
  }
  
  void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
@@ -195,17 +216,27 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
      const Weights& w = weights();
      // Quiet moves (including noncapturing promotions) remove one feature and
      // add one. Keep each lane's subtraction-then-addition order while avoiding
-@@ -168,6 +280,9 @@
+@@ -168,6 +301,19 @@
  }
  
  int evaluate(const Board& board, const Accumulator& accumulator) {
 +#if FORGE_NNUE_INT8_VNNI
-+    if (int8_vnni) return int8_finish(int8_l1_sum(board, accumulator));
++    if (int8_vnni) {
++        const std::int32_t sum = int8_l1_sum(board, accumulator);
++#if FORGE_NNUE_INT8_VERIFY
++        if (sum != int8_l1_sum_scalar(board, accumulator)) {
++            std::fprintf(stderr, "int8 verify: kernel %d != scalar %d\n", static_cast<int>(sum),
++                         static_cast<int>(int8_l1_sum_scalar(board, accumulator)));
++            std::abort();
++        }
++#endif
++        return int8_finish(sum);
++    }
 +#endif
      const Weights& w = weights();
      const Color us = board.side_to_move();
      const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
-@@ -248,6 +363,31 @@
+@@ -248,6 +394,56 @@
      return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
  }
  
@@ -225,8 +256,33 @@ diff -ruN w6/src/nnue.cpp int8/src/nnue.cpp
 +}
 +
 +std::int32_t int8_l1_sum(const Board& board, const Accumulator& accumulator) {
-+    // step 2b: the scalar reference (2d puts the AVX-512 VNNI kernel here)
-+    return int8_l1_sum_scalar(board, accumulator);
++    // AVX-512 VNNI kernel (step 2d): per 64 hidden units, clip 0..255, square + 128 >> 8 in 16-bit lanes (exact:
++    // c*c + 128 <= 65153 < 2^16), packus to 64 u8 (0..254, never saturates), one vpdpbusd against the pre-permuted
++    // int8 weights; two accumulators; no lane overflows (BOUNDS.md), so the sum equals int8_l1_sum_scalar exactly.
++    const Int8Weights& w = int8_weights();
++    const Color us = board.side_to_move();
++    const std::int16_t* const sides[2] = {accumulator.ivalues[static_cast<std::size_t>(us)].data(),
++                                          accumulator.ivalues[static_cast<std::size_t>(opposite(us))].data()};
++    const __m512i zero = _mm512_setzero_si512();
++    const __m512i cmax = _mm512_set1_epi16(Int8ActMax);
++    const __m512i half = _mm512_set1_epi16(128);
++    __m512i acc[2] = {zero, zero};
++    for (int s = 0; s < 2; ++s) {
++        const std::int16_t* a = sides[s];
++        const std::int8_t* wp = w.w2p.data() + static_cast<std::size_t>(s) * HiddenSize;
++        for (int h = 0; h < HiddenSize; h += 64) {
++            __m512i x0 = _mm512_loadu_si512(a + h);
++            __m512i x1 = _mm512_loadu_si512(a + h + 32);
++            x0 = _mm512_min_epi16(_mm512_max_epi16(x0, zero), cmax);
++            x1 = _mm512_min_epi16(_mm512_max_epi16(x1, zero), cmax);
++            x0 = _mm512_srli_epi16(_mm512_add_epi16(_mm512_mullo_epi16(x0, x0), half), 8);
++            x1 = _mm512_srli_epi16(_mm512_add_epi16(_mm512_mullo_epi16(x1, x1), half), 8);
++            const __m512i act = _mm512_packus_epi16(x0, x1);
++            const int k = (h / 64) & 1;
++            acc[k] = _mm512_dpbusd_epi32(acc[k], act, _mm512_loadu_si512(wp + h));
++        }
++    }
++    return _mm512_reduce_add_epi32(_mm512_add_epi32(acc[0], acc[1]));
 +}
 +
 +int evaluate_int8_scalar(const Board& board, const Accumulator& accumulator) {
