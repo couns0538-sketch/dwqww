@@ -14,14 +14,13 @@ Session restart at ~09:32 (application restart by the owner); workers resumed 09
   - CR / QA item: the gate's PGO workload trains OFF only, so the ON path is cold (see BENCH.md).
 - **Job 3, TtReplaceCache:** DONE. Branch `opus-tt-replace-cache-20261106`, tip 87bf3c7e.
   - Identity = 4181a589. Gate ec1cb55e: ON node-identical.
-- **Job 4, KING_LINES-alone qualification: NOT STARTED** (usage).
-  - FORGE_SPD_KING_LINES is not in trial_w6.
-  - `F:\ospd\src\w9dev` vs `F:\ospd\src\lock` is 833 changed lines in 8 files (w8 switches + KING_LINES). The diff
-    is saved at `D:\opus_5h\king_lines\w9dev_vs_lock.patch`.
-  - A dry run on trial_w6 fails 3 of 8 board.hpp hunks.
-  - Exact next step: extract the KING_LINES-only hunks (board.hpp / board.cpp) and rebase them onto a trial_w6 copy as
-    default-OFF. Prove identity OFF = 4181a589. Then run warm_identity.py (1,000 FENs), the patchrev_qa.py Threads 2-4
-    soak and a 100+ seldepth go depth 20 stress, all at 0xF Idle.
+- **Job 4, KING_LINES on trial_w6: DONE** (owner follow-up, 17:1x-18:10 PC clock). Branch `opus-king-lines-20261106`,
+  tip c228b7c5, pack `opus_king_lines/`.
+  - Source: the committed b4 patch d680f9bf on trial_w6, clean.
+  - OFF build = 4181a589 (pc1 = pc2). ON build 44fd0137 (pc1 = pc2): all pins + perft.
+  - Full 12k BIT-EXACT, net on and net off.
+  - Net-off step on C: (owner), because F: fell below its 50 GB floor from other jobs.
+  - Not a lock: L3b warm_identity, the Threads 2-4 soak and the ABBA are left to QA.
 
 ## 2026-11-06 runner audit (owner 5-hour brief, job 1) - DONE 16:42 PC clock; hand to Code Review
 - **Done:**
