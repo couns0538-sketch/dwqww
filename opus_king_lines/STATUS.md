@@ -30,7 +30,7 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   - Perft: 4865609 / 193690690.
 - **Net off** (`logs/netoff_pins.txt`): OFF and ON both give 375354 / 907205 / 2448617 / 13573040 / 24506465 = the pins.
 
-### Step 3 - full 12k bitexact, ON vs the lock, net on (this commit)
+### Step 3 - full 12k bitexact, ON vs the lock, net on (commit e89e818c)
 - **Verdict: BIT-EXACT (L1-L3; L3 on 12000 FENs).** Exit 0. Run 2026-11-06 17:24:58 PC clock; the cand took 658 s.
 - Ref: the lock exe trial_w6 4181a589 (forge_push\bin, read only). Cand: the ON exe 44fd0137.
 - Runner: bitexact_check.ps1 4d1c8d52, with -SkipSan (L4 not run).
@@ -40,12 +40,25 @@ Commit + push after every step. No exe, lock, queue or gate file is touched. Thi
   12000 distinct ref results.
 - Log: `logs/bitexact_on_neton.log`.
 
+### Step 4 - full 12k bitexact, ON vs the lock, net off: BLOCKED by the F: disk floor
+- **17:37:17 PC clock:** the runner refused to start. Its fail-closed guard said "ERROR: F: would drop to 49.3 GB free
+  (< 50)", exit 1 (`D:\opus_5h\king_lines\bx_on_netoff.console.txt`).
+- **F: at 17:38:** 49.59 GiB free.
+  - Other jobs used it up: F: had 59.9 GiB at 16:38.
+  - This pack writes its outputs to D:, and the net-off reference TSV is already cached
+    (`F:\ospd\ref\4181a589\fens_e7dbf2c8_n12000_d13_ob0_UseNNUE-false.tsv`).
+- **Not done:** the guard was not bypassed and the CR-approved runner was not changed.
+- **Armed 17:39:** an own background retry. It checks F: every 60 s for up to 60 min. When F: has at least 50.4 GiB free,
+  it runs the step-4 command with `-Out D:\opus_5h\king_lines\bx_on_netoff_r2`. The result goes into
+  `bx_on_netoff_r2.console.txt`.
+
 ## In progress
-Step 4: the full 12k bitexact check, ON vs the lock, net off (-FenOptions UseNNUE=false). Output goes to
-`D:\opus_5h\king_lines\bx_on_netoff`.
+Step 4 retry, waiting for F: >= 50.4 GiB free.
 
 ## Exact next step
-When step 4 has passed: write its line here, push, and hand the pack to Code Review. Nothing is queued.
+1. If `D:\opus_5h\king_lines\bx_on_netoff_r2.console.txt` shows the verdict: copy the log here, write the line, push.
+2. If F: stays below the floor: run the step-4 resume command below by hand once F: is back above 50.3 GiB free.
+3. Then hand the pack to Code Review. Nothing is queued.
 
 ## Resume commands
 ```
