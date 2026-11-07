@@ -77,7 +77,7 @@ the terms. The crew's 30-h job builds are affected in the same way.
 | C13 | texel-tuner | https://github.com/GediminasMasaitis/texel-tuner | GPL-3.0 | 2026-08-09 | Texel tuning of HCE terms (the lock adds HCE + net, so HCE terms matter) | - | - | - | ideas-only (an own permissive tuner would be needed) |
 | C14 | WDL_model | https://github.com/official-stockfish/WDL_model | GPL-3.0 | 2026-09-27 | fit of win / draw / loss rates as a function of eval and material | - | - | - | ideas-only (eval-scale ideas for E3) |
 | C15 | Ordo | https://github.com/michiguel/Ordo | GPL-3.0 | 2023-09-15 | rating lists from PGN | - | - | - | ideas-only |
-| C16 | BayesElo | https://www.remi-coulom.fr/Bayesian-Elo/ | GPL (source copies, e.g. https://github.com/ddugovic/BayesianElo) | - | rating lists | - | - | - | ideas-only |
+| C16 | BayesElo | https://www.remi-coulom.fr/Bayesian-Elo/ (author page: "freeware") | GPL-3.0 per the source copy https://github.com/ddugovic/BayesianElo (archived, last push 2015-07-02) | 2015 | rating lists | - | - | - | ideas-only |
 | C17 | chess-library | https://github.com/Disservin/chess-library | MIT | 2026-11-03 | header-only C++ move generation + fast PGN parser (fastchess uses it): a permissive base for own PGN / EPD / data tools | unmeasured | g++ 15.2 / clang 18 | S | new -> T6 candidate |
 | C18 | python-chess | https://github.com/niklasf/python-chess | GPL-3.0 | 2026-08-22 | Python chess tooling (in the crew's read-only venv) | - | - | - | in use (run-only) |
 | C19 | pgn-extract | https://www.cs.kent.ac.uk/people/staff/djb/pgn-extract/ | GPL (v3 per current packagers) | - | PGN filtering / conversion | - | - | - | ideas-only |
