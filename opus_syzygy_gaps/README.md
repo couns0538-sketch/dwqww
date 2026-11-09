@@ -25,10 +25,10 @@ with any value.
 | `SyzygyRootExact` (FORGE_SYZYGY_ROOT_EXACT) | bit 1 | root report: an exact dtz + counter = 100 win shows as a win; with WDL-only ranks and the 50-move rule on, above counter 0 the search score is shown, at counter 0 the root's own WDL | report only: same nodes, same moves |
 | | bit 2 | root move set at the boundary: moves with dtz + counter = 100 are resolved by a budgeted walk (below), so a rounded move that really draws is not mixed with moves that lose. A root left undecided reports the search score, also without bit 1 | search (root move set, rare) |
 | `SyzygyRule50` (FORGE_SYZYGY_RULE50) | bit 1, read side | with the rule on, a stored TB or mate score that cannot be completed before move 100 at the current clock is not used, and a stored probe result (distance 0) is used at clock 0 only | search: mostly with a warm table, rarely inside one search as well (same position at another clock) |
-| | bit 1, store side | with the rule on, a stored TB loss distance covers every line of the node that ends in a mate. A loser prefers any TB loss to any mate, so without this the distance can understate the longest line, and the read side above would pass a score that is too late (R2 finding 2) | search |
+| | bit 1, store side | with the rule on, the TB loss distance of a non-root main-search node covers every searched move that ends in a mate. A loser prefers any TB loss to any mate, so without this the distance can understate the longest line, and the read side above would pass a score that is too late (R2 finding 2). Not at a root and not in qsearch: see `GAP_LEDGER.md`, Limits | search |
 | | bit 2 | changing `Syzygy50MoveRule` clears the hash while tables are loaded | option handling |
 
-`SyzygyTbBounds=7 SyzygyRootExact=3 SyzygyRule50=3` is the full set the suite ran on. Each bit is a separate decision for QA; `BENCH.md` has the per-bit numbers it has.
+`SyzygyTbBounds=7 SyzygyRootExact=3 SyzygyRule50=3` is the full set the suite ran on. `BENCH.md` has the per-bit numbers. Bits work alone, but they close the gaps only together where the ledger names two: `SyzygyRootExact=1` alone keeps the false TB losses of G5, `SyzygyRootExact=2` alone shows exact wins as +2 (first 1000 boundary rows: 28 and 13 wrong reports, 0 with 3), and `SyzygyTbBounds` bit 4 only matters with bit 1 (`zz2roots`).
 
 ## Semantics
 **WDL.** From the side to move: -2 loss, -1 blessed loss, 0 draw, 1 cursed win, 2 win. A WDL value assumes counter 0. Inside the
@@ -73,7 +73,7 @@ bounds, draws exact.
 **Missing, corrupt, unsupported.** Missing folder, no tables: off. A file with a table name that fails validation is rejected at load and
 counted. Probes return "no result" for castling rights, too many pieces, or a missing or inconsistent table: the search goes on without
 them. Root: DTZ first, then WDL if a DTZ probe fails, unranked if a WDL probe fails. A DTZ file alone is not used. Body damage that still parses can give wrong values, because the file checksums are not
-verified: the fixture only asks that the reader neither crashes nor reads out of range (GAP_LEDGER.md, G12).
+verified: the fixture only asks that the reader neither crashes nor reads out of range (GAP_LEDGER.md, Limits).
 
 ## Test tools (`tools/`)
 | tool | purpose |

@@ -16,9 +16,9 @@ say() { echo "$*" | tee -a "$O" | cut -c1-220; }
 mkdir -p "$SRC"
 tar -x -C "$SRC" -f "$J/out/src/lock_d4f4312.tar"
 say "lock source: $(find "$SRC/src" "$SRC/include" -type f | wc -l) files"
-( cd "$SRC" && patch -p1 -F0 --no-backup-if-mismatch < "$J/repo/opus_r13/p6/syzygy_port.patch" | tail -1 ) | cut -c1-100
+( cd "$SRC" && patch -p1 -F0 --no-backup-if-mismatch < "$J/repo/opus_r13/p6/syzygy_port.patch" > "$O.p6.log" ) || { say "FAIL P6 patch rejected"; exit 1; }
 say "P6 patch md5 $(md5sum "$J/repo/opus_r13/p6/syzygy_port.patch" | cut -c1-32), applied with -F0"
-( cd "$SRC" && patch -p1 -F0 --no-backup-if-mismatch < "$J/repo/opus_syzygy_gaps/patches/syzygy_gaps_after_p6.patch" | tail -1 ) | cut -c1-100
+( cd "$SRC" && patch -p1 -F0 --no-backup-if-mismatch < "$J/repo/opus_syzygy_gaps/patches/syzygy_gaps_after_p6.patch" > "$O.gaps.log" ) || { say "FAIL pack patch rejected"; exit 1; }
 say "pack patch md5 $(md5sum "$J/repo/opus_syzygy_gaps/patches/syzygy_gaps_after_p6.patch" | cut -c1-32), applied with -F0"
 find "$SRC" -name '*.rej' | head -3 >> "$O"
 say "fresh tree against out/src/cand HEAD: $(diff -r "$SRC/src" "$J/out/src/cand/src" > /dev/null && diff -r "$SRC/include" "$J/out/src/cand/include" > /dev/null && echo SAME || echo DIFFERENT)"

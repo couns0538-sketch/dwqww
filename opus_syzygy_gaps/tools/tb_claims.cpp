@@ -3,6 +3,7 @@
 // usage: tb_claims <tables dir> <fens file> <card> <depth> [first N] [offset K] [Name=Value ...]
 // Warm mode (environment TB_CLAIMS_WARM=1): lines are "<fen with clock 0>\t<later clock>\t...": the first search fills the table with
 // claims off, the same position at the later clock is then searched on that table with claims judged at its clock.
+// TB_CLAIMS_WARM=2: lines are "<first fen>\t<second fen>": the second search has another root, so the first root's entry is read at an inner node.
 #include "forge/board.hpp"
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
@@ -25,7 +26,9 @@ int main(int argc, char** argv) {
     const int depth = std::stoi(argv[4]);
     const int first = argc > 5 ? std::stoi(argv[5]) : 0;
     const int offset = argc > 6 ? std::stoi(argv[6]) : 0;
-    const bool warm = std::getenv("TB_CLAIMS_WARM") != nullptr;
+    const char* warm_mode = std::getenv("TB_CLAIMS_WARM");
+    const bool warm = warm_mode != nullptr;
+    const bool two_fens = warm && std::string(warm_mode) == "2";
     for (int i = 7; i < argc; ++i) {
         const std::string kv = argv[i];
         const auto eq = kv.find('=');
@@ -72,7 +75,7 @@ int main(int argc, char** argv) {
             std::stringstream fields(fen);
             std::string f1, f2, f3, f4;
             fields >> f1 >> f2 >> f3 >> f4;
-            later = f1 + " " + f2 + " " + f3 + " " + f4 + " " + clock + " " + std::to_string(std::stoi(clock) / 2 + 1);
+            later = two_fens ? clock : f1 + " " + f2 + " " + f3 + " " + f4 + " " + clock + " " + std::to_string(std::stoi(clock) / 2 + 1);
         }
         forge::Board board;
         if (!board.set_fen(fen)) {

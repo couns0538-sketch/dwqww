@@ -54,8 +54,8 @@ mkdir -p "$BU/sig"
 for o in "SyzygyTbBounds=1" "SyzygyTbBounds=2" "SyzygyTbBounds=4" "SyzygyTbBounds=7" "SyzygyRootExact=1" "SyzygyRootExact=2" "SyzygyRootExact=3" "SyzygyRule50=1" "SyzygyRule50=2" "SyzygyRule50=3" "SyzygyTbBounds=7 SyzygyRootExact=3 SyzygyRule50=3"; do
   n=$(echo "$o" | tr ' =' '__')
   a=""; for x in $o; do a="$a --opt $x"; done
-  ps "$T/pinned.ps1" -Exe "$PY" -ArgLine "-I -B $WT\\pins.py $BW $BD\\sig\\${n}_nt.json --expect none --depths 11,13,16 --no-net-off $a" -Log "$BD\\sig\\${n}_nt.out"
-  ps "$T/pinned.ps1" -Exe "$PY" -ArgLine "-I -B $WT\\pins.py $BW $BD\\sig\\${n}_tb.json --expect none --depths 11,13,16 --no-net-off --tables D:\\syzygy345 $a" -Log "$BD\\sig\\${n}_tb.out"
-  say "sig [$o] no tables: $(tail -1 "$BU/sig/${n}_nt.out" | cut -c1-120) | tables: $(tail -1 "$BU/sig/${n}_tb.out" | cut -c1-120)"
+  ps "$T/pinned.ps1" -Exe "$PY" -ArgLine "-I -B $WT\\pins.py $BW $BD\\sig\\${n}_nt.json --expect none --depths 11,13,16,20,22 --no-net-off $a" -Log "$BD\\sig\\${n}_nt.out"
+  ps "$T/pinned.ps1" -Exe "$PY" -ArgLine "-I -B $WT\\pins.py $BW $BD\\sig\\${n}_tb.json --expect none --depths 11,13,16,20,22 --no-net-off --tables D:\\syzygy345 $a" -Log "$BD\\sig\\${n}_tb.out"
+  say "sig [$o] no tables: $(python -I -B -c "import json,sys; print(' '.join(str(v) for v in json.load(open(sys.argv[1]))['on'].values()))" "$BD\\sig\\${n}_nt.json") | tables: $(python -I -B -c "import json,sys; print(' '.join(str(v) for v in json.load(open(sys.argv[1]))['on'].values()))" "$BD\\sig\\${n}_tb.json")"
 done
 say "end $(date)"

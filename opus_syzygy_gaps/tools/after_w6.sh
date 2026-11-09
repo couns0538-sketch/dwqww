@@ -26,7 +26,10 @@ say "parent tree $TREE w6 + port, head $(git -C "$SRC/$TREE" log -1 --format=%h)
 ps "$T/kit_build.ps1" -SrcDir "$PARENT" -Tag "w6p6_parent_$tag" -Defines "$SP" | tail -1 | cut -c1-160
 PSHA=$(sha256sum "$J/out/builds/w6p6_parent_$tag/forge_w6p6_parent_$tag.exe" | cut -c1-64 | tr a-z A-Z)
 say "parent sha256 $PSHA"
-( cd "$SRC/$TREE" && patch -p1 -F0 --no-backup-if-mismatch < "$P" | tail -1 && git add -A && git commit -q -m "gaps" )
+# no pipe on patch: a rejected hunk must stop the line (R3 finding 8)
+( cd "$SRC/$TREE" && patch -p1 -F0 --no-backup-if-mismatch < "$P" > "$O.patch.log" ) || { say "FAIL gaps patch rejected, see $O.patch.log"; exit 1; }
+if find "$SRC/$TREE" -name '*.rej' | grep -q .; then say "FAIL rejected hunks"; exit 1; fi
+( cd "$SRC/$TREE" && git add -A && git commit -q -m "gaps" ) || { say "FAIL commit"; exit 1; }
 say "gaps applied with -F0, head $(git -C "$SRC/$TREE" log -1 --format=%h)"
 say "A' $(ps "$T/kit_build.ps1" -SrcDir "$PARENT" -Tag "w6p6_A_$tag" -Defines "$SP" -WantSha "$PSHA" | tail -1)"
 ps "$T/kit_build.ps1" -SrcDir "$PARENT" -Tag "w6p6_B_$tag" -Defines "$SP,$ALL" | tail -1 | cut -c1-160

@@ -36,14 +36,15 @@ say "  display column on nochild, top values: $(awk -F'\t' '{print $3}' "$H/kqkr
 for v in 0 1; do
   pin -Exe "$PY" -ArgLine "-I -B $WT\\uci_tb.py $W\\out\\exe\\cand_${tag}_plain.exe $HW\\r6k.fens $HW\\ruleoff_${tag}_$v.jsonl --tables $W\\out\\tb\\man34 --depth 10 --jobs 2 --opt Syzygy50MoveRule=false --opt SyzygyTbBounds=7 --opt SyzygyRule50=$v" -Log "$HW\\ruleoff_${tag}_$v.log"
 done
-say "rule off, SyzygyRule50 0 vs 1: $(python -I -B "$T/compare_runs.py" "$H/ruleoff_${tag}_0.jsonl" "$H/ruleoff_${tag}_1.jsonl" | cut -c1-150)"
+cmpv() { python -I -B "$T/compare_runs.py" "$1" "$2" | python -I -B -c "import json,sys; r=json.loads(sys.stdin.read()); print(r['verdict'],'rows',r['rows_a'],r['rows_b'],'different',r['different'],'nodes',r['nodes_a'],r['nodes_b'])"; }
+say "rule off, SyzygyRule50 0 vs 1: $(cmpv "$H/ruleoff_${tag}_0.jsonl" "$H/ruleoff_${tag}_1.jsonl")"
 pin -Exe "$W\\out\\exe\\tb_root_$tag.exe" -ArgLine "D:\\syzygy345 $W\\out\\exp\\exact\\b1.boundary.fens 1 $ON" -OutFile "$HW\\root_boundary_$tag.out" -ErrFile "$HW\\root_boundary_$tag.err"
 say "root boundary against v6: $(cmp "$H/root_boundary_$tag.out" "$Q/root_boundary.out" && echo BYTE-IDENTICAL)"
 pin -Exe "$PY" -ArgLine "-I -B $WT\\uci_tb.py $W\\out\\exe\\cand_${tag}_plain.exe $W\\out\\exp\\exact\\b1.boundary.fens $HW\\uci_boundary_$tag.jsonl --tables D:\\syzygy345 --depth 8 --jobs 3 $OA" -Log "$HW\\uci_boundary_$tag.log"
-say "uci boundary against v6: $(python -I -B "$T/compare_runs.py" "$Q/uci_boundary.jsonl" "$H/uci_boundary_$tag.jsonl" | cut -c1-150)"
+say "uci boundary against v6: $(cmpv "$Q/uci_boundary.jsonl" "$H/uci_boundary_$tag.jsonl")"
 pin -Exe "$PY" -ArgLine "-I -B $WT\\uci_tb.py $W\\out\\exe\\cand_${tag}_plain.exe $W\\out\\exp\\root\\clock.fens $HW\\uci_clock_$tag.jsonl --tables D:\\syzygy345 --depth 6 --jobs 3 $OA" -Log "$HW\\uci_clock_$tag.log"
-say "uci clock against v6: $(python -I -B "$T/compare_runs.py" "$Q/uci_clock.jsonl" "$H/uci_clock_$tag.jsonl" | cut -c1-150)"
+say "uci clock against v6: $(cmpv "$Q/uci_clock.jsonl" "$H/uci_clock_$tag.jsonl")"
 pin -Exe "$PY" -ArgLine "-I -B $WT\\uci_tb.py $W\\out\\exe\\cand_${tag}_plain.exe $W\\out\\exp\\e1\\roots200k.fens $HW\\above30k_$tag.jsonl --tables $W\\out\\tb\\man34 --depth 10 --jobs 3 --first 30000 $OA" -Log "$HW\\above30k_$tag.log"
 head -30000 "$Q/above_d10.jsonl" > "$H/above30k_v6.jsonl"
-say "above tables, 30000 roots against v6: $(python -I -B "$T/compare_runs.py" "$H/above30k_v6.jsonl" "$H/above30k_$tag.jsonl" | cut -c1-150)"
+say "above tables, 30000 roots against v6: $(cmpv "$H/above30k_v6.jsonl" "$H/above30k_$tag.jsonl")"
 say "end $(date)"
