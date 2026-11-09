@@ -33,7 +33,10 @@ cp1 "san/$s/runs/SUMMARY.txt" "san_$s.txt"
 cp1 "san/$s/flips/SUMMARY.txt" "flips_$s.txt"
 cp1 "exp/hunt/churn_$s/SUMMARY.txt" "churn_$s.txt"
 cp1 "exp/hunt/green_v8.txt" "green_v8.txt"
-cp1 "hunt_agent/FINDINGS.md" "hunt_agent_findings.md"
+cp1 "qual/${s}on/root_boundary_full.json" "suite_${s}on_root_boundary_full.json"
+cp1 "qual/${s}on/uci_boundary_full.json" "suite_${s}on_uci_boundary_full.json"
+cp1 "qual/p6/root_boundary_full.json" "suite_parent_root_boundary_full.json"
+cp1 "qual/p6/uci_boundary_full.json" "suite_parent_uci_boundary_full.json"
 # the row files of a failed compare, never the whole set
 for d in "$J"/out/logs/pred1_"$s".log "$J"/out/logs/pred2_"$s".log; do [ -f "$d" ] && cp "$d" "$L/$(basename "$d")" || { echo "missing $d"; miss=$((miss + 1)); }; done
 echo "collect_logs: missing $miss"

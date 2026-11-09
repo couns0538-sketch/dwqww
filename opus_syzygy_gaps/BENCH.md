@@ -73,19 +73,91 @@ Liveness: `SyzygyRootExact` never shows in the bench, because no bench root sits
 ## Fixtures: parent against all on
 Oracles: python-chess and Fathom for table values; `tools/oracle_exact.py` for the 50-move boundary, which does not use the DTZ rounding flag. The parent numbers are plain builds with the same nodes as kit exe 150374ff. The all-on numbers are the plain build of the frozen head, sha256 b5ce3df3969536890ca3c7eac1ca7b56030a411e97ae2964f0e84fb0cad2b509. Logs: `logs/suite_parent.txt`, `logs/suite_v9on.txt`, `logs/suite_v9on_special2.txt`.
 
-PENDING: suite table.
+"Bad" below means wrong against the oracle. Zero on the parent means that row does not separate the two; it is listed so nobody reads it as an improvement.
+
+**Boundary roots, dtz + counter = 100, all 4569 rows** (`tools/exact_full.sh`, `tools/und_check.py`, `tools/exact_partial.py`)
+
+| check | parent | all on |
+|---|---|---|
+| roots the solver finished, judged | 2821 | 2821 |
+| kept moves worse than the best, on decided roots | 197 | **0** |
+| kept moves worse, on undecided roots | 259 (its ranks 900, -900) | 34 |
+| wrong root reports | 430 | **0** |
+| roots undecided: search score shown, nothing claimed | 0 | 107 |
+| engine depth 8: worse moves | 27 | 4, all on undecided roots |
+| engine depth 8: wrong score class | 389 | 105, all on undecided roots |
+| rows the solver did not finish (8 s per root), resolved moves only | 1719 | 1719 |
+| ... provably worse kept moves | 7 | **0** |
+| ... provably wrong reports | 24 | **0** |
+| ... claimed win or loss the solver refutes | 6 | **0** |
+| ... engine moves and scores provably wrong | 2 and 24 | **0 and 0** on the 933 decided roots |
+| lines played out against an oracle opponent, 800: result lost | 5 | **0** |
+| mate lines replayed, 282 | no result (tool error on that run) | 275 verified, 7 cut off, 0 broken |
+
+The earlier 2500-row snapshot of the oracle gives the same picture (2455 judged: parent 197 + 258, 260; all on 0 + 33, 0, 54 undecided). All undecided counts and the reach by clock: `GAP_LEDGER.md`, Limits: 919 of 4569 rows of this purpose-built fixture.
+
+**Table-rule fixtures** (python-chess and Fathom values, `tools/root_check.py`, `tools/root_move_check.py`)
+
+| fixture, roots | parent: wrong reports (root) / wrong scores (engine) | all on |
+|---|---|---|
+| clock, 19905 | 733 / 696 | **0 / 0** |
+| promo, 4000 | 618 / 530 | **0 / 0** |
+| ep, 2000 | 0 / 0 | 0 / 0 |
+| rep, 2000 | 0 / not run | 0 / not run |
+| castle, 500 (499 not ranked, by design) | 0 / not run | 0 / not run |
+| clock 100, 500 | 0 / 0 | 0 / 0 |
+| rule off: promo 4000, rep 2000 | 0 | 0 |
+
+Kept moves worse (column A) and engine moves worse (M) are 0 on both for these fixtures. On both exes 2418 clock rows and 41 promo rows have a rounded move exactly on the boundary, which the table rule cannot judge; the exact solver above can.
+
+**Special rows, all on** (`logs/suite_v9on_special2.txt`): 7-ply repetition 1500 rows, 305 with a third occurrence at the root: root and engine 0 bad. Underpromotion 300 rows, found in 1,273,647 tries: 0 bad. WDL tables only, clock 0, 528 rows: 0 bad reports, 190 kept moves at the documented move-filter limit. WDL tables only, clock fixture: 0 false TB scores shown; the 56,314 "A" rows there are the same limit. Rule off, clock fixture: 0 bad.
+
+**Interior claims** (`tools/tb_claims.cpp`, a test-only instrumented tree: every TB-band score at a node is checked against the full tables). The harness searches the same nodes as the real exe (checked by the hunter on 300 roots, 3,388,358 both). Parent: `logs/suite_parent.txt`.
+
+| run | sites and events | parent wrong | all on wrong |
+|---|---|---|---|
+| 3000 roots above the tables, depth 10 | pruned TB-loss fail-lows, 10114 on the parent | 2991 | **0** |
+| same | false TB wins at node ends | 3532 | **0** |
+| same | wrong TT cuts, main + qsearch | 2700 + 1476 | **0 + 0** |
+| same | correction updates from TB-band scores, of about 4.3 M | 96,932 | **0** |
+| clock fixture 19905 roots, depth 10 | pruned TB-loss fail-lows | 85,761 of 132,694, in 5678 roots | **0** |
+| same | correction updates from TB-band scores, of about 71 M | 436,277 | **0** |
+| 3000 roots, warm table, depth 12 | every site | 134,398 pruned, 143,037 node ends, ... | **0** returned; `null_raw` 1 of 974: a raw null score that is replaced, never returned |
+| zugzwang roots, 199, depth 16 | every site | 8705 pruned, 9501 node ends, 11,117 TT cuts, ... | **0** |
+
+**Warm table and rule change**
+
+| check | parent | all on |
+|---|---|---|
+| warm table at clock 0, same FEN at a later clock, 3000 rows: false TB claims | 5 | **0** |
+| ... control rows, true warm claims kept (cold: 292) | 308 | 288: **a cost**, 20 true claims withheld |
+| `Syzygy50MoveRule` toggled, 400 roots: rows with another TB class than after a Clear Hash | 101 + 57 | **0** |
+| ... rows with other nodes than a manual Clear Hash | 398 | **0** |
+
+**Roots above the tables, 200,000, depth 10** (information): false root claims 0 on both, so this set does not separate them at the root; the claim harness above does. Mates 28,203, of which 28,034 verified, 169 cut off, 0 broken. Scores printed as `cp` inside the mate band: 0. Sign agrees with Fathom on 154,682 of 154,738 decided roots against 154,683 on the parent. Nodes 2,523,734,827 against 2,519,706,483.
+
+**Protocol** (`tools/uci_misc_checks.py`): searchmoves 219 + 219, castling 400, protocol 84, Threads 2 / 3 / 4 soak 120 searches each: all legal; bench 13 afterwards answers 867107 with tables.
+
+**Partial table folders**, engine at depth 5, 3000 rows each. TB-band root scores against the full-set oracle: nodtz 2039, nochild 1603, dtzonly 1738, rejected 1228 claims: **0 wrong, 0 illegal moves** (`logs/partial_v9on.txt`). The parent showed 41 and 10 false root scores here.
 
 ## Per bit (information, no verdict)
 PENDING
 
 ## Warm table, moves played
-PENDING
+At e0ad013, the same code as the head. Judged by the exact solver rows (`tools/warm_move_check.py`, `logs/info_v8.txt`), 3000 rows: moves that keep less than the best result, warm table: parent 386, all on 362; cold: parent 374, all on 367. Only the parent wrong 97 rows, only all-on wrong 73. No verdict: this is one fixture.
 
 ## Move quality
-PENDING
+Cold, 198,507 clock-0 roots with an oracle, depth 10: **parent 333 blunders, all on 336.** Only the parent 50, only all on 53, sign test p = 0.84 (`logs/suite_v9on_move_quality.json`). **Neutral**: the suite does not show that the switches help moves in general. What they do is remove false claims and fix boundary roots. QA's SPRT decides whether that matters in games.
 
 ## Stress
-PENDING
+| run | result |
+|---|---|
+| UBSan trap and MSVC ASan, off and all on, root fixtures, 5-man roots above the tables (`logs/san_v9.txt`) | all exit 0. Bench 13: UBSan 862329; ASan 819221 (the MSVC port searches other nodes, as it does on the lock) |
+| damaged table files under ASan with heap copies (`logs/flips_v9.txt`) | 44 runs, 0 non-zero: no crash, no read out of range |
+| 15,495 KQvKR boundary roots with a missing child table, folders nochild, nodtz, rejected, wdl_only (`logs/green_v8.txt`, at e0ad013: the head differs by one comment; UBSan trap on the commit before the fix) | UBSan and ASan exit 0; nochild: 14,887 undecided, none false |
+| option churn: random option, table and clock changes between searches (`tools/uci_churn.py`, `logs/churn_v9.txt`) | PENDING |
+| root in the TT read at a later clock, two-position warm rows (R3 finding 6, `tools/run_pred.sh`) | PENDING |
+| bug hunter's mutants of the new code | PENDING |
 
 ## trial_w6 line
 The live lock line is trial_w6: the lock source + six node-identical speed switches. `tools/after_w6.sh`, log `logs/after_w6_989399b2.txt`, row files under `out/ident/`. Kit recipe with the six defines. Verdict: **ALL CHECKS PASS**.

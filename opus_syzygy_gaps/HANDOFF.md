@@ -17,7 +17,7 @@ Read `REPORT.md`, then `GAP_LEDGER.md`, `README.md`, `BENCH.md`, `REVIEW_LOG.md`
 - The reviews in `REVIEW_LOG.md` were this job's own and are not Code Review: three by one Opus subagent, one bug hunt by a Fable subagent. Each was independent of the main agent's reasoning, but none had the role or the authority of Code Review.
 - Judgement calls to look at:
   1. Store-side rule of `SyzygyRule50` bit 1: not at a root, not in qsearch. No failing scenario found, but the argument is by test, not by proof (`GAP_LEDGER.md`, Limits).
-  2. Boundary walk inside `go`: budget 1000 moves, about 35 ms at worst on this PC, 54 of 2455 judged roots undecided. A higher budget costs latency at every such root.
+  2. Boundary walk inside `go`: budget 1000 moves, about 35 ms at worst on this PC. 919 of the 4569 purpose-built boundary rows stay undecided, mostly at clocks 60-89 (`GAP_LEDGER.md`, Limits). No false claim there, but the move may be worse. A higher budget costs latency at every such root.
   3. The deviation from the common rank convention at dtz + counter = 100 (`README.md`, Root ranks).
   4. WDL-only move filter: only the report is corrected.
   5. Cost of `SyzygyRule50` bit 1: a few true warm claims are withheld (`BENCH.md`).
