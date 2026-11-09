@@ -21,10 +21,14 @@ with any value.
 |---|---|---|---|
 | `SyzygyTbBounds` (FORGE_SYZYGY_TB_BOUNDS) | bit 1 | a TB loss stops shallow pruning at a node, as a mate loss does. Without it a fail-soft TB loss with moves left unsearched is stored as an upper bound and reaches parents and the TT as a false TB win | search |
 | | bit 2 | TB-band best scores do not update correction history, as mate scores do not | search + eval |
+| | bit 4 | a null move that fails high with a TB-band score returns beta, as with a mate score: in a zugzwang passing wins and moving does not, so a null move proves no TB result | search |
 | `SyzygyRootExact` (FORGE_SYZYGY_ROOT_EXACT) | bit 1 | root report: an exact dtz + counter = 100 win shows as a win; with WDL-only ranks and the 50-move rule on, above counter 0 the search score is shown, at counter 0 the root's own WDL | report only: same nodes, same moves |
-| | bit 2 | root move set at the boundary: moves with dtz + counter = 100 are resolved by a budgeted walk (below), so a rounded move that really draws is not mixed with moves that lose | search (root move set, rare) |
-| `SyzygyRule50` (FORGE_SYZYGY_RULE50) | bit 1 | a stored TB or mate score that cannot be completed before move 100 at the current clock is not used, and a stored probe result (distance 0) is used at clock 0 only | search: mostly with a warm table, rarely inside one search as well (same position at another clock) |
+| | bit 2 | root move set at the boundary: moves with dtz + counter = 100 are resolved by a budgeted walk (below), so a rounded move that really draws is not mixed with moves that lose. A root left undecided reports the search score, also without bit 1 | search (root move set, rare) |
+| `SyzygyRule50` (FORGE_SYZYGY_RULE50) | bit 1, read side | with the rule on, a stored TB or mate score that cannot be completed before move 100 at the current clock is not used, and a stored probe result (distance 0) is used at clock 0 only | search: mostly with a warm table, rarely inside one search as well (same position at another clock) |
+| | bit 1, store side | with the rule on, a stored TB loss distance covers every line of the node that ends in a mate. A loser prefers any TB loss to any mate, so without this the distance can understate the longest line, and the read side above would pass a score that is too late (R2 finding 2) | search |
 | | bit 2 | changing `Syzygy50MoveRule` clears the hash while tables are loaded | option handling |
+
+`SyzygyTbBounds=7 SyzygyRootExact=3 SyzygyRule50=3` is the full set the suite ran on. Each bit is a separate decision for QA; `BENCH.md` has the per-bit numbers it has.
 
 ## Semantics
 **WDL.** From the side to move: -2 loss, -1 blessed loss, 0 draw, 1 cursed win, 2 win. A WDL value assumes counter 0. Inside the
@@ -43,9 +47,10 @@ reader sets `rounded`. A move's value at the root is its DTZ counted from the ro
 - Loss, d + c >= 101: rank -1000 + (d + c), a 50-move draw is in reach. Loss, d + c <= 99: rank -2000.
 - Exactly d + c = 100: the zeroing move is the hundredth half-move. An exact d wins or loses. A rounded d may be 101, which draws. The parent ranks all such wins 900 and all such
   losses -2000, so it can keep a move that loses next to one that draws (review R1, finding 1). With `SyzygyRootExact` bit 2 a rounded move is resolved by a walk: a table distance decides a
-  reply unless it is itself rounded and exactly on the boundary; only those lines are followed, WDL after a zeroing move, repetition not modelled, at most FORGE_SYZYGY_BOUNDARY_BUDGET (1000)
-  moves per root, about 30 ms at worst on this PC. Result ranks: win 901, draw 899 or -899, loss -2000. If the budget runs out: 900 or -900, the root keeps those moves (a possibly drawing move goes
-  before a sure loss) and reports the search score, because nothing is proved.
+  reply unless it is itself rounded and exactly on the boundary; only those lines are followed, WDL after a zeroing move, repetition not modelled. The leading moves are walked in rounds with a growing
+  cap per move (64, 256, then the rest), the memo kept across rounds, and the walk stops at the first proof. At most FORGE_SYZYGY_BOUNDARY_BUDGET (1000) moves per root, about 35 ms at worst on this PC. Result
+  ranks: win 901, draw 899 or -899, loss -2000. If the budget runs out, or a table the walk needs is missing: 900 or -900, the root keeps those moves (a possibly drawing move goes before a sure loss)
+  and reports the search score, because nothing is proved.
 - Only the best-ranked moves are searched, inside a given `searchmoves` list (if the list excludes them all it is kept as given).
 - Deviation noted: the common rank convention leaves sum 100 at one rank and reports it as a win. This job resolves or reports it as undecided, using the `rounded` flag the reader already has, checked by a
   solver that does not use that flag (`tools/oracle_exact.py`).
@@ -77,10 +82,11 @@ verified: the fixture only asks that the reader neither crashes nor reads out of
 | `plain_build.ps1`, `kit_build.ps1`, `preprocess_diff.ps1` | plain build; kit v2.3 LTO+PGO, token for token as the speed job's `lp_v1`; preprocessed source compare |
 | `sanitize_builds.ps1`, `run_san.ps1`, `run_flip_asan.ps1` | g++ UBSan trap and MSVC ASan builds and runs, heap copies of the tables under ASan |
 | `uci_tb.py`, `pins.py`, `identity_runs.ps1`, `compare_runs.py`, `identity_compare.sh`, `warm_identity.py` | FEN runner over UCI (fails closed on pin or invalid FEN); pins; node identity cold and warm |
-| `gen_*.py`, `zz_scan.cpp`, `table_identity.ps1` | fixtures, mutual zugzwang scan, table hashes |
+| `gen_*.py`, `zz_scan.cpp`, `table_identity.ps1` | fixtures (clock, boundary, special, underpromotion, warm, two zugzwang sets, boundary roots with a missing child table), mutual zugzwang scan, table hashes |
 | `oracle_chess.py`, `fathom_root.c`, `oracle_exact.py` | independent expected values: python-chess, Fathom, DTZ-free boundary solver |
 | `tb_root.cpp`, `root_check.py`, `root_move_check.py`, `exact_check.py` | root path and engine moves against the oracles |
 | `make_instr.py`, `tb_claims.cpp`, `claims_build_run.sh` | test-only instrumented tree: every TB-band claim at a node against the full tables, cold and warm |
 | `false_claims.py`, `move_quality.py`, `mate_pv_check.py` | root claims and move result against the oracle, mate PV replay |
-| `warm_claims.py`, `playout_check.py`, `uci_misc_checks.py`, `run_partial.sh`, `gen_partial_tables.py` | warm-table fixtures; lines against an oracle opponent; searchmoves, castling, protocol, Threads soak; partial and damaged table sets |
-| `qual_all.sh` | the whole suite for one exe + options |
+| `warm_claims.py`, `warm_move_check.py`, `playout_check.py`, `uci_misc_checks.py`, `run_partial.sh`, `gen_partial_tables.py` | warm-table fixtures and the moves played there; lines against an oracle opponent; searchmoves, castling, protocol, Threads soak; partial and damaged table sets |
+| `qual_all.sh`, `special2.sh`, `run_v6.sh` | the whole suite for one exe + options |
+| `final_freeze.sh`, `after_w6.sh` | the freeze proof (patch, preprocess, Build A, Build B pc1 = pc2, pins, identity cold and warm, per-option bench) and the trial_w6 line |

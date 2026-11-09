@@ -76,7 +76,8 @@ def worker(a, jobs, out, errors):
                 e.send('ucinewgame')
                 cold = go(e, later, a.depth)
                 out.put({'i': i, 'fen': later, 'expect': expect, 'first': cls(first), 'warm': cls(warm), 'cold': cls(cold),
-                         'warm_score': warm['score'], 'cold_score': cold['score'], 'warm_type': warm['score_type']})
+                         'warm_score': warm['score'], 'cold_score': cold['score'], 'warm_type': warm['score_type'],
+                         'warm_move': warm['bestmove'], 'cold_move': cold['bestmove']})
             else:
                 # The control for the option change: the same sequence with a manual Clear Hash, the very call the switch makes,
                 # so with the switch on warm and control must be node-identical (histories are kept in both).

@@ -19,7 +19,7 @@ index fcb20b2..c603c06 100644
  // Call after changing LMR parameters.
  void refresh();
 diff --git a/src/search.cpp b/src/search.cpp
-index b4f900c..e685f10 100644
+index b4f900c..04000d2 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -63,6 +63,15 @@ int CaptureFutilityBase = 0;
@@ -160,7 +160,7 @@ index b4f900c..e685f10 100644
 +#if FORGE_SYZYGY_RULE50
 +    // A loser prefers any TB loss to any mate, so a longer line that ends in a mate does not show in the TB distance. Let the
 +    // distance cover it: tb_score_fits_clock relies on it (SyzygyRule50 bit 1). Stays inside the TB loss band.
-+    if ((tune::SyzygyRule50 & 1) != 0 && !root_node && excluded.is_none() && syzygy::tb_scores && longest_mate_loss > -Infinite &&
++    if ((tune::SyzygyRule50 & 1) != 0 && options::syzygy_50_move_rule && !root_node && excluded.is_none() && syzygy::tb_scores && longest_mate_loss > -Infinite &&
 +        best_score <= -syzygy::TbWinInMaxPly && best_score > -MateInMaxPly) {
 +        best_score = std::max(best_score, -syzygy::TbWin + (MateValue + longest_mate_loss));
 +    }
@@ -189,7 +189,7 @@ index b4f900c..e685f10 100644
      all.reserve(workers_.size());
      for (auto& worker : workers_) all.push_back(worker.get());
 diff --git a/src/syzygy.inc b/src/syzygy.inc
-index 303929b..5016547 100644
+index 303929b..40028a4 100644
 --- a/src/syzygy.inc
 +++ b/src/syzygy.inc
 @@ -1172,6 +1172,106 @@ struct NodeValue {
@@ -271,7 +271,7 @@ index 303929b..5016547 100644
 +[[gnu::cold]] void resolve_boundary(const Registry& r, Board& board, std::vector<RootRank>& ranks) {
 +    BoundaryMemo memo;
 +    int budget = FORGE_SYZYGY_BOUNDARY_BUDGET;
-+    for (int cap = 64; budget > 0; cap *= 4) {
++    for (int cap = 64; budget > 0; cap = std::min(cap * 4, FORGE_SYZYGY_BOUNDARY_BUDGET)) {
 +        int best = -3000;
 +        for (const RootRank& x : ranks) best = std::max(best, x.rank);
 +        if (best != 900 && best != -900) return;
