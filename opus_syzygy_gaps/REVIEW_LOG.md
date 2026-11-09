@@ -41,3 +41,27 @@ The reviews below are this job's own, by one subagent (opus-max) in a fresh cont
 |---|---|---|---|
 | B1 | `cap *= 4` in `resolve_boundary` overflows a signed int when a table the walk needs is missing: every round fails cheaply, so many rounds run. No fixture had boundary roots on a partial table folder | `gen_missing_child_fixture.py`: 15,495 KQvKR boundary roots on folder `nochild`: UBSan trap (exit 132) on 85e00a0 | cap limited to the budget, `e0ad013` |
 | B2 | the store-side rule of `SyzygyRule50` bit 1 was not gated on `Syzygy50MoveRule` | rule off, 6000 roots, SyzygyRule50 0 vs 1: 651 rows differ on 85e00a0 | condition added, `e0ad013` |
+
+GREEN of both: UBSan and ASan clean on the 15,495 roots with folders nochild, nodtz, rejected, wdl_only (`out/exp/hunt/`); rule off 6000 rows identical. Rule on, all switches on, against the full suite's v6 runs: root boundary byte-identical, engine rows identical on boundary (4569), clock (19905), 30000 roots above the tables.
+
+## R3 - final recheck, candidate e0ad013
+- Report: `review/R3.md`. **Nothing at BLOCKER, HIGH or MEDIUM**; the reviewer could not construct a false claim or a lost result on the store-side rule, the walk, bit 4, or the requirements. Second read by its advisor, after the report, not independent of it.
+- Process note from the reviewer: three of its UCI drivers read pipes synchronously (none blocked), three short Python compares ran unpinned, one harness run took 374 s. A small scratch folder with its finding 8 demo sits outside the job root.
+
+| # | sev | finding | assessment | action |
+|---|---|---|---|---|
+| 1, 2 | LOW | `BENCH.md`, the after_w6 patch and the freeze proof at head were not there yet | CONFIRMED, pending at that time | `final_chain.sh`, written at the frozen head |
+| 3 | LOW | ASan never ran on the missing-child roots (exit 127: no MSVC environment) | CONFIRMED | `pinned_asan.ps1`, 4 folders under ASan with heap copies: exit 0, 15,495 rows each |
+| 4 | LOW | G5's parent number 197 leaves out 258 kept moves the checker files apart | CONFIRMED | ledger: 455 against 33 |
+| 5 | LOW | `warm_move_check.py` had no run | CONFIRMED | `info_runs.sh`, numbers in BENCH.md |
+| 6 | LOW | README "every line of the node" overstates; a root entry stored without the raise can be read at a later clock; qsearch has no raise; no failing scenario | CONFIRMED by reading | wording corrected; I built the test the reviewer could not build within its rules: claim harness, two-position warm mode, `gen_warm_pred_fixture.py`: 0 wrong against 2290 in the control. No code change without a failing test. Listed under Limits for Code Review to judge |
+| 7 | LOW | per-bit: `SyzygyRootExact` 1 and 2 alone keep wrong reports | CONFIRMED | stated in README |
+| 8 | LOW | `after_w6.sh` fails open on a rejected hunk | CONFIRMED | no pipe on patch, `.rej` check, exit 1, also in `repro_from_pack.sh` |
+| 9 | NIT | stale comment at the walk budget | CONFIRMED | `989399b`, comment only |
+| 10 | NIT | README cites a G12 that does not exist | CONFIRMED | corrected |
+| 11 | NIT | `green_v8.sh` cuts verdicts off its log | CONFIRMED | verdict printed; direct compare already identical |
+
+## Own check at the frozen head
+| # | finding | test first | action |
+|---|---|---|---|
+| B3 | the gaps patch does not apply on trial_w6 + port: hunk 11 of `search.cpp` has the main-search store line in its context, and trial_w6 wraps that line in `#if FORGE_SPD_TT_NOTLS`. The fail-closed check from R3 finding 8 stopped the line; with the old pipe the build would have gone on without the store-side rule of `SyzygyRule50` bit 1 and without the correction guard of `SyzygyTbBounds` bit 2 | `after_w6.sh` on 989399b: exit 1, `out/builds/after_w6_989399b.txt` | `patches/syzygy_gaps_after_w6p6.patch`: the same 234 changed lines in the same order, one hunk with new context. `after_w6.sh` now checks that, the preprocessed code with the speed switches at 0 against the P6 tree and the frozen candidate, no changed line inside a speed conditional (`w6_arm_check.py`), and all options on against the frozen P6-line build: nodes on bench, 30000 roots, all root fixtures, boundary roots, warm rows; UBSan with the six defines. The P6-line head is unchanged. Results in BENCH.md |

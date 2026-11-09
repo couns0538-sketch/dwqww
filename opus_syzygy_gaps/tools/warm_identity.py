@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """warm_identity.py - warm-table identity of a candidate exe against the lock (speed job, own code).
 
-usage: python -I -B warm_identity.py <ref exe> <cand exe> <fens file> <out dir> [--n 400] [--nodes 20000] [--tables DIR]
+usage: python -I -B warm_identity.py <ref exe> <cand exe> <fens file> <out dir> [--n 400] [--nodes 20000] [--tables DIR] [--opt N=V ...]
 (job copy: mask 0xF000, --tables added, this job's three option lines ignored in the comparison.)
 
 The bit-exact proof (bitexact_check L3) sends ucinewgame before every FEN, so the TT is always cold there. This tool
@@ -128,7 +128,7 @@ class Engine:
         self.until(lambda s: s == 'readyok')
 
 
-def run(exe, fens, nodes, k32, tables=''):
+def run(exe, fens, nodes, k32, tables='', opts=()):
     log = []
     e = Engine(exe, log)
     try:
@@ -144,6 +144,11 @@ def run(exe, fens, nodes, k32, tables=''):
         e.send('setoption name OwnBook value false')
         if tables:
             e.send('setoption name SyzygyPath value ' + tables)
+        for o in opts:
+            name, value = o.split('=', 1)
+            if not any(s.startswith(f'option name {name} ') for s in log):
+                raise RuntimeError(f'{exe} does not advertise option {name}')
+            e.send(f'setoption name {name} value {value}')
         e.sync()
         rows = []
         for i, fen in enumerate(fens):
@@ -192,6 +197,9 @@ def main():
     tables = ''
     if '--tables' in a:
         i = a.index('--tables'); tables = a[i + 1]; del a[i:i + 2]
+    opts = []
+    while '--opt' in a:
+        i = a.index('--opt'); opts.append(a[i + 1]); del a[i:i + 2]
     if len(a) != 4:
         print(__doc__)
         return 1
@@ -204,7 +212,7 @@ def main():
     res = {}
     for tag, exe in (('ref', ref), ('cand', cand)):
         t0 = time.time()
-        log, bench, rows = run(exe, fens, nodes, k32, tables)
+        log, bench, rows = run(exe, fens, nodes, k32, tables, opts)
         (outd / f'{tag}.log').write_text('\n'.join(log) + '\n', encoding='utf-8', newline='\n')
         res[tag] = (norm(log), bench, time.time() - t0)
         print(f'{tag}: {len(log)} lines, {time.time() - t0:.0f} s, last bench: {bench}')
