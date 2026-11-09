@@ -30,7 +30,7 @@ ps() { powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$@"; }
 say() { echo "$*" | tee -a "$O" | cut -c1-200; }
 # need <text that must be in the result> <label> <result>
 need() { say "$2: $3"; case "$3" in *"$1"*) ;; *) fails=$((fails + 1)); say "FAILED CHECK: $2";; esac; }
-same() { need '"verdict": "IDENTICAL"' "$1" "$(python -I -B "$T/compare_runs.py" "$2" "$3" | cut -c1-300)"; }
+same() { need '"verdict": "IDENTICAL"' "$1" "$(python -I -B "$T/compare_runs.py" "$2" "$3" | sed 's/"examples".*//')"; }
 sig() { python -I -B -c "import json,sys; print(' '.join(str(v) for v in json.load(open(sys.argv[1]))['on'].values()))" "$1"; }
 lines() { grep -E '^[+-]' "$1" | grep -vE '^(\+\+\+|---) '; }
 
