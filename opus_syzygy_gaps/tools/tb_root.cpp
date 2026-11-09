@@ -4,7 +4,7 @@
 //   kept moves (space separated, "-" if the root was not restricted),
 //   ranks ("uci:rank:value:rounded" per legal move), interior WDL probe of the root ("-" if it fails),
 //   probe_wdl_with_counter ("-" if undecided or failing), root DTZ + rounded ("-" if failing).
-// usage: tb_root <tables dir> <fens file> [rule50 0|1]
+// usage: tb_root <tables dir> <fens file> [rule50 0|1] [Name=Value ...]
 // Build: plain_build.ps1 -Units bitboard,board,book,eval,eval_params,nnue,search -MoreSources tb_root.cpp
 #include "forge/board.hpp"
 #include "forge/search.hpp"
@@ -30,6 +30,21 @@ int main(int argc, char** argv) {
     std::cerr << "loaded " << summary.wdl_tables << " WDL, " << summary.dtz_tables << " DTZ, rejected " << summary.rejected
               << ", max " << summary.max_pieces << "\n";
     forge::options::syzygy_50_move_rule = argc < 4 || std::string(argv[3]) != "0";
+    for (int i = 4; i < argc; ++i) {
+        const std::string kv = argv[i];
+        const auto eq = kv.find('=');
+        bool found = false;
+        for (const forge::tune::Parameter& p : forge::tune::parameters()) {
+            if (kv.substr(0, eq) == p.name) {
+                *p.value = std::stoi(kv.substr(eq + 1));
+                found = true;
+            }
+        }
+        if (!found) {
+            std::cerr << "unknown option " << kv << std::endl;
+            return 2;
+        }
+    }
     std::ifstream in(argv[2]);
     if (!in) {
         std::cerr << "cannot open " << argv[2] << "\n";

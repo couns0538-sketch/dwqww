@@ -48,7 +48,8 @@ def main():
                 board.push(move)
                 w, d = probe(tb, board)
                 row['moves'].append({'uci': move.uci(), 'zeroing': zeroing, 'mate': board.is_checkmate(),
-                                     'stalemate': board.is_stalemate(), 'child_wdl': w, 'child_dtz': d})
+                                     'stalemate': board.is_stalemate(), 'child_wdl': w, 'child_dtz': d,
+                                     'threefold': board.is_repetition(3)})
                 board.pop()
             f.write(json.dumps(row) + '\n')
             n += 1

@@ -1,0 +1,216 @@
+diff --git a/include/forge/search.hpp b/include/forge/search.hpp
+index fcb20b2..e60da67 100644
+--- a/include/forge/search.hpp
++++ b/include/forge/search.hpp
+@@ -250,6 +250,15 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
+ extern int CaptureFutilityMultiplier;
+ extern int CaptureFutilityDepth;
+ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
++#if FORGE_SYZYGY_TB_BOUNDS
++extern int SyzygyTbBounds;  // TB-aware score bounds while tables are loaded, bit mask, 0 = off (src/search.cpp)
++#endif
++#if FORGE_SYZYGY_ROOT_EXACT
++extern int SyzygyRootExact;  // root report at dtz + counter = 100 and with WDL-only ranks, 0 = off (src/tablebase.inc)
++#endif
++#if FORGE_SYZYGY_RULE50
++extern int SyzygyRule50;  // rule-50 handling of stored TB scores, bit mask, 0 = off (src/search.cpp, src/uci.cpp)
++#endif
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+diff --git a/src/search.cpp b/src/search.cpp
+index b4f900c..708c613 100644
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -63,6 +63,15 @@ int CaptureFutilityBase = 0;
+ int CaptureFutilityMultiplier = 250;
+ int CaptureFutilityDepth = 6;
+ int FailLowContinuationBonus = 0;
++#if FORGE_SYZYGY_TB_BOUNDS
++int SyzygyTbBounds = 0;
++#endif
++#if FORGE_SYZYGY_ROOT_EXACT
++int SyzygyRootExact = 0;
++#endif
++#if FORGE_SYZYGY_RULE50
++int SyzygyRule50 = 0;
++#endif
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -98,6 +107,15 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++#if FORGE_SYZYGY_TB_BOUNDS
++        {"SyzygyTbBounds", &SyzygyTbBounds, 0, 7},
++#endif
++#if FORGE_SYZYGY_ROOT_EXACT
++        {"SyzygyRootExact", &SyzygyRootExact, 0, 1},
++#endif
++#if FORGE_SYZYGY_RULE50
++        {"SyzygyRule50", &SyzygyRule50, 0, 3},
++#endif
+     };
+     return table;
+ }
+@@ -112,6 +130,15 @@ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+ 
++// Scores at or below -FORGE_LOSS_FLOOR stop forward pruning at a node. With SyzygyTbBounds bit 1 and tables loaded this
++// includes TB losses: a fail-soft TB loss with moves left unsearched would be stored and passed up as a proven result.
++#if FORGE_SYZYGY_TB_BOUNDS
++int g_loss_floor = MateInMaxPly;
++#define FORGE_LOSS_FLOOR g_loss_floor
++#else
++#define FORGE_LOSS_FLOOR MateInMaxPly
++#endif
++
+ [[nodiscard]] int score_to_tt(int score, int ply) {
+     // Mate scores, and tablebase scores while tables are loaded (the band just below the mate scores,
+     // forge/syzygy.hpp), are stored as the distance from the storing node; everything else unchanged.
+@@ -127,6 +154,22 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
++// A stored TB score tells the distance k from its node to the zeroing position that was probed. With the 50-move rule on
++// it holds at a later clock only if that position is still reached in time; k = 0 is the probed position itself, whose
++// WDL holds at clock 0 only (SyzygyRule50 bit 1).
++#if FORGE_SYZYGY_RULE50
++[[nodiscard]] bool tb_score_fits_clock(int stored, int clock) {
++    if ((tune::SyzygyRule50 & 1) == 0 || !syzygy::tb_scores || !options::syzygy_50_move_rule) return true;
++    const int magnitude = std::abs(stored);
++    if (magnitude < syzygy::TbWinInMaxPly || magnitude >= MateInMaxPly) return true;
++    const int k = syzygy::TbWin - magnitude;
++    return k == 0 ? clock == 0 : k + clock <= 100;
++}
++#define FORGE_TT_SCORE_USABLE(entry, clock) (entry.score_usable(clock) && tb_score_fits_clock(entry.score, clock))
++#else
++#define FORGE_TT_SCORE_USABLE(entry, clock) entry.score_usable(clock)
++#endif
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -795,7 +838,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && FORGE_TT_SCORE_USABLE(tte, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && tte.pv());
+@@ -836,7 +879,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
+         ++move_count;
+-        if (!in_check && best_score > -MateInMaxPly) {
++        if (!in_check && best_score > -FORGE_LOSS_FLOOR) {
+             const bool gives_check = board.gives_check(move);
+             // Futility: even winning the captured piece cannot raise alpha.
+             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+@@ -919,7 +962,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const bool tt_hit = tt_probe.hit;
+     const TTEntry& tte = tt_probe.entry;
+     const Move tt_move = tt_hit ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && FORGE_TT_SCORE_USABLE(tte, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+@@ -995,6 +1038,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
++#if FORGE_SYZYGY_TB_BOUNDS
++                // A null move proves no TB result either (SyzygyTbBounds bit 2).
++                if ((tune::SyzygyTbBounds & 2) != 0 && syzygy::tb_scores && std::abs(null_score) >= syzygy::TbWinInMaxPly) null_score = beta;
++#endif
+                 if (depth < 14) {
+                     ++null_cutoffs_;
+                     return null_score;
+@@ -1072,7 +1119,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 
+         // Shallow-depth pruning of unpromising moves.
+-        if (!root_node && best_score > -MateInMaxPly && has_material) {
++        if (!root_node && best_score > -FORGE_LOSS_FLOOR && has_material) {
+             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+             if (quiet && !gives_check) {
+@@ -1230,6 +1277,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     // Teach the static evaluation about this pawn structure when the search
+     // result is a usable bound in the direction of the difference.
+     if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
++#if FORGE_SYZYGY_TB_BOUNDS
++        // A TB result says nothing about this pawn structure, as a mate score (SyzygyTbBounds bit 4).
++        !((tune::SyzygyTbBounds & 4) != 0 && syzygy::tb_scores && std::abs(best_score) >= syzygy::TbWinInMaxPly) &&
++#endif
+         (best_move.is_none() || !best_move.is_capture()) &&
+         !(bound == BoundLower && best_score <= ss->static_eval) &&
+         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+@@ -1523,6 +1574,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     worker_limits.start_time = origin;
+     // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
+     if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);
++#if FORGE_SYZYGY_TB_BOUNDS
++    g_loss_floor = (tune::SyzygyTbBounds & 1) != 0 && syzygy::max_pieces() > 0 ? syzygy::TbWinInMaxPly : MateInMaxPly;
++#endif
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
+     for (auto& worker : workers_) all.push_back(worker.get());
+diff --git a/src/tablebase.inc b/src/tablebase.inc
+index 142ab40..7e84a11 100644
+--- a/src/tablebase.inc
++++ b/src/tablebase.inc
+@@ -97,6 +97,21 @@ namespace {
+     // probes inside the search would only flatten their scores. With WDL ranks
+     // keep probing while winning, so that the search finds the conversion.
+     if (used_dtz || best <= 0) search_cardinality.store(0, std::memory_order_relaxed);
++#if FORGE_SYZYGY_ROOT_EXACT
++    if (tune::SyzygyRootExact != 0) {
++        // WDL ranks assume counter 0: above it they keep their move filter but prove no win or loss, so the search
++        // score is reported (DTZ table missing).
++        if (!used_dtz && root.halfmove_clock() != 0 && std::abs(best) > 1000) return;
++        // Rank 900 is dtz + counter = 100: the zeroing move is the hundredth half-move, a win unless the distance
++        // is rounded and may be 101.
++        if (used_dtz && best == 900 &&
++            std::none_of(ranks.begin(), ranks.end(), [&](const RootRank& r) { return r.rank == best && r.rounded; })) {
++            root_display_score.store(TbWin - 1, std::memory_order_relaxed);
++            root_display.store(1, std::memory_order_relaxed);
++            return;
++        }
++    }
++#endif
+     root_display_score.store(rank_score(best), std::memory_order_relaxed);
+     root_display.store(1, std::memory_order_relaxed);
+ }
+diff --git a/src/uci.cpp b/src/uci.cpp
+index f512762..5d2e194 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -292,12 +292,22 @@ int main() {
+                     forge::options::syzygy_probe_depth = std::clamp(value, 1, 10);
+                 }
+             } else if (name == "Syzygy50MoveRule") {
++#if FORGE_SYZYGY_RULE50
++                const bool rule_before = forge::options::syzygy_50_move_rule;
++#endif
+                 if (value_text == "true") forge::options::syzygy_50_move_rule = true;
+                 else if (value_text == "false") forge::options::syzygy_50_move_rule = false;
+                 else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option " << name << std::endl;
+                 }
++#if FORGE_SYZYGY_RULE50
++                // Stored tablebase scores belong to the rule they were searched under (SyzygyRule50 bit 2).
++                if ((forge::tune::SyzygyRule50 & 2) != 0 && rule_before != forge::options::syzygy_50_move_rule &&
++                    forge::syzygy::max_pieces() > 0) {
++                    searcher.clear_hash();
++                }
++#endif
+             } else if (name == "UseNNUE") {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;

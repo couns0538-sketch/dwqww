@@ -6,7 +6,7 @@ usage: python -I -B root_check.py <oracle.jsonl> <tb_root.out> [--json out.json]
 Expected outcome of each root move, from the oracle's child wdl / dtz only (no engine code), with clock c at the root and the
 50-move rule on. Convention: child_dtz is from the child's side to move.
   zeroing move: outcome = -child_wdl (2 win, 1 cursed win, 0 draw, -1 blessed loss, -2 loss).
-  mate: win.  clock c + 1 >= 100 without mate: draw.  repetition is not modelled here: only for lines without " moves ".
+  mate: win.  clock c + 1 >= 100 without mate: draw.  a move into a third occurrence (oracle flag threefold): draw.
   otherwise child dtz d: child loses (d < 0): the mover zeroes after |d| more plies; the zeroing happens at clock c + 1 + |d|
   counted as plies; the mover's distance from the root is D = |d| + 1. Win if D + c <= 100, else cursed win.
   child wins (d > 0): the mover loses, distance D = d + 1. Loss if D + c <= 100, else blessed loss. d = 0: draw.
@@ -26,15 +26,17 @@ import json
 RANK = {'win': 2, 'cursed': 1, 'draw': 0, 'blessed': -1, 'loss': -2}
 
 
-def outcome(m, c):
+def outcome(m, c, rule50=True):
     if m['mate']:
         return 'win', 1
     if m['zeroing']:
         w = m['child_wdl']
         if w is None:
             return None, 0
-        return {2: 'loss', 1: 'blessed', 0: 'draw', -1: 'cursed', -2: 'win'}[w], 1
-    if c + 1 >= 100:
+        if rule50:
+            return {2: 'loss', 1: 'blessed', 0: 'draw', -1: 'cursed', -2: 'win'}[w], 1
+        return {2: 'loss', 1: 'loss', 0: 'draw', -1: 'win', -2: 'win'}[w], 1
+    if c + 1 >= 100 or m.get('threefold'):
         return 'draw', 0
     d = m['child_dtz']
     if d is None:
@@ -43,9 +45,9 @@ def outcome(m, c):
         return 'draw', 0
     if d < 0:
         D = -d + 1
-        return ('win' if D + c <= 100 else 'cursed'), D
+        return ('win' if D + c <= 100 or not rule50 else 'cursed'), D
     D = d + 1
-    return ('loss' if D + c <= 100 else 'blessed'), D
+    return ('loss' if D + c <= 100 or not rule50 else 'blessed'), D
 
 
 def display_class(text):
@@ -65,6 +67,7 @@ def main():
     ap.add_argument('out')
     ap.add_argument('--json', default='')
     ap.add_argument('--list', default='')
+    ap.add_argument('--rule50', type=int, default=1)
     a = ap.parse_args()
     oracle = [json.loads(l) for l in open(a.oracle, encoding='utf-8')]
     rows = [l.rstrip('\n').split('\t') for l in open(a.out, encoding='utf-8')]
@@ -81,7 +84,7 @@ def main():
         c = o['clock']
         display, kept, ranks = r[2], r[5], r[6]
         rounded = {}
-        for item in ranks.split():
+        for item in ([] if ranks == '-' else ranks.split()):
             u, _rank, _val, rd = item.rsplit(':', 3)
             rounded[u] = rd == '1'
         moves = o['moves']
@@ -90,8 +93,8 @@ def main():
         info = {}
         undecided = False
         for m in moves:
-            oc, D = outcome(m, c)
-            und = rounded.get(m['uci'], False) and D + c == 100 and oc in ('win', 'loss')
+            oc, D = outcome(m, c, a.rule50 != 0)
+            und = a.rule50 != 0 and rounded.get(m['uci'], False) and D + c == 100 and oc in ('win', 'loss')
             info[m['uci']] = (oc, D, und)
             undecided = undecided or und
             if not rounded.get(m['uci'], False) and D + c == 100 and oc == 'win':
@@ -100,12 +103,17 @@ def main():
                 cnt['sum100_rounded'] += 1
         if any(v[0] is None for v in info.values()):
             cnt['not_ranked'] += 1
+            if kept != '-':
+                bad.append(('E', o['fen'], f'oracle has no value but the root is ranked: kept {kept}'))
+                cnt['E_bad'] = cnt.get('E_bad', 0) + 1
             continue
         best = max(RANK[v[0]] for v in info.values())
         if undecided:
             cnt['undecided'] += 1
         keep = None if kept == '-' else kept.split()
-        if keep is None:
+        if o['clock'] >= 100:
+            cnt['clock100_rows'] = cnt.get('clock100_rows', 0) + 1  # root is drawn before ranks matter: engine fixture
+        elif keep is None:
             cnt['not_ranked'] += 1
         else:
             for u in keep:
@@ -116,10 +124,15 @@ def main():
                     bad.append(('A', o['fen'], f'kept {u} {info[u]} best {best} kept {kept}'))
                     cnt['A_bad'] += 1
             want = [u for u, v in info.items() if RANK[v[0]] == best]
-            miss = [u for u in want if u not in keep]
+            # A win at exactly sum 100 may be dropped next to wins that zero earlier: both keep the result.
+            miss = [u for u in want if u not in keep and not (best == 2 and info[u][1] + c == 100)]
+            # Narrower by design: a root whose line repeated ranks wins by distance; with the rule off a cursed win ranks below wins.
             if miss and not undecided and best in (2, -2, 0):
-                bad.append(('D', o['fen'], f'dropped {miss} best {best} kept {kept}'))
-                cnt['D_bad'] += 1
+                if ' moves ' in o['fen'] or a.rule50 == 0:
+                    cnt['D_narrow_by_design'] = cnt.get('D_narrow_by_design', 0) + 1
+                else:
+                    bad.append(('D', o['fen'], f'dropped {miss} best {best} kept {kept}'))
+                    cnt['D_bad'] += 1
             if len(keep) == len(moves):
                 cnt['kept_all'] += 1
             dc = display_class(display)

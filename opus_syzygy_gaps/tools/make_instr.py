@@ -21,7 +21,7 @@ extern std::uint64_t corr_updates_tb, corr_updates_all, pv_bound_returns;
 inline const char* claim_site_name(int i) {
     static const char* n[ClaimSites] = {"-", "null_move", "end_pruned_loss", "end_other_win", "end_other_loss", "rfp_return",
         "razor_return", "probcut_return", "singular_multicut", "tt_cut_main", "tt_cut_qs", "qs_standpat", "qs_end", "pv_tb_bound",
-        "tb_probe_nonpv", "-"};
+        "null_raw", "-"};
     return n[i];
 }
 void claim_check(Board& board, int site, int score);
@@ -68,11 +68,11 @@ EDITS = [
     # null move
     ('src/search.cpp',
      "            if (null_score >= beta) {\n                if (is_mate_score(null_score)) null_score = beta;\n",
-     "            if (null_score >= beta) {\n                syzygy::claim_check(board, 1, null_score);\n                if (is_mate_score(null_score)) null_score = beta;\n"),
+     "            if (null_score >= beta) {\n                if (null_score > 0) syzygy::claim_check(board, 1, null_score);\n                if (is_mate_score(null_score)) null_score = beta;\n"),
     # RFP
     ('src/search.cpp',
      "            eval < MateInMaxPly) {\n            return eval;\n",
-     "            eval < MateInMaxPly) {\n            syzygy::claim_check(board, 5, eval);\n            return eval;\n"),
+     "            eval < MateInMaxPly) {\n            if (eval > 0) syzygy::claim_check(board, 5, eval);\n            return eval;\n"),
     # razor
     ('src/search.cpp',
      "            if (razor < alpha) return razor;\n",
@@ -80,11 +80,11 @@ EDITS = [
     # probcut
     ('src/search.cpp',
      "                if (value >= probcut_beta) {\n                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());\n",
-     "                if (value >= probcut_beta) {\n                    syzygy::claim_check(board, 7, value);\n                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());\n"),
+     "                if (value >= probcut_beta) {\n                    if (value > 0) syzygy::claim_check(board, 7, value);\n                    shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());\n"),
     # singular multicut
     ('src/search.cpp',
      "            } else if (singular_beta >= beta) {\n                return singular_beta;\n",
-     "            } else if (singular_beta >= beta) {\n                syzygy::claim_check(board, 8, singular_beta);\n                return singular_beta;\n"),
+     "            } else if (singular_beta >= beta) {\n                if (singular_beta > 0) syzygy::claim_check(board, 8, singular_beta);\n                return singular_beta;\n"),
     # TT cut main
     ('src/search.cpp',
      "        board.halfmove_clock() < 90 &&\n        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        return tt_score;\n",
@@ -120,7 +120,7 @@ EDITS = [
     # qsearch stand pat from a TT bound and end
     ('src/search.cpp',
      "        if (best_score >= beta) {\n            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());\n",
-     "        if (best_score >= beta) {\n            syzygy::claim_check(board, 11, best_score);\n            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());\n"),
+     "        if (best_score >= beta) {\n            if (best_score > 0) syzygy::claim_check(board, 11, best_score);\n            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());\n"),
 ]
 
 

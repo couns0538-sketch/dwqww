@@ -15,7 +15,12 @@ T0 = 2026-11-09 03:01:33 Vienna. Floor = T0 + 20 h = 2026-11-09 23:01:33 Vienna.
 - Inventory first pass: GAP_LEDGER.md.
 
 ## In progress
-- Step 1: re-run C1 tests on the P6 tree, build oracles, RED fixtures.
+- Step 2: supported fixes, test first. RED on the parent: G1, G2, G3 (claim harness, verified on 40 FENs with python-chess and Fathom), G5 display (root harness, both oracles).
+- Mechanisms and switches (each: compile-time macro default off + `tune::` int default 0, listed only under -Expose):
+  - `SyzygyTbBounds` (macro FORGE_SYZYGY_TB_BOUNDS): TB-aware score bounds, G2 prune floor, G1 null move, G3 correction history.
+  - `SyzygyRootExact` (macro FORGE_SYZYGY_ROOT_EXACT): root report at sum 100 and WDL-only fallback, G5, G6.
+  - `SyzygyRule50` (macro FORGE_SYZYGY_RULE50): TT reads of TB scores near move 100 and the option change, G7, G8, only after a RED fixture.
+- Fix order: G2, re-measure; G1, re-measure; G3; G5; G6; then G7 / G8 if still RED. G4 only if a root loses a result.
 
 ## Open / blocked
 - See GAP_LEDGER.md. Nothing blocked.
