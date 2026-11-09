@@ -14,14 +14,14 @@ HOOK_HEADER = r'''
 // ---- test instrumentation (make_instr.py) ----
 namespace forge::syzygy {
 struct ClaimSite { std::uint64_t events = 0, wrong = 0, unknown = 0; };
-inline constexpr int ClaimSites = 16;
+inline constexpr int ClaimSites = 17;
 extern ClaimSite claim_sites[ClaimSites];
 extern int test_card;
 extern std::uint64_t corr_updates_tb, corr_updates_all, pv_bound_returns;
 inline const char* claim_site_name(int i) {
     static const char* n[ClaimSites] = {"-", "null_move", "end_pruned_loss", "end_other_win", "end_other_loss", "rfp_return",
         "razor_return", "probcut_return", "singular_multicut", "tt_cut_main", "tt_cut_qs", "qs_standpat", "qs_end", "pv_tb_bound",
-        "null_raw", "tt_cut_mate"};
+        "null_raw", "tt_cut_mate", "tt_cut_qs_mate"};
     return n[i];
 }
 extern bool claims_enabled;
@@ -106,7 +106,7 @@ EDITS = [
     # TT cut qsearch
     ('src/search.cpp',
      "        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        return tt_score;\n    }\n\n    int best_score;\n",
-     "        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        if (tt_bound == BoundExact || (tt_bound == BoundLower) == (tt_score > 0)) syzygy::claim_check(board, 10, tt_score);\n        return tt_score;\n    }\n\n    int best_score;\n"),
+     "        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        if (tt_bound == BoundExact || (tt_bound == BoundLower) == (tt_score > 0)) { syzygy::claim_check(board, 10, tt_score); syzygy::claim_check(board, 16, tt_score, true); }\n        return tt_score;\n    }\n\n    int best_score;\n"),
     # pruning flags
     ('src/search.cpp',
      "    bool skip_quiets = false;\n    const bool has_material = board.has_non_pawn_material(board.side_to_move());\n",

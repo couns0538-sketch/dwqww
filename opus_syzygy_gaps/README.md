@@ -89,4 +89,9 @@ verified: the fixture only asks that the reader neither crashes nor reads out of
 | `false_claims.py`, `move_quality.py`, `mate_pv_check.py` | root claims and move result against the oracle, mate PV replay |
 | `warm_claims.py`, `warm_move_check.py`, `playout_check.py`, `uci_misc_checks.py`, `run_partial.sh`, `gen_partial_tables.py` | warm-table fixtures and the moves played there; lines against an oracle opponent; searchmoves, castling, protocol, Threads soak; partial and damaged table sets |
 | `qual_all.sh`, `special2.sh`, `run_v6.sh` | the whole suite for one exe + options |
-| `final_freeze.sh`, `after_w6.sh` | the freeze proof (patch, preprocess, Build A, Build B pc1 = pc2, pins, identity cold and warm, per-option bench) and the trial_w6 line |
+| `final_chain.sh`, `final_freeze.sh`, `repro_from_pack.sh` | everything for a frozen head; the freeze proof (patch, preprocess, Build A, Build B pc1 = pc2, pins, identity cold and warm, per-option bench); a tree rebuilt from the pack alone |
+| `after_w6.sh`, `after_w6_compare.sh`, `w6_arm_check.py` | the trial_w6 line, each check fail-closed; its compares from finished row files; changed lines against the speed conditionals |
+| `exact_full.sh`, `und_check.py`, `exact_partial.py` | boundary runs against all exact oracle rows; bad rows on decided or undecided roots, with the parent as control; what resolved moves alone prove on rows the solver did not finish |
+| `uci_churn.py`, `run_churn.sh`, `gen_warm_pred_fixture.py`, `run_pred.sh`, `info_runs.sh` | random option and table changes between searches; a root's entry read inside a later search; per-bit information |
+| `gen_warm_read_fixture.py`, `mutants_read_side.sh`, `mutate_one.py` | rows where a read-side rule of `SyzygyRule50` bit 1 decides, with the mutants they must catch |
+| `collect_logs.sh`, `make_manifests.sh` | compact logs into `logs/`; MD5 and SHA256 manifests of the pack |

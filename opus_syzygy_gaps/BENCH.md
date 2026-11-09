@@ -141,7 +141,30 @@ Kept moves worse (column A) and engine moves worse (M) are 0 on both for these f
 **Partial table folders**, engine at depth 5, 3000 rows each. TB-band root scores against the full-set oracle: nodtz 2039, nochild 1603, dtzonly 1738, rejected 1228 claims: **0 wrong, 0 illegal moves** (`logs/partial_v9on.txt`). The parent showed 41 and 10 false root scores here.
 
 ## Per bit (information, no verdict)
-PENDING
+At e0ad013, the same code as the head (the head differs by one comment). `logs/info_v8.txt`. A bit that closes a gap only with another one shows that here.
+
+200,000 roots above the tables, depth 10, moves on 198,507 oracle roots. False root claims are 0 for every row, so that column is left out:
+
+| option | nodes | blunders | only parent / only this | sign test p |
+|---|---|---|---|---|
+| parent | 2,519,706,483 | 333 | - | - |
+| SyzygyTbBounds=1 | 2,530,426,407 | 339 | 50 / 56 | 0.63 |
+| SyzygyTbBounds=2 | 2,514,742,060 | 334 | 41 / 42 | 1.00 |
+| SyzygyTbBounds=4 | 2,520,408,164 | 331 | 3 / 1 | 0.62 |
+| SyzygyRootExact=3 | 2,519,706,483 | 333 | 0 / 0 | 1.00 |
+| SyzygyRule50=3 | 2,515,445,130 | 333 | 0 / 0 | 1.00 |
+| all on | 2,523,734,827 | 336 | 50 / 53 | 0.84 |
+
+Interior claims by `SyzygyTbBounds` mask, all other options 0. "Wrong" is the sum over returned sites, so `null_raw` (a raw null score, replaced before it is returned under bit 4) is left out:
+
+| mask | 3000 roots, depth 10: wrong at node ends / TT cuts | correction updates from TB-band scores | 1250 two-plies-back zugzwang roots, depth 16: wrong null cuts / node ends / TT cuts |
+|---|---|---|---|
+| 1 | 0 / 0 | 88,050 | 4 / 1 / 0 |
+| 2 | 6760 / 4357 | 0 | 1356 / 34,559 / 28,195 |
+| 4 | 6548 / 4145 | 98,752 | 0 / 40,863 / 35,165 |
+| 7 | 0 / 0 | 0 | 0 / 0 / 0 (`null_raw` 12 of 907, in 8 roots: replaced, not returned) |
+
+So bit 1 does most of the work and bits 2 and 4 alone do not close G2: all three together give 0.
 
 ## Warm table, moves played
 At e0ad013, the same code as the head. Judged by the exact solver rows (`tools/warm_move_check.py`, `logs/info_v8.txt`), 3000 rows: moves that keep less than the best result, warm table: parent 386, all on 362; cold: parent 374, all on 367. Only the parent wrong 97 rows, only all-on wrong 73. No verdict: this is one fixture.
@@ -155,8 +178,9 @@ Cold, 198,507 clock-0 roots with an oracle, depth 10: **parent 333 blunders, all
 | UBSan trap and MSVC ASan, off and all on, root fixtures, 5-man roots above the tables (`logs/san_v9.txt`) | all exit 0. Bench 13: UBSan 862329; ASan 819221 (the MSVC port searches other nodes, as it does on the lock) |
 | damaged table files under ASan with heap copies (`logs/flips_v9.txt`) | 44 runs, 0 non-zero: no crash, no read out of range |
 | 15,495 KQvKR boundary roots with a missing child table, folders nochild, nodtz, rejected, wdl_only (`logs/green_v8.txt`, at e0ad013: the head differs by one comment; UBSan trap on the commit before the fix) | UBSan and ASan exit 0; nochild: 14,887 undecided, none false |
-| option churn: random option, table and clock changes between searches (`tools/uci_churn.py`, `logs/churn_v9.txt`) | PENDING |
-| root in the TT read at a later clock, two-position warm rows (R3 finding 6, `tools/run_pred.sh`) | PENDING |
+| option churn: 3000 random option, table and clock changes between searches, per run (`tools/uci_churn.py`, `logs/churn_v9.txt`) | plain, UBSan, ASan at Threads 1, plain and ASan at Threads 2: all PASS, 1637-1675 searches and 22 state checks each, bench after the churn = pin |
+| the same 15,495 roots at the frozen head under ASan with heap copies, 4 folders | exit 0, 0 bad rows. Slowest `prepare_root` 238 ms under ASan with a missing table; 34 ms plain on full tables |
+| a root stored at clock 0, read at an inner node of a later search (R3 finding 6, `tools/run_pred.sh`, `logs/pred1_v9.log`, `logs/pred2_v9.log`), depth 12, all on | One reversible move earlier, 4024 rows: 2,979,697 main and 2,658,266 qsearch TT cuts, **0 wrong at every site**. Two moves earlier, 3078 rows: 2,944,650 and 2,496,248 TT cuts, **0 wrong**; `null_raw` 1 of 548, replaced, not returned. Control without `SyzygyRule50` bit 1: 2290 and 529 wrong TT cuts (one move), 826 and 28 (two moves), so these rows can fail |
 | bug hunter's mutants of the new code | PENDING |
 
 ## trial_w6 line
@@ -209,4 +233,14 @@ UBSan trap with the six defines and all on: bench 13 = 862329, 4569 boundary row
 - The clang recipe of the live lock exe (`forge_clang_combo29_trial_w6.exe`, E1284F7F): see the trial_w6 line.
 
 ## Evidence paths (job root `D:\forge_jobs_20261107\opus1`)
-PENDING
+| what | where |
+|---|---|
+| source trees | `out/src/cand` (git), `out/src/p6_port`, `out/src/w6p6g_989399b2` (git), `out/src/trial_w6.patch` (md5 5786e9b87a0c3cec4707af521cec85bc) |
+| exes | `out/builds/p6_parent_pc1`, `out/builds/buildA_c989399b`, `out/builds/buildB_c989399b_pc1`, `_pc2`, `out/builds/w6p6_parent_989399b2`, `w6p6_A_989399b2`, `w6p6_B_989399b2`; plain `out/exe/cand_v9_plain.exe`, `tb_root_v9.exe` |
+| identity row files | `out/ident/parent_150374ff`, `buildB_c989399b`, `on_buildB_c989399b`, `w6p6_parent_989399b2`, `w6p6_B_989399b2`, `on_w6p6_B_989399b2`, `warm_c989399b_*`, `warm_on_w6_989399b2` |
+| suite | `out/qual/p6` (parent), `out/qual/v9on`, `out/qual/info_v8`, `out/exp/partial/v9on` |
+| oracle rows | `out/exp/exact/b1.boundary.exact2.jsonl` (all 4569), `b2500.exact.jsonl` (snapshot), `out/exp/e1/roots200k.oracle.jsonl`, `roots200k.fathom` |
+| stress | `out/san/v9`, `out/san/w6_989399b2`, `out/exp/hunt/churn_v9`, `out/exp/hunt/pred_v9_*` |
+| bug hunter's scratch | `out/hunt_agent` |
+
+Disk cleanup runs on this PC, so a build folder may be gone later: every exe and row file above can be rebuilt with `tools/final_chain.sh` and `tools/after_w6.sh`. `logs/` in this pack keeps the compact results.
