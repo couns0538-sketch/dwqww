@@ -2,10 +2,11 @@
 
 Clock: the PC clock is wrong (about 7 h fast, measured 25156 s). Vienna times below come from HTTPS Date headers (`Get-ViennaNow` in `env.ps1`).
 T0 = 2026-11-09 03:01:33 Vienna. The 20-hour floor of the first plan was dropped by Couns: finish when the work is done and a 20-30 minute bug check at the end finds nothing left.
+Deadline (Couns, set 2026-11-09 13:56 Vienna): finish by 19:56 Vienna. Improvements that would take 10 hours or more are left out and listed. A bug that must be fixed still gets fixed before finishing.
 
 ## Rulings (material decisions, with cost if wrong)
 - CPUs 12-15 (0xF000), Idle: Couns's override of "0-3". Disk reserve check dropped by Couns.
-- One subagent only (Couns, for usage): one reviewer, opus-max, read-only, the same agent for R1, R2 and R3. Not Code Review. Cost if wrong: a finding a second reader would have seen; Code Review still reads the pack.
+- One subagent at a time (Couns, for usage): one reviewer, opus-max, read-only, the same agent for R1, R2 and R3. Not Code Review. Cost if wrong: a finding a second reader would have seen; Code Review still reads the pack. After R3 Couns asked for a bug hunter next to the final work: `syz-hunter`, fable, read-only on the pack, scratch in `out/hunt_agent/`, 90 minutes at most. The reviewer stays idle meanwhile.
 - Reader stays the own P6 reader, Fathom is oracle only: P6 contains no Fathom path, the prompt's "reuse Fathom path" does not match the code. Cost if wrong: none for the engine, oracle stays independent.
 - AGENTS.md is absent at the P6 tip; recovered from 3e900941, md5 94169aef = the historical value. Its Astra R8 scope clauses (no engine changes, C:/astra8_data, hand-off via Engine NNUE) do not apply; its "Development review and verification" section does. Cost if wrong: a review step in the wrong order.
 - Gates "221-224" = idx 221-224 of QA's dry-run manifest (USYZP, USYZPc-QA, USYZPD4, USYZPD4c-QA), today idx 230-233.
