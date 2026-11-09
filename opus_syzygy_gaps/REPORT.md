@@ -50,7 +50,7 @@ The live lock line is trial_w6, so QA needs the change on that source: `patches/
 
 ## How far to trust this
 - **Reviews were this job's own, not Code Review.** Three by one Opus subagent, R1 to R3, the last with nothing at BLOCKER, HIGH or MEDIUM.
-- **Bug hunter.** PENDING
+- **Bug hunter.** One Fable subagent hunted bugs next to the final work (`review/H1.md`). It found no engine bug. Its one MEDIUM finding was a test gap: deliberately broken copies of two read rules of `SyzygyRule50` bit 1 passed every fixture. New rows now catch both (239,790 and 18 wrong claims), with 0 on the frozen head (`REVIEW_LOG.md`, H1). Its other broken copies were caught by the existing fixtures.
 - **Own errors found on the way**, all in `REVIEW_LOG.md`: a signed overflow in the walk's cap, and a rule-50 gate missing on one code path, both fixed test-first (B1, B2). Then the rejected hunk above (B3), a check of mine that cut off its own verdict (B4), a script reading the wrong column behind one claim, which turned out to hold (B5), and a checker skipping rows (B6): a new per-move check on those rows found 0 errors on the frozen head and real ones on the parent.
 - **Not measured:** strength, speed, frequency of boundary roots in games, 6-piece tables (none on this PC; the interior fixtures use 5-man roots with 3-4 piece tables as the same situation one piece lower).
 

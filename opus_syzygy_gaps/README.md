@@ -8,7 +8,7 @@ change, where stated) and needs QA's own SPRT after Code Review.
 - Actual parent: lock source `d4f43124` (exe FD3A5190) + `opus_r13/p6/syzygy_port.patch` md5 4342d24f = kit exe 150374ff, the exe of
   P6's gate lines. This is not trial_w6: trial_w6 is the same source + six node-identical speed switches.
 - `patches/syzygy_gaps_after_p6.patch`: this job's change on the P6 tree. All code is behind three macros, default off.
-- `patches/syzygy_port_and_gaps_after_w6.patch`: P6 port + this job's change on the trial_w6 source, where applicable (see BENCH.md).
+- `patches/syzygy_port_and_gaps_after_w6.patch`: P6 port + this job's change on the trial_w6 source, as one patch. Every check of that line passes (BENCH.md, trial_w6 line).
 - The reader is the own P6 reader, untouched. Fathom and python-chess are test oracles only (IDEA_SOURCE.md).
 
 ## Switches
@@ -93,5 +93,5 @@ verified: the fixture only asks that the reader neither crashes nor reads out of
 | `after_w6.sh`, `after_w6_compare.sh`, `w6_arm_check.py` | the trial_w6 line, each check fail-closed; its compares from finished row files; changed lines against the speed conditionals |
 | `exact_full.sh`, `und_check.py`, `exact_partial.py` | boundary runs against all exact oracle rows; bad rows on decided or undecided roots, with the parent as control; what resolved moves alone prove on rows the solver did not finish |
 | `uci_churn.py`, `run_churn.sh`, `gen_warm_pred_fixture.py`, `run_pred.sh`, `info_runs.sh` | random option and table changes between searches; a root's entry read inside a later search; per-bit information |
-| `gen_warm_read_fixture.py`, `mutants_read_side.sh`, `mutate_one.py` | rows where a read-side rule of `SyzygyRule50` bit 1 decides, with the mutants they must catch |
+| `gen_warm_read_fixture.py`, `mutants_read_side.sh`, `mutate_one.py`, `read_subset.sh` | rows where a read-side rule of `SyzygyRule50` bit 1 decides, with the mutants they must catch; `read_subset.sh` runs one built exe on the first rows only |
 | `collect_logs.sh`, `make_manifests.sh` | compact logs into `logs/`; MD5 and SHA256 manifests of the pack |
