@@ -59,7 +59,7 @@ def worker(a, jobs, out, errors):
         e.send(f'setoption name SyzygyPath value {a.tables}')
         e.send('isready')
         for l in e.read_until(lambda l: l == 'readyok'):
-            if 'invalid' in l:
+            if 'invalid value' in l:
                 raise RuntimeError(f'engine rejected an option: {l}')
         while True:
             try:

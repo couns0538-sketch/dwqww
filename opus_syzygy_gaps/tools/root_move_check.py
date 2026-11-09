@@ -69,7 +69,7 @@ def main():
             bad.append(('L', r['fen'], f'illegal bestmove {r["bestmove"]}'))
             cnt['L_bad'] = cnt.get('L_bad', 0) + 1
             continue
-        if c >= 100:
+        if c >= 100 or o.get('root_threefold'):
             cnt['clock100'] += 1
             if r.get('score') != 0:
                 bad.append(('S', r['fen'], f'clock {c} score {r.get("score")}'))
@@ -107,6 +107,7 @@ def main():
         with open(a.list, 'w', encoding='utf-8', newline='\n') as f:
             for b in bad:
                 f.write('\t'.join(b) + '\n')
+    sys.exit(1 if bad else 0)
 
 
 if __name__ == '__main__':

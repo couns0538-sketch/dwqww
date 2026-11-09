@@ -10,6 +10,7 @@
 #include "forge/search.hpp"
 #include "forge/syzygy.hpp"
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -56,6 +57,9 @@ int main(int argc, char** argv) {
     std::string line;
     int number = 0;
     int bad = 0;
+    long long total_us = 0;
+    long long max_us = 0;
+    int max_line = 0;
     while (std::getline(in, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (line.empty() || line[0] == '#') continue;
@@ -91,7 +95,14 @@ int main(int argc, char** argv) {
             continue;
         }
         forge::SearchLimits limits;
+        const auto t0 = std::chrono::steady_clock::now();
         forge::syzygy::prepare_root(board, limits);
+        const long long us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0).count();
+        total_us += us;
+        if (us > max_us) {
+            max_us = us;
+            max_line = number;
+        }
         const int display = forge::syzygy::root_display.load();
         std::ostringstream out;
         out << number << "\tok\t";
@@ -136,6 +147,6 @@ int main(int argc, char** argv) {
         else out << '-';
         std::cout << out.str() << '\n';
     }
-    std::cerr << "lines " << number << " bad " << bad << "\n";
+    std::cerr << "lines " << number << " bad " << bad << " prepare_root total_us " << total_us << " max_us " << max_us << " at line " << max_line << "\n";
     return bad == 0 ? 0 : 1;
 }

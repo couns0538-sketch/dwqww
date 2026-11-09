@@ -19,7 +19,7 @@ index fcb20b2..c603c06 100644
  // Call after changing LMR parameters.
  void refresh();
 diff --git a/src/search.cpp b/src/search.cpp
-index b4f900c..8b4dc8b 100644
+index b4f900c..e685f10 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -63,6 +63,15 @@ int CaptureFutilityBase = 0;
@@ -70,18 +70,20 @@ index b4f900c..8b4dc8b 100644
  [[nodiscard]] int score_to_tt(int score, int ply) {
      // Mate scores, and tablebase scores while tables are loaded (the band just below the mate scores,
      // forge/syzygy.hpp), are stored as the distance from the storing node; everything else unchanged.
-@@ -127,6 +154,22 @@ constexpr int HistoryMax = 16384;
+@@ -127,6 +154,24 @@ constexpr int HistoryMax = 16384;
      return score;
  }
  
 +// A stored TB score tells the distance k from its node to the zeroing position that was probed. With the 50-move rule on
 +// it holds at a later clock only if that position is still reached in time; k = 0 is the probed position itself, whose
-+// WDL holds at clock 0 only (SyzygyRule50 bit 1).
++// WDL holds at clock 0 only. A stored mate is treated alike while tables are loaded: a mate too late for the current clock
++// would make a shorter TB loss look like the best defence (SyzygyRule50 bit 1). This only withholds the stored score.
 +#if FORGE_SYZYGY_RULE50
 +[[nodiscard]] bool tb_score_fits_clock(int stored, int clock) {
 +    if ((tune::SyzygyRule50 & 1) == 0 || !syzygy::tb_scores || !options::syzygy_50_move_rule) return true;
 +    const int magnitude = std::abs(stored);
-+    if (magnitude < syzygy::TbWinInMaxPly || magnitude >= MateInMaxPly) return true;
++    if (magnitude < syzygy::TbWinInMaxPly) return true;
++    if (magnitude >= MateInMaxPly) return MateValue - magnitude + clock <= 100;
 +    const int k = syzygy::TbWin - magnitude;
 +    return k == 0 ? clock == 0 : k + clock <= 100;
 +}
@@ -93,7 +95,7 @@ index b4f900c..8b4dc8b 100644
  [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
  [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
  
-@@ -795,7 +838,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+@@ -795,7 +840,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
      const bool tt_hit = tt_probe.hit;
      const TTEntry& tte = tt_probe.entry;
      const Move tt_move = tt_hit ? tte.move : Move::none();
@@ -102,16 +104,7 @@ index b4f900c..8b4dc8b 100644
                               ? score_from_tt(tte.score, ply) : ValueNone;
      const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
      const bool tt_pv = pv_node || (tt_hit && tte.pv());
-@@ -836,7 +879,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
-     while (!(move = picker.next(false)).is_none()) {
-         if (!board.is_legal(move)) continue;
-         ++move_count;
--        if (!in_check && best_score > -MateInMaxPly) {
-+        if (!in_check && best_score > -FORGE_LOSS_FLOOR) {
-             const bool gives_check = board.gives_check(move);
-             // Futility: even winning the captured piece cannot raise alpha.
-             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
-@@ -919,7 +962,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -919,7 +964,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
      const bool tt_hit = tt_probe.hit;
      const TTEntry& tte = tt_probe.entry;
      const Move tt_move = tt_hit ? tte.move : Move::none();
@@ -120,18 +113,28 @@ index b4f900c..8b4dc8b 100644
                               ? score_from_tt(tte.score, ply) : ValueNone;
      const int tt_depth = tt_hit ? tte.depth : -1;
      const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
-@@ -995,6 +1038,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -995,6 +1040,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
              if (aborted_) return 0;
              if (null_score >= beta) {
                  if (is_mate_score(null_score)) null_score = beta;
 +#if FORGE_SYZYGY_TB_BOUNDS
-+                // A null move proves no TB result either (SyzygyTbBounds bit 2).
-+                if ((tune::SyzygyTbBounds & 2) != 0 && syzygy::tb_scores && std::abs(null_score) >= syzygy::TbWinInMaxPly) null_score = beta;
++                // A null move proves no TB result either: in zugzwang passing wins and moving does not (SyzygyTbBounds bit 4).
++                if ((tune::SyzygyTbBounds & 4) != 0 && syzygy::tb_scores && std::abs(null_score) >= syzygy::TbWinInMaxPly) null_score = beta;
 +#endif
                  if (depth < 14) {
                      ++null_cutoffs_;
                      return null_score;
-@@ -1072,7 +1119,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -1054,6 +1103,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     int move_count = 0;
+     bool skip_quiets = false;
+     const bool has_material = board.has_non_pawn_material(board.side_to_move());
++#if FORGE_SYZYGY_RULE50
++    int longest_mate_loss = -Infinite;
++#endif
+ 
+     Move move;
+     while (!(move = picker.next(skip_quiets)).is_none()) {
+@@ -1072,7 +1124,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
          const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
  
          // Shallow-depth pruning of unpromising moves.
@@ -140,18 +143,42 @@ index b4f900c..8b4dc8b 100644
              if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
              const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
              if (quiet && !gives_check) {
-@@ -1230,6 +1277,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+@@ -1180,6 +1232,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (aborted_) return 0;
+         if (root_node && root_effort_index < root_effort_count_)
+             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
++#if FORGE_SYZYGY_RULE50
++        if (score <= -MateInMaxPly) longest_mate_loss = std::max(longest_mate_loss, score);
++#endif
+ 
+         if (score > best_score) {
+             best_score = score;
+@@ -1224,12 +1279,24 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     }
+ 
+     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
++#if FORGE_SYZYGY_RULE50
++    // A loser prefers any TB loss to any mate, so a longer line that ends in a mate does not show in the TB distance. Let the
++    // distance cover it: tb_score_fits_clock relies on it (SyzygyRule50 bit 1). Stays inside the TB loss band.
++    if ((tune::SyzygyRule50 & 1) != 0 && !root_node && excluded.is_none() && syzygy::tb_scores && longest_mate_loss > -Infinite &&
++        best_score <= -syzygy::TbWinInMaxPly && best_score > -MateInMaxPly) {
++        best_score = std::max(best_score, -syzygy::TbWin + (MateValue + longest_mate_loss));
++    }
++#endif
+     if (excluded.is_none() && !(root_node && root_restricted_)) {
+         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+     }
      // Teach the static evaluation about this pawn structure when the search
      // result is a usable bound in the direction of the difference.
      if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
 +#if FORGE_SYZYGY_TB_BOUNDS
-+        // A TB result says nothing about this pawn structure, as a mate score (SyzygyTbBounds bit 4).
-+        !((tune::SyzygyTbBounds & 4) != 0 && syzygy::tb_scores && std::abs(best_score) >= syzygy::TbWinInMaxPly) &&
++        // A TB result says nothing about this pawn structure, as a mate score (SyzygyTbBounds bit 2).
++        !((tune::SyzygyTbBounds & 2) != 0 && syzygy::tb_scores && std::abs(best_score) >= syzygy::TbWinInMaxPly) &&
 +#endif
          (best_move.is_none() || !best_move.is_capture()) &&
          !(bound == BoundLower && best_score <= ss->static_eval) &&
          !(bound == BoundUpper && best_score >= ss->static_eval)) {
-@@ -1523,6 +1574,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+@@ -1523,6 +1590,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
      worker_limits.start_time = origin;
      // Tablebases (UCI SyzygyPath): in-search probing limit, root move filter.
      if (syzygy::max_pieces() > 0) [[unlikely]] syzygy::prepare_root(board, worker_limits);
@@ -162,18 +189,36 @@ index b4f900c..8b4dc8b 100644
      all.reserve(workers_.size());
      for (auto& worker : workers_) all.push_back(worker.get());
 diff --git a/src/syzygy.inc b/src/syzygy.inc
-index 303929b..85c720f 100644
+index 303929b..5016547 100644
 --- a/src/syzygy.inc
 +++ b/src/syzygy.inc
-@@ -1172,6 +1172,65 @@ struct NodeValue {
+@@ -1172,6 +1172,106 @@ struct NodeValue {
      }
  }
  
 +#if FORGE_SYZYGY_ROOT_EXACT
++#ifndef FORGE_SYZYGY_BOUNDARY_BUDGET
++#define FORGE_SYZYGY_BOUNDARY_BUDGET 1000  // moves tried at the root: about 30 ms at worst; undecided roots stay safe, see boundary_rank
++#endif
 +// Exact result near the 50-move boundary (SyzygyRootExact bit 2). value: 1 win, 0 draw, -1 loss for the side to move at
 +// the board's counter. A table distance decides a move unless it is rounded and lands exactly on the hundredth
-+// half-move: only those lines are followed move by move. False: the budget is used up or a table is missing.
-+[[gnu::cold]] bool boundary_value(const Registry& r, Board& board, int& value, int& budget) {
++// half-move: only those lines are followed move by move. `top` is the best the side to move can get (a table loser cannot
++// win), `memo` holds decided positions of this walk. False: the budget is used up or a table is missing.
++struct BoundaryMemo {
++    std::vector<std::uint64_t> keys = std::vector<std::uint64_t>(4096, 0);
++    std::vector<std::int8_t> values = std::vector<std::int8_t>(4096, 0);
++    [[nodiscard]] static std::uint64_t code(const Board& board) {
++        return (board.key() ^ (static_cast<std::uint64_t>(board.halfmove_clock()) << 56)) | 1;
++    }
++};
++
++[[gnu::cold]] bool boundary_value(const Registry& r, Board& board, int top, BoundaryMemo& memo, int& value, int& budget) {
++    const std::uint64_t code = BoundaryMemo::code(board);
++    const std::size_t slot = static_cast<std::size_t>(code >> 3) & (memo.keys.size() - 1);
++    if (memo.keys[slot] == code) {
++        value = memo.values[slot];
++        return true;
++    }
 +    const MoveList legal = board.legal_moves();
 +    if (legal.empty()) {
 +        value = board.in_check() ? -1 : 0;
@@ -202,7 +247,7 @@ index 303929b..85c720f 100644
 +                    v = dtz > 0 ? -1 : 1;
 +                } else if (sum == 100) {
 +                    int child_value = 0;
-+                    ok = boundary_value(r, board, child_value, budget);
++                    ok = boundary_value(r, board, dtz > 0 ? 1 : 0, memo, child_value, budget);
 +                    v = -child_value;
 +                }
 +            }
@@ -210,67 +255,81 @@ index 303929b..85c720f 100644
 +        board.unmake_move(move, undo);
 +        if (!ok) return false;
 +        best = std::max(best, v);
-+        if (best == 1) break;
++        if (best >= top) break;
 +    }
++    memo.keys[slot] = code;
++    memo.values[slot] = static_cast<std::int8_t>(best);
 +    value = best;
 +    return true;
 +}
 +
-+// Rank of a root move with distance + counter = 100, the move already made on the board. Win 901, undecided win 900 (the
-+// plain rank), a rounded distance that is really 101: 899 and -899 (the plain ranks of sum 101), undecided loss -900,
-+// loss -2000. A rounded move that may still draw thus goes before moves that surely lose.
-+[[gnu::cold]] int boundary_rank(const Registry& r, Board& board, int dtz, bool rounded, int& budget) {
-+    if (!rounded) return dtz > 0 ? 901 : -2000;
-+    int value = 0;
-+    if (!boundary_value(r, board, value, budget)) return dtz > 0 ? 900 : -900;
-+    if (dtz > 0) return value == -1 ? 901 : 899;
-+    return value == 1 ? -2000 : -899;
++// Moves with distance + counter = 100 and a rounded distance, when they lead the root's ranks (ranks 900 and -900 from
++// rank_root_moves): resolved by boundary_value in rounds with a growing cap per move, so that one hard move cannot use up the
++// budget, stopping at the first proof. Win 901; really 101: 899 and -899, the plain ranks of sum 101; loss -2000. A move left
++// undecided keeps 900 or -900: a move that may still draw goes before moves that surely lose, and the root reports the search
++// score (src/tablebase.inc).
++[[gnu::cold]] void resolve_boundary(const Registry& r, Board& board, std::vector<RootRank>& ranks) {
++    BoundaryMemo memo;
++    int budget = FORGE_SYZYGY_BOUNDARY_BUDGET;
++    for (int cap = 64; budget > 0; cap *= 4) {
++        int best = -3000;
++        for (const RootRank& x : ranks) best = std::max(best, x.rank);
++        if (best != 900 && best != -900) return;
++        for (RootRank& x : ranks) {
++            if (x.rank != best) continue;
++            const int given = std::min(cap, budget);
++            int left = given;
++            int value = 0;
++            Undo undo;
++            (void)board.make_move(x.move, undo);
++            // The child to move is the table loser when the move is a table win, the table winner otherwise.
++            const bool done = boundary_value(r, board, best > 0 ? 0 : 1, memo, value, left);
++            board.unmake_move(x.move, undo);
++            budget -= given - left;
++            if (done) {
++                x.rank = best > 0 ? (value == -1 ? 901 : 899) : (value == 1 ? -2000 : -899);
++                if (x.rank == 901 || x.rank == -899) return;
++            }
++            if (budget <= 0) return;
++        }
++    }
 +}
 +#endif
 +
  struct NamedFile {
      std::string stem;
      std::filesystem::path path;
-@@ -1345,6 +1404,9 @@ struct NamedFile {
-     if (legal.empty()) return false;
-     const int counter = board.halfmove_clock();
-     const bool repeated = repeated_since_zeroing(board);
-+#if FORGE_SYZYGY_ROOT_EXACT
-+    int boundary_budget = 20000;
-+#endif
- 
-     bool ok = true;
-     for (const Move move : legal) {
-@@ -1366,8 +1428,20 @@ struct NamedFile {
-             dtz += sign_of(dtz);
-         }
+@@ -1368,10 +1468,19 @@ struct NamedFile {
          if (mate && dtz == 2) dtz = 1;
-+#if FORGE_SYZYGY_ROOT_EXACT
-+        int exact_rank = 0;
-+        if (ok && rule50 && (tune::SyzygyRootExact & 2) != 0 && dtz != 0 && (dtz < 0 ? -dtz : dtz) + counter == 100) {
-+            exact_rank = boundary_rank(*r, board, dtz, rounded, boundary_budget);
-+        }
-+#endif
          board.unmake_move(move, undo);
          if (!ok) break;
 +#if FORGE_SYZYGY_ROOT_EXACT
-+        if (exact_rank != 0) {
-+            ranks.push_back(RootRank{move, exact_rank, dtz, rounded});
++        if (rule50 && (tune::SyzygyRootExact & 2) != 0 && dtz != 0 && (dtz < 0 ? -dtz : dtz) + counter == 100) {
++            ranks.push_back(RootRank{move, dtz > 0 ? (rounded ? 900 : 901) : (rounded ? -900 : -2000), dtz, rounded});
 +            continue;
 +        }
 +#endif
          ranks.push_back(RootRank{move, dtz_rank(dtz, counter, repeated, rule50), dtz, rounded});
      }
      if (ok) {
+         used_dtz = true;
++#if FORGE_SYZYGY_ROOT_EXACT
++        if (rule50 && (tune::SyzygyRootExact & 2) != 0) resolve_boundary(*r, board, ranks);
++#endif
+         return true;
+     }
+     ranks.clear();
 diff --git a/src/tablebase.inc b/src/tablebase.inc
-index 142ab40..450976a 100644
+index 142ab40..cdb5c75 100644
 --- a/src/tablebase.inc
 +++ b/src/tablebase.inc
-@@ -97,6 +97,34 @@ namespace {
+@@ -97,6 +97,36 @@ namespace {
      // probes inside the search would only flatten their scores. With WDL ranks
      // keep probing while winning, so that the search finds the conversion.
      if (used_dtz || best <= 0) search_cardinality.store(0, std::memory_order_relaxed);
 +#if FORGE_SYZYGY_ROOT_EXACT
++    // Ranks 900 and -900 with bit 2: the walk's budget ran out and nothing is proved, so the search score is reported.
++    if ((tune::SyzygyRootExact & 2) != 0 && used_dtz && (best == 900 || best == -900)) return;
 +    if ((tune::SyzygyRootExact & 1) != 0) {
 +        int exact_score = ValueNone;
 +        if (!used_dtz && options::syzygy_50_move_rule) {

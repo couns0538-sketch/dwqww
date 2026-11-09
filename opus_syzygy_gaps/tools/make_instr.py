@@ -125,8 +125,8 @@ EDITS = [
      "                if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&\n                    !board.see_ge(move, see_threshold)) { test_pruned = true; continue; }\n"),
     # node end
     ('src/search.cpp',
-     "    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);\n    if (excluded.is_none() && !(root_node && root_restricted_)) {\n",
-     "    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);\n    if (excluded.is_none()) {\n        if (best_score <= -syzygy::TbWinInMaxPly && bound != BoundLower) syzygy::claim_check(board, test_pruned ? 2 : 4, best_score);\n        else if (best_score >= syzygy::TbWinInMaxPly && bound != BoundUpper) syzygy::claim_check(board, 3, best_score);\n    }\n    if (excluded.is_none() && !(root_node && root_restricted_)) {\n"),
+     "    if (excluded.is_none() && !(root_node && root_restricted_)) {\n",
+     "    if (excluded.is_none()) {\n        if (best_score <= -syzygy::TbWinInMaxPly && bound != BoundLower) syzygy::claim_check(board, test_pruned ? 2 : 4, best_score);\n        else if (best_score >= syzygy::TbWinInMaxPly && bound != BoundUpper) syzygy::claim_check(board, 3, best_score);\n    }\n    if (excluded.is_none() && !(root_node && root_restricted_)) {\n"),
     # correction history
     ('src/search.cpp',
      "        !(bound == BoundUpper && best_score >= ss->static_eval)) {\n        update_correction(board, depth, best_score, ss->static_eval);\n",

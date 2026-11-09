@@ -22,6 +22,7 @@ Prints counts. A row is BAD only for a broken check; UNDECIDED rows are counted 
 """
 import argparse
 import json
+import sys
 
 RANK = {'win': 2, 'cursed': 1, 'draw': 0, 'blessed': -1, 'loss': -2}
 
@@ -79,6 +80,7 @@ def main():
     for o, r in zip(oracle, rows):
         if r[1] != 'ok':
             bad.append(('BADLINE', o['fen'], r[1]))
+            cnt['BADLINE'] = cnt.get('BADLINE', 0) + 1
             continue
         cnt['roots'] += 1
         c = o['clock']
@@ -136,6 +138,8 @@ def main():
             if len(keep) == len(moves):
                 cnt['kept_all'] += 1
             dc = display_class(display)
+            if dc is None:
+                cnt['no_display'] = cnt.get('no_display', 0) + 1
             if not undecided and dc is not None and RANK.get(dc, 99) != best:
                 bad.append(('B', o['fen'], f'display {display} best {best} clock {c} dtz {o["dtz"]} wdl {o["wdl"]}'))
                 cnt['B_bad'] += 1
@@ -145,6 +149,7 @@ def main():
         if r[9] != '-' and o['dtz'] is not None and int(r[9].split(':')[0]) != o['dtz']:
             bad.append(('C', o['fen'], f'dtz {r[9]} oracle {o["dtz"]}'))
             cnt['C_dtz_bad'] += 1
+    cnt['bad_rows'] = len(bad)
     print(json.dumps(cnt))
     if a.json:
         json.dump(cnt, open(a.json, 'w'), indent=1)
@@ -152,6 +157,7 @@ def main():
         with open(a.list, 'w', encoding='utf-8', newline='\n') as f:
             for b in bad:
                 f.write('\t'.join(b) + '\n')
+    sys.exit(1 if bad else 0)
 
 
 if __name__ == '__main__':

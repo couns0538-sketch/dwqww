@@ -143,7 +143,10 @@ def main():
     ap.add_argument('--clock', type=int, default=0)
     ap.add_argument('--pawns-only', action='store_true')
     ap.add_argument('--ep', action='store_true')
+    ap.add_argument('--materials', default='', help='comma list, replaces the material filter')
+    ap.add_argument('--clock-list', default='', help='comma list of clocks, one chosen per position')
     a = ap.parse_args()
+    a.clocks = [int(x) for x in a.clock_list.split(',')] if a.clock_list else []
     if os.path.exists(a.out):
         sys.exit(f'refusing: {a.out} exists')
     mats = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(a.tables, '*.rtbw')))
@@ -152,6 +155,8 @@ def main():
         mats = [m for m in mats if 'P' in m]
     if a.ep:
         mats = [m for m in mats if all('P' in side for side in m.split('v'))]
+    if a.materials:
+        mats = a.materials.split(',')
     if not mats:
         sys.exit('no materials')
     rng = random.Random(a.seed)
@@ -159,7 +164,7 @@ def main():
     with open(a.out, 'w', encoding='ascii', newline='\n') as f:
         while written < a.n:
             m = rng.choice(mats)
-            fen = ep_position(rng, m) if a.ep else plain_position(rng, m, a.clock)
+            fen = ep_position(rng, m) if a.ep else plain_position(rng, m, rng.choice(a.clocks) if a.clocks else a.clock)
             if fen:
                 f.write(fen + '\n')
                 written += 1

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mate_pv_check.py - every reported mate score in uci_tb.py rows: replay the PV with python-chess. A positive "mate N" whose PV is 2N-1 plies long must end in
-checkmate; a negative "mate -N" with a PV of 2N plies must end with the engine side mated. Shorter PVs (cut by a TT hit) are counted as truncated and judged by the
-oracle's result if an exact or WDL value is given. Also: a cp score must never be in the mate band, and a TB-band score never comes as a mate.
+checkmate; a negative "mate -N" with a PV of 2N plies must end with the engine side mated. Shorter PVs (cut by a TT hit) are only counted as truncated; their result is
+judged by the callers' oracle checks. Also: a cp score must never be in the mate band.
 
 usage: python -I -B mate_pv_check.py <run.jsonl> [<run.jsonl> ...]     exit 1 on any broken check
 """

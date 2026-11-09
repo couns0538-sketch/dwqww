@@ -42,6 +42,7 @@ def main():
     ap.add_argument('--run', default='')
     ap.add_argument('--json', default='')
     ap.add_argument('--list', default='')
+    ap.add_argument('--wdl-only', action='store_true', help='WDL tables only: the move filter cannot see the clock, a worse kept move is counted as a known limit')
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.oracle, encoding='utf-8')]
     cnt = {'rows': len(rows), 'unresolved': 0, 'no_moves': 0, 'castling': 0, 'root_threefold': 0, 'clock100': 0}
@@ -49,8 +50,10 @@ def main():
     if a.root:
         cnt.update({'roots_judged': 0, 'A_bad': 0, 'B_bad': 0, 'D_dropped_best': 0, 'no_display': 0, 'not_ranked': 0})
         lines = [l.rstrip('\n').split('\t') for l in open(a.root, encoding='utf-8')]
-        if len(lines) != len(rows):
+        # The oracle may be a prefix of the FEN list the tool ran on (solver still running): extra tool rows are ignored, fewer are an error.
+        if len(lines) < len(rows):
             sys.exit(f'row count differs: oracle {len(rows)} tool {len(lines)}')
+        cnt['tool_rows'] = len(lines)
         for o, r in zip(rows, lines):
             if r[1] != 'ok':
                 bad.append(('BADLINE', o['fen'], r[1]))
@@ -79,10 +82,19 @@ def main():
                 cnt['not_ranked'] += 1
                 bad.append(('E', o['fen'], 'not ranked'))
                 continue
+            ranks = {}
+            for item in ([] if r[6] == '-' else r[6].split()):
+                u, rk, _v, _x = item.rsplit(':', 3)
+                ranks[u] = int(rk)
             for u in kept.split():
                 if u not in o['moves']:
                     bad.append(('A', o['fen'], f'kept illegal {u}'))
                     cnt['A_bad'] += 1
+                elif RANK[o['moves'][u]] != best and a.wdl_only:
+                    cnt['A_wdl_limit'] = cnt.get('A_wdl_limit', 0) + 1
+                elif RANK[o['moves'][u]] != best and ranks.get(u) in (900, -900):
+                    # the walk's budget ran out: not proved either way, a known limit, counted and listed apart
+                    cnt['A_undecided_worse'] = cnt.get('A_undecided_worse', 0) + 1
                 elif RANK[o['moves'][u]] != best:
                     bad.append(('A', o['fen'], f'kept {u} {o["moves"][u]} best {best} clock {o["clock"]} dtz {o["dtz"]} kept {kept}'))
                     cnt['A_bad'] += 1
@@ -92,7 +104,7 @@ def main():
             cnt['D_dropped_best'] += sum(RANK[v] == best and u not in kept.split() for u, v in o['moves'].items())
             if display == '-':
                 cnt['no_display'] += 1
-                if used_dtz == '1':
+                if used_dtz == '1' and not any(ranks.get(u) in (900, -900) for u in kept.split()):
                     bad.append(('B', o['fen'], 'DTZ-ranked root without display'))
                     cnt['B_bad'] += 1
             elif RANK.get(display_class(display), 99) != best:

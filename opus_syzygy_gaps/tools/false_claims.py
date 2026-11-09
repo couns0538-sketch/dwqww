@@ -11,6 +11,7 @@ Prints counts per class, with the sign accuracy of the search on decided roots a
 """
 import argparse
 import json
+import sys
 
 TB_LOW = 31743
 MATE_LOW = 31872
@@ -73,6 +74,7 @@ def main():
         with open(a.list, 'w', encoding='utf-8', newline='\n') as f:
             for row in false_rows:
                 f.write('\t'.join(str(x) for x in row) + '\n')
+    sys.exit(1 if false_rows else 0)
 
 
 if __name__ == '__main__':

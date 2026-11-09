@@ -16,8 +16,8 @@ $env:ASAN_OPTIONS = 'halt_on_error=1:detect_leaks=0'
 $py = 'C:\Python315\python.exe'
 $tools = Join-Path $JobRepo 'opus_syzygy_gaps\tools'
 $fixtures = @{ clock = 'exp\root\clock.fens'; promo = 'exp\special\s1.promo.fens'; ep = 'exp\special\s1.ep.fens'; rep = 'exp\special\s1.rep.fens'; castle = 'exp\special\s1.castle.fens'; clock100 = 'exp\special\s1.clock100.fens' }
-$on = 'SyzygyTbBounds=7 SyzygyRootExact=1 SyzygyRule50=3'
-$onArgs = '--opt SyzygyTbBounds=7 --opt SyzygyRootExact=1 --opt SyzygyRule50=3'
+$on = 'SyzygyTbBounds=7 SyzygyRootExact=3 SyzygyRule50=3'
+$onArgs = '--opt SyzygyTbBounds=7 --opt SyzygyRootExact=3 --opt SyzygyRule50=3'
 function Log($name, $rc) { Add-Content -Path $sum -Value ("$name exit $rc " + (Get-ViennaNow)) }
 foreach ($k in $fixtures.Keys) {
     $fen = Join-Path $JobOut $fixtures[$k]
