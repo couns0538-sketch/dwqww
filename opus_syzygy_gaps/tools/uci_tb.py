@@ -7,7 +7,7 @@ usage (under pinned.ps1, which sets Idle + 0xF000; this script re-reads both and
 
 A FEN line may carry "moves a b c" after the six FEN fields; lines starting with '#' are skipped.
 Every engine: Threads 1, OwnBook false, ucinewgame before each position unless --warm.
-The engine is never killed: a search that does not answer within --limit-s stops the run with exit 3 and is reported.
+On timeout or error the worker always quits its own child (UCI quit, then terminate if still alive); the run exits 3 on timeout.
 Exit 0 = all rows written; 1 = an engine rejected a FEN or an option; 3 = timeout; 90 = pin check failed.
 """
 import argparse
@@ -84,11 +84,31 @@ class Engine:
                 return out
 
     def quit(self):
+        """Stop this worker's own child only: UCI quit, then terminate if still alive."""
         try:
-            self.send('quit')
-            self.p.wait(timeout=30)
+            if self.p.poll() is None:
+                try:
+                    self.send('quit')
+                except Exception:
+                    pass
+                try:
+                    self.p.wait(timeout=5)
+                except Exception:
+                    pass
+            if self.p.poll() is None:
+                self.p.terminate()
+                try:
+                    self.p.wait(timeout=5)
+                except Exception:
+                    pass
+            if self.p.poll() is None:
+                self.p.kill()
+                try:
+                    self.p.wait(timeout=5)
+                except Exception as e:
+                    print(f'WARNING own child still alive after kill: pid {self.p.pid}: {e}')
         except Exception as e:
-            print(f'WARNING engine did not exit after quit: {e}; left running, pid {self.p.pid}')
+            print(f'WARNING quit path failed for pid {getattr(self.p, "pid", "?")}: {e}')
 
 
 SCORE = re.compile(r' score (cp|mate) (-?\d+)')
@@ -166,14 +186,15 @@ def worker(idx, a, jobs, out, stop, results):
             if 'invalid' in row:
                 results['invalid'] += 1
             out.put(row)
-        engine.quit()
     except TimeoutError as e:
         results['timeout'] += 1
-        results['errors'].append(f'worker {idx}: {e}; engine pid {engine.p.pid} left running')
+        results['errors'].append(f'worker {idx}: {e}')
         stop.set()
     except Exception as e:
         results['errors'].append(f'worker {idx}: {e}')
         stop.set()
+    finally:
+        engine.quit()
 
 
 def main():

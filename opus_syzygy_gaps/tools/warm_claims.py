@@ -104,9 +104,10 @@ def worker(a, jobs, out, errors):
                          'on_warm_nodes': on_warm['nodes'], 'on_cold_nodes': on_cold['nodes'],
                          'off_warm_cls': cls(off_warm), 'off_cold_cls': cls(off_cold),
                          'on_warm_cls': cls(on_warm), 'on_cold_cls': cls(on_cold)})
-        e.quit()
     except Exception as ex:
         errors.append(str(ex))
+    finally:
+        e.quit()
 
 
 def main():

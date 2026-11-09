@@ -23,7 +23,7 @@ This version: written 2026-11-09 about 18:20 Vienna, about 15 h 19 min after T0:
 - **Strength:** no games, no Elo claim, no NPS claim. Every ON path is a SEARCH/EVAL CHANGE, UNPROVEN; QA's SPRT decides.
 - **Exact pack:** this folder on branch `opus-syzygy-gaps-20261107`, at the last commit that changed this file: `git log -1 --format=%H -- opus_syzygy_gaps/STATUS.md` (a file cannot hold its own commit's hash). Check it with `MANIFEST.md5` and `MANIFEST.sha256`.
 - **Blocker:** this session reaches no Code Review or QA session or queue (ListAgents lists only this job's own reviewer and hunter, both idle), and the prompt forbids queueing here. Nothing was queued, published or locked.
-- **Left out by the deadline:** the read-side mate rows ran on the first 100 of 1500 rows, because a full run takes about 3 h at depth 14. The clang recipe of the live exe is QA's. ASan was not run on the trial_w6 line.
+- **Left out by the deadline / Couns stop:** the pack's mate read-side evidence is the first **100 of 1500** rows of `fixtures/read.mate.tsv` (`tools/read_subset.sh`). A full 1500-row mate run takes about 3 h at depth 14; the full `mutants_read_side.sh r1` was later **stopped unfinished at Couns's request** (see Processes at the end). The clang recipe of the live exe is QA's. ASan was not run on the trial_w6 line.
 
 ## Rulings (material decisions, with cost if wrong)
 - CPUs 12-15 (0xF000), Idle: Couns's override of "0-3". Disk reserve check dropped by Couns.
@@ -50,7 +50,7 @@ Nothing here is queued, and no process of this job is running.
 
 ## Processes at the end
 None is running: checked 2026-11-09 18:19 Vienna, 0 processes with the job root in their command line, CPUs 12-15 at 0-2 %. Stopped at Couns's request, about 18:15 Vienna (three background tasks by the session's task stop, the rest by Couns's command):
-- `tools/mutants_read_side.sh r1` with `tbr_r1_head.exe` (PID 11704): the read-side runs on all 1500 rows, stopped unfinished on the head's mate rows. Its partial summary is `logs/read_side_r1_partial.txt`; the evidence of record is the 100-row runs (`BENCH.md`, Stress).
+- `tools/mutants_read_side.sh r1` with `tbr_r1_head.exe` (PID 11704): full 1500-row mate read-side attempt, **stopped unfinished by Couns**. Partial summary `logs/read_side_r1_partial.txt`. Pack evidence of record remains the **100-row** mate subset in `BENCH.md` Stress (head 0 wrong; mutants RED).
 - `p6_c1tests.exe` (PID 3808): a slow extra pass of P6's own table tests on the 3-4 piece folder, not required: the full-set run passed 36,825 checks with 0 failures.
 - A driver from the R2 recheck, blocked since then at 0 CPU: `tb_root_v5.exe` PID 2488, `python.exe` PIDs 8512 and 6036, `powershell.exe` PID 9400.
 - Four idle `tail` log watchers from the bug hunt.

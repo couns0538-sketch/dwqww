@@ -21,7 +21,7 @@ tests 1, 2 and 8):
 Both transcripts are normalised (the `nps` and `time` fields removed from info lines, bench timing fields too) and
 compared line by line. Exit 0 = identical, 3 = a difference (first one printed), 1 = error. Placement (Code Review
 SHOULD 'warm_identity self-pin'): before the out dir, the FEN file or any engine, this process sets its own CPU mask
-0x3 (CPUs 0-1, the job's check pair) and the Idle class and reads both back; every engine it starts inherits both and
+0xF000 (CPUs 12-15, this job's cores) and the Idle class and reads both back; every engine it starts inherits both and
 is read back too (on its process handle, before its first command). A failed call or a mismatch is exit 1 (fail
 closed): no comparison runs on a process that is not pinned. Reads the exes and the FEN file only; writes only
 <out dir>.

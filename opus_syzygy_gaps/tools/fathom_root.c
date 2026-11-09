@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
         if (r == TB_RESULT_STALEMATE) { printf("0 0 stalemate\n"); continue; }
         int rw = (int)TB_GET_WDL(r) - 2;
         printf("%d %d ok", rw, (int)TB_GET_DTZ(r));
-        for (unsigned i = 0; results[i] != TB_RESULT_FAILED && i < TB_MAX_MOVES; i++) {
+        for (unsigned i = 0; i < TB_MAX_MOVES && results[i] != TB_RESULT_FAILED; i++) {
             unsigned m = results[i];
             unsigned from = TB_GET_FROM(m), to = TB_GET_TO(m), pr = TB_GET_PROMOTES(m);
             printf(" %c%c%c%c", 'a' + (from & 7), '1' + (from >> 3), 'a' + (to & 7), '1' + (to >> 3));
