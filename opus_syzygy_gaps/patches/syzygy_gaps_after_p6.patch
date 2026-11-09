@@ -1,5 +1,5 @@
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index fcb20b2..e60da67 100644
+index fcb20b2..c603c06 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -250,6 +250,15 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
@@ -10,7 +10,7 @@ index fcb20b2..e60da67 100644
 +extern int SyzygyTbBounds;  // TB-aware score bounds while tables are loaded, bit mask, 0 = off (src/search.cpp)
 +#endif
 +#if FORGE_SYZYGY_ROOT_EXACT
-+extern int SyzygyRootExact;  // root report at dtz + counter = 100 and with WDL-only ranks, 0 = off (src/tablebase.inc)
++extern int SyzygyRootExact;  // tablebase root at the 50-move boundary, bit mask, 0 = off (src/syzygy.inc, src/tablebase.inc)
 +#endif
 +#if FORGE_SYZYGY_RULE50
 +extern int SyzygyRule50;  // rule-50 handling of stored TB scores, bit mask, 0 = off (src/search.cpp, src/uci.cpp)
@@ -19,7 +19,7 @@ index fcb20b2..e60da67 100644
  // Call after changing LMR parameters.
  void refresh();
 diff --git a/src/search.cpp b/src/search.cpp
-index b4f900c..708c613 100644
+index b4f900c..8b4dc8b 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -63,6 +63,15 @@ int CaptureFutilityBase = 0;
@@ -46,7 +46,7 @@ index b4f900c..708c613 100644
 +        {"SyzygyTbBounds", &SyzygyTbBounds, 0, 7},
 +#endif
 +#if FORGE_SYZYGY_ROOT_EXACT
-+        {"SyzygyRootExact", &SyzygyRootExact, 0, 1},
++        {"SyzygyRootExact", &SyzygyRootExact, 0, 3},
 +#endif
 +#if FORGE_SYZYGY_RULE50
 +        {"SyzygyRule50", &SyzygyRule50, 0, 3},
@@ -161,24 +161,138 @@ index b4f900c..708c613 100644
      std::vector<Worker*> all;
      all.reserve(workers_.size());
      for (auto& worker : workers_) all.push_back(worker.get());
+diff --git a/src/syzygy.inc b/src/syzygy.inc
+index 303929b..85c720f 100644
+--- a/src/syzygy.inc
++++ b/src/syzygy.inc
+@@ -1172,6 +1172,65 @@ struct NodeValue {
+     }
+ }
+ 
++#if FORGE_SYZYGY_ROOT_EXACT
++// Exact result near the 50-move boundary (SyzygyRootExact bit 2). value: 1 win, 0 draw, -1 loss for the side to move at
++// the board's counter. A table distance decides a move unless it is rounded and lands exactly on the hundredth
++// half-move: only those lines are followed move by move. False: the budget is used up or a table is missing.
++[[gnu::cold]] bool boundary_value(const Registry& r, Board& board, int& value, int& budget) {
++    const MoveList legal = board.legal_moves();
++    if (legal.empty()) {
++        value = board.in_check() ? -1 : 0;
++        return true;
++    }
++    int best = -1;
++    for (const Move move : legal) {
++        if (--budget < 0) return false;
++        Undo undo;
++        (void)board.make_move(move, undo);
++        bool ok = true;
++        int v = 0;
++        if (!board.has_legal_move()) {
++            v = board.in_check() ? 1 : 0;
++        } else if (board.halfmove_clock() == 0) {
++            NodeValue child;
++            ok = node_wdl(r, board, false, child);
++            v = child.wdl == -2 ? 1 : (child.wdl == 2 ? -1 : 0);
++        } else if (board.halfmove_clock() < 100) {
++            int dtz = 0;
++            bool rounded = false;
++            ok = dtz_value(r, board, dtz, rounded, 0);
++            if (ok && dtz != 0) {
++                const int sum = (dtz < 0 ? -dtz : dtz) + board.halfmove_clock();
++                if (sum < 100 || (sum == 100 && !rounded)) {
++                    v = dtz > 0 ? -1 : 1;
++                } else if (sum == 100) {
++                    int child_value = 0;
++                    ok = boundary_value(r, board, child_value, budget);
++                    v = -child_value;
++                }
++            }
++        }
++        board.unmake_move(move, undo);
++        if (!ok) return false;
++        best = std::max(best, v);
++        if (best == 1) break;
++    }
++    value = best;
++    return true;
++}
++
++// Rank of a root move with distance + counter = 100, the move already made on the board. Win 901, undecided win 900 (the
++// plain rank), a rounded distance that is really 101: 899 and -899 (the plain ranks of sum 101), undecided loss -900,
++// loss -2000. A rounded move that may still draw thus goes before moves that surely lose.
++[[gnu::cold]] int boundary_rank(const Registry& r, Board& board, int dtz, bool rounded, int& budget) {
++    if (!rounded) return dtz > 0 ? 901 : -2000;
++    int value = 0;
++    if (!boundary_value(r, board, value, budget)) return dtz > 0 ? 900 : -900;
++    if (dtz > 0) return value == -1 ? 901 : 899;
++    return value == 1 ? -2000 : -899;
++}
++#endif
++
+ struct NamedFile {
+     std::string stem;
+     std::filesystem::path path;
+@@ -1345,6 +1404,9 @@ struct NamedFile {
+     if (legal.empty()) return false;
+     const int counter = board.halfmove_clock();
+     const bool repeated = repeated_since_zeroing(board);
++#if FORGE_SYZYGY_ROOT_EXACT
++    int boundary_budget = 20000;
++#endif
+ 
+     bool ok = true;
+     for (const Move move : legal) {
+@@ -1366,8 +1428,20 @@ struct NamedFile {
+             dtz += sign_of(dtz);
+         }
+         if (mate && dtz == 2) dtz = 1;
++#if FORGE_SYZYGY_ROOT_EXACT
++        int exact_rank = 0;
++        if (ok && rule50 && (tune::SyzygyRootExact & 2) != 0 && dtz != 0 && (dtz < 0 ? -dtz : dtz) + counter == 100) {
++            exact_rank = boundary_rank(*r, board, dtz, rounded, boundary_budget);
++        }
++#endif
+         board.unmake_move(move, undo);
+         if (!ok) break;
++#if FORGE_SYZYGY_ROOT_EXACT
++        if (exact_rank != 0) {
++            ranks.push_back(RootRank{move, exact_rank, dtz, rounded});
++            continue;
++        }
++#endif
+         ranks.push_back(RootRank{move, dtz_rank(dtz, counter, repeated, rule50), dtz, rounded});
+     }
+     if (ok) {
 diff --git a/src/tablebase.inc b/src/tablebase.inc
-index 142ab40..7e84a11 100644
+index 142ab40..450976a 100644
 --- a/src/tablebase.inc
 +++ b/src/tablebase.inc
-@@ -97,6 +97,21 @@ namespace {
+@@ -97,6 +97,34 @@ namespace {
      // probes inside the search would only flatten their scores. With WDL ranks
      // keep probing while winning, so that the search finds the conversion.
      if (used_dtz || best <= 0) search_cardinality.store(0, std::memory_order_relaxed);
 +#if FORGE_SYZYGY_ROOT_EXACT
-+    if (tune::SyzygyRootExact != 0) {
-+        // WDL ranks assume counter 0: above it they keep their move filter but prove no win or loss, so the search
-+        // score is reported (DTZ table missing).
-+        if (!used_dtz && root.halfmove_clock() != 0 && std::abs(best) > 1000) return;
-+        // Rank 900 is dtz + counter = 100: the zeroing move is the hundredth half-move, a win unless the distance
-+        // is rounded and may be 101.
-+        if (used_dtz && best == 900 &&
-+            std::none_of(ranks.begin(), ranks.end(), [&](const RootRank& r) { return r.rank == best && r.rounded; })) {
-+            root_display_score.store(TbWin - 1, std::memory_order_relaxed);
++    if ((tune::SyzygyRootExact & 1) != 0) {
++        int exact_score = ValueNone;
++        if (!used_dtz && options::syzygy_50_move_rule) {
++            // WDL ranks of moves see no counter. Above counter 0 they keep their move filter but prove no win or loss, so
++            // the search score is reported; at counter 0 the root's own WDL is exact (DTZ table missing).
++            if (root.halfmove_clock() != 0) {
++                if (std::abs(best) > 1000) return;
++            } else {
++                Board own = root;
++                int wdl = 0;
++                if (probe_wdl(own, wdl)) exact_score = wdl == 2 ? TbWin - 1 : (wdl == -2 ? -(TbWin - 1) : TbCursed * wdl);
++            }
++        }
++        // Rank 901 (bit 2) or an unrounded rank 900 is dtz + counter = 100: the zeroing move is the hundredth half-move, a
++        // win. A rounded rank 900 may be 101 and stays a cursed win in the report.
++        if (used_dtz && (best == 901 || (best == 900 && std::none_of(ranks.begin(), ranks.end(), [&](const RootRank& r) {
++                                             return r.rank == best && r.rounded;
++                                         })))) {
++            exact_score = TbWin - 1;
++        }
++        if (exact_score != ValueNone) {
++            root_display_score.store(exact_score, std::memory_order_relaxed);
 +            root_display.store(1, std::memory_order_relaxed);
 +            return;
 +        }

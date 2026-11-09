@@ -21,10 +21,11 @@ extern std::uint64_t corr_updates_tb, corr_updates_all, pv_bound_returns;
 inline const char* claim_site_name(int i) {
     static const char* n[ClaimSites] = {"-", "null_move", "end_pruned_loss", "end_other_win", "end_other_loss", "rfp_return",
         "razor_return", "probcut_return", "singular_multicut", "tt_cut_main", "tt_cut_qs", "qs_standpat", "qs_end", "pv_tb_bound",
-        "null_raw", "-"};
+        "null_raw", "tt_cut_mate"};
     return n[i];
 }
-void claim_check(Board& board, int site, int score);
+extern bool claims_enabled;
+void claim_check(Board& board, int site, int score, bool mate_band = false);
 }
 '''
 
@@ -34,8 +35,10 @@ namespace forge::syzygy {
 ClaimSite claim_sites[ClaimSites];
 int test_card = 0;
 std::uint64_t corr_updates_tb = 0, corr_updates_all = 0, pv_bound_returns = 0;
-[[gnu::cold]] void claim_check(Board& board, int site, int score) {
-    if (std::abs(score) < TbWinInMaxPly || std::abs(score) >= MateInMaxPly) return;
+bool claims_enabled = true;
+[[gnu::cold]] void claim_check(Board& board, int site, int score, bool mate_band) {
+    if (!claims_enabled) return;
+    if (mate_band ? std::abs(score) < MateInMaxPly : (std::abs(score) < TbWinInMaxPly || std::abs(score) >= MateInMaxPly)) return;
     ClaimSite& s = claim_sites[site];
     ++s.events;
     int dtz = 0;
@@ -68,7 +71,18 @@ EDITS = [
     # null move
     ('src/search.cpp',
      "            if (null_score >= beta) {\n                if (is_mate_score(null_score)) null_score = beta;\n",
-     "            if (null_score >= beta) {\n                if (null_score > 0) syzygy::claim_check(board, 1, null_score);\n                if (is_mate_score(null_score)) null_score = beta;\n"),
+     "            if (null_score >= beta) {\n                if (null_score > 0) syzygy::claim_check(board, 14, null_score);\n                if (is_mate_score(null_score)) null_score = beta;\n"),
+    # the value a null-move cut really returns (after any replacement)
+    ('src/search.cpp',
+     "                if (depth < 14) {\n                    ++null_cutoffs_;\n                    return null_score;\n",
+     "                if (depth < 14) {\n                    ++null_cutoffs_;\n                    if (null_score > 0) syzygy::claim_check(board, 1, null_score);\n                    return null_score;\n"),
+    ('src/search.cpp',
+     "                if (verification >= beta) {\n                    ++null_cutoffs_;\n                    return null_score;\n",
+     "                if (verification >= beta) {\n                    ++null_cutoffs_;\n                    if (null_score > 0) syzygy::claim_check(board, 1, null_score);\n                    return null_score;\n"),
+    # qsearch node end
+    ('src/search.cpp',
+     "    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);\n    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());\n",
+     "    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);\n    if (best_score <= -syzygy::TbWinInMaxPly ? bound != BoundLower : (best_score >= syzygy::TbWinInMaxPly && bound != BoundUpper)) syzygy::claim_check(board, 12, best_score);\n    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());\n"),
     # RFP
     ('src/search.cpp',
      "            eval < MateInMaxPly) {\n            return eval;\n",
@@ -88,7 +102,7 @@ EDITS = [
     # TT cut main
     ('src/search.cpp',
      "        board.halfmove_clock() < 90 &&\n        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        return tt_score;\n",
-     "        board.halfmove_clock() < 90 &&\n        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        if (tt_bound == BoundExact || (tt_bound == BoundLower) == (tt_score > 0)) syzygy::claim_check(board, 9, tt_score);\n        return tt_score;\n"),
+     "        board.halfmove_clock() < 90 &&\n        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        if (tt_bound == BoundExact || (tt_bound == BoundLower) == (tt_score > 0)) { syzygy::claim_check(board, 9, tt_score); syzygy::claim_check(board, 15, tt_score, true); }\n        return tt_score;\n"),
     # TT cut qsearch
     ('src/search.cpp',
      "        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||\n         (tt_bound == BoundUpper && tt_score <= alpha))) {\n        return tt_score;\n    }\n\n    int best_score;\n",

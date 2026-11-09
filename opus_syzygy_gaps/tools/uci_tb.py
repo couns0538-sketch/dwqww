@@ -137,6 +137,9 @@ def setup(engine, a):
         engine.send(f'setoption name SyzygyPath value {a.tables}')
     engine.send('isready')
     info = engine.read_until(lambda l: l == 'readyok')
+    for l in info:
+        if 'invalid' in l:
+            raise RuntimeError(f'engine rejected an option: {l}')
     return [l for l in info if l.startswith('info string')]
 
 

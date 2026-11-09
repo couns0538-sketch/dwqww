@@ -42,7 +42,7 @@ def main():
                     board.push_uci(u)
             wdl, dtz = probe(tb, board)
             row = {'fen': line, 'board_fen': board.fen(), 'wdl': wdl, 'dtz': dtz, 'clock': board.halfmove_clock,
-                   'valid': board.is_valid(), 'ep': board.has_legal_en_passant(), 'moves': []}
+                   'valid': board.is_valid(), 'ep': board.has_legal_en_passant(), 'root_threefold': board.is_repetition(3), 'moves': []}
             for move in board.legal_moves:
                 zeroing = board.is_zeroing(move)
                 board.push(move)

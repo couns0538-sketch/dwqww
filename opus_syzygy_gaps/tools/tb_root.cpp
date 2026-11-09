@@ -11,6 +11,7 @@
 #include "forge/syzygy.hpp"
 
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -26,6 +27,8 @@ int main(int argc, char** argv) {
         std::cerr << "usage: tb_root <tables dir> <fens file> [rule50 0|1]\n";
         return 2;
     }
+    // TB_HEAP=1: exact-size heap copies instead of mapped files, so that AddressSanitizer sees every read past a section end.
+    if (std::getenv("TB_HEAP") != nullptr) forge::syzygy::set_heap_loading(true);
     const auto summary = forge::syzygy::load(argv[1]);
     std::cerr << "loaded " << summary.wdl_tables << " WDL, " << summary.dtz_tables << " DTZ, rejected " << summary.rejected
               << ", max " << summary.max_pieces << "\n";

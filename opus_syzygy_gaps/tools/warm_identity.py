@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """warm_identity.py - warm-table identity of a candidate exe against the lock (speed job, own code).
 
-usage: python -I -B warm_identity.py <ref exe> <cand exe> <fens file> <out dir> [--n 400] [--nodes 20000]
+usage: python -I -B warm_identity.py <ref exe> <cand exe> <fens file> <out dir> [--n 400] [--nodes 20000] [--tables DIR]
+(job copy: mask 0xF000, --tables added, this job's three option lines ignored in the comparison.)
 
 The bit-exact proof (bitexact_check L3) sends ucinewgame before every FEN, so the TT is always cold there. This tool
 plays ONE script into each exe with the table kept warm across positions (no ucinewgame), so TT aging / replacement
@@ -127,7 +128,7 @@ class Engine:
         self.until(lambda s: s == 'readyok')
 
 
-def run(exe, fens, nodes, k32):
+def run(exe, fens, nodes, k32, tables=''):
     log = []
     e = Engine(exe, log)
     try:
@@ -141,6 +142,8 @@ def run(exe, fens, nodes, k32):
         e.send('uci')
         e.until(lambda s: s == 'uciok')
         e.send('setoption name OwnBook value false')
+        if tables:
+            e.send('setoption name SyzygyPath value ' + tables)
         e.sync()
         rows = []
         for i, fen in enumerate(fens):
@@ -172,6 +175,9 @@ def norm(lines):
             s = STRIP.sub('', s)
         if s.startswith('id name') or s.startswith('id author'):
             continue
+        # this job's switches exist only in the candidate's option list (macros on, -Expose); their defaults are checked elsewhere
+        if s.startswith(('option name SyzygyTbBounds ', 'option name SyzygyRootExact ', 'option name SyzygyRule50 ')):
+            continue
         out.append(s)
     return out
 
@@ -183,6 +189,9 @@ def main():
         i = a.index('--n'); n = int(a[i + 1]); del a[i:i + 2]
     if '--nodes' in a:
         i = a.index('--nodes'); nodes = int(a[i + 1]); del a[i:i + 2]
+    tables = ''
+    if '--tables' in a:
+        i = a.index('--tables'); tables = a[i + 1]; del a[i:i + 2]
     if len(a) != 4:
         print(__doc__)
         return 1
@@ -195,7 +204,7 @@ def main():
     res = {}
     for tag, exe in (('ref', ref), ('cand', cand)):
         t0 = time.time()
-        log, bench, rows = run(exe, fens, nodes, k32)
+        log, bench, rows = run(exe, fens, nodes, k32, tables)
         (outd / f'{tag}.log').write_text('\n'.join(log) + '\n', encoding='utf-8', newline='\n')
         res[tag] = (norm(log), bench, time.time() - t0)
         print(f'{tag}: {len(log)} lines, {time.time() - t0:.0f} s, last bench: {bench}')
@@ -212,6 +221,8 @@ def main():
         diff = min(len(r), len(c))
     pin = '862329'
     bench_ok = all(f'nodes {pin}' in res[t][1] for t in ('ref', 'cand'))
+    if tables:  # with tables loaded the pin is another one: both must simply agree (nps and time are stripped)
+        bench_ok = STRIP.sub('', res['ref'][1]) == STRIP.sub('', res['cand'][1])
     if diff is None and bench_ok:
         print(f'IDENTICAL: {len(r)} normalised lines, {searches} searches (go nodes {nodes}, {len(fens)} FENs, warm TT, '
               f'{len(fens) // 25} state changes), bench 13 = {pin} on both')

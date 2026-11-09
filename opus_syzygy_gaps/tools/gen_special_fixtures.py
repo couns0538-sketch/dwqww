@@ -180,7 +180,9 @@ def main():
             r = rep_line(rng, rng.choice(mats))
             if r:
                 fen, moves = r
-                keep = rng.choice((8, 6, 4))  # 8: start repeated once more available; 6, 4: a move may complete a repetition
+                # 8: the start is on the board for the third time, a drawn root. 7: the root is live and the last move of the cycle makes the
+                # third occurrence of the start. 6, 4: a move may complete a second occurrence.
+                keep = rng.choice((8, 7, 7, 6, 4))
                 f.write(f'{fen} moves {" ".join(moves[:keep])}\n')
                 written += 1
     with open(a.prefix + '.castle.fens', 'w', newline='\n') as f:

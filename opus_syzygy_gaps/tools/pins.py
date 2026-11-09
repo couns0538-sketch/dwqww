@@ -60,9 +60,11 @@ def main():
     depths = [int(x) for x in a.depths.split(',')]
     e = Engine(os.path.abspath(a.exe), a.limit_s)
     e.send('uci')
-    e.read_until(lambda l: l == 'uciok')
+    names = [l for l in e.read_until(lambda l: l == 'uciok') if l.startswith('option name')]
     for o in a.opt:
         k, v = o.split('=', 1)
+        if not any(n.startswith(f'option name {k} ') for n in names):
+            sys.exit(f'engine does not advertise option {k}')
         e.send(f'setoption name {k} value {v}')
     load = []
     if a.tables:

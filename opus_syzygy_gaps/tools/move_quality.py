@@ -10,17 +10,18 @@ exact two-sided sign-test p value on the discordant roots. This is search qualit
 import argparse
 import json
 import math
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from root_check import outcome as root_outcome  # noqa: E402
 
 RANK = {'win': 2, 'cursed': 1, 'draw': 0, 'blessed': -1, 'loss': -2}
 
 
 def outcome(m):
-    if m['mate']:
-        return 'win'
-    w = m['child_wdl']
-    if w is None:
-        return None
-    return {2: 'loss', 1: 'blessed', 0: 'draw', -1: 'cursed', -2: 'win'}[w]
+    # the same rule as root_check.outcome at clock 0: a non-zeroing move's child has counter 1, so child dtz +-100 is a cursed win / blessed loss
+    return root_outcome(m, 0)[0]
 
 
 def sign_p(a, b):
