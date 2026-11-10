@@ -1,0 +1,27 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index dfc52cc..44f83db 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -727,6 +727,10 @@ private:
+                board_.is_pseudo_legal(move);
+     }
+ 
++#ifndef FORGE_SPD_PICKER_SELF_SWAP_GUARD
++#define FORGE_SPD_PICKER_SELF_SWAP_GUARD 0
++#endif
++
+     // Most nodes need only the first few moves: select those on demand and
+     // sort the remainder once if the search gets that far.
+     [[nodiscard]] Move pick_best() {
+@@ -736,7 +740,11 @@ private:
+                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+                     if (moves_[i].score > moves_[best].score) best = i;
+                 }
++#if FORGE_SPD_PICKER_SELF_SWAP_GUARD
++                if (best != index_) std::swap(moves_[index_], moves_[best]);
++#else
+                 std::swap(moves_[index_], moves_[best]);
++#endif
+             } else {
+                 std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+                           [](const Scored& a, const Scored& b) { return a.score > b.score; });

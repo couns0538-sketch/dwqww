@@ -1,0 +1,34 @@
+diff --git a/forge-combo29/src/eval.cpp b/forge-combo29/src/eval.cpp
+index 8e0ae37..3908d77 100644
+--- a/forge-combo29/src/eval.cpp
++++ b/forge-combo29/src/eval.cpp
+@@ -7,6 +7,11 @@
+ #include <cstdlib>
+ #include <limits>
+ 
++// Exact mask simplification for disjoint Board piece bitboards; default off.
++#ifndef FORGE_SPD_WEAK_QUEEN_MASK
++#define FORGE_SPD_WEAK_QUEEN_MASK 0
++#endif
++
+ namespace forge {
+ namespace {
+ 
+@@ -187,9 +192,17 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
+                     acc.template add<Us>(QueenEarlyDevelopment, popcount(home_minors));
+                 }
+                 // Queen attacked by an enemy slider (through pieces) that is not pinned down.
++#if FORGE_SPD_WEAK_QUEEN_MASK
++                // Enemy queens cannot overlap bishops/rooks. Keep them, and
++                // every other piece, in occupied so ray blocking is unchanged.
++                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & board.pieces(Them, Bishop)) |
++                                               (attacks::rook(square, occupied) & board.pieces(Them, Rook));
++                if (enemy_sliders != 0) acc.template add<Us>(WeakQueen);
++#else
+                 const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |
+                                                (attacks::rook(square, occupied) & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));
+                 if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);
++#endif
+             }
+         }
+     }
