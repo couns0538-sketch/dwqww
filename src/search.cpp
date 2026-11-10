@@ -463,7 +463,7 @@ int TranspositionTable::hashfull() const {
 // ---------------------------------------------------------------------------
 // Lockless TT mode (opus_smp_layout/SPEC.md section 3). Every access below to lockless_clusters_[].words is a relaxed
 // std::atomic_ref operation, so concurrent probes and stores are data-race free under the C++ memory model. A K/D
-// pair from two different stores fails the tag in decode() and reads as a foreign entry (a miss / replacement slot).
+// pair from two different stores fails the tag check (key32_of) and reads as a foreign entry (a miss / replacement slot).
 
 namespace {
 using AtomicWord = std::atomic_ref<std::uint64_t>;

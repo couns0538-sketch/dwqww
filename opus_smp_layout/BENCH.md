@@ -1,5 +1,12 @@
 # opus_smp_layout — BENCH (evidence: everything here was EXECUTED; prepared-only commands are in COMMANDS.md / SCALING_PLAN.md)
 
+**Which section covers which candidate.**
+- **§11 = the engine candidate `89cddf7` (enc5, gate `2940fb05`).**
+- §10 = `a675c04` (enc4, gate `a4b57032`), superseded.
+- §1-§7 = the first hand-off `0599271` (gate `541e8b3d`), superseded. Its "final" labels refer to that hand-off.
+- §8-§9 (micro-benchmark, tag census) span the encodings.
+- Every candidate has the same OFF exe, `4181a589` = trial_w6.
+
 Machine: AMD Ryzen 7 9850X3D (8 cores / 16 logical CPUs, SMT pairs (2k, 2k+1)). Every local run is pinned to CPUs 12-15 at Idle, i.e. two physical cores on a shared PC, while CPUs 0-3 run other work. Times are Vienna (HTTPS Date header). Compiler: MSYS2 g++ 15.2.0 (Rev14); CI: g++-14 14.2.0 on ubuntu-24.04.
 
 ## 1. Identity of the builds (EXECUTED)
@@ -221,7 +228,7 @@ Criterion (SPEC 3.3): a difference `delta` of two data words (generation bits cl
 
 The old `mix32` tag had no such structure: a perfect-looking 2^-32 for every pair, with no class guaranteed. Mixed pairs from a same-position re-store (small field differences) are now never accepted.
 
-## 10. Qualification of the candidate `a675c04` (enc4; EXECUTED 21:58-22:5x Vienna; logs `logs/enc4/`)
+## 10. Qualification of the candidate `a675c04` (enc4; EXECUTED 21:58-22:50 Vienna; logs `logs/enc4/`)
 The whole set of §1-§6 was repeated on the new exes. The parent's references are unchanged (same P exe, same FEN files, same options).
 
 ### Builds

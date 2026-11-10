@@ -284,7 +284,7 @@ private:
 #if !FORGE_SPD_TT_NOTLS
     friend class Worker;
 #endif
-    // Lockless-mode bodies (SPEC 3.4 / 3.5): the same decisions as probe_body / store_body on decoded copies.
+    // Lockless-mode bodies (SPEC 3.4 / 3.5): the same decisions as probe_body / store_body, made on the raw words.
     [[nodiscard]] TTProbe probe_lockless(std::uint64_t key) const;
     void store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                         bool pv, std::uint16_t halfmove_clock);
