@@ -13,7 +13,7 @@ Both names are free in QA's files and in the trial_w6 source (INVENTORY.md). **T
 ## 2. Gate decision (plan decision D3, measured; BENCH.md)
 - **The trial_w6 network is king-independent.**
   - `nnue::feature_index(perspective, piece, square)` uses only the piece's colour relative to the perspective, the piece type and the square, flipped vertically for Black. That is 768 inputs per perspective, with no king bucket and no king-file orientation.
-  - The accumulators are float. Every weight is `int/4096`, so every partial sum is exact.
+  - The accumulators are float and every weight is `int/4096`, so a partial sum is exact while |sum| < 2^12. That bound is **not verified here** for all inputs; the verdict does not depend on it, but a float cache would (§3.3).
 - **Refresh sites in P** (`src/search.cpp`):
   1. the root of every `Worker::search` (`nnue::refresh(board, ss->accumulator)`), once per `go` per worker;
   2. the fallback in `Worker::static_evaluate` when no valid ancestor exists. During a search the root accumulator is always valid, so this fallback is never reached.
