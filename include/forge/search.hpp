@@ -107,8 +107,8 @@ static_assert(sizeof(TTCluster) == 64);
 #if FORGE_SMP_LAYOUT
 // Lockless TT mode (UCI TtLockless; opus_smp_layout/SPEC.md section 3): one cluster = 4 entries x 2 words (K, D).
 // While workers run, every word is read or written only through std::atomic_ref (relaxed); allocation and clearing
-// happen only while all accessors are quiescent. K carries the move and the tag XOR mix32(move, D without the
-// generation bits), so a K and a D from two different stores pass the tag check only with probability ~2^-32.
+// happen only while all accessors are quiescent. K carries the move and key32 XOR tag32(D without the generation
+// bits), so a K and a D from two different stores pass the tag check only with probability about 2^-31.
 struct alignas(64) TTLocklessCluster {
     std::array<std::uint64_t, 8> words{};
 };
@@ -119,12 +119,28 @@ static_assert(alignof(std::uint64_t) >= std::atomic_ref<std::uint64_t>::required
 namespace ttlockless {
 // The five generation bits of gen_bound inside D: replacement metadata only, never read by search.
 inline constexpr std::uint64_t GenMask = 0xF8ULL << 40U;
+// Odd multiplier of the tag (2^64 / golden ratio).
+inline constexpr std::uint64_t TagMul = 0x9E3779B97F4A7C15ULL;
 
-[[nodiscard]] constexpr std::uint32_t mix32(std::uint32_t move32, std::uint64_t data) {
-    std::uint64_t z = data ^ (static_cast<std::uint64_t>(move32) * 0x9E3779B97F4A7C15ULL);
-    z = (z ^ (z >> 32U)) * 0xD6E8FEB86659FD93ULL;
-    z = (z ^ (z >> 32U)) * 0xD6E8FEB86659FD93ULL;
-    return static_cast<std::uint32_t>(z ^ (z >> 32U));
+// tag32(D) = the high 32 bits of ((D without the generation bits) * TagMul mod 2^64): multiply-shift hashing, one
+// multiply. tag32(0) == 0. Over the choice of an odd multiplier, two data words that differ outside GenMask get equal
+// tags with probability <= 2^-31 (Dietzfelbinger et al. 1997). With this multiplier no single-bit difference, no small
+// field difference and no difference confined to depth/bound/pv/rule50 can collide (tests/tt_lockless_tests.cpp
+// group 1, opus_smp_layout/tools/tag_scan.cpp). The move needs no tag: it travels inside K.
+[[nodiscard]] constexpr std::uint32_t tag32(std::uint64_t data) {
+    return static_cast<std::uint32_t>(((data & ~GenMask) * TagMul) >> 32U);
+}
+
+// Readers of the raw words (layout below): the probe decides on these and decodes only the slot it returns.
+[[nodiscard]] constexpr std::uint8_t gen_bound_of(std::uint64_t data) { return static_cast<std::uint8_t>(data >> 40U); }
+[[nodiscard]] constexpr bool occupied_of(std::uint64_t data) { return (gen_bound_of(data) & 3U) != 0; }
+[[nodiscard]] constexpr std::uint8_t generation_of(std::uint64_t data) {
+    return static_cast<std::uint8_t>(gen_bound_of(data) >> 3U);
+}
+[[nodiscard]] constexpr std::uint8_t depth_of(std::uint64_t data) { return static_cast<std::uint8_t>(data >> 32U); }
+// The key32 that decode(key, data) returns.
+[[nodiscard]] constexpr std::uint32_t key32_of(std::uint64_t key, std::uint64_t data) {
+    return static_cast<std::uint32_t>(key) ^ tag32(data);
 }
 
 [[nodiscard]] constexpr std::uint32_t move_bits(const Move& move) {
@@ -140,18 +156,17 @@ inline constexpr std::uint64_t GenMask = 0xF8ULL << 40U;
            (static_cast<std::uint64_t>(entry.rule50_clock) << 48U) | (static_cast<std::uint64_t>(entry.padding) << 56U);
 }
 
-// K = (key32 ^ mix32(move, D without the generation bits)) | move << 32.
+// K = (key32 ^ tag32(D)) | move << 32.
 [[nodiscard]] constexpr std::uint64_t key_word(const TTEntry& entry, std::uint64_t data) {
-    const std::uint32_t move32 = move_bits(entry.move);
-    return static_cast<std::uint64_t>(entry.key32 ^ mix32(move32, data & ~GenMask)) |
-           (static_cast<std::uint64_t>(move32) << 32U);
+    return static_cast<std::uint64_t>(entry.key32 ^ tag32(data)) |
+           (static_cast<std::uint64_t>(move_bits(entry.move)) << 32U);
 }
 
 // Exact inverse of (key_word, data_word) for every TTEntry value; decode(0, 0) is the empty entry.
 [[nodiscard]] constexpr TTEntry decode(std::uint64_t key, std::uint64_t data) {
     TTEntry entry;
     const auto move32 = static_cast<std::uint32_t>(key >> 32U);
-    entry.key32 = static_cast<std::uint32_t>(key) ^ mix32(move32, data & ~GenMask);
+    entry.key32 = key32_of(key, data);
     entry.move.from = static_cast<std::uint8_t>(move32);
     entry.move.to = static_cast<std::uint8_t>(move32 >> 8U);
     entry.move.promotion = static_cast<std::uint8_t>(move32 >> 16U);

@@ -497,20 +497,21 @@ TTEntry TranspositionTable::debug_entry(std::size_t cluster, int slot) const {
 }
 
 TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
+    namespace L = ttlockless;
     const std::size_t index = cluster_index(key);
     auto& words = lockless_clusters_[index].words;
-    // One relaxed load per word; the decisions below run on these decoded copies (as probe_body does on the locked
-    // cluster), so one thread sees exactly probe_body's results.
-    std::array<TTEntry, 4> entries;
-    std::array<std::uint64_t, 4> data{};
+    // One relaxed load per word. The decisions below read these raw copies with probe_body's rules (the same field
+    // values the decoded entries would give), so one thread sees exactly probe_body's results; only the returned slot
+    // is decoded into the snapshot.
+    std::array<std::uint64_t, 4> k{};
+    std::array<std::uint64_t, 4> d{};
     for (std::size_t slot = 0; slot < 4; ++slot) {
-        const std::uint64_t k = AtomicWord(words[2U * slot]).load(std::memory_order_relaxed);
-        data[slot] = AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed);
-        entries[slot] = ttlockless::decode(k, data[slot]);
+        k[slot] = AtomicWord(words[2U * slot]).load(std::memory_order_relaxed);
+        d[slot] = AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed);
     }
     auto snapshot = [&](std::size_t slot, bool hit) {
         TTProbe result;
-        result.entry = entries[slot];
+        result.entry = L::decode(k[slot], d[slot]);
         result.hit = hit;
         result.owner_ = this;
         result.cluster_ = index;
@@ -521,28 +522,27 @@ TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
     };
     const std::uint32_t key32 = verification_key(key);
     for (std::size_t slot = 0; slot < 4; ++slot) {
-        TTEntry& entry = entries[slot];
-        if (entry.key32 == key32 && entry.occupied()) {
-            // Reused entries remain recent, as in probe_body. The generation bits are outside the tag mix, so K stays
+        if (L::key32_of(k[slot], d[slot]) == key32 && L::occupied_of(d[slot])) {
+            // Reused entries remain recent, as in probe_body. The generation bits are outside the tag, so K stays
             // valid; a failed CAS means another thread changed the slot after our loads, and the refresh is skipped.
-            if (entry.generation() != generation_) {
-                entry.gen_bound = static_cast<std::uint8_t>(
-                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
-                std::uint64_t expected = data[slot];
-                (void)AtomicWord(words[2U * slot + 1U]).compare_exchange_strong(
-                    expected, ttlockless::with_gen_bound(data[slot], entry.gen_bound), std::memory_order_relaxed);
+            // The snapshot shows the refreshed generation either way, as probe_body's does.
+            if (L::generation_of(d[slot]) != generation_) {
+                const auto gen_bound = static_cast<std::uint8_t>(
+                    (static_cast<unsigned>(generation_) << 3U) | (L::gen_bound_of(d[slot]) & 7U));
+                std::uint64_t expected = d[slot];
+                d[slot] = L::with_gen_bound(d[slot], gen_bound);
+                (void)AtomicWord(words[2U * slot + 1U]).compare_exchange_strong(expected, d[slot], std::memory_order_relaxed);
             }
             return snapshot(slot, true);
         }
     }
     std::size_t replace = 0;
-    auto relative_age = [this](const TTEntry& entry) {
-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+    auto rank = [this](std::uint64_t data) {   // probe_body's depth - 4 * relative_age, with the same integer types
+        return L::depth_of(data) - 4 * static_cast<int>((32 + generation_ - L::generation_of(data)) & 31U);
     };
     for (std::size_t slot = 0; slot < 4; ++slot) {
-        const TTEntry& entry = entries[slot];
-        if (!entry.occupied()) return snapshot(slot, false);
-        if (entry.depth - 4 * relative_age(entry) < entries[replace].depth - 4 * relative_age(entries[replace])) replace = slot;
+        if (!L::occupied_of(d[slot])) return snapshot(slot, false);
+        if (rank(d[slot]) < rank(d[replace])) replace = slot;
     }
     return snapshot(replace, false);
 }
@@ -583,8 +583,8 @@ int TranspositionTable::hashfull_lockless() const {
     for (std::size_t i = 0; i < sample; ++i) {
         auto& words = lockless_clusters_[i].words;
         for (std::size_t slot = 0; slot < 4; ++slot) {
-            const TTEntry entry = ttlockless::decode(0, AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed));
-            if (entry.occupied() && entry.generation() == generation_) ++count;
+            const std::uint64_t data = AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed);
+            if (ttlockless::occupied_of(data) && ttlockless::generation_of(data) == generation_) ++count;
         }
     }
     return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));

@@ -1,7 +1,8 @@
 // tt_lockless_tests.cpp - opus2 SMP pack (FORGE_SMP_LAYOUT=1): tests of the lockless TT mode, opus_smp_layout/SPEC.md 5.1.
 // Own test code (no copied source). Every concurrent access in this file goes through the table API or std::atomic_ref,
 // so a ThreadSanitizer report here is a real race in the code under test.
-//   1 round trip    decode(encode(e)) == e for random and edge entries; mix32(0, 0) == 0
+//   1 round trip    decode(encode(e)) == e for random and edge entries; tag32(0) == 0; raw readers == decoded fields;
+//                   tag detection: every single-bit change and every small field difference of D changes the tag
 //   2 differential  legacy table vs lockless table, one thread, same random op stream: equal probes and equal contents
 //   3 contention    4 / 8 threads on 1 / 4 / 16 clusters, payload = f(key): every hit must carry f(key) (no incoherent hit)
 //   4 control       the same fixture on a test-only UNVALIDATED two-word table must see incoherent hits (fixture can fail)
@@ -65,9 +66,75 @@ double seconds_env(const char* name, double fallback) {
 }
 
 // ---------------------------------------------------------------- 1 round trip
+// A difference delta = D1 - D2 (mod 2^64, generation bits cleared) can give equal tags only if high32(y) is 0, or is
+// 0xFFFFFFFF with a non-zero low half: tag32(D1) = high32(x + y) and tag32(D2) = high32(x) with x = D2' * TagMul,
+// y = delta * TagMul, and high32(x + y) = high32(x) + high32(y) + carry (a carry needs low32(y) != 0). A delta that
+// fails this condition can never collide, whatever the two words are.
+bool delta_can_collide(std::uint64_t delta) {
+    const std::uint64_t y = delta * forge::ttlockless::TagMul;
+    const auto high = static_cast<std::uint32_t>(y >> 32U);
+    return high == 0U || (high == 0xFFFFFFFFU && static_cast<std::uint32_t>(y) != 0U);
+}
+
+// Field differences as they appear in D: score and eval are stored as uint16, so a signed difference t of two values
+// is t, t - 65536 or t + 65536 in the stored words (when the two values sit on both sides of zero).
+std::vector<std::int64_t> u16_deltas(int limit) {
+    std::vector<std::int64_t> out;
+    for (int t = -limit; t <= limit; ++t) {
+        out.push_back(t);
+        if (t > 0) out.push_back(static_cast<std::int64_t>(t) - 65536);
+        if (t < 0) out.push_back(static_cast<std::int64_t>(t) + 65536);
+    }
+    return out;
+}
+
+void test_tag_detection() {
+    namespace L = forge::ttlockless;
+    // Every single-bit change outside GenMask, in either direction: delta = +-2^bit.
+    for (int bit = 0; bit < 64; ++bit) {
+        if ((L::GenMask >> bit) & 1U) continue;
+        const std::uint64_t up = 1ULL << bit;
+        check(!delta_can_collide(up) && !delta_can_collide(0U - up), "single-bit change of D bit " + std::to_string(bit) + " can keep the tag");
+    }
+    // Small field differences: |score| and |eval| differences <= 32 (with the uint16 wrap), |depth| <= 8, any bound/pv
+    // change, |rule50| <= 4, in every combination except all-zero (38 million deltas).
+    long long scanned = 0, bad = 0;
+    const std::vector<std::int64_t> ds = u16_deltas(32);
+    for (const std::int64_t dscore : ds) {
+        for (const std::int64_t deval : ds) {
+            for (std::int64_t ddepth = -8; ddepth <= 8; ++ddepth) {
+                for (std::int64_t dbound = -7; dbound <= 7; ++dbound) {
+                    for (std::int64_t dr50 = -4; dr50 <= 4; ++dr50) {
+                        const std::int64_t delta = dscore + deval * 65536 + ddepth * (std::int64_t{1} << 32) +
+                                                   dbound * (std::int64_t{1} << 40) + dr50 * (std::int64_t{1} << 48);
+                        if (delta == 0) continue;
+                        ++scanned;
+                        if (delta_can_collide(static_cast<std::uint64_t>(delta))) {
+                            if (++bad <= 5) check(false, "small field difference can keep the tag: score " + std::to_string(dscore) +
+                                                             " eval " + std::to_string(deval) + " depth " + std::to_string(ddepth) +
+                                                             " bound " + std::to_string(dbound) + " r50 " + std::to_string(dr50));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Differences only in bits 32..63 (depth, bound, pv, rule50, padding): delta = B * 2^32 with B != 0 mod 2^32, so
+    // high32(delta * TagMul) = B * TagMul mod 2^32 is odd * B != 0 and the carry is 0: never a collision. Sampled check.
+    std::mt19937_64 rng(31);
+    for (int i = 0; i < 100000; ++i) {
+        const std::uint64_t high = (rng() << 32U) & ~L::GenMask;
+        if (high == 0) continue;
+        const std::uint64_t d = rng() & ~L::GenMask;
+        check(L::tag32(d) != L::tag32(d ^ high), "high-part difference kept the tag");
+    }
+    std::cout << "tag detection: 59 single bits x 2 directions, " << scanned << " small field differences, bad " << bad << "\n";
+}
+
 void test_round_trip() {
     namespace L = forge::ttlockless;
-    check(L::mix32(0, 0) == 0, "mix32(0,0) == 0");
+    check(L::tag32(0) == 0, "tag32(0) == 0");
+    check(L::tag32(L::GenMask) == 0, "the generation bits are outside the tag");
     check(same_entry(L::decode(0, 0), TTEntry{}), "decode(0,0) is the empty entry");
     const TTEntry zero{};
     check(L::data_word(zero) == 0 && L::key_word(zero, 0) == 0, "empty entry encodes to two zero words");
@@ -82,16 +149,23 @@ void test_round_trip() {
         const std::uint64_t k = L::key_word(e, d);
         const TTEntry back = L::decode(k, d);
         if (!same_entry(e, back)) { check(false, "round trip " + describe(e) + " -> " + describe(back)); break; }
+        // The raw readers the probe decides on give exactly the decoded fields.
+        if (L::key32_of(k, d) != e.key32 || L::occupied_of(d) != e.occupied() || L::generation_of(d) != e.generation() ||
+            L::depth_of(d) != e.depth || L::gen_bound_of(d) != e.gen_bound) {
+            check(false, "raw readers differ from the decoded entry " + describe(e));
+            break;
+        }
         // A generation-only change of D keeps K valid (CAS refresh, SPEC 3.4).
         const std::uint64_t d2 = L::with_gen_bound(d, static_cast<std::uint8_t>((e.gen_bound & 7U) | (((e.gen_bound >> 3U) + 1U) << 3U)));
         const TTEntry g = L::decode(k, d2);
         if (g.key32 != e.key32) { check(false, "generation-only change broke the tag"); break; }
-        // Any other single-bit change of D breaks the tag (with overwhelming probability).
+        // Any other single-bit change of D breaks the tag (always: test_tag_detection); checked on real words here.
         const int bit = static_cast<int>(rng() % 64U);
         if ((L::GenMask >> bit) & 1U) continue;
         const TTEntry t = L::decode(k, d ^ (1ULL << bit));
         if (t.key32 == e.key32) { check(false, "flipping D bit " + std::to_string(bit) + " kept the tag"); break; }
     }
+    test_tag_detection();
 }
 
 // ---------------------------------------------------------------- 2 differential (one thread)

@@ -37,32 +37,36 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 
 ### 3.2 Encoding: an exact bijection TTEntry ⇄ (K, D)
 - **D** (data word): bits 0-15 = score (two's complement), 16-31 = eval, 32-39 = depth, 40-47 = gen_bound, 48-55 = rule50_clock, 56-63 = padding.
-- **K** (key word): bits 32-39 = move.from, 40-47 = move.to, 48-55 = move.promotion, 56-63 = move.flags. Bits 0-31 = `key32 XOR mix32(move32, D & ~GenMask)`, where `GenMask = 0xF8 << 40` (the five generation bits of gen_bound).
-- **mix32**(m, d):
-  - `z = d ^ (m * 0x9E3779B97F4A7C15)`;
-  - `z = (z ^ (z >> 32)) * 0xD6E8FEB86659FD93`, applied twice;
-  - return `uint32(z ^ (z >> 32))`.
-- `mix32(0, 0) = 0`, so zeroed storage decodes to the all-zero TTEntry, the same empty entry as P's value-initialised clusters.
+- **K** (key word): bits 32-39 = move.from, 40-47 = move.to, 48-55 = move.promotion, 56-63 = move.flags. Bits 0-31 = `key32 XOR tag32(D)`. `GenMask = 0xF8 << 40` marks the five generation bits of gen_bound.
+- **tag32**(d) = `uint32(((d & ~GenMask) * 0x9E3779B97F4A7C15 mod 2^64) >> 32)`. This is multiply-shift hashing: one multiply and one shift. Revision 2 (enc2) replaced the original 3-multiply `mix32(move32, d)`. The move is not hashed: it travels inside K, so a K/D pair can never mix two moves.
+- `tag32(0) = 0`, so zeroed storage decodes to the all-zero TTEntry, the same empty entry as P's value-initialised clusters.
 - `decode(encode(e)) == e` holds for every 16-byte TTEntry value. With one thread, every probe and store therefore sees exactly P's entries, and the search tree is identical. This is tested by the differential test in §5.
 
 ### 3.3 Atomic publication, validation, torn reads and key/payload coherence
 - A writer publishes one entry as two relaxed single-copy-atomic stores: D first, then K. A reader loads K and D with two relaxed loads, so a word can never be torn.
 - The **pair** may still mix two stores: another writer between the reader's two loads, or two writers interleaving their four stores.
-  - Decoding K with a foreign D gives `key32_K ^ mix32(move_K, D_K) ^ mix32(move_K, D_read)`.
-  - This equals the probed tag only with probability about 2^-32 when `D_read` differs from `D_K` outside the generation bits. The mixed pair then reads as a foreign entry: a miss, or a replacement candidate.
+  - Decoding K with a foreign D gives `key32_K ^ tag32(D_K) ^ tag32(D_read)`.
+  - It equals the probed tag only if `tag32(D_K) == tag32(D_read)`. The mixed pair then reads as a foreign entry: a miss, or a replacement candidate.
   - Generation-only differences are harmless. Generation is replacement metadata and is never read by search.
-- A **validated hit** therefore carries key, move, score, eval, depth, bound, pv and rule50_clock from **one** store, except with probability about 2^-32 per torn read. On top of that is P's own 32-bit tag-collision rate (`verification_key` unchanged).
+- **Strength of the tag.** Let `delta = D_K' - D_read'` (mod 2^64, generation bits cleared) and `y = delta * TagMul`. The two tags can be equal only if `high32(y) == 0`, or if `high32(y) == 0xFFFFFFFF` with `low32(y) != 0` (a carry). So:
+  - **Never collides** (proven for the odd multiplier, and checked exhaustively by `tools/tag_scan.cpp` and test group 1):
+    - two entries that differ only in depth, bound, pv or rule50 (bits 32-55), in any combination;
+    - any single-bit difference;
+    - every small field difference: |score| and |eval| ≤ 32 (with the int16 wrap), |depth| ≤ 8, any bound/pv change, |rule50| ≤ 4, in every combination (38 million deltas).
+  - **Score/eval-only differences:** exactly the deltas listed by `tag_scan` part 1 can collide (BENCH §9).
+  - **Everything else:** over the choice of an odd multiplier, `P[collision] ≤ 2^-31` per pair (multiply-shift universality, Dietzfelbinger et al. 1997). That is about one bit weaker than a perfect 32-bit tag, in exchange for the structural guarantees above.
+- A **validated hit** therefore carries key, move, score, eval, depth, bound, pv and rule50_clock from **one** store, except with probability about 2^-31 per torn read whose two data words differ in score/eval and elsewhere. On top of that is P's own 32-bit tag-collision rate (`verification_key` unchanged).
 - No ordering beyond relaxed is needed. The entry carries all its data in its two words, and nothing else is published through the TT (no pointers, no indices into other memory).
 - Search keeps its own TT-move checks, unchanged: `MovePicker` drops a move that is not `is_pseudo_legal`, and every move is `is_legal`-checked before it is made.
-- Collision correctness is P's. Torn pairs add no new class of wrong hit beyond the 2^-32 term above.
+- Collision correctness is P's. Torn pairs add no new class of wrong hit beyond the 2^-31 term above.
 
 ### 3.4 probe (mirrors P's `probe_body` step by step)
-1. Compute the index. Load the 4 (K, D) pairs (8 relaxed loads) and decode them into 4 TTEntry copies.
+1. Compute the index. Load the 4 (K, D) pairs (8 relaxed loads). The decisions read the fields straight from these raw copies (`key32_of`, `occupied_of`, `generation_of`, `depth_of`; test group 1 checks that they equal the decoded fields). Only the returned slot is decoded into the snapshot (enc2; before, all four slots were decoded).
 2. First pass, slots 0..3: the first slot with a tag match that is `occupied()` is the hit.
-   - If its generation differs from `generation_`, do `compare_exchange_strong(D_loaded → D with the current generation)`. K stays valid because GenMask is outside the mix.
+   - If its generation differs from `generation_`, do `compare_exchange_strong(D_loaded → D with the current generation)`. K stays valid because GenMask is outside the tag.
    - If the CAS fails, the entry changed under us and the refresh is skipped. It never fails with one thread.
    - The snapshot is the decoded entry with the refreshed gen_bound, as in P.
-3. Otherwise apply the replacement rule to the same 4 decoded copies, as in P:
+3. Otherwise apply the replacement rule to the same 4 raw copies, as in P:
    - the first unoccupied slot returns at once;
    - else the strictly smallest `depth - 4 * relative_age` wins, and a tie keeps the earlier slot.
 4. The TTProbe snapshot fields (`owner_`, `cluster_`, `slot_`, `epoch_`, `key_`) are as in P.
@@ -73,9 +77,9 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
    - keep the old move if the new move is none and it is the same position;
    - rewrite fully on an exact bound, a different position, depth + 4 > old depth, or an old generation.
 3. Encode. Store D if it changed, then K if it changed, both relaxed.
-- A racing writer can cause a **lost update**, or a **mismatched pair** that reads as foreign (§3.3). It cannot cause an incoherent hit, apart from the 2^-32 term.
+- A racing writer can cause a **lost update**, or a **mismatched pair** that reads as foreign (§3.3). It cannot cause an incoherent hit, apart from the 2^-31 term.
 
-**hashfull:** relaxed loads of D in the first `min(1000, count)` clusters, counting entries that are occupied with `generation == generation_`. Same arithmetic as P.
+**hashfull:** relaxed loads of D in the first `min(1000, count)` clusters, counting entries that are occupied with `generation == generation_` (raw readers). Same arithmetic as P.
 **prefetch:** the same index on the active array (`base + idx * 64`). A null array is never prefetched.
 
 ### 3.6 Lifetime, clear and resize synchronisation
@@ -103,7 +107,7 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 
 ## 5. Tests (CTest; built when CMake `FORGE_SMP_LAYOUT=ON`; run natively and under TSan / ASan+UBSan in CI)
 1. `forge_tt_lockless_tests` (`tests/tt_lockless_tests.cpp`):
-   1. **round trip:** `decode(encode(e)) == e` for random and edge entries, and mix32(0,0)=0.
+   1. **round trip:** `decode(encode(e)) == e` for random and edge entries; `tag32(0) = 0`; the raw readers equal the decoded fields. **Tag detection** (enc2): every single-bit difference and every small field difference of §3.3 can never collide (exact delta criterion), and so can no difference confined to bits 32-55 (100k-sample check of that proven case).
    2. **differential:** a legacy table and a lockless table get the same random probe/store/new_search/clear/hashfull stream (one thread, small tables, many collisions). Every probe result (hit and entry bytes) and every hashfull value must be equal, and so must the full table contents, every slot of every cluster compared through `debug_entry` (which also covers slot choice and stale-handle rejection).
    3. **contention/collision fixture:** 4-8 threads on 1-16 clusters store `payload = f(key)` and probe. Every hit must satisfy `payload == f(key)` (zero incoherent hits), with CAS and store races included.
    4. **positive control:** the same fixture against a test-only *unvalidated* two-word table (no XOR tag) must observe incoherent hits. This shows the fixture can detect tearing. Since R1 MINOR-2 this is a failing check: with ≥ 2 hardware threads, more than 100k control hits with 0 incoherent ones fails the test (blind fixture). Only with 1 hardware thread is it reported as INCONCLUSIVE.
