@@ -194,13 +194,34 @@ int main() {
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
+#if FORGE_EXPERIMENT_CONTINUATION4
+            const forge::tune::Parameter* continuation4_option = nullptr;
+#endif
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+#if FORGE_EXPERIMENT_CONTINUATION4
+                // Preserve every legacy option's position, including Clear Hash.
+                // Resolve the deferred experiment by name, never by table index.
+                if (std::string_view(parameter.name) == "Continuation4Weight") {
+                    continuation4_option = &parameter;
+                    continue;
+                }
+#endif
                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
             }
 #endif
+#if FORGE_EXPERIMENT_CONTINUATION4 && defined(FORGE_EXPOSE_TUNABLES)
+            std::cout << "option name Clear Hash type button\n";
+            if (continuation4_option != nullptr) {
+                const auto& parameter = *continuation4_option;
+                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                          << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+            }
+            std::cout << "uciok" << std::endl;
+#else
             std::cout << "option name Clear Hash type button\n"
                          "uciok" << std::endl;
+#endif
         } else if (command == "isready") {
             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
         } else if (command == "ucinewgame") {

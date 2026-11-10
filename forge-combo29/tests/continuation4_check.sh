@@ -24,3 +24,7 @@ for speed in 0 1; do
  done
 done
 python3 "$root/tests/continuation4_check.py" "$out"
+
+for speed in 0 1; do
+ PYTHONDONTWRITEBYTECODE=1 python3 "$root/tests/continuation4_option_order.py" "$out/s${speed}-e0" "$out/s${speed}-e1"
+done

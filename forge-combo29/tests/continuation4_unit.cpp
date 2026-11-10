@@ -8,6 +8,13 @@ int main() {
 #endif
     using namespace forge;
     auto require = [](bool value) { if (!value) std::abort(); };
+    const auto& parameters = tune::parameters();
+    const auto experimental = std::find_if(parameters.begin(), parameters.end(), [](const auto& parameter) {
+        return std::string_view(parameter.name) == "Continuation4Weight";
+    });
+    require(experimental != parameters.end());
+    require(experimental->value == &tune::Continuation4Weight);
+    require(std::next(experimental) == parameters.end()); // Append-only table contract.
     PieceToHistory history{};
     SearchStack stack[5]{};
     SearchStack* ss = stack + 4;

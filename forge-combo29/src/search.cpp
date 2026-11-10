@@ -87,9 +87,6 @@ int Continuation4Weight = 0;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
-#if FORGE_EXPERIMENT_CONTINUATION4
-        {"Continuation4Weight", &Continuation4Weight, 0, 100},
-#endif
         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
@@ -122,6 +119,9 @@ const std::vector<Parameter>& parameters() {
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+#if FORGE_EXPERIMENT_CONTINUATION4
+        {"Continuation4Weight", &Continuation4Weight, 0, 100},
+#endif
     };
     return table;
 }

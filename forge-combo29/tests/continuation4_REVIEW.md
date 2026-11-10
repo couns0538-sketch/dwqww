@@ -9,6 +9,9 @@ or strength improvement. Production checkpoint: `d2e99a1`.
 - In that build, set UCI `Continuation4Weight` from 0 to 100. It defaults to 0.
   With `FORGE_EXPOSE_TUNABLES` defined, UCI advertises the experiment option.
   A macro-zero build neither advertises nor accepts this experimental tunable.
+- The option is appended after all existing tunables in the parameter table
+  and after every existing advertised option, including Clear Hash.
+  Resolve options by name, never by a table index.
 - A weight of 100 adds exactly the stored four-ply continuation-history value.
   A weight of 50 adds half that value, with signed integer division truncating
   toward zero. Existing four-ply updates remain at half the update bonus.
@@ -19,7 +22,7 @@ or strength improvement. Production checkpoint: `d2e99a1`.
 
 The extra term is used both by the fast move-picker scorer and by
 `Worker::quiet_history`, including the `FORGE_SEARCH_SPEED2=0` path. It can
-therefore affect quiet ordering, history pruning, and history-based LMR. It is
+therefore change move ordering, history pruning, and history-based LMR. It is
 not merely a move-order cosmetic change.
 
 ## Reproduction
@@ -70,3 +73,26 @@ binary and failed because the option was absent, then passed for both
 experiment-build scorer variants. No additional experimental search options
 were enabled during this screen. Full-engine aggregate checks are coordinated
 separately; this receipt covers this experiment only.
+
+## Append-only option follow-up (2026-11-10)
+
+`Continuation4Weight` is last in the tunable table and is advertised after
+`Clear Hash`, so the entire legacy advertised option sequence is an unchanged
+prefix. The advertisement defers the experimental parameter by its name;
+production `setoption` also resolves `parameter.name`, never an index. A
+repository-wide audit found no positional parameter lookup requiring conversion.
+
+The focused regression first failed on the original prepended experiment and
+on the intermediate table-only append (which still shifted Clear Hash). It
+then passed with the full append fix in both `FORGE_SEARCH_SPEED2` modes: all
+52 tunables were changed and restored independently by name, and depth-11 pins
+remained 312866 with NNUE and 375354 without it. The helper test additionally
+finds the experiment by name and checks that its iterator is the table's final
+entry. This follow-up does not change the experiment's search behavior:
+nonzero weight still changes ordering, LMR, and pruning, with strength unproven.
+
+Focused command (baseline and experiment built with the same speed mode):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 tests/continuation4_option_order.py BASELINE EXPERIMENT
+```
