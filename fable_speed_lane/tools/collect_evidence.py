@@ -26,7 +26,9 @@ NOTE = {"KING_PAWN_CACHE": "not new (built before, DUPCHECK.md); extra", "BUNDLE
         "EVADE_LEGAL": "LISTED-UNBUILT", "CHECKERS_KL": "LISTED-UNBUILT"}
 QA_ROWS = {net: rf"C:\Users\Administrator\grok-pc\forge_push\overnight_timing_20261108\checks2\combo29_{net}\fens_n12000_d13.tsv"
            for net in ("on", "off")}
-STAGES = [("harness", "Harness, 12,000 FENs, switch 1"), ("harness, verify build", "Harness, verify build (=2)"),
+STAGES = [("harness", "Harness, 12,000 FENs, switch 1"), ("harness, verify build", "Harness, 12,000 FENs, verify build (=2)"),
+          ("harness, targeted positions", "Harness, 23 targeted positions, switch 1"),
+          ("harness, targeted positions, verify build", "Harness, 23 targeted positions, verify build (=2)"),
           ("engine, verify build, 12 pins", "Verify engine, 12 pins"),
           ("engine, verify build, cold net on", "Verify engine, cold 12,000 net on"),
           ("cold net on", "Cold 12,000, depth 13, net on"), ("cold net off", "Cold 12,000, depth 13, net off"),
@@ -97,12 +99,12 @@ def cell(q, stage):
     if stage not in q:
         return "not run"
     verdict, text, _ = q[stage]
-    if stage == "harness":
+    if stage.startswith("harness") and stage.endswith("verify build"):
+        m = re.search(r"exit (-?\d+); .*transcript equal to base: (\w+)", text)
+        return f"{verdict}: exit {m.group(1)} (no abort), transcript equal {m.group(2)}" if m else verdict
+    if stage.startswith("harness"):
         m = re.search(r"(\d+) FENs, (\d+) positions, (\d+) generated moves, (\d+) self-check failures; transcript equal to base: (\w+)", text)
         return f"{verdict}: transcript equal to base {m.group(5)}, {m.group(4)} self-check failures" if m else f"{verdict}"
-    if stage == "harness, verify build":
-        m = re.search(r"exit (-?\d+); .*transcript equal to base: (\w+)", text)
-        return f"{verdict}: no abort (exit {m.group(1)}), transcript equal {m.group(2)}" if m else verdict
     if stage == "engine, verify build, 12 pins":
         return f"{verdict}: " + ("12/12" if "MATCH 12/12" in text else "see log")
     if stage == "engine, verify build, cold net on":
@@ -200,7 +202,9 @@ def main():
     for stage, label in STAGES:
         lines.append(f"| {label} | " + " | ".join(cell(quals[n], stage) for n, _ in SINGLES + BUNDLES) + " |")
     lines += ["", "\"not run\" in a verify row of `PAWN_CAPMASK` or `KING_PAWN_CACHE` means the patch has no verify mode. "
-              "The verify engine was run over the cold set for the bundles only (all verify modes on at once).", ""]
+              "The verify engine was run over the cold set for the bundles only (all verify modes on at once). "
+              "A verify build of `WITNESS_NOPIN` still asks the legality test it would skip, which builds the king "
+              "lines; verify builds therefore take the `CHECKERS_KL` shortcut in a superset of the shipped mode's cases.", ""]
     base_t = os.path.join(out, "id", "prim", "base_all.tsv")
     if os.path.isfile(base_t):
         lines += [f"Base harness transcript (lock source, 12,000 FENs): sha256 `{sha256(base_t)}`.", ""]
@@ -236,30 +240,33 @@ def main():
     lines.append("")
 
     # ---------------- other evidence
-    for src, dst in ((os.path.join(out, "id", "mutants", "MUTANTS.log"), os.path.join(ev, "mutants")),
-                     (os.path.join(out, "logs", "chain.log"), os.path.join(ev, "logs")),
+    for src, dst in ((os.path.join(out, "logs", "chain.log"), os.path.join(ev, "logs")),
                      (os.path.join(out, "logs", "chain_done.txt"), os.path.join(ev, "logs"))):
         copy(src, dst)
-    rc = os.path.join(out, "id", "CHECKERS_KL", "rootcause")
-    if os.path.isdir(rc):
-        for f in os.listdir(rc):
-            if f.endswith(".log"):
-                copy(os.path.join(rc, f), os.path.join(ev, "CHECKERS_KL", "rootcause"))
-    mut = os.path.join(out, "id", "mutants", "MUTANTS.log")
     lines += ["## 4. Mutants: would the harness notice a wrong patch?", "",
-              "`tests/mutants.ps1` plants one wrong change per run and builds the harness on it.", "",
-              "| Mutant | Candidate | Planted change | Result |", "|---|---|---|---|"]
-    if os.path.isfile(mut):
-        rx = re.compile(r"^MUTANT (\S+) \[([A-Z_0-9]+); (.*?)\]: (CAUGHT|MISSED|not caught[^;]*); exit (-?\d+); transcript equal to base: (\w+); (.*?); first report: (.*) \[")
+              "`tests/mutants.ps1` plants one wrong change per run, builds the harness on it and runs the targeted "
+              "positions and the first 300 FENs. CAUGHT = transcript differs, a self-check fails, or a verify build "
+              "aborts. Each tree is first run unchanged with the same switches (control) and must be clean.", "",
+              "| Tree | Mutant | Planted change | Verdict | Where |", "|---|---|---|---|---|"]
+    rx_m = re.compile(r"^MUTANT (\S+) \[([A-Z_0-9]+); (.*); switches ([^\]]*)\]: (CAUGHT|MISSED|ERROR|not caught \(allowed\)); (.*?); first report: ")
+    rx_c = re.compile(r"^CONTROL (\S+) \[([^\]]*)\]: (clean|NOT CLEAN); (.*?) \[[^\]]*\]\s*$")
+    controls = []
+    for log_name in ("MUTANTS.log", "MUTANTS_BUNDLE4.log", "MUTANTS_BUNDLE.log"):
+        mut = os.path.join(out, "id", "mutants", log_name)
+        if not os.path.isfile(mut):
+            lines.append(f"| ({log_name}) | not run | | | |")
+            continue
+        copy(mut, os.path.join(ev, "mutants"))
         for line in open(mut, encoding="utf-8", errors="replace"):
-            m = rx.match(line)
+            m = rx_m.match(line)
             if m:
-                how = m.group(7)
-                fm = re.search(r"(\d+) self-check failures", how)
-                detail = (f"{fm.group(1)} self-check failures" if fm else "abort inside the engine") + \
-                         ("" if m.group(6) == "True" else ", transcript differs")
-                lines.append(f"| `{m.group(1)}` | {m.group(2)} | {m.group(3)} | {m.group(4)} ({detail}) |")
-    lines += ["", "Evidence: `evidence/mutants/MUTANTS.log`.", ""]
+                lines.append(f"| {m.group(2)} | `{m.group(1)}` | {m.group(3)} | {m.group(5)} | {m.group(6)} |")
+            c = rx_c.match(line.strip())
+            if c:
+                controls.append(f"| {c.group(1)} | `{c.group(2)}` | {c.group(3)} | {c.group(4)} |")
+    lines += ["", "Controls (the unchanged tree with the same switches):", "", "| Tree | Switches | Result | Sets |", "|---|---|---|---|"]
+    lines += controls
+    lines += ["", "Evidence: `evidence/mutants/`.", ""]
     with open(os.path.join(pack, "BENCH.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines))
     n_files = sum(len(fs) for _, _, fs in os.walk(ev))

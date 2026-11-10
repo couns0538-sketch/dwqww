@@ -1,21 +1,25 @@
 --- a/src/board.cpp
 +++ b/src/board.cpp
-@@ -432,6 +432,14 @@ Bitboard Board::compute_checkers() const {
+@@ -432,6 +432,18 @@ Bitboard Board::compute_checkers() const {
      return attackers_to(king, occupied()) & occupied(opposite(side_));
  }
  
 +// FORGE_SPD_PAWN_CAPMASK (default 0 = lock code): the pawn-capture loop of the move generator visits only the
 +// pawns that attack an enemy piece (one shift-and-mask of the enemy set) instead of every pawn. A pawn that
 +// attacks nothing emitted no move, and the remaining pawns are visited in the same order with the same targets,
-+// so every generated list is the same list.
++// so every generated list is the same list. The switch acts in the generator the lock builds
++// (FORGE_SPD_NO_ZERO_MOVELISTS >= 2); the older generator below is left alone, so the switch refuses that build.
 +#ifndef FORGE_SPD_PAWN_CAPMASK
 +#define FORGE_SPD_PAWN_CAPMASK 0
++#endif
++#if FORGE_SPD_PAWN_CAPMASK && FORGE_SPD_NO_ZERO_MOVELISTS < 2
++#error "FORGE_SPD_PAWN_CAPMASK needs FORGE_SPD_NO_ZERO_MOVELISTS >= 2 (the lock's generator)"
 +#endif
 +
  #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
  // The full list (All) emits pawn pushes, promotion pushes, pawn captures, en
  // passant, then for N, B, R, Q, K the targets (~own) in bit order with
-@@ -485,7 +493,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+@@ -485,7 +497,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
              const int to = pop_lsb(promo_push);
              push_promotions(to - up, to, Quiet);
          }
@@ -27,15 +31,3 @@
          while (capturers != 0) {
              const int from = pop_lsb(capturers);
              Bitboard targets = attacks::pawn(us, from) & enemy;
-@@ -603,7 +615,11 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
-         const int to = pop_lsb(promo_push);
-         push_promotions(to - up, to, Quiet);
-     }
-+#if FORGE_SPD_PAWN_CAPMASK
-+    Bitboard capturers = pawns & pawn_attacks_bb(them, enemy);
-+#else
-     Bitboard capturers = pawns;
-+#endif
-     while (capturers != 0) {
-         const int from = pop_lsb(capturers);
-         Bitboard targets = attacks::pawn(us, from) & enemy;

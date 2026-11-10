@@ -1,12 +1,21 @@
 # mutants.ps1 - does the harness catch a wrong version of each candidate? (PowerShell 5.1, ASCII only)
-# For each mutant: copy the candidate's work tree to out\tmp, make ONE planted change (the text must occur exactly
-# once), build the harness with the candidate's switch and run the first -Fens FENs. A mutant counts as CAUGHT when
-# the run does not exit 0 or its transcript differs from the base transcript. One line per mutant, also appended
-# to out\id\mutants\MUTANTS.log. Exit 3 when a mutant that must be caught is not.
-#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File mutants.ps1 [-Only chk_nodisc] [-Fens 300]
+# For each mutant: copy a source tree to out\tmp, make ONE planted change (the text must occur exactly once), build
+# the harness with the switches and run it on tests\targeted_fens.txt and on the first -Fens FENs of the 12k set
+# (-Full: on all 12,000 as well).
+#   CAUGHT  = the transcript differs from the base transcript, or the harness reports CHECK FAILED (exit 3), or a
+#             verify build aborts inside the engine (ENGINE ABORT line). Any other non-zero exit is an ERROR, not a
+#             verdict.
+#   CONTROL = the same tree and switches WITHOUT the planted change must be clean on the same sets (exit 0,
+#             transcript equal to base); a mutant result without a clean control proves nothing.
+# -Bundle <NAME> plants the mutants in the bundle tree out\work\<NAME>\b with all of the bundle's switches on.
+# One line per run goes to out\id\mutants\MUTANTS[_<bundle>].log. Exit 3 when a mutant that must be caught is not,
+# a control is not clean, or a run ends in an error.
+#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File mutants.ps1 [-Only chk_nodisc] [-Bundle BUNDLE4] [-Full]
 param(
     [string[]]$Only = @(),
+    [string]$Bundle = '',
     [int]$Fens = 300,
+    [switch]$Full,
     [long]$Mask = 0x08
 )
 $ErrorActionPreference = 'Stop'
@@ -15,82 +24,145 @@ $me = [System.Diagnostics.Process]::GetCurrentProcess()
 $me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]$Mask
 $Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $nl = "`n"
-# Id, candidate, harness defines, file, text to find, replacement, what the mutant does, must the plain run catch it
+$swName = @{ KING_PAWN_CACHE = 'FORGE_SPD_KING_PAWN_CACHE'; WITNESS_NOPIN = 'FORGE_SPD_WITNESS_NOPIN'; EVADE_LEGAL = 'FORGE_SPD_EVADE_LEGAL'
+             PAWN_CAPMASK = 'FORGE_SPD_PAWN_CAPMASK'; CHECKERS_KL = 'FORGE_SPD_CHECKERS_KL' }
+$members = @{ BUNDLE4 = @('WITNESS_NOPIN', 'EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL')
+              BUNDLE = @('WITNESS_NOPIN', 'EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL', 'KING_PAWN_CACHE') }
+# Id, candidate, switch value, file, text to find, replacement, what the mutant does, must it be caught
 $mutants = @(
-    @{ Id = 'kpc_anyking'; Name = 'KING_PAWN_CACHE'; Defs = 'FORGE_SPD_KING_PAWN_CACHE=1'; File = 'src\eval.cpp'
+    @{ Id = 'kpc_anyking'; Name = 'KING_PAWN_CACHE'; Val = 1; File = 'src\eval.cpp'
        Find = 'static_cast<int>(kp->kp_king[kp_us]) == king &&'; Put = 'kp->kp_king[kp_us] >= 0 &&'
        What = 'record used for any king square'; Must = $true },
-    @{ Id = 'wit_pinned_plain'; Name = 'WITNESS_NOPIN'; Defs = 'FORGE_SPD_WITNESS_NOPIN=1'; File = 'src\board.cpp'
+    @{ Id = 'kpc_keepother'; Name = 'KING_PAWN_CACHE'; Val = 1; File = 'src\eval.cpp'
+       Find = 'kp->kp_king[static_cast<std::size_t>(Them)] = -1;'; Put = '(void)0;'
+       What = 'other colour''s record kept when the pawns changed'; Must = $true },
+    @{ Id = 'kpc_shelter0'; Name = 'KING_PAWN_CACHE'; Val = 1; File = 'src\eval.cpp'
+       Find = 'shelter = kp->kp_shelter[kp_us];'; Put = 'shelter = 0;'
+       What = 'shelter sum for king danger not restored on a hit'; Must = $true },
+    @{ Id = 'wit_pinned_plain'; Name = 'WITNESS_NOPIN'; Val = 1; File = 'src\board.cpp'
        Find = 'if (checkers_ == 0 && attacks::line(king_square(side_), to - pawn_push_delta(side_)) == 0) {'; Put = 'if (checkers_ == 0) {'
-       What = 'witness accepted without the line test, plain build (the boolean rarely changes: other legal moves exist)'; Must = $false },
-    @{ Id = 'wit_pinned_verify'; Name = 'WITNESS_NOPIN'; Defs = 'FORGE_SPD_WITNESS_NOPIN=2'; File = 'src\board.cpp'
+       What = 'witness accepted without the line test, plain build (shows only where the pinned push is the last hope: targeted row 10)'; Must = $true },
+    @{ Id = 'wit_pinned_verify'; Name = 'WITNESS_NOPIN'; Val = 2; File = 'src\board.cpp'
        Find = 'if (checkers_ == 0 && attacks::line(king_square(side_), to - pawn_push_delta(side_)) == 0) {'; Put = 'if (checkers_ == 0) {'
        What = 'witness accepted without the line test, verify build'; Must = $true },
-    @{ Id = 'wit_incheck'; Name = 'WITNESS_NOPIN'; Defs = 'FORGE_SPD_WITNESS_NOPIN=1'; File = 'src\board.cpp'
+    @{ Id = 'wit_incheck'; Name = 'WITNESS_NOPIN'; Val = 1; File = 'src\board.cpp'
        Find = 'if (checkers_ == 0 && attacks::line(king_square(side_), to - pawn_push_delta(side_)) == 0) {'; Put = 'if (attacks::line(king_square(side_), to - pawn_push_delta(side_)) == 0) {'
-       What = 'witness accepted while in check (shows only at a checkmate with a free pawn push: needs the full FEN set, 3 failures in 971,469 positions; the first 300 FENs hold no such position)'; Must = $true; N = 12000 },
-    @{ Id = 'evd_nopin'; Name = 'EVADE_LEGAL'; Defs = 'FORGE_SPD_EVADE_LEGAL=1'; File = 'src\board.cpp'
+       What = 'witness accepted while in check (shows only at a checkmate with a free pawn push: targeted row 9)'; Must = $true },
+    @{ Id = 'evd_nopin'; Name = 'EVADE_LEGAL'; Val = 1; File = 'src\board.cpp'
        Find = 'evade_legal = (king_lines_.pinned & square_bb(move.from)) == 0 ||'; Put = 'evade_legal = true ||'
        What = 'pin rule dropped for check evasions'; Must = $true },
-    @{ Id = 'cap_wrongside'; Name = 'PAWN_CAPMASK'; Defs = 'FORGE_SPD_PAWN_CAPMASK=1'; File = 'src\board.cpp'
+    @{ Id = 'evd_double'; Name = 'EVADE_LEGAL'; Val = 1; File = 'src\board.cpp'
+       Find = 'if (!more_than_one(checkers_)) {'; Put = 'if (true) {'
+       What = 'double check treated like single check'; Must = $true },
+    @{ Id = 'evd_nocapture'; Name = 'EVADE_LEGAL'; Val = 1; File = 'src\board.cpp'
+       Find = '((attacks::between(own_king, lsb(checkers_)) | checkers_) & square_bb(move.to))'; Put = '(attacks::between(own_king, lsb(checkers_)) & square_bb(move.to))'
+       What = 'capturing the checker no longer counts as an evasion'; Must = $true },
+    @{ Id = 'cap_wrongside'; Name = 'PAWN_CAPMASK'; Val = 1; File = 'src\board.cpp'
        Find = ($nl + '        Bitboard capturers = pawns & pawn_attacks_bb(them, enemy);'); Put = ($nl + '        Bitboard capturers = pawns & pawn_attacks_bb(us, enemy);')
-       What = 'capturer mask built with the wrong pawn direction (main generator)'; Must = $true },
-    @{ Id = 'chk_nodisc'; Name = 'CHECKERS_KL'; Defs = 'FORGE_SPD_CHECKERS_KL=1'; File = 'src\board.cpp'
+       What = 'capturer mask built with the wrong pawn direction'; Must = $true },
+    @{ Id = 'chk_nodisc'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
        Find = '((king_lines_.discoverers & square_bb(move.from)) == 0 ||'; Put = '(true ||'
        What = 'discovered checks ignored'; Must = $true },
-    @{ Id = 'chk_promo'; Name = 'CHECKERS_KL'; Defs = 'FORGE_SPD_CHECKERS_KL=1'; File = 'src\board.cpp'
-       Find = ('if (king_lines_.valid && (move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&'); Put = ('if (king_lines_.valid && (move.flags & (EnPassant | KingCastle | QueenCastle)) == 0U &&')
-       What = 'promotions taken through the shortcut (the promoted piece is not a pawn)'; Must = $false }
+    @{ Id = 'chk_promo'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
+       Find = '(move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&'; Put = '(move.flags & (EnPassant | KingCastle | QueenCastle)) == 0U &&'
+       What = 'promotions taken through the shortcut'; Must = $true },
+    @{ Id = 'chk_ep'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
+       Find = '(move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&'; Put = '(move.flags & (KingCastle | QueenCastle | Promotion)) == 0U &&'
+       What = 'en passant taken through the shortcut (targeted row 23)'; Must = $true },
+    @{ Id = 'chk_kingmoves'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
+       Find = 'if (king_lines_.valid && piece_type(moving) != King &&'; Put = 'if (king_lines_.valid &&'
+       What = 'king moves taken through the shortcut (differs only for an illegal king step next to the enemy king)'; Must = $true },
+    @{ Id = 'chk_wrongking'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
+       Find = 'attacks::aligned(king_square(them), move.from, move.to))) {'; Put = 'attacks::aligned(king_square(us), move.from, move.to))) {'
+       What = 'discoverer line tested against the wrong king'; Must = $true }
 )
 $idDir = Join-Path $OUT 'id\mutants'; New-Item -ItemType Directory -Force $idDir | Out-Null
-$fenFile = Join-Path $OUT 'base\fens_12k_v2.txt'
+$logName = $(if ($Bundle) { "MUTANTS_$Bundle.log" } else { 'MUTANTS.log' })
+$fenFull = Join-Path $OUT 'base\fens_12k_v2.txt'
+$fenTargeted = Join-Path $PSScriptRoot 'targeted_fens.txt'
+$sets = @(@{ K = 'targeted'; F = $fenTargeted; N = 0 }, @{ K = "first$Fens"; F = $fenFull; N = $Fens })
+if ($Full) { $sets += @{ K = 'all12000'; F = $fenFull; N = 12000 } }
 function Sha([string]$p) { (Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLower() }
+function Say([string]$line) { Add-Content -LiteralPath (Join-Path $idDir $logName) -Value ($line + ' [' + (NowVienna) + ']') -Encoding ASCII; Write-Output $line }
 function RunPinned([string]$exe, [string]$argLine, [string]$outFile) {
     $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PIN, '-Exe', $exe, '-Mask', $Mask, '-ArgLine', $argLine, '-OutFile', $outFile)
     & powershell.exe @a | Out-Null
     return $LASTEXITCODE
 }
-$baseDone = @{}
-function BaseRun([int]$count) {
-    $b = Join-Path $idDir "base_$count.tsv"
-    if (-not $baseDone.ContainsKey($count)) {
-        $rc = RunPinned (Join-Path $OUT 'build\prim_base\prim_dump.exe') "`"$fenFile`" `"$b`" 0 $count" "$b.log"
-        if ($rc -ne 0) { throw "base harness run failed (exit $rc)" }
-        $baseDone[$count] = $true
-    }
-    return $b
+function BuildHarness([string]$tag, [string]$tree, [string]$defs) {
+    $bdir = Join-Path $OUT ("build\prim_" + $tag)
+    if (Test-Path $bdir) { Remove-Item -Recurse -Force $bdir }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_prim.ps1') -Tag $tag -Src $tree -ExtraDefs $defs -Mask $Mask | Out-File -LiteralPath (Join-Path $idDir ($tag + '.build.txt')) -Encoding ASCII
+    if ($LASTEXITCODE -ne 0) { throw ("harness build failed for " + $tag) }
+    return (Join-Path $bdir 'prim_dump.exe')
 }
-$missed = 0
-$defaultFens = $Fens
+# one harness run on one set; returns verdict text and the class: clean / caught / error
+function RunSet([string]$exe, [string]$stem, $set, [string]$baseFile) {
+    $o = Join-Path $idDir ($stem + '_' + $set.K + '.tsv')
+    if (Test-Path $o) { Remove-Item -Force $o }
+    $tail = $(if ($set.N -gt 0) { " 0 " + $set.N } else { '' })
+    $rc = RunPinned $exe ("`"" + $set.F + "`" `"" + $o + "`"" + $tail) "$o.log"
+    $same = (Test-Path $o) -and ((Sha $o) -eq (Sha $baseFile))
+    $log = @(Get-Content "$o.log" -ErrorAction SilentlyContinue)
+    $checks = @($log | Where-Object { $_ -match '^CHECK FAILED' })
+    $aborts = @($log | Where-Object { $_ -match '^ENGINE ABORT' })
+    $fails = @($log | Where-Object { $_ -match '(\d+) self-check failures' } | Select-Object -Last 1)
+    $n = $(if ($fails.Count -and $fails[0] -match '(\d+) self-check failures') { $Matches[1] } else { '?' })
+    if ($rc -eq 0 -and $same) { return @{ C = 'clean'; T = ($set.K + ': clean') } }
+    if ($rc -eq 0 -and -not $same) { return @{ C = 'caught'; T = ($set.K + ': transcript differs'); First = '' } }
+    if ($rc -eq 3 -and $checks.Count -gt 0) { return @{ C = 'caught'; T = ($set.K + ": $n self-check failures" + $(if ($same) { '' } else { ', transcript differs' })); First = $checks[0] } }
+    if ($rc -eq -1073740791 -and $aborts.Count -gt 0) { return @{ C = 'caught'; T = ($set.K + ': verify abort inside the engine'); First = $aborts[0] } }
+    return @{ C = 'error'; T = ($set.K + ": exit $rc without a harness verdict") }
+}
+# base transcripts of the sets
+$baseExe = Join-Path $OUT 'build\prim_base\prim_dump.exe'
+$baseOf = @{}
+foreach ($s in $sets) {
+    $b = Join-Path $idDir ('base_' + $s.K + '.tsv')
+    $tail = $(if ($s.N -gt 0) { " 0 " + $s.N } else { '' })
+    $rc = RunPinned $baseExe ("`"" + $s.F + "`" `"" + $b + "`"" + $tail) "$b.log"
+    if ($rc -ne 0) { throw ("base harness run failed on " + $s.K + " (exit $rc): " + (Get-Content "$b.log" -Tail 3 | Out-String)) }
+    $baseOf[$s.K] = $b
+}
+$bad = 0; $controlDone = @{}; $count = 0; $caught = 0
 foreach ($m in $mutants) {
     if ($Only.Count -gt 0 -and $Only -notcontains $m.Id) { continue }
-    $Fens = $(if ($m.ContainsKey('N') -and $m.N -gt $defaultFens) { $m.N } else { $defaultFens })
-    $baseOut = BaseRun $Fens
+    if ($Bundle -and $members[$Bundle] -notcontains $m.Name) { continue }
+    $srcName = $(if ($Bundle) { $Bundle } else { $m.Name })
+    $defs = $(if ($Bundle) { ($members[$Bundle] | ForEach-Object { $swName[$_] + '=' + $(if ($_ -eq $m.Name) { $m.Val } else { 1 }) }) -join ',' } else { $swName[$m.Name] + '=' + $m.Val })
+    $srcTree = Join-Path $OUT ("work\" + $srcName + "\b")
+    # control: the unmutated tree with the same switches, once per (tree, switches)
+    $ckey = $srcName + '|' + $defs
+    if (-not $controlDone.ContainsKey($ckey)) {
+        $ctag = 'mutctl_' + $srcName.ToLower() + '_' + ($controlDone.Count + 1)
+        $cexe = BuildHarness $ctag $srcTree $defs
+        $cres = @($sets | ForEach-Object { RunSet $cexe $ctag $_ $baseOf[$_.K] })
+        $cclean = @($cres | Where-Object { $_.C -ne 'clean' }).Count -eq 0
+        Say ("CONTROL {0} [{1}]: {2}; {3}" -f $srcName, $defs, $(if ($cclean) { 'clean' } else { 'NOT CLEAN' }), (($cres | ForEach-Object { $_.T }) -join '; '))
+        if (-not $cclean) { $bad++ }
+        $controlDone[$ckey] = $cclean
+    }
     $tree = Join-Path $OUT ("tmp\mut_" + $m.Id)
-    $bdir = Join-Path $OUT ("build\prim_mut_" + $m.Id)
-    foreach ($d in $tree, $bdir) { if (Test-Path $d) { Remove-Item -Recurse -Force $d } }
-    Copy-Item -Recurse (Join-Path $OUT ("work\" + $m.Name + "\b")) $tree
+    if (Test-Path $tree) { Remove-Item -Recurse -Force $tree }
+    Copy-Item -Recurse $srcTree $tree
     $file = Join-Path $tree $m.File
     (Get-Item $file).IsReadOnly = $false
     $text = [System.IO.File]::ReadAllText($file)
     $parts = $text.Split(@($m.Find), [StringSplitOptions]::None)
-    if ($parts.Count -ne 2) { throw ("mutant " + $m.Id + ": the text to change occurs " + ($parts.Count - 1) + " times, not once") }
+    if ($parts.Count -ne 2) { throw ("mutant " + $m.Id + ": the text to change occurs " + ($parts.Count - 1) + " times in " + $srcName + ", not once") }
     [System.IO.File]::WriteAllText($file, $parts[0] + $m.Put + $parts[1], (New-Object System.Text.UTF8Encoding($false)))
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_prim.ps1') -Tag ("mut_" + $m.Id) -Src $tree -ExtraDefs $m.Defs -Mask $Mask | Out-File -LiteralPath (Join-Path $idDir ($m.Id + '.build.txt')) -Encoding ASCII
-    if ($LASTEXITCODE -ne 0) { throw ("mutant " + $m.Id + " did not build") }
-    $o = Join-Path $idDir ($m.Id + "_$Fens.tsv")
-    if (Test-Path $o) { Remove-Item -Force $o }
-    $rc = RunPinned (Join-Path $bdir 'prim_dump.exe') "`"$fenFile`" `"$o`" 0 $Fens" "$o.log"
-    $same = (Test-Path $o) -and ((Sha $o) -eq (Sha $baseOut))
-    $caught = ($rc -ne 0) -or (-not $same)
-    $first = @(Get-Content "$o.log" -ErrorAction SilentlyContinue | Where-Object { $_ -match '^CHECK FAILED|^ENGINE ABORT' } | Select-Object -First 1)
-    $fails = @(Get-Content "$o.log" -ErrorAction SilentlyContinue | Where-Object { $_ -match 'self-check failures' } | Select-Object -Last 1)
-    $verdict = $(if ($caught) { 'CAUGHT' } elseif ($m.Must) { 'MISSED' } else { 'not caught (expected: see description)' })
-    if (-not $caught -and $m.Must) { $missed++ }
-    $line = "MUTANT {0} [{1}; {2}]: {3}; exit {4}; transcript equal to base: {5}; {6}; first report: {7} [{8}]" -f $m.Id, $m.Name, $m.What, $verdict, $rc, $same,
-        $(if ($fails.Count) { $fails[0] } else { 'no summary line (aborted)' }), $(if ($first.Count) { $first[0] } else { '-' }), (NowVienna)
-    Add-Content -LiteralPath (Join-Path $idDir 'MUTANTS.log') -Value $line -Encoding ASCII
-    Write-Output $line
+    $mtag = 'mut_' + $m.Id + $(if ($Bundle) { '_' + $Bundle.ToLower() } else { '' })
+    $mexe = BuildHarness $mtag $tree $defs
+    $res = @($sets | ForEach-Object { RunSet $mexe $mtag $_ $baseOf[$_.K] })
     Remove-Item -Recurse -Force $tree
+    $isCaught = @($res | Where-Object { $_.C -eq 'caught' }).Count -gt 0
+    $isError = @($res | Where-Object { $_.C -eq 'error' }).Count -gt 0
+    $first = @($res | Where-Object { $_.C -eq 'caught' -and $_.First } | Select-Object -First 1)
+    $verdict = $(if ($isError) { 'ERROR' } elseif ($isCaught) { 'CAUGHT' } elseif ($m.Must) { 'MISSED' } else { 'not caught (allowed)' })
+    $count++; if ($isCaught -and -not $isError) { $caught++ }
+    if ($isError -or (-not $isCaught -and $m.Must) -or -not $controlDone[$ckey]) { $bad++ }
+    Say ("MUTANT {0} [{1}; {2}; switches {3}]: {4}; {5}; first report: {6}" -f $m.Id, $srcName, $m.What, $defs, $verdict, (($res | ForEach-Object { $_.T }) -join '; '),
+        $(if ($first.Count) { $first[0].First } else { '-' }))
 }
-if ($missed -ne 0) { exit 3 }
+Say ("SUMMARY {0}: {1} mutants, {2} caught, {3} problems (missed, error or unclean control); sets: {4}" -f $(if ($Bundle) { $Bundle } else { 'singles' }), $count, $caught, $bad, (($sets | ForEach-Object { $_.K }) -join ', '))
+if ($bad -ne 0) { exit 3 }

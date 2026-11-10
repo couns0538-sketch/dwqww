@@ -1,6 +1,6 @@
 --- a/include/forge/eval.hpp
 +++ b/include/forge/eval.hpp
-@@ -5,6 +5,17 @@
+@@ -5,6 +5,18 @@
  #include <cstdint>
  #include <vector>
  
@@ -10,7 +10,8 @@
 +// record is used only when the stored pawn bitboards and king square equal the position's own (compared
 +// directly, not through the pawn key), so every evaluation equals the lock's. The entry becomes one 64-byte
 +// cache line. Like the lock's own pawn cache, records assume params::table is not changed between evaluations
-+// (the engine never writes it); tools and traced or uncached evaluation never use the cache.
++// (the engine never writes it); tools and traced or uncached evaluation never use the cache. The switch changes
++// the entry's layout, so it must reach every translation unit (the build scripts pass every -D to all of them).
 +#ifndef FORGE_SPD_KING_PAWN_CACHE
 +#define FORGE_SPD_KING_PAWN_CACHE 0
 +#endif
@@ -18,7 +19,7 @@
  namespace forge {
  
  namespace nnue { struct DirtyPieces; }
-@@ -49,12 +60,28 @@ public:
+@@ -49,12 +61,28 @@ public:
      // Evaluation without any cache, for tests and tools.
      [[nodiscard]] static int evaluate_uncached(const Board& board);
  
@@ -49,22 +50,26 @@
      friend class Worker;
 --- a/src/board.cpp
 +++ b/src/board.cpp
-@@ -432,6 +432,14 @@ Bitboard Board::compute_checkers() const {
+@@ -432,6 +432,18 @@ Bitboard Board::compute_checkers() const {
      return attackers_to(king, occupied()) & occupied(opposite(side_));
  }
  
 +// FORGE_SPD_PAWN_CAPMASK (default 0 = lock code): the pawn-capture loop of the move generator visits only the
 +// pawns that attack an enemy piece (one shift-and-mask of the enemy set) instead of every pawn. A pawn that
 +// attacks nothing emitted no move, and the remaining pawns are visited in the same order with the same targets,
-+// so every generated list is the same list.
++// so every generated list is the same list. The switch acts in the generator the lock builds
++// (FORGE_SPD_NO_ZERO_MOVELISTS >= 2); the older generator below is left alone, so the switch refuses that build.
 +#ifndef FORGE_SPD_PAWN_CAPMASK
 +#define FORGE_SPD_PAWN_CAPMASK 0
++#endif
++#if FORGE_SPD_PAWN_CAPMASK && FORGE_SPD_NO_ZERO_MOVELISTS < 2
++#error "FORGE_SPD_PAWN_CAPMASK needs FORGE_SPD_NO_ZERO_MOVELISTS >= 2 (the lock's generator)"
 +#endif
 +
  #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
  // The full list (All) emits pawn pushes, promotion pushes, pawn captures, en
  // passant, then for N, B, R, Q, K the targets (~own) in bit order with
-@@ -485,7 +493,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+@@ -485,7 +497,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
              const int to = pop_lsb(promo_push);
              push_promotions(to - up, to, Quiet);
          }
@@ -76,18 +81,6 @@
          while (capturers != 0) {
              const int from = pop_lsb(capturers);
              Bitboard targets = attacks::pawn(us, from) & enemy;
-@@ -603,7 +615,11 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
-         const int to = pop_lsb(promo_push);
-         push_promotions(to - up, to, Quiet);
-     }
-+#if FORGE_SPD_PAWN_CAPMASK
-+    Bitboard capturers = pawns & pawn_attacks_bb(them, enemy);
-+#else
-     Bitboard capturers = pawns;
-+#endif
-     while (capturers != 0) {
-         const int from = pop_lsb(capturers);
-         Bitboard targets = attacks::pawn(us, from) & enemy;
 @@ -693,6 +709,16 @@ MoveList Board::legal_moves(bool captures_only) const {
      return moves;
  }
@@ -174,16 +167,18 @@
  }
  #else
  bool Board::is_legal(const Move& move) const {
-@@ -995,6 +1061,16 @@ bool Board::key_after(const Move& move, std::uint64_t& key) const {
+@@ -995,6 +1061,18 @@ bool Board::key_after(const Move& move, std::uint64_t& key) const {
  }
  #endif
  
 +// FORGE_SPD_CHECKERS_KL (default 0 = lock code; needs FORGE_SPD_KING_LINES): make_move() takes the new checkers
 +// from the mover's king lines when they are already built (the search has asked is_legal / gives_check for the
-+// move) and the move is an ordinary one: the moved piece checks iff its target is a check square of its type,
-+// and no other piece can check unless the mover was a sole blocker of one of its own sliders and left that line.
-+// En passant, castling, promotions, such discovering moves and positions without king lines keep the lock's
-+// attackers_to(). 2 = as 1, and attackers_to() is still computed and must agree (test builds only).
++// move) and the move is an ordinary move of a piece other than the king: the moved piece checks iff its target
++// is a check square of its type, and no other piece can check unless the mover was a sole blocker of one of its
++// own sliders and left that line. King moves, en passant, castling, promotions, such discovering moves and
++// positions without king lines keep the lock's attackers_to(). With king moves left out, the result equals
++// attackers_to() for every pseudo-legal move, legal or not, of a position whose side not to move is not in check
++// (set_fen() admits no other). 2 = as 1, and attackers_to() is still computed and must agree (test builds only).
 +#ifndef FORGE_SPD_CHECKERS_KL
 +#define FORGE_SPD_CHECKERS_KL 0
 +#endif
@@ -191,13 +186,14 @@
  bool Board::make_move(const Move& move, Undo& undo) {
      const Color us = side_;
      const Color them = opposite(us);
-@@ -1065,7 +1141,21 @@ bool Board::make_move(const Move& move, Undo& undo) {
+@@ -1065,7 +1143,22 @@ bool Board::make_move(const Move& move, Undo& undo) {
      if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
          key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
      }
 +#if FORGE_SPD_CHECKERS_KL && FORGE_SPD_KING_LINES
 +    // king_lines_ still describes the position before the move, with `us` to move.
-+    if (king_lines_.valid && (move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&
++    if (king_lines_.valid && piece_type(moving) != King &&
++        (move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&
 +        ((king_lines_.discoverers & square_bb(move.from)) == 0 ||
 +         attacks::aligned(king_square(them), move.from, move.to))) {
 +        checkers_ = king_lines_.check_squares[static_cast<std::size_t>(piece_type(moving))] & square_bb(move.to);

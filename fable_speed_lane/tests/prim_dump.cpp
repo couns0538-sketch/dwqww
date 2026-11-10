@@ -8,31 +8,32 @@
 //   chk  gives_check of every legal move
 //   see  see_ge of every legal move at seven thresholds
 //   st   key, pawn key, checkers, clocks, has_legal_move, insufficient material, repetition, key_after
-//   ev   hand-crafted eval without cache, eval through the worker's pawn cache, net output, static eval
+//   ev   hand-crafted eval without cache, eval through the worker's pawn cache, net output, static eval,
+//        and the traced evaluation (its value, phase, scale and every coefficient)
 // One line of hashes per FEN goes to the output file. Two builds (lock source and candidate source) must write
 // byte-identical files: that is the eval and primitive parity proof of a candidate.
 //
 // The harness also checks each build against itself (exit 3 on any failure):
 //   - has_legal_move() equals "the legal list is not empty", asked before and after the king lines exist;
-//   - checkers() after every make equals attackers_to(own king) & enemy pieces, on a board whose king lines
-//     were built and on a twin board whose king lines were never built;
-//   - is_legal of every generated move equals "the mover's king is not attacked after the move is played";
-//   - is_legal / gives_check give the same answers in either call order on a fresh twin;
+//   - every generated move, legal or not, of every visited position (grandchildren and the null-move child too)
+//     is played on a copy whose king lines were built by ONE earlier query (is_legal for even list positions,
+//     gives_check for odd ones): is_legal must equal "the mover's king is not attacked afterwards", and the
+//     checkers make_move left must equal attackers_to(the other king) & the mover's pieces;
+//   - checkers() after the make of every legal child move, on the board that answered every query and on a
+//     twin whose king lines were never built;
+//   - is_legal / gives_check give the same answers in the other call order on a copy without king lines;
 //   - key_after equals the key after make; unmake and null unmake restore the position;
 //   - eval through the pawn cache equals eval without cache; static eval through the incremental path equals
 //     the refresh path; static eval equals the clamp of hand-crafted eval plus net output.
+// The worker's caches are cleared every 997 FENs, so cached values are also met on a just-cleared cache.
 //
 // If the engine itself aborts (the =2 verify builds of the candidates do that on purpose), the harness prints the
 // root FEN, the position and the move it was working on.
 //
-// PRIM_MAKE_ANY=1 (default 0, a measuring build): every generated move, legal or not, is also played on a copy
-// whose king lines were built first, and the checkers make_move left are compared with attackers_to. The counts go
-// to stdout by legality; the transcript is unchanged. It shows where a make_move that reads king lines stops being
-// exact. Do not combine it with a =2 verify build of such a candidate: that build aborts on the first difference.
-//
 // usage: prim_dump FENS OUT [first] [count]
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
+#include "forge/eval_params.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
 
@@ -51,6 +52,7 @@ struct SearcherTestProbe {
     static SearchStack* slot(Worker& w, int i) { return &w.stack_[static_cast<std::size_t>(i)]; }
     static int static_eval(Worker& w, const Board& b, SearchStack* ss) { return w.static_evaluate(b, ss); }
     static void record(Worker& w, SearchStack* ss, const Board& b, const Move& m) { w.record_move(ss, b, m); }
+    static void clear(Worker& w) { w.clear_caches(); }
 };
 } // namespace forge
 
@@ -79,11 +81,8 @@ std::uint64_t move_bits(Move m) {
            (static_cast<std::uint64_t>(m.promotion) << 16) | (static_cast<std::uint64_t>(m.flags) << 24);
 }
 
-#ifndef PRIM_MAKE_ANY
-#define PRIM_MAKE_ANY 0
-#endif
-
 long long g_errors = 0;
+unsigned long long g_lined_legal = 0, g_lined_illegal = 0;   // makes of generated moves on copies with king lines
 std::string g_fen;
 
 void fail(const char* what, const Board& b, Move m = Move::none()) {
@@ -111,16 +110,6 @@ void on_abort(int) {
                  g_at_move.is_none() ? "-" : Board::move_to_uci(g_at_move).c_str());
     std::fflush(stderr);
 }
-
-#if PRIM_MAKE_ANY
-struct AnyStats {
-    unsigned long long made = 0, legal = 0, illegal = 0;
-    unsigned long long bad_legal = 0;            // must stay 0 for an exact candidate
-    unsigned long long bad_illegal_kings = 0;    // illegal king move that ends next to the enemy king
-    unsigned long long bad_illegal_other = 0;    // any other illegal move
-    int shown = 0;
-} g_any;
-#endif
 
 struct Walker {
     SharedSearchState shared{1};
@@ -155,13 +144,23 @@ struct Walker {
         mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(hce)));
         mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(net)));
         mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(stat)));
+        // traced evaluation (the tuner's path): value and every coefficient, folded into one word
+        EvalTrace trace;
+        const int traced = evaluate_traced(x, trace);
+        std::uint64_t fold = 1469598103934665603ULL;
+        for (const std::int16_t c : trace.coefficients) fold = (fold ^ static_cast<std::uint16_t>(c)) * 1099511628211ULL;
+        mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(traced)));
+        mix(h.ev, fold);
+        mix(h.ev, (static_cast<std::uint64_t>(static_cast<std::uint32_t>(trace.phase)) << 32) |
+                      static_cast<std::uint32_t>(trace.scale));
+        mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(trace.white_eval)));
     }
 
     // depth 0 = FEN position, 1 = child, 2 = grandchild, 3 = null-move child (no recursion from 2 and 3).
     void visit(Board& x, int depth, SearchStack* ss, int inc) {
         ++h.positions;
-        const Board pristine = x;   // never queried: copies of it have no king lines (used to play any generated move)
-        Board fresh = x;        // twin: its king lines are never built before the calls below
+        const Board pristine = x;   // never queried: every copy of it starts without king lines
+        Board fresh = x;        // has_legal_move() is asked on it before any king lines exist
         Board twin = x;         // twin for make_move without king lines
         at("has_legal_move, generation", &pristine);
         const bool has_before = fresh.has_legal_move();
@@ -185,49 +184,28 @@ struct Walker {
             const bool ok = x.is_legal(m);
             mix(h.leg, (move_bits(m) << 1) | (ok ? 1U : 0U));
             {
-                // legality oracle that needs no engine rule: play the move on a copy, look at the mover's king.
-                // The copy has no king lines, because an illegal move may be played here and make_move's
-                // contract (like the search's use of it) covers legal moves only.
+                // Play the generated move, legal or not, on a copy whose king lines come from one earlier query,
+                // as in the search (is_legal alone for even list positions, gives_check alone for odd ones).
+                // Two checks that need no engine rule: is_legal equals "the mover's king is not attacked
+                // afterwards", and the checkers make_move left equal attackers_to of the other king.
                 Board played = pristine;
+                if ((index & 1U) == 0U) (void)played.is_legal(m);
+                else (void)played.gives_check(m);
                 Undo pu;
                 const Color mover = played.side_to_move();
-                at("legality oracle: make of a generated move on a copy without king lines", &pristine, m);
+                at("make of a generated move on a copy with king lines", &pristine, m);
                 (void)played.make_move(m, pu);
-                const bool king_safe = !played.square_attacked(played.king_square(mover), opposite(mover));
+                const Color other = played.side_to_move();
+                const bool king_safe = !played.square_attacked(played.king_square(mover), other);
                 if (king_safe != ok) fail("is_legal != (own king not attacked after the move)", x, m);
-            }
-#if PRIM_MAKE_ANY
-            {
-                Board lined = pristine;
-                (void)lined.gives_check(m);     // builds the king lines (ordinary moves)
-                Undo lu;
-                const Color mover = lined.side_to_move();
-                const bool king_move = piece_type(lined.moved_piece(m)) == King;
-                at("PRIM_MAKE_ANY: make of a generated move on a copy WITH king lines", &pristine, m);
-                (void)lined.make_move(m, lu);
-                const Color opp = lined.side_to_move();
-                const Bitboard real = lined.attackers_to(lined.king_square(opp)) & lined.occupied(mover);
-                ++g_any.made;
-                ++(ok ? g_any.legal : g_any.illegal);
-                if (real != lined.checkers()) {
-                    const bool kings_touch = king_move && (attacks::king(lined.king_square(mover)) &
-                                                           square_bb(lined.king_square(opp))) != 0;
-                    if (ok) ++g_any.bad_legal;
-                    else if (kings_touch) ++g_any.bad_illegal_kings;
-                    else ++g_any.bad_illegal_other;
-                    if ((ok || !kings_touch || g_any.bad_illegal_kings <= 3) && g_any.shown < 12) {
-                        ++g_any.shown;
-                        std::fprintf(stderr, "MAKE_ANY difference (%s%s): root %s | at %s | move %s\n",
-                                     ok ? "LEGAL" : "illegal", kings_touch ? ", kings adjacent after" : "",
-                                     g_fen.c_str(), pristine.fen().c_str(), Board::move_to_uci(m).c_str());
-                    }
-                }
+                if ((played.attackers_to(played.king_square(other)) & played.occupied(mover)) != played.checkers())
+                    fail("checkers() after the make of a generated move != attackers of the king", x, m);
+                ++(ok ? g_lined_legal : g_lined_illegal);
                 at("is_legal, gives_check, see_ge, key_after of one generated move", &pristine, m);
             }
-#endif
-            // the other call order on a board without king lines
+            // the other call order, on a copy that has no king lines yet
             if ((index++ & 1U) == 0U) {
-                Board f2 = fresh;
+                Board f2 = pristine;
                 const bool chk2 = f2.gives_check(m);
                 const bool ok2 = f2.is_legal(m);
                 if (ok2 != ok) fail("is_legal differs with the call order", x, m);
@@ -348,6 +326,7 @@ int main(int argc, char** argv) {
         }
         g_fen = line;
         walker.h = Hashes{};
+        if (done % 997 == 499) forge::SearcherTestProbe::clear(*walker.worker);
         walker.visit(board, 0, forge::SearcherTestProbe::slot(*walker.worker, BaseSlot), ValueNone);
         at("between FENs", nullptr);
         const Hashes& h = walker.h;
@@ -368,12 +347,7 @@ int main(int argc, char** argv) {
                  static_cast<unsigned long long>(total.st), static_cast<unsigned long long>(total.ev),
                  static_cast<unsigned long long>(total.positions), static_cast<unsigned long long>(total.moves));
     std::fclose(out);
-#if PRIM_MAKE_ANY
-    std::printf("PRIM_MAKE_ANY: %llu makes on copies with king lines (%llu legal, %llu illegal); checkers differ from "
-                "attackers_to on %llu legal, %llu illegal king moves ending next to the enemy king, %llu other illegal\n",
-                g_any.made, g_any.legal, g_any.illegal, g_any.bad_legal, g_any.bad_illegal_kings, g_any.bad_illegal_other);
-    if (g_any.bad_legal != 0) ++g_errors;
-#endif
+    std::printf("generated moves played on copies with king lines: %llu legal, %llu illegal\n", g_lined_legal, g_lined_illegal);
     std::printf("prim_dump: %ld FENs, %llu positions, %llu generated moves, %lld self-check failures\n", done,
                 static_cast<unsigned long long>(total.positions), static_cast<unsigned long long>(total.moves), g_errors);
     return g_errors == 0 ? 0 : 3;
