@@ -9,6 +9,9 @@ applied to the plain search and to every setting of the mechanism alike.
 
 The winning move is a1b1. For every setting the table counts in how many of the perturbed copies the
 best move is a1b1 at every depth, and in how many it is not at some depth.
+
+The copies are not independent tests: neighbouring values of the constant give searches that begin
+the same way. Read the counts as a pattern, not as a sample size.
 """
 import csv
 import os

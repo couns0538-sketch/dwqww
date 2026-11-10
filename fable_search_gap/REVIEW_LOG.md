@@ -10,7 +10,7 @@
 - **What it found.** One critical finding, eleven important ones, and a list of minor ones. No harness bug.
 - **What I did.** I accepted every finding. One needed a correction of fact (finding 7) and one got a larger remedy than proposed (finding 4). I made five new measurements to answer them and rewrote the affected sections. The verdict stands. Its wording changed from "the mechanism mostly loses" to "no benefit is shown".
 - **The most useful result of the review** is the placebo run. It shows that the best-move changes and node-count swings I had held against the mechanism also happen under a change that is no mechanism at all.
-- RECHECK_KEY_POINT
+- **Recheck.** The same reviewer was asked at 22:15 PT to check the fixes. Its answer is in section 5.
 
 ## 1. Scope and method
 
@@ -81,7 +81,7 @@ All on CPU 3-6 at Idle, 16 MB table unless stated. Data in `data/`, commands in 
 
 ## 5. Recheck by the same reviewer
 
-RECHECK_SECTION
+Requested at 22:15 PT on commit `591bc8ec`. **Pending when this file was last committed.** If this line is still here, the recheck did not come back before the job ended, and the fixes above have been checked by me only.
 
 ## 6. What the review could not verify
 
@@ -90,7 +90,7 @@ Carried over from the reviewer's own list, with what I can add.
 | Item | Status |
 |---|---|
 | When the 95-position run was first read | The rule was committed at 20:55:44 PT. The run's log was last written at 20:55:51 PT. The run was still writing when the rule was committed. That it was not read before is my statement and cannot be proven from files |
-| Harness and compiler hashes, CPU cache size | not rechecked by the reviewer; hashes are in `FILES.md` and `STATUS.md` |
+| Harness and compiler hashes, CPU cache size | not rechecked by the reviewer. The three harness hashes are in `EVIDENCE.md` section 5.1 and the compiler hash in `tools/etc_probe/build_and_run.ps1`, which refuses to build if it differs. Cache size read from the system after the review: 96 MB third-level cache (Ryzen 7 9850X3D) |
 | External sources (the 1996 paper's 28 %, forum posts, the wiki, the other engine's source) | the reviewer had no network. I re-read one of them online for finding 6 |
 | Whether `QUALIFICATION_RULE.md` changed after its commit | `git log --follow` shows one commit for that file; see `STATUS.md` |
 | PGNs or logs outside the mirrored folders, the 20 unfetched branches, the three banned folders | not looked at, by the brief |

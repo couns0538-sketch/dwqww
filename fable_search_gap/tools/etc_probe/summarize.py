@@ -25,7 +25,8 @@ Vocabulary used in the output
   node ratio       nodes with the cutoff taken / plain nodes. "sum" = ratio of totals; "geo" = geometric
                    mean over positions; "by position" = 95 % range treating positions as independent;
                    "by base" = 95 % range over base positions (a base and the positions generated from
-                   it form one cluster), which is the honest one
+                   it form one cluster), which is the honest one. It is centred on the mean of the base
+                   means, which differs slightly from "geo" when bases have unequal numbers of positions
   best move differs  positions where the final best move is not the plain run's
   score moves by 50 or more   positions where the final score differs from the plain run's by at least
                    50 of the evaluation's units (about half a pawn)

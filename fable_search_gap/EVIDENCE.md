@@ -321,7 +321,8 @@ Position 70 of Fine's *Basic Chess Endings* (`8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - 
 | cut8, return beta | 4 of 10 | 6 | 1 |
 | all3 | 1 of 10 | 9 | 0 |
 
-- **This is not chance.** The plain replica keeps the winning move in all ten runs. The settings of the mechanism miss it at some depth in 31 of 80.
+- **The plain replica never misses; the mechanism often does.** Plain keeps the winning move in all ten runs. The settings of the mechanism miss it at some depth in 31 of 80.
+- **These are not ten independent tests.** The runs fall into two groups that begin the same way. With the constant at -40 to -31 (and at the default -32), cut8 and its "return beta" variant miss the move. With -30 to -24, cut4 and cut8 without store miss it. Rule all3 misses in both groups. So the grid is closer to two or three independent tries than to ten. In each of them the plain replica is right at every depth and several settings of the mechanism are not. That makes chance an unlikely explanation, but it is not a proof.
 - **It is mostly a delay.** Nearly all misses are at depths 24 to 36. At depth 40 only 3 of the 80 runs still play another move.
 - **It depends on the setting.** Rule cut6 and its "return beta" variant never miss. Rule all3 misses in nine of ten.
 - **Not storing is not a cure.** With the default constant the failure of cut8 went away when the node stored nothing. Under the ten changes that variant still missed in five of ten.
