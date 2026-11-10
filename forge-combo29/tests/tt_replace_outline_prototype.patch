@@ -1,0 +1,94 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -344,17 +344,36 @@
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+-    if (!replace->occupied()) return snapshot(*replace, false);
+-    int best_score = replace->depth - 4 * relative_age(*replace);
+-    for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+-        const TTEntry& entry = cluster.entries[slot];
++    for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+-        const int score = entry.depth - 4 * relative_age(entry);
+-        if (score < best_score) {
+-            replace = &entry;
+-            best_score = score;
+-        }
+     }
++    // Temporary GCC/Clang code-generation experiment only.
++    const auto full_replacement = [](const TranspositionTable* owner, const TTCluster* c,
++                                     std::size_t cluster_index, std::uint64_t query_key)
++#if defined(__GNUC__) || defined(__clang__)
++                                     __attribute__((noinline))
++#endif
++                                     -> TTProbe {
++        std::size_t best = 0;
++        auto score = [owner](const TTEntry& entry) {
++            return int(entry.depth) - 4 * int((32 + owner->generation_ - entry.generation()) & 31U);
++        };
++        int best_score = score(c->entries[0]);
++        for (std::size_t slot = 1; slot < c->entries.size(); ++slot) {
++            const int current = score(c->entries[slot]);
++            if (current < best_score) { best = slot; best_score = current; }
++        }
++        TTProbe result;
++        result.entry = c->entries[best];
++        result.hit = false;
++        result.owner_ = owner;
++        result.cluster_ = cluster_index;
++        result.slot_ = static_cast<std::uint8_t>(best);
++        result.epoch_ = owner->epoch_;
++        result.key_ = query_key;
++        return result;
++    };
++    return full_replacement(this, &cluster, index, key);
+ #else
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+@@ -439,17 +458,36 @@
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+-    if (!replace->occupied()) return snapshot(*replace, false);
+-    int best_score = replace->depth - 4 * relative_age(*replace);
+-    for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+-        const TTEntry& entry = cluster.entries[slot];
++    for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+-        const int score = entry.depth - 4 * relative_age(entry);
+-        if (score < best_score) {
+-            replace = &entry;
+-            best_score = score;
+-        }
+     }
++    // Temporary GCC/Clang code-generation experiment only.
++    const auto full_replacement = [](const TranspositionTable* owner, const TTCluster* c,
++                                     std::size_t cluster_index, std::uint64_t query_key)
++#if defined(__GNUC__) || defined(__clang__)
++                                     __attribute__((noinline))
++#endif
++                                     -> TTProbe {
++        std::size_t best = 0;
++        auto score = [owner](const TTEntry& entry) {
++            return int(entry.depth) - 4 * int((32 + owner->generation_ - entry.generation()) & 31U);
++        };
++        int best_score = score(c->entries[0]);
++        for (std::size_t slot = 1; slot < c->entries.size(); ++slot) {
++            const int current = score(c->entries[slot]);
++            if (current < best_score) { best = slot; best_score = current; }
++        }
++        TTProbe result;
++        result.entry = c->entries[best];
++        result.hit = false;
++        result.owner_ = owner;
++        result.cluster_ = cluster_index;
++        result.slot_ = static_cast<std::uint8_t>(best);
++        result.epoch_ = owner->epoch_;
++        result.key_ = query_key;
++        return result;
++    };
++    return full_replacement(this, &cluster, index, key);
+ #else
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
