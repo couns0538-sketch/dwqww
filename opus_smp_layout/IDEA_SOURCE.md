@@ -1,0 +1,14 @@
+# opus_smp_layout — IDEA_SOURCE
+
+| idea | source | licence | how it is used here |
+|---|---|---|---|
+| lockless hashing: store the key XOR the data so that a reader can detect a mixed pair | R. Hyatt, T. Mann, "A lock-less transposition table implementation for parallel search chess engines" (ICGA Journal 2002), described in the literature | paper (idea) | **idea only**. The encoding here is this job's own: a 32-bit tag XOR a 64-bit-mixed digest of (move, data word without the generation bits), an exact bijection with P's 16-byte TTEntry, and mix32(0,0)=0 so zeroed memory is the empty entry |
+| why seqlock payloads must be atomic under the C++ memory model | H.-J. Boehm, "Can seqlocks get along with programming language memory models?" (MSPC 2012) | paper (idea) | the reason no seqlock with plain payload is used; every shared word is accessed atomically |
+| `std::atomic_ref` over plain storage, relaxed loads/stores/CAS | ISO C++20 ([atomics.ref.generic]) | standard | storage stays plain `std::uint64_t` (value-initialisable and clearable while quiescent); all concurrent accesses go through atomic_ref |
+| per-thread counter on its own cache line to avoid false sharing | general practice (cache-coherence basics) | — | applied only where layout_probe measured a cross-thread written+read line (`Worker::nodes_`) |
+| striped-lock TT, opaque TTProbe handle with epoch, ExclusiveLease, `FORGE_SPD_TT_NOTLS` owned path | this repository (lock d4f4312; trial_w6.patch) | own code | kept unchanged as the OFF path; the lockless bodies mirror probe_body / store_body decision by decision |
+| tests: torn-tuple detectors | this repository (`tests/tt_coherence_tests.cpp`) | own code | model for the new contention fixture; the new tests are own code |
+
+GPL or AGPL engines (e.g. Stockfish's TT, which uses racy plain fields) were **not** used as a source: no code, constants or tables were copied.
+
+Tools: `tools/o2_uci_lib.ps1` is a re-pathed copy of `opus-speed-20261105@1ad0d295:opus_speed/tools/uci_lib.ps1` (md5 a9c8f6aa…; the header lists the changes). `tools/kit_v23_idle_build_ltopgo.ps1` is QA's kit v2.3 `build_ltopgo.ps1` (md5 729fe727…) with two changes: Idle instead of BelowNormal (plus a read-back), and no process termination on timeout. Everything else in `tools/` is this job's own.
