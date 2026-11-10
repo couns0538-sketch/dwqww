@@ -13,6 +13,11 @@
 #define FORGE_SDK_SEE_HOIST 1
 #endif
 
+// Experimental bounded legal-move witnesses. Default off; no speed claim.
+#ifndef FORGE_SPD_LEGAL_WITNESSES
+#define FORGE_SPD_LEGAL_WITNESSES 0
+#endif
+
 namespace forge {
 namespace {
 
@@ -704,6 +709,27 @@ bool Board::has_legal_move() const {
                            static_cast<std::uint8_t>(to), 0, Quiet};
         if (is_legal(witness)) return true;
     }
+#if FORGE_SPD_LEGAL_WITNESSES
+    // At most two additional witnesses, not a replacement move generator.
+    // Attack geometry and target filtering establish pseudo-legality before
+    // is_legal() checks king safety. Failed witnesses retain the full fallback.
+    const Bitboard targets = ~occupied(side_) & ~pieces(opposite(side_), King);
+    const auto try_witness = [&](int from, Bitboard destinations) {
+        destinations &= targets;
+        if (destinations == 0) return false;
+        const int to = lsb(destinations);
+        const Move witness{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0,
+                           static_cast<std::uint8_t>(piece_at(to) == Empty ? Quiet : Capture)};
+        return is_legal(witness);
+    };
+    const Bitboard knights = pieces(side_, Knight);
+    if (knights != 0) {
+        const int from = lsb(knights);
+        if (try_witness(from, attacks::knight(from))) return true;
+    }
+    const int king = king_square(side_);
+    if (try_witness(king, attacks::king(king))) return true;
+#endif
     MoveList moves;
     generate_pseudo_legal(moves, false);
     for (const Move move : moves) {
