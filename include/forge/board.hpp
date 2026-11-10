@@ -2,6 +2,12 @@
 
 #include "forge/bitboard.hpp"
 
+// FORGE_SEARCH_SPEED2 (R14 build switch, default 0 = lock code): speed-only, node-identical search changes
+// (TT prefetch after every make, MovePicker history / piece hoist, table piece_type). See src/search.cpp.
+#ifndef FORGE_SEARCH_SPEED2
+#define FORGE_SEARCH_SPEED2 1
+#endif
+
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -10,6 +16,12 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#ifndef FORGE_SPD_PREFETCH_EARLY
+// Build switch, default 0 (= the lock's code): search prefetches the child's TT
+// cluster before make_move from Board::key_after where that key is cheap and exact.
+#define FORGE_SPD_PREFETCH_EARLY 1
+#endif
 
 namespace forge {
 
@@ -31,11 +43,28 @@ enum MoveFlag : std::uint8_t {
     Promotion = 32
 };
 
+// Build switch (default 0 = the lock code). 1: Move has no default member
+// initialisers, so the move arrays and lists whose slots are always written
+// before they are read are no longer zero-filled at construction (Move{} and
+// Move::none() stay all-zero through value-initialisation). 2: in addition a
+// quiets-only generation mode for the move picker, which yields the same
+// quiet moves in the same order as the lock's full list after its filter.
+#ifndef FORGE_SPD_NO_ZERO_MOVELISTS
+#define FORGE_SPD_NO_ZERO_MOVELISTS 2
+#endif
+
 struct Move {
+#if FORGE_SPD_NO_ZERO_MOVELISTS
+    std::uint8_t from;
+    std::uint8_t to;
+    std::uint8_t promotion;
+    std::uint8_t flags;
+#else
     std::uint8_t from = 0;
     std::uint8_t to = 0;
     std::uint8_t promotion = 0;
     std::uint8_t flags = 0;
+#endif
 
     [[nodiscard]] bool operator==(const Move&) const = default;
     [[nodiscard]] bool is_capture() const { return (flags & (Capture | EnPassant)) != 0U; }
@@ -106,13 +135,30 @@ public:
     // is_legal() filters them. Captures-only generation also includes every
     // quiet promotion, so search sees every material-changing move.
     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
+#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+    // Quiets: the non-capturing, non-promoting moves of the full list in the
+    // same order. The bool entry stays for the lock's callers.
+    enum class GenMode : int { All, Captures, Quiets };
+    void generate_pseudo_legal(MoveList& moves, GenMode mode) const;
+    void generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+        generate_pseudo_legal(moves, captures_only ? GenMode::Captures : GenMode::All);
+    }
+#else
     void generate_pseudo_legal(MoveList& moves, bool captures_only) const;
+#endif
     [[nodiscard]] MoveList legal_moves(bool captures_only = false) const;
     [[nodiscard]] bool has_legal_move() const;
     [[nodiscard]] bool is_legal(const Move& move) const;
     [[nodiscard]] bool is_pseudo_legal(const Move& move) const;
     [[nodiscard]] bool gives_check(const Move& move) const;
 
+#if FORGE_SPD_PREFETCH_EARLY
+    // Key of the position after `move`, without making it (for an early TT
+    // prefetch). Returns true with the exact key, or false when an en-passant
+    // term could change it (an en-passant square now, an en-passant capture, or a
+    // double push next to an enemy pawn): then the caller prefetches after make_move.
+    [[nodiscard]] bool key_after(const Move& move, std::uint64_t& key) const;
+#endif
     [[nodiscard]] bool make_move(const Move& move, Undo& undo);
     void unmake_move(const Move& move, const Undo& undo);
     void make_null_move(NullUndo& undo);
@@ -196,7 +242,16 @@ private:
 
 [[nodiscard]] constexpr bool is_white(Piece piece) { return piece >= WP && piece <= WK; }
 [[nodiscard]] constexpr bool is_black(Piece piece) { return piece >= BP && piece <= BK; }
+#if FORGE_SEARCH_SPEED2
+namespace detail {
+// Piece type for every Piece value: Empty=0 -> 0, WP..WK=1..6 -> 1..6, BP..BK=7..12 -> 1..6. Entries 13..15 only pad
+// the table to 16 so the index mask stays in bounds; no valid Piece reaches them (same values as the modulo form).
+inline constexpr std::array<std::uint8_t, 16> PieceTypeTable{0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 0, 0, 0};
+} // namespace detail
+[[nodiscard]] constexpr int piece_type(Piece piece) { return detail::PieceTypeTable[static_cast<unsigned>(piece) & 15U]; }
+#else
 [[nodiscard]] constexpr int piece_type(Piece piece) { return piece == Empty ? 0 : ((static_cast<int>(piece) - 1) % 6) + 1; }
+#endif
 [[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }
 [[nodiscard]] constexpr Piece make_piece(Color color, int type) {
     return static_cast<Piece>((color == White ? 0 : 6) + type);

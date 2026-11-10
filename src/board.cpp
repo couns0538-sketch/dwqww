@@ -422,6 +422,133 @@ Bitboard Board::compute_checkers() const {
     return attackers_to(king, occupied()) & occupied(opposite(side_));
 }
 
+#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+// The full list (All) emits pawn pushes, promotion pushes, pawn captures, en
+// passant, then for N, B, R, Q, K the targets (~own) in bit order with
+// captures and quiets interleaved, then castling. Quiets emits the pushes,
+// then the same piece loops over the empty squares only, then castling: the
+// subsequence of All that the move picker's filter keeps, in the same order.
+void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+    const bool captures_only = mode == GenMode::Captures;
+    const bool quiets_only = mode == GenMode::Quiets;
+    const Color us = side_;
+    const Color them = opposite(us);
+    const Bitboard own = occupied(us);
+    const Bitboard enemy = occupied(them);
+    const Bitboard occ = own | enemy;
+    const Bitboard empty = ~occ;
+    const int up = pawn_push_delta(us);
+
+    auto push = [&](int from, int to, std::uint8_t flags) {
+        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), 0, flags});
+    };
+    auto push_promotions = [&](int from, int to, std::uint8_t flags) {
+        moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), Queen,
+                             static_cast<std::uint8_t>(flags | Promotion)});
+        for (const int promotion : {Rook, Bishop, Knight}) {
+            moves.push_back(Move{static_cast<std::uint8_t>(from), static_cast<std::uint8_t>(to), static_cast<std::uint8_t>(promotion),
+                                 static_cast<std::uint8_t>(flags | Promotion)});
+        }
+    };
+
+    const Bitboard pawns = pieces(us, Pawn);
+    const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
+    const Bitboard third = us == White ? Rank3BB : Rank6BB;
+    const Bitboard promoting = pawns & seventh;
+    const Bitboard regular = pawns & ~seventh;
+
+    if (!captures_only) {
+        Bitboard single = pawn_push(us, regular) & empty;
+        Bitboard twice = pawn_push(us, single & third) & empty;
+        while (single != 0) {
+            const int to = pop_lsb(single);
+            push(to - up, to, Quiet);
+        }
+        while (twice != 0) {
+            const int to = pop_lsb(twice);
+            push(to - 2 * up, to, DoublePush);
+        }
+    }
+    if (!quiets_only) {
+        Bitboard promo_push = pawn_push(us, promoting) & empty;
+        while (promo_push != 0) {
+            const int to = pop_lsb(promo_push);
+            push_promotions(to - up, to, Quiet);
+        }
+        Bitboard capturers = pawns;
+        while (capturers != 0) {
+            const int from = pop_lsb(capturers);
+            Bitboard targets = attacks::pawn(us, from) & enemy;
+            const bool promotes = (square_bb(from) & seventh) != 0;
+            while (targets != 0) {
+                const int to = pop_lsb(targets);
+                if (promotes) push_promotions(from, to, Capture);
+                else push(from, to, Capture);
+            }
+        }
+        if (ep_square_ >= 0) {
+            Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
+            while (ep_attackers != 0) {
+                push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
+            }
+        }
+    }
+
+    const Bitboard targets_mask = captures_only ? enemy : (quiets_only ? empty : ~own);
+    auto emit = [&](int from, Bitboard targets) {
+        while (targets != 0) {
+            const int to = pop_lsb(targets);
+            push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
+        }
+    };
+    Bitboard knights = pieces(us, Knight);
+    while (knights != 0) {
+        const int from = pop_lsb(knights);
+        emit(from, attacks::knight(from) & targets_mask);
+    }
+    Bitboard bishops = pieces(us, Bishop);
+    while (bishops != 0) {
+        const int from = pop_lsb(bishops);
+        emit(from, attacks::bishop(from, occ) & targets_mask);
+    }
+    Bitboard rooks = pieces(us, Rook);
+    while (rooks != 0) {
+        const int from = pop_lsb(rooks);
+        emit(from, attacks::rook(from, occ) & targets_mask);
+    }
+    Bitboard queens = pieces(us, Queen);
+    while (queens != 0) {
+        const int from = pop_lsb(queens);
+        emit(from, attacks::queen(from, occ) & targets_mask);
+    }
+    const int king = king_square(us);
+    emit(king, attacks::king(king) & targets_mask);
+
+    if (!captures_only && checkers_ == 0) {
+        if (us == White && king == 4) {
+            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
+                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
+                push(4, 6, KingCastle);
+            }
+            if ((castling_ & WhiteQueenSide) != 0U &&
+                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
+                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
+                push(4, 2, QueenCastle);
+            }
+        } else if (us == Black && king == 60) {
+            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
+                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
+                push(60, 62, KingCastle);
+            }
+            if ((castling_ & BlackQueenSide) != 0U &&
+                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
+                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
+                push(60, 58, QueenCastle);
+            }
+        }
+    }
+}
+#else
 void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
     const Color us = side_;
     const Color them = opposite(us);
@@ -538,6 +665,7 @@ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
         }
     }
 }
+#endif
 
 MoveList Board::pseudo_legal_moves(bool captures_only) const {
     MoveList moves;
@@ -715,6 +843,34 @@ bool Board::has_legal_en_passant_capture() const {
     }
     return false;
 }
+
+#if FORGE_SPD_PREFETCH_EARLY
+bool Board::key_after(const Move& move, std::uint64_t& key) const {
+    // make_move's key terms in closed form (xor order does not matter). The
+    // en-passant terms need has_legal_en_passant_capture(): those cases return false.
+    if (ep_square_ >= 0 || (move.flags & EnPassant) != 0U) return false;
+    const Color us = side_;
+    if ((move.flags & DoublePush) != 0U &&
+        (attacks::pawn(us, (move.from + move.to) / 2) & pieces(opposite(us), Pawn)) != 0) {
+        return false;
+    }
+    const Piece moving = squares_[move.from];
+    // piece_key(square, Empty) is 0, so the captured term vanishes for a non-capture.
+    std::uint64_t next = key_ ^ piece_key(move.to, squares_[move.to]) ^ piece_key(move.from, moving);
+    next ^= piece_key(move.to, move.is_promotion() ? make_piece(us, move.promotion) : moving);
+    if (move.is_castle()) {
+        const bool king_side = (move.flags & KingCastle) != 0U;
+        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        const Piece rook = squares_[static_cast<std::size_t>(rook_from)];
+        next ^= piece_key(rook_from, rook) ^ piece_key(rook_to, rook);
+    }
+    const auto castling = static_cast<std::uint8_t>(castling_ & CastlingMasks[move.from] & CastlingMasks[move.to]);
+    next ^= Z.castling[castling_] ^ Z.castling[castling] ^ Z.side;
+    key = next;
+    return true;
+}
+#endif
 
 bool Board::make_move(const Move& move, Undo& undo) {
     const Color us = side_;

@@ -60,6 +60,29 @@ struct Prng {
     std::uint64_t sparse() { return next() & next() & next(); }
 };
 
+#if FORGE_SPD_SLIDER_PEXT
+// Every subset of the relevant mask has its own PEXT index in [0, 2^popcount(mask)),
+// so the tables stay dense with the lock's sizes; the entry order differs.
+void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
+    const auto& directions = rook ? RookDirections : BishopDirections;
+    std::size_t offset = 0;
+    for (int square = 0; square < 64; ++square) {
+        const Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(rank_of(square))) |
+                               ((FileABB | FileHBB) & ~file_bb(file_of(square)));
+        Magic& m = magics[static_cast<std::size_t>(square)];
+        m.mask = sliding_attack(directions, square, 0) & ~edges;
+        m.table = table + offset;
+        std::size_t size = 0;
+        Bitboard subset = 0;
+        do {
+            m.table[m.index(subset)] = sliding_attack(directions, square, subset);
+            ++size;
+            subset = (subset - m.mask) & m.mask;
+        } while (subset != 0);
+        offset += size;
+    }
+}
+#else
 void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
     const auto& directions = rook ? RookDirections : BishopDirections;
     static std::array<Bitboard, 4096> occupancies;
@@ -106,6 +129,7 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
         offset += size;
     }
 }
+#endif
 
 } // namespace
 

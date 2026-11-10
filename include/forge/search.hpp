@@ -14,6 +14,12 @@
 #include <thread>
 #include <vector>
 
+#ifndef FORGE_SPD_TT_NOTLS
+// Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+// holding the table's ExclusiveLease calls TT probe / store without lock_stripe.
+#define FORGE_SPD_TT_NOTLS 1
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -153,6 +159,20 @@ private:
     static thread_local const ExclusiveLease* active_lease_;
     [[nodiscard]] bool has_exclusive_access() const;
     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+#if FORGE_SPD_TT_NOTLS
+    // One body per access with a compile-time "take the stripe lock" parameter.
+    // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+    // without it and are only for the Worker on the lease's thread (tt_owned_).
+    friend class Worker;
+    template <bool TakeLock>
+    [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+    template <bool TakeLock>
+    void store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                    bool pv, std::uint16_t halfmove_clock);
+    [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
+    void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                     bool pv, std::uint16_t halfmove_clock);
+#endif
     mutable std::array<Stripe, StripeCount> stripes_{};
     mutable std::mutex exclusive_gate_;
     std::atomic<bool> exclusive_requested_{false};
@@ -311,6 +331,9 @@ public:
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
+#if FORGE_SPD_TT_NOTLS
+    friend class Searcher;
+#endif
 
     SharedSearchState& shared_;
     int id_ = 0;
@@ -337,6 +360,11 @@ private:
     std::int64_t hard_limit_ms_ = 0;
     bool time_managed_ = false;
     bool aborted_ = false;
+#if FORGE_SPD_TT_NOTLS
+    // True only while Searcher::search runs this (main) worker on the thread that
+    // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
+    bool tt_owned_ = false;
+#endif
     int seldepth_ = 0;
     int root_depth_ = 0;
     std::size_t root_history_index_ = 0;
@@ -345,6 +373,17 @@ private:
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
 
+#if FORGE_SPD_TT_NOTLS
+    // The six TT call sites of search / qsearch: one predictable branch per access.
+    [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+        return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
+    }
+    void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                  bool pv, std::uint16_t halfmove_clock) {
+        if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+        else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+    }
+#endif
     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
     [[nodiscard]] bool should_stop();

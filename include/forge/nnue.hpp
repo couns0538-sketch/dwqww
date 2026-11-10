@@ -21,6 +21,14 @@ constexpr float WeightScale = 4096.0F;   // quantisation of w1 / b1 in the inclu
 constexpr float OutputScale = 4096.0F;   // quantisation of w2 / b2
 constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units of K/400 per centipawn
 
+// Build switch (default 0 = the lock code): 1 = the output layer runs one
+// AVX-512 register of 16 lanes per 16 hidden units (lane j = h mod 16, the
+// same per-lane order and the same final reduction as the 16-lane design in
+// src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
+#ifndef FORGE_SPD_NNUE_ZMM
+#define FORGE_SPD_NNUE_ZMM 1
+#endif
+
 [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
     const int relative_color = color_of(piece) == perspective ? 0 : 1;
     const int type = piece_type(piece) - 1;
@@ -29,7 +37,12 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 }
 
 struct Accumulator {
+#if FORGE_SPD_NNUE_ZMM
+    // 64-byte alignment: the output kernel loads whole 512-bit registers.
+    alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
+#else
     alignas(32) std::array<std::array<float, HiddenSize>, 2> values{};
+#endif
     bool valid = false;
 };
 

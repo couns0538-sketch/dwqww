@@ -4,6 +4,19 @@
 #include <bit>
 #include <cstdint>
 
+// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
+// are indexed with PEXT over the relevant mask (same table sizes, same attack
+// sets, another entry order; no magic search at start-up). Needs BMI2.
+#ifndef FORGE_SPD_SLIDER_PEXT
+#define FORGE_SPD_SLIDER_PEXT 1
+#endif
+#if FORGE_SPD_SLIDER_PEXT
+#if !defined(__BMI2__)
+#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+#endif
+#include <immintrin.h>
+#endif
+
 namespace forge {
 
 using Bitboard = std::uint64_t;
@@ -140,6 +153,16 @@ extern std::array<Bitboard, 64> AdjacentFilesMask;
 extern std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask;
 extern std::array<Bitboard, 64> KingZoneMask;
 
+#if FORGE_SPD_SLIDER_PEXT
+struct Magic {
+    Bitboard mask = 0;
+    Bitboard* table = nullptr;
+
+    [[nodiscard]] std::size_t index(Bitboard occupancy) const {
+        return static_cast<std::size_t>(_pext_u64(occupancy, mask));
+    }
+};
+#else
 struct Magic {
     Bitboard mask = 0;
     Bitboard magic = 0;
@@ -150,6 +173,7 @@ struct Magic {
         return static_cast<std::size_t>(((occupancy & mask) * magic) >> shift);
     }
 };
+#endif
 
 extern std::array<Magic, 64> RookMagics;
 extern std::array<Magic, 64> BishopMagics;

@@ -19,6 +19,13 @@
 #include <immintrin.h>
 #endif
 
+#if FORGE_SPD_NNUE_ZMM
+#if !defined(__AVX512F__)
+#error "FORGE_SPD_NNUE_ZMM=1 needs an AVX-512F target (the lock builds with -march=znver5)"
+#endif
+#include <immintrin.h>
+#endif
+
 #if __has_include("nnue_weights.inc")
 #include "nnue_weights.inc"
 #define FORGE_HAS_NNUE 1
@@ -46,7 +53,11 @@ namespace {
 struct Weights {
     std::unique_ptr<float[]> w1;   // [InputCount][HiddenSize]
     alignas(32) std::array<float, HiddenSize> b1{};
+#if FORGE_SPD_NNUE_ZMM
+    alignas(64) std::array<float, 2 * HiddenSize> w2{};
+#else
     alignas(32) std::array<float, 2 * HiddenSize> w2{};
+#endif
     float b2 = 0.0F;
 };
 
@@ -168,6 +179,27 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
+#if FORGE_SPD_NNUE_ZMM
+    // One 512-bit register holds all sixteen lanes: lane j takes the hidden
+    // units h + j for h = 0, 16, 32, ... in increasing order, which is the
+    // lane order of the two 256-bit halves below (lane j of sums[j / 8]), and
+    // every term is formed with the same separate multiplies and additions in
+    // the same order, so each lane ends with the same bits as the AVX2 kernel.
+    {
+        const __m512 zero = _mm512_setzero_ps();
+        const __m512 one = _mm512_set1_ps(1.0F);
+        __m512 sum = zero;
+        for (int h = 0; h < HiddenSize; h += Lanes) {
+            const std::size_t base = static_cast<std::size_t>(h);
+            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(ours.data() + base), zero), one);
+            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(theirs.data() + base), zero), one);
+            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
+                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
+            sum = _mm512_add_ps(sum, term);
+        }
+        _mm512_store_ps(lanes, sum);
+    }
+#else
 #if defined(__AVX2__)
     const __m256 zero = _mm256_setzero_ps();
     const __m256 one = _mm256_set1_ps(1.0F);
@@ -208,6 +240,7 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
             lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
         }
     }
+#endif
 #endif
     float out = w.b2;
     for (int j = 0; j < Lanes; ++j) out += lanes[j];
