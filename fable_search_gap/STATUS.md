@@ -111,6 +111,7 @@ If `out\env.ps1` is missing, recreate it: it sets `$J`, `$REPO`, `$OUT`, points 
 - **Sparse checkout.** Only `fable_search_gap/` and `skills/forge-search-gap-dossier/` are materialised; the ten files of `main` stay untouched in the tree.
 - **Skills from the plug-in.** The test-first and skill-writing skills call for baseline tests with extra agents and for product tests. No product code was written and extra agents were not allowed, so each tool was checked against a known answer instead (launcher against a negative control, probe against the twelve pins, harness counting mode against the plain node count, plain run against itself, each harness rebuild against the earlier node counts, the new summary tool against the old summary's numbers). The new skill is marked as not pressure-tested.
 - **Memory and scratch.** Nothing written under `C:\Users\...\.claude` apart from the plan file that plan mode required.
+- **Files the session tool wrote on C: by itself.** The tool I run in keeps its session transcript under `C:\Users\Administrator\.claude`, and it wrote the console output of the six commands I started in the background to small text files under `C:\Users\Administrator\AppData\Local\Temp\claude`. I did not choose those paths, but starting commands in the background was my choice. All my own output, including TEMP and TMP of every run, is under `D:\forge_jobs_20261109\fable52`. Nothing was written on F:.
 - **Earlier timestamp.** The first version of this file said 20:40 PT; the clock read 20:35 PT.
 
 ## Unproven claims
