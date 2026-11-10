@@ -13,6 +13,7 @@ How the policy is applied:
 | M1: inventory, freeze, families (2026-11-10 ≈01:16–01:40) | c6df6af6 | 1 BLOCKER, 2 MAJOR, 6 MINOR, 1 NIT group (details below) | All assessed; fixed or addressed in the M1-fix commit; nothing rejected | Doc and evidence corrections; new evidence files; DR source line scan; 2×2 probe plus control; harness tests 55/55 ×2 | Recheck by the same reviewer |
 | M2: harness, engine patch and confirmation pack (the planned M4 merged into M2) (2026-11-10 02:33–03:00) | 5cb03dc2 | 1 BLOCKER, 3 MAJOR, 7 MINOR, 1 NIT group (details below) | All assessed as valid and fixed, except NIT (g), which is documented. One extra defect found while fixing (levels) | Harness 63/63, confirmation 35/35, R9 equivalence strict; both synthetic qualifications re-run under the fixed code; end-to-end demonstration redone | Recheck together with M3 |
 | M2 recheck + M3: builds and qualification (03:15–03:27) | fd47a42d | M2: all resolved; 2 MINOR + 4 NIT-level new issues from the fixes. M3: 4 MINOR, 4 NIT | All assessed as valid; fixed or documented (details below; M3-3 was already fixed) | Confirmation 39/39, harness 63/63; new evidence: profdata summaries, preprocessed hashes, RazorTune-off equality | Final recheck |
+| Final recheck (03:38–03:44) | b960b80b | Every disposition resolved, nothing blocks; 2 MINOR + 8 NIT new | All assessed as valid; fixed or documented (details below) | Harness 64/64, confirmation 39/39, R9 equivalence; selftest ALL PASS | Hand-off |
 
 ### M2 findings and dispositions
 Reviewer: the same same-model subagent, read-only. It ran only `test_r9_equivalence.py` and small in-memory checks. **Not an independent review.**
@@ -109,6 +110,20 @@ The reviewer ran the three Python suites in its own scratch folder: R9 equivalen
 - **Resume checks:** both fired both crashes.
 - **Config change:** `pairs_planned` and the comment only.
 - **PLAN §3:** its numbers check out.
+
+### Final recheck (same reviewer, of b960b80b)
+Every disposition of the M2 recheck and of M3 is resolved, and nothing blocks. The reviewer re-ran the suites, re-hashed the profiles and preprocessed files, and verified two N = 16000 runs under the stricter `complete` check. **Not an independent review.** New items, all assessed as valid:
+1. **MINOR: a rollback silently disqualified a COMPLETE run.** `rollback` now refuses a complete run unless `--reopen-complete` / `-ReopenComplete` is given, and says the run can then yield no candidate. HANDOFF, ROLLBACK.md, README and PLAN warn about it. Test: refused without the flag, nothing appended.
+2. **MINOR: the audit protocol for the UHO route was not specified.** Added `confirm/configs/audit_protocol_uho_example.json`: audit-only; cap 40,000; the train/screen keys pinned; `qa_gate` names from PROPOSED_QA_ENTRY; `training_config_sha256` to be filled in. HANDOFF step 5, CONFIRM_PROTOCOL and PROPOSED_QA_ENTRY point to it. Exercised on a generated UHO-style PGN: 6 pairs, starts from FEN tags, 0 leaked, candidate issues reported.
+3. **NIT: HANDOFF still said confirmation 35/35.** Fixed before this recheck arrived (39/39).
+4. **NIT: PLAN showed `rollback.ps1 -Baseline` without `-Config`.** Fixed.
+5. **NIT: LIVE_ACK wording.** Fixed. It holds the harness's canonical-JSON config sha256, not `Get-FileHash`, and the refusal prints the expected value (HANDOFF, README, opus3_spsa.py docstring).
+6. **NIT: the interim-replay bound failed for an odd cap.** It now compares `n_pairs < cap_games // 2`, as the dry-run plays.
+7. **NIT: `{book}` present but on no leading ply.** It now fails closed (exit 31).
+8. **NIT: "QA reruns with a fresh srand" fits the UHO route only.** CONFIRM_PROTOCOL now says that on G1 an INVALID replay consumes the group, and a rerun needs G2/G3 by a written protocol change.
+9. **NIT: a test-only replay had no label.** Its output now carries a TEST-ONLY label.
+10. **NIT: freeze provenance.** FREEZE.json was produced by `bin/freeze_inputs.ps1` as committed in c6df6af6 (blob 1f7da090). The current blob 52b9da3d differs only by the added Idle read-back. Recorded in STATUS.
+- **Validation of these fixes:** the first self-test run failed one harness test, the tampered-checkpoint rollback. It runs on a re-completed run, so the new complete-run guard (exit 10) fired before the checkpoint check (exit 30) it exercises. The test now passes `--reopen-complete`. The second run: ALL PASS (R9 equivalence, harness 64/64, confirmation 39/39).
 
 ### M1 recheck (same reviewer, of 2d174ca8)
 - **Resolved:** findings 2, 3, 4, 5, 7, 8 and 10.

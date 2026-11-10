@@ -494,7 +494,9 @@ def start_position(text):
         n += 1
     if getattr(game, "errors", None):
         raise Stop(31, f"PGN game whose book moves cannot be parsed: {game.errors[0]!r}")
-    return board.epd(), "book", n
+    if n == 0 and not fen:
+        raise Stop(31, "PGN game whose {book} comment is not on its leading moves: its opening cannot be determined")
+    return board.epd(), ("book" if n else "fen"), n
 
 
 def pgn_pairs(text, cand_name, base_name):
@@ -582,7 +584,7 @@ def run(proto_path, cand_path, run_dir, args):
         raise Stop(10, "candidate is not confirmable: " + "; ".join(issues))
     if mode == "replay":
         verdict, n_pairs = replay_outcome(proto, replay)
-        if verdict is None and 2 * n_pairs < proto["sprt"]["cap_games"]:
+        if verdict is None and n_pairs < proto["sprt"]["cap_games"] // 2:  # the dry-run plays cap // 2 pairs
             raise Stop(10, f"the replay PGNs hold {n_pairs} pairs and reach no decision before the cap "
                            f"({proto['sprt']['cap_games'] // 2} pairs). An interim replay would consume the holdout: "
                            "play the remaining games first, then replay once with all PGNs")
@@ -656,6 +658,9 @@ def run(proto_path, cand_path, run_dir, args):
         out.update({"leakage_checked": bool(proto.get("training_keys_files")), "leaked_pairs": len(l3),
                     "leaked_pairs_exact_epd": len(l4), "leak_fraction": (len(l3) / len(starts)) if starts else 0.0,
                     "candidate_issues": issues})
+        if kind == "synthetic":
+            out["label"] = ("TEST-ONLY: a non-confirmable candidate allowed by allow_nonlive_candidate; recorded in the "
+                            ".synthetic registries; no claim")
     print(json.dumps(out, indent=1))
     return 0
 

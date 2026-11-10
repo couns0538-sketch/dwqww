@@ -23,6 +23,6 @@
   "longer_tc_confirm_if_h1": true,
   "never_pool_with": "every other gate",
   "idea_source": "opus_spsa_resume (own code): joint SPSA of razoring + qsearch futility; candidate rule confirm/select_candidate.py",
-  "notes": "Base = CURRENT_LOCK.json combo29 E1284F7F. After the gate, audit the PGN: bin/confirm.ps1 -Command audit (independent recomputation + training-position leakage check, claim only if agreement and leakage <= 1%). Stale if DR01/DR04/DR06/DR12/DR14/DR15 or any razoring/qsearch/static-eval change became the lock first (PLAN.md 5)."
+  "notes": "Base = CURRENT_LOCK.json combo29 E1284F7F. After the gate, audit the PGN: bin/confirm.ps1 -Command audit -Protocol confirm/configs/audit_protocol_uho_example.json, with its sprt equal to this gate's SPRT, qa_gate set to this entry's cand/base names, and training_config_sha256 pinned. The audit recomputes independently and checks training-position leakage; claim only if the verdicts agree, leakage <= 1% and candidate_issues is empty. Stale if DR01/DR04/DR06/DR12/DR14/DR15 or any razoring/qsearch/static-eval change became the lock first (PLAN.md 5)."
  }
 }

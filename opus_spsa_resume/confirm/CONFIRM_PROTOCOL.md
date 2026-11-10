@@ -21,7 +21,7 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
 - **Primary (QA's runner):** `uho_lichess_v1`, `C:\Users\Administrator\grok-pc\coder-fuzz\UHO_Lichess_4852_v1.epd`, SHA256 7A7F6470…5644A.
   - Played with `order=random`, a QA-assigned `-srand` that must differ from the tuning seed 20261110, and an `openings_start` clear of the in-flight ranges 1507501–1560001 and 1700001–1705001. This pack proposes 1800001.
   - Tuning read only `8moves_v3`'s training partition (`partition/PARTITION_MANIFEST.json`). Compared on pieces, side and castling, only 50 of 2,632,036 UHO lines match a training position, so a 2,500-opening confirm is expected to meet about 0.05 of them.
-  - **Leakage audit, mandatory:** after the gate, run `bin\confirm.ps1 -Command audit -Protocol <p> -Candidate <c> -Pgn <gate.pgn>`.
+  - **Leakage audit, mandatory:** after the gate, run `bin\confirm.ps1 -Command audit -Protocol configs\audit_protocol_uho_example.json -Candidate <c> -Pgn <gate.pgn>`. First make its `sprt` equal the gate's SPRT, set `qa_gate` to the PGN's engine names, and pin `training_config_sha256`.
     - It recomputes the result with and without pairs whose start position is a training or screen position.
     - The start position comes from the FEN tag (EPD books such as UHO) or is rebuilt from the moves fastchess annotates `{book}` (PGN books such as `8moves_v3`, which carry no FEN tag).
     - A game whose start cannot be rebuilt fails the audit (exit 31), including a game with neither a FEN tag nor `{book}` moves.
@@ -59,7 +59,9 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
   - **H1 accepted:** the candidate passed this confirm. QA's rule then requires the longer-TC confirm (40+0.4) before any lock consideration.
   - **H0 accepted:** rejected; roll back to the baseline.
   - **Cap without a decision:** **no claim**; roll back to the baseline.
-- A crash, time loss or illegal move invalidates the run. QA reruns with a fresh srand under its own rules; the new srand is reported and the holdout stays single-use.
+- A crash, time loss or illegal move invalidates the run.
+  - **UHO route:** QA reruns with a fresh srand under its own rules. The new srand is reported, and the openings come from a fresh range.
+  - **G1 route:** an INVALID replay records its decision and consumes G1, so there is no rerun on G1. A new confirmation needs G2 or G3, by a written, QA-approved protocol change.
 - No bound decision is evaluated before 50 pairs in this pack's recomputation (audit rule against degenerate early variance).
 - **A claim is made only if** all four hold:
   - QA's verdict is H1;

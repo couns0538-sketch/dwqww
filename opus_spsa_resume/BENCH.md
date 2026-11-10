@@ -136,7 +136,10 @@ Evidence: `evidence/qual/warm1000/`, which holds the comparison JSON, the consol
 ## 6. Synthetic qualification of `configs/joint_razor_qs.json`: run size set to N = 16000 before any game
 ```
 & $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py .\opus_spsa_resume\configs\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual_n16000') --reps 4
-& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py out\synthqual\base_n4000\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --reps 4       # the first proposal, N = 4000
+# the first proposal, N = 4000: the base is evidence/synthqual/base_n4000_joint_razor_qs.json (the config with
+# pairs_planned 4000), restored under its original file name, because the derived configs embed the base's name
+Copy-Item .\opus_spsa_resume\evidence\synthqual\base_n4000_joint_razor_qs.json out\synthqual\base_n4000\joint_razor_qs.json
+& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py out\synthqual\base_n4000\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --reps 4
 & $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py out\synthqual\base_n4000\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --sweep --reps 3
 ```
 Each synthetic copy keeps everything the real run uses: schedule, bounds, priors, pins, perturbation seed 20261110, N and batch size 4. Only four keys differ: run_nonce, identity_check = start, the outcome model and the comment. The model plays seeded outcomes with draw rate 0.75 on the harness's logistic/400 scale. Its units describe the model, **not the engine**. Gaps and distances are assumptions chosen to be tuning-sized, not measurements.

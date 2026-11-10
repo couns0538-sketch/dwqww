@@ -1,6 +1,6 @@
 # TESTS (selftest.ps1)
 
-Run: 20261110T093340Z (UTC, PC clock - see STATUS.md for the clock offset). Scratch: D:\forge_jobs_20261107\opus3\out\tests\selftest\20261110T093340Z
+Run: 20261110T094457Z (UTC, PC clock - see STATUS.md for the clock offset). Scratch: D:\forge_jobs_20261107\opus3\out\tests\selftest\20261110T094457Z
 All tests use synthetic outcomes or saved/generated PGNs: no engine, no games, no Elo.
 
 ## R9 saved-run replay equivalence: PASS (exit 0)
@@ -16,12 +16,12 @@ R9 EQUIVALENCE OK
 ## SPSA harness: PASS (exit 0)
 
 ```
-PASS synthetic: every parameter moves toward a known interior optimum (>=25% of the distance): RazorBase 150->246.7 (opt 250, 97% of the way); RazorMultiplier 350->302.7 (opt 300, 95% of the way); QsFutilityMargin 160->119.7 (opt 120, 101% of the way); rc 0
+PASS synthetic: every parameter moves toward a known interior optimum (>=25% of the distance): RazorBase 150->244.2 (opt 250, 94% of the way); RazorMultiplier 350->307.3 (opt 300, 85% of the way); QsFutilityMargin 160->118.3 (opt 120, 104% of the way); rc 0
 PASS synthetic: no plus/minus engine value violates a bound or C1/C3': 0 violating plans
-PASS synthetic: a run started at the optimum stays within 3 c_end: RazorBase 146.1, RazorMultiplier 344.1, QsFutilityMargin 164.8
-PASS synthetic interaction: joint tuning heads for the joint optimum, one-family tuning does not: joint QsFutilityMargin 112.3 RazorBase 236.1 (joint opt 120/250); QsFutilityMargin alone 72.4 (coordinate-wise opt 72)
-PASS synthetic constrained optimum: every plus/minus/theta feasible, run ends on the C1 boundary: violating plans 0, infeasible updates 0, inner projections 66, final RB+RM-QFM = 8.8, active ['C1']
-PASS synthetic levels (harness capability, not the recommended config): only level values, C1/C2/C3' hold, both level coordinates carry updates: rc 0, plans 200, violating 0, batches with a QsSeeMargin level difference 49, RazorDepth 64; 
+PASS synthetic: a run started at the optimum stays within 3 c_end: RazorBase 148.6, RazorMultiplier 351.6, QsFutilityMargin 163.0
+PASS synthetic interaction: joint tuning heads for the joint optimum, one-family tuning does not: joint QsFutilityMargin 114.8 RazorBase 240.1 (joint opt 120/250); QsFutilityMargin alone 72.1 (coordinate-wise opt 72)
+PASS synthetic constrained optimum: every plus/minus/theta feasible, run ends on the C1 boundary: violating plans 0, infeasible updates 0, inner projections 65, final RB+RM-QFM = 13.2, active ['C1']
+PASS synthetic levels (harness capability, not the recommended config): only level values, C1/C2/C3' hold, both level coordinates carry updates: rc 0, plans 200, violating 0, batches with a QsSeeMargin level difference 51, RazorDepth 68; 
 PASS crash reference: uninterrupted synthetic run of 10 batches: 25 state files
 PASS crash at B0@0: crashed (77), resumed, state byte-identical to the uninterrupted run, verify OK: rc 77/0/0 
 PASS crash at B1@0: crashed (77), resumed, state byte-identical to the uninterrupted run, verify OK: rc 77/0/0 
@@ -50,16 +50,16 @@ PASS verify refuses a tampered older checkpoint (exit 30): {"refused": true, "ex
 PASS refuse a missing HEAD while several checkpoints exist (exit 30): {"refused": true, "exit": 30, "reason": "HEAD.json is missing while several checkpoints exist"}
 PASS refuse a checkpoint more than one step past HEAD (exit 30): {"refused": true, "exit": 30, "reason": "ckpt_000099.json is more than one step past HEAD"}
 PASS refuse a malformed record inside the ledger (exit 30): {"refused": true, "exit": 30, "reason": "ledger line 6: hash or encoding mismatch"}
-PASS refuse a re-hashed pair record whose score does not match its games (exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:cf201c96c7b9/b000000/p000 score does not match its games"}
+PASS refuse a re-hashed pair record whose score does not match its games (exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:42a21b81a103/b000000/p000 score does not match its games"}
 PASS refuse a re-hashed update that its pairs do not reproduce (exit 30): {"refused": true, "exit": 30, "reason": "update of batch 0 is not reproduced by its pairs"}
-PASS refuse a pair recorded twice (duplicate result, exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:5c7a77443ada/b000004/p001 recorded twice"}
-PASS refuse a result for a pair that was never planned (exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:945cd9e17069/b000004/p777 was not planned"}
-PASS refuse a correctly chained ledger record of another run (stale run_id, exit 31): {"refused": true, "exit": 31, "reason": "ledger line 26 belongs to run test:0:60abd8c91d51 (stale)"}
+PASS refuse a pair recorded twice (duplicate result, exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:c373c8c6d698/b000004/p001 recorded twice"}
+PASS refuse a result for a pair that was never planned (exit 31): {"refused": true, "exit": 31, "reason": "pair test:0:88f241b3ac0d/b000004/p777 was not planned"}
+PASS refuse a correctly chained ledger record of another run (stale run_id, exit 31): {"refused": true, "exit": 31, "reason": "ledger line 26 belongs to run test:0:0299b1981e96 (stale)"}
 PASS refuse an openings file listed as holdout/screen (exit 41, also in dry-run): {"refused": true, "exit": 41, "reason": "the openings file is a holdout/screen partition"}
 PASS the holdout refusal ignores hex case (an uppercase pin as Get-FileHash prints it, exit 41): {"refused": true, "exit": 41, "reason": "the openings file is a holdout/screen partition"}
 PASS refuse an unknown --mode before anything is written (exit 10): {"refused": true, "exit": 10, "reason": "unknown mode 'bogus' (dry-run, synthetic, replay, live)"}
 PASS refuse identity_check 'start' outside synthetic qualification (exit 10, nothing written): {"refused": true, "exit": 10, "reason": "identity_check 'start' is for synthetic qualification only; game runs re-check the pins before every batch"}
-PASS live mode refused without --live, without config.live.enabled, without LIVE_ACK (exit 40 x3): 93340Z\\harness\\ref_live\\run\\LIVE_ACK.txt containing the config sha256 45b5a9600d259c1a0ca27c8e6d9b42693223ebb94d63bef6527874d8789f68a4"}
+PASS live mode refused without --live, without config.live.enabled, without LIVE_ACK (exit 40 x3): 94457Z\\harness\\ref_live\\run\\LIVE_ACK.txt containing the config sha256 71fa26b3d244552a8637002702e5a56efe1176b838bd2cbc4869a3d122905560"}
 PASS dry-run (the default mode) starts no process and writes nothing; prints the fastchess command: rc 0, batch 0
 PASS replay of R9's saved fastchess smoke PGN (2 games = 1 pair, both drawn): rc 0 
 PASS replay of PGNs written from a synthetic run reproduces its theta trajectory exactly: rc 0, 6 updates 
@@ -80,12 +80,13 @@ PASS rollback --baseline prints the lock values and writes nothing: ": 350,
  "note": "lock exe: no options; gate exe: switches at 0 restore the lock values"
 }
 PASS export writes history.csv and candidate.json from the ledger: rc 0
+PASS rollback of a COMPLETE run is refused without --reopen-complete (exit 10, nothing appended): run for good (re-tuning until lucky). Pass --reopen-complete only if this run is to be abandoned as a candidate source"}
 PASS rollback of a COMPLETE run reopens it; the resumed run plays the missing batches, completes again, verifies: rc 0/0/0  
 PASS rollback refuses a checkpoint that differs from the ledger-derived state (exit 30): {"refused": true, "exit": 30, "reason": "checkpoint 4 differs from the ledger-derived state; refusing to adopt its theta"}
 PASS live attempt numbering skips attempts that left only a .out (no FileExistsError lock-up on resume): b000003_j000_a0 b000003_j000_a1 b000003_j000_a2
 PASS E-006: plus = minus after rounding -> no update in inner mode; r9_clamp updates as R9 does: {'inner': (True, 0, 0.0, True), 'r9_clamp': (True, 0, 0.00080269111398934, True)}
 PASS complete-record values: plain rounding breaks C1 by 1 here; the feasible repair gives the nearest feasible integers: plain {'RazorBase': 100, 'RazorMultiplier': 200, 'QsFutilityMargin': 301, 'RazorDepth': 2, 'QsSeeMargin': 40} fixed {'RazorBase': 100, 'RazorMultiplier': 201, 'QsFutilityMargin': 301, 'RazorDepth': 2, 'QsSeeMargin': 40}
-63/63 PASS; HARNESS TESTS OK
+64/64 PASS; HARNESS TESTS OK
 ```
 
 ## Confirmation pack: PASS (exit 0)
@@ -106,14 +107,14 @@ PASS confirm crash at after_pair@37: resumed run records the same pairs and deci
 PASS confirm crash at ckpt_tmp@1: resumed run records the same pairs and decision exactly once, verify OK: rc 77/0/0 
 PASS confirm crash at ckpt_renamed@1: resumed run records the same pairs and decision exactly once, verify OK: rc 77/0/0 
 PASS confirm crash at after_decision: resumed run records the same pairs and decision exactly once, verify OK: rc 77/0/0 
-PASS refuse a second confirmation run on a used holdout group (exit 41): a85f is registered in D:\\forge_jobs_20261107\\opus3\\out\\tests\\selftest\\20261110T093340Z\\confirm\\cli_basic\\run; it cannot run again elsewhere"}
-PASS refuse a re-run in the same directory after it was deleted, and another candidate there (exit 41 x2): rc 41/41 un, but its CONFIRM.json is gone: a re-run is refused (one confirmation per group, ever)"} | \\selftest\\20261110T093340Z\\confirm\\cli_basic\\run (one confirmation per group, ever)"}
-PASS moving the protocol's registry does not reset single use: the registry beside the holdout file still refuses (exit 41): bs_20261107\\opus3\\out\\tests\\selftest\\20261110T093340Z\\confirm\\cli_basic\\run (one confirmation per group, ever)"}
+PASS refuse a second confirmation run on a used holdout group (exit 41): 29cb is registered in D:\\forge_jobs_20261107\\opus3\\out\\tests\\selftest\\20261110T094457Z\\confirm\\cli_basic\\run; it cannot run again elsewhere"}
+PASS refuse a re-run in the same directory after it was deleted, and another candidate there (exit 41 x2): rc 41/41 un, but its CONFIRM.json is gone: a re-run is refused (one confirmation per group, ever)"} | \\selftest\\20261110T094457Z\\confirm\\cli_basic\\run (one confirmation per group, ever)"}
+PASS moving the protocol's registry does not reset single use: the registry beside the holdout file still refuses (exit 41): bs_20261107\\opus3\\out\\tests\\selftest\\20261110T094457Z\\confirm\\cli_basic\\run (one confirmation per group, ever)"}
 PASS synthetic without protocol.synthetic (10), replay without protocol.replay (10), live (40), unknown mode (10): refused before anything is written; no registry line, no run directory: rc 10/10/40/10 ion from that PGN with --mode replay (protocol.replay), or audits QA's own gate PGN with audit-pgn"}
 PASS dry-run reports a synthetic candidate as not confirmable (mode and config pin), and a live candidate whose training config the protocol pins as confirmable: ['candidate comes from a synthetic training run, not a live one', "the protocol does not pin training_config_sha256 (QA's live tuning config, RUN.json config_sha256)"] | []
 PASS refuse a peeking optimizer whose training read the holdout group (exit 41): {"refused": true, "exit": 41, "reason": "the holdout group was read by the training run (peeking)"}
 PASS refuse a candidate spec whose content does not match its spec_sha256 (exit 10): {"refused": true, "exit": 10, "reason": "candidate spec_sha256 does not match its content"}
-PASS refuse a changed candidate/baseline exe (exit 20):  "reason": "pinned base_exe changed: D:\\forge_jobs_20261107\\opus3\\out\\tests\\selftest\\20261110T093340Z\\confirm\\changes\\env\\dummy_engine.exe"}
+PASS refuse a changed candidate/baseline exe (exit 20):  "reason": "pinned base_exe changed: D:\\forge_jobs_20261107\\opus3\\out\\tests\\selftest\\20261110T094457Z\\confirm\\changes\\env\\dummy_engine.exe"}
 PASS refuse resuming with a changed protocol (exit 11): {"refused": true, "exit": 11, "reason": "protocol, candidate or mode differ from this run's CONFIRM.json"}
 PASS refuse a duplicated pair result (exit 31): {"refused": true, "exit": 31, "reason": "pair 4 recorded twice"}
 PASS refuse a corrupt checkpoint (exit 30): {"refused": true, "exit": 30, "reason": "checkpoint does not match HEAD"}

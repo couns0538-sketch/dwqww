@@ -423,7 +423,7 @@ def t_select(base):
           and spec.get("training_mode") == "synthetic" and spec.get("training_rollbacks") == [],
           f"rc {rc1}/{rc2} {err1.strip()[-100:]}")
     # re-tuning until lucky: roll a COMPLETE run back and let it complete again -> no candidate
-    h.cli("rollback", d / "train", "--to-ckpt", "5")
+    h.cli("rollback", d / "train", "--to-ckpt", "5", "--reopen-complete")
     h.cli("run", tc, d / "train", "--mode", "synthetic", "--resume")
     n_complete = sum(1 for x in (d / "train" / "ledger.jsonl").read_text(encoding="ascii").splitlines()
                      if json.loads(x)["type"] == "complete")

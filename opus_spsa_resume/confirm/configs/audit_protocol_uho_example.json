@@ -1,0 +1,12 @@
+{
+ "schema": "opus3-confirm-protocol/1",
+ "name": "opus3_razorqs_audit_uho_example",
+ "comment": "AUDIT-ONLY protocol for QA's UHO confirmation gate (the primary route, confirm/PROPOSED_QA_ENTRY.json). Use it only with bin\\confirm.ps1 -Command audit -Protocol <this file> -Candidate <cand.json> -Pgn <QA's gate PGN>. The run/registry fields are absent on purpose: the gate is played and decided by QA's own runner, and this file only drives the independent recomputation. Before the audit, QA must: (1) make sprt equal the gate's own SPRT (cap_games 40000 if QA used the proposed cap; a mismatch makes the recomputation disagree, which fails safe and makes no claim); (2) set qa_gate to the engine names in the gate PGN; (3) set training_config_sha256 to the RUN.json config_sha256 of the complete live tuning run. Claim only if QA's verdict and this recomputation agree, leakage <= 1% and candidate_issues is empty.",
+ "training_config_sha256": "QA_FILLS_BEFORE_THE_AUDIT: RUN.json config_sha256 of the complete live tuning run",
+ "training_keys_files": [
+  {"path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\train.keys", "sha256": "5e5dd9342a74b1473063f745f7b1c52229665f146cc797b14de8a13ac45c58a2"},
+  {"path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\screen.keys", "sha256": "aab754534ded4eca857f51cd223fa71da5cfa1415cef9041942f66600927f024"}
+ ],
+ "sprt": {"nelo0": 0.0, "nelo1": 5.0, "alpha": 0.05, "beta": 0.05, "cap_games": 40000, "min_pairs": 50},
+ "qa_gate": {"cand_name": "cand_opus3_razorqs_PCSHA8", "base_name": "base_combo29_clang_E1284F7F"}
+}

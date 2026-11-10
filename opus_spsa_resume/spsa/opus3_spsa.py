@@ -5,14 +5,17 @@ usage (Python 3.10, run as python -I -B; the PowerShell entry point is ..\\bin\\
                     [--max-batches N] [--max-pairs N] [--total-pairs N]
   opus3_spsa.py status <run_dir>          state, theta, budgets (read-only)
   opus3_spsa.py verify <run_dir>          full verification of ledger, checkpoints and identity (read-only)
-  opus3_spsa.py rollback <run_dir> --to-ckpt N        new checkpoint with theta and k of checkpoint N (logged)
+  opus3_spsa.py rollback <run_dir> --to-ckpt N [--reopen-complete]
+                                          new checkpoint with theta and k of checkpoint N (logged). A COMPLETE run
+                                          needs --reopen-complete, and can then never yield a candidate
   opus3_spsa.py rollback <config.json> --baseline     prints the baseline (lock) option line; writes nothing
   opus3_spsa.py export <run_dir> --out <dir>          history.csv and candidate.json derived from the ledger
 
 Modes: dry-run (DEFAULT) validates the config and pins, prints the exact fastchess command of the next batch and
 writes nothing. synthetic plays seeded outcomes from a known model (no engine, no games). replay reads saved PGNs
 listed in a hash-pinned manifest. live runs fastchess and REFUSES unless --live is given, config.live.enabled is
-true and <run_dir>/LIVE_ACK.txt contains the config's sha256 (never used by this job).
+true and <run_dir>/LIVE_ACK.txt contains the config's sha256 (never used by this job). That sha256 is over the
+config's canonical JSON, not Get-FileHash of the file; the refusal message prints the expected value.
 State: RUN.json (immutable), ledger.jsonl (hash chain, source of truth), ckpt/ckpt_<seq>.json + HEAD.json (atomic).
 Every resume replays the ledger and recomputes each plan and update; a recorded value that the config does not
 reproduce is refused. A pair is identified by run/batch/index and counted once; an update is applied once.
@@ -697,6 +700,10 @@ def cmd_rollback(target, args):
     reconcile_checkpoints(run, st)
     if st["pending"] is not None:
         raise Refuse(EXIT_CORRUPT, "cannot roll back inside an open batch; resume it first")
+    if st["complete"] and not args.get("reopen_complete"):
+        raise Refuse(EXIT_CONFIG, "the run is COMPLETE: a rollback reopens it, and confirm/select_candidate.py then "
+                                  "refuses the run for good (re-tuning until lucky). Pass --reopen-complete only if "
+                                  "this run is to be abandoned as a candidate source")
     n = int(args["to_ckpt"])
     led = run.ledger
     expected = []
@@ -738,7 +745,7 @@ def cmd_export(run_dir, out_dir):
 def parse_args(argv):
     args = {}
     i = 0
-    flags = {"--resume": "resume", "--live": "live", "--baseline": "baseline"}
+    flags = {"--resume": "resume", "--live": "live", "--baseline": "baseline", "--reopen-complete": "reopen_complete"}
     vals = {"--mode": "mode", "--max-batches": "max_batches", "--max-pairs": "max_pairs", "--total-pairs": "total_pairs",
             "--to-ckpt": "to_ckpt", "--out": "out"}
     pos = []

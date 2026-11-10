@@ -504,7 +504,12 @@ def t_rollback(base):
     d, env, cfg, c = partial(base, "rollback_complete", batches=10)
     rcs, sout, _ = h.cli("status", d / "run")
     was_complete = rcs == 0 and json.loads(sout)["complete"]
-    rc5, _, err5 = h.cli("rollback", d / "run", "--to-ckpt", "9")
+    rc4b, _, err4b = h.cli("rollback", d / "run", "--to-ckpt", "9")
+    n_before = len(ledger(d / "run"))
+    check("rollback of a COMPLETE run is refused without --reopen-complete (exit 10, nothing appended)",
+          was_complete and rc4b == 10 and "reopen-complete" in err4b and len(ledger(d / "run")) == n_before,
+          err4b.strip()[-120:])
+    rc5, _, err5 = h.cli("rollback", d / "run", "--to-ckpt", "9", "--reopen-complete")
     st5 = json.loads(h.cli("status", d / "run")[1])
     rc6, _, err6 = h.cli("run", c, d / "run", "--mode", "synthetic", "--resume")
     rcv6, vout6, _ = h.cli("verify", d / "run")
@@ -518,9 +523,9 @@ def t_rollback(base):
     obj = json.loads(cp.read_text(encoding="ascii"))
     obj["theta"][0] += 7.0
     cp.write_bytes(canon(obj))
-    rc7, _, err7 = h.cli("rollback", d / "run", "--to-ckpt", "4")
-    check("rollback refuses a checkpoint that differs from the ledger-derived state (exit 30)", rc7 == 30,
-          err7.strip()[-160:])
+    rc7, _, err7 = h.cli("rollback", d / "run", "--to-ckpt", "4", "--reopen-complete")  # the run is complete again
+    check("rollback refuses a checkpoint that differs from the ledger-derived state (exit 30)",
+          rc7 == 30 and "differs from the ledger-derived state" in err7, err7.strip()[-160:])
 
 
 def t_units(base):

@@ -34,7 +34,7 @@ Nothing below starts a game unless QA passes all three live guards.
 2. **Tuning uses the lock exe itself.** The tuned scalars are existing UCI options of the lock (`FORGE_EXPOSE_TUNABLES=1`), and `configs/joint_razor_qs.json` pins its SHA256.
    - Dry-run first. It prints the exact fastchess command and writes nothing:
      `powershell.exe -NoProfile -ExecutionPolicy Bypass -File bin\spsa.ps1 -Config configs\joint_razor_qs.json -RunDir <run dir>`
-   - **Live mode** needs all three of: `-Mode live -Live`, `live.enabled = true` in QA's copy of the config, and `<run dir>\LIVE_ACK.txt` holding that config's sha256.
+   - **Live mode** needs all three of: `-Mode live -Live`, `live.enabled = true` in QA's copy of the config, and `<run dir>\LIVE_ACK.txt` holding that config's sha256. The sha256 is over the config's canonical JSON, not `Get-FileHash`; the refusal message prints the expected value.
    - Run size: see `BENCH.md` §6 and `PLAN.md` §4 before choosing N.
 3. **Resume after any interruption:** the same command with `-Resume`. The ledger is replayed, and only the missing pairs of the pending batch are played. Each update is applied exactly once.
 4. **Candidate:** `bin\confirm.ps1 -Command select -TrainingRun <run dir> -CandidateOut <cand.json>`.
@@ -49,10 +49,10 @@ Nothing below starts a game unless QA passes all three live guards.
 6. **Rollback** (`confirm/ROLLBACK.md`):
    - the lock exe with no options;
    - or `option.RazorTune=0 option.QsTune=0` on the gate build;
-   - or `bin\rollback.ps1 -RunDir <run> -ToCkpt <n>` for a tuning run.
+   - or `bin\rollback.ps1 -RunDir <run> -ToCkpt <n>` for a tuning run that is still running. A complete run needs `-ReopenComplete`, and can then never yield a candidate.
 
 **Script defaults.** The `bin\*.ps1` defaults for `-Python` (the grok-pc venv) and `-TempDir` (this job's `tmp\`) name this PC's paths. Pass your own when running elsewhere or for another job.
 
 ## Verify the pack
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File bin\selftest.ps1`: all no-engine tests; writes `TESTS.md`.
-- `MANIFEST.md5` and `MANIFEST.sha256`: hashes of every file in the pack.
+- `MANIFEST.md5` and `MANIFEST.sha256`: hashes of every tracked file in the pack except the two manifests themselves, in sha256sum/md5sum format with relative paths.
