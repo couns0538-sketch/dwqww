@@ -76,3 +76,5 @@ Executed gates in `evasion_prefilter_validation.json` and companion logs:
 - Compiled default baseline `is_legal` contains no BetweenTable reference, BLSR or TZCNT. Enabled assembly contains one each: compiler did not already synthesize this cached-checker predicate. Both symbol dumps are saved. Source-level fast-path preservation does not imply identical register allocation or instruction addresses when the candidate is enabled.
 
 The fixed four-cycle depth18 CPU/wall diagnostic protocol is in `evasion_prefilter_profile_REVIEW.md`. It is separately frozen before execution. Correctness passes and eliminated-call counts do not establish native speed or strength.
+
+The single preregistered cloud timing diagnostic completed without node/hash failures. Median CPU duration ratios were 0.992111 NNUE-on and 0.986636 NNUE-off, with cycles on both sides of parity in both modes. Treat this as a mixed noisy diagnostic, not established speed. Full protocol and all samples are preserved separately. Native performance and Elo remain unproven; experiment stays default-off.

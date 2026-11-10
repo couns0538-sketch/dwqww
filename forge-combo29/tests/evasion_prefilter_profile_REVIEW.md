@@ -22,3 +22,13 @@ Command:
 `python3 tests/evasion_prefilter_profile.py --evidence tests/evasion_prefilter_equivalence.json --output tests/evasion_prefilter_profile_results.json --depth 18 --cycles 4`
 
 The output must not already exist. Do not overwrite an earlier run.
+
+## Single frozen run result
+
+Protocol/evidence freeze: `77c6ed24e7d7ac1bcd445565a51da372a3f3c1c8`. Completed all 32 measured runs plus four warmups on logical CPU 0, retaining every sample. Binary hashes were unchanged and all node signatures matched: NNUE on 6,066,072; NNUE off 6,134,776.
+
+NNUE on candidate/baseline child-CPU duration ratios by cycle: 0.987622, 0.962480, 1.063806, 0.996601. Median 0.992111 (0.79% shorter duration). Wall median ratio 0.992367.
+
+NNUE off CPU ratios: 1.034183, 0.964051, 1.007787, 0.965485. Median 0.986636 (1.34% shorter duration). Wall median ratio 0.986668.
+
+Cycles cross parity substantially in both modes. These medians are descriptive results from this single noisy cloud diagnostic, not established speed gains. No repeat, adaptive extension, or favorable sample exclusion was performed. Native performance and Elo remain unproven; defaults stay off. Exact records are in `evasion_prefilter_profile_results.json` and `evasion_prefilter_profile.log`.
