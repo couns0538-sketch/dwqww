@@ -1,0 +1,63 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 1147017..a86e145 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -87,9 +87,6 @@ int Continuation4Weight = 0;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+-#if FORGE_EXPERIMENT_CONTINUATION4
+-        {"Continuation4Weight", &Continuation4Weight, 0, 100},
+-#endif
+         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+@@ -122,6 +119,9 @@ const std::vector<Parameter>& parameters() {
+         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
++#if FORGE_EXPERIMENT_CONTINUATION4
++        {"Continuation4Weight", &Continuation4Weight, 0, 100},
++#endif
+     };
+     return table;
+ }
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 8d5be76..fefb7b4 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -194,13 +194,34 @@ int main() {
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them; release builds accept them silently.
++#if FORGE_EXPERIMENT_CONTINUATION4
++            const forge::tune::Parameter* continuation4_option = nullptr;
++#endif
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
++#if FORGE_EXPERIMENT_CONTINUATION4
++                // Preserve every legacy option's position, including Clear Hash.
++                // Resolve the deferred experiment by name, never by table index.
++                if (std::string_view(parameter.name) == "Continuation4Weight") {
++                    continuation4_option = &parameter;
++                    continue;
++                }
++#endif
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
+ #endif
++#if FORGE_EXPERIMENT_CONTINUATION4 && defined(FORGE_EXPOSE_TUNABLES)
++            std::cout << "option name Clear Hash type button\n";
++            if (continuation4_option != nullptr) {
++                const auto& parameter = *continuation4_option;
++                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
++                          << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
++            }
++            std::cout << "uciok" << std::endl;
++#else
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
++#endif
+         } else if (command == "isready") {
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+         } else if (command == "ucinewgame") {
