@@ -46,3 +46,28 @@ Positions in the file: 95. Left out: 0 stopped by the node cap, 4 with a board t
 | etc_cut6 | 24 | 0.870 | 67 | 0.980 |
 | etc_cut8 | 24 | 0.848 | 67 | 0.946 |
 
+## Each run against the placebo, position by position
+
+Node count of the run divided by the node count of the placebo run on the same position.
+
+| run | group | positions | geo | 95 % range by base |
+|---|---|---|---|---|
+| etc_cut6_ns | all | 91 | 0.915 | [0.827, 1.011] |
+| etc_cut6_ns | endgame | 35 | 0.827 | [0.692, 1.010] |
+| etc_cut6_ns | middlegame | 56 | 0.975 | [0.882, 1.078] |
+| etc_cut6_fh | all | 91 | 0.939 | [0.858, 1.036] |
+| etc_cut6_fh | endgame | 35 | 0.897 | [0.777, 1.066] |
+| etc_cut6_fh | middlegame | 56 | 0.967 | [0.859, 1.089] |
+| etc_cut8_ns | all | 91 | 0.946 | [0.845, 1.069] |
+| etc_cut8_ns | endgame | 35 | 0.913 | [0.726, 1.181] |
+| etc_cut8_ns | middlegame | 56 | 0.968 | [0.865, 1.082] |
+| etc_cut8_fh | all | 91 | 0.966 | [0.873, 1.075] |
+| etc_cut8_fh | endgame | 35 | 0.914 | [0.765, 1.124] |
+| etc_cut8_fh | middlegame | 56 | 0.999 | [0.888, 1.124] |
+| etc_cut6 | all | 91 | 0.965 | [0.874, 1.073] |
+| etc_cut6 | endgame | 35 | 0.919 | [0.783, 1.108] |
+| etc_cut6 | middlegame | 56 | 0.996 | [0.876, 1.131] |
+| etc_cut8 | all | 91 | 0.934 | [0.841, 1.041] |
+| etc_cut8 | endgame | 35 | 0.850 | [0.697, 1.071] |
+| etc_cut8 | middlegame | 56 | 0.991 | [0.898, 1.092] |
+

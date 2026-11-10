@@ -14,15 +14,20 @@
 // Modes per position (fresh tables each time):
 //   OFF     plain search
 //   PROBE   same tree as OFF; at each eligible node it looks up every child in the TT and only COUNTS
-//           (a) whether a child entry would cut, (b) whether that child is the hash move (then the plain
-//           search finds the cutoff with one extra node anyway) and (c) how many nodes the plain search
-//           then spends below that node. Node counts must equal OFF: that is the built-in control.
-//   ETC     the cutoff is taken.
+//           (a) whether a child entry would cut, (b) whether the first such child it meets, in
+//           move-generation order, is the hash move (a lower bound on "the hash move also proves it")
+//           and (c) how many nodes the plain search then spends below that node. Node counts must equal
+//           OFF: that is the built-in control.
+//   ETC     the cutoff is taken. Variants: "_ns" writes nothing to the table at the node, "_fh" returns
+//           beta instead of the child's bound.
+//   off_p   placebo: the plain search with one history constant changed by 1. Not a mechanism.
+// (Comment block edited after the last build; the binaries named in EVIDENCE.md section 5.1 predate it.)
 // Eligibility rules swept: "cutN" (expected cut nodes, depth >= N, N = 4, 6, 8, 10), "all3" (every
 // non-PV node, depth >= 3) and "nohmN" (expected cut nodes at depth >= N whose own table entry gives no
 // move to try first, N = 4, 6, 8).
 //
-// usage: etc_probe POSITIONS.epd OUT.tsv [hash_mb=16] [node_cap=60000000]
+// usage: etc_probe POSITIONS.epd OUT.tsv [hash_mb=16] [node_cap=60000000] [run,run,...] [history_offset=-32]
+//        etc_probe --gen IN.epd OUT.epd STEP COUNT PLAY_DEPTH
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 

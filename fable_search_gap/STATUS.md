@@ -1,6 +1,6 @@
 # STATUS: fable52 search-gap job
 
-Updated 2026-11-09 22:15 PT. Branch `fable52-search-gap-20261109`. Read this file first when resuming.
+Updated 2026-11-09 22:36 PT. Branch `fable52-search-gap-20261109`. Read this file first when resuming.
 
 ## Result
 
@@ -23,21 +23,27 @@ Updated 2026-11-09 22:15 PT. Branch `fable52-search-gap-20261109`. Read this fil
 - Lock exe baseline on the 24 first positions and on the pawn ending.
 - Qualification rule committed before the deciding run finished (`30b96b42`, 20:55:44 PT). Supplementary reading rule committed before its run started (`03aa2def`, 21:52:45 PT). Each file has exactly one commit.
 - One review by a separate agent on a different model; twelve findings and a list of minor ones; all accepted and answered (`REVIEW_LOG.md`).
+- One recheck by the same reviewer: nine findings resolved, three partly, nine new points. All accepted and fixed (`REVIEW_LOG.md` section 5). The changes made after the recheck have been checked by me only.
+- Dedupe checked again at 22:19 PT against branches and PC folders that changed during the job (`DEDUPE.md` section 6). Commit messages searched (`data/commit_message_search.md`).
+- Hashes of the lock exe, the reference exe and the lock's `search.cpp` and `search.hpp` recomputed at 22:17 PT: all equal to the pins.
 - Skill `skills/forge-search-gap-dossier/SKILL.md` written, with a copy in `D:\forge_jobs_20261109\fable52\.claude\skills\`.
 
 ## In progress
 
-- Recheck of the fixes by the same reviewer. `REVIEW_LOG.md` section 5 records the outcome.
+- Nothing.
 
 ## Exact next action for whoever continues
 
-1. If `REVIEW_LOG.md` section 5 still says the recheck is pending: read the reviewer's reply, fix what holds, and fill in that section.
-2. Run `tools/make_files_md.py` (command below), commit, and push to this branch only.
-3. After that nothing is owed on this job. The next step belongs to the crew and is optional: the counting run of `NO_QUALIFIED_GAP.md` section 6. Its thresholds are fixed in `FALSIFICATION.md` section 3.
+Nothing is owed on this job. Two things belong to owners:
+
+1. **Optional, for the crew:** the counting run of `NO_QUALIFIED_GAP.md` section 6. Its counters and thresholds are fixed in `FALSIFICATION.md` section 3.
+2. **For whoever watches the PC:** the two notes below on disk space and on the gate that finished with time losses while my probes ran.
+
+If any file here is edited later: run `tools/make_files_md.py` (command below) last, then commit and push to this branch only.
 
 ## Disk
 
-D: free space, read by me: 34.33 GiB at 20:10 PT, 33.77 at 21:09, 33.38 at 21:45, 33.09 at 21:57, 32.98 at 22:14. My own use is 78 MiB. The rest of the fall is other jobs. The floor in the brief is 30 GiB; at this rate (about 0.65 GiB per hour) D: reaches it in four to five hours. **This needs an owner's eye; I cannot stop other jobs.** My tools refuse to build or run below 31 GiB.
+D: free space, read by me: 34.33 GiB at 20:10 PT, 33.77 at 21:09, 33.38 at 21:45, 33.09 at 21:57, 32.98 at 22:14, 32.55 at 22:34. My own use is about 80 MiB. The rest of the fall is other jobs. The floor in the brief is 30 GiB; at this rate (about 0.7 GiB per hour) D: reaches it in three to four hours. **This needs an owner's eye; I cannot stop other jobs.** My tools refuse to build or run below 31 GiB.
 
 ## A gate finished with time losses while my probes ran
 

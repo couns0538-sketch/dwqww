@@ -26,7 +26,9 @@ Vocabulary used in the output
                    mean over positions; "by position" = 95 % range treating positions as independent;
                    "by base" = 95 % range over base positions (a base and the positions generated from
                    it form one cluster), which is the honest one. It is centred on the mean of the base
-                   means, which differs slightly from "geo" when bases have unequal numbers of positions
+                   means, which differs slightly from "geo" when bases have unequal numbers of positions.
+                   All ranges use the normal factor 1.96. With few clusters a t factor would be wider:
+                   by 6 to 15 % for 10 to 24 clusters, by about 3 % for 48
   best move differs  positions where the final best move is not the plain run's
   score moves by 50 or more   positions where the final score differs from the plain run's by at least
                    50 of the evaluation's units (about half a pawn)
@@ -199,6 +201,28 @@ def main():
                 parts.append((len(part), math.exp(sum(part) / len(part)) if part else float("nan")))
             lines.append(f"| {run} | {parts[0][0]} | {parts[0][1]:.3f} | {parts[1][0]} | {parts[1][1]:.3f} |")
         lines.append("")
+        if "off_p" in etcs:
+            lines += ["## Each run against the placebo, position by position", "",
+                      "Node count of the run divided by the node count of the placebo run on the same position.", "",
+                      "| run | group | positions | geo | 95 % range by base |",
+                      "|---|---|---|---|---|"]
+            for run in etcs:
+                if run == "off_p":
+                    continue
+                for g in groups:
+                    sel = [l for l in sel_of[g] if run in rows[l] and "off_p" in rows[l]]
+                    if not sel:
+                        continue
+                    logs = []
+                    by_base = defaultdict(list)
+                    for l in sel:
+                        v = math.log(int(rows[l][run]["nodes"]) / int(rows[l]["off_p"]["nodes"]))
+                        logs.append(v)
+                        by_base[bases[l]].append(v)
+                    _cm, clo, chi = mean_range([sum(v) / len(v) for v in by_base.values()])
+                    lines.append(f"| {run} | {g} | {len(sel)} | {math.exp(sum(logs) / len(logs)):.3f} | "
+                                 f"[{math.exp(clo):.3f}, {math.exp(chi):.3f}] |")
+            lines.append("")
     text = "\n".join(lines) + "\n"
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)

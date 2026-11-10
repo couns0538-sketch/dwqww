@@ -8,11 +8,12 @@ Terms are explained in `NO_QUALIFIED_GAP.md` section 9. This file was corrected 
 - **Six in ten gate games end by threefold repetition** (54,667 logged games). The mechanisms that target repetition are all owned already.
 - **Time losses are new and concentrated.** All 70 sit in 8 rows, 67 of them in seven rows recorded on 2026-11-07 to 2026-11-09. Their logs are missing, so the cause is UNVERIFIED.
 - **The one unowned mechanism was measured in a replica search on the lock's own board and evaluation code.** A cutoff is already available from a child entry at about 4 % of eligible middlegame nodes and at 8 to 17 % of eligible endgame nodes, depending on the position set.
-- **Taking that cutoff gave no node saving that can be told from zero, or from a placebo.** On 91 distinct positions the node ratio is 0.92 to 0.95 with a range that includes 1.00. A change that is no mechanism at all (one history constant moved by 1) gives 0.98 with the same kind of range, changes as many best moves, and swings single positions as far.
-- **A second, larger set gave the same answer.** On 336 positions from 48 independent openings, read by a rule committed before the run, the result is "not shown either way": node ratio 0.987, range by opening [0.954, 1.022]. In this replica a saving above about 5 % is ruled out on such positions.
+- **Taking that cutoff gave no node saving that can be told from zero.** On 91 distinct positions the node ratio is 0.92 to 0.95 with a range that includes 1.00.
+- **A placebo is the yardstick.** A change that is no mechanism at all (one history constant moved by 1) gives 0.98 with the same kind of range, changes as many best moves, and swings single positions as far. The mechanism's mean lies inside the placebo's range, and compared with the placebo position by position its range includes 1.00 too.
+- **A second, larger set gave the same answer.** On 336 positions from 48 independent openings, read by a rule committed before the run, the result is "not shown either way": node ratio 0.987, range by opening [0.954, 1.022]. In this replica, at these depths, an average saving above about 5 % is ruled out on such positions. With six pieces or fewer up to 13 % would still fit.
 - **The lookups cost a few percent of time, the same order as the possible saving.** This machine is loaded. The comparison could not be settled here, in either direction.
-- **On the classic pawn-ending test position, three of eight settings of the mechanism play the drawing move at some depth.** The plain replica never does, also not under ten placebo-size changes. Under those changes the mechanism's settings miss the winning move at some depth in 31 of 80 runs; rule cut6 never does, and by depth 40 all but 3 runs have found it again. This is one position. Why it happens is not established.
-- **The rule fixed before the deciding run was read gives NO QUALIFIED GAP.** The honest reading is "not shown", not "refuted".
+- **On the classic pawn-ending test position, three of eight settings of the mechanism play the drawing move at some depth.** The plain replica never does, also not under ten placebo-size changes. Under those changes the mechanism's settings miss the winning move at some depth in 31 of 80 runs; rule cut6 never does, and by depth 40 all but 3 runs have found it again. The ten changes are not independent tests; they amount to two or three separate tries. This is one position. Why it happens is not established.
+- **The deciding rule gives NO QUALIFIED GAP.** It was committed while the deciding run was still writing, and before that run was read. The honest reading is "not shown", not "refuted".
 
 Nothing in this file is an Elo claim. "Observed" means I ran it or read it in a file I name. "Hypothesis" means I did not.
 
@@ -28,7 +29,7 @@ Nothing in this file is an Elo claim. "Observed" means I ran it or read it in a 
 | The lock never reads a child's table entry | observed | lock `src/search.cpp` 1165-1170, 1379-1383, 1066-1070 |
 | In the replica, a child entry already proves the cutoff at 3.9 to 4.7 % of eligible middlegame nodes and 17.1 to 19.5 % of eligible endgame nodes | observed | `data/etc_probe_wide_summary.md` |
 | In the replica, taking that cutoff changes the node count by a factor of 0.92 to 0.95, with a 95 % range that includes 1.00 | observed | same |
-| In the replica, a placebo change moves node counts and best moves about as much | observed | `data/etc_probe_wide_variants_summary.md`, `data/etc_probe_supp_summary.md` |
+| In the replica, a placebo change alters as many best moves and swings single positions as far; the mechanism's mean node count lies inside the placebo's range | observed | `data/etc_probe_wide_variants_summary.md`, `data/etc_probe_supp_summary.md` |
 | On 336 positions from 48 independent openings the node ratio is 0.987 with range [0.954, 1.022] | observed | `data/etc_probe_supp_summary.md` |
 | The lookups cost more time than the cutoffs save, or less | not resolved | section 5.6 |
 | The same numbers hold inside the real lock search | hypothesis | needs an instrumented build |
@@ -80,7 +81,7 @@ A single capped result, and even a single H1, says little about the size of a me
 | UB69 | `..._b69bundleB1_al1_a0d0eca9.exe` | 748 | 12 | 2026-11-09 01:08 |
 | UB70W50 | `..._b70packanpc_al1_e7cea33f.exe` | 746 | 22 | 2026-11-09 16:55 |
 
-- **One more such row appeared while this job ran.** At 21:44 PT the table gained a 127th row: SYZJ1, the Syzygy candidate, 1,918 games, 6 time losses, NOT CLEAN, read as H1. It is not in the counts of this file, which describe the 126-row table of 16:55 PT. With it the table holds 76 time losses in 9 rows, 73 of them in eight rows recorded since 2026-11-07.
+- **One more such row appeared while this job ran.** At 21:44 PT the table gained a 127th row: SYZJ1, the Syzygy candidate, 1,918 games, 6 time losses, NOT CLEAN, read as H1. It is not in the counts of this file, which describe the 126-row table of 16:55 PT. With it the table holds 76 time losses in 9 rows, 73 of them in eight rows recorded since 2026-11-07. Its tag says `vs_trial_w6` while its base column says combo29, which makes it an 18th row where the two disagree.
 - The 51 older logs (54,667 games) contain no time loss at all.
 - UB70W50 lost 22 of 746 games on time and was read as H0 at -24 Elo. If the candidate was the side that forfeited, the forfeits alone account for about 10 to 20 of those 24 Elo (10 if the lost games would otherwise have been drawn on average, 20 if they would have been won). I could not check which side forfeited, because those logs are missing.
 - These verdicts should not be read as evidence about the search.
@@ -211,8 +212,10 @@ Wide set, 91 distinct positions. Node ratio = nodes of the run / nodes of the pl
 **Reading.**
 
 - **No setting shows a node saving once clusters are respected.** Every "by base" range includes 1.00.
-- **The placebo moves the numbers about as far as the mechanism does.** It changes the best move in 18 of 91 positions (the mechanism: 15 to 20). Its single-position ratios run from 0.08 to 3.3 (the mechanism: 0.06 to 3.5). So the swings and the best-move changes are properties of this replica under any small change. They are not evidence against the mechanism, and an earlier version of this file was wrong to present them that way.
-- **Most of the measured saving of cut6 and cut8 comes from two positions** where the search with the cutoff became much smaller: the pawn ending of section 5.8, and `e8_bishop_knight_p4`, where the score also moved from -21 to 0. Without the two smallest ratios the mean is 0.97 to 0.99 for the three planned rules.
+- **The placebo changes best moves and single positions as much as the mechanism does.** It changes the best move in 18 of 91 positions (the mechanism: 15 to 20). Its single-position ratios run from 0.08 to 3.3 (the mechanism: 0.06 to 3.5). So the swings and the best-move changes are properties of this replica under any small change. They are not evidence against the mechanism, and an earlier version of this file was wrong to present them that way.
+- **The means are not the same, but they are not separated either.** The placebo's mean is 0.984 (1.6 % fewer nodes). The mechanism's means are 0.919 to 0.950 (5 to 8 % fewer). Each of them lies inside the placebo's range by base, [0.878, 1.080]. Compared with the placebo position by position, cut6 gives 0.965 with range [0.874, 1.073] and cut8 gives 0.934 [0.841, 1.041]; both include 1.00 (`data/etc_probe_wide_variants_summary.md`, last table). One placebo is a single draw, so it is a rough yardstick and not a measured spread.
+- **Most of the measured saving of cut6 and cut8 comes from two positions** where the search with the cutoff became much smaller: the pawn ending of section 5.8, and `e8_bishop_knight_p4`, where the score also moved from -21 to 0. **The second of these collapses under the placebo as well** (ratio 0.080, the same score change), so it is not an effect of the mechanism. Without the two smallest ratios the mean is 0.97 to 0.99 for the three planned rules. The placebo trimmed the same way gives 1.021.
+- **About the ranges.** They use the normal factor 1.96. With 10 to 24 clusters a t factor would widen the "by base" ranges by 6 to 15 %. Where bases have unequal numbers of positions, the "by base" range is centred on the mean of the base means, not on the geometric mean printed next to it. Neither changes a reading here.
 - **Two of the four variants have a range just below 1.00 when positions are treated as independent** (upper ends 0.997 and 0.999). They were added after the first results were known, four variants were tried, and neither holds by base. I do not count this as a result.
 - **Base positions against generated ones.** On the 24 bases alone the geometric mean is 0.87 (cut6) and 0.85 (cut8); on the 67 generated positions it is 0.98 and 0.95. The placebo gives 1.07 and 0.96 on the same two groups. The generated positions were searched two plies shallower, so this split mixes a depth effect with the sample.
 
@@ -245,7 +248,7 @@ Rule cut4 was measured once: +13.3 %.
 
 ### 5.7 Supplementary run on independent openings
 
-The review showed that the wide set is small, clustered and partly duplicated. So I made one more run, on a set whose positions I did not choose. Its reading rule was committed and pushed before the run started (`data/SUPPLEMENT_RULE.md`, commit `03aa2def`, 21:52 PT; the run started at 21:54 PT). The rule says the run cannot change the verdict. It decides how the size of the effect is worded.
+The review showed that the wide set is small, clustered and partly duplicated. So I made one more run, on a set whose positions I did not choose. Its reading rule was committed and pushed before the run started (`data/SUPPLEMENT_RULE.md`, commit `03aa2def`, 21:52:45 PT; the run started at 21:54:44 PT). The rule file's own header says "about 21:55 PT"; I wrote that line a few minutes before committing and left the committed file unchanged. The rule says the run cannot change the verdict. It decides how the size of the effect is worded.
 
 **Set.** 48 openings taken at a fixed stride from an opening file on the PC. From each, the plain replica played its own best move at depth 10, and the position was written every 12 plies, six times. That gives 336 positions, no board twice, in 48 clusters of seven. Search depth 16 with more than six pieces (213 positions), 20 with three to six (102), 24 with two or fewer (21). "Pieces" means knights, bishops, rooks and queens of both sides. 222.3 million plain nodes. Harness exe `775b9b62...`, built from the committed source.
 
@@ -267,8 +270,9 @@ The review showed that the wide set is small, clustered and partly duplicated. S
 
 What else the run says. The rule lists these as reported without a decision.
 
-- **Size.** The range excludes a saving larger than about 5 % in this replica on positions of this kind. The best estimate is 1.3 %.
-- **By material.** With more than six pieces there is no sign of a saving. With six or fewer the estimate is 5 to 6 %, and the range still includes 1.00.
+- **Size.** The range excludes an average saving larger than about 5 % in this replica, at these depths, on positions of this kind. The best estimate is 1.3 %. This says nothing about time or about longer searches.
+- **By material.** With more than six pieces there is no sign of a saving. With six or fewer the estimate is 5 to 6 %; the range still includes 1.00 and allows up to 13 %.
+- **Against the placebo, position by position.** cut6 gives 0.989 with range [0.959, 1.019] and cut8 gives 0.987 [0.949, 1.027] over all 336. In the group with six pieces or fewer, cut6 gives 0.931 with range [0.848, 0.968], below 1.00, and cut8 gives 0.946 [0.860, 1.000]. I added this comparison after the review's recheck, when the data were already known, and it is one of several subgroup looks. It is a hint that low-material positions are where a saving would be. It is not a result.
 - **Best moves and scores.** The mechanism changes the best move less often than the placebo does (72 to 80 positions against 95) and moves fewer scores by half a pawn (10 to 14 against 18). On this measure it does no harm that a placebo does not also do.
 - **Opportunity.** A child entry proves the cutoff at 4.0 % (cut6) and 3.2 % (cut8) of eligible nodes with more than six pieces, and at 9.0 % and 7.8 % with six or fewer. The nodes below such nodes are 4.0 % (cut6) and 2.6 % (cut8) of all nodes. These are lower than on the wide set (17 %, and 6.9 % and 4.7 %), whose endgames I had typed by hand.
 - **Time.** Wall time of the lookups in this run: +7.5 % (cut6) and +0.7 % (cut8). Indicative only, as in section 5.6.
@@ -323,7 +327,11 @@ Position 70 of Fine's *Basic Chess Endings* (`8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - 
 | all3 | 1 of 10 | 9 | 0 |
 
 - **The plain replica never misses; the mechanism often does.** Plain keeps the winning move in all ten runs. The settings of the mechanism miss it at some depth in 31 of 80.
-- **These are not ten independent tests.** The runs fall into two groups that begin the same way. With the constant at -40 to -31 (and at the default -32), cut8 and its "return beta" variant miss the move. With -30 to -24, cut4 and cut8 without store miss it. Rule all3 misses in both groups. So the grid is closer to two or three independent tries than to ten. In each of them the plain replica is right at every depth and several settings of the mechanism are not. That makes chance an unlikely explanation, but it is not a proof.
+- **These are not ten independent tests.** The runs fall into two groups that begin the same way.
+  - Constant at -40 to -31 (six runs, and the default -32 behaves the same): cut8 and its "return beta" variant miss the move in all six, all3 in five, cut8 without store in one (-40).
+  - Constant at -30 to -24 (four runs): cut4, cut8 without store and all3 miss it in all four, cut6 without store in one (-30).
+  - Some runs are identical for most of their length. The -33 and -34 runs of cut8 have the same node counts up to depth 36 and differ only at depth 40. The -31 run is the placebo of the baseline table, and its cut8 search matches the baseline cut8 search up to depth 36.
+  - So the grid is closer to two or three independent tries than to ten. In each of them the plain replica is right at every depth and several settings of the mechanism are not. That makes chance an unlikely explanation, but it is not a proof.
 - **It is mostly a delay.** Nearly all misses are at depths 24 to 36. At depth 40 only 3 of the 80 runs still play another move.
 - **It depends on the setting.** Rule cut6 and its "return beta" variant never miss. Rule all3 misses in nine of ten.
 - **Not storing is not a cure.** With the default constant the failure of cut8 went away when the node stored nothing. Under the ten changes that variant still missed in five of ten.

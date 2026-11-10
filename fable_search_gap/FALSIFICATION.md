@@ -6,7 +6,7 @@ The dossier says two things: (1) every checked mechanism except one is already o
 
 ## Key points
 
-- **Strongest falsifier of the mechanism:** the classic pawn ending in section 2. With the mechanism on, the engine must still play 1.Kb1 at every depth from 24 to 40. In the replica three of eight settings fail this at some depth. Under ten placebo-size changes the plain replica never fails it, and the mechanism's settings fail it at some depth in 31 of 80 runs.
+- **Strongest falsifier of the mechanism:** the classic pawn ending in section 2. With the mechanism on, the engine must still play 1.Kb1 at every depth from 24 to 40. In the replica three of eight settings fail this at some depth. Under ten placebo-size changes the plain replica never fails it, and the mechanism's settings fail it at some depth in 31 of 80 runs. Those runs are not independent; they amount to two or three separate tries.
 - **Strongest falsifier of the verdict:** the counting run in section 3. If the real lock search shows a first-order saving clearly above the lookup cost, "no benefit shown" is out of date and a spec is due.
 - **Strongest falsifier of the dedupe:** any branch, note or build that reads a child's table entry to end a node. One hit and "unowned" is false.
 - **Every single-position comparison in this replica needs a placebo next to it.** A change that is no mechanism moves the best move in 18 of 91 positions and single node counts by a factor of 0.08 to 3.3.
@@ -57,7 +57,14 @@ A counting mode in the real search, compiled out by default. It takes no cutoff,
 | `top_hits`, `below` | hits not nested under another hit, and the nodes the search then spends below them |
 | `top_hits_fail_high` | of those, how many the search itself ends at or above beta |
 
-**Positions.** `bench 16` and `bench 20`, and at least 300 positions taken from real gate games at the gate's time control, at evenly spaced plies. The mix of middlegame and endgame is then the gate's own. If no games are kept, playing some is QA's call, not mine.
+**Where the count sits.** Right after the node's own table-cutoff test (`search.cpp:1165-1170`) and before razoring, reverse futility, the null move and ProbCut. That place decides which nodes count as "below", so it has to be the same in every run.
+
+**Two details the lock code forces.**
+
+- `key_after` gives no key at a node that has an en-passant square (`board.cpp:974`). Either key those children by making and unmaking the move, or count such nodes separately and say that hits there are missed.
+- The child's repetition test should be the lock's own rule (`is_repetition` with the root index, as `is_draw` uses it), not a stricter one. A stricter test undercounts hits.
+
+**Positions.** `bench 16` and `bench 20`, and at least 300 positions taken from real gate games at the gate's time control, each weighted by the time or nodes the engine spent on that move. The mix of middlegame and endgame is then the gate's own. Evenly spaced plies would give the mix by move count, which is not the same. If no games are kept, playing some is QA's call, not mine.
 
 **Timing.** Counting on against counting off, interleaved on a quiet machine, repeated until the uncertainty of the time difference is under one percentage point. This job could not do that (`EVIDENCE.md` section 5.6).
 

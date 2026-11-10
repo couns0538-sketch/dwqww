@@ -7,9 +7,10 @@ Result of the fable52 job "one missing search mechanism" for the Forge engine at
 - **Verdict: NO QUALIFIED GAP.** I found no search mechanism that is both missing everywhere and supported well enough to hand to the crew as a spec.
 - **Twenty candidates were checked. Nineteen are already owned** (in the lock, built, gated, rejected, or listed in the crew's research notes). `DEDUPE.md` has the references.
 - **The twentieth is owned by nobody: enhanced transposition cutoffs.** I measured it in a replica search on the lock's own board and evaluation code. Four more classic ideas have no card and no build. I found no evidence that would justify measuring them, and one of them is partly owned (`DEDUPE.md` section 5).
-- **It does not qualify, because no benefit is shown.** The rule committed before the deciding run asked for a node saving clearly below 1.00. The measured range includes 1.00. A placebo change moves the same numbers about as far. A second run on 336 positions from 48 independent openings, read by a rule committed before it, gave 0.987 with range [0.954, 1.022]: not shown, and no more than about 5 % if it exists.
+- **It does not qualify, because no benefit is shown.** The deciding rule was committed while the deciding run was still writing, and before it was read. It asked for a node saving clearly below 1.00. The measured range includes 1.00, and the measured mean lies inside the range that a single placebo change produces. A second run on 336 positions from 48 independent openings, read by a rule committed before that run started, gave 0.987 with range [0.954, 1.022]: not shown either way.
 - **That is "not shown", not "refuted".** The first test could only have seen a saving of about 12 % or more, the second one of about 5 % or more. The time cost of the lookups is the same order as the possible saving, and this loaded machine could not settle which is larger.
-- **One warning sign:** on the classic pawn-ending test position, three of eight settings of the mechanism play the drawing move at some depth. Under ten placebo-size changes the plain replica always keeps the winning move; the mechanism's settings miss it at some depth in 31 of 80 runs. One setting (6 plies) never misses.
+- **How much room is left.** In this replica, at these search depths and on that mix of positions, the average node saving is at most about 5 %. With six pieces or fewer on the board as much as 13 % would still fit; with more than six there is no sign of any. Nothing here bounds time, or longer searches, or the real lock search.
+- **One warning sign:** on the classic pawn-ending test position, three of eight settings of the mechanism play the drawing move at some depth. Under ten placebo-size changes the plain replica always keeps the winning move; the mechanism's settings miss it at some depth in 31 of 80 runs. Those runs are not independent; they amount to two or three separate tries. One setting (6 plies) never misses.
 - **Blocker:** no shown benefit, in a replica that is not the lock search.
 - **Narrowest next evidence request:** one counting run inside the real lock search, described in section 6. It needs an instrumented build, which this job was not allowed to make. It costs a few crew hours and a quiet timing slot, and no gate.
 
@@ -82,7 +83,7 @@ Over all 91 positions the node ratio is 0.95 [0.83, 1.07] at 6 plies and 0.92 [0
 | Placebo | 0.99 [0.96, 1.05] | 1.01 [0.96, 1.11] | 0.999 [0.962, 1.037] |
 | Best move differs from plain: mechanism against placebo | 51 against 63 | 21 to 29 against 32 | 72 to 80 against 95 |
 
-Reading by the committed rule: **not shown either way.** The range rules out a saving above about 5 % in this replica on such positions. The hand-typed endgames of the first sets had overstated how often a child entry proves the cutoff.
+Reading by the committed rule: **not shown either way.** The range rules out an average saving above about 5 % in this replica, at these depths, on such positions. For the group with six pieces or fewer it still allows up to 13 %. The hand-typed endgames of the first sets had overstated how often a child entry proves the cutoff.
 
 The controls held: the counting run reproduced the plain node count in every position, and the plain run repeated itself exactly.
 
@@ -93,7 +94,7 @@ The controls held: the counting run reproduced the plain node count in every pos
 - Of the twenty candidates it is the only one nobody owns.
 - It adds no new kind of guess (section 3), so it carries less tuning risk than a margin-based pruning rule.
 - The opportunity is real: a child entry already proves the cutoff at 3 to 4 % of eligible middlegame nodes and at 8 to 17 % of eligible endgame nodes, depending on the position set.
-- With six pieces or fewer the second set shows a 5 to 6 % node saving whose range only just includes 1.00.
+- With six pieces or fewer the second set shows a 5 to 6 % node saving whose range only just includes 1.00. Compared with the placebo instead of the plain run, the range of the 6-ply setting lies below 1.00 there ([0.85, 0.97]). I added that comparison after seeing the data, and it is one of several subgroup looks, so it is a hint about where a saving would be, not a result.
 - On the first 24 positions one setting showed a 13 % node saving with a range just below 1.00. That run came before the rule, so it is a hint, not a test.
 - On the classic pawn ending the 6-ply setting keeps the winning move under every change tried. In the baseline run it needs 12 times fewer nodes than the plain replica at depth 40.
 - Part of the plumbing exists in `tcc21`.
@@ -101,8 +102,8 @@ The controls held: the counting run reproduced the plain node count in every pos
 **Against. This is the stronger case.**
 
 - **No benefit shown.** On the deciding run the node saving cannot be told from zero. By base position the ranges are wider still. Most of the measured saving comes from two positions.
-- **Not distinguishable from a placebo.** Changing one history constant by 1 moves the mean node count, the best moves and single positions about as far as the mechanism does. This cuts both ways: no benefit beyond a placebo, and on the second set no harm to best moves beyond one either.
-- **Small at best.** The second set bounds the node saving at about 5 % in this replica, with a best estimate of 1.3 %. With more than six pieces on the board there is no sign of any saving.
+- **Inside what a placebo does.** Changing one history constant by 1 changes as many best moves and swings single positions as far as the mechanism does. The means differ: on the 91 positions the mechanism has 5 to 8 % fewer nodes and the placebo 1.6 % fewer; on the 336 positions 1.3 % and 0.1 %. But the mechanism's mean lies inside the range this placebo produces, and compared with the placebo position by position its range includes 1.00 on both sets (`EVIDENCE.md` sections 5.5 and 5.7). One placebo is one draw, so this is a rough yardstick. It cuts both ways: no benefit shown beyond a placebo, and on the second set no harm to best moves beyond one either.
+- **Small at best on average.** On the second set the average node saving in this replica is at most about 5 %, with a best estimate of 1.3 %. With more than six pieces on the board there is no sign of any saving. With six or fewer as much as 13 % would still fit. Time and longer searches are not bounded by this.
 - **Cost of the same order.** The lookups cost a few percent of time. That is the size of the possible saving. I could not settle which is larger.
 - **A wrong move on a known test.** On the classic pawn ending three of eight settings play the drawing move at some depth. Chance is an unlikely explanation: under ten placebo-size changes the plain replica keeps the winning move every time, and the mechanism's settings miss it at some depth in 31 of 80 runs. Those ten runs are closer to two or three independent tries than to ten. Most runs find the move again by depth 40. It is one position, and the cause is not established.
 - **Practitioner record.** Engine authors who tried it reported about 1 % fewer nodes, a small gain only when restricted to deep expected cut nodes, or a loss in fast engines (`IDEA_SOURCE.md` row 5). I found no controlled test of it in any current engine.
@@ -118,7 +119,8 @@ The controls held: the counting run reproduced the plain node count in every pos
 
 - **Build:** the `tcc21` source (it already has the child `peek`), plus a counting block under a compile switch that is off by default. At each non-PV expected cut node with no excluded move, depth at least 8, beta not a mate score, rule-50 below 90 and no cutoff from the node's own entry: generate the legal moves, compute each child key with `key_after`, peek the child entry, and count.
 - **Count:** eligible nodes; nodes where some child entry proves the cutoff; how many of those through the hash move's own child; and the nodes spent below the outermost such nodes. For the hash move the child entry must be two plies deeper than for other moves, because the lock may extend the hash move and that cannot be known in advance.
-- **Positions:** the engine's `bench 16` and `bench 20`, and at least 300 positions taken from real gate games at evenly spaced plies. That gives the gate's own mix of middlegame and endgame, which I could not get: I found no PGNs.
+- **Where the count sits:** right after the node's own table-cutoff test (`search.cpp:1165-1170`) and before razoring, reverse futility, the null move and ProbCut. That place decides which nodes count as "below".
+- **Positions:** the engine's `bench 16` and `bench 20`, and at least 300 positions taken from real gate games, each weighted by the time or nodes the engine spent on that move. That gives the gate's own mix of middlegame and endgame, which I could not get: I found no PGNs. Evenly spaced plies would give the mix by move count, which is not the same.
 - **Controls:** node counts with the switch on must equal the pins (312866 / 862329 / 3024920 / 12389307 / 34048354 with the net on). Lookup time is measured on a quiet machine, counting on against counting off, interleaved.
 - **Decision, fixed now, on the game positions as one set:**
   - Close the idea if the share of nodes below such nodes is smaller than the lookup time.

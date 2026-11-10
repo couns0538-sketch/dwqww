@@ -41,3 +41,16 @@ Positions in the file: 336. Left out: 0 stopped by the node cap, 0 with a board 
 | etc_cut6 | 48 | 1.083 | 288 | 0.972 |
 | etc_cut8 | 48 | 1.066 | 288 | 0.973 |
 
+## Each run against the placebo, position by position
+
+Node count of the run divided by the node count of the placebo run on the same position.
+
+| run | group | positions | geo | 95 % range by base |
+|---|---|---|---|---|
+| etc_cut6 | all | 336 | 0.989 | [0.959, 1.019] |
+| etc_cut6 | endgame | 123 | 0.931 | [0.848, 0.968] |
+| etc_cut6 | middlegame | 213 | 1.024 | [0.974, 1.059] |
+| etc_cut8 | all | 336 | 0.987 | [0.949, 1.027] |
+| etc_cut8 | endgame | 123 | 0.946 | [0.860, 1.000] |
+| etc_cut8 | middlegame | 213 | 1.012 | [0.956, 1.067] |
+

@@ -72,7 +72,7 @@ Speed on this lane was 2.1 to 2.5 million nodes per second. That number is conte
 - **Fetched:** 387 branches. Tips are in `data/branch_tips.tsv`.
 - **Not fetched:** 20 branches under `data/` and `results/` (training data and CI result dumps). Anything only on those branches is UNVERIFIED.
 - **Index:** 56,163 unique (blob, path) pairs. Index sha256 `3d5c10b8ade0e742...` (local file `out\index\tree_index.tsv`, regenerate with `tools/tree_index.py`).
-- **Corpus:** every `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff` on the fetched branches, 3,754 files, 41.6 MB, one file per blob (local `out\corpus`, manifest sha256 `6a8ff8c3cce79072...`, regenerate with `tools/fetch_corpus.py`). Dedupe searches ran over this corpus. **It holds branch tips and these six file types only.** Work that was deleted or reverted before a branch tip is not in it, and neither is anything recorded only in `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log files. For the one unowned mechanism the 2,655 commit messages of the fetched branches were searched as well.
+- **Corpus:** every `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff` on the fetched branches, 3,754 files, 41.6 MB, one file per blob (local `out\corpus`, manifest sha256 `6a8ff8c3cce79072...`, regenerate with `tools/fetch_corpus.py`). Dedupe searches ran over this corpus. **It holds branch tips and these six file types only.** Work that was deleted or reverted before a branch tip is not in it, and neither is anything recorded only in `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log files. For the one unowned mechanism the commit messages of the fetched branches were searched as well, after the review: 2,658 commits, no match (`data/commit_message_search.md`).
 
 Documents read in full or searched line by line:
 

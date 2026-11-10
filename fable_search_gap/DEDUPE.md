@@ -90,7 +90,7 @@ An earlier version of this table said "zero corpus matches" for the second row. 
 ## 6. Limits of this dedupe
 
 - **Scope.** It covers the 387 fetched branches, the PC folders named in `COVERAGE.md`, and nothing in the three banned folders.
-- **Branch tips only.** The corpus holds each file as it stands at the tip of each branch. Work that was added and later deleted or reverted is not in it. For the unowned mechanism I also searched the 2,655 commit messages of all fetched branches by name and found nothing. For the other rows I did not.
+- **Branch tips only.** The corpus holds each file as it stands at the tip of each branch. Work that was added and later deleted or reverted is not in it. For the unowned mechanism I also searched the commit messages of all fetched branches by name, after the review: 2,658 commits, no match (`data/commit_message_search.md`). For the other rows I did not.
 - **Six file types only.** `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff`. A mechanism recorded only in a `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log file would be missed.
 - **Twenty branches not fetched.** The `data/` and `results/` branches were left out for size.
 - **Branches that moved during the job.** The snapshot was taken at 20:15 PT. I compared the remote again at 22:19 PT. No branch was added. One moved: `opus-smp-layout-20261107`, from `a675c04f` to `b5b52035`, seven commits about the shared-table layout. Its only source change is one comment line in `search.hpp`, and the line cited in row 16 is unchanged. Anything pushed after 22:19 PT is not covered.
