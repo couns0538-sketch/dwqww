@@ -11,9 +11,9 @@ Everything here was gathered read-only. Evidence ids are git commits on github.c
 | Exe ↔ source link | The link rests on QA's build records, not on a rebuild: `RUN_RECEIPT.json` (source manifest 3389cfe3 → exe e1284f7f) and `build.log` line 77 ("built … sha256 e1284f7f"). Both are recorded in FREEZE but not pinned. The binary is not byte-reproducible (CURRENT_LOCK note: embedded PDB paths). | frozen copies under `out\freeze\parent` |
 | Build | clang 23.1.5 (llvm-mingw-20261104), ThinLTO, frontend instrumentation PGO. Recipe `clang_build.ps1` 1fd87517…. Workload 1d52720a…. Profdata c5d97fc7…. | `RUN_RECEIPT.json`, `build.log` |
 | Source parent | `D:\grok_sdk_speed_20261107\detached1735_all31\clang\all31_m29\source_snapshot`: 20 files, manifest sha256 3389cfe3…. All 20 verified at freeze. | `evidence/FREEZE.json` |
-| Lineage | AL1 s198 lock tree (git 294dbed3) → trial_w6 `D:\sdk_jobs\sdk_longjob_20261106\src_w6` (8 files differ; the six speed switches are `#define … 0` in source and set by `-D` at build) → combo29 snapshot (only `include/forge/board.hpp`, `src/board.cpp`, `src/search.cpp` differ from `src_w6`). Per QA's gate0415 `PLAN.json`, feature mask 29 = KING_LINES + SEE_HOIST + MOVE_EQ32 + Clang_PGO. | file-by-file sha256 and `git hash-object` comparisons (reproduced independently by the M1 reviewer) |
-| Nearest committed relative | 7ce10a05 "parent P: trial_w6 source" on `opus-finny-cache-20261107` and `opus-smp-layout-20261107`. Its `.cpp` files equal `src_w6`; four headers differ only in switch defaults. | `git rev-parse 7ce10a05:<path>` vs `git hash-object` |
-| **Git source commit of combo29** | **BLOCKED.** combo29's `search.cpp` 2ffe2556, `board.cpp` c6a2cfe5 and `board.hpp` 9a94c15f are referenced by no commit: 2853 commits on 410 refs, trees only, no fetch. Sanity rows show the method does find existing blobs (2fffbaf2, 607adf3a). The build parent is the hash-bound snapshot. | `evidence/combo29_source_commit_search.json`; INC-01 explains why `--find-object` is not used |
+| Lineage | AL1 s198 lock tree (git 294dbed3) → trial_w6 `D:\sdk_jobs\sdk_longjob_20261106\src_w6` (8 files differ; the six speed switches are `#define … 0` in source and set by `-D` at build) → combo29 snapshot (only `include/forge/board.hpp`, `src/board.cpp`, `src/search.cpp` differ from `src_w6`). Per QA's gate0415 `PLAN.json`, feature mask 29 = KING_LINES + SEE_HOIST + MOVE_EQ32 + Clang_PGO. | `evidence/combo29_lineage_hashes.json` (blob ids file by file). The M1 reviewer, a same-model subagent and not independent, re-derived the file-difference counts. |
+| Nearest committed relative | 7ce10a05 "parent P: trial_w6 source" on `opus-finny-cache-20261107` and `opus-smp-layout-20261107`. Its `.cpp` files equal `src_w6`; the four headers differ only in the six speed-switch `#define` defaults. | `evidence/combo29_lineage_hashes.json`, `evidence/combo29_lineage_header_diffs.txt` (line diff) |
+| **Git source commit of combo29** | **BLOCKED.** combo29's `search.cpp` 2ffe2556, `board.cpp` c6a2cfe5 and `board.hpp` 9a94c15f are referenced by no commit: 2853 commits on 410 refs, trees only. No blob was fetched: a ref, commit and tree fetch of origin preceded the search, with lazy blob fetching disabled. Sanity rows show the method does find existing blobs (2fffbaf2, 607adf3a). The build parent is the hash-bound snapshot. | `evidence/combo29_source_commit_search.json`; INC-01 explains why `--find-object` is not used |
 | QA reference caches | The frozen `qa_refcache` TSVs and `sig_4181a589` were made with the **old trial_w6** exe. They are valid for combo29 only through QA's bit-exact proof (CURRENT_LOCK note: 12000/12000 FENs on and off, bench pins identical). This job measures combo29 directly and uses them only as a cross-check. | `evidence/FREEZE.json` (pinned:false) |
 
 ## 2. Existing tuners and match runners
@@ -24,7 +24,7 @@ Everything here was gathered read-only. Evidence ids are git commits on github.c
 | R3 `tools/spsa` (30 tests) | `opus-r3-spsa` a5f4f696 | Offline SPSA with a UCI value check before each session and time-loss counting. | **No real session.** Dry runs only: 3 × 1 pair at 0.5+0.005 on LmrQuietBase, NullMoveMarginBase and RfpMargin. It found the QsSeeMargin plateau. | Evidence only |
 | 6.x experiment loop | release 6.3.0, 4e1fbcb7 `validation/release-6.0.0/EXPERIMENTS.md` | SPRT/fixed-node experiments on tunables (items 21–35). | See section 4; copy in `evidence/release630_EXPERIMENTS_4e1fbcb7.md` | Evidence only |
 | `tools/match` (`run_match.py`, `run_hourly_sprt.py`, `pgn_stats.py` pentanomial cross-check, `windows_validate.py`) | AL1 lineage, e.g. 73eb280a | Reproducible fastchess match and SPRT support for CI. | Not a tuner | Not on this branch; the confirmation runner's own LLR is deliberately separate code (IDEA_SOURCE) |
-| **QA gate runner `forge_queue.ps1`** | `forge_deepres_stage_20261109\forge_queue.live.ps1` (installed driver) | QA's authoritative SPRT gate driver: queue entries, book offsets, prebench pins. | Runs all gates | The confirmation protocol targets it (`confirm/PROPOSED_QA_ENTRY.json`); this job never touches queues |
+| **QA gate runner `forge_queue.ps1`** | Two copies were read: `forge_deepres_stage_20261109\forge_queue.live.ps1` (125,725 B) and `forge_push\autorestart\forge_queue.ps1` (126,811 B, newer, next to the live gate config). Which one is installed cannot be told read-only. | QA's authoritative SPRT gate driver: queue entries, book allow-list (`8moves_v3`, `uho_lichess_v1`), `order=random` + `openings_start` + `-srand`, prebench pins, advertised-option check. | Runs all gates | The confirmation protocol targets "QA's installed forge_queue.ps1, QA to confirm" (`confirm/PROPOSED_QA_ENTRY.json`); this job never touches queues |
 
 ## 3. Gate and tuning receipts (corrected)
 - **Qsearch mechanism gates exist, but none tunes QsFutilityMargin or QsSeeMargin.**
@@ -40,7 +40,7 @@ Everything here was gathered read-only. Evidence ids are git commits on github.c
   | Ordering / history | DRX1 PriorRefutePenalty, DR02 KillerNullSlot2, DR13 MainHistKeepPct, DR16 ContHistCheckShort, DR17 FullUpdateAlphaRaised, DR19 KillerHistOrder, ContHistSumBase, QuietMalusDecay |
   | Correction | DR03 CorrBadCapture, DR21 MinorCorrectionWeight |
   | Eval | DR01 EvalRule50Damp, DR15 EvalGrain |
-  | **Qsearch** | **DR04 PreQsTtExtDepth, DR06 QsSeeHistDiv/Clamp, DR12 QsFailFirm/Keep** |
+  | **Qsearch (and what feeds it)** | **DR04 PreQsTtExtDepth, DR06 QsSeeHistDiv/Clamp, DR12 QsFailFirm/Keep** (stand-pat and post-loop fail-high firmness), **DR14 TwofoldNonPv** (rewrites the qsearch draw line), **DR01 EvalRule50Damp and DR15 EvalGrain** (rewrite the corrected-static-eval line used by search's razor `eval` and by qsearch's `futility_base`) |
   | Noisy pruning | DR07 NoisyHistPrune, NoisySeeHistDiv |
   | Extensions | DR09 TripleExtMargin, DR10 LmrPvExt |
   | Other | DR14 TwofoldNonPv, DR18 NmpFewCutoffs, DR20 RfpThreatMargin, ReSearchAdjust, Syzygy |
@@ -48,7 +48,11 @@ Everything here was gathered read-only. Evidence ids are git commits on github.c
   - **No tree changes any razoring line** (the `depth <= RazorDepth && eval + RazorBase + RazorMultiplier*depth < alpha` test, the `qsearch(alpha-1, alpha)` call, the return).
   - **No tree changes the qsearch futility lines** (`futility_base = static_eval + QsFutilityMargin`, the futility skip and its best-score update), nor the stand-pat return line.
   - **Only T04E-04 (DR06) rewrites the QsSeeMargin line.**
-  - T04C-01 (DR12) and T04D-05 (DR04) add option-gated qsearch behaviour elsewhere: stand-pat fail-high firmness, and a TT extension before qsearch.
+  - Inputs and neighbours of both families do change:
+    - T06-05 (DR01) and T06-04 (DR15) rewrite `eval = ss->static_eval = corrected_eval(...)`, which feeds both the razor test's `eval` and `futility_base`.
+    - T04F-03 (DR14) rewrites qsearch's draw line.
+    - T04C-01 (DR12) and T04D-05 (DR04) add option-gated qsearch behaviour: fail-high firmness, and a TT extension before qsearch.
+  - The scan checks whether each baseline line is still present; it was re-run for these trees in the M1 recheck.
 
 ## 4. Parameter inventory (combo29 `forge::tune`, 51 scalars, all UCI options because the lock is built with `FORGE_EXPOSE_TUNABLES=1`)
 Status key: **T** = values tuned by SPSA or SPRT games (merged or not), **t** = family partly tested, **U** = values never tuned, **F** = an in-flight CR candidate edits the same mechanism, **D** = dead at lock values, **X** = excluded (time manager / timing job).
@@ -77,14 +81,13 @@ Status key: **T** = values tuned by SPSA or SPRT games (merged or not), **t** = 
 ## 5. Selection rule and the alternatives considered
 - **Hard requirement: the values must be untuned.** Families with tuned or tested values (T, t) are "merely unmerged" or old and are excluded: LMR, null move, RFP, quiet futility, LMP, SEE, singular, ProbCut, aspiration, history bonus, capture futility, fail-low continuation.
 - **Selector: direct code-level coupling between the two families.** Scalar count is not a criterion; the earlier "single scalar" labels are withdrawn.
-- **Disclosed risk, not an exclusion: in-flight work on the same mechanism.** The config's identity pin on E1284F7F enforces this mechanically. If DR04, DR06, DR12 or any other qsearch change becomes the lock, the pin fails and the tuning must be redone against the new parent.
-- **F1 = razoring.** U, with no in-flight edit. It consumes qsearch's verdict, so DR12 and DR04 are indirect dependencies.
-- **F2 = qsearch pruning, tuned scalar QsFutilityMargin.** U. Its futility lines are untouched by every DR. **QsSeeMargin is frozen at 40** because its line is rewritten by DR06 and its effect is a plateau in steps of 100 (sensitivity table below). It is offered only as a later discrete A/B, never inside SPSA.
-- **Why not the others:**
-  - IIR and check extension are untuned but have no coupling to razoring.
-  - History pruning rides on history scales that three in-flight candidates change.
-  - Correction is in flight (DR03, DR21) and its weight was adopted without proof.
-  - LMP is tuned (6.3.0).
+- **Disclosed risk, not an exclusion: in-flight work on the same mechanism or its inputs.** The config's identity pin on E1284F7F enforces this mechanically. If DR01, DR04, DR06, DR12, DR14, DR15 or any other change to razoring, qsearch or the static eval becomes the lock, the pin fails and the tuning must be redone against the new parent.
+- **F1 = razoring.** U; no in-flight edit of its lines. Its `eval` input is rewritten by DR01/DR15, and it consumes qsearch's result, which DR04/DR12/DR14 change. Those are indirect dependencies.
+- **F2 = qsearch pruning, tuned scalar QsFutilityMargin.** U; its futility lines are untouched by every DR. `futility_base`'s static-eval input is rewritten by DR01/DR15, and neighbouring qsearch behaviour by DR04/DR12/DR14. **QsSeeMargin is frozen at 40** because DR06 rewrites its line and its effect is a plateau in steps of 100 (sensitivity table below). It is offered only as a later discrete A/B, never inside SPSA.
+- **Why not the others** (every untuned alternative fails the coupling selector; in-flight work is mentioned only as a disclosed risk):
+  - IIR, check extension and quiet history pruning are untuned but have no direct code-level coupling to razoring. History pruning's thresholds would also move with the history scales that in-flight candidates change (a disclosed risk, not the reason).
+  - Correction's weight was adopted without proof. It is a mechanism adoption, not tuned values, but it has no coupling to razoring, and DR03/DR21 are in flight.
+  - LMP is tuned (6.3.0), so it fails the hard requirement.
 - **The joint SPSA vector is three continuous scalars:** RazorBase, RazorMultiplier, QsFutilityMargin. RazorDepth and QsSeeMargin stay at their lock values.
 
 ## 6. Sensitivity and interaction probes on combo29 itself (bench nodes; not games, not Elo)
@@ -103,5 +106,5 @@ Measured on the frozen lock exe at Idle on CPUs 12–15. Raw output in `evidence
 - **2×2 probes.** The interaction contrast is N(++) − N(+−) − N(−+) + N(−−), in % of the pin.
   - RazorBase × QsFutilityMargin: 13.9% (d13), 5.8% (d16).
   - RazorMultiplier × QsFutilityMargin: −9.9%, 5.4%.
-  - The **control** pairs with an unrelated mechanism are just as non-additive: QsFutilityMargin × LmrHistoryDivisor 20.5% and 21.4%; RazorBase × LmrHistoryDivisor 2.7% and −0.2%.
+  - Control pairs with an unrelated mechanism: QsFutilityMargin × LmrHistoryDivisor is at least as non-additive as the family pairs (20.5% and 21.4%); RazorBase × LmrHistoryDivisor is nearly additive (2.7% and −0.2%).
   - **Fixed-depth node counts are chaotic, so these probes cannot evidence an interaction.** The razoring–qsearch coupling claimed in PLAN.md is code-level only. Whether it matters for strength is **UNPROVEN**.

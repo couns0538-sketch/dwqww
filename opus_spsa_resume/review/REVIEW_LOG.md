@@ -12,6 +12,26 @@ How the policy is applied:
 |---|---|---|---|---|---|
 | M1: inventory, freeze, families (2026-11-10 ≈01:16–01:40) | c6df6af6 | 1 BLOCKER, 2 MAJOR, 6 MINOR, 1 NIT group (details below) | All assessed; fixed or addressed in the M1-fix commit; nothing rejected | Doc and evidence corrections; new evidence files; DR source line scan; 2×2 probe plus control; harness tests 55/55 ×2 | Recheck by the same reviewer |
 
+### M1 recheck (same reviewer, of 2d174ca8)
+- **Resolved:** findings 2, 3, 4, 5, 7, 8 and 10.
+- **Partial:** 1, 6 and 9. Five new non-blocking errors.
+
+All were assessed as valid and fixed in the next commit:
+- **(1a) Qsearch in-flight list incomplete.** DR01 and DR15 rewrite the corrected-static-eval line that feeds both the razor `eval` and `futility_base`. DR14 rewrites the qsearch draw line. DR12 also firms the post-loop fail-high.
+  - I verified this myself with the line-presence scan of T06-05, T06-04 and T04F-03.
+  - AUDIT §3/§5 and the PLAN §5 staleness list now name DR01, DR04, DR06, DR12, DR14 and DR15.
+- **(1b) History pruning was rejected with an in-flight argument.** It is now rejected by the coupling selector, like IIR and check extension. The in-flight change is listed only as a disclosed risk.
+- **New error 1, runner path.** Both forge_queue copies are named. Which one is installed is not determinable read-only, so the protocol says "QA to confirm".
+- **New error 2, d11 without a receipt.** The claim was withdrawn in STATUS. The S3 battery records d11.
+- **New error 3, necessary vs sufficient inverted.** Fixed in PLAN §1.
+- **New error 4, "reproduced independently".** Reworded. Added `evidence/combo29_lineage_hashes.json` and `evidence/combo29_lineage_header_diffs.txt`; the second shows the four headers differ only in the six speed-switch defaults.
+- **New error 5, "no fetch".** Now "no blob fetch; a ref/commit/tree fetch of origin preceded the search".
+- **NITs.**
+  - STATUS time corrected.
+  - Control wording made exact: one control pair is as non-additive as the family pairs, the other is nearly additive.
+  - INC-01 now says "most likely".
+  - PLAN §2/§8: the synthetic estimate is marked not yet done.
+
 ### M1 findings and dispositions
 Reviewer: one same-model subagent, read-only. **Not an independent review.**
 1. **BLOCKER: F2 evidence false.** AUDIT said no `Qs*` gate and no in-flight qsearch work. Both were wrong (gate 58, P27R, 24 `CR_PASS_dr_*`, including DR06 on the QsSeeMargin line and DR12/DR04 nearby).

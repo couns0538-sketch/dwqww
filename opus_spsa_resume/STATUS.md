@@ -2,9 +2,9 @@
 
 All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs about 25,160 s (6 h 59 min) ahead and is never used for reported times; see `evidence/INC-01_lazy_fetch_disk_drain.json`.
 
-- Last update: 2026-11-10 01:58 Vienna
+- Last update: 2026-11-10 02:05 Vienna
 - Job start: 2026-11-10 00:48:26 Vienna (2026-11-09 23:48:26Z)
-- Elapsed: about 1 h 10 min
+- Elapsed: about 1 h 17 min
 
 ## Identity, paths and approvals
 | Item | Value |
@@ -63,12 +63,14 @@ On resume, re-verify the hashes in this file before relying on any earlier recei
 | combo29 exe MD5/SHA256 in 4 locations | PASS |
 | AGENTS policy MD5 | PASS |
 | Freeze (10 pinned identities, 8 recorded, 20 snapshot files against the manifest) | PASS |
-| Lock bench pins d11/d13/d16 (sensitivity, 2×2 and driver runs; defaults before and after) | PASS (312866 / 862329 / 3024920) |
+| Lock bench pins d13/d16 with saved receipts (sensitivity and 2×2 runs; defaults before and after) | PASS (862329 / 3024920) |
+| Lock bench d11 | Seen once, 312866, in an unsaved driver smoke run, so not claimed; the S3 battery records it |
 | R9 saved-run replay equivalence | PASS |
 | Harness tests (synthetic, replay, crash, refusals, rollback) | PASS 55/55 (twice) |
 | Patch macro-0 token identity, gate syntax, clean apply | PASS |
 | Bench d20/d22, net-off, perft, fens12k, warm, builds, normalized PE identity | NOT RUN (S3) |
-| Confirmation pack | NOT RUN |
+| Opening partitions (before any fitting): disjoint, hashed; UHO overlap with train 50 of 2,632,036 lines | PASS (`partition/PARTITION_MANIFEST.json`) |
+| Confirmation pack tests (A/A, fake optimizer, positive control, 7 crash boundaries, refusals, replay, leakage audit) | PASS 26/26 (synthetic, no Elo) |
 
 ## Unproven claims (not results)
 - No tuned values exist; real tuning is **PENDING QA EXECUTION**. No Elo is claimed.

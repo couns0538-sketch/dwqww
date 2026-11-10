@@ -19,7 +19,7 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 
 **Coupling.** This is code-level only; whether it matters for strength is UNPROVEN.
 - Razoring hands the node to `qsearch(alpha-1, alpha)` and returns that result, so F2's futility margin decides how much of the verification search actually runs.
-- With M(d) = RazorBase + RazorMultiplier·d and `eval ≈ static_eval` (no TT adjustment), a razor trigger means `alpha − 1 − static_eval ≥ M(d)`. The verification qsearch then skips every non-checking, non-promoting capture with `capture_value ≤ M(d) − QsFutilityMargin`, roughly. That is a necessary condition only, and it depends on the TT adjustment and on stand-pat.
+- Let M(d) = RazorBase + RazorMultiplier·d and assume `eval = static_eval` (no TT adjustment). A capture is skipped exactly when `capture_value ≤ alpha − 1 − static_eval − QsFutilityMargin`, and a razor trigger gives `alpha − 1 − static_eval ≥ M(d)`. So **every** non-checking, non-promoting capture with `capture_value ≤ M(d) − QsFutilityMargin` is skipped. That is a sufficient condition; captures above it may be skipped too, depending on the actual gap between alpha and the static eval, the TT adjustment and stand-pat.
 - F2 also acts at every leaf and inside ProbCut's verification.
 - Bench-node 2×2 probes cannot show the interaction: a control pair with an unrelated mechanism is just as non-additive (`AUDIT.md` §6).
 
@@ -34,7 +34,7 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 
 - c_end is about 10% of each lock value, the step size R3 used for sensitivity; on combo29 it moves bench nodes by 2–17%.
 - r_end 0.002 is the OpenBench/Fishtest-style default; R9 used 0.012 and drifted at noise level.
-- Whether N = 4000 pairs can move θ by a measurable amount is estimated with the synthetic model in `BENCH.md` (S3).
+- Whether N = 4000 pairs can move θ by a measurable amount is **not yet estimated**. A synthetic power check is planned for S3 and will be reported in `BENCH.md`.
 - These are proposals, not measured optima.
 - The harness still supports discrete level parameters (tested), but the recommended config does not use them.
 
@@ -56,8 +56,12 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 
 ## 5. Staleness rule (enforced by the identity pin)
 - The configuration is tuned for combo29 (E1284F7F), and the tuner refuses any other exe.
-- If DR04, DR06, DR12 or any other qsearch or razoring change becomes the lock, the pin fails. The tuning and the confirmation must then be redone against the new parent.
-- DR12 (stand-pat firmness) and DR04 (TT extension before qsearch) change the qsearch results that razoring consumes, so this rule covers both families.
+- If DR01, DR04, DR06, DR12, DR14, DR15, or any other change to razoring, qsearch or the corrected static eval becomes the lock, the pin fails. The tuning and the confirmation must then be redone against the new parent.
+- Why each matters:
+  - DR01 and DR15 rewrite the static-eval line that feeds both the razor test and `futility_base`.
+  - DR04, DR12 and DR14 change the qsearch results that razoring consumes.
+  - DR06 rewrites the frozen QsSeeMargin line.
+- This rule covers both families.
 
 ## 6. Default-OFF engine control (`patches/tune_gate_after_combo29.patch`)
 - Two independent compile-time switches, `FORGE_RAZOR_TUNE` and `FORGE_QS_TUNE` (default 0). With both at 0, the patched `uci.cpp` preprocesses to exactly the parent's text, and no option is registered.
@@ -77,5 +81,5 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 - **Tuned values:** none exist. Tuning is PENDING QA EXECUTION.
 - **C1 and C3′:** heuristic priors.
 - **F1–F2 interaction:** code-level coupling only; no strength measurement.
-- **Run-size adequacy:** synthetic estimate only.
+- **Run-size adequacy:** not yet estimated; the S3 synthetic check is pending.
 - Any non-default value is a **SEARCH CHANGE, UNPROVEN**. It needs Code Review, then QA tuning, then the independent confirmation SPRT (`confirm/CONFIRM_PROTOCOL.md`).
