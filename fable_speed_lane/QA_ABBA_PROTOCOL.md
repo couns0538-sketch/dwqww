@@ -49,7 +49,9 @@ Then the pins (bench d11/13/16/20/22 net on and net off, perft 5) on QA's exe be
 
 ## What this job's own timing can and cannot say
 
-`BENCH.md` holds A/B numbers taken on CPU 3 at Idle while gates ran on the other cores. They are **INDICATIVE**: wall-clock ratios there swing by several percent per block, and a gain under 1 % cannot be shown that way. They are given with their spread and with a CPU-cycle ratio next to the wall ratio. They are not the ABBA and should not be read as one.
+`BENCH.md` section 3 holds A/B numbers taken on CPU 3 at Idle while gates ran on the other cores. They are **INDICATIVE**: the lock timed against itself there gave block ratios from -5.6 % to +7.0 % by wall clock and from -2.0 % to +2.3 % by CPU cycles, so a gain under 1 % cannot be shown that way. They are given with their spread and with a CPU-cycle ratio next to the wall ratio. They are not the ABBA and should not be read as one.
+
+`BENCH.md` section 5 gives exact counters instead of times: how much work each switch removes over the frozen workload (bench 11, 13, 16). Those are repeatable and say which switch does what; they do not say what it is worth in nodes per second.
 
 ## Things QA may want to know before the run
 

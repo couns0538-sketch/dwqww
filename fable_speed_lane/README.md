@@ -36,7 +36,9 @@ Limits of these checks, stated plainly: a finite position set proves nothing abo
 
 ## Timing
 
-`BENCH.md` section 3: INDICATIVE only (one shared CPU at Idle priority while gates ran). The ABBA is QA's: `QA_ABBA_PROTOCOL.md`.
+`BENCH.md` section 3: INDICATIVE only (one shared CPU at Idle priority while gates ran; a single block there is worth about +/-5 % by wall clock and +/-2 % by CPU cycles). The ABBA is QA's: `QA_ABBA_PROTOCOL.md`.
+
+`BENCH.md` section 5 is not a timing: it gives exact counters of the work each switch removes over the lock's own frozen workload (for example how many king-line builds, full king-attack tests or `attackers_to` calls disappear). Those numbers are repeatable on any machine; what they are worth in nodes per second is for the ABBA to say.
 
 ## Folder map
 
