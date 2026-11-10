@@ -54,9 +54,29 @@ So heavy runs use **CPU 3 only** (mask 0x08), one at a time. Nothing of the gate
 
 `tools/env.ps1`, `pin.ps1`, `pinguard.py`, `spd_build.ps1`, `bytecmp.py`, `spd_uci.py` (pins, cold, merge, warm, soak, perftset, abba), `tree_index.py`, `fetch_corpus.py`, `dupcheck_search.py`.
 
+## Step 2: profile - DONE (09:00)
+
+`PROFILE.md`. Largest CPU-bound target: the king shelter loop in `evaluate_king` (4.1 % net on, 4.8 % net off). `HCE_REUSE` dropped (0.12 % on its lines).
+
+## Step 3: candidates (state at 09:22)
+
+Quick gate per candidate = harness RED on a planted mutant, harness GREEN on the patch (first 300 FENs so far), switch-0 lock-recipe build compared byte by byte with the lock, switch-1 build on the 12 pins. Full qualification (12k cold, warm, soak, perft set, A/B) is step 4 and is NOT done yet.
+
+| Candidate | Patch (md5) | Files | Mutant caught | Switch 0 vs lock | Switch 1 pins | Harness, 300 FENs |
+|---|---|---|---|---|---|---|
+| `FORGE_SPD_KING_PAWN_CACHE` | `d2beac06...` (+73 lines) | `eval.hpp`, `eval.cpp` | yes, 16,438 failures | 89 debug-record bytes, 0 other | 12/12 | equal to base |
+| `FORGE_SPD_WITNESS_NOPIN` | `ccfa6ce5...` (+18) | `board.cpp` | yes, in verify mode (abort); the plain boolean cannot see it | 89 / 0 | 12/12 | equal to base |
+| `FORGE_SPD_EVADE_LEGAL` | `b5aaa89f...` (+32) | `board.cpp` | yes, transcript differs and verify mode aborts | 89 / 0 | 12/12 | equal to base |
+| `FORGE_SPD_PAWN_CAPMASK` | not written yet | | | | | |
+| `FORGE_SPD_CHECKERS_KL` | not written yet | | | | | |
+
+Build tags under `out\build\`: `kpc_off/on`, `wit_off/on`, `evd_off/on`. Work trees: `out\work\<NAME>\{a,b}`.
+
+First A/B look at `KING_PAWN_CACHE` (8 blocks, bench 16, CPU 3): too noisy to read (block ratios from -29 % to +18 %). Timing is redone in step 4 with bench 20 and cycle counts.
+
 ## Next
 
-Step 2: profile the control build (exact counters, net on and off; RIP samples by CPU cycles), write `PROFILE.md`, check clang's code for the queen rays, then step 3.
+Write `PAWN_CAPMASK` and `CHECKERS_KL` (mutant first), then step 4.
 
 ## Resume commands
 

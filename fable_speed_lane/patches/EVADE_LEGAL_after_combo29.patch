@@ -1,0 +1,56 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -712,6 +712,15 @@ bool Board::has_legal_move() const {
+     return false;
+ }
+ 
++// FORGE_SPD_EVADE_LEGAL (default 0 = lock code; needs FORGE_SPD_KING_LINES): is_legal() while in check, for a
++// move that is neither a king move nor en passant. In double check no such move is legal. In single check it is
++// legal iff it captures the checker or lands between the checker and the king, and its piece is not pinned or
++// stays on its pin line. The lock's full king-attack test gives the same answer for these moves; king moves and
++// en passant keep that test. 2 = as 1, and the full test is still made and must agree (test builds only).
++#ifndef FORGE_SPD_EVADE_LEGAL
++#define FORGE_SPD_EVADE_LEGAL 0
++#endif
++
+ #if FORGE_SPD_KING_LINES
+ bool Board::is_legal(const Move& move) const {
+     const Color us = side_;
+@@ -724,6 +733,23 @@ bool Board::is_legal(const Move& move) const {
+         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
+                attacks::aligned(king_square(us), move.from, move.to);
+     }
++#if FORGE_SPD_EVADE_LEGAL
++    const bool evade_case = (move.flags & EnPassant) == 0U && piece_type(moving) != King;   // here checkers_ != 0
++    bool evade_legal = false;
++    if (evade_case) {
++        if (!more_than_one(checkers_)) {
++            const int own_king = king_square(us);
++            if (((attacks::between(own_king, lsb(checkers_)) | checkers_) & square_bb(move.to)) != 0) {
++                if (!king_lines_.valid) refresh_king_lines();
++                evade_legal = (king_lines_.pinned & square_bb(move.from)) == 0 ||
++                              attacks::aligned(own_king, move.from, move.to);
++            }
++        }
++#if FORGE_SPD_EVADE_LEGAL == 1
++        return evade_legal;
++#endif
++    }
++#endif
+     Bitboard occupancy = occupied() & ~square_bb(move.from);
+     int captured_square = move.to;
+     if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
+@@ -741,7 +767,13 @@ bool Board::is_legal(const Move& move) const {
+         occupancy |= square_bb(rook_to);
+     }
+     const int king = piece_type(moving) == King ? static_cast<int>(move.to) : king_square(us);
++#if FORGE_SPD_EVADE_LEGAL >= 2
++    const bool full_test = !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
++    if (evade_case && evade_legal != full_test) std::abort();
++    return full_test;
++#else
+     return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
++#endif
+ }
+ #else
+ bool Board::is_legal(const Move& move) const {

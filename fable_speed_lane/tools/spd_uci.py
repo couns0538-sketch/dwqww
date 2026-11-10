@@ -141,6 +141,18 @@ class Engine:
         self.send("isready")
         self.until(lambda s: s == "readyok", timeout_s)
 
+    def cpu_seconds(self) -> float:
+        """CPU cycles the engine process has used so far (QueryProcessCycleTime), in units of 1e9 cycles.
+        Cycles are counted only while the process runs, so preemption by other jobs does not add to them
+        (cache and SMT pressure from other jobs still does)."""
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.QueryProcessCycleTime.argtypes = [ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_uint64)]
+        k.QueryProcessCycleTime.restype = ctypes.wintypes.BOOL
+        cycles = ctypes.c_uint64()
+        if not k.QueryProcessCycleTime(ctypes.wintypes.HANDLE(int(self.proc._handle)), ctypes.byref(cycles)):
+            return float("nan")
+        return cycles.value / 1e9
+
     def bench(self, depth: int, timeout_s: float = 1800) -> tuple[int, int, float]:
         t0 = time.perf_counter()
         self.send(f"bench {depth}")
@@ -432,6 +444,7 @@ def cmd_abba(a) -> int:
            "blocks": a.blocks, "order": "ABBA", "started": now_vienna()}
     samples = []
     ratios = []
+    cpu_ratios = []
     cpu0 = cpu_times()
     for block in range(a.blocks):
         arms = []
@@ -443,16 +456,21 @@ def cmd_abba(a) -> int:
             if warm != pins[13]:
                 eng.close()
                 raise SystemExit(f"warm bench nodes {warm} != {pins[13]}")
+            cpu_a = eng.cpu_seconds()
             nodes, ms, wall = eng.bench(a.depth)
+            cpu = eng.cpu_seconds() - cpu_a
             eng.close()
             if nodes != pins[a.depth]:
                 raise SystemExit(f"timed bench nodes {nodes} != {pins[a.depth]}")
-            arm = {"block": block, "letter": letter, "nodes": nodes, "wall_s": wall, "engine_ms": ms, "nps": nodes / wall}
+            arm = {"block": block, "letter": letter, "nodes": nodes, "wall_s": wall, "cpu_s": cpu, "engine_ms": ms,
+                   "nps": nodes / wall, "nps_cpu": nodes / cpu if cpu > 0 else 0.0}
             arms.append(arm)
             samples.append(arm)
         ratio = ((arms[1]["nps"] * arms[2]["nps"]) / (arms[0]["nps"] * arms[3]["nps"])) ** 0.5
         ratios.append(ratio)
-        print(f"ABBA block {block} ratio {ratio:.5f}", flush=True)
+        if all(x["nps_cpu"] > 0 for x in arms):
+            cpu_ratios.append(((arms[1]["nps_cpu"] * arms[2]["nps_cpu"]) / (arms[0]["nps_cpu"] * arms[3]["nps_cpu"])) ** 0.5)
+        print(f"ABBA block {block} wall ratio {ratio:.5f} cpu ratio {cpu_ratios[-1] if cpu_ratios else float('nan'):.5f}", flush=True)
     cpu1 = cpu_times()
     med = statistics.median(ratios)
     q = statistics.quantiles(ratios, n=4, method="inclusive") if len(ratios) >= 2 else [med, med, med]
@@ -465,6 +483,13 @@ def cmd_abba(a) -> int:
             "block_ratios": ratios, "a_nps_median": statistics.median(s["nps"] for s in samples if s["letter"] == "A"),
             "b_nps_median": statistics.median(s["nps"] for s in samples if s["letter"] == "B"),
             "cpu_busy_pct_during": busy_pct(cpu0, cpu1), "finished": now_vienna()}
+    if cpu_ratios:
+        cq = statistics.quantiles(cpu_ratios, n=4, method="inclusive") if len(cpu_ratios) >= 2 else [cpu_ratios[0]] * 3
+        summ.update({"cpu_median_delta_pct": 100 * (statistics.median(cpu_ratios) - 1),
+                     "cpu_q1_pct": 100 * (cq[0] - 1), "cpu_q3_pct": 100 * (cq[2] - 1),
+                     "cpu_min_pct": 100 * (min(cpu_ratios) - 1), "cpu_max_pct": 100 * (max(cpu_ratios) - 1),
+                     "cpu_block_ratios": cpu_ratios,
+                     "note": "cpu = engine process cycle count over the timed bench (QueryProcessCycleTime), unit 1e9 cycles"})
     with open(os.path.join(a.out, "PROTOCOL.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(cfg, f, indent=1)
     with open(os.path.join(a.out, "SAMPLES.json"), "w", encoding="utf-8", newline="\n") as f:
@@ -474,6 +499,10 @@ def cmd_abba(a) -> int:
     print(f"ABBA INDICATIVE net {a.net} d{a.depth}: median {summ['median_delta_pct']:+.2f} % "
           f"[IQR {summ['q1_pct']:+.2f} .. {summ['q3_pct']:+.2f}; min {summ['min_pct']:+.2f}, max {summ['max_pct']:+.2f}; "
           f"boot95 {summ['boot95_pct'][0]:+.2f} .. {summ['boot95_pct'][1]:+.2f}] over {len(ratios)} blocks", flush=True)
+    if cpu_ratios:
+        print(f"ABBA INDICATIVE by CPU cycles: median {summ['cpu_median_delta_pct']:+.2f} % "
+              f"[IQR {summ['cpu_q1_pct']:+.2f} .. {summ['cpu_q3_pct']:+.2f}; min {summ['cpu_min_pct']:+.2f}, max {summ['cpu_max_pct']:+.2f}]",
+              flush=True)
     return 0
 
 

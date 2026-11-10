@@ -1,0 +1,34 @@
+--- a/src/board.cpp
++++ b/src/board.cpp
+@@ -693,6 +693,16 @@ MoveList Board::legal_moves(bool captures_only) const {
+     return moves;
+ }
+ 
++// FORGE_SPD_WITNESS_NOPIN (default 0 = lock code): has_legal_move() accepts its witness - the lowest quiet pawn
++// push - at once when the side to move is not in check and that pawn stands on no rank, file or diagonal through
++// its own king. Such a pawn cannot be pinned, so is_legal() would answer true; not calling it also leaves the
++// king lines unbuilt at the many nodes that end right after this test (transposition cutoff, stand pat). Every
++// other case runs the lock's code. 2 = as 1, and the skipped is_legal() is still asked and must agree (test
++// builds only).
++#ifndef FORGE_SPD_WITNESS_NOPIN
++#define FORGE_SPD_WITNESS_NOPIN 0
++#endif
++
+ bool Board::has_legal_move() const {
+     // A single legal quiet pawn push proves non-terminal without generating
+     // the full move list. Promotions and every failed witness use the original
+@@ -700,6 +710,14 @@ bool Board::has_legal_move() const {
+     const Bitboard pushes = pawn_push(side_, pieces(side_, Pawn)) & ~occupied() & ~(Rank1BB | Rank8BB);
+     if (pushes != 0) {
+         const int to = lsb(pushes);
++#if FORGE_SPD_WITNESS_NOPIN
++        if (checkers_ == 0 && attacks::line(king_square(side_), to - pawn_push_delta(side_)) == 0) {
++#if FORGE_SPD_WITNESS_NOPIN >= 2
++            if (!is_legal(Move{static_cast<std::uint8_t>(to - pawn_push_delta(side_)), static_cast<std::uint8_t>(to), 0, Quiet})) std::abort();
++#endif
++            return true;
++        }
++#endif
+         const Move witness{static_cast<std::uint8_t>(to - pawn_push_delta(side_)),
+                            static_cast<std::uint8_t>(to), 0, Quiet};
+         if (is_legal(witness)) return true;
