@@ -24,6 +24,18 @@
 
 namespace {
 
+#if FORGE_FIX_SMP_EXCEPTIONS
+forge::Move first_legal_fallback(const forge::Board& board) {
+    const forge::MoveList legal = board.legal_moves();
+    return legal.empty() ? forge::Move::none() : legal.front();
+}
+
+void report_search_error() {
+    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+    std::cout << "info string search error" << std::endl;
+}
+#endif
+
 bool option_name_equal(std::string_view a, std::string_view b) {
 #if FORGE_FIX_UCI_OPTION_CASE
     if (a.size() != b.size()) return false;
@@ -394,8 +406,19 @@ int main() {
                 searcher.reset_stop();
                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+#if FORGE_FIX_SMP_EXCEPTIONS
+                    forge::SearchInfo result;
+                    try {
+                        result = searcher.search(
+                            search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+                    } catch (...) {
+                        report_search_error();
+                        result.best_move = first_legal_fallback(search_board);
+                    }
+#else
                     const forge::SearchInfo result = searcher.search(
                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+#endif
                     if (limits.infinite || limits.ponder) {
                         std::unique_lock<std::mutex> lock(stop_mutex);
                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
@@ -434,15 +457,37 @@ int main() {
             std::uint64_t total_nodes = 0;
             const auto start = std::chrono::steady_clock::now();
             forge::Searcher bench_searcher(16);
+#if FORGE_FIX_SMP_EXCEPTIONS
+            bool bench_failed = false;
+#endif
             for (const std::string_view fen : fens) {
                 forge::Board bench_board;
                 if (!bench_board.set_fen(fen)) continue;
                 forge::SearchLimits limits;
                 limits.depth = depth;
                 bench_searcher.clear();
+#if FORGE_FIX_SMP_EXCEPTIONS
+                try {
+                    total_nodes += bench_searcher.search(
+                        bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+                } catch (...) {
+                    report_search_error();
+                    const forge::Move fallback = first_legal_fallback(bench_board);
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "bestmove " << (fallback.is_none() ? "0000" : forge::Board::move_to_uci(fallback)) << std::endl;
+                    bench_failed = true;
+                    break;
+                }
+#else
                 total_nodes += bench_searcher.search(
                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+#endif
             }
+#if FORGE_FIX_SMP_EXCEPTIONS
+            // A partial benchmark is not a valid node signature. Stay available
+            // for the next command rather than publishing an incomplete total.
+            if (bench_failed) continue;
+#endif
             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - start).count();
             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
