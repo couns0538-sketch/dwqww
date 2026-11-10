@@ -131,6 +131,7 @@ Logs: `logs/tests/`, `logs/stress/`.
 | stress driver control: P itself, 2,000 cycles, seed 7 | PASS with 1,567 / 1,567 legal bestmoves, the same count as the gate runs with the same seed (the driver gives no false failures and the action sequence is reproducible) |
 | special search modes at Threads 1: `go searchmoves …` (2 positions, depth 10-11) and `go mate 2/3` | P = gate OFF = gate ON in depth, score, nodes and best move (`special_modes.txt`) |
 | provenance of the copied tools (`logs/provenance/`) | `kit_v23_vs_idle_copy.diff`: exactly the 2 documented edits (Idle + readback; no termination on timeout), 5 changed lines. `uci_lib_vs_o2_uci_lib.diff`: only the header/constants/placement check and `Assert-OspdDisk` hunks; every UCI driver function is byte-identical to the speed job's `uci_lib.ps1` |
+| the two new tests rebuilt at the kit's `-O3 -DNDEBUG` (they were -O2 before; checks for optimisation-sensitive UB) | tt_lockless: 496,848,896 probes, **0 incoherent**, control 2,190,922 incoherent; smp_lifecycle: PASS (a 9th fixture run, beyond the 8 counted above) |
 | every existing test, natively on Windows, gate configuration (macro 1; one g++ line each, CPUs 12-15) | `forge_tests`: exactly the 4 known AL1 FAIL lines (the CI checker's list); correction_history, runtime_psqt, pawn_span, nearest_pawn, pv_metadata, rule50 and legal_witness (with its fixtures and openings): **PASS** |
 
 Fixture totals over all 8 runs (5 native at 1.5 s per configuration, 1 native at 6 s, 2 under TSan in CI): **4,053,817,344 probes, 673,781,118 hits, 0 incoherent.**
