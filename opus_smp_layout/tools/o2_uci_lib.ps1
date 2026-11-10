@@ -3,6 +3,9 @@
 # (md5 a9c8f6aa8c4836115e1bec76514ed9e3, lines 23-190) unchanged, except two functions: Set-OspdPlacement accepts only this
 # job's envelope (CPUs 12-15 = mask 0xF000, Idle), and Assert-OspdDisk checks the opus2 disk rule (D: >= 20 GiB free after the
 # planned write, job root <= 3 GiB; nothing is written to C: or F:). Constants below: trial_w6 = lock = parent P reference.
+# Since a675c04+1 (fable bug hunt MINOR-1) the log writing differs too: engine logs use one persistent writer per engine
+# (Open-OspdLogWriter / Add-OspdEngineLog, FileShare.ReadWrite), and Add-OspdLf retries sharing violations; the UCI
+# protocol handling (send / read / wait / stop) is unchanged. Test: tools/test_log_sharing.ps1.
 
 [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture   # dot decimals in every number we write
 $script:OspdLockExe = 'C:\Users\Administrator\grok-pc\forge_push\bin\forge_ltopgo_x_al1s198_trial_w6.exe'
@@ -67,13 +70,46 @@ function ConvertTo-OspdFen([string]$Line) {
   return ($f -join ' ')
 }
 function Add-OspdLf([string]$Path, [string]$Line) {
-  [System.IO.File]::AppendAllText($Path, ($Line + "`n"), (New-Object System.Text.UTF8Encoding($false)))
+  # One appended line (LF, UTF-8 without BOM). Opened per call with FileShare.ReadWrite; a sharing violation (a reader
+  # that does not share writing holds the file) is retried for up to ~2 s instead of aborting a long run (fable bug
+  # hunt MINOR-1: AppendAllText re-opened with FileShare.Read and threw at once). Any other error, or a violation that
+  # outlasts the retries, still throws (fail closed). Engine logs use the persistent writer of Start-OspdEngine.
+  $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($Line + "`n")
+  for ($try = 1; ; $try++) {
+    try {
+      $fs = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite)
+      try { $fs.Write($bytes, 0, $bytes.Length) } finally { $fs.Dispose() }
+      return
+    } catch {
+      $ex = $_.Exception
+      while ($ex -and -not ($ex -is [System.IO.IOException])) { $ex = $ex.InnerException }
+      if (-not $ex -or ($ex -is [System.IO.FileNotFoundException]) -or ($ex -is [System.IO.DirectoryNotFoundException]) -or $try -ge 100) { throw }
+      Start-Sleep -Milliseconds 20
+    }
+  }
+}
+
+function Open-OspdLogWriter([string]$Path) {
+  # Persistent append writer for one engine log (MINOR-1): opened once with FileShare.ReadWrite, so readers that share
+  # writing can follow the log, and a reader that refuses to share writing fails its own open instead of breaking the
+  # tool. AutoFlush keeps the file current line by line, as the per-line appends did.
+  $fs = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite)
+  $w = [System.IO.StreamWriter]::new($fs, (New-Object System.Text.UTF8Encoding($false)))
+  $w.AutoFlush = $true
+  return $w
+}
+
+function Add-OspdEngineLog($Eng, [string]$Line) {
+  if ($Eng.LogWriter) { $Eng.LogWriter.Write($Line + "`n") }
 }
 
 # ---------------- UCI driver ----------------
 function Start-OspdEngine([string]$Exe, [string]$LogPath = '', [long]$Mask = 0) {
   # New engine process; inherits this process's placement. $Mask (optional) narrows the child further (subset only).
   if (-not (Test-Path -LiteralPath $Exe)) { throw "engine not found: $Exe" }
+  # The log writer is opened before the engine starts, so a failed open leaves no engine behind.
+  $writer = $null
+  if ($LogPath) { $writer = Open-OspdLogWriter $LogPath }
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = $Exe
   $psi.WorkingDirectory = Split-Path -Parent $Exe
@@ -90,14 +126,14 @@ function Start-OspdEngine([string]$Exe, [string]$LogPath = '', [long]$Mask = 0) 
   }
   $p.StandardInput.AutoFlush = $true
   $p.StandardInput.NewLine = "`n"
-  $eng = [pscustomobject]@{ Proc = $p; In = $p.StandardInput; Out = $p.StandardOutput; Log = $LogPath; Pending = $null }
-  if ($LogPath) { Add-OspdLf $LogPath "# $(Get-OspdNow) start $Exe pid $($p.Id)" }
+  $eng = [pscustomobject]@{ Proc = $p; In = $p.StandardInput; Out = $p.StandardOutput; Log = $LogPath; LogWriter = $writer; Pending = $null }
+  Add-OspdEngineLog $eng "# $(Get-OspdNow) start $Exe pid $($p.Id)"
   return $eng
 }
 
 function Send-OspdUci($Eng, [string]$Line) {
   $Eng.In.WriteLine($Line)
-  if ($Eng.Log) { Add-OspdLf $Eng.Log "> $Line" }
+  Add-OspdEngineLog $Eng "> $Line"
 }
 
 function Read-OspdLine($Eng, [int]$TimeoutSec) {
@@ -117,7 +153,7 @@ function Wait-OspdUci($Eng, [string]$Pattern, [int]$TimeoutSec = 600, [switch]$C
     $left = [int][Math]::Max(1, ($deadline - (Get-Date)).TotalSeconds)
     $line = Read-OspdLine $Eng $left
     if ($null -eq $line) { throw "engine exited before /$Pattern/" }
-    if ($Eng.Log) { Add-OspdLf $Eng.Log $line }
+    Add-OspdEngineLog $Eng $line
     if ($Collect) { $lines.Add($line) }
     $m = $rx.Match($line)
     if ($m.Success) { return @{ Match = $m; Lines = $lines } }
@@ -129,7 +165,8 @@ function Stop-OspdEngine($Eng) {
   try { Send-OspdUci $Eng 'quit' } catch {}
   try { $Eng.In.Close() } catch {}
   $ok = $Eng.Proc.WaitForExit(30000)
-  if ($Eng.Log) { Add-OspdLf $Eng.Log "# $(Get-OspdNow) exit ok=$ok" }
+  Add-OspdEngineLog $Eng "# $(Get-OspdNow) exit ok=$ok"
+  if ($Eng.LogWriter) { try { $Eng.LogWriter.Dispose() } catch {}; $Eng.LogWriter = $null }
   return $ok
 }
 

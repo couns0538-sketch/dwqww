@@ -96,6 +96,9 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
 - A bash function that sets `status=1` loses it when called inside a pipeline (`f | tee`): the function then runs in a subshell. Tee inside the function and call it as a plain command.
 - Counting "deltas" through the uint16 wrap double-counts: one stored difference carries two (score, eval) labels. Say "labels", or dedupe.
 - Check wall-clock progress with the HTTPS Date header before estimating durations. A misread start time made a 25-minute 12k batch look like 110 minutes.
+- **Advisory NPS: give every exe a byte copy.** The new gate file ran 4-5 % below P in two runs. Its byte copy then ran 6 % faster than the original, as fast as the old gate, although the hot machine code was instruction-identical (objdump diff 0 lines; only a 128 B shift).
+  - That is a per-file effect (physical page placement), not the code.
+  - Before blaming a change, compare the old exe, the new exe and a byte copy of each in one run, and diff the hot functions' instructions.
 - **Never open a running PS tool's own log files** (`*.uci.log`, `*.tsv`). Not even `grep -c`, not even read-only.
   - The tools append with .NET `AppendAllText`, which re-opens the file for every line. If a reader holds a handle at that moment, Windows refuses the open and the tool aborts. One 12k run died at FEN 2,893 this way, and its partial result is invalid.
   - Bash `>`-redirected summary files (`run.txt`, `*_all.txt`) are safe to read.

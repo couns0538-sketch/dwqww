@@ -469,6 +469,16 @@ namespace {
 using AtomicWord = std::atomic_ref<std::uint64_t>;
 } // namespace
 
+// QA's frozen PGO workload (bench at the default TtLockless=false) never runs the lockless probe/store, so -fprofile-use
+// would compile them as never executed: size-optimised and moved to cold code. GCC's -fprofile-partial-training, set for
+// these two functions only, compiles them as if no profile existed (normal -O3) instead. It changes no decision: the
+// generated code is the same C++ either way, and every other function keeps the kit's flags.
+#if defined(__GNUC__) && !defined(__clang__)
+#define FORGE_LOCKLESS_UNTRAINED_OPT __attribute__((optimize("profile-partial-training")))
+#else
+#define FORGE_LOCKLESS_UNTRAINED_OPT
+#endif
+
 void TranspositionTable::set_lockless(bool on) {
     // Quiescent only (SPEC 3.6): UCI setoption after stop_search(), tests between joined phases.
     if (on == lockless_) return;
@@ -496,7 +506,7 @@ TTEntry TranspositionTable::debug_entry(std::size_t cluster, int slot) const {
                               AtomicWord(words[2U * s + 1U]).load(std::memory_order_relaxed));
 }
 
-TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
+FORGE_LOCKLESS_UNTRAINED_OPT TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
     namespace L = ttlockless;
     const std::size_t index = cluster_index(key);
     auto& words = lockless_clusters_[index].words;
@@ -562,7 +572,7 @@ TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
     return snapshot(replace_k, replace_d, replace, false);
 }
 
-void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+FORGE_LOCKLESS_UNTRAINED_OPT void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                         Bound bound, bool pv, std::uint16_t halfmove_clock) {
     namespace L = ttlockless;
     // The same handle gate and the same decisions as store_body, applied to the raw words of the slot: the new words
