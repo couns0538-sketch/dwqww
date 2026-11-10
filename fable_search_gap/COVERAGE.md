@@ -3,13 +3,14 @@
 Job: one missing search mechanism for the Forge chess engine at the combo29 lock (ideas only, no engine change).
 Branch `fable52-search-gap-20261109`, base `origin/main` `5176ddf79ae15b76c08c4485d90ee5600ba30a1a`.
 Snapshot frozen 2026-11-09 20:10 to 20:35 PT on grok-pc. All times in this folder are PT (America/Los_Angeles).
+Terms are explained in `NO_QUALIFIED_GAP.md` section 9.
 
 ## Key points
 
 - **The lock exe reproduces every pin on my lane.** Bench depth 11/13/16/20/22 with the net on and off, and perft 5 on the start position and kiwipete, all match (run on CPU 3-6 at Idle, record in `data/pins_combo29.json`).
 - **No repo commit contains the combo29 search source.** I used the Engine QA lock pack on the PC as the source of record and name it below.
 - **The folder named in the lock pointer is not the combo29 source.** `CURRENT_LOCK.json` still points its `tree` field at the older AL1 s198 tree. Its `search.cpp` has a different hash.
-- **No game PGNs survive for the gates.** The mirrored gate folders hold logs and result files only, and the gate summary script itself reports "log missing: 86" of 136 finished gates. Game-level claims are therefore limited to what the logs and result tables show.
+- **I found no game PGNs for the gates.** The mirrored gate folders hold logs and result files only, and the gate summary script itself reports "log missing: 86" of 136 finished gates. PGNs may exist in a place I did not look. Game-level claims are therefore limited to what the logs and result tables show.
 - **The earlier deep-research job is the main dedupe source.** Branch `opus-deepres-20261104` holds 81 ranked idea families and a line-by-line feature diff of the lock search. It is listed in full below.
 
 ## 1. Lock identity (hashed before use)
@@ -90,7 +91,7 @@ Documents read in full or searched line by line:
 
 | Evidence | Path | Notes |
 |---|---|---|
-| Gate verdict table | `C:\Users\Administrator\grok-pc\forge_push\FORGE_RESULTS.md` (sha256 `70ede35dfa67e961...`) and `.csv` (`17c8bde8fbb40680...`), both 2026-11-09 16:55 | 126 rows |
+| Gate verdict table | `C:\Users\Administrator\grok-pc\forge_push\FORGE_RESULTS.md` (sha256 `70ede35dfa67e961...`) and `.csv` (`17c8bde8fbb40680...`), both 2026-11-09 16:55 | 126 rows. The table changed at 21:44 PT (127 rows, `.csv` sha256 `511cb6de4088c34c...`); the new row is reported in `EVIDENCE.md` section 2 and not counted |
 | Live gate manifest | `...\forge_push\autorestart\forge_gates.json` (1.5 MB, changing) | 373 entries; read, never written |
 | Gate folders | `D:\grok-pc-data\forge_push\gate*` | 71 folders, last written 2026-11-01; logs, `RESULT.md`, `RUN_INFO.json`, `TIMEWATCH.txt`; **no PGN in any of them** |
 | Gate status log | `...\forge_push\autonomy\gate_results.log` | newest line: 136 finished gates, 13 H1, 6 H0 or early stop, 31 capped, **log missing 86** |
@@ -98,6 +99,8 @@ Documents read in full or searched line by line:
 | Lock folders | `...\forge_push\locks\` | AL1, ltopgo, trial_w6, combo29 |
 | QA lock pack | `D:\forge-qa\pack_combo29_20261108`, `D:\forge-qa\lockproof_combo29_20261108` | source snapshot, patches, build receipt, soak logs |
 | Today's candidates | `C:\Users\Administrator\grok-pc\{rsa,qmd,chsb,nshd,t12b,syzg}`, `D:\forge-runs\{tcc21,chsb,rsa,qmd,nshd,t12b}_20261109` | diffed against the lock source for dedupe |
+| Gate entries prepared during this job | `C:\Users\Administrator\grok-pc\forge_deepres_stage_20261109\queue_entries_DR.json` (written 20:22 PT, read 22:21 PT) | 25 entries from the crew's deep-research cards; read for dedupe only, not touched |
+| QA pull made during this job | `C:\Users\Administrator\grok-pc\qa_pull_20261109_1309PT` (created 20:11 PT) | pull of the shared-table layout job; searched for the unowned mechanism, no match |
 
 Today's live candidates, by what their diff does (not by name):
 

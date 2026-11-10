@@ -39,6 +39,15 @@ Updated 2026-11-09 22:15 PT. Branch `fable52-search-gap-20261109`. Read this fil
 
 D: free space, read by me: 34.33 GiB at 20:10 PT, 33.77 at 21:09, 33.38 at 21:45, 33.09 at 21:57, 32.98 at 22:14. My own use is 78 MiB. The rest of the fall is other jobs. The floor in the brief is 30 GiB; at this rate (about 0.65 GiB per hour) D: reaches it in four to five hours. **This needs an owner's eye; I cannot stop other jobs.** My tools refuse to build or run below 31 GiB.
 
+## A gate finished with time losses while my probes ran
+
+- The gate SYZJ1 (1,918 games) was recorded at 21:44 PT with 6 time losses and marked NOT CLEAN.
+- My pinned runs used one or two of CPU 3-6 at Idle priority from about 20:10 to 21:08 PT (with pauses) and from 21:42 to 22:12 PT. The exact end times of each run are the write times of the files in `out\logs` and `out\etc_build`. Part of that overlaps the time this gate was playing.
+- I ran no engine, harness or compiler after 22:12 PT.
+- Time losses were already frequent before this job started: 67 in seven gates recorded 2026-11-07 to 2026-11-09 16:55 PT.
+- I found no log of SYZJ1 to compare times, so I cannot show that my runs did or did not contribute. The CPU lane and priority were set by the brief. An Idle-priority process can still slow a gate engine if the two share a physical core.
+- **For an owner:** compare the time-loss times in the SYZJ1 log with the two windows above. If they coincide, CPU 3-6 is not a safe lane while gates run.
+
 ## Resume commands
 
 ```powershell

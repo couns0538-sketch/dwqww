@@ -80,6 +80,7 @@ A single capped result, and even a single H1, says little about the size of a me
 | UB69 | `..._b69bundleB1_al1_a0d0eca9.exe` | 748 | 12 | 2026-11-09 01:08 |
 | UB70W50 | `..._b70packanpc_al1_e7cea33f.exe` | 746 | 22 | 2026-11-09 16:55 |
 
+- **One more such row appeared while this job ran.** At 21:44 PT the table gained a 127th row: SYZJ1, the Syzygy candidate, 1,918 games, 6 time losses, NOT CLEAN, read as H1. It is not in the counts of this file, which describe the 126-row table of 16:55 PT. With it the table holds 76 time losses in 9 rows, 73 of them in eight rows recorded since 2026-11-07.
 - The 51 older logs (54,667 games) contain no time loss at all.
 - UB70W50 lost 22 of 746 games on time and was read as H0 at -24 Elo. If the candidate was the side that forfeited, the forfeits alone account for about 10 to 20 of those 24 Elo (10 if the lost games would otherwise have been drawn on average, 20 if they would have been won). I could not check which side forfeited, because those logs are missing.
 - These verdicts should not be read as evidence about the search.
@@ -131,7 +132,7 @@ So when a node has no usable entry of its own, but one of its moves leads to a p
 **Known limits of the harness.**
 
 - At a node with an en-passant square, `key_after` gives no key, so the harness looks up no child there. Opportunities after double pawn pushes are under-counted.
-- It is built at `-O2` without profile-guided optimisation and without the net. The lock is built differently and spends most of its time in the net. The lookup cost as a share of time may not transfer.
+- It is built at `-O2` without profile-guided optimisation and without the net. The lock is built differently and evaluates a net at its nodes, which the harness does not. The lookup cost as a share of time may not transfer.
 - Rule item 2 ("the plain search also fails high") is close to true by construction in this replica, because the plain search meets the same child entry when it reaches that move.
 
 **Build.** Compiler `C:\opus_5h\...\llvm-mingw-20261104-ucrt-x86_64\bin\clang++.exe`, sha256 `d05fee2c...`, the same binary Engine QA's receipt names for the lock. Flags in `tools/etc_probe/build_and_run.ps1`. Three builds of the harness were used, and each later one reproduces the earlier node counts exactly where they overlap:

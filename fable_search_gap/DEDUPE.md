@@ -1,11 +1,13 @@
 # DEDUPE: what is already owned, by mechanism
 
+Terms are explained in `NO_QUALIFIED_GAP.md` section 9. This file was corrected after the review; `REVIEW_LOG.md` lists what changed.
+
 ## Key points
 
 - **Dedupe was done by what the code does, not by option names.** A candidate counts as owned if the same mechanism is in the lock, was built, queued, gated or rejected by the crew, or is already listed in the crew's research notes.
 - **Twenty candidate mechanisms were checked. Nineteen are owned.** Fourteen of those nineteen would have looked new from the lock source alone.
 - **The twentieth appears nowhere: enhanced transposition cutoffs.** No card, no table row, no option, no source snapshot. The nearest thing is today's `tcc21` candidate, which reads a child's table entry for the opposite purpose.
-- **Four more classic ideas also have no owner** (section 5). They were not counted among the twenty because I found no evidence that would justify measuring them.
+- **Four more classic ideas have no card and no build** (section 5). They were not counted among the twenty because I found no evidence that would justify measuring them. One of them is partly owned through `tcc21`.
 - Being unowned does not make something a qualified gap. That question is answered in `NO_QUALIFIED_GAP.md`.
 - **This search has blind spots.** It saw branch tips, not history, and only six file types. Section 6 lists them.
 
@@ -43,7 +45,7 @@ References are written `branch@tip:path`, with tips as fetched on 2026-11-09 (`d
 | # | Mechanism | Looked new | Verdict | Where it is owned |
 |---|---|---|---|---|
 | 1 | Upcoming-repetition test (a reversible move can repeat an earlier position; alpha is raised to the draw score) | yes | OWNED: carded and built | card `opus-deepres-20261104@2231439c:opus_deepres/cards/T04S/T04S-02-upcoming-repetition.md`; option `CuckooRep` listed ON in `astra-a1-data@110f0c4a:opus_r3/R3-1L/logs/run_40582392767/sp-rel-all_on_v1net/MATRIX.md:7`; diff row 1 in `...:opus_deepres/notes/T04F/DIFF.md:18` |
-| 2 | Twofold repetition scored by node type | no (the lock scores twofold as a draw everywhere) | OWNED: carded | `opus-deepres-20261104@2231439c:opus_deepres/cards/T04F/T04F-03-twofold-nonpv-only.md`; ranking row L27 |
+| 2 | Twofold repetition scored by node type | no (the lock scores twofold as a draw everywhere) | OWNED: carded, and prepared for a gate today as `TwofoldNonPv=1` (section 6) | `opus-deepres-20261104@2231439c:opus_deepres/cards/T04F/T04F-03-twofold-nonpv-only.md`; ranking row L27 |
 | 3 | Draw-score jitter against repetition blindness | yes | OWNED: built as `DrawJitter`, never gated, dropped as under +1 | `...:opus_deepres/notes/T06/DEAD_ENDS.md:4`, `...:opus_deepres/notes/T06/FORMS.md:29`, `claude-research-20261030@6f27150d:research/claude_deep_research_20261030.md:148` |
 | 4 | Quiet checking moves in the first quiescence ply | yes | TRIED: neutral at fixed nodes, not adopted | `cursor/match-pgns-66cc@f481fc5a:EXPERIMENTS.md:142`; `forge/6.4-hourly-20261019@5101c252:validation/hourly/2026-10-19-initial/forge-search-audit.md:64` |
 | 5 | Quiet history updated from the static-eval difference of two plies | yes | OWNED: built as `EvalSwing`, gated twice in a bundle (gates 15 and 28, capped) | `...:opus_deepres/cards/T04C/T04C-03-evaldiff-quiet-history.md:1`, `...:opus_deepres/notes/T04E/TABLE.md:75`; gate rows in `FORGE_RESULTS.md` |
@@ -91,6 +93,8 @@ An earlier version of this table said "zero corpus matches" for the second row. 
 - **Branch tips only.** The corpus holds each file as it stands at the tip of each branch. Work that was added and later deleted or reverted is not in it. For the unowned mechanism I also searched the 2,655 commit messages of all fetched branches by name and found nothing. For the other rows I did not.
 - **Six file types only.** `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff`. A mechanism recorded only in a `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log file would be missed.
 - **Twenty branches not fetched.** The `data/` and `results/` branches were left out for size.
+- **Branches that moved during the job.** The snapshot was taken at 20:15 PT. I compared the remote again at 22:19 PT. No branch was added. One moved: `opus-smp-layout-20261107`, from `a675c04f` to `b5b52035`, seven commits about the shared-table layout. Its only source change is one comment line in `search.hpp`, and the line cited in row 16 is unchanged. Anything pushed after 22:19 PT is not covered.
+- **Folders that appeared on the PC during the job.** Two, both read at 22:21 PT. `...\grok-pc\forge_deepres_stage_20261109\queue_entries_DR.json` (written 20:22 PT) holds 25 gate entries prepared from the crew's deep-research cards. None of them is the unowned mechanism. One is row 2 of the table above (`TwofoldNonPv=1`), and one is the `tcc21` option (`TtCutChildDepth=8`). `...\grok-pc\qa_pull_20261109_1309PT` is a pull of the shared-table layout job and has no match for the unowned mechanism.
 - **Keywords.** A mechanism described only in prose that uses none of my keywords could be missed. For the unowned mechanism I reduced that risk with the code-shape search.
 - **"LISTED" rows.** The crew's research notes sometimes list a mechanism without a decision. I treated every such row as not new, because your brief asks to check research notes before calling anything new. Some of those nine rows were never decided by anyone; they are not "rejected".
 - **Boards outside the repo.** One search each in Linear and Notion found no Forge idea board. Any other board was out of reach.

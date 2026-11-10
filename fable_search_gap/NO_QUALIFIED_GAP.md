@@ -6,7 +6,7 @@ Result of the fable52 job "one missing search mechanism" for the Forge engine at
 
 - **Verdict: NO QUALIFIED GAP.** I found no search mechanism that is both missing everywhere and supported well enough to hand to the crew as a spec.
 - **Twenty candidates were checked. Nineteen are already owned** (in the lock, built, gated, rejected, or listed in the crew's research notes). `DEDUPE.md` has the references.
-- **The twentieth is owned by nobody: enhanced transposition cutoffs.** I measured it in a replica search on the lock's own board and evaluation code. Four more classic ideas are also unowned; I found no evidence that would justify measuring them (`DEDUPE.md` section 5).
+- **The twentieth is owned by nobody: enhanced transposition cutoffs.** I measured it in a replica search on the lock's own board and evaluation code. Four more classic ideas have no card and no build. I found no evidence that would justify measuring them, and one of them is partly owned (`DEDUPE.md` section 5).
 - **It does not qualify, because no benefit is shown.** The rule committed before the deciding run asked for a node saving clearly below 1.00. The measured range includes 1.00. A placebo change moves the same numbers about as far. A second run on 336 positions from 48 independent openings, read by a rule committed before it, gave 0.987 with range [0.954, 1.022]: not shown, and no more than about 5 % if it exists.
 - **That is "not shown", not "refuted".** The first test could only have seen a saving of about 12 % or more, the second one of about 5 % or more. The time cost of the lookups is the same order as the possible saving, and this loaded machine could not settle which is larger.
 - **One warning sign:** on the classic pawn-ending test position, three of eight settings of the mechanism play the drawing move at some depth. Under ten placebo-size changes the plain replica always keeps the winning move; the mechanism's settings miss it at some depth in 31 of 80 runs. One setting (6 plies) never misses.
@@ -140,7 +140,7 @@ An earlier version of this request closed the idea on a middlegame-only threshol
 These are about owned work or operations. I report them and did not act on them.
 
 1. **A proven bundle with no result on a current base.** `BundlePreset=B4` reached H1 twice against `h256_e12`. I found no run of it against any later base. (UB69 is a port of bundle B1 and UB70W50 is a different pack; both are NOT CLEAN.)
-2. **Time losses in the newest gates.** 67 time losses in seven rows recorded 2026-11-07 to 2026-11-09, none in 54,667 older logged games. Those verdicts should be re-run or set aside, and the logs kept.
+2. **Time losses in the newest gates.** 67 time losses in seven rows recorded 2026-11-07 to 2026-11-09, none in 54,667 older logged games. An eighth such row was recorded at 21:44 PT while this job ran (SYZJ1, 6 time losses, read as H1). Those verdicts should be re-run or set aside, and the logs kept.
 3. **Base labels.** The results table's base column disagrees with the gate tag in 17 rows (`EVIDENCE.md` section 2). For UB70W50 the manifest names the older LTO exe as base while the table says combo29.
 4. **Lock pointer.** `CURRENT_LOCK.json` names the AL1 source folder as the lock's `tree`. The combo29 exe was built from the source in the QA pack.
 5. **Rook underpromotion.** The lock exe prefers `d7c8r` at depth 17 on a standard test position. Promoting to a queen loses the new piece the same way, so this is probably a tie between equal moves (`EVIDENCE.md` section 7).

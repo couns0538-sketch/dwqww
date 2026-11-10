@@ -16,7 +16,7 @@ The dossier says two things: (1) every checked mechanism except one is already o
 
 | Claim | What would break it | Where to look |
 |---|---|---|
-| Enhanced transposition cutoffs are owned by nobody | a card, table row, option, patch or source file that ends a node from a child's table entry | the three banned folders, the 20 unfetched `data/` and `results/` branches, deleted or reverted work in branch history, file types outside the corpus, any board outside the repo, branches pushed after 2026-11-09 20:15 PT |
+| Enhanced transposition cutoffs are owned by nobody | a card, table row, option, patch or source file that ends a node from a child's table entry | the three banned folders, the 20 unfetched `data/` and `results/` branches, deleted or reverted work in branch history, file types outside the corpus, any board outside the repo, branches pushed after 2026-11-09 22:19 PT (the remote was compared with the snapshot again at that time; `DEDUPE.md` section 6) |
 | The 19 other candidates are owned | a reference in `DEDUPE.md` that does not say what I say it says | each row cites branch, tip and line; the reviewer checked all 19 |
 | `tcc21` is a different mechanism | a reading of its patch showing it also creates cutoffs | `D:\forge-runs\tcc21_20261109\src_cand\src\search.cpp`; my reading and the reviewer's: it only vetoes |
 | The four ideas of `DEDUPE.md` section 5 have no card or build | a card, option or build for any of them | same places as the first row |
@@ -69,6 +69,8 @@ A counting mode in the real search, compiled out by default. It takes no cutoff,
 - `top_hits_fail_high / top_hits` under 99 %: **stop and investigate**; the mechanism would then disagree with the search it claims to shortcut.
 
 One threshold depth only. A second may be tried only if it is named before the first run.
+
+These thresholds compare a share of nodes with a share of time. That assumes the nodes below hit nodes cost about the average time per node. It is a first-order comparison, good enough to decide whether a spec is worth writing, not to predict a speed-up.
 
 **What changed here after the review.** The earlier version closed the idea if the middlegame share was under 2 %. The replica's own middlegame numbers (1.2 to 2.0 %) were already under that line, and I have no data on how gate games split their clock between middlegame and endgame. The thresholds above use the gate's own mix instead. On the replica's numbers they would come out "undecided" or "write the spec": 4.7 % below hit nodes against 1.5 to 4.3 % lookup time on the wide set, and 2.6 % against a single measurement of 0.7 % on the second set. So the request is not decided in advance.
 

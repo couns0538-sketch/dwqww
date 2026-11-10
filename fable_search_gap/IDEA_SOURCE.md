@@ -1,5 +1,7 @@
 # IDEA_SOURCE: where each idea in this folder comes from
 
+Terms are explained in `NO_QUALIFIED_GAP.md` section 9.
+
 Rule followed: GPL and AGPL engines are ideas only. No code, constant, table or weight was copied from any engine. Everything under `tools/` is original work for this job. The harness `tools/etc_probe/etc_probe.cpp` links unmodified Forge lock sources (Couns's own code) and contains no third-party code.
 
 ## Sources read for the candidate mechanism (enhanced transposition cutoffs)
