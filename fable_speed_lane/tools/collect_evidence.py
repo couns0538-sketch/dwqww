@@ -17,6 +17,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pinguard  # noqa: E402
+import work_counters  # noqa: E402
 
 SINGLES = [("WITNESS_NOPIN", "wit"), ("EVADE_LEGAL", "evd"), ("PAWN_CAPMASK", "cap"), ("CHECKERS_KL", "chk"),
            ("KING_PAWN_CACHE", "kpc")]
@@ -216,10 +217,11 @@ def main():
     # ---------------- timing
     lines += ["## 3. INDICATIVE timing (not the ABBA)", "",
               "Lock exe (A) against the switch-1 exe (B), Threads 1, Hash 16, fresh engine per arm, warm `bench 13`, timed "
-              "`bench 20`, 10 ABBA blocks, ratio per block = sqrt(B1*B2 / (A1*A2)). **Wall** = nodes per wall second. "
+              "`bench 20`, ABBA blocks (count per row), ratio per block = sqrt(B1*B2 / (A1*A2)). **Wall** = nodes per wall second. "
               "**Cycles** = nodes per CPU cycle of the engine process (QueryProcessCycleTime), which preemption by other "
               "jobs does not inflate. Positive = B faster. These numbers come from one shared CPU at Idle priority; "
-              "they cannot prove a gain under 1 % and they are not QA's quiet ABBA.", "",
+              "they cannot prove a gain under 1 % and they are not QA's quiet ABBA. Section 5 gives exact, "
+              "load-independent counters of the work each switch removes.", "",
               "| Pair | Net | Wall median | Wall IQR | Wall min .. max | Cycles median | Cycles IQR | Cycles min .. max | Blocks | Folder |",
               "|---|---|---|---|---|---|---|---|---|---|"]
     for name, _tag in [("AA_lock_vs_lock", "")] + BUNDLES + SINGLES:
@@ -267,6 +269,20 @@ def main():
     lines += ["", "Controls (the unchanged tree with the same switches):", "", "| Tree | Switches | Result | Sets |", "|---|---|---|---|"]
     lines += controls
     lines += ["", "Evidence: `evidence/mutants/`.", ""]
+
+    # ---------------- exact work counters
+    md, tsv = work_counters.table(out)
+    with open(os.path.join(ev, "work_counters.tsv"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(tsv) + "\n")
+    lines += ["## 5. Exact work counters: what each switch removes", "",
+              "Not a timing. Every lock-recipe build has an instrumented first stage that runs the frozen workload "
+              "(bench 11, 13 and 16; 4,200,115 nodes in every build, since all builds are node-identical). Its profile "
+              "holds an exact counter per source function and per source region. The table compares those counters "
+              "between the control rebuild of the lock source and each switch-1 build (`tools/work_counters.py`). "
+              "\"same\" = equal to the lock's count. Counters measure work removed, not time gained: they say nothing "
+              "about cache or code-layout effects, but they are exact and repeatable, which the timing above is not.", ""]
+    lines += md
+    lines += ["", "Evidence: `evidence/work_counters.tsv`; the profiles are `out\\build\\<tag>\\m2gen\\m2.profdata` on the PC.", ""]
     with open(os.path.join(pack, "BENCH.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines))
     n_files = sum(len(fs) for _, _, fs in os.walk(ev))
