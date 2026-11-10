@@ -27,6 +27,11 @@
 #define FORGE_FIX_TT_DEPTH_OVERFLOW 0
 #endif
 
+// Opt-in replacement-score reuse; full hit scan and first-empty selection stay intact.
+#ifndef FORGE_SPD_TT_REPLACE_CACHE
+#define FORGE_SPD_TT_REPLACE_CACHE 0
+#endif
+
 namespace forge {
 
 namespace tune {
@@ -338,10 +343,24 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
     auto relative_age = [this](const TTEntry& entry) {
         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
     };
+#if FORGE_SPD_TT_REPLACE_CACHE
+    if (!replace->occupied()) return snapshot(*replace, false);
+    int best_score = replace->depth - 4 * relative_age(*replace);
+    for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+        const TTEntry& entry = cluster.entries[slot];
+        if (!entry.occupied()) return snapshot(entry, false);
+        const int score = entry.depth - 4 * relative_age(entry);
+        if (score < best_score) {
+            replace = &entry;
+            best_score = score;
+        }
+    }
+#else
     for (const TTEntry& entry : cluster.entries) {
         if (!entry.occupied()) return snapshot(entry, false);
         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
     }
+#endif
     return snapshot(*replace, false);
 }
 
@@ -419,10 +438,24 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
     auto relative_age = [this](const TTEntry& entry) {
         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
     };
+#if FORGE_SPD_TT_REPLACE_CACHE
+    if (!replace->occupied()) return snapshot(*replace, false);
+    int best_score = replace->depth - 4 * relative_age(*replace);
+    for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+        const TTEntry& entry = cluster.entries[slot];
+        if (!entry.occupied()) return snapshot(entry, false);
+        const int score = entry.depth - 4 * relative_age(entry);
+        if (score < best_score) {
+            replace = &entry;
+            best_score = score;
+        }
+    }
+#else
     for (const TTEntry& entry : cluster.entries) {
         if (!entry.occupied()) return snapshot(entry, false);
         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
     }
+#endif
     return snapshot(*replace, false);
 }
 
