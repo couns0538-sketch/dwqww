@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -896,7 +897,7 @@ std::uint64_t Worker::total_nodes() const {
 bool Worker::should_stop() {
     // Publish this thread's node count for the others at the same cadence.
     nodes_.store(local_nodes_, std::memory_order_relaxed);
-#if FORGE_FIX_SMP_STOP_LATCH
+#if FORGE_FIX_SMP_STOP_LATCH || FORGE_FIX_SMP_EXCEPTIONS
     if (shared_.stop.load(std::memory_order_relaxed) ||
         shared_.helper_shutdown.load(std::memory_order_relaxed)) return true;
 #else
@@ -1800,7 +1801,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 #else
     for (auto& worker : workers_) all.push_back(worker.get());
 #endif
-#if FORGE_FIX_SMP_STOP_LATCH
+#if FORGE_FIX_SMP_STOP_LATCH || FORGE_FIX_SMP_EXCEPTIONS
     // All previous helpers are joined. Only explicit reset_stop() clears the
     // external stop request; starting another search resets internal shutdown.
     shared_.helper_shutdown.store(false, std::memory_order_relaxed);
@@ -1824,6 +1825,39 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
+#if FORGE_FIX_SMP_EXCEPTIONS
+    std::vector<std::thread> helpers;
+    // Allocate exception slots before starting any thread. Each helper writes
+    // only its own slot; the main thread reads them only after joining.
+    std::vector<std::exception_ptr> helper_errors(workers_.size());
+    const auto request_shutdown = [this]() noexcept {
+        shared_.helper_shutdown.store(true, std::memory_order_relaxed);
+    };
+    SearchInfo result;
+    {
+        struct JoinScope {
+            std::vector<std::thread>& helpers;
+            const decltype(request_shutdown)& shutdown;
+            ~JoinScope() {
+                shutdown();
+                for (auto& helper : helpers) if (helper.joinable()) helper.join();
+            }
+        } join_scope{helpers, request_shutdown};
+        for (std::size_t i = 1; i < workers_.size(); ++i) {
+            helpers.emplace_back([this, i, board, &worker_limits, &all,
+                                  &helper_errors, &request_shutdown]() {
+                try {
+                    (void)workers_[i]->search(board, worker_limits, false, all);
+                } catch (...) {
+                    helper_errors[i] = std::current_exception();
+                    request_shutdown();
+                }
+            });
+        }
+        result = workers_.front()->search(board, worker_limits, emit_info, all);
+    } // Join before propagating helper errors or destroying referenced locals.
+    for (const auto& error : helper_errors) if (error) std::rethrow_exception(error);
+#else
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
@@ -1841,6 +1875,7 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(true, std::memory_order_relaxed);
     for (auto& helper : helpers) helper.join();
     shared_.stop.store(external_stop, std::memory_order_relaxed);
+#endif
 #endif
 #if FORGE_FIX_SMP_FINAL_NODES
     // Every helper has published its final count and is now quiescent. The

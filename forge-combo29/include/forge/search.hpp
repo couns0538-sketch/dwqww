@@ -30,6 +30,11 @@
 #define FORGE_FIX_SMP_STOP_LATCH 0
 #endif
 
+// Opt-in exception safety, sharing the independent internal shutdown latch.
+#ifndef FORGE_FIX_SMP_EXCEPTIONS
+#define FORGE_FIX_SMP_EXCEPTIONS 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -318,7 +323,7 @@ struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
     TranspositionTable tt;
     std::atomic<bool> stop{false};
-#if FORGE_FIX_SMP_STOP_LATCH
+#if FORGE_FIX_SMP_STOP_LATCH || FORGE_FIX_SMP_EXCEPTIONS
     // Searcher owns this per-search flag; stop remains externally latched.
     std::atomic<bool> helper_shutdown{false};
 #endif
