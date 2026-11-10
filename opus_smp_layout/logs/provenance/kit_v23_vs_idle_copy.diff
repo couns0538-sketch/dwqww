@@ -1,0 +1,21 @@
+--- /c/Users/Administrator/grok-pc/forge_push/qa_ltopgo_al1_stage/kit_v23/build_ltopgo.ps1	2026-10-30 17:14:04.783747500 -0700
++++ /d/forge_jobs_20261107/opus2/out/kit_v23_idle/build_ltopgo.ps1	2026-11-09 16:55:48.657539900 -0800
+@@ -37,7 +37,8 @@
+   [switch]$Expose
+ )
+ $ErrorActionPreference = 'Continue'
+-$me = [System.Diagnostics.Process]::GetCurrentProcess(); $me.ProcessorAffinity = [IntPtr]$Affinity; $me.PriorityClass = 'BelowNormal'
++$me = [System.Diagnostics.Process]::GetCurrentProcess(); $me.ProcessorAffinity = [IntPtr]$Affinity; $me.PriorityClass = 'Idle'  # opus2 copy: Idle instead of BelowNormal (job rule)
++$me.Refresh(); if (([long]$me.ProcessorAffinity -ne $Affinity) -or ("$($me.PriorityClass)" -ne 'Idle')) { throw "opus2 copy: affinity/priority readback failed" }
+ $env:PATH = 'C:\msys64\ucrt64\bin;' + $env:PATH; $gpp = 'C:\msys64\ucrt64\bin\g++.exe'; $objdumpExe = 'C:\msys64\ucrt64\bin\objdump.exe'
+ $WlFile = Join-Path $Kit 'workload\frozen_train_cmds.txt'; $FenFile = Join-Path $Kit 'workload\bench_fens.txt'
+ $Checker = Join-Path $Kit 'tools\lp_check.py'; $ArcsTool = Join-Path $Kit 'tools\gcda_arcs_digest.py'
+@@ -66,7 +67,7 @@
+   if ($argList.Count) { $startArgs.ArgumentList = ($argList | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }) -join ' ' }
+   if ($stdinFile) { $startArgs.RedirectStandardInput = $stdinFile }
+   $proc = Start-Process @startArgs; $null = $proc.Handle
+-  if (-not $proc.WaitForExit($timeoutSec * 1000)) { $proc.Kill(); throw "timeout after ${timeoutSec}s: $exePath" }
++  if (-not $proc.WaitForExit($timeoutSec * 1000)) { throw "timeout after ${timeoutSec}s: $exePath (opus2 copy: process left running, pid $($proc.Id); never ended by this job)" }
+   $proc.WaitForExit()
+   return $proc.ExitCode
+ }
