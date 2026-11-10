@@ -61,3 +61,18 @@ With KING_LINES=1 (existing default):
 - 108,583/110,175 eligible checked moves survive the mask and require full validation. Of these, 813/769 are illegal. Checked king bypasses are 309,269/275,835; checked EP bypasses are 394/121.
 
 With KING_LINES=0 every call already enters the full fallback, so the same 1,553,164/1,843,476 rejects represent 17.99%/24.11% of original full fallbacks; all calls pay the new condition. There is count-based headroom worth a separately authorized, default-off snapshot candidate, but no measured speed gain. Full-attack short-circuit cost, added branches and table traffic must be measured separately. Compiler assembly inspection and actual candidate integration gates remain outstanding.
+
+## Default-off candidate and completed correctness gates
+
+The headroom phase above preceded implementation. Production experiment is now frozen at `8c447f4e676f86ee034f82b33cd0856b00eed230`, after proof commit `86e6d46`. `FORGE_SPD_CHECK_EVASION_PREFILTER` defaults to zero, guards both legality variants, preserves the original king-lines no-check fast path, and changes no move sorting.
+
+Executed gates in `evasion_prefilter_validation.json` and companion logs:
+
+- Full default-off engine is byte-identical to immutable lock: SHA256 `1371770e2ad61aa2fe3c038acc7da3912da5d64c9cb1dcc5e4668221fb3226f6`.
+- Enabled engine preserves all ten NNUE-on/off depth11/13/16/20/22 node pins and start-position perft5 = 4,865,609.
+- 256 fixed-depth comparisons against immutable lock pass: exact depth, nodes, score, PV and bestmove, with NNUE both modes.
+- Four ASan+UBSan matrix entries (KING_LINES=0/1 × prefilter=0/1) pass with identical results. Every generated pseudo move is compared against make-move plus direct own-king attack recomputation, independently of the candidate's prefilter. Explicit cases cover slider interposition, knight and pawn checker captures, double check, EP checker capture, a pinned illegal survivor, promotion checker capture, and king escape.
+- Four unsafe mutations are rejected: omit checker capture, omit interposition, omit EP bypass, and accept mask survivors without full validation. All fail explicit evasion fixtures.
+- Compiled default baseline `is_legal` contains no BetweenTable reference, BLSR or TZCNT. Enabled assembly contains one each: compiler did not already synthesize this cached-checker predicate. Both symbol dumps are saved. Source-level fast-path preservation does not imply identical register allocation or instruction addresses when the candidate is enabled.
+
+The fixed four-cycle depth18 CPU/wall diagnostic protocol is in `evasion_prefilter_profile_REVIEW.md`. It is separately frozen before execution. Correctness passes and eliminated-call counts do not establish native speed or strength.

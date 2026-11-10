@@ -1,0 +1,225 @@
+000000000000cbf0 <forge::Board::is_legal(forge::Move const&) const>:
+    cbf0:	41 55                	push   %r13
+    cbf2:	48 8d 15 57 a2 02 00 	lea    0x2a257(%rip),%rdx        # 36e50 <forge::detail::PieceTypeTable>
+    cbf9:	41 54                	push   %r12
+    cbfb:	55                   	push   %rbp
+    cbfc:	53                   	push   %rbx
+    cbfd:	48 89 fb             	mov    %rdi,%rbx
+    cc00:	48 83 ec 18          	sub    $0x18,%rsp
+    cc04:	44 0f b6 2e          	movzbl (%rsi),%r13d
+    cc08:	48 63 af 80 01 00 00 	movslq 0x180(%rdi),%rbp
+    cc0f:	4c 8b 97 a0 01 00 00 	mov    0x1a0(%rdi),%r10
+    cc16:	0f b6 7e 03          	movzbl 0x3(%rsi),%edi
+    cc1a:	42 8b 04 ab          	mov    (%rbx,%r13,4),%eax
+    cc1e:	4d 89 ec             	mov    %r13,%r12
+    cc21:	83 e0 0f             	and    $0xf,%eax
+    cc24:	44 0f b6 04 02       	movzbl (%rdx,%rax,1),%r8d
+    cc29:	89 fa                	mov    %edi,%edx
+    cc2b:	83 e2 10             	and    $0x10,%edx
+    cc2e:	4d 85 d2             	test   %r10,%r10
+    cc31:	0f 84 b9 00 00 00    	je     ccf0 <forge::Board::is_legal(forge::Move const&) const+0x100>
+    cc37:	84 d2                	test   %dl,%dl
+    cc39:	0f 84 21 01 00 00    	je     cd60 <forge::Board::is_legal(forge::Move const&) const+0x170>
+    cc3f:	c5 fa 6f 83 68 01 00 	vmovdqu 0x168(%rbx),%xmm0
+    cc46:	00 
+    cc47:	0f b6 4e 01          	movzbl 0x1(%rsi),%ecx
+    cc4b:	c5 f1 73 d8 08       	vpsrldq $0x8,%xmm0,%xmm1
+    cc50:	41 89 c9             	mov    %ecx,%r9d
+    cc53:	62 f1 fd 08 eb c1    	vporq  %xmm1,%xmm0,%xmm0
+    cc59:	c4 e1 f9 7e c0       	vmovq  %xmm0,%rax
+    cc5e:	4c 0f b3 e0          	btr    %r12,%rax
+    cc62:	83 fd 01             	cmp    $0x1,%ebp
+    cc65:	19 d2                	sbb    %edx,%edx
+    cc67:	83 e2 10             	and    $0x10,%edx
+    cc6a:	83 ea 08             	sub    $0x8,%edx
+    cc6d:	41 29 d1             	sub    %edx,%r9d
+    cc70:	ba 01 00 00 00       	mov    $0x1,%edx
+    cc75:	c4 62 b1 f7 ca       	shlx   %r9,%rdx,%r9
+    cc7a:	4c 89 ce             	mov    %r9,%rsi
+    cc7d:	c4 e2 b0 f2 c0       	andn   %rax,%r9,%rax
+    cc82:	c4 e2 f1 f7 d2       	shlx   %rcx,%rdx,%rdx
+    cc87:	48 f7 d6             	not    %rsi
+    cc8a:	48 09 d0             	or     %rdx,%rax
+    cc8d:	40 f6 c7 0c          	test   $0xc,%dil
+    cc91:	0f 84 4e 01 00 00    	je     cde5 <forge::Board::is_legal(forge::Move const&) const+0x1f5>
+    cc97:	83 e7 04             	and    $0x4,%edi
+    cc9a:	85 ed                	test   %ebp,%ebp
+    cc9c:	0f 85 4e 02 00 00    	jne    cef0 <forge::Board::is_legal(forge::Move const&) const+0x300>
+    cca2:	40 84 ff             	test   %dil,%dil
+    cca5:	0f 84 8d 02 00 00    	je     cf38 <forge::Board::is_legal(forge::Move const&) const+0x348>
+    ccab:	24 7f                	and    $0x7f,%al
+    ccad:	48 83 c8 20          	or     $0x20,%rax
+    ccb1:	41 80 f8 06          	cmp    $0x6,%r8b
+    ccb5:	74 07                	je     ccbe <forge::Board::is_legal(forge::Move const&) const+0xce>
+    ccb7:	48 63 8b 78 01 00 00 	movslq 0x178(%rbx),%rcx
+    ccbe:	41 bc 0a 00 00 00    	mov    $0xa,%r12d
+    ccc4:	41 bb 09 00 00 00    	mov    $0x9,%r11d
+    ccca:	bd 0b 00 00 00       	mov    $0xb,%ebp
+    cccf:	41 ba 0c 00 00 00    	mov    $0xc,%r10d
+    ccd5:	48 8d 15 e4 d0 0a 00 	lea    0xad0e4(%rip),%rdx        # b9dc0 <forge::attacks::PawnTable>
+    ccdc:	41 b8 08 00 00 00    	mov    $0x8,%r8d
+    cce2:	bf 07 00 00 00       	mov    $0x7,%edi
+    cce7:	48 8b 14 ca          	mov    (%rdx,%rcx,8),%rdx
+    cceb:	e9 3f 01 00 00       	jmp    ce2f <forge::Board::is_legal(forge::Move const&) const+0x23f>
+    ccf0:	84 d2                	test   %dl,%dl
+    ccf2:	0f 85 47 ff ff ff    	jne    cc3f <forge::Board::is_legal(forge::Move const&) const+0x4f>
+    ccf8:	41 80 f8 06          	cmp    $0x6,%r8b
+    ccfc:	0f 84 1e 02 00 00    	je     cf20 <forge::Board::is_legal(forge::Move const&) const+0x330>
+    cd02:	80 bb c8 01 00 00 00 	cmpb   $0x0,0x1c8(%rbx)
+    cd09:	0f 84 59 02 00 00    	je     cf68 <forge::Board::is_legal(forge::Move const&) const+0x378>
+    cd0f:	b8 01 00 00 00       	mov    $0x1,%eax
+    cd14:	41 b9 01 00 00 00    	mov    $0x1,%r9d
+    cd1a:	c4 62 99 f7 e0       	shlx   %r12,%rax,%r12
+    cd1f:	4c 23 a3 d0 01 00 00 	and    0x1d0(%rbx),%r12
+    cd26:	74 27                	je     cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    cd28:	0f b6 56 01          	movzbl 0x1(%rsi),%edx
+    cd2c:	48 8d 0d 8d d0 09 00 	lea    0x9d08d(%rip),%rcx        # a9dc0 <forge::attacks::LineTable>
+    cd33:	c4 e2 e9 f7 c0       	shlx   %rdx,%rax,%rax
+    cd38:	48 63 94 ab 78 01 00 	movslq 0x178(%rbx,%rbp,4),%rdx
+    cd3f:	00 
+    cd40:	48 c1 e2 06          	shl    $0x6,%rdx
+    cd44:	4c 01 ea             	add    %r13,%rdx
+    cd47:	48 23 04 d1          	and    (%rcx,%rdx,8),%rax
+    cd4b:	41 0f 95 c1          	setne  %r9b
+    cd4f:	48 83 c4 18          	add    $0x18,%rsp
+    cd53:	44 89 c8             	mov    %r9d,%eax
+    cd56:	5b                   	pop    %rbx
+    cd57:	5d                   	pop    %rbp
+    cd58:	41 5c                	pop    %r12
+    cd5a:	41 5d                	pop    %r13
+    cd5c:	c3                   	ret
+    cd5d:	0f 1f 00             	nopl   (%rax)
+    cd60:	41 80 f8 06          	cmp    $0x6,%r8b
+    cd64:	0f 84 b6 01 00 00    	je     cf20 <forge::Board::is_legal(forge::Move const&) const+0x330>
+    cd6a:	45 31 c9             	xor    %r9d,%r9d
+    cd6d:	c4 c2 f8 f3 ca       	blsr   %r10,%rax
+    cd72:	75 db                	jne    cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    cd74:	48 63 c5             	movslq %ebp,%rax
+    cd77:	0f b6 4e 01          	movzbl 0x1(%rsi),%ecx
+    cd7b:	31 f6                	xor    %esi,%esi
+    cd7d:	ba 01 00 00 00       	mov    $0x1,%edx
+    cd82:	48 63 84 83 78 01 00 	movslq 0x178(%rbx,%rax,4),%rax
+    cd89:	00 
+    cd8a:	f3 49 0f bc f2       	tzcnt  %r10,%rsi
+    cd8f:	c4 e2 f1 f7 d2       	shlx   %rcx,%rdx,%rdx
+    cd94:	48 c1 e0 06          	shl    $0x6,%rax
+    cd98:	48 01 f0             	add    %rsi,%rax
+    cd9b:	48 8d 35 1e 50 0a 00 	lea    0xa501e(%rip),%rsi        # b1dc0 <forge::attacks::BetweenTable>
+    cda2:	4c 0b 14 c6          	or     (%rsi,%rax,8),%r10
+    cda6:	49 85 d2             	test   %rdx,%r10
+    cda9:	74 a4                	je     cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    cdab:	c5 fa 6f 83 68 01 00 	vmovdqu 0x168(%rbx),%xmm0
+    cdb2:	00 
+    cdb3:	c5 f1 73 d8 08       	vpsrldq $0x8,%xmm0,%xmm1
+    cdb8:	62 f1 fd 08 eb c1    	vporq  %xmm1,%xmm0,%xmm0
+    cdbe:	c4 e1 f9 7e c0       	vmovq  %xmm0,%rax
+    cdc3:	4c 0f b3 e0          	btr    %r12,%rax
+    cdc7:	40 f6 c7 11          	test   $0x11,%dil
+    cdcb:	0f 85 ae 01 00 00    	jne    cf7f <forge::Board::is_legal(forge::Move const&) const+0x38f>
+    cdd1:	48 c7 c6 ff ff ff ff 	mov    $0xffffffffffffffff,%rsi
+    cdd8:	48 09 d0             	or     %rdx,%rax
+    cddb:	40 f6 c7 0c          	test   $0xc,%dil
+    cddf:	0f 85 b2 fe ff ff    	jne    cc97 <forge::Board::is_legal(forge::Move const&) const+0xa7>
+    cde5:	41 80 f8 06          	cmp    $0x6,%r8b
+    cde9:	74 0b                	je     cdf6 <forge::Board::is_legal(forge::Move const&) const+0x206>
+    cdeb:	48 63 d5             	movslq %ebp,%rdx
+    cdee:	48 63 8c 93 78 01 00 	movslq 0x178(%rbx,%rdx,4),%rcx
+    cdf5:	00 
+    cdf6:	85 ed                	test   %ebp,%ebp
+    cdf8:	0f 84 c0 fe ff ff    	je     ccbe <forge::Board::is_legal(forge::Move const&) const+0xce>
+    cdfe:	41 bc 04 00 00 00    	mov    $0x4,%r12d
+    ce04:	41 bb 03 00 00 00    	mov    $0x3,%r11d
+    ce0a:	bd 05 00 00 00       	mov    $0x5,%ebp
+    ce0f:	41 ba 06 00 00 00    	mov    $0x6,%r10d
+    ce15:	48 8d 15 a4 cf 0a 00 	lea    0xacfa4(%rip),%rdx        # b9dc0 <forge::attacks::PawnTable>
+    ce1c:	41 b8 02 00 00 00    	mov    $0x2,%r8d
+    ce22:	bf 01 00 00 00       	mov    $0x1,%edi
+    ce27:	48 8b 94 ca 00 02 00 	mov    0x200(%rdx,%rcx,8),%rdx
+    ce2e:	00 
+    ce2f:	48 21 f2             	and    %rsi,%rdx
+    ce32:	48 23 94 fb 00 01 00 	and    0x100(%rbx,%rdi,8),%rdx
+    ce39:	00 
+    ce3a:	41 b9 00 00 00 00    	mov    $0x0,%r9d
+    ce40:	0f 85 09 ff ff ff    	jne    cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    ce46:	48 8d 15 73 d5 0a 00 	lea    0xad573(%rip),%rdx        # ba3c0 <forge::attacks::KnightTable>
+    ce4d:	48 8b 3c ca          	mov    (%rdx,%rcx,8),%rdi
+    ce51:	48 21 f7             	and    %rsi,%rdi
+    ce54:	48 89 fa             	mov    %rdi,%rdx
+    ce57:	4a 23 94 c3 00 01 00 	and    0x100(%rbx,%r8,8),%rdx
+    ce5e:	00 
+    ce5f:	0f 85 ea fe ff ff    	jne    cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    ce65:	48 8d 15 54 d3 0a 00 	lea    0xad354(%rip),%rdx        # ba1c0 <forge::attacks::KingTable>
+    ce6c:	48 8b 3c ca          	mov    (%rdx,%rcx,8),%rdi
+    ce70:	48 21 f7             	and    %rsi,%rdi
+    ce73:	48 89 fa             	mov    %rdi,%rdx
+    ce76:	4a 23 94 d3 00 01 00 	and    0x100(%rbx,%r10,8),%rdx
+    ce7d:	00 
+    ce7e:	0f 85 cb fe ff ff    	jne    cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    ce84:	48 c1 e1 04          	shl    $0x4,%rcx
+    ce88:	48 8d 3d 31 b7 09 00 	lea    0x9b731(%rip),%rdi        # a85c0 <forge::attacks::BishopMagics>
+    ce8f:	48 8b 94 eb 00 01 00 	mov    0x100(%rbx,%rbp,8),%rdx
+    ce96:	00 
+    ce97:	48 01 cf             	add    %rcx,%rdi
+    ce9a:	4c 8b 47 08          	mov    0x8(%rdi),%r8
+    ce9e:	c4 62 fa f5 17       	pext   (%rdi),%rax,%r10
+    cea3:	4a 8b bc db 00 01 00 	mov    0x100(%rbx,%r11,8),%rdi
+    ceaa:	00 
+    ceab:	48 09 d7             	or     %rdx,%rdi
+    ceae:	48 21 f7             	and    %rsi,%rdi
+    ceb1:	4b 23 3c d0          	and    (%r8,%r10,8),%rdi
+    ceb5:	0f 85 94 fe ff ff    	jne    cd4f <forge::Board::is_legal(forge::Move const&) const+0x15f>
+    cebb:	48 8d 3d fe ba 09 00 	lea    0x9bafe(%rip),%rdi        # a89c0 <forge::attacks::RookMagics>
+    cec2:	4a 0b 94 e3 00 01 00 	or     0x100(%rbx,%r12,8),%rdx
+    cec9:	00 
+    ceca:	48 01 f9             	add    %rdi,%rcx
+    cecd:	48 21 f2             	and    %rsi,%rdx
+    ced0:	c4 e2 fa f5 01       	pext   (%rcx),%rax,%rax
+    ced5:	48 8b 49 08          	mov    0x8(%rcx),%rcx
+    ced9:	48 23 14 c1          	and    (%rcx,%rax,8),%rdx
+    cedd:	41 0f 94 c1          	sete   %r9b
+    cee1:	48 83 c4 18          	add    $0x18,%rsp
+    cee5:	5b                   	pop    %rbx
+    cee6:	44 89 c8             	mov    %r9d,%eax
+    cee9:	5d                   	pop    %rbp
+    ceea:	41 5c                	pop    %r12
+    ceec:	41 5d                	pop    %r13
+    ceee:	c3                   	ret
+    ceef:	90                   	nop
+    cef0:	40 84 ff             	test   %dil,%dil
+    cef3:	75 5b                	jne    cf50 <forge::Board::is_legal(forge::Move const&) const+0x360>
+    cef5:	48 0f ba f0 38       	btr    $0x38,%rax
+    cefa:	48 0f ba e8 3b       	bts    $0x3b,%rax
+    ceff:	41 80 f8 06          	cmp    $0x6,%r8b
+    cf03:	0f 84 f5 fe ff ff    	je     cdfe <forge::Board::is_legal(forge::Move const&) const+0x20e>
+    cf09:	48 63 8c ab 78 01 00 	movslq 0x178(%rbx,%rbp,4),%rcx
+    cf10:	00 
+    cf11:	e9 e8 fe ff ff       	jmp    cdfe <forge::Board::is_legal(forge::Move const&) const+0x20e>
+    cf16:	66 2e 0f 1f 84 00 00 	cs nopw 0x0(%rax,%rax,1)
+    cf1d:	00 00 00 
+    cf20:	0f b6 4e 01          	movzbl 0x1(%rsi),%ecx
+    cf24:	ba 01 00 00 00       	mov    $0x1,%edx
+    cf29:	c4 e2 f1 f7 d2       	shlx   %rcx,%rdx,%rdx
+    cf2e:	e9 78 fe ff ff       	jmp    cdab <forge::Board::is_legal(forge::Move const&) const+0x1bb>
+    cf33:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+    cf38:	48 83 e0 fe          	and    $0xfffffffffffffffe,%rax
+    cf3c:	48 83 c8 08          	or     $0x8,%rax
+    cf40:	41 80 f8 06          	cmp    $0x6,%r8b
+    cf44:	0f 85 6d fd ff ff    	jne    ccb7 <forge::Board::is_legal(forge::Move const&) const+0xc7>
+    cf4a:	e9 6f fd ff ff       	jmp    ccbe <forge::Board::is_legal(forge::Move const&) const+0xce>
+    cf4f:	90                   	nop
+    cf50:	48 0f ba f0 3f       	btr    $0x3f,%rax
+    cf55:	48 0f ba e8 3d       	bts    $0x3d,%rax
+    cf5a:	41 80 f8 06          	cmp    $0x6,%r8b
+    cf5e:	75 a9                	jne    cf09 <forge::Board::is_legal(forge::Move const&) const+0x319>
+    cf60:	e9 99 fe ff ff       	jmp    cdfe <forge::Board::is_legal(forge::Move const&) const+0x20e>
+    cf65:	0f 1f 00             	nopl   (%rax)
+    cf68:	48 89 df             	mov    %rbx,%rdi
+    cf6b:	48 89 74 24 08       	mov    %rsi,0x8(%rsp)
+    cf70:	e8 db f5 ff ff       	call   c550 <forge::Board::refresh_king_lines() const>
+    cf75:	48 8b 74 24 08       	mov    0x8(%rsp),%rsi
+    cf7a:	e9 90 fd ff ff       	jmp    cd0f <forge::Board::is_legal(forge::Move const&) const+0x11f>
+    cf7f:	41 89 c9             	mov    %ecx,%r9d
+    cf82:	e9 e9 fc ff ff       	jmp    cc70 <forge::Board::is_legal(forge::Move const&) const+0x80>
+    cf87:	90                   	nop
+    cf88:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+    cf8f:	00 
