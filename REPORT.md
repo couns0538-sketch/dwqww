@@ -117,5 +117,8 @@ Connector author was explicitly authorized after authenticated git push was unav
 - 29e8c5a0: complete findings/evidence checkpoint.
 - 39f69079: corrected exception-safe cleanup and regression tests.
 - 15e8f115: reproduction recipe and seven-switch validation evidence.
+- bb1b8fbd: final eight-switch pin/UCI summary and executable test script metadata.
+- 80b4f4ba: full 128-FEN equivalence artifact bundle.
+- 60e6a8c2: complete equivalence JSON transfer, verified to exact local Git blob.
 
-This report/evidence checkpoint adds patch files and baseline logs. Remaining: native 12k bit-exact, quiet ABBA, 10+0.1 SPRT and Windows/Clang validation. Cloud work completed to the coverage documented here; no claim of exhaustive verification. No branch rewrite, force push, deletion, merge or locked-branch change performed.
+This final report checkpoint follows verified publication of all eight opt-in changes, patch exports, reproductions and evidence. A transfer-integrity check caught a partial large evidence JSON; a non-rewriting follow-up commit restored the exact local blob. All 64 compared source/header/test/patch/report entries now match their tested local content and modes. Remaining: native 12k bit-exact, quiet ABBA, 10+0.1 SPRT and Windows/Clang validation. Cloud work completed to the coverage documented here; no claim of exhaustive verification. No branch rewrite, force push, deletion, merge or locked-branch change performed.
