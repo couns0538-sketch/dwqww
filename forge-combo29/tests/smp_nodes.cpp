@@ -15,6 +15,9 @@ struct SearcherTestProbe {
     static std::vector<Worker*> workers(Worker& main) { return *main.all_workers_; }
     static void permit_tail_work(Worker& worker) {
         worker.shared_.stop.store(false, std::memory_order_relaxed);
+#if FORGE_FIX_SMP_STOP_LATCH
+        worker.shared_.helper_shutdown.store(false, std::memory_order_relaxed);
+#endif
     }
     static void seed_nodes(Worker& worker, std::uint64_t nodes) {
         worker.nodes_.store(nodes, std::memory_order_relaxed);
@@ -29,6 +32,7 @@ bool hold_helpers = false;
 bool release_helpers = false;
 int gated_creates = 0;
 forge::Worker* tail_worker = nullptr;
+forge::Searcher* stop_during_join = nullptr;
 struct Start { void* (*function)(void*); void* argument; };
 void* gated_start(void* argument) {
     const Start start = *static_cast<Start*>(argument);
@@ -70,6 +74,7 @@ extern "C" int __wrap_pthread_join(pthread_t thread, void** result) {
         // Model real late work after the result snapshot by letting the held
         // helper complete a depth-one search before this join returns.
         if (tail_worker) forge::SearcherTestProbe::permit_tail_work(*tail_worker);
+        if (stop_during_join) stop_during_join->stop();
         { const std::lock_guard<std::mutex> lock(gate_mutex); release_helpers = true; }
         gate_cv.notify_all();
     }
@@ -78,6 +83,7 @@ extern "C" int __wrap_pthread_join(pthread_t thread, void** result) {
 
 int main() {
     const bool test_tail = std::getenv("SMP_NODES_FINAL") != nullptr;
+    const bool test_stop = std::getenv("SMP_STOP_JOIN") != nullptr;
     forge::nnue::enabled = false;
     forge::Searcher searcher(1, 2);
     forge::SearchLimits warmup;
@@ -87,19 +93,38 @@ int main() {
     (void)searcher.search(forge::Board{}, warmup, true);
     std::cout.rdbuf(old);
     if (capture.workers.size() != 2) return 2;
-    forge::SearcherTestProbe::seed_nodes(*capture.workers[1], test_tail ? 0 : 1000000);
+    forge::SearcherTestProbe::seed_nodes(*capture.workers[1], (test_tail || test_stop) ? 0 : 1000000);
     if (test_tail) tail_worker = capture.workers[1];
+    if (test_stop) stop_during_join = &searcher;
     hold_helpers = true;
     forge::SearchLimits limits;
-    limits.depth = test_tail ? 1 : 8;
-    limits.nodes = test_tail ? 0 : 100;
-    limits.nodes_specified = !test_tail;
+    limits.depth = (test_tail || test_stop) ? 1 : 8;
+    limits.nodes = (test_tail || test_stop) ? 0 : 100;
+    limits.nodes_specified = !(test_tail || test_stop);
     const auto result = searcher.search(forge::Board{}, limits);
     hold_helpers = false;
     const auto main_nodes = searcher.main_worker().nodes();
     if (gated_creates != 1) {
         std::cerr << "FAIL pthread wrapping inactive (link static libstdc++)\n";
         return 2;
+    }
+    if (test_stop) {
+        stop_during_join = nullptr;
+        // A stop during the previous join must stay latched until reset_stop.
+        const auto stopped = searcher.search(forge::Board{}, warmup);
+        if (searcher.main_worker().nodes() != 0 || stopped.nodes != 0) {
+            std::cerr << "FAIL stop during join was lost: next search nodes="
+                      << stopped.nodes << '\n';
+            return 1;
+        }
+        searcher.reset_stop();
+        const auto restarted = searcher.search(forge::Board{}, warmup);
+        if (searcher.main_worker().nodes() == 0 || restarted.nodes == 0) {
+            std::cerr << "FAIL explicit reset_stop did not resume search\n";
+            return 1;
+        }
+        std::cout << "PASS stop during join stays latched until explicit reset\n";
+        return 0;
     }
     if (test_tail) {
         std::uint64_t total = 0;

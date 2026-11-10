@@ -896,7 +896,12 @@ std::uint64_t Worker::total_nodes() const {
 bool Worker::should_stop() {
     // Publish this thread's node count for the others at the same cadence.
     nodes_.store(local_nodes_, std::memory_order_relaxed);
+#if FORGE_FIX_SMP_STOP_LATCH
+    if (shared_.stop.load(std::memory_order_relaxed) ||
+        shared_.helper_shutdown.load(std::memory_order_relaxed)) return true;
+#else
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+#endif
     if (!is_main()) return false;
     if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
@@ -1795,6 +1800,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
 #else
     for (auto& worker : workers_) all.push_back(worker.get());
 #endif
+#if FORGE_FIX_SMP_STOP_LATCH
+    // All previous helpers are joined. Only explicit reset_stop() clears the
+    // external stop request; starting another search resets internal shutdown.
+    shared_.helper_shutdown.store(false, std::memory_order_relaxed);
+#endif
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
@@ -1821,11 +1831,17 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         });
     }
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
+#if FORGE_FIX_SMP_STOP_LATCH
+    // Internal shutdown must not overwrite a stop() arriving during joins.
+    shared_.helper_shutdown.store(true, std::memory_order_relaxed);
+    for (auto& helper : helpers) helper.join();
+#else
     // Wind down the helpers without clobbering an externally requested stop.
     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
     shared_.stop.store(true, std::memory_order_relaxed);
     for (auto& helper : helpers) helper.join();
     shared_.stop.store(external_stop, std::memory_order_relaxed);
+#endif
 #if FORGE_FIX_SMP_FINAL_NODES
     // Every helper has published its final count and is now quiescent. The
     // main worker's earlier snapshot can omit work completed during shutdown.

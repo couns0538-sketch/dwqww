@@ -41,3 +41,26 @@ snapshot without relying on a scheduler race. This is a test-only cancellation
 intervention, not a claim that a blocked production helper normally ignores
 stop. On the old accounting path: main=21, returned=21, final=42. With the final
 accounting switch on: returned=42, equal to the sum after joining.
+
+## External stop during helper shutdown
+
+`FORGE_FIX_SMP_STOP_LATCH=1` uses a separate internal helper-shutdown flag.
+Workers observe either flag; search entry resets only internal shutdown.
+External `stop()` stays latched until the caller explicitly invokes
+`reset_stop()`. Default 0 preserves the original snapshot/restore behavior.
+
+```sh
+SMP_STOP_JOIN=1 tests/run_smp_nodes.sh /tmp/smp-stop \
+  -DFORGE_FIX_SMP_NODE_RESET=1 -DFORGE_FIX_SMP_FINAL_NODES=1 \
+  -DFORGE_FIX_SMP_STOP_LATCH=1
+/tmp/smp-stop
+SMP_NODES_FINAL=1 /tmp/smp-stop
+```
+
+The join wrapper calls the real public `stop()` after main has completed and
+before the helper joins. A subsequent search without reset must visit zero
+nodes; after explicit reset, search must resume. The original implementation
+fails because it restores the old false stop snapshot (next search: 21 nodes
+in the observed failing run). No sleeps or racing external control thread are
+needed. The separate final-total test clears both stop flags in its test-only
+late-work simulation when this switch is enabled.

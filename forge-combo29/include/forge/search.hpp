@@ -25,6 +25,11 @@
 #define FORGE_FIX_SMP_NODE_RESET 0
 #endif
 
+// Opt-in correctness fix: keep helper shutdown separate from external stop.
+#ifndef FORGE_FIX_SMP_STOP_LATCH
+#define FORGE_FIX_SMP_STOP_LATCH 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -313,6 +318,10 @@ struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
     TranspositionTable tt;
     std::atomic<bool> stop{false};
+#if FORGE_FIX_SMP_STOP_LATCH
+    // Searcher owns this per-search flag; stop remains externally latched.
+    std::atomic<bool> helper_shutdown{false};
+#endif
     // 0 means pondering has not been converted into a timed search.
     std::atomic<std::int64_t> ponder_hit_ns{0};
 };
