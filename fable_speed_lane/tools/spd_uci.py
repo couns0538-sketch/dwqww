@@ -27,6 +27,7 @@ import os
 import queue
 import random
 import re
+import shutil
 import statistics
 import subprocess
 import sys
@@ -152,6 +153,44 @@ class Engine:
         if not k.QueryProcessCycleTime(ctypes.wintypes.HANDLE(int(self.proc._handle)), ctypes.byref(cycles)):
             return float("nan")
         return cycles.value / 1e9
+
+    def faults_and_times(self) -> tuple[int, float, float]:
+        """(page faults so far, kernel seconds, user seconds) of the engine process. Read before and after a
+        timed section, the differences tell a memory-management cost (faults, kernel time) from a plain slowdown
+        of the engine's own code. Kernel and user time advance in steps of one clock tick (about 16 ms)."""
+        class PMC(ctypes.Structure):
+            _fields_ = [("cb", ctypes.wintypes.DWORD), ("PageFaultCount", ctypes.wintypes.DWORD)] + \
+                       [(n, ctypes.c_size_t) for n in ("PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage",
+                                                       "QuotaPagedPoolUsage", "QuotaPeakNonPagedPoolUsage",
+                                                       "QuotaNonPagedPoolUsage", "PagefileUsage", "PeakPagefileUsage")]
+        h = ctypes.wintypes.HANDLE(int(self.proc._handle))
+        ps = ctypes.WinDLL("psapi", use_last_error=True)
+        ps.GetProcessMemoryInfo.argtypes = [ctypes.wintypes.HANDLE, ctypes.POINTER(PMC), ctypes.wintypes.DWORD]
+        ps.GetProcessMemoryInfo.restype = ctypes.wintypes.BOOL
+        pmc = PMC()
+        pmc.cb = ctypes.sizeof(PMC)
+        faults = pmc.PageFaultCount if ps.GetProcessMemoryInfo(h, ctypes.byref(pmc), pmc.cb) else -1
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.GetProcessTimes.argtypes = [ctypes.wintypes.HANDLE] + [ctypes.POINTER(ctypes.c_uint64)] * 4
+        k.GetProcessTimes.restype = ctypes.wintypes.BOOL
+        t = [ctypes.c_uint64() for _ in range(4)]
+        if not k.GetProcessTimes(h, *[ctypes.byref(v) for v in t]):
+            return faults, float("nan"), float("nan")
+        return faults, t[2].value / 1e7, t[3].value / 1e7
+
+    def image_base(self) -> int:
+        """Address the exe image is loaded at in the engine process (0 if it cannot be read)."""
+        ps = ctypes.WinDLL("psapi", use_last_error=True)
+        ps.EnumProcessModules.argtypes = [ctypes.wintypes.HANDLE, ctypes.POINTER(ctypes.c_void_p), ctypes.wintypes.DWORD,
+                                          ctypes.POINTER(ctypes.wintypes.DWORD)]
+        ps.EnumProcessModules.restype = ctypes.wintypes.BOOL
+        mods = (ctypes.c_void_p * 4)()
+        need = ctypes.wintypes.DWORD()
+        for _ in range(50):                      # the module list is empty until the loader has run
+            if ps.EnumProcessModules(ctypes.wintypes.HANDLE(int(self.proc._handle)), mods, ctypes.sizeof(mods), ctypes.byref(need)):
+                return int(mods[0] or 0)
+            time.sleep(0.02)
+        return 0
 
     def bench(self, depth: int, timeout_s: float = 1800) -> tuple[int, int, float]:
         t0 = time.perf_counter()
@@ -422,6 +461,25 @@ def cpu_times():
     return [(x.idle, x.kernel + x.user) for x in arr]
 
 
+def clear_dynamic_base(path: str) -> None:
+    """Diagnostic copies only: clear IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE (0x40) in a PE32+ file, so that the
+    image is loaded at its preferred base in every process instead of at a randomised address."""
+    with open(path, "r+b") as f:
+        f.seek(0x3C)
+        pe = int.from_bytes(f.read(4), "little")
+        f.seek(pe)
+        if f.read(4) != b"PE\0\0":
+            raise RuntimeError(f"not a PE file: {path}")
+        f.seek(pe + 24)
+        if int.from_bytes(f.read(2), "little") != 0x20B:
+            raise RuntimeError(f"not a PE32+ file: {path}")
+        off = pe + 24 + 70
+        f.seek(off)
+        flags = int.from_bytes(f.read(2), "little")
+        f.seek(off)
+        f.write((flags & ~0x0040).to_bytes(2, "little"))
+
+
 def busy_pct(before, after):
     if not before or not after:
         return {}
@@ -438,39 +496,94 @@ def cmd_abba(a) -> int:
     os.makedirs(a.out, exist_ok=False)
     net = "true" if a.net == "on" else "false"
     pins = PINS_ON if a.net == "on" else PINS_OFF
+    # Hash 16 is the pinned setting: node counts must equal the pins. With another --hash the tree differs from
+    # the pinned one, so the rule becomes: every arm (A and B alike) must report the same node counts.
+    want_warm = pins[13] if a.hash == 16 else None
+    want_timed = pins[a.depth] if a.hash == 16 else None
     cfg = {"label": "INDICATIVE - not the QA quiet ABBA", "a": a.a, "b": a.b, "a_sha256": sha256_file(a.a),
-           "b_sha256": sha256_file(a.b), "pin": pin, "threads": 1, "options": f"UseNNUE={net},Threads=1,Hash=16,OwnBook=false",
-           "warmup": "fresh engine each arm, bench 13 once", "timed": f"bench {a.depth}", "expected_nodes": pins[a.depth],
-           "blocks": a.blocks, "order": "ABBA", "started": now_vienna()}
+           "b_sha256": sha256_file(a.b), "pin": pin, "threads": 1,
+           "options": f"UseNNUE={net},Threads=1,Hash={a.hash},OwnBook=false",
+           "warmup": "fresh engine each arm, bench 13 once", "timed": f"bench {a.depth}", "expected_nodes": want_timed,
+           "blocks": a.blocks, "order": "ABBA, odd blocks BAAB" if a.alternate else "ABBA", "started": now_vienna(),
+           "recopy": (f"a new copy of the exe for every {a.recopy_per}" if a.recopy else "none: the same two files for all blocks"),
+           "fixed_base": bool(a.fixed_base)}
     samples = []
     ratios = []
     cpu_ratios = []
     cpu0 = cpu_times()
+    leftovers = []
+    if a.fixed_base and not a.recopy:
+        raise SystemExit("--fixed-base changes a header flag and is applied to copies only: give --recopy DIR")
+    if a.recopy:
+        os.makedirs(a.recopy, exist_ok=True)
+
+    def fresh(src: str, tag: str) -> str:
+        dst = os.path.join(a.recopy, f"abba_{os.getpid()}_{tag}.exe")
+        shutil.copyfile(src, dst)
+        if a.fixed_base:
+            clear_dynamic_base(dst)
+        leftovers.append(dst)
+        return dst
+
     for block in range(a.blocks):
         arms = []
-        for letter in "ABBA":
-            exe = a.a if letter == "A" else a.b
+        # --recopy DIR: the exes run from copies made anew (per arm, or per block with --recopy-per block). A file
+        # that is run again and again keeps one load address and one set of physical memory pages for its code and
+        # constants, so two fixed files are compared with one fixed draw each for the whole run: byte-identical
+        # copies of one exe were measured up to 6 % apart that way (BENCH.md). With new copies the draw changes
+        # from arm to arm and shows up in the spread of the block ratios instead of biasing their median.
+        block_exe = {}
+        if a.recopy and a.recopy_per == "block":
+            block_exe = {"A": fresh(a.a, f"{block}_a"), "B": fresh(a.b, f"{block}_b")}
+        # --alternate: odd blocks run B A A B, so that whatever favours the middle arms of a block cancels over
+        # two blocks (lock against lock gave about +0.3 % to +0.8 % for the middle arms without it)
+        order = "BAAB" if (a.alternate and block % 2 == 1) else "ABBA"
+        for idx, letter in enumerate(order):
+            src = a.a if letter == "A" else a.b
+            exe = block_exe.get(letter) or (fresh(src, f"{block}_{idx}") if a.recopy else src)
             eng = Engine(exe)
-            eng.handshake(["OwnBook=false", f"UseNNUE={net}"])
+            base = eng.image_base()
+            eng.handshake(["OwnBook=false", f"UseNNUE={net}"] + ([f"Hash={a.hash}"] if a.hash != 16 else []))
             warm, _, _ = eng.bench(13)
-            if warm != pins[13]:
+            if want_warm is None:
+                want_warm = warm
+            if warm != want_warm:
                 eng.close()
-                raise SystemExit(f"warm bench nodes {warm} != {pins[13]}")
+                raise SystemExit(f"warm bench nodes {warm} != {want_warm}")
+            f0, k0, u0 = eng.faults_and_times()
             cpu_a = eng.cpu_seconds()
             nodes, ms, wall = eng.bench(a.depth)
             cpu = eng.cpu_seconds() - cpu_a
+            f1, k1, u1 = eng.faults_and_times()
             eng.close()
-            if nodes != pins[a.depth]:
-                raise SystemExit(f"timed bench nodes {nodes} != {pins[a.depth]}")
-            arm = {"block": block, "letter": letter, "nodes": nodes, "wall_s": wall, "cpu_s": cpu, "engine_ms": ms,
-                   "nps": nodes / wall, "nps_cpu": nodes / cpu if cpu > 0 else 0.0}
+            if want_timed is None:
+                want_timed = nodes
+            if nodes != want_timed:
+                raise SystemExit(f"timed bench nodes {nodes} != {want_timed}")
+            arm = {"block": block, "letter": letter, "slot": idx, "nodes": nodes, "wall_s": wall, "cpu_s": cpu, "engine_ms": ms,
+                   "nps": nodes / wall, "nps_cpu": nodes / cpu if cpu > 0 else 0.0, "image_base": hex(base),
+                   "page_faults": f1 - f0, "kernel_s": round(k1 - k0, 4), "user_s": round(u1 - u0, 4)}
             arms.append(arm)
             samples.append(arm)
-        ratio = ((arms[1]["nps"] * arms[2]["nps"]) / (arms[0]["nps"] * arms[3]["nps"])) ** 0.5
+        arm_a = [x for x in arms if x["letter"] == "A"]
+        arm_b = [x for x in arms if x["letter"] == "B"]
+        ratio = ((arm_b[0]["nps"] * arm_b[1]["nps"]) / (arm_a[0]["nps"] * arm_a[1]["nps"])) ** 0.5
         ratios.append(ratio)
         if all(x["nps_cpu"] > 0 for x in arms):
-            cpu_ratios.append(((arms[1]["nps_cpu"] * arms[2]["nps_cpu"]) / (arms[0]["nps_cpu"] * arms[3]["nps_cpu"])) ** 0.5)
-        print(f"ABBA block {block} wall ratio {ratio:.5f} cpu ratio {cpu_ratios[-1] if cpu_ratios else float('nan'):.5f}", flush=True)
+            cpu_ratios.append(((arm_b[0]["nps_cpu"] * arm_b[1]["nps_cpu"]) / (arm_a[0]["nps_cpu"] * arm_a[1]["nps_cpu"])) ** 0.5)
+        print(f"ABBA block {block} ({order}) wall ratio {ratio:.5f} cpu ratio {cpu_ratios[-1] if cpu_ratios else float('nan'):.5f}", flush=True)
+        for path in list(leftovers):            # this run's own copies; a file still held by the exiting engine stays for the next pass
+            try:
+                os.remove(path)
+                leftovers.remove(path)
+            except OSError:
+                pass
+    time.sleep(1.0)
+    for path in leftovers:
+        try:
+            os.remove(path)
+        except OSError:
+            print(f"left behind (own temporary copy): {path}", flush=True)
     cpu1 = cpu_times()
     med = statistics.median(ratios)
     q = statistics.quantiles(ratios, n=4, method="inclusive") if len(ratios) >= 2 else [med, med, med]
@@ -522,6 +635,9 @@ def main() -> int:
     s = sub.add_parser("abba"); s.add_argument("--a", required=True); s.add_argument("--b", required=True)
     s.add_argument("--out", required=True); s.add_argument("--blocks", type=int, default=10)
     s.add_argument("--depth", type=int, default=16); s.add_argument("--net", choices=["on", "off"], default="on")
+    s.add_argument("--hash", type=int, default=16); s.add_argument("--recopy", default="")
+    s.add_argument("--recopy-per", choices=["arm", "block"], default="arm"); s.add_argument("--fixed-base", action="store_true")
+    s.add_argument("--alternate", action="store_true")
     a = p.parse_args()
     return {"pins": cmd_pins, "cold": cmd_cold, "merge": cmd_merge, "warm": cmd_warm, "soak": cmd_soak,
             "perftset": cmd_perftset, "abba": cmd_abba}[a.cmd](a)

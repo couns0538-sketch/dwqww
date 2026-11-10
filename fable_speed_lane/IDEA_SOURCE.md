@@ -23,6 +23,8 @@ Job: bit-exact speed lane on combo29 (fable2), 2026-11-10. Times are Europe/Vien
 | `tree_index.py`, `fetch_corpus.py` | own tools of the earlier job on branch `fable52-search-gap-20261109` | own | reused for the duplicate check |
 | Perft reference counts | the published standard perft positions (startpos, "kiwipete", positions 3-6), as already used in crew notes | public facts | expected node counts in `tools/spd_uci.py` |
 | Compiler and runtime | llvm-mingw 20261104, clang 23.1.5 (sha256 `d05fee2c...`) with the `C:/msys64/ucrt64` sysroot: exactly the lock receipt's toolchain | as for the lock itself; this job adds no library and changes no link input | read and execute only |
+| Timing with a new copy of the exe per arm (`spd_uci.py abba --recopy`, `timing2.ps1`, `file_effect.py`) | Own, from this job's own measurements (BENCH.md section 3.1). That the layout of a program in memory can bias a timing by more than the effect under test is known from the literature: Mytkowicz, Diwan, Hauswirth and Sweeney, "Producing wrong data without doing anything obviously wrong!" (ASPLOS 2009), and Curtsinger and Berger, "Stabilizer" (ASPLOS 2013). Both are named from memory as background; neither was opened during this job and no code or method text comes from them | own code; papers: ideas only | the second timing step and the copy test |
+| `BUNDLE3` | no new idea: `EVADE_LEGAL`, `PAWN_CAPMASK` and `CHECKERS_KL` applied together, chosen after `WITNESS_NOPIN` timed slower under load | own | the three-switch bundle |
 
 ## What is not here
 

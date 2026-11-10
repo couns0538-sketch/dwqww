@@ -20,7 +20,7 @@ import spd_counters  # noqa: E402
 
 BUILDS = [("lock (control rebuild)", "c29ctl"), ("WITNESS_NOPIN", "wit_on"), ("EVADE_LEGAL", "evd_on"),
           ("PAWN_CAPMASK", "cap_on"), ("CHECKERS_KL", "chk_on"), ("KING_PAWN_CACHE", "kpc_on"),
-          ("BUNDLE4", "bn4_on"), ("BUNDLE", "bun_on")]
+          ("BUNDLE4", "bn4_on"), ("BUNDLE3", "bn3_on"), ("BUNDLE", "bun_on")]
 # label, regex on the demangled name (all matches are summed), region index (None = entry count)
 ROWS = [
     ("Searches entered (`Worker::search`), unchanged by design", r"^Worker::search\(Board&, SearchStack\*", None),

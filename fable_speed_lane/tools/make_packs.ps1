@@ -20,6 +20,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $Only = @($Only | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $items = @(
     @{ N = 'BUNDLE4'; G = 'bn4'; D = 'FORGE_SPD_WITNESS_NOPIN=1,FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1'; S = 'the four new candidates in one tree' },
+    @{ N = 'BUNDLE3'; G = 'bn3'; D = 'FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1'; S = 'three of the new candidates in one tree (no WITNESS_NOPIN)' },
     @{ N = 'WITNESS_NOPIN'; G = 'wit'; D = 'FORGE_SPD_WITNESS_NOPIN=1'; S = 'new candidate (LISTED-UNBUILT)' },
     @{ N = 'EVADE_LEGAL'; G = 'evd'; D = 'FORGE_SPD_EVADE_LEGAL=1'; S = 'new candidate (LISTED-UNBUILT)' },
     @{ N = 'PAWN_CAPMASK'; G = 'cap'; D = 'FORGE_SPD_PAWN_CAPMASK=1'; S = 'new candidate (UNLISTED)' },
@@ -125,13 +126,15 @@ foreach ($it in $items) {
         '',
         '## Evidence (branch fable52-speed-lane-20261109, folder fable_speed_lane)',
         'BENCH.md section 2 (identity ladder: switch-0 byte compare, 12 pins, harness over 12,000 FENs, cold depth 13 net on',
-        'and net off against the lock rows, warm session, Threads 2-4 soak, perft set) and section 3 (INDICATIVE timing).',
+        'and net off against the lock rows, warm session, Threads 2-4 soak, perft set) and section 3 (INDICATIVE timing;',
+        'read 3.1 and 3.2, not the superseded 3.3).',
         'DUPCHECK.md for the novelty status. STATUS.md for what is BLOCKED or unresolved.',
         '',
         '## PC next (QA)',
         '1. Copy this folder to a new QA folder on D:; unzip the source.',
         '2. Build with BUILD_RECIPE.txt; check the pins and perft 5 on the new exe.',
-        '3. Quiet ABBA against the lock E1284F7F with QA''s adapter unchanged (QA_ABBA_PROTOCOL.md).'
+        '3. Quiet ABBA against the lock E1284F7F with QA''s adapter unchanged (QA_ABBA_PROTOCOL.md). Read its first',
+        '   section before trusting one run of two fixed exe files: lock against a copy of the lock is the check.'
     )
     $sumFiles = @(Get-ChildItem $dst -Recurse -File | Where-Object { $_.Name -notin 'MD5SUMS.txt', 'SHA256SUMS.txt' } | Sort-Object FullName)
     WriteLf (Join-Path $dst 'MD5SUMS.txt') @($sumFiles | ForEach-Object { (Md5 $_.FullName) + '  ' + $_.FullName.Substring($dst.Length + 1).Replace('\', '/') })

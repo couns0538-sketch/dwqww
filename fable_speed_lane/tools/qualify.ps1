@@ -10,6 +10,8 @@
 #           engverify   : lock-recipe engine built with -VerifyDefs; the 12 pins (an abort ends the run)
 #           coldverify  : that engine over all FENs, go depth 13, net on; rows must equal the lock's
 #           cold        : the ON exe over all FENs, go depth 13, net on and net off; rows must equal the lock's
+#           coldcheck   : runs nothing; writes the verdict line for finished cold rows whose run could not write it
+#           warmcheck   : the same for a finished warm transcript
 #           warm        : warm-table session transcript must equal the lock's
 #           soak        : Threads 2-4 soak against the lock's legal-move lists, then a Threads 1 tail
 #           perft       : six perft positions against published counts
@@ -24,16 +26,20 @@ param(
     [string]$Src = '',
     [string[]]$Stages = @('primfull', 'primverify', 'engverify', 'coldverify', 'cold', 'warm', 'soak', 'perft'),
     [int]$Fens = 0,
+    [string[]]$Nets = @('on', 'off'),
     [long]$Mask = 0x08
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'env.ps1')
 $me = [System.Diagnostics.Process]::GetCurrentProcess()
 $me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]$Mask
+# -Nets on | off | on,off : which of the two cold runs the stage "cold" makes (default both, net on first)
+$Nets = @($Nets | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+foreach ($x in $Nets) { if ('on', 'off' -notcontains $x) { throw "unknown net $x" } }
 $Defs = @($Defs | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $VerifyDefs = @($VerifyDefs | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $Stages = @($Stages | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
-$known = 'lockcold', 'lockwarm', 'primfull', 'primverify', 'targeted', 'engverify', 'coldverify', 'cold', 'warm', 'soak', 'perft'
+$known = 'lockcold', 'lockwarm', 'primfull', 'primverify', 'targeted', 'engverify', 'coldverify', 'cold', 'warm', 'soak', 'perft', 'coldcheck', 'warmcheck'
 foreach ($s in $Stages) { if ($known -notcontains $s) { throw "unknown stage $s" } }
 $lock = Join-Path $OUT 'base\combo29_lock_E1284F7F.exe'
 $fenFile = Join-Path $OUT 'base\fens_12k_v2.txt'
@@ -72,6 +78,9 @@ function RowDiff([string]$a, [string]$b) {
 # $repo, $py, $pin or $lm: it would hide the global of env.ps1 inside that function.
 function ColdRows([string]$exe, [string]$net, [string]$rowFile) {
     $opt = $(if ($net -eq 'on') { 'UseNNUE=true' } else { 'UseNNUE=false' })
+    # two runs must never write the same row file at once (possible since runs were started in parallel on
+    # 2026-11-10): a .part file touched within the last 45 minutes belongs to a run in progress
+    if ((Test-Path "$rowFile.part") -and ((Get-Date) - (Get-Item "$rowFile.part").LastWriteTime).TotalMinutes -lt 45) { return 97 }
     return (Uci "cold --exe `"$exe`" --fens `"$fenFile`" --out `"$rowFile`" --depth 13 --options $opt$count" "$rowFile.log")
 }
 function NeedLock([string]$file) { if (-not (Test-Path (Join-Path $lockDir $file))) { throw ("missing lock rows " + $file + ' - run -Name lock -Stages lockcold,lockwarm first') } }
@@ -93,7 +102,11 @@ function PrimRun([string]$ptag, [string]$tree, [string[]]$defs, [string]$transcr
         $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PACK 'tests\build_prim.ps1'), '-Tag', $ptag, '-Src', $tree, '-Mask', $Mask)
         if ($defs.Count -gt 0) { $a += @('-ExtraDefs', ($defs -join ',')) }
         & powershell.exe @a | Out-File -LiteralPath (Join-Path $idDir "prim_build_$ptag.txt") -Encoding ASCII
-        if ($LASTEXITCODE -ne 0) { return 90 }
+        if ($LASTEXITCODE -ne 0) {
+            # a build refused by the disk guard is "not run", not a failed check: say so where the caller looks
+            if ((DFree) -lt 30.3) { [System.IO.File]::WriteAllText("$transcript.log", ("build_prim.ps1: NOT STARTED (disk guard): D: has " + (DFree) + " GiB free, under 30.3`r`n"), [System.Text.Encoding]::ASCII) }
+            return 90
+        }
     }
     if ($targeted) { return (RunPinned $pexe "`"$targetedFile`" `"$transcript`"" "$transcript.log") }
     $tail = $(if ($Fens -gt 0) { " 0 $Fens" } else { '' })
@@ -175,18 +188,48 @@ foreach ($stage in $Stages) {
             NeedLock "cold_on_$n.tsv"
             $o = Join-Path $idDir "cold_v2_on_$n.tsv"
             $rc = ColdRows $v2Exe 'on' $o
+            if ($rc -eq 97) { Say 'engine, verify build, cold net on' $false 'NOT STARTED (another run is writing these rows)'; continue }
             $d = $(if (Test-Path $o) { RowDiff $o (Join-Path $lockDir "cold_on_$n.tsv") } else { -1 })
             Say 'engine, verify build, cold net on' ($rc -eq 0 -and $d -eq 0) ("rows differing from the lock: {0}; {1}" -f $d, (Tail "$o.log"))
         }
         'cold' {
-            foreach ($net in 'on', 'off') {
+            foreach ($net in $Nets) {
                 NeedLock "cold_${net}_$n.tsv"
                 $o = Join-Path $idDir "cold_${net}_$n.tsv"
                 $rc = ColdRows $onExe $net $o
+                if ($rc -eq 97) { Say "cold net $net" $false 'NOT STARTED (another run is writing these rows)'; continue }
                 $d = $(if (Test-Path $o) { RowDiff $o (Join-Path $lockDir "cold_${net}_$n.tsv") } else { -1 })
                 $rows = $(if (Test-Path $o) { @(Get-Content $o).Count } else { 0 })
                 Say "cold net $net" ($rc -eq 0 -and $d -eq 0) ("{0}/{1} rows equal the lock's; sha256 {2}; {3}" -f ($rows - $d), $rows, $(if (Test-Path $o) { Sha $o } else { '-' }), (Tail "$o.log"))
             }
+        }
+        'coldcheck' {
+            # Verdict line for cold rows that a finished run left behind when its own script instance ended before it
+            # could write the line. (2026-11-10: instances started with Start-Process from PowerShell 7 inherited its
+            # module path, had no Get-FileHash and stopped on the hash of the finished row file.) Nothing is run
+            # here. Only a complete row file is judged: its log must end in COLD DONE and no .part file may exist.
+            foreach ($net in $Nets) {
+                NeedLock "cold_${net}_$n.tsv"
+                $o = Join-Path $idDir "cold_${net}_$n.tsv"
+                $last = Tail "$o.log"
+                if (-not (Test-Path $o) -or (Test-Path "$o.part") -or $last -notmatch '^COLD DONE') {
+                    Say "cold net $net" $false "NOT STARTED (coldcheck found no finished row file; last log line: $last)"
+                    continue
+                }
+                $d = RowDiff $o (Join-Path $lockDir "cold_${net}_$n.tsv")
+                $rows = @(Get-Content $o).Count
+                $when = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Item $o).LastWriteTimeUtc, 'W. Europe Standard Time').ToString('HH:mm')
+                Say "cold net $net" ($d -eq 0) ("{0}/{1} rows equal the lock's; sha256 {2}; {3}; line written by coldcheck from the rows finished at {4} Vienna" -f ($rows - $d), $rows, (Sha $o), $last, $when)
+            }
+        }
+        'warmcheck' {
+            # as coldcheck, for a finished warm transcript
+            NeedLock 'warm.txt'
+            $o = Join-Path $idDir 'warm.txt'
+            $last = Tail "$o.log"
+            if (-not (Test-Path $o) -or $last -notmatch 'WARM DONE') { Say 'warm' $false "NOT STARTED (warmcheck found no finished transcript; last log line: $last)"; continue }
+            $same = ((Sha $o) -eq (Sha (Join-Path $lockDir 'warm.txt')))
+            Say 'warm' $same ("transcript equal to the lock's: {0}; {1}; line written by warmcheck from the finished transcript" -f $same, $last)
         }
         'warm' {
             NeedLock 'warm.txt'

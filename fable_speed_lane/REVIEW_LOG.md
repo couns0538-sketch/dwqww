@@ -62,6 +62,18 @@ Also noted by the reviewer and accepted: the "other call order" self-check is in
 
 **Changes made after the recheck and not seen by the reviewer** (patch `CHECKERS_KL` v3, md5 `c8f080ba`; `BUNDLE4` `4cfedef4`; `BUNDLE` `953ee65a`): the comment rewrite of finding 4 and the removal of the two redundant castling flags of finding 6. The second is a code change of one constant. It is covered by the ladder, which was restarted from the builds on for `CHECKERS_KL` and both bundles: transcript equality on 12,000 FENs and the 24 targeted positions (row 12 is castling with check), the `=2` verify builds in the harness and in the engine, and the mutants. A third review round was not asked for: one constant, proposed by the reviewer itself.
 
+## After the review (not seen by the reviewer)
+
+No patch text changed after the texts named above (md5 in STATUS.md). What came later:
+
+| Item | What | Why no further review round |
+|---|---|---|
+| `BUNDLE3` (14:44) | `EVADE_LEGAL` + `PAWN_CAPMASK` + `CHECKERS_KL` applied together; patch md5 `ba2fcf2e78a0e2c85964a1e6e258d150`, +77 lines | It holds no line that is not in the three reviewed singles; both apply orders give the same tree (`tools/make_bundle.ps1`). It went through the same ladder as the other bundles as far as the afternoon allowed (STATUS.md) |
+| Timing tools | `spd_uci.py abba` options `--recopy`, `--alternate`, `--hash`, `--fixed-base`; `timing2.ps1`, `file_effect.py`, `pos_cycles.py`, `abba_spread.py`, `regime_abba.ps1`, `regime_pos.ps1`, `prof_diff.py` | They measure, they do not decide identity. The one review the brief allows was spent on the patches and the harness |
+| Chain tools | `qualify.ps1`: `-Nets`, the check that two runs never write one row file, the stages `coldcheck` and `warmcheck` (verdict line for a finished run whose script instance could not write it); `pin.ps1`: a refused start now says NOT STARTED in the output file; `cold_singles.ps1`, `cold_extra.ps1`; `collect_evidence.py`: timing sections, "not run (held)" cells | Written under time pressure on 2026-11-10 afternoon when D: neared its floor. None changes what a check compares: `coldcheck` uses the same row comparison as the stage `cold`. A reader who wants to distrust them can re-run the plain stage `cold` for any item |
+
+The row on pawn-cache index collisions in the "missing checks" table of round 1 left open whether the runs meet a reused pawn-cache slot. They do: the mutant `kpc_keepother`, which can only show through such a slot, was CAUGHT (`BENCH.md` section 4).
+
 ## State of the review
 
-No open finding. No finding rejected without a stated reason. The reviewed property is "no reachable input can make switch 1 differ from switch 0 in anything the search or evaluation sees"; the reviewer read the code and proofs, I ran the checks. Neither is a formal proof.
+No open finding. No finding rejected without a stated reason. The reviewed property is "no reachable input can make switch 1 differ from switch 0 in anything the search or evaluation sees"; the reviewer read the code and proofs, I ran the checks. Neither is a formal proof. The review covers the patches and the harness as they were at 11:06; the table above lists what it does not cover.

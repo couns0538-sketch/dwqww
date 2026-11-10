@@ -14,6 +14,8 @@ Job: bit-exact speed lane on combo29 (fable2). Times are Europe/Vienna. Search r
 
 Tool and patterns: `tools/dupcheck_search.py` (one name pattern and one mechanism pattern per item). Raw counts and example locations: `data/dupcheck_hits.tsv`.
 
+The local copy of the corpus (`out\corpus`, 41 MiB) and the branch tree index (`out\index`, 9 MiB) were deleted at 14:26 to free disk space when D: neared the 30 GiB floor. Both can be made again with `tools/tree_index.py` and `tools/fetch_corpus.py`; the hit list above is on the branch, and the lookup of the lock's source files by git blob id is kept as `data/lock_source_blob_lookup.tsv` (made again from a fresh index, see STATUS.md).
+
 **Not searched:** `F:\ospd`, `C:\ospd_hunt`, `D:\forge_jobs_20261107` (banned for this job); the 20 `data/` and `results/` branches; history behind branch tips other than commit messages; text files over 2 MB; folders deeper than five levels. A candidate that lives only there is invisible to this file.
 
 The three ids in the brief are md5 prefixes of patch files on the PC, not git commits: `52597688` = `C2_MATKEY_ONCE.patch`, `8fcd0679` = `QUIET_FLAG_v1.patch`, `62acae36` = `QUIET_FLAG_v1.2.patch` (hashed by me in `D:\forge_qa\quiet_abba_e4_c2_20261109\patches\`).
@@ -77,6 +79,8 @@ Status words: **UNLISTED** = no name or mechanism hit anywhere searched. **LISTE
 | `FORGE_SPD_KL_LAZY` (reserve) | none | none | none found | UNLISTED; **not built** (section 5) |
 
 **The new candidates of this job are four:** `PAWN_CAPMASK` (UNLISTED) and `WITNESS_NOPIN`, `EVADE_LEGAL`, `CHECKERS_KL` (LISTED-UNBUILT). Only `PAWN_CAPMASK` is new in the strict sense of "not written down anywhere searched". Their bundle is `BUNDLE4`.
+
+`BUNDLE3` (added 14:44) is `EVADE_LEGAL` + `PAWN_CAPMASK` + `CHECKERS_KL`, the four-bundle without `WITNESS_NOPIN`. It contains no code of its own, so it has no novelty status of its own; it exists because `WITNESS_NOPIN` timed slower than the lock under load (`BENCH.md` section 3.2).
 
 **`KING_PAWN_CACHE` is carried as a labelled extra, not as a new candidate.** Ruling 1 says a candidate found built on the fetch is dropped. It was found after the patch had been written and quick-gated, because its search pattern was added late (my omission: the candidate was added to the pool after the first search and I did not re-run the search at once). The patch stays in the pack with its full identity evidence for one reason: no combo29 version of this mechanism exists anywhere else, and the October commit reports about 1 %. Whether it is timed and counted is the owner's and QA's decision, not mine. `BUNDLE` (five patches) = `BUNDLE4` + `KING_PAWN_CACHE`; both bundles get the same evidence.
 

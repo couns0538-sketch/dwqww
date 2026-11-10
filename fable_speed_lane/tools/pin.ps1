@@ -41,7 +41,14 @@ $env:PYTHONDONTWRITEBYTECODE = '1'
 $env:PYTHONPYCACHEPREFIX = Join-Path $JobRoot 'out\pycache'
 if (-not (Test-Path -LiteralPath $Exe)) { Write-Output "pin.ps1: missing exe $Exe"; exit 93 }
 $free = (Get-PSDrive D).Free / 1GB
-if ($free -lt $MinFreeGiB) { Write-Output ('pin.ps1: D: has {0:N2} GiB free, under {1:N1}; not starting' -f $free, $MinFreeGiB); exit 95 }
+if ($free -lt $MinFreeGiB) {
+    # The refusal is also written to -OutFile, so that a caller which reports the last line of that file shows
+    # "NOT STARTED (disk guard)" and not a stale line of an earlier run. A stage that ends like this was not run.
+    $msg = ('pin.ps1: NOT STARTED (disk guard): D: has {0:N2} GiB free, under {1:N1}' -f $free, $MinFreeGiB)
+    if ($OutFile -ne '') { try { [System.IO.File]::WriteAllText($OutFile, $msg + "`r`n", [System.Text.Encoding]::ASCII) } catch { } }
+    Write-Output $msg
+    exit 95
+}
 if ($WorkDir -ne '') { Set-Location -LiteralPath $WorkDir }
 
 # Redirection is delegated to cmd.exe through a one-shot .cmd file: no quoting games, no pipe deadlocks.

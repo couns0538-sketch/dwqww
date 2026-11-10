@@ -2,11 +2,33 @@
 
 A proposal only. QA owns the schedule, the run and the verdict. This job edited no queue, manifest, lock or gate file and started no ABBA for decision. Times are Europe/Vienna.
 
+## Read this first: a fixed pair of exe files can mislead by several percent
+
+Measured on this PC on 2026-11-10 under gate load (CPU 3, Idle priority; tables in `BENCH.md` section 3.1):
+
+| When | Observation (CPU cycles) |
+|---|---|
+| 11:43 | `BUNDLE4` against the lock, one fixed file each: -3.65 % over 30 blocks, block ratios within a few tenths of a percent of each other |
+| 11:57 | the five-bundle (the same four switches plus one) against the lock: +0.43 % over 30 blocks |
+| 13:25 to 13:38 | `BUNDLE4` again, the same two files as at 11:43: -0.32 %, +0.44 %, +0.45 % (bench 16) and +0.30 % (bench 20) |
+| 13:40 | lock against lock, two byte-identical copies made anew for each block: block ratios from -5.7 % to +6.1 % (12 blocks, SD 2.8 %; one file in all arms had given SD 0.9 % and 1.4 %). In three blocks the two copies were 3 to 6 % apart while two launches of each copy agreed within about 1 % |
+| 13:51, 13:56 | a new copy for every arm: SD of block ratios 2.8 %; the same with every copy loaded at one fixed address: 2.5 %. The load address is not the cause |
+| 14:04 | a new copy for every arm, 40 blocks: SD 1.4 %, median -0.02 %. The extra spread was gone |
+| 14:17 | six copies, eight launches each in rotating order: no offset that belongs to a copy (SD between copies 0.26 %, p = 0.25) |
+| 14:14 to 14:42 | `BUNDLE4` against the lock with a new copy for every arm, 100 blocks: -0.70 % |
+
+So at times an exe file carried its own offset of several percent for many minutes, and a timing of two fixed files was then off by that much while looking tight; at other times there was no such offset. I could not establish the cause (physical placement of the file's pages is a candidate) and I measured only on the loaded machine. Whether it happens in a quiet gate gap is the open question, and it is cheap to answer:
+
+1. **A/A between two copies.** Run the calibration with `-Cand <copy 1 of the lock>` and `-Baseline <copy 2 of the lock>`, each copy made just before the run, and repeat with new copies four or five times. If every repeat stays inside the adapter's tolerance (median 0.5 %, range 3 %), the quiet machine did not show the effect in that gap. `tools/file_effect.py` is the same check in one command (six copies, eight launches each, about three minutes on a free CPU).
+2. **If the copies differ:** a single ABBA of two files is then the patch plus one draw per file. Either time several fresh copies of each exe (for example five copies each, one ABBA per pair, verdict on the median), or make a new copy for every letter. `tools/spd_uci.py abba --recopy <dir> --recopy-per arm --alternate` does the second and is what `BENCH.md` section 3.2 used.
+
+The same question exists for gates, where both engines are fixed files for hours. I did not measure a gate and make no claim about one; an owner may want a lock-against-copy-of-lock gate as a check.
+
 ## What to time
 
 | Order | Item | Switches (all default 0 in the patch) | Why this order |
 |---|---|---|---|
-| 0 | A/A calibration | lock against itself (`-Calibration`) | the adapter's own tolerance check |
+| 0 | A/A calibration, between copies | two copies of the lock | the adapter's own tolerance check, and the check above |
 | 1 | `BUNDLE4` | `FORGE_SPD_WITNESS_NOPIN=1 FORGE_SPD_EVADE_LEGAL=1 FORGE_SPD_PAWN_CAPMASK=1 FORGE_SPD_CHECKERS_KL=1` | the four new candidates in one exe; the realistic lock candidate |
 | 2 | `BUNDLE` (five) | the four above plus `FORGE_SPD_KING_PAWN_CACHE=1` | only if the owner accepts `KING_PAWN_CACHE`, whose mechanism was built before (DUPCHECK.md) |
 | 3 | singles | one switch each | only if a bundle result needs explaining; each single is expected inside timing noise |
@@ -30,9 +52,9 @@ Because every candidate is node-identical, the adapter's node checks pass unchan
 
 ```powershell
 $A = 'D:\forge_qa\quiet_abba_e4_c2_20261109\adapter\abba_combo29.ps1'
-$LOCK = '<QA copy of the lock exe E1284F7F>'
-powershell -NoProfile -ExecutionPolicy Bypass -File $A -Calibration -Cand $LOCK -Baseline $LOCK -Tag aa_<date> -OutputRoot <new folder>
-powershell -NoProfile -ExecutionPolicy Bypass -File $A -Cand <BUNDLE4 exe> -Baseline $LOCK -Tag bundle4_<date> -OutputRoot <new folder>
+$LOCK1 = '<copy 1 of the lock exe E1284F7F>'; $LOCK2 = '<copy 2 of the lock exe E1284F7F>'
+powershell -NoProfile -ExecutionPolicy Bypass -File $A -Calibration -Cand $LOCK1 -Baseline $LOCK2 -Tag aa_<date> -OutputRoot <new folder>
+powershell -NoProfile -ExecutionPolicy Bypass -File $A -Cand <BUNDLE4 exe> -Baseline $LOCK1 -Tag bundle4_<date> -OutputRoot <new folder>
 ```
 
 ## Which exe
@@ -49,13 +71,14 @@ Then the pins (bench d11/13/16/20/22 net on and net off, perft 5) on QA's exe be
 
 ## What this job's own timing can and cannot say
 
-`BENCH.md` section 3 holds A/B numbers taken on CPU 3 at Idle while gates ran on the other cores. They are **INDICATIVE**: the lock timed against itself there gave block ratios from -5.6 % to +7.0 % by wall clock and from -2.0 % to +2.3 % by CPU cycles, so a gain under 1 % cannot be shown that way. They are given with their spread and with a CPU-cycle ratio next to the wall ratio. They are not the ABBA and should not be read as one.
+`BENCH.md` section 3.2 holds the numbers to read: every arm from a new copy of its exe, bench 16, CPU cycles, with lock against lock as the null result next to each candidate. They were taken on one shared CPU at Idle priority under gate load and are **INDICATIVE**; they are not the ABBA. Section 3.3 holds the first timing step, which used one fixed file per exe; those rows are single draws of the per-file effect and should not be read as results.
 
 `BENCH.md` section 5 gives exact counters instead of times: how much work each switch removes over the frozen workload (bench 11, 13, 16). Those are repeatable and say which switch does what; they do not say what it is worth in nodes per second.
 
 ## Things QA may want to know before the run
 
-- One switch changes the PGO profile and ThinLTO layout of the whole exe. Per-exe layout effects of a few percent have been seen in this project; a single switch can therefore time below or above its true effect. This is the reason to time the bundle as one exe.
+- `bench` builds its own 16 MB table for every call and clears it per position; the `Hash` option does not reach it. To time with another table size, use `go` (`tools/pos_cycles.py` does, position by position).
+- One switch changes the PGO profile and ThinLTO layout of the whole exe. This is the reason to time the bundle as one exe.
 - `KING_PAWN_CACHE` changes the pawn-cache entry from 40 to 64 bytes (one cache line per probe, 32,768 entries per worker as before, about 0.8 MiB more per thread).
 - Net-off is not part of QA's adapter. `BENCH.md` reports net-off as information only.
-- CPUs 4-6 of the Fable lane were not usable for this job: the running gate held the old mask (0xFF0) until its queue restarts.
+- CPUs 4-6 of the Fable lane were not usable for this job: the running gate held the old mask (0xFF0) all day.

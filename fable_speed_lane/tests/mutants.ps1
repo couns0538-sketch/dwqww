@@ -27,6 +27,7 @@ $nl = "`n"
 $swName = @{ KING_PAWN_CACHE = 'FORGE_SPD_KING_PAWN_CACHE'; WITNESS_NOPIN = 'FORGE_SPD_WITNESS_NOPIN'; EVADE_LEGAL = 'FORGE_SPD_EVADE_LEGAL'
              PAWN_CAPMASK = 'FORGE_SPD_PAWN_CAPMASK'; CHECKERS_KL = 'FORGE_SPD_CHECKERS_KL' }
 $members = @{ BUNDLE4 = @('WITNESS_NOPIN', 'EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL')
+              BUNDLE3 = @('EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL')
               BUNDLE = @('WITNESS_NOPIN', 'EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL', 'KING_PAWN_CACHE') }
 # Id, candidate, switch value, file, text to find, replacement, what the mutant does, must it be caught
 $mutants = @(

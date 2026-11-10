@@ -4,7 +4,9 @@
 #            compare, 12 pins, harness over all FENs and over the targeted positions (=1 and, where a verify mode
 #            exists, =2), verify engine on the 12 pins, warm, soak, perft set; then the consistency check and the
 #            planted mutants
-#   timing : INDICATIVE A/B (lock exe vs switch-1 exe), A/A first, net on then net off
+#   timing : INDICATIVE A/B (lock exe vs switch-1 exe), A/A first, net on then net off. SUPERSEDED: this phase
+#            runs one fixed file per exe, which can bias a result by several percent (BENCH.md section 3.1);
+#            use timing2.ps1 (a new copy of the exe per arm) instead
 #   cold   : lock cold rows; per bundle: verify engine cold, then cold net on / net off; then the singles
 # Bundles: BUNDLE4 = the four candidates that are new under ruling 1 (DUPCHECK.md); BUNDLE = those four plus
 # KING_PAWN_CACHE, whose mechanism was built before on another branch (kept as a labelled extra).
@@ -39,9 +41,14 @@ function DefsOf([string[]]$names, [bool]$verify) {
     return (($singles | Where-Object { $names -contains $_.N } | ForEach-Object { $_.D + $(if ($verify -and $_.V) { '=2' } else { '=1' }) }) -join ',')
 }
 $four = @('WITNESS_NOPIN', 'EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL')
+$three = @('EVADE_LEGAL', 'PAWN_CAPMASK', 'CHECKERS_KL')
 $five = $four + @('KING_PAWN_CACHE')
+# BUNDLE3 joined on 2026-11-10 at 14:44, after the timing showed WITNESS_NOPIN to cost time under load. On that day
+# its steps were run by hand with the same scripts (cand_step.ps1, qualify.ps1, mutants.ps1); it is listed here so
+# that a fresh run of this chain covers it.
 $bundles = @(
     @{ N = 'BUNDLE4'; G = 'bn4'; On = (DefsOf $four $false); Ver = (DefsOf $four $true) },
+    @{ N = 'BUNDLE3'; G = 'bn3'; On = (DefsOf $three $false); Ver = (DefsOf $three $true) },
     @{ N = 'BUNDLE'; G = 'bun'; On = (DefsOf $five $false); Ver = (DefsOf $five $true) }
 )
 
@@ -106,10 +113,12 @@ foreach ($phase in $Phases) {
                 Step ("pins." + $x.G) 'cand_step.ps1' @('-Name', $x.N, '-Tag', $x.G, '-Def', $on, '-Stage', 'pins')
                 Qual ("quick." + $x.G) $x.N $x.G $on $ver 'primfull,primverify,targeted,engverify,warm,soak,perft'
             }
-            Step 'consistency.all' 'check_consistency.ps1' @('-Cands', 'WITNESS_NOPIN:wit,EVADE_LEGAL:evd,PAWN_CAPMASK:cap,CHECKERS_KL:chk,KING_PAWN_CACHE:kpc,BUNDLE4:bn4,BUNDLE:bun')
-            # planted mutants: in each single tree, in BUNDLE4 (all four switches on), and the eval mutants in BUNDLE
+            Step 'consistency.all' 'check_consistency.ps1' @('-Cands', 'WITNESS_NOPIN:wit,EVADE_LEGAL:evd,PAWN_CAPMASK:cap,CHECKERS_KL:chk,KING_PAWN_CACHE:kpc,BUNDLE4:bn4,BUNDLE3:bn3,BUNDLE:bun')
+            # planted mutants: in each single tree, in BUNDLE4 and BUNDLE3 (all their switches on), and the eval
+            # mutants in BUNDLE
             Step 'mutants.singles' '..\tests\mutants.ps1' @()
             Step 'mutants.bn4' '..\tests\mutants.ps1' @('-Bundle', 'BUNDLE4')
+            Step 'mutants.bn3' '..\tests\mutants.ps1' @('-Bundle', 'BUNDLE3')
             Step 'mutants.bun' '..\tests\mutants.ps1' @('-Bundle', 'BUNDLE', '-Only', 'kpc_anyking,kpc_keepother,kpc_shelter0')
         }
         'timing' {
