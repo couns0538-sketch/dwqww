@@ -17,6 +17,12 @@ def wait(pat):
     raise SystemExit("engine exited before matching " + pat)
 send("uci"); wait(r"^uciok")
 for o in ("Threads value 1", "Hash value 16", "OwnBook value false"): send("setoption name " + o)
+# opus2 SMP pack: optional '--opt Name=Value' (repeatable), sent after the defaults; absent = the old behaviour.
+for i, a in enumerate(sys.argv):
+    if a == "--opt" and i + 1 < len(sys.argv):
+        name, value = sys.argv[i + 1].split("=", 1)
+        print(f"option {name} = {value}", flush=True)
+        send(f"setoption name {name} value {value}")
 send("isready"); wait(r"^readyok")
 ok = True
 for d in depths:

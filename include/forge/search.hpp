@@ -446,9 +446,6 @@ private:
 #if FORGE_SPD_TT_NOTLS
     friend class Searcher;
 #endif
-#if FORGE_SMP_LAYOUT && !FORGE_SPD_TT_NOTLS
-    friend class Searcher;
-#endif
 
     SharedSearchState& shared_;
     int id_ = 0;
@@ -488,10 +485,6 @@ private:
     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
     bool tt_owned_ = false;
 #endif
-#if FORGE_SMP_LAYOUT
-    // The table's mode for this search; set by Searcher::search before any helper thread starts (SPEC 3.6).
-    bool tt_lockless_ = false;
-#endif
     int seldepth_ = 0;
     int root_depth_ = 0;
     std::size_t root_history_index_ = 0;
@@ -504,14 +497,15 @@ private:
     // The six TT call sites of search / qsearch: one predictable branch per access.
     [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
 #if FORGE_SMP_LAYOUT
-        if (tt_lockless_) return shared_.tt.probe_lockless(key);
+        // The table's own mode flag (written only while quiescent, SPEC 3.6): no per-worker copy that could go stale.
+        if (shared_.tt.lockless_) return shared_.tt.probe_lockless(key);
 #endif
         return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
     }
     void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                   bool pv, std::uint16_t halfmove_clock) {
 #if FORGE_SMP_LAYOUT
-        if (tt_lockless_) {
+        if (shared_.tt.lockless_) {
             shared_.tt.store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
             return;
         }

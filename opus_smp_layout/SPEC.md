@@ -85,12 +85,12 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
   - tests join their threads.
 - Thread start and join create the happens-before edges. The plain fields (`generation_`, `epoch_`, `cluster_count_`, the mode flag, the array pointers) and the value-initialisation of a new array therefore need no atomics.
 - **Mode toggle** (`TranspositionTable::set_lockless(bool)`; no-op if unchanged):
-  - free the active array and allocate the other type with the same cluster count (value-initialised = empty);
+  - allocate the other type with the same cluster count first (value-initialised = empty), then free the old array: a failed allocation leaves the table unchanged, as in P's `resize` (R1 review MINOR-3);
   - set `generation_ = 0` and `++epoch_`, so stores through old TTProbe handles are rejected.
   - The TT is therefore cleared when `TtLockless` changes.
 - `resize` and `clear` act on the active array with P's semantics (`generation_ = 0`, `++epoch_`).
 - **Mode of the bench searcher** (it has its own TT): UCI `bench` calls `set_tt_lockless(true)` on it when `TtLockless` is true, so bench pins also exercise the ON path.
-- Workers read the mode once per search: `Searcher::search` sets each worker's `tt_lockless_` before any helper thread starts. `probe_tt`/`store_tt` check `tt_lockless_` first, then P's `tt_owned_` branch.
+- `probe_tt`/`store_tt` read the table's own `lockless_` flag (written only while quiescent) before P's `tt_owned_` branch. There is no per-worker copy that could go stale after a toggle, so a direct `Worker::search` (test harnesses) also follows the current mode (R1 review MINOR-1; regression test in `smp_lifecycle_tests`).
 - The public `probe`/`store`/`probe_owned`/`store_owned`/`hashfull`/`prefetch` all follow the table's mode, so no path touches the inactive (null) array.
 
 ## 4. Worker cache-line layout (measure first, change only what is measured)

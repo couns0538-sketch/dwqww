@@ -56,9 +56,6 @@ struct SearcherTestProbe {
 #if FORGE_SPD_TT_NOTLS
         FORGE_PROBE_FIELD(tt_owned_);
 #endif
-#if FORGE_SMP_LAYOUT
-        FORGE_PROBE_FIELD(tt_lockless_);
-#endif
         FORGE_PROBE_FIELD(seldepth_);
         FORGE_PROBE_FIELD(root_depth_);
         FORGE_PROBE_FIELD(root_history_index_);

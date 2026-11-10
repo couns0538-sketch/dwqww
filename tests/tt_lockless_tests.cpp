@@ -348,7 +348,16 @@ void test_contention() {
         control_bad += r.bad; control_hits += r.hits;
     }
     std::cout << "positive control (unvalidated two-word table, 8 threads): hits " << control_hits << " incoherent " << control_bad
-              << (control_bad > 0 ? " -> fixture CAN detect tearing" : " -> INCONCLUSIVE (no tearing observed on this machine/run)") << "\n";
+              << (control_bad > 0 ? " -> fixture CAN detect tearing" : " -> no tearing observed") << "\n";
+    // R1 review MINOR-2: a fixture that cannot see tearing proves nothing, so this is a gate, not a log line.
+    // With >= 2 hardware threads and > 100k hits of an 8-thread, 24-key, one-cluster store-every-iteration load,
+    // zero incoherent hits means the oracle is blind. One hardware thread can legitimately see no tearing: INCONCLUSIVE.
+    const unsigned hw = std::thread::hardware_concurrency();
+    if (hw >= 2) {
+        check(!(control_hits > 100000 && control_bad == 0), "positive control saw no tearing: the contention fixture is blind");
+    } else {
+        std::cout << "positive control INCONCLUSIVE: hardware_concurrency " << hw << " (< 2)\n";
+    }
 }
 
 // ---------------------------------------------------------------- 5 lifecycle

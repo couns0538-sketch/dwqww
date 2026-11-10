@@ -472,12 +472,15 @@ using AtomicWord = std::atomic_ref<std::uint64_t>;
 void TranspositionTable::set_lockless(bool on) {
     // Quiescent only (SPEC 3.6): UCI setoption after stop_search(), tests between joined phases.
     if (on == lockless_) return;
+    // Allocate the new (empty) storage first, as resize does: if the allocation throws, the table is unchanged.
     if (on) {
+        auto fresh = std::make_unique<TTLocklessCluster[]>(cluster_count_);
+        lockless_clusters_ = std::move(fresh);
         clusters_.reset();
-        lockless_clusters_ = std::make_unique<TTLocklessCluster[]>(cluster_count_);
     } else {
+        auto fresh = std::make_unique<TTCluster[]>(cluster_count_);
+        clusters_ = std::move(fresh);
         lockless_clusters_.reset();
-        clusters_ = std::make_unique<TTCluster[]>(cluster_count_);
     }
     lockless_ = on;
     generation_ = 0;
@@ -1950,10 +1953,6 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope(const TtOwnedScope&) = delete;
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
-#endif
-#if FORGE_SMP_LAYOUT
-    // Every worker reads the table's mode once per search (SPEC 3.6); written before any helper thread starts.
-    for (auto& worker : workers_) worker->tt_lockless_ = shared_.tt.lockless();
 #endif
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {

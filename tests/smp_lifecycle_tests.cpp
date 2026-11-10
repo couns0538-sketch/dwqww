@@ -19,6 +19,35 @@
 #error "smp_lifecycle_tests needs FORGE_SMP_LAYOUT=1 (CMake option FORGE_SMP_LAYOUT=ON)"
 #endif
 
+namespace forge {
+// The existing production friendship (as in tests/rule50_tests.cpp): a direct Worker::search that bypasses
+// Searcher::search. R1 review MINOR-1: such a caller must follow the table's current mode after a toggle.
+struct SearcherTestProbe {
+    static std::uint64_t visited(Searcher& searcher) { return searcher.main_worker().local_nodes_; }
+    static int run(Searcher& searcher, Board board, int depth) {
+        auto& worker = searcher.main_worker();
+        worker.clear();
+        worker.shared_.stop.store(false, std::memory_order_relaxed);
+        worker.shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
+        worker.all_workers_ = nullptr;
+        worker.aborted_ = false;
+        worker.local_nodes_ = 0;
+        worker.nodes_.store(0, std::memory_order_relaxed);
+        worker.node_limit_ = 0;
+        worker.node_limit_specified_ = false;
+        worker.hard_limit_ms_ = worker.soft_limit_ms_ = 0;
+        worker.time_managed_ = worker.pondering_ = false;
+        worker.start_ = std::chrono::steady_clock::now();
+        worker.seldepth_ = 0;
+        worker.root_history_index_ = board.history_size() - 1;
+        auto* ss = &worker.stack_[5];
+        ss->ply = 1;
+        nnue::refresh(board, ss->accumulator);
+        return worker.search(board, ss, depth, -Infinite, Infinite, false);
+    }
+};
+} // namespace forge
+
 namespace {
 
 using forge::Board;
@@ -147,10 +176,37 @@ void node_identity_threads1(int depth) {
     }
 }
 
+// R1 MINOR-1 regression: a direct Worker::search (no Searcher::search in between) after a mode toggle in either
+// direction must use the table's current storage and give the same result as a fresh legacy searcher.
+void direct_worker_after_toggle() {
+    for (std::size_t i = 0; i < Fens.size(); ++i) {
+        Board board;
+        (void)board.set_fen(Fens[i]);
+        SearchLimits limits; limits.depth = 6;
+        Searcher fresh(16, 1);
+        const int ref = forge::SearcherTestProbe::run(fresh, board, 7);
+        const std::uint64_t ref_nodes = forge::SearcherTestProbe::visited(fresh);
+        Searcher to_legacy(16, 1);
+        to_legacy.set_tt_lockless(true);
+        (void)to_legacy.search(board, limits);          // a normal search in lockless mode first
+        to_legacy.set_tt_lockless(false);               // then back to legacy: storage reallocated, table empty
+        const int a = forge::SearcherTestProbe::run(to_legacy, board, 7);
+        Searcher to_lockless(16, 1);
+        (void)to_lockless.search(board, limits);
+        to_lockless.set_tt_lockless(true);
+        const int b = forge::SearcherTestProbe::run(to_lockless, board, 7);
+        const std::string where = "direct Worker::search after toggle fen" + std::to_string(i);
+        check(a == ref && forge::SearcherTestProbe::visited(to_legacy) == ref_nodes, where + " (lockless -> legacy)");
+        check(b == ref && forge::SearcherTestProbe::visited(to_lockless) == ref_nodes, where + " (legacy -> lockless)");
+    }
+    std::cout << "direct Worker::search after mode toggles: done\n";
+}
+
 } // namespace
 
 int main() {
     const int depth = env_int("FORGE_SMP_LIFECYCLE_DEPTH", 7);
+    direct_worker_after_toggle();
     node_identity_threads1(env_int("FORGE_SMP_IDENTITY_DEPTH", 9));
     for (const bool lockless : {false, true}) {
         for (const int threads : {1, 2, 4, 8}) run_cases(lockless, threads, threads >= 4 ? depth - 1 : depth);
