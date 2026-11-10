@@ -11,8 +11,8 @@ Short names: **lock** = `forge_clang_combo29_trial_w6.exe` (SHA256 e1284f7f…80
 | Normalized PE image: lock = ctl, lock = off, ctl = off (0 differing bytes outside 6 masked fields) | PASS | §2, `evidence/pe_compare/` |
 | Raw byte identity with the lock | **UNRESOLVED** (pre-declared; PDB path, GUID and checksum differ) | §2 |
 | Identity battery: UCI option lists, bench d11–d22 net on/off for lock, ctl, off, gat sw0 and gat sw1 at defaults, perft, 16 gate-semantics checks | PASS (all) | §3, `evidence/qual/battery_03/summary.json` |
-| fens12k d13, net on and off: gat sw0 vs lock, gat sw1-defaults vs lock | PENDING (running) | §4 |
-| warm1000 (QA's warm-table tool, mask-only derived copy): lock vs gat sw0 | PENDING | §5 |
+| fens12k d13, net on and off: gat sw0 vs lock, gat sw1-defaults vs lock (12000 / 12000 rows; TSVs byte-identical to each other and to QA's refcache) | PASS | §4, `evidence/qual/fens12k/` |
+| warm1000 (QA's warm-table tool, mask-only derived copy), lock vs gat sw0: identical apart from the two advertised switch lines; bench 13 pin on both | PASS | §5, `evidence/qual/warm1000/` |
 | fens12k for ctl and off | NOT RUN: they are normalized-image-identical to the lock (§2) | — |
 | Synthetic qualification of the joint config: movement, noise floor, resume byte-identity | Done; resume byte-identity PASS. Run size: see §6 | §6, `evidence/synthqual/` |
 | End-to-end dry-run: synthetic training run → fixed candidate rule → G1 confirmation command | PASS (no file written, no process started, registry untouched) | §7 |
@@ -88,11 +88,49 @@ $rb = Join-Path $Opus3Out 'rb_equal_len_paths'
   - With both families set, turning RazorTune off leaves only the qsearch value active.
 - Per-check JSON for all of the above: `evidence/qual/battery_03/`.
 
-## 4. fens12k depth 13 (node identity per position)
-PENDING: running at the time of writing.
+## 4. fens12k depth 13 (node identity per position): PASS, 12000 / 12000
+This is QA's L3 protocol: for each FEN, `ucinewgame`, `isready`, `position fen`, `go depth 13`, with OwnBook false, Threads 1 and Hash 16. The FEN list is `fens_12k_v2.txt` (SHA256 c01c0e6a…, frozen copy). Each row records depth, score, nodes and bestmove.
 
-## 5. warm1000 (warm transposition table across positions and option changes)
-PENDING.
+| Run | Net on (rows identical to lock) | Net off (rows identical to lock) |
+|---|---|---|
+| lock | reference | reference |
+| gat sw0 | 12000 / 12000 | 12000 / 12000 |
+| gat sw1 at defaults (`RazorTune=1 QsTune=1`, no values) | 12000 / 12000 | 12000 / 12000 |
+
+- The six TSVs are byte-identical within each net setting: net on c366cf20…, net off a6e52a5d….
+- Both are also byte-identical to QA's frozen refcache TSVs for `sig_4181a589` (`fens_e7dbf2c8_n12000_d13_ob0_UseNNUE-{true,false}_Threads-1_Hash-16.tsv`).
+- That gives an independent cross-check of the driver against QA's own runs, and it measures the combo29 lock directly. QA's refcache came from the older trial_w6 exe and was valid for combo29 only through QA's bit-exact proof.
+- Wall time per run was 13–26 minutes at Idle, sharing CPUs 12–15. Total nodes: 1,527,383,677 net on and 1,561,677,694 net off for every exe.
+
+```
+& $Opus3Py -I -B .\opus_spsa_resume\engine\uci_driver.py fens <exe> --fens out\freeze\data\fens_12k_v2.txt --depth 13 --nnue on|off [--opt RazorTune=1 --opt QsTune=1] --out out\qual\fens12k\<name>.tsv
+& $Opus3Py -I -B .\opus_spsa_resume\engine\compare_fens.py <reference.tsv> <candidate.tsv> ... --json <out.json>
+```
+Evidence: `evidence/qual/fens12k/`, which holds the run JSONs, the comparisons and `TSV_SHA256.txt`.
+
+**Not run:** fens12k for ctl and off. Their images are normalized-identical to the lock (§2), and their bench pins are identical (§3).
+
+## 5. warm1000, lock vs gat sw0: PASS (identical apart from the two advertised option lines)
+`engine/warm_identity_0xF000.py` is QA's `warm_identity.py`; only the CPU mask differs (`engine/WARM_IDENTITY_INTERDIFF.patch`). It plays one script into each exe with the transposition table kept warm:
+- `bench 1` and `go perft 1` first;
+- then 1,000 FENs with `go nodes 20000` each;
+- a state change every 25 FENs (Hash 1, Hash 64, Clear Hash, UseNNUE false/true, Hash 16; 39 changes);
+- `bench 13` at the end.
+
+The tool compares the whole normalized transcript, including the `uci` option list. It therefore reported exit 3: the gate build advertises exactly the two switch lines, and the first difference is `option name RazorTune …` at line 85. That difference is expected (§3).
+
+`engine/warm_compare_logs.py` re-compares the two saved transcripts with the tool's own `norm` function. It allows exactly those two lines, and each must occur once, inside the `uci` reply, and never in the reference. The result:
+- identical apart from them;
+- 1,000 searches;
+- 43 setoption lines;
+- `bench 13` = 862329 on both;
+- the degenerate-reference guard passed (1,000 distinct result rows).
+
+```
+& $Opus3Py -I -B .\opus_spsa_resume\engine\warm_identity_0xF000.py <lock.exe> <gat.exe> out\freeze\data\fens_12k_v2.txt out\qual\warm1000_lock_vs_gatsw0 --n 1000      # exit 3: option list
+& $Opus3Py -I -B .\opus_spsa_resume\engine\warm_compare_logs.py out\qual\warm1000_lock_vs_gatsw0 --allow-extra "option name RazorTune type spin default 0 min 0 max 1" --allow-extra "option name QsTune type spin default 0 min 0 max 1"   # exit 0
+```
+Evidence: `evidence/qual/warm1000/`, which holds the comparison JSON, the console output and the SHA256 of both transcripts.
 
 ## 6. Synthetic qualification of `configs/joint_razor_qs.json`
 ```

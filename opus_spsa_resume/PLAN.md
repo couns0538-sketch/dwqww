@@ -34,7 +34,9 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 
 - c_end is about 10% of each lock value, the step size R3 used for sensitivity; on combo29 it moves bench nodes by 2–17%.
 - r_end 0.002 is the OpenBench/Fishtest-style default; R9 used 0.012 and drifted at noise level.
-- Whether N = 4000 pairs can move θ by a measurable amount is **not yet estimated**. A synthetic power check is planned for S3 and will be reported in `BENCH.md`.
+- **Run size, set from the synthetic qualification before any game:**
+  - At the first proposal, N = 4000 pairs, the run moved the right way in every landscape but recovered only 13–16% of a 3.75-unit model gap with the optimum 2 c_end away.
+  - The sweep over N and r_end (`BENCH.md` §6) led to **N = 16000 pairs at r_end 0.002**: 61% recovered, noise floor ≤ 0.15 c_end. See §4.7.
 - These are proposals, not measured optima.
 - The harness still supports discrete level parameters (tested), but the recommended config does not use them.
 
@@ -42,7 +44,7 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 - **C1, monotone margins:** `QsFutilityMargin ≤ RazorBase + RazorMultiplier·1`. The depth-0 futility allowance should not exceed the depth-1 razor margin.
 - **C3′, depth-1 razor liveness:** `RazorBase + RazorMultiplier ≤ 1000`. Beyond about a queen's worth, depth-1 razoring practically never fires and F1 stops carrying gradient. This replaces the earlier C3, which bounded only depth 2; M(2) = M(1) + RazorMultiplier stays bounded by the box.
 - The earlier C2 (QsSeeMargin ≤ QsFutilityMargin) is dropped together with QsSeeMargin.
-- Both priors are inactive near the lock. At the first perturbation (±34.7, ±80.9, ±37.0 for N = 4000), the smallest M(1) is 384 against a largest QsFutilityMargin of 197, and the largest M(1) is 616 against 1000. They matter only if a run moves far.
+- Both priors are inactive near the lock. At the first perturbation (±39.9, ±93.0, ±42.5 for N = 16000; the dry-run shows plus 110/443/117 and minus 190/257/203), the smallest M(1) is 367 against a largest QsFutilityMargin of 203, and the largest M(1) is 633 against 1000. They matter only if a run moves far.
 - They can be switched off in the config, and they are stated as priors in the unproven-claims list.
 
 ## 4. Interaction-aware schedule
@@ -52,7 +54,18 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 4. **No-information coordinates (E-006 fix).** When a scalar's rounded plus equals its rounded minus, that scalar gets no update.
 5. **Update and projection.** `θ_i ← θ_i + (a_k/c_k)_i · R · Δ_i` with R = wins − losses of plus, as R9. Then θ is projected onto the feasible set.
 6. **Diagnostics.** Constraint activity, s, and per-family drift are logged per batch.
-7. **Run size (proposal for QA).** N = 4000 pairs, 4 pairs per batch, 10+0.1 (QA's combo29 gate time control), Threads 1, Hash 16, α 0.602, γ 0.101, A = 0.1·N, on the `8moves_v3` training partition only (`partition/`).
+7. **Run size (proposal for QA).** N = 16000 pairs (32,000 games), 4 pairs per batch, r_end 0.002, 10+0.1 (QA's combo29 gate time control), Threads 1, Hash 16, α 0.602, γ 0.101, A = 0.1·N, on the `8moves_v3` training partition only (`partition/`). The 16,000 pairs use 16,000 of the 24,288 training openings, each once.
+   - **Why this size.** In synthetic models (`BENCH.md` §6), the optimum sits 2 c_end away and is 3.75 model units better than the start; draw rate 0.75; 3–4 replicates per cell. These are model units, not Elo. The table gives the share of the gap recovered and the replicate spread of the final θ under a flat model (the noise floor, in c_end units):
+
+     | N (pairs) | r_end 0.002 | r_end 0.005 | r_end 0.01 |
+     |---|---|---|---|
+     | 4,000 | 13–16% / ≤ 0.21 | 38% / ≤ 0.30 | 54% / ≤ 0.93 |
+     | 16,000 | **61% / ≤ 0.15** | 79% / ≤ 0.90 | 79% / ≤ 0.83 |
+     | 40,000 | 82% / ≤ 0.45 | 92% / ≤ 1.50 | see `BENCH.md` §6 |
+
+     N = 16000 at the default gain recovers most of the gap and has the smallest noise floor of the cells that move far. A larger r_end moves faster but makes the end point noisier, so the candidate would be scattered more widely. N = 40000 gains little for 2.5× the games.
+   - **Budget alternative, if QA caps the run at 8,000 games:** N = 4000 with r_end 0.005, about 38% recovered. Keeping r_end 0.002 at N = 4000 is not recommended: the run would barely move.
+   - **Cost:** 32,000 games at 10+0.1. The time depends on QA's concurrency and is QA's decision.
 
 ## 5. Staleness rule (enforced by the identity pin)
 - The configuration is tuned for combo29 (E1284F7F), and the tuner refuses any other exe.
@@ -81,5 +94,5 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 - **Tuned values:** none exist. Tuning is PENDING QA EXECUTION.
 - **C1 and C3′:** heuristic priors.
 - **F1–F2 interaction:** code-level coupling only; no strength measurement.
-- **Run-size adequacy:** not yet estimated; the S3 synthetic check is pending.
+- **Run-size adequacy:** estimated only in synthetic models with an assumed gap and distance. A real landscape can be flatter or steeper; a flat one leaves θ within the noise floor of the lock values.
 - Any non-default value is a **SEARCH CHANGE, UNPROVEN**. It needs Code Review, then QA tuning, then the independent confirmation SPRT (`confirm/CONFIRM_PROTOCOL.md`).

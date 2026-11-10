@@ -3,7 +3,7 @@
 Frozen in this pack **before any fitting**: no tuning game has been played by anyone for this configuration. Nothing in this file is a result. The tuning itself is **PENDING QA EXECUTION**.
 
 ## 1. What is confirmed
-- **The candidate** is produced by `select_candidate.py` from a **COMPLETE** training run of `configs/joint_razor_qs.json` (N = 4000 pairs).
+- **The candidate** is produced by `select_candidate.py` from a **COMPLETE** training run of `configs/joint_razor_qs.json` (N = 16000 pairs; the run size was set from the synthetic qualification before any game, `PLAN.md` §4.7).
   - Rule: the final θ of the run, as the engine integers recorded in its `complete` record. Bounds and C1/C3′ are re-checked.
   - No intermediate checkpoint may be chosen, and nothing seen in a screen or holdout may influence the choice.
   - The spec is hashed (`spec_sha256`).

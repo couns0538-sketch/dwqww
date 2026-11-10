@@ -39,7 +39,7 @@ from opus3_spsa import Synthetic  # noqa: E402  (the harness's own model, so the
 GAP = 3.75
 DRAW = 0.75
 LANDSCAPES = {"L2": (2.0, (1, -1, -1)), "L2m": (2.0, (-1, 1, 1)), "L4": (4.0, (1, -1, -1))}
-CHECKPOINTS_K = (500, 1000, 2000, 3000, 4000)
+CHECKPOINTS_K = (500, 1000, 2000, 3000, 4000, 8000, 12000, 16000, 40000)
 
 
 def tuned(cfg):
