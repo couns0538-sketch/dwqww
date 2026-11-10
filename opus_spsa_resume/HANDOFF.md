@@ -30,7 +30,7 @@ This job played **no games**. Nothing was queued, no lock, gate, queue, STOP/PAU
 6. **Alternative route on G1:**
    - Edit `confirm/configs/confirm_protocol_G1_example.json` (cand_exe, training_config_sha256, qa_gate names, registry location).
    - Play the dry-run's fastchess command under QA's scheduler. The cap is 4,816 games, because G1 has 2,408 openings.
-   - Recompute with `-Mode replay`.
+   - Recompute with `-Mode replay`, **once**, with all PGNs. An interim replay that reaches no decision before the cap is refused, because it would consume G1.
    - G1 serves one confirmation, ever. G2 and G3 need a written, QA-approved protocol change.
 7. **Rollback at any point:** the lock exe with no options, or `option.RazorTune=0 option.QsTune=0` on the gate build (`confirm/ROLLBACK.md`).
 

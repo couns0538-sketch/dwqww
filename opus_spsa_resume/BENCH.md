@@ -7,7 +7,7 @@ Short names: **lock** = `forge_clang_combo29_trial_w6.exe` (SHA256 e1284f7f…80
 ## Summary
 | Check | Result | Evidence |
 |---|---|---|
-| Builds ctl / off / gat with the derived recipe (PGO profile total equals QA's for ctl and off) | PASS | §1, `evidence/builds/c29*_03/` |
+| Builds ctl / off / gat with the derived recipe (PGO profile summary equals QA's for ctl and off) | PASS | §1, `evidence/builds/c29*_03/`, `evidence/builds/profdata_totals.txt` |
 | Normalized PE image: lock = ctl, lock = off, ctl = off (0 differing bytes outside 6 masked fields) | PASS | §2, `evidence/pe_compare/` |
 | Raw byte identity with the lock | **UNRESOLVED** (pre-declared; PDB path, GUID and checksum differ) | §2 |
 | Identity battery: UCI option lists, bench d11–d22 net on/off for lock, ctl, off, gat sw0 and gat sw1 at defaults, perft, 16 gate-semantics checks | PASS (all) | §3, `evidence/qual/battery_03/summary.json` |
@@ -26,12 +26,12 @@ Short names: **lock** = `forge_clang_combo29_trial_w6.exe` (SHA256 e1284f7f…80
 
 Two notes on the file:
 - Its header comment mentions only the first two changes. The file is left byte-identical to the one that produced the `_03` builds.
-- Its parameter defaults (`-Src`, `-OutRoot`, `-Workload`) still name QA's `D:\sdk_jobs\…` tree, exactly as in 1fd87517. Always pass all three explicitly, as below.
+- Its parameter defaults (`-Src`, `-OutRoot`, `-Workload`) still name QA's `D:\sdk_jobs\…` tree, exactly as in 1fd87517. A bare run would create a build folder there. Always pass all three explicitly, as below, or use the wrapper `engine/build_o3.ps1`. The wrapper makes them mandatory, refuses other jobs' trees and any `-OutRoot` outside this job's `out\`, and checks the recipe's sha256. Its refusal paths were tested; no build was run through it, since the receipted builds called the recipe directly.
 
 **Why `_03`.**
 - `_01` failed.
 - `_02` trained on a stdin that Windows PowerShell 5.1, running without a console, had prefixed with a UTF-8 BOM. The engine ignored its first `uci`, so the profile was short.
-- `_03` passes raw bytes. Its workload output shows `uciok`, and the ctl and off profile totals equal QA's 6,054,052,240.
+- `_03` passes raw bytes. Its workload output shows `uciok`. The ctl and off profile summaries equal QA's: 320 functions, 2,481 blocks, total count 6,054,052,240. The merged profile files themselves differ byte-wise (`evidence/builds/profdata_totals.txt`, the `llvm-profdata show` output for all four profiles). §2 shows that the resulting images are identical.
 
 | Tag | Source | Extra defines | exe SHA256 | Profile total |
 |---|---|---|---|---|
@@ -66,7 +66,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $r -Tag c29gat_03 -Src (
 | ctl vs off | no | yes | **yes** | 0 | — |
 | off vs gat | no | no | no (expected: the gate code is compiled in) | — | .text .rdata .buildid .data .pdata .reloc + debug sections |
 
-So with both macros at 0, the patch produces the lock's image, up to the masked fields. The same holds for the unmodified recipe output (ctl). **Raw byte identity stays UNRESOLVED**: the PDB path and GUID embedded by `--pdb=<abs path>` differ by construction, as QA's lock note says ("binary not byte-reproducible (embedded PDB paths)").
+So with both macros at 0, the patch produces the lock's image, up to the masked fields. The source-level counterpart: `uci.cpp`, preprocessed with the build flags, is byte-identical for the parent and the patched tree at macros 0 (sha256 cf0a9c2a…, 4,436,256 bytes; `evidence/patch_macro0_preprocessed.sha256`). The same holds for the unmodified recipe output (ctl). **Raw byte identity stays UNRESOLVED**: the PDB path and GUID embedded by `--pdb=<abs path>` differ by construction, as QA's lock note says ("binary not byte-reproducible (embedded PDB paths)").
 
 ```
 & $Opus3Py -I -B .\opus_spsa_resume\engine\pe_compare.py <a.exe> <b.exe> --json out\qual\pe03\<a>_vs_<b>.json
@@ -86,7 +86,7 @@ $rb = Join-Path $Opus3Out 'rb_equal_len_paths'
   - Switch 1 at defaults changes nothing.
   - Setting the switch back to 0 restores the pins.
   - The order of setoption calls does not matter.
-  - With both families set, turning RazorTune off leaves only the qsearch value active.
+  - With both families set, turning RazorTune off leaves only the qsearch value active. battery_03 checked this as "differs from both and from the pins". The stronger equality was measured afterwards, and `qualify.py` now checks it: 877190 / 3071864 at d13/d16, equal to the lock exe with QsFutilityMargin 176 alone (`evidence/qual/razortune_off_equality.json`).
 - Per-check JSON for all of the above: `evidence/qual/battery_03/`.
 
 ## 4. fens12k depth 13 (node identity per position): PASS, 12000 / 12000
@@ -190,7 +190,9 @@ The check always starts from an empty directory and requires both crashes to fir
 **Reading.**
 - N = 4000 at the default gain moves the right way but too slowly.
 - Raising r_end at fixed N moves faster but widens the noise floor: the end point scatters by up to 0.9–2.6 c_end.
-- N = 16000 at the default gain recovers about half to three fifths of a tuning-sized gap at 2 c_end (56–62% over two replicate sets), with the smallest noise floor of the cells that move far (0.15–0.32 c_end).
+- N = 16000 at the default gain recovers about half to three fifths of a tuning-sized gap at 2 c_end (56–62% over two replicate sets). Its noise floor is 0.15–0.32 c_end.
+- With 3–4 replicates per cell, the floors are not ranked against N = 40000 at the default gain (0.45). They are clearly below the larger-gain cells at the same N (0.83–0.90).
+- N = 40000 recovers more (82%) for 2.5× the games. The choice of 16000 is a cost-benefit judgment on thin synthetic evidence, not an optimum.
 - A wide, flat basin (L4) still moves only 17%. A small movement in a real run is therefore not evidence of a flat landscape.
 - Cost: 32,000 games at 10+0.1, QA's decision (`PLAN.md` §4.7).
 

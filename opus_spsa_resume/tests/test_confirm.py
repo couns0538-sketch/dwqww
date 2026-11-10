@@ -192,9 +192,18 @@ def t_cli(base):
     check("refuse a re-run in the same directory after it was deleted, and another candidate there (exit 41 x2)",
           (rc1, rc2) == (41, 41) and "CONFIRM.json is gone" in e1 and "already served" in e2,
           f"rc {rc1}/{rc2} {e1.strip()[-90:]} | {e2.strip()[-90:]}")
+    moved = dict(proto, registry=str(d / "elsewhere" / "registry.jsonl"))  # a protocol pointing the registry away
+    ppm2 = d / "protocol_moved_registry.json"
+    ppm2.write_text(json.dumps(moved, indent=1), encoding="ascii")
+    rc3, _, e3 = call(RUNNER, "run", ppm2, cand, d / "run_moved", "--mode", "synthetic")
+    check("moving the protocol's registry does not reset single use: the registry beside the holdout file still "
+          "refuses (exit 41)", rc3 == 41 and "already served" in e3 and not (d / "run_moved").exists(),
+          e3.strip()[-120:])
     # mode prerequisites are validated before anything is written: a refused start never consumes the holdout
     dm, ppm, candm, protom, _ = setup(base, "mode_prereq")
     reg, sreg = Path(protom["registry"]), Path(protom["registry"]).with_name("registry.synthetic.jsonl")
+    hold = Path(protom["identity"]["holdout"]["path"])
+    hreg, hsreg = Path(str(hold) + ".registry.jsonl"), Path(str(hold) + ".registry.synthetic.jsonl")
     no_syn = dict(protom)
     no_syn.pop("synthetic")
     ppm.write_text(json.dumps(no_syn, indent=1), encoding="ascii")
@@ -204,8 +213,9 @@ def t_cli(base):
     r_bad, _, _ = call(RUNNER, "run", ppm, candm, dm / "run", "--mode", "bogus")
     check("synthetic without protocol.synthetic (10), replay without protocol.replay (10), live (40), unknown mode "
           "(10): refused before anything is written; no registry line, no run directory",
-          (r_syn, r_rep, r_live, r_bad) == (10, 10, 40, 10) and not (dm / "run").exists() and not reg.exists()
-          and not sreg.exists(), f"rc {r_syn}/{r_rep}/{r_live}/{r_bad} {e_live.strip()[-100:]}")
+          (r_syn, r_rep, r_live, r_bad) == (10, 10, 40, 10) and not (dm / "run").exists()
+          and not any(p.exists() for p in (reg, sreg, hreg, hsreg)), f"rc {r_syn}/{r_rep}/{r_live}/{r_bad} "
+          f"{e_live.strip()[-100:]}")
     # candidate binding: a synthetic candidate is reported as not confirmable; a live one with the pinned config is
     rc, out, _ = call(RUNNER, "run", pp, cand, d / "dry_binding")
     o1 = json.loads(out) if rc == 0 else {}
@@ -283,18 +293,26 @@ def t_cli(base):
 
 def pgn_game(rnd, white, black, result, fen=None, term="normal", moves=None):
     f = f'[FEN "{fen}"]\n[SetUp "1"]\n' if fen else ""
+    if moves is None:  # FEN games: no book moves (never parsed); PGN-book games: fastchess's {book} annotation
+        moves = "1. Kb1" if fen else "1. d4 {book} d5 {book} 2. c4 {+0.20/12 0.030s}"
     return (f'[Event "Fastchess Tournament"]\n[Round "{rnd}"]\n[White "{white}"]\n[Black "{black}"]\n'
-            f'[Result "{result}"]\n{f}[Termination "{term}"]\n\n{moves or "1. e4"} {result}\n\n')
+            f'[Result "{result}"]\n{f}[Termination "{term}"]\n\n{moves} {result}\n\n')
+
+
+def replay_pgn(n):
+    pattern = [("1-0", "1/2-1/2"), ("1/2-1/2", "1/2-1/2"), ("0-1", "1-0"), ("1/2-1/2", "0-1"), ("1-0", "1-0")]
+    out = ""
+    for j in range(1, n + 1):
+        r1, r2 = pattern[j % 5]
+        out += pgn_game(j, "cand", "base", r1) + pgn_game(j, "base", "cand", r2)
+    return out, pattern
 
 
 def t_replay_audit(base):
     d, pp, cand, proto, env = setup(base, "replay")
-    games = ""
-    pattern = [("1-0", "1/2-1/2"), ("1/2-1/2", "1/2-1/2"), ("0-1", "1-0"), ("1/2-1/2", "0-1"), ("1-0", "1-0")]
-    for j in range(1, 41):
-        r1, r2 = pattern[j % 5]
-        games += pgn_game(j, "cand", "base", r1) + pgn_game(j, "base", "cand", r2)
-    pg = d / "confirm_games.pgn"
+    real_regs = [Path(proto["registry"]), Path(proto["identity"]["holdout"]["path"] + ".registry.jsonl")]
+    games, pattern = replay_pgn(40)
+    pg = d / "confirm_games_interim.pgn"
     pg.write_text(games, encoding="ascii")
     proto["replay"] = {"pgns": [{"path": str(pg), "sha256": h.sha(pg), "first_pair": 0}]}
     pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
@@ -303,12 +321,22 @@ def t_replay_audit(base):
           rc0 == 10 and "not confirmable" in e0 and not (d / "run").exists(), e0.strip()[-150:])
     proto["allow_nonlive_candidate"] = True  # test-only: the synthetic candidate stands in for a live one
     pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
+    rc1, _, e1 = call(RUNNER, "run", pp, cand, d / "run", "--mode", "replay")
+    check("replay refuses an interim PGN set (40 of 300 pairs, no decision): it would consume the holdout; "
+          "nothing written", rc1 == 10 and "interim replay" in e1 and not (d / "run").exists()
+          and not any(p.exists() for p in real_regs), e1.strip()[-150:])
+    games, _ = replay_pgn(300)  # all pairs up to the cap (600 games)
+    pg = d / "confirm_games.pgn"
+    pg.write_text(games, encoding="ascii")
+    proto["replay"] = {"pgns": [{"path": str(pg), "sha256": h.sha(pg), "first_pair": 0}]}
+    pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
     rc, out, err = call(RUNNER, "run", pp, cand, d / "run", "--mode", "replay")
     o = json.loads(out) if rc == 0 else {}
-    check("confirm replay of a saved confirmation PGN (40 pairs) recomputes pentanomial counts and LLR; "
-          "40 < min_pairs 50, so no decision", rc == 0 and o.get("pairs") == 40 and sum(o.get("penta", [])) == 40
-          and o.get("verdict", "").startswith("replay exhausted"), f"rc {rc} penta {o.get('penta')} "
-          f"verdict {o.get('verdict')} {err[-120:]}")
+    check("confirm replay of a complete PGN set (all 300 pairs) recomputes pentanomial counts and LLR and records "
+          "the sequential decision; a test-only (non-live) candidate writes no real registry line",
+          rc == 0 and o.get("decision_recorded") and sum(o.get("penta", [])) == o.get("pairs", -1)
+          and 50 <= o.get("pairs", 0) <= 300 and not any(p.exists() for p in real_regs),
+          f"rc {rc} pairs {o.get('pairs')} penta {o.get('penta')} verdict {o.get('verdict')} {err[-120:]}")
     # degenerate sample: identical pair scores must give a finite LLR and no decision before min_pairs
     pen = [0, 0, 0, 40, 0]
     st = cr.gsprt(pen, 0.0, 5.0)
@@ -368,6 +396,12 @@ def t_replay_audit(base):
     qbad.write_text(bad_book, encoding="ascii")
     rc, _, err = call(RUNNER, "audit-pgn", pp, cand, qbad)
     check("audit-pgn fails closed on book moves it cannot replay (exit 31)", rc == 31, err.strip()[-150:])
+    nobook = qb.replace("1. d4 {book} d5 {book} 2. c4 {book} e6 {book}", "1. d4 d5 2. c4 e6", 1)
+    qnb = d / "qa_gate_nobook.pgn"
+    qnb.write_text(nobook, encoding="ascii")
+    rc, _, err = call(RUNNER, "audit-pgn", pp, cand, qnb)
+    check("audit-pgn fails closed on a game with neither a FEN tag nor {book} moves (opening unknown, exit 31)",
+          rc == 31 and "cannot be determined" in err, err.strip()[-150:])
 
 
 def t_select(base):
@@ -386,7 +420,17 @@ def t_select(base):
     spec = json.loads(out2) if rc2 == 0 else {}
     check("select_candidate refuses a complete but synthetic training run unless --allow-nonlive; the spec then "
           "records training_mode", rc1 == 10 and "mode 'synthetic'" in err1 and rc2 == 0
-          and spec.get("training_mode") == "synthetic", f"rc {rc1}/{rc2} {err1.strip()[-100:]}")
+          and spec.get("training_mode") == "synthetic" and spec.get("training_rollbacks") == [],
+          f"rc {rc1}/{rc2} {err1.strip()[-100:]}")
+    # re-tuning until lucky: roll a COMPLETE run back and let it complete again -> no candidate
+    h.cli("rollback", d / "train", "--to-ckpt", "5")
+    h.cli("run", tc, d / "train", "--mode", "synthetic", "--resume")
+    n_complete = sum(1 for x in (d / "train" / "ledger.jsonl").read_text(encoding="ascii").splitlines()
+                     if json.loads(x)["type"] == "complete")
+    rc3, _, err3 = call(SELECT, d / "train", d / "cand_relucky.json", "--allow-nonlive")
+    check("select_candidate refuses a run rolled back after completing and completed again (exit 10)",
+          n_complete == 2 and rc3 == 10 and "rolled back after it had completed" in err3,
+          f"complete records {n_complete}, rc {rc3} {err3.strip()[-100:]}")
 
 
 def main():

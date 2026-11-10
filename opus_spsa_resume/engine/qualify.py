@@ -82,6 +82,8 @@ def main(argv):
                                                    "--opt", "QsSeeMargin=140"))["sets"][0]["nodes"],
         "both": save(out, "lock_both_135_176", drive("bench", lock, "--depths", "13,16", "--opt", "RazorBase=135",
                                                        "--opt", "QsFutilityMargin=176"))["sets"][0]["nodes"],
+        "qs176": save(out, "lock_qs_176", drive("bench", lock, "--depths", "13,16",
+                                                 "--opt", "QsFutilityMargin=176"))["sets"][0]["nodes"],
     }
     pins2 = {"13": PINS_ON["13"], "16": PINS_ON["16"]}
     checks = {}
@@ -99,7 +101,8 @@ def main(argv):
     s = sem["both_families"]
     checks["both: values at switch 0 change nothing"] = s[0] == pins2
     checks["both: both switches 1 == lock with both values"] = s[1] == lockv["both"]
-    checks["both: RazorTune 0 leaves only the qsearch value (differs from both and from pins)"] = s[2] not in (lockv["both"], pins2)
+    checks["both: RazorTune 0 leaves only the qsearch value (== lock with QsFutilityMargin 176 only)"] = \
+        s[2] == lockv["qs176"] and s[2] not in (lockv["both"], pins2)
     checks["both: QsTune 0 then restores the pins"] = s[3] == pins2
     res["gate_semantics"] = {"sequences": sem, "lock_with_values": lockv, "checks": checks}
     ok = res["uci_off_equals_lock"] and res["uci_gate_is_lock_plus_switches"] and \

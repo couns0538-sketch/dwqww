@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $me = [System.Diagnostics.Process]::GetCurrentProcess()
 $me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]0xF000; $me.Refresh()
-if ([long]$me.ProcessorAffinity -ne 0xF000) { throw 'placement not applied' }
+if ([long]$me.ProcessorAffinity -ne 0xF000 -or "$($me.PriorityClass)" -ne 'Idle') { throw 'placement not applied' }
 $free = [Math]::Round((Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='D:'").FreeSpace / 1GB, 3)
 if ($free - 0.05 -lt 30) { throw "PENDING RESOURCE: D: free $free GiB" }
 

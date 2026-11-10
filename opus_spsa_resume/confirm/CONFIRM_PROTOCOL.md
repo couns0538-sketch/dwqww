@@ -6,7 +6,8 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
 - **The candidate** is produced by `select_candidate.py` from a **COMPLETE live** training run of `configs/joint_razor_qs.json` (N = 16000 pairs; the run size was set from the synthetic qualification before any game, `PLAN.md` §4.7).
   - Rule: the final θ of the run, as the engine integers recorded in its `complete` record. Those integers are the nearest feasible ones: rounding with a feasibility repair, so a run ending on C1 or C3′ still yields a candidate. Bounds and C1/C3′ are re-checked.
   - No intermediate checkpoint may be chosen, and nothing seen in a screen or holdout may influence the choice.
-  - The spec is hashed (`spec_sha256`). It records `training_mode` and `training_config_sha256`.
+  - The spec is hashed (`spec_sha256`). It records `training_mode`, `training_config_sha256`, any rollbacks before completion, and the number of pair records.
+  - A run rolled back after it had completed, and completed again, yields no candidate. That would be re-tuning until lucky.
   - The protocol pins `training_config_sha256`: the RUN.json `config_sha256` of QA's live config. A candidate from a synthetic or replay run, or from another config, is not confirmable. The dry-run reports it, and replay refuses it (exit 10).
 - **Tuned options:** RazorBase, RazorMultiplier, QsFutilityMargin. RazorDepth = 2 and QsSeeMargin = 40 stay at their lock values.
 
@@ -23,10 +24,11 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
   - **Leakage audit, mandatory:** after the gate, run `bin\confirm.ps1 -Command audit -Protocol <p> -Candidate <c> -Pgn <gate.pgn>`.
     - It recomputes the result with and without pairs whose start position is a training or screen position.
     - The start position comes from the FEN tag (EPD books such as UHO) or is rebuilt from the moves fastchess annotates `{book}` (PGN books such as `8moves_v3`, which carry no FEN tag).
-    - A game whose start cannot be rebuilt fails the audit (exit 31).
+    - A game whose start cannot be rebuilt fails the audit (exit 31), including a game with neither a FEN tag nor `{book}` moves.
     - The rule uses the conservative 3-field key (pieces, side, castling). The exact 4-field partition key (with the legal e.p. square) is reported too.
 - **Alternative route on G1 (this pack's protocol and runner):** holdout group G1 of `8moves_v3`: 2,408 positions, `holdout_G1.pgn`, SHA256 cfe81bf7…, regenerated and verified by `partition/opening_partition.py`.
   - **This runner never plays a game.** Its dry-run prints the exact fastchess command. QA plays it under its own scheduler. Then `--mode replay` recomputes the sequential decision from that PGN, stopping at the first bound crossing in pair order. This route needs a QA decision.
+  - **Replay once, with all PGNs.** Replay needs PGNs that either reach a bound or hold every pair up to the cap. Otherwise it is refused before anything is written (exit 10), because a replay registers the holdout under its protocol's sha. QA may stop playing early once its own monitoring sees a bound crossed: the PGN then contains the crossing.
   - Each pair uses one opening, so G1 allows at most 2,408 pairs (4,816 games) without replaying an opening. The runner refuses a larger cap in every mode, including dry-run (exit 10), unless the protocol sets `allow_opening_reuse`, which needs a written QA decision. Example: `configs/confirm_protocol_G1_example.json` (cap 4,816).
   - At that cap the synthetic power is about that of QA's 5,000-game cap (table below), so G1 alone decides only large effects. The 40,000-game cap needs the UHO route.
   - **Disjointness:** G1 is disjoint from the training and screen partitions on the 4-field key the partition used. On the audit's conservative 3-field key, 2 of the 2,408 G1 openings match a training opening; they differ only in the en-passant square. A G1 confirm would therefore show at most 0.08% "leakage" on that key, far below the 1% rule.
@@ -35,7 +37,9 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
   - In its own directory, a run whose CONFIRM.json is gone is refused: a deleted and restarted run would be a re-run until lucky (exit 41).
   - A resume in its own directory with CONFIRM.json present must have the same protocol and candidate (exit 11 otherwise).
   - The registry line is written, fsynced, just before the first pair is recorded, after every mode prerequisite has passed. A refused or failed start therefore never consumes the holdout.
-  - Synthetic runs (tests) use a separate registry file and cannot consume a holdout.
+  - Every line goes to two files: the protocol's registry, and `<holdout file>.registry.jsonl` beside the holdout itself. Editing the protocol's registry path does not reset the history.
+  - This is an accident guard, not a security boundary: deleting both files, or copying the holdout elsewhere, defeats it. QA keeps both registries append-only.
+  - Synthetic runs, and replays with the test-only `allow_nonlive_candidate`, use separate `.synthetic` registry files and cannot consume a holdout.
   - G2 and G3 are reserved for a protocol change that QA approves in writing before any game.
 
 ## 4. Statistics and stop rule (fixed)
@@ -82,7 +86,11 @@ See `ROLLBACK.md`.
   - a changed exe or protocol;
   - a cap needing more pairs than the holdout has openings;
   - a candidate from a synthetic run;
+  - a run rolled back after completing;
+  - a protocol that moves the registry, caught by the registry beside the holdout;
+  - an interim replay;
   - book moves that cannot be replayed;
+  - a game with neither a FEN tag nor book moves;
   - corrupt checkpoints;
   - duplicate and incomplete pairs.
 - **Refused before anything is written:** live mode, an unknown mode, and a mode without its prerequisites. None of them writes a registry line.

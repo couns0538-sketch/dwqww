@@ -7,6 +7,8 @@ Rule:
   rounding with a feasibility repair.
 - They are re-checked against the run's bounds and enabled constraints.
 - No intermediate checkpoint can be chosen: no checkpoint shopping, no peeking at screen or holdout.
+- A run rolled back after it had completed (and completed again) is refused. Rollbacks before completion, which
+  are legitimate recovery, are listed in the spec (training_rollbacks), together with the number of pair records.
 - The training run must be a live one (RUN.json mode "live"). --allow-nonlive accepts a synthetic or replay run,
   for tests and demonstrations only. The spec records training_mode, and confirm_runner.py refuses such a
   candidate for replay unless the protocol allows it.
@@ -63,6 +65,11 @@ def main(argv):
         recs.append(r)
     if not recs or recs[-1]["type"] != "complete":
         fail(10, "training run is not COMPLETE (fixed rule: only the final theta of a complete run)")
+    first_complete = next(i for i, r in enumerate(recs) if r["type"] == "complete")
+    if any(r["type"] == "rollback" for r in recs[first_complete + 1:]):
+        fail(10, "training run was rolled back after it had completed and completed again: re-tuning until lucky "
+                 "is excluded by the fixed rule (only an uninterrupted completion yields a candidate)")
+    rollbacks = [{"seq": r["seq"], "to_ckpt": r.get("to_ckpt"), "k": r.get("k")} for r in recs if r["type"] == "rollback"]
     done = recs[-1]
     vals = dict(done["values"])
     params = {p["name"]: p for p in cfg["params"]}
@@ -80,6 +87,8 @@ def main(argv):
                     "may be chosen",
             "training_run_id": meta["run_id"], "training_config_sha256": meta["config_sha256"],
             "training_mode": mode,
+            "training_rollbacks": rollbacks,
+            "training_pair_records": sum(1 for r in recs if r["type"] == "pair"),
             "training_ledger_head": recs[-1]["h"], "training_complete": True, "training_k": done["k"],
             "training_openings_sha256": [cfg["identity"]["openings"]["sha256"].lower()],
             "values": vals, "tuned_values": tuned,

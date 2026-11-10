@@ -63,7 +63,10 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
      | 16,000 | **56–62% / ≤ 0.15–0.32** | 79% / ≤ 0.90 | 79% / ≤ 0.83 |
      | 40,000 | 82% / ≤ 0.45 | 93% / ≤ 1.50 | 93% / ≤ 2.65 |
 
-     N = 16000 at the default gain recovers about half to three fifths of the gap. Of the cells that move far, it has the smallest noise floor. A larger r_end moves faster but makes the end point noisier, so the candidate would be scattered more widely. N = 40000 gains about 20 points of recovery for 2.5× the games.
+     N = 16000 at the default gain recovers about half to three fifths of the gap, with a noise floor of 0.15–0.32 c_end.
+     - A larger r_end at the same N moves faster, but its end point scatters 3–6 times more (0.83–0.90), so the candidate would be scattered more widely.
+     - N = 40000 gains about 20 points of recovery for 2.5× the games. With 3–4 replicates per cell, its noise floor (0.45) is not shown to be larger.
+     - The choice is a cost-benefit judgment on thin synthetic evidence, not a measured optimum.
    - **Budget alternative, if QA caps the run at 8,000 games:** N = 4000 with r_end 0.005, about 38% recovered. Keeping r_end 0.002 at N = 4000 is not recommended: the run would barely move.
    - **Cost:** 32,000 games at 10+0.1. The time depends on QA's concurrency and is QA's decision.
 

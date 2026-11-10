@@ -165,11 +165,18 @@ def check_identity(proto):
     return out
 
 
-def registry_path(proto, mode):
-    """Replay (game-consuming) confirmations use the protocol's registry. Synthetic runs (tests and demonstrations,
-    no games) use a separate file next to it, so a synthetic run can never consume a holdout group."""
+def registry_paths(proto, kind):
+    """Where single use is recorded. kind "real" is a confirmation that consumes the holdout; kind "synthetic" is
+    a test or demonstration that never does (synthetic mode, or replay with the test-only allow_nonlive_candidate).
+    Every line is written to two files: the protocol's registry, and a registry beside the holdout file itself.
+    So editing the protocol's registry path does not reset the history. This is an accident guard, not a security
+    boundary: someone who deletes both files, or copies the holdout elsewhere, can still re-run."""
+    tag = "" if kind == "real" else ".synthetic"
     p = Path(proto["registry"])
-    return p if mode != "synthetic" else p.with_name(p.stem + ".synthetic" + p.suffix)
+    first = p if kind == "real" else p.with_name(p.stem + ".synthetic" + p.suffix)
+    hold = Path(proto["identity"]["holdout"]["path"])
+    second = hold.with_name(hold.name + f".registry{tag}.jsonl")
+    return [first] if second.resolve() == first.resolve() else [first, second]
 
 
 def registry_lines(reg):
@@ -181,7 +188,7 @@ def registry_lines(reg):
         raise Stop(30, f"registry {reg} is malformed")
 
 
-def check_holdout(proto, cand, run_dir, run_id, mode):
+def check_holdout(proto, cand, run_dir, run_id, kind):
     """Holdout misuse is refused (exit 41).
     - The group must not have been read by the training run (peeking).
     - The candidate must come from the frozen training partition.
@@ -202,7 +209,7 @@ def check_holdout(proto, cand, run_dir, run_id, mode):
     if not trained or trained - parts:
         raise Stop(41, "the candidate's training openings are not the frozen training partition")
     rd = str(Path(run_dir).resolve())
-    for r in registry_lines(registry_path(proto, mode)):
+    for r in [x for reg in registry_paths(proto, kind) for x in registry_lines(reg)]:
         if str(r.get("holdout_pgn_sha256", "")).lower() != hs:
             continue
         same_dir = r.get("run_dir") == rd
@@ -215,6 +222,22 @@ def check_holdout(proto, cand, run_dir, run_id, mode):
             raise Stop(41, f"confirmation {run_id} is registered in {r.get('run_dir')}; it cannot run again elsewhere")
         raise Stop(41, f"confirmation {run_id} was registered in {rd}, but its CONFIRM.json is gone: a re-run is "
                        "refused (one confirmation per group, ever)")
+
+
+def replay_outcome(proto, replay):
+    """The sequential decision the replay PGNs reach, computed in memory before anything is written: (verdict or
+    None, contiguous pairs). A gap with later pairs present is an incomplete run (exit 31)."""
+    st = {"pairs": {}}
+    j = 0
+    while j in replay:
+        st["pairs"][j] = {"score": score_pair(replay[j]["games"]), "games": replay[j]["games"]}
+        j += 1
+        v = summary(st, proto)["verdict"]
+        if v is not None:
+            return v, j
+    if any(k > j for k in replay):
+        raise Stop(31, f"replay has no complete pair {j} but later pairs exist (incomplete run)")
+    return None, j
 
 
 def candidate_issues(proto, cand):
@@ -277,21 +300,20 @@ def check_opening_budget(proto):
     return n_open
 
 
-def register(proto, cand, run_id, run_dir, mode):
-    """Idempotent: one fsynced registry line per (run_id, run_dir). Called just before the first pair is recorded,
-    after every mode prerequisite has passed, so a refused or failed start never consumes the holdout."""
-    reg = registry_path(proto, mode)
-    reg.parent.mkdir(parents=True, exist_ok=True)
+def register(proto, cand, run_id, run_dir, mode, kind):
+    """Idempotent: one fsynced line per (run_id, run_dir) in each registry file. Called just before the first pair
+    is recorded, after every mode prerequisite has passed, so a refused or failed start never consumes the holdout."""
     rd = str(Path(run_dir).resolve())
-    for r in registry_lines(reg):
-        if r.get("run_id") == run_id and r.get("run_dir") == rd:
-            return
-    with open(reg, "ab") as f:
-        f.write(cj({"run_id": run_id, "run_dir": rd, "holdout": proto["holdout"]["name"],
-                    "holdout_pgn_sha256": proto["holdout"]["pgn_sha256"].lower(),
-                    "candidate_sha256": cand["spec_sha256"], "mode": mode}) + b"\n")
-        f.flush()
-        os.fsync(f.fileno())
+    for reg in registry_paths(proto, kind):
+        reg.parent.mkdir(parents=True, exist_ok=True)
+        if any(r.get("run_id") == run_id and r.get("run_dir") == rd for r in registry_lines(reg)):
+            continue
+        with open(reg, "ab") as f:
+            f.write(cj({"run_id": run_id, "run_dir": rd, "holdout": proto["holdout"]["name"],
+                        "holdout_pgn_sha256": proto["holdout"]["pgn_sha256"].lower(),
+                        "candidate_sha256": cand["spec_sha256"], "mode": mode, "kind": kind}) + b"\n")
+            f.flush()
+            os.fsync(f.fileno())
 
 
 def verify_candidate(cand):
@@ -452,7 +474,9 @@ def start_position(text):
     except ValueError:
         raise Stop(31, f"PGN game with an invalid FEN tag: {fen!r}")
     if "{book}" not in moves.replace("{ book }", "{book}"):
-        return board.epd(), ("fen" if fen else "startpos"), 0
+        if not fen:
+            raise Stop(31, "PGN game with no FEN tag and no {book} moves: its opening cannot be determined")
+        return board.epd(), "fen", 0
     cut = len(moves)
     for m in COMMENT.finditer(moves):
         if m.group(1).strip() != "book":
@@ -542,9 +566,11 @@ def run(proto_path, cand_path, run_dir, args):
     psha = h(cj(proto))
     run_id = f"confirm:{proto['holdout']['name']}:{cand['spec_sha256'][:12]}:{psha[:12]}"
     d = Path(run_dir)
-    check_holdout(proto, cand, d, run_id, mode)
-    n_open = check_opening_budget(proto)
     issues = candidate_issues(proto, cand)
+    test_only = mode == "synthetic" or (mode == "replay" and bool(issues) and proto.get("allow_nonlive_candidate", False))
+    kind = "synthetic" if test_only else "real"
+    check_holdout(proto, cand, d, run_id, kind)
+    n_open = check_opening_budget(proto)
     if mode == "dry-run":
         cmd = fastchess_cmd(proto, cand, 1, proto["sprt"]["cap_games"] // 2, d / "games" / "c000000")
         print(json.dumps({"mode": "dry-run", "wrote_files": 0, "started_processes": 0, "identity_ok": ident,
@@ -554,6 +580,12 @@ def run(proto_path, cand_path, run_dir, args):
         return 0
     if mode == "replay" and issues and not proto.get("allow_nonlive_candidate", False):
         raise Stop(10, "candidate is not confirmable: " + "; ".join(issues))
+    if mode == "replay":
+        verdict, n_pairs = replay_outcome(proto, replay)
+        if verdict is None and 2 * n_pairs < proto["sprt"]["cap_games"]:
+            raise Stop(10, f"the replay PGNs hold {n_pairs} pairs and reach no decision before the cap "
+                           f"({proto['sprt']['cap_games'] // 2} pairs). An interim replay would consume the holdout: "
+                           "play the remaining games first, then replay once with all PGNs")
     meta_p = d / "CONFIRM.json"
     if meta_p.exists():
         if not args.get("resume"):
@@ -577,7 +609,7 @@ def run(proto_path, cand_path, run_dir, args):
     st = state_of(book.recs, proto)
     ckpt(d, book, st, proto)
     if st["pairs"]:
-        register(proto, cand, run_id, d, mode)  # idempotent; restores the line if it was lost
+        register(proto, cand, run_id, d, mode, kind)  # idempotent; restores a lost line
     limit = args.get("max_pairs")
     done = 0
     while st["decision"] is None:
@@ -602,7 +634,7 @@ def run(proto_path, cand_path, run_dir, args):
         else:
             raise Stop(10, f"mode {mode} cannot record pairs")
         if j == 0:
-            register(proto, cand, run_id, d, mode)  # the holdout is consumed exactly when its first pair is recorded
+            register(proto, cand, run_id, d, mode, kind)  # the holdout is consumed when its first pair is recorded
             crash("after_register")
         r = book.add("pair", {"j": j, "games": games, "score": score_pair(games), "source": src})
         st["pairs"][j] = r

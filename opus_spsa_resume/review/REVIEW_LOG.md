@@ -12,6 +12,7 @@ How the policy is applied:
 |---|---|---|---|---|---|
 | M1: inventory, freeze, families (2026-11-10 ≈01:16–01:40) | c6df6af6 | 1 BLOCKER, 2 MAJOR, 6 MINOR, 1 NIT group (details below) | All assessed; fixed or addressed in the M1-fix commit; nothing rejected | Doc and evidence corrections; new evidence files; DR source line scan; 2×2 probe plus control; harness tests 55/55 ×2 | Recheck by the same reviewer |
 | M2: harness, engine patch and confirmation pack (the planned M4 merged into M2) (2026-11-10 02:33–03:00) | 5cb03dc2 | 1 BLOCKER, 3 MAJOR, 7 MINOR, 1 NIT group (details below) | All assessed as valid and fixed, except NIT (g), which is documented. One extra defect found while fixing (levels) | Harness 63/63, confirmation 35/35, R9 equivalence strict; both synthetic qualifications re-run under the fixed code; end-to-end demonstration redone | Recheck together with M3 |
+| M2 recheck + M3: builds and qualification (03:15–03:27) | fd47a42d | M2: all resolved; 2 MINOR + 4 NIT-level new issues from the fixes. M3: 4 MINOR, 4 NIT | All assessed as valid; fixed or documented (details below; M3-3 was already fixed) | Confirmation 39/39, harness 63/63; new evidence: profdata summaries, preprocessed hashes, RazorTune-off equality | Final recheck |
 
 ### M2 findings and dispositions
 Reviewer: the same same-model subagent, read-only. It ran only `test_r9_equivalence.py` and small in-memory checks. **Not an independent review.**
@@ -54,7 +55,7 @@ Reviewer: the same same-model subagent, read-only. It ran only `test_r9_equivale
     - (a) R9 inner mode now strict, as in 5.
     - (b) The stale-ledger record is now re-chained, so only its run_id betrays it (exit 31, "stale").
     - (c) The fake optimizer now confirms the selected candidate. It stays an A/A run by construction, and the test name says so.
-    - (d) `t_levels` indexes by name. **This exposed a real defect:** the QsSeeMargin level coordinate started at the edge index, where plus and minus always round alike, so E-006 froze it forever. The old test only ever measured RazorDepth. Fix: inner mode keeps a level coordinate at least e inside its index range. Integer coordinates and `r9_clamp` are unaffected. The recommended config uses no levels. Both level coordinates now update (57 and 63 of 200 batches).
+    - (d) `t_levels` indexes by name. **This exposed a real defect:** the QsSeeMargin level coordinate started at the edge index, where plus and minus always round alike, so E-006 froze it forever. The old test only ever measured RazorDepth. Fix: inner mode keeps a level coordinate at least e inside its index range. Integer coordinates and `r9_clamp` are unaffected. The recommended config uses no levels. Both level coordinates now update in more than 0 batches. The exact counts depend on the scratch path, because identity paths enter the run_id: 57/63 in my run, 39/49 in the reviewer's.
     - (e) Direct E-006 test added.
 11. **MINOR: PowerShell scripts.** All fixed:
     - `selftest.ps1` runs the suites under `Continue` and keeps stderr as text, so a failing suite still writes TESTS.md; it now also reads back Idle.
@@ -69,6 +70,45 @@ Reviewer: the same same-model subagent, read-only. It ran only `test_r9_equivale
     - (f) The confirmation ledger's torn-tail repair is now fsynced, and `verify` re-checks CONFIRM.json's protocol and candidate hashes.
     - (g) The `.ps1` defaults for `-Python` and `-TempDir` name this PC's paths: documented in README, not changed.
 - **Run size:** the reviewer confirmed that ~0.2 c_end drift at N = 4000 is the schedule, not a defect. N was set to 16000 from the synthetic sweep before any game (`PLAN.md` §4.7); this is part of M3.
+
+### M2 recheck and M3 review (same reviewer, of fd47a42d; 03:15–03:27)
+The reviewer ran the three Python suites in its own scratch folder: R9 equivalence (strict), confirmation 35/35, harness 63/63. **Not an independent review.**
+
+**M2 recheck.** All 12 findings and the extra levels defect are resolved. The reviewer checked the {book} reconstruction on the real R9 fastchess fixture: 16 book plies, the EPD equal to an independent python-chess replay. The fixes brought new issues, all assessed as valid and fixed:
+- **(a) The registry can be bypassed** by a protocol whose `registry` points elsewhere. Every line now also goes to `<holdout file>.registry.jsonl`, and both files are checked. Test: a moved-registry protocol is refused (41). Documented as an accident guard, not a security boundary (deleting both files, or copying the holdout, defeats it).
+- **(b) MINOR: a rollback after completion loosened the fixed rule.** `select_candidate` now refuses a run rolled back after completing and completed again. Rollbacks before completion and the pair-record count go into the spec. Test added.
+- **(c) MINOR: an interim replay consumed the holdout.** Replay now computes its sequential outcome in memory before writing. PGNs that reach no decision and hold fewer pairs than the cap are refused (exit 10, nothing written). The replay tests now use a 40-pair interim set (refused) and a full 300-pair set (decision recorded). Documented: "replay once, with all PGNs".
+- **(d) NIT: no FEN and no `{book}` returned the initial position.** It now fails closed (exit 31, test). Test fixtures use `{book}` moves.
+- **(e) NIT: `complete` values were not re-checked.** `_apply("complete")` now requires `values == feasible_engine_values(theta)`. `status` and `export` use the same values; the export notes that the confirmable candidate comes from `select_candidate`.
+- **(f) NIT: a test-only replay wrote the real registry.** A replay with `allow_nonlive_candidate` and a non-confirmable candidate now uses the `.synthetic` registries. Test: no real registry file exists afterwards.
+
+**M3 findings and dispositions.**
+1. **MINOR: no receipt for "PGO profile total equals QA's".** Confirmed. `evidence/builds/profdata_totals.txt` now holds the `llvm-profdata show` output for QA's merged profile and the three rebuilt ones:
+   - QA, ctl and off: 320 functions, 2,481 blocks, total 6,054,052,240.
+   - gat: 327 functions, 2,507 blocks, total 6,054,052,518.
+   - The files differ byte-wise; BENCH says so.
+2. **MINOR: "smallest noise floor" was not established** (3–4 replicates; 0.15 vs 0.32). Confirmed: the ranking against N = 40000 is withdrawn in BENCH §6 and PLAN §4.7. The choice is stated as a cost-benefit judgment on thin synthetic evidence. The gap to the larger-gain cells (0.83–0.90) stays. I did not run more replicates.
+3. **MINOR: STATUS was stale at fd47a42d.** Already fixed in 59abe86f. No action.
+4. **MINOR: a bare run of `clang_build_o3.ps1` writes into QA's tree.** Confirmed. Added the wrapper `engine/build_o3.ps1`:
+   - mandatory paths;
+   - refuses other jobs' trees and any `-OutRoot` outside this job's `out\`;
+   - checks the recipe's sha256.
+   Its refusal paths were tested (nothing created); no build was run through it. The receipted recipe is unchanged.
+5. **NIT: the level-update counts depend on the scratch path.** Reworded to "more than 0 in both", with both runs' counts.
+6. **NIT: the macro-0 identity evidence existed only in `out\`.** Committed `evidence/patch_macro0_preprocessed.sha256`: parent = off, cf0a9c2a…, 4,436,256 bytes.
+7. **NIT: the RazorTune-off check tested only inequality.** Measured directly, the gate sequence set 2 (877190 / 3071864) equals the lock at QsFutilityMargin 176 alone (`evidence/qual/razortune_off_equality.json`). `qualify.py` now checks equality. battery_03 is kept as run with the earlier check.
+8. **NIT: `freeze_inputs.ps1` did not read back Idle.** Fixed, so README's claim now holds for every script.
+
+**Verified correct by the reviewer:**
+- **Builds:** the recipe interdiff, receipts, training outputs and equal path lengths.
+- **Images:** the PE normalization is sound; "normalized-identical, raw UNRESOLVED" holds.
+- **Battery:** 16/16 checks.
+- **fens12k:** byte-identical to QA's refcache.
+- **warm1000:** the copy differs only in the mask lines, and the reading of the two allowed option lines is sound.
+- **Synthetic tables:** every table recomputes from the evidence files.
+- **Resume checks:** both fired both crashes.
+- **Config change:** `pairs_planned` and the comment only.
+- **PLAN §3:** its numbers check out.
 
 ### M1 recheck (same reviewer, of 2d174ca8)
 - **Resolved:** findings 2, 3, 4, 5, 7, 8 and 10.

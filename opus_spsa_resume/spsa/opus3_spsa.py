@@ -315,7 +315,8 @@ class Run:
                 st["theta"], st["k"] = rec["theta"], rec["k"]
                 st["complete"] = False  # the run continues from checkpoint n; a later complete record closes it again
             elif t == "complete":
-                if st["pending"] is not None or st["k"] < self.cfg["pairs_planned"] or rec.get("theta") != st["theta"]:
+                if st["pending"] is not None or st["k"] < self.cfg["pairs_planned"] or rec.get("theta") != st["theta"] \
+                        or rec.get("values") != self.space.feasible_engine_values(st["theta"]):
                     raise Refuse(EXIT_CORRUPT, "complete record does not match the run")
                 st["complete"] = True
             else:
@@ -603,7 +604,7 @@ def reconcile_checkpoints(run, st):
 def summary(run, st):
     return {"run_id": run.run_id, "mode": run.mode, "k": st["k"], "batch": st["batch"], "complete": st["complete"],
             "pending": None if st["pending"] is None else st["pending"]["batch"],
-            "theta": dict(zip(run.space.names, st["theta"])), "values": run.space.engine_values(st["theta"]),
+            "theta": dict(zip(run.space.names, st["theta"])), "values": run.space.feasible_engine_values(st["theta"]),
             "ledger_records": len(run.ledger.records), "ledger_head": run.ledger.head,
             "pair_records": sum(1 for r in run.ledger.records if r["type"] == "pair"),
             "repairs": run.ledger.repairs}
@@ -727,7 +728,8 @@ def cmd_export(run_dir, out_dir):
                 w.writerow([r["batch"], u["k_after"], r["W"], r["L"], r["D"], u["R"]] + [repr(x) for x in u["theta_after"]])
     cand = {"schema": "opus3-candidate/1", "run_id": run.run_id, "config_sha256": run.csha,
             "complete": st["complete"], "k": st["k"], "theta": dict(zip(run.space.names, st["theta"])),
-            "values": run.space.engine_values(st["theta"]), "ledger_head": led.head}
+            "values": run.space.feasible_engine_values(st["theta"]), "ledger_head": led.head,
+            "note": "export only: the confirmable candidate comes from confirm/select_candidate.py"}
     (o / "candidate.json").write_bytes(canon(cand) + b"\n")
     print(json.dumps(cand, indent=1))
     return 0

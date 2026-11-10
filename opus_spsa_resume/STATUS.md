@@ -2,9 +2,9 @@
 
 All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs about 25,160–25,170 s (6 h 59 min) ahead, and the gap grew by a few seconds during this job. It is never used for reported times; see `evidence/INC-01_lazy_fetch_disk_drain.json`.
 
-- Last update: 2026-11-10 03:16 Vienna
+- Last update: 2026-11-10 03:35 Vienna
 - Job start: 2026-11-10 00:48:26 Vienna (2026-11-09 23:48:26Z)
-- Elapsed: about 2 h 28 min
+- Elapsed: about 2 h 47 min
 
 ## Identity, paths and approvals
 | Item | Value |
@@ -62,11 +62,20 @@ All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs 
   - Both synthetic qualifications re-run under the fixed code.
   - `bin\selftest.ps1` under Windows PowerShell 5.1: ALL PASS (`TESTS.md`).
 - `HANDOFF.md` written (Code Review → QA).
+- **M2 recheck + M3 review (03:15–03:27)** of fd47a42d. All M2 findings are resolved. The fixes brought 2 MINOR and 4 NIT-level new issues; M3 found 4 MINOR and 4 NIT. All assessed and fixed or documented (`review/REVIEW_LOG.md`):
+  - a second registry beside the holdout file;
+  - no candidate from a run rolled back after completing;
+  - interim replays refused;
+  - fail-closed start positions;
+  - profdata receipt;
+  - noise-floor ranking withdrawn;
+  - guarded build wrapper;
+  - RazorTune-off equality measured.
+  After these fixes, `bin\selftest.ps1` passes again: R9 equivalence, harness 63/63, confirmation 39/39.
 
 ## In progress / next exact actions
-1. **Running:** M2 recheck + M3 review (builds, identity, synthetic qualification, run size), sent at 03:15 to the same reviewer subagent, scope fd47a42d.
-2. Assess the findings, fix within scope, and re-run `bin\selftest.ps1`.
-3. **S4:**
+1. Commit and push these fixes; send the final recheck to the same reviewer.
+2. **S4:**
    - Pack manifests `MANIFEST.md5` / `MANIFEST.sha256`.
    - Git bundle on D: (`out\bundle\`).
    - Final STATUS and push.
@@ -88,12 +97,14 @@ On resume, re-verify the hashes in this file before relying on any earlier recei
 | Freeze: 35 files against `FREEZE_FILES.sha256` (re-verified 02:38) | PASS |
 | R9 saved-run replay equivalence (strict in inner mode) | PASS |
 | Harness tests | PASS 63/63 |
-| Confirmation pack tests | PASS 35/35 |
+| Confirmation pack tests | PASS 39/39 |
 | `bin\selftest.ps1` (Windows PowerShell 5.1) | ALL PASS, `TESTS.md` |
 | Patch macro-0 token identity, gate syntax, clean apply | PASS |
 | Builds ctl / off / gat (_03) | PASS (BENCH.md §1) |
 | Normalized PE identity lock = ctl = off | PASS (raw byte identity UNRESOLVED, pre-declared) |
 | UCI options, bench d11–d22 net on/off (lock, ctl, off, gat sw0, gat sw1 defaults), perft, 16 gate-semantics checks | PASS |
+| RazorTune-off equality: gate sequence set 2 = lock at QsFutilityMargin 176 (877190 / 3071864) | PASS (measured 03:30) |
+| PGO profile summaries: ctl/off = QA's (320 functions, 2,481 blocks, 6,054,052,240) | PASS (`evidence/builds/profdata_totals.txt`) |
 | fens12k d13 net on/off: gat sw0 and sw1-defaults vs lock (and QA refcache) | PASS 12000/12000 |
 | warm1000 lock vs gat sw0 | PASS (apart from the two advertised option lines) |
 | fens12k for ctl and off | NOT RUN (normalized-image-identical to the lock) |
