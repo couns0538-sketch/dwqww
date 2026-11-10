@@ -812,6 +812,14 @@ namespace {
     }
     return key * 0x9E3779B97F4A7C15ULL;
 }
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+[[nodiscard]] std::size_t material_correction_index(const Board& board, SearchStack* ss) {
+    if (ss->material_correction_index == CorrectionSize) {
+        ss->material_correction_index = material_key(board) & (CorrectionSize - 1U);
+    }
+    return ss->material_correction_index;
+}
+#endif
 } // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
@@ -853,16 +861,20 @@ void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->runtime_psqt.valid = false;
 }
 
-int Worker::corrected_eval(const Board& board, int raw_eval) const {
+int Worker::corrected_eval(const Board& board, [[maybe_unused]] SearchStack* ss, int raw_eval) const {
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
     if (tune::MaterialCorrectionWeight > 0) {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+        correction += (*material_correction_)[side][material_correction_index(board, ss)] * tune::MaterialCorrectionWeight / 100;
+#else
         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+#endif
     }
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
-void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+void Worker::update_correction(const Board& board, [[maybe_unused]] SearchStack* ss, int depth, int best_score, int static_eval) {
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);
@@ -870,7 +882,11 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+    if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_correction_index(board, ss)]);
+#else
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+#endif
 }
 
 std::int64_t Worker::elapsed_ms() const {
@@ -998,6 +1014,10 @@ void Worker::update_capture_stats(const Board& board, Move best, int depth, cons
 // Quiescence search
 
 int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+    // Invalidate even on early returns, sibling reuse, and same-ply re-entry.
+    ss->material_correction_index = CorrectionSize;
+#endif
     const bool pv_node = beta - alpha > 1;
     const int ply = ss->ply;
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
@@ -1039,7 +1059,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         int eval;
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -1124,6 +1144,10 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
 // Main alpha-beta search
 
 int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+    // Invalidate even on early returns, sibling reuse, and same-ply re-entry.
+    ss->material_correction_index = CorrectionSize;
+#endif
     const bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
@@ -1189,7 +1213,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -1504,7 +1528,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
-        update_correction(board, depth, best_score, ss->static_eval);
+        update_correction(board, ss, depth, best_score, ss->static_eval);
     }
     return best_score;
 }

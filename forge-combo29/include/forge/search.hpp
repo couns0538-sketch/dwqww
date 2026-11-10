@@ -35,6 +35,11 @@
 #define FORGE_FIX_SMP_EXCEPTIONS 0
 #endif
 
+// Experimental lazy material-correction index reuse; default keeps baseline work.
+#ifndef FORGE_SPD_MATERIAL_CORRECTION_CACHE
+#define FORGE_SPD_MATERIAL_CORRECTION_CACHE 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -304,6 +309,10 @@ struct SearchStack {
     Piece moved_piece = Empty;
     int static_eval = ValueNone;
     int raw_eval = ValueNone;
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+    // CorrectionSize is outside the index range and marks this entry unused.
+    std::size_t material_correction_index = CorrectionSize;
+#endif
     int move_count = 0;
     int cutoff_count = 0;
     int double_extensions = 0;
@@ -415,8 +424,8 @@ private:
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
-    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
-    void update_correction(const Board& board, int depth, int best_score, int static_eval);
+    [[nodiscard]] int corrected_eval(const Board& board, SearchStack* ss, int raw_eval) const;
+    void update_correction(const Board& board, SearchStack* ss, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
