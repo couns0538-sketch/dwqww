@@ -1,6 +1,6 @@
 # STATUS: fable2 bit-exact speed lane on combo29
 
-Updated 2026-11-10 10:55 Vienna. Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
+Updated 2026-11-10 11:15 Vienna. Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
 
 ## Approval state
 
@@ -58,59 +58,59 @@ So heavy runs use **CPU 3 only** (mask 0x08), one at a time. Nothing of the gate
 
 `PROFILE.md`. Largest CPU-bound target: the king shelter loop in `evaluate_king` (4.1 % net on, 4.8 % net off). `HCE_REUSE` dropped (0.12 % on its lines).
 
-## Step 3: candidates - DONE (first version 09:55; novelty of one corrected 10:20; three patches revised after review 10:48)
+## Step 3: candidates - DONE (first version 09:55; novelty of one corrected 10:20; patches revised after the review, final texts 11:09)
 
-| Item | Novelty (DUPCHECK.md) | Patch md5 (current) | Lines | Files |
+| Item | Novelty (DUPCHECK.md) | Patch md5 (final) | Lines | Files |
 |---|---|---|---|---|
 | `FORGE_SPD_WITNESS_NOPIN` | LISTED-UNBUILT | `ccfa6ce5be78591e8eef9f04527234dd` | +18 | `board.cpp` |
 | `FORGE_SPD_EVADE_LEGAL` | LISTED-UNBUILT | `b5aaa89fe788edc2976376ca8760a7c4` | +32 | `board.cpp` |
-| `FORGE_SPD_PAWN_CAPMASK` | UNLISTED | `2a680e14744580d058f5eb6f81a15202` (v2) | +16 | `board.cpp` |
-| `FORGE_SPD_CHECKERS_KL` | LISTED-UNBUILT | `beca3d00ac3aaff3fbc4d744cf04e711` (v2) | +27 | `board.cpp` |
-| `BUNDLE4` (the four above) | bundle of the new candidates | `46253516d8574c630470e5734a57e88c` | +93 | `board.cpp` |
-| `FORGE_SPD_KING_PAWN_CACHE` | **BUILT BEFORE - not new; extra** | `a51e1b69ebe53bb995e819dd77af7445` (v2) | +74 | `eval.hpp`, `eval.cpp` |
-| `BUNDLE` (all five) | extra | `ae84ec659853b50d204a67a329084f82` | +167 | three files |
+| `FORGE_SPD_PAWN_CAPMASK` | UNLISTED | `2a680e14744580d058f5eb6f81a15202` | +16 | `board.cpp` |
+| `FORGE_SPD_CHECKERS_KL` | LISTED-UNBUILT | `c8f080ba3d10df0989036e17805cc823` | +29 | `board.cpp` |
+| `BUNDLE4` (the four above) | bundle of the new candidates | `4cfedef418f02fd7f916f6b0b2db080e` | +95 | `board.cpp` |
+| `FORGE_SPD_KING_PAWN_CACHE` | **BUILT BEFORE - not new; extra** | `a51e1b69ebe53bb995e819dd77af7445` | +74 | `eval.hpp`, `eval.cpp` |
+| `BUNDLE` (all five) | extra | `953ee65a4380d24b51f660982ffdbe04` | +169 | three files |
 
-Results per item (switch-0 byte compare, pins, ladder, timing) are in `BENCH.md`, written from the evidence files by `tools/collect_evidence.py`. This file does not repeat them.
+Results per item (switch-0 byte compare, pins, ladder, timing, exact work counters) are in `BENCH.md`, written from the evidence files by `tools/collect_evidence.py`. This file does not repeat them.
 
 **Novelty correction, 10:20.** `KING_PAWN_CACHE` joined the pool after the profile, and I re-ran the duplicate search for it only at 10:15. That run found commit `928f1ff7` (2026-10-13, branch `cursor/chess-engine-elo-8295` only): the same shelter cache in the source of that date, "about 1% faster" by its message, never in the lock lineage. Ruling 1 of the plan says a candidate found built on the fetch is dropped, so it is **not counted as a new candidate**. It stays in the pack as a labelled extra with full evidence, because no combo29 version of it exists elsewhere; whether it is timed or used is the owner's and QA's call. The four new candidates have their own bundle, `BUNDLE4`.
 
-**Revision after the review, 10:48** (`REVIEW_LOG.md`). The reviewer found no correctness defect. Three patches were still changed:
+**Revisions after the review** (`REVIEW_LOG.md`). The reviewer found no correctness defect in either round. Patches were still changed:
 
-| Patch | v1 | v2 | Why |
-|---|---|---|---|
-| `CHECKERS_KL` | `1b785bd3...` | `beca3d00...` | King moves now keep the lock's `attackers_to()`. In v1 an illegal king step next to the enemy king read as "no check" where the lock counts the king as a checker; the engine never makes that move, but the shortcut carried a precondition. v2 has none: it equals the lock for every pseudo-legal move, and the harness checks that on illegal moves too |
-| `PAWN_CAPMASK` | `09b2ef4f...` | `2a680e14...` | One hunk sat in the older generator that the lock never compiles, so it had never been built. Removed; the switch now refuses that configuration with `#error` |
-| `KING_PAWN_CACHE` | `d2beac06...` | `a51e1b69...` | Comment only: the switch changes a struct layout and must reach every translation unit |
+| Patch | md5 history | What changed and why |
+|---|---|---|
+| `CHECKERS_KL` | `1b785bd3` (09:35) -> `beca3d00` (10:48) -> `c8f080ba` (11:09) | King moves now keep the lock's `attackers_to()`. In the first text an illegal king step next to the enemy king read as "no check" where the lock counts the king as a checker; the engine never makes that move, but the shortcut carried a precondition. Now it equals the lock for every pseudo-legal move, and the harness checks that on illegal moves too. Last revision: the comment states exactly why the engine never meets a position with the side not to move in check, and two castling flags that the king test made redundant are gone |
+| `PAWN_CAPMASK` | `09b2ef4f` -> `2a680e14` (10:48) | One hunk sat in the older generator that the lock never compiles, so it had never been built. Removed; the switch now refuses that configuration with `#error` |
+| `KING_PAWN_CACHE` | `d2beac06` -> `a51e1b69` (10:48) | Comment only: the switch changes a struct layout and must reach every translation unit |
 
-All builds of the changed sources, all harness builds and all results of patched builds from before 10:48 were moved to `out\_old_v1\` and are not used. v1 patch texts: `out\_old_v1\patches\` and git commit `8e2d7a8f`.
+Every build of a changed source, every harness build and every result of a patched build from before the last change of that patch were moved to `out\_old_v1\` and `out\_old_v2\` and are not used. Old patch texts: those folders and git commits `8e2d7a8f` (first texts) and `eac89354` (10:48 texts).
 
-History of the v1 limit, for the record: the first verify-mode harness run of `CHECKERS_KL` v1 aborted because the harness's own legality oracle played illegal king moves on a board copy that carried king lines. On the first 300 FENs, 0 of 701,068 legal makes differed from `attackers_to` and 2,051 of 28,231 illegal makes did, every one a king move ending next to the enemy king (`out\_old_v1\id\CHECKERS_KL\rootcause\`). With v2 the same harness check finds 0 differences on legal and illegal makes alike.
+History of the first limit, for the record: the first verify-mode harness run of `CHECKERS_KL` aborted because the harness's own legality oracle played illegal king moves on a board copy that carried king lines. On the first 300 FENs, 0 of 701,068 legal makes differed from `attackers_to` and 2,051 of 28,231 illegal makes did, every one a king move ending next to the enemy king (`out\_old_v1\id\CHECKERS_KL\rootcause\`). With the final text the harness plays all 729,299 generated moves of those 300 FENs, legal and illegal, on such copies and finds 0 differences (full set: `BENCH.md`).
 
 Patches: `patches/<NAME>_after_combo29.patch` (`-p1`, `--- a/src/...`). The singles apply with plain `git apply` in the listed order and in reverse and give the same tree; each bundle patch is the diff of that tree (`tools/make_bundle.ps1`). `tools/check_consistency.ps1` re-proves at any time that snapshot + patch = work tree = the source of each build.
 
-Build tags under `out\build\`: `wit`, `evd`, `cap`, `chk`, `kpc`, `bn4`, `bun`, each `_off` (switch 0), `_on` (switch 1) and, where a verify mode exists, `_v2` (here "v2" means the `=2` verify build, not the patch revision). Work trees: `out\work\<NAME>\{a,b}`.
+Build tags under `out\build\`: `wit`, `evd`, `cap`, `chk`, `kpc`, `bn4`, `bun`, each `_off` (switch 0), `_on` (switch 1) and, where a verify mode exists, `_v2` (the `=2` verify build; not a patch revision). Work trees: `out\work\<NAME>\{a,b}`.
 
-## Step 4: qualification - RUNNING on CPU 3 (one process at a time), restarted 10:51 for the revised patches
+## Step 4: qualification - RUNNING on CPU 3 (one process at a time), restarted 11:11 for the final patch texts
 
 `tools/qualify_all.ps1 -Phases quick,timing,cold`; progress in `out\logs\chain.log`, finished steps in `out\logs\chain_done.txt` (a restart skips them), one result line per stage in `out\id\<NAME>\QUALIFY.log`.
 
 | Phase | What | Estimate |
 |---|---|---|
-| quick | per item: lock-recipe builds, switch-0 byte compare, 12 pins, harness over 12,000 FENs and over 23 targeted positions (switch 1, and verify mode where it exists), verify engine on the 12 pins, warm transcript, Threads 2-4 soak, perft set; then consistency check and planted mutants (singles, `BUNDLE4`, eval mutants in `BUNDLE`) | until about 12:15 |
+| quick | per item: lock-recipe builds, switch-0 byte compare, 12 pins, harness over 12,000 FENs and over 24 targeted positions (switch 1, and verify mode where it exists), verify engine on the 12 pins, warm transcript, Threads 2-4 soak, perft set; then consistency check and planted mutants (singles, `BUNDLE4`, eval mutants in `BUNDLE`) | until about 12:40 |
 | timing | INDICATIVE A/B, lock exe vs switch-1 exe, bench 20, ABBA blocks (30 for the bundles with the net on, 10 otherwise), A/A first | about 1.7 h |
 | cold | `go depth 13` over 12,000 FENs, net on and net off: lock, `BUNDLE4` and `BUNDLE` (each also with its verify engine), five singles | about 4.8 h |
 
-Known before the restart, from the set-aside v1 runs: every stage of the quick ladder passed for all five singles and both bundles. They count as history only.
+Known from the set-aside runs of the earlier patch texts (history only, not evidence for the final texts): every stage of the quick ladder passed for all five singles and both bundles with the first texts, and again for `WITNESS_NOPIN`, `EVADE_LEGAL` and `PAWN_CAPMASK` with the 10:48 texts.
 
-A/A timing, lock against itself (kept, it does not depend on a patch; 10 blocks, bench 20, net on): wall median +1.41 % (block range -5.59 .. +7.00), CPU cycles median +0.25 % (block range -1.99 .. +2.33). So on this CPU a single block is worth about +/-5 % by wall clock and +/-2 % by cycles: the singles cannot be resolved here.
+A/A timing, lock against itself (kept, it does not depend on a patch; 10 blocks, bench 20, net on): wall median +1.41 % (block range -5.59 .. +7.00), CPU cycles median +0.25 % (block range -1.99 .. +2.33). So on this CPU a single block is worth about +/-5 % by wall clock and +/-2 % by cycles: the singles cannot be resolved here. `BENCH.md` section 5 therefore also gives exact work counters per build, which do not depend on load.
 
 Measured on CPU 3: 12,000 cold searches take about 19 min net on and 12 min net off per exe.
 
-Chain restarts so far, all on purpose and without ending any process (the chain was left to finish through its own done-list): 09:58, a parameter named `$out` in `qualify.ps1` hid the global `$OUT` and the harness stages failed at once (fixed); 10:31, the chain script was extended by `BUNDLE4`; 10:44, stopped before timing because the review changed three patches.
+Chain restarts so far, all on purpose and without ending any process (the chain was left to finish through its own done-list): 09:58, a parameter named `$out` in `qualify.ps1` hid the global `$OUT` and the harness stages failed at once (fixed); 10:31, the chain script was extended by `BUNDLE4`; 10:44 and 11:07, stopped before timing because the two review rounds changed patches and the harness.
 
 ## Next
 
-Read `out\logs\chain.log`. The reviewer's recheck of the changes was requested at 10:52 (`REVIEW_LOG.md`, round 2). After the chain: `BENCH.md` (`tools/collect_evidence.py`), packs under `out\packs\` (`tools/make_packs.ps1`), `FILES.md` (`tools/make_files_md.py`), final STATUS.
+Read `out\logs\chain.log`. After the chain: `BENCH.md` (`tools/collect_evidence.py`), packs under `out\packs\` (`tools/make_packs.ps1`), `FILES.md` (`tools/make_files_md.py`), final STATUS.
 
 ## Resume commands
 

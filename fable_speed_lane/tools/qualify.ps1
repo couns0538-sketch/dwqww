@@ -78,7 +78,17 @@ function NeedLock([string]$file) { if (-not (Test-Path (Join-Path $lockDir $file
 $targetedFile = Join-Path $PACK 'tests\targeted_fens.txt'
 # harness run of one build on the 12k set (-targeted: on tests\targeted_fens.txt); builds the harness exe if absent
 function PrimRun([string]$ptag, [string]$tree, [string[]]$defs, [string]$transcript, [bool]$targeted = $false) {
-    $pexe = Join-Path $OUT "build\prim_$ptag\prim_dump.exe"
+    $pdir = Join-Path $OUT "build\prim_$ptag"
+    $pexe = Join-Path $pdir 'prim_dump.exe'
+    # a harness exe built from another version of tests\prim_dump.cpp is set aside and rebuilt
+    $want = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $PACK 'tests\prim_dump.cpp')).Hash.ToLower()
+    if (Test-Path $pdir) {
+        $got = $(if (Test-Path (Join-Path $pdir 'HARNESS.sha256')) { (Get-Content (Join-Path $pdir 'HARNESS.sha256') -TotalCount 1).Trim() } else { '' })
+        if ($got -ne $want -or -not (Test-Path $pexe)) {
+            $stale = Join-Path $OUT 'build\_stale'; New-Item -ItemType Directory -Force $stale | Out-Null
+            Move-Item -LiteralPath $pdir -Destination (Join-Path $stale ("prim_${ptag}_" + (Get-Date -Format 'HHmmss')))
+        }
+    }
     if (-not (Test-Path $pexe)) {
         $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PACK 'tests\build_prim.ps1'), '-Tag', $ptag, '-Src', $tree, '-Mask', $Mask)
         if ($defs.Count -gt 0) { $a += @('-ExtraDefs', ($defs -join ',')) }
@@ -91,10 +101,16 @@ function PrimRun([string]$ptag, [string]$tree, [string[]]$defs, [string]$transcr
 }
 function PrimBase([bool]$targeted = $false) {
     $baseOut = Join-Path $OUT $(if ($targeted) { 'id\prim\base_targeted.tsv' } else { "id\prim\base_$n.tsv" })
-    if (-not (Test-Path $baseOut)) {
+    # the base transcript belongs to one harness source and one FEN file: rerun it when either has changed
+    $key = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $PACK 'tests\prim_dump.cpp')).Hash.ToLower() + ' ' +
+           (Get-FileHash -Algorithm SHA256 -LiteralPath $(if ($targeted) { $targetedFile } else { $fenFile })).Hash.ToLower()
+    $have = $(if (Test-Path "$baseOut.key") { (Get-Content "$baseOut.key" -TotalCount 1).Trim() } else { '' })
+    if (-not (Test-Path $baseOut) -or $have -ne $key) {
         New-Item -ItemType Directory -Force (Split-Path $baseOut -Parent) | Out-Null
+        Remove-Item -LiteralPath $baseOut -Force -ErrorAction SilentlyContinue
         $rc = PrimRun 'base' (Join-Path $OUT 'base\combo29_src') @() $baseOut $targeted
         if ($rc -ne 0) { throw "base harness run failed (exit $rc)" }
+        [System.IO.File]::WriteAllText("$baseOut.key", ($key + "`n"), [System.Text.Encoding]::ASCII)
     }
     return $baseOut
 }

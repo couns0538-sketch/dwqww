@@ -64,17 +64,17 @@ $mutants = @(
        Find = '((king_lines_.discoverers & square_bb(move.from)) == 0 ||'; Put = '(true ||'
        What = 'discovered checks ignored'; Must = $true },
     @{ Id = 'chk_promo'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
-       Find = '(move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&'; Put = '(move.flags & (EnPassant | KingCastle | QueenCastle)) == 0U &&'
-       What = 'promotions taken through the shortcut'; Must = $true },
+       Find = '(move.flags & (EnPassant | Promotion)) == 0U &&'; Put = '(move.flags & EnPassant) == 0U &&'
+       What = 'promotions taken through the shortcut (targeted row 4)'; Must = $true },
     @{ Id = 'chk_ep'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
-       Find = '(move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U &&'; Put = '(move.flags & (KingCastle | QueenCastle | Promotion)) == 0U &&'
+       Find = '(move.flags & (EnPassant | Promotion)) == 0U &&'; Put = '(move.flags & Promotion) == 0U &&'
        What = 'en passant taken through the shortcut (targeted row 23)'; Must = $true },
     @{ Id = 'chk_kingmoves'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
        Find = 'if (king_lines_.valid && piece_type(moving) != King &&'; Put = 'if (king_lines_.valid &&'
        What = 'king moves taken through the shortcut (differs only for an illegal king step next to the enemy king)'; Must = $true },
     @{ Id = 'chk_wrongking'; Name = 'CHECKERS_KL'; Val = 1; File = 'src\board.cpp'
        Find = 'attacks::aligned(king_square(them), move.from, move.to))) {'; Put = 'attacks::aligned(king_square(us), move.from, move.to))) {'
-       What = 'discoverer line tested against the wrong king'; Must = $true }
+       What = 'discoverer line tested against the wrong king (targeted row 24)'; Must = $true }
 )
 $idDir = Join-Path $OUT 'id\mutants'; New-Item -ItemType Directory -Force $idDir | Out-Null
 $logName = $(if ($Bundle) { "MUTANTS_$Bundle.log" } else { 'MUTANTS.log' })
@@ -114,8 +114,8 @@ function RunSet([string]$exe, [string]$stem, $set, [string]$baseFile) {
     if ($rc -eq -1073740791 -and $aborts.Count -gt 0) { return @{ C = 'caught'; T = ($set.K + ': verify abort inside the engine'); First = $aborts[0] } }
     return @{ C = 'error'; T = ($set.K + ": exit $rc without a harness verdict") }
 }
-# base transcripts of the sets
-$baseExe = Join-Path $OUT 'build\prim_base\prim_dump.exe'
+# base transcripts of the sets, from a harness built here and now on the lock source (never a leftover exe)
+$baseExe = BuildHarness ('mutbase' + $(if ($Bundle) { '_' + $Bundle.ToLower() } else { '' })) (Join-Path $OUT 'base\combo29_src') ''
 $baseOf = @{}
 foreach ($s in $sets) {
     $b = Join-Path $idDir ('base_' + $s.K + '.tsv')

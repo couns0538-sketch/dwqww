@@ -1,6 +1,6 @@
 # targeted_fens.txt - positions that aim at one branch of a candidate each (harness input, one FEN per line).
-# Rows 1-10 were proposed by the reviewer (REVIEW_LOG.md); 11-23 were added by the job. The harness visits each
-# position, every legal child and two grandchildren per child, and plays every generated move of each of them.
+# Rows 1-10 and 24 were proposed by the reviewer (REVIEW_LOG.md); 11-23 were added by the job. The harness visits
+# each position, every legal child and two grandchildren per child, and plays every generated move of each of them.
 # 1 CHECKERS_KL: the king is the sole blocker of its own rook; Kc2/Kd2/Ke2 discover check, Kc1/Ke1 do not
 8/8/8/8/8/8/8/R2K3k w - - 0 1
 # 2 CHECKERS_KL: pawn discoverer that stays on its file (e4e5: no check)
@@ -25,7 +25,8 @@ k7/8/8/3b4/8/4b3/6P1/5n1K w - - 0 1
 4k3/8/8/8/4N3/8/8/4R1K1 w - - 0 1
 # 12 CHECKERS_KL: castling gives check with the rook (O-O-O puts the rook on d1 against the king on d8)
 3k4/8/8/8/8/8/8/R3K3 w Q - 0 1
-# 13 CHECKERS_KL: en passant discovers check (e5xd6 opens the long diagonal of the bishop)
+# 13 CHECKERS_KL: en passant by a pawn that is itself the sole blocker of its bishop (e5xd6 discovers check; the
+#    discoverer rule alone already sends it to the lock path, so row 23 is the test of the en-passant exclusion)
 7k/8/8/3pP3/8/8/8/B5K1 w - d6 0 1
 # 14 CHECKERS_KL: capture with a direct check on a file where a second slider stands behind (Qxe7)
 4k3/4r3/8/8/8/8/4Q3/4RK2 w - - 0 1
@@ -47,3 +48,6 @@ r1b1k1nr/pP3p1p/8/2pPp3/1p2P1p1/8/P1P2PpP/R1B1K1NR w KQkq c6 0 1
 4k3/pp3ppp/8/8/8/8/PP3PPP/4K3 w - - 0 1
 # 23 CHECKERS_KL: en passant removes two pawns from the rank and the rook gives check (e5xd6)
 8/8/8/k2pP2R/8/8/8/6K1 w - d6 0 1
+# 24 CHECKERS_KL (reviewer, round 2): a discoverer that moves along a line through its OWN king: Bf2, Bd4, Bc5,
+#    Bb6, Ba7 stay on the g1-a7 diagonal of the white king and still discover check from the rook
+4k3/8/8/8/8/4B3/8/4R1K1 w - - 0 1

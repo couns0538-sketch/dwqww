@@ -31,7 +31,7 @@ Missing checks named by the reviewer, and what was done:
 
 | Reviewer's item | Done |
 |---|---|
-| Ten positions aimed at single branches | Added with thirteen more as `tests/targeted_fens.txt`; new `targeted` stage in the ladder; the mutants run on them too |
+| Ten positions aimed at single branches | Added with thirteen more (and a 24th from round 2) as `tests/targeted_fens.txt`; new `targeted` stage in the ladder; the mutants run on them too |
 | Copy for the other call order from `pristine` | Done (finding 1) |
 | Makes from grandchildren and the null-move child; makes in check after `is_legal` alone | Done (finding 2) |
 | Clear the worker's caches mid-run; force pawn-cache index collisions | Caches are cleared every 997 FENs. Collisions are not forced by hand; the mutant `kpc_keepother` can only show through one (a pawn-cache slot reused for other pawns), so its verdict in BENCH.md section 4 says whether the runs meet them |
@@ -42,6 +42,26 @@ Missing checks named by the reviewer, and what was done:
 
 Consequence for the evidence: `CHECKERS_KL`, `PAWN_CAPMASK`, `KING_PAWN_CACHE` and both bundles got new patch files; the harness changed. Every result of a patched build obtained before 10:48 was set aside (`out\_old_v1\`) and the whole ladder was started again for all seven items. No earlier result is carried over to a changed patch. Kept, because they do not depend on any patch: the lock's own reference rows and the lock-against-lock A/A timing.
 
-## Round 2: recheck of the changes (requested 10:52)
+## Round 2: recheck of the changes (10:52 to 11:06)
 
-Pending.
+Same reviewer, same rules; it was also given the build and run scripts (`tests/`, `tools/`). Rechecked: `CHECKERS_KL` v2 (`beca3d00`), `PAWN_CAPMASK` v2 (`2a680e14`), `KING_PAWN_CACHE` v2 (`a51e1b69`), `BUNDLE4` (`46253516`), `BUNDLE` (`ae84ec65`), harness, targeted positions, mutant script.
+
+**Reviewer's verdict:** the new `CHECKERS_KL` claim is true ("I could not break it with any pseudo-legal non-king move"); no new defect in any patch; first-round findings 4 and 6 closed by reading the build scripts. Seven findings:
+
+| # | Finding (reviewer's grade) | My assessment | Action |
+|---|---|---|---|
+| 1 | The mutant `chk_wrongking` would probably be MISSED: no targeted position has a discoverer moving along a line through its own king (PLAUSIBLE) | Correct | Targeted row 24 added (the reviewer's position) |
+| 2 | The harness header promised "key_after equals the key after make", but nothing compared them (CONFIRMED) | Correct | Self-check added for every generated move |
+| 3 | The cache clear came first at the 500th FEN, so the targeted set and the 300-FEN runs never met it (CONFIRMED) | Correct | First clear before the 8th FEN, then every 997 |
+| 4 | `CHECKERS_KL` comment: "(set_fen() admits no other)" is incomplete; an illegal move or a null move made in check also gives a position whose side not to move is in check, and from there the shortcut is wrong (as the lock's `gives_check` is). Neither occurs in the engine (CONFIRMED, low) | Correct | **Patch comment rewritten**: the engine reaches no such position because `set_fen` refuses it, only legal moves are made, and the null move is not made in check |
+| 5 | Targeted row 13 does not test the en-passant exclusion; only row 23 does (CONFIRMED, informational) | Correct | Row 13's description corrected |
+| 6 | The castling flags in the `CHECKERS_KL` condition are redundant now that king moves are excluded (INFO) | Correct | **Removed from the patch** (`(EnPassant \| Promotion)` remains) |
+| 7 | Build notes: the engine recipe is `-O3` with ThinLTO and PGO, the harness `-O2` without, so the harness proves parity of the source, not of the shipped binary; is switch-0 identity judged by the exe sha256?; `mutants.ps1` reused a harness exe without checking its source (INFO / QUESTION) | All true. Binary parity rests on the pins, the cold rows, the warm session and the verify engines, which use the lock recipe. Switch-0 identity is judged by byte ranges, not by sha256 (STATUS.md) | `mutants.ps1` builds its own base harness each run; `qualify.ps1` rebuilds a harness exe whose recorded source hash differs from `tests/prim_dump.cpp`, and reruns the base transcript when harness or FEN file changed |
+
+Also noted by the reviewer and accepted: the "other call order" self-check is inert in the lock, because one function builds all king lines; it stays as a guard for a patch that would build them in parts, and the harness header now says so.
+
+**Changes made after the recheck and not seen by the reviewer** (patch `CHECKERS_KL` v3, md5 `c8f080ba`; `BUNDLE4` `4cfedef4`; `BUNDLE` `953ee65a`): the comment rewrite of finding 4 and the removal of the two redundant castling flags of finding 6. The second is a code change of one constant. It is covered by the ladder, which was restarted from the builds on for `CHECKERS_KL` and both bundles: transcript equality on 12,000 FENs and the 24 targeted positions (row 12 is castling with check), the `=2` verify builds in the harness and in the engine, and the mutants. A third review round was not asked for: one constant, proposed by the reviewer itself.
+
+## State of the review
+
+No open finding. No finding rejected without a stated reason. The reviewed property is "no reachable input can make switch 1 differ from switch 0 in anything the search or evaluation sees"; the reviewer read the code and proofs, I ran the checks. Neither is a formal proof.

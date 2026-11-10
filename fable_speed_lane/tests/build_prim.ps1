@@ -41,4 +41,8 @@ $p = Start-Process -FilePath $clang -ArgumentList $argv -NoNewWindow -Wait -Pass
     -RedirectStandardOutput (Join-Path $dir 'build.out') -RedirectStandardError (Join-Path $dir 'build.err')
 $err = Get-Content (Join-Path $dir 'build.err') -ErrorAction SilentlyContinue | Where-Object { $_ -notmatch 'argument unused' }
 if ($p.ExitCode -ne 0) { $err | Select-Object -First 40 | ForEach-Object { Write-Output $_ }; throw "harness build failed (exit $($p.ExitCode))" }
-Write-Output ("built $exe sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLower() + " defs [" + ($ExtraDefs -join ' ') + "] harness " + $harness + " sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $harness).Hash.ToLower())
+$hsha = (Get-FileHash -Algorithm SHA256 -LiteralPath $harness).Hash.ToLower()
+# which harness source and switches this exe was built from: users rebuild when the harness has changed since
+[System.IO.File]::WriteAllText((Join-Path $dir 'HARNESS.sha256'), ($hsha + "`n"), [System.Text.Encoding]::ASCII)
+[System.IO.File]::WriteAllText((Join-Path $dir 'DEFS.txt'), (($ExtraDefs -join ' ') + "`n"), [System.Text.Encoding]::ASCII)
+Write-Output ("built $exe sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLower() + " defs [" + ($ExtraDefs -join ' ') + "] harness " + $harness + " sha256 " + $hsha)

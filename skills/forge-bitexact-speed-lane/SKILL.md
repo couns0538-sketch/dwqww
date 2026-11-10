@@ -29,12 +29,13 @@ Tools: branch `fable52-speed-lane-20261109`, `fable_speed_lane/tools/` and `test
 | Lock-recipe build, receipt | `spd_build.ps1` |
 | Switch-0 exe vs lock | `bytecmp.py` |
 | Pins, cold rows, warm, soak, perft, A/B | `spd_uci.py` |
-| Differential harness, mutants | `tests/prim_dump.cpp`, `tests/mutants.ps1` |
+| Differential harness, targeted positions, mutants | `tests/prim_dump.cpp`, `tests/targeted_fens.txt`, `tests/mutants.ps1` |
 | One candidate, one stage | `cand_step.ps1`, `qualify.ps1` |
 | Whole ladder, restartable | `qualify_all.ps1` |
 | Bundle from singles, two apply orders | `make_bundle.ps1` |
 | Patch = work tree = build source | `check_consistency.ps1` |
-| Evidence tables, QA packs | `collect_evidence.py`, `make_packs.ps1` |
+| Exact work counters per build | `work_counters.py` (reads each build's PGO profile) |
+| Evidence tables, QA packs, manifest | `collect_evidence.py`, `make_packs.ps1`, `make_files_md.py` |
 
 ## Which skill, connector or tool for which step
 
@@ -56,8 +57,12 @@ Tools: branch `fable52-speed-lane-20261109`, `fable_speed_lane/tools/` and `test
 | Promising sha256 identity of a switch-0 build | The exe embeds a PDB hash and path. Report differing byte ranges: debug record only = code and data identical, sha UNRESOLVED |
 | Trusting the core-lane file | Measure each lane CPU with the lock exe at Idle; a running gate keeps its old mask until it restarts |
 | Duplicate search run once | Re-run it when the pool changes, with a mechanism pattern per candidate, and read commit messages: a built-before commit was found only on the re-run |
-| Harness plays illegal moves on a board that carries king lines | The engine's `make_move` contract is legal moves; play oracle moves on a copy without king lines, and count illegal-move differences in a separate measuring build |
-| Mutant "not caught" on a small sample | Rare events (checkmate) need the full FEN set; record which set catches which mutant |
+| A shortcut that is exact "for legal moves only" | Remove the precondition instead of documenting it (leave the odd case, here king moves, on the lock path). Then let the harness play every generated move, legal or not, and compare with a direct computation |
+| Code added in a branch the lock configuration never compiles | It is untested by construction. Take it out and refuse the other configuration with `#error` |
+| Mutant "not caught" on a sample | Rare events (checkmate, stalemate with a pinned pawn, double check) need a position aimed at them: keep a targeted FEN file, one position per branch |
+| Mutant verdict without a control | Run the unchanged tree with the same switches first; count only a transcript difference, a reported self-check or a verify abort as CAUGHT, any other exit as ERROR |
+| Changing a patch after results exist | Set aside every result of the changed source and of anything built from it (bundles), rerun; never carry a result over |
+| Only noisy timing to show a gain | Read the exact PGO counters of each build's instrumented stage (`work_counters.py`): calls removed per fixed workload, load-independent |
 | PowerShell parameter named `$out`, `$t`, `$j` | Names are case-insensitive: it hides the global from `env.ps1` inside that function |
 | `"$id: text"`, `'a' + $x + 'b', 'c'` in PowerShell | Use `${id}`; the comma binds tighter than `+` |
 | Killing your own long run | Not allowed here. Let the chain end through its done-list, then restart; finished steps are skipped |

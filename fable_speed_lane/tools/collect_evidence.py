@@ -28,8 +28,8 @@ NOTE = {"KING_PAWN_CACHE": "not new (built before, DUPCHECK.md); extra", "BUNDLE
 QA_ROWS = {net: rf"C:\Users\Administrator\grok-pc\forge_push\overnight_timing_20261108\checks2\combo29_{net}\fens_n12000_d13.tsv"
            for net in ("on", "off")}
 STAGES = [("harness", "Harness, 12,000 FENs, switch 1"), ("harness, verify build", "Harness, 12,000 FENs, verify build (=2)"),
-          ("harness, targeted positions", "Harness, 23 targeted positions, switch 1"),
-          ("harness, targeted positions, verify build", "Harness, 23 targeted positions, verify build (=2)"),
+          ("harness, targeted positions", "Harness, targeted positions, switch 1"),
+          ("harness, targeted positions, verify build", "Harness, targeted positions, verify build (=2)"),
           ("engine, verify build, 12 pins", "Verify engine, 12 pins"),
           ("engine, verify build, cold net on", "Verify engine, cold 12,000 net on"),
           ("cold net on", "Cold 12,000, depth 13, net on"), ("cold net off", "Cold 12,000, depth 13, net off"),
@@ -101,11 +101,12 @@ def cell(q, stage):
         return "not run"
     verdict, text, _ = q[stage]
     if stage.startswith("harness") and stage.endswith("verify build"):
-        m = re.search(r"exit (-?\d+); .*transcript equal to base: (\w+)", text)
-        return f"{verdict}: exit {m.group(1)} (no abort), transcript equal {m.group(2)}" if m else verdict
+        m = re.search(r"exit (-?\d+); prim_dump: (\d+) FENs, .*transcript equal to base: (\w+)", text)
+        return f"{verdict}: {m.group(2)} FENs, exit {m.group(1)} (no abort), transcript equal {m.group(3)}" if m else verdict
     if stage.startswith("harness"):
         m = re.search(r"(\d+) FENs, (\d+) positions, (\d+) generated moves, (\d+) self-check failures; transcript equal to base: (\w+)", text)
-        return f"{verdict}: transcript equal to base {m.group(5)}, {m.group(4)} self-check failures" if m else f"{verdict}"
+        return (f"{verdict}: {m.group(1)} FENs, transcript equal to base {m.group(5)}, {m.group(4)} self-check failures"
+                if m else f"{verdict}")
     if stage == "engine, verify build, 12 pins":
         return f"{verdict}: " + ("12/12" if "MATCH 12/12" in text else "see log")
     if stage == "engine, verify build, cold net on":

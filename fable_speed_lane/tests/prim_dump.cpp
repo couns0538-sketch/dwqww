@@ -16,16 +16,20 @@
 // The harness also checks each build against itself (exit 3 on any failure):
 //   - has_legal_move() equals "the legal list is not empty", asked before and after the king lines exist;
 //   - every generated move, legal or not, of every visited position (grandchildren and the null-move child too)
-//     is played on a copy whose king lines were built by ONE earlier query (is_legal for even list positions,
-//     gives_check for odd ones): is_legal must equal "the mover's king is not attacked afterwards", and the
-//     checkers make_move left must equal attackers_to(the other king) & the mover's pieces;
+//     is played on a copy on which ONE earlier query was made, as in the search (is_legal for even list
+//     positions, gives_check for odd ones; that query builds the king lines for most moves, not for all):
+//     is_legal must equal "the mover's king is not attacked afterwards", the checkers make_move left must equal
+//     attackers_to(the other king) & the mover's pieces, and key_after, where it answers, must equal the key
+//     after the make;
 //   - checkers() after the make of every legal child move, on the board that answered every query and on a
 //     twin whose king lines were never built;
-//   - is_legal / gives_check give the same answers in the other call order on a copy without king lines;
-//   - key_after equals the key after make; unmake and null unmake restore the position;
+//   - is_legal / gives_check give the same answers in the other call order on a copy without king lines (in
+//     the lock one function builds all king lines, so this guards a patch that would build them in parts);
+//   - unmake and null unmake restore the position;
 //   - eval through the pawn cache equals eval without cache; static eval through the incremental path equals
 //     the refresh path; static eval equals the clamp of hand-crafted eval plus net output.
-// The worker's caches are cleared every 997 FENs, so cached values are also met on a just-cleared cache.
+// The worker's caches are cleared before the 8th FEN and then every 997 FENs, so cached values are also met on
+// a just-cleared cache, in short runs too.
 //
 // If the engine itself aborts (the =2 verify builds of the candidates do that on purpose), the harness prints the
 // root FEN, the position and the move it was working on.
@@ -191,6 +195,8 @@ struct Walker {
                 Board played = pristine;
                 if ((index & 1U) == 0U) (void)played.is_legal(m);
                 else (void)played.gives_check(m);
+                std::uint64_t early_key = 0;
+                const bool has_early_key = played.key_after(m, early_key);
                 Undo pu;
                 const Color mover = played.side_to_move();
                 at("make of a generated move on a copy with king lines", &pristine, m);
@@ -200,6 +206,7 @@ struct Walker {
                 if (king_safe != ok) fail("is_legal != (own king not attacked after the move)", x, m);
                 if ((played.attackers_to(played.king_square(other)) & played.occupied(mover)) != played.checkers())
                     fail("checkers() after the make of a generated move != attackers of the king", x, m);
+                if (has_early_key && early_key != played.key()) fail("key_after != key after the make", x, m);
                 ++(ok ? g_lined_legal : g_lined_illegal);
                 at("is_legal, gives_check, see_ge, key_after of one generated move", &pristine, m);
             }
@@ -326,7 +333,7 @@ int main(int argc, char** argv) {
         }
         g_fen = line;
         walker.h = Hashes{};
-        if (done % 997 == 499) forge::SearcherTestProbe::clear(*walker.worker);
+        if (done % 997 == 7) forge::SearcherTestProbe::clear(*walker.worker);
         walker.visit(board, 0, forge::SearcherTestProbe::slot(*walker.worker, BaseSlot), ValueNone);
         at("between FENs", nullptr);
         const Hashes& h = walker.h;

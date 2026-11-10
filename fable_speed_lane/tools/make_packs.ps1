@@ -8,6 +8,7 @@
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File make_packs.ps1 [-Only BUNDLE4]
 param(
     [string[]]$Only = @(),
+    [string]$PackRoot = '',
     [long]$Mask = 0x08
 )
 $ErrorActionPreference = 'Stop'
@@ -36,7 +37,7 @@ foreach ($it in $items) {
     if ($Only.Count -gt 0 -and $Only -notcontains $it.N) { continue }
     $name = $it.N; $tag = $it.G
     $tree = Join-Path $OUT "work\$name\b"
-    $dst = Join-Path $OUT "packs\$name"
+    $dst = Join-Path $(if ($PackRoot) { $PackRoot } else { Join-Path $OUT 'packs' }) $name
     if (Test-Path $dst) { throw "refusing: $dst exists" }
     $onRoot = Join-Path $OUT "build\${tag}_on"; $offRoot = Join-Path $OUT "build\${tag}_off"
     foreach ($need in (Join-Path $onRoot 'm2use\forge_m2use.exe'), (Join-Path $offRoot 'm2use\forge_m2use.exe'), (Join-Path $onRoot 'SOURCE_INPUTS.sha256')) {
