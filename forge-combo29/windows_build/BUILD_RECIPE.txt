@@ -1,0 +1,54 @@
+FORGE combo29 clang LTO+PGO build recipe
+========================================
+Extracted from D:\grok_sdk_speed_20261107\detached1735_all31\clang\all31_m29\build.log
+and RUN_RECEIPT.json. This is what built forge_m2use.exe
+sha256 E1284F7FC492C8FE1285797FDAE8988CF2F2926B33FCFEE7023D284D67D8802E
+(= windows/forge_clang_combo29_trial_w6.exe).
+
+Source tree
+  D:\grok_sdk_speed_20261107\detached1735_all31\clang\all31_m29\source_snapshot
+  shipped here as source/combo29_snapshot/ and source/combo29_src.zip
+  SOURCE_INPUTS.sha256 sha256 3389cfe3dc7bb3989cfebfbdc8ac13d3785b71f090257664d04a0d7c74137645
+  (matches MATRIX.json record mask 13 / m13 = KING_LINES + SEE_HOIST + MOVE_EQ32,
+   and RUN_RECEIPT.source_manifest_sha256)
+
+Compiler
+  C:\opus_5h\oss_scout\dl\llvm-mingw-20261104\x\llvm-mingw-20261104-ucrt-x86_64\bin\clang++.exe
+  clang version 23.1.5 (llvm/llvm-project 392dfff97d29b59d77e5cac6d4b6ef2585fe7117)
+  compiler sha256 d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970
+  llvm-profdata sha256 55bfe8da39b548fb8b03736218c669aaec5234a14d964d4da323d7d4103b5e32
+  label: clang23 ThinLTO + frontend instrumentation PGO
+  script: source/c_t2_build.ps1 (tag=all31_m29)
+  PGO workload: source/frozen_train_cmds.txt sha256 1d52720a2662153120c394bba7a0971537dfcad3c40b0550d37e6a27676ace30
+  training_nodes: 312866 / 862329 / 3024920
+
+Common flags (every compile and the final link)
+  -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1
+  -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1
+  -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1
+  -ffp-contract=off -fno-fast-math -march=znver5 -pthread -g -gcodeview
+  -I<source_snapshot/include> --sysroot=C:/msys64/ucrt64 -stdlib=libstdc++
+  -rtlib=libgcc -unwindlib=libgcc -flto=thin
+
+Instrument (m2gen)
+  ... + -fprofile-instr-generate -c <src>/<unit>.cpp -o m2gen/obj/<unit>.o
+  then link those objects to forge_m2gen.exe with -fuse-ld=lld -static
+  -Wl,--pdb=... -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1
+  then run the frozen PGO workload and merge with llvm-profdata
+
+Use (m2use) — this produced the lock exe
+  ... + -fprofile-instr-use=<m2gen/m2.profdata>
+      -Werror=profile-instr-unprofiled -Werror=profile-instr-out-of-date
+      -c <src>/<unit>.cpp -o m2use/obj/<unit>.o
+  units: bitboard.cpp board.cpp book.cpp eval.cpp eval_params.cpp nnue.cpp search.cpp uci.cpp
+  final link: same objects + -fuse-ld=lld -static -Wl,--pdb=m2use/forge_m2use.pdb
+              -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1
+              -o m2use/forge_m2use.exe
+
+PC build wall (Get-Date local, tzutil=Pacific Standard Time; see README for Vienna conversion)
+  start 2026-11-07 18:11:16 / end 2026-11-07 18:11:45
+  RUN_RECEIPT started_utc/completed_utc 2026-11-08T02:11:16Z / 2026-11-08T02:11:45Z
+  are Windows DateTime.UtcNow under that PST label, not independent proof of real UTC.
+
+Caveats recorded by QA in CURRENT_LOCK.note
+  sanitizer not run; binary not byte-reproducible (embedded PDB paths).

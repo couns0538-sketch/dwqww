@@ -1,0 +1,92 @@
+diff -ruN a/src/search.cpp b/src/search.cpp
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -8,6 +8,14 @@
+ #include <limits>
+ #include <optional>
+ 
++// FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
++// losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
++// behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
++// never outgrow its storage (it only reuses slots of moves it has already handed out).
++#ifndef FORGE_SDK_BADCAP_PREFIX
++#define FORGE_SDK_BADCAP_PREFIX 0
++#endif
++
+ namespace forge {
+ 
+ namespace tune {
+@@ -454,7 +462,12 @@
+                     const Move move = pick_best();
+                     if (move == tt_move_) continue;
+                     if (!board_.see_ge(move, -move_score_threshold(move))) {
++#if FORGE_SDK_BADCAP_PREFIX
++                        // bad_count_ < index_: this slot's move has already been handed out (or skipped).
++                        moves_[bad_count_++].move = move;
++#else
+                         bad_captures_[bad_count_++] = move;
++#endif
+                         continue;
+                     }
+                     return move;
+@@ -491,7 +504,11 @@
+                 bad_index_ = 0;
+                 [[fallthrough]];
+             case BadCaptures:
++#if FORGE_SDK_BADCAP_PREFIX
++                if (bad_index_ < bad_count_) return moves_[bad_index_++].move;
++#else
+                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
++#endif
+                 return Move::none();
+ 
+             case QsGenerate:
+@@ -553,7 +570,9 @@
+ #endif
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
+-#if FORGE_SPD_NO_ZERO_MOVELISTS
++#if FORGE_SDK_BADCAP_PREFIX
++    // Losing captures live in moves_[0, bad_count_).
++#elif FORGE_SPD_NO_ZERO_MOVELISTS
+     std::array<Move, 64> bad_captures_;
+ #else
+     std::array<Move, 64> bad_captures_{};
+@@ -642,6 +661,15 @@
+         sorted_ = false;
+     }
+ 
++    // First slot of the quiet list: behind the losing captures when they share moves_.
++    [[nodiscard]] std::size_t quiet_start() const {
++#if FORGE_SDK_BADCAP_PREFIX
++        return bad_count_;
++#else
++        return 0;
++#endif
++    }
++
+     void generate_captures() {
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, true);
+@@ -673,8 +701,8 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
+-        index_ = 0;
+-        count_ = 0;
++        index_ = quiet_start();
++        count_ = quiet_start();
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+@@ -692,8 +720,8 @@
+         init_check_squares();
+         buffer_.clear();
+         board_.generate_pseudo_legal(buffer_, false);
+-        index_ = 0;
+-        count_ = 0;
++        index_ = quiet_start();
++        count_ = quiet_start();
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
