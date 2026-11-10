@@ -738,6 +738,11 @@ bool Board::has_legal_move() const {
     return false;
 }
 
+// Checked-position rejection only; preserve the original fallback when disabled.
+#ifndef FORGE_SPD_CHECK_EVASION_PREFILTER
+#define FORGE_SPD_CHECK_EVASION_PREFILTER 0
+#endif
+
 #if FORGE_SPD_KING_LINES
 bool Board::is_legal(const Move& move) const {
     const Color us = side_;
@@ -750,6 +755,15 @@ bool Board::is_legal(const Move& move) const {
         return (king_lines_.pinned & square_bb(move.from)) == 0 ||
                attacks::aligned(king_square(us), move.from, move.to);
     }
+#if FORGE_SPD_CHECK_EVASION_PREFILTER
+    // Pseudo-legal nonking moves can end check only by taking the checker or
+    // interposing. EP removes a different square, so retain its full test.
+    if (checkers_ != 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+        if ((checkers_ & (checkers_ - 1)) != 0) return false;
+        const Bitboard evasions = checkers_ | attacks::between(king_square(us), lsb(checkers_));
+        if ((evasions & square_bb(move.to)) == 0) return false;
+    }
+#endif
     Bitboard occupancy = occupied() & ~square_bb(move.from);
     int captured_square = move.to;
     if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
@@ -773,6 +787,15 @@ bool Board::is_legal(const Move& move) const {
 bool Board::is_legal(const Move& move) const {
     const Color us = side_;
     const Piece moving = squares_[move.from];
+#if FORGE_SPD_CHECK_EVASION_PREFILTER
+    // Pseudo-legal nonking moves can end check only by taking the checker or
+    // interposing. EP removes a different square, so retain its full test.
+    if (checkers_ != 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+        if ((checkers_ & (checkers_ - 1)) != 0) return false;
+        const Bitboard evasions = checkers_ | attacks::between(king_square(us), lsb(checkers_));
+        if ((evasions & square_bb(move.to)) == 0) return false;
+    }
+#endif
     Bitboard occupancy = occupied() & ~square_bb(move.from);
     int captured_square = move.to;
     if ((move.flags & EnPassant) != 0U) captured_square = move.to - pawn_push_delta(us);
