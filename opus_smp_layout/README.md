@@ -17,7 +17,8 @@
 | gate, `TtLockless=false`, node identity Threads 1 | **PASS**: pins net on/off, perft, kit identity, fens12k net on/off (12,000/12,000), warm table (1,000 FENs, 40 option changes) |
 | gate, `TtLockless=true`, node identity Threads 1 | **PASS**: the same set; liveness shown (toggle = Clear Hash effect) |
 | race: TSan (CI, Linux, g++-14) | **0 reports** on the executed paths in 4 runs, incl. the real engine over UCI at Threads 2/4 in both modes. **Not a race proof** |
-| race: contention fixture | **0 incoherent hits in 2,165,459,456 probes (360,235,892 hits)** over 7 runs (5 native, 2 under TSan in CI); the gating positive control saw 0.46-2.46 M incoherent hits in every run |
+| race: contention fixture | **0 incoherent hits in 4,053,817,344 probes (673,781,118 hits)** over 8 runs (6 native, 2 under TSan in CI). The gating positive control saw 0.46-8.75 M incoherent hits in every run |
+| final bug hunt (30 min) | clean. Exes re-hashed; pins in both modes; gate rebuilt from the published patch (= 541e8b3d); adversarial cases OK (invalid value, Threads 2/3, Hash 2048 toggles: peak 2 × Hash during a toggle, like P's resize). BENCH §6 |
 | stress (native, CPUs 12-15, Threads 1/4/8) | **PASS**: 2 × 300 + 2 × 2,000 cycles; every bestmove legal; isready ≤ 39 ms while searching; exit 0 |
 | ASan + UBSan (CI) | green, no report |
 | layout | `nodes_` was sharing a line with `local_nodes_` and 6 other owner fields; now alone (+64 B per worker). Nothing else needed it |

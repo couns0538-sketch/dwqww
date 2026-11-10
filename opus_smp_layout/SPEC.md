@@ -31,7 +31,7 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 - While workers run, every access to `words[]` is a `std::atomic_ref<std::uint64_t>` load, store or `compare_exchange_strong` with `memory_order_relaxed` (C++20). Static asserts:
   - `std::atomic_ref<std::uint64_t>::is_always_lock_free`;
   - `alignof(std::uint64_t) >= std::atomic_ref<std::uint64_t>::required_alignment`;
-  - `sizeof(LocklessCluster) == 64`.
+  - `sizeof(TTLocklessCluster) == 64`.
 - No word is accessed non-atomically while any worker runs. Allocation (value-initialisation) and clearing happen only when quiescent (§3.6).
 - There is no union or type punning between the two layouts, no seqlock, and no plain racy field.
 
@@ -94,19 +94,19 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 - The public `probe`/`store`/`probe_owned`/`store_owned`/`hashfull`/`prefetch` all follow the table's mode, so no path touches the inactive (null) array.
 
 ## 4. Worker cache-line layout (measure first, change only what is measured)
-- Tool `tools/layout_probe.cpp` (a test executable, not in the engine) prints sizeof, alignof and offsets, with 64-byte line numbers, of the Worker hot fields, SharedSearchState, TranspositionTable members, TTCluster/LocklessCluster, SearchStack and Accumulator, plus the heap addresses of 4 workers. It runs for P (macro 0) and the gate build (macro 1).
+- Tool `tools/layout_probe.cpp` (a test executable, not in the engine) prints sizeof, alignof and offsets, with 64-byte line numbers, of the Worker hot fields, SharedSearchState, TranspositionTable members, TTCluster/TTLocklessCluster, SearchStack and Accumulator, plus the heap addresses of 4 workers. It runs for P (macro 0) and the gate build (macro 1).
 - Rule: pad or align only a line that one thread writes while another reads it during search. The known candidate is `Worker::nodes_`:
   - its owner stores it in `should_stop`; every other worker loads it in `total_nodes()` (every node under `go nodes`, else every 1024 nodes and at info output);
   - in P it shares a line with the owner's per-node fields (`local_nodes_` and its neighbours).
-- Fix (macro 1): `nodes_` becomes `alignas(64)` with tail padding to 64 B, so remote loads no longer invalidate the owner's per-node fields. Publication frequency and node-limit semantics are unchanged.
+- Fix (macro 1): `alignas(64)` on `nodes_` **and** on the member after it, `local_nodes_`. `nodes_` then sits alone on its 64-byte line (measured: BENCH §2), so remote loads no longer invalidate the owner's per-node fields. Publication frequency and node-limit semantics are unchanged.
 - Anything else changes only with a measured reason, recorded in BENCH.md. No blanket padding.
 
 ## 5. Tests (CTest; built when CMake `FORGE_SMP_LAYOUT=ON`; run natively and under TSan / ASan+UBSan in CI)
 1. `forge_tt_lockless_tests` (`tests/tt_lockless_tests.cpp`):
    1. **round trip:** `decode(encode(e)) == e` for random and edge entries, and mix32(0,0)=0.
-   2. **differential:** a legacy table and a lockless table get the same random probe/store/new_search/clear/hashfull stream (one thread, small tables, many collisions). Every TTProbe (hit, slot, entry bytes) and hashfull value must be equal.
+   2. **differential:** a legacy table and a lockless table get the same random probe/store/new_search/clear/hashfull stream (one thread, small tables, many collisions). Every probe result (hit and entry bytes) and every hashfull value must be equal, and so must the full table contents, every slot of every cluster compared through `debug_entry` (which also covers slot choice and stale-handle rejection).
    3. **contention/collision fixture:** 4-8 threads on 1-16 clusters store `payload = f(key)` and probe. Every hit must satisfy `payload == f(key)` (zero incoherent hits), with CAS and store races included.
-   4. **positive control:** the same fixture against a test-only *unvalidated* two-word table (no XOR tag) must observe incoherent hits. This shows the fixture can detect tearing (if the platform shows none within the bound, the test reports it as INCONCLUSIVE, not a pass).
+   4. **positive control:** the same fixture against a test-only *unvalidated* two-word table (no XOR tag) must observe incoherent hits. This shows the fixture can detect tearing. Since R1 MINOR-2 this is a failing check: with ≥ 2 hardware threads, more than 100k control hits with 0 incoherent ones fails the test (blind fixture). Only with 1 hardware thread is it reported as INCONCLUSIVE.
    5. **lifecycle:** resize, clear and mode toggles between joined phases. Old handles are rejected after each.
 2. `forge_smp_lifecycle_tests` (`tests/smp_lifecycle_tests.cpp`): a Searcher at Threads 1/2/4/8 in both TT modes.
    - Each run does repeated depth- and node-limited searches, an external `stop()` from another thread mid-search, an infinite search plus stop, and `clear_hash`/`resize_hash`/`set_threads`/mode toggles between searches.

@@ -1,4 +1,4 @@
-# opus_smp_layout — BENCH (evidence; every row says EXECUTED or PENDING)
+# opus_smp_layout — BENCH (evidence: everything here was EXECUTED; prepared-only commands are in COMMANDS.md / SCALING_PLAN.md)
 
 Machine: AMD Ryzen 7 9850X3D (8 cores / 16 logical CPUs, SMT pairs (2k, 2k+1)). Every local run is pinned to CPUs 12-15 at Idle, i.e. two physical cores on a shared PC, while CPUs 0-3 run other work. Times are Vienna (HTTPS Date header). Compiler: MSYS2 g++ 15.2.0 (Rev14); CI: g++-14 14.2.0 on ubuntu-24.04.
 
@@ -11,7 +11,8 @@ Machine: AMD Ryzen 7 9850X3D (8 cores / 16 logical CPUs, SMT pairs (2k, 2k+1)). 
 | OFF, pre-review | `893b78d` (s0a, s0b) | `4181a589…` = P | ALL OK |
 | GATE, pre-review (superseded by the R1 fixes) | `893b78d` (s1a, s1b) | `6c07563b8dfdeca2109c62e0d15df2877f62ca4cf084bc39c4f810c6bdecfe91` | OFF and `TtLockless=true`: ALL OK |
 
-- Macro-0 preprocessing: `g++ -E -P` with the kit flags, blank lines stripped, is identical to P for all 8 units (`tools/pp_identity.ps1`, `logs/pp_identity_macro0.txt`).
+- Macro-0 preprocessing: `g++ -E -P` with the kit flags, blank lines stripped, is identical to P for all 8 units (`tools/pp_identity.ps1`; runs `out\pp\wip1_macro0` and `out\pp\fix1_macro0`).
+- **Reproduction from the published artifacts.** This was the bug-hunt check, 20:4x Vienna. Steps: a fresh `git archive 7ce10a05 include src`, then `patch -p1 -F0 < smp_layout_after_w6.patch`, which gives the `0599271` tree byte for byte (`diff -r`), then the one-line flip to 1, then the kit. Result: **`541e8b3d…` again**: a third build (tag `rpg`) of the identical gate exe.
 - The plain twins differ from P's plain twin only in PE bytes 137-138 and 217-218 (timestamp and checksum; 4 bytes, `cmp -l`).
 - Kit: QA kit_v23 copy at Idle, without termination (IDEA_SOURCE.md). Wrapper `tools/kit_build.ps1`. Logs in `logs/kit/`.
 
@@ -38,6 +39,7 @@ Only the measured cross-thread line changed. Nothing else is padded.
 | `forge_smp_lifecycle_tests` | native | Threads 1/2/4/8 × both modes: every best move legal; stop, ponderhit and lifecycle cases bounded; T1 three-way identity (shared / exclusive / lockless) equal cold and warm on 6 FENs |
 | `forge_tt_tests` (existing 12 groups) | native, macro 1 | PASS |
 | **CI run 42677341394 (final `0599271`)** | ubuntu-24.04, g++-14 | **release**: macro-1 exe pins ALL OK; **`TtLockless=true` pins ALL OK** (uci_check `--opt`); **default macro-0 build** pins ALL OK, with no `TtLockless` option; macro-1 advertises `TtLockless type check default false`. **TSan**: contention 53,762,560 probes / 8,940,567 hits, **0 incoherent**; gating positive control 5,163,173 hits / **500,206 incoherent**; lifecycle (incl. the MINOR-1 regression) PASS; real TSan engine over UCI, TtLockless false/true × Threads 2/4: exit 0, 5 bestmoves each; **"TSan: 0 reports"**. ASan+UBSan green. Known-failure check PASS |
+| CI run 42682884789 (`8beb10e`; engine = `0599271`, CI hardening only) | ubuntu-24.04, g++-14 | release: macro-1, `TtLockless=true` and macro-0 pins ALL OK; option-advertisement checks (output captured first) OK; TSan: "0 reports"; ASan+UBSan green |
 | native `0599271` tests | CPUs 12-15 | tt_lockless: 0 incoherent in 437,689,856 probes (72,789,797 hits), control 2,462,613 incoherent (gating); smp_lifecycle incl. `direct_worker_after_toggle` PASS; tt_coherence 12 groups PASS |
 | CI run 42673707949 (`893b78d`) | ubuntu-24.04, g++-14 | release: identity ALL OK (pins, perft, FMA 0), tests PASS; ASan+UBSan: PASS, no report; **TSan: both new tests PASS, "TSan: 0 reports"**; known-failure check PASS (only the 4 known forge_tests lines) |
 | CI run 42674616047 (`4a8f12b`; engine sources = `893b78d`, 0-line diff) | ubuntu-24.04, g++-14, TSan build + `opus_round1/opus2_smp/tsan_extra.sh` | **under TSan**: contention 4/8 threads × 1/4/16 clusters gave 47,133,184 probes and 7,793,150 hits with **0 incoherent**; positive control 3,898,550 hits with **464,076 incoherent** (the fixture detects tearing under TSan too); lifecycle PASS; **real TSan engine over UCI** (go movetime / nodes / infinite+stop / ponder+ponderhit / Clear Hash / Hash / Threads / ucinewgame / quit) with TtLockless false and true at Threads 2 and 4: exit 0 and 5 bestmoves each; **"TSan: 0 reports"**; release and ASan+UBSan green |
@@ -106,7 +108,25 @@ Logs: `logs/tests/`, `logs/stress/`.
 ### Commands for Threads 1/4/8 (executed above vs prepared)
 - EXECUTED on CPUs 12-15: Threads 1, 4 and 8 inside the stress runs (`-ThreadSet '1,4,8'`), and Threads 1/2/4/8 inside `smp_lifecycle_tests`.
 - PREPARED-ONLY: the native-core runs in SCALING_PLAN.md and COMMANDS.md.
-## 6. Advisory NPS (EXECUTED; never a verdict, not scaling evidence, not Elo)
+## 6. Final bug hunt (20:33-21:03 Vienna; EXECUTED; logs in `logs/bughunt/` and `logs/tests/bh_*`)
+| check | result |
+|---|---|
+| re-hash the lock exe (C:) and every job exe | unchanged: trial_w6 / P / A/A copy / OFF build s0c = 4181a589; gate exe / s1d = 541e8b3d |
+| pins on the final gate exe, `TtLockless` false and true (net on d11-22, net off d11-22, perft startpos/kiwipete) | **ALL OK** in both modes (`bh_gate_off.pins.txt`, `bh_gate_on.pins.txt`). This adds net-off pins on the exe level |
+| engine sources frozen since `0599271` | `git diff 0599271 HEAD -- include src`: empty. The tip's include/src equals the OFF kit input |
+| gate rebuilt from the published patch (fresh P export + `smp_layout_after_w6.patch` + flip, kit tag `rpg`) | **541e8b3d**: third identical build |
+| GitHub tips equal the local tips; MD5SUMS of both packs verify | OK |
+| invalid `TtLockless` value | "info string invalid value for option TtLockless"; mode unchanged |
+| Threads 2 and 3 in lockless mode | legal best moves |
+| Hash 2048 with 4 mode toggles | node counts identical in both modes (23,823 at depth 9). Working set 2,058 MiB per mode (one table resident). **Peak 4,106 MiB during a toggle**: allocate-before-free (R1 MINOR-3) briefly needs 2 × Hash, exactly like P's own Hash `resize` |
+| contention fixture, 6 s per configuration | **1,888,357,888 probes, 313,545,226 hits, 0 incoherent**; control 8,749,241 incoherent |
+| lifecycle with T1 identity at depth 11 (6 FENs, cold and warm, three paths) and lifecycle cases at depth 8 | PASS |
+| own leftover processes | none. A background wait loop for the never-written recheck file was ended cooperatively by writing a labelled placeholder (`out\review\R1_recheck_smp.md`); nothing was terminated |
+| stale documentation | fixed: SCALING_PLAN (old gate hash), SPEC §5 control wording, skill dispatch line, BENCH title |
+
+Fixture totals over all 8 runs (5 native at 1.5 s per configuration, 1 native at 6 s, 2 under TSan in CI): **4,053,817,344 probes, 673,781,118 hits, 0 incoherent.**
+
+## 7. Advisory NPS (EXECUTED; never a verdict, not scaling evidence, not Elo)
 Tool: `tools/nps_smoke.ps1`. Each round starts every config fresh, in alternating order. 8 FENs, OwnBook false, Hash 64. The CPUs are 12-15: two physical cores with their SMT siblings, on a shared PC. **P_AA** is a byte copy of P that measures the noise floor (A/A). Logs: `logs/nps/F_*`.
 
 | run | P (median nps) | P_AA / P | gate OFF / P | gate ON / P | spreads (min-max over rounds) |

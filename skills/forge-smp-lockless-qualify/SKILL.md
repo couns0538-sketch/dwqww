@@ -34,7 +34,7 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
   - decode is the exact inverse, so Threads 1 is node-identical by construction.
 - **Validation.** A K and a D from two different stores fail the tag with p ≈ 2^-32. The TT move stays guarded by MovePicker (`is_pseudo_legal`, `is_legal`).
 - **Bodies.** `probe_lockless` / `store_lockless` mirror `probe_body` / `store_body` decision by decision on decoded copies. Store D then K; write only words that changed.
-- **Dispatch.** `Worker::tt_lockless_`, set by `Searcher::search` before helpers start. Every public entry point (probe, store, owned variants, hashfull, prefetch) also follows the table mode, so nothing touches the null array.
+- **Dispatch.** `probe_tt` / `store_tt` read the table's own `lockless_` flag, which is written only while quiescent. Do not cache it per worker: R1 found that a per-worker copy goes stale after a toggle for a direct `Worker::search`. Every public entry point (probe, store, owned variants, hashfull, prefetch) also follows the table mode, so nothing touches the null array.
 
 ## 4. Tests that can fail (CI runs them under TSan)
 - **Differential.** A legacy table and a lockless table get the same random op stream; compare every probe and the full contents (`debug_entry`).

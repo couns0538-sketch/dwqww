@@ -16,7 +16,7 @@ Policy: AGENTS.md (recovered verbatim with `git show 3e900941:AGENTS.md`, md5 94
 | MINOR-3 | MINOR | `set_lockless` frees the old array before allocating the new one (search.cpp:476-477). An allocation failure would leave a null array in the active mode | **FIXED**: allocate first (local), then move-assign, then release the old array, as in P's `resize` |
 | NIT-1 | NIT | CI builds only macro 1 (run_ci.sh:21), so a macro-0 typo would be caught only by the kit | **FIXED**: release mode also builds the default configuration (`FORGE_SMP_LAYOUT` OFF), checks its pins with `uci_check --full` and checks that it does not advertise `TtLockless` |
 | NIT-2 | NIT | no Linux UCI evidence of the ON path | **FIXED**: `uci_check.py` takes an optional `--opt Name=Value` (absent = old behaviour). Release mode runs `--full --opt TtLockless=true` on the macro-1 exe and checks that it advertises `TtLockless type check default false` |
-| NIT-3 | NIT | double dispatch in the gate build with the option off (`lockless_` tested in probe_tt and again in probe) | **acknowledged, not changed**: correct and predictable. Speed belongs to QA's timing, and the advisory numbers are in BENCH §6 |
+| NIT-3 | NIT | double dispatch in the gate build with the option off (`lockless_` tested in probe_tt and again in probe) | **acknowledged, not changed**: correct and predictable. Speed belongs to QA's timing, and the advisory numbers are in BENCH §7 |
 | NIT-4 | NIT | STATUS.md at 893b78d said "no code yet" | **already fixed** in later commits (1a43ba9 onward) |
 
 ## SR1 structured self-review of the fix commit `0599271` (NOT independent)

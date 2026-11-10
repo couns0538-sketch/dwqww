@@ -16,7 +16,7 @@
 - **Race/stress:**
   - CI TSan "0 reports" in 4 runs (the last two on the final code, incl. the real engine over UCI at T2/T4 in both modes);
   - ASan+UBSan green;
-  - fixture: 0 incoherent in 2.17 G probes, with the positive control gating;
+  - fixture: 0 incoherent in 4.05 G probes over 8 runs, with the positive control gating;
   - UCI stress at T1/4/8: 2 × 300 + 2 × 2,000 cycles PASS;
   - unit tests repeated, PASS.
 - **Layout**: `nodes_` alone on its line (measured before and after).
@@ -24,6 +24,13 @@
 - **Review**: R1 fable (no BLOCKER/MAJOR; 3 MINOR fixed, NITs handled). Recheck replaced by SR1, a self-review marked NOT independent.
 - **CI evidence**: runs 42673707949, 42674616047, 42677341394 (final engine) and 42682884789 (CI hardening), all green.
 - **Skill**: `skills/forge-smp-lockless-qualify` (mirrored to `D:\grok-pc-data\dwqww\.claude\skills\`).
+- **Final 30-minute bug hunt** (20:33-21:03 Vienna): clean (BENCH §6). It covered:
+  - exes re-hashed;
+  - pins in both modes on the final exe (net on and off, perft);
+  - the gate rebuilt from the published patch (= 541e8b3d);
+  - adversarial UCI cases;
+  - a 6 s fixture run and a depth-11 T1 identity run;
+  - stale documentation fixed.
 
 ## In progress
 None.
@@ -47,3 +54,4 @@ cat /d/forge_jobs_20261107/opus2/out/JOB_STATUS.md ; cat /d/forge_jobs_20261107/
 - Threads ≥ 2 search results are nondeterministic in both modes; only legality, liveness and the absence of TSan reports are shown there.
 - The mix32 tag quality is argued by construction (bijective fold-multiply mixing), not by a statistical test.
 - The native multi-thread runs use 2 physical cores (SMT), so Threads 8 is an oversubscribed smoke.
+- Operational note: toggling `TtLockless` allocates the new table before releasing the old one (exception safety), so peak memory during a toggle is 2 × Hash (measured 4,106 MiB at Hash 2048). This is the same as P's own `Hash` resize.
