@@ -602,7 +602,7 @@ FORGE_LOCKLESS_UNTRAINED_OPT void TranspositionTable::store_lockless(const TTPro
     }
     const std::uint64_t new_k = static_cast<std::uint64_t>(entry_key32 ^ L::tag32(new_d)) | move_half;
     // D before K, each one relaxed single-copy-atomic store. A racing writer can turn this into a lost update or leave
-    // a K/D pair that fails the tag (a foreign entry); it cannot create a wrong entry that passes the tag (SPEC 3.3).
+    // a K/D pair that fails the tag (a foreign entry); a mixed pair passes the tag only as SPEC 3.3 bounds (~2^-31).
     if (new_d != old_d) dref.store(new_d, std::memory_order_relaxed);
     if (new_k != old_k) kref.store(new_k, std::memory_order_relaxed);
 }
