@@ -108,7 +108,7 @@ Logs: `logs/tests/`, `logs/stress/`.
 ### Commands for Threads 1/4/8 (executed above vs prepared)
 - EXECUTED on CPUs 12-15: Threads 1, 4 and 8 inside the stress runs (`-ThreadSet '1,4,8'`), and Threads 1/2/4/8 inside `smp_lifecycle_tests`.
 - PREPARED-ONLY: the native-core runs in SCALING_PLAN.md and COMMANDS.md.
-## 6. Final bug hunt (20:33-21:03 Vienna; EXECUTED; logs in `logs/bughunt/` and `logs/tests/bh_*`)
+## 6. Final bug hunt (20:33:00-21:00:30 Vienna, 27.5 min, ended when the checklist was exhausted, not padded; EXECUTED; logs in `logs/bughunt/` and `logs/tests/bh_*`)
 | check | result |
 |---|---|
 | re-hash the lock exe (C:) and every job exe | unchanged: trial_w6 / P / A/A copy / OFF build s0c = 4181a589; gate exe / s1d = 541e8b3d |
