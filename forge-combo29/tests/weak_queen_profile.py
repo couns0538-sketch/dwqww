@@ -82,14 +82,16 @@ def main():
         except subprocess.TimeoutExpired as error:
             row.update({'error': str(error), 'stdout': str(error.stdout), 'stderr': str(error.stderr)})
             report['status'] = 'FAILED; engine timeout'
-            save()
             raise
-        elapsed = (time.perf_counter_ns() - started) / 1e9
-        after = resource.getrusage(resource.RUSAGE_CHILDREN)
-        user = after.ru_utime - before.ru_utime
-        system = after.ru_stime - before.ru_stime
-        row.update({'wall_seconds': elapsed, 'ru_utime_delta': user, 'ru_stime_delta': system,
-                    'child_cpu_seconds': user + system, 'stdout': proc.stdout, 'stderr': proc.stderr,
+        finally:
+            elapsed = (time.perf_counter_ns() - started) / 1e9
+            after = resource.getrusage(resource.RUSAGE_CHILDREN)
+            user = after.ru_utime - before.ru_utime
+            system = after.ru_stime - before.ru_stime
+            row.update({'wall_seconds': elapsed, 'ru_utime_delta': user, 'ru_stime_delta': system,
+                        'child_cpu_seconds': user + system})
+            save()
+        row.update({'stdout': proc.stdout, 'stderr': proc.stderr,
                     'returncode': proc.returncode, 'load_after': os.getloadavg()})
         parsed = re.findall(r'info string bench depth (\d+) nodes (\d+) time (\d+) nps (\d+)', proc.stdout)
         if proc.returncode or len(parsed) != 1:
