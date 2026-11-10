@@ -40,7 +40,7 @@ Patch `F6-uci-case.patch`, switch `FORGE_FIX_UCI_OPTION_CASE=1`, compares option
 
 ## No defect established in these checks
 
-No TT race/UB established under documented quiescent lifecycle contract. No legal-position move-generation defect found in source review and tests. This is not a proof of absence.
+No TT race established under documented quiescent lifecycle contract. Later extreme-depth API testing did establish the overflow documented as F7 below; ordinary bounded-depth TT checks passed. No legal-position move-generation defect found in source review and tests. This is not a proof of absence.
 
 Board-only ASan+UBSan: 17401 positions and 499310 legal moves over 100 seeded random games plus corners, no diagnostics. Checks generated pseudo-legality, gives_check versus resulting in_check, reconstructed FEN/full/pawn keys/checkers, exact make/unmake and legal-move-existence agreement. This compares invariants within this engine, not an independent chess implementation. Default header switches were used for this harness. Full source and commands: `tests/book_board_audit.cpp`, `tests/book_REVIEW.md`.
 
@@ -163,3 +163,10 @@ Published additional checkpoints: `d554d6cb` incremental evaluation tests, `506d
 E1 validation (`tests/continuation4_*`): four complete lock-pin suites passed across SPEED2 on/off and experiment compiled on/off. 512 default-zero comparisons match depth/nodes/score/PV/bestmove exactly. At positive weight, 256 searches and 128 cross-path comparisons passed, including 1,382 verified legal PV plies. 170 searches changed, proving activation only.
 
 Combined phase-three build: all ten opt-in fixes/speed candidates plus the compiled E1 option at its default zero weight pass all ten official bench pins, startpos perft5=4,865,609, basic UCI lifecycle and option-case tests. A further 128-position × both NNUE modes baseline screen passed all 256 comparisons with zero depth/nodes/score/PV/bestmove differences. Results and binary hashes are under `tests/review_evidence/ten-switch-*`; recipe `tests/review_build.sh`. This does not replace the native 12k, ABBA, Windows/Clang or SPRT gates.
+
+
+Independent static review of the E1 and F7 source deltas found no concrete introduced defect. It checked the four-entry stack prefix, null/sentinel eligibility, persistent history pointers, both scoring paths, default-zero behavior and bounded weight arithmetic. The TT subtraction comparison was checked for equivalence over formerly non-overflowing inputs and safety at INT_MIN/INT_MAX in both implementations. This was a source review, not a rerun of tests.
+
+Patch delivery audit: all eleven exported patches applied in documented sequence to a fresh archive of the locked source. The replayed source/header trees exactly match the tested candidate. Exact order is recorded in `forge-combo29/patches/dot-review/README.md`; exports are sequential, not necessarily independently applicable.
+
+Latest combined ThreadSanitizer screen: all ten switches plus E1 at explicitly verified weight 50 completed 72 searches across eight lifecycle rounds (Threads 2/4 × NNUE on/off twice), with no sanitizer warnings or startup failures. Portable x86-64-v3 paths were used (PEXT=0, NNUE_ZMM=0), so this is not sanitizer coverage of the AVX-512 kernel. Search/stop/ponder/hash/newgame cases, exact flags and binary hash are preserved in `tests/smp_tsan_combined50_*`, published as `4cfd716e`. Finite race coverage does not prove all interleavings or strength.
