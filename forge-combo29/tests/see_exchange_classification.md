@@ -64,3 +64,9 @@ For every possible capture at each step of the selected LVA path, the trace prin
 The scratch classifier was built with g++-14 using -std=c++20 -O1, then rebuilt with -g -fsanitize=address,undefined -fno-omit-frame-pointer and ASAN_OPTIONS=detect_leaks=0. All 18 saved-case traces were identical between the ordinary and sanitized runs; no sanitizer diagnostics. The two additional minimized FENs above were separately run through the same ordinary classifier and gave the documented values. The classifier was a scratch diagnostic; its algorithm and complete output are preserved here without changing the existing test sources.
 
 Both recursions share Board legal move generation, so they do not establish independent move-legality correctness. No conclusion about playing strength follows. Changing these greedy choices would be a search experiment rather than a repair justified by this evidence, and needs the usual isolation and validation gates.
+
+## Exact classifier artifact preserved
+
+The original scratch source still existed and has now been copied byte-for-byte to see_exchange_classify_original.cpp. SHA-256 of both that saved original and the scratch source is `a19f63a571ad1aeeea154060620461cfb72ad047b566c9654d3eb9cb0f4c7101`. It was not reconstructed from the prose above.
+
+see_exchange_classify.cpp is the runnable portable copy: it changes the absolute include to `see_exchange_audit.cpp` and adds an explanatory comment, with the classifier logic unchanged. Run `tests/see_exchange_classify_check.sh` from forge-combo29. The script compiles with ASan/UBSan, reproduces all 18 saved traces exactly (ignoring final blank lines), and checks the two additional minimized examples. Executed result: `PASS 18 saved classification traces and 2 additional minimized examples; ASan/UBSan`.
