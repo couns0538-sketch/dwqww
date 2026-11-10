@@ -449,7 +449,8 @@ def cmd_run(cfg_path, run_dir, args):
             if (max_batches is not None and done_batches >= max_batches) or \
                (max_pairs is not None and done_pairs >= max_pairs) or (total is not None and st["k"] >= total):
                 break
-            check_identity(cfg)
+            if cfg.get("identity_check", "every_batch") == "every_batch":  # "start": synthetic qualification only
+                check_identity(cfg)
             role = "train"
             if screen.get("enabled") and st["batch"] > 0 and st["batch"] % (screen["every"] + 1) == screen["every"]:
                 role = "screen"
