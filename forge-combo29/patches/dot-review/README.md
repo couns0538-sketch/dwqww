@@ -24,6 +24,7 @@ with locked commit `16833ecc03b425586f91f4c8834dea8807bf4c22` and apply:
 19. S6-tt-replacement-cache.patch
 20. S7-picker-self-swap.patch
 21. S8-weak-queen-mask.patch
+22. S9-eval-bitcount-predicates.patch
 
 On 2026-11-10, every patch applied successfully to a fresh archive of the
 locked source. Recursive comparison of the resulting `src/` and `include/`
