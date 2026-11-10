@@ -14,6 +14,7 @@ with locked commit `16833ecc03b425586f91f4c8834dea8807bf4c22` and apply:
 9. S3-material-cache.patch
 10. E1-continuation4.patch
 11. F7-tt-depth.patch
+12. S4-legal-witnesses.patch
 
 On 2026-11-10, every patch applied successfully to a fresh archive of the
 locked source. Recursive comparison of the resulting `src/` and `include/`
