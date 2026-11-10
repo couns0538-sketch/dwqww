@@ -1,0 +1,100 @@
+--- a/include/forge/nnue.hpp
++++ b/include/forge/nnue.hpp
+@@ -3,6 +3,7 @@
+ #include "forge/board.hpp"
+ 
+ #include <array>
++#include <atomic>
+ #include <cstdint>
+ 
+ namespace forge::nnue {
+@@ -66,6 +67,10 @@
+ [[nodiscard]] bool residual();
+ // Runtime switch (UCI option); only effective when available().
+ extern bool enabled;
++// RC scratch instrumentation (D3 gate only)
++extern std::atomic<unsigned long long> rc_refresh, rc_update, rc_eval, rc_tree_refresh, rc_root_refresh;
++extern std::atomic<unsigned long long> rc_back[10];
++void rc_dump();
+ 
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
+--- a/src/nnue.cpp
++++ b/src/nnue.cpp
+@@ -1,4 +1,5 @@
+ #include "forge/nnue.hpp"
++#include <cstdio>
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -47,6 +48,13 @@
+ namespace forge::nnue {
+ 
+ bool enabled = true;
++std::atomic<unsigned long long> rc_refresh{0}, rc_update{0}, rc_eval{0}, rc_tree_refresh{0}, rc_root_refresh{0};
++std::atomic<unsigned long long> rc_back[10];
++void rc_dump() {
++    std::printf("info string RC refresh %llu update %llu eval %llu tree_refresh %llu root_refresh %llu back", rc_refresh.load(), rc_update.load(), rc_eval.load(), rc_tree_refresh.load(), rc_root_refresh.load());
++    for (auto& b : rc_back) std::printf(" %llu", b.load());
++    std::printf("\n"); std::fflush(stdout);
++}
+ 
+ namespace {
+ 
+@@ -93,6 +101,7 @@
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
++    rc_refresh.fetch_add(1, std::memory_order_relaxed);
+     const Weights& w = weights();
+     for (const Color perspective : {White, Black}) {
+         auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+@@ -108,6 +117,7 @@
+ }
+ 
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    rc_update.fetch_add(1, std::memory_order_relaxed);
+     const Weights& w = weights();
+     // Quiet moves (including noncapturing promotions) remove one feature and
+     // add one. Keep each lane's subtraction-then-addition order while avoiding
+@@ -168,6 +178,7 @@
+ }
+ 
+ int evaluate(const Board& board, const Accumulator& accumulator) {
++    rc_eval.fetch_add(1, std::memory_order_relaxed);
+     const Weights& w = weights();
+     const Color us = board.side_to_move();
+     const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -788,9 +788,11 @@
+         int back = 0;
+         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
++            nnue::rc_tree_refresh.fetch_add(1, std::memory_order_relaxed);
+             nnue::refresh(board, ss->accumulator);
+             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+         } else {
++            nnue::rc_back[back < 9 ? back : 9].fetch_add(1, std::memory_order_relaxed);
+             for (int i = back; i >= 0; --i) {
+                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+@@ -1610,6 +1612,7 @@
+         entry.runtime_psqt.valid = false;
+     }
+     if (nnue::enabled && nnue::available()) {
++        nnue::rc_root_refresh.fetch_add(1, std::memory_order_relaxed);
+         nnue::refresh(board, ss->accumulator);
+         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     }
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -408,6 +408,8 @@
+             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                       << std::endl;
++        } else if (command == "rcdump") {
++            forge::nnue::rc_dump();
+         } else if (command == "ponderhit") {
+             if (ponder_search_active) {
+                 searcher.ponderhit();
