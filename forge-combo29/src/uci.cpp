@@ -25,9 +25,14 @@
 namespace {
 
 #if FORGE_FIX_SMP_EXCEPTIONS
-forge::Move first_legal_fallback(const forge::Board& board) {
+forge::Move first_legal_fallback(const forge::Board& board, const forge::SearchLimits* limits = nullptr) {
     const forge::MoveList legal = board.legal_moves();
-    return legal.empty() ? forge::Move::none() : legal.front();
+    for (const forge::Move move : legal) {
+        if (limits == nullptr || !limits->search_moves_specified ||
+            std::any_of(limits->search_moves.begin(), limits->search_moves.end(),
+                        [&](const forge::Move& admitted) { return admitted == move; })) return move;
+    }
+    return forge::Move::none();
 }
 
 void report_search_error() {
@@ -413,7 +418,7 @@ int main() {
                             search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
                     } catch (...) {
                         report_search_error();
-                        result.best_move = first_legal_fallback(search_board);
+                        result.best_move = first_legal_fallback(search_board, &limits);
                     }
 #else
                     const forge::SearchInfo result = searcher.search(
