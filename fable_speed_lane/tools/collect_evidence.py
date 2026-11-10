@@ -24,6 +24,8 @@ BUNDLES = [("BUNDLE4", "bn4"), ("BUNDLE", "bun")]
 NOTE = {"KING_PAWN_CACHE": "not new (built before, DUPCHECK.md); extra", "BUNDLE": "BUNDLE4 + KING_PAWN_CACHE; extra",
         "BUNDLE4": "the four new candidates", "PAWN_CAPMASK": "UNLISTED", "WITNESS_NOPIN": "LISTED-UNBUILT",
         "EVADE_LEGAL": "LISTED-UNBUILT", "CHECKERS_KL": "LISTED-UNBUILT"}
+QA_ROWS = {net: rf"C:\Users\Administrator\grok-pc\forge_push\overnight_timing_20261108\checks2\combo29_{net}\fens_n12000_d13.tsv"
+           for net in ("on", "off")}
 STAGES = [("harness", "Harness, 12,000 FENs, switch 1"), ("harness, verify build", "Harness, verify build (=2)"),
           ("engine, verify build, 12 pins", "Verify engine, 12 pins"),
           ("engine, verify build, cold net on", "Verify engine, cold 12,000 net on"),
@@ -143,8 +145,16 @@ def main():
     for net in ("on", "off"):
         p = os.path.join(lock_dir, f"cold_{net}_all.tsv")
         if os.path.isfile(p):
-            n = sum(1 for _ in open(p, encoding="utf-8"))
-            lines.append(f"| Cold rows net {net} | {n} rows, sha256 `{sha256(p)}` | `evidence/lock/cold_{net}_all.tsv` |")
+            mine = [x.rstrip("\r\n") for x in open(p, encoding="utf-8")]
+            lines.append(f"| Cold rows net {net} | {len(mine)} rows, sha256 `{sha256(p)}` | `evidence/lock/cold_{net}_all.tsv` |")
+            qa = QA_ROWS[net]
+            if os.path.isfile(qa):
+                theirs = [x.rstrip("\r\n") for x in open(qa, encoding="utf-8", errors="replace")]
+                diff = abs(len(mine) - len(theirs)) + sum(1 for a, b in zip(mine, theirs) if a != b)
+                lines.append(f"| ... against QA's cached lock rows, net {net} | {len(theirs)} QA rows, {diff} rows differ "
+                             f"(QA file sha256 `{sha256(qa)}`) | `{qa}` (read only) |")
+            else:
+                lines.append(f"| ... against QA's cached lock rows, net {net} | QA file not found | `{qa}` |")
         else:
             lines.append(f"| Cold rows net {net} | not run | |")
     p = os.path.join(lock_dir, "warm.txt")

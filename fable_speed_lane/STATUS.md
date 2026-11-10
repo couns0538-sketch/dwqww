@@ -1,6 +1,6 @@
 # STATUS: fable2 bit-exact speed lane on combo29
 
-Updated 2026-11-10 10:00 Vienna. Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
+Updated 2026-11-10 10:35 Vienna. Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
 
 ## Approval state
 
@@ -58,22 +58,25 @@ So heavy runs use **CPU 3 only** (mask 0x08), one at a time. Nothing of the gate
 
 `PROFILE.md`. Largest CPU-bound target: the king shelter loop in `evaluate_king` (4.1 % net on, 4.8 % net off). `HCE_REUSE` dropped (0.12 % on its lines).
 
-## Step 3: candidates - DONE (five singles and the bundle patch written, 09:55)
+## Step 3: candidates - DONE (patches written 09:55; novelty of one of them corrected 10:20)
 
-Quick gate per candidate = harness RED on a planted mutant, harness GREEN on the patch (first 300 FENs), switch-0 lock-recipe build compared byte by byte with the lock, switch-1 build on the 12 pins. This is NOT the qualification; that is step 4.
+| Item | Novelty (DUPCHECK.md) | Patch md5 | Lines | Files | Switch 0 vs lock (debug / other bytes) | Switch 1 pins |
+|---|---|---|---|---|---|---|
+| `FORGE_SPD_WITNESS_NOPIN` | LISTED-UNBUILT | `ccfa6ce5be78591e8eef9f04527234dd` | +18 | `board.cpp` | 89 / 0 | 12/12 |
+| `FORGE_SPD_EVADE_LEGAL` | LISTED-UNBUILT | `b5aaa89fe788edc2976376ca8760a7c4` | +32 | `board.cpp` | 89 / 0 | 12/12 |
+| `FORGE_SPD_PAWN_CAPMASK` | UNLISTED | `09b2ef4ff716707675258e29b1a6adeb` | +16 | `board.cpp` | 89 / 0 | 12/12 |
+| `FORGE_SPD_CHECKERS_KL` | LISTED-UNBUILT | `1b785bd3cfe7ef705f678dadc9138aef` | +24 | `board.cpp` | 89 / 0 | 12/12 |
+| `BUNDLE4` (the four above) | bundle of the new candidates | `8f74ea2c6b7a04252bbd2699cf763909` | +90 | `board.cpp` | step 4 | step 4 |
+| `FORGE_SPD_KING_PAWN_CACHE` | **BUILT BEFORE - not new; extra** | `d2beac0624bcb041c1779eae92d37368` | +73 | `eval.hpp`, `eval.cpp` | 89 / 0 | 12/12 |
+| `BUNDLE` (all five) | extra | `21d6e2c78db2657a1c2769a8d1d2b139` | +163 | three files | 89 / 0 | 12/12 |
 
-| Candidate | Patch md5 | Lines | Files | Mutant caught | Switch 0 vs lock | Switch 1 pins | Harness, 300 FENs |
-|---|---|---|---|---|---|---|---|
-| `FORGE_SPD_KING_PAWN_CACHE` | `d2beac0624bcb041c1779eae92d37368` | +73 | `eval.hpp`, `eval.cpp` | yes, 16,438 failures | 89 debug-record bytes, 0 other | 12/12 | equal to base |
-| `FORGE_SPD_WITNESS_NOPIN` | `ccfa6ce5be78591e8eef9f04527234dd` | +18 | `board.cpp` | yes, in verify mode (abort); the plain boolean cannot see it | 89 / 0 | 12/12 | equal to base |
-| `FORGE_SPD_EVADE_LEGAL` | `b5aaa89fe788edc2976376ca8760a7c4` | +32 | `board.cpp` | yes, transcript differs and verify mode aborts | 89 / 0 | 12/12 | equal to base |
-| `FORGE_SPD_PAWN_CAPMASK` | `09b2ef4ff716707675258e29b1a6adeb` | +16 | `board.cpp` | yes, transcript differs | 89 / 0 | 12/12 | equal to base |
-| `FORGE_SPD_CHECKERS_KL` | `1b785bd3cfe7ef705f678dadc9138aef` | +24 | `board.cpp` | yes | 89 / 0 | 12/12 | equal to base |
-| Bundle (all five) | `21d6e2c78db2657a1c2769a8d1d2b139` | +163 | the three files above | - | step 4 | step 4 | step 4 |
+**Novelty correction, 10:20.** `KING_PAWN_CACHE` joined the pool after the profile, and I re-ran the duplicate search for it only at 10:15. That run found commit `928f1ff7` (2026-10-13, branch `cursor/chess-engine-elo-8295` only): the same shelter cache in the source of that date, "about 1% faster" by its message, never in the lock lineage. Ruling 1 of the plan says a candidate found built on the fetch is dropped, so it is **not counted as a new candidate**. It stays in the pack as a labelled extra with full evidence, because no combo29 version of it exists elsewhere; whether it is timed or used is the owner's and QA's call. The four new candidates have their own bundle, `BUNDLE4`.
 
-Patches: `patches/<NAME>_after_combo29.patch` (`-p1`, `--- a/src/...`). The five singles apply with plain `git apply` in both orders tried (as listed, and reversed) and give the same tree; the bundle patch is the diff of that tree (`tools/make_bundle.ps1`). `tools/check_consistency.ps1` re-proves at any time that snapshot + patch = work tree = the source of each build.
+Patches: `patches/<NAME>_after_combo29.patch` (`-p1`, `--- a/src/...`). The singles apply with plain `git apply` in the listed order and in reverse and give the same tree; each bundle patch is the diff of that tree (`tools/make_bundle.ps1`). `tools/check_consistency.ps1` re-proves at any time that snapshot + patch = work tree = the source of each build.
 
-Build tags under `out\build\`: `kpc`, `wit`, `evd`, `cap`, `chk`, `bun`, each `_off` (switch 0), `_on` (switch 1) and, where a verify mode exists, `_v2`. Work trees: `out\work\<NAME>\{a,b}`.
+Mutants (`tests/mutants.ps1`, log `out\id\mutants\MUTANTS.log`): eight planted wrong versions, one or more per candidate. Seven are caught as required; the eighth (`WITNESS_NOPIN` without its line test, plain build) cannot change the boolean in practice and is caught by the verify build instead. One mutant (`WITNESS_NOPIN` accepted while in check) shows only at a checkmate: the first 300 FENs miss it, the full 12,000 catch it (3 failures).
+
+Build tags under `out\build\`: `wit`, `evd`, `cap`, `chk`, `kpc`, `bn4`, `bun`, each `_off` (switch 0), `_on` (switch 1) and, where a verify mode exists, `_v2`. Work trees: `out\work\<NAME>\{a,b}`.
 
 ### CHECKERS_KL: where it is exact, and the abort that showed the limit
 
@@ -86,21 +89,23 @@ The first verify-mode harness run of `CHECKERS_KL` aborted. Cause, found by inst
 
 The engine never makes such a move: every `make_move` call follows `is_legal` (`search.cpp` three sites, `perft`) or takes its move from `legal_moves()` (`uci.cpp` position parsing and `go perft`, `book.cpp` decoding); `set_fen` rejects a position whose side not to move is in check; the null move is made only when not in check. So the shortcut's domain - a legal move from a position where the side not to move is not in check - is every make the engine performs. The harness oracle now plays its moves on a copy without king lines, and a measuring build (`PRIM_MAKE_ANY=1`) keeps the count above reproducible.
 
-## Step 4: qualification - RUNNING since 09:57 on CPU 3 (one process at a time)
+## Step 4: qualification - RUNNING on CPU 3 (one process at a time)
 
 `tools/qualify_all.ps1 -Phases quick,timing,cold`; progress in `out\logs\chain.log`, finished steps in `out\logs\chain_done.txt` (a restart skips them), one result line per stage in `out\id\<NAME>\QUALIFY.log`.
 
-| Phase | What | Estimate |
+| Phase | What | State at 10:35 |
 |---|---|---|
-| quick | harness over all 12,000 FENs (switch 1, and verify mode where it exists), verify engine on the 12 pins, warm transcript, Threads 2-4 soak, perft set; bundle builds, switch-0 byte compare, pins, same ladder | about 1 h |
-| timing | INDICATIVE A/B, lock exe vs switch-1 exe, bench 20, 10 ABBA blocks, net on and net off, A/A first | about 1.5 h |
-| cold | `go depth 13` over 12,000 FENs, net on and net off: lock, bundle (plus its verify engine), five singles | about 4 h |
+| quick | harness over all 12,000 FENs (switch 1, and verify mode where it exists), verify engine on the 12 pins, warm transcript, Threads 2-4 soak, perft set; bundles also: lock-recipe builds, switch-0 byte compare, 12 pins | **PASS, every stage**, for the five singles and `BUNDLE` (10:31); `BUNDLE4` running |
+| timing | INDICATIVE A/B, lock exe vs switch-1 exe, bench 20, 10 ABBA blocks, net on then net off, A/A first | not started; about 2 h |
+| cold | `go depth 13` over 12,000 FENs, net on and net off: lock, `BUNDLE4` and `BUNDLE` (each also with its verify engine), five singles | not started; about 5 h |
 
 Measured on CPU 3: 12,000 cold searches take about 19 min net on and 12 min net off per exe.
 
+Chain restarts so far, both on purpose and without ending any process (the chain was left to finish through its own done-list): 09:58, a parameter named `$out` in `qualify.ps1` hid the global `$OUT` and the harness stages failed at once (fixed); 10:31, the chain script was extended by `BUNDLE4`.
+
 ## Next
 
-Read `out\logs\chain.log`. While the chain runs: one read-only review of the patches, DUPCHECK and IDEA_SOURCE updates, handoff documents. Then BENCH.md from the chain's evidence, packs under `out\packs\`, final STATUS.
+Read `out\logs\chain.log`. While the chain runs: the one read-only review of the patches (started 10:12, `REVIEW_LOG.md` when it returns), handoff documents. Then `BENCH.md` from the chain's evidence (`tools/collect_evidence.py`), packs under `out\packs\` (`tools/make_packs.ps1`), `FILES.md`, final STATUS.
 
 ## Resume commands
 
