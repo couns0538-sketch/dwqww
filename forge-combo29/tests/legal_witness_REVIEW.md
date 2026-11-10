@@ -30,3 +30,16 @@ Required focused cases:
 ## Isolated full-engine validation
 
 Run tests/legal_witness_engine_check.sh with an output directory. It builds off/on binaries using the combo29 x86-64-v4 review flags, changing only FORGE_SPD_LEGAL_WITNESSES; runs all 10 prescribed NNUE-on/off bench pins and startpos perft5; and compares 128 FENs at depth7 with NNUE on/off (256 comparisons of nodes, score, PV and bestmove). Completion evidence is recorded separately after that run finishes. This is not a strength or timing test.
+
+Final isolated validation completed successfully. Both binaries reproduced:
+- NNUE on, depths 11/13/16/20/22: 312866 / 862329 / 3024920 / 12389307 / 34048354.
+- NNUE off: 375354 / 907205 / 2448617 / 13573040 / 24506465.
+- Startpos perft5: 4865609.
+
+`legal_witness_pins_off.txt` and `legal_witness_pins_on.txt` preserve the summaries. `legal_witness_equivalence.json` preserves all 256 comparisons (128 FENs, NNUE on/off): zero differences in depth, nodes, score, PV or bestmove. The production src/include tree was verified unchanged from 4d9815a after validation.
+
+Verified isolated binary identities:
+- Off: /workspace/shared/forge-build/legal-witness/0/forge, SHA-256 `9684f7d734f865ffd806b2b909feba908693b59aa42f175c07a6b287669784f9`.
+- On: /workspace/shared/forge-build/legal-witness/1/forge, SHA-256 `035f7a83c54b5df0a21295c36f607258e500001a25ce2f5d07fc1f33be350a0d`.
+
+These are cloud validation executables, not the Windows lock binaries. They were handed to the separate profiling task only after validation finished. No speed conclusion is drawn here. The switch remains default off and the optimization remains UNPROVEN pending the user's normal performance-acceptance process.
