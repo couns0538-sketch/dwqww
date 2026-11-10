@@ -41,8 +41,8 @@ void report_search_error() {
 }
 #endif
 
-bool option_name_equal(std::string_view a, std::string_view b) {
 #if FORGE_FIX_UCI_OPTION_CASE
+bool option_name_equal(std::string_view a, std::string_view b) {
     if (a.size() != b.size()) return false;
     auto lower_ascii = [](unsigned char c) {
         return c >= 'A' && c <= 'Z' ? static_cast<unsigned char>(c + ('a' - 'A')) : c;
@@ -51,10 +51,11 @@ bool option_name_equal(std::string_view a, std::string_view b) {
         if (lower_ascii(a[i]) != lower_ascii(b[i])) return false;
     }
     return true;
-#else
-    return a == b;
-#endif
 }
+#else
+// Keep the lock's std::string comparisons and default-off code generation.
+#define option_name_equal(a, b) ((a) == (b))
+#endif
 
 void apply_position(forge::Board& board, std::istringstream& input) {
     forge::Board candidate = board;
