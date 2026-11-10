@@ -12,6 +12,11 @@
 #define FORGE_SPD_WEAK_QUEEN_MASK 0
 #endif
 
+// Exact at-least-two predicates; leave count-valued uses unchanged.
+#ifndef FORGE_SPD_EVAL_BITCOUNT_PREDICATES
+#define FORGE_SPD_EVAL_BITCOUNT_PREDICATES 0
+#endif
+
 namespace forge {
 namespace {
 
@@ -92,7 +97,11 @@ void evaluate_pawn_structure(const Board& board, Accumulator<Trace>& acc, Bitboa
         if (supported != 0 || phalanx != 0) {
             acc.template add<Us>(PawnConnected + rank);
             if (phalanx != 0) acc.template add<Us>(PawnPhalanx);
+#if FORGE_SPD_EVAL_BITCOUNT_PREDICATES
+            if (more_than_one(supported)) acc.template add<Us>(PawnDoubleSupport);
+#else
             if (popcount(supported) > 1) acc.template add<Us>(PawnDoubleSupport);
+#endif
         }
         if ((attacks::passed_pawn_mask(Us, square) & enemy) == 0 && (own & forward) == 0) {
             passed |= square_bb(square);
@@ -460,8 +469,13 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
     evaluate_passed<Trace, White>(board, acc, info);
     evaluate_passed<Trace, Black>(board, acc, info);
 
+#if FORGE_SPD_EVAL_BITCOUNT_PREDICATES
+    if (more_than_one(board.pieces(White, Bishop))) acc.template add<White>(BishopPair);
+    if (more_than_one(board.pieces(Black, Bishop))) acc.template add<Black>(BishopPair);
+#else
     if (popcount(board.pieces(White, Bishop)) >= 2) acc.template add<White>(BishopPair);
     if (popcount(board.pieces(Black, Bishop)) >= 2) acc.template add<Black>(BishopPair);
+#endif
     if (board.side_to_move() == White) acc.template add<White>(Tempo);
     else acc.template add<Black>(Tempo);
 
