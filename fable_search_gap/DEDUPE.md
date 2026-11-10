@@ -3,7 +3,7 @@
 ## Key points
 
 - **Dedupe was done by what the code does, not by option names.** A candidate counts as owned if the same mechanism is in the lock, was built, queued, gated or rejected by the crew, or is already listed in the crew's research notes.
-- **Twenty candidate mechanisms were checked. Nineteen are owned.** Seven of them would have looked new from the lock source alone.
+- **Twenty candidate mechanisms were checked. Nineteen are owned.** Fourteen of those nineteen would have looked new from the lock source alone.
 - **One classic mechanism appears nowhere: enhanced transposition cutoffs.** No card, no table row, no option, no source snapshot. The nearest thing is today's `tcc21` candidate, which reads a child's table entry for the opposite purpose.
 - Being unowned does not make it a qualified gap. That question is answered in `NO_QUALIFIED_GAP.md`.
 
