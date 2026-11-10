@@ -3,11 +3,13 @@
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-/tmp/forge-tt-extreme}
+if (($#)); then shift; fi
+extra_flags=("$@")
 mkdir -p "$out"
 cxx=${CXX:-g++-14}
 status=0
 for notls in 0 1; do
-  "$cxx" -std=c++20 -O1 -g -pthread -fsanitize=undefined -fno-sanitize-recover=undefined \
+  "$cxx" "${extra_flags[@]}" -std=c++20 -O1 -g -pthread -fsanitize=undefined -fno-sanitize-recover=undefined \
     -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -DFORGE_NNUE_HIDDEN=256 \
     -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_TT_NOTLS="$notls" \
     -I"$root/include" "$root/tests/tt_contract_test.cpp" \
