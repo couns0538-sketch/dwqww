@@ -912,7 +912,11 @@ void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->runtime_psqt.valid = false;
 }
 
-int Worker::corrected_eval(const Board& board, [[maybe_unused]] SearchStack* ss, int raw_eval) const {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+int Worker::corrected_eval(const Board& board, SearchStack* ss, int raw_eval) const {
+#else
+int Worker::corrected_eval(const Board& board, int raw_eval) const {
+#endif
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
     if (tune::MaterialCorrectionWeight > 0) {
@@ -925,7 +929,11 @@ int Worker::corrected_eval(const Board& board, [[maybe_unused]] SearchStack* ss,
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
-void Worker::update_correction(const Board& board, [[maybe_unused]] SearchStack* ss, int depth, int best_score, int static_eval) {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
+void Worker::update_correction(const Board& board, SearchStack* ss, int depth, int best_score, int static_eval) {
+#else
+void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+#endif
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
     const int weight = std::min(depth + 1, 16);
@@ -1117,7 +1125,11 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         int eval;
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
         eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
+#else
+        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+#endif
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -1271,7 +1283,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
         eval = ss->static_eval = corrected_eval(board, ss, ss->raw_eval);
+#else
+        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+#endif
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -1586,7 +1602,11 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         (best_move.is_none() || !best_move.is_capture()) &&
         !(bound == BoundLower && best_score <= ss->static_eval) &&
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
         update_correction(board, ss, depth, best_score, ss->static_eval);
+#else
+        update_correction(board, depth, best_score, ss->static_eval);
+#endif
     }
     return best_score;
 }

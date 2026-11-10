@@ -433,8 +433,13 @@ private:
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+#if FORGE_SPD_MATERIAL_CORRECTION_CACHE
     [[nodiscard]] int corrected_eval(const Board& board, SearchStack* ss, int raw_eval) const;
     void update_correction(const Board& board, SearchStack* ss, int depth, int best_score, int static_eval);
+#else
+    [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+    void update_correction(const Board& board, int depth, int best_score, int static_eval);
+#endif
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
