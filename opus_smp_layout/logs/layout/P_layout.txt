@@ -1,0 +1,41 @@
+layout_probe: FORGE_SMP_LAYOUT=-1 FORGE_SPD_TT_NOTLS=1
+sizeof/alignof: TTEntry 16/4 TTCluster 64/64 TTProbe 64/8 TranspositionTable 65600/64 SharedSearchState 65664/64 SearchStack 2752/64 nnue::Accumulator 2112/64 Worker 377664/64 Searcher 65728/64
+SharedSearchState: tt @0 (size 65600, lines 0..1024) | stop @65600 line 1025 | ponder_hit_ns @65608 line 1025 | heap addr%64 = 0
+SharedSearchState: stop shares a line with the TT object's tail: no
+Worker members (offset size line_first..line_last):
+  id_                      @8        4       0..0
+  evaluator_               @16       24      0..0
+  main_history_            @40       8       0..0
+  capture_history_         @48       8       0..0
+  continuation_history_    @56       8       0..0
+  counter_moves_           @64       8       1..1
+  correction_history_      @72       8       1..1
+  material_correction_     @80       8       1..1
+  stack_                   @128      374272  2..5849
+  root_effort_moves_       @374400   1024    5850..5865
+  root_move_nodes_         @375424   2048    5866..5897
+  root_effort_count_       @377472   8       5898..5898
+  pondering_               @377480   1       5898..5898
+  start_                   @377488   8       5898..5898
+  nodes_                   @377496   8       5898..5898
+  local_nodes_             @377504   8       5898..5898
+  all_workers_             @377512   8       5898..5898
+  node_limit_              @377520   8       5898..5898
+  node_limit_specified_    @377528   1       5898..5898
+  soft_limit_ms_           @377536   8       5899..5899
+  hard_limit_ms_           @377544   8       5899..5899
+  time_managed_            @377552   1       5899..5899
+  aborted_                 @377553   1       5899..5899
+  tt_owned_                @377554   1       5899..5899
+  seldepth_                @377556   4       5899..5899
+  root_depth_              @377560   4       5899..5899
+  root_history_index_      @377568   8       5899..5899
+  root_moves_              @377576   24      5899..5899
+  root_restricted_         @377600   1       5900..5900
+  null_tries_              @377608   8       5900..5900
+  null_cutoffs_            @377616   8       5900..5900
+members sharing a 64-byte line with nodes_ (lines 5898..5898; object-relative, worker addr%64 shown below): root_effort_count_ pondering_ start_ local_nodes_ all_workers_ node_limit_ node_limit_specified_
+worker 0: addr%64 0 | nodes_ line 0x1c706 | local_nodes_ line 0x1c706 | same line: YES | distance to previous worker 0 B
+worker 1: addr%64 0 | nodes_ line 0x7ef0d | local_nodes_ line 0x7ef0d | same line: YES | distance to previous worker 25821632 B
+worker 2: addr%64 0 | nodes_ line 0x81650 | local_nodes_ line 0x81650 | same line: YES | distance to previous worker 643264 B
+worker 3: addr%64 0 | nodes_ line 0x99b0d | local_nodes_ line 0x99b0d | same line: YES | distance to previous worker 6369088 B

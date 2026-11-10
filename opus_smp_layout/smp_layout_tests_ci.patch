@@ -38,10 +38,10 @@ index 915039a..ee74291 100644
  # Support tooling does not change engine behavior or add runtime dependencies.
  option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
 diff --git a/opus_round1/ci/run_ci.sh b/opus_round1/ci/run_ci.sh
-index 2398bc3..9465427 100644
+index 2398bc3..dc3f9b1 100644
 --- a/opus_round1/ci/run_ci.sh
 +++ b/opus_round1/ci/run_ci.sh
-@@ -14,13 +14,18 @@ CXX=${CXX:-$(command -v g++-14 || command -v g++)}
+@@ -14,23 +14,38 @@ CXX=${CXX:-$(command -v g++-14 || command -v g++)}
  mkdir -p "$OUT"
  OUT=$(cd "$OUT" && pwd)
  BASE_FLAGS="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
@@ -61,7 +61,19 @@ index 2398bc3..9465427 100644
      cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
      echo "== compiler: $($CXX --version | head -1)" | tee "$OUT/identity.log"
      echo "== forge sha256: $(sha256sum "$BD/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
-@@ -30,7 +35,7 @@ case "$MODE" in
+     echo "== FMA instructions (must be 0): $(objdump -d "$BD/forge" | grep -cE 'vfn?m(add|sub)' || true)" | tee -a "$OUT/identity.log"
+     python3 "$CI/uci_check.py" "$BD/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
++    # opus2 SMP pack (R1 review NIT-2 / NIT-1): the ON path's pins on Linux, and the default (macro-0) configuration
++    # still built and pinned, so CI keeps checking what it checked before this pack.
++    echo "== TtLockless=true (same exe):" | tee -a "$OUT/identity.log"
++    python3 "$CI/uci_check.py" "$BD/forge" --full --opt TtLockless=true 2>&1 | tee -a "$OUT/identity.log" || status=1
++    cmake -S "$ROOT" -B "${BD}_macro0" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_${MODE}_macro0.log" 2>&1 || exit 1
++    cmake --build "${BD}_macro0" --target forge -j"$(nproc)" > "$OUT/build_${MODE}_macro0.log" 2>&1 || { tail -50 "$OUT/build_${MODE}_macro0.log"; exit 1; }
++    echo "== default build (FORGE_SMP_LAYOUT OFF) forge sha256: $(sha256sum "${BD}_macro0/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
++    if printf 'uci\nquit\n' | "${BD}_macro0/forge" 2>/dev/null | grep -q TtLockless; then echo "FAIL: macro-0 build advertises TtLockless" | tee -a "$OUT/identity.log"; status=1; else echo "macro-0 build: no TtLockless option (OK)" | tee -a "$OUT/identity.log"; fi
++    if printf 'uci\nquit\n' | "$BD/forge" 2>/dev/null | grep -q '^option name TtLockless type check default false'; then echo "macro-1 build: TtLockless advertised, default false (OK)" | tee -a "$OUT/identity.log"; else echo "FAIL: macro-1 build does not advertise 'TtLockless type check default false'" | tee -a "$OUT/identity.log"; status=1; fi
++    python3 "$CI/uci_check.py" "${BD}_macro0/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
+     (cd "$BD" && ctest --output-on-failure --timeout 3000) > "$OUT/ctest_$MODE.log" 2>&1
      python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
      ;;
    asan)
@@ -70,7 +82,7 @@ index 2398bc3..9465427 100644
        -DFORGE_ENABLE_SANITIZERS=ON "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fno-sanitize-recover=all" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
      cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
      export ASAN_OPTIONS="log_path=$LOGDIR/asan:detect_leaks=1:abort_on_error=1"
-@@ -39,7 +44,7 @@ case "$MODE" in
+@@ -39,7 +54,7 @@ case "$MODE" in
      python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
      ;;
    tsan)
@@ -79,6 +91,23 @@ index 2398bc3..9465427 100644
        "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
      cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
      export TSAN_OPTIONS="log_path=$LOGDIR/tsan:halt_on_error=1:second_deadlock_stack=1"
+diff --git a/opus_round1/ci/uci_check.py b/opus_round1/ci/uci_check.py
+index 36a61c6..dc5790f 100644
+--- a/opus_round1/ci/uci_check.py
++++ b/opus_round1/ci/uci_check.py
+@@ -17,6 +17,12 @@ def wait(pat):
+     raise SystemExit("engine exited before matching " + pat)
+ send("uci"); wait(r"^uciok")
+ for o in ("Threads value 1", "Hash value 16", "OwnBook value false"): send("setoption name " + o)
++# opus2 SMP pack: optional '--opt Name=Value' (repeatable), sent after the defaults; absent = the old behaviour.
++for i, a in enumerate(sys.argv):
++    if a == "--opt" and i + 1 < len(sys.argv):
++        name, value = sys.argv[i + 1].split("=", 1)
++        print(f"option {name} = {value}", flush=True)
++        send(f"setoption name {name} value {value}")
+ send("isready"); wait(r"^readyok")
+ ok = True
+ for d in depths:
 diff --git a/opus_round1/opus2_smp/tsan_extra.sh b/opus_round1/opus2_smp/tsan_extra.sh
 new file mode 100644
 index 0000000..4ba3c1a
@@ -136,10 +165,10 @@ index 0000000..4ba3c1a
 +exit $status
 diff --git a/tests/smp_lifecycle_tests.cpp b/tests/smp_lifecycle_tests.cpp
 new file mode 100644
-index 0000000..4641742
+index 0000000..52efff6
 --- /dev/null
 +++ b/tests/smp_lifecycle_tests.cpp
-@@ -0,0 +1,164 @@
+@@ -0,0 +1,220 @@
 +// smp_lifecycle_tests.cpp - opus2 SMP pack (FORGE_SMP_LAYOUT=1): Searcher lifecycle in both TT modes, opus_smp_layout/
 +// SPEC.md 5.2. Own test code. Threads 1/2/4/8 (8 is oversubscribed on small machines: a smoke, not a scaling test):
 +//   depth- and node-limited searches, an infinite search stopped from another thread, ponder + ponderhit (with a stop
@@ -160,6 +189,35 @@ index 0000000..4641742
 +#if !FORGE_SMP_LAYOUT
 +#error "smp_lifecycle_tests needs FORGE_SMP_LAYOUT=1 (CMake option FORGE_SMP_LAYOUT=ON)"
 +#endif
++
++namespace forge {
++// The existing production friendship (as in tests/rule50_tests.cpp): a direct Worker::search that bypasses
++// Searcher::search. R1 review MINOR-1: such a caller must follow the table's current mode after a toggle.
++struct SearcherTestProbe {
++    static std::uint64_t visited(Searcher& searcher) { return searcher.main_worker().local_nodes_; }
++    static int run(Searcher& searcher, Board board, int depth) {
++        auto& worker = searcher.main_worker();
++        worker.clear();
++        worker.shared_.stop.store(false, std::memory_order_relaxed);
++        worker.shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
++        worker.all_workers_ = nullptr;
++        worker.aborted_ = false;
++        worker.local_nodes_ = 0;
++        worker.nodes_.store(0, std::memory_order_relaxed);
++        worker.node_limit_ = 0;
++        worker.node_limit_specified_ = false;
++        worker.hard_limit_ms_ = worker.soft_limit_ms_ = 0;
++        worker.time_managed_ = worker.pondering_ = false;
++        worker.start_ = std::chrono::steady_clock::now();
++        worker.seldepth_ = 0;
++        worker.root_history_index_ = board.history_size() - 1;
++        auto* ss = &worker.stack_[5];
++        ss->ply = 1;
++        nnue::refresh(board, ss->accumulator);
++        return worker.search(board, ss, depth, -Infinite, Infinite, false);
++    }
++};
++} // namespace forge
 +
 +namespace {
 +
@@ -289,10 +347,37 @@ index 0000000..4641742
 +    }
 +}
 +
++// R1 MINOR-1 regression: a direct Worker::search (no Searcher::search in between) after a mode toggle in either
++// direction must use the table's current storage and give the same result as a fresh legacy searcher.
++void direct_worker_after_toggle() {
++    for (std::size_t i = 0; i < Fens.size(); ++i) {
++        Board board;
++        (void)board.set_fen(Fens[i]);
++        SearchLimits limits; limits.depth = 6;
++        Searcher fresh(16, 1);
++        const int ref = forge::SearcherTestProbe::run(fresh, board, 7);
++        const std::uint64_t ref_nodes = forge::SearcherTestProbe::visited(fresh);
++        Searcher to_legacy(16, 1);
++        to_legacy.set_tt_lockless(true);
++        (void)to_legacy.search(board, limits);          // a normal search in lockless mode first
++        to_legacy.set_tt_lockless(false);               // then back to legacy: storage reallocated, table empty
++        const int a = forge::SearcherTestProbe::run(to_legacy, board, 7);
++        Searcher to_lockless(16, 1);
++        (void)to_lockless.search(board, limits);
++        to_lockless.set_tt_lockless(true);
++        const int b = forge::SearcherTestProbe::run(to_lockless, board, 7);
++        const std::string where = "direct Worker::search after toggle fen" + std::to_string(i);
++        check(a == ref && forge::SearcherTestProbe::visited(to_legacy) == ref_nodes, where + " (lockless -> legacy)");
++        check(b == ref && forge::SearcherTestProbe::visited(to_lockless) == ref_nodes, where + " (legacy -> lockless)");
++    }
++    std::cout << "direct Worker::search after mode toggles: done\n";
++}
++
 +} // namespace
 +
 +int main() {
 +    const int depth = env_int("FORGE_SMP_LIFECYCLE_DEPTH", 7);
++    direct_worker_after_toggle();
 +    node_identity_threads1(env_int("FORGE_SMP_IDENTITY_DEPTH", 9));
 +    for (const bool lockless : {false, true}) {
 +        for (const int threads : {1, 2, 4, 8}) run_cases(lockless, threads, threads >= 4 ? depth - 1 : depth);
@@ -306,10 +391,10 @@ index 0000000..4641742
 +}
 diff --git a/tests/tt_lockless_tests.cpp b/tests/tt_lockless_tests.cpp
 new file mode 100644
-index 0000000..d162ff7
+index 0000000..86bed65
 --- /dev/null
 +++ b/tests/tt_lockless_tests.cpp
-@@ -0,0 +1,408 @@
+@@ -0,0 +1,417 @@
 +// tt_lockless_tests.cpp - opus2 SMP pack (FORGE_SMP_LAYOUT=1): tests of the lockless TT mode, opus_smp_layout/SPEC.md 5.1.
 +// Own test code (no copied source). Every concurrent access in this file goes through the table API or std::atomic_ref,
 +// so a ThreadSanitizer report here is a real race in the code under test.
@@ -660,7 +745,16 @@ index 0000000..d162ff7
 +        control_bad += r.bad; control_hits += r.hits;
 +    }
 +    std::cout << "positive control (unvalidated two-word table, 8 threads): hits " << control_hits << " incoherent " << control_bad
-+              << (control_bad > 0 ? " -> fixture CAN detect tearing" : " -> INCONCLUSIVE (no tearing observed on this machine/run)") << "\n";
++              << (control_bad > 0 ? " -> fixture CAN detect tearing" : " -> no tearing observed") << "\n";
++    // R1 review MINOR-2: a fixture that cannot see tearing proves nothing, so this is a gate, not a log line.
++    // With >= 2 hardware threads and > 100k hits of an 8-thread, 24-key, one-cluster store-every-iteration load,
++    // zero incoherent hits means the oracle is blind. One hardware thread can legitimately see no tearing: INCONCLUSIVE.
++    const unsigned hw = std::thread::hardware_concurrency();
++    if (hw >= 2) {
++        check(!(control_hits > 100000 && control_bad == 0), "positive control saw no tearing: the contention fixture is blind");
++    } else {
++        std::cout << "positive control INCONCLUSIVE: hardware_concurrency " << hw << " (< 2)\n";
++    }
 +}
 +
 +// ---------------------------------------------------------------- 5 lifecycle

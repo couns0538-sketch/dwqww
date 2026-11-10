@@ -38,8 +38,11 @@ case "$MODE" in
     cmake -S "$ROOT" -B "${BD}_macro0" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_${MODE}_macro0.log" 2>&1 || exit 1
     cmake --build "${BD}_macro0" --target forge -j"$(nproc)" > "$OUT/build_${MODE}_macro0.log" 2>&1 || { tail -50 "$OUT/build_${MODE}_macro0.log"; exit 1; }
     echo "== default build (FORGE_SMP_LAYOUT OFF) forge sha256: $(sha256sum "${BD}_macro0/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
-    if printf 'uci\nquit\n' | "${BD}_macro0/forge" 2>/dev/null | grep -q TtLockless; then echo "FAIL: macro-0 build advertises TtLockless" | tee -a "$OUT/identity.log"; status=1; else echo "macro-0 build: no TtLockless option (OK)" | tee -a "$OUT/identity.log"; fi
-    if printf 'uci\nquit\n' | "$BD/forge" 2>/dev/null | grep -q '^option name TtLockless type check default false'; then echo "macro-1 build: TtLockless advertised, default false (OK)" | tee -a "$OUT/identity.log"; else echo "FAIL: macro-1 build does not advertise 'TtLockless type check default false'" | tee -a "$OUT/identity.log"; status=1; fi
+    # Capture the option lists first: under pipefail a 'grep -q' that exits early could make the engine's SIGPIPE decide.
+    uci_m0=$(printf 'uci\nquit\n' | "${BD}_macro0/forge" 2>/dev/null) || { echo "FAIL: macro-0 forge exited non-zero on uci/quit" | tee -a "$OUT/identity.log"; status=1; }
+    uci_m1=$(printf 'uci\nquit\n' | "$BD/forge" 2>/dev/null) || { echo "FAIL: macro-1 forge exited non-zero on uci/quit" | tee -a "$OUT/identity.log"; status=1; }
+    if grep -q 'TtLockless' <<< "$uci_m0"; then echo "FAIL: macro-0 build advertises TtLockless" | tee -a "$OUT/identity.log"; status=1; else echo "macro-0 build: no TtLockless option (OK)" | tee -a "$OUT/identity.log"; fi
+    if grep -q '^option name TtLockless type check default false' <<< "$uci_m1"; then echo "macro-1 build: TtLockless advertised, default false (OK)" | tee -a "$OUT/identity.log"; else echo "FAIL: macro-1 build does not advertise 'TtLockless type check default false'" | tee -a "$OUT/identity.log"; status=1; fi
     python3 "$CI/uci_check.py" "${BD}_macro0/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
     (cd "$BD" && ctest --output-on-failure --timeout 3000) > "$OUT/ctest_$MODE.log" 2>&1
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" 2>&1 | tee "$OUT/known_$MODE.log" || status=1

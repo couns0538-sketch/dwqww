@@ -1,5 +1,5 @@
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 7a4fb86..69bf561 100644
+index 7a4fb86..d4525af 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -20,6 +20,12 @@
@@ -151,17 +151,7 @@ index 7a4fb86..69bf561 100644
  
      [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
  #if defined(__SIZEOF_INT128__)
-@@ -334,6 +446,9 @@ private:
- #if FORGE_SPD_TT_NOTLS
-     friend class Searcher;
- #endif
-+#if FORGE_SMP_LAYOUT && !FORGE_SPD_TT_NOTLS
-+    friend class Searcher;
-+#endif
- 
-     SharedSearchState& shared_;
-     int id_ = 0;
-@@ -351,8 +466,16 @@ private:
+@@ -351,8 +463,16 @@ private:
  
      bool pondering_ = false;
      std::chrono::steady_clock::time_point start_{};
@@ -178,30 +168,20 @@ index 7a4fb86..69bf561 100644
      const std::vector<Worker*>* all_workers_ = nullptr;
      std::uint64_t node_limit_ = 0;
      bool node_limit_specified_ = false;
-@@ -364,6 +487,10 @@ private:
-     // True only while Searcher::search runs this (main) worker on the thread that
-     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
-     bool tt_owned_ = false;
-+#endif
-+#if FORGE_SMP_LAYOUT
-+    // The table's mode for this search; set by Searcher::search before any helper thread starts (SPEC 3.6).
-+    bool tt_lockless_ = false;
- #endif
-     int seldepth_ = 0;
-     int root_depth_ = 0;
-@@ -376,10 +503,19 @@ private:
+@@ -376,10 +496,20 @@ private:
  #if FORGE_SPD_TT_NOTLS
      // The six TT call sites of search / qsearch: one predictable branch per access.
      [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
 +#if FORGE_SMP_LAYOUT
-+        if (tt_lockless_) return shared_.tt.probe_lockless(key);
++        // The table's own mode flag (written only while quiescent, SPEC 3.6): no per-worker copy that could go stale.
++        if (shared_.tt.lockless_) return shared_.tt.probe_lockless(key);
 +#endif
          return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
      }
      void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                    bool pv, std::uint16_t halfmove_clock) {
 +#if FORGE_SMP_LAYOUT
-+        if (tt_lockless_) {
++        if (shared_.tt.lockless_) {
 +            shared_.tt.store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
 +            return;
 +        }
@@ -209,7 +189,7 @@ index 7a4fb86..69bf561 100644
          if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
          else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
      }
-@@ -432,6 +568,10 @@ public:
+@@ -432,6 +562,10 @@ public:
      void clear();
      void clear_hash();
      void resize_hash(std::size_t hash_mb);
@@ -221,7 +201,7 @@ index 7a4fb86..69bf561 100644
      [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
      [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
 diff --git a/src/search.cpp b/src/search.cpp
-index 2fffbaf..53c8942 100644
+index 2fffbaf..4c9b55c 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -244,6 +244,16 @@ std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index)
@@ -330,7 +310,7 @@ index 2fffbaf..53c8942 100644
      int count = 0;
      const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
      for (std::size_t i = 0; i < sample; ++i) {
-@@ -409,6 +459,135 @@ int TranspositionTable::hashfull() const {
+@@ -409,6 +459,138 @@ int TranspositionTable::hashfull() const {
      return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
  }
  
@@ -347,12 +327,15 @@ index 2fffbaf..53c8942 100644
 +void TranspositionTable::set_lockless(bool on) {
 +    // Quiescent only (SPEC 3.6): UCI setoption after stop_search(), tests between joined phases.
 +    if (on == lockless_) return;
++    // Allocate the new (empty) storage first, as resize does: if the allocation throws, the table is unchanged.
 +    if (on) {
++        auto fresh = std::make_unique<TTLocklessCluster[]>(cluster_count_);
++        lockless_clusters_ = std::move(fresh);
 +        clusters_.reset();
-+        lockless_clusters_ = std::make_unique<TTLocklessCluster[]>(cluster_count_);
 +    } else {
++        auto fresh = std::make_unique<TTCluster[]>(cluster_count_);
++        clusters_ = std::move(fresh);
 +        lockless_clusters_.reset();
-+        clusters_ = std::make_unique<TTCluster[]>(cluster_count_);
 +    }
 +    lockless_ = on;
 +    generation_ = 0;
@@ -466,17 +449,6 @@ index 2fffbaf..53c8942 100644
  // ---------------------------------------------------------------------------
  // Move picker
  
-@@ -1771,6 +1950,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
-         TtOwnedScope(const TtOwnedScope&) = delete;
-         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
-     } tt_owned_scope(*workers_.front(), exclusive.has_value());
-+#endif
-+#if FORGE_SMP_LAYOUT
-+    // Every worker reads the table's mode once per search (SPEC 3.6); written before any helper thread starts.
-+    for (auto& worker : workers_) worker->tt_lockless_ = shared_.tt.lockless();
- #endif
-     std::vector<std::thread> helpers;
-     for (std::size_t i = 1; i < workers_.size(); ++i) {
 diff --git a/src/uci.cpp b/src/uci.cpp
 index 607adf3..80f71e7 100644
 --- a/src/uci.cpp
