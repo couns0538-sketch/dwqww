@@ -74,7 +74,7 @@ def qualify_lines(out, name):
     path = os.path.join(out, "id", name, "QUALIFY.log")
     if not os.path.isfile(path):
         return res
-    rx = re.compile(r"^QUAL (\S+) (.+?): (PASS|FAIL) (.*) \[([^\]]+)\]\s*$")
+    rx = re.compile(r"^QUAL (\S+) (.+?): (PASS|FAIL|INCOMPLETE) (.*) \[([^\]]+)\]\s*$")
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             m = rx.match(line.strip())
@@ -112,6 +112,14 @@ def cell(q, stage):
     verdict, text, _ = q[stage]
     if verdict == "HELD":
         return "not run (held: " + ("disk guard" if "disk guard" in text else "see log") + ")"
+    if verdict == "INCOMPLETE":
+        m = re.search(r"^(\d+) of (\d+) rows written.*?; (\d+) of them equal the lock's rows, (\d+) differ", text)
+        if not m:
+            return "INCOMPLETE"
+        n, total, same, diff = (int(x) for x in m.groups())
+        if n <= 1:
+            return f"INCOMPLETE: stopped at the start ({n} of {total} rows)"
+        return (f"INCOMPLETE: {n} of {total} rows, " + ("all equal the lock's" if diff == 0 else f"{diff} DIFFER"))
     if stage.startswith("harness") and stage.endswith("verify build"):
         m = re.search(r"exit (-?\d+); prim_dump: (\d+) FENs, .*transcript equal to base: (\w+)", text)
         return f"{verdict}: {m.group(2)} FENs, exit {m.group(1)} (no abort), transcript equal {m.group(3)}" if m else verdict
@@ -270,18 +278,39 @@ def timing_sections(out, ev):
                 cyc += [r - 1 for r in s.get("cpu_block_ratios", [])]
                 wall += [r - 1 for r in s.get("block_ratios", [])]
                 where.append(f"`{copy_run(d, ev, name)}`")
-            if not cyc:
+            # runs that were stopped before their end (no SUMMARY.json): the block ratios are in their logs
+            stopped = []
+            base = os.path.join(out, "id", name)
+            for fn in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+                if fn.startswith(f"abbarc_d16_{net}_") and fn.endswith(".txt") and \
+                        not os.path.isfile(os.path.join(base, fn[:-4], "SUMMARY.json")):
+                    txt = open(os.path.join(base, fn), encoding="utf-8", errors="replace").read()
+                    c2 = [float(x) - 1 for x in re.findall(r"^ABBA block \d+ \([AB]{4}\) wall ratio [0-9.]+ cpu ratio ([0-9.]+)", txt, re.M)]
+                    w2 = [float(x) - 1 for x in re.findall(r"^ABBA block \d+ \([AB]{4}\) wall ratio ([0-9.]+)", txt, re.M)]
+                    if c2:
+                        copy(os.path.join(base, fn), os.path.join(ev, name))
+                        stopped.append((c2, w2, f"`evidence/{name}/{fn}`"))
+            if not cyc and not stopped:
                 if net == "on":
                     L.append(f"| {label} | {net} | not run | | | | | | | |")
                 continue
-            st = stats_of(cyc)
-            L.append(f"| {label} | {net} | {st['n']} | {p2(st['median'])} % | {p2(st['lo'])} .. {p2(st['hi'])} | "
-                     f"{p2(st['mean'])} +/- {100 * st['se']:.2f} | {100 * st['sd']:.2f} % | {p2(st['min'])} .. {p2(st['max'])} | "
-                     f"{p2(statistics.median(wall))} % | {' '.join(where)} |")
-    L += ["", "Rows of the same pair taken at different times are pooled; the evidence column names each run. From 15:11 on "
-          "many of this job's own runs shared the CPU with the timing arms (every arm of a pair alike); the lock-against-lock "
-          "round started at 15:26 ran through that period and is pooled into the first row. No net-off timing was taken "
-          "in this step unless a row shows one.", ""]
+            if cyc:
+                st = stats_of(cyc)
+                L.append(f"| {label} | {net} | {st['n']} | {p2(st['median'])} % | {p2(st['lo'])} .. {p2(st['hi'])} | "
+                         f"{p2(st['mean'])} +/- {100 * st['se']:.2f} | {100 * st['sd']:.2f} % | {p2(st['min'])} .. {p2(st['max'])} | "
+                         f"{p2(statistics.median(wall))} % | {' '.join(where)} |")
+            for c2, w2, where2 in stopped:
+                st = stats_of(c2)
+                L.append(f"| {label}, **INCOMPLETE** (run stopped at 16:56) | {net} | {st['n']} | {p2(st['median'])} % | "
+                         f"{p2(st['lo'])} .. {p2(st['hi'])} | {p2(st['mean'])} +/- {100 * st['se']:.2f} | {100 * st['sd']:.2f} % | "
+                         f"{p2(st['min'])} .. {p2(st['max'])} | {p2(statistics.median(w2))} % | {where2} (log only) |")
+    L += ["", "Finished runs of the same pair are pooled; the evidence column names each run. Rows marked INCOMPLETE are "
+          "runs that were stopped at 16:56 on the owner's instruction to wrap up: the blocks they had finished are "
+          "shown as they are, with fewer blocks than planned (100 for `BUNDLE3`, 40 for the singles and for the second "
+          "lock-against-lock round, 60 and 40 for the two extras) and therefore wider intervals. From 15:11 on about "
+          "forty of this job's own runs shared the CPU with the timing arms (every arm of a pair alike); all INCOMPLETE "
+          "rows were taken in that crowd, the second lock-against-lock row with them. No net-off timing was taken in "
+          "this step.", ""]
 
     # 3.3 the first timing step
     L += ["### 3.3 First timing step: one fixed file per exe (superseded by 3.2)", "",
@@ -495,7 +524,8 @@ def main():
               "positions and the first 300 FENs. CAUGHT = transcript differs, a self-check fails, or a verify build "
               "aborts. Each tree is first run unchanged with the same switches (control) and must be clean.", "",
               "| Tree | Mutant | Planted change | Verdict | Where |", "|---|---|---|---|---|"]
-    rx_m = re.compile(r"^MUTANT (\S+) \[([A-Z_0-9]+); (.*); switches ([^\]]*)\]: (CAUGHT|MISSED|ERROR|not caught \(allowed\)); (.*?); first report: ")
+    rx_m = re.compile(r"^MUTANT (\S+) \[([A-Z_0-9]+); (.*); switches ([^\]]*)\]: (CAUGHT|MISSED|ERROR|INCOMPLETE|not caught \(allowed\)); (.*?); first report: ")
+    guard_rows = 0
     rx_c = re.compile(r"^CONTROL (\S+) \[([^\]]*)\]: (clean|NOT CLEAN); (.*?) \[[^\]]*\]\s*$")
     controls = []
     for log_name in ("MUTANTS.log", "MUTANTS_BUNDLE4.log", "MUTANTS_BUNDLE3.log", "MUTANTS_BUNDLE.log"):
@@ -504,13 +534,27 @@ def main():
             lines.append(f"| ({log_name}) | not run | | | |")
             continue
         copy(mut, os.path.join(ev, "mutants"))
+        text_all = open(mut, encoding="utf-8", errors="replace").read()
+        if "\nSUMMARY " not in "\n" + text_all:
+            done = len(re.findall(r"^MUTANT ", text_all, re.M))
+            lines.append(f"| ({log_name}) | pass **INCOMPLETE**: stopped at 16:56 on the owner's instruction to wrap up, "
+                         f"after {'the control and ' if 'CONTROL ' in text_all else ''}{done} mutants | | | |")
         for line in open(mut, encoding="utf-8", errors="replace"):
             m = rx_m.match(line)
             if m:
-                lines.append(f"| {m.group(2)} | `{m.group(1)}` | {m.group(3)} | {m.group(5)} | {m.group(6)} |")
+                verdict = m.group(5)
+                if "exit 95" in m.group(6) or "NOT STARTED" in m.group(6):
+                    guard_rows += 1
+                    if verdict == "ERROR" and "exit 95" in m.group(6) and ("self-check failures" in m.group(6) or "transcript differs" in m.group(6) or "verify abort" in m.group(6)):
+                        verdict = "ERROR in the log (one set refused by the disk guard); caught on the set that ran"
+                lines.append(f"| {m.group(2)} | `{m.group(1)}` | {m.group(3)} | {verdict} | {m.group(6)} |")
             c = rx_c.match(line.strip())
             if c:
                 controls.append(f"| {c.group(1)} | `{c.group(2)}` | {c.group(3)} | {c.group(4)} |")
+    if guard_rows:
+        lines += ["", "\"exit 95\" in a row is the launcher's refusal to start a run while D: was under this job's 30.3 GiB "
+                  "guard: that set was not run for that mutant. The script of that day counted any such exit as ERROR; the "
+                  "verdict column says what the set that did run showed."]
     lines += ["", "Controls (the unchanged tree with the same switches):", "", "| Tree | Switches | Result | Sets |", "|---|---|---|---|"]
     lines += controls
     lines += ["", "Evidence: `evidence/mutants/`.", ""]

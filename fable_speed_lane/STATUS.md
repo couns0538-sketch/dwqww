@@ -1,19 +1,31 @@
 # STATUS: fable2 bit-exact speed lane on combo29
 
-Updated 2026-11-10 16:20 Vienna (interim: runs still in flight are marked RUNNING). Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
+FINAL for job 2, written 2026-11-10 17:00 Vienna. The owner's instruction of 16:55 was to wrap up now: every run still in flight was stopped at 16:56 and is recorded as INCOMPLETE with what it had done. Branch `fable52-speed-lane-20261109` (base `origin/main` `5176ddf7`). Read this file first when resuming. All times are Europe/Vienna.
 
 ## State in short
 
-| Question | Answer at 16:20 |
+| Question | Answer |
 |---|---|
 | New patches | Four: `WITNESS_NOPIN`, `EVADE_LEGAL`, `PAWN_CAPMASK`, `CHECKERS_KL`. Bundles: `BUNDLE4` (all four, the ALL-ON bundle), `BUNDLE3` (without `WITNESS_NOPIN`, added 14:44). Extras, not new: `KING_PAWN_CACHE`, `BUNDLE` (five) |
-| Identity so far | Every check that has finished is PASS for every item: switch-0 bytes, 12 pins, harness over 12,000 FENs and 24 targeted positions (plain and verify builds), verify engine on the pins, warm, soak, perft; `BUNDLE4` verify engine over the cold set. Mutants: 15 of 15 caught in the single trees, 12 of 12 in `BUNDLE4`, controls clean. `BENCH.md` section 2 has the cell-by-cell table |
-| Identity still RUNNING | Cold 12,000 (net on and net off) for the four singles, `BUNDLE4` and `BUNDLE3`; `BUNDLE3` verify engine cold; mutants in `BUNDLE` |
-| Identity not started | Cold runs of the two extras (`KING_PAWN_CACHE`, `BUNDLE`); mutants in `BUNDLE3`. They start only if D: is back above 30.3 GiB |
-| Speed, INDICATIVE, under gate load | `WITNESS_NOPIN` -1.02 % (60 blocks), `BUNDLE4` -0.70 % (100 blocks), lock against lock -0.02 % (40 blocks); CPU cycles, bench 16, a new copy of the exe per arm. `BUNDLE3`, `EVADE_LEGAL`, `PAWN_CAPMASK`, `CHECKERS_KL` RUNNING. `BENCH.md` section 3.2 |
+| Identity: finished checks | All PASS for all eight items: switch-0 bytes (89 debug-record bytes, 0 others), 12 pins (bench d11/13/16/20/22 net on and off, perft 5 twice), harness over 12,000 FENs and 24 targeted positions (plain, and verify builds where a verify mode exists), verify engine on the 12 pins, warm transcript, Threads 2-4 soak, perft set. `BUNDLE4`: verify engine over the whole cold set, 0 of 12,000 rows differ. Mutants: 15 of 15 caught in the single trees, 12 of 12 in `BUNDLE4`, every control clean |
+| Identity: INCOMPLETE (stopped at 16:56) | Cold 12,000 for every item, net on and net off. Rows done, all equal to the lock's rows, none differing: `BUNDLE4` 7,501 on / 1,501 off; `BUNDLE3` 3,501 / 3,501 and 1,501 with its verify engine; `WITNESS_NOPIN` 3,501 / 2,501; `EVADE_LEGAL` 3,501 / 2,501; `PAWN_CAPMASK` 1,501 / 2,501; `CHECKERS_KL` 5,001 / 2,501; the two extras had only started (1 row each). Mutants in `BUNDLE3`: control clean, no mutant run yet. Mutants in `BUNDLE`: 2 of 3 caught, the third caught on the one set that ran (the other was refused by the disk guard) |
+| So: is any item FAIL? | No. No check found a difference. No item has a complete cold run of its own; `BUNDLE4` comes closest (complete with its verify engine, 62 % with the plain exe, net on) |
+| Speed, INDICATIVE, under gate load | Resolved: `WITNESS_NOPIN` -1.02 % (interval -1.25 .. -0.86, 60 blocks) and `BUNDLE4` -0.70 % (-0.99 .. -0.39, 100 blocks): both slower than the lock. Not resolved, runs stopped at 34 blocks: `BUNDLE3` -0.22 % (-0.90 .. +0.47), `EVADE_LEGAL` -0.63 % (-0.99 .. +0.37), `PAWN_CAPMASK` -0.39 % (-1.14 .. +0.46), `CHECKERS_KL` -0.59 % (-0.95 .. +0.48). Lock against lock: -0.02 % (40 blocks) and -0.00 % (36 blocks). No item showed a gain. CPU cycles, bench 16, a new copy of the exe per arm; `BENCH.md` section 3.2 |
 | A warning for every A/B on this PC | A fixed pair of exe files read -3.65 % (30 tight blocks) and two hours later +0.30 %. `BENCH.md` section 3.1, `QA_ABBA_PROTOCOL.md` |
 | BLOCKED | No repo commit holds the combo29 source (six of its 20 files are on no fetched branch); the lock exe cannot be reproduced byte for byte (PDB hash and paths). Both as planned, see below |
-| Disk | D: 30.35 GiB free and falling about 0.3 to 0.4 GiB per hour from other jobs' writes; this job holds about 0.3 GiB. Below 30.3 GiB this job starts nothing new |
+| Disk | D: 31.94 GiB free at 16:57 (it had fallen to 30.28 at 16:32 and a cleaner brought it back at about 16:40). This job holds about 0.35 GiB |
+
+## What was stopped at 16:56, and how
+
+The eleven background shells of this job were stopped through the session's own task control; that ended their whole process trees (133 processes of this job at that moment: 19 engines of the cold runs and harness, 6 timing arms, their Python drivers and PowerShell wrappers). A check right after found no process left with this job's folder in its path or command line, and no process of anyone else was touched (`out\logs\wrapup_processes_before.txt` lists what ran). `tools/record_incomplete.py` then counted the complete rows of every unfinished cold run, compared them with the lock's rows, renamed the partial files to `*.incomplete.tsv` and wrote one `INCOMPLETE` line per run into the item's `QUALIFY.log`. The stopped timing runs appear in `BENCH.md` section 3.2 with the blocks they had finished.
+
+To finish any of them later, run the plain stage again (it starts from row 0; a cold run takes about 12 minutes per net on a free CPU):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $T\qualify.ps1 -Name BUNDLE3 -Tag bn3 -Stages coldverify,cold `
+  -Defs FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1 `
+  -VerifyDefs FORGE_SPD_EVADE_LEGAL=2,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=2
+```
 
 ## Approval state
 
@@ -118,7 +130,13 @@ Build tags under `out\build\`: `wit`, `evd`, `cap`, `chk`, `kpc`, `bn4`, `bn3`, 
 | 14:44 to 14:52 | `BUNDLE3`: tree from the three singles in two apply orders, patch, builds, switch-0 bytes, 12 pins | 89 / 0 bytes, 12/12 |
 | 14:52 to 15:39 | `WITNESS_NOPIN` timed with a new copy per arm, 60 blocks | -1.02 % |
 | 15:28 to 15:42 | `BUNDLE3` harness (plain and verify, 12,000 FENs and targeted), soak, perft; verify engine built, its 12 pins by 16:10 | all PASS |
-| from 14:59 | cold runs of the singles, `BUNDLE4` (net on), `BUNDLE3`; from 15:26 timing of `BUNDLE3`, three singles and a second lock-against-lock round; from 15:44 table sizes 1, 16, 256 MB for `WITNESS_NOPIN` | RUNNING |
+| 15:44 to 16:32 | `WITNESS_NOPIN` against the lock with table sizes 1, 16 and 256 MB (`go`, 16 blocks each) | -0.85 %, -0.61 %, -1.56 %; the intervals overlap (`BENCH.md` section 3.4) |
+| 16:06 to 16:27 | mutants in `BUNDLE` (the three eval mutants) | 2 CAUGHT; the third: one set refused by the disk guard (exit 95, logged as ERROR), caught on the other set |
+| 16:32 to about 16:40 | D: under 30.3 GiB: nothing new was started | one mutant set refused, see above |
+| from 14:59, stopped 16:56 | cold runs of the singles, `BUNDLE4`, `BUNDLE3`; from 16:44 of the two extras | INCOMPLETE, rows as in the table at the top |
+| from 15:26, stopped 16:56 | timing of `BUNDLE3`, three singles, a second lock-against-lock round; from 16:44 of the two extras | INCOMPLETE, 34 to 36 blocks (extras 4 and 5) |
+| 16:44, stopped 16:56 | mutants in `BUNDLE3` | INCOMPLETE: control clean, no mutant run |
+| 16:58 | `BUNDLE3` warm transcript (finished run, verdict line written by `warmcheck`) | PASS, equal to the lock's |
 
 ### Why so much runs at once since 15:11
 
@@ -131,7 +149,8 @@ D: was falling towards 30.3 GiB, the level under which this job starts nothing. 
 | Sustained work on CPUs 4-5; CPUs 3 and 6 for short builds | Everything on CPU 3 | The live gate kept CPUs 4-11 all day |
 | At most three engines at once; timing runs alone | From 13:20 timing shared CPU 3 with this job's cold runs; from 15:11 up to about twenty engines at once on CPU 3 | One usable CPU; then the disk guard (above). Timing is by CPU cycles of the engine process and in pairs inside each block, so sharing costs precision, not validity; `BENCH.md` says which rows were taken in the crowd |
 | A/B: lock exe against the switch-1 exe, 10 blocks | Second step with a new copy of the exe for every arm, 40 to 100 blocks, order alternating | The first step was biased by the files themselves (`BENCH.md` 3.1) |
-| Cold 12,000 for every item, net on and net off | The two extras' cold runs were taken out of the queue (14:26) and have not started | Disk guard; the new candidates first |
+| Cold 12,000 for every item, net on and net off | No item's cold run is complete: all were stopped at 16:56 (the extras had started at 16:44 only) | The owner's instruction to wrap up; before that the disk guard and one usable CPU |
+| Tools never end a process | At 16:56 this job's own running processes were ended | The owner's instruction of 16:55 ("stop the still-running cold 12k runs cleanly (only your own processes)"); timing and mutant runs of this job were ended with them, since the job was to be closed |
 | Bundle = the passing singles | A second bundle, `BUNDLE3`, was added after the timing | `WITNESS_NOPIN` timed slower than the lock |
 | Corpus and branch index kept as the search base | Both deleted at 14:26 (50 MiB); the blob lookup was made again and saved | Disk |
 
@@ -139,14 +158,24 @@ D: was falling towards 30.3 GiB, the level under which this job starts nothing. 
 
 - `chain.log`, `cold_singles.log`, `timing2.log`: lines "NOTE by hand" mark steps that were taken out of a queue by writing their ids into the done-file. A following "skip ... (done earlier)" for such an id means handed over or postponed, as the note says. No process was killed to do this.
 - `out\id\BUNDLE3\QUALIFY.log`: two lines "engine, verify build, cold net on: FAIL rows differing from the lock: -1" (15:14, 15:27) and one "engine, verify build: FAIL build failed" (15:26) come from calls that ran before the verify exe existed or in a child shell that lacked `Get-FileHash` (next point). One line "cold net off: FAIL NOT STARTED (another run is writing these rows)" is the new guard against two writers. `BENCH.md` shows none of these as a result.
-- Windows PowerShell children started with `Start-Process` from PowerShell 7 inherited its module path and had no `Get-FileHash`. Eight cold runs and one warm run started that way at 15:11 to 15:25 do their work but cannot write their verdict line. `qualify.ps1 -Stages coldcheck` (or `warmcheck`) writes it afterwards from the finished row file, with the same row comparison as the stage `cold`, and says so in the line.
+- Windows PowerShell children started with `Start-Process` from PowerShell 7 inherited its module path and had no `Get-FileHash`. Eight cold runs and one warm run started that way at 15:11 to 15:25 did their work but could not have written their verdict line. `qualify.ps1 -Stages coldcheck` (or `warmcheck`) writes it afterwards from a finished file, with the same comparison as the plain stage, and says so in the line. It was used once: for the `BUNDLE3` warm transcript at 16:58. The cold runs were stopped before their end and carry INCOMPLETE lines instead.
 - A process of another agent (Grok Bot, PID 13680, Normal priority, all CPUs) was seen at 15:54 listing file dates in this job's folder. It is not this job's; it was left alone.
 
-## Next
+## Reading of the result, for the owner
 
-1. When the runs end: `coldcheck` / `warmcheck` for the runs named above; rename `out\id\BUNDLE4\cold_off_all.par.tsv` to the canonical name if the first chain did not make its own net-off run, then `coldcheck`.
-2. `tools/collect_evidence.py $OUT $PACK` (BENCH.md), `tools/make_files_md.py $REPO $OUT` (FILES.md), final STATUS, commit, push.
-3. Only if D: is above 30.3 GiB: cold runs of `KING_PAWN_CACHE` and `BUNDLE`, mutants in `BUNDLE3`.
+- **Bit-exactness:** nothing contradicts it for any item, and the cheap layers are complete. The expensive layer, a full cold run per item, is not: only `BUNDLE4`'s verify engine covered all 12,000 positions.
+- **Speed:** the purpose of the lane was a faster lock. Under gate load none of the items is faster than the lock in this job's timing, and two are measurably slower. `BUNDLE3` is the bundle without the switch that costs time; its own timing was stopped before it could say more than "within about 1 % of the lock".
+- **Why `WITNESS_NOPIN` costs time (a reading, not shown):** it skips the king-line build at 2,651,591 nodes of the frozen workload; 1,477,817 of those builds are never needed, but 1,173,774 are made later in the node, after the transposition-table probe, where they no longer overlap the wait for the table entry. With table sizes 1, 16 and 256 MB it read -0.85 %, -0.61 % and -1.56 %: the direction this reading predicts, with overlapping intervals.
+- **What QA can use at once:** the copy test and the copy-per-arm timing (`QA_ABBA_PROTOCOL.md`).
+
+## Open, if someone continues job 2
+
+1. Cold 12,000 for each item (commands above); mutants in `BUNDLE3` (`tests\mutants.ps1 -Bundle BUNDLE3`) and the one refused set (`tests\mutants.ps1 -Bundle BUNDLE -Only kpc_shelter0`).
+2. Timing of `BUNDLE3` and the three singles to 100 blocks on a CPU that is not crowded: `tools\timing2.ps1 -Round r2 -Plan "AA_lock_vs_lock:aa:on:40;BUNDLE3:bn3:on:100;EVADE_LEGAL:evd:on:60;PAWN_CAPMASK:cap:on:60;CHECKERS_KL:chk:on:60"`.
+
+## md5 of the main files
+
+`FILES.md` lists every file of the pack with md5 and sha256 (it cannot list itself; this file is listed there with the md5 it has after this edit). Patches: the table in step 3. `BENCH.md` is regenerated by `tools/collect_evidence.py`; its md5 at the final commit is in `FILES.md` and in the job's closing line together with the md5 of this file and of `FILES.md`.
 
 ## Resume commands
 
@@ -167,7 +196,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $T\spd_build.ps1 -Tag <n
 
 - **Training step.** `Start-Process -RedirectStandardInput` gave the instrumented engine an empty stdin under this session's console-less host (0 bench lines). The build script now feeds the workload through `cmd.exe` redirection, byte for byte. The resulting control equals the lock in every code and data byte, so the recipe is unchanged in effect.
 - **Strict-SHA attempt.** Stopped after reading the lock's PDB strings (about 5 minutes of the 45 allowed): the blocker is structural, see above.
-- **No kills.** Tools never kill an engine: quit, close stdin, wait, report a survivor. Queues were shortened through their done-lists only.
+- **No kills until 16:56.** Tools never kill an engine: quit, close stdin, wait, report a survivor. Queues were shortened through their done-lists only. The one exception is the wrap-up at 16:56, on the owner's instruction, described at the top.
 - **Disk guard kept at 30.3 GiB.** When D: neared it, the guard was not lowered; work was reordered and started early instead.
 - **Chain restarts in the morning**, all on purpose and without ending any process: 09:58, a parameter named `$out` in `qualify.ps1` hid the global `$OUT` (fixed); 10:31, the chain script was extended by `BUNDLE4`; 10:44 and 11:07, stopped before timing because the two review rounds changed patches and the harness.
 - **Plan timestamp.** The plan file says "drafted 08:30"; the clock read about 08:05 when it was written.

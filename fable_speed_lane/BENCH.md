@@ -1,6 +1,6 @@
 # BENCH: identity evidence and indicative timing
 
-Generated 2026-11-10 16:19 Vienna by `tools/collect_evidence.py` from the files under `evidence/` (copied from `D:\forge_jobs_20261109\fable2\out\id`). All runs: CPU 3 only (mask 0x08), Idle priority, one process at a time, while the crew's gates ran on other cores. Lock = combo29 exe `e1284f7f...8802e`.
+Generated 2026-11-10 16:59 Vienna by `tools/collect_evidence.py` from the files under `evidence/` (copied from `D:\forge_jobs_20261109\fable2\out\id`). All runs: CPU 3 only (mask 0x08), Idle priority, one process at a time, while the crew's gates ran on other cores. Lock = combo29 exe `e1284f7f...8802e`.
 
 ## 1. Lock reference rows
 
@@ -29,10 +29,10 @@ Switch 0 = the patch applied, switch left at its default. `89 / 0` = 89 differin
 | Harness, targeted positions, switch 1 | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures | PASS: 24 FENs, transcript equal to base True, 0 self-check failures |
 | Harness, targeted positions, verify build (=2) | PASS: 24 FENs, exit 0 (no abort), transcript equal True | PASS: 24 FENs, exit 0 (no abort), transcript equal True | not run | PASS: 24 FENs, exit 0 (no abort), transcript equal True | not run | PASS: 24 FENs, exit 0 (no abort), transcript equal True | PASS: 24 FENs, exit 0 (no abort), transcript equal True | PASS: 24 FENs, exit 0 (no abort), transcript equal True |
 | Verify engine, 12 pins | PASS: 12/12 | PASS: 12/12 | not run | PASS: 12/12 | not run | PASS: 12/12 | PASS: 12/12 | PASS: 12/12 |
-| Verify engine, cold 12,000 net on | not run | not run | not run | not run | not run | PASS: 0 rows differ | not run (held: see log) | not run |
-| Cold 12,000, depth 13, net on | not run | not run | not run | not run | not run | not run | not run | not run |
-| Cold 12,000, depth 13, net off | not run | not run | not run | not run | not run | not run | not run (held: see log) | not run |
-| Warm session transcript | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | not run | PASS: transcript equal True, 1004 searches, bench 13 = 862329 |
+| Verify engine, cold 12,000 net on | not run | not run | not run | not run | not run | PASS: 0 rows differ | INCOMPLETE: 1501 of 12000 rows, all equal the lock's | INCOMPLETE: stopped at the start (1 of 12000 rows) |
+| Cold 12,000, depth 13, net on | INCOMPLETE: 3501 of 12000 rows, all equal the lock's | INCOMPLETE: 3501 of 12000 rows, all equal the lock's | INCOMPLETE: 1501 of 12000 rows, all equal the lock's | INCOMPLETE: 5001 of 12000 rows, all equal the lock's | INCOMPLETE: stopped at the start (1 of 12000 rows) | INCOMPLETE: 7501 of 12000 rows, all equal the lock's | INCOMPLETE: 3501 of 12000 rows, all equal the lock's | INCOMPLETE: stopped at the start (1 of 12000 rows) |
+| Cold 12,000, depth 13, net off | INCOMPLETE: 2501 of 12000 rows, all equal the lock's | INCOMPLETE: 2501 of 12000 rows, all equal the lock's | INCOMPLETE: 2501 of 12000 rows, all equal the lock's | INCOMPLETE: 2501 of 12000 rows, all equal the lock's | INCOMPLETE: stopped at the start (1 of 12000 rows) | INCOMPLETE: 1501 of 12000 rows, all equal the lock's | INCOMPLETE: 3501 of 12000 rows, all equal the lock's | INCOMPLETE: stopped at the start (1 of 12000 rows) |
+| Warm session transcript | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 | PASS: transcript equal True, 1004 searches, bench 13 = 862329 |
 | Threads 2-4 soak | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 | PASS: 60/60 legal, T1 tail 50/50 |
 | Perft set (6 positions) | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 | PASS: 6/6 |
 
@@ -70,16 +70,17 @@ Reading, with its limits. At 11:43 one fixed pair of files gave -3.65 % with a s
 | Pair | Net | Blocks | Cycles median | 95 % interval | Cycles mean +/- SE | SD of blocks | min .. max | Wall median | Evidence |
 |---|---|---|---|---|---|---|---|---|---|
 | lock against lock | on | 40 | -0.02 % | -0.27 .. +0.24 | +0.32 +/- 0.22 | 1.42 % | -2.06 .. +5.54 | -4.16 % | `evidence/AA_lock_vs_lock/abbarc_d16_on_050437` |
+| lock against lock, **INCOMPLETE** (run stopped at 16:56) | on | 36 | -0.00 % | -0.58 .. +0.75 | +0.10 +/- 0.50 | 2.98 % | -8.68 .. +11.15 | -1.84 % | `evidence/AA_lock_vs_lock/abbarc_d16_on_062604.txt` (log only) |
 | BUNDLE4 | on | 100 | -0.70 % | -0.99 .. -0.39 | -0.75 +/- 0.14 | 1.37 % | -4.15 .. +3.68 | +0.17 % | `evidence/BUNDLE4/abbarc_d16_on_051448` |
-| BUNDLE3 | on | not run | | | | | | | |
-| BUNDLE | on | not run | | | | | | | |
+| BUNDLE3, **INCOMPLETE** (run stopped at 16:56) | on | 34 | -0.22 % | -0.90 .. +0.47 | -0.40 +/- 0.61 | 3.56 % | -11.75 .. +7.64 | -0.52 % | `evidence/BUNDLE3/abbarc_d16_on_063123.txt` (log only) |
+| BUNDLE, **INCOMPLETE** (run stopped at 16:56) | on | 4 | +0.94 % | -1.40 .. +3.55 | +1.01 +/- 0.98 | 1.97 % | -1.40 .. +3.55 | +2.96 % | `evidence/BUNDLE/abbarc_d16_on_074532.txt` (log only) |
 | WITNESS_NOPIN | on | 60 | -1.02 % | -1.25 .. -0.86 | -1.02 +/- 0.22 | 1.73 % | -6.13 .. +5.17 | -0.70 % | `evidence/WITNESS_NOPIN/abbarc_d16_on_055224` |
-| EVADE_LEGAL | on | not run | | | | | | | |
-| PAWN_CAPMASK | on | not run | | | | | | | |
-| CHECKERS_KL | on | not run | | | | | | | |
-| KING_PAWN_CACHE | on | not run | | | | | | | |
+| EVADE_LEGAL, **INCOMPLETE** (run stopped at 16:56) | on | 34 | -0.63 % | -0.99 .. +0.37 | -0.75 +/- 0.47 | 2.76 % | -10.73 .. +4.05 | -1.05 % | `evidence/EVADE_LEGAL/abbarc_d16_on_063121.txt` (log only) |
+| PAWN_CAPMASK, **INCOMPLETE** (run stopped at 16:56) | on | 34 | -0.39 % | -1.14 .. +0.46 | -0.64 +/- 0.66 | 3.88 % | -15.93 .. +6.42 | -0.88 % | `evidence/PAWN_CAPMASK/abbarc_d16_on_063125.txt` (log only) |
+| CHECKERS_KL, **INCOMPLETE** (run stopped at 16:56) | on | 34 | -0.59 % | -0.95 .. +0.48 | -0.64 +/- 0.50 | 2.90 % | -9.76 .. +4.70 | +0.00 % | `evidence/CHECKERS_KL/abbarc_d16_on_063124.txt` (log only) |
+| KING_PAWN_CACHE, **INCOMPLETE** (run stopped at 16:56) | on | 5 | +0.09 % | -2.33 .. +4.57 | +0.58 +/- 1.02 | 2.28 % | -2.33 .. +4.57 | -0.57 % | `evidence/KING_PAWN_CACHE/abbarc_d16_on_074532.txt` (log only) |
 
-Rows of the same pair taken at different times are pooled; the evidence column names each run. From 15:11 on many of this job's own runs shared the CPU with the timing arms (every arm of a pair alike); the lock-against-lock round started at 15:26 ran through that period and is pooled into the first row. No net-off timing was taken in this step unless a row shows one.
+Finished runs of the same pair are pooled; the evidence column names each run. Rows marked INCOMPLETE are runs that were stopped at 16:56 on the owner's instruction to wrap up: the blocks they had finished are shown as they are, with fewer blocks than planned (100 for `BUNDLE3`, 40 for the singles and for the second lock-against-lock round, 60 and 40 for the two extras) and therefore wider intervals. From 15:11 on about forty of this job's own runs shared the CPU with the timing arms (every arm of a pair alike); all INCOMPLETE rows were taken in that crowd, the second lock-against-lock row with them. No net-off timing was taken in this step.
 
 ### 3.3 First timing step: one fixed file per exe (superseded by 3.2)
 
@@ -120,7 +121,9 @@ The repeats named `h1_`, `h16_` and `h256_` were meant to vary the hash size; `b
 
 | Candidate | Table | Search | Nodes (last info lines) | Blocks | Cycles median | 95 % interval | Cycles mean +/- SE | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| not run | | | | | | | | |
+| WITNESS_NOPIN | 1 MB | depth 16 | 2882111 | 16 | -0.85 % | -1.42 .. +0.06 | -0.36 +/- 0.80 | `evidence/regime/WITNESS_NOPIN/pos_d16_on_h1/POS_CYCLES.json` |
+| WITNESS_NOPIN | 16 MB | depth 16 | 3024920 | 16 | -0.61 % | -1.56 .. +0.47 | -0.24 +/- 0.73 | `evidence/regime/WITNESS_NOPIN/pos_d16_on_h16/POS_CYCLES.json` |
+| WITNESS_NOPIN | 256 MB | depth 16 | 3019577 | 16 | -1.56 % | -2.88 .. -0.50 | -1.13 +/- 0.73 | `evidence/regime/WITNESS_NOPIN/pos_d16_on_h256/POS_CYCLES.json` |
 
 Exact counters for this (frozen workload, 4,200,115 nodes; `evidence/witness_counters.txt`): `has_legal_move` is called 3,902,622 times. The lock builds the king lines 3,923,435 times. `WITNESS_NOPIN` accepts the witness without the legality test, and so without the build, 2,651,591 times. 1,477,817 builds disappear; the other 1,173,774 are made later in the node, after the table probe.
 
@@ -159,9 +162,12 @@ What the question is: the search prefetches the child's table entry before `make
 | BUNDLE4 | `chk_ep` | en passant taken through the shortcut (targeted row 23) | CAUGHT | targeted: 3 self-check failures, transcript differs; first300: clean |
 | BUNDLE4 | `chk_kingmoves` | king moves taken through the shortcut (differs only for an illegal king step next to the enemy king) | CAUGHT | targeted: 6 self-check failures, transcript differs; first300: 1025 self-check failures |
 | BUNDLE4 | `chk_wrongking` | discoverer line tested against the wrong king (targeted row 24) | CAUGHT | targeted: 40 self-check failures, transcript differs; first300: clean |
-| (MUTANTS_BUNDLE3.log) | not run | | | |
+| (MUTANTS_BUNDLE3.log) | pass **INCOMPLETE**: stopped at 16:56 on the owner's instruction to wrap up, after the control and 0 mutants | | | |
 | BUNDLE | `kpc_anyking` | record used for any king square | CAUGHT | targeted: 472 self-check failures, transcript differs; first300: 16438 self-check failures, transcript differs |
 | BUNDLE | `kpc_keepother` | other colour's record kept when the pawns changed | CAUGHT | targeted: clean; first300: 1232 self-check failures, transcript differs |
+| BUNDLE | `kpc_shelter0` | shelter sum for king danger not restored on a hit | ERROR in the log (one set refused by the disk guard); caught on the set that ran | targeted: exit 95 without a harness verdict; first300: 24239 self-check failures, transcript differs |
+
+"exit 95" in a row is the launcher's refusal to start a run while D: was under this job's 30.3 GiB guard: that set was not run for that mutant. The script of that day counted any such exit as ERROR; the verdict column says what the set that did run showed.
 
 Controls (the unchanged tree with the same switches):
 
@@ -175,6 +181,7 @@ Controls (the unchanged tree with the same switches):
 | CHECKERS_KL | `FORGE_SPD_CHECKERS_KL=1` | clean | targeted: clean; first300: clean |
 | BUNDLE4 | `FORGE_SPD_WITNESS_NOPIN=1,FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1` | clean | targeted: clean; first300: clean |
 | BUNDLE4 | `FORGE_SPD_WITNESS_NOPIN=2,FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1` | clean | targeted: clean; first300: clean |
+| BUNDLE3 | `FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1` | clean | targeted: clean; first300: clean |
 | BUNDLE | `FORGE_SPD_WITNESS_NOPIN=1,FORGE_SPD_EVADE_LEGAL=1,FORGE_SPD_PAWN_CAPMASK=1,FORGE_SPD_CHECKERS_KL=1,FORGE_SPD_KING_PAWN_CACHE=1` | clean | targeted: clean; first300: clean |
 
 Evidence: `evidence/mutants/`.

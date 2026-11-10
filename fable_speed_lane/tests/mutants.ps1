@@ -4,7 +4,9 @@
 # (-Full: on all 12,000 as well).
 #   CAUGHT  = the transcript differs from the base transcript, or the harness reports CHECK FAILED (exit 3), or a
 #             verify build aborts inside the engine (ENGINE ABORT line). Any other non-zero exit is an ERROR, not a
-#             verdict.
+#             verdict - except exit 95, the launcher's refusal to start under the disk guard: that set was not run
+#             (a mutant caught on no set that ran is INCOMPLETE). In the run of 2026-11-10 this rule did not exist
+#             yet: its line "kpc_shelter0 ... ERROR; targeted: exit 95" is such a refusal, see BENCH.md section 4.
 #   CONTROL = the same tree and switches WITHOUT the planted change must be clean on the same sets (exit 0,
 #             transcript equal to base); a mutant result without a clean control proves nothing.
 # -Bundle <NAME> plants the mutants in the bundle tree out\work\<NAME>\b with all of the bundle's switches on.
@@ -112,6 +114,8 @@ function RunSet([string]$exe, [string]$stem, $set, [string]$baseFile) {
     $aborts = @($log | Where-Object { $_ -match '^ENGINE ABORT' })
     $fails = @($log | Where-Object { $_ -match '(\d+) self-check failures' } | Select-Object -Last 1)
     $n = $(if ($fails.Count -and $fails[0] -match '(\d+) self-check failures') { $Matches[1] } else { '?' })
+    # exit 95 = the launcher refused to start the run (D: under the disk guard): this set was not run
+    if ($rc -eq 95) { return @{ C = 'held'; T = ($set.K + ': NOT STARTED (disk guard)') } }
     if ($rc -eq 0 -and $same) { return @{ C = 'clean'; T = ($set.K + ': clean') } }
     if ($rc -eq 0 -and -not $same) { return @{ C = 'caught'; T = ($set.K + ': transcript differs'); First = '' } }
     if ($rc -eq 3 -and $checks.Count -gt 0) { return @{ C = 'caught'; T = ($set.K + ": $n self-check failures" + $(if ($same) { '' } else { ', transcript differs' })); First = $checks[0] } }
@@ -161,10 +165,12 @@ foreach ($m in $mutants) {
     Remove-Item -Recurse -Force $tree
     $isCaught = @($res | Where-Object { $_.C -eq 'caught' }).Count -gt 0
     $isError = @($res | Where-Object { $_.C -eq 'error' }).Count -gt 0
+    $isHeld = @($res | Where-Object { $_.C -eq 'held' }).Count -gt 0
     $first = @($res | Where-Object { $_.C -eq 'caught' -and $_.First } | Select-Object -First 1)
-    $verdict = $(if ($isError) { 'ERROR' } elseif ($isCaught) { 'CAUGHT' } elseif ($m.Must) { 'MISSED' } else { 'not caught (allowed)' })
+    # a set that was not started says nothing: caught on another set is CAUGHT, caught on none is INCOMPLETE
+    $verdict = $(if ($isError) { 'ERROR' } elseif ($isCaught) { 'CAUGHT' } elseif ($isHeld) { 'INCOMPLETE' } elseif ($m.Must) { 'MISSED' } else { 'not caught (allowed)' })
     $count++; if ($isCaught -and -not $isError) { $caught++ }
-    if ($isError -or (-not $isCaught -and $m.Must) -or -not $controlDone[$ckey]) { $bad++ }
+    if ($isError -or (-not $isCaught -and ($m.Must -or $isHeld)) -or -not $controlDone[$ckey]) { $bad++ }
     Say ("MUTANT {0} [{1}; {2}; switches {3}]: {4}; {5}; first report: {6}" -f $m.Id, $srcName, $m.What, $defs, $verdict, (($res | ForEach-Object { $_.T }) -join '; '),
         $(if ($first.Count) { $first[0].First } else { '-' }))
 }

@@ -29,9 +29,12 @@ The same question exists for gates, where both engines are fixed files for hours
 | Order | Item | Switches (all default 0 in the patch) | Why this order |
 |---|---|---|---|
 | 0 | A/A calibration, between copies | two copies of the lock | the adapter's own tolerance check, and the check above |
-| 1 | `BUNDLE4` | `FORGE_SPD_WITNESS_NOPIN=1 FORGE_SPD_EVADE_LEGAL=1 FORGE_SPD_PAWN_CAPMASK=1 FORGE_SPD_CHECKERS_KL=1` | the four new candidates in one exe; the realistic lock candidate |
-| 2 | `BUNDLE` (five) | the four above plus `FORGE_SPD_KING_PAWN_CACHE=1` | only if the owner accepts `KING_PAWN_CACHE`, whose mechanism was built before (DUPCHECK.md) |
-| 3 | singles | one switch each | only if a bundle result needs explaining; each single is expected inside timing noise |
+| 1 | `BUNDLE3` | `FORGE_SPD_EVADE_LEGAL=1 FORGE_SPD_PAWN_CAPMASK=1 FORGE_SPD_CHECKERS_KL=1` | the bundle without the switch that timed slower under load. This job's own timing of it was stopped at 34 of 100 blocks: -0.22 % (interval -0.90 .. +0.47), so "within about 1 % of the lock" is all it says |
+| 2 | `BUNDLE4` | the three above plus `FORGE_SPD_WITNESS_NOPIN=1` | under gate load it read -0.70 % (100 blocks) and `WITNESS_NOPIN` alone -1.02 % (60 blocks). A quiet machine may read it differently (README, "Why `WITNESS_NOPIN` can cost time"); if it does, that difference is itself worth knowing before a lock |
+| 3 | `BUNDLE` (five) | the four plus `FORGE_SPD_KING_PAWN_CACHE=1` | only if the owner accepts `KING_PAWN_CACHE`, whose mechanism was built before (DUPCHECK.md) |
+| 4 | singles | one switch each | only if a bundle result needs explaining; each single is expected inside timing noise |
+
+No item of this job has a complete cold run of its own (the job was wrapped up at 16:56 with those runs in flight; `BENCH.md` section 2 gives the rows done, all equal to the lock's). Before an item is locked, its cold run should be completed: `STATUS.md` has the command.
 
 Baseline for every run: the combo29 lock exe, sha256 `e1284f7fc492c8fe1285797fdae8988cf2f2926b33fcfee7023d284d67d8802e`.
 
@@ -54,7 +57,7 @@ Because every candidate is node-identical, the adapter's node checks pass unchan
 $A = 'D:\forge_qa\quiet_abba_e4_c2_20261109\adapter\abba_combo29.ps1'
 $LOCK1 = '<copy 1 of the lock exe E1284F7F>'; $LOCK2 = '<copy 2 of the lock exe E1284F7F>'
 powershell -NoProfile -ExecutionPolicy Bypass -File $A -Calibration -Cand $LOCK1 -Baseline $LOCK2 -Tag aa_<date> -OutputRoot <new folder>
-powershell -NoProfile -ExecutionPolicy Bypass -File $A -Cand <BUNDLE4 exe> -Baseline $LOCK1 -Tag bundle4_<date> -OutputRoot <new folder>
+powershell -NoProfile -ExecutionPolicy Bypass -File $A -Cand <BUNDLE3 exe> -Baseline $LOCK1 -Tag bundle3_<date> -OutputRoot <new folder>
 ```
 
 ## Which exe
@@ -63,8 +66,8 @@ Preferred: QA rebuilds from the pack with QA's own script, as for QUIET_FLAG v1.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File D:\forge_qa\quiet_abba_e4_c2_20261109\c_t2_build_extradefs.ps1 `
-  -Tag bundle4 -Src <unzipped pack source> -OutRoot <QA build folder> -Workload <frozen_train_cmds.txt> `
-  -ExtraDefs '-DFORGE_SPD_WITNESS_NOPIN=1','-DFORGE_SPD_EVADE_LEGAL=1','-DFORGE_SPD_PAWN_CAPMASK=1','-DFORGE_SPD_CHECKERS_KL=1'
+  -Tag bundle3 -Src <unzipped pack source> -OutRoot <QA build folder> -Workload <frozen_train_cmds.txt> `
+  -ExtraDefs '-DFORGE_SPD_EVADE_LEGAL=1','-DFORGE_SPD_PAWN_CAPMASK=1','-DFORGE_SPD_CHECKERS_KL=1'
 ```
 
 Then the pins (bench d11/13/16/20/22 net on and net off, perft 5) on QA's exe before timing. This job's own switch-1 exes exist too (paths and hashes in `FILES.md` and each pack's `MD5SUMS.txt`); they were built with the lock's logged command lines on CPU 3 and pass the 12 pins, but they are not QA builds.
