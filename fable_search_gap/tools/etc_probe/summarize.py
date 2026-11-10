@@ -1,125 +1,188 @@
 """Summarise a TSV written by etc_probe.exe (standard library only).
 
-For each eligibility rule and for three groups of positions (all, middlegame, endgame) it reports:
+usage: summarize.py RESULTS.tsv OUT.md [POSITIONS.epd]
 
-  control          PROBE node count == OFF node count (must hold: the counting does not change the tree)
-  eligible share   eligible nodes as a share of all nodes
-  hit rate         eligible nodes where a child table entry already proves the cutoff
-  hash-move share  share of those hits where the proving child is the hash move (the plain search then
-                   needs one extra node to find the same cutoff, so nothing real is saved)
-  savable share    nodes the plain search spent below top-level hit nodes, as a share of all nodes:
-                   a first-order upper bound on what taking the cutoff could save
-  lookup cost      extra time of PROBE over OFF on the identical tree (the price of the lookups alone)
-  first-order net  savable share minus lookup cost (positive = the rule can pay for itself to first order)
-  realised         node and time ratio of the run that takes the cutoff versus OFF; this includes search
-                   instability, so single positions swing widely
+With POSITIONS.epd the summary also (a) drops positions whose board repeats an earlier line of that
+file and (b) can group positions by material.
 
-Rule names: cutN = expected cut nodes at depth >= N; allN = every non-PV node at depth >= N;
-nohmN = expected cut nodes at depth >= N without a hash move.
+Vocabulary used in the output
+  plain            the search as written (run "off")
+  counting         the same tree; child table entries are looked up and only counted (runs "probe_*")
+  cutoff taken     the mechanism is applied (runs "etc_*"); "_ns" = no table store at the node,
+                   "_fh" = return beta instead of the child's bound
+  placebo          the plain search with one history constant changed by 1 (run "off_p"): how far node
+                   counts and best moves move under a change that is not a mechanism
+  rule cutN        expected cut nodes with at least N plies left; allN = every non-PV node;
+                   nohmN = cut nodes without a hash move
+  eligible share   eligible nodes / all plain nodes
+  hit rate         eligible nodes where some child entry already proves the cutoff
+  first proof is the hash move   share of hits where the first proving child found (in move-generation
+                   order) is the hash move; a lower bound on "the hash move also proves it"
+  below-hit share  nodes the plain search spent below outermost hit nodes / all plain nodes. A first-order
+                   estimate of the saving, NOT a ceiling: taking the cutoff also changes later table
+                   contents, so the realised change can be larger or smaller
+  lookup time      time of the counting run / time of the plain run - 1, on the identical tree
+  node ratio       nodes with the cutoff taken / plain nodes. "sum" = ratio of totals; "geo" = geometric
+                   mean over positions; "by position" = 95 % range treating positions as independent;
+                   "by base" = 95 % range over base positions (a base and the positions generated from
+                   it form one cluster), which is the honest one
+  best move differs  positions where the final best move is not the plain run's
 
-usage: summarize.py RESULTS.tsv OUT.md
+Groups: for labels starting b/m/e + digit (the hand-made sets) "endgame" = labels e*, b4, b7 and their
+continuations. For any other label "low material" = at most six knights, bishops, rooks and queens in all.
 """
 import csv
 import math
+import os
 import sys
 from collections import defaultdict
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import pinguard  # noqa: E402
 
-def group_of(label: str) -> str:
-    base = label.rsplit("_p", 1)[0] if label.rsplit("_p", 1)[-1].isdigit() else label
-    return "endgame" if base.startswith("e") or base in ("b4_rook_endgame", "b7_rook_up") else "middlegame"
+
+def base_of(label: str) -> str:
+    head, sep, tail = label.rpartition("_p")
+    return head if sep and tail.isdigit() else label
+
+
+def pieces(fen: str) -> int:
+    return sum(1 for c in fen.split()[0] if c in "nbrqNBRQ")
+
+
+def group_of(label: str, fen) -> str:
+    base = base_of(label)
+    if len(base) > 1 and base[0] in "bme" and base[1].isdigit():
+        return "endgame" if base.startswith("e") or base in ("b4_rook_endgame", "b7_rook_up") else "middlegame"
+    if fen is None:
+        return "all"
+    return "endgame" if pieces(fen) <= 6 else "middlegame"
 
 
 def t(row) -> int:
     return int(row["us"]) if row.get("us") else int(row["ms"]) * 1000
 
 
+def mean_range(values):
+    n = len(values)
+    mean = sum(values) / n
+    if n < 2:
+        return mean, mean, mean
+    sd = math.sqrt(sum((x - mean) ** 2 for x in values) / (n - 1))
+    half = 1.96 * sd / math.sqrt(n)
+    return mean, mean - half, mean + half
+
+
 def main():
+    pinguard.ensure()
     src, out = sys.argv[1], sys.argv[2]
+    epd = sys.argv[3] if len(sys.argv) > 3 else None
+    fens, dup = {}, set()
+    if epd:
+        seen = {}
+        with open(epd, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = [x.strip() for x in line.split(";")]
+                board = " ".join(parts[0].split()[:4])
+                fens[parts[2]] = parts[0]
+                if board in seen:
+                    dup.add(parts[2])
+                else:
+                    seen[board] = parts[2]
     rows = defaultdict(dict)
-    order = []
+    probes, etcs = [], []
     with open(src, encoding="utf-8", newline="") as f:
         for r in csv.DictReader(f, delimiter="\t"):
             rows[r["label"]][r["run"]] = r
-            if r["run"].startswith("probe_") and r["run"][6:] not in order:
-                order.append(r["run"][6:])
+            if r["run"].startswith("probe_") and r["run"] not in probes:
+                probes.append(r["run"])
+            if (r["run"].startswith("etc_") or r["run"] == "off_p") and r["run"] not in etcs:
+                etcs.append(r["run"])
     name = src.replace(chr(92), "/").split("/")[-1]
-    lines = [f"# etc_probe summary ({name}, {len(rows)} positions)", "",
-             "Replica search on unmodified lock board and evaluation sources. Not the lock's search. No Elo claim.", ""]
-    aborted = [l for l, rr in rows.items() if any(int(x["aborted"]) for x in rr.values())]
-    lines.append(f"Positions stopped by the node cap and left out: {len(aborted)} ({', '.join(aborted) or 'none'}).")
+    aborted = {l for l, rr in rows.items() if any(int(x["aborted"]) for x in rr.values())}
+    use = [l for l in rows if l not in aborted and l not in dup]
+    groups = ["all"] + sorted({group_of(l, fens.get(l)) for l in use} - {"all"})
+    sel_of = {g: [l for l in use if g == "all" or group_of(l, fens.get(l)) == g] for g in groups}
+    bases = {l: base_of(l) for l in use}
+
+    lines = [f"# etc_probe summary: {name}", "",
+             "Replica search on unmodified lock board and evaluation sources. Not the lock's search. No Elo claim.",
+             "Terms are defined at the top of `tools/etc_probe/summarize.py`.", "",
+             f"Positions in the file: {len(rows)}. Left out: {len(aborted)} stopped by the node cap, "
+             f"{len(dup - aborted)} with a board that repeats an earlier position. Used: {len(use)}, "
+             f"from {len(set(bases.values()))} base positions.", ""]
+    for g in groups[1:]:
+        lines.append(f"- {g}: {len(sel_of[g])} positions from {len({bases[l] for l in sel_of[g]})} bases")
     lines.append("")
-    if all("off_b" in rr for rr in rows.values()):
-        sel = [l for l in rows if l not in aborted]
-        same = sum(1 for l in sel if rows[l]["off_b"]["nodes"] == rows[l]["off"]["nodes"])
-        ratio = sum(t(rows[l]["off_b"]) for l in sel) / sum(t(rows[l]["off"]) for l in sel)
-        mid = [l for l in sel if group_of(l) == "middlegame"]
-        end = [l for l in sel if group_of(l) == "endgame"]
-        rm = sum(t(rows[l]["off_b"]) for l in mid) / max(sum(t(rows[l]["off"]) for l in mid), 1)
-        re_ = sum(t(rows[l]["off_b"]) for l in end) / max(sum(t(rows[l]["off"]) for l in end), 1)
-        lines.append(f"A/A control (the plain search run twice): identical node counts in {same}/{len(sel)} positions; "
-                     f"time ratio second/first {ratio:.3f} overall, {rm:.3f} middlegame, {re_:.3f} endgame. "
-                     "Time differences of this size are noise.")
+    if all("off_b" in rows[l] for l in use):
+        same = sum(1 for l in use if rows[l]["off_b"]["nodes"] == rows[l]["off"]["nodes"])
+        per = [t(rows[l]["off_b"]) / t(rows[l]["off"]) for l in use]
+        m, _lo, _hi = mean_range(per)
+        sd = math.sqrt(sum((x - m) ** 2 for x in per) / max(len(per) - 1, 1))
+        tot = sum(t(rows[l]["off_b"]) for l in use) / sum(t(rows[l]["off"]) for l in use)
+        lines += [f"Plain run repeated: identical node counts in {same}/{len(use)} positions; time ratio of the totals "
+                  f"{tot:.4f}; per position the time ratio has standard deviation {100 * sd:.1f} %.", ""]
+
+    if probes:
+        lines += ["## Counting runs (identical tree)", "",
+                  "| rule | group | positions | same nodes as plain | plain nodes | eligible share | hit rate | "
+                  "first proof is the hash move | below-hit share | lookup time | plain search also failed high |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+        for run in probes:
+            for g in groups:
+                sel = [l for l in sel_of[g] if run in rows[l]]
+                if not sel:
+                    continue
+                off_n = sum(int(rows[l]["off"]["nodes"]) for l in sel)
+                off_t = sum(t(rows[l]["off"]) for l in sel)
+                pr = [rows[l][run] for l in sel]
+                control = sum(1 for l in sel if rows[l][run]["nodes"] == rows[l]["off"]["nodes"])
+                elig = sum(int(x["eligible"]) for x in pr)
+                hits = sum(int(x["hits"]) for x in pr)
+                hm = sum(int(x["hits_hash_move"]) for x in pr)
+                top = sum(int(x["top_hits"]) for x in pr)
+                sav = sum(int(x["savable_nodes"]) for x in pr)
+                tfh = sum(int(x["top_hits_fail_high"]) for x in pr)
+                cost = sum(t(x) for x in pr) / off_t - 1.0
+                lines.append(f"| {run[6:]} | {g} | {len(sel)} | {control}/{len(sel)} | {off_n} | {100 * elig / off_n:.2f} % | "
+                             f"{100 * hits / max(elig, 1):.1f} % | {100 * hm / max(hits, 1):.1f} % | {100 * sav / off_n:.2f} % | "
+                             f"{100 * cost:+.1f} % | {100 * tfh / max(top, 1):.1f} % |")
         lines.append("")
-    lines += ["## Cost and saving by rule", "",
-              "| rule | group | positions | control ok | OFF nodes | eligible share | hit rate | hash-move share of hits | savable share | "
-              "lookup cost | first-order net | plain search also failed high | realised node ratio (sum / geo mean [95 % range]) | realised time ratio |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-    for rule in order:
-        for grp in ("all", "middlegame", "endgame"):
-            sel = [l for l in rows if l not in aborted and (grp == "all" or group_of(l) == grp)]
-            if not sel:
-                continue
-            off_n = sum(int(rows[l]["off"]["nodes"]) for l in sel)
-            off_t = sum(t(rows[l]["off"]) for l in sel)
-            pr = [rows[l][f"probe_{rule}"] for l in sel]
-            control = sum(1 for l in sel if rows[l][f"probe_{rule}"]["nodes"] == rows[l]["off"]["nodes"])
-            elig = sum(int(x["eligible"]) for x in pr)
-            hits = sum(int(x["hits"]) for x in pr)
-            hm = sum(int(x["hits_hash_move"]) for x in pr)
-            top = sum(int(x["top_hits"]) for x in pr)
-            sav = sum(int(x["savable_nodes"]) for x in pr)
-            tfh = sum(int(x["top_hits_fail_high"]) for x in pr)
-            cost = sum(t(x) for x in pr) / off_t - 1.0
-            realised = "n/a"
-            rtime = "n/a"
-            if all(f"etc_{rule}" in rows[l] for l in sel):
-                et = [rows[l][f"etc_{rule}"] for l in sel]
-                logs = [math.log(int(rows[l][f"etc_{rule}"]["nodes"]) / int(rows[l]["off"]["nodes"])) for l in sel]
-                mean = sum(logs) / len(logs)
-                geo = math.exp(mean)
-                half = 0.0
-                if len(logs) > 1:
-                    sd = math.sqrt(sum((x - mean) ** 2 for x in logs) / (len(logs) - 1))
-                    half = 1.96 * sd / math.sqrt(len(logs))
-                realised = (f"{sum(int(x['nodes']) for x in et) / off_n:.3f} / {geo:.3f} "
-                            f"[{math.exp(mean - half):.3f}, {math.exp(mean + half):.3f}]")
-                rtime = f"{sum(t(x) for x in et) / off_t:.3f}"
-            lines.append(
-                f"| {rule} | {grp} | {len(sel)} | {control}/{len(sel)} | {off_n} | {100 * elig / off_n:.2f} % | {100 * hits / max(elig, 1):.1f} % | "
-                f"{100 * hm / max(hits, 1):.1f} % | {100 * sav / off_n:.2f} % | {100 * cost:+.1f} % | {100 * (sav / off_n - cost):+.1f} % | "
-                f"{100 * tfh / max(top, 1):.1f} % | {realised} | {rtime} |")
-    lines.append("")
-    for rule in order:
-        has_etc = all(f"etc_{rule}" in rr for rr in rows.values())
-        lines += [f"## Per position, rule {rule}", "",
-                  "| position | depth | OFF nodes | hit rate | savable share | realised node ratio | score OFF / with cutoff |", "|---|---|---|---|---|---|---|"]
-        for l in rows:
-            if l in aborted:
-                continue
-            o, p = rows[l]["off"], rows[l][f"probe_{rule}"]
-            ratio = scores = "n/a"
-            if has_etc:
-                e = rows[l][f"etc_{rule}"]
-                ratio = f"{int(e['nodes']) / int(o['nodes']):.3f}"
-                scores = f"{o['score']} / {e['score']}"
-            lines.append(f"| {l} | {o['depth']} | {o['nodes']} | {100 * int(p['hits']) / max(int(p['eligible']), 1):.1f} % | "
-                         f"{100 * int(p['savable_nodes']) / int(o['nodes']):.2f} % | {ratio} | {scores} |")
+
+    if etcs:
+        lines += ["## Runs that change the search (cutoff taken, variants, placebo)", "",
+                  "| run | group | positions | node ratio sum | node ratio geo | 95 % range by position | 95 % range by base | "
+                  "geo without the 2 smallest ratios | smallest / largest ratio | time ratio | best move differs |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+        for run in etcs:
+            for g in groups:
+                sel = [l for l in sel_of[g] if run in rows[l]]
+                if not sel:
+                    continue
+                off_n = sum(int(rows[l]["off"]["nodes"]) for l in sel)
+                off_t = sum(t(rows[l]["off"]) for l in sel)
+                ratios = {l: int(rows[l][run]["nodes"]) / int(rows[l]["off"]["nodes"]) for l in sel}
+                logs = [math.log(v) for v in ratios.values()]
+                m, lo, hi = mean_range(logs)
+                by_base = defaultdict(list)
+                for l in sel:
+                    by_base[bases[l]].append(math.log(ratios[l]))
+                _cm, clo, chi = mean_range([sum(v) / len(v) for v in by_base.values()])
+                trimmed = sorted(logs)[2:] if len(logs) > 4 else logs
+                diff = sum(1 for l in sel if rows[l][run]["best"] != rows[l]["off"]["best"])
+                lines.append(
+                    f"| {run} | {g} | {len(sel)} | {sum(int(rows[l][run]['nodes']) for l in sel) / off_n:.3f} | {math.exp(m):.3f} | "
+                    f"[{math.exp(lo):.3f}, {math.exp(hi):.3f}] | [{math.exp(clo):.3f}, {math.exp(chi):.3f}] | "
+                    f"{math.exp(sum(trimmed) / len(trimmed)):.3f} | {min(ratios.values()):.3f} / {max(ratios.values()):.3f} | "
+                    f"{sum(t(rows[l][run]) for l in sel) / off_t:.3f} | {diff}/{len(sel)} |")
         lines.append("")
     text = "\n".join(lines) + "\n"
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
-    print("\n".join(lines[:9 + 3 * len(order)]))
+    print(text)
 
 
 if __name__ == "__main__":

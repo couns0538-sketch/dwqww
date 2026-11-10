@@ -141,6 +141,9 @@ public:
     int etc_min_depth = 4;
     bool etc_cut_only = true;
     bool etc_no_hash_move_only = false;   // only nodes whose own TT entry gives no move to try first
+    bool etc_store = true;                // write a lower bound for the node when the cutoff is taken
+    bool etc_fail_hard = false;           // return beta instead of the child's bound
+    int history_offset = -32;             // placebo knob: -31 perturbs move ordering without a design change
     std::uint64_t node_cap = 0;
     bool aborted = false;
 
@@ -361,8 +364,9 @@ private:
                 ++st.hits;
                 if (hit_move == tt_move) ++st.hits_hash_move;
                 if (mode == Etc) {
-                    tt.store(key, score_to_tt(hit_score, ply), NoEval, hit_move, depth, BLower);
-                    return hit_score;
+                    const int value = etc_fail_hard ? beta : hit_score;
+                    if (etc_store) tt.store(key, score_to_tt(value, ply), NoEval, hit_move, depth, BLower);
+                    return value;
                 }
             }
         }
@@ -503,7 +507,7 @@ private:
         }
         if (move_count == 0) return in_check ? -Mate + ply : 0;
         if (best >= beta && !best_move.is_capture() && !best_move.is_promotion()) {
-            const int bonus = std::min(2048, 20 * depth * depth + 48 * depth - 32);
+            const int bonus = std::min(2048, 20 * depth * depth + 48 * depth + history_offset);
             auto apply = [](int& v, int b) { v += b - v * std::abs(b) / 16384; };
             if (!(killers_[p][0] == best_move)) { killers_[p][1] = killers_[p][0]; killers_[p][0] = best_move; }
             apply(history_[static_cast<std::size_t>(us)][best_move.from][best_move.to], bonus);
@@ -608,10 +612,21 @@ int main(int argc, char** argv) {
 
     // Rule names: cutN = expected cut nodes at depth >= N; allN = every non-PV node at depth >= N;
     // nohmN = expected cut nodes at depth >= N that have no hash move.
-    struct Run { const char* name; Mode mode; int min_depth; bool cut_only; bool no_hash_move; };
-    const std::array<Run, 16> runs{{
+    // Variants of the cutoff: _ns = no table store at the node, _fh = return beta (fail-hard) and store beta.
+    // off_p = placebo: the plain search with one history constant changed by 1, to show how much node counts
+    // and best moves move under a change that is not a mechanism at all.
+    struct Run {
+        const char* name; Mode mode; int min_depth; bool cut_only; bool no_hash_move;
+        bool store = true; bool fail_hard = false; bool placebo = false;
+    };
+    const std::array<Run, 21> runs{{
         {"off", Off, 0, false, false},
         {"off_b", Off, 0, false, false},      // identical repeat: A/A timing noise and determinism check
+        {"off_p", Off, 0, false, false, true, false, true},
+        {"etc_cut6_ns", Etc, 6, true, false, false, false, false},
+        {"etc_cut6_fh", Etc, 6, true, false, true, true, false},
+        {"etc_cut8_ns", Etc, 8, true, false, false, false, false},
+        {"etc_cut8_fh", Etc, 8, true, false, true, true, false},
         {"probe_cut4", Probe, 4, true, false},
         {"probe_cut6", Probe, 6, true, false},
         {"probe_cut8", Probe, 8, true, false},
@@ -646,6 +661,9 @@ int main(int argc, char** argv) {
             searcher->etc_min_depth = run.min_depth;
             searcher->etc_cut_only = run.cut_only;
             searcher->etc_no_hash_move_only = run.no_hash_move;
+            searcher->etc_store = run.store;
+            searcher->etc_fail_hard = run.fail_hard;
+            searcher->history_offset = run.placebo ? -31 : -32;
             Move best = Move::none();
             const auto t0 = std::chrono::steady_clock::now();
             const int score = searcher->iterate(board, pos.depth, best);
