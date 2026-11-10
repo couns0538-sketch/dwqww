@@ -5,6 +5,7 @@
 - Every engine and synthetic check with its exact command: `BENCH.md`.
 - Test suites: `TESTS.md`.
 - Review record: `review/REVIEW_LOG.md`.
+- Code Review → QA handoff, with the exact order of steps: `HANDOFF.md`.
 
 ## What the pack contains
 | Path | Content |

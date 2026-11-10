@@ -2,9 +2,9 @@
 
 All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs about 25,160–25,170 s (6 h 59 min) ahead, and the gap grew by a few seconds during this job. It is never used for reported times; see `evidence/INC-01_lazy_fetch_disk_drain.json`.
 
-- Last update: 2026-11-10 02:39 Vienna
+- Last update: 2026-11-10 03:16 Vienna
 - Job start: 2026-11-10 00:48:26 Vienna (2026-11-09 23:48:26Z)
-- Elapsed: about 1 h 51 min
+- Elapsed: about 2 h 28 min
 
 ## Identity, paths and approvals
 | Item | Value |
@@ -17,61 +17,66 @@ All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs 
 | Build parent | `D:\grok_sdk_speed_20261107\detached1735_all31\clang\all31_m29\source_snapshot`. Manifest sha256 3389cfe3dc7bb3989cfebfbdc8ac13d3785b71f090257664d04a0d7c74137645. Recipe 1fd8751755356c8a0ba386b48c1bc643401bcdeadf8e91cc5e7e5450d7584bfe. |
 | Git source commit of combo29 | **BLOCKED.** No commit holds the snapshot's SDK-patched files (2853 commits on 410 refs, trees only). See `evidence/combo29_source_commit_search.json` and `AUDIT.md` §1. |
 | Families | **F1 razoring** (RazorBase, RazorMultiplier) + **F2 qsearch pruning** (QsFutilityMargin). RazorDepth and QsSeeMargin are frozen. See `PLAN.md`. |
+| Joint config | `configs/joint_razor_qs.json`: N = 16000 pairs, r_end 0.002, 10+0.1. N was set from the synthetic qualification before any game (`PLAN.md` §4.7). Live mode is disabled. |
 | Engine patch | `patches/tune_gate_after_combo29.patch`, md5 8875a86e77b76f4953a19099eebcca13. |
 | Builds | `out\rb_equal_len_paths\c29{ctl,off,gat}_03`. exe SHA256: ctl 6cfce703…, off 958da7ab…, gat 404549d7…. See `BENCH.md` §1. |
 | Pins | net-on 312866/862329/3024920/12389307/34048354. net-off 375354/907205/2448617/13573040/24506465. perft5 4865609, kiwipete 193690690. |
 
 ## Safety and resource limits (binding)
-- **CPU:** CPUs 12–15 only (0xF000) at Idle. Every process I start inherits this from `env.ps1` or from the `bin\*.ps1` self-placement. No GPU.
-- **Never started:** games, matches, SPRTs, tuning, ABBA, timers or background match jobs. Dry-run is the default; live mode needs three guards.
+- **CPU:** CPUs 12–15 only (0xF000) at Idle. Every process I start inherits this from `env.ps1` or from the `bin\*.ps1` self-placement. No GPU. Sample at 03:16: CPUs 12–15 at 21/27/45/63%; no foreign process pinned to them.
+- **Never started:** games, matches, SPRTs, tuning, ABBA, timers or background match jobs. Dry-run is the default; live mode needs three guards. The confirmation runner never plays a game.
 - **Never touched:** locks, `CURRENT_LOCK.json`, queues, `forge_gates.json`, STOP/PAUSE files, training, self-play, gates, nets or datasets.
 - **Termination:** only my own children whose command line is under `C:\Users\Administrator\grok-pc`. Engines are only ever asked to `quit`.
-- **Disk:** D: keeps a 30 GiB reserve, enforced by `Assert-Opus3Disk`; 33.2 GiB free at 02:38. No new files on C: or F:.
+- **Disk:** D: keeps a 30 GiB reserve, enforced by `Assert-Opus3Disk`; 32.6 GiB free at 03:16. No new files on C: or F:.
 
 ## Done
-- **S1 (00:48–01:15):**
+- **S1:**
   - Clock recorded; INC-01 handled.
   - Clone and branch created; AGENTS policy recovered byte-exact.
-  - Inputs frozen; on 02:38 all 35 frozen files re-verified against `evidence/FREEZE_FILES.sha256`.
+  - Inputs frozen; all 35 files re-verified at 02:38.
   - Lineage traced; commit identity BLOCKED.
   - AUDIT and PLAN written.
-- **M1 review and recheck:** all findings addressed (`review/REVIEW_LOG.md`).
+- **M1 review and recheck:** all findings addressed.
 - **S2:**
-  - R9 import; harness (55/55 tests).
+  - R9 import.
+  - Harness.
   - Engine patch.
   - Opening partitions frozen before any fitting.
   - Joint config and baseline.
   - Confirmation pack.
   - PS 5.1 entry points.
 - **S3:**
-  - Derived recipe and three builds (BOM root cause fixed).
+  - Derived recipe and three builds.
   - Normalized PE identity: lock = ctl = off.
   - Identity battery ALL PASS.
-  - Synthetic qualification: movement, noise floor, resume byte-identity on the real schedule.
-  - End-to-end dry-run, synthetic candidate to G1 confirmation command.
-  - Opening-budget guard in the confirmation runner (27/27 confirmation tests).
-  - Commits 1f4902e6 and 5cb03dc2.
+  - fens12k d13: 12000 / 12000 on and off for gat sw0 and sw1 vs lock, byte-identical to QA's refcache.
+  - warm1000: identical apart from the two advertised option lines.
+  - Synthetic qualification:
+    - N = 4000 found inadequate (13–16% of a model gap).
+    - Sweep over N and r_end.
+    - N = 16000 set before any game.
+    - Resume byte-identity on the real schedule: 2,005 and 8,005 files.
+  - End-to-end demonstration.
+- **M2 review (02:33–03:00)** of 5cb03dc2: 1 BLOCKER, 3 MAJOR, 7 MINOR and NITs. All assessed and fixed, plus one extra defect (a level coordinate frozen at its edge index). Fixed in fd47a42d (03:14).
+  - Harness 63/63, confirmation 35/35, R9 equivalence (strict).
+  - Both synthetic qualifications re-run under the fixed code.
+  - `bin\selftest.ps1` under Windows PowerShell 5.1: ALL PASS (`TESTS.md`).
+- `HANDOFF.md` written (Code Review → QA).
 
 ## In progress / next exact actions
-1. **Running:** fens12k d13, net on and off, for lock, gat sw0 and gat sw1 at defaults (`out\qual\fens12k`). Then compare:
-   `& $Opus3Py -I -B opus_spsa_resume\engine\compare_fens.py <lock.tsv> <gate.tsv>...`
-   Lock is also compared against QA's frozen refcache TSVs.
-2. **Running:** the run-length / gain sweep (`spsa\synth_qualify.py ... --sweep --reps 3`). Then set the proposed N and r_end in `PLAN.md` §4.7 and `configs/joint_razor_qs.json`, before any game.
-3. **Next:** warm1000, lock vs gat sw0:
-   `& $Opus3Py -I -B opus_spsa_resume\engine\warm_identity_0xF000.py <lock> <gat> out\freeze\data\fens_12k_v2.txt out\qual\warm1000 --n 1000`
-4. **M2 code review:** sent at 02:33 to the same reviewer subagent, scope commit 5cb03dc2; findings pending. M3 review of BENCH.md and qualification follows.
-5. **S4:**
-   - `bin\selftest.ps1` writes `TESTS.md`.
-   - Pack MD5 and SHA256 manifests; git bundle on D:.
-   - Push; CR → QA handoff note (no queue edits).
+1. **Running:** M2 recheck + M3 review (builds, identity, synthetic qualification, run size), sent at 03:15 to the same reviewer subagent, scope fd47a42d.
+2. Assess the findings, fix within scope, and re-run `bin\selftest.ps1`.
+3. **S4:**
+   - Pack manifests `MANIFEST.md5` / `MANIFEST.sha256`.
+   - Git bundle on D: (`out\bundle\`).
+   - Final STATUS and push.
 
 ## Resume commands
 ```
 . D:\forge_jobs_20261107\opus3\env.ps1
 cd D:\forge_jobs_20261107\opus3\repo
 git status --short --branch; git log --oneline -8
-& $Opus3Py -I -B opus_spsa_resume\tests\test_r9_equivalence.py
-& $Opus3Py -I -B opus_spsa_resume\tests\test_spsa_harness.py D:\forge_jobs_20261107\opus3\out\tests\resume_check
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File opus_spsa_resume\bin\selftest.ps1
 ```
 On resume, re-verify the hashes in this file before relying on any earlier receipt.
 
@@ -81,21 +86,24 @@ On resume, re-verify the hashes in this file before relying on any earlier recei
 | combo29 exe MD5/SHA256 in 4 locations | PASS |
 | AGENTS policy MD5 | PASS |
 | Freeze: 35 files against `FREEZE_FILES.sha256` (re-verified 02:38) | PASS |
-| R9 saved-run replay equivalence | PASS |
-| Harness tests (synthetic, replay, crash, refusals, rollback) | PASS 55/55 (S2; re-run in S4 by selftest) |
-| Confirmation pack tests | PASS 27/27 (02:31, after adding the opening-budget guard) |
+| R9 saved-run replay equivalence (strict in inner mode) | PASS |
+| Harness tests | PASS 63/63 |
+| Confirmation pack tests | PASS 35/35 |
+| `bin\selftest.ps1` (Windows PowerShell 5.1) | ALL PASS, `TESTS.md` |
 | Patch macro-0 token identity, gate syntax, clean apply | PASS |
 | Builds ctl / off / gat (_03) | PASS (BENCH.md §1) |
 | Normalized PE identity lock = ctl = off | PASS (raw byte identity UNRESOLVED, pre-declared) |
-| UCI options, bench d11–d22 net on/off (lock, ctl, off, gat sw0, gat sw1 defaults), perft, 16 gate-semantics checks | PASS (`evidence/qual/battery_03`) |
-| fens12k d13 net on/off: gat sw0 and sw1-defaults vs lock | RUNNING |
-| warm1000 lock vs gat sw0 | NOT RUN yet |
-| Synthetic resume byte-identity on the real schedule (2 crashes, 2,005 files) | PASS |
-| End-to-end dry-run, synthetic candidate to G1 confirm command (writes nothing) | PASS |
-| Opening partitions: disjoint, hashed, frozen before fitting | PASS |
+| UCI options, bench d11–d22 net on/off (lock, ctl, off, gat sw0, gat sw1 defaults), perft, 16 gate-semantics checks | PASS |
+| fens12k d13 net on/off: gat sw0 and sw1-defaults vs lock (and QA refcache) | PASS 12000/12000 |
+| warm1000 lock vs gat sw0 | PASS (apart from the two advertised option lines) |
+| fens12k for ctl and off | NOT RUN (normalized-image-identical to the lock) |
+| Synthetic resume byte-identity on the real schedule, two crashes | PASS (N 4000 and N 16000) |
+| End-to-end dry-run with refusals, nothing written | PASS |
+| Opening partitions: disjoint on the 4-field key, hashed, frozen before fitting | PASS (2 G1 openings collide with training on the 3-field audit key; documented) |
+| Live tuning mode | NOT RUN by design (no games in this job); guards, dry-run command and PGN parsing tested |
 
 ## Unproven claims (not results)
 - No tuned values exist; real tuning is **PENDING QA EXECUTION**. No Elo is claimed.
 - The F1–F2 interaction is a code-level coupling only.
 - C1 and C3′ are heuristic priors, not correctness constraints.
-- **Run size:** in synthetic models, N = 4000 pairs at r_end 0.002 moves the right way but recovers only about 13–16% of a 3.75-unit gap with the optimum 2 c_end away (`BENCH.md` §6). The sweep over N and r_end is running.
+- **Run-size adequacy** is estimated in synthetic models only: an assumed 3.75-unit gap with the optimum 2 c_end away. N = 16000 recovers 56–62% there.
