@@ -201,7 +201,11 @@ def cmd_batch(a) -> int:
             head, _, tag = raw.partition(";")
             fields = head.split()
             fen = " ".join(fields[:6]) if len(fields) >= 6 else " ".join(fields[:4]) + " 0 1"
-            res = run_go(eng, fen, "", a.limit, a.timeout)
+            limit = a.limit
+            if limit == "auto":  # take "depth=N" from the line, as in tools/etc_probe/positions*.epd
+                found = [part.split("=", 1)[1].strip() for part in tag.split(";") if part.strip().startswith("depth=")]
+                limit = f"depth {found[0]}" if found else "depth 12"
+            res = run_go(eng, fen, "", limit, a.timeout)
             res["tag"] = tag.strip()
             if not a.keep_iterations:
                 res.pop("iterations", None)
@@ -227,7 +231,8 @@ def main() -> int:
         if name == "pins":
             s.add_argument("--depths", default="11,13,16,20,22")
         else:
-            s.add_argument("--limit", required=True, help="text after 'go', e.g. 'depth 20' or 'nodes 2000000'")
+            s.add_argument("--limit", required=True,
+                           help="text after 'go', e.g. 'depth 20' or 'nodes 2000000'; batch also accepts 'auto' (use depth=N of each line)")
             s.add_argument("--timeout", type=float, default=900)
             s.add_argument("--setoption", action="append", help="Name=Value, repeatable")
         if name == "go":
