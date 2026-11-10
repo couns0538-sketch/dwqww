@@ -1,0 +1,4 @@
+Lockless function placement and size, kit LTO+PGO gate exes (objdump -d --no-show-raw-insn; instruction lines per function):
+enc4 gate a4b57032 (no attribute): probe_lockless at 0x1401034f2 (cold tail of .text, unaligned), 274 instructions, rolled slot loop (stack-indexed loads (%rsp,%reg,8): 3); store_lockless at 0x140103ade, 155 instructions
+enc5 gate 2940fb05 (g1c = h1c = h1d, FORGE_LOCKLESS_UNTRAINED_OPT): probe_lockless at 0x14000bc20 (normal .text, 32-byte aligned), 364 instructions, unrolled register code as in the -O3 micro-benchmark build (stack-indexed loads: 1); store_lockless at 0x14000c190, 170 instructions
+Hot search code: Worker::search / Worker::qsearch at 0x1400ee070 / 0x1400faf50 (a4b57032) and 0x1400ee830 / 0x1400fb710 (2940fb05).

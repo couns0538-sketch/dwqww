@@ -106,6 +106,15 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 - `probe_tt`/`store_tt` read the table's own `lockless_` flag (written only while quiescent) before P's `tt_owned_` branch. There is no per-worker copy that could go stale after a toggle, so a direct `Worker::search` (test harnesses) also follows the current mode (R1 review MINOR-1; regression test in `smp_lifecycle_tests`).
 - The public `probe`/`store`/`probe_owned`/`store_owned`/`hashfull`/`prefetch` all follow the table's mode, so no path touches the inactive (null) array.
 
+### 3.7 Build note: the lockless bodies under QA's PGO kit (enc5)
+- QA kit v2.3 trains with a frozen workload of benches at the default `TtLockless=false`, so the lockless probe/store never run during training.
+- Under `-fprofile-use`, GCC compiled such never-executed functions for size and moved them to the cold end of `.text`. In the enc4 gate `a4b57032`, `probe_lockless` had a rolled slot loop with stack-spilled words, at an unaligned address after all hot code.
+- Since enc5, `probe_lockless` and `store_lockless` carry `FORGE_LOCKLESS_UNTRAINED_OPT` = `__attribute__((optimize("profile-partial-training")))` (GCC only; empty for Clang and MSVC).
+  - This is GCC's documented `-fprofile-partial-training`, applied to these two functions only: they are compiled as if no profile existed, i.e. normal `-O3`.
+  - Every other function keeps the kit's flags, and the macro-0 build is untouched.
+- It is codegen only: the same C++, the same decisions, identity re-proven (BENCH §11).
+- The call sites inside the search remain profile-cold blocks. Only a training run that executes `TtLockless=true` could change that; that is QA's workload decision.
+
 ## 4. Worker cache-line layout (measure first, change only what is measured)
 - Tool `tools/layout_probe.cpp` (a test executable, not in the engine) prints sizeof, alignof and offsets, with 64-byte line numbers, of the Worker hot fields, SharedSearchState, TranspositionTable members, TTCluster/TTLocklessCluster, SearchStack and Accumulator, plus the heap addresses of 4 workers. It runs for P (macro 0) and the gate build (macro 1).
 - Rule: pad or align only a line that one thread writes while another reads it during search. The known candidate is `Worker::nodes_`:

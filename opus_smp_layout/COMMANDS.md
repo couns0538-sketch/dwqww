@@ -3,10 +3,23 @@
 Run every command from Git Bash: PS 5.1 engine drivers started from an agent's PowerShell tool never see stdin. Each tool pins itself to CPUs 12-15 (mask 0xF000) at Idle, reads both back and fails closed. TEMP/TMP = `D:\forge_jobs_20261107\opus2\tmp`.
 `ps1` = `MSYS_NO_PATHCONV=1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File`, `T` = `D:\forge_jobs_20261107\opus2\repo\opus_smp_layout\tools`, `O` = `D:\forge_jobs_20261107\opus2\out`. Exes:
 - `$O\exe\forge_P_4181a589.exe`: the OFF build = trial_w6;
-- `$O\exe\forge_smpgate_a4b57032.exe`: the gate of the candidate `a675c04`;
+- `$O\exe\forge_smpgate_2940fb05.exe`: the gate of the candidate `89cddf7` (enc5);
+- `$O\exe\forge_smpgate_a4b57032.exe`: the gate of `a675c04` (enc4, superseded);
 - `$O\exe\forge_smpgate_541e8b3d.exe`: the gate of the superseded `0599271`.
 
-## EXECUTED for the candidate `a675c04` (enc2-enc4; scripts in `$O\enc2\`: build_tests.sh, run_tests.sh, build_enc3.sh, build_enc4.sh, requal4.sh)
+## EXECUTED for the candidate `89cddf7` (enc5 = enc4 + FORGE_LOCKLESS_UNTRAINED_OPT; script `$O\enc2\requal5.sh`)
+```
+# attribute test first on a scratch tree: $O/src/g1 = f1 + the attribute -> kit tag g1c (= 2940fb05); g1 == h1 byte for byte
+# sources: git archive 89cddf7 include src -> $O/src/{h0,h1}; rp5 = P + patch -p1 -F0 + flip == h1
+ps1 $T\kit_build.ps1 -SrcDir $O\src\h0 -Tag h0c   (and h0d)                             # = 4181a589
+ps1 $T\kit_build.ps1 -SrcDir $O\src\h1 -Tag h1c   (and h1d) -CheckOpt 'TtLockless=true' # = 2940fb05, ON identity ALL OK
+# identity / liveness / stress of the gate 2940fb05: as below with -OutDir $O\enc2\id5 and tags e5_*
+# log-sharing fault injection (MINOR-1): new tools vs the a675c04 tools copy ($O\enc2\tools_a675c04)
+ps1 $T\test_log_sharing.ps1 -ToolsDir $T -Exe $O\exe\forge_smpgate_a4b57032.exe -OutDir $O\enc2\minor1 -Tag new_tools
+ps1 $T\test_log_sharing.ps1 -ToolsDir $O\enc2\tools_a675c04 -Exe $O\exe\forge_smpgate_a4b57032.exe -OutDir $O\enc2\minor1 -Tag old_tools
+```
+
+## EXECUTED for `a675c04` (enc2-enc4, superseded by enc5; scripts in `$O\enc2\`: build_tests.sh, run_tests.sh, build_enc3.sh, build_enc4.sh, requal4.sh)
 ```
 # native tests and tools, one g++ line each through run_pinned.ps1 (flags: -std=c++20 -O2 -DNDEBUG -DFORGE_SMP_LAYOUT=1
 #   -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -pthread -Wall -Wextra; tools add -O3):

@@ -85,12 +85,19 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
 - **NPS.** Advisory only: the A/A copy moves by 5 % on CPUs 12-15. ON may cost about 2-3 % at T1 (decode). QA times it on native cores.
 - **Review.** R1 (fable) found 3 MINOR: a stale per-worker mode flag, a control that could not fail, and freeing before allocating on toggle. All fixed. The recheck reviewer became unreachable, so a self-review marked NOT independent replaced it.
 
-## Second round (enc2-enc4, same evening; BENCH §8-§10)
-- **Candidate.** `a675c04` (enc4): OFF kit = 4181a589 (f0c = f0d); gate **a4b57032…** (f1c = f1d); patch +357/−0, md5 83928636…
+## Second round (enc2-enc5, same evening; BENCH §8-§11)
+- **Candidates.**
+  - `a675c04` (enc4): OFF kit = 4181a589 (f0c = f0d); gate a4b57032… (f1c = f1d).
+  - **`89cddf7` (enc5, final)**: OFF = 4181a589 (h0c = h0d); gate **2940fb05…** (h1c = h1d = g1c); patch +366/−0, md5 f07082fd…
 - **TT throughput.** X/L at Threads 1, hot pool: 0.50 → 0.71-0.74. At Threads 2/4: 1.5-1.6 → 2.1-2.3 × striped locks.
 - **Re-qualification.** Repeat the whole set for any change to the encoding: kit pair, pp identity, 12k cold net on/off in both modes, warm, Hash 1, deep warm, pins, liveness, stress, CI.
   - The parent's reference files (`out/id/P_*`, `out/bughunt/bh_P_*`) stay valid, because only the exe changes.
-- **Review.** A fable bug hunter ran beside the work the whole time (general-purpose agent, model fable, because the `fable` type was missing). It found 7 NIT, no engine defect, and re-derived the F47 census independently.
+- **Review.** A fable bug hunter ran beside the work the whole time (general-purpose agent, model fable, because the `fable` type was missing). Over five commits it found no engine defect at any severity. It raised 1 MINOR (log sharing) and 9 NIT in tooling and docs, and re-derived the F47 census independently.
+- **enc5 (`89cddf7`, final candidate, gate `2940fb05`): the PGO-cold lockless bodies.**
+  - QA's frozen kit workload runs `bench` at the default `TtLockless=false`, so `-fprofile-use` compiles `probe_lockless` / `store_lockless` as never executed: size-optimised (rolled loop, stack spills) and in the cold tail of `.text` (enc4 gate: `0x1401034f2`, unaligned).
+  - `__attribute__((optimize("profile-partial-training")))` on just those two definitions (GCC only; it is an Optimization option, so no `-Wattributes` warning, and the helpers still inline) gives normal `-O3` codegen in normal `.text` (`0x14000bc20`).
+  - It is codegen only; the full identity set was re-proven.
+  - **Always objdump the kit exe's code for a path the training never runs.**
 
 ## Pitfalls hit (2026-11-09)
 - A bash function that sets `status=1` loses it when called inside a pipeline (`f | tee`): the function then runs in a subshell. Tee inside the function and call it as a plain command.

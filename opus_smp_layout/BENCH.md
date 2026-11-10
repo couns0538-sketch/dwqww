@@ -291,4 +291,58 @@ All values are ratios to P's median in the same run.
 - **Nothing here is resolvable on this PC.** QA's ABBA times fresh byte copies per round (speed-lock path), which removes per-file effects.
 
 ### Review
-R2 = the fable bug hunt over `0599271`, `527a696` and `a675c04`: no BLOCKER/MAJOR/MINOR; NIT-1..7 fixed (REVIEW_LOG.md).
+R2 = the fable bug hunt over `0599271`, `527a696`, `a675c04`, `89cddf7` and `b1a7fc6`: **no engine defect at any severity**. Tooling/doc findings: MINOR-1 (log sharing) and NIT-1..9, all fixed (REVIEW_LOG.md).
+
+## 11. Qualification of the candidate `89cddf7` (enc5; EXECUTED 23:03-23:29 Vienna; logs `logs/enc5/`)
+enc5 = enc4 + `FORGE_LOCKLESS_UNTRAINED_OPT` on the definitions of `probe_lockless` and `store_lockless` (SPEC 3.7). The whole set of §10 was repeated on the new exes.
+
+### Builds and codegen
+| build | source | kit v2.3 `-Expose` exe sha256 | kit identity |
+|---|---|---|---|
+| OFF (0) | `89cddf7` as is (tags h0c, h0d) | **`4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0` = P = trial_w6** (pc1 = pc2) | ALL OK |
+| **GATE (1)** | `89cddf7` + the one define flipped (h1c, h1d) and the identical scratch tree g1 (g1c) | **`2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5`** (three identical builds) | OFF: ALL OK; `TtLockless=true`: ALL OK, "IDENTICAL to OFF"; 0 missing-profile warnings |
+
+- The published patch `7ce10a05..89cddf7` (+366/−0, md5 `f07082fdc8a06cb5baaae9cb76f3b538`), applied to a fresh P export and flipped, gives the gate tree byte for byte.
+- **Codegen** (`logs/enc5/codegen/lockless_placement.txt`, objdump):
+
+| gate | `probe_lockless` | `store_lockless` |
+|---|---|---|
+| enc4 `a4b57032` | `0x1401034f2`: the cold tail of `.text` after all hot code, unaligned; 274 instructions; rolled slot loop with stack-indexed loads | `0x140103ade`, 155 instructions |
+| enc5 `2940fb05` | `0x14000bc20`: normal `.text`, aligned; 364 instructions; the unrolled register code of the `-O3` micro-benchmark build | `0x14000c190`, 170 instructions |
+
+- No other function changed its code.
+- The hot search code moved by +1,984 bytes, because the two functions now sit before it. Placement only, as §10 showed for a 128-byte shift.
+
+### Threads 1 identity of the gate `2940fb05` vs P's references (`logs/enc5/id/`)
+| check | options | verdict |
+|---|---|---|
+| L3 cold fens12k, depth 13, net on | `TtLockless=false` / `=true` | **IDENTICAL** (12,000 / 12,000, `0719943326d6b030…`, both modes) |
+| L3 cold fens12k, depth 13, net off | `UseNNUE=false` / `UseNNUE=false;TtLockless=true` | **IDENTICAL** (12,000 / 12,000, `e25cac43a12bf3bc…`, both modes) |
+| L3b warm, 1,000 FENs, 40 option changes | both modes | **IDENTICAL** (`618d5d3539e01c6b…`) |
+| Hash 1 MB replacement pressure, 1,000 FENs, depth 12 | both modes | **IDENTICAL** (`aa5b30715761c8bd…`) |
+| deeper warm, `go nodes 200000`, 300 FENs | `TtLockless=true` | **IDENTICAL** (`dd2126651f1777b9…`) |
+| pins (bench d11-22 net on and off, perft) | both modes | **ALL OK** (`53d7bdfd0b0cdacd…`) |
+| liveness, depth 12 | toggle vs Clear Hash | **PASS** (53,479 / 4,139 / 35,964 in both sessions) |
+
+Every row printed `engine exit ok=True`.
+
+### Race / stress
+- **CI run 42708220996** (`89cddf7`):
+  - release: pins ALL OK (macro 1, `TtLockless=true`, macro 0), engine exit 0, FMA 0, **liveness PASS**.
+  - All modes: both pack tests `Passed`.
+  - **TSan**: contention 182,691,328 probes, 29,632,522 hits, **0 incoherent**; control 678,627 incoherent; lifecycle PASS; real engine over UCI at Threads 2/4 × both modes: exit 0, 5 bestmoves each; **"TSan: 0 reports"**.
+  - **ASan+UBSan** PASS.
+  - Compiler warnings: the same 6 pre-existing `-Wconversion` lines as the macro-0 build; no attribute warning.
+- **UCI lifecycle stress** on `2940fb05`, Threads 1/4/8, 300 cycles, seed 20261109:
+  - `TtLockless=true`: 219 / 219 legal bestmoves, max isready latency while searching 26.6 ms, peak 161.1 MiB, exit 0: **PASS**;
+  - `TtLockless=false`: 219 / 219, 21.1 ms, 161.0 MiB, exit 0: **PASS**.
+
+### Tools (MINOR-1, NIT-9)
+`tools/test_log_sharing.ps1` runs a 300-FEN identity check while a hostile reader keeps opening its UCI log without sharing writing. A survival counts only with at least 10 reader attempts.
+
+| tools | runs | result |
+|---|---|---|
+| current (`89cddf7`+) | 2 | the reader was refused 135 and 124 times: **RUN SURVIVED**, 300 rows |
+| `a675c04` | 2 | **RUN BROKEN** at the reader's first grab: `AppendAllText ... being used by another process`, the same error that aborted `e4_OFF_netoff` |
+
+Logs: `logs/enc5/minor1/`.

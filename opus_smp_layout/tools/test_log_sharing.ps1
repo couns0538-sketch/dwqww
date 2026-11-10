@@ -3,7 +3,9 @@
 # opening its UCI log with FileShare.Read (a "hostile" reader that refuses to share writing), holding it for 200 ms each
 # time. Reports whether the identity run still finished cleanly (exit 0, a COLD verdict line) and how often the reader got
 # the file. Expected: the current tools PASS (the persistent writer holds the log, so the hostile open fails on the reader
-# side); the tools of a675c04 (per-line AppendAllText) FAIL, which shows that the test can fail.
+# side); the tools of a675c04 (per-line AppendAllText) FAIL, which shows that the test can fail. A survival counts only
+# with >= 10 reader attempts on the live log, else the result is INCONCLUSIVE (exit 2; fable bug hunt NIT-9).
+# Exit: 0 RUN SURVIVED, 1 RUN BROKEN, 2 INCONCLUSIVE.
 # Runs inside the job envelope: pins itself (CPUs 12-15, Idle) first; children inherit it. Never ends a process.
 param(
   [Parameter(Mandatory=$true)][string]$ToolsDir,
@@ -39,7 +41,11 @@ while (-not $p.HasExited) {
 $p.WaitForExit()
 $verdict = (Get-Content -LiteralPath $runOut -ErrorAction SilentlyContinue | Select-Object -First 1)
 $clean = ($p.ExitCode -eq 0) -and ($verdict -like 'COLD:*')
-$summary = "test_log_sharing tools=$ToolsDir tag=$Tag | identity exit $($p.ExitCode) | verdict: $verdict | hostile reader: got the log $grabs times, refused $refused times | RESULT $(if ($clean) { 'RUN SURVIVED' } else { 'RUN BROKEN' })"
+# A survival only counts if the hostile reader really contended for the log while the run wrote it (fable bug hunt
+# NIT-9): a wrong log path or a run too short for the reader would otherwise give "RUN SURVIVED" having tested nothing.
+$attempts = $grabs + $refused
+$result = if (-not $clean) { 'RUN BROKEN' } elseif ($attempts -lt 10) { "INCONCLUSIVE (only $attempts reader attempts; need >= 10)" } else { 'RUN SURVIVED' }
+$summary = "test_log_sharing tools=$ToolsDir tag=$Tag | identity exit $($p.ExitCode) | verdict: $verdict | hostile reader: got the log $grabs times, refused $refused times | RESULT $result"
 Write-OspdLf (Join-Path $OutDir "$Tag.sharing.txt") @($summary) -Force
 $summary
-if ($clean) { exit 0 } else { exit 1 }
+if ($result -eq 'RUN SURVIVED') { exit 0 } elseif ($result -eq 'RUN BROKEN') { exit 1 } else { exit 2 }
