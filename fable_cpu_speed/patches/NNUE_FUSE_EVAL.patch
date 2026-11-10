@@ -1,0 +1,162 @@
+--- a/forge-combo29/include/forge/nnue.hpp
++++ b/forge-combo29/include/forge/nnue.hpp
+@@ -27,6 +27,18 @@
+ // src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
+ #ifndef FORGE_SPD_NNUE_ZMM
+ #define FORGE_SPD_NNUE_ZMM 0
++#endif
++
++// Build switch (default 0 = the lock code): 1 = when the static evaluation has
++// to bring the accumulator up to date, the last update and the output layer
++// run as one pass: each block of 16 hidden units is updated for both
++// perspectives, stored, and fed to the output kernel from the registers.
++// Every lane sees the same subtractions, additions, multiplications and sums
++// in the same order as update() followed by evaluate(), so the stored
++// accumulator and the returned value are bit-identical. Needs
++// FORGE_SPD_NNUE_ZMM=1.
++#ifndef FORGE_SPD_NNUE_FUSE_EVAL
++#define FORGE_SPD_NNUE_FUSE_EVAL 0
+ #endif
+ 
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+@@ -71,6 +83,11 @@
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
+ // Side-to-move evaluation in centipawns.
+ [[nodiscard]] int evaluate(const Board& board, const Accumulator& accumulator);
++#if FORGE_SPD_NNUE_FUSE_EVAL
++// update(parent, child, dirty) followed by evaluate(board, child), as one pass
++// (see FORGE_SPD_NNUE_FUSE_EVAL). `board` is the position of `child`.
++[[nodiscard]] int update_evaluate(const Board& board, const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
++#endif
+ 
+ // Piece changes implied by a move about to be played on `board`.
+ [[nodiscard]] DirtyPieces dirty_pieces(const Board& board, const Move& move);
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -248,6 +248,89 @@
+     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+ }
+ 
++#if FORGE_SPD_NNUE_FUSE_EVAL
++#if !FORGE_SPD_NNUE_ZMM
++#error "FORGE_SPD_NNUE_FUSE_EVAL=1 needs FORGE_SPD_NNUE_ZMM=1 (it reuses the 512-bit output kernel)"
++#endif
++int update_evaluate(const Board& board, const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
++    const bool quiet = dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add;
++    const bool capture = dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add;
++    if (!quiet && !capture) {
++        // Castling, null moves and anything else: the lock's two calls.
++        update(parent, child, dirty);
++        return evaluate(board, child);
++    }
++    const Weights& w = weights();
++    const Color us = board.side_to_move();
++    const Color them = opposite(us);
++    constexpr int Lanes = 16;
++    static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
++    const auto column = [&w](Color perspective, const PieceChange& change) {
++        return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
++    };
++    const PieceChange& removed0 = dirty.changes[0];
++    const PieceChange& added = dirty.changes[static_cast<std::size_t>(dirty.count - 1)];
++    const float* const src_us = parent.values[static_cast<std::size_t>(us)].data();
++    const float* const src_them = parent.values[static_cast<std::size_t>(them)].data();
++    float* const dst_us = child.values[static_cast<std::size_t>(us)].data();
++    float* const dst_them = child.values[static_cast<std::size_t>(them)].data();
++    const float* const rem0_us = column(us, removed0);
++    const float* const rem0_them = column(them, removed0);
++    const float* const add_us = column(us, added);
++    const float* const add_them = column(them, added);
++    const __m512 zero = _mm512_setzero_ps();
++    const __m512 one = _mm512_set1_ps(1.0F);
++    __m512 sum = zero;
++    if (quiet) {
++        for (int h = 0; h < HiddenSize; h += Lanes) {
++            const std::size_t base = static_cast<std::size_t>(h);
++            // update(): destination = (source - removed) + added, per lane.
++            const __m512 ours = _mm512_add_ps(
++                _mm512_sub_ps(_mm512_load_ps(src_us + base), _mm512_loadu_ps(rem0_us + base)), _mm512_loadu_ps(add_us + base));
++            const __m512 theirs = _mm512_add_ps(
++                _mm512_sub_ps(_mm512_load_ps(src_them + base), _mm512_loadu_ps(rem0_them + base)), _mm512_loadu_ps(add_them + base));
++            _mm512_store_ps(dst_us + base, ours);
++            _mm512_store_ps(dst_them + base, theirs);
++            // evaluate(): the 512-bit kernel of the lock on the values just stored.
++            const __m512 a = _mm512_min_ps(_mm512_max_ps(ours, zero), one);
++            const __m512 b = _mm512_min_ps(_mm512_max_ps(theirs, zero), one);
++            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
++                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
++            sum = _mm512_add_ps(sum, term);
++        }
++    } else {
++        const PieceChange& removed1 = dirty.changes[1];
++        const float* const rem1_us = column(us, removed1);
++        const float* const rem1_them = column(them, removed1);
++        for (int h = 0; h < HiddenSize; h += Lanes) {
++            const std::size_t base = static_cast<std::size_t>(h);
++            // update(): destination = ((source - removed0) - removed1) + added, per lane.
++            const __m512 ours = _mm512_add_ps(
++                _mm512_sub_ps(_mm512_sub_ps(_mm512_load_ps(src_us + base), _mm512_loadu_ps(rem0_us + base)), _mm512_loadu_ps(rem1_us + base)),
++                _mm512_loadu_ps(add_us + base));
++            const __m512 theirs = _mm512_add_ps(
++                _mm512_sub_ps(_mm512_sub_ps(_mm512_load_ps(src_them + base), _mm512_loadu_ps(rem0_them + base)), _mm512_loadu_ps(rem1_them + base)),
++                _mm512_loadu_ps(add_them + base));
++            _mm512_store_ps(dst_us + base, ours);
++            _mm512_store_ps(dst_them + base, theirs);
++            const __m512 a = _mm512_min_ps(_mm512_max_ps(ours, zero), one);
++            const __m512 b = _mm512_min_ps(_mm512_max_ps(theirs, zero), one);
++            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
++                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
++            sum = _mm512_add_ps(sum, term);
++        }
++    }
++    child.valid = true;
++    alignas(64) float lanes[Lanes];
++    _mm512_store_ps(lanes, sum);
++    // The same ordered reduction and conversion as evaluate().
++    float out = w.b2;
++    for (int j = 0; j < Lanes; ++j) out += lanes[j];
++    const float centipawns = out * 400.0F / SigmoidK;
++    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
++}
++#endif
++
+ DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+     DirtyPieces dirty;
+     const Color us = board.side_to_move();
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -811,6 +811,10 @@
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
++#if FORGE_SPD_NNUE_FUSE_EVAL
++    int network = 0;
++    bool have_network = false;
++#endif
+     if (!ss->accumulator.valid) {
+         // Walk back to the nearest valid accumulator, then replay the moves.
+         int back = 0;
+@@ -820,12 +824,23 @@
+             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+         } else {
+             for (int i = back; i >= 0; --i) {
++#if FORGE_SPD_NNUE_FUSE_EVAL
++                if (i == 0) {
++                    // The last replayed move: update this node's accumulator and evaluate it in one pass.
++                    network = nnue::update_evaluate(board, (ss - 1)->accumulator, ss->accumulator, ss->dirty);
++                    have_network = true;
++                } else
++#endif
+                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+             }
+         }
+     }
++#if FORGE_SPD_NNUE_FUSE_EVAL
++    if (!have_network) network = nnue::evaluate(board, ss->accumulator);
++#else
+     const int network = nnue::evaluate(board, ss->accumulator);
++#endif
+     if (!residual) return network;
+     if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+     // A residual network is a learned correction on top of the hand-crafted evaluation.

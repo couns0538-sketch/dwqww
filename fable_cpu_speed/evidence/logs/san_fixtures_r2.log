@@ -1,0 +1,21 @@
+SANITIZER FIXTURES; 2026-11-10 16:14:38 Vienna
+script san.py sha256 ea8e3de1f27d8b9029c6e3c8b969bd82871a2bef87d7fa75168a02de2be4ce6a
+script uci_common.py sha256 9a8e1222f7b19a5927645072b45e41cdb12aa0821bb693ba148e5ae4b355e2c7
+script san_fixtures.cpp sha256 a511cc73a95cc2b5dec2476f5defbecc65500024931e3097cc31948d3f8c1e81
+python 3.15.2; this process mask 0x404A; source revision 16833ecc03b425586f91f4c8834dea8807bf4c22
+exe C:\opus_5h\oss_scout\dl\llvm-mingw-20261104\x\llvm-mingw-20261104-ucrt-x86_64\bin\clang++.exe bytes 13824 md5 57f9a94304aa8bcafa927afd2ddfc622 sha256 d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970
+compile flags: -std=c++20 -O1 -g -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -march=znver5 -pthread --sysroot=C:/msys64/ucrt64 -stdlib=libstdc++ -rtlib=libgcc -unwindlib=libgcc <sanitizer flag> -fuse-ld=lld -static; ASan link adds -Wl,--allow-multiple-definition
+ASAN_OPTIONS=halt_on_error=1:detect_leaks=0:print_summary=1; UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0:print_summary=1
+planned: 7 fixtures (3 ASan faults, 3 UBSan faults, 1 clean fixture built once per sanitizer) = 8 builds and runs; plus the ThreadSanitizer compile attempt
+fixture 1 under asan, wants "heap-buffer-overflow": exit 1 -> REPORTED AS EXPECTED | ==6936==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x100680020030 at pc 0x7ff6ec95156e bp 0x00000014fdf0 sp 0x00000014fe38
+fixture 2 under asan, wants "stack-buffer-overflow": exit 1 -> REPORTED AS EXPECTED | ==3096==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x00000014fe08 at pc 0x7ff67cd015f8 bp 0x00000014fd40 sp 0x00000014fd88
+fixture 3 under asan, wants "heap-use-after-free": exit 1 -> REPORTED AS EXPECTED | ==240==ERROR: AddressSanitizer: heap-use-after-free on address 0x100480020030 at pc 0x7ff74e1c152d bp 0x00000014fde0 sp 0x00000014fe28
+fixture 4 under ubsan, wants "signed integer overflow": exit 0 -> REPORTED AS EXPECTED | D:\forge_jobs_20261110\fable4cpu\repo\fable_cpu_speed\tests\san_fixtures.cpp:34:15: runtime error: signed integer overflow: 2147483647 + 1 cannot be represented in type 'int'
+fixture 5 under ubsan, wants "shift exponent": exit 0 -> REPORTED AS EXPECTED | D:\forge_jobs_20261110\fable4cpu\repo\fable_cpu_speed\tests\san_fixtures.cpp:38:15: runtime error: shift exponent 40 is too large for 32-bit type 'int'
+fixture 6 under ubsan, wants "out of bounds": exit 0 -> REPORTED AS EXPECTED | D:\forge_jobs_20261110\fable4cpu\repo\fable_cpu_speed\tests\san_fixtures.cpp:43:41: runtime error: index 6 out of bounds for type 'int[4]'
+fixture clean under asan: exit 0, report lines 0 -> AS EXPECTED (silent)
+fixture clean under ubsan: exit 0, report lines 0 -> AS EXPECTED (silent)
+ThreadSanitizer compile attempt (-fsanitize=thread): exit 1: clang-23: error: unsupported option '-fsanitize=thread' for target 'x86_64-w64-windows-gnu'
+ThreadSanitizer available: NO (compiler refuses the option for this target)
+planned 8 completed 8 as expected 8
+VERDICT FIXTURES PASS; end 2026-11-10 16:14:40 Vienna

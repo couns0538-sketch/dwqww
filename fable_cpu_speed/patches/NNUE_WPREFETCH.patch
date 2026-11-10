@@ -1,0 +1,76 @@
+--- a/forge-combo29/include/forge/nnue.hpp
++++ b/forge-combo29/include/forge/nnue.hpp
+@@ -27,6 +27,16 @@
+ // src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
+ #ifndef FORGE_SPD_NNUE_ZMM
+ #define FORGE_SPD_NNUE_ZMM 0
++#endif
++
++// Build switch (default 0 = the lock code): N in 1..16 = when the search
++// records a move, prefetch the first N 64-byte lines of each weight column
++// that the lazy accumulator update for that move will read, for both
++// perspectives (a column is HiddenSize floats, 16 lines at HiddenSize 256).
++// A prefetch changes no value: search and evaluation are identical, only the
++// timing of memory loads differs.
++#ifndef FORGE_SPD_NNUE_WPREFETCH
++#define FORGE_SPD_NNUE_WPREFETCH 0
+ #endif
+ 
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+@@ -69,6 +79,10 @@
+ 
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
++#if FORGE_SPD_NNUE_WPREFETCH
++// Prefetch the weight columns named by `dirty` (see FORGE_SPD_NNUE_WPREFETCH).
++void prefetch_columns(const DirtyPieces& dirty);
++#endif
+ // Side-to-move evaluation in centipawns.
+ [[nodiscard]] int evaluate(const Board& board, const Accumulator& accumulator);
+ 
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -91,6 +91,31 @@
+ bool available() { return FORGE_HAS_NNUE != 0; }
+ 
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
++
++#if FORGE_SPD_NNUE_WPREFETCH
++#if FORGE_SPD_NNUE_WPREFETCH < 1 || FORGE_SPD_NNUE_WPREFETCH > 16
++#error "FORGE_SPD_NNUE_WPREFETCH is a count of 64-byte lines per weight column: 1 to 16"
++#endif
++#if !FORGE_NNUE_SSE
++#error "FORGE_SPD_NNUE_WPREFETCH needs _mm_prefetch (an x86-64 target)"
++#endif
++void prefetch_columns(const DirtyPieces& dirty) {
++    const float* const w1 = weights().w1.get();
++    constexpr int ColumnBytes = static_cast<int>(sizeof(float)) * HiddenSize;
++    constexpr int WantedBytes = 64 * FORGE_SPD_NNUE_WPREFETCH;
++    constexpr int PrefetchBytes = WantedBytes < ColumnBytes ? WantedBytes : ColumnBytes;
++    for (int i = 0; i < dirty.count; ++i) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++        for (const Color perspective : {White, Black}) {
++            const char* const column = reinterpret_cast<const char*>(
++                w1 + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize);
++            for (int offset = 0; offset < PrefetchBytes; offset += 64) _mm_prefetch(column + offset, _MM_HINT_T0);
++            // A column that does not start on a line boundary ends in one more line.
++            if (PrefetchBytes == ColumnBytes) _mm_prefetch(column + ColumnBytes - 1, _MM_HINT_T0);
++        }
++    }
++}
++#endif
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
+     const Weights& w = weights();
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -839,6 +839,9 @@
+     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+     (ss + 1)->accumulator.valid = false;
+     (ss + 1)->runtime_psqt.valid = false;
++#if FORGE_SPD_NNUE_WPREFETCH
++    nnue::prefetch_columns((ss + 1)->dirty);
++#endif
+ }
+ 
+ void Worker::record_null_move(SearchStack* ss) {
