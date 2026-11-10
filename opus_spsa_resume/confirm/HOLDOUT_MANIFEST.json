@@ -1,0 +1,16 @@
+{
+ "schema": "opus3-holdout/1",
+ "frozen_before_fitting": true,
+ "source": "partition/PARTITION_MANIFEST.json (8moves_v3 sha256 5835239f..., hash-bucketed by final-position key; pairwise disjoint)",
+ "groups": {
+  "holdout_G1": {"count": 2408, "pgn_sha256": "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc", "keys_sha256": "cb0083c3913a18eb21a57d3ed5c3d08474aa3e73e4ae589099f575232d20602b", "use": "primary holdout of this pack's runner (single use)"},
+  "holdout_G2": {"count": 2493, "pgn_sha256": "47985a6e8597dfad6b5481c29bfb8e2c4b0992df710dd3cb733f265b928eb819", "keys_sha256": "f0eaa3b466d8068288d74cdd8af0b02ba4d51b0af7eee92e379f4e8b64ae6809", "use": "reserved: only after a written, QA-approved protocol change, before any game of it"},
+  "holdout_G3": {"count": 2046, "pgn_sha256": "47cbbeb49c4b4facb20afc25348fe2903ac92a118aefa8f95bf1f5bc45fa817f", "keys_sha256": "b0a54cedf614452765d5eaaeefdf50d7da546b8b2382f81177a285c34374c210", "use": "reserved (as G2)"}
+ },
+ "training_partition": {"name": "train", "count": 24288, "pgn_sha256": "fa0b8708103f70cf0127364a940010b832bd8ec8f9f8f7a10f97bef3189b213f", "keys_sha256": "5e5dd9342a74b1473063f745f7b1c52229665f146cc797b14de8a13ac45c58a2"},
+ "screen_partition": {"name": "screen", "count": 3465, "pgn_sha256": "63bb149518256ba9608cdb6a8a22f87b7712e4707b8ad394c3767a5e1c45307c", "keys_sha256": "aab754534ded4eca857f51cd223fa71da5cfa1415cef9041942f66600927f024"},
+ "qa_book_alternative": {"book": "uho_lichess_v1", "sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a", "lines": 2632036,
+   "lines_matching_training_keys": 50, "lines_matching_screen_keys": 9, "compare": "pieces side castling (conservative)",
+   "rule": "every played opening of a QA confirmation is audited (bin/confirm.ps1 -Command audit); claim only if leakage <= 1% of pairs"},
+ "single_use_rule": "confirm_runner.py registry: a holdout group serves exactly one confirmation run directory, ever (no second candidate, no re-run until a lucky result)"
+}

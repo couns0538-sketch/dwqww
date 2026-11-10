@@ -1,0 +1,28 @@
+{
+ "status": "PROPOSAL ONLY: not written to any queue; QA decides, assigns srand, builds and pins the exe, and fills the candidate values after a COMPLETE tuning run",
+ "format": "entry shaped like C:\\Users\\Administrator\\grok-pc\\forge_deepres_stage_20261109\\queue_entries_DR.json (QA's combo29 gate entries)",
+ "entry": {
+  "gate": "OPUS3-RQ1",
+  "tag": "uhoRazorQsJoint_vs_combo29",
+  "cand": "cand_opus3_razorqs_PCSHA8",
+  "exe": "forge_opus3_tunegate_PCSHA8.exe",
+  "sha256": "FILL_FROM_PC_BUILD (patches/tune_gate_after_combo29.patch, -DFORGE_RAZOR_TUNE=1 -DFORGE_QS_TUNE=1, QA's clang LTO+PGO recipe)",
+  "ok": "CR_PASS_opus3_razorqs.ok (after Code Review)",
+  "options": ["option.RazorTune=1", "option.QsTune=1", "option.RazorBase=FILL_FROM_candidate.json", "option.RazorMultiplier=FILL_FROM_candidate.json", "option.QsFutilityMargin=FILL_FROM_candidate.json"],
+  "threads": 1,
+  "prebench_depths": [11, 13, 16, 20, 22],
+  "prebench": {"cand_off": [312866, 862329, 3024920, 12389307, 34048354], "cand_on": "FILL (depends on the tuned values; at the lock values cand_on equals cand_off, see BENCH.md)"},
+  "sprt": {"elo0": 0, "elo1": 5, "nonreg": false},
+  "cap_games": 40000,
+  "cap_games_note": "QA's standard 5000 decides only for large effects (synthetic P(H1) 0.11 at nElo 10); 40000 gives 0.84 at nElo 5 (confirm/POWER_TABLE*.json)",
+  "concurrency": "QA",
+  "tc": "10+0.1",
+  "book": "uho_lichess_v1",
+  "srand": "QA_ASSIGNS (must differ from the tuning seed 20261110)",
+  "openings_start": 1800001,
+  "longer_tc_confirm_if_h1": true,
+  "never_pool_with": "every other gate",
+  "idea_source": "opus_spsa_resume (own code): joint SPSA of razoring + qsearch futility; candidate rule confirm/select_candidate.py",
+  "notes": "Base = CURRENT_LOCK.json combo29 E1284F7F. After the gate, audit the PGN: bin/confirm.ps1 -Command audit (independent recomputation + training-position leakage check, claim only if agreement and leakage <= 1%). Stale if DR01/DR04/DR06/DR12/DR14/DR15 or any razoring/qsearch/static-eval change became the lock first (PLAN.md 5)."
+ }
+}
