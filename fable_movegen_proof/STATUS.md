@@ -1,6 +1,6 @@
 # STATUS: job 3, move-generator proof (Fable 5.2)
 
-Written 2026-11-10 20:30 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
+Written 2026-11-10 20:36 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
 
 ## State in one paragraph
 
@@ -87,8 +87,9 @@ Harness source `mgprobe.cpp` sha256 begins `42efd61dd819eb7d` (frozen copy besid
 | Search signatures on 100,000 corpus positions, depth 7, both nets (chain C) | RUNNING since 20:21; EVL and PCM net on identical so far |
 | Report controls L1 to L5 (counting, binding to the frozen binaries, verdict rule, self-test line, replay) | Red run 20:28 `RED4.log` FAIL 0/5 against a counter and a verdict that cannot refuse; 5/5 against the real code; the full self-test (`GREEN6.log`) is run when an engine slot is free |
 | Replay of counted ledger rows (`harness\replay.py`) | PENDING: after chain A, a sample of rows of both tiers |
-| Review 2a (runners and report generator, read-only reviewer on another model) | RUNNING since 20:09 |
-| Review 2b (PROOF.md against the evidence), final reports, manifest, DONE | PENDING |
+| Review 2a (runners and report generator, read-only reviewer on another model) | STOPPED 20:34 on the owner's instruction "no subagents allowed" (they cost tokens); it had returned no finding. No subagent is started any more. |
+| Review 2 as a self-review by the main agent (runners, report generator, PROOF.md against the evidence) | RUNNING; findings so far are fixed in `report.py`, `proof_template.md`, `README.md` (commit `728317e6` and later) |
+| Final reports, manifest, DONE | PENDING |
 
 ## Verdicts so far
 
@@ -118,7 +119,7 @@ Used: superpowers brainstorming, writing-plans, executing-plans, test-driven-dev
 
 ## Next action
 
-Wait for chain A (auxiliary fuzz to chunk 199, cache-state variants, cross-tier, edge suite), chain R and chain C; act on review 2a; then `selftest.py` (log `runs\selftest\GREEN6.log`), `replay.py` on a sample of rows, `fuzz.py keys v1:0-99 v2:100-199`, `fuzz.py count`, `coverage.py`, `report.py`, review 2b, manifest, commit and push.
+Wait for chain A (auxiliary fuzz to chunk 199, cache-state variants, cross-tier, edge suite), chain R and chain C; finish the self-review; then `selftest.py` (log `runs\selftest\GREEN6.log`), `replay.py` on a sample of rows, `fuzz.py keys v1:0-99 v2:100-199`, `fuzz.py count`, `coverage.py`, `report.py`, manifest, commit and push. No subagents (owner's instruction of 20:34).
 
 ## Resume commands
 

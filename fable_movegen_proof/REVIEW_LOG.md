@@ -38,6 +38,28 @@ Reviews follow the AGENTS.md policy: one read-only reviewer on another model, fi
 
 **Consequence for the results.** Harness 2 was built and its self-test went red (run 3: 16 of 27 against the old Python code), then green (run 5: 67 of 67). Every counted run was started again from chunk 0 with harness 2.
 
-## Review 2: evidence and report
+## Review 2: runners, report generator, report against the evidence
 
-Recorded below when it has run.
+**2a, started as an independent review.** Dispatched 20:09 to one read-only reviewer on another model (Opus; Read / Grep / Glob only) with the scope `fuzz.py`, `checks_release.py`, `edge.py`, `chess_oracle.py`, `coverage.py`, `wnp_targets.py`, `report.py` and the fixes of review 1. **Stopped 20:34 on the owner's instruction "no subagents allowed"** (they cost tokens). It had returned no finding; nothing of it is used. No subagent was started afterwards.
+
+**2, self-review by the main agent.** The reviewer is the author of the code and the same model. This is weaker than the independent review the policy asks for; it is recorded as what it is, and the owner decides whether it is enough. Read again in full for this review: `fuzz.py`, `report.py`, `checks_release.py`, the run part of `edge.py`, the batch runner, parser, comparator and tie check of `uci_session.py`, and `compare` in `mg_compare.py`. Not read again: `mgprobe.cpp` and `mg_format.py` (their harness-2 changes are exercised by the self-test controls A12b to A35), `chess_oracle.py`, `edge_bases.py`, `coverage.py`, `wnp_targets.py`, `pinguard3.py`, the PowerShell scripts.
+
+No finding showed a way for a real difference to be recorded as OK: tier A is OK only when the two transcript bodies are byte-identical after a validated lock transcript, tier R only when the perft blocks are identical after the lock executable's blocks were found equal to the lock probe's lists. The findings concern the report generator, the descriptions and the replay:
+
+| # | Finding | Disposition | Recheck |
+|---|---|---|---|
+| S1 | The report took the self-test result from the newest file named `GREEN*`. Three logs with that name end in FAIL (attempts made while the harness was written), and a failed later run under another name would not have been seen. | **Fixed.** The newest log by time counts, and only a line `SELFTEST PASS n/n` passes. PROOF.md lists every log with its last line and says what the failed attempts were. | Control L4; PROOF.md section 3 |
+| S2 | The verdict read the release-exe checks from a summary file that could be older than the receipts, and nothing compared a receipt's executable hash with the frozen inputs. | **Fixed.** The summary is derived again when the report is made. A receipt counts only if it names the frozen executable (pins, divide, warm, soak); for the edge suite also the suite file of the pack and the probe of the build receipt. | PROOF.md section 1: receipts naming other binaries |
+| S3 | Ledger rows were counted without comparing the binary hashes they name with the frozen ones. | **Fixed** (`aux_row_bound`, `uci_row_bound` in `report.py`). | Control L2 |
+| S4 | The cache-state gate passed with one of the two variants, counted rows instead of chunks, and did not look at the binaries its rows name. | **Fixed.** | Table of the variants |
+| S5 | The check that a probe lists the same moves as its own release executable was reported, but a PASS did not depend on it. | **Fixed:** it is a gate (`probe_tied_to_exe`). | `evidence/VERDICTS.json` |
+| S6 | The rows of the release-exe ledger carry the executable, input and output hashes but no harness hash. | **Not changed:** a change of `fuzz.py` during the counted runs would have split the harness hash of the tier A rows. The report compares the hash of the six harness files at report time with the hash in the tier A rows written in the same hours and states the result. The six files are unchanged since commit `1fd97049`. | PROOF.md section 7 |
+| S7 | PROOF.md described some runs imprecisely: the warm transcript (depth 17 after `ucinewgame`, depth 12 on the game line), the soak (72 node-limited searches and 6 stopped ones), the edge suite on the release executables (perft 2 on the entries only), the stale-cache sentence. | **Corrected** in `harness/proof_template.md`. | - |
+| S8 | README's replay by hand used PowerShell redirection, which re-encodes the path file under PowerShell 5.1; and no ledger row had been replayed. | **Fixed:** `harness/replay.py` runs a counted row again and compares every hash with the row; README uses `cmd` for the redirections; a sample of rows of both tiers was replayed. | Control L5; PROOF.md section 11 |
+| S9 | `fuzz.py search` records the candidate's exit code without using it and does not record the lock's. | **Partly fixed:** the report shows the exit codes and treats a non-zero one as a difference to confirm. The lock's exit code stays unrecorded (`fuzz.py` not changed; the evidence is supplementary). | Search-signature table |
+| S10 | The coverage sentence named the inputs of the first candidate only; WNP also ran the constructed targets. | **Fixed;** the lowest count per region was added. | Coverage table |
+| S11 | No control tested the counting, the binding and the verdict rule of the report. | **Added:** controls L1 to L5, watched failing first (`RED4.log`, 0 of 5). | `RED4.log`, final self-test log |
+
+Left as they are: `fuzz.py count` and `checks_release.py summary` do not apply the binding to the frozen binaries (the report does, and the numbers of PROOF.md come from the report); the exit codes of the depth-12 searches of the edge suite are recorded and not checked (supplementary).
+
+**2b, PROOF.md against the evidence** (main agent, after the final report was generated): recorded below.

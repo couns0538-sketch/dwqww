@@ -423,14 +423,19 @@ def main():
         t.append(f"| {tag} | {x['positions']:,} | {x['identical_lists']:,} | {x['status']} |" if cross[tag] else f"| {tag} | {other if x else 'not run'} | | |")
     sec("CROSSTIER_TABLE", "Cross-tier: a probe's legal list equals its own release exe's go perft 1 list", "\n".join(t))
     vdir = os.path.join(r, "coverage")
-    t = ["| Candidate | Switch | Instrumented lines in the `#if` region | Executed | Highest count | Never executed |", "|---|---|---|---|---|---|"]
-    cov_inputs = ""
+    t = ["| Candidate | Switch | Instrumented lines in the `#if` region | Executed | Lowest count of a line | Highest count | Never executed |", "|---|---|---|---|---|---|---|"]
+    cov_inputs, common = "", None
     for c in CANDS:
         x = jload(os.path.join(vdir, c + ".json"))
-        if x and not cov_inputs:
-            cov_inputs = "Inputs of the coverage runs: " + "; ".join(i["input"] for i in x["inputs"]) + "."
+        if x:
+            names = [i["input"] for i in x["inputs"]]
+            if common is None:
+                common = names
+                cov_inputs = "Inputs of the coverage runs: " + "; ".join(names) + "."
+            elif [n for n in names if n not in common]:
+                cov_inputs += f" For {c} also: " + "; ".join(n for n in names if n not in common) + "."
         for sw, e in (x or {}).get("switches", {}).items():
-            t.append(f"| {c} | {sw} | {e['instrumented_lines']} | {e['executed_lines']} | {e['max_count']:,} | {len(e['never_executed'])} |")
+            t.append(f"| {c} | {sw} | {e['instrumented_lines']} | {e['executed_lines']} | {min((ln['count'] for ln in e['lines']), default=0):,} | {e['max_count']:,} | {len(e['never_executed'])} |")
     sec("COVERAGE_TABLE", "Do the test inputs execute the changed lines? (coverage builds of the unchanged source)", "\n".join(t) + ("\n\n" + cov_inputs if cov_inputs else ""))
     wdir = os.path.join(r, "wnp_targets")
     t = ["| Tag | Targets | Decisive for the lock | Identical records | Result |", "|---|---|---|---|---|"]
@@ -448,6 +453,10 @@ def main():
                 s = jload(os.path.join(wdir, name))
                 extra.append(f"For comparison, fuzz chunks {s['chunks']} of seeds {s['seeds']} ({s['positions']:,} positions) contain {s['stalemates']} stalemates, "
                              f"{s['stalemates_with_a_generated_pawn_push']} of them with a generated pawn push, that is decisive for WITNESS_NOPIN.")
+    wcov = ((jload(os.path.join(vdir, "WNP.json")) or {}).get("switches") or {}).get("FORGE_SPD_WITNESS_NOPIN")
+    if wcov:
+        extra.append("Execution counts of the lines of the WITNESS_NOPIN region in the coverage build, which show how often the new test ran and how often its shortcut was taken: "
+                     + "; ".join(f"line {ln['line']} `{ln['text'].strip()[:90]}` {ln['count']:,}" for ln in wcov["lines"]) + ".")
     sec("WNP_TABLE", "WITNESS_NOPIN targets (constructed stalemates with a pinned pawn push; reported on their own)", "\n".join(t) + ("\n\n" + " ".join(extra) if extra else ""))
     pdir = os.path.join(r, "replay")
     reps = [jload(os.path.join(pdir, n)) for n in sorted(os.listdir(pdir)) if n.endswith(".json")] if os.path.isdir(pdir) else []
@@ -509,7 +518,8 @@ def main():
                        + [f"tier R chunk {k}: {s}" for k, s, _ in u["bad"] if s not in ("MISMATCH", "CRASH")]}
     vt = ["| Candidate | Verdict | Tier A comparisons completed (all fields) | Tier R comparisons completed (move lists) | Open gates | Differences |", "|---|---|---|---|---|---|"]
     for c, v in verdicts.items():
-        vt.append(f"| {c}: {v['name']} | **{v['verdict']}** | {v['tier_a_completed']:,} | {v['tier_r_completed']:,} | "
+        note = " (two tiers: checkers and static eval on the auxiliary probe, not on the release executable)" if v["verdict"] == "PASS" else ""
+        vt.append(f"| {c}: {v['name']} | **{v['verdict']}**{note} | {v['tier_a_completed']:,} | {v['tier_r_completed']:,} | "
                   f"{', '.join(GATE_TEXT[g] for g in v['open_gates']) or 'none'} | {len(v['differences'])} |")
     S["VERDICT_TABLE"] = "\n".join(vt)
     order.insert(0, ("Verdict per candidate (derived from the receipts and ledgers)", "VERDICT_TABLE"))
