@@ -13,6 +13,9 @@
 namespace forge {
 struct SearcherTestProbe {
     static std::vector<Worker*> workers(Worker& main) { return *main.all_workers_; }
+    static void permit_tail_work(Worker& worker) {
+        worker.shared_.stop.store(false, std::memory_order_relaxed);
+    }
     static void seed_nodes(Worker& worker, std::uint64_t nodes) {
         worker.nodes_.store(nodes, std::memory_order_relaxed);
     }
@@ -25,6 +28,7 @@ std::condition_variable gate_cv;
 bool hold_helpers = false;
 bool release_helpers = false;
 int gated_creates = 0;
+forge::Worker* tail_worker = nullptr;
 struct Start { void* (*function)(void*); void* argument; };
 void* gated_start(void* argument) {
     const Start start = *static_cast<Start*>(argument);
@@ -63,6 +67,9 @@ extern "C" int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* at
 }
 extern "C" int __wrap_pthread_join(pthread_t thread, void** result) {
     if (hold_helpers) {
+        // Model real late work after the result snapshot by letting the held
+        // helper complete a depth-one search before this join returns.
+        if (tail_worker) forge::SearcherTestProbe::permit_tail_work(*tail_worker);
         { const std::lock_guard<std::mutex> lock(gate_mutex); release_helpers = true; }
         gate_cv.notify_all();
     }
@@ -70,6 +77,7 @@ extern "C" int __wrap_pthread_join(pthread_t thread, void** result) {
 }
 
 int main() {
+    const bool test_tail = std::getenv("SMP_NODES_FINAL") != nullptr;
     forge::nnue::enabled = false;
     forge::Searcher searcher(1, 2);
     forge::SearchLimits warmup;
@@ -79,18 +87,30 @@ int main() {
     (void)searcher.search(forge::Board{}, warmup, true);
     std::cout.rdbuf(old);
     if (capture.workers.size() != 2) return 2;
-    forge::SearcherTestProbe::seed_nodes(*capture.workers[1], 1000000);
+    forge::SearcherTestProbe::seed_nodes(*capture.workers[1], test_tail ? 0 : 1000000);
+    if (test_tail) tail_worker = capture.workers[1];
     hold_helpers = true;
     forge::SearchLimits limits;
-    limits.depth = 8;
-    limits.nodes = 100;
-    limits.nodes_specified = true;
+    limits.depth = test_tail ? 1 : 8;
+    limits.nodes = test_tail ? 0 : 100;
+    limits.nodes_specified = !test_tail;
     const auto result = searcher.search(forge::Board{}, limits);
     hold_helpers = false;
     const auto main_nodes = searcher.main_worker().nodes();
     if (gated_creates != 1) {
         std::cerr << "FAIL pthread wrapping inactive (link static libstdc++)\n";
         return 2;
+    }
+    if (test_tail) {
+        std::uint64_t total = 0;
+        for (const auto* worker : capture.workers) total += worker->nodes();
+        if (total <= main_nodes || result.nodes != total) {
+            std::cerr << "FAIL post-join accounting: main=" << main_nodes
+                      << " returned=" << result.nodes << " final=" << total << '\n';
+            return 1;
+        }
+        std::cout << "PASS post-join accounting: returned=" << result.nodes << '\n';
+        return 0;
     }
     if (main_nodes != 100 || result.nodes != 100) {
         std::cerr << "FAIL stale helper counter: main=" << main_nodes

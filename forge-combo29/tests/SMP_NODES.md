@@ -21,3 +21,23 @@ Static libstdc++ is required so linker wrapping intercepts its pthread calls.
 The harness explicitly verifies that the helper creation was intercepted.
 No test hook is added to production code. These focused tests do not replace
 scripts/check_pins.sh, legality tests, or native engine-strength testing.
+
+## Final totals after joining helpers
+
+`FORGE_FIX_SMP_FINAL_NODES=1` replaces the returned `SearchInfo.nodes` with the
+sum of the workers' final counters after all helpers join. Default 0 retains
+the earlier main-worker snapshot. Iterative UCI info lines remain live samples.
+
+```sh
+SMP_NODES_FINAL=1 tests/run_smp_nodes.sh /tmp/smp-final \
+  -DFORGE_FIX_SMP_NODE_RESET=1 -DFORGE_FIX_SMP_FINAL_NODES=1
+/tmp/smp-final # also checks the stale-counter case
+```
+
+The final-total test holds the helper until join, then clears the shared stop
+flag through the existing test friend so the helper performs a real depth-one
+search before returning. This deliberately models tail work after the main
+snapshot without relying on a scheduler race. This is a test-only cancellation
+intervention, not a claim that a blocked production helper normally ignores
+stop. On the old accounting path: main=21, returned=21, final=42. With the final
+accounting switch on: returned=42, equal to the sum after joining.

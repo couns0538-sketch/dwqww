@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 20615)
-Total output lines: 1827
-
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
 
@@ -17,6 +14,11 @@ Total output lines: 1827
 // never outgrow its storage (it only reuses slots of moves it has already handed out).
 #ifndef FORGE_SDK_BADCAP_PREFIX
 #define FORGE_SDK_BADCAP_PREFIX 0
+#endif
+
+// Opt-in correctness fix: return the completed, joined workers' node total.
+#ifndef FORGE_FIX_SMP_FINAL_NODES
+#define FORGE_FIX_SMP_FINAL_NODES 0
 #endif
 
 namespace forge {
@@ -926,7 +928,60 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
-        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][…615 tokens truncated…e;
+        if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+    }
+    return score;
+#endif
+}
+
+int Worker::capture_history_value(const Board& board, Move move) const {
+    const Piece piece = board.moved_piece(move);
+    const int captured = piece_type(board.captured_piece(move));
+    return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+}
+
+void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+    for (const int back : {1, 2, 4}) {
+        const SearchStack* previous = ss - back;
+        if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+        apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+                      back == 4 ? bonus / 2 : bonus);
+    }
+}
+
+void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+                                  int quiet_count) {
+    const int bonus = history_bonus(depth);
+    const Color us = board.side_to_move();
+    if (ss->killers[0] != move) {
+        ss->killers[1] = ss->killers[0];
+        ss->killers[0] = move;
+    }
+    const SearchStack* previous = ss - 1;
+    if (!previous->current_move.is_none() && previous->moved_piece != Empty) {
+        (*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+    }
+    const Piece piece = board.moved_piece(move);
+    apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+    update_continuation(ss, piece, move.to, bonus);
+    for (int i = 0; i < quiet_count; ++i) {
+        const Move quiet = quiets[i];
+        if (quiet == move) continue;
+        apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+        update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+    }
+}
+
+void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+    const int bonus = history_bonus(depth);
+    if (best.is_capture()) {
+        const Piece piece = board.moved_piece(best);
+        const int captured = piece_type(board.captured_piece(best));
+        apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
+    }
+    for (int i = 0; i < capture_count; ++i) {
+        const Move capture = captures[i];
+        if (capture == best) continue;
         const Piece piece = board.moved_piece(capture);
         const int captured = piece_type(board.captured_piece(capture));
         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
@@ -1771,7 +1826,15 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     shared_.stop.store(true, std::memory_order_relaxed);
     for (auto& helper : helpers) helper.join();
     shared_.stop.store(external_stop, std::memory_order_relaxed);
+#if FORGE_FIX_SMP_FINAL_NODES
+    // Every helper has published its final count and is now quiescent. The
+    // main worker's earlier snapshot can omit work completed during shutdown.
+    result.nodes = 0;
+    for (const auto& worker : workers_) result.nodes += worker->nodes();
     return result;
+#else
+    return result;
+#endif
 }
 
 } // namespace forge
