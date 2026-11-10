@@ -1,0 +1,57 @@
+{
+  "source_commit": "9b67829c86c0ddadcb8334fe92147ffa4a895ced",
+  "initial_source_commit": "413a1927099952c8b389f9391b7aa8c0a0d937d0",
+  "raw_precheck_receipt": {
+    "initial_source_commit": "413a1927099952c8b389f9391b7aa8c0a0d937d0",
+    "guarded_source_commit": "9b67829c86c0ddadcb8334fe92147ffa4a895ced",
+    "compiler": "g++-14 (Debian 14.2.0-19) 14.2.0",
+    "hashes": {
+      "original.o": "64d06c2949504b205d97a9dfd18d76c52e8593d31e5f4f9c647dd437e10f6ddf",
+      "prototype.o": "0a60334d48ef9bb7e04c97bfdb2989b804a32fd4f2146e9368bfc1ace1723fdd",
+      "unit-original": "f19e3b385a1cb659cd39a4a40912ab2da877c66fe4856a14df41ece1e7cf727e",
+      "unit-prototype": "a11f7870ee1abd3f9ac66b6b9d4c29327a3149869db7c265fb66a4543499fe94",
+      "unit-guarded": "ef07bea5117ff420dc77d66a5fde1f13748a0bc28be9fe963e374dcd9c51946c",
+      "unit-queen-mutant": "5065ae6522356b80ae7d75efe19e89fdeae70b5cdf928c2aa0b34f10975f2ea4",
+      "original-unit.json": "0102255529fcaa8397a4a8d0226e8182450c3ce5655e67d2a6ac1535d03d48e2",
+      "prototype-unit.json": "0102255529fcaa8397a4a8d0226e8182450c3ce5655e67d2a6ac1535d03d48e2",
+      "guarded-unit.json": "0102255529fcaa8397a4a8d0226e8182450c3ce5655e67d2a6ac1535d03d48e2",
+      "queen-mutant-red.log": "4d62b49ff93681e6628f3a0c136ce908e637ac49a356f3502f986024f8b26fcf",
+      "check.sh": "3c401c45e0d23c0629bc18eef0a49aa15d380bf4cd3b8bf885dddb405fae5327",
+      "check.log": "557cd5430b2ccc49d0c132e12edc5fb1162f7ec96cff7e62294fc571e9a3cb98",
+      "check-retry.log": "1c6e6d4337219d3dd83071b2e69e33d675111e250aca8c7ae1c5b1c5d3628eb4",
+      "check-final.log": "177e6ebaa9c3ce2ada0f1a6b4474f300c25a4b136e2198d31bec96b1bb79f8f0",
+      "check-corrected.log": "d043d1bc214d4bb9ab7ea8a2cfbe668fcab975a9308e68622c25c127f4cff5de"
+    },
+    "mutation": "Remove final enemy queen exclusion from unchanged expression",
+    "mutation_exit_code": 1,
+    "mutation_failure": "FAIL: Uncached HCE: rnN3n1/1kp4r/pP5p/3ppP1P/1bB1PPp1/3q1Q2/1P1P3R/1RB1K1N1 w - - 1 20",
+    "unit": {
+      "passed": true,
+      "algebra_cases": 100016,
+      "adversarial_boards": 528,
+      "boards": 37412,
+      "queens": 33320,
+      "weak_queens": 3793
+    },
+    "object_text_bytes": {
+      "original": 28835,
+      "prototype": 28643
+    },
+    "native_speed_gate": "UNPROVEN",
+    "native_elo_gate": "UNPROVEN"
+  },
+  "commands": {
+    "check.sh": "#!/bin/bash\nset -euo pipefail\nout=/workspace/shared/forge-build/weak-queen-mask/precheck\nrepo=/workspace/shared/forge-git/forge-combo29\ncd \"$out/forge-combo29\"\nflags=(-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -Iinclude -Isrc)\nsources=(\"$repo/tests/weak_queen_unit.cpp\" \"$repo/tests/weak_queen_oracle.cpp\" src/board.cpp src/bitboard.cpp src/eval_params.cpp)\ng++-14 \"${flags[@]}\" \"${sources[@]}\" src/eval.cpp -o \"$out/unit-original\"\n\"$out/unit-original\" \"$repo/tests/equivalence_positions.fen\" | tee \"$out/original-unit.json\"\npython3 - \"$out\" <<'PY'\nfrom pathlib import Path\nimport sys\np=Path(sys.argv[1]); text=(p/'forge-combo29/src/eval.cpp').read_text()\nold='(enemy_sliders & ~board.pieces(Them, Queen))'\nassert text.count(old)==1\n(p/'eval-queen-mutant.cpp').write_text(text.replace(old,'(enemy_sliders)'))\nold='''                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |\n                                               (attacks::rook(square, occupied) & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));\n                if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);'''\nnew='''                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & board.pieces(Them, Bishop)) |\n                                               (attacks::rook(square, occupied) & board.pieces(Them, Rook));\n                if (enemy_sliders != 0) acc.template add<Us>(WeakQueen);'''\nassert text.count(old)==1\n(p/'eval-prototype.cpp').write_text(text.replace(old,new))\nPY\ng++-14 \"${flags[@]}\" \"${sources[@]}\" \"$out/eval-queen-mutant.cpp\" -o \"$out/unit-queen-mutant\"\nset +e\n\"$out/unit-queen-mutant\" \"$repo/tests/equivalence_positions.fen\" > \"$out/queen-mutant-red.log\" 2>&1\nrc=$?\nset -e\ncat \"$out/queen-mutant-red.log\"\n[[ $rc == 1 ]]\nfor kind in original prototype; do\n  src=src/eval.cpp; [[ $kind == original ]] || src=\"$out/eval-prototype.cpp\"\n  g++-14 \"${flags[@]}\" -c \"$src\" -o \"$out/$kind.o\" -fdump-tree-optimized=\"$out/$kind.optimized\"\n  objdump -d -C \"$out/$kind.o\" > \"$out/$kind.assembly\"\ndone\nsize \"$out/original.o\" \"$out/prototype.o\"\ncmp -s \"$out/original.o\" \"$out/prototype.o\" && exit 1 || true\ng++-14 \"${flags[@]}\" \"${sources[@]}\" \"$out/eval-prototype.cpp\" -o \"$out/unit-prototype\"\n\"$out/unit-prototype\" \"$repo/tests/equivalence_positions.fen\" | tee \"$out/prototype-unit.json\"\n",
+    "blocker-mutation.sh": "#!/bin/bash\nset -euo pipefail\nout=/workspace/shared/forge-build/weak-queen-mask/precheck\nroot=/workspace/shared/forge-build/weak-queen-mask/frozen/source/forge-combo29\nrepo=/workspace/shared/forge-git/forge-combo29\npython3 - \"$root\" \"$out\" <<'PY'\nfrom pathlib import Path\nimport sys\ntext=(Path(sys.argv[1])/'src/eval.cpp').read_text()\na,b=text.split('#if FORGE_SPD_WEAK_QUEEN_MASK',1)\non,off=b.split('#else',1)\nassert on.count('square, occupied')==2\non=on.replace('square, occupied','square, occupied ^ board.pieces(Them, Queen)')\n(Path(sys.argv[2])/'eval-blocker-mutant.cpp').write_text(a+'#if FORGE_SPD_WEAK_QUEEN_MASK'+on+'#else'+off)\nPY\ncd \"$root\"\ng++-14 -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_WEAK_QUEEN_MASK=1 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -Iinclude -Isrc \"$repo/tests/weak_queen_unit.cpp\" \"$repo/tests/weak_queen_oracle.cpp\" src/{board,bitboard,eval_params}.cpp \"$out/eval-blocker-mutant.cpp\" -o \"$out/unit-blocker-mutant\"\nset +e\n\"$out/unit-blocker-mutant\" \"$repo/tests/equivalence_positions.fen\" > \"$out/blocker-mutant-red.log\" 2>&1\nrc=$?\nset -e\ncat \"$out/blocker-mutant-red.log\"\n[[ $rc == 1 ]]\n"
+  },
+  "blocker_mutation": {
+    "exit_code": 1,
+    "failure": "FAIL: Uncached HCE: k7/8/8/8/3Q4/2q5/1b6/K7 w - - 0 1\n",
+    "hashes": {
+      "eval-blocker-mutant.cpp": "9edb3b9f8c24abc14bb6be05f53464c220c98fa17726d31f8033154406e7e74a",
+      "unit-blocker-mutant": "4796b21c5a3e930bff129c6945c3158e230f41fc4dfa57c44718acb23763c32c",
+      "blocker-mutation.sh": "ecba6754b4442ea98fd0ecffd248216c34bf88864160c2198476a45043d0aa80",
+      "blocker-mutant-red.log": "d8bffb288e563cb46c85916550fbc622fccec8ecc5703bb3ba8230ba587d0268"
+    }
+  }
+}

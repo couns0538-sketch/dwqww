@@ -1,0 +1,148 @@
+GCC14 strict-FP/O3/x86-64-v4 isolated code-generation check.
+Source: 9b67829c86c0ddadcb8334fe92147ffa4a895ced
+Only FORGE_SPD_WEAK_QUEEN_MASK differs (0 vs 1).
+IR local counts and branch probabilities are compiler estimates, NOT measurements.
+This proves a code-generation change, NOT a speedup. Rays were already reused.
+
+=== Mode 0 ===
+Object SHA256: 64d06c2949504b205d97a9dfd18d76c52e8593d31e5f4f9c647dd437e10f6ddf
+text	   data	    bss	    dec	    hex	filename
+  28835	      0	      0	  28835	   70a3	/workspace/shared/forge-build/weak-queen-mask/frozen/eval0.o
+0000000000000210 0000000000002b15 t int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]
+0000000000002d30 0000000000002dc3 t int forge::(anonymous namespace)::evaluate_position<true>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0] [clone .isra.0]
+
+Optimized-tree block (line 2650):
+  # acc$score_3283 = PHI <_3216(89), _3284(90)>
+  _3280 = _1138 | board___M_elems_I_lsm0.511_2536;
+  _3279 = _3192 & _3280;
+  _3288 = _1138 | board___M_elems_I_lsm0.509_2537;
+  _3287 = _3186 & _3288;
+  enemy_sliders_3286 = _3279 | _3287;
+  _3289 = ~_1138;
+  _3291 = enemy_sliders_3286 & _3289;
+  if (_3291 != 0)
+    goto <bb 92>; [50.00%]
+  else
+    goto <bb 93>; [50.00%]
+
+  <bb 92> [local count: 19059712]:
+
+Optimized-tree block (line 3235):
+  # acc$score_3111 = PHI <_3094(150), _3112(151)>
+  _3122 = board___M_elems_I_lsm0.506_2529 | _2664;
+  _3121 = _2956 & _3122;
+  _3120 = _1336 | _2664;
+  _3119 = _3076 & _3120;
+  enemy_sliders_3118 = _3119 | _3121;
+  _3117 = ~_2664;
+  _3116 = _3117 & enemy_sliders_3118;
+  if (_3116 != 0)
+    goto <bb 153>; [50.00%]
+  else
+    goto <bb 154>; [50.00%]
+
+  <bb 153> [local count: 6834023]:
+
+Optimized-tree block (line 7482):
+
+  <bb 79> [local count: 24777625]:
+  # acc$score_4012 = PHI <_3872(77), _3986(78)>
+  _4008 = _3843 & _4009;
+  _4005 = _3886 & _4006;
+  enemy_sliders_4004 = _4005 | _4008;
+  _4003 = ~_1651;
+  _4002 = _4003 & enemy_sliders_4004;
+  if (_4002 != 0)
+    goto <bb 80>; [50.00%]
+  else
+    goto <bb 81>; [50.00%]
+
+  <bb 80> [local count: 12388814]:
+
+Optimized-tree block (line 8142):
+  <bb 138> [local count: 8884231]:
+  # acc$score_4108 = PHI <_3984(136), _3960(137)>
+  _4102 = _3958 & _4105;
+  _4101 = _1686 | _3178;
+  _4322 = _3952 & _4101;
+  enemy_sliders_4321 = _4102 | _4322;
+  _4320 = ~_3178;
+  _4319 = _4320 & enemy_sliders_4321;
+  if (_4319 != 0)
+    goto <bb 139>; [50.00%]
+  else
+    goto <bb 140>; [50.00%]
+
+  <bb 139> [local count: 4442115]:
+
+=== Mode 1 ===
+Object SHA256: 4629ad120ba4530c0ebbd049ca14620b2ae76f20c52e10163378025498bf0f1b
+text	   data	    bss	    dec	    hex	filename
+  28643	      0	      0	  28643	   6fe3	/workspace/shared/forge-build/weak-queen-mask/frozen/eval1.o
+0000000000000210 0000000000002ae8 t int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0]
+0000000000002d00 0000000000002d50 t int forge::(anonymous namespace)::evaluate_position<true>(forge::Board const&, forge::Evaluator::PawnEntry*, forge::EvalTrace*, forge::Evaluator::RuntimePsqt const*) [clone .constprop.0] [clone .isra.0]
+
+Optimized-tree block (line 2640):
+
+  <bb 91> [local count: 38119423]:
+  # acc$score_3276 = PHI <_3218(89), _3274(90)>
+  _3281 = board___M_elems_I_lsm0.505_2559 & _3167;
+  _3279 = board___M_elems_I_lsm0.504_2560 & _3204;
+  enemy_sliders_3278 = _3279 | _3281;
+  if (enemy_sliders_3278 != 0)
+    goto <bb 92>; [50.00%]
+  else
+    goto <bb 93>; [50.00%]
+
+  <bb 92> [local count: 19059712]:
+  _3277 = _1536 + acc$score_3276;
+
+
+Optimized-tree block (line 3221):
+
+  <bb 152> [local count: 13668047]:
+  # acc$score_3187 = PHI <_3089(150), _3101(151)>
+  _3189 = board___M_elems_I_lsm0.501_2496 & _3068;
+  _3190 = _1331 & _3074;
+  enemy_sliders_3191 = _3189 | _3190;
+  if (enemy_sliders_3191 != 0)
+    goto <bb 153>; [50.00%]
+  else
+    goto <bb 154>; [50.00%]
+
+  <bb 153> [local count: 6834023]:
+  _3194 = acc$score_3187 - _1536;
+
+
+Optimized-tree block (line 7456):
+
+  <bb 79> [local count: 24777625]:
+  # acc$score_3987 = PHI <_3845(77), _3995(78)>
+  _3985 = _3867 & _3986;
+  _3983 = _3861 & _3984;
+  enemy_sliders_3982 = _3983 | _3985;
+  if (enemy_sliders_3982 != 0)
+    goto <bb 80>; [50.00%]
+  else
+    goto <bb 81>; [50.00%]
+
+  <bb 80> [local count: 12388814]:
+  _3981 = _1945 + acc$score_3987;
+  _3980 = MEM <struct array> [(value_type &)trace_1(D)]._M_elems[636];
+
+Optimized-tree block (line 8112):
+
+  <bb 138> [local count: 8884231]:
+  # acc$score_4298 = PHI <_3959(136), _4091(137)>
+  _4296 = _4046 & _4297;
+  _4295 = _1681 & _4040;
+  enemy_sliders_4303 = _4295 | _4296;
+  if (enemy_sliders_4303 != 0)
+    goto <bb 139>; [50.00%]
+  else
+    goto <bb 140>; [50.00%]
+
+  <bb 139> [local count: 4442115]:
+  _4304 = acc$score_4298 - _1945;
+  _4311 = MEM <struct array> [(value_type &)trace_1(D)]._M_elems[636];
+
