@@ -22,6 +22,14 @@
 //   - eval through the pawn cache equals eval without cache; static eval through the incremental path equals
 //     the refresh path; static eval equals the clamp of hand-crafted eval plus net output.
 //
+// If the engine itself aborts (the =2 verify builds of the candidates do that on purpose), the harness prints the
+// root FEN, the position and the move it was working on.
+//
+// PRIM_MAKE_ANY=1 (default 0, a measuring build): every generated move, legal or not, is also played on a copy
+// whose king lines were built first, and the checkers make_move left are compared with attackers_to. The counts go
+// to stdout by legality; the transcript is unchanged. It shows where a make_move that reads king lines stops being
+// exact. Do not combine it with a =2 verify build of such a candidate: that build aborts on the first difference.
+//
 // usage: prim_dump FENS OUT [first] [count]
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
@@ -29,6 +37,7 @@
 #include "forge/search.hpp"
 
 #include <algorithm>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -70,6 +79,10 @@ std::uint64_t move_bits(Move m) {
            (static_cast<std::uint64_t>(m.promotion) << 16) | (static_cast<std::uint64_t>(m.flags) << 24);
 }
 
+#ifndef PRIM_MAKE_ANY
+#define PRIM_MAKE_ANY 0
+#endif
+
 long long g_errors = 0;
 std::string g_fen;
 
@@ -79,6 +92,35 @@ void fail(const char* what, const Board& b, Move m = Move::none()) {
                      m.is_none() ? "-" : Board::move_to_uci(m).c_str());
     }
 }
+
+// What the harness is doing right now, for the report of an abort raised inside the engine. `g_at` always points
+// to an unmodified copy of the position being visited.
+const Board* g_at = nullptr;
+Move g_at_move = Move::none();
+const char* g_at_what = "";
+
+void at(const char* what, const Board* b, Move m = Move::none()) {
+    g_at_what = what;
+    g_at = b;
+    g_at_move = m;
+}
+
+void on_abort(int) {
+    std::fprintf(stderr, "ENGINE ABORT during: %s | root %s | at %s | move %s\n", g_at_what, g_fen.c_str(),
+                 g_at != nullptr ? g_at->fen().c_str() : "-",
+                 g_at_move.is_none() ? "-" : Board::move_to_uci(g_at_move).c_str());
+    std::fflush(stderr);
+}
+
+#if PRIM_MAKE_ANY
+struct AnyStats {
+    unsigned long long made = 0, legal = 0, illegal = 0;
+    unsigned long long bad_legal = 0;            // must stay 0 for an exact candidate
+    unsigned long long bad_illegal_kings = 0;    // illegal king move that ends next to the enemy king
+    unsigned long long bad_illegal_other = 0;    // any other illegal move
+    int shown = 0;
+} g_any;
+#endif
 
 struct Walker {
     SharedSearchState shared{1};
@@ -118,8 +160,10 @@ struct Walker {
     // depth 0 = FEN position, 1 = child, 2 = grandchild, 3 = null-move child (no recursion from 2 and 3).
     void visit(Board& x, int depth, SearchStack* ss, int inc) {
         ++h.positions;
+        const Board pristine = x;   // never queried: copies of it have no king lines (used to play any generated move)
         Board fresh = x;        // twin: its king lines are never built before the calls below
         Board twin = x;         // twin for make_move without king lines
+        at("has_legal_move, generation", &pristine);
         const bool has_before = fresh.has_legal_move();
 
         MoveList all, caps, quiets;
@@ -137,17 +181,50 @@ struct Walker {
         std::size_t index = 0;
         for (const Move m : all) {
             ++h.moves;
+            at("is_legal, gives_check, see_ge, key_after of one generated move", &pristine, m);
             const bool ok = x.is_legal(m);
             mix(h.leg, (move_bits(m) << 1) | (ok ? 1U : 0U));
             {
-                // legality oracle that needs no engine rule: play the move on a copy, look at the mover's king
-                Board played = fresh;
+                // legality oracle that needs no engine rule: play the move on a copy, look at the mover's king.
+                // The copy has no king lines, because an illegal move may be played here and make_move's
+                // contract (like the search's use of it) covers legal moves only.
+                Board played = pristine;
                 Undo pu;
                 const Color mover = played.side_to_move();
+                at("legality oracle: make of a generated move on a copy without king lines", &pristine, m);
                 (void)played.make_move(m, pu);
                 const bool king_safe = !played.square_attacked(played.king_square(mover), opposite(mover));
                 if (king_safe != ok) fail("is_legal != (own king not attacked after the move)", x, m);
             }
+#if PRIM_MAKE_ANY
+            {
+                Board lined = pristine;
+                (void)lined.gives_check(m);     // builds the king lines (ordinary moves)
+                Undo lu;
+                const Color mover = lined.side_to_move();
+                const bool king_move = piece_type(lined.moved_piece(m)) == King;
+                at("PRIM_MAKE_ANY: make of a generated move on a copy WITH king lines", &pristine, m);
+                (void)lined.make_move(m, lu);
+                const Color opp = lined.side_to_move();
+                const Bitboard real = lined.attackers_to(lined.king_square(opp)) & lined.occupied(mover);
+                ++g_any.made;
+                ++(ok ? g_any.legal : g_any.illegal);
+                if (real != lined.checkers()) {
+                    const bool kings_touch = king_move && (attacks::king(lined.king_square(mover)) &
+                                                           square_bb(lined.king_square(opp))) != 0;
+                    if (ok) ++g_any.bad_legal;
+                    else if (kings_touch) ++g_any.bad_illegal_kings;
+                    else ++g_any.bad_illegal_other;
+                    if ((ok || !kings_touch || g_any.bad_illegal_kings <= 3) && g_any.shown < 12) {
+                        ++g_any.shown;
+                        std::fprintf(stderr, "MAKE_ANY difference (%s%s): root %s | at %s | move %s\n",
+                                     ok ? "LEGAL" : "illegal", kings_touch ? ", kings adjacent after" : "",
+                                     g_fen.c_str(), pristine.fen().c_str(), Board::move_to_uci(m).c_str());
+                    }
+                }
+                at("is_legal, gives_check, see_ge, key_after of one generated move", &pristine, m);
+            }
+#endif
             // the other call order on a board without king lines
             if ((index++ & 1U) == 0U) {
                 Board f2 = fresh;
@@ -165,6 +242,7 @@ struct Walker {
             std::uint64_t early = 0;
             if (x.key_after(m, early)) mix(h.st, early);
         }
+        at("has_legal_move after the king lines exist, evaluation", &pristine);
         const bool has_after = x.has_legal_move();
         if (has_before != !legal.empty() || has_after != !legal.empty()) fail("has_legal_move != (legal list not empty)", x);
 
@@ -203,7 +281,9 @@ struct Walker {
                 SearcherTestProbe::record(*worker, ss, x, m);
                 (ss + 1)->ply = ss->ply + 1;
             }
+            at("make of a legal move on the board with king lines", &pristine, m);
             (void)x.make_move(m, u);
+            at("make of a legal move on the twin without king lines", &pristine, m);
             (void)twin.make_move(m, u2);
             if (twin.checkers() != x.checkers() || twin.key() != x.key()) fail("make_move differs without king lines", x, m);
             const Color them = x.side_to_move();
@@ -216,6 +296,7 @@ struct Walker {
                 mix(h.st, x.checkers());
                 mix(h.ev, static_cast<std::uint64_t>(static_cast<std::int64_t>(child_inc)));
             }
+            at("unmake of a legal move", &pristine, m);
             x.unmake_move(m, u);
             twin.unmake_move(m, u2);
             if (x.key() != key0 || x.pawn_key() != pawn0 || x.checkers() != chk0) fail("unmake did not restore", x, m);
@@ -223,9 +304,11 @@ struct Walker {
         }
         if (!x.in_check() && depth == 0) {
             NullUndo nu;
+            at("null move", &pristine);
             x.make_null_move(nu);
             if (x.checkers() != 0) fail("null move child has checkers", x);
             visit(x, 3, ss + 1, ValueNone);
+            at("null unmake", &pristine);
             x.unmake_null_move(nu);
             if (x.key() != key0 || x.checkers() != chk0) fail("null unmake did not restore", x);
         }
@@ -245,6 +328,7 @@ int main(int argc, char** argv) {
     if (!in) { std::fprintf(stderr, "cannot read %s\n", argv[1]); return 1; }
     std::FILE* out = std::fopen(argv[2], "wb");
     if (out == nullptr) { std::fprintf(stderr, "cannot write %s\n", argv[2]); return 1; }
+    std::signal(SIGABRT, on_abort);
     Walker walker;
     Hashes total;
     std::string line;
@@ -265,6 +349,7 @@ int main(int argc, char** argv) {
         g_fen = line;
         walker.h = Hashes{};
         walker.visit(board, 0, forge::SearcherTestProbe::slot(*walker.worker, BaseSlot), ValueNone);
+        at("between FENs", nullptr);
         const Hashes& h = walker.h;
         std::fprintf(out, "%ld\t%016llx\t%016llx\t%016llx\t%016llx\t%016llx\t%016llx\t%llu\t%llu\n", index,
                      static_cast<unsigned long long>(h.gen), static_cast<unsigned long long>(h.leg),
@@ -283,6 +368,12 @@ int main(int argc, char** argv) {
                  static_cast<unsigned long long>(total.st), static_cast<unsigned long long>(total.ev),
                  static_cast<unsigned long long>(total.positions), static_cast<unsigned long long>(total.moves));
     std::fclose(out);
+#if PRIM_MAKE_ANY
+    std::printf("PRIM_MAKE_ANY: %llu makes on copies with king lines (%llu legal, %llu illegal); checkers differ from "
+                "attackers_to on %llu legal, %llu illegal king moves ending next to the enemy king, %llu other illegal\n",
+                g_any.made, g_any.legal, g_any.illegal, g_any.bad_legal, g_any.bad_illegal_kings, g_any.bad_illegal_other);
+    if (g_any.bad_legal != 0) ++g_errors;
+#endif
     std::printf("prim_dump: %ld FENs, %llu positions, %llu generated moves, %lld self-check failures\n", done,
                 static_cast<unsigned long long>(total.positions), static_cast<unsigned long long>(total.moves), g_errors);
     return g_errors == 0 ? 0 : 3;

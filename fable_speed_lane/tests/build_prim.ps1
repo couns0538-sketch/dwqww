@@ -2,12 +2,14 @@
 # Same compiler and sysroot as the lock, the six lock switches, -O2, no LTO, no PGO (a test tool, not a timing exe).
 # Pins itself to mask 0x78 (or a subset) at Idle; refuses to overwrite; writes only under -OutRoot (D:).
 #   powershell.exe -NoProfile -ExecutionPolicy Bypass -File build_prim.ps1 -Tag <new> -Src <tree> [-ExtraDefs A=1,B=1]
+# -Harness <file> builds another harness source instead of prim_dump.cpp (one-off reproductions; the receipt names it).
 param(
     [Parameter(Mandatory = $true)][string]$Tag,
     [Parameter(Mandatory = $true)][string]$Src,
     [string]$OutRoot = 'D:\forge_jobs_20261109\fable2\out\build',
     [string[]]$ExtraDefs = @(),
-    [long]$Mask = 0x78
+    [long]$Mask = 0x78,
+    [string]$Harness = ''
 )
 $ErrorActionPreference = 'Stop'
 if ($Mask -le 0 -or ($Mask -band (-bnot 0x78)) -ne 0) { throw 'mask must lie inside 0x78 (CPUs 3-6)' }
@@ -25,7 +27,7 @@ $Src = (Resolve-Path -LiteralPath $Src).Path.TrimEnd('\')
 $dir = Join-Path $OutRoot ("prim_" + $Tag)
 if (Test-Path $dir) { throw "refusing: $dir exists" }
 New-Item -ItemType Directory -Path $dir | Out-Null
-$harness = Join-Path $PSScriptRoot 'prim_dump.cpp'
+$harness = if ($Harness) { (Resolve-Path -LiteralPath $Harness).Path } else { Join-Path $PSScriptRoot 'prim_dump.cpp' }
 $exe = Join-Path $dir 'prim_dump.exe'
 $argv = @('-std=c++20', '-O2', '-DNDEBUG', '-DFORGE_NNUE_HIDDEN=256', '-DFORGE_EXPOSE_TUNABLES=1',
     '-DFORGE_SPD_TT_NOTLS=1', '-DFORGE_SPD_NO_ZERO_MOVELISTS=2', '-DFORGE_SEARCH_SPEED2=1',
@@ -39,4 +41,4 @@ $p = Start-Process -FilePath $clang -ArgumentList $argv -NoNewWindow -Wait -Pass
     -RedirectStandardOutput (Join-Path $dir 'build.out') -RedirectStandardError (Join-Path $dir 'build.err')
 $err = Get-Content (Join-Path $dir 'build.err') -ErrorAction SilentlyContinue | Where-Object { $_ -notmatch 'argument unused' }
 if ($p.ExitCode -ne 0) { $err | Select-Object -First 40 | ForEach-Object { Write-Output $_ }; throw "harness build failed (exit $($p.ExitCode))" }
-Write-Output ("built $exe sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLower() + " defs [" + ($ExtraDefs -join ' ') + "]")
+Write-Output ("built $exe sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $exe).Hash.ToLower() + " defs [" + ($ExtraDefs -join ' ') + "] harness " + $harness + " sha256 " + (Get-FileHash -Algorithm SHA256 -LiteralPath $harness).Hash.ToLower())

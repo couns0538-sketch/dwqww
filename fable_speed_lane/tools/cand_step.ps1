@@ -27,6 +27,8 @@ if ($Src -eq '') { $Src = Join-Path $work 'b' }
 $idDir = Join-Path $OUT "id\$Name"
 New-Item -ItemType Directory -Force $idDir | Out-Null
 $lock = Join-Path $OUT 'base\combo29_lock_E1284F7F.exe'
+# -Def may name several switches (the bundle): "A,B" or "A=1,B=1"; a bare name means =1
+$onDefs = (@($Def -split ',' | Where-Object { $_ }) | ForEach-Object { if ($_ -match '=') { $_ } else { "$_=1" } }) -join ','
 $offExe = Join-Path $OUT "build\${Tag}_off\m2use\forge_m2use.exe"
 $onExe = Join-Path $OUT "build\${Tag}_on\m2use\forge_m2use.exe"
 function Sha([string]$p) { (Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLower() }
@@ -71,7 +73,7 @@ switch ($Stage) {
         if ($bad -ne 0) { exit 3 }
     }
     'build' {
-        foreach ($v in @(@("${Tag}_off", ''), @("${Tag}_on", "$Def=1"))) {
+        foreach ($v in @(@("${Tag}_off", ''), @("${Tag}_on", $onDefs))) {
             $root = Join-Path $OUT "build\$($v[0])"
             if (Test-Path (Join-Path $root 'RUN_RECEIPT.json')) { Write-Output "BUILD $($v[0]): present"; continue }
             $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $T 'spd_build.ps1'), '-Tag', $v[0], '-Src', $Src, '-Mask', $Mask)
@@ -86,9 +88,9 @@ switch ($Stage) {
     }
     'off' {
         $rc = RunPinned $PY "-I -B `"$T\bytecmp.py`" `"$lock`" `"$offExe`" --json `"$idDir\bytecmp_lock_vs_off.json`"" "$idDir\bytecmp_lock_vs_off.txt"
-        $j = Get-Content "$idDir\bytecmp_lock_vs_off.json" -Raw | ConvertFrom-Json
-        Write-Output ("OFF {0}: {1}; debug-record bytes {2}, other bytes {3}; ranges {4}" -f $Name, $j.verdict, $j.differing_bytes_debug,
-            $j.differing_bytes_other, (($j.ranges | ForEach-Object { "$($_.from)-$($_.to)" }) -join ','))
+        $cmp = Get-Content "$idDir\bytecmp_lock_vs_off.json" -Raw | ConvertFrom-Json
+        Write-Output ("OFF {0}: {1}; debug-record bytes {2}, other bytes {3}; ranges {4}" -f $Name, $cmp.verdict, $cmp.differing_bytes_debug,
+            $cmp.differing_bytes_other, (($cmp.ranges | ForEach-Object { "$($_.from)-$($_.to)" }) -join ','))
         if ($rc -ne 0) { exit 3 }
     }
     'pins' {
@@ -106,7 +108,7 @@ switch ($Stage) {
         $ptag = "${Tag}_on"
         $pexe = Join-Path $OUT "build\prim_$ptag\prim_dump.exe"
         if (-not (Test-Path $pexe)) {
-            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PACK 'tests\build_prim.ps1') -Tag $ptag -Src $Src -ExtraDefs "$Def=1" -Mask $Mask | Out-Null
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PACK 'tests\build_prim.ps1') -Tag $ptag -Src $Src -ExtraDefs $onDefs -Mask $Mask | Out-Null
             if ($LASTEXITCODE -ne 0) { Write-Output "PRIM build failed for $ptag"; exit 3 }
         }
         $n = $(if ($Fens -gt 0) { "$Fens" } else { 'all' })
