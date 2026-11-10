@@ -1,0 +1,46 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -345,16 +345,15 @@
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+     if (!replace->occupied()) return snapshot(*replace, false);
+-    int best_score = replace->depth - 4 * relative_age(*replace);
++    static_assert(std::tuple_size_v<decltype(cluster.entries)> == 4);
++    int best_priority = 4 * (replace->depth - 4 * relative_age(*replace));
+     for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+         const TTEntry& entry = cluster.entries[slot];
+         if (!entry.occupied()) return snapshot(entry, false);
+-        const int score = entry.depth - 4 * relative_age(entry);
+-        if (score < best_score) {
+-            replace = &entry;
+-            best_score = score;
+-        }
++        const int priority = 4 * (entry.depth - 4 * relative_age(entry)) + static_cast<int>(slot);
++        best_priority = std::min(best_priority, priority);
+     }
++    replace = &cluster.entries[static_cast<unsigned>(best_priority) & 3U];
+ #else
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+@@ -440,16 +439,15 @@
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+     if (!replace->occupied()) return snapshot(*replace, false);
+-    int best_score = replace->depth - 4 * relative_age(*replace);
++    static_assert(std::tuple_size_v<decltype(cluster.entries)> == 4);
++    int best_priority = 4 * (replace->depth - 4 * relative_age(*replace));
+     for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+         const TTEntry& entry = cluster.entries[slot];
+         if (!entry.occupied()) return snapshot(entry, false);
+-        const int score = entry.depth - 4 * relative_age(entry);
+-        if (score < best_score) {
+-            replace = &entry;
+-            best_score = score;
+-        }
++        const int priority = 4 * (entry.depth - 4 * relative_age(entry)) + static_cast<int>(slot);
++        best_priority = std::min(best_priority, priority);
+     }
++    replace = &cluster.entries[static_cast<unsigned>(best_priority) & 3U];
+ #else
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
