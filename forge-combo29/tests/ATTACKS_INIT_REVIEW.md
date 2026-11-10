@@ -33,3 +33,5 @@ Observed GCC 14 results:
 - Switch 1: exit 0, `PASS: concurrent initialization`, with no ThreadSanitizer diagnostics.
 
 This targeted regression does not claim exhaustive concurrency verification or a whole-engine speed improvement. The parent audit performs combined engine checks separately.
+
+An unsanitized `-O3` build of the same test also observed premature return on the baseline (exit 1, `FAIL: init returned before BetweenTable was ready`). The enabled build passed, followed by ten successful fresh-process repeats. Build with the command above replacing `-O1 -g -fsanitize=thread` with `-O3`, then run with `timeout 15`. These observed results are not a deterministic scheduling guarantee.
