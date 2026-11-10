@@ -1,0 +1,32 @@
+--- a/src/search.cpp
++++ b/src/search.cpp
+@@ -344,11 +344,12 @@
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+-    if (!replace->occupied()) return snapshot(*replace, false);
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return snapshot(entry, false);
++    }
+     int best_score = replace->depth - 4 * relative_age(*replace);
+     for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+         const TTEntry& entry = cluster.entries[slot];
+-        if (!entry.occupied()) return snapshot(entry, false);
+         const int score = entry.depth - 4 * relative_age(entry);
+         if (score < best_score) {
+             replace = &entry;
+@@ -439,11 +440,12 @@
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+ #if FORGE_SPD_TT_REPLACE_CACHE
+-    if (!replace->occupied()) return snapshot(*replace, false);
++    for (const TTEntry& entry : cluster.entries) {
++        if (!entry.occupied()) return snapshot(entry, false);
++    }
+     int best_score = replace->depth - 4 * relative_age(*replace);
+     for (std::size_t slot = 1; slot < cluster.entries.size(); ++slot) {
+         const TTEntry& entry = cluster.entries[slot];
+-        if (!entry.occupied()) return snapshot(entry, false);
+         const int score = entry.depth - 4 * relative_age(entry);
+         if (score < best_score) {
+             replace = &entry;
