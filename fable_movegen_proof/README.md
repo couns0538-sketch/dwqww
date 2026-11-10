@@ -111,6 +111,16 @@ Py "$H\mg_format.py $T\lock.bin 1 3"                                           #
 
 A cache-state variant (ledger `fuzz_warm`) is the same chunk with its cache-clear marks changed, so it is reproduced by running the whole chunk in order: `Py "$H\fuzz.py warmseq v1 0-0 --cands KPC"` appends new rows for chunk 0 in both variants. The state depends on the sequence of positions, not on one FEN.
 
+## If a check reports a difference
+
+A ledger row `MISMATCH` or `CRASH`, or a receipt `DIFFERENCE`, is a difference to confirm: `report.py` then shows the candidate as `DIFFERENCE TO CONFIRM`, never as PASS. The input and outputs of the run are in a folder under `out\job3\fail`. Reproduce the difference twice; separate harness from candidate (the lock against its copy on the same input, the other tier, a dump with `mg_format.py`); minimise the case and check that the minimised case still fails. Only then write `CONFIRMED.json` into that failure folder, with the fields `cand`, `field`, `fen`, `expected`, `actual` and `replay`. With that file `report.py` derives FAIL for the candidate and lists the entry in PROOF.md section 9.
+
+A `HARNESS_ERROR` or `TIMEOUT` row is no statement about the candidate. When the same chunk is run again and comes out OK, the earlier row is listed as superseded and no longer keeps a gate open. A `MISMATCH` or `CRASH` row is never superseded by a later clean run: it has to be explained.
+
+## Verification logs in the pack
+
+`VERIFY_EVIDENCE.log` is the output of `scripts\verify_evidence.ps1 -Log ...`, the independent recount. `MANIFEST_VERIFY.log` is the output of `scripts\make_manifest.ps1 -Verify`. Both are listed in `MANIFEST.tsv` and `DONE.md`. The second one is written after the lists it is listed in; the head of `make_manifest.ps1` says how its hash can stand in them all the same. `.gitattributes` switches line-ending conversion off for the pack, so the hashes of both lists hold in every clone.
+
 ## Rules this pack keeps
 
 Every process runs on cores 3-6 (mask `0x78`) at Idle priority and is read back before it gets work; at most three engines at once; nothing starts when D: has less than 30.3 GiB free; all output goes under `out\job3`; git runs only in the repo with `GIT_NO_LAZY_FETCH=1`; hashes come from `System.Security.Cryptography` or `hashlib`; no GPL code, table or constant is used (the random generator is SplitMix64 and xoshiro256**, written from their public-domain descriptions; the rules oracle is own code).

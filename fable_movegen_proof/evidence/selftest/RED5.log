@@ -1,0 +1,9 @@
+pinned: affinity 0x78 (inside CPU 3-6), priority Idle
+the report controls L1-L5 only
+PASS  L1 counting: a chunk run twice counts once; MISMATCH, TIMEOUT, HARNESS_ERROR and CRASH rows add nothing and are listed: EVL counted 200000 in 2 chunks, in check 12, not-OK rows 4; PCM 100000
+PASS  L2 binding: only a row naming the frozen lock and the frozen candidate binary counts (other candidate, other lock, lock against itself, another candidate's binary, missing receipt hash, candidate file identical to the lock file): (EVL counted, EVL foreign, PCM counted, PCM foreign, counted without a receipt hash) tier A (100000, 3, 0, 1, 0), tier R (100000, 3, 0, 1, 0); wanted (100000, 3, 0, 1, 0); counted when the candidate's file is the lock's file: [0, 0], wanted [0, 0]
+PASS  L3 verdict rule: no PASS below 20,000,000, with an open gate, with a difference or without input identity: 10 of 10 cases as required
+PASS  L4 self-test line: only 'SELFTEST PASS n/n' with the same n twice is a passed self-test: 6 of 6 lines read as required
+PASS  L5 replay: a ledger row is reproduced only by a clean comparison with every hash equal to the row's: 6 of 6 cases as required
+FAIL  L controls: the control crashed: AttributeError: module 'report' has no attribute 'tier_r_gate'
+SELFTEST FAIL 5/6

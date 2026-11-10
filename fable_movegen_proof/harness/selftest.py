@@ -318,6 +318,23 @@ def tier_a_controls():
                                    cmp(terr, emut(2, set_error), None, expect_tag="LOCK", allow_error_records=True)))
     attempt("A35", lambda: control("A35 negative: unplayable-move record changed", "MISMATCH", ["path move"],
                                    cmp(terr, emut(1, set_uci), None, expect_tag="LOCK", allow_error_records=True)))
+
+    def dead_lock_probe():
+        # the edge runner's check of the lock probe's own run on rejected or unreachable entries
+        import edge
+        problem = edge.lock_run_problem
+        n_rec = len(kinds) - 2                      # kinds also holds the identity frame and the trailer
+        cases = {
+            "a complete lock transcript with the expected number of records is usable": problem(terr, 0, n_rec) == "",
+            "a lock probe that ended with an error code": problem(terr, 3, n_rec) != "",
+            "a lock transcript that is cut": problem(terr[:len(terr) - 20], 0, n_rec) != "",
+            "no output at all": problem(b"", 0, n_rec) != "",
+            "a record missing": problem(terr, 0, n_rec + 1) != "",
+        }
+        wrong = [k for k, v in cases.items() if not v]
+        record("A36 negative: the edge runner refuses a dead lock probe (error code, cut or empty output, missing record)", not wrong,
+               f"{len(cases) - len(wrong)} of {len(cases)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
+    attempt("A36", dead_lock_probe)
     return seeds, path_a
 
 
@@ -548,7 +565,7 @@ def ledger_controls(red=False):
             return per
         aux_bound = uci_bound = lambda w, shas: True                 # noqa: E731
         gate = lambda a, harness_now: a["positions"] > 0             # noqa: E731
-        verdict = lambda gates, differences: "PASS"                  # noqa: E731
+        verdict = lambda gates, differences, confirmed=(): "PASS"    # noqa: E731
         passed = lambda line: line.startswith("SELFTEST")            # noqa: E731
     rows = [
         {"cand": "EVL", "chunk": "0", "status": "OK", "positions": "100000", "in_check": "5", "detail": ""},
@@ -582,9 +599,15 @@ def ledger_controls(red=False):
         x = stats(rows2, lambda w, bound=bound: bound(w, frozen))
         none = stats(rows2, lambda w, bound=bound: bound(w, {"LOCK": "aa"}))     # receipts without the candidate's hash: nothing counts
         got.append((x["EVL"]["positions"], x["EVL"]["foreign"], x["PCM"]["positions"], x["PCM"]["foreign"], none["EVL"]["positions"]))
+    # the case that isolates the condition "candidate binary differs from the lock binary": the receipts themselves
+    # name one and the same file for the lock and for the candidate, and the row names it too
+    same_file = {"LOCK": "aa", "EVL": "aa"}
+    lock_as_cand = [stats([row("EVL", 0, "aa", "aa")], lambda w, bound=bound: bound(w, same_file))["EVL"]["positions"] for bound in (aux_bound, uci_bound)]
     record("L2 binding: only a row naming the frozen lock and the frozen candidate binary counts (other candidate, other lock, lock against itself, "
-           "another candidate's binary, missing receipt hash)", got == [(100000, 3, 0, 1, 0)] * 2,
-           f"(EVL counted, EVL foreign, PCM counted, PCM foreign, counted without a receipt hash) tier A {got[0]}, tier R {got[1]}; wanted (100000, 3, 0, 1, 0)")
+           "another candidate's binary, missing receipt hash, candidate file identical to the lock file)",
+           got == [(100000, 3, 0, 1, 0)] * 2 and lock_as_cand == [0, 0],
+           f"(EVL counted, EVL foreign, PCM counted, PCM foreign, counted without a receipt hash) tier A {got[0]}, tier R {got[1]}; wanted (100000, 3, 0, 1, 0); "
+           f"counted when the candidate's file is the lock's file: {lock_as_cand}, wanted [0, 0]")
 
     # L3: the count gate and the verdict rule
     def tier_a(n, extra=(), harness=lambda k: "h2"):
@@ -629,6 +652,41 @@ def ledger_controls(red=False):
     record("L5 replay: a ledger row is reproduced only by a clean comparison with every hash equal to the row's", not wrong,
            f"{len(cases) - len(wrong)} of {len(cases)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
 
+    # L6: the gate of the release-exe fuzz: every chunk of the corpus, each tied to the lock probe, nothing open.
+    # Its red run uses the gate as it was before the owner's review: one chunk was enough.
+    gate_r = (lambda u, tied: u["positions"] > 0) if red else report.tier_r_gate          # noqa: E731
+
+    def tier_r(chunks, extra=()):
+        return stats([row("EVL", k, "aa", "bb") for k in chunks] + list(extra), lambda w: uci_bound(w, frozen))["EVL"]
+    every = set(range(report.N_CHUNKS))
+    cases = {
+        "one chunk does not meet the gate": gate_r(tier_r([0]), {0}) is False,
+        "199 of 200 chunks do not": gate_r(tier_r(range(199)), set(range(199))) is False,
+        "all 200 chunks, each tied to the lock probe, do": gate_r(tier_r(range(200)), every) is True,
+        "a chunk without the tie does not count": gate_r(tier_r(range(200)), every - {17}) is False,
+        "a MISMATCH row keeps the gate open": gate_r(tier_r(range(200), [row("EVL", 7, "aa", "bb", status="MISMATCH")]), every) is False,
+    }
+    wrong = [k for k, v in cases.items() if not v]
+    record("L6 release-exe fuzz gate: no PASS before all 200 chunks are compared on the release executables, each tied to the lock probe", not wrong,
+           f"{len(cases) - len(wrong)} of {len(cases)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
+
+    # L7: rows that are not OK, and the FAIL verdict
+    sup = tier_r(range(200), [row("EVL", 7, "aa", "bb", status="HARNESS_ERROR"), row("EVL", 9, "aa", "bb", status="TIMEOUT")])
+    never = tier_r([k for k in range(200) if k != 7], [row("EVL", 7, "aa", "bb", status="HARNESS_ERROR")])
+    mis = tier_r(range(200), [row("EVL", 7, "aa", "bb", status="MISMATCH"), row("EVL", 8, "aa", "bb", status="CRASH")])
+    cases = {
+        "a harness error or timeout on a chunk that also ran clean is listed as superseded and does not block":
+            len(sup.get("superseded", [])) == 2 and not sup["bad"] and gate_r(sup, every) is True,
+        "a harness error on a chunk that never ran clean stays open": len(never["bad"]) == 1 and gate_r(never, every) is False,
+        "a MISMATCH or CRASH is never superseded by a clean run of the same chunk": len(mis["bad"]) == 2 and not mis.get("superseded"),
+        "a confirmed difference is FAIL, also with every gate met": verdict(dict(g, fuzz=True), ["a difference"], ["reproduced twice and isolated"]) == "FAIL",
+        "an unconfirmed difference is not FAIL": verdict(dict(g, fuzz=True), ["a difference"], []) == "DIFFERENCE TO CONFIRM",
+        "without input identity the verdict is BLOCKED, not FAIL": verdict(dict(g, fuzz=True, identity=False), [], ["x"]) == "BLOCKED",
+    }
+    wrong = [k for k, v in cases.items() if not v]
+    record("L7 rows that are not OK and the FAIL verdict: a superseded harness error does not block, a difference always does, a confirmed one is FAIL", not wrong,
+           f"{len(cases) - len(wrong)} of {len(cases)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
+
 
 def main():
     print(pinguard3.ensure(), flush=True)
@@ -646,6 +704,8 @@ def main():
             print(f"SELFTEST BLOCKED: missing {p}")
             return 2
     print(f"lock probe sha256 {sha256_file(LOCK_PROBE)}; lock exe sha256 {sha256_file(LOCK_EXE)}", flush=True)
+    import fuzz
+    print(f"harness sha256 (mgprobe.cpp, mg_format.py, mg_compare.py, uci_session.py, fuzz.py, pinguard3.py together) {fuzz.harness_sha()}", flush=True)
     seeds = path_a = None
     try:
         seeds, path_a = tier_a_controls()

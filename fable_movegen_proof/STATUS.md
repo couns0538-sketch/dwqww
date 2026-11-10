@@ -1,31 +1,36 @@
 # STATUS: job 3, move-generator proof (Fable 5.2)
 
-Written 2026-11-10 20:58 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
+Written 2026-11-10 22:19 Vienna, after the last run had ended. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
 
 ## State in one paragraph
 
-No check has found a difference between any candidate and the lock, and every required gate is complete for all six candidates: self-test, 13 pins, perft divide, edge suite, warm transcript, Threads soak, cache-state variants, the tie between each probe and its release executable, and 20,000,000 compared positions per candidate on the auxiliary tier. The verdict for EVL, PCM, CKL, WNP, KPC and BUN is therefore PASS under the two-tier rule the owner chose (decision D1): the checkers bitboard and the static eval were compared on auxiliary probes, because the release executables do not print them. One run is still going: the release-executable fuzz, which decision D2 does not require to reach 20 million; it stood at 7.7 to 7.8 million per candidate at 20:53 and continues to chunk 199. A PASS does not authorise a lock change.
+The work is complete and nothing is running. No check found a difference between any candidate and the lock. Every gate is met for all six candidates: self-test, 13 pins, perft divide, edge suite, warm transcript, Threads soak, cache-state variants, the tie between each probe and its release executable, 20,000,000 compared positions per candidate on the auxiliary tier, and 20,000,000 per candidate on the release executables. The verdict for EVL, PCM, CKL, WNP, KPC and BUN is PASS under the two-tier rule the owner chose (decision D1): the checkers bitboard and the static eval were compared on auxiliary probes, because the release executables do not print them; on the release executables themselves the fuzz compared the legal moves, their order and the reply counts. A PASS does not authorise a lock change.
 
-## Verdicts (`evidence/VERDICTS.json`, generated 20:53 by `harness\report.py`)
+## Verdicts (`evidence/VERDICTS.json`, generated 22:17 by `harness\report.py`)
 
-| Candidate | Verdict | Tier A, auxiliary probes, all fields | Tier R, release executables, move lists (still running) | Differences |
+| Candidate | Verdict | Tier A, auxiliary probes, all fields | Tier R, release executables, move lists | Differences |
 |---|---|---|---|---|
-| EVL: EVADE_LEGAL | PASS (two tiers) | 20,000,000 | 7,800,000 | 0 |
-| PCM: PAWN_CAPMASK v2 | PASS (two tiers) | 20,000,000 | 7,800,000 | 0 |
-| CKL: CHECKERS_KL v3, mode 1 | PASS (two tiers) | 20,000,000 | 7,700,000 | 0 |
-| WNP: WITNESS_NOPIN | PASS (two tiers) | 20,000,000 | 7,700,000 | 0 |
-| KPC: KING_PAWN_CACHE v2 | PASS (two tiers) | 20,000,000 | 7,700,000 | 0 |
-| BUN: BUNDLE3 | PASS (two tiers) | 20,000,000 | 7,700,000 | 0 |
+| EVL: EVADE_LEGAL | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
+| PCM: PAWN_CAPMASK v2 | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
+| CKL: CHECKERS_KL v3, mode 1 | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
+| WNP: WITNESS_NOPIN | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
+| KPC: KING_PAWN_CACHE v2 | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
+| BUN: BUNDLE3 | PASS (two tiers) | 20,000,000 | 20,000,000 | 0 |
 
 First mismatch: none. `out\job3\fail` is empty.
+
+An earlier state of this file (commit `31e95ecd`, 20:56) already said PASS, with 7.7 to 7.8 million on the release executables. The owner's code review then asked for a minimum on that tier; under the rule adopted since, that state was INCOMPLETE until the release-executable fuzz had covered all 200 chunks at 22:12.
 
 ## Clock
 
 | What | Value |
 |---|---|
 | Start of the 7-hour period (plan approved) | 2026-11-10 18:57:50 |
-| Reporting must start by | 2026-11-11 01:12 |
+| Last run ended | 2026-11-10 22:17 |
+| Reporting had to start by | 2026-11-11 01:12 |
 | End of the period | 2026-11-11 01:57 |
+
+The job ends before the period does because the required work is complete; nothing was left out to finish early.
 
 ## Paths and revisions
 
@@ -33,13 +38,13 @@ First mismatch: none. `out\job3\fail` is empty.
 |---|---|
 | Repo | `D:\forge_jobs_20261109\fable2\repo` |
 | Branch | `fable52-movegen-proof-20261110`, started from `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (tip of job 2) |
-| Commits of this job | `47556eaf`, `c2bc8e0b`, `1fd97049`, `728317e6`, `7994cb82`, then the commit that holds this file; each was pushed when made |
+| Commits of this job | `47556eaf`, `c2bc8e0b`, `1fd97049`, `728317e6`, `7994cb82`, `31e95ecd` (each pushed when made), then the commit that holds this file |
 | Pack on the branch | `fable_movegen_proof\` |
 | Output root | `D:\forge_jobs_20261109\fable2\out\job3` (`bin`, `src`, `aux` = harness-1 probes, `aux2` = harness-2 probes, `runs`, `runs\h1` = harness-1 results, `tmp`, `logs`, `fail`, `corpus`) |
 | Plan | approved by Couns 2026-11-10 18:57; decisions D1 (two-tier PASS) and D2 (20 million on the auxiliary tier) answered 18:15 |
 | git | promisor clone, sparse and non-cone; pattern `/fable_movegen_proof/` added locally; `GIT_NO_LAZY_FETCH=1` in every shell |
 
-## Frozen inputs (`out\job3\runs\freeze\INPUTS.json`, written 19:00; hashed again 20:53 by `scripts\verify_evidence.ps1`)
+## Frozen inputs (`out\job3\runs\freeze\INPUTS.json`, written 19:00; hashed again 22:17 by `scripts\verify_evidence.ps1`)
 
 All six supplied MD5s matched. Every source tree matched its build's `SOURCE_INPUTS.sha256` file by file.
 
@@ -73,7 +78,7 @@ Harness source `mgprobe.cpp` sha256 `42efd61dd819eb7dda65546fb1344dc408850fe6ef4
 | KPC | `7f6c70a5519f` | KING_PAWN_CACHE=1 (pawn-cache entry 64 bytes, 40 elsewhere) | `include/forge/eval.hpp`, `src/eval.cpp` |
 | BUN | `83e355912d6e` | EVADE_LEGAL=1, PAWN_CAPMASK=1, CHECKERS_KL=1 | `src/board.cpp` |
 
-The six files that produced the counted fuzz rows (`mgprobe.cpp`, `mg_format.py`, `mg_compare.py`, `uci_session.py`, `fuzz.py`, `pinguard3.py`) have the combined sha256 `a234987c31fdbb18082ab1462ed157f482478a6f30705f09a2e57d4c1a46a3a7` and are unchanged since commit `1fd97049`.
+The six files that produced the counted fuzz rows (`mgprobe.cpp`, `mg_format.py`, `mg_compare.py`, `uci_session.py`, `fuzz.py`, `pinguard3.py`) have the combined sha256 `a234987c31fdbb18082ab1462ed157f482478a6f30705f09a2e57d4c1a46a3a7` and are unchanged since commit `1fd97049`; the self-test prints this hash.
 
 ## Options, net modes and seeds
 
@@ -94,25 +99,26 @@ Fuzz corpus: master seed `4D47465A20261110`; chunk seed = master xor (chunk + 1)
 | Check | Result |
 |---|---|
 | Launcher tests, freeze, observability record | DONE 19:00 to 19:02 |
-| Self-test | `SELFTEST PASS 72/72` at 20:52 (`out\job3\runs\selftest\GREEN7.log`), run after the last change to the report generator. Red runs: 19:09 (4/20), 19:11 (6/42), 19:49 (16/27), 20:28 (0/5, report controls). Attempts that still failed while the harness was written are kept and explained in PROOF.md section 3. Correction of an earlier statement: three of the 43 controls of harness 1 (R12b, R13b, R14b) could not fail; found by review 1 and replaced |
+| Self-test | `SELFTEST PASS 75/75` at 22:16 (`out\job3\runs\selftest\GREEN10.log`), run after the last change to the report generator and the edge runner. Red runs: 19:09 (4/20), 19:11 (6/42), 19:49 (16/27), 20:28 (0/5), 21:43 (5/6) and 21:47 (0/7). Runs that still failed while code was being written (`GREEN1`, `GREEN3`, `GREEN4`, `GREEN8`) are kept and explained in PROOF.md section 3. Correction of an earlier statement: three of the 43 controls of harness 1 (R12b, R13b, R14b) could not fail; found by review 1 and replaced |
 | Review 1 (independent, another model) | DONE 19:41, "with fixes"; all findings dispositioned in `REVIEW_LOG.md` |
 | Review 2 | The independent review was stopped at 20:34 on the owner's instruction (no subagents) before it reported. Done as a self-review by the main agent; findings S1 to S11 in `REVIEW_LOG.md`, all fixed or explained |
+| Review 3 (the owner's Code Review of commit `31e95ecd`, no blocker) | Both required changes made (verification logs committed and listed; minimum for the release-executable fuzz). Of the seven optional points five were taken; the two that would change `fuzz.py` or `mgprobe.cpp` were not, and are open suggestions in `REVIEW_LOG.md` |
 | Pins, 13 per executable | MATCH 13/13 for LOCK, LOCKCOPY, LOCKEQ, EVL, PCM, CKL, WNP, KPC, BUN (19:25; repeated with the final driver 20:10 to 20:16, same result) |
 | Perft divide, ten runs on eight positions, 216 root moves | every count equal to the lock's for all eight other executables; lock totals equal the published values where one exists (repeated 20:16) |
 | Warm transcript, 101 searches, 1,677 lines | identical to the lock's for all eight other executables; bench 13 still the pin afterwards (repeated 20:17) |
 | Threads 2-4 soak, 78 searches per executable | STABLE for all nine (stability only, no node identity) (repeated 20:18 to 20:21) |
-| Edge suite: 410 legal entries, 17 rejected, 4 unreachable | MATCH for LOCKCOPY, LOCKEQ and the six candidates with harness 2 at 20:40 to 20:42: 14,220 probe records and 7,725 perft blocks per tag; lock equal to the oracle on all 410 entries. The harness-1 run of 19:40 gave the same result |
+| Edge suite: 410 legal entries, 17 rejected, 4 unreachable | MATCH for LOCKCOPY, LOCKEQ and the six candidates: 14,220 probe records and 7,725 perft blocks per tag; lock equal to the oracle on all 410 entries. Run three times with the same result: 19:40 (harness 1), 20:40 (harness 2), 21:49 to 21:51 (after the runner learned to refuse a dead lock probe); the receipts are those of the last run |
 | Fuzz, auxiliary tier | DONE 19:58 to 20:35: 20,000,000 compared positions per candidate, 1,200 rows, all OK |
 | Cache-state variants | DONE 20:35 to 20:39: chunks 0-4 and 100-104, two variants, 120 rows, all OK |
 | Probe against its own release executable | DONE 20:39: identical move lists on 2,000 positions for LOCK, LOCKEQ and the six candidates |
-| Fuzz, release executables, with the tie to the lock probe | RUNNING since 19:58: 7.7 to 7.8 million per candidate at 20:53, all rows OK |
+| Fuzz, release executables, with the tie to the lock probe | DONE 19:58 to 22:12: 20,000,000 compared positions per candidate (all 200 chunks), 1,200 rows, all OK |
 | Search signatures, 100,000 corpus positions, depth 7, net on and off | DONE 20:21 to 20:49: identical for all six candidates (supplementary) |
 | Coverage of each candidate's changed lines | DONE 20:02 (WNP again 20:06 with the targets): every instrumented line of every `#if` region executed |
 | WITNESS_NOPIN targets, 1,792 constructed positions | DONE 20:06: MATCH for LOCKEQ and the six candidates (supplementary) |
-| Replay of counted ledger rows | DONE 20:42 to 20:46: 36 rows of tier A (chunks 0, 57, 99, 100, 143, 199) and 12 rows of tier R (chunks 3, 31) reproduced with every hash equal |
+| Replay of counted ledger rows | DONE: 36 rows of tier A (chunks 0, 57, 99, 100, 143, 199) and 30 rows of tier R (chunks 3, 31, 99, 100, 199) run again from their definition, every hash equal to the row |
 | Distinct positions of the corpus | 17,595,079 distinct by position key among 20,000,000 visited; 1,746,584 in check |
-| Independent recount (`scripts\verify_evidence.ps1`, no code shared with the Python harness) | `VERIFY EVIDENCE OK 19/19` at 20:53 |
-| Final report, manifest, DONE, push | the commit that holds this file has the state of 20:58; repeated when the release-executable fuzz has finished |
+| Independent recount (`scripts\verify_evidence.ps1`, no code shared with the Python harness) | `VERIFY EVIDENCE OK 19/19` at 22:17; its output is `VERIFY_EVIDENCE.log` in the pack |
+| Manifest | `MANIFEST.tsv` and `DONE.md` are written after this file; `make_manifest.ps1 -Verify` is the last step before the commit and writes `MANIFEST_VERIFY.log`. The commit is made only if that log says VERIFY OK |
 
 ## What the release executables expose (`out\job3\runs\observe\out_LOCK.txt`)
 
@@ -129,15 +135,23 @@ Fuzz corpus: master seed `4D47465A20261110`; chunk seed = master xor (chunk + 1)
 7. **Corpus in two parts.** Chunks 0-99 use seeds `v1` (start position, 8 bench positions, fens12k, 33 edge positions known before the suite existed); chunks 100-199 use seeds `v2` (the same with all 410 legal suite entries). Cost if wrong: none; both parts are in the corpus definition.
 8. **Fuzz started before review 1 returned**, to use the idle core. Consequence taken: when the review changed the probe, every counted run was started again with harness 2; the earlier results stay under `runs\h1` and are not counted.
 9. **No mutants.** Review 1 suggested mutated probes to show sensitivity. The job forbids editing engine source and altering engine binaries for controls; a mutated copy is too close to that line to take without the owner. Line coverage of the unchanged source is used instead. Cost if wrong: sensitivity is shown by reach, not by a caught planted fault.
-10. **Release-exe fuzz on all 200 chunks.** The pilot showed far more positions per second than estimated, so the release-exe tier is run on the whole corpus instead of the planned minimum of 10 chunks. Decision D2 is unchanged: the count that decides is the auxiliary one.
+10. **Release-exe fuzz on all 200 chunks.** The pilot showed far more positions per second than estimated, so the release-exe tier was run on the whole corpus instead of the planned minimum of 10 chunks.
 11. **Release checks repeated.** Pins, divide, warm and soak were run again for all nine tags with the final `checks_release.py` (version 2 raised only the warm depths and the soak node budget), so every receipt carries the same version.
 12. **No subagents after 20:34.** The owner wrote "no subagents allowed" (they cost tokens). The running reviewer was stopped and review 2 was done by the main agent. Cost: the second review is not independent; PROOF.md states that as a limit. The instruction was not saved in the assistant's memory folder, because that folder is on C: and this job may create no file there; it is recorded here instead.
 13. **The tie between probe and executable is a gate.** The plan listed the cross-tier check as a test of task 1; a PASS now depends on it, because the auxiliary tier only speaks for a release executable if both list the same moves.
 14. **Tools added beyond the plan:** `harness\replay.py` (runs a counted ledger row again and compares every hash) and `scripts\verify_evidence.ps1` (independent recount in PowerShell). Both only read results; they change no ledger.
+15. **A minimum for the release-executable fuzz** (review 3). The approved plan asked for zero differences "in whatever ran" on that tier, with a planned minimum of one million. Of the two ways the review offered I took the stricter one: no PASS before all 200 chunks on the release executables. Cost: the PASS written at 20:56 was premature by this rule and is corrected above.
+16. **The log of the manifest verification is listed in the manifest it verifies.** Its text for a clean verification is fixed beforehand and its hash entered; `-Verify` compares the log it writes with that hash (head of `make_manifest.ps1`). Cost if wrong: none found; the failing case was observed at 21:51.
+17. **No deletes.** Until review 3, `report.py` removed and rebuilt the pack's own `evidence\` folder on every run. That folder is in the repo, not under `out\job3`, so by the letter of the job this needed the owner's approval; it is recorded in `REVIEW_LOG.md` as a deviation and the code now writes the files over in place. Nothing else outside `out\job3` was deleted. Inside `out\job3` the runners remove their own temporary batch files, which the job text allows.
+18. **Optional points of review 3 not taken:** the changes to `fuzz.py` and the assert in `mgprobe.cpp`. Either would change the files whose hash stands in every counted row, and all counted runs would have to be repeated. The reasons and the bound that makes the assert unnecessary for the present constants are in `REVIEW_LOG.md`.
 
 ## Disk and processes
 
-D: 32.17 GiB free at 20:52 (floor 30.3); the job's folder holds about 125 MiB. Transcripts are compared in memory. Live processes of this job at 20:58: the release-executable fuzz only (Python process id 15388, `fuzz.py uci v1 0-99`, with a PowerShell launcher as parent and one engine child at a time; it is followed by `fuzz.py uci v2 100-199` from the same launcher). Affinity 0x78 and Idle priority were read back from every process of the job at 20:42. Machine: the live gate uses cores 4-6; at 20:51 core 3 was at 98 % from this job and cores 4, 5, 6 at 59, 41 and 4 %.
+D: 32.18 GiB free at 22:17 (floor 30.3); the job's folder holds about 98 MiB. No process of this job is alive (checked 22:17: no Python, engine, probe or launcher process with a path of this job). Affinity 0x78 and Idle priority were set on every launcher before its child started and read back from the children, so no workload of this job ran on cores 0-2 or 7-15 (the first milliseconds of a shell before it pins itself are the exception recorded as M7 in `REVIEW_LOG.md`). Never more than three engine or probe processes ran at once.
+
+## Publication
+
+Commits up to `31e95ecd` are on the remote (each push ended with exit code 0). The commit that holds this file is pushed after `MANIFEST_VERIFY.log` says VERIFY OK; its hash, the result of that push and the MD5 of this file and of `DONE.md` are in the final receipt of the job.
 
 ## Skills, servers, tools
 
@@ -145,7 +159,7 @@ Used: superpowers brainstorming, writing-plans, executing-plans, test-driven-dev
 
 ## Next action
 
-Wait for the release-executable fuzz to reach chunk 199 (it reports by itself). Then: replay two of its seeds-v2 chunks, `report.py`, `verify_evidence.ps1`, update this file, `make_manifest.ps1` and `make_manifest.ps1 -Verify`, commit and push. If the session ends first, the state committed with this file is a complete handoff with the release-executable count as it stood, and the commands below continue it.
+None is owed by this job. For the owner to decide: whether the self-review (review 2) is enough or an independent review of the runners is wanted; whether to take the two open suggestions of review 3 at the next change of the probe; and anything about the lock, which this job neither changed nor authorises changing.
 
 ## Resume commands
 
@@ -154,13 +168,11 @@ Wait for the release-executable fuzz to reach chunk 199 (it reports by itself). 
 [void](J3-Pin 0x78)
 $H = "$J3_PACK\harness"; $L = "$J3_PACK\scripts\pin_run.ps1"
 function Py($a) { powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $a" }
-Py "$H\fuzz.py count"                      # where the fuzz stands (reads the ledgers only)
-Py "$H\fuzz.py uci v1 0-99"                # continue the release-exe tier; finished chunks are skipped and nothing counts twice
-Py "$H\fuzz.py uci v2 100-199"
-Py "$H\replay.py uci v2 150 EVL,PCM,CKL,WNP,KPC,BUN"   # run counted rows again and compare every hash
+Py "$H\fuzz.py count"                      # totals from the ledgers (reads only)
+Py "$H\replay.py aux v2 150 EVL,PCM,CKL,WNP,KPC,BUN"   # run counted rows again and compare every hash (also: replay.py uci ...)
 Py "$H\selftest.py"                        # harness controls, about one minute
 Py "$H\report.py"                          # evidence folder, tables, verdicts, PROOF.md
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\verify_evidence.ps1    # independent recount
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\verify_evidence.ps1 -Log $J3_PACK\VERIFY_EVIDENCE.log    # independent recount
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\make_manifest.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\make_manifest.ps1 -Verify
 ```

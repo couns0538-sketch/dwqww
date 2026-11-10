@@ -33,18 +33,22 @@ EV = os.path.join(PACK, "evidence")
 CANDS = fuzz.CANDS
 ALL = ["LOCK", "LOCKCOPY", "LOCKEQ"] + CANDS
 TARGET = 20_000_000
+N_CHUNKS = 200            # the corpus: chunks 0-99 of seeds v1 and 100-199 of seeds v2, 100,000 positions each
 NAMES = {"EVL": "EVADE_LEGAL", "PCM": "PAWN_CAPMASK v2", "CKL": "CHECKERS_KL v3 (mode 1)", "WNP": "WITNESS_NOPIN",
          "KPC": "KING_PAWN_CACHE v2", "BUN": "BUNDLE3 (EVL + PCM v2 + CKL v3)", "LOCK": "combo29 lock", "LOCKCOPY": "byte-identical copy of the lock",
          "LOCKEQ": "lock-equivalent (BUNDLE3 tree, switches 0)"}
 GATE_TEXT = {"identity": "input identity", "self_test": "harness self-test", "pins": "13 pins", "divide": "perft divide", "edge_suite": "edge suite (both tiers)",
              "warm_transcript": "warm transcript", "threads_soak": "Threads soak", "fuzz_tier_a_20M": "20,000,000 auxiliary-tier fuzz comparisons",
-             "fuzz_tier_r_clean": "release-exe fuzz without a failed chunk", "cache_state_variants": "cache-state variants",
+             "fuzz_tier_r_all_chunks": "release-exe fuzz on all 200 chunks, each tied to the lock probe", "cache_state_variants": "cache-state variants",
              "probe_tied_to_exe": "probe move lists equal to its release executable's"}
-EMPTY = {"ok": set(), "positions": 0, "in_check": 0, "bad": [], "foreign": 0, "harness": set()}
+EMPTY = {"ok": set(), "positions": 0, "in_check": 0, "bad": [], "superseded": [], "foreign": 0, "harness": set()}
 
 
 def jload(path):
     return json.load(open(path, "r", encoding="ascii")) if os.path.exists(path) else None
+
+
+WRITTEN = set()           # the files of evidence\ that this run wrote
 
 
 def copy(src, dst_rel):
@@ -53,6 +57,7 @@ def copy(src, dst_rel):
     dst = os.path.join(EV, dst_rel)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(src, dst)
+    WRITTEN.add(os.path.normcase(os.path.abspath(dst)))
     return True
 
 
@@ -78,12 +83,26 @@ def chunk_table(cdir, dst_rel):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     with open(dst, "w", encoding="ascii", newline="\n") as f:
         f.write("\n".join(rows) + "\n")
+    WRITTEN.add(os.path.normcase(os.path.abspath(dst)))
+
+
+def leftovers():
+    """Files of evidence\\ that this run did not write. Nothing is deleted here: every file is written over in
+    place, and a file left from an earlier run is reported so that it can be looked at (deleting needs the owner)."""
+    out = []
+    for root, _, files in os.walk(EV):
+        for name in files:
+            p = os.path.join(root, name)
+            if os.path.normcase(os.path.abspath(p)) not in WRITTEN:
+                out.append(os.path.relpath(p, EV).replace("\\", "/"))
+    return sorted(out)
 
 
 def collect():
-    if os.path.isdir(EV):
-        shutil.rmtree(EV)                       # the evidence folder is regenerated from out\job3 every time
-    os.makedirs(EV)
+    # the evidence folder is this pack's own folder beside this script; it is written over, never removed
+    if os.path.basename(EV) != "evidence" or not os.path.samefile(os.path.dirname(EV), os.path.dirname(os.path.dirname(os.path.abspath(__file__)))):
+        raise SystemExit(f"refusing: {EV} is not the evidence folder of this pack")
+    os.makedirs(EV, exist_ok=True)
     r = os.path.join(OUT, "runs")
     for name in ("INPUTS.json", "INPUTS.txt"):
         copy(os.path.join(r, "freeze", name), f"freeze/{name}")
@@ -123,16 +142,20 @@ def collect():
     listing = sorted(os.listdir(fdir)) if os.path.isdir(fdir) else []
     with open(os.path.join(EV, "FAIL_FOLDERS.txt"), "w", encoding="ascii", newline="\n") as f:
         f.write("failure folders under out\\job3\\fail (none listed below means no failure evidence was ever written):\n" + "\n".join(listing) + "\n")
+    WRITTEN.add(os.path.normcase(os.path.abspath(os.path.join(EV, "FAIL_FOLDERS.txt"))))
     return listing
 
 
 def ledger_stats(rows, bound=None):
     """Per candidate: the chunks with an OK row (each once), their positions, and every row that is not OK.
     `bound(row)` says whether a row was made with the frozen binaries; a row that was not is listed as foreign and
-    never counted."""
+    never counted.
+    A HARNESS_ERROR or TIMEOUT row is no statement about the candidate. If the same chunk also has an OK row (it
+    was run again, cleanly), such a row is moved to `superseded`: it stays listed and no longer keeps a gate open.
+    A MISMATCH or CRASH row is never superseded: a clean run of the same chunk does not explain it away."""
     per = {}
     for row in rows:
-        c = per.setdefault(row["cand"], {"ok": set(), "positions": 0, "in_check": 0, "bad": [], "foreign": 0, "harness": set()})
+        c = per.setdefault(row["cand"], {"ok": set(), "positions": 0, "in_check": 0, "bad": [], "superseded": [], "foreign": 0, "harness": set()})
         k = int(row["chunk"])
         if bound is not None and not bound(row):
             c["foreign"] += 1
@@ -146,6 +169,9 @@ def ledger_stats(rows, bound=None):
                 c["in_check"] += int(row.get("in_check") or 0)
         else:
             c["bad"].append((k, row["status"], row["detail"][:300]))
+    for c in per.values():
+        c["superseded"] = [x for x in c["bad"] if x[1] in ("HARNESS_ERROR", "TIMEOUT") and x[0] in c["ok"]]
+        c["bad"] = [x for x in c["bad"] if x not in c["superseded"]]
     return per
 
 
@@ -177,14 +203,41 @@ def tier_a_gate(a, harness_now):
     return a["positions"] >= TARGET and not a["bad"] and a["harness"] == {harness_now}
 
 
-def verdict_of(gates, differences):
-    """BLOCKED without input identity; a reported difference is never a PASS; PASS needs every gate; otherwise
-    INCOMPLETE. FAIL is not derived here: a difference is reproduced and isolated by hand first."""
+def tier_r_gate(u, tied):
+    """The release-exe fuzz: every chunk of the corpus has an OK row whose lock output was found equal to the lock
+    probe's move lists (`tied`: the chunks with such a row), and no row is open. One chunk is not enough."""
+    return all(k in u["ok"] and k in tied for k in range(N_CHUNKS)) and not u["bad"]
+
+
+def verdict_of(gates, differences, confirmed=()):
+    """BLOCKED without input identity. FAIL when a difference was confirmed: reproduced and isolated by hand and
+    recorded in a CONFIRMED.json of its failure folder (see confirmed_failures). A reported difference that is not
+    confirmed is never a PASS. PASS needs every gate; otherwise INCOMPLETE."""
     if not gates.get("identity"):
         return "BLOCKED"
+    if confirmed:
+        return "FAIL"
     if differences:
         return "DIFFERENCE TO CONFIRM"
     return "PASS" if all(gates.values()) else "INCOMPLETE"
+
+
+def confirmed_failures(fail_dir):
+    """Candidate tag -> texts of the confirmed differences. A difference becomes FAIL only after it was reproduced
+    and isolated by hand (README.md, "If a check reports a difference"); that step writes CONFIRMED.json into the
+    failure folder: {"cand": tag, "field": ..., "fen": ..., "expected": ..., "actual": ..., "replay": ...}."""
+    out = {}
+    for name in sorted(os.listdir(fail_dir)) if os.path.isdir(fail_dir) else []:
+        x = jload(os.path.join(fail_dir, name, "CONFIRMED.json"))
+        if x:
+            out.setdefault(x["cand"], []).append(f"{name}: {x.get('field', '?')} at {x.get('fen', '?')}: expected {x.get('expected', '?')}, got {x.get('actual', '?')}; "
+                                                 f"replay: {x.get('replay', '?')}")
+    return out
+
+
+def span(a, b):
+    """'20,000,000' when both ends are the same number, else 'between a and b'."""
+    return f"{a:,}" if a == b else f"between {a:,} and {b:,}"
 
 
 def selftest_runs(sdir):
@@ -205,6 +258,10 @@ def selftest_passed(line):
 
 
 def main():
+    # the summary of the release-exe checks is derived again from the receipts first, so that it cannot be older
+    # than they are and the copy in evidence\ is the one this report used
+    with contextlib.redirect_stdout(io.StringIO()):
+        checks_release.summary(ALL)
     fails = collect()
     r = os.path.join(OUT, "runs")
     S, order = {}, []
@@ -217,10 +274,7 @@ def main():
     # the self-test result is the last line of the newest log, whatever the file is called
     st_runs = selftest_runs(os.path.join(r, "selftest"))
     selftest_name, selftest_line = (st_runs[-1][1], st_runs[-1][2]) if st_runs else ("", "")
-    # the summary of the release-exe checks is derived again from the receipts, so it cannot be older than they are
-    with contextlib.redirect_stdout(io.StringIO()):
-        checks_release.summary(ALL)
-    release = (jload(os.path.join(r, "RELEASE_SUMMARY.json")) or {"tags": {}})["tags"]
+    release = (jload(os.path.join(EV, "RELEASE_SUMMARY.json")) or {"tags": {}})["tags"]
     # a ledger row or a receipt counts only if it names the frozen executables and the probes of the build receipts
     probe_sha = {x: (jload(os.path.join(OUT, "aux2", x, "AUX_RECEIPT.json")) or {}).get("exe_sha256") for x in ["LOCK", "LOCKEQ"] + CANDS}
     exe_sha = {x: inputs.get(x, {}).get("exe_sha256") for x in ["LOCK", "LOCKEQ"] + CANDS}
@@ -363,6 +417,11 @@ def main():
         t.append(f"| {c} | {a['positions']:,} | {len(a['ok'])} | {a['in_check']:,} | {a['positions'] - a['in_check']:,} | {a['positions']:,} | {a['positions']:,} | {len(a['bad'])} | "
                  f"{u['positions']:,} | {len(u['ok'])} | {len(tied.get(c, ()))} | {len(u['bad'])} |")
     t.append("\nEvery tier A record holds the static eval with the net off and with the net on, so the eval coverage by mode equals the tier A count in both modes.")
+    n_sup = sum(len(aux.get(c, EMPTY)["superseded"]) + len(uci.get(c, EMPTY)["superseded"]) for c in CANDS)
+    full_r = [c for c in CANDS if all(k in uci.get(c, EMPTY)["ok"] and k in tied.get(c, set()) for k in range(N_CHUNKS))]
+    t.append(f"\nThe corpus has {N_CHUNKS} chunks. Tier R covers all of them, each tied to the lock probe, for {len(full_r)} of {len(CANDS)} candidates"
+             + ("" if len(full_r) == len(CANDS) else f" (not yet for {', '.join(c for c in CANDS if c not in full_r)})")
+             + f". Rows with a harness error or a timeout whose chunk also ran clean (listed, not counted, not blocking): {n_sup}.")
     hs = sorted({h for c in CANDS for h in aux.get(c, EMPTY)["harness"]})
     foreign = sum(aux.get(c, EMPTY)["foreign"] + uci.get(c, EMPTY)["foreign"] for c in CANDS) + len(warm_all) - len(warm_rows)
     t.append(f"\nA row is counted only if it names the frozen executables or the probes of the build receipts; rows that do not: {foreign}. "
@@ -472,6 +531,7 @@ def main():
 
     # ---- verdicts
     verdicts = {}
+    confirmed = confirmed_failures(os.path.join(OUT, "fail"))
     for c in CANDS:
         row = release.get(c, {})
         e = edge[c]
@@ -487,7 +547,7 @@ def main():
             "warm_transcript": str(row.get("warm", "")).startswith("MATCH") and rel_bound[c]["warm"],
             "threads_soak": str(row.get("soak", "")).startswith("STABLE") and rel_bound[c]["soak"],
             "fuzz_tier_a_20M": tier_a_gate(a, harness_now),
-            "fuzz_tier_r_clean": not u["bad"] and u["positions"] > 0,
+            "fuzz_tier_r_all_chunks": tier_r_gate(u, tied.get(c, set())),
             "cache_state_variants": all(variants_ok) and all(w["status"] == "OK" for w in wrows) and {w["harness_sha256"] for w in wrows} == {harness_now},
             "probe_tied_to_exe": bool(cross.get(c)) and cross[c]["status"] == "MATCH" and bool(cross.get("LOCK")) and cross["LOCK"]["status"] == "MATCH",
         }
@@ -513,9 +573,11 @@ def main():
             differences.append(f"cross-tier: the probe and the release exe of {c} list different moves at index {ct['first_difference_index']}")
         differences += [f"replay of tier {'A' if x['tier'] == 'aux' else 'R'} chunk {x['chunk']}: {x['status']} ({x['comparison']})"
                         for x in reps if x["cand"] == c and x["status"] != "REPRODUCED"]
-        verdict = verdict_of(gates, differences)
+        verdict = verdict_of(gates, differences, confirmed.get(c, ()))
         verdicts[c] = {"name": NAMES[c], "verdict": verdict, "gates": gates, "open_gates": [g for g, ok in gates.items() if not ok],
-                       "differences": differences, "tier_a_completed": a["positions"], "tier_a_in_check": a["in_check"],
+                       "differences": differences, "confirmed_differences": confirmed.get(c, []),
+                       "tier_a_completed": a["positions"], "tier_a_in_check": a["in_check"], "tier_r_chunks": len(u["ok"]),
+                       "superseded_rows": [f"tier A chunk {k}: {s}" for k, s, _ in a["superseded"]] + [f"tier R chunk {k}: {s}" for k, s, _ in u["superseded"]],
                        "tier_r_completed": u["positions"], "robustness_differences": (e or {}).get("robustness_differences", []),
                        "wnp_targets": (wt or {}).get("status", "not run"),
                        "harness_errors": [f"tier A chunk {k}: {s}" for k, s, _ in a["bad"] if s not in ("MISMATCH", "CRASH")]
@@ -555,18 +617,17 @@ def main():
         f"{e0.get('tier_r_legal', {}).get('perft_blocks', 0):,} release-exe perft blocks per tag; matching for {len(edge_done)} of {len(ALL) - 1} compared tags.",
         f"- Warm-state transcript: identical for {len(done_tags('warm')) - 1} of {len(ALL) - 1} compared executables. Threads 2-4 soak: stable for {len(done_tags('soak'))} of {len(ALL)}.",
         f"- Fuzz, auxiliary tier: at least {min_a:,} completed position comparisons per candidate, every field, both net modes.",
-        f"- Fuzz, release executables: between {min_r:,} and {max_r:,} completed `go perft 2` comparisons per candidate, each chunk tied to the lock probe.",
+        f"- Fuzz, release executables: {span(min_r, max_r)} completed `go perft 2` comparisons per candidate "
+        f"({span(min(len(uci.get(c, EMPTY)['ok']) for c in CANDS), max(len(uci.get(c, EMPTY)['ok']) for c in CANDS))} of {N_CHUNKS} chunks), each chunk tied to the lock probe.",
         f"- Supplementary: cache-state variants, line coverage of every candidate's changed lines, {w0.get('targets', 0):,} constructed WITNESS_NOPIN targets, "
         f"search signatures on corpus positions, probe-against-executable move lists.",
     ])
     remains = []
     for c, v in verdicts.items():
         if v["open_gates"]:
-            remains.append(f"- {c} is {v['verdict']}: open are {', '.join(GATE_TEXT[g] for g in v['open_gates'])}. Tier A stands at {v['tier_a_completed']:,} of {TARGET:,}. "
-                           f"Next commands: `fuzz.py aux v1 0-99`, `fuzz.py aux v2 100-199`, then `report.py` (see `STATUS.md`).")
-    if min_r < TARGET:
-        remains.append(f"- The release-executable fuzz stands at {min_r:,} to {max_r:,} per candidate. Decision D2 does not require 20,000,000 there; "
-                       f"to continue: `fuzz.py uci v1 0-99` and `fuzz.py uci v2 100-199` (finished chunks are skipped).")
+            remains.append(f"- {c} is {v['verdict']}: open are {', '.join(GATE_TEXT[g] for g in v['open_gates'])}. Tier A stands at {v['tier_a_completed']:,} of {TARGET:,}, "
+                           f"tier R at {v['tier_r_completed']:,} ({v['tier_r_chunks']} of {N_CHUNKS} chunks). Next commands: `fuzz.py aux v1 0-99`, `fuzz.py aux v2 100-199`, "
+                           f"`fuzz.py uci v1 0-99`, `fuzz.py uci v2 100-199` (finished chunks are skipped), then `report.py` (see `STATUS.md`).")
     remains.append("- Checkers and static eval on the release executables themselves: not observable. Reading them there would need a debug command in the engine source, "
                    "that is a source change and new builds, which only Couns can approve. This job did not ask for it because decision D1 accepts the auxiliary probes.")
     if robust:
@@ -578,12 +639,21 @@ def main():
         f"| `{name}` | {time.strftime('%H:%M:%S', time.gmtime(when + 3600))} | {line} |" for when, name, line in st_runs])
     S["BINDING_SENTENCE"] = ("Every receipt and ledger row used below names the executable or probe hashes of this table; a receipt or row that names another "
                              "binary is not counted. Such receipts: " + (", ".join(unbound) if unbound else "none") + f"; such ledger rows: {foreign}.")
-    S["FIRST_MISMATCH"] = ("None. No check reported a difference, so there is no first offending FEN, field or replay to give." if not all_diffs
-                           else "Reported differences (to be reproduced and isolated):\n\n" + "\n".join("- " + d for d in all_diffs))
+    all_confirmed = [f"{c}: {d}" for c, v in verdicts.items() for d in v["confirmed_differences"]]
+    S["FIRST_MISMATCH"] = ("None. No check reported a difference, so there is no first offending FEN, field or replay to give." if not all_diffs and not all_confirmed
+                           else ("Confirmed differences (reproduced and isolated; these make a FAIL):\n\n" + "\n".join("- " + d for d in all_confirmed) + "\n\n" if all_confirmed else "")
+                           + ("Reported differences (to be reproduced and isolated before any of them is a FAIL):\n\n" + "\n".join("- " + d for d in all_diffs) if all_diffs else ""))
+    S["TIER_R_LIMIT"] = (f"On the release executables themselves the fuzz compared {span(min_r, max_r)} positions per candidate "
+                         f"({span(min(v['tier_r_chunks'] for v in verdicts.values()), max(v['tier_r_chunks'] for v in verdicts.values()))} of the {N_CHUNKS} chunks of the corpus), "
+                         f"and what it compares there is the legal moves, their order and the number of replies to each move, nothing else. "
+                         f"A PASS requires all {N_CHUNKS} chunks; a candidate with fewer is INCOMPLETE.")
     S["FAIL_FOLDERS"] = ("The failure folder `out\\job3\\fail` is empty: no run ever wrote failure evidence." if not fails
                          else "Failure folders under `out\\job3\\fail`: " + ", ".join(fails) + ".")
     S["WRITTEN"] = fuzz.now()
 
+    for name in ("TABLES.md", "VERDICTS.json"):
+        WRITTEN.add(os.path.normcase(os.path.abspath(os.path.join(EV, name))))
+    left = leftovers()
     with open(os.path.join(EV, "TABLES.md"), "w", encoding="ascii", errors="replace", newline="\n") as f:
         f.write("# Tables of job 3, generated by harness/report.py at " + fuzz.now() + "\n\nEvery number is read from a receipt or a ledger; nothing is measured here.\n")
         for title, key in order:
@@ -591,7 +661,8 @@ def main():
         f.write(f"\n## Corpus\n\n{S['CORPUS_SENTENCES']}\n\n## Edge suite composition\n\n{S['EDGE_SENTENCE']} {S['EDGE_CATEGORIES']}\n")
     with open(os.path.join(EV, "VERDICTS.json"), "w", encoding="ascii", newline="\n") as f:
         json.dump({"written": fuzz.now(), "self_test": selftest_line, "self_test_log": selftest_name, "target": TARGET, "harness_sha256_now": harness_now,
-                   "receipts_naming_other_binaries": unbound, "ledger_rows_naming_other_binaries": foreign, "verdicts": verdicts, "failure_folders": fails}, f, indent=1)
+                   "receipts_naming_other_binaries": unbound, "ledger_rows_naming_other_binaries": foreign, "verdicts": verdicts, "failure_folders": fails,
+                   "evidence_files_left_from_an_earlier_run": left}, f, indent=1)
     template = open(os.path.join(PACK, "harness", "proof_template.md"), "r", encoding="ascii").read()
     missing = []
     for key in sorted(set(x.split("}}")[0] for x in template.split("{{")[1:])):
@@ -603,7 +674,8 @@ def main():
     print("self-test: " + selftest_line)
     for c, v in verdicts.items():
         print(f"{c}: {v['verdict']} | tier A {v['tier_a_completed']:,} | tier R {v['tier_r_completed']:,} | open: {', '.join(v['open_gates']) or 'none'} | differences: {len(v['differences'])}")
-    print(f"failure folders: {len(fails)}; template keys without a value: {missing or 'none'}")
+    print(f"failure folders: {len(fails)}; template keys without a value: {missing or 'none'}; "
+          f"files in evidence\\ left from an earlier run (not deleted): {left or 'none'}")
     return 0
 
 

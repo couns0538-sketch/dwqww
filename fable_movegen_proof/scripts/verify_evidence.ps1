@@ -1,13 +1,17 @@
 # verify_evidence.ps1 - an independent recount of the job-3 evidence (PowerShell 5.1, ASCII only).
 #
-#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File verify_evidence.ps1
+#   powershell.exe -NoProfile -ExecutionPolicy Bypass -File verify_evidence.ps1 [-Log FILE]
 #
 # It shares no code with the Python harness and starts no engine. It hashes the frozen executables and the
 # probes again, reads the receipts and ledgers under out\job3, and recomputes what PROOF.md states: the pins
 # against the numbers of the job text, divide and warm results against the lock's, the fuzz totals per
 # candidate, and that every counted row names the frozen binaries and holds two equal output hashes. Then it
 # compares its own totals with the verdict table of PROOF.md.
-# Last line: "VERIFY EVIDENCE OK n/n" (exit 0) or "VERIFY EVIDENCE FAILED ..." (exit 3). It writes nothing.
+# Last line: "VERIFY EVIDENCE OK n/n" (exit 0) or "VERIFY EVIDENCE FAILED ..." (exit 3). It writes nothing, except
+# with -Log: then the printed lines are also written to that file (the handoff keeps one as VERIFY_EVIDENCE.log).
+# A PASS in PROOF.md is accepted only with 20,000,000 positions on the auxiliary tier AND all 200 chunks on the
+# release executables for that candidate.
+param([string]$Log = '')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'job3_env.ps1')
 [void](J3-Pin 0x78)
@@ -15,17 +19,18 @@ $R = Join-Path $J3_OUT 'runs'
 $CANDS = @('EVL', 'PCM', 'CKL', 'WNP', 'KPC', 'BUN')
 $PROBED = @('LOCK', 'LOCKEQ') + $CANDS
 $TAGS9 = @('LOCK', 'LOCKCOPY', 'LOCKEQ') + $CANDS
-$script:n = 0; $script:bad = 0
+$script:n = 0; $script:bad = 0; $script:lines = New-Object System.Collections.ArrayList
+function Say([string]$s) { [void]$script:lines.Add($s); Microsoft.PowerShell.Utility\Write-Output $s }
 
 function Chk([string]$text, $fails) {      # one check: a text and the list of what contradicts it (not "Group": that is an alias)
     $script:n++
     $list = @($fails | Where-Object { $null -ne $_ })      # an empty list may arrive as $null
     if ($list.Count -gt 0) {
         $script:bad++
-        Write-Output "BAD  $text"
-        foreach ($x in ($list | Select-Object -First 8)) { Write-Output "       $x" }
-        if ($list.Count -gt 8) { Write-Output ("       ... and {0} more" -f ($list.Count - 8)) }
-    } else { Write-Output "OK   $text" }
+        Say "BAD  $text"
+        foreach ($x in ($list | Select-Object -First 8)) { Say "       $x" }
+        if ($list.Count -gt 8) { Say ("       ... and {0} more" -f ($list.Count - 8)) }
+    } else { Say "OK   $text" }
 }
 function J([string]$path) {
     if (Test-Path -LiteralPath $path) { return (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json) }
@@ -245,8 +250,8 @@ $f = @(); if ($ff.Count -ne 0) { $f += "$($ff.Count) files" }
 Chk 'failure folder out\job3\fail: empty' $f
 
 # ---------------------------------------------------------------- O. the ledger copies in evidence\ are the ledgers of out\job3
-$evA = @{}; $evR = @{}; $f = @(); $behind = 0
-foreach ($pair in @(@('fuzz_aux', $aux, $evA), @('fuzz_uci', $uci, $evR))) {
+$evA = @{}; $evR = @{}; $chunksA = @{}; $chunksR = @{}; $f = @(); $behind = 0
+foreach ($pair in @(@('fuzz_aux', $aux, $evA, $chunksA), @('fuzz_uci', $uci, $evR, $chunksR))) {
     $copy = Tsv (Join-Path $J3_PACK "evidence\$($pair[0])\ledger.tsv"); $live = $pair[1]
     if ($copy.Count -eq 0 -or $copy.Count -gt $live.Count) { $f += "$($pair[0]): the copy has $($copy.Count) rows, the ledger $($live.Count)" }
     else {
@@ -257,6 +262,7 @@ foreach ($pair in @(@('fuzz_aux', $aux, $evA), @('fuzz_uci', $uci, $evR))) {
         $ok = @{}; $pos = 0
         foreach ($w in @($copy | Where-Object { $_['cand'] -eq $c -and $_['status'] -eq 'OK' })) { $k = [int]$w['chunk']; if (-not $ok.ContainsKey($k)) { $ok[$k] = 1; $pos += [int64]$w['positions'] } }
         $pair[2][$c] = $pos
+        $pair[3][$c] = @($ok.Keys | Where-Object { [int]$_ -ge 0 -and [int]$_ -le 199 }).Count
     }
 }
 Chk ("ledger copies in evidence\: row for row the ledgers of out\job3 (the ledgers have {0} rows more: {1})" -f $behind, $(if ($behind -eq 0) { 'the copies are complete' } else { 'a fuzz was still running when the report was made, or has run since' })) $f
@@ -273,9 +279,11 @@ foreach ($c in $CANDS) {
     $verdicts += "$c $v"
     if ($a -ne $countA[$c]) { $f += "${c}: PROOF.md says tier A $a, this recount $($countA[$c])" }
     if ($r -ne $countR[$c]) { $f += "${c}: PROOF.md says tier R $r, this recount $($countR[$c])" }
-    if ($v -eq 'PASS' -and ($countA[$c] -lt 20000000 -or $script:bad -ne 0)) { $f += "${c}: PROOF.md says PASS, but this recount has a failed check or fewer than 20,000,000" }
+    if ($v -eq 'PASS' -and ($countA[$c] -lt 20000000 -or $chunksA[$c] -ne 200 -or $countR[$c] -lt 20000000 -or $chunksR[$c] -ne 200 -or $script:bad -ne 0)) { $f += "${c}: PROOF.md says PASS, but this recount has a failed check, or fewer than 200 chunks and 20,000,000 positions on one of the two tiers (tier A $($chunksA[$c]) chunks, tier R $($chunksR[$c]) chunks)" }
+    $verdicts[$verdicts.Count - 1] += " (A $($chunksA[$c])/200, R $($chunksR[$c])/200 chunks)"
 }
 Chk ("PROOF.md verdict table against this recount: " + ($verdicts -join ', ')) $f
 
-if ($script:bad -eq 0) { Write-Output ("VERIFY EVIDENCE OK {0}/{0}  ({1})" -f $script:n, (J3-Now)); exit 0 }
-Write-Output ("VERIFY EVIDENCE FAILED: {0} of {1} checks  ({2})" -f $script:bad, $script:n, (J3-Now)); exit 3
+if ($script:bad -eq 0) { Say ("VERIFY EVIDENCE OK {0}/{0}  ({1})" -f $script:n, (J3-Now)) } else { Say ("VERIFY EVIDENCE FAILED: {0} of {1} checks  ({2})" -f $script:bad, $script:n, (J3-Now)) }
+if ($Log -ne '') { [System.IO.File]::WriteAllLines($Log, [string[]]$script:lines, [System.Text.Encoding]::ASCII) }
+if ($script:bad -eq 0) { exit 0 } else { exit 3 }

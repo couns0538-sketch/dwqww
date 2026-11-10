@@ -281,6 +281,21 @@ def load_suite():
 
 
 # ---------------------------------------------------------------- run
+def lock_run_problem(transcript, exit_code, expect_records=None):
+    """Why a run of the LOCK probe on rejected or unreachable entries cannot serve as the reference, or ''.
+    A dead lock probe (an error code, no output, a cut output, a missing record) must stop the edge run: without a
+    sound reference there is nothing to compare a candidate with."""
+    if exit_code != 0:
+        return f"the lock probe ended with exit code {exit_code}"
+    chk = mg_compare.compare(transcript, transcript, None, expect_tag="LOCK", allow_error_records=True)
+    if chk.status != "EQUAL":
+        return chk.detail
+    n = len(mg_format.frames(transcript)) - 2
+    if expect_records is not None and n != expect_records:
+        return f"the lock probe wrote {n} records for {expect_records} entries"
+    return ""
+
+
 def tier_a_path(legal, exp):
     lines, roots, pid = ["H edge suite"], {}, 0
     for e in legal:
@@ -380,13 +395,19 @@ def run(tags):
             if sorted(mg_format.ucis(d["legal"])) != sorted(exp[eid][1]) or mg_format.squares(d["checkers_main"]) != exp[eid][2]:
                 three_bad.append(eid)
     rj_path = ("".join(f"P {i} X0 0 {e['fen']}\nM\n" for i, e in enumerate(rejected))).encode("ascii")
-    rj_ref, _, _ = fuzz.run_probe([fuzz.probe("LOCK"), "run"], rj_path)
+    rj_ref, rj_err, rj_code = fuzz.run_probe([fuzz.probe("LOCK"), "run"], rj_path)
+    bad = lock_run_problem(rj_ref, rj_code, len(rejected))
+    if bad:
+        raise SystemExit(f"edge: the lock probe run on the rejected entries is not usable (harness error, no verdict): {bad}; {rj_err[-200:]}")
     rj_recs = [mg_format.decode(rj_ref[o:o + n]) for o, n in mg_format.frames(rj_ref)[1:-1]]
     rj_bad = [f"{e['id']}: probe record kind {d['kind']} error [{d.get('error', '')}]" for e, d in zip(rejected, rj_recs)
               if d["kind"] != 2 or e["predicate_or_expected"].lower() not in d["error"].lower()]
     un_ref = {}
     for e in unreach:
         out, err, code = fuzz.run_probe([fuzz.probe("LOCK"), "run"], f"P 0 X0 0 {e['fen']}\nM\n".encode("ascii"))
+        bad = lock_run_problem(out, code, 1)
+        if bad:
+            raise SystemExit(f"edge: the lock probe run on the unreachable entry {e['id']} is not usable (harness error, no verdict): {bad}; {err[-200:]}")
         un_ref[e["id"]] = (out, code)
 
     r_lines, r_roots = tier_r_lines(legal, exp)
@@ -404,7 +425,9 @@ def run(tags):
     rj_in = os.path.join(tmp, "edge_rejected.uci")
     rejected_batch(rejected, rj_in)
     rj_ref_file = os.path.join(tmp, "edge_rejected.LOCK.out")
-    uci_session.run_batch([fuzz.exe("LOCK")], rj_in, rj_ref_file, timeout=600)
+    rj_run = uci_session.run_batch([fuzz.exe("LOCK")], rj_in, rj_ref_file, timeout=600)
+    if rj_run.status != "OK":
+        raise SystemExit(f"edge: the lock exe run on the rejected entries is not usable (harness error, no verdict): {rj_run.status} {rj_run.detail}")
     rj_ref_text = open(rj_ref_file, "r", encoding="ascii", errors="replace").read()
     rj_r_bad = check_rejected_output(rj_ref_text, rejected)
     un_r_ref = {}

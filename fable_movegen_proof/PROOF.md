@@ -1,6 +1,6 @@
 # PROOF: do the job-2 candidates behave exactly like the lock combo29?
 
-Job "Fable 5.2, job 3", correctness only. Generated 2026-11-10 20:53:10 Vienna by `harness/report.py` from this template and from the receipts and ledgers of the runs; no number in this file was typed by hand. Times are Europe/Vienna. Terms are defined in `README.md`.
+Job "Fable 5.2, job 3", correctness only. Generated 2026-11-10 22:17:12 Vienna by `harness/report.py` from this template and from the receipts and ledgers of the runs; no number in this file was typed by hand. Times are Europe/Vienna. Terms are defined in `README.md`.
 
 ## Recap
 
@@ -10,29 +10,28 @@ Job "Fable 5.2, job 3", correctness only. Generated 2026-11-10 20:53:10 Vienna b
 
 | Candidate | Verdict | Tier A comparisons completed (all fields) | Tier R comparisons completed (move lists) | Open gates | Differences |
 |---|---|---|---|---|---|
-| EVL: EVADE_LEGAL | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,800,000 | none | 0 |
-| PCM: PAWN_CAPMASK v2 | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,800,000 | none | 0 |
-| CKL: CHECKERS_KL v3 (mode 1) | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,700,000 | none | 0 |
-| WNP: WITNESS_NOPIN | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,700,000 | none | 0 |
-| KPC: KING_PAWN_CACHE v2 | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,700,000 | none | 0 |
-| BUN: BUNDLE3 (EVL + PCM v2 + CKL v3) | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 7,700,000 | none | 0 |
+| EVL: EVADE_LEGAL | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
+| PCM: PAWN_CAPMASK v2 | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
+| CKL: CHECKERS_KL v3 (mode 1) | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
+| WNP: WITNESS_NOPIN | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
+| KPC: KING_PAWN_CACHE v2 | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
+| BUN: BUNDLE3 (EVL + PCM v2 + CKL v3) | **PASS** (two tiers: checkers and static eval on the auxiliary probe, not on the release executable) | 20,000,000 | 20,000,000 | none | 0 |
 
-**What a PASS means here.** A PASS rests on two kinds of evidence, as Couns decided before the work started (decision D1). On the exact release executables, every check their UCI interface allows was completed without a difference: the 13 pins, the perft divide, the legal moves and their order on the edge suite and on the fuzz corpus, the warm-state transcript and the Threads soak. On auxiliary probes, which are new test code compiled with each candidate's unmodified source, at least 20,000,000 positions per candidate were compared in every field, including the two fields the release executables do not print: the checkers bitboard and the static eval. **Checkers and static eval were therefore not observed on the release executables themselves.** The count of 20,000,000 is the auxiliary one (decision D2); the release-executable count is given beside it.
+**What a PASS means here.** A PASS rests on two kinds of evidence, as Couns decided before the work started (decision D1). On the exact release executables, every check their UCI interface allows was completed without a difference: the 13 pins, the perft divide, the legal moves and their order on the edge suite and on the fuzz corpus, the warm-state transcript and the Threads soak. On auxiliary probes, which are new test code compiled with each candidate's unmodified source, at least 20,000,000 positions per candidate were compared in every field, including the two fields the release executables do not print: the checkers bitboard and the static eval. **Checkers and static eval were therefore not observed on the release executables themselves.** The required count of 20,000,000 is the auxiliary one (decision D2). Since the owner's code review of this pack a PASS also needs the fuzz on the release executables to cover the whole corpus of 200 chunks, each chunk tied to the lock probe; that count is given beside the auxiliary one.
 
 **Completed work.**
 
-- Harness self-test: `SELFTEST PASS 72/72`, after red runs against comparators that cannot fail.
+- Harness self-test: `SELFTEST PASS 75/75`, after red runs against comparators that cannot fail.
 - Pins, 13 per executable: matched by 9 of 9 executables (the lock, its copy, the lock-equivalent and the six candidates).
 - Perft divide, ten runs on eight positions, every root move: equal to the lock for 8 of 8 compared executables.
 - Edge suite: 410 legal positions, 17 rejected, 4 unreachable; 14,220 probe records and 7,725 release-exe perft blocks per tag; matching for 8 of 8 compared tags.
 - Warm-state transcript: identical for 8 of 8 compared executables. Threads 2-4 soak: stable for 9 of 9.
 - Fuzz, auxiliary tier: at least 20,000,000 completed position comparisons per candidate, every field, both net modes.
-- Fuzz, release executables: between 7,700,000 and 7,800,000 completed `go perft 2` comparisons per candidate, each chunk tied to the lock probe.
+- Fuzz, release executables: 20,000,000 completed `go perft 2` comparisons per candidate (200 of 200 chunks), each chunk tied to the lock probe.
 - Supplementary: cache-state variants, line coverage of every candidate's changed lines, 1,792 constructed WITNESS_NOPIN targets, search signatures on corpus positions, probe-against-executable move lists.
 
 **What remains, and what this does not show.**
 
-- The release-executable fuzz stands at 7,700,000 to 7,800,000 per candidate. Decision D2 does not require 20,000,000 there; to continue: `fuzz.py uci v1 0-99` and `fuzz.py uci v2 100-199` (finished chunks are skipped).
 - Checkers and static eval on the release executables themselves: not observable. Reading them there would need a debug command in the engine source, that is a source change and new builds, which only Couns can approve. This job did not ask for it because decision D1 accepts the auxiliary probes.
 - The limits in section 10 apply to every PASS.
 
@@ -67,9 +66,9 @@ The auxiliary probe reads those fields through the engine's public interface and
 
 ## 3. Harness self-test
 
-Result of the last run: `SELFTEST PASS 72/72` (`evidence/selftest/GREEN7.log`).
+Result of the last run: `SELFTEST PASS 75/75` (`evidence/selftest/GREEN10.log`).
 
-The self-test never touches an engine binary or engine source. Its positive controls run the lock against a verified byte-for-byte copy of itself, and the lock probe against the lock-equivalent probe (another binary that must behave the same). Its negative controls take a real output of the lock and change one thing in memory: a legal move removed, a move added, two moves swapped, a checkers bit, the eval with the net on, the eval with the net off, `has_legal_move`, each of the 37 fields of a record in turn, a wrong position, two different inputs, a missing record, a cut transcript, garbage, a transcript from the wrong probe, a probe from another harness source, and for the release executables a removed move line, swapped lines, a changed count, a missing block, a malformed line, a refused FEN, a cut output, an engine that never answers. Each must be refused with the field named. Five more controls (L1 to L5) test the report generator and the replay tool: a chunk that was run twice counts once, a row that names other binaries than the frozen ones counts nothing, there is no PASS below 20,000,000 or with an open gate or a difference, only a line `SELFTEST PASS n/n` is a passed self-test, and a replay reproduces a ledger row only if every hash is the row's. The controls were watched failing first, against comparators that always answer "equal" (red runs 1 and 2), against the code before the review fixes (red run 3), and against a counter that counts every row and a verdict that ignores the gates (red run 4).
+The self-test never touches an engine binary or engine source. Its positive controls run the lock against a verified byte-for-byte copy of itself, and the lock probe against the lock-equivalent probe (another binary that must behave the same). Its negative controls take a real output of the lock and change one thing in memory: a legal move removed, a move added, two moves swapped, a checkers bit, the eval with the net on, the eval with the net off, `has_legal_move`, each of the 37 fields of a record in turn, a wrong position, two different inputs, a missing record, a cut transcript, garbage, a transcript from the wrong probe, a probe from another harness source, and for the release executables a removed move line, swapped lines, a changed count, a missing block, a malformed line, a refused FEN, a cut output, an engine that never answers. Each must be refused with the field named. Seven more controls (L1 to L7) test the report generator and the replay tool: a chunk that was run twice counts once; a row that names other binaries than the frozen ones counts nothing, also when the candidate's file is the lock's file; there is no PASS below 20,000,000 or with an open gate or a difference; only a line `SELFTEST PASS n/n` is a passed self-test; a replay reproduces a ledger row only if every hash is the row's; the release-executable fuzz is not complete before all 200 chunks; a harness error on a chunk that also ran clean does not block, a difference always does, and a confirmed difference is FAIL. The controls were watched failing first, against comparators that always answer "equal" (red runs 1 and 2), against the code before the review fixes (red run 3), against a counter that counts every row and a verdict that ignores the gates (red run 4), and against the report generator before the fixes of the owner's code review (red run 5).
 
 The full runs and the red runs of the self-test are kept as logs, including the runs made while the harness was being written. The name of a log says what the run was meant to show, not how it ended:
 
@@ -87,10 +86,15 @@ The full runs and the red runs of the self-test are kept as logs, including the 
 | `RED4.log` | 20:28:07 | SELFTEST FAIL 0/5 |
 | `GREEN6.log` | 20:42:47 | SELFTEST PASS 72/72 |
 | `GREEN7.log` | 20:53:08 | SELFTEST PASS 72/72 |
+| `RED5.log` | 21:43:02 | SELFTEST FAIL 5/6 |
+| `RED6.log` | 21:47:56 | SELFTEST FAIL 0/7 |
+| `GREEN8.log` | 21:48:16 | SELFTEST FAIL 74/75 |
+| `GREEN9.log` | 21:49:03 | SELFTEST PASS 75/75 |
+| `GREEN10.log` | 22:17:11 | SELFTEST PASS 75/75 |
 
-`GREEN1` was the first run against the real comparators of harness 1. It failed in two release-executable controls because their fixtures were wrong: the changed block's counts no longer added up, so it was refused as malformed before the intended difference was looked at. The fixtures were corrected and the inconsistent block was kept as a control of its own; `GREEN2` is the pass of harness 1. `GREEN3` and `GREEN4` were runs of harness 2 that still failed: in `GREEN3` a missing block and an early end of the output were reported as a move-list difference, a defect of the comparator that had just been changed to compare from the start (missing output is not a difference; corrected); in `GREEN4` one diagnostic did not yet name the missing output. `GREEN5` is the first pass of harness 2, made before every counted run. `RED4a` and `RED4` are the red runs of the report controls alone (four of them at first, then five); they start no engine. The last log in the table is the run that counts for the verdicts: a full run made after the last change to the report generator.
+`GREEN1` was the first run against the real comparators of harness 1. It failed in two release-executable controls because their fixtures were wrong: the changed block's counts no longer added up, so it was refused as malformed before the intended difference was looked at. The fixtures were corrected and the inconsistent block was kept as a control of its own; `GREEN2` is the pass of harness 1. `GREEN3` and `GREEN4` were runs of harness 2 that still failed: in `GREEN3` a missing block and an early end of the output were reported as a move-list difference, a defect of the comparator that had just been changed to compare from the start (missing output is not a difference; corrected); in `GREEN4` one diagnostic did not yet name the missing output. `GREEN5` is the first pass of harness 2, made before every counted run. `RED4a` and `RED4` are the red runs of the report controls alone (four of them at first, then five), and `RED5` and `RED6` those of the controls added after the owner's code review (against the report generator as it was, and against a gate that one chunk satisfies); they start no engine. `GREEN8` failed in one control that was new (A36, the edge runner refuses a dead lock probe): its fixture counted the two framing records of a transcript as position records; the control was corrected. The last log in the table is the run that counts for the verdicts: a full run made after the last change to the report generator and to the edge runner.
 
-The reviews are recorded in `REVIEW_LOG.md`. The first one, by a read-only reviewer on another model at 19:41, found no way for a real difference to come out as equal, but it found gaps (how a probe build is bound to its switches, answers that were computed and thrown away, unlabelled transcripts, three controls that could not fail). All were fixed, the probes were rebuilt as harness 2, and every counted run was started again. The runs made before that are kept as an earlier run and are not added to any count (section 7). The second review, of the runners and the report generator, was started the same way at 20:09 and stopped at 20:34 on the owner's instruction to use no subagents, before it had reported anything. **It was then done by the author of the code, which is weaker than an independent review.** It changed the report generator (every gate is now tied to the frozen binaries, the self-test result is read from the newest log, the tie between probe and executable is a gate) and corrected descriptions in this file; it changed none of the six files that produced the counted fuzz rows.
+The reviews are recorded in `REVIEW_LOG.md`. The first one, by a read-only reviewer on another model at 19:41, found no way for a real difference to come out as equal, but it found gaps (how a probe build is bound to its switches, answers that were computed and thrown away, unlabelled transcripts, three controls that could not fail). All were fixed, the probes were rebuilt as harness 2, and every counted run was started again. The runs made before that are kept as an earlier run and are not added to any count (section 7). The second review, of the runners and the report generator, was started the same way at 20:09 and stopped at 20:34 on the owner's instruction to use no subagents, before it had reported anything. **It was then done by the author of the code, which is weaker than an independent review.** It changed the report generator (every gate is now tied to the frozen binaries, the self-test result is read from the newest log, the tie between probe and executable is a gate) and corrected descriptions in this file; it changed none of the six files that produced the counted fuzz rows. A third review came from the owner's side (Code Review of the pushed tools, no blocker, two required changes). Both were made: the logs of the two verification scripts are committed and listed in `DONE.md` and `MANIFEST.tsv`, and the release-executable fuzz has a minimum, the whole corpus. Its optional points that touch the probe or `fuzz.py` were not taken, because changing those files would require every counted run to be made again; they are listed as open in `REVIEW_LOG.md`.
 
 ## 4. Pins
 
@@ -168,14 +172,16 @@ A chunk counts only with status OK, and one candidate and chunk counts once howe
 
 | Candidate | Tier A: auxiliary probes, all fields | chunks | in check | quiet | eval net off | eval net on | not OK | Tier R: release exe, go perft 2 | chunks | tied to the lock probe | not OK |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| EVL | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,800,000 | 78 | 78 | 0 |
-| PCM | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,800,000 | 78 | 78 | 0 |
-| CKL | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,700,000 | 77 | 77 | 0 |
-| WNP | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,700,000 | 77 | 77 | 0 |
-| KPC | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,700,000 | 77 | 77 | 0 |
-| BUN | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 7,700,000 | 77 | 77 | 0 |
+| EVL | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
+| PCM | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
+| CKL | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
+| WNP | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
+| KPC | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
+| BUN | 20,000,000 | 200 | 1,746,584 | 18,253,416 | 20,000,000 | 20,000,000 | 0 | 20,000,000 | 200 | 200 | 0 |
 
 Every tier A record holds the static eval with the net off and with the net on, so the eval coverage by mode equals the tier A count in both modes.
+
+The corpus has 200 chunks. Tier R covers all of them, each tied to the lock probe, for 6 of 6 candidates. Rows with a harness error or a timeout whose chunk also ran clean (listed, not counted, not blocking): 0.
 
 A row is counted only if it names the frozen executables or the probes of the build receipts; rows that do not: 0. The tier A rows also carry the sha256 of the six harness files together (mgprobe.cpp, mg_format.py, mg_compare.py, uci_session.py, fuzz.py, pinguard3.py): `a234987c31fdbb18082ab1462ed157f482478a6f30705f09a2e57d4c1a46a3a7`. When this report was generated those files had the hash `a234987c31fdbb18082ab1462ed157f482478a6f30705f09a2e57d4c1a46a3a7`, which is the same. The rows of the release-executable ledger carry the executable, input and output hashes but not this one; they were written in the same hours by the same files.
 
@@ -271,6 +277,7 @@ The failure folder `out\job3\fail` is empty: no run ever wrote failure evidence.
 ## 10. Limits
 
 - **Finite testing.** Equivalence is shown on the positions tested, not for every position.
+- **How much ran on the release executables.** On the release executables themselves the fuzz compared 20,000,000 positions per candidate (200 of the 200 chunks of the corpus), and what it compares there is the legal moves, their order and the number of replies to each move, nothing else. A PASS requires all 200 chunks; a candidate with fewer is INCOMPLETE.
 - **Two artifacts.** Checkers, `has_legal_move`, `is_legal`, `gives_check` and static eval were compared on auxiliary probes: the same source files, but compiled at `-O3` without link-time and profile-guided optimisation and with another `main`. A defect that only the release build's code generation introduces would have to show in what the release executables print: pins, perft divide, move lists and reply counts, warm transcripts, search signatures.
 - **No planted faults.** Job 3 did not build mutated engines. That the comparator can fail is shown by the self-test's corrupted fixtures; that the inputs reach the patches is shown by line coverage. Job 2 ran mutants against its own harness.
 - **WITNESS_NOPIN.** The positions that decide its answer are rare in play (see section 8) and the targeted set is constructed. Inside the release executable its code runs only during search, where a wrong answer at a stalemate node would most likely not change the printed output.
@@ -325,16 +332,34 @@ Every ledger row can be replayed from its chunk number: `README.md` gives the co
 | A | WNP | 199 | v2 | 20:35:37 | 20:44:04 | REPRODUCED | 7 of 7 |
 | R | BUN | 3 | v1 | 20:01:03 | 20:45:14 | REPRODUCED | 8 of 8 |
 | R | BUN | 31 | v1 | 20:20:51 | 20:46:18 | REPRODUCED | 8 of 8 |
+| R | BUN | 99 | v1 | 21:07:14 | 22:13:37 | REPRODUCED | 8 of 8 |
+| R | BUN | 100 | v2 | 21:07:55 | 22:15:00 | REPRODUCED | 8 of 8 |
+| R | BUN | 199 | v2 | 22:12:05 | 22:16:10 | REPRODUCED | 8 of 8 |
 | R | CKL | 3 | v1 | 20:00:47 | 20:44:46 | REPRODUCED | 8 of 8 |
 | R | CKL | 31 | v1 | 20:20:32 | 20:45:51 | REPRODUCED | 8 of 8 |
+| R | CKL | 99 | v1 | 21:06:59 | 22:13:07 | REPRODUCED | 8 of 8 |
+| R | CKL | 100 | v2 | 21:07:39 | 22:14:26 | REPRODUCED | 8 of 8 |
+| R | CKL | 199 | v2 | 22:11:48 | 22:15:46 | REPRODUCED | 8 of 8 |
 | R | EVL | 3 | v1 | 20:00:36 | 20:44:27 | REPRODUCED | 8 of 8 |
 | R | EVL | 31 | v1 | 20:20:20 | 20:45:33 | REPRODUCED | 8 of 8 |
+| R | EVL | 99 | v1 | 21:06:49 | 22:12:45 | REPRODUCED | 8 of 8 |
+| R | EVL | 100 | v2 | 21:07:29 | 22:14:04 | REPRODUCED | 8 of 8 |
+| R | EVL | 199 | v2 | 22:11:35 | 22:15:23 | REPRODUCED | 8 of 8 |
 | R | KPC | 3 | v1 | 20:00:57 | 20:45:05 | REPRODUCED | 8 of 8 |
 | R | KPC | 31 | v1 | 20:20:45 | 20:46:09 | REPRODUCED | 8 of 8 |
+| R | KPC | 99 | v1 | 21:07:09 | 22:13:27 | REPRODUCED | 8 of 8 |
+| R | KPC | 100 | v2 | 21:07:50 | 22:14:48 | REPRODUCED | 8 of 8 |
+| R | KPC | 199 | v2 | 22:12:00 | 22:16:02 | REPRODUCED | 8 of 8 |
 | R | PCM | 3 | v1 | 20:00:42 | 20:44:37 | REPRODUCED | 8 of 8 |
 | R | PCM | 31 | v1 | 20:20:26 | 20:45:42 | REPRODUCED | 8 of 8 |
+| R | PCM | 99 | v1 | 21:06:54 | 22:12:57 | REPRODUCED | 8 of 8 |
+| R | PCM | 100 | v2 | 21:07:34 | 22:14:15 | REPRODUCED | 8 of 8 |
+| R | PCM | 199 | v2 | 22:11:41 | 22:15:35 | REPRODUCED | 8 of 8 |
 | R | WNP | 3 | v1 | 20:00:52 | 20:44:55 | REPRODUCED | 8 of 8 |
 | R | WNP | 31 | v1 | 20:20:38 | 20:46:00 | REPRODUCED | 8 of 8 |
+| R | WNP | 99 | v1 | 21:07:04 | 22:13:17 | REPRODUCED | 8 of 8 |
+| R | WNP | 100 | v2 | 21:07:45 | 22:14:37 | REPRODUCED | 8 of 8 |
+| R | WNP | 199 | v2 | 22:11:54 | 22:15:55 | REPRODUCED | 8 of 8 |
 
 ## 12. Evidence
 
