@@ -10,7 +10,7 @@ Job "Fable 4 CPU", 2026-11-10, branch `fable52-cpu-20261110`, based on `lock/com
 2. **The audit found no defect in the lock (C5).** ASan and UBSan full bench, 13,000 determinism comparisons and the table stress all passed their full planned counts. **ThreadSanitizer is BLOCKED:** neither installed compiler supports it on Windows.
 3. **My rebuild of the lock source is the lock:** all 13 pins match and its code and data bytes equal the lock exe's (C1).
 4. **One required gate could not be run as written.** The lock exe has no static-eval command, so "12,000-position static-eval parity against the lock" is **BLOCKED (unobservable on the release exe)**. What I ran instead is named for what it is and is not a substitute: a source-level harness comparison, and for the two small gains a release search comparison against the real lock exe.
-5. **The bug hunt found nothing to report as a defect.** See the last section for what it covered.
+5. **The bug hunt found nothing to report as a defect.** The section "Bug hunt" below says what it covered.
 
 ## C4 in detail
 
@@ -26,9 +26,9 @@ Every candidate is one patch against the lock commit, behind a build flag that d
 
 How to read the timing: it is a **screening** on a PC that was doing other work (the GPU feeder on CPUs 7-11, two foreign processes on CPU 15). One arm is one new process running `bench 20` on CPU 12 with its sibling CPU 13 idle; each arm uses a fresh copy of the exe file; the metric is CPU cycles per node. A single lock-against-lock pair can read anywhere from -5 % to +8 %, so only the median of many pairs means anything, and its uncertainty here is about one percentage point. QA's quiet ABBA is the real test.
 
-About `NNUE_FUSE_EVAL`: two independent 12-pair runs both read positive, so a real gain of about 1 % is likely, and it is the only change here that removed time instead of adding it. The idea is not new: Engine QA's O2 report lists "fusing update and evaluate into one pass" as not done and expected to be small (`DUPCHECK.md`); I found no earlier build of it. It did not reach the pre-registered line, so I stopped developing it and did not build on it. Its evidence set is complete, including an extra release comparison against the real lock exe (12,000 positions, `go depth 12`, net on and off, flag 0 and 1: 48,000 of 48,000 rows equal). Whether +1 % is worth a slot in the quiet ABBA is QA's call.
+About `NNUE_FUSE_EVAL`: two independent 12-pair runs both read positive, so a real gain of about 1 % is likely. The idea is not new: Engine QA's O2 report lists "fusing update and evaluate into one pass" as not done and expected to be small (`DUPCHECK.md`); I found no earlier build of it. It did not reach the pre-registered line, so I stopped developing it and did not build on it. Its evidence set is complete, including an extra release comparison against the real lock exe (12,000 positions, `go depth 12`, net on and off, flag 0 and 1: 48,000 of 48,000 rows equal). Whether +1 % is worth a slot in the quiet ABBA is QA's call.
 
-About `PREFETCH_PICK`: 11 of its 12 pairs read positive. It continues what `FORGE_SPD_PREFETCH_EARLY` started (that switch moved the prefetch from after `make_move` to before it; this one moves it above the pruning tests). Its release comparison against the real lock exe is RELROWS_PICK.
+About `PREFETCH_PICK`: 11 of its 12 pairs read positive. It continues what `FORGE_SPD_PREFETCH_EARLY` started (that switch moved the prefetch from after `make_move` to before it; this one moves it above the pruning tests). Its release comparison against the real lock exe is clean too: 48,000 of 48,000 rows equal (12,000 positions, `go depth 12`, net on and off, flag 0 and 1).
 
 The two small gains touch different code (`nnue.cpp` and the evaluation call for one, the two move loops for the other), so they could be combined. I did not build a combination: this job allows one change per patch and no stacking. A combined build would be a new item for its owner, with its own pins and timing.
 
@@ -69,7 +69,7 @@ The multi-thread searches show no crash, no illegal move and no memory error. Th
 
 - **DUPCHECK is incomplete by construction.** Git history other than the one cloned commit could not be fetched, so prior work that exists only there is UNVERIFIED (`DUPCHECK.md`).
 - **The harness is a test binary.** It shows that two source trees evaluate alike over 12,000 positions and their children; it is not a statement about what a release exe exposes.
-- **Disk.** DISK_LINE Nothing was deleted. The largest item is 156 exe copies of 2 MiB each from the six timing runs (`out\timing\`); they can go once nobody wants to re-inspect a timing.
+- **Disk.** D: went from 32.18 GiB free before the job to 31.37 GiB at 17:07. My job folder holds 631 MiB, so about 0.2 GiB of that drop is other work on the PC. Nothing was deleted. The largest item is 156 exe copies of 2 MiB each from the six timing runs (`out\timing\`); they can go once nobody wants to re-inspect a timing.
 - **CPU use.** Everything of mine ran inside mask 0x707F at BelowNormal priority; the logger never saw one of my processes outside it. Each tool shell exists for a few milliseconds before it pins itself. From 16:38 I used CPUs 0 and 2 for long search runs without repeating the three-sample free check first; both had shown 6 to 27 % outside load in earlier samples.
 
 ## Bug hunt (added on Couns's request, about 25 minutes)

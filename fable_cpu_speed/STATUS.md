@@ -1,6 +1,6 @@
 # STATUS: job fable4cpu (Fable job 4, CPU only)
 
-Final state, written 2026-11-10 17:10 Vienna (T+1.3 h). Nothing of this job is running. If a session resumes here: check that with `Get-Process forge_m2use, forge_hard, forge_asan, forge_ubsan, combo29_lock`, then read `DONE.md`.
+Final state, written 2026-11-10 17:08 Vienna (T+1.3 h). Nothing of this job is running; the utilization logger was stopped at 17:07. If a session resumes here: check that with `Get-Process forge_m2use, forge_hard, forge_asan, forge_ubsan, combo29_lock`, then read `DONE.md`.
 
 ## Fixed facts
 
@@ -20,7 +20,7 @@ Final state, written 2026-11-10 17:10 Vienna (T+1.3 h). Nothing of this job is r
 | C1 build and freeze | DONE, pins MATCH |
 | C2 dup check | DONE for local sources; branch history UNVERIFIED (no fetch allowed) |
 | C3 profile | DONE; top category hand-crafted evaluation, 20.9 % |
-| C4 speed lane | NO WIN: four candidates, best `FORGE_SPD_NNUE_FUSE_EVAL` +0.93 % screening (below the +2.0 % line); the 12,000-position static-eval parity against the lock exe is BLOCKED (the lock exe has no static-eval command) |
+| C4 speed lane | NO WIN: four candidates, best `FORGE_SPD_NNUE_FUSE_EVAL` +0.93 % screening, second `FORGE_SPD_PREFETCH_PICK` +0.72 % (both below the +2.0 % line); the 12,000-position static-eval parity against the lock exe is BLOCKED (the lock exe has no static-eval command) |
 | C5 ASan | PASS |
 | C5 UBSan | PASS |
 | C5 TSan | BLOCKED (not supported by either installed compiler on Windows) |
@@ -42,7 +42,7 @@ R1 one clone and normal pushes only. R2 static-eval parity against the lock exe 
 - **A foreground wait.** Three times I waited for a background run with a short sleep loop in a tool shell instead of waiting for its notification. No effect on results.
 - **Dup re-check came late.** Candidates 2, 3 and 4 were added after `DUPCHECK.md` was first written. The re-check for candidates 2 and 3 ran only at 16:55, after they were timed; it found that Engine QA's O2 report lists the idea of candidate 2 as "not done, small". Candidate 4 was searched before it was built.
 - **Script errors, all caught before a verdict depended on them:** PowerShell's case-insensitive names bit twice (`$R`/`$r` in `freeze.ps1`, `$T`/`$t` in `cand_ladder.ps1`); the first ASan engine link failed on a duplicate libstdc++ symbol (`san_build_asan.log`; link flag added, fixtures re-run with the same line); the first `bytecmp.py` misjudged the debug record (two superseded logs, named in `DONE.md`); one case of `bughunt.py` waits for a best move that correctly never comes.
-- **Milestones.** All were met early: C1 at T+0.11 h, C2 and C3 at T+0.38 h, C5 complete at T+0.57 h, C4's last timing at T+1.14 h. The job ended well before the 4-hour window; after 17:10 the ten CPUs are idle because no permitted item is left (C6 and C7 lack inputs, and every speed idea I had for the network and table paths is either tried or closed work).
+- **Milestones.** All were met early: C1 at T+0.11 h, C2 and C3 at T+0.38 h, C5 complete at T+0.57 h, C4's last timing at T+1.14 h. One push came 34 minutes after the one before it (16:28 to 17:02) instead of within 30. The job ended well before the 4-hour window; after 17:07 the ten CPUs are idle because no permitted item is left (C6 and C7 lack inputs, and every speed idea I had for the network and table paths is either tried or closed work).
 
 ## Skills, plugins and tools used
 
@@ -62,4 +62,6 @@ R1 one clone and normal pushes only. R2 static-eval parity against the lock exe 
 
 ## Disk
 
-DISK_LINE
+D: 32.18 GiB free before the job, 31.37 GiB at 17:07 (never below 31.3; stop line 31, floor 30). My job folder: 631 MiB in 2,340 files; the rest of the drop, about 0.2 GiB, is other work on the PC. Nothing was deleted or moved. Largest parts: 156 exe copies from six timing runs (about 325 MiB), ten lock-recipe builds (about 165 MiB), four sanitizer build folders (one of them the failed first ASan link), the harness builds, row files.
+
+C: fell from 36.30 to 33.69 GiB free during the job and F: stayed at 29.9. This job wrote nothing on C: or F: except what the Claude client keeps for its own session (the plan file and tool-output files).
