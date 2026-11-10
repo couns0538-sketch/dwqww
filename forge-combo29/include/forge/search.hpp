@@ -20,6 +20,11 @@
 #define FORGE_SPD_TT_NOTLS 0
 #endif
 
+// Opt-in correctness fix: clear published counters before any worker starts.
+#ifndef FORGE_FIX_SMP_NODE_RESET
+#define FORGE_FIX_SMP_NODE_RESET 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -331,7 +336,7 @@ public:
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
-#if FORGE_SPD_TT_NOTLS
+#if FORGE_SPD_TT_NOTLS || FORGE_FIX_SMP_NODE_RESET
     friend class Searcher;
 #endif
 
