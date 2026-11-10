@@ -80,8 +80,15 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def body_sha(transcript):
+    """sha256 of a probe transcript after its identity frame: equal for two probes exactly when every record is equal."""
+    spans, _ = mg_format.frames_tolerant(transcript)
+    start = spans[0][0] + spans[0][1] if spans else 0
+    return sha256(transcript[start:])
+
+
 def probe(tag):
-    return os.path.join(OUT, "aux", tag, "mgprobe.exe")
+    return os.path.join(OUT, "aux2", tag, "mgprobe.exe")
 
 
 def exe(tag):
@@ -148,7 +155,7 @@ def gen_chunk(name, chunk, positions=CHUNK):
 # ---------------------------------------------------------------- ledgers
 AUX_COLS = ["when", "cand", "chunk", "seeds", "status", "positions", "in_check", "path_sha256", "ref_sha256",
             "cand_sha256", "lock_probe_sha256", "cand_probe_sha256", "harness_sha256", "seconds", "detail"]
-UCI_COLS = ["when", "cand", "chunk", "seeds", "status", "positions", "perft_depth", "path_sha256", "input_sha256",
+UCI_COLS = ["when", "cand", "chunk", "seeds", "status", "positions", "perft_depth", "tie", "path_sha256", "input_sha256",
             "ref_out_sha256", "cand_out_sha256", "lock_exe_sha256", "cand_exe_sha256", "seconds", "detail"]
 
 
@@ -241,20 +248,22 @@ def cmd_aux(name, first, last, cands):
         path, stats = gen_chunk(name, chunk)
         path_sha = sha256(path)
         ref, err, code = run_probe([probe("LOCK"), "run"], path)
-        check = mg_compare.compare(ref, ref) if code == 0 else None
+        check = mg_compare.compare(ref, ref, expect_tag="LOCK", expect_positions=CHUNK) if code == 0 else None
         if code != 0 or check.status != "EQUAL" or check.positions != CHUNK:
             d = save_failure("aux_reference", "LOCK", chunk, {"path.txt": path, "stderr.txt": err},
                              f"lock probe exit {code}; {check.detail if check else ''}")
             print(f"{now()} chunk {chunk}: the REFERENCE run is not usable (harness error, no verdict); evidence {d}", flush=True)
             return 2
-        ref_sha = sha256(ref)
+        ref_sha = body_sha(ref)
         t_ref = time.time() - t0
         line = [f"chunk {chunk} ref {t_ref:.0f}s in_check {stats['in_check']}"]
         for cand in todo:
             wait_hold()
             t1 = time.time()
             tr, cerr, ccode = run_probe([probe(cand), "run"], path)
-            res = mg_compare.compare_bound(ref, path_sha, tr, path_sha, path.decode("ascii"))
+            res = mg_compare.compare_bound(ref, path_sha, tr, path_sha, path.decode("ascii"), expect_tag=cand, expect_positions=CHUNK)
+            if cand_sha[cand] == lock_sha:
+                res = mg_compare.Result("HARNESS_ERROR", 0, "the candidate probe file is byte-identical to the lock probe: nothing would be tested")
             if ccode == "TIMEOUT":
                 status = "TIMEOUT"
             elif ccode != 0:
@@ -273,7 +282,7 @@ def cmd_aux(name, first, last, cands):
             append_ledger("aux", AUX_COLS, {
                 "when": now(), "cand": cand, "chunk": chunk, "seeds": f"{name}:{seeds_sha[:16]}", "status": status,
                 "positions": res.positions, "in_check": stats["in_check"], "path_sha256": path_sha, "ref_sha256": ref_sha,
-                "cand_sha256": sha256(tr), "lock_probe_sha256": lock_sha, "cand_probe_sha256": cand_sha[cand],
+                "cand_sha256": body_sha(tr), "lock_probe_sha256": lock_sha, "cand_probe_sha256": cand_sha[cand],
                 "harness_sha256": hsha, "seconds": f"{time.time() - t1:.1f}", "detail": detail[:1500]})
             line.append(f"{cand} {status} {time.time() - t1:.0f}s")
             del tr
@@ -310,23 +319,32 @@ def cmd_uci(name, first, last, cands, depth=2):
         t0 = time.time()
         path, _stats = gen_chunk(name, chunk)
         path_sha = sha256(path)
-        script, err, code = run_probe([probe("LOCK"), "uciscript", "--perft", str(depth)], path)
+        expect_file = os.path.join(tmp, f"uci_chunk_{chunk:03d}.expect")
+        script, err, code = run_probe([probe("LOCK"), "uciscript", "--perft", str(depth), "--expect", expect_file], path)
         if code != 0:
             print(f"{now()} chunk {chunk}: uciscript failed (harness error): {err[-300:]}", flush=True)
             return 2
+        expect_lines = open(expect_file, "r", encoding="ascii").read().split("\n")
         in_file = os.path.join(tmp, f"uci_chunk_{chunk:03d}.uci")
         n = uci_session.write_batch(in_file, [ln for ln in script.decode("ascii").splitlines() if ln])
         in_sha = sha256_file(in_file)
         ref_file = os.path.join(tmp, f"uci_chunk_{chunk:03d}.LOCK.out")
         run = uci_session.run_batch([exe("LOCK")], in_file, ref_file, timeout=14400)
         ref_text = open(ref_file, "r", encoding="ascii", errors="replace").read()
-        check = uci_session.compare_perft(ref_text, ref_text, n)
-        if run.status != "OK" or check.status != "EQUAL" or n != CHUNK:
+        ref_bad = uci_session._unusable(uci_session.parse_perft_output(ref_text), n)
+        if run.status != "OK" or ref_bad or n != CHUNK:
             print(f"{now()} chunk {chunk}: the REFERENCE run is not usable (harness error, no verdict): run {run.status} "
-                  f"{run.detail}; {check.detail}; positions {n}; files kept in {tmp}", flush=True)
+                  f"{run.detail}; {ref_bad}; positions {n}; files kept in {tmp}", flush=True)
             return 2
+        # every block of the lock exe must be the lock probe's legal list at that position: the position was reached
+        tie = uci_session.check_tie(ref_text, expect_lines, n)
+        if tie.status != "EQUAL":
+            print(f"{now()} chunk {chunk}: the lock exe and the lock probe do not list the same moves (to analyse, no candidate verdict): "
+                  f"{tie.detail}; files kept in {tmp}", flush=True)
+            return 2
+        os.remove(expect_file)
         ref_sha = sha256(ref_text.encode("ascii", "replace"))
-        line = [f"chunk {chunk} lock {time.time() - t0:.0f}s"]
+        line = [f"chunk {chunk} lock {time.time() - t0:.0f}s tied {tie.positions}"]
         keep = False
         for cand in todo:
             wait_hold()
@@ -334,7 +352,11 @@ def cmd_uci(name, first, last, cands, depth=2):
             out_file = os.path.join(tmp, f"uci_chunk_{chunk:03d}.{cand}.out")
             crun = uci_session.run_batch([exe(cand)], in_file, out_file, timeout=14400)
             text = open(out_file, "r", encoding="ascii", errors="replace").read()
-            res = uci_session.compare_perft_bound(ref_text, in_sha, text, in_sha, n)
+            if text == ref_text:
+                # the reference was parsed and found complete above; the same text holds the same blocks
+                res = uci_session.Result("EQUAL", n, f"{n} perft blocks: output byte-identical to the lock's")
+            else:
+                res = uci_session.compare_perft_bound(ref_text, in_sha, text, in_sha, n)
             if crun.status == "TIMEOUT":
                 status, detail = "TIMEOUT", crun.detail
             elif crun.status != "OK":
@@ -356,7 +378,7 @@ def cmd_uci(name, first, last, cands, depth=2):
                     os.remove(out_file + ".err")
             append_ledger("uci", UCI_COLS, {
                 "when": now(), "cand": cand, "chunk": chunk, "seeds": f"{name}:{seeds_sha[:16]}", "status": status,
-                "positions": res.positions, "perft_depth": depth, "path_sha256": path_sha, "input_sha256": in_sha,
+                "positions": res.positions, "perft_depth": depth, "tie": f"lock exe = lock probe on {tie.positions}", "path_sha256": path_sha, "input_sha256": in_sha,
                 "ref_out_sha256": ref_sha, "cand_out_sha256": sha256(text.encode("ascii", "replace")),
                 "lock_exe_sha256": lock_sha, "cand_exe_sha256": cand_sha[cand], "seconds": f"{time.time() - t1:.1f}",
                 "detail": detail[:1500]})
@@ -380,7 +402,7 @@ def cmd_crosstier(name, tags, positions=2000):
     code = 0
     for tag in tags:
         tr, _, _ = run_probe([probe(tag), "run"], path)
-        lists = [mg_format.ucis(mg_format.decode(tr[o:o + ln])["legal"]) for o, ln in mg_format.frames(tr)[:-1]]
+        lists = mg_format.legal_lists(tr)
         out_file = os.path.join(tmp, f"crosstier.{tag}.out")
         run = uci_session.run_batch([exe(tag)], in_file, out_file, timeout=3600)
         parsed = uci_session.parse_perft_output(open(out_file, "r", encoding="ascii", errors="replace").read())
@@ -402,6 +424,107 @@ def cmd_crosstier(name, tags, positions=2000):
         if not ok:
             code = 3
     return code
+
+
+# ---------------------------------------------------------------- cache-state variants of a chunk (tier A)
+WARM_COLS = ["when", "cand", "chunk", "variant", "seeds", "status", "positions", "path_sha256", "ref_sha256", "cand_sha256",
+             "lock_probe_sha256", "cand_probe_sha256", "harness_sha256", "detail"]
+
+
+def cmd_warmseq(name, first, last, cands):
+    """The same chunks again with two other cache histories: never cleared (every evaluation meets a warm
+    cache) and cleared before every playout (many cold starts). These are replays of fuzz positions under
+    another cache state, so they have their own ledger and do not count towards the fuzz total."""
+    pinguard3.ensure()
+    hsha = harness_sha()
+    lock_sha = sha256_file(probe("LOCK"))
+    seeds_sha = sha256_file(seeds_path(name))
+    for chunk in range(first, last + 1):
+        guard()
+        base, _ = gen_chunk(name, chunk)
+        lines = [ln for ln in base.decode("ascii").splitlines() if ln != "C"]
+        variants = {"never_cleared": ("\n".join(lines) + "\n").encode("ascii"),
+                    "cleared_before_every_playout": ("\n".join(("C\n" + ln) if ln.startswith("P ") else ln for ln in lines) + "\n").encode("ascii")}
+        for variant, path in variants.items():
+            path_sha = sha256(path)
+            ref, err, code = run_probe([probe("LOCK"), "run"], path)
+            check = mg_compare.compare(ref, ref, expect_tag="LOCK", expect_positions=CHUNK) if code == 0 else None
+            if code != 0 or check.status != "EQUAL":
+                print(f"{now()} warmseq chunk {chunk} {variant}: reference not usable (harness error)", flush=True)
+                return 2
+            line = [f"warmseq chunk {chunk} {variant}"]
+            for cand in cands:
+                tr, cerr, ccode = run_probe([probe(cand), "run"], path)
+                res = mg_compare.compare_bound(ref, path_sha, tr, path_sha, path.decode("ascii"), expect_tag=cand, expect_positions=CHUNK)
+                status = "OK" if ccode == 0 and res.status == "EQUAL" and res.positions == CHUNK else \
+                    "CRASH" if ccode != 0 else "MISMATCH" if res.status == "MISMATCH" else "HARNESS_ERROR"
+                detail = res.detail
+                if status != "OK":
+                    d = save_failure("warmseq", cand, chunk, {"path.txt": path, "candidate_stderr.txt": cerr,
+                                                              "first_difference.txt": first_difference_text(ref, tr)}, detail)
+                    detail += f" | evidence {d}"
+                append_ledger("warm", WARM_COLS, {
+                    "when": now(), "cand": cand, "chunk": chunk, "variant": variant, "seeds": f"{name}:{seeds_sha[:16]}", "status": status,
+                    "positions": res.positions, "path_sha256": path_sha, "ref_sha256": body_sha(ref), "cand_sha256": body_sha(tr),
+                    "lock_probe_sha256": lock_sha, "cand_probe_sha256": sha256_file(probe(cand)), "harness_sha256": hsha, "detail": detail[:1200]})
+                line.append(f"{cand} {status}")
+            print(f"{now()} " + " | ".join(line), flush=True)
+    return 0
+
+
+# ---------------------------------------------------------------- search signatures on corpus positions (tier R, supplementary)
+def search_sequence(tag, position_lines, net, depth):
+    """Every info line (without time and nps) and the bestmove of go depth D at each position, one process,
+    Threads 1, tables kept between positions and reset by ucinewgame every 500 positions."""
+    import re
+    strip = re.compile(r" (nps|time) \d+")
+    eng = uci_session.Engine([exe(tag)])
+    eng.handshake(["Threads=1", "Hash=16", "OwnBook=false", f"UseNNUE={net}"])
+    rows = []
+    for i, pos in enumerate(position_lines):
+        if i % 500 == 0:
+            eng.send("ucinewgame")
+            eng.isready()
+        eng.send(pos)
+        info, best = eng.go(f"depth {depth}", timeout=3600)
+        rows.append("|".join(strip.sub("", ln) for ln in info) + "|" + best)
+    code = eng.close()
+    return rows, code
+
+
+def cmd_search(name, chunk, count, depth, tags):
+    """Supplementary: the search output of the release executables on corpus positions. It is the only way the
+    code of WITNESS_NOPIN and KING_PAWN_CACHE runs inside a release executable. It does not stand in for move
+    order, checkers or static eval."""
+    pinguard3.ensure()
+    path, _ = gen_chunk(name, chunk)
+    script, _, _ = run_probe([probe("LOCK"), "uciscript", "--perft", "1"], path)
+    positions = [ln for ln in script.decode("ascii").splitlines() if ln.startswith("position ")][:count]
+    d = os.path.join(OUT, "runs", "search_sig")
+    os.makedirs(d, exist_ok=True)
+    code_all = 0
+    for net in ("true", "false"):
+        ref, _ = search_sequence("LOCK", positions, net, depth)
+        ref_sha = sha256("\n".join(ref).encode("ascii"))
+        for tag in tags:
+            rows, ecode = search_sequence(tag, positions, net, depth)
+            k = next((i for i, (a, b) in enumerate(zip(ref, rows)) if a != b), None)
+            same = rows == ref
+            receipt = {"check": "search_signature", "tag": tag, "net": "on" if net == "true" else "off", "seeds": name, "chunk": chunk,
+                       "positions": len(positions), "depth": depth, "identical_to_lock": same, "exit": ecode,
+                       "rows_sha256": sha256("\n".join(rows).encode("ascii")), "lock_rows_sha256": ref_sha,
+                       "exe_sha256": sha256_file(exe(tag)), "lock_exe_sha256": sha256_file(exe("LOCK")), "path_sha256": sha256(path),
+                       "first_difference": None if k is None else {
+                           "index": k, "position": positions[k], "expected": ref[k][-300:], "got": rows[k][-300:],
+                           "sequence_note": f"tables are kept since the last ucinewgame at index {k - k % 500}: replay positions {k - k % 500}..{k} in order"},
+                       "note": "supplementary evidence; one process per run, Threads 1, Hash 16, ucinewgame every 500 positions", "when": now()}
+            with open(os.path.join(d, f"{tag}_net{receipt['net']}.json"), "w", encoding="ascii", newline="\n") as f:
+                json.dump(receipt, f, indent=1)
+            print(f"{now()} search signature {tag} net {receipt['net']}: {'IDENTICAL' if same else 'DIFFERS at index ' + str(k)} "
+                  f"({len(positions)} positions, depth {depth})", flush=True)
+            if not same:
+                code_all = 3
+    return code_all
 
 
 # ---------------------------------------------------------------- seeds, pilot, keys, count
@@ -457,7 +580,7 @@ def cmd_pilot(name):
     ref, _, _ = run_probe([probe("LOCK"), "run"], path)
     t_run = time.time() - t
     t = time.time()
-    res = mg_compare.compare(ref, ref)
+    res = mg_compare.compare(ref, ref, expect_tag="LOCK")
     t_cmp = time.time() - t
     print(f"pilot tier A: gen {t_gen:.2f}s, lock probe run {t_run:.2f}s ({n / t_run:.0f} positions/s), compare {t_cmp:.2f}s, "
           f"transcript {len(ref) / 1e6:.1f} MB ({len(ref) / n:.0f} bytes/position), {res.status} {res.positions}, in check {stats['in_check']}")
@@ -540,6 +663,12 @@ def main(argv):
     if cmd in ("aux", "uci"):
         a, b = argv[3].split("-")
         return (cmd_aux if cmd == "aux" else cmd_uci)(argv[2], int(a), int(b), cands)
+    if cmd == "warmseq":
+        a, b = argv[3].split("-")
+        return cmd_warmseq(argv[2], int(a), int(b), cands)
+    if cmd == "search":
+        # search NAME CHUNK COUNT DEPTH [--cands ...]
+        return cmd_search(argv[2], int(argv[3]), int(argv[4]), int(argv[5]), cands)
     if cmd == "crosstier":
         return cmd_crosstier(argv[2], argv[3:])
     if cmd == "keys":

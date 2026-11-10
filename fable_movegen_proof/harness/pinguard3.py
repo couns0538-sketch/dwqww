@@ -72,6 +72,24 @@ def check_child(handle) -> str:
     return f"child pinned: affinity {mask:#x}, priority Idle"
 
 
+def pid_alive(pid: int) -> bool:
+    """Whether the operating system still runs a process with this id (asked by id, not through a handle the
+    caller already holds)."""
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.OpenProcess.argtypes = [wt.DWORD, wt.BOOL, wt.DWORD]
+    k.OpenProcess.restype = wt.HANDLE
+    k.GetExitCodeProcess.argtypes = [wt.HANDLE, ctypes.POINTER(wt.DWORD)]
+    k.GetExitCodeProcess.restype = wt.BOOL
+    k.CloseHandle.argtypes = [wt.HANDLE]
+    h = k.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+    if not h:
+        return False
+    code = wt.DWORD()
+    ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+    k.CloseHandle(h)
+    return bool(ok) and code.value == 259          # STILL_ACTIVE
+
+
 def cpu_seconds(handle) -> float:
     """Kernel + user CPU time a process has used so far (tells a starved process from a hung one)."""
     k = _k32()

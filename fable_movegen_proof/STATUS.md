@@ -1,10 +1,10 @@
 # STATUS: job 3, move-generator proof (Fable 5.2)
 
-Written 2026-11-10 19:16 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
+Written 2026-11-10 20:10 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
 
 ## State in one paragraph
 
-Inputs are frozen and hash-checked, the auxiliary probe for the lock is built, and the harness self-test passes 43 of 43 controls. No candidate has been judged yet. The six candidate probes are building. Next come the harness review, pins and perft divide, the edge suite, warm and Threads checks, then the fuzz.
+No check has found a difference between any candidate and the lock. All release-executable checks are complete for all six candidates (pins, perft divide, warm transcript, Threads soak, edge suite). A harness review at 19:41 led to harness version 2 (stricter probe, transcript identity, tie between probe and executable); its self-test passes 67 of 67. The counted fuzz runs were started again from chunk 0 with harness 2 at 19:58 and are running; nothing is a PASS until they reach 20,000,000 on the auxiliary tier. Results of harness 1 (13 million auxiliary and 1.3 million release-exe comparisons per candidate, all equal) are kept as an earlier run and are not added to the counts.
 
 ## Clock
 
@@ -19,9 +19,9 @@ Inputs are frozen and hash-checked, the auxiliary probe for the lock is built, a
 | What | Value |
 |---|---|
 | Repo | `D:\forge_jobs_20261109\fable2\repo` |
-| Branch | `fable52-movegen-proof-20261110`, started from `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (tip of job 2) |
+| Branch | `fable52-movegen-proof-20261110`, started from `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (tip of job 2); pushed, tip of the last push `c2bc8e0b` |
 | Pack on the branch | `fable_movegen_proof\` |
-| Output root | `D:\forge_jobs_20261109\fable2\out\job3` (`bin`, `src`, `aux`, `runs`, `tmp`, `logs`, `fail`, `corpus`) |
+| Output root | `D:\forge_jobs_20261109\fable2\out\job3` (`bin`, `src`, `aux` = harness-1 probes, `aux2` = harness-2 probes, `runs`, `runs\h1` = harness-1 results, `tmp`, `logs`, `fail`, `corpus`) |
 | Plan | approved by Couns 2026-11-10 18:57; decisions D1 (two-tier PASS) and D2 (20 million on the auxiliary tier) answered 18:15 |
 | git | promisor clone, sparse and non-cone; pattern `/fable_movegen_proof/` added locally; `GIT_NO_LAZY_FETCH=1` in every shell |
 
@@ -44,6 +44,21 @@ Other inputs: `fens_12k_v2.txt` md5 `e7dbf2c8151188c03ef52054557a531e`, sha256 `
 
 Not tested, by name: QA's `build_v3\BUN` (the five-flag `BUNDLE`, md5 `59e18b7b...`) and `BN4`.
 
+## Auxiliary probes, harness 2 (`out\job3\aux2\<TAG>\AUX_RECEIPT.json`, built 19:46 to 19:48)
+
+Harness source `mgprobe.cpp` sha256 begins `42efd61dd819eb7d` (frozen copy beside each probe). Effective candidate switches as the preprocessor reports them:
+
+| Probe | sha256 (first 12) | Effective switches | Files differing from the lock tree |
+|---|---|---|---|
+| LOCK | `509e10996b47` | none | none |
+| LOCKEQ | `c40583f2a612` | EVADE_LEGAL=0, PAWN_CAPMASK=0, CHECKERS_KL=0 | `src/board.cpp` |
+| EVL | `565cfd95a47b` | EVADE_LEGAL=1 | `src/board.cpp` |
+| PCM | `baacf0585769` | PAWN_CAPMASK=1 | `src/board.cpp` |
+| CKL | `695e3ce13647` | CHECKERS_KL=1 | `src/board.cpp` |
+| WNP | `e5d60da73cb6` | WITNESS_NOPIN=1 | `src/board.cpp` |
+| KPC | `7f6c70a5519f` | KING_PAWN_CACHE=1 (pawn-cache entry 64 bytes, 40 elsewhere) | `include/forge/eval.hpp`, `src/eval.cpp` |
+| BUN | `83e355912d6e` | EVADE_LEGAL=1, PAWN_CAPMASK=1, CHECKERS_KL=1 | `src/board.cpp` |
+
 ## What the release executables expose (`out\job3\runs\observe\out_LOCK.txt`)
 
 `d`, `eval`, `checkers`, `moves`, `legalmoves` and `help` were sent to the lock exe: it printed nothing for them. `go perft 1` prints the legal moves in generation order. So legal moves and their order are observable on the release executables; the checkers bitboard and the static eval are not. Those two fields are compared on auxiliary probes (decision D1).
@@ -52,50 +67,67 @@ Not tested, by name: QA's `build_v3\BUN` (the five-flag `BUNDLE`, md5 `59e18b7b.
 
 | Check | State |
 |---|---|
-| Launcher: child inherits mask 0x78 and Idle; subset 0x08; disk-guard refusal (exit 95); mask outside the lane refused (exit 94) | DONE 19:00, all as required |
-| Freeze and hash check | DONE 19:00 |
-| Observability record | DONE 19:02 |
-| LOCK probe built | DONE 19:06, sha256 `b111ea4f3637adf46bd2d1d10a236ce27ec1c3b0fba256b66a0399bad837f50b`, harness `mgprobe.cpp` sha256 `79324eabf56d94df37d10ce5465b79117c8a948726642c9782a955bf4e2f4cc0` |
-| Self-test, red runs | DONE 19:09 and 19:11: against stub comparators 4/20 and 6/42 (every negative control failed, as it must) |
-| Self-test, green | DONE 19:14: `SELFTEST PASS 43/43` (`out\job3\runs\selftest\GREEN2.log`) |
-| Candidate probes (EVL, PCM, CKL, WNP, KPC, BUN) | RUNNING since 19:14 (one background shell, sequential) |
-| Review 1 of the harness | PENDING |
-| Pins, perft divide | PENDING |
-| Edge suite | PENDING |
-| Warm states, Threads soak | PENDING |
-| Fuzz, auxiliary tier (target 20,000,000 per candidate) | PENDING, 0 done |
-| Fuzz, release executables | PENDING, 0 done |
+| Launcher tests, freeze, observability record | DONE 19:00 to 19:02 |
+| Self-test, harness 1 | DONE: red 19:09 (4/20) and 19:11 (6/42), green 19:14 (43/43). Correction: three of those 43 lines (R12b, R13b, R14b) could not fail, and they also "passed" in the red runs; found by review 1, replaced in harness 2 |
+| Self-test, harness 2 | DONE: red 19:49 (16/27 against the old Python code), green 19:55 `SELFTEST PASS 67/67` (`out\job3\runs\selftest\GREEN5.log`) |
+| Review 1 of the harness | DONE 19:41, "with fixes"; all findings dispositioned in `REVIEW_LOG.md` |
+| Pins, 13 per executable | DONE 19:25: MATCH 13/13 for LOCK, LOCKCOPY, LOCKEQ, EVL, PCM, CKL, WNP, KPC, BUN |
+| Perft divide, ten runs on eight positions, every root move | DONE 19:25: all nine tags equal to the lock; lock totals equal the published values where one exists |
+| Warm transcript (101 searches, 1,677 lines, depth 16 and 12) | DONE 19:24: identical for all tags; bench 13 still the pin afterwards |
+| Threads 2-4 soak (78 searches of 1,000,000 nodes per executable) | DONE 19:24: STABLE for all tags (stability only, no node identity) |
+| Edge suite built: 410 legal entries, 17 rejected, 4 unreachable | DONE 19:35; oracle validated on published perft counts and on wrong labels |
+| Edge suite run, harness 1 (search depth 12) | DONE 19:40: all tags MATCH. Being rerun with harness 2 at the end of chain A |
+| Search signatures on 20,000 corpus positions, depth 7, net on and off (release exes) | DONE 19:50: identical for all six candidates |
+| Coverage of each candidate's changed lines | DONE 20:02: every instrumented line in every candidate's `#if` region executed (EVL 16/16, PCM 1/1, CKL 8/8, WNP 3/3, KPC 28/28, BUN 25/25) |
+| Fuzz, auxiliary tier, harness 2, chunks 0-199 (target 20,000,000 per candidate) | RUNNING since 19:58 (chain A); chunk 25 at 20:02, about 11 s per chunk |
+| Cache-state variants, cross-tier check, edge suite, harness 2 | QUEUED behind the auxiliary fuzz in chain A |
+| Fuzz, release executables, harness 2 with tie, chunks 0-199 | RUNNING since 19:58 (chain R); chunk 5 at 20:02, about 42 s per chunk |
+| WITNESS_NOPIN targets | BUILDING since 20:07 |
+| Review 2, reports, manifest, DONE | PENDING |
 
 ## Verdicts so far
 
-None. No candidate has been compared yet.
+None. Zero differences so far in every check. No candidate is PASS before its auxiliary count reaches 20,000,000 with harness 2.
 
 ## Rulings made while executing
 
-1. **Ledger.** The executing-plans skill wants its own helper scripts and a ledger under `.superpowers\`. I follow its method (inline, test-first, rulings recorded, fresh review) but keep the record in this file and did not run the scripts: they are unread code that would call git outside the `GIT_NO_LAZY_FETCH` and pinning rules. Cost if wrong: another executor resumes from this file instead of the skill's ledger.
-2. **Launcher before its test.** `pin_run.ps1` and `job3_env.ps1` were ported from job 2's launcher before their tests were written; the four launcher tests were then run and read. Cost if wrong: none found; the tests pass.
-3. **Dump in Python.** The plan listed a `dump` subcommand of the probe. It is `mg_format.py TRANSCRIPT` instead, decoding the `run` transcript, so the fields have one code path. Cost if wrong: none; same data.
-4. **Fixture correction.** Two self-test fixtures (one move line removed, one count changed) left the block's `nodes` total inconsistent, which no engine prints; the comparator rightly called them malformed. The fixtures now keep the block consistent and are caught as mismatches; the inconsistent block stays as its own control (R4b).
-5. **Missing last record is MALFORMED.** A transcript whose trailer announces more records than are present is classed as missing output, not as a candidate difference.
+1. **Ledger.** The executing-plans skill wants its own helper scripts and a ledger under `.superpowers\`. I follow its method but keep the record in this file and did not run the scripts: they are unread code that would call git outside the `GIT_NO_LAZY_FETCH` and pinning rules. Cost if wrong: another executor resumes from this file instead of the skill's ledger.
+2. **Launcher before its test.** `pin_run.ps1` and `job3_env.ps1` were ported from job 2's launcher before their tests were written; the four launcher tests were then run and read. Cost if wrong: none found.
+3. **Dump in Python.** The plan listed a `dump` subcommand of the probe. It is `mg_format.py TRANSCRIPT` instead, so the fields have one code path. Cost if wrong: none.
+4. **Fixture corrections.** Self-test fixtures that left a perft block inconsistent, or that used a stub printing made-up blocks, were replaced by fixtures cut from real lock output; the inconsistent block stays as its own control.
+5. **Missing last record is MALFORMED** when the trailer announces more records than are present; a candidate that stops early with a consistent trailer is MISMATCH.
+6. **Edge bases in Python.** The bases are `harness\edge_bases.py`, not a TSV, to avoid delimiter mistakes; the generated suite is `suite\edge_suite.tsv`.
+7. **Corpus in two parts.** Chunks 0-99 use seeds `v1` (start position, 8 bench positions, fens12k, 33 edge positions known before the suite existed); chunks 100-199 use seeds `v2` (the same with all 410 legal suite entries). Both seed files are identified by sha256 in every ledger row. Cost if wrong: none; both parts are in the corpus definition.
+8. **Fuzz started before review 1 returned**, to use the idle core. Consequence taken: when the review changed the probe, every counted run was started again with harness 2; the earlier results stay under `runs\h1` and are not counted.
+9. **No mutants.** Review 1 suggested mutated probes to show sensitivity. The job forbids editing engine source and altering engine binaries for controls; a mutated copy is too close to that line to take without the owner. Line coverage of the unchanged source is used instead. Cost if wrong: sensitivity is shown by reach, not by a caught planted fault.
+10. **Release-exe fuzz may reach 20 million too.** The pilot showed about 10,000 to 20,000 positions per second per executable, far above my estimate, so the release-exe tier is run on all 200 chunks instead of the planned minimum of 10. Decision D2 is unchanged: the count that decides is the auxiliary one.
+11. **Receipts of harness version 1 and 2 of `checks_release.py`.** Version 2 only raised the warm depths and the soak node budget; the pins and divide code is the same. LOCK's pins and divide receipts carry version 1, the others version 2 for divide.
 
 ## Disk and processes
 
-D: 31.97 GiB free at 19:00 (floor 30.3). Transcripts are compared in memory; `out\job3` holds about 60 MiB. Live processes of this job: the probe build shell (started 19:14). Machine: cores 4-6 at 97-100 % from the live gate (read 18:07), so the work effectively runs on core 3.
+D: 31.84 GiB free at 20:02 (floor 30.3). Transcripts are compared in memory. Live processes of this job at 20:10: chain A (PowerShell and Python, one probe at a time), chain R (PowerShell and Python, one engine at a time), the target builder (Python). Affinity 0x78 and Idle priority were read back from every one of them at 19:37. Machine: cores 4-6 at 97-100 % from the live gate (read 18:07), so the work effectively runs on core 3.
 
 ## Skills, servers, tools
 
-Used: superpowers brainstorming, writing-plans, executing-plans, test-driven-development; forge-uci `pc_status` (read-only). Not used: forge-uci `bench`, `perft`, `pin_check` (they run on cores 0-1, outside this lane). Suggestion, not installed: a chess rules library under a permissive licence would spare the hand-written oracle.
+Used: superpowers brainstorming, writing-plans, executing-plans, test-driven-development, requesting-code-review; forge-uci `pc_status` (read-only). Not used: forge-uci `bench`, `perft`, `pin_check` (they run on cores 0-1, outside this lane). Suggestion, not installed: a chess rules library under a permissive licence would spare the hand-written oracle.
 
 ## Next action
 
-Wait for the candidate probe builds, check that the seven probe hashes are pairwise different, then run pins and perft divide (`harness\checks_release.py`, being written).
+Wait for chain A (auxiliary fuzz to chunk 199, variants, cross-tier, edge) and chain R; run the WITNESS_NOPIN targets; then `report.py`, review 2, PROOF.md, manifest, commit and push.
 
 ## Resume commands
 
 ```powershell
 . D:\forge_jobs_20261109\fable2\repo\fable_movegen_proof\scripts\job3_env.ps1
+$H = "$J3_PACK\harness"; $L = "$J3_PACK\scripts\pin_run.ps1"
+# where the fuzz stands (reads the ledgers only)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\fuzz.py count"
+# continue the auxiliary tier (finished chunks are skipped: one row per candidate and chunk counts once)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\fuzz.py aux v1 0-99"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\fuzz.py aux v2 100-199"
+# continue the release-exe tier
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\fuzz.py uci v1 0-99"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\fuzz.py uci v2 100-199"
 # self-test (about one minute)
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\pin_run.ps1 -Exe $J3_PY -ArgLine "-I -B $J3_PACK\harness\selftest.py"
-# rebuild one probe (refuses to overwrite: move the old folder under out\job3\aux first)
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\build_aux.ps1 -Tag EVL
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $L -Exe $J3_PY -ArgLine "-I -B $H\selftest.py"
 ```

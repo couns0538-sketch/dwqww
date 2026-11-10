@@ -4,17 +4,21 @@
 // source tree and reads the fields the release executables do not print: the generated move lists in order,
 // is_legal / gives_check per move, the checkers bitboard as make_move leaves it, has_legal_move, and the static
 // evaluation with the net off and on. Two probes (lock tree and candidate tree) fed the same path file must
-// write byte-identical transcripts. The probe is a separate artifact: it shares the source files with a release
-// executable, not its code generation (no LTO, no PGO, another main()).
+// write byte-identical transcripts after their identity frame. The probe is a separate artifact: it shares the
+// source files with a release executable, not its code generation (no LTO, no PGO, another main()).
 //
 //   mgprobe id                                   one JSON line about this build
 //   mgprobe gen  --seeds F --master HEX --chunk I --positions N      path chunk (text) on stdout, stats on stderr
 //   mgprobe run  [--null 0|1]                    path chunk on stdin -> binary transcript on stdout
-//   mgprobe uciscript --perft D                  path chunk on stdin -> UCI commands on stdout
+//   mgprobe uciscript --perft D [--expect FILE]  path chunk on stdin -> UCI commands on stdout; FILE gets one line
+//                                                per position with this probe's legal moves in generation order
 //   mgprobe keys --master HEX --positions N --part F:A-B [--part ...]   distinct-position statistics (JSON)
 //
 // Path chunk (text):  "H ..." header, "C" clear the worker's caches, "P <playout> <seedtag> <policy> <fen>",
 // "M <uci> <uci> ..." the moves played from that seed. Every position on the path is one transcript record.
+//
+// The build script writes mgprobe_identity.h next to the output (tag, tree manifest, defines, sha256 of this
+// file); the first frame of every transcript carries it, so a transcript says which probe wrote it.
 //
 // Random numbers: SplitMix64 for seeding and xoshiro256** for the stream, written from their public-domain
 // descriptions (Blackman and Vigna). No code, table or constant of a GPL program is used.
@@ -22,6 +26,8 @@
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+
+#include "mgprobe_identity.h"   // MGPROBE_TAG, MGPROBE_TREE_MANIFEST, MGPROBE_DEFS, MGPROBE_HARNESS_SHA256
 
 #include <algorithm>
 #include <array>
@@ -38,7 +44,7 @@
 #include <io.h>
 #endif
 
-#define MGPROBE_VERSION "mgprobe-1"
+#define MGPROBE_VERSION "mgprobe-2"
 
 #if FORGE_SPD_NO_ZERO_MOVELISTS < 2
 #error "mgprobe needs the lock's generator: build with -DFORGE_SPD_NO_ZERO_MOVELISTS=2 (the lock's switch set)"
@@ -336,6 +342,10 @@ struct Walker {
             ss->accumulator.valid = false;
             ss->runtime_psqt.valid = false;
             (ss - 1)->accumulator.valid = false;
+        } else if (!(ss - 1)->accumulator.valid || ss->accumulator.valid || ss->ply < 1) {
+            // inside a window the value must come from ONE update of the parent's accumulator: the parent is
+            // valid, this slot was invalidated by record_move. Anything else would be a silent refresh.
+            fail_hard("the incremental accumulator chain is broken (the value would not be incremental)", b);
         }
         const bool was = nnue::enabled;
         nnue::enabled = true;
@@ -378,7 +388,10 @@ struct Walker {
         x.generate_pseudo_legal(caps, Board::GenMode::Captures);
         x.generate_pseudo_legal(quiets, Board::GenMode::Quiets);
 
-        std::array<unsigned char, MoveList::Capacity> bits{};
+        // bits: answers on the board that keeps its king lines (x). one_bits: the FIRST query on a board without
+        // king lines, is_legal and gives_check each on its own copy. post_bits: asked again after the makes and
+        // unmakes, when the king lines have been restored from an Undo (the state inside the search's move loop).
+        std::array<unsigned char, MoveList::Capacity> bits{}, one_bits{}, post_bits{};
         std::array<u64, MoveList::Capacity> child_one{}, child_main{};
         MoveList filtered;
         g_what = "is_legal, gives_check, make on a copy after one query";
@@ -386,11 +399,13 @@ struct Walker {
             const Move m = all[i];
             g_move = m;
             const bool ok = x.is_legal(m);
+            Board q1 = pristine, q2 = pristine;
+            const bool first_legal = q1.is_legal(m);
+            const bool first_check = q2.gives_check(m);
+            one_bits[i] = static_cast<unsigned char>((first_legal ? 1 : 0) | (first_check ? 2 : 0));
             {
                 // as in the search: one earlier query on a board without king lines, then the make
-                Board one = pristine;
-                if ((i & 1U) == 0U) (void)one.is_legal(m);
-                else (void)one.gives_check(m);
+                Board& one = (i & 1U) == 0U ? q1 : q2;
                 Undo u;
                 (void)one.make_move(m, u);
                 child_one[i] = one.checkers();
@@ -401,6 +416,8 @@ struct Walker {
                 if (x.gives_check(m)) b |= 2;
             }
             bits[i] = b;
+            if (first_legal != ok) fail_hard("is_legal differs between a board with and without king lines", x, m);
+            if (ok && first_check != ((b & 2) != 0)) fail_hard("gives_check differs between a board with and without king lines", x, m);
         }
         g_move = Move::none();
         g_what = "legal_moves, has_legal_move";
@@ -436,6 +453,16 @@ struct Walker {
         }
         g_move = Move::none();
         if (x.key() != key0 || x.checkers() != ck_main) fail_hard("make / unmake did not restore the position", x);
+        g_what = "is_legal, gives_check after make and unmake";
+        for (std::size_t i = 0; i < all.size(); ++i) {
+            const Move m = all[i];
+            g_move = m;
+            unsigned char b = x.is_legal(m) ? 1 : 0;
+            if (b != 0 && x.gives_check(m)) b |= 2;
+            post_bits[i] = b;
+            if (b != bits[i]) fail_hard("is_legal / gives_check differ after make and unmake", x, m);
+        }
+        g_move = Move::none();
 
         // static evaluation; the first touch of the pawn cache alternates between the two entry points
         g_what = "static evaluation";
@@ -491,7 +518,7 @@ struct Walker {
                 g_move = m;
                 if (!x.is_legal(m)) { nbits[i] = 0; nchild[i] = AllOnes; continue; }
                 any = true;
-                nbits[i] = 1;
+                nbits[i] = static_cast<unsigned char>(1 | (x.gives_check(m) ? 2 : 0));
                 Undo u;
                 (void)x.make_move(m, u);
                 nchild[i] = x.checkers();
@@ -530,6 +557,8 @@ struct Walker {
         rec.moves(caps);
         rec.moves(quiets);
         rec.raw(bits.data(), all.size());
+        rec.raw(one_bits.data(), all.size());
+        rec.raw(post_bits.data(), all.size());
         rec.moves(legal);
         rec.moves(legal_caps);
         rec.raw(child_one.data(), 8 * all.size());
@@ -619,6 +648,21 @@ int cmd_run(bool with_null) {
     std::signal(SIGABRT, on_abort);
     auto walker = std::make_unique<Walker>();
     walker->with_null = with_null;
+    {
+        // identity frame: which probe writes this transcript, and in which mode
+        Out& r = walker->rec;
+        r.clear();
+        r.w32(0xFFFFFFFEU);
+        r.u16(0);
+        r.u8(253);
+        r.u8(with_null ? 1 : 0);
+        r.str(MGPROBE_VERSION);
+        r.str(MGPROBE_TAG);
+        r.str(MGPROBE_HARNESS_SHA256);
+        r.str(MGPROBE_TREE_MANIFEST);
+        r.str(MGPROBE_DEFS);
+        write_frame(r);
+    }
     Board x, twin;
     bool active = false;
     u32 playout = 0;
@@ -694,14 +738,30 @@ int cmd_run(bool with_null) {
     r.w64(walker->soft);
     write_frame(r);
     std::fflush(stdout);
-    std::fprintf(stderr, "mgprobe run: %llu records, %llu self-check failures, %llu incremental/refresh differences\n",
-                 static_cast<unsigned long long>(walker->records), static_cast<unsigned long long>(walker->hard),
+    std::fprintf(stderr, "mgprobe run (%s): %llu records, %llu self-check failures, %llu incremental/refresh differences\n",
+                 MGPROBE_TAG, static_cast<unsigned long long>(walker->records), static_cast<unsigned long long>(walker->hard),
                  static_cast<unsigned long long>(walker->soft));
     return 0;
 }
 
-int cmd_uciscript(int depth) {
+int cmd_uciscript(int depth, const char* expect_path) {
     binary_stdout();
+    std::FILE* expect = nullptr;
+    if (expect_path != nullptr) {
+        expect = std::fopen(expect_path, "wb");
+        if (expect == nullptr) die("uciscript: cannot write the --expect file");
+    }
+    auto note = [&](const Board& b) {
+        // this probe's legal moves at the position the UCI line reaches, in generation order
+        if (expect == nullptr) return;
+        bool first = true;
+        for (const Move m : b.legal_moves()) {
+            if (!first) std::fputc(' ', expect);
+            std::fputs(Board::move_to_uci(m).c_str(), expect);
+            first = false;
+        }
+        std::fputc('\n', expect);
+    };
     Board x;
     bool active = false;
     std::string line;
@@ -713,8 +773,9 @@ int cmd_uciscript(int depth) {
             std::string fen;
             if (!parse_p(line, playout, fen)) die("malformed P line");
             active = x.set_fen(fen);
-            if (!active) die("uciscript: seed FEN rejected by the lock probe");
+            if (!active) die("uciscript: seed FEN rejected by this probe");
             std::fprintf(stdout, "position fen %s\ngo perft %d\n", x.fen().c_str(), depth);
+            note(x);
             ++n;
             continue;
         }
@@ -722,10 +783,11 @@ int cmd_uciscript(int depth) {
             if (!active) continue;
             for (const std::string& text : tokens_after(line, 1)) {
                 Move m;
-                if (!find_move(x, text, m)) die("uciscript: path move is not legal for the lock probe");
+                if (!find_move(x, text, m)) die("uciscript: path move is not legal for this probe");
                 std::fprintf(stdout, "position fen %s moves %s\ngo perft %d\n", x.fen().c_str(), text.c_str(), depth);
                 Undo u;
                 (void)x.make_move(m, u);
+                note(x);
                 ++n;
             }
             continue;
@@ -733,6 +795,7 @@ int cmd_uciscript(int depth) {
         die("unknown line in the path file");
     }
     std::fflush(stdout);
+    if (expect != nullptr) std::fclose(expect);
     std::fprintf(stderr, "mgprobe uciscript: %llu positions\n", static_cast<unsigned long long>(n));
     return 0;
 }
@@ -749,7 +812,8 @@ int cmd_id() {
                 map += "\"" + std::to_string(static_cast<int>(m.promotion)) + "\":\"" + t.substr(4) + "\"";
             }
     }
-    std::printf("{\"harness\":\"%s\",\"nnue_available\":%d,\"nnue_residual\":%d,\"nnue_hidden\":%d,"
+    std::printf("{\"harness\":\"%s\",\"tag\":\"%s\",\"harness_sha256\":\"%s\",\"tree_manifest_sha256\":\"%s\",\"defines\":\"%s\","
+                "\"nnue_available\":%d,\"nnue_residual\":%d,\"nnue_hidden\":%d,"
                 "\"sizeof_pawn_entry\":%d,\"sizeof_board\":%d,\"max_ply\":%d,\"promotion_map\":{%s},"
                 "\"king_lines\":%d,\"no_zero_movelists\":%d,\"search_speed2\":%d,\"prefetch_early\":%d,"
                 "\"tt_notls\":%d,\"nnue_zmm\":%d,\"slider_pext\":%d,"
@@ -759,7 +823,8 @@ int cmd_id() {
                 "\"king_pawn_cache\":null,"
 #endif
                 "\"compiler\":\"%s\"}\n",
-                MGPROBE_VERSION, nnue::available() ? 1 : 0, nnue::residual() ? 1 : 0, nnue::HiddenSize,
+                MGPROBE_VERSION, MGPROBE_TAG, MGPROBE_HARNESS_SHA256, MGPROBE_TREE_MANIFEST, MGPROBE_DEFS,
+                nnue::available() ? 1 : 0, nnue::residual() ? 1 : 0, nnue::HiddenSize,
                 static_cast<int>(sizeof(Evaluator::PawnEntry)), static_cast<int>(sizeof(Board)), MaxPly, map.c_str(),
                 FORGE_SPD_KING_LINES, FORGE_SPD_NO_ZERO_MOVELISTS, FORGE_SEARCH_SPEED2, FORGE_SPD_PREFETCH_EARLY,
                 FORGE_SPD_TT_NOTLS, FORGE_SPD_NNUE_ZMM, FORGE_SPD_SLIDER_PEXT,
@@ -791,7 +856,7 @@ int main(int argc, char** argv) {
     }
     if (cmd == "uciscript") {
         const char* d = arg_value(argc, argv, "--perft");
-        return cmd_uciscript(d != nullptr ? std::atoi(d) : 1);
+        return cmd_uciscript(d != nullptr ? std::atoi(d) : 1, arg_value(argc, argv, "--expect"));
     }
     if (cmd == "gen") {
         const char* seeds_path = arg_value(argc, argv, "--seeds");
@@ -805,7 +870,7 @@ int main(int argc, char** argv) {
         const u64 m = std::strtoull(master, nullptr, 16);
         const u64 c = std::strtoull(chunk, nullptr, 10);
         const u64 n = std::strtoull(positions, nullptr, 10);
-        std::fprintf(stdout, "H %s master=%016llx chunk=%llu positions=%llu\n", MGPROBE_VERSION,
+        std::fprintf(stdout, "H path-1 master=%016llx chunk=%llu positions=%llu\n",
                      static_cast<unsigned long long>(m), static_cast<unsigned long long>(c),
                      static_cast<unsigned long long>(n));
         Stats st;

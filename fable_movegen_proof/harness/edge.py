@@ -10,7 +10,7 @@
                      child reached by `position fen <entry> moves <m>`;
                    rejected entries: the engine's refusal text and the unchanged board, compared explicitly;
                    unreachable entries: one process per entry, outputs and exit codes compared;
-                   search signature (supplementary): go depth 8 with the net on and off, every info line;
+                   search signature (supplementary): go depth 12 with the net on and off, every info line;
                    three-way: the lock's move set and checkers against the oracle's.
   summary          one line per tag from the receipts
 
@@ -40,7 +40,7 @@ SUITE = os.path.join(PACK, "suite", "edge_suite.tsv")
 EXPECTED = os.path.join(PACK, "suite", "edge_expected.tsv")
 MOVE_KEYS = {"has", "no", "pseudo", "gives_check", "no_check", "discovered", "double_after", "promos"}
 STRIP_RX = re.compile(r" (nps|time) \d+")
-SEARCH_DEPTH = 8
+SEARCH_DEPTH = 12
 REQUIRED = ["check_knight", "check_pawn", "check_slider", "double_check", "double_check_given", "discovered_check",
             "pinned_evasion", "ep_removes_checker", "ep_illegal_rank_pin", "ep_illegal_diagonal_pin", "ep_discovered_check",
             "promotion_push", "promotion_capture", "promotion_gives_check", "underpromotion_check", "promotion_in_check",
@@ -213,7 +213,7 @@ def build():
     # every LEGAL entry must be accepted by the lock, and the lock's move set and checkers must be the oracle's
     path = "".join(f"P {i} X0 0 {e['fen']}\nM\n" for i, e in enumerate(legal_entries)).encode("ascii")
     tr, err, code = fuzz.run_probe([fuzz.probe("LOCK"), "run"], path)
-    recs = [mg_format.decode(tr[o:o + n]) for o, n in mg_format.frames(tr)[:-1]]
+    recs = [mg_format.decode(tr[o:o + n]) for o, n in mg_format.frames(tr)[1:-1]]
     expected_rows = []
     for e, d in zip(legal_entries, recs):
         pos = oracle.parse_fen(e["fen"])
@@ -367,7 +367,7 @@ def run(tags):
     a_path, a_roots = tier_a_path(legal, exp)
     a_sha = fuzz.sha256(a_path)
     a_ref, _, code = fuzz.run_probe([fuzz.probe("LOCK"), "run"], a_path)
-    a_check = mg_compare.compare(a_ref, a_ref)
+    a_check = mg_compare.compare(a_ref, a_ref, expect_tag="LOCK")
     if code != 0 or a_check.status != "EQUAL":
         raise SystemExit(f"edge: the lock probe run is not usable: exit {code}; {a_check.detail}")
     # three-way: the lock's move set and checkers against the oracle
@@ -381,7 +381,7 @@ def run(tags):
                 three_bad.append(eid)
     rj_path = ("".join(f"P {i} X0 0 {e['fen']}\nM\n" for i, e in enumerate(rejected))).encode("ascii")
     rj_ref, _, _ = fuzz.run_probe([fuzz.probe("LOCK"), "run"], rj_path)
-    rj_recs = [mg_format.decode(rj_ref[o:o + n]) for o, n in mg_format.frames(rj_ref)[:-1]]
+    rj_recs = [mg_format.decode(rj_ref[o:o + n]) for o, n in mg_format.frames(rj_ref)[1:-1]]
     rj_bad = [f"{e['id']}: probe record kind {d['kind']} error [{d.get('error', '')}]" for e, d in zip(rejected, rj_recs)
               if d["kind"] != 2 or e["predicate_or_expected"].lower() not in d["error"].lower()]
     un_ref = {}
@@ -435,24 +435,27 @@ def run(tags):
         if has_probe:
             rec["probe_sha256"] = fuzz.sha256_file(fuzz.probe(tag))
             tr, cerr, ccode = fuzz.run_probe([fuzz.probe(tag), "run"], a_path)
-            res = mg_compare.compare_bound(a_ref, a_sha, tr, a_sha, a_path.decode("ascii"))
+            ptag = "LOCK" if tag == "LOCKCOPY" else tag          # the copy is the lock probe, byte for byte
+            res = mg_compare.compare_bound(a_ref, a_sha, tr, a_sha, a_path.decode("ascii"), expect_tag=ptag)
             rec["tier_a_legal"] = {"status": res.status, "records": res.positions, "exit": ccode, "detail": res.detail[:800]}
             if ccode != 0 or res.status == "MISMATCH":
                 legal_diff.append("tier A: " + res.detail[:400] + (f" (probe exit {ccode}: {cerr[-200:]})" if ccode != 0 else ""))
             elif res.status != "EQUAL":
                 errors.append("tier A: " + res.detail[:300])
             tr, _, ccode = fuzz.run_probe([fuzz.probe(tag), "run"], rj_path)
-            same = tr == rj_ref
+            rres = mg_compare.compare(rj_ref, tr, None, expect_tag=ptag, allow_error_records=True)
+            same = rres.status == "EQUAL" and ccode == 0
             rec["tier_a_rejected"] = {"identical_to_lock": same, "exit": ccode}
             if not same:
-                robust_diff.append("tier A rejected entries: " + mg_compare.compare(rj_ref, tr).detail[:300])
+                robust_diff.append("tier A rejected entries: " + rres.detail[:300])
             un = {}
             for e in unreach:
                 out, _, ccode = fuzz.run_probe([fuzz.probe(tag), "run"], f"P 0 X0 0 {e['fen']}\nM\n".encode("ascii"))
-                same = (out, ccode) == un_ref[e["id"]]
+                ures = mg_compare.compare(un_ref[e["id"]][0], out, None, expect_tag=ptag, allow_error_records=True)
+                same = ures.status == "EQUAL" and ccode == un_ref[e["id"]][1]
                 un[e["id"]] = {"identical_to_lock": same, "exit": ccode, "lock_exit": un_ref[e["id"]][1]}
                 if not same:
-                    robust_diff.append(f"tier A unreachable {e['id']}: " + mg_compare.compare(un_ref[e["id"]][0], out).detail[:300])
+                    robust_diff.append(f"tier A unreachable {e['id']}: " + ures.detail[:300])
             rec["tier_a_unreachable"] = un
         else:
             rec["tier_a_legal"] = {"status": "NOT APPLICABLE", "detail": "no auxiliary probe for this tag"}
