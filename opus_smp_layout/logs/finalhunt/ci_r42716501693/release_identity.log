@@ -1,0 +1,49 @@
+== compiler: g++-14 (Ubuntu 14.2.0-4ubuntu2~24.04.1) 14.2.0
+== forge sha256: 10bc029bdbb3a79fcbdd14a5855f1dae199a276e3b162c7fb8d34d9107a71fa6
+== FMA instructions (must be 0): 0
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+engine exit code 0 OK
+ALL OK
+== TtLockless=true (same exe):
+option TtLockless = true
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+engine exit code 0 OK
+ALL OK
+== TtLockless liveness (same exe):
+a legacy   cold        nodes 53479 best c4d5 score cp 139
+a legacy   warm        nodes 4139 best c4d5 score cp 139
+a legacy   after empty nodes 35964 best c4d5 score cp 152
+b lockless cold        nodes 53479 best c4d5 score cp 139
+b lockless warm        nodes 4139 best c4d5 score cp 139
+b lockless after empty nodes 35964 best c4d5 score cp 152
+lockless cold = legacy cold (b1 = a1)                OK
+lockless warm = legacy warm (b2 = a2)                OK
+warm reuses the table (a2 != a1 nodes)               OK
+emptying the table is visible (a3 != a2 nodes)       OK
+toggle emptied the table like Clear Hash (b3 = a3)   OK
+both engines exit 0 after quit                       OK
+LIVENESS: PASS (TtLockless is live and node-identical cold and warm)
+== default build (FORGE_SMP_LAYOUT OFF) forge sha256: 79f1d231a69ef4e88c527b5c13f5610024d391af9189ef5a9c4659d0d7782f69
+macro-0 build: no TtLockless option (OK)
+macro-1 build: TtLockless advertised, default false (OK)
+bench d11 nodes 312866 ref 312866 OK
+bench d13 nodes 862329 ref 862329 OK
+bench d16 nodes 3024920 ref 3024920 OK
+bench d20 nodes 12389307 ref 12389307 OK
+bench d22 nodes 34048354 ref 34048354 OK
+perft5 startpos 4865609 ref 4865609 OK
+perft5 kiwipete 193690690 ref 193690690 OK
+engine exit code 0 OK
+ALL OK

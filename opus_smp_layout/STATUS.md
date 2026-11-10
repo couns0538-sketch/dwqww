@@ -40,7 +40,7 @@
   - `0599271`-era runs 42673707949, 42674616047, 42677341394, 42682884789;
   - enc2 42692617722;
   - enc4 42697936926, 42706554114;
-  - **enc5 42708220996**, plus the run of the final push, all green.
+  - **enc5 42708220996** and the final push **42716501693** (engine `e011a3e`), all green.
 - **Skill**: `skills/forge-smp-lockless-qualify` (updated; mirrored to `D:\grok-pc-data\dwqww\.claude\skills\`).
 
 ## In progress

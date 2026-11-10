@@ -30,7 +30,7 @@
 | OFF build identical to the parent | **PASS**: byte-identical (4181a589, kit h0c = h0d) + `g++ -E -P` 8/8 identical |
 | gate, `TtLockless=false`, node identity Threads 1 | **PASS**: kit identity, pins net on/off + perft, fens12k net on/off (12,000/12,000), warm table, Hash-1 replacement |
 | gate, `TtLockless=true`, node identity Threads 1 | **PASS**: the same set plus deeper warm (200k nodes); liveness on the PC and **in CI** (toggle = Clear Hash effect) |
-| race: TSan (CI, Linux, g++-14) | **0 reports** on the executed paths in every CI run of this branch (8 runs), each including the real engine over UCI at Threads 2/4 in both modes. Run 42708220996 tested `89cddf7`. **Not a race proof** |
+| race: TSan (CI, Linux, g++-14) | **0 reports** on the executed paths in every CI run of this branch (9 runs), each including the real engine over UCI at Threads 2/4 in both modes. Runs 42708220996 (`89cddf7`) and 42716501693 (final push, engine `e011a3e`) tested the candidate code. **Not a race proof** |
 | race: contention fixture | 0 incoherent hits in every run (BENCH §6, §10, §11), each with a gating positive control that saw hundreds of thousands to millions of incoherent hits |
 | stress (native, CPUs 12-15, Threads 1/4/8) | **PASS** (BENCH §11) |
 | ASan + UBSan (CI) | green, no report; no new compiler warning (the same 6 pre-existing `-Wconversion` lines as the macro-0 build) |
