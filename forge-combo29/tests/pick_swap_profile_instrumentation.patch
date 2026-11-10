@@ -1,0 +1,38 @@
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -17,6 +17,25 @@
+ #endif
+ 
+ namespace forge {
++
++// Profiling-only counters; built-in bench is single-threaded.
++namespace {
++struct PickSwapCounters {
++    std::array<std::uint64_t, 4> selections{};
++    std::array<std::uint64_t, 4> self_swaps{};
++    ~PickSwapCounters() {
++        std::cerr << "PICK_SWAP_PROFILE {\"slots\":[";
++        for (std::size_t i = 0; i < 4; ++i) {
++            if (i != 0) std::cerr << ',';
++            std::cerr << "{\"ordinal\":" << i + 1 << ",\"selections\":" << selections[i]
++                      << ",\"self_swaps\":" << self_swaps[i]
++                      << ",\"distinct_swaps\":" << selections[i] - self_swaps[i] << '}';
++        }
++        std::cerr << "]}\n";
++    }
++};
++PickSwapCounters pick_swap_counters;
++} // namespace
+ 
+ namespace tune {
+ int LmrQuietBase = 85;
+@@ -646,6 +665,9 @@
+                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+                     if (moves_[i].score > moves_[best].score) best = i;
+                 }
++                const std::size_t profile_ordinal = index_ - list_start_;
++                ++pick_swap_counters.selections[profile_ordinal];
++                if (best == index_) ++pick_swap_counters.self_swaps[profile_ordinal];
+                 std::swap(moves_[index_], moves_[best]);
+             } else {
+                 std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
