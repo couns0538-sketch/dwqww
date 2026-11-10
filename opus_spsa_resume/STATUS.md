@@ -25,13 +25,23 @@ All times are Vienna, taken from GitHub's HTTP `Date` header. The PC clock runs 
 - **Disk:** D: keeps a 30 GiB reserve, enforced by `Assert-Opus3Disk` before every write-heavy step. No new files on C: or F:.
 
 ## Done
-- S1: clock and offset recorded. INC-01 incident recorded; D: is back at 32.4 GiB. Blobless clone made, branch created. Pack skeleton in place. AGENTS policy recovered byte-exact to `review/AGENTS_3e900941.md` (MD5 94169aefef79ccb69c21f8f2c86298f0 ✓).
+- S1 (00:48 to 01:15 Vienna):
+  - Clock and offset recorded. INC-01 recorded; D: is back at 32.4 GiB.
+  - Blobless clone and branch. First commit 0bb79c2c pushed, so normal push access works.
+  - AGENTS policy recovered byte-exact (MD5 94169aef ✓).
+  - Inputs frozen with `bin/freeze_inputs.ps1`: 18 identities and all 20 snapshot files verified; see `evidence/FREEZE.json` and the FREEZE_FILES manifests.
+  - Lineage settled; the combo29 git source commit is **BLOCKED** (`AUDIT.md` §1).
+  - Tuner audit of R9, O30, R3 and `tools/match`, plus the parameter inventory (`AUDIT.md`).
+  - fable52 checked: analysis only, no engine patch.
+  - Sensitivity probe on the lock exe (`evidence/sensitivity_combo29_lock_d13_d16.json`); its d13 values equal R3's AL1 measurements.
+  - Families selected: F1 razoring and F2 qsearch pruning (`PLAN.md`). QsSeeMargin turned out to be a step function, so it and RazorDepth are optional discrete levels, off by default.
 
 ## In progress
-- S1: first commit and push, then freeze inputs, lineage and commit search, tuner audit, fable52 check, `PLAN.md`, M1 review.
+- S1: commit and push the M1 candidate, then the M1 review (one reviewer subagent).
+- S2 starts in parallel on files the review does not cover: the R9 import into `spsa/`.
 
 ## Next exact action
-`. D:\forge_jobs_20261107\opus3\env.ps1; cd $Opus3Repo; git add opus_spsa_resume; Set-Opus3GitDates; git commit -m ...; git push -u origin opus-spsa-resume-20261107:opus-spsa-resume-20261107`
+`. D:\forge_jobs_20261107\opus3\env.ps1; cd $Opus3Repo; git add opus_spsa_resume; Set-Opus3GitDates; git commit; git push origin opus-spsa-resume-20261107`
 
 ## Resume commands
 ```
@@ -45,9 +55,12 @@ On resume, re-verify the hashes in this file before relying on any earlier recei
 ## Checks
 | Check | State |
 |---|---|
-| combo29 exe MD5/SHA256 | PASS (read-only, during planning) |
+| combo29 exe MD5/SHA256 | PASS (read-only during planning; re-verified at freeze) |
 | AGENTS policy MD5 | PASS |
-| Everything else | NOT RUN |
+| Freeze of 18 inputs plus 20 snapshot files against the planning identities and the manifest | PASS |
+| Bench pins of the lock exe, d13/d16 (sensitivity probe, defaults before and after) | PASS (862329 / 3024920) |
+| Bench d11/d20/d22, net-off, perft, fens12k | NOT RUN (S3) |
+| Harness, engine patch, builds, confirmation | NOT RUN |
 
 ## Unproven claims
 - None. No tuning has run and no Elo is claimed; real tuning is PENDING QA EXECUTION.
