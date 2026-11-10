@@ -25,6 +25,10 @@
 // default false) and gives Worker::nodes_ its own cache line. Specification: opus_smp_layout/SPEC.md.
 #define FORGE_SMP_LAYOUT 0
 #endif
+#if FORGE_SMP_LAYOUT
+#include <bit>
+#include <type_traits>
+#endif
 
 namespace forge {
 
@@ -123,10 +127,12 @@ inline constexpr std::uint64_t GenMask = 0xF8ULL << 40U;
 inline constexpr std::uint64_t TagMul = 0x9E3779B97F4A7C15ULL;
 
 // tag32(D) = the high 32 bits of ((D without the generation bits) * TagMul mod 2^64): multiply-shift hashing, one
-// multiply. tag32(0) == 0. Over the choice of an odd multiplier, two data words that differ outside GenMask get equal
-// tags with probability <= 2^-31 (Dietzfelbinger et al. 1997). With this multiplier no single-bit difference, no small
-// field difference and no difference confined to depth/bound/pv/rule50 can collide (tests/tt_lockless_tests.cpp
-// group 1, opus_smp_layout/tools/tag_scan.cpp). The move needs no tag: it travels inside K.
+// multiply. tag32(0) == 0. Exact rule: two data words can share a tag only if their difference delta (mod 2^64,
+// generation bits cleared) has delta * TagMul within 2^32 of 0 (mod 2^64). That holds for 2^33 - 2 of the 2^64 - 1
+// non-zero deltas, density 2^-31 (the multiply-shift bound of Dietzfelbinger et al. 1997 for a random odd multiplier).
+// With this multiplier no single-bit difference, no small field difference and no difference confined to
+// depth/bound/pv/rule50 is among them (tests/tt_lockless_tests.cpp group 1, opus_smp_layout/tools/tag_scan.cpp).
+// The move needs no tag: it travels inside K.
 [[nodiscard]] constexpr std::uint32_t tag32(std::uint64_t data) {
     return static_cast<std::uint32_t>(((data & ~GenMask) * TagMul) >> 32U);
 }
@@ -162,22 +168,21 @@ inline constexpr std::uint64_t TagMul = 0x9E3779B97F4A7C15ULL;
            (static_cast<std::uint64_t>(move_bits(entry.move)) << 32U);
 }
 
+// The words in memory order: on a little-endian target, K without the tag holds TTEntry's first 8 bytes (key32, move)
+// and D its last 8 bytes, in the layouts written by key_word / data_word above. These asserts pin that down, so decode
+// is one bit_cast (the round-trip test checks it against the field-by-field encoders, the decode test against a
+// field-by-field decoder).
+static_assert(std::endian::native == std::endian::little, "ttlockless::decode assumes a little-endian target");
+static_assert(std::is_trivially_copyable_v<TTEntry> && std::is_standard_layout_v<TTEntry> && sizeof(TTEntry) == 16);
+static_assert(std::is_standard_layout_v<Move> && sizeof(Move) == 4 && offsetof(Move, from) == 0 && offsetof(Move, to) == 1 &&
+              offsetof(Move, promotion) == 2 && offsetof(Move, flags) == 3);
+static_assert(offsetof(TTEntry, key32) == 0 && offsetof(TTEntry, move) == 4 && offsetof(TTEntry, score) == 8 &&
+              offsetof(TTEntry, eval) == 10 && offsetof(TTEntry, depth) == 12 && offsetof(TTEntry, gen_bound) == 13 &&
+              offsetof(TTEntry, rule50_clock) == 14 && offsetof(TTEntry, padding) == 15);
+
 // Exact inverse of (key_word, data_word) for every TTEntry value; decode(0, 0) is the empty entry.
 [[nodiscard]] constexpr TTEntry decode(std::uint64_t key, std::uint64_t data) {
-    TTEntry entry;
-    const auto move32 = static_cast<std::uint32_t>(key >> 32U);
-    entry.key32 = key32_of(key, data);
-    entry.move.from = static_cast<std::uint8_t>(move32);
-    entry.move.to = static_cast<std::uint8_t>(move32 >> 8U);
-    entry.move.promotion = static_cast<std::uint8_t>(move32 >> 16U);
-    entry.move.flags = static_cast<std::uint8_t>(move32 >> 24U);
-    entry.score = static_cast<std::int16_t>(static_cast<std::uint16_t>(data));
-    entry.eval = static_cast<std::int16_t>(static_cast<std::uint16_t>(data >> 16U));
-    entry.depth = static_cast<std::uint8_t>(data >> 32U);
-    entry.gen_bound = static_cast<std::uint8_t>(data >> 40U);
-    entry.rule50_clock = static_cast<std::uint8_t>(data >> 48U);
-    entry.padding = static_cast<std::uint8_t>(data >> 56U);
-    return entry;
+    return std::bit_cast<TTEntry>(std::array<std::uint64_t, 2>{key ^ tag32(data), data});
 }
 
 [[nodiscard]] constexpr std::uint64_t with_gen_bound(std::uint64_t data, std::uint8_t gen_bound) {

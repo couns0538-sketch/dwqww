@@ -54,8 +54,13 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
     - any single-bit difference;
     - every small field difference: |score| and |eval| ≤ 32 (with the int16 wrap), |depth| ≤ 8, any bound/pv change, |rule50| ≤ 4, in every combination (38 million deltas).
   - **Score/eval-only differences:** exactly the deltas listed by `tag_scan` part 1 can collide (BENCH §9).
-  - **Everything else:** over the choice of an odd multiplier, `P[collision] ≤ 2^-31` per pair (multiply-shift universality, Dietzfelbinger et al. 1997). That is about one bit weaker than a perfect 32-bit tag, in exchange for the structural guarantees above.
-- A **validated hit** therefore carries key, move, score, eval, depth, bound, pv and rule50_clock from **one** store, except with probability about 2^-31 per torn read whose two data words differ in score/eval and elsewhere. On top of that is P's own 32-bit tag-collision rate (`verification_key` unchanged).
+  - **Combined differences** (score/eval and depth/bound/pv/rule50 at once, the usual replacement case): `tag_scan` part 4 lists every colliding combination exactly, inside a box of score/eval differences (BENCH §9).
+  - **Exact rule for this multiplier** (fable bug hunt NIT-5):
+    - Of the 2^64 − 1 non-zero deltas, exactly 2^33 − 2 can collide: those with `delta * TagMul` within 2^32 of 0 (mod 2^64).
+    - Such a delta collides for the fraction `c(delta) = 1 − |delta * TagMul mod± 2^64| / 2^32` of the word pairs.
+    - The set has density 2^-31 among all deltas. For a random odd multiplier, that is the multiply-shift bound of Dietzfelbinger et al. 1997.
+    - So a torn pair whose two data words are unrelated collides with probability about 2^-31 **on average**. This is not a bound for every single pair. It is about one bit weaker than a perfect 32-bit tag, in exchange for the exact guarantees above.
+- A **validated hit** therefore carries key, move, score, eval, depth, bound, pv and rule50_clock from **one** store. The exception is a torn read whose two data words differ by a delta in the bad set above: about 2^-31 on average for unrelated data. On top of that is P's own 32-bit tag-collision rate (`verification_key` unchanged).
 - No ordering beyond relaxed is needed. The entry carries all its data in its two words, and nothing else is published through the TT (no pointers, no indices into other memory).
 - Search keeps its own TT-move checks, unchanged: `MovePicker` drops a move that is not `is_pseudo_legal`, and every move is `is_legal`-checked before it is made.
 - Collision correctness is P's. Torn pairs add no new class of wrong hit beyond the 2^-31 term above.
@@ -73,10 +78,14 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 
 ### 3.5 store (mirrors P's `store_body`)
 1. Same handle gate: owner, epoch, key, `cluster < count`, `slot < 4`.
-2. Load K and D of the slot, decode, and apply P's rules unchanged:
+2. Load K and D of the slot and apply P's rules unchanged. Since enc3 they run on the raw words (`key32_of`, `occupied_of`, `depth_of`, `generation_of`) instead of a decoded TTEntry:
    - keep the old move if the new move is none and it is the same position;
    - rewrite fully on an exact bound, a different position, depth + 4 > old depth, or an old generation.
-3. Encode. Store D if it changed, then K if it changed, both relaxed.
+   - The rewritten D uses `data_word`'s layout and clamps and keeps the old padding byte, as `store_body` never writes padding.
+   - Without a rewrite, the low half of K stays as it is.
+3. The new K = `(key32 ^ tag32(D_new)) | move << 32`, i.e. exactly `key_word` / `data_word` of the entry `store_body` would leave (checked by the differential test, which also stores BoundNone). Store D if it changed, then K if it changed, both relaxed.
+- **decode** (enc3) is one `std::bit_cast<TTEntry>({K ^ tag32(D), D})`. On a little-endian target, K without the tag is TTEntry's first 8 bytes (key32, move) and D its last 8 bytes. Static asserts pin the endianness, standard layout, trivial copyability and every member offset, and a test compares it with a field-by-field decoder on 200,000 random word pairs.
+- **probe loads** (enc4): the eight relaxed loads are written out one by one. GCC kept a loop of atomic loads rolled and spilled the copies to the stack. Nothing is indexed at run time afterwards, so the copies stay in registers. Load order is irrelevant: the tag validates every (K, D) pair.
 - A racing writer can cause a **lost update**, or a **mismatched pair** that reads as foreign (§3.3). It cannot cause an incoherent hit, apart from the 2^-31 term.
 
 **hashfull:** relaxed loads of D in the first `min(1000, count)` clusters, counting entries that are occupied with `generation == generation_` (raw readers). Same arithmetic as P.

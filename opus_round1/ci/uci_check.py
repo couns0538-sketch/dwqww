@@ -33,5 +33,7 @@ for name, pos in (("startpos", "position startpos"), ("kiwipete", "position fen 
     send(pos); send("go perft 5"); m = wait(r"^nodes (\d+)")
     got = int(m.group(1)); good = got == REF_PERFT[name]; ok &= good
     print(f"perft5 {name} {got} ref {REF_PERFT[name]} {'OK' if good else 'FAIL'}", flush=True)
-send("quit"); p.wait(timeout=30)
+send("quit"); code = p.wait(timeout=30)
+# opus2 SMP pack (fable bug hunt NIT-3): a crash in quit / static destruction must not pass as ALL OK.
+print(f"engine exit code {code} {'OK' if code == 0 else 'FAIL'}", flush=True); ok &= code == 0
 print("ALL OK" if ok else "MISMATCH"); sys.exit(0 if ok else 1)

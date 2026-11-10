@@ -1,8 +1,9 @@
 // tt_lockless_tests.cpp - opus2 SMP pack (FORGE_SMP_LAYOUT=1): tests of the lockless TT mode, opus_smp_layout/SPEC.md 5.1.
 // Own test code (no copied source). Every concurrent access in this file goes through the table API or std::atomic_ref,
 // so a ThreadSanitizer report here is a real race in the code under test.
-//   1 round trip    decode(encode(e)) == e for random and edge entries; tag32(0) == 0; raw readers == decoded fields;
-//                   tag detection: every single-bit change and every small field difference of D changes the tag
+//   1 round trip    decode(encode(e)) == e for random and edge entries; decode == a field-by-field decoder for random
+//                   word pairs; tag32(0) == 0; raw readers == decoded fields; tag detection: every single-bit change
+//                   and every small field difference of D changes the tag
 //   2 differential  legacy table vs lockless table, one thread, same random op stream: equal probes and equal contents
 //   3 contention    4 / 8 threads on 1 / 4 / 16 clusters, payload = f(key): every hit must carry f(key) (no incoherent hit)
 //   4 control       the same fixture on a test-only UNVALIDATED two-word table must see incoherent hits (fixture can fail)
@@ -131,8 +132,37 @@ void test_tag_detection() {
     std::cout << "tag detection: 59 single bits x 2 directions, " << scanned << " small field differences, bad " << bad << "\n";
 }
 
+// Field-by-field reference decoder, independent of decode's bit_cast and of the layout asserts.
+TTEntry decode_fields(std::uint64_t key, std::uint64_t data) {
+    TTEntry entry;
+    const auto move32 = static_cast<std::uint32_t>(key >> 32U);
+    entry.key32 = static_cast<std::uint32_t>(key) ^ forge::ttlockless::tag32(data);
+    entry.move.from = static_cast<std::uint8_t>(move32);
+    entry.move.to = static_cast<std::uint8_t>(move32 >> 8U);
+    entry.move.promotion = static_cast<std::uint8_t>(move32 >> 16U);
+    entry.move.flags = static_cast<std::uint8_t>(move32 >> 24U);
+    entry.score = static_cast<std::int16_t>(static_cast<std::uint16_t>(data));
+    entry.eval = static_cast<std::int16_t>(static_cast<std::uint16_t>(data >> 16U));
+    entry.depth = static_cast<std::uint8_t>(data >> 32U);
+    entry.gen_bound = static_cast<std::uint8_t>(data >> 40U);
+    entry.rule50_clock = static_cast<std::uint8_t>(data >> 48U);
+    entry.padding = static_cast<std::uint8_t>(data >> 56U);
+    return entry;
+}
+
 void test_round_trip() {
     namespace L = forge::ttlockless;
+    {
+        // decode == the field-by-field decoder for arbitrary word pairs (not only encoded ones).
+        std::mt19937_64 words(4711);
+        for (int i = 0; i < 200000; ++i) {
+            const std::uint64_t k = words(), d = words();
+            if (!same_entry(L::decode(k, d), decode_fields(k, d))) {
+                check(false, "decode differs from the field-by-field decoder at K=" + std::to_string(k) + " D=" + std::to_string(d));
+                break;
+            }
+        }
+    }
     check(L::tag32(0) == 0, "tag32(0) == 0");
     check(L::tag32(L::GenMask) == 0, "the generation bits are outside the tag");
     check(same_entry(L::decode(0, 0), TTEntry{}), "decode(0,0) is the empty entry");
@@ -222,7 +252,8 @@ void test_differential() {
         const int score = static_cast<int>(rng() % 70000U) - 35000;   // exercises the clamp
         const int eval = static_cast<int>(rng() % 70000U) - 35000;
         const int depth = static_cast<int>(rng() % 300U) - 20;        // exercises the clamp
-        const Bound bound = static_cast<Bound>(1U + rng() % 3U);
+        // BoundNone too: such a store leaves an unoccupied slot with data in it (miss snapshots of such slots).
+        const Bound bound = static_cast<Bound>(rng() % 4U);
         const bool pv = (rng() & 1U) != 0;
         const std::uint16_t hmc = static_cast<std::uint16_t>(rng() % 130U);
         const Move move = random_move(rng);

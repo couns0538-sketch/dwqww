@@ -7,7 +7,8 @@
 // One Worker per thread (as Searcher makes them), one shared table. Workloads: random keys (mostly misses and
 // replacements) and a hot pool of 4096 keys (mostly hits). Each run lasts a fixed time; ops = probe + store pairs.
 // Rounds alternate the order of the configs: L (legacy), X (lockless), A (legacy again = A/A noise floor).
-// Usage: tt_microbench [seconds_per_run=1.5] [rounds=6]     (pin it from outside: run_pinned.ps1, CPUs 12-15, Idle)
+// Usage: tt_microbench [seconds_per_run=1.5] [rounds=6] [threads=1,2,4]   (pin it from outside: run_pinned.ps1, CPUs 12-15,
+//        Idle; threads is a comma list of 1, 2 and/or 4)
 #include "forge/search.hpp"
 
 #include <algorithm>
@@ -23,6 +24,12 @@
 
 #if !FORGE_SMP_LAYOUT || !FORGE_SPD_TT_NOTLS
 #error "tt_microbench needs FORGE_SMP_LAYOUT=1 and FORGE_SPD_TT_NOTLS=1"
+#endif
+#ifndef NDEBUG
+// The legacy Threads-1 config calls probe_owned / store_owned (tt_owned_ = true) without taking the table's
+// ExclusiveLease, whose assert(has_exclusive_access()) would fire (fable bug hunt NIT-4). Build with -DNDEBUG, as the
+// engine is built; the measured path is then exactly the engine's owned path.
+#error "tt_microbench must be built with -DNDEBUG"
 #endif
 
 namespace forge {
@@ -102,6 +109,22 @@ double median(std::vector<double> v) {
 int main(int argc, char** argv) {
     const double seconds = argc > 1 ? std::atof(argv[1]) : 1.5;
     const int rounds = argc > 2 ? std::atoi(argv[2]) : 6;
+    std::vector<int> thread_list;
+    {
+        const std::string list = argc > 3 ? argv[3] : "1,2,4";
+        std::size_t pos = 0;
+        while (pos < list.size()) {
+            const std::size_t comma = list.find(',', pos);
+            const int t = std::atoi(list.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos).c_str());
+            if (t == 1 || t == 2 || t == 4) thread_list.push_back(t);
+            if (comma == std::string::npos) break;
+            pos = comma + 1;
+        }
+        if (thread_list.empty()) {
+            std::printf("threads must be a comma list of 1, 2 and/or 4\n");
+            return 2;
+        }
+    }
     std::printf("tt_microbench: seconds/run %.2f rounds %d hw_concurrency %u (pin externally; advisory only)\n", seconds, rounds,
                 std::thread::hardware_concurrency());
     std::printf("%-6s %-7s %-3s | %-14s %-14s %-14s | %-9s %-9s | spreads L/X/A %%\n", "hashMB", "keys", "T",
@@ -112,7 +135,7 @@ int main(int argc, char** argv) {
         std::vector<std::unique_ptr<forge::Worker>> workers;
         for (int i = 0; i < 4; ++i) workers.push_back(std::make_unique<forge::Worker>(shared, i));
         for (const bool hot : {false, true}) {
-            for (const int threads : {1, 2, 4}) {
+            for (const int threads : thread_list) {
                 std::vector<double> res[3];
                 for (int r = 0; r < rounds; ++r) {
                     for (int k = 0; k < 3; ++k) {

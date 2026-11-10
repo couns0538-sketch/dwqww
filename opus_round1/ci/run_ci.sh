@@ -23,6 +23,19 @@ BD="$OUT/build_$MODE"
 LOGDIR="$OUT/sanitizer_logs_$MODE"
 mkdir -p "$LOGDIR"
 status=0
+# opus2 SMP pack (fable bug hunt NIT-2): the pack's own CTests must have run and passed, not merely "no unexpected
+# failure" (check_known_failures.py alone stays green if the tests were never built).
+# usage: require_pack_tests <ctest log> <log to append to>. Never call it inside a pipeline: it sets status here.
+require_pack_tests() {
+  local t
+  for t in forge_tt_lockless_tests forge_smp_lifecycle_tests; do
+    if grep -Eq "Test +#[0-9]+: $t \.+ +Passed" "$1"; then
+      echo "pack test $t: Passed" | tee -a "$2"
+    else
+      echo "FAIL: pack test $t did not run and pass" | tee -a "$2"; status=1
+    fi
+  done
+}
 case "$MODE" in
   release)
     cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" $PACK_CMAKE "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
@@ -35,6 +48,10 @@ case "$MODE" in
     # still built and pinned, so CI keeps checking what it checked before this pack.
     echo "== TtLockless=true (same exe):" | tee -a "$OUT/identity.log"
     python3 "$CI/uci_check.py" "$BD/forge" --full --opt TtLockless=true 2>&1 | tee -a "$OUT/identity.log" || status=1
+    # Pins cannot tell an applied node-identical option from an ignored one (fable bug hunt NIT-1): the toggle must
+    # empty the table exactly as Clear Hash does, and lockless must equal legacy cold and warm.
+    echo "== TtLockless liveness (same exe):" | tee -a "$OUT/identity.log"
+    python3 "$ROOT/opus_round1/opus2_smp/liveness_check.py" "$BD/forge" 12 2>&1 | tee -a "$OUT/identity.log" || status=1
     cmake -S "$ROOT" -B "${BD}_macro0" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_${MODE}_macro0.log" 2>&1 || exit 1
     cmake --build "${BD}_macro0" --target forge -j"$(nproc)" > "$OUT/build_${MODE}_macro0.log" 2>&1 || { tail -50 "$OUT/build_${MODE}_macro0.log"; exit 1; }
     echo "== default build (FORGE_SMP_LAYOUT OFF) forge sha256: $(sha256sum "${BD}_macro0/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
@@ -46,6 +63,7 @@ case "$MODE" in
     python3 "$CI/uci_check.py" "${BD}_macro0/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
     (cd "$BD" && ctest --output-on-failure --timeout 3000) > "$OUT/ctest_$MODE.log" 2>&1
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
+    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
     ;;
   asan)
     cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" $PACK_CMAKE \
@@ -55,6 +73,7 @@ case "$MODE" in
     export UBSAN_OPTIONS="log_path=$LOGDIR/ubsan:print_stacktrace=1:halt_on_error=1"
     (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
+    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
     ;;
   tsan)
     cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" $PACK_CMAKE \
@@ -63,6 +82,7 @@ case "$MODE" in
     export TSAN_OPTIONS="log_path=$LOGDIR/tsan:halt_on_error=1:second_deadlock_stack=1"
     (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
+    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
     # Job-specific threading stress (e.g. O1): opus_round1/<JOB>/tsan_extra.sh <forge_exe> <out_dir>
     for extra in "$ROOT"/opus_round1/*/tsan_extra.sh; do
       [ -f "$extra" ] || continue

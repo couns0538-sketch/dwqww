@@ -502,16 +502,19 @@ TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
     auto& words = lockless_clusters_[index].words;
     // One relaxed load per word. The decisions below read these raw copies with probe_body's rules (the same field
     // values the decoded entries would give), so one thread sees exactly probe_body's results; only the returned slot
-    // is decoded into the snapshot.
-    std::array<std::uint64_t, 4> k{};
-    std::array<std::uint64_t, 4> d{};
-    for (std::size_t slot = 0; slot < 4; ++slot) {
-        k[slot] = AtomicWord(words[2U * slot]).load(std::memory_order_relaxed);
-        d[slot] = AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed);
-    }
-    auto snapshot = [&](std::size_t slot, bool hit) {
+    // is decoded into the snapshot. The eight loads are written out (GCC keeps a loop of atomic loads rolled and
+    // spills the copies to the stack), and no slot is indexed at run time afterwards, so the copies stay in registers.
+    const std::array<std::uint64_t, 4> k{AtomicWord(words[0]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[2]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[4]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[6]).load(std::memory_order_relaxed)};
+    const std::array<std::uint64_t, 4> d{AtomicWord(words[1]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[3]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[5]).load(std::memory_order_relaxed),
+                                         AtomicWord(words[7]).load(std::memory_order_relaxed)};
+    auto snapshot = [&](std::uint64_t kw, std::uint64_t dw, std::size_t slot, bool hit) {
         TTProbe result;
-        result.entry = L::decode(k[slot], d[slot]);
+        result.entry = L::decode(kw, dw);
         result.hit = hit;
         result.owner_ = this;
         result.cluster_ = index;
@@ -526,30 +529,44 @@ TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
             // Reused entries remain recent, as in probe_body. The generation bits are outside the tag, so K stays
             // valid; a failed CAS means another thread changed the slot after our loads, and the refresh is skipped.
             // The snapshot shows the refreshed generation either way, as probe_body's does.
-            if (L::generation_of(d[slot]) != generation_) {
+            std::uint64_t data = d[slot];
+            if (L::generation_of(data) != generation_) {
                 const auto gen_bound = static_cast<std::uint8_t>(
-                    (static_cast<unsigned>(generation_) << 3U) | (L::gen_bound_of(d[slot]) & 7U));
-                std::uint64_t expected = d[slot];
-                d[slot] = L::with_gen_bound(d[slot], gen_bound);
-                (void)AtomicWord(words[2U * slot + 1U]).compare_exchange_strong(expected, d[slot], std::memory_order_relaxed);
+                    (static_cast<unsigned>(generation_) << 3U) | (L::gen_bound_of(data) & 7U));
+                std::uint64_t expected = data;
+                data = L::with_gen_bound(data, gen_bound);
+                (void)AtomicWord(words[2U * slot + 1U]).compare_exchange_strong(expected, data, std::memory_order_relaxed);
             }
-            return snapshot(slot, true);
+            return snapshot(k[slot], data, slot, true);
         }
     }
-    std::size_t replace = 0;
     auto rank = [this](std::uint64_t data) {   // probe_body's depth - 4 * relative_age, with the same integer types
         return L::depth_of(data) - 4 * static_cast<int>((32 + generation_ - L::generation_of(data)) & 31U);
     };
+    // probe_body: replace starts at slot 0, the first unoccupied slot returns at once, otherwise the strictly smallest
+    // rank wins (a tie keeps the earlier slot). The candidate's words and rank are carried along.
+    std::size_t replace = 0;
+    std::uint64_t replace_k = k[0];
+    std::uint64_t replace_d = d[0];
+    int replace_rank = rank(d[0]);
     for (std::size_t slot = 0; slot < 4; ++slot) {
-        if (!L::occupied_of(d[slot])) return snapshot(slot, false);
-        if (rank(d[slot]) < rank(d[replace])) replace = slot;
+        if (!L::occupied_of(d[slot])) return snapshot(k[slot], d[slot], slot, false);
+        const int slot_rank = rank(d[slot]);
+        if (slot_rank < replace_rank) {
+            replace = slot;
+            replace_k = k[slot];
+            replace_d = d[slot];
+            replace_rank = slot_rank;
+        }
     }
-    return snapshot(replace, false);
+    return snapshot(replace_k, replace_d, replace, false);
 }
 
 void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                         Bound bound, bool pv, std::uint16_t halfmove_clock) {
-    // The same handle gate and the same decisions as store_body, applied to a decoded copy of the slot.
+    namespace L = ttlockless;
+    // The same handle gate and the same decisions as store_body, applied to the raw words of the slot: the new words
+    // are exactly key_word / data_word of the entry store_body would leave (the padding byte is kept, as there).
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     auto& words = lockless_clusters_[probe.cluster_].words;
@@ -557,20 +574,23 @@ void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key,
     AtomicWord dref(words[2U * probe.slot_ + 1U]);
     const std::uint64_t old_k = kref.load(std::memory_order_relaxed);
     const std::uint64_t old_d = dref.load(std::memory_order_relaxed);
-    TTEntry entry = ttlockless::decode(old_k, old_d);
     const std::uint32_t key32 = verification_key(key);
-    const bool same_position = entry.key32 == key32 && entry.occupied();
-    if (!move.is_none() || !same_position) entry.move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry.depth || entry.generation() != generation_) {
-        entry.key32 = key32;
-        entry.score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
-        entry.rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
-        entry.eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
-        entry.depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
-        entry.gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+    std::uint32_t entry_key32 = L::key32_of(old_k, old_d);
+    const bool same_position = entry_key32 == key32 && L::occupied_of(old_d);
+    std::uint64_t move_half = old_k & 0xFFFFFFFF00000000ULL;   // move << 32
+    if (!move.is_none() || !same_position) move_half = static_cast<std::uint64_t>(L::move_bits(move)) << 32U;
+    std::uint64_t new_d = old_d;
+    if (bound == BoundExact || !same_position || depth + 4 > L::depth_of(old_d) || L::generation_of(old_d) != generation_) {
+        entry_key32 = key32;
+        const auto score16 = static_cast<std::uint16_t>(static_cast<std::int16_t>(std::clamp(score, -32767, 32767)));
+        const auto eval16 = static_cast<std::uint16_t>(static_cast<std::int16_t>(std::clamp(eval, -32767, 32767)));
+        const auto depth8 = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+        const auto gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+        const auto rule50 = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+        new_d = std::uint64_t{score16} | (std::uint64_t{eval16} << 16U) | (std::uint64_t{depth8} << 32U) |
+                (std::uint64_t{gen_bound} << 40U) | (std::uint64_t{rule50} << 48U) | (old_d & (0xFFULL << 56U));
     }
-    const std::uint64_t new_d = ttlockless::data_word(entry);
-    const std::uint64_t new_k = ttlockless::key_word(entry, new_d);
+    const std::uint64_t new_k = static_cast<std::uint64_t>(entry_key32 ^ L::tag32(new_d)) | move_half;
     // D before K, each one relaxed single-copy-atomic store. A racing writer can turn this into a lost update or leave
     // a K/D pair that fails the tag (a foreign entry); it cannot create a wrong entry that passes the tag (SPEC 3.3).
     if (new_d != old_d) dref.store(new_d, std::memory_order_relaxed);

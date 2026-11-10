@@ -75,7 +75,75 @@ int main() {
         if (can_collide(up) || can_collide(0U - up)) ++bad3;
     }
     std::printf("part3: single-bit deltas: %d bits x 2 signs, %d can collide\n", scanned3, bad3);
+    // part 4 (fable bug hunt NIT-5): combined differences, low half (score, eval) AND high half (depth, bound/pv,
+    // rule50). With a = the low-half difference, B = the high-half difference and u = a * Mul (mod 2^64):
+    // y = delta * Mul = u + (B * Mul mod 2^32) * 2^32, so low32(y) = low32(u) and high32(y) = high32(u) + B * Mul
+    // (mod 2^32). The delta can collide only for B = -high32(u) * Minv, or (with low32(u) != 0) B = (-high32(u) - 1) *
+    // Minv (mod 2^32), Minv = Mul^-1 mod 2^32: at most two residues per a, exact. A residue is realistic if it equals
+    // ddepth + 256 * dboundpv + 65536 * drule50 with |ddepth| <= 255, |dboundpv| <= 7, |drule50| <= 100 (padding 0).
+    const auto m32 = static_cast<std::uint32_t>(Mul);
+    std::uint32_t minv = m32;
+    for (int i = 0; i < 5; ++i) minv *= 2U - m32 * minv;
+    if (m32 * minv != 1U) { std::printf("modular inverse failed\n"); return 1; }
+    constexpr long Box = 4096;   // |score difference|, |eval difference| <= Box as int16 values, with the uint16 wrap
+    std::uint64_t scanned4 = 0, bad4 = 0;
+    long best_max = -1, best_sum = -1;
+    long rec[2][5] = {};   // [0] = smallest max(|ds|,|de|), [1] = smallest |ds|+|de|: ds, de, ddepth, dboundpv, dr50
+    auto realistic = [](std::int64_t b, long out[3]) {
+        for (std::int64_t dr = b / 65536 - 2; dr <= b / 65536 + 2; ++dr) {
+            if (dr < -100 || dr > 100) continue;
+            const std::int64_t rem = b - 65536 * dr;
+            for (std::int64_t dg = rem / 256 - 2; dg <= rem / 256 + 2; ++dg) {
+                if (dg < -7 || dg > 7) continue;
+                const std::int64_t dd = rem - 256 * dg;
+                if (dd < -255 || dd > 255) continue;
+                out[0] = static_cast<long>(dd); out[1] = static_cast<long>(dg); out[2] = static_cast<long>(dr);
+                return true;
+            }
+        }
+        return false;
+    };
+    for (long ts = -Box; ts <= Box; ++ts) {
+        const long sw[3] = {ts, ts > 0 ? ts - 65536 : (ts < 0 ? ts + 65536 : 0), 0};
+        const int ns = ts == 0 ? 1 : 2;
+        for (long te = -Box; te <= Box; ++te) {
+            const long ew[3] = {te, te > 0 ? te - 65536 : (te < 0 ? te + 65536 : 0), 0};
+            const int ne = te == 0 ? 1 : 2;
+            for (int i = 0; i < ns; ++i) {
+                for (int j = 0; j < ne; ++j) {
+                    const std::int64_t a = static_cast<std::int64_t>(sw[i]) + 65536 * static_cast<std::int64_t>(ew[j]);
+                    if (a == 0) continue;   // pure high-part differences: part 2
+                    ++scanned4;
+                    const std::uint64_t u = static_cast<std::uint64_t>(a) * Mul;
+                    const auto uh = static_cast<std::uint32_t>(u >> 32U);
+                    const auto ul = static_cast<std::uint32_t>(u);
+                    const std::uint32_t cands[2] = {(0U - uh) * minv, (0U - uh - 1U) * minv};
+                    for (int c = 0; c < (ul != 0U ? 2 : 1); ++c) {
+                        const auto b = static_cast<std::int64_t>(static_cast<std::int32_t>(cands[c]));
+                        if (b < -(255 + 256 * 7 + 65536 * 100) || b > 255 + 256 * 7 + 65536 * 100) continue;
+                        long fields[3];
+                        if (!realistic(b, fields)) continue;
+                        ++bad4;
+                        const long mx = std::labs(ts) > std::labs(te) ? std::labs(ts) : std::labs(te);
+                        const long sm = std::labs(ts) + std::labs(te);
+                        const long row[5] = {ts, te, fields[0], fields[1], fields[2]};
+                        if (best_max < 0 || mx < best_max) { best_max = mx; for (int k = 0; k < 5; ++k) rec[0][k] = row[k]; }
+                        if (best_sum < 0 || sm < best_sum) { best_sum = sm; for (int k = 0; k < 5; ++k) rec[1][k] = row[k]; }
+                    }
+                }
+            }
+        }
+    }
+    std::printf("part4: combined deltas, |dscore|,|deval| <= %ld (int16, with the uint16 wrap) x every realistic depth/bound-pv/rule50 "
+                "difference: %llu low-half deltas scanned, %llu (low, high) combinations can collide\n",
+                Box, static_cast<unsigned long long>(scanned4), static_cast<unsigned long long>(bad4));
+    if (best_max >= 0) {
+        std::printf("  smallest max(|dscore|,|deval|) = %ld: dscore %ld deval %ld ddepth %ld dboundpv %ld drule50 %ld\n", best_max,
+                    rec[0][0], rec[0][1], rec[0][2], rec[0][3], rec[0][4]);
+        std::printf("  smallest |dscore|+|deval|     = %ld: dscore %ld deval %ld ddepth %ld dboundpv %ld drule50 %ld\n", best_sum,
+                    rec[1][0], rec[1][1], rec[1][2], rec[1][3], rec[1][4]);
+    }
     const bool ok = bad2 == 0 && bad3 == 0;
-    std::printf("RESULT %s\n", ok ? "PASS (parts 2 and 3 never collide; part 1 census above)" : "FAIL");
+    std::printf("RESULT %s\n", ok ? "PASS (parts 2 and 3 never collide; parts 1 and 4 are censuses)" : "FAIL");
     return ok ? 0 : 1;
 }

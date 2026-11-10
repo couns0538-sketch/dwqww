@@ -109,5 +109,6 @@ $body = @($rows | Where-Object { -not $_.StartsWith('# ') })
 $bodyFile = "$base.body.$ext"
 Write-OspdLf $bodyFile $body -Force
 Write-OspdLf "$base.sha256" @("$(Get-OspdSha256 $bodyFile)  $([System.IO.Path]::GetFileName($bodyFile))") -Force
-Write-Output "$verdict | body sha256 $(Get-OspdSha256 $bodyFile) | $outFile"
-if ($verdict.StartsWith('ERROR') -or $verdict -match 'FAIL') { exit 1 } else { exit 0 }
+# The engine's exit state is not part of the hashed body (fable bug hunt NIT-6): print it and fail on it here.
+Write-Output "$verdict | engine exit ok=$ok | body sha256 $(Get-OspdSha256 $bodyFile) | $outFile"
+if ($verdict.StartsWith('ERROR') -or $verdict -match 'FAIL' -or -not $ok) { exit 1 } else { exit 0 }
