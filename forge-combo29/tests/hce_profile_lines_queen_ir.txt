@@ -1,0 +1,87 @@
+GCC14 optimized-tree excerpt from immutable eval.cpp, strict-FP/O3/x86-64-v4, no -pg. Local counts/probabilities below are compiler estimates, NOT measured counts. Both rays are reused later as _3192 and _3186.
+
+  <bb 87> [local count: 81941436]:
+  # pieces_3155 = PHI <_2401(86), _3176(93)>
+  # acc$score_3153 = PHI <acc$score_2407(86), acc$score_3295(93)>
+  # info__lsm.480_3152 = PHI <info__lsm.480_2406(86), _3182(93)>
+  # info__lsm.482_3180 = PHI <info__lsm.482_2404(86), _3183(93)>
+  # prephitmp_3179 = PHI <prephitmp_2403(86), prephitmp_3232(93)>
+  # info___M_elems_I_lsm0.512_2566 = PHI <_2564(86), _3181(93)>
+  _3178 = __builtin_ctzl (pieces_3155);
+  _3177 = pieces_3155 + 18446744073709551615;
+  _3176 = pieces_3155 & _3177;
+  _3175 = (long unsigned int) _3178;
+  _3173 = MEM <struct array> [(const struct Magic &)&BishopMagics]._M_elems[_3175].table;
+  _3172 = MEM <struct array> [(const struct Magic *)&BishopMagics]._M_elems[_3175].mask;
+  _3195 = __builtin_ia32_pext_di (_2549, _3172);
+  _3194 = _3195 * 8;
+  _3193 = _3173 + _3194;
+  _3192 = *_3193;
+  _3191 = MEM <struct array> [(const struct Magic &)&RookMagics]._M_elems[_3175].table;
+  _3190 = MEM <struct array> [(const struct Magic *)&RookMagics]._M_elems[_3175].mask;
+  _3189 = __builtin_ia32_pext_di (_2549, _3190);
+  _3188 = _3189 * 8;
+  _3187 = _3191 + _3188;
+  _3186 = *_3187;
+  _3185 = _3186 | _3192;
+  _3184 = info__lsm.480_3152 & _3185;
+  _3183 = info__lsm.482_3180 | _3184;
+  _3182 = info__lsm.480_3152 | _3185;
+  _3181 = info___M_elems_I_lsm0.512_2566 | _3185;
+  MEM[(long unsigned int *)_3200 + 24B] = _3181;
+  _3222 = _3185 & _3299;
+  _3221 = __builtin_popcountl (_3222);
+  _3220 = MIN_EXPR <_3221, 27>;
+  _3219 = _3220 + 422;
+  _3218 = (long unsigned int) _3219;
+  _3217 = MEM <struct Table> [(value_type &)&table]._M_elems[_3218];
+  zone_hits_3215 = _1164 & _3185;
+  if (zone_hits_3215 != 0)
+    goto <bb 88>; [50.00%]
+  else
+    goto <bb 89>; [50.00%]
+
+  <bb 88> [local count: 10242680]:
+  _3241 = prephitmp_3179 + 1;
+  MEM[(value_type &)&info + 172] = _3241;
+  _3239 = king_safety.queen;
+  _3238 = __builtin_popcountl (zone_hits_3215);
+  _3237 = _3238 * _3239;
+  _3236 = MEM[(value_type &)&info + 180];
+  _3235 = _3236 + _3237;
+  MEM[(value_type &)&info + 180] = _3235;
+
+  <bb 89> [local count: 38119423]:
+  # prephitmp_3232 = PHI <prephitmp_3179(87), _3241(88)>
+  _3216 = acc$score_3153 + _3217;
+  _3231 = _3178 >> 3;
+  if (_3231 > 1)
+    goto <bb 90>; [59.00%]
+  else
+    goto <bb 91>; [41.00%]
+
+  <bb 90> [local count: 22490460]:
+  _3227 = MEM <const struct array> [(const value_type &)board_7(D) + 256]._M_elems[3];
+  _3226 = _1328 | _3227;
+  home_minors_3225 = _3226 & 255;
+  _3224 = __builtin_popcountl (home_minors_3225);
+  value_3285 = _1519 * _3224;
+  _3284 = _3216 + value_3285;
+
+  <bb 91> [local count: 38119423]:
+  # acc$score_3283 = PHI <_3216(89), _3284(90)>
+  _3280 = _1138 | board___M_elems_I_lsm0.511_2536;
+  _3279 = _3192 & _3280;
+  _3288 = _1138 | board___M_elems_I_lsm0.509_2537;
+  _3287 = _3186 & _3288;
+  enemy_sliders_3286 = _3279 | _3287;
+  _3289 = ~_1138;
+  _3291 = enemy_sliders_3286 & _3289;
+  if (_3291 != 0)
+    goto <bb 92>; [50.00%]
+  else
+    goto <bb 93>; [50.00%]
+
+  <bb 92> [local count: 19059712]:
+  _3290 = _1546 + acc$score_3283;
+
