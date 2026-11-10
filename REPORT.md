@@ -86,7 +86,7 @@ Other source-grounded profiling candidates, not measured bottlenecks: cache mate
 
 ## Ranked search/evaluation ideas
 
-All **UNPROVEN**, no patches or parameter changes made. Any implementation must be independently default-off behind UCI control. Locations refer to review snapshot b6e896f. Ranking is experiment priority, not predicted Elo.
+All **UNPROVEN**. Idea 1 now has an isolated default-off experiment, documented below; the other ideas remain unimplemented. Search changes must be independently default-off behind UCI control. Locations refer to review snapshot b6e896f. Ranking is experiment priority, not predicted Elo.
 
 1. Read four-ply continuation in quiet scoring (search.cpp184-190,926-953). Updates include 1/2/4 but scoring reads 1/2. Test a separate weight; beware correlated signals and shared-context effects.
 2. Existing capture futility is disabled by CaptureFutilityBase=0 (74-76,1343-1350). Isolated experiment only; tactical sacrifice/promotion risk.
@@ -134,3 +134,32 @@ No additional production correctness defect established in this phase.
 - All NINE switches combined also pass all ten bench pins, startpos perft 5, the terminal/history/atomicity UCI edge suite, and a new 256-comparison baseline screen at depth 7 with both NNUE modes: zero mismatches in nodes/depth/score/PV/bestmove. Evidence `tests/review_evidence/nine-switch-*`. The general build recipe now enables all nine candidates.
 
 Published continuation commits: `214f7401` TSan lifecycle stress; `9edcfe92` UCI/history edge tests; `04cc2f87` material-correction cache and isolated equivalence evidence. This checkpoint adds combined nine-switch evidence and the third patch export. Native tester-PC gates remain unchanged and outstanding.
+
+
+## Further audit: seventh finding and isolated search experiment
+
+### F7: LOW, high confidence, extreme TT API depth overflows before clamping
+
+`TranspositionTable::store` previously evaluated `depth + 4` before its later depth clamp. An occupied matching-key non-exact entry and `depth=INT_MAX` reproducibly trigger UBSan signed-overflow diagnostics in both NOTLS implementations. Ordinary engine search depths are bounded, so this is a public-API robustness edge, not a demonstrated normal-gameplay bug. Default-off `FORGE_FIX_TT_DEPTH_OVERFLOW` uses the equivalent safe comparison `depth > int(entry->depth) - 4`. Both variants pass the formerly failing UBSan case and ordinary concurrent TT contract checks under TSan. Reproducer, original failures, corrected logs and hashes: `tests/tt_contract_*`; patch `patches/dot-review/F7-tt-depth.patch`.
+
+### Additional negative findings and coverage
+
+- Fast `key_after` audit: 17,470 positions and 490,569 legal moves; all 470,876 successful fast paths match the fully made board hash, with 19,693 safe fallbacks. Both king-line configurations pass ASan+UBSan.
+- SEE: 134,088 moves screened against an independent target-square minimax oracle. All 18 differences were subsequently explained by Forge's greedy least-valuable-attacker policy and match an independent legal greedy oracle. These are not established correctness defects. Both SEE configurations agree; threshold properties and sanitizer checks pass. Exact classifications and reproduction sources are retained in the test files.
+- Ten focused move-generation corners cover pinned promotions, en-passant double check, and captured corner-rook castling rights. Both king-line builds pass ASan+UBSan. No new move-generation defect established.
+- Incremental evaluation: 121,960 release checks and 48,336 transitions match fresh accumulator bits/output and uncached HCE/PSQT; sanitizer run passes 39,954 checks.
+- Actual Worker lazy-stack evaluation: 45,787 checks across three seeds, including absent ancestors, cache hits, 1/2/7/31/96-ply replay, root invalid/valid, deferred sibling reuse, null descendants and special moves. Every accumulator float bit and fresh residual score match. ASan+UBSan passes 15,288 checks. Leak checks remain unavailable under ptrace. Details: `tests/eval_incremental_*` and `tests/eval_lazy_*`.
+
+Confidence is high for these observed finite tests, not proof over all positions. No speed or strength gain is inferred.
+
+### E1: four-ply continuation history, explicitly search-changing and UNPROVEN
+
+`FORGE_EXPERIMENT_CONTINUATION4` defaults to zero. Enabling it exposes `Continuation4Weight`, default zero, range 0–100 percent. Nonzero weight adds four-ply history to quiet scoring, affecting ordering, quiet-history pruning and LMR. Both slow and SPEED2 scoring paths are covered; null/sentinel predecessors are skipped. Existing continuation update rules and locked evaluation constants are unchanged. Patch: `patches/dot-review/E1-continuation4.patch`.
+
+The implementation is an experiment, not a recommendation to enable a particular weight. Native fixed-time matches and SPRT are required before any strength claim. Default-zero equivalence and legal PV checks cannot establish strength or absence of all tactical regressions.
+
+Published additional checkpoints: `d554d6cb` incremental evaluation tests, `506dea84` SEE classifier evidence, `d5fa47ed` focused move-generation corners, `f51ab0f7` TT contracts, `d732c84a` isolated four-ply source, `21fc5f78` lazy-stack evidence, and `fd80dee9` default-off TT overflow fix. All remain on the authorized new branch only.
+
+E1 validation (`tests/continuation4_*`): four complete lock-pin suites passed across SPEED2 on/off and experiment compiled on/off. 512 default-zero comparisons match depth/nodes/score/PV/bestmove exactly. At positive weight, 256 searches and 128 cross-path comparisons passed, including 1,382 verified legal PV plies. 170 searches changed, proving activation only.
+
+Combined phase-three build: all ten opt-in fixes/speed candidates plus the compiled E1 option at its default zero weight pass all ten official bench pins, startpos perft5=4,865,609, basic UCI lifecycle and option-case tests. A further 128-position × both NNUE modes baseline screen passed all 256 comparisons with zero depth/nodes/score/PV/bestmove differences. Results and binary hashes are under `tests/review_evidence/ten-switch-*`; recipe `tests/review_build.sh`. This does not replace the native 12k, ABBA, Windows/Clang or SPRT gates.

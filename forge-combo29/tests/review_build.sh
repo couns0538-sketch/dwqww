@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Cloud review reproduction. Requires an x86-64-v4 CPU; no timing/Elo claim.
+# Cloud review reproduction. Requires x86-64-v4; no timing/Elo claim.
+# Continuation4Weight stays at its default zero: no search experiment enabled.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-/tmp/forge-review-build}
@@ -12,7 +13,8 @@ flags=(-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1
 fixes=(-DFORGE_FIX_SMP_NODE_RESET=1 -DFORGE_FIX_SMP_FINAL_NODES=1 -DFORGE_FIX_SMP_STOP_LATCH=1
        -DFORGE_FIX_UCI_OPTION_CASE=1 -DFORGE_BOOK_LEGAL_REUSE=1 -DFORGE_SPD_NNUE_CASTLE_FUSE=1
        -DFORGE_FIX_ATTACKS_INIT_ONCE=1 -DFORGE_FIX_SMP_EXCEPTIONS=1
-       -DFORGE_SPD_MATERIAL_CORRECTION_CACHE=1)
+       -DFORGE_SPD_MATERIAL_CORRECTION_CACHE=1 -DFORGE_FIX_TT_DEPTH_OVERFLOW=1
+       -DFORGE_EXPERIMENT_CONTINUATION4=1)
 "$cxx" "${flags[@]}" "$root"/src/*.cpp -o "$out/default"
 "$cxx" "${flags[@]}" "${fixes[@]}" "$root"/src/*.cpp -o "$out/enabled"
 for variant in default enabled; do

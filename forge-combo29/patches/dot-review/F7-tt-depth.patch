@@ -1,0 +1,40 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 4ec539e..58a9122 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -22,6 +22,11 @@
+ #define FORGE_FIX_SMP_FINAL_NODES 0
+ #endif
+ 
++// Low-priority public-API hardening; ordinary search depths are bounded.
++#ifndef FORGE_FIX_TT_DEPTH_OVERFLOW
++#define FORGE_FIX_TT_DEPTH_OVERFLOW 0
++#endif
++
+ namespace forge {
+ 
+ namespace tune {
+@@ -359,7 +364,11 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
+     const std::uint32_t key32 = verification_key(key);
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     if (!move.is_none() || !same_position) entry->move = move;
++#if FORGE_FIX_TT_DEPTH_OVERFLOW
++    if (bound == BoundExact || !same_position || depth > static_cast<int>(entry->depth) - 4 || entry->generation() != generation_) {
++#else
+     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++#endif
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+@@ -428,7 +437,11 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
+     const std::uint32_t key32 = verification_key(key);
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+     if (!move.is_none() || !same_position) entry->move = move;
++#if FORGE_FIX_TT_DEPTH_OVERFLOW
++    if (bound == BoundExact || !same_position || depth > static_cast<int>(entry->depth) - 4 || entry->generation() != generation_) {
++#else
+     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++#endif
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
