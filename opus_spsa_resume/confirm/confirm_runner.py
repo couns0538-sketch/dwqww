@@ -177,6 +177,20 @@ def check_holdout(proto, cand, run_dir):
                                " (one confirmation per group, ever)")
 
 
+def check_opening_budget(proto):
+    """Each pair uses one holdout opening (fastchess -repeat, order=sequential). A cap needing more pairs than the
+    group has openings would silently replay openings and correlate pairs, so it is refused (exit 10) in every
+    mode, including dry-run. Reuse needs allow_opening_reuse = true in the protocol, which is a written QA decision."""
+    text = Path(proto["identity"]["holdout"]["path"]).read_text(encoding="utf-8", errors="replace")
+    n_open = len(re.findall(r'^\[Event ', text, re.M))
+    need = proto["sprt"]["cap_games"] // 2
+    if need > n_open and not proto.get("allow_opening_reuse", False):
+        raise Stop(10, f"cap_games {proto['sprt']['cap_games']} needs {need} openings but holdout "
+                       f"{proto['holdout']['name']} has {n_open}: openings would repeat. Lower cap_games to <= "
+                       f"{2 * n_open} or set allow_opening_reuse (a written QA decision).")
+    return n_open
+
+
 def register(proto, cand, run_id, run_dir):
     """Idempotent: one registry line per (run_id, run_dir)."""
     reg = Path(proto["registry"])
@@ -385,6 +399,7 @@ def run(proto_path, cand_path, run_dir, args):
     if proto["identity"]["holdout"]["sha256"].lower() != proto["holdout"]["pgn_sha256"]:
         raise Stop(10, "protocol identity.holdout is not the named holdout group")
     check_holdout(proto, cand, run_dir)
+    n_open = check_opening_budget(proto)
     mode = args.get("mode", "dry-run")
     psha = h(cj(proto))
     run_id = f"confirm:{proto['holdout']['name']}:{cand['spec_sha256'][:12]}:{psha[:12]}"
@@ -392,7 +407,8 @@ def run(proto_path, cand_path, run_dir, args):
     if mode == "dry-run":
         cmd = fastchess_cmd(proto, cand, 1, proto["sprt"]["cap_games"] // 2, d / "games" / "c000000")
         print(json.dumps({"mode": "dry-run", "wrote_files": 0, "started_processes": 0, "identity_ok": ident,
-                          "run_id": run_id, "fastchess_command": subprocess.list2cmdline([str(x) for x in cmd])}, indent=1))
+                          "run_id": run_id, "holdout_openings": n_open,
+                          "max_pairs": proto["sprt"]["cap_games"] // 2, "fastchess_command": subprocess.list2cmdline([str(x) for x in cmd])}, indent=1))
         return 0
     if mode == "live":
         ack = d / "LIVE_ACK.txt"

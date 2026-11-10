@@ -1,0 +1,27 @@
+{
+ "schema": "opus3-confirm-protocol/1",
+ "name": "opus3_razorqs_confirm_G1_example",
+ "comment": "EXAMPLE protocol for this pack's own runner on holdout G1. It is pinned to this job's c29gat_03 gate build so the dry-run can show the exact command. Before any game, QA replaces identity.cand_exe with its Code-Reviewed PC build, sets the qa_gate names and moves the registry to wherever QA keeps it. Any such edit changes protocol_sha256, which is intended: a run is bound to the protocol actually played. Live mode stays disabled here. The primary route is QA's own runner (CONFIRM_PROTOCOL.md section 3).",
+ "holdout": {"name": "holdout_G1", "pgn_sha256": "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc"},
+ "training_partitions_sha256": [
+  "fa0b8708103f70cf0127364a940010b832bd8ec8f9f8f7a10f97bef3189b213f",
+  "63bb149518256ba9608cdb6a8a22f87b7712e4707b8ad394c3767a5e1c45307c"
+ ],
+ "registry": "D:\\forge_jobs_20261107\\opus3\\out\\confirm_registry.jsonl",
+ "identity": {
+  "fastchess": {"path": "C:\\Users\\Administrator\\grok-pc\\tools\\fastchess\\fastchess.exe", "sha256": "c6d7e4458a58025983c81bf38c524cb213e6f27559657dcfd72543392a431a71"},
+  "cand_exe": {"path": "D:\\forge_jobs_20261107\\opus3\\out\\rb_equal_len_paths\\c29gat_03\\m2use\\forge_m2use.exe", "sha256": "404549d7ea1b8274021feda26753a2e45942b7b7840fc51cd1d076d37c83ab6c"},
+  "base_exe": {"path": "C:\\Users\\Administrator\\grok-pc\\forge_push\\bin\\forge_clang_combo29_trial_w6.exe", "sha256": "e1284f7fc492c8fe1285797fdae8988cf2f2926b33fcfee7023d284d67d8802e"},
+  "holdout": {"path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\holdout_G1.pgn", "sha256": "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc"}
+ },
+ "training_keys_files": [
+  {"path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\train.keys", "sha256": "5e5dd9342a74b1473063f745f7b1c52229665f146cc797b14de8a13ac45c58a2"},
+  {"path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\screen.keys", "sha256": "aab754534ded4eca857f51cd223fa71da5cfa1415cef9041942f66600927f024"}
+ ],
+ "sprt_comment": "G1 has 2408 openings and each pair uses one, so the cap is 4816 games (2408 pairs); the runner refuses a larger cap unless allow_opening_reuse is set by a written QA decision. At this cap the synthetic power is about that of QA's 5000 (POWER_TABLE.json: P(H1) 0.027 at nElo 5, 0.11 at nElo 10), so G1 decides only large effects. The 40000-game cap needs QA's UHO route (2,632,036 lines).",
+ "sprt": {"nelo0": 0.0, "nelo1": 5.0, "alpha": 0.05, "beta": 0.05, "cap_games": 4816, "min_pairs": 50},
+ "match": {"tc": "10+0.1", "concurrency": 1},
+ "qa_gate": {"cand_name": "cand_opus3_razorqs_PCSHA8", "base_name": "base_combo29_clang_E1284F7F"},
+ "checkpoint_every": 50,
+ "live": {"enabled": false}
+}

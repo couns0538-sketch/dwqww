@@ -1,0 +1,20 @@
+--- qa_tools/warm_identity.py (sha256 698574764ba237111e41e43d9d64f2ff1480b7e454e99fbc9ce313198c17ea5d)
++++ engine/warm_identity_0xF000.py (sha256 b7113f2d0eb1b1ff376467fd91e73640bcfc8e5094c27e88d124c4b6962c3186)
+@@ -20,7 +20,7 @@
+ Both transcripts are normalised (the `nps` and `time` fields removed from info lines, bench timing fields too) and
+ compared line by line. Exit 0 = identical, 3 = a difference (first one printed), 1 = error. Placement (Code Review
+ SHOULD 'warm_identity self-pin'): before the out dir, the FEN file or any engine, this process sets its own CPU mask
+-0x3 (CPUs 0-1, the job's check pair) and the Idle class and reads both back; every engine it starts inherits both and
++0xF000 (CPUs 12-15; opus3 derived copy, QA's original pins 0x30) and the Idle class and reads both back; every engine it starts inherits both and
+ is read back too (on its process handle, before its first command). A failed call or a mismatch is exit 1 (fail
+ closed): no comparison runs on a process that is not pinned. Reads the exes and the FEN file only; writes only
+ <out dir>.
+@@ -35,7 +35,7 @@
+ import time
+ from ctypes import wintypes
+ 
+-MASK = 0x30    # CPUs 0-1: the job's check pair (CPU 2 = nps timing, CPU 3 = its SMT sibling, kept free)
++MASK = 0xF000  # opus3 derived copy: CPUs 12-15, the only CPUs this job may use (QA's original: 0x30)
+ IDLE = 0x40   # IDLE_PRIORITY_CLASS
+ CYCLE = ['setoption name Hash value 1', 'setoption name Hash value 64', 'setoption name Clear Hash',
+          'setoption name UseNNUE value false', 'setoption name UseNNUE value true', 'setoption name Hash value 16']

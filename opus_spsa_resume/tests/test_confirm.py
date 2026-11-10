@@ -98,7 +98,8 @@ def setup(base, name, true_nelo=10.0, holdout_tag="G1"):
     if rc != 0:
         raise RuntimeError(f"training run failed: {err[-300:]}")
     hold = d / "env" / f"holdout_{holdout_tag}.pgn"
-    hold.write_text("".join(f'[Event "holdout {i}"]\n[Result "*"]\n\n1. d4 d5 {i} *\n\n' for i in range(40)),
+    # one opening per pair: cap_games 600 needs 300 openings (check_opening_budget)
+    hold.write_text("".join(f'[Event "holdout {i}"]\n[Result "*"]\n\n1. d4 d5 {i} *\n\n' for i in range(300)),
                     encoding="ascii")
     proto = {"schema": "opus3-confirm-protocol/1", "name": "test",
              "holdout": {"name": holdout_tag, "pgn_sha256": h.sha(hold)},
@@ -129,6 +130,18 @@ def t_cli(base):
     rc, out, _ = call(RUNNER, "run", pp, cand, d / "dry")
     check("confirm dry-run (default) writes nothing and prints the fastchess command",
           rc == 0 and not (d / "dry").exists() and "fastchess" in json.loads(out)["fastchess_command"], f"rc {rc}")
+    big = json.loads(json.dumps(proto))
+    big["sprt"]["cap_games"] = 602
+    ppb = d / "protocol_cap_too_big.json"
+    ppb.write_text(json.dumps(big, indent=1), encoding="ascii")
+    rc1, _, err1 = call(RUNNER, "run", ppb, cand, d / "dry_big")
+    big["allow_opening_reuse"] = True
+    ppb.write_text(json.dumps(big, indent=1), encoding="ascii")
+    rc2, out2, _ = call(RUNNER, "run", ppb, cand, d / "dry_big")
+    check("refuse a cap that needs more pairs than the holdout has openings (exit 10, even in dry-run); "
+          "allowed only with allow_opening_reuse", rc1 == 10 and "openings would repeat" in err1 and rc2 == 0
+          and json.loads(out2)["holdout_openings"] == 300 and not (d / "dry_big").exists(),
+          f"rc {rc1}/{rc2} {err1.strip()[-100:]}")
     rc, out, err = call(RUNNER, "run", pp, cand, d / "run", "--mode", "synthetic")
     o = json.loads(out) if rc == 0 else {}
     check("confirm synthetic run (true nElo 10): sequential GSPRT reaches a recorded decision, labelled SYNTHETIC",
