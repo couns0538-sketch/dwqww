@@ -5,6 +5,11 @@
 #include <cstdint>
 #include <vector>
 
+// Experimental layout change; default off preserves the locked PawnEntry ABI.
+#ifndef FORGE_SPD_COMPACT_PAWN_CACHE
+#define FORGE_SPD_COMPACT_PAWN_CACHE 0
+#endif
+
 namespace forge {
 
 namespace nnue { struct DirtyPieces; }
@@ -49,12 +54,23 @@ public:
     // Evaluation without any cache, for tests and tools.
     [[nodiscard]] static int evaluate_uncached(const Board& board);
 
+#if FORGE_SPD_COMPACT_PAWN_CACHE
+    // Keep validity beside key/score and use their padding. Opt-in ABI change:
+    // all users must compile with the same setting; no serialization is used.
+    struct PawnEntry {
+        std::uint64_t key = 0;
+        Score score = 0;
+        bool valid = false;
+        std::array<Bitboard, 2> passed{};
+    };
+#else
     struct PawnEntry {
         std::uint64_t key = 0;
         Score score = 0;
         std::array<Bitboard, 2> passed{};
         bool valid = false;
     };
+#endif
 
 private:
     friend class Worker;
