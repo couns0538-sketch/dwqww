@@ -9,7 +9,7 @@ Does the lockless TT (`TtLockless=true`) and the `nodes_` line change speed up m
 | name | exe | options |
 |---|---|---|
 | P | trial_w6 `forge_ltopgo_x_al1s198_trial_w6.exe` (4181a589…) | none |
-| G-off | gate exe of the candidate `89cddf7` (enc5), sha256 `2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5` (kit h1c/h1d; on this PC `D:\forge_jobs_20261107\opus2\out\exe\forge_smpgate_2940fb05.exe`). It supersedes `a4b57032…` (`a675c04`) and `541e8b3d…` (`0599271`). Time fresh byte copies per round: a byte copy of an exe ran 6 % faster than its original file here (BENCH §10) | `TtLockless=false` (layout change only) |
+| G-off | gate exe of the candidate `e011a3e` (enc5), sha256 `2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5` (kit h1c/h1d; on this PC `D:\forge_jobs_20261107\opus2\out\exe\forge_smpgate_2940fb05.exe`). It supersedes `a4b57032…` (`a675c04`) and `541e8b3d…` (`0599271`). Time fresh byte copies per round: a byte copy of an exe ran 6 % faster than its original file here (BENCH §10) | `TtLockless=false` (layout change only) |
 | G-on | same gate exe | `TtLockless=true` |
 
 ## Allocation (QA)

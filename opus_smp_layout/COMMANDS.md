@@ -7,6 +7,16 @@ Run every command from Git Bash: PS 5.1 engine drivers started from an agent's P
 - `$O\exe\forge_smpgate_a4b57032.exe`: the gate of `a675c04` (enc4, superseded);
 - `$O\exe\forge_smpgate_541e8b3d.exe`: the gate of the superseded `0599271`.
 
+## EXECUTED in the final bug hunt (candidate `e011a3e` = `89cddf7` + three comment lines; scripts `$O\finalhunt\`)
+```
+bash $O/finalhunt/finalhunt.sh     # kit j1c (30119af) = 2940fb05; pp h1 vs j1; bughunt_extra / setoption_during_search /
+                                   # special_modes5 on 2940fb05; T8 lockless stress 1500 x seed 99; 6 s fixture (-O3 NDEBUG);
+                                   # FORGE_SPD_TT_NOTLS=0 build + pins in both modes
+bash $O/finalhunt/kit_final.sh     # e011a3e: kit m0c = 4181a589, m1c = 2940fb05
+ps1 $T\pp_identity.ps1 -TreeA $O\src\p  -TreeB $O\src\k0 -OutDir $O\pp\final_macro0   # 8/8 IDENTICAL
+ps1 $T\pp_identity.ps1 -TreeA $O\src\h1 -TreeB $O\src\k1 -OutDir $O\pp\final_h1_k1    # 8/8 IDENTICAL
+```
+
 ## EXECUTED for the candidate `89cddf7` (enc5 = enc4 + FORGE_LOCKLESS_UNTRAINED_OPT; script `$O\enc2\requal5.sh`)
 ```
 # attribute test first on a scratch tree: $O/src/g1 = f1 + the attribute -> kit tag g1c (= 2940fb05); g1 == h1 byte for byte

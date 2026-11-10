@@ -88,7 +88,9 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
 ## Second round (enc2-enc5, same evening; BENCH §8-§11)
 - **Candidates.**
   - `a675c04` (enc4): OFF kit = 4181a589 (f0c = f0d); gate a4b57032… (f1c = f1d).
-  - **`89cddf7` (enc5, final)**: OFF = 4181a589 (h0c = h0d); gate **2940fb05…** (h1c = h1d = g1c); patch +366/−0, md5 f07082fd…
+  - **`89cddf7` (enc5)**: OFF = 4181a589 (h0c = h0d); gate **2940fb05…** (h1c = h1d = g1c); patch +366/−0.
+  - **Final candidate `e011a3e`** = enc5 + three comment fixes from the final bug hunt. It builds the same exes (m0c = 4181a589, m1c = 2940fb05); patch md5 88b0bb2a…
+  - A comment-only fix that keeps line counts (so `__LINE__` is unchanged) needs no requalification, only a kit build that reproduces the exe sha256 plus `pp_identity`.
 - **TT throughput.** X/L at Threads 1, hot pool: 0.50 → 0.71-0.74. At Threads 2/4: 1.5-1.6 → 2.1-2.3 × striped locks.
 - **Re-qualification.** Repeat the whole set for any change to the encoding: kit pair, pp identity, 12k cold net on/off in both modes, warm, Hash 1, deep warm, pins, liveness, stress, CI.
   - The parent's reference files (`out/id/P_*`, `out/bughunt/bh_P_*`) stay valid, because only the exe changes.
@@ -106,6 +108,7 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
 - **Advisory NPS: give every exe a byte copy.** The new gate file ran 4-5 % below P in two runs. Its byte copy then ran 6 % faster than the original, as fast as the old gate, although the hot machine code was instruction-identical (objdump diff 0 lines; only a 128 B shift).
   - That is a per-file effect (physical page placement), not the code.
   - Before blaming a change, compare the old exe, the new exe and a byte copy of each in one run, and diff the hot functions' instructions.
+- **Do not put `\\$var` inside a quoted Windows path in an inline Bash-tool command.** One kit call got the literal path `…\src$src` and failed closed before compiling. The same loop in a script file expanded fine. Put multi-step kit/identity runs in a `.sh` file.
 - **Never open a running PS tool's own log files** (`*.uci.log`, `*.tsv`). Not even `grep -c`, not even read-only.
   - The tools append with .NET `AppendAllText`, which re-opens the file for every line. If a reader holds a handle at that moment, Windows refuses the open and the tool aborts. One 12k run died at FEN 2,893 this way, and its partial result is invalid.
   - Bash `>`-redirected summary files (`run.txt`, `*_all.txt`) are safe to read.

@@ -1,13 +1,14 @@
 # opus_smp_layout — STATUS
 
-**Last update:** 2026-11-09 ~23:45 Vienna (HTTPS Date header; job start 18:53:44). **State: READY FOR CODE REVIEW → QA**, engine candidate **`89cddf7`** ("enc5"; supersedes `a675c04` and `0599271`).
+**Last update:** 2026-11-10 ~00:05 Vienna (HTTPS Date header; job start 2026-11-09 18:53:44). **State: READY FOR CODE REVIEW → QA**, engine candidate **`e011a3e`** ("enc5" = `89cddf7` + three comment lines from the final bug hunt; supersedes `a675c04` and `0599271`).
 
 ## Done
 - **Parent P** = `7ce10a05` (d4f4312 + trial_w6.patch md5 5786e9b8 + the six src_kit flips). Kit pc1 = pc2 = trial_w6 `4181a589` byte for byte.
 - INVENTORY.md and SPEC.md (fixed before code; §3 updated for enc2-enc5).
-- **Engine candidate `89cddf7e3727ed0f461537af785dc344386fac50`**: everything inside `#if FORGE_SMP_LAYOUT`. `smp_layout_after_w6.patch` is +366/-0, md5 f07082fd…
-- **OFF build** = `4181a589` (pc1 = pc2, h0c/h0d) = P = trial_w6. Macro-0 `g++ -E -P` is identical in all 8 units.
-- **GATE build** = `2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5` (h1c = h1d = g1c). It is also reproduced from the published patch (`diff -r` identical tree).
+- **Engine candidate `e011a3e06e4c3bb305e09727d339812de7a03622`**: everything inside `#if FORGE_SMP_LAYOUT`. `smp_layout_after_w6.patch` (`7ce10a05..e011a3e`) is +366/-0, md5 88b0bb2a…
+  - It differs from the qualified `89cddf7` in three comment lines only. Preprocessed code is identical at macro 0 and macro 1, and the kit builds m0c / m1c reproduce both exes byte for byte (BENCH §12).
+- **OFF build** = `4181a589` (pc1 = pc2: h0c/h0d, plus m0c) = P = trial_w6. Macro-0 `g++ -E -P` is identical in all 8 units.
+- **GATE build** = `2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5`: five identical builds (h1c, h1d, g1c, j1c, m1c). It is also reproduced from the published patch (`diff -r` identical tree).
 - **Threads 1 node identity, OFF and ON** (BENCH §11):
   - kit identity, pins net on/off + perft;
   - fens12k net on/off 12,000/12,000 = P;
@@ -27,18 +28,26 @@
   - R1 (fable): 3 MINOR fixed;
   - SR1 (self, NOT independent);
   - **R2**: a fable bug hunter ran beside the work over five commits. **No engine defect at any severity**; tooling/doc: 1 MINOR + 9 NIT, all fixed (REVIEW_LOG.md).
+  - **Final bug hunt** (main session, about 23:34-00:05 Vienna, BENCH §12). The checks:
+    - re-hashes, tips and manifests;
+    - a read of the full engine diff, which found 3 stale comments, fixed comment-only;
+    - the kit builds and preprocessed code of the final commit equal the qualified exes;
+    - adversarial UCI cases, setoption during search, special modes;
+    - Threads 8 lockless stress, a 6 s fixture (2.24 G probes, 0 incoherent);
+    - the `TT_NOTLS=0` configuration's pins.
+    - All clean.
 - **CI evidence**:
   - `0599271`-era runs 42673707949, 42674616047, 42677341394, 42682884789;
   - enc2 42692617722;
   - enc4 42697936926, 42706554114;
-  - **enc5 42708220996**, all green.
+  - **enc5 42708220996**, plus the run of the final push, all green.
 - **Skill**: `skills/forge-smp-lockless-qualify` (updated; mirrored to `D:\grok-pc-data\dwqww\.claude\skills\`).
 
 ## In progress
 None.
 
 ## Exact next action (other owners)
-1. Code Review of engine candidate `89cddf7` (diff `7ce10a05..89cddf7`, files `include/forge/search.hpp`, `src/search.cpp`, `src/uci.cpp`) plus tests/CI.
+1. Code Review of engine candidate `e011a3e` (diff `7ce10a05..e011a3e`, files `include/forge/search.hpp`, `src/search.cpp`, `src/uci.cpp`) plus tests/CI.
 2. QA, optional:
    - quiet native-core timing per SCALING_PLAN.md (gate `2940fb05`; fresh byte copies per round);
    - any strength question at Threads ≥ 2 through QA's own SPRT.

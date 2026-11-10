@@ -1,5 +1,5 @@
 diff --git a/include/forge/search.hpp b/include/forge/search.hpp
-index 7a4fb86..0e924a0 100644
+index 7a4fb86..8a9c0d1 100644
 --- a/include/forge/search.hpp
 +++ b/include/forge/search.hpp
 @@ -20,6 +20,16 @@
@@ -141,7 +141,7 @@ index 7a4fb86..0e924a0 100644
 +#if !FORGE_SPD_TT_NOTLS
 +    friend class Worker;
 +#endif
-+    // Lockless-mode bodies (SPEC 3.4 / 3.5): the same decisions as probe_body / store_body on decoded copies.
++    // Lockless-mode bodies (SPEC 3.4 / 3.5): the same decisions as probe_body / store_body, made on the raw words.
 +    [[nodiscard]] TTProbe probe_lockless(std::uint64_t key) const;
 +    void store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
 +                        bool pv, std::uint16_t halfmove_clock);
@@ -221,7 +221,7 @@ index 7a4fb86..0e924a0 100644
      [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
      [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
 diff --git a/src/search.cpp b/src/search.cpp
-index 2fffbaf..5e4fef7 100644
+index 2fffbaf..65e8ead 100644
 --- a/src/search.cpp
 +++ b/src/search.cpp
 @@ -244,6 +244,16 @@ std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index)
@@ -338,7 +338,7 @@ index 2fffbaf..5e4fef7 100644
 +// ---------------------------------------------------------------------------
 +// Lockless TT mode (opus_smp_layout/SPEC.md section 3). Every access below to lockless_clusters_[].words is a relaxed
 +// std::atomic_ref operation, so concurrent probes and stores are data-race free under the C++ memory model. A K/D
-+// pair from two different stores fails the tag in decode() and reads as a foreign entry (a miss / replacement slot).
++// pair from two different stores fails the tag check (key32_of) and reads as a foreign entry (a miss / replacement slot).
 +
 +namespace {
 +using AtomicWord = std::atomic_ref<std::uint64_t>;
@@ -477,7 +477,7 @@ index 2fffbaf..5e4fef7 100644
 +    }
 +    const std::uint64_t new_k = static_cast<std::uint64_t>(entry_key32 ^ L::tag32(new_d)) | move_half;
 +    // D before K, each one relaxed single-copy-atomic store. A racing writer can turn this into a lost update or leave
-+    // a K/D pair that fails the tag (a foreign entry); it cannot create a wrong entry that passes the tag (SPEC 3.3).
++    // a K/D pair that fails the tag (a foreign entry); a mixed pair passes the tag only as SPEC 3.3 bounds (~2^-31).
 +    if (new_d != old_d) dref.store(new_d, std::memory_order_relaxed);
 +    if (new_k != old_k) kref.store(new_k, std::memory_order_relaxed);
 +}

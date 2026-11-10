@@ -344,6 +344,22 @@ Every row printed `engine exit ok=True`.
   - `TtLockless=true`: 219 / 219 legal bestmoves, max isready latency while searching 26.6 ms, peak 161.1 MiB, exit 0: **PASS**;
   - `TtLockless=false`: 219 / 219, 21.1 ms, 161.0 MiB, exit 0: **PASS**.
 
+### Advisory NPS (never a verdict; every exe timed with a byte copy; logs `logs/enc5/nps/`)
+| run | P_AA | gate5 OFF | gate5 OFF copy | gate5 ON | gate5 ON copy | gate4 ON | gate4 ON copy |
+|---|---|---|---|---|---|---|---|
+| E5, Threads 1, `go nodes 1000000`, 10 rounds | 1.019 | 1.013 | 0.991 | 0.988 | 0.974 | 0.993 | 0.973 |
+| E5, Threads 4, `go nodes 2000000`, 8 rounds | 1.038 | 1.024 | 1.031 | **1.065** | **1.080** | 1.078 | 1.067 |
+
+All values are ratios to P's median in the same run.
+
+**Reading.**
+- Every Threads 1 value lies within −2.7 % to +1.9 % of P. Gate OFF ≈ P, and ON costs about 1-2.5 % in both enc4 and enc5. Nothing is resolvable.
+- At Threads 4, ON runs about +4.5 % above the same exe's OFF (and about +7 % above P, whose own spread was 20.7 %). This agrees in direction with the micro-benchmark's 1.25-2.3 × TT throughput, but is not a claim.
+- QA's quiet native-core timing decides.
+
+### Tools and the final commit
+- The candidate is `e011a3e` = `89cddf7` + three comment lines (§12). Its kit builds reproduce both exes of this section byte for byte, so every result here holds for it.
+
 ### Tools (MINOR-1, NIT-9)
 `tools/test_log_sharing.ps1` runs a 300-FEN identity check while a hostile reader keeps opening its UCI log without sharing writing. A survival counts only with at least 10 reader attempts.
 
@@ -353,3 +369,19 @@ Every row printed `engine exit ok=True`.
 | `a675c04` | 2 | **RUN BROKEN** at the reader's first grab: `AppendAllText ... being used by another process`, the same error that aborted `e4_OFF_netoff` |
 
 Logs: `logs/enc5/minor1/`.
+
+## 12. Final bug hunt (main session, about 23:34-00:05 Vienna, NOT independent; logs `logs/finalhunt/`)
+| check | result |
+|---|---|
+| re-hash every job exe and the live lock (`forge_push\bin\..._trial_w6.exe`, read only) | unchanged: trial_w6 = P = P copy = 4181a589; gates 541e8b3d / a4b57032 / 2940fb05 and their byte copies as recorded |
+| GitHub tips = local tips, working trees clean, MD5SUMS of both packs verify, engine/tests/CI unchanged since `89cddf7` before the hunt | OK |
+| read of the full engine diff `7ce10a05..89cddf7` | 3 stale comments, fixed comment-only with unchanged line counts: the declaration comment ("on decoded copies" → raw words), the section comment ("fails the tag in decode()" → key32_of), and the store's comment, whose "cannot create a wrong entry that passes the tag" is now "only as SPEC 3.3 bounds (~2^-31)". `generation()` is read only inside the TT code, so "never read by search" holds |
+| the comment-only commits | `30119af` (kit j1c) and the candidate **`e011a3e`** (kit m0c, m1c): OFF = **4181a589**, GATE = **2940fb05**, byte for byte; `g++ -E -P` identical to enc5 at macro 1 and to P at macro 0 (`pp_final_*.txt`). A first try (k0c/k1c) failed before compiling: an inline command left a literal `$src` in the source path. It was re-run from a script file under fresh tags |
+| adversarial UCI on `2940fb05` (`bughunt_extra.ps1`) | invalid `TtLockless` value rejected, mode unchanged (cold depth 10 identical); Threads 2/3 lockless: legal best moves. The 2,048 MB-hash toggle case was skipped (free RAM 10.8 GB < 12 GB) |
+| setoption while a search runs (Threads 1/4/8: TtLockless, Hash, Clear Hash, ucinewgame) | every interrupted bestmove and the next `go depth 8` legal, exit 0: **PASS** |
+| special modes (`searchmoves`, `go mate 2/3`) | P = gate OFF = gate ON in depth, score, nodes and best move: **IDENTICAL** |
+| Threads 8 lockless stress, 1,500 cycles, seed 99 (oversubscribed) | 1,144 / 1,144 legal bestmoves (the same count as `0599271`'s run with this seed), isready ≤ 11.0 ms, exit 0: **PASS** |
+| contention fixture, 6 s per configuration, `-O3 -DNDEBUG` build of the candidate tree | **2,238,441,984 probes, 372,159,563 hits, 0 incoherent**; control 8,159,975 incoherent; tag detection and differential PASS |
+| the other trial_w6 TT configuration: `FORGE_SPD_TT_NOTLS=0` + `FORGE_SMP_LAYOUT=1` (plain -O2, `-Wall -Wextra`) | 0 warnings; pins **ALL OK** with `TtLockless` false and true (`53d7bdfd…`) |
+
+Fixture totals over every run of this branch: 0 incoherent hits.

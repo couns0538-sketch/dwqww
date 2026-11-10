@@ -2,11 +2,11 @@
 
 | item | value |
 |---|---|
-| branch | `opus-smp-layout-20261107`. Parent **P** = `7ce10a05` (trial_w6 source; kit build = `4181a589…` byte for byte). Engine candidate: **`89cddf7e3727ed0f461537af785dc344386fac50`** ("enc5"). It supersedes `a675c04` (enc4) and `0599271` (first hand-off); see "Since 0599271" below |
+| branch | `opus-smp-layout-20261107`. Parent **P** = `7ce10a05` (trial_w6 source; kit build = `4181a589…` byte for byte). Engine candidate: **`e011a3e06e4c3bb305e09727d339812de7a03622`** ("enc5": `89cddf7` plus three comment lines from the final bug hunt; the same exes). It supersedes `a675c04` (enc4) and `0599271` (first hand-off); see "Since 0599271" below |
 | switch | compile-time `FORGE_SMP_LAYOUT` (default **0**). UCI `TtLockless` (check, default **false**; exists only at 1) |
-| OFF build (0) | kit v2.3 LTO+PGO pc1 = pc2 = **`4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0` = P = trial_w6** (tags h0c/h0d). No new UCI option. `g++ -E -P` identical for all 8 units |
-| GATE build (1) | kit pc1 = pc2 = **`2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5`** (tags h1c/h1d, plus the identical scratch-tree build g1c). Runtime default = the legacy striped-lock TT |
-| patch | `smp_layout_after_w6.patch` (engine only, `7ce10a05..89cddf7`, +366/-0, md5 `f07082fdc8a06cb5baaae9cb76f3b538`). Applied to a fresh P export (`patch -p1 -F0`) and flipped, it gives the gate tree byte for byte |
+| OFF build (0) | kit v2.3 LTO+PGO pc1 = pc2 = **`4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0` = P = trial_w6** (tags h0c/h0d for `89cddf7`, m0c for `e011a3e`). No new UCI option. `g++ -E -P` identical for all 8 units |
+| GATE build (1) | kit pc1 = pc2 = **`2940fb0514dd2ef058d6512bf66659074f162293f7d31ccac23779c2e65762e5`** (tags h1c/h1d, the scratch-tree build g1c, and j1c / m1c from the comment-only commits up to `e011a3e`: five identical builds). Runtime default = the legacy striped-lock TT |
+| patch | `smp_layout_after_w6.patch` (engine only, `7ce10a05..e011a3e`, +366/-0, md5 `88b0bb2a403962a2fbb2d996eaafc41d`). Applied to a fresh P export (`patch -p1 -F0`) and flipped, it gives the gate tree byte for byte |
 | what changes at 1 | (a) `TtLockless=true`: a lockless TT with its own typed storage. Every concurrent access is a relaxed `std::atomic_ref`. A one-multiply tag rejects mixed K/D pairs, and the decisions are exactly P's (SPEC.md §3). (b) `Worker::nodes_` on its own cache line (measured: SPEC §4, BENCH §2) |
 | classification | **speed/correctness-only at Threads 1: node-identical**, including the full fens12k and warm-table identity. Threads ≥ 2 is nondeterministic by nature: **no strength or speed claim**. QA's quiet timing and SPRT policy decide (SCALING_PLAN.md) |
 
@@ -24,7 +24,7 @@
   - Fix: `optimize("profile-partial-training")` compiles them as normal `-O3` code again. This is codegen only (BENCH §11).
 - **Tag strength** is exactly characterised (BENCH §9). Mixed pairs from same-position re-stores (small field differences) are never accepted, and the residual for unrelated data is about 2^-31 on average.
 
-## Verdicts (details and logs in BENCH.md; §11 for `89cddf7`, §10 for `a675c04`)
+## Verdicts (details and logs in BENCH.md; §11-§12 for the candidate, §10 for `a675c04`)
 | question | verdict |
 |---|---|
 | OFF build identical to the parent | **PASS**: byte-identical (4181a589, kit h0c = h0d) + `g++ -E -P` 8/8 identical |
@@ -37,17 +37,17 @@
 | layout | `nodes_` was sharing a line with `local_nodes_` and 6 other owner fields; now alone (+64 B per worker). Nothing else needed it |
 | tag strength | exact census: 0 collisions for every difference confined to depth/bound/pv/rule50, every single bit, and every small field difference (38.2 M). Score/eval-only: 1 delta (F47). Combined deltas: density 2^-31 (BENCH §9) |
 | NPS | advisory only (A/A noise ±5 %): BENCH §7 and §10. A byte copy of an exe ran 6 % faster than its original file (a per-file effect), so exe-level differences of that size mean nothing here. The TT micro-benchmark (§8) measures the mechanism itself |
-| review | **R1** (fable): 3 MINOR fixed. **SR1**: a self-review, NOT independent. **R2** = the fable bug hunt over `0599271`, `527a696`, `a675c04`, `89cddf7` and `b1a7fc6`: **no engine defect at any severity**; tooling/doc findings 1 MINOR + 9 NIT, all fixed (REVIEW_LOG.md) |
+| review | **R1** (fable): 3 MINOR fixed. **SR1**: a self-review, NOT independent. **R2** = the fable bug hunt over `0599271`, `527a696`, `a675c04`, `89cddf7` and `b1a7fc6`: **no engine defect at any severity**; tooling/doc findings 1 MINOR + 9 NIT, all fixed. **FH** (final bug hunt, NOT independent): 3 stale comments fixed comment-only, exes unchanged (REVIEW_LOG.md, BENCH §12) |
 
 ## Files
 - SPEC.md (fixed before code; §3 updated for enc2-enc5), INVENTORY.md, BENCH.md, STATUS.md, GATE_ENTRY.md (hand-off), IDEA_SOURCE.md, COMMANDS.md (EXECUTED / PREPARED-ONLY), SCALING_PLAN.md (PREPARED-ONLY), REVIEW_LOG.md, MD5SUMS, SHA256SUMS.
-- Patches: `smp_layout_after_w6.patch` (engine, `7ce10a05..89cddf7`) and `smp_layout_tests_ci.patch` (tests, CMake, CI, `7ce10a05..` tip).
+- Patches: `smp_layout_after_w6.patch` (engine, `7ce10a05..e011a3e`) and `smp_layout_tests_ci.patch` (tests, CMake, CI, `7ce10a05..` tip).
 - `tools/`: kit_build.ps1, kit_v23_idle_build_ltopgo.ps1, pp_identity.ps1, identity_check.ps1, liveness_check.ps1, uci_lifecycle_stress.ps1, nps_smoke.ps1, layout_probe.cpp, tt_microbench.cpp, tag_scan.cpp, micro_table.py, test_log_sharing.ps1, o2_uci_lib.ps1, run_pinned.ps1. CI: `opus_round1/opus2_smp/{tsan_extra.sh,liveness_check.py}`.
 - `logs/`: parent, ci, l3, l3b, live, stress, tests, layout, nps, review, bughunt, enc4, enc5. Each log names its exe sha256 or commit.
 - Skill: `skills/forge-smp-lockless-qualify/SKILL.md` (mirrored to `D:\grok-pc-data\dwqww\.claude\skills\`).
 
 ## Handoff
-**READY FOR CODE REVIEW → QA**: engine candidate `89cddf7`, gate exe `2940fb05`, OFF exe = `4181a589`. Nothing was queued by this job.
+**READY FOR CODE REVIEW → QA**: engine candidate `e011a3e`, gate exe `2940fb05`, OFF exe = `4181a589`. Nothing was queued by this job.
 - QA: optional quiet native-core timing (SCALING_PLAN.md).
 - For any strength question at Threads ≥ 2: QA's SPRT after Code Review.
 - The enc4 → enc5 difference is the `FORGE_LOCKLESS_UNTRAINED_OPT` macro and its use on two function definitions in `src/search.cpp`. A port of enc4 (for example onto another lineage) gets enc5 by adding exactly that.
