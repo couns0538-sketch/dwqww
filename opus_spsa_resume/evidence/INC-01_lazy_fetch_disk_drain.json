@@ -1,0 +1,37 @@
+{
+  "schema": "opus3-incident/1",
+  "id": "INC-01 lazy-fetch disk drain",
+  "summary": "Planning-time read-only search (git log --all --find-object, background task bmoj4ni3p) ran in the finished opus1 job blobless partial clone (remote.origin.promisor=true, partialclonefilter=blob:none). Diff rename detection triggered lazy blob fetches into D:\\forge_jobs_20261107\\opus1\\repo\\.git\\objects\\pack.",
+  "measured": {
+    "window_start_pc": "2026-11-09 22:20:28",
+    "packs_added": 2334,
+    "files_added": 9337,
+    "bytes_added_gib": 7.798,
+    "tmp_pack": "tmp_pack_tFSf3g 8.6 MB",
+    "pre_search_packs": 25,
+    "D_free_min_gib": 24.655,
+    "D_reserve_gib": 30
+  },
+  "actions": [
+    "termination not permitted by job rules (D:-root child); suspension attempt denied by auto-mode classifier (no effect)",
+    "process exited on its own with code 1 (no git process left)",
+    "user approved scoped deletion of the window packs (AskUserQuestion: Delete my packs, resume)",
+    "first opus3 deletion command was rejected by the harness path check (false positive on a regex literal); it reported no output and created no opus3 directory, so it is believed not to have run",
+    "pack directory last modified at PC 2026-11-09 22:58:54; when the second opus3 deletion command listed the directory moments later, every pack newer than PC 2026-11-09 04:31:44 was already gone (the 2334 window packs plus 3 small earlier planning-time fetch packs). Actor NOT determined.",
+    "second opus3 deletion command selected 0 files and deleted 0 files; it created D:\\forge_jobs_20261107\\opus3 at PC 22:58:59"
+  ],
+  "after": {
+    "opus1_packs": 22,
+    "opus1_size_pack_kib": 5343,
+    "opus1_HEAD": "6df0c739697acdd7d2b70c9f1f7d054962d9add9",
+    "head_tree_readable": true,
+    "D_free_gib": 32.431
+  },
+  "lesson": "All git commands in partial clones run with GIT_NO_LAZY_FETCH=1; history-wide diffs use --no-renames; no unbounded commands.",
+  "clock": {
+    "pc_utc": "2026-11-10T07:00:36.5343448Z",
+    "github_utc": "2026-11-10T00:01:18Z",
+    "vienna_from_github": "2026-11-10 01:01:18",
+    "pc_minus_github_s": 25158.5
+  }
+}
