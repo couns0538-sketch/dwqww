@@ -76,9 +76,15 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
+#if FORGE_EXPERIMENT_CONTINUATION4
+int Continuation4Weight = 0;
+#endif
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
+#if FORGE_EXPERIMENT_CONTINUATION4
+        {"Continuation4Weight", &Continuation4Weight, 0, 100},
+#endif
         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
@@ -179,16 +185,38 @@ void apply_history(std::int16_t& entry, int bonus) {
     return value;
 }
 
+#if FORGE_EXPERIMENT_CONTINUATION4
+// The root has four sentinel stack entries. Do not read their shared empty
+// history row (or a null move's row) as a real four-ply predecessor.
+[[nodiscard]] const PieceToHistory* continuation4_context(const SearchStack* ss) {
+    if (tune::Continuation4Weight == 0 || ss == nullptr || (ss - 4)->current_move.is_none()) return nullptr;
+    return (ss - 4)->continuation;
+}
+
+[[nodiscard]] int continuation4_bonus(const PieceToHistory* cont4, Piece piece, Move move) {
+    // History is bounded by 16384 and weight by 100. Signed division truncates
+    // toward zero; 100 means the stored value, already updated at half bonus.
+    return cont4 != nullptr ? (*cont4)[static_cast<std::size_t>(piece)][move.to] * tune::Continuation4Weight / 100 : 0;
+}
+#endif
+
 #if FORGE_SEARCH_SPEED2
 // Quiet history of one move: main history row of the side to move plus the continuation history of the two
 // previous plies, summed in this order (= Worker::quiet_history).
 [[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
                                            const PieceToHistory* cont1, const PieceToHistory* cont2, Piece piece,
-                                           Move move) {
+                                           Move move
+#if FORGE_EXPERIMENT_CONTINUATION4
+                                           , const PieceToHistory* cont4
+#endif
+                                           ) {
     const std::size_t p = static_cast<std::size_t>(piece);
     int score = main[move.from][move.to];
     if (cont1 != nullptr) score += (*cont1)[p][move.to];
     if (cont2 != nullptr) score += (*cont2)[p][move.to];
+#if FORGE_EXPERIMENT_CONTINUATION4
+    if (cont4 != nullptr) score += continuation4_bonus(cont4, piece, move);
+#endif
     return score;
 }
 #endif
@@ -619,17 +647,27 @@ private:
         const std::array<std::array<std::int16_t, 64>, 64>& main;
         const PieceToHistory* cont1;
         const PieceToHistory* cont2;
+#if FORGE_EXPERIMENT_CONTINUATION4
+        const PieceToHistory* cont4;
+#endif
         const Board& board;
 
         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+#if FORGE_EXPERIMENT_CONTINUATION4
+              cont4(continuation4_context(ss)),
+#endif
               board(b) {}
 
         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
             const Piece piece = board.piece_at(move.from);
-            int value = quiet_history_sum(main, cont1, cont2, piece, move);
+            int value = quiet_history_sum(main, cont1, cont2, piece, move
+#if FORGE_EXPERIMENT_CONTINUATION4
+                                          , cont4
+#endif
+                                          );
             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
             return value;
         }
@@ -944,7 +982,11 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
 #if FORGE_SEARCH_SPEED2
     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
                              ss != nullptr ? (ss - 1)->continuation : nullptr,
-                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move);
+                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move
+#if FORGE_EXPERIMENT_CONTINUATION4
+                             , continuation4_context(ss)
+#endif
+                             );
 #else
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
@@ -952,6 +994,9 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
     }
+#if FORGE_EXPERIMENT_CONTINUATION4
+    if (const auto* cont4 = continuation4_context(ss)) score += continuation4_bonus(cont4, piece, move);
+#endif
     return score;
 #endif
 }

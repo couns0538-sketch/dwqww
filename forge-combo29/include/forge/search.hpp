@@ -40,6 +40,12 @@
 #define FORGE_SPD_MATERIAL_CORRECTION_CACHE 0
 #endif
 
+// Unproven search experiment: read four-ply continuation history. Both this
+// build switch and the runtime percent weight must be enabled to change search.
+#ifndef FORGE_EXPERIMENT_CONTINUATION4
+#define FORGE_EXPERIMENT_CONTINUATION4 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -282,6 +288,9 @@ extern int TmMinFactorPercent;    // lower bound of the combined soft-limit fact
 extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
+#if FORGE_EXPERIMENT_CONTINUATION4
+extern int Continuation4Weight; // percent of the stored four-ply history, 0..100 (0 = off)
+#endif
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
