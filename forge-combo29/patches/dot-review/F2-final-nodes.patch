@@ -1,0 +1,32 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index e037613..9ded7e1 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -16,6 +16,11 @@
+ #define FORGE_SDK_BADCAP_PREFIX 0
+ #endif
+ 
++// Opt-in correctness fix: return the completed, joined workers' node total.
++#ifndef FORGE_FIX_SMP_FINAL_NODES
++#define FORGE_FIX_SMP_FINAL_NODES 0
++#endif
++
+ namespace forge {
+ 
+ namespace tune {
+@@ -1821,7 +1826,15 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#if FORGE_FIX_SMP_FINAL_NODES
++    // Every helper has published its final count and is now quiescent. The
++    // main worker's earlier snapshot can omit work completed during shutdown.
++    result.nodes = 0;
++    for (const auto& worker : workers_) result.nodes += worker->nodes();
+     return result;
++#else
++    return result;
++#endif
+ }
+ 
+ } // namespace forge

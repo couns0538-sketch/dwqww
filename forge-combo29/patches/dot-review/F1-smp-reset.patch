@@ -1,0 +1,46 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index ca3b34a..aecdfbb 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -20,6 +20,11 @@
+ #define FORGE_SPD_TT_NOTLS 0
+ #endif
+ 
++// Opt-in correctness fix: clear published counters before any worker starts.
++#ifndef FORGE_FIX_SMP_NODE_RESET
++#define FORGE_FIX_SMP_NODE_RESET 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -331,7 +336,7 @@ public:
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
+-#if FORGE_SPD_TT_NOTLS
++#if FORGE_SPD_TT_NOTLS || FORGE_FIX_SMP_NODE_RESET
+     friend class Searcher;
+ #endif
+ 
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 2ffe255..e037613 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1780,7 +1780,16 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     worker_limits.start_time = origin;
+     std::vector<Worker*> all;
+     all.reserve(workers_.size());
++#if FORGE_FIX_SMP_NODE_RESET
++    // Previous helpers are joined before this call. Reset every published
++    // counter before launching any worker, including helpers not yet scheduled.
++    for (auto& worker : workers_) {
++        worker->nodes_.store(0, std::memory_order_relaxed);
++        all.push_back(worker.get());
++    }
++#else
+     for (auto& worker : workers_) all.push_back(worker.get());
++#endif
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
+     std::optional<TranspositionTable::ExclusiveLease> exclusive;

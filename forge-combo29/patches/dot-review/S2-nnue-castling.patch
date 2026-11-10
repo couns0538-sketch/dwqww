@@ -1,0 +1,47 @@
+diff --git a/forge-combo29/src/nnue.cpp b/forge-combo29/src/nnue.cpp
+index 9701b80..8b7ddf8 100644
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -44,6 +44,11 @@ static_assert(sizeof(NnueB1) / sizeof(NnueB1[0]) == static_cast<std::size_t>(for
+ static_assert(sizeof(NnueW2) / sizeof(NnueW2[0]) == 2 * static_cast<std::size_t>(forge::nnue::HiddenSize), "nnue_weights.inc w2 size");
+ #endif
+ 
++// Experimental castling accumulator fusion. Default 0 retains the baseline path.
++#ifndef FORGE_SPD_NNUE_CASTLE_FUSE
++#define FORGE_SPD_NNUE_CASTLE_FUSE 0
++#endif
++
+ namespace forge::nnue {
+ 
+ bool enabled = true;
+@@ -153,6 +158,30 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
+         child.valid = true;
+         return;
+     }
++#if FORGE_SPD_NNUE_CASTLE_FUSE
++    // Castling removes/adds the king, then removes/adds the rook. Fuse the
++    // four passes without reassociating any lane's floating-point operations.
++    if (dirty.count == 4 && !dirty.changes[0].add && dirty.changes[1].add &&
++        !dirty.changes[2].add && dirty.changes[3].add) {
++        for (const Color perspective : {White, Black}) {
++            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
++            auto& destination = child.values[static_cast<std::size_t>(perspective)];
++            const float* columns[4];
++            for (int i = 0; i < 4; ++i) {
++                const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++                columns[i] = w.w1.get() +
++                    static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
++            }
++            for (int h = 0; h < HiddenSize; ++h) {
++                const std::size_t index = static_cast<std::size_t>(h);
++                destination[index] = (((source[index] - columns[0][index]) + columns[1][index]) -
++                                       columns[2][index]) + columns[3][index];
++            }
++        }
++        child.valid = true;
++        return;
++    }
++#endif
+     for (const Color perspective : {White, Black}) {
+         auto& acc = child.values[static_cast<std::size_t>(perspective)];
+         acc = parent.values[static_cast<std::size_t>(perspective)];

@@ -1,0 +1,111 @@
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 607adf3..8d5be76 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -17,8 +17,28 @@
+ #include <thread>
+ #include <vector>
+ 
++// Default off: preserve locked option matching until this protocol fix is accepted.
++#ifndef FORGE_FIX_UCI_OPTION_CASE
++#define FORGE_FIX_UCI_OPTION_CASE 0
++#endif
++
+ namespace {
+ 
++bool option_name_equal(std::string_view a, std::string_view b) {
++#if FORGE_FIX_UCI_OPTION_CASE
++    if (a.size() != b.size()) return false;
++    auto lower_ascii = [](unsigned char c) {
++        return c >= 'A' && c <= 'Z' ? static_cast<unsigned char>(c + ('a' - 'A')) : c;
++    };
++    for (std::size_t i = 0; i < a.size(); ++i) {
++        if (lower_ascii(a[i]) != lower_ascii(b[i])) return false;
++    }
++    return true;
++#else
++    return a == b;
++#endif
++}
++
+ void apply_position(forge::Board& board, std::istringstream& input) {
+     forge::Board candidate = board;
+     std::string token;
+@@ -202,7 +222,7 @@ int main() {
+             }
+             bool handled_tunable = false;
+             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+-                if (name != parameter.name) continue;
++                if (!option_name_equal(name, parameter.name)) continue;
+                 handled_tunable = true;
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+@@ -216,23 +236,23 @@ int main() {
+             }
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
+-            } else if (name == "Clear Hash") {
++            } else if (option_name_equal(name, "Clear Hash")) {
+                 searcher.clear_hash();
+-            } else if (name == "Ponder") {
++            } else if (option_name_equal(name, "Ponder")) {
+                 if (value_text == "true") ponder_enabled = true;
+                 else if (value_text == "false") ponder_enabled = false;
+                 else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option Ponder" << std::endl;
+                 }
+-            } else if (name == "OwnBook") {
++            } else if (option_name_equal(name, "OwnBook")) {
+                 if (value_text == "true") own_book = true;
+                 else if (value_text == "false") own_book = false;
+                 else {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option OwnBook" << std::endl;
+                 }
+-            } else if (name == "Book File") {
++            } else if (option_name_equal(name, "Book File")) {
+                 std::string rest;
+                 std::getline(input, rest);
+                 std::string path = value_text + rest;
+@@ -248,18 +268,18 @@ int main() {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string cannot load book " << path << std::endl;
+                 }
+-            } else if (name == "Book Depth" || name == "Book Variety") {
++            } else if (option_name_equal(name, "Book Depth") || option_name_equal(name, "Book Variety")) {
+                 int value = 0;
+                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                     std::cout << "info string invalid value for option " << name << std::endl;
+-                } else if (name == "Book Depth") {
++                } else if (option_name_equal(name, "Book Depth")) {
+                     book_depth = std::clamp(value, 0, 100);
+                 } else {
+                     book_variety = std::clamp(value, 0, 100);
+                 }
+-            } else if (name == "UseNNUE") {
++            } else if (option_name_equal(name, "UseNNUE")) {
+                 if (value_text == "true") forge::nnue::enabled = true;
+                 else if (value_text == "false") forge::nnue::enabled = false;
+                 else {
+@@ -267,15 +287,15 @@ int main() {
+                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
+                 }
+                 searcher.clear_hash();
+-            } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
++            } else if (option_name_equal(name, "Hash") || option_name_equal(name, "Move Overhead") || option_name_equal(name, "Threads")) {
+                 int value = 0;
+                 const auto parsed = std::from_chars(
+                     value_text.data(), value_text.data() + value_text.size(), value);
+                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
+-                } else if (name == "Hash") {
++                } else if (option_name_equal(name, "Hash")) {
+                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
+-                } else if (name == "Threads") {
++                } else if (option_name_equal(name, "Threads")) {
+                     searcher.set_threads(std::clamp(value, 1, 256));
+                 } else {
+                     move_overhead_ms = std::clamp(value, 0, 1000);

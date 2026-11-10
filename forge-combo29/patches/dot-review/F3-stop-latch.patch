@@ -1,0 +1,74 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index aecdfbb..4a0cd49 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -25,6 +25,11 @@
+ #define FORGE_FIX_SMP_NODE_RESET 0
+ #endif
+ 
++// Opt-in correctness fix: keep helper shutdown separate from external stop.
++#ifndef FORGE_FIX_SMP_STOP_LATCH
++#define FORGE_FIX_SMP_STOP_LATCH 0
++#endif
++
+ namespace forge {
+ 
+ struct SearchLimits {
+@@ -313,6 +318,10 @@ struct SharedSearchState {
+     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+     TranspositionTable tt;
+     std::atomic<bool> stop{false};
++#if FORGE_FIX_SMP_STOP_LATCH
++    // Searcher owns this per-search flag; stop remains externally latched.
++    std::atomic<bool> helper_shutdown{false};
++#endif
+     // 0 means pondering has not been converted into a timed search.
+     std::atomic<std::int64_t> ponder_hit_ns{0};
+ };
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 9ded7e1..84cf06c 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -896,7 +896,12 @@ std::uint64_t Worker::total_nodes() const {
+ bool Worker::should_stop() {
+     // Publish this thread's node count for the others at the same cadence.
+     nodes_.store(local_nodes_, std::memory_order_relaxed);
++#if FORGE_FIX_SMP_STOP_LATCH
++    if (shared_.stop.load(std::memory_order_relaxed) ||
++        shared_.helper_shutdown.load(std::memory_order_relaxed)) return true;
++#else
+     if (shared_.stop.load(std::memory_order_relaxed)) return true;
++#endif
+     if (!is_main()) return false;
+     if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
+     if (hard_limit_ms_ > 0) {
+@@ -1794,6 +1799,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     }
+ #else
+     for (auto& worker : workers_) all.push_back(worker.get());
++#endif
++#if FORGE_FIX_SMP_STOP_LATCH
++    // All previous helpers are joined. Only explicit reset_stop() clears the
++    // external stop request; starting another search resets internal shutdown.
++    shared_.helper_shutdown.store(false, std::memory_order_relaxed);
+ #endif
+     // Age the table once per search, before any worker can probe it.
+     shared_.tt.new_search();
+@@ -1821,11 +1831,17 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+         });
+     }
+     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
++#if FORGE_FIX_SMP_STOP_LATCH
++    // Internal shutdown must not overwrite a stop() arriving during joins.
++    shared_.helper_shutdown.store(true, std::memory_order_relaxed);
++    for (auto& helper : helpers) helper.join();
++#else
+     // Wind down the helpers without clobbering an externally requested stop.
+     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+     shared_.stop.store(true, std::memory_order_relaxed);
+     for (auto& helper : helpers) helper.join();
+     shared_.stop.store(external_stop, std::memory_order_relaxed);
++#endif
+ #if FORGE_FIX_SMP_FINAL_NODES
+     // Every helper has published its final count and is now quiescent. The
+     // main worker's earlier snapshot can omit work completed during shutdown.

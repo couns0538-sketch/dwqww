@@ -1,0 +1,71 @@
+diff --git a/forge-combo29/src/book.cpp b/forge-combo29/src/book.cpp
+index 5f79f02..da4e928 100644
+--- a/forge-combo29/src/book.cpp
++++ b/forge-combo29/src/book.cpp
+@@ -12,6 +12,11 @@
+ #define FORGE_HAS_BOOK 0
+ #endif
+ 
++// Experimental legal-list reuse. Default off; no speed or strength claim.
++#ifndef FORGE_BOOK_LEGAL_REUSE
++#define FORGE_BOOK_LEGAL_REUSE 0
++#endif
++
+ namespace forge::book {
+ namespace {
+ 
+@@ -97,6 +102,35 @@ Move decode_move(const Board& board, std::uint16_t encoded) {
+     return Move::none();
+ }
+ 
++#if FORGE_BOOK_LEGAL_REUSE
++namespace {
++Move decode_with_legal_moves(const Board& board, std::uint16_t encoded, const MoveList& legal) {
++    const int to_file = encoded & 7;
++    const int to_rank = (encoded >> 3) & 7;
++    const int from_file = (encoded >> 6) & 7;
++    const int from_rank = (encoded >> 9) & 7;
++    const int promotion = (encoded >> 12) & 7;
++    const int from = make_square(from_file, from_rank);
++    int to = make_square(to_file, to_rank);
++    // King-takes-rook castling notation.
++    const Piece mover = board.piece_at(from);
++    if (piece_type(mover) == King && board.piece_at(to) == make_piece(color_of(mover), Rook)) {
++        if (to == 7 && from == 4) to = 6;
++        else if (to == 0 && from == 4) to = 2;
++        else if (to == 63 && from == 60) to = 62;
++        else if (to == 56 && from == 60) to = 58;
++    }
++    for (const Move move : legal) {
++        if (move.from != from || move.to != to) continue;
++        if (move.is_promotion() != (promotion != 0)) continue;
++        if (move.is_promotion() && move.promotion != promotion + 1) continue;
++        return move;
++    }
++    return Move::none();
++}
++} // namespace
++#endif
++
+ bool Book::load_file(const std::string& path) {
+     std::ifstream in(path, std::ios::binary);
+     if (!in) return false;
+@@ -141,8 +175,18 @@ std::vector<Book::Candidate> Book::candidates(const Board& board) const {
+     const std::uint64_t key = polyglot_key(board);
+     auto it = std::lower_bound(entries_.begin(), entries_.end(), key,
+                                [](const Entry& entry, std::uint64_t value) { return entry.key < value; });
++#if FORGE_BOOK_LEGAL_REUSE
++    // A book miss does not need move generation. Generate once for all entries
++    // at this key; decoding, entry order, saturation and tie order are unchanged.
++    if (it == entries_.end() || it->key != key) return result;
++    const MoveList legal = board.legal_moves();
++#endif
+     for (; it != entries_.end() && it->key == key; ++it) {
++#if FORGE_BOOK_LEGAL_REUSE
++        const Move move = decode_with_legal_moves(board, it->move, legal);
++#else
+         const Move move = decode_move(board, it->move);
++#endif
+         if (move.is_none()) continue;
+         bool merged = false;
+         for (Candidate& existing : result) {
