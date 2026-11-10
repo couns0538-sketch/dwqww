@@ -26,9 +26,9 @@ Any node or eval difference at Threads 1 is a failed qualification, reported as 
 ## 3. Lockless TT protocol (`TtLockless=true`)
 ### 3.1 Storage: one typed array per mode
 - Legacy mode (option false) keeps P's storage and code: `std::unique_ptr<TTCluster[]> clusters_` (TTEntry structs), the 1024 stripes and the ExclusiveLease, unchanged.
-- Lockless mode uses `std::unique_ptr<LocklessCluster[]> lockless_`, where `struct alignas(64) LocklessCluster { std::uint64_t w[8]; }` holds 4 entries of 2 words (64 B). Cluster count and index mapping are the same as `cluster_for` (multiply-high on `__int128`, modulo otherwise).
+- Lockless mode uses `std::unique_ptr<TTLocklessCluster[]> lockless_clusters_`, where `struct alignas(64) TTLocklessCluster { std::array<std::uint64_t, 8> words; }` holds 4 entries of 2 words (64 B). Internal type name; the fixed public names are those of §1. Cluster count and index mapping are the same as `cluster_for` (multiply-high on `__int128`, modulo otherwise).
 - Exactly one of the two arrays is allocated; the other pointer is null.
-- While workers run, every access to `w[]` is a `std::atomic_ref<std::uint64_t>` load, store or `compare_exchange_strong` with `memory_order_relaxed` (C++20). Static asserts:
+- While workers run, every access to `words[]` is a `std::atomic_ref<std::uint64_t>` load, store or `compare_exchange_strong` with `memory_order_relaxed` (C++20). Static asserts:
   - `std::atomic_ref<std::uint64_t>::is_always_lock_free`;
   - `alignof(std::uint64_t) >= std::atomic_ref<std::uint64_t>::required_alignment`;
   - `sizeof(LocklessCluster) == 64`.

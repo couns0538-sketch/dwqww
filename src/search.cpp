@@ -244,6 +244,16 @@ std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) 
 void TranspositionTable::resize(std::size_t mb) {
     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+#if FORGE_SMP_LAYOUT
+    if (lockless_) {
+        // Quiescent only (SPEC 3.6): a new, empty lockless array; the legacy array stays unallocated.
+        lockless_clusters_ = std::make_unique<TTLocklessCluster[]>(new_count);
+        cluster_count_ = new_count;
+        generation_ = 0;
+        ++epoch_;
+        return;
+    }
+#endif
     auto new_clusters = std::make_unique<TTCluster[]>(new_count);
     clusters_ = std::move(new_clusters);
     cluster_count_ = new_count;
@@ -252,6 +262,15 @@ void TranspositionTable::resize(std::size_t mb) {
 }
 
 void TranspositionTable::clear() {
+#if FORGE_SMP_LAYOUT
+    if (lockless_) {
+        // Quiescent only (SPEC 3.6): no atomic_ref is in use, so plain value-initialisation is allowed here.
+        for (std::size_t i = 0; i < cluster_count_; ++i) lockless_clusters_[i] = TTLocklessCluster{};
+        generation_ = 0;
+        ++epoch_;
+        return;
+    }
+#endif
     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
     generation_ = 0;
     ++epoch_;
@@ -298,10 +317,17 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
     return snapshot(*replace, false);
 }
 
+#if FORGE_SMP_LAYOUT
+TTProbe TranspositionTable::probe(std::uint64_t key) const { return lockless_ ? probe_lockless(key) : probe_body<true>(key); }
+#else
 TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+#endif
 
 TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
     assert(has_exclusive_access());
+#if FORGE_SMP_LAYOUT
+    if (lockless_) return probe_lockless(key);
+#endif
     return probe_body<false>(key);
 }
 
@@ -329,16 +355,31 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+#if FORGE_SMP_LAYOUT
+    if (lockless_) {
+        store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+        return;
+    }
+#endif
     store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 
 void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                      Bound bound, bool pv, std::uint16_t halfmove_clock) {
     assert(has_exclusive_access());
+#if FORGE_SMP_LAYOUT
+    if (lockless_) {
+        store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+        return;
+    }
+#endif
     store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 #else
 TTProbe TranspositionTable::probe(std::uint64_t key) const {
+#if FORGE_SMP_LAYOUT
+    if (lockless_) return probe_lockless(key);
+#endif
     TTCluster& cluster = cluster_for(key);
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     const auto lock = lock_stripe(index);
@@ -377,6 +418,12 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
 
 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+#if FORGE_SMP_LAYOUT
+    if (lockless_) {
+        store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+        return;
+    }
+#endif
     // Reject default, foreign or lifecycle-stale handles without touching storage.
     // Lifecycle operations themselves must not run concurrently with search.
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
@@ -398,6 +445,9 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
 #endif
 
 int TranspositionTable::hashfull() const {
+#if FORGE_SMP_LAYOUT
+    if (lockless_) return hashfull_lockless();
+#endif
     int count = 0;
     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
     for (std::size_t i = 0; i < sample; ++i) {
@@ -408,6 +458,135 @@ int TranspositionTable::hashfull() const {
     }
     return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
 }
+
+#if FORGE_SMP_LAYOUT
+// ---------------------------------------------------------------------------
+// Lockless TT mode (opus_smp_layout/SPEC.md section 3). Every access below to lockless_clusters_[].words is a relaxed
+// std::atomic_ref operation, so concurrent probes and stores are data-race free under the C++ memory model. A K/D
+// pair from two different stores fails the tag in decode() and reads as a foreign entry (a miss / replacement slot).
+
+namespace {
+using AtomicWord = std::atomic_ref<std::uint64_t>;
+} // namespace
+
+void TranspositionTable::set_lockless(bool on) {
+    // Quiescent only (SPEC 3.6): UCI setoption after stop_search(), tests between joined phases.
+    if (on == lockless_) return;
+    if (on) {
+        clusters_.reset();
+        lockless_clusters_ = std::make_unique<TTLocklessCluster[]>(cluster_count_);
+    } else {
+        lockless_clusters_.reset();
+        clusters_ = std::make_unique<TTCluster[]>(cluster_count_);
+    }
+    lockless_ = on;
+    generation_ = 0;
+    ++epoch_;
+}
+
+TTEntry TranspositionTable::debug_entry(std::size_t cluster, int slot) const {
+    if (cluster >= cluster_count_ || slot < 0 || slot >= 4) return TTEntry{};
+    const auto s = static_cast<std::size_t>(slot);
+    if (!lockless_) return clusters_[cluster].entries[s];
+    auto& words = lockless_clusters_[cluster].words;
+    return ttlockless::decode(AtomicWord(words[2U * s]).load(std::memory_order_relaxed),
+                              AtomicWord(words[2U * s + 1U]).load(std::memory_order_relaxed));
+}
+
+TTProbe TranspositionTable::probe_lockless(std::uint64_t key) const {
+    const std::size_t index = cluster_index(key);
+    auto& words = lockless_clusters_[index].words;
+    // One relaxed load per word; the decisions below run on these decoded copies (as probe_body does on the locked
+    // cluster), so one thread sees exactly probe_body's results.
+    std::array<TTEntry, 4> entries;
+    std::array<std::uint64_t, 4> data{};
+    for (std::size_t slot = 0; slot < 4; ++slot) {
+        const std::uint64_t k = AtomicWord(words[2U * slot]).load(std::memory_order_relaxed);
+        data[slot] = AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed);
+        entries[slot] = ttlockless::decode(k, data[slot]);
+    }
+    auto snapshot = [&](std::size_t slot, bool hit) {
+        TTProbe result;
+        result.entry = entries[slot];
+        result.hit = hit;
+        result.owner_ = this;
+        result.cluster_ = index;
+        result.slot_ = static_cast<std::uint8_t>(slot);
+        result.epoch_ = epoch_;
+        result.key_ = key;
+        return result;
+    };
+    const std::uint32_t key32 = verification_key(key);
+    for (std::size_t slot = 0; slot < 4; ++slot) {
+        TTEntry& entry = entries[slot];
+        if (entry.key32 == key32 && entry.occupied()) {
+            // Reused entries remain recent, as in probe_body. The generation bits are outside the tag mix, so K stays
+            // valid; a failed CAS means another thread changed the slot after our loads, and the refresh is skipped.
+            if (entry.generation() != generation_) {
+                entry.gen_bound = static_cast<std::uint8_t>(
+                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+                std::uint64_t expected = data[slot];
+                (void)AtomicWord(words[2U * slot + 1U]).compare_exchange_strong(
+                    expected, ttlockless::with_gen_bound(data[slot], entry.gen_bound), std::memory_order_relaxed);
+            }
+            return snapshot(slot, true);
+        }
+    }
+    std::size_t replace = 0;
+    auto relative_age = [this](const TTEntry& entry) {
+        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+    };
+    for (std::size_t slot = 0; slot < 4; ++slot) {
+        const TTEntry& entry = entries[slot];
+        if (!entry.occupied()) return snapshot(slot, false);
+        if (entry.depth - 4 * relative_age(entry) < entries[replace].depth - 4 * relative_age(entries[replace])) replace = slot;
+    }
+    return snapshot(replace, false);
+}
+
+void TranspositionTable::store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                                        Bound bound, bool pv, std::uint16_t halfmove_clock) {
+    // The same handle gate and the same decisions as store_body, applied to a decoded copy of the slot.
+    if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+        probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+    auto& words = lockless_clusters_[probe.cluster_].words;
+    AtomicWord kref(words[2U * probe.slot_]);
+    AtomicWord dref(words[2U * probe.slot_ + 1U]);
+    const std::uint64_t old_k = kref.load(std::memory_order_relaxed);
+    const std::uint64_t old_d = dref.load(std::memory_order_relaxed);
+    TTEntry entry = ttlockless::decode(old_k, old_d);
+    const std::uint32_t key32 = verification_key(key);
+    const bool same_position = entry.key32 == key32 && entry.occupied();
+    if (!move.is_none() || !same_position) entry.move = move;
+    if (bound == BoundExact || !same_position || depth + 4 > entry.depth || entry.generation() != generation_) {
+        entry.key32 = key32;
+        entry.score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+        entry.rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+        entry.eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+        entry.depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+        entry.gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+    }
+    const std::uint64_t new_d = ttlockless::data_word(entry);
+    const std::uint64_t new_k = ttlockless::key_word(entry, new_d);
+    // D before K, each one relaxed single-copy-atomic store. A racing writer can turn this into a lost update or leave
+    // a K/D pair that fails the tag (a foreign entry); it cannot create a wrong entry that passes the tag (SPEC 3.3).
+    if (new_d != old_d) dref.store(new_d, std::memory_order_relaxed);
+    if (new_k != old_k) kref.store(new_k, std::memory_order_relaxed);
+}
+
+int TranspositionTable::hashfull_lockless() const {
+    int count = 0;
+    const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+    for (std::size_t i = 0; i < sample; ++i) {
+        auto& words = lockless_clusters_[i].words;
+        for (std::size_t slot = 0; slot < 4; ++slot) {
+            const TTEntry entry = ttlockless::decode(0, AtomicWord(words[2U * slot + 1U]).load(std::memory_order_relaxed));
+            if (entry.occupied() && entry.generation() == generation_) ++count;
+        }
+    }
+    return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+}
+#endif
 
 // ---------------------------------------------------------------------------
 // Move picker
@@ -1771,6 +1950,10 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope(const TtOwnedScope&) = delete;
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
+#endif
+#if FORGE_SMP_LAYOUT
+    // Every worker reads the table's mode once per search (SPEC 3.6); written before any helper thread starts.
+    for (auto& worker : workers_) worker->tt_lockless_ = shared_.tt.lockless();
 #endif
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {

@@ -5,6 +5,7 @@ find_package(Threads REQUIRED)
 option(FORGE_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FORGE_NATIVE "Optimise for the build machine's CPU (-march=native)" OFF)
 option(FORGE_EXPOSE_TUNABLES "Advertise search tuning constants as UCI options (development builds)" OFF)
+option(FORGE_SMP_LAYOUT "opus_smp_layout: lockless TT mode (UCI TtLockless, default false) + Worker::nodes_ line; adds its tests" OFF)
 
 add_library(forge_core
     src/bitboard.cpp
@@ -32,6 +33,10 @@ else()
         target_compile_options(forge_core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(forge_core PUBLIC -fsanitize=address,undefined)
     endif()
+endif()
+
+if(FORGE_SMP_LAYOUT)
+    target_compile_definitions(forge_core PUBLIC FORGE_SMP_LAYOUT=1)
 endif()
 
 add_executable(forge src/uci.cpp)
@@ -82,6 +87,15 @@ add_test(NAME forge_rule50_tests COMMAND forge_rule50_tests)
 add_test(NAME forge_legal_witness_tests COMMAND forge_legal_witness_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/legal_witness_fixtures.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/openings/forge-10000.epd)
+if(FORGE_SMP_LAYOUT)
+    # opus_smp_layout/SPEC.md section 5: lockless TT fixtures (incl. a positive control) and Searcher lifecycle.
+    add_executable(forge_tt_lockless_tests tests/tt_lockless_tests.cpp)
+    target_link_libraries(forge_tt_lockless_tests PRIVATE forge_core Threads::Threads)
+    add_executable(forge_smp_lifecycle_tests tests/smp_lifecycle_tests.cpp)
+    target_link_libraries(forge_smp_lifecycle_tests PRIVATE forge_core Threads::Threads)
+    add_test(NAME forge_tt_lockless_tests COMMAND forge_tt_lockless_tests)
+    add_test(NAME forge_smp_lifecycle_tests COMMAND forge_smp_lifecycle_tests)
+endif()
 
 # Support tooling does not change engine behavior or add runtime dependencies.
 option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)

@@ -20,6 +20,12 @@
 #define FORGE_SPD_TT_NOTLS 1
 #endif
 
+#ifndef FORGE_SMP_LAYOUT
+// Build switch, default 0 (= parent P / trial_w6 code): 1 adds the lockless TT mode (UCI TtLockless,
+// default false) and gives Worker::nodes_ its own cache line. Specification: opus_smp_layout/SPEC.md.
+#define FORGE_SMP_LAYOUT 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -98,6 +104,73 @@ struct alignas(64) TTCluster {
 static_assert(sizeof(TTEntry) == 16);
 static_assert(sizeof(TTCluster) == 64);
 
+#if FORGE_SMP_LAYOUT
+// Lockless TT mode (UCI TtLockless; opus_smp_layout/SPEC.md section 3): one cluster = 4 entries x 2 words (K, D).
+// While workers run, every word is read or written only through std::atomic_ref (relaxed); allocation and clearing
+// happen only while all accessors are quiescent. K carries the move and the tag XOR mix32(move, D without the
+// generation bits), so a K and a D from two different stores pass the tag check only with probability ~2^-32.
+struct alignas(64) TTLocklessCluster {
+    std::array<std::uint64_t, 8> words{};
+};
+static_assert(sizeof(TTLocklessCluster) == 64);
+static_assert(std::atomic_ref<std::uint64_t>::is_always_lock_free);
+static_assert(alignof(std::uint64_t) >= std::atomic_ref<std::uint64_t>::required_alignment);
+
+namespace ttlockless {
+// The five generation bits of gen_bound inside D: replacement metadata only, never read by search.
+inline constexpr std::uint64_t GenMask = 0xF8ULL << 40U;
+
+[[nodiscard]] constexpr std::uint32_t mix32(std::uint32_t move32, std::uint64_t data) {
+    std::uint64_t z = data ^ (static_cast<std::uint64_t>(move32) * 0x9E3779B97F4A7C15ULL);
+    z = (z ^ (z >> 32U)) * 0xD6E8FEB86659FD93ULL;
+    z = (z ^ (z >> 32U)) * 0xD6E8FEB86659FD93ULL;
+    return static_cast<std::uint32_t>(z ^ (z >> 32U));
+}
+
+[[nodiscard]] constexpr std::uint32_t move_bits(const Move& move) {
+    return static_cast<std::uint32_t>(move.from) | (static_cast<std::uint32_t>(move.to) << 8U) |
+           (static_cast<std::uint32_t>(move.promotion) << 16U) | (static_cast<std::uint32_t>(move.flags) << 24U);
+}
+
+// D = score | eval << 16 | depth << 32 | gen_bound << 40 | rule50_clock << 48 | padding << 56.
+[[nodiscard]] constexpr std::uint64_t data_word(const TTEntry& entry) {
+    return static_cast<std::uint64_t>(static_cast<std::uint16_t>(entry.score)) |
+           (static_cast<std::uint64_t>(static_cast<std::uint16_t>(entry.eval)) << 16U) |
+           (static_cast<std::uint64_t>(entry.depth) << 32U) | (static_cast<std::uint64_t>(entry.gen_bound) << 40U) |
+           (static_cast<std::uint64_t>(entry.rule50_clock) << 48U) | (static_cast<std::uint64_t>(entry.padding) << 56U);
+}
+
+// K = (key32 ^ mix32(move, D without the generation bits)) | move << 32.
+[[nodiscard]] constexpr std::uint64_t key_word(const TTEntry& entry, std::uint64_t data) {
+    const std::uint32_t move32 = move_bits(entry.move);
+    return static_cast<std::uint64_t>(entry.key32 ^ mix32(move32, data & ~GenMask)) |
+           (static_cast<std::uint64_t>(move32) << 32U);
+}
+
+// Exact inverse of (key_word, data_word) for every TTEntry value; decode(0, 0) is the empty entry.
+[[nodiscard]] constexpr TTEntry decode(std::uint64_t key, std::uint64_t data) {
+    TTEntry entry;
+    const auto move32 = static_cast<std::uint32_t>(key >> 32U);
+    entry.key32 = static_cast<std::uint32_t>(key) ^ mix32(move32, data & ~GenMask);
+    entry.move.from = static_cast<std::uint8_t>(move32);
+    entry.move.to = static_cast<std::uint8_t>(move32 >> 8U);
+    entry.move.promotion = static_cast<std::uint8_t>(move32 >> 16U);
+    entry.move.flags = static_cast<std::uint8_t>(move32 >> 24U);
+    entry.score = static_cast<std::int16_t>(static_cast<std::uint16_t>(data));
+    entry.eval = static_cast<std::int16_t>(static_cast<std::uint16_t>(data >> 16U));
+    entry.depth = static_cast<std::uint8_t>(data >> 32U);
+    entry.gen_bound = static_cast<std::uint8_t>(data >> 40U);
+    entry.rule50_clock = static_cast<std::uint8_t>(data >> 48U);
+    entry.padding = static_cast<std::uint8_t>(data >> 56U);
+    return entry;
+}
+
+[[nodiscard]] constexpr std::uint64_t with_gen_bound(std::uint64_t data, std::uint8_t gen_bound) {
+    return (data & ~(0xFFULL << 40U)) | (static_cast<std::uint64_t>(gen_bound) << 40U);
+}
+} // namespace ttlockless
+#endif
+
 class TranspositionTable;
 
 // Immutable entry copy plus an opaque probe-time replacement destination.
@@ -128,8 +201,22 @@ public:
     [[nodiscard]] int hashfull() const;
     [[nodiscard]] std::uint8_t generation() const { return generation_; }
     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
+#if FORGE_SMP_LAYOUT
+    // Lockless mode (UCI TtLockless, SPEC 3.6). Quiescent only: frees the active array, allocates the other storage
+    // type with the same cluster count (empty), generation 0, new epoch. No-op when the mode is unchanged.
+    void set_lockless(bool on);
+    [[nodiscard]] bool lockless() const { return lockless_; }
+    // Decoded copy of one slot in either mode; tests and diagnostics on a quiescent table only.
+    [[nodiscard]] TTEntry debug_entry(std::size_t cluster, int slot) const;
+#endif
     void prefetch(std::uint64_t key) const {
 #if defined(__GNUC__) || defined(__clang__)
+#if FORGE_SMP_LAYOUT
+        if (lockless_) {
+            __builtin_prefetch(&lockless_clusters_[cluster_index(key)]);
+            return;
+        }
+#endif
         __builtin_prefetch(&cluster_for(key));
 #else
         (void)key;
@@ -173,6 +260,16 @@ private:
     void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                      bool pv, std::uint16_t halfmove_clock);
 #endif
+#if FORGE_SMP_LAYOUT
+#if !FORGE_SPD_TT_NOTLS
+    friend class Worker;
+#endif
+    // Lockless-mode bodies (SPEC 3.4 / 3.5): the same decisions as probe_body / store_body on decoded copies.
+    [[nodiscard]] TTProbe probe_lockless(std::uint64_t key) const;
+    void store_lockless(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+                        bool pv, std::uint16_t halfmove_clock);
+    [[nodiscard]] int hashfull_lockless() const;
+#endif
     mutable std::array<Stripe, StripeCount> stripes_{};
     mutable std::mutex exclusive_gate_;
     std::atomic<bool> exclusive_requested_{false};
@@ -180,6 +277,21 @@ private:
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
+#if FORGE_SMP_LAYOUT
+    // Exactly one of clusters_ / lockless_clusters_ is allocated; lockless_ says which (changed only when quiescent).
+    std::unique_ptr<TTLocklessCluster[]> lockless_clusters_;
+    bool lockless_ = false;
+
+    // The same index mapping as cluster_for (multiply-high, or modulo without __int128).
+    [[nodiscard]] std::size_t cluster_index(std::uint64_t key) const {
+#if defined(__SIZEOF_INT128__)
+        __extension__ using u128 = unsigned __int128;
+        return static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U);
+#else
+        return static_cast<std::size_t>(key % cluster_count_);
+#endif
+    }
+#endif
 
     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
 #if defined(__SIZEOF_INT128__)
@@ -334,6 +446,9 @@ private:
 #if FORGE_SPD_TT_NOTLS
     friend class Searcher;
 #endif
+#if FORGE_SMP_LAYOUT && !FORGE_SPD_TT_NOTLS
+    friend class Searcher;
+#endif
 
     SharedSearchState& shared_;
     int id_ = 0;
@@ -351,8 +466,16 @@ private:
 
     bool pondering_ = false;
     std::chrono::steady_clock::time_point start_{};
+#if FORGE_SMP_LAYOUT
+    // Cross-thread counter: the owner stores it in should_stop(), every other worker loads it in total_nodes() (every
+    // node under go nodes). It gets its own 64-byte line, so those loads no longer hit the owner's per-node fields
+    // (parent P measured nodes_ on one line with local_nodes_, all_workers_, node_limit_specified_; SPEC 4, BENCH.md).
+    alignas(64) std::atomic<std::uint64_t> nodes_{0};
+    alignas(64) std::uint64_t local_nodes_ = 0;
+#else
     std::atomic<std::uint64_t> nodes_{0};
     std::uint64_t local_nodes_ = 0;
+#endif
     const std::vector<Worker*>* all_workers_ = nullptr;
     std::uint64_t node_limit_ = 0;
     bool node_limit_specified_ = false;
@@ -365,6 +488,10 @@ private:
     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
     bool tt_owned_ = false;
 #endif
+#if FORGE_SMP_LAYOUT
+    // The table's mode for this search; set by Searcher::search before any helper thread starts (SPEC 3.6).
+    bool tt_lockless_ = false;
+#endif
     int seldepth_ = 0;
     int root_depth_ = 0;
     std::size_t root_history_index_ = 0;
@@ -376,10 +503,19 @@ private:
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
     [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+#if FORGE_SMP_LAYOUT
+        if (tt_lockless_) return shared_.tt.probe_lockless(key);
+#endif
         return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
     }
     void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
                   bool pv, std::uint16_t halfmove_clock) {
+#if FORGE_SMP_LAYOUT
+        if (tt_lockless_) {
+            shared_.tt.store_lockless(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+            return;
+        }
+#endif
         if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
         else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
     }
@@ -432,6 +568,10 @@ public:
     void clear();
     void clear_hash();
     void resize_hash(std::size_t hash_mb);
+#if FORGE_SMP_LAYOUT
+    // UCI TtLockless (quiescent only): this searcher's table mode; the table is cleared when the mode changes.
+    void set_tt_lockless(bool on) { shared_.tt.set_lockless(on); }
+#endif
     void set_threads(int threads);
     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }

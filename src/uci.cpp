@@ -136,6 +136,9 @@ int main() {
     std::uint64_t book_rng = static_cast<std::uint64_t>(
         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
     bool ponder_search_active = false;
+#if FORGE_SMP_LAYOUT
+    bool tt_lockless = false;   // UCI TtLockless (opus_smp_layout/SPEC.md); applied to the search and bench tables
+#endif
     std::thread worker;
     std::mutex stop_mutex;
     std::condition_variable stop_cv;
@@ -171,6 +174,9 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#if FORGE_SMP_LAYOUT
+            std::cout << "option name TtLockless type check default false\n";
+#endif
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -267,6 +273,17 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+#if FORGE_SMP_LAYOUT
+            } else if (name == "TtLockless") {
+                if (value_text == "true") tt_lockless = true;
+                else if (value_text == "false") tt_lockless = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option TtLockless" << std::endl;
+                }
+                // stop_search() above joined the search thread: the table is quiescent (SPEC 3.6).
+                searcher.set_tt_lockless(tt_lockless);
+#endif
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
@@ -393,6 +410,9 @@ int main() {
             std::uint64_t total_nodes = 0;
             const auto start = std::chrono::steady_clock::now();
             forge::Searcher bench_searcher(16);
+#if FORGE_SMP_LAYOUT
+            bench_searcher.set_tt_lockless(tt_lockless);
+#endif
             for (const std::string_view fen : fens) {
                 forge::Board bench_board;
                 if (!bench_board.set_fen(fen)) continue;
