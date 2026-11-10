@@ -122,7 +122,15 @@ Logs: `logs/tests/`, `logs/stress/`.
 | contention fixture, 6 s per configuration | **1,888,357,888 probes, 313,545,226 hits, 0 incoherent**; control 8,749,241 incoherent |
 | lifecycle with T1 identity at depth 11 (6 FENs, cold and warm, three paths) and lifecycle cases at depth 8 | PASS |
 | own leftover processes | none. A background wait loop for the never-written recheck file was ended cooperatively by writing a labelled placeholder (`out\review\R1_recheck_smp.md`); nothing was terminated |
-| stale documentation | fixed: SCALING_PLAN (old gate hash), SPEC §5 control wording, skill dispatch line, BENCH title |
+| stale documentation | fixed: SCALING_PLAN (old gate hash), SPEC §5 control wording, skill dispatch line, BENCH title, SPEC §3.1/§4/§5 names and wording |
+| replacement under pressure: **Hash 1 MB** (16,384 clusters), 1,000 FENs, cold, `go depth 12` | P, gate `TtLockless=false` and gate `TtLockless=true`: identical rows (body sha256 `aa5b30715761c8bd…`, 1,000 distinct). Slot choice and tie-breaks match P under constant replacement |
+| deeper warm table: FENs 2001-2300, `go nodes 200000`, same option cycle (12 changes), no ucinewgame | P, gate OFF and gate ON: identical transcripts (body sha256 `dd2126651f1777b9…`, 4,574 lines) |
+| the other trial_w6 TT configuration: `FORGE_SPD_TT_NOTLS=0` + `FORGE_SMP_LAYOUT=1` (plain -O2 build, `-Wall -Wextra`) | 0 warnings. Pins (net on/off d11-22, perft) **ALL OK** with `TtLockless` false and true (lockless works through the public, non-owned TT path too) |
+| Threads 8 lockless stress, 1,500 cycles, seed 99 (oversubscribed smoke) | 1,144 / 1,144 legal bestmoves, isready ≤ 26.7 ms, exit 0: **PASS** |
+| **setoption while a search runs** (`go infinite`, then after 150 ms `TtLockless` true/false, Hash 64/16, Clear Hash, ucinewgame; Threads 1/4/8) | UCI stops and joins the search before touching the table: every interrupted bestmove is legal, the following `go depth 8` is legal, exit 0. **PASS** (`setoption_during_search.txt`) |
+| stress driver control: P itself, 2,000 cycles, seed 7 | PASS with 1,567 / 1,567 legal bestmoves, the same count as the gate runs with the same seed (the driver gives no false failures and the action sequence is reproducible) |
+| special search modes at Threads 1: `go searchmoves …` (2 positions, depth 10-11) and `go mate 2/3` | P = gate OFF = gate ON in depth, score, nodes and best move (`special_modes.txt`) |
+| every existing test, natively on Windows, gate configuration (macro 1; one g++ line each, CPUs 12-15) | `forge_tests`: exactly the 4 known AL1 FAIL lines (the CI checker's list); correction_history, runtime_psqt, pawn_span, nearest_pawn, pv_metadata, rule50 and legal_witness (with its fixtures and openings): **PASS** |
 
 Fixture totals over all 8 runs (5 native at 1.5 s per configuration, 1 native at 6 s, 2 under TSan in CI): **4,053,817,344 probes, 673,781,118 hits, 0 incoherent.**
 
