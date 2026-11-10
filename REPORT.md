@@ -122,3 +122,15 @@ Connector author was explicitly authorized after authenticated git push was unav
 - 60e6a8c2: complete equivalence JSON transfer, verified to exact local Git blob.
 
 This final report checkpoint follows verified publication of all eight opt-in changes, patch exports, reproductions and evidence. A transfer-integrity check caught a partial large evidence JSON; a non-rewriting follow-up commit restored the exact local blob. All 64 compared source/header/test/patch/report entries now match their tested local content and modes. Remaining: native 12k bit-exact, quiet ABBA, 10+0.1 SPRT and Windows/Clang validation. Cloud work completed to the coverage documented here; no claim of exhaustive verification. No branch rewrite, force push, deletion, merge or locked-branch change performed.
+
+
+## Continued audit checkpoint: additional coverage and third speed candidate
+
+No additional production correctness defect established in this phase.
+
+- Full-engine GCC ThreadSanitizer: default-off and all-eight-enabled builds each completed 72 UCI searches with no sanitizer warnings or initialization failures. Covers all Threads 2/4 × NNUE on/off combinations, node limits, stop, pondering, movetime, hash resize/clear and newgame. Source tested through the exception-cleanup correction, before material caching. Finite race coverage does not negate the previously reproduced atomic semantic defects. Full logs and recipe: `tests/smp_tsan_*`.
+- Ten additional UCI edge cases passed on original baseline and the eight-switch candidate: mate overrides rule-50 draw, stalemate, legal rule-50 draw, twofold versus threefold knight cycles with history, empty searchmoves, invalid-FEN/illegal-move atomicity, castling through attack, and quiet/capture underpromotions. Driver `tests/uci_edgecases.py`; logs `tests/review_evidence/uci-edge-*`.
+- Third default-off speed candidate: `FORGE_SPD_MATERIAL_CORRECTION_CACHE=1`, patch `S3-material-cache.patch`. Lazily reuse the material-correction index within one SearchStack frame. Every main/qsearch entry invalidates it, including early returns and same-ply re-entry; weight-zero stays lazy and NNUE is independent. Original hash, mask and correction arithmetic retained. Independent static review found no new defect. Focused tests plus isolated off/on 256 comparisons passed. **UNPROVEN speed/strength**, high confidence only in tested equivalence. Files `tests/material_cache_*`.
+- All NINE switches combined also pass all ten bench pins, startpos perft 5, the terminal/history/atomicity UCI edge suite, and a new 256-comparison baseline screen at depth 7 with both NNUE modes: zero mismatches in nodes/depth/score/PV/bestmove. Evidence `tests/review_evidence/nine-switch-*`. The general build recipe now enables all nine candidates.
+
+Published continuation commits: `214f7401` TSan lifecycle stress; `9edcfe92` UCI/history edge tests; `04cc2f87` material-correction cache and isolated equivalence evidence. This checkpoint adds combined nine-switch evidence and the third patch export. Native tester-PC gates remain unchanged and outstanding.

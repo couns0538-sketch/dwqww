@@ -11,7 +11,8 @@ flags=(-std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1
        -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -I"$root/include")
 fixes=(-DFORGE_FIX_SMP_NODE_RESET=1 -DFORGE_FIX_SMP_FINAL_NODES=1 -DFORGE_FIX_SMP_STOP_LATCH=1
        -DFORGE_FIX_UCI_OPTION_CASE=1 -DFORGE_BOOK_LEGAL_REUSE=1 -DFORGE_SPD_NNUE_CASTLE_FUSE=1
-       -DFORGE_FIX_ATTACKS_INIT_ONCE=1 -DFORGE_FIX_SMP_EXCEPTIONS=1)
+       -DFORGE_FIX_ATTACKS_INIT_ONCE=1 -DFORGE_FIX_SMP_EXCEPTIONS=1
+       -DFORGE_SPD_MATERIAL_CORRECTION_CACHE=1)
 "$cxx" "${flags[@]}" "$root"/src/*.cpp -o "$out/default"
 "$cxx" "${flags[@]}" "${fixes[@]}" "$root"/src/*.cpp -o "$out/enabled"
 for variant in default enabled; do
