@@ -75,7 +75,7 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 ## 7. Baseline snapshot and rollback
 - **Baseline:** the lock values with both switches at 0, recorded with exe hashes in `configs/baseline_combo29.json`.
 - **Baseline rollback:** `bin\rollback.ps1 -Baseline` prints the baseline line and writes nothing.
-- **Run rollback:** `bin\rollback.ps1 -RunDir <dir> -ToSeq <n>` writes a new logged checkpoint with θ and k of checkpoint n.
+- **Run rollback:** `bin\rollback.ps1 -RunDir <dir> -ToCkpt <n>` writes a new logged checkpoint with θ and k of checkpoint n.
 
 ## 8. Unproven (stated so nobody reads them as results)
 - **Tuned values:** none exist. Tuning is PENDING QA EXECUTION.

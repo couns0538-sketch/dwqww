@@ -1,0 +1,160 @@
+{
+ "schema": "opus3-spsa-config/1",
+ "name": "opus3_joint_razor_qs_combo29",
+ "run_nonce": "synthqual-null_r1",
+ "comment": "SYNTHETIC QUALIFICATION copy of joint_razor_qs.json, derived by spsa/synth_qualify.py: only run_nonce, identity_check and synthetic differ. Outcomes come from a model; no games; no Elo.",
+ "seed": 20261110,
+ "pairs_planned": 4000,
+ "pairs_per_batch": 4,
+ "alpha": 0.602,
+ "gamma": 0.101,
+ "A_ratio": 0.1,
+ "bounds_mode": "inner",
+ "s_min": 0.25,
+ "params": [
+  {
+   "name": "RazorBase",
+   "family": "F1",
+   "kind": "int",
+   "start": 150,
+   "lock": 150,
+   "min": 0,
+   "max": 600,
+   "c_end": 15,
+   "r_end": 0.002
+  },
+  {
+   "name": "RazorMultiplier",
+   "family": "F1",
+   "kind": "int",
+   "start": 350,
+   "lock": 350,
+   "min": 100,
+   "max": 800,
+   "c_end": 35,
+   "r_end": 0.002
+  },
+  {
+   "name": "QsFutilityMargin",
+   "family": "F2",
+   "kind": "int",
+   "start": 160,
+   "lock": 160,
+   "min": 40,
+   "max": 400,
+   "c_end": 16,
+   "r_end": 0.002
+  },
+  {
+   "name": "RazorDepth",
+   "family": "F1",
+   "kind": "int",
+   "start": 2,
+   "lock": 2,
+   "min": 1,
+   "max": 3,
+   "c_end": 1,
+   "enabled": false,
+   "fixed": 2,
+   "why_frozen": "integer with large jumps; at most a later fixed +-1 A/B (PLAN.md 2)"
+  },
+  {
+   "name": "QsSeeMargin",
+   "family": "F2",
+   "kind": "int",
+   "start": 40,
+   "lock": 40,
+   "min": 0,
+   "max": 500,
+   "c_end": 8,
+   "enabled": false,
+   "fixed": 40,
+   "why_frozen": "in-flight DR06 rewrites its line; 100-step plateau (AUDIT.md 6)"
+  }
+ ],
+ "constraints": [
+  {
+   "id": "C1",
+   "prior": "monotone margins: depth-0 futility allowance <= depth-1 razor margin (heuristic)",
+   "coef": {
+    "QsFutilityMargin": 1,
+    "RazorBase": -1,
+    "RazorMultiplier": -1
+   },
+   "le": 0
+  },
+  {
+   "id": "C3p",
+   "prior": "depth-1 razor liveness: M(1) = RazorBase + RazorMultiplier <= 1000 (heuristic)",
+   "coef": {
+    "RazorBase": 1,
+    "RazorMultiplier": 1
+   },
+   "le": 1000
+  }
+ ],
+ "identity": {
+  "engine_exe": {
+   "path": "C:\\Users\\Administrator\\grok-pc\\forge_push\\bin\\forge_clang_combo29_trial_w6.exe",
+   "sha256": "e1284f7fc492c8fe1285797fdae8988cf2f2926b33fcfee7023d284d67d8802e"
+  },
+  "fastchess": {
+   "path": "C:\\Users\\Administrator\\grok-pc\\tools\\fastchess\\fastchess.exe",
+   "sha256": "c6d7e4458a58025983c81bf38c524cb213e6f27559657dcfd72543392a431a71"
+  },
+  "openings": {
+   "path": "D:\\forge_jobs_20261107\\opus3\\out\\partition\\train.pgn",
+   "sha256": "fa0b8708103f70cf0127364a940010b832bd8ec8f9f8f7a10f97bef3189b213f"
+  }
+ },
+ "net": {
+  "kind": "embedded",
+  "covered_by": "engine_exe",
+  "nnue_weights_inc_sha256": "a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638",
+  "lock_net_md5": "22B4B9E2C61B37C0450F13A3A92C19B3"
+ },
+ "engine": {
+  "profile": "lock",
+  "comment": "the scalars are existing UCI options of the lock exe (FORGE_EXPOSE_TUNABLES=1); the gate build (patches/) is only the delivery vehicle",
+  "fixed_options": {
+   "Threads": 1,
+   "Hash": 16,
+   "OwnBook": false
+  },
+  "switch_options": {}
+ },
+ "match": {
+  "tc": "10+0.1",
+  "concurrency": 1,
+  "timemargin": 1000,
+  "comment": "QA's combo29 gate time control; QA chooses concurrency and CPUs"
+ },
+ "openings": {
+  "role": "train",
+  "format": "pgn",
+  "partition_manifest": "opus_spsa_resume/partition/PARTITION_MANIFEST.json",
+  "forbidden_sha256": [
+   "63bb149518256ba9608cdb6a8a22f87b7712e4707b8ad394c3767a5e1c45307c",
+   "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc",
+   "47985a6e8597dfad6b5481c29bfb8e2c4b0992df710dd3cb733f265b928eb819",
+   "47cbbeb49c4b4facb20afc25348fe2903ac92a118aefa8f95bf1f5bc45fa817f",
+   "5835239f88cc2c7511b177c32392a69f3ede21819cf0616f80a7f907cd21d17e",
+   "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a"
+  ]
+ },
+ "screen": {
+  "enabled": false,
+  "every": 50,
+  "pairs": 8,
+  "comment": "optional monitoring of theta vs baseline on the screen partition; never feeds an update; enabling needs identity.screen_openings (screen.pgn, sha256 63bb1495...)"
+ },
+ "live": {
+  "enabled": false
+ },
+ "identity_check": "start",
+ "synthetic": {
+  "kind": "flat",
+  "draw": 0.75,
+  "seed": "synthqual-null-1"
+ }
+}

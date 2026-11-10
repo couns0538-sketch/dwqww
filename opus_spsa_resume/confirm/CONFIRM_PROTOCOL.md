@@ -21,6 +21,8 @@ Frozen in this pack **before any fitting**: no tuning game has been played by an
   - Tuning read only `8moves_v3`'s training partition (`partition/PARTITION_MANIFEST.json`). Compared on pieces, side and castling, only 50 of 2,632,036 UHO lines match a training position, so a 2,500-opening confirm is expected to meet about 0.05 of them.
   - **Leakage audit, mandatory:** after the gate, run `bin\confirm.ps1 -Command audit -Protocol <p> -Candidate <c> -Pgn <gate.pgn>`. It recomputes the result with and without pairs whose start position is a training or screen position.
 - **Alternative (this pack's runner):** holdout group G1 of `8moves_v3`: 2,408 positions, `holdout_G1.pgn`, SHA256 cfe81bf7…, regenerated and verified by `partition/opening_partition.py`. QA would have to add it as a book key, so this route needs a QA decision.
+  - Each pair uses one opening, so G1 allows at most 2,408 pairs (4,816 games) without replaying an opening. The runner refuses a larger cap in every mode, including dry-run (exit 10), unless the protocol sets `allow_opening_reuse`, which needs a written QA decision. Example: `configs/confirm_protocol_G1_example.json` (cap 4,816).
+  - At that cap the synthetic power is about that of QA's 5,000-game cap (table below), so G1 alone decides only large effects. The 40,000-game cap needs the UHO route.
 - **Use once.** One confirmation per holdout group, ever: the registry refuses a second run, whether for another candidate or a re-run of the same one. G2 and G3 are reserved for a protocol change that QA approves in writing before any game.
 
 ## 4. Statistics and stop rule (fixed)
@@ -55,4 +57,4 @@ See `ROLLBACK.md`.
 - **A/A, true nElo 0:** H1 in 0 of 300 runs.
 - **Fake optimizer:** best of 20 equal candidates, which looks better in training; H1 in 0 of 300 runs.
 - **Positive control, nElo 25:** H1 in 96–97% (cap 5,000).
-- **Refusals and recovery:** holdout reuse and peeking refused; changed exe or protocol refused; corrupt checkpoint, duplicate and incomplete pairs refused; crash at 7 boundaries recovered with identical records; the leakage audit finds a planted training position.
+- **Refusals and recovery:** holdout reuse and peeking refused; changed exe or protocol refused; a cap needing more pairs than the holdout has openings refused; corrupt checkpoint, duplicate and incomplete pairs refused; crash at 7 boundaries recovered with identical records; the leakage audit finds a planted training position.
