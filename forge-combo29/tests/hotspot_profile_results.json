@@ -1,0 +1,267 @@
+{
+  "source_commit": "16833ecc03b425586f91f4c8834dea8807bf4c22",
+  "started_utc": "2026-11-10T20:53:52.579190+00:00",
+  "profiler": "GNU gprof (GNU Binutils for Debian) 2.44",
+  "compiler": "g++-14 (Debian 14.2.0-19) 14.2.0",
+  "compile_command": [
+    "/usr/bin/g++-14",
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-march=x86-64-v4",
+    "-pthread",
+    "-Iinclude",
+    "-pg",
+    "-g",
+    "-fno-omit-frame-pointer",
+    "src/bitboard.cpp",
+    "src/board.cpp",
+    "src/book.cpp",
+    "src/eval.cpp",
+    "src/eval_params.cpp",
+    "src/nnue.cpp",
+    "src/search.cpp",
+    "src/uci.cpp",
+    "-o",
+    "/workspace/shared/forge-build/hotspot-profile/forge-gprof"
+  ],
+  "compile_cwd": "/workspace/shared/forge-build/hotspot-profile/source/forge-combo29",
+  "profile_binary_sha256": "0e2cf017adc2a3384a615dc532deae82e5386eeb395720054a4cff17d1f621ac",
+  "reference_binary_sha256": "1371770e2ad61aa2fe3c038acc7da3912da5d64c9cb1dcc5e4668221fb3226f6",
+  "cpu_affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "scope": "Instrumented immutable lock, not candidate comparison or accepted performance evidence",
+  "runs": [
+    {
+      "id": "nnue_on_depth16",
+      "nnue": true,
+      "depth": 16,
+      "stdin": "setoption name UseNNUE value true\nbench 16\nquit\n",
+      "load_before": [
+        0.44482421875,
+        0.3212890625,
+        0.37548828125
+      ],
+      "nodes": {
+        "reference": 3024920,
+        "profile": 3024920
+      },
+      "gmon_sha256": "41958b5d2841025cf61d889ac2f5cda3db9557b75bfcc0bffa49bbab4ecda137",
+      "load_after": [
+        0.64990234375,
+        0.3662109375,
+        0.3896484375
+      ]
+    },
+    {
+      "id": "nnue_on_depth18",
+      "nnue": true,
+      "depth": 18,
+      "stdin": "setoption name UseNNUE value true\nbench 18\nquit\n",
+      "load_before": [
+        0.64990234375,
+        0.3662109375,
+        0.3896484375
+      ],
+      "nodes": {
+        "reference": 6066072,
+        "profile": 6066072
+      },
+      "gmon_sha256": "0610ced0bb7e565aa0f3f348928ca5d717e1ca45331ab9049fa33c50ac4e8f59",
+      "load_after": [
+        0.7041015625,
+        0.3876953125,
+        0.396484375
+      ]
+    },
+    {
+      "id": "nnue_off_depth16",
+      "nnue": false,
+      "depth": 16,
+      "stdin": "setoption name UseNNUE value false\nbench 16\nquit\n",
+      "load_before": [
+        0.7041015625,
+        0.3876953125,
+        0.396484375
+      ],
+      "nodes": {
+        "reference": 2448617,
+        "profile": 2448617
+      },
+      "gmon_sha256": "66fe45cee3cbf08356d6a606e1389dcac82d4650f87828710a9dc5d569f0aa15",
+      "load_after": [
+        0.7041015625,
+        0.3876953125,
+        0.396484375
+      ]
+    },
+    {
+      "id": "nnue_off_depth18",
+      "nnue": false,
+      "depth": 18,
+      "stdin": "setoption name UseNNUE value false\nbench 18\nquit\n",
+      "load_before": [
+        0.7041015625,
+        0.3876953125,
+        0.396484375
+      ],
+      "nodes": {
+        "reference": 6134776,
+        "profile": 6134776
+      },
+      "gmon_sha256": "2fd76298effeb49c0c3b171643c719432c3fdc4cb0249847e8cba99873382387",
+      "load_after": [
+        0.75,
+        0.408203125,
+        0.4033203125
+      ]
+    }
+  ],
+  "reference_hash_unchanged": true,
+  "finished_utc": "2026-11-10T20:54:16.583435+00:00",
+  "reproduction_source_allowlist": [
+    "forge-combo29/src",
+    "forge-combo29/include"
+  ],
+  "compiled_source_verification": [
+    {
+      "path": "forge-combo29/include/forge/bitboard.hpp",
+      "expected_git_blob": "9a921088995fc1db4ff535d527e01e988e7b71f1",
+      "actual_git_blob": "9a921088995fc1db4ff535d527e01e988e7b71f1",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/board.hpp",
+      "expected_git_blob": "9a94c15ff030fb9b3a6535311c49c0f4163c7535",
+      "actual_git_blob": "9a94c15ff030fb9b3a6535311c49c0f4163c7535",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/book.hpp",
+      "expected_git_blob": "a350cbb363b42cfaf5811af29ab09b3b88197b8f",
+      "actual_git_blob": "a350cbb363b42cfaf5811af29ab09b3b88197b8f",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/eval.hpp",
+      "expected_git_blob": "4bd1abaedddbd31e1467d8388e2feacad75e39af",
+      "actual_git_blob": "4bd1abaedddbd31e1467d8388e2feacad75e39af",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/eval_params.hpp",
+      "expected_git_blob": "2bfe24a35c63f95feb227934506f5f588c3cb64a",
+      "actual_git_blob": "2bfe24a35c63f95feb227934506f5f588c3cb64a",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/nnue.hpp",
+      "expected_git_blob": "e3b9b893e3358a1662c617405a56c3648cff01df",
+      "actual_git_blob": "e3b9b893e3358a1662c617405a56c3648cff01df",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/search.hpp",
+      "expected_git_blob": "ca3b34a5140e97e423efa700f962c2746facd7cf",
+      "actual_git_blob": "ca3b34a5140e97e423efa700f962c2746facd7cf",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/include/forge/uci_output.hpp",
+      "expected_git_blob": "b0e4c1e6efb41c3d3dab781d033b5a92922aab60",
+      "actual_git_blob": "b0e4c1e6efb41c3d3dab781d033b5a92922aab60",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/bitboard.cpp",
+      "expected_git_blob": "788adccc9ca0b314a95ff564c641b9cda0bc9765",
+      "actual_git_blob": "788adccc9ca0b314a95ff564c641b9cda0bc9765",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/board.cpp",
+      "expected_git_blob": "c6a2cfe5100645bbeebd7eb9a97222ae752ec3bf",
+      "actual_git_blob": "c6a2cfe5100645bbeebd7eb9a97222ae752ec3bf",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/book.cpp",
+      "expected_git_blob": "5f79f022f65a524dcc5b15059c5e8b33b26f321a",
+      "actual_git_blob": "5f79f022f65a524dcc5b15059c5e8b33b26f321a",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/book_data.inc",
+      "expected_git_blob": "9b9671eeb47c994e5ef8d6ea91d44bc971986fa3",
+      "actual_git_blob": "9b9671eeb47c994e5ef8d6ea91d44bc971986fa3",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/eval.cpp",
+      "expected_git_blob": "8e0ae379900da7a3141ad9a7620fbf4c9f19add4",
+      "actual_git_blob": "8e0ae379900da7a3141ad9a7620fbf4c9f19add4",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/eval_params.cpp",
+      "expected_git_blob": "482ab3f423eab8f643922e7532312fb5a0ac403e",
+      "actual_git_blob": "482ab3f423eab8f643922e7532312fb5a0ac403e",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/eval_params_table.inc",
+      "expected_git_blob": "6f2634ba788d3624a739304c30611ee0ce13e9c2",
+      "actual_git_blob": "6f2634ba788d3624a739304c30611ee0ce13e9c2",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/nnue.cpp",
+      "expected_git_blob": "9701b80c5af2f8755dd58cddec59f20cfff029b2",
+      "actual_git_blob": "9701b80c5af2f8755dd58cddec59f20cfff029b2",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/nnue_weights.inc",
+      "expected_git_blob": "c17ccca5f157d07c65eff76aac510a99490c6fcc",
+      "actual_git_blob": "c17ccca5f157d07c65eff76aac510a99490c6fcc",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/polyglot_keys.inc",
+      "expected_git_blob": "1f5703d1c39ae76253e79ce0740ce3a79223726e",
+      "actual_git_blob": "1f5703d1c39ae76253e79ce0740ce3a79223726e",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/search.cpp",
+      "expected_git_blob": "2ffe2556113ce83200d49030064e164650cfe890",
+      "actual_git_blob": "2ffe2556113ce83200d49030064e164650cfe890",
+      "matched": true
+    },
+    {
+      "path": "forge-combo29/src/uci.cpp",
+      "expected_git_blob": "607adf3a9a72ae45ed29db62d2dacaac3a692c06",
+      "actual_git_blob": "607adf3a9a72ae45ed29db62d2dacaac3a692c06",
+      "matched": true
+    }
+  ]
+}

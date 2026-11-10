@@ -25,7 +25,7 @@ for label in lock reviewed; do
   # Dedicated scratch directory only; all builds reuse exactly this path.
   rm -rf "$out/source"
   mkdir "$out/source"
-  git -C "$repo" archive "$revision" | tar -x -C "$out/source"
+  git -C "$repo" archive "$revision" -- forge-combo29/src forge-combo29/include | tar -x -C "$out/source"
   (cd "$out/source/forge-combo29"; "$cxx" "${flags[@]}" src/*.cpp -o ../engine)
   cp "$out/source/engine" "$out/$label"
   nm -C -S "$out/$label" > "$out/$label.symbols.txt"

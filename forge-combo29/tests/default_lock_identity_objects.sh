@@ -10,7 +10,7 @@ for entry in 'lock 16833ec' 'reviewed 31c5d202e6662c159976a70de5803d220acee2e1';
  read -r label rev <<<"$entry"
  rm -rf "$out/source"
  mkdir -p "$out/source" "$out/$label-objects"
- git -C "$repo" archive "$rev" | tar -x -C "$out/source"
+ git -C "$repo" archive "$rev" -- forge-combo29/src forge-combo29/include | tar -x -C "$out/source"
  (cd "$out/source/forge-combo29"; /usr/bin/g++-14 "${flags[@]}" -c src/*.cpp)
  cp "$out/source/forge-combo29/"*.o "$out/$label-objects/"
 done

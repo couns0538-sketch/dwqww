@@ -17,7 +17,7 @@ git -C "$repo" diff 6a945a4^ 6a945a4 -- forge-combo29/src/search.cpp forge-combo
 # Only remove the dedicated scratch source directory owned by this script.
 rm -rf "$out/source"
 mkdir "$out/source"
-git -C "$repo" archive "$base" | tar -x -C "$out/source"
+git -C "$repo" archive "$base" -- forge-combo29/src forge-combo29/include | tar -x -C "$out/source"
 build() {
   (cd "$out/source/forge-combo29"; "$cxx" "${flags[@]}" src/*.cpp -o ../engine)
   cp "$out/source/engine" "$out/$1"
