@@ -11,3 +11,12 @@ old, new = nodes(sys.argv[1]), nodes(sys.argv[2])
 assert old == [312866, 312866], old
 assert new == [375354, 312866], new
 print('PASS baseline ignores noncanonical option names; candidate accepts both cases')
+# Invalid values produce an observable diagnostic only when the name is recognized.
+# Values and file paths deliberately retain their original case-sensitive handling.
+names = ['move overhead', 'BOOK DEPTH', 'bOoK vArIeTy', 'lmrquietbase', 'THREADS', 'hash']
+extra = ''.join('setoption name ' + name + ' value not-an-integer\n' for name in names) + 'quit\n'
+result = subprocess.run([sys.argv[2]], input=extra, text=True, capture_output=True, check=True, timeout=10)
+for name in names:
+    assert 'info string invalid value for option ' + name in result.stdout, (name, result.stdout)
+print('PASS multiword options, tunable names, Hash and Threads are recognized case-insensitively')
+# Clear Hash dispatch is reviewed in source; its side effect is not observed here.
