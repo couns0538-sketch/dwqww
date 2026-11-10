@@ -1,0 +1,108 @@
+--- a/forge-combo29/include/forge/nnue.hpp
++++ b/forge-combo29/include/forge/nnue.hpp
+@@ -27,6 +27,18 @@
+ // src/nnue.cpp), with separate multiply and add. Needs __AVX512F__.
+ #ifndef FORGE_SPD_NNUE_ZMM
+ #define FORGE_SPD_NNUE_ZMM 0
++#endif
++
++// Build switch (default 0 = the lock code), for a residual network only: the
++// static evaluation computes the hand-crafted part first and the network part
++// second. 1 = that order only. 2 = in addition, before the hand-crafted part
++// starts, prefetch the weight columns that the pending accumulator updates will
++// read, so that they arrive while the hand-crafted part runs. The two parts do
++// not read each other's data and each performs the lock's own calls in the
++// lock's own order, so every value is identical; only the order in time and
++// the timing of memory loads differ.
++#ifndef FORGE_SPD_EVAL_PIPELINE
++#define FORGE_SPD_EVAL_PIPELINE 0
+ #endif
+ 
+ [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
+@@ -69,6 +81,10 @@
+ 
+ void refresh(const Board& board, Accumulator& accumulator);
+ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);
++#if FORGE_SPD_EVAL_PIPELINE >= 2
++// Prefetch every weight column that update() will read for `dirty`.
++void prefetch_columns(const DirtyPieces& dirty);
++#endif
+ // Side-to-move evaluation in centipawns.
+ [[nodiscard]] int evaluate(const Board& board, const Accumulator& accumulator);
+ 
+--- a/forge-combo29/src/nnue.cpp
++++ b/forge-combo29/src/nnue.cpp
+@@ -91,6 +91,26 @@
+ bool available() { return FORGE_HAS_NNUE != 0; }
+ 
+ bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
++
++#if FORGE_SPD_EVAL_PIPELINE >= 2
++#if !FORGE_NNUE_SSE
++#error "FORGE_SPD_EVAL_PIPELINE=2 needs _mm_prefetch (an x86-64 target)"
++#endif
++void prefetch_columns(const DirtyPieces& dirty) {
++    const float* const w1 = weights().w1.get();
++    constexpr int ColumnBytes = static_cast<int>(sizeof(float)) * HiddenSize;
++    for (int i = 0; i < dirty.count; ++i) {
++        const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
++        for (const Color perspective : {White, Black}) {
++            const char* const column = reinterpret_cast<const char*>(
++                w1 + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize);
++            for (int offset = 0; offset < ColumnBytes; offset += 64) _mm_prefetch(column + offset, _MM_HINT_T0);
++            // A column that does not start on a line boundary ends in one more line.
++            _mm_prefetch(column + ColumnBytes - 1, _MM_HINT_T0);
++        }
++    }
++}
++#endif
+ 
+ void refresh(const Board& board, Accumulator& accumulator) {
+     const Weights& w = weights();
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -811,6 +811,44 @@
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
++#if FORGE_SPD_EVAL_PIPELINE
++    if (residual) {
++        // The same calls as the lock code below, grouped: first everything of the hand-crafted part (the
++        // runtime piece-square replay and the evaluation), then everything of the network part.
++        int back = -1;            // -1 = the accumulator is valid; otherwise the lock's walk-back distance
++        bool from_scratch = false;
++        if (!ss->accumulator.valid) {
++            back = 0;
++            while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
++            from_scratch = back >= ss->ply && !(ss - back - 1)->accumulator.valid;
++#if FORGE_SPD_EVAL_PIPELINE >= 2
++            if (!from_scratch) {
++                for (int i = back; i >= 0; --i) nnue::prefetch_columns((ss - i)->dirty);
++            }
++#endif
++            if (from_scratch) {
++                ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++            } else {
++                for (int i = back; i >= 0; --i) {
++                    Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
++                }
++            }
++        }
++        if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
++        const int hand_crafted = evaluator_.evaluate_runtime(board, ss->runtime_psqt);
++        if (back >= 0) {
++            if (from_scratch) {
++                nnue::refresh(board, ss->accumulator);
++            } else {
++                for (int i = back; i >= 0; --i) {
++                    nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
++                }
++            }
++        }
++        const int network_part = nnue::evaluate(board, ss->accumulator);
++        return std::clamp(hand_crafted + network_part, -MateInMaxPly + 1, MateInMaxPly - 1);
++    }
++#endif
+     if (!ss->accumulator.valid) {
+         // Walk back to the nearest valid accumulator, then replay the moves.
+         int back = 0;

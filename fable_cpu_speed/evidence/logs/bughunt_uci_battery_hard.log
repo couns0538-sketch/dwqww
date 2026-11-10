@@ -1,0 +1,155 @@
+BUG HUNT: UCI edge-case battery; 2026-11-10 16:43:42 Vienna
+script bughunt.py sha256 d8dd2005e35e96c5f33a30cbda123b97109ba3b7795879a9a5499fdda6ee15eb
+script uci_common.py sha256 9a8e1222f7b19a5927645072b45e41cdb12aa0821bb693ba148e5ae4b355e2c7
+script san.py sha256 3b8242178c1daae8119432e8e358fa7032a6942b0c08b4ac1c2ca3660ce53398
+python 3.15.2; this process mask 0xA; source revision 16833ecc03b425586f91f4c8834dea8807bf4c22
+exe D:\forge_jobs_20261110\fable4cpu\out\build\san_hard\forge_hard.exe bytes 5848064 md5 7aebd22ba5aae7bba7db13847cd912c4 sha256 26c62f01766dbc1673a14e6bb3f058048a63a8443944f469e5294bea39d813fb
+each case runs in a new process on every exe; legal move lists come from the lock exe (go perft 1)
+flags: CRASH, HANG, NO-ANSWER, NULLMOVE (bestmove 0000 although legal moves exist), ILLEGAL, SANITIZER
+planned 130 cases x 1 exes = 130 runs
+ok start: go nodes 0                                          | hard: exit 0 best a2a3
+ok start: go nodes 1                                          | hard: exit 0 best a2a3
+ok start: go depth 1                                          | hard: exit 0 best d2d4
+ok start: go movetime 0                                       | hard: exit 0 best e2e4
+ok start: go movetime 1                                       | hard: exit 0 best e2e4
+ok start: go wtime 0 btime 0                                  | hard: exit 0 best e2e4
+ok start: go wtime 1 btime 1                                  | hard: exit 0 best e2e4
+ok start: go wtime 30 btime 30 winc 0 binc 0 movestogo 1      | hard: exit 0 best c2c4
+ok start: go mate 1                                           | hard: exit 0 best d2d4
+ok start: go depth 0                                          | hard: exit 0 best d2d4
+ok start: go depth -5                                         | hard: exit 0 best d2d4
+ok start: go depth 9999 nodes 20000                           | hard: exit 0 best d2d4
+ok start: go nodes 18446744073709551615 depth 3               | hard: exit 0 best e2e4
+ok start: go nodes abc depth 3                                | hard: exit 0 best e2e4
+!! start: go searchmoves zzzz depth 3                         | hard: exit 0 best 0000 FLAGS NULLMOVE(20 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok start: go depth                                            | hard: exit 0 best d2d4
+ok start: go wtime -100 btime -100                            | hard: exit 0 best c2c4
+ok start: go movestogo 0 wtime 1000 btime 1000                | hard: exit 0 best e2e4
+ok start: go winc 100000 binc 100000 wtime 1 btime 1 depth 4  | hard: exit 0 best e2e4
+!! start: go nodes 5000 searchmoves                           | hard: exit 0 best 0000 FLAGS NULLMOVE(20 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 62 seldepth 62 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 63 seldepth 63 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok kiwi: go nodes 0                                           | hard: exit 0 best a2a3
+ok kiwi: go nodes 1                                           | hard: exit 0 best a2a3
+ok kiwi: go depth 1                                           | hard: exit 0 best e2a6
+ok kiwi: go movetime 0                                        | hard: exit 0 best a2a3
+ok kiwi: go movetime 1                                        | hard: exit 0 best a2a3
+ok kiwi: go wtime 0 btime 0                                   | hard: exit 0 best a2a3
+ok kiwi: go wtime 1 btime 1                                   | hard: exit 0 best a2a3
+ok kiwi: go wtime 30 btime 30 winc 0 binc 0 movestogo 1       | hard: exit 0 best e2a6
+ok kiwi: go mate 1                                            | hard: exit 0 best e2a6
+ok kiwi: go depth 0                                           | hard: exit 0 best e2a6
+ok kiwi: go depth -5                                          | hard: exit 0 best e2a6
+ok kiwi: go depth 9999 nodes 20000                            | hard: exit 0 best e2a6
+ok kiwi: go nodes 18446744073709551615 depth 3                | hard: exit 0 best e2a6
+ok kiwi: go nodes abc depth 3                                 | hard: exit 0 best e2a6
+!! kiwi: go searchmoves zzzz depth 3                          | hard: exit 0 best 0000 FLAGS NULLMOVE(48 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok kiwi: go depth                                             | hard: exit 0 best e2a6
+ok kiwi: go wtime -100 btime -100                             | hard: exit 0 best a2a3
+ok kiwi: go movestogo 0 wtime 1000 btime 1000                 | hard: exit 0 best e2a6
+ok kiwi: go winc 100000 binc 100000 wtime 1 btime 1 depth 4   | hard: exit 0 best a2a3
+!! kiwi: go nodes 5000 searchmoves                            | hard: exit 0 best 0000 FLAGS NULLMOVE(48 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 62 seldepth 62 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 63 seldepth 63 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok endg: go nodes 0                                           | hard: exit 0 best e2e3
+ok endg: go nodes 1                                           | hard: exit 0 best e2e3
+ok endg: go depth 1                                           | hard: exit 0 best a5a6
+ok endg: go movetime 0                                        | hard: exit 0 best e2e3
+ok endg: go movetime 1                                        | hard: exit 0 best e2e3
+ok endg: go wtime 0 btime 0                                   | hard: exit 0 best e2e3
+ok endg: go wtime 1 btime 1                                   | hard: exit 0 best e2e3
+ok endg: go wtime 30 btime 30 winc 0 binc 0 movestogo 1       | hard: exit 0 best b4f4
+ok endg: go mate 1                                            | hard: exit 0 best a5a6
+ok endg: go depth 0                                           | hard: exit 0 best a5a6
+ok endg: go depth -5                                          | hard: exit 0 best a5a6
+ok endg: go depth 9999 nodes 20000                            | hard: exit 0 best b4f4
+ok endg: go nodes 18446744073709551615 depth 3                | hard: exit 0 best b4c4
+ok endg: go nodes abc depth 3                                 | hard: exit 0 best b4c4
+!! endg: go searchmoves zzzz depth 3                          | hard: exit 0 best 0000 FLAGS NULLMOVE(14 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 1 seldepth 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 2 seldepth 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 3 seldepth 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok endg: go depth                                             | hard: exit 0 best a5a6
+ok endg: go wtime -100 btime -100                             | hard: exit 0 best e2e3
+ok endg: go movestogo 0 wtime 1000 btime 1000                 | hard: exit 0 best b4f4
+ok endg: go winc 100000 binc 100000 wtime 1 btime 1 depth 4   | hard: exit 0 best e2e3
+!! endg: go nodes 5000 searchmoves                            | hard: exit 0 best 0000 FLAGS NULLMOVE(14 legal moves exist)
+      hard info: info string searchmoves restriction has no legal root moves
+      hard last output: info depth 62 seldepth 62 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 63 seldepth 63 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; info depth 64 seldepth 64 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv ; bestmove 0000
+ok start: go searchmoves e2e4 depth 3                         | hard: exit 0 best e2e4
+ok go infinite then stop                                      | hard: exit 0 best e2e4
+ok go without limits then stop                                | hard: exit 0 best e2e4
+ok go ponder, ponderhit, stop                                 | hard: exit 0 best e2e4
+ok go ponder with clock, ponderhit                            | hard: exit 0 best e2e4
+ok go ponder then stop                                        | hard: exit 0 best e2e4
+ok ponderhit and stop with no search                          | hard: exit 0 best -
+ok two go commands in a row                                   | hard: exit 0 best a2a3,d2d4
+ok isready during search                                      | hard: exit 0 best e2e4
+ok ucinewgame during search                                   | hard: exit 0 best e2e4
+ok Hash change during search                                  | hard: exit 0 best e2e4
+!! Threads change during search, then search                  | hard: exit 0 best e2e4,e2e4 FLAGS NO-ANSWER(bestmove)
+      hard info: 
+      hard last output: info depth 4 seldepth 4 score cp 26 nodes 678 nps 0 hashfull 0 time 0 pv e2e4 c7c5 g1f3 b8c6 ; info depth 5 seldepth 5 score cp 26 nodes 733 nps 0 hashfull 0 time 0 pv e2e4 c7c5 g1f3 b8c6 b1c3 ; info depth 6 seldepth 6 score cp 26 nodes 804 nps 0 hashfull 0 time 0 pv e2e4 c7c5 g1f3 b8c6 b1c3 e7e6 ; bestmove e2e4
+ok bench during search                                        | hard: exit 0 best e2e4
+ok quit during search                                         | hard: exit 0 best e2e4
+ok stdin closed during search                                 | hard: exit 0 best e2e4
+ok stdin closed at once                                       | hard: exit 0 best -
+ok checkmated root                                            | hard: exit 0 best 0000
+ok stalemated root                                            | hard: exit 0 best 0000
+ok checkmated root, clock                                     | hard: exit 0 best 0000
+ok odd FEN 01 [8/8/8/8/8/8/8/8 w - - 0 1]                     | hard: exit 0 best e2e4
+ok odd FEN 02 [4k3/8/8/8/8/8/8/4RK2 w - - 0 1]                | hard: exit 0 best e2e4
+ok odd FEN 03 [kK6/8/8/8/8/8/8/8 w - - 0 1]                   | hard: exit 0 best e2e4
+ok odd FEN 04 [P7/8/8/8/8/8/8/k6K w - - 0 1]                  | hard: exit 0 best e2e4
+ok odd FEN 05 [4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1]              | hard: exit 0 best e2e4
+ok odd FEN 06 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w  | hard: exit 0 best e2e4
+ok odd FEN 07 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w  | hard: exit 0 best e2e4
+ok odd FEN 08 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w  | hard: exit 0 best e2e4
+ok odd FEN 09 [rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w  | hard: exit 0 best e2e4
+ok odd FEN 10 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x  | hard: exit 0 best e2e4
+ok odd FEN 11 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w  | hard: exit 0 best a2a3
+ok odd FEN 12 [k7/8/2QQQQQ1/2QQQQQ1/2QQQQQ1/2QQQQQ1/2QQQQQ1/7 | hard: exit 0 best e2e4
+ok odd FEN 13 [1k6/8/QQQQQQQQ/QQQQQQQQ/QQQQQQQQ/QQQQQQQQ/8/K7 | hard: exit 0 best e2e4
+ok odd FEN 14 [rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR]   | hard: exit 0 best e2e4
+ok odd FEN 15 [w - - 0 1]                                     | hard: exit 0 best e2e4
+ok odd FEN 16 []                                              | hard: exit 0 best e2e4
+ok 1,600-ply shuffle game                                     | hard: exit 0 best a2a3
+ok 8,000-ply shuffle game                                     | hard: exit 0 best a2a3
+ok illegal move in the list                                   | hard: exit 0 best e2e4
+ok position without arguments                                 | hard: exit 0 best e2e4
+ok Hash value [0]                                             | hard: exit 0 best e2e4
+ok Hash value [1]                                             | hard: exit 0 best e2e4
+ok Hash value [2048]                                          | hard: exit 0 best e2e4
+ok Hash value [99999]                                         | hard: exit 0 best e2e4
+ok Hash value [-1]                                            | hard: exit 0 best e2e4
+ok Hash value [abc]                                           | hard: exit 0 best e2e4
+ok Hash value []                                              | hard: exit 0 best e2e4
+ok Threads value [0]                                          | hard: exit 0 best e2e4
+ok Threads value [-3]                                         | hard: exit 0 best e2e4
+ok Threads value [2]                                          | hard: exit 0 best e2e4
+ok Threads value [8]                                          | hard: exit 0 best e2e4
+ok Threads value [abc]                                        | hard: exit 0 best e2e4
+ok Move Overhead 99999 with a clock                           | hard: exit 0 best e2e4
+ok UseNNUE value maybe                                        | hard: exit 0 best e2e4
+ok Book File that does not exist                              | hard: exit 0 best e2e4
+ok OwnBook and Ponder on, clock search at the start position  | hard: exit 0 best e2e4
+ok setoption fragments                                        | hard: exit 0 best e2e4
+ok unknown command, empty lines, 100 KB line                  | hard: exit 0 best e2e4
+ok go perft [0]                                               | hard: exit 0 best -
+ok go perft [1]                                               | hard: exit 0 best -
+ok go perft [abc]                                             | hard: exit 0 best -
+ok go perft [11]                                              | hard: exit 0 best -
+ok go perft [-1]                                              | hard: exit 0 best -
+ok go perft []                                                | hard: exit 0 best -
+ok perft 2 on a checkmated root                               | hard: exit 0 best -
+ok bench [0]                                                  | hard: exit 0 best -
+ok bench [-3]                                                 | hard: exit 0 best -
+ok bench [abc]                                                | hard: exit 0 best -
+ok bench [1]                                                  | hard: exit 0 best -
+ok go depth 64 with a node limit on a small endgame           | hard: exit 0 best b4f4
+ok go depth 64 on bare kings                                  | hard: exit 0 best e1d1
+planned 130 runs completed 130; cases with at least one flag: 7
+VERDICT BUGHUNT DONE (flags are candidates to judge, see README.md); end 2026-11-10 16:43:42 Vienna

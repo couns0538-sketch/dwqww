@@ -29,7 +29,11 @@ SAN = {'asan': ['-fsanitize=address'], 'ubsan': ['-fsanitize=undefined'], 'tsan'
 # san_build_asan.log) failed with "duplicate symbol: typeinfo for std::thread::_State": the instrumented copy of
 # that typeinfo in the engine objects met the one in the static libstdc++. The two are the same object; the flag
 # lets the linker keep one. It changes no compile flag and suppresses no sanitizer check.
-LINK_EXTRA = {'asan': ['-Wl,--allow-multiple-definition'], 'ubsan': [], 'tsan': []}
+LINK_EXTRA = {'asan': ['-Wl,--allow-multiple-definition'], 'ubsan': [], 'tsan': [], 'hard': ['-Wl,--allow-multiple-definition']}
+# 'hard' = bug-hunt build (added 16:40): ASan and UBSan together, the engine's own assert() switched on (the lock
+# is built with NDEBUG) and libstdc++'s checked indexing of std::array / std::vector (_GLIBCXX_ASSERTIONS).
+SAN['hard'] = ['-fsanitize=address,undefined', '-D_GLIBCXX_ASSERTIONS', '-UNDEBUG']
+MARKS_HARD = ('Assertion', 'assertion', 'terminate called', 'abort')
 UNITS = ['bitboard', 'board', 'book', 'eval', 'eval_params', 'nnue', 'search', 'uci']
 MARKS = ('ERROR: AddressSanitizer', 'runtime error:', 'SUMMARY: AddressSanitizer', 'SUMMARY: UndefinedBehaviorSanitizer',
          'AddressSanitizer:', 'CHECK failed')
@@ -56,7 +60,7 @@ def run(cmd, mask, timeout=1800):
 
 
 def report_lines(text):
-    return [l for l in text.splitlines() if any(m in l for m in MARKS)]
+    return [l for l in text.splitlines() if any(m in l for m in MARKS + MARKS_HARD)]
 
 
 def fixtures(a):
@@ -296,17 +300,17 @@ def main():
     f.add_argument('--log', required=True)
     f.add_argument('--mask', default='0x2')
     b = sub.add_parser('build')
-    b.add_argument('--kind', choices=['asan', 'ubsan'], required=True)
+    b.add_argument('--kind', choices=['asan', 'ubsan', 'hard'], required=True)
     b.add_argument('--tag', required=True)
     b.add_argument('--log', required=True)
     b.add_argument('--mask', default='0x404A')
     n = sub.add_parser('bench')
-    n.add_argument('--kind', choices=['asan', 'ubsan'], required=True)
+    n.add_argument('--kind', choices=['asan', 'ubsan', 'hard'], required=True)
     n.add_argument('--exe', required=True)
     n.add_argument('--log', required=True)
     n.add_argument('--masks', default='0x2,0x8')
     m = sub.add_parser('mt')
-    m.add_argument('--kind', choices=['asan', 'ubsan', 'release'], required=True)
+    m.add_argument('--kind', choices=['asan', 'ubsan', 'hard', 'release'], required=True)
     m.add_argument('--exe', required=True)
     m.add_argument('--log', required=True)
     m.add_argument('--mask', default='0x404A')

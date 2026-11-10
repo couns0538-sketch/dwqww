@@ -1,0 +1,73 @@
+--- a/forge-combo29/include/forge/board.hpp
++++ b/forge-combo29/include/forge/board.hpp
+@@ -28,6 +28,18 @@
+ // Build switch, default 0 (= the lock's code): search prefetches the child's TT
+ // cluster before make_move from Board::key_after where that key is cheap and exact.
+ #define FORGE_SPD_PREFETCH_EARLY 0
++#endif
++
++#ifndef FORGE_SPD_PREFETCH_PICK
++// Build switch, default 0 (= the lock's code), on top of FORGE_SPD_PREFETCH_EARLY=1:
++// the child's TT cluster is prefetched as soon as a move has passed the legality
++// test, before the pruning and extension tests of the move loop, so the load has
++// more time to arrive. A move that is then pruned has cost one unused prefetch.
++// Only the moment of the prefetch changes; no value the search reads differs.
++#define FORGE_SPD_PREFETCH_PICK 0
++#endif
++#if FORGE_SPD_PREFETCH_PICK && !FORGE_SPD_PREFETCH_EARLY
++#error "FORGE_SPD_PREFETCH_PICK=1 needs FORGE_SPD_PREFETCH_EARLY=1 (it moves that prefetch)"
+ #endif
+ 
+ namespace forge {
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1053,6 +1053,12 @@
+     Move move;
+     while (!(move = picker.next(false)).is_none()) {
+         if (!board.is_legal(move)) continue;
++#if FORGE_SPD_PREFETCH_PICK
++        // The prefetch of FORGE_SPD_PREFETCH_EARLY, issued before the pruning tests of this move.
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ++move_count;
+         if (!in_check && best_score > -MateInMaxPly) {
+             const bool gives_check = board.gives_check(move);
+@@ -1063,7 +1069,7 @@
+             }
+             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+         }
+-#if FORGE_SPD_PREFETCH_EARLY
++#if FORGE_SPD_PREFETCH_EARLY && !FORGE_SPD_PREFETCH_PICK
+         std::uint64_t child_key = 0;
+         const bool early_key = board.key_after(move, child_key);
+         if (early_key) shared_.tt.prefetch(child_key);
+@@ -1309,6 +1315,12 @@
+             continue;
+         }
+         if (!board.is_legal(move)) continue;
++#if FORGE_SPD_PREFETCH_PICK
++        // The prefetch of FORGE_SPD_PREFETCH_EARLY, issued before the pruning and extension tests of this move.
++        std::uint64_t child_key = 0;
++        const bool early_key = board.key_after(move, child_key);
++        if (early_key) shared_.tt.prefetch(child_key);
++#endif
+         ++move_count;
+         ss->move_count = move_count;
+         const bool capture = move.is_capture();
+@@ -1377,9 +1389,14 @@
+         const int new_depth = depth - 1 + extension;
+ 
+ #if FORGE_SPD_PREFETCH_EARLY
++#if FORGE_SPD_PREFETCH_PICK
++        // Once more, at one instruction: a singular-extension search may have run since the first prefetch.
++        if (early_key) shared_.tt.prefetch(child_key);
++#else
+         std::uint64_t child_key = 0;
+         const bool early_key = board.key_after(move, child_key);
+         if (early_key) shared_.tt.prefetch(child_key);
++#endif
+ #endif
+         ss->current_move = move;
+         ss->moved_piece = moved;
