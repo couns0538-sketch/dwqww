@@ -92,7 +92,10 @@ function RunPinned([string]$exe, [string]$argLine, [string]$outFile) {
 function BuildHarness([string]$tag, [string]$tree, [string]$defs) {
     $bdir = Join-Path $OUT ("build\prim_" + $tag)
     if (Test-Path $bdir) { Remove-Item -Recurse -Force $bdir }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build_prim.ps1') -Tag $tag -Src $tree -ExtraDefs $defs -Mask $Mask | Out-File -LiteralPath (Join-Path $idDir ($tag + '.build.txt')) -Encoding ASCII
+    # an empty string would be dropped from a native command line and leave -ExtraDefs without a value
+    $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'build_prim.ps1'), '-Tag', $tag, '-Src', $tree, '-Mask', $Mask)
+    if ($defs -ne '') { $a += @('-ExtraDefs', $defs) }
+    & powershell.exe @a | Out-File -LiteralPath (Join-Path $idDir ($tag + '.build.txt')) -Encoding ASCII
     if ($LASTEXITCODE -ne 0) { throw ("harness build failed for " + $tag) }
     return (Join-Path $bdir 'prim_dump.exe')
 }
