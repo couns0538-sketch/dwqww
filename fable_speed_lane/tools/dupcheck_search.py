@@ -73,6 +73,9 @@ ITEMS = [
     ("TT_REPLACE_CACHE", "prior", r"TT_REPLACE_CACHE", None),
     ("PAWN_ENTRY32 / T05B-01", "prior", r"PAWN_ENTRY32|T05B-01|pawn-king entry", None),
     # --- pool candidates of this job ---
+    ("cand KING_PAWN_CACHE", "candidate", r"KING_PAWN_CACHE|KingPawnCache|king.?pawn.?(cache|entry|hash)|pawn.?king.?(entry|cache|hash)|kp_shelter",
+     r"(shelter|king.?safety|king_pawn_distance|KingPawnDistance)[^\n]{0,100}(PawnEntry|pawn.?(cache|entry|hash))"
+     r"|(PawnEntry|pawn.?(cache|entry|hash))[^\n]{0,100}(shelter|king.?safety|king.?square|KingPawnDistance)"),
     ("cand WITNESS_NOPIN", "candidate", r"WITNESS_NOPIN|HASLEGAL_FAST",
      r"has_legal_move[\s\S]{0,600}?(queen line|line of the own king|cannot be pinned|attacks::line\()"),
     ("cand EVADE_LEGAL", "candidate", r"EVADE_LEGAL|FORGE_CHECK_INFO|checkMask|check.mask",
