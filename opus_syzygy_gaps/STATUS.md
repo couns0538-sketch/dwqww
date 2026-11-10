@@ -5,7 +5,7 @@
 Clock: the PC clock is wrong (about 7 h fast, measured 25156 s). Vienna times below come from HTTPS Date headers (`Get-ViennaNow` in `env.ps1`).
 T0 = 2026-11-09 03:01:33 Vienna. The 20-hour floor of the first plan was dropped by Couns: finish when the work is done and a bug check at the end finds nothing left.
 Deadline (Couns, set 2026-11-09 13:56 Vienna): finish by 19:56 Vienna. Improvements that would take 10 hours or more are left out and listed. A bug that must be fixed still gets fixed before finishing.
-This version: written 2026-11-09 about 18:10 Vienna, about 15 h 10 min after T0, with a full file map added to `HANDOFF.md` ("Where everything is").
+This version: written 2026-11-09 about 18:20 Vienna, about 15 h 19 min after T0: full file map in `HANDOFF.md` ("Where everything is"), and every process of this job stopped.
 
 ## Final state
 - **Candidate:** frozen head `989399b` (`out/src/cand`, parent `ded9684` = the P6 tree). Unchanged since the freeze; the final bug hunt found no engine bug.
@@ -37,6 +37,7 @@ This version: written 2026-11-09 about 18:10 Vienna, about 15 h 10 min after T0,
 - No ABBA, no NPS claim: the prompt forbids quiet ABBA runs here; speed of Build B is not measured.
 - H1 finding 1 was a test gap, not an engine bug, so the head stayed frozen: new fixture rows first, the mutants RED, the head GREEN. Cost if wrong: none for the engine; a weaker test would only miss a future regression.
 - CPUs 0-11 were nearly idle at the end, but a gate (fastchess with 8 engines and its queue runner) was loaded there and could resume at any time. The job stayed on 12-15. Cost: the 1500-row mate runs did not finish in time.
+- At the end Couns asked to stop this job's leftover processes (2026-11-09 about 18:15 Vienna). That lifted the plan's no-kill rule for this job's own processes only; nothing outside the job was touched.
 
 ## Resume
 ```
@@ -45,10 +46,13 @@ cd /d/forge_jobs_20261107/opus1/repo && git status -sb && git log --oneline -5
 # rebuild a tree from the pack: tools/repro_from_pack.sh; freeze proof: tools/final_freeze.sh; whole suite: tools/run_v6.sh <new tag>; trial_w6 line: tools/after_w6.sh <new tag>
 # read-side rows: tools/mutants_read_side.sh <new tag> (all rows, hours) or tools/read_subset.sh with the exes it built
 ```
-Nothing here is queued. Every job exits by itself; nothing is ever killed.
+Nothing here is queued, and no process of this job is running.
 
-## Left running by this job (0xF000, Idle, read-only on everything outside the job root)
-- `tools/mutants_read_side.sh r1` (bash, powershell PID 9448, `tbr_r1_head.exe` PID 11704): the read-side runs on all 1500 rows. At hand-off it was still on the head's mate rows; its remaining runs need about 10 h more. It writes only `out/exp/read/` and `out/logs/mutants_read_r1.log`, and its numbers are not part of the pack.
-- `p6_c1tests.exe` PID 3808 (powershell PID 5416) on the 3-4 piece folder, heap-copy pass: very slow, and its result is not required; the full-set run passed 36,825 checks with 0 failures.
-- Blocked since R2, 0 CPU, no writes, left alone under the no-kill rule: `tb_root_v5.exe` PID 2488, `python.exe` PIDs 8512 and 6036, `powershell.exe` PID 9400 (the reviewer's driver).
-- Leftovers of the bug hunter in the job root: `tmp/hunt/junk_trees_m` (an empty tree copy) and `out/hunt_agent/runs/failed1`.
+## Processes at the end
+None is running: checked 2026-11-09 18:19 Vienna, 0 processes with the job root in their command line, CPUs 12-15 at 0-2 %. Stopped at Couns's request, about 18:15 Vienna (three background tasks by the session's task stop, the rest by Couns's command):
+- `tools/mutants_read_side.sh r1` with `tbr_r1_head.exe` (PID 11704): the read-side runs on all 1500 rows, stopped unfinished on the head's mate rows. Its partial summary is `logs/read_side_r1_partial.txt`; the evidence of record is the 100-row runs (`BENCH.md`, Stress).
+- `p6_c1tests.exe` (PID 3808): a slow extra pass of P6's own table tests on the 3-4 piece folder, not required: the full-set run passed 36,825 checks with 0 failures.
+- A driver from the R2 recheck, blocked since then at 0 CPU: `tb_root_v5.exe` PID 2488, `python.exe` PIDs 8512 and 6036, `powershell.exe` PID 9400.
+- Four idle `tail` log watchers from the bug hunt.
+
+Leftover files of the bug hunter in the job root: `tmp/hunt/junk_trees_m` (an empty tree copy) and `out/hunt_agent/runs/failed1`.
