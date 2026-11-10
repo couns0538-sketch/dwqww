@@ -57,7 +57,21 @@ Rules first: [[forge-pc-rules]] (no deletes, no process termination, no force-pu
 - `layout_probe.cpp`: offsets and cache lines via the existing `SearcherTestProbe` friendship; heap addresses of `make_unique<Worker>`.
 - `nps_smoke.ps1`: advisory only (two physical cores). QA's native-core plan is `SCALING_PLAN.md`.
 
+## Results of the first use (2026-11-09; details in `opus_smp_layout/BENCH.md`)
+- **Builds.** Engine candidate `0599271`: OFF kit = **4181a589** (= parent = trial_w6); gate kit = **541e8b3d…**, pc1 = pc2.
+- **Threads 1 identity.** With `TtLockless` false and true: fens12k net on/off 12,000/12,000 = parent; warm transcript (1,000 FENs, 40 changes) = parent; liveness PASS.
+- **Races and stress.**
+  - Fixture: 0 incoherent in 2.17 G probes; the positive control saw 0.46-2.46 M per run.
+  - CI TSan: 0 reports (4 runs, incl. the real engine over UCI at T2/T4).
+  - UCI stress at T1/4/8 PASS.
+- **Layout.** `nodes_` was on one line with `local_nodes_`; it now has its own line (+64 B per worker).
+- **NPS.** Advisory only: the A/A copy moves by 5 % on CPUs 12-15. ON may cost about 2-3 % at T1 (decode). QA times it on native cores.
+- **Review.** R1 (fable) found 3 MINOR: a stale per-worker mode flag, a control that could not fail, and freeing before allocating on toggle. All fixed. The recheck reviewer became unreachable, so a self-review marked NOT independent replaced it.
+
 ## Pitfalls hit (2026-11-09)
+- Bind every tool config to the exe **sha256** and re-check it after any rebuild. An NPS config written before the review fixes silently timed the superseded gate exe; that run was kept as "superseded, not cited".
+- Always add a byte-copy **A/A** config to NPS runs. Without it, a +26 % "gain" from noise on two SMT cores looked real.
+- A subagent can become unreachable mid-job (its agent type vanished from the session). Record the open board line, do a structured self-review marked NOT independent, and never substitute an agent type the user's rules do not allow.
 - The permission check refuses command text containing the words for ending processes or for deleting (even inside a grep pattern or a kit-copy edit). Edit such files with the Edit tool, and use fresh directory names instead of cleaning.
 - Git Bash `sha256sum` prints `hash *name` (binary mode): strip the `*` before comparing manifests. `grep -c $'\r'` miscounts there: count CR bytes with `tr -cd '\r' < f | wc -c`.
 - `printf` in Git Bash eats `\f` and `\e` in Windows paths: write TSV/config files with the Write tool.

@@ -106,4 +106,18 @@ Logs: `logs/tests/`, `logs/stress/`.
 ### Commands for Threads 1/4/8 (executed above vs prepared)
 - EXECUTED on CPUs 12-15: Threads 1, 4 and 8 inside the stress runs (`-ThreadSet '1,4,8'`), and Threads 1/2/4/8 inside `smp_lifecycle_tests`.
 - PREPARED-ONLY: the native-core runs in SCALING_PLAN.md and COMMANDS.md.
-## 6. Advisory NPS (PENDING; never a verdict)
+## 6. Advisory NPS (EXECUTED; never a verdict, not scaling evidence, not Elo)
+Tool: `tools/nps_smoke.ps1`. Each round starts every config fresh, in alternating order. 8 FENs, OwnBook false, Hash 64. The CPUs are 12-15: two physical cores with their SMT siblings, on a shared PC. **P_AA** is a byte copy of P that measures the noise floor (A/A). Logs: `logs/nps/F_*`.
+
+| run | P (median nps) | P_AA / P | gate OFF / P | gate ON / P | spreads (min-max over rounds) |
+|---|---|---|---|---|---|
+| Threads 1, `go nodes 1000000`, 8 rounds | 1,940,663 | 1.0067 | 1.0155 | 0.9732 | 3.6-15.3 % |
+| Threads 4, `go nodes 2000000`, 8 rounds | 6,295,595 | 1.0451 | 1.0383 | 1.0613 | 11.0-20.1 % |
+| Threads 4, `go movetime 1500`, 6 rounds | 6,090,389 | 1.0495 | 1.0235 | 1.0763 | 3.5-15.4 % |
+
+**Reading.**
+- The A/A copy alone differs by up to +5 %, so no difference in this table is resolvable here.
+- The weak hint worth timing: gate ON at Threads 1 may cost about 2-3 % (decoding K/D with two multiplies per slot instead of the legacy exclusive path's plain struct reads). The gains at Threads ≥ 2 are unproven.
+- QA's quiet native-core run (SCALING_PLAN.md) decides.
+
+A first NPS run used the pre-review gate exe `6c07563b` by mistake (its config was written before the R1 fixes) and had no A/A copy. It is kept in `logs/nps/superseded_6c07563b/` and **not cited**.
