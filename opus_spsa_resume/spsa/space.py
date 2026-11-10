@@ -13,7 +13,9 @@ Extensions (PLAN.md section 4):
     common factor s (largest feasible s, direction kept, recorded); only if that needs s < s_min is theta first
     projected inward by s_min*e plus rounding slack (recorded as theta_moved); bounds_mode "r9_clamp": R9
     behaviour (plus/minus clamped independently; no constraints allowed);
-  * E-006 fix: a coordinate whose plus and minus engine values are equal gets no update;
+  * E-006 fix (inner mode only; r9_clamp updates every coordinate exactly as R9): a coordinate whose plus and minus
+    engine values are equal gets no update. Because of this, inner mode keeps a level coordinate at least e inside
+    its index range; at the edge, both plus and minus would round to the edge level forever;
   * after the update theta is projected onto the feasible set (bounds and constraints, no margin).
 The update step uses R9's a_k/c_k; a shrunk or capped perturbation never inflates the step.
 Deterministic: IEEE doubles, no wall clock, no global RNG."""
@@ -125,6 +127,30 @@ class Space:
         vals.update(self.fixed)
         return vals
 
+    def feasible_engine_values(self, theta):
+        """Engine values of theta for the run's final (complete) record. Plain rounding of a feasible theta can break
+        a bound or an enabled constraint by one unit. Example: QsFutilityMargin 300.6, RazorBase 100.3,
+        RazorMultiplier 200.3 has C1 = 0, but rounds to 301 - 100 - 200 = +1. In that case every floor/ceil
+        combination of the integer coordinates is tried, and the feasible one nearest to theta (c_end-scaled) is
+        returned. Ties go to the first in a fixed order. If none is feasible, plain rounding is returned and
+        select_candidate refuses it."""
+        vals = self.engine_values(theta)
+        if not self.violations(vals):
+            return vals
+        ints = [i for i in range(len(theta)) if self.kinds[i] == "int"]
+        best, best_d = None, None
+        for mask in range(1 << len(ints)):
+            x = list(theta)
+            for b, i in enumerate(ints):
+                x[i] = float(math.ceil(theta[i]) if (mask >> b) & 1 else math.floor(theta[i]))
+            v = self.engine_values(x)
+            if self.violations(v):
+                continue
+            d = sum(((x[i] - theta[i]) / self._scale(i)) ** 2 for i in ints)
+            if best_d is None or d < best_d - 1e-15:
+                best, best_d = v, d
+        return best if best is not None else vals
+
     def violations(self, vals):
         out = []
         for c in self.constraints:
@@ -215,6 +241,14 @@ class Space:
             e = [min(ck[i], max(half[i], 0.5)) for i in range(n)]
             capped = [1 if e[i] < ck[i] else 0 for i in range(n)]
             th, moved, feasible = self.project(theta)
+            # a level coordinate at the edge of its index range can never yield distinguishable plus and minus
+            # (index 0 +- 0.5 both round to 0), so E-006 would freeze it forever: keep it e inside the range
+            for i in range(n):
+                if self.kinds[i] == "level":
+                    lo_i, hi_i = self.lo[i] + e[i], self.hi[i] - e[i]
+                    v = min(max(th[i], lo_i), hi_i) if lo_i <= hi_i else (self.lo[i] + self.hi[i]) / 2.0
+                    if v != th[i]:
+                        th[i], moved = v, True
 
             def ok_at(s_, base):
                 pv = self.engine_values([base[i] + s_ * e[i] * delta[i] for i in range(n)])
@@ -255,13 +289,16 @@ class Space:
                 "plus": plus, "minus": minus, "eff": eff, "violations": viol}
 
     def update(self, plan, wins, losses, pairs):
-        """theta after the batch: R9's update on coordinates whose plus and minus differ, then projection."""
+        """theta after the batch: R9's update, then projection. Outside r9_clamp, a coordinate whose rounded plus
+        equals its rounded minus gets no update (E-006: the games carried no information about it). In r9_clamp
+        every coordinate is updated exactly as R9 does, so that mode equals R9 in general, not only on the fixtures."""
         k = plan["k"]
         ck, ak = self.ck(k), self.ak(k)
         g = [ak[i] / ck[i] for i in range(len(ck))]
         r = wins - losses
         th = list(plan["theta_plan"])
-        new = [th[i] + (g[i] * r * plan["delta"][i] if plan["eff"][i] else 0.0) for i in range(len(th))]
+        gate = self.bounds_mode != "r9_clamp"
+        new = [th[i] + (g[i] * r * plan["delta"][i] if (plan["eff"][i] or not gate) else 0.0) for i in range(len(th))]
         if self.bounds_mode == "r9_clamp":
             new = [self._clamp(i, v) for i, v in enumerate(new)]
             moved, feasible = False, True

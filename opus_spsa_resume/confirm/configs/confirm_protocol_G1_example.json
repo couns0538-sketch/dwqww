@@ -1,12 +1,13 @@
 {
  "schema": "opus3-confirm-protocol/1",
  "name": "opus3_razorqs_confirm_G1_example",
- "comment": "EXAMPLE protocol for this pack's own runner on holdout G1. It is pinned to this job's c29gat_03 gate build so the dry-run can show the exact command. Before any game, QA replaces identity.cand_exe with its Code-Reviewed PC build, sets the qa_gate names and moves the registry to wherever QA keeps it. Any such edit changes protocol_sha256, which is intended: a run is bound to the protocol actually played. Live mode stays disabled here. The primary route is QA's own runner (CONFIRM_PROTOCOL.md section 3).",
+ "comment": "EXAMPLE protocol for this pack's runner on holdout G1. It is pinned to this job's c29gat_03 gate build so the dry-run can show the exact command. Before any game, QA must: (1) replace identity.cand_exe with its Code-Reviewed PC build; (2) set training_config_sha256 to the RUN.json config_sha256 of its COMPLETE live tuning run; (3) set the qa_gate names; (4) move the registry to wherever QA keeps it. Each edit changes protocol_sha256, which is intended: a run is bound to the protocol actually played. The runner never plays games: QA plays the dry-run's fastchess command under its own scheduler, then this runner recomputes the decision from that PGN (--mode replay, protocol.replay). The primary route is QA's own runner (CONFIRM_PROTOCOL.md section 3).",
  "holdout": {"name": "holdout_G1", "pgn_sha256": "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc"},
  "training_partitions_sha256": [
   "fa0b8708103f70cf0127364a940010b832bd8ec8f9f8f7a10f97bef3189b213f",
   "63bb149518256ba9608cdb6a8a22f87b7712e4707b8ad394c3767a5e1c45307c"
  ],
+ "training_config_sha256": "QA_FILLS_BEFORE_ANY_GAME: RUN.json config_sha256 of the complete live tuning run",
  "registry": "D:\\forge_jobs_20261107\\opus3\\out\\confirm_registry.jsonl",
  "identity": {
   "fastchess": {"path": "C:\\Users\\Administrator\\grok-pc\\tools\\fastchess\\fastchess.exe", "sha256": "c6d7e4458a58025983c81bf38c524cb213e6f27559657dcfd72543392a431a71"},
@@ -22,6 +23,5 @@
  "sprt": {"nelo0": 0.0, "nelo1": 5.0, "alpha": 0.05, "beta": 0.05, "cap_games": 4816, "min_pairs": 50},
  "match": {"tc": "10+0.1", "concurrency": 1},
  "qa_gate": {"cand_name": "cand_opus3_razorqs_PCSHA8", "base_name": "base_combo29_clang_E1284F7F"},
- "checkpoint_every": 50,
- "live": {"enabled": false}
+ "checkpoint_every": 50
 }

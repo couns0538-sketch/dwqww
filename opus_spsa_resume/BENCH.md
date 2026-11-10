@@ -14,8 +14,9 @@ Short names: **lock** = `forge_clang_combo29_trial_w6.exe` (SHA256 e1284f7f…80
 | fens12k d13, net on and off: gat sw0 vs lock, gat sw1-defaults vs lock (12000 / 12000 rows; TSVs byte-identical to each other and to QA's refcache) | PASS | §4, `evidence/qual/fens12k/` |
 | warm1000 (QA's warm-table tool, mask-only derived copy), lock vs gat sw0: identical apart from the two advertised switch lines; bench 13 pin on both | PASS | §5, `evidence/qual/warm1000/` |
 | fens12k for ctl and off | NOT RUN: they are normalized-image-identical to the lock (§2) | — |
-| Synthetic qualification of the joint config: movement, noise floor, resume byte-identity | Done; resume byte-identity PASS. Run size: see §6 | §6, `evidence/synthqual/` |
-| End-to-end dry-run: synthetic training run → fixed candidate rule → G1 confirmation command | PASS (no file written, no process started, registry untouched) | §7 |
+| Synthetic qualification of the joint config (movement, noise floor), N = 4000 found inadequate, sweep over N and r_end, run size set to N = 16000 before any game | Done (SYNTHETIC, no Elo) | §6, `evidence/synthqual/`, `evidence/synthqual_n16000/` |
+| Resume byte-identity on the real schedule, two injected crashes (N = 4000: 2,005 files; N = 16000: 8,005 files) | PASS | §6 |
+| End-to-end dry-run: synthetic training run → fixed candidate rule → G1 confirmation command; the non-live candidate is reported, and the live, replay-without-manifest and over-cap starts are refused with nothing written | PASS | §7 |
 
 ## 1. Builds
 **Recipe.** `engine/clang_build_o3.ps1`, SHA256 77d4e79bc97685cef835157ff007cce0fe1508c7e3a64ed8393511b32c886417. It is QA's `clang_build.ps1` (1fd87517…) with three changes, all shown in `engine/RECIPE_INTERDIFF.patch`:
@@ -132,44 +133,86 @@ The tool compares the whole normalized transcript, including the `uci` option li
 ```
 Evidence: `evidence/qual/warm1000/`, which holds the comparison JSON, the console output and the SHA256 of both transcripts.
 
-## 6. Synthetic qualification of `configs/joint_razor_qs.json`
+## 6. Synthetic qualification of `configs/joint_razor_qs.json`: run size set to N = 16000 before any game
 ```
-& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py .\opus_spsa_resume\configs\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --reps 4
+& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py .\opus_spsa_resume\configs\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual_n16000') --reps 4
+& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py out\synthqual\base_n4000\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --reps 4       # the first proposal, N = 4000
+& $Opus3Py -I -B .\opus_spsa_resume\spsa\synth_qualify.py out\synthqual\base_n4000\joint_razor_qs.json (Join-Path $Opus3Out 'synthqual') --sweep --reps 3
 ```
-Each synthetic copy keeps everything the real run uses: schedule, bounds, priors, pins, perturbation seed 20261110, N = 4000 pairs and batch size 4. Only three things differ: run_nonce, identity_check = start, and an outcome model. The model plays seeded outcomes with draw rate 0.75 on the harness's logistic/400 scale. Its units describe the model, **not the engine**.
+Each synthetic copy keeps everything the real run uses: schedule, bounds, priors, pins, perturbation seed 20261110, N and batch size 4. Only four keys differ: run_nonce, identity_check = start, the outcome model and the comment. The model plays seeded outcomes with draw rate 0.75 on the harness's logistic/400 scale. Its units describe the model, **not the engine**. Gaps and distances are assumptions chosen to be tuning-sized, not measurements.
 
 **Landscapes.** The start is 3.75 model units below the optimum in each one:
 - **L2:** optimum 2 c_end from the start in every tuned coordinate, signs (+, −, −).
 - **L2m:** the mirror placement, signs (−, +, +).
 - **L4:** optimum 4 c_end away; a wider, flatter basin.
-- **null:** flat, no signal.
+- **null:** flat, no signal. Its final drift is the procedure's noise floor.
 
-Results at N = 4000 (4 replicates each):
+**First proposal, N = 4000, r_end 0.002** (4 replicates each): inadequate.
 
-| Model | Gap left at the end (start 3.75) | Share of the gap recovered | Mean move toward the optimum (c_end units) | Spread of the final drift between replicates (sd, c_end units) |
+| Model | Gap left (start 3.75) | Recovered | Move toward the optimum (c_end) | Replicate sd of the final drift (c_end) |
 |---|---|---|---|---|
 | L2 | 3.27 (2.94–3.52) | 13% | 0.04 / 0.22 / 0.15 of 2 | 0.07–0.11 |
 | L2m | 3.17 (2.71–3.72) | 15% | 0.18 / 0.16 / 0.16 of 2 | 0.11–0.23 |
 | L4 | 3.52 (3.39–3.69) | 6% | 0.08 / 0.15 / 0.15 of 4 | 0.05–0.12 |
-| null | — | — | drift 0.00 / 0.04 / −0.05 | 0.06–0.11 (noise floor) |
+| null | — | — | drift 0.00 / 0.04 / −0.05 | 0.06–0.11 |
 
-**Resume byte-identity on the real schedule: PASS.** The L2 replicate 1 run was interrupted twice: at B3@300:2, mid-batch after 2 of 4 results, and at B5@700, after the update record but before its checkpoint. After each resume it equals the uninterrupted run byte for byte in the ledger, RUN.json, HEAD.json and all 2,002 checkpoints (2,005 files). Exit codes 77, 77, 0; `verify` exit 0.
+**Sweep over N and r_end** (L2 and null, 3 replicates per cell; `evidence/synthqual/sweep_summary.json`). The table gives the L2 gap left (range), the share recovered, and the largest null-drift sd:
 
-**Reading.** With N = 4000 and r_end 0.002 the run moves in the right direction in every landscape, but slowly. It covers only about a tenth of the distance and recovers 6–15% of a 3.75-unit gap. A small movement in a real run is therefore expected and is not evidence of a flat landscape. Sweep over N and r_end: PENDING (running).
+| N (pairs) | r_end 0.002 | r_end 0.005 | r_end 0.01 |
+|---|---|---|---|
+| 4,000 | 3.13 (2.90–3.34), 16%, 0.21 | 2.33 (1.56–3.02), 38%, 0.30 | 1.73 (0.98–2.73), 54%, 0.93 |
+| 16,000 | **1.44 (1.40–1.51), 62%, 0.15** | 0.80 (0.47–1.36), 79%, 0.90 | 0.78 (0.45–1.02), 79%, 0.83 |
+| 40,000 | 0.67 (0.65–0.71), 82%, 0.45 | 0.28 (0.04–0.69), 93%, 1.50 | 0.27 (0.13–0.43), 93%, 2.65 |
 
-## 7. End-to-end dry-run (synthetic candidate → G1 confirmation command)
+**The proposed config: N = 16000, r_end 0.002** (4 replicates each; `evidence/synthqual_n16000/summary.json`):
+
+| Model | Gap left (start 3.75) | Recovered | Move toward the optimum (c_end) | Replicate sd of the final drift (c_end) |
+|---|---|---|---|---|
+| L2 | 1.66 (1.49–1.96) | 56% | 0.73 / 0.62 / 0.70 of 2 | 0.21–0.24 |
+| L2m | 1.94 (1.12–2.35) | 48% | 0.58 / 0.52 / 0.65 of 2 | 0.20–0.41 |
+| L4 | 3.13 (2.92–3.46) | 17% | 0.30 / 0.35 / 0.44 of 4 | 0.21–0.42 |
+| null | — | — | drift 0.05 / −0.29 / 0.02 | 0.13–0.32 |
+
+Gap trajectory of L2 under the proposed config: 3.60 at 500 pairs, 3.45 at 1,000, 3.14 at 2,000, 2.72 at 4,000, 2.11 at 8,000, 1.83 at 12,000, 1.66 at 16,000.
+
+**Resume byte-identity on the real schedule: PASS for both N.** The L2 replicate 1 run was interrupted twice:
+- at B3@300:2, mid-batch after 2 of 4 results;
+- at B5@700, after the update record but before its checkpoint.
+
+After the resumes it equals the uninterrupted run byte for byte in the ledger, RUN.json, HEAD.json and every checkpoint. Exit codes were 77, 77, 0, and `verify` exit 0.
+- N = 4000: 2,005 files.
+- N = 16000: 8,005 files.
+
+The check always starts from an empty directory and requires both crashes to fire.
+
+**Code-change check.** After the M2 fixes, both qualifications were re-run over their existing runs. Every recorded plan and update was reproduced by the fixed code; any difference would have been refused with exit 30. The corrected diagnostics show 0 capped and 0 shrunk plans in every run.
+
+**Reading.**
+- N = 4000 at the default gain moves the right way but too slowly.
+- Raising r_end at fixed N moves faster but widens the noise floor: the end point scatters by up to 0.9–2.6 c_end.
+- N = 16000 at the default gain recovers about half to three fifths of a tuning-sized gap at 2 c_end (56–62% over two replicate sets), with the smallest noise floor of the cells that move far (0.15–0.32 c_end).
+- A wide, flat basin (L4) still moves only 17%. A small movement in a real run is therefore not evidence of a flat landscape.
+- Cost: 32,000 games at 10+0.1, QA's decision (`PLAN.md` §4.7).
+
+## 7. End-to-end dry-run (synthetic candidate → G1 confirmation command), with the M2-fixed code
 ```
-$ps = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; $bin = '.\opus_spsa_resume\bin\confirm.ps1'
-& $ps -NoProfile -ExecutionPolicy Bypass -File $bin -Command select -TrainingRun out\synthqual\L2_r1\run -CandidateOut out\synthqual\e2e\candidate_L2_r1_SYNTHETIC.json
-& $ps -NoProfile -ExecutionPolicy Bypass -File $bin -Command run -Protocol .\opus_spsa_resume\confirm\configs\confirm_protocol_G1_example.json -Candidate out\synthqual\e2e\candidate_L2_r1_SYNTHETIC.json -RunDir out\synthqual\e2e\confirm_G1_dry
+$ps = 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'; $bin = '.\opus_spsa_resume\bin\confirm.ps1'; $e = 'out\synthqual_n16000\e2e'
+& $ps -NoProfile -ExecutionPolicy Bypass -File $bin -Command select -TrainingRun out\synthqual_n16000\L2_r1\run -CandidateOut $e\refused.json              # exit 10
+& $ps -NoProfile -ExecutionPolicy Bypass -File $bin -Command select -TrainingRun out\synthqual_n16000\L2_r1\run -CandidateOut $e\candidate_L2_r1_SYNTHETIC.json -AllowNonLive
+& $ps -NoProfile -ExecutionPolicy Bypass -File $bin -Command run -Protocol .\opus_spsa_resume\confirm\configs\confirm_protocol_G1_example.json -Candidate $e\candidate_L2_r1_SYNTHETIC.json -RunDir $e\confirm_G1_dry
 ```
-- **The fixed rule** turned the complete SYNTHETIC run into a candidate spec:
-  - Values: RazorBase 151, RazorMultiplier 340, QsFutilityMargin 155. These are synthetic, meaningless values.
-  - spec_sha256 2e343196….
+- **The fixed rule:**
+  - It refuses a synthetic training run (exit 10).
+  - With `-AllowNonLive` it turned the complete SYNTHETIC N = 16000 run into a spec with `training_mode: synthetic`.
+  - Values: RazorBase 157, RazorMultiplier 324, QsFutilityMargin 147. These are synthetic, meaningless values.
 - **The dry-run:**
   - Verified all four pinned identities: fastchess, the gate exe 404549d7…, the lock exe and holdout_G1.pgn.
   - Counted 2,408 holdout openings.
+  - Reported `candidate_confirmable: false`, with two issues: a synthetic training run, and no `training_config_sha256` pinned yet.
   - Printed the fastchess command: `option.RazorTune=1 option.QsTune=1` plus the three values against the lock, `-rounds 2408`.
-  - Wrote no file, started no process and did not create the registry.
-- **The same protocol with a 40,000-game cap was refused** (exit 10, `openings would repeat`): G1 has only 2,408 openings, so the cap needs 20,000 pairs. The runner now enforces this budget in every mode.
-- Logs: `evidence/synthqual/e2e/`.
+  - Wrote no file, started no process and created no registry.
+- **Refused, with nothing written** (no run directory, no registry line):
+  - the same protocol with a 40,000-game cap (exit 10, `openings would repeat`);
+  - `-Mode replay` without a replay manifest (exit 10);
+  - `-Mode live -Live` (exit 40: this runner never starts a game).
+- Logs: `evidence/synthqual_n16000/e2e/`.

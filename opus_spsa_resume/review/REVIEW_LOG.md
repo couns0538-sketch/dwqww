@@ -3,7 +3,7 @@
 Policy: `review/AGENTS_3e900941.md`, section "Development review and verification". It was recovered verbatim from `3e900941:AGENTS.md`, MD5 94169aefef79ccb69c21f8f2c86298f0, because AGENTS.md is absent at main 5176ddf7 and at `opus-r9-spsa`. The first half of that file is scoped to Astra R8 datafilter and does not apply here.
 
 How the policy is applied:
-- One reviewer subagent per milestone: M1 inventory and families, M2 harness and engine patch, M3 builds and qualification, M4 confirmation pack, then a final recheck.
+- One reviewer subagent per milestone: M1 inventory and families; M2 harness, engine patch and confirmation pack (the planned M4 was merged into M2, because the pack was complete by then); M3 builds and qualification; then a final recheck.
 - The reviewer inspects the frozen candidate without editing and returns concrete defects, supporting evidence and missing checks.
 - I assess every finding: confirmed ones are fixed within scope, rejected ones get a written reason, unresolved ones are recorded. Substantive fixes are rechecked by the same reviewer through SendMessage.
 - **Independence:** the reviewer is a same-model subagent with fresh context. It is not an independent human or Code Review pass, and each entry below says so.
@@ -11,6 +11,64 @@ How the policy is applied:
 | Milestone | Candidate (commit / hashes) | Findings | Fixes / dispositions | Validation | Next |
 |---|---|---|---|---|---|
 | M1: inventory, freeze, families (2026-11-10 ≈01:16–01:40) | c6df6af6 | 1 BLOCKER, 2 MAJOR, 6 MINOR, 1 NIT group (details below) | All assessed; fixed or addressed in the M1-fix commit; nothing rejected | Doc and evidence corrections; new evidence files; DR source line scan; 2×2 probe plus control; harness tests 55/55 ×2 | Recheck by the same reviewer |
+| M2: harness, engine patch and confirmation pack (the planned M4 merged into M2) (2026-11-10 02:33–03:00) | 5cb03dc2 | 1 BLOCKER, 3 MAJOR, 7 MINOR, 1 NIT group (details below) | All assessed as valid and fixed, except NIT (g), which is documented. One extra defect found while fixing (levels) | Harness 63/63, confirmation 35/35, R9 equivalence strict; both synthetic qualifications re-run under the fixed code; end-to-end demonstration redone | Recheck together with M3 |
+
+### M2 findings and dispositions
+Reviewer: the same same-model subagent, read-only. It ran only `test_r9_equivalence.py` and small in-memory checks. **Not an independent review.**
+1. **BLOCKER: the single-use registry fails both ways.** Confirmed.
+   - **Too weak:** a deleted and restarted run directory was accepted, for the same or another candidate.
+     - `check_holdout` now refuses:
+       - a group registered from another directory, whatever the candidate;
+       - a re-run in the registered directory once its CONFIRM.json is gone.
+     - A resume with CONFIRM.json present goes on to the CONFIRM.json comparison (exit 11 if protocol or candidate changed).
+   - **Too eager:** a refused start could burn the holdout.
+     - `check_mode` now validates every mode prerequisite before anything is written: the synthetic block, the replay manifest (incl. hashes and parse), a known mode, and live (refused, exit 40).
+     - Registration happens just before the first pair is recorded, with a new crash point `after_register`.
+     - Synthetic runs use a separate registry file.
+   - Tests: re-run after deletion and another candidate in the same directory (41 ×2); four refused starts leave no registry line and no directory.
+   - The real registry `out\confirm_registry.jsonl` was never created.
+2. **MAJOR: the audit-pgn leakage check passes vacuously on PGN-book games** (no FEN tag). Confirmed.
+   - `start_position` rebuilds the start position from the FEN tag, then from the moves fastchess annotates `{book}` (python-chess). It fails closed (exit 31) on a FEN or book move it cannot replay, and checks that both games of a pair start alike.
+   - The audit now requires `training_keys_files` and reports start sources, the 3-field and the 4-field leakage, and candidate issues.
+   - Replay reports leakage too.
+   - Test in the real fastchess format: 2 of 20 pairs leaked via `{book}` moves are found; an illegal book move gives exit 31.
+3. **MAJOR: live-mode resume could lock up** (`.out` without `.pgn`). Confirmed. `next_attempt_base` takes the first attempt number whose `.out` and `.pgn` both do not exist, as R9 does. Unit test added.
+4. **MAJOR: the candidate is not bound to a live run or to the real config.** Confirmed.
+   - `select_candidate` refuses non-live runs unless `--allow-nonlive` (tests and demonstrations), and records `training_mode`.
+   - Protocols pin `training_config_sha256`.
+   - `candidate_issues` is reported by dry-run and audit, and replay refuses a non-confirmable candidate (exit 10) unless the protocol sets the test-only `allow_nonlive_candidate`.
+   - The G1 example protocol carries a `QA_FILLS_BEFORE_ANY_GAME` slot.
+5. **MINOR: `r9_clamp` was not R9 when the rounded plus equals the minus** (E-006 gate). Confirmed. The gate now applies only outside `r9_clamp`, so that mode is R9 in general. Unit test added.
+   - `test_r9_equivalence` (finding 10a) is now strict: in inner mode a mismatch is allowed only in a batch that shrank, projected, capped or had an E-006 coordinate.
+   - Result: stc1 has 0 mismatches. sanity3 has 1 (batch 0, a by-design batch).
+6. **MINOR: the partition key (4 fields) and the leakage key (3 fields) differ;** 2 G1 openings collide on 3 fields. Confirmed by my own recount: G1 0 on 4 fields, 2 on 3 fields; G2 and G3 0 and 0.
+   - Documented in HOLDOUT_MANIFEST, CONFIRM_PROTOCOL §3 and the `leakage()` docstring. The audit keeps the conservative 3-field rule and also reports the exact 4-field count.
+   - The partition stays frozen; at most 0.08% of G1 is affected.
+7. **MINOR: synth_qualify has three problems.** All fixed:
+   - `plans_capped` used a truthy list; the corrected count is 0 in every run.
+   - The resume check now always starts empty and requires both crashes to fire.
+   - The docstring now says four keys.
+8. **MINOR: a run ending on a prior can never yield a candidate.** Confirmed. `Space.feasible_engine_values` repairs the rounding (nearest feasible floor/ceil combination, c_end-scaled) for the `complete` record. Unit test with the reviewer's C1 example: plain rounding is (100, 200, 301); the repair gives (100, 201, 301).
+9. **MINOR: the tuner's holdout refusal was case-sensitive.** Confirmed and fixed (lowercased on both sides). Test with an uppercase pin.
+10. **MINOR: tests that passed for the wrong reason.** All fixed:
+    - (a) R9 inner mode now strict, as in 5.
+    - (b) The stale-ledger record is now re-chained, so only its run_id betrays it (exit 31, "stale").
+    - (c) The fake optimizer now confirms the selected candidate. It stays an A/A run by construction, and the test name says so.
+    - (d) `t_levels` indexes by name. **This exposed a real defect:** the QsSeeMargin level coordinate started at the edge index, where plus and minus always round alike, so E-006 froze it forever. The old test only ever measured RazorDepth. Fix: inner mode keeps a level coordinate at least e inside its index range. Integer coordinates and `r9_clamp` are unaffected. The recommended config uses no levels. Both level coordinates now update (57 and 63 of 200 batches).
+    - (e) Direct E-006 test added.
+11. **MINOR: PowerShell scripts.** All fixed:
+    - `selftest.ps1` runs the suites under `Continue` and keeps stderr as text, so a failing suite still writes TESTS.md; it now also reads back Idle.
+    - `rollback.ps1` reads back mask and Idle.
+    - `confirm.ps1` has the 30 GiB reserve guard for non-dry-run commands, plus `-AllowNonLive`.
+12. **NITs.**
+    - (a) A rollback now reopens a COMPLETE run. Test: the rolled-back run completes again (two `complete` records) and verifies.
+    - (b) `status` now reports `pair_records` beside k.
+    - (c) Rollback refuses a checkpoint whose content the ledger does not reproduce (exit 30, test).
+    - (d) An unknown `--mode` is refused before anything is written (test).
+    - (e) `identity_check: start` is refused outside synthetic mode (test).
+    - (f) The confirmation ledger's torn-tail repair is now fsynced, and `verify` re-checks CONFIRM.json's protocol and candidate hashes.
+    - (g) The `.ps1` defaults for `-Python` and `-TempDir` name this PC's paths: documented in README, not changed.
+- **Run size:** the reviewer confirmed that ~0.2 c_end drift at N = 4000 is the schedule, not a defect. N was set to 16000 from the synthetic sweep before any game (`PLAN.md` §4.7); this is part of M3.
 
 ### M1 recheck (same reviewer, of 2d174ca8)
 - **Resolved:** findings 2, 3, 4, 5, 7, 8 and 10.

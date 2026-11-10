@@ -4,8 +4,8 @@ usage: python -I -B synth_qualify.py <config.json> <out_dir> [--reps N]
        python -I -B synth_qualify.py <config.json> <out_dir> --sweep [--reps N]
 
 Derives SYNTHETIC copies of <config.json>. Each copy keeps everything the real run uses: schedule, bounds,
-priors, pins, perturbation seed, N and batch size. Only three things change: run_nonce, identity_check = "start"
-(the pins are hashed once, not before every batch), and a synthetic outcome model.
+priors, pins, perturbation seed, N and batch size. Only four keys change: run_nonce, identity_check = "start"
+(the pins are hashed once, not before every batch), a synthetic outcome model, and the comment.
 Each copy runs to completion with opus3_spsa.py --mode synthetic. Re-running the script resumes or reuses
 finished runs; a changed derived config is refused.
 
@@ -16,8 +16,9 @@ finished runs; a changed derived config is refused.
   landscape L4   optimum 4 c_end away, scale 4 c_end. Same gap: a wider, flatter basin.
   null           a flat model with no signal. The final drift from the start is the noise floor of the procedure.
   resume         one L2 replicate run with two injected crashes (B3 mid-batch, then B5 after the update record),
-                 each resumed. Its ledger, RUN.json, HEAD.json and every checkpoint must equal the uninterrupted
-                 replicate byte for byte.
+                 each resumed. It always starts from an empty directory, both crashes must fire (exit 77), and its
+                 ledger, RUN.json, HEAD.json and every checkpoint must equal the uninterrupted replicate byte for
+                 byte.
 
   --sweep        run length and gain: N in {4000, 16000, 40000} pairs x r_end in {0.002, 0.005, 0.01}, landscape
                  L2 and null, --reps replicates each. Only pairs_planned and the tuned r_end differ from the real
@@ -134,7 +135,7 @@ def metrics(cfg, run_dir):
            "updates_projected": sum(1 for u in ups if u.get("projected")),
            "updates_with_active_constraint": sum(1 for u in ups if u.get("active")),
            "plans_shrunk": sum(1 for p in plans if p.get("s", 1.0) < 1.0),
-           "plans_capped": sum(1 for p in plans if p.get("capped")),
+           "plans_capped": sum(1 for p in plans if any(p.get("capped") or [])),
            "plans_s_below_min": sum(1 for p in plans if p.get("s_below_min"))}
     if m.get("kind") == "quadratic":
         opt = [m["opt"][n] for n in names]
@@ -268,11 +269,16 @@ def main(argv):
     if (d / "config.json").read_bytes() != (out / "L2_r1" / "config.json").read_bytes():
         raise SystemExit("resume copy differs from L2_r1's config")
     crashes = ("B3@300:2", "B5@700")
+    if (d / "run").exists():  # the check must exercise both crashes: always start from an empty run directory
+        import shutil
+        shutil.rmtree(d / "run")
     codes = run_to_end(d / "config.json", d / "run", crashes)
     a, b = run_files(out / "L2_r1" / "run"), run_files(d / "run")
     diff = sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
-    results["resume_check"] = {"crashes": list(crashes), "exit_codes": codes, "files_compared": len(a),
-                               "files_differing": diff, "identical": not diff and len(a) == len(b)}
+    crashed = codes[:len(crashes)] == [77] * len(crashes) and codes[len(crashes)] == 0
+    results["resume_check"] = {"crashes": list(crashes), "exit_codes": codes, "both_crashes_fired": crashed,
+                               "files_compared": len(a), "files_differing": diff,
+                               "identical": crashed and not diff and len(a) == len(b)}
     print(f"resume_check: identical={results['resume_check']['identical']} files={len(a)} codes={codes}", flush=True)
     (out / "summary.json").write_text(json.dumps(results, indent=1) + "\n", encoding="ascii")
     print(json.dumps({"groups": results["groups"], "resume_check": results["resume_check"]}, indent=1))

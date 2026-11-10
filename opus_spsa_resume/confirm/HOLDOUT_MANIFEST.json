@@ -1,7 +1,8 @@
 {
  "schema": "opus3-holdout/1",
  "frozen_before_fitting": true,
- "source": "partition/PARTITION_MANIFEST.json (8moves_v3 sha256 5835239f..., hash-bucketed by final-position key; pairwise disjoint)",
+ "source": "partition/PARTITION_MANIFEST.json (8moves_v3 sha256 5835239f..., deduplicated and hash-bucketed by the final-position key board.epd() = pieces, side, castling, legal e.p.; pairwise disjoint on that 4-field key)",
+ "three_field_overlap": "on pieces/side/castling only (the leakage audit's conservative key), 2 of G1's 2408 openings match a training opening; they differ only in the e.p. square (r1bq1rk1/pp2ppbp/3p1np1/n1pP4/2P5/2N3P1/PP1NPPBP/R1BQK2R w KQ and r1bq1rk1/pp2ppbp/3p1np1/n1pP4/2P5/6P1/PP1NPPBP/RNBQ1RK1 w -; G1 has e.p. c6, train -). Found by the M2 review.",
  "groups": {
   "holdout_G1": {"count": 2408, "pgn_sha256": "cfe81bf7204e5da7481250d071f440428c07a7fa722d2c311b76aff44468ebdc", "keys_sha256": "cb0083c3913a18eb21a57d3ed5c3d08474aa3e73e4ae589099f575232d20602b", "use": "primary holdout of this pack's runner (single use)"},
   "holdout_G2": {"count": 2493, "pgn_sha256": "47985a6e8597dfad6b5481c29bfb8e2c4b0992df710dd3cb733f265b928eb819", "keys_sha256": "f0eaa3b466d8068288d74cdd8af0b02ba4d51b0af7eee92e379f4e8b64ae6809", "use": "reserved: only after a written, QA-approved protocol change, before any game of it"},
@@ -12,5 +13,5 @@
  "qa_book_alternative": {"book": "uho_lichess_v1", "sha256": "7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a", "lines": 2632036,
    "lines_matching_training_keys": 50, "lines_matching_screen_keys": 9, "compare": "pieces side castling (conservative)",
    "rule": "every played opening of a QA confirmation is audited (bin/confirm.ps1 -Command audit); claim only if leakage <= 1% of pairs"},
- "single_use_rule": "confirm_runner.py registry: a holdout group serves exactly one confirmation run directory, ever (no second candidate, no re-run until a lucky result)"
+ "single_use_rule": "confirm_runner.py registry: a holdout group serves exactly one confirmation, ever. Refused: a group registered from another directory, and a re-run in the same directory after its CONFIRM.json is gone. A resume must keep protocol and candidate. The registry line is written just before the first pair is recorded, after every mode prerequisite has passed. Synthetic runs use a separate registry file."
 }

@@ -10,7 +10,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $me = [System.Diagnostics.Process]::GetCurrentProcess()
-$me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]$Mask
+$me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]$Mask; $me.Refresh()
+if ([long]$me.ProcessorAffinity -ne $Mask -or "$($me.PriorityClass)" -ne 'Idle') { throw 'placement not applied' }
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $tool = Join-Path (Split-Path -Parent $PSScriptRoot) 'spsa\opus3_spsa.py'
 if ($Baseline) {

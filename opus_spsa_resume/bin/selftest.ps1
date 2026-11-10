@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $me = [System.Diagnostics.Process]::GetCurrentProcess()
 $me.PriorityClass = 'Idle'; $me.ProcessorAffinity = [IntPtr]$Mask; $me.Refresh()
-if ([long]$me.ProcessorAffinity -ne $Mask) { throw 'placement not applied' }
+if ([long]$me.ProcessorAffinity -ne $Mask -or "$($me.PriorityClass)" -ne 'Idle') { throw 'placement not applied' }
 if ($TempDir) { New-Item -ItemType Directory -Force -Path $TempDir | Out-Null; $env:TEMP = $TempDir; $env:TMP = $TempDir }
 $env:PYTHONDONTWRITEBYTECODE = '1'
 $pack = Split-Path -Parent $PSScriptRoot
@@ -20,12 +20,16 @@ $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
 $base = Join-Path $Scratch $stamp
 New-Item -ItemType Directory -Force -Path $base | Out-Null
 $rows = @()
-$r9 = & $Python -I -B (Join-Path $tests 'test_r9_equivalence.py') 2>&1
+# Windows PowerShell 5.1 turns a native command's stderr line into an error record; with 'Stop' the first one would
+# abort the script before TESTS.md is written. Run the suites under 'Continue' and keep every line as text.
+$ErrorActionPreference = 'Continue'
+$r9 = & $Python -I -B (Join-Path $tests 'test_r9_equivalence.py') 2>&1 | ForEach-Object { "$_" }
 $rows += [pscustomobject]@{ suite = 'R9 saved-run replay equivalence'; exit = $LASTEXITCODE; lines = @($r9) }
-$hs = & $Python -I -B (Join-Path $tests 'test_spsa_harness.py') (Join-Path $base 'harness') (Join-Path $base 'harness.json') 2>&1
+$hs = & $Python -I -B (Join-Path $tests 'test_spsa_harness.py') (Join-Path $base 'harness') (Join-Path $base 'harness.json') 2>&1 | ForEach-Object { "$_" }
 $rows += [pscustomobject]@{ suite = 'SPSA harness'; exit = $LASTEXITCODE; lines = @($hs) }
-$cf = & $Python -I -B (Join-Path $tests 'test_confirm.py') (Join-Path $base 'confirm') (Join-Path $base 'confirm.json') 2>&1
+$cf = & $Python -I -B (Join-Path $tests 'test_confirm.py') (Join-Path $base 'confirm') (Join-Path $base 'confirm.json') 2>&1 | ForEach-Object { "$_" }
 $rows += [pscustomobject]@{ suite = 'Confirmation pack'; exit = $LASTEXITCODE; lines = @($cf) }
+$ErrorActionPreference = 'Stop'
 $md = @('# TESTS (selftest.ps1)', '', "Run: $stamp (UTC, PC clock - see STATUS.md for the clock offset). Scratch: $base",
         'All tests use synthetic outcomes or saved/generated PGNs: no engine, no games, no Elo.', '')
 foreach ($r in $rows) {

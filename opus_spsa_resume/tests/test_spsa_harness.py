@@ -151,11 +151,13 @@ def t_levels(base):
     vals_ok = all(p[s]["QsSeeMargin"] in (40, 140, 240) and p[s]["RazorDepth"] in (1, 2, 3) for p in plans
                   for s in ("plus", "minus"))
     viol = sum(1 for p in plans if p["violations"])
-    eff = sum(p["eff"][3] for p in plans) if plans else 0
+    names = [r for r in ledger(d / "run") if r["type"] == "init"][0]["names"] if plans else []
+    eff_q = sum(p["eff"][names.index("QsSeeMargin")] for p in plans) if plans else 0
+    eff_d = sum(p["eff"][names.index("RazorDepth")] for p in plans) if plans else 0
     check("synthetic levels (harness capability, not the recommended config): only level values, C1/C2/C3' hold, "
-          "level coordinates carry updates",
-          rc == 0 and vals_ok and viol == 0 and eff > 0, f"rc {rc}, plans {len(plans)}, violating {viol}, "
-          f"batches with a QsSeeMargin level difference {eff}; {err[-200:]}")
+          "both level coordinates carry updates",
+          rc == 0 and vals_ok and viol == 0 and eff_q > 0 and eff_d > 0, f"rc {rc}, plans {len(plans)}, violating "
+          f"{viol}, batches with a QsSeeMargin level difference {eff_q}, RazorDepth {eff_d}; {err[-200:]}")
 
 
 # --- crash at every boundary -------------------------------------------------------------------------------------
@@ -314,10 +316,17 @@ def t_refusals(base):
     cfg2["openings"] = cfg["openings"]
     c2 = h.write_config(other / "cfg.json", cfg2)
     h.cli("run", c2, other / "run", "--mode", "synthetic", "--max-batches", "4")
+    # a careful forger: the other run's record, re-chained (seq, prev, hash) so only its run_id betrays it
+    recs = ledger(d / "run")
+    stale = json.loads((other / "run" / "ledger.jsonl").read_bytes().split(b"\n")[6])
+    stale.pop("h")
+    stale["seq"], stale["prev"] = len(recs), recs[-1]["h"]
+    stale["h"] = sha256_bytes(canon(stale))
     with open(d / "run" / "ledger.jsonl", "ab") as f:
-        f.write((other / "run" / "ledger.jsonl").read_bytes().split(b"\n")[6] + b"\n")
+        f.write(canon(stale) + b"\n")
     rc, _, err = h.cli("run", c, d / "run", "--mode", "synthetic", "--resume")
-    check("refuse a ledger record of another run (stale, exit 30/31)", rc in (30, 31), err.strip()[-160:])
+    check("refuse a correctly chained ledger record of another run (stale run_id, exit 31)",
+          rc == 31 and "stale" in err, err.strip()[-160:])
 
     d = fresh(base, "ref_holdout")
     env = h.make_env(d / "env")
@@ -328,6 +337,24 @@ def t_refusals(base):
     rc2, _, _ = h.cli("run", c, d / "run")
     check("refuse an openings file listed as holdout/screen (exit 41, also in dry-run)",
           rc == 41 and rc2 == 41 and not (d / "run").exists(), err.strip()[-160:])
+    cfg["openings"]["forbidden_sha256"] = [cfg["identity"]["openings"]["sha256"].upper()]
+    h.write_config(c, cfg)
+    rc, _, err = h.cli("run", c, d / "run", "--mode", "synthetic")
+    check("the holdout refusal ignores hex case (an uppercase pin as Get-FileHash prints it, exit 41)",
+          rc == 41 and not (d / "run").exists(), err.strip()[-160:])
+
+    d = fresh(base, "ref_mode")
+    env = h.make_env(d / "env")
+    cfg = h.make_config(env)
+    c = h.write_config(d / "cfg.json", cfg)
+    rc, _, err = h.cli("run", c, d / "run", "--mode", "bogus")
+    check("refuse an unknown --mode before anything is written (exit 10)", rc == 10 and not (d / "run").exists(),
+          err.strip()[-160:])
+    cfg["identity_check"] = "start"
+    h.write_config(c, cfg)
+    rc, _, err = h.cli("run", c, d / "run", "--mode", "live", "--live")
+    check("refuse identity_check 'start' outside synthetic qualification (exit 10, nothing written)",
+          rc == 10 and not (d / "run").exists(), err.strip()[-160:])
 
     d = fresh(base, "ref_live")
     env = h.make_env(d / "env")
@@ -473,13 +500,75 @@ def t_rollback(base):
     cand = json.loads((d / "export" / "candidate.json").read_text()) if rc4 == 0 else {}
     check("export writes history.csv and candidate.json from the ledger", rc4 == 0 and "values" in cand and
           (d / "export" / "history.csv").exists(), f"rc {rc4}")
+    # rolling back a COMPLETE run reopens it; the resumed run completes again and verifies
+    d, env, cfg, c = partial(base, "rollback_complete", batches=10)
+    rcs, sout, _ = h.cli("status", d / "run")
+    was_complete = rcs == 0 and json.loads(sout)["complete"]
+    rc5, _, err5 = h.cli("rollback", d / "run", "--to-ckpt", "9")
+    st5 = json.loads(h.cli("status", d / "run")[1])
+    rc6, _, err6 = h.cli("run", c, d / "run", "--mode", "synthetic", "--resume")
+    rcv6, vout6, _ = h.cli("verify", d / "run")
+    st6 = json.loads(vout6)["state"] if rcv6 == 0 else {}
+    n_complete = sum(1 for r in ledger(d / "run") if r["type"] == "complete")
+    check("rollback of a COMPLETE run reopens it; the resumed run plays the missing batches, completes again, "
+          "verifies", was_complete and rc5 == 0 and not st5["complete"] and rc6 == 0 and rcv6 == 0 and
+          st6.get("complete") and n_complete == 2, f"rc {rc5}/{rc6}/{rcv6} {err5[-80:]} {err6[-80:]}")
+    # a checkpoint whose content the ledger does not reproduce is never adopted
+    cp = d / "run" / "ckpt" / "ckpt_000004.json"
+    obj = json.loads(cp.read_text(encoding="ascii"))
+    obj["theta"][0] += 7.0
+    cp.write_bytes(canon(obj))
+    rc7, _, err7 = h.cli("rollback", d / "run", "--to-ckpt", "4")
+    check("rollback refuses a checkpoint that differs from the ledger-derived state (exit 30)", rc7 == 30,
+          err7.strip()[-160:])
+
+
+def t_units(base):
+    """In-process checks of single functions (no CLI)."""
+    import opus3_spsa as m
+    from space import Space
+    # live attempt numbering: a failed attempt that left only a .out never blocks a resume (R9 behaviour)
+    g = fresh(base, "attempts")
+    first = m.next_attempt_base(g, 3, 0)
+    Path(f"{first}.out").write_text("fastchess failed at startup\n", encoding="ascii")
+    second = m.next_attempt_base(g, 3, 0)
+    Path(f"{second}.out").write_text("ok\n", encoding="ascii")
+    Path(f"{second}.pgn").write_text("", encoding="ascii")
+    third = m.next_attempt_base(g, 3, 0)
+    check("live attempt numbering skips attempts that left only a .out (no FileExistsError lock-up on resume)",
+          (first.name, second.name, third.name) == ("b000003_j000_a0", "b000003_j000_a1", "b000003_j000_a2"),
+          f"{first.name} {second.name} {third.name}")
+    # E-006: a coordinate whose rounded plus equals its rounded minus gets no update, except in r9_clamp (= R9)
+    env = h.make_env(fresh(base, "e006") / "env")
+    cfg = h.make_config(env, pairs_planned=400)
+    cfg["params"][0]["c_end"] = 0.2  # RazorBase: c_k < 0.5 late in the run, so plus and minus round alike
+    cfg["constraints"] = []  # r9_clamp (R9 compatibility) has no constraints; E-006 does not involve them
+    res = {}
+    for mode in ("inner", "r9_clamp"):
+        sp = Space(dict(cfg, bounds_mode=mode))
+        th = [150.0, 350.0, 160.0]
+        plan = sp.plan(th, 396)
+        up = sp.update(plan, 3, 1, 4)
+        res[mode] = (plan["plus"]["RazorBase"] == plan["minus"]["RazorBase"], plan["eff"][0],
+                     up["theta_after"][0] - th[0], up["theta_after"][1] != th[1])
+    check("E-006: plus = minus after rounding -> no update in inner mode; r9_clamp updates as R9 does",
+          res["inner"][0] and res["inner"][1] == 0 and res["inner"][2] == 0.0 and res["inner"][3]
+          and res["r9_clamp"][0] and res["r9_clamp"][2] != 0.0, str(res))
+    # complete values: rounding with a feasibility repair, so a run ending on a prior still yields a candidate
+    real = json.loads((HERE.parent / "configs" / "joint_razor_qs.json").read_text(encoding="utf-8"))
+    sp = Space(real)
+    th = [100.3, 200.3, 300.6]  # RazorBase, RazorMultiplier, QsFutilityMargin: C1 = 0 exactly
+    plain, fixed = sp.engine_values(th), sp.feasible_engine_values(th)
+    check("complete-record values: plain rounding breaks C1 by 1 here; the feasible repair gives the nearest "
+          "feasible integers", sp.violations(plain) == ["C1"] and not sp.violations(fixed) and
+          all(abs(fixed[n] - x) < 1.0 for n, x in zip(sp.names, th)), f"plain {plain} fixed {fixed}")
 
 
 def main():
     base = Path(sys.argv[1])
     base.mkdir(parents=True, exist_ok=True)
     for t in (t_movement, t_null, t_interaction, t_constrained, t_levels, t_crash, t_refusals, t_dryrun, t_replay,
-              t_rollback):
+              t_rollback, t_units):
         try:
             t(base)
         except Exception as e:  # a crashing test is a failing test

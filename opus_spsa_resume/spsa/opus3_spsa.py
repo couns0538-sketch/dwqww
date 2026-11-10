@@ -56,8 +56,8 @@ def load_config(path):
         raise Refuse(EXIT_CONFIG, f"config parameters invalid: {e}")
     if cfg["openings"].get("role") != "train":
         raise Refuse(EXIT_HOLDOUT, "the tuner only reads a training partition (openings.role must be 'train')")
-    forbidden = set(cfg["openings"].get("forbidden_sha256", []))
-    if cfg["identity"]["openings"]["sha256"] in forbidden:
+    forbidden = {str(x).lower() for x in cfg["openings"].get("forbidden_sha256", [])}
+    if str(cfg["identity"]["openings"]["sha256"]).lower() in forbidden:
         raise Refuse(EXIT_HOLDOUT, "the openings file is a holdout/screen partition")
     return cfg
 
@@ -313,6 +313,7 @@ class Run:
                 if st["pending"] is not None:
                     raise Refuse(EXIT_CORRUPT, "rollback record inside an open batch")
                 st["theta"], st["k"] = rec["theta"], rec["k"]
+                st["complete"] = False  # the run continues from checkpoint n; a later complete record closes it again
             elif t == "complete":
                 if st["pending"] is not None or st["k"] < self.cfg["pairs_planned"] or rec.get("theta") != st["theta"]:
                     raise Refuse(EXIT_CORRUPT, "complete record does not match the run")
@@ -404,12 +405,24 @@ def open_run(cfg_path, run_dir, mode, resume):
     return Run(cfg, d, mode)
 
 
+MODES = ("dry-run", "synthetic", "replay", "live")
+
+
 def cmd_run(cfg_path, run_dir, args):
     mode = args.get("mode", "dry-run")
+    if mode not in MODES:  # before anything is read or written
+        raise Refuse(EXIT_CONFIG, f"unknown mode {mode!r} ({', '.join(MODES)})")
     if mode == "dry-run":
         return dry_run(cfg_path, run_dir)
     run = open_run(cfg_path, run_dir, mode, args.get("resume", False))
     cfg = run.cfg
+    if cfg.get("identity_check", "every_batch") not in ("every_batch", "start"):
+        raise Refuse(EXIT_CONFIG, "identity_check must be every_batch (default) or start")
+    if cfg.get("identity_check", "every_batch") == "start" and mode != "synthetic":
+        raise Refuse(EXIT_CONFIG, "identity_check 'start' is for synthetic qualification only; game runs re-check "
+                                  "the pins before every batch")
+    if mode == "replay" and "replay" not in cfg:
+        raise Refuse(EXIT_CONFIG, "replay mode needs config.replay (manifest and its sha256)")
     if mode == "live":
         live_guard(cfg, run_dir, args)
     run.dir.mkdir(parents=True, exist_ok=True)
@@ -441,7 +454,7 @@ def cmd_run(cfg_path, run_dir, args):
         if st["pending"] is None:
             if st["k"] >= cfg["pairs_planned"]:
                 run.ledger.append("complete", {"k": st["k"], "theta": st["theta"],
-                                               "values": run.space.engine_values(st["theta"])})
+                                               "values": run.space.feasible_engine_values(st["theta"])})
                 crash_point("BC", st["batch"])
                 st["complete"] = True
                 run.checkpoint(st, "C", st["batch"])
@@ -505,6 +518,18 @@ def record_pair(run, st, pend, pair, games, source):
     crash_point("B3", pend["batch"], len(st["results"]))
 
 
+def next_attempt_base(games_dir, batch, j):
+    """First attempt number whose .out and .pgn both do not exist, as R9 does (r9_spsa.py: an attempt of a killed
+    run keeps its files). A failed attempt that left only a .out (fastchess failed at startup, or the process was
+    killed before fastchess created its PGN) therefore never blocks a resume."""
+    a = 0
+    while True:
+        base = Path(games_dir) / f"b{batch:06d}_j{j:03d}_a{a}"
+        if not Path(f"{base}.out").exists() and not Path(f"{base}.pgn").exists():
+            return base
+        a += 1
+
+
 def live_play(run, st, pend, missing):
     """Contiguous runs of missing pairs, one fastchess call each; results recorded only after fastchess exits."""
     games_dir = run.dir / "games"
@@ -518,8 +543,7 @@ def live_play(run, st, pend, missing):
     if cur:
         runs.append(cur)
     for chunk in runs:
-        attempt = len(list(games_dir.glob(f"b{pend['batch']:06d}_*.pgn")))
-        base = games_dir / f"b{pend['batch']:06d}_j{chunk[0]['j']:03d}_a{attempt}"
+        base = next_attempt_base(games_dir, pend["batch"], chunk[0]["j"])
         cmd = fastchess_cmd(run.cfg, pend["plan"]["plus"], pend["plan"]["minus"], chunk[0]["opening_index"] + 1,
                             len(chunk), base)
         with open(f"{base}.out", "x", encoding="utf-8") as out:
@@ -581,6 +605,7 @@ def summary(run, st):
             "pending": None if st["pending"] is None else st["pending"]["batch"],
             "theta": dict(zip(run.space.names, st["theta"])), "values": run.space.engine_values(st["theta"]),
             "ledger_records": len(run.ledger.records), "ledger_head": run.ledger.head,
+            "pair_records": sum(1 for r in run.ledger.records if r["type"] == "pair"),
             "repairs": run.ledger.repairs}
 
 
@@ -671,9 +696,16 @@ def cmd_rollback(target, args):
     reconcile_checkpoints(run, st)
     if st["pending"] is not None:
         raise Refuse(EXIT_CORRUPT, "cannot roll back inside an open batch; resume it first")
-    obj, sha = run.ckpts.read(int(args["to_ckpt"]))
-    run.ledger.append("rollback", {"to_ckpt": int(args["to_ckpt"]), "to_ckpt_sha256": sha, "theta": obj["theta"],
-                                   "k": obj["k"]})
+    n = int(args["to_ckpt"])
+    led = run.ledger
+    expected = []
+    run.rebuild(on_ckpt=lambda i, s: expected.append(canon(run.ckpt_state(s, i + 1, led.records[i]["h"]))))
+    if not 0 <= n < len(expected) or n >= len(run.ckpts.files()):
+        raise Refuse(EXIT_CONFIG, f"no checkpoint {n}")
+    obj, sha = run.ckpts.read(n)
+    if canon({k: v for k, v in obj.items() if k not in ("seq", "prev_ckpt_sha256")}) != expected[n]:
+        raise Refuse(EXIT_CORRUPT, f"checkpoint {n} differs from the ledger-derived state; refusing to adopt its theta")
+    run.ledger.append("rollback", {"to_ckpt": n, "to_ckpt_sha256": sha, "theta": obj["theta"], "k": obj["k"]})
     st = run.rebuild()
     run.checkpoint(st, "R", st["batch"])
     print(json.dumps(summary(run, st), indent=1))

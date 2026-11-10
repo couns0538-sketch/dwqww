@@ -36,7 +36,7 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
 - r_end 0.002 is the OpenBench/Fishtest-style default; R9 used 0.012 and drifted at noise level.
 - **Run size, set from the synthetic qualification before any game:**
   - At the first proposal, N = 4000 pairs, the run moved the right way in every landscape but recovered only 13–16% of a 3.75-unit model gap with the optimum 2 c_end away.
-  - The sweep over N and r_end (`BENCH.md` §6) led to **N = 16000 pairs at r_end 0.002**: 61% recovered, noise floor ≤ 0.15 c_end. See §4.7.
+  - The sweep over N and r_end (`BENCH.md` §6) led to **N = 16000 pairs at r_end 0.002**: 56–62% recovered over two replicate sets, noise floor 0.15–0.32 c_end. See §4.7.
 - These are proposals, not measured optima.
 - The harness still supports discrete level parameters (tested), but the recommended config does not use them.
 
@@ -60,10 +60,10 @@ if (!see_ge(move, -QsSeeMargin)) skip;      // applies to checks and promotions 
      | N (pairs) | r_end 0.002 | r_end 0.005 | r_end 0.01 |
      |---|---|---|---|
      | 4,000 | 13–16% / ≤ 0.21 | 38% / ≤ 0.30 | 54% / ≤ 0.93 |
-     | 16,000 | **61% / ≤ 0.15** | 79% / ≤ 0.90 | 79% / ≤ 0.83 |
-     | 40,000 | 82% / ≤ 0.45 | 92% / ≤ 1.50 | see `BENCH.md` §6 |
+     | 16,000 | **56–62% / ≤ 0.15–0.32** | 79% / ≤ 0.90 | 79% / ≤ 0.83 |
+     | 40,000 | 82% / ≤ 0.45 | 93% / ≤ 1.50 | 93% / ≤ 2.65 |
 
-     N = 16000 at the default gain recovers most of the gap and has the smallest noise floor of the cells that move far. A larger r_end moves faster but makes the end point noisier, so the candidate would be scattered more widely. N = 40000 gains little for 2.5× the games.
+     N = 16000 at the default gain recovers about half to three fifths of the gap. Of the cells that move far, it has the smallest noise floor. A larger r_end moves faster but makes the end point noisier, so the candidate would be scattered more widely. N = 40000 gains about 20 points of recovery for 2.5× the games.
    - **Budget alternative, if QA caps the run at 8,000 games:** N = 4000 with r_end 0.005, about 38% recovered. Keeping r_end 0.002 at N = 4000 is not recommended: the run would barely move.
    - **Cost:** 32,000 games at 10+0.1. The time depends on QA's concurrency and is QA's decision.
 

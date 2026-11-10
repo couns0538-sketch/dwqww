@@ -1,22 +1,30 @@
 """confirm_runner.py - independent confirmation of a tuned candidate on a frozen holdout (no tuner code is imported).
 
 usage (python -I -B; PowerShell entry point ..\\bin\\confirm.ps1):
-  confirm_runner.py run <protocol.json> <candidate.json> <run_dir> [--mode dry-run|synthetic|replay|live] [--resume]
-                        [--live] [--max-pairs N]
+  confirm_runner.py run <protocol.json> <candidate.json> <run_dir> [--mode dry-run|synthetic|replay] [--resume]
+                        [--max-pairs N]
   confirm_runner.py verify <run_dir>
   confirm_runner.py audit-pgn <protocol.json> <candidate.json> <pgn> [<pgn> ...]   (QA's SPRT PGN, read-only)
-Modes: dry-run (DEFAULT) validates protocol, candidate and pins and prints the fastchess command; writes nothing.
-synthetic draws pair outcomes from a model with a known true effect (tests only; output is labelled SYNTHETIC and
-carries no Elo). replay reads the PGNs named in the protocol's replay manifest. live needs --live,
-protocol.live.enabled and <run_dir>/LIVE_ACK.txt holding the protocol sha256 (never used by this job).
-Fixed rules (protocol, frozen before fitting): one confirmation per holdout group, ever (registry); the candidate is
-the one select_candidate.py derived from a COMPLETE training run; pentanomial normalized-Elo GSPRT with the
-protocol's bounds, alpha, beta and game cap: LLR >= upper -> "H1 accepted", LLR <= lower -> "H0 accepted",
-cap reached -> "cap, no decision (no claim)". A crash, time loss or illegal move makes the run invalid.
-State: start/pair/decision records in a hash-chained ledger (source of truth) + atomic checkpoints; every resume
-replays the ledger; duplicates, unknown pairs, incomplete pairs, stale or corrupt state are refused.
-Exit codes: 0 ok, 10 bad protocol/candidate, 11 changed, 20 identity, 30 corrupt, 31 bad results, 40 live guard,
-41 holdout misuse (reuse, peeking, overlap with training), 77 injected crash (tests)."""
+Modes:
+  dry-run (DEFAULT) validates the protocol, the candidate and the pins, reports whether the candidate is
+          confirmable, and prints the exact fastchess command. Writes nothing.
+  replay  recomputes the sequential decision from the PGNs named in protocol.replay. These are the games QA played
+          with the dry-run's command, under QA's own scheduler.
+  synthetic draws pair outcomes from a model with a known true effect. Tests only; the output is labelled
+          SYNTHETIC and carries no Elo. It uses a separate registry file, so it can never consume a holdout.
+  live    is refused (exit 40): this runner never starts an engine or a game.
+Every mode prerequisite is validated before anything is written.
+Fixed rules (protocol, frozen before fitting):
+  - One confirmation per holdout group, ever (registry, written just before the first pair is recorded).
+  - The candidate is the one select_candidate.py derived from a COMPLETE live training run whose config sha256
+    the protocol pins.
+  - Pentanomial normalized-Elo GSPRT with the protocol's bounds, alpha, beta and game cap:
+    LLR >= upper -> "H1 accepted", LLR <= lower -> "H0 accepted", cap reached -> "cap, no decision (no claim)".
+  - A crash, time loss or illegal move makes the run invalid.
+State: start/pair/decision records in a hash-chained ledger (the source of truth) plus atomic checkpoints. Every
+resume replays the ledger. Duplicates, unknown pairs, incomplete pairs, and stale or corrupt state are refused.
+Exit codes: 0 ok, 10 bad protocol/candidate/mode, 11 changed, 20 identity, 30 corrupt, 31 bad results,
+40 live refused, 41 holdout misuse (reuse, re-run, peeking, overlap with training), 77 injected crash (tests)."""
 import hashlib
 import json
 import math
@@ -30,6 +38,9 @@ from pathlib import Path
 
 LN10 = math.log(10.0)
 TAG = re.compile(r'^\[(\w+) "([^"]*)"\]\s*$', re.M)
+COMMENT = re.compile(r"\{([^}]*)\}")
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
+MODES = ("dry-run", "synthetic", "replay", "live")
 
 
 class Stop(Exception):
@@ -154,27 +165,102 @@ def check_identity(proto):
     return out
 
 
-def check_holdout(proto, cand, run_dir):
-    """Holdout misuse is refused (exit 41): the group must not have been read by the training run (peeking), the
-    candidate must come from the frozen training partition, and a holdout group serves exactly ONE confirmation run
-    directory, ever (registry): no second candidate, no re-run of the same candidate until a lucky result."""
+def registry_path(proto, mode):
+    """Replay (game-consuming) confirmations use the protocol's registry. Synthetic runs (tests and demonstrations,
+    no games) use a separate file next to it, so a synthetic run can never consume a holdout group."""
+    p = Path(proto["registry"])
+    return p if mode != "synthetic" else p.with_name(p.stem + ".synthetic" + p.suffix)
+
+
+def registry_lines(reg):
+    if not reg.exists():
+        return []
+    try:
+        return [json.loads(x) for x in reg.read_text(encoding="ascii").splitlines() if x.strip()]
+    except (UnicodeDecodeError, ValueError):
+        raise Stop(30, f"registry {reg} is malformed")
+
+
+def check_holdout(proto, cand, run_dir, run_id, mode):
+    """Holdout misuse is refused (exit 41).
+    - The group must not have been read by the training run (peeking).
+    - The candidate must come from the frozen training partition.
+    - A holdout group serves exactly ONE confirmation, ever:
+      - a group registered from another directory is refused, whatever the candidate;
+      - in its registered directory, a run whose CONFIRM.json is gone is refused, because a deleted and restarted
+        run would be a re-run until lucky;
+      - in its registered directory with CONFIRM.json present, this is a resume, and the CONFIRM.json comparison
+        that follows refuses a changed protocol or candidate (exit 11)."""
     grp = proto["holdout"]
-    trained = set(cand.get("training_openings_sha256", []))
-    if grp["pgn_sha256"] in trained:
+    hs = grp["pgn_sha256"].lower()
+    trained = {x.lower() for x in cand.get("training_openings_sha256", [])}
+    parts = {x.lower() for x in proto.get("training_partitions_sha256", [])}
+    if hs in trained:
         raise Stop(41, "the holdout group was read by the training run (peeking)")
-    if grp["pgn_sha256"] in set(proto.get("training_partitions_sha256", [])):
+    if hs in parts:
         raise Stop(41, "the protocol names a training partition as holdout")
-    if not trained or trained - set(proto["training_partitions_sha256"]):
+    if not trained or trained - parts:
         raise Stop(41, "the candidate's training openings are not the frozen training partition")
-    reg = Path(proto["registry"])
-    if reg.exists():
-        for line in reg.read_text(encoding="ascii").splitlines():
-            if not line.strip():
-                continue
-            r = json.loads(line)
-            if r["holdout_pgn_sha256"] == grp["pgn_sha256"] and r["run_dir"] != str(Path(run_dir).resolve()):
-                raise Stop(41, f"holdout group {grp['name']} already served confirmation {r['run_id']} in {r['run_dir']}"
-                               " (one confirmation per group, ever)")
+    rd = str(Path(run_dir).resolve())
+    for r in registry_lines(registry_path(proto, mode)):
+        if str(r.get("holdout_pgn_sha256", "")).lower() != hs:
+            continue
+        same_dir = r.get("run_dir") == rd
+        if same_dir and (Path(run_dir) / "CONFIRM.json").exists():
+            continue  # a resume of the registered run; CONFIRM.json decides whether protocol and candidate match
+        if r.get("run_id") != run_id:
+            raise Stop(41, f"holdout group {grp['name']} already served confirmation {r.get('run_id')} in "
+                           f"{r.get('run_dir')} (one confirmation per group, ever)")
+        if not same_dir:
+            raise Stop(41, f"confirmation {run_id} is registered in {r.get('run_dir')}; it cannot run again elsewhere")
+        raise Stop(41, f"confirmation {run_id} was registered in {rd}, but its CONFIRM.json is gone: a re-run is "
+                       "refused (one confirmation per group, ever)")
+
+
+def candidate_issues(proto, cand):
+    """Why a candidate may not consume a holdout: it must come from a live training run whose config sha256
+    (RUN.json config_sha256 of QA's live config) the protocol pins."""
+    out = []
+    if cand.get("training_mode") != "live":
+        out.append(f"candidate comes from a {cand.get('training_mode', 'unrecorded')} training run, not a live one")
+    pin = str(proto.get("training_config_sha256", "")).lower()
+    if not HEX64.match(pin):
+        out.append("the protocol does not pin training_config_sha256 (QA's live tuning config, RUN.json config_sha256)")
+    elif str(cand.get("training_config_sha256", "")).lower() != pin:
+        out.append("the candidate's training config differs from the protocol's training_config_sha256")
+    return out
+
+
+def check_mode(proto, mode):
+    """Every mode prerequisite, checked before anything is written. Returns the parsed replay pairs (replay)."""
+    if mode not in MODES:
+        raise Stop(10, f"unknown mode {mode!r} (dry-run, synthetic or replay)")
+    if mode == "live":
+        raise Stop(40, "this runner never starts an engine or a game. QA plays the dry-run's exact fastchess command "
+                       "under its own scheduler; this runner then recomputes the decision from that PGN with --mode "
+                       "replay (protocol.replay), or audits QA's own gate PGN with audit-pgn")
+    if mode == "synthetic":
+        m = proto.get("synthetic")
+        if not isinstance(m, dict) or not all(k in m for k in ("seed", "true_nelo", "draw")):
+            raise Stop(10, "synthetic mode needs protocol.synthetic with seed, true_nelo and draw")
+    if mode == "replay":
+        rp = proto.get("replay")
+        if not isinstance(rp, dict) or not rp.get("pgns"):
+            raise Stop(10, "replay mode needs protocol.replay.pgns (path, sha256, first_pair per PGN)")
+        replay = {}
+        for e in rp["pgns"]:
+            if not all(k in e for k in ("path", "sha256", "first_pair")):
+                raise Stop(10, "each protocol.replay.pgns entry needs path, sha256 and first_pair")
+            p = Path(e["path"])
+            if not p.exists():
+                raise Stop(20, f"replay PGN missing: {p}")
+            if fh(p) != e["sha256"].lower():
+                raise Stop(20, f"replay PGN changed: {p}")
+            replay.update({e["first_pair"] + k: v for k, v in
+                           pgn_pairs(p.read_text(encoding="utf-8", errors="replace"),
+                                     rp.get("cand_name", "cand"), rp.get("base_name", "base")).items()})
+        return replay
+    return None
 
 
 def check_opening_budget(proto):
@@ -191,20 +277,19 @@ def check_opening_budget(proto):
     return n_open
 
 
-def register(proto, cand, run_id, run_dir):
-    """Idempotent: one registry line per (run_id, run_dir)."""
-    reg = Path(proto["registry"])
+def register(proto, cand, run_id, run_dir, mode):
+    """Idempotent: one fsynced registry line per (run_id, run_dir). Called just before the first pair is recorded,
+    after every mode prerequisite has passed, so a refused or failed start never consumes the holdout."""
+    reg = registry_path(proto, mode)
     reg.parent.mkdir(parents=True, exist_ok=True)
     rd = str(Path(run_dir).resolve())
-    if reg.exists():
-        for line in reg.read_text(encoding="ascii").splitlines():
-            if line.strip():
-                r = json.loads(line)
-                if r["run_id"] == run_id and r["run_dir"] == rd:
-                    return
+    for r in registry_lines(reg):
+        if r.get("run_id") == run_id and r.get("run_dir") == rd:
+            return
     with open(reg, "ab") as f:
         f.write(cj({"run_id": run_id, "run_dir": rd, "holdout": proto["holdout"]["name"],
-                    "holdout_pgn_sha256": proto["holdout"]["pgn_sha256"], "candidate_sha256": cand["spec_sha256"]}) + b"\n")
+                    "holdout_pgn_sha256": proto["holdout"]["pgn_sha256"].lower(),
+                    "candidate_sha256": cand["spec_sha256"], "mode": mode}) + b"\n")
         f.flush()
         os.fsync(f.fileno())
 
@@ -244,10 +329,14 @@ class Book:
             if ok:
                 with open(self.p, "ab") as f:
                     f.write(b"\n")
+                    f.flush()
+                    os.fsync(f.fileno())
             else:
                 (self.d / f"confirm_ledger.torn.{len(list(self.d.glob('confirm_ledger.torn.*')))}.bin").write_bytes(tail)
                 with open(self.p, "r+b") as f:
                     f.truncate(len(raw) - len(tail))
+                    f.flush()
+                    os.fsync(f.fileno())
         return self
 
     def _check(self, line, i):
@@ -345,6 +434,45 @@ def synthetic_pair(proto, j):
     return games
 
 
+def start_position(text):
+    """EPD (pieces, side, castling, legal e.p.: the partition's key) of the position the engines started from.
+    That is the FEN tag if present (EPD books), then every leading move annotated {book}, which is how fastchess
+    writes the moves of a PGN book (no FEN tag). Returns (epd, source, book_plies). Fails closed (exit 31)."""
+    try:
+        import chess
+        import chess.pgn
+    except ImportError:
+        raise Stop(10, "the start-position check needs python-chess (installed in the grok-pc venv)")
+    import io
+    head, _, moves = text.partition("\n\n")
+    tags = dict(TAG.findall(head))
+    fen = tags.get("FEN")
+    try:
+        board = chess.Board(fen) if fen else chess.Board()
+    except ValueError:
+        raise Stop(31, f"PGN game with an invalid FEN tag: {fen!r}")
+    if "{book}" not in moves.replace("{ book }", "{book}"):
+        return board.epd(), ("fen" if fen else "startpos"), 0
+    cut = len(moves)
+    for m in COMMENT.finditer(moves):
+        if m.group(1).strip() != "book":
+            cut = m.start()
+            break
+    game = chess.pgn.read_game(io.StringIO(head + "\n\n" + moves[:cut] + " *\n"))
+    if game is None:
+        raise Stop(31, "PGN game whose book moves cannot be parsed")
+    board = game.board()
+    n = 0
+    for node in game.mainline():
+        if node.comment.strip() != "book":
+            break
+        board.push(node.move)
+        n += 1
+    if getattr(game, "errors", None):
+        raise Stop(31, f"PGN game whose book moves cannot be parsed: {game.errors[0]!r}")
+    return board.epd(), "book", n
+
+
 def pgn_pairs(text, cand_name, base_name):
     by = {}
     for blk in text.replace("\r\n", "\n").split("[Event ")[1:]:
@@ -353,6 +481,8 @@ def pgn_pairs(text, cand_name, base_name):
             rnd = int(str(t.get("Round", "")).split(".")[0])
         except ValueError:
             raise Stop(31, "PGN game without numeric Round")
+        epd, src, plies = start_position("[Event " + blk)
+        t["_start"], t["_src"], t["_plies"] = epd, src, plies
         by.setdefault(rnd, []).append(t)
     out = {}
     for rnd, gs in sorted(by.items()):
@@ -363,20 +493,29 @@ def pgn_pairs(text, cand_name, base_name):
         for g in gs:
             if g.get("Result") not in ("1-0", "0-1", "1/2-1/2"):
                 raise Stop(31, f"PGN round {rnd}: unfinished result {g.get('Result')!r}")
+        if gs[0]["_start"] != gs[1]["_start"]:
+            raise Stop(31, f"PGN round {rnd}: the two games start from different positions")
         out[rnd - 1] = {"games": [{"white": "cand" if g["White"] == cand_name else "base", "result": g["Result"],
                                    "termination": g.get("Termination", "?")} for g in gs],
-                        "fen": gs[0].get("FEN")}
+                        "start": gs[0]["_start"], "start_source": gs[0]["_src"], "book_plies": gs[0]["_plies"]}
     return out
 
 
-def leakage(proto, fens):
-    keys = set()
+def leakage(proto, starts):
+    """Pairs whose start position is a training or screen position. The rule uses the conservative 3-field key
+    (pieces, side, castling); the exact 4-field partition key is reported too. They differ only by the e.p. square:
+    2 of G1's 2408 openings share a 3-field key with a training opening."""
+    keys3, keys4 = set(), set()
     for p in proto.get("training_keys_files", []):
         if fh(p["path"]) != p["sha256"].lower():
             raise Stop(20, f"training keys file changed: {p['path']}")
-        keys |= {" ".join(x.split()[:3]) for x in Path(p["path"]).read_text(encoding="ascii").splitlines() if x}
-    hits = [i for i, f in fens if f and " ".join(f.split()[:3]) in keys]
-    return hits
+        for x in Path(p["path"]).read_text(encoding="ascii").splitlines():
+            if x.strip():
+                keys4.add(" ".join(x.split()[:4]))
+                keys3.add(" ".join(x.split()[:3]))
+    hits3 = [i for i, s in starts if " ".join(s.split()[:3]) in keys3]
+    hits4 = [i for i, s in starts if " ".join(s.split()[:4]) in keys4]
+    return hits3, hits4
 
 
 # --- commands --------------------------------------------------------------------------------------------------------
@@ -395,26 +534,26 @@ def run(proto_path, cand_path, run_dir, args):
     proto = load(proto_path, "opus3-confirm-protocol/1")
     cand = load(cand_path, "opus3-candidate-spec/1")
     verify_candidate(cand)
-    ident = check_identity(proto)
-    if proto["identity"]["holdout"]["sha256"].lower() != proto["holdout"]["pgn_sha256"]:
-        raise Stop(10, "protocol identity.holdout is not the named holdout group")
-    check_holdout(proto, cand, run_dir)
-    n_open = check_opening_budget(proto)
     mode = args.get("mode", "dry-run")
+    replay = check_mode(proto, mode)  # every mode prerequisite first: nothing is written before this passes
+    ident = check_identity(proto)
+    if proto["identity"]["holdout"]["sha256"].lower() != proto["holdout"]["pgn_sha256"].lower():
+        raise Stop(10, "protocol identity.holdout is not the named holdout group")
     psha = h(cj(proto))
     run_id = f"confirm:{proto['holdout']['name']}:{cand['spec_sha256'][:12]}:{psha[:12]}"
     d = Path(run_dir)
+    check_holdout(proto, cand, d, run_id, mode)
+    n_open = check_opening_budget(proto)
+    issues = candidate_issues(proto, cand)
     if mode == "dry-run":
         cmd = fastchess_cmd(proto, cand, 1, proto["sprt"]["cap_games"] // 2, d / "games" / "c000000")
         print(json.dumps({"mode": "dry-run", "wrote_files": 0, "started_processes": 0, "identity_ok": ident,
-                          "run_id": run_id, "holdout_openings": n_open,
-                          "max_pairs": proto["sprt"]["cap_games"] // 2, "fastchess_command": subprocess.list2cmdline([str(x) for x in cmd])}, indent=1))
+                          "run_id": run_id, "holdout_openings": n_open, "max_pairs": proto["sprt"]["cap_games"] // 2,
+                          "candidate_confirmable": not issues, "candidate_issues": issues,
+                          "fastchess_command": subprocess.list2cmdline([str(x) for x in cmd])}, indent=1))
         return 0
-    if mode == "live":
-        ack = d / "LIVE_ACK.txt"
-        if not args.get("live") or not proto.get("live", {}).get("enabled") or not ack.exists() or \
-                ack.read_text(encoding="ascii", errors="replace").strip() != psha:
-            raise Stop(40, f"live confirmation needs --live, protocol.live.enabled and {ack} containing {psha}")
+    if mode == "replay" and issues and not proto.get("allow_nonlive_candidate", False):
+        raise Stop(10, "candidate is not confirmable: " + "; ".join(issues))
     meta_p = d / "CONFIRM.json"
     if meta_p.exists():
         if not args.get("resume"):
@@ -431,25 +570,16 @@ def run(proto_path, cand_path, run_dir, args):
         put(meta_p, cj({"schema": "opus3-confirm-run/1", "run_id": run_id, "protocol_sha256": psha, "mode": mode,
                         "candidate_sha256": cand["spec_sha256"], "identity": ident, "protocol": proto, "candidate": cand}))
         crash("after_meta")
-    register(proto, cand, run_id, d)
     book = Book(d, run_id).load()
     if not book.recs:
         book.add("start", {"protocol_sha256": psha, "candidate_sha256": cand["spec_sha256"], "mode": mode})
         crash("after_start")
     st = state_of(book.recs, proto)
     ckpt(d, book, st, proto)
+    if st["pairs"]:
+        register(proto, cand, run_id, d, mode)  # idempotent; restores the line if it was lost
     limit = args.get("max_pairs")
     done = 0
-    replay = None
-    if mode == "replay":
-        rp = proto["replay"]
-        replay = {}
-        for e in rp["pgns"]:
-            if fh(e["path"]) != e["sha256"].lower():
-                raise Stop(20, f"replay PGN changed: {e['path']}")
-            replay.update({e["first_pair"] + k: v for k, v in
-                           pgn_pairs(Path(e["path"]).read_text(encoding="utf-8", errors="replace"),
-                                     rp.get("cand_name", "cand"), rp.get("base_name", "base")).items()})
     while st["decision"] is None:
         cur = summary(st, proto)
         if cur["verdict"] is not None:
@@ -468,10 +598,12 @@ def run(proto_path, cand_path, run_dir, args):
                 if any(k > j for k in replay):
                     raise Stop(31, f"replay has no complete pair {j} but later pairs exist (incomplete run)")
                 break  # replay exhausted without a decision: reported, nothing claimed
-            games, src = replay[j]["games"], {"mode": "replay"}
+            games, src = replay[j]["games"], {"mode": "replay", "start": replay[j]["start"]}
         else:
-            raise Stop(10, "live play is not implemented in this job's runner; QA runs the SPRT with forge_queue.ps1 "
-                           "and audits it with audit-pgn")
+            raise Stop(10, f"mode {mode} cannot record pairs")
+        if j == 0:
+            register(proto, cand, run_id, d, mode)  # the holdout is consumed exactly when its first pair is recorded
+            crash("after_register")
         r = book.add("pair", {"j": j, "games": games, "score": score_pair(games), "source": src})
         st["pairs"][j] = r
         done += 1
@@ -486,6 +618,12 @@ def run(proto_path, cand_path, run_dir, args):
            "decision_recorded": st["decision"] is not None}
     if mode == "synthetic":
         out["label"] = "SYNTHETIC: model outcomes; no Elo is measured or claimed"
+    if mode == "replay":
+        starts = [(j, st["pairs"][j]["source"]["start"]) for j in sorted(st["pairs"])]
+        l3, l4 = leakage(proto, starts)
+        out.update({"leakage_checked": bool(proto.get("training_keys_files")), "leaked_pairs": len(l3),
+                    "leaked_pairs_exact_epd": len(l4), "leak_fraction": (len(l3) / len(starts)) if starts else 0.0,
+                    "candidate_issues": issues})
     print(json.dumps(out, indent=1))
     return 0
 
@@ -520,6 +658,11 @@ def verify(run_dir):
     d = Path(run_dir)
     meta = json.loads((d / "CONFIRM.json").read_text(encoding="ascii"))
     proto = meta["protocol"]
+    if h(cj(proto)) != meta["protocol_sha256"]:
+        raise Stop(30, "CONFIRM.json protocol does not match its protocol_sha256")
+    if meta["candidate"].get("spec_sha256") != meta["candidate_sha256"]:
+        raise Stop(30, "CONFIRM.json candidate does not match its candidate_sha256")
+    verify_candidate(meta["candidate"])
     book = Book(d, meta["run_id"]).load(repair=False)
     st = state_of(book.recs, proto)
     prev = "genesis"
@@ -541,7 +684,10 @@ def verify(run_dir):
 
 
 def audit_pgn(proto_path, cand_path, pgns):
-    """Read-only audit of QA's confirmation PGN(s): pairs, pentanomial, LLR recomputed, opening leakage."""
+    """Read-only audit of QA's confirmation PGN(s): pairs, pentanomial and LLR recomputed, and opening leakage
+    against the training and screen keys. Start positions come from the FEN tag (EPD books such as UHO) or from the
+    {book} moves (PGN books such as 8moves_v3, which carry no FEN tag); a game whose start cannot be rebuilt fails
+    the audit (exit 31)."""
     proto = load(proto_path, "opus3-confirm-protocol/1")
     cand = load(cand_path, "opus3-candidate-spec/1")
     verify_candidate(cand)
@@ -552,14 +698,22 @@ def audit_pgn(proto_path, cand_path, pgns):
         got = pgn_pairs(Path(p).read_text(encoding="utf-8", errors="replace"), qa["cand_name"], qa["base_name"])
         pairs.update({off + k: v for k, v in got.items()})
         off = max(pairs) + 1 if pairs else off
-    leak = leakage(proto, [(j, v["fen"]) for j, v in pairs.items()])
+    if not proto.get("training_keys_files"):
+        raise Stop(10, "audit needs protocol.training_keys_files (train and screen .keys) for the leakage check")
+    l3, l4 = leakage(proto, [(j, v["start"]) for j, v in pairs.items()])
+    leak = set(l3)
     st_all = {"pairs": {j: {"score": score_pair(v["games"]), "games": v["games"]} for j, v in pairs.items()}}
-    st_clean = {"pairs": {j: x for j, x in st_all["pairs"].items() if j not in set(leak)}}
+    st_clean = {"pairs": {j: x for j, x in st_all["pairs"].items() if j not in leak}}
     a, c = summary(st_all, proto), summary(st_clean, proto)
+    sources = {}
+    for v in pairs.values():
+        sources[v["start_source"]] = sources.get(v["start_source"], 0) + 1
     print(json.dumps({"audit": "QA confirmation PGN (independent recomputation)", "all_pairs": a,
-                      "pairs_without_training_positions": c, "leaked_pairs": len(leak),
-                      "leak_fraction": (len(leak) / len(pairs)) if pairs else 0.0,
-                      "protocol_rule": "claim only if QA's verdict and this recomputation agree and leakage <= 1%"},
+                      "pairs_without_training_positions": c, "leaked_pairs": len(l3),
+                      "leaked_pairs_exact_epd": len(l4), "leak_fraction": (len(l3) / len(pairs)) if pairs else 0.0,
+                      "start_positions_from": sources, "candidate_issues": candidate_issues(proto, cand),
+                      "protocol_rule": "claim only if QA's verdict and this recomputation agree, leakage <= 1% "
+                                       "(3-field key) and candidate_issues is empty"},
                      indent=1))
     return 0
 

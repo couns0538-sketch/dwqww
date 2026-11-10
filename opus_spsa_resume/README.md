@@ -36,15 +36,21 @@ Nothing below starts a game unless QA passes all three live guards.
    - **Live mode** needs all three of: `-Mode live -Live`, `live.enabled = true` in QA's copy of the config, and `<run dir>\LIVE_ACK.txt` holding that config's sha256.
    - Run size: see `BENCH.md` §6 and `PLAN.md` §4 before choosing N.
 3. **Resume after any interruption:** the same command with `-Resume`. The ledger is replayed, and only the missing pairs of the pending batch are played. Each update is applied exactly once.
-4. **Candidate:** `bin\confirm.ps1 -Command select -TrainingRun <run dir> -CandidateOut <cand.json>`. This is the fixed rule: the final θ of a COMPLETE run. The spec is hashed.
+4. **Candidate:** `bin\confirm.ps1 -Command select -TrainingRun <run dir> -CandidateOut <cand.json>`.
+   - This is the fixed rule: the final θ of a COMPLETE **live** run, as the nearest feasible integers.
+   - The spec is hashed and records the training mode and config sha256.
+   - A synthetic run is refused unless `-AllowNonLive` is given; that switch is for tests and demonstrations only.
 5. **Confirmation:**
    - QA's own runner with `confirm/PROPOSED_QA_ENTRY.json`: UHO book, SPRT [0,5], recommended cap 40,000.
-   - Or this pack's runner on holdout G1, capped at 4,816 games (`confirm/CONFIRM_PROTOCOL.md`).
-   - Then run `bin\confirm.ps1 -Command audit` on the gate PGN.
+   - Or the G1 route, capped at 4,816 games (`confirm/CONFIRM_PROTOCOL.md` §3). This pack's runner never plays a game: its dry-run prints the exact fastchess command, QA plays it, and `-Mode replay` recomputes the decision.
+   - In the protocol, QA pins `training_config_sha256`, its live config's RUN.json `config_sha256`.
+   - Then run `bin\confirm.ps1 -Command audit` on the gate PGN. It rebuilds start positions from FEN tags or `{book}` moves and reports leakage and candidate issues.
 6. **Rollback** (`confirm/ROLLBACK.md`):
    - the lock exe with no options;
    - or `option.RazorTune=0 option.QsTune=0` on the gate build;
    - or `bin\rollback.ps1 -RunDir <run> -ToCkpt <n>` for a tuning run.
+
+**Script defaults.** The `bin\*.ps1` defaults for `-Python` (the grok-pc venv) and `-TempDir` (this job's `tmp\`) name this PC's paths. Pass your own when running elsewhere or for another job.
 
 ## Verify the pack
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File bin\selftest.ps1`: all no-engine tests; writes `TESTS.md`.

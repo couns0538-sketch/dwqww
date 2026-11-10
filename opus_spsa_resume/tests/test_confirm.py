@@ -71,19 +71,25 @@ def t_controls():
     pw = sum(v == "H1 accepted" for v in pos) / R
     check("positive control (true nElo 25; the 5000-game cap leaves little power below ~20): H1 accepted in >= 80%",
           pw >= 0.80, f"{pw:.3f} of {R} runs [SYNTHETIC]")
-    # fake optimizer: K candidates of equal true strength; 'training' picks the luckiest; confirmation on fresh seeds
+    # fake optimizer: K candidates of equal true strength (true nElo 0 each); 'training' selects the one with the
+    # best training score; the SELECTED candidate (its index and its true strength) is then confirmed on fresh
+    # pairs. Its training edge is pure selection noise, so fresh confirmation must stay at the A/A rate. Because all
+    # candidates are equal, the confirmation is an A/A run by construction: the control shows that a training edge
+    # is not evidence, and that fresh holdout pairs do not inherit it.
     K, n_train, apparent, accepted = 20, 200, [], 0
+    true_nelo = [0.0] * K
     for i in range(R):
         rng = random.Random(f"fake:{i}")
-        best = max(sum(rng.choice((0.0, 0.25, 0.5, 0.5, 0.5, 0.75, 1.0)) for _ in range(n_train)) / n_train
-                   for _ in range(K))
-        apparent.append(best - 0.5)
-        accepted += sim_confirm(0.0, f"fakeconf:{i}") == "H1 accepted"
+        scores = [sum(rng.choice((0.0, 0.25, 0.5, 0.5, 0.5, 0.75, 1.0)) for _ in range(n_train)) / n_train
+                  for _ in range(K)]
+        sel = max(range(K), key=lambda c: scores[c])
+        apparent.append(scores[sel] - 0.5)
+        accepted += sim_confirm(true_nelo[sel], f"fakeconf:{i}:cand{sel}") == "H1 accepted"
     rate = accepted / R
-    check("fake optimizer (best of 20 equal candidates looks good in training) fails confirmation: "
-          "H1 at most alpha + 3 sigma", rate <= tol,
-          f"mean apparent training edge +{sum(apparent) / R:.3f} pair score, confirmation H1 rate {rate:.3f} "
-          f"(bound {tol:.3f}) [SYNTHETIC]")
+    check("fake optimizer: the training-selected best of 20 equal candidates (selection-noise edge) is confirmed on "
+          "fresh pairs; H1 at most alpha + 3 sigma", rate <= tol and sum(apparent) / R > 0.02,
+          f"mean apparent training edge of the selected candidate +{sum(apparent) / R:.3f} pair score, "
+          f"confirmation H1 rate {rate:.3f} (bound {tol:.3f}) [SYNTHETIC]")
 
 
 # --- CLI-level -------------------------------------------------------------------------------------------------------
@@ -115,10 +121,20 @@ def setup(base, name, true_nelo=10.0, holdout_tag="G1"):
     pp = d / "protocol.json"
     pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
     cand = d / "candidate.json"
-    rc, out, err = call(SELECT, d / "train", cand)
+    rc, out, err = call(SELECT, d / "train", cand, "--allow-nonlive")  # a synthetic training run (tests only)
     if rc != 0:
         raise RuntimeError(f"select_candidate failed: {err[-300:]}")
     return d, pp, cand, proto, env
+
+
+def respec(cand_path, out_path, **changes):
+    """A candidate spec with changed fields and a recomputed spec_sha256 (a forged or different candidate)."""
+    c = json.loads(Path(cand_path).read_text())
+    c.update(changes)
+    body = {k: v for k, v in c.items() if k != "spec_sha256"}
+    c["spec_sha256"] = cr.h(cr.cj(body))
+    Path(out_path).write_text(json.dumps(c), encoding="ascii")
+    return out_path
 
 
 def ledger_bytes(rd):
@@ -151,8 +167,8 @@ def t_cli(base):
     rcv, vout, _ = call(RUNNER, "verify", d / "run")
     check("confirm verify OK on the finished run", rcv == 0, f"rc {rcv}")
     ref = ledger_bytes(d / "run")
-    for spec in ("after_meta", "after_start", "after_pair@1", "after_pair@37", "ckpt_tmp@1", "ckpt_renamed@1",
-                 "after_decision"):
+    for spec in ("after_meta", "after_start", "after_register", "after_pair@1", "after_pair@37", "ckpt_tmp@1",
+                 "ckpt_renamed@1", "after_decision"):
         dd, pp2, cand2, _, _ = setup(base, "crash_" + spec.replace("@", "_"))
         r1, _, _ = call(RUNNER, "run", pp2, cand2, dd / "run", "--mode", "synthetic", crash=spec)
         r2, _, e2 = call(RUNNER, "run", pp2, cand2, dd / "run", "--mode", "synthetic", "--resume")
@@ -169,6 +185,43 @@ def t_cli(base):
     # holdout misuse
     rc, _, err = call(RUNNER, "run", pp, cand, d / "run_again", "--mode", "synthetic")
     check("refuse a second confirmation run on a used holdout group (exit 41)", rc == 41, err.strip()[-150:])
+    h.rmtree(d / "run")  # the finished run's directory is deleted ...
+    rc1, _, e1 = call(RUNNER, "run", pp, cand, d / "run", "--mode", "synthetic")  # ... and the same run restarted
+    other = respec(cand, d / "other_candidate.json", values=dict(json.loads(cand.read_text())["values"], RazorBase=1))
+    rc2, _, e2 = call(RUNNER, "run", pp, other, d / "run", "--mode", "synthetic")  # another candidate, same path
+    check("refuse a re-run in the same directory after it was deleted, and another candidate there (exit 41 x2)",
+          (rc1, rc2) == (41, 41) and "CONFIRM.json is gone" in e1 and "already served" in e2,
+          f"rc {rc1}/{rc2} {e1.strip()[-90:]} | {e2.strip()[-90:]}")
+    # mode prerequisites are validated before anything is written: a refused start never consumes the holdout
+    dm, ppm, candm, protom, _ = setup(base, "mode_prereq")
+    reg, sreg = Path(protom["registry"]), Path(protom["registry"]).with_name("registry.synthetic.jsonl")
+    no_syn = dict(protom)
+    no_syn.pop("synthetic")
+    ppm.write_text(json.dumps(no_syn, indent=1), encoding="ascii")
+    r_syn, _, e_syn = call(RUNNER, "run", ppm, candm, dm / "run", "--mode", "synthetic")
+    r_rep, _, e_rep = call(RUNNER, "run", ppm, candm, dm / "run", "--mode", "replay")
+    r_live, _, e_live = call(RUNNER, "run", ppm, candm, dm / "run", "--mode", "live")
+    r_bad, _, _ = call(RUNNER, "run", ppm, candm, dm / "run", "--mode", "bogus")
+    check("synthetic without protocol.synthetic (10), replay without protocol.replay (10), live (40), unknown mode "
+          "(10): refused before anything is written; no registry line, no run directory",
+          (r_syn, r_rep, r_live, r_bad) == (10, 10, 40, 10) and not (dm / "run").exists() and not reg.exists()
+          and not sreg.exists(), f"rc {r_syn}/{r_rep}/{r_live}/{r_bad} {e_live.strip()[-100:]}")
+    # candidate binding: a synthetic candidate is reported as not confirmable; a live one with the pinned config is
+    rc, out, _ = call(RUNNER, "run", pp, cand, d / "dry_binding")
+    o1 = json.loads(out) if rc == 0 else {}
+    live = respec(cand, d / "live_candidate.json", training_mode="live")
+    pinned = dict(proto, training_config_sha256=json.loads(Path(live).read_text())["training_config_sha256"])
+    ppl = d / "protocol_pinned.json"
+    ppl.write_text(json.dumps(pinned, indent=1), encoding="ascii")
+    dl, ppl2, _, _, _ = setup(base, "binding_live")
+    ppl2.write_text(json.dumps(dict(json.loads(ppl2.read_text()), training_config_sha256=pinned[
+        "training_config_sha256"]), indent=1), encoding="ascii")
+    rc2, out2, _ = call(RUNNER, "run", ppl, live, d / "dry_binding_live")
+    o2 = json.loads(out2) if rc2 == 0 else {}
+    check("dry-run reports a synthetic candidate as not confirmable (mode and config pin), and a live candidate "
+          "whose training config the protocol pins as confirmable",
+          not o1.get("candidate_confirmable", True) and len(o1.get("candidate_issues", [])) == 2
+          and o2.get("candidate_confirmable") is True, f"{o1.get('candidate_issues')} | {o2.get('candidate_issues')}")
     c2 = json.loads(cand.read_text())
     c2["training_openings_sha256"] = [proto["holdout"]["pgn_sha256"]]
     body = {k: v for k, v in c2.items() if k != "spec_sha256"}
@@ -215,20 +268,23 @@ def t_cli(base):
     cp.write_bytes(cp.read_bytes().replace(b'"seq":', b'"seq" :'))
     rc, _, err = call(RUNNER, "run", pp7, cand7, dd / "run", "--mode", "synthetic", "--resume")
     check("refuse a corrupt checkpoint (exit 30)", rc == 30, err.strip()[-150:])
-    # live guards
+    # live: this runner never starts a game, whatever flags or protocol settings are given
     dd, pp8, cand8, proto8, _ = setup(base, "live")
     r1, _, _ = call(RUNNER, "run", pp8, cand8, dd / "run", "--mode", "live")
     proto8["live"]["enabled"] = True
     pp8.write_text(json.dumps(proto8, indent=1), encoding="ascii")
+    (dd / "run").mkdir()
+    (dd / "run" / "LIVE_ACK.txt").write_text(cr.h(cr.cj(proto8)), encoding="ascii")
     r2, _, e2 = call(RUNNER, "run", pp8, cand8, dd / "run", "--mode", "live", "--live")
-    check("confirm live mode refused without --live / config / LIVE_ACK (exit 40 x2)", (r1, r2) == (40, 40),
-          e2.strip()[-120:])
+    check("confirm live mode refused (exit 40) even with --live, protocol.live.enabled and LIVE_ACK: this runner "
+          "never starts a game; nothing written", (r1, r2) == (40, 40) and
+          sorted(p.name for p in (dd / "run").iterdir()) == ["LIVE_ACK.txt"], e2.strip()[-120:])
 
 
-def pgn_game(rnd, white, black, result, fen=None, term="normal"):
+def pgn_game(rnd, white, black, result, fen=None, term="normal", moves=None):
     f = f'[FEN "{fen}"]\n[SetUp "1"]\n' if fen else ""
     return (f'[Event "Fastchess Tournament"]\n[Round "{rnd}"]\n[White "{white}"]\n[Black "{black}"]\n'
-            f'[Result "{result}"]\n{f}[Termination "{term}"]\n\n1. e4 {result}\n\n')
+            f'[Result "{result}"]\n{f}[Termination "{term}"]\n\n{moves or "1. e4"} {result}\n\n')
 
 
 def t_replay_audit(base):
@@ -241,6 +297,11 @@ def t_replay_audit(base):
     pg = d / "confirm_games.pgn"
     pg.write_text(games, encoding="ascii")
     proto["replay"] = {"pgns": [{"path": str(pg), "sha256": h.sha(pg), "first_pair": 0}]}
+    pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
+    rc0, _, e0 = call(RUNNER, "run", pp, cand, d / "run", "--mode", "replay")
+    check("replay refuses a candidate from a synthetic training run (not confirmable, exit 10), nothing written",
+          rc0 == 10 and "not confirmable" in e0 and not (d / "run").exists(), e0.strip()[-150:])
+    proto["allow_nonlive_candidate"] = True  # test-only: the synthetic candidate stands in for a live one
     pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
     rc, out, err = call(RUNNER, "run", pp, cand, d / "run", "--mode", "replay")
     o = json.loads(out) if rc == 0 else {}
@@ -261,16 +322,17 @@ def t_replay_audit(base):
     pg2 = d2 / "confirm_games.pgn"
     pg2.write_text(bad, encoding="ascii")
     proto2["replay"] = {"pgns": [{"path": str(pg2), "sha256": h.sha(pg2), "first_pair": 0}]}
+    proto2["allow_nonlive_candidate"] = True
     pp2.write_text(json.dumps(proto2, indent=1), encoding="ascii")
     rc, _, err = call(RUNNER, "run", pp2, cand2, d2 / "run", "--mode", "replay")
     check("confirm replay refuses an incomplete pair (exit 31)", rc == 31, err.strip()[-150:])
-    # audit of a QA-style PGN with FEN tags and one training position leaked in
+    # audit of a QA-style PGN with FEN tags (EPD book) and one training position leaked in
     keys = d / "train.keys"
-    leak_fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -"
+    leak_fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq -"  # after 1. e4 e5, as board.epd() writes it
     keys.write_text(leak_fen + "\n", encoding="ascii")
     qa = ""
     for j in range(1, 21):
-        fen = leak_fen + " 0 2" if j == 5 else f"8/8/8/8/8/8/8/K{j % 7}k5 w - - 0 1".replace("K0", "K")
+        fen = leak_fen + " 0 2" if j == 5 else f"8/8/8/8/8/8/8/K{j % 5 + 1}k{5 - j % 5} w - - 0 1"  # 1+n+1+m = 8
         qa += pgn_game(j, "cand_opus3", "base_combo29", "1/2-1/2", fen) + \
             pgn_game(j, "base_combo29", "cand_opus3", "1-0" if j % 2 else "0-1", fen)
     qp = d / "qa_gate.pgn"
@@ -280,9 +342,32 @@ def t_replay_audit(base):
     pp.write_text(json.dumps(proto, indent=1), encoding="ascii")
     rc, out, err = call(RUNNER, "audit-pgn", pp, cand, qp)
     o = json.loads(out) if rc == 0 else {}
-    check("audit-pgn (read-only) recomputes QA's SPRT data and finds the one leaked training position",
+    check("audit-pgn (read-only) recomputes QA's SPRT data and finds the one leaked training position (FEN tags)",
           rc == 0 and o.get("leaked_pairs") == 1 and o["all_pairs"]["pairs"] == 20 and
-          o["pairs_without_training_positions"]["pairs"] == 19, f"rc {rc} leaked {o.get('leaked_pairs')} {err[-150:]}")
+          o["pairs_without_training_positions"]["pairs"] == 19 and o.get("start_positions_from") == {"fen": 20},
+          f"rc {rc} leaked {o.get('leaked_pairs')} {err[-150:]}")
+    # the same audit on a PGN-book PGN as fastchess writes it: no FEN tag, the opening as moves annotated {book}
+    leak_moves = "1. e4 {book} e5 {book} 2. Nf3 {+0.31/12 0.040s} Nc6 {-0.25/11 0.031s}"
+    clean_moves = "1. d4 {book} d5 {book} 2. c4 {book} e6 {book} 3. Nc3 {+0.20/12 0.030s} Nf6 {-0.18/12 0.020s}"
+    qb = ""
+    for j in range(1, 21):
+        mv = leak_moves if j in (3, 11) else clean_moves
+        qb += pgn_game(j, "cand_opus3", "base_combo29", "1/2-1/2", moves=mv) + \
+            pgn_game(j, "base_combo29", "cand_opus3", "1-0" if j % 2 else "0-1", moves=mv)
+    qbp = d / "qa_gate_pgnbook.pgn"
+    qbp.write_text(qb, encoding="ascii")
+    rc, out, err = call(RUNNER, "audit-pgn", pp, cand, qbp)
+    o = json.loads(out) if rc == 0 else {}
+    check("audit-pgn rebuilds the start position from {book} moves (PGN book, no FEN tag) and finds the 2 leaked "
+          "pairs; the candidate is reported as not confirmable",
+          rc == 0 and o.get("leaked_pairs") == 2 and o.get("leaked_pairs_exact_epd") == 2
+          and o.get("start_positions_from") == {"book": 20} and len(o.get("candidate_issues", [])) == 2,
+          f"rc {rc} leaked {o.get('leaked_pairs')} from {o.get('start_positions_from')} {err[-150:]}")
+    bad_book = qb.replace("1. d4 {book} d5 {book} 2. c4 {book}", "1. d4 {book} d5 {book} 2. Qxh7 {book}", 1)
+    qbad = d / "qa_gate_badbook.pgn"
+    qbad.write_text(bad_book, encoding="ascii")
+    rc, _, err = call(RUNNER, "audit-pgn", pp, cand, qbad)
+    check("audit-pgn fails closed on book moves it cannot replay (exit 31)", rc == 31, err.strip()[-150:])
 
 
 def t_select(base):
@@ -292,8 +377,16 @@ def t_select(base):
     env = h.make_env(d / "env")
     tc = h.write_config(d / "cfg.json", h.make_config(env, pairs_planned=40))
     h.cli("run", tc, d / "train", "--mode", "synthetic", "--max-batches", "3")
-    rc, _, err = call(SELECT, d / "train", d / "cand.json")
-    check("select_candidate refuses an incomplete training run (fixed rule, exit 10)", rc == 10, err.strip()[-150:])
+    rc, _, err = call(SELECT, d / "train", d / "cand.json", "--allow-nonlive")
+    check("select_candidate refuses an incomplete training run (fixed rule, exit 10)",
+          rc == 10 and "not COMPLETE" in err, err.strip()[-150:])
+    h.cli("run", tc, d / "train", "--mode", "synthetic", "--resume")
+    rc1, _, err1 = call(SELECT, d / "train", d / "cand_nonlive.json")
+    rc2, out2, _ = call(SELECT, d / "train", d / "cand_allowed.json", "--allow-nonlive")
+    spec = json.loads(out2) if rc2 == 0 else {}
+    check("select_candidate refuses a complete but synthetic training run unless --allow-nonlive; the spec then "
+          "records training_mode", rc1 == 10 and "mode 'synthetic'" in err1 and rc2 == 0
+          and spec.get("training_mode") == "synthetic", f"rc {rc1}/{rc2} {err1.strip()[-100:]}")
 
 
 def main():
