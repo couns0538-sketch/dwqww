@@ -1,0 +1,7 @@
+pinned: affinity 0x78 (inside CPU 3-6), priority Idle
+red run: the report controls against a counter, a binding, a verdict and a reader that cannot refuse
+FAIL  L1 counting: a chunk run twice counts once; MISMATCH, TIMEOUT, HARNESS_ERROR and CRASH rows add nothing and are listed: EVL counted 540000 in 6 chunks, in check 38, not-OK rows 0; PCM 100000
+FAIL  L2 binding: only a row naming the frozen lock and the frozen candidate binary counts (other candidate, other lock, lock against itself, another candidate's binary, missing receipt hash): (EVL counted, EVL foreign, PCM counted, PCM foreign, counted without a receipt hash) tier A (400000, 0, 100000, 0, 400000), tier R (400000, 0, 100000, 0, 400000); wanted (100000, 3, 0, 1, 0)
+FAIL  L3 verdict rule: no PASS below 20,000,000, with an open gate, with a difference or without input identity: 2 of 10 cases as required; wrong: 19,900,000 does not; rows of two harness versions do not; harness files changed since the rows were written; a row that is not OK; an open gate is INCOMPLETE; a difference is never PASS; a difference with an open gate is not PASS; no input identity is BLOCKED
+FAIL  L4 self-test line: only 'SELFTEST PASS n/n' with the same n twice is a passed self-test: 2 of 6 lines read as required; wrong: ['SELFTEST PASS 66/67', 'SELFTEST FAIL 66/67', 'SELFTEST PASS 0/0', 'SELFTEST PASS 67/67 (but see above)']
+SELFTEST FAIL 0/4

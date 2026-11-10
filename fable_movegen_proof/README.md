@@ -36,7 +36,7 @@ Terms used here:
 | `harness/coverage.py` | which lines of each patch the test inputs execute |
 | `harness/wnp_targets.py` | constructed positions that are decisive for WITNESS_NOPIN |
 | `harness/report.py` | copies the compact evidence into `evidence/` and derives the tables and verdicts |
-| `scripts/` | `job3_env.ps1`, `pin_run.ps1` (pinned launcher with disk guard), `freeze_inputs.ps1`, `build_aux.ps1`, `make_manifest.ps1` |
+| `scripts/` | `job3_env.ps1`, `pin_run.ps1` (pinned launcher with disk guard), `freeze_inputs.ps1`, `build_aux.ps1`, `make_manifest.ps1`, `verify_evidence.ps1` (an independent recount of the evidence in PowerShell; it shares no code with the Python harness and starts no engine) |
 | `suite/edge_suite.tsv`, `edge_expected.tsv`, `wnp_targets.tsv` | the edge suite with class, category, predicate and provenance per entry; the oracle's expectations; the WITNESS_NOPIN targets |
 | `evidence/` | receipts, ledgers, logs and generated tables copied from the job folder |
 
@@ -84,7 +84,8 @@ Py "$H\fuzz.py uci v1 0-0 --cands EVL"                # the same chunk on the re
 Py "$H\fuzz.py count"                                 # totals from the ledgers
 Py "$H\coverage.py EVL"                               # which changed lines the inputs execute (needs build_aux.ps1 -Tag EVL -Coverage)
 Py "$H\wnp_targets.py run WNP"                        # the constructed WITNESS_NOPIN targets
-Py "$H\report.py"                                     # evidence folder, tables, verdicts
+Py "$H\report.py"                                     # evidence folder, tables, verdicts, PROOF.md
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\verify_evidence.ps1      # independent recount: hashes the binaries again, recounts receipts and ledgers, compares with PROOF.md
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File $J3_PACK\scripts\make_manifest.ps1 -Verify
 ```
 

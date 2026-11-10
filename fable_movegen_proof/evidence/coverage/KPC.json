@@ -1,0 +1,210 @@
+{
+ "check": "coverage",
+ "tag": "KPC",
+ "probe": "D:\\forge_jobs_20261109\\fable2\\out\\job3\\aux2\\KPC_cov\\mgprobe.exe",
+ "probe_sha256": "847432a8f38a082c55860735acd45fd826541ba116a58904758474bbd76502c5",
+ "inputs": [
+  {
+   "input": "fuzz chunk 0 of seeds v1 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (KPC): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "fuzz chunk 100 of seeds v2 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (KPC): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "edge suite, 410 legal entries and their children",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (KPC): 14220 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  }
+ ],
+ "switches": {
+  "FORGE_SPD_KING_PAWN_CACHE": {
+   "lines": [
+    {
+     "file": "src/eval.cpp",
+     "line": 200,
+     "count": 2786154,
+     "text": "void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& info, Evaluator::PawnEntry* kp"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 215,
+     "count": 2786154,
+     "text": "const std::size_t kp_us = static_cast<std::size_t>(Us);"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 216,
+     "count": 2786154,
+     "text": "const bool kp_hit = kp != nullptr && static_cast<int>(kp->kp_king[kp_us]) == king &&"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 217,
+     "count": 1892638,
+     "text": "kp->kp_pawns[White] == board.pieces(White, Pawn) && kp->kp_pawns[Black] == board.pieces(Black, Pawn);"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 218,
+     "count": 2786154,
+     "text": "Score kp_terms = 0;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 219,
+     "count": 2786154,
+     "text": "if (kp_hit) {"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 220,
+     "count": 1892627,
+     "text": "acc.score += kp->kp_score[kp_us];"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 221,
+     "count": 1892627,
+     "text": "shelter = kp->kp_shelter[kp_us];"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 222,
+     "count": 1892627,
+     "text": "} else {"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 223,
+     "count": 893527,
+     "text": "const Score kp_before_shelter = acc.score;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 247,
+     "count": 893527,
+     "text": "kp_terms = acc.score - kp_before_shelter;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 248,
+     "count": 893527,
+     "text": "}"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 292,
+     "count": 2786154,
+     "text": "if (!kp_hit) {"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 293,
+     "count": 893527,
+     "text": "const Score kp_before_distance = acc.score;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 299,
+     "count": 893527,
+     "text": "kp_terms += acc.score - kp_before_distance;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 300,
+     "count": 893527,
+     "text": "if (kp != nullptr) {"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 302,
+     "count": 465087,
+     "text": "if (kp->kp_pawns[White] != board.pieces(White, Pawn) || kp->kp_pawns[Black] != board.pieces(Black, Pawn)) {"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 303,
+     "count": 39346,
+     "text": "kp->kp_pawns = {board.pieces(White, Pawn), board.pieces(Black, Pawn)};"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 304,
+     "count": 39346,
+     "text": "kp->kp_king[static_cast<std::size_t>(Them)] = -1;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 305,
+     "count": 39346,
+     "text": "}"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 306,
+     "count": 465087,
+     "text": "kp->kp_king[kp_us] = static_cast<std::int8_t>(king);"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 307,
+     "count": 465087,
+     "text": "kp->kp_score[kp_us] = kp_terms;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 308,
+     "count": 465087,
+     "text": "kp->kp_shelter[kp_us] = shelter;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 309,
+     "count": 465087,
+     "text": "}"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 310,
+     "count": 893527,
+     "text": "}"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 484,
+     "count": 1393077,
+     "text": "Evaluator::PawnEntry* const kp = Trace ? nullptr : cache;"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 485,
+     "count": 1393077,
+     "text": "evaluate_king<Trace, White>(board, acc, info, kp);"
+    },
+    {
+     "file": "src/eval.cpp",
+     "line": 486,
+     "count": 1393077,
+     "text": "evaluate_king<Trace, Black>(board, acc, info, kp);"
+    }
+   ],
+   "instrumented_lines": 28,
+   "executed_lines": 28,
+   "never_executed": [],
+   "max_count": 2786154
+  }
+ },
+ "note": "execution counts of the lines inside the candidate's #if regions, from a coverage build of the unchanged source; the coverage probe is not used for any comparison",
+ "when": "2026-11-10 20:02:55 Vienna",
+ "status": "REACHED"
+}

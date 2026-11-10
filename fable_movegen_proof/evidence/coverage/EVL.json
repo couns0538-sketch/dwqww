@@ -1,0 +1,138 @@
+{
+ "check": "coverage",
+ "tag": "EVL",
+ "probe": "D:\\forge_jobs_20261109\\fable2\\out\\job3\\aux2\\EVL_cov\\mgprobe.exe",
+ "probe_sha256": "b202f475bbd570f2fcb506a970645f37f6b8e4ab94ba5144b26b83fa74b0cb67",
+ "inputs": [
+  {
+   "input": "fuzz chunk 0 of seeds v1 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (EVL): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "fuzz chunk 100 of seeds v2 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (EVL): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "edge suite, 410 legal entries and their children",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (EVL): 14220 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  }
+ ],
+ "switches": {
+  "FORGE_SPD_EVADE_LEGAL": {
+   "lines": [
+    {
+     "file": "src/board.cpp",
+     "line": 749,
+     "count": 1958469,
+     "text": "return evade_legal;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 737,
+     "count": 8729308,
+     "text": "const bool evade_case = (move.flags & EnPassant) == 0U && piece_type(moving) != King;   // here checkers_ != 0"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 738,
+     "count": 8729308,
+     "text": "bool evade_legal = false;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 739,
+     "count": 8729308,
+     "text": "if (evade_case) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 740,
+     "count": 1958469,
+     "text": "if (!more_than_one(checkers_)) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 741,
+     "count": 1946473,
+     "text": "const int own_king = king_square(us);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 742,
+     "count": 1946473,
+     "text": "if (((attacks::between(own_king, lsb(checkers_)) | checkers_) & square_bb(move.to)) != 0) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 743,
+     "count": 98681,
+     "text": "if (!king_lines_.valid) refresh_king_lines();"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 744,
+     "count": 98681,
+     "text": "evade_legal = (king_lines_.pinned & square_bb(move.from)) == 0 ||"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 745,
+     "count": 2173,
+     "text": "attacks::aligned(own_king, move.from, move.to);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 746,
+     "count": 98681,
+     "text": "}"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 747,
+     "count": 1946473,
+     "text": "}"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 748,
+     "count": 1958469,
+     "text": "#if FORGE_SPD_EVADE_LEGAL == 1"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 749,
+     "count": 1958469,
+     "text": "return evade_legal;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 750,
+     "count": 1958469,
+     "text": "#endif"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 751,
+     "count": 1958469,
+     "text": "}"
+    }
+   ],
+   "instrumented_lines": 16,
+   "executed_lines": 16,
+   "never_executed": [],
+   "max_count": 8729308
+  }
+ },
+ "note": "execution counts of the lines inside the candidate's #if regions, from a coverage build of the unchanged source; the coverage probe is not used for any comparison",
+ "when": "2026-11-10 20:02:39 Vienna",
+ "status": "REACHED"
+}

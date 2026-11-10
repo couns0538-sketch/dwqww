@@ -1,0 +1,208 @@
+{
+ "check": "coverage",
+ "tag": "BUN",
+ "probe": "D:\\forge_jobs_20261109\\fable2\\out\\job3\\aux2\\BUN_cov\\mgprobe.exe",
+ "probe_sha256": "42a6cd4aac8c06d5b826c086462989a4a247058c2676de8a216547df786fdfd5",
+ "inputs": [
+  {
+   "input": "fuzz chunk 0 of seeds v1 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (BUN): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "fuzz chunk 100 of seeds v2 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (BUN): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "edge suite, 410 legal entries and their children",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (BUN): 14220 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  }
+ ],
+ "switches": {
+  "FORGE_SPD_PAWN_CAPMASK": {
+   "lines": [
+    {
+     "file": "src/board.cpp",
+     "line": 501,
+     "count": 1465124,
+     "text": "Bitboard capturers = pawns & pawn_attacks_bb(them, enemy);"
+    }
+   ],
+   "instrumented_lines": 1,
+   "executed_lines": 1,
+   "never_executed": [],
+   "max_count": 1465124
+  },
+  "FORGE_SPD_EVADE_LEGAL": {
+   "lines": [
+    {
+     "file": "src/board.cpp",
+     "line": 765,
+     "count": 1958469,
+     "text": "return evade_legal;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 753,
+     "count": 8729308,
+     "text": "const bool evade_case = (move.flags & EnPassant) == 0U && piece_type(moving) != King;   // here checkers_ != 0"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 754,
+     "count": 8729308,
+     "text": "bool evade_legal = false;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 755,
+     "count": 8729308,
+     "text": "if (evade_case) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 756,
+     "count": 1958469,
+     "text": "if (!more_than_one(checkers_)) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 757,
+     "count": 1946473,
+     "text": "const int own_king = king_square(us);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 758,
+     "count": 1946473,
+     "text": "if (((attacks::between(own_king, lsb(checkers_)) | checkers_) & square_bb(move.to)) != 0) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 759,
+     "count": 98681,
+     "text": "if (!king_lines_.valid) refresh_king_lines();"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 760,
+     "count": 98681,
+     "text": "evade_legal = (king_lines_.pinned & square_bb(move.from)) == 0 ||"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 761,
+     "count": 2173,
+     "text": "attacks::aligned(own_king, move.from, move.to);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 762,
+     "count": 98681,
+     "text": "}"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 763,
+     "count": 1946473,
+     "text": "}"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 764,
+     "count": 1958469,
+     "text": "#if FORGE_SPD_EVADE_LEGAL == 1"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 765,
+     "count": 1958469,
+     "text": "return evade_legal;"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 766,
+     "count": 1958469,
+     "text": "#endif"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 767,
+     "count": 1958469,
+     "text": "}"
+    }
+   ],
+   "instrumented_lines": 16,
+   "executed_lines": 16,
+   "never_executed": [],
+   "max_count": 8729308
+  },
+  "FORGE_SPD_CHECKERS_KL": {
+   "lines": [
+    {
+     "file": "src/board.cpp",
+     "line": 1132,
+     "count": 14922010,
+     "text": "if (king_lines_.valid && piece_type(moving) != King &&"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1133,
+     "count": 11663744,
+     "text": "(move.flags & (EnPassant | Promotion)) == 0U &&"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1134,
+     "count": 11596120,
+     "text": "((king_lines_.discoverers & square_bb(move.from)) == 0 ||"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1135,
+     "count": 11540722,
+     "text": "attacks::aligned(king_square(them), move.from, move.to))) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1136,
+     "count": 11540722,
+     "text": "checkers_ = king_lines_.check_squares[static_cast<std::size_t>(piece_type(moving))] & square_bb(move.to);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1140,
+     "count": 11540722,
+     "text": "} else {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1141,
+     "count": 3381288,
+     "text": "checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1142,
+     "count": 3381288,
+     "text": "}"
+    }
+   ],
+   "instrumented_lines": 8,
+   "executed_lines": 8,
+   "never_executed": [],
+   "max_count": 14922010
+  }
+ },
+ "note": "execution counts of the lines inside the candidate's #if regions, from a coverage build of the unchanged source; the coverage probe is not used for any comparison",
+ "when": "2026-11-10 20:02:59 Vienna",
+ "status": "REACHED"
+}

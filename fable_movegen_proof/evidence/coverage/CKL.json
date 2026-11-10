@@ -1,0 +1,90 @@
+{
+ "check": "coverage",
+ "tag": "CKL",
+ "probe": "D:\\forge_jobs_20261109\\fable2\\out\\job3\\aux2\\CKL_cov\\mgprobe.exe",
+ "probe_sha256": "69784d23f2381a7c18853e5cbfb185616e54a99ab4ac5fa207e7c6ce5cfff324",
+ "inputs": [
+  {
+   "input": "fuzz chunk 0 of seeds v1 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (CKL): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "fuzz chunk 100 of seeds v2 (100,000 positions)",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (CKL): 100000 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  },
+  {
+   "input": "edge suite, 410 legal entries and their children",
+   "exit": 0,
+   "probe_said": [
+    "mgprobe run (CKL): 14220 records, 0 self-check failures, 0 incremental/refresh differences"
+   ]
+  }
+ ],
+ "switches": {
+  "FORGE_SPD_CHECKERS_KL": {
+   "lines": [
+    {
+     "file": "src/board.cpp",
+     "line": 1084,
+     "count": 14922010,
+     "text": "if (king_lines_.valid && piece_type(moving) != King &&"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1085,
+     "count": 11656832,
+     "text": "(move.flags & (EnPassant | Promotion)) == 0U &&"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1086,
+     "count": 11589620,
+     "text": "((king_lines_.discoverers & square_bb(move.from)) == 0 ||"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1087,
+     "count": 11534235,
+     "text": "attacks::aligned(king_square(them), move.from, move.to))) {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1088,
+     "count": 11534235,
+     "text": "checkers_ = king_lines_.check_squares[static_cast<std::size_t>(piece_type(moving))] & square_bb(move.to);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1092,
+     "count": 11534235,
+     "text": "} else {"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1093,
+     "count": 3387775,
+     "text": "checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);"
+    },
+    {
+     "file": "src/board.cpp",
+     "line": 1094,
+     "count": 3387775,
+     "text": "}"
+    }
+   ],
+   "instrumented_lines": 8,
+   "executed_lines": 8,
+   "never_executed": [],
+   "max_count": 14922010
+  }
+ },
+ "note": "execution counts of the lines inside the candidate's #if regions, from a coverage build of the unchanged source; the coverage probe is not used for any comparison",
+ "when": "2026-11-10 20:02:47 Vienna",
+ "status": "REACHED"
+}

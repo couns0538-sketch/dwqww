@@ -154,7 +154,8 @@ def read_tsv(path):
         return []
     with open(path, "r", encoding="ascii") as f:
         head = f.readline().rstrip("\n").split("\t")
-        return [dict(zip(head, ln.rstrip("\n").split("\t"))) for ln in f if ln.strip()]
+        rows = [ln.rstrip("\n").split("\t") for ln in f if ln.strip()]
+    return [dict(zip(head, parts)) for parts in rows if len(parts) == len(head)]      # a row that was being written is left out
 
 
 def aux_row_bound(w, probe_sha):
@@ -225,13 +226,16 @@ def main():
     exe_sha = {x: inputs.get(x, {}).get("exe_sha256") for x in ["LOCK", "LOCKEQ"] + CANDS}
     exe_sha["LOCKCOPY"] = exe_sha["LOCK"]
     harness_now = fuzz.harness_sha()
-    aux = ledger_stats(fuzz.read_ledger("aux"), lambda w: aux_row_bound(w, probe_sha))
-    uci = ledger_stats(fuzz.read_ledger("uci"), lambda w: uci_row_bound(w, exe_sha))
+    # the ledgers are read from the copies just made in evidence\, so the numbers of PROOF.md are the numbers of the
+    # files that are handed over even while a fuzz is still appending rows
+    uci_all = read_tsv(os.path.join(EV, "fuzz_uci", "ledger.tsv"))
+    aux = ledger_stats(read_tsv(os.path.join(EV, "fuzz_aux", "ledger.tsv")), lambda w: aux_row_bound(w, probe_sha))
+    uci = ledger_stats(uci_all, lambda w: uci_row_bound(w, exe_sha))
     h1_aux = ledger_stats(read_tsv(os.path.join(r, "h1", "fuzz_aux", "ledger.tsv")))
     h1_uci = ledger_stats(read_tsv(os.path.join(r, "h1", "fuzz_uci", "ledger.tsv")))
-    warm_all = fuzz.read_ledger("warm")
+    warm_all = read_tsv(os.path.join(EV, "fuzz_warm", "ledger.tsv"))
     warm_rows = [w for w in warm_all if aux_row_bound(w, probe_sha)]
-    uci_rows = [w for w in fuzz.read_ledger("uci") if uci_row_bound(w, exe_sha)]
+    uci_rows = [w for w in uci_all if uci_row_bound(w, exe_sha)]
     unbound = []                                  # receipts that do not name the frozen executable or probe
 
     def exe_bound(check, tag):

@@ -1,0 +1,30 @@
+pinned: affinity 0x78 (inside CPU 3-6), priority Idle
+lock probe sha256 509e10996b474de7b45227a73ba54b51b46d54f0e2a91bde203065bbe3318d74; lock exe sha256 e1284f7fc492c8fe1285797fdae8988cf2f2926b33fcfee7023d284d67d8802e
+FAIL  A-tier controls did not complete: Malformed: unknown record kind 253
+PASS  R1 positive: lock exe vs its byte-identical copy, go perft 2: copy sha256 equal: True; runs OK/OK; status EQUAL; positions compared 800 of 800
+FAIL  R1b: the control crashed: AttributeError: module 'uci_session' has no attribute 'check_tie'
+FAIL  R1c: the control crashed: AttributeError: module 'uci_session' has no attribute 'check_tie'
+FAIL  R1d: the control crashed: AttributeError: module 'uci_session' has no attribute 'check_tie'
+PASS  R2 negative: one move line removed: status MISMATCH (wanted MISMATCH), diagnostic: legal move set differs at position 301: missing ['e7d6'], extra []; expected e7d6 e7e6 e7f6 e7d7 e7f7 e7d8 e7e8 e7f8; got e7e6 e7f6 e7d7 e7f7 e7d8 e7e8 e7f8 (output line 6510)
+PASS  R3 negative: two move lines swapped: status MISMATCH (wanted MISMATCH), diagnostic: legal move order differs at position 301: index 0 expected e7d6, got e7e6; expected e7d6 e7e6 e7f6 e7d7 e7f7 e7d8 e7e8 e7f8; got e7e6 e7d6 e7f6 e7d7 e7f7 e7d8 e7e8 e7f8 (output line 6511)
+PASS  R4 negative: one reply count changed: status MISMATCH (wanted MISMATCH), diagnostic: reply count differs at position 301 for move e7d6: expected 8, got 9 (nodes 64 / 65) (output line 6511)
+PASS  R4b negative: block whose counts do not add up: status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: malformed block at output line 6511: the move counts do not add up to nodes 64 (at position 301; 1 anomalies)
+PASS  R5 negative: one whole block missing: status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: missing output: 799 perft blocks, expected 800; first shortfall before position 500 (sync point 1 saw 499 blocks)
+PASS  R6 negative: malformed line in a block: status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: malformed line at output line 6504: 'Segmentation fault ~~~ 0x00' (at position 301; 1 anomalies)
+PASS  R7 negative: engine reported an invalid FEN: status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: engine reported at output line 6503: info string invalid FEN: kings may not be adjacent (at position 301; 1 anomalies)
+FAIL  R7b negative: a changed block, then a malformed line much later: status MALFORMED (wanted MISMATCH), diagnostic: the candidate output is not usable: malformed line at output line 14759: 'Segmentation fault ~~~ 0x00' (at position 799; 1 anomalies)
+PASS  R8 negative: broken reference output: status HARNESS_ERROR (wanted HARNESS_ERROR), diagnostic: the reference output is not usable: missing output: 799 perft blocks, expected 800; first shortfall before position 500 (sync point 1 saw 499 blocks)
+PASS  R9 negative: candidate was fed another input file: status HARNESS_ERROR (wanted HARNESS_ERROR), diagnostic: inputs differ: reference input sha256 9d653926d90ca5b2ae25cb9f6b39b8e5da2bda39e5c43eae95f20294c258b0e3, candidate input sha256 084870d59652ff13978e02abeab6fe27a0bc9f15ff732baac06d3a7285e4667f; the outputs are not comparable
+PASS  R10 negative: wrong position, outputs compared directly: status MISMATCH (wanted MISMATCH), diagnostic: legal move set differs at position 300: missing ['c1b1', 'c1d1', 'c1b2', 'c1c2', 'c1d2'], extra ['h1f1', 'h1g1', 'h1h2', 'h1h3', 'h1h4', 'h1h5', 'h1h6', 'h1h7', 'h1h8', 'e1d1', 'e1f1', 'e1d2', 'e1e2', 'e1f2', 'e1g1']; expected c1b
+FAIL  R10b: the control crashed: AttributeError: module 'uci_session' has no attribute 'check_tie'
+PASS  R11 negative: real engine rejects a FEN inside a batch: status HARNESS_ERROR (wanted HARNESS_ERROR), diagnostic: the reference output is not usable: engine reported at output line 302: info string invalid FEN: kings may not be adjacent (at position 6; 1 anomalies)
+PASS  R12 negative: engine never answers (timeout): status TIMEOUT (wanted TIMEOUT), diagnostic: run status TIMEOUT: timeout after 8 s; cpu time advanced 0.00 s in 2 s (no cpu progress: hung or waiting); the harness ended its own child
+FAIL  R12 negative: engine never answers (timeout): the control crashed: AttributeError: module 'pinguard3' has no attribute 'pid_alive'
+PASS  R13 negative: engine exits early (missing output): status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: missing output: the output ends inside a perft block (at position 51; 1 anomalies)
+FAIL  R13 negative: engine exits early (missing output): the control crashed: AttributeError: module 'pinguard3' has no attribute 'pid_alive'
+PASS  R14 negative: engine prints malformed lines: status MALFORMED (wanted MALFORMED), diagnostic: the candidate output is not usable: malformed line at output line 5: '@@ not a move line @@' (at position 1; 800 anomalies)
+FAIL  R14 negative: engine prints malformed lines: the control crashed: AttributeError: module 'pinguard3' has no attribute 'pid_alive'
+FAIL  R15 liveness: the control crashed: AttributeError: module 'pinguard3' has no attribute 'pid_alive'
+PASS  R16 negative: interactive timeout, and the session is not used again: raised: timeout after 5 s waiting for the end of go perft 1; cpu time advanced 0.00 s in 2 s (no cpu progress: hung or waiting); session usable afterwards: False
+FAIL  R17 negative: interactive perft after a rejected FEN: the refusal line was swallowed
+SELFTEST FAIL 16/27
