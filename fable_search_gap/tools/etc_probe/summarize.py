@@ -27,6 +27,11 @@ Vocabulary used in the output
                    "by base" = 95 % range over base positions (a base and the positions generated from
                    it form one cluster), which is the honest one
   best move differs  positions where the final best move is not the plain run's
+  score moves by 50 or more   positions where the final score differs from the plain run's by at least
+                   50 of the evaluation's units (about half a pawn)
+  time ratio       wall time against the plain run. The machine is loaded and the runs are at Idle
+                   priority: two runs of the identical tree have differed by tens of percent, so this
+                   column is indicative only and no claim rests on it
 
 Groups: for labels starting b/m/e + digit (the hand-made sets) "endgame" = labels e*, b4, b7 and their
 continuations. For any other label "low material" = at most six knights, bishops, rooks and queens in all.
@@ -155,8 +160,9 @@ def main():
     if etcs:
         lines += ["## Runs that change the search (cutoff taken, variants, placebo)", "",
                   "| run | group | positions | node ratio sum | node ratio geo | 95 % range by position | 95 % range by base | "
-                  "geo without the 2 smallest ratios | smallest / largest ratio | time ratio | best move differs |",
-                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+                  "geo without the 2 smallest ratios | smallest / largest ratio | time ratio | best move differs | "
+                  "score moves by 50 or more |",
+                  "|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for run in etcs:
             for g in groups:
                 sel = [l for l in sel_of[g] if run in rows[l]]
@@ -173,11 +179,24 @@ def main():
                 _cm, clo, chi = mean_range([sum(v) / len(v) for v in by_base.values()])
                 trimmed = sorted(logs)[2:] if len(logs) > 4 else logs
                 diff = sum(1 for l in sel if rows[l][run]["best"] != rows[l]["off"]["best"])
+                moved = sum(1 for l in sel if abs(int(rows[l][run]["score"]) - int(rows[l]["off"]["score"])) >= 50)
                 lines.append(
                     f"| {run} | {g} | {len(sel)} | {sum(int(rows[l][run]['nodes']) for l in sel) / off_n:.3f} | {math.exp(m):.3f} | "
                     f"[{math.exp(lo):.3f}, {math.exp(hi):.3f}] | [{math.exp(clo):.3f}, {math.exp(chi):.3f}] | "
                     f"{math.exp(sum(trimmed) / len(trimmed)):.3f} | {min(ratios.values()):.3f} / {max(ratios.values()):.3f} | "
-                    f"{sum(t(rows[l][run]) for l in sel) / off_t:.3f} | {diff}/{len(sel)} |")
+                    f"{sum(t(rows[l][run]) for l in sel) / off_t:.3f} | {diff}/{len(sel)} | {moved}/{len(sel)} |")
+        lines.append("")
+        lines += ["## Base positions against the positions generated from them", "",
+                  "| run | bases: positions | bases: node ratio geo | generated: positions | generated: node ratio geo |",
+                  "|---|---|---|---|---|"]
+        for run in etcs:
+            sel = [l for l in use if run in rows[l]]
+            parts = []
+            for want_base in (True, False):
+                part = [math.log(int(rows[l][run]["nodes"]) / int(rows[l]["off"]["nodes"]))
+                        for l in sel if (bases[l] == l) == want_base]
+                parts.append((len(part), math.exp(sum(part) / len(part)) if part else float("nan")))
+            lines.append(f"| {run} | {parts[0][0]} | {parts[0][1]:.3f} | {parts[1][0]} | {parts[1][1]:.3f} |")
         lines.append("")
     text = "\n".join(lines) + "\n"
     with open(out, "w", encoding="utf-8", newline="\n") as f:

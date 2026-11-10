@@ -598,13 +598,17 @@ int main(int argc, char** argv) {
         return generate(argv[2], argv[3], std::atoi(argv[4]), std::atoi(argv[5]), std::atoi(argv[6]));
     }
     if (argc < 3) {
-        std::puts("usage: etc_probe POSITIONS.epd OUT.tsv [hash_mb=16] [node_cap=60000000] [run,run,...]\n"
+        std::puts("usage: etc_probe POSITIONS.epd OUT.tsv [hash_mb=16] [node_cap=60000000] [run,run,...] [history_offset=-32]\n"
                   "       etc_probe --gen IN.epd OUT.epd STEP COUNT PLAY_DEPTH");
         return 2;
     }
     const std::size_t hash_mb = argc > 3 ? static_cast<std::size_t>(std::atoi(argv[3])) : 16;
     const std::uint64_t cap = argc > 4 ? std::strtoull(argv[4], nullptr, 10) : 60000000ULL;
     const std::string only = argc > 5 ? std::string(",") + argv[5] + "," : std::string();
+    // Optional sixth argument: the history-bonus offset used by every run except the placebo (default -32).
+    // Any other value turns each run into a slightly perturbed copy of itself. Used for the pawn-ending grid:
+    // does a result survive changes that are not a mechanism?
+    const int base_offset = argc > 6 ? std::atoi(argv[6]) : -32;
     const std::vector<Position> positions = load(argv[1]);
     std::FILE* out = std::fopen(argv[2], "w");
     if (out == nullptr) return 3;
@@ -663,7 +667,7 @@ int main(int argc, char** argv) {
             searcher->etc_no_hash_move_only = run.no_hash_move;
             searcher->etc_store = run.store;
             searcher->etc_fail_hard = run.fail_hard;
-            searcher->history_offset = run.placebo ? -31 : -32;
+            searcher->history_offset = run.placebo ? -31 : base_offset;
             Move best = Move::none();
             const auto t0 = std::chrono::steady_clock::now();
             const int score = searcher->iterate(board, pos.depth, best);

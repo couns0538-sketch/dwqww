@@ -71,16 +71,16 @@ Speed on this lane was 2.1 to 2.5 million nodes per second. That number is conte
 - **Fetched:** 387 branches. Tips are in `data/branch_tips.tsv`.
 - **Not fetched:** 20 branches under `data/` and `results/` (training data and CI result dumps). Anything only on those branches is UNVERIFIED.
 - **Index:** 56,163 unique (blob, path) pairs. Index sha256 `3d5c10b8ade0e742...` (local file `out\index\tree_index.tsv`, regenerate with `tools/tree_index.py`).
-- **Corpus:** every `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff` on the fetched branches, 3,754 files, 41.6 MB, one file per blob (local `out\corpus`, manifest sha256 `6a8ff8c3cce79072...`, regenerate with `tools/fetch_corpus.py`). Dedupe searches ran over this corpus.
+- **Corpus:** every `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff` on the fetched branches, 3,754 files, 41.6 MB, one file per blob (local `out\corpus`, manifest sha256 `6a8ff8c3cce79072...`, regenerate with `tools/fetch_corpus.py`). Dedupe searches ran over this corpus. **It holds branch tips and these six file types only.** Work that was deleted or reverted before a branch tip is not in it, and neither is anything recorded only in `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log files. For the one unowned mechanism the 2,655 commit messages of the fetched branches were searched as well.
 
 Documents read in full or searched line by line:
 
 | Document | Branch | What it gives |
 |---|---|---|
-| `opus_deepres/notes/RANKING_FINAL.md` | `opus-deepres-20261104` | 81 ranked idea families: 43 search, 11 net, 17 speed, 9 enablers |
+| `opus_deepres/notes/RANKING_FINAL.md` | `opus-deepres-20261104` | 81 ranked idea families: 44 search (one of them is about the gate method), 11 net, 17 speed, 9 enablers |
 | `opus_deepres/notes/T04F/DIFF.md` | same | 101-row feature diff, lock search versus an MIT engine, with a verdict per row |
 | `opus_deepres/notes/TRIED_GATES.md` | same | 110 gate rows as of 2026-11-04 |
-| `opus_deepres/cards/T04*` (47 search cards), other `notes/T04*/TABLE.md` | same | searched by keyword, not all read in full |
+| `opus_deepres/cards/T04*` (48 search cards), other `notes/T04*/TABLE.md` | same | searched by keyword, not all read in full |
 | `opus_r15/cands/INDEX.md` | `opus-r15-20261103` | six built candidates plus three extra lines |
 | `opus_oss_scout/CATALOG.md` | `opus-oss-scout-20261106` | tools and data only, no search mechanisms |
 | `opus_smp_layout` INVENTORY (corpus `md/2244c2ec...`) | `opus-smp-layout-20261107` | lock parent chain, what is not in trial_w6 |
@@ -123,7 +123,7 @@ Today's live candidates, by what their diff does (not by name):
 
 ## 8. Evidence I could not find (UNVERIFIED)
 
-1. **Game PGNs of the gates.** None in the 71 mirrored gate folders. Draw types, blunder patterns and per-move scores of gate games cannot be studied.
+1. **Game PGNs of the gates.** None in the 71 mirrored gate folders. The crew's throughput notes mention gates timed from PGNs, so PGNs may exist in a place I did not look. Without them, draw types, blunder patterns, per-move scores and the split of clock time between middlegame and endgame cannot be studied.
 2. **Logs of 86 finished gates**, including every gate recorded after 2026-11-01. The newest NOT CLEAN gates (time losses 5, 12 and 22) could not be opened, so I cannot say which side lost on time.
 3. **A repo commit for the combo29 source.** None exists on the fetched branches.
 4. **The 20 `data/` and `results/` branches.** Not fetched.

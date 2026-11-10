@@ -4,8 +4,10 @@
 
 - **Dedupe was done by what the code does, not by option names.** A candidate counts as owned if the same mechanism is in the lock, was built, queued, gated or rejected by the crew, or is already listed in the crew's research notes.
 - **Twenty candidate mechanisms were checked. Nineteen are owned.** Fourteen of those nineteen would have looked new from the lock source alone.
-- **One classic mechanism appears nowhere: enhanced transposition cutoffs.** No card, no table row, no option, no source snapshot. The nearest thing is today's `tcc21` candidate, which reads a child's table entry for the opposite purpose.
-- Being unowned does not make it a qualified gap. That question is answered in `NO_QUALIFIED_GAP.md`.
+- **The twentieth appears nowhere: enhanced transposition cutoffs.** No card, no table row, no option, no source snapshot. The nearest thing is today's `tcc21` candidate, which reads a child's table entry for the opposite purpose.
+- **Four more classic ideas also have no owner** (section 5). They were not counted among the twenty because I found no evidence that would justify measuring them.
+- Being unowned does not make something a qualified gap. That question is answered in `NO_QUALIFIED_GAP.md`.
+- **This search has blind spots.** It saw branch tips, not history, and only six file types. Section 6 lists them.
 
 References are written `branch@tip:path`, with tips as fetched on 2026-11-09 (`data/branch_tips.tsv`). "Lock" lines refer to `src/search.cpp` of the source of record (md5 `b9f9aab0...`, see `COVERAGE.md`).
 
@@ -72,17 +74,23 @@ Other items in your own "already owned" list were confirmed as they came up and 
 
 ## 5. Classic mechanisms with no owner and no case
 
-These also appear nowhere in the corpus. I found no evidence that would justify a card, so they are recorded only to save the next reader the search.
+No card, option or build of these exists in the corpus. I found no evidence that would justify a card, so they are recorded only to save the next reader the search. The corpus was searched again for each row after the review; the search terms are given so the result can be repeated.
 
-| Mechanism | Why it is not a candidate |
-|---|---|
-| One-reply and mate-threat extensions | no current measurement found; the engine the crew diffed against removed its remaining special extensions without loss (`...:opus_deepres/notes/T04F/DIFF.md:177`) |
-| Guard against repetition-tainted table scores (graph-history interaction) | zero corpus matches; no measured gain in any source I found |
-| A different root driver (memory-enhanced test, MTD(f)) | zero corpus matches; no current engine evidence |
-| Deferred-move sharing between threads (ABDADA) | zero corpus matches; the crew's stated gate line is one thread, so it could not be decided there |
+| Mechanism | What the corpus holds | Why it is not a candidate |
+|---|---|---|
+| One-reply and mate-threat extensions | No match for "one reply", "single reply", "mate threat", "threat extension". Matches for "one legal move" are about training-data filters and protocol tests, not about a search extension. | No current measurement found. The engine the crew diffed against removed its remaining special extensions without loss (`...:opus_deepres/notes/T04F/DIFF.md:177`). |
+| Guard against repetition-tainted table scores (graph-history interaction) | **The problem is mentioned in six files; no guard is carded or built.** Two candidate notes name it as a caveat (`opus-r15-20261103:opus_r15/cands/c3_ttprobcut/README.md:29`, `astra-a1-data:opus_round1/C6/REPORT.md:156`). The crew's work on a multi-thread mate bug treats it as a possible cause (`astra3-smp-mate-rootcause:astra3/smp-mate-rootcause/REPORT.md:21`, `.../IMPLEMENTATION_HANDOFF.md:46`, `astra-a1-data:astra3/integration/A2_HANDOFF_PREPARATION.md:32`). One changelog line is unrelated. Today's `tcc21` candidate also works in this area: the engine its idea comes from files that check inside its own "partial workaround" for this problem (`IDEA_SOURCE.md` row 7). | **Partly owned**, through `tcc21` and the multi-thread mate work. No measured gain for a fuller guard in any source I found. The pawn-ending result in `EVIDENCE.md` section 5.8 is the kind of failure such a guard is meant to prevent, so this idea has about as much "evidence of need" as the unowned mechanism. |
+| A different root driver (memory-enhanced test, MTD(f)) | No match for "mtd", "memory-enhanced", "SSS*". | No current engine evidence. |
+| Deferred-move sharing between threads (ABDADA) | No match for "abdada", "young brothers", "YBWC". Two matches for "deferred move" are about other things (a move-list overflow, a move-picker speed note). | The crew's stated gate line is one thread, so it could not be decided there. |
+
+An earlier version of this table said "zero corpus matches" for the second row. That was wrong and the reviewer caught it (`REVIEW_LOG.md`).
 
 ## 6. Limits of this dedupe
 
-- It covers the 387 fetched branches, the PC folders named in `COVERAGE.md`, and nothing in the three banned folders.
-- A mechanism described only in prose that uses none of my keywords could be missed. For the selected candidate I reduced that risk with the code-shape search.
-- The crew's research notes sometimes mark a row "LISTED" without a decision. I treated every such row as not new, because your brief asks to check research notes before calling anything new.
+- **Scope.** It covers the 387 fetched branches, the PC folders named in `COVERAGE.md`, and nothing in the three banned folders.
+- **Branch tips only.** The corpus holds each file as it stands at the tip of each branch. Work that was added and later deleted or reverted is not in it. For the unowned mechanism I also searched the 2,655 commit messages of all fetched branches by name and found nothing. For the other rows I did not.
+- **Six file types only.** `.md`, `.cpp`, `.hpp`, `.h`, `.patch`, `.diff`. A mechanism recorded only in a `.txt`, `.json`, `.csv`, `.py`, `.ps1` or log file would be missed.
+- **Twenty branches not fetched.** The `data/` and `results/` branches were left out for size.
+- **Keywords.** A mechanism described only in prose that uses none of my keywords could be missed. For the unowned mechanism I reduced that risk with the code-shape search.
+- **"LISTED" rows.** The crew's research notes sometimes list a mechanism without a decision. I treated every such row as not new, because your brief asks to check research notes before calling anything new. Some of those nine rows were never decided by anyone; they are not "rejected".
+- **Boards outside the repo.** One search each in Linear and Notion found no Forge idea board. Any other board was out of reach.
