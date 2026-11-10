@@ -9,7 +9,7 @@ Does the lockless TT (`TtLockless=true`) and the `nodes_` line change speed up m
 | name | exe | options |
 |---|---|---|
 | P | trial_w6 `forge_ltopgo_x_al1s198_trial_w6.exe` (4181a589…) | none |
-| G-off | final gate exe, sha256 `541e8b3d4333b99044ccafa7bcda82a1b5bf42a561eaf3b043b9871ed9faea1b` (kit s1c/s1d from `0599271`; on this PC `D:\forge_jobs_20261107\opus2\out\exe\forge_smpgate_541e8b3d.exe`) | `TtLockless=false` (layout change only) |
+| G-off | gate exe of the candidate `a675c04`, sha256 `a4b57032294d9d9efe2742408bb0a56da970cd1146f15c360a1fe99aada2c54b` (kit f1c/f1d; on this PC `D:\forge_jobs_20261107\opus2\out\exe\forge_smpgate_a4b57032.exe`). It supersedes `541e8b3d…` (`0599271`) | `TtLockless=false` (layout change only) |
 | G-on | same gate exe | `TtLockless=true` |
 
 ## Allocation (QA)

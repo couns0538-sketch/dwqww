@@ -38,10 +38,10 @@ index 915039a..ee74291 100644
  # Support tooling does not change engine behavior or add runtime dependencies.
  option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
 diff --git a/opus_round1/ci/run_ci.sh b/opus_round1/ci/run_ci.sh
-index 2398bc3..dc3f9b1 100644
+index 2398bc3..dbb6eb5 100644
 --- a/opus_round1/ci/run_ci.sh
 +++ b/opus_round1/ci/run_ci.sh
-@@ -14,23 +14,38 @@ CXX=${CXX:-$(command -v g++-14 || command -v g++)}
+@@ -14,37 +14,75 @@ CXX=${CXX:-$(command -v g++-14 || command -v g++)}
  mkdir -p "$OUT"
  OUT=$(cd "$OUT" && pwd)
  BASE_FLAGS="-march=x86-64-v3 -mtune=znver5 -fno-fast-math -ffp-contract=off -DFORGE_NNUE_HIDDEN=256"
@@ -54,6 +54,19 @@ index 2398bc3..dc3f9b1 100644
  LOGDIR="$OUT/sanitizer_logs_$MODE"
  mkdir -p "$LOGDIR"
  status=0
++# opus2 SMP pack (fable bug hunt NIT-2): the pack's own CTests must have run and passed, not merely "no unexpected
++# failure" (check_known_failures.py alone stays green if the tests were never built).
++# usage: require_pack_tests <ctest log> <log to append to>. Never call it inside a pipeline: it sets status here.
++require_pack_tests() {
++  local t
++  for t in forge_tt_lockless_tests forge_smp_lifecycle_tests; do
++    if grep -Eq "Test +#[0-9]+: $t \.+ +Passed" "$1"; then
++      echo "pack test $t: Passed" | tee -a "$2"
++    else
++      echo "FAIL: pack test $t did not run and pass" | tee -a "$2"; status=1
++    fi
++  done
++}
  case "$MODE" in
    release)
 -    cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
@@ -67,14 +80,22 @@ index 2398bc3..dc3f9b1 100644
 +    # still built and pinned, so CI keeps checking what it checked before this pack.
 +    echo "== TtLockless=true (same exe):" | tee -a "$OUT/identity.log"
 +    python3 "$CI/uci_check.py" "$BD/forge" --full --opt TtLockless=true 2>&1 | tee -a "$OUT/identity.log" || status=1
++    # Pins cannot tell an applied node-identical option from an ignored one (fable bug hunt NIT-1): the toggle must
++    # empty the table exactly as Clear Hash does, and lockless must equal legacy cold and warm.
++    echo "== TtLockless liveness (same exe):" | tee -a "$OUT/identity.log"
++    python3 "$ROOT/opus_round1/opus2_smp/liveness_check.py" "$BD/forge" 12 2>&1 | tee -a "$OUT/identity.log" || status=1
 +    cmake -S "$ROOT" -B "${BD}_macro0" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$CXX" "-DCMAKE_CXX_FLAGS=$BASE_FLAGS" > "$OUT/configure_${MODE}_macro0.log" 2>&1 || exit 1
 +    cmake --build "${BD}_macro0" --target forge -j"$(nproc)" > "$OUT/build_${MODE}_macro0.log" 2>&1 || { tail -50 "$OUT/build_${MODE}_macro0.log"; exit 1; }
 +    echo "== default build (FORGE_SMP_LAYOUT OFF) forge sha256: $(sha256sum "${BD}_macro0/forge" | cut -d' ' -f1)" | tee -a "$OUT/identity.log"
-+    if printf 'uci\nquit\n' | "${BD}_macro0/forge" 2>/dev/null | grep -q TtLockless; then echo "FAIL: macro-0 build advertises TtLockless" | tee -a "$OUT/identity.log"; status=1; else echo "macro-0 build: no TtLockless option (OK)" | tee -a "$OUT/identity.log"; fi
-+    if printf 'uci\nquit\n' | "$BD/forge" 2>/dev/null | grep -q '^option name TtLockless type check default false'; then echo "macro-1 build: TtLockless advertised, default false (OK)" | tee -a "$OUT/identity.log"; else echo "FAIL: macro-1 build does not advertise 'TtLockless type check default false'" | tee -a "$OUT/identity.log"; status=1; fi
++    # Capture the option lists first: under pipefail a 'grep -q' that exits early could make the engine's SIGPIPE decide.
++    uci_m0=$(printf 'uci\nquit\n' | "${BD}_macro0/forge" 2>/dev/null) || { echo "FAIL: macro-0 forge exited non-zero on uci/quit" | tee -a "$OUT/identity.log"; status=1; }
++    uci_m1=$(printf 'uci\nquit\n' | "$BD/forge" 2>/dev/null) || { echo "FAIL: macro-1 forge exited non-zero on uci/quit" | tee -a "$OUT/identity.log"; status=1; }
++    if grep -q 'TtLockless' <<< "$uci_m0"; then echo "FAIL: macro-0 build advertises TtLockless" | tee -a "$OUT/identity.log"; status=1; else echo "macro-0 build: no TtLockless option (OK)" | tee -a "$OUT/identity.log"; fi
++    if grep -q '^option name TtLockless type check default false' <<< "$uci_m1"; then echo "macro-1 build: TtLockless advertised, default false (OK)" | tee -a "$OUT/identity.log"; else echo "FAIL: macro-1 build does not advertise 'TtLockless type check default false'" | tee -a "$OUT/identity.log"; status=1; fi
 +    python3 "$CI/uci_check.py" "${BD}_macro0/forge" --full 2>&1 | tee -a "$OUT/identity.log" || status=1
      (cd "$BD" && ctest --output-on-failure --timeout 3000) > "$OUT/ctest_$MODE.log" 2>&1
      python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
++    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
      ;;
    asan)
 -    cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" \
@@ -82,8 +103,10 @@ index 2398bc3..dc3f9b1 100644
        -DFORGE_ENABLE_SANITIZERS=ON "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fno-sanitize-recover=all" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
      cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
      export ASAN_OPTIONS="log_path=$LOGDIR/asan:detect_leaks=1:abort_on_error=1"
-@@ -39,7 +54,7 @@ case "$MODE" in
+     export UBSAN_OPTIONS="log_path=$LOGDIR/ubsan:print_stacktrace=1:halt_on_error=1"
+     (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
      python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
++    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
      ;;
    tsan)
 -    cmake -S "$ROOT" -B "$BD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_COMPILER="$CXX" \
@@ -91,8 +114,14 @@ index 2398bc3..dc3f9b1 100644
        "-DCMAKE_CXX_FLAGS=$BASE_FLAGS -fsanitize=thread -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread" > "$OUT/configure_$MODE.log" 2>&1 || exit 1
      cmake --build "$BD" -j"$(nproc)" > "$OUT/build_$MODE.log" 2>&1 || { tail -50 "$OUT/build_$MODE.log"; exit 1; }
      export TSAN_OPTIONS="log_path=$LOGDIR/tsan:halt_on_error=1:second_deadlock_stack=1"
+     (cd "$BD" && ctest --output-on-failure --timeout 6000) > "$OUT/ctest_$MODE.log" 2>&1
+     python3 "$CI/check_known_failures.py" "$OUT/ctest_$MODE.log" "$LOGDIR" 2>&1 | tee "$OUT/known_$MODE.log" || status=1
++    require_pack_tests "$OUT/ctest_$MODE.log" "$OUT/known_$MODE.log"
+     # Job-specific threading stress (e.g. O1): opus_round1/<JOB>/tsan_extra.sh <forge_exe> <out_dir>
+     for extra in "$ROOT"/opus_round1/*/tsan_extra.sh; do
+       [ -f "$extra" ] || continue
 diff --git a/opus_round1/ci/uci_check.py b/opus_round1/ci/uci_check.py
-index 36a61c6..dc5790f 100644
+index 36a61c6..d77a681 100644
 --- a/opus_round1/ci/uci_check.py
 +++ b/opus_round1/ci/uci_check.py
 @@ -17,6 +17,12 @@ def wait(pat):
@@ -108,12 +137,118 @@ index 36a61c6..dc5790f 100644
  send("isready"); wait(r"^readyok")
  ok = True
  for d in depths:
+@@ -27,5 +33,7 @@ for name, pos in (("startpos", "position startpos"), ("kiwipete", "position fen
+     send(pos); send("go perft 5"); m = wait(r"^nodes (\d+)")
+     got = int(m.group(1)); good = got == REF_PERFT[name]; ok &= good
+     print(f"perft5 {name} {got} ref {REF_PERFT[name]} {'OK' if good else 'FAIL'}", flush=True)
+-send("quit"); p.wait(timeout=30)
++send("quit"); code = p.wait(timeout=30)
++# opus2 SMP pack (fable bug hunt NIT-3): a crash in quit / static destruction must not pass as ALL OK.
++print(f"engine exit code {code} {'OK' if code == 0 else 'FAIL'}", flush=True); ok &= code == 0
+ print("ALL OK" if ok else "MISMATCH"); sys.exit(0 if ok else 1)
+diff --git a/opus_round1/opus2_smp/liveness_check.py b/opus_round1/opus2_smp/liveness_check.py
+new file mode 100644
+index 0000000..75626ee
+--- /dev/null
++++ b/opus_round1/opus2_smp/liveness_check.py
+@@ -0,0 +1,91 @@
++#!/usr/bin/env python3
++"""opus2 SMP pack (fable bug hunt NIT-1): prove in CI that UCI TtLockless is APPLIED, not only advertised and accepted.
++A node-identical option cannot be proven live by pins. Its documented side effect is: a mode change reallocates the
++table empty (SPEC 3.6). Port of opus_smp_layout/tools/liveness_check.ps1, Threads 1, Hash 16, OwnBook false:
++  session A (option off): ucinewgame + go depth D -> a1 (cold); go depth D -> a2 (warm); Clear Hash; go depth D -> a3
++  session B (option on):  ucinewgame + go depth D -> b1 (cold); go depth D -> b2 (warm); TtLockless false; go depth D -> b3
++PASS needs b1 = a1 and b2 = a2 (lockless node-identical cold and warm), a2 != a1 (the warm search reuses the table),
++a3 != a2 (emptying the table is visible) and b3 = a3 (the toggle emptied the table exactly as Clear Hash does).
++Nodes, best move and score are compared; every engine must exit 0 after quit.
++usage: liveness_check.py <forge_exe> [depth=12]"""
++import re
++import subprocess
++import sys
++
++FEN = "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP1B1PPP/R2QKB1R w KQ - 0 8"
++
++
++def session(exe, depth, options, empty_cmd):
++    p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
++
++    def send(s):
++        p.stdin.write(s + "\n")
++        p.stdin.flush()
++
++    def wait(pattern):
++        rx = re.compile(pattern)
++        for line in p.stdout:
++            if rx.search(line):
++                return line
++        raise SystemExit("engine exited before matching " + pattern)
++
++    def search(new_game):
++        if new_game:
++            send("ucinewgame")
++        send("position fen " + FEN)
++        send(f"go depth {depth}")
++        nodes = score = None
++        for line in p.stdout:
++            if line.startswith("info ") and " nodes " in line:
++                m = re.search(r" nodes (\d+)", line)
++                nodes = int(m.group(1))
++                s = re.search(r" score (cp|mate) (-?\d+)", line)
++                if s:
++                    score = s.group(1) + " " + s.group(2)
++            if line.startswith("bestmove"):
++                return (nodes, line.split()[1], score)
++        raise SystemExit("engine exited during a search")
++
++    send("uci")
++    wait(r"^uciok")
++    for o in ["Threads value 1", "Hash value 16", "OwnBook value false"] + options:
++        send("setoption name " + o)
++    send("isready")
++    wait(r"^readyok")
++    r = [search(True), search(False)]
++    send(empty_cmd)
++    send("isready")
++    wait(r"^readyok")
++    r.append(search(False))
++    send("quit")
++    code = p.wait(timeout=60)
++    return r, code
++
++
++def main():
++    exe = sys.argv[1]
++    depth = int(sys.argv[2]) if len(sys.argv) > 2 else 12
++    a, code_a = session(exe, depth, [], "setoption name Clear Hash")
++    b, code_b = session(exe, depth, ["TtLockless value true"], "setoption name TtLockless value false")
++    names = ["cold", "warm", "after empty"]
++    for tag, rows in (("a legacy", a), ("b lockless", b)):
++        for name, row in zip(names, rows):
++            print(f"{tag:10s} {name:11s} nodes {row[0]} best {row[1]} score {row[2]}")
++    checks = [
++        ("lockless cold = legacy cold (b1 = a1)", b[0] == a[0]),
++        ("lockless warm = legacy warm (b2 = a2)", b[1] == a[1]),
++        ("warm reuses the table (a2 != a1 nodes)", a[1][0] != a[0][0]),
++        ("emptying the table is visible (a3 != a2 nodes)", a[2][0] != a[1][0]),
++        ("toggle emptied the table like Clear Hash (b3 = a3)", b[2] == a[2]),
++        ("both engines exit 0 after quit", code_a == 0 and code_b == 0),
++    ]
++    bad = 0
++    for text, ok in checks:
++        print(f"{text:52s} {'OK' if ok else 'FAIL'}")
++        bad += 0 if ok else 1
++    print("LIVENESS: PASS (TtLockless is live and node-identical cold and warm)" if bad == 0 else f"LIVENESS: FAIL ({bad})")
++    return 0 if bad == 0 else 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/opus_round1/opus2_smp/tsan_extra.sh b/opus_round1/opus2_smp/tsan_extra.sh
 new file mode 100644
-index 0000000..4ba3c1a
+index 0000000..a088686
 --- /dev/null
 +++ b/opus_round1/opus2_smp/tsan_extra.sh
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,52 @@
 +#!/usr/bin/env bash
 +# opus2 SMP pack (opus_smp_layout/SPEC.md section 6): extra ThreadSanitizer evidence, called by opus_round1/ci/run_ci.sh
 +# in tsan mode as: tsan_extra.sh <forge exe> <out dir>. TSAN_OPTIONS (log_path=...) is inherited from run_ci.sh, which
@@ -133,8 +268,11 @@ index 0000000..4ba3c1a
 +for t in forge_tt_lockless_tests forge_smp_lifecycle_tests; do
 +  if [ -x "$BD/$t" ]; then
 +    echo "== $t" | tee -a "$LOG"
-+    FORGE_TT_LOCKLESS_SECONDS=3 "$BD/$t" >> "$LOG" 2>&1 || { echo "FAIL $t" | tee -a "$LOG"; status=1; }
-+    grep -E 'contention|positive control|differential|All |failure' "$LOG" | tail -12
++    # Each test writes its own file, so the summary below shows only this test's lines (before a675c04+1 the
++    # summary grepped the shared log and re-printed the previous test's lines: display only, no double run).
++    FORGE_TT_LOCKLESS_SECONDS=3 "$BD/$t" > "$OUT/opus2_smp_$t.log" 2>&1 || { echo "FAIL $t" | tee -a "$LOG"; status=1; }
++    cat "$OUT/opus2_smp_$t.log" >> "$LOG"
++    grep -E 'contention|positive control|differential|All |failure' "$OUT/opus2_smp_$t.log" | tail -12
 +  else
 +    echo "MISSING $BD/$t (FORGE_SMP_LAYOUT=ON expected)" | tee -a "$LOG"; status=1
 +  fi
@@ -391,14 +529,16 @@ index 0000000..52efff6
 +}
 diff --git a/tests/tt_lockless_tests.cpp b/tests/tt_lockless_tests.cpp
 new file mode 100644
-index 0000000..86bed65
+index 0000000..50bcbd8
 --- /dev/null
 +++ b/tests/tt_lockless_tests.cpp
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,522 @@
 +// tt_lockless_tests.cpp - opus2 SMP pack (FORGE_SMP_LAYOUT=1): tests of the lockless TT mode, opus_smp_layout/SPEC.md 5.1.
 +// Own test code (no copied source). Every concurrent access in this file goes through the table API or std::atomic_ref,
 +// so a ThreadSanitizer report here is a real race in the code under test.
-+//   1 round trip    decode(encode(e)) == e for random and edge entries; mix32(0, 0) == 0
++//   1 round trip    decode(encode(e)) == e for random and edge entries; decode == a field-by-field decoder for random
++//                   word pairs; tag32(0) == 0; raw readers == decoded fields; tag detection: every single-bit change
++//                   and every small field difference of D changes the tag
 +//   2 differential  legacy table vs lockless table, one thread, same random op stream: equal probes and equal contents
 +//   3 contention    4 / 8 threads on 1 / 4 / 16 clusters, payload = f(key): every hit must carry f(key) (no incoherent hit)
 +//   4 control       the same fixture on a test-only UNVALIDATED two-word table must see incoherent hits (fixture can fail)
@@ -462,9 +602,104 @@ index 0000000..86bed65
 +}
 +
 +// ---------------------------------------------------------------- 1 round trip
++// A difference delta = D1 - D2 (mod 2^64, generation bits cleared) can give equal tags only if high32(y) is 0, or is
++// 0xFFFFFFFF with a non-zero low half: tag32(D1) = high32(x + y) and tag32(D2) = high32(x) with x = D2' * TagMul,
++// y = delta * TagMul, and high32(x + y) = high32(x) + high32(y) + carry (a carry needs low32(y) != 0). A delta that
++// fails this condition can never collide, whatever the two words are.
++bool delta_can_collide(std::uint64_t delta) {
++    const std::uint64_t y = delta * forge::ttlockless::TagMul;
++    const auto high = static_cast<std::uint32_t>(y >> 32U);
++    return high == 0U || (high == 0xFFFFFFFFU && static_cast<std::uint32_t>(y) != 0U);
++}
++
++// Field differences as they appear in D: score and eval are stored as uint16, so a signed difference t of two values
++// is t, t - 65536 or t + 65536 in the stored words (when the two values sit on both sides of zero).
++std::vector<std::int64_t> u16_deltas(int limit) {
++    std::vector<std::int64_t> out;
++    for (int t = -limit; t <= limit; ++t) {
++        out.push_back(t);
++        if (t > 0) out.push_back(static_cast<std::int64_t>(t) - 65536);
++        if (t < 0) out.push_back(static_cast<std::int64_t>(t) + 65536);
++    }
++    return out;
++}
++
++void test_tag_detection() {
++    namespace L = forge::ttlockless;
++    // Every single-bit change outside GenMask, in either direction: delta = +-2^bit.
++    for (int bit = 0; bit < 64; ++bit) {
++        if ((L::GenMask >> bit) & 1U) continue;
++        const std::uint64_t up = 1ULL << bit;
++        check(!delta_can_collide(up) && !delta_can_collide(0U - up), "single-bit change of D bit " + std::to_string(bit) + " can keep the tag");
++    }
++    // Small field differences: |score| and |eval| differences <= 32 (with the uint16 wrap), |depth| <= 8, any bound/pv
++    // change, |rule50| <= 4, in every combination except all-zero (38 million deltas).
++    long long scanned = 0, bad = 0;
++    const std::vector<std::int64_t> ds = u16_deltas(32);
++    for (const std::int64_t dscore : ds) {
++        for (const std::int64_t deval : ds) {
++            for (std::int64_t ddepth = -8; ddepth <= 8; ++ddepth) {
++                for (std::int64_t dbound = -7; dbound <= 7; ++dbound) {
++                    for (std::int64_t dr50 = -4; dr50 <= 4; ++dr50) {
++                        const std::int64_t delta = dscore + deval * 65536 + ddepth * (std::int64_t{1} << 32) +
++                                                   dbound * (std::int64_t{1} << 40) + dr50 * (std::int64_t{1} << 48);
++                        if (delta == 0) continue;
++                        ++scanned;
++                        if (delta_can_collide(static_cast<std::uint64_t>(delta))) {
++                            if (++bad <= 5) check(false, "small field difference can keep the tag: score " + std::to_string(dscore) +
++                                                             " eval " + std::to_string(deval) + " depth " + std::to_string(ddepth) +
++                                                             " bound " + std::to_string(dbound) + " r50 " + std::to_string(dr50));
++                        }
++                    }
++                }
++            }
++        }
++    }
++    // Differences only in bits 32..63 (depth, bound, pv, rule50, padding): delta = B * 2^32 with B != 0 mod 2^32, so
++    // high32(delta * TagMul) = B * TagMul mod 2^32 is odd * B != 0 and the carry is 0: never a collision. Sampled check.
++    std::mt19937_64 rng(31);
++    for (int i = 0; i < 100000; ++i) {
++        const std::uint64_t high = (rng() << 32U) & ~L::GenMask;
++        if (high == 0) continue;
++        const std::uint64_t d = rng() & ~L::GenMask;
++        check(L::tag32(d) != L::tag32(d ^ high), "high-part difference kept the tag");
++    }
++    std::cout << "tag detection: 59 single bits x 2 directions, " << scanned << " small field differences, bad " << bad << "\n";
++}
++
++// Field-by-field reference decoder, independent of decode's bit_cast and of the layout asserts.
++TTEntry decode_fields(std::uint64_t key, std::uint64_t data) {
++    TTEntry entry;
++    const auto move32 = static_cast<std::uint32_t>(key >> 32U);
++    entry.key32 = static_cast<std::uint32_t>(key) ^ forge::ttlockless::tag32(data);
++    entry.move.from = static_cast<std::uint8_t>(move32);
++    entry.move.to = static_cast<std::uint8_t>(move32 >> 8U);
++    entry.move.promotion = static_cast<std::uint8_t>(move32 >> 16U);
++    entry.move.flags = static_cast<std::uint8_t>(move32 >> 24U);
++    entry.score = static_cast<std::int16_t>(static_cast<std::uint16_t>(data));
++    entry.eval = static_cast<std::int16_t>(static_cast<std::uint16_t>(data >> 16U));
++    entry.depth = static_cast<std::uint8_t>(data >> 32U);
++    entry.gen_bound = static_cast<std::uint8_t>(data >> 40U);
++    entry.rule50_clock = static_cast<std::uint8_t>(data >> 48U);
++    entry.padding = static_cast<std::uint8_t>(data >> 56U);
++    return entry;
++}
++
 +void test_round_trip() {
 +    namespace L = forge::ttlockless;
-+    check(L::mix32(0, 0) == 0, "mix32(0,0) == 0");
++    {
++        // decode == the field-by-field decoder for arbitrary word pairs (not only encoded ones).
++        std::mt19937_64 words(4711);
++        for (int i = 0; i < 200000; ++i) {
++            const std::uint64_t k = words(), d = words();
++            if (!same_entry(L::decode(k, d), decode_fields(k, d))) {
++                check(false, "decode differs from the field-by-field decoder at K=" + std::to_string(k) + " D=" + std::to_string(d));
++                break;
++            }
++        }
++    }
++    check(L::tag32(0) == 0, "tag32(0) == 0");
++    check(L::tag32(L::GenMask) == 0, "the generation bits are outside the tag");
 +    check(same_entry(L::decode(0, 0), TTEntry{}), "decode(0,0) is the empty entry");
 +    const TTEntry zero{};
 +    check(L::data_word(zero) == 0 && L::key_word(zero, 0) == 0, "empty entry encodes to two zero words");
@@ -479,16 +714,23 @@ index 0000000..86bed65
 +        const std::uint64_t k = L::key_word(e, d);
 +        const TTEntry back = L::decode(k, d);
 +        if (!same_entry(e, back)) { check(false, "round trip " + describe(e) + " -> " + describe(back)); break; }
++        // The raw readers the probe decides on give exactly the decoded fields.
++        if (L::key32_of(k, d) != e.key32 || L::occupied_of(d) != e.occupied() || L::generation_of(d) != e.generation() ||
++            L::depth_of(d) != e.depth || L::gen_bound_of(d) != e.gen_bound) {
++            check(false, "raw readers differ from the decoded entry " + describe(e));
++            break;
++        }
 +        // A generation-only change of D keeps K valid (CAS refresh, SPEC 3.4).
 +        const std::uint64_t d2 = L::with_gen_bound(d, static_cast<std::uint8_t>((e.gen_bound & 7U) | (((e.gen_bound >> 3U) + 1U) << 3U)));
 +        const TTEntry g = L::decode(k, d2);
 +        if (g.key32 != e.key32) { check(false, "generation-only change broke the tag"); break; }
-+        // Any other single-bit change of D breaks the tag (with overwhelming probability).
++        // Any other single-bit change of D breaks the tag (always: test_tag_detection); checked on real words here.
 +        const int bit = static_cast<int>(rng() % 64U);
 +        if ((L::GenMask >> bit) & 1U) continue;
 +        const TTEntry t = L::decode(k, d ^ (1ULL << bit));
 +        if (t.key32 == e.key32) { check(false, "flipping D bit " + std::to_string(bit) + " kept the tag"); break; }
 +    }
++    test_tag_detection();
 +}
 +
 +// ---------------------------------------------------------------- 2 differential (one thread)
@@ -545,7 +787,8 @@ index 0000000..86bed65
 +        const int score = static_cast<int>(rng() % 70000U) - 35000;   // exercises the clamp
 +        const int eval = static_cast<int>(rng() % 70000U) - 35000;
 +        const int depth = static_cast<int>(rng() % 300U) - 20;        // exercises the clamp
-+        const Bound bound = static_cast<Bound>(1U + rng() % 3U);
++        // BoundNone too: such a store leaves an unoccupied slot with data in it (miss snapshots of such slots).
++        const Bound bound = static_cast<Bound>(rng() % 4U);
 +        const bool pv = (rng() & 1U) != 0;
 +        const std::uint16_t hmc = static_cast<std::uint16_t>(rng() % 130U);
 +        const Move move = random_move(rng);

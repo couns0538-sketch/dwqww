@@ -1,0 +1,13 @@
+liveness_check exe=D:\forge_jobs_20261107\opus2\out\exe\forge_smpgate_a4b57032.exe sha256=a4b57032294d9d9efe2742408bb0a56da970cd1146f15c360a1fe99aada2c54b depth=12 fen=r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP1B1PPP/R2QKB1R w KQ - 0 8
+a1 legacy cold             nodes 53479 best c4d5 score cp 139 depth 12
+a2 legacy warm             nodes 4139 best c4d5 score cp 139 depth 12
+a3 legacy after Clear Hash nodes 35964 best c4d5 score cp 152 depth 12
+b1 lockless cold           nodes 53479 best c4d5 score cp 139 depth 12
+b2 lockless warm           nodes 4139 best c4d5 score cp 139 depth 12
+b3 after TtLockless->false nodes 35964 best c4d5 score cp 152 depth 12
+lockless cold = legacy cold (b1 = a1)         OK
+lockless warm = legacy warm (b2 = a2)         OK
+warm reuses the table (a2 != a1 nodes)        OK
+emptying the table is visible (a3 != a2 nodes) OK
+toggle emptied the table like Clear Hash (b3 = a3) OK
+LIVENESS: PASS (TtLockless is live and node-identical cold and warm)

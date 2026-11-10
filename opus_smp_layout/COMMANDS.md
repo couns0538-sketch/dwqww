@@ -1,9 +1,32 @@
 # opus_smp_layout — COMMANDS (EXECUTED vs PREPARED-ONLY)
 
 Run every command from Git Bash: PS 5.1 engine drivers started from an agent's PowerShell tool never see stdin. Each tool pins itself to CPUs 12-15 (mask 0xF000) at Idle, reads both back and fails closed. TEMP/TMP = `D:\forge_jobs_20261107\opus2\tmp`.
-`ps1` = `MSYS_NO_PATHCONV=1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File`, `T` = `D:\forge_jobs_20261107\opus2\repo\opus_smp_layout\tools`, `O` = `D:\forge_jobs_20261107\opus2\out`. Exes: `$O\exe\forge_P_4181a589.exe` (= OFF build = trial_w6) and `$O\exe\forge_smpgate_541e8b3d.exe` (final gate).
+`ps1` = `MSYS_NO_PATHCONV=1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File`, `T` = `D:\forge_jobs_20261107\opus2\repo\opus_smp_layout\tools`, `O` = `D:\forge_jobs_20261107\opus2\out`. Exes:
+- `$O\exe\forge_P_4181a589.exe`: the OFF build = trial_w6;
+- `$O\exe\forge_smpgate_a4b57032.exe`: the gate of the candidate `a675c04`;
+- `$O\exe\forge_smpgate_541e8b3d.exe`: the gate of the superseded `0599271`.
 
-## EXECUTED
+## EXECUTED for the candidate `a675c04` (enc2-enc4; scripts in `$O\enc2\`: build_tests.sh, run_tests.sh, build_enc3.sh, build_enc4.sh, requal4.sh)
+```
+# native tests and tools, one g++ line each through run_pinned.ps1 (flags: -std=c++20 -O2 -DNDEBUG -DFORGE_SMP_LAYOUT=1
+#   -DFORGE_NNUE_HIDDEN=256 -ffp-contract=off -fno-fast-math -march=znver5 -pthread -Wall -Wextra; tools add -O3):
+enc4_tt_lockless_tests.exe ; enc4_smp_lifecycle_tests.exe ; enc3_tt_coherence_tests.exe ; tag_scan4.exe
+# TT micro-benchmark: the same tool source against four engine trees (0599271, 527a696, enc3, a675c04)
+mb_<tree>.exe 1.0 6 1          # Threads 1, palindromic run order;   mb_<tree>.exe 1.0 4 1,2,4   # full run
+python -I -B $T/micro_table.py <label>=<run.txt> ...                  # BENCH §8 tables
+# sources: git archive a675c04 include src -> $O/src/{f0,f1}; f1 = f0 with the one define line flipped;
+#   rp4 = git archive 7ce10a05 + patch -p1 -F0 < smp_layout_after_w6.patch + flip; diff -r rp4 f1: identical
+ps1 $T\kit_build.ps1 -SrcDir $O\src\f0 -Tag f0c   (and f0d)                             # = 4181a589
+ps1 $T\kit_build.ps1 -SrcDir $O\src\f1 -Tag f1c   (and f1d) -CheckOpt 'TtLockless=true' # = a4b57032, ON identity ALL OK
+ps1 $T\pp_identity.ps1 -TreeA $O\src\p -TreeB $O\src\f0 -OutDir $O\pp\enc4_macro0      # 8/8 IDENTICAL
+# identity of the gate a4b57032 vs P's references (out\enc2\id\e4_*; options per row of BENCH §10)
+ps1 $T\identity_check.ps1 -Exe $O\exe\forge_smpgate_a4b57032.exe -Tag e4_<x> -Mode cold|warm|pins -OutDir $O\enc2\id -Options '<opts>' [...]
+ps1 $T\liveness_check.ps1 -Exe $O\exe\forge_smpgate_a4b57032.exe -OutDir $O\enc2\id
+ps1 $T\uci_lifecycle_stress.ps1 -Exe $O\exe\forge_smpgate_a4b57032.exe -Tag e4_stress_ON|OFF -OutDir $O\enc2\id -Cycles 300 [-Options 'TtLockless=true']
+# CI: run 42697936926 (a675c04) + the doc/CI follow-up run; gh run download <id> -D $O/ci/r<id>
+```
+
+## EXECUTED for `0599271` (superseded candidate; evidence BENCH §1-§7)
 ```
 # sources: git archive <commit> include src -> $O/src/{p,s0f,s1f}; s1f = s0f with '#define FORGE_SMP_LAYOUT 0' -> 1 (one line)
 ps1 $T\kit_build.ps1 -SrcDir $O\src\p   -Tag p1   (and p2)                              # = 4181a589

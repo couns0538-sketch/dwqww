@@ -151,3 +151,144 @@ Tool: `tools/nps_smoke.ps1`. Each round starts every config fresh, in alternatin
 - QA's quiet native-core run (SCALING_PLAN.md) decides.
 
 A first NPS run used the pre-review gate exe `6c07563b` by mistake (its config was written before the R1 fixes) and had no A/A copy. It is kept in `logs/nps/superseded_6c07563b/` and **not cited**.
+- Correction (2026-11-09, enc work): the decode of `0599271` used **three** multiplies per slot (`mix32`: one for the move, two mixing rounds), on all four slots of every probe. §8 measures that cost directly, and §10 removes most of it.
+
+## 8. TT micro-benchmark (EXECUTED; advisory; the TT access path alone, not engine NPS)
+**Tool.** `tools/tt_microbench.cpp`:
+- built with the kit flags plus `-O3 -DNDEBUG`; it refuses to build without NDEBUG;
+- through the existing `SearcherTestProbe` friendship it times the engine's real per-access dispatch (`Worker::probe_tt` + `Worker::store_tt`);
+- one Worker per thread, one shared table, a probe + store pair per operation.
+
+**Configs.**
+- **L** = legacy. At Threads 1 this is the owned path (`tt_owned_`: no stripe lock, as `go`/`bench` at Threads 1); at Threads ≥ 2 it is P's striped locks.
+- **X** = lockless.
+- **A** = legacy again, the A/A noise floor.
+
+**Method.** Workloads: random keys (mostly misses and replacements) and a hot pool of 4,096 keys (mostly hits). Rounds alternate L X A / A X L. Numbers are X/L ratios of the median Mops per config. `tools/micro_table.py` pools the runs, and the A/L column is the noise reference. CPUs 12-15 (2 physical cores with SMT, on a shared PC). Logs: `logs/enc4/micro/`.
+
+**Engine trees.** Each was built with the same tool source:
+- `0599271` ("old"; `mix32`, all four slots decoded);
+- `527a696` ("enc2"; one-multiply tag32, the probe decides on raw words);
+- enc3 (registers + `bit_cast` decode + raw-word store; working tree);
+- `a675c04` ("enc4" = enc3 + the eight loads written out; the candidate).
+
+| hash MB | keys | T | old | enc2 | enc3 | **enc4** | A/L range |
+|---|---|---|---|---|---|---|---|
+| 16 | hot4096 | 1 | 0.516 | 0.664 | 0.670-0.682 | **0.740** | 0.947-1.050 |
+| 16 | random | 1 | 0.721 | 0.741 | 0.804-0.810 | **0.853** | 0.916-1.023 |
+| 256 | hot4096 | 1 | 0.503 | 0.653 | 0.618-0.671 | **0.706** | 0.971-1.062 |
+| 256 | random | 1 | 0.840 | 0.918 | 0.910-0.919 | **0.933** | 0.977-1.026 |
+
+How the Threads 1 rows were run:
+- old / enc2 / enc3 come from one palindromic series of 2 runs each;
+- enc3 / enc4 come from a second palindromic series of 3 runs each;
+- for enc3 the table gives both series' medians;
+- all runs are `1.0 s × 6 rounds`.
+
+| hash MB | keys | T | old (2 runs) | enc2 (2 runs) | enc3 (1 run) | **enc4 (1 run)** |
+|---|---|---|---|---|---|---|
+| 16 | hot4096 | 2 | 1.552 | 1.964 | 2.051 | **2.240** |
+| 16 | hot4096 | 4 | 1.598 | 2.113 | 2.146 | **2.296** |
+| 16 | random | 2 | 1.364 | 1.477 | 1.599 | **1.694** |
+| 16 | random | 4 | 1.307 | 1.522 | 1.609 | **1.669** |
+| 256 | hot4096 | 2 | 1.478 | 1.824 | 1.901 | **2.110** |
+| 256 | hot4096 | 4 | 1.549 | 2.056 | 2.180 | **2.110** |
+| 256 | random | 2 | 1.106 | 1.205 | 1.243 | **1.246** |
+| 256 | random | 4 | 1.202 | 1.315 | 1.325 | **1.264** |
+
+How the Threads ≥ 2 rows were run:
+- old / enc2 are an ABBA of full runs, 2 each, `1.0 s × 4 rounds`;
+- enc3 / enc4 are single full runs, `1.0 s × 4 rounds`;
+- the A/L columns of these runs: 0.867-1.139.
+- A first full run of the old code (`out/micro/run1.txt`, `1.5 s × 6 rounds`) gave the same picture: Threads 1 X/L 0.51-0.85, Threads ≥ 2 1.14-1.58.
+
+**Reading.**
+- At **Threads ≥ 2** the lockless table moves 1.25-2.3 times as many probe + store pairs as P's striped locks. This is the pack's purpose, and enc2-enc4 raised it further (hot pool 1.5-1.6 → 2.1-2.3).
+- At **Threads 1** the owned legacy path takes no lock, so the lockless encoding can only cost. That cost fell from 0.50× to 0.71-0.74× of the legacy throughput on the hot pool, and to 0.85-0.93× with random keys.
+- In engine terms this is an **estimate, not a measurement**. Assume about one probe + store pair per node at about 1.5 M nodes/s per thread. The remaining Threads 1 extra (about 7 ns per pair on the hot pool) is then about 1 % of search time, down from about 3 % for `0599271` (§7's weak 2-3 % hint).
+- Engine NPS stays QA's quiet timing (SCALING_PLAN.md).
+
+## 9. Tag strength census (EXECUTED; exact; `tools/tag_scan.cpp`, log `logs/enc4/tag_scan.txt`)
+Criterion (SPEC 3.3): a difference `delta` of two data words (generation bits cleared) can keep the tag only if `delta * TagMul` lies within 2^32 of 0 (mod 2^64). That holds for 2^33 − 2 of the 2^64 − 1 non-zero deltas, density 2^-31.
+
+| part | deltas | can collide |
+|---|---|---|
+| 1. score/eval only (bits 0-31), exhaustive | all 2^32 − 1 positive deltas (and their negatives) | **1** (and its negative): `0xB11924E1` = F47, the 47th Fibonacci number, since `TagMul / 2^64 = 1/φ`. In int16 fields that is score +9,441 with eval −20,199. The fable bug hunt predicted exactly this delta independently |
+| 2. depth / bound / pv / rule50 only (bits 32-55), exhaustive incl. borrows | 33,554,430 | **0** (proven: odd multiplier, no carry) |
+| 3. single bits outside the generation bits, both signs | 59 × 2 | **0** |
+| 4. combined: \|Δscore\|, \|Δeval\| ≤ 4,096 (int16, with the uint16 wrap) × every realistic depth/bound-pv/rule50 difference (\|Δdepth\| ≤ 255, \|Δboundpv\| ≤ 7, \|Δrule50\| ≤ 100) | 268,468,224 (score, eval) difference **labels** × 823,095 distinct high-half deltas, exact with at most two high-half residues per low-half delta. Through the uint16 wrap a stored low-half delta can carry two labels (fable bug hunt NIT-7), so both counts are label counts, about twice the distinct deltas | **102,888** (label, high-half) combinations: density 4.65e-10 ≈ 2^-31 of the box, as the criterion predicts (the bug hunt's uniform-density estimate: about 102,900). The smallest: Δscore −33, Δeval +36, Δdepth +14, Δboundpv −6, Δrule50 −71, all at once |
+| unit test group 1: \|Δscore\|, \|Δeval\| ≤ 32 (with wrap), \|Δdepth\| ≤ 8, any bound/pv, \|Δrule50\| ≤ 4 | 38,191,094 | **0** |
+
+The old `mix32` tag had no such structure: a perfect-looking 2^-32 for every pair, with no class guaranteed. Mixed pairs from a same-position re-store (small field differences) are now never accepted.
+
+## 10. Qualification of the candidate `a675c04` (enc4; EXECUTED 21:58-22:5x Vienna; logs `logs/enc4/`)
+The whole set of §1-§6 was repeated on the new exes. The parent's references are unchanged (same P exe, same FEN files, same options).
+
+### Builds
+| build | source | kit v2.3 `-Expose` exe sha256 (pc1 = pc2) | kit identity |
+|---|---|---|---|
+| OFF (0) | `a675c04` as is (tags f0c, f0d) | **`4181a5893f15e732d08a2f4fcfbaffb23618b2567b9f30f9acd58be2e69b6fb0` = P = trial_w6** | ALL OK |
+| **GATE (1)** | `a675c04` + the one define flipped (f1c, f1d) | **`a4b57032294d9d9efe2742408bb0a56da970cd1146f15c360a1fe99aada2c54b`** | OFF: ALL OK; `TtLockless=true`: ALL OK, "IDENTICAL to OFF" |
+
+- Kit checks: 0 real missing-profile warnings, vfmadd 0, LTO on the link line (`logs/enc4/kit/`).
+- Macro 0: `g++ -E -P` identical to P for all 8 units (`logs/enc4/pp/pp_identity.txt`).
+- The published patch `7ce10a05..a675c04` (+357/−0, md5 `83928636b7cfcce60544d24bbd36fe6b`), applied with `patch -p1 -F0` to a fresh P export and flipped, gives the gate tree byte for byte (`diff -r`).
+
+### Threads 1 identity of the gate `a4b57032` vs P's references
+Same tools and parameters as §4 and §6 (`tools/identity_check.ps1`, `tools/liveness_check.ps1`). Every row printed `engine exit ok=True`.
+
+| check | options | body sha256 = P's | verdict |
+|---|---|---|---|
+| L3 cold fens12k, depth 13, net on | `TtLockless=false` / `=true` | `0719943326d6b030…` | **IDENTICAL** (12,000 / 12,000, both modes) |
+| L3 cold fens12k, depth 13, net off | `UseNNUE=false;TtLockless=true` | `e25cac43a12bf3bc…` | **IDENTICAL** (12,000 / 12,000) |
+| L3 cold fens12k, depth 13, net off | `UseNNUE=false` (re-run `e4_OFF_netoff_r2`) | `e25cac43a12bf3bc…` | **IDENTICAL** (12,000 / 12,000) |
+| L3b warm, 1,000 FENs, 40 option changes | `TtLockless=false` / `=true` | `618d5d3539e01c6b…` | **IDENTICAL** (10,680 lines, both modes) |
+| Hash 1 MB replacement pressure, 1,000 FENs, depth 12 | `Hash=1` / `Hash=1;TtLockless=true` | `aa5b30715761c8bd…` | **IDENTICAL** (both modes) |
+| deeper warm, FENs 2001-2300, `go nodes 200000`, 12 changes | `TtLockless=true` | `dd2126651f1777b9…` | **IDENTICAL** (4,574 lines) |
+| pins: bench d11-22 net on and off, perft startpos/kiwipete | `TtLockless=false` / `=true` | `53d7bdfd0b0cdacd…` | **ALL OK** (both modes) |
+| liveness, depth 12 | toggle vs Clear Hash | a1 = b1 = 53,479; a2 = b2 = 4,139; a3 = b3 = 35,964 | **PASS** on this PC, and in CI (`liveness_check.py`, the same numbers on Linux) |
+
+- The aborted run: `e4_OFF_netoff` stopped at FEN 2,893. Its .NET append to its UCI log failed ("being used by another process") because my progress check (`grep -c`) held the file at that moment. Its partial hash is **invalid and not cited** (`logs/enc4/DEVIATIONS.md`). The re-run `e4_OFF_netoff_r2` (12,000 / 12,000 identical) is the row of record.
+
+### Race / stress
+- **CI run 42697936926** (`a675c04`, ubuntu-24.04, g++-14):
+  - release: pins ALL OK for macro 1, for `TtLockless=true` and for macro 0; engine exit code 0 everywhere; **liveness PASS**; macro-0 exe has no TtLockless option.
+  - All three modes: `require_pack_tests` shows both pack tests `Passed`.
+  - **TSan**:
+    - contention 4/8 threads × 1/4/16 clusters: 136,144,640 probes, 21,853,352 hits, **0 incoherent**;
+    - gating control: 501,641 incoherent;
+    - lifecycle PASS;
+    - real TSan engine over UCI at Threads 2/4 × both modes: exit 0, 5 bestmoves each;
+    - **"TSan: 0 reports"**.
+  - **ASan+UBSan**: PASS, no report. Known-failure check PASS.
+- **Native unit tests** (`logs/enc4/tests/`):
+  - `a675c04` tt_lockless: decode = field decoder on 200k pairs; differential with BoundNone, tables equal; contention 0 incoherent; control 3.67 M incoherent.
+  - `a675c04` smp_lifecycle: PASS.
+  - enc3 tt_coherence (12 groups): PASS.
+  - CI runs all CTests on `a675c04`.
+- **UCI lifecycle stress** on `a4b57032`, Threads 1/4/8, 300 cycles, seed 20261109:
+  - `TtLockless=true`: 219 / 219 legal bestmoves, max isready latency while searching 61.2 ms, peak 161.1 MiB, exit 0: **PASS**;
+  - `TtLockless=false`: 219 / 219, 54.1 ms, 161.1 MiB, exit 0: **PASS**.
+
+### Advisory NPS (never a verdict; `tools/nps_smoke.ps1`, 8 FENs, Hash 64, OwnBook false; logs `logs/enc4/nps/`)
+| run | P_AA | old gate OFF (`541e8b3d`) | old gate OFF, byte copy | new gate OFF (`a4b57032`) | new gate OFF, byte copy | old gate ON | new gate ON |
+|---|---|---|---|---|---|---|---|
+| E4, Threads 1, `go nodes 1000000`, 8 rounds | 1.014 | — | — | 0.953 | — | 0.967 | 0.938 |
+| E4b, Threads 1, 10 rounds | 1.000 | 1.006 | — | 0.963 | — | 0.929 | 0.927 |
+| **E4c**, Threads 1, 10 rounds | 1.026 | 1.043 | 1.057 | **0.991** | **1.052** | — | — |
+| E4, Threads 4, `go nodes 2000000`, 8 rounds | 1.006 | — | — | 0.984 | — | 1.034 | 1.025 |
+
+All values are ratios to P's median in the same run.
+
+**Reading.**
+- In E4 and E4b, the new gate's OFF mode looked 4-5 % slower than P. Yet its hot machine code is the old gate's, instruction for instruction:
+  - `objdump` of `Worker::search` (3,988 lines) and `Worker::qsearch` (3,608 lines) differs in 0 lines after address normalisation;
+  - every hot function has the same size;
+  - everything after the root driver sits 128 bytes lower, because the root driver inlines `hashfull_lockless`, which shrank by 112 bytes.
+- **E4c settles it.** The byte copy of the new gate runs at 1.052, as fast as the old gate (1.043) and its copy (1.057), while the original file runs at 0.991. The same bytes in another file differ by 6 %.
+- So that was a **per-file effect** (physical placement of the file's pages; the speed job's R12 finding), not a property of the binary.
+- Within one exe and one run, the ON/OFF ratio at Threads 1 is: new gate 0.984 (E4) and 0.963 (E4b); old gate 0.958 (§7) and 0.923 (E4b).
+- **Nothing here is resolvable on this PC.** QA's ABBA times fresh byte copies per round (speed-lock path), which removes per-file effects.
+
+### Review
+R2 = the fable bug hunt over `0599271`, `527a696` and `a675c04`: no BLOCKER/MAJOR/MINOR; NIT-1..7 fixed (REVIEW_LOG.md).

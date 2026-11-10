@@ -1,0 +1,9 @@
+tag_scan: TagMul 0x9E3779B97F4A7C15
+  part1 delta 0xB11924E1: score diff 9441, eval diff -20199 (as int16 field differences)
+part1: score/eval-only deltas that can collide: 1 of 4294967295 (x2 with the negative ones); smallest |dscore|+|deval| 29640
+part2: high-part-only deltas (bits 32..55, all differences incl. borrows): 33554430 scanned, 0 can collide
+part3: single-bit deltas: 59 bits x 2 signs, 0 can collide
+part4: combined deltas, |dscore|,|deval| <= 4096 (int16, with the uint16 wrap) x every realistic depth/bound-pv/rule50 difference: 268468224 (score, eval) difference labels scanned, 102888 (label, high-half) combinations can collide (a stored delta can carry two labels through the wrap)
+  smallest max(|dscore|,|deval|) = 36: dscore -33 deval 36 ddepth 14 dboundpv -6 drule50 -71
+  smallest |dscore|+|deval|     = 69: dscore -33 deval 36 ddepth 14 dboundpv -6 drule50 -71
+RESULT PASS (parts 2 and 3 never collide; parts 1 and 4 are censuses)

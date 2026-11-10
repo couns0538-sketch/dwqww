@@ -134,8 +134,12 @@ int main() {
             }
         }
     }
+    // Counts are of (score, eval) field-difference LABELS: through the uint16 wrap one stored low-half difference can
+    // carry two labels, (ts, te) and (ts -+ 65536, te +- 1), so a delta may be counted twice (fable bug hunt NIT-7).
+    // Numerator and denominator are counted the same way, so the density and the minima below are unaffected.
     std::printf("part4: combined deltas, |dscore|,|deval| <= %ld (int16, with the uint16 wrap) x every realistic depth/bound-pv/rule50 "
-                "difference: %llu low-half deltas scanned, %llu (low, high) combinations can collide\n",
+                "difference: %llu (score, eval) difference labels scanned, %llu (label, high-half) combinations can collide "
+                "(a stored delta can carry two labels through the wrap)\n",
                 Box, static_cast<unsigned long long>(scanned4), static_cast<unsigned long long>(bad4));
     if (best_max >= 0) {
         std::printf("  smallest max(|dscore|,|deval|) = %ld: dscore %ld deval %ld ddepth %ld dboundpv %ld drule50 %ld\n", best_max,

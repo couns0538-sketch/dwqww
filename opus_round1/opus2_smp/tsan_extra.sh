@@ -17,8 +17,11 @@ echo "== opus2 SMP tsan_extra $(date -u +%FT%TZ) forge=$FORGE" | tee -a "$LOG"
 for t in forge_tt_lockless_tests forge_smp_lifecycle_tests; do
   if [ -x "$BD/$t" ]; then
     echo "== $t" | tee -a "$LOG"
-    FORGE_TT_LOCKLESS_SECONDS=3 "$BD/$t" >> "$LOG" 2>&1 || { echo "FAIL $t" | tee -a "$LOG"; status=1; }
-    grep -E 'contention|positive control|differential|All |failure' "$LOG" | tail -12
+    # Each test writes its own file, so the summary below shows only this test's lines (before a675c04+1 the
+    # summary grepped the shared log and re-printed the previous test's lines: display only, no double run).
+    FORGE_TT_LOCKLESS_SECONDS=3 "$BD/$t" > "$OUT/opus2_smp_$t.log" 2>&1 || { echo "FAIL $t" | tee -a "$LOG"; status=1; }
+    cat "$OUT/opus2_smp_$t.log" >> "$LOG"
+    grep -E 'contention|positive control|differential|All |failure' "$OUT/opus2_smp_$t.log" | tail -12
   else
     echo "MISSING $BD/$t (FORGE_SMP_LAYOUT=ON expected)" | tee -a "$LOG"; status=1
   fi
