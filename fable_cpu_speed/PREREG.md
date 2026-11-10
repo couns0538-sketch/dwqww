@@ -20,7 +20,7 @@ bench d11/13/16/20/22 net on = 312866 / 862329 / 3024920 / 12389307 / 34048354; 
 
 ## C3 profile
 
-Target: my lock-recipe build `c29ctl`. Workload `bench 22`, net on, single thread, CPU 12 with CPU 13 idle, two runs. Method: instruction-pointer samples of my own engine process at even steps of the thread's cycle counter, resolved with `llvm-symbolizer` including inlined code. Each sample goes to one category by its innermost source function, with this map fixed before the run:
+Target: my lock-recipe build `c29ctl`. Workload `bench 22`, net on, single thread, CPU 12 with CPU 13 idle, two runs. Method: instruction-pointer samples of my own engine process at even steps of the thread's cycle counter, resolved with `llvm-symbolizer` including inlined code. Each sample goes to exactly one category, with this map fixed before the run. Rule added at 16:05, before the first profile run: the frames of a sample are walked from the innermost outwards and the first frame that names a listed function, or that was written in one of the engine's `.cpp` files, decides. Helper code inlined from headers (standard library, bit helpers, accessors) and the small helpers of `nnue.cpp` are thereby charged to the function they were inlined into. Samples outside the engine image or without a resolved frame are "Other".
 
 | Category | Source functions |
 |---|---|

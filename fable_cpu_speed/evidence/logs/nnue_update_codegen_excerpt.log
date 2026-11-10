@@ -1,0 +1,124 @@
+MACHINE CODE EXCERPT of forge::nnue::update, lock flags and lock profile data, nnue.cpp alone (no LTO)
+source file D:\forge_jobs_20261110\fable4cpu\out\prof\nnue_lock_codegen.s, function starts at line 357
+counts in the first 330 lines: zmm 128, ymm 0, xmm 0
+
+_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE: # @_ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE
+.Lfunc_begin1:
+.seh_proc _ZN5forge4nnue6updateERKNS0_11AccumulatorERS1_RKNS0_11DirtyPiecesE
+	.seh_handler __gxx_personality_seh0, @unwind, @except
+# %bb.0:
+	pushq	%r15
+	.seh_pushreg %r15
+	pushq	%r14
+	.seh_pushreg %r14
+	pushq	%r13
+	.seh_pushreg %r13
+	pushq	%r12
+	.seh_pushreg %r12
+	pushq	%rsi
+	.seh_pushreg %rsi
+	pushq	%rdi
+	.seh_pushreg %rdi
+	pushq	%rbp
+	.seh_pushreg %rbp
+	pushq	%rbx
+	.seh_pushreg %rbx
+	subq	$72, %rsp
+	.seh_stackalloc 72
+	.seh_endprologue
+	movzbl	_ZGVZN5forge4nnue12_GLOBAL__N_17weightsEvE8instance(%rip), %eax
+	movq	%r8, %rbx
+	movq	%rdx, %rsi
+	movq	%rcx, %rdi
+	testb	%al, %al
+	je	.LBB4_1
+.LBB4_4:
+	movl	32(%rbx), %eax
+	cmpl	$2, %eax
+	jne	.LBB4_5
+# %bb.15:
+	cmpb	$0, 5(%rbx)
+	jne	.LBB4_38
+# %bb.16:
+	cmpb	$1, 13(%rbx)
+	jne	.LBB4_38
+# %bb.17:
+	movl	(%rbx), %ecx
+	movl	8(%rbx), %r10d
+	movzbl	4(%rbx), %r11d
+	xorl	%r15d, %r15d
+	leaq	_ZN5forge6detail14PieceTypeTableE(%rip), %r8
+	movzbl	12(%rbx), %ebx
+	movq	_ZZN5forge4nnue12_GLOBAL__N_17weightsEvE8instance(%rip), %rax
+	cmpl	$7, %ecx
+	movl	%ecx, %edx
+	movl	%r10d, %r14d
+	setl	%r15b
+	andl	$15, %edx
+	xorl	%r12d, %r12d
+	movzbl	(%rdx,%r8), %r9d
+	movq	%r11, %rdx
+	xorq	$56, %rdx
+	cmpl	$7, %r10d
+	setl	%r12b
+	andl	$15, %r14d
+	negq	%r15
+	movzbl	(%r14,%r8), %r8d
+	negq	%r12
+	orq	$5, %r15
+	movq	%rdi, %r14
+	subq	%rsi, %r14
+	orq	$5, %r12
+	addq	%r9, %r15
+	shlq	$6, %r15
+	addq	%r8, %r12
+	addq	%r11, %r15
+	movq	%rsi, %r11
+	subq	%rax, %r11
+	shlq	$6, %r12
+	shlq	$10, %r15
+	addq	%rbx, %r12
+	xorq	$56, %rbx
+	shlq	$10, %r12
+	cmpq	$-256, %r14
+	ja	.LBB4_20
+# %bb.18:
+	movq	%r12, %r13
+	subq	%r11, %r13
+	cmpq	$-256, %r13
+	ja	.LBB4_20
+# %bb.19:
+	movq	%r15, %r13
+	subq	%r11, %r13
+	cmpq	$-255, %r13
+	jae	.LBB4_20
+# %bb.22:
+	vmovaps	(%rdi), %zmm0
+	vmovaps	64(%rdi), %zmm1
+	vmovaps	128(%rdi), %zmm2
+	vmovaps	192(%rdi), %zmm3
+	vsubps	(%rax,%r15), %zmm0, %zmm0
+	vsubps	64(%rax,%r15), %zmm1, %zmm1
+	vsubps	128(%rax,%r15), %zmm2, %zmm2
+	vsubps	192(%rax,%r15), %zmm3, %zmm3
+	vaddps	(%rax,%r12), %zmm0, %zmm0
+	vaddps	64(%rax,%r12), %zmm1, %zmm1
+	vaddps	128(%rax,%r12), %zmm2, %zmm2
+	vaddps	192(%rax,%r12), %zmm3, %zmm3
+	vmovaps	%zmm0, (%rsi)
+	vmovaps	%zmm1, 64(%rsi)
+	vmovaps	%zmm2, 128(%rsi)
+	vmovaps	%zmm3, 192(%rsi)
+	vmovaps	256(%rdi), %zmm0
+	vmovaps	320(%rdi), %zmm1
+	vmovaps	384(%rdi), %zmm2
+	vmovaps	448(%rdi), %zmm3
+	vsubps	256(%rax,%r15), %zmm0, %zmm0
+	vsubps	320(%rax,%r15), %zmm1, %zmm1
+	vsubps	384(%rax,%r15), %zmm2, %zmm2
+	vsubps	448(%rax,%r15), %zmm3, %zmm3
+	vaddps	256(%rax,%r12), %zmm0, %zmm0
+	vaddps	320(%rax,%r12), %zmm1, %zmm1
+	vaddps	384(%rax,%r12), %zmm2, %zmm2
+	vaddps	448(%rax,%r12), %zmm3, %zmm3
+	vmovaps	%zmm0, 256(%rsi)

@@ -1,0 +1,108 @@
+PROFILE (instruction-pointer sampling); 2026-11-10 16:02:42 Vienna
+script rip_sampler.py sha256 33d649a92c3935a4b76cd2e5c642f24ae31c9d14b2b25ead704b7ca822f6a77b
+script uci_common.py sha256 9a8e1222f7b19a5927645072b45e41cdb12aa0821bb693ba148e5ae4b355e2c7
+python 3.15.2; this process mask 0x4; source revision 16833ecc03b425586f91f4c8834dea8807bf4c22
+exe D:\forge_jobs_20261110\fable4cpu\out\build\c29ctl\m2use\forge_m2use.exe bytes 2092544 md5 eaf05dca39eb20a794b873dc54849d45 sha256 2542e9445b7776da8cd9a768ea10ad1325a4ddb8d47a36595f758c13d1997ebe
+exe D:\forge_jobs_20261110\fable4cpu\out\prof\sym_nodwarf.exe bytes 1836032 md5 ac38fa34745f39fb41f23cf9a1716ed6 sha256 69fafa8bb06da6739912a52237cdbc6c676c580edd1e4e274c095602ef283cab
+workload: bench 22, net on, Threads 1, bench uses its own 16 MB table; warm-up bench 11 before sampling
+engine pinned to mask 0x1000; sampler process on mask 0x4; quantum 1500000 thread cycles; planned runs 2
+category rule: innermost frame naming a listed function or written in an engine .cpp file; header helpers are charged to their caller; outside-image and unresolved samples are Other
+run 1: VALID; samples 10751 (outside the engine image 44); wall 11.5 s; threads seen 3; exit 0; child mask 0x1000; info string bench depth 22 nodes 34048354 time 11541 nps 2950208; no error
+run 2: VALID; samples 10794 (outside the engine image 49); wall 11.5 s; threads seen 3; exit 0; child mask 0x1000; info string bench depth 22 nodes 34048354 time 11522 nps 2955073; no error
+
+CATEGORY SHARES (percent of all samples of the run; they add to 100)
+category                          run 1      run 2   all runs
+NNUE accumulator update            8.24       7.99       8.11
+NNUE accumulator refresh           0.00       0.00       0.00
+NNUE output layer                  5.59       4.97       5.28
+Hand-crafted evaluation           19.89      19.96      19.92
+Transposition table                9.31       9.33       9.32
+Move generation                    6.59       7.00       6.80
+Move ordering                     17.47      17.17      17.32
+Make/unmake and legality          17.57      17.90      17.73
+Search own code                   14.71      14.92      14.82
+Other                              0.63       0.77       0.70
+sample total                      10751      10794      21545
+unresolved samples inside the image (counted in Other): 0, 0, 0
+
+TOP SOURCE FUNCTIONS, all runs (share %, samples, category | innermost source function)
+  7.41    1597  Search own code | forge::Worker::search
+  6.32    1361  Transposition table | forge::TranspositionTable::probe_body
+  5.32    1147  NNUE accumulator update | forge::nnue::update
+  4.89    1054  NNUE output layer | forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+  4.76    1025  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_pieces
+  4.34     936  Move ordering | forge::MovePicker::pick_best
+  3.33     717  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_king
+  2.72     586  Make/unmake and legality | forge::Board::see_ge(forge::Move const&, int) const
+  2.18     469  Hand-crafted evaluation | forge::`anonymous namespace'::Accumulator<0>::add
+  2.06     444  Move generation | forge::Board::generate_pseudo_legal(forge::MoveList&, forge::Board::GenMode) const
+  1.99     429  Move ordering | forge::MovePicker::next
+  1.79     385  Search own code | forge::Worker::corrected_eval
+  1.64     353  Hand-crafted evaluation | int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, 
+  1.56     336  Move ordering | forge::`anonymous namespace'::quiet_history_sum
+  1.41     304  Search own code | forge::Worker::qsearch
+  1.40     301  Move generation | forge::Board::generate_pseudo_legal::<lambda0>::operator()
+  1.32     285  Make/unmake and legality | forge::Board::attackers_to
+  1.29     279  NNUE accumulator update | forge::Worker::record_move
+  1.29     277  Move ordering | forge::MovePicker::pick_best::<lambda1>::operator()
+  1.25     269  Move ordering | std::__unguarded_linear_insert
+  1.09     235  Make/unmake and legality | forge::Board::make_move
+  1.09     235  NNUE accumulator update | forge::nnue::feature_index
+  0.96     206  Make/unmake and legality | forge::Board::unmake_move
+  0.92     198  Search own code | forge::Worker::static_evaluate
+  0.91     196  Make/unmake and legality | forge::Board::is_legal
+  0.87     187  Move generation | std::__countr_zero
+  0.85     183  Make/unmake and legality | forge::Board::pieces
+  0.84     182  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_threats
+  0.81     175  Hand-crafted evaluation | forge::Evaluator::update_runtime_psqt
+  0.80     173  Make/unmake and legality | forge::Board::square_attacked_with_occupancy
+  0.77     166  Transposition table | forge::TranspositionTable::store_body
+  0.75     161  Move ordering | std::__unguarded_partition
+  0.70     151  Hand-crafted evaluation | std::__countr_zero
+  0.70     150  Hand-crafted evaluation | std::__popcount
+  0.68     146  Move ordering | forge::MovePicker::MovePicker
+  0.67     144  Make/unmake and legality | forge::Board::is_pseudo_legal(forge::Move const&) const
+  0.64     138  Move ordering | forge::Move::operator==
+  0.64     138  Transposition table | forge::TranspositionTable::probe_body<0>::<lambda1>::operator()
+  0.60     129  Make/unmake and legality | forge::Board::key_after
+  0.59     127  Move ordering | std::swap
+  0.57     123  Search own code | forge::`anonymous namespace'::material_key
+  0.56     121  Make/unmake and legality | forge::piece_type
+  0.52     112  Make/unmake and legality | forge::opposite
+  0.52     112  Make/unmake and legality | forge::Board::has_legal_move() const
+  0.52     111  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_pawn_structure
+
+TOP SOURCE LINES, all runs (share %, samples, file:line [function])
+  5.75    1239  search.cpp:289 [forge::TranspositionTable::probe_body]
+  2.60     561  nnue.cpp:127 [forge::nnue::update]
+  2.47     532  search.cpp:647 [forge::MovePicker::pick_best]
+  2.02     435  bit:266 [std::__countr_zero]
+  1.98     426  nnue.cpp:150 [forge::nnue::update]
+  1.60     345  search.cpp:1384 [forge::Worker::search]
+  1.57     338  eval.cpp:36 [forge::`anonymous namespace'::Accumulator<0>::add]
+  1.48     318  nnue.cpp:196 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  1.34     288  nnue.cpp:194 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  1.32     285  board.cpp:404 [forge::Board::attackers_to]
+  1.29     277  search.cpp:652 [forge::MovePicker::pick_best::<lambda1>::operator()]
+  1.23     266  search.cpp:839 [forge::Worker::record_move]
+  1.18     255  eval.cpp:222 [forge::`anonymous namespace'::evaluate_king]
+  1.13     243  eval.cpp:212 [forge::`anonymous namespace'::evaluate_king]
+  1.11     239  search.cpp:646 [forge::MovePicker::pick_best]
+  1.09     235  eval.cpp:133 [forge::`anonymous namespace'::evaluate_pieces]
+  1.09     234  nnue.hpp:36 [forge::nnue::feature_index]
+  1.06     229  board.hpp:305 [forge::piece_type]
+  1.06     229  nnue.cpp:246 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  1.02     219  search.cpp:854 [forge::Worker::corrected_eval]
+  0.92     198  bit:308 [std::__popcount]
+  0.81     175  board.cpp:509 [forge::Board::generate_pseudo_legal::<lambda0>::operator()]
+  0.78     169  array:211 [std::array<forge::attacks::Magic,64>::operator[]]
+  0.78     167  board.hpp:242 [forge::Board::pieces]
+  0.78     167  search.cpp:184 [forge::`anonymous namespace'::quiet_history_sum]
+  0.69     148  bitboard.hpp:162 [forge::attacks::Magic::index]
+  0.67     145  board.hpp:93 [forge::Move::operator==]
+  0.66     142  search.cpp:449 [forge::MovePicker::next]
+  0.65     141  stl_algo.h:1760 [std::__unguarded_linear_insert]
+  0.61     131  eval.cpp:35 [forge::`anonymous namespace'::Accumulator<0>::add]
+
+planned runs 2 completed valid 2
+VERDICT PROFILE DONE; end 2026-11-10 16:03:06 Vienna

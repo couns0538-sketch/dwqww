@@ -1,0 +1,108 @@
+PROFILE (instruction-pointer sampling); 2026-11-10 16:06:57 Vienna
+script rip_sampler.py sha256 33d649a92c3935a4b76cd2e5c642f24ae31c9d14b2b25ead704b7ca822f6a77b
+script uci_common.py sha256 9a8e1222f7b19a5927645072b45e41cdb12aa0821bb693ba148e5ae4b355e2c7
+python 3.15.2; this process mask 0x4; source revision 16833ecc03b425586f91f4c8834dea8807bf4c22
+exe D:\forge_jobs_20261110\fable4cpu\out\build\c29ctl\m2use\forge_m2use.exe bytes 2092544 md5 eaf05dca39eb20a794b873dc54849d45 sha256 2542e9445b7776da8cd9a768ea10ad1325a4ddb8d47a36595f758c13d1997ebe
+exe D:\forge_jobs_20261110\fable4cpu\out\prof_quiet\sym_nodwarf.exe bytes 1836032 md5 ac38fa34745f39fb41f23cf9a1716ed6 sha256 69fafa8bb06da6739912a52237cdbc6c676c580edd1e4e274c095602ef283cab
+workload: bench 22, net on, Threads 1, bench uses its own 16 MB table; warm-up bench 11 before sampling
+engine pinned to mask 0x1000; sampler process on mask 0x4; quantum 1500000 thread cycles; planned runs 2
+category rule: innermost frame naming a listed function or written in an engine .cpp file; header helpers are charged to their caller; outside-image and unresolved samples are Other
+run 1: VALID; samples 10133 (outside the engine image 29); wall 10.9 s; threads seen 3; exit 0; child mask 0x1000; info string bench depth 22 nodes 34048354 time 10879 nps 3129731; no error
+run 2: VALID; samples 10132 (outside the engine image 32); wall 10.9 s; threads seen 3; exit 0; child mask 0x1000; info string bench depth 22 nodes 34048354 time 10900 nps 3123702; no error
+
+CATEGORY SHARES (percent of all samples of the run; they add to 100)
+category                          run 1      run 2   all runs
+NNUE accumulator update            8.10       8.53       8.31
+NNUE accumulator refresh           0.00       0.00       0.00
+NNUE output layer                  5.58       5.20       5.39
+Hand-crafted evaluation           21.12      20.65      20.88
+Transposition table                7.02       7.53       7.27
+Move generation                    7.30       7.38       7.34
+Move ordering                     16.81      16.45      16.63
+Make/unmake and legality          18.03      17.84      17.94
+Search own code                   15.33      15.77      15.55
+Other                              0.72       0.64       0.68
+sample total                      10133      10132      20265
+unresolved samples inside the image (counted in Other): 0, 0, 0
+
+TOP SOURCE FUNCTIONS, all runs (share %, samples, category | innermost source function)
+  7.44    1508  Search own code | forge::Worker::search
+  5.28    1070  NNUE accumulator update | forge::nnue::update
+  5.15    1044  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_pieces
+  5.00    1013  NNUE output layer | forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)
+  4.06     823  Transposition table | forge::TranspositionTable::probe_body
+  3.91     792  Move ordering | forge::MovePicker::pick_best
+  3.48     706  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_king
+  2.54     515  Make/unmake and legality | forge::Board::see_ge(forge::Move const&, int) const
+  2.15     435  Search own code | forge::Worker::corrected_eval
+  2.12     430  Move ordering | forge::MovePicker::next
+  2.11     428  Move generation | forge::Board::generate_pseudo_legal(forge::MoveList&, forge::Board::GenMode) const
+  2.00     405  Hand-crafted evaluation | forge::`anonymous namespace'::Accumulator<0>::add
+  1.70     344  Hand-crafted evaluation | int forge::(anonymous namespace)::evaluate_position<false>(forge::Board const&, forge::Evaluator::PawnEntry*, 
+  1.52     308  Move generation | forge::Board::generate_pseudo_legal::<lambda0>::operator()
+  1.47     298  NNUE accumulator update | forge::Worker::record_move
+  1.47     297  Search own code | forge::Worker::qsearch
+  1.40     284  Move ordering | forge::`anonymous namespace'::quiet_history_sum
+  1.24     251  Make/unmake and legality | forge::Board::attackers_to
+  1.22     247  Move ordering | std::__unguarded_linear_insert
+  1.15     233  Move ordering | forge::MovePicker::pick_best::<lambda1>::operator()
+  1.13     230  NNUE accumulator update | forge::nnue::feature_index
+  1.05     213  Make/unmake and legality | forge::Board::is_legal
+  1.02     206  Move generation | std::__countr_zero
+  1.00     203  Make/unmake and legality | forge::Board::make_move
+  0.89     181  Search own code | forge::Worker::static_evaluate
+  0.85     172  Make/unmake and legality | forge::Board::unmake_move
+  0.84     171  Hand-crafted evaluation | forge::Evaluator::update_runtime_psqt
+  0.84     170  Hand-crafted evaluation | forge::`anonymous namespace'::evaluate_threats
+  0.82     167  Transposition table | forge::TranspositionTable::store_body
+  0.82     166  Make/unmake and legality | forge::Board::square_attacked_with_occupancy
+  0.79     160  Make/unmake and legality | forge::Board::pieces
+  0.78     159  Make/unmake and legality | forge::Board::key_after
+  0.75     153  Move ordering | std::__unguarded_partition
+  0.66     133  Hand-crafted evaluation | std::__countr_zero
+  0.66     133  Transposition table | forge::TranspositionTable::probe_body<0>::<lambda1>::operator()
+  0.65     131  Move ordering | forge::MovePicker::MovePicker
+  0.65     131  Search own code | forge::`anonymous namespace'::material_key
+  0.65     131  Make/unmake and legality | forge::Board::has_legal_move() const
+  0.64     130  Hand-crafted evaluation | std::__popcount
+  0.64     129  Make/unmake and legality | forge::Board::is_pseudo_legal(forge::Move const&) const
+  0.62     126  Move ordering | std::swap
+  0.54     110  Move ordering | forge::Move::operator==
+  0.54     109  Make/unmake and legality | forge::piece_type
+  0.53     107  Make/unmake and legality | forge::opposite
+  0.53     107  Make/unmake and legality | forge::Board::refresh_king_lines
+
+TOP SOURCE LINES, all runs (share %, samples, file:line [function])
+  3.46     701  search.cpp:289 [forge::TranspositionTable::probe_body]
+  2.64     535  nnue.cpp:127 [forge::nnue::update]
+  2.10     426  search.cpp:647 [forge::MovePicker::pick_best]
+  2.04     414  bit:266 [std::__countr_zero]
+  1.92     389  nnue.cpp:150 [forge::nnue::update]
+  1.50     304  search.cpp:1384 [forge::Worker::search]
+  1.47     298  nnue.cpp:194 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  1.43     290  eval.cpp:36 [forge::`anonymous namespace'::Accumulator<0>::add]
+  1.41     285  search.cpp:839 [forge::Worker::record_move]
+  1.40     284  nnue.cpp:196 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  1.38     280  eval.cpp:133 [forge::`anonymous namespace'::evaluate_pieces]
+  1.36     276  eval.cpp:222 [forge::`anonymous namespace'::evaluate_king]
+  1.24     251  board.cpp:404 [forge::Board::attackers_to]
+  1.21     246  eval.cpp:212 [forge::`anonymous namespace'::evaluate_king]
+  1.15     233  search.cpp:854 [forge::Worker::corrected_eval]
+  1.15     233  search.cpp:652 [forge::MovePicker::pick_best::<lambda1>::operator()]
+  1.13     230  search.cpp:646 [forge::MovePicker::pick_best]
+  1.13     230  nnue.hpp:36 [forge::nnue::feature_index]
+  1.10     223  board.hpp:305 [forge::piece_type]
+  0.93     188  nnue.cpp:246 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  0.92     186  bit:308 [std::__popcount]
+  0.89     181  array:211 [std::array<forge::attacks::Magic,64>::operator[]]
+  0.83     169  bitboard.hpp:162 [forge::attacks::Magic::index]
+  0.82     167  board.cpp:509 [forge::Board::generate_pseudo_legal::<lambda0>::operator()]
+  0.73     147  search.cpp:449 [forge::MovePicker::next]
+  0.72     145  search.cpp:184 [forge::`anonymous namespace'::quiet_history_sum]
+  0.71     144  board.hpp:242 [forge::Board::pieces]
+  0.64     130  stl_algo.h:1760 [std::__unguarded_linear_insert]
+  0.63     127  nnue.cpp:195 [forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator co]
+  0.57     115  move.h:236 [std::swap]
+
+planned runs 2 completed valid 2
+VERDICT PROFILE DONE; end 2026-11-10 16:07:19 Vienna
