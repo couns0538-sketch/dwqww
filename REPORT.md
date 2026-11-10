@@ -61,7 +61,19 @@ Baseline and default-off review build both match all documented pins at depths 1
 - Startpos perft 5: 4865609.
 - Baseline Kiwipete perft 4:4085603.
 
-Baseline CLI checks passed nodes 0, nodes 1, movetime 0, movetime 30, restricted e2e4, infinite withholding bestmove until stop, ponder withholding until ponderhit, and isready during search. Evidence under `tests/review_evidence/`. These are this cloud machine's results, not the tester PC. Raw logs may include timing/NPS as engine output; no speed conclusion is drawn. The seven-switch combined candidate also passed all ten pins, perft 5, Kiwipete perft 4 and the UCI smoke checks. The final eight-switch candidate including F4 exception cleanup is still validating; do not treat that final run as passed yet. Reproduce both default and all-enabled builds with `bash forge-combo29/tests/review_build.sh /tmp/forge-review-build`.
+Baseline CLI checks passed nodes 0, nodes 1, movetime 0, movetime 30, restricted e2e4, infinite withholding bestmove until stop, ponder withholding until ponderhit, and isready during search. Evidence under `tests/review_evidence/`. These are this cloud machine's results, not the tester PC. Raw logs may include timing/NPS as engine output; no speed conclusion is drawn. The seven-switch combined candidate also passed all ten pins, perft 5, Kiwipete perft 4 and the UCI smoke checks. The final corrected eight-switch candidate including F4 exception cleanup and the final default-off build both passed all ten pins, perft 5, the UCI smoke suite and mixed-case option regression. Reproduce both default and all-enabled builds with `bash forge-combo29/tests/review_build.sh /tmp/forge-review-build`.
+
+## Final fresh-FEN equivalence screen
+
+**PASS, high confidence for the tested scope:** 128 FENs (16 corner positions plus 112 seeded legal playout samples), NNUE on and off, 256 comparisons and 512 sequential searches. Threads 1, Hash 16, OwnBook false, depth 7, cold TT for every search. Zero mismatches in final nodes, depth, score, bestmove or PV. Fresh FEN reloads do not preserve full preceding game history. This is not the tester-PC 12k gate and does not validate deterministic SMP equivalence.
+
+Full generator, fixture, test driver, receipt and compared results: `forge-combo29/tests/equivalence_*`.
+
+- Locked-source cloud baseline binary SHA256: `1371770e2ad61aa2fe3c038acc7da3912da5d64c9cb1dcc5e4668221fb3226f6`.
+- Final default-off binary SHA256: `eb9dfc03aba50d5875300ea378cbb1b06c361f11ed2a330e7da6d740cbca2275`.
+- Final all-eight-enabled binary SHA256: `21d64ae060cf54614a8a0761b9711b776dc91278f8e8bdab4fa6ecdc62fb9d74`.
+
+Independent static review found no introduced defect in UCI/book/NNUE/node-reset patches and identified the preliminary F4 standalone latch regression. That regression was corrected before remote publication and covered with repeated-search tests. Source/header and embedded-net Git blob IDs were independently compared between published branch and tested local source and match. This is source-content verification, not a Windows executable identity claim.
 
 ## Implemented bit-exact speed candidates
 
@@ -104,5 +116,6 @@ Connector author was explicitly authorized after authenticated git push was unav
 - 43b5e076: thread-creation failure reproducer.
 - 29e8c5a0: complete findings/evidence checkpoint.
 - 39f69079: corrected exception-safe cleanup and regression tests.
+- 15e8f115: reproduction recipe and seven-switch validation evidence.
 
-This report/evidence checkpoint adds patch files and baseline logs. Remaining: final eight-switch pin completion, final combined UCI checks, further native acceptance gates. No branch rewrite, force push, deletion, merge or locked-branch change performed.
+This report/evidence checkpoint adds patch files and baseline logs. Remaining: native 12k bit-exact, quiet ABBA, 10+0.1 SPRT and Windows/Clang validation. Cloud work completed to the coverage documented here; no claim of exhaustive verification. No branch rewrite, force push, deletion, merge or locked-branch change performed.
