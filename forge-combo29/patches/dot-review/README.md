@@ -20,6 +20,7 @@ with locked commit `16833ecc03b425586f91f4c8834dea8807bf4c22` and apply:
 15. C3-uci-exception-recovery.patch
 16. C4-restricted-fallback.patch
 17. C5-default-uci-gating.patch
+18. S5-compact-pawn-cache.patch
 
 On 2026-11-10, every patch applied successfully to a fresh archive of the
 locked source. Recursive comparison of the resulting `src/` and `include/`
