@@ -1,6 +1,6 @@
 # STATUS: job 3, move-generator proof (Fable 5.2)
 
-Written 2026-11-10 20:10 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
+Written 2026-11-10 20:30 Vienna. All times are Europe/Vienna. Read this file first when resuming, then compare it with the files and processes that actually exist.
 
 ## State in one paragraph
 
@@ -19,7 +19,7 @@ No check has found a difference between any candidate and the lock. All release-
 | What | Value |
 |---|---|
 | Repo | `D:\forge_jobs_20261109\fable2\repo` |
-| Branch | `fable52-movegen-proof-20261110`, started from `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (tip of job 2); pushed, tip of the last push `c2bc8e0b` |
+| Branch | `fable52-movegen-proof-20261110`, started from `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (tip of job 2); pushed, tip of the last push `1fd97049` |
 | Pack on the branch | `fable_movegen_proof\` |
 | Output root | `D:\forge_jobs_20261109\fable2\out\job3` (`bin`, `src`, `aux` = harness-1 probes, `aux2` = harness-2 probes, `runs`, `runs\h1` = harness-1 results, `tmp`, `logs`, `fail`, `corpus`) |
 | Plan | approved by Couns 2026-11-10 18:57; decisions D1 (two-tier PASS) and D2 (20 million on the auxiliary tier) answered 18:15 |
@@ -79,11 +79,16 @@ Harness source `mgprobe.cpp` sha256 begins `42efd61dd819eb7d` (frozen copy besid
 | Edge suite run, harness 1 (search depth 12) | DONE 19:40: all tags MATCH. Being rerun with harness 2 at the end of chain A |
 | Search signatures on 20,000 corpus positions, depth 7, net on and off (release exes) | DONE 19:50: identical for all six candidates |
 | Coverage of each candidate's changed lines | DONE 20:02: every instrumented line in every candidate's `#if` region executed (EVL 16/16, PCM 1/1, CKL 8/8, WNP 3/3, KPC 28/28, BUN 25/25) |
-| Fuzz, auxiliary tier, harness 2, chunks 0-199 (target 20,000,000 per candidate) | RUNNING since 19:58 (chain A); chunk 25 at 20:02, about 11 s per chunk |
+| Fuzz, auxiliary tier, harness 2, chunks 0-199 (target 20,000,000 per candidate) | RUNNING since 19:58 (chain A); chunks 0-99 done 20:16 with every row OK, chunks 100-199 running, about 11 s per chunk |
 | Cache-state variants, cross-tier check, edge suite, harness 2 | QUEUED behind the auxiliary fuzz in chain A |
-| Fuzz, release executables, harness 2 with tie, chunks 0-199 | RUNNING since 19:58 (chain R); chunk 5 at 20:02, about 42 s per chunk |
-| WITNESS_NOPIN targets | BUILDING since 20:07 |
-| Review 2, reports, manifest, DONE | PENDING |
+| Fuzz, release executables, harness 2 with tie, chunks 0-199 | RUNNING since 19:58 (chain R); chunk 24 at 20:15 with every row OK, about 43 s per chunk |
+| WITNESS_NOPIN targets (1,792 constructed stalemates with a pinned pawn push) | DONE 20:06: all tags MATCH 1,792 of 1,792; included in the coverage inputs |
+| Pins, divide, warm, soak repeated with the final driver (chain C) | DONE 20:21: pins MATCH 13/13, divide MATCH 10/10, warm MATCH (101 searches, 1,677 lines), soak STABLE, for all nine tags (`out\job3\logs\h2_release_summary.log`) |
+| Search signatures on 100,000 corpus positions, depth 7, both nets (chain C) | RUNNING since 20:21; EVL and PCM net on identical so far |
+| Report controls L1 to L5 (counting, binding to the frozen binaries, verdict rule, self-test line, replay) | Red run 20:28 `RED4.log` FAIL 0/5 against a counter and a verdict that cannot refuse; 5/5 against the real code; the full self-test (`GREEN6.log`) is run when an engine slot is free |
+| Replay of counted ledger rows (`harness\replay.py`) | PENDING: after chain A, a sample of rows of both tiers |
+| Review 2a (runners and report generator, read-only reviewer on another model) | RUNNING since 20:09 |
+| Review 2b (PROOF.md against the evidence), final reports, manifest, DONE | PENDING |
 
 ## Verdicts so far
 
@@ -105,7 +110,7 @@ None. Zero differences so far in every check. No candidate is PASS before its au
 
 ## Disk and processes
 
-D: 31.84 GiB free at 20:02 (floor 30.3). Transcripts are compared in memory. Live processes of this job at 20:10: chain A (PowerShell and Python, one probe at a time), chain R (PowerShell and Python, one engine at a time), the target builder (Python). Affinity 0x78 and Idle priority were read back from every one of them at 19:37. Machine: cores 4-6 at 97-100 % from the live gate (read 18:07), so the work effectively runs on core 3.
+D: 31.84 GiB free at 20:16 (floor 30.3). Transcripts are compared in memory. Live processes of this job at 20:30, Python process ids: 15388 (fuzz.py uci v1 0-99); 392 (fuzz.py aux v2 100-199); 14700 (fuzz.py search v1 0 100000 7); each has a PowerShell launcher as parent and one probe or engine child at a time. Affinity 0x78 and Idle priority were read back from every one of them at 20:17. Machine: cores 4-6 at 97-100 % from the live gate (read 18:07), so the work effectively runs on core 3.
 
 ## Skills, servers, tools
 
@@ -113,7 +118,7 @@ Used: superpowers brainstorming, writing-plans, executing-plans, test-driven-dev
 
 ## Next action
 
-Wait for chain A (auxiliary fuzz to chunk 199, variants, cross-tier, edge) and chain R; run the WITNESS_NOPIN targets; then `report.py`, review 2, PROOF.md, manifest, commit and push.
+Wait for chain A (auxiliary fuzz to chunk 199, cache-state variants, cross-tier, edge suite), chain R and chain C; act on review 2a; then `selftest.py` (log `runs\selftest\GREEN6.log`), `replay.py` on a sample of rows, `fuzz.py keys v1:0-99 v2:100-199`, `fuzz.py count`, `coverage.py`, `report.py`, review 2b, manifest, commit and push.
 
 ## Resume commands
 

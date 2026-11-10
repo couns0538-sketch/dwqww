@@ -47,10 +47,10 @@ $branchFiles = Get-ChildItem -LiteralPath $J3_PACK -Recurse -File | Where-Object
 foreach ($f in $branchFiles) {
     $rows += ("branch`t{0}`t{1}`t{2}`t{3}" -f (Rel $f.FullName $J3_REPO), $f.Length, (J3-Hash $f.FullName 'MD5'), (J3-Hash $f.FullName 'SHA256'))
 }
-# what stays local: binaries, receipts, ledgers, logs, failure evidence (not tmp, not pycache, not frozen source copies:
-# the source trees are identified by their manifests in runs\freeze\INPUTS.json)
+# what stays local: executables, frozen source copies, probes, receipts, ledgers, logs, seed files, failure evidence
+# (not tmp and not pycache: they hold nothing that a result depends on)
 $local = @()
-foreach ($sub in 'bin', 'aux', 'runs', 'logs', 'fail', 'corpus') {
+foreach ($sub in 'bin', 'src', 'aux', 'aux2', 'runs', 'logs', 'fail', 'corpus') {
     $d = Join-Path $J3_OUT $sub
     if (Test-Path -LiteralPath $d) { $local += Get-ChildItem -LiteralPath $d -Recurse -File }
 }

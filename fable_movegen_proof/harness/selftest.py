@@ -7,6 +7,9 @@ byte-for-byte copy of itself, and against the lock-equivalent build (another bin
 and require zero differences.
 
   python -I -B selftest.py            (run through scripts\\pin_run.ps1)
+  python -I -B selftest.py ledger     the report controls L1-L5 only (no engine is started)
+  python -I -B selftest.py ledger-red their red run: they must all FAIL against a counter that counts every row,
+                                      a binding that accepts every row and a verdict that ignores the gates
 Exit 0 and a last line "SELFTEST PASS n/n" only if every control behaved as required.
 """
 import copy
@@ -523,8 +526,121 @@ def tier_r_controls(seeds, path_a):
     attempt("R17 perft info string", perft_info_string)
 
 
+def ledger_controls(red=False):
+    """The numbers and verdicts that go into the report. L1: one OK row per candidate and chunk counts, once, and
+    nothing else counts. L2: a row that names other binaries than the frozen ones counts nothing. L3: no PASS below
+    20,000,000, with an open gate, with a difference or without input identity. L4: only 'SELFTEST PASS n/n' is a
+    passed self-test. L5: a replay reproduces a ledger row only with a clean comparison and every hash equal.
+    With red=True the five controls run against a counter that counts every row, a binding that accepts every row,
+    a verdict that ignores the gates, a reader that accepts any self-test line and a replay check that accepts
+    anything: each must then FAIL."""
+    import report
+    stats, aux_bound, uci_bound = report.ledger_stats, report.aux_row_bound, report.uci_row_bound
+    gate, verdict, passed = report.tier_a_gate, report.verdict_of, report.selftest_passed
+    if red:
+        def stats(rows, bound=None):
+            per = {}
+            for w in rows:
+                c = per.setdefault(w["cand"], {"ok": set(), "positions": 0, "in_check": 0, "bad": [], "foreign": 0, "harness": set()})
+                c["ok"].add(int(w["chunk"]))
+                c["positions"] += int(w["positions"])
+                c["in_check"] += int(w.get("in_check") or 0)
+            return per
+        aux_bound = uci_bound = lambda w, shas: True                 # noqa: E731
+        gate = lambda a, harness_now: a["positions"] > 0             # noqa: E731
+        verdict = lambda gates, differences: "PASS"                  # noqa: E731
+        passed = lambda line: line.startswith("SELFTEST")            # noqa: E731
+    rows = [
+        {"cand": "EVL", "chunk": "0", "status": "OK", "positions": "100000", "in_check": "5", "detail": ""},
+        {"cand": "EVL", "chunk": "0", "status": "OK", "positions": "100000", "in_check": "5", "detail": "the same chunk run again"},
+        {"cand": "EVL", "chunk": "1", "status": "MISMATCH", "positions": "40000", "in_check": "3", "detail": "a difference"},
+        {"cand": "EVL", "chunk": "2", "status": "OK", "positions": "100000", "in_check": "7", "detail": ""},
+        {"cand": "EVL", "chunk": "3", "status": "TIMEOUT", "positions": "0", "in_check": "0", "detail": "time limit"},
+        {"cand": "EVL", "chunk": "4", "status": "HARNESS_ERROR", "positions": "100000", "in_check": "9", "detail": "reference unusable"},
+        {"cand": "EVL", "chunk": "5", "status": "CRASH", "positions": "100000", "in_check": "9", "detail": "exit 3"},
+        {"cand": "PCM", "chunk": "0", "status": "OK", "positions": "100000", "in_check": "5", "detail": ""},
+    ]
+    s = stats(rows)
+    ok = (s["EVL"]["positions"] == 200000 and len(s["EVL"]["ok"]) == 2 and s["EVL"]["in_check"] == 12
+          and sorted(k for k, _, _ in s["EVL"]["bad"]) == [1, 3, 4, 5] and s["PCM"]["positions"] == 100000 and not s["PCM"]["bad"])
+    record("L1 counting: a chunk run twice counts once; MISMATCH, TIMEOUT, HARNESS_ERROR and CRASH rows add nothing and are listed", ok,
+           f"EVL counted {s['EVL']['positions']} in {len(s['EVL']['ok'])} chunks, in check {s['EVL']['in_check']}, not-OK rows {len(s['EVL']['bad'])}; PCM {s['PCM']['positions']}")
+
+    # L2: the hashes a row names. "aa", "bb", "cc" stand for the lock's, EVL's and PCM's binaries of the receipts.
+    frozen = {"LOCK": "aa", "EVL": "bb", "PCM": "cc"}
+
+    def row(cand, chunk, lock, own, status="OK", harness="h2"):
+        return {"cand": cand, "chunk": str(chunk), "status": status, "positions": "100000", "in_check": "1", "detail": "",
+                "lock_probe_sha256": lock, "cand_probe_sha256": own, "lock_exe_sha256": lock, "cand_exe_sha256": own, "harness_sha256": harness}
+    rows2 = [row("EVL", 0, "aa", "bb"),      # the frozen pair: counts
+             row("EVL", 1, "aa", "xx"),      # another candidate binary
+             row("EVL", 2, "zz", "bb"),      # another lock binary
+             row("EVL", 3, "aa", "aa"),      # the lock against itself
+             row("PCM", 0, "aa", "bb")]      # EVL's binary under PCM's name
+    got = []
+    for bound in (aux_bound, uci_bound):
+        x = stats(rows2, lambda w, bound=bound: bound(w, frozen))
+        none = stats(rows2, lambda w, bound=bound: bound(w, {"LOCK": "aa"}))     # receipts without the candidate's hash: nothing counts
+        got.append((x["EVL"]["positions"], x["EVL"]["foreign"], x["PCM"]["positions"], x["PCM"]["foreign"], none["EVL"]["positions"]))
+    record("L2 binding: only a row naming the frozen lock and the frozen candidate binary counts (other candidate, other lock, lock against itself, "
+           "another candidate's binary, missing receipt hash)", got == [(100000, 3, 0, 1, 0)] * 2,
+           f"(EVL counted, EVL foreign, PCM counted, PCM foreign, counted without a receipt hash) tier A {got[0]}, tier R {got[1]}; wanted (100000, 3, 0, 1, 0)")
+
+    # L3: the count gate and the verdict rule
+    def tier_a(n, extra=(), harness=lambda k: "h2"):
+        return stats([row("EVL", k, "aa", "bb", harness=harness(k)) for k in range(n)] + list(extra), lambda w: aux_bound(w, frozen))["EVL"]
+    g = {"identity": True, "self_test": True, "pins": True}
+    checks = {
+        "20,000,000 with one harness meets the count gate": gate(tier_a(200), "h2") is True,
+        "19,900,000 does not": gate(tier_a(199), "h2") is False,
+        "rows of two harness versions do not": gate(tier_a(200, harness=lambda k: "h1" if k < 5 else "h2"), "h2") is False,
+        "harness files changed since the rows were written": gate(tier_a(200), "h3") is False,
+        "a row that is not OK": gate(tier_a(200, extra=[row("EVL", 7, "aa", "bb", status="MISMATCH")]), "h2") is False,
+        "every gate met is PASS": verdict(dict(g, fuzz=True), []) == "PASS",
+        "an open gate is INCOMPLETE": verdict(dict(g, fuzz=False), []) == "INCOMPLETE",
+        "a difference is never PASS": verdict(dict(g, fuzz=True), ["a difference"]) == "DIFFERENCE TO CONFIRM",
+        "a difference with an open gate is not PASS": verdict(dict(g, fuzz=False), ["a difference"]) == "DIFFERENCE TO CONFIRM",
+        "no input identity is BLOCKED": verdict(dict(g, fuzz=True, identity=False), []) == "BLOCKED",
+    }
+    wrong = [k for k, v in checks.items() if not v]
+    record("L3 verdict rule: no PASS below 20,000,000, with an open gate, with a difference or without input identity", not wrong,
+           f"{len(checks) - len(wrong)} of {len(checks)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
+
+    # L4: what counts as a passed self-test
+    lines = {"SELFTEST PASS 67/67": True, "SELFTEST PASS 66/67": False, "SELFTEST FAIL 66/67": False, "SELFTEST PASS 0/0": False, "": False,
+             "SELFTEST PASS 67/67 (but see above)": False}
+    wrong = [k for k, v in lines.items() if passed(k) is not v]
+    record("L4 self-test line: only 'SELFTEST PASS n/n' with the same n twice is a passed self-test", not wrong,
+           f"{len(lines) - len(wrong)} of {len(lines)} lines read as required" + (f"; wrong: {wrong}" if wrong else ""))
+
+    # L5: a replay reproduces a ledger row only if its comparison is clean and every hash is the row's
+    import replay
+    rep = (lambda row, got, status_ok: (True, {})) if red else replay.reproduced     # noqa: E731
+    led = {"path_sha256": "p1", "ref_sha256": "r1", "cand_sha256": "r1", "cand_probe_sha256": "bb"}
+    cases = {
+        "same hashes, clean comparison": rep(led, dict(led), True)[0] is True,
+        "another transcript hash": rep(led, dict(led, cand_sha256="r2"), True)[0] is False,
+        "another input hash": rep(led, dict(led, path_sha256="p2"), True)[0] is False,
+        "another binary": rep(led, dict(led, cand_probe_sha256="xx"), True)[0] is False,
+        "same hashes but the comparison of the replay was not clean": rep(led, dict(led), False)[0] is False,
+        "a hash the row does not have": rep({"path_sha256": "p1"}, dict(led), True)[0] is False,
+    }
+    wrong = [k for k, v in cases.items() if not v]
+    record("L5 replay: a ledger row is reproduced only by a clean comparison with every hash equal to the row's", not wrong,
+           f"{len(cases) - len(wrong)} of {len(cases)} cases as required" + (f"; wrong: {'; '.join(wrong)}" if wrong else ""))
+
+
 def main():
     print(pinguard3.ensure(), flush=True)
+    if len(sys.argv) > 1 and sys.argv[1] in ("ledger", "ledger-red"):
+        # the report controls L1-L5 only (no engine is started); ledger-red is their red run
+        red = sys.argv[1] == "ledger-red"
+        print("red run: the report controls against a counter, a binding, a verdict and a reader that cannot refuse" if red
+              else "the report controls L1-L5 only", flush=True)
+        attempt("L controls", lambda: ledger_controls(red=red))
+        n, good = len(RESULTS), sum(1 for r in RESULTS if r)
+        print(f"SELFTEST {'PASS' if good == n else 'FAIL'} {good}/{n}")
+        return 0 if good == n else 3
     for p in (LOCK_PROBE, LOCKEQ_PROBE, LOCK_EXE, LOCK_EXE_COPY):
         if not os.path.exists(p):
             print(f"SELFTEST BLOCKED: missing {p}")
@@ -541,6 +657,7 @@ def main():
         tier_r_controls(seeds, path_a)
     except Exception as e:  # noqa: BLE001
         record("R-tier controls did not complete", False, f"{type(e).__name__}: {e}")
+    attempt("L controls", ledger_controls)
     n, good = len(RESULTS), sum(1 for r in RESULTS if r)
     print(f"SELFTEST {'PASS' if good == n else 'FAIL'} {good}/{n}")
     return 0 if good == n else 3

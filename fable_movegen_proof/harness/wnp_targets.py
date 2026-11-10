@@ -117,8 +117,8 @@ def build():
             for df, dr in dirs:
                 for d in range(1, 8):
                     pf, pr = kf + d * df, kr + d * dr
-                    if not on(pf, pr) or not 1 <= pr <= 6:
-                        continue
+                    if not on(pf, pr) or not 1 <= pr <= 5:
+                        continue                                   # ranks 2 to 6: the push is a plain one, not a promotion
                     p = pf + 8 * pr
                     behind = [(pf + e * df) + 8 * (pr + e * dr) for e in range(1, 8) if on(pf + e * df, pr + e * dr)]
                     behind = [x for x in behind if x != p + 8]          # the push square stays empty

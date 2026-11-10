@@ -41,7 +41,8 @@ function global:J3-Now {
 # MD5 or SHA256 of a file as lower-case hex, through System.Security.Cryptography.
 function global:J3-Hash([string]$Path, [string]$Alg = 'SHA256') {
     if ($Alg -eq 'MD5') { $h = [System.Security.Cryptography.MD5]::Create() } else { $h = [System.Security.Cryptography.SHA256]::Create() }
-    $s = [System.IO.File]::OpenRead($Path)
+    # FileShare ReadWrite: a log that a running process still writes can be read (its hash is then a snapshot)
+    $s = New-Object System.IO.FileStream($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
     try { $b = $h.ComputeHash($s) } finally { $s.Dispose(); $h.Dispose() }
     return ([System.BitConverter]::ToString($b) -replace '-', '').ToLower()
 }
