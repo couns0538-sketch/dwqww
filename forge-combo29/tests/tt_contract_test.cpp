@@ -90,6 +90,40 @@ void generation_and_replacement() {
             "displaced-slot store payload mismatch");
     std::cout << "PASS generation wrap/refresh and same-cluster replacement\n";
 }
+void boundnone_hole_preserves_later_hit() {
+    TranspositionTable tt(1);
+    const auto a = key(1), b = key(2), c = key(3);
+    // Fresh same-cluster stores occupy the first two slots in this order.
+    store(tt, tt.probe(a), a, 11, 5, BoundExact);
+    store(tt, tt.probe(b), b, 22, 5, BoundExact);
+    // BoundNone is a public enum value; the admitted store clears occupancy.
+    store(tt, tt.probe(a), a, 11, 5, BoundNone);
+    const auto hole = tt.probe(a);
+    require(!hole.hit && !hole.entry.occupied() && hole.entry.score == 11,
+            "BoundNone did not produce the expected first-slot hole");
+    const auto later = tt.probe(b);
+    require(later.hit && later.entry.score == 22 && later.entry.eval == -22 &&
+            later.entry.move == move_for(22), "hit after first empty slot was lost");
+    // Model the rejected optimization on the observed first two slots. This is
+    // a hypothetical scan, not a production change or a new engine defect.
+    const std::array<TTEntry, 2> observed_prefix{hole.entry, later.entry};
+    const auto early_exit_hit = [&] {
+        for (const auto& entry : observed_prefix) {
+            if (!entry.occupied()) return false;
+            if (entry.key32 == later.entry.key32) return true;
+        }
+        return false;
+    }();
+    require(!early_exit_hit, "counterexample did not defeat first-empty termination");
+    const auto missing = tt.probe(c);
+    require(!missing.hit && !missing.entry.occupied() && missing.entry.key32 == hole.entry.key32,
+            "miss did not preserve first-empty replacement selection");
+    store(tt, missing, c, 33, 5, BoundExact);
+    require(tt.probe(c).hit && tt.probe(b).hit, "refilling hole lost later entry");
+    std::cout << "PASS BoundNone hole: first_slot_occupied=0 later_B_hit=1 "
+                 "hypothetical_first_empty_hit=0 refill_preserves_B=1\n";
+}
+
 void policy_and_clamping() {
     TranspositionTable tt(1);
     auto k = key(1);
@@ -159,7 +193,8 @@ int main(int argc, char**) {
                     "INT_MAX depth was not admitted/clamped");
             return 0;
         }
-        rejection(); generation_and_replacement(); policy_and_clamping(); concurrent_payload();
+        rejection(); generation_and_replacement(); boundnone_hole_preserves_later_hit();
+        policy_and_clamping(); concurrent_payload();
         std::cout << "ALL TT CONTRACT CHECKS PASSED\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL " << error.what() << '\n';
