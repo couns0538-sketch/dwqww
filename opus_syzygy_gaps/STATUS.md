@@ -5,7 +5,7 @@
 Clock: the PC clock is wrong (about 7 h fast, measured 25156 s). Vienna times below come from HTTPS Date headers (`Get-ViennaNow` in `env.ps1`).
 T0 = 2026-11-09 03:01:33 Vienna. The 20-hour floor of the first plan was dropped by Couns: finish when the work is done and a bug check at the end finds nothing left.
 Deadline (Couns, set 2026-11-09 13:56 Vienna): finish by 19:56 Vienna. Improvements that would take 10 hours or more are left out and listed. A bug that must be fixed still gets fixed before finishing.
-This version: written 2026-11-09 about 17:55 Vienna, about 14 h 55 min after T0.
+This version: written 2026-11-09 about 18:10 Vienna, about 15 h 10 min after T0, with a full file map added to `HANDOFF.md` ("Where everything is").
 
 ## Final state
 - **Candidate:** frozen head `989399b` (`out/src/cand`, parent `ded9684` = the P6 tree). Unchanged since the freeze; the final bug hunt found no engine bug.
