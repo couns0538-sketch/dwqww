@@ -58,9 +58,9 @@ def t_movement(base):
         det.append(f"{n} {start}->{th[n]:.1f} (opt {opt[n]:.0f}, {100 * moved:.0f}% of the way)")
         ok &= moved >= 0.25
     check("synthetic: every parameter moves toward a known interior optimum (>=25% of the distance)", ok,
-          "; ".join(det) + f"; rc {rc}")
+          "; ".join(det) + f"; rc {rc}" + ("" if rc == 0 else f" {err[-400:]}"))
     viol = [r for r in ledger(d / "run") if r["type"] == "plan" and r["plan"]["violations"]]
-    check("synthetic: no plus/minus engine value violates a bound or C1/C3", not viol, f"{len(viol)} violating plans")
+    check("synthetic: no plus/minus engine value violates a bound or C1/C3'", not viol, f"{len(viol)} violating plans")
 
 
 def t_null(base):
@@ -145,7 +145,6 @@ def t_levels(base):
         cst["enabled"] = True
     cfg["synthetic"]["opt"].update({"QsSeeMargin": 140.0, "RazorDepth": 2.0})
     cfg["synthetic"]["scale"].update({"QsSeeMargin": 60.0, "RazorDepth": 0.7})
-    cfg["constraints"][2]["coef"] = {"RazorBase": 1, "RazorMultiplier": 3}  # C3 with RazorDepth's highest level
     c = h.write_config(d / "cfg.json", cfg)
     rc, _, err = h.cli("run", c, d / "run", "--mode", "synthetic")
     plans = [r["plan"] for r in ledger(d / "run") if r["type"] == "plan"]
@@ -153,7 +152,8 @@ def t_levels(base):
                   for s in ("plus", "minus"))
     viol = sum(1 for p in plans if p["violations"])
     eff = sum(p["eff"][3] for p in plans) if plans else 0
-    check("synthetic levels: QsSeeMargin/RazorDepth only take their levels, C1-C3 hold, level coordinates carry updates",
+    check("synthetic levels (harness capability, not the recommended config): only level values, C1/C2/C3' hold, "
+          "level coordinates carry updates",
           rc == 0 and vals_ok and viol == 0 and eff > 0, f"rc {rc}, plans {len(plans)}, violating {viol}, "
           f"batches with a QsSeeMargin level difference {eff}; {err[-200:]}")
 

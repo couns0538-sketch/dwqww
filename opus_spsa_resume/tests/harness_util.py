@@ -55,10 +55,12 @@ def joint_params():
 
 
 def joint_constraints():
+    """PLAN.md section 3: heuristic priors C1 (monotone margins) and C3' (depth-1 razor liveness); C2 is only for
+    harness tests of level parameters (QsSeeMargin is frozen in the recommended config)."""
     return [
         {"id": "C1", "coef": {"QsFutilityMargin": 1, "RazorBase": -1, "RazorMultiplier": -1}, "le": 0},
         {"id": "C2", "coef": {"QsSeeMargin": 1, "QsFutilityMargin": -1}, "le": 0, "enabled": False},
-        {"id": "C3", "coef": {"RazorBase": 1, "RazorMultiplier": 2}, "le": 2000},
+        {"id": "C3p", "coef": {"RazorBase": 1, "RazorMultiplier": 1}, "le": 1000},
     ]
 
 

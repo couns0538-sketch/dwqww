@@ -16,9 +16,11 @@ it) and verifies the engine process's affinity and priority; it refuses to run o
 invalid` reply to a setoption fails the run.
 """
 import json
+import queue
 import re
 import subprocess
 import sys
+import threading
 import time
 
 import psutil
@@ -38,36 +40,48 @@ def place_self():
 
 
 class Engine:
+    """One engine process. Output is read by a thread so every wait has a real timeout. The engine is never killed
+    (job rule): on any failure it is asked to stop and quit and its stdin is closed, which ends Forge's command loop;
+    if it still has not exited after 60 s, its pid is reported so the owner can decide."""
+
     def __init__(self, exe, timeout=3600.0):
         self.timeout = timeout
         self.p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                   text=True, bufsize=1, encoding="ascii", errors="replace")
+        self.q = queue.Queue()
+        threading.Thread(target=self._reader, daemon=True).start()
+        self.log = []
         child = psutil.Process(self.p.pid)
         if sorted(child.cpu_affinity()) != CPUS or child.nice() != psutil.IDLE_PRIORITY_CLASS:
-            self.p.stdin.write("quit\n")
-            self.p.stdin.flush()
-            self.p.wait(30)
-            raise SystemExit(f"engine placement wrong: {child.cpu_affinity()} {child.nice()}")
-        self.log = []
+            self.fail(f"engine placement wrong: {child.cpu_affinity()} {child.nice()}")
+
+    def _reader(self):
+        for line in self.p.stdout:
+            self.q.put(line)
+        self.q.put(None)
 
     def send(self, line):
         self.p.stdin.write(line + "\n")
         self.p.stdin.flush()
 
     def until(self, pred):
-        t0 = time.time()
+        deadline = time.time() + self.timeout
         while True:
-            line = self.p.stdout.readline()
-            if line == "":
-                raise SystemExit("engine exited unexpectedly")
+            left = deadline - time.time()
+            if left <= 0:
+                self.fail(f"timeout after {self.timeout:.0f} s waiting for the engine")
+            try:
+                line = self.q.get(timeout=min(left, 5.0))
+            except queue.Empty:
+                continue
+            if line is None:
+                self.fail("engine exited unexpectedly")
             line = line.rstrip("\r\n")
             self.log.append(line)
             if "info string" in line and "invalid" in line:
-                raise SystemExit(f"engine rejected input: {line}")
+                self.fail(f"engine rejected input: {line}")
             if pred(line):
                 return line
-            if time.time() - t0 > self.timeout:
-                raise SystemExit("timeout waiting for engine")
 
     def ready(self):
         self.send("isready")
@@ -76,13 +90,29 @@ class Engine:
     def setopt(self, name, value):
         self.send(f"setoption name {name} value {value}")
 
-    def quit(self):
+    def close(self):
+        """Normal exit: stop, quit, close stdin, wait up to 60 s. Returns the exit code or None if still running."""
+        for cmd in ("stop", "quit"):
+            try:
+                self.send(cmd)
+            except (OSError, ValueError):
+                pass
         try:
-            self.send("quit")
-            self.p.wait(60)
-        except Exception:
+            self.p.stdin.close()
+        except (OSError, ValueError):
             pass
-        return self.p.returncode
+        try:
+            return self.p.wait(60)
+        except subprocess.TimeoutExpired:
+            return None
+
+    def fail(self, msg):
+        rc = self.close()
+        extra = "" if rc is not None else f"; engine pid {self.p.pid} did not exit and was left running (not killed)"
+        raise SystemExit(msg + extra)
+
+    def quit(self):
+        return self.close()
 
 
 def parse_opts(items):

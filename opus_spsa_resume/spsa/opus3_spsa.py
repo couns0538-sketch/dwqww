@@ -745,6 +745,10 @@ def main(argv):
     except Refuse as e:
         print(json.dumps({"refused": True, "exit": e.code, "reason": str(e)}), file=sys.stderr)
         return e.code
+    except Exception:  # unexpected: the ledger and checkpoints stay consistent; a resume continues the run
+        import traceback
+        print(json.dumps({"error": True, "exit": 1, "traceback": traceback.format_exc()[-2000:]}), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ Crash hooks: OPUS3_CRASH_AT="<boundary>@<batch>[:<j>]" makes the process exit wi
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 
 EXIT_CONFIG = 10
@@ -48,6 +49,19 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def replace_retry(src, dst, tries=120):
+    """os.replace with bounded retries: on Windows another process (virus scanner, indexer) may hold the target open
+    for a moment, which makes the rename fail with PermissionError. Gives up after about 30 s and re-raises."""
+    for i in range(tries):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(min(0.05 * (i + 1), 0.5))
+
+
 def write_atomic(path, data, crash=None):
     """tmp + flush + fsync + os.replace. `crash`, if given, is called between the steps with "tmp" and "renamed"."""
     path = Path(path)
@@ -58,7 +72,7 @@ def write_atomic(path, data, crash=None):
         os.fsync(f.fileno())
     if crash:
         crash("tmp")
-    os.replace(tmp, path)
+    replace_retry(tmp, path)
     if crash:
         crash("renamed")
 

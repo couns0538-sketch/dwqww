@@ -1,0 +1,172 @@
+diff --git a/include/forge/tune_gate.hpp b/include/forge/tune_gate.hpp
+new file mode 100644
+index 0000000..e2428e0
+--- /dev/null
++++ b/include/forge/tune_gate.hpp
+@@ -0,0 +1,125 @@
++#pragma once
++// Default-OFF tuning gates for the razoring and qsearch-pruning families (opus_spsa_resume, PLAN.md section 5).
++// Included by uci.cpp only when FORGE_RAZOR_TUNE or FORGE_QS_TUNE is 1; with both at 0 nothing here is compiled.
++//   FORGE_RAZOR_TUNE=1: option "RazorTune" (spin 0..1, default 0) gates RazorDepth, RazorBase, RazorMultiplier.
++//   FORGE_QS_TUNE=1:    option "QsTune"    (spin 0..1, default 0) gates QsFutilityMargin, QsSeeMargin.
++// While a family's switch is 0, setoption on its members is accepted and remembered, but the search keeps the values
++// the engine started with (the lock values), so the gate build with the switches at 0 searches exactly as the lock.
++// Switch 1 applies the remembered values; switch 0 again restores the start values (deterministic rollback).
++// Option names of the members are unchanged; only their effect while the switch is 0 differs from the lock build.
++
++#include "forge/search.hpp"
++#include "forge/uci_output.hpp"
++
++#include <algorithm>
++#include <charconv>
++#include <initializer_list>
++#include <iostream>
++#include <mutex>
++#include <string>
++#include <string_view>
++#include <system_error>
++#include <vector>
++
++namespace forge::tune_gate {
++
++struct Member {
++    std::string_view name;
++    int* value = nullptr;
++    int start = 0;   // value at program start: the lock value
++    int wanted = 0;  // last value given with setoption (clamped to the option range); applied while the switch is 1
++    int minimum = 0;
++    int maximum = 0;
++};
++
++struct Family {
++    std::string_view switch_name;
++    int on = 0;
++    std::vector<Member> members;
++};
++
++class Gate {
++public:
++    Gate() {
++#if FORGE_RAZOR_TUNE
++        add("RazorTune", {"RazorDepth", "RazorBase", "RazorMultiplier"});
++#endif
++#if FORGE_QS_TUNE
++        add("QsTune", {"QsFutilityMargin", "QsSeeMargin"});
++#endif
++    }
++
++    // "uci": one line per family. The caller holds the UCI output lock.
++    void print_options(std::ostream& out) const {
++        for (const Family& f : families_) {
++            out << "option name " << f.switch_name << " type spin default 0 min 0 max 1\n";
++        }
++    }
++
++    // Called after uci.cpp's tunable loop has handled `setoption name <name> value <value_text>`.
++    // Returns whether the option counts as handled: true for a switch, the loop's verdict for anything else.
++    bool after_setoption(const std::string& name, const std::string& value_text, bool handled) {
++        for (Family& f : families_) {
++            if (name == f.switch_name) {
++                int v = 0;
++                if (!parse(value_text, v) || (v != 0 && v != 1)) {
++                    const std::lock_guard<std::mutex> lock(forge::uci_output_mutex());
++                    std::cout << "info string invalid value for option " << name << std::endl;
++                    return true;
++                }
++                f.on = v;
++                apply(f);
++                const std::lock_guard<std::mutex> lock(forge::uci_output_mutex());
++                std::cout << "info string " << f.switch_name << ' ' << f.on;
++                for (const Member& m : f.members) std::cout << ' ' << m.name << ' ' << *m.value;
++                std::cout << std::endl;
++                return true;
++            }
++            for (Member& m : f.members) {
++                if (name != m.name) continue;
++                int v = 0;
++                if (parse(value_text, v)) m.wanted = std::clamp(v, m.minimum, m.maximum);
++                apply(f);  // switch 0: undo what the tunable loop just set; switch 1: keep it
++                return handled;
++            }
++        }
++        return handled;
++    }
++
++private:
++    std::vector<Family> families_;
++
++    static bool parse(const std::string& text, int& v) {
++        const auto parsed = std::from_chars(text.data(), text.data() + text.size(), v);
++        return parsed.ec == std::errc{} && parsed.ptr == text.data() + text.size();
++    }
++
++    void add(std::string_view switch_name, std::initializer_list<std::string_view> names) {
++        Family f{switch_name, 0, {}};
++        for (const std::string_view n : names) {
++            const forge::tune::Parameter* found = nullptr;
++            for (const forge::tune::Parameter& p : forge::tune::parameters()) {
++                if (n == p.name) found = &p;
++            }
++            if (found == nullptr) return;  // unknown member: the family is not offered at all
++            f.members.push_back({n, found->value, *found->value, *found->value, found->minimum, found->maximum});
++        }
++        families_.push_back(f);
++    }
++
++    static void apply(const Family& f) {
++        for (const Member& m : f.members) *m.value = f.on ? m.wanted : m.start;
++        forge::tune::refresh();
++    }
++};
++
++inline Gate& gate() {
++    static Gate instance;
++    return instance;
++}
++
++// Built during static initialisation, before main() reads any command, so the start values are the lock values
++// (the forge::tune variables are constant-initialised in search.cpp).
++inline const bool gate_constructed = (gate(), true);
++
++}  // namespace forge::tune_gate
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 607adf3..3620480 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -17,6 +17,16 @@
+ #include <thread>
+ #include <vector>
+ 
++#ifndef FORGE_RAZOR_TUNE
++#define FORGE_RAZOR_TUNE 0  // 1: option RazorTune (default 0) gates RazorDepth/RazorBase/RazorMultiplier
++#endif
++#ifndef FORGE_QS_TUNE
++#define FORGE_QS_TUNE 0  // 1: option QsTune (default 0) gates QsFutilityMargin/QsSeeMargin
++#endif
++#if FORGE_RAZOR_TUNE || FORGE_QS_TUNE
++#include "forge/tune_gate.hpp"
++#endif
++
+ namespace {
+ 
+ void apply_position(forge::Board& board, std::istringstream& input) {
+@@ -178,6 +188,9 @@ int main() {
+                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+             }
++#endif
++#if FORGE_RAZOR_TUNE || FORGE_QS_TUNE
++            forge::tune_gate::gate().print_options(std::cout);
+ #endif
+             std::cout << "option name Clear Hash type button\n"
+                          "uciok" << std::endl;
+@@ -214,6 +227,9 @@ int main() {
+                     forge::tune::refresh();
+                 }
+             }
++#if FORGE_RAZOR_TUNE || FORGE_QS_TUNE
++            handled_tunable = forge::tune_gate::gate().after_setoption(name, value_text, handled_tunable);
++#endif
+             if (handled_tunable) {
+                 // Unlisted development options; nothing else to do.
+             } else if (name == "Clear Hash") {
