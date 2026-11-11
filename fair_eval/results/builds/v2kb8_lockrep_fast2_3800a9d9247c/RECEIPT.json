@@ -1,0 +1,173 @@
+{
+  "config": "v2kb8_lockrep_fast2",
+  "path": "v2 residual KB8, s198 replica, FORGE_NNUE_V2_FAST=2 (fused two-perspective update only)",
+  "identity": "3800a9d9247c1ca7c3832f85e821017503fe1c01b9a3bf992256611141a62abe",
+  "built": "2026-11-11 14:10:15",
+  "seconds": 12.2,
+  "source_commit": "b0c3eb1d8560cf85ea309e5a2753e7595ec38fe1",
+  "source_dirty": true,
+  "source_manifest_sha256": "24bd32b9eafa72df147544ee4cff346029956e11752290f44abbe40b7216e5a2",
+  "compiler": "C:\\opus_5h\\oss_scout\\dl\\llvm-mingw-20261104\\x\\llvm-mingw-20261104-ucrt-x86_64\\bin\\clang++.exe",
+  "compiler_version": "clang version 23.1.5 (https://github.com/llvm/llvm-project.git 392dfff97d29b59d77e5cac6d4b6ef2585fe7117)",
+  "compiler_sha256": "d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970",
+  "defines": [
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V2=1",
+    "-DFORGE_NNUE_V2_FAST=2"
+  ],
+  "common_flags": [
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V2=1",
+    "-DFORGE_NNUE_V2_FAST=2",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-march=znver5",
+    "-pthread",
+    "-g",
+    "-gcodeview",
+    "--sysroot=C:/msys64/ucrt64",
+    "-stdlib=libstdc++",
+    "-rtlib=libgcc",
+    "-unwindlib=libgcc"
+  ],
+  "stage_flags": {
+    "gen": "-flto=thin -fprofile-instr-generate",
+    "use": "-flto=thin -fprofile-instr-use=<this profile> -Werror=profile-instr-unprofiled -Werror=profile-instr-out-of-date",
+    "link": "-fuse-ld=lld -static -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1"
+  },
+  "net": "lockkb8",
+  "net_path": "D:\\forge_jobs_20261111\\fairD\\_work\\nets\\lock_s198_rank4x2_ob8.nnue2",
+  "net_sha256": "8559fdfab2073754ec4614a674f9786467ddbda44a88529f6ef1db2f4a8df7b9",
+  "workload_sha256": "be8de708ac0d91cbd8aacc4392488a47d12cc750149eefc13bc520d72eda972e",
+  "workload": [
+    "uci",
+    "isready",
+    "setoption name EvalFileV2 value D:\\forge_jobs_20261111\\fairD\\_work\\nets\\lock_s198_rank4x2_ob8.nnue2",
+    "bench 11",
+    "bench 13",
+    "bench 16",
+    "isready",
+    "quit"
+  ],
+  "training_nodes": [
+    312866,
+    862329,
+    3024920
+  ],
+  "final_exe_nodes": [
+    312866,
+    862329,
+    3024920
+  ],
+  "profdata_sha256": "1ed80ae9a13f5e8b291d66e335c8bb9e0d9208e2b3b5d5bd8e48dea8e1bd8e2d",
+  "coverage": {
+    "profdata": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\v2kb8_lockrep_fast2_3800a9d9247c\\gen\\profile.profdata",
+    "functions_in_profile": 357,
+    "functions_with_nonzero_count": 273,
+    "checks": [
+      {
+        "kind": "must_run",
+        "pattern": "Worker::static_evaluate_v2\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate_v2(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2530205
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v2::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v2::evaluate(forge::nnue::v2::Net const&, forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 2530205
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v2::update_both\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v2::update_both(forge::nnue::v2::Net const&, forge::nnue::v2::KingKey, forge::nnue::v2::KingKey, forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 2513168
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::update\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Worker::static_evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2530181
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Evaluator::evaluate_runtime\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)",
+            "entry_count": 2530205
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "exe": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\v2kb8_lockrep_fast2_3800a9d9247c\\forge_fair_v2kb8_lockrep_fast2.exe",
+  "exe_bytes": 2095104,
+  "exe_sha256": "fabcf7cfce731c074248b49367e1b8c0b31b3d0f9df1ca6edaee65f8d96d0d8e",
+  "exe_md5": "066ffc708fdf373d68bef389e1bb3949",
+  "run_setoptions": [
+    "setoption name EvalFileV2 value D:\\forge_jobs_20261111\\fairD\\_work\\nets\\lock_s198_rank4x2_ob8.nnue2"
+  ]
+}

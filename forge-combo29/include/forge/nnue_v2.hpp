@@ -225,11 +225,31 @@ inline void refresh_cached(const Net& net, RefreshCache& cache, const Pieces& pi
         while (added != 0) add[static_cast<std::size_t>(adds++)] = column(net, perspective, key, piece, pop_lsb(added));
         entry.pieces[static_cast<std::size_t>(code)] = now;
     }
+    const float* start = entry.values.data();
+#if (FORGE_NNUE_V2_FAST & 4)
+    // The cached placement can be far from this one. When the difference needs more columns than the placement has
+    // pieces, build from the bias instead (every sum here is exact, so both routes give the same bits).
+    {
+        int piece_count = 0;
+        for (int code = WP; code <= BK; ++code) piece_count += popcount(pieces[static_cast<std::size_t>(code)]);
+        if (subs + adds > piece_count) {
+            subs = 0;
+            adds = 0;
+            for (int code = WP; code <= BK; ++code) {
+                Bitboard present = pieces[static_cast<std::size_t>(code)];
+                while (present != 0) {
+                    add[static_cast<std::size_t>(adds++)] = column(net, perspective, key, static_cast<Piece>(code), pop_lsb(present));
+                }
+            }
+            start = net.b1.data();
+        }
+    }
+#endif
     constexpr int Chunk = 64;
     static_assert(HiddenSize % Chunk == 0, "HiddenSize must be a multiple of the refresh chunk");
     for (int h0 = 0; h0 < HiddenSize; h0 += Chunk) {
         float chunk[Chunk];
-        for (int k = 0; k < Chunk; ++k) chunk[k] = entry.values[static_cast<std::size_t>(h0 + k)];
+        for (int k = 0; k < Chunk; ++k) chunk[k] = start[h0 + k];
         for (int i = 0; i < subs; ++i) {
             const float* col = sub[static_cast<std::size_t>(i)] + h0;
             for (int k = 0; k < Chunk; ++k) chunk[k] -= col[k];
@@ -268,6 +288,48 @@ inline void update(const Net& net, Color perspective, KingKey key, const float* 
     }
 }
 
+#if (FORGE_NNUE_V2_FAST & 2)
+// Both perspectives of one move that changed neither king key, in the fused form of nnue::update(): one pass per
+// perspective for the two common shapes (quiet move, capture), same per-lane order as update() above.
+inline void update_both(const Net& net, KingKey white_key, KingKey black_key, const Accumulator& parent,
+                        Accumulator& child, const DirtyPieces& dirty) {
+    const KingKey keys[2] = {white_key, black_key};
+    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+        for (const Color perspective : {White, Black}) {
+            const std::size_t c = static_cast<std::size_t>(perspective);
+            const auto& source = parent.values[c];
+            auto& destination = child.values[c];
+            const float* removed = column(net, perspective, keys[c], dirty.changes[0].piece, dirty.changes[0].square);
+            const float* added = column(net, perspective, keys[c], dirty.changes[1].piece, dirty.changes[1].square);
+            for (int h = 0; h < HiddenSize; ++h) {
+                const std::size_t index = static_cast<std::size_t>(h);
+                destination[index] = (source[index] - removed[index]) + added[index];
+            }
+        }
+        return;
+    }
+    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+        for (const Color perspective : {White, Black}) {
+            const std::size_t c = static_cast<std::size_t>(perspective);
+            const auto& source = parent.values[c];
+            auto& destination = child.values[c];
+            const float* removed0 = column(net, perspective, keys[c], dirty.changes[0].piece, dirty.changes[0].square);
+            const float* removed1 = column(net, perspective, keys[c], dirty.changes[1].piece, dirty.changes[1].square);
+            const float* added = column(net, perspective, keys[c], dirty.changes[2].piece, dirty.changes[2].square);
+            for (int h = 0; h < HiddenSize; ++h) {
+                const std::size_t index = static_cast<std::size_t>(h);
+                destination[index] = ((source[index] - removed0[index]) - removed1[index]) + added[index];
+            }
+        }
+        return;
+    }
+    for (const Color perspective : {White, Black}) {
+        const std::size_t c = static_cast<std::size_t>(perspective);
+        update(net, perspective, keys[c], parent.values[c].data(), child.values[c].data(), dirty);
+    }
+}
+#endif
+
 // Output bucket of a position: by the number of pieces on the board.
 [[nodiscard]] inline int output_bucket(const Net& net, const Board& board) {
     return net.output_map[static_cast<std::size_t>(std::min(popcount(board.occupied()), 32))];
@@ -283,7 +345,25 @@ inline void update(const Net& net, Color perspective, KingKey key, const float* 
     constexpr int Lanes = 16;
     static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
     alignas(64) float lanes[Lanes];
-#if defined(__AVX2__) && !FORGE_NNUE_V2_SCALAR
+#if (FORGE_NNUE_V2_FAST & 1) && FORGE_SPD_NNUE_ZMM && defined(__AVX512F__) && !FORGE_NNUE_V2_SCALAR
+    // One 512-bit register holds the sixteen lanes: the kernel of nnue::evaluate() under FORGE_SPD_NNUE_ZMM with
+    // the output bucket's row. Lane j takes the hidden units h + j in increasing order, as the two 256-bit halves
+    // below, with the same separate multiplies and additions, so every lane ends with the same bits.
+    {
+        const __m512 zero = _mm512_setzero_ps();
+        const __m512 one = _mm512_set1_ps(1.0F);
+        __m512 sum = zero;
+        for (int h = 0; h < HiddenSize; h += Lanes) {
+            const std::size_t base = static_cast<std::size_t>(h);
+            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(ours.data() + base), zero), one);
+            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(theirs.data() + base), zero), one);
+            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w2 + base)),
+                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w2 + HiddenSize + base)));
+            sum = _mm512_add_ps(sum, term);
+        }
+        _mm512_store_ps(lanes, sum);
+    }
+#elif defined(__AVX2__) && !FORGE_NNUE_V2_SCALAR
     const __m256 zero = _mm256_setzero_ps();
     const __m256 one = _mm256_set1_ps(1.0F);
     __m256 sums[2] = {zero, zero};

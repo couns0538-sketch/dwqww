@@ -1,0 +1,175 @@
+{
+  "config": "v2kb8_U8_fast_diag",
+  "path": "v2 residual KB8, net U8, trained on U8, FORGE_NNUE_V2_FAST=7",
+  "identity": "85d058e547c618e1f29905080986d0108fc2a3f084a564a242dc098ff42b2d30",
+  "built": "2026-11-11 14:19:33",
+  "seconds": 11.9,
+  "source_commit": "b0c3eb1d8560cf85ea309e5a2753e7595ec38fe1",
+  "source_dirty": true,
+  "source_manifest_sha256": "24bd32b9eafa72df147544ee4cff346029956e11752290f44abbe40b7216e5a2",
+  "compiler": "C:\\opus_5h\\oss_scout\\dl\\llvm-mingw-20261104\\x\\llvm-mingw-20261104-ucrt-x86_64\\bin\\clang++.exe",
+  "compiler_version": "clang version 23.1.5 (https://github.com/llvm/llvm-project.git 392dfff97d29b59d77e5cac6d4b6ef2585fe7117)",
+  "compiler_sha256": "d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970",
+  "defines": [
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V2=1",
+    "-DFORGE_NNUE_V2_FAST=7",
+    "-DFORGE_FAIR_DIAG=1"
+  ],
+  "common_flags": [
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V2=1",
+    "-DFORGE_NNUE_V2_FAST=7",
+    "-DFORGE_FAIR_DIAG=1",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-march=znver5",
+    "-pthread",
+    "-g",
+    "-gcodeview",
+    "--sysroot=C:/msys64/ucrt64",
+    "-stdlib=libstdc++",
+    "-rtlib=libgcc",
+    "-unwindlib=libgcc"
+  ],
+  "stage_flags": {
+    "gen": "-flto=thin -fprofile-instr-generate",
+    "use": "-flto=thin -fprofile-instr-use=<this profile> -Werror=profile-instr-unprofiled -Werror=profile-instr-out-of-date",
+    "link": "-fuse-ld=lld -static -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1"
+  },
+  "net": "U8",
+  "net_path": "D:\\forge_jobs_20261111\\fairD\\_work\\nets\\o30_gpu_soupU8r3r5r10r12r14.nnue2",
+  "net_sha256": "dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7",
+  "workload_sha256": "f92c1c3ee42d59344d734416bddf425a05dfaa28b5fe32401f6512fb959defc7",
+  "workload": [
+    "uci",
+    "isready",
+    "setoption name EvalFileV2 value D:\\forge_jobs_20261111\\fairD\\_work\\nets\\o30_gpu_soupU8r3r5r10r12r14.nnue2",
+    "bench 11",
+    "bench 13",
+    "bench 16",
+    "isready",
+    "quit"
+  ],
+  "training_nodes": [
+    356115,
+    952259,
+    2514975
+  ],
+  "final_exe_nodes": [
+    356115,
+    952259,
+    2514975
+  ],
+  "profdata_sha256": "402cc7fe7a4f655ce4ff995bf6456d0c82fc30fc14bf6c1b58c6580c4a0001f2",
+  "coverage": {
+    "profdata": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\v2kb8_U8_fast_diag_85d058e547c6\\gen\\profile.profdata",
+    "functions_in_profile": 361,
+    "functions_with_nonzero_count": 273,
+    "checks": [
+      {
+        "kind": "must_run",
+        "pattern": "Worker::static_evaluate_v2\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate_v2(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2469154
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v2::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v2::evaluate(forge::nnue::v2::Net const&, forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 2469154
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v2::update_both\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v2::update_both(forge::nnue::v2::Net const&, forge::nnue::v2::KingKey, forge::nnue::v2::KingKey, forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 2517381
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::update\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Worker::static_evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2469130
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Evaluator::evaluate_runtime\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)",
+            "entry_count": 2469154
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "exe": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\v2kb8_U8_fast_diag_85d058e547c6\\forge_fair_v2kb8_U8_fast_diag.exe",
+  "exe_bytes": 2107392,
+  "exe_sha256": "46a5aec61007cce98ae434ce542ca539d6e38a48f19d76031eef2b8db31c790b",
+  "exe_md5": "c1eeac54eda1ce1a3445fdfe0536c72f",
+  "run_setoptions": [
+    "setoption name EvalFileV2 value D:\\forge_jobs_20261111\\fairD\\_work\\nets\\o30_gpu_soupU8r3r5r10r12r14.nnue2"
+  ]
+}

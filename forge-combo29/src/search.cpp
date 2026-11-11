@@ -855,6 +855,15 @@ __attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate
                 const SearchStack* parent = ss - i - 1;
                 SearchStack* child = ss - i;
                 const nnue::DirtyPieces& dirty = child->dirty;
+#if (FORGE_NNUE_V2_FAST & 2)
+                // No king moved (changes[0] is the moving piece): neither key can change, both perspectives in one go.
+                if (dirty.count == 0 || piece_type(dirty.changes[0].piece) != King) {
+                    nnue::v2::update_both(net, key[0], key[1], parent->accumulator, child->accumulator, dirty);
+                    child->accumulator.valid = true;
+                    if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
+                    continue;
+                }
+#endif
                 for (const Color color : {White, Black}) {
                     const std::size_t c = static_cast<std::size_t>(color);
                     if (dirty.count > 0 && dirty.changes[0].piece == make_piece(color, King)) {

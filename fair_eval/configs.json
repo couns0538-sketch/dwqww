@@ -70,6 +70,54 @@
       "expect_nodes": [294850, 679834, 3128255],
       "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
       "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_lockrep_fast1": {
+      "path": "v2 residual KB8, s198 replica, FORGE_NNUE_V2_FAST=1 (512-bit output kernel only)",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=1"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_lockrep_fast2": {
+      "path": "v2 residual KB8, s198 replica, FORGE_NNUE_V2_FAST=2 (fused two-perspective update only)",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=2"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update_both\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_lockrep_fast4": {
+      "path": "v2 residual KB8, s198 replica, FORGE_NNUE_V2_FAST=4 (cached refresh from the bias when cheaper, only)",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=4"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_lockrep_fast": {
+      "path": "v2 residual KB8, s198 replica (exact control), FORGE_NNUE_V2_FAST=7 (all three speed changes)",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=7"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update_both\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_U8_fast": {
+      "path": "v2 residual KB8, net U8, trained on U8, FORGE_NNUE_V2_FAST=7",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=7"], "net": "U8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [356115, 952259, 2514975],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update_both\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_r5_fast": {
+      "path": "v2 residual KB8, net run 5, trained on run 5, FORGE_NNUE_V2_FAST=7",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_FAST=7"], "net": "r5",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [294850, 679834, 3128255],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update_both\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
     }
   }
 }

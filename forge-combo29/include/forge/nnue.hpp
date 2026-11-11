@@ -50,6 +50,14 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 #ifndef FORGE_NNUE_V2_HOT
 #define FORGE_NNUE_V2_HOT 0
 #endif
+//   FORGE_NNUE_V2_FAST         bit mask, 0 = the v2 code as ported. Every bit keeps the evaluation bit-identical.
+//                              1 = 512-bit output kernel (needs FORGE_SPD_NNUE_ZMM and AVX-512F)
+//                              2 = both perspectives of a non-king move updated in one fused pass (as nnue::update)
+//                              4 = a cached refresh that would apply more columns than a refresh from scratch
+//                                  starts from the bias instead
+#ifndef FORGE_NNUE_V2_FAST
+#define FORGE_NNUE_V2_FAST 0
+#endif
 #ifndef FORGE_FAIR_DIAG
 #define FORGE_FAIR_DIAG 0
 #endif
