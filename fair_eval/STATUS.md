@@ -1,46 +1,41 @@
 # JOB D - Fair evaluation-candidate builds - STATUS
 
-**Job start:** 2026-11-11 12:38 PC clock (PST label). **Last update:** 2026-11-11 12:50 PC clock.
-**Elapsed useful work:** about 1.2 h (planning and evidence reading before the clone included).
+**Clone made:** 2026-11-11 12:38:35 PC clock (PST label). **Last update:** 2026-11-11 13:30 PC clock.
+**Elapsed:** about 0.9 h of execution since the clone. Read-only exploration and planning before the clone were not clocked.
+Earlier versions of this file carried "last update" times that were my estimates, not clock readings; the times here are read from the PC.
 **Branch:** `fable/fair-eval-builds-20261111`, cut from lock `16833ecc03b425586f91f4c8834dea8807bf4c22`.
-**State: IN PROGRESS - Step 2 (per-configuration profiling).**
+**State: COMPLETE** - all five steps of the plan are done; `REPORT.md` is the result. One optional robustness timing run may follow and would be appended to REPORT.md.
 
-## Done
-- Isolated clone `D:\forge_jobs_20261111\fairD` (core.autocrlf=false, files byte-exact).
-- Identities verified: 20/20 lock source files pass the manifest (sha256 `3389cfe3...7645`); lock exe md5
-  `c0051c99695f48bf93272d96fe7548c3`; s198 `nnue_weights.inc` md5 `22b4b9e2c61b37c0450f13a3a92c19b3`; workload v1
-  sha256 `1d52720a...ce30`. Original lock exe: all ten bench pins + perft 5 reproduced
-  (`results/lock_ref/pins_original_lock_exe.txt`).
-- `EVIDENCE_MATRIX.md` written (INT8 defect confirmed from its own BENCH.md; KB8 U8 / run 5 are a different case).
-- Engine tree `forge-combo29/` now carries both candidates behind switches that default to 0:
-  - INT8/VNNI: `int8_vnni_after_w6.patch` (md5 `9a2ad0b4`) applied with no fuzz; weights md5 `25982cc2`.
-  - v2 net path: diff `fe0da8d..9037f2a` of `D:\o30\repos\v2root` (= the v2p4 gate source), one trivial reject fixed.
-  - `tools/apply_switch_guards.py` added `FORGE_NNUE_V2`, `FORGE_NNUE_V2_HOT`, `FORGE_NNUE_INT8_DEFAULT`, `FORGE_FAIR_DIAG`.
-  - With all switches 0 the eight units preprocess identically to the pinned lock source (`results/pp_identity_macro0.txt`).
-- `build_fair.ps1` + `configs.json` + `tools/profile_coverage.py` work. Built so far (about 11 s each, 16 jobs):
+## Completed
+1. Evidence: identities verified, original lock exe pins reproduced, `EVIDENCE_MATRIX.md`.
+2. Per-configuration profiling: source switches (macro-0 identity for all eight units), `build_fair.ps1`, `configs.json`,
+   coverage proof from each profile. Built: `base_resid`, `int8`, `int8_cold`, `v2kb8_lockrep`, `v2kb8_lockrep_hot`,
+   `v2kb8_U8`, `v2kb8_r5`, a diag twin of each except `int8_cold`, and three plain reference exes.
+3. Arithmetic controls on 12,000 FENs: control and v2 KB8 replica exact; INT8 inside its pre-registered bounds.
+4. ABBA vs the lock: 16 pairs per arm for eight arms, 8 pairs for five arms on the earlier gate exes, and the
+   per-evaluation microbenchmark.
+5. `REPORT.md`.
 
-| config | training nodes d11/d13/d16 | coverage from the profile | exe md5 |
-|---|---|---|---|
-| `base_resid` | 312866 / 862329 / 3024920 (= lock pins) | float `nnue::evaluate` 2,530,181 entries | `b794beb419d3140354ff8b10f452b5d0` |
-| `int8` | 326976 / 760289 / 3282449 (= the ON nodes the INT8 job recorded) | `int8_l1_sum` 2,832,503, `update_int8` 3,412,421 | `09b80085063b1949a23f6077a3b9f4b7` |
-| `int8_cold` | 312866 / 862329 / 3024920 | `int8_l1_sum`, `refresh_int8`, `update_int8` all **0** = the defect reproduced | `a192f1ef57326f50349bb5e4d7aa705c` |
+## Failed
+Nothing failed. Two plain clang reference builds first failed at link (missing `-rtlib=libgcc -unwindlib=libgcc`); fixed in `tools/plain_build.sh`.
 
-Exes are local only: `D:\forge_jobs_20261111\fairD\_work\builds\<config>_<identity>\forge_fair_<config>.exe`.
+## Not done, by decision
+- No standalone build: all three candidate nets are residual (headers checked).
+- No GPU work: the job has no training step.
+- No strength test: outside this job.
 
-## Pending (plan order)
-1. v2 nets into `_work\nets` (lock replica KB8 written by the v2 net tool, U8, run 5; sha256 checked), then configs
-   `v2kb8_lockrep`, `v2kb8_lockrep_hot`, `v2kb8_U8`, `v2kb8_r5`.
-2. Diag twins + `diag_ref`; 12k FEN arithmetic controls (acceptance bounds are in the approved plan, repeated in REPORT.md).
-3. ABBA vs the lock exe, 16 pairs per arm, `bench 20`, one pinned core.
-4. REPORT.md.
+## Artifacts (local, not in the repository)
+`D:\forge_jobs_20261111\fairD\_work\builds\<config>_<identity>\forge_fair_<config>.exe` (md5 list in REPORT.md),
+`_work\nets\` (replica, U8, run 5), `_work\plain\`, `_work\evals\` (twelve 12k dumps, sha256 in `results/evals/dumps.sha256`),
+`_work\abba\` (copied to `results/abba/`). About 0.3 GB in total; D: has 35 GB free.
 
 ## Process ownership
-No long-running process of this job is alive between commands. Six `python` processes existed before the job
-started; not mine, untouched.
+No process of this job is alive. Everything it started was a short foreground child (compiler, engine runs, python tools)
+that has exited. Six `python` processes existed before the job; not mine, untouched.
 
-## Next exact command
-`git show origin/o30:opus_30h/a/o30_v2net.py > fair_eval/tools/o30_v2net.py` then write the lock net as a KB8 file,
-then `pwsh -NoProfile -File fair_eval\build_fair.ps1 -Config v2kb8_lockrep`.
+## Resume point
+Nothing is owed. To extend: `pwsh -NoProfile -File fair_eval\build_fair.ps1 -Config <id>` rebuilds any configuration
+(a finished identity folder is detected and left alone), then the commands in REPORT.md "Reproduction".
 
 ## Blockers
 None.
