@@ -29,6 +29,31 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 #define FORGE_SPD_NNUE_ZMM 0
 #endif
 
+// Build switch (default 0 = the lock code; nothing of it is compiled): 1 adds
+// the int8 inference path behind the UCI option NnueInt8Vnni (default 0 = the
+// float path). Scheme and bounds: opus_nnue_int8_vnni/QUANT_SCHEME.md, BOUNDS.md.
+#ifndef FORGE_NNUE_INT8_VNNI
+#define FORGE_NNUE_INT8_VNNI 0
+#endif
+
+// JOB D build switches (fair_eval/build_fair.ps1). All default 0 = the lock code, nothing of them compiled.
+//   FORGE_NNUE_INT8_DEFAULT 1  the int8 path is on at start (the UCI option's default follows it)
+//   FORGE_NNUE_V2 1            compiles the v2 net path (UCI EvalFileV2, forge/nnue_v2.hpp)
+//   FORGE_NNUE_V2_HOT 1        the v2 evaluation is this build's main path: no cold section / noinline / unlikely
+//   FORGE_FAIR_DIAG 1          diagnostic UCI commands evalfens / evalbench (never in a measured exe)
+#ifndef FORGE_NNUE_INT8_DEFAULT
+#define FORGE_NNUE_INT8_DEFAULT 0
+#endif
+#ifndef FORGE_NNUE_V2
+#define FORGE_NNUE_V2 0
+#endif
+#ifndef FORGE_NNUE_V2_HOT
+#define FORGE_NNUE_V2_HOT 0
+#endif
+#ifndef FORGE_FAIR_DIAG
+#define FORGE_FAIR_DIAG 0
+#endif
+
 [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
     const int relative_color = color_of(piece) == perspective ? 0 : 1;
     const int type = piece_type(piece) - 1;
@@ -37,7 +62,15 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 }
 
 struct Accumulator {
-#if FORGE_SPD_NNUE_ZMM
+#if FORGE_NNUE_INT8_VNNI
+    // NnueInt8Vnni=1 keeps int16 values (1/256 units) in the same storage; the
+    // float array stays the first member, so size, alignment and the float path
+    // are unchanged. Each mode reads only what it wrote (root refresh per search).
+    union {
+        alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
+        std::array<std::array<std::int16_t, HiddenSize>, 2> ivalues;
+    };
+#elif FORGE_SPD_NNUE_ZMM
     // 64-byte alignment: the output kernel loads whole 512-bit registers.
     alignas(64) std::array<std::array<float, HiddenSize>, 2> values{};
 #else
@@ -66,6 +99,15 @@ struct DirtyPieces {
 [[nodiscard]] bool residual();
 // Runtime switch (UCI option); only effective when available().
 extern bool enabled;
+#if FORGE_NNUE_INT8_VNNI
+// Runtime switch of the int8 path (UCI NnueInt8Vnni; false = the float path).
+extern bool int8_vnni;
+// Scalar int8 reference of evaluate() for an accumulator built with int8_vnni
+// set, and the int32 L1 sums behind it (scalar reference and the used kernel).
+[[nodiscard]] int evaluate_int8_scalar(const Board& board, const Accumulator& accumulator);
+[[nodiscard]] std::int32_t int8_l1_sum_scalar(const Board& board, const Accumulator& accumulator);
+[[nodiscard]] std::int32_t int8_l1_sum(const Board& board, const Accumulator& accumulator);
+#endif
 
 void refresh(const Board& board, Accumulator& accumulator);
 void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty);

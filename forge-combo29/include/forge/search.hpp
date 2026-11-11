@@ -327,6 +327,13 @@ public:
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
+#if FORGE_FAIR_DIAG
+    // JOB D diagnostics (never in a measured exe). `ss` is a caller-owned stack entry with ply 0 whose neighbours
+    // are invalid, so static_evaluate takes the search's own root path (refresh, then evaluate).
+    struct DiagEval { int total = 0; int network = 0; int hce = 0; int kernel_ok = -1; };
+    [[nodiscard]] DiagEval diag_static_evaluate(const Board& board, SearchStack* ss);
+    [[nodiscard]] int diag_static_total(const Board& board, SearchStack* ss) { return static_evaluate(board, ss); }
+#endif
 
 private:
     friend struct SearcherTestProbe;
@@ -399,6 +406,10 @@ private:
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+#if FORGE_NNUE_V2
+    // v2 net path (UCI EvalFileV2, forge/nnue_v2.hpp); called only while a v2 net is active.
+    [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+#endif
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);
 };

@@ -1,6 +1,9 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
+#if FORGE_NNUE_V2
+#include "forge/nnue_v2.hpp"
+#endif
 #include "forge/search.hpp"
 #include "forge/uci_output.hpp"
 
@@ -9,6 +12,11 @@
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
+#if FORGE_FAIR_DIAG
+#include <cstdlib>
+#include <fstream>
+#include <memory>
+#endif
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -171,6 +179,12 @@ int main() {
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
             if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+#if FORGE_NNUE_V2
+            std::cout << "option name EvalFileV2 type string default <empty>\n";
+#endif
+#if FORGE_NNUE_INT8_VNNI
+            if (forge::nnue::available()) std::cout << "option name NnueInt8Vnni type spin default " << (FORGE_NNUE_INT8_DEFAULT ? 1 : 0) << " min 0 max 1\n";
+#endif
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -259,6 +273,28 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+#if FORGE_NNUE_V2
+            } else if (name == "EvalFileV2") {
+                // A v2 net file (forge/nnue_v2.hpp); empty or <empty> = off (the compiled-in network). A file that
+                // cannot be loaded leaves no v2 net active and says why.
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (path.empty() || path == "<empty>") {
+                    forge::nnue::v2::unload();
+                    std::cout << "info string EvalFileV2 off: compiled-in network" << std::endl;
+                } else {
+                    std::string error;
+                    if (forge::nnue::v2::load(path, &error)) {
+                        std::cout << "info string EvalFileV2 loaded " << forge::nnue::v2::summary(*forge::nnue::v2::loaded()) << std::endl;
+                    } else {
+                        std::cout << "info string ERROR EvalFileV2 " << path << ": " << error << std::endl;
+                    }
+                }
+                searcher.clear_hash();
+#endif
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
                 else if (value_text == "false") forge::nnue::enabled = false;
@@ -267,6 +303,17 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+#if FORGE_NNUE_INT8_VNNI
+            } else if (name == "NnueInt8Vnni") {
+                // 0 = the float path (lock), 1 = the int8 path; the eval changes, so stored scores go with it
+                if (value_text == "0") forge::nnue::int8_vnni = false;
+                else if (value_text == "1") forge::nnue::int8_vnni = true;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option NnueInt8Vnni" << std::endl;
+                }
+                searcher.clear_hash();
+#endif
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
@@ -374,6 +421,83 @@ int main() {
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
+#if FORGE_FAIR_DIAG
+        } else if (command == "evalfens" || command == "evalbench") {
+            // JOB D diagnostics (never in a measured exe); paths without spaces.
+            //   evalfens <fen file> <out file>  one line per readable FEN: line index, total, network, hce, kernel_ok
+            //                                   (the static evaluation as the search computes it at a root, in
+            //                                   centipawns from the side to move; kernel_ok: int8 kernel == scalar,
+            //                                   -1 = not the int8 path)
+            //   evalbench <fen file> <reps>     nanoseconds per static evaluation: `root` = refresh + evaluate on
+            //                                   every position, `warm` = evaluate again on a valid accumulator
+            stop_search();
+            std::string path, second;
+            input >> path >> second;
+            std::ifstream fen_file(path);
+            std::vector<forge::Board> boards;
+            std::vector<std::size_t> index;
+            std::size_t lines = 0, bad = 0;
+            for (std::string line; std::getline(fen_file, line);) {
+                while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+                if (line.empty()) continue;
+                forge::Board fen_board;
+                if (fen_board.set_fen(line)) {
+                    boards.push_back(fen_board);
+                    index.push_back(lines);
+                } else {
+                    ++bad;
+                }
+                ++lines;
+            }
+            auto stack = std::make_unique<std::array<forge::SearchStack, 8>>();
+            for (int i = 0; i < 8; ++i) (*stack)[static_cast<std::size_t>(i)].ply = i - 4;
+            forge::SearchStack* ss = &(*stack)[4];
+            const auto reset = [&stack] {
+                for (forge::SearchStack& entry : *stack) {
+                    entry.accumulator.valid = false;
+                    entry.runtime_psqt.valid = false;
+                }
+            };
+            forge::Worker& worker = searcher.main_worker();
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            if (command == "evalfens") {
+                std::ofstream out(second, std::ios::binary);
+                std::size_t kernel_bad = 0;
+                for (std::size_t i = 0; i < boards.size(); ++i) {
+                    reset();
+                    const forge::Worker::DiagEval e = worker.diag_static_evaluate(boards[i], ss);
+                    if (e.kernel_ok == 0) ++kernel_bad;
+                    out << index[i] << '\t' << e.total << '\t' << e.network << '\t' << e.hce << '\t' << e.kernel_ok << '\n';
+                }
+                out.flush();
+                std::cout << "info string evalfens lines " << lines << " evaluated " << boards.size() << " bad " << bad
+                          << " kernel_mismatch " << kernel_bad << " written " << (out.good() ? 1 : 0) << std::endl;
+            } else {
+                const int reps = std::max(1, std::atoi(second.c_str()));
+                long long sum_root = 0, sum_warm = 0;
+                const auto t0 = std::chrono::steady_clock::now();
+                for (int r = 0; r < reps; ++r) {
+                    for (const forge::Board& b : boards) {
+                        reset();
+                        sum_root += worker.diag_static_total(b, ss);
+                    }
+                }
+                const auto t1 = std::chrono::steady_clock::now();
+                for (const forge::Board& b : boards) {
+                    reset();
+                    sum_warm += worker.diag_static_total(b, ss);
+                    for (int r = 0; r < reps; ++r) sum_warm += worker.diag_static_total(b, ss);
+                }
+                const auto t2 = std::chrono::steady_clock::now();
+                const double n_root = static_cast<double>(boards.size()) * reps;
+                const double n_warm = static_cast<double>(boards.size()) * (reps + 1);
+                const double ns_root = std::chrono::duration<double, std::nano>(t1 - t0).count() / std::max(1.0, n_root);
+                const double ns_warm = std::chrono::duration<double, std::nano>(t2 - t1).count() / std::max(1.0, n_warm);
+                std::cout << "info string evalbench positions " << boards.size() << " reps " << reps << " root_ns " << ns_root
+                          << " warm_incl_one_refresh_ns " << ns_warm << " sum_root " << sum_root << " sum_warm " << sum_warm
+                          << std::endl;
+            }
+#endif
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.

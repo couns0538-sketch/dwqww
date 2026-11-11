@@ -1,0 +1,75 @@
+{
+  "_comment": "JOB D build configurations. One entry = one evaluation path + the net and workload that train its profile. build_fair.ps1 reads this file.",
+  "compiler_bin": "C:\\opus_5h\\oss_scout\\dl\\llvm-mingw-20261104\\x\\llvm-mingw-20261104-ucrt-x86_64\\bin",
+  "sysroot": "C:/msys64/ucrt64",
+  "lock_defines": [
+    "-DNDEBUG", "-DFORGE_NNUE_HIDDEN=256", "-DFORGE_EXPOSE_TUNABLES=1", "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2", "-DFORGE_SEARCH_SPEED2=1", "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1", "-DFORGE_SPD_NNUE_ZMM=1"
+  ],
+  "train_benches": [11, 13, 16],
+  "lock_pins": [312866, 862329, 3024920],
+  "frozen_v1_sha256": "1d52720a2662153120c394bba7a0971537dfcad3c40b0550d37e6a27676ace30",
+  "nets": {
+    "lockkb8": { "file": "lock_s198_rank4x2_ob8.nnue2", "sha256": "", "what": "s198 written as KB8 (rank4x2) / OB8 replicas, residual; same function as the compiled-in net" },
+    "U8": { "file": "o30_gpu_soupU8r3r5r10r12r14.nnue2", "sha256": "dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7", "what": "KB8 soup U8 (opus-30h)" },
+    "r5": { "file": "o30_gpu_kb8short_r5.nnue2", "sha256": "27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc", "what": "KB8 run 5 (opus-30h)" }
+  },
+  "configs": {
+    "base_resid": {
+      "path": "old residual float (lock source, all JOB D switches 0)",
+      "defines": [], "net": null, "train_setoptions": [], "run_setoptions": [],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["forge::nnue::evaluate\\(", "forge::nnue::update\\(", "forge::nnue::refresh\\("],
+      "must_be_zero": []
+    },
+    "int8": {
+      "path": "INT8/VNNI, on by default, trained with it on",
+      "defines": ["-DFORGE_NNUE_INT8_VNNI=1", "-DFORGE_NNUE_INT8_DEFAULT=1"], "net": null,
+      "train_setoptions": ["setoption name NnueInt8Vnni value 1"], "run_setoptions": ["setoption name NnueInt8Vnni value 1"],
+      "expect_nodes": [326976, 760289, 3282449],
+      "must_run": ["forge::nnue::int8_l1_sum\\(", "refresh_int8\\(", "update_int8\\("],
+      "must_be_zero": []
+    },
+    "int8_cold": {
+      "path": "INT8/VNNI compiled in, default off, trained on the frozen v1 workload (option off) = the earlier defect reproduced",
+      "defines": ["-DFORGE_NNUE_INT8_VNNI=1"], "net": null,
+      "train_setoptions": [], "run_setoptions": ["setoption name NnueInt8Vnni value 1"],
+      "expect_nodes": [312866, 862329, 3024920], "expect_run_nodes": [326976, 760289, 3282449],
+      "must_run": ["forge::nnue::evaluate\\("],
+      "must_be_zero": ["forge::nnue::int8_l1_sum\\(", "refresh_int8\\(", "update_int8\\("]
+    },
+    "v2kb8_lockrep": {
+      "path": "v2 residual KB8, s198 replica net (exact control), v2 code as ported (cold section, noinline, unlikely)",
+      "defines": ["-DFORGE_NNUE_V2=1"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_lockrep_hot": {
+      "path": "v2 residual KB8, s198 replica net (exact control), FORGE_NNUE_V2_HOT=1 (no cold section / noinline / unlikely)",
+      "defines": ["-DFORGE_NNUE_V2=1", "-DFORGE_NNUE_V2_HOT=1"], "net": "lockkb8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_U8": {
+      "path": "v2 residual KB8, net U8, trained on U8",
+      "defines": ["-DFORGE_NNUE_V2=1"], "net": "U8",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [356115, 952259, 2514975],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "v2kb8_r5": {
+      "path": "v2 residual KB8, net run 5, trained on run 5",
+      "defines": ["-DFORGE_NNUE_V2=1"], "net": "r5",
+      "train_setoptions": ["setoption name EvalFileV2 value {NET}"], "run_setoptions": ["setoption name EvalFileV2 value {NET}"],
+      "expect_nodes": [294850, 679834, 3128255],
+      "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    }
+  }
+}

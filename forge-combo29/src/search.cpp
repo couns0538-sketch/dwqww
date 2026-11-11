@@ -1,4 +1,7 @@
 #include "forge/search.hpp"
+#if FORGE_NNUE_V2
+#include "forge/nnue_v2.hpp"
+#endif
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -808,7 +811,104 @@ namespace {
 }
 } // namespace
 
+#if FORGE_NNUE_V2
+// Static evaluation with a v2 network (UCI EvalFileV2; forge/nnue_v2.hpp). Reached only through the branch at
+// the top of Worker::static_evaluate while a v2 net is active; it lives in its own section so the default
+// build's search functions keep their layout.
+// Accumulators reuse SearchStack::accumulator (a v2 net has the engine's HiddenSize) with the lazy scheme of the
+// compiled-in network: an invalid ply walks back to the nearest valid ancestor and replays the recorded piece
+// changes, and every replayed ply becomes valid. For king buckets: on a ply where a king changes its own
+// perspective's (bucket, flip) key, that perspective is refreshed through the worker's refresh cache; the piece
+// placement of that ply is the board with the later plies' piece changes taken back.
+#if FORGE_NNUE_V2_HOT
+int Worker::static_evaluate_v2(const Board& board, SearchStack* ss) {
+#else
+__attribute__((section(".text.forge_v2"), noinline)) int Worker::static_evaluate_v2(const Board& board, SearchStack* ss) {
+#endif
+    const nnue::v2::Net* active = nnue::v2::active();
+    if (active == nullptr || !nnue::enabled) return evaluator_.evaluate(board);
+    const nnue::v2::Net& net = *active;
+    const bool residual = net.residual;
+    if (!ss->accumulator.valid) {
+        int back = 0;
+        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+            nnue::v2::RefreshCache& cache = nnue::v2::cache(net, id_);
+            const nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
+            nnue::v2::refresh_cached(net, cache, pieces, board.king_square(White), White, ss->accumulator.values[White].data());
+            nnue::v2::refresh_cached(net, cache, pieces, board.king_square(Black), Black, ss->accumulator.values[Black].data());
+            ss->accumulator.valid = true;
+            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+        } else {
+            // King squares of the ancestor position: take back the replayed king moves (changes[0] is always the
+            // moving piece, removed from `from`).
+            std::array<int, 2> king{board.king_square(White), board.king_square(Black)};
+            for (int i = 0; i <= back; ++i) {
+                const nnue::DirtyPieces& dirty = (ss - i)->dirty;
+                if (dirty.count > 0 && piece_type(dirty.changes[0].piece) == King) {
+                    king[static_cast<std::size_t>(color_of(dirty.changes[0].piece))] = dirty.changes[0].square;
+                }
+            }
+            std::array<nnue::v2::KingKey, 2> key{nnue::v2::king_key(net, White, king[0]),
+                                                 nnue::v2::king_key(net, Black, king[1])};
+            for (int i = back; i >= 0; --i) {
+                const SearchStack* parent = ss - i - 1;
+                SearchStack* child = ss - i;
+                const nnue::DirtyPieces& dirty = child->dirty;
+                for (const Color color : {White, Black}) {
+                    const std::size_t c = static_cast<std::size_t>(color);
+                    if (dirty.count > 0 && dirty.changes[0].piece == make_piece(color, King)) {
+                        // The king's destination: the added change of the same piece.
+                        int to = dirty.changes[0].square;
+                        for (int k = 1; k < dirty.count; ++k) {
+                            const nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(k)];
+                            if (change.add && change.piece == dirty.changes[0].piece) to = change.square;
+                        }
+                        const nnue::v2::KingKey moved = nnue::v2::king_key(net, color, to);
+                        if (!(moved == key[c])) [[unlikely]] {
+                            key[c] = moved;
+                            nnue::v2::Pieces pieces = nnue::v2::pieces_of(board);
+                            for (int k = 0; k < i; ++k) nnue::v2::undo(pieces, (ss - k)->dirty);
+                            nnue::v2::refresh_cached(net, nnue::v2::cache(net, id_), pieces, to, color,
+                                                     child->accumulator.values[c].data());
+                            continue;
+                        }
+                    }
+                    nnue::v2::update(net, color, key[c], parent->accumulator.values[c].data(),
+                                     child->accumulator.values[c].data(), dirty);
+                }
+                child->accumulator.valid = true;
+                if (residual) Evaluator::update_runtime_psqt(parent->runtime_psqt, child->runtime_psqt, dirty);
+            }
+        }
+    }
+#if defined(FORGE_NNUE_V2_VERIFY) && FORGE_NNUE_V2_VERIFY
+    // Test builds only: every accumulator the search evaluates must equal a full refresh, bit for bit.
+    for (const Color color : {White, Black}) {
+        alignas(64) std::array<float, nnue::HiddenSize> full{};
+        nnue::v2::refresh(net, board, color, full.data());
+        if (std::memcmp(full.data(), ss->accumulator.values[static_cast<std::size_t>(color)].data(), sizeof(full)) != 0) {
+            std::cerr << "v2 verify: accumulator mismatch at ply " << ss->ply << " fen " << board.fen() << std::endl;
+            std::abort();
+        }
+    }
+#endif
+    const int network = nnue::v2::evaluate(net, board, ss->accumulator);
+    if (!residual) return network;
+    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+    // A residual network is a learned correction on top of the hand-crafted evaluation.
+    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+}
+#endif // FORGE_NNUE_V2
+
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+#if FORGE_NNUE_V2
+#if FORGE_NNUE_V2_HOT
+    if (nnue::v2::active_net != nullptr) return static_evaluate_v2(board, ss);
+#else
+    if (nnue::v2::active_net != nullptr) [[unlikely]] return static_evaluate_v2(board, ss);
+#endif
+#endif
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
@@ -831,6 +931,33 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     // A residual network is a learned correction on top of the hand-crafted evaluation.
     return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
+
+#if FORGE_FAIR_DIAG
+// JOB D diagnostic: the total is static_evaluate itself; the two terms are recomputed from the state it left.
+Worker::DiagEval Worker::diag_static_evaluate(const Board& board, SearchStack* ss) {
+    DiagEval out;
+    out.total = static_evaluate(board, ss);
+#if FORGE_NNUE_V2
+    if (const nnue::v2::Net* net = nnue::v2::active(); net != nullptr && nnue::enabled) {
+        out.network = nnue::v2::evaluate(*net, board, ss->accumulator);
+        out.hce = net->residual ? evaluator_.evaluate_runtime(board, ss->runtime_psqt) : 0;
+        return out;
+    }
+#endif
+    if (!nnue::enabled || !nnue::available()) {
+        out.hce = out.total;
+        return out;
+    }
+    out.network = nnue::evaluate(board, ss->accumulator);
+    out.hce = nnue::residual() ? evaluator_.evaluate_runtime(board, ss->runtime_psqt) : 0;
+#if FORGE_NNUE_INT8_VNNI
+    if (nnue::int8_vnni) {
+        out.kernel_ok = nnue::int8_l1_sum(board, ss->accumulator) == nnue::int8_l1_sum_scalar(board, ss->accumulator) ? 1 : 0;
+    }
+#endif
+    return out;
+}
+#endif
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
     // Called before make_move: the child's accumulator becomes stale and the
@@ -1637,10 +1764,21 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         entry.accumulator.valid = false;
         entry.runtime_psqt.valid = false;
     }
+#if FORGE_NNUE_V2
+    if (nnue::v2::active_net == nullptr && nnue::enabled && nnue::available()) {
+        nnue::refresh(board, ss->accumulator);
+        if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+    } else if (nnue::v2::active_net != nullptr && nnue::enabled) [[unlikely]] {
+        // A v2 net: build the root accumulators now, as above. Left lazy, a root whose evaluation comes from the
+        // hash table never gets them, and every subtree without an evaluated ancestor rebuilds from the cache.
+        (void)static_evaluate_v2(board, ss);
+    }
+#else
     if (nnue::enabled && nnue::available()) {
         nnue::refresh(board, ss->accumulator);
         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
     }
+#endif
 
     Move previous_best = Move::none();
     int stable_iterations = 0;
