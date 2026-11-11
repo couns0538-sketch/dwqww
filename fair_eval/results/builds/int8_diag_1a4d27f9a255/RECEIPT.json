@@ -1,0 +1,153 @@
+{
+  "config": "int8_diag",
+  "path": "INT8/VNNI, on by default, trained with it on",
+  "identity": "1a4d27f9a255db7bb28e61731f2112aaf2f1097d72634667a509199a4afee6e3",
+  "built": "2026-11-11 12:51:07",
+  "seconds": 11.7,
+  "source_commit": "d127aaa1f6925b62ffa43086131e85b7efccbb9b",
+  "source_dirty": false,
+  "source_manifest_sha256": "afea47721ccd9394a24d329a90720d0681650e369c31d2591e9d14238d448a30",
+  "compiler": "C:\\opus_5h\\oss_scout\\dl\\llvm-mingw-20261104\\x\\llvm-mingw-20261104-ucrt-x86_64\\bin\\clang++.exe",
+  "compiler_version": "clang version 23.1.5 (https://github.com/llvm/llvm-project.git 392dfff97d29b59d77e5cac6d4b6ef2585fe7117)",
+  "compiler_sha256": "d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970",
+  "defines": [
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_INT8_VNNI=1",
+    "-DFORGE_NNUE_INT8_DEFAULT=1",
+    "-DFORGE_FAIR_DIAG=1"
+  ],
+  "common_flags": [
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_INT8_VNNI=1",
+    "-DFORGE_NNUE_INT8_DEFAULT=1",
+    "-DFORGE_FAIR_DIAG=1",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-march=znver5",
+    "-pthread",
+    "-g",
+    "-gcodeview",
+    "--sysroot=C:/msys64/ucrt64",
+    "-stdlib=libstdc++",
+    "-rtlib=libgcc",
+    "-unwindlib=libgcc"
+  ],
+  "stage_flags": {
+    "gen": "-flto=thin -fprofile-instr-generate",
+    "use": "-flto=thin -fprofile-instr-use=<this profile> -Werror=profile-instr-unprofiled -Werror=profile-instr-out-of-date",
+    "link": "-fuse-ld=lld -static -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1"
+  },
+  "net": null,
+  "net_path": "",
+  "net_sha256": "",
+  "workload_sha256": "74baf5802415dae5ed588c778a4763abc65f270ba80fdbb0fe86abee65a7bc97",
+  "workload": [
+    "uci",
+    "isready",
+    "setoption name NnueInt8Vnni value 1",
+    "bench 11",
+    "bench 13",
+    "bench 16",
+    "isready",
+    "quit"
+  ],
+  "training_nodes": [
+    326976,
+    760289,
+    3282449
+  ],
+  "final_exe_nodes": [
+    326976,
+    760289,
+    3282449
+  ],
+  "profdata_sha256": "1a28444e17b70696c5dd8c8c4ddf591c4e352dc6df22dceb6d971db6ca67a94e",
+  "coverage": {
+    "profdata": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\int8_diag_1a4d27f9a255\\gen\\profile.profdata",
+    "functions_in_profile": 336,
+    "functions_with_nonzero_count": 254,
+    "checks": [
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::int8_l1_sum\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::int8_l1_sum(forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 2832503
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "refresh_int8\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::(anonymous namespace)::refresh_int8(forge::Board const&, forge::nnue::Accumulator&)",
+            "entry_count": 24
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "update_int8\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::(anonymous namespace)::update_int8(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 3412421
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Worker::static_evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2832503
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Evaluator::evaluate_runtime\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)",
+            "entry_count": 2832503
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "exe": "D:\\forge_jobs_20261111\\fairD\\_work\\builds\\int8_diag_1a4d27f9a255\\forge_fair_int8_diag.exe",
+  "exe_bytes": 2078720,
+  "exe_sha256": "eb70258b72ef076dc5a8f7a7e6c990928155748cc6a138b949d5defa2ede76ec",
+  "exe_md5": "f24dd95f2d83596c1e4cb51c2a947992",
+  "run_setoptions": [
+    "setoption name NnueInt8Vnni value 1"
+  ]
+}
