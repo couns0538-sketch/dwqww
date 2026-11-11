@@ -1,8 +1,16 @@
 # Forge combo29 review
 
-Reviewed lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`, verified on `lock/combo29-20261110` before work. All writes are confined to `dot/review-20261110`. Checkpoint updated 2026-11-10 UTC. Original code, constants, embedded net and datasets remain unchanged when new default-0 experiment switches are off. No GPL/AGPL implementation was copied.
+Reviewed lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`, verified on `lock/combo29-20261110` before work. All writes are confined to `dot/review-20261110`. Checkpoint updated 2026-11-11 UTC. Original code, constants, embedded net and datasets remain unchanged when new default-0 experiment switches are off. No GPL/AGPL implementation was copied.
 
 **UNPROVEN is the acceptance/performance status of every patch and idea.** Several defects are reproduced, but that does not establish speed or strength gains. No Elo or speed claim is made. Native tester-PC 12k bit-exact, quiet ABBA and 10+0.1 SPRT gates remain outstanding.
+
+## Current checkpoint summary
+
+- Seven reproduced correctness/API/protocol findings (F1–F7), ten guarded exact-behavior speed candidates (S1–S10), and one separately guarded search-changing continuation experiment (E1). All new switches default off; E1 runtime weight also defaults zero.
+- Latest all-enabled exact-behavior combination: seventeen switches, E1 weight zero, all official pins/perft/UCI checks and 256 baseline comparisons pass. Twenty-three sequential source patches reproduce the tested source. Default-off GCC binary remains exactly lock-identical.
+- Confidence is **high in the recorded reproductions, algebraic equivalence and finite test results**, with each finding's reachability and severity documented below. Finite tests and static review are not universal proofs.
+- **No speed or Elo improvement is accepted.** S5's 256 KiB per-worker pawn-cache payload reduction is measured on this ABI, not an RSS or speed claim. Later CPU/wall diagnostics are small shared-cloud screens: S9 is unfavorable, S10 mixed/noisy, and every block is preserved. Native gates remain open.
+- The following report preserves historical checkpoints; the later S9/S10 and review-blocker sections supersede earlier combined-switch counts and incomplete follow-up descriptions. Deferred compiler hypotheses are retained without adding unjustified production changes.
 
 ## Findings, confidence and patches
 
