@@ -675,8 +675,20 @@ private:
         const Bitboard occupancy = board_.occupied();
         check_squares_[Pawn] = attacks::pawn(them, enemy_king);
         check_squares_[Knight] = attacks::knight(enemy_king);
+#ifndef FORGE_SPD_CHECK_SQUARE_PRESENCE
+#define FORGE_SPD_CHECK_SQUARE_PRESENCE 0
+#endif
+#if FORGE_SPD_CHECK_SQUARE_PRESENCE
+        const Color us = board_.side_to_move();
+        const Bitboard queens = board_.pieces(us, Queen);
+        check_squares_[Bishop] = (board_.pieces(us, Bishop) | queens) != 0
+            ? attacks::bishop(enemy_king, occupancy) : 0;
+        check_squares_[Rook] = (board_.pieces(us, Rook) | queens) != 0
+            ? attacks::rook(enemy_king, occupancy) : 0;
+#else
         check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
         check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+#endif
         check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
         check_squares_[King] = 0;
     }
