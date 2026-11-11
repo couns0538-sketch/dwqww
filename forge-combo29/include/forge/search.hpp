@@ -3,6 +3,9 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#if FORGE_NNUE_HALFKA
+#include "forge/nnue_halfka.hpp"
+#endif
 
 #include <array>
 #include <atomic>
@@ -332,7 +335,7 @@ public:
     // are invalid, so static_evaluate takes the search's own root path (refresh, then evaluate).
     struct DiagEval { int total = 0; int network = 0; int hce = 0; int kernel_ok = -1; };
     [[nodiscard]] DiagEval diag_static_evaluate(const Board& board, SearchStack* ss);
-    [[nodiscard]] int diag_static_total(const Board& board, SearchStack* ss) { return static_evaluate(board, ss); }
+    [[nodiscard]] int diag_static_total(const Board& board, SearchStack* ss);
 #endif
 
 private:
@@ -352,6 +355,10 @@ private:
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
+#if FORGE_NNUE_HALFKA
+    // R10: HalfKA (K32H3^) accumulators, one entry per stack_ entry (used only while EvalFileHalfKA is loaded)
+    halfka::AccumulatorStack halfka_acc_;
+#endif
     std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     std::size_t root_effort_count_ = 0;
@@ -406,6 +413,9 @@ private:
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);
     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+#if FORGE_NNUE_HALFKA
+    [[nodiscard]] int halfka_evaluate(const Board& board, SearchStack* ss);
+#endif
 #if FORGE_NNUE_V2
     // v2 net path (UCI EvalFileV2, forge/nnue_v2.hpp); called only while a v2 net is active.
     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);

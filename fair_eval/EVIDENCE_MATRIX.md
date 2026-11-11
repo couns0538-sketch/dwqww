@@ -18,6 +18,24 @@ Nothing below was re-measured for this table; it is a reading of those files.
 | **KB8 run 5** `o30_gpu_kb8short_r5.nnue2` sha256 `27ea0a39...` (residual, same layout) on v2p4 | Sanity pooled 520 games 51.44 % (+10.0 +/- 16.1). No gate row found. | As U8 | As the kit v2.5 row | As U8 | **Yes, speed and build only.** |
 | Standalone nets (`EvalFileHalfKA`, 1024-wide; and the H512 standalone path of `fable-nnue-arch`) | Gate rows NPTW4S5/S6 about -96 to -124 Elo; fable-nnue-arch reports NPS only | not read in detail | not established from the files read | Whether those exes were profiled on their own path | **Not reopened here**: not one of the three named candidates and its engine source is not on the lead branches. Listed so the gap is visible. |
 
+## Correction and additions (2026-11-11, follow-up; read from `C:\Users\Administrator\grok-pc\forge_push\FORGE_RESULTS.csv`)
+
+The first version of this matrix was written from a truncated summary table. The gate table itself says:
+
+| Gate row | Candidate exe | Base it played | Games | Elo | Verdict |
+|---|---|---|---|---|---|
+| `UO30U8` (U8) | `forge_ltopgo_x_o30v2p4_a2a560cb.exe` | `base_AL1_s198_ltopgo_x_FD3A5190` (the v2p4 exe's own parent) | 2528 | +16.50 | H1, SPRT [0,10] |
+| `UO30R5` (run 5) | same v2p4 exe | same FD3A5190 base | 2568 | +16.11 | H1, SPRT [0,10] |
+| `UO30U8c` (U8 confirm) | same v2p4 exe | `base_AL1_s198_trial_w6_4181A589` (a newer, faster speed lock) | 4000 | +3.04 | cap, no decision |
+| `NPT104-*`, `NPTS3-*`, `NPTW4S4-*` (stand-alone 1024 nets) | `forge_ltopgo_x_r10fix1_halfka_9e5cb644.exe` | FD3A5190 | 248-288 each | -86 to -116 | H0 |
+| `NPTW4S5-*`, `NPTW4S6-FIN` (stand-alone 1024 nets) | same r10fix1 exe | `base_combo29_clang_E1284F7F` | 242-286 each | -96 to -124 | H0 |
+
+- **Run 5 does have a gate row** (+16.11, H1). The "no gate row found" in the matrix above is wrong.
+- **The candidate exe was never rebuilt when the base moved.** In the confirm gate the v2p4 exe (built on the FD3A5190-era source) played trial_w6. Measured here against the combo29 lock on identical trees: v2p4 with the s198 replica 0.7375, trial_w6 0.9123. So in that confirm gate the candidate ran the same tree about 19 % slower than the base it was compared with, and still read +3.
+- **The stand-alone nets were gated on one exe built by the LTO+PGO kit from the R10 HalfKA source.** That exe is 14 % slower on the HalfKA path than a plain build of the same source (same net, same tree), and its own float path is 0.766 of the combo29 lock it was later compared with. See REPORT.md, follow-up section.
+
+None of this turns a speed ratio into Elo. It says which earlier strength readings compared exes that were not built alike.
+
 ## What this does and does not invalidate
 
 - The INT8 "0.5x" speed reading is invalid as a statement about the INT8 kernel; its arithmetic checks are unaffected by the profile.

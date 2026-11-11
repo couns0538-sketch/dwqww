@@ -8,11 +8,13 @@
     "-DFORGE_SPD_SLIDER_PEXT=1", "-DFORGE_SPD_NNUE_ZMM=1"
   ],
   "train_benches": [11, 13, 16],
+  "optional_units": ["nnue_halfka.cpp"],
   "lock_pins": [312866, 862329, 3024920],
   "frozen_v1_sha256": "1d52720a2662153120c394bba7a0971537dfcad3c40b0550d37e6a27676ace30",
   "nets": {
     "lockkb8": { "file": "lock_s198_rank4x2_ob8.nnue2", "sha256": "8559fdfab2073754ec4614a674f9786467ddbda44a88529f6ef1db2f4a8df7b9", "what": "s198 written as KB8 (rank4x2) / OB8 replicas, residual; same function as the compiled-in net" },
     "U8": { "file": "o30_gpu_soupU8r3r5r10r12r14.nnue2", "sha256": "dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7", "what": "KB8 soup U8 (opus-30h)" },
+    "npt1024": { "file": "npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s6_final.nnue", "sha256": "7e23fd959dc46e3139b83a92434c1b5dfa01ceb332e6ebb327a7524cf48efcc9", "what": "stand-alone K32H3 L1 1024 net of gate row NPTW4S6-FIN (nnue-pytorch export); no hand-crafted term" },
     "r5": { "file": "o30_gpu_kb8short_r5.nnue2", "sha256": "27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc", "what": "KB8 run 5 (opus-30h)" }
   },
   "configs": {
@@ -118,6 +120,22 @@
       "expect_nodes": [294850, 679834, 3128255],
       "must_run": ["Worker::static_evaluate_v2\\(", "forge::nnue::v2::evaluate\\(", "forge::nnue::v2::update_both\\("],
       "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\("]
+    },
+    "halfka_1024": {
+      "path": "stand-alone HalfKA (K32H3, L1 1024) net, the whole evaluation; trained with the net loaded",
+      "defines": ["-DFORGE_NNUE_HALFKA=1"], "extra_units": ["nnue_halfka.cpp"], "net": "npt1024",
+      "train_setoptions": ["setoption name EvalFileHalfKA value {NET}"], "run_setoptions": ["setoption name EvalFileHalfKA value {NET}"],
+      "expect_nodes": [335900, 721217, 2384088],
+      "must_run": ["Worker::halfka_evaluate\\(", "forge::halfka::evaluate\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\("]
+    },
+    "halfka_1024_cold": {
+      "path": "stand-alone HalfKA path compiled in, trained on the frozen v1 workload (net not loaded) = the earlier gate recipe",
+      "defines": ["-DFORGE_NNUE_HALFKA=1"], "extra_units": ["nnue_halfka.cpp"], "net": "npt1024",
+      "train_setoptions": [], "run_setoptions": ["setoption name EvalFileHalfKA value {NET}"],
+      "expect_nodes": [312866, 862329, 3024920],
+      "must_run": ["forge::nnue::evaluate\\("],
+      "must_be_zero": ["Worker::halfka_evaluate\\(", "forge::halfka::evaluate\\("]
     }
   }
 }

@@ -57,7 +57,10 @@ if ($Diag) { $defs += '-DFORGE_FAIR_DIAG=1' }
 $inc = '-I' + (Join-Path $src 'include')
 $common = @('-std=c++20', '-O3') + $defs + @('-ffp-contract=off', '-fno-fast-math', '-march=znver5', '-pthread',
     '-g', '-gcodeview', $inc, "--sysroot=$($cfgAll.sysroot)", '-stdlib=libstdc++', '-rtlib=libgcc', '-unwindlib=libgcc')
-$units = @(Get-ChildItem (Join-Path $src 'src') -Filter *.cpp | Sort-Object Name)
+# The lock's eight units; a unit listed in configs.json "optional_units" is compiled only for a configuration that
+# names it in "extra_units" (it is empty behind its switch otherwise, and stays out of the lock-equivalent builds).
+$units = @(Get-ChildItem (Join-Path $src 'src') -Filter *.cpp | Sort-Object Name |
+    Where-Object { (@($cfgAll.optional_units) -notcontains $_.Name) -or (@($cfg.extra_units) -contains $_.Name) })
 
 # ---- workload text (LF): the frozen v1 commands with this configuration's setoption lines before the benches
 $setopts = @($cfg.train_setoptions | ForEach-Object { $_.Replace('{NET}', $netPath) })
@@ -133,7 +136,7 @@ function Run-Workload([string]$exe, [string]$outFile) {
     if ($p.ExitCode -ne 0) { throw "workload exit $($p.ExitCode) for $exe" }
     $nodes = @(Select-String -Path $outFile -Pattern 'bench depth (\d+) nodes (\d+)' | ForEach-Object { [long]$_.Matches[0].Groups[2].Value })
     if ($nodes.Count -ne @($cfgAll.train_benches).Count) { throw "workload gave $($nodes.Count) bench lines" }
-    if ($cfg.net -and -not (Select-String -Path $outFile -Pattern 'info string EvalFileV2 loaded' -Quiet)) { throw 'the v2 net was not loaded during the workload' }
+    if ($setopts.Count -gt 0 -and $cfg.net -and -not (Select-String -Path $outFile -Pattern 'info string EvalFile\w+ loaded' -Quiet)) { throw 'the net file was not loaded during the workload' }
     if (Select-String -Path $outFile -Pattern 'ERROR|invalid value' -Quiet) { throw "the workload output reports an error, see $outFile" }
     return $nodes
 }

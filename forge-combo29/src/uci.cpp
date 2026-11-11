@@ -1,6 +1,9 @@
 #include "forge/board.hpp"
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
+#if FORGE_NNUE_HALFKA
+#include "forge/nnue_halfka.hpp"
+#endif
 #if FORGE_NNUE_V2
 #include "forge/nnue_v2.hpp"
 #endif
@@ -182,6 +185,10 @@ int main() {
 #if FORGE_NNUE_V2
             std::cout << "option name EvalFileV2 type string default <empty>\n";
 #endif
+#if FORGE_NNUE_HALFKA
+            // R10: a K32H3^ (HalfKAv2_hm family) .nnue from the nnue-pytorch trainer; empty = off (the lock's eval)
+            std::cout << "option name EvalFileHalfKA type string default <empty>\n";
+#endif
 #if FORGE_NNUE_INT8_VNNI
             if (forge::nnue::available()) std::cout << "option name NnueInt8Vnni type spin default " << (FORGE_NNUE_INT8_DEFAULT ? 1 : 0) << " min 0 max 1\n";
 #endif
@@ -273,6 +280,27 @@ int main() {
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
+#if FORGE_NNUE_HALFKA
+            } else if (name == "EvalFileHalfKA") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (path.empty() || path == "<empty>") {
+                    forge::halfka::unload();
+                    std::cout << "info string EvalFileHalfKA off" << std::endl;
+                } else {
+                    std::string error;
+                    if (forge::halfka::load(path, error)) {
+                        std::cout << "info string EvalFileHalfKA loaded " << forge::halfka::description() << std::endl;
+                    } else {
+                        forge::halfka::unload();
+                        std::cout << "info string ERROR EvalFileHalfKA: " << error << " (HalfKA eval off)" << std::endl;
+                    }
+                }
+                searcher.clear_hash();
+#endif
 #if FORGE_NNUE_V2
             } else if (name == "EvalFileV2") {
                 // A v2 net file (forge/nnue_v2.hpp); empty or <empty> = off (the compiled-in network). A file that

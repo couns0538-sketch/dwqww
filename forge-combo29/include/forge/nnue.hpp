@@ -61,6 +61,11 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 #ifndef FORGE_FAIR_DIAG
 #define FORGE_FAIR_DIAG 0
 #endif
+//   FORGE_NNUE_HALFKA 1        compiles the R10 stand-alone net path (UCI EvalFileHalfKA, forge/nnue_halfka.hpp,
+//                              src/nnue_halfka.cpp). While such a net is loaded the evaluation is the net alone.
+#ifndef FORGE_NNUE_HALFKA
+#define FORGE_NNUE_HALFKA 0
+#endif
 
 [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
     const int relative_color = color_of(piece) == perspective ? 0 : 1;
