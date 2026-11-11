@@ -1,10 +1,10 @@
 # JOB D - Fair evaluation-candidate builds - STATUS
 
-**Clone made:** 2026-11-11 12:38:35 PC clock (PST label). **Last update:** 2026-11-11 13:30 PC clock.
+**Clone made:** 2026-11-11 12:38:35 PC clock (PST label). **Last update:** 2026-11-11 13:35 PC clock.
 **Elapsed:** about 0.9 h of execution since the clone. Read-only exploration and planning before the clone were not clocked.
 Earlier versions of this file carried "last update" times that were my estimates, not clock readings; the times here are read from the PC.
 **Branch:** `fable/fair-eval-builds-20261111`, cut from lock `16833ecc03b425586f91f4c8834dea8807bf4c22`.
-**State: COMPLETE** - all five steps of the plan are done; `REPORT.md` is the result. One optional robustness timing run may follow and would be appended to REPORT.md.
+**State: COMPLETE** - all five steps of the plan are done; `REPORT.md` is the result (it includes one extra robustness timing run at depth 22).
 
 ## Completed
 1. Evidence: identities verified, original lock exe pins reproduced, `EVIDENCE_MATRIX.md`.

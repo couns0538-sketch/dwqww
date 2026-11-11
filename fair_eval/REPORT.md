@@ -5,7 +5,7 @@ Measured 2026-11-11 on grok-pc (Ryzen 7 9850X3D, 8 cores / 16 logical CPUs). All
 
 ## What the evidence settled
 
-1. **The reported defect is real for INT8/VNNI and is now reproduced and removed.** An INT8 exe whose profile was recorded with the option off runs at **0.487x** the lock; the same source profiled on its own path runs at **0.984x**. The profile shows why: zero entries in the INT8 functions in the first build, 2.8 million in the second.
+1. **The reported defect is real for INT8/VNNI and is now reproduced and removed.** An INT8 exe whose profile was recorded with the option off runs at **0.487x** the lock; the same source profiled on its own path runs at **0.984x** (0.994x in a second run at depth 22). The profile shows why: zero entries in the INT8 functions in the first build, 2.8 million in the second.
 2. **KB8 U8 and KB8 run 5 did not have that defect, but the v2 path has a real cost.** With the profile recorded on the v2 KB8 path, the lock's own net written as a KB8 file searches the identical tree at **0.927x** the lock. Removing the cold-code hints does not change that.
 3. **Every arithmetic control passed.** The source-built control and the v2 KB8 replica match the diagnostic reference on 12,000 of 12,000 positions. INT8 is lossy by design and lies inside the bounds fixed before the run.
 4. **Nothing here measures playing strength.** NPS is not converted to Elo anywhere.
@@ -103,6 +103,17 @@ U8 and run 5 differ from s198 by design (mean 17.7 cp and 14.7 cp on this set); 
 | `v2kb8_r5` | 0.9140 | 0.9066 | 0.9186 | 0.0032 | 163 s |
 
 For INT8, U8 and run 5 the evaluation differs, so the search tree differs and NPS reflects the tree as well as the code. The replica row and the microbenchmark are the like-for-like numbers.
+
+### Robustness check (added after the protocol runs; not part of the pre-registered protocol)
+
+The two central arms again at `bench 22` on logical CPU 12, 8 pairs each (`results/abba_robust/`):
+
+| Arm | NPS vs lock (95 % CI) | Median | Min | Max | Nodes lock / candidate |
+|---|---|---|---|---|---|
+| `int8` | 0.9944 (0.9929-0.9959) | 0.9945 | 0.9919 | 0.9967 | 34,048,354 / 27,267,033 |
+| `v2kb8_lockrep` | 0.9237 (0.9215-0.9258) | 0.9232 | 0.9207 | 0.9295 | 34,048,354 / 34,048,354 |
+
+The v2 KB8 cost is the same on another core and depth (0.927, 0.924). The INT8 ratio moves with the tree (0.984 at depth 20, 0.994 at depth 22), which is why it is quoted as "within about 2 % of the lock" and not as one number.
 
 ## How each build was made
 
