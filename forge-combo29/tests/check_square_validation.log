@@ -1,0 +1,113 @@
+RUN g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -Iinclude -Isrc -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=0 /workspace/shared/forge-build/check-square/source/src/bitboard.cpp /workspace/shared/forge-build/check-square/source/src/board.cpp /workspace/shared/forge-build/check-square/source/src/book.cpp /workspace/shared/forge-build/check-square/source/src/eval.cpp /workspace/shared/forge-build/check-square/source/src/eval_params.cpp /workspace/shared/forge-build/check-square/source/src/nnue.cpp /workspace/shared/forge-build/check-square/source/src/search.cpp /workspace/shared/forge-build/check-square/source/src/uci.cpp -o /workspace/shared/forge-build/check-square/lock
+ 
+RUN g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -Iinclude -Isrc -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=0 /workspace/shared/forge-build/check-square/source/src/bitboard.cpp /workspace/shared/forge-build/check-square/source/src/board.cpp /workspace/shared/forge-build/check-square/source/src/book.cpp /workspace/shared/forge-build/check-square/source/src/eval.cpp /workspace/shared/forge-build/check-square/source/src/eval_params.cpp /workspace/shared/forge-build/check-square/source/src/nnue.cpp /workspace/shared/forge-build/check-square/source/src/search.cpp /workspace/shared/forge-build/check-square/source/src/uci.cpp -o /workspace/shared/forge-build/check-square/off
+ 
+RUN g++ -std=c++20 -O3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -pthread -Iinclude -Isrc -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 /workspace/shared/forge-build/check-square/source/src/bitboard.cpp /workspace/shared/forge-build/check-square/source/src/board.cpp /workspace/shared/forge-build/check-square/source/src/book.cpp /workspace/shared/forge-build/check-square/source/src/eval.cpp /workspace/shared/forge-build/check-square/source/src/eval_params.cpp /workspace/shared/forge-build/check-square/source/src/nnue.cpp /workspace/shared/forge-build/check-square/source/src/search.cpp /workspace/shared/forge-build/check-square/source/src/uci.cpp -o /workspace/shared/forge-build/check-square/on
+ 
+RUN bash /workspace/shared/forge-git/forge-combo29/scripts/check_pins.sh /workspace/shared/forge-build/check-square/on
+net-on : 312866 862329 3024920 12389307 34048354
+net-off: 375354 907205 2448617 13573040 24506465
+perft5 : 4865609
+PINS MATCH combo29
+ 
+RUN python3 /workspace/shared/forge-git/forge-combo29/tests/equivalence_screen.py /workspace/shared/forge-build/check-square/lock /workspace/shared/forge-build/check-square/on --output /workspace/shared/forge-git/forge-combo29/tests/check_square_equivalence.json
+baseline NNUE=True: 32/128
+baseline NNUE=True: 64/128
+baseline NNUE=True: 96/128
+baseline NNUE=True: 128/128
+candidate NNUE=True: 32/128
+candidate NNUE=True: 64/128
+candidate NNUE=True: 96/128
+candidate NNUE=True: 128/128
+baseline NNUE=False: 32/128
+baseline NNUE=False: 64/128
+baseline NNUE=False: 96/128
+baseline NNUE=False: 128/128
+candidate NNUE=False: 32/128
+candidate NNUE=False: 64/128
+candidate NNUE=False: 96/128
+candidate NNUE=False: 128/128
+Comparisons=256 failures=0
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/bitboard.cpp -o /workspace/shared/forge-build/check-square/bitboard-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/board.cpp -o /workspace/shared/forge-build/check-square/board-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/book.cpp -o /workspace/shared/forge-build/check-square/book-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/eval.cpp -o /workspace/shared/forge-build/check-square/eval-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/eval_params.cpp -o /workspace/shared/forge-build/check-square/eval_params-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -c /workspace/shared/forge-build/check-square/source/src/nnue.cpp -o /workspace/shared/forge-build/check-square/nnue-z0.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -DFORGE_SEARCH_SPEED2=0 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z0.o /workspace/shared/forge-build/check-square/board-z0.o /workspace/shared/forge-build/check-square/book-z0.o /workspace/shared/forge-build/check-square/eval-z0.o /workspace/shared/forge-build/check-square/eval_params-z0.o /workspace/shared/forge-build/check-square/nnue-z0.o -o /workspace/shared/forge-build/check-square/unit-s0-z0
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s0-z0 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=0 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z0.o /workspace/shared/forge-build/check-square/board-z0.o /workspace/shared/forge-build/check-square/book-z0.o /workspace/shared/forge-build/check-square/eval-z0.o /workspace/shared/forge-build/check-square/eval_params-z0.o /workspace/shared/forge-build/check-square/nnue-z0.o -o /workspace/shared/forge-build/check-square/unit-s1-z0
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s1-z0 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/bitboard.cpp -o /workspace/shared/forge-build/check-square/bitboard-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/board.cpp -o /workspace/shared/forge-build/check-square/board-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/book.cpp -o /workspace/shared/forge-build/check-square/book-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/eval.cpp -o /workspace/shared/forge-build/check-square/eval-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/eval_params.cpp -o /workspace/shared/forge-build/check-square/eval_params-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -c /workspace/shared/forge-build/check-square/source/src/nnue.cpp -o /workspace/shared/forge-build/check-square/nnue-z1.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -DFORGE_SEARCH_SPEED2=0 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z1.o /workspace/shared/forge-build/check-square/board-z1.o /workspace/shared/forge-build/check-square/book-z1.o /workspace/shared/forge-build/check-square/eval-z1.o /workspace/shared/forge-build/check-square/eval_params-z1.o /workspace/shared/forge-build/check-square/nnue-z1.o -o /workspace/shared/forge-build/check-square/unit-s0-z1
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s0-z1 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=1 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z1.o /workspace/shared/forge-build/check-square/board-z1.o /workspace/shared/forge-build/check-square/book-z1.o /workspace/shared/forge-build/check-square/eval-z1.o /workspace/shared/forge-build/check-square/eval_params-z1.o /workspace/shared/forge-build/check-square/nnue-z1.o -o /workspace/shared/forge-build/check-square/unit-s1-z1
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s1-z1 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/bitboard.cpp -o /workspace/shared/forge-build/check-square/bitboard-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/board.cpp -o /workspace/shared/forge-build/check-square/board-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/book.cpp -o /workspace/shared/forge-build/check-square/book-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/eval.cpp -o /workspace/shared/forge-build/check-square/eval-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/eval_params.cpp -o /workspace/shared/forge-build/check-square/eval_params-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -c /workspace/shared/forge-build/check-square/source/src/nnue.cpp -o /workspace/shared/forge-build/check-square/nnue-z2.o
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=0 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z2.o /workspace/shared/forge-build/check-square/board-z2.o /workspace/shared/forge-build/check-square/book-z2.o /workspace/shared/forge-build/check-square/eval-z2.o /workspace/shared/forge-build/check-square/eval_params-z2.o /workspace/shared/forge-build/check-square/nnue-z2.o -o /workspace/shared/forge-build/check-square/unit-s0-z2
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s0-z2 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z2.o /workspace/shared/forge-build/check-square/board-z2.o /workspace/shared/forge-build/check-square/book-z2.o /workspace/shared/forge-build/check-square/eval-z2.o /workspace/shared/forge-build/check-square/eval_params-z2.o /workspace/shared/forge-build/check-square/nnue-z2.o -o /workspace/shared/forge-build/check-square/unit-s1-z2
+ 
+RUN /workspace/shared/forge-build/check-square/unit-s1-z2 /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+{"passed":true,"boards":3310,"scores":178822,"selections":178822,"promotions":328,"castles":138,"absent_b":1007,"absent_r":751,"queen_only":56,"nonking_illegal":3847}
+ 
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z2.o /workspace/shared/forge-build/check-square/board-z2.o /workspace/shared/forge-build/check-square/book-z2.o /workspace/shared/forge-build/check-square/eval-z2.o /workspace/shared/forge-build/check-square/eval_params-z2.o /workspace/shared/forge-build/check-square/nnue-z2.o -o /workspace/shared/forge-build/check-square/drop_queen_from_bishop
+ 
+RUN /workspace/shared/forge-build/check-square/drop_queen_from_bishop /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+ FAIL generation score board=1
+
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z2.o /workspace/shared/forge-build/check-square/board-z2.o /workspace/shared/forge-build/check-square/book-z2.o /workspace/shared/forge-build/check-square/eval-z2.o /workspace/shared/forge-build/check-square/eval_params-z2.o /workspace/shared/forge-build/check-square/nnue-z2.o -o /workspace/shared/forge-build/check-square/drop_queen_from_rook
+ 
+RUN /workspace/shared/forge-build/check-square/drop_queen_from_rook /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+ FAIL generation score board=1
+
+RUN g++ -std=c++20 -O1 -g -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -DFORGE_SPD_CHECK_SQUARE_PRESENCE=1 -pthread -Iinclude -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 /workspace/shared/forge-git/forge-combo29/tests/check_square_unit.cpp /workspace/shared/forge-build/check-square/bitboard-z2.o /workspace/shared/forge-build/check-square/board-z2.o /workspace/shared/forge-build/check-square/book-z2.o /workspace/shared/forge-build/check-square/eval-z2.o /workspace/shared/forge-build/check-square/eval_params-z2.o /workspace/shared/forge-build/check-square/nnue-z2.o -o /workspace/shared/forge-build/check-square/poison_absent_slot
+ 
+RUN /workspace/shared/forge-build/check-square/poison_absent_slot /workspace/shared/forge-git/forge-combo29/tests/equivalence_positions.fen
+ FAIL absent bishop slot not zero board=2
+
+ALL CHECK SQUARE GATES PASSED
