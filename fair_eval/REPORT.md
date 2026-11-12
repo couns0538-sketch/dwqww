@@ -8,7 +8,16 @@ Measured 2026-11-11 on grok-pc (Ryzen 7 9850X3D, 8 cores / 16 logical CPUs). All
 1. **The reported defect is real for INT8/VNNI and is now reproduced and removed.** An INT8 exe whose profile was recorded with the option off runs at **0.487x** the lock; the same source profiled on its own path runs at **0.984x** (0.994x in a second run at depth 22). The profile shows why: zero entries in the INT8 functions in the first build, 2.8 million in the second.
 2. **KB8 U8 and KB8 run 5 did not have that defect, but the v2 path has a real cost.** With the profile recorded on the v2 KB8 path, the lock's own net written as a KB8 file searches the identical tree at **0.927x** the lock. Removing the cold-code hints does not change that.
 3. **Every arithmetic control passed.** The source-built control and the v2 KB8 replica match the diagnostic reference on 12,000 of 12,000 positions. INT8 is lossy by design and lies inside the bounds fixed before the run.
-4. **Nothing here measures playing strength.** NPS is not converted to Elo anywhere.
+4. **Nothing in the first part measures playing strength.** NPS is not converted to Elo anywhere.
+
+Added in the follow-up the same day (section "Follow-up" below):
+
+5. **U8 and run 5 were held back by the exe, not the net.** Their confirm gate used a candidate exe two speed locks behind its base. In this job's own 2,000-game match the correctly built U8 exe scored **+17.2 +/- 8.3 Elo** against the current lock.
+6. **INT8 scored +10.9 +/- 8.2 Elo** over 2,200 games in the same kind of match.
+7. **The stand-alone 1024 nets had the cold-profile defect too**, and their gate exe was 45 % slower than a correct build on the same tree, but on the correct build the net still scored **-97 +/- 25 Elo**.
+8. **The v2 KB8 cost was traced** (3.7 % code path, 3.0 % king buckets by rank, 0.8 % file split) and reduced by about one point with bit-exact changes; most of it remains.
+
+Items 5 to 7 come from this job's own short matches. They are not crew-gate results and not a lock claim.
 
 ## Result table (one row per build)
 
@@ -161,6 +170,20 @@ The ports are confirmed by node counts: `int8` gives 326976 / 760289 / 3282449 /
 | plain clang `int8_diag_plain.exe` | `34b5ac777c4315d547f9947c7b94db1d` | - |
 | earlier INT8 gate exe (read only, `D:\opus_5h\int8_vnni\pack\`) | `e2da1a1f917adc64c17dbde78079853d` | `81741f2b0f5ae1be` |
 | earlier v2 gate exe `v2p4` (read only, `D:\o30\w\v2p4_pc1\src_copy\`) | `81b5168760c7e17c954134b5957a3957` | `a2a560cb4b6a2c11` |
+| follow-up: `v2kb8_lockrep_fast` (`FORGE_NNUE_V2_FAST=7`) | `811687c6c78f3ba68aba87e0dd3d0285` | `d7a8f84b380f7891` |
+| follow-up: `v2kb8_lockrep_fast_diag` | `7448ff7cb257ae11a4b1f046d661b358` | `de3c6c23c748e6a4` |
+| follow-up: `v2kb8_lockrep_fast1` / `fast2` / `fast4` | `8c8c6ced...` / `066ffc70...` / `8e066098...` | `4865ea9c4e1d3378` / `fabcf7cfce731c07` / `6d09fc7e1c261365` |
+| follow-up: `v2kb8_U8_fast` (the exe played in the match) | `c8fc68b6f2993ed622b13f49444a9d29` | `5621e407f54d7c0b` |
+| follow-up: `v2kb8_U8_fast_diag` | `c1eeac54eda1ce1a3445fdfe0536c72f` | `46a5aec61007cce9` |
+| follow-up: `v2kb8_r5_fast` | `e83219a935cab4b3f5f7431bcdef36ad` | `c2bbc5de7a56d94b` |
+| follow-up: `halfka_1024` (the exe played in the match) | `1907aa0312b661edb855d4baf8a333cc` | `27be51fc1bb5ddf4` |
+| follow-up: `halfka_1024_cold` | `64ecaea1959541a4bf644bbbc12e1359` | `7d818f0cf1e3ea9a` |
+| follow-up: `halfka_1024_diag` | `cc2e44dea7149ee7b866a8f83d8fa866` | `6b447acfb90afb1d` |
+| follow-up: plain clang `halfka_avx2_diag_plain.exe` (AVX2 kernels) | `6efef76c597a8cc4476b09d012bf8ceb` | - |
+| stand-alone net `npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s6_final.nnue` | `7ee24d6a739c88e6253c9e8f88c65362` | `7e23fd959dc46e31` |
+| replica nets `lock_s198_kb1_ob1` / `kb1_ob8` / `kb4_ob8` `.nnue2` | `147b1ef7...` / `f617c63e...` / `7cd8baa9...` | - |
+| earlier stand-alone gate exe `forge_ltopgo_x_r10fix1_halfka_9e5cb644.exe` (read only, `grok-pc\forge_push\bin\`) | `b4c943aba4a535e3429eb8f7bbef0c4a` | `9e5cb64426d0ee66` |
+| plain build of the same source `forge_plain_z5_r10fix1_halfka_d8d90b68.exe` (read only, same folder) | `cb2ce9062c400838d3065b98d94532e4` | `d8d90b68f8232f6e` |
 
 Exes, profiles and nets are not in the repository. They are at `D:\forge_jobs_20261111\fairD\_work\` (`builds\<config>_<identity>\forge_fair_<config>.exe`, `nets\`, `plain\`). Full hashes, flags, workload and coverage for each build are in `results/builds/<config>_<identity>/RECEIPT.json`.
 
@@ -242,19 +265,40 @@ Controls: a stand-alone net cannot express s198 + HCE, so an exact s198 control 
 
 This job's own processes, **not the crew gate and not a lock claim**: fastchess, tc 6+0.06, Threads 1, Hash 16, 12 games at once, book `UHO_Lichess_4852_v1.epd` in random order with both colours, candidate against the original lock exe (`tools/run_match.sh`, `tools/match_queue_20261111.sh`). Logs: `results/match/`.
 
-Results so far (interim; an INT8 rerun is in progress): `halfka_1024` 300 games -97.4 +/- 25.0 Elo; `v2kb8_U8_fast` 2000 games +17.2 +/- 8.3 Elo; `int8` 1100 games +12.0 +/- 11.6 Elo with 18 time losses (9 each side). See `results/match/*/final.txt`.
+| Candidate (exe, option) | Games | W / L / D | Score | Elo (95 %) | Pentanomial 0-2 | Time losses |
+|---|---|---|---|---|---|---|
+| `v2kb8_U8_fast` (md5 `c8fc68b6...`), `EvalFileV2` = U8 | 2000 | 528 / 429 / 1043 | 52.48 % | **+17.2 +/- 8.3** | 9, 205, 485, 280, 21 | 0 |
+| `int8` (md5 `09b80085...`), `NnueInt8Vnni` = 1, first run | 1100 | 272 / 234 / 594 | 51.73 % | +12.0 +/- 11.6 | 16, 95, 287, 139, 13 | 18 (9 each side) |
+| `int8`, second run, other opening seed | 1100 | 266 / 235 / 599 | 51.41 % | +9.8 +/- 11.7 | 8, 127, 254, 148, 13 | 10 (5 each side) |
+| `int8`, both runs pooled | 2200 | 538 / 469 / 1193 | 51.57 % | **+10.9 +/- 8.2** | 24, 222, 541, 287, 26 | 28 (14 each side) |
+| `halfka_1024` (md5 `1907aa03...`), `EvalFileHalfKA` = the 1024 net of gate row NPTW4S6-FIN | 300 | 52 / 134 / 114 | 36.33 % | **-97.4 +/- 25.0** | 16, 67, 50, 17, 0 | 0 |
 
-MATCH_RESULTS_PLACEHOLDER
+Elo and its error are fastchess's own figures for the single runs; the pooled INT8 line is computed the same way from the summed pentanomial counts (the same formula reproduces fastchess's single-run figures).
+
+What these say, and what they do not:
+- **U8 on a correctly built exe is ahead of the current lock in this match.** That agrees with its first gate (+16.5 against the older lock) and explains the confirm gate's +3.0: there the candidate exe had not been rebuilt and ran the same tree about 19 % slower than its base. Run 5 was not played here; its first gate read +16.1.
+- **INT8 is ahead of the lock in both runs**, and the pooled interval excludes zero. All 28 time losses fall in three bursts (games 37-47 and 978-989 of the first run, 837-846 of the second, about 26 minutes apart) with overruns of 2 to 5 seconds on both engines at once, 14 against each side. Without those games the pooled score is 51.59 % (+11.0). Something on the machine stalled every game in progress; it was not one of this job's processes and I did not identify it. By the gate's convention the INT8 runs are "not clean".
+- **The stand-alone 1024 net is still about 100 Elo behind on a fair exe.** The exe is 45 % faster on the same tree than the one it was gated with, and the result is where the gate had it (-124 for this net there, -97 +/- 25 here). The build was unfair, but it is not why these nets lose.
+- These are short-control matches (6+0.06) on one machine with 12 games at once, run by this job. They are evidence for what to send to the crew gate, **not a gate result and not a lock claim**.
+
+### F4. What to do with this
+
+1. Gate `v2kb8_U8_fast` (and `v2kb8_r5_fast`) against the combo29 lock. Both exes are built from this branch with `build_fair.ps1`; the option line is `setoption name EvalFileV2 value <net>`. Before the gate, check that the bench with the net differs from the lock pins (356115 / 952259 / 2514975 for U8).
+2. Gate `int8` (`setoption name NnueInt8Vnni value 1`; the exe also has it on by default).
+3. Do not spend gate time on the 1024 stand-alone nets as they are. If that line continues, `halfka_1024` is the exe to use.
+4. INT8 runs on the compiled-in float net and U8 on the v2 file path, so the two gains cannot simply be added. An int8 kernel for v2 nets would be new work.
 
 ## Limitations
 
-- **Strength is not established** for any candidate. The U8 gate rows (H1, then CAP) and the missing gate for run 5 and INT8 are untouched.
+- **Strength is not established by the crew gate** for any candidate. The follow-up matches (section F3) are this job's own, at a shorter control than the gate, 300 to 2,200 games; they say what is worth gating. Run 5 does have a gate row (+16.11, H1); the first version of this report said it had none.
+- The follow-up matches ran while something on the machine stalled all games for a few seconds about every 26 minutes from 15:40 on. The U8 and stand-alone matches finished before that or were not hit; both INT8 runs were.
+- The stand-alone path's 12,000 evaluations agree between its 512-bit kernels and an AVX2-kernel build, and its node counts agree with two older independent builds. That checks the port, not the net.
 - Timing is one machine, one core, one depth, Threads 1. Whole-machine load samples of one second, taken before and after each arm, ranged from 1 % to 18 % (processes that are not this job's; each sample is in `results/abba/<arm>/load.txt`). The lock-vs-lock interval (0.9964-1.0008) is the measured noise floor.
 - NPS of a different-evaluation candidate is tied to the bench positions; U8 and run 5 differ by 10 points on the same code.
 - The microbenchmark runs on diag twins, not on the timed exes, and does not cover incremental updates.
 - The 12k comparison is against a diagnostic reference, not the shipped exe (gap stated above), and covers that set only.
 - Builds are not byte-reproducible. A second `int8` build in a new folder gave the same identity, node counts and coverage but a different profile hash and exe md5 (`results/builds_repro/`).
 - INT8 and the v2 path were not tested above Threads 1, and no sanitizer was run.
-- Why the v2 KB8 path costs 7 % was not investigated. The lock's compiled-in net uses a 512-bit kernel and the v2 header offers AVX2, SSE and scalar kernels; whether that is the cause is not shown here.
-- The standalone nets seen in the gate table (`EvalFileHalfKA`) were not examined: their engine source is not on the lead branches.
-- The job finished well inside the time allowance because each build takes about 12 s; the remaining time was not padded.
+- The v2 KB8 cost was broken down in the follow-up (F1) but mostly not removed: 2.7 % of code-path cost is unexplained without a sampling profile, and the king-bucket refresh cost depends on how often kings cross bucket borders, which the eight bench positions may overstate.
+- The stand-alone source was taken from the head of `opus-r10-halfka`. The gate exe is named "r10fix1"; whether that is exactly the branch head is not recorded in what I read. The node counts of the port equal the gate exe's at four depths.
+- The first part of the job finished well inside the time allowance because each build takes about 12 s; the remaining time was not padded. The follow-up took about 2.8 hours, most of it the matches.
