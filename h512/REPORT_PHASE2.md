@@ -313,14 +313,15 @@ lever, not more passes.
 ## 12. Process, resources and deviations
 
 - **Processes.** Everything phase 2 ran was started by this job: the trainer (one at a time, through its own queue
-  scripts under `train/`), five fastchess matches and their engines, and short scoring and parity runs. No gate
+  scripts under `train/`), five fastchess matches and one 8-game check with their engines, and short scoring and
+  parity runs. No gate
   queue, self-play process, hold or STOP file of anyone else was touched. No process was killed; runs were ended
   only with the trainer's own STOP flag (the no-decay run at 20:53:46, arm X4 at 23:44:20).
 - **The owner's guards were not bypassed.** `resource_guard.ps1` suspended this job's timed matches for 5 seconds at
   a time when its CPU reading went over 90 C (five times in M2, twice in M3; section 7). The trainer has its own holds
-  (GPU hot spot 76 C, memory junction 86 C, disk floor) and paused itself a few times for 5 seconds in the pilot arms
+  (GPU hot spot 76 C, memory junction 86 C, disk floor) and paused itself twice for 5 seconds in pilot arm W1
   when the memory junction read 86 C.
-- **Disk.** D: fell from 33.7 to 31.5 GiB free; the owner's cleanup acts below 30 GiB. To stay clear of that, 22
+- **Disk.** D: fell from 33.7 to 31.5 GiB free; the owner's cleanup acts below 30 GiB. To stay clear of that, 21
   duplicate checkpoints of this job's own finished pilot arms were removed (their copies of the 1.0B start state and
   their `best.pt` / `latest.pt`, which repeat the arm's kept end state `stage_S2.pt`). Nothing of phase 1 and nothing
   cited in this report was removed. C: and F: stayed above 32 GiB. E: was not written to.
