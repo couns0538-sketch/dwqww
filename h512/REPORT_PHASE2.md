@@ -194,7 +194,34 @@ X1 beat W2 by more than 0.00002, so by the declared rule its run was continued (
 - Decay 0.3 stays about 0.00003 ahead of decay 1.0 at equal length. At 7.4B it matches decay 1.0 at 10B.
 - Its best checkpoint (0.013876 at 7.25B) is 0.000006 below candidate 3. That is under the 0.00002 a new candidate
   needs, so **no candidate 4 was frozen and candidate 3 is the final candidate**
-  (`results/phase2/FREEZE_4_NO_NEW_CANDIDATE.json`). The candidate list closed here, at 00:51.
+  (`results/phase2/FREEZE_4_NO_NEW_CANDIDATE.json`). The candidate list of the warm-started line closed here, at 00:51.
+
+## 5c. The same recipe from random initialisation
+
+Every net above started from FB2's checkpoint and from phase 1's first stage, 1.0B presentations without decay in
+all. To see whether that warm start is needed, the recipe was run once from seeded random weights with decay 0.3 from
+the first step (plan `train/plans/scratch_wd.json`, run `_work\runs\arms\scratch_wd`, started 00:51).
+
+| Presentations | From scratch, decay 0.3: selection | training rows | Warm start, decay 0.3: selection | Warm start, decay 1.0: selection |
+|---|---:|---:|---:|---:|
+| 1.0B | 0.014126 | 0.013495 | (0.014489, before any decay) | (0.014489, before any decay) |
+| 2.0B | 0.014055 | 0.013399 | 0.014049 | 0.014083 |
+| 4.0B | 0.013968 | 0.013283 | 0.013929 | 0.013963 |
+| 7.4B | 0.013916 | 0.013215 | 0.013879 | 0.013903 |
+| 10.0B | SCRATCH_10B | SCRATCH_10B_TRAIN | not run | 0.013882 |
+
+- **The warm start is not needed.** From random weights the recipe is at 0.014126 after 1.0B presentations (13
+  minutes), better than phase 1's candidate ever got, and it then tracks the warm-started runs within 0.00004.
+- It is not better either: at equal length it is level with the warm-started decay-1.0 run (within 0.00003) and up
+  to 0.00004 behind the warm-started decay-0.3 run, which is the like-for-like comparison.
+- Addendum 10 allowed this run to produce a fourth candidate if a finished stage end was at least 0.00002 below
+  candidate 3 (0.013882) when match MN2 ended. The best finished stage end then was 7.4B at 0.013916, so **no
+  candidate was taken from it**, test set 3 (built from further rows of shards 037/039, manifest
+  `manifests/test3_manifest.json`) was **not scored**, and match M6 was not played.
+- Training from scratch ran slower at first (1.1M to 1.4M positions per second in the first 250M presentations,
+  1.6M to 2.0M later). The cause was not investigated.
+
+Evidence: `results/phase2/scratch_wd/`, `results/phase2/tables.md` table C.
 
 ## 6. Candidates
 
