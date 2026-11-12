@@ -1,0 +1,71 @@
+{
+ "name": "scratch_wd",
+ "_comment": "JOB E phase 2 recipe experiment, written 2026-11-11 23:47 before it ran (addendum 9): the phase-2 recipe trained from random initialisation instead of from the FB2 warm start. build_model's own seeded random weights (seed 1, init scale 0.02) are kept; the FB2 checkpoint only supplies the network shape. Adam from scratch, batch 8192, peak lr 5e-4 with 500 warm-up steps, cosine to 5 % per stage, alpha 0.25, natural sampling, decoupled weight decay 0.3 on w1 (the best value of the pilots) from the first step. Stage ends at 1B, 2B, 4B, 7.4B and 10B presentations, the boundaries of the warm-started run, so the two can be compared at equal presentations. No stop rule. No candidate is taken from this run and it is never scored on test set 2.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "fb2_200k",
+   "pos": "F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 0,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 500,
+ "lr_final_frac": 0.05,
+ "ckpt_every_pres": 250000000,
+ "phase_weight": "natural",
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S3",
+   "end_seen": 4000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S4",
+   "end_seen": 7400000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S5",
+   "end_seen": 10000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  }
+ ],
+ "init_random": true,
+ "weight_decay": {
+  "w1": 0.3
+ }
+}

@@ -226,7 +226,7 @@ planned.
 - Reason: with 3,000 games in M5 there would be no time for MN2, and the equal-nodes result is the one piece of
   information no other match of phase 2 gives for a weight-decay net. Commands: `launch_match2.sh`.
 
-## Addendum 9 (23:46): arm X4 stopped; how the GPU work ends
+## Addendum 9 (23:45): arm X4 stopped; how the GPU work ends
 Known when this was written: second-round results X1 (decay 0.3) 0.014049, X2 (decay 3) 0.014147, X3 (decay 1.0 on
 `w1` and `wf`) 0.014915; X5 not finished; M3's running score after about 900 games.
 - **X4 was stopped** with its STOP flag at 23:44:20, 34M presentations into its cycle. X3 showed that decaying the
