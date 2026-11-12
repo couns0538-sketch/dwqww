@@ -241,7 +241,7 @@ Known when this was written: second-round results X1 (decay 0.3) 0.014049, X2 (d
   7.4B and 10B and a hard stop at 02:50. Question: is the warm start needed at all? Its nets are scored on the
   selection set only, never on test set 2, and none of them is frozen or played tonight.
 
-## Addendum 10 (01:08): the from-scratch run may produce a candidate after all
+## Addendum 10 (01:06): the from-scratch run may produce a candidate after all
 This reverses the last sentence of addendum 9, and it does so after seeing a result. Known when this was written:
 the from-scratch run's first stage end, **0.014126 at 1.0B** from random initialisation (the warm-started decay arms
 stood at 0.014049 to 0.014083 at 2.0B, candidate 1 at 0.014480); test set 2's scores for candidates 1 to 3; M5's
