@@ -1,7 +1,7 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
-**Last update:** 2026-11-11 18:22 PC clock. **Job start:** 16:53 (planning 16:53-17:10, plan approved 17:10, work from 17:11).
-**Elapsed:** 1 h 29 min of about 10 h.
+**Last update:** 2026-11-11 18:52 PC clock. **Job start:** 16:53 (planning 16:53-17:10, plan approved 17:10, work from 17:11).
+**Elapsed:** 1 h 59 min of about 10 h.
 **Branch:** `fable/standalone-h512-20261111`, cut from Job D's head `1508c13cdfb87894f01cf3a95fd87b9ad3a4cef0`,
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
@@ -71,7 +71,9 @@ which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8
 
 ## Running now
 - **Screening match**, declared in `results/step9/MATCH_DECLARATION.md` before the first game: 3,000 games (1,500 opening
-  pairs), tc 6+0.06, 12 at once, seed 2026111105. Started 18:16:49, expected to end about 19:45.
+  pairs), tc 6+0.06, 12 at once, seed 2026111105. Started 18:16:49, expected to end about 19:40.
+  At 18:51: 1,258 games finished, no time loss, no crash, no guard suspension of the match process. The budget is
+  fixed; the interim score is not used for anything.
   Output `_work\match\h512_cand_3000\` (`match.log`, `games.pgn`, `RUN_INFO.txt`).
 - Owned processes: bash launcher pid 2512, fastchess pid 12384 and its engine children.
 - A 200-game smoke test of the match pipeline ran earlier with FB2's old net and another seed
