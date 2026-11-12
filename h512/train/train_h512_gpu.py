@@ -508,6 +508,18 @@ def cmd_train(a):
     else:
         say(f"init from {plan['init_fb2']} (prior presentations {prior}), fresh Adam")
     T = Tables(cfg, dev)
+    # optional running averages of the weights (plan key "ema_decays"): after every step avg += (1 - d) * (w - avg)
+    ema, ema_d = {}, {}
+    for d in plan.get("ema_decays", []):
+        tag = f"{float(d):.6f}".rstrip("0")
+        saved = ck.get("ema", {}).get(tag) if resume else None
+        if saved is not None:
+            ema[tag] = {k: v.to(dev, torch.float64) for k, v in saved.items()}
+        else:
+            ema[tag] = {k: p.detach().to(torch.float64).clone() for k, p in model.named_parameters()}
+        ema_d[tag] = float(d)
+    if ema:
+        say(f"weight averages (EMA) with decays {list(ema)}; a missing one starts from the current weights")
 
     files = sorted(glob.glob(plan["train_glob"]))
     if not files:
@@ -542,6 +554,8 @@ def cmd_train(a):
                "torch_rng": torch.get_rng_state(), "cuda_rng": torch.cuda.get_rng_state_all(), "plan": plan,
                "data_position": {"epoch": st_state["epoch"], "offset": st_state["offset"], "seed": plan["seed"],
                                  "rows": N, "perm": "numpy PCG64([seed, epoch]).permutation(rows)"}}
+        if ema:
+            obj["ema"] = {tag: {k: v.detach().cpu() for k, v in stt.items()} for tag, stt in ema.items()}
         atomic_save(obj, latest)
         if tag:
             shutil.copyfile(latest, os.path.join(a.run_dir, f"{tag}.pt"))
@@ -562,6 +576,21 @@ def cmd_train(a):
             entry["scores"][name] = score_int(net_path, sb, ss, sm, dev)
         m = entry["scores"][metric_set][metric_key]
         entry["metric"] = m
+        if ema:                         # the averaged nets are exported and scored next to the raw net; they never
+            entry["ema"] = {}           # change `metric`, `best` or any stop rule of the run
+            for tag, stt in ema.items():
+                tmp = fb.build_model(cfg, torch)
+                tmp.load_state_dict({k: v.detach().to(torch.float32).cpu() for k, v in stt.items()})
+                tmp.clip()
+                e_path = os.path.join(a.run_dir, f"net_seen{seen:011d}_ema{tag}.fnn3")
+                e_sum = fb.export_net(tmp, cfg, e_path, torch)[0]
+                e_sc = {name: score_int(e_path, sb, ss, sm, dev) for name, (sb, ss, sm) in sel.items()}
+                entry["ema"][tag] = {"net": os.path.basename(e_path), "checksum": f"{e_sum:x}",
+                                     "metric": e_sc[metric_set][metric_key], "scores": e_sc}
+                if stage_end:
+                    torch.save({"cfg": cfg, "state": tmp.state_dict(), "ema_decay": tag, "seen": seen},
+                               os.path.join(a.run_dir, f"stage_{stages[st_state['stage']]['name']}_ema{tag}.pt"))
+            say("EMA " + " ".join(f"{tag}:{v['metric']:.6f}" for tag, v in entry["ema"].items()) + f" at seen {seen}")
         st_state["checkpoints"].append(entry)
         new_best = st_state["best"] is None or m < st_state["best"]["metric"]
         if new_best:
@@ -639,6 +668,12 @@ def cmd_train(a):
                     for wname, lam in wd.items():
                         getattr(model, wname).mul_(1.0 - lr * lam)
             model.clip()
+            if ema:
+                with torch.no_grad():
+                    for tag, stt in ema.items():
+                        w_new = 1.0 - ema_d[tag]
+                        for k, p in model.named_parameters():
+                            stt[k].lerp_(p.to(torch.float64), w_new)
             step += 1
             st_state["stage_step"] = step
             st_state["global_step"] += 1

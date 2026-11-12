@@ -159,3 +159,12 @@ A23 0.014466 (candidate 1: 0.014480). Averaging helps, and the average without t
   **SWA4** (the first four cycle ends), **SWA8** (all eight), **SWA4+** and **SWA8+** (the same plus the 2.0B start state).
 - Same candidate rule. The lowest selection loss among all qualifying nets at the time of a freeze becomes the candidate.
 - After `swa_C1` the GPU resumes the paused 10B run, unless a weight-decay arm won (then its continuation runs first).
+
+## Addendum 4 (21:09): running-average arm `ema_E1`
+Known when this was written: W0 (the no-decay repeat of S2) ended at 0.014480 against S2's 0.014481, so run-to-run
+noise is about 0.000003; A012 scored 0.014445. No weight-decay arm with decay had finished.
+- `ema_E1` repeats stage S2 once more (from the 1.0B state, same recipe, no decay) and keeps three exponential running
+  averages of the weights (decay 0.9999, 0.99997, 0.99999: horizons of about 82M, 273M and 819M presentations).
+  Plan `h512/train/plans/ema_E1.json`. It runs on the GPU after `swa_C1`, before the paused 10B run resumes.
+- The averaged nets at its 2.0B stage end are eligible candidates under the same rule. The raw net of this arm is a
+  third repeat of S2 and is not a candidate.
