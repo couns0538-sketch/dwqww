@@ -121,6 +121,35 @@ including 36 scored checkpoints; no thermal hold).
 
 All checkpoints: `results/phase2/tables.md` table C; run log and metrics: `results/phase2/wdc_W2/`.
 
+## 6. Candidates
+
+Every candidate is a FORGENN3 file loaded by the same executable. Candidates were frozen on the selection set only,
+by the rule fixed in the declaration: the eligible net with the lowest selection loss, and only if it is at least
+0.00002 below the previous candidate.
+
+| | Candidate 1 (phase 1) | Candidate 2 | Candidate 3 |
+|---|---|---|---|
+| Recipe | no decay | decay 1.0 on `w1` from 1.0B | the same run continued |
+| Presentations | 2,000,003,072 | 2,000,003,072 | 10,000,023,552 |
+| Selection loss | 0.014480 | 0.014081 | 0.013882 |
+| Frozen | 18:08 | 21:41 | 23:03 |
+| Net file in `_work\nets\` | `h512_cand_seen02000003072.fnn3` | `h512_cand_W2_seen02000003072.fnn3` | `h512_cand_W2_seen10000023552.fnn3` |
+| Net md5 | `d920a15c5b05040a3ef71a872192ec1b` | `ae0d372e3748fc6d4e27c2885b164d46` | `aab64b3342d7c1c33e82845f5d2d1fa4` |
+| Net sha256 | `7b68cb703bf7849169f0e46f4f20e3c480d6588a82ed0c2e87803b748f5767e2` | `df88ae380196c796cc8ded28095194d1fb67ce4ea42dc2b50621dc347b06208b` | `6d2cf71467e95a96d36b9c8fee808090269cf42b9c455ff428926243e5171903` |
+| Float checkpoint md5 | `647dff86711af769dc7c623005127575` | `4fd2d9fb4834443a54690fc1bd4cd5f8` | `295828fd438138194aad00bf181d65b5` |
+| Integer parity, 14,000 positions | 0 mismatches | 0 mismatches | 0 mismatches |
+| Hand-crafted term in search eval | 0 on all | 0 on all | 0 on all |
+| Fake-quantised float against integer, max / mean cp | 1.02 / 0.51 | 1.02 / 0.51 | 1.02 / 0.51 |
+| Bench nodes at depth 11 / 13 / 16 | 344,397 / 803,457 / 2,873,105 | 293,818 / 900,174 / 2,610,509 | 348,651 / 743,566 / 2,890,515 |
+
+- Executable for all three: `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5
+  `5c46cd2d43bc051df1a39e841487b95f`. Options: `setoption name NNUEArchFile value <net>`, then
+  `setoption name NNUEArch value true`.
+- Parity means: the engine's evaluation tool, the search's own static evaluation (diagnostic build), the Python integer
+  reference and the GPU scorer agree on every one of 14,000 positions (`results/phase2/parity_candidate2.json`,
+  `parity_candidate3.json`). The bench node counts are in `pins_candidate2.txt` and `pins_candidate3.txt`.
+- Freeze records with the other eligible nets and their losses: `results/phase2/FROZEN_CANDIDATE_2.json`, `_3.json`.
+
 ## 7. Matches
 
 All matches are this job's own screens against the original lock exe (md5 `c0051c99695f48bf93272d96fe7548c3`),
