@@ -182,6 +182,70 @@ python fair_eval/tools/abba_fair.py --name N --out NEW_DIR --a <resid diag exe> 
 
 Raw results: `results/abba/` (every timing sample), `results/evals/` (comparison JSON, two compressed dumps, sha256 of all twelve dumps), `results/builds/`, `results/pins/`, `results/lock_ref/`. Earlier evidence is read in `EVIDENCE_MATRIX.md`.
 
+## Follow-up (2026-11-11, requested by the owner after the report above)
+
+Three things the first report left open. Timing below uses the same protocol as above (`bench 20`, one pinned core, pair = one slot); 8 pairs unless 16 is stated. Raw samples: `results/abba_diag/`, `results/abba_fast/`, `results/abba_halfka/`, `results/abba_final/`.
+
+### F1. Where the v2 KB8 cost comes from, and what could be removed
+
+One exe (`v2kb8_lockrep`), the lock's net written in four layouts, identical trees:
+
+| Net layout | NPS vs lock (95 % CI) | Read |
+|---|---|---|
+| KB1, 1 output bucket | 0.9632 (0.9615-0.9649) | the v2 code path alone costs 3.7 % |
+| KB1, 8 output buckets | 0.9641 (0.9629-0.9653) | output buckets cost nothing |
+| KB4 (by rank), 8 output buckets | 0.9343 (0.9288-0.9399) | king buckets by rank cost another 3.0 % |
+| KB8 (rank x file half), 8 output buckets | 0.9266 (0.9245-0.9286), 16 pairs | the file split costs another 0.8 % |
+
+The king-bucket part is the refresh of one perspective each time a king crosses a bucket border. In the training benches that happened about 303,000 times in 4.2 million nodes (the difference between the lock's and the v2 path's update call counts in their profiles). Three of the eight bench positions are endgames with active kings, so the bench probably overstates this cost for whole games; that was not measured.
+
+New switch `FORGE_NNUE_V2_FAST` (bit mask, default 0 = as ported). Every bit keeps the evaluation bit-identical: ten pins and perft 5 equal the lock's with the replica, 12,000 / 12,000 evaluations equal the diagnostic reference, and U8 equals its scalar-kernel build on 12,000 / 12,000.
+
+| Build (replica net, same tree) | NPS vs lock (95 % CI) |
+|---|---|
+| as ported | 0.9266 (0.9245-0.9286), 16 pairs |
+| bit 1: 512-bit output kernel | 0.9286 (0.9201-0.9372) |
+| bit 2: both perspectives updated in one fused pass | 0.9301 (0.9279-0.9323) |
+| bit 4: cached refresh starts from the bias when that needs fewer columns | 0.9255 (0.9234-0.9277), no gain |
+| all three (`FORGE_NNUE_V2_FAST=7`) | **0.9358** (0.9340-0.9377), 16 pairs |
+| all three, KB1 net | 0.9732 (0.9716-0.9748) |
+
+With the switch: `v2kb8_U8_fast` **0.8166** (0.8149-0.8182, was 0.8081) and `v2kb8_r5_fast` **0.9309** (0.9289-0.9328, was 0.9136), 16 pairs each, different trees.
+
+Verdict: about one point of the seven was recovered. The rest is 2.7 % in the v2 code path that these changes did not find, and about 3.7 % in king-bucket refreshes, which belongs to the net layout more than to the code. Finding the remaining 2.7 % needs a sampling profile, which this job did not take.
+
+### F2. The stand-alone 1024 nets were gated on an exe that was unfair to them twice
+
+Every gate row of those nets (`NPT104-*`, `NPTS3-*`, `NPTW4S4/5/6-*`, -86 to -124 Elo) used one candidate exe, `forge_ltopgo_x_r10fix1_halfka_9e5cb644.exe` (md5 `b4c943aba4a535e3429eb8f7bbef0c4a`), built by the LTO+PGO kit from the R10 HalfKA source. Measured with the gated net `npt_k32h3_l1024_..._w4_s6_final.nnue` (sha256 `7e23fd95...`):
+
+| Comparison | Ratio (95 % CI) | Tree | Read |
+|---|---|---|---|
+| plain build of the same source (`forge_plain_z5_r10fix1_halfka_d8d90b68.exe`) / gate exe, net loaded | 1.1668 (1.1602-1.1735) | same | on the candidate's path the unprofiled plain build is 16.7 % faster than the PGO exe |
+| plain / gate exe, net not loaded | 0.9913 (0.9876-0.9951) | same | on the profiled float path the PGO exe is the faster one, as expected |
+| gate exe, float path / combo29 lock | 0.7658 (0.7615-0.7702) | same | its base is 23 % slower than the lock it was later compared with |
+
+So the reported defect applies to the stand-alone path as well, and the candidate exe was also two speed locks behind in the later gates.
+
+The path is now on the lock source behind `FORGE_NNUE_HALFKA` (`patches/halfka_r10_294dbed_bb6175b.patch`, the R10 diff of `opus-r10-halfka`; six rejected hunks placed by `tools/apply_halfka_guards.py`; `src/nnue_halfka.cpp` is compiled only for a configuration that asks for it). With the 1024 net the port searches 335900 / 721217 / 2384088 / 12601427 nodes at depths 11 / 13 / 16 / 20, exactly the old gate exe's counts.
+
+| Build | PGO workload and coverage | Ratio (95 % CI) | Tree |
+|---|---|---|---|
+| `halfka_1024` (md5 `1907aa0312b661edb855d4baf8a333cc`) | benches with the net loaded; `halfka_evaluate` 2,192,038 entries, float `nnue::evaluate` 0 | **1.4463** (1.4426-1.4501) of the old gate exe | same |
+| `halfka_1024_cold` (md5 `64ecaea1959541a4bf644bbbc12e1359`) | frozen v1, net not loaded; HalfKA functions 0 entries | own profile / cold = 1.1077 (1.1023-1.1132) | same |
+| `halfka_1024` vs the lock | | 0.4884 (0.4869-0.4899) | different |
+
+The same net therefore searches the same tree 45 % faster on a correctly built exe than on the exe it was gated with. A 1024-wide net remains about half the lock's NPS; that part is the architecture.
+
+Controls: a stand-alone net cannot express s198 + HCE, so an exact s198 control is **unavailable** for this path and none is claimed. The reference control used is node identity with two independent builds of the R10 source (the old PGO exe and the plain exe) at four depths.
+
+### F3. Matches
+
+This job's own processes, **not the crew gate and not a lock claim**: fastchess, tc 6+0.06, Threads 1, Hash 16, 12 games at once, book `UHO_Lichess_4852_v1.epd` in random order with both colours, candidate against the original lock exe (`tools/run_match.sh`, `tools/match_queue_20261111.sh`). Logs: `results/match/`.
+
+Results so far (interim; an INT8 rerun is in progress): `halfka_1024` 300 games -97.4 +/- 25.0 Elo; `v2kb8_U8_fast` 2000 games +17.2 +/- 8.3 Elo; `int8` 1100 games +12.0 +/- 11.6 Elo with 18 time losses (9 each side). See `results/match/*/final.txt`.
+
+MATCH_RESULTS_PLACEHOLDER
+
 ## Limitations
 
 - **Strength is not established** for any candidate. The U8 gate rows (H1, then CAP) and the missing gate for run 5 and INT8 are untouched.
