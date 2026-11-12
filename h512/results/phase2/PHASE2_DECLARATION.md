@@ -200,3 +200,17 @@ Nothing of match M2 beyond a running score.
   allows, and its checkpoints become eligible candidates under the usual rule. If none does, the GPU work ends with
   the 10B run and these five results.
 - Any net frozen after M3 has started plays the third match slot (6 s + 0.06 s, seed 2026111110) if time allows.
+
+## Addendum 7 (22:27): match plan for the rest of the night
+Known when this was written: M2's running score after 1,524 of 3,000 games (+31 Elo, error 10, with 22 games lost on
+time after three guard suspensions), and the decay run up to 6.0B. M2 is not stopped or shortened.
+- **M3** (10 s + 0.1 s, seed 2026111107) is played with **2,000 games** instead of 3,000, by the eligible net with the
+  lowest selection loss when M2 ends. Reason: 3,000 games at this clock take about 2 h 20 min; 2,000 games leave room
+  for the two matches below before the report has to be written. The interval is wider for it (about 9 Elo, not 7).
+- **M5** (6 s + 0.06 s, 3,000 games, seed 2026111110): the eligible net with the lowest selection loss when M3 ends,
+  if that net has not already played at this clock (candidate 2 has, in M2). This is the final candidate's own match
+  under the phase-1 conditions.
+- **MN2** (fixed 250,000 nodes per move, 3,000 games, seed 2026111109): the same net as M5 (or as M3 if M5 is not
+  played), if at least 60 minutes remain before 03:05. It answers what MN1 answered for candidate 1: evaluation quality
+  with speed taken out.
+- All three as before: against the original lock exe, 12 games at once, the GPU job running, time losses by side.
