@@ -9,20 +9,29 @@ which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8
 ## State: phase 1 COMPLETE (`REPORT.md`, verdict: promising for QA). Phase 2 (follow-up) IN PROGRESS.
 
 ## Phase 2 (follow-up at the owner's request, 20:30 to about 04:00)
-**Last update:** 20:43. Rules: `results/phase2/PHASE2_DECLARATION.md` (committed before any phase-2 result).
+**Last update:** 21:06. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 3b (each committed before
+the results it governs).
 - **Why:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked for
   GPU and CPU to work at the same time.
-- **Training (GPU), running:** continues from the 2.0B state toward 10B presentations, stage ends at 4B, 7.4B, 10B.
-  Run folder `_work\runs\phase2`, launcher pid 17032, trainer pid 5500, started 20:34:47, 2.1M positions/s.
-  Expected end about 21:47. This sets aside the phase-1 plateau rule on the owner's instruction (a deviation).
+- **Finding so far: the plateau is over-fitting.** Candidate 1 scores 0.013014 on a sample of its own training rows
+  and 0.014480 on unseen rows; the untrained hand-crafted eval scores the same on both (0.017099 / 0.017044).
+  Training on to 4.0B made unseen rows worse (0.014506) while training rows improved (0.012845).
+- **Weight averaging helps:** the average of the 1.0B and 2.0B nets scores 0.014443 on the selection set
+  (candidate 1: 0.014480). It qualifies as a new candidate under the rule; not frozen yet.
+- **10B run (GPU): paused** at 4,009,025,536 presentations with its own STOP flag at 20:53:46 (resumable, exact).
+  It continues to 10B later in the GPU queue. Run folder `_work\runs\phase2`.
+- **GPU now:** weight-decay pilot arms W0 to W3 (`_work\runs\wd`, queue launcher pid 15264; W0 done: 0.014480, a repeat
+  of stage S2 to within 0.000003). Then the snapshot-averaging run `swa_C1` (GPU queue launcher pid 6928,
+  `_work\runs\gpu_queue.txt`). Expected: pilot arms to 21:35, `swa_C1` to 21:55.
 - **Match MN1 (CPU), running:** candidate 1 against the lock at a fixed 250,000 nodes per move, no clock, 3,000 games,
-  seed 2026111108. fastchess pid 6340, started 20:38:52, expected end about 21:40.
+  seed 2026111108. fastchess pid 6340, started 20:38:52, 1,426 games at 21:05, expected end about 21:35.
   Folder `_work\match\mn1_nodes250k_02000003072`.
 - **Done:** test set 2 (2,000,000 rows from shards 037/039, `manifests/test2_manifest.json`); not scored yet.
-- **Next:** freeze candidate 2 by the selection rule; M2 (candidate 2, 6 s + 0.06 s); M3 (final candidate, 10 s + 0.1 s);
-  test set 2 once at the end; phase-2 section of `REPORT.md`.
-- **Resume point:** if the session is cut, both jobs finish by themselves. Then run
-  `h512/tools/freeze_candidate2.py` (see its header) and `h512/results/phase2/launch_match.sh m2 <net>`.
+- **Next:** freeze candidate 2 by the selection rule when MN1 ends; M2 (candidate 2, 6 s + 0.06 s); M3 (final
+  candidate, 10 s + 0.1 s); test set 2 once at the end; phase-2 section of `REPORT.md`.
+- **Resume point:** if the session is cut, the match and the GPU queue finish by themselves. Then freeze with
+  `h512/tools/freeze_net.py` (see its header) and start `h512/results/phase2/launch_match.sh m2 <net>`.
+  The paused 10B run resumes with `bash h512/train/run_phase2.sh`.
 
 The sections below describe phase 1 and are unchanged.
 
