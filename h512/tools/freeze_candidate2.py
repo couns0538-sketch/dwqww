@@ -44,7 +44,7 @@ def main():
     rec = {"frozen": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": a.label, "run_dir": a.run_dir,
            "rule": f"lowest select_2m.mse_b0.6 over the {len(entries)} checkpoints of the run so far; a new candidate only if "
                    f"at least {a.min_improve} below the previous candidate; no test set was read",
-           "previous_candidate": {"file": a.prev, "seen": prev["seen"], "metric": prev["metric"], "net_md5": prev["net_md5"]},
+           "previous_candidate": {"file": a.prev, "seen": prev.get("seen"), "metric": prev["metric"], "net_md5": prev["net_md5"]},
            "checkpoints_considered": len(entries), "last_checkpoint_seen": entries[-1]["seen"],
            "best_seen": best["seen"], "best_metric": best["metric"], "gain_over_previous": gain,
            "all_checkpoints": [{"seen": e["seen"], "stage": e["stage"], "reason": e["reason"], "metric": e["metric"]} for e in entries]}
