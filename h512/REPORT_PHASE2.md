@@ -121,6 +121,33 @@ including 36 scored checkpoints; no thermal hold).
 
 All checkpoints: `results/phase2/tables.md` table C; run log and metrics: `results/phase2/wdc_W2/`.
 
+## 5b. Second pilot round: which decay, on which weights, with which result weight
+
+Declared in addendum 6 before any arm ran. Each arm is again the cycle from 1.0B to 2.0B, compared at its 2.0B stage end.
+
+| Arm | Change against W2 (decay 1.0 on `w1`, alpha 0.25) | Selection (unseen) | Training rows | Gap | Selection, teacher only |
+|---|---|---:|---:|---:|---:|
+| W1 (round 1) | decay 0.1 | 0.014119 | 0.013182 | 0.000937 | 0.004044 |
+| **X1** | **decay 0.3** | **0.014049** | 0.013407 | 0.000642 | 0.003963 |
+| W2 (round 1) | none | 0.014083 | 0.013644 | 0.000439 | 0.003964 |
+| X2 | decay 3 | 0.014147 | 0.013804 | 0.000343 | 0.003996 |
+| W3 (round 1) | decay 10 | 0.014199 | 0.013896 | 0.000303 | 0.004031 |
+| X3 | decay 1.0 also on the shared factoriser weights `wf` | 0.014915 | 0.014623 | 0.000291 | 0.004340 |
+| X4 | decay 1.0 on `w1`, `wf` and the output weights | no result (stopped) | | | |
+| X5 | alpha 0.4 instead of 0.25 | 0.014127 | 0.013511 | 0.000616 | 0.004639 |
+
+- **Decay strength:** the best single cycle is at decay 0.3; the curve is flat from 0.3 to 1.0 (0.000034 apart) and
+  falls off on both sides.
+- **Decay only the king-bucketed weights.** Decaying the shared factoriser weights as well is harmful (0.014915): they
+  carry the piece-square knowledge that all king buckets share.
+- **Keep alpha 0.25.** With decay, alpha 0.4 is still worse (0.014127 against 0.014083), although the selection loss
+  itself is measured against the alpha-0.4 target, and its fit to the teacher scores is much worse.
+- X4 was stopped 34M presentations into its cycle (addendum 9): it is X3 plus one more decayed group, X3 had just shown
+  that group of changes to be harmful, and X3 had also run at half the usual speed.
+
+X1 beat W2 by more than 0.00002, so by the declared rule its run was continued (next table). Evidence:
+`results/phase2/wd2/` (metrics and logs, `WINNER_ROUND2.txt`).
+
 ## 6. Candidates
 
 Every candidate is a FORGENN3 file loaded by the same executable. Candidates were frozen on the selection set only,

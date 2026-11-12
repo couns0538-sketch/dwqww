@@ -83,6 +83,23 @@ At the 2.0B stage end:
 |---:|---|---|---:|---:|---:|---:|---:|
 | 1,000,005,632 | S1 | stage end | 2.50e-05 | 0.014489 | 0.013305 | 0.001184 | 0.014580 |
 
+## C. Arm `wd2_X5`
+
+| Presentations | Stage | Checkpoint | Learning rate | Selection | Training rows | Gap | FB2 200k |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 1,000,005,632 | S1 | stage end | 2.50e-05 | 0.014489 | 0.013305 | 0.001184 | 0.014580 |
+| 1,250,000,896 | S2 | interval | 4.31e-04 | 0.014508 | 0.014026 | 0.000482 | 0.014598 |
+| 1,500,004,352 | S2 | interval | 2.63e-04 | 0.014345 | 0.013799 | 0.000546 | 0.014424 |
+| 1,750,007,808 | S2 | interval | 9.48e-05 | 0.014188 | 0.013595 | 0.000594 | 0.014280 |
+| 2,000,003,072 | S2 | interval | 2.50e-05 | 0.014129 | 0.013513 | 0.000616 | 0.014201 |
+| 2,000,011,264 | S2 | stage end | 2.50e-05 | 0.014127 | 0.013511 | 0.000616 | 0.014200 |
+
+## C. Arm `wd2c_X1`
+
+| Presentations | Stage | Checkpoint | Learning rate | Selection | Training rows | Gap | FB2 200k |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 2,000,011,264 | S2 | stage end | 2.50e-05 | 0.014049 | 0.013407 | 0.000642 | 0.014114 |
+
 ## C. Arm `wdc_W2`
 
 | Presentations | Stage | Checkpoint | Learning rate | Selection | Training rows | Gap | FB2 200k |
