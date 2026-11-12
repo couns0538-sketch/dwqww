@@ -259,3 +259,22 @@ final candidate of the warm-started line, test set 2 closed).
   start by 02:40. Parity and bench node counts are checked before it starts.
 - **Standing of candidate 4:** it would be a second line (from scratch) next to candidate 3 (warm start). The report
   states both with what each was measured on.
+
+## Addendum 11 (02:41): a rebuilt executable for candidate 3, in the time that is left
+Known when this was written: everything above. All declared work is finished and pushed (commit `13980fda`), and
+about 75 minutes of the allowance remain. This closes two limits the report names: the executable was not rebuilt for
+the new net, and its speed was not re-measured.
+- **Rebuild:** config `h512_v3_c3` in `fair_eval/configs.json`: the same source, flags and build script
+  (`fair_eval/build_fair.ps1`) as the phase-1 executable; the only difference is that candidate 3's net is loaded
+  while the PGO profile is collected. Coverage proof as in phase 1 (v3 evaluation entered, residual net and
+  hand-crafted evaluation not entered).
+- **Check:** with candidate 3's net the rebuilt executable must give the same bench node counts as the phase-1
+  executable (348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16), since the source and the net are the same.
+- **Speed:** Job D's quiet ABBA protocol unchanged: original lock exe against the rebuilt executable with candidate
+  3's net, `bench 20`, 16 pairs, engine pinned to logical CPU 8, nothing else of this job running.
+- **Match M7:** rebuilt executable with candidate 3's net against the original lock exe, 6 s + 0.06 s, **1,500 games**,
+  seed 2026111112, 12 games at once, time margin 1000 ms, no adjudication, **GPU idle** (the phase-1 conditions).
+  Fixed budget, no early stop. 1,500 games because that is what fits before the allowance ends.
+- **What it changes:** nothing in the verdict. If the build, the coverage proof and the node check pass, the report
+  names the rebuilt executable as the one QA should gate, next to the phase-1 executable that played M2 to MN2.
+  If a step fails, it is reported as failed and the phase-1 executable stays the recommendation.
