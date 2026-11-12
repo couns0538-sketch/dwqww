@@ -1,0 +1,240 @@
+{
+  "config": "h512_v3",
+  "path": "JOB E candidate: stand-alone integer NNUE v3 H512 (FORGE_NNUE_V3); the net is the whole evaluation, trained with the net loaded",
+  "identity": "d59e905d33724e000b5471a996106747587d136fc578bd06cd2ce2a49eebe16b",
+  "built": "2026-11-11 18:09:07",
+  "seconds": 11.4,
+  "source_commit": "c0e2a93e673599ca31a95dc9fdfb00fca2ad30c7",
+  "source_dirty": false,
+  "source_manifest_sha256": "cf1e6414428d71859cb0029e2e9b31d441978a35c2b613f2491f2958b48e1b24",
+  "compiler": "C:\\opus_5h\\oss_scout\\dl\\llvm-mingw-20261104\\x\\llvm-mingw-20261104-ucrt-x86_64\\bin\\clang++.exe",
+  "compiler_version": "clang version 23.1.5 (https://github.com/llvm/llvm-project.git 392dfff97d29b59d77e5cac6d4b6ef2585fe7117)",
+  "compiler_sha256": "d05fee2c3f79b15d998d3c3413c76aabd416ec789edff89c8f698a8be44a3970",
+  "defines": [
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V3=1"
+  ],
+  "common_flags": [
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DFORGE_NNUE_HIDDEN=256",
+    "-DFORGE_EXPOSE_TUNABLES=1",
+    "-DFORGE_SPD_TT_NOTLS=1",
+    "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+    "-DFORGE_SEARCH_SPEED2=1",
+    "-DFORGE_SPD_PREFETCH_EARLY=1",
+    "-DFORGE_SPD_SLIDER_PEXT=1",
+    "-DFORGE_SPD_NNUE_ZMM=1",
+    "-DFORGE_NNUE_V3=1",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-march=znver5",
+    "-pthread",
+    "-g",
+    "-gcodeview",
+    "--sysroot=C:/msys64/ucrt64",
+    "-stdlib=libstdc++",
+    "-rtlib=libgcc",
+    "-unwindlib=libgcc"
+  ],
+  "stage_flags": {
+    "gen": "-flto=thin -fprofile-instr-generate",
+    "use": "-flto=thin -fprofile-instr-use=<this profile> -Werror=profile-instr-unprofiled -Werror=profile-instr-out-of-date",
+    "link": "-fuse-ld=lld -static -Wl,--no-insert-timestamp -Wl,--thinlto-jobs=1"
+  },
+  "net": "h512_cand",
+  "net_path": "D:\\forge_jobs_20261111\\h512E\\_work\\nets\\h512_cand_seen02000003072.fnn3",
+  "net_sha256": "7b68cb703bf7849169f0e46f4f20e3c480d6588a82ed0c2e87803b748f5767e2",
+  "workload_sha256": "bd71791ff389e5384494351ef23ba823dbe7743b14437253dbe0235755981870",
+  "workload": [
+    "uci",
+    "isready",
+    "setoption name NNUEArchFile value D:\\forge_jobs_20261111\\h512E\\_work\\nets\\h512_cand_seen02000003072.fnn3",
+    "setoption name NNUEArch value true",
+    "bench 11",
+    "bench 13",
+    "bench 16",
+    "isready",
+    "quit"
+  ],
+  "training_nodes": [
+    344397,
+    803457,
+    2873105
+  ],
+  "final_exe_nodes": [
+    344397,
+    803457,
+    2873105
+  ],
+  "profdata_sha256": "585e433f97add73b6a9e24fd8394c10d7cd9963f98d21451a731eb5887b23041",
+  "coverage": {
+    "profdata": "D:\\forge_jobs_20261111\\h512E\\_work\\builds\\h512_v3_d59e905d3372\\gen\\profile.profdata",
+    "functions_in_profile": 383,
+    "functions_with_nonzero_count": 251,
+    "checks": [
+      {
+        "kind": "must_run",
+        "pattern": "Worker::static_evaluate_v3\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)::$_0::operator()(int) const",
+            "entry_count": 3225895
+          },
+          {
+            "function": "void forge::nnue::v3::replay_ply<forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)::$_0&>(forge::nnue::v3::Net const&, forge::nnue::v3::WorkerState&, int, forge::Board const&, int, forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)::$_0&)",
+            "entry_count": 3129483
+          },
+          {
+            "function": "forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2596643
+          },
+          {
+            "function": "void forge::nnue::v3::make_valid<forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)::$_0>(forge::nnue::v3::Net const&, forge::nnue::v3::WorkerState&, int, forge::Board const&, forge::Worker::static_evaluate_v3(forge::Board const&, forge::SearchStack*)::$_0&&)",
+            "entry_count": 2596643
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v3::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v3::evaluate(forge::nnue::v3::Net const&, forge::Board const&, forge::nnue::v3::Accumulator const&)",
+            "entry_count": 2596643
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v3::apply_changes\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v3::apply_changes(forge::nnue::v3::Net const&, short const*, short*, forge::nnue::v3::KingKey, forge::Color, forge::nnue::DirtyPieces const&)",
+            "entry_count": 5880794
+          }
+        ]
+      },
+      {
+        "kind": "must_run",
+        "pattern": "forge::nnue::v3::refresh_cached\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::v3::refresh_cached(forge::nnue::v3::Net const&, forge::nnue::v3::RefreshCache&, forge::Board const&, forge::nnue::v3::Accumulator&)",
+            "entry_count": 24
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::evaluate(forge::Board const&, forge::nnue::Accumulator const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::update\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::update(forge::nnue::Accumulator const&, forge::nnue::Accumulator&, forge::nnue::DirtyPieces const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "forge::nnue::refresh\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::nnue::refresh(forge::Board const&, forge::nnue::Accumulator&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "Evaluator::evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate(forge::Board const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "Evaluator::evaluate_runtime\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "must_be_zero",
+        "pattern": "Evaluator::refresh_runtime_psqt\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::refresh_runtime_psqt(forge::Board const&)",
+            "entry_count": 0
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Worker::static_evaluate\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Worker::static_evaluate(forge::Board const&, forge::SearchStack*)",
+            "entry_count": 2596619
+          }
+        ]
+      },
+      {
+        "kind": "report",
+        "pattern": "Evaluator::evaluate_runtime\\(",
+        "pass": true,
+        "matches": [
+          {
+            "function": "forge::Evaluator::evaluate_runtime(forge::Board const&, forge::Evaluator::RuntimePsqt const&)",
+            "entry_count": 0
+          }
+        ]
+      }
+    ],
+    "pass": true
+  },
+  "exe": "D:\\forge_jobs_20261111\\h512E\\_work\\builds\\h512_v3_d59e905d3372\\forge_fair_h512_v3.exe",
+  "exe_bytes": 2094080,
+  "exe_sha256": "ec84b99a873d239e0e389b3f4c30a472a1dbaaf93e0fbb888e97cbcd9838c963",
+  "exe_md5": "5c46cd2d43bc051df1a39e841487b95f",
+  "run_setoptions": [
+    "setoption name NNUEArchFile value D:\\forge_jobs_20261111\\h512E\\_work\\nets\\h512_cand_seen02000003072.fnn3",
+    "setoption name NNUEArch value true"
+  ]
+}
