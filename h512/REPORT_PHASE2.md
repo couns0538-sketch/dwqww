@@ -1,11 +1,41 @@
 # JOB E phase 2 (follow-up) - Standalone H512: over-fitting found, weight decay fixes it - REPORT
 
-**DRAFT while phase 2 is running (22:05). Sections 1 to 4 are final; the later sections are added as results arrive.**
-
-Branch `fable/standalone-h512-20261111`, measured 2026-11-11 from 20:30 on grok-pc. This file continues `REPORT.md`
-(phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
-Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and six addenda, each committed before
+Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 on grok-pc. This file continues
+`REPORT.md` (phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
+Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and ten addenda, each committed before
 the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
+
+## Verdict
+
+**Strongly promising for QA: gate candidate 3.** A standalone H512 net trained with weight decay beat the original
+combo29 exe clearly in every timed screen of this phase, and it is now also the better evaluator on stored positions.
+These are this job's own screens, not gate results and not a lock claim.
+
+| Net | Condition | Games | Elo against combo29 | 95 % interval |
+|---|---|---:|---:|---|
+| Candidate 1 (phase 1, no decay, 2.0B) | 6 s + 0.06 s | 3,000 | +12.4 | +5.1 to +19.7 |
+| Candidate 1 | equal nodes (250,000 per move) | 3,000 | -4.8 | -12.5 to +3.0 |
+| Candidate 2 (decay, 2.0B) | 6 s + 0.06 s | 3,000 | +41.3 | +33.8 to +48.9 |
+| **Candidate 3 (decay, 10.0B)** | 6 s + 0.06 s | 2,000 | **+66.6** | +58.0 to +75.4 |
+| **Candidate 3** | 10 s + 0.1 s | 2,000 | **+57.0** | +48.3 to +65.7 |
+| **Candidate 3** | equal nodes (250,000 per move) | 3,000 | MN2_ELO | MN2_CI |
+
+What stands behind these numbers:
+
+- **Phase 1's net had over-fitted its training rows.** It was 11 % better on positions it had seen than on unseen
+  ones, and training on made unseen positions worse (sections 1 and 2).
+- **Decoupled weight decay on the king-bucketed first-layer weights fixes much of that** (sections 4 and 5). On unseen
+  positions the loss went from 0.014480 to 0.013882; combo29's evaluator stands at 0.014311. A second, untouched test
+  set scored once at the end gives the same picture: 0.014070 against 0.014527 (section 8).
+- **Candidate 1's +12.4 came from speed, not from evaluation:** at equal nodes it scored -4.8 (MN1). MN2_SENTENCE
+- **The warm start is not needed:** the same recipe trained from random initialisation reaches the same loss at
+  equal training length (section 5c). SCRATCH_SENTENCE
+- Limits: timed matches ran with the GPU busy and lost some games on time to the owner's thermal guard (counted by
+  side, section 7); the executable was not rebuilt for the new nets; one seed per recipe (section 10).
+
+**Next QA action:** gate `forge_fair_h512_v3.exe` (md5 `5c46cd2d43bc051df1a39e841487b95f`) with `NNUEArchFile` =
+`h512_cand_W2_seen10000023552.fnn3` (md5 `aab64b3342d7c1c33e82845f5d2d1fa4`) and `NNUEArch` = true against the
+combo29 lock. Check first that `bench 11 / 13 / 16` with the net gives 348,651 / 743,566 / 2,890,515 nodes.
 
 ## How phase 2 came about, and what it changes against the phase-1 plan
 
@@ -22,7 +52,11 @@ Deviations from the phase-1 plan, all on the owner's instruction or declared bef
 - **The candidate executable was not rebuilt.** Every net of phase 2 is loaded by the phase-1 exe
   (md5 `5c46cd2d43bc051df1a39e841487b95f`); its PGO profile was collected with candidate 1's net.
 - **Decisions use the selection set only.** The phase-1 final-test set was not opened again. A second test set from
-  shards 037/039 is scored once, after all training (section 8).
+  shards 037/039 was scored once, after the candidate list had closed (section 8).
+- **The plan changed several times during the night, each time in writing before the result it governs** (addenda 1
+  to 10 of the declaration). Two changes were made after seeing a result and say so: the pilot was moved ahead of the
+  rest of the no-decay run when that run got worse (addendum 2b), and the from-scratch run was allowed to produce a
+  candidate after its first stage end came in (addendum 10).
 
 ## 1. Finding: the plateau was over-fitting
 
@@ -138,8 +172,8 @@ Declared in addendum 6 before any arm ran. Each arm is again the cycle from 1.0B
 
 - **Decay strength:** the best single cycle is at decay 0.3; the curve is flat from 0.3 to 1.0 (0.000034 apart) and
   falls off on both sides.
-- **Decay only the king-bucketed weights.** Decaying the shared factoriser weights as well is harmful (0.014915): they
-  carry the piece-square knowledge that all king buckets share.
+- **Decay only the king-bucketed weights.** Decaying the shared factoriser weights as well is harmful (0.014915),
+  presumably because they carry the piece-square knowledge that all king buckets share.
 - **Keep alpha 0.25.** With decay, alpha 0.4 is still worse (0.014127 against 0.014083), although the selection loss
   itself is measured against the alpha-0.4 target, and its fit to the teacher scores is much worse.
 - X4 was stopped 34M presentations into its cycle (addendum 9): it is X3 plus one more decayed group, X3 had just shown
@@ -194,7 +228,8 @@ by the rule fixed in the declaration: the eligible net with the lowest selection
 ## 7. Matches
 
 All matches are this job's own screens against the original lock exe (md5 `c0051c99695f48bf93272d96fe7548c3`),
-not the crew gate. Each was declared with its exact net hash before its first game (`results/phase2/*_DECLARATION.md`).
+not the crew gate. Each was declared before its first game (`results/phase2/*_DECLARATION.md`), with the exact net
+hash; M5 and MN2 were declared by a rule that named candidate 3 as the expected net, and candidate 3 is what played.
 fastchess, Threads 1, Hash 16, OwnBook false, `UHO_Lichess_4852_v1.epd` in random order, every opening with both
 colours, 12 games at once, no adjudication. Elo and the 95 % interval are recomputed from the PGN with opening pairs
 as the unit (`tools/match_elo.py`).
@@ -246,6 +281,24 @@ time margin 1000 ms. The GPU trainer ran during the match.
   Without the 10 opening pairs involved: +57.5 (+48.9 to +66.3).
 - No crash, no illegal move, no disconnect.
 - Evidence: `results/phase2/m3/`.
+
+### M5: candidate 3 at 6 s + 0.06 s (the phase-1 conditions)
+
+The final candidate under the same conditions as candidate 1 in phase 1 and candidate 2 in M2. 2,000 games
+(addendum 8), seed 2026111110, time margin 1000 ms. The GPU trainer ran during the match.
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 2,000 | 703 | 973 | 324 | 59.48 % | **+66.6** | +58.0 to +75.4 | 9 / 107 / 430 / 404 / 50 |
+
+- Three nets under the same conditions: candidate 1 (no decay) +12.4, candidate 2 (decay, 2.0B) +41.3, candidate 3
+  (decay, 10.0B) +66.6. The intervals of candidates 2 and 3 do not overlap (+33.8 to +48.9 against +58.0 to +75.4),
+  so the longer training with decay also paid off in play: about 25 Elo, give or take 12, from two separate matches
+  with different openings.
+- 9 games ended on time, 3 lost by the candidate and 6 by the lock, after one guard suspension (01:05:11).
+  Without the 6 opening pairs involved: +66.5 (+57.9 to +75.2).
+- No crash, no illegal move, no disconnect.
+- Evidence: `results/phase2/m5/`.
 
 ## 8. Test set 2, scored once
 
@@ -309,6 +362,40 @@ lever, not more passes.
   phase 1's first stage). Section 5b reports what was tried beyond that.
 - **Not tested, as in phase 1:** Threads above 1 on the standalone path, clocks longer than 10 s + 0.1 s, sanitizers.
 - **Sets are separated by shard file and by position, not by game id** (the rows carry none), as in phase 1.
+
+## 11. Files and hashes
+
+Nets, checkpoints and PGNs are local (`D:\forge_jobs_20261111\h512E\_work\`), not in the repository. Everything of
+phase 1 listed in `REPORT.md` section 15 is still in place and unchanged.
+
+| What | Path | md5 |
+|---|---|---|
+| **Candidate 3 net (final candidate)** | `_work\nets\h512_cand_W2_seen10000023552.fnn3` | `aab64b3342d7c1c33e82845f5d2d1fa4` |
+| Candidate 3 float checkpoint | `_work\nets\h512_cand_W2_seen10000023552_float.pt` | `295828fd438138194aad00bf181d65b5` |
+| Candidate 2 net | `_work\nets\h512_cand_W2_seen02000003072.fnn3` | `ae0d372e3748fc6d4e27c2885b164d46` |
+| Candidate 2 float checkpoint | `_work\nets\h512_cand_W2_seen02000003072_float.pt` | `4fd2d9fb4834443a54690fc1bd4cd5f8` |
+| Candidate exe (all matches) | `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe` | `5c46cd2d43bc051df1a39e841487b95f` |
+| Lock exe (opponent) | `forge-combo29\windows\forge_clang_combo29_trial_w6.exe` | `c0051c99695f48bf93272d96fe7548c3` |
+| Decay-1.0 run: latest / 4B / 7.4B / 10B states | `_work\runs\arms\wdc_W2\latest.pt`, `stage_S3.pt`, `stage_S4.pt`, `stage_S5.pt` | `f8873753be41295745f98b047d434941`, `bc6bc904047b5a96af29c94b798b088c`, `6e9cf8f31ffedf30a4a174f730810802`, `295828fd438138194aad00bf181d65b5` |
+| Decay-1.0 run: nets at 4B / 7.4B | `_work\runs\arms\wdc_W2\net_seen04000014336.fnn3`, `net_seen07400022016.fnn3` | `24480d3019b595a79d6766948821495b`, `e2ca566663ffedcf9c042a6d0b37cbe6` |
+| Decay-1.0 pilot arm W2: state at 2.0B | `_work\runs\wd\W2\stage_S2.pt` | `168c596795a5b0096ed54452bfb249e8` |
+| Decay-0.3 run: best state (7.25B), 7.4B state, 7.4B net | `_work\runs\arms\wd2c_X1\best.pt`, `stage_S4.pt`, `net_seen07400022016.fnn3` | `8ed4b9123f0b132ede30058ef340fc42`, `77ae48b44da733acc282a36299d10408`, `46a1907ee4e1299fafde4c783cddee70` |
+| No-decay run, paused: resumable state, 4B state | `_work\runs\phase2\latest.pt`, `stage_S3.pt` | `4e90858fb4833dd70b4d0443aba82028`, `4482683bfdfd46d76291a7ad5c78820d` |
+| Test set 2 (scored once) | `_work\data\final_test2_2m.pos`, `.hce` | `9574073e2b519dd5cc7c649ede09bfab`, `c7267e9dd67793658ab21e37053f60b7` |
+| Training-row sample (diagnostic) | `_work\data\train_sample_2m.pos` | `776cc15039785de12cddc9b6fea75b93` |
+| PGNs: MN1, M2, M3, M5 | `_work\match\<match folder>\games.pgn` | `a13bdce284a767f917a571aca7b5d45f`, `ad419cd9fc692bf1b08a7cfc61369928`, `e139c98d6c5f263cf7b07254d03e2b75`, `6c955aec37111c917beb90cf91ddf978` |
+| Plans: decay pilot W2, its continuation, decay 0.3 arm, its continuation, from scratch | `train/plans/wd_W2.json`, `wdc_W2.json`, `wd2_X1.json`, `wd2c_X1.json`, `scratch_wd.json` | `f8982948ea19d55df6b3323874b71f1f`, `85f0b46c638e1e62342103a66a7bb028`, `2c7c9e84e26acbd059a72c3db4c61e77`, `46a3b27b24fffbe19145af4907ebf8cd`, `5c86896e3adcdfc96154a2af912cd9da` |
+
+Evidence in the repository, all under `results/phase2/`: the declaration; `tables.md`; one folder per match (`mn1`,
+`m2`, `m3`, `m5`, `mn2`) with the result recomputed from the PGN, run info, compressed log, PGN md5 and the time
+losses with the guard's log lines; `wd/`, `wd2/`, `wdc_W2/`, `wd2c_X1/`, `scratch_wd/` with the runs' own metrics and
+logs; `FROZEN_CANDIDATE_2.json`, `_3.json`, `FREEZE_4_NO_NEW_CANDIDATE.json`; parity and bench files of candidates
+2 and 3; `test2/` with the scores and the access log; the score files of the averages and of the training-row sample.
+
+To reproduce the recipe: `bash h512/train/run_wd_pilots.sh W2` trains the pilot cycle from the phase-1 state at 1.0B
+(run folder `_work/runs/wd/W2`), `bash h512/train/run_arm.sh wdc_W2 /d/forge_jobs_20261111/h512E/_work/runs/wd/W2/stage_S2.pt`
+continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from random initialisation. Matches:
+`results/phase2/launch_match.sh`, `launch_match2.sh`.
 
 ## 12. Process, resources and deviations
 

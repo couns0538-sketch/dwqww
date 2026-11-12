@@ -9,7 +9,7 @@ which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8
 ## State: phase 1 COMPLETE (`REPORT.md`). Phase 2 (follow-up) IN PROGRESS: `REPORT_PHASE2.md` (draft).
 
 ## Phase 2 (follow-up at the owner's request, 20:30 to about 04:00)
-**Last update:** 01:07 (2026-11-12). Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 9 (each
+**Last update:** 01:58 (2026-11-12). Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 10 (each
 committed before the results it governs). Report draft: `REPORT_PHASE2.md`. Generated tables: `results/phase2/tables.md`.
 - **Why:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked for
   GPU and CPU to work at the same time.
@@ -21,28 +21,29 @@ committed before the results it governs). Report draft: `REPORT_PHASE2.md`. Gene
   (10), against 0.014480 without decay (a control repeat landed within 0.000003) and 0.014311 for s198 + HCE.
   Decay 1.0 continued: 0.013963 at 4.0B, 0.013903 at 7.4B, **0.013882 at 10.0B**. Decay 0.3 continued: 0.013929 at
   4.0B, 0.013879 at 7.4B. Decaying the shared factoriser weights too is harmful; alpha 0.4 is worse than 0.25.
-- **Candidate list closed at 00:51. Final candidate = candidate 3** (decay 1.0, 10,000,023,552 presentations,
-  selection loss 0.013882): `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`.
+- **Final candidate of the warm-started line = candidate 3** (decay 1.0, 10,000,023,552 presentations, selection loss
+  0.013882): `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`.
   Parity 14,000 of 14,000. Bench nodes 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
 - **Test set 2 (scored once, 00:52):** candidate 3 0.014070, candidate 2 0.014259, s198 + HCE 0.014527,
   candidate 1 0.014676, FB2 best 0.014826, HCE alone 0.017237. Same ranking as on the selection set.
-- **Match MN1 (done):** candidate 1 at a fixed 250,000 nodes per move: **-4.8 Elo, 95 % interval -12.5 to +3.0**
-  (3,000 games). Its +12.4 at equal time in phase 1 came from speed.
-- **Match M2 (done):** candidate 2 at 6 s + 0.06 s, 3,000 games: **+41.3 Elo, 95 % interval +33.8 to +48.9**
-  (44 games lost on time: candidate 19, lock 25; without the 24 pairs involved +41.2).
-- **Match M3 (done):** candidate 3 at 10 s + 0.1 s, 2,000 games: **+57.0 Elo, 95 % interval +48.3 to +65.7**
-  (13 games lost on time: candidate 7, lock 6; without the 10 pairs involved +57.5).
-- **Match M5 (CPU), running:** candidate 3 at 6 s + 0.06 s, 2,000 games, seed 2026111110. fastchess pid 3496,
-  started 00:34:24, expected end about 01:30. Running score at 01:05 after 1,128 games: +69 Elo, error 12 (fastchess's
-  own figure; not final). Folder `_work\match\m5_tc6_h512_cand_W2_seen10000023552`. Then MN2 (candidate 3, fixed
-  250,000 nodes, 3,000 games, about 55 minutes).
-- **GPU, running:** the from-scratch recipe experiment (`_work\runs\arms\scratch_wd`, GPU queue launcher pid 6928),
-  started 00:51:21, stops itself by 02:47 at the latest. First result: 0.014126 at 1.0B from random initialisation.
-  By declaration it produces no candidate tonight and is not scored on test set 2.
-- **Next:** MN2 when M5 ends; then the final `REPORT_PHASE2.md` (about 02:30 to 03:30).
-- **Resume point:** if the session is cut, the match and the GPU run finish by themselves. Then collect M5 with
-  `h512/results/phase2/collect_match.sh <match folder> m5`, start `h512/results/phase2/launch_match2.sh mn2
-  h512_cand_W2_seen10000023552.fnn3`, and finish `REPORT_PHASE2.md` from `results/phase2/`.
+- **Matches against the original lock exe, all done except MN2:**
+  - MN1, candidate 1, fixed 250,000 nodes, 3,000 games: **-4.8 Elo (95 % interval -12.5 to +3.0)**.
+  - M2, candidate 2, 6 s + 0.06 s, 3,000 games: **+41.3 (+33.8 to +48.9)**; 44 games lost on time (candidate 19, lock 25).
+  - M3, candidate 3, 10 s + 0.1 s, 2,000 games: **+57.0 (+48.3 to +65.7)**; 13 lost on time (candidate 7, lock 6).
+  - M5, candidate 3, 6 s + 0.06 s, 2,000 games: **+66.6 (+58.0 to +75.4)**; 9 lost on time (candidate 3, lock 6).
+- **Match MN2 (CPU), running:** candidate 3 at a fixed 250,000 nodes per move, 3,000 games, seed 2026111109.
+  fastchess pid 11576, started 01:28:53, expected end about 02:23. Running score at 01:57 after 1,569 games: +58 Elo,
+  error 10 (fastchess's own figure; not final). Folder `_work\match\mn2_nodes250k_h512_cand_W2_seen10000023552`.
+- **GPU, running:** the from-scratch run (`_work\runs\arms\scratch_wd`, GPU queue launcher pid 6928), started
+  00:51:21, stops itself by 02:47 at the latest. From random initialisation with decay 0.3: 0.014126 at 1.0B,
+  0.014055 at 2.0B, 0.013968 at 4.0B, level with the warm-started runs. Addendum 10: its best finished stage end
+  becomes candidate 4 only if it is at least 0.00002 below candidate 3 when MN2 ends; then test set 3 (built, not
+  scored) and match M6 follow. At the current pace that threshold will probably not be met.
+- **Next:** collect MN2, decide on candidate 4 by the rule, finish `REPORT_PHASE2.md`, final push (by about 03:15).
+- **Resume point:** if the session is cut, the match and the GPU run finish by themselves. Then collect MN2 with
+  `h512/results/phase2/collect_match.sh mn2_nodes250k_h512_cand_W2_seen10000023552 mn2` and finish
+  `REPORT_PHASE2.md` (the tokens MN2_ELO, MN2_CI, MN2_SENTENCE and SCRATCH_SENTENCE in its verdict still need values,
+  and sections 5c and 13 are missing).
 
 The sections below describe phase 1 and are unchanged.
 
