@@ -1,0 +1,71 @@
+{
+ "name": "wdc_W2",
+ "_comment": "JOB E phase 2: continuation of weight-decay arm W2 (decay 1.0 on w1), written 2026-11-11 21:20, before arms W2 and W3 had finished and before any continuation ran. It resumes the arm's own state at 2.0B (_work/runs/wd/W2/stage_S2.pt) and runs three more cosine cycles with the same recipe and the same decay: S3 to 4B, S4 to 7.4B (the brief's target), S5 to 10B (the owner's 'you can go for 10b'). No stop rule; a checkpoint with selection loss every 250M presentations. Only the plan of the winning arm is run.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "fb2_200k",
+   "pos": "F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 761856000,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 500,
+ "lr_final_frac": 0.05,
+ "ckpt_every_pres": 250000000,
+ "phase_weight": "natural",
+ "reference_metric": 0.014640172362362048,
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S3",
+   "end_seen": 4000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S4",
+   "end_seen": 7400000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S5",
+   "end_seen": 10000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  }
+ ],
+ "weight_decay": {
+  "w1": 1.0
+ }
+}

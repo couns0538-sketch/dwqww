@@ -160,7 +160,7 @@ A23 0.014466 (candidate 1: 0.014480). Averaging helps, and the average without t
 - Same candidate rule. The lowest selection loss among all qualifying nets at the time of a freeze becomes the candidate.
 - After `swa_C1` the GPU resumes the paused 10B run, unless a weight-decay arm won (then its continuation runs first).
 
-## Addendum 4 (21:09): running-average arm `ema_E1`
+## Addendum 4 (21:08): running-average arm `ema_E1`
 Known when this was written: W0 (the no-decay repeat of S2) ended at 0.014480 against S2's 0.014481, so run-to-run
 noise is about 0.000003; A012 scored 0.014445. No weight-decay arm with decay had finished.
 - `ema_E1` repeats stage S2 once more (from the 1.0B state, same recipe, no decay) and keeps three exponential running
@@ -168,3 +168,21 @@ noise is about 0.000003; A012 scored 0.014445. No weight-decay arm with decay ha
   Plan `h512/train/plans/ema_E1.json`. It runs on the GPU after `swa_C1`, before the paused 10B run resumes.
 - The averaged nets at its 2.0B stage end are eligible candidates under the same rule. The raw net of this arm is a
   third repeat of S2 and is not a candidate.
+
+## Addendum 5 (21:20): weight decay works; the GPU plan follows it
+Known when this was written: arm W1 (decay 0.1 on `w1`) ended at **0.014119** on the selection set, against 0.014480
+for the same cycle without decay (W0) and 0.014311 for s198 + HCE. On the training-row sample it scored 0.013182
+(W0: 0.013014), so the fit gap shrank from 0.00147 to 0.00094. Arms W2 (decay 1.0) and W3 (decay 10) had not finished.
+- **The winner's continuation goes to 10B.** As addendum 2 says, the arm with the lowest stage-end loss among W1 to W3
+  continues from its own 2.0B state with the same decay; the stages are now fixed as 4B, 7.4B and 10B
+  (plans `h512/train/plans/wdc_W*.json`, chosen automatically by `h512/train/run_wd_continue.sh` when W3 ends).
+- **Dropped:** `swa_C1` and `ema_E1` (addenda 3b and 4) are not run. They average nets trained without decay, and
+  decay improves the loss ten times more than averaging did. Averages of the continuation's own stage ends stay
+  eligible under addendum 3.
+- **The paused 10B run without decay stays paused** (resumable). It was getting worse on unseen positions, so the GPU
+  time goes to the decayed run, which is taken to the 10B the owner asked for. If GPU time is left at the end, more
+  decay values next to the winner are tried under addendum 2's rule.
+- **Candidate 2** is frozen when match MN1 has ended and arm W3 has finished: the eligible net with the lowest selection
+  loss at that time (arm checkpoints at 2.0B and the averages computed so far). It plays M2 (6 s + 0.06 s).
+- M3 (10 s + 0.1 s) is played by the best eligible net when M2 ends. A third slot of 85 minutes, if time allows, is
+  that net at 6 s + 0.06 s (seed 2026111110) if it is not the M2 net, otherwise the fixed-nodes match with it.
