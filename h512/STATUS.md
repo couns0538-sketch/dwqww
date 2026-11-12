@@ -2,17 +2,17 @@
 
 **Last update:** 2026-11-12 03:35 PC clock (phase 2, below). **Job start:** 2026-11-11 16:53 (planning 16:53-17:10,
 plan approved 17:10, work from 17:11).
-**Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 7 h 10 min of a further 7.5 h (20:30 to 03:40).
+**Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 7 h of a further 7.5 h (20:30 to 03:30).
 **Branch:** `fable/standalone-h512-20261111`, cut from Job D's head `1508c13cdfb87894f01cf3a95fd87b9ad3a4cef0`,
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
 
 ## State: COMPLETE. Phase 1: `REPORT.md`. Phase 2 (follow-up): `REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3.
 
-## Phase 2 (follow-up at the owner's request, 20:30 to 03:40)
+## Phase 2 (follow-up at the owner's request, 20:30 to 03:30)
 **Last update:** 03:35 (2026-11-12). **Phase 2 is COMPLETE.** Result: `REPORT_PHASE2.md`. Rules:
 `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 11 (each committed before the results it governs).
-Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to about 03:40, 7 h 10 min of the 7.5 h offered.
+Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to 03:30, 7 h of the 7.5 h offered.
 - **Verdict: strongly promising for QA, gate candidate 3.** Not a gate result and not a lock claim.
 - **Why phase 2:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked
   for GPU and CPU to work at the same time.

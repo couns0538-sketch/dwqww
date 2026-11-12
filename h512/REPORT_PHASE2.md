@@ -1,6 +1,6 @@
 # JOB E phase 2 (follow-up) - Standalone H512: over-fitting found, weight decay fixes it - REPORT
 
-Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 03:40 on grok-pc. This file continues
+Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 03:30 on grok-pc. This file continues
 `REPORT.md` (phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
 Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and eleven addenda, each committed
 before the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
@@ -591,10 +591,10 @@ Times are read from the logs (PC clock).
 | Report, final checks, push of the declared work | | 02:23 - 02:38 |
 | Rebuild for candidate 3, coverage proof, two quiet timings (addendum 11) | CPU | 02:40 - 02:45 |
 | Match M7 (candidate 3, rebuilt exe, 6 s + 0.06 s, GPU idle) | CPU | 02:45:59 - 03:26:22 |
-| Final report and push | | 03:26 - 03:40 |
+| Final report and push | | 03:26 - 03:30 |
 
 - The GPU trained from 20:34 to 02:35 with gaps of seconds between runs. The CPU played matches from 20:38 to 02:22,
   with one gap of 8 minutes (21:33 to 21:41, waiting for the last pilot arm, as declared) and seconds between the
   others, and M7 from 02:46 to 03:26 with the GPU idle on purpose.
 - About 33 billion training presentations in 13 runs, and 14,500 match games.
-- Phase 2 used about 7 hours 10 minutes of the 7.5 hours offered.
+- Phase 2 used about 7 hours of the 7.5 hours offered.
