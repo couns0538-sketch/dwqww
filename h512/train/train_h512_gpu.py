@@ -478,7 +478,10 @@ def cmd_train(a):
             cfg["king_map"] = v3.king_layout(cfg["king_buckets"])
             cfg["output_map"] = v3.output_layout(cfg["output_buckets"])
     model = fb.build_model(cfg, torch)
-    model.load_state_dict(ck["state"] if resume else fb2["state"])
+    if resume or not plan.get("init_random"):
+        model.load_state_dict(ck["state"] if resume else fb2["state"])
+    else:   # plan key "init_random": keep build_model's own seeded random weights; init_fb2 only supplies the shape (cfg)
+        say(f"random initialisation (seed {cfg['seed']}, init scale {cfg['init_scale']}); the init checkpoint's weights are not used")
     model = model.to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     B = int(plan["batch"])

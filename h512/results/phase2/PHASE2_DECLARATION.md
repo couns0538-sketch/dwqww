@@ -225,3 +225,18 @@ planned.
   The condition "at least 60 minutes before 03:05" is replaced by: MN2 starts if M5 has ended by 02:00.
 - Reason: with 3,000 games in M5 there would be no time for MN2, and the equal-nodes result is the one piece of
   information no other match of phase 2 gives for a weight-decay net. Commands: `launch_match2.sh`.
+
+## Addendum 9 (23:46): arm X4 stopped; how the GPU work ends
+Known when this was written: second-round results X1 (decay 0.3) 0.014049, X2 (decay 3) 0.014147, X3 (decay 1.0 on
+`w1` and `wf`) 0.014915; X5 not finished; M3's running score after about 900 games.
+- **X4 was stopped** with its STOP flag at 23:44:20, 34M presentations into its cycle. X3 showed that decaying the
+  factoriser weights is harmful (0.014915 against 0.014083 without it), and X4 is X3 plus decay on the output weights,
+  so it could not have shown anything about the output weights alone. X3 also ran at half the usual speed (18 minutes);
+  X4 would have cost another 18 minutes that the continuation below needs. X4 has no result.
+- **Continuation:** as addendum 6 says, the best second-round arm that beats W2 continues to 4B and 7.4B.
+- **The candidate list closes when that continuation ends.** A last freeze by the usual rule happens then, if a net
+  qualifies. **Test set 2 is scored once right after**, for every frozen candidate and the references.
+- **After that the GPU runs one recipe experiment that cannot produce a candidate:** the same recipe with the winning
+  decay trained **from random initialisation** (no FB2 warm start, no decay-free phase), with stage ends at 1B, 2B, 4B,
+  7.4B and 10B and a hard stop at 02:50. Question: is the warm start needed at all? Its nets are scored on the
+  selection set only, never on test set 2, and none of them is frozen or played tonight.

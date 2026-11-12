@@ -190,3 +190,20 @@ Candidate 2 is the decay-1.0 net at 2.0B (selection loss 0.014081). Same setting
   suspension then). Without the 24 opening pairs involved: **+41.2 (+33.6 to +48.7)**. The guard was not bypassed.
 - No crash, no illegal move, no disconnect.
 - Evidence: `results/phase2/m2/` (`match_result.json`, `time_losses.txt` with the guard's log lines, run info, log, PGN md5).
+
+## 10. Limits of this evidence
+
+- **These are screens, not the gate.** One machine, one evening, 2,000 to 3,000 games per match, time controls of
+  6 s + 0.06 s and 10 s + 0.1 s, Threads 1. QA's gate decides.
+- **Timed matches ran with the GPU busy** and lost games on time to guard suspensions (counted by side above).
+  The suspensions hit whichever side was to move; the results without the affected pairs are within 0.2 Elo.
+- **The executable was not rebuilt** for the new nets. Its PGO profile was collected with candidate 1's net loaded.
+  NPS was not re-measured for the new nets; the weights change, the arithmetic does not.
+- **One seed per recipe.** Run-to-run noise was measured once (0.000003, control arm W0). The decay effect is a
+  hundred times larger, but the fine ranking of decay 0.3 against 1.0 rests on single runs.
+- **The selection set was used for about twenty choices in phase 2** (pilot arms, averages, checkpoints, candidates).
+  It has 2,000,000 rows, so the bias from that is small, and test set 2 (section 8) is the independent check.
+- **Weight decay was only tried on a net that had first trained 1.0B presentations without it** (FB2's warm start plus
+  phase 1's first stage). Section 5b reports what was tried beyond that.
+- **Not tested, as in phase 1:** Threads above 1 on the standalone path, clocks longer than 10 s + 0.1 s, sanitizers.
+- **Sets are separated by shard file and by position, not by game id** (the rows carry none), as in phase 1.
