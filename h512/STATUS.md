@@ -1,5 +1,12 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
+**After the report (2026-11-12 07:25, owner's instruction):** the UCI author line in `forge-combo29/src/uci.cpp` no
+longer names OpenAI. It reads `Forge project` until the owner gives the name to show. This is the only source
+change: exactly one preprocessed line differs from the previous head `83edcc4e`, and the file compiles with the
+switches off and with `FORGE_NNUE_V3=1`. Every executable cited below was built before this change and still prints
+the old line; the candidate executable will be rebuilt and will then have a new hash. The lock branch and the lock
+exe are not touched by this job.
+
 **Last update:** 2026-11-12 03:35 PC clock (phase 2, below). **Job start:** 2026-11-11 16:53 (planning 16:53-17:10,
 plan approved 17:10, work from 17:11).
 **Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 7 h of a further 7.5 h (20:30 to 03:30).
