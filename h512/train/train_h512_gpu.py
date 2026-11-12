@@ -495,6 +495,13 @@ def cmd_train(a):
             torch.cuda.set_rng_state_all(ck["cuda_rng"])
         say(f"resumed {latest}: seen {st_state['seen']} stage {st_state['stage']} stage_step {st_state['stage_step']} "
             f"epoch {st_state['epoch']} offset {st_state['offset']}")
+        if st_state.get("stop_reason"):
+            if not a.clear_stop:
+                raise SystemExit(f"refused: this run ended with '{st_state['stop_reason']}'; continuing needs --clear-stop <why>")
+            say(f"CLEAR-STOP: earlier stop '{st_state['stop_reason']}' set aside, reason given: {a.clear_stop}")
+            st_state.setdefault("cleared_stops", []).append({"stop": st_state["stop_reason"], "why": a.clear_stop,
+                                                             "seen": st_state["seen"], "wall": time.strftime("%Y-%m-%dT%H:%M:%S")})
+            st_state["stop_reason"] = ""
     elif not plan.get("fresh_optimizer", True):
         opt.load_state_dict(fb2["opt"])
         say("optimizer state taken from the init checkpoint")
@@ -832,6 +839,7 @@ def main():
     t.add_argument("--no-guard", action="store_true")
     t.add_argument("--max-pres", type=int, default=0)
     t.add_argument("--max-minutes", type=float, default=0.0)
+    t.add_argument("--clear-stop", default="", help="continue a run that ended by a rule; the text is logged as the reason")
     t.add_argument("--hash-indices", action="store_true")
     t.add_argument("--log-every", type=int, default=2000)
     t.set_defaults(func=cmd_train)
