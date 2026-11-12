@@ -97,3 +97,26 @@ resumes a copy of the 1.0B state (model, Adam, RNG, data position) and trains on
 
 W2 won by the declared rule. Its checkpoint at 2,000,003,072 presentations (0.014081) was frozen as **candidate 2**.
 Evidence: `results/phase2/wd/` (metrics and logs of all four arms, `WINNER.txt`), `results/phase2/tables.md` table B.
+
+## 7. Matches
+
+All matches are this job's own screens against the original lock exe (md5 `c0051c99695f48bf93272d96fe7548c3`),
+not the crew gate. Each was declared with its exact net hash before its first game (`results/phase2/*_DECLARATION.md`).
+fastchess, Threads 1, Hash 16, OwnBook false, `UHO_Lichess_4852_v1.epd` in random order, every opening with both
+colours, 12 games at once, no adjudication. Elo and the 95 % interval are recomputed from the PGN with opening pairs
+as the unit (`tools/match_elo.py`).
+
+### MN1: candidate 1 at equal nodes (speed taken out)
+
+Both engines searched a fixed 250,000 nodes per move with no clock (`tools/run_match_nodes.sh`, seed 2026111108).
+That is about what they searched per move at 6 s + 0.06 s (0.13 s per move on average in the phase-1 match).
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 3,000 | 791 | 1,377 | 832 | 49.32 % | **-4.8** | -12.5 to +3.0 | 60 / 367 / 677 / 346 / 50 |
+
+- No game ended abnormally; a clock-free match cannot lose on time and the guard did not suspend it.
+- **Reading:** at equal nodes candidate 1 is level with combo29 or slightly behind. Its +12.4 Elo at equal time in
+  phase 1 therefore came from its 20 % higher speed, not from a better evaluation. This agrees with its losses on
+  stored positions (0.014480 against 0.014311 on the selection set).
+- Evidence: `results/phase2/mn1/` (result recomputed from the PGN, run info, log, PGN md5).
