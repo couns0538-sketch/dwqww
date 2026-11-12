@@ -137,3 +137,25 @@ stage end (0.014481), while the training loss kept falling. More passes are maki
 - Reason for the swap: the pilot is the experiment that can still produce a better net; running it first leaves time
   to play a declared match with its result.
 - If an arm wins, its continuation to 4B is frozen and matched first (M2 slot); the 7.4B stage follows while that match runs.
+
+## Addendum 3 (20:55): weight averaging of stage-end nets
+Declared before any average was computed. Known: everything listed above.
+- Idea: each stage is a full cosine cycle that ends at a low learning rate, so the stage ends at 1.0B, 2.0B and 4.0B are
+  three finished nets of one lineage. Averaging their float weights (equal weights, `h512/tools/average_ckpts.py`) is a
+  standard remedy for over-fitting and costs no training.
+- Averages computed: **A12** (1.0B + 2.0B), **A23** (2.0B + 4.0B), **A123** (all three). Later stage ends of the same
+  run, and of a winning weight-decay arm, may be averaged the same way under this rule.
+- Each average is exported with the trainer's exporter and scored on the selection set like any checkpoint.
+- Candidate rule unchanged: an average becomes a new candidate only if its selection loss is at least 2e-5 below the
+  current candidate's (candidate 1: 0.014480). If several qualify, the lowest wins.
+
+## Addendum 3b (20:58): snapshot-averaging run, and one more average
+Known when this was written: the three averages of addendum 3 on the selection set: A12 0.014443, A123 0.014458,
+A23 0.014466 (candidate 1: 0.014480). Averaging helps, and the average without the over-fitted 4.0B net is best.
+- **A012** is added: the FB2 warm-start state (0.762B, the end of FB2's own cosine cycle) + 1.0B + 2.0B.
+- **Snapshot-averaging run `swa_C1`** (GPU, after the weight-decay arms): from the 2.0B state, eight short cosine
+  cycles of 250M presentations (2.0B to 4.0B), learning rate 2.5e-4 falling to 2.5e-5, alpha 0.25, no decay.
+  Plan `h512/train/plans/swa_C1.json`. Candidates from it are averages of cycle-end states, fixed now:
+  **SWA4** (the first four cycle ends), **SWA8** (all eight), **SWA4+** and **SWA8+** (the same plus the 2.0B start state).
+- Same candidate rule. The lowest selection loss among all qualifying nets at the time of a freeze becomes the candidate.
+- After `swa_C1` the GPU resumes the paused 10B run, unless a weight-decay arm won (then its continuation runs first).

@@ -1,0 +1,103 @@
+{
+ "name": "swa_C1",
+ "_comment": "JOB E phase 2 snapshot-averaging run, written 2026-11-11 20:58 before it ran. It resumes a copy of the phase-1 state at 2.0B (_work/runs/main/stage_S2.pt, the lineage of candidate 1) and runs eight short cosine cycles of 250M presentations each (2.0B -> 4.0B), peak lr 2.5e-4 falling to 2.5e-5, no warm-up, alpha 0.25, no weight decay. The float state at the end of every cycle is kept (stage_C1.pt .. stage_C8.pt); the candidates are plain averages of those states (h512/tools/average_ckpts.py), not the single snapshots.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "fb2_200k",
+   "pos": "F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 761856000,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 0,
+ "lr_final_frac": 0.1,
+ "ckpt_every_pres": 100000000000,
+ "phase_weight": "natural",
+ "reference_metric": 0.014640172362362048,
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C1",
+   "end_seen": 2250000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C2",
+   "end_seen": 2500000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C3",
+   "end_seen": 2750000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C4",
+   "end_seen": 3000000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C5",
+   "end_seen": 3250000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C6",
+   "end_seen": 3500000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C7",
+   "end_seen": 3750000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "C8",
+   "end_seen": 4000000000,
+   "lr_peak": 0.00025,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  }
+ ]
+}
