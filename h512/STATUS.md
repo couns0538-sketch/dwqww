@@ -1,6 +1,6 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
-## After the report: 2026-11-12, 06:50 to 10:00 PC clock (evidence in `results/phase3/`)
+## After the report: 2026-11-12, 06:50 to 11:40 PC clock (evidence in `results/phase3/`)
 
 Nothing here is a gate result or a lock claim. The lock branch and `main` were not touched.
 
@@ -9,13 +9,24 @@ Nothing here is a gate result or a lock claim. The lock branch and `main` were n
   time, one by each side, in the last minute, when the owner's resource guard suspended the match process for 5 s
   (09:34:14, thermal); without those two pairs +53.1. So the advantage at a clock five times longer is about the
   same as at 10 s + 0.1 s (+57.0) and at fixed nodes (+54.9). `results/phase3/m8/`.
+- **Match M9, the 1024-unit pilot net against candidate 3 at 10 s + 0.1 s** (declared 10:05 before the first game,
+  2,000 games, same rebuilt executable on both sides, ended 11:38): **-5.9 Elo for the wide net, 95 % interval
+  -14.2 to +2.4** (477 W / 1,012 D / 511 L), inside the range written down beforehand (-15 to +5). With today's
+  data the wide net does not pay at this clock: its better loss (0.013800 against 0.013882) does not make up for
+  searching 0.8579x as fast. It stays a pilot net, not a candidate. 38 games were lost on time (20 by the wide
+  net, 18 by candidate 3), all in four bursts, each during a thermal suspension of the match process by the
+  owner's resource guard: 10:26:25 (5 s), 11:26:40 (77 s), 11:29:54 (20 s), 11:32:35 (11 s). Without the 24 pairs
+  that hold such a game: -5.9, interval -14.1 to +2.4, so the result does not depend on them. **Deviation from the
+  declaration ("nothing else of this job runs"):** the PC audit the owner ordered read files beside the match from
+  10:45 at low priority and from 11:27 at high priority with four workers; the three late suspensions fall in
+  that second window. `results/phase3/m9/`.
 - **Wider net pilot (1024 hidden units, same data, same recipe, random start, 10.0B presentations, 147 min):**
   selection loss 0.014000 / 0.013941 / 0.013868 / 0.013827 / **0.013800** at 1.0 / 2.0 / 4.0 / 7.4 / 10.0B, against
   0.014126 / 0.014055 / 0.013968 / 0.013916 / 0.013882 for 512 units. The gain shrinks from 0.000126 to 0.000082.
   On a sample of its own training rows the wide net scores 0.012615 (512 units: 0.013190): its gap to unseen rows
   is 0.001185 against 0.000692, so the wide net is limited by the amount of data, not by its size. The engine
   searches 0.8579x as many nodes per second with it (95 % CI 0.8552 to 0.8606, 16 pairs, same executable). No
-  candidate was taken; no match was played with it yet; never scored on a test set. Net
+  candidate was taken; its one match is M9 (above); never scored on a test set. Net
   `_work\runs\arms\h1024_pilot\net_seen10000023552.fnn3`, md5 `516d450489d5fcc750f35563e41689ee`.
   `results/phase3/h1024_pilot/TABLE.md`, `results/phase3/abba_h1024_speed/`.
 - **Candidate executable rebuilt with the author line `Couns`** (09:38, source commit `ce1710b6`, same flags, own
@@ -23,7 +34,7 @@ Nothing here is a gate result or a lock claim. The lock branch and `main` were n
   md5 `0836190d2a2653dbbfad3904d187b446`, sha256 `6733d4b208fb4ecde2a21edf30885fe0fed35af3392265d036a17f91740183c7`.
   It prints `id author Couns`. Bench nodes 348,651 / 743,566 / 2,890,515 as before. Speed against the executable
   that played M7 and M8 (md5 `0b9da97c...`, prints the old line): 0.9980x, 95 % CI 0.9957 to 1.0004, 16 pairs, same
-  node count. **No match was played with the new file**; the search is the same by node count.
+  node count. The new file played M9 (both sides); it has not played the lock. The search is the same by node count.
   `results/phase3/build_c3_author_couns/`, `results/phase3/abba_author_rebuild/`.
 - **Checkpoints are now read with a restricted loader** (`h512/train/ckpt_io.py`) in all seven places of this job's
   tools; before, a crafted checkpoint file could have run code when opened. Tests: a file that carries a command is
@@ -48,8 +59,8 @@ Nothing here is a gate result or a lock claim. The lock branch and `main` were n
 - **Correction:** the safety review written at 08:30 (`_work\REPO_SAFETY_REVIEW_20261112.md`) said 62 lines load
   checkpoints unsafely. 13 of those are `yaml.load` with the safe `BaseLoader`; the right number is 49 over the
   whole history, 22 calls in 16 files at branch tips outside this branch.
-- **Failed, not done or limited:** the wide net was not played; the rebuilt executable was not played; M8 ran with
-  the GPU busy and Hash 16 MB; the old files remain in the history of the 57 branches and at the tag
+- **Failed, not done or limited:** the wide net was played at one clock only and under the audit's load (M9); the
+  rebuilt executable has not played the lock; M8 ran with the GPU busy and Hash 16 MB; the old files remain in the history of the 57 branches and at the tag
   `astra-a1-data-results-20261030`; checkpoint loading in other jobs' trainers was not changed; the 519 files over
   2 MB in the repository were not inspected; 66 earlier commits of this branch carry an AI co-author line (removing
   it needs a history rewrite, which the rules forbid).
