@@ -95,7 +95,7 @@ Changes:
 | M4 if time allows | up to 100 minutes |
 | Report, hashes, push | from 03:10 at the latest |
 
-## Addendum 2 (20:52): weight-decay pilot on the GPU after the 10B run
+## Addendum 2 (20:50): weight-decay pilot on the GPU after the 10B run
 Known when this was written: phase-2 checkpoints up to 3.0B (selection loss 0.014579 at learning rate 2.6e-4; stage S2
 stood at 0.014565 at the same point of its cycle), and this diagnostic (`train_sample_*.json` in this folder):
 
@@ -126,3 +126,14 @@ Pilot, declared before any arm runs:
   (lowest selection loss; a new candidate only if at least 2e-5 below the current candidate).
 - If no arm helps: that is the finding. The GPU then continues the unregularised run from 10B toward 20B (stage S6).
 - The training-row sample is scored at every checkpoint of the arms only to show the fit gap. It is never used to choose.
+
+## Addendum 2b (20:54): order swapped, the pilot runs before the rest of the 10B run
+Known when this was written: stage S3 ended at 4.0B with selection loss 0.014506, which is 2.5e-5 worse than the 2.0B
+stage end (0.014481), while the training loss kept falling. More passes are making the net worse on unseen positions.
+- The 10B run was paused with its own STOP flag at 20:53:46, 1,100 steps into stage S4 (4,009,025,536 presentations).
+  It is resumable from `_work\runs\phase2\latest.pt` with the exact data position and continues to 10B later
+  (the owner asked for 10B), while the CPU plays matches.
+- The weight-decay pilot of addendum 2 started at 20:54 instead of after 10B. Its arms and rules are unchanged.
+- Reason for the swap: the pilot is the experiment that can still produce a better net; running it first leaves time
+  to play a declared match with its result.
+- If an arm wins, its continuation to 4B is frozen and matched first (M2 slot); the 7.4B stage follows while that match runs.
