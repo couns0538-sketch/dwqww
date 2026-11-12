@@ -453,7 +453,7 @@ Times are read from the logs and rounded to the minute.
 | Freeze, PGO build, parity, final test, pins, rules | 18:09 - 18:12 |
 | Quiet ABBA NPS | 18:12 - 18:16 |
 | Match | 18:16:49 - 19:37:44 |
-| Report and final push | 19:38 - 19:50 |
+| Report and final push | 19:38 - 19:42 |
 
-Total about 3 hours of the 10-hour allowance. Training took 12 minutes of GPU time instead of the planned hours
+Total 2 hours 49 minutes of the 10-hour allowance. Training took 12 minutes of GPU time instead of the planned hours
 because it stopped by rule at 2.0B; the remaining time was not padded.
