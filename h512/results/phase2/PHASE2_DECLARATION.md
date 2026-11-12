@@ -214,3 +214,14 @@ time after three guard suspensions), and the decay run up to 6.0B. M2 is not sto
   played), if at least 60 minutes remain before 03:05. It answers what MN1 answered for candidate 1: evaluation quality
   with speed taken out.
 - All three as before: against the original lock exe, 12 games at once, the GPU job running, time losses by side.
+
+## Addendum 8 (23:09): M5 with 2,000 games so that MN2 fits
+Known when this was written: M2's final result (candidate 2: +41.3 Elo), candidate 3 frozen (0.013882), M3's first
+60 games, and half of second-round arm X1. M3 runs at about 20 games a minute and will end near 00:45, later than
+planned.
+- **M5** is played with **2,000 games** (not 3,000): 6 s + 0.06 s, seed 2026111110, the eligible net with the lowest
+  selection loss when M3 ends (candidate 3 unless a second-round continuation has beaten it by then).
+- **MN2** follows M5 directly: fixed 250,000 nodes per move, 3,000 games, seed 2026111109, the same net as M5.
+  The condition "at least 60 minutes before 03:05" is replaced by: MN2 starts if M5 has ended by 02:00.
+- Reason: with 3,000 games in M5 there would be no time for MN2, and the equal-nodes result is the one piece of
+  information no other match of phase 2 gives for a weight-decay net. Commands: `launch_match2.sh`.
