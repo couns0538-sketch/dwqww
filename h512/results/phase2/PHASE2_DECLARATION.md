@@ -186,3 +186,17 @@ for the same cycle without decay (W0) and 0.014311 for s198 + HCE. On the traini
   loss at that time (arm checkpoints at 2.0B and the averages computed so far). It plays M2 (6 s + 0.06 s).
 - M3 (10 s + 0.1 s) is played by the best eligible net when M2 ends. A third slot of 85 minutes, if time allows, is
   that net at 6 s + 0.06 s (seed 2026111110) if it is not the M2 net, otherwise the fixed-nodes match with it.
+
+## Addendum 6 (21:57): second pilot round on the GPU after the 10B run
+Known when this was written: the first round (W1 0.014119, W2 0.014083, W3 0.014199 at 2.0B; W2 won and is candidate 2),
+match MN1 (-4.8 Elo at equal nodes for candidate 1), and the continuation of W2 up to 3.0B (0.014162 mid-cycle).
+Nothing of match M2 beyond a running score.
+- Five arms, each the same 1.0B to 2.0B cycle from the phase-1 state at 1.0B, to be compared with W2's 0.014083:
+  **X1** decay 0.3 on `w1`; **X2** decay 3 on `w1`; **X3** decay 1.0 on `w1` and on the shared factoriser weights `wf`;
+  **X4** decay 1.0 on `w1`, `wf` and the output weights `w2`; **X5** decay 1.0 on `w1` with alpha 0.4 instead of 0.25.
+  Plans `h512/train/plans/wd2_X*.json`. About 10 minutes each, queued behind the 10B run.
+- Rule: an arm "beats W2" if its 2.0B stage-end selection loss is at least 2e-5 below 0.014083. If one does, the best
+  such arm is continued from its own 2.0B state in the same stages as W2's continuation (4B, then 7.4B) while time
+  allows, and its checkpoints become eligible candidates under the usual rule. If none does, the GPU work ends with
+  the 10B run and these five results.
+- Any net frozen after M3 has started plays the third match slot (6 s + 0.06 s, seed 2026111110) if time allows.

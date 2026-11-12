@@ -1,0 +1,50 @@
+{
+ "name": "wd2_X5",
+ "_comment": "JOB E phase 2, second pilot round, written 2026-11-11 21:56 before any of these arms ran: decay 1.0 on w1, alpha 0.4 instead of 0.25. Like the first round, the arm resumes a copy of the phase-1 state at 1.0B (_work/runs/main/stage_S1.pt) and repeats the cosine cycle 1.0B -> 2.0B (peak lr 5e-4, batch 8192); it is compared with arm W2 (decay 1.0 on w1, alpha 0.25), which ended that cycle at selection loss 0.014083.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "fb2_200k",
+   "pos": "F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 761856000,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 500,
+ "lr_final_frac": 0.05,
+ "ckpt_every_pres": 250000000,
+ "phase_weight": "natural",
+ "reference_metric": 0.014640172362362048,
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.4,
+   "alpha_end": 0.4
+  }
+ ],
+ "weight_decay": {
+  "w1": 1.0
+ }
+}
