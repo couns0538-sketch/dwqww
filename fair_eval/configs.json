@@ -15,6 +15,7 @@
     "lockkb8": { "file": "lock_s198_rank4x2_ob8.nnue2", "sha256": "8559fdfab2073754ec4614a674f9786467ddbda44a88529f6ef1db2f4a8df7b9", "what": "s198 written as KB8 (rank4x2) / OB8 replicas, residual; same function as the compiled-in net" },
     "U8": { "file": "o30_gpu_soupU8r3r5r10r12r14.nnue2", "sha256": "dcf07a65aee585acec3977a2d4655414f81211fce0bf670833aa038fabb66ea7", "what": "KB8 soup U8 (opus-30h)" },
     "npt1024": { "file": "npt_k32h3_l1024_bs16k_e8x152m5_g072_lam10_w4_s6_final.nnue", "sha256": "7e23fd959dc46e3139b83a92434c1b5dfa01ceb332e6ebb327a7524cf48efcc9", "what": "stand-alone K32H3 L1 1024 net of gate row NPTW4S6-FIN (nnue-pytorch export); no hand-crafted term" },
+    "h512_cand": { "file": "h512_cand_seen02000003072.fnn3", "sha256": "7b68cb703bf7849169f0e46f4f20e3c480d6588a82ed0c2e87803b748f5767e2", "what": "JOB E frozen candidate: stand-alone H512 FORGENN3, 2000003072 presentations, selection loss 0.014480" },
     "h512_fb2best": { "file": "fb2_best_ck15_step87164.fnn3", "sha256": "b0bf4669dd92f18a18346f759a34a5dad710a27d995fb7eebe56da126bdf937e", "what": "JOB E rehearsal only: FB2 J1 best checkpoint 15 (stand-alone H512 FORGENN3, 714M positions)" },
     "r5": { "file": "o30_gpu_kb8short_r5.nnue2", "sha256": "27ea0a39c26977a99bb4a08e9902f47604ede146f43f432022ca06db705d3acc", "what": "KB8 run 5 (opus-30h)" }
   },
@@ -137,6 +138,15 @@
       "expect_nodes": [312866, 862329, 3024920],
       "must_run": ["forge::nnue::evaluate\\("],
       "must_be_zero": ["Worker::halfka_evaluate\\(", "forge::halfka::evaluate\\("]
+    },
+    "h512_v3": {
+      "path": "JOB E candidate: stand-alone integer NNUE v3 H512 (FORGE_NNUE_V3); the net is the whole evaluation, trained with the net loaded",
+      "defines": ["-DFORGE_NNUE_V3=1"], "extra_units": ["nnue_v3.cpp", "search_v3.cpp"], "net": "h512_cand",
+      "train_setoptions": ["setoption name NNUEArchFile value {NET}", "setoption name NNUEArch value true"],
+      "run_setoptions": ["setoption name NNUEArchFile value {NET}", "setoption name NNUEArch value true"],
+      "expect_nodes": [],
+      "must_run": ["Worker::static_evaluate_v3\\(", "forge::nnue::v3::evaluate\\(", "forge::nnue::v3::apply_changes\\(", "forge::nnue::v3::refresh_cached\\("],
+      "must_be_zero": ["forge::nnue::evaluate\\(", "forge::nnue::update\\(", "forge::nnue::refresh\\(", "Evaluator::evaluate\\(", "Evaluator::evaluate_runtime\\(", "Evaluator::refresh_runtime_psqt\\("]
     },
     "h512_v3_rehearsal": {
       "path": "JOB E rehearsal: stand-alone integer NNUE v3 H512 (FORGE_NNUE_V3), the net is the whole evaluation; FB2 best net",
