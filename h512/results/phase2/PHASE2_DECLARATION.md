@@ -187,7 +187,7 @@ for the same cycle without decay (W0) and 0.014311 for s198 + HCE. On the traini
 - M3 (10 s + 0.1 s) is played by the best eligible net when M2 ends. A third slot of 85 minutes, if time allows, is
   that net at 6 s + 0.06 s (seed 2026111110) if it is not the M2 net, otherwise the fixed-nodes match with it.
 
-## Addendum 6 (21:57): second pilot round on the GPU after the 10B run
+## Addendum 6 (21:54): second pilot round on the GPU after the 10B run
 Known when this was written: the first round (W1 0.014119, W2 0.014083, W3 0.014199 at 2.0B; W2 won and is candidate 2),
 match MN1 (-4.8 Elo at equal nodes for candidate 1), and the continuation of W2 up to 3.0B (0.014162 mid-cycle).
 Nothing of match M2 beyond a running score.
