@@ -98,6 +98,29 @@ resumes a copy of the 1.0B state (model, Adam, RNG, data position) and trains on
 W2 won by the declared rule. Its checkpoint at 2,000,003,072 presentations (0.014081) was frozen as **candidate 2**.
 Evidence: `results/phase2/wd/` (metrics and logs of all four arms, `WINNER.txt`), `results/phase2/tables.md` table B.
 
+## 5. The decay recipe continued to 10B
+
+The winning arm was continued from its own 2.0B state with the same recipe and the same decay through three more
+cosine cycles (plan `train/plans/wdc_W2.json`, run `_work\runs\arms\wdc_W2`, 80.6 minutes for 8.0B presentations
+including 36 scored checkpoints; no thermal hold).
+
+| Stage end | Presentations | Passes over the 271.8M rows | Selection (unseen) | Training rows | Gap | FB2's old holdout |
+|---|---:|---:|---:|---:|---:|---:|
+| candidate 1, no decay | 2,000,003,072 | 7.4 | 0.014480 | 0.013014 | 0.001466 | 0.014567 |
+| decay 1.0 | 2,000,011,264 | 7.4 | 0.014083 | 0.013644 | 0.000439 | 0.014147 |
+| decay 1.0 | 4,000,014,336 | 14.7 | 0.013963 | 0.013517 | 0.000446 | 0.014024 |
+| decay 1.0 (the brief's 7.4B) | 7,400,022,016 | 27.2 | 0.013903 | 0.013456 | 0.000447 | 0.013966 |
+| **decay 1.0 (candidate 3)** | **10,000,023,552** | 36.8 | **0.013882** | 0.013441 | 0.000441 | 0.013946 |
+
+- With decay, more passes help: unseen and seen rows improve together and the gap stays at 0.00044. Without decay
+  the same passes made unseen rows worse (section 2).
+- The gains shrink: 0.000120 from 2B to 4B, 0.000060 to 7.4B, 0.000021 to 10B. The recipe is close to its limit on
+  this data; going past 10B would add little.
+- 10B is what the owner asked for and 7.4B is what the brief asked for; both were reached with this recipe.
+- combo29's evaluator stands at 0.014311 on the same set. Candidate 3 is 3.0 % better; candidate 1 was 1.2 % worse.
+
+All checkpoints: `results/phase2/tables.md` table C; run log and metrics: `results/phase2/wdc_W2/`.
+
 ## 7. Matches
 
 All matches are this job's own screens against the original lock exe (md5 `c0051c99695f48bf93272d96fe7548c3`),
@@ -120,3 +143,21 @@ That is about what they searched per move at 6 s + 0.06 s (0.13 s per move on av
   phase 1 therefore came from its 20 % higher speed, not from a better evaluation. This agrees with its losses on
   stored positions (0.014480 against 0.014311 on the selection set).
 - Evidence: `results/phase2/mn1/` (result recomputed from the PGN, run info, log, PGN md5).
+
+### M2: candidate 2 at 6 s + 0.06 s (the phase-1 conditions, new openings)
+
+Candidate 2 is the decay-1.0 net at 2.0B (selection loss 0.014081). Same settings as the phase-1 match, time margin
+1000 ms, seed 2026111106. The GPU trainer ran during the match.
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 3,000 | 960 | 1,435 | 605 | 55.92 % | **+41.3** | +33.8 to +48.9 | 22 / 261 / 633 / 508 / 76 |
+
+- For comparison, candidate 1 scored +12.4 (+5.1 to +19.7) under the same conditions in phase 1. The two nets differ
+  only in one training cycle with weight decay.
+- **44 games ended on time**, 19 lost by the candidate and 25 by the lock. The owner's resource guard suspended the
+  match process five times for 5 seconds (21:55:22, 22:16:52, 22:17:38, 22:46:07, 23:02:41) when its CPU reading went
+  over 90 C; its GPU reading stayed near 44 C. With the GPU busy the machine ran warmer than in phase 1 (one
+  suspension then). Without the 24 opening pairs involved: **+41.2 (+33.6 to +48.7)**. The guard was not bypassed.
+- No crash, no illegal move, no disconnect.
+- Evidence: `results/phase2/m2/` (`match_result.json`, `time_losses.txt` with the guard's log lines, run info, log, PGN md5).
