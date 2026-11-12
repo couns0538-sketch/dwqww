@@ -1,0 +1,70 @@
+{
+ "name": "h1024_pilot",
+ "_comment": "Written 2026-11-12 before it ran. Question: does a wider net (1024 hidden units instead of 512) reach a lower loss on unseen rows with the SAME data and the SAME recipe? Everything equals h512/train/plans/scratch_wd.json (random initialisation, Adam, batch 8192, peak lr 5e-4, 500 warm-up steps, cosine to 5 % per stage, alpha 0.25, natural sampling, decoupled weight decay 0.3 on w1, the same stage ends) except cfg_override hidden 1024 and fewer periodic checkpoints (disk). Compare at equal presentations with the 512 run: 0.014126 at 1.0B, 0.014055 at 2.0B, 0.013968 at 4.0B, 0.013916 at 7.4B, 0.013882 at 10.0B on select_2m. This is a pilot on the selection set only: no candidate is taken from it without a new declaration, and it is never scored on a test set.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 0,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 500,
+ "lr_final_frac": 0.05,
+ "ckpt_every_pres": 2500000000,
+ "phase_weight": "natural",
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S3",
+   "end_seen": 4000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S4",
+   "end_seen": 7400000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S5",
+   "end_seen": 10000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  }
+ ],
+ "init_random": true,
+ "cfg_override": {
+  "hidden": 1024
+ },
+ "weight_decay": {
+  "w1": 0.3
+ }
+}

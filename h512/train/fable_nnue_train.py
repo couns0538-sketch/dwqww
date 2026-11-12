@@ -38,6 +38,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fable_nnue_v3 as v3  # noqa: E402
+from ckpt_io import load_checkpoint  # noqa: E402  (JOB E, 2026-11-12: restricted loader)
 
 K = 2.25
 QA = v3.QA
@@ -475,7 +476,7 @@ def cmd_train(args):
     tstate = {"step": 0, "seen": 0, "train_seconds": 0.0, "checkpoints": [], "best_exact": None, "best_step": None,
               "plateau": 0, "stop_reason": None, "chunks": 0}
     if args.resume:
-        ck = torch.load(args.resume, map_location="cpu", weights_only=False)
+        ck = load_checkpoint(args.resume, torch)
         if ck["cfg"] != cfg:
             raise SystemExit("--resume: the checkpoint's model config differs from the command line")
         model.load_state_dict(ck["state"])
@@ -703,7 +704,7 @@ def cmd_train(args):
 
 
 def load_model(path, torch):
-    ckpt = torch.load(path, map_location="cpu", weights_only=False)
+    ckpt = load_checkpoint(path, torch)
     cfg = ckpt["cfg"]
     model = build_model(cfg, torch)
     model.load_state_dict(ckpt["state"])

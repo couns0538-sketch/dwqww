@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "train"))
 import fable_nnue_train as fb       # noqa: E402
 import train_h512_gpu as tr         # noqa: E402
+from ckpt_io import load_checkpoint  # noqa: E402
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
     a = ap.parse_args()
     if os.path.exists(a.out_pt) or os.path.exists(a.out_net):
         sys.exit("refused: output exists")
-    cks = [torch.load(p, map_location="cpu", weights_only=False) for p in a.pts]
+    cks = [load_checkpoint(p, torch) for p in a.pts]
     cfg = cks[0]["cfg"]
     for c in cks[1:]:
         if {k: c["cfg"][k] for k in ("hidden", "king_buckets", "output_buckets")} != {k: cfg[k] for k in ("hidden", "king_buckets", "output_buckets")}:

@@ -40,6 +40,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fable_nnue_v3 as v3      # noqa: E402
 import fable_nnue_train as fb   # noqa: E402
+from ckpt_io import load_checkpoint  # noqa: E402
 
 import torch                    # noqa: E402
 import torch.nn.functional as F  # noqa: E402
@@ -469,14 +470,21 @@ def cmd_train(a):
     latest = os.path.join(a.run_dir, "latest.pt")
     resume = a.resume and os.path.isfile(latest)
     if resume:
-        ck = torch.load(latest, map_location="cpu", weights_only=False)
+        ck = load_checkpoint(latest, torch)
         cfg = ck["cfg"]
     else:
-        fb2 = torch.load(plan["init_fb2"], map_location="cpu", weights_only=False)
+        fb2 = load_checkpoint(plan["init_fb2"], torch)
         cfg = dict(fb2["cfg"])
         if "king_map" not in cfg:
             cfg["king_map"] = v3.king_layout(cfg["king_buckets"])
             cfg["output_map"] = v3.output_layout(cfg["output_buckets"])
+        if plan.get("cfg_override"):
+            # plan key "cfg_override" (2026-11-12): another network shape than the init checkpoint's, e.g.
+            # {"hidden": 1024}. Only with init_random, because the checkpoint's weights then have another shape.
+            if not plan.get("init_random"):
+                raise SystemExit("cfg_override needs init_random: the init checkpoint's weights have another shape")
+            cfg.update(plan["cfg_override"])
+            say(f"cfg_override applied: {plan['cfg_override']}")
     model = fb.build_model(cfg, torch)
     if resume or not plan.get("init_random"):
         model.load_state_dict(ck["state"] if resume else fb2["state"])
@@ -817,7 +825,7 @@ def cmd_selfcheck(a):
                        "output_buckets": sorted(stats["ob"])}
     # 2. triton against plain (forward and every gradient) on the checkpoint's weights
     if a.ckpt:
-        ck = torch.load(a.ckpt, map_location="cpu", weights_only=False)
+        ck = load_checkpoint(a.ckpt, torch)
         mcfg = ck["cfg"]
         model = fb.build_model(mcfg, torch)
         model.load_state_dict(ck["state"])

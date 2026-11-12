@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "train"))
 import fable_nnue_v3 as v3          # noqa: E402
 import fable_nnue_train as fb       # noqa: E402
+from ckpt_io import load_checkpoint  # noqa: E402
 
 PIECES = " PNBRQKpnbrqk"
 
@@ -172,7 +173,7 @@ def main():
         res["gpu_int"] = {"cp_mismatches": int((gcp != ref_cp).sum()), "bucket_mismatches": int((ob.cpu().numpy() != ref_ob).sum())}
         ok &= res["gpu_int"]["cp_mismatches"] == 0 and res["gpu_int"]["bucket_mismatches"] == 0
         if a.ckpt:
-            ck = torch.load(a.ckpt, map_location="cpu", weights_only=False)
+            ck = load_checkpoint(a.ckpt, torch)
             cfg = ck["cfg"]
             model = fb.build_model(cfg, torch)
             model.load_state_dict(ck["state"])

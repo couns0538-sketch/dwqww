@@ -6,7 +6,7 @@
 set -u
 name="$1"; id="$2"
 D=/d/forge_jobs_20261111/h512E
-M="$D/_work/match/$name"; O="$D/h512/results/phase2/$id"
+M="$D/_work/match/$name"; O="$D/h512/results/${3:-phase2}/$id"   # optional third argument: results folder (default phase2)
 GL='/c/Users/Administrator/grok-pc/forge_push/autonomy7_20261107/resource_guard.log'
 grep -q "^finished" "$M/RUN_INFO.txt" || { echo "match not finished"; exit 2; }
 mkdir -p "$O"

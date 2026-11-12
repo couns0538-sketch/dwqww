@@ -1,5 +1,59 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
+## After the report: 2026-11-12, 06:50 to 10:00 PC clock (evidence in `results/phase3/`)
+
+Nothing here is a gate result or a lock claim. The lock branch and `main` were not touched.
+
+- **Match M8, candidate 3 at 30 s + 0.3 s** (declared 07:15 before the first game, 1,000 games against the original
+  lock exe, GPU busy): **+53.2 Elo, 95 % interval +41.9 to +64.6** (324 W / 504 D / 172 L). Two games were lost on
+  time, one by each side, in the last minute, when the owner's resource guard suspended the match process for 5 s
+  (09:34:14, thermal); without those two pairs +53.1. So the advantage at a clock five times longer is about the
+  same as at 10 s + 0.1 s (+57.0) and at fixed nodes (+54.9). `results/phase3/m8/`.
+- **Wider net pilot (1024 hidden units, same data, same recipe, random start, 10.0B presentations, 147 min):**
+  selection loss 0.014000 / 0.013941 / 0.013868 / 0.013827 / **0.013800** at 1.0 / 2.0 / 4.0 / 7.4 / 10.0B, against
+  0.014126 / 0.014055 / 0.013968 / 0.013916 / 0.013882 for 512 units. The gain shrinks from 0.000126 to 0.000082.
+  On a sample of its own training rows the wide net scores 0.012615 (512 units: 0.013190): its gap to unseen rows
+  is 0.001185 against 0.000692, so the wide net is limited by the amount of data, not by its size. The engine
+  searches 0.8579x as many nodes per second with it (95 % CI 0.8552 to 0.8606, 16 pairs, same executable). No
+  candidate was taken; no match was played with it yet; never scored on a test set. Net
+  `_work\runs\arms\h1024_pilot\net_seen10000023552.fnn3`, md5 `516d450489d5fcc750f35563e41689ee`.
+  `results/phase3/h1024_pilot/TABLE.md`, `results/phase3/abba_h1024_speed/`.
+- **Candidate executable rebuilt with the author line `Couns`** (09:38, source commit `ce1710b6`, same flags, own
+  profile with candidate 3's net, coverage proof passes): `_work\builds\h512_v3_c3_b3c746944937\forge_fair_h512_v3_c3.exe`,
+  md5 `0836190d2a2653dbbfad3904d187b446`, sha256 `6733d4b208fb4ecde2a21edf30885fe0fed35af3392265d036a17f91740183c7`.
+  It prints `id author Couns`. Bench nodes 348,651 / 743,566 / 2,890,515 as before. Speed against the executable
+  that played M7 and M8 (md5 `0b9da97c...`, prints the old line): 0.9980x, 95 % CI 0.9957 to 1.0004, 16 pairs, same
+  node count. **No match was played with the new file**; the search is the same by node count.
+  `results/phase3/build_c3_author_couns/`, `results/phase3/abba_author_rebuild/`.
+- **Checkpoints are now read with a restricted loader** (`h512/train/ckpt_io.py`) in all seven places of this job's
+  tools; before, a crafted checkpoint file could have run code when opened. Tests: a file that carries a command is
+  refused and the command does not run; all 44 checkpoints this job reads load with content equal to the old
+  loader's; averaging reproduces `A12.fnn3` byte for byte; self-check and candidate-3 parity give the recorded
+  numbers. `h512/tools/test_ckpt_io.py`, `h512/tools/regress_safe_load.sh`, `results/phase3/safe_load/`.
+- **Found while testing: the GPU trainer is not bit-reproducible from run to run.** Seven runs of the same first 45M
+  presentations (identical data order in all): selection loss 0.014739 to 0.014756, training loss at step 5000
+  0.007650 to 0.007674. This was already visible in `results/step2` and is not caused by the loader change. It means
+  differences of about 0.00002 between two short runs are noise; the pilot ranking of phase 1 (P2 ahead of the
+  existing recipe by 0.000011) is inside that noise, as REPORT.md already treats it (single-seed pilots, weak evidence).
+- **Timing tool:** `fair_eval/tools/abba_fair.py` now starts the timed engine at Normal priority by default
+  (`--priority high` repeats the earlier protocol). All timing results before today were measured at High.
+- **Security review of this branch against the lock** (543 files, all code read): no vulnerability at the reporting
+  bar. The three net loaders check magic, version, every size, the bucket maps, the exact file length and a checksum
+  before using a file. The one real weakness, unrestricted checkpoint loading, is fixed (above).
+- **Repository-wide fix on the owner's instruction** ("no files must exist that if opened can do destructive
+  behavior"): on 57 other branches one ordinary commit removes `opus_round1/C4/instrument_refresh_stats.py` (it
+  deleted `src` and `include`) and repairs three tablebase download scripts (a tampered list could write outside the
+  destination folder). No force-push; `main` and `lock/*` untouched; no workflow run started. Record, test and undo
+  instructions: `results/phase3/repo_fix_20261112/README.md`.
+- **Correction:** the safety review written at 08:30 (`_work\REPO_SAFETY_REVIEW_20261112.md`) said 62 lines load
+  checkpoints unsafely. 13 of those are `yaml.load` with the safe `BaseLoader`; the right number is 49 over the
+  whole history, 22 calls in 16 files at branch tips outside this branch.
+- **Failed, not done or limited:** the wide net was not played; the rebuilt executable was not played; M8 ran with
+  the GPU busy and Hash 16 MB; the old files remain in the history of the 57 branches and at the tag
+  `astra-a1-data-results-20261030`; checkpoint loading in other jobs' trainers was not changed; the 519 files over
+  2 MB in the repository were not inspected; 66 earlier commits of this branch carry an AI co-author line (removing
+  it needs a history rewrite, which the rules forbid).
+
 **After the report (2026-11-12 07:45 PC clock, owner's instruction):** the UCI author line in `forge-combo29/src/uci.cpp` no
 longer names OpenAI. Since 07:47 it reads `Couns`, the name the owner gave (it read `Forge project` for the two
 commits before that). This is the only source

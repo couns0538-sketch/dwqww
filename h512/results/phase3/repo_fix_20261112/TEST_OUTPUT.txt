@@ -1,0 +1,43 @@
+mirror: file:///<sandbox>/mirror
+== 1. clean list, repaired ci_fetch_tables.sh (C1)
+tables: 3 present, 3 downloaded
+  PASS exit 0
+  PASS 3 tables present
+  PASS same bytes as the mirror
+== 2. clean list, ORIGINAL ci_fetch_tables.sh (same result expected)
+tables: 3 present, 3 downloaded
+  PASS exit 0
+  PASS identical folder to the repaired run
+== 3. tampered list, ORIGINAL ci_fetch_tables.sh (shows the defect)
+tables: 3 present, 4 downloaded
+  PASS original wrote outside its folder (<sandbox>/t3/x.rtbw)
+== 4. tampered list, repaired ci_fetch_tables.sh
+FAIL: <sandbox>/t4/dest/checksum.md5 has 1 line(s) that are not '<md5>  <table file name>'; nothing was downloaded
+  PASS exit 1
+  PASS nothing written outside (<sandbox>/t4/x.rtbw absent)
+  PASS no table fetched at all
+== 5. clean list, repaired ci_fetch_tables.sh (p6 variant: wants 70 files, the fake mirror has 3)
+tables: 3 present, 3 downloaded
+FAIL: expected 70 3-4 piece table files, found 3
+  PASS 3 tables fetched, then its own 70-file check fails (exit 1)
+FAIL: <sandbox>/t5b/dest/checksum.md5 has 1 line(s) that are not '<md5>  <table file name>'; nothing was downloaded
+  PASS p6 tampered: exit 1, nothing outside, nothing fetched
+== 6. download_tb.sh: clean list, repaired and original
+done: ok=3 fail=0 total=3
+  PASS repaired: 3 files
+done: ok=3 fail=0 total=3
+  PASS original gives the identical folder
+== 7. download_tb.sh: tampered list
+done: ok=4 fail=0 total=4
+  PASS original wrote outside its folder (<sandbox>/t8/x.rtbw)
+FAIL: <sandbox>/tampered.md5 has 1 line(s) that are not '<md5>  <table file name>'; nothing was downloaded
+  PASS repaired: exit 1
+  PASS repaired: nothing written, destination not even created
+== 8. other malformed lines are refused by the repaired scripts
+  PASS refused: [0123  KQvK.rtbw]
+  PASS refused: [00000000000000000000000000000000  /etc/passwd]
+  PASS refused: [00000000000000000000000000000000  KQvK.rtbw; rm -rf x]
+  PASS refused: [00000000000000000000000000000000  a/KQvK.rtbw]
+  PASS refused: [00000000000000000000000000000000  KQvK.exe]
+  PASS refused: [00000000000000000000000000000000  *KQvK.rtbw]
+RESULT pass=22 fail=0

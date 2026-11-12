@@ -2,12 +2,14 @@
 """abba_fair.py - JOB D (own code, 2026-11-11): quiet paired A/B timing of two UCI engines on one pinned core.
 
   abba_fair.py --name LABEL --out NEW_DIR --a EXE --b EXE [--a-opt "setoption ..."]... [--b-opt "setoption ..."]...
-               [--slots 16] [--bench 20] [--cpu 8] [--same-nodes] [--evalbench FENS --reps N]
+               [--slots 16] [--bench 20] [--cpu 8] [--priority normal|high] [--same-nodes] [--evalbench FENS --reps N]
 
 Protocol (fixed before the first measurement, see fair_eval/REPORT.md):
   - every run is a fresh process: uci, Threads 1, Hash 16, OwnBook false, the arm's options, isready, `bench D`, quit;
-  - the engine process is pinned to ONE logical CPU (--cpu) at High priority before it receives any input; the
-    driver itself sits on CPUs 0-1; nothing else of this job runs meanwhile;
+  - the engine process is pinned to ONE logical CPU (--cpu) before it receives any input; the driver itself sits
+    on CPUs 0-1; nothing else of this job runs meanwhile. Priority: Normal by default since 2026-11-12 (the safety
+    review the owner passed on that day flagged High priority as against the owner's preference); every
+    summary.json written before that date was measured with High, and --priority high repeats that protocol;
   - one untimed warm-up run per arm, then --slots slots; slot i runs both arms once, order A,B for even i and B,A
     for odd i (two consecutive slots = one ABBA block, so a linear drift cancels);
   - ONE PAIR = the two runs of one slot; pair ratio = value(B) / value(A);
@@ -37,7 +39,7 @@ K32 = ctypes.windll.kernel32
 K32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
 K32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
 K32.GetCurrentProcess.restype = ctypes.c_void_p
-HIGH = 0x80
+PRIORITY = {'normal': 0x20, 'high': 0x80}   # Windows priority classes
 
 
 def busy_percent(seconds=1.0):
@@ -52,11 +54,11 @@ def busy_percent(seconds=1.0):
     return 100.0 * (1.0 - (i1 - i0) / max(1, t1 - t0))
 
 
-def run(exe, opts, command, cpu):
+def run(exe, opts, command, cpu, priority):
     p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                          cwd=os.path.dirname(exe))
     handle = int(p._handle)
-    if not K32.SetProcessAffinityMask(handle, 1 << cpu) or not K32.SetPriorityClass(handle, HIGH):
+    if not K32.SetProcessAffinityMask(handle, 1 << cpu) or not K32.SetPriorityClass(handle, PRIORITY[priority]):
         p.kill()
         raise RuntimeError('could not pin the engine process')
     lines = ['uci', 'setoption name Threads value 1', 'setoption name Hash value 16', 'setoption name OwnBook value false']
@@ -97,6 +99,7 @@ def main():
     ap.add_argument('--slots', type=int, default=16)
     ap.add_argument('--bench', type=int, default=20)
     ap.add_argument('--cpu', type=int, default=8)
+    ap.add_argument('--priority', choices=sorted(PRIORITY), default='normal')
     ap.add_argument('--same-nodes', action='store_true')
     ap.add_argument('--evalbench', default='')
     ap.add_argument('--reps', type=int, default=200)
@@ -115,7 +118,7 @@ def main():
 
     def sample(arm):
         exe, opts = arms[arm]
-        out = run(exe, opts, command, a.cpu)
+        out = run(exe, opts, command, a.cpu, a.priority)
         if a.evalbench:
             m = re.search(r'evalbench positions (\d+) reps (\d+) root_ns ([\d.eE+-]+) warm_incl_one_refresh_ns ([\d.eE+-]+) sum_root (-?\d+)', out)
             if not m:
@@ -146,7 +149,7 @@ def main():
             f.write(f'{slot}\t{order}\t{pos}\t{arm}\t{s["nodes"]}\t{s["time_ms"]}\t' + '\t'.join(f'{s[m]:.3f}' for m in metrics) + '\n')
     nodes = {arm: sorted({s['nodes'] for _, _, _, r, s in rows if r == arm}) for arm in 'AB'}
     summary = {'name': a.name, 'a': arms['A'][0], 'b': arms['B'][0], 'a_options': a.a_opt, 'b_options': a.b_opt,
-               'command': command, 'cpu': a.cpu, 'priority': 'High', 'slots': a.slots, 'elapsed_s': round(elapsed, 1),
+               'command': command, 'cpu': a.cpu, 'priority': a.priority.capitalize(), 'slots': a.slots, 'elapsed_s': round(elapsed, 1),
                'nodes_a': nodes['A'], 'nodes_b': nodes['B'], 'load': load,
                'pairing': 'pair = the two runs of one slot; ratio = B / A; slot order alternates AB, BA'}
     summary['deterministic'] = len(nodes['A']) == 1 and len(nodes['B']) == 1
