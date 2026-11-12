@@ -148,6 +148,20 @@ Declared in addendum 6 before any arm ran. Each arm is again the cycle from 1.0B
 X1 beat W2 by more than 0.00002, so by the declared rule its run was continued (next table). Evidence:
 `results/phase2/wd2/` (metrics and logs, `WINNER_ROUND2.txt`).
 
+**Decay 0.3 continued to 7.4B** (plan `train/plans/wd2c_X1.json`, run `_work\runs\arms\wd2c_X1`):
+
+| Stage end | Decay 0.3: selection | Decay 0.3: training rows | Decay 1.0: selection | Decay 1.0: training rows |
+|---|---:|---:|---:|---:|
+| 2.0B | 0.014049 | 0.013407 | 0.014083 | 0.013644 |
+| 4.0B | 0.013929 | 0.013262 | 0.013963 | 0.013517 |
+| 7.4B | 0.013879 | 0.013197 | 0.013903 | 0.013456 |
+| 10.0B | not run | | 0.013882 | 0.013441 |
+
+- Decay 0.3 stays about 0.00003 ahead of decay 1.0 at equal length. At 7.4B it matches decay 1.0 at 10B.
+- Its best checkpoint (0.013876 at 7.25B) is 0.000006 below candidate 3. That is under the 0.00002 a new candidate
+  needs, so **no candidate 4 was frozen and candidate 3 is the final candidate**
+  (`results/phase2/FREEZE_4_NO_NEW_CANDIDATE.json`). The candidate list closed here, at 00:51.
+
 ## 6. Candidates
 
 Every candidate is a FORGENN3 file loaded by the same executable. Candidates were frozen on the selection set only,
@@ -232,6 +246,52 @@ time margin 1000 ms. The GPU trainer ran during the match.
   Without the 10 opening pairs involved: +57.5 (+48.9 to +66.3).
 - No crash, no illegal move, no disconnect.
 - Evidence: `results/phase2/m3/`.
+
+## 8. Test set 2, scored once
+
+2,000,000 rows from shards 037 and 039, which no set of this job had used (`manifests/test2_manifest.json`:
+pool 13,085,679 rows; removed 1,033 duplicates, 4,996 positions that occur in the training set, 306 in shards
+013/014 and 250 in shards 036/038; sampled per phase bin with seed 2026111103; file sha256 `ad5cd806...84ef`).
+It was scored in one session at 00:52 to 00:54, after the candidate list had closed, and never before
+(`results/phase2/test2/`, with the scorer's access log).
+
+| Evaluator | Test set 2 (blend 0.6) | Blend 0.8 | Teacher only (blend 1.0) | Selection set, for comparison |
+|---|---:|---:|---:|---:|
+| **Candidate 3** (decay 1.0, 10.0B) | **0.014070** | 0.006226 | 0.003858 | 0.013882 |
+| Candidate 2 (decay 1.0, 2.0B) | 0.014259 | 0.006383 | 0.003985 | 0.014081 |
+| combo29's evaluator (s198 + HCE) | 0.014527 | 0.006822 | 0.004595 | 0.014311 |
+| Candidate 1 (phase 1, no decay) | 0.014676 | 0.006801 | 0.004403 | 0.014480 |
+| FB2 best net | 0.014826 | 0.007179 | 0.005009 | 0.014640 |
+| Hand-crafted eval alone | 0.017237 | 0.008429 | 0.005098 | 0.017044 |
+
+- The ranking on the untouched set is the ranking on the selection set, and the distances are the same: candidate 3
+  is 3.1 % better than combo29's evaluator on test set 2 (3.0 % on the selection set); candidate 1 is 1.0 % worse
+  (1.2 %). The choices made on the selection set did not over-fit it.
+- The phase-1 final-test set (shards 036/038) was not opened in phase 2.
+
+## 9. The training recipe that came out of this
+
+For a standalone H512 net on this data (271.8M unique rows from shards 001-035 without 013/014):
+
+1. **Keep the phase-1 recipe:** FB1/FB2's net and quantisation-aware training with the factoriser, Adam, batch 8192,
+   target = 0.75 x teacher + 0.25 x game result, natural sampling, cosine cycles from 5e-4 down to 2.5e-5 with 500
+   warm-up steps, stage ends at 1B, 2B, 4B, 7.4B and 10B presentations.
+2. **Add decoupled weight decay on the king-bucketed first-layer weights only:** after every optimiser step
+   `w1 *= 1 - lr * lambda`, with lambda between 0.3 and 1.0. In this job's trainer that is the plan key
+   `"weight_decay": {"w1": 0.3}` (`train/train_h512_gpu.py`).
+3. **Do not decay the shared factoriser weights, the biases or the output layer.**
+4. **Do not train without decay past about 1B to 2B presentations on this data.** Unseen positions get worse from
+   there while the training loss keeps falling.
+5. **Watch the fit gap.** Score a fixed sample of training rows next to the unseen selection set at every checkpoint.
+   Without decay the gap was 0.00147 at 2B and 0.00166 at 4B; with decay 1.0 it stays at 0.00044.
+6. Weight averaging is not needed once decay is on.
+7. Cost on the RX 7900 XT, with the CPU busy playing a match: 1.8M to 2.0M positions per second; 8.0B presentations
+   took 81 minutes including 36 scored checkpoints.
+
+What it gives: selection loss 0.01408 after one cycle with decay and 0.01388 at 10B, against 0.01448 without decay
+and 0.01431 for combo29's evaluator. What limits it now is the data: with decay the gap between seen and unseen rows
+no longer grows, and each further cycle adds less (0.000021 from 7.4B to 10B). More self-play data is the next
+lever, not more passes.
 
 ## 10. Limits of this evidence
 
