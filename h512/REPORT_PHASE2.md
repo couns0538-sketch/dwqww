@@ -309,3 +309,35 @@ lever, not more passes.
   phase 1's first stage). Section 5b reports what was tried beyond that.
 - **Not tested, as in phase 1:** Threads above 1 on the standalone path, clocks longer than 10 s + 0.1 s, sanitizers.
 - **Sets are separated by shard file and by position, not by game id** (the rows carry none), as in phase 1.
+
+## 12. Process, resources and deviations
+
+- **Processes.** Everything phase 2 ran was started by this job: the trainer (one at a time, through its own queue
+  scripts under `train/`), five fastchess matches and their engines, and short scoring and parity runs. No gate
+  queue, self-play process, hold or STOP file of anyone else was touched. No process was killed; runs were ended
+  only with the trainer's own STOP flag (the no-decay run at 20:53:46, arm X4 at 23:44:20).
+- **The owner's guards were not bypassed.** `resource_guard.ps1` suspended this job's timed matches for 5 seconds at
+  a time when its CPU reading went over 90 C (five times in M2, twice in M3; section 7). The trainer has its own holds
+  (GPU hot spot 76 C, memory junction 86 C, disk floor) and paused itself a few times for 5 seconds in the pilot arms
+  when the memory junction read 86 C.
+- **Disk.** D: fell from 33.7 to 31.5 GiB free; the owner's cleanup acts below 30 GiB. To stay clear of that, 22
+  duplicate checkpoints of this job's own finished pilot arms were removed (their copies of the 1.0B start state and
+  their `best.pt` / `latest.pt`, which repeat the arm's kept end state `stage_S2.pt`). Nothing of phase 1 and nothing
+  cited in this report was removed. C: and F: stayed above 32 GiB. E: was not written to.
+- **A safety check refused one edit** that would have added an `rm` with a variable path to a queue script. The line
+  was left out; the later removals above used literal paths.
+- **`STATUS.md` was damaged once by my own scripted edit** (21:44): two Windows paths lost their backslashes. It was
+  repaired in the next commit, and later edits of that file went through a splice script that refuses control characters.
+- **`launch_match.sh` was edited while M2 was running through it.** Bash printed a syntax error from that file after
+  the match had ended; the match itself was not affected (fastchess exit 0, 3,000 games). Later matches use a
+  separate launcher file.
+- **Clock times in the declaration.** Several addenda were first stamped from my running estimate of the time, which
+  ran one to four minutes ahead of the PC clock. They were corrected to the PC clock; the commit times are the record.
+- **Plans that were declared and then not run:** the snapshot-averaging run `swa_C1` and the running-average arm
+  `ema_E1` (superseded by weight decay, addendum 5); arm X4 (stopped, addendum 9); the 20B stage; the rest of the
+  no-decay run past 4.0B.
+- **Changes to declared match sizes, each declared before the match started:** M3 with 2,000 games instead of 3,000
+  (addendum 7), M5 with 2,000 instead of 3,000 (addendum 8).
+- **Engine sources were not changed in phase 2.** The only code changes are in the trainer and the job's own tools:
+  `--clear-stop`, weight decay, running averages (unused in the end) and random initialisation in
+  `train/train_h512_gpu.py`, plus new scripts under `tools/`, `train/` and `results/phase2/`.
