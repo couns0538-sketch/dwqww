@@ -1,27 +1,18 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
-**Last update:** 2026-11-12 02:50 PC clock (phase 2, below). **Job start:** 2026-11-11 16:53 (planning 16:53-17:10,
+**Last update:** 2026-11-12 03:35 PC clock (phase 2, below). **Job start:** 2026-11-11 16:53 (planning 16:53-17:10,
 plan approved 17:10, work from 17:11).
-**Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 6 h 25 min of a further 7.5 h (20:30 to 02:55).
+**Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 7 h 10 min of a further 7.5 h (20:30 to 03:40).
 **Branch:** `fable/standalone-h512-20261111`, cut from Job D's head `1508c13cdfb87894f01cf3a95fd87b9ad3a4cef0`,
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
 
-## State: phase 1 COMPLETE (`REPORT.md`). Phase 2: declared work COMPLETE (`REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3); one extra match (M7) running.
+## State: COMPLETE. Phase 1: `REPORT.md`. Phase 2 (follow-up): `REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3.
 
-## Phase 2 (follow-up at the owner's request, 20:30 to 02:55)
-**Last update:** 02:50 (2026-11-12). **Phase 2's declared work is complete; one extra item is running (addendum 11).**
-Result: `REPORT_PHASE2.md`. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 11 (each committed
-before the results it governs). Generated tables: `results/phase2/tables.md`.
-- **Running now (addendum 11): match M7**, the rebuilt executable with candidate 3's net against the lock,
-  6 s + 0.06 s, 1,500 games, seed 2026111112, GPU idle. fastchess pid 12708, started 02:45:59, expected end about
-  03:27. Folder: the `m7_tc6_rebuilt_exe_cand3` folder under the job's match folder. When it ends: collect with
-  `h512/results/phase2/collect_match.sh m7_tc6_rebuilt_exe_cand3 m7` and add its result to `REPORT_PHASE2.md`
-  (verdict table, section 6b, section 7, section 13). Nothing else of this job is running.
-- **Rebuilt executable (done 02:40):** config `h512_v3_c3`, md5 `0b9da97c2a859d6e75642db23536de90`; coverage proof
-  passes; same bench nodes as the phase-1 executable with candidate 3's net. Quiet speed: 1.0952x the lock with
-  candidate 3's net (95 % CI 1.0931 to 1.0974); the rebuild itself changes nothing (0.9985x the phase-1 executable
-  on the same net). **Correction:** the 19.8 % speed advantage of phase 1 holds for candidate 1's net only.
+## Phase 2 (follow-up at the owner's request, 20:30 to 03:40)
+**Last update:** 03:35 (2026-11-12). **Phase 2 is COMPLETE.** Result: `REPORT_PHASE2.md`. Rules:
+`results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 11 (each committed before the results it governs).
+Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to about 03:40, 7 h 10 min of the 7.5 h offered.
 - **Verdict: strongly promising for QA, gate candidate 3.** Not a gate result and not a lock claim.
 - **Why phase 2:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked
   for GPU and CPU to work at the same time.
@@ -35,12 +26,16 @@ before the results it governs). Generated tables: `results/phase2/tables.md`.
   4.0B, 0.013879 at 7.4B. Decaying the shared factoriser weights too is harmful; alpha 0.4 is worse than 0.25.
 - **Finding 3: no warm start is needed.** The same recipe from random initialisation: 0.014126 at 1.0B, 0.014055 at
   2.0B, 0.013968 at 4.0B, 0.013916 at 7.4B, 0.013882 at 10.0B (103 minutes). No candidate was taken from that run.
+- **Finding 4: the speed advantage depends on the net.** With candidate 3's net the engine searches 1.0952x the
+  lock's nodes per second (95 % CI 1.0931 to 1.0974, quiet ABBA); phase 1 measured 1.1976x with candidate 1's net.
 - **Final candidate = candidate 3** (decay 1.0, 10,000,023,552 presentations, selection loss 0.013882):
   `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`, sha256
-  `6d2cf71467e95a96d36b9c8fee808090269cf42b9c455ff428926243e5171903`. Exe unchanged from phase 1:
-  `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5 `5c46cd2d43bc051df1a39e841487b95f`.
-  Options `NNUEArchFile` = the net, `NNUEArch` = true. Parity 14,000 of 14,000 positions.
-  Bench nodes with the net 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
+  `6d2cf71467e95a96d36b9c8fee808090269cf42b9c455ff428926243e5171903`. Parity 14,000 of 14,000 positions.
+  Options `NNUEArchFile` = the net, `NNUEArch` = true. Bench nodes 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
+- **Executables:** rebuilt with candidate 3's net as PGO workload (recommended for the gate):
+  `_work\builds\h512_v3_c3_29ea1b67b2dd\forge_fair_h512_v3_c3.exe`, md5 `0b9da97c2a859d6e75642db23536de90`, coverage
+  proof passes. Phase-1 build (played MN1 to MN2): `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5
+  `5c46cd2d43bc051df1a39e841487b95f`. Same bench nodes and same speed on the same net (0.9985x, CI 0.9962 to 1.0007).
 - **Test set 2 (scored once, 00:52):** candidate 3 0.014070, candidate 2 0.014259, s198 + HCE 0.014527,
   candidate 1 0.014676, FB2 best 0.014826, HCE alone 0.017237. Same ranking as on the selection set.
 - **Matches against the original lock exe** (each declared before its first game; opening pairs as units):
@@ -49,20 +44,22 @@ before the results it governs). Generated tables: `results/phase2/tables.md`.
   - M3, candidate 3, 10 s + 0.1 s, 2,000 games: **+57.0 (+48.3 to +65.7)**; 13 lost on time (candidate 7, lock 6).
   - M5, candidate 3, 6 s + 0.06 s, 2,000 games: **+66.6 (+58.0 to +75.4)**; 9 lost on time (candidate 3, lock 6).
   - MN2, candidate 3, fixed 250,000 nodes, 3,000 games: **+54.9 (+47.4 to +62.5)**; no abnormal ending.
-  - The time losses follow eight 5-second suspensions of the match process by the owner's resource guard (CPU reading
-    over 90 C). Results without the affected pairs are within 0.6 Elo. No crash, illegal move or disconnect in 13,000 games.
-- **Failed, not done or limited:** the executable was not rebuilt for the new nets (PGO profile from candidate 1's
-  net); NPS not re-measured; timed matches ran with the GPU busy; one seed per recipe; the no-decay run was not taken
-  past 4.0B; `swa_C1`, `ema_E1`, arm X4 and match M6 were declared and not run or not finished; test set 3 was built
-  and never scored; Threads above 1, longer clocks and sanitizers were not tested.
-- **Process ownership:** only match M7 (above) is alive. The GPU queue script was ended with its own stop flag at
-  02:35:23; no trainer is running. Nothing of anyone else was touched; the guards were not bypassed.
-- **Artifacts kept locally,** about 2.3 GiB of phase 2 under `_work\`: the three candidate nets and float checkpoints
-  (`nets\`); the decay-1.0 run with its 4B, 7.4B and 10B states (`runs\arms\wdc_W2`); the decay-0.3 run
-  (`runs\arms\wd2c_X1`); the from-scratch run with all five stage states (`runs\arms\scratch_wd`); the paused no-decay
-  run (`runs\phase2`); the pilot arms' end states and nets (`runs\wd`, `runs\arms\wd2_X*`); five PGNs (`match\`);
-  test sets 2 and 3 and the training-row sample (`data\`). Hashes: `REPORT_PHASE2.md` section 11.
-- **Free space at the end:** C: 36.1 GiB, D: 31.3 GiB, F: 32.7 GiB.
+  - M7, candidate 3 in the rebuilt executable, 6 s + 0.06 s, GPU idle, 1,500 games: **+67.3 (+56.7 to +78.0)**;
+    8 lost on time (candidate 5, lock 3).
+  - The time losses follow nine 5-second suspensions of the match process by the owner's resource guard (CPU reading
+    over 90 C). Results without the affected pairs are within 0.7 Elo. No crash, illegal move or disconnect in 14,500 games.
+- **Failed, not done or limited:** timed matches M2, M3 and M5 ran with the GPU busy; one seed per recipe; the
+  no-decay run was not taken past 4.0B; `swa_C1`, `ema_E1`, arm X4 and match M6 were declared and not run or not
+  finished; test set 3 was built and never scored; no from-scratch net was tested or played; Threads above 1, clocks
+  longer than 10 s + 0.1 s and sanitizers were not tested.
+- **Process ownership:** no process of this job is alive (checked at the final push). The GPU queue script was ended
+  with its own stop flag at 02:35:23. Nothing of anyone else was touched; the guards were not bypassed.
+- **Artifacts kept locally,** about 2.4 GiB of phase 2 under `_work\`: the three candidate nets and float checkpoints
+  (`nets\`); both executables (`builds\`); the decay-1.0 run with its 4B, 7.4B and 10B states (`runs\arms\wdc_W2`); the
+  decay-0.3 run (`runs\arms\wd2c_X1`); the from-scratch run with all five stage states (`runs\arms\scratch_wd`); the
+  paused no-decay run (`runs\phase2`); the pilot arms' end states and nets (`runs\wd`, `runs\arms\wd2_X*`); six PGNs
+  (`match\`); test sets 2 and 3 and the training-row sample (`data\`). Hashes: `REPORT_PHASE2.md` section 11.
+- **Free space at the end:** C: 36.2 GiB, D: 31.3 GiB, F: 32.7 GiB.
 - **Resume point:** nothing is owed. Next action for QA: gate candidate 3 against the combo29 lock
   (`REPORT_PHASE2.md`, Verdict). Possible follow-ups, not started: a from-scratch net as its own candidate (needs
   parity, test set 3 once, and a match); more self-play data, which is what now limits the loss.

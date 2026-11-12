@@ -6,7 +6,9 @@ Running record: `STATUS.md`.
 
 > **Phase 2 followed the same night at the owner's request: see `REPORT_PHASE2.md`.** It found that this phase's
 > candidate had over-fitted its training rows, fixed that with weight decay, and measured the resulting net
-> (candidate 3) against combo29 at **+66.6 Elo** (6 s + 0.06 s), **+57.0** (10 s + 0.1 s) and **+54.9** (equal nodes).
+> (candidate 3) against combo29 at **+66.6 and +67.3 Elo** (6 s + 0.06 s, two matches), **+57.0** (10 s + 0.1 s) and
+> **+54.9** (equal nodes). It also found that the 20 % speed advantage reported below holds for this phase's net only;
+> with candidate 3's net it is 9.5 %.
 > The verdict and the QA action below are superseded by those in `REPORT_PHASE2.md`. Everything else in this report
 > stands as measured and was not changed.
 

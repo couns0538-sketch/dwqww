@@ -1,6 +1,6 @@
 # JOB E phase 2 (follow-up) - Standalone H512: over-fitting found, weight decay fixes it - REPORT
 
-Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 02:55 on grok-pc. This file continues
+Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 03:40 on grok-pc. This file continues
 `REPORT.md` (phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
 Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and eleven addenda, each committed
 before the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
@@ -19,6 +19,7 @@ These are this job's own screens, not gate results and not a lock claim.
 | **Candidate 3 (decay, 10.0B)** | 6 s + 0.06 s | 2,000 | **+66.6** | +58.0 to +75.4 |
 | **Candidate 3** | 10 s + 0.1 s | 2,000 | **+57.0** | +48.3 to +65.7 |
 | **Candidate 3** | equal nodes (250,000 per move) | 3,000 | **+54.9** | +47.4 to +62.5 |
+| **Candidate 3, rebuilt executable** | 6 s + 0.06 s, GPU idle | 1,500 | **+67.3** | +56.7 to +78.0 |
 
 What stands behind these numbers:
 
@@ -36,9 +37,11 @@ What stands behind these numbers:
 - Limits: timed matches ran with the GPU busy and lost some games on time to the owner's thermal guard (counted by
   side, section 7); the executable was not rebuilt for the new nets; one seed per recipe (section 10).
 
-**Next QA action:** gate `forge_fair_h512_v3.exe` (md5 `5c46cd2d43bc051df1a39e841487b95f`) with `NNUEArchFile` =
-`h512_cand_W2_seen10000023552.fnn3` (md5 `aab64b3342d7c1c33e82845f5d2d1fa4`) and `NNUEArch` = true against the
-combo29 lock. Check first that `bench 11 / 13 / 16` with the net gives 348,651 / 743,566 / 2,890,515 nodes.
+**Next QA action:** gate the rebuilt executable `forge_fair_h512_v3_c3.exe` (md5 `0b9da97c2a859d6e75642db23536de90`)
+with `NNUEArchFile` = `h512_cand_W2_seen10000023552.fnn3` (md5 `aab64b3342d7c1c33e82845f5d2d1fa4`) and `NNUEArch` =
+true against the combo29 lock. Check first that `bench 11 / 13 / 16` with the net gives 348,651 / 743,566 / 2,890,515
+nodes. The phase-1 executable `forge_fair_h512_v3.exe` (md5 `5c46cd2d43bc051df1a39e841487b95f`) with the same net
+searches the same nodes at the same speed and is the one that played candidate 3's other three matches (M3, M5, MN2).
 
 ## How phase 2 came about, and what it changes against the phase-1 plan
 
@@ -254,9 +257,9 @@ by the rule fixed in the declaration: the eligible net with the lowest selection
 | Fake-quantised float against integer, max / mean cp | 1.02 / 0.51 | 1.02 / 0.51 | 1.02 / 0.51 |
 | Bench nodes at depth 11 / 13 / 16 | 344,397 / 803,457 / 2,873,105 | 293,818 / 900,174 / 2,610,509 | 348,651 / 743,566 / 2,890,515 |
 
-- Executable for all three: `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5
+- Executable for all three in matches MN1 to MN2: `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5
   `5c46cd2d43bc051df1a39e841487b95f`. Options: `setoption name NNUEArchFile value <net>`, then
-  `setoption name NNUEArch value true`.
+  `setoption name NNUEArch value true`. A rebuilt executable for candidate 3 is in section 6b.
 - Parity means: the engine's evaluation tool, the search's own static evaluation (diagnostic build), the Python integer
   reference and the GPU scorer agree on every one of 14,000 positions (`results/phase2/parity_candidate2.json`,
   `parity_candidate3.json`). The bench node counts are in `pins_candidate2.txt` and `pins_candidate3.txt`.
@@ -287,6 +290,9 @@ Done last (addendum 11), after matches MN1 to MN2, with nothing else of this job
   nodes per second than the lock, with candidate 3's net 9.5 %. The engines search different trees, so nodes per
   second is not a like-for-like speed; but the phase-1 figure of "about 20 % faster" must not be carried over to
   candidate 3. Its gain over combo29 is mostly evaluation (MN2), not speed.
+- **Match M7 confirms it plays the same:** the rebuilt executable with candidate 3's net scored +67.3 Elo (+56.7 to
+  +78.0) over 1,500 games at 6 s + 0.06 s with the GPU idle; the phase-1 executable with the same net had scored
+  +66.6 in M5 with the GPU busy (section 7).
 - Evidence: `results/phase2/build_c3/` (receipt, coverage, workload, build log), `results/phase2/abba_c3/`,
   `results/phase2/abba_old_vs_c3/` (every timing sample).
 
@@ -383,6 +389,21 @@ The same settings as MN1: 250,000 nodes per move for both engines, no clock, 3,0
   engine 9.5 % faster than the lock in nodes per second, candidate 1's net 19.8 % (section 6b).
 - Evidence: `results/phase2/mn2/`.
 
+### M7: candidate 3 in the rebuilt executable, 6 s + 0.06 s, GPU idle
+
+Declared in addendum 11 and `M7_DECLARATION.md`. The only match of phase 2 under the exact phase-1 conditions:
+nothing else of this job was running. 1,500 games, seed 2026111112, time margin 1000 ms.
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 1,500 | 535 | 717 | 248 | 59.57 % | **+67.3** | +56.7 to +78.0 | 6 / 96 / 304 / 293 / 51 |
+
+- It agrees with M5 (+66.6, the phase-1 executable, GPU busy): neither the rebuild nor the GPU load moved the result.
+- 8 games ended on time, 5 lost by the candidate and 3 by the lock, after one guard suspension at 03:06:31. The guard
+  also suspends matches with the GPU idle, as it did once in phase 1. Without the 5 pairs involved: +68.0 (+57.5 to +78.7).
+- No crash, no illegal move, no disconnect.
+- Evidence: `results/phase2/m7/`.
+
 ### All matches of both phases side by side
 
 | Match | Net | Condition | Games | W / D / L | Elo | 95 % interval | Lost on time (candidate / lock) |
@@ -393,8 +414,9 @@ The same settings as MN1: 250,000 nodes per move for both engines, no clock, 3,0
 | M3 | candidate 3 | 10 s + 0.1 s | 2,000 | 662 / 1,001 / 337 | +57.0 | +48.3 to +65.7 | 7 / 6 |
 | M5 | candidate 3 | 6 s + 0.06 s | 2,000 | 703 / 973 / 324 | +66.6 | +58.0 to +75.4 | 3 / 6 |
 | MN2 | candidate 3 | 250,000 nodes | 3,000 | 1,042 / 1,386 / 572 | +54.9 | +47.4 to +62.5 | none |
+| M7 | candidate 3, rebuilt exe | 6 s + 0.06 s, GPU idle | 1,500 | 535 / 717 / 248 | +67.3 | +56.7 to +78.0 | 5 / 3 |
 
-13,000 games in phase 2. No crash, no illegal move and no disconnect in any of them.
+14,500 games in phase 2. No crash, no illegal move and no disconnect in any of them.
 
 ## 8. Test set 2, scored once
 
@@ -450,8 +472,9 @@ lever, not more passes.
 
 - **These are screens, not the gate.** One machine, one evening, 2,000 to 3,000 games per match, time controls of
   6 s + 0.06 s and 10 s + 0.1 s, Threads 1. QA's gate decides.
-- **Timed matches ran with the GPU busy** and lost games on time to guard suspensions (counted by side above).
-  The suspensions hit whichever side was to move; the results without the affected pairs are within 0.6 Elo.
+- **Timed matches M2, M3 and M5 ran with the GPU busy**; all four timed matches lost games on time to guard
+  suspensions (counted by side above). The suspensions hit whichever side was to move; the results without the
+  affected pairs are within 0.7 Elo. M7, with the GPU idle, gave the same result as M5.
 - **Matches MN1 to MN2 used the phase-1 executable**, whose PGO profile was collected with candidate 1's net loaded.
   The rebuilt executable (section 6b) is as fast as the old one on the same net and played one match of its own (M7).
 - **Speed depends on the net.** I had assumed the 19.8 % speed advantage measured in phase 1 would carry over to the
@@ -489,6 +512,7 @@ phase 1 listed in `REPORT.md` section 15 is still in place and unchanged.
 | Test set 2 (scored once) | `_work\data\final_test2_2m.pos`, `.hce` | `9574073e2b519dd5cc7c649ede09bfab`, `c7267e9dd67793658ab21e37053f60b7` |
 | Training-row sample (diagnostic) | `_work\data\train_sample_2m.pos` | `776cc15039785de12cddc9b6fea75b93` |
 | PGNs: MN1, M2, M3, M5, MN2 | `_work\match\<match folder>\games.pgn` | `a13bdce284a767f917a571aca7b5d45f`, `ad419cd9fc692bf1b08a7cfc61369928`, `e139c98d6c5f263cf7b07254d03e2b75`, `6c955aec37111c917beb90cf91ddf978`, `dac559926b3423dcc29085e403286f59` |
+| PGN: M7 | `_work\match\m7_tc6_rebuilt_exe_cand3\games.pgn` | `01245a22d2b33823a614ebcbb7ead9e3` |
 | From-scratch run: 10B net and state (not a candidate) | `_work\runs\arms\scratch_wd\net_seen10000023552.fnn3`, `stage_S5.pt` | `21851771a34a061d7bace67f11942c29`, `217ecaf8b7355fe1f2b34be43cef7a15` |
 | Test set 3 (built, never scored) | `_work\data\final_test3_2m.pos` | sha256 in `manifests/test3_manifest.json` |
 | Plans: decay pilot W2, its continuation, decay 0.3 arm, its continuation, from scratch | `train/plans/wd_W2.json`, `wdc_W2.json`, `wd2_X1.json`, `wd2c_X1.json`, `scratch_wd.json` | `f8982948ea19d55df6b3323874b71f1f`, `85f0b46c638e1e62342103a66a7bb028`, `2c7c9e84e26acbd059a72c3db4c61e77`, `46a3b27b24fffbe19145af4907ebf8cd`, `5c86896e3adcdfc96154a2af912cd9da` |
@@ -507,13 +531,13 @@ continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from r
 ## 12. Process, resources and deviations
 
 - **Processes.** Everything phase 2 ran was started by this job: the trainer (one at a time, through its own queue
-  scripts under `train/`), five fastchess matches and one 8-game check with their engines, and short scoring and
-  parity runs. No gate
+  scripts under `train/`), six fastchess matches and one 8-game check with their engines, one PGO build, two timing
+  runs, and short scoring and parity runs. No gate
   queue, self-play process, hold or STOP file of anyone else was touched. No process was killed; runs were ended
   only with the trainer's own STOP flag (the no-decay run at 20:53:46, arm X4 at 23:44:20), and this job's GPU queue
   script with its own stop flag after the last run (02:35:23). No process of this job is alive at the end.
 - **The owner's guards were not bypassed.** `resource_guard.ps1` suspended this job's timed matches for 5 seconds at
-  a time when its CPU reading went over 90 C (five times in M2, twice in M3; section 7). The trainer has its own holds
+  a time when its CPU reading went over 90 C (five times in M2, twice in M3, once each in M5 and M7; section 7). The trainer has its own holds
   (GPU hot spot 76 C, memory junction 86 C, disk floor) and paused itself twice for 5 seconds in pilot arm W1
   when the memory junction read 86 C.
 - **Disk.** D: fell from 33.7 GiB free to 31.0 at the lowest (02:35) and stands at 31.3 at the end; the owner's
@@ -522,7 +546,7 @@ continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from r
   `latest.pt`, which repeat the kept end state `stage_S2.pt`; two replayed start states of the continuations; the
   stopped arm X4's state; five float files of averages) and 27 mid-cycle nets of the decay-1.0 run. Nothing of
   phase 1 and nothing cited in this report was removed; the kept files were re-checked against their recorded
-  hashes afterwards. C: and F: stayed above 32 GiB. E: was not written to. Phase 2 holds about 2.3 GiB under `_work\`.
+  hashes afterwards. C: and F: stayed above 32 GiB. E: was not written to. Phase 2 holds about 2.4 GiB under `_work\`.
 - **A safety check refused one edit** that would have added an `rm` with a variable path to a queue script. The line
   was left out; the later removals above used literal paths.
 - **`STATUS.md` was damaged once by my own scripted edit** (21:44): two Windows paths lost their backslashes. It was
@@ -564,10 +588,13 @@ Times are read from the logs (PC clock).
 | From-scratch run to 10B | GPU | 00:51:21 - 02:35:03 |
 | Test set 2 scored once | | 00:52:06 - 00:54:31 |
 | Match MN2 (candidate 3, equal nodes) | CPU | 01:28:53 - 02:22:53 |
-| Report, final checks, final push | | 02:23 - 02:55 |
+| Report, final checks, push of the declared work | | 02:23 - 02:38 |
+| Rebuild for candidate 3, coverage proof, two quiet timings (addendum 11) | CPU | 02:40 - 02:45 |
+| Match M7 (candidate 3, rebuilt exe, 6 s + 0.06 s, GPU idle) | CPU | 02:45:59 - 03:26:22 |
+| Final report and push | | 03:26 - 03:40 |
 
 - The GPU trained from 20:34 to 02:35 with gaps of seconds between runs. The CPU played matches from 20:38 to 02:22,
-  with one gap of 8 minutes (21:33 to 21:41, waiting for the last pilot arm, as declared) and seconds between the others.
-- About 33 billion training presentations in 13 runs, and 13,000 match games.
-- Phase 2 used about 6 hours 25 minutes of the 7.5 hours offered. The remaining time was not padded: the declared
-  work was finished and no further experiment was pending.
+  with one gap of 8 minutes (21:33 to 21:41, waiting for the last pilot arm, as declared) and seconds between the
+  others, and M7 from 02:46 to 03:26 with the GPU idle on purpose.
+- About 33 billion training presentations in 13 runs, and 14,500 match games.
+- Phase 2 used about 7 hours 10 minutes of the 7.5 hours offered.
