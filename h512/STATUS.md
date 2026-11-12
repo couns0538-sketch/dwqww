@@ -9,7 +9,7 @@ which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8
 ## State: phase 1 COMPLETE (`REPORT.md`, verdict: promising for QA). Phase 2 (follow-up) IN PROGRESS.
 
 ## Phase 2 (follow-up at the owner's request, 20:30 to about 04:00)
-**Last update:** 21:44. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 5 (each committed before
+**Last update:** 22:26. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 5 (each committed before
 the results it governs).
 - **Why:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked for
   GPU and CPU to work at the same time.
@@ -25,6 +25,11 @@ the results it governs).
   `_work\nets\h512_cand_W2_seen02000003072.fnn3`, md5 `ae0d372e3748fc6d4e27c2885b164d46`. Parity 14,000 of 14,000.
 - **Match M2 (CPU), running:** candidate 2 against the lock, 6 s + 0.06 s, 3,000 games, seed 2026111106.
   fastchess pid 16320, started 21:41:40, expected end about 23:05. Folder `_work\match\m2_tc6_h512_cand_W2_seen02000003072`.
+  Running score at 22:23 after 1,524 games: +31 Elo, error 10 (fastchess's own figure; not final). 22 games ended on
+  time after three 5-second suspensions by the owner's resource guard (21:55:22, 22:16:52, 22:17:38; its CPU reading
+  spikes over 90 C, GPU edge 44 C). They are reported by side at the end. The guard is not bypassed.
+- **Decay run so far:** 0.013961 at 4.0B (candidate 2: 0.014081 at 2.0B); 7.4B stage end expected about 22:35.
+- **Queued on the GPU behind it:** second pilot round X1 to X5 (addendum 6) and the continuation of a winner.
 - **GPU, running:** continuation of the decay-1.0 arm to 4B, 7.4B and 10B (`_work\runs\arms\wdc_W2`, GPU queue
   launcher pid 6928), started 21:40:30, expected end about 23:00.
 - **Done:** test set 2 (2,000,000 rows from shards 037/039, `manifests/test2_manifest.json`); not scored yet.
