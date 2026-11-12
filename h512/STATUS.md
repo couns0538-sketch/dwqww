@@ -22,11 +22,10 @@ the results it governs).
 - **Finding 3 (match MN1, done):** at a fixed 250,000 nodes per move candidate 1 scores **-4.8 Elo, 95 % interval
   -12.5 to +3.0** against the lock (3,000 games, no abnormal endings). Its +12.4 at equal time came from speed.
 - **Candidate 2 frozen at 21:41:** decay 1.0, 2,000,003,072 presentations, selection loss 0.014081,
-  `_work
-ets\h512_cand_W2_seen02000003072.fnn3`, md5 `ae0d372e3748fc6d4e27c2885b164d46`. Parity 14,000 of 14,000.
+  `_work\nets\h512_cand_W2_seen02000003072.fnn3`, md5 `ae0d372e3748fc6d4e27c2885b164d46`. Parity 14,000 of 14,000.
 - **Match M2 (CPU), running:** candidate 2 against the lock, 6 s + 0.06 s, 3,000 games, seed 2026111106.
   fastchess pid 16320, started 21:41:40, expected end about 23:05. Folder `_work\match\m2_tc6_h512_cand_W2_seen02000003072`.
-- **GPU, running:** continuation of the decay-1.0 arm to 4B, 7.4B and 10B (`_workunsrms\wdc_W2`, GPU queue
+- **GPU, running:** continuation of the decay-1.0 arm to 4B, 7.4B and 10B (`_work\runs\arms\wdc_W2`, GPU queue
   launcher pid 6928), started 21:40:30, expected end about 23:00.
 - **Done:** test set 2 (2,000,000 rows from shards 037/039, `manifests/test2_manifest.json`); not scored yet.
 - **Next:** when M2 ends, freeze the best eligible net and play M3 (10 s + 0.1 s); a third match slot if time allows;
