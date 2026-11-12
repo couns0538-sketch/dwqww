@@ -1,4 +1,4 @@
-# Match M5 (6 s + 0.06 s): declared before the first game (2026-11-12 00:00 PC clock, while M3 was still running)
+# Match M5 (6 s + 0.06 s): declared before the first game (2026-11-11 23:58 PC clock, while M3 was still running)
 
 Not the crew gate and not a lock claim. The final candidate's own match under the phase-1 conditions.
 

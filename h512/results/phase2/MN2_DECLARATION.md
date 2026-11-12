@@ -1,4 +1,4 @@
-# Match MN2 (fixed nodes): declared before the first game (2026-11-12 00:00 PC clock, while M3 was still running)
+# Match MN2 (fixed nodes): declared before the first game (2026-11-11 23:58 PC clock, while M3 was still running)
 
 Not the crew gate and not a lock claim. The same question MN1 answered for candidate 1, now for a weight-decay net.
 
