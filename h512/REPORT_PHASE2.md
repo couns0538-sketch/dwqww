@@ -2,8 +2,8 @@
 
 Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 02:55 on grok-pc. This file continues
 `REPORT.md` (phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
-Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and ten addenda, each committed before
-the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
+Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and eleven addenda, each committed
+before the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
 
 ## Verdict
 
@@ -28,8 +28,9 @@ What stands behind these numbers:
   positions the loss went from 0.014480 to 0.013882; combo29's evaluator stands at 0.014311. A second, untouched test
   set scored once at the end gives the same picture: 0.014070 against 0.014527 (section 8).
 - **Candidate 1's +12.4 came from speed, not from evaluation:** at equal nodes it scored -4.8 (MN1). **Candidate 3
-  scores +54.9 at equal nodes** (MN2): its advantage is in the evaluation itself, and its 20 % higher speed comes on
-  top at equal time.
+  scores +54.9 at equal nodes** (MN2): its advantage is in the evaluation itself. Its speed adds less than it did
+  for candidate 1: with candidate 3's net the engine searches 9.5 % more nodes per second than combo29, with
+  candidate 1's net it was 19.8 % (section 6b).
 - **The warm start is not needed:** the same recipe trained from random initialisation comes within 0.00004 of the
   warm-started runs at equal training length (section 5c). No candidate was taken from that run.
 - Limits: timed matches ran with the GPU busy and lost some games on time to the owner's thermal guard (counted by
@@ -51,12 +52,13 @@ Deviations from the phase-1 plan, all on the owner's instruction or declared bef
   engines of a match play under the same load and every opening is played with both colours.
 - **The run without weight decay was paused at 4.0B**, when it was getting worse on unseen positions (section 2).
   It is resumable. The 10B the owner asked for was reached with the weight-decay recipe instead (section 5).
-- **The candidate executable was not rebuilt.** Every net of phase 2 is loaded by the phase-1 exe
-  (md5 `5c46cd2d43bc051df1a39e841487b95f`); its PGO profile was collected with candidate 1's net.
+- **The candidate executable was not rebuilt until the end.** Matches MN1 to MN2 load their nets into the phase-1
+  exe (md5 `5c46cd2d43bc051df1a39e841487b95f`), whose PGO profile was collected with candidate 1's net. After those
+  matches the executable was rebuilt with candidate 3's net, timed and played once more (section 6b, addendum 11).
 - **Decisions use the selection set only.** The phase-1 final-test set was not opened again. A second test set from
   shards 037/039 was scored once, after the candidate list had closed (section 8).
 - **The plan changed several times during the night, each time in writing before the result it governs** (addenda 1
-  to 10 of the declaration). Two changes were made after seeing a result and say so: the pilot was moved ahead of the
+  to 11 of the declaration). Two changes were made after seeing a result and say so: the pilot was moved ahead of the
   rest of the no-decay run when that run got worse (addendum 2b), and the from-scratch run was allowed to produce a
   candidate after its first stage end came in (addendum 10).
 
@@ -260,6 +262,34 @@ by the rule fixed in the declaration: the eligible net with the lowest selection
   `parity_candidate3.json`). The bench node counts are in `pins_candidate2.txt` and `pins_candidate3.txt`.
 - Freeze records with the other eligible nets and their losses: `results/phase2/FROZEN_CANDIDATE_2.json`, `_3.json`.
 
+## 6b. A rebuilt executable for candidate 3, and its speed
+
+Done last (addendum 11), after matches MN1 to MN2, with nothing else of this job running.
+
+- **Build.** Config `h512_v3_c3` of `fair_eval/configs.json`, built by `fair_eval/build_fair.ps1`: the same source
+  and flags as the phase-1 executable (engine sources are unchanged since phase 1), with candidate 3's net loaded
+  while the PGO profile is collected. Result: `_work\builds\h512_v3_c3_29ea1b67b2dd\forge_fair_h512_v3_c3.exe`,
+  md5 `0b9da97c2a859d6e75642db23536de90`, sha256 `81d58b04ba1b8fbd56a6c94475fc2048a0692e1fe7a23d31647c4913b922a598`.
+- **Coverage proof passes** (`results/phase2/build_c3/coverage.json`): the standalone evaluation ran 2,619,188 times
+  in the profile workload; the compiled-in residual net and every hand-crafted evaluation function ran 0 times.
+- **Same search.** With candidate 3's net the rebuilt executable gives 348,651 / 743,566 / 2,890,515 bench nodes at
+  depths 11 / 13 / 16, identical to the phase-1 executable with that net.
+- **Speed**, Job D's quiet ABBA protocol (`bench 20`, 16 pairs, engine pinned to logical CPU 8, machine 2 % busy):
+
+| A | B | B / A in nodes per second | 95 % interval | Nodes A / B |
+|---|---|---:|---|---|
+| lock exe | rebuilt exe, candidate 3's net | **1.0952** | 1.0931 to 1.0974 | 12,389,307 / 13,407,897 |
+| phase-1 exe, candidate 3's net | rebuilt exe, candidate 3's net | 0.9985 | 0.9962 to 1.0007 | 13,407,897 / 13,407,897 |
+| lock exe | phase-1 exe, candidate 1's net (phase 1) | 1.1976 | 1.1915 to 1.2037 | 12,389,307 / 14,070,519 |
+
+- **The rebuild changes nothing measurable:** on the same net and the same nodes the two executables are equally fast.
+- **The speed advantage depends on the net.** With candidate 1's net the standalone engine searched 19.8 % more
+  nodes per second than the lock, with candidate 3's net 9.5 %. The engines search different trees, so nodes per
+  second is not a like-for-like speed; but the phase-1 figure of "about 20 % faster" must not be carried over to
+  candidate 3. Its gain over combo29 is mostly evaluation (MN2), not speed.
+- Evidence: `results/phase2/build_c3/` (receipt, coverage, workload, build log), `results/phase2/abba_c3/`,
+  `results/phase2/abba_old_vs_c3/` (every timing sample).
+
 ## 7. Matches
 
 All matches are this job's own screens against the original lock exe (md5 `c0051c99695f48bf93272d96fe7548c3`),
@@ -347,9 +377,10 @@ The same settings as MN1: 250,000 nodes per move for both engines, no clock, 3,0
 - **Reading:** candidate 1 scored -4.8 under these settings and candidate 3 scores +54.9. Per node searched, the
   weight-decay net evaluates clearly better than combo29's residual net plus hand-crafted evaluation. This result
   does not depend on machine speed, load or the guard.
-- At equal time candidate 3 scored +66.6 (M5, different openings). The difference to +54.9 is in line with its speed
-  advantage, which was worth roughly 17 Elo for candidate 1 (+12.4 at equal time against -4.8 at equal nodes; each
-  of these figures carries an interval of 7 to 9 Elo).
+- At equal time candidate 3 scored +66.6 (M5, different openings), 12 Elo more than at equal nodes. For candidate 1
+  that difference was 17 Elo (+12.4 against -4.8). Each of these figures carries an interval of 7 to 9 Elo, so the
+  two differences cannot be told apart, but the direction fits the speed measurement: candidate 3's net leaves the
+  engine 9.5 % faster than the lock in nodes per second, candidate 1's net 19.8 % (section 6b).
 - Evidence: `results/phase2/mn2/`.
 
 ### All matches of both phases side by side
@@ -421,8 +452,11 @@ lever, not more passes.
   6 s + 0.06 s and 10 s + 0.1 s, Threads 1. QA's gate decides.
 - **Timed matches ran with the GPU busy** and lost games on time to guard suspensions (counted by side above).
   The suspensions hit whichever side was to move; the results without the affected pairs are within 0.6 Elo.
-- **The executable was not rebuilt** for the new nets. Its PGO profile was collected with candidate 1's net loaded.
-  NPS was not re-measured for the new nets; the weights change, the arithmetic does not.
+- **Matches MN1 to MN2 used the phase-1 executable**, whose PGO profile was collected with candidate 1's net loaded.
+  The rebuilt executable (section 6b) is as fast as the old one on the same net and played one match of its own (M7).
+- **Speed depends on the net.** I had assumed the 19.8 % speed advantage measured in phase 1 would carry over to the
+  new nets, because the arithmetic is the same. It does not: with candidate 3's net it is 9.5 %. The declarations of
+  MN1 and MN2 still state the old figure (17 % less time per move at equal nodes).
 - **One seed per recipe.** Run-to-run noise was measured once (0.000003, control arm W0). The decay effect is a
   hundred times larger, but the fine ranking of decay 0.3 against 1.0 rests on single runs.
 - **The selection set was used for about twenty choices in phase 2** (pilot arms, averages, checkpoints, candidates).
@@ -444,7 +478,8 @@ phase 1 listed in `REPORT.md` section 15 is still in place and unchanged.
 | Candidate 3 float checkpoint | `_work\nets\h512_cand_W2_seen10000023552_float.pt` | `295828fd438138194aad00bf181d65b5` |
 | Candidate 2 net | `_work\nets\h512_cand_W2_seen02000003072.fnn3` | `ae0d372e3748fc6d4e27c2885b164d46` |
 | Candidate 2 float checkpoint | `_work\nets\h512_cand_W2_seen02000003072_float.pt` | `4fd2d9fb4834443a54690fc1bd4cd5f8` |
-| Candidate exe (all matches) | `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe` | `5c46cd2d43bc051df1a39e841487b95f` |
+| Candidate exe, phase-1 build (matches MN1 to MN2) | `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe` | `5c46cd2d43bc051df1a39e841487b95f` |
+| **Candidate exe, rebuilt with candidate 3's net (match M7)** | `_work\builds\h512_v3_c3_29ea1b67b2dd\forge_fair_h512_v3_c3.exe` | `0b9da97c2a859d6e75642db23536de90` |
 | Lock exe (opponent) | `forge-combo29\windows\forge_clang_combo29_trial_w6.exe` | `c0051c99695f48bf93272d96fe7548c3` |
 | Decay-1.0 run: latest / 4B / 7.4B / 10B states | `_work\runs\arms\wdc_W2\latest.pt`, `stage_S3.pt`, `stage_S4.pt`, `stage_S5.pt` | `f8873753be41295745f98b047d434941`, `bc6bc904047b5a96af29c94b798b088c`, `6e9cf8f31ffedf30a4a174f730810802`, `295828fd438138194aad00bf181d65b5` |
 | Decay-1.0 run: nets at 4B / 7.4B | `_work\runs\arms\wdc_W2\net_seen04000014336.fnn3`, `net_seen07400022016.fnn3` | `24480d3019b595a79d6766948821495b`, `e2ca566663ffedcf9c042a6d0b37cbe6` |
@@ -505,6 +540,7 @@ continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from r
 - **Engine sources were not changed in phase 2.** The only code changes are in the trainer and the job's own tools:
   `--clear-stop`, weight decay, running averages (unused in the end) and random initialisation in
   `train/train_h512_gpu.py`, plus new scripts under `tools/`, `train/` and `results/phase2/`.
+  `fair_eval/configs.json` gained one net entry (`h512_cand3`) and one build configuration (`h512_v3_c3`) for the rebuild.
 
 ## 13. Time record
 

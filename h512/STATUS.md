@@ -7,12 +7,21 @@ plan approved 17:10, work from 17:11).
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
 
-## State: COMPLETE. Phase 1: `REPORT.md`. Phase 2 (follow-up): `REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3.
+## State: phase 1 COMPLETE (`REPORT.md`). Phase 2: declared work COMPLETE (`REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3); one extra match (M7) running.
 
 ## Phase 2 (follow-up at the owner's request, 20:30 to 02:55)
-**Last update:** 02:50 (2026-11-12). **Phase 2 is COMPLETE.** Result: `REPORT_PHASE2.md`. Rules:
-`results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 10 (each committed before the results it governs).
-Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to about 02:55, 6 h 25 min of the 7.5 h offered.
+**Last update:** 02:50 (2026-11-12). **Phase 2's declared work is complete; one extra item is running (addendum 11).**
+Result: `REPORT_PHASE2.md`. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 11 (each committed
+before the results it governs). Generated tables: `results/phase2/tables.md`.
+- **Running now (addendum 11): match M7**, the rebuilt executable with candidate 3's net against the lock,
+  6 s + 0.06 s, 1,500 games, seed 2026111112, GPU idle. fastchess pid 12708, started 02:45:59, expected end about
+  03:27. Folder: the `m7_tc6_rebuilt_exe_cand3` folder under the job's match folder. When it ends: collect with
+  `h512/results/phase2/collect_match.sh m7_tc6_rebuilt_exe_cand3 m7` and add its result to `REPORT_PHASE2.md`
+  (verdict table, section 6b, section 7, section 13). Nothing else of this job is running.
+- **Rebuilt executable (done 02:40):** config `h512_v3_c3`, md5 `0b9da97c2a859d6e75642db23536de90`; coverage proof
+  passes; same bench nodes as the phase-1 executable with candidate 3's net. Quiet speed: 1.0952x the lock with
+  candidate 3's net (95 % CI 1.0931 to 1.0974); the rebuild itself changes nothing (0.9985x the phase-1 executable
+  on the same net). **Correction:** the 19.8 % speed advantage of phase 1 holds for candidate 1's net only.
 - **Verdict: strongly promising for QA, gate candidate 3.** Not a gate result and not a lock claim.
 - **Why phase 2:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked
   for GPU and CPU to work at the same time.
@@ -46,8 +55,8 @@ Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to about 02
   net); NPS not re-measured; timed matches ran with the GPU busy; one seed per recipe; the no-decay run was not taken
   past 4.0B; `swa_C1`, `ema_E1`, arm X4 and match M6 were declared and not run or not finished; test set 3 was built
   and never scored; Threads above 1, longer clocks and sanitizers were not tested.
-- **Process ownership:** no process of this job is alive (checked 02:36 and at the final push). The GPU queue script
-  was ended with its own stop flag at 02:35:23. Nothing of anyone else was touched; the guards were not bypassed.
+- **Process ownership:** only match M7 (above) is alive. The GPU queue script was ended with its own stop flag at
+  02:35:23; no trainer is running. Nothing of anyone else was touched; the guards were not bypassed.
 - **Artifacts kept locally,** about 2.3 GiB of phase 2 under `_work\`: the three candidate nets and float checkpoints
   (`nets\`); the decay-1.0 run with its 4B, 7.4B and 10B states (`runs\arms\wdc_W2`); the decay-0.3 run
   (`runs\arms\wd2c_X1`); the from-scratch run with all five stage states (`runs\arms\scratch_wd`); the paused no-decay
