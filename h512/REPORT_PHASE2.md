@@ -218,6 +218,21 @@ Candidate 2 is the decay-1.0 net at 2.0B (selection loss 0.014081). Same setting
 - No crash, no illegal move, no disconnect.
 - Evidence: `results/phase2/m2/` (`match_result.json`, `time_losses.txt` with the guard's log lines, run info, log, PGN md5).
 
+### M3: candidate 3 at 10 s + 0.1 s (a longer clock)
+
+Candidate 3 is the decay-1.0 net at 10.0B (selection loss 0.013882). 2,000 games (addendum 7), seed 2026111107,
+time margin 1000 ms. The GPU trainer ran during the match.
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 2,000 | 662 | 1,001 | 337 | 58.13 % | **+57.0** | +48.3 to +65.7 | 11 / 126 / 430 / 393 / 40 |
+
+- The advantage did not shrink at the longer clock.
+- 13 games ended on time, 7 lost by the candidate and 6 by the lock, after two guard suspensions (23:37:40, 23:51:56).
+  Without the 10 opening pairs involved: +57.5 (+48.9 to +66.3).
+- No crash, no illegal move, no disconnect.
+- Evidence: `results/phase2/m3/`.
+
 ## 10. Limits of this evidence
 
 - **These are screens, not the gate.** One machine, one evening, 2,000 to 3,000 games per match, time controls of
