@@ -94,3 +94,35 @@ Changes:
 | M3 (the slow item: 3,000 games at the longer clock) | about 2 h 20 min |
 | M4 if time allows | up to 100 minutes |
 | Report, hashes, push | from 03:10 at the latest |
+
+## Addendum 2 (20:52): weight-decay pilot on the GPU after the 10B run
+Known when this was written: phase-2 checkpoints up to 3.0B (selection loss 0.014579 at learning rate 2.6e-4; stage S2
+stood at 0.014565 at the same point of its cycle), and this diagnostic (`train_sample_*.json` in this folder):
+
+| Evaluator | 2,000,000 training rows | selection set (unseen shards) |
+|---|---|---|
+| Hand-crafted eval alone (never trained on either) | 0.017099 | 0.017044 |
+| s198 + HCE | 0.014138 | 0.014311 |
+| Candidate 1 (2.0B) | 0.013014 | 0.014480 |
+
+The two sets are equally hard for an evaluator that was trained on neither. Candidate 1 is 11 % better on rows it was
+trained on than on unseen rows. So the plateau on the selection set is over-fitting to the 271.8M training rows, and
+more passes alone are unlikely to help. This changes addendum 1 in one point: **after 10B the GPU does not go on to
+20B first; it runs a regularisation pilot.** (The 10B run itself continues as the owner asked.)
+
+Pilot, declared before any arm runs:
+- Each arm repeats stage S2 of phase 1 exactly: it resumes a copy of the 1.0B state (`_work\runs\main\stage_S1.pt`:
+  same model, Adam, RNG, data position), then one cosine cycle 1.0B to 2.0B, peak learning rate 5e-4, alpha 0.25.
+- The only change is decoupled weight decay on the king-bucketed first-layer weights `w1`
+  (`w1 *= 1 - lr * lambda` after every step). The shared factoriser weights, biases and output layer are not decayed.
+- Arms: **W0** lambda 0 (a repeat of S2, to measure run-to-run noise), **W1** 0.1, **W2** 1.0, **W3** 10.
+  About 9 minutes each. Plans `h512/train/plans/wd_W*.json`, queue `h512/train/run_wd_pilots.sh`.
+- Metric: the same selection loss, at the 2.0B stage end. Phase 1's S2 ended at 0.014481.
+- Rule: an arm "helps" if its stage-end loss is at least 2e-5 below both S2's 0.014481 and W0's. The arm with the
+  lowest loss among those that help wins. If the winner is at the edge of the range (W3), or sits between a much
+  better and a much worse neighbour, up to two more arms next to it may be run under the same rule.
+- If an arm wins: its run continues from its own 2.0B state with the same decay in further cosine stages
+  (to 4B, then 7.4B) while time allows, and the usual candidate rule applies to its checkpoints
+  (lowest selection loss; a new candidate only if at least 2e-5 below the current candidate).
+- If no arm helps: that is the finding. The GPU then continues the unregularised run from 10B toward 20B (stage S6).
+- The training-row sample is scored at every checkpoint of the arms only to show the fit gap. It is never used to choose.

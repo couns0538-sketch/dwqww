@@ -577,7 +577,8 @@ def cmd_train(a):
                        "max_hot": guard.max_hot, "max_memj": guard.max_mj}, f, indent=1, sort_keys=True)
         say(f"CKPT {entry['index']} seen {seen} stage {entry['stage']} {reason} {metric_set}.{metric_key} {m:.6f} "
             f"{'BEST ' if new_best else ''}b1.0 {entry['scores'][metric_set]['mse_b1.0']:.6f} lr {cur['lr']:.2e} "
-            f"alpha {cur['alpha']:.3f} ema {cur['ema']:.6f} {cur['rate']:.0f} pos/s ({time.time() - t0:.1f}s)")
+            f"alpha {cur['alpha']:.3f} ema {cur['ema'] if cur['ema'] is not None else float('nan'):.6f} {cur['rate']:.0f} pos/s "
+            f"({time.time() - t0:.1f}s)")
         return m
 
     every = int(plan.get("ckpt_every_pres", 250_000_000))
@@ -598,6 +599,9 @@ def cmd_train(a):
         st = stages[i]
         start_seen, end_seen, steps = bounds(i)
         step = st_state["stage_step"]
+        wd = {k: float(v) for k, v in (st.get("weight_decay", plan.get("weight_decay")) or {}).items() if float(v) != 0.0}
+        if wd and step < steps:
+            say(f"weight decay (decoupled, per step w *= 1 - lr * lambda): {wd}")
         if step == 0:
             say(f"STAGE {st['name']} start: seen {st_state['seen']} -> {end_seen} ({steps} steps of {B}) lr_peak {st['lr_peak']} "
                 f"alpha {st['alpha_start']}->{st['alpha_end']}")
@@ -630,6 +634,10 @@ def cmd_train(a):
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
+            if wd:                      # decoupled weight decay: w <- w * (1 - lr * lambda), per named parameter
+                with torch.no_grad():
+                    for wname, lam in wd.items():
+                        getattr(model, wname).mul_(1.0 - lr * lam)
             model.clip()
             step += 1
             st_state["stage_step"] = step

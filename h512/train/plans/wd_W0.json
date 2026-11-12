@@ -1,0 +1,48 @@
+{
+ "name": "wd_W0",
+ "_comment": "JOB E phase 2 weight-decay pilot, written 2026-11-11 20:50 before any of these arms ran. Each arm repeats stage S2 of the phase-1 run exactly (it resumes a copy of _work/runs/main/stage_S1.pt: same model, Adam state, RNG and data position at 1.0B, then one cosine cycle 1.0B -> 2.0B with peak lr 5e-4, alpha 0.25), except for decoupled weight decay on the king-bucketed first-layer weights w1 (w1 *= 1 - lr * lambda after every step; the shared factoriser weights wf, the biases and the output layer are not decayed). W0 has no decay: it measures how far a repeat of S2 lands from S2 itself (run-to-run noise). A sample of 2,000,000 training rows is scored next to the selection set to show the fit gap.",
+ "seed": 20261111,
+ "batch": 8192,
+ "train_glob": "F:/opus_scratch/fable/data/train/fb2_train_*.pos",
+ "score_sets": [
+  {
+   "name": "select_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/select_2m.pos"
+  },
+  {
+   "name": "fb2_200k",
+   "pos": "F:/opus_scratch/fable/data/holdout/fb2_holdout_200k.pos"
+  },
+  {
+   "name": "train_sample_2m",
+   "pos": "D:/forge_jobs_20261111/h512E/_work/data/train_sample_2m.pos"
+  }
+ ],
+ "metric_set": "select_2m",
+ "metric_key": "mse_b0.6",
+ "prior_seen": 761856000,
+ "init_fb2": "F:/opus_scratch/fable/fb2/train_j1b/ckpt.pt",
+ "fresh_optimizer": true,
+ "warmup_steps": 500,
+ "lr_final_frac": 0.05,
+ "ckpt_every_pres": 250000000,
+ "phase_weight": "natural",
+ "reference_metric": 0.014640172362362048,
+ "stages": [
+  {
+   "name": "S1",
+   "end_seen": 1000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  },
+  {
+   "name": "S2",
+   "end_seen": 2000000000,
+   "lr_peak": 0.0005,
+   "alpha_start": 0.25,
+   "alpha_end": 0.25
+  }
+ ],
+ "weight_decay": {}
+}
