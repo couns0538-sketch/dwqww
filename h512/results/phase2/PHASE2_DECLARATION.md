@@ -62,7 +62,7 @@ Analysis as in phase 1 (`h512/tools/match_elo.py`, opening pairs as units). No h
 - Known hazard, as in phase 1: the owner's `resource_guard.ps1` suspends fastchess for about 5 s when its thermal latch
   trips. Affected games are reported by side, with the result without the affected opening pairs. The guard is not bypassed.
 
-## Addendum 1 (20:42, before any phase-2 checkpoint at a stage end and before any phase-2 game)
+## Addendum 1 (20:38, before any phase-2 checkpoint at a stage end and before any phase-2 game)
 The owner wrote at 20:36: "just continue using the gpu and cpu simultaneously for the engine for 7 and a half hours".
 Known when this was written: one interval checkpoint of stage S3 (2.25B, selection loss 0.014653, at high learning rate).
 Changes:
@@ -87,7 +87,7 @@ Changes:
 ## Time plan (PC clock)
 | Item | Time |
 |---|---|
-| MN1 fixed-nodes match (CPU, during training) | 20:45 to about 21:55 |
+| MN1 fixed-nodes match (CPU, during training) | 20:39 to about 21:50 |
 | Training to 10B | 20:35 to about 21:47 |
 | Freeze, parity, test set 2, bench pins | 20 minutes |
 | M2 | 85 minutes |

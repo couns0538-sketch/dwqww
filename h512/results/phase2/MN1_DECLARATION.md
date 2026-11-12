@@ -1,4 +1,4 @@
-# Match MN1 (fixed nodes): declared before the first game (2026-11-11 20:43 PC clock)
+# Match MN1 (fixed nodes): declared before the first game (2026-11-11 20:38 PC clock; first game 20:38:52)
 
 Not the crew gate and not a lock claim.
 
