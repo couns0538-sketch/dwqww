@@ -3,6 +3,9 @@
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
 #include "forge/nnue.hpp"
+#if FORGE_NNUE_V3
+#include "forge/nnue_v3.hpp"
+#endif
 #if FORGE_NNUE_HALFKA
 #include "forge/nnue_halfka.hpp"
 #endif
@@ -359,6 +362,10 @@ private:
     // R10: HalfKA (K32H3^) accumulators, one entry per stack_ entry (used only while EvalFileHalfKA is loaded)
     halfka::AccumulatorStack halfka_acc_;
 #endif
+#if FORGE_NNUE_V3
+    // NNUE v3 (UCI NNUEArch) per-worker state, allocated on first use; null with the option off.
+    std::unique_ptr<nnue::v3::WorkerState> v3_state_;
+#endif
     std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
     std::size_t root_effort_count_ = 0;
@@ -419,6 +426,9 @@ private:
 #if FORGE_NNUE_V2
     // v2 net path (UCI EvalFileV2, forge/nnue_v2.hpp); called only while a v2 net is active.
     [[nodiscard]] int static_evaluate_v2(const Board& board, SearchStack* ss);
+#endif
+#if FORGE_NNUE_V3
+    [[nodiscard]] int static_evaluate_v3(const Board& board, SearchStack* ss);   // src/search_v3.cpp
 #endif
     void record_move(SearchStack* ss, const Board& board, const Move& move);
     void record_null_move(SearchStack* ss);

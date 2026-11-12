@@ -66,6 +66,15 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 #ifndef FORGE_NNUE_HALFKA
 #define FORGE_NNUE_HALFKA 0
 #endif
+//   FORGE_NNUE_V3 1            JOB E: compiles the FB1 integer NNUE v3 path (UCI NNUEArch / NNUEArchFile,
+//                              forge/nnue_v3.hpp, src/nnue_v3.cpp, src/search_v3.cpp). While a stand-alone v3 net is
+//                              active the evaluation is the net alone; the hand-crafted evaluation is not called.
+#ifndef FORGE_NNUE_V3
+#define FORGE_NNUE_V3 0
+#endif
+#if FORGE_NNUE_V3 && (FORGE_NNUE_V2 || FORGE_NNUE_HALFKA)
+#error "FORGE_NNUE_V3 is not combined with FORGE_NNUE_V2 or FORGE_NNUE_HALFKA"
+#endif
 
 [[nodiscard]] constexpr int feature_index(Color perspective, Piece piece, int square) {
     const int relative_color = color_of(piece) == perspective ? 0 : 1;

@@ -136,7 +136,7 @@ function Run-Workload([string]$exe, [string]$outFile) {
     if ($p.ExitCode -ne 0) { throw "workload exit $($p.ExitCode) for $exe" }
     $nodes = @(Select-String -Path $outFile -Pattern 'bench depth (\d+) nodes (\d+)' | ForEach-Object { [long]$_.Matches[0].Groups[2].Value })
     if ($nodes.Count -ne @($cfgAll.train_benches).Count) { throw "workload gave $($nodes.Count) bench lines" }
-    if ($setopts.Count -gt 0 -and $cfg.net -and -not (Select-String -Path $outFile -Pattern 'info string EvalFile\w+ loaded' -Quiet)) { throw 'the net file was not loaded during the workload' }
+    if ($setopts.Count -gt 0 -and $cfg.net -and -not (Select-String -Path $outFile -Pattern 'info string (EvalFile\w+ loaded|NNUE v3 active)' -Quiet)) { throw 'the net file was not loaded during the workload' }
     if (Select-String -Path $outFile -Pattern 'ERROR|invalid value' -Quiet) { throw "the workload output reports an error, see $outFile" }
     return $nodes
 }

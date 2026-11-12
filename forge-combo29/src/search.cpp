@@ -922,6 +922,9 @@ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (halfka::active()) return halfka_evaluate(board, ss);
 #endif
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+#if FORGE_NNUE_V3
+    if (nnue::v3::active()) [[unlikely]] return static_evaluate_v3(board, ss);
+#endif
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
         // Walk back to the nearest valid accumulator, then replay the moves.
@@ -950,11 +953,33 @@ int Worker::diag_static_total(const Board& board, SearchStack* ss) {
 #if FORGE_NNUE_HALFKA
     if (halfka::active()) return diag_static_evaluate(board, ss).total;
 #endif
+#if FORGE_NNUE_V3
+    if (nnue::enabled && nnue::available() && nnue::v3::active()) {
+        // JOB E: the caller's reset() clears ss->accumulator.valid; it is used here as "the v3 state is stale", so
+        // a reset position is refreshed through the cache and a repeated one is evaluated on a valid accumulator.
+        if (!ss->accumulator.valid && v3_state_) v3_state_->invalidate();
+        const int total = static_evaluate(board, ss);
+        ss->accumulator.valid = true;
+        return total;
+    }
+#endif
     return static_evaluate(board, ss);
 }
 
 Worker::DiagEval Worker::diag_static_evaluate(const Board& board, SearchStack* ss) {
     DiagEval out;
+#if FORGE_NNUE_V3
+    if (nnue::enabled && nnue::available() && nnue::v3::active()) {
+        // JOB E: `total` is the search's own path (cache refresh + compiled kernel) from an invalidated state.
+        // `network` is the scalar reference on fresh accumulators. `hce` is whatever of the total is not the
+        // network: it must be 0 for a stand-alone net.
+        if (v3_state_) v3_state_->invalidate();
+        out.total = static_evaluate(board, ss);
+        out.network = nnue::v3::evaluate_reference(*nnue::v3::loaded(), board);
+        out.hce = out.total - out.network;
+        return out;
+    }
+#endif
 #if FORGE_NNUE_HALFKA
     if (halfka::active()) {
         // The HalfKA rows are indexed by the position of `ss` in this worker's own stack, so the root entry of
@@ -1001,6 +1026,9 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) 
     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+#if FORGE_NNUE_V3
+    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
+#endif
 #if FORGE_NNUE_HALFKA
     if (halfka_on) {
         const std::size_t entry = static_cast<std::size_t>(ss + 1 - stack_.data());
@@ -1013,6 +1041,9 @@ void Worker::record_null_move(SearchStack* ss) {
     (ss + 1)->dirty.count = 0;
     (ss + 1)->accumulator.valid = false;
     (ss + 1)->runtime_psqt.valid = false;
+#if FORGE_NNUE_V3
+    if (v3_state_) [[unlikely]] v3_state_->stack[static_cast<std::size_t>(ss->ply + 5)].valid = false;
+#endif
 #if FORGE_NNUE_HALFKA
     if (halfka::active()) {
         const std::size_t entry = static_cast<std::size_t>(ss + 1 - stack_.data());
@@ -1870,6 +1901,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         (void)static_evaluate_v2(board, ss);
     }
 #else
+#if FORGE_NNUE_V3
+    if (v3_state_) v3_state_->invalidate();
+    if (nnue::enabled && nnue::available() && nnue::v3::active()) [[unlikely]] {
+        // JOB E: a v3 net is the whole evaluation. Build its root accumulators now (left lazy, a root whose
+        // evaluation comes from the hash table never gets them); the compiled-in network is not touched.
+        (void)static_evaluate_v3(board, ss);
+    } else
+#endif
     if (nnue::enabled && nnue::available()) {
         nnue::refresh(board, ss->accumulator);
         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
