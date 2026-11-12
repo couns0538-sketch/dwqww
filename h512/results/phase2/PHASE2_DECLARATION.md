@@ -240,3 +240,22 @@ Known when this was written: second-round results X1 (decay 0.3) 0.014049, X2 (d
   decay trained **from random initialisation** (no FB2 warm start, no decay-free phase), with stage ends at 1B, 2B, 4B,
   7.4B and 10B and a hard stop at 02:50. Question: is the warm start needed at all? Its nets are scored on the
   selection set only, never on test set 2, and none of them is frozen or played tonight.
+
+## Addendum 10 (01:08): the from-scratch run may produce a candidate after all
+This reverses the last sentence of addendum 9, and it does so after seeing a result. Known when this was written:
+the from-scratch run's first stage end, **0.014126 at 1.0B** from random initialisation (the warm-started decay arms
+stood at 0.014049 to 0.014083 at 2.0B, candidate 1 at 0.014480); test set 2's scores for candidates 1 to 3; M5's
+running score after about 1,100 games (+69, error 12). Reason: a net that starts this well may end below candidate 3,
+and there is time for one more match after MN2. Everything else declared stays as it is (M5, MN2, candidate 3 as the
+final candidate of the warm-started line, test set 2 closed).
+- **Which net:** when MN2 ends, the from-scratch run's stage-end net with the lowest selection loss among the stage
+  ends finished by then. The run is not stopped or steered for this; its hard stop stays.
+- **Candidate 4** only if that loss is at least 0.00002 below candidate 3's 0.013882 (the usual rule). If it is not,
+  nothing more is frozen or played and the from-scratch numbers are reported as a recipe finding only.
+- **Test set 3**, because test set 2 has been used: 2,000,000 further rows from the same pool (shards 037/039) that
+  are not in test set 2, same exclusions and sampling, seed 2026111104. Scored once, right after the freeze and before
+  M6 has a result, for candidate 4, candidate 3 and combo29's evaluator. It shares shards with test set 2 but not rows.
+- **M6:** candidate 4 against the lock, 6 s + 0.06 s, 2,000 games, seed 2026111111, same settings as M5, if it can
+  start by 02:40. Parity and bench node counts are checked before it starts.
+- **Standing of candidate 4:** it would be a second line (from scratch) next to candidate 3 (warm start). The report
+  states both with what each was measured on.
