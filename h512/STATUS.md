@@ -1,7 +1,8 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
 **After the report (2026-11-12 07:45 PC clock, owner's instruction):** the UCI author line in `forge-combo29/src/uci.cpp` no
-longer names OpenAI. It reads `Forge project` until the owner gives the name to show. This is the only source
+longer names OpenAI. Since 07:47 it reads `Couns`, the name the owner gave (it read `Forge project` for the two
+commits before that). This is the only source
 change: exactly one preprocessed line differs from the previous head `83edcc4e`, and the file compiles with the
 switches off and with `FORGE_NNUE_V3=1`. Every executable cited below was built before this change and still prints
 the old line; the candidate executable will be rebuilt and will then have a new hash. The lock branch and the lock
