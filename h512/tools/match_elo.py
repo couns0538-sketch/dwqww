@@ -45,6 +45,7 @@ def main():
     term = Counter()
     forfeits = Counter()
     rounds = defaultdict(list)
+    abnormal_rounds = set()
     unfinished = 0
     for g in games:
         res = g.get("Result", "*")
@@ -66,6 +67,7 @@ def main():
         if t.lower() not in ("normal", "adjudication", ""):
             loser = (g.get("Black") if res == "1-0" else g.get("White")) if res != "1/2-1/2" else "draw"
             forfeits[f"{t}: {loser}"] += 1
+            abnormal_rounds.add(g.get("Round", "?"))
         rounds[g.get("Round", "?")].append(s)
     pairs = [sum(v) for v in rounds.values() if len(v) == 2]
     odd = sum(1 for v in rounds.values() if len(v) != 2)
@@ -88,6 +90,14 @@ def main():
         var3 = (w * (1 - s) ** 2 + d * (0.5 - s) ** 2 + l * s ** 2) / tot
         se3 = math.sqrt(var3 / tot)
         out["trinomial_for_comparison"] = {"elo": elo(s), "elo_95_low": elo(s - 1.96 * se3), "elo_95_high": elo(s + 1.96 * se3)}
+        # sensitivity: the same paired figure without every opening pair that contains an abnormally ended game
+        clean = [sum(v) / 2.0 for r, v in rounds.items() if len(v) == 2 and r not in abnormal_rounds]
+        if abnormal_rounds and len(clean) > 1:
+            m2 = sum(clean) / len(clean)
+            se2 = math.sqrt(sum((x - m2) ** 2 for x in clean) / (len(clean) - 1) / len(clean))
+            out["without_pairs_with_abnormal_games"] = {
+                "pairs_removed": len([r for r in abnormal_rounds if len(rounds[r]) == 2]), "pairs": len(clean), "pair_score": m2,
+                "elo": elo(m2), "elo_95_low": elo(m2 - 1.96 * se2), "elo_95_high": elo(m2 + 1.96 * se2)}
     print(json.dumps(out, indent=1, sort_keys=True))
     if a.out:
         with open(a.out, "w", encoding="utf-8", newline="\n") as f:
