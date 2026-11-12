@@ -1,18 +1,21 @@
 # JOB E - Standalone H512 network and training recipe - STATUS
 
-**Last update:** 2026-11-11 19:40 PC clock. **Job start:** 16:53 (planning 16:53-17:10, plan approved 17:10, work from 17:11).
-**Elapsed:** 2 h 47 min of about 10 h. The rest of the allowance was not used: training stopped by rule after 12 minutes.
+**Last update:** 2026-11-12 02:50 PC clock (phase 2, below). **Job start:** 2026-11-11 16:53 (planning 16:53-17:10,
+plan approved 17:10, work from 17:11).
+**Elapsed:** phase 1 took 2 h 47 min of about 10 h (to 19:42); phase 2 took 6 h 25 min of a further 7.5 h (20:30 to 02:55).
 **Branch:** `fable/standalone-h512-20261111`, cut from Job D's head `1508c13cdfb87894f01cf3a95fd87b9ad3a4cef0`,
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
 
-## State: phase 1 COMPLETE (`REPORT.md`). Phase 2 (follow-up) IN PROGRESS: `REPORT_PHASE2.md` (draft).
+## State: COMPLETE. Phase 1: `REPORT.md`. Phase 2 (follow-up): `REPORT_PHASE2.md`, verdict: strongly promising for QA, gate candidate 3.
 
-## Phase 2 (follow-up at the owner's request, 20:30 to about 04:00)
-**Last update:** 01:58 (2026-11-12). Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 10 (each
-committed before the results it governs). Report draft: `REPORT_PHASE2.md`. Generated tables: `results/phase2/tables.md`.
-- **Why:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked for
-  GPU and CPU to work at the same time.
+## Phase 2 (follow-up at the owner's request, 20:30 to 02:55)
+**Last update:** 02:50 (2026-11-12). **Phase 2 is COMPLETE.** Result: `REPORT_PHASE2.md`. Rules:
+`results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 10 (each committed before the results it governs).
+Generated tables: `results/phase2/tables.md`. Phase 2 ran from 20:30 to about 02:55, 6 h 25 min of the 7.5 h offered.
+- **Verdict: strongly promising for QA, gate candidate 3.** Not a gate result and not a lock claim.
+- **Why phase 2:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked
+  for GPU and CPU to work at the same time.
 - **Finding 1: the phase-1 plateau was over-fitting.** Candidate 1 scores 0.013014 on a sample of its own training
   rows and 0.014480 on unseen rows; the untrained hand-crafted eval scores the same on both (0.017099 / 0.017044).
   Training on without decay to 4.0B made unseen rows worse (0.014506). That run is paused at 4.0B (resumable).
@@ -21,31 +24,43 @@ committed before the results it governs). Report draft: `REPORT_PHASE2.md`. Gene
   (10), against 0.014480 without decay (a control repeat landed within 0.000003) and 0.014311 for s198 + HCE.
   Decay 1.0 continued: 0.013963 at 4.0B, 0.013903 at 7.4B, **0.013882 at 10.0B**. Decay 0.3 continued: 0.013929 at
   4.0B, 0.013879 at 7.4B. Decaying the shared factoriser weights too is harmful; alpha 0.4 is worse than 0.25.
-- **Final candidate of the warm-started line = candidate 3** (decay 1.0, 10,000,023,552 presentations, selection loss
-  0.013882): `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`.
-  Parity 14,000 of 14,000. Bench nodes 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
+- **Finding 3: no warm start is needed.** The same recipe from random initialisation: 0.014126 at 1.0B, 0.014055 at
+  2.0B, 0.013968 at 4.0B, 0.013916 at 7.4B, 0.013882 at 10.0B (103 minutes). No candidate was taken from that run.
+- **Final candidate = candidate 3** (decay 1.0, 10,000,023,552 presentations, selection loss 0.013882):
+  `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`, sha256
+  `6d2cf71467e95a96d36b9c8fee808090269cf42b9c455ff428926243e5171903`. Exe unchanged from phase 1:
+  `_work\builds\h512_v3_d59e905d3372\forge_fair_h512_v3.exe`, md5 `5c46cd2d43bc051df1a39e841487b95f`.
+  Options `NNUEArchFile` = the net, `NNUEArch` = true. Parity 14,000 of 14,000 positions.
+  Bench nodes with the net 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
 - **Test set 2 (scored once, 00:52):** candidate 3 0.014070, candidate 2 0.014259, s198 + HCE 0.014527,
   candidate 1 0.014676, FB2 best 0.014826, HCE alone 0.017237. Same ranking as on the selection set.
-- **Matches against the original lock exe, all done except MN2:**
+- **Matches against the original lock exe** (each declared before its first game; opening pairs as units):
   - MN1, candidate 1, fixed 250,000 nodes, 3,000 games: **-4.8 Elo (95 % interval -12.5 to +3.0)**.
   - M2, candidate 2, 6 s + 0.06 s, 3,000 games: **+41.3 (+33.8 to +48.9)**; 44 games lost on time (candidate 19, lock 25).
   - M3, candidate 3, 10 s + 0.1 s, 2,000 games: **+57.0 (+48.3 to +65.7)**; 13 lost on time (candidate 7, lock 6).
   - M5, candidate 3, 6 s + 0.06 s, 2,000 games: **+66.6 (+58.0 to +75.4)**; 9 lost on time (candidate 3, lock 6).
-- **Match MN2 (CPU), running:** candidate 3 at a fixed 250,000 nodes per move, 3,000 games, seed 2026111109.
-  fastchess pid 11576, started 01:28:53, expected end about 02:23. Running score at 01:57 after 1,569 games: +58 Elo,
-  error 10 (fastchess's own figure; not final). Folder `_work\match\mn2_nodes250k_h512_cand_W2_seen10000023552`.
-- **GPU, running:** the from-scratch run (`_work\runs\arms\scratch_wd`, GPU queue launcher pid 6928), started
-  00:51:21, stops itself by 02:47 at the latest. From random initialisation with decay 0.3: 0.014126 at 1.0B,
-  0.014055 at 2.0B, 0.013968 at 4.0B, level with the warm-started runs. Addendum 10: its best finished stage end
-  becomes candidate 4 only if it is at least 0.00002 below candidate 3 when MN2 ends; then test set 3 (built, not
-  scored) and match M6 follow. At the current pace that threshold will probably not be met.
-- **Next:** collect MN2, decide on candidate 4 by the rule, finish `REPORT_PHASE2.md`, final push (by about 03:15).
-- **Resume point:** if the session is cut, the match and the GPU run finish by themselves. Then collect MN2 with
-  `h512/results/phase2/collect_match.sh mn2_nodes250k_h512_cand_W2_seen10000023552 mn2` and finish
-  `REPORT_PHASE2.md` (the tokens MN2_ELO, MN2_CI, MN2_SENTENCE and SCRATCH_SENTENCE in its verdict still need values,
-  and sections 5c and 13 are missing).
+  - MN2, candidate 3, fixed 250,000 nodes, 3,000 games: **+54.9 (+47.4 to +62.5)**; no abnormal ending.
+  - The time losses follow eight 5-second suspensions of the match process by the owner's resource guard (CPU reading
+    over 90 C). Results without the affected pairs are within 0.6 Elo. No crash, illegal move or disconnect in 13,000 games.
+- **Failed, not done or limited:** the executable was not rebuilt for the new nets (PGO profile from candidate 1's
+  net); NPS not re-measured; timed matches ran with the GPU busy; one seed per recipe; the no-decay run was not taken
+  past 4.0B; `swa_C1`, `ema_E1`, arm X4 and match M6 were declared and not run or not finished; test set 3 was built
+  and never scored; Threads above 1, longer clocks and sanitizers were not tested.
+- **Process ownership:** no process of this job is alive (checked 02:36 and at the final push). The GPU queue script
+  was ended with its own stop flag at 02:35:23. Nothing of anyone else was touched; the guards were not bypassed.
+- **Artifacts kept locally,** about 2.3 GiB of phase 2 under `_work\`: the three candidate nets and float checkpoints
+  (`nets\`); the decay-1.0 run with its 4B, 7.4B and 10B states (`runs\arms\wdc_W2`); the decay-0.3 run
+  (`runs\arms\wd2c_X1`); the from-scratch run with all five stage states (`runs\arms\scratch_wd`); the paused no-decay
+  run (`runs\phase2`); the pilot arms' end states and nets (`runs\wd`, `runs\arms\wd2_X*`); five PGNs (`match\`);
+  test sets 2 and 3 and the training-row sample (`data\`). Hashes: `REPORT_PHASE2.md` section 11.
+- **Free space at the end:** C: 36.1 GiB, D: 31.3 GiB, F: 32.7 GiB.
+- **Resume point:** nothing is owed. Next action for QA: gate candidate 3 against the combo29 lock
+  (`REPORT_PHASE2.md`, Verdict). Possible follow-ups, not started: a from-scratch net as its own candidate (needs
+  parity, test set 3 once, and a match); more self-play data, which is what now limits the loss.
+- **Blockers:** none.
 
-The sections below describe phase 1 and are unchanged.
+The sections below describe phase 1 as it stood at 19:42 and are unchanged. Their "Exact frozen candidate" is
+candidate 1, and their "Resume point" is superseded by the one above.
 
 ## Result in brief
 - **Match (declared before the first game, 3,000 games at 6+0.06 against the original combo29 exe):** 821 wins, 1,465

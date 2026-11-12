@@ -4,6 +4,12 @@ Branch `fable/standalone-h512-20261111`, measured 2026-11-11 on grok-pc (Ryzen 7
 RX 7900 XT). Paths are under `h512/` unless they start with `forge-combo29/`, `fair_eval/` or a drive letter.
 Running record: `STATUS.md`.
 
+> **Phase 2 followed the same night at the owner's request: see `REPORT_PHASE2.md`.** It found that this phase's
+> candidate had over-fitted its training rows, fixed that with weight decay, and measured the resulting net
+> (candidate 3) against combo29 at **+66.6 Elo** (6 s + 0.06 s), **+57.0** (10 s + 0.1 s) and **+54.9** (equal nodes).
+> The verdict and the QA action below are superseded by those in `REPORT_PHASE2.md`. Everything else in this report
+> stands as measured and was not changed.
+
 ## Verdict
 
 **Promising for QA.** In this job's declared 3,000-game screen at equal clock time (6 s + 0.06 s per move), the

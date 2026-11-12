@@ -1,6 +1,6 @@
 # JOB E phase 2 (follow-up) - Standalone H512: over-fitting found, weight decay fixes it - REPORT
 
-Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 on grok-pc. This file continues
+Branch `fable/standalone-h512-20261111`, measured from 2026-11-11 20:30 to 2026-11-12 02:55 on grok-pc. This file continues
 `REPORT.md` (phase 1), which is unchanged. Paths are under `h512/` unless they start with a drive letter or `_work\`.
 Rules and their timing: `results/phase2/PHASE2_DECLARATION.md` (the declaration and ten addenda, each committed before
 the results it governs). Generated tables: `results/phase2/tables.md`. Running record: `STATUS.md`.
@@ -18,7 +18,7 @@ These are this job's own screens, not gate results and not a lock claim.
 | Candidate 2 (decay, 2.0B) | 6 s + 0.06 s | 3,000 | +41.3 | +33.8 to +48.9 |
 | **Candidate 3 (decay, 10.0B)** | 6 s + 0.06 s | 2,000 | **+66.6** | +58.0 to +75.4 |
 | **Candidate 3** | 10 s + 0.1 s | 2,000 | **+57.0** | +48.3 to +65.7 |
-| **Candidate 3** | equal nodes (250,000 per move) | 3,000 | MN2_ELO | MN2_CI |
+| **Candidate 3** | equal nodes (250,000 per move) | 3,000 | **+54.9** | +47.4 to +62.5 |
 
 What stands behind these numbers:
 
@@ -27,9 +27,11 @@ What stands behind these numbers:
 - **Decoupled weight decay on the king-bucketed first-layer weights fixes much of that** (sections 4 and 5). On unseen
   positions the loss went from 0.014480 to 0.013882; combo29's evaluator stands at 0.014311. A second, untouched test
   set scored once at the end gives the same picture: 0.014070 against 0.014527 (section 8).
-- **Candidate 1's +12.4 came from speed, not from evaluation:** at equal nodes it scored -4.8 (MN1). MN2_SENTENCE
-- **The warm start is not needed:** the same recipe trained from random initialisation reaches the same loss at
-  equal training length (section 5c). SCRATCH_SENTENCE
+- **Candidate 1's +12.4 came from speed, not from evaluation:** at equal nodes it scored -4.8 (MN1). **Candidate 3
+  scores +54.9 at equal nodes** (MN2): its advantage is in the evaluation itself, and its 20 % higher speed comes on
+  top at equal time.
+- **The warm start is not needed:** the same recipe trained from random initialisation comes within 0.00004 of the
+  warm-started runs at equal training length (section 5c). No candidate was taken from that run.
 - Limits: timed matches ran with the GPU busy and lost some games on time to the owner's thermal guard (counted by
   side, section 7); the executable was not rebuilt for the new nets; one seed per recipe (section 10).
 
@@ -208,18 +210,24 @@ the first step (plan `train/plans/scratch_wd.json`, run `_work\runs\arms\scratch
 | 2.0B | 0.014055 | 0.013399 | 0.014049 | 0.014083 |
 | 4.0B | 0.013968 | 0.013283 | 0.013929 | 0.013963 |
 | 7.4B | 0.013916 | 0.013215 | 0.013879 | 0.013903 |
-| 10.0B | SCRATCH_10B | SCRATCH_10B_TRAIN | not run | 0.013882 |
+| 10.0B | 0.013882 | 0.013190 | not run | 0.013882 |
 
 - **The warm start is not needed.** From random weights the recipe is at 0.014126 after 1.0B presentations (13
   minutes), better than phase 1's candidate ever got, and it then tracks the warm-started runs within 0.00004.
+  At 10B it ends at 0.013882, the same value as candidate 3 to six decimals (0.0138823 against 0.0138824).
 - It is not better either: at equal length it is level with the warm-started decay-1.0 run (within 0.00003) and up
   to 0.00004 behind the warm-started decay-0.3 run, which is the like-for-like comparison.
 - Addendum 10 allowed this run to produce a fourth candidate if a finished stage end was at least 0.00002 below
-  candidate 3 (0.013882) when match MN2 ended. The best finished stage end then was 7.4B at 0.013916, so **no
-  candidate was taken from it**, test set 3 (built from further rows of shards 037/039, manifest
-  `manifests/test3_manifest.json`) was **not scored**, and match M6 was not played.
+  candidate 3 (0.013882) when match MN2 ended (02:22:53). The best finished stage end then was 7.4B at 0.013916, so
+  **no candidate was taken from it** (`results/phase2/FREEZE_SCRATCH_NO_NEW_CANDIDATE.json`), test set 3 (built from
+  further rows of shards 037/039, manifest `manifests/test3_manifest.json`) was **not scored**, and match M6 was not
+  played. The 10B net that finished at 02:35 would not have qualified either: it is level with candidate 3, not below it.
+- The from-scratch net at 10B is kept (`_work\runs\arms\scratch_wd\net_seen10000023552.fnn3`, md5
+  `21851771a34a061d7bace67f11942c29`; float state `stage_S5.pt`, md5 `217ecaf8b7355fe1f2b34be43cef7a15`). It was
+  never scored on a test set, never checked for parity and never played. All hashes: `results/phase2/scratch_wd/files.md5`.
 - Training from scratch ran slower at first (1.1M to 1.4M positions per second in the first 250M presentations,
-  1.6M to 2.0M later). The cause was not investigated.
+  1.6M to 2.0M later); 10B took 103 minutes including 24 scored checkpoints. The cause of the slow start was not
+  investigated.
 
 Evidence: `results/phase2/scratch_wd/`, `results/phase2/tables.md` table C.
 
@@ -327,6 +335,36 @@ The final candidate under the same conditions as candidate 1 in phase 1 and cand
 - No crash, no illegal move, no disconnect.
 - Evidence: `results/phase2/m5/`.
 
+### MN2: candidate 3 at equal nodes (speed taken out)
+
+The same settings as MN1: 250,000 nodes per move for both engines, no clock, 3,000 games, seed 2026111109.
+
+| Games | Wins | Draws | Losses | Score | Elo | 95 % interval | Pairs 0 / 0.5 / 1 / 1.5 / 2 |
+|---:|---:|---:|---:|---:|---:|---|---|
+| 3,000 | 1,042 | 1,386 | 572 | 57.83 % | **+54.9** | +47.4 to +62.5 | 15 / 222 / 638 / 528 / 97 |
+
+- No game ended abnormally and the guard did not suspend the match.
+- **Reading:** candidate 1 scored -4.8 under these settings and candidate 3 scores +54.9. Per node searched, the
+  weight-decay net evaluates clearly better than combo29's residual net plus hand-crafted evaluation. This result
+  does not depend on machine speed, load or the guard.
+- At equal time candidate 3 scored +66.6 (M5, different openings). The difference to +54.9 is in line with its speed
+  advantage, which was worth roughly 17 Elo for candidate 1 (+12.4 at equal time against -4.8 at equal nodes; each
+  of these figures carries an interval of 7 to 9 Elo).
+- Evidence: `results/phase2/mn2/`.
+
+### All matches of both phases side by side
+
+| Match | Net | Condition | Games | W / D / L | Elo | 95 % interval | Lost on time (candidate / lock) |
+|---|---|---|---:|---|---:|---|---|
+| Phase 1 | candidate 1 | 6 s + 0.06 s | 3,000 | 821 / 1,465 / 714 | +12.4 | +5.1 to +19.7 | 5 / 3 |
+| MN1 | candidate 1 | 250,000 nodes | 3,000 | 791 / 1,377 / 832 | -4.8 | -12.5 to +3.0 | none |
+| M2 | candidate 2 | 6 s + 0.06 s | 3,000 | 960 / 1,435 / 605 | +41.3 | +33.8 to +48.9 | 19 / 25 |
+| M3 | candidate 3 | 10 s + 0.1 s | 2,000 | 662 / 1,001 / 337 | +57.0 | +48.3 to +65.7 | 7 / 6 |
+| M5 | candidate 3 | 6 s + 0.06 s | 2,000 | 703 / 973 / 324 | +66.6 | +58.0 to +75.4 | 3 / 6 |
+| MN2 | candidate 3 | 250,000 nodes | 3,000 | 1,042 / 1,386 / 572 | +54.9 | +47.4 to +62.5 | none |
+
+13,000 games in phase 2. No crash, no illegal move and no disconnect in any of them.
+
 ## 8. Test set 2, scored once
 
 2,000,000 rows from shards 037 and 039, which no set of this job had used (`manifests/test2_manifest.json`:
@@ -359,7 +397,8 @@ For a standalone H512 net on this data (271.8M unique rows from shards 001-035 w
 2. **Add decoupled weight decay on the king-bucketed first-layer weights only:** after every optimiser step
    `w1 *= 1 - lr * lambda`, with lambda between 0.3 and 1.0. In this job's trainer that is the plan key
    `"weight_decay": {"w1": 0.3}` (`train/train_h512_gpu.py`).
-3. **Do not decay the shared factoriser weights, the biases or the output layer.**
+3. **Do not decay the shared factoriser weights** (tested: harmful). The biases and the output layer were not decayed
+   in any run above; decaying them on their own was not tested.
 4. **Do not train without decay past about 1B to 2B presentations on this data.** Unseen positions get worse from
    there while the training loss keeps falling.
 5. **Watch the fit gap.** Score a fixed sample of training rows next to the unseen selection set at every checkpoint.
@@ -367,6 +406,9 @@ For a standalone H512 net on this data (271.8M unique rows from shards 001-035 w
 6. Weight averaging is not needed once decay is on.
 7. Cost on the RX 7900 XT, with the CPU busy playing a match: 1.8M to 2.0M positions per second; 8.0B presentations
    took 81 minutes including 36 scored checkpoints.
+8. **No warm start is needed.** From random initialisation the same recipe (decay 0.3 from the first step) reaches
+   0.013882 at 10B in 103 minutes, level with candidate 3 (section 5c). A new net of this kind can be trained from
+   nothing in under two hours on this GPU.
 
 What it gives: selection loss 0.01408 after one cycle with decay and 0.01388 at 10B, against 0.01448 without decay
 and 0.01431 for combo29's evaluator. What limits it now is the data: with decay the gap between seen and unseen rows
@@ -378,15 +420,16 @@ lever, not more passes.
 - **These are screens, not the gate.** One machine, one evening, 2,000 to 3,000 games per match, time controls of
   6 s + 0.06 s and 10 s + 0.1 s, Threads 1. QA's gate decides.
 - **Timed matches ran with the GPU busy** and lost games on time to guard suspensions (counted by side above).
-  The suspensions hit whichever side was to move; the results without the affected pairs are within 0.2 Elo.
+  The suspensions hit whichever side was to move; the results without the affected pairs are within 0.6 Elo.
 - **The executable was not rebuilt** for the new nets. Its PGO profile was collected with candidate 1's net loaded.
   NPS was not re-measured for the new nets; the weights change, the arithmetic does not.
 - **One seed per recipe.** Run-to-run noise was measured once (0.000003, control arm W0). The decay effect is a
   hundred times larger, but the fine ranking of decay 0.3 against 1.0 rests on single runs.
 - **The selection set was used for about twenty choices in phase 2** (pilot arms, averages, checkpoints, candidates).
   It has 2,000,000 rows, so the bias from that is small, and test set 2 (section 8) is the independent check.
-- **Weight decay was only tried on a net that had first trained 1.0B presentations without it** (FB2's warm start plus
-  phase 1's first stage). Section 5b reports what was tried beyond that.
+- **Every candidate descends from a net that first trained 1.0B presentations without decay** (FB2's warm start plus
+  phase 1's first stage). The from-scratch run (section 5c) reaches the same selection loss without that, but no
+  from-scratch net was scored on a held-out test set, checked for parity or played.
 - **Not tested, as in phase 1:** Threads above 1 on the standalone path, clocks longer than 10 s + 0.1 s, sanitizers.
 - **Sets are separated by shard file and by position, not by game id** (the rows carry none), as in phase 1.
 
@@ -410,7 +453,9 @@ phase 1 listed in `REPORT.md` section 15 is still in place and unchanged.
 | No-decay run, paused: resumable state, 4B state | `_work\runs\phase2\latest.pt`, `stage_S3.pt` | `4e90858fb4833dd70b4d0443aba82028`, `4482683bfdfd46d76291a7ad5c78820d` |
 | Test set 2 (scored once) | `_work\data\final_test2_2m.pos`, `.hce` | `9574073e2b519dd5cc7c649ede09bfab`, `c7267e9dd67793658ab21e37053f60b7` |
 | Training-row sample (diagnostic) | `_work\data\train_sample_2m.pos` | `776cc15039785de12cddc9b6fea75b93` |
-| PGNs: MN1, M2, M3, M5 | `_work\match\<match folder>\games.pgn` | `a13bdce284a767f917a571aca7b5d45f`, `ad419cd9fc692bf1b08a7cfc61369928`, `e139c98d6c5f263cf7b07254d03e2b75`, `6c955aec37111c917beb90cf91ddf978` |
+| PGNs: MN1, M2, M3, M5, MN2 | `_work\match\<match folder>\games.pgn` | `a13bdce284a767f917a571aca7b5d45f`, `ad419cd9fc692bf1b08a7cfc61369928`, `e139c98d6c5f263cf7b07254d03e2b75`, `6c955aec37111c917beb90cf91ddf978`, `dac559926b3423dcc29085e403286f59` |
+| From-scratch run: 10B net and state (not a candidate) | `_work\runs\arms\scratch_wd\net_seen10000023552.fnn3`, `stage_S5.pt` | `21851771a34a061d7bace67f11942c29`, `217ecaf8b7355fe1f2b34be43cef7a15` |
+| Test set 3 (built, never scored) | `_work\data\final_test3_2m.pos` | sha256 in `manifests/test3_manifest.json` |
 | Plans: decay pilot W2, its continuation, decay 0.3 arm, its continuation, from scratch | `train/plans/wd_W2.json`, `wdc_W2.json`, `wd2_X1.json`, `wd2c_X1.json`, `scratch_wd.json` | `f8982948ea19d55df6b3323874b71f1f`, `85f0b46c638e1e62342103a66a7bb028`, `2c7c9e84e26acbd059a72c3db4c61e77`, `46a3b27b24fffbe19145af4907ebf8cd`, `5c86896e3adcdfc96154a2af912cd9da` |
 
 Evidence in the repository, all under `results/phase2/`: the declaration; `tables.md`; one folder per match (`mn1`,
@@ -430,15 +475,19 @@ continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from r
   scripts under `train/`), five fastchess matches and one 8-game check with their engines, and short scoring and
   parity runs. No gate
   queue, self-play process, hold or STOP file of anyone else was touched. No process was killed; runs were ended
-  only with the trainer's own STOP flag (the no-decay run at 20:53:46, arm X4 at 23:44:20).
+  only with the trainer's own STOP flag (the no-decay run at 20:53:46, arm X4 at 23:44:20), and this job's GPU queue
+  script with its own stop flag after the last run (02:35:23). No process of this job is alive at the end.
 - **The owner's guards were not bypassed.** `resource_guard.ps1` suspended this job's timed matches for 5 seconds at
   a time when its CPU reading went over 90 C (five times in M2, twice in M3; section 7). The trainer has its own holds
   (GPU hot spot 76 C, memory junction 86 C, disk floor) and paused itself twice for 5 seconds in pilot arm W1
   when the memory junction read 86 C.
-- **Disk.** D: fell from 33.7 to 31.5 GiB free; the owner's cleanup acts below 30 GiB. To stay clear of that, 21
-  duplicate checkpoints of this job's own finished pilot arms were removed (their copies of the 1.0B start state and
-  their `best.pt` / `latest.pt`, which repeat the arm's kept end state `stage_S2.pt`). Nothing of phase 1 and nothing
-  cited in this report was removed. C: and F: stayed above 32 GiB. E: was not written to.
+- **Disk.** D: fell from 33.7 GiB free to 31.0 at the lowest (02:35) and stands at 31.3 at the end; the owner's
+  cleanup acts below 30 GiB. To stay clear of that, this job removed redundant files of its own phase-2 runs, always
+  by literal path: 29 duplicate checkpoints (the pilot arms' copies of the 1.0B start state and their `best.pt` /
+  `latest.pt`, which repeat the kept end state `stage_S2.pt`; two replayed start states of the continuations; the
+  stopped arm X4's state; five float files of averages) and 27 mid-cycle nets of the decay-1.0 run. Nothing of
+  phase 1 and nothing cited in this report was removed; the kept files were re-checked against their recorded
+  hashes afterwards. C: and F: stayed above 32 GiB. E: was not written to. Phase 2 holds about 2.3 GiB under `_work\`.
 - **A safety check refused one edit** that would have added an `rm` with a variable path to a queue script. The line
   was left out; the later removals above used literal paths.
 - **`STATUS.md` was damaged once by my own scripted edit** (21:44): two Windows paths lost their backslashes. It was
@@ -450,9 +499,39 @@ continues it to 10B, and `bash h512/train/run_scratch.sh` runs the recipe from r
   ran one to four minutes ahead of the PC clock. They were corrected to the PC clock; the commit times are the record.
 - **Plans that were declared and then not run:** the snapshot-averaging run `swa_C1` and the running-average arm
   `ema_E1` (superseded by weight decay, addendum 5); arm X4 (stopped, addendum 9); the 20B stage; the rest of the
-  no-decay run past 4.0B.
+  no-decay run past 4.0B; match M6 and the scoring of test set 3 (their condition in addendum 10 was not met).
 - **Changes to declared match sizes, each declared before the match started:** M3 with 2,000 games instead of 3,000
   (addendum 7), M5 with 2,000 instead of 3,000 (addendum 8).
 - **Engine sources were not changed in phase 2.** The only code changes are in the trainer and the job's own tools:
   `--clear-stop`, weight decay, running averages (unused in the end) and random initialisation in
   `train/train_h512_gpu.py`, plus new scripts under `tools/`, `train/` and `results/phase2/`.
+
+## 13. Time record
+
+Times are read from the logs (PC clock).
+
+| Item | GPU or CPU | From - to |
+|---|---|---|
+| Owner's request, declaration written and committed | | 20:29 - 20:34 |
+| No-decay run continued from 2.0B, paused at 4.0B | GPU | 20:34:47 - 20:53:46 |
+| Match MN1 (candidate 1, equal nodes) | CPU | 20:38:52 - 21:33:47 |
+| Test set 2 built; over-fitting diagnostic; weight averages | | 20:40 - 20:58 |
+| Weight-decay pilot, arms W0 to W3 | GPU | 20:53:56 - 21:40:24 |
+| Candidate 2 frozen, parity, bench | | 21:41 |
+| Decay 1.0 continued to 10B | GPU | 21:40:30 - 23:01:23 |
+| Match M2 (candidate 2, 6 s + 0.06 s) | CPU | 21:41:40 - 23:03:22 |
+| Second pilot round, arms X1 to X5 | GPU | 23:01:23 - 23:55:54 |
+| Candidate 3 frozen, parity, bench | | 23:03 - 23:04 |
+| Match M3 (candidate 3, 10 s + 0.1 s) | CPU | 23:04:27 - 00:34:13 |
+| Decay 0.3 continued to 7.4B | GPU | 23:55:54 - 00:51:21 |
+| Match M5 (candidate 3, 6 s + 0.06 s) | CPU | 00:34:24 - 01:28:43 |
+| From-scratch run to 10B | GPU | 00:51:21 - 02:35:03 |
+| Test set 2 scored once | | 00:52:06 - 00:54:31 |
+| Match MN2 (candidate 3, equal nodes) | CPU | 01:28:53 - 02:22:53 |
+| Report, final checks, final push | | 02:23 - 02:55 |
+
+- The GPU trained from 20:34 to 02:35 with gaps of seconds between runs. The CPU played matches from 20:38 to 02:22,
+  with one gap of 8 minutes (21:33 to 21:41, waiting for the last pilot arm, as declared) and seconds between the others.
+- About 33 billion training presentations in 13 runs, and 13,000 match games.
+- Phase 2 used about 6 hours 25 minutes of the 7.5 hours offered. The remaining time was not padded: the declared
+  work was finished and no further experiment was pending.
