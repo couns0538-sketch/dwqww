@@ -62,10 +62,33 @@ Analysis as in phase 1 (`h512/tools/match_elo.py`, opening pairs as units). No h
 - Known hazard, as in phase 1: the owner's `resource_guard.ps1` suspends fastchess for about 5 s when its thermal latch
   trips. Affected games are reported by side, with the result without the affected opening pairs. The guard is not bypassed.
 
+## Addendum 1 (20:42, before any phase-2 checkpoint at a stage end and before any phase-2 game)
+The owner wrote at 20:36: "just continue using the gpu and cpu simultaneously for the engine for 7 and a half hours".
+Known when this was written: one interval checkpoint of stage S3 (2.25B, selection loss 0.014653, at high learning rate).
+Changes:
+- **GPU and CPU work at the same time.** The sentence "No heavy work of this job runs during a match" is withdrawn.
+  The trainer (the GPU plus one CPU thread) runs during matches. Both engines of a match play under the same load,
+  and every opening is played with both colours, so this adds noise, not a bias for one side. It is stated with each match.
+- **New match MN1, starting now, during training:** candidate 1 (the published net, md5 `d920a15c5b05040a3ef71a872192ec1b`)
+  against the lock exe at a fixed **250,000 nodes per move for both engines, no clock**, 3,000 games, seed 2026111108,
+  `h512/tools/run_match_nodes.sh` (Job D's layout without the clock). Purpose: equal nodes instead of equal time, so
+  the candidate's 20 % speed advantage does not count; it shows how much of the +12.4 Elo is evaluation quality.
+  250,000 nodes is about what the engines searched per move at 6 s + 0.06 s (mean 0.13 s per move in the phase-1 match).
+  A clock-free match cannot lose games on time and is not affected by load or by a suspension of the match process.
+  MN1 takes the place of M4; a second fixed-nodes match with the final candidate (seed 2026111109) follows only if time allows.
+- **GPU after 10B:** if the selection loss at the end of S5 (10B) is at least 2e-5 below the best earlier stage end,
+  the same run continues with S6 to 20B (the stage declared in phase 1). Otherwise the main line ends at 10B and the GPU
+  runs recipe variants from the 2.0B state; those are declared in a second addendum before they start.
+- **Candidate rule extended:** every later freeze uses the same rule (lowest selection loss over all checkpoints so far;
+  a new candidate only if at least 2e-5 below the previous candidate).
+- **Test set 2 is scored once, at the end of all training,** for every frozen candidate and the references.
+- M2 starts when MN1 has finished and candidate 2 is frozen. M3 uses the final candidate known when M3 starts.
+
 ## Time plan (PC clock)
 | Item | Time |
 |---|---|
-| Training to 10B | 20:37 to about 21:50 |
+| MN1 fixed-nodes match (CPU, during training) | 20:45 to about 21:55 |
+| Training to 10B | 20:35 to about 21:47 |
 | Freeze, parity, test set 2, bench pins | 20 minutes |
 | M2 | 85 minutes |
 | M3 (the slow item: 3,000 games at the longer clock) | about 2 h 20 min |
