@@ -6,38 +6,39 @@
 which descends from the lock `lock/combo29-20261110` = `16833ecc03b425586f91f4c8834dea8807bf4c22`.
 **Checkout:** `D:\forge_jobs_20261111\h512E` (`core.autocrlf=false`).
 
-## State: phase 1 COMPLETE (`REPORT.md`, verdict: promising for QA). Phase 2 (follow-up) IN PROGRESS.
+## State: phase 1 COMPLETE (`REPORT.md`). Phase 2 (follow-up) IN PROGRESS: `REPORT_PHASE2.md` (draft).
 
 ## Phase 2 (follow-up at the owner's request, 20:30 to about 04:00)
-**Last update:** 22:26. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 5 (each committed before
-the results it governs).
+**Last update:** 23:07. Rules: `results/phase2/PHASE2_DECLARATION.md` with addenda 1 to 7 (each committed before
+the results it governs). Report draft: `REPORT_PHASE2.md`. Generated tables: `results/phase2/tables.md`.
 - **Why:** the owner asked at 20:29 to use the remaining 7.5 hours, then wrote "you can go for 10b" and asked for
   GPU and CPU to work at the same time.
-- **Finding 1: the plateau was over-fitting.** Candidate 1 scores 0.013014 on a sample of its own training rows and
-  0.014480 on unseen rows; the untrained hand-crafted eval scores the same on both (0.017099 / 0.017044).
+- **Finding 1: the phase-1 plateau was over-fitting.** Candidate 1 scores 0.013014 on a sample of its own training
+  rows and 0.014480 on unseen rows; the untrained hand-crafted eval scores the same on both (0.017099 / 0.017044).
   Training on without decay to 4.0B made unseen rows worse (0.014506). That run is paused at 4.0B (resumable).
 - **Finding 2: weight decay fixes much of it.** Repeating the 1.0B to 2.0B cycle with decoupled weight decay on the
   king-bucketed first-layer weights gave selection losses 0.014119 (decay 0.1), **0.014083 (decay 1.0)**, 0.014199
   (decay 10), against 0.014480 without decay (a control repeat landed within 0.000003) and 0.014311 for s198 + HCE.
-- **Finding 3 (match MN1, done):** at a fixed 250,000 nodes per move candidate 1 scores **-4.8 Elo, 95 % interval
-  -12.5 to +3.0** against the lock (3,000 games, no abnormal endings). Its +12.4 at equal time came from speed.
-- **Candidate 2 frozen at 21:41:** decay 1.0, 2,000,003,072 presentations, selection loss 0.014081,
-  `_work\nets\h512_cand_W2_seen02000003072.fnn3`, md5 `ae0d372e3748fc6d4e27c2885b164d46`. Parity 14,000 of 14,000.
-- **Match M2 (CPU), running:** candidate 2 against the lock, 6 s + 0.06 s, 3,000 games, seed 2026111106.
-  fastchess pid 16320, started 21:41:40, expected end about 23:05. Folder `_work\match\m2_tc6_h512_cand_W2_seen02000003072`.
-  Running score at 22:23 after 1,524 games: +31 Elo, error 10 (fastchess's own figure; not final). 22 games ended on
-  time after three 5-second suspensions by the owner's resource guard (21:55:22, 22:16:52, 22:17:38; its CPU reading
-  spikes over 90 C, GPU edge 44 C). They are reported by side at the end. The guard is not bypassed.
-- **Decay run so far:** 0.013961 at 4.0B (candidate 2: 0.014081 at 2.0B); 7.4B stage end expected about 22:35.
-- **Queued on the GPU behind it:** second pilot round X1 to X5 (addendum 6) and the continuation of a winner.
-- **GPU, running:** continuation of the decay-1.0 arm to 4B, 7.4B and 10B (`_work\runs\arms\wdc_W2`, GPU queue
-  launcher pid 6928), started 21:40:30, expected end about 23:00.
+  Continued with decay 1.0: 0.013963 at 4.0B, 0.013903 at 7.4B, **0.013882 at 10.0B** (reached 23:01).
+- **Match MN1 (done):** candidate 1 at a fixed 250,000 nodes per move: **-4.8 Elo, 95 % interval -12.5 to +3.0**
+  (3,000 games, no abnormal endings). Its +12.4 at equal time in phase 1 came from speed.
+- **Match M2 (done 23:03):** candidate 2 (decay 1.0, 2.0B, selection loss 0.014081) at 6 s + 0.06 s, 3,000 games:
+  960 wins, 1,435 draws, 605 losses, **+41.3 Elo, 95 % interval +33.8 to +48.9**. 44 games ended on time (candidate
+  lost 19, lock 25) after five 5-second suspensions by the owner's resource guard; without the 24 opening pairs
+  involved: +41.2 (+33.6 to +48.7). No crash, no illegal move.
+- **Candidate 3 frozen at 23:04:** decay 1.0, 10,000,023,552 presentations, selection loss 0.013882,
+  `_work\nets\h512_cand_W2_seen10000023552.fnn3`, md5 `aab64b3342d7c1c33e82845f5d2d1fa4`. Parity 14,000 of 14,000.
+  Bench nodes 348,651 / 743,566 / 2,890,515 at depths 11 / 13 / 16.
+- **Match M3 (CPU), running:** candidate 3 against the lock, 10 s + 0.1 s, 2,000 games, seed 2026111107.
+  fastchess pid 9768, started 23:04:27, expected end about 00:35. Folder `_work\match\m3_tc10_h512_cand_W2_seen10000023552`.
+- **GPU, running:** second pilot round X1 to X5 (addendum 6; `_work\runs\arms\wd2_X*`, GPU queue launcher pid 6928),
+  started 23:01:23, about 10 minutes per arm, then the continuation of an arm that beats decay 1.0, if any.
 - **Done:** test set 2 (2,000,000 rows from shards 037/039, `manifests/test2_manifest.json`); not scored yet.
-- **Next:** when M2 ends, freeze the best eligible net and play M3 (10 s + 0.1 s); a third match slot if time allows;
-  test set 2 once at the end; phase-2 section of `REPORT.md`.
-- **Resume point:** if the session is cut, the match and the GPU queue finish by themselves. Then collect M2 with
-  `h512/results/phase2/collect_match.sh`, freeze with `h512/tools/freeze_net.py` and start
-  `h512/results/phase2/launch_match.sh m3 <net>`.
+- **Next (addendum 7):** M5 (final candidate at 6 s + 0.06 s, if it is not candidate 2), MN2 (fixed nodes with the
+  same net) if time allows, test set 2 once after all training, final `REPORT_PHASE2.md`.
+- **Resume point:** if the session is cut, the match and the GPU queue finish by themselves. Then collect M3 with
+  `h512/results/phase2/collect_match.sh <match folder> m3`, score test set 2 once with
+  `h512/results/phase2/score_test2.sh`, and finish `REPORT_PHASE2.md` from `results/phase2/`.
 
 The sections below describe phase 1 and are unchanged.
 
