@@ -15,6 +15,7 @@
 #endif
 
 #include <array>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cstddef>
@@ -221,7 +222,10 @@ public:
 
     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
     [[nodiscard]] static std::string move_to_uci(const Move& move);
-    [[nodiscard]] std::uint64_t perft(int depth);
+    // stop, when non-null, is sampled at depth 2 and above. On a request, *cancelled
+    // is set and the walk returns without a completed count.
+    [[nodiscard]] std::uint64_t perft(int depth, const std::atomic<bool>* stop = nullptr,
+                                      bool* cancelled = nullptr);
 
     // Game-level threefold repetition of the current position.
     [[nodiscard]] bool is_repetition() const;

@@ -419,6 +419,7 @@ public:
     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
                       TTAccess table_access = TTAccess::Shared);
     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+    [[nodiscard]] const std::atomic<bool>& stop_flag() const { return shared_.stop; }
     void reset_stop() {
         shared_.stop.store(false, std::memory_order_relaxed);
         shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
