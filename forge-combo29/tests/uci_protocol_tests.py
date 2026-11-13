@@ -137,6 +137,40 @@ def test_position_extra_token(exe):
     return 0
 
 
+def test_nodes_zero(exe):
+    proc = launch(exe)
+    for line in (
+        "uci",
+        "setoption name OwnBook value false",
+        "setoption name UseNNUE value false",
+        "isready",
+        "ucinewgame",
+        "position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1",
+        "go nodes 0",
+    ):
+        send(proc, line)
+    lines, ok = read_until(proc, lambda line: line.startswith("bestmove "), 5)
+    depths = [line for line in lines if line.startswith("info depth")]
+    if not ok or bestmove(lines) != "0000" or depths:
+        close(proc)
+        return fail("nodes 0 stalemate: " + " | ".join(lines[-6:]))
+    send(proc, "position fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1")
+    send(proc, "go depth 1")
+    lines, ok = read_until(proc, lambda line: line.startswith("bestmove "), 5)
+    if not ok or not any(line.startswith("info depth") for line in lines):
+        close(proc)
+        return fail("depth 1 stalemate lost its info line: " + " | ".join(lines[-4:]))
+    send(proc, "position startpos")
+    send(proc, "go nodes 0 searchmoves e2e4")
+    lines, ok = read_until(proc, lambda line: line.startswith("bestmove "), 5)
+    close(proc)
+    depths = [line for line in lines if line.startswith("info depth")]
+    if not ok or bestmove(lines) != "e2e4" or depths:
+        return fail("nodes 0 searchmoves: " + " | ".join(lines[-4:]))
+    print("nodes 0 terminal has no depth line")
+    return 0
+
+
 def test_scripted_perft(exe):
     # quit is already in the pipe when perft starts. The count must finish.
     text = "position startpos\ngo perft 5\nquit\n"
@@ -176,6 +210,7 @@ def main():
     status = 0
     status |= test_illegal_move(exe)
     status |= test_position_extra_token(exe)
+    status |= test_nodes_zero(exe)
     status |= test_scripted_perft(exe)
     status |= test_perft_stop(exe)
     print("uci protocol failures=" + str(status))

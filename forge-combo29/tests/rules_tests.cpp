@@ -166,6 +166,35 @@ void check_search_rules() {
         check(info.score == 0 && info.best_move == *quiet, "quiet move into stalemate scores 0");
     }
 
+    auto nodes_zero = [](std::string_view fen) {
+        Board board = board_from(fen);
+        SearchLimits limits;
+        limits.depth = 8;
+        limits.nodes = 0;
+        limits.nodes_specified = true;
+        Searcher searcher(16, 1);
+        return searcher.search(board, limits);
+    };
+    const SearchInfo zero_stalemate = nodes_zero("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
+    check(zero_stalemate.depth == 0 && zero_stalemate.score == 0 && zero_stalemate.best_move.is_none(),
+          "nodes 0 at stalemate does not report a searched depth");
+    const SearchInfo zero_mate = nodes_zero("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1");
+    check(zero_mate.depth == 0 && zero_mate.score == -MateValue && zero_mate.best_move.is_none(),
+          "nodes 0 at checkmate keeps the mate score and reports no depth");
+    Board start;
+    (void)start.set_fen(Board::StandardStartFen);
+    const auto e2e4 = start.parse_uci("e2e4");
+    check(e2e4.has_value(), "e2e4 parses from the start position");
+    if (e2e4.has_value()) {
+        SearchLimits restricted;
+        restricted.nodes = 0;
+        restricted.nodes_specified = true;
+        restricted.search_moves_specified = true;
+        restricted.search_moves = {*e2e4};
+        const SearchInfo zero_live = Searcher(16, 1).search(start, restricted);
+        check(zero_live.depth == 0 && zero_live.best_move == *e2e4,
+              "nodes 0 on a live root still returns the requested move");
+    }
 }
 
 } // namespace

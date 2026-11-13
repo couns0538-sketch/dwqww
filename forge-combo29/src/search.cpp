@@ -1836,6 +1836,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         std::cout << std::endl;
     };
 
+    // An explicit zero node budget is an immediate answer, including at a
+    // terminal root. Reporting that root first printed a depth-1 line and
+    // only then noticed the budget was already spent.
+    if (limits.nodes_specified && limits.nodes == 0) {
+        result.depth = 0;
+        if (legal.empty() && board.in_check()) result.score = -MateValue;
+        if (!root_candidates.empty()) result.best_move = root_candidates.front();
+        return result;
+    }
+
     // Terminal or adjudicated roots: report without searching.
     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
                                                board.is_insufficient_material());
@@ -1853,13 +1863,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         nodes_.store(local_nodes_, std::memory_order_relaxed);
         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count());
-        return result;
-    }
-
-    // An explicit zero node budget is an immediate bounded answer.
-    if (limits.nodes_specified && limits.nodes == 0) {
-        result.best_move = root_candidates.front();
-        result.depth = 0;
         return result;
     }
 
