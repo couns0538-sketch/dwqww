@@ -269,10 +269,27 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+// 0 = the lock search. 1 = do not prune moves at PV nodes, so a stored exact
+// or upper bound is not built from a line that skipped legal moves.
+extern int PvBoundFix;
+// 0 = the lock search. 1 = a fail-low aspiration re-search does not pull beta
+// below the last completed iteration's score (the midpoint does that when the
+// previous beta was already clamped).
+extern int AspirationKeepExact;
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
 } // namespace tune
+
+// One fail-low step of the root aspiration window. keep_last_exact holds beta
+// at least at the last completed iteration's score.
+struct AspirationWindow {
+    int alpha = 0;
+    int beta = 0;
+};
+
+[[nodiscard]] AspirationWindow aspiration_fail_low(int alpha, int beta, int iteration_score, int delta, int last_exact,
+                                                   bool keep_last_exact);
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
@@ -393,6 +410,9 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // Moves skipped by shallow pruning while this node was a PV node.
+    // Counting them does not change which move is searched.
+    std::uint64_t pv_moves_pruned_ = 0;
 
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
