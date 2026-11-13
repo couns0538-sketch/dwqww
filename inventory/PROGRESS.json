@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "run": 7,
-  "snapshot_at": "2026-11-13T20:34:50Z",
-  "trigger_at": "2026-11-13T20:27:01Z",
+  "run": 8,
+  "snapshot_at": "2026-11-13T21:31:09Z",
+  "trigger_at": "2026-11-13T21:27:13Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
@@ -18,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "6cf670a664355f0e8aa1fc82056f1f729c72d1bf",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 6cf670a6. The commit that adds the run-7 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "0b5eff7f1078c4679a57761c5435a650b2157fc1",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 0b5eff7f. The commit that adds the run-8 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -34,14 +34,14 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 6. Replacing d6e50b49 with 6cf670a6 keeps the same containment: both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 7. Replacing 6cf670a6 with 0b5eff7f keeps the same containment: both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 405,
+    "tip-only": 403,
     "run1-detail": 1,
     "run2-moved": 2,
     "run2-new": 4,
@@ -52,10 +52,12 @@
     "run6-read": 1,
     "run6-same-docs": 1,
     "run7-read": 1,
-    "run7-checkpoint": 1
+    "run8-read": 2,
+    "run8-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/chess-engine-elo-bba2"
+    "cursor/chess-engine-elo-d8c5",
+    "cursor/engine-elo-improvement-3c5f"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -593,13 +595,79 @@
       "branch": "cursor/chess-engine-elo-bba2",
       "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
       "quiets": "src/search.cpp:811 is a 256-slot array. src/search.cpp:888 stores a quiet only while quiet_count is below that size."
+    },
+    {
+      "id": "elo-line-61-62-docs-are-prefixes",
+      "status": "section text compared; no new Elo sentences; no games scored this run",
+      "branches": [
+        {
+          "branch": "cursor/chess-engine-elo-d8c5",
+          "tip": "193a91eca17c1b47372f408df67fd06ec08c8312",
+          "changelog": "ad5b9bcbf33c18fc4d3c7a7e0ef87370870cc66a",
+          "release_state": "f81ebd5fd3e789fe5055460759aeea8f42a4babe",
+          "readme": "0b4e91110e4eefa16d6aaf3654a9ffe0401baeba"
+        },
+        {
+          "branch": "cursor/engine-elo-improvement-3c5f",
+          "tip": "86c916289f27225313e60388ca05fffc7e257f39",
+          "changelog": "68ef6c7634113409eda749de1589dbacd1b71173",
+          "release_state": "7fd220fbbe736b6af8a8b33ab04b90922263e80c",
+          "readme": "2d1eabe686f25fa810a73feece346887e33e3e80"
+        }
+      ],
+      "later": "928f1ff7 changelog b5b0df96, release state f74b5345, readme ad2f7459",
+      "changelog": "86 sections on 193a91ec equal the matching sections on 928f1ff7. 928f1ff7 adds only 6.2.0 and 6.3.0. 87 sections on 86c91628 equal the matching sections; 928f1ff7 adds only 6.3.0.",
+      "release_state": "193a91ec is the exact suffix of 928f1ff7 from the 6.1.0 heading. 86c91628 is the exact suffix from the 6.2.0 heading. The 5.31.0 and 5.30.0 sections also equal 24cc2cce. The 6.0.0 and 6.1.0 sections differ from 24cc2cce, which run 6 already recorded.",
+      "validation": "855 files present on all three tips are identical blobs. 193a91ec has no validation/release-6.2.0 or release-6.3.0. 86c91628 has no validation/release-6.3.0.",
+      "readme_ladder": "193a91ec README.md:19-22 is 1/17/2, 118/42/40, 63/22/15, and 67/25/8. Those scores are 10.0, 69.0, 70.5, and 71.0 percent. The 200-game file was already counted. The two 100-game files are still absent."
+    },
+    {
+      "id": "elo-line-62-bench-sentence-vs-generator-commit",
+      "status": "documents and the commit message read; bench not rerun",
+      "branch": "cursor/engine-elo-improvement-3c5f",
+      "tip": "86c916289f27225313e60388ca05fffc7e257f39",
+      "release_state": "RELEASE_STATE.md:20-21 says single-thread bench signatures are unchanged by the threading and generation changes. The same sentence is RELEASE_STATE.md:47-48 on 928f1ff7.",
+      "commits_that_say_unchanged": [
+        "7dda4a96 quiet generation, bench 13 signature 1188868",
+        "40b54a70 thread voting, bench 13 = 1188868",
+        "b84ed559 check-square generation, bench 13 signature 1390079"
+      ],
+      "commit_that_changes_it": "d2b85db5 says the check-aware generator changes the bench 13 signature to 1234322 because selection swaps break ties once illegal evasions are absent. It also says 42513 in-check positions kept the same legal-move lists and perft was unchanged.",
+      "changelog": "CHANGELOG.md:36 says the generation order is unchanged and line 37 says the legal moves come out in the same sequence. CHANGELOG.md:44 states the final bench 13 signature 1234322. There is no bench log in the tree."
+    },
+    {
+      "id": "elo-line-61-class-keys-sentence-is-stale",
+      "status": "changelog sentence compared with the 6.1.0 source; the same section text is on 86c91628 and 928f1ff7",
+      "branch": "cursor/chess-engine-elo-d8c5",
+      "tip": "193a91eca17c1b47372f408df67fd06ec08c8312",
+      "stale_sentence": "CHANGELOG.md:16 says Board maintains the piece-class keys in put/remove/move_piece and that unmake restores them without undo state.",
+      "shipped_sentence": "CHANGELOG.md:22 says the keys are updated in make_move registers and restored from Undo.",
+      "code": "put_piece, remove_piece, and move_piece at src/board.cpp:99, :106, and :114 do not touch the class keys. make_move saves them at src/board.cpp:659, writes the deltas at src/board.cpp:723, and unmake_move copies the saved values back at src/board.cpp:772."
+    },
+    {
+      "id": "elo-line-61-62-same-defect-shapes",
+      "status": "code read at both tips; not played; same shapes already recorded on 928f1ff7",
+      "bad_captures_64": [
+        "193a91ec write src/search.cpp:199, array src/search.cpp:287",
+        "86c91628 write src/search.cpp:201, array src/search.cpp:305"
+      ],
+      "capacity": "MoveList::Capacity is 256 at include/forge/board.hpp:51 on both tips. The bad-capture array is 64 and the write does not test the index.",
+      "clock": "Both tips parse clocks with read_int at src/uci.cpp:71 and return 0 unless the whole token converts (src/uci.cpp:76). wtime stores max(0, that) at src/uci.cpp:97. uci.cpp differs across 193a91ec, 86c91628, and 928f1ff7 only by the version string. time_ms defaults to -1 at include/forge/search.hpp:22 and overhead is 10 at include/forge/search.hpp:27. A parsed 0 becomes a 1 ms budget at src/search.cpp:1018 on 193a91ec and src/search.cpp:1134 on 86c91628.",
+      "mate_not_stored": [
+        "193a91ec qsearch return src/search.cpp:664 before the store at :667; main return src/search.cpp:958 before the store at :974",
+        "86c91628 qsearch return src/search.cpp:762 before the store at :765; main return src/search.cpp:1056 before the store at :1072"
+      ],
+      "parse_uci": [
+        "193a91ec src/board.cpp:810 compares with move_to_uci, which writes lowercase letters at src/board.cpp:817",
+        "86c91628 src/board.cpp:831 compares with move_to_uci, which writes lowercase letters at src/board.cpp:838"
+      ]
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from 6cf670a6 because of the run-7 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from 0b5eff7f because of the run-8 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read CHANGELOG.md and RELEASE_STATE.md at 193a91eca17c1b47372f408df67fd06ec08c8312 (cursor/chess-engine-elo-d8c5) and 86c916289f27225313e60388ca05fffc7e257f39 (cursor/engine-elo-improvement-3c5f). Their changelog blobs are ad5b9bcb and 68ef6c76. Their release-state blobs are f81ebd5f and 7fd220fb. All four differ from 928f1ff7. The 6.0 through 6.2 validation notes that match 928f1ff7 were already read. Do not execute repository scripts.",
+    "Otherwise read the clock evidence on the shared tip 356e863dbd86d2ce24b8ee9486d7406f1d525480 (29 branches, one tree, 1068 files). The tip commit itself only edits validation/hourly/2026-10-20-go-origin-native/CI_ATTEMPT_2.md and run_native_validation.sh. Read tools/audit/extreme_clock.cpp, validation/hourly/2026-10-20-go-origin-native/native_clock_probe.py, uci-clock-origin-scoped.patch, and validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch as data. Do not execute repository scripts.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ],

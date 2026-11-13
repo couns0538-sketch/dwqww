@@ -712,3 +712,66 @@ If the search stores no move, `src/search.cpp:1063` plays `legal_moves().front()
 3. Otherwise read `CHANGELOG.md` and `RELEASE_STATE.md` at `193a91eca17c1b47372f408df67fd06ec08c8312` (`cursor/chess-engine-elo-d8c5`) and `86c916289f27225313e60388ca05fffc7e257f39` (`cursor/engine-elo-improvement-3c5f`). Those four blobs differ from `928f1ff7`. Validation notes that are the same blobs as `928f1ff7` were already read. Do not execute repository scripts.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 8
+
+Trigger 21:27 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 21:31 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-7 table | 429 |
+| Moved | 1. This checkpoint, `6cf670a6` to `0b5eff7f`, the run-7 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `6cf670a6` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `1a89bd59` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. `cursor/chess-engine-elo-d8c5` and `cursor/engine-elo-improvement-3c5f` were tip-only and are now `run8-read`. 403 branches stay tip-only.
+
+No engine was built. No PGN was scored. Every Elo figure below was already a sentence in the 6.3.0 copies of these files.
+
+### The two documents are earlier copies
+
+`cursor/chess-engine-elo-d8c5` is unchanged at `193a91eca17c1b47372f408df67fd06ec08c8312` (908 files). `cursor/engine-elo-improvement-3c5f` is unchanged at `86c916289f27225313e60388ca05fffc7e257f39` (909 files). The first is an ancestor of the second, and the second is an ancestor of `928f1ff7`. Neither contains the lock commit, H512, or `main`.
+
+`CHANGELOG.md` blobs are `ad5b9bcb` and `68ef6c76`. They differ from `928f1ff7` (`b5b0df96`) because the later file has more sections, not because an old section was rewritten. All 86 sections on `193a91ec` equal the matching sections on `928f1ff7`. The later file adds `## 6.2.0 - 2026-10-12` and `## 6.3.0 - 2026-10-13`. All 87 sections on `86c91628` equal the matching sections. The later file adds only the 6.3.0 section.
+
+`RELEASE_STATE.md` blobs are `f81ebd5f` and `7fd220fb`. `193a91ec` is the exact suffix of the `928f1ff7` file from the 6.1.0 heading. `86c91628` is the exact suffix from the 6.2.0 heading. The 5.31.0 and 5.30.0 sections are also the same text as `24cc2cce`. The 6.0.0 and 6.1.0 sections differ from `24cc2cce`. Run 6 already recorded that difference.
+
+Eight hundred fifty-five validation files that exist on all three tips are identical blobs. `193a91ec` has no `validation/release-6.2.0/` and no `validation/release-6.3.0/`. `86c91628` has no `validation/release-6.3.0/`. The 6.0 and 6.1 notes, and the 6.2 note on the second tip, are the blobs run 6 read.
+
+`README.md` on `193a91ec` (`0b4e9111`) lists four ladder rows: 5.31.0 is 1/17/2 over 20 games, the tuned 6.0.0 is 118/42/40 over 200 games, the same-machine 6.0.0 is 63/22/15 over 100 games, and one-thread 6.1.0 is 67/25/8 over 100 games. Those scores are 10.0%, 69.0%, 70.5%, and 71.0%. The 200-game PGN was counted on `928f1ff7`. The two 100-game PGNs are still absent. `README.md` on `86c91628` (`2d1eabe6`) adds the changelog's +17 +/- 22 sentence for 6.2.0 against 6.1.0 and does not add a game file.
+
+### Two sentences that disagree with the tree
+
+`RELEASE_STATE.md:20` on `86c91628` starts the sentence that says single-thread bench signatures are unchanged by the threading and generation changes; the clause is line 21. The same sentence is `RELEASE_STATE.md:47` on `928f1ff7`, with the clause on line 48. Three of the generation and threading commits say the signature stayed put: `7dda4a96` at 1188868, `40b54a70` at 1188868, and `b84ed559` at 1390079. `d2b85db5` says the check-aware generator changes the bench 13 signature to 1234322, because the picker's selection swaps break ties once illegal evasions are absent from the list. The same message says 42,513 in-check positions kept the same legal-move lists and that perft was unchanged. `CHANGELOG.md:36` says the generation order is unchanged, and line 37 says the legal moves come out in the same sequence. `CHANGELOG.md:44` states the final signature 1,234,322. There is no bench log in the tree. This run did not run `bench`.
+
+`CHANGELOG.md:16` on `193a91ec` says `Board` maintains the piece-class Zobrist keys in `put_piece`, `remove_piece`, and `move_piece`, and that `unmake_move` restores them without undo state. The next sentences, at line 22, say the keys are updated in `make_move` registers and restored from `Undo`. The 6.1.0 section is the same text on `86c91628` and on `928f1ff7`. In `src/board.cpp` at `193a91ec`, `put_piece` (`:99`), `remove_piece` (`:106`), and `move_piece` (`:114`) do not touch those keys. `make_move` saves them at `:659`, writes the deltas at `:723`, and `unmake_move` copies the saved values back at `:772`.
+
+### The same defect shapes, at these lines
+
+`bad_captures_[bad_count_++]` has no capacity test. On `193a91ec` the write is `src/search.cpp:199` and the array has 64 slots at `:287`. On `86c91628` the write is `src/search.cpp:201` and the array has 64 slots at `:305`. `MoveList::Capacity` is 256 at `include/forge/board.hpp:51` on both tips. No overflow position was searched.
+
+`read_int` parses clocks into an `int` and returns 0 unless the whole token converts (`src/uci.cpp:71` and `:76` on both tips). `wtime` stores `max(0, that)` at `src/uci.cpp:97`. `src/uci.cpp` differs across `193a91ec`, `86c91628`, and `928f1ff7` only by the version string. The default `time_ms` is -1 (`include/forge/search.hpp:22`) and the default overhead is 10 ms (`include/forge/search.hpp:27`), so a parsed 0 is a 1 ms budget: `src/search.cpp:1018` on `193a91ec` and `src/search.cpp:1134` on `86c91628`. This is the same budget already described on `928f1ff7`. It is not the lock's immediate `a2a3`. These binaries were not run.
+
+A checkmate in quiescence returns before the store: `src/search.cpp:664` before `:667` on `193a91ec`, and `:762` before `:765` on `86c91628`. An empty main-search node returns before the store: `:958` before `:974`, and `:1056` before `:1072`. `Board::parse_uci` returns a move only when the token equals `move_to_uci` (`src/board.cpp:810` and `:831`). `move_to_uci` writes lowercase letters (`src/board.cpp:817` and `:838`). Neither tip has a `UseNNUE` option. None of these were played.
+
+### Not claimed
+
+- No new Elo and no new bench. The 6.1.0 and 6.2.0 tables are the sentences already recorded from `928f1ff7`. The ladder percents match the W/D/L arithmetic. The games that were missing there are missing here.
+- 403 tips are still unread. The 29 branches at `356e863d` were not opened.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read the clock evidence on the shared tip `356e863dbd86d2ce24b8ee9486d7406f1d525480`. Twenty-nine branches name that one commit, including `research/forge-forfeit-clock-gap-20261020-2120`. The tip commit edits `validation/hourly/2026-10-20-go-origin-native/CI_ATTEMPT_2.md` and `run_native_validation.sh`. Read `tools/audit/extreme_clock.cpp`, `validation/hourly/2026-10-20-go-origin-native/native_clock_probe.py`, `uci-clock-origin-scoped.patch`, and `validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch` as data. Do not execute repository scripts.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
