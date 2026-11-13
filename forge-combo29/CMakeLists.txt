@@ -19,9 +19,14 @@ option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
 
 file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(forge ${FORGE_SOURCES})
-target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_compile_definitions(forge PRIVATE
+# Same search translation units as the engine, without the UCI main().
+set(FORGE_TEST_SOURCES ${FORGE_SOURCES})
+list(REMOVE_ITEM FORGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/uci.cpp)
+list(APPEND FORGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/search_bounds_test.cpp)
+add_executable(forge_search_tests ${FORGE_TEST_SOURCES})
+
+set(FORGE_COMPILE_DEFS
   NDEBUG
   FORGE_NNUE_HIDDEN=256
   FORGE_EXPOSE_TUNABLES=1
@@ -30,13 +35,23 @@ target_compile_definitions(forge PRIVATE
   FORGE_SEARCH_SPEED2=1
   FORGE_SPD_PREFETCH_EARLY=1)
 if(FORGE_PORTABLE)
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
+  list(APPEND FORGE_COMPILE_DEFS FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
 else()
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
+  list(APPEND FORGE_COMPILE_DEFS FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
 endif()
+
+target_compile_definitions(forge PRIVATE ${FORGE_COMPILE_DEFS})
+target_compile_definitions(forge_search_tests PRIVATE ${FORGE_COMPILE_DEFS})
+target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(forge_search_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Strict floating-point operation order (required for bit-exact node counts).
 target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
+target_compile_options(forge_search_tests PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(forge PRIVATE Threads::Threads)
+target_link_libraries(forge_search_tests PRIVATE Threads::Threads)
+
+enable_testing()
+add_test(NAME search_bounds COMMAND forge_search_tests)

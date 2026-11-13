@@ -73,6 +73,8 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
+int PvBoundFix = 0;
+int AspirationKeepExact = 0;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -108,6 +110,7 @@ const std::vector<Parameter>& parameters() {
         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+        {"PvBoundFix", &PvBoundFix, 0, 1},                      {"AspirationKeepExact", &AspirationKeepExact, 0, 1},
     };
     return table;
 }
@@ -123,10 +126,23 @@ constexpr int HistoryMax = 16384;
     return score;
 }
 
-[[nodiscard]] int score_from_tt(int score, int ply) {
+// Stored mate scores are ply-independent distances. A distance the fifty-move
+// rule cannot survive is not a usable bound: the side to move is drawn before
+// that mate is delivered. room is one ply short of the rule (99 - clock), the
+// same conservative test used by strong engines; a mate that only just fits is
+// searched again instead of trusted from the table.
+[[nodiscard]] int score_from_tt(int score, int ply, int halfmove) {
     if (score == ValueNone) return ValueNone;
-    if (score >= MateInMaxPly) return score - ply;
-    if (score <= -MateInMaxPly) return score + ply;
+    const int clock = std::clamp(halfmove, 0, 99);
+    const int room = 99 - clock;
+    if (score >= MateInMaxPly) {
+        if (MateValue - score > room) return ValueNone;
+        return score - ply;
+    }
+    if (score <= -MateInMaxPly) {
+        if (MateValue + score > room) return ValueNone;
+        return score + ply;
+    }
     return score;
 }
 
@@ -200,6 +216,17 @@ std::string format_score(int score) {
 }
 
 } // namespace
+
+AspirationWindow aspiration_fail_low(int alpha, int beta, int iteration_score, int delta, int last_exact,
+                                     bool keep_last_exact) {
+    int next_beta = (alpha + beta) / 2;
+    const int next_alpha = std::max(iteration_score - delta, -Infinite);
+    if (keep_last_exact) {
+        next_beta = std::max(next_beta, last_exact);
+        if (next_alpha >= next_beta) next_beta = next_alpha + 1;
+    }
+    return {next_alpha, next_beta};
+}
 
 void tune::refresh() { Reductions.refresh(); }
 
@@ -795,6 +822,8 @@ void Worker::clear() {
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+    pv_moves_pruned_ = 0;
+    qs_pv_moves_pruned_ = 0;
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -1264,7 +1293,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
     if (!pv_node && tt_hit && tt_score != ValueNone &&
@@ -1308,14 +1337,21 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     while (!(move = picker.next(false)).is_none()) {
         if (!board.is_legal(move)) continue;
         ++move_count;
-        if (!in_check && best_score > -MateInMaxPly) {
+        // The same PV-bound hole as the main search: a skipped capture can
+        // still raise alpha, and this node may store that score as exact.
+        // PvBoundFix 0 keeps the lock pruning. The counter is diagnostic.
+        if (!in_check && best_score > -MateInMaxPly && !(pv_node && tune::PvBoundFix != 0)) {
             const bool gives_check = board.gives_check(move);
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                if (pv_node) ++qs_pv_moves_pruned_;
                 continue;
             }
-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+            if (!board.see_ge(move, -tune::QsSeeMargin)) {
+                if (pv_node) ++qs_pv_moves_pruned_;
+                continue;
+            }
         }
 #if FORGE_SPD_PREFETCH_EARLY
         std::uint64_t child_key = 0;
@@ -1377,7 +1413,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const int inherited_double_extensions = (ss - 1)->double_extensions;
     ss->double_extensions = inherited_double_extensions;
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
-    if (aborted_) return 0;
+    if (aborted_) {
+        // A previous attempt on this frame may have left a PV. Drop it so an
+        // aborted root does not adopt that line with a zero return.
+        ss->pv_length = 0;
+        return 0;
+    }
     ++local_nodes_;
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
@@ -1410,7 +1451,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
@@ -1572,17 +1613,30 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (!root_node && best_score > -MateInMaxPly && has_material) {
-            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+        // PV nodes store an exact score once a move beats alpha. Skipping a
+        // legal move there makes that bound false. PvBoundFix keeps the lock
+        // behaviour at 0 and turns the pruning off at PV nodes at 1.
+        if (!root_node && best_score > -MateInMaxPly && has_material && !(pv_node && tune::PvBoundFix != 0)) {
+            if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) {
+                skip_quiets = true;
+                if (pv_node) ++pv_moves_pruned_;
+            }
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
                     skip_quiets = true;
+                    if (pv_node) ++pv_moves_pruned_;
                     continue;
                 }
-                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
-                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+                if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) {
+                    if (pv_node) ++pv_moves_pruned_;
+                    continue;
+                }
+                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) {
+                    if (pv_node) ++pv_moves_pruned_;
+                    continue;
+                }
             } else {
                 // Futility pruning for captures: even winning the piece cannot
                 // bring the position back to alpha.
@@ -1590,11 +1644,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     lmr_depth <= tune::CaptureFutilityDepth &&
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
+                    if (pv_node) ++pv_moves_pruned_;
                     continue;
                 }
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
-                    !board.see_ge(move, see_threshold)) continue;
+                    !board.see_ge(move, see_threshold)) {
+                    if (pv_node) ++pv_moves_pruned_;
+                    continue;
+                }
             }
         }
 
@@ -1687,7 +1745,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
         }
         board.unmake_move(move, undo);
-        if (aborted_) return 0;
+        // Root keeps the best finished move of this attempt. Callers above the
+        // root discard the value as soon as they see the abort flag.
+        if (aborted_) return root_node ? best_score : 0;
         if (root_node && root_effort_index < root_effort_count_)
             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
 
@@ -1768,6 +1828,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;
+    pv_moves_pruned_ = 0;
+    qs_pv_moves_pruned_ = 0;
     root_moves_ = limits.search_moves;
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;
@@ -1941,8 +2003,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             iteration_score = search(board, ss, depth, alpha, beta, false);
             if (aborted_) break;
             if (iteration_score <= alpha) {
-                beta = (alpha + beta) / 2;
-                alpha = std::max(iteration_score - delta, -Infinite);
+                const AspirationWindow widened = aspiration_fail_low(
+                    alpha, beta, iteration_score, delta, score, tune::AspirationKeepExact != 0);
+                alpha = widened.alpha;
+                beta = widened.beta;
             } else if (iteration_score >= beta) {
                 beta = std::min(iteration_score + delta, Infinite);
             } else {
@@ -1951,13 +2015,21 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             delta += delta / 2 + 4;
         }
         if (aborted_) {
-            // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            // The partial score is the best move that finished in this attempt.
+            // A move that only beat a lowered alpha is not a reason to replace
+            // the last completed iteration.
+            const bool have_completed = result.depth > 0;
+            const bool partial = ss->pv_length > 0 && iteration_score > -Infinite;
+            if (partial && (!have_completed || iteration_score > result.score)) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
-                // Publish the revised line so GUIs see a PV consistent with the move.
+                result.score = iteration_score;
+                // Depth, score and PV describe this attempt together. Leaving
+                // the depth at the previous iteration paired a new move with
+                // an older search.
+                result.depth = depth;
+                result.seldepth = std::max(seldepth_, depth);
                 emit(depth, result.score, result.pv);
             }
             break;
