@@ -27,6 +27,7 @@ Commands:
   score   --net NET.fnn3 --pos P --hce H [--max-rows N] [--phases]        (holdout MSE at blends 1.0/0.6/0.8)
 """
 import argparse
+import glob
 import json
 import os
 import shutil
@@ -43,6 +44,10 @@ from ckpt_io import load_checkpoint  # noqa: E402  (JOB E, 2026-11-12: restricte
 K = 2.25
 QA = v3.QA
 QB = v3.QB
+# Same mark as train_h512_gpu.py score: a file whose name contains this text is the
+# untouched final test (final_test, final_test2, final_test3) and is not read unless
+# the command was given --final-test-unlock.
+FINAL_TEST_MARK = "final_test"
 # round(b2 * QA * QB) has to fit in int32. 131586 * 16320 = 2147483520, and
 # 131587 * 16320 does not. Clip the parameter, not the exported integer.
 B2_ABS_MAX = 131586.0 / (QA * QB)
@@ -50,6 +55,25 @@ PHASES = 8
 
 
 # ---------------- data ----------------
+
+def is_final_test_path(path):
+    return bool(path) and FINAL_TEST_MARK in os.path.basename(path).lower()
+
+
+def refuse_final_test(paths, unlock=False):
+    """Return the final-test paths in `paths`. Refuse to read them unless unlock is set."""
+    hits = [path for path in paths if is_final_test_path(path)]
+    if hits and not unlock:
+        raise SystemExit("refused: this is the final-test set; it is scored once, with --final-test-unlock")
+    return hits
+
+
+def note_final_test_access(paths):
+    for path in paths:
+        directory = os.path.dirname(os.path.abspath(path)) or "."
+        with open(os.path.join(directory, "FINAL_TEST_ACCESS.log"), "a", encoding="utf-8", newline="\n") as handle:
+            handle.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {os.path.basename(path)}\n")
+
 
 def read_fpos(pos_path, hce_path=None, max_rows=None):
     data = np.memmap(pos_path, np.uint8, "r")
@@ -475,7 +499,13 @@ def run_engine_eval(tool, net_path, fens_path):
 # ---------------- train ----------------
 
 def cmd_train(args):
-    import glob
+    watched = [args.pos, args.hce, args.val_pos, args.val_hce, args.exact_pos, args.exact_hce]
+    pos_files = glob.glob(args.pos_glob) if args.pos_glob else []
+    watched.extend(pos_files)
+    if args.hce_dir:
+        for path in pos_files:
+            watched.append(os.path.join(args.hce_dir, os.path.basename(path)[:-4] + ".hce"))
+    note_final_test_access(refuse_final_test(watched, args.final_test_unlock))
     import torch
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
@@ -760,6 +790,7 @@ def cmd_parity(args):
 
 
 def cmd_score(args):
+    note_final_test_access(refuse_final_test([args.pos, args.hce], args.final_test_unlock))
     net = v3.read_net(args.net)
     data = read_fpos(args.pos, args.hce, args.max_rows)
     result = score_net_numpy(net, data, net.residual, phases=args.phases)
@@ -822,6 +853,8 @@ def main():
     t.add_argument("--target-loss", type=float, default=0.0, help="stop when the exact b0.6 holdout MSE is <= this")
     t.add_argument("--plateau", type=int, default=0, help="stop after this many checkpoints without a new best exact loss")
     t.add_argument("--plateau-eps", type=float, default=1e-5)
+    t.add_argument("--final-test-unlock", action="store_true",
+                   help="allow --pos, --pos-glob, --val-pos or --exact-pos to name a final_test file")
     e = sub.add_parser("export")
     e.add_argument("--model", required=True)
     e.add_argument("--net", required=True)
@@ -836,6 +869,8 @@ def main():
     s.add_argument("--hce")
     s.add_argument("--max-rows", type=int)
     s.add_argument("--phases", action="store_true")
+    s.add_argument("--final-test-unlock", action="store_true",
+                   help="allow --pos to name a final_test file; the read is appended to FINAL_TEST_ACCESS.log")
     args = ap.parse_args()
     {"train": cmd_train, "export": cmd_export, "parity": cmd_parity, "score": cmd_score}[args.cmd](args)
 

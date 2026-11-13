@@ -246,8 +246,57 @@ def check_piece_counts(fens):
     return bad_fens
 
 
+def check_final_test_gate():
+    try:
+        tr.refuse_final_test(["fb2_013.pos", os.path.join("set", "final_test_2m.pos")])
+    except SystemExit as exc:
+        if "final-test" not in str(exc):
+            raise
+    else:
+        raise SystemExit("helper did not refuse")
+    if tr.refuse_final_test(["fb2_013.pos", "fb2_014.pos"]):
+        raise SystemExit("helper refused a training shard")
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fable_nnue_train.py")
+    refused = subprocess.run(
+        [sys.executable, script, "score", "--net", "missing.fnn3", "--pos", "final_test3_2m.pos"],
+        capture_output=True, text=True)
+    if refused.returncode == 0 or "final-test" not in (refused.stderr + refused.stdout):
+        raise SystemExit(f"score did not refuse a final-test name:\n{refused.stderr}")
+    ordinary = subprocess.run(
+        [sys.executable, script, "score", "--net", "missing.fnn3", "--pos", "holdout.pos"],
+        capture_output=True, text=True)
+    if "final-test" in (ordinary.stderr + ordinary.stdout):
+        raise SystemExit("score refused a holdout name")
+    with tempfile.TemporaryDirectory() as tmp:
+        final = os.path.join(tmp, "final_test3_2m.pos")
+        open(final, "wb").close()
+        train = subprocess.run(
+            [sys.executable, script, "train", "--out", tmp, "--pos", final],
+            capture_output=True, text=True)
+        text = train.stderr + train.stdout
+        if train.returncode == 0 or "final-test" not in text or "torch" in text:
+            raise SystemExit(f"train did not refuse before torch:\n{text}")
+        open(os.path.join(tmp, "fb2_001.pos"), "wb").close()
+        globbed = subprocess.run(
+            [sys.executable, script, "train", "--out", tmp, "--pos-glob", os.path.join(tmp, "*.pos")],
+            capture_output=True, text=True)
+        glob_text = globbed.stderr + globbed.stdout
+        if globbed.returncode == 0 or "final-test" not in glob_text or "torch" in glob_text:
+            raise SystemExit(f"train glob did not refuse before torch:\n{glob_text}")
+        opened = subprocess.run(
+            [sys.executable, script, "score", "--net", "missing.fnn3", "--pos", final, "--final-test-unlock"],
+            capture_output=True, text=True)
+        if "final-test" in (opened.stderr + opened.stdout):
+            raise SystemExit("unlock still refused")
+        log = os.path.join(tmp, "FINAL_TEST_ACCESS.log")
+        if not os.path.isfile(log) or "final_test3_2m.pos" not in open(log, encoding="utf-8").read():
+            raise SystemExit("unlock did not record the read")
+    print("final-test gate: score and train refuse the name; unlock records the read")
+
+
 def main():
     tool = sys.argv[1] if len(sys.argv) > 1 else None
+    check_final_test_gate()
     check_b2()
     check_b2_clip_limit()
     fens = played_fens(12, 20261113)
