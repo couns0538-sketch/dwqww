@@ -15,6 +15,7 @@
 #endif
 
 #include <array>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cstddef>
@@ -221,7 +222,9 @@ public:
 
     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
     [[nodiscard]] static std::string move_to_uci(const Move& move);
-    [[nodiscard]] std::uint64_t perft(int depth);
+    // `stop` is optional. A set flag makes perft return the nodes counted so
+    // far; callers must not treat that partial total as a finished result.
+    [[nodiscard]] std::uint64_t perft(int depth, const std::atomic<bool>* stop = nullptr);
 
     // Game-level threefold repetition of the current position.
     [[nodiscard]] bool is_repetition() const;

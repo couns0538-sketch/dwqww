@@ -52,3 +52,7 @@ forge_configure(forge)
 add_executable(forge_bad_capture_tests tests/bad_capture_tests.cpp ${FORGE_CORE_SOURCES})
 forge_configure(forge_bad_capture_tests)
 target_compile_options(forge_bad_capture_tests PRIVATE -D_GLIBCXX_ASSERTIONS)
+
+add_executable(forge_rules_tests tests/rules_tests.cpp ${FORGE_CORE_SOURCES})
+forge_configure(forge_rules_tests)
+target_compile_options(forge_rules_tests PRIVATE -D_GLIBCXX_ASSERTIONS)
