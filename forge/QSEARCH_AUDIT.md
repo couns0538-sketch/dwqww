@@ -110,6 +110,6 @@ The contract and the engine share move generation, check detection, evaluation, 
 
 The structured sample is seventh-rank pawns and rim knights, not the full set of chess positions. One middlegame from the random walk exceeded the contract node cap and was skipped. Quiet checking moves are outside the contract on purpose.
 
-The Python match, ponder, and UCI regression scripts, the opening book, and the validation corpora from the 5.31.0 archive are not in this tree. `ctest` registers those Python tests only when `tools/uci_regression.py` is present. The C++ suite is the verification that was run. `FORGE_BUILD_VALIDATION_TOOLS` still expects `tools/generate_openings.cpp`, which was not extracted; the option stays off.
+The Python match, ponder, and UCI regression scripts, the opening book, and the validation corpora from the 5.31.0 archive are not in this tree. `ctest` registers those Python tests only when `tools/uci_regression.py` is present. The C++ suite is the verification that was run. `FORGE_BUILD_VALIDATION_TOOLS` still names the opening-corpus generator, and CMake adds that target only when `tools/generate_openings.cpp` is present. In this tree the option configures and skips the target.
 
 Nothing on this branch was merged or promoted.

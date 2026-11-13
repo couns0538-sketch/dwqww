@@ -36,11 +36,17 @@ target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 enable_testing()
 add_test(NAME forge_tests COMMAND forge_tests)
 
-# Support tooling does not change engine behavior or add runtime dependencies.
+# The opening-corpus generator is not in this extract. Keep the option so an
+# upstream tree that has the source can still build it, and skip the target
+# when the source is absent instead of failing generation.
 option(FORGE_BUILD_VALIDATION_TOOLS "Build the original opening corpus generator" OFF)
 if(FORGE_BUILD_VALIDATION_TOOLS)
-    add_executable(forge_openings tools/generate_openings.cpp)
-    target_link_libraries(forge_openings PRIVATE forge_core)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_openings.cpp")
+        add_executable(forge_openings tools/generate_openings.cpp)
+        target_link_libraries(forge_openings PRIVATE forge_core)
+    else()
+        message(STATUS "Skipping forge_openings: tools/generate_openings.cpp is not in this tree")
+    endif()
 endif()
 find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_regression.py")
