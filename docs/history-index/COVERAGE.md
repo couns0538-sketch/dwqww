@@ -1,0 +1,168 @@
+# Coverage ledger
+
+Checkpoint 1. Figures below are counts from this session, not estimates of "the important parts."
+
+## Snapshot
+
+| Item | Value |
+|---|---|
+| Remote queried | `git ls-remote --heads origin` at 2026-11-13T11:46:13Z |
+| Remote branch tips | 416 |
+| Local remote-tracking tips before and after `git fetch` | 416 branch tips, 0 differences. `refs/remotes/origin/HEAD` is a symbolic ref to `5176ddf79ae1` and is not a branch |
+| Unique tip commits | 327 |
+| Unique tip trees | 327 |
+| Tip commits that share a tree with a different tip commit | 0 |
+| Branches whose tip commit is shared with another branch | 105 branches in 16 groups (`branches/SHARED_HEADS.tsv`) |
+| `git ls-tree -r` entries across the 327 trees | 831,064 |
+| Unique blobs at those tips | 35,982 |
+| Of which text-like extensions were listed | 32,877 |
+| Markdown blobs | 2,666 (17.8 MB total) |
+| Archive, binary, or >=20 MB blobs listed and not opened | 1,710 (`inventory/LARGE_AND_ARCHIVE_BLOBS.tsv`) |
+| Gitlinks (submodules) | 0 |
+| Pack | one pack, about 7.67 GiB, repository is not shallow |
+
+`git fetch` of `refs/heads/*` returned immediately with no ref updates. `ls-remote` then matched every local tip. Heads were not moving during this snapshot. A later run must repeat `ls-remote` and diff it against `branches/HEADS.tsv` before assuming the tips are still these commits.
+
+## What each depth means
+
+| Depth | Meaning in this ledger |
+|---|---|
+| Inventoried | Path, blob id, and size recorded from `git ls-tree`. Bytes not opened |
+| Screened | A census or a keyword/layout pass. Not a reading of the file |
+| Full read | The whole file was read in this session. The blob id is listed below |
+
+## Full reads (11 files, plus one 57-row table)
+
+All of these blobs are on `fable/standalone-h512-20261111` at `efb2ff960037087299332bc6a44baea69441a17a` unless noted. Reading the blob covers every other branch that has the same blob at any path.
+
+| Blob | Path read | Lines |
+|---|---|---|
+| `d4f489b98264bc905d5f020ad1417a219c841513` | `three_model_prompt.txt` | 30 |
+| `d8f761ef914247f6fcf589293be6a1afc1cd114e` | `h512/STATUS.md` | 220 |
+| `4088ead03bdd3f719eaeece58fdf18d0846567f2` | `h512/REPORT.md` | 467 |
+| `74bf5339667eac7d8545163f8ccb12493a8e9612` | `h512/REPORT_PHASE2.md` | 601 |
+| `33ca539a571fe83afee9e7fa2fd8d094cfc75b1b` | `fair_eval/STATUS.md` | 45 |
+| `e1f86ff992a71788b80bbcc584fb58eb182941e0` | `fair_eval/REPORT.md` | 305 |
+| `4ae6a095ee3bbd2383c7c1c6049a2edde41ef58e` | `forge-combo29/LOCK.md` | 48 |
+| `3922b537a9dd25841d3fc7a07922adfe2dcf41da` | `forge-combo29/README.md` | 16 |
+| `5b32b256fbe59d26c6ea13bfb325ad6d4c887d8c` | `forge-combo29/docs/context/HANDOFF.md` | 15 |
+| `4613567c0062e0742301684a1bb6b2cf54c2191b` | `forge-combo29/docs/overnight/RANKED.md` | 36 |
+| `f1981569133942aa98783f2e82985738f4705557` | `h512/results/phase3/repo_fix_20261112/README.md` | 75 |
+| `9432638271fb82661a48021b9c22e311b33491d4` | `h512/results/phase3/repo_fix_20261112/branches.tsv` | 57 data rows |
+
+That is about 1,900 lines of prose plus the 57-row fix table. It is the newest H512 / fair-eval / combo29 lock line. It is not a reading of the October engine history.
+
+## Screened, not read
+
+- All 416 tip subjects and commit dates (`branches/HEADS.tsv`).
+- Family counts (`branches/FAMILIES.tsv`).
+- Top-level layout, file counts, extension counts, and files over 5 MB for 15 trees: `main`, `cursor/chess-engine-elo-bba2`, `cursor/engine-strength-overhaul-66cc`, `cursor/speed-and-search-patches-c7cb`, `forge/6.4-hourly-20261019`, `forge/nnue-capture-fusion-20261019`, `opus-summary`, `opus-sol-S50`, `fable-nnue-arch`, `fable-review-summary`, `fable-fb2-j1`, `fable52-search-gap-20261109`, `fable52-movegen-proof-20261110`, `fable/fair-eval-builds-20261111`, `fable/standalone-h512-20261111`. `astra-notes` was included in the same pass.
+- Markdown size buckets: 691 blobs under 2 KB, 1,815 from 2–20 KB, 151 from 20–80 KB, 9 from 80–200 KB. No markdown blob is 200 KB or larger.
+- Basename census of report-like markdown (316 `README.md`, 199 `REPORT.md`, 74 `STATUS.md`, 40 `REVIEW.md`, 20 `FINAL_REPORT.md`, and smaller counts).
+- Unique blob counts for selected source names (`inventory/KEY_SOURCE_BLOBS.tsv`): 95 `search.cpp`, 71 `search.hpp`, 50 `nnue.cpp`, 114 `uci.cpp`, 26 `board.cpp`. These counts are unique blobs that use that basename, not a diff.
+
+## Inventoried only
+
+Every other file at the 416 tips. In particular:
+
+- 1,710 archive or large blobs, including `chess-engine-forge-6.4.0.zip` (77.5 MB), `validation/release-6.0.0/all-match-pgns.zip` (67.2 MB), many `*.zip.part0001` shards near 67 MB, `validation/clock-safety-9850x3d/matches/original-quality-sprt/fastchess.log` (65.4 MB), and `astra_r10/job1/pack/artifacts/inputs/libLLVM-23.dll` (77.7 MB). Not extracted.
+- 12,530 unique JSON blobs, 5,140 log blobs, 2,805 Python blobs, 549 C++ blobs. Listed, not read.
+- `fair_eval/EVIDENCE_MATRIX.md`, `h512/train/TRAINER_NOTE.md`, and `forge-combo29/docs/QA_LOCK_PUBLISH_COMBO29_20261108.md` are present and were not read.
+- Match PGNs and nets cited under `D:\forge_jobs_20261111\...\_work\` are outside the repository.
+
+## Branches with no new tip content
+
+Six `research/grokchess-*` branches dated in the name 2026-10-20 or 2026-10-21 point at `main` (`5176ddf79ae15b76c08c4485d90ee5600ba30a1a`, "Add files via upload"). Their trees are the ten-file upload (two zips, a JS source dump, prompts, logs). The experiments named in the branch are not in that commit. See `branches/NAME_NEWER_THAN_COMMIT.tsv` for 21 branches whose name date is at least one day after the tip commit date. Several October 21 investigator and forge test branches point at the October 20 OwnBook commit `5101c2529d38` and do not contain a newer commit of their own.
+
+Hourly `forge/` and `investigator/` names often share one commit. The branch name is a checkpoint label. The commit subject is the last real change, which may be older and about a different topic.
+
+## Checkpoint 2 full reads
+
+These blobs were read in full after checkpoint 1. They are not on the H512 tip. The branch tip that holds each path is named with the blob.
+
+| Blob | Branch @ tip | Path | Lines |
+|---|---|---|---|
+| `a0065a88cb1697ea46ba4880425707839dea71f1` | `fable52-search-gap-20261109` @ `56a76b153bb88026f2d83d65df6e422b0f3298f9` | `fable_search_gap/NO_QUALIFIED_GAP.md` | 185 |
+| `96681cdea9a21e0a36cd865ab9ef5c452b2653b4` | same tip | `fable_search_gap/STATUS.md` | 125 |
+| `683754c8c5283cfde01c616517c10582754e0fbf` | same tip | `fable_search_gap/FALSIFICATION.md` | 151 |
+| `23b1387b4a5a4ba84581d9dbda8af31002ca1557` | same tip | `fable_search_gap/data/QUALIFICATION_RULE.md` | 17 |
+| `81bdc8ad6cef019eadf80a411be5ec4bbf44ed4f` | same tip | `fable_search_gap/data/gate_table_summary.md` | 117 |
+| `2d0cddc5ded464075f5b1128f5c36be4b933c629` | `fable52-speed-lane-20261109` @ `08897a88e11c707c0ac4e39c19e44c06e1360bdd` | `fable_speed_lane/STATUS.md` | 202 |
+| `8242abdb64cb28fd4b0a7ae59734fe13b64d4e29` | same tip | `fable_speed_lane/README.md` | 85 |
+| `365aff87344299c5cfddc198b6f97b6fe16d581a` | `fable52-movegen-proof-20261110` @ `2ff77f98927cf19d55d6cac5cf182a81eb0d71e6` | `fable_movegen_proof/STATUS.md` | 178 |
+| `7e2021ba68c48223514584f44157e5a9f6f4efe8` | `fable52-cpu-20261110` @ `ea3759a9ec3b17c58e3daeab8ff31af53e7ae6ab` | `fable_cpu_speed/STATUS.md` | 67 |
+| `a2e1d04d8273cfed34a1b271a074753df6eb0204` | same tip | `fable_cpu_speed/README.md` | 118 |
+
+About 1,245 more lines. Still unread on those same branches: `fable_search_gap/EVIDENCE.md`, `DEDUPE.md`, `REVIEW_LOG.md`, `COVERAGE.md`; `fable_speed_lane/BENCH.md`, `DUPCHECK.md`, `PROFILE.md`, `QA_ABBA_PROTOCOL.md`; `fable_movegen_proof/PROOF.md`, `DONE.md`, `evidence/TABLES.md`; `fable_cpu_speed/DONE.md`, `PREREG.md`, `PROFILE.md`. The speed-lane protocol file was copied out and not read.
+
+## Checkpoint 3 full reads
+
+Same blob of `FABLE_REPORT.md` on `fable-nnue-arch` @ `08b589e197202d00bb2a840c80c2233262cd9918` and on `fable-fb2-j1` @ `014f3fd8b0ebf86c5ecd8c5e149b10119d9f7f3c`.
+
+| Blob | Tip | Path | Lines |
+|---|---|---|---|
+| `7cb6ce90fe3fe5391cab83d1f491bcc5d6111f4d` | both tips above | `FABLE_REPORT.md` | 322 |
+| `cfd5464ac23e1a565f9e035f706be02157e3d113` | `fable-fb2-j1` @ `014f3fd8b0ebf86c5ecd8c5e149b10119d9f7f3c` | `FABLE_REPORT_FB2.md` | 394 |
+| `ece3a02d3058c92de631ca35562f28fa5a571c6c` | `opus-summary` @ `e89d2af1c5f3b9268836c8b949fb4f3951de6a29` | `REPORT.md` | 167 |
+| `405728b54e7cfb2f3d27c2d2d176eee9d663b70b` | same tip | `SOL_LEFTOVERS_PROGRESS.md` | 64 |
+
+`FABLE_REPORT_FB2.md` md5 `9e40983e6a44ed6283c0110d2df243cd`, which is the md5 `h512/REPORT.md` cites. The progress file is an index of one line per Sol job. Those lines were read. The job `REPORT.md` files they point at were not, except where an earlier section of this ledger already names a full read.
+
+Not read: `FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) on `fable-review-summary` @ `fa6411f6f984f86d0adacfc2868967f2698d4e67`. The 22.2 MB `opus_round1_20261027.tar.xz` on `opus-summary` was not extracted.
+
+## Checkpoint 4
+
+Local git, not the website. Directory and commit counts are in `findings/GITHUB_FILE_CAP.md`. The 64-slot buffer census is in `findings/BUGS.md`. Sibling reports are in `findings/SIBLINGS.md`.
+
+Full reads added here:
+
+| Blob | Tip | Path |
+|---|---|---|
+| `3b6e2386b6533f8ab797244888c96fb297ea6b2a` | `fable-review-buffix` @ `8632e8ab35f6b269fa66c57043121dd55e4c5756` | `fable_review/REVIEW.md` |
+| `44365b23b2a5166521f2a5f3399781f994a2a657` | `fable52-search-gap-20261109` @ `56a76b153bb88026f2d83d65df6e422b0f3298f9` | `fable_search_gap/DEDUPE.md` |
+| `0d09e3fd90ccd944a7c7d6ed14fe1b6a39d8be99` | `astra-notes` @ `3e50336ac0249cfcc87d23f8154e1e842d2f7c79` | `FINAL_REPORT.md` |
+| `c46866151a7687b63b6543b746422132bdeee8b7` | same tip | `NOTES.md` |
+| `a2a361a744b79533385836ec31dc85cec70b91b8` | same tip | `REPORT.md` |
+| `80d807111ce3d79d1187ab0b32bdbf12c0ac3a60` | same tip | `OPUS_R3_REPORT.md` |
+| `c25059861c4d4e66f373d4d9c0a5c19511023cc7` | `astra-r10-3jobs` | datafilter `RESULTS.md` (three identical paths) |
+| `cc47caca2970df9b49158c32d101a1751b54dd5e` | `forge/clock-contract-reconcile-20261020` | `validation/upstream-clock-reconcile-20261020/windows/independent-audit.md` |
+| `ab2b5937aad8dad1de2f218fe632b662ef631b02` | `forge/double-extension-path-20261020` | `validation/time-forfeit-causal-20261020/RUNNER_REVIEW.md` |
+| `2d469bfe55036da13d4f02e065d3d8593b9011fa` | `forge/nnue-pipeline-20261023` | recovery `REPORT.md` under `windows-raw-recovery-independent-review-attempt1/` |
+| `252101f6a372562d63dfe430a2987765e23004f4` | `forge/sol-pack31-20261025` | S12 operator `README.md` |
+| `720e799e36f60a24880d663d081ff7cb7ace3a69` | same tip | S11 `B_native` parity JSON, status field and top-level scalars |
+| `dc1f5fd580f3b9b60a527c79a7a1fdcb37ba1b36` | correctness tip in `SIBLINGS.md` | `RESUME.md` |
+| `c72cc8e525ebae1857fc41a98649ef93999b8b81` | NNUE tip | `h512/results/cloud_20261113/RESUME.md` |
+| `628e9ccc137383336b7b746ad30398e75a0b2201` | NNUE tip | `REFRESH_BIAS.md` |
+| `9cf62f07c36223ad25255739d318b3fe3b319b71` | NNUE tip | `VNNI.md` |
+| `68a7879c9c290a175aa01281a9c3de3a3a597c61` | NNUE tip | `APPLY_BOTH.md` |
+| `a09b31143d16f71e8865a3d7d2ba877f0b0bac35` | NNUE tip | `SCORER_PARITY.md` |
+| `8e472fee96a5a04b50cafa215312a6d665ec321d` | NNUE tip | `SANITIZERS.md` |
+| `6aa4e28dbd1320902d0c385f91c0fd7905863e74` | NNUE tip | `PIECE_COUNT.md` |
+| `59cc26b64e06f179a58e5b164f34904fa0d8602d` | search tip | `search_strength/CHECKPOINT.md` |
+| `11ed5faf66c2a027e4f17e5aa8504b76500ed58c` | search tip | `search_strength/CHECKPOINT-2.md` |
+
+`FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) was not read end to end. The findings table and the "Mistakes found" section were read. The S11 parity JSON was not read as a whole file. Its status and the fields printed in `BUGS.md` were. The 88 `uci.cpp` blobs were listed and not classified. The search.cpp classification covered every frozen tip blob of that name.
+
+Also full reads: qsearch investigator report blob `15d9b1b2f94f3329da264b8fdf38e48643bca37e`, zero-node investigator report blob `a9a0702f368195e72b9e1ee92021497b363c83aa`, and `opus_round1/sol_S21/REPORT.md` blob `128c734d209fc0fcdbf4a3db4e4421825987c795`.
+
+`astra-notes` `REPORT.md` is an older Opus status. It is not the later `opus-summary` report of the same filename.
+
+## Pass over every tip
+
+`branches/EVERY_TIP.tsv` has one row for each of the 429 tips opened on 2026-11-13 after `git ls-remote` showed 430 heads. The missing row is this index branch. Counts in that file: 246 `claimed`, 170 `alias`, 13 `live-report`.
+
+`readings/PRIMARY_CLAIMS.tsv` has one sentence for each of the 387 selected primary documents. Six reading passes wrote those sentences, and each pass's blob list matches the file it was given. Two sentences had transcribed `perft 54865609`. The source notes write `perft54865609`, which is perft 5 = 4865609, and the stored sentences say that.
+
+An alias row is a real read of the tip identity: `git ls-tree` found no markdown blob that appears on three or fewer trees. The branch name is another label for the commit in that row. Where the name and the commit date disagree, `branches/NAME_NEWER_THAN_COMMIT.tsv` already lists the cases.
+
+`claimed` means every selected primary document on that tree has a sentence in the claims file. `live-report` is `findings/LIVE_AUDITS.md`, read in full. A sentence is not a transcript. Snapshot copies, logs, archives, and the other markdown blobs were not opened. Do not copy a number from a claim into a findings file until the source blob is opened.
+
+## Checkpoint 5: one sentence for the other markdown
+
+`readings/WAVE2_CLAIMS.tsv` has one sentence for each of the 2,304 markdown blobs that were not among the 387 primary documents. `readings/LONG_PRIMARY_REREAD.tsv` has a second sentence for each of the 53 primary documents larger than 15 KB. The original row in `readings/PRIMARY_CLAIMS.tsv` stays. The reread is shorter and often drops a figure the first sentence kept, including comma-grouped node counts, so it is a check of the source and not a replacement.
+
+All 100 shard files matched their blob lists, in order, with one tab per line and no `UNREADABLE` row. The engine was not run. A number in either claims file is still the report's number.
+
+## Not claimed
+
+This ledger does not say that any Elo or speed number was confirmed by a new match or bench. Archives, zip parts, logs, JSON, and source files other than the blobs already named in `findings/` were not opened in this pass.
