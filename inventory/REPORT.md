@@ -456,3 +456,92 @@ The note describes nine Threads-greater-than-1 failures: a helper's move printed
 3. Otherwise read, on `cursor/engine-strength-overhaul-66cc` at `24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b`, and do not execute repository scripts: `README.md`, `CHANGELOG.md`, `RELEASE_STATE.md`, `VALIDATION.md`, and `engine-improvement-log.md`. That tip is the source named by the match-PGN note. Leave the Elo columns in `EXPERIMENTS.md` as their console figures.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`. The Opus R5 BKM patch is multi-thread only and is not a substitute for those two.
 5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 5
+
+Trigger 18:26 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 18:28 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-4 table | 429 |
+| Moved | 1. This checkpoint, `00bc9129` to `064b3672`, the run-4 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `00bc9129` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `f293db16` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. 408 branches stay tip-only. `cursor/engine-strength-overhaul-66cc` was tip-only and is now `run5-read`.
+
+No engine was built. The nine loose ladder PGNs were scored from `[Result` tags and the engine names in each game. The SHA-256 of `chess-engine-forge-6.4.0.zip` was computed and compared with the release note. Every Elo interval below is a figure in the named document.
+
+### Forge 6.4.0 documents
+
+`cursor/engine-strength-overhaul-66cc` is unchanged at `24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b` (928 files). It contains `68f01122` and does not contain the lock commit, H512, or `main`. Read in full: `README.md` (249 lines), `CHANGELOG.md` (925 lines), `RELEASE_STATE.md` (174 lines), `VALIDATION.md` (150 lines), and `engine-improvement-log.md` (80 lines). `validation/release-6.0.0/EXPERIMENTS.md` is blob `4194acfb7accbf58781c24ae7b97dfd1c0c30d84`, the same blob run 4 read on `cursor/match-pgns-66cc`. It was not read again.
+
+The tip contains the archive the PGN branch does not. `validation/release-6.0.0/all-match-pgns.zip` is 67,169,642 bytes. It was not extracted. `chess-engine-forge-6.4.0.zip` is 77,476,927 bytes. Its SHA-256 is `98d2ff2c523a25931897794bad3c39d40398799b8907d51596dad3e326a2ba9d`, which is the digest in `validation/release-6.0.0/release-zip-sha256.txt`. The six binary digests in that note were not recomputed, and the binaries were not run. No `console.txt` for the 6.x matches is in the tree. `bench 11` = 417491 is their signature. This run did not run `bench`.
+
+### Ladder scores counted from the loose PGNs
+
+These files are under `validation/release-6.0.0/` on this tip. Wins are the named Forge side. The counts match the README table. The `+/-` Elo columns were not recomputed.
+
+| File | Forge side | Games | W | L | D |
+|---|---|---:|---:|---:|---:|
+| `forge-5.31.0-vs-sf19-2800-10+0.1.pgn` | `base531` | 20 | 1 | 17 | 2 |
+| `forge-6.0.0-vs-sf19-2800-10+0.1.pgn` | `v3` | 200 | 118 | 42 | 40 |
+| `forge-6.0.0-vs-sf19-2800-30+0.3.pgn` | `final` | 100 | 79 | 14 | 7 |
+| `forge-6.1.0-vs-sf19-2800-10+0.1.pgn` | `v61` | 200 | 134 | 34 | 32 |
+| `forge-6.1.0-threads4-vs-threads1-8+0.08.pgn` | `threads4` | 50 | 26 | 1 | 23 |
+| `forge-6.2.0pre-vs-sf19-3000-10+0.1.pgn` | `v62a` | 200 | 66 | 75 | 59 |
+| `forge-6.2.0-vs-sf19-3000-20+0.2.pgn` | `v62` | 100 | 35 | 32 | 33 |
+| `forge-6.3.0-vs-sf19-3000-20+0.2.pgn` | `v63` | 100 | 33 | 33 | 34 |
+| `forge-6.4.0-vs-sf19-3000-20+0.2.pgn` | `v64` | 100 | 35 | 30 | 35 |
+
+`RELEASE_STATE.md` says the 100-game Stockfish 19 games at `UCI_Elo` 3000 do not separate 6.2.0, 6.3.0, and 6.4.0. The separation they claim for 6.4.0 is the self-play against 6.3.0: 209W 88L 203D at 20,000 nodes over 500 games, and 49W 23L 128D at 10+0.1 over 200 games. Those two PGNs are inside the zip. Run 4 counted result tags for those files on the extracted PGN branch and did not re-tally wins. This run did not open the zip, so those two W/L/D columns stay their console figures.
+
+### What the 6.4.0 source contains
+
+The residual network is compiled in. `src/nnue_weights.inc` defines `FORGE_NNUE_RESIDUAL` as 1. `Worker::static_evaluate` returns the hand-crafted score plus the network, clamped, when `nnue::residual()` is true (`src/search.cpp:528`). `CMakeLists.txt:27` compiles the engine library with `-ffp-contract=off`. The changelog's 4–5× `evaluate()` and 1.6–1.8 Mnps sentences are their timing. They were not repeated.
+
+The adopted search defaults are in `src/search.cpp`: `LmpBase` 4 at line 30, `HistoryBonusQuadratic` 20 at line 43, `HistoryBonusMax` 2048 at line 45, `LmrCutoffThreshold` 3 at line 48, `MaterialCorrectionWeight` 100 at line 49. The cutoff reduction is applied at line 1026. The material correction is added at line 544. The SPRT that accepted `LmpBase` together with the history bonus, and the SPRT that accepted cutoff-count LMR, are the run-4 rows. The material-correction SPRT was inconclusive in that same table (LLR 0.60) and the default is still 100.
+
+Rejected in their changelog, with the search defaults left at 6.3.0: `FutilityBase=80` plus `FutilityMultiplier=130` (5,600 games, 50.20 %), `SeeQuietMultiplier=18` (5,000 games, 50.50 %), `QsSeeMargin=80` (3,198 games, 50.00 %), `HistoryPruneMultiplier=3000` (4,600 games, 49.93 %), and `NullMoveEvalDivisor=150` (4,000 games, 49.16 %). A stand-alone 768→256 net and residual training at `--lambda 0.5` are described as worse than the hand-crafted evaluation on their validation loss. Those losses and the game scores were not recomputed.
+
+### Source shapes that were not played
+
+`MovePicker::next` writes `bad_captures_[bad_count_++]` with no capacity test (`src/search.cpp:296`). The array has 64 slots (`src/search.cpp:384`). `MoveList::push_back` asserts at 256 (`include/forge/board.hpp:55`). This is the 6.4.0 tree, not the combo29 lock. No overflow position was searched.
+
+`read_int` parses clocks with `std::from_chars` into an `int` and returns 0 unless the whole token converts (`src/uci.cpp:73`). `wtime` stores `max(0, that)` (`src/uci.cpp:99`). `go` node limits use `uint64_t` (`src/uci.cpp:86`). A present clock of 0 enters the time manager (`src/search.cpp:1136`). With the default move overhead of 10 ms (`src/uci.cpp:128`), `available` is `max(1, time - overhead)` (`src/search.cpp:1139`), so a failed parse becomes a 1 ms budget. That is a different consequence from the lock, where the same class of parse failure played `a2a3` with no depth line. This binary was not run.
+
+A checkmate in quiescence returns `mated_in(ply)` at `src/search.cpp:763` and does not reach the store at line 766. An empty main-search node returns `mated_in(ply)` at line 1074 and does not reach the store at line 1095. `UseNNUE` compares the option name and the value to `true` and `false` (`src/uci.cpp:261`). `Board::parse_uci` accepts a token only when it equals the lowercase text from `move_to_uci` (`src/board.cpp:750`). None of these were played.
+
+The empty-`searchmoves` guard from the 5.30.0 changelog is present: `restricted_root_empty` is set at `src/search.cpp:1169` and the info string is printed at line 1172.
+
+### Older changelog entries
+
+`CHANGELOG.md` from 6.3.0 back through 0.1.0 was read. `VALIDATION.md` and `engine-improvement-log.md` stop at the 5.29.0–5.31.0 cycle; they are the same story as the 5.30 and 5.31 changelog sections. The 6.0.0 section says the 5.x search was replaced. The 5.x entries are records of that older engine. Two positions they name:
+
+- `4r2k/8/8/8/8/8/8/4K3 w - - 0 1` with `go depth 1 searchmoves a1a8`. Unchanged 5.29.0 printed `score mate 0`. 5.30.0 reports a neutral score. The 6.4.0 guard above is the descendant of that fix. It was not replayed.
+- `rn1qkb1r/p1p1ppp1/1p1pbn2/7p/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 1`. 5.30.0 fails low in the depth-9 windows `[53,54]` and `[54,55]`; 5.31.0 raises the quiet LMR floor from 9 to 10. The 6.4.0 reduction is the cutoff-count formula, and this run did not check whether a depth floor of 10 remains.
+
+The 5.x sections say each of those releases made one behavior change and claim no Elo. Small paired screens of 32 games appear from 0.2.0 through 1.7.0 and are described there as provisional. This run did not treat them as measurements.
+
+### Not claimed
+
+- No new Elo and no new bench. The nine loose PGNs confirm the README W/L/D. They do not confirm an error bar.
+- 408 tips are still unread. The 6.4.0 zip was hashed and not unpacked. `all-match-pgns.zip` was not unpacked.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the documents below.
+3. Otherwise read the changelog and release-state difference between `cursor/chess-engine-elo-8295` at `928f1ff7a10ad2d36d579b854bfa498768faba2f` and this overhaul tip. `928f1ff7` contains `cursor/chess-engine-elo-d8c5`, `cursor/engine-elo-improvement-3c5f`, and `cursor/chess-engine-elo-6a55`. It does not contain `24cc2cce`. `VALIDATION.md` and `engine-improvement-log.md` are the same blobs already read. Do not execute repository scripts.
+4. `cursor/chess-engine-elo-bba2` at `2285d91270f53f37d4c7bfdf491ed490c7d0c1a1` is nine commits past `f96b7475` and is not an ancestor of the 6.x line. Read it after the 8295 delta.
+5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.

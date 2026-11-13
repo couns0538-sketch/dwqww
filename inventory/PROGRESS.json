@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "run": 4,
-  "snapshot_at": "2026-11-13T17:29:33Z",
-  "trigger_at": "2026-11-13T17:24:44Z",
+  "run": 5,
+  "snapshot_at": "2026-11-13T18:28:30Z",
+  "trigger_at": "2026-11-13T18:26:00Z",
   "remote_heads_ls_remote": 430,
-  "same_tip_as_run3_table": 423,
-  "moved": 7,
+  "moved": 1,
   "new": 0,
   "gone": 0,
+  "same_tip_as_run4_table": 429,
   "unique_tips": 341,
   "unique_trees": 341,
   "trees_shared_by_different_tips": 0,
@@ -19,8 +19,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "00bc9129e7161a1c43ec844753a52cf4b018f085",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 00bc9129. The commit that adds the run-4 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "064b36727189903f0ee05bc4f1e8d9591c47cf50",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 064b3672. The commit that adds the run-5 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -35,32 +35,25 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 3. Each of the seven replaced tips keeps the same lock, H512, and main ancestor bits as the tip it replaced.",
+    "method": "unchanged from run 4. The replaced checkpoint tip and the new checkpoint tip both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 409,
+    "tip-only": 408,
     "run1-detail": 1,
     "run2-moved": 2,
     "run2-new": 4,
     "run3-read": 4,
     "run4-moved": 6,
     "run4-read": 3,
-    "run4-checkpoint": 1
+    "run5-read": 1,
+    "run5-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/forge-concurrency-audit-8d98",
-    "cursor/forge-history-index-20261113-712a",
-    "cursor/forge-qsearch-audit-60ce",
-    "cursor/forge-time-audit-770f",
-    "cursor/move-legality-82b6",
-    "cursor/search-bounds-audit-e6d7",
-    "cursor/match-pgns-66cc",
-    "cursor/smp-threads-fixes-c7cb",
-    "cursor/speed-and-search-patches-c7cb"
+    "cursor/engine-strength-overhaul-66cc"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -312,14 +305,94 @@
       "tip": "2cf370d3e7672c18692bfa044ec376e6e584eff6",
       "write": "engine/move/movegen.js:19",
       "capacity": 256
+    },
+    {
+      "id": "forge-640-docs",
+      "status": "documents read; source spot-checked; ladder Result tags counted; Elo intervals not recomputed; no engine built",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "files_read": [
+        "README.md",
+        "CHANGELOG.md",
+        "RELEASE_STATE.md",
+        "VALIDATION.md",
+        "engine-improvement-log.md"
+      ],
+      "experiments_blob": "4194acfb7accbf58781c24ae7b97dfd1c0c30d84",
+      "same_blob_as": "cursor/match-pgns-66cc EXPERIMENTS.md",
+      "zip": "chess-engine-forge-6.4.0.zip",
+      "zip_sha256": "98d2ff2c523a25931897794bad3c39d40398799b8907d51596dad3e326a2ba9d",
+      "zip_sha_matches_release_note": true,
+      "pgn_archive": "validation/release-6.0.0/all-match-pgns.zip",
+      "pgn_archive_bytes": 67169642,
+      "pgn_archive_extracted": false,
+      "residual_code": "src/search.cpp:528",
+      "adopted_defaults": {
+        "LmpBase": "src/search.cpp:30 = 4",
+        "HistoryBonusQuadratic": "src/search.cpp:43 = 20",
+        "HistoryBonusMax": "src/search.cpp:45 = 2048",
+        "LmrCutoffThreshold": "src/search.cpp:48 = 3",
+        "MaterialCorrectionWeight": "src/search.cpp:49 = 100"
+      },
+      "ladder_result_tags_match_readme": [
+        "5.31.0 1W 17L 2D",
+        "6.0.0 10+0.1 118W 42L 40D",
+        "6.0.0 30+0.3 79W 14L 7D",
+        "6.1.0 134W 34L 32D",
+        "6.2.0 pre 66W 75L 59D",
+        "6.2.0 35W 32L 33D",
+        "6.3.0 33W 33L 34D",
+        "6.4.0 35W 30L 35D",
+        "Threads 4 vs 1 26W 1L 23D"
+      ],
+      "sf3000_100_games": "README itself says 100 games cannot separate 6.2.0, 6.3.0, and 6.4.0. The +/- Elo columns were not recomputed."
+    },
+    {
+      "id": "forge-640-bad-captures-64",
+      "status": "code present on the 6.4.0 tip; not played; a different tree from the combo29 64-slot write",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "write": "src/search.cpp:296",
+      "array": "src/search.cpp:384",
+      "capacity": 64,
+      "movelist_assert": "include/forge/board.hpp:55 Capacity 256"
+    },
+    {
+      "id": "forge-640-int-clock",
+      "status": "parser read; not played; budget consequence differs from the lock forfeit",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1136 sets a present clock. Default overhead 10 ms makes available max(1, 0-10) = 1 ms at src/search.cpp:1139. Nodes are parsed as uint64 at src/uci.cpp:86."
+    },
+    {
+      "id": "forge-640-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "qsearch_return": "src/search.cpp:763",
+      "qsearch_store": "src/search.cpp:766",
+      "main_return": "src/search.cpp:1074",
+      "main_store": "src/search.cpp:1095"
+    },
+    {
+      "id": "forge-640-uci-case",
+      "status": "code read; not played",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "usennue": "src/uci.cpp:261",
+      "parse_uci": "src/board.cpp:750"
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from 00bc9129 because of the run-4 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from 064b3672 because of the run-5 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read the documents on cursor/engine-strength-overhaul-66cc at 24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b: README.md, CHANGELOG.md, RELEASE_STATE.md, VALIDATION.md, and engine-improvement-log.md. That tip is the source the match-PGN note points at. Do not execute repository scripts, and do not treat EXPERIMENTS.md Elo as a new measurement.",
-    "KRK replay stays the first reproduction when a run investigates instead of opening the next pack: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5. The Opus R5 BKM note is a different, multi-thread-only patch and was not replayed.",
+    "Otherwise read the changelog and release-state difference between cursor/chess-engine-elo-8295 at 928f1ff7a10ad2d36d579b854bfa498768faba2f and cursor/engine-strength-overhaul-66cc at 24cc2cce. That tip contains the d8c5, 3c5f, and 6a55 tips and does not contain 24cc2cce. VALIDATION.md and engine-improvement-log.md are the same blobs already read. Do not execute repository scripts.",
+    "cursor/chess-engine-elo-bba2 at 2285d912 is a separate nine-commit line from f96b7475. Read it after the 8295 delta.",
+    "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ]
 }
