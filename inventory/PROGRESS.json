@@ -1,13 +1,12 @@
 {
   "schema": 1,
-  "run": 5,
-  "snapshot_at": "2026-11-13T18:28:30Z",
-  "trigger_at": "2026-11-13T18:26:00Z",
+  "run": 6,
+  "snapshot_at": "2026-11-13T19:30:21Z",
+  "trigger_at": "2026-11-13T19:25:26Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
   "gone": 0,
-  "same_tip_as_run4_table": 429,
   "unique_tips": 341,
   "unique_trees": 341,
   "trees_shared_by_different_tips": 0,
@@ -19,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "064b36727189903f0ee05bc4f1e8d9591c47cf50",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 064b3672. The commit that adds the run-5 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "d6e50b49cea0791980ae0e009c3750b91a9479e4",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at d6e50b49. The commit that adds the run-6 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -35,14 +34,14 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 4. The replaced checkpoint tip and the new checkpoint tip both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 5. The replaced checkpoint tip and the new checkpoint tip both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 408,
+    "tip-only": 406,
     "run1-detail": 1,
     "run2-moved": 2,
     "run2-new": 4,
@@ -50,10 +49,13 @@
     "run4-moved": 6,
     "run4-read": 3,
     "run5-read": 1,
-    "run5-checkpoint": 1
+    "run6-read": 1,
+    "run6-same-docs": 1,
+    "run6-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/engine-strength-overhaul-66cc"
+    "cursor/chess-engine-elo-8295",
+    "cursor/chess-engine-elo-6a55"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -384,15 +386,143 @@
       "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
       "usennue": "src/uci.cpp:261",
       "parse_uci": "src/board.cpp:750"
+    },
+    {
+      "id": "elo-line-changelog-diverges-at-68f0112",
+      "status": "documents diffed; 5.31.0 and older changelog sections are the same text; no engine built",
+      "left": {
+        "branch": "cursor/chess-engine-elo-8295",
+        "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f"
+      },
+      "right": {
+        "branch": "cursor/engine-strength-overhaul-66cc",
+        "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b"
+      },
+      "merge_base": "68f01122b3413662d4dca1c222c35ae1ada11092",
+      "identical_blobs": [
+        "VALIDATION.md f22894fa",
+        "engine-improvement-log.md 52a0ff13"
+      ],
+      "identical_changelog_sections": "84 sections from 5.31.0 through 0.1.0, plus the identical title line",
+      "different_sections": [
+        "6.0.0",
+        "6.1.0",
+        "6.2.0",
+        "6.3.0",
+        "6.4.0 exists only on 24cc2cce"
+      ],
+      "release_state_identical_from": "5.31.0 and 5.30.0",
+      "8295_has_no_6_4_section": true,
+      "post_doc_commits_absent_from_changelog": [
+        "ba4572e1 qsearch TT depth",
+        "928f1ff7 king shelter cache"
+      ]
+    },
+    {
+      "id": "elo-line-component-results-have-no-pgn",
+      "status": "their tables only; Elo not recomputed; PGNs absent on this tip",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "files": [
+        "validation/release-6.3.0/README.md",
+        "validation/release-6.2.0/README.md",
+        "validation/release-6.1.0/README.md",
+        "validation/release-6.1.0/stockfish-ladder.md"
+      ],
+      "their_largest_single_thread_figure": "+31.4 +/- 14.7 per node, 1000 games, first full refit, LOS 100 percent in their table",
+      "their_time_control": "6.3.0 first refit vs 6.2.0, 3+0.03, 300 games, 133/86/81, +55 +/- 26",
+      "their_sf2800_ladder": "6.0.0 70.5 percent and 6.1.0 71.0 percent, 100 games each; the note says the PGNs were left out of the repository",
+      "intervals_that_include_a_loss": "Most 1000-game component rows have error bars of about +/- 14. Their LOS column is their figure."
+    },
+    {
+      "id": "elo-line-pretune-pgn-matches-overhaul",
+      "status": "Result tags counted on this tip; same blob already counted on the overhaul tip",
+      "branch": "cursor/chess-engine-elo-8295",
+      "file": "validation/release-6.0.0/forge-6.0.0-pretune2-vs-sf19-2800-10+0.1.pgn",
+      "blob": "aa352b28249d2d49cff20ad359a565bcb91c4ebb",
+      "same_as": "24cc2cce validation/release-6.0.0/forge-6.0.0-vs-sf19-2800-10+0.1.pgn",
+      "games": 200,
+      "forge_side": "v3",
+      "wld": "118/42/40",
+      "readme_calls_this": "the first tuned table, 69.0 percent",
+      "missing_from_8295": "the hand-set 100-game PGN named as 57.5 percent, and the final-rows section the 6.0 README points at"
+    },
+    {
+      "id": "elo-line-qstt-and-shelter",
+      "status": "code read; match and bench not rerun; neither change is in CHANGELOG.md",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "qsearch_tt": {
+        "commit": "ba4572e1347b64c51cd775119c96c64ac7bd7250",
+        "store_plus_one": "src/search.cpp:123",
+        "qs_depth": "src/search.cpp:677",
+        "commit_message_elo": "+8.0 +/- 13.8 over 1000 games at 25k nodes",
+        "pgn": "absent"
+      },
+      "shelter_cache": {
+        "commit": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+        "code": "src/eval.cpp:194",
+        "commit_message": "bench signature unchanged, about 1 percent faster",
+        "bench_log": "absent"
+      }
+    },
+    {
+      "id": "elo-line-bad-captures-64",
+      "status": "code present on 928f1ff7; not played; same 64-slot shape as the 6.4.0 tip, different line numbers",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "write": "src/search.cpp:202",
+      "array": "src/search.cpp:306",
+      "capacity": 64
+    },
+    {
+      "id": "elo-line-int-clock",
+      "status": "parser read; not played; budget consequence matches the 6.4.0 description",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "parser": "src/uci.cpp:71",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:97",
+      "time_ms_default": "include/forge/search.hpp:22 = -1",
+      "budget": "src/search.cpp:1154 treats a present clock. Default overhead 10 ms at include/forge/search.hpp:27 makes available max(1, 0-10) = 1 ms at src/search.cpp:1157. Nodes are uint64 at src/uci.cpp:85."
+    },
+    {
+      "id": "elo-line-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "qsearch_return": "src/search.cpp:775",
+      "qsearch_store": "src/search.cpp:778",
+      "main_return": "src/search.cpp:1079",
+      "main_store": "src/search.cpp:1095"
+    },
+    {
+      "id": "elo-line-parse-uci-lowercase",
+      "status": "code read; not played; this tip has no UseNNUE option",
+      "branch": "cursor/chess-engine-elo-8295",
+      "tip": "928f1ff7a10ad2d36d579b854bfa498768faba2f",
+      "parse_uci": "src/board.cpp:828",
+      "compares_to": "move_to_uci lowercase letters at src/board.cpp:837"
+    },
+    {
+      "id": "overhaul-6-1-release-state-contradicts-itself",
+      "status": "document only; noticed while diffing; engine not rebuilt",
+      "branch": "cursor/engine-strength-overhaul-66cc",
+      "tip": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "file": "RELEASE_STATE.md",
+      "threads_sentence": "RELEASE_STATE.md:109 says 6.1.0 adds a Threads option",
+      "not_done_sentence": "RELEASE_STATE.md:120 says multi-threaded search was not done for that release",
+      "truncated_sentence": "RELEASE_STATE.md:93 ends with 'the Zen 4 (znver4) builds were 4.'"
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from 064b3672 because of the run-5 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from d6e50b49 because of the run-6 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read the changelog and release-state difference between cursor/chess-engine-elo-8295 at 928f1ff7a10ad2d36d579b854bfa498768faba2f and cursor/engine-strength-overhaul-66cc at 24cc2cce. That tip contains the d8c5, 3c5f, and 6a55 tips and does not contain 24cc2cce. VALIDATION.md and engine-improvement-log.md are the same blobs already read. Do not execute repository scripts.",
-    "cursor/chess-engine-elo-bba2 at 2285d912 is a separate nine-commit line from f96b7475. Read it after the 8295 delta.",
+    "Otherwise read cursor/chess-engine-elo-bba2 at 2285d91270f53f37d4c7bfdf491ed490c7d0c1a1. It is nine commits past f96b7475 and is not an ancestor of 928f1ff7. The selective-search line. Do not execute repository scripts.",
+    "The 6.1 and 6.2 changelogs at 193a91ec and 86c91628 are different blobs from 928f1ff7. Open them when the bba2 batch is done, before treating those tips as read.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
-  ]
+  ],
+  "same_tip_as_previous_table": 429
 }

@@ -545,3 +545,83 @@ The 5.x sections say each of those releases made one behavior change and claim n
 4. `cursor/chess-engine-elo-bba2` at `2285d91270f53f37d4c7bfdf491ed490c7d0c1a1` is nine commits past `f96b7475` and is not an ancestor of the 6.x line. Read it after the 8295 delta.
 5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 6
+
+Trigger 19:25 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 19:30 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-5 table | 429 |
+| Moved | 1. This checkpoint, `064b3672` to `d6e50b49`, the run-5 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `064b3672` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `b5755ae1` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. 406 branches stay tip-only. `cursor/chess-engine-elo-8295` was tip-only and is now `run6-read`. `cursor/chess-engine-elo-6a55` is `run6-same-docs`: its changelog, release state, README, and 6.0–6.3 validation notes are the same blobs as `928f1ff7`.
+
+No engine was built. One PGN was scored. Every Elo figure below is a sentence in the named file or commit message.
+
+### Two 6.x histories
+
+`cursor/chess-engine-elo-8295` is unchanged at `928f1ff7a10ad2d36d579b854bfa498768faba2f` (910 files). It contains `193a91ec`, `86c91628`, and `5c1cec8d`. It contains neither the lock commit, H512, `main`, nor `24cc2cce`. The merge base with `cursor/engine-strength-overhaul-66cc` is `68f01122`.
+
+`VALIDATION.md` (`f22894fa`) and `engine-improvement-log.md` (`52a0ff13`) are the same blobs run 5 read. They were not read again. `CHANGELOG.md` and `RELEASE_STATE.md` differ. Eighty-four changelog sections, from `## 5.31.0` through `## 0.1.0`, are the same text on both tips. The title line is the same text as well. The release-state sections for 5.31.0 and 5.30.0 are the same text. Everything from 6.0.0 upward is a different document.
+
+`928f1ff7` stops at 6.3.0, dated 2026-10-13. `24cc2cce` has its own 6.2.0 (2026-10-13), 6.3.0 (2026-10-14), and 6.4.0 (2026-10-14). The version numbers are not the same engines. `CHANGELOG.md`, `RELEASE_STATE.md`, and `README.md` at `5c1cec8` are the same blobs as at `928f1ff7`. The two commits after `5c1cec8` do not touch those files.
+
+### What the 8295 notes claim, and which games are in the tree
+
+Read in full on `928f1ff7`: `CHANGELOG.md` lines 1–198 (the 6.3.0 through 6.0.0 sections; the older sections match the overhaul text already read), `RELEASE_STATE.md` (151 lines), `validation/release-6.3.0/README.md`, `validation/release-6.2.0/README.md`, `validation/release-6.1.0/README.md`, `validation/release-6.1.0/stockfish-ladder.md`, and `validation/release-6.0.0/README.md`. `validation/release-6.3.0/`, `validation/release-6.2.0/`, and `validation/release-6.1.0/` contain those notes and no PGNs.
+
+Their 6.3.0 table, 1,000 games at 25,000 nodes, no adjudication, says cutoff-count reductions +12.5 +/- 14.0, quiescence move-count pruning +12.5 +/- 15.1, deeper or shallower re-search +11.8 +/- 14.5, eleven new evaluation terms +9.0 +/- 14.5, a full refit on 688,237 positions +31.4 +/- 14.7, and a second refit +13.6 +/- 13.3. The time-control row is the first refit against 6.2.0 at 3+0.03: 133 / 86 / 81, +55 +/- 26, over 300 games. The second refit is described as adopted after that match. The same note says the error bars on the component rows are about +/- 14. Those rows were not recomputed. The games are not in the tree.
+
+Their 6.2.0 table says quiet checks +7.6 +/- 14.3, history-aware futility +7.6 +/- 14.0, pawn-structure history for ordering +2.4 +/- 13.5, and the removed check extension +0.4 +/- 14.6. The final build against 6.1.0 at 3+0.03 is 108 / 93 / 99, +17 +/- 22, over 300 games. The same search before the check-aware generator is 105 / 112 / 83, -8 +/- 24. `Threads=2` versus `Threads=1` is 9 / 3 / 12 over 24 games, +89 +/- 69. No PGN.
+
+Their 6.1.0 table says `Threads=2` versus `Threads=1` is 41 / 18 / 41, +81 +/- 40, over 100 games at 5+0.05. Single-thread against 6.0.0 at 3+0.03 is 100 / 98 / 102, +2 +/- 19, over 300 games. Capture futility is +11 +/- 14 over 1,000 adjudicated games at 25,000 nodes. Extended correction history is -2 +/- 14 at 25,000 nodes, +24 +/- 22 over 400 adjudicated games at 100,000 nodes, and +12 +/- 17 over 300 games at 100,000 nodes without adjudication. The note itself says the adjudicated result did not predict the time-control result. No PGN.
+
+`stockfish-ladder.md` says Forge 6.0.0 scored 70.5% and Forge 6.1.0 scored 71.0% against Stockfish 19 at `UCI_Elo` 2800, 100 games each, and that `sf-610.pgn` and `sf-base.pgn` were left out of the repository. The overhaul changelog's 6.1.0, a different tree, says 75.0% over 200 games (134 / 34 / 32) against the same opponent setting. Run 5 counted that overhaul PGN. The two sentences are about two engines that share a version label. This run does not choose between them.
+
+The overhaul 6.1.0 release state says, at `RELEASE_STATE.md:109`, that 6.1.0 adds `Threads`, and at line 120 that multi-threaded search was not done for that release. Line 93 ends with "the Zen 4 (`znver4`) builds were 4." Those are sentences in the document.
+
+### The one PGN on this tip
+
+`validation/release-6.0.0/` on `928f1ff7` has `README.md` and `forge-6.0.0-pretune2-vs-sf19-2800-10+0.1.pgn`. The PGN is blob `aa352b28249d2d49cff20ad359a565bcb91c4ebb`, the same blob as `forge-6.0.0-vs-sf19-2800-10+0.1.pgn` on `24cc2cce`. Counted here: 200 games, Forge side `v3`, 118 wins, 42 losses, 40 draws. The README calls that file the first tuned table, 69.0%. The hand-set row in the same README, 47 / 32 / 21 over 100 games, has no PGN on this tip. The README says "See the final rows below for the shipped parameter table" and the file ends at the tuning paragraph.
+
+### Two commits the changelog does not mention
+
+`ba4572e1` stores transposition depth plus one (`src/search.cpp:123`). Quiescence uses depth 0 when the node is in check or `depth >= 0`, and depth -1 otherwise (`src/search.cpp:677`). The commit message says +8.0 +/- 13.8 over 1,000 games at 25,000 nodes. There is no PGN and no changelog sentence.
+
+`928f1ff7` caches each side's king shelter on the pawn-cache entry (`src/eval.cpp:194`). The commit message says the bench signature was unchanged and the speed was about 1%. There is no bench log in the commit.
+
+### Source shapes that were not played
+
+`MovePicker::next` writes `bad_captures_[bad_count_++]` with no capacity test (`src/search.cpp:202`). The array has 64 slots (`src/search.cpp:306`). This is the same shape run 5 recorded on the 6.4.0 tip at different line numbers. No overflow position was searched.
+
+`read_int` parses clocks into an `int` and returns 0 unless the whole token converts (`src/uci.cpp:71`). `wtime` stores `max(0, that)` (`src/uci.cpp:97`). The default `time_ms` is -1 (`include/forge/search.hpp:22`), so a parsed 0 is a present clock (`src/search.cpp:1154`). With the default overhead of 10 ms (`include/forge/search.hpp:27`), `available` is `max(1, time - overhead)` (`src/search.cpp:1157`). A failed parse becomes a 1 ms budget. Node limits use `uint64_t` (`src/uci.cpp:85`). This binary was not run.
+
+A checkmate in quiescence returns `mated_in(ply)` at `src/search.cpp:775` and does not reach the store at line 778. An empty main-search node returns at line 1079 and does not reach the store at line 1095. `Board::parse_uci` returns a move only when the token equals `move_to_uci` (`src/board.cpp:828`), and `move_to_uci` writes lowercase letters (`src/board.cpp:837`). This tip has no `UseNNUE` option. None of these were played.
+
+`cursor/chess-engine-elo-d8c5` and `cursor/engine-elo-improvement-3c5f` stay tip-only. The validation notes that exist on those tips are the blobs named above. Their own `CHANGELOG.md` and `RELEASE_STATE.md` blobs differ from `928f1ff7` and were not opened.
+
+### Not claimed
+
+- No new Elo and no new bench. The pretune PGN confirms 118 / 42 / 40. It does not confirm an error bar. The 6.1, 6.2, and 6.3 tables have no games in this tree.
+- 406 tips are still unread. `cursor/chess-engine-elo-bba2` was not opened.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the branch below.
+3. Otherwise read `cursor/chess-engine-elo-bba2` at `2285d91270f53f37d4c7bfdf491ed490c7d0c1a1`. It is nine commits past `f96b7475` and is not an ancestor of `928f1ff7`. Do not execute repository scripts.
+4. The changelogs at `193a91ec` and `86c91628` are different blobs from `928f1ff7`. Open them after the bba2 batch, before calling those tips read.
+5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
