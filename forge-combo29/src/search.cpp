@@ -823,6 +823,7 @@ void Worker::clear() {
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
     pv_moves_pruned_ = 0;
+    qs_pv_moves_pruned_ = 0;
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -1336,14 +1337,21 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     while (!(move = picker.next(false)).is_none()) {
         if (!board.is_legal(move)) continue;
         ++move_count;
-        if (!in_check && best_score > -MateInMaxPly) {
+        // The same PV-bound hole as the main search: a skipped capture can
+        // still raise alpha, and this node may store that score as exact.
+        // PvBoundFix 0 keeps the lock pruning. The counter is diagnostic.
+        if (!in_check && best_score > -MateInMaxPly && !(pv_node && tune::PvBoundFix != 0)) {
             const bool gives_check = board.gives_check(move);
             // Futility: even winning the captured piece cannot raise alpha.
             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+                if (pv_node) ++qs_pv_moves_pruned_;
                 continue;
             }
-            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+            if (!board.see_ge(move, -tune::QsSeeMargin)) {
+                if (pv_node) ++qs_pv_moves_pruned_;
+                continue;
+            }
         }
 #if FORGE_SPD_PREFETCH_EARLY
         std::uint64_t child_key = 0;
@@ -1821,6 +1829,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     null_tries_ = 0;
     null_cutoffs_ = 0;
     pv_moves_pruned_ = 0;
+    qs_pv_moves_pruned_ = 0;
     root_moves_ = limits.search_moves;
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;

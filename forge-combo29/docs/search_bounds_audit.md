@@ -24,11 +24,11 @@ The same command on the patched engine prints `depth 6 score cp 17 pv g1f3 ...` 
 
 Move pruning (late-move pruning, quiet futility, history, SEE, and the capture SEE / futility tests) runs on PV nodes below the root. A PV node then stores `BoundExact` when a move beats alpha, or `BoundUpper` when none does. A skipped legal move makes that bound false: the side to move can be scored too low, and after the negation the opponent's score is too high.
 
-At the start position, depth 7, NNUE off, the counter of those skips is 201 with `PvBoundFix` at 0 and 0 with `PvBoundFix` at 1.
+At the start position, depth 7, NNUE off, the main-search counter of those skips is 201 and the quiescence counter is 18 with `PvBoundFix` at 0. Both are 0 with `PvBoundFix` at 1. Quiescence futility and SEE use the same switch: a PV quiescence node can store `BoundExact` after skipping a capture.
 
 `PvBoundFix` stays 0. Turning it on changes the tree. On the sample below, NNUE off, it changes the root score or the best move at depth 7 and at depth 9. One case is a proven mate, not a false one:
 
-Position `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1`. An exhaustive generation of legal moves, with no pruning, proves `g3g6` is mate in two: every black reply loses to a mate in one. The lock search reports mate 2 and `g3g6` at depth 7 (2725 nodes) and still does so at depth 10 (3229 nodes). With `PvBoundFix` at 1 the same mate is missed at depth 7 (`cp 148`, `f6e8`, 2379 nodes) and found again at depth 10 (`g3g6`, 28729 nodes). Searching the moves the lock skips changes reductions and move ordering, so the quiet mate is proved later and the node count grows. The switch is a bound correction with a tactical cost, not a strength patch.
+Position `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1`. An exhaustive generation of legal moves, with no pruning, proves `g3g6` is mate in two: every black reply loses to a mate in one. The lock search reports mate 2 and `g3g6` at depth 7 (2725 nodes) and still does so at depth 10 (3229 nodes). With `PvBoundFix` at 1 the same mate is missed at depth 7 (`cp 148`, `f6e8`, 3359 nodes) and at depth 10 (`cp 133`, `f6e8`, 32191 nodes). It is found again at depth 11 (`g3g6`, 66435 nodes). Searching the moves the lock skips, including quiescence captures, changes reductions and move ordering, so the quiet mate is proved later and the node count grows. The switch is a bound correction with a tactical cost, not a strength patch.
 
 Other depth-7 changes with the switch on (lock score and move, then the switch):
 
@@ -65,7 +65,7 @@ Distance 19 is accepted and distance 20 is rejected at clock 80. That is one ply
 | --- | --- | --- |
 | Aborted root attempt returns the best move that finished. The driver keeps a partial PV only when its score is strictly above the last finished iteration, and then records that attempt's depth. A stale PV is cleared when a node is entered already aborted. | always | Bench searches are not aborted. Pins match. |
 | `score_from_tt` rejects mate scores the fifty-move rule cannot reach. | always | Pins match, including mates that do fit. |
-| `PvBoundFix`: skip the move-pruning block on PV nodes. | 0 | Changes nodes and root scores. |
+| `PvBoundFix`: skip move pruning on PV nodes in the main search and in quiescence. | 0 | Changes nodes and root scores. |
 | `AspirationKeepExact`: fail-low beta does not drop below the last exact score. | 0 | Changes the window only after a clamped beta. Left off so the lock tree stays bit-exact. |
 
 Both switches are UCI spin options (`0` or `1`) because tunables are exposed in this build.
@@ -80,11 +80,11 @@ Lock pins, Threads 1, Hash 16, this binary. Net on: 312866 / 862329 / 3024920 / 
 
 ## Left as they are
 
-- Quiescence still applies futility and SEE pruning on PV nodes, and a PV node can store `BoundExact` after that. Changing it would move the pins. The same stand-pat fail-high stores `BoundLower` with `pv` false, and only when the position was not already in the table.
+- A quiescence stand-pat fail-high stores `BoundLower` with `pv` false, and only when the position was not already in the table. Capture futility and SEE on PV quiescence nodes are under `PvBoundFix` and stay at the lock behaviour while that switch is 0.
 - Null-move and probcut cutoffs are not always written back. A singular multicut returns `singular_beta` without a store. Both match the existing search and were not retuned.
 - The PVS shape is unchanged: the first move at a PV node is a full window; later moves are a zero window, then a full window if they beat alpha, including when the zero window already failed high. A full-window re-search can replace that fail-high.
 - A TT move can be replaced when the stored score is not replaced. That affects ordering only.
 - Mate-distance pruning before the TT probe, internal iterative reduction storing the reduced depth, and two-fold repetition inside the tree are unchanged.
 - An unfinished iteration may still change the best move when the partial score is strictly higher. That partial is not a completed depth: at `nodes 2066` the patched engine plays `g1f3` at 17 centipawns, while a finished depth 6 plays `e2e3` at 18.
-- `PvBoundFix` does not make the search exact. Late-move reductions, null move, and quiescence remain. Leaving the switch at 0 preserves the lock, including the earlier mate on `g3g6`.
+- `PvBoundFix` does not make the search exact. Late-move reductions and null move remain, and a quiescence stand-pat can still cut a PV node. Leaving the switch at 0 preserves the lock, including the earlier mate on `g3g6`.
 - The fifty-move filter does not serve mates at clocks 90–99, because `score_usable` already blocks those cutoffs. It also refuses a mate that lands on the last ply of the rule.

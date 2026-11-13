@@ -86,6 +86,7 @@ struct SearcherTestProbe {
     }
 
     static std::uint64_t pv_pruned(const Worker& worker) { return worker.pv_moves_pruned_; }
+    static std::uint64_t qs_pv_pruned(const Worker& worker) { return worker.qs_pv_moves_pruned_; }
 };
 
 } // namespace forge
@@ -151,22 +152,32 @@ void test_fifty_move_mate_bounds() {
               << " loss " << rejected_loss << " cp " << ordinary << '\n';
 }
 
-std::uint64_t pruned_at_depth(const forge::Board& board, int depth, int fix) {
+struct PruneCounts {
+    std::uint64_t main = 0;
+    std::uint64_t quiescence = 0;
+};
+
+PruneCounts prune_counts(const forge::Board& board, int depth, int fix) {
     forge::nnue::enabled = false;
     forge::tune::PvBoundFix = fix;
     forge::Searcher searcher(16);
     forge::SearchLimits limits;
     limits.depth = depth;
     (void)searcher.search(board, limits);
-    return forge::SearcherTestProbe::pv_pruned(searcher.main_worker());
+    const forge::Worker& worker = searcher.main_worker();
+    return {forge::SearcherTestProbe::pv_pruned(worker), forge::SearcherTestProbe::qs_pv_pruned(worker)};
 }
 
 void test_pv_pruning() {
     const forge::Board start = board_from(forge::Board::StandardStartFen);
-    const std::uint64_t pruned = pruned_at_depth(start, 7, 0);
-    expect(pruned > 0, "lock search prunes moves inside PV nodes");
-    std::cout << "     pv moves pruned at depth 7, fix off: " << pruned << '\n';
-    expect(pruned_at_depth(start, 7, 1) == 0, "PvBoundFix does not prune moves inside PV nodes");
+    const PruneCounts locked = prune_counts(start, 7, 0);
+    expect(locked.main > 0, "lock search prunes moves inside PV nodes");
+    expect(locked.quiescence > 0, "lock quiescence prunes moves inside PV nodes");
+    std::cout << "     pv moves pruned at depth 7, fix off: main " << locked.main
+              << " quiescence " << locked.quiescence << '\n';
+    const PruneCounts repaired = prune_counts(start, 7, 1);
+    expect(repaired.main == 0 && repaired.quiescence == 0,
+           "PvBoundFix does not prune moves inside PV nodes");
 
     const std::vector<std::string> fens = {
         std::string(forge::Board::StandardStartFen),
@@ -274,16 +285,17 @@ void test_mate_and_pv_fix_cost() {
 
     forge::tune::PvBoundFix = 1;
     const forge::SearchInfo shallow = search_of(board, 7);
-    const forge::SearchInfo deeper = search_of(board, 10);
+    const forge::SearchInfo deeper = search_of(board, 11);
     std::cout << "     PvBoundFix depth 7 score " << shallow.score << ' '
               << forge::Board::move_to_uci(shallow.best_move) << " nodes " << shallow.nodes
-              << "; depth 10 score " << deeper.score << ' ' << forge::Board::move_to_uci(deeper.best_move)
+              << "; depth 11 score " << deeper.score << ' ' << forge::Board::move_to_uci(deeper.best_move)
               << " nodes " << deeper.nodes << '\n';
-    // Searching the moves the lock skips raises reductions on the quiet mate,
-    // so depth 7 no longer proves it. The mate is still there at depth 10.
+    // Searching the moves the lock skips, in the main search and in
+    // quiescence, raises reductions on the quiet mate. Depth 7 no longer
+    // proves it. The mate is still there at depth 11.
     expect(!forge::is_mate_score(shallow.score), "PvBoundFix depth 7 does not yet prove the mate");
     expect(forge::is_mate_score(deeper.score) && forge::Board::move_to_uci(deeper.best_move) == "g3g6",
-           "PvBoundFix depth 10 still finds g3g6");
+           "PvBoundFix depth 11 still finds g3g6");
     forge::tune::PvBoundFix = 0;
 }
 
