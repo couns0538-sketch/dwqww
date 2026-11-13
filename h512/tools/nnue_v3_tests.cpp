@@ -452,7 +452,69 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
                 check(out == fast, std::string("apply_changes ") + forge::nnue::v3::kernel_name(k) + " == best kernel for " + forge::Board::move_to_uci(move));
             }
         }
+        // One king bucket forces dissimilar positions to share a cache entry.
+        // Rebuilding from the bias must match a full scalar refresh.
+        {
+            forge::nnue::v3::WorkerState state;
+            forge::nnue::v3::prepare(net, state, 8);
+            const std::string_view fens[] = {
+                forge::Board::StandardStartFen,
+                "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+                "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+                "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+            };
+            int compared = 0;
+            for (int round = 0; round < 4; ++round) {
+                for (const std::string_view fen : fens) {
+                    forge::Board board;
+                    check(board.set_fen(fen), "far-cache fen parses");
+                    forge::nnue::v3::Accumulator& acc = state.stack[4];
+                    acc.valid = false;
+                    forge::nnue::v3::refresh_cached(net, state.cache, board, acc);
+                    forge::nnue::v3::Accumulator ref;
+                    forge::nnue::v3::refresh(net, board, ref);
+                    check(acc.values == ref.values, "far-cache accumulator == scalar refresh for " + std::string(fen));
+                    check(forge::nnue::v3::evaluate(net, board, acc) == forge::nnue::v3::evaluate_reference(net, board),
+                          "far-cache evaluate == reference for " + std::string(fen));
+                    ++compared;
+                }
+            }
+            std::cout << "far-cache H1024 one bucket: comparisons " << compared << " refreshes " << state.cache.refreshes
+                      << " columns " << state.cache.columns << '\n';
+            check(compared == 20, "far-cache comparisons ran");
+            check(state.cache.columns < state.cache.refreshes * 20, "far cache applied fewer columns than a 20-wide diff");
+        }
         forge::nnue::v3::unload();
+        // 32 * 1000 + 700 = 32700, one below the loader's int16 accumulator bound.
+        // Piece-type order (the bias rebuild) and square order (the scalar refresh)
+        // must still store the same int16 values.
+        {
+            NetSpec spec = make_spec(32, 1, 1, false, 99);
+            for (auto& v : spec.w1) v = 1000;
+            for (auto& v : spec.b1) v = 700;
+            write_file(file("near_bound_refresh.fnn3"), serialize(spec));
+            std::string error;
+            check(forge::nnue::v3::load(file("near_bound_refresh.fnn3"), &error), "near-bound refresh net loads: " + error);
+            const forge::nnue::v3::Net& bound_net = *forge::nnue::v3::loaded();
+            forge::nnue::v3::WorkerState state;
+            forge::nnue::v3::prepare(bound_net, state, 8);
+            const std::string_view fens[] = {forge::Board::StandardStartFen, "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+                                              "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1"};
+            for (int round = 0; round < 3; ++round) {
+                for (const std::string_view fen : fens) {
+                    forge::Board board;
+                    check(board.set_fen(fen), "near-bound fen parses");
+                    forge::nnue::v3::Accumulator& acc = state.stack[4];
+                    acc.valid = false;
+                    forge::nnue::v3::refresh_cached(bound_net, state.cache, board, acc);
+                    forge::nnue::v3::Accumulator ref;
+                    forge::nnue::v3::refresh(bound_net, board, ref);
+                    check(acc.values == ref.values, "near-bound far-cache == scalar refresh for " + std::string(fen));
+                }
+            }
+            forge::nnue::v3::unload();
+        }
     }
 }
 

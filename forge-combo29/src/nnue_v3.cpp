@@ -574,21 +574,46 @@ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& piec
     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
     const int hidden = net.hidden;
     ++cache.refreshes;
+    // Count before touching the entry. An empty entry (bias, no pieces) has
+    // diff == piece_count, so `>` leaves that first fill on the add-only path.
+    int piece_count = 0;
+    int diff = 0;
     for (int piece = WP; piece <= BK; ++piece) {
         const auto pi = static_cast<std::size_t>(piece);
-        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
-        Bitboard added = pieces[pi] & ~entry.pieces[pi];
-        while (removed != 0) {
-            const int square = pop_lsb(removed);
-            sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
-            ++cache.columns;
+        const Bitboard now = pieces[pi];
+        piece_count += popcount(now);
+        diff += popcount(entry.pieces[pi] & ~now);
+        diff += popcount(now & ~entry.pieces[pi]);
+    }
+    if (diff > piece_count) {
+        std::copy_n(net.b1.data(), hidden, entry.values.data());
+        for (int piece = WP; piece <= BK; ++piece) {
+            const auto pi = static_cast<std::size_t>(piece);
+            Bitboard present = pieces[pi];
+            while (present != 0) {
+                const int square = pop_lsb(present);
+                add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            entry.pieces[pi] = pieces[pi];
         }
-        while (added != 0) {
-            const int square = pop_lsb(added);
-            add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
-            ++cache.columns;
+    } else {
+        for (int piece = WP; piece <= BK; ++piece) {
+            const auto pi = static_cast<std::size_t>(piece);
+            Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+            Bitboard added = pieces[pi] & ~entry.pieces[pi];
+            while (removed != 0) {
+                const int square = pop_lsb(removed);
+                sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            while (added != 0) {
+                const int square = pop_lsb(added);
+                add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            entry.pieces[pi] = pieces[pi];
         }
-        entry.pieces[pi] = pieces[pi];
     }
     std::copy_n(entry.values.data(), hidden, destination);
 }

@@ -31,6 +31,10 @@
 // (bucket, flip) changed is refreshed through the per-worker cache, which
 // holds for every (perspective, bucket, flip) the accumulator and the piece
 // bitboards it was last refreshed with, so only the difference is applied.
+// When that difference touches more columns than the new placement has pieces,
+// the entry is rebuilt from the bias instead. Both routes are int16-exact:
+// the loader's bound max|b1| + 32 * max|w1| <= 32767 keeps every partial sum
+// inside int16, so addition order does not change the stored value.
 // For an intermediate ply the piece bitboards are reconstructed from the
 // current board by undoing the later plies' recorded changes.
 //
