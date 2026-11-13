@@ -1557,6 +1557,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     int move_count = 0;
     bool skip_quiets = false;
     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+    // A second worker's hash writes let late-move pruning and LMR drop the
+    // only quiet mate against a bare king. One worker keeps the lock tree.
+    const bool bare_king_opponent = all_workers_ != nullptr && all_workers_->size() > 1 &&
+                                    popcount(board.occupied(opposite(board.side_to_move()))) == 1;
 
     Move move;
     while (!(move = picker.next(skip_quiets)).is_none()) {
@@ -1575,7 +1579,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (!root_node && best_score > -MateInMaxPly && has_material) {
+        if (!root_node && best_score > -MateInMaxPly && has_material && !bare_king_opponent) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
@@ -1661,7 +1665,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !bare_king_opponent &&
+            (quiet || !ss->tt_pv || move_count > 4)) {
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;

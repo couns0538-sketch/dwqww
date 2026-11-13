@@ -145,6 +145,28 @@ void check_search_rules() {
         check(after.in_check() && after.legal_moves().empty(), "mating move checkmates");
     }
 
+    // KRK mate in 3. With the network on, two fresh searches used to report
+    // e8e4 and a centipawn score or a mate in 10. See search.cpp.
+    {
+        Board krk = board_from("4R3/8/8/k2K4/8/8/8/8 w - - 0 1");
+        const auto key = krk.parse_uci("d5c5");
+        check(key.has_value(), "KRK key move parses");
+        if (key.has_value()) {
+            SearchLimits limits;
+            limits.depth = 14;
+            Searcher searcher(16, 2);
+            int misses = 0;
+            for (int run = 0; run < 200; ++run) {
+                searcher.clear();
+                const SearchInfo info = searcher.search(krk, limits);
+                const int mate_moves = (MateValue - info.score + 1) / 2;
+                const bool short_mate = is_mate_score(info.score) && info.score > 0 && mate_moves <= 3;
+                if (!short_mate || info.best_move != *key) ++misses;
+            }
+            check(misses == 0, "two threads keep the KRK mate in 3");
+        }
+    }
+
     const SearchInfo mate_threads = search_fen("6k1/4Q3/6K1/8/8/8/8/8 w - - 0 1", 3, 2);
     check(is_mate_score(mate_threads.score) && mate_threads.score > 0, "two threads still report mate in one");
     Board threaded = board_from("6k1/4Q3/6K1/8/8/8/8/8 w - - 0 1");

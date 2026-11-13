@@ -51,7 +51,7 @@ The 6.4 qsearch-stalemate probe (`ab9c56000235bfbf3c1aaa1814111d264d3f0823`) was
 - net off: 375354, 907205, 2448617, 13573040, 24506465
 - startpos perft 5: 4865609
 
-Both runs printed `PINS MATCH combo29`. Logs: `pins_after_perft.txt`, `pins_after_nodes0.txt`. No Elo claim. The benches do not reach 65 deferred captures, and they do not use `go nodes 0`.
+Both runs printed `PINS MATCH combo29`. The same script after the bare-king gate also matched (`pins_after_krk.txt`). No Elo claim. The benches are one thread, so the gate is off, and they do not use `go nodes 0`.
 
 Commands that passed after the last edit:
 
@@ -60,9 +60,21 @@ Commands that passed after the last edit:
 - `python3 forge-combo29/tests/uci_protocol_tests.py /tmp/forge-correctness-build/forge` (failures=0)
 - `forge-combo29/scripts/check_pins.sh /tmp/forge-correctness-build/forge` (match)
 
-## Not changed
+## Fixed and tested: bare-king mate with more than one worker
 
-`opus-r5d-matefix` is a different search. No KRK miss has been measured on `forge-combo29/src/search.cpp`. The bare-king pruning change is not ported.
+`opus_r5/r5d/MATEFIX_REPORT.md` at `5882c383` (branch `opus-r5d-matefix`) describes this on the Opus R3 search, not on combo29. Measured here on combo29 before any change, UseNNUE true, `go depth 14`, fresh `ucinewgame`: Threads 2 missed 57/400 (bestmove `e8e4`, score cp 442, cp 472, or mate 10). Threads 1 missed 0/100. Threads 2 with UseNNUE false missed 0/400.
+
+The combo29 search drops that quiet mate the same way: late-move pruning and LMR. With more than one worker, those two are skipped when the opponent has only a king. One worker is unchanged, so the lock benches stay the one-thread tree.
+
+After the gate: Threads 2 missed 0/400, Threads 4 missed 0/200, and `forge_rules_tests` runs 200 two-thread searches with 0 misses. Log: `krk_threads.txt`.
+
+One thread after another search can still miss. Reproduced, not fixed, because removing the worker check changes the one-thread tree:
+
+- after `8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1` at depth 9: `e8e4`, cp 442
+- after `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` at depth 9: `e8e4`, mate 10
+- after `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3` at depth 9: `e8e4`, cp 462
+
+## Not changed
 
 The stop flag in `Searcher::search` is saved around helper shutdown and restored. A stop in that window is overwritten. The CPU-lane note treated this as harmless because the main worker has already returned and UCI keeps its own flag. No failing test yet.
 
