@@ -15,6 +15,7 @@
 #endif
 
 #include <array>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cstddef>
@@ -222,6 +223,9 @@ public:
     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
     [[nodiscard]] static std::string move_to_uci(const Move& move);
     [[nodiscard]] std::uint64_t perft(int depth);
+    // stop is polled on subtrees of depth >= 4. A null pointer never stops.
+    // A stopped call returns a partial count; the caller must discard it.
+    [[nodiscard]] std::uint64_t perft(int depth, const std::atomic<bool>* stop);
 
     // Game-level threefold repetition of the current position.
     [[nodiscard]] bool is_repetition() const;

@@ -249,6 +249,18 @@ std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) 
     }
 }
 
+bool TranspositionTable::replacement_was_superseded(const TTEntry& current, const TTProbe& probe,
+                                                    std::uint32_t key32, int depth) const {
+    const bool unchanged = current.key32 == probe.entry.key32 && current.depth == probe.entry.depth &&
+                           current.gen_bound == probe.entry.gen_bound && current.score == probe.entry.score &&
+                           current.eval == probe.entry.eval && current.move == probe.entry.move &&
+                           current.rule50_clock == probe.entry.rule50_clock;
+    if (unchanged || !current.occupied() || current.key32 == key32) return false;
+    const int age = static_cast<int>((32 + generation_ - current.generation()) & 31U);
+    const int value = static_cast<int>(current.depth) - 4 * age;
+    return value >= depth;
+}
+
 void TranspositionTable::resize(std::size_t mb) {
     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
@@ -323,6 +335,9 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
+    // TakeLock is false only for the exclusive owner. That thread is the only
+    // writer, so its replacement decisions stay exactly as they were.
+    if (TakeLock && replacement_was_superseded(*entry, probe, key32, depth)) return;
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
@@ -392,6 +407,7 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     const auto lock = lock_stripe(probe.cluster_);
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
+    if (!has_exclusive_access() && replacement_was_superseded(*entry, probe, key32, depth)) return;
     const bool same_position = entry->key32 == key32 && entry->occupied();
     if (!move.is_none() || !same_position) entry->move = move;
     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
@@ -870,8 +886,8 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
 std::int64_t Worker::elapsed_ms() const {
     auto origin = start_;
     if (pondering_) {
+        if (!shared_.ponder_hit.load(std::memory_order_acquire)) return 0;
         const std::int64_t hit_ns = shared_.ponder_hit_ns.load(std::memory_order_relaxed);
-        if (hit_ns == 0) return 0;
         origin = std::chrono::steady_clock::time_point(
             std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::nanoseconds(hit_ns)));
     }
@@ -891,11 +907,11 @@ std::uint64_t Worker::total_nodes() const {
 bool Worker::should_stop() {
     // Publish this thread's node count for the others at the same cadence.
     nodes_.store(local_nodes_, std::memory_order_relaxed);
-    if (shared_.stop.load(std::memory_order_relaxed)) return true;
+    if (shared_.stop.load(std::memory_order_acquire) || shared_.finish.load(std::memory_order_acquire)) return true;
     if (!is_main()) return false;
     if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
-        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+        if (pondering_ && !shared_.ponder_hit.load(std::memory_order_acquire)) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
     }
     return false;
@@ -1568,8 +1584,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
-        const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_).count();
+        const std::int64_t elapsed = std::max<std::int64_t>(0, elapsed_ms());
         const std::uint64_t nodes = total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
@@ -1594,8 +1609,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         if (!root_candidates.empty()) result.best_move = root_candidates.front();
         result.nodes = total_nodes();
         nodes_.store(local_nodes_, std::memory_order_relaxed);
-        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_).count());
+        result.elapsed_ms = static_cast<std::uint64_t>(std::max<std::int64_t>(0, elapsed_ms()));
         return result;
     }
 
@@ -1610,8 +1624,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     // Check helpers too before they switch to the main worker's stop signal.
     if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
         result.best_move = root_candidates.front();
-        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_).count());
+        result.elapsed_ms = static_cast<std::uint64_t>(std::max<std::int64_t>(0, elapsed_ms()));
         return result;
     }
     if (!is_main()) {
@@ -1704,7 +1717,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
 
         if (mate_moves > 0 && is_mate_score(score) && MateValue - std::abs(score) <= mate_depth) break;
         if (should_stop()) break;
-        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+        if (time_managed_ && (!pondering_ || shared_.ponder_hit.load(std::memory_order_acquire))) {
             // Stop early when the best move has been stable; spend longer when it keeps changing.
             double factor = 1.0;
             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
@@ -1734,8 +1747,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     nodes_.store(local_nodes_, std::memory_order_relaxed);
     result.nodes = total_nodes();
     result.seldepth = std::max(result.seldepth, seldepth_);
-    result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start_).count());
+    result.elapsed_ms = static_cast<std::uint64_t>(std::max<std::int64_t>(0, elapsed_ms()));
     if (result.best_move.is_none()) result.best_move = root_candidates.front();
     return result;
 }
@@ -1801,17 +1813,37 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
     std::vector<std::thread> helpers;
+    struct HelperShutdown {
+        Searcher& self;
+        std::vector<std::thread>& helpers;
+        bool armed = true;
+        HelperShutdown(Searcher& owner, std::vector<std::thread>& running) : self(owner), helpers(running) {}
+        void release() {
+            if (!armed) return;
+            armed = false;
+            if (self.after_main_ != nullptr) self.after_main_(self);
+            self.shared_.finish.store(true, std::memory_order_release);
+            for (std::thread& helper : helpers) {
+                if (helper.joinable()) helper.join();
+            }
+            self.shared_.finish.store(false, std::memory_order_release);
+        }
+        ~HelperShutdown() { release(); }
+        HelperShutdown(const HelperShutdown&) = delete;
+        HelperShutdown& operator=(const HelperShutdown&) = delete;
+    };
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
             (void)workers_[i]->search(board, worker_limits, false, all);
         });
     }
+    HelperShutdown shutdown{*this, helpers};
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
-    // Wind down the helpers without clobbering an externally requested stop.
-    const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
-    shared_.stop.store(true, std::memory_order_relaxed);
-    for (auto& helper : helpers) helper.join();
-    shared_.stop.store(external_stop, std::memory_order_relaxed);
+    // Join on a separate flag. An external stop() during this window stays set.
+    shutdown.release();
+    std::uint64_t nodes = 0;
+    for (const auto& worker : workers_) nodes += worker->nodes();
+    result.nodes = nodes;
     return result;
 }
 

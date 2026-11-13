@@ -159,6 +159,10 @@ private:
     static thread_local const ExclusiveLease* active_lease_;
     [[nodiscard]] bool has_exclusive_access() const;
     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+    // True when a concurrent store already placed a different entry that is at
+    // least as valuable as the one this probe intended to replace.
+    [[nodiscard]] bool replacement_was_superseded(const TTEntry& current, const TTProbe& probe,
+                                                  std::uint32_t key32, int depth) const;
 #if FORGE_SPD_TT_NOTLS
     // One body per access with a compile-time "take the stripe lock" parameter.
     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
@@ -308,7 +312,12 @@ struct SharedSearchState {
     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
     TranspositionTable tt;
     std::atomic<bool> stop{false};
-    // 0 means pondering has not been converted into a timed search.
+    // Set only while Searcher::search joins helper threads. Distinct from stop
+    // so an external stop requested during that join is not cleared afterwards.
+    std::atomic<bool> finish{false};
+    // Set by ponderhit. A zero timestamp is a valid clock reading, so it cannot
+    // also mean "still pondering".
+    std::atomic<bool> ponder_hit{false};
     std::atomic<std::int64_t> ponder_hit_ns{0};
 };
 
@@ -418,16 +427,24 @@ public:
 
     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
                       TTAccess table_access = TTAccess::Shared);
-    void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+    // Test seam. Invoked on the search thread after the main worker returns and
+    // before helper threads are joined. It must not clear `stop`.
+    void (*after_main_)(Searcher&) = nullptr;
+    void stop() { shared_.stop.store(true, std::memory_order_release); }
+    [[nodiscard]] bool stop_requested() const { return shared_.stop.load(std::memory_order_acquire); }
+    [[nodiscard]] const std::atomic<bool>& stop_flag() const { return shared_.stop; }
     void reset_stop() {
-        shared_.stop.store(false, std::memory_order_relaxed);
+        shared_.stop.store(false, std::memory_order_release);
+        shared_.ponder_hit.store(false, std::memory_order_release);
         shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
     }
     void ponderhit() {
         const auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
         std::int64_t expected = 0;
-        (void)shared_.ponder_hit_ns.compare_exchange_strong(expected, now_ns);
+        (void)shared_.ponder_hit_ns.compare_exchange_strong(
+            expected, now_ns, std::memory_order_relaxed, std::memory_order_relaxed);
+        shared_.ponder_hit.store(true, std::memory_order_release);
     }
     void clear();
     void clear_hash();
@@ -442,6 +459,19 @@ public:
 private:
     SharedSearchState shared_;
     std::vector<std::unique_ptr<Worker>> workers_;
+    friend struct ConcurrencyTestAccess;
+};
+
+struct ConcurrencyTestAccess {
+    static void set_after_main(Searcher& searcher, void (*hook)(Searcher&)) { searcher.after_main_ = hook; }
+    static bool stop_flag(const Searcher& searcher) {
+        return searcher.shared_.stop.load(std::memory_order_acquire);
+    }
+    static std::uint64_t published_nodes(const Searcher& searcher) {
+        std::uint64_t nodes = 0;
+        for (const auto& worker : searcher.workers_) nodes += worker->nodes();
+        return nodes;
+    }
 };
 
 } // namespace forge

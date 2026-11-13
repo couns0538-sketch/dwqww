@@ -1,7 +1,11 @@
 #include "forge/bitboard.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
 #include <cstddef>
+#include <mutex>
+#include <thread>
 
 namespace forge::attacks {
 
@@ -133,10 +137,14 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
 
 } // namespace
 
-void init() {
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
+static void fill_attack_tables() {
+    // Held for the whole fill. FORGE_INIT_PAUSE_MS only widens this critical
+    // section so a test can prove other threads wait instead of reading zeros.
+    if (const char* pause = std::getenv("FORGE_INIT_PAUSE_MS")) {
+        int ms = 0;
+        for (const char* digit = pause; *digit >= '0' && *digit <= '9'; ++digit) ms = ms * 10 + (*digit - '0');
+        if (ms > 0) std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+    }
 
     for (int square = 0; square < 64; ++square) {
         const std::size_t s = static_cast<std::size_t>(square);
@@ -193,6 +201,11 @@ void init() {
             }
         }
     }
+}
+
+void init() {
+    static std::once_flag once;
+    std::call_once(once, fill_attack_tables);
 }
 
 } // namespace forge::attacks

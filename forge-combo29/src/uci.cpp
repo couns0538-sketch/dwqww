@@ -10,6 +10,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -136,6 +137,8 @@ int main() {
     std::uint64_t book_rng = static_cast<std::uint64_t>(
         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
     bool ponder_search_active = false;
+    std::unique_ptr<forge::Searcher> bench_searcher;
+    forge::Searcher* active_searcher = &searcher;
     std::thread worker;
     std::mutex stop_mutex;
     std::condition_variable stop_cv;
@@ -146,10 +149,11 @@ int main() {
             const std::lock_guard<std::mutex> lock(stop_mutex);
             stop_requested = true;
         }
-        searcher.stop();
+        active_searcher->stop();
         stop_cv.notify_all();
         if (worker.joinable()) worker.join();
         ponder_search_active = false;
+        active_searcher = &searcher;
     };
 
     std::string line;
@@ -304,16 +308,38 @@ int main() {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes 1" << std::endl; }
                     continue;
                 }
-                std::uint64_t total = 0;
-                for (const forge::Move move : board.legal_moves()) {
-                    forge::Undo undo;
-                    (void)board.make_move(move, undo);
-                    const std::uint64_t nodes = board.perft(depth - 1);
-                    board.unmake_move(move, undo);
-                    total += nodes;
-                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl; }
+                {
+                    const std::lock_guard<std::mutex> lock(stop_mutex);
+                    stop_requested = false;
                 }
-                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+                searcher.reset_stop();
+                active_searcher = &searcher;
+                const int perft_depth = depth;
+                worker = std::thread([perft_board = board, perft_depth, &searcher]() mutable {
+                    const std::atomic<bool>& flag = searcher.stop_flag();
+                    std::uint64_t total = 0;
+                    bool interrupted = false;
+                    for (const forge::Move move : perft_board.legal_moves()) {
+                        if (flag.load(std::memory_order_relaxed)) {
+                            interrupted = true;
+                            break;
+                        }
+                        forge::Undo undo;
+                        (void)perft_board.make_move(move, undo);
+                        const std::uint64_t nodes = perft_board.perft(perft_depth - 1, &flag);
+                        perft_board.unmake_move(move, undo);
+                        if (flag.load(std::memory_order_relaxed)) {
+                            interrupted = true;
+                            break;
+                        }
+                        total += nodes;
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl;
+                    }
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (interrupted) std::cout << "info string perft stopped" << std::endl;
+                    else std::cout << "nodes " << total << std::endl;
+                });
             } else {
                 input.clear();
                 input.seekg(position);
@@ -358,7 +384,8 @@ int main() {
                     if (limits.infinite || limits.ponder) {
                         std::unique_lock<std::mutex> lock(stop_mutex);
                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
-                            return stop_requested || (limits.ponder && ponder_hit_received);
+                            // infinite keeps searching until stop, including after ponderhit.
+                            return stop_requested || (limits.ponder && ponder_hit_received && !limits.infinite);
                         });
                     }
                     const std::string best = result.best_move.from == result.best_move.to
@@ -380,34 +407,52 @@ int main() {
             stop_search();
             int depth = 13;
             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
-            constexpr std::array<std::string_view, 8> fens{
-                forge::Board::StandardStartFen,
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
-                "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-                "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
-                "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
-                "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
-                "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
-            };
-            std::uint64_t total_nodes = 0;
-            const auto start = std::chrono::steady_clock::now();
-            forge::Searcher bench_searcher(16);
-            for (const std::string_view fen : fens) {
-                forge::Board bench_board;
-                if (!bench_board.set_fen(fen)) continue;
-                forge::SearchLimits limits;
-                limits.depth = depth;
-                bench_searcher.clear();
-                total_nodes += bench_searcher.search(
-                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+            bench_searcher = std::make_unique<forge::Searcher>(16);
+            active_searcher = bench_searcher.get();
+            {
+                const std::lock_guard<std::mutex> lock(stop_mutex);
+                stop_requested = false;
             }
-            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - start).count();
-            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
-                      << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
-                      << std::endl;
+            bench_searcher->reset_stop();
+            worker = std::thread([depth, engine = bench_searcher.get()] {
+                constexpr std::array<std::string_view, 8> fens{
+                    forge::Board::StandardStartFen,
+                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+                    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+                    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+                    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+                    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+                    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+                };
+                std::uint64_t total_nodes = 0;
+                const auto start = std::chrono::steady_clock::now();
+                for (const std::string_view fen : fens) {
+                    if (engine->stop_requested()) {
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << "info string bench stopped" << std::endl;
+                        return;
+                    }
+                    forge::Board bench_board;
+                    if (!bench_board.set_fen(fen)) continue;
+                    forge::SearchLimits limits;
+                    limits.depth = depth;
+                    engine->clear();
+                    total_nodes += engine->search(
+                        bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+                }
+                if (engine->stop_requested()) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string bench stopped" << std::endl;
+                    return;
+                }
+                const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - start).count();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+                          << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                          << std::endl;
+            });
         } else if (command == "ponderhit") {
             if (ponder_search_active) {
                 searcher.ponderhit();
