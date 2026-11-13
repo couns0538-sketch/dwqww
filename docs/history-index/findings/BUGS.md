@@ -45,6 +45,14 @@ These were read. They are not new reproductions.
 - A Windows checkout cannot hold both `source/a` and `source/A/child.txt`. Stated in astra datafilter `RESULTS.md` blob `c25059861c4d4e66f373d4d9c0a5c19511023cc7`, which sits inside the 4,035-file commit on `astra-r10-3jobs` and is past a 300-file listing. See `GITHUB_FILE_CAP.md`.
 - The search-gap dedupe (blob `44365b23b2a5166521f2a5f3399781f994a2a657`) saw a move-list overflow mention and did not treat it as a search-strength idea. Its snapshot is 2026-11-09 and does not include the later lock.
 
+## Two October investigator notes, and what happened to them
+
+`investigator/qsearch-horizon-stalemate-20261020-1400` @ `ab9c56000235bfbf3c1aaa1814111d264d3f0823`, report blob `15d9b1b2f94f3329da264b8fdf38e48643bca37e`. It reads `src/search.cpp` of `356e863dbd86d2ce24b8ee9486d7406f1d525480` and predicts that qsearch can return a nonzero score for a quiet stalemate after `g5g6` in `7k/5K2/8/6Q1/8/8/8/8 w - - 0 1`. The report says no native engine was run. The correctness branch later ran that probe on the current tree and recorded `score cp 0`. The October prediction is not a live defect on combo29.
+
+`investigator/terminal-zero-node-20261020-1300` @ `7d4974f3ba613b8e50290ff6db05a3d9a98831f3`, report blob `a9a0702f368195e72b9e1ee92021497b363c83aa`. It also did not run the engine. It predicted `go nodes 0` on a stalemate would print `info depth 1`. The correctness resume says that prediction reproduced on their binary, and that their tip returns before the depth line. The Fable tip still has the old order, as the section above describes.
+
+Both investigator branch names point at commits whose subjects are not those investigations alone. The reports live under `validation/hourly/`. The shared hourly commit `356e863dbd86d2ce24b8ee9486d7406f1d525480` is the source they inspected, not a separate fix.
+
 ## Not a bug from this pass
 
 The S11 scalar-parity JSON that a 300-file listing hides (blob `720e799e36f60a24880d663d081ff7cb7ace3a69`, on `forge/sol-pack31-20261025`) has status `PASS_NATIVE_EXACT_PARITY` for 1,000,000 positions. It points at an earlier failed receipt by sha256 `7877d436b260d802035d98d497d715a3d8c218c20df4e0180ebb425ba8c67630` and a `/tmp` path. That failed file is not in the tip. The pass was not re-run.

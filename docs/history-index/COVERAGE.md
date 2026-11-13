@@ -143,6 +143,8 @@ Full reads added here:
 
 `FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) was not read end to end. The findings table and the "Mistakes found" section were read. The S11 parity JSON was not read as a whole file. Its status and the fields printed in `BUGS.md` were. The 88 `uci.cpp` blobs were listed and not classified. The search.cpp classification covered every frozen tip blob of that name.
 
+Also full reads: qsearch investigator report blob `15d9b1b2f94f3329da264b8fdf38e48643bca37e`, zero-node investigator report blob `a9a0702f368195e72b9e1ee92021497b363c83aa`, and `opus_round1/sol_S21/REPORT.md` blob `128c734d209fc0fcdbf4a3db4e4421825987c795`.
+
 `astra-notes` `REPORT.md` is an older Opus status. It is not the later `opus-summary` report of the same filename.
 
 ## Not claimed
