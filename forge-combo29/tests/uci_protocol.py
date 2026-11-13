@@ -155,11 +155,15 @@ def main():
         ready = engine.read_until(lambda line: line == "readyok", 3)
         check(not any(line.startswith("info string invalid") for line in ready), "lowercase Hash is accepted")
 
+        # Book Variety defaults to 30, and the book then picks a weighted random
+        # move among the near-best entries. Variety 0 returns the single highest
+        # weight, which for the embedded start position is e2e4.
+        engine.send("setoption name Book Variety value 0")
         engine.send("position startpos")
         engine.send("go movetime 80")
         booked = engine.read_until(lambda line: line.startswith("bestmove "), 3)
-        check(any("book move c2c4" in line for line in booked), "default book plays c2c4: " + " | ".join(booked))
-        check(bestmove_of(booked) == "c2c4", "book bestmove c2c4")
+        check(any("book move e2e4" in line for line in booked), "variety 0 book plays e2e4: " + " | ".join(booked))
+        check(bestmove_of(booked) == "e2e4", "book bestmove e2e4")
 
         engine.send("setoption name OwnBook value False")
         engine.send("position startpos")

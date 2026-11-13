@@ -1,7 +1,7 @@
 # Forge audit on `cursor/forge-audit-f132`
 
 Base: `fable/standalone-h512-20261111` at `efb2ff96`.
-The fixes, tests and this report were introduced in `30db14b1eb10dee11633bc19f8d03c776a1ab960`. The line that records that hash is the only change in the following commit.
+The fixes, tests and this report were introduced in `30db14b1eb10dee11633bc19f8d03c776a1ab960`. The line that records that hash is `e1c71e02`. The review follow-up (variety 0 in the book check, and `*_INIT` copies of the Clang library and header flags) is the next commit on this branch.
 This work stays on this branch. It does not touch `main`, the Fable base, a lock branch, or another agent's branch.
 No games were played in this session. Recorded Elo numbers below are quoted from files already on the base. They are not new results.
 
@@ -39,7 +39,7 @@ The bestmove line also checks that the move is legal in the root, and that a pon
 
 ## Tests that were run
 
-`forge-combo29/tests/uci_protocol.py` against the fixed g++ binary: 0 failures. It covers `uci` / `isready`, lowercase `UseNNUE` against both bench-11 pins, `UseNNUE True`, rejected `yes`, lowercase `Hash`, the book move `c2c4`, `OwnBook False`, a finished depth-1 search, `stop` with no search, the four-field FEN, `a7a8Q`, `E2E4`, empty `searchmoves` (bestmove `a2a3`, not `0000`), stalemate `0000`, mate `f6g7`, promotion mate `f7f8q`, `go depth 3` with a ponder move, `go ponder` withholding bestmove until `ponderhit`, and black's clock (`btime 60` while `wtime` is 120,000). The black-clock search returned in well under 2 seconds with `c7c5`. A separate 200 ms black budget reached depth 10 and played `e7e6` in about 12 ms of engine time. That is the soft time split of the 200 ms budget, not white's clock.
+`forge-combo29/tests/uci_protocol.py` against the fixed g++ binary: 0 failures. It covers `uci` / `isready`, lowercase `UseNNUE` against both bench-11 pins, `UseNNUE True`, rejected `yes`, lowercase `Hash`, the opening book at variety 0 (`e2e4`), `OwnBook False`, a finished depth-1 search, `stop` with no search, the four-field FEN, `a7a8Q`, `E2E4`, empty `searchmoves` (bestmove `a2a3`, not `0000`), stalemate `0000`, mate `f6g7`, promotion mate `f7f8q`, `go depth 3` with a ponder move, `go ponder` withholding bestmove until `ponderhit`, and black's clock (`btime 60` while `wtime` is 120,000). The first book sample happened to be `c2c4`. A later 20-run check at the default variety of 30 got `e2e4` 12 times and `c2c4` 8 times, so the test now sets variety to 0, which returns the highest-weight move, `e2e4`. The black-clock search returned in well under 2 seconds with `c7c5`. A separate 200 ms black budget reached depth 10 and played `e7e6` in about 12 ms of engine time. That is the soft time split of the 200 ms budget, not white's clock.
 
 `forge-combo29/tests/engine_checks.cpp`, g++ Release, default switches: 889 checks, 0 failures.
 
@@ -136,7 +136,7 @@ Clang 18 could not configure. Two separate gaps on this image:
 - The link test fails with `cannot find -lstdc++` because the unversioned library is only in GCC's private directory.
 - The compile then fails with `'array' file not found` because this Clang looks for GCC 14 headers and only GCC 13 is installed.
 
-`CMakeLists.txt` now, only when the compiler name matches Clang, asks `g++` for its libstdc++ directory and adds it to the linker flags before `project()`. If a small `#include <array>` program still does not link, it adds the versioned include directories from `g++ -dumpversion` and `g++ -dumpmachine`. A Clang that already compiles `<array>` is left alone. The march flag is still the existing `FORGE_MARCH` cache (default `x86-64-v4`). `FORGE_PORTABLE=ON` remains the way to drop PEXT and ZMM. Nothing here assumes the owner's CPU matches this VM.
+`CMakeLists.txt` now, only when the compiler name matches Clang, asks `g++` for its libstdc++ directory and adds it to `CMAKE_EXE_LINKER_FLAGS`, `CMAKE_SHARED_LINKER_FLAGS`, and the matching `*_INIT` variables before `project()`. `project()` copies `*_INIT` into the cache. The plain variables are what this CMake 3.28.3 compiler check actually reads; without `*_INIT` that cache stays empty. A second configure does not append the directory again. If a small `#include <array>` program still does not link, the same pair of variables gets the versioned include directories from `g++ -dumpversion` and `g++ -dumpmachine`. A Clang that already compiles `<array>` is left alone. The march flag is still the existing `FORGE_MARCH` cache (default `x86-64-v4`). `FORGE_PORTABLE=ON` remains the way to drop PEXT and ZMM. Nothing here assumes the owner's CPU matches this VM.
 
 ## Other agents, without modifying their branches
 
