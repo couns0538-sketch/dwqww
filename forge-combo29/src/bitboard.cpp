@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <mutex>
 
 namespace forge::attacks {
 
@@ -134,10 +135,12 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
 } // namespace
 
 void init() {
-    static bool initialized = false;
-    if (initialized) return;
-    initialized = true;
-
+    // The flag used to flip before the tables were filled. Another thread then
+    // returned and followed a null magic pointer. call_once waits until the
+    // fill has finished, so the first concurrent Board constructors share one
+    // completed table.
+    static std::once_flag once;
+    std::call_once(once, [] {
     for (int square = 0; square < 64; ++square) {
         const std::size_t s = static_cast<std::size_t>(square);
         for (const auto& [df, dr] : std::array<std::pair<int, int>, 8>{{{1, 2}, {2, 1}, {-1, 2}, {-2, 1},
@@ -193,6 +196,7 @@ void init() {
             }
         }
     }
+    });
 }
 
 } // namespace forge::attacks

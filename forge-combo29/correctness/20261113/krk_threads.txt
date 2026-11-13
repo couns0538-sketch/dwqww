@@ -1,0 +1,23 @@
+KRK `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` is mate in 3 with key move d5c5.
+Binary before the bare-king gate, UseNNUE true, fresh ucinewgame each run, go depth 14:
+
+- Threads 1: 0 misses / 100
+- Threads 2: 57 misses / 400. Misses played e8e4. Examples: score cp 442, score cp 472, score mate 10.
+- Threads 2, UseNNUE false: 0 misses / 400
+
+Same binary after the gate (no quiet pruning and no LMR when the opponent is a bare king and more than one worker is searching):
+
+- Threads 2, UseNNUE true: 0 / 400
+- Threads 4, UseNNUE true: 0 / 200
+- Threads 1, UseNNUE true: 0 / 50
+- rules test: 200 fresh two-thread searches, 0 misses
+
+One thread after an unrelated depth-9 search still misses on some positions. Not fixed: the same gate without the worker check changes the one-thread tree, and the lock benches are one thread.
+
+- `8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1` then KRK: bestmove e8e4, score cp 442
+- `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` then KRK: bestmove e8e4, score mate 10
+- `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3` then KRK: bestmove e8e4, score cp 462
+
+Nine other prefills in that sample, including the eight bench positions, still returned d5c5 and mate 3.
+
+Applying the same gate with one worker changes the lock benches. Depth 13 on that binary: net on 862954 (pin 862329), net off 907307 (pin 907205). The net-on count is the same 862954 recorded for BK in opus_r5/r5d/MATEFIX_REPORT.md at 5882c383. Not applied.

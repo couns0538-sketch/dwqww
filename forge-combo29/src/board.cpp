@@ -1166,8 +1166,9 @@ std::string Board::move_to_uci(const Move& move) {
     return text;
 }
 
-std::uint64_t Board::perft(int depth) {
+std::uint64_t Board::perft(int depth, const std::atomic<bool>* stop) {
     if (depth <= 0) return 1;
+    if (stop != nullptr && stop->load(std::memory_order_relaxed)) return 0;
     MoveList moves;
     generate_pseudo_legal(moves, false);
     if (depth == 1) {
@@ -1177,10 +1178,11 @@ std::uint64_t Board::perft(int depth) {
     }
     std::uint64_t nodes = 0;
     for (const Move move : moves) {
+        if (stop != nullptr && stop->load(std::memory_order_relaxed)) return nodes;
         if (!is_legal(move)) continue;
         Undo undo;
         (void)make_move(move, undo);
-        nodes += perft(depth - 1);
+        nodes += perft(depth - 1, stop);
         unmake_move(move, undo);
     }
     return nodes;

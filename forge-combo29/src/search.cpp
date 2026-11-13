@@ -576,10 +576,13 @@ private:
 #if FORGE_SDK_BADCAP_PREFIX
     // Losing captures live in moves_[0, bad_count_).
 #elif FORGE_SPD_NO_ZERO_MOVELISTS
-    std::array<Move, 64> bad_captures_;
+    // The generator can emit more than 64 SEE-losing noisy moves (68 in
+    // tests/bad_capture_tests.cpp). A 64-slot buffer overruns the stack.
+    std::array<Move, MoveList::Capacity> bad_captures_;
 #else
-    std::array<Move, 64> bad_captures_{};
+    std::array<Move, MoveList::Capacity> bad_captures_{};
 #endif
+    static_assert(MoveList::Capacity >= 218, "bad-capture buffer must hold every noisy move");
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;
@@ -787,14 +790,18 @@ Worker::Worker(SharedSearchState& shared, int id)
 
 Worker::~Worker() = default;
 
-void Worker::clear() {
-    evaluator_.clear();
+void Worker::clear_heuristics() {
     *main_history_ = ButterflyHistory{};
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+}
+
+void Worker::clear() {
+    evaluator_.clear();
+    clear_heuristics();
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -1554,6 +1561,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     int move_count = 0;
     bool skip_quiets = false;
     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+    // A second worker's hash writes let late-move pruning and LMR drop the
+    // only quiet mate against a bare king. One worker keeps the lock tree.
+    const bool bare_king_opponent = all_workers_ != nullptr && all_workers_->size() > 1 &&
+                                    popcount(board.occupied(opposite(board.side_to_move()))) == 1;
 
     Move move;
     while (!(move = picker.next(skip_quiets)).is_none()) {
@@ -1572,7 +1583,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (!root_node && best_score > -MateInMaxPly && has_material) {
+        if (!root_node && best_score > -MateInMaxPly && has_material && !bare_king_opponent) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
@@ -1658,7 +1669,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !bare_king_opponent &&
+            (quiet || !ss->tt_pv || move_count > 4)) {
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
@@ -1765,6 +1777,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
+    // These tables used to survive from the previous root. One thread then
+    // misses the KRK mate in 3 at a depth that finds it from empty tables
+    // (d5c5, mate 3 at depth 10; after another search, e8e4 and a centipawn
+    // score). Clearing the hash alone does not restore the mate. Bench
+    // positions are cleared before each search, so an empty start keeps
+    // those node counts. The transposition table is left in place.
+    clear_heuristics();
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;
@@ -1833,6 +1852,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         std::cout << std::endl;
     };
 
+    // An explicit zero node budget is an immediate answer, including at a
+    // terminal root. Reporting that root first printed a depth-1 line and
+    // only then noticed the budget was already spent.
+    if (limits.nodes_specified && limits.nodes == 0) {
+        result.depth = 0;
+        if (legal.empty() && board.in_check()) result.score = -MateValue;
+        if (!root_candidates.empty()) result.best_move = root_candidates.front();
+        return result;
+    }
+
     // Terminal or adjudicated roots: report without searching.
     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
                                                board.is_insufficient_material());
@@ -1850,13 +1879,6 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         nodes_.store(local_nodes_, std::memory_order_relaxed);
         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count());
-        return result;
-    }
-
-    // An explicit zero node budget is an immediate bounded answer.
-    if (limits.nodes_specified && limits.nodes == 0) {
-        result.best_move = root_candidates.front();
-        result.depth = 0;
         return result;
     }
 

@@ -15,6 +15,7 @@
 #endif
 
 #include <array>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cstddef>
@@ -221,7 +222,9 @@ public:
 
     [[nodiscard]] std::optional<Move> parse_uci(std::string_view text);
     [[nodiscard]] static std::string move_to_uci(const Move& move);
-    [[nodiscard]] std::uint64_t perft(int depth);
+    // `stop` is optional. A set flag makes perft return the nodes counted so
+    // far; callers must not treat that partial total as a finished result.
+    [[nodiscard]] std::uint64_t perft(int depth, const std::atomic<bool>* stop = nullptr);
 
     // Game-level threefold repetition of the current position.
     [[nodiscard]] bool is_repetition() const;
@@ -248,6 +251,8 @@ public:
     [[nodiscard]] Color side_to_move() const { return side_; }
     [[nodiscard]] std::uint64_t key() const { return key_; }
     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
+    [[nodiscard]] std::uint64_t compute_key() const;
+    [[nodiscard]] std::uint64_t compute_pawn_key() const;
     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
     [[nodiscard]] int fullmove_number() const { return fullmove_; }
     [[nodiscard]] int ep_square() const { return ep_square_; }
@@ -287,8 +292,6 @@ private:
     void remove_piece(int square);
     void move_piece(int from, int to);
     [[nodiscard]] bool has_legal_en_passant_capture() const;
-    [[nodiscard]] std::uint64_t compute_key() const;
-    [[nodiscard]] std::uint64_t compute_pawn_key() const;
     [[nodiscard]] Bitboard compute_checkers() const;
     [[nodiscard]] bool square_attacked_with_occupancy(int square, Color by, Bitboard occupancy,
                                                        Bitboard removed = 0) const;

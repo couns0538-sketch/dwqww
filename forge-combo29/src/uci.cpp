@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
@@ -30,6 +31,11 @@
 #include <string_view>
 #include <thread>
 #include <vector>
+#if !defined(_WIN32)
+#include <cstdio>
+#include <poll.h>
+#include <unistd.h>
+#endif
 
 namespace {
 
@@ -57,11 +63,21 @@ void apply_position(forge::Board& board, std::istringstream& input) {
         board = candidate;
         return;
     }
-    if (token != "moves") return;
+    // Tokens between the position and "moves" are not part of the FEN.
+    // Dropping the command here left the engine on the previous game.
+    while (token != "moves") {
+        if (!(input >> token)) {
+            board = candidate;
+            return;
+        }
+    }
     while (input >> token) {
         const auto move = candidate.parse_uci(token);
         if (!move.has_value()) {
+            // The position and every legal move before this one still stand.
+            // Dropping the whole command left the engine on the previous game.
             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+            board = candidate;
             return;
         }
         forge::Undo undo;
@@ -438,16 +454,62 @@ int main() {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes 1" << std::endl; }
                     continue;
                 }
+                // Commands already buffered (a script that writes `quit` with the
+                // perft request) must not abort the count. A later byte on stdin,
+                // such as `stop`, does.
+                std::atomic<bool> perft_stop{false};
+#if !defined(_WIN32)
+                struct PerftWatch {
+                    std::atomic<bool> done{false};
+                    std::thread thread;
+                    ~PerftWatch() {
+                        done.store(true, std::memory_order_relaxed);
+                        if (thread.joinable()) thread.join();
+                    }
+                } watch;
+                pollfd queued{fileno(stdin), POLLIN, 0};
+                const bool already_queued = poll(&queued, 1, 0) > 0 || std::cin.rdbuf()->in_avail() > 0;
+                if (!already_queued) {
+                    watch.thread = std::thread([&perft_stop, &watch] {
+                        const int fd = fileno(stdin);
+                        while (!watch.done.load(std::memory_order_relaxed)) {
+                            pollfd wait{fd, POLLIN, 0};
+                            const int rc = poll(&wait, 1, 30);
+                            if (watch.done.load(std::memory_order_relaxed)) break;
+                            if (rc > 0 && (wait.revents & (POLLIN | POLLHUP | POLLERR)) != 0) {
+                                perft_stop.store(true, std::memory_order_relaxed);
+                                break;
+                            }
+                        }
+                    });
+                }
+                const std::atomic<bool>* stop_flag = watch.thread.joinable() ? &perft_stop : nullptr;
+#else
+                const std::atomic<bool>* stop_flag = nullptr;
+#endif
                 std::uint64_t total = 0;
+                bool aborted = false;
                 for (const forge::Move move : board.legal_moves()) {
+                    if (stop_flag != nullptr && stop_flag->load(std::memory_order_relaxed)) {
+                        aborted = true;
+                        break;
+                    }
                     forge::Undo undo;
                     (void)board.make_move(move, undo);
-                    const std::uint64_t nodes = board.perft(depth - 1);
+                    const std::uint64_t nodes = board.perft(depth - 1, stop_flag);
                     board.unmake_move(move, undo);
+                    if (stop_flag != nullptr && stop_flag->load(std::memory_order_relaxed)) {
+                        aborted = true;
+                        break;
+                    }
                     total += nodes;
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl; }
                 }
-                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+                {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (aborted) std::cout << "info string perft stopped" << std::endl;
+                    else std::cout << "nodes " << total << std::endl;
+                }
             } else {
                 input.clear();
                 input.seekg(position);
