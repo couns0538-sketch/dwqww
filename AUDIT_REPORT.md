@@ -1,6 +1,7 @@
 # Forge audit on `cursor/forge-audit-f132`
 
 Base: `fable/standalone-h512-20261111` at `efb2ff96`.
+The fixes, tests and this report were introduced in `30db14b1eb10dee11633bc19f8d03c776a1ab960`. The line that records that hash is the only change in the following commit.
 This work stays on this branch. It does not touch `main`, the Fable base, a lock branch, or another agent's branch.
 No games were played in this session. Recorded Elo numbers below are quoted from files already on the base. They are not new results.
 
