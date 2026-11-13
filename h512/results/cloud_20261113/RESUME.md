@@ -64,6 +64,12 @@ The same binaries compare the incremental runtime PSQT and the pawn-cache eval w
 
 v4 tests: 101066 checks, 0 failures. VNNI tests: 101115 checks, 0 failures. Walk totals are unchanged from `h512/results/step3/nnue_v3_tests_combo29.log`.
 
+## Done: holdout shard tags stop at a digit boundary
+
+`--holdout-shards _013` used to match any file name that contains that text. `fb2_0130.pos` would leave the training set and enter the holdout. The tag now matches only when the next character is not a digit. `fb2_013.pos` and `fb2_014.pos` still match the default tags, so the 001–038 shard names do not move. The trainer `--exclude` switch is still a substring, which is what its help text says.
+
+`h512/train/test_split_tags.py` checks the matcher and a four-row split: `fb2_0130.pos` stays in train, and a row copied from `fb2_013.pos` into `fb2_001.pos` is dropped from train. Exit 0.
+
 ## Next, if this session continues
 
 1. Do not repeat the fused both-perspective kernel unless the measurement is longer than the spread in `APPLY_BOTH.md`.
