@@ -53,6 +53,18 @@ These were read. They are not new reproductions.
 
 Both investigator branch names point at commits whose subjects are not those investigations alone. The reports live under `validation/hourly/`. The shared hourly commit `356e863dbd86d2ce24b8ee9486d7406f1d525480` is the source they inspected, not a separate fix.
 
+## Report citations from the remaining markdown
+
+These are sentences from `readings/WAVE2_CLAIMS.tsv`. The engine was not re-run for this index.
+
+- Source16 SEE. `validation/see-recapture-promotion-20261020/DESIGN.md` blob `954844ecd0689e0a2b9b6f4a5fbfa16a049bc67b` records six exchange-value disagreements and 44 wrong answers out of 200 threshold queries. One is `c7b8`, where `see_ge(0)` is false and the oracle is +500. The prototype note in the same directory says a later bounded run corrected eight source16 mismatches. That correction is the prototype's record, not a lock-tree result.
+- False interior tablebase claims. `opus_syzygy_gaps/review/R2.md` blob `2a711099d7ff0d0ffef079d1873c3d43a0da9518` records a null move producing false interior claims on three zugzwang roots. At depth 14, 27 of 39 null-move claims on 120 near-zugzwang roots were wrong.
+- Rule-50 transposition score. `docs/plans/2026-10-19-rule50-context.md` blob `d26b9730f447c7b0ca25e09bb4bc7534632bf77d` records a low-clock table bound returning −426 instead of 0. Reverse reuse turns a quiescence score of −426 into 0 and a static evaluation of 453 into 0.
+- KRK quiet mate. `opus_r5/r5d/MATEFIX_REPORT.md` blob `89cf92622d02c62c29dc40e84697d0838b48f8f7` records the baseline at 180 misses in 8,000 KRK runs, 8 failed runs in 800, and 80 failures in 4,000 UCI end-to-end runs. The same report records the BKM fix at 0 misses in 40,000 KRK runs and 0 failures in 800.
+- SMP node overshoot. `astra_evidence/A2/README.md` blob `e194ba22b485552a865259df127fe9fffae352d2` records one failure at 27,398 nodes in an initial CTest of 52/54. Later SMP suites in that note pass 133/133.
+- Clock overruns. `opus_r3/R3-1L/logs/run_40582392767/sp-tsan-smp_exact_nodes/MATRIX.md` blob `0a38df5cbf3680a90b06006127c26dd7f3b53f87` records 28 clock overruns, the longest 62.1 ms, in a 100-game self-play that finished 100 of 100 games with 0 illegal moves.
+- Windows starvation under `HardDeadline` 0. `opus_round1/C3/REPORT.md` blob `a3c1df0dadc3a3ea0d0d5acbc27a27d440aa8970` records replies 3750–4651 ms late. With `HardDeadline` 10 the same note records at most 28.8 ms late and 0 of 24 replies over 50 ms. This is the same deadline family as the late `info depth` line above.
+
 ## Not a bug from this pass
 
 The S11 scalar-parity JSON that a 300-file listing hides (blob `720e799e36f60a24880d663d081ff7cb7ace3a69`, on `forge/sol-pack31-20261025`) has status `PASS_NATIVE_EXACT_PARITY` for 1,000,000 positions. It points at an earlier failed receipt by sha256 `7877d436b260d802035d98d497d715a3d8c218c20df4e0180ebb425ba8c67630` and a `/tmp` path. That failed file is not in the tip. The pass was not re-run.

@@ -157,6 +157,12 @@ An alias row is a real read of the tip identity: `git ls-tree` found no markdown
 
 `claimed` means every selected primary document on that tree has a sentence in the claims file. `live-report` is `findings/LIVE_AUDITS.md`, read in full. A sentence is not a transcript. Snapshot copies, logs, archives, and the other markdown blobs were not opened. Do not copy a number from a claim into a findings file until the source blob is opened.
 
+## Checkpoint 5: one sentence for the other markdown
+
+`readings/WAVE2_CLAIMS.tsv` has one sentence for each of the 2,304 markdown blobs that were not among the 387 primary documents. `readings/LONG_PRIMARY_REREAD.tsv` has a second sentence for each of the 53 primary documents larger than 15 KB. The original row in `readings/PRIMARY_CLAIMS.tsv` stays. The reread is shorter and often drops a figure the first sentence kept, including comma-grouped node counts, so it is a check of the source and not a replacement.
+
+All 100 shard files matched their blob lists, in order, with one tab per line and no `UNREADABLE` row. The engine was not run. A number in either claims file is still the report's number.
+
 ## Not claimed
 
-This ledger does not say that every markdown blob was read, or that any Elo or speed number was confirmed by a new match or bench. The running total of full-read prose is the checkpoint 1 files, the checkpoint 2 files, the four files in the section above, the short documents under 4 KB, and `findings/LIVE_AUDITS.md`.
+This ledger does not say that any Elo or speed number was confirmed by a new match or bench. Archives, zip parts, logs, JSON, and source files other than the blobs already named in `findings/` were not opened in this pass.

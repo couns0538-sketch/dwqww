@@ -6,7 +6,7 @@ The index sits on `cursor/forge-history-index-20261113-712a`, cut from `fable/st
 
 ## How to read it
 
-Start with `HANDOFF.md` if you are working on search, engine correctness, or NNUE. Use `COVERAGE.md` before trusting any sentence that sounds like a complete survey. `branches/HEADS.tsv` is the frozen list of 416 remote branch tips. `branches/EVERY_TIP.tsv` is the later pass over those tips plus the branches that appeared the same day, with a coverage word on each row.
+Start with `HANDOFF.md` if you are working on search, engine correctness, or NNUE. Use `COVERAGE.md` before trusting any sentence that sounds like a complete survey. `branches/HEADS.tsv` is the frozen list of 416 remote branch tips. `branches/EVERY_TIP.tsv` is the later pass over those tips plus the branches that appeared the same day, with a coverage word on each row. `readings/PRIMARY_CLAIMS.tsv` is one sentence for each of 387 selected primary documents. `readings/WAVE2_CLAIMS.tsv` is one sentence for each of the other 2,304 markdown blobs.
 
 Evidence is cited as `branch@full-commit:path`. A blob id (`git` object hash) means the file bytes. The same blob can sit on many branches; it was read once.
 

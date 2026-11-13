@@ -1,13 +1,14 @@
 # Where to resume
 
-Last checkpoint intent: one sentence for each of the 387 selected primary documents, and a coverage word on all 429 opened tips (246 claimed, 170 alias, 13 live-report). Confirm the push by comparing `git rev-parse HEAD` with `git ls-remote origin refs/heads/cursor/forge-history-index-20261113-712a`. If those differ, the checkpoint did not land. Earlier verified tips: `0dd61fbb6066853c0cfc195bf159463ebc4c604d`, `3242a4ec3713e2f64e032471b3150c3e0eb055d1`, `b39453901cd47c654f94bb7ec0283fc7c7f0ceb0`, `3731557bb085980afd0fc0b441c446a4defbcb77`, `da51693e0fbac616c73c454a9bd2cf93f1f4ee24`, `b13a55627e1fd560704e6efd5c2cb8d5b0ec16b6`.
+Last checkpoint intent: one sentence for each of the 2,304 markdown blobs that were not primary documents (`readings/WAVE2_CLAIMS.tsv`), plus a second sentence for each of the 53 primary documents over 15 KB (`readings/LONG_PRIMARY_REREAD.tsv`). The 387 primary sentences stay in `readings/PRIMARY_CLAIMS.tsv`. Coverage on the 429 opened tips is unchanged: 246 claimed, 170 alias, 13 live-report. Confirm the push by comparing `git rev-parse HEAD` with `git ls-remote origin refs/heads/cursor/forge-history-index-20261113-712a`. If those differ, the checkpoint did not land.
 
-Do not re-read `alias` or `live-report` rows unless `git ls-remote` shows a new tip. The next check is the 53 primary documents larger than 15 KB: open the source blob before copying any number from `readings/PRIMARY_CLAIMS.tsv` into a findings file. Then run `git ls-remote --heads origin` and append any moved tip to `branches/HEAD_MOVEMENT.tsv`.
+Do not re-read a blob that already has a row in `PRIMARY_CLAIMS.tsv` or `WAVE2_CLAIMS.tsv` unless `git ls-remote` shows a new tip. The next check is `git ls-remote --heads origin` against `branches/EVERY_TIP.tsv`, then append any moved tip to `branches/HEAD_MOVEMENT.tsv`.
 
 ## Do not repeat
 
 - Another full `ls-tree` of all tips unless `git ls-remote --heads origin` disagrees with `branches/HEADS.tsv`.
 - Re-reading the blobs listed as full reads in `COVERAGE.md`.
+- Opening a markdown blob that already has a row in `readings/WAVE2_CLAIMS.tsv` or `readings/LONG_PRIMARY_REREAD.tsv`. The sentence is the first pass.
 - Executing repository scripts, trainers, or engines. Inspection stays at `git show` / `git cat-file`.
 - Pushing to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or any branch this index did not create.
 
