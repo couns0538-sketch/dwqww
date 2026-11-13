@@ -74,6 +74,36 @@ INT8 acceptance bounds were fixed before the run and passed: max 29 cp (bound 50
 
 U8 and run 5 cost the same per evaluation as the replica (within 1.5% on the microbenchmark). U8's lower NPS is the search tree. Output buckets added no NPS cost in the layout test. King-bucket refresh is the part the report could not remove; the eight bench positions include three endgames with active kings, so the bench may overstate that cost in games. That was not measured.
 
+## Where candidate 3's net came from
+
+`FABLE_REPORT.md` (blob `7cb6ce90fe3fe5391cab83d1f491bcc5d6111f4d`) is the same file on `fable-nnue-arch` and `fable-fb2-j1`. `FABLE_REPORT_FB2.md` (blob `cfd5464ac23e1a565f9e035f706be02157e3d113`, md5 `9e40983e6a44ed6283c0110d2df243cd`) is the file the H512 report names. Both were read here. Neither report ran a gate. Both say the PC was loaded, so their NPS figures are advisory.
+
+FB1 built the v3 format: 8 mirrored king buckets, factoriser, int16, QA 255, QB 64, standalone or residual. Parity and a 1,000,000-ply incremental walk passed in that report (0 mismatches). A 5-minute train on one ordered shard overfit: holdout loss rose while the training loss fell. Cross-shard CPU runs beat hand-crafted eval and stayed short of AL1 (residual 0.015194 and standalone 0.015743 against AL1 0.014310 on a 1,024,286-row subset). The report's own per-node ratios versus the AL1 path, different trees, loaded PC: residual H512 about 0.83, residual H1024 about 0.74, standalone H512 about 1.17 to 1.19. Those ratios are not the combo29 measurements in the H512 job.
+
+FB2 then trained a standalone H512 on the 271.8M-row split. The file's opening summary still says the run is in progress. The later "Final net" section says it finished: best checkpoint 15, 714.0M positions, exact b0.6 **0.014714** against AL1 **0.014417** on the 200k holdout (gap +0.000297). On the full subset, 0.014629 against AL1 0.014310. The target was not reached. The report refuses a gate. Final-net NPS versus AL1 was 1.158 at depth 16 and 1.111 at depth 20, different trees, loaded PC. The 200 games (60-48-92) are marked as a legality check, not Elo. This is the warm start H512 continued, and H512's later weight-decay runs are what first went below the combo29 evaluator on unseen rows. Do not describe FB2's net as a strength win.
+
+Other FB2 results that are not strength:
+
+- Four search options (`CorrHistV2`, `SingularV2`, `LmrTableV2`, `TtPruneV2`): 2,500 self-play games, 0 errors, no match against a baseline.
+- `TimeManV2`: 0 flag losses in the simulator and in 220 real-clock games. No Elo.
+- `SmpV2`: not distinguishable from the lock at 2 or 3 threads. Two Threads-2 repetitions gave geometric-mean wall ratios 0.970 and 0.909. Keep both. No speed claim.
+- A second layer of 16 units improved a float holdout at equal positions (0.015759 vs 0.016088 at about 40M; 0.015417 vs 0.015729 at about 82M), one seed, not implemented in the engine. H1024 saw half as many positions per second on that CPU. Sixteen king buckets were slightly behind eight at that budget.
+
+The 200k FB2 holdout (AL1 at 0.014417) and the older 1M-row subset (AL1 at 0.014310) are different sets. The H512 selection loss 0.014311 for s198+HCE is a third set. Do not subtract them from each other.
+
+## October width and int16 notes, from the Sol index only
+
+`opus-summary` @ `e89d2af1c5f3b9268836c8b949fb4f3951de6a29`, `SOL_LEFTOVERS_PROGRESS.md`, was read as an index. Each line points at a job report that was not opened, except where this ledger already names a full read. Treat the numbers as that index's claims.
+
+- `opus-sol-SC4` @ the progress line `25ee3585` (full tip is in `branches/HEADS.tsv`): zero-padded nets, identical trees, CPU NPS versus H256 of about -9.5/-9.8% at H512, -15.7/-17.6% at H768, -22.8/-23.7% at H1024 (depths 16/20). The index says the int16-weight path did not remove that width cost. This is a different measurement from FB1's standalone speedup, which drops the hand-crafted eval, and from the H512 job's 0.858x for a real 1024-unit net versus a 512-unit net.
+- `opus-sol-S21` @ `f7731fe8e552740b347996e31303c552b8c13b18`: the index says every one of 13 nets overflows int16 on 28-86% of 200k positions. The v3 loader later rejects a file that could overflow. Read S21 before changing quantisation. This index did not.
+- `opus-sol-SA2`: `NnueInt16` on is about 10-13% slower in the index's advisory NPS, and the option-off binary still costs about 0.4-0.5% on a quiet runner. `HistRework` (A1) costs about 0.8-1.0% with the option off. `NetScale` (S41) does not, in that same off-path check.
+- `opus-O2` @ `82282b09f606d7919028d54f7118f29897432786`: the summary says bit-identical kernels and +3.3% bench NPS, and that a +10% target was not reached. That sentence is the summary, not O2's report.
+- S14 `FORGE_NOZERO_MOVE_BUFFERS`: node-exact, about +1.25% to +2.70% CPU NPS on a quiet runner, and the index says the +2% lower-bound rule was not met.
+- S30: the index says loss has not predicted Elo, and that an early H1 (G104) was not repeated by G104c. Same warning as candidate 1's clock Elo versus its equal-node result.
+
+`opus_round1_20261027.tar.xz` (22.2 MB) on `opus-summary` was not opened. `FABLE_REVIEW_OPUS.md` was not read.
+
 ## Measurements that are easy to misuse
 
 - Selection loss is not Elo. Candidate 1's loss was worse than combo29 and it still scored +12.4 on the clock.

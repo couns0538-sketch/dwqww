@@ -95,6 +95,21 @@ These blobs were read in full after checkpoint 1. They are not on the H512 tip. 
 
 About 1,245 more lines. Still unread on those same branches: `fable_search_gap/EVIDENCE.md`, `DEDUPE.md`, `REVIEW_LOG.md`, `COVERAGE.md`; `fable_speed_lane/BENCH.md`, `DUPCHECK.md`, `PROFILE.md`, `QA_ABBA_PROTOCOL.md`; `fable_movegen_proof/PROOF.md`, `DONE.md`, `evidence/TABLES.md`; `fable_cpu_speed/DONE.md`, `PREREG.md`, `PROFILE.md`. The speed-lane protocol file was copied out and not read.
 
+## Checkpoint 3 full reads
+
+Same blob of `FABLE_REPORT.md` on `fable-nnue-arch` @ `08b589e197202d00bb2a840c80c2233262cd9918` and on `fable-fb2-j1` @ `014f3fd8b0ebf86c5ecd8c5e149b10119d9f7f3c`.
+
+| Blob | Tip | Path | Lines |
+|---|---|---|---|
+| `7cb6ce90fe3fe5391cab83d1f491bcc5d6111f4d` | both tips above | `FABLE_REPORT.md` | 322 |
+| `cfd5464ac23e1a565f9e035f706be02157e3d113` | `fable-fb2-j1` @ `014f3fd8b0ebf86c5ecd8c5e149b10119d9f7f3c` | `FABLE_REPORT_FB2.md` | 394 |
+| `ece3a02d3058c92de631ca35562f28fa5a571c6c` | `opus-summary` @ `e89d2af1c5f3b9268836c8b949fb4f3951de6a29` | `REPORT.md` | 167 |
+| `405728b54e7cfb2f3d27c2d2d176eee9d663b70b` | same tip | `SOL_LEFTOVERS_PROGRESS.md` | 64 |
+
+`FABLE_REPORT_FB2.md` md5 `9e40983e6a44ed6283c0110d2df243cd`, which is the md5 `h512/REPORT.md` cites. The progress file is an index of one line per Sol job. Those lines were read. The job `REPORT.md` files they point at were not, except where an earlier section of this ledger already names a full read.
+
+Not read: `FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) on `fable-review-summary` @ `fa6411f6f984f86d0adacfc2868967f2698d4e67`. The 22.2 MB `opus_round1_20261027.tar.xz` on `opus-summary` was not extracted.
+
 ## Not claimed
 
-This ledger does not say that every branch was reviewed, that every report was read, or that any Elo or speed number was confirmed by a new match or bench.
+This ledger does not say that every branch was reviewed, that every report was read, or that any Elo or speed number was confirmed by a new match or bench. The running total of full-read prose is the checkpoint 1 files, the checkpoint 2 files, and the four files in this section. That is still a small share of the 2,666 markdown blobs.

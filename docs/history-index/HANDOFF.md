@@ -15,6 +15,11 @@ Current reported best, still not a lock: standalone H512 candidate 3 on `fable/s
 - v2 KB8 of the lock net is bit-exact and about 0.927x NPS. `FORGE_NNUE_V2_FAST=7` recovered about one point (0.936x) and left most of the cost. U8 on the fast exe is the build Job D asks to gate (+17.2 +/- 8.3 over 2,000 games, its own match). INT8's own match was +10.9 +/- 8.2 over 2,200 games and the report marks it not clean because of machine stalls.
 - Integer parity for the H512 candidates was 14,000/14,000 against the trainer reference, with the hand-crafted term 0. The GPU trainer is not bit-reproducible: seven short repeats moved selection loss by about 0.00002. Differences smaller than that are inside the noise the report measured.
 - Checkpoint files on this branch's tools go through `h512/train/ckpt_io.py`. Other jobs' `torch.load` calls were left in place (22 calls in 16 files on 17 branches, according to the safety note). A blind change will break their resume.
+- The warm start is FB2 checkpoint 15, exact holdout 0.014714 against AL1 0.014417. That report refused a gate. H512's weight decay is what later beat the combo29 evaluator on unseen rows. FB2's 200 games are a legality check.
+- A second hidden layer of 16 improved a float holdout in one FB2 seed and was never put in the engine. Sixteen king buckets did not help at that short budget.
+- Do not mix three AL1 loss baselines: 0.014310 on a 1M-row subset, 0.014417 on FB2's 200k holdout, and 0.014311 for s198+HCE on the H512 selection set.
+- `opus-sol-S21` says, in the one-line index only, that 13 older nets overflow int16 on 28-86% of 200k positions. Read that report before touching quantisation. The v3 loader rejects a file that could overflow.
+- Zero-padded H512/H768/H1024 on the lock, identical trees, cost about 10/17/23% NPS in the Sol index (`opus-sol-SC4`). That is not the standalone-net speedup, which drops the hand-crafted eval.
 
 ## For engine correctness
 
