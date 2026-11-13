@@ -775,3 +775,76 @@ A checkmate in quiescence returns before the store: `src/search.cpp:664` before 
 3. Otherwise read the clock evidence on the shared tip `356e863dbd86d2ce24b8ee9486d7406f1d525480`. Twenty-nine branches name that one commit, including `research/forge-forfeit-clock-gap-20261020-2120`. The tip commit edits `validation/hourly/2026-10-20-go-origin-native/CI_ATTEMPT_2.md` and `run_native_validation.sh`. Read `tools/audit/extreme_clock.cpp`, `validation/hourly/2026-10-20-go-origin-native/native_clock_probe.py`, `uci-clock-origin-scoped.patch`, and `validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch` as data. Do not execute repository scripts.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 9
+
+Trigger 22:26 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 22:31 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-8 table | 429 |
+| Moved | 1. This checkpoint, `0b5eff7f` to `db4613f1`, the run-8 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `0b5eff7f` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `d0e43a6a` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. The 29 branches at `356e863d` were tip-only and are now `run9-read` for the clock files named below. 374 branches stay tip-only.
+
+No engine was built. No script in the tree was executed. No PGN was scored. The timing figures below are sentences and one stored model stdout. They are not a new measurement.
+
+### One tree, twenty-nine names
+
+`356e863dbd86d2ce24b8ee9486d7406f1d525480` (tree `41f7a4cb`, 1068 files, 2026-10-20 09:04 +02:00) is the whole shared group. It contains `24cc2cce` and does not contain the lock, H512, or `main`. The commit itself changes two files: `validation/hourly/2026-10-20-go-origin-native/CI_ATTEMPT_2.md` and `run_native_validation.sh`. The subject is a CI baseline pin, "Fix Forge 6.4 native CI to compare pinned pre-fix commit."
+
+These names all point at that commit. None of them is a separate experiment:
+
+`forge/candidate-ownbook-native-20261020-0945`, `forge/candidate-terminal-zero-nodes-20261020-1445`, `forge/candidate-terminal-zero-nodes-20261020-1545`, `forge/candidate-terminal-zero-nodes-20261020-1645`, `forge/research-20261020-0915`, `forge/research-20261020-1015`, `forge/research-20261020-1115`, `forge/research-20261020-1215`, `forge/research-20261020-1315`, `forge/test-20261020-0930`, `forge/test-20261020-1030`, `forge/test-20261020-1130`, `forge/test-20261020-1230`, `forge/test-20261020-1330`, `forge/test-20261020-1430`, `forge/test-20261020-1530`, `forge/test-20261020-1630`, `forge/test-20261020-1830`, `forge/test-20261020-1930`, `forge/test-20261020-2030`, `investigator/hourly-20261020-1000`, `investigator/hourly-20261020-1100`, `investigator/hourly-20261020-1500-dedup`, `investigator/null-rule50-20261020-1200`, `investigator/ownbook-native-confirmation-20261020-1800`, `research/forge-forfeit-clock-gap-20261020-2120`, `research/forge-terminal-zero-node-native-20261020-1519`, `research/forge-tt-abort-audit-20261020-1433`, `research/forge64-ownbook-integration-20261020-1908`.
+
+### What the clock change is
+
+Parent `294cf1ba` ("Fix Forge 6.4 timed UCI go dispatch clock origin") is the integration. Its parent is the pinned pre-fix commit `06c581895708a6eb9ff26b380d818f72f7bd9ebf`. The blobs named in the cycle-7 note match that parent: `include/forge/search.hpp` `f3f96e4b`, `src/search.cpp` `ca5b3541`, `src/uci.cpp` `9bf1b757`.
+
+On this tip, `go` records `go_received` before `stop_search()` (`src/uci.cpp:288`). A finite clock or movetime, with infinite and ponder both clear, copies that timestamp into `limits.start_time` (`src/uci.cpp:325`). `Worker::search` uses it when it is set and otherwise uses `steady_clock::now()` (`src/search.cpp:1112`). `SearchLimits::start_time` is a default time point (`include/forge/search.hpp:31`). `<chrono>` is already included at `include/forge/search.hpp:9`.
+
+`go depth`, `go nodes`, `go infinite`, and `go ponder` leave `start_time` unset. `elapsed_ms` while pondering returns 0 until `ponder_hit_ns` is set, and then measures from that hit (`src/search.cpp:561`). That rebase was read. It was not played.
+
+Depth and node limits still use `uint64_t` (`src/uci.cpp:86`). Clocks still use `read_int` into an `int` (`src/uci.cpp:73`). A token that does not convert, including `3000000000` and a leading `+`, returns 0 (`src/uci.cpp:78`). `wtime` stores `max(0, that)` (`src/uci.cpp:99`). A parsed 0 is a present clock. With the default overhead of 10 ms, `available` is `max(1, time - overhead)` (`src/search.cpp:1141`). These are the same lines already recorded on `24cc2cce`. This binary was not run. `movestogo` uses the same parser and then `max(1, read_int())` (`src/uci.cpp:95`), so a failed movestogo token becomes 1. That case was not played.
+
+`bad_captures_[bad_count_++]` is still unchecked at `src/search.cpp:296`. The array is 64 slots at `src/search.cpp:384`. No overflow position was searched.
+
+### Patches, probe, and the unfinished driver
+
+`validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch` sets `limits.start_time = go_received` for every non-perft `go`. `validation/hourly/2026-10-20-go-origin-native/uci-clock-origin-scoped.patch` sets it only for a finite clock or movetime. The integrated condition matches the scoped patch. The comment text in `294cf1ba` does not match either stored patch. In a throwaway checkout of `06c58189`, `git apply --check` accepted both patches. On a throwaway checkout of this tip, both patches failed at `include/forge/search.hpp:25`, `src/search.cpp:1109`, and `src/uci.cpp:285`. That matches `CI_ATTEMPT_2.md`: workflow `39383195419` stopped in `git apply -R` before compilation. The tip's driver now archives `06c58189` and `HEAD` instead of reversing a patch (`run_native_validation.sh:25` and `:35`). The workflow file `.github/workflows/forge64-clock-origin.yml` runs that driver only for pushes to `forge/6.4-hourly-20261019`. `CI_ATTEMPT_2.md` says the new driver had not been seen to pass. This run did not download either Actions artifact.
+
+`native_clock_probe.py` compares two binaries under `delayed_pthread_create.c`. The shim sleeps inside `pthread_create` when `FORGE_TEST_CREATE_DELAY_MS` is 1..1000. The probe's default delay is 440 ms. It sends `go movetime 1200` to the baseline and the candidate, then `go depth 1` to the candidate, and it turns OwnBook off first. Pass requires the baseline's first `info time` to be under half the delay, the candidate's timed `info time` to be at least delay-minus-60, and the depth-1 `info time` to be under half the delay. The script's own docstring says this is UCI elapsed accounting, not Elo. It was not run.
+
+`INTEGRATION_REPORT.md` quotes an earlier success, workflow `39382802396`, GCC 13.3.0, CTest 4/4 on both trees, and these UCI lines under a 440 ms admission delay: pre-fix `go movetime 1200` info time 0 ms, wall 1630.492 ms, `d2d4`; scoped fix info time 440 ms, wall 1190.489 ms, `e2e4`; scoped `go depth 1` info time 0 ms, wall 440.890 ms, `e2e3`. The journals are not in this commit. The note says the move change comes from a different time budget. It claims no Elo. The same file says the first TT-tag match stopped at 6 games, 3 pairs, and 1 candidate timeout, with no H0/H1 result.
+
+`validation/hourly/2026-10-20-go-origin/REPORT.md` describes a standalone sleep model, not Forge. `time_origin_model.cpp` sleeps 440 ms, then samples a worker-local clock and a go-receipt clock against a hard budget of 351 ms. `model-test.stdout` contains `budget_ms=351 old_elapsed_ms=0 go_origin_elapsed_ms=440` and the PASS line. That file was not regenerated. The native-directory `REPORT.md` describes a three-mode fixture (`native_probe_fixture.cpp`) whose journals are also absent: unpatched `info time` 12 ms, scoped timed 452 ms, scoped depth 1 at 12 ms, and the unscoped depth path at 452 ms. The fixture prints `bestmove e2e4` after a 12 ms sleep. It is not Forge. `CI_ATTEMPT_1.md` says workflow `39382382647` compiled and passed CTest 4/4 on both trees, then the probe failed because the embedded book returned `bestmove c2c4` before any `info depth` line.
+
+### OwnBook and the extreme-clock probe
+
+At this tip a game search still probes the book when `own_book` is true or `book_file` is non-empty (`src/uci.cpp:331`). `OwnBook false` clears only `own_book` (`src/uci.cpp:229`). `Book File` still loads that file (`src/uci.cpp:242`). The following commit, `af194137`, which is not this tip, drops the `book_file` clause. It was not played here.
+
+`tools/audit/extreme_clock.cpp` assigns `depth = 1` and `numeric_limits<int>::max()` to `time_ms` and `increment_ms` on a `SearchLimits` object. It does not send UCI text, so it does not reach `read_int`. `tools/audit/README.md:16` says an untouched 5.6.0 build trips UBSan on this probe and that the 5.7.0 fix and the candidate pass. There is no log of that run in the files opened here. The probe was not compiled. The same README says `go infinite` on `7k/6Q1/6K1/8/8/8/8/8 b - - 100 1` returns `bestmove 0000` after a 64-depth loop. That sentence was not replayed.
+
+### Not claimed
+
+- No new Elo and no new bench. The 1630 ms and 1190 ms walls are the integration note's figures. The journals are not in the tree, and the later driver run is described as unfinished.
+- 374 branches are still tip-only. The 12 branches at `5101c252` were not opened. That tip is two commits later: `af194137` and the OwnBook test.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read the shared tip `5101c2529d386b7c3a04ba9156a69ee34df6bb43` (12 branches, one tree). It is `af194137` plus `5101c252`. `af194137` changes `src/uci.cpp:331` so a game search probes the book only when `own_book` is true. `5101c252` adds `validation/hourly/2026-10-20-ownbook-native/test_ownbook.py`. Read that test as data. Do not execute repository scripts.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.

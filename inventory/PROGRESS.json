@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "run": 8,
-  "snapshot_at": "2026-11-13T21:31:09Z",
-  "trigger_at": "2026-11-13T21:27:13Z",
+  "run": 9,
+  "snapshot_at": "2026-11-13T22:31:53Z",
+  "trigger_at": "2026-11-13T22:26:17Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
@@ -18,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "0b5eff7f1078c4679a57761c5435a650b2157fc1",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 0b5eff7f. The commit that adds the run-8 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "db4613f18ae57b08ea1c3476ac83a56685d20fe4",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at db4613f1. The commit that adds the run-9 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -34,14 +34,14 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 7. Replacing 6cf670a6 with 0b5eff7f keeps the same containment: both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 8. Replacing 0b5eff7f with db4613f1 keeps the same containment: both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 403,
+    "tip-only": 374,
     "run1-detail": 1,
     "run2-moved": 2,
     "run2-new": 4,
@@ -53,11 +53,39 @@
     "run6-same-docs": 1,
     "run7-read": 1,
     "run8-read": 2,
-    "run8-checkpoint": 1
+    "run9-read": 29,
+    "run9-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/chess-engine-elo-d8c5",
-    "cursor/engine-elo-improvement-3c5f"
+    "forge/candidate-ownbook-native-20261020-0945",
+    "forge/candidate-terminal-zero-nodes-20261020-1445",
+    "forge/candidate-terminal-zero-nodes-20261020-1545",
+    "forge/candidate-terminal-zero-nodes-20261020-1645",
+    "forge/research-20261020-0915",
+    "forge/research-20261020-1015",
+    "forge/research-20261020-1115",
+    "forge/research-20261020-1215",
+    "forge/research-20261020-1315",
+    "forge/test-20261020-0930",
+    "forge/test-20261020-1030",
+    "forge/test-20261020-1130",
+    "forge/test-20261020-1230",
+    "forge/test-20261020-1330",
+    "forge/test-20261020-1430",
+    "forge/test-20261020-1530",
+    "forge/test-20261020-1630",
+    "forge/test-20261020-1830",
+    "forge/test-20261020-1930",
+    "forge/test-20261020-2030",
+    "investigator/hourly-20261020-1000",
+    "investigator/hourly-20261020-1100",
+    "investigator/hourly-20261020-1500-dedup",
+    "investigator/null-rule50-20261020-1200",
+    "investigator/ownbook-native-confirmation-20261020-1800",
+    "research/forge-forfeit-clock-gap-20261020-2120",
+    "research/forge-terminal-zero-node-native-20261020-1519",
+    "research/forge-tt-abort-audit-20261020-1433",
+    "research/forge64-ownbook-integration-20261020-1908"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -661,13 +689,79 @@
         "193a91ec src/board.cpp:810 compares with move_to_uci, which writes lowercase letters at src/board.cpp:817",
         "86c91628 src/board.cpp:831 compares with move_to_uci, which writes lowercase letters at src/board.cpp:838"
       ]
+    },
+    {
+      "id": "go-origin-scoped-on-356e863d",
+      "status": "code read on the shared tip; probe not run; their engine journals are not in the commit",
+      "tip": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "tree": "41f7a4cb21afcbea375b8846e69e57c8087c8eaa",
+      "branches": 29,
+      "integration_commit": "294cf1ba7d2e3e77a70a08578958a5faea3b54dd",
+      "pre_fix": "06c581895708a6eb9ff26b380d818f72f7bd9ebf",
+      "go_received": "src/uci.cpp:288",
+      "assign": "src/uci.cpp:325",
+      "worker": "src/search.cpp:1112",
+      "field": "include/forge/search.hpp:31",
+      "ponder_rebase": "src/search.cpp:561 returns 0 until ponder_hit_ns, then measures from the hit",
+      "excluded": [
+        "go depth",
+        "go nodes",
+        "go infinite",
+        "go ponder"
+      ],
+      "their_engine_note": "INTEGRATION_REPORT.md quotes workflow 39382802396: movetime 1200, 440 ms pthread delay, pre-fix wall 1630.492 ms info time 0 bestmove d2d4; scoped wall 1190.489 ms info time 440 bestmove e2e4; depth 1 wall 440.890 ms info time 0 bestmove e2e3. CTest 4/4 each in that note. Journals absent. No Elo.",
+      "driver_after_failed_reverse": "CI_ATTEMPT_2.md says workflow 39383195419 failed in git apply -R before compile. run_native_validation.sh now archives 06c58189 and HEAD. That driver pass is not claimed in the note and was not rerun."
+    },
+    {
+      "id": "stored-clock-patches-are-not-the-integrated-diff",
+      "status": "apply check in throwaway checkouts; engine not built",
+      "scoped": "validation/hourly/2026-10-20-go-origin-native/uci-clock-origin-scoped.patch",
+      "unscoped": "validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch",
+      "parent_06c58189": "git apply --check accepted both",
+      "tip_356e863d": "both failed at include/forge/search.hpp:25, src/search.cpp:1109, and src/uci.cpp:285",
+      "logic": "The integrated condition matches the scoped patch. The comment text in 294cf1ba matches neither stored patch. The unscoped patch assigns start_time on every non-perft go."
+    },
+    {
+      "id": "clock-model-stdout-is-a-sleep",
+      "status": "source and stored stdout read; not regenerated; not Forge",
+      "model": "validation/hourly/2026-10-20-go-origin/time_origin_model.cpp",
+      "stdout": "validation/hourly/2026-10-20-go-origin/model-test.stdout",
+      "text": "budget_ms=351 old_elapsed_ms=0 go_origin_elapsed_ms=440",
+      "note": "The model sleeps 440 ms and then samples the worker-local clock, so 0 is the order of those two statements. It does not show a Forge forfeit."
+    },
+    {
+      "id": "ownbook-false-still-loads-book-file",
+      "status": "code read; not played; the repair is the next commit, not this tip",
+      "tip": "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+      "condition": "src/uci.cpp:331 probes when own_book is true or book_file is non-empty",
+      "ownbook_false": "src/uci.cpp:229",
+      "book_file_load": "src/uci.cpp:242",
+      "following_commit": "af1941375111717f415a46d9ce0224c329034466 drops the book_file clause. That commit is on 5101c252, not on this tip."
+    },
+    {
+      "id": "extreme-clock-probe-bypasses-uci",
+      "status": "source and README sentence read; not compiled",
+      "file": "tools/audit/extreme_clock.cpp",
+      "what_it_does": "Sets depth 1 and INT_MAX on SearchLimits.time_ms and increment_ms. It does not call read_int.",
+      "readme": "tools/audit/README.md:16 says untouched 5.6.0 trips UBSan and the 5.7.0 fix and the candidate pass. No log of that run was opened.",
+      "infinite_sentence": "tools/audit/README.md says go infinite on 7k/6Q1/6K1/8/8/8/8/8 b - - 100 1 returns bestmove 0000. Not replayed."
+    },
+    {
+      "id": "int-clock-and-badcap-unchanged-on-356e863d",
+      "status": "same lines as the 6.4.0 record on ancestor 24cc2cce; not played",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1141 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
+      "movestogo": "src/uci.cpp:95 turns a failed token into 1",
+      "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384"
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from 0b5eff7f because of the run-8 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from db4613f18ae57b08ea1c3476ac83a56685d20fe4 because of the run-9 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read the clock evidence on the shared tip 356e863dbd86d2ce24b8ee9486d7406f1d525480 (29 branches, one tree, 1068 files). The tip commit itself only edits validation/hourly/2026-10-20-go-origin-native/CI_ATTEMPT_2.md and run_native_validation.sh. Read tools/audit/extreme_clock.cpp, validation/hourly/2026-10-20-go-origin-native/native_clock_probe.py, uci-clock-origin-scoped.patch, and validation/hourly/2026-10-20-go-origin/uci-clock-origin.patch as data. Do not execute repository scripts.",
+    "Otherwise read the shared tip 5101c2529d386b7c3a04ba9156a69ee34df6bb43 (12 branches, one tree). It is af194137 plus 5101c252. af194137 changes src/uci.cpp:331 so a game search probes the book only when own_book is true. 5101c252 adds validation/hourly/2026-10-20-ownbook-native/test_ownbook.py. Read that test as data. Do not execute repository scripts.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ],
