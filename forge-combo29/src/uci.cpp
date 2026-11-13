@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
@@ -33,35 +34,90 @@
 
 namespace {
 
+// UCI option names are not case sensitive (UCI spec). Checkbox values are
+// specified as "true" and "false"; GUIs also send "True" and "False".
+bool same_text(std::string_view a, std::string_view b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const unsigned char ca = static_cast<unsigned char>(a[i]);
+        const unsigned char cb = static_cast<unsigned char>(b[i]);
+        if (std::tolower(ca) != std::tolower(cb)) return false;
+    }
+    return true;
+}
+
+bool is_true_value(std::string_view text) { return same_text(text, "true"); }
+bool is_false_value(std::string_view text) { return same_text(text, "false"); }
+
+bool move_is_legal_here(const forge::Board& board, const forge::Move& move) {
+    if (move.is_none()) return false;
+    for (const forge::Move legal : board.legal_moves()) {
+        if (legal == move) return true;
+    }
+    return false;
+}
+
 void apply_position(forge::Board& board, std::istringstream& input) {
     forge::Board candidate = board;
     std::string token;
     if (!(input >> token)) return;
+    bool saw_moves = false;
     if (token == "startpos") {
         (void)candidate.set_fen(forge::Board::StandardStartFen);
-    } else if (token == "fen") {
-        std::string fen;
-        for (int i = 0; i < 6 && input >> token; ++i) {
-            if (!fen.empty()) fen += ' ';
-            fen += token;
+        if (!(input >> token)) {
+            board = candidate;
+            return;
         }
+        if (token != "moves") return;
+        saw_moves = true;
+    } else if (token == "fen") {
+        // A FEN is four to six fields. Stop before "moves" so a four-field FEN
+        // (placement, side, castling, en passant) is not parsed as halfmove text.
+        // Missing move counters default to 0 and 1.
+        std::vector<std::string> fields;
+        while (fields.size() < 6 && (input >> token)) {
+            if (token == "moves") {
+                saw_moves = true;
+                break;
+            }
+            fields.push_back(token);
+        }
+        if (fields.size() < 4) {
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string invalid FEN: need placement, side, castling and en passant" << std::endl;
+            return;
+        }
+        if (fields.size() == 4) {
+            fields.push_back("0");
+            fields.push_back("1");
+        } else if (fields.size() == 5) {
+            fields.push_back("1");
+        }
+        std::string fen = fields[0];
+        for (std::size_t i = 1; i < fields.size(); ++i) fen += ' ' + fields[i];
         std::string error;
         if (!candidate.set_fen(fen, &error)) {
-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string invalid FEN: " << error << std::endl;
             return;
+        }
+        if (!saw_moves) {
+            if (!(input >> token)) {
+                board = candidate;
+                return;
+            }
+            if (token != "moves") return;
+            saw_moves = true;
         }
     } else {
         return;
     }
-    if (!(input >> token)) {
-        board = candidate;
-        return;
-    }
-    if (token != "moves") return;
+    if (!saw_moves) return;
     while (input >> token) {
         const auto move = candidate.parse_uci(token);
         if (!move.has_value()) {
-            { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << "info string illegal move " << token << std::endl;
             return;
         }
         forge::Undo undo;
@@ -238,7 +294,7 @@ int main() {
             }
             bool handled_tunable = false;
             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
-                if (name != parameter.name) continue;
+                if (!same_text(name, parameter.name)) continue;
                 handled_tunable = true;
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
@@ -252,23 +308,23 @@ int main() {
             }
             if (handled_tunable) {
                 // Unlisted development options; nothing else to do.
-            } else if (name == "Clear Hash") {
+            } else if (same_text(name, "Clear Hash")) {
                 searcher.clear_hash();
-            } else if (name == "Ponder") {
-                if (value_text == "true") ponder_enabled = true;
-                else if (value_text == "false") ponder_enabled = false;
+            } else if (same_text(name, "Ponder")) {
+                if (is_true_value(value_text)) ponder_enabled = true;
+                else if (is_false_value(value_text)) ponder_enabled = false;
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option Ponder" << std::endl;
                 }
-            } else if (name == "OwnBook") {
-                if (value_text == "true") own_book = true;
-                else if (value_text == "false") own_book = false;
+            } else if (same_text(name, "OwnBook")) {
+                if (is_true_value(value_text)) own_book = true;
+                else if (is_false_value(value_text)) own_book = false;
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option OwnBook" << std::endl;
                 }
-            } else if (name == "Book File") {
+            } else if (same_text(name, "Book File")) {
                 std::string rest;
                 std::getline(input, rest);
                 std::string path = value_text + rest;
@@ -284,19 +340,19 @@ int main() {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string cannot load book " << path << std::endl;
                 }
-            } else if (name == "Book Depth" || name == "Book Variety") {
+            } else if (same_text(name, "Book Depth") || same_text(name, "Book Variety")) {
                 int value = 0;
                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option " << name << std::endl;
-                } else if (name == "Book Depth") {
+                } else if (same_text(name, "Book Depth")) {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
                 }
 #if FORGE_NNUE_HALFKA
-            } else if (name == "EvalFileHalfKA") {
+            } else if (same_text(name, "EvalFileHalfKA")) {
                 std::string rest;
                 std::getline(input, rest);
                 std::string path = value_text + rest;
@@ -317,7 +373,7 @@ int main() {
                 searcher.clear_hash();
 #endif
 #if FORGE_NNUE_V2
-            } else if (name == "EvalFileV2") {
+            } else if (same_text(name, "EvalFileV2")) {
                 // A v2 net file (forge/nnue_v2.hpp); empty or <empty> = off (the compiled-in network). A file that
                 // cannot be loaded leaves no v2 net active and says why.
                 std::string rest;
@@ -339,8 +395,8 @@ int main() {
                 searcher.clear_hash();
 #endif
 #if FORGE_NNUE_V3
-            } else if (name == "NNUEArch") {
-                if (value_text == "true") {
+            } else if (same_text(name, "NNUEArch")) {
+                if (is_true_value(value_text)) {
                     forge::nnue::v3::requested = true;
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     if (const std::string v3_problem = forge::nnue::v3::problem(); !v3_problem.empty()) {
@@ -348,14 +404,14 @@ int main() {
                     } else {
                         std::cout << "info string NNUE v3 active: " << forge::nnue::v3::describe(*forge::nnue::v3::loaded()) << std::endl;
                     }
-                } else if (value_text == "false") {
+                } else if (is_false_value(value_text)) {
                     forge::nnue::v3::requested = false;
                 } else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option NNUEArch" << std::endl;
                 }
                 searcher.clear_hash();
-            } else if (name == "NNUEArchFile") {
+            } else if (same_text(name, "NNUEArchFile")) {
                 std::string rest;
                 std::getline(input, rest);
                 std::string path = value_text + rest;
@@ -374,16 +430,16 @@ int main() {
                 }
                 searcher.clear_hash();
 #endif
-            } else if (name == "UseNNUE") {
-                if (value_text == "true") forge::nnue::enabled = true;
-                else if (value_text == "false") forge::nnue::enabled = false;
+            } else if (same_text(name, "UseNNUE")) {
+                if (is_true_value(value_text)) forge::nnue::enabled = true;
+                else if (is_false_value(value_text)) forge::nnue::enabled = false;
                 else {
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
 #if FORGE_NNUE_INT8_VNNI
-            } else if (name == "NnueInt8Vnni") {
+            } else if (same_text(name, "NnueInt8Vnni")) {
                 // 0 = the float path (lock), 1 = the int8 path; the eval changes, so stored scores go with it
                 if (value_text == "0") forge::nnue::int8_vnni = false;
                 else if (value_text == "1") forge::nnue::int8_vnni = true;
@@ -393,15 +449,15 @@ int main() {
                 }
                 searcher.clear_hash();
 #endif
-            } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
+            } else if (same_text(name, "Hash") || same_text(name, "Move Overhead") || same_text(name, "Threads")) {
                 int value = 0;
                 const auto parsed = std::from_chars(
                     value_text.data(), value_text.data() + value_text.size(), value);
                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid value for option " << name << std::endl; }
-                } else if (name == "Hash") {
+                } else if (same_text(name, "Hash")) {
                     searcher.resize_hash(static_cast<std::size_t>(std::clamp(value, 1, 2048)));
-                } else if (name == "Threads") {
+                } else if (same_text(name, "Threads")) {
                     searcher.set_threads(std::clamp(value, 1, 256));
                 } else {
                     move_overhead_ms = std::clamp(value, 0, 1000);
@@ -495,16 +551,33 @@ int main() {
                             return stop_requested || (limits.ponder && ponder_hit_received);
                         });
                     }
-                    const std::string best = result.best_move.from == result.best_move.to
-                        ? "0000" : forge::Board::move_to_uci(result.best_move);
+                    forge::Move chosen = result.best_move;
+                    std::string note;
+                    if (!move_is_legal_here(search_board, chosen)) {
+                        const forge::MoveList legal = search_board.legal_moves();
+                        if (legal.empty()) {
+                            chosen = forge::Move::none();
+                        } else {
+                            if (!chosen.is_none()) note = "info string replaced illegal search move\n";
+                            chosen = legal.front();
+                        }
+                    }
+                    const std::string best = chosen.is_none() ? "0000" : forge::Board::move_to_uci(chosen);
                     std::string prediction;
-                    if (ponder_enabled && result.pv.size() > 1 &&
-                        result.pv.front().from == result.best_move.from &&
-                        result.pv.front().to == result.best_move.to &&
-                        result.pv.front().promotion == result.best_move.promotion) {
-                        prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                    const bool same_root = !chosen.is_none() && result.pv.size() > 1 &&
+                        result.pv.front().from == chosen.from &&
+                        result.pv.front().to == chosen.to &&
+                        result.pv.front().promotion == chosen.promotion;
+                    if (ponder_enabled && same_root) {
+                        forge::Board next = search_board;
+                        forge::Undo undo;
+                        (void)next.make_move(chosen, undo);
+                        if (move_is_legal_here(next, result.pv[1])) {
+                            prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+                        }
                     }
                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (!note.empty()) std::cout << note;
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }

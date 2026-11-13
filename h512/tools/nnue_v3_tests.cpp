@@ -502,6 +502,8 @@ int main(int argc, char** argv) {
             return file(name);
         };
         expect_reject(file("missing.fnn3"), "cannot open", "missing file");
+        write_file(file("empty.fnn3"), {});
+        expect_reject(file("empty.fnn3"), "too small", "empty file");
         expect_reject(corrupt("magic.fnn3", [](auto& b) { b[0] = 'X'; }), "bad magic", "bad magic");
         expect_reject(corrupt("version.fnn3", [](auto& b) { b[8] = 2; }), "version", "wrong version");
         expect_reject(corrupt("short.fnn3", [](auto& b) { b.pop_back(); }), "file size", "truncated file");

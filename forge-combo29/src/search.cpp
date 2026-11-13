@@ -1815,6 +1815,17 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
         std::cout << "info string searchmoves restriction has no legal root moves" << std::endl;
     }
+    // The restriction matched nothing, but the position still has legal moves.
+    // Report one of those instead of a null move (UCI "0000"), which a GUI
+    // treats as a resignation while the game is still playable.
+    if (result.restricted_root_empty) {
+        result.best_move = legal.front();
+        result.nodes = total_nodes();
+        nodes_.store(local_nodes_, std::memory_order_relaxed);
+        result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_).count());
+        return result;
+    }
 
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
