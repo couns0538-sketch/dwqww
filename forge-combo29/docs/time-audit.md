@@ -29,11 +29,13 @@ A full token that is out of range now clamps to `INT_MAX` or `INT_MIN`. Existing
 Release build with `g++` (`-O3`, `FORGE_MARCH=x86-64-v4`) at `/tmp/forge-build/forge`. Reader is a daemon thread over stdout. `select` plus a text-mode `readline` was not used: the text wrapper buffers ahead and that pattern reports false hangs.
 
 ```text
-python3 forge-combo29/tools/uci_time_audit.py /tmp/forge-build/forge
+PATH="/tmp/forge-build:$PATH" python3 forge-combo29/tools/uci_time_audit.py
 ctest --test-dir /tmp/forge-build --output-on-failure
 ```
 
-`ctest` passed `uci_time_audit` in 3.86 s on the final suite. An earlier run of the same script passed in 3.93 s, and a shorter predecessor passed twice before the overflow-budget cases were added. OwnBook off, Threads 1, Hash 16, overhead 0 unless noted.
+The script starts the `forge` executable on `PATH`. It does not take a command from its arguments. `ctest` prepends the build directory.
+
+`ctest` passed `uci_time_audit` in 3.84 s with the build directory on `PATH`. The same cases passed in 3.86 s before that invocation change, and an earlier script run passed in 3.93 s. OwnBook off, Threads 1, Hash 16, overhead 0 unless noted.
 
 | Case | Result |
 | --- | --- |

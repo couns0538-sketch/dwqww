@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """UCI audit of Forge clocks, increments, stop, and perft interruption.
 
-Usage: python3 tools/uci_time_audit.py /path/to/forge
-Exits 0 when every case holds. Timing bounds include scheduler slack measured
-on a release build; they still reject a search that ignores the clock or stop.
+Usage: PATH=/path/to/build:$PATH python3 tools/uci_time_audit.py
+The script runs the forge executable found on PATH. It does not accept a
+command string. Exits 0 when every case holds. Timing bounds include
+scheduler slack measured on a release build; they still reject a search
+that ignores the clock or stop.
 """
 import queue
 import subprocess
@@ -15,9 +17,9 @@ START_PERFT = {1: 20, 2: 400, 4: 197281, 5: 4865609, 6: 119060324}
 
 
 class Engine:
-    def __init__(self, path):
+    def __init__(self):
         self.proc = subprocess.Popen(
-            [path],
+            ["forge"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
@@ -78,9 +80,12 @@ def fail(message):
 
 
 def main():
-    if len(sys.argv) != 2:
-        fail("usage: uci_time_audit.py <forge>")
-    engine = Engine(sys.argv[1])
+    if len(sys.argv) != 1:
+        fail("usage: uci_time_audit.py  (the forge executable must be on PATH)")
+    try:
+        engine = Engine()
+    except FileNotFoundError:
+        fail("forge was not found on PATH")
     passed = []
     try:
         engine.send("uci")

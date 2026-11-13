@@ -45,5 +45,7 @@ enable_testing()
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
   add_test(NAME uci_time_audit
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_time_audit.py $<TARGET_FILE:forge>)
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_time_audit.py)
+  set_tests_properties(uci_time_audit PROPERTIES
+    ENVIRONMENT "PATH=$<TARGET_FILE_DIR:forge>:$ENV{PATH}")
 endif()
