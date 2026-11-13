@@ -446,6 +446,10 @@ private:
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+#if FORGE_CONT4_READ
+    // Move-picker score only. Late-move reduction keeps quiet_history().
+    [[nodiscard]] int quiet_order_history(const Board& board, const SearchStack* ss, Move move) const;
+#endif
     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
     void update_correction(const Board& board, int depth, int best_score, int static_eval);

@@ -28,9 +28,15 @@
 #ifndef FORGE_ETC_AUDIT
 #define FORGE_ETC_AUDIT 0
 #endif
+// 1: peek only the hash move. Still takes no cutoff. Default 0 peeks every legal child.
+#ifndef FORGE_ETC_HASH_ONLY
+#define FORGE_ETC_HASH_ONLY 0
+#endif
 
 // The search already writes continuation history at ply 4 (half bonus) and never reads it.
-// Default 0 keeps quiet ordering on plies 1 and 2 only.
+// Default 0 keeps quiet ordering on plies 1 and 2 only. The read is applied in the move
+// picker only. Late-move reduction keeps using plies 1 and 2, so the switch does not
+// change the reduction formula.
 #ifndef FORGE_CONT4_READ
 #define FORGE_CONT4_READ 0
 #endif
@@ -745,7 +751,11 @@ private:
         }
 #else
         for (const Move move : buffer_) {
+#if FORGE_CONT4_READ
+            int score = searcher_.quiet_order_history(board_, ss_, move);
+#else
             int score = searcher_.quiet_history(board_, ss_, move);
+#endif
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
         }
@@ -766,7 +776,11 @@ private:
 #else
         for (const Move move : buffer_) {
             if (move.is_capture() || move.is_promotion()) continue;
+#if FORGE_CONT4_READ
+            int score = searcher_.quiet_order_history(board_, ss_, move);
+#else
             int score = searcher_.quiet_history(board_, ss_, move);
+#endif
             if (direct_check(move)) score += 12000;
             moves_[count_++] = Scored{move, score};
         }
@@ -793,7 +807,11 @@ private:
 #if FORGE_SEARCH_SPEED2
                 score = scorer.score(move, check_squares_);
 #else
+#if FORGE_CONT4_READ
+                score = searcher_.quiet_order_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+#else
                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+#endif
 #endif
             }
             moves_[count_++] = Scored{move, score};
@@ -1201,11 +1219,12 @@ bool Worker::is_draw(const Board& board, int ply) const {
 
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
 #if FORGE_SEARCH_SPEED2
+    // Ply 4 is intentionally absent: this value also adjusts late-move reduction.
     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
                              ss != nullptr ? (ss - 1)->continuation : nullptr,
                              ss != nullptr ? (ss - 2)->continuation : nullptr,
 #if FORGE_CONT4_READ
-                             ss != nullptr ? (ss - 4)->continuation : nullptr,
+                             nullptr,
 #endif
                              board.moved_piece(move), move);
 #else
@@ -1214,13 +1233,20 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
-#if FORGE_CONT4_READ
-        if ((ss - 4)->continuation != nullptr) score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to];
-#endif
     }
     return score;
 #endif
 }
+
+#if FORGE_CONT4_READ
+int Worker::quiet_order_history(const Board& board, const SearchStack* ss, Move move) const {
+    int score = quiet_history(board, ss, move);
+    if (ss != nullptr && (ss - 4)->continuation != nullptr) {
+        score += (*(ss - 4)->continuation)[static_cast<std::size_t>(board.moved_piece(move))][move.to];
+    }
+    return score;
+}
+#endif
 
 int Worker::capture_history_value(const Board& board, Move move) const {
     const Piece piece = board.moved_piece(move);
@@ -1434,10 +1460,7 @@ bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, 
     bool first_strict_is_hash = false;
     bool saw_strict = false;
     bool saw_mate = false;
-    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
-    Move move;
-    while (!(move = picker.next(false)).is_none()) {
-        if (!board.is_legal(move)) continue;
+    auto consider = [&](Move move) {
         ++etc_.child_visits;
         const bool safe_check = board.gives_check(move) && board.see_ge(move, 0);
         const Piece moving = board.piece_at(move.from);
@@ -1458,7 +1481,7 @@ bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, 
             const bool repeat = board.is_repetition(root_history_index_);
             board.unmake_move(move, undo);
             if (made_clock != child_clock) ++etc_.clock_mismatch;
-            if (repeat || made_clock >= 90) continue;
+            if (repeat || made_clock >= 90) return;
         } else if (etc_child_repeats(board, child_key, child_clock, child_null_plies, root_history_index_) ||
                    child_clock >= 90) {
 #if FORGE_ETC_AUDIT
@@ -1470,7 +1493,7 @@ bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, 
             board.unmake_move(move, undo);
             if (!repeat) ++etc_.repeat_mismatch;
 #endif
-            continue;
+            return;
         }
 #if FORGE_ETC_AUDIT
         else {
@@ -1485,12 +1508,12 @@ bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, 
 #endif
         ++etc_.lookups;
         const TTProbe child = probe_tt(child_key);
-        if (!child.hit || !child.entry.score_usable(static_cast<std::uint16_t>(child_clock))) continue;
+        if (!child.hit || !child.entry.score_usable(static_cast<std::uint16_t>(child_clock))) return;
         const int child_score = score_from_tt(child.entry.score, ss->ply + 1);
         const Bound bound = child.entry.bound();
-        if (child_score == ValueNone) continue;
-        if (bound != BoundUpper && bound != BoundExact) continue;
-        if (child_score > -beta) continue;
+        if (child_score == ValueNone) return;
+        if (bound != BoundUpper && bound != BoundExact) return;
+        if (child_score > -beta) return;
         const int stored = static_cast<int>(child.entry.depth);
         const int need_loose = depth - 1 + (safe_check ? 1 : 0);
         const int need_strict = move == tt_move ? depth + 1 : need_loose;
@@ -1503,7 +1526,18 @@ bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, 
             strict_hit = true;
             if (is_mate_score(child_score)) saw_mate = true;
         }
+    };
+#if FORGE_ETC_HASH_ONLY
+    // One child, the hash move. No move generation.
+    if (!tt_move.is_none() && board.is_legal(tt_move)) consider(tt_move);
+#else
+    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+    Move move;
+    while (!(move = picker.next(false)).is_none()) {
+        if (!board.is_legal(move)) continue;
+        consider(move);
     }
+#endif
     if (loose_hit) ++etc_.hits_loose;
     if (!strict_hit) return false;
     ++etc_.hits;
