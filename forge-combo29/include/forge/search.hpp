@@ -337,6 +337,19 @@ public:
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
 
+    // The last info line this worker printed. Searcher reprints it after joining
+    // helpers when their final node count is higher than this snapshot.
+    struct PublishedInfo {
+        bool present = false;
+        int depth = 0;
+        int seldepth = 0;
+        int score = 0;
+        std::uint64_t nodes = 0;
+        std::uint64_t time_ms = 0;
+        std::vector<Move> pv;
+    };
+    [[nodiscard]] const PublishedInfo& published_info() const { return published_info_; }
+
 private:
     friend struct SearcherTestProbe;
     friend class MovePicker;
@@ -362,6 +375,7 @@ private:
     std::chrono::steady_clock::time_point start_{};
     std::atomic<std::uint64_t> nodes_{0};
     std::uint64_t local_nodes_ = 0;
+    PublishedInfo published_info_{};
     const std::vector<Worker*>* all_workers_ = nullptr;
     std::uint64_t node_limit_ = 0;
     bool node_limit_specified_ = false;

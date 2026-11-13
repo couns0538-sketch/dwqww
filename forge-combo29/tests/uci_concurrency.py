@@ -144,12 +144,16 @@ def main() -> None:
         signature = [line for line in completed if line.startswith("info string bench depth ")]
         expect(len(signature) == 1 and " nodes 884 " in signature[0], "one-thread bench depth 1 node signature is unchanged", str(signature))
 
+        mark = engine.snapshot()
+        engine.send("position startpos")
+        engine.send("go infinite")
+        engine.wait_for(lambda line: line.startswith("info depth "), 2, mark)
         engine.send("quit")
         try:
             code = engine.process.wait(timeout=3)
         except subprocess.TimeoutExpired:
             code = None
-        expect(code == 0, "quit during idle returns", str(code))
+        expect(code == 0, "quit during search returns", str(code))
     finally:
         if engine.process.poll() is None:
             engine.close()

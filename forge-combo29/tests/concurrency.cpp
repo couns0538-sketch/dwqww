@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -150,6 +151,32 @@ int test_node_total_includes_helpers() {
     return g_failures == 0 ? 0 : 1;
 }
 
+int test_info_line_matches_joined_nodes() {
+    forge::Board board;
+    forge::Searcher searcher(16, 4);
+    forge::SearchLimits limits;
+    limits.depth = 5;
+    std::ostringstream captured;
+    std::streambuf* const previous = std::cout.rdbuf(captured.rdbuf());
+    const forge::SearchInfo info = searcher.search(board, limits, true);
+    std::cout.rdbuf(previous);
+
+    std::uint64_t last_nodes = 0;
+    bool saw = false;
+    std::istringstream lines(captured.str());
+    std::string line;
+    while (std::getline(lines, line)) {
+        if (line.rfind("info depth ", 0) != 0) continue;
+        const std::size_t pos = line.find(" nodes ");
+        if (pos == std::string::npos) continue;
+        last_nodes = std::strtoull(line.c_str() + pos + 7, nullptr, 10);
+        saw = true;
+    }
+    std::cout << "info_nodes " << last_nodes << " result_nodes " << info.nodes << std::endl;
+    expect(saw && last_nodes == info.nodes, "last info line counts every worker after join");
+    return g_failures == 0 ? 0 : 1;
+}
+
 int test_ponder_waits_for_hit() {
     forge::Board board;
     forge::Searcher searcher(8, 1);
@@ -218,6 +245,7 @@ int run_case(const std::string& mode) {
     if (mode == "tt") return test_tt_replacement_race();
     if (mode == "stop-flag") return test_stop_not_cleared();
     if (mode == "nodes") return test_node_total_includes_helpers();
+    if (mode == "info-nodes") return test_info_line_matches_joined_nodes();
     if (mode == "ponder") return test_ponder_waits_for_hit();
     if (mode == "stop-latency") return test_stop_interrupts_search();
     std::cerr << "unknown case " << mode << std::endl;
@@ -262,7 +290,7 @@ int main(int argc, char** argv) {
     if (argc == 2) return run_case(argv[1]);
 
     int failures = 0;
-    for (const char* mode : {"init", "tt", "stop-flag", "nodes", "ponder", "stop-latency"}) {
+    for (const char* mode : {"init", "tt", "stop-flag", "nodes", "info-nodes", "ponder", "stop-latency"}) {
         failures += run_child(mode);
     }
     std::cout << (failures == 0 ? "ALL PASS" : "ALL FAIL") << " failures " << failures << std::endl;

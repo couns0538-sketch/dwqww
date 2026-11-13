@@ -1524,6 +1524,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         ? std::chrono::steady_clock::now() : origin;
     local_nodes_ = 0;
     nodes_.store(0, std::memory_order_relaxed);
+    published_info_ = {};
     all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
@@ -1587,8 +1588,15 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::int64_t elapsed = std::max<std::int64_t>(0, elapsed_ms());
         const std::uint64_t nodes = total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+        published_info_.present = true;
+        published_info_.depth = depth;
+        published_info_.seldepth = std::max(seldepth_, depth);
+        published_info_.score = score;
+        published_info_.nodes = nodes;
+        published_info_.time_ms = static_cast<std::uint64_t>(elapsed);
+        published_info_.pv.assign(pv.begin(), pv.end());
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
+        std::cout << "info depth " << depth << " seldepth " << published_info_.seldepth << " score " << format_score(score)
                   << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
@@ -1844,6 +1852,16 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     std::uint64_t nodes = 0;
     for (const auto& worker : workers_) nodes += worker->nodes();
     result.nodes = nodes;
+    const Worker::PublishedInfo& published = workers_.front()->published_info();
+    if (emit_info && published.present && nodes != published.nodes) {
+        const std::uint64_t nps = published.time_ms > 0 ? nodes * 1000U / published.time_ms : 0;
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        std::cout << "info depth " << published.depth << " seldepth " << published.seldepth
+                  << " score " << format_score(published.score) << " nodes " << nodes << " nps " << nps
+                  << " hashfull " << shared_.tt.hashfull() << " time " << published.time_ms << " pv";
+        for (const Move& move : published.pv) std::cout << ' ' << Board::move_to_uci(move);
+        std::cout << std::endl;
+    }
     return result;
 }
 

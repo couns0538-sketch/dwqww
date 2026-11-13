@@ -40,7 +40,7 @@ The pre-fix binary had only test seams: `FORGE_INIT_PAUSE_MS` slept inside attac
 
 **Stop during helper shutdown.** After the main worker returned, the old wind-down did `external_stop = stop.load(); stop = true; join; stop = external_stop`. A `stop()` that arrived after the load was cleared. Shutdown now sets a separate `finish` flag, joins, and clears only `finish`. `stop()` is a release store. `stop_requested()` is an acquire load. The wind-down is an RAII object, so an exception from the main worker still joins the helpers instead of destroying joinable `std::thread`s.
 
-**Reported nodes.** `result.nodes` was sampled inside the main worker before helpers were joined, and helpers publish `nodes_` every 1024 nodes plus at exit. The result is now the sum of `worker->nodes()` after the join.
+**Reported nodes.** `result.nodes` was sampled inside the main worker before helpers were joined, and helpers publish `nodes_` every 1024 nodes plus at exit. The result is now the sum of `worker->nodes()` after the join. The `info` lines a GUI sees were still sampled at emit time, before that join. A 4-thread depth-5 search printed `info_nodes 1883` while `result.nodes` was 3526. After the join, if that total differs from the last printed line, the engine prints one more `info` line with the same depth, score, and PV and the joined node count. One thread does not print that line when the count is already current, and bench does not print `info` at all.
 
 **Ponder.** `ponder_hit_ns == 0` meant both "not hit yet" and a real clock reading of zero, so a hit at the steady-clock epoch never started the clock. `ponderhit()` now sets a `ponder_hit` flag and records the timestamp. `elapsed_ms()`, the hard-time check, and the soft-time predicate read the flag. Info `time` and `SearchInfo::elapsed_ms` use `elapsed_ms()`, so a ponder search reports own-clock time (0 until the hit) rather than wall time from `go`. `go infinite ponder` used to wake and print `bestmove` on `ponderhit` alone, because the wait predicate treated any ponder hit as completion. It now waits for `stop` while `infinite` is set.
 
@@ -59,9 +59,11 @@ stop_latency_ms 1
 ALL PASS failures 0
 ```
 
+The info-line case failed before the extra line: `info_nodes 1883` against `result_nodes 3526` (`docs/evidence/info-nodes-gap.txt`). After it, the same case prints `info_nodes 2717` and `result_nodes 2717`, and the full suite still ends `ALL PASS` with `stop_latency_ms 1` (`docs/evidence/post-fix-info-nodes.txt`).
+
 SMP node totals move between runs. The check is that the reported total equals the sum after join, not a particular node count.
 
-ThreadSanitizer (`-fsanitize=thread` on the same sources; the target still adds `-O3`) also reported `ALL PASS failures 0` and printed no race report. Under TSan, `stop_latency_ms` was 19. Log: `docs/evidence/tsan-concurrency.txt`. That run covers the suite only. It does not exercise `prefetch` against `clear` / `resize`.
+ThreadSanitizer (`-fsanitize=thread` on the same sources; the target still adds `-O3`) reported `ALL PASS failures 0` and printed no race report, including the info-line case. Under TSan, `stop_latency_ms` was 24 on the later run (19 on the first). Logs: `docs/evidence/tsan-concurrency.txt` and `docs/evidence/tsan-concurrency-info.txt`. That run covers the suite only. It does not exercise `prefetch` against `clear` / `resize`.
 
 One-thread bench against a binary built from `e3a699a8` with the same compiler and march (`docs/evidence/bench-signature.txt`):
 
@@ -78,7 +80,7 @@ One-thread bench against a binary built from `e3a699a8` with the same compiler a
 - 64 `isready` commands during `go infinite` with 2 threads each get their own `readyok` line, then one `bestmove` after `stop`.
 - `go perft 7` answers `stop` and `isready` within the 2 second wait, prints `info string perft stopped`, and does not print a `nodes` total. `go perft 1` still prints `nodes 20`.
 - `bench 10` answers `stop` with `info string bench stopped`. A later `bench 1` prints `nodes 884`.
-- `quit` returns exit code 0.
+- `quit` during `go infinite` returns exit code 0.
 
 ## Limitations
 
@@ -87,7 +89,7 @@ One-thread bench against a binary built from `e3a699a8` with the same compiler a
 - `nnue::enabled` and the tune integers are written from the command thread after `stop_search` has joined the worker.
 - On a one-thread exclusive search, `hashfull` from a foreign thread takes the exclusive gate and blocks until the search ends. UCI prints `hashfull` on the owner thread.
 - Helper threads do not apply time or node limits themselves. They exit when the main thread stores `stop` or `finish`, at the existing 1024-node check. They can overshoot. Seldepth in `info` is the main worker's seldepth.
-- Info `nodes` during the search is still `total_nodes()` at emit time, so it can lag a helper's latest 1024-node publish. The `bestmove` search's `SearchInfo::nodes` is the post-join sum.
+- Intermediate `info` lines still use `total_nodes()` at the moment they are printed, so they can lag a helper's latest 1024-node publish. The last `info` line and `SearchInfo::nodes` are the post-join sum. Seldepth in every `info` line is still the main worker's seldepth.
 - On the locked (multi-thread) store path, a slot that changed between probe and store is kept when the new occupant is a different key of equal or higher replacement value. That includes an entry written by the same thread's deeper search. One-thread exclusive stores do not do this, which is why the bench signature matches. Multi-thread node counts were already nondeterministic; this audit does not claim an Elo change.
 - A `ponderhit` whose steady-clock timestamp is exactly zero is treated as a hit because of the flag, and elapsed time is measured from that epoch. This host's clock was not at zero during the tests, so that single reading was not executed.
 - Perft stop is checked at depth 4 and above, so the largest uninterruptible chunk is one depth-3 subtree. Depth 0 and 1 do not poll.
