@@ -24,6 +24,9 @@
 // Bounds that make the AVX2 kernel exact (int32 partial sums per lane, int64
 // reduction) and the accumulators overflow-free: |w2| <= 127, hidden <= 1024,
 // max|b1| + 32 * max|w1| <= 32767. The loader rejects nets outside them.
+// When the compiler enables AVX-512 VNNI, the output sum fuses the lane
+// multiply-add with vpdpwssd. Clamped activation is 0..255 and |w2| <= 127,
+// so the int16 product does not wrap and that sum matches the scalar formula.
 //
 // Incremental evaluation (M2): one accumulator per ply in a per-worker stack.
 // A ply whose accumulator is stale is rebuilt from the nearest valid ancestor
@@ -163,9 +166,10 @@ extern bool requested;
 // Non-empty when NNUEArch is requested but no v3 net is usable (the fail-loud rule).
 [[nodiscard]] std::string problem();
 void set_problem(const std::string& text);
-// Kernels: the search uses the best one compiled in (AVX-512 BW, else AVX2, else scalar); the others stay
-// available for the equality tests (scalar == AVX2 == AVX-512).
-enum class Kernel { Scalar, Avx2, Avx512 };
+// Kernels: the search uses AVX-512 VNNI when that ISA is compiled in, else AVX-512 BW, else AVX2, else
+// scalar. Avx512Vnni is the same int64 sum as Avx512, with madd-and-add fused by vpdpwssd. Every compiled
+// kernel stays callable for the equality tests (scalar == AVX2 == AVX-512 == AVX-512 VNNI).
+enum class Kernel { Scalar, Avx2, Avx512, Avx512Vnni };
 [[nodiscard]] const char* kernel_name();
 [[nodiscard]] const char* kernel_name(Kernel kernel);
 [[nodiscard]] Kernel best_kernel();

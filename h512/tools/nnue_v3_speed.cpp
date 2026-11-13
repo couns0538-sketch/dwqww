@@ -65,6 +65,30 @@ int main(int argc, char** argv) {
         for (long i = 0; i < reps; ++i) sink += forge::nnue::v3::output_sum(net, ours, theirs, bucket);
         const auto t1 = std::chrono::steady_clock::now();
         std::cout << "output_sum_ns " << ns_per(t1 - t0, reps) << " sum " << once << " sink " << sink << '\n';
+        // Same call path for every kernel. `selected` is volatile so the switch is not specialized
+        // to one kernel. Passes alternate, which is the comparison for avx512 against avx512-vnni.
+        volatile int selected = 0;
+        const forge::nnue::v3::Kernel kernels[] = {
+            forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Scalar};
+        for (int pass = 0; pass < 5; ++pass) {
+            for (const forge::nnue::v3::Kernel kernel : kernels) {
+                if (!forge::nnue::v3::kernel_available(kernel)) continue;
+                selected = static_cast<int>(kernel);
+                const auto chosen = static_cast<forge::nnue::v3::Kernel>(selected);
+                std::int64_t probe = 0;
+                for (long i = 0; i < 20000; ++i) probe += forge::nnue::v3::output_sum_with(chosen, net, ours, theirs, bucket);
+                const auto u0 = std::chrono::steady_clock::now();
+                for (long i = 0; i < reps; ++i) probe += forge::nnue::v3::output_sum_with(chosen, net, ours, theirs, bucket);
+                const auto u1 = std::chrono::steady_clock::now();
+                const std::int64_t check = forge::nnue::v3::output_sum_with(kernel, net, ours, theirs, bucket);
+                std::cout << "output_kernel " << forge::nnue::v3::kernel_name(kernel) << " pass " << pass
+                          << " ns " << ns_per(u1 - u0, reps) << " sum " << check << " sink " << probe << '\n';
+                if (check != once) {
+                    std::cerr << "KERNEL SUM MISMATCH " << forge::nnue::v3::kernel_name(kernel) << " " << check << " vs " << once << '\n';
+                    return 1;
+                }
+            }
+        }
     }
 
     // ---- search-shaped walk: incremental make_valid + evaluate ----

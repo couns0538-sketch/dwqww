@@ -313,7 +313,7 @@ void random_walk(const forge::nnue::v3::Net& net, std::mt19937& rng, long target
                     const std::int16_t* ours = acc.values[static_cast<std::size_t>(us)].data();
                     const std::int16_t* theirs = acc.values[static_cast<std::size_t>(forge::opposite(us))].data();
                     const std::int64_t scalar = forge::nnue::v3::output_sum_scalar(net, ours, theirs, ob);
-                    for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                    for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                         if (!forge::nnue::v3::kernel_available(k)) continue;
                         if (forge::nnue::v3::output_sum_with(k, net, ours, theirs, ob) != scalar) ++stats.kernel_mismatches;
                         ++stats.kernel_checks;
@@ -374,7 +374,8 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
               << " null_moves " << total.null_moves << " replays>1 " << total.replays_over_one << " max_replay " << total.max_replay
               << " kernel_checks " << total.kernel_checks << " kernel_mismatches " << total.kernel_mismatches
               << " (kernels compiled: scalar" << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx2) ? ", avx2" : "")
-              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512) ? ", avx512" : "") << ")\n";
+              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512) ? ", avx512" : "")
+              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512Vnni) ? ", avx512-vnni" : "") << ")\n";
     check(total.plies >= total_plies, "the requested number of plies was walked");
 
     // ---- kernel: output_sum (compiled kernel) == output_sum_scalar at the bounds ----
@@ -399,7 +400,7 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
                 const std::int64_t slow = forge::nnue::v3::output_sum_scalar(net, ours.data(), theirs.data(), bucket);
                 const std::int64_t fast = forge::nnue::v3::output_sum(net, ours.data(), theirs.data(), bucket);
                 if (fast != slow) check(false, "output_sum best kernel == scalar (round " + std::to_string(round) + ")");
-                for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                     if (!forge::nnue::v3::kernel_available(k)) continue;
                     if (forge::nnue::v3::output_sum_with(k, net, ours.data(), theirs.data(), bucket) != slow) {
                         check(false, std::string("output_sum ") + forge::nnue::v3::kernel_name(k) + " == scalar (round " + std::to_string(round) + ")");

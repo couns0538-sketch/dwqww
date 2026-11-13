@@ -42,10 +42,22 @@ Verified here, on synthetic nets only:
 - The scorer check now also compares output bucket, both king keys, and the raw sum, and includes the near-bound weights. 520 python rows and 104 engine rows, 0 mismatches. `SCORER_PARITY.md`.
 - The phase piece-count lookup is correct under Python precedence (256/256 byte values, 104 packed FENs). It was not changed. `PIECE_COUNT.md`. Do not rebuild the frozen selection or test shards.
 
+## Done: AVX-512 VNNI output sum
+
+`output_sum` uses `vpdpwssd` when the compiler defines `__AVX512VNNI__`. The portable `-march=x86-64-v4` build does not, and its `output_sum` is still `vpmullw` / `vpmaddwd` / `vpaddd`. Numbers, hashes, and the limits of the bench times are in `VNNI.md`. Scalar sum on the local H512 net stays `4558683`. Depth-12, depth-16, and H1024 depth-8 node counts match the madd binary. No Elo claim.
+
+SonarCloud quality gate on pull request 9 passed for the commits before this one (0 new issues). That comment did not ask for a code change.
+
+## Other agents, read after the first resume and not modified
+
+- Correctness: `cursor/forge-correctness-20261113-e6b6` @ `13630f974e4b8e7a18da0c1e40fd4787dcd0a15b`. `forge-combo29/correctness/20261113/RESUME.md`. Capture buffer, UCI position parsing, perft stop, and a zero-node terminal root. It does not edit `nnue_v3`.
+- Search strength: `cursor/forge-search-strength-20261113-9558` @ `d970a779acf072910a9a75e8c09b2e2138acda67`. `search_strength/CHECKPOINT.md`. A default-off enhanced-transposition counter. It does not edit `nnue_v3`.
+- History index, same revision as above: `cursor/forge-history-index-20261113-712a` @ `b39453901cd47c654f94bb7ec0283fc7c7f0ceb0`.
+
 ## Next, if this session continues
 
 1. Do not repeat the fused both-perspective kernel unless the measurement is longer than the spread in `APPLY_BOTH.md`.
-2. A VNNI output kernel (`__AVX512VNNI__`) is at most the ~25 ns `output_sum` on H512. It will not show up in `bench 16` unless something else changes. Measure `output_sum_ns` only, and keep it only if that number moves and the scalar sum stays `4558683` on the local H512 net.
+2. Do not retune the VNNI output kernel on this VM. A Zen 5 ThinLTO/PGO build is the remaining speed question, and it is not this machine. Clang 18 rewrites one of the two unrolled steps back to `vpmaddwd`; see `VNNI.md`.
 3. Trainer numerics that need the real shards or a GPU stay blocked. Do not score test set 3. Equal-node games need candidate 3, which is not in this checkout.
 
 Portable flags stay `-march=x86-64-v4` with `-ffp-contract=off`. Do not load an untrusted checkpoint with `torch.load`.
