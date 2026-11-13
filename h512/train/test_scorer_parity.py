@@ -12,9 +12,11 @@ import subprocess
 import sys
 import tempfile
 
+import chess
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fable_nnue_data as fd  # noqa: E402
 import fable_nnue_train as tr  # noqa: E402
 import fable_nnue_v3 as v3  # noqa: E402
 
@@ -31,7 +33,6 @@ STARTS = [
 
 
 def played_fens(n_plies, seed):
-    import chess
     rng = np.random.default_rng(seed)
     fens = list(STARTS)
     for start in STARTS:
@@ -83,7 +84,6 @@ def check_b2():
 
 
 def check_scores(fens):
-    import chess
     shapes = [
         (32, 1, 1, False, 11),
         (32, 8, 8, True, 12),
@@ -115,6 +115,19 @@ def check_scores(fens):
                 mismatches += 1
                 if mismatches <= 5:
                     print(f"MISMATCH seed {seed} {fen} scorer {int(got[i])} reference {cp}")
+    bound = v3.random_net(32, 1, 1, False, False, 99)
+    bound.w1[:] = 1000
+    bound.b1[:] = 700
+    bound_cp = tr.centipawns(bound, codes, meta)
+    for i, fen in enumerate(fens):
+        cp = v3.evaluate(bound, v3.board_from_fen(fen))[0]
+        rows += 1
+        if cp < 0:
+            negative += 1
+        if int(bound_cp[i]) != cp:
+            mismatches += 1
+            if mismatches <= 5:
+                print(f"MISMATCH near-bound {fen} scorer {int(bound_cp[i])} reference {cp}")
     print(f"scorer vs python reference: rows {rows} mismatches {mismatches} negative {negative}")
     return mismatches, codes, meta
 
@@ -135,7 +148,6 @@ def check_engine(tool, fens):
             raise SystemExit(f"engine lines {len(lines)} vs fens {len(fens)}")
         codes = np.zeros((len(fens), 64), np.uint8)
         meta = np.zeros(len(fens), np.int64)
-        import chess
         for i, fen in enumerate(fens):
             board = chess.Board(fen)
             for sq, piece in board.piece_map().items():
@@ -144,23 +156,63 @@ def check_engine(tool, fens):
         got = tr.centipawns(net, codes, meta)
         mismatches = 0
         for i, line in enumerate(lines):
-            eng = int(line.split()[0])
-            ref = v3.evaluate(net, v3.board_from_fen(fens[i]))[0]
-            if eng != ref or int(got[i]) != ref:
+            parts = [int(x) for x in line.split()]
+            eng, bucket, kb_w, fl_w, kb_b, fl_b = parts
+            cp, ob, white_key, black_key, _total = v3.evaluate(net, v3.board_from_fen(fens[i]))
+            if eng != cp or int(got[i]) != cp or bucket != ob or (kb_w, fl_w) != white_key or (kb_b, fl_b) != black_key:
                 mismatches += 1
                 if mismatches <= 5:
-                    print(f"ENGINE MISMATCH {fens[i]} tool {eng} reference {ref} scorer {int(got[i])}")
+                    print(f"ENGINE MISMATCH {fens[i]} tool {parts} reference {(cp, ob, white_key, black_key)} scorer {int(got[i])}")
         if "MISMATCH" in proc.stderr:
             raise SystemExit("engine tool reported a fast-path mismatch against its scalar reference")
-        print(f"engine tool vs reference and scorer: rows {len(fens)} mismatches {mismatches}")
+        sum_proc = subprocess.run([tool, "sum", path, fen_path], check=False, capture_output=True, text=True)
+        if sum_proc.returncode != 0:
+            raise SystemExit(f"engine sum failed ({sum_proc.returncode}): {sum_proc.stderr}")
+        sums = [int(ln) for ln in sum_proc.stdout.splitlines() if ln.strip()]
+        if len(sums) != len(fens):
+            raise SystemExit(f"sum lines {len(sums)} vs fens {len(fens)}")
+        for i, fen in enumerate(fens):
+            total = v3.evaluate(net, v3.board_from_fen(fen))[4]
+            if sums[i] != total:
+                mismatches += 1
+                if mismatches <= 5:
+                    print(f"SUM MISMATCH {fen} tool {sums[i]} reference {total}")
+        print(f"engine tool vs reference and scorer: rows {len(fens)} mismatches {mismatches} (cp, bucket, king key, raw sum)")
         return mismatches
+
+
+def check_piece_counts(fens):
+    """The phase LUT looks like it has a precedence bug. In Python != binds looser than &,
+    so `c & 15 != 0` is `(c & 15) != 0`. It must keep matching a direct nibble count."""
+    disagree = 0
+    for c in range(256):
+        direct = int((c & 15) != 0) + int((c >> 4) != 0)
+        if int(fd.PIECE_COUNT_LUT[c]) != direct:
+            disagree += 1
+    if disagree:
+        raise SystemExit(f"piece-count LUT differs from a nibble count on {disagree} byte values")
+    bad_fens = 0
+    for fen in fens:
+        board = chess.Board(fen)
+        codes = np.zeros(64, np.uint8)
+        for sq, piece in board.piece_map().items():
+            codes[sq] = piece.piece_type + (0 if piece.color else 6)
+        packed = (codes[0::2] | (codes[1::2] << 4)).reshape(1, 32)
+        got = int(fd.piece_counts(packed)[0])
+        if got != len(board.piece_map()):
+            bad_fens += 1
+            if bad_fens <= 5:
+                print(f"PIECE COUNT {fen} lut {got} board {len(board.piece_map())}")
+    print(f"piece-count LUT: 256 byte values agree, fens {len(fens)} mismatches {bad_fens}")
+    return bad_fens
 
 
 def main():
     tool = sys.argv[1] if len(sys.argv) > 1 else None
     check_b2()
     fens = played_fens(12, 20261113)
-    mismatches, _, _ = check_scores(fens)
+    mismatches = check_piece_counts(fens)
+    mismatches += check_scores(fens)[0]
     if tool:
         mismatches += check_engine(tool, fens)
     if mismatches:
