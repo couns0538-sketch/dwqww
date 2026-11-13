@@ -52,3 +52,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(forge PRIVATE Threads::Threads)
 target_link_libraries(forge_search_tests PRIVATE Threads::Threads)
+
+enable_testing()
+add_test(NAME search_bounds COMMAND forge_search_tests)

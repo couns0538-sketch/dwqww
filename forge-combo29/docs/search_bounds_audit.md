@@ -72,7 +72,7 @@ Both switches are UCI spin options (`0` or `1`) because tunables are exposed in 
 
 ## Tests and pins
 
-`forge_search_tests` (NNUE off, hash 16, one thread) covers the window arithmetic, the planted fifty-move cutoffs, the PV-prune counter, the score changes with `PvBoundFix`, a node-limit scan of three positions through depth 8, the exhaustive mate proof, the `nodes 2066` regression, and a depth-8 search with `AspirationKeepExact`. Result: `all passed`.
+`forge_search_tests` (NNUE off, hash 16, one thread) covers the window arithmetic, the planted fifty-move cutoffs, the PV-prune counter, the score changes with `PvBoundFix`, a node-limit scan of three positions through depth 8, the exhaustive mate proof, the `nodes 2066` regression, and a depth-8 search with `AspirationKeepExact`. CTest runs it as `search_bounds`. Result: `all passed`.
 
 Build: `g++-13`, `NDEBUG`, the same `FORGE_*` defines as the engine, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4`. Clang 18 on this machine does not link (it looks for a GCC 14 libstdc++ that is not installed).
 
