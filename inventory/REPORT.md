@@ -625,3 +625,90 @@ A checkmate in quiescence returns `mated_in(ply)` at `src/search.cpp:775` and do
 4. The changelogs at `193a91ec` and `86c91628` are different blobs from `928f1ff7`. Open them after the bba2 batch, before calling those tips read.
 5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 7
+
+Trigger 20:27 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 20:34 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-6 table | 429 |
+| Moved | 1. This checkpoint, `d6e50b49` to `6cf670a6`, the run-6 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `d6e50b49` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `e6f2f33a` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. `cursor/chess-engine-elo-bba2` was tip-only and is now `run7-read`. 405 branches stay tip-only.
+
+No engine was built. No PGN was scored. Every Elo figure below is a sentence in the named file. The W/D/L columns were checked against the usual score-to-Elo transform. That checks the sentences against each other.
+
+### Where this tip sits
+
+`cursor/chess-engine-elo-bba2` is unchanged at `2285d91270f53f37d4c7bfdf491ed490c7d0c1a1` (892 files, tree `824d9962`). It contains neither the lock commit, H512, nor the current `main` tip. Its parent chain includes `f96b7475`, which is also an ancestor of `main`. `main` then adds nine files that are not on this branch. Those nine files were not opened.
+
+The merge base with `928f1ff7` and with `24cc2cce` is `f96b7475`. This tip is nine commits later and is not an ancestor of either line. The first of those commits, `3293deb7`, extracts the 5.31.0 tree. The 6.x extraction `f5ba2c40` has the same tree except `.gitignore`: this line ignores `__pycache__/`, and the 6.x extraction deletes that line. `VALIDATION.md` (`f22894fa`) and `engine-improvement-log.md` (`52a0ff13`) are the blobs already read. They were not read again. `src/board.cpp` (`587169c3`) is the extraction blob. `parse_uci` and pawn-move order were read from it. The rest of that file was not.
+
+The eight commits after the extraction change 11 files: `CHANGELOG.md`, `CMakeLists.txt`, `README.md`, `RELEASE_STATE.md`, `SOURCE_PROVENANCE.json`, `include/forge/board.hpp`, `include/forge/search.hpp`, `src/search.cpp`, `src/uci.cpp`, `tests/tests.cpp`, and `tools/uci_regression.py`. `src/uci.cpp` changes only the version string, from 5.31.0 to 6.0.0, at line 140.
+
+### What the 6.0.0 notes claim
+
+Read in full for the 6.0.0 material: `CHANGELOG.md` through the 6.0.0 section, `README.md`, `RELEASE_STATE.md` through the 6.0.0 section, `SOURCE_PROVENANCE.json`, and `LOCAL_IMPLEMENTATION_SUMMARY.md` (the 5.31.0 summary, unchanged from the extraction). The older changelog sections are the 5.31.0 document. They were not compared line by line with the overhaul copy in this run.
+
+Their table, fastchess, Hash 32, `forge-10000.epd`, single thread, no adjudication, says:
+
+| Step | Control | Games | W/D/L | Their Elo |
+|---|---|---|---|---|
+| Selective search vs 5.31.0 | 5+0.05 | 100 | 88/7/5 | +413 +/- 111 |
+| Position-indexed TT and the repetition rule | 5+0.05 | 120 | 42/40/38 | +12 +/- 38 |
+| PeSTO piece-square tables | 5+0.05 | 120 | 64/36/20 | +134 +/- 56 |
+| Attack-unit king safety | 5+0.05 | 200 | 60/94/46 | +24 +/- 30 |
+| Final 6.0.0 vs 5.31.0 | 10+0.1 | 100 | 84/9/7 | +355 +/- 92 |
+
+The usual transform of those five W/D/L rows is 412.8, 11.6, 133.6, 24.4, and 354.5. The written Elo column matches that arithmetic. The error bars were not recomputed. The tip has two PGNs, `validation/5.29.0-ponder-evidence/ab-games.pgn` and `validation/5.30.0-empty-searchmoves/fastchess-aa-games.pgn`. Neither is a 6.0.0 match. `git grep` finds the five result rows only in `README.md`, `CHANGELOG.md`, and `RELEASE_STATE.md`. The three-second depth claim, depth 9 versus depth 19, is also only that README sentence. There is no bench log.
+
+`README.md:5` says the evaluation function is unchanged. The table in the same file, and `src/search.cpp`, replace the center-distance terms with PeSTO tables and add king safety. `SOURCE_PROVENANCE.json:34` still says the evaluation has no king-attack term beyond pawn shelter. That file was last changed in `36d55208`, before the king-safety commit `aa2a9b4f`. The final commit `2285d912` updates the changelog, the README table, and the release state, and leaves both the provenance sentence and `README.md:5` in place.
+
+### Search that is actually in the tree
+
+`src/search.cpp` is the mailbox engine plus the selective search. Late-move reductions start at depth 3 (`src/search.cpp:842`) and a reduced search that beats alpha is searched again at full depth (`src/search.cpp:855`). The 5.23 through 5.31 zero-window fail-low fixtures were removed from `tests/tests.cpp`. This run did not compile the replacement tests, so those old failures are not shown to be gone.
+
+Null-move pruning starts at depth 3. Below depth 10 it returns beta with no verification search (`src/search.cpp:772`). At depth 10 and above it runs the reduced verification (`src/search.cpp:777`). `tests/tests.cpp:701` searches the start position at depth 8 and `tests/tests.cpp:712` calls a positive null-cutoff count "verified cutoffs". A check extension sets the child depth to the parent depth, not above it (`src/search.cpp:836`), so a depth-8 root never enters the verification branch. The counter still increments at `src/search.cpp:773`. The test was not compiled.
+
+Whole-node pruning, reverse futility and null move, is skipped when the side to move has only pawns (`src/search.cpp:183` and `src/search.cpp:753`). The test source checks that on `8/8/8/3k4/8/4K3/4P3/8 w - - 0 1`. Four mate fixtures are in `tests/tests.cpp:724`: `b3b8`, `d3d8`, `d1d8`, and `h5f7`, each required to score above 29000. They were not run.
+
+The transposition table is indexed by `Board::key()` (`include/forge/search.hpp:164`). `current_tt_context` maps every halfmove clock below 90 to context 0 (`include/forge/search.hpp:106`). A node whose clock is already 100 returns before the probe (`src/search.cpp:714`). A mate stored at a low clock can still satisfy a probe at clock 89, and a mate longer than 11 plies reaches the fifty-move rule inside that window. The comment says the result depends on the clock only from 90 upward. Not played.
+
+An empty main-search node returns mate or stalemate at `src/search.cpp:793` and does not reach the store at line 893. An in-check mate in quiescence returns at `src/search.cpp:651` and does not reach the store at line 698. When a score is stored, `normalized_score_for_tt` (`src/search.cpp:167`) does adjust mate scores by ply. Not played.
+
+Quiet moves that failed low are recorded in a 256-slot array and the write is guarded (`src/search.cpp:811` and `src/search.cpp:888`). This tip does not have the unchecked 64-slot `bad_captures_` write recorded on `928f1ff7` and `24cc2cce`.
+
+`Board::parse_uci` returns a move only when the token equals `move_to_uci` (`src/board.cpp:809`). `move_to_uci` writes lowercase letters (`src/board.cpp:817`). Not played. This tip has no `UseNNUE` option.
+
+### Clock parser
+
+`read_int` parses into an `int` and returns 0 unless the whole token converts (`src/uci.cpp:68`). `wtime` stores `max(0, that)` (`src/uci.cpp:94`). `movetime` does the same (`src/uci.cpp:89`). The default `time_ms` is -1 (`include/forge/search.hpp:21`), so a parsed 0 is a present clock (`src/search.cpp:931`). With the default overhead of 10 ms, `available` is `max(1, time - overhead)` (`src/search.cpp:937`). A token that does not fit in a 32-bit `int`, including `3000000000`, and a token with a leading `+`, which `std::from_chars` rejects, both become that 1 ms budget.
+
+`tests/tests.cpp:853` expects a `SearchLimits` clock of 0 to be a 1 ms budget. `tests/tests.cpp:884` passes `INT_MAX` straight into `SearchLimits` and expects `1073741813`. That test does not go through the UCI parser. The arithmetic of the formula matches 1,073,741,813. The test was not compiled.
+
+If the search stores no move, `src/search.cpp:1063` plays `legal_moves().front()`. `legal_moves` keeps `pseudo_legal_moves` order (`src/board.cpp:756`). Pieces are scanned from the lowest square. The a1 rook has no legal move at the start. The b1 knight is next, and its first offset is +17 (`src/board.cpp:41`), which is `b1c3`. A 1 ms search can still return a move it searched. This is not the lock's immediate `a2a3` on `wtime 3000000000`. This binary was not run.
+
+### Not claimed
+
+- No new Elo and no new bench. The five 6.0.0 rows are sentences. Their W/D/L and Elo columns agree arithmetically. The games are not in the tree.
+- 405 tips are still unread. The changelogs at `193a91ec` and `86c91628` were not opened. Their blobs differ from `928f1ff7`: changelogs `ad5b9bcb` and `68ef6c76`, release states `f81ebd5f` and `7fd220fb`.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the documents below.
+3. Otherwise read `CHANGELOG.md` and `RELEASE_STATE.md` at `193a91eca17c1b47372f408df67fd06ec08c8312` (`cursor/chess-engine-elo-d8c5`) and `86c916289f27225313e60388ca05fffc7e257f39` (`cursor/engine-elo-improvement-3c5f`). Those four blobs differ from `928f1ff7`. Validation notes that are the same blobs as `928f1ff7` were already read. Do not execute repository scripts.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.

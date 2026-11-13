@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "run": 6,
-  "snapshot_at": "2026-11-13T19:30:21Z",
-  "trigger_at": "2026-11-13T19:25:26Z",
+  "run": 7,
+  "snapshot_at": "2026-11-13T20:34:50Z",
+  "trigger_at": "2026-11-13T20:27:01Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
@@ -18,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "d6e50b49cea0791980ae0e009c3750b91a9479e4",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at d6e50b49. The commit that adds the run-6 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "6cf670a664355f0e8aa1fc82056f1f729c72d1bf",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 6cf670a6. The commit that adds the run-7 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -34,14 +34,14 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 5. The replaced checkpoint tip and the new checkpoint tip both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 6. Replacing d6e50b49 with 6cf670a6 keeps the same containment: both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 406,
+    "tip-only": 405,
     "run1-detail": 1,
     "run2-moved": 2,
     "run2-new": 4,
@@ -51,11 +51,11 @@
     "run5-read": 1,
     "run6-read": 1,
     "run6-same-docs": 1,
-    "run6-checkpoint": 1
+    "run7-read": 1,
+    "run7-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/chess-engine-elo-8295",
-    "cursor/chess-engine-elo-6a55"
+    "cursor/chess-engine-elo-bba2"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -513,14 +513,93 @@
       "threads_sentence": "RELEASE_STATE.md:109 says 6.1.0 adds a Threads option",
       "not_done_sentence": "RELEASE_STATE.md:120 says multi-threaded search was not done for that release",
       "truncated_sentence": "RELEASE_STATE.md:93 ends with 'the Zen 4 (znver4) builds were 4.'"
+    },
+    {
+      "id": "selective-search-6-0-claims-have-no-pgn",
+      "status": "documents read; W/D/L arithmetic matches the stated Elo; games are not in the tree; Elo not measured here",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "files": [
+        "README.md",
+        "CHANGELOG.md",
+        "RELEASE_STATE.md"
+      ],
+      "their_rows": [
+        "selective search vs 5.31.0, 5+0.05, 100 games, 88/7/5, +413 +/- 111",
+        "position-indexed TT, 5+0.05, 120 games, 42/40/38, +12 +/- 38",
+        "PeSTO tables, 5+0.05, 120 games, 64/36/20, +134 +/- 56",
+        "king safety, 5+0.05, 200 games, 60/94/46, +24 +/- 30",
+        "final vs 5.31.0, 10+0.1, 100 games, 84/9/7, +355 +/- 92"
+      ],
+      "pgn_files_on_tip": 2,
+      "pgn_note": "Both PGNs are 5.29.0 and 5.30.0 evidence. Neither is a 6.0.0 match.",
+      "arithmetic": "The usual score-to-Elo transform of those five W/D/L rows is 412.8, 11.6, 133.6, 24.4, and 354.5. That checks the sentences against each other. It does not show that the games were played. The +/- columns were not recomputed."
+    },
+    {
+      "id": "selective-search-docs-contradict-the-eval",
+      "status": "documents and source read; not a playing result",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "readme_unchanged_sentence": "README.md:5 says the evaluation function is unchanged",
+      "readme_table": "README.md lists PeSTO tables and attack-unit king safety as measured steps",
+      "provenance_denies_king_safety": "SOURCE_PROVENANCE.json:34 says the evaluation has no king-attack term beyond pawn shelter",
+      "code": "src/search.cpp:487 subtracts KingSafetyTable once two pieces hit the king zone. Weights are at src/search.cpp:223.",
+      "why_stale": "SOURCE_PROVENANCE.json last changes in 36d55208, which is before the king-safety commit aa2a9b4f. The final commit 2285d912 updates the changelog, README, and release state, and does not update the provenance file or README.md:5."
+    },
+    {
+      "id": "selective-search-null-test-says-verified",
+      "status": "test source read; not compiled",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "test": "tests/tests.cpp:701 depth 8, assertion message at tests/tests.cpp:712",
+      "unverified_return": "src/search.cpp:772 returns beta when depth < 10",
+      "verified_return": "src/search.cpp:777 runs only when depth >= 10",
+      "note": "A depth-8 root cannot reach a node of depth 10: a check extension replaces depth-1 with depth, it does not add a ply beyond the incoming depth. Every null cutoff in that test takes the unverified return. The counter still increments at src/search.cpp:773."
+    },
+    {
+      "id": "selective-search-int-clock",
+      "status": "parser and budget read; the zero-clock unit test was read; UCI text was not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "parser": "src/uci.cpp:68 reads clocks into an int and returns 0 unless the whole token converts",
+      "wtime_store": "src/uci.cpp:94 stores max(0, that)",
+      "budget": "src/search.cpp:931 treats time_ms >= 0 as a present clock. Default overhead 10 ms makes available max(1, 0-10) = 1 ms at src/search.cpp:937",
+      "unit_test": "tests/tests.cpp:853 expects a SearchLimits.time_ms of 0 to be a 1 ms budget. tests/tests.cpp:884 passes INT_MAX directly and expects 1073741813. That test does not go through the UCI token parser.",
+      "leading_plus": "std::from_chars does not accept a leading plus, so a token such as +80 also becomes 0 and then a 1 ms budget. Not played.",
+      "fallback_move": "src/search.cpp:1063 plays legal_moves().front() if the search stored none. legal_moves keeps pseudo_legal_moves order at src/board.cpp:756. The a1 rook has no start move. The b1 knight is next, and offset +17 at src/board.cpp:41 is b1c3. A 1 ms search can still finish a real move. This binary was not run.",
+      "not_the_lock_forfeit": "The lock plays a2a3 immediately on wtime 3000000000. This parser turns that token into the 1 ms budget above. Different code, not replayed."
+    },
+    {
+      "id": "selective-search-mate-not-stored",
+      "status": "code read; not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "main_return": "src/search.cpp:793 returns mate or stalemate before the store at src/search.cpp:893",
+      "qsearch_return": "src/search.cpp:651 returns mate before the store at src/search.cpp:698",
+      "mate_adjustment": "normalized_score_for_tt at src/search.cpp:167 does adjust mate scores by ply when a score is stored"
+    },
+    {
+      "id": "selective-search-tt-context-below-90",
+      "status": "code read; their comment states the cutoff; not played",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "context": "include/forge/search.hpp:106 maps every halfmove clock below 90 to context 0",
+      "fifty_move_check": "src/search.cpp:714 returns a draw when the clock is already 100, before the TT probe",
+      "gap": "A mate stored at a low clock can still be cut off at clock 89, because both clocks share context 0 and a mate longer than 11 plies reaches the fifty-move rule. The comment says the result depends on the clock only from 90 upward."
+    },
+    {
+      "id": "selective-search-no-64-slot-write",
+      "status": "code read; this tree does not have the later unchecked 64-slot write",
+      "branch": "cursor/chess-engine-elo-bba2",
+      "tip": "2285d91270f53f37d4c7bfdf491ed490c7d0c1a1",
+      "quiets": "src/search.cpp:811 is a 256-slot array. src/search.cpp:888 stores a quiet only while quiet_count is below that size."
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from d6e50b49 because of the run-6 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from 6cf670a6 because of the run-7 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read cursor/chess-engine-elo-bba2 at 2285d91270f53f37d4c7bfdf491ed490c7d0c1a1. It is nine commits past f96b7475 and is not an ancestor of 928f1ff7. The selective-search line. Do not execute repository scripts.",
-    "The 6.1 and 6.2 changelogs at 193a91ec and 86c91628 are different blobs from 928f1ff7. Open them when the bba2 batch is done, before treating those tips as read.",
+    "Otherwise read CHANGELOG.md and RELEASE_STATE.md at 193a91eca17c1b47372f408df67fd06ec08c8312 (cursor/chess-engine-elo-d8c5) and 86c916289f27225313e60388ca05fffc7e257f39 (cursor/engine-elo-improvement-3c5f). Their changelog blobs are ad5b9bcb and 68ef6c76. Their release-state blobs are f81ebd5f and 7fd220fb. All four differ from 928f1ff7. The 6.0 through 6.2 validation notes that match 928f1ff7 were already read. Do not execute repository scripts.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ],
