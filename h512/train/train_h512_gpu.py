@@ -437,6 +437,10 @@ def atomic_save(obj, path):
 
 def cmd_train(a):
     plan = json.load(open(a.plan, "r", encoding="utf-8"))
+    watched = [plan.get("train_glob")]
+    for item in plan.get("score_sets", []):
+        watched.append(item.get("pos"))
+    fb.refuse_final_test(watched, a.final_test_unlock)
     os.makedirs(a.run_dir, exist_ok=True)
     logf = open(os.path.join(a.run_dir, "log.txt"), "a", encoding="utf-8", newline="\n")
 
@@ -760,13 +764,9 @@ def cmd_train(a):
 
 # ---------------------------------------------------------------- score / selfcheck
 
-FINAL_TEST_TAG = "final_test"
-
-
 def cmd_score(a):
-    if FINAL_TEST_TAG in os.path.basename(a.pos).lower():
-        if not a.final_test_unlock:
-            raise SystemExit("refused: this is the final-test set; it is scored once, with --final-test-unlock")
+    hits = fb.refuse_final_test([a.pos, a.hce], a.final_test_unlock)
+    if hits:
         with open(os.path.join(os.path.dirname(os.path.abspath(a.pos)), "FINAL_TEST_ACCESS.log"), "a", encoding="utf-8",
                   newline="\n") as f:
             f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} score net {a.net} pos {a.pos}\n")
@@ -782,6 +782,7 @@ def cmd_score(a):
 
 
 def cmd_selfcheck(a):
+    fb.refuse_final_test([a.pos], a.final_test_unlock)
     dev = torch.device("cuda")
     out = {}
     n = a.rows
@@ -896,6 +897,8 @@ def main():
     t.add_argument("--clear-stop", default="", help="continue a run that ended by a rule; the text is logged as the reason")
     t.add_argument("--hash-indices", action="store_true")
     t.add_argument("--log-every", type=int, default=2000)
+    t.add_argument("--final-test-unlock", action="store_true",
+                   help="allow the plan's train_glob or score_sets to name a final_test file")
     t.set_defaults(func=cmd_train)
     s = sub.add_parser("score")
     s.add_argument("--net", required=True)
@@ -912,6 +915,7 @@ def main():
     c.add_argument("--net-out", default="")
     c.add_argument("--rows", type=int, default=100000)
     c.add_argument("--out", default="")
+    c.add_argument("--final-test-unlock", action="store_true")
     c.set_defaults(func=cmd_selfcheck)
     a = ap.parse_args()
     a.func(a)

@@ -27,6 +27,7 @@ Commands:
   score   --net NET.fnn3 --pos P --hce H [--max-rows N] [--phases]        (holdout MSE at blends 1.0/0.6/0.8)
 """
 import argparse
+import glob
 import json
 import os
 import shutil
@@ -43,10 +44,27 @@ from ckpt_io import load_checkpoint  # noqa: E402  (JOB E, 2026-11-12: restricte
 K = 2.25
 QA = v3.QA
 QB = v3.QB
+# Same mark as train_h512_gpu.py score: a file whose name contains this text is the
+# untouched final test (final_test, final_test2, final_test3) and is not read unless
+# the command was given --final-test-unlock.
+FINAL_TEST_MARK = "final_test"
+# round(b2 * QA * QB) has to fit in int32. 131586 * 16320 = 2147483520, and
+# 131587 * 16320 does not. Clip the parameter, not the exported integer.
+B2_ABS_MAX = 131586.0 / (QA * QB)
 PHASES = 8
 
 
 # ---------------- data ----------------
+
+def is_final_test_path(path):
+    return bool(path) and FINAL_TEST_MARK in os.path.basename(path).lower()
+
+
+def refuse_final_test(paths, unlock=False):
+    """Refuse to read a final-test path unless unlock is set. The check does not write a file."""
+    if any(is_final_test_path(path) for path in paths) and not unlock:
+        raise SystemExit("refused: this is the final-test set; it is scored once, with --final-test-unlock")
+
 
 def read_fpos(pos_path, hce_path=None, max_rows=None):
     data = np.memmap(pos_path, np.uint8, "r")
@@ -254,6 +272,7 @@ def build_model(cfg, torch):
                     self.wf.clamp_(-0.99, 0.99)
                 self.b1.clamp_(-1.98, 1.98)
                 self.w2.clamp_(-127.0 / QB, 127.0 / QB)
+                self.b2.clamp_(-B2_ABS_MAX, B2_ABS_MAX)
 
     return Model()
 
@@ -263,7 +282,9 @@ def export_net(model, cfg, path, torch):
         w1 = torch.round(model.merged_w1() * QA).clamp(-32767, 32767).to(torch.int16).numpy()
         b1 = torch.round(model.b1 * QA).clamp(-32767, 32767).to(torch.int16).numpy()
         w2 = torch.round(model.w2 * QB).clamp(-127, 127).to(torch.int16).numpy()
-        b2 = torch.round(model.b2 * QA * QB).to(torch.int32).numpy()
+        # Leave b2 as the rounded float. write_net rejects a value that does not fit in
+        # int32. Casting to int32 here would wrap it first, and the file would still load.
+        b2 = torch.round(model.b2 * QA * QB).detach().cpu().numpy()
     net = v3.Net()
     net.hidden = cfg["hidden"]
     net.king_buckets = cfg["king_buckets"]
@@ -346,6 +367,34 @@ def blend_at(step, args):
 
 # ---------------- exact scoring and parity (shared by `score`, `parity` and the checkpoints) ----------------
 
+def centipawns(net, codes, meta):
+    """Engine centipawns for a batch of piece-code rows. Same arithmetic as score_net_numpy."""
+    H = net.hidden
+    w1 = np.concatenate([net.w1.reshape(-1, H), np.zeros((1, H), np.int64)], axis=0).astype(np.int16)
+    b1 = net.b1.astype(np.int32)
+    cfg = {"king_buckets": net.king_buckets, "mirror": net.mirror, "king_map": net.king_map, "output_map": net.output_map}
+    us, them, ob = batch_features(codes, meta, cfg)
+    return _centipawns_from_features(net, us, them, ob, w1, b1)
+
+
+def _centipawns_from_features(net, us, them, ob, w1, b1):
+    H = net.hidden
+    # int32 accumulators, one gather per square (small memory footprint); exact like the engine
+    # while the loader bound holds. int16 addition in the engine matches this int32 sum then.
+    acc_us = np.broadcast_to(b1, (us.shape[0], H)).astype(np.int32)
+    acc_them = acc_us.copy()
+    for k in range(64):
+        acc_us += w1[us[:, k]]
+        acc_them += w1[them[:, k]]
+    a = np.clip(acc_us, 0, QA).astype(np.int64)
+    b = np.clip(acc_them, 0, QA).astype(np.int64)
+    w2 = net.w2[ob]
+    total = (a * a * w2[:, :H]).sum(axis=1) + (b * b * w2[:, H:]).sum(axis=1)
+    out = np.trunc(total / QA).astype(np.int64) + net.b2[ob]
+    cp = np.trunc(out * net.eval_scale / (QA * QB)).astype(np.int64)
+    return np.clip(cp, -30000, 30000)
+
+
 def score_net_numpy(net, data, cfg_residual, chunk=4096, phases=False):
     """Holdout MSE (blends 1.0 / 0.6 / 0.8) of a v3 file with exact integer emulation vectorised per chunk;
     with phases=True also the b0.6 MSE and row count per phase bin (piece-count buckets)."""
@@ -362,19 +411,7 @@ def score_net_numpy(net, data, cfg_residual, chunk=4096, phases=False):
         codes = data["codes"][rows]
         meta = data["meta"][rows]
         us, them, ob = batch_features(codes, meta, cfg)
-        # int32 accumulators, one gather per square (small memory footprint); exact like the engine
-        acc_us = np.broadcast_to(b1, (len(rows), H)).astype(np.int32)
-        acc_them = acc_us.copy()
-        for k in range(64):
-            acc_us += w1[us[:, k]]
-            acc_them += w1[them[:, k]]
-        a = np.clip(acc_us, 0, QA).astype(np.int64)
-        b = np.clip(acc_them, 0, QA).astype(np.int64)
-        w2 = net.w2[ob]
-        total = (a * a * w2[:, :H]).sum(axis=1) + (b * b * w2[:, H:]).sum(axis=1)
-        out = np.trunc(total / QA).astype(np.int64) + net.b2[ob]
-        cp = np.trunc(out * net.eval_scale / (QA * QB)).astype(np.int64)
-        cp = np.clip(cp, -30000, 30000)
+        cp = _centipawns_from_features(net, us, them, ob, w1, b1)
         logit = cp * (K / 400.0)
         if cfg_residual:
             logit = logit + data["hce"][rows] * (K / 400.0)
@@ -453,7 +490,13 @@ def run_engine_eval(tool, net_path, fens_path):
 # ---------------- train ----------------
 
 def cmd_train(args):
-    import glob
+    watched = [args.pos, args.hce, args.val_pos, args.val_hce, args.exact_pos, args.exact_hce]
+    pos_files = glob.glob(args.pos_glob) if args.pos_glob else []
+    watched.extend(pos_files)
+    if args.hce_dir:
+        for path in pos_files:
+            watched.append(os.path.join(args.hce_dir, os.path.basename(path)[:-4] + ".hce"))
+    refuse_final_test(watched, args.final_test_unlock)
     import torch
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
@@ -738,6 +781,7 @@ def cmd_parity(args):
 
 
 def cmd_score(args):
+    refuse_final_test([args.pos, args.hce], args.final_test_unlock)
     net = v3.read_net(args.net)
     data = read_fpos(args.pos, args.hce, args.max_rows)
     result = score_net_numpy(net, data, net.residual, phases=args.phases)
@@ -800,6 +844,8 @@ def main():
     t.add_argument("--target-loss", type=float, default=0.0, help="stop when the exact b0.6 holdout MSE is <= this")
     t.add_argument("--plateau", type=int, default=0, help="stop after this many checkpoints without a new best exact loss")
     t.add_argument("--plateau-eps", type=float, default=1e-5)
+    t.add_argument("--final-test-unlock", action="store_true",
+                   help="allow --pos, --pos-glob, --val-pos or --exact-pos to name a final_test file")
     e = sub.add_parser("export")
     e.add_argument("--model", required=True)
     e.add_argument("--net", required=True)
@@ -814,6 +860,8 @@ def main():
     s.add_argument("--hce")
     s.add_argument("--max-rows", type=int)
     s.add_argument("--phases", action="store_true")
+    s.add_argument("--final-test-unlock", action="store_true",
+                   help="allow --pos to name a final_test file")
     args = ap.parse_args()
     {"train": cmd_train, "export": cmd_export, "parity": cmd_parity, "score": cmd_score}[args.cmd](args)
 

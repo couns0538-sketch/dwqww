@@ -3,6 +3,8 @@
 train / holdout split of the Forge self-play shards (FPOS/FHCE v1), written as read-only copies.
 
 split  --pos-glob G --hce-dir D --out DIR [--holdout-shards _013,_014] [--holdout-rows 200000]
+       A holdout tag matches a file name when the next character is not a digit, so `_013` is
+       `fb2_013.pos` and not `fb2_0130.pos`.
        [--train-shards 64] [--seed 1] [--partitions 32] [--max-rows-per-shard N]
   1. hash pass: every row -> 64-bit hash of (32 board bytes, side to move); the hashes are written into
      `--partitions` partition files (by the top hash bits) together with the global row id, in global order
@@ -102,6 +104,25 @@ def make_readonly(path):
     os.chmod(path, 0o444)
 
 
+def shard_tag_matches(basename, tag):
+    """True when `tag` occurs in `basename` and the next character is not a digit.
+
+    `_013` selects `fb2_013.pos`. It does not select `fb2_0130.pos`, which would
+    otherwise leave the training set and enter the holdout.
+    """
+    if not tag:
+        return False
+    start = 0
+    while True:
+        found = basename.find(tag, start)
+        if found < 0:
+            return False
+        end = found + len(tag)
+        if end >= len(basename) or not basename[end].isdigit():
+            return True
+        start = found + 1
+
+
 # ---------------- hashing and phases ----------------
 
 def row_hash(boards, meta):
@@ -155,7 +176,7 @@ def cmd_split(args):
     if not pos_files:
         raise SystemExit("no shards match --pos-glob")
     hold_tags = [x for x in args.holdout_shards.split(",") if x]
-    holdout_files = [f for f in pos_files if any(t in os.path.basename(f) for t in hold_tags)]
+    holdout_files = [f for f in pos_files if any(shard_tag_matches(os.path.basename(f), t) for t in hold_tags)]
     train_files = [f for f in pos_files if f not in holdout_files]
     if not holdout_files or not train_files:
         raise SystemExit("need at least one holdout shard and one training shard")
@@ -371,7 +392,8 @@ def main():
     s.add_argument("--pos-glob", required=True)
     s.add_argument("--hce-dir")
     s.add_argument("--out", required=True)
-    s.add_argument("--holdout-shards", default="_013,_014")
+    s.add_argument("--holdout-shards", default="_013,_014",
+                   help="comma-separated name tags; a tag does not match a longer digit run (_013 is not _0130)")
     s.add_argument("--holdout-rows", type=int, default=200000)
     s.add_argument("--train-shards", type=int, default=64)
     s.add_argument("--seed", type=int, default=1)

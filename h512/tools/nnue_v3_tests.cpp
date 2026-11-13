@@ -313,7 +313,7 @@ void random_walk(const forge::nnue::v3::Net& net, std::mt19937& rng, long target
                     const std::int16_t* ours = acc.values[static_cast<std::size_t>(us)].data();
                     const std::int16_t* theirs = acc.values[static_cast<std::size_t>(forge::opposite(us))].data();
                     const std::int64_t scalar = forge::nnue::v3::output_sum_scalar(net, ours, theirs, ob);
-                    for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                    for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                         if (!forge::nnue::v3::kernel_available(k)) continue;
                         if (forge::nnue::v3::output_sum_with(k, net, ours, theirs, ob) != scalar) ++stats.kernel_mismatches;
                         ++stats.kernel_checks;
@@ -374,7 +374,8 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
               << " null_moves " << total.null_moves << " replays>1 " << total.replays_over_one << " max_replay " << total.max_replay
               << " kernel_checks " << total.kernel_checks << " kernel_mismatches " << total.kernel_mismatches
               << " (kernels compiled: scalar" << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx2) ? ", avx2" : "")
-              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512) ? ", avx512" : "") << ")\n";
+              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512) ? ", avx512" : "")
+              << (forge::nnue::v3::kernel_available(forge::nnue::v3::Kernel::Avx512Vnni) ? ", avx512-vnni" : "") << ")\n";
     check(total.plies >= total_plies, "the requested number of plies was walked");
 
     // ---- kernel: output_sum (compiled kernel) == output_sum_scalar at the bounds ----
@@ -399,7 +400,7 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
                 const std::int64_t slow = forge::nnue::v3::output_sum_scalar(net, ours.data(), theirs.data(), bucket);
                 const std::int64_t fast = forge::nnue::v3::output_sum(net, ours.data(), theirs.data(), bucket);
                 if (fast != slow) check(false, "output_sum best kernel == scalar (round " + std::to_string(round) + ")");
-                for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+                for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                     if (!forge::nnue::v3::kernel_available(k)) continue;
                     if (forge::nnue::v3::output_sum_with(k, net, ours.data(), theirs.data(), bucket) != slow) {
                         check(false, std::string("output_sum ") + forge::nnue::v3::kernel_name(k) + " == scalar (round " + std::to_string(round) + ")");
@@ -414,7 +415,7 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
         {
             alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> ref{};
             for (int h = 0; h < 1024; ++h) ref[static_cast<std::size_t>(h)] = static_cast<std::int16_t>(dv(rng) / 4);
-            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                 if (!forge::nnue::v3::kernel_available(k)) continue;
                 alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> a = ref;
                 alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> b = ref;
@@ -445,15 +446,195 @@ void run_m2_tests(const std::filesystem::path& dir, long total_plies) {
             bool same = true;
             for (int h = 0; h < 1024; ++h) same = same && fast[static_cast<std::size_t>(h)] == static_cast<std::int16_t>(slow[static_cast<std::size_t>(h)]);
             check(same, "apply_changes best kernel == scalar for " + forge::Board::move_to_uci(move));
-            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512}) {
+            for (const forge::nnue::v3::Kernel k : {forge::nnue::v3::Kernel::Scalar, forge::nnue::v3::Kernel::Avx2, forge::nnue::v3::Kernel::Avx512, forge::nnue::v3::Kernel::Avx512Vnni}) {
                 if (!forge::nnue::v3::kernel_available(k)) continue;
                 alignas(64) std::array<std::int16_t, forge::nnue::v3::MaxHidden> out{};
                 forge::nnue::v3::apply_changes_with(k, net, parent.values[0].data(), out.data(), parent.keys[0], forge::White, dirty);
                 check(out == fast, std::string("apply_changes ") + forge::nnue::v3::kernel_name(k) + " == best kernel for " + forge::Board::move_to_uci(move));
             }
         }
+        // One king bucket forces dissimilar positions to share a cache entry.
+        // Rebuilding from the bias must match a full scalar refresh.
+        {
+            forge::nnue::v3::WorkerState state;
+            forge::nnue::v3::prepare(net, state, 8);
+            const std::string_view fens[] = {
+                forge::Board::StandardStartFen,
+                "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+                "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+                "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+                "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+            };
+            int compared = 0;
+            for (int round = 0; round < 4; ++round) {
+                for (const std::string_view fen : fens) {
+                    forge::Board board;
+                    check(board.set_fen(fen), "far-cache fen parses");
+                    forge::nnue::v3::Accumulator& acc = state.stack[4];
+                    acc.valid = false;
+                    forge::nnue::v3::refresh_cached(net, state.cache, board, acc);
+                    forge::nnue::v3::Accumulator ref;
+                    forge::nnue::v3::refresh(net, board, ref);
+                    check(acc.values == ref.values, "far-cache accumulator == scalar refresh for " + std::string(fen));
+                    check(forge::nnue::v3::evaluate(net, board, acc) == forge::nnue::v3::evaluate_reference(net, board),
+                          "far-cache evaluate == reference for " + std::string(fen));
+                    ++compared;
+                }
+            }
+            std::cout << "far-cache H1024 one bucket: comparisons " << compared << " refreshes " << state.cache.refreshes
+                      << " columns " << state.cache.columns << '\n';
+            check(compared == 20, "far-cache comparisons ran");
+            check(state.cache.columns < state.cache.refreshes * 20, "far cache applied fewer columns than a 20-wide diff");
+        }
         forge::nnue::v3::unload();
+        // 32 * 1000 + 700 = 32700, one below the loader's int16 accumulator bound.
+        // The cache updates white pawns before white knights. Position A has a
+        // knight on a2 and seven white pawns; startpos has the pawn back and
+        // the knight gone. The pawn column is added while the knight column is
+        // still present (33 columns, sum 33700), then the knight is removed.
+        // 33700 wraps in int16. The stored lanes must still be 32700, the int64
+        // sum, not the saturated leftover.
+        {
+            NetSpec spec = make_spec(32, 1, 1, false, 99);
+            for (auto& v : spec.w1) v = 1000;
+            for (auto& v : spec.b1) v = 700;
+            write_file(file("near_bound_refresh.fnn3"), serialize(spec));
+            std::string error;
+            check(forge::nnue::v3::load(file("near_bound_refresh.fnn3"), &error), "near-bound refresh net loads: " + error);
+            const forge::nnue::v3::Net& bound_net = *forge::nnue::v3::loaded();
+            forge::nnue::v3::WorkerState state;
+            forge::nnue::v3::prepare(bound_net, state, 8);
+            const std::string_view fens[] = {
+                "rnbqkbnr/pppppppp/8/8/8/8/NPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                forge::Board::StandardStartFen,
+                "4k3/8/8/8/8/8/8/4K3 w - - 0 1",
+                "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+                forge::Board::StandardStartFen,
+            };
+            for (int round = 0; round < 2; ++round) {
+                for (const std::string_view fen : fens) {
+                    forge::Board board;
+                    check(board.set_fen(fen), "near-bound fen parses: " + std::string(fen));
+                    const int pieces = forge::popcount(board.occupied());
+                    const int expect = 700 + pieces * 1000;
+                    forge::nnue::v3::Accumulator& acc = state.stack[4];
+                    acc.valid = false;
+                    forge::nnue::v3::refresh_cached(bound_net, state.cache, board, acc);
+                    forge::nnue::v3::Accumulator ref;
+                    forge::nnue::v3::refresh(bound_net, board, ref);
+                    check(acc.values == ref.values, "near-bound far-cache == scalar refresh for " + std::string(fen));
+                    bool lanes = true;
+                    for (int p = 0; p < 2 && lanes; ++p) {
+                        for (int h = 0; h < bound_net.hidden; ++h) {
+                            if (acc.values[static_cast<std::size_t>(p)][static_cast<std::size_t>(h)] != static_cast<std::int16_t>(expect)) lanes = false;
+                        }
+                    }
+                    check(lanes, "near-bound lanes == 700 + 1000 * pieces (" + std::to_string(expect) + ") for " + std::string(fen));
+                }
+            }
+            forge::nnue::v3::unload();
+        }
     }
+}
+
+// Incremental PSQT, the pawn cache, and a full recompute must agree after
+// castling, en passant, promotions, and null moves. The PSQT is compared
+// before the taper, so a cancelled centipawn difference still fails.
+void runtime_psqt_walk(int plies) {
+    const std::string_view starts[] = {
+        forge::Board::StandardStartFen,
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        "8/PPP2k2/8/8/8/8/2K2ppp/8 w - - 0 1",
+        "4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1",
+        "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    };
+    forge::Evaluator eval;
+    std::mt19937 rng(20261113);
+    std::uniform_real_distribution<double> coin(0.0, 1.0);
+    int mismatches = 0;
+    int castlings = 0;
+    int en_passants = 0;
+    int promotions = 0;
+    int null_moves = 0;
+    int compared = 0;
+    struct Frame {
+        forge::Evaluator::RuntimePsqt psqt;
+        forge::Move move{};
+        forge::Undo undo{};
+        forge::NullUndo null_undo{};
+        int kind = 0;
+    };
+    int done = 0;
+    while (done < plies) {
+        forge::Board board;
+        const bool ok = board.set_fen(starts[rng() % (sizeof(starts) / sizeof(starts[0]))]);
+        check(ok, "runtime walk start fen");
+        forge::Evaluator::RuntimePsqt psqt = forge::Evaluator::refresh_runtime_psqt(board);
+        std::vector<Frame> stack;
+        int game = 0;
+        while (game < 240 && done < plies) {
+            const forge::Evaluator::RuntimePsqt fresh = forge::Evaluator::refresh_runtime_psqt(board);
+            const bool psqt_same = psqt.valid && fresh.valid && psqt.score == fresh.score && psqt.phase == fresh.phase;
+            const int runtime = eval.evaluate_runtime(board, psqt);
+            const int uncached = forge::Evaluator::evaluate_uncached(board);
+            const int cached = eval.evaluate(board);
+            if (!psqt_same || runtime != uncached || cached != uncached) {
+                ++mismatches;
+                if (mismatches <= 5) {
+                    std::cout << "HCE MISMATCH " << board.fen() << " runtime " << runtime << " uncached " << uncached
+                              << " cached " << cached << " psqt " << psqt.score << "/" << psqt.phase << " fresh " << fresh.score
+                              << "/" << fresh.phase << " valid " << psqt.valid << "/" << fresh.valid << '\n';
+                }
+            }
+            ++compared;
+            ++done;
+            ++game;
+            if (!stack.empty() && (coin(rng) < 0.3 || stack.size() >= 80)) {
+                const Frame frame = stack.back();
+                stack.pop_back();
+                if (frame.kind == 0) board.unmake_move(frame.move, frame.undo);
+                else board.unmake_null_move(frame.null_undo);
+                psqt = frame.psqt;
+                continue;
+            }
+            Frame frame;
+            frame.psqt = psqt;
+            if (!board.in_check() && coin(rng) < 0.05) {
+                board.make_null_move(frame.null_undo);
+                frame.kind = 1;
+                forge::nnue::DirtyPieces dirty;
+                dirty.count = 0;
+                forge::Evaluator::update_runtime_psqt(frame.psqt, psqt, dirty);
+                ++null_moves;
+            } else {
+                forge::MoveList legal = board.legal_moves();
+                if (legal.empty()) break;
+                forge::Move move = legal.begin()[static_cast<std::ptrdiff_t>(rng() % legal.size())];
+                if (coin(rng) < 0.5) {
+                    std::vector<forge::Move> special;
+                    for (const forge::Move& m : legal) {
+                        if (m.is_castle() || (m.flags & forge::EnPassant) != 0U || m.is_promotion()) special.push_back(m);
+                    }
+                    if (!special.empty()) move = special[rng() % special.size()];
+                }
+                if (move.is_castle()) ++castlings;
+                if ((move.flags & forge::EnPassant) != 0U) ++en_passants;
+                if (move.is_promotion()) ++promotions;
+                const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+                check(board.make_move(move, frame.undo), "runtime walk move");
+                frame.move = move;
+                forge::Evaluator::update_runtime_psqt(frame.psqt, psqt, dirty);
+            }
+            stack.push_back(frame);
+        }
+    }
+    std::cout << "runtime psqt walk: plies " << compared << " mismatches " << mismatches << " castlings " << castlings
+              << " en_passants " << en_passants << " promotions " << promotions << " null_moves " << null_moves << '\n';
+    check(mismatches == 0, "incremental PSQT and pawn cache == uncached eval");
+    check(castlings > 0 && en_passants > 0 && promotions > 0 && null_moves > 0, "runtime walk covers castling, en passant, promotions and null moves");
 }
 
 } // namespace
@@ -622,6 +803,7 @@ int main(int argc, char** argv) {
         forge::nnue::v3::unload();
     }
 
+    runtime_psqt_walk(8000);
     const long walk_plies = argc > 2 ? std::stol(argv[2]) : 100000L;
     run_m2_tests(dir, walk_plies);
 

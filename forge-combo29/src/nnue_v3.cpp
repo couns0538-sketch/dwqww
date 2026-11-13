@@ -24,6 +24,11 @@
 #else
 #define FORGE_NNUE_V3_AVX512 0
 #endif
+#if FORGE_NNUE_V3_AVX512 && defined(__AVX512VNNI__)
+#define FORGE_NNUE_V3_AVX512_VNNI 1
+#else
+#define FORGE_NNUE_V3_AVX512_VNNI 0
+#endif
 
 namespace forge::nnue::v3 {
 
@@ -170,6 +175,33 @@ std::int64_t output_sum_avx512(const Net& net, const std::int16_t* ours, const s
 }
 #endif
 
+#if FORGE_NNUE_V3_AVX512_VNNI
+// Same sum as output_sum_avx512. a is clamped to 0..255 and |w2| <= 127, so a*w fits in int16 and
+// mullo is exact. vpdpwssd is that product, pairwise, added into the int32 lane: madd_epi16 then add_epi32.
+std::int64_t output_sum_avx512_vnni(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
+    const int hidden = net.hidden;
+    const std::int16_t* w2 = net.w2.data() + static_cast<std::size_t>(bucket) * 2 * static_cast<std::size_t>(hidden);
+    const __m512i zero = _mm512_setzero_si512();
+    const __m512i qa = _mm512_set1_epi16(static_cast<short>(QA));
+    __m512i sum0 = zero;
+    __m512i sum1 = zero;
+    for (int h = 0; h < hidden; h += 32) {
+        const __m512i a = _mm512_min_epi16(_mm512_max_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(ours + h)), zero), qa);
+        const __m512i b = _mm512_min_epi16(_mm512_max_epi16(_mm512_load_si512(reinterpret_cast<const __m512i*>(theirs + h)), zero), qa);
+        const __m512i wa = _mm512_load_si512(reinterpret_cast<const __m512i*>(w2 + h));
+        const __m512i wb = _mm512_load_si512(reinterpret_cast<const __m512i*>(w2 + hidden + h));
+        sum0 = _mm512_dpwssd_epi32(sum0, _mm512_mullo_epi16(a, wa), a);
+        sum1 = _mm512_dpwssd_epi32(sum1, _mm512_mullo_epi16(b, wb), b);
+    }
+    alignas(64) std::int32_t lanes[32];
+    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes), sum0);
+    _mm512_store_si512(reinterpret_cast<__m512i*>(lanes + 16), sum1);
+    std::int64_t sum = 0;
+    for (const std::int32_t lane : lanes) sum += lane;
+    return sum;
+}
+#endif
+
 // ---- change kernels: destination = source +/- up to four columns in one pass ----
 struct Changes {
     const std::int16_t* columns[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -257,15 +289,20 @@ std::size_t file_size_for(int hidden, int king_buckets, int output_buckets) {
            8;                                                                                               // checksum
 }
 
-const char* kernel_name() { return FORGE_NNUE_V3_AVX512 ? "avx512" : FORGE_NNUE_V3_AVX2 ? "avx2" : "scalar"; }
+const char* kernel_name() {
+    return FORGE_NNUE_V3_AVX512_VNNI ? "avx512-vnni" : FORGE_NNUE_V3_AVX512 ? "avx512" : FORGE_NNUE_V3_AVX2 ? "avx2" : "scalar";
+}
 
-Kernel best_kernel() { return FORGE_NNUE_V3_AVX512 ? Kernel::Avx512 : FORGE_NNUE_V3_AVX2 ? Kernel::Avx2 : Kernel::Scalar; }
+Kernel best_kernel() {
+    return FORGE_NNUE_V3_AVX512_VNNI ? Kernel::Avx512Vnni : FORGE_NNUE_V3_AVX512 ? Kernel::Avx512 : FORGE_NNUE_V3_AVX2 ? Kernel::Avx2 : Kernel::Scalar;
+}
 
 bool kernel_available(Kernel kernel) {
     switch (kernel) {
     case Kernel::Scalar: return true;
     case Kernel::Avx2: return FORGE_NNUE_V3_AVX2 != 0;
     case Kernel::Avx512: return FORGE_NNUE_V3_AVX512 != 0;
+    case Kernel::Avx512Vnni: return FORGE_NNUE_V3_AVX512_VNNI != 0;
     }
     return false;
 }
@@ -275,6 +312,7 @@ const char* kernel_name(Kernel kernel) {
     case Kernel::Scalar: return "scalar";
     case Kernel::Avx2: return "avx2";
     case Kernel::Avx512: return "avx512";
+    case Kernel::Avx512Vnni: return "avx512-vnni";
     }
     return "?";
 }
@@ -486,7 +524,9 @@ int evaluate_reference(const Net& net, const Board& board) {
 // ---- fast path ----
 
 std::int64_t output_sum(const Net& net, const std::int16_t* ours, const std::int16_t* theirs, int bucket) {
-#if FORGE_NNUE_V3_AVX512
+#if FORGE_NNUE_V3_AVX512_VNNI
+    return output_sum_avx512_vnni(net, ours, theirs, bucket);
+#elif FORGE_NNUE_V3_AVX512
     return output_sum_avx512(net, ours, theirs, bucket);
 #elif FORGE_NNUE_V3_AVX2
     return output_sum_avx2(net, ours, theirs, bucket);
@@ -504,6 +544,9 @@ std::int64_t output_sum_with(Kernel kernel, const Net& net, const std::int16_t* 
 #if FORGE_NNUE_V3_AVX512
     case Kernel::Avx512: return output_sum_avx512(net, ours, theirs, bucket);
 #endif
+#if FORGE_NNUE_V3_AVX512_VNNI
+    case Kernel::Avx512Vnni: return output_sum_avx512_vnni(net, ours, theirs, bucket);
+#endif
     default: return output_sum_scalar(net, ours, theirs, bucket);
     }
 }
@@ -515,6 +558,9 @@ void add_column_with(Kernel kernel, std::int16_t* acc, const std::int16_t* col, 
 #endif
 #if FORGE_NNUE_V3_AVX512
     case Kernel::Avx512: if (add) add_column_avx512(acc, col, hidden); else sub_column_avx512(acc, col, hidden); return;
+#endif
+#if FORGE_NNUE_V3_AVX512_VNNI
+    case Kernel::Avx512Vnni: if (add) add_column_avx512(acc, col, hidden); else sub_column_avx512(acc, col, hidden); return;
 #endif
     default: if (add) add_column_scalar(acc, col, hidden); else sub_column_scalar(acc, col, hidden); return;
     }
@@ -564,6 +610,9 @@ void apply_changes_with(Kernel kernel, const Net& net, const std::int16_t* sourc
 #if FORGE_NNUE_V3_AVX512
     case Kernel::Avx512: apply_changes_avx512(source, destination, c, net.hidden); return;
 #endif
+#if FORGE_NNUE_V3_AVX512_VNNI
+    case Kernel::Avx512Vnni: apply_changes_avx512(source, destination, c, net.hidden); return;
+#endif
     default: apply_changes_scalar(source, destination, c, net.hidden); return;
     }
 }
@@ -574,21 +623,46 @@ void refresh_from_pieces(const Net& net, RefreshCache& cache, const Pieces& piec
     RefreshCache::Entry& entry = cache.entries[cache_index(net, perspective, key)];
     const int hidden = net.hidden;
     ++cache.refreshes;
+    // Count before touching the entry. An empty entry (bias, no pieces) has
+    // diff == piece_count, so `>` leaves that first fill on the add-only path.
+    int piece_count = 0;
+    int diff = 0;
     for (int piece = WP; piece <= BK; ++piece) {
         const auto pi = static_cast<std::size_t>(piece);
-        Bitboard removed = entry.pieces[pi] & ~pieces[pi];
-        Bitboard added = pieces[pi] & ~entry.pieces[pi];
-        while (removed != 0) {
-            const int square = pop_lsb(removed);
-            sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
-            ++cache.columns;
+        const Bitboard now = pieces[pi];
+        piece_count += popcount(now);
+        diff += popcount(entry.pieces[pi] & ~now);
+        diff += popcount(now & ~entry.pieces[pi]);
+    }
+    if (diff > piece_count) {
+        std::copy_n(net.b1.data(), hidden, entry.values.data());
+        for (int piece = WP; piece <= BK; ++piece) {
+            const auto pi = static_cast<std::size_t>(piece);
+            Bitboard present = pieces[pi];
+            while (present != 0) {
+                const int square = pop_lsb(present);
+                add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            entry.pieces[pi] = pieces[pi];
         }
-        while (added != 0) {
-            const int square = pop_lsb(added);
-            add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
-            ++cache.columns;
+    } else {
+        for (int piece = WP; piece <= BK; ++piece) {
+            const auto pi = static_cast<std::size_t>(piece);
+            Bitboard removed = entry.pieces[pi] & ~pieces[pi];
+            Bitboard added = pieces[pi] & ~entry.pieces[pi];
+            while (removed != 0) {
+                const int square = pop_lsb(removed);
+                sub_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            while (added != 0) {
+                const int square = pop_lsb(added);
+                add_column(entry.values.data(), column(net, feature_index(key, perspective, static_cast<Piece>(piece), square)), hidden);
+                ++cache.columns;
+            }
+            entry.pieces[pi] = pieces[pi];
         }
-        entry.pieces[pi] = pieces[pi];
     }
     std::copy_n(entry.values.data(), hidden, destination);
 }
