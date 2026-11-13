@@ -68,18 +68,18 @@ From the repository root:
 python3 forge-combo29/tools/legality_oracle.py
 ```
 
-The script compiles two probes and compares both with python-chess:
+The script compiles two probes into a private temporary directory (`tempfile.TemporaryDirectory`, mode 0700), compares both with python-chess, and deletes the directory when the probes exit. The binaries are not written to a fixed name under `/tmp`, because that path can be replaced before they are executed.
 
 | probe | flags |
 | --- | --- |
-| `/tmp/legality_kl1` | `FORGE_SPD_KING_LINES=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SPD_PREFETCH_EARLY=1` |
-| `/tmp/legality_kl0` | `FORGE_SPD_KING_LINES=0`, `FORGE_SPD_NO_ZERO_MOVELISTS=0`, `FORGE_SPD_PREFETCH_EARLY=0` |
+| king-line (`legality_kl1`) | `FORGE_SPD_KING_LINES=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SPD_PREFETCH_EARLY=1` |
+| reference (`legality_kl0`) | `FORGE_SPD_KING_LINES=0`, `FORGE_SPD_NO_ZERO_MOVELISTS=0`, `FORGE_SPD_PREFETCH_EARLY=0` |
 
 Both use `-std=c++20 -O2 -DNDEBUG` and link `board.cpp` plus `bitboard.cpp`.
 The king-line flags are the lock-style board settings. CMake does not
 override `FORGE_SPD_KING_LINES`, and the header default is 1.
 
-After the fix, on 2026-11-13, that command exited 0 in about 52 seconds:
+After the clock fix, on 2026-11-13, that command exited 0 in about 52 seconds. The same command was run again after the probes moved into the private temporary directory, with the same result:
 
 ```
 positions 7891

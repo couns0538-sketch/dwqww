@@ -17,6 +17,7 @@ import os
 import random
 import subprocess
 import sys
+import tempfile
 
 import chess
 
@@ -354,46 +355,52 @@ def deep_perft(probe, errors):
 
 
 def main():
-    os.makedirs("/tmp", exist_ok=True)
-    fast = "/tmp/legality_kl1"
-    slow = "/tmp/legality_kl0"
-    compile_probe(fast, {
-        "FORGE_SPD_NO_ZERO_MOVELISTS": 2,
-        "FORGE_SPD_PREFETCH_EARLY": 1,
-        "FORGE_SPD_KING_LINES": 1,
-    })
-    compile_probe(slow, {
-        "FORGE_SPD_NO_ZERO_MOVELISTS": 0,
-        "FORGE_SPD_PREFETCH_EARLY": 0,
-        "FORGE_SPD_KING_LINES": 0,
-    })
-    corpus = positions()
-    print(f"positions {len(corpus)}", file=sys.stderr)
-    fast_p = Probe(fast)
-    slow_p = Probe(slow)
-    errors = []
-    kinds = collections.Counter()
-    try:
-        check_rejects(fast_p, errors)
-        for index, (label, board) in enumerate(corpus):
-            if index % 250 == 0:
-                print(f"compare {index}/{len(corpus)} {label}", file=sys.stderr)
-            before = len(errors)
-            compare_position(fast_p, board, "fast " + label, errors)
-            compare_position(slow_p, board, "slow " + label, errors)
-            if len(errors) == before:
-                kinds["ok"] += 1
-            else:
-                kinds["bad"] += 1
-        if not errors:
-            deep_perft(fast_p, errors)
-            rows = fast_p.call("selftest")
-            text = "\n".join(rows)
-            if "FAIL " in text or "ok 0" in text:
-                errors.append("selftest\n" + "\n".join(row for row in rows if row.startswith("FAIL") or row.startswith("PERFT") or row.startswith("TOTAL")))
-    finally:
-        fast_p.close()
-        slow_p.close()
+    # A private directory, mode 0700. A fixed name under /tmp can be replaced
+    # before the compiled probe is executed.
+    with tempfile.TemporaryDirectory(prefix="forge-legality-") as work:
+        fast = os.path.join(work, "legality_kl1")
+        slow = os.path.join(work, "legality_kl0")
+        compile_probe(fast, {
+            "FORGE_SPD_NO_ZERO_MOVELISTS": 2,
+            "FORGE_SPD_PREFETCH_EARLY": 1,
+            "FORGE_SPD_KING_LINES": 1,
+        })
+        compile_probe(slow, {
+            "FORGE_SPD_NO_ZERO_MOVELISTS": 0,
+            "FORGE_SPD_PREFETCH_EARLY": 0,
+            "FORGE_SPD_KING_LINES": 0,
+        })
+        corpus = positions()
+        print(f"positions {len(corpus)}", file=sys.stderr)
+        fast_p = None
+        slow_p = None
+        errors = []
+        kinds = collections.Counter()
+        try:
+            fast_p = Probe(fast)
+            slow_p = Probe(slow)
+            check_rejects(fast_p, errors)
+            for index, (label, board) in enumerate(corpus):
+                if index % 250 == 0:
+                    print(f"compare {index}/{len(corpus)} {label}", file=sys.stderr)
+                before = len(errors)
+                compare_position(fast_p, board, "fast " + label, errors)
+                compare_position(slow_p, board, "slow " + label, errors)
+                if len(errors) == before:
+                    kinds["ok"] += 1
+                else:
+                    kinds["bad"] += 1
+            if not errors:
+                deep_perft(fast_p, errors)
+                rows = fast_p.call("selftest")
+                text = "\n".join(rows)
+                if "FAIL " in text or "ok 0" in text:
+                    errors.append("selftest\n" + "\n".join(row for row in rows if row.startswith("FAIL") or row.startswith("PERFT") or row.startswith("TOTAL")))
+        finally:
+            if fast_p is not None:
+                fast_p.close()
+            if slow_p is not None:
+                slow_p.close()
     print(f"ok {kinds['ok']} bad {kinds['bad']} errors {len(errors)}")
     for error in errors[:40]:
         print(error)
