@@ -78,6 +78,19 @@ Depth-16 bench, same H512 net, two runs each, nodes 21116907 both arms:
 
 The baseline pair already differs by about 4 percent. The new pair sits inside that spread. This bench does not show a search speedup. A lower cold-refresh time is not a strength result.
 
+## Clang 18, same source, same nets
+
+Clang 18.1.3 could not see Ubuntu's libstdc++ headers or library on its own (it selected GCC 14's install path; the headers on this machine are GCC 13). The objects were compiled with `clang++ -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4` and explicit includes `/usr/include/c++/13` and `/usr/include/x86_64-linux-gnu/c++/13`, then linked with g++. Checksums matched the gcc runs: H512 walk `-133029274`, H512 cold `-4064000000`, H1024 cold `-681000000`. Column counts matched too (H512 25000044 to 17000044, H1024 50000010 to 34000010).
+
+Pinned cold refresh, ns/call:
+
+| Net | before | after |
+|---|---|---|
+| H512 | 240.990, 257.654 | 242.616, 231.054 |
+| H1024 | 1001.24, 1076.90, 1086.20 | 661.113, 890.275, 685.404 |
+
+Under clang the H512 cold time does not clear the overlap. The H1024 cold time is lower in every pair, with a wider spread than the gcc runs. The H512 walk (`eval_only_ns`, 200000 plies) was 421.199 and 426.450 before, 383.027 and 371.576 after. That walk is shorter than the gcc 1000000-ply runs.
+
 ## Left alone
 
-Output kernel, incremental `apply_changes`, trainer numerics, `UseNNUE`, and the final test set. No network file in the repository was replaced.
+The output kernel, trainer numerics, `UseNNUE`, and the final test set. A fused incremental update was tried after this change and removed; see `APPLY_BOTH.md`. No network file in the repository was replaced.

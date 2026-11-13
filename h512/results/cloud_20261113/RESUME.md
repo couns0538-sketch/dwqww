@@ -35,10 +35,17 @@ Verified here, on synthetic nets only:
 - `centipawns()` is the integer formula `score_net_numpy` uses. `h512/train/test_scorer_parity.py` compares it with `fable_nnue_v3.evaluate` (416 rows, 0 mismatches, 253 negative) and, when given the engine tool, with that tool (104 rows, 0 mismatches). No test-set file was read.
 - `as_i32` rejects a `b2` that does not fit in int32. In-range values, including the int32 extremes, keep the previous little-endian bytes. `export_net` no longer casts to int32 before that check. Torch is not installed here, so the export function itself was not executed.
 
+## Also checked, no source change
+
+- UBSan, then ASan+UBSan, on the 100000-ply test: 95960 checks, 0 failures, no diagnostic. `SANITIZERS.md`.
+- Clang 18 codegen of the same refresh change: checksums and column counts match gcc. H1024 cold time dropped in every pair. H512 cold time did not clear the overlap. Numbers are in `REFRESH_BIAS.md`.
+- The scorer check now also compares output bucket, both king keys, and the raw sum, and includes the near-bound weights. 520 python rows and 104 engine rows, 0 mismatches. `SCORER_PARITY.md`.
+- The phase piece-count lookup is correct under Python precedence (256/256 byte values, 104 packed FENs). It was not changed. `PIECE_COUNT.md`. Do not rebuild the frozen selection or test shards.
+
 ## Next, if this session continues
 
 1. Do not repeat the fused both-perspective kernel unless the measurement is longer than the spread in `APPLY_BOTH.md`.
 2. A VNNI output kernel (`__AVX512VNNI__`) is at most the ~25 ns `output_sum` on H512. It will not show up in `bench 16` unless something else changes. Measure `output_sum_ns` only, and keep it only if that number moves and the scalar sum stays `4558683` on the local H512 net.
-3. Trainer numerics that need the real shards or a GPU stay blocked. Do not score test set 3.
+3. Trainer numerics that need the real shards or a GPU stay blocked. Do not score test set 3. Equal-node games need candidate 3, which is not in this checkout.
 
 Portable flags stay `-march=x86-64-v4` with `-ffp-contract=off`. Do not load an untrusted checkpoint with `torch.load`.
