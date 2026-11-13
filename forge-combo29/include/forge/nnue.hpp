@@ -72,6 +72,14 @@ constexpr float SigmoidK = 2.25F;        // network output is in sigmoid units o
 #ifndef FORGE_NNUE_V3
 #define FORGE_NNUE_V3 0
 #endif
+
+// Default 0: the scalar accumulator update. 1, and only when the compiler
+// actually has AVX2: the same per-lane (source - removed) + added arithmetic
+// on eight floats at a time. Weight columns are not aligned, so the loads and
+// stores are unaligned. The default build does not compile this path.
+#ifndef FORGE_SPD_NNUE_ACC_AVX
+#define FORGE_SPD_NNUE_ACC_AVX 0
+#endif
 #if FORGE_NNUE_V3 && (FORGE_NNUE_V2 || FORGE_NNUE_HALFKA)
 #error "FORGE_NNUE_V3 is not combined with FORGE_NNUE_V2 or FORGE_NNUE_HALFKA"
 #endif

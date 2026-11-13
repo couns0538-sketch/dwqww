@@ -1147,8 +1147,12 @@ void Board::unmake_null_move(const NullUndo& undo) {
 
 std::optional<Move> Board::parse_uci(std::string_view text) {
     if (text.size() != 4 && text.size() != 5) return std::nullopt;
+    // UCI squares are lowercase. Promotion letters are specified in lowercase;
+    // accept an uppercase piece letter so a GUI that sends "e7e8Q" still matches.
+    std::string normalized(text);
+    for (char& c : normalized) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     for (const Move move : legal_moves()) {
-        if (move_to_uci(move) == text) return move;
+        if (move_to_uci(move) == normalized) return move;
     }
     return std::nullopt;
 }

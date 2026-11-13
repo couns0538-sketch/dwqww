@@ -27,6 +27,12 @@
 #else
 #define FORGE_NNUE_SSE 0
 #endif
+#if FORGE_SPD_NNUE_ACC_AVX && defined(__AVX2__)
+#include <immintrin.h>
+#define FORGE_NNUE_ACC_AVX_CODE 1
+#else
+#define FORGE_NNUE_ACC_AVX_CODE 0
+#endif
 
 #if defined(__AVX2__)
 #include <immintrin.h>
@@ -255,6 +261,9 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
     }
 #endif
     const Weights& w = weights();
+#if FORGE_NNUE_ACC_AVX_CODE
+    static_assert(HiddenSize % 8 == 0, "AVX accumulator update steps eight floats");
+#endif
     // Quiet moves (including noncapturing promotions) remove one feature and
     // add one. Keep each lane's subtraction-then-addition order while avoiding
     // a full copy and two separate read/write passes over the child.
@@ -268,10 +277,19 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
             const float* added_column = w.w1.get() +
                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+#if FORGE_NNUE_ACC_AVX_CODE
+            for (int h = 0; h < HiddenSize; h += 8) {
+                const __m256 value = _mm256_add_ps(
+                    _mm256_sub_ps(_mm256_loadu_ps(source.data() + h), _mm256_loadu_ps(removed_column + h)),
+                    _mm256_loadu_ps(added_column + h));
+                _mm256_storeu_ps(destination.data() + h, value);
+            }
+#else
             for (int h = 0; h < HiddenSize; ++h) {
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = (source[index] - removed_column[index]) + added_column[index];
             }
+#endif
         }
         child.valid = true;
         return;
@@ -291,10 +309,21 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
                 static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
             const float* added_column = w.w1.get() +
                 static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+#if FORGE_NNUE_ACC_AVX_CODE
+            for (int h = 0; h < HiddenSize; h += 8) {
+                const __m256 value = _mm256_add_ps(
+                    _mm256_sub_ps(
+                        _mm256_sub_ps(_mm256_loadu_ps(source.data() + h), _mm256_loadu_ps(removed0_column + h)),
+                        _mm256_loadu_ps(removed1_column + h)),
+                    _mm256_loadu_ps(added_column + h));
+                _mm256_storeu_ps(destination.data() + h, value);
+            }
+#else
             for (int h = 0; h < HiddenSize; ++h) {
                 const std::size_t index = static_cast<std::size_t>(h);
                 destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
             }
+#endif
         }
         child.valid = true;
         return;
