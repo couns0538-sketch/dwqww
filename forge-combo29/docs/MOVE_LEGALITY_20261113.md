@@ -56,9 +56,9 @@ other saved fields.
 Search calls `make_null_move` only from the null-move pruning block, which
 requires `!in_check`. `fullmove_` is read by UCI only to decide whether the
 root is still inside the opening book (`game_ply` in `src/uci.cpp`). Search
-does not read it, so this fix is expected to leave node counts unchanged.
-That expectation was not re-measured with `bench`. The change is always on:
-a switch would leave the clock wrong.
+does not read it. A Linux release build of this branch reproduced the lock
+bench pins, below. The change is always on: a switch would leave the clock
+wrong.
 
 ## Tests
 
@@ -212,6 +212,38 @@ move on the far side of the king as aligned (a pseudo-legal slider cannot
 pass its own king), and a capture that opens a line (the capturer occupies
 the target; en passant is the exception and uses the slow path).
 
+## Bench and the network update
+
+`cmake -S forge-combo29 -B /tmp/forge-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++`
+then `cmake --build /tmp/forge-build -j4`. The default `c++` driver is Clang
+18.1.3 and its link failed for lack of `libstdc++`, so the build used g++
+13.3.0. CMake's lock definitions and `-march=x86-64-v4` were left as written
+in `CMakeLists.txt`. This is not the Windows clang ThinLTO+PGO executable.
+
+The UCI commands are the ones in `scripts/check_pins.sh` (that script was
+read, then the same commands were sent to `/tmp/forge-build/forge`, with the
+transcript kept outside the tree). `bench` builds its own one-thread searcher
+with a 16 MB hash, which is the pin setting.
+
+| mode | depths 11, 13, 16, 20, 22 |
+| --- | --- |
+| net on | 312866, 862329, 3024920, 12389307, 34048354 |
+| net off | 375354, 907205, 2448617, 13573040, 24506465 |
+
+`position startpos` then `go perft 5` printed `nodes 4865609`. Those are the
+ten bench pins and the perft pin in `LOCK.md`.
+
+`tools/nnue_delta_probe.cpp` refreshes the compiled-in network, applies
+`dirty_pieces` with `nnue::update`, makes the move, and refreshes again.
+Compiled with the same hidden size 256, king-line, movelist, prefetch, PEXT,
+and AVX-512 output settings as the lock, plus `-ffp-contract=off
+-fno-fast-math`. On 17 diagrams and three random walks it checked 525 legal
+moves: 13 castles, 6 en-passant captures, 41 promotions, and 36 null moves.
+Every incremental accumulator matched the refresh bit for bit (`max_abs 0`),
+every evaluated score matched, and unmake restored the refreshed accumulator.
+A null move changes no pieces, so the refresh before and after it matched as
+well.
+
 ## Limitations
 
 - Castling is the standard e1/e8 form with rooks on a1/h1/a8/h8. There is no Chess960 path in `is_pseudo_legal`.
@@ -221,6 +253,6 @@ the target; en passant is the exception and uses the slow path).
 - Diagrams with three checkers, or other impossible check geometry that `set_fen` already rejects, were not a separate suite.
 - Fullmove and halfmove saturate at 65535.
 - The internal probe cannot catch a clock that `set_fen` will happily reload. `legality_oracle.py` is the regression for the null fullmove bug.
-- The full UCI binary was not rebuilt, and `bench` was not run. Search does not read `fullmove_`. Root book depth is the only UCI use, and only before search starts.
+- The measured binary is a Linux g++ release build. It is not the published clang PGO executable, and its NPS is not a speed result. Root book depth remains the only UCI use of `fullmove_`.
 - This branch does not change the speed lock and should not be merged from this run. `LOCK.md`, `windows_build/SOURCE_INPUTS.sha256`, the receipts, and the published E1284F7F executable are unchanged. Rewriting those hashes to follow this edit would describe a binary that was not rebuilt.
 - On the parent `efb2ff96`, `sha256sum -c windows_build/SOURCE_INPUTS.sha256` (run from `forge-combo29/`) already failed for five files this branch does not touch: `include/forge/nnue.hpp`, `include/forge/search.hpp`, `src/nnue.cpp`, `src/search.cpp`, and `src/uci.cpp`. `include/forge/board.hpp` and `src/board.cpp` matched there. After this fix they do not. The other 13 files still match. The sentence in `LOCK.md` that all 20 files pass was already false on the parent.
