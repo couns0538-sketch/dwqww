@@ -806,6 +806,14 @@ bool Board::has_legal_move() {
     return false;
 }
 
+bool Board::has_legal_quiet_move() const {
+    for (const Move move : pseudo_legal_moves()) {
+        if (move.is_capture() || (move.flags & Promotion) != 0U) continue;
+        if (is_legal_after(move)) return true;
+    }
+    return false;
+}
+
 std::optional<Move> Board::parse_uci(std::string_view text) {
     if (text.size() != 4 && text.size() != 5) return std::nullopt;
     for (const Move move : legal_moves()) {

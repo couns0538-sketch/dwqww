@@ -430,29 +430,34 @@ int Searcher::quiescence(Board& board, int ply, int alpha, int beta, bool null_b
         }
     }
     const int stand_pat = evaluate_cached(board);
-    if (!checked) {
-        if (stand_pat >= beta && beta <= 0) return beta;
-    }
-
-    auto moves = board.legal_moves(!checked);
+    // Stand-pat models declining a capture. It is not legal when every move is
+    // tactical: the side must promote or capture, and a static floor then hides
+    // a forced loss. Quiet existence matters only when stand-pat would raise
+    // alpha or cut off; otherwise the tactical moves are searched anyway.
+    MoveList moves = checked ? board.legal_moves(false) : board.legal_moves(true);
     if (checked && moves.empty()) return -MateScore + ply;
     if (!checked) {
-        if (stand_pat >= beta) {
-            if (moves.empty() && !board.has_legal_move()) return 0;
-            return beta;
-        }
-        alpha = std::max(alpha, stand_pat);
-        if (moves.empty()) {
-            // A favorable stalemate can raise alpha from stand-pat even though
-            // its exact game-theoretic score is zero.  We only need the more
-            // expensive quiet-legal-move probe when zero might change the
-            // window result: either the window straddles zero, or stand-pat
-            // improved alpha above the caller's original lower bound.
-            if ((original_alpha < 0 || alpha > original_alpha) &&
-                !board.has_legal_move()) {
-                return 0;
+        const bool stand_pat_relevant = stand_pat > alpha;
+        const bool can_stand_pat = moves.empty() || !stand_pat_relevant || board.has_legal_quiet_move();
+        if (can_stand_pat) {
+            if (stand_pat >= beta && beta <= 0) return beta;
+            if (stand_pat >= beta) {
+                if (moves.empty() && !board.has_legal_move()) return 0;
+                return beta;
             }
-            return alpha;
+            alpha = std::max(alpha, stand_pat);
+            if (moves.empty()) {
+                // A favorable stalemate can raise alpha from stand-pat even though
+                // its exact game-theoretic score is zero.  We only need the more
+                // expensive quiet-legal-move probe when zero might change the
+                // window result: either the window straddles zero, or stand-pat
+                // improved alpha above the caller's original lower bound.
+                if ((original_alpha < 0 || alpha > original_alpha) &&
+                    !board.has_legal_move()) {
+                    return 0;
+                }
+                return alpha;
+            }
         }
     }
     order_moves(board, moves, qtt_move, Move{}, ply);

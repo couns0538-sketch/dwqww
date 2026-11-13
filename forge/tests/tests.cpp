@@ -351,6 +351,88 @@ void check_tactical_case(const TacticalCase& item) {
     check(result.nodes <= item.maximum_nodes, "tactical search stays within node ceiling");
 }
 
+int quiet_legal_moves(forge::Board& board) {
+    int quiets = 0;
+    for (const forge::Move move : board.legal_moves()) {
+        if (!move.is_capture() && (move.flags & forge::Promotion) == 0U) ++quiets;
+    }
+    return quiets;
+}
+
+void check_quiescence_forced_tactics() {
+    struct Case {
+        const char* fen;
+        const char* label;
+        bool mate;
+    };
+    constexpr std::array<Case, 4> cases{{
+        {"8/P7/8/8/8/8/6q1/K1k5 w - - 0 1", "white forced promotion", true},
+        {"5K1k/1Q6/8/8/8/8/7p/8 b - - 0 1", "black forced promotion", true},
+        {"8/8/8/8/8/1k6/1p6/BK6 w - - 0 1", "white forced bishop capture", false},
+        {"6kb/6P1/6K1/8/8/8/8/8 b - - 0 1", "black forced bishop capture", false},
+    }};
+    for (const Case& item : cases) {
+        forge::Board board;
+        check(board.set_fen(item.fen), "forced tactical qsearch FEN parses");
+        const std::string original = board.fen();
+        const int stand = forge::Searcher::evaluate(board);
+        const int quiets = quiet_legal_moves(board);
+        check(!board.in_check(board.side_to_move()) && quiets == 0 && !board.legal_moves().empty(),
+              "forced tactical fixture is not check and has no quiet move");
+        forge::Searcher qsearcher(4);
+        const int score = forge::SearcherTestProbe::quiescence(qsearcher, board);
+        const int repeated = forge::SearcherTestProbe::quiescence(qsearcher, board);
+        check(repeated == score, "corrected qsearch score is stable in the transposition table");
+        forge::Searcher depth_searcher(4);
+        const int depth1 = forge::SearcherTestProbe::alpha_beta(depth_searcher, board, 1, -32000, 32000);
+        if (item.mate) {
+            if (!(score == depth1 && score < -29000 && score < stand)) {
+                std::cerr << "FAIL: " << item.label << " qsearch " << score
+                          << " depth1 " << depth1 << " stand " << stand << '\n';
+                ++failures;
+            }
+            forge::Searcher window_searcher(4);
+            const int window = forge::SearcherTestProbe::quiescence_window(
+                window_searcher, board, stand - 80, stand);
+            if (window >= stand) {
+                std::cerr << "FAIL: " << item.label << " stand-pat fail-high " << window
+                          << " over stand " << stand << '\n';
+                ++failures;
+            }
+        } else {
+            if (!(score == 0 && depth1 == 0 && stand > 0)) {
+                std::cerr << "FAIL: " << item.label << " qsearch " << score
+                          << " depth1 " << depth1 << " stand " << stand << '\n';
+                ++failures;
+            }
+            forge::Searcher window_searcher(4);
+            const int window = forge::SearcherTestProbe::quiescence_window(window_searcher, board, 0, 1);
+            check(window == 0, "forced dead-position capture does not fail high over zero");
+        }
+        check(board.fen() == original, "forced tactical qsearch restores board");
+    }
+
+    forge::Board evasion;
+    check(evasion.set_fen("4r2k/8/8/8/8/8/8/4K3 w - - 0 1"), "qsearch evasion FEN parses");
+    {
+        const int stand = forge::Searcher::evaluate(evasion);
+        forge::Searcher searcher(4);
+        const int score = forge::SearcherTestProbe::quiescence(searcher, evasion);
+        check(evasion.in_check(forge::White) && score < stand && score > -29000,
+              "in-check qsearch searches evasions instead of standing pat or declaring mate");
+    }
+
+    forge::Board winning;
+    check(winning.set_fen("4k3/8/8/2q5/8/8/8/2R1K3 w - - 0 1"), "winning tactical capture FEN parses");
+    {
+        const int stand = forge::Searcher::evaluate(winning);
+        forge::Searcher searcher(4);
+        const int score = forge::SearcherTestProbe::quiescence(searcher, winning);
+        check(!winning.in_check(forge::White) && quiet_legal_moves(winning) > 0 && score > stand,
+              "qsearch keeps a winning capture when a quiet move also exists");
+    }
+}
+
 } // namespace
 
 int main() {
@@ -1356,6 +1438,8 @@ int main() {
         board.unmake_move(*stalemating_move, undo);
         check(parent_score == 0, "parent sees horizon stalemate as draw");
     }
+
+    check_quiescence_forced_tactics();
 
     if (failures != 0) {
         std::cerr << failures << " test(s) failed\n";

@@ -92,6 +92,9 @@ public:
     [[nodiscard]] MoveList pseudo_legal_moves(bool captures_only = false) const;
     [[nodiscard]] MoveList legal_moves(bool captures_only = false);
     [[nodiscard]] bool has_legal_move();
+    // A legal move that is neither a capture nor a promotion. Stand-pat is not
+    // a legal quiescence choice unless one of these exists.
+    [[nodiscard]] bool has_legal_quiet_move() const;
     [[nodiscard]] bool make_move(const Move& move, Undo& undo);
     void unmake_move(const Move& move, const Undo& undo);
     void make_null_move(NullUndo& undo);

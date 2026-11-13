@@ -27,6 +27,9 @@ target_link_libraries(forge PRIVATE forge_core Threads::Threads)
 add_executable(forge_tests tests/tests.cpp)
 target_link_libraries(forge_tests PRIVATE forge_core Threads::Threads)
 
+add_executable(qsearch_audit tools/qsearch_audit.cpp)
+target_link_libraries(qsearch_audit PRIVATE forge_core Threads::Threads)
+
 add_executable(forge_bench bench/benchmark.cpp)
 target_link_libraries(forge_bench PRIVATE forge_core Threads::Threads)
 
@@ -40,7 +43,7 @@ if(FORGE_BUILD_VALIDATION_TOOLS)
     target_link_libraries(forge_openings PRIVATE forge_core)
 endif()
 find_package(Python3 3.10 COMPONENTS Interpreter QUIET)
-if(Python3_Interpreter_FOUND)
+if(Python3_Interpreter_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tools/uci_regression.py")
     add_test(NAME match_tool_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/match/test_match_tools.py)
     add_test(NAME uci_regression
