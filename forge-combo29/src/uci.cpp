@@ -76,15 +76,18 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
             int value = 0;
             if (i < tokens.size()) {
                 const std::string& text = tokens[i++];
-                const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                const char* begin = text.data();
+                const char* end = text.data() + text.size();
+                // from_chars rejects a leading plus. +80 is 80 milliseconds, not a forfeit.
+                if (begin != end && *begin == '+') ++begin;
+                const auto result = std::from_chars(begin, end, value);
                 // A clock past the int range is a long control, not zero time.
                 // Zero is the explicit "flagged" sentinel and would move at once.
-                if (result.ec == std::errc::result_out_of_range &&
-                    result.ptr == text.data() + text.size()) {
+                if (result.ec == std::errc::result_out_of_range && result.ptr == end) {
                     return (!text.empty() && text[0] == '-') ? std::numeric_limits<int>::min()
                                                               : std::numeric_limits<int>::max();
                 }
-                if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
+                if (result.ec != std::errc{} || result.ptr != end) return 0;
             }
             return value;
         };
@@ -150,12 +153,16 @@ int main() {
     std::condition_variable stop_cv;
     bool stop_requested = false;
     bool ponder_hit_received = false;
+    // bench uses its own searcher so its node signature stays independent of
+    // the UCI hash size. stop() has to reach that searcher too.
+    forge::Searcher* bench_searcher = nullptr;
     auto stop_search = [&]() {
         {
             const std::lock_guard<std::mutex> lock(stop_mutex);
             stop_requested = true;
+            searcher.stop();
+            if (bench_searcher != nullptr) bench_searcher->stop();
         }
-        searcher.stop();
         stop_cv.notify_all();
         if (worker.joinable()) worker.join();
         ponder_search_active = false;
@@ -410,37 +417,77 @@ int main() {
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.
+            // Runs off the command thread so stop and isready stay available.
             stop_search();
             int depth = 13;
             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
-            constexpr std::array<std::string_view, 8> fens{
-                forge::Board::StandardStartFen,
-                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
-                "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-                "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
-                "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
-                "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
-                "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
-            };
-            std::uint64_t total_nodes = 0;
-            const auto start = std::chrono::steady_clock::now();
-            forge::Searcher bench_searcher(16);
-            for (const std::string_view fen : fens) {
-                forge::Board bench_board;
-                if (!bench_board.set_fen(fen)) continue;
-                forge::SearchLimits limits;
-                limits.depth = depth;
-                bench_searcher.clear();
-                total_nodes += bench_searcher.search(
-                    bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+            {
+                const std::lock_guard<std::mutex> lock(stop_mutex);
+                stop_requested = false;
             }
-            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - start).count();
-            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
-            std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
-                      << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
-                      << std::endl;
+            searcher.reset_stop();
+            worker = std::thread([&stop_mutex, &stop_requested, &bench_searcher, depth]() {
+                constexpr std::array<std::string_view, 8> fens{
+                    forge::Board::StandardStartFen,
+                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                    "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+                    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+                    "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+                    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+                    "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+                    "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+                };
+                forge::Searcher local(16);
+                struct Slot {
+                    std::mutex& mutex;
+                    forge::Searcher*& slot;
+                    bool stopped;
+                    Slot(std::mutex& mutex, forge::Searcher*& slot, forge::Searcher& engine, const bool& stop_requested)
+                        : mutex(mutex), slot(slot), stopped(false) {
+                        const std::lock_guard<std::mutex> lock(mutex);
+                        slot = &engine;
+                        stopped = stop_requested;
+                        if (stopped) engine.stop();
+                    }
+                    ~Slot() {
+                        const std::lock_guard<std::mutex> lock(mutex);
+                        slot = nullptr;
+                    }
+                    Slot(const Slot&) = delete;
+                    Slot& operator=(const Slot&) = delete;
+                };
+                // Publish and sample stop under one lock so a stop that arrives
+                // as the thread starts cannot miss the searcher.
+                const Slot slot(stop_mutex, bench_searcher, local, stop_requested);
+                bool cancelled = slot.stopped;
+                std::uint64_t total_nodes = 0;
+                const auto start = std::chrono::steady_clock::now();
+                for (const std::string_view fen : fens) {
+                    if (cancelled || local.stop_flag().load(std::memory_order_relaxed)) {
+                        cancelled = true;
+                        break;
+                    }
+                    forge::Board bench_board;
+                    if (!bench_board.set_fen(fen)) continue;
+                    forge::SearchLimits limits;
+                    limits.depth = depth;
+                    local.clear();
+                    total_nodes += local.search(
+                        bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+                    if (local.stop_flag().load(std::memory_order_relaxed)) cancelled = true;
+                }
+                const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - start).count();
+                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                if (cancelled) {
+                    std::cout << "info string bench stopped" << std::endl;
+                } else {
+                    std::cout << "info string bench depth " << depth << " nodes " << total_nodes
+                              << " time " << elapsed_ms
+                              << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+                              << std::endl;
+                }
+            });
         } else if (command == "ponderhit") {
             if (ponder_search_active) {
                 searcher.ponderhit();

@@ -1,6 +1,6 @@
 # Forge time-management audit
 
-Audited the combo29 UCI clock on commit `16833ecc` (`lock/combo29-20261110`). Two defects were confirmed on a release build and fixed. The soft and hard allocation formulas were left as they are.
+Audited the combo29 UCI clock on commit `16833ecc` (`lock/combo29-20261110`). Four defects were confirmed on a release build and fixed. The soft and hard allocation formulas were left as they are.
 
 ## How time is applied
 
@@ -20,7 +20,11 @@ The main worker samples the clock every 1024 local nodes and between iterations.
 
 **A clock above the 32-bit range was played as a forfeit.** `std::from_chars` into `int` returns `result_out_of_range` for `3000000000` and `2147483648` and leaves the out-parameter at 0. `read_int` treated every failure as 0, and 0 is the explicit flagged clock, so the search returned the first legal move immediately. Before the fix, `go wtime 3000000000 btime 3000000000` (OwnBook off) came back at depth 0 with `bestmove a2a3` in 5.2 ms. The same parse turned `movestogo 3000000000` into `movestogo 1` (`max(1, 0)`), which spends about 80% of the clock, and it dropped an overflowing increment.
 
-A full token that is out of range now clamps to `INT_MAX` or `INT_MIN`. Existing `max(0, …)` clamps then keep a negative clock at 0 and turn a huge positive clock into a long control. A token with trailing junk (`3000000000abc`) is still 0, because the whole token was not a number. A leading `+` is still 0: `from_chars` rejects it.
+A full token that is out of range now clamps to `INT_MAX` or `INT_MIN`. Existing `max(0, …)` clamps then keep a negative clock at 0 and turn a huge positive clock into a long control. A token with trailing junk (`3000000000abc`) is still 0, because the whole token was not a number.
+
+**A leading `+` was also read as zero.** `from_chars` rejects `+80`, so `go movetime +80` used the 1 ms floor. One leading `+` is now skipped and the rest of the token is parsed. `++80` and `+80abc` stay 0. After the fix, `movetime +80` used 81.2 ms.
+
+**`bench` ignored `stop` and blocked the command thread.** It ran on the UCI thread with a private searcher, so `searcher.stop()` never reached it. `bench 14`, then `isready` at about 80 ms, did not answer within 300 ms, and `stop` still printed `nodes 1196277` at 662 ms. Bench now runs on the worker. `stop` sets the flag on that searcher under the same mutex that publishes it. On cancel the engine prints `info string bench stopped` and does not print a node signature. Uninterrupted signatures are unchanged: depth 10 is 172081 nodes, depth 12 is 467411, and depth 14 is 1196277.
 
 **`go perft` ignored `stop` and blocked the command thread.** Perft ran synchronously on the UCI thread. `go perft 6`, then `stop` about 80 ms later, still printed `nodes 119060324` at 643 ms, and `isready` was not answered until that line. Perft now runs on the search worker. The walk polls the stop flag at depth 2 and above. On cancel it prints `info string perft stopped` and does not print a `nodes` total. Move lines already emitted stay. Completed counts are unchanged: startpos perft 1/2/4/5/6 are 20, 400, 197281, 4865609, and 119060324.
 
@@ -35,7 +39,7 @@ ctest --test-dir /tmp/forge-build --output-on-failure
 
 The script starts the `forge` executable on `PATH`. It does not take a command from its arguments. `ctest` prepends the build directory.
 
-`ctest` passed `uci_time_audit` in 3.84 s with the build directory on `PATH`. The same cases passed in 3.86 s before that invocation change, and an earlier script run passed in 3.93 s. OwnBook off, Threads 1, Hash 16, overhead 0 unless noted.
+`ctest` passed `uci_time_audit` in 4.92 s on the suite that includes the leading-plus and bench cases. The earlier suite, before those cases, passed in 3.84 s. OwnBook off, Threads 1, Hash 16, overhead 0 unless noted.
 
 | Case | Result |
 | --- | --- |
@@ -60,6 +64,10 @@ The script starts the `forge` executable on `PATH`. It does not take a command f
 | depth 24 plus wtime 80 | 5.4 ms |
 | four plies from a 180 ms clock | finished at 151 ms, no forfeit |
 | perft 6, then isready, then stop | readyok 0.6 ms; `info string perft stopped` 0.5 ms; no `nodes 119060324` |
+| movetime +80 | 81.2 ms |
+| movetime ++80 and +80abc | 1.7 ms and 1.9 ms |
+| bench 10 / 12 | 172081 / 467411 nodes |
+| bench 14, then isready, then stop | readyok 0.4 ms; `info string bench stopped` 0.7 ms; no `nodes 1196277` |
 
 A separate transcript of the two fixes, after `uciok`:
 
@@ -83,8 +91,6 @@ The allocation formulas, the 1024-node poll, movetime-over-clock precedence, and
 
 ## Limitations
 
-- `bench` runs on the command thread with its own `Searcher`. `stop` does not interrupt it.
-- `wtime +10` is still 0, because `from_chars` does not accept a leading `+`.
 - `info time` during ponder is wall time from search start, so it includes time before `ponderhit`. The budget does not. The ponderhit case above is the budget measurement.
 - `go perft 0` still prints `nodes 1` on the command thread. A stopped perft can leave per-move lines that were already printed.
 - The committed suite is one thread on this machine. A much slower host can overshoot by more than a millisecond between 1024-node samples. That gap was not large enough here to lose on time.

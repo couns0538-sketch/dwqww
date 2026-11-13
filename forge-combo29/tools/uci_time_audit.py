@@ -121,6 +121,19 @@ def main():
                 fail(f"movetime {millis} wall {wall:.1f} best {best(lines)}")
             passed.append(f"movetime {millis} {wall:.1f}ms")
 
+        new_game("position startpos")
+        wall, lines = go("go movetime +80", 2)
+        if best(lines) is None or not (40 <= wall <= 120):
+            fail(f"leading plus movetime wall {wall:.1f}")
+        passed.append(f"movetime +80 {wall:.1f}ms")
+
+        for command in ("go movetime ++80", "go movetime +80abc"):
+            new_game("position startpos")
+            wall, lines = go(command, 1)
+            if best(lines) is None or wall > 40:
+                fail(f"{command} wall {wall:.1f}")
+            passed.append(f"{command} stays zero {wall:.1f}ms")
+
         engine.send("setoption name Move Overhead value 40")
         engine.send("isready")
         engine.wait(lambda line: line == "readyok", 2)
@@ -343,6 +356,37 @@ def main():
         if stop_latency > 500:
             fail(f"perft stop latency {stop_latency:.1f}")
         passed.append(f"perft 6 stop {stop_latency:.1f}ms ready {ready_latency:.1f}ms")
+
+        for depth, nodes in ((10, 172081), (12, 467411)):
+            engine.send(f"bench {depth}")
+            lines = engine.wait(lambda line: line.startswith("info string bench"), 8)
+            final = next((line for line in lines if line.startswith("info string bench")), "")
+            if f"depth {depth} " not in final or f"nodes {nodes} " not in final:
+                fail(f"bench {depth} {final}")
+            passed.append(f"bench {depth} nodes {nodes}")
+
+        engine.send("bench 14")
+        time.sleep(0.06)
+        start = time.monotonic()
+        engine.send("isready")
+        ready = engine.wait(lambda line: line == "readyok", 0.3)
+        ready_latency = (time.monotonic() - start) * 1000.0
+        if not any(line == "readyok" for line in ready) or ready_latency > 200:
+            fail(f"isready blocked by bench {ready_latency:.1f}")
+        if any("nodes 1196277" in line for line in ready):
+            fail("bench 14 finished before isready")
+        start = time.monotonic()
+        engine.send("stop")
+        stopped = engine.wait(
+            lambda line: line == "info string bench stopped" or "nodes 1196277" in line, 1)
+        stop_latency = (time.monotonic() - start) * 1000.0
+        if not any(line == "info string bench stopped" for line in stopped):
+            fail(f"bench stop missing {stopped[-3:]} latency {stop_latency:.1f}")
+        if any("nodes 1196277" in line for line in stopped):
+            fail("bench stop still published the full signature")
+        if stop_latency > 500:
+            fail(f"bench stop latency {stop_latency:.1f}")
+        passed.append(f"bench 14 stop {stop_latency:.1f}ms ready {ready_latency:.1f}ms")
     finally:
         engine.close()
     print("PASS")
