@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "run": 1,
+  "snapshot_at": "2026-11-13T14:23:25Z",
+  "remote_heads_ls_remote": 424,
+  "remote_heads_fetched": 424,
+  "unique_tips": 335,
+  "unique_trees": 335,
+  "trees_shared_by_different_tips": 0,
+  "shared_tip_groups": 16,
+  "branches_in_shared_tip_groups": 105,
+  "tags_listed_not_reviewed": [
+    "astra-a1-data-results-20261030 8007f17d77cea0a20363aab240bd1febc093d016",
+    "data-sample-10m-20261030 5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
+    "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
+  ],
+  "checkpoint_branch": "cursor/forge-branch-inventory-automation",
+  "engine_lock": {
+    "branch": "lock/combo29-20261110",
+    "tip": "16833ecc03b425586f91f4c8834dea8807bf4c22",
+    "note": "Pinned speed lock. Fable CPU and later Fable jobs name this commit as their base. Do not push to this branch."
+  },
+  "later_fable_tree": {
+    "branch": "fable/standalone-h512-20261111",
+    "tip": "efb2ff960037087299332bc6a44baea69441a17a",
+    "note": "Contains the lock plus later H512 work. Do not push to this branch."
+  },
+  "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
+  "ancestry_of_unique_tips": {
+    "contains_lock_commit": 11,
+    "contains_h512_commit": 6,
+    "contains_main_but_not_lock": 39,
+    "contains_neither_main_nor_lock": 285
+  },
+  "prior_census": {
+    "branch": "cursor/forge-history-index-20261113-712a",
+    "tip": "da51693e0fbac616c73c454a9bd2cf93f1f4ee24",
+    "file": "docs/history-index/branches/HEADS.tsv",
+    "frozen_at": "2026-11-13T11:46:13Z",
+    "heads": 416,
+    "same_tip_and_tree_this_run": 416,
+    "moved": 0,
+    "disappeared": 0,
+    "note": "Tip SHAs and tree hashes were recomputed. File contents of those 416 tips were not re-read."
+  },
+  "review_status": {
+    "tip_confirmed_not_reread": 416,
+    "detail_this_run": 8
+  },
+  "detail_this_run": [
+    "cursor/forge-concurrency-audit-8d98",
+    "cursor/forge-correctness-20261113-e6b6",
+    "cursor/forge-history-index-20261113-712a",
+    "cursor/forge-nnue-eval-20261113-22cc",
+    "cursor/forge-qsearch-audit-60ce",
+    "cursor/forge-search-strength-20261113-9558",
+    "cursor/forge-time-audit-770f",
+    "cursor/move-legality-82b6"
+  ],
+  "reproduced_this_run": [
+    {
+      "id": "uci-clock-int-overflow",
+      "lock": "16833ecc03b425586f91f4c8834dea8807bf4c22",
+      "file": "forge-combo29/src/uci.cpp",
+      "lines": [74, 78, 99],
+      "result": "go wtime 3000000000 returns bestmove a2a3 with no info depth",
+      "fix_branch": "cursor/forge-time-audit-770f",
+      "fix_tip": "82b4a082b18c8fa6f633d29019f4fa7b524c916a",
+      "fix_result": "same command still searching at depth 16 when stopped"
+    },
+    {
+      "id": "bad-captures-64",
+      "lock": "16833ecc03b425586f91f4c8834dea8807bf4c22",
+      "file": "forge-combo29/src/search.cpp",
+      "lines": [469, 576],
+      "result": "ASan SEGV in MovePicker::next at search.cpp:469 on the 69-queen-style FEN",
+      "fix_branch": "cursor/forge-correctness-20261113-e6b6",
+      "fix_tip": "dff76c5808d0ceb7fc3940d1758991c3c33fb26d",
+      "fix_result": "ASan build returns bestmove d3b1 and prints mate 1; write still unchecked at capacity 256"
+    }
+  ],
+  "next_run": [
+    "git fetch and git ls-remote --heads origin. Diff against inventory/branches.tsv. Append moved or new tips to inventory/HEAD_MOVEMENT.tsv. Do not rewrite old rows.",
+    "If no tips moved, do not repeat the full ls-tree file count.",
+    "Next unread batch: fable52 evidence named but not read here: fable_search_gap/EVIDENCE.md, fable_speed_lane/BENCH.md, fable_movegen_proof/PROOF.md, fable_cpu_speed/DONE.md on their own tips. Read those before quoting speed or sanitizer numbers past the STATUS files.",
+    "Then the early cursor Elo line, oldest first: cursor/chess-engine-elo-bba2 at 2285d91270f53f37d4c7bfdf491ed490c7d0c1a1 through cursor/smp-threads-fixes-c7cb at c4314e3bde6e8372419227cc22b032319487aa71.",
+    "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch.",
+    "The 256-slot bad_captures_ write is still unchecked. A search for a position with more than 256 deferred captures is open.",
+    "Supermemory MCP was down this run. Do not block on it."
+  ]
+}
