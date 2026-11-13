@@ -25,7 +25,7 @@ Current reported best, still not a lock: standalone H512 candidate 3 on `fable/s
 
 - The lock and the Fable tip still write `bad_captures_[bad_count_++]` into a 64-slot array. Lines are in `findings/BUGS.md`. `fable-review-buffix` and `cursor/forge-correctness-20261113-e6b6` already size that array to 256. A third patch is not needed. Putting one of those fixes on a lock candidate is a lock change, and this index does not do it.
 - The same Fable tip still returns from `apply_position` before keeping a legal move prefix, and still emits a terminal-root depth line before honoring `go nodes 0`. The correctness branch reports both as fixed on its tip `dff76c5808d0ceb7fc3940d1758991c3c33fb26d`.
-- One-thread KRK after an earlier search still misses in their log. Enabling the bare-king gate for one worker moves the depth-13 bench off the pins. They left it off.
+- One-thread KRK after an earlier search was still open on correctness tip `dff76c5808d0`. The later tip `f6760ff65325339c900092117cbb56c051a60724` clears history and correction at each root and says the pins still match. Search tip `49b8095274ecf46976d521b5bf6192acdac3d258` instead skips late-move pruning only for a lone king already present at the root, and also says the pins match. The lock has neither. Details: `findings/LIVE_AUDITS.md`.
 - WAC001 at depth 12 still misses mate in two on the astra-notes base. Four `forge_tests` lines are pre-existing. Do not treat a 55/56 CTest as a clean engine.
 
 Lock to test against, not to move: `lock/combo29-20261110` @ `16833ecc03b425586f91f4c8834dea8807bf4c22`.

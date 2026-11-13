@@ -1,6 +1,8 @@
 # Where to resume
 
-Last checkpoint intent: the 300-file git census, the 64-slot buffer, and the three sibling tips. Confirm the push by comparing `git rev-parse HEAD` with `git ls-remote origin refs/heads/cursor/forge-history-index-20261113-712a`. If those differ, the checkpoint did not land. Earlier verified tips: `0dd61fbb6066853c0cfc195bf159463ebc4c604d`, `3242a4ec3713e2f64e032471b3150c3e0eb055d1`, `b39453901cd47c654f94bb7ec0283fc7c7f0ceb0`.
+Last checkpoint intent: one row per tip in `branches/EVERY_TIP.tsv`, the afternoon audit reports, and 98 short primary documents. Confirm the push by comparing `git rev-parse HEAD` with `git ls-remote origin refs/heads/cursor/forge-history-index-20261113-712a`. If those differ, the checkpoint did not land. Earlier verified tips: `0dd61fbb6066853c0cfc195bf159463ebc4c604d`, `3242a4ec3713e2f64e032471b3150c3e0eb055d1`, `b39453901cd47c654f94bb7ec0283fc7c7f0ceb0`, `3731557bb085980afd0fc0b441c446a4defbcb77`, `da51693e0fbac616c73c454a9bd2cf93f1f4ee24`.
+
+Next unread set is every `EVERY_TIP.tsv` row whose coverage is `unread-primary` (144 branches) or `partial-short` (67). Do not re-read `live-report`, `short-read`, or `alias` rows unless `git ls-remote` shows a new tip. The 177 primary documents between 4 KB and 15 KB, and the 53 above 15 KB, are the unread bodies.
 
 ## Do not repeat
 
