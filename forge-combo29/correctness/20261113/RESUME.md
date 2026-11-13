@@ -85,6 +85,12 @@ Reproduced before the fix, UseNNUE true, Threads 1, no `ucinewgame` between the 
 
 After the fix those four searches all print `mate 3` and `pv d5c5 a5a4 e8e3 a4a5 e3a3`. `forge_rules_tests` covers the three poison positions at depth 9 followed by KRK depth 10, and the shallow self-search, with 0 failures. `scripts/check_pins.sh` printed `PINS MATCH combo29` (net on 312866 862329 3024920 12389307 34048354, net off 375354 907205 2448617 13573040 24506465, perft 5 4865609). No Elo claim.
 
+## Fixed and tested: first attack tables under concurrent Board construction
+
+`attacks::init` set `initialized = true` and then filled the magic tables. A second thread saw the flag, returned, and followed a null table pointer. Eight threads each constructing the first `Board` in a fresh process segfaulted 30/30 against the previous object file (`/tmp/cold_init`). The same driver is the first check in `forge_rules_tests`, before any other board exists.
+
+`std::call_once` now runs that fill once and waits. The tables themselves are unchanged. After the rebuild the driver printed `bad 0` on 30/30 runs, `forge_rules_tests` printed `failures=0`, and `scripts/check_pins.sh` printed `PINS MATCH combo29`.
+
 ## Not changed
 
 The stop flag in `Searcher::search` is saved around helper shutdown and restored. A stop in that window is overwritten. The CPU-lane note treated this as harmless because the main worker has already returned and UCI keeps its own flag. No failing test yet.

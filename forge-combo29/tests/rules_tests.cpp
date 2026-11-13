@@ -3,9 +3,11 @@
 #include "forge/board.hpp"
 #include "forge/search.hpp"
 
+#include <atomic>
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -295,9 +297,27 @@ void check_search_rules() {
     }
 }
 
+void check_concurrent_attack_init() {
+    // Must run before any other Board. The old init published "done" before
+    // the magic tables existed, and eight first constructors segfaulted.
+    constexpr int threads = 8;
+    std::atomic<int> bad{0};
+    std::vector<std::thread> workers;
+    workers.reserve(threads);
+    for (int i = 0; i < threads; ++i) {
+        workers.emplace_back([&bad] {
+            forge::Board board;
+            if (board.perft(1) != 20) bad.fetch_add(1, std::memory_order_relaxed);
+        });
+    }
+    for (std::thread& worker : workers) worker.join();
+    check(bad.load(std::memory_order_relaxed) == 0, "concurrent first Board disagreed on startpos perft 1");
+}
+
 } // namespace
 
 int main() {
+    check_concurrent_attack_init();
     check_perft(forge::Board::StandardStartFen, {20, 400, 8902, 197281, 4865609});
     check_perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                 {48, 2039, 97862, 4085603});
