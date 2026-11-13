@@ -74,6 +74,30 @@ constexpr int ValueNone = 32002;
     return score >= MateInMaxPly || score <= -MateInMaxPly;
 }
 
+// Mate scores are stored as plies-to-mate from the node that wrote them.
+// A mate longer than the halfmoves left before the 50-move draw is not a proven
+// mate (the line may draw first). Callers must not use that score.
+[[nodiscard]] inline int score_to_tt(int score, int ply) {
+    if (score >= MateInMaxPly) return score + ply;
+    if (score <= -MateInMaxPly) return score - ply;
+    return score;
+}
+
+[[nodiscard]] inline int score_from_tt(int score, int ply, int rule50) {
+    if (score == ValueNone) return ValueNone;
+    const int clock = rule50 < 0 ? 0 : rule50;
+    const int remaining = clock >= 100 ? 0 : 100 - clock;
+    if (score >= MateInMaxPly) {
+        if (MateValue - score > remaining) return ValueNone;
+        return score - ply;
+    }
+    if (score <= -MateInMaxPly) {
+        if (MateValue + score > remaining) return ValueNone;
+        return score + ply;
+    }
+    return score;
+}
+
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
 struct TTEntry {
@@ -105,6 +129,7 @@ static_assert(sizeof(TTEntry) == 16);
 static_assert(sizeof(TTCluster) == 64);
 
 class TranspositionTable;
+struct TTAuditAccess;
 
 // Immutable entry copy plus an opaque probe-time replacement destination.
 struct TTProbe {
@@ -144,7 +169,12 @@ public:
 
 private:
     friend class Searcher;
+    friend struct TTAuditAccess;
     static constexpr std::size_t StripeCount = 1024;
+    [[nodiscard]] TTEntry* find_occupied(TTCluster& cluster, std::uint32_t key32) const;
+    [[nodiscard]] TTEntry* select_replacement(TTCluster& cluster) const;
+    void write_entry(TTEntry& entry, std::uint32_t key32, int score, int eval, Move move, int depth, Bound bound,
+                     bool pv, std::uint16_t halfmove_clock);
     struct alignas(64) Stripe { std::mutex mutex; };
     // Opt-in controller ownership: request exclusive access, drain each stripe,
     // then publish TLS. Lifecycle mutations still require all users quiescent.
