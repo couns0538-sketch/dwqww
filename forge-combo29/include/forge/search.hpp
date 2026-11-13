@@ -26,6 +26,24 @@
 #define FORGE_SPD_TT_NOTLS 0
 #endif
 
+// FORGE_TT_MATE_CLOCK (default 0 = the lock code): a stored mate that needs more
+// plies than the halfmoves left before the 50-move draw is not reused.
+#ifndef FORGE_TT_MATE_CLOCK
+#define FORGE_TT_MATE_CLOCK 0
+#endif
+
+// FORGE_TT_STORE_TERMINAL (default 0 = the lock code): store checkmate, and a
+// no-move node that finishes the move loop, as an exact table score.
+#ifndef FORGE_TT_STORE_TERMINAL
+#define FORGE_TT_STORE_TERMINAL 0
+#endif
+
+// FORGE_TT_RESOLVE_SLOT (default 0 = the lock code): a store updates an existing
+// tag or re-runs replacement instead of always writing the probe-time slot.
+#ifndef FORGE_TT_RESOLVE_SLOT
+#define FORGE_TT_RESOLVE_SLOT 0
+#endif
+
 namespace forge {
 
 struct SearchLimits {
@@ -85,6 +103,7 @@ constexpr int ValueNone = 32002;
 
 [[nodiscard]] inline int score_from_tt(int score, int ply, int rule50) {
     if (score == ValueNone) return ValueNone;
+#if FORGE_TT_MATE_CLOCK
     const int clock = rule50 < 0 ? 0 : rule50;
     const int remaining = clock >= 100 ? 0 : 100 - clock;
     if (score >= MateInMaxPly) {
@@ -96,6 +115,12 @@ constexpr int ValueNone = 32002;
         return score + ply;
     }
     return score;
+#else
+    (void)rule50;
+    if (score >= MateInMaxPly) return score - ply;
+    if (score <= -MateInMaxPly) return score + ply;
+    return score;
+#endif
 }
 
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };

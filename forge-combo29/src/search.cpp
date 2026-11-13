@@ -336,12 +336,16 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+    const std::uint32_t key32 = verification_key(key);
+#if FORGE_TT_RESOLVE_SLOT
     // The probe slot is only a hint. A recursive store may have filled it with a
     // different key; keep that entry when this position can take another slot.
     TTCluster& cluster = clusters_[probe.cluster_];
-    const std::uint32_t key32 = verification_key(key);
     TTEntry* entry = find_occupied(cluster, key32);
     if (entry == nullptr) entry = select_replacement(cluster);
+#else
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+#endif
     write_entry(*entry, key32, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 
@@ -392,10 +396,14 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
     const auto lock = lock_stripe(probe.cluster_);
-    TTCluster& cluster = clusters_[probe.cluster_];
     const std::uint32_t key32 = verification_key(key);
+#if FORGE_TT_RESOLVE_SLOT
+    TTCluster& cluster = clusters_[probe.cluster_];
     TTEntry* entry = find_occupied(cluster, key32);
     if (entry == nullptr) entry = select_replacement(cluster);
+#else
+    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+#endif
     write_entry(*entry, key32, score, eval, move, depth, bound, pv, halfmove_clock);
 }
 #endif
@@ -1345,6 +1353,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         }
     }
     if (in_check && move_count == 0) {
+#if FORGE_TT_STORE_TERMINAL
         const int terminal = mated_in(ply);
 #if FORGE_SPD_TT_NOTLS
         store_tt(tt_probe, board.key(), score_to_tt(terminal, ply), ValueNone, Move::none(), 0, BoundExact, tt_pv, board.halfmove_clock());
@@ -1352,6 +1361,9 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         shared_.tt.store(tt_probe, board.key(), score_to_tt(terminal, ply), ValueNone, Move::none(), 0, BoundExact, tt_pv, board.halfmove_clock());
 #endif
         return terminal;
+#else
+        return mated_in(ply);
+#endif
     }
 
     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
@@ -1714,6 +1726,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     if (move_count == 0) {
         if (!excluded.is_none()) return alpha;
         if (root_node && root_restricted_) return 0;
+#if FORGE_TT_STORE_TERMINAL
         const int terminal = in_check ? mated_in(ply) : 0;
 #if FORGE_SPD_TT_NOTLS
         store_tt(tt_probe, board.key(), score_to_tt(terminal, ply), in_check ? ValueNone : ss->raw_eval, Move::none(), depth, BoundExact, ss->tt_pv, board.halfmove_clock());
@@ -1721,6 +1734,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         shared_.tt.store(tt_probe, board.key(), score_to_tt(terminal, ply), in_check ? ValueNone : ss->raw_eval, Move::none(), depth, BoundExact, ss->tt_pv, board.halfmove_clock());
 #endif
         return terminal;
+#else
+        return in_check ? mated_in(ply) : 0;
+#endif
     }
 
     if (best_score >= beta) {
