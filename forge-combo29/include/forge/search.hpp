@@ -10,6 +10,7 @@
 #include "forge/nnue_halfka.hpp"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -74,6 +75,25 @@ constexpr int ValueNone = 32002;
     return score >= MateInMaxPly || score <= -MateInMaxPly;
 }
 
+// Inverse of the mate-distance adjustment applied before a score is stored.
+// Mate scores in the table are plies-to-mate from the stored position. If that
+// distance runs past the 50-move horizon, the score is not proof (the line may
+// still contain a capture or pawn move), so the caller searches again.
+[[nodiscard]] inline int score_from_tt(int score, int ply, int halfmove) {
+    if (score == ValueNone) return ValueNone;
+    const int capped = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+    const int horizon = 100 - capped;
+    if (score >= MateInMaxPly) {
+        if (MateValue - score > horizon) return ValueNone;
+        return score - ply;
+    }
+    if (score <= -MateInMaxPly) {
+        if (MateValue + score > horizon) return ValueNone;
+        return score + ply;
+    }
+    return score;
+}
+
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
 struct TTEntry {
@@ -91,10 +111,21 @@ struct TTEntry {
     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
-    // Existing below90 policy, plus exact near50 context; not a repetition key.
-    [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
-        const int capped = current_clock < 100 ? current_clock : 100;
-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+    // The stored score does not include repetition history. It is reusable when
+    // neither side of the comparison can reach the 50-move horizon, or when a
+    // search that did reach it was stored at this same clock. A stored search
+    // that stopped short of the horizon must not answer a deeper one that would
+    // cross it. use_depth is the depth the caller is about to trust the score for.
+    [[nodiscard]] bool score_usable(std::uint16_t current_clock, int use_depth) const {
+        const int stored_clock = static_cast<int>(rule50_clock);
+        const int current = current_clock < 100 ? static_cast<int>(current_clock) : 100;
+        const int stored_depth = static_cast<int>(depth);
+        const int adopt = std::max(use_depth, stored_depth);
+        const bool stored_reaches = stored_clock + stored_depth >= 100;
+        const bool current_reaches = current + adopt >= 100;
+        if (current_reaches && !stored_reaches) return false;
+        if (!stored_reaches && !current_reaches) return true;
+        return stored_clock == current;
     }
 };
 

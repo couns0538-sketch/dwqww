@@ -1123,7 +1123,8 @@ void Board::make_null_move(NullUndo& undo) {
     ep_square_ = -1;
     side_ = opposite(side_);
     key_ ^= Z.side;
-    halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
+    // A null move is not a game ply, so it must not advance the 50-move clock.
+    // plies_from_null_ == 0 already stops repetition from looking through it.
     plies_from_null_ = 0;
     checkers_ = 0;
     key_history_.push_back(key_);
@@ -1205,7 +1206,8 @@ bool Board::is_repetition(std::size_t root_index) const {
     int count = 0;
     for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
         if (key_history_[static_cast<std::size_t>(i)] == key_) {
-            if (i >= static_cast<std::ptrdiff_t>(root_index)) return true;
+            // The root occurrence itself is twofold, not yet a draw.
+            if (i > static_cast<std::ptrdiff_t>(root_index)) return true;
             if (++count >= 2) return true;
         }
     }

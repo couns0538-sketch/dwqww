@@ -225,8 +225,10 @@ public:
 
     // Game-level threefold repetition of the current position.
     [[nodiscard]] bool is_repetition() const;
-    // Search-level repetition: any earlier occurrence at or after history
-    // index root_index counts, otherwise two earlier occurrences are needed.
+    // Search repetition. root_index is the history index of the root. One
+    // earlier occurrence strictly after the root is a draw (the line would
+    // cycle). An occurrence at or before the root counts only towards
+    // threefold: this visit is a draw when two such earlier occurrences exist.
     [[nodiscard]] bool is_repetition(std::size_t root_index) const;
     [[nodiscard]] bool is_insufficient_material() const;
     [[nodiscard]] bool has_non_pawn_material(Color color) const;

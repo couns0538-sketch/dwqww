@@ -123,13 +123,6 @@ constexpr int HistoryMax = 16384;
     return score;
 }
 
-[[nodiscard]] int score_from_tt(int score, int ply) {
-    if (score == ValueNone) return ValueNone;
-    if (score >= MateInMaxPly) return score - ply;
-    if (score <= -MateInMaxPly) return score + ply;
-    return score;
-}
-
 [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
 [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
 
@@ -1263,11 +1256,14 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_score = tt_hit && tte.score_usable(static_cast<std::uint16_t>(board.halfmove_clock()), 0)
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && tte.pv());
-    if (!pv_node && tt_hit && tt_score != ValueNone &&
+    // Clocks at or above 90 share a position key with different repetition
+    // histories. Refuse the cutoff there; the mate-horizon check above already
+    // dropped scores the 50-move rule can falsify.
+    if (!pv_node && tt_hit && tt_score != ValueNone && board.halfmove_clock() < 90 &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
         return tt_score;
@@ -1287,6 +1283,21 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
             eval = tt_score;
+        }
+        // Clock 99: a quiet non-pawn move reaches the 50-move draw unless it
+        // is mate. Stand-pat would keep the static eval, so the side about to
+        // draw is scored as winning or losing. Mate scores stay. Captures and
+        // pawn moves still reset the clock and are searched below. With no
+        // such quiet move the eval stands, because a capture is forced.
+        if (board.halfmove_clock() >= 99 && !is_mate_score(eval)) {
+            MoveList quiets;
+            board.generate_pseudo_legal(quiets, Board::GenMode::Quiets);
+            for (const Move candidate : quiets) {
+                if (candidate.is_promotion() || piece_type(board.piece_at(candidate.from)) == Pawn) continue;
+                if (!board.is_legal(candidate)) continue;
+                eval = 0;
+                break;
+            }
         }
         best_score = eval;
         if (best_score >= beta) {
@@ -1409,8 +1420,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const bool tt_hit = tt_probe.hit;
     const TTEntry& tte = tt_probe.entry;
     const Move tt_move = tt_hit ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
-                             ? score_from_tt(tte.score, ply) : ValueNone;
+    const int tt_score = tt_hit && tte.score_usable(static_cast<std::uint16_t>(board.halfmove_clock()), depth)
+                             ? score_from_tt(tte.score, ply, board.halfmove_clock()) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
@@ -1460,9 +1471,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             return eval;
         }
         // Null move pruning.
+        // At clock 99 a null move used to increment the 50-move counter and the
+        // child returned an immediate draw. Skip the prune on that last ply.
         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
+            board.halfmove_clock() < 99 &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
             ++null_tries_;
             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
