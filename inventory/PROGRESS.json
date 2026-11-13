@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "run": 3,
-  "snapshot_at": "2026-11-13T16:28:40Z",
-  "trigger_at": "2026-11-13T16:26:33Z",
+  "run": 4,
+  "snapshot_at": "2026-11-13T17:29:33Z",
+  "trigger_at": "2026-11-13T17:24:44Z",
   "remote_heads_ls_remote": 430,
-  "same_tip_as_run2_table": 429,
-  "moved": 1,
+  "same_tip_as_run3_table": 423,
+  "moved": 7,
   "new": 0,
   "gone": 0,
   "unique_tips": 341,
@@ -19,8 +19,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "b39899a41483c5fe725e66d5463ad1929ab8b420",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at b39899a4. The commit that adds the run-3 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "00bc9129e7161a1c43ec844753a52cf4b018f085",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 00bc9129. The commit that adds the run-4 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -35,25 +35,32 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 2; the only tip substitution is this checkpoint, and both tips contain the lock and main and do not contain H512",
+    "method": "unchanged from run 3. Each of the seven replaced tips keeps the same lock, H512, and main ancestor bits as the tip it replaced.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 412,
-    "run1-detail": 5,
-    "run2-moved": 3,
-    "run2-new": 5,
+    "tip-only": 409,
+    "run1-detail": 1,
+    "run2-moved": 2,
+    "run2-new": 4,
     "run3-read": 4,
-    "run3-checkpoint": 1
+    "run4-moved": 6,
+    "run4-read": 3,
+    "run4-checkpoint": 1
   },
   "detail_this_run": [
-    "fable52-search-gap-20261109",
-    "fable52-speed-lane-20261109",
-    "fable52-movegen-proof-20261110",
-    "fable52-cpu-20261110"
+    "cursor/forge-concurrency-audit-8d98",
+    "cursor/forge-history-index-20261113-712a",
+    "cursor/forge-qsearch-audit-60ce",
+    "cursor/forge-time-audit-770f",
+    "cursor/move-legality-82b6",
+    "cursor/search-bounds-audit-e6d7",
+    "cursor/match-pgns-66cc",
+    "cursor/smp-threads-fixes-c7cb",
+    "cursor/speed-and-search-patches-c7cb"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -202,14 +209,117 @@
         "NNUE_WPREFETCH -4.42%"
       ],
       "sanitizers": "ASan and UBSan PASS in their logs. TSan BLOCKED. Determinism 13000/13000. Bug hunt found no defect. No Elo."
+    },
+    {
+      "id": "smp-info-nodes-lag",
+      "status": "code read; their logs contain the cited node counts; suite not re-run",
+      "branch": "cursor/forge-concurrency-audit-8d98",
+      "tip": "9267bf2efabd28fc8a958c08c22b4c46fe87da68",
+      "reprint": "forge-combo29/src/search.cpp:1856",
+      "before": "info_nodes 1883 result_nodes 3526",
+      "after": "info_nodes 2717 result_nodes 2717",
+      "evidence": [
+        "forge-combo29/docs/evidence/info-nodes-gap.txt",
+        "forge-combo29/docs/evidence/post-fix-info-nodes.txt"
+      ],
+      "note": "The reprinted line uses the earlier info timestamp for nps. No Elo. This history still has the integer clock parser."
+    },
+    {
+      "id": "time-leading-plus-and-bench-stop",
+      "status": "code read; their suite times are in the note; script not executed",
+      "branch": "cursor/forge-time-audit-770f",
+      "tip": "e5fe43671ead84fe48bb9696a8ca119bb3636c05",
+      "plus": "forge-combo29/src/uci.cpp:81",
+      "bench_worker": "forge-combo29/src/uci.cpp:429",
+      "their_times": [
+        "movetime +80 used 81.2 ms",
+        "bench 14 stop printed bench stopped in 0.7 ms"
+      ]
+    },
+    {
+      "id": "qsearch-531-capped-middlegame",
+      "status": "note only; engine source unchanged in this commit; not rebuilt",
+      "branch": "cursor/forge-qsearch-audit-60ce",
+      "tip": "b763354d4e46b8d9cc03e7087ef8026f9f27698d",
+      "file": "forge/QSEARCH_AUDIT.md",
+      "fen": "r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11",
+      "their_score": "-26 from the engine after 563 nodes and from a transposition-table contract after 1353971 nodes"
+    },
+    {
+      "id": "legality-bench-pins-claimed",
+      "status": "note and probe source read; probe not compiled; transcript not in the tree",
+      "branch": "cursor/move-legality-82b6",
+      "tip": "1adfc1c2cb9b958c2bc69cfe32d0f5916aff7077",
+      "note": "forge-combo29/docs/MOVE_LEGALITY_20261113.md",
+      "probe": "forge-combo29/tools/nnue_delta_probe.cpp",
+      "their_pins": "net on 312866 862329 3024920 12389307 34048354; net off 375354 907205 2448617 13573040 24506465; perft 5 4865609",
+      "their_accumulator": "525 legal moves, max_abs 0"
+    },
+    {
+      "id": "pvbound-qsearch-still-default-off",
+      "status": "code read; mate counts are their note; not replayed",
+      "branch": "cursor/search-bounds-audit-e6d7",
+      "tip": "569c9315b501a1910c174c8908cd633468e09dbf",
+      "gate": "forge-combo29/src/search.cpp:1343",
+      "default": 0,
+      "their_switch_on": "g3g6 mate missed at depth 7 and depth 10, found at depth 11"
+    },
+    {
+      "id": "october-6x-pgn-index",
+      "status": "game counts match the index; Elo and W/L/D not recomputed; zip and console.txt absent",
+      "branch": "cursor/match-pgns-66cc",
+      "tip": "f481fc5afc6bf13b730fe5853fbefaeeb6047162",
+      "files": [
+        "EXPERIMENTS.md",
+        "README.md",
+        "pgns/"
+      ],
+      "pgn_files": 44,
+      "result_tags": 76047,
+      "h1_accepted_in_their_table": [
+        "item 21 cutoff-count LMR",
+        "item 35 LmpBase 4 plus history bonus"
+      ],
+      "adopted_without_h1": [
+        "item 22 material correction LLR 0.60",
+        "item 19 book +20 +/- 30 on 120 games",
+        "item 18 eval terms +10 +/- 27"
+      ],
+      "residual_their_console": [
+        "item 38 +86 +/- 24 at 20k nodes, 500 games",
+        "item 39 +45 +/- 26 at 10+0.1, 200 games"
+      ],
+      "sf3000_does_not_separate": "6.2.0 +10 +/- 60, 6.3.0 0 +/- 54, 6.4.0 +17 +/- 53, 100 games each, their table"
+    },
+    {
+      "id": "grokchess-smp-notes",
+      "status": "notes read; patches and bench not run; not the combo29 engine; no Elo",
+      "branch": "cursor/smp-threads-fixes-c7cb",
+      "tip": "c4314e3bde6e8372419227cc22b032319487aa71",
+      "files": [
+        "gc1748/README.txt",
+        "gc1748/SMP-THREADS.txt"
+      ],
+      "their_single_thread_bench": [
+        "depth 9 nodes 194011",
+        "depth 10 nodes 350802"
+      ]
+    },
+    {
+      "id": "grokchess-packed-movegen-256",
+      "status": "write exists; no overflow position was searched; no speed log in the tree",
+      "branch": "cursor/speed-and-search-patches-c7cb",
+      "tip": "2cf370d3e7672c18692bfa044ec376e6e584eff6",
+      "write": "engine/move/movegen.js:19",
+      "capacity": 256
     }
   ],
   "next_run": [
-    "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv.",
-    "This checkpoint tip will differ from b39899a4 because of the run-3 commit. Record it, then continue. Do not treat it as foreign work.",
+    "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
+    "This checkpoint tip will differ from 00bc9129 because of the run-4 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read cursor/match-pgns-66cc at f481fc5a (EXPERIMENTS.md, README.md), cursor/smp-threads-fixes-c7cb at c4314e3b (its four docs), and cursor/speed-and-search-patches-c7cb at 2cf370d3 (patch list and any result note). Do not execute repository scripts.",
-    "KRK replay stays the first reproduction when a run investigates instead of opening the next pack: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5. Do not keep either fix until both have been replayed.",
+    "Otherwise read the documents on cursor/engine-strength-overhaul-66cc at 24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b: README.md, CHANGELOG.md, RELEASE_STATE.md, VALIDATION.md, and engine-improvement-log.md. That tip is the source the match-PGN note points at. Do not execute repository scripts, and do not treat EXPERIMENTS.md Elo as a new measurement.",
+    "KRK replay stays the first reproduction when a run investigates instead of opening the next pack: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5. The Opus R5 BKM note is a different, multi-thread-only patch and was not replayed.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ]
 }

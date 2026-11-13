@@ -348,3 +348,111 @@ ASan and UBSan: their logs say the bench node counts equal the pins and no repor
    - `cursor/speed-and-search-patches-c7cb` at `2cf370d3e7672c18692bfa044ec376e6e584eff6`: the patch list and any result note.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`. Do not keep either fix until both have been replayed on one machine.
 5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 4
+
+Trigger 17:24 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 17:29 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. Seven movement rows are appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-3 table | 423 |
+| Moved | 7. One is this checkpoint, `b39899a4` to `00bc9129`, the run-3 commit. The other six are foreign. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. Seven tips replaced seven tips, and none of the replaced commits is still a branch tip. |
+| Unique tip trees | 341. None of the seven new trees matches another current tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Each new tip has the same lock, H512, and `main` ancestor bits as the tip it replaced, so the ancestry counts stay 17, 11, 39, and 285. 409 branches stay tip-only. The only remaining `run1-detail` tip is `cursor/forge-nnue-eval-20261113-22cc`.
+
+No engine was built this run. Game counts below were counted in the PGN files. Every Elo, LLR, bench, and sanitizer figure is a figure in the named file.
+
+### Joined node count on the info line
+
+`cursor/forge-concurrency-audit-8d98` moved from `2d2a3fa7` to `9267bf2efabd28fc8a958c08c22b4c46fe87da68` (43 files). One commit. This history contains `main` and does not contain the lock commit. Read: the diff in `forge-combo29/src/search.cpp`, `include/forge/search.hpp`, and `docs/CONCURRENCY_AUDIT.md`, plus the evidence lines that carry the node counts.
+
+Helpers already summed into `SearchInfo::nodes` after the join. The `info` lines were still sampled before that join. The new code stores the last printed line on the main worker and, when `emit_info` is set and the post-join total differs, prints one more `info` line with the same depth, score, and PV and the joined node count (`search.cpp:1856`). That line's `nps` uses the earlier line's timestamp. Bench does not print `info`.
+
+Their evidence files contain the counts the note quotes. `docs/evidence/info-nodes-gap.txt` says `info_nodes 1883` against `result_nodes 3526` before the extra line, and `2717` against `2717` after it. `docs/evidence/post-fix-info-nodes.txt` and `docs/evidence/tsan-concurrency-info.txt` end `ALL PASS failures 0`. This run did not rebuild the suite. The integer clock parser on this branch is untouched. No Elo.
+
+### Capped middlegame on the 5.31.0 quiescence branch
+
+`cursor/forge-qsearch-audit-60ce` moved from `d5db74e1` to `b763354d4e46b8d9cc03e7087ef8026f9f27698d` (23 files). The only change is `forge/QSEARCH_AUDIT.md`. No source file and no log was added.
+
+The note now says the FEN `r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11` is not in check, has 28 quiet moves and 4 tactical moves, and has static evaluation -26. It says the engine quiescence search returns -26 after 563 nodes, and the same contract with its own transposition table searched 1,353,971 nodes and also returned -26. That agreement is their sentence. This run did not rebuild the 5.31.0 tree. This is not combo29.
+
+### Leading plus, and `bench` honoring `stop`
+
+`cursor/forge-time-audit-770f` moved from `33547894` to `e5fe43671ead84fe48bb9696a8ca119bb3636c05` (74 files). One commit on the lock history. Read: `forge-combo29/src/uci.cpp` and `docs/time-audit.md`.
+
+`read_int` skips one leading `+` before `std::from_chars` (`uci.cpp:81`). `+80` parses as 80. `++80` and `+80abc` still fall through to 0. An out-of-range token still clamps, which was already on the previous tip. `bench` now runs on a worker thread (`uci.cpp:429`). `stop` sets the flag on that searcher under the same mutex that publishes it. On cancel the engine prints `info string bench stopped` and does not print a node signature.
+
+Their note says `ctest` passed `uci_time_audit` in 4.92 s, `movetime +80` used 81.2 ms, and `bench 14` then `isready` then `stop` answered `readyok` in 0.4 ms and `bench stopped` in 0.7 ms, with uninterrupted depth-10/12/14 signatures 172081, 467411, and 1196277. This run did not execute `tools/uci_time_audit.py`. No Elo.
+
+### Bench pins and the network update, as recorded
+
+`cursor/move-legality-82b6` moved from `f1c701c9` to `1adfc1c2cb9b958c2bc69cfe32d0f5916aff7077` (661 files). One commit on H512. The search behavior of the fullmove fix is unchanged. Read: the new section of `forge-combo29/docs/MOVE_LEGALITY_20261113.md`. The probe source `forge-combo29/tools/nnue_delta_probe.cpp` was added (186 lines) and was not compiled.
+
+The note says a Linux g++ release build matched the lock pins: net on 312866, 862329, 3024920, 12389307, 34048354 and net off 375354, 907205, 2448617, 13573040, 24506465 at depths 11, 13, 16, 20, and 22, and `go perft 5` printed 4865609. It says the probe checked 525 legal moves (13 castles, 6 en passant, 41 promotions, 36 null moves) and every incremental accumulator matched the refresh with `max_abs 0`. The transcript is outside the tree. The note says the binary is not the published clang PGO executable and that its nodes per second are not a speed result. This run did not rebuild it.
+
+### Quiescence PV pruning stays behind the same switch
+
+`cursor/search-bounds-audit-e6d7` moved from `ee965c4f` to `569c9315b501a1910c174c8908cd633468e09dbf` (659 files). One commit on H512. Read: the diff in `search.cpp`, `search.hpp`, and `docs/search_bounds_audit.md`.
+
+`PvBoundFix` remains 0 (`search.cpp:76`). At 0 the new condition `!(pv_node && tune::PvBoundFix != 0)` is true, so futility and SEE in quiescence stay on the lock path (`search.cpp:1343`). The added counter does not change which move is searched. At 1, a PV quiescence node skips that pruning. Their note says the start-position depth-7 counters, NNUE off, are 201 in the main search and 18 in quiescence with the switch at 0, and both 0 with the switch at 1. On `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1` they now say the switch at 1 misses `g3g6` at depth 7 (`cp 148`, `f6e8`, 3359 nodes) and at depth 10 (`cp 133`, `f6e8`, 32191 nodes) and finds it at depth 11 (66435 nodes). The previous tip of this same note had found the mate at depth 10. The switch stays 0. No Elo. This run did not replay the position.
+
+### History-index pass, and what was opened
+
+`cursor/forge-history-index-20261113-712a` moved from `da51693e` to `d4532d72914100569331a2f66abdb9ebbaf4f68a` (681 files). Four commits. Read: the diffs of `COVERAGE.md`, `HANDOFF.md`, `README.md`, `RESUME.md`, `findings/BUGS.md`, and the new `findings/LIVE_AUDITS.md`. Counted from the tip: `EVERY_TIP.tsv` has 429 data rows (246 `claimed`, 170 `alias`, 13 `live-report`), `PRIMARY_CLAIMS.tsv` has 387, `WAVE2_CLAIMS.tsv` has 2304, and `LONG_PRIMARY_REREAD.tsv` has 53. The 2304 sentences were not each opened. The engine was not run.
+
+`EVERY_TIP.tsv` matches 424 of the 430 heads in this fetch. It omits its own branch. It is stale on the five engine tips above (concurrency, qsearch, time, move legality, search bounds). `LIVE_AUDITS.md` still cites the older tips of those branches, and it cites this checkpoint at `00bc9129`, which is the tip before the commit that adds this section. Its movement log does not contain those five moves.
+
+Eight blobs named in the new `BUGS.md` lines were opened. The sentences match the blobs, with the figures below taken from the blobs themselves:
+
+- SEE research note, blob `954844ec`, `validation/see-recapture-promotion-20261020/DESIGN.md`. Status in the file: research and design only, no implementation and no match. At `1r6/P1Q5/2n4k/8/8/8/8/7K w - - 0 1`, move `c7b8`, source16 `see_ge(0)` is false and the target-only oracle is +500. The same note says six exchange-value disagreements and 44 wrong answers among 200 threshold queries.
+- Promotion-SEE status, blob `29a7fa54`. The parent fails 16 assertions. The candidate passes those, a 324-case oracle, and 30 search-margin checks where the parent had 10 errors. The file says one forced position, not a best-move or Elo result.
+- Syzygy review, blob `2a711099`, `opus_syzygy_gaps/review/R2.md`. At depth 14, 27 of 39 null-move tablebase claims on 120 near-zugzwang roots were wrong, in 12 roots. That is their instrumented candidate, not the lock.
+- Rule-50 plan, blob `d26b9730`. At halfmove 99 a low-clock table bound returns -426 instead of 0, and the plan says reverse reuse turns a quiescence score of -426 into 0 and a static evaluation of 453 into 0. The underlying log is a zip this run did not open.
+- KRK report, blob `89cf9262`, `opus_r5/r5d/MATEFIX_REPORT.md`. Baseline 180 misses in 8,000 KRK runs. Their BKM fix is on only while more than one worker searches, and Threads 1 stays bit-identical. They record 0 misses in 40,000 KRK runs at Threads 2 and 4. That patch is not either of the two unmerged one-thread fixes (`f6760ff6` clears history, `49b80952` gates a lone king already at the root). It was not replayed.
+- SMP note, blob `e194ba22`. Initial CTest 52/54, with one node-overshoot failure at 27,398 nodes. Later suites in that note pass 133/133.
+- Clock matrix, blob `0a38df5c`. 100 of 100 games, 0 illegal moves, and the longest of 28 clock overruns is 62.1 ms. Their matrix, not replayed.
+- Hard deadline, blob `a3c1df0d`. `HardDeadline` defaults to 0. Under Windows idle-priority starvation the note records answers 3,750–4,651 ms late, 24 of 24 over 50 ms. With `HardDeadline` 10 the same row is at most 28.8 ms late and 0 of 24 over 50 ms. The Linux row in that note still has 3 of 60 over 50 ms with the option at 10. This is not the combo29 lock.
+
+### October 6.x match record
+
+`cursor/match-pgns-66cc` is unchanged at `f481fc5afc6bf13b730fe5853fbefaeeb6047162` (46 files). It contains neither the lock commit, H512, nor `main`. Read in full: `EXPERIMENTS.md` (244 lines) and `README.md`. The 44 files under `pgns/` were counted and not replayed. `all-match-pgns.zip` and every `console.txt` named in the document are absent from this tip. The document says its Elo and LLR figures were re-read from those consoles.
+
+Every `[Result "` count matches the index. There are 44 files and 76,047 result tags, which is the total the document gives. Sampled files include the cutoff-count SPRT (2,804), the adopted LMP-plus-history SPRT (3,670), the material-correction SPRT (3,213), the 128-net fixed-node match (500), the 128-net 10+0.1 match (200), the 6.4.0 Stockfish match (100), Threads 4 versus 1 (50), the book match (120), and the rejected 768x256 net (300). W/L/D were not re-tallied, so the Elo columns are still their console figures.
+
+What their table treats as accepted by the SPRT rule, elo0=0 elo1=5: cutoff-count LMR, H1 after 2,804 games, LLR 2.96, +20.8 +/- 9.5; and `LmpBase=4` together with the larger history bonus, H1 after 3,670 games, LLR 2.97, +16.5 +/- 8.4. Each half of that pair had run to 8,000 games without a bound.
+
+Adopted in their table without H1: material correction at 3,200 games, 50.77 %, LLR 0.60; the opening book, 120 games, +20 +/- 30; the new evaluation terms, 400 games, +10 +/- 27. Those intervals include 0. The first cutoff-LMR and material-correction runs were A/A: fastchess dropped options the binary did not advertise, both scores were 50.0 %, and the runs were overwritten. The reruns are items 21 and 22.
+
+Their residual 768x128 net, pure search-score targets, is +86 +/- 24 at 20,000 nodes over 500 games and +45 +/- 26 at 10+0.1 over 200 games, against 6.3.0. The 200-game file has 200 `[Termination "normal"]` tags. The 256-hidden net scored +85 +/- 26 at the same node limit and was not shipped. A plain 768x256 net earlier scored 14 wins, 257 losses, 29 draws in 300 games against the hand-crafted evaluation. Against Stockfish 19 at `UCI_Elo` 3000 their 100-game matches do not separate the releases: 6.2.0 +10 +/- 60, 6.3.0 0 +/- 54, 6.4.0 +17 +/- 53. `bench 11` in this document (6.4.0 = 417491) is not a combo29 pin. No figure in this paragraph was recomputed from the games.
+
+### GrokChess threads, and the packed-move patches
+
+`cursor/smp-threads-fixes-c7cb` is unchanged at `c4314e3bde6e8372419227cc22b032319487aa71` (75 files). The engine notes on that tip are `gc1748/README.txt` and `gc1748/SMP-THREADS.txt`. Both were read. There is no fourth engine note. `three_model_prompt.txt` and `grokchess_1745_full_source.txt` were not read. The unified diffs under `gc1748/patches/` were not applied. This is GrokChess 1.7.48, not combo29.
+
+The note describes nine Threads-greater-than-1 failures: a helper's move printed as `bestmove` against the main PV, a depth or infinite search waiting up to 180 seconds, `searchmoves` ignored, ponder starting the clock immediately, a torn shared table whose age advanced once per worker, stores continuing after `bestmove`, a `position` applied during search, and an empty PV when the clock aborted before the first root move. It says the patched single-thread bench matches the unmodified tree at 194011 nodes for depth 9 and 350802 for depth 10, position by position, and that perft 5 is 4865609. Those checks were not run here. No Elo.
+
+`cursor/speed-and-search-patches-c7cb` is unchanged at `2cf370d3e7672c18692bfa044ec376e6e584eff6` (36 files). The commit message lists packed per-ply move lists, `Uint8Array` squares, a flat history, a SEE side array, capture-history ordering, cut-node LMR, history LMR and LMP thresholds, and a lockless shared table, and it calls the speed patches node-identical. No bench log, PGN, or result note is in the tree. The five patch headers were read. `engine/move/movegen.js:19` writes `sink.buf[sink.n++]` into an `Int32Array` of `GEN_CAP` 256 (`movegen.js:31`) with no capacity test in that file. A position that overflows 256 was not searched. This is the GrokChess tree, not combo29. No Elo.
+
+### Not claimed
+
+- No Elo and no new bench from this run. The 76,047 result tags confirm game counts. They do not confirm the W/L/D or Elo columns.
+- 409 tips are still unread. The 2,304 wave-2 sentences, the JavaScript patches, and the GrokChess source dump were not read line by line.
+- The KRK history miss was not replayed on H512, `f6760ff6`, or `49b80952`.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the documents below.
+3. Otherwise read, on `cursor/engine-strength-overhaul-66cc` at `24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b`, and do not execute repository scripts: `README.md`, `CHANGELOG.md`, `RELEASE_STATE.md`, `VALIDATION.md`, and `engine-improvement-log.md`. That tip is the source named by the match-PGN note. Leave the Elo columns in `EXPERIMENTS.md` as their console figures.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`. The Opus R5 BKM patch is multi-thread only and is not a substitute for those two.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
