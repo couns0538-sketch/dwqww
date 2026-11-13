@@ -20,4 +20,4 @@ Repository scripts and binaries were not executed. Archives, zip parts, DLLs, an
 
 ## Sibling agents
 
-As of the first checkpoint, three other runs on this repository had no published branch yet: "Forge nnue evaluation", "Forge engine correctness", and "Fable branch investigation". Their reports, once pushed, should be read on a later pass. This index does not write to their branches.
+The NNUE, correctness, and search branches now exist. What was on them when this index read them is in `findings/SIBLINGS.md`. This index does not write to their branches. A later `git ls-remote` can move those tips; `branches/HEAD_MOVEMENT.tsv` is the place to append a new row.

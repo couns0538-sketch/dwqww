@@ -110,6 +110,41 @@ Same blob of `FABLE_REPORT.md` on `fable-nnue-arch` @ `08b589e197202d00bb2a840c8
 
 Not read: `FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) on `fable-review-summary` @ `fa6411f6f984f86d0adacfc2868967f2698d4e67`. The 22.2 MB `opus_round1_20261027.tar.xz` on `opus-summary` was not extracted.
 
+## Checkpoint 4
+
+Local git, not the website. Directory and commit counts are in `findings/GITHUB_FILE_CAP.md`. The 64-slot buffer census is in `findings/BUGS.md`. Sibling reports are in `findings/SIBLINGS.md`.
+
+Full reads added here:
+
+| Blob | Tip | Path |
+|---|---|---|
+| `3b6e2386b6533f8ab797244888c96fb297ea6b2a` | `fable-review-buffix` @ `8632e8ab35f6b269fa66c57043121dd55e4c5756` | `fable_review/REVIEW.md` |
+| `44365b23b2a5166521f2a5f3399781f994a2a657` | `fable52-search-gap-20261109` @ `56a76b153bb88026f2d83d65df6e422b0f3298f9` | `fable_search_gap/DEDUPE.md` |
+| `0d09e3fd90ccd944a7c7d6ed14fe1b6a39d8be99` | `astra-notes` @ `3e50336ac0249cfcc87d23f8154e1e842d2f7c79` | `FINAL_REPORT.md` |
+| `c46866151a7687b63b6543b746422132bdeee8b7` | same tip | `NOTES.md` |
+| `a2a361a744b79533385836ec31dc85cec70b91b8` | same tip | `REPORT.md` |
+| `80d807111ce3d79d1187ab0b32bdbf12c0ac3a60` | same tip | `OPUS_R3_REPORT.md` |
+| `c25059861c4d4e66f373d4d9c0a5c19511023cc7` | `astra-r10-3jobs` | datafilter `RESULTS.md` (three identical paths) |
+| `cc47caca2970df9b49158c32d101a1751b54dd5e` | `forge/clock-contract-reconcile-20261020` | `validation/upstream-clock-reconcile-20261020/windows/independent-audit.md` |
+| `ab2b5937aad8dad1de2f218fe632b662ef631b02` | `forge/double-extension-path-20261020` | `validation/time-forfeit-causal-20261020/RUNNER_REVIEW.md` |
+| `2d469bfe55036da13d4f02e065d3d8593b9011fa` | `forge/nnue-pipeline-20261023` | recovery `REPORT.md` under `windows-raw-recovery-independent-review-attempt1/` |
+| `252101f6a372562d63dfe430a2987765e23004f4` | `forge/sol-pack31-20261025` | S12 operator `README.md` |
+| `720e799e36f60a24880d663d081ff7cb7ace3a69` | same tip | S11 `B_native` parity JSON, status field and top-level scalars |
+| `dc1f5fd580f3b9b60a527c79a7a1fdcb37ba1b36` | correctness tip in `SIBLINGS.md` | `RESUME.md` |
+| `c72cc8e525ebae1857fc41a98649ef93999b8b81` | NNUE tip | `h512/results/cloud_20261113/RESUME.md` |
+| `628e9ccc137383336b7b746ad30398e75a0b2201` | NNUE tip | `REFRESH_BIAS.md` |
+| `9cf62f07c36223ad25255739d318b3fe3b319b71` | NNUE tip | `VNNI.md` |
+| `68a7879c9c290a175aa01281a9c3de3a3a597c61` | NNUE tip | `APPLY_BOTH.md` |
+| `a09b31143d16f71e8865a3d7d2ba877f0b0bac35` | NNUE tip | `SCORER_PARITY.md` |
+| `8e472fee96a5a04b50cafa215312a6d665ec321d` | NNUE tip | `SANITIZERS.md` |
+| `6aa4e28dbd1320902d0c385f91c0fd7905863e74` | NNUE tip | `PIECE_COUNT.md` |
+| `59cc26b64e06f179a58e5b164f34904fa0d8602d` | search tip | `search_strength/CHECKPOINT.md` |
+| `11ed5faf66c2a027e4f17e5aa8504b76500ed58c` | search tip | `search_strength/CHECKPOINT-2.md` |
+
+`FABLE_REVIEW_OPUS.md` (blob `3f18d1a9ac192535c5461cd0780100ecc7efac9b`, 409 lines) was not read end to end. The findings table and the "Mistakes found" section were read. The S11 parity JSON was not read as a whole file. Its status and the fields printed in `BUGS.md` were. The 88 `uci.cpp` blobs were listed and not classified. The search.cpp classification covered every frozen tip blob of that name.
+
+`astra-notes` `REPORT.md` is an older Opus status. It is not the later `opus-summary` report of the same filename.
+
 ## Not claimed
 
 This ledger does not say that every branch was reviewed, that every report was read, or that any Elo or speed number was confirmed by a new match or bench. The running total of full-read prose is the checkpoint 1 files, the checkpoint 2 files, and the four files in this section. That is still a small share of the 2,666 markdown blobs.
