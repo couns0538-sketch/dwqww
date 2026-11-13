@@ -1166,8 +1166,15 @@ std::string Board::move_to_uci(const Move& move) {
     return text;
 }
 
-std::uint64_t Board::perft(int depth) {
+std::uint64_t Board::perft(int depth, const std::atomic<bool>* stop, bool* cancelled) {
+    if (cancelled != nullptr && *cancelled) return 0;
     if (depth <= 0) return 1;
+    // Leaf counting stays branch-free. Internal nodes poll so a UCI stop lands
+    // before the next depth-2 subtree finishes.
+    if (depth >= 2 && stop != nullptr && stop->load(std::memory_order_relaxed)) {
+        if (cancelled != nullptr) *cancelled = true;
+        return 0;
+    }
     MoveList moves;
     generate_pseudo_legal(moves, false);
     if (depth == 1) {
@@ -1180,8 +1187,9 @@ std::uint64_t Board::perft(int depth) {
         if (!is_legal(move)) continue;
         Undo undo;
         (void)make_move(move, undo);
-        nodes += perft(depth - 1);
+        nodes += perft(depth - 1, stop, cancelled);
         unmake_move(move, undo);
+        if (cancelled != nullptr && *cancelled) return 0;
     }
     return nodes;
 }

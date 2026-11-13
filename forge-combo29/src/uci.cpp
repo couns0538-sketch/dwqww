@@ -6,10 +6,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <charconv>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -75,6 +77,13 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
             if (i < tokens.size()) {
                 const std::string& text = tokens[i++];
                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                // A clock past the int range is a long control, not zero time.
+                // Zero is the explicit "flagged" sentinel and would move at once.
+                if (result.ec == std::errc::result_out_of_range &&
+                    result.ptr == text.data() + text.size()) {
+                    return (!text.empty() && text[0] == '-') ? std::numeric_limits<int>::min()
+                                                              : std::numeric_limits<int>::max();
+                }
                 if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
             }
             return value;
@@ -304,16 +313,40 @@ int main() {
                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes 1" << std::endl; }
                     continue;
                 }
-                std::uint64_t total = 0;
-                for (const forge::Move move : board.legal_moves()) {
-                    forge::Undo undo;
-                    (void)board.make_move(move, undo);
-                    const std::uint64_t nodes = board.perft(depth - 1);
-                    board.unmake_move(move, undo);
-                    total += nodes;
-                    { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl; }
+                forge::Board perft_board = board;
+                {
+                    const std::lock_guard<std::mutex> lock(stop_mutex);
+                    stop_requested = false;
                 }
-                { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+                searcher.reset_stop();
+                worker = std::thread([&searcher, perft_board, depth]() mutable {
+                    bool cancelled = false;
+                    const std::atomic<bool>& stop = searcher.stop_flag();
+                    std::uint64_t total = 0;
+                    const auto root_moves = perft_board.legal_moves();
+                    for (const forge::Move move : root_moves) {
+                        if (stop.load(std::memory_order_relaxed)) {
+                            cancelled = true;
+                            break;
+                        }
+                        forge::Undo undo;
+                        (void)perft_board.make_move(move, undo);
+                        const std::uint64_t nodes = perft_board.perft(depth - 1, &stop, &cancelled);
+                        perft_board.unmake_move(move, undo);
+                        if (cancelled || stop.load(std::memory_order_relaxed)) {
+                            cancelled = true;
+                            break;
+                        }
+                        {
+                            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                            std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl;
+                        }
+                        total += nodes;
+                    }
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    if (cancelled) std::cout << "info string perft stopped" << std::endl;
+                    else std::cout << "nodes " << total << std::endl;
+                });
             } else {
                 input.clear();
                 input.seekg(position);
