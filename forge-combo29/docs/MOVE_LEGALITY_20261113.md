@@ -222,4 +222,5 @@ the target; en passant is the exception and uses the slow path).
 - Fullmove and halfmove saturate at 65535.
 - The internal probe cannot catch a clock that `set_fen` will happily reload. `legality_oracle.py` is the regression for the null fullmove bug.
 - The full UCI binary was not rebuilt, and `bench` was not run. Search does not read `fullmove_`. Root book depth is the only UCI use, and only before search starts.
-- This branch does not change the speed lock and should not be merged from this run.
+- This branch does not change the speed lock and should not be merged from this run. `LOCK.md`, `windows_build/SOURCE_INPUTS.sha256`, the receipts, and the published E1284F7F executable are unchanged. Rewriting those hashes to follow this edit would describe a binary that was not rebuilt.
+- On the parent `efb2ff96`, `sha256sum -c windows_build/SOURCE_INPUTS.sha256` (run from `forge-combo29/`) already failed for five files this branch does not touch: `include/forge/nnue.hpp`, `include/forge/search.hpp`, `src/nnue.cpp`, `src/search.cpp`, and `src/uci.cpp`. `include/forge/board.hpp` and `src/board.cpp` matched there. After this fix they do not. The other 13 files still match. The sentence in `LOCK.md` that all 20 files pass was already false on the parent.
