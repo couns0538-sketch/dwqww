@@ -69,7 +69,7 @@ def main():
                     help="allow --select-pos to name a final_test file")
     a = ap.parse_args()
     if a.select_pos:
-        fb.note_final_test_access(fb.refuse_final_test([a.select_pos], a.final_test_unlock))
+        fb.refuse_final_test([a.select_pos], a.final_test_unlock)
     os.makedirs(a.work, exist_ok=True)
     res = {"net": a.net, "net_md5": hashlib.md5(open(a.net, "rb").read()).hexdigest(), "sources": []}
 

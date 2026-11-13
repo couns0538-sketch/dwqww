@@ -72,7 +72,7 @@ v4 tests: 101066 checks, 0 failures. VNNI tests: 101115 checks, 0 failures. Walk
 
 ## Done: CPU trainer refuses a final-test file
 
-`train_h512_gpu.py score` already refused a path whose file name contains `final_test` unless `--final-test-unlock` was set. `fable_nnue_train.py score` and `train` did not, so the CPU tool could score or train on test set 3. Those commands now use the same check, before the CPU trainer imports torch. A streaming glob is checked too, and so are `--val-pos` and `--exact-pos`. The GPU train plan (`train_glob` and `score_sets`), GPU `selfcheck`, and `parity_h512.py --select-pos` use the same helper. An unlocked read appends `FINAL_TEST_ACCESS.log` beside the file. No final-test file in the repository was opened.
+`train_h512_gpu.py score` already refused a path whose file name contains `final_test` unless `--final-test-unlock` was set. `fable_nnue_train.py score` and `train` did not, so the CPU tool could score or train on test set 3. Those commands now use the same check, before the CPU trainer imports torch. A streaming glob is checked too, and so are `--val-pos` and `--exact-pos`. The GPU train plan (`train_glob` and `score_sets`), GPU `selfcheck`, and `parity_h512.py --select-pos` use the same helper. The check does not write a log from the path it was given. No final-test file in the repository was opened.
 
 `h512/train/test_scorer_parity.py` covers the helper, `score` on `final_test3_2m.pos`, `score` on `holdout.pos`, `train --pos`, `train --pos-glob`, and the unlock log. The rest of that file still passes: 520 scorer rows, 0 mismatches.
 

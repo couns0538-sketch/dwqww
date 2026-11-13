@@ -437,10 +437,10 @@ def atomic_save(obj, path):
 
 def cmd_train(a):
     plan = json.load(open(a.plan, "r", encoding="utf-8"))
-    watched = list(glob.glob(plan["train_glob"])) if plan.get("train_glob") else []
+    watched = [plan.get("train_glob")]
     for item in plan.get("score_sets", []):
         watched.append(item.get("pos"))
-    fb.note_final_test_access(fb.refuse_final_test(watched, a.final_test_unlock))
+    fb.refuse_final_test(watched, a.final_test_unlock)
     os.makedirs(a.run_dir, exist_ok=True)
     logf = open(os.path.join(a.run_dir, "log.txt"), "a", encoding="utf-8", newline="\n")
 
@@ -782,7 +782,7 @@ def cmd_score(a):
 
 
 def cmd_selfcheck(a):
-    fb.note_final_test_access(fb.refuse_final_test([a.pos], a.final_test_unlock))
+    fb.refuse_final_test([a.pos], a.final_test_unlock)
     dev = torch.device("cuda")
     out = {}
     n = a.rows

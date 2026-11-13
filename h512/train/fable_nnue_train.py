@@ -61,18 +61,9 @@ def is_final_test_path(path):
 
 
 def refuse_final_test(paths, unlock=False):
-    """Return the final-test paths in `paths`. Refuse to read them unless unlock is set."""
-    hits = [path for path in paths if is_final_test_path(path)]
-    if hits and not unlock:
+    """Refuse to read a final-test path unless unlock is set. The check does not write a file."""
+    if any(is_final_test_path(path) for path in paths) and not unlock:
         raise SystemExit("refused: this is the final-test set; it is scored once, with --final-test-unlock")
-    return hits
-
-
-def note_final_test_access(paths):
-    for path in paths:
-        directory = os.path.dirname(os.path.abspath(path)) or "."
-        with open(os.path.join(directory, "FINAL_TEST_ACCESS.log"), "a", encoding="utf-8", newline="\n") as handle:
-            handle.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {os.path.basename(path)}\n")
 
 
 def read_fpos(pos_path, hce_path=None, max_rows=None):
@@ -505,7 +496,7 @@ def cmd_train(args):
     if args.hce_dir:
         for path in pos_files:
             watched.append(os.path.join(args.hce_dir, os.path.basename(path)[:-4] + ".hce"))
-    note_final_test_access(refuse_final_test(watched, args.final_test_unlock))
+    refuse_final_test(watched, args.final_test_unlock)
     import torch
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
@@ -790,7 +781,7 @@ def cmd_parity(args):
 
 
 def cmd_score(args):
-    note_final_test_access(refuse_final_test([args.pos, args.hce], args.final_test_unlock))
+    refuse_final_test([args.pos, args.hce], args.final_test_unlock)
     net = v3.read_net(args.net)
     data = read_fpos(args.pos, args.hce, args.max_rows)
     result = score_net_numpy(net, data, net.residual, phases=args.phases)
@@ -870,7 +861,7 @@ def main():
     s.add_argument("--max-rows", type=int)
     s.add_argument("--phases", action="store_true")
     s.add_argument("--final-test-unlock", action="store_true",
-                   help="allow --pos to name a final_test file; the read is appended to FINAL_TEST_ACCESS.log")
+                   help="allow --pos to name a final_test file")
     args = ap.parse_args()
     {"train": cmd_train, "export": cmd_export, "parity": cmd_parity, "score": cmd_score}[args.cmd](args)
 

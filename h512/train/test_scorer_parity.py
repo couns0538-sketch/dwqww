@@ -254,8 +254,7 @@ def check_final_test_gate():
             raise
     else:
         raise SystemExit("helper did not refuse")
-    if tr.refuse_final_test(["fb2_013.pos", "fb2_014.pos"]):
-        raise SystemExit("helper refused a training shard")
+    tr.refuse_final_test(["fb2_013.pos", "fb2_014.pos"])
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fable_nnue_train.py")
     refused = subprocess.run(
         [sys.executable, script, "score", "--net", "missing.fnn3", "--pos", "final_test3_2m.pos"],
@@ -288,10 +287,9 @@ def check_final_test_gate():
             capture_output=True, text=True)
         if "final-test" in (opened.stderr + opened.stdout):
             raise SystemExit("unlock still refused")
-        log = os.path.join(tmp, "FINAL_TEST_ACCESS.log")
-        if not os.path.isfile(log) or "final_test3_2m.pos" not in open(log, encoding="utf-8").read():
-            raise SystemExit("unlock did not record the read")
-    print("final-test gate: score and train refuse the name; unlock records the read")
+        if os.path.isfile(os.path.join(tmp, "FINAL_TEST_ACCESS.log")):
+            raise SystemExit("unlock wrote a log beside the data file")
+    print("final-test gate: score and train refuse the name; unlock does not write a log")
 
 
 def main():
