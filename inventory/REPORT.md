@@ -848,3 +848,85 @@ At this tip a game search still probes the book when `own_book` is true or `book
 3. Otherwise read the shared tip `5101c2529d386b7c3a04ba9156a69ee34df6bb43` (12 branches, one tree). It is `af194137` plus `5101c252`. `af194137` changes `src/uci.cpp:331` so a game search probes the book only when `own_book` is true. `5101c252` adds `validation/hourly/2026-10-20-ownbook-native/test_ownbook.py`. Read that test as data. Do not execute repository scripts.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 10 — 2026-11-13 23:23 UTC
+
+Trigger 23:23 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 23:24 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-9 table | 429 |
+| Moved | 1. This checkpoint, `db4613f1` to `1d458a9a`, the run-9 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `db4613f1` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `a6791b6c` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. The 12 branches at `5101c252` were tip-only and are now `run10-read`. The two branches at `af194137` are `run10-fix-line`. `research/forge-ownbook-native-verify-20261020-1706` is `run10-workflow`. 359 branches stay tip-only.
+
+No engine was built. No script in the tree was executed. No PGN was scored. The Polyglot key check below is a calculation from the key table and the function in `src/book.cpp`. It is not a UCI transcript.
+
+### One tree, twelve names
+
+`5101c2529d386b7c3a04ba9156a69ee34df6bb43` (tree `58d0596f`, 1069 files, 2026-10-20 12:51 +02:00) is the whole shared group. It contains `24cc2cce` and `356e863d`. It contains neither the lock, H512, nor `main`. Its parent is `af194137`. That parent’s parent is `356e863d`.
+
+These names all point at `5101c252`. None of them is a separate experiment:
+
+`forge/6.4-hourly-20261019`, `forge/candidate-ownbook-native-ci-20261020-1245`, `forge/lead-ownbook-native-20261020-1345`, `forge/test-20261021-0030`, `forge/test-20261021-0230`, `forge/test-20261021-0330`, `forge/test-20261021-0430`, `investigator/hourly-20261021-1000-no-new-finding`, `investigator/hourly-20261021-1100-qsearch-candidate-native`, `investigator/hourly-20261021-1200-terminal-zero-nodes-native`, `research/forge24-paired-speed-calibration-20261021`, `tester/forge64-20261022-1230-budget-matrix`.
+
+### The book gate
+
+`af194137` changes one line of `src/uci.cpp`. Blob `debb80cb` becomes `cc5efeb3`. `5101c252` has that same blob. A game search is a clock or movetime search with infinite, ponder, searchmoves, and mate all clear (`src/uci.cpp:329`). The probe at `src/uci.cpp:331` requires `own_book`. On `356e863d` the same site also probed when `book_file` was non-empty. On `24cc2cce` that older condition is `src/uci.cpp:325`.
+
+`OwnBook false` writes only `own_book` (`src/uci.cpp:229`). A non-empty `Book File` still loads the path and replaces the entry table (`src/uci.cpp:242`, `src/book.cpp:100`). An empty path clears `book_file` and reloads the embedded book (`src/uci.cpp:239`). After the change, a loaded external file stays in memory while `OwnBook` is false, and a game search does not call `book.probe`. Setting `OwnBook true` again probes that loaded file. This binary was not run.
+
+`Book::probe` with variety 0 returns the heaviest legal candidate (`src/book.cpp:164`). One entry of weight 100 is that candidate. `Book::size` is the entry count (`include/forge/book.hpp:34`).
+
+The two names at `af194137` have this gate and do not have the test file: `forge/candidate-ownbook-20261020-1045` and `forge/candidate-ownbook-native-20261020-1145`.
+
+### The regression file
+
+`5101c252` adds only `validation/hourly/2026-10-20-ownbook-native/test_ownbook.py`. The file builds a 16-byte Polyglot record: key `0x463B96181691FC9C`, move `(12 << 6) | 28`, weight 100, learn 0. A separate calculation of `polyglot_key` for the standard start position, using this tree’s `Random64` table and the formula at `src/book.cpp:38`, produced that key. The move word is 796 (`0x031c`), which is e2e4 under `encode_squares` at `src/book.cpp:31`.
+
+The script looks for `id name Chess Engine Forge`. The book path contains spaces. `setoption` keeps the first value token and the rest of the line (`src/uci.cpp:200`, `src/uci.cpp:237`), so the loaded path includes those spaces. It then checks:
+
+- `go movetime 150` with `OwnBook false`: a book info line is required when `--expect-leak yes`, and forbidden when `--expect-leak no`.
+- `OwnBook true`, then `go movetime 150`: a book info line and `bestmove e2e4`.
+- `go depth 2`: no book info line. Depth leaves `time_ms` and `movetime_ms` at -1 (`include/forge/search.hpp:22`), so `game_search` is false.
+- `OwnBook false` again, with the same expectation as the first movetime search.
+
+A book hit is any line that starts with `info string book move `. The disabled case does not require a different move, so a search that plays e2e4 without that line still passes. The leak case does not require e2e4. The script appends five checks before it records PASS. No `result.json` and no `raw_uci.log` are in the commit. The script was not executed.
+
+### Documents that still describe the old gate
+
+`validation/hourly/2026-10-19-initial/forge-state-nnue-audit.md:22` quotes `src/uci.cpp:325` as `(own_book || !book_file.empty())`. That citation matches `24cc2cce`. On this tip, line 325 assigns `limits.start_time`, and the book condition is line 331. The audit says the protocol reproduction was not executed. `af194137` and `5101c252` do not edit that file. `validation/hourly/README.md:138` still lists reproducing the bypass as an open item. Neither file is a measurement of this tip.
+
+The 6.2.0 changelog row, 18 wins, 11 losses, 91 draws at 10+0.1, is the older embedded-book on/off match already stored in this tree. It is not a result for `af194137`.
+
+### The workflow one commit later
+
+`research/forge-ownbook-native-verify-20261020-1706` at `9a6598bc718bfc144b2499277b7affc89a152e10` is the only branch there. It is `5101c252` plus `.github/workflows/forge-ownbook-independent.yml` (56 lines). The workflow builds `356e863d` and `5101c252` with `FORGE_NATIVE=OFF`, runs ctest on each, then runs the script with `--expect-leak yes` on the older binary and `--expect-leak no` on the newer one. `set -euo pipefail` is on, and each Python command is piped to `tee`, so a non-zero script status fails the step before the decision line. That line says both 4-test suites passed. The script’s own list has five checks. Logs go to the runner temp directory and an uploaded artifact. None of those logs are in the commit. This run did not start the workflow. The file claims no Elo.
+
+### Clock and captures
+
+`src/search.cpp` is blob `d48e9f16`, the same blob as on `356e863d`. `read_int` is still `src/uci.cpp:73`. A token that does not convert returns 0 (`src/uci.cpp:78`). `wtime` stores `max(0, that)` (`src/uci.cpp:99`). A parsed 0, with the default overhead of 10 ms, becomes a 1 ms budget (`src/search.cpp:1141`). `bad_captures_[bad_count_++]` is still unchecked at `src/search.cpp:296`. The array has 64 slots at `src/search.cpp:384`. These lines were not played.
+
+### Not claimed
+
+- No new Elo and no new bench. The book edit is a configuration gate. The regression file and the workflow are source. They are not a stored pass.
+- 359 branches are still tip-only. The next shared tip is `9108d012` (11 names), whose parent is `24cc2cce`.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent’s branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch’s tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read the shared tip `9108d012526be80c6d163f7cab684e6acd9abf8d` (11 branches, one tree). Its parent is `24cc2cce`. The commit changes `include/forge/search.hpp`, `src/search.cpp`, and `tests/tests.cpp`, and adds `tools/audit/audit_match_archive.py` plus `validation/hourly/2026-10-19-initial/`. Read the source diff, `candidate.patch`, `forge-tt-review.md`, `forge-search-audit.md`, and `forge-match-evidence.md`. Check a cited W/L/D against the PGN or stats file it names. Do not execute repository scripts.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+5. Do not push to `main`, the lock, the H512 branch, or another agent’s branch.
