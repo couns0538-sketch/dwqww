@@ -416,6 +416,10 @@ private:
     std::size_t root_history_index_ = 0;
     std::vector<Move> root_moves_;
     bool root_restricted_ = false;
+    // Set from the root position. A per-node bare-king test also fires after
+    // trades inside ordinary games and moves the lock benches; the root bit
+    // keeps those benches on the old tree.
+    bool root_bare_king_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
 #if FORGE_ETC_STATS
