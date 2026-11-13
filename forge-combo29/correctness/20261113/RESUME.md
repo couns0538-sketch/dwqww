@@ -55,9 +55,9 @@ Both runs printed `PINS MATCH combo29`. The same script after the bare-king gate
 
 Commands that passed after the last edit:
 
-- `/tmp/forge-correctness-build/forge_rules_tests` (failures=0)
+- `/tmp/forge-correctness-build/forge_rules_tests` (failures=0). This includes the 200-run KRK check, a make/unmake oracle for checks, king safety and incremental hash keys, mate at clock 99, and the queen promotion mate.
 - `/tmp/forge-correctness-build/forge_bad_capture_tests` (failures=0, nodes=396)
-- `python3 forge-combo29/tests/uci_protocol_tests.py /tmp/forge-correctness-build/forge` (failures=0)
+- `python3 forge-combo29/tests/uci_protocol_tests.py /tmp/forge-correctness-build/forge` (failures=0). This includes ponderhit before bestmove, infinite stop, perft stop, and the position-prefix cases.
 - `forge-combo29/scripts/check_pins.sh /tmp/forge-correctness-build/forge` (match)
 
 ## Fixed and tested: bare-king mate with more than one worker
@@ -68,7 +68,7 @@ The combo29 search drops that quiet mate the same way: late-move pruning and LMR
 
 After the gate: Threads 2 missed 0/400, Threads 4 missed 0/200, and `forge_rules_tests` runs 200 two-thread searches with 0 misses. Log: `krk_threads.txt`.
 
-One thread after another search can still miss. Reproduced, not fixed, because removing the worker check changes the one-thread tree:
+One thread after another search can still miss. Reproduced, not fixed. A build with the gate enabled for one worker changed depth-13 benches to 862954 net on and 907307 net off (pins 862329 and 907205). That net-on count matches the BK row in the R5D report. Not applied.
 
 - after `8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1` at depth 9: `e8e4`, cp 442
 - after `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` at depth 9: `e8e4`, mate 10

@@ -107,6 +107,37 @@ void check_ep_and_castle() {
     check(castle.parse_uci("e1c1").has_value(), "queenside castle is legal");
 }
 
+void check_move_oracle(std::string_view fen) {
+    forge::Board board = board_from(fen);
+    const std::string saved = board.fen();
+    const std::uint64_t key = board.key();
+    check(key == board.compute_key(), "set_fen key matches a full recompute");
+    if (!board.in_check()) {
+        forge::NullUndo null_undo;
+        board.make_null_move(null_undo);
+        check(board.key() == board.compute_key(), "null-move key matches a full recompute");
+        board.unmake_null_move(null_undo);
+        check(board.key() == key && board.fen() == saved, "null-move unmake restored the position");
+    }
+    for (const forge::Move move : board.pseudo_legal_moves()) {
+        const bool checks = board.gives_check(move);
+        const bool legal = board.is_legal(move);
+        forge::Undo undo;
+        (void)board.make_move(move, undo);
+        check(board.key() == board.compute_key() && board.pawn_key() == board.compute_pawn_key(),
+              "incremental keys match a full recompute");
+        const bool opponent_in_check = board.in_check();
+        const forge::Color mover = forge::opposite(board.side_to_move());
+        const bool exposed = board.square_attacked(board.king_square(mover), board.side_to_move());
+        board.unmake_move(move, undo);
+        check(board.fen() == saved && board.key() == key, "oracle unmake restored the position");
+        check(checks == opponent_in_check, "gives_check matches the position after the move");
+        if (!move.is_castle()) {
+            check(legal == !exposed, "is_legal matches king safety");
+        }
+    }
+}
+
 void check_search_rules() {
     using namespace forge;
     auto search_fen = [](std::string_view fen, int depth, int threads) {
@@ -134,6 +165,14 @@ void check_search_rules() {
 
     const SearchInfo bare = search_fen("8/8/4k3/8/8/3K4/8/8 w - - 0 1", 2, 1);
     check(bare.score == 0 && bare.nodes == 0, "king versus king is a draw without searching");
+
+    const SearchInfo mate99 = search_fen("6k1/4Q3/6K1/8/8/8/8/8 w - - 99 40", 3, 1);
+    check(is_mate_score(mate99.score) && mate99.score > 0, "mate in one still wins when the clock is 99");
+
+    const SearchInfo promote = search_fen("7k/4P3/6K1/8/8/8/8/8 w - - 0 1", 3, 1);
+    check(is_mate_score(promote.score) && promote.score > 0, "promotion mate is a positive mate score");
+    check(promote.best_move.is_promotion() && promote.best_move.promotion == Queen,
+          "promotion mate is a queen promotion");
 
     const SearchInfo mate = search_fen("6k1/4Q3/6K1/8/8/8/8/8 w - - 0 1", 3, 1);
     check(is_mate_score(mate.score) && mate.score > 0, "mate in one is a positive mate score");
@@ -231,6 +270,13 @@ int main() {
     check_make_unmake("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1", 2);
     check_repetition();
     check_ep_and_castle();
+    check_move_oracle(forge::Board::StandardStartFen);
+    check_move_oracle("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    check_move_oracle("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1");
+    check_move_oracle("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1");
+    check_move_oracle("8/8/8/K2pP2r/8/8/8/4k3 w - d6 0 1");
+    check_move_oracle("4k3/8/8/8/8/8/5r2/R3K2R w KQ - 0 1");
+    check_move_oracle("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
     check_search_rules();
     std::cout << "rules failures=" << failures << '\n';
     return failures == 0 ? 0 : 1;

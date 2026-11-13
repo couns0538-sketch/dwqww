@@ -171,6 +171,45 @@ def test_nodes_zero(exe):
     return 0
 
 
+def test_ponder_and_infinite(exe):
+    proc = launch(exe)
+    for line in (
+        "uci",
+        "setoption name OwnBook value false",
+        "setoption name Ponder value true",
+        "isready",
+        "ucinewgame",
+        "position startpos",
+        "go ponder movetime 300",
+    ):
+        send(proc, line)
+    early, early_best = read_until(proc, lambda line: line.startswith("bestmove "), 0.2)
+    if early_best:
+        close(proc)
+        return fail("ponder printed bestmove before ponderhit: " + " | ".join(early[-3:]))
+    started = time.monotonic()
+    send(proc, "ponderhit")
+    lines, ok = read_until(proc, lambda line: line.startswith("bestmove "), 2)
+    elapsed = time.monotonic() - started
+    move = bestmove(lines)
+    if not ok or move in (None, "0000") or elapsed > 1.5:
+        close(proc)
+        return fail(f"ponderhit elapsed={elapsed:.3f}s move={move}")
+    send(proc, "position startpos")
+    send(proc, "go infinite")
+    time.sleep(0.1)
+    started = time.monotonic()
+    send(proc, "stop")
+    lines, ok = read_until(proc, lambda line: line.startswith("bestmove "), 2)
+    elapsed = time.monotonic() - started
+    close(proc)
+    move = bestmove(lines)
+    if not ok or move in (None, "0000") or elapsed >= 1:
+        return fail(f"infinite stop elapsed={elapsed:.3f}s move={move}")
+    print(f"ponderhit and infinite stop ok ({elapsed:.3f}s)")
+    return 0
+
+
 def test_scripted_perft(exe):
     # quit is already in the pipe when perft starts. The count must finish.
     text = "position startpos\ngo perft 5\nquit\n"
@@ -213,6 +252,7 @@ def main():
     status |= test_nodes_zero(exe)
     status |= test_scripted_perft(exe)
     status |= test_perft_stop(exe)
+    status |= test_ponder_and_infinite(exe)
     print("uci protocol failures=" + str(status))
     return status
 
