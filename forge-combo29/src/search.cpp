@@ -576,10 +576,13 @@ private:
 #if FORGE_SDK_BADCAP_PREFIX
     // Losing captures live in moves_[0, bad_count_).
 #elif FORGE_SPD_NO_ZERO_MOVELISTS
-    std::array<Move, 64> bad_captures_;
+    // The generator can emit more than 64 SEE-losing noisy moves (68 in
+    // tests/bad_capture_tests.cpp). A 64-slot buffer overruns the stack.
+    std::array<Move, MoveList::Capacity> bad_captures_;
 #else
-    std::array<Move, 64> bad_captures_{};
+    std::array<Move, MoveList::Capacity> bad_captures_{};
 #endif
+    static_assert(MoveList::Capacity >= 218, "bad-capture buffer must hold every noisy move");
     std::size_t bad_count_ = 0;
     std::size_t bad_index_ = 0;
     MoveList buffer_;
