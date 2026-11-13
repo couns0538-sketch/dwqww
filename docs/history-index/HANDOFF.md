@@ -30,10 +30,14 @@ Lock to test against, not to move: `lock/combo29-20261110` @ `16833ecc03b425586f
 ## For search strength
 
 - Combo29 is a bit-exact speed lock (king-line, SEE hoist, 32-bit move equality, clang ThinLTO+PGO). `forge-combo29/docs/overnight/RANKED.md` ranks 31 ABBA runs by NPS against trial_w6. Rank 1 is combo29 at median +10.191% (CI 10.099 to 10.409). Two runs are `ABBA_ERROR` (gcc_see, combo25). The table is NPS only. It is not an Elo ranking, and this index did not re-bench it.
-- H512 candidate 3 changes the search tree (different bench node counts from the lock). Its reported equal-node gain is an evaluation result, not a search-patch result. Do not add it to a speed-lock stack.
-- Candidate 1's +12.4 Elo at 6s+0.06s disappeared at equal nodes (-4.8, interval crosses zero). A search or speed change that only wins on time can be the same pattern. Ask for an equal-node or fixed-node screen before treating a short-clock Elo as strength.
-- `fable52-search-gap-20261109` @ `56a76b153bb8` has `fable_search_gap/NO_QUALIFIED_GAP.md`. Not read yet. Do not start a new search-gap search until that file and `FALSIFICATION.md` are read. They are the next batch in `RESUME.md`.
-- Threads above 1 on the standalone H512 path were not tested. SMP conclusions from October GrokChess notes are a different engine (JavaScript, `grokchess_1745_full_source.txt` on `main`). Six GrokChess research branch names point at `main` and contain no newer source.
+- H512 candidate 3 changes the search tree. Its reported equal-node gain is evaluation, not a search patch. Do not stack it on the speed lock.
+- Candidate 1's +12.4 Elo at 6s+0.06s disappeared at equal nodes (-4.8, interval crosses zero). Ask for an equal-node screen before treating a short-clock Elo as search strength.
+- Search-gap job, read: **no qualified gap**. Enhanced transposition cutoffs are the only idea that dossier called unowned, and the replica did not show a node saving (0.987, range 0.954 to 1.022, on 336 positions). Do not spec it unless the counting run in `FALSIFICATION.md` section 3 hits the "write a spec" line inside the real lock search. The dedupe is from 2026-11-09 and must be re-checked against later tips. Details in `findings/SEARCH.md`.
+- Do not rebuild these speed ideas expecting a free win. Under load, `WITNESS_NOPIN` and the four-patch bundle were slower (-1.02% and -0.70%, intervals below zero). The other three board patches were stopped inside about 1% of the lock. `NNUE_FUSE_EVAL` (+0.93%) and `PREFETCH_PICK` (+0.72%) missed a pre-registered +2% bar, and lock-versus-lock on that machine swung from -5% to +8% in single pairs. `NNUE_WPREFETCH` was -4.42%. `KING_PAWN_CACHE` already exists on `cursor/chess-engine-elo-8295` @ `928f1ff7a10a`.
+- The same four board patches plus the cache and `BUNDLE3` passed a 20,000,000-position move-generation proof with 0 differences. That is an identity result. It does not make them faster, and the proof says it does not authorise a lock change.
+- A fixed pair of exe files on that PC read -3.65% and later +0.30%. Later timings used a new copy per arm. Copy that protocol before trusting a small NPS delta.
+- `EvalOptimism=40` is both a capped +6.95 over 3,000 games and a later H0 at -5.30. Keep both. The U8 net is both H1 +16.50 and a later cap at +3.04 in the same summary.
+- Threads above 1 on the standalone H512 path were not tested. ASan and UBSan benches of the lock matched the pins; ThreadSanitizer could not be built on Windows. Six `research/grokchess-*` names point at `main` and are a different, JavaScript engine.
 
 ## Conflicts kept open
 
@@ -42,6 +46,8 @@ Lock to test against, not to move: `lock/combo29-20261110` @ `16833ecc03b425586f
 | H512 phase-1 Elo | +12.4 at 6s+0.06s, and a 1.20x NPS figure | Equal nodes -4.8; the report says the Elo was speed | Use the equal-node number for evaluation quality and the timed number only as a combined screen |
 | H512 speed | "about 20% faster" with candidate 1 | 1.095x NPS with candidate 3, different tree | The speed ratio depends on the net. Do not copy the 20% figure forward |
 | Wider nets | 1024-hidden H512 has a lower loss than 512 (0.013800 vs 0.013882) | Same net vs candidate 3 at 10s+0.1s is -5.9 Elo, and it searches 0.858x as many nodes | Loss improved and the match did not. The report's own reading is that the data, not the width, is the limit, and the slowdown is paid at this clock |
+| `EvalOptimism=40` | UE3B capped, +6.95 Elo, 3,000 games, LLR 2.08 | UE3B-R6K H0, -5.30 Elo, 2,360 games | The longer run reversed the sign. Neither number was re-played here |
+| U8 net gate | UO30U8 H1 +16.50 over 2,528 games | UO30U8c capped +3.04 over 4,000 games | Job D's later report says the confirm exe was two locks slow. The gate summary itself does not say that |
 | HalfKA 1024 | Older gates around -86 to -124 Elo on a cold, slow exe | Job D's own 300-game match on a faster exe: -97 +/- 25 | The build was unfair and the net still lost on the fair exe. The 300-game interval is wide |
 | INT8 speed | Older note "ON about 0.5x" | Fair profile 0.984x at `bench 20`, 0.994x at `bench 22` | 0.5x is the cold profile. The kernel is close to the lock on NPS and is lossy (max 29 cp, mean 3.2 cp on 12,000 FENs) |
 | v2 KB8 "about 1.0x" | An older advisory on an older lock | 0.927x on combo29 with a correct profile, bit-exact | Use the combo29 measurement for the current lock |

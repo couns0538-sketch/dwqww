@@ -37,6 +37,12 @@ These names are newer than their commit and point at work that is already on ano
 
 `investigator/qsearch-horizon-stalemate-20261020-1400` (`ab9c56000235bfbf3c1aaa1814111d264d3f0823`) and `investigator/terminal-zero-node-20261020-1300` (`7d4974f3ba613b8e50290ff6db05a3d9a98831f3`) have their own commits. They were not read. Their subjects claim a horizon-stalemate probe and a terminal `go nodes 0` handoff. Those two are real separate tips and belong in the next correctness batch, ahead of the aliases.
 
+## Move generation and sanitizers, from later reports
+
+`fable_movegen_proof/STATUS.md` (blob `365aff87344299c5cfddc198b6f97b6fe16d581a`) on `fable52-movegen-proof-20261110` @ `2ff77f98927cf19d55d6cac5cf182a81eb0d71e6` says six candidates PASS 20,000,000 auxiliary positions and 20,000,000 release-exe positions each, with 0 differences, plus 13/13 pins and a perft divide. The release exe does not print checkers or static eval, so those fields were compared on probes only. The status says this does not authorise a lock change. `PROOF.md` was not read.
+
+`fable_cpu_speed/README.md` (blob `a2e1d04d8273cfed34a1b271a074753df6eb0204`) on `fable52-cpu-20261110` says ASan and UBSan full benches matched the lock pins with no report, determinism was 13,000/13,000, and table stress was 480/480. ThreadSanitizer is unsupported by the installed Windows compilers. A bug hunt on the lock exe found no defect. One observation to keep, not called a defect: in `Searcher::search` the stop flag is read, used to wind down helpers, and then restored, so a stop that arrives in that window is overwritten. The hunt found no effect because the search had already ended and the UCI layer keeps its own flag. `DONE.md` was not read.
+
 ## Fix already recorded, not re-tested
 
 The 2026-11-12 removal of `instrument_refresh_stats.py` and the tablebase path check are in `SECURITY.md`. History still contains the old files. Correctness work that checks out an old commit should expect `src` and `include` to be deletable by that script if something runs it.

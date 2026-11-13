@@ -76,6 +76,25 @@ Six `research/grokchess-*` branches dated in the name 2026-10-20 or 2026-10-21 p
 
 Hourly `forge/` and `investigator/` names often share one commit. The branch name is a checkpoint label. The commit subject is the last real change, which may be older and about a different topic.
 
+## Checkpoint 2 full reads
+
+These blobs were read in full after checkpoint 1. They are not on the H512 tip. The branch tip that holds each path is named with the blob.
+
+| Blob | Branch @ tip | Path | Lines |
+|---|---|---|---|
+| `a0065a88cb1697ea46ba4880425707839dea71f1` | `fable52-search-gap-20261109` @ `56a76b153bb88026f2d83d65df6e422b0f3298f9` | `fable_search_gap/NO_QUALIFIED_GAP.md` | 185 |
+| `96681cdea9a21e0a36cd865ab9ef5c452b2653b4` | same tip | `fable_search_gap/STATUS.md` | 125 |
+| `683754c8c5283cfde01c616517c10582754e0fbf` | same tip | `fable_search_gap/FALSIFICATION.md` | 151 |
+| `23b1387b4a5a4ba84581d9dbda8af31002ca1557` | same tip | `fable_search_gap/data/QUALIFICATION_RULE.md` | 17 |
+| `81bdc8ad6cef019eadf80a411be5ec4bbf44ed4f` | same tip | `fable_search_gap/data/gate_table_summary.md` | 117 |
+| `2d0cddc5ded464075f5b1128f5c36be4b933c629` | `fable52-speed-lane-20261109` @ `08897a88e11c707c0ac4e39c19e44c06e1360bdd` | `fable_speed_lane/STATUS.md` | 202 |
+| `8242abdb64cb28fd4b0a7ae59734fe13b64d4e29` | same tip | `fable_speed_lane/README.md` | 85 |
+| `365aff87344299c5cfddc198b6f97b6fe16d581a` | `fable52-movegen-proof-20261110` @ `2ff77f98927cf19d55d6cac5cf182a81eb0d71e6` | `fable_movegen_proof/STATUS.md` | 178 |
+| `7e2021ba68c48223514584f44157e5a9f6f4efe8` | `fable52-cpu-20261110` @ `ea3759a9ec3b17c58e3daeab8ff31af53e7ae6ab` | `fable_cpu_speed/STATUS.md` | 67 |
+| `a2e1d04d8273cfed34a1b271a074753df6eb0204` | same tip | `fable_cpu_speed/README.md` | 118 |
+
+About 1,245 more lines. Still unread on those same branches: `fable_search_gap/EVIDENCE.md`, `DEDUPE.md`, `REVIEW_LOG.md`, `COVERAGE.md`; `fable_speed_lane/BENCH.md`, `DUPCHECK.md`, `PROFILE.md`, `QA_ABBA_PROTOCOL.md`; `fable_movegen_proof/PROOF.md`, `DONE.md`, `evidence/TABLES.md`; `fable_cpu_speed/DONE.md`, `PREREG.md`, `PROFILE.md`. The speed-lane protocol file was copied out and not read.
+
 ## Not claimed
 
 This ledger does not say that every branch was reviewed, that every report was read, or that any Elo or speed number was confirmed by a new match or bench.
