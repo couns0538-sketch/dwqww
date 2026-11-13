@@ -49,6 +49,13 @@ public:
     // Evaluation without any cache, for tests and tools.
     [[nodiscard]] static int evaluate_uncached(const Board& board);
 
+    // Incremental material and phase used by a residual network. The search is
+    // the production caller. A test replays moves and compares these with
+    // evaluate_uncached, which recomputes the same terms.
+    [[nodiscard]] static RuntimePsqt refresh_runtime_psqt(const Board& board);
+    static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
+    [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
+
     struct PawnEntry {
         std::uint64_t key = 0;
         Score score = 0;
@@ -57,10 +64,6 @@ public:
     };
 
 private:
-    friend class Worker;
-    [[nodiscard]] static RuntimePsqt refresh_runtime_psqt(const Board& board);
-    static void update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty);
-    [[nodiscard]] int evaluate_runtime(const Board& board, const RuntimePsqt& psqt);
     static constexpr std::size_t PawnCacheSize = 1U << 15U;
     std::vector<PawnEntry> pawn_cache_;
 };

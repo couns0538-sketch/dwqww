@@ -181,6 +181,45 @@ def check_engine(tool, fens):
         return mismatches
 
 
+def check_b2_clip_limit():
+    """clip() must keep round(b2 * QA * QB) inside int32. 131586 fits; 131587 does not."""
+    q = v3.QA * v3.QB
+    limit = tr.B2_ABS_MAX
+    if q != 16320:
+        raise SystemExit(f"QA * QB is {q}, the b2 clip constant was chosen for 16320")
+    for sign in (1.0, -1.0):
+        rounded = int(np.rint(sign * limit * q))
+        if rounded < -2147483648 or rounded > 2147483647:
+            raise SystemExit(f"b2 clip limit rounds outside int32: {rounded}")
+        as_f32 = float(np.float32(np.float32(sign * limit) * np.float32(q)))
+        rounded_f32 = int(np.rint(as_f32))
+        if rounded_f32 < -2147483648 or rounded_f32 > 2147483647:
+            raise SystemExit(f"float32 export of the b2 clip limit is outside int32: {rounded_f32}")
+    if 131587 * q <= 2147483647 or -131587 * q >= -2147483648:
+        raise SystemExit("b2 clip limit is not the last safe integer count")
+    try:
+        import torch
+    except ImportError:
+        print("b2 clip limit: integer and float32 bounds hold; torch is not installed, clip() was not executed")
+        return
+    cfg = {
+        "hidden": 32, "king_buckets": 1, "output_buckets": 2, "mirror": False, "residual": False,
+        "factorizer": True, "eval_scale": 400, "blend": 1.0, "seed": 1, "init_scale": 0.01,
+        "king_map": v3.king_layout(1), "output_map": v3.output_layout(2),
+    }
+    model = tr.build_model(cfg, torch)
+    with torch.no_grad():
+        model.b2.fill_(1.0e9)
+        model.clip()
+        after = float(model.b2.abs().max())
+        rounded = torch.round(model.b2 * q)
+    if after > limit + 1.0e-5:
+        raise SystemExit(f"clip() left b2 at {after}, above {limit}")
+    if int(rounded.abs().max()) > 2147483647:
+        raise SystemExit("clip() left a b2 whose rounded multiple does not fit in int32")
+    print(f"b2 clip limit: {limit:.6f} holds in float32, and clip() pulled 1e9 down to {after:.6f}")
+
+
 def check_piece_counts(fens):
     """The phase LUT looks like it has a precedence bug. In Python != binds looser than &,
     so `c & 15 != 0` is `(c & 15) != 0`. It must keep matching a direct nibble count."""
@@ -210,6 +249,7 @@ def check_piece_counts(fens):
 def main():
     tool = sys.argv[1] if len(sys.argv) > 1 else None
     check_b2()
+    check_b2_clip_limit()
     fens = played_fens(12, 20261113)
     mismatches = check_piece_counts(fens)
     mismatches += check_scores(fens)[0]

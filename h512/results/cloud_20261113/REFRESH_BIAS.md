@@ -6,7 +6,7 @@ Date: 2026-11-13. This is a bit-exact inference change measured on synthetic net
 
 - Base: `fable/standalone-h512-20261111` @ `efb2ff960037087299332bc6a44baea69441a17a`
 - Change: `refresh_from_pieces` in `forge-combo29/src/nnue_v3.cpp`. When the cached placement and the new placement differ in more columns than the new placement has pieces, the cache entry is copied from `b1` and only the current pieces are added. The comparison is `>`, so an empty entry (difference equals the piece count) stays on the add-only path. This is the same rule as `FORGE_NNUE_V2_FAST` bit 4 in `nnue_v2.hpp`, which that path already had and which v3 did not.
-- The loader bound `max|b1| + 32 * max|w1| <= 32767` keeps every partial sum inside int16, so piece-type order and square order store the same bits.
+- The loader bound `max|b1| + 32 * max|w1| <= 32767` keeps the final sum of at most 32 columns inside int16. A later check found that a piece-type refresh can still wrap an intermediate sum; the stored value matches the int64 sum because int16 add and sub wrap. See `REFRESH_WRAP.md`. Piece-type order was not changed.
 - Compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 - Flags: `-std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -DNDEBUG` and `FORGE_NNUE_HIDDEN=256`, `FORGE_EXPOSE_TUNABLES=1`, `FORGE_SPD_TT_NOTLS=1`, `FORGE_SPD_NO_ZERO_MOVELISTS=2`, `FORGE_SEARCH_SPEED2=1`, `FORGE_SPD_PREFETCH_EARLY=1`, `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`, `FORGE_NNUE_V3=1`, `FORGE_FAIR_DIAG=1`
 - CPU: 4-core Intel Xeon reported at 2400 MHz, AVX-512. One core via `taskset -c 1`. This is not the Zen 5 lock machine, and the build is not ThinLTO or PGO.

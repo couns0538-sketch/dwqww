@@ -22,7 +22,7 @@
 //   out = sum / QA + b2[ob]                   units QA * QB, C++ truncating division
 //   cp  = out * eval_scale / (QA * QB)        truncating division, then clamp +-30000
 // Bounds that make the AVX2 kernel exact (int32 partial sums per lane, int64
-// reduction) and the accumulators overflow-free: |w2| <= 127, hidden <= 1024,
+// reduction) and the final accumulator fit in int16: |w2| <= 127, hidden <= 1024,
 // max|b1| + 32 * max|w1| <= 32767. The loader rejects nets outside them.
 // When the compiler enables AVX-512 VNNI, the output sum fuses the lane
 // multiply-add with vpdpwssd. Clamped activation is 0..255 and |w2| <= 127,
@@ -35,9 +35,13 @@
 // holds for every (perspective, bucket, flip) the accumulator and the piece
 // bitboards it was last refreshed with, so only the difference is applied.
 // When that difference touches more columns than the new placement has pieces,
-// the entry is rebuilt from the bias instead. Both routes are int16-exact:
-// the loader's bound max|b1| + 32 * max|w1| <= 32767 keeps every partial sum
-// inside int16, so addition order does not change the stored value.
+// the entry is rebuilt from the bias instead. The loader bound keeps the final
+// sum of the bias and at most 32 columns inside int16. A refresh can still
+// pass through a wider sum: one piece type is updated at a time, so an earlier
+// type can gain a column before a later type loses one. int16 add and sub wrap
+// modulo 65536, in the scalar cast and in add_epi16 / sub_epi16, and that wrap
+// stores the same value as an int64 sum of the same columns. Saturating
+// arithmetic would not.
 // For an intermediate ply the piece bitboards are reconstructed from the
 // current board by undoing the later plies' recorded changes.
 //

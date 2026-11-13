@@ -54,6 +54,16 @@ SonarCloud quality gate on pull request 9 passed for the commits before this one
 - Search strength: `cursor/forge-search-strength-20261113-9558` @ `d970a779acf072910a9a75e8c09b2e2138acda67`. `search_strength/CHECKPOINT.md`. A default-off enhanced-transposition counter. It does not edit `nnue_v3`.
 - History index, same revision as above: `cursor/forge-history-index-20261113-712a` @ `b39453901cd47c654f94bb7ec0283fc7c7f0ceb0`.
 
+## Done: refresh wrap, residual PSQT sample, b2 clip
+
+The v3 cache can pass through 33 columns on a legal 32-piece pair (a knight on a2, then the start position) when every column is 1000 and the bias is 700. The intermediate sum is 33700. Wrapping int16 stores 32700, which is the int64 sum. The header no longer says every partial sum stays inside int16. The test requires the lanes to equal `700 + 1000 * pieces`. Piece order was not changed. Numbers: `REFRESH_WRAP.md`.
+
+The same binaries compare the incremental runtime PSQT and the pawn-cache eval with `evaluate_uncached` for 8000 positions (40 castlings, 7 en passant, 71 promotions, 261 null moves, 0 mismatches). No eval code was changed.
+
+`Model.clip` now clamps `b2` to `±131586 / (QA*QB)`, the last multiple whose rounded `QA*QB` value fits in int32. Torch is not installed here, so `clip()` was not executed. The constant check in `test_scorer_parity.py` passed, along with the existing 520-row scorer check.
+
+v4 tests: 101066 checks, 0 failures. VNNI tests: 101115 checks, 0 failures. Walk totals are unchanged from `h512/results/step3/nnue_v3_tests_combo29.log`.
+
 ## Next, if this session continues
 
 1. Do not repeat the fused both-perspective kernel unless the measurement is longer than the spread in `APPLY_BOTH.md`.

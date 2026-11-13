@@ -43,6 +43,9 @@ from ckpt_io import load_checkpoint  # noqa: E402  (JOB E, 2026-11-12: restricte
 K = 2.25
 QA = v3.QA
 QB = v3.QB
+# round(b2 * QA * QB) has to fit in int32. 131586 * 16320 = 2147483520, and
+# 131587 * 16320 does not. Clip the parameter, not the exported integer.
+B2_ABS_MAX = 131586.0 / (QA * QB)
 PHASES = 8
 
 
@@ -254,6 +257,7 @@ def build_model(cfg, torch):
                     self.wf.clamp_(-0.99, 0.99)
                 self.b1.clamp_(-1.98, 1.98)
                 self.w2.clamp_(-127.0 / QB, 127.0 / QB)
+                self.b2.clamp_(-B2_ABS_MAX, B2_ABS_MAX)
 
     return Model()
 
