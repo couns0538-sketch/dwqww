@@ -19,6 +19,22 @@
 #define FORGE_SDK_BADCAP_PREFIX 0
 #endif
 
+// Counting probe for enhanced transposition cutoffs. Default 0: the search is unchanged.
+// 1: peek child table entries and count. No cutoff is taken.
+#ifndef FORGE_ETC_STATS
+#define FORGE_ETC_STATS 0
+#endif
+// 1: on the key_after path, also make the move and count disagreements. Default 0.
+#ifndef FORGE_ETC_AUDIT
+#define FORGE_ETC_AUDIT 0
+#endif
+
+// The search already writes continuation history at ply 4 (half bonus) and never reads it.
+// Default 0 keeps quiet ordering on plies 1 and 2 only.
+#ifndef FORGE_CONT4_READ
+#define FORGE_CONT4_READ 0
+#endif
+
 namespace forge {
 
 namespace tune {
@@ -180,12 +196,18 @@ void apply_history(std::int16_t& entry, int bonus) {
 // Quiet history of one move: main history row of the side to move plus the continuation history of the two
 // previous plies, summed in this order (= Worker::quiet_history).
 [[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
-                                           const PieceToHistory* cont1, const PieceToHistory* cont2, Piece piece,
-                                           Move move) {
+                                           const PieceToHistory* cont1, const PieceToHistory* cont2,
+#if FORGE_CONT4_READ
+                                           const PieceToHistory* cont4,
+#endif
+                                           Piece piece, Move move) {
     const std::size_t p = static_cast<std::size_t>(piece);
     int score = main[move.from][move.to];
     if (cont1 != nullptr) score += (*cont1)[p][move.to];
     if (cont2 != nullptr) score += (*cont2)[p][move.to];
+#if FORGE_CONT4_READ
+    if (cont4 != nullptr) score += (*cont4)[p][move.to];
+#endif
     return score;
 }
 #endif
@@ -616,17 +638,27 @@ private:
         const std::array<std::array<std::int16_t, 64>, 64>& main;
         const PieceToHistory* cont1;
         const PieceToHistory* cont2;
+#if FORGE_CONT4_READ
+        const PieceToHistory* cont4;
+#endif
         const Board& board;
 
         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+#if FORGE_CONT4_READ
+              cont4(ss != nullptr ? (ss - 4)->continuation : nullptr),
+#endif
               board(b) {}
 
         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
             const Piece piece = board.piece_at(move.from);
+#if FORGE_CONT4_READ
+            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
+#else
             int value = quiet_history_sum(main, cont1, cont2, piece, move);
+#endif
             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
             return value;
         }
@@ -1171,13 +1203,20 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
 #if FORGE_SEARCH_SPEED2
     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
                              ss != nullptr ? (ss - 1)->continuation : nullptr,
-                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move);
+                             ss != nullptr ? (ss - 2)->continuation : nullptr,
+#if FORGE_CONT4_READ
+                             ss != nullptr ? (ss - 4)->continuation : nullptr,
+#endif
+                             board.moved_piece(move), move);
 #else
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+#if FORGE_CONT4_READ
+        if ((ss - 4)->continuation != nullptr) score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to];
+#endif
     }
     return score;
 #endif
@@ -1246,6 +1285,9 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
     if (aborted_) return 0;
     ++local_nodes_;
+#if FORGE_ETC_STATS
+    if (etc_cover_ > 0) ++etc_.below;
+#endif
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
 
@@ -1366,30 +1408,155 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
 // ---------------------------------------------------------------------------
 // Main alpha-beta search
 
+#if FORGE_ETC_STATS
+// Same rule as Board::is_repetition(root_index), applied to a child key that has not been pushed.
+[[nodiscard]] bool etc_child_repeats(const Board& board, std::uint64_t child_key, int child_clock, int child_null_plies,
+                                     std::size_t root_index) {
+    const std::vector<std::uint64_t>& history = board.key_history();
+    const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(history.size()) + 1;
+    const std::ptrdiff_t span = std::min<std::ptrdiff_t>(std::min(child_clock, child_null_plies), size - 1);
+    if (span < 4) return false;
+    const std::ptrdiff_t limit = size - 1 - span;
+    int count = 0;
+    for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
+        if (history[static_cast<std::size_t>(i)] == child_key) {
+            if (i >= static_cast<std::ptrdiff_t>(root_index)) return true;
+            if (++count >= 2) return true;
+        }
+    }
+    return false;
+}
+
+bool Worker::etc_count_eligible(Board& board, const SearchStack* ss, int depth, int beta, Move tt_move) {
+    ++etc_.eligible;
+    bool strict_hit = false;
+    bool loose_hit = false;
+    bool first_strict_is_hash = false;
+    bool saw_strict = false;
+    bool saw_mate = false;
+    MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+    Move move;
+    while (!(move = picker.next(false)).is_none()) {
+        if (!board.is_legal(move)) continue;
+        ++etc_.child_visits;
+        const bool safe_check = board.gives_check(move) && board.see_ge(move, 0);
+        const Piece moving = board.piece_at(move.from);
+        const bool resets_clock = piece_type(moving) == Pawn || move.is_capture();
+        const int child_clock = resets_clock ? 0 : std::min(board.halfmove_clock() + 1, 65535);
+        const int child_null_plies = std::min(board.plies_from_null() + 1, 1024);
+        std::uint64_t child_key = 0;
+        bool have_key = false;
+#if FORGE_SPD_PREFETCH_EARLY
+        have_key = board.key_after(move, child_key);
+        if (!have_key) ++etc_.key_after_incomplete;
+#endif
+        if (!have_key) {
+            Undo undo;
+            (void)board.make_move(move, undo);
+            child_key = board.key();
+            const int made_clock = board.halfmove_clock();
+            const bool repeat = board.is_repetition(root_history_index_);
+            board.unmake_move(move, undo);
+            if (made_clock != child_clock) ++etc_.clock_mismatch;
+            if (repeat || made_clock >= 90) continue;
+        } else if (etc_child_repeats(board, child_key, child_clock, child_null_plies, root_history_index_) ||
+                   child_clock >= 90) {
+#if FORGE_ETC_AUDIT
+            Undo undo;
+            (void)board.make_move(move, undo);
+            if (board.key() != child_key) ++etc_.key_mismatch;
+            if (board.halfmove_clock() != child_clock) ++etc_.clock_mismatch;
+            const bool repeat = board.is_repetition(root_history_index_);
+            board.unmake_move(move, undo);
+            if (!repeat) ++etc_.repeat_mismatch;
+#endif
+            continue;
+        }
+#if FORGE_ETC_AUDIT
+        else {
+            Undo undo;
+            (void)board.make_move(move, undo);
+            if (board.key() != child_key) ++etc_.key_mismatch;
+            if (board.halfmove_clock() != child_clock) ++etc_.clock_mismatch;
+            const bool repeat = board.is_repetition(root_history_index_);
+            board.unmake_move(move, undo);
+            if (repeat) ++etc_.repeat_mismatch;
+        }
+#endif
+        ++etc_.lookups;
+        const TTProbe child = probe_tt(child_key);
+        if (!child.hit || !child.entry.score_usable(static_cast<std::uint16_t>(child_clock))) continue;
+        const int child_score = score_from_tt(child.entry.score, ss->ply + 1);
+        const Bound bound = child.entry.bound();
+        if (child_score == ValueNone) continue;
+        if (bound != BoundUpper && bound != BoundExact) continue;
+        if (child_score > -beta) continue;
+        const int stored = static_cast<int>(child.entry.depth);
+        const int need_loose = depth - 1 + (safe_check ? 1 : 0);
+        const int need_strict = move == tt_move ? depth + 1 : need_loose;
+        if (stored >= need_loose) loose_hit = true;
+        if (stored >= need_strict) {
+            if (!saw_strict) {
+                saw_strict = true;
+                first_strict_is_hash = move == tt_move;
+            }
+            strict_hit = true;
+            if (is_mate_score(child_score)) saw_mate = true;
+        }
+    }
+    if (loose_hit) ++etc_.hits_loose;
+    if (!strict_hit) return false;
+    ++etc_.hits;
+    if (saw_mate) ++etc_.hits_mate;
+    if (first_strict_is_hash) ++etc_.hits_hash_move;
+    if (etc_cover_ != 0) return false;
+    ++etc_.top_hits;
+    return true;
+}
+#endif
+
 int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+#if FORGE_ETC_STATS
+    bool etc_top = false;
+    const int etc_beta = beta;
+    auto etc_note = [&](int value) -> int {
+        if (etc_top) {
+            if (value >= etc_beta) ++etc_.top_hits_fail_high;
+            --etc_cover_;
+            etc_top = false;
+        }
+        return value;
+    };
+#define FORGE_ETC_RETURN(...) return etc_note(__VA_ARGS__)
+#else
+#define FORGE_ETC_RETURN(...) return (__VA_ARGS__)
+#endif
     const bool pv_node = beta - alpha > 1;
     const bool root_node = ss->ply == 0;
     const int ply = ss->ply;
 
-    if (depth <= 0) return qsearch(board, ss, alpha, beta);
+    if (depth <= 0) FORGE_ETC_RETURN(qsearch(board, ss, alpha, beta));
     // The frame is reused across siblings and same-ply verification searches.
     // Keep this call's inherited path budget independent of those mutations.
     const int inherited_double_extensions = (ss - 1)->double_extensions;
     ss->double_extensions = inherited_double_extensions;
     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
-    if (aborted_) return 0;
+    if (aborted_) FORGE_ETC_RETURN(0);
     ++local_nodes_;
+#if FORGE_ETC_STATS
+    if (etc_cover_ > 0) ++etc_.below;
+#endif
     seldepth_ = std::max(seldepth_, ply);
     ss->pv_length = 0;
     ss->move_count = 0;
 
     if (!root_node) {
-        if (is_draw(board, ply)) return 0;
-        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+        if (is_draw(board, ply)) FORGE_ETC_RETURN(0);
+        if (ply >= MaxPly) FORGE_ETC_RETURN(board.in_check() ? 0 : static_evaluate(board, ss));
         // Mate distance pruning.
         alpha = std::max(alpha, mated_in(ply));
         beta = std::min(beta, mate_in(ply + 1));
-        if (alpha >= beta) return alpha;
+        if (alpha >= beta) FORGE_ETC_RETURN(alpha);
     }
 
     const bool in_check = board.in_check();
@@ -1420,8 +1587,19 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         board.halfmove_clock() < 90 &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
-        return tt_score;
+        FORGE_ETC_RETURN(tt_score);
     }
+
+#if FORGE_ETC_STATS
+    // After the node's own table cutoff, before razoring. Counting only.
+    if (!pv_node && cut_node && excluded.is_none() && depth >= 8 && !is_mate_score(beta) &&
+        board.halfmove_clock() < 90) {
+        if (etc_count_eligible(board, ss, depth, beta, tt_move)) {
+            etc_top = true;
+            ++etc_cover_;
+        }
+    }
+#endif
 
     // Static evaluation.
     int eval;
@@ -1451,13 +1629,13 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         // Razoring: hopeless positions fall back to quiescence.
         if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
             const int razor = qsearch(board, ss, alpha - 1, alpha);
-            if (aborted_) return 0;
-            if (razor < alpha) return razor;
+            if (aborted_) FORGE_ETC_RETURN(0);
+            if (razor < alpha) FORGE_ETC_RETURN(razor);
         }
         // Reverse futility pruning.
         if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
             eval < MateInMaxPly) {
-            return eval;
+            FORGE_ETC_RETURN(eval);
         }
         // Null move pruning.
         if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
@@ -1479,22 +1657,22 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 #endif
             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
             board.unmake_null_move(undo);
-            if (aborted_) return 0;
+            if (aborted_) FORGE_ETC_RETURN(0);
             if (null_score >= beta) {
                 if (is_mate_score(null_score)) null_score = beta;
                 if (depth < 14) {
                     ++null_cutoffs_;
-                    return null_score;
+                    FORGE_ETC_RETURN(null_score);
                 }
                 // Verification search at high depth guards against zugzwang.
                 ss->null_move_allowed = false;
                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
                 ss->double_extensions = inherited_double_extensions;
                 ss->null_move_allowed = true;
-                if (aborted_) return 0;
+                if (aborted_) FORGE_ETC_RETURN(0);
                 if (verification >= beta) {
                     ++null_cutoffs_;
-                    return null_score;
+                    FORGE_ETC_RETURN(null_score);
                 }
             }
         }
@@ -1522,14 +1700,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
                 }
                 board.unmake_move(move, undo);
-                if (aborted_) return 0;
+                if (aborted_) FORGE_ETC_RETURN(0);
                 if (value >= probcut_beta) {
 #if FORGE_SPD_TT_NOTLS
                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
 #else
                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
 #endif
-                    return value;
+                    FORGE_ETC_RETURN(value);
                 }
             }
         }
@@ -1610,14 +1788,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             ss->tt_pv = saved_tt_pv;
             ss->double_extensions = inherited_double_extensions;
             ss->excluded_move = Move::none();
-            if (aborted_) return 0;
+            if (aborted_) FORGE_ETC_RETURN(0);
             if (singular_score < singular_beta) {
                 extension = 1;
                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
                     extension = 2;
                 }
             } else if (singular_beta >= beta) {
-                return singular_beta;
+                FORGE_ETC_RETURN(singular_beta);
             } else if (tt_score >= beta) {
                 extension = -2;
             } else if (cut_node) {
@@ -1687,7 +1865,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
         }
         board.unmake_move(move, undo);
-        if (aborted_) return 0;
+        if (aborted_) FORGE_ETC_RETURN(0);
         if (root_node && root_effort_index < root_effort_count_)
             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
 
@@ -1712,9 +1890,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     }
 
     if (move_count == 0) {
-        if (!excluded.is_none()) return alpha;
-        if (root_node && root_restricted_) return 0;
-        return in_check ? mated_in(ply) : 0;
+        if (!excluded.is_none()) FORGE_ETC_RETURN(alpha);
+        if (root_node && root_restricted_) FORGE_ETC_RETURN(0);
+        FORGE_ETC_RETURN(in_check ? mated_in(ply) : 0);
     }
 
     if (best_score >= beta) {
@@ -1749,8 +1927,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         !(bound == BoundUpper && best_score >= ss->static_eval)) {
         update_correction(board, depth, best_score, ss->static_eval);
     }
-    return best_score;
+    FORGE_ETC_RETURN(best_score);
 }
+#undef FORGE_ETC_RETURN
 
 // ---------------------------------------------------------------------------
 // Iterative deepening driver

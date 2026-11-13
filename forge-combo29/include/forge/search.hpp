@@ -285,6 +285,28 @@ constexpr int CorrectionGrain = 256;
 constexpr int CorrectionLimit = 32 * CorrectionGrain;
 using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
 
+#if FORGE_ETC_STATS
+// Counting only. The search does not take a cutoff from these probes.
+// Thresholds and field meanings: fable52-search-gap-20261109 FALSIFICATION.md section 3,
+// commit 56a76b153bb88026f2d83d65df6e422b0f3298f9.
+struct EtcStats {
+    std::uint64_t eligible = 0;
+    std::uint64_t lookups = 0;
+    std::uint64_t hits = 0;
+    std::uint64_t hits_loose = 0;
+    std::uint64_t hits_hash_move = 0;
+    std::uint64_t hits_mate = 0;
+    std::uint64_t top_hits = 0;
+    std::uint64_t below = 0;
+    std::uint64_t top_hits_fail_high = 0;
+    std::uint64_t child_visits = 0;
+    std::uint64_t key_after_incomplete = 0;
+    std::uint64_t clock_mismatch = 0;
+    std::uint64_t key_mismatch = 0;
+    std::uint64_t repeat_mismatch = 0;
+};
+#endif
+
 struct SearchStack {
     std::array<Move, MaxPly + 1> pv{};
     int pv_length = 0;
@@ -330,6 +352,9 @@ public:
     // root until the shared stop flag is raised.
     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
     void clear();
+#if FORGE_ETC_STATS
+    [[nodiscard]] const EtcStats& etc_stats() const { return etc_; }
+#endif
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
@@ -393,6 +418,11 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+#if FORGE_ETC_STATS
+    EtcStats etc_{};
+    int etc_cover_ = 0;
+    [[nodiscard]] bool etc_count_eligible(Board& board, const SearchStack* ss, int depth, int beta, Move tt_move);
+#endif
 
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
@@ -465,6 +495,11 @@ public:
     void resize_hash(std::size_t hash_mb);
     void set_threads(int threads);
     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+#if FORGE_ETC_STATS
+    [[nodiscard]] EtcStats etc_stats() const {
+        return workers_.empty() ? EtcStats{} : workers_.front()->etc_stats();
+    }
+#endif
     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
     [[nodiscard]] Worker& main_worker() { return *workers_.front(); }

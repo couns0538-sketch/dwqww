@@ -627,6 +627,26 @@ int main() {
             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
                       << std::endl;
+#if FORGE_ETC_STATS
+            const forge::EtcStats st = bench_searcher.etc_stats();
+            std::cout << "info string etc_stats depth " << depth
+                      << " eligible " << st.eligible
+                      << " lookups " << st.lookups
+                      << " hits " << st.hits
+                      << " hits_loose " << st.hits_loose
+                      << " hits_hash_move " << st.hits_hash_move
+                      << " hits_mate " << st.hits_mate
+                      << " top_hits " << st.top_hits
+                      << " below " << st.below
+                      << " top_hits_fail_high " << st.top_hits_fail_high
+                      << " child_visits " << st.child_visits
+                      << " key_after_incomplete " << st.key_after_incomplete
+                      << " clock_mismatch " << st.clock_mismatch
+                      << " key_mismatch " << st.key_mismatch
+                      << " repeat_mismatch " << st.repeat_mismatch
+                      << " nodes " << total_nodes
+                      << std::endl;
+#endif
         } else if (command == "ponderhit") {
             if (ponder_search_active) {
                 searcher.ponderhit();
