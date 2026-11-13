@@ -790,14 +790,18 @@ Worker::Worker(SharedSearchState& shared, int id)
 
 Worker::~Worker() = default;
 
-void Worker::clear() {
-    evaluator_.clear();
+void Worker::clear_heuristics() {
     *main_history_ = ButterflyHistory{};
     *capture_history_ = CaptureHistory{};
     *continuation_history_ = ContinuationHistory{};
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+}
+
+void Worker::clear() {
+    evaluator_.clear();
+    clear_heuristics();
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -1773,6 +1777,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
+    // These tables used to survive from the previous root. One thread then
+    // misses the KRK mate in 3 at a depth that finds it from empty tables
+    // (d5c5, mate 3 at depth 10; after another search, e8e4 and a centipawn
+    // score). Clearing the hash alone does not restore the mate. Bench
+    // positions are cleared before each search, so an empty start keeps
+    // those node counts. The transposition table is left in place.
+    clear_heuristics();
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;

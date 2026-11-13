@@ -206,6 +206,43 @@ void check_search_rules() {
         }
     }
 
+    // One thread, no clear() between roots. History left by the first search
+    // used to make the second miss mate in 3 and play the rook sideways.
+    {
+        Board krk = board_from("4R3/8/8/k2K4/8/8/8/8 w - - 0 1");
+        const auto key = krk.parse_uci("d5c5");
+        check(key.has_value(), "warm KRK key move parses");
+        if (key.has_value()) {
+            Searcher searcher(16, 1);
+            const char* poisons[] = {
+                "8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1",
+                "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+                "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+            };
+            for (const char* fen : poisons) {
+                SearchLimits poison_limits;
+                poison_limits.depth = 9;
+                (void)searcher.search(board_from(fen), poison_limits);
+                SearchLimits limits;
+                limits.depth = 10;
+                const SearchInfo info = searcher.search(krk, limits);
+                const int mate_moves = (MateValue - info.score + 1) / 2;
+                const bool short_mate = is_mate_score(info.score) && info.score > 0 && mate_moves <= 3;
+                check(short_mate && info.best_move == *key,
+                      std::string("warm one-thread KRK mate in 3 after ") + fen);
+            }
+            SearchLimits shallow;
+            shallow.depth = 3;
+            (void)searcher.search(krk, shallow);
+            SearchLimits limits;
+            limits.depth = 10;
+            const SearchInfo info = searcher.search(krk, limits);
+            const int mate_moves = (MateValue - info.score + 1) / 2;
+            const bool short_mate = is_mate_score(info.score) && info.score > 0 && mate_moves <= 3;
+            check(short_mate && info.best_move == *key, "warm one-thread KRK mate in 3 after a shallow search of itself");
+        }
+    }
+
     const SearchInfo mate_threads = search_fen("6k1/4Q3/6K1/8/8/8/8/8 w - - 0 1", 3, 2);
     check(is_mate_score(mate_threads.score) && mate_threads.score > 0, "two threads still report mate in one");
     Board threaded = board_from("6k1/4Q3/6K1/8/8/8/8/8 w - - 0 1");

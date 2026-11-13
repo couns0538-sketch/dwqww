@@ -331,6 +331,8 @@ public:
     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
     void clear();
     void clear_caches() { evaluator_.clear(); }
+    // Move-ordering and correction tables. Not the transposition table.
+    void clear_heuristics();
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
 #if FORGE_FAIR_DIAG

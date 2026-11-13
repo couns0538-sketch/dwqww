@@ -68,11 +68,22 @@ The combo29 search drops that quiet mate the same way: late-move pruning and LMR
 
 After the gate: Threads 2 missed 0/400, Threads 4 missed 0/200, and `forge_rules_tests` runs 200 two-thread searches with 0 misses. Log: `krk_threads.txt`.
 
-One thread after another search can still miss. Reproduced, not fixed. A build with the gate enabled for one worker changed depth-13 benches to 862954 net on and 907307 net off (pins 862329 and 907205). That net-on count matches the BK row in the R5D report. Not applied.
+The bare-king gate stays off for one worker. Enabling it there changed depth-13 benches to 862954 net on and 907307 net off (pins 862329 and 907205). That net-on count matches the BK row in the R5D report. Not applied.
 
-- after `8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1` at depth 9: `e8e4`, cp 442
-- after `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` at depth 9: `e8e4`, mate 10
-- after `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3` at depth 9: `e8e4`, cp 462
+## Fixed and tested: one-thread history from the previous root
+
+One thread, cold, finds the mate. `go depth 10` on `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` after `ucinewgame` prints `mate 3` and `d5c5`. The same depth after another search did not. Clearing the hash and leaving the history tables still played `e8e4`.
+
+Reproduced before the fix, UseNNUE true, Threads 1, no `ucinewgame` between the two searches:
+
+- after `8/8/8/8/3k4/8/3K4/3Q4 w - - 0 1` at depth 9, KRK depth 14: `e8e4`, cp 442
+- after `4k3/8/8/8/8/8/4P3/4K3 w - - 0 1` at depth 9, KRK depth 14: `e8e4`, mate 10
+- after `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3` at depth 9, KRK depth 14: `e8e4`, cp 462
+- after the KRK position itself at depth 3, KRK depth 10: `e8e4`, cp 475
+
+`Worker::search` now clears the per-worker history and correction tables at the start of every root. The transposition table is kept. Bench positions already call `clear()` before each search, so a cold start is unchanged.
+
+After the fix those four searches all print `mate 3` and `pv d5c5 a5a4 e8e3 a4a5 e3a3`. `forge_rules_tests` covers the three poison positions at depth 9 followed by KRK depth 10, and the shallow self-search, with 0 failures. `scripts/check_pins.sh` printed `PINS MATCH combo29` (net on 312866 862329 3024920 12389307 34048354, net off 375354 907205 2448617 13573040 24506465, perft 5 4865609). No Elo claim.
 
 ## Not changed
 
