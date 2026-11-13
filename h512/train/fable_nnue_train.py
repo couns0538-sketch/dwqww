@@ -263,7 +263,9 @@ def export_net(model, cfg, path, torch):
         w1 = torch.round(model.merged_w1() * QA).clamp(-32767, 32767).to(torch.int16).numpy()
         b1 = torch.round(model.b1 * QA).clamp(-32767, 32767).to(torch.int16).numpy()
         w2 = torch.round(model.w2 * QB).clamp(-127, 127).to(torch.int16).numpy()
-        b2 = torch.round(model.b2 * QA * QB).to(torch.int32).numpy()
+        # Leave b2 as the rounded float. write_net rejects a value that does not fit in
+        # int32. Casting to int32 here would wrap it first, and the file would still load.
+        b2 = torch.round(model.b2 * QA * QB).detach().cpu().numpy()
     net = v3.Net()
     net.hidden = cfg["hidden"]
     net.king_buckets = cfg["king_buckets"]
@@ -346,6 +348,34 @@ def blend_at(step, args):
 
 # ---------------- exact scoring and parity (shared by `score`, `parity` and the checkpoints) ----------------
 
+def centipawns(net, codes, meta):
+    """Engine centipawns for a batch of piece-code rows. Same arithmetic as score_net_numpy."""
+    H = net.hidden
+    w1 = np.concatenate([net.w1.reshape(-1, H), np.zeros((1, H), np.int64)], axis=0).astype(np.int16)
+    b1 = net.b1.astype(np.int32)
+    cfg = {"king_buckets": net.king_buckets, "mirror": net.mirror, "king_map": net.king_map, "output_map": net.output_map}
+    us, them, ob = batch_features(codes, meta, cfg)
+    return _centipawns_from_features(net, us, them, ob, w1, b1)
+
+
+def _centipawns_from_features(net, us, them, ob, w1, b1):
+    H = net.hidden
+    # int32 accumulators, one gather per square (small memory footprint); exact like the engine
+    # while the loader bound holds. int16 addition in the engine matches this int32 sum then.
+    acc_us = np.broadcast_to(b1, (us.shape[0], H)).astype(np.int32)
+    acc_them = acc_us.copy()
+    for k in range(64):
+        acc_us += w1[us[:, k]]
+        acc_them += w1[them[:, k]]
+    a = np.clip(acc_us, 0, QA).astype(np.int64)
+    b = np.clip(acc_them, 0, QA).astype(np.int64)
+    w2 = net.w2[ob]
+    total = (a * a * w2[:, :H]).sum(axis=1) + (b * b * w2[:, H:]).sum(axis=1)
+    out = np.trunc(total / QA).astype(np.int64) + net.b2[ob]
+    cp = np.trunc(out * net.eval_scale / (QA * QB)).astype(np.int64)
+    return np.clip(cp, -30000, 30000)
+
+
 def score_net_numpy(net, data, cfg_residual, chunk=4096, phases=False):
     """Holdout MSE (blends 1.0 / 0.6 / 0.8) of a v3 file with exact integer emulation vectorised per chunk;
     with phases=True also the b0.6 MSE and row count per phase bin (piece-count buckets)."""
@@ -362,19 +392,7 @@ def score_net_numpy(net, data, cfg_residual, chunk=4096, phases=False):
         codes = data["codes"][rows]
         meta = data["meta"][rows]
         us, them, ob = batch_features(codes, meta, cfg)
-        # int32 accumulators, one gather per square (small memory footprint); exact like the engine
-        acc_us = np.broadcast_to(b1, (len(rows), H)).astype(np.int32)
-        acc_them = acc_us.copy()
-        for k in range(64):
-            acc_us += w1[us[:, k]]
-            acc_them += w1[them[:, k]]
-        a = np.clip(acc_us, 0, QA).astype(np.int64)
-        b = np.clip(acc_them, 0, QA).astype(np.int64)
-        w2 = net.w2[ob]
-        total = (a * a * w2[:, :H]).sum(axis=1) + (b * b * w2[:, H:]).sum(axis=1)
-        out = np.trunc(total / QA).astype(np.int64) + net.b2[ob]
-        cp = np.trunc(out * net.eval_scale / (QA * QB)).astype(np.int64)
-        cp = np.clip(cp, -30000, 30000)
+        cp = _centipawns_from_features(net, us, them, ob, w1, b1)
         logit = cp * (K / 400.0)
         if cfg_residual:
             logit = logit + data["hce"][rows] * (K / 400.0)

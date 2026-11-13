@@ -111,6 +111,24 @@ class Net:
         return (self.flags & FLAG_RESIDUAL) != 0
 
 
+def as_i32(values, what):
+    """Little-endian int32 bytes. Rejects a value that does not fit, instead of wrapping."""
+    arr = np.asarray(values)
+    if np.issubdtype(arr.dtype, np.floating):
+        wide_f = arr.astype(np.float64)
+        if not np.all(np.isfinite(wide_f)):
+            raise ValueError(f"{what} is not finite")
+        rounded = np.rint(wide_f)
+        if np.max(np.abs(rounded - wide_f)) > 0:
+            raise ValueError(f"{what} is not an integer")
+        wide = rounded.astype(np.int64)
+    else:
+        wide = np.ascontiguousarray(arr).astype(np.int64)
+    if np.any(wide < -2147483648) or np.any(wide > 2147483647):
+        raise ValueError(f"{what} does not fit in int32")
+    return np.ascontiguousarray(wide, dtype="<i4")
+
+
 def write_net(path: str, net: Net):
     header = bytearray(HEADER_BYTES)
     struct.pack_into("<8sIIIIIIIiii", header, 0, MAGIC, VERSION, HEADER_BYTES, INPUTS, net.hidden,
@@ -120,7 +138,7 @@ def write_net(path: str, net: Net):
     body = bytes(header) + np.ascontiguousarray(net.w1, dtype="<i2").tobytes() + \
         np.ascontiguousarray(net.b1, dtype="<i2").tobytes() + \
         np.ascontiguousarray(net.w2, dtype="<i2").tobytes() + \
-        np.ascontiguousarray(net.b2, dtype="<i4").tobytes()
+        as_i32(net.b2, "b2").tobytes()
     checksum = fnv1a64_fast(body)
     with open(path, "wb") as f:
         f.write(body)
