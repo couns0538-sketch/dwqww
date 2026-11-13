@@ -259,3 +259,92 @@ H512 `uci.cpp:92` still returns 0 when `std::from_chars` fails, which is the clo
    - `fable52-movegen-proof-20261110` `2ff77f98927c` `fable_movegen_proof/PROOF.md`
    - `fable52-cpu-20261110` `ea3759a9ec3b` `fable_cpu_speed/DONE.md`
 4. The highest-priority unverified finding is the KRK history miss (`4R3/8/8/k2K4/8/8/8/8 w - - 0 1`, `d5c5` mate 3). Replay it on H512, then on `f6760ff6` and `49b80952`, before treating either fix as the one to keep. Second: one UCI case from `efb2ff96` (`setoption name usennue value false`, or `go depth 1 searchmoves h7h5`). Third: the 256-slot `bad_captures_` write still has no check.
+
+## Run 3
+
+Trigger 16:26 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 16:28 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. The new movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-2 table | 429 |
+| Moved | 1. This checkpoint, `13dcd58e` to `b39899a4`, the run-2 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. |
+| Unique tip trees | 341. The new checkpoint tree `2868c708` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts are unchanged: both checkpoint tips contain the lock and `main`, and neither contains H512. 412 branches stay tip-only. The four fable52 tips below were tip-only and are now `run3-read`.
+
+No engine was built this run. Every number below is a number in the named file. None of it is a match, and none of it is Elo.
+
+### Enhanced transposition cutoffs
+
+`fable52-search-gap-20261109` at `56a76b153bb88026f2d83d65df6e422b0f3298f9` (75 files). Read: `fable_search_gap/EVIDENCE.md`, `fable_search_gap/STATUS.md`. Not opened line by line: `NO_QUALIFIED_GAP.md`, `tools/etc_probe/etc_probe.cpp`, the TSV files. This tip contains `main` and does not contain the lock commit or H512. The measurements used a lock executable and a source snapshot on a PC. This branch does not hold combo29 `search.cpp`.
+
+Their verdict is **NO QUALIFIED GAP**. The lock, in the source they read, takes a table cutoff only from its own entry (`search.cpp:1165-1170`) and prefetches a child without reading it (`search.cpp:1379-1383`, quiescence `1066-1070`). The probe is a separate search linked to the lock board and evaluation. It has no singular extension, multi-cut, ProbCut, razoring, continuation history, or net. On 24 positions the lock searched 36.9 million nodes and the replica 25.5 million.
+
+On 91 distinct positions, taking the cutoff gave geometric node ratios 0.919 to 0.950, and every range that treats a base position and its descendants as one cluster includes 1.00. A placebo that only changes a history constant from -32 to -31 gave 0.984 and changed as many best moves. On 336 positions from 48 openings, with the reading rule committed before the run, cut6 is 0.987 with range by opening [0.954, 1.022]. They treat that as "not shown either way" and say an average saving above about 5% is ruled out in that replica at those depths. With six pieces or fewer the estimate is 5 to 6% and the range still includes 1.00.
+
+Fine 70, `8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1`: the lock executable plays Kb1 from depth 22. The plain replica also plays Kb1. Three of eight mechanism settings play the drawing move Kb2 at some depth. Under ten nearby history constants, plain is right in 10 of 10 and the mechanism settings miss in 31 of 80 runs. Those ten constants collapse into two or three groups, and at depth 40 only 3 of 80 still miss. The cause is not established. It is one position in the replica.
+
+Lookup wall time was a few percent and too noisy, on a loaded machine, to say whether the lookups cost more than they save. The optional counting run named in `FALSIFICATION.md` was not done. No Elo.
+
+The probe source exists. That is not a measured gain in the lock search, and the Fine 70 miss is a reason not to port the cutoff until a lock-search test checks the move as well as the node count.
+
+### Bit-exact speed patches
+
+`fable52-speed-lane-20261109` at `08897a88e11c707c0ac4e39c19e44c06e1360bdd` (293 files). Read: `fable_speed_lane/BENCH.md`, `fable_speed_lane/STATUS.md`. The eight patch files under `fable_speed_lane/patches/` exist and were not opened. Evidence JSON was not opened. This tip contains `main` and does not contain the lock commit.
+
+The patches are against a combo29 snapshot that this branch does not contain. New switches: `WITNESS_NOPIN`, `EVADE_LEGAL`, `PAWN_CAPMASK`, `CHECKERS_KL`, `BUNDLE4` (all four), `BUNDLE3` (without `WITNESS_NOPIN`). `KING_PAWN_CACHE` is the shelter cache already committed as `928f1ff7` on `cursor/chess-engine-elo-8295`. They kept the combo29 port as a labelled extra, not a new idea.
+
+Finished identity checks found no difference: switch-0 builds differ from the lock executable in 89 debug-record bytes and 0 other bytes; 12 pins match; a harness over 12,000 FENs matches; the warm transcript matches and bench 13 stays 862329; a Threads 2-4 soak returns legal moves; the perft set matches. Planted faults: 15 of 15 caught in the single trees, 12 of 12 in `BUNDLE4`. The `BUNDLE4` verify engine matched all 12,000 cold rows. The first text of `CHECKERS_KL` treated an illegal king step beside the enemy king as "no check"; the final text keeps `attackers_to()` for king moves. That final text is the one in the pack. This run did not re-check it.
+
+Plain cold runs of 12,000 positions were stopped at 16:56 Vienna. Every finished row equalled the lock. No item finished both nets. `BUNDLE3` mutants stopped after a clean control.
+
+Cycle timing, their label INDICATIVE, one Idle core while gates ran. Positive means the candidate used fewer cycles. Lock against lock, 40 blocks: -0.02%, interval -0.27 to +0.24. `WITNESS_NOPIN`, 60 blocks: -1.02%, interval -1.25 to -0.86. `BUNDLE4`, 100 blocks: -0.70%, interval -0.99 to -0.39. `BUNDLE3` and the three singles stopped at 34 blocks; the intervals include 0 and the point estimates are -0.22 to -0.63. `KING_PAWN_CACHE` has 5 blocks. No item's interval sits entirely above 0. No Elo.
+
+A separate method result, not an engine result: one fixed pair of executable files read -3.65% over 30 tight blocks and about +0.30% two hours later. Byte-identical copies differed by as much as 6% in a single block. Their later rows use a new copy for every arm. This run did not repeat that test.
+
+On one frozen workload of 4,200,115 nodes, exact counters (not time): `WITNESS_NOPIN` removes 37.7% of king-line builds and 21.7% of `is_legal` calls; `EVADE_LEGAL` removes 64.2% of full king-attack tests; `PAWN_CAPMASK` removes 93.3% of pawn-capture loop iterations and emits the same captures; `CHECKERS_KL` removes 42.2% of `attackers_to` calls; `KING_PAWN_CACHE` removes 69.5% of shelter terms. Searches entered and `make_move` counts stay the same. Less counted work did not become a measured speed gain.
+
+### Move-generator proof of those patches
+
+`fable52-movegen-proof-20261110` at `2ff77f98927cf19d55d6cac5cf182a81eb0d71e6` (594 files), one job on top of the speed-lane tip. Read: `fable_movegen_proof/PROOF.md` (verdicts, pins, perft, fuzz counts, limits, replay table) and `STATUS.md`. Ledgers, `VERDICTS.json`, and the harness source were not re-counted. This tip contains `main` and does not contain the lock commit.
+
+Six candidates PASS their two-tier rule, 0 differences: `EVADE_LEGAL`, `PAWN_CAPMASK`, `CHECKERS_KL` mode 1, `WITNESS_NOPIN`, `KING_PAWN_CACHE`, and `BUNDLE3`. Each has 20,000,000 auxiliary comparisons (moves, checkers, static eval, both net modes) and 20,000,000 release-executable `go perft 2` comparisons. All nine executables match 13 pins, including net-on 312866 / 862329 / 3024920 / 12389307 / 34048354 and net-off 375354 / 907205 / 2448617 / 13573040 / 24506465 at depths 11, 13, 16, 20, and 22. Perft divide matches the published totals where they name one. The warm transcript matches. The Threads soak shows no crash and legal moves; it does not show node identity.
+
+`CHECKERS_KL` mode 2 was never built. The five-flag bundle was not tested. Checkers and static eval were not printed by the release executables; those fields were compared on probes built at `-O3` without link-time or profile-guided optimisation. Job 3 did not plant engine mutants. The second review was written by the author after an independent reviewer was stopped. A PASS, in their own words, does not authorise a lock change and says nothing about speed. This run did not replay a chunk.
+
+`WITNESS_NOPIN` can be node-identical on the positions they tested and still slower in the speed-lane cycle screen. Both notes are about different questions.
+
+### CPU lane on the lock commit
+
+`fable52-cpu-20261110` at `ea3759a9ec3b17c58e3daeab8ff31af53e7ae6ab` (222 files) contains the lock commit `16833ecc` and does not contain H512. Read: the verdict tables and bug-hunt table in `fable_cpu_speed/DONE.md`, and `fable_cpu_speed/STATUS.md`. The MD5 catalogue, raw logs, and the four patch files were not opened. Nothing was rebuilt.
+
+Their control rebuild matches 13 pins and the lock executable's code and data bytes. The executable SHA256 differs because of the debug record. A sampler attributed 20.9% of samples to hand-crafted evaluation. That is one profile on their machine.
+
+Speed verdict: **NO WIN** against a bar of +2.0% they set before the runs. Screening medians of 12 pairs, other work running. Lock against lock by the same method: median -0.30%, min -5.19%, max +7.68%. `NNUE_FUSE_EVAL` +0.93% (a repeat +1.46%). `PREFETCH_PICK` +0.72%; their harness comparison does not exercise that patch. `EVAL_PIPELINE` -1.53%. `NNUE_WPREFETCH` at distance 16, -4.42%. The two positive medians sit inside the null range. They stopped them. No Elo. A combined quiet test of the two small flags was not run.
+
+ASan and UBSan: their logs say the bench node counts equal the pins and no report was printed. ThreadSanitizer is BLOCKED; the Windows compiler refused the flag. Determinism: 13,000 of 13,000 row comparisons equal. Table stress: 480 of 480, and an ASan run of 240 searches printed no report. Threads 2 through 9, fixed nodes: 600 of 600 legal best moves and no sanitizer report. That is not node identity. The extra bug hunt found no defect: 520 UCI cases with no crash, and a hardened build matched the lock executable on 4,000 depth-13 rows and 20,000 depth-10 rows. Clocked searches stayed inside the budget except by under half a millisecond at 1 ms budgets. C6 and C7 did not run. The branch-history duplicate check is UNVERIFIED because that job was not allowed to fetch.
+
+### Not claimed
+
+- No Elo, and no new measurement from this run. Node ratios and cycle percentages above are the other jobs' logs.
+- 412 tips are still unread. Probe source, patch texts, ledgers, and raw logs of these four branches were not opened.
+- The KRK history miss, the H512 UCI case, and the 256-slot `bad_captures_` write were not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append one row to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the packs below.
+3. Otherwise read these small unread tips, and do not execute their scripts:
+   - `cursor/match-pgns-66cc` at `f481fc5afc6bf13b730fe5853fbefaeeb6047162`: `EXPERIMENTS.md` and `README.md`.
+   - `cursor/smp-threads-fixes-c7cb` at `c4314e3bde6e8372419227cc22b032319487aa71`: the four documents on that tip.
+   - `cursor/speed-and-search-patches-c7cb` at `2cf370d3e7672c18692bfa044ec376e6e584eff6`: the patch list and any result note.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`. Do not keep either fix until both have been replayed on one machine.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.

@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "run": 2,
-  "snapshot_at": "2026-11-13T15:33:39Z",
-  "trigger_at": "2026-11-13T15:26:47Z",
+  "run": 3,
+  "snapshot_at": "2026-11-13T16:28:40Z",
+  "trigger_at": "2026-11-13T16:26:33Z",
   "remote_heads_ls_remote": 430,
-  "same_tip_as_run1": 421,
-  "moved": 3,
-  "new": 6,
+  "same_tip_as_run2_table": 429,
+  "moved": 1,
+  "new": 0,
   "gone": 0,
   "unique_tips": 341,
   "unique_trees": 341,
@@ -19,8 +19,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "13dcd58ea30e0f4e254506b562c95ee004586200",
-  "note": "branches-current.tsv is the ls-remote snapshot before the commit that adds the run-2 files. That commit moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "b39899a41483c5fe725e66d5463ad1929ab8b420",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at b39899a4. The commit that adds the run-3 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -35,28 +35,25 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "run-1 census adjusted by the nine new tip commits; the 421 unchanged tips were not re-merged",
+    "method": "unchanged from run 2; the only tip substitution is this checkpoint, and both tips contain the lock and main and do not contain H512",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 416,
+    "tip-only": 412,
     "run1-detail": 5,
     "run2-moved": 3,
     "run2-new": 5,
-    "run2-checkpoint": 1
+    "run3-read": 4,
+    "run3-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/forge-correctness-20261113-e6b6",
-    "cursor/forge-search-strength-20261113-9558",
-    "cursor/forge-time-audit-770f",
-    "cursor/draw-rules-history-tt-cb8e",
-    "cursor/forge-audit-f132",
-    "cursor/search-bound-audit-9cd5",
-    "cursor/search-bounds-audit-e6d7",
-    "cursor/tt-audit-bounds-4ffa"
+    "fable52-search-gap-20261109",
+    "fable52-speed-lane-20261109",
+    "fable52-movegen-proof-20261110",
+    "fable52-cpu-20261110"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -140,14 +137,79 @@
       "status": "reproduced on the lock in run 1; still in H512 source; not on the five new H512 branches",
       "h512": "forge-combo29/src/uci.cpp:92",
       "fix_branch": "cursor/forge-time-audit-770f"
+    },
+    {
+      "id": "etc-no-qualified-gap",
+      "status": "their replica only; not ported; not replayed",
+      "branch": "fable52-search-gap-20261109",
+      "tip": "56a76b153bb88026f2d83d65df6e422b0f3298f9",
+      "files": [
+        "fable_search_gap/EVIDENCE.md",
+        "fable_search_gap/STATUS.md"
+      ],
+      "probe": "fable_search_gap/tools/etc_probe/etc_probe.cpp",
+      "verdict": "NO QUALIFIED GAP. Supplementary cut6 node ratio 0.987, opening range [0.954, 1.022]. Fine 70 replica can play the drawing move. No Elo."
+    },
+    {
+      "id": "speed-lane-no-gain",
+      "status": "their cycle screens under load; cold runs incomplete; job 3 later passed identity for six of the items",
+      "branch": "fable52-speed-lane-20261109",
+      "tip": "08897a88e11c707c0ac4e39c19e44c06e1360bdd",
+      "files": [
+        "fable_speed_lane/BENCH.md",
+        "fable_speed_lane/STATUS.md"
+      ],
+      "slower_intervals_exclude_zero": [
+        "WITNESS_NOPIN -1.02% over 60 blocks",
+        "BUNDLE4 -0.70% over 100 blocks"
+      ],
+      "not_a_gain": "No item's interval was entirely above 0. KING_PAWN_CACHE is the October shelter cache at 928f1ff7, not a new idea."
+    },
+    {
+      "id": "movegen-two-tier-pass",
+      "status": "their logs; not re-counted here; not a lock change and not a speed result",
+      "branch": "fable52-movegen-proof-20261110",
+      "tip": "2ff77f98927cf19d55d6cac5cf182a81eb0d71e6",
+      "files": [
+        "fable_movegen_proof/PROOF.md",
+        "fable_movegen_proof/STATUS.md"
+      ],
+      "pass": [
+        "EVADE_LEGAL",
+        "PAWN_CAPMASK",
+        "CHECKERS_KL mode 1",
+        "WITNESS_NOPIN",
+        "KING_PAWN_CACHE",
+        "BUNDLE3"
+      ],
+      "each": "20,000,000 auxiliary comparisons and 20,000,000 release-exe perft-2 comparisons, 0 differences"
+    },
+    {
+      "id": "cpu-lane-no-win",
+      "status": "their screening logs; noise larger than the two positive medians; not replayed",
+      "branch": "fable52-cpu-20261110",
+      "tip": "ea3759a9ec3b17c58e3daeab8ff31af53e7ae6ab",
+      "files": [
+        "fable_cpu_speed/DONE.md",
+        "fable_cpu_speed/STATUS.md"
+      ],
+      "below_their_2_percent_bar": [
+        "NNUE_FUSE_EVAL +0.93%",
+        "PREFETCH_PICK +0.72%"
+      ],
+      "slower": [
+        "EVAL_PIPELINE -1.53%",
+        "NNUE_WPREFETCH -4.42%"
+      ],
+      "sanitizers": "ASan and UBSan PASS in their logs. TSan BLOCKED. Determinism 13000/13000. Bug hunt found no defect. No Elo."
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv.",
-    "This checkpoint tip will differ from 13dcd58e because of the run-2 commit. Record it, then continue.",
+    "This checkpoint tip will differ from b39899a4 because of the run-3 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read fable_search_gap/EVIDENCE.md on fable52-search-gap-20261109 at 56a76b153bb8, fable_speed_lane/BENCH.md on fable52-speed-lane-20261109 at 08897a88e11c, fable_movegen_proof/PROOF.md on fable52-movegen-proof-20261110 at 2ff77f98927c, and fable_cpu_speed/DONE.md on fable52-cpu-20261110 at ea3759a9ec3b.",
-    "Highest-priority replay: KRK history miss on H512, then f6760ff6 and 49b80952. Second: one UCI case on efb2ff96. Third: a deferred-capture position past 256 slots.",
+    "Otherwise read cursor/match-pgns-66cc at f481fc5a (EXPERIMENTS.md, README.md), cursor/smp-threads-fixes-c7cb at c4314e3b (its four docs), and cursor/speed-and-search-patches-c7cb at 2cf370d3 (patch list and any result note). Do not execute repository scripts.",
+    "KRK replay stays the first reproduction when a run investigates instead of opening the next pack: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5. Do not keep either fix until both have been replayed.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ]
 }
