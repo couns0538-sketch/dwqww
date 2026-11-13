@@ -71,7 +71,7 @@ Verification on this branch, g++ 13.3.0, C++20, `-Wall -Wextra -Wpedantic -Wconv
 
 - Release `ctest` target `forge_tests`: passed in 8.02 seconds.
 - `forge_tests` rebuilt with `-O1 -fsanitize=address,undefined -fno-omit-frame-pointer`: `All tests passed`.
-- `qsearch_audit`: 150,594 positions compared, 0 mismatches, 0 rejected FENs, 1 position skipped because the contract exceeded 200,000 nodes.
+- `qsearch_audit`: 150,594 positions compared, 0 mismatches, 0 rejected FENs. One middlegame exceeded the 200,000-node cap of that program. A second contract with the same rules and its own transposition table scored that position, and it matched the engine.
 
 The audit set is 12 named positions, a structured sample, and a 30-game random walk of 24 plies. The structured sample places both kings, then either a white pawn on the seventh rank or a rim knight plus a black pawn. It keeps positions that are in check, have no legal move, or have a tactical move and no quiet move, plus a thin sample of positions that have both. The walk keeps checks, terminals, forced tactical positions, and every fourth ply. The named results after the fix:
 
@@ -90,7 +90,7 @@ The audit set is 12 named positions, a structured sample, and a 30-game random w
 
 On the losing back-rank position, the capture `c1b1` is answered by a quiescence score of -969. The root correctly stays at stand-pat -249 because quiet moves exist. That score is the same on 5.31.0 and on this branch.
 
-The one skipped FEN is `r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11`. The engine searched it. The independent contract did not finish inside the node cap, so that position is not evidence either way.
+The FEN that exceeded the cap is `r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11`. It is not in check. It has 28 quiet moves and 4 tactical moves, and its static evaluation is -26. The engine quiescence search returns -26 after 563 nodes. The same contract, given a transposition table, searched 1,353,971 nodes and also returned -26. The no-table search passed 200,000 nodes before reaching that score; the agreement says the stand-pat floor is the best result under the contract.
 
 The default `c++` on the verification machine is Clang 18.1.3, and its link failed with `cannot find -lstdc++`. The builds above set the compiler to g++.
 
@@ -108,7 +108,7 @@ Negative static-exchange and hard delta pruning stay removed, as in 5.17.0 throu
 
 The contract and the engine share move generation, check detection, evaluation, and the draw rules. Agreement shows that quiescence follows those rules. It does not prove the shared pieces. The existing perft and legality tests still pass.
 
-The structured sample is seventh-rank pawns and rim knights, not the full set of chess positions. One middlegame from the random walk exceeded the contract node cap and was skipped. Quiet checking moves are outside the contract on purpose.
+The structured sample is seventh-rank pawns and rim knights, not the full set of chess positions. The one middlegame that exceeded the no-table node cap was scored afterward with a transposition table, and it matched. Quiet checking moves are outside the contract on purpose.
 
 The Python match, ponder, and UCI regression scripts, the opening book, and the validation corpora from the 5.31.0 archive are not in this tree. `ctest` registers those Python tests only when `tools/uci_regression.py` is present. The C++ suite is the verification that was run. `FORGE_BUILD_VALIDATION_TOOLS` still names the opening-corpus generator, and CMake adds that target only when `tools/generate_openings.cpp` is present. In this tree the option configures and skips the target.
 
