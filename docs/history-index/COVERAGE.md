@@ -149,14 +149,14 @@ Also full reads: qsearch investigator report blob `15d9b1b2f94f3329da264b8fdf38e
 
 ## Pass over every tip
 
-`branches/EVERY_TIP.tsv` has one row for each of the 429 tips opened on 2026-11-13 after `git ls-remote` showed 430 heads. The missing row is this index branch. Counts in that file: 170 `alias`, 35 `short-read`, 13 `live-report`, 67 `partial-short`, 144 `unread-primary`.
+`branches/EVERY_TIP.tsv` has one row for each of the 429 tips opened on 2026-11-13 after `git ls-remote` showed 430 heads. The missing row is this index branch. Counts in that file: 246 `claimed`, 170 `alias`, 13 `live-report`.
+
+`readings/PRIMARY_CLAIMS.tsv` has one sentence for each of the 387 selected primary documents. Six reading passes wrote those sentences, and each pass's blob list matches the file it was given. Two sentences had transcribed `perft 54865609`. The source notes write `perft54865609`, which is perft 5 = 4865609, and the stored sentences say that.
 
 An alias row is a real read of the tip identity: `git ls-tree` found no markdown blob that appears on three or fewer trees. The branch name is another label for the commit in that row. Where the name and the commit date disagree, `branches/NAME_NEWER_THAN_COMMIT.tsv` already lists the cases.
 
-`short-read` means every selected primary document on that tree was among 98 files read end to end (the files packed as chunks `s00` through `s03`, each under 4 KB). `partial-short` means at least one selected document was in a later chunk that was only opened at the start. `unread-primary` means the selected document is longer and was not read in this pass. `live-report` is `findings/LIVE_AUDITS.md`.
-
-This is not a claim that all 2,691 markdown blobs were read. Snapshot copies, logs, and archives were not opened.
+`claimed` means every selected primary document on that tree has a sentence in the claims file. `live-report` is `findings/LIVE_AUDITS.md`, read in full. A sentence is not a transcript. Snapshot copies, logs, archives, and the other markdown blobs were not opened. Do not copy a number from a claim into a findings file until the source blob is opened.
 
 ## Not claimed
 
-This ledger does not say that every branch was reviewed, that every report was read, or that any Elo or speed number was confirmed by a new match or bench. The running total of full-read prose is the checkpoint 1 files, the checkpoint 2 files, and the four files in this section. That is still a small share of the 2,666 markdown blobs.
+This ledger does not say that every markdown blob was read, or that any Elo or speed number was confirmed by a new match or bench. The running total of full-read prose is the checkpoint 1 files, the checkpoint 2 files, the four files in the section above, the short documents under 4 KB, and `findings/LIVE_AUDITS.md`.
