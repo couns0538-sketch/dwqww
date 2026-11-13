@@ -43,6 +43,15 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
+    // Test hooks. Leave them unset for play and bench: both stay off and the
+    // move stays Move::none(), so the search is unchanged.
+    // Abort after a root PV update whose score is below the last completed
+    // iteration while the aspiration floor is below that score too.
+    bool audit_abort_after_worse_pv = false;
+    // Abort before this aspiration attempt (1 = the first search at the depth).
+    int audit_abort_on_attempt = 0;
+    // From depth 4 on, search this move first when it is set.
+    Move audit_first_move{};
     // Optional steady-clock receipt origin. start_time takes precedence;
     // request_start remains a compatibility spelling for existing callers.
     // With both unset, finite timed searches start at Searcher entry; other
@@ -73,6 +82,31 @@ constexpr int ValueNone = 32002;
 [[nodiscard]] constexpr bool is_mate_score(int score) {
     return score >= MateInMaxPly || score <= -MateInMaxPly;
 }
+
+// Correctness switches. Tests turn individual switches off to reproduce the
+// previous behaviour in one binary. mate_horizon and aspiration are on by
+// default and do not change the combo29 bench pins. qsearch_shallow_bound is
+// off by default because enabling it changes those pins. The switches are
+// process-wide and are not touched during a search.
+struct SearchFixes {
+    // Reject a TT mate/mated bound the 50-move rule can no longer deliver.
+    bool mate_horizon = true;
+    // Open an aspiration window that integer division failed to widen, and do
+    // not replace a completed root move with a partial PV that missed its score.
+    bool aspiration = true;
+    // Ignore a depth-0 qsearch upper/exact bound that sits below stand-pat.
+    // Off by default: enabling it changes the combo29 bench node counts
+    // (measured in the audit report). The other two switches do not.
+    bool qsearch_shallow_bound = false;
+};
+
+[[nodiscard]] SearchFixes& search_fixes();
+
+// One aspiration re-search step. Returns true when the caller must search again.
+// `give_up` is set when the window is already [-Infinite, Infinite] and `score`
+// is still outside it. Normal fail-low / fail-high steps match the previous
+// arithmetic whenever that arithmetic actually moves the window.
+[[nodiscard]] bool widen_aspiration(int& alpha, int& beta, int& delta, int score, bool& give_up);
 
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
@@ -393,6 +427,13 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // Set for the duration of one root search() call. See SearchLimits.
+    bool audit_abort_after_worse_pv_ = false;
+    Move audit_guard_move_{};
+    int audit_guard_score_ = 0;
+    int audit_window_alpha_ = -Infinite;
+    bool audit_have_guard_ = false;
+    Move audit_first_move_{};
 
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
