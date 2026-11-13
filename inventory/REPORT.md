@@ -120,3 +120,142 @@ Prefix of the branch name, 424 heads: `forge/` 147, other `opus-*` 71, `opus-sol
 3. Read, on their own tips, `fable_search_gap/EVIDENCE.md`, `fable_speed_lane/BENCH.md`, `fable_movegen_proof/PROOF.md`, and `fable_cpu_speed/DONE.md` before quoting a speed or sanitizer figure past the STATUS files already summarised elsewhere.
 4. Then the early cursor Elo line, from `cursor/chess-engine-elo-bba2` at `2285d91270f53f37d4c7bfdf491ed490c7d0c1a1` through `cursor/smp-threads-fixes-c7cb` at `c4314e3bde6e8372419227cc22b032319487aa71`.
 5. Keep fixes and experiments on this checkpoint branch, separate from `inventory/`. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+
+## Run 2
+
+Trigger 15:26 UTC on 2026-11-13. `git fetch origin --prune` and `git ls-remote --heads origin` at 15:33 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. Movement is appended in `inventory/HEAD_MOVEMENT.tsv`. Per-branch status is `inventory/review-status.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. The local remote-tracking refs match `ls-remote`. |
+| Same tip as run 1 | 421 |
+| Moved | 3 |
+| New | 6 |
+| Gone | 0 |
+| Unique tips now | 341 (335, minus the 3 replaced tips, plus 9 new tip commits) |
+| Unique tip trees | 341. None of the 9 new trees matches a run-1 tip tree. |
+| Shared-tip groups | still 16 groups, 105 branches. The 9 new tips are not in those groups. |
+| Tags | the same 3 as run 1, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Prefix counts are unchanged except `cursor/`, which is 23. The run-1 prose said `fable*` 26; the run-1 table has 28 names that start with `fable`. No fable branch moved.
+
+The 421 unchanged tips were not opened. Five of them stay at the run-1 detail status (`cursor/forge-concurrency-audit-8d98`, `cursor/forge-history-index-20261113-712a`, `cursor/forge-nnue-eval-20261113-22cc`, `cursor/forge-qsearch-audit-60ce`, `cursor/move-legality-82b6`). The other 416 stay "tip and tree confirmed, files not read."
+
+Ancestry of the 341 current unique tips, from the run-1 census plus these nine commits (the 421 were not re-merged):
+
+- 17 contain the lock commit `16833ecc`. Eleven of those also contain the H512 commit `efb2ff96`.
+- 39 contain `main` and do not contain the lock.
+- 285 contain neither.
+
+### Moved tips
+
+| Branch | Was | Now | What the new commits are |
+|---|---|---|---|
+| `cursor/forge-correctness-20261113-e6b6` | `dff76c58` | `f6760ff6` | `ffc19fa3` clears per-worker history at each root. `f6760ff6` waits for attack tables with `std::call_once`. |
+| `cursor/forge-search-strength-20261113-9558` | `c9cb47a4` | `49b80952` | One commit. Late-move pruning and reduction are skipped when the root opponent is a lone king and the node still faces a lone king. |
+| `cursor/forge-time-audit-770f` | `82b4a082` | `33547894` | The time-audit script runs `forge` from `PATH` and no longer takes a binary argument. Engine search is unchanged in this commit. |
+
+### New heads
+
+All five engine branches are one to three commits on `fable/standalone-h512-20261111` (`efb2ff96`). They do not contain each other's commits. The sixth new head is this checkpoint at its pre-commit tip `13dcd58e` (77 files, contains the lock, does not contain H512).
+
+| Branch | Tip | Files | Note that was read |
+|---|---|---:|---|
+| `cursor/search-bound-audit-9cd5` | `f46e8d24` | 659 | `forge-combo29/docs/audit/ASPIRATION_PVS_BOUNDS.md` |
+| `cursor/search-bounds-audit-e6d7` | `ee965c4f` | 659 | `forge-combo29/docs/search_bounds_audit.md` |
+| `cursor/draw-rules-history-tt-cb8e` | `844cef9a` | 659 | `forge-combo29/docs/draw_rules_check_20261113.md` |
+| `cursor/tt-audit-bounds-4ffa` | `22e837cb` | 659 | `forge-combo29/docs/tt_audit_20261113.md` |
+| `cursor/forge-audit-f132` | `9a781745` | 660 | `AUDIT_REPORT.md` |
+| `cursor/forge-branch-inventory-automation` | `13dcd58e` | 77 | the run-1 inventory |
+
+`cursor/forge-audit-f132` says it saw 417 refs. That count is earlier than this fetch. It is not the current census.
+
+## Defects present in source
+
+These are on the lock `16833ecc` and on H512 `efb2ff96` unless a row says otherwise. Line numbers are the ones read this run. A "their result" column is the other branch's log. This run did not rebuild those binaries and did not replay the numbers.
+
+### Quiet mate lost after another search
+
+Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` is mate in 3 by `d5c5`. On H512, late-move pruning is the block at `forge-combo29/src/search.cpp:1575` (`!root_node && best_score > -MateInMaxPly && has_material`); the quiet threshold is `lmp_threshold` at line 1576. History tables survive the previous root. `Clear Hash` does not clear them.
+
+Two unmerged fixes, both claiming the combo29 bench pins and no games:
+
+- Correctness `ffc19fa3`, `Worker::search` calls `clear_heuristics()` at `forge-combo29/src/search.cpp:1786` on `f6760ff6`. Their note: after any of three depth-9 searches, depth 14 played `e8e4`; after the clear, all four protocols played `d5c5` mate 3. Threads 2 missed 57/400 before an earlier bare-king gate and 0/400 after it. That gate stays off for one worker because turning it on moved depth 13 to 862954 net on and 907307 net off.
+- Search-strength `49b80952` does not clear history. `root_bare_king_` is set at `search.cpp:1994` and the prune skip is at `search.cpp:1775`. Their note: the same three poison searches then played `d5c5` mate 3, and 40 two-thread depth-14 searches missed 0. Depth 13 stayed 862329 net on and 907205 net off. A bare king that appears only after trades still uses the old pruning.
+
+The two patches are not on one branch. Neither is an Elo result. The node counts are their logs.
+
+### Attack tables published before they are filled
+
+H512 and the lock: `forge-combo29/src/bitboard.cpp` sets `initialized = true` and then fills the tables (lock line 137, H512 line 137). Correctness `f6760ff6` uses `std::call_once` at `bitboard.cpp:143`. Their driver: 30/30 segfaults before, `bad 0` on 30/30 after, then `PINS MATCH combo29`. `cursor/forge-concurrency-audit-8d98` describes the same race on a different history. This run did not repeat it. The concurrency branch still has the integer clock parse. The clock fix is only on `cursor/forge-time-audit-770f`.
+
+### Draw rules inside the search
+
+Game adjudication at the root already treats threefold, a clock of 100, and insufficient material as draws. Inside the tree, on the lock and on H512:
+
+- `Board::is_repetition(root_index)` returns a draw when the matching key index is `>= root_index` (lock `board.cpp:1208`, H512 `board.cpp:1208`). Returning to the root is only the second occurrence.
+- `Board::make_null_move` increments `halfmove_` (lock `board.cpp:1126`, H512 the same assignment). A null move is not a game ply.
+- `score_from_tt` adjusts a mate by ply and does not look at the halfmove clock (`search.cpp:126` on H512, `search.cpp:123` on the lock).
+
+`cursor/draw-rules-history-tt-cb8e` commit `7639e548` stops the null-move clock and requires the repeat to be strictly after the root. Their `draw_rules_test` passed. Their engine table, UseNNUE false, says a twofold knight shuttle at depth 4 stays `cp 13` and a threefold shuttle at depth 3 is `cp 0`. Queen versus king at clock 92 was a draw at depth 8 on unmodified H512 as well (87721 nodes); after the null-move change and before the quiescence correction it was `cp 695`. Bench depths 8 and 10 matched H512 (67223 and 172081). They did not run the depth 11–22 pin script. Opposite-colour bishops and king plus two knights are not adjudicated. No match.
+
+The same mate-versus-clock idea is patched three more times, with different cutoffs, and those patches are not stacked:
+
+| Branch | Default | Rule they implemented |
+|---|---|---|
+| `cursor/search-bounds-audit-e6d7` | always on | Drop a mate longer than `99 - min(clock, 99)`. Distance 19 is kept at clock 80 and distance 20 is not. Their full pin script matched. |
+| `cursor/search-bound-audit-9cd5` | `mate_horizon` on | Drop a mate when `D > 100 - min(clock, 100)`. Their shipping combination matched the pins through depth 22. |
+| `cursor/tt-audit-bounds-4ffa` | `FORGE_TT_MATE_CLOCK` **off** | With the switch on, drop a mate when the distance is greater than `100 - clock`. The default `forge` binary still has the unguarded conversion. |
+
+### Transposition table, default binary unchanged
+
+On H512, `TranspositionTable::store_body` writes `clusters_[probe.cluster_].entries[probe.slot_]` (`search.cpp` store body, the `FORGE_SPD_TT_NOTLS` path). Qsearch returns `mated_in(ply)` at `search.cpp:1355` before `tt.store`. Main search returns `mated_in(ply)` at `search.cpp:1717` before the store. `cursor/tt-audit-bounds-4ffa` reproduces three failures on the baseline objects and compiles the fixes only into `tt_audit` (`FORGE_TT_MATE_CLOCK`, `FORGE_TT_STORE_TERMINAL`, `FORGE_TT_RESOLVE_SLOT`). The default binary leaves all three at 0, and their `check_pins.sh` on that default binary matched. With the switches compiled on, depth 20 net on moved from 12389307 to 12117140 and depth 22 net on moved from 34048354 to 37041976. Their isolation build says the depth-20 delta is the checkmate store. Those switches stay off because the pins move. The three bugs are still in the default engine.
+
+### Aspiration, PV bounds, and the LMR clamp
+
+`cursor/search-bound-audit-9cd5` keeps `mate_horizon` and `aspiration` on and `qsearch_shallow_bound` off. Their note, not replayed here:
+
+- Fail-low arithmetic can leave the window unchanged: alpha `-32001`, beta `-32000`, score `-32001`. They did not see a finished bench return the `-Infinite` sentinel. The loop can no longer repeat that window.
+- An aborted re-search used to publish a worse root move with the previous iteration's score. Their test hook keeps `d2d4` at +16 instead of `a2a3` at +16.
+- A depth-0 TT upper bound of `-400` in a queen ending was returned as `-400` with the qsearch switch off and 832 with it on. The switch is off because depth 13 net on moves from 862329 to 793816.
+- `std::clamp(new_depth - r, 1, new_depth)` is undefined when `new_depth < 1`. H512 `search.cpp:1671`, lock `search.cpp:1417`. The guard is unconditional. At the default singular depth of 7 they say it does not change the pins. They did not show a search that actually took a negative extension.
+
+`cursor/search-bounds-audit-e6d7` is a different patch. Always on: an aborted aspiration no longer pairs a new move with the previous score, and the fifty-move mate filter above. Default off: `PvBoundFix` (skip move pruning on PV nodes) and `AspirationKeepExact`. Their start-position command `go depth 10 nodes 2066`, NNUE off, printed depth 6 `cp 3` and `g1f3` while a finished depth 6 was `cp 18` and `e2e3` (2524 nodes). With the patch the partial line keeps its own score. `PvBoundFix` at 1 changed root scores at depth 7, including missing a mate in two (`g3g6` on `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1`) that the lock finds at depth 7 in 2725 nodes. The switch stays 0. Quiescence still prunes on PV nodes. No Elo.
+
+### UCI protocol on the H512 binary
+
+`cursor/forge-audit-f132` confirmed these on a g++ build of `efb2ff96` and then changed the default binary, not a switch:
+
+- `uci.cpp:377` compares the option name to `"UseNNUE"` and the value to `"true"` / `"false"` (lock `uci.cpp:262`). `usennue` and `False` do not match. Their pre-fix `bench 11` stayed at the net-on pin 312866 after `setoption name usennue value false`.
+- `searchmoves` of only illegal moves set the restriction and then played `bestmove 0000` (`uci.cpp:117`). Their fixed binary returns a legal move.
+- `Board::set_fen` rejects a FEN that is not six fields (`board.cpp:219` on H512). A four-field FEN was consumed together with the word `moves`.
+- `Board::parse_uci` compares the token to the lowercase UCI text (`board.cpp:1148`). `E2E4` and `a7a8Q` were rejected.
+
+Their fixed g++ binary matched depth 11 and depth 13 pins, net on and off, and perft 5 was 4865609. They did not print depths 16, 20, or 22. `uci_protocol.py` reported 0 failures after the book test was pinned to variety 0 (`e2e4`). No games. Classic NNUE accumulator versus a full refresh: 181 plies, gap 0, so they did not change the accumulator. An AVX2 accumulator update was bit-identical and slower on this VM (update loop 31–32 ms versus 23–24 ms) and stays off. That timing is not a speed claim for another machine.
+
+`dot/review-20261110` at `f5c5efaa` has `F6-uci-case.patch` behind `FORGE_FIX_UCI_OPTION_CASE`. Their reading: it lowercases names and still compares checkbox values to exact `true` and `false`. This run did not open that patch.
+
+### Still open from run 1
+
+`bad_captures_[bad_count_++]` has no capacity test. The lock array is 64 (`search.cpp:576`). Correctness sizes it to `MoveList::Capacity` (256, `board.hpp:109`) and still writes at `search.cpp:472` with no index check. A position with more than 256 deferred captures was not searched.
+
+H512 `uci.cpp:92` still returns 0 when `std::from_chars` fails, which is the clock overflow run 1 reproduced on the lock (`go wtime 3000000000` played `a2a3` with no `info depth`). The five new H512 branches do not include the time-audit parser. The time-audit branch does, and its new commit does not change that parser.
+
+## Not claimed
+
+- No Elo. H512 `STATUS.md` numbers quoted inside `AUDIT_REPORT.md` (M8 +53.2, M9 -5.9) were not replayed. Bench node counts above are the other branches' pin logs.
+- The 421 unchanged tips were not re-read. The fable52 evidence files named for this run were not opened, because the remote moved and this batch is that movement.
+- No engine was promoted. Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite run-1 `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the fable52 files.
+3. Otherwise read, on their own tips, and do not quote a speed or sanitizer figure past what those files themselves show:
+   - `fable52-search-gap-20261109` `56a76b153bb8` `fable_search_gap/EVIDENCE.md`
+   - `fable52-speed-lane-20261109` `08897a88e11c` `fable_speed_lane/BENCH.md`
+   - `fable52-movegen-proof-20261110` `2ff77f98927c` `fable_movegen_proof/PROOF.md`
+   - `fable52-cpu-20261110` `ea3759a9ec3b` `fable_cpu_speed/DONE.md`
+4. The highest-priority unverified finding is the KRK history miss (`4R3/8/8/k2K4/8/8/8/8 w - - 0 1`, `d5c5` mate 3). Replay it on H512, then on `f6760ff6` and `49b80952`, before treating either fix as the one to keep. Second: one UCI case from `efb2ff96` (`setoption name usennue value false`, or `go depth 1 searchmoves h7h5`). Third: the 256-slot `bad_captures_` write still has no check.

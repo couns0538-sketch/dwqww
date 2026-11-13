@@ -1,11 +1,15 @@
 {
   "schema": 1,
-  "run": 1,
-  "snapshot_at": "2026-11-13T14:23:25Z",
-  "remote_heads_ls_remote": 424,
-  "remote_heads_fetched": 424,
-  "unique_tips": 335,
-  "unique_trees": 335,
+  "run": 2,
+  "snapshot_at": "2026-11-13T15:33:39Z",
+  "trigger_at": "2026-11-13T15:26:47Z",
+  "remote_heads_ls_remote": 430,
+  "same_tip_as_run1": 421,
+  "moved": 3,
+  "new": 6,
+  "gone": 0,
+  "unique_tips": 341,
+  "unique_trees": 341,
   "trees_shared_by_different_tips": 0,
   "shared_tip_groups": 16,
   "branches_in_shared_tip_groups": 105,
@@ -15,77 +19,135 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
+  "checkpoint_tip_before_this_commit": "13dcd58ea30e0f4e254506b562c95ee004586200",
+  "note": "branches-current.tsv is the ls-remote snapshot before the commit that adds the run-2 files. That commit moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "frozen_run1_table": "inventory/branches.tsv",
+  "current_table": "inventory/branches-current.tsv",
+  "movement_log": "inventory/HEAD_MOVEMENT.tsv",
+  "review_index": "inventory/review-status.tsv",
   "engine_lock": {
     "branch": "lock/combo29-20261110",
-    "tip": "16833ecc03b425586f91f4c8834dea8807bf4c22",
-    "note": "Pinned speed lock. Fable CPU and later Fable jobs name this commit as their base. Do not push to this branch."
+    "tip": "16833ecc03b425586f91f4c8834dea8807bf4c22"
   },
   "later_fable_tree": {
     "branch": "fable/standalone-h512-20261111",
-    "tip": "efb2ff960037087299332bc6a44baea69441a17a",
-    "note": "Contains the lock plus later H512 work. Do not push to this branch."
+    "tip": "efb2ff960037087299332bc6a44baea69441a17a"
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "contains_lock_commit": 11,
-    "contains_h512_commit": 6,
+    "method": "run-1 census adjusted by the nine new tip commits; the 421 unchanged tips were not re-merged",
+    "contains_lock_commit": 17,
+    "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
-  "prior_census": {
-    "branch": "cursor/forge-history-index-20261113-712a",
-    "tip": "da51693e0fbac616c73c454a9bd2cf93f1f4ee24",
-    "file": "docs/history-index/branches/HEADS.tsv",
-    "frozen_at": "2026-11-13T11:46:13Z",
-    "heads": 416,
-    "same_tip_and_tree_this_run": 416,
-    "moved": 0,
-    "disappeared": 0,
-    "note": "Tip SHAs and tree hashes were recomputed. File contents of those 416 tips were not re-read."
-  },
-  "review_status": {
-    "tip_confirmed_not_reread": 416,
-    "detail_this_run": 8
+  "review_status_counts": {
+    "tip-only": 416,
+    "run1-detail": 5,
+    "run2-moved": 3,
+    "run2-new": 5,
+    "run2-checkpoint": 1
   },
   "detail_this_run": [
-    "cursor/forge-concurrency-audit-8d98",
     "cursor/forge-correctness-20261113-e6b6",
-    "cursor/forge-history-index-20261113-712a",
-    "cursor/forge-nnue-eval-20261113-22cc",
-    "cursor/forge-qsearch-audit-60ce",
     "cursor/forge-search-strength-20261113-9558",
     "cursor/forge-time-audit-770f",
-    "cursor/move-legality-82b6"
+    "cursor/draw-rules-history-tt-cb8e",
+    "cursor/forge-audit-f132",
+    "cursor/search-bound-audit-9cd5",
+    "cursor/search-bounds-audit-e6d7",
+    "cursor/tt-audit-bounds-4ffa"
   ],
-  "reproduced_this_run": [
+  "replayed_this_run": [],
+  "findings": [
     {
-      "id": "uci-clock-int-overflow",
-      "lock": "16833ecc03b425586f91f4c8834dea8807bf4c22",
-      "file": "forge-combo29/src/uci.cpp",
-      "lines": [74, 78, 99],
-      "result": "go wtime 3000000000 returns bestmove a2a3 with no info depth",
-      "fix_branch": "cursor/forge-time-audit-770f",
-      "fix_tip": "82b4a082b18c8fa6f633d29019f4fa7b524c916a",
-      "fix_result": "same command still searching at depth 16 when stopped"
+      "id": "krk-history-miss",
+      "status": "code-confirmed-on-h512-and-lock; measurements are the other branches' logs; not replayed",
+      "fen": "4R3/8/8/k2K4/8/8/8/8 w - - 0 1",
+      "expected_move": "d5c5",
+      "h512_prune": "forge-combo29/src/search.cpp:1575",
+      "fixes": [
+        {
+          "branch": "cursor/forge-correctness-20261113-e6b6",
+          "tip": "f6760ff65325339c900092117cbb56c051a60724",
+          "mechanism": "clear_heuristics at search.cpp:1786"
+        },
+        {
+          "branch": "cursor/forge-search-strength-20261113-9558",
+          "tip": "49b8095274ecf46976d521b5bf6192acdac3d258",
+          "mechanism": "root_bare_king_ gate at search.cpp:1775"
+        }
+      ]
     },
     {
-      "id": "bad-captures-64",
-      "lock": "16833ecc03b425586f91f4c8834dea8807bf4c22",
-      "file": "forge-combo29/src/search.cpp",
-      "lines": [469, 576],
-      "result": "ASan SEGV in MovePicker::next at search.cpp:469 on the 69-queen-style FEN",
+      "id": "attack-table-init-race",
+      "status": "code-confirmed; their 30/30 driver not replayed",
+      "lock_lines": "forge-combo29/src/bitboard.cpp:137",
       "fix_branch": "cursor/forge-correctness-20261113-e6b6",
-      "fix_tip": "dff76c5808d0ceb7fc3940d1758991c3c33fb26d",
-      "fix_result": "ASan build returns bestmove d3b1 and prints mate 1; write still unchecked at capacity 256"
+      "fix_line": "forge-combo29/src/bitboard.cpp:143"
+    },
+    {
+      "id": "search-repetition-and-null-clock",
+      "status": "code-confirmed on lock and H512; their draw_rules_test not replayed",
+      "lock": {
+        "repetition": "forge-combo29/src/board.cpp:1208",
+        "null_halfmove": "forge-combo29/src/board.cpp:1126"
+      },
+      "fix_branch": "cursor/draw-rules-history-tt-cb8e",
+      "fix_commit": "7639e548930ed3b4b68dc4679adfb63f97bc6b12",
+      "bench_claim": "depths 8 and 10 only, not the full pin set"
+    },
+    {
+      "id": "tt-mate-clock-and-store",
+      "status": "default binary still has the bugs; switches off because pins move",
+      "branch": "cursor/tt-audit-bounds-4ffa",
+      "tip": "22e837cb845b19e4631e846a5adbd086aa8a40cc",
+      "h512": {
+        "score_from_tt": "forge-combo29/src/search.cpp:126",
+        "qsearch_mated": "forge-combo29/src/search.cpp:1355",
+        "main_mated": "forge-combo29/src/search.cpp:1717"
+      }
+    },
+    {
+      "id": "uci-protocol-case-and-searchmoves",
+      "status": "code-confirmed; their protocol script not replayed",
+      "h512": {
+        "usennue": "forge-combo29/src/uci.cpp:377",
+        "searchmoves": "forge-combo29/src/uci.cpp:117",
+        "fen": "forge-combo29/src/board.cpp:219",
+        "parse_uci": "forge-combo29/src/board.cpp:1148"
+      },
+      "fix_branch": "cursor/forge-audit-f132",
+      "fix_tip": "9a781745a3f4681401c31aa69adbe6ad167a8933",
+      "pins_they_printed": "depth 11 and 13 only"
+    },
+    {
+      "id": "lmr-clamp-precondition",
+      "status": "code present; they did not show a negative extension being taken",
+      "h512": "forge-combo29/src/search.cpp:1671",
+      "lock": "forge-combo29/src/search.cpp:1417",
+      "fix_branch": "cursor/search-bound-audit-9cd5"
+    },
+    {
+      "id": "bad-captures-256",
+      "status": "still an unchecked write",
+      "branch": "cursor/forge-correctness-20261113-e6b6",
+      "line": "forge-combo29/src/search.cpp:472",
+      "capacity": 256
+    },
+    {
+      "id": "uci-clock-int-overflow",
+      "status": "reproduced on the lock in run 1; still in H512 source; not on the five new H512 branches",
+      "h512": "forge-combo29/src/uci.cpp:92",
+      "fix_branch": "cursor/forge-time-audit-770f"
     }
   ],
   "next_run": [
-    "git fetch and git ls-remote --heads origin. Diff against inventory/branches.tsv. Append moved or new tips to inventory/HEAD_MOVEMENT.tsv. Do not rewrite old rows.",
-    "If no tips moved, do not repeat the full ls-tree file count.",
-    "Next unread batch: fable52 evidence named but not read here: fable_search_gap/EVIDENCE.md, fable_speed_lane/BENCH.md, fable_movegen_proof/PROOF.md, fable_cpu_speed/DONE.md on their own tips. Read those before quoting speed or sanitizer numbers past the STATUS files.",
-    "Then the early cursor Elo line, oldest first: cursor/chess-engine-elo-bba2 at 2285d91270f53f37d4c7bfdf491ed490c7d0c1a1 through cursor/smp-threads-fixes-c7cb at c4314e3bde6e8372419227cc22b032319487aa71.",
-    "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch.",
-    "The 256-slot bad_captures_ write is still unchecked. A search for a position with more than 256 deferred captures is open.",
-    "Supermemory MCP was down this run. Do not block on it."
+    "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv.",
+    "This checkpoint tip will differ from 13dcd58e because of the run-2 commit. Record it, then continue.",
+    "If a foreign tip moved, read that delta first.",
+    "Otherwise read fable_search_gap/EVIDENCE.md on fable52-search-gap-20261109 at 56a76b153bb8, fable_speed_lane/BENCH.md on fable52-speed-lane-20261109 at 08897a88e11c, fable_movegen_proof/PROOF.md on fable52-movegen-proof-20261110 at 2ff77f98927c, and fable_cpu_speed/DONE.md on fable52-cpu-20261110 at ea3759a9ec3b.",
+    "Highest-priority replay: KRK history miss on H512, then f6760ff6 and 49b80952. Second: one UCI case on efb2ff96. Third: a deferred-capture position past 256 slots.",
+    "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ]
 }
