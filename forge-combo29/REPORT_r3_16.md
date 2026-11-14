@@ -68,6 +68,19 @@ The same three pins, the 1020 made-up timing checks, and the 200 depth-10 saniti
 
 `src` and `include` differ from `e04556dd` by 91 lines (89 added, 2 removed), including the new header. `CMakeLists.txt` was not edited.
 
-No games were played, so this report has no strength result.
+No games were played for the first version of this note. The follow-up below is the clock screen.
+
+## Follow-up: count the node share once
+
+`TmEffortBase` already multiplies the clock factor by `clamp(base/100 - effort, 0.6, 1.4)`. With `TmNodeShare` on, that same share was applied again by `decide_node_share_timing`. `effort_share_factor` now returns 1 while the option is on, and the older clamp while it is off. The soft-target scale remains the only share adjustment on the on path.
+
+`tests_r3fu_16/effort_share_once_test.cpp` checks that. A failed check exits non-zero. The run reported `effort share once checks 36` and exited 0. The older made-up timing test still reports 1020 checks and exits 0.
+
+Owner build, because this CPU has AVX-512F and BMI2: `cmake -S forge-combo29 -B build-owner -DCMAKE_BUILD_TYPE=Release` with no `FORGE_*` override (`-march=x86-64-v4`, PEXT and ZMM on). Compiler is g++-13. Threads 1, Hash 16, OwnBook false:
+
+- option off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+- option on: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+
+Clock screen results are appended when the four chunks finish.
 
 setoption name TmNodeShare value true

@@ -54,4 +54,16 @@ struct NodeShareTimingDecision {
     return out;
 }
 
+// Older clock factor piece: clamp(base_percent/100 - effort, 0.6, 1.4),
+// where effort is the best move's share of nodes. TmNodeShare applies that
+// share itself, so this piece stays 1 while the option is on and the share
+// is counted once. Off, the older clamp is unchanged.
+[[nodiscard]] constexpr double effort_share_factor(double effort, int base_percent, bool node_share_on) noexcept {
+    if (node_share_on) return 1.0;
+    const double raw = static_cast<double>(base_percent) / 100.0 - effort;
+    if (raw < 0.6) return 0.6;
+    if (raw > 1.4) return 1.4;
+    return raw;
+}
+
 }  // namespace forge
