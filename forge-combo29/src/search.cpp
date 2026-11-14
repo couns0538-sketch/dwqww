@@ -70,6 +70,9 @@ int CaptureFutilityBase = 0;
 int CaptureFutilityMultiplier = 250;
 int CaptureFutilityDepth = 6;
 int FailLowContinuationBonus = 0;
+bool ContHist4PlyRead = false;
+bool NonPawnCorrection = false;
+bool LmrDeeperShallower = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -175,14 +178,15 @@ void apply_history(std::int16_t& entry, int bonus) {
 
 #if FORGE_SEARCH_SPEED2
 // Quiet history of one move: main history row of the side to move plus the continuation history of the two
-// previous plies, summed in this order (= Worker::quiet_history).
+// previous plies (and optionally 4 plies back at half weight), summed in this order (= Worker::quiet_history).
 [[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
-                                           const PieceToHistory* cont1, const PieceToHistory* cont2, Piece piece,
-                                           Move move) {
+                                           const PieceToHistory* cont1, const PieceToHistory* cont2,
+                                           const PieceToHistory* cont4, Piece piece, Move move) {
     const std::size_t p = static_cast<std::size_t>(piece);
     int score = main[move.from][move.to];
     if (cont1 != nullptr) score += (*cont1)[p][move.to];
     if (cont2 != nullptr) score += (*cont2)[p][move.to];
+    if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;
     return score;
 }
 #endif
@@ -609,23 +613,26 @@ private:
     }
 
 #if FORGE_SEARCH_SPEED2
-    // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and both continuation tables
+    // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and continuation tables
     // are fixed for one generation, so they are read once, and the moved piece once per move.
     struct QuietScorer {
         const std::array<std::array<std::int16_t, 64>, 64>& main;
         const PieceToHistory* cont1;
         const PieceToHistory* cont2;
+        const PieceToHistory* cont4;
         const Board& board;
 
         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                        ? (ss - 4)->continuation : nullptr),
               board(b) {}
 
         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
             const Piece piece = board.piece_at(move.from);
-            int value = quiet_history_sum(main, cont1, cont2, piece, move);
+            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
             return value;
         }
@@ -780,7 +787,9 @@ Worker::Worker(SharedSearchState& shared, int id)
       continuation_history_(std::make_unique<ContinuationHistory>()),
       counter_moves_(std::make_unique<CounterMoveTable>()),
       correction_history_(std::make_unique<CorrectionHistory>()),
-      material_correction_(std::make_unique<CorrectionHistory>()) {
+      material_correction_(std::make_unique<CorrectionHistory>()),
+      non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
     clear();
 }
 
@@ -794,6 +803,8 @@ void Worker::clear() {
     *counter_moves_ = CounterMoveTable{};
     *correction_history_ = CorrectionHistory{};
     *material_correction_ = CorrectionHistory{};
+    *non_pawn_white_correction_ = CorrectionHistory{};
+    *non_pawn_black_correction_ = CorrectionHistory{};
     for (SearchStack& ss : stack_) ss = SearchStack{};
 }
 
@@ -807,6 +818,17 @@ namespace {
         }
     }
     return key * 0x9E3779B97F4A7C15ULL;
+}
+
+// Hash of non-pawn piece placements of one side, for non-pawn correction history.
+[[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
+    std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+    for (int type = Knight; type <= King; ++type) {
+        const Bitboard bb = board.pieces(color, static_cast<PieceType>(type));
+        key ^= bb * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(type) * 0xBF58476D1CE4E5B9ULL);
+        key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+    }
+    return key ^ (key >> 31U);
 }
 } // namespace
 
@@ -855,6 +877,11 @@ int Worker::corrected_eval(const Board& board, int raw_eval) const {
     if (tune::MaterialCorrectionWeight > 0) {
         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
     }
+    if (tune::NonPawnCorrection) {
+        const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+        const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+        correction += (np_w + np_b) / 2;
+    }
     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
@@ -867,6 +894,10 @@ void Worker::update_correction(const Board& board, int depth, int best_score, in
     };
     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+    if (tune::NonPawnCorrection) {
+        apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+        apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+    }
 }
 
 std::int64_t Worker::elapsed_ms() const {
@@ -922,13 +953,19 @@ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) 
 #if FORGE_SEARCH_SPEED2
     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
                              ss != nullptr ? (ss - 1)->continuation : nullptr,
-                             ss != nullptr ? (ss - 2)->continuation : nullptr, board.moved_piece(move), move);
+                             ss != nullptr ? (ss - 2)->continuation : nullptr,
+                             tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+                                 ? (ss - 4)->continuation : nullptr,
+                             board.moved_piece(move), move);
 #else
     const Piece piece = board.moved_piece(move);
     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
     if (ss != nullptr) {
         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+        if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+            score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+        }
     }
     return score;
 #endif
@@ -1379,7 +1416,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             extension = 1;
         }
         ss->double_extensions = inherited_double_extensions + (extension == 2);
-        const int new_depth = depth - 1 + extension;
+        int new_depth = depth - 1 + extension;
 
 #if FORGE_SPD_PREFETCH_EARLY
         std::uint64_t child_key = 0;
@@ -1423,7 +1460,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
             full_depth_needed = score > alpha && reduced_depth < new_depth;
             if (full_depth_needed) {
-                score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                if (tune::LmrDeeperShallower) {
+                    const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+                    const bool do_shallower = score < best_score + new_depth;
+                    new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+                }
+                if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+                    score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+                }
                 full_depth_needed = false;
             }
             if (!aborted_ && quiet && score > alpha) {
