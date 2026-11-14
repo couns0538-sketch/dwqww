@@ -76,7 +76,7 @@ count_results() {
     echo 0
     return
   fi
-  grep -c '^\[[]Result "' "$pgn" || true
+  grep -c '^\[Result "' "$pgn" || true
 }
 
 run_fastchess() {

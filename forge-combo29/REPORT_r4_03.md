@@ -4,7 +4,10 @@ Screening only. This is not a strength claim.
 
 The owner's earlier stop was +2 ± 13 in 1200 games. That stop is prior context. This run is a new on-versus-off sample of the existing default-off option and does not by itself establish a strength change.
 
-State: `unknown`.
+State: `running`.
+Screen start (UTC): 2026-11-14T15:41:48Z.
+Screen deadline (UTC): 2026-11-14T21:41:48Z (6 hours from screen start, or 9 chunks, whichever comes first).
+Note: screen started
 
 ## What was compared
 
@@ -73,11 +76,28 @@ Full command (`S` is the chunk start):
 
 W-L-D is option on first. Elo is logistic Elo from the pentanomial model used by this fastchess build (`EloPentanomial`), and the ± value is the 95% half-width. LOS is that model's likelihood of superiority for the option-on side. `Ptnml(0-2)` is `[LL, LD, WL+DD, WD, WW]`.
 
-No chunk PGN yet.
+| chunk S | games | W-L-D | Elo 95% | LOS % | Ptnml(0-2) | pairs | state |
+| ---: | ---: | --- | --- | ---: | --- | ---: | --- |
+| 1 | 93 | 23-20-50 | 11.33 +/- 37.04 | 72.65 | [0, 10, 24, 11, 1] | 46 | running |
+
+Pooled (all chunks, option on first): W-L-D 23-20-50 over 93 games, 46 pairs, Elo 11.33 +/- 37.04 (95%), LOS 72.65 %, Ptnml(0-2) [0, 10, 24, 11, 1].
+
+Split of the pooled middle bin: WL 10, DD 14. Raw pair counts LL 0, LD 10, WL 10, DD 14, WD 11, WW 1. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 1.
+
+nElo (fastchess pentanomial normalization): 21.82 +/- 71.00.
 
 ### fastchess blocks
 
-None yet.
+#### chunk 1
+
+```
+Results of LmrDeeperShallower vs default (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: 4.34 +/- 39.15, nElo: 8.48 +/- 76.13
+LOS: 58.64 %, DrawRatio: 55.00 %, PairsRatio: 1.00
+Games: 80, Wins: 19, Losses: 18, Draws: 43, Points: 40.5 (50.62 %)
+Ptnml(0-2): [0, 9, 22, 8, 1], WL/DD Ratio: 0.69
+```
+
 ## Reading the sample
 
 A 95% interval that covers zero is a sample consistent with no Elo difference at this time control and book slice. An interval that does not cover zero is still one screen, not a strength claim. The earlier owner stop (+2 ± 13 in 1200 games) remains the prior stop named for this option.
