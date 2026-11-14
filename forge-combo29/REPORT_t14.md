@@ -29,6 +29,8 @@ Engine source grew by 47 lines and nothing was deleted. `Worker::static_evaluate
 - `forge-combo29/src/uci.cpp` — `eval` command
 - `forge-combo29/tests_t14/eval_cases.txt` — 30 FENs and the expected lines
 - `forge-combo29/tests_t14/test_eval.cpp` — checks those lines, checks `total` against `Worker::static_evaluate`, and checks the colour-flip of the first 10
+- `forge-combo29/CMakeLists.txt` — `test_t14_eval` target and the `t14_eval` CTest entry
+- `forge-combo29/README.md` — `eval` and `ctest`
 - `forge-combo29/REPORT_t14.md` — this report
 
 `git diff --numstat` on the engine sources:
@@ -201,6 +203,50 @@ ok 30 positions, 10 mirrors, 3 in check, promotions white 2 black 1
 ```
 
 Exit status 0. AddressSanitizer and UndefinedBehaviorSanitizer printed no diagnostics.
+
+## Follow-up: CTest, and the full pin set
+
+`ctest` did not know about `tests_t14/test_eval.cpp`, because `CMakeLists.txt` only built `forge`. The test executable is now `test_t14_eval`, compiled with the same flags as `forge` and registered as `t14_eval`. `forge`'s own compile lines did not change, and that target was not rebuilt.
+
+The Windows lock executable and `windows_build/SOURCE_INPUTS.sha256` are the frozen snapshot named in `LOCK.md`. This branch does not replace that binary or rewrite those hashes.
+
+### Full combo29 pins
+
+```
+/agent/repos/dwqww/forge-combo29/scripts/check_pins.sh /agent/repos/dwqww/build/forge
+```
+
+Run from `/tmp` so `pins_out.txt` was not written into the repository.
+
+```
+net-on : 312866 862329 3024920 12389307 34048354
+net-off: 375354 907205 2448617 13573040 24506465
+perft5 : 4865609
+PINS MATCH combo29
+```
+
+### CTest
+
+```
+cmake --build build -j
+ctest --test-dir build -N
+ctest --test-dir build --output-on-failure
+./build/test_t14_eval forge-combo29/tests_t14/eval_cases.txt
+```
+
+`ctest -N` listed `Test #1: t14_eval` (Total Tests: 1). `ctest` printed:
+
+```
+1/1 Test #1: t14_eval .........................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 1
+```
+
+Direct run of the same binary:
+
+```
+ok 30 positions, 10 mirrors, 3 in check, promotions white 2 black 1
+```
 
 ## What I could not verify
 

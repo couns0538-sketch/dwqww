@@ -19,24 +19,37 @@ option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
 
 file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(forge ${FORGE_SOURCES})
-target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_compile_definitions(forge PRIVATE
-  NDEBUG
-  FORGE_NNUE_HIDDEN=256
-  FORGE_EXPOSE_TUNABLES=1
-  FORGE_SPD_TT_NOTLS=1
-  FORGE_SPD_NO_ZERO_MOVELISTS=2
-  FORGE_SEARCH_SPEED2=1
-  FORGE_SPD_PREFETCH_EARLY=1)
-if(FORGE_PORTABLE)
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
-else()
-  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
-endif()
+# uci.cpp owns main(); the eval test links every other engine translation unit.
+set(FORGE_ENGINE_SOURCES ${FORGE_SOURCES})
+list(REMOVE_ITEM FORGE_ENGINE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/uci.cpp)
+add_executable(test_t14_eval tests_t14/test_eval.cpp ${FORGE_ENGINE_SOURCES})
 
-# Strict floating-point operation order (required for bit-exact node counts).
-target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(forge PRIVATE Threads::Threads)
+
+# Same flags on the engine and the test. Node counts depend on this set.
+function(forge_apply_lock_flags target)
+  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_compile_definitions(${target} PRIVATE
+    NDEBUG
+    FORGE_NNUE_HIDDEN=256
+    FORGE_EXPOSE_TUNABLES=1
+    FORGE_SPD_TT_NOTLS=1
+    FORGE_SPD_NO_ZERO_MOVELISTS=2
+    FORGE_SEARCH_SPEED2=1
+    FORGE_SPD_PREFETCH_EARLY=1)
+  if(FORGE_PORTABLE)
+    target_compile_definitions(${target} PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
+  else()
+    target_compile_definitions(${target} PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
+  endif()
+  target_compile_options(${target} PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
+  target_link_libraries(${target} PRIVATE Threads::Threads)
+endfunction()
+
+forge_apply_lock_flags(forge)
+forge_apply_lock_flags(test_t14_eval)
+
+enable_testing()
+add_test(NAME t14_eval COMMAND test_t14_eval ${CMAKE_CURRENT_SOURCE_DIR}/tests_t14/eval_cases.txt)

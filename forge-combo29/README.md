@@ -10,6 +10,7 @@ scripts/check_pins.sh build/forge          # bench 11/13/16/20/22 net-on + net-o
 
 Manual commands (UCI on stdin): `bench 13` → `info string bench depth 13 nodes 862329 ...`;
 `setoption name UseNNUE value false` then `bench 13` → `nodes 907205`; `position startpos` then `go perft 5` → `nodes 4865609`.
+`eval` prints `info string eval hce <a> nnue <b> total <c>` for the current position (append ` incheck 1` when the side to move is in check). `ctest --test-dir build` runs that check.
 
 No AVX-512/BMI2 on the host? Configure with `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3` (drops the PEXT and ZMM speed switches; on the box this still gave the same pins).
 
