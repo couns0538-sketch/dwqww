@@ -12,6 +12,7 @@ flock 9
 cd "$ROOT"
 python3 "$TEST/summarize.py"
 git add -- forge-combo29/REPORT_r4_04.md forge-combo29/tests_r4_04
+git reset -q -- forge-combo29/tests_r4_04/__pycache__ || true
 if git diff --cached --quiet; then
   echo "push: nothing to commit"
   exit 0
