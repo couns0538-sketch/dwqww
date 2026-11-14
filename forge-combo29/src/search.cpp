@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool EvalRule50Damp = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -132,6 +133,16 @@ constexpr int HistoryMax = 16384;
     if (score >= MateInMaxPly) return score - ply;
     if (score <= -MateInMaxPly) return score + ply;
     return score;
+}
+
+// The position key does not include the half-move clock. A search score was
+// built from static evals already scaled for the clock that stored it, so it
+// is reused only at that same clock. The raw eval slot stays unscaled and is
+// scaled again for whatever clock reads it. Option off keeps every score usable.
+[[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
+    if (!tune::EvalRule50Damp) return true;
+    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+    return stored_clock == static_cast<std::uint8_t>(clock);
 }
 
 [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
@@ -1048,7 +1059,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     ss->pv_length = 0;
 
     if (is_draw(board, ply)) return 0;
-    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
 
     const bool in_check = board.in_check();
     ss->in_check = in_check;
@@ -1068,7 +1079,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
     const TTEntry& tte = tt_probe.entry;
     const bool near50 = board.halfmove_clock() >= 90;
     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
+                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
@@ -1088,7 +1100,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
         int eval;
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {
@@ -1191,7 +1203,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     if (!root_node) {
         if (is_draw(board, ply)) return 0;
-        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
         // Mate distance pruning.
         alpha = std::max(alpha, mated_in(ply));
         beta = std::min(beta, mate_in(ply + 1));
@@ -1216,7 +1228,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const TTEntry& tte = tt_probe.entry;
     const bool near50 = board.halfmove_clock() >= 90;
     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
+                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
                              ? score_from_tt(tte.score, ply) : ValueNone;
     const int tt_depth = tt_hit ? tte.depth : -1;
     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
@@ -1240,7 +1253,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
         else ss->raw_eval = static_evaluate(board, ss);
-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
         if (tt_hit && tt_score != ValueNone &&
             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
              tt_bound == BoundExact)) {

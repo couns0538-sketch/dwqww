@@ -270,10 +270,21 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
 } // namespace tune
+
+// Static evaluation as a node reads it. Clock 0 keeps the whole score. Each
+// half-move already played drops one percent, so a clock near 100 keeps only
+// a sliver. Mate scores and ValueNone are never scaled. The hash table stores
+// the unscaled raw evaluation; this is not applied on the way in.
+[[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
+    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
+    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
+    return score * (100 - clock) / 100;
+}
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
