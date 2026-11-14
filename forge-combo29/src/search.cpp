@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool QuietExtinction = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -120,6 +121,8 @@ const std::vector<Parameter>& parameters() {
 namespace {
 
 constexpr int HistoryMax = 16384;
+// A searched quiet missed alpha by at least this many centipawns.
+constexpr int QuietWideGap = 176;
 
 [[nodiscard]] int score_to_tt(int score, int ply) {
     if (score >= MateInMaxPly) return score + ply;
@@ -497,11 +500,11 @@ public:
                 }
                 [[fallthrough]];
             case GenerateQuiets:
-                if (!skip_quiets) generate_quiets();
+                if (!skip_quiets && !quiet_tail_closed_) generate_quiets();
                 stage_ = QuietMoves;
                 [[fallthrough]];
             case QuietMoves:
-                if (!skip_quiets) {
+                if (!skip_quiets && !quiet_tail_closed_) {
                     while (index_ < count_) {
                         const Move move = pick_best();
                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
@@ -550,6 +553,9 @@ public:
     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
 
+    // Drop the ordinary quiet tail. Captures, promotions, killers, and counters stay.
+    void close_quiet_tail() { quiet_tail_closed_ = true; }
+
 private:
     enum Stage : int {
         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
@@ -592,6 +598,7 @@ private:
     MoveList buffer_;
     std::size_t list_start_ = 0;
     bool sorted_ = false;
+    bool quiet_tail_closed_ = false;
 #if FORGE_SPD_NO_ZERO_MOVELISTS
     std::array<Bitboard, 7> check_squares_;
 #else
@@ -1372,6 +1379,17 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     int move_count = 0;
     bool skip_quiets = false;
     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+    // Mate-sized losses are refused at the use sites. This gate also keeps the root,
+    // checks, mate search, bare kings, the fifty-move horizon, and pure king-and-pawn.
+    const bool may_extinguish = tune::QuietExtinction && !root_node && !in_check && mate_moves_ == 0 &&
+                                !bare_king_mode && board.halfmove_clock() + depth < 100 &&
+                                (board.has_non_pawn_material(White) || board.has_non_pawn_material(Black));
+    Move counter_move = Move::none();
+    if (may_extinguish && !(ss - 1)->current_move.is_none() && (ss - 1)->moved_piece != Empty) {
+        counter_move = (*counter_moves_)[static_cast<std::size_t>((ss - 1)->moved_piece)][(ss - 1)->current_move.to];
+    }
+    int wide_quiet_misses = 0;
+    bool futility_tight = false;
 
     Move move;
     while (!(move = picker.next(skip_quiets)).is_none()) {
@@ -1414,6 +1432,15 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
                     !board.see_ge(move, see_threshold)) continue;
+            }
+        }
+        // One wide quiet miss halves the futility slack of later ordinary quiets.
+        if (may_extinguish && futility_tight && quiet && !gives_check && best_score > -MateInMaxPly &&
+            move != ss->killers[0] && move != ss->killers[1] && move != counter_move) {
+            const int tight_depth = std::max(0, depth - reduction(true, depth, move_count));
+            if (tight_depth <= tune::FutilityDepth) {
+                const int tight_margin = (tune::FutilityBase + tune::FutilityMultiplier * tight_depth) / 2;
+                if (ss->static_eval + tight_margin <= alpha) continue;
             }
         }
 
@@ -1534,6 +1561,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 }
                 alpha = score;
             }
+        }
+        // A second wide quiet miss ends the ordinary quiet tail. The move just searched stays.
+        if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
+            ++wide_quiet_misses;
+            if (wide_quiet_misses == 1) futility_tight = true;
+            if (wide_quiet_misses >= 2) picker.close_quiet_tail();
         }
         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;

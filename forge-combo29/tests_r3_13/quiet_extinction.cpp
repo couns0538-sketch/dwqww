@@ -1,0 +1,84 @@
+#include "forge/board.hpp"
+#include "forge/search.hpp"
+
+#include <cstdint>
+#include <iostream>
+#include <string>
+
+namespace {
+
+std::uint64_t mix(std::uint64_t value) {
+    value ^= value >> 30;
+    value *= 0xBF58476D1CE4E5B9ULL;
+    value ^= value >> 27;
+    value *= 0x94D049BB133111EBULL;
+    value ^= value >> 31;
+    return value;
+}
+
+bool listed(const forge::MoveList& legal, forge::Move move) {
+    for (const forge::Move candidate : legal) {
+        if (candidate == move) return true;
+    }
+    return false;
+}
+
+forge::Board walked(std::uint64_t salt, int plies) {
+    forge::Board board;
+    if (!board.set_fen(forge::Board::StandardStartFen)) return board;
+    std::uint64_t state = mix(salt);
+    for (int ply = 0; ply < plies; ++ply) {
+        const forge::MoveList legal = board.legal_moves();
+        if (legal.empty()) break;
+        state = mix(state + static_cast<std::uint64_t>(ply) + 9U);
+        const forge::Move chosen = legal[static_cast<std::size_t>(state % legal.size())];
+        forge::Undo undo;
+        if (!board.make_move(chosen, undo)) break;
+    }
+    return board;
+}
+
+} // namespace
+
+int main() {
+    forge::tune::QuietExtinction = true;
+    forge::Searcher searcher(16, 1);
+    int searched = 0;
+    int illegal = 0;
+
+    auto check = [&](forge::Board board, int index) {
+        const forge::MoveList legal = board.legal_moves();
+        forge::SearchLimits limits;
+        limits.depth = 10;
+        searcher.clear();
+        const forge::SearchInfo info = searcher.search(
+            board, limits, false, forge::Searcher::TTAccess::Exclusive);
+        ++searched;
+        const bool ok = legal.empty() ? info.best_move.is_none() : listed(legal, info.best_move);
+        if (!ok) {
+            ++illegal;
+            std::cerr << "illegal index " << index << " move " << forge::Board::move_to_uci(info.best_move)
+                      << " legal " << legal.size() << '\n';
+        }
+    };
+
+    for (int i = 0; i < 197; ++i) {
+        check(walked(0x51A7ULL * static_cast<std::uint64_t>(i + 3), 1 + (i % 23)), i);
+    }
+
+    forge::Board king_pawn;
+    forge::Board checked;
+    forge::Board start;
+    if (!king_pawn.set_fen("4k3/8/8/3p4/3P4/8/8/4K3 w - - 0 1") ||
+        !checked.set_fen("4k3/8/8/8/8/8/8/4QK2 b - - 0 1") ||
+        !start.set_fen(forge::Board::StandardStartFen)) {
+        std::cerr << "setup fen rejected\n";
+        return 1;
+    }
+    check(king_pawn, 197);
+    check(checked, 198);
+    check(start, 199);
+
+    std::cout << "searches " << searched << " illegal " << illegal << '\n';
+    return searched == 200 && illegal == 0 ? 0 : 1;
+}
