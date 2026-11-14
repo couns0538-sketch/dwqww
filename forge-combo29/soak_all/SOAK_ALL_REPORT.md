@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T14:52:36.273Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T15:00:09.768Z.
 
-Elapsed at snapshot: 221.07 minutes; current phase: 2F; recorded pushes: 38. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 228.63 minutes; current phase: 2E; recorded pushes: 39. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -79,7 +79,7 @@ Audit snapshot: 2026-11-14T14:52:29.338Z; reported reconciliation errors 0. Batc
 | Phase | Audited / finished attempts | With canonical counts | With process classification | TSan warning blocks | Unresolved blocks | Nonzero exits | Runtime/diagnostic affected | Timeout/forced |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2D | 6 / 6 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
-| 2E | 4 / 4 | 4 | 4 | 0 | 0 | 0 | 0 | 0 |
+| 2E | 4 / 5 | 4 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 2F | 6 / 6 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
 
 Coverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.
@@ -105,6 +105,7 @@ Coverage includes finished attempts with no committed chess counts. A dash means
 | [2D #6](batches/2D-0006.txt) | 2026-11-14T14:41:25.043Z | 2 | 0 / 2,000 | false / false / false | 316 / 31,104 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
 | [2F #5](batches/2F-0005.txt) | 2026-11-14T14:46:47.860Z | 1 | 0 / 2,000 | true / true / true | 183 / 26,054 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
 | [2F #6](batches/2F-0006.txt) | 2026-11-14T14:52:13.748Z | 2 | 0 / 2,000 | true / true / true | 321 / 30,005 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #5](batches/2E-0005.evidence/manifest.txt) | 2026-11-14T15:00:09.720Z | — | — / — | — / — / — | — / — / — | 124 / none | No audit row supplied | — | — | — / — | Unavailable / not applicable |
 
 Conditions come from each retained raw SUMMARY, or its retained parsed SUMMARY when raw text is unavailable. Candidate order is ContHist4PlyRead / NonPawnCorrection / LmrDeeperShallower; literal booleans are shown. A positive depth setting selects depth-limited search; depth zero selects the node limit. Missing conditions are not inferred from the phase description or later batches.
 
@@ -114,6 +115,11 @@ Only canonical warning blocks from each primary runtime log enter the totals. Mi
 </details>
 
 No resolved source-line-pair groups are available in the matched audit data. This is not a clean-run claim; inspect unresolved blocks, missing coverage and process outcomes.
+
+Audit coverage and grouping omissions:
+
+- 2E:5: one or more per-batch condition fields unavailable; planned or latest phase conditions are not substituted.
+- 2E:5: No audit row supplied; no sanitizer count inferred.
 
 ## Match counts
 
@@ -190,6 +196,7 @@ These notes retain their original recording context; subsequent retry coverage i
 | [2C #4](batches/2C-0004.txt) | 4754000 | 16,534 records completed; 16,410 positions | See raw partial evidence | — | Attempt 5 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2C #5](batches/2C-0005.txt) | 4754000 | 16,847 records completed; 16,727 positions | See raw partial evidence | — | Attempt 6 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2C #6](batches/2C-0006.txt) | 4754000 | 15,083 records completed; 14,994 positions | See raw partial evidence | — | Attempt 7 recorded as retry; completion not inferred | driver retained partial work separately |
+| [2E #5](batches/2E-0005.evidence/manifest.txt) | 9520005 | None recorded | See raw partial evidence | — | Retry not recorded | no SUMMARY line |
 
 A retry link records a later attempt; it does not imply that every partial unit has completed. Retained completed units are already included once in phase totals.
 
