@@ -270,10 +270,14 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the 
 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
 } // namespace tune
+
+// True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
+[[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
@@ -387,6 +391,9 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // True only inside a NullThreatVerify confirmation, so that reduced search
+    // does not use null moves. Stays false for the whole default search.
+    bool null_blocked_ = false;
 
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.

@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
             }
             std::cout << "option name ContHist4PlyRead type check default false\n"
                          "option name NonPawnCorrection type check default false\n"
-                         "option name LmrDeeperShallower type check default false\n";
+                         "option name LmrDeeperShallower type check default false\n"
+                         "option name NullThreatVerify type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -301,6 +302,10 @@ int uci_loop(std::istream& in) {
                 } else {
                     note_invalid();
                 }
+            } else if (name == "NullThreatVerify") {
+                if (value_text == "true") forge::tune::NullThreatVerify = true;
+                else if (value_text == "false") forge::tune::NullThreatVerify = false;
+                else note_invalid();
             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
