@@ -72,6 +72,11 @@ constexpr int ValueNone = 32002;
     return score >= MateInMaxPly || score <= -MateInMaxPly;
 }
 
+// Half-width, in centipawns, of repetition and fifty-move leaf scores.
+// 0 keeps those leaves at exactly 0. Mate scores are never adjusted.
+constexpr int DrawJitterMax = 8;
+extern int DrawJitter;
+
 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
 
 struct TTEntry {
@@ -406,6 +411,8 @@ private:
     [[nodiscard]] std::int64_t elapsed_ms() const;
     [[nodiscard]] std::uint64_t total_nodes() const;
     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
+    // Score for a repetition or fifty-move leaf. Other draws stay at 0.
+    [[nodiscard]] int draw_leaf_score(const Board& board) const;
     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
                             const Move* quiets, int quiet_count);
     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
