@@ -1,0 +1,11 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'),crypto=require('crypto');
+const dir='/workspace/work/dwqww-all/forge-combo29/soak_all/search_equality_evidence';
+console.log('Previous packaging check selected JSON rows starting with index; run records start with name. Its processRows=0 was an extraction mismatch, not an engine result. Corrected check follows.');
+let count=0;
+for(const prefix of ['C4','C7']){const rows=fs.readFileSync(dir+'/'+prefix+'-run-transcript.txt','utf8').split('\n').filter(l=>l.startsWith('{"name":')).map(l=>JSON.parse(l));if(rows.length!==5)throw Error('Expected five process rows for '+prefix);for(const v of rows){if(v.code!==0||v.signal!==null||v.stderrBytes!==0||fs.statSync(dir+'/'+v.name+'.stderr.txt').size!==0)throw Error('Bad process '+v.name);console.log(JSON.stringify({name:v.name,code:v.code,signal:v.signal,stderrBytes:v.stderrBytes,bestmove:v.result.bestmove,score:v.result.score,nodes:v.result.nodes}));count++;}}
+console.log('VERIFIED_FRESH_PROCESSES '+count);
+for(const [source,name] of [['/workspace/work/all-run/C-3228-final-package-check.txt','C4-C7-initial-package-check.txt'],['/workspace/work/all-run/C-3228-review/C4-C7-final-check-command.txt','C4-C7-final-check-command.txt']]){const b=fs.readFileSync(source);fs.copyFileSync(source,dir+'/'+name,fs.constants.COPYFILE_EXCL);fs.chmodSync(dir+'/'+name,0o644);fs.appendFileSync(dir+'/manifest.txt',crypto.createHash('sha256').update(b).digest('hex')+'  '+b.length+'  '+name+'\n');}
+let verified=0;for(const line of fs.readFileSync(dir+'/manifest.txt','utf8').trim().split('\n')){const m=line.match(/^([a-f0-9]{64})\s+(\d+)\s+(.+)$/),b=fs.readFileSync(dir+'/'+m[3]);if(b.length!==+m[2]||crypto.createHash('sha256').update(b).digest('hex')!==m[1])throw Error('Hash mismatch '+m[3]);verified++;}console.log('VERIFIED_MANIFEST_ENTRIES '+verified);
+NODE

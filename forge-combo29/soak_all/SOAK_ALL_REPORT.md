@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T13:32:48.196Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T13:38:43.733Z.
 
-Elapsed at snapshot: 141.27 minutes; current phase: 2D; recorded pushes: 24. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 147.20 minutes; current phase: 2E; recorded pushes: 25. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -18,7 +18,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
 | 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 100,000 positions; 715 excluded; 8 differences low clock; 31 differences high clock; 8 fault positions | Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed |
 | 2D | Sanitizer self-play; inspect each batch for its exact node/depth/thread limits. | 513 games; 58,491 searches; 0 faults | Running |
-| 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
+| 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | 11 games; 1,525 searches; 0 faults | Running |
 | 2F | ASAN+UBSAN self-play with all three new options enabled; exact limits remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | No completed counts recorded | Pending; no completed counts recorded |
@@ -69,6 +69,38 @@ KRK uses the retained exact t12 retrograde algorithm with shared board/attack pr
 | merged | 2 | KBBK | 66 | 66 | 0 | 0 | 271,756,563 | 35,409 | 35,470 |
 
 These are sums of observed measurements under the listed conditions. Early mate stops are separate from reaching depth 12; wall time and engine-reported time differ. No speed conclusion is drawn.
+
+## Sanitizer self-play outcomes
+
+Chess fault counters, runtime failures and sanitizer warnings are separate observations. A chess summary with zero faults does not establish a clean sanitizer run. Counts in this section come only from matched finished batches in the supplied audit snapshot; state game/search totals remain unchanged.
+
+Audit snapshot: 2026-11-14T13:38:38.306Z; reported reconciliation errors 0. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.
+
+| Phase | Audited / finished attempts | With canonical counts | With process classification | TSan warning blocks | Unresolved blocks | Nonzero exits | Runtime/diagnostic affected | Timeout/forced |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2D | 2 / 2 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| 2E | 1 / 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| 2F | 0 / 0 | 0 | 0 | — | — | — | — | — |
+
+Coverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.
+
+<details>
+<summary>Per-batch sanitizer and process evidence</summary>
+
+| Batch | Finished UTC | Threads | Depth / node setting | Candidate flags | Counted games / searches / chess faults | Exit / signal | Runtime classification | Runtime marker lines | Canonical TSan warnings | Resolved groups / unresolved blocks | TSan footer |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| [2D #1](batches/2D-0001.txt) | 2026-11-14T11:58:57.355Z | 1 | 0 / 2,000 | false / false / false | 194 / 27,831 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2D #2](batches/2D-0002.txt) | 2026-11-14T13:32:31.315Z | 2 | 0 / 2,000 | false / false / false | 319 / 30,660 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+| [2E #1](batches/2E-0001.txt) | 2026-11-14T13:38:29.617Z | 2 | 9 / 0 | false / false / false | 11 / 1,525 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
+
+Conditions come from each retained raw SUMMARY, or its retained parsed SUMMARY when raw text is unavailable. Candidate order is ContHist4PlyRead / NonPawnCorrection / LmrDeeperShallower; literal booleans are shown. A positive depth setting selects depth-limited search; depth zero selects the node limit. Missing conditions are not inferred from the phase description or later batches.
+
+
+Only canonical warning blocks from each primary runtime log enter the totals. Mirrored artifacts, WARNING/SUMMARY markers and runtime footers are not additional warnings. Runtime duplicate suppression can hide repeated manifestations; these counts are not reproduction frequencies.
+
+</details>
+
+No resolved source-line-pair groups are available in the matched audit data. This is not a clean-run claim; inspect unresolved blocks, missing coverage and process outcomes.
 
 ## Match counts
 
@@ -248,9 +280,9 @@ A retry link records a later attempt; it does not imply that every partial unit 
 
 </details>
 
-Optional audit snapshot: 2026-11-14T13:32:43.058Z; state SHA256 `6b69cfa124f1d20fbd828822e8b7dde3a563ecf48daa93c34bc3f2826e45b4e9`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
+Optional audit snapshot: 2026-11-14T13:38:38.306Z; state SHA256 `3c8f389eefa092ded46cdd6ecc24d7cf1bf475c249c5fa854becdaf3d564f742`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
 
-| Audited batch | Raw verification | Partial safety observations | Sanitizer occurrences |
+| Audited batch | Raw verification | Partial safety observations | Artifacts with diagnostic markers |
 | --- | --- | --- | --- |
 | 2D:1 | Limited; see audit | 0 | 0 |
 | 2Aprep:1 | Raw records inspected; see audit issues | 0 | 0 |
@@ -270,6 +302,7 @@ Optional audit snapshot: 2026-11-14T13:32:43.058Z; state SHA256 `6b69cfa124f1d20
 | 2C:6 | Raw records inspected; see audit issues | 0 | 0 |
 | 2C:7 | Raw records inspected; see audit issues | 0 | 0 |
 | 2D:2 | Limited; see audit | 0 | 0 |
+| 2E:1 | Limited; see audit | 0 | 0 |
 
 <details>
 <summary>Audit issues and limits</summary>
@@ -297,6 +330,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2B | 200 fixed-seed legal bare-king roots, no mate-score selection; lock and merged, Threads1/2, depth12; raw nodes and times only | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 | 2C | Four disjoint frozen corpus shards; cold depth9 comparisons; counts only | Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed |
+| 2E | TSan self-play, Threads2, Hash16, OwnBookfalse, UseNNUEtrue, MultiPV1, all3 candidates false, depth9,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Running |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -733,6 +767,21 @@ This appendix preserves every state total, including overlapping categories and 
 | 2C | reproduction_differences | 390 |
 | 2C | reproduction_fault_pairs | 80 |
 | 2C | batches | 7 |
+| 2E | games | 11 |
+| 2E | moves | 1525 |
+| 2E | searches | 1525 |
+| 2E | opening_moves | 88 |
+| 2E | faults | 0 |
+| 2E | illegal | 0 |
+| 2E | missing | 0 |
+| 2E | badscore | 0 |
+| 2E | mates | 5 |
+| 2E | stalemates | 0 |
+| 2E | repetitions | 5 |
+| 2E | fifty | 0 |
+| 2E | ply_caps | 0 |
+| 2E | insufficient | 1 |
+| 2E | batches | 1 |
 
 </details>
 

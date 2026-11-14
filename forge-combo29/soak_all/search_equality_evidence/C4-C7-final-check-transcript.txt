@@ -1,0 +1,25 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'),crypto=require('crypto');
+const dir='/workspace/work/dwqww-all/forge-combo29/soak_all/search_equality_evidence';
+console.log('Previous packaging check selected JSON rows starting with index; run records start with name. Its processRows=0 was an extraction mismatch, not an engine result. Corrected check follows.');
+let count=0;
+for(const prefix of ['C4','C7']){const rows=fs.readFileSync(dir+'/'+prefix+'-run-transcript.txt','utf8').split('\n').filter(l=>l.startsWith('{"name":')).map(l=>JSON.parse(l));if(rows.length!==5)throw Error('Expected five process rows for '+prefix);for(const v of rows){if(v.code!==0||v.signal!==null||v.stderrBytes!==0||fs.statSync(dir+'/'+v.name+'.stderr.txt').size!==0)throw Error('Bad process '+v.name);console.log(JSON.stringify({name:v.name,code:v.code,signal:v.signal,stderrBytes:v.stderrBytes,bestmove:v.result.bestmove,score:v.result.score,nodes:v.result.nodes}));count++;}}
+console.log('VERIFIED_FRESH_PROCESSES '+count);
+for(const [source,name] of [['/workspace/work/all-run/C-3228-final-package-check.txt','C4-C7-initial-package-check.txt'],['/workspace/work/all-run/C-3228-review/C4-C7-final-check-command.txt','C4-C7-final-check-command.txt']]){const b=fs.readFileSync(source);fs.copyFileSync(source,dir+'/'+name,fs.constants.COPYFILE_EXCL);fs.chmodSync(dir+'/'+name,0o644);fs.appendFileSync(dir+'/manifest.txt',crypto.createHash('sha256').update(b).digest('hex')+'  '+b.length+'  '+name+'\n');}
+let verified=0;for(const line of fs.readFileSync(dir+'/manifest.txt','utf8').trim().split('\n')){const m=line.match(/^([a-f0-9]{64})\s+(\d+)\s+(.+)$/),b=fs.readFileSync(dir+'/'+m[3]);if(b.length!==+m[2]||crypto.createHash('sha256').update(b).digest('hex')!==m[1])throw Error('Hash mismatch '+m[3]);verified++;}console.log('VERIFIED_MANIFEST_ENTRIES '+verified);
+NODE
++ node
+Previous packaging check selected JSON rows starting with index; run records start with name. Its processRows=0 was an extraction mismatch, not an engine result. Corrected check follows.
+{"name":"C4-14002-production-lock","code":0,"signal":null,"stderrBytes":0,"bestmove":"a5c7","score":-1214,"nodes":36360}
+{"name":"C4-14002-production-merged","code":0,"signal":null,"stderrBytes":0,"bestmove":"a5c7","score":-1178,"nodes":26217}
+{"name":"C4-14002-mask-0","code":0,"signal":null,"stderrBytes":0,"bestmove":"a5c7","score":-1178,"nodes":26217}
+{"name":"C4-14002-mask-7","code":0,"signal":null,"stderrBytes":0,"bestmove":"a5c7","score":-1204,"nodes":207059}
+{"name":"C4-14002-mask-63","code":0,"signal":null,"stderrBytes":0,"bestmove":"a5c7","score":-1214,"nodes":36360}
+{"name":"C7-25354-production-lock","code":0,"signal":null,"stderrBytes":0,"bestmove":"c4d4","score":-1812,"nodes":29685}
+{"name":"C7-25354-production-merged","code":0,"signal":null,"stderrBytes":0,"bestmove":"c4d4","score":-1812,"nodes":29687}
+{"name":"C7-25354-mask-0","code":0,"signal":null,"stderrBytes":0,"bestmove":"c4d4","score":-1812,"nodes":29687}
+{"name":"C7-25354-mask-7","code":0,"signal":null,"stderrBytes":0,"bestmove":"c4d4","score":-1812,"nodes":29685}
+{"name":"C7-25354-mask-63","code":0,"signal":null,"stderrBytes":0,"bestmove":"c4d4","score":-1812,"nodes":29685}
+VERIFIED_FRESH_PROCESSES 10
+VERIFIED_MANIFEST_ENTRIES 189

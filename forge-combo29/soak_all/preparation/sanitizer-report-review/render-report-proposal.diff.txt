@@ -1,0 +1,137 @@
+--- /workspace/work/renderer-def-review/render-report-baseline.mjs	2026-11-14 05:26:19.941500247 -0800
++++ /workspace/work/renderer-def-review/render-report-proposed.mjs	2026-11-14 05:34:19.115474586 -0800
+@@ -73,7 +73,8 @@
+     phase === '2C' ? ['positions', 'excluded', 'differences_low_clock', 'differences_high_clock', 'fault_positions'] :
+     ['2D', '2E', '2F'].includes(phase) ? ['games', 'searches', 'faults', 'sanitizer_reports', 'sanitizer_issues',
+       'sanitizer_findings', 'race_reports', 'race_findings', 'tsan_findings'] :
+-    phase === '2G' ? ['test_checks', 'checks', 'tests', 'nonzero_checks', 'sanitizer_reports', 'faults'] :
++    phase === '2G' ? ['tests_completed', 'cases', 'mate_cases', 'nonmate_cases', 'rule50_cases',
++      'test_checks', 'checks', 'tests', 'nonzero_checks', 'sanitizer_reports', 'faults'] :
+     phase === '2KRKfull' ? ['positions', 'roots', 'trials', 't1_runs', 't2_runs', 'misses', 'faults', 'sanitizer_reports'] :
+     phase === 'Part4' ? ['completed_units', 'trials', 'positive_mates_checked', 'mate_bound_check_failures', 'faults', 'reproductions'] :
+     phase.startsWith('3-') ? ['games', 'wins', 'losses', 'draws', 'audit_errors'] :
+@@ -151,6 +152,107 @@
+   return out + '\n</details>\n';
+ }
+ 
++function selfPlayAuditSection(state, audit, runs) {
++  const phases = ['2D', '2E', '2F'], finished = runs.filter(r => phases.includes(r.phase) && r.finishedUTC);
++  const integer = x => Number.isSafeInteger(x) && x >= 0;
++  const identicalCounts = (a, b) => {
++    const x = object(a), y = object(b), keys = Object.keys(x);
++    return keys.length === Object.keys(y).length && keys.every(k => own(y, k) && x[k] === y[k]);
++  };
++  const conditionKeys = ['threads', 'depth', 'nodes', 'ContHist4PlyRead', 'NonPawnCorrection', 'LmrDeeperShallower'];
++  const conditions = r => {
++    let summary = object(r.summary), source = 'retained parsed SUMMARY', issue = '';
++    if (typeof r.summaryRaw === 'string') {
++      try {
++        const raw = JSON.parse(r.summaryRaw);
++        if (conditionKeys.some(k => own(summary, k) && summary[k] !== raw?.[k])) issue = 'raw/parsed SUMMARY condition mismatch';
++        summary = object(raw); source = 'retained raw SUMMARY';
++      } catch { issue = 'retained raw SUMMARY cannot be parsed'; summary = {}; }
++    }
++    if (issue) summary = {};
++    const complete = ['threads', 'depth', 'nodes'].every(k => integer(summary[k])) &&
++      conditionKeys.slice(3).every(k => typeof summary[k] === 'boolean');
++    const displayed = Object.fromEntries(conditionKeys.filter(k => ['threads', 'depth', 'nodes'].includes(k) ? integer(summary[k]) : typeof summary[k] === 'boolean').map(k => [k, summary[k]]));
++    return {summary: displayed, source, issue: issue || (complete ? '' : 'one or more per-batch condition fields unavailable')};
++  };
++  const candidates = new Map(), omissions = [], rows = [], grouped = new Map();
++  for (const b of array(audit?.batches).filter(b => phases.includes(b.phase))) {
++    const key = `${b.phase}:${b.id}`, list = candidates.get(key) ?? [];
++    list.push(b); candidates.set(key, list);
++  }
++  const finishedKeys = new Set(finished.map(r => `${r.phase}:${r.id}`));
++  for (const [key, list] of candidates) if (!finishedKeys.has(key)) omissions.push(`${key}: audit row has no matching finished attempt in this state snapshot; excluded from aggregation.`);
++  for (const r of finished) {
++    const key = `${r.phase}:${r.id}`, choices = candidates.get(key) ?? [], b = choices.length === 1 ? choices[0] : null;
++    const condition = conditions(r); if (condition.issue) omissions.push(`${key}: ${condition.issue}; planned or latest phase conditions are not substituted.`);
++    let reason = choices.length === 0 ? 'No audit row supplied' : choices.length > 1 ? 'Duplicate audit identities; no row selected' : '';
++    if (b && ((b.key && b.key !== key) || b.finishedUTC !== r.finishedUTC || !identicalCounts(b.recorded, r.completedCountsRecorded))) reason = 'Audit identity, finish time or recorded counters differ from state';
++    if (b?.processStatus && (b.processStatus.exit !== r.exit || b.processStatus.signal !== r.signal)) reason = 'Audit process exit/signal differ from state';
++    if (reason) { omissions.push(`${key}: ${reason}; no sanitizer count inferred.`); rows.push({r, key, b: null, reason, condition}); continue; }
++    const p = object(b.processStatus), c = object(b.sanitizerCounts), countsAvailable = ['primaryRuntimeMarkerLines', 'tsanWarningBlocks', 'tsanSourcePairGroups', 'tsanUnresolvedBlocks'].every(k => integer(c[k]));
++    const processAvailable = typeof p.classification === 'string' && (p.exit === null || integer(p.exit)) && (p.signal === null || typeof p.signal === 'string') &&
++      ['requires_separate_fault', 'has_runtime_diagnostics', 'timeout_or_forced'].every(k => typeof p[k] === 'boolean');
++    if (!countsAvailable) omissions.push(`${key}: canonical sanitizer counts unavailable; legacy marker/artifact totals are not a substitute.`);
++    if (!processAvailable) omissions.push(`${key}: independent runtime/process classification unavailable.`);
++    const row = {r, key, b, p, c, countsAvailable, processAvailable, condition}; rows.push(row);
++    if (c.footerCountConsistent === false) omissions.push(`${key}: TSan footer disagrees with retained warning blocks; the displayed count covers retained blocks only.`);
++    const groups = array(b.tsanGroups), seen = new Set(); let groupCount = 0, unresolved = 0, resolved = 0, valid = Array.isArray(b.tsanGroups);
++    for (const g of groups) {
++      if (!integer(g.reported_warning_blocks) || g.reported_warning_blocks === 0 || typeof g.kind !== 'string') { valid = false; continue; }
++      groupCount += g.reported_warning_blocks;
++      if (g.source_pair === null) { unresolved += g.reported_warning_blocks; continue; }
++      if (!Array.isArray(g.source_pair) || g.source_pair.length !== 2 || !g.source_pair.every(x => typeof x === 'string' && x.length)) { valid = false; continue; }
++      resolved++; const signature = JSON.stringify([g.kind, [...g.source_pair].sort()]);
++      if (seen.has(signature)) valid = false; seen.add(signature);
++    }
++    valid = valid && countsAvailable && groupCount === c.tsanWarningBlocks && unresolved === c.tsanUnresolvedBlocks && resolved === c.tsanSourcePairGroups;
++    if (!valid) { if (countsAvailable && c.tsanWarningBlocks > 0) omissions.push(`${key}: source-pair groups absent or inconsistent with canonical counts; omitted from global grouping.`); continue; }
++    for (const g of groups.filter(g => g.source_pair !== null)) {
++      const pair = [...g.source_pair].sort(), signature = JSON.stringify([g.kind, pair]);
++      const item = grouped.get(signature) ?? {kind: g.kind, pair, warnings: 0, batches: new Map()};
++      item.warnings += g.reported_warning_blocks; item.batches.set(key, {run: r, warnings: g.reported_warning_blocks}); grouped.set(signature, item);
++    }
++  }
++  let out = '## Sanitizer self-play outcomes\n\n';
++  out += 'Chess fault counters, runtime failures and sanitizer warnings are separate observations. A chess summary with zero faults does not establish a clean sanitizer run. Counts in this section come only from matched finished batches in the supplied audit snapshot; state game/search totals remain unchanged.\n\n';
++  out += audit ? `Audit snapshot: ${text(audit.utc)}; reported reconciliation errors ${fmt(audit.errors)}. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.\n\n`
++    : 'No audit snapshot supplied. Sanitizer counts and runtime classifications are unavailable.\n\n';
++  out += table(['Phase', 'Audited / finished attempts', 'With canonical counts', 'With process classification', 'TSan warning blocks', 'Unresolved blocks', 'Nonzero exits', 'Runtime/diagnostic affected', 'Timeout/forced'], phases.map(phase => {
++    const all = rows.filter(r => r.r.phase === phase), matched = all.filter(r => r.b), counted = matched.filter(r => r.countsAvailable), processes = matched.filter(r => r.processAvailable);
++    const sum = key => counted.length ? counted.reduce((n, r) => n + r.c[key], 0) : undefined;
++    const affected = processes.length ? processes.filter(r => r.p.requires_separate_fault === true || r.p.has_runtime_diagnostics === true).length : undefined;
++    return values([phase, `${matched.length} / ${all.length}`, counted.length, processes.length, sum('tsanWarningBlocks'), sum('tsanUnresolvedBlocks'),
++      processes.length ? processes.filter(r => number(r.p.exit) && r.p.exit !== 0).length : undefined, affected,
++      processes.length ? processes.filter(r => r.p.timeout_or_forced === true).length : undefined]);
++  }));
++  out += '\nCoverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.\n\n';
++  if (rows.length) {
++    out += '<details>\n<summary>Per-batch sanitizer and process evidence</summary>\n\n';
++    out += table(['Batch', 'Finished UTC', 'Threads', 'Depth / node setting', 'Candidate flags', 'Counted games / searches / chess faults', 'Exit / signal', 'Runtime classification', 'Runtime marker lines', 'Canonical TSan warnings', 'Resolved groups / unresolved blocks', 'TSan footer'], rows.map(row => {
++      const {r, b, p = {}, c = {}} = row, recorded = object(r.completedCountsRecorded), footer = c.footerCountConsistent === true ? 'Matches retained blocks' : c.footerCountConsistent === false ? 'Mismatch; see omissions' : 'Unavailable / not applicable';
++      const settings = row.condition.summary, bool = k => typeof settings[k] === 'boolean' ? String(settings[k]) : '—';
++      const exit = own(p, 'exit') ? p.exit : r.exit, signal = own(p, 'signal') ? p.signal : r.signal;
++      return [batchLink(r), text(r.finishedUTC), text(fmt(settings.threads)), text(`${fmt(settings.depth)} / ${fmt(settings.nodes)}`),
++        text(conditionKeys.slice(3).map(bool).join(' / ')), text(`${fmt(recorded.games)} / ${fmt(recorded.searches)} / ${fmt(recorded.faults)}`),
++        text(`${fmt(exit)} / ${signal === null ? 'none' : fmt(signal)}`), text(row.reason || p.classification || 'Unavailable'),
++        ...values([row.countsAvailable ? c.primaryRuntimeMarkerLines : undefined, row.countsAvailable ? c.tsanWarningBlocks : undefined]),
++        text(`${fmt(row.countsAvailable ? c.tsanSourcePairGroups : undefined)} / ${fmt(row.countsAvailable ? c.tsanUnresolvedBlocks : undefined)}`), text(footer)];
++    }));
++    out += '\nConditions come from each retained raw SUMMARY, or its retained parsed SUMMARY when raw text is unavailable. Candidate order is ContHist4PlyRead / NonPawnCorrection / LmrDeeperShallower; literal booleans are shown. A positive depth setting selects depth-limited search; depth zero selects the node limit. Missing conditions are not inferred from the phase description or later batches.\n\n';
++    out += '\nOnly canonical warning blocks from each primary runtime log enter the totals. Mirrored artifacts, WARNING/SUMMARY markers and runtime footers are not additional warnings. Runtime duplicate suppression can hide repeated manifestations; these counts are not reproduction frequencies.\n\n</details>\n\n';
++  }
++  const global = [...grouped.values()].sort((a, b) => b.warnings - a.warnings || a.pair.join('|').localeCompare(b.pair.join('|')));
++  if (global.length) {
++    out += `${fmt(global.length)} observed source-line-pair groups across the matched audit batches. This is a grouping of reported evidence, not a count of distinct bugs. Repeated pairs across batches appear once below; their reported warning blocks are summed once per batch.\n\n`;
++    out += table(['Warning type', 'Access source 1', 'Access source 2', 'Reported warning blocks', 'Contributing batches'], global.map(g => [
++      text(g.kind), text(g.pair[0]), text(g.pair[1]), text(fmt(g.warnings)), [...g.batches.values()].map(({run, warnings}) => batchLink(run) + ` (${fmt(warnings)})`).join('; ')
++    ]));
++  } else out += 'No resolved source-line-pair groups are available in the matched audit data. This is not a clean-run claim; inspect unresolved blocks, missing coverage and process outcomes.\n';
++  if (state.active && phases.includes(state.active.phase)) omissions.push(`${state.active.phase}:${state.active.id}: active attempt omitted from finished coverage and all counts.`);
++  if (omissions.length) out += '\nAudit coverage and grouping omissions:\n\n' + omissions.map(s => '- ' + text(s)).join('\n') + '\n';
++  return out + '\n';
++}
++
+ /** Render SOAK_ALL_REPORT.md without modifying input objects or reading files. */
+ export function renderReport(state, audit = null, options = {}) {
+   if (!state || typeof state !== 'object' || Array.isArray(state)) throw new TypeError('state must be an object');
+@@ -200,6 +302,7 @@
+     out += '\nThese are sums of observed measurements under the listed conditions. Early mate stops are separate from reaching depth 12; wall time and engine-reported time differ. No speed conclusion is drawn.\n\n';
+   }
+ 
++  out += selfPlayAuditSection(state, audit, runs);
+   out += '## Match counts\n\n';
+   out += 'All W–L–D and pair bins are from the candidate’s perspective. Default mode compares merged defaults with the lock. Each option mode compares the merged executable with only that option enabled against the merged executable with all three options disabled. Modes are kept separate.\n\n';
+   out += 'Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook false, color-swapped pairs, UHO openings and `-recover`; exact commands, seeds, options and process results remain in batch artifacts. Pending rows describe planned conditions only.\n\n';
+@@ -273,7 +376,7 @@
+     if (options.auditLink) out += ' ' + link('Full audit', options.auditLink) + '.';
+     out += '\n\n';
+     const batches = array(audit.batches);
+-    if (batches.length) out += table(['Audited batch', 'Raw verification', 'Partial safety observations', 'Sanitizer occurrences'], batches.map(b => [
++    if (batches.length) out += table(['Audited batch', 'Raw verification', 'Partial safety observations', 'Artifacts with diagnostic markers'], batches.map(b => [
+       text(b.key ?? `${b.phase}:${b.id}`), b.rawVerified === true ? 'Raw records inspected; see audit issues' : 'Limited; see audit',
+       text(array(b.partialSafety).length), text(array(b.sanitizerOccurrences).length)
+     ])) + '\n';
