@@ -1,5 +1,6 @@
 // Phase D: exact incremental/full and built-in/file NNUE comparisons.
 #include "forge/nnue.hpp"
+#include "uci_nnue_loader.hpp"
 #include <chrono>
 #include <cstdint>
 #include <fstream>
@@ -67,7 +68,7 @@ static void damaged(const std::string& net,const std::vector<std::string>& sampl
     for(int kind=0;kind<4;++kind){auto bytes=original;
         if(kind==0)bytes[0]^=1;if(kind==1)bytes[8]=2;if(kind==2){bytes[12]=128;bytes[13]=0;}if(kind==3)bytes.pop_back();
         const std::string path=net+".soak-bad-"+std::to_string(kind);{std::ofstream out(path,std::ios::binary);out.write(reinterpret_cast<const char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));}
-        std::string error;const bool accepted=forge::nnue::load_file(path,error);++total.damaged;
+        std::string error;const bool accepted=soak_load_net(path,error);++total.damaged;
         if(accepted){forge::Board b;fail("damaged_accepted",b,"startpos","",kind,0,1);}
         for(std::size_t i=0;i<samples.size();++i){forge::Board b;if(!b.set_fen(samples[i]))throw std::runtime_error("sample FEN");const int got=full_value(b);if(got!=before[i])fail("damaged_changed_old_net",b,samples[i],"",kind,before[i],got);}
     }
@@ -81,9 +82,9 @@ int main(int argc,char** argv){
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(seconds);std::uint64_t completed=0;
     try {for(chunk_id=first;chunk_id<first+chunks && std::chrono::steady_clock::now()<deadline;++chunk_id){
         std::vector<int> expected;expected.reserve(count);std::vector<std::string> samples;std::string error;
-        if(!forge::nnue::load_file("",error))throw std::runtime_error(error);
+        if(!soak_load_net("",error))throw std::runtime_error(error);
         walk(batch_seed+chunk_id*0x9e3779b97f4a7c15ULL,count,expected,false,samples,corpus?&corpus:nullptr);
-        if(!forge::nnue::load_file(net,error))throw std::runtime_error(error);
+        if(!soak_load_net(net,error))throw std::runtime_error(error);
         walk(batch_seed+chunk_id*0x9e3779b97f4a7c15ULL,count,expected,true,samples,nullptr);
         damaged(net,samples);++completed;
         std::cout<<"PROGRESS chunks="<<completed<<" positions="<<total.positions<<" faults="<<total.faults<<std::endl;

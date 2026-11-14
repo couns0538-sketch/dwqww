@@ -30,7 +30,7 @@ int main(int argc,char** argv){
         else if(a=="--seed")seed=std::stoull(v);else if(a=="--offset")offset=std::stoull(v);else if(a=="--limit")limit=std::stoull(v);else if(a=="--seconds")seconds=std::stoi(v);else return 2;}
     if(lock.empty()||intg.empty()||fault_dir.empty())return 2;std::filesystem::create_directories(fault_dir);
     const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(seconds);
-    std::uint64_t positions=0,differences=0,attempts=0,selected=0,lock_runs=0,int_runs=0,lock_misses=0,int_misses=0,lock_lost=0,int_lost=0,faults=0;
+    std::uint64_t positions=0,differences=0,attempts=0,selected=0,lock_runs=0,int_runs=0,lock_misses=0,int_misses=0,lock_lost=0,int_lost=0,lock_failures=0,int_failures=0,faults=0;
     try{
         UciProcess reference(lock),integration(intg);
         if(mode=="compare"){
@@ -62,13 +62,13 @@ int main(int argc,char** argv){
             const auto fens=read_fens(input);reference.threads(2);integration.threads(2);
             for(std::uint64_t i=offset;i<fens.size() && positions<limit && std::chrono::steady_clock::now()<deadline;++i){
                 const auto& fen=fens[i];++positions;
-                for(int build=0;build<2;++build){auto& engine=build?integration:reference;const std::string name=build?"integration":"lock";std::string transcript;int misses=0,lost=0;
+                for(int build=0;build<2;++build){auto& engine=build?integration:reference;const std::string name=build?"integration":"lock";std::string transcript;int misses=0,lost=0,failures=0;
                     for(int trial=1;trial<=10;++trial){std::cout<<"KRK_CASE seed="<<seed<<" index="<<i<<" build="<<name<<" try="<<trial<<" fen="<<fen<<std::endl;
-                        const auto r=engine.search(fen,14);const auto loss=lost_krk(fen,r.move);if(!r.positive_mate())++misses;if(!loss.empty())++lost;
+                        const auto r=engine.search(fen,14);const auto loss=lost_krk(fen,r.move);if(!r.positive_mate())++misses;if(!loss.empty())++lost;if(!r.positive_mate()||!loss.empty())++failures;
                         transcript+="\nTry "+std::to_string(trial)+"\n"+r.transcript+"mate_missing="+std::to_string(!r.positive_mate())+" lost_mate_reason="+loss+"\n";
                         std::cout<<"KRK_RESULT "<<name<<" "<<compact(r)<<" missing="<<!r.positive_mate()<<" lost="<<(loss.empty()?"none":loss)<<std::endl;
                     }
-                    if(build){int_runs+=10;int_misses+=misses;int_lost+=lost;}else{lock_runs+=10;lock_misses+=misses;lock_lost+=lost;}
+                    if(build){int_runs+=10;int_misses+=misses;int_lost+=lost;int_failures+=failures;}else{lock_runs+=10;lock_misses+=misses;lock_lost+=lost;lock_failures+=failures;}
                     if(misses||lost){++faults;std::ofstream file(fault_dir+"/G-"+std::to_string(seed)+"-"+std::to_string(i)+"-"+name+".txt");file<<"G two-thread KRK mate failure: "<<name<<"\nSeed "<<seed<<" index "<<i<<"\nFEN "<<fen<<"\nThreads 2 Hash 16 OwnBook false, go depth 14, fresh ucinewgame each try.\n"<<transcript<<"\nMate score missing "<<misses<<" / 10 tries; mate-losing move "<<lost<<" / 10 tries.\n";}
                 }
             }
@@ -76,6 +76,6 @@ int main(int argc,char** argv){
     }catch(const std::exception& e){++faults;std::cout<<"FAULT_EXCEPTION "<<e.what()<<std::endl;}
     std::cout<<"SUMMARY {\"seed\":"<<seed<<",\"positions\":"<<positions<<",\"differences\":"<<differences<<",\"selection_attempts\":"<<attempts<<",\"selected\":"<<selected
         <<",\"lock_runs\":"<<lock_runs<<",\"integration_runs\":"<<int_runs<<",\"lock_misses\":"<<lock_misses<<",\"integration_misses\":"<<int_misses
-        <<",\"lock_lost_mates\":"<<lock_lost<<",\"integration_lost_mates\":"<<int_lost<<",\"faults\":"<<faults<<"}"<<std::endl;
+        <<",\"lock_lost_mates\":"<<lock_lost<<",\"integration_lost_mates\":"<<int_lost<<",\"lock_failures\":"<<lock_failures<<",\"integration_failures\":"<<int_failures<<",\"faults\":"<<faults<<"}"<<std::endl;
     return faults?1:0;
 }
