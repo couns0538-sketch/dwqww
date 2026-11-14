@@ -24,7 +24,7 @@ Frozen input commits
 01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
 02 f29db79a4e873309bad06bbc2606c7876ca995a8 grok47/r3-02-threat-history
 03 1ecc1d33156d1833701b98586f9c17bd4f67da91 grok47/r3-03-lmr-signed-correction
-04 ae2cc041e24b5805d04fd4a0d95fcf88f20fdb84 grok47/r3-04-lmr-late-parent-relief
+04 feccf387e16ac19233f77413a113134467b3f0f3 grok47/r3-04-lmr-late-parent-relief
 05 4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e grok47/r3-05-hindsight-depth
 06 55d714b10c4aa837cab381e2f8cd46e62cea1c48 grok47/r3-06-null-threat-verify
 07 7e738ba98d440f5a9ff9a7393d5abd8fcd23f67d grok47/r3-07-null-see-veto
@@ -64,7 +64,7 @@ option                value  commit                                     expected
 EvalRule50Damp        true   c0aaf80df40213f867038d2280abbc954d8b9e98    1049205    1049205
 ThreatHistory         true   f29db79a4e873309bad06bbc2606c7876ca995a8    643389     643389
 LmrSignedCorrection   true   1ecc1d33156d1833701b98586f9c17bd4f67da91    862329     862329
-LmrLateParentRelief   true   ae2cc041e24b5805d04fd4a0d95fcf88f20fdb84    818656     818656
+LmrLateParentRelief   true   feccf387e16ac19233f77413a113134467b3f0f3    818656     818656
 HindsightDepth        true   4ce2b8b18fd9490fb07cd7f6be2fb6d81f8c9a6e    840387     840387
 NullThreatVerify      true   55d714b10c4aa837cab381e2f8cd46e62cea1c48    789456     789456
 NullSeeVeto           true   7e738ba98d440f5a9ff9a7393d5abd8fcd23f67d    929140     929140
@@ -131,8 +131,12 @@ r3-17 at 02674044d770fc756ea2cc1041726d23bad6c659 and r3-12 at
 6d8717d287cc5f1038d53355b8b03d3cbba9e604 do not contain the line
 `R3 FOLLOW-UP DONE`. Those tips were already merged. r3-01 moved to
 c0aaf80df40213f867038d2280abbc954d8b9e98, a screen chunk and report
-update with no source change. Pins and the option table were run
-again on the same owner binary and matched the numbers above.
+update with no source change. At 16:16 UTC r3-04 moved to
+feccf387e16ac19233f77413a113134467b3f0f3, also with no source change.
+Pins and the option table were run again after each of those merges
+and matched the numbers above. Where a newer tip does not change
+src or include, the expected bench is the number already measured
+on that same engine source.
 
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
