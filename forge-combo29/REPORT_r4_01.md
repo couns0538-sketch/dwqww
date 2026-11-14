@@ -24,7 +24,7 @@ Frozen input commits
 01 56c0bbc3f71cbd82df0cf6fc73ab1ff53aaa7213 grok47/r3-01-eval-rule-50-damp
 02 ab21443c460723c618041db2840cd28e3e15cb80 grok47/r3-02-threat-history
 03 73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2 grok47/r3-03-lmr-signed-correction
-04 d71f002fde848d2a4c3ef661dde152a442d395c6 grok47/r3-04-lmr-late-parent-relief
+04 5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db grok47/r3-04-lmr-late-parent-relief
 05 e7f2ab305c2031fe61edfbc0017153af4280c692 grok47/r3-05-hindsight-depth
 06 e0c1252e498f2d587052a33e200163468803d7db grok47/r3-06-null-threat-verify
 07 06b49fd5a154caf13f401874cd01787fbf617045 grok47/r3-07-null-see-veto
@@ -64,7 +64,7 @@ option                value  commit                                     expected
 EvalRule50Damp        true   56c0bbc3f71cbd82df0cf6fc73ab1ff53aaa7213    1049205    1049205
 ThreatHistory         true   ab21443c460723c618041db2840cd28e3e15cb80    643389     643389
 LmrSignedCorrection   true   73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2    862329     862329
-LmrLateParentRelief   true   d71f002fde848d2a4c3ef661dde152a442d395c6    818656     818656
+LmrLateParentRelief   true   5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db    818656     818656
 HindsightDepth        true   e7f2ab305c2031fe61edfbc0017153af4280c692    840387     840387
 NullThreatVerify      true   e0c1252e498f2d587052a33e200163468803d7db    789456     789456
 NullSeeVeto           true   06b49fd5a154caf13f401874cd01787fbf617045    929140     929140
@@ -205,6 +205,7 @@ Tip r3-10 70aa5474059498df8a4925a37daeb70f1cb771df merged with no engine-source 
 Tip r3-11 6a37cd41aaf976094696f9fd3fbf15bea8f0eaf0 merged with no engine-source change; pins were not re-run.
 Tip r3-16 4bb15fdbe2aa38bf1a89251df294d7e56089b074 merged with no engine-source change; pins were not re-run.
 Tip r3-02 ab21443c460723c618041db2840cd28e3e15cb80 merged with no engine-source change; pins were not re-run.
+Tip r3-04 5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
