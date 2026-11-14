@@ -1,0 +1,293 @@
++ head -n 60
++ rg --files /workspace/work/all-run -g '*.mjs' -g '*.js'
+/workspace/work/all-run/part3-api-readiness/parser-fixtures.mjs
+/workspace/work/all-run/match_all.mjs
+/workspace/work/all-run/compare4.mjs
+/workspace/work/all-run/full-krk-retry.mjs
+/workspace/work/all-run/review-t1-t8/integration-final-doc/check-document.mjs
+/workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs
+/workspace/work/all-run/review-t1-t8/report-coverage-review/verify-renderer-proposal.mjs
+/workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.proposed.mjs
+/workspace/work/all-run/fixture-repeat.mjs
+/workspace/work/all-run/part3-real-batch-0001-audit/audit-real-batch.mjs
+/workspace/work/all-run/audit-results.mjs
+/workspace/work/all-run/run-tests.mjs
+/workspace/work/all-run/clock-cases.mjs
+/workspace/work/all-run/part3-accounting-proposal/match_all.mjs
+/workspace/work/all-run/part3-accounting-proposal/fixtures.mjs
+/workspace/work/all-run/part3-accounting-proposal/control.mjs
+/workspace/work/all-run/build-tests.mjs
+/workspace/work/all-run/play-spec-generator/make-play-spec.mjs
+/workspace/work/all-run/render-report.mjs
+/workspace/work/all-run/play-spec-generator/fixtures.mjs
+/workspace/work/all-run/split-krk-retry.mjs
+/workspace/work/all-run/run-g.mjs
+/workspace/work/all-run/clock-cases-final.mjs
+/workspace/work/all-run/next-compare.mjs
+/workspace/work/all-run/control.mjs
++ rg -n '60000|git.*push|function git|const git|push.*origin' /workspace/work/all-run/audit-results.mjs /workspace/work/all-run/build-tests.mjs /workspace/work/all-run/clock-cases-final.mjs /workspace/work/all-run/clock-cases.mjs /workspace/work/all-run/compare4.mjs /workspace/work/all-run/control.mjs /workspace/work/all-run/fixture-repeat.mjs /workspace/work/all-run/full-krk-retry.mjs /workspace/work/all-run/match_all.mjs /workspace/work/all-run/next-compare.mjs /workspace/work/all-run/render-report.mjs /workspace/work/all-run/run-g.mjs /workspace/work/all-run/run-tests.mjs /workspace/work/all-run/split-krk-retry.mjs '/workspace/work/all-run/*.js'
+rg: /workspace/work/all-run/*.js: No such file or directory (os error 2)
+/workspace/work/all-run/build-tests.mjs:7:function run(exe,args){fs.writeSync(fd,'\nUTC '+new Date().toISOString()+' ARGV '+JSON.stringify([exe,...args])+'\n');const r=cp.spawnSync(exe,args,{cwd:repo,stdio:['ignore',fd,fd],timeout:360000});fs.writeSync(fd,'EXIT '+r.status+' SIGNAL '+r.signal+'\n');if(r.status!==0)throw Error(exe+' failed '+r.status);}
+/workspace/work/all-run/control.mjs:8:const now=()=>new Date().toISOString(),minutes=()=>((Date.now()-Date.parse(s.start))/60000).toFixed(2),save=()=>fs.writeFileSync(statePath,JSON.stringify(s,null,2)+'\n');
+/workspace/work/all-run/control.mjs:9:const git=args=>cp.execFileSync('git',args,{cwd:repo,encoding:'utf8',timeout:60000});
+/workspace/work/all-run/control.mjs:45: console.log(git(['push','--no-follow-tags','origin','HEAD:refs/heads/'+branch]));s.pushes++;s.lastPush=now();save();console.log('CHECKPOINT '+s.lastPush+' pushes='+s.pushes);
+/workspace/work/all-run/control.mjs:203: if(Date.now()-Date.parse(s.lastPush)>60000)checkpoint(true);
+/workspace/work/all-run/audit-results.mjs:1:// VM-only evidence auditor. No engine execution, git, commit, or push operations.
+/workspace/work/all-run/audit-results.mjs:126:  if(current){if(/^={8,}$/.test(line)){finish(i);continue;}current.lines.push(original);}
+/workspace/work/all-run/audit-results.mjs:438:function main(args){const o={};for(let i=0;i<args.length;i++){if(args[i]==='--apply')o.apply=true;else if(['--state','--repo','--report'].includes(args[i])){const k=args[i].slice(2);if(!args[i+1]||args[i+1].startsWith('--'))throw Error('Missing value for '+args[i]);o[k]=args[++i];}else if(args[i]==='--help'){console.log('node audit-results.mjs [--state STATE_JSON] [--repo REPO] [--report VM_REPORT_JSON] [--apply]\nRead-only by default. --apply only after finished batch and active=null. Reconciliation errors block all writes. No engine execution, git, commit, or push.');return;}else throw Error('Unknown argument '+args[i]);}const report=audit(o);console.log('AUDIT_RESULTS '+JSON.stringify(compact(report,o.report)));if(report.errors)process.exitCode=2;}
+/workspace/work/all-run/render-report.mjs:269:    ? ((Date.parse(generatedAt) - Date.parse(state.start)) / 60000).toFixed(2) : 'not supplied';
++ ps -eo pid,ppid,etimes,pcpu,pmem,stat,comm
++ rg 'git|pack-objects|index-pack|remote-https'
+    920       1   39718  0.0  0.0 Zs   git
+    933       1   39717  0.0  0.0 Zs   git
+    944       1   39717  0.0  0.0 Zs   git
+    955       1   39716  0.0  0.0 Zs   git
+    966       1   39716  0.0  0.0 Zs   git
+    977       1   39716  0.0  0.0 Zs   git
+    988       1   39715  0.0  0.0 Zs   git
+   1068       1   39692  0.0  0.0 Zs   git
+   1078       1   39692  0.0  0.0 Zs   git
+   1115       1   39676  0.0  0.0 Zs   git
+   1154       1   39662  0.0  0.0 Zs   git
+   1179       1   39662  0.0  0.0 Zs   git
+   1316       1   39648  0.0  0.0 Zs   git
+   1326       1   39646  0.0  0.0 Zs   git
+   1901       1   39460  0.0  0.0 Zs   git
+   2201       1   39260  0.0  0.0 Zs   git
+   2399       1   39210  0.0  0.0 Zs   git
+   2775       1   39068  0.0  0.0 Zs   git
+  67478       1   38384  0.0  0.0 Zs   git
+  67646       1   37832  0.0  0.0 Zs   git
+  68448       1   37437  0.0  0.0 Zs   git
+  68830       1   36827  0.0  0.0 Zs   git
+  69577       1   36247  0.0  0.0 Zs   git
+  69793       1   35724  0.0  0.0 Zs   git
+  70025       1   35239  0.0  0.0 Zs   git
+  70249       1   34755  0.0  0.0 Zs   git
+  70478       1   34270  0.0  0.0 Zs   git
+  70716       1   33735  0.0  0.0 Zs   git
+  72381       1   33337  0.0  0.0 Zs   git
+  78148       1   32809  0.0  0.0 Zs   git
+  84729       1   32313  0.0  0.0 Zs   git
+  89866       1   31790  0.0  0.0 Zs   git
+  95424       1   31296  0.0  0.0 Zs   git
+  99802       1   30780  0.0  0.0 Zs   git
+  99997       1   30256  0.0  0.0 Zs   git
+ 100189       1   29773  0.0  0.0 Zs   git
+ 100379       1   29290  0.0  0.0 Zs   git
+ 100571       1   28806  0.0  0.0 Zs   git
+ 100763       1   28320  0.0  0.0 Zs   git
+ 100955       1   27835  0.0  0.0 Zs   git
+ 101104       1   27434  0.0  0.0 Zs   git
+ 101232       1   27361  0.0  0.0 Zs   git
+ 151841       1   26817  0.0  0.0 Zs   git
+ 202514       1   26232  0.0  0.0 Zs   git
+ 253629       1   25747  0.0  0.0 Zs   git
+ 306062       1   25262  0.0  0.0 Zs   git
+ 362063       1   24735  0.0  0.0 Zs   git
+ 420728       1   24199  0.0  0.0 Zs   git
+ 448502       1   23759  0.0  0.0 Zs   git
+ 505876       1   23364  0.0  0.0 Zs   git
+ 564385       1   22960  0.0  0.0 Zs   git
+ 649071       1   22383  0.0  0.0 Zs   git
+ 734135       1   21810  0.0  0.0 Zs   git
+ 816351       1   21256  0.0  0.0 Zs   git
+ 874086       1   20851  0.0  0.0 Zs   git
+ 958892       1   20275  0.0  0.0 Zs   git
+ 960905       1   20186  0.0  0.0 Zs   git
+ 961043       1   19562  0.0  0.0 Zs   git
+ 961246       1   18959  0.0  0.0 Zs   git
+ 961490       1   18367  0.0  0.0 Zs   git
+ 966914       1   17895  0.0  0.0 Zs   git
+ 968430       1   17557  0.0  0.0 Zs   git
+ 968454       1   17529  0.0  0.0 Zs   git
+ 968479       1   17491  0.0  0.0 Zs   git
+ 968488       1   17491  0.0  0.0 Zs   git
+ 968497       1   17490  0.0  0.0 Zs   git
+ 968529       1   17478  0.0  0.0 Zs   git
+ 968541       1   17477  0.0  0.0 Zs   git
+ 968553       1   17477  0.0  0.0 Zs   git
+ 968633       1   17465  0.0  0.0 Zs   git
+ 968904       1   17386  0.0  0.0 Zs   git
+ 968998       1   17330  0.0  0.0 Zs   git
+ 969013       1   17330  0.0  0.0 Zs   git
+ 969019       1   17330  0.0  0.0 Zs   git
+ 969048       1   17309  0.0  0.0 Zs   git
+ 969615       1   16950  0.0  0.0 Zs   git
+ 971366       1   16409  0.0  0.0 Zs   git
+1042955       1   15655  0.0  0.0 Zs   git
+1044269       1   15222  0.0  0.0 Zs   git
+1044769       1   15061  0.0  0.0 Zs   git
+1045547       1   14722  0.0  0.0 Zs   git
+1050698       1   14623  0.0  0.0 Zs   git
+1055756       1   14498  0.0  0.0 Zs   git
+1068575       1   14026  0.0  0.0 Zs   git
+1073947       1   13630  0.0  0.0 Zs   git
+1077968       1   13276  0.0  0.0 Zs   git
+1078517       1   12835  0.0  0.0 Zs   git
+1082428       1   12634  0.0  0.0 Zs   git
+1082855       1   12283  0.0  0.0 Zs   git
+1083433       1   11972  0.0  0.0 Zs   git
+1150900       1   11524  0.0  0.0 Zs   git
+1151068       1   11505  0.0  0.0 Zs   git
+1218861       1   11102  0.0  0.0 Zs   git
+1284571       1   10686  0.0  0.0 Zs   git
+1350918       1   10222  0.0  0.0 Zs   git
+1419409       1    9873  0.0  0.0 Zs   git
+1480358       1    9525  0.0  0.0 Zs   git
+1489530       1    9426  0.0  0.0 Zs   git
+1520805       1    9105  0.0  0.0 Zs   git
+1522798       1    8750  0.0  0.0 Zs   git
+1526770       1    8403  0.0  0.0 Zs   git
+1527190       1    8086  0.0  0.0 Zs   git
+1546346       1    7900  0.0  0.0 Zs   git
+1546428       1    7899  0.0  0.0 Zs   git
+1547029       1    7894  0.0  0.0 Zs   git
+1548154       1    7883  0.0  0.0 Zs   git
+1549366       1    7872  0.0  0.0 Zs   git
+1549542       1    7870  0.0  0.0 Zs   git
+1549913       1    7867  0.0  0.0 Zs   git
+1551664       1    7849  0.0  0.0 Zs   git
+1551740       1    7848  0.0  0.0 Zs   git
+1552597       1    7840  0.0  0.0 Zs   git
+1552652       1    7840  0.0  0.0 Zs   git
+1552712       1    7839  0.0  0.0 Zs   git
+1552773       1    7839  0.0  0.0 Zs   git
+1552824       1    7838  0.0  0.0 Zs   git
+1552887       1    7838  0.0  0.0 Zs   git
+1552939       1    7837  0.0  0.0 Zs   git
+1552962       1    7837  0.0  0.0 Zs   git
+1553006       1    7837  0.0  0.0 Zs   git
+1553031       1    7837  0.0  0.0 Zs   git
+1553048       1    7837  0.0  0.0 Zs   git
+1553081       1    7836  0.0  0.0 Zs   git
+1553110       1    7836  0.0  0.0 Zs   git
+1553129       1    7836  0.0  0.0 Zs   git
+1553159       1    7836  0.0  0.0 Zs   git
+1553213       1    7835  0.0  0.0 Zs   git
+1553250       1    7835  0.0  0.0 Zs   git
+1553301       1    7835  0.0  0.0 Zs   git
+1553355       1    7835  0.0  0.0 Zs   git
+1553446       1    7834  0.0  0.0 Zs   git
+1553544       1    7833  0.0  0.0 Zs   git
+1553593       1    7833  0.0  0.0 Zs   git
+1553633       1    7833  0.0  0.0 Zs   git
+1553718       1    7832  0.0  0.0 Zs   git
+1553759       1    7832  0.0  0.0 Zs   git
+1553800       1    7831  0.0  0.0 Zs   git
+1553841       1    7831  0.0  0.0 Zs   git
+1553881       1    7831  0.0  0.0 Zs   git
+1553928       1    7830  0.0  0.0 Zs   git
+1553986       1    7830  0.0  0.0 Zs   git
+1554033       1    7830  0.0  0.0 Zs   git
+1554098       1    7829  0.0  0.0 Zs   git
+1558752       1    7784  0.0  0.0 Zs   git
+1558760       1    7784  0.0  0.0 Zs   git
+1558778       1    7784  0.0  0.0 Zs   git
+1558795       1    7784  0.0  0.0 Zs   git
+1558962       1    7781  0.0  0.0 Zs   git
+1559266       1    7754  0.0  0.0 Zs   git
+1559317       1    7749  0.0  0.0 Zs   git
+1559326       1    7749  0.0  0.0 Zs   git
+1559335       1    7748  0.0  0.0 Zs   git
+1559344       1    7747  0.0  0.0 Zs   git
+1559353       1    7747  0.0  0.0 Zs   git
+1559362       1    7746  0.0  0.0 Zs   git
+1559371       1    7746  0.0  0.0 Zs   git
+1559380       1    7745  0.0  0.0 Zs   git
+1559389       1    7745  0.0  0.0 Zs   git
+1559682       1    7712  0.0  0.0 Zs   git
+1559716       1    7699  0.0  0.0 Zs   git
+1559770       1    7686  0.0  0.0 Zs   git
+1559780       1    7684  0.0  0.0 Zs   git
+1559937       1    7615  0.0  0.0 Zs   git
+1559947       1    7613  0.0  0.0 Zs   git
+1560512       1    7270  0.0  0.0 Zs   git
+1565258       1    6948  0.0  0.0 Zs   git
+1565514       1    6611  0.0  0.0 Zs   git
+1570043       1    6276  0.0  0.0 Zs   git
+1571067       1    5942  0.0  0.0 Zs   git
+1576005       1    5611  0.0  0.0 Zs   git
+1576259       1    5292  0.0  0.0 Zs   git
+1607627       1    4974  0.0  0.0 Zs   git
+1608031       1    4649  0.0  0.0 Zs   git
+1638287       1    4318  0.0  0.0 Zs   git
+1638991       1    3865  0.0  0.0 Zs   git
+1639066       1    3747  0.0  0.0 Zs   git
+1639080       1    3746  0.0  0.0 Zs   git
+1639093       1    3745  0.0  0.0 Zs   git
+1639148       1    3730  0.0  0.0 Zs   git
+1639160       1    3730  0.0  0.0 Zs   git
+1639189       1    3724  0.0  0.0 Zs   git
+1639202       1    3724  0.0  0.0 Zs   git
+1639214       1    3723  0.0  0.0 Zs   git
+1639229       1    3723  0.0  0.0 Zs   git
+1639252       1    3722  0.0  0.0 Zs   git
+1639276       1    3722  0.0  0.0 Zs   git
+1639294       1    3721  0.0  0.0 Zs   git
+1639319       1    3721  0.0  0.0 Zs   git
+1639340       1    3718  0.0  0.0 Zs   git
+1639367       1    3711  0.0  0.0 Zs   git
+1639383       1    3710  0.0  0.0 Zs   git
+1639399       1    3710  0.0  0.0 Zs   git
+1639411       1    3709  0.0  0.0 Zs   git
+1639423       1    3709  0.0  0.0 Zs   git
+1639435       1    3709  0.0  0.0 Zs   git
+1639522       1    3692  0.0  0.0 Zs   git
+1639555       1    3691  0.0  0.0 Zs   git
+1639610       1    3691  0.0  0.0 Zs   git
+1639623       1    3691  0.0  0.0 Zs   git
+1639642       1    3690  0.0  0.0 Zs   git
+1639655       1    3690  0.0  0.0 Zs   git
+1639674       1    3690  0.0  0.0 Zs   git
+1639687       1    3689  0.0  0.0 Zs   git
+1639867       1    3674  0.0  0.0 Zs   git
+1639913       1    3670  0.0  0.0 Zs   git
+1639927       1    3670  0.0  0.0 Zs   git
+1639943       1    3670  0.0  0.0 Zs   git
+1639958       1    3669  0.0  0.0 Zs   git
+1639975       1    3668  0.0  0.0 Zs   git
+1640010       1    3668  0.0  0.0 Zs   git
+1640025       1    3668  0.0  0.0 Zs   git
+1640033       1    3668  0.0  0.0 Zs   git
+1640051       1    3668  0.0  0.0 Zs   git
+1640064       1    3668  0.0  0.0 Zs   git
+1640082       1    3667  0.0  0.0 Zs   git
+1640105       1    3667  0.0  0.0 Zs   git
+1640114       1    3667  0.0  0.0 Zs   git
+1640126       1    3667  0.0  0.0 Zs   git
+1640136       1    3667  0.0  0.0 Zs   git
+1640152       1    3667  0.0  0.0 Zs   git
+1640173       1    3667  0.0  0.0 Zs   git
+1640179       1    3667  0.0  0.0 Zs   git
+1640183       1    3667  0.0  0.0 Zs   git
+1640198       1    3666  0.0  0.0 Zs   git
+1640211       1    3666  0.0  0.0 Zs   git
+1640223       1    3666  0.0  0.0 Zs   git
+1640238       1    3666  0.0  0.0 Zs   git
+1640250       1    3666  0.0  0.0 Zs   git
+1640260       1    3665  0.0  0.0 Zs   git
+1640281       1    3665  0.0  0.0 Zs   git
+1642483       1    3337  0.0  0.0 Zs   git
+1642874       1    3312  0.0  0.0 Zs   git
+1642933       1    3312  0.0  0.0 Zs   git
+1642956       1    3311  0.0  0.0 Zs   git
+1642985       1    3310  0.0  0.0 Zs   git
+1643026       1    3310  0.0  0.0 Zs   git
+1646984       1    2983  0.0  0.0 Zs   git
+1648385       1    2584  0.0  0.0 Zs   git
+1653483       1    2248  0.0  0.0 Zs   git
+1653748       1    1912  0.0  0.0 Zs   git
+1658082       1    1559  0.0  0.0 Zs   git
+1659082       1    1222  0.0  0.0 Zs   git
+1662748       1     862  0.0  0.0 Zs   git
+1664221       1     505  0.0  0.0 Zs   git
+1718872       1     238  0.0  0.0 Zs   git
++ git --version
+git version 2.52.0
++ git -C /workspace/work/dwqww-all log -5 '--format=%H %cI %s'
+e983e08e5dc491fd68ae2bd52ae669dbe38137fc 2026-11-14T08:00:36-08:00 Combined soak checkpoint 2026-11-14T16:00:36.188Z elapsed 289.07 min
+6d08321388d300819f8d9f0a53447f943611332b 2026-11-14T07:56:09-08:00 Combined soak checkpoint 2026-11-14T15:56:09.413Z elapsed 284.62 min
+24b75457a132029b6dc5284422bb186cd4a746f3 2026-11-14T07:50:11-08:00 Combined soak checkpoint 2026-11-14T15:50:11.929Z elapsed 278.67 min
+dc3a2e37e9d97f61dc6dff96c17ae3685f5971be 2026-11-14T07:44:12-08:00 Combined soak checkpoint 2026-11-14T15:44:12.718Z elapsed 272.68 min
+2f9040cb195e1df317d904635ddcb4ec935b553d 2026-11-14T07:38:35-08:00 Combined soak checkpoint 2026-11-14T15:38:35.264Z elapsed 267.05 min

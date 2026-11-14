@@ -1,0 +1,19 @@
+{"n":3,"argv":["sed","-n","240,254p","/workspace/work/all-run/match_all.mjs"],"cwd":"/workspace/work/all-run/part3-real-batch-0001-audit","startedUTC":"2026-11-14T16:05:53.480Z","finishedUTC":"2026-11-14T16:05:53.485Z","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-real-batch-0001-audit/command-003.txt"}
+STDOUT
+async function persistSummary(plan,summary) {
+  summary.persistenceErrors=[];
+  try{summary.artifacts=await hashFiles(Object.entries(plan.files).filter(([k])=>!['summary','hashes'].includes(k)).map(([,v])=>v));}
+  catch(e){summary.persistenceErrors.push('artifact hashing: '+e.message);summary.passed=false;}
+  try{
+    await fsp.writeFile(plan.files.summary,json(summary),{flag:'wx'});
+    const hashes={...summary.artifacts,...await hashFiles([plan.files.summary])};
+    await fsp.writeFile(plan.files.hashes,json(hashes),{flag:'wx'});
+  }catch(e){
+    summary.persistenceErrors.push('summary/hash persistence: '+e.message);summary.passed=false;
+    try{if(exists(plan.files.summary))await fsp.writeFile(plan.files.summary,json(summary));}catch{}
+  }
+  console.log('SUMMARY '+JSON.stringify({...summary,artifactHashesFile:plan.files.hashes}));
+  process.exitCode=summary.passed?0:summary.completed?2:3;
+}
+
+STDERR

@@ -1,0 +1,100 @@
++ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-14T16:05:18Z
++ nl -ba /workspace/work/all-run/control.mjs
++ sed -n 1,52p
+     1	import fs from 'node:fs';
+     2	import cp from 'node:child_process';
+     3	import crypto from 'node:crypto';
+     4	import path from 'node:path';
+     5	import {renderReport} from '/workspace/work/all-run/render-report.mjs';
+     6	const root='/workspace/work/all-run',repo='/workspace/work/dwqww-all',out=repo+'/forge-combo29/soak_all',statePath=root+'/state.json';
+     7	let s=JSON.parse(fs.readFileSync(statePath));
+     8	const now=()=>new Date().toISOString(),minutes=()=>((Date.now()-Date.parse(s.start))/60000).toFixed(2),save=()=>fs.writeFileSync(statePath,JSON.stringify(s,null,2)+'\n');
+     9	const git=args=>cp.execFileSync('git',args,{cwd:repo,encoding:'utf8',timeout:60000});
+    10	function testResults(){const dir=root+'/test-results';return fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')).flatMap(x=>JSON.parse(fs.readFileSync(dir+'/'+x))):[];}
+    11	function report(){
+    12	 fs.mkdirSync(out+'/preparation',{recursive:true});const results=testResults();
+    13	 let matrix='# Existing test-folder matrix\n\nUpdated '+now()+'. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.\n\n| Build | Group | Test/check | Exit | Sanitizer reports | Output |\n| --- | --- | --- | --- | --- | --- |\n';
+    14	 for(const r of results){const name=r.mode+'-'+r.name+'.txt';fs.copyFileSync(r.log,out+'/preparation/'+name);matrix+='| '+r.mode+' | '+r.group+' | '+r.name+' | '+r.exit+' | '+r.sanitizer_reports+' | ['+name+'](preparation/'+name+') |\n';}
+    15	 fs.writeFileSync(out+'/TEST_MATRIX.md',matrix);
+    16	 let text='# Eight-hour combined Forge integration and soak\n\nStart: '+s.start+'. Scheduled end: '+s.end+'.\n\nUpdated '+now()+'; elapsed '+minutes()+' minutes; phase '+s.phase+'; completed pushes at report generation '+s.pushes+'.\n\n';
+    17	 text+='Base `'+s.base+'`; merged source `'+(s.mergedSourceCommit||'pending')+'`; lock `'+s.lock+'`. Cloud VM only. Only `integrate/combo29-all` and `soak/combo29-all` are push destinations. The earlier soak branch is preserved.\n\n';
+    18	 text+='Default pins: '+JSON.stringify(s.pins||{})+'.\n\n| Phase | Conditions | Completed counts | Status |\n| --- | --- | --- | --- |\n';
+    19	 for(const [p,t] of Object.entries(s.totals||{}))text+='| '+p+' | '+t.description+' | '+JSON.stringify(t.counts)+' | '+(t.status||'Running')+' |\n';
+    20	 text+='\nExisting test/check results recorded: '+results.length+'; nonzero exits '+results.filter(r=>r.exit!==0).length+'; sanitizer reports '+results.reduce((n,r)=>n+r.sanitizer_reports,0)+'. See the [full matrix](TEST_MATRIX.md) for classification and output.\n\n';
+    21	 text+='Fault files: '+s.faults.length+'.\n\n';for(const f of s.faults)text+='- ['+f.file+'](faults/'+f.file+'): '+f.description+'\n';
+    22	 if(s.notes?.length)text+='\nNotes and limitations:\n\n'+s.notes.map(x=>'- '+x).join('\n')+'\n';
+    23	 if(s.incomplete?.length)text+='\nIncomplete attempts; partial work is excluded and any explicitly completed units retained are identified:\n\n'+s.incomplete.map(x=>'- '+x.phase+' '+x.id+' seed '+x.seed+'; '+(x.repeatedBy?'repeated as '+x.repeatedBy:'repeat pending')+(x.completedCountsRecorded?'; completed units retained '+JSON.stringify(x.completedCountsRecorded):'')+'.').join('\n')+'\n';
+    24	 text+='\nNo Elo or speed conclusion is drawn. Raw node/time measurements and match counts are reported only under their recorded conditions. [Integration and source hashes](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [batch evidence](batches/).\n';
+    25	 let audit=null;
+    26	 if(s.latestAudit&&fs.existsSync(s.latestAudit)){
+    27	  audit=JSON.parse(fs.readFileSync(s.latestAudit,'utf8'));
+    28	  fs.copyFileSync(s.latestAudit,out+'/preparation/latest-audit.txt');
+    29	 }
+    30	 fs.writeFileSync(out+'/SOAK_ALL_REPORT.md',renderReport(s,audit,{generatedAt:now(),testResults:results,auditLink:'preparation/latest-audit.txt'}));
+    31	}
+    32	function checkpoint(force=false){
+    33	 if(!force&&Date.now()-Date.parse(s.lastPush)<390000)return;
+    34	 const branch=git(['branch','--show-current']).trim();if(!['integrate/combo29-all','soak/combo29-all'].includes(branch))throw Error('forbidden branch '+branch);
+    35	 report();fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+s.phase+' | checkpoint | completed evidence staged for '+branch+' | '+testResults().length+' existing-test results | '+s.faults.length+' fault files\n');
+    36	 git(['add','--','forge-combo29/INTEGRATION_ALL.md','forge-combo29/soak_all','forge-combo29/src','forge-combo29/include']);
+    37	 const files=git(['diff','--cached','--name-only']).trim().split('\n').filter(Boolean);
+    38	 for(const file of files){if(!file.startsWith('forge-combo29/'))throw Error('forbidden path '+file);const blob=cp.execFileSync('git',['show',':'+file],{cwd:repo,timeout:30000,maxBuffer:64*1024*1024});if(blob.includes(0))throw Error('nontext '+file);}
+    39	 if(files.length){
+    40	  const commitArgs=['-c','user.name=Codex','-c','user.email=codex@openai.com','commit','--quiet','-m','Combined soak checkpoint '+now()+' elapsed '+minutes()+' min'];
+    41	  fs.appendFileSync(out+'/PROGRESS.md',now()+' | checkpoint command | git '+JSON.stringify(commitArgs)+' | staged files '+files.length+'\n');
+    42	  git(['add','--','forge-combo29/soak_all/PROGRESS.md']);git(commitArgs);
+    43	  console.log('CHECKPOINT_COMMIT '+JSON.stringify({sha:git(['rev-parse','HEAD']).trim(),changed_files:files.length,command:['git',...commitArgs]}));
+    44	 }
+    45	 console.log(git(['push','--no-follow-tags','origin','HEAD:refs/heads/'+branch]));s.pushes++;s.lastPush=now();save();console.log('CHECKPOINT '+s.lastPush+' pushes='+s.pushes);
+    46	}
+    47	function record(phase,id,seed,description,counts,log,status){
+    48	 const t=s.totals[phase]||={description,counts:{},status:'Running'};
+    49	 const skip=new Set(['seed','threads','nodes','depth','hash','seconds','first_game','max_games','next_offset','offset']);
+    50	 for(const [k,v] of Object.entries(counts))if(typeof v==='number'&&!skip.has(k))t.counts[k]=(t.counts[k]||0)+v;
+    51	 t.counts.batches=(t.counts.batches||0)+1;t.description=description;t.status=status||'Running';
+    52	 const raw=fs.readFileSync(log,'utf8'),sha=crypto.createHash('sha256').update(raw).digest('hex');
++ sha256sum /workspace/work/all-run/control.mjs
+5222d635077c6364ebb52454f3057f7289b478450ba05b1bdafc20cc4cd03595  /workspace/work/all-run/control.mjs
++ git -C /workspace/work/dwqww-all show --format= --name-only e983e08e5dc491fd68ae2bd52ae669dbe38137fc
+forge-combo29/soak_all/PROGRESS.md
+forge-combo29/soak_all/SOAK_ALL_REPORT.md
+forge-combo29/soak_all/TEST_MATRIX.md
+forge-combo29/soak_all/batches/3-default-0001.evidence/manifest.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/logs/3-default-0001.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/logs/3-default-0001.txt.run-spec.json.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.artifact-hashes.json.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.command.json.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.command.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.config.json.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.console.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-001.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-002.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-003.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-004.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-005.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-006.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-007.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-008.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-009.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-010.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-011.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-012.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-013.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.engine.log.txt.part-014.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.events.ndjson.txt.part-001.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.events.ndjson.txt.part-002.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.pgn.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.reserved.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.stderr.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.stdout.txt
+forge-combo29/soak_all/batches/3-default-0001.evidence/raw/matches/default-0001.summary.json.txt
+forge-combo29/soak_all/batches/3-default-0001.txt
++ ps -eo pid,ppid,etimes,pcpu,pmem,stat,comm
++ rg 'git|pack-objects|index-pack|remote-https'
++ rg -v ' Z'
++ command -v timeout
+/usr/bin/timeout
++ timeout --version
++ head -n 1
+timeout (GNU coreutils) 9.7

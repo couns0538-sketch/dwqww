@@ -1,0 +1,20 @@
++ nl -ba /workspace/work/all-run/control.mjs
++ sed -n 31,39p
+    31	}
+    32	function checkpoint(force=false){
+    33	 if(!force&&Date.now()-Date.parse(s.lastPush)<390000)return;
+    34	 const branch=git(['branch','--show-current']).trim();if(!['integrate/combo29-all','soak/combo29-all'].includes(branch))throw Error('forbidden branch '+branch);
+    35	 const pushCommand=['/usr/bin/timeout','-k','5s','180s','git','-c','pack.window=0','-c','pack.threads=4','push','--no-follow-tags','origin','HEAD:refs/heads/'+branch];
+    36	 report();fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+s.phase+' | checkpoint | completed evidence staged for '+branch+' | '+testResults().length+' existing-test results | '+s.faults.length+' fault files\n');
+    37	 fs.appendFileSync(out+'/PROGRESS.md',now()+' | checkpoint push command | '+JSON.stringify(pushCommand)+' | push-only180s timeout; runner invokes upload separately from native batches\n');
+    38	 git(['add','--','forge-combo29/INTEGRATION_ALL.md','forge-combo29/soak_all','forge-combo29/src','forge-combo29/include']);
+    39	 const files=git(['diff','--cached','--name-only']).trim().split('\n').filter(Boolean);
++ rg --files /workspace/work/dwqww-all/forge-combo29/soak_all/preparation/checkpoint-transport
+/workspace/work/dwqww-all/forge-combo29/soak_all/preparation/checkpoint-transport/control-before.mjs.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/preparation/checkpoint-transport/control-after.mjs.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/preparation/checkpoint-transport/CHANGE.txt
++ git -C /workspace/work/dwqww-all log -2 '--format=%H %cI %s'
+2ff0a916bec7bbe9187a40d7862f9cb46e49f087 2026-11-14T08:07:39-08:00 Combined soak checkpoint 2026-11-14T16:07:39.049Z elapsed 296.12 min
+e983e08e5dc491fd68ae2bd52ae669dbe38137fc 2026-11-14T08:00:36-08:00 Combined soak checkpoint 2026-11-14T16:00:36.188Z elapsed 289.07 min
++ node
+{"lastPush":"2026-11-14T16:07:49.220Z","pushes":52,"active":null}
