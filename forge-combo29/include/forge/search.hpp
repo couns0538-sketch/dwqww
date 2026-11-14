@@ -274,6 +274,7 @@ extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as 
 extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
 extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
 extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
+extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -331,6 +332,9 @@ struct SearchStack {
     int arrival_index = 0;
     int cutoff_count = 0;
     int double_extensions = 0;
+    // Plies the parent withheld when it searched the move that reached this node.
+    // Zero means that call was not a reduced search. Read only when HindsightDepth is on.
+    int withheld_plies = 0;
     bool in_check = false;
     bool tt_pv = false;
     bool null_move_allowed = true;

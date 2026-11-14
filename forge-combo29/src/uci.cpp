@@ -201,7 +201,8 @@ int uci_loop(std::istream& in) {
                          "option name EvalRule50Damp type check default false\n"
                          "option name ThreatHistory type check default false\n"
                          "option name LmrSignedCorrection type check default false\n"
-                         "option name LmrLateParentRelief type check default false\n";
+                         "option name LmrLateParentRelief type check default false\n"
+                         "option name HindsightDepth type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -314,6 +315,9 @@ int uci_loop(std::istream& in) {
                 } else {
                     note_invalid();
                 }
+            } else if (name == "HindsightDepth") {
+                if (value_text == "true" || value_text == "false") forge::tune::HindsightDepth = value_text == "true";
+                else note_invalid();
             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief") {
                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
