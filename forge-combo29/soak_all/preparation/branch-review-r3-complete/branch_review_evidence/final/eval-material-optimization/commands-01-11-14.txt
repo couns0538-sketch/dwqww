@@ -1,0 +1,1747 @@
++ rg -n 'grok47/r3-(01|11|14|18|19|20)-' /workspace/work/all-run/branch-review-r3-complete/remote-heads.txt
+4:85e0961064799c8f49f129b1d856490436b44354	refs/heads/grok47/r3-01-eval-rule-50-damp
+14:89487999cb6fa5618853c68adef18a0d9dc114f5	refs/heads/grok47/r3-11-dead-material
+17:041404af67a585969e8ed6ce8906b4b270b7ffc7	refs/heads/grok47/r3-14-draw-jitter
+21:1316c38c1cd6dce7ae719804ca72b43b4c2fc165	refs/heads/grok47/r3-18-lazy-net-accumulator
+22:3def809de68d726715fa3dd21626f706f0f30e16	refs/heads/grok47/r3-19-faster-hce
+23:7fef1fc378b6c966649315c11573bbdc1529435e	refs/heads/grok47/r3-20-faster-search-plumbing
++ git cat-file -t 85e0961064799c8f49f129b1d856490436b44354
+commit
++ git cat-file -t 89487999cb6fa5618853c68adef18a0d9dc114f5
+commit
++ git cat-file -t 041404af67a585969e8ed6ce8906b4b270b7ffc7
+commit
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 85e0961064799c8f49f129b1d856490436b44354
+ forge-combo29/REPORT_r3_01.md                  |  48 +++++
+ forge-combo29/include/forge/search.hpp         |  11 ++
+ forge-combo29/src/search.cpp                   |  25 ++-
+ forge-combo29/src/uci.cpp                      |  10 +-
+ forge-combo29/tests_r3_01/eval_rule50_damp.cpp | 263 +++++++++++++++++++++++++
+ 5 files changed, 350 insertions(+), 7 deletions(-)
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 89487999cb6fa5618853c68adef18a0d9dc114f5
+ forge-combo29/REPORT_r3_11.md                    |  64 +++++
+ forge-combo29/include/forge/eval.hpp             |   9 +
+ forge-combo29/src/eval.cpp                       |  57 +++-
+ forge-combo29/src/search.cpp                     |  25 +-
+ forge-combo29/src/uci.cpp                        |   9 +-
+ forge-combo29/tests_r3_11/dead_material_test.cpp | 323 +++++++++++++++++++++++
+ 6 files changed, 483 insertions(+), 4 deletions(-)
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 041404af67a585969e8ed6ce8906b4b270b7ffc7
+ forge-combo29/REPORT_r3_14.md                  |  66 ++++++
+ forge-combo29/include/forge/search.hpp         |   7 +
+ forge-combo29/src/search.cpp                   |  19 +-
+ forge-combo29/src/uci.cpp                      |   5 +-
+ forge-combo29/tests_r3_14/draw_jitter_test.cpp | 277 +++++++++++++++++++++++++
+ 5 files changed, 371 insertions(+), 3 deletions(-)
++ git diff e04556ddc3a430b2e751159b0d46111ef56c8b89 85e0961064799c8f49f129b1d856490436b44354 -- forge-combo29/src forge-combo29/include forge-combo29/tests_r3_01
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..31114a99 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,11 +270,22 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// Static evaluation as a node reads it. Clock 0 keeps the whole score. Each
++// half-move already played drops one percent, so a clock near 100 keeps only
++// a sliver. Mate scores and ValueNone are never scaled. The hash table stores
++// the unscaled raw evaluation; this is not applied on the way in.
++[[nodiscard]] inline int rule50_damped_static(int score, int halfmove) {
++    if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
++    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
++    return score * (100 - clock) / 100;
++}
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..84dcba4b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool EvalRule50Damp = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -134,6 +135,16 @@ constexpr int HistoryMax = 16384;
+     return score;
+ }
+ 
++// The position key does not include the half-move clock. A search score was
++// built from static evals already scaled for the clock that stored it, so it
++// is reused only at that same clock. The raw eval slot stays unscaled and is
++// scaled again for whatever clock reads it. Option off keeps every score usable.
++[[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
++    if (!tune::EvalRule50Damp) return true;
++    const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
++    return stored_clock == static_cast<std::uint8_t>(clock);
++}
++
+ [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+ [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+ 
+@@ -1048,7 +1059,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     ss->pv_length = 0;
+ 
+     if (is_draw(board, ply)) return 0;
+-    if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+ 
+     const bool in_check = board.in_check();
+     ss->in_check = in_check;
+@@ -1068,7 +1079,8 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+@@ -1088,7 +1100,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+         int eval;
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+@@ -1191,7 +1203,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+ 
+     if (!root_node) {
+         if (is_draw(board, ply)) return 0;
+-        if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
++        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+         beta = std::min(beta, mate_in(ply + 1));
+@@ -1216,7 +1228,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     const TTEntry& tte = tt_probe.entry;
+     const bool near50 = board.halfmove_clock() >= 90;
+     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+-    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
++    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock()) &&
++                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+                              ? score_from_tt(tte.score, ply) : ValueNone;
+     const int tt_depth = tt_hit ? tte.depth : -1;
+     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+@@ -1240,7 +1253,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     } else {
+         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+         else ss->raw_eval = static_evaluate(board, ss);
+-        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
++        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+         if (tt_hit && tt_score != ValueNone &&
+             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+              tt_bound == BoundExact)) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..3368811c 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name EvalRule50Damp type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -310,6 +311,13 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "EvalRule50Damp") {
++                if (value_text == "true" || value_text == "false") {
++                    forge::tune::EvalRule50Damp = value_text == "true";
++                    searcher.clear_hash();
++                } else {
++                    note_invalid();
++                }
+             } else if (name == "MultiPV") {
+                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+             } else if (name == "Hash") {
+diff --git a/forge-combo29/tests_r3_01/eval_rule50_damp.cpp b/forge-combo29/tests_r3_01/eval_rule50_damp.cpp
+new file mode 100644
+index 00000000..0b8690b9
+--- /dev/null
++++ b/forge-combo29/tests_r3_01/eval_rule50_damp.cpp
+@@ -0,0 +1,263 @@
++#include "forge/board.hpp"
++#include "forge/search.hpp"
++
++#include <iostream>
++#include <sstream>
++#include <string>
++
++namespace {
++
++int failures = 0;
++
++bool move_is_legal(const forge::Board& board, forge::Move move);
++
++void expect(bool ok, const std::string& message) {
++    if (ok) return;
++    std::cout << "FAIL " << message << std::endl;
++    ++failures;
++}
++
++void check_formula() {
++    forge::tune::EvalRule50Damp = false;
++    expect(forge::rule50_damped_static(250, 90) == 250, "off leaves a high-clock score alone");
++    expect(forge::rule50_damped_static(forge::MateValue, 90) == forge::MateValue, "off leaves a mate score alone");
++    expect(forge::rule50_damped_static(forge::ValueNone, 10) == forge::ValueNone, "off leaves the sentinel alone");
++
++    forge::tune::EvalRule50Damp = true;
++    expect(forge::rule50_damped_static(250, 0) == 250, "clock 0 keeps the whole score");
++    expect(forge::rule50_damped_static(-80, 0) == -80, "clock 0 keeps a negative score");
++    expect(forge::rule50_damped_static(200, 50) == 100, "clock 50 keeps half");
++    expect(forge::rule50_damped_static(-200, 50) == -100, "clock 50 halves a negative score toward zero");
++    expect(forge::rule50_damped_static(250, 90) == 25, "clock 90 keeps ten percent");
++    expect(forge::rule50_damped_static(300, 99) == 3, "clock 99 keeps one percent");
++    expect(forge::rule50_damped_static(180, 100) == 0, "clock 100 keeps nothing");
++    expect(forge::rule50_damped_static(180, 140) == 0, "a clock past 100 stays fully shrunk");
++    expect(forge::rule50_damped_static(40, -3) == 40, "a negative clock is treated as zero");
++    expect(forge::rule50_damped_static(forge::ValueNone, 90) == forge::ValueNone, "the sentinel is not a static score");
++    expect(forge::rule50_damped_static(forge::MateValue - 10, 80) == forge::MateValue - 10, "a positive mate score is not scaled");
++    expect(forge::rule50_damped_static(-(forge::MateValue - 10), 80) == -(forge::MateValue - 10),
++           "a negative mate score is not scaled");
++    forge::tune::EvalRule50Damp = false;
++}
++
++forge::SearchInfo search_at(forge::Searcher& searcher, const std::string& fen, int depth) {
++    forge::Board board;
++    std::string error;
++    if (!board.set_fen(fen, &error)) {
++        expect(false, "set_fen " + fen + " " + error);
++        return {};
++    }
++    forge::SearchLimits limits;
++    limits.depth = depth;
++    searcher.clear();
++    return searcher.search(board, limits, false);
++}
++
++int stored_eval(forge::Searcher& searcher, const std::string& fen) {
++    forge::Board board;
++    std::string error;
++    if (!board.set_fen(fen, &error)) return forge::ValueNone;
++    const forge::TTProbe probe = searcher.transposition_table().probe(board.key());
++    expect(probe.hit, "root evaluation was stored for " + fen);
++    return probe.entry.eval;
++}
++
++void check_search_behaviour() {
++    const std::string quiet = "4k3/8/8/8/8/3Q4/8/4K3 w - - 80 20";
++    forge::Searcher searcher(16);
++    expect(searcher.threads() == 1, "searcher starts at one thread");
++
++    forge::tune::EvalRule50Damp = false;
++    const forge::SearchInfo off = search_at(searcher, quiet, 1);
++    const int off_stored = stored_eval(searcher, quiet);
++
++    forge::tune::EvalRule50Damp = true;
++    const forge::SearchInfo on = search_at(searcher, quiet, 1);
++    const int on_stored = stored_eval(searcher, quiet);
++
++    const std::string quiet_zero = "4k3/8/8/8/8/3Q4/8/4K3 w - - 0 20";
++    (void)search_at(searcher, quiet_zero, 1);
++    const int zero_stored = stored_eval(searcher, quiet_zero);
++
++    std::cout << "quiet depth1 off " << off.score << " on " << on.score
++              << " stored_off " << off_stored << " stored_on " << on_stored
++              << " stored_clock0 " << zero_stored << std::endl;
++
++    expect(!forge::is_mate_score(off.score) && !forge::is_mate_score(on.score),
++           "queen ending depth 1 is a static score, not a mate");
++    expect(off.score > 200 && on.score > 0, "both sides still see a white advantage");
++    expect(on.score * 2 < off.score, "clock 80 static search score is clearly smaller with the option on");
++    expect(on_stored == off_stored, "the hash table keeps the unscaled evaluation");
++    expect(zero_stored == on_stored, "clock 0 and clock 80 store the same raw evaluation");
++
++    const std::string mate = "6k1/4Q3/6K1/8/8/8/8/8 w - - 90 40";
++    forge::tune::EvalRule50Damp = false;
++    const forge::SearchInfo mate_off = search_at(searcher, mate, 2);
++    forge::tune::EvalRule50Damp = true;
++    const forge::SearchInfo mate_on = search_at(searcher, mate, 2);
++    std::cout << "mate off " << mate_off.score << " " << forge::Board::move_to_uci(mate_off.best_move)
++              << " on " << mate_on.score << " " << forge::Board::move_to_uci(mate_on.best_move) << std::endl;
++    expect(forge::is_mate_score(mate_off.score) && mate_off.score > 0, "mate score stays a mate with the option off");
++    expect(forge::is_mate_score(mate_on.score) && mate_on.score > 0, "mate score is not shrunk toward zero");
++    expect(mate_on.score == mate_off.score, "the option does not change the mate distance");
++
++    forge::Board mate_board;
++    expect(mate_board.set_fen(mate), "mate fen parses");
++    bool mate_legal = false;
++    for (const forge::Move& move : mate_board.legal_moves()) {
++        if (move == mate_on.best_move) mate_legal = true;
++    }
++    expect(mate_legal, "mate search returns a legal move");
++
++    const std::string mate99 = "6k1/4Q3/6K1/8/8/8/8/8 w - - 99 50";
++    const forge::SearchInfo mate_late = search_at(searcher, mate99, 2);
++    std::cout << "mate99 " << mate_late.score << " " << forge::Board::move_to_uci(mate_late.best_move) << std::endl;
++    expect(forge::is_mate_score(mate_late.score) && mate_late.score == mate_on.score,
++           "a mate one half-move from the draw is still that mate");
++
++    const std::string in_check = "4k3/8/8/4q3/8/8/8/4K3 w - - 40 20";
++    forge::Board checked;
++    expect(checked.set_fen(in_check) && checked.in_check(), "white is in check");
++    const forge::SearchInfo evasion = search_at(searcher, in_check, 4);
++    expect(move_is_legal(checked, evasion.best_move), "a check evasion stays legal with the option on");
++
++    forge::Searcher fresh(16);
++    const forge::SearchInfo low_fresh = search_at(fresh, quiet_zero, 4);
++    forge::Searcher warm(16);
++    const forge::SearchInfo high = search_at(warm, quiet, 4);
++    forge::Board low_board;
++    expect(low_board.set_fen(quiet_zero), "clock 0 queen fen");
++    forge::SearchLimits limits;
++    limits.depth = 4;
++    const forge::SearchInfo low_warm = warm.search(low_board, limits, false);
++    std::cout << "clock isolation fresh0 " << low_fresh.score << " warm0 " << low_warm.score
++              << " high80 " << high.score << std::endl;
++    expect(high.score * 2 < low_fresh.score, "depth 4 at clock 80 is clearly smaller than clock 0");
++    expect(low_warm.score > low_fresh.score * 3 / 5,
++           "a clock-80 score is not reused for the same placement at clock 0");
++    const int warm_eval = stored_eval(warm, quiet_zero);
++    expect(warm_eval == on_stored, "the shared hash entry still holds the unscaled evaluation");
++
++    const std::string losing = "4k3/3q4/8/8/8/8/8/4K3 w - - 80 20";
++    forge::tune::EvalRule50Damp = false;
++    const forge::SearchInfo losing_off = search_at(searcher, losing, 1);
++    forge::tune::EvalRule50Damp = true;
++    const forge::SearchInfo losing_on = search_at(searcher, losing, 1);
++    std::cout << "losing off " << losing_off.score << " on " << losing_on.score << std::endl;
++    expect(losing_off.score < -200 && losing_on.score < 0, "a losing static score stays negative");
++    expect(losing_on.score > losing_off.score && losing_off.score < losing_on.score * 2,
++           "a negative score shrinks toward zero");
++
++    const std::string stale = "7k/5Q2/6K1/8/8/8/8/8 b - - 70 40";
++    forge::Board stale_board;
++    expect(stale_board.set_fen(stale) && stale_board.legal_moves().empty() && !stale_board.in_check(),
++           "constructed stalemate has no legal move");
++    const forge::SearchInfo stale_info = search_at(searcher, stale, 3);
++    expect(stale_info.best_move.is_none(), "stalemate search does not invent a move");
++
++    const std::string promote = "8/P7/8/8/8/8/8/k6K w - - 55 40";
++    forge::Board promote_board;
++    expect(promote_board.set_fen(promote), "promotion fen");
++    const forge::SearchInfo promote_info = search_at(searcher, promote, 4);
++    expect(move_is_legal(promote_board, promote_info.best_move) && promote_info.best_move.is_promotion(),
++           "a high-clock promotion search returns a legal promotion");
++    forge::tune::EvalRule50Damp = false;
++}
++
++std::uint64_t mix(std::uint64_t& state) {
++    state += 0xA5A5A5A5A5A5A5A5ULL;
++    state = (state << 7) | (state >> 57);
++    state ^= state >> 13;
++    state *= 0x6C62272E07BB0141ULL;
++    return state;
++}
++
++bool move_is_legal(const forge::Board& board, forge::Move move) {
++    if (move.is_none()) return board.legal_moves().empty();
++    for (const forge::Move& legal : board.legal_moves()) {
++        if (legal == move) return true;
++    }
++    return false;
++}
++
++std::string with_clock(const forge::Board& board, int clock) {
++    std::istringstream input(board.fen());
++    std::string placement;
++    std::string side;
++    std::string castle;
++    std::string ep;
++    std::string half;
++    std::string full;
++    input >> placement >> side >> castle >> ep >> half >> full;
++    return placement + " " + side + " " + castle + " " + ep + " " + std::to_string(clock) + " " + full;
++}
++
++int search_walk(forge::Searcher& searcher, std::uint64_t seed, int games, int max_plies) {
++    forge::SearchLimits limits;
++    limits.depth = 10;
++    std::uint64_t state = seed;
++    int illegal = 0;
++    int in_check = 0;
++    int raised = 0;
++    for (int n = 0; n < games; ++n) {
++        forge::Board board;
++        if (!board.set_fen(forge::Board::StandardStartFen)) {
++            expect(false, "start position");
++            return games;
++        }
++        const int plies = static_cast<int>(mix(state) % static_cast<std::uint64_t>(max_plies));
++        for (int ply = 0; ply < plies; ++ply) {
++            const forge::MoveList moves = board.legal_moves();
++            if (moves.empty()) break;
++            forge::Undo undo;
++            const forge::Move chosen = moves[mix(state) % moves.size()];
++            if (!board.make_move(chosen, undo)) {
++                expect(false, "make_move rejected a legal move");
++                return games;
++            }
++        }
++        if ((n % 5) == 4) {
++            const int clock = 20 + static_cast<int>(mix(state) % 80ULL);
++            std::string error;
++            if (!board.set_fen(with_clock(board, clock), &error)) {
++                expect(false, "reclock " + error);
++                return games;
++            }
++            ++raised;
++        }
++        if (board.in_check()) ++in_check;
++        searcher.clear();
++        const forge::SearchInfo info = searcher.search(board, limits, false);
++        if (!move_is_legal(board, info.best_move)) {
++            ++illegal;
++            std::cout << "ILLEGAL " << n << " " << board.fen() << " "
++                      << forge::Board::move_to_uci(info.best_move) << std::endl;
++        }
++    }
++    std::cout << "depth10 games " << games << " seed " << seed << " illegal " << illegal
++              << " incheck " << in_check << " raised " << raised << std::endl;
++    return illegal;
++}
++
++void check_two_hundred_searches() {
++    forge::tune::EvalRule50Damp = true;
++    forge::Searcher searcher(16);
++    const int first = search_walk(searcher, 0x51A7E0D5ULL, 200, 18);
++    const int second = search_walk(searcher, 0xC0FFEE11ULL, 200, 40);
++    expect(first == 0 && second == 0, "every depth-10 move is legal");
++    forge::tune::EvalRule50Damp = false;
++}
++
++}  // namespace
++
++int main() {
++    check_formula();
++    check_search_behaviour();
++    if (failures == 0) check_two_hundred_searches();
++    if (failures != 0) {
++        std::cout << "failures " << failures << std::endl;
++        return 1;
++    }
++    std::cout << "ok" << std::endl;
++    return 0;
++}
++ git diff e04556ddc3a430b2e751159b0d46111ef56c8b89 89487999cb6fa5618853c68adef18a0d9dc114f5 -- forge-combo29/src forge-combo29/include
+diff --git a/forge-combo29/include/forge/eval.hpp b/forge-combo29/include/forge/eval.hpp
+index 7e1c6e0..6e15299 100644
+--- a/forge-combo29/include/forge/eval.hpp
++++ b/forge-combo29/include/forge/eval.hpp
+@@ -43,6 +43,15 @@ struct EvalComponents {
+     bool in_check = false;
+ };
+ 
++// UCI check option "DeadMaterial". Off: evaluation is unchanged.
++extern bool dead_material_enabled;
++
++// Side-to-move score for a recognized ending with no pawns, rooks, or queens:
++// bare kings, king and one minor versus king, and king and two knights versus
++// king score 0; king, bishop and knight versus king scores a corner drive.
++// Returns false for every other position and leaves `score` untouched.
++[[nodiscard]] bool dead_material_score(const Board& board, int& score);
++
+ class Evaluator {
+ public:
+     // Search-local state only: public evaluation and tuning always recompute.
+diff --git a/forge-combo29/src/eval.cpp b/forge-combo29/src/eval.cpp
+index 3c6fc99..711de25 100644
+--- a/forge-combo29/src/eval.cpp
++++ b/forge-combo29/src/eval.cpp
+@@ -469,6 +469,54 @@ int evaluate_position(const Board& board, Evaluator::PawnEntry* cache, EvalTrace
+ 
+ } // namespace
+ 
++bool dead_material_enabled = false;
++
++bool dead_material_score(const Board& board, int& score) {
++    // Heavy pieces and pawns are ordinary positions; the network still scores them.
++    if ((board.pieces(Pawn) | board.pieces(Rook) | board.pieces(Queen)) != 0) return false;
++    const int white_knights = popcount(board.pieces(White, Knight));
++    const int black_knights = popcount(board.pieces(Black, Knight));
++    const int white_bishops = popcount(board.pieces(White, Bishop));
++    const int black_bishops = popcount(board.pieces(Black, Bishop));
++    const int white_minors = white_knights + white_bishops;
++    const int black_minors = black_knights + black_bishops;
++    if (white_minors == 0 && black_minors == 0) {
++        score = 0;
++        return true;
++    }
++    // King and one knight, or king and one bishop, against a bare king.
++    if ((white_minors == 1 && black_minors == 0) || (black_minors == 1 && white_minors == 0)) {
++        score = 0;
++        return true;
++    }
++    // Two knights cannot force mate against a lone king.
++    if ((white_knights == 2 && white_bishops == 0 && black_minors == 0) ||
++        (black_knights == 2 && black_bishops == 0 && white_minors == 0)) {
++        score = 0;
++        return true;
++    }
++    const bool white_pair = white_knights == 1 && white_bishops == 1 && black_minors == 0;
++    const bool black_pair = black_knights == 1 && black_bishops == 1 && white_minors == 0;
++    if (!white_pair && !black_pair) return false;
++    // Mate is possible only in a corner of the bishop's colour. Pull the lone
++    // king there, and bring the stronger king closer, with the corner weighted
++    // more so a step toward that corner still helps when it leaves the kings farther apart.
++    const Color attacker = white_pair ? White : Black;
++    const int lone = board.king_square(opposite(attacker));
++    const int helper = board.king_square(attacker);
++    const bool dark = (board.pieces(attacker, Bishop) & DarkSquares) != 0;
++    const int corner_a = dark ? 0 : 7;    // a1 or h1
++    const int corner_b = dark ? 63 : 56;  // h8 or a8
++    const int to_corner = std::min(square_distance(lone, corner_a), square_distance(lone, corner_b));
++    const int king_gap = square_distance(helper, lone);
++    constexpr int CornerWeight = 28;
++    constexpr int KingWeight = 12;
++    constexpr int Base = 48;
++    const int attacker_cp = Base + (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
++    score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
++    return true;
++}
++
+ Evaluator::Evaluator() : pawn_cache_(PawnCacheSize) {}
+ 
+ void Evaluator::clear() {
+@@ -488,8 +536,15 @@ EvalComponents Evaluator::static_eval_components(const Board& board) {
+     // Same combination as Worker::static_evaluate on a fresh stack: a local
+     // evaluator so the searcher's pawn cache, hash and history stay untouched.
+     EvalComponents parts;
+-    parts.hce = evaluate_uncached(board);
+     parts.in_check = board.in_check();
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) {
++            parts.total = fixed;
++            return parts;
++        }
++    }
++    parts.hce = evaluate_uncached(board);
+     if (!nnue::enabled || !nnue::available()) {
+         parts.nnue = 0;
+         Evaluator fresh;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..bf6ddd5 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -837,6 +837,11 @@ namespace {
+ } // namespace
+ 
+ int Worker::static_evaluate(const Board& board, SearchStack* ss) {
++    // Score recognized endings before any accumulator refresh or network call.
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) return fixed;
++    }
+     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+     const bool residual = nnue::residual();
+     if (!ss->accumulator.valid) {
+@@ -876,6 +881,11 @@ void Worker::record_null_move(SearchStack* ss) {
+ }
+ 
+ int Worker::corrected_eval(const Board& board, int raw_eval) const {
++    // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
++    if (dead_material_enabled) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) return fixed;
++    }
+     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+     if (tune::MaterialCorrectionWeight > 0) {
+@@ -955,8 +965,19 @@ bool Worker::is_draw(const Board& board, int ply) const {
+     }
+     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+     // replace its terminal draw score with a material evaluation.
+-    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+-           (!board.in_check() && !board.has_legal_move());
++    if (!dead_material_enabled) {
++        return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
++               (!board.in_check() && !board.has_legal_move());
++    }
++    // Bare kings and king plus one minor are scored 0 by evaluation instead of
++    // this cutoff. Other insufficient material still draws here.
++    if (board.is_repetition(root_history_index_)) return true;
++    if (board.is_insufficient_material()) {
++        int fixed = 0;
++        if (dead_material_score(board, fixed)) return false;
++        return true;
++    }
++    return !board.in_check() && !board.has_legal_move();
+ }
+ 
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..0b4bfbe 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name DeadMaterial type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,6 +302,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "DeadMaterial") {
++                if (value_text != "true" && value_text != "false") note_invalid();
++                else if (forge::dead_material_enabled != (value_text == "true")) {
++                    forge::dead_material_enabled = value_text == "true";
++                    searcher.clear_hash();
++                }
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/tests_r3_11/dead_material_test.cpp
++ nl -ba
++ sed -n 1,200p
+     1	#include "forge/eval.hpp"
+     2	#include "forge/search.hpp"
+     3	#include "forge/uci.hpp"
+     4	
+     5	#include <chrono>
+     6	#include <cstdint>
+     7	#include <iostream>
+     8	#include <sstream>
+     9	#include <string>
+    10	#include <vector>
+    11	
+    12	namespace {
+    13	
+    14	int g_failures = 0;
+    15	
+    16	void fail(const std::string& message) {
+    17	    std::cerr << "fail: " << message << '\n';
+    18	    ++g_failures;
+    19	}
+    20	
+    21	std::string run_uci(const std::string& commands) {
+    22	    std::stringstream input(commands);
+    23	    std::stringstream output;
+    24	    std::streambuf* previous = std::cout.rdbuf(output.rdbuf());
+    25	    const int code = forge::uci_loop(input);
+    26	    std::cout.rdbuf(previous);
+    27	    if (code != 0) fail("uci_loop returned " + std::to_string(code));
+    28	    return output.str();
+    29	}
+    30	
+    31	struct Scored {
+    32	    bool recognized = false;
+    33	    int score = 0;
+    34	    bool fen_ok = false;
+    35	};
+    36	
+    37	Scored score_fen(const std::string& fen) {
+    38	    Scored result;
+    39	    forge::Board board;
+    40	    result.fen_ok = board.set_fen(fen);
+    41	    if (!result.fen_ok) return result;
+    42	    int score = 0;
+    43	    result.recognized = forge::dead_material_score(board, score);
+    44	    result.score = score;
+    45	    return result;
+    46	}
+    47	
+    48	std::string other_side(std::string fen) {
+    49	    const auto white = fen.find(" w ");
+    50	    if (white != std::string::npos) {
+    51	        fen.replace(white, 3, " b ");
+    52	        return fen;
+    53	    }
+    54	    const auto black = fen.find(" b ");
+    55	    if (black != std::string::npos) fen.replace(black, 3, " w ");
+    56	    return fen;
+    57	}
+    58	
+    59	void expect_draw(const char* name, const char* fen) {
+    60	    for (const std::string& side : {std::string(fen), other_side(fen)}) {
+    61	        const Scored scored = score_fen(side);
+    62	        if (!scored.fen_ok) fail(std::string(name) + " rejected fen " + side);
+    63	        else if (!scored.recognized || scored.score != 0) {
+    64	            fail(std::string(name) + " score " + std::to_string(scored.score) +
+    65	                 " recognized " + (scored.recognized ? "yes" : "no") + " " + side);
+    66	        }
+    67	    }
+    68	}
+    69	
+    70	void expect_unrecognized(const char* name, const char* fen) {
+    71	    const Scored scored = score_fen(fen);
+    72	    if (!scored.fen_ok) fail(std::string(name) + " rejected fen " + fen);
+    73	    else if (scored.recognized) fail(std::string(name) + " was recognized " + fen);
+    74	}
+    75	
+    76	bool move_is_legal(const forge::Board& board, forge::Move move) {
+    77	    const forge::MoveList legal = board.legal_moves();
+    78	    if (move.is_none()) return legal.empty();
+    79	    for (const forge::Move candidate : legal) {
+    80	        if (candidate == move) return true;
+    81	    }
+    82	    return false;
+    83	}
+    84	
+    85	int lone_corner_distance(const forge::Board& board) {
+    86	    const bool white_bishop = forge::popcount(board.pieces(forge::White, forge::Bishop)) == 1;
+    87	    const forge::Color attacker = white_bishop ? forge::White : forge::Black;
+    88	    const bool dark = (board.pieces(attacker, forge::Bishop) & forge::DarkSquares) != 0;
+    89	    const int lone = board.king_square(forge::opposite(attacker));
+    90	    const int corner_a = dark ? 0 : 7;
+    91	    const int corner_b = dark ? 63 : 56;
+    92	    const int to_a = forge::square_distance(lone, corner_a);
+    93	    const int to_b = forge::square_distance(lone, corner_b);
+    94	    return to_a < to_b ? to_a : to_b;
+    95	}
+    96	
+    97	void expect_search_drives(const char* name, const char* fen, int depth, int plies) {
+    98	    forge::dead_material_enabled = true;
+    99	    forge::Board board;
+   100	    if (!board.set_fen(fen)) {
+   101	        fail(std::string(name) + " fen");
+   102	        return;
+   103	    }
+   104	    const int start = lone_corner_distance(board);
+   105	    forge::Searcher searcher(16);
+   106	    for (int ply = 0; ply < plies; ++ply) {
+   107	        if (board.legal_moves().empty()) break;
+   108	        forge::SearchLimits limits;
+   109	        limits.depth = depth;
+   110	        searcher.clear();
+   111	        const forge::SearchInfo info = searcher.search(board, limits, false);
+   112	        if (info.best_move.is_none() || !move_is_legal(board, info.best_move)) {
+   113	            fail(std::string(name) + " illegal drive move");
+   114	            return;
+   115	        }
+   116	        forge::Undo undo;
+   117	        if (!board.make_move(info.best_move, undo)) {
+   118	            fail(std::string(name) + " make");
+   119	            return;
+   120	        }
+   121	    }
+   122	    const int end = lone_corner_distance(board);
+   123	    std::cout << "drive " << name << " " << start << " to " << end << '\n';
+   124	    if (end >= start) fail(std::string(name) + " dist " + std::to_string(start) + " to " + std::to_string(end));
+   125	}
+   126	
+   127	bool pv_is_legal(const forge::Board& board, const std::vector<forge::Move>& pv) {
+   128	    forge::Board cursor = board;
+   129	    for (const forge::Move move : pv) {
+   130	        if (!move_is_legal(cursor, move)) return false;
+   131	        forge::Undo undo;
+   132	        if (!cursor.make_move(move, undo)) return false;
+   133	    }
+   134	    return true;
+   135	}
+   136	
+   137	}  // namespace
+   138	
+   139	int main() {
+   140	    if (forge::dead_material_enabled) fail("DeadMaterial starts enabled");
+   141	
+   142	    const std::string banner = run_uci("uci\nquit\n");
+   143	    const std::string option_line = "option name DeadMaterial type check default false";
+   144	    if (banner.find(option_line) == std::string::npos) fail("uci answer missing DeadMaterial");
+   145	    if (banner.find(option_line) != banner.rfind(option_line)) fail("DeadMaterial listed twice");
+   146	    if (forge::dead_material_enabled) fail("uci command enabled DeadMaterial");
+   147	
+   148	    const std::string enabled = run_uci("setoption name DeadMaterial value true\nquit\n");
+   149	    if (!forge::dead_material_enabled) fail("setoption true did not enable DeadMaterial");
+   150	    const std::string rejected = run_uci("setoption name DeadMaterial value maybe\nquit\n");
+   151	    if (!forge::dead_material_enabled) fail("invalid value changed DeadMaterial");
+   152	    if (rejected.find("invalid value for option DeadMaterial") == std::string::npos) {
+   153	        fail("invalid DeadMaterial value was not reported");
+   154	    }
+   155	    run_uci("setoption name DeadMaterial value false\nquit\n");
+   156	    if (forge::dead_material_enabled) fail("setoption false left DeadMaterial on");
+   157	
+   158	    expect_draw("bare kings", "8/8/8/4k3/8/8/4K3/8 w - - 0 1");
+   159	    expect_draw("white knight", "8/8/8/4k3/8/8/4K3/4N3 w - - 0 1");
+   160	    expect_draw("black knight", "8/8/8/4k3/8/8/4K3/4n3 w - - 0 1");
+   161	    expect_draw("white bishop", "8/8/8/4k3/8/8/4K3/4B3 w - - 0 1");
+   162	    expect_draw("black bishop", "8/8/8/4k3/8/8/4K3/4b3 w - - 0 1");
+   163	    expect_draw("white two knights", "8/8/8/4k3/8/8/4K3/2N1N3 w - - 0 1");
+   164	    expect_draw("black two knights", "2n1n3/4k3/8/8/8/8/4K3/8 w - - 0 1");
+   165	
+   166	    expect_unrecognized("start", forge::Board::StandardStartFen.data());
+   167	    expect_unrecognized("queen", "8/8/8/4k3/8/8/4K3/4Q3 w - - 0 1");
+   168	    expect_unrecognized("rook", "8/8/8/4k3/8/8/4K3/4R3 w - - 0 1");
+   169	    expect_unrecognized("pawn", "8/8/8/4k3/8/4P3/4K3/8 w - - 0 1");
+   170	    expect_unrecognized("knight each", "8/8/8/2k1n3/8/2N5/3K4/8 w - - 0 1");
+   171	    expect_unrecognized("two bishops", "8/8/8/4k3/8/8/4K3/2B1B3 w - - 0 1");
+   172	    expect_unrecognized("bishop and pawn", "8/8/8/4k3/8/4P3/4K3/2B5 w - - 0 1");
+   173	    expect_unrecognized("pair plus pawn", "8/8/8/4k3/8/4P3/4K3/2B1N3 w - - 0 1");
+   174	
+   175	    const char* light_far = "8/8/8/4k3/8/N7/8/KB6 w - - 0 1";
+   176	    const char* light_near = "8/8/8/4k3/8/N2K4/8/1B6 w - - 0 1";
+   177	    const char* light_corner = "k7/8/8/8/8/N7/1K6/1B6 w - - 0 1";
+   178	    const char* light_wrong = "7k/8/8/8/8/N7/1K6/1B6 w - - 0 1";
+   179	    const char* dark_corner = "7k/8/8/8/8/3N4/1K6/2B5 w - - 0 1";
+   180	    const char* dark_wrong = "k7/8/8/8/8/3N4/1K6/2B5 w - - 0 1";
+   181	    const char* black_pair = "2b1n3/3k4/8/8/8/8/8/4K3 w - - 0 1";
+   182	
+   183	    const Scored far = score_fen(light_far);
+   184	    const Scored near = score_fen(light_near);
+   185	    const Scored corner = score_fen(light_corner);
+   186	    const Scored wrong = score_fen(light_wrong);
+   187	    const Scored dark = score_fen(dark_corner);
+   188	    const Scored dark_bad = score_fen(dark_wrong);
+   189	    const Scored black = score_fen(black_pair);
+   190	    const Scored black_stm = score_fen(other_side(black_pair));
+   191	    const Scored corner_stm = score_fen(other_side(light_corner));
+   192	    for (const Scored& item : {far, near, corner, wrong, dark, dark_bad, black, black_stm, corner_stm}) {
+   193	        if (!item.fen_ok || !item.recognized) fail("KBN fixture was not recognized");
+   194	    }
+   195	    if (far.score <= 0 || near.score <= far.score) fail("closer attacking king did not raise the score");
+   196	    if (corner.score <= wrong.score) fail("light-bishop corner did not outscore the other corner");
+   197	    if (dark.score <= dark_bad.score) fail("dark-bishop corner did not outscore the other corner");
+   198	    if (black.score >= 0) fail("lone white king was not behind against black bishop and knight");
+   199	    if (black_stm.score <= 0) fail("black bishop and knight were not ahead on their turn");
+   200	    if (black.score + black_stm.score != 0) fail("black pair score did not negate with the side to move");
++ git diff e04556ddc3a430b2e751159b0d46111ef56c8b89 041404af67a585969e8ed6ce8906b4b270b7ffc7 -- forge-combo29/src forge-combo29/include
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6..75a137b 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -72,6 +72,11 @@ constexpr int ValueNone = 32002;
+     return score >= MateInMaxPly || score <= -MateInMaxPly;
+ }
+ 
++// Half-width, in centipawns, of repetition and fifty-move leaf scores.
++// 0 keeps those leaves at exactly 0. Mate scores are never adjusted.
++constexpr int DrawJitterMax = 8;
++extern int DrawJitter;
++
+ enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+ 
+ struct TTEntry {
+@@ -406,6 +411,8 @@ private:
+     [[nodiscard]] std::int64_t elapsed_ms() const;
+     [[nodiscard]] std::uint64_t total_nodes() const;
+     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
++    // Score for a repetition or fifty-move leaf. Other draws stay at 0.
++    [[nodiscard]] int draw_leaf_score(const Board& board) const;
+     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
+                             const Move* quiets, int quiet_count);
+     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..a8d4a11 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -22,6 +22,8 @@
+ 
+ namespace forge {
+ 
++int DrawJitter = 0;
++
+ namespace tune {
+ int LmrQuietBase = 85;
+ int LmrQuietDivisor = 220;
+@@ -959,6 +961,16 @@ bool Worker::is_draw(const Board& board, int ply) const {
+            (!board.in_check() && !board.has_legal_move());
+ }
+ 
++int Worker::draw_leaf_score(const Board& board) const {
++    const int span = DrawJitter;
++    if (span <= 0) return 0;
++    // Stalemate and insufficient material keep a literal 0. A fifty-move leaf
++    // or a repetition walks a few centipawns with the node count.
++    if (board.halfmove_clock() < 100 && !board.is_repetition(root_history_index_) && !board.is_repetition()) return 0;
++    const int width = span * 2 + 1;
++    return static_cast<int>(local_nodes_ % static_cast<std::uint64_t>(width)) - span;
++}
++
+ int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+ #if FORGE_SEARCH_SPEED2
+     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+@@ -1047,7 +1059,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+     seldepth_ = std::max(seldepth_, ply);
+     ss->pv_length = 0;
+ 
+-    if (is_draw(board, ply)) return 0;
++    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+     if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+ 
+     const bool in_check = board.in_check();
+@@ -1190,7 +1202,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+     ss->move_count = 0;
+ 
+     if (!root_node) {
+-        if (is_draw(board, ply)) return 0;
++        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+         if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+         // Mate distance pruning.
+         alpha = std::max(alpha, mated_in(ply));
+@@ -1688,6 +1700,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     if (root_candidates.empty() || root_drawn) {
+         int score = 0;
+         if (legal.empty() && board.in_check()) score = -MateValue;
++        else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
++            score = draw_leaf_score(board);
++        }
+         for (int depth = 1; depth <= max_depth; ++depth) {
+             result.depth = depth;
+             result.score = score;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f89..6aad1a2 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name DrawJitter type spin default 0 min 0 max " << forge::DrawJitterMax << "\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -320,6 +321,8 @@ int uci_loop(std::istream& in) {
+                 apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
+             } else if (name == "Move Overhead") {
+                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
++            } else if (name == "DrawJitter") {
++                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::DrawJitter = clamped; });
+             } else {
+                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                 std::cout << "info string unknown option " << name << std::endl;
++ git show 041404af67a585969e8ed6ce8906b4b270b7ffc7:forge-combo29/tests_r3_14/draw_jitter_test.cpp
++ nl -ba
++ sed -n 1,285p
+     1	// DrawJitter checks for repetition and fifty-move leaves.
+     2	// Build beside the engine sources (not via CMakeLists). One thread, 16 MB hash.
+     3	
+     4	#include "forge/board.hpp"
+     5	#include "forge/search.hpp"
+     6	
+     7	#include <cstdint>
+     8	#include <iostream>
+     9	#include <optional>
+    10	#include <string>
+    11	#include <string_view>
+    12	
+    13	namespace forge {
+    14	
+    15	struct SearcherTestProbe {
+    16	    static void set_nodes(Worker& worker, std::uint64_t nodes) { worker.local_nodes_ = nodes; }
+    17	    static int leaf(const Worker& worker, const Board& board) { return worker.draw_leaf_score(board); }
+    18	};
+    19	
+    20	} // namespace forge
+    21	
+    22	namespace {
+    23	
+    24	int g_fails = 0;
+    25	
+    26	void expect(bool ok, std::string_view name) {
+    27	    std::cout << (ok ? "PASS " : "FAIL ") << name << std::endl;
+    28	    if (!ok) ++g_fails;
+    29	}
+    30	
+    31	forge::Board board_from(std::string_view fen) {
+    32	    forge::Board board;
+    33	    std::string error;
+    34	    if (!board.set_fen(fen, &error)) {
+    35	        std::cout << "FAIL fen " << fen << " " << error << std::endl;
+    36	        ++g_fails;
+    37	    }
+    38	    return board;
+    39	}
+    40	
+    41	forge::SearchInfo search_at(const forge::Board& board, int depth) {
+    42	    forge::Searcher searcher(16);
+    43	    forge::SearchLimits limits;
+    44	    limits.depth = depth;
+    45	    return searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+    46	}
+    47	
+    48	bool move_is_legal(const forge::Board& board, forge::Move move) {
+    49	    const forge::MoveList legal = board.legal_moves();
+    50	    if (move.is_none()) return legal.empty();
+    51	    for (const forge::Move candidate : legal) {
+    52	        if (candidate == move) return true;
+    53	    }
+    54	    return false;
+    55	}
+    56	
+    57	bool line_is_legal(forge::Board board, const forge::SearchInfo& info) {
+    58	    if (info.score < -forge::MateValue || info.score > forge::MateValue) return false;
+    59	    if (!move_is_legal(board, info.best_move)) return false;
+    60	    if (!info.pv.empty() && !(info.pv.front() == info.best_move)) return false;
+    61	    for (const forge::Move move : info.pv) {
+    62	        if (!move_is_legal(board, move)) return false;
+    63	        forge::Undo undo;
+    64	        if (!board.make_move(move, undo)) return false;
+    65	    }
+    66	    return true;
+    67	}
+    68	
+    69	void check_formula() {
+    70	    forge::Searcher searcher(16);
+    71	    forge::Worker& worker = searcher.main_worker();
+    72	    const forge::Board fifty = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 100 1");
+    73	    const forge::Board quiet = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 10 1");
+    74	    const forge::Board bare = board_from("8/8/8/4k3/8/4K3/8/8 w - - 10 1");
+    75	
+    76	    forge::DrawJitter = 0;
+    77	    forge::SearcherTestProbe::set_nodes(worker, 3);
+    78	    expect(forge::SearcherTestProbe::leaf(worker, fifty) == 0, "span 0 fifty leaf is 0");
+    79	
+    80	    forge::DrawJitter = 8;
+    81	    bool walked = true;
+    82	    int previous = 0;
+    83	    for (std::uint64_t nodes = 0; nodes < 24; ++nodes) {
+    84	        forge::SearcherTestProbe::set_nodes(worker, nodes);
+    85	        const int score = forge::SearcherTestProbe::leaf(worker, fifty);
+    86	        const int width = 8 * 2 + 1;
+    87	        const int expected = static_cast<int>(nodes % static_cast<std::uint64_t>(width)) - 8;
+    88	        if (score != expected || score < -8 || score > 8) walked = false;
+    89	        if (nodes == 1 && score == previous) walked = false;
+    90	        if (forge::SearcherTestProbe::leaf(worker, quiet) != 0) walked = false;
+    91	        if (forge::SearcherTestProbe::leaf(worker, bare) != 0) walked = false;
+    92	        previous = score;
+    93	    }
+    94	    expect(walked, "fifty leaf walks the node count inside +/-8");
+    95	    expect(forge::SearcherTestProbe::leaf(worker, quiet) == 0, "quiet leaf stays 0");
+    96	    expect(forge::SearcherTestProbe::leaf(worker, bare) == 0, "insufficient leaf stays 0");
+    97	}
+    98	
+    99	bool play_uci(forge::Board& board, std::string_view text) {
+   100	    const std::optional<forge::Move> move = board.parse_uci(text);
+   101	    if (!move.has_value()) return false;
+   102	    forge::Undo undo;
+   103	    return board.make_move(*move, undo);
+   104	}
+   105	
+   106	void check_repetition() {
+   107	    forge::Board board = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 0 1");
+   108	    static constexpr std::string_view moves[] = {
+   109	        "e1a1", "e5e6", "a1e1", "e6e5", "e1a1", "e5e6", "a1e1", "e6e5",
+   110	    };
+   111	    bool played = true;
+   112	    for (const std::string_view text : moves) played = played && play_uci(board, text);
+   113	    expect(played && board.is_repetition(), "shuffling the rook reaches threefold");
+   114	    forge::DrawJitter = 0;
+   115	    const forge::SearchInfo off = search_at(board, 2);
+   116	    forge::DrawJitter = 8;
+   117	    const forge::SearchInfo on = search_at(board, 2);
+   118	    expect(off.score == 0, "threefold root is 0 when DrawJitter is 0");
+   119	    expect(on.score == -8, "threefold root uses the zero-node leaf score");
+   120	    expect(move_is_legal(board, on.best_move), "threefold best move is legal");
+   121	}
+   122	
+   123	void check_search_scores() {
+   124	    const forge::Board fifty = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 100 1");
+   125	    const forge::Board almost = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 99 1");
+   126	    const forge::Board mate = board_from("7k/8/6K1/8/8/8/8/R7 w - - 0 1");
+   127	    const forge::Board mate_late = board_from("7k/8/6K1/8/8/8/8/R7 w - - 99 1");
+   128	    const forge::Board mated = board_from("k5R1/8/1K6/8/8/8/8/8 b - - 100 1");
+   129	    const forge::Board stale = board_from("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");
+   130	    const forge::Board stale_late = board_from("k7/2Q5/1K6/8/8/8/8/8 b - - 100 1");
+   131	    const forge::Board bare = board_from("8/8/8/4k3/8/4K3/8/8 w - - 40 1");
+   132	
+   133	    forge::DrawJitter = 0;
+   134	    const forge::SearchInfo fifty_off = search_at(fifty, 3);
+   135	    const forge::SearchInfo almost_off = search_at(almost, 2);
+   136	    const forge::SearchInfo mate_off = search_at(mate, 3);
+   137	    const forge::SearchInfo mate_late_off = search_at(mate_late, 3);
+   138	    const forge::SearchInfo mated_off = search_at(mated, 2);
+   139	    const forge::SearchInfo stale_off = search_at(stale, 2);
+   140	    expect(fifty_off.score == 0, "fifty root is 0 when DrawJitter is 0");
+   141	    expect(almost_off.score == 0, "move into fifty is 0 when DrawJitter is 0");
+   142	    expect(forge::is_mate_score(mate_off.score) && mate_off.score > 0, "mate in one with DrawJitter 0");
+   143	    expect(mated_off.score == -forge::MateValue, "checkmate on half-move 100 with DrawJitter 0");
+   144	    expect(stale_off.score == 0, "stalemate is 0 when DrawJitter is 0");
+   145	
+   146	    forge::DrawJitter = 8;
+   147	    const forge::SearchInfo fifty_on = search_at(fifty, 3);
+   148	    const forge::SearchInfo almost_on = search_at(almost, 2);
+   149	    const forge::SearchInfo mate_on = search_at(mate, 3);
+   150	    const forge::SearchInfo mate_late_on = search_at(mate_late, 3);
+   151	    const forge::SearchInfo mated_on = search_at(mated, 2);
+   152	    const forge::SearchInfo stale_on = search_at(stale, 2);
+   153	    const forge::SearchInfo stale_late_on = search_at(stale_late, 2);
+   154	    const forge::SearchInfo bare_on = search_at(bare, 3);
+   155	    expect(fifty_on.score == -8, "fifty root uses the zero-node leaf score");
+   156	    expect(almost_on.score != 0 && almost_on.score >= -8 && almost_on.score <= 8,
+   157	           "in-tree fifty score is a few centipawns and not 0");
+   158	    expect(mate_on.score == mate_off.score && forge::is_mate_score(mate_on.score), "mate score unchanged");
+   159	    expect(mate_late_on.score == mate_late_off.score && forge::is_mate_score(mate_late_on.score),
+   160	           "mate that reaches half-move 100 stays a mate");
+   161	    expect(mated_on.score == -forge::MateValue, "side to move is mated on half-move 100");
+   162	    expect(stale_on.score == 0, "plain stalemate stays 0");
+   163	    expect(stale_late_on.score >= -8 && stale_late_on.score <= 8 && stale_late_on.score != 0,
+   164	           "stalemate on half-move 100 is a fifty-move leaf");
+   165	    expect(bare_on.score == 0, "insufficient material stays 0");
+   166	    expect(move_is_legal(mate, mate_on.best_move), "mate best move is legal");
+   167	    expect(move_is_legal(fifty, fifty_on.best_move), "fifty best move is legal");
+   168	
+   169	    forge::DrawJitter = 0;
+   170	    const forge::SearchInfo fifty_restored = search_at(fifty, 2);
+   171	    expect(fifty_restored.score == 0, "DrawJitter 0 after 8 restores the exact zero");
+   172	}
+   173	
+   174	void check_capture_is_not_a_fifty_leaf() {
+   175	    const forge::Board board = board_from("8/8/8/4k3/8/4K3/4p3/4R3 w - - 99 1");
+   176	    forge::DrawJitter = 0;
+   177	    const forge::SearchInfo off = search_at(board, 3);
+   178	    forge::DrawJitter = 8;
+   179	    const forge::SearchInfo on = search_at(board, 3);
+   180	    expect(off.best_move.is_capture() && on.best_move.is_capture(), "a capture on half-move 99 is chosen over the draw");
+   181	    expect(forge::is_mate_score(on.score) || on.score > 8, "the capture is not scored as a few-centipawn draw");
+   182	    expect(line_is_legal(board, on), "capture line is legal with DrawJitter 8");
+   183	}
+   184	
+   185	void check_repetition_in_the_tree() {
+   186	    forge::Board board = board_from("8/8/8/4k3/8/4K3/8/4R3 w - - 0 1");
+   187	    static constexpr std::string_view moves[] = {"e1a1", "e5e6", "a1e1", "e6e5", "e1a1", "e5e6", "a1e1"};
+   188	    bool played = true;
+   189	    for (const std::string_view text : moves) played = played && play_uci(board, text);
+   190	    expect(played && !board.is_repetition(), "one ply short of threefold is not yet a root draw");
+   191	    forge::DrawJitter = 0;
+   192	    const forge::SearchInfo off = search_at(board, 3);
+   193	    forge::DrawJitter = 8;
+   194	    const forge::SearchInfo on = search_at(board, 3);
+   195	    expect(off.score == 0, "the completing reply is a zero draw when DrawJitter is 0");
+   196	    expect(on.score != 0 && on.score >= -8 && on.score <= 8, "the completing reply carries a few centipawns");
+   197	    expect(line_is_legal(board, off) && line_is_legal(board, on), "repetition replies are legal");
+   198	}
+   199	
+   200	forge::Board played_position(int index) {
+   201	    static constexpr std::string_view roots[] = {
+   202	        forge::Board::StandardStartFen,
+   203	        "8/8/8/4k3/8/4K3/8/4R3 w - - 0 1",
+   204	        "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1",
+   205	        "8/2k5/8/2K5/8/8/2R5/8 w - - 0 1",
+   206	    };
+   207	    forge::Board board = board_from(roots[static_cast<std::size_t>(index) % 4]);
+   208	    std::uint32_t mix = 0xC0FFEEU ^ static_cast<std::uint32_t>(index) * 0x45D9F3BU;
+   209	    const int steps = 4 + (index % 9);
+   210	    for (int step = 0; step < steps; ++step) {
+   211	        const forge::MoveList legal = board.legal_moves();
+   212	        if (legal.empty()) break;
+   213	        mix ^= mix << 13;
+   214	        mix ^= mix >> 17;
+   215	        mix ^= mix << 5;
+   216	        const forge::Move move = legal[mix % legal.size()];
+   217	        forge::Undo undo;
+   218	        if (!board.make_move(move, undo)) break;
+   219	    }
+   220	    if (board.legal_moves().empty()) board = board_from(forge::Board::StandardStartFen);
+   221	    return board;
+   222	}
+   223	
+   224	void check_many_searches(int span) {
+   225	    forge::DrawJitter = span;
+   226	    forge::Searcher searcher(16);
+   227	    expect(searcher.threads() == 1, "one thread and 16 MB hash");
+   228	    int illegal = 0;
+   229	    for (int index = 0; index < 200; ++index) {
+   230	        const forge::Board board = played_position(index);
+   231	        searcher.clear();
+   232	        forge::SearchLimits limits;
+   233	        limits.depth = 10;
+   234	        const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+   235	        if (!line_is_legal(board, info)) {
+   236	            ++illegal;
+   237	            if (illegal <= 5) {
+   238	                std::cout << "FAIL illegal search " << index << " span " << span << " move "
+   239	                          << forge::Board::move_to_uci(info.best_move) << " score " << info.score
+   240	                          << " fen " << board.fen() << std::endl;
+   241	            }
+   242	        }
+   243	        if ((index + 1) % 20 == 0) {
+   244	            std::cout << "info span " << span << " searches " << (index + 1) << " illegal " << illegal << std::endl;
+   245	        }
+   246	    }
+   247	    expect(illegal == 0, span == 8 ? "200 depth-10 searches with DrawJitter 8 returned legal moves"
+   248	                                   : "200 depth-10 searches with DrawJitter 5 returned legal moves");
+   249	}
+   250	
+   251	void check_two_threads() {
+   252	    forge::DrawJitter = 8;
+   253	    forge::Searcher searcher(16, 2);
+   254	    expect(searcher.threads() == 2, "two search threads");
+   255	    const forge::Board board = board_from(forge::Board::StandardStartFen);
+   256	    forge::SearchLimits limits;
+   257	    limits.depth = 10;
+   258	    const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Shared);
+   259	    expect(line_is_legal(board, info), "two-thread depth 10 line is legal with DrawJitter 8");
+   260	    expect(!forge::is_mate_score(info.score), "start position at depth 10 is not a mate score");
+   261	}
+   262	
+   263	} // namespace
+   264	
+   265	int main() {
+   266	    check_formula();
+   267	    check_search_scores();
+   268	    check_capture_is_not_a_fifty_leaf();
+   269	    check_repetition();
+   270	    check_repetition_in_the_tree();
+   271	    check_two_threads();
+   272	    check_many_searches(8);
+   273	    check_many_searches(5);
+   274	    forge::DrawJitter = 0;
+   275	    std::cout << (g_fails == 0 ? "OK" : "FAILED") << " fails " << g_fails << std::endl;
+   276	    return g_fails == 0 ? 0 : 1;
+   277	}
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/tests_r3_11/dead_material_test.cpp
++ nl -ba
++ sed -n 200,330p
+   200	    if (black.score + black_stm.score != 0) fail("black pair score did not negate with the side to move");
+   201	    if (corner.score + corner_stm.score != 0) fail("corner score did not negate with the side to move");
+   202	
+   203	    // Light bishop on f1, so a8 is a mating corner. The lone king steps toward it.
+   204	    const char* walk[] = {
+   205	        "8/8/8/8/4k3/N7/1K6/5B2 w - - 0 1",
+   206	        "8/8/8/3k4/8/N7/1K6/5B2 w - - 0 1",
+   207	        "8/8/2k5/8/8/N7/1K6/5B2 w - - 0 1",
+   208	        "8/1k6/8/8/8/N7/1K6/5B2 w - - 0 1",
+   209	        "k7/8/8/8/8/N7/1K6/5B2 w - - 0 1",
+   210	    };
+   211	    int previous = 0;
+   212	    for (int i = 0; i < 5; ++i) {
+   213	        const Scored step = score_fen(walk[i]);
+   214	        if (!step.fen_ok || !step.recognized) fail(std::string("walk fen ") + walk[i]);
+   215	        if (i > 0 && step.score < previous) fail("walk toward a8 lowered the score");
+   216	        previous = step.score;
+   217	    }
+   218	    const Scored walk_start = score_fen(walk[0]);
+   219	    const Scored walk_end = score_fen(walk[4]);
+   220	    if (walk_end.score <= walk_start.score) fail("a8 was not better than the start of the walk");
+   221	
+   222	    forge::Board start;
+   223	    if (!start.set_fen(forge::Board::StandardStartFen)) fail("start fen");
+   224	    forge::dead_material_enabled = false;
+   225	    const forge::EvalComponents start_off = forge::Evaluator::static_eval_components(start);
+   226	    forge::dead_material_enabled = true;
+   227	    const forge::EvalComponents start_on = forge::Evaluator::static_eval_components(start);
+   228	    if (start_off.hce != start_on.hce || start_off.nnue != start_on.nnue || start_off.total != start_on.total) {
+   229	        fail("DeadMaterial changed the starting position");
+   230	    }
+   231	
+   232	    forge::Board kbn;
+   233	    if (!kbn.set_fen(light_corner)) fail("light corner fen");
+   234	    forge::dead_material_enabled = false;
+   235	    const forge::EvalComponents kbn_off = forge::Evaluator::static_eval_components(kbn);
+   236	    forge::dead_material_enabled = true;
+   237	    const forge::EvalComponents kbn_on = forge::Evaluator::static_eval_components(kbn);
+   238	    if (kbn_on.hce != 0 || kbn_on.nnue != 0 || kbn_on.total != corner.score) {
+   239	        fail("enabled KBN eval did not replace the network");
+   240	    }
+   241	    if (kbn_off.nnue == 0) fail("disabled KBN eval did not call the network");
+   242	    if (kbn_off.total == kbn_on.total) fail("KBN network total matched the corner score");
+   243	
+   244	    forge::Board bare;
+   245	    if (!bare.set_fen("8/8/8/4k3/8/8/4K3/8 w - - 0 1")) fail("bare fen");
+   246	    const forge::EvalComponents bare_on = forge::Evaluator::static_eval_components(bare);
+   247	    if (bare_on.total != 0 || bare_on.nnue != 0 || bare_on.hce != 0) fail("enabled bare kings were not zero");
+   248	
+   249	    auto nodes_at = [](bool enabled, const char* fen, int depth) {
+   250	        forge::dead_material_enabled = enabled;
+   251	        forge::Board position;
+   252	        if (!position.set_fen(fen)) return static_cast<std::uint64_t>(0);
+   253	        forge::Searcher local(16);
+   254	        forge::SearchLimits limits;
+   255	        limits.depth = depth;
+   256	        return local.search(position, limits, false).nodes;
+   257	    };
+   258	    const std::uint64_t pair_off = nodes_at(false, light_corner, 5);
+   259	    const std::uint64_t pair_on = nodes_at(true, light_corner, 5);
+   260	    if (pair_off == 0 || pair_off == pair_on) fail("option did not change the bishop-and-knight search");
+   261	
+   262	    // Wrong-corner kings. A dark bishop's corners are a1 and h8; a light bishop's are h1 and a8.
+   263	    expect_search_drives("dark", "k7/8/8/8/8/2N5/1K6/2B5 w - - 0 1", 8, 16);
+   264	    expect_search_drives("light", "7k/8/8/8/8/N7/1K6/5B2 w - - 0 1", 12, 20);
+   265	
+   266	    forge::dead_material_enabled = true;
+   267	    std::vector<std::string> positions;
+   268	    positions.reserve(220);
+   269	    forge::Board walk_board;
+   270	    std::uint64_t rng = 0xD3AD5EEDULL;
+   271	    auto next_rand = [&]() {
+   272	        rng = rng * 6364136223846793005ULL + 1442695040888963407ULL;
+   273	        return rng;
+   274	    };
+   275	    while (positions.size() < 200) {
+   276	        if (!walk_board.set_fen(forge::Board::StandardStartFen)) fail("reset start");
+   277	        const int plies = static_cast<int>(4 + (next_rand() % 10U));
+   278	        for (int ply = 0; ply < plies; ++ply) {
+   279	            const forge::MoveList moves = walk_board.legal_moves();
+   280	            if (moves.empty()) break;
+   281	            forge::Undo undo;
+   282	            const forge::Move chosen = moves[static_cast<std::size_t>(next_rand() % moves.size())];
+   283	            if (!walk_board.make_move(chosen, undo)) fail("generator made an illegal move");
+   284	        }
+   285	        positions.push_back(walk_board.fen());
+   286	    }
+   287	    positions.push_back(light_corner);
+   288	    positions.push_back(dark_corner);
+   289	    positions.push_back("8/8/8/4k3/8/8/4K3/8 w - - 0 1");
+   290	    positions.push_back("8/8/8/4k3/8/8/4K3/2N1N3 w - - 0 1");
+   291	    positions.push_back("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
+   292	
+   293	    forge::Searcher searcher(16);
+   294	    forge::SearchLimits limits;
+   295	    limits.depth = 10;
+   296	    const auto started = std::chrono::steady_clock::now();
+   297	    for (std::size_t index = 0; index < positions.size(); ++index) {
+   298	        forge::Board board;
+   299	        if (!board.set_fen(positions[index])) {
+   300	            fail("search fen " + positions[index]);
+   301	            break;
+   302	        }
+   303	        searcher.clear();
+   304	        const forge::SearchInfo info = searcher.search(board, limits, false);
+   305	        if (!move_is_legal(board, info.best_move) || !pv_is_legal(board, info.pv)) {
+   306	            fail("illegal move " + forge::Board::move_to_uci(info.best_move) + " in " + positions[index]);
+   307	            break;
+   308	        }
+   309	        if ((index + 1) % 50 == 0) std::cerr << "searches " << (index + 1) << '\n';
+   310	    }
+   311	    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+   312	        std::chrono::steady_clock::now() - started).count();
+   313	    std::cout << "dead-material tests failures " << g_failures
+   314	              << " searches " << positions.size()
+   315	              << " ms " << elapsed
+   316	              << " corner " << corner.score
+   317	              << " wrong " << wrong.score
+   318	              << " near " << near.score
+   319	              << " far " << far.score
+   320	              << " pair " << pair_off << " " << pair_on
+   321	              << '\n';
+   322	    return g_failures == 0 ? 0 : 1;
+   323	}
++ git show e04556ddc3a430b2e751159b0d46111ef56c8b89:forge-combo29/src/board.cpp
++ nl -ba
++ sed -n 1205,1238p
+  1205	    int count = 0;
+  1206	    for (std::ptrdiff_t i = size - 5; i >= limit; i -= 2) {
+  1207	        if (key_history_[static_cast<std::size_t>(i)] == key_) {
+  1208	            if (i >= static_cast<std::ptrdiff_t>(root_index)) return true;
+  1209	            if (++count >= 2) return true;
+  1210	        }
+  1211	    }
+  1212	    return false;
+  1213	}
+  1214	
+  1215	bool Board::is_insufficient_material() const {
+  1216	    const Bitboard pawns_rooks_queens = pieces(Pawn) | pieces(Rook) | pieces(Queen);
+  1217	    if (pawns_rooks_queens != 0) return false;
+  1218	    const Bitboard knights = pieces(Knight);
+  1219	    const Bitboard bishops = pieces(Bishop);
+  1220	    const int minor_count = popcount(knights | bishops);
+  1221	    if (minor_count <= 1) return true;
+  1222	    return knights == 0 && ((bishops & DarkSquares) == 0 || (bishops & LightSquares) == 0);
+  1223	}
+  1224	
+  1225	bool Board::has_non_pawn_material(Color color) const {
+  1226	    return (pieces(color, Knight) | pieces(color, Bishop) | pieces(color, Rook) | pieces(color, Queen)) != 0;
+  1227	}
+  1228	
+  1229	bool Board::see_ge(const Move& move, int threshold) const {
+  1230	    if (move.is_castle()) return 0 >= threshold;
+  1231	    const Color us = side_;
+  1232	    const int from = move.from;
+  1233	    const int to = move.to;
+  1234	    const int captured_square = (move.flags & EnPassant) != 0U ? to - pawn_push_delta(us) : to;
+  1235	    const int target_rank = rank_of(to);
+  1236	    if ((target_rank == 0 || target_rank == 7) &&
+  1237	        piece_type(squares_[static_cast<std::size_t>(from)]) != King) {
+  1238	        const Color promoter = target_rank == 7 ? White : Black;
++ git show 85e0961064799c8f49f129b1d856490436b44354:forge-combo29/REPORT_r3_01.md
+# EvalRule50Damp
+
+The fifty-move rule draws a game after 100 half-moves with no pawn move and no capture. This engine already treats that clock as a draw, and treats checkmate on the hundredth half-move as a win. A static score is a claim about a conversion that still has to happen. As the clock rises, fewer quiet moves remain, so the static score a node reads should shrink toward zero. Clock 0 keeps the whole score. Each half-move already played drops one percent, so a clock near 100 keeps only a sliver (clock 90 keeps 10, clock 99 keeps 1, clock 100 keeps 0). Mate scores are not scaled: a forced mate is not a positional edge the clock can expire.
+
+That percent is the shape asked for here. It is not a scale table taken from another engine. `Board::compute_key` hashes pieces, castling, en passant, and side to move, and does not hash the half-move clock, so one hash entry is shared by the same placement at many clocks. The raw evaluation stored in that entry stays unscaled. Each node scales it for its own clock when it reads it. A search score was built from evals already scaled for the clock that stored it, so with the option on that score is used only when the stored half-move clock matches. With the option off the extra check accepts every score the old gate accepted.
+
+## Option
+
+`EvalRule50Damp`, check, default false. It is printed in the `uci` answer. `setoption name EvalRule50Damp value true` turns it on and clears the hash. `false` turns it off and clears the hash. Any other value is rejected and the flag is left as it was.
+
+The scale is `rule50_damped_static` in `forge-combo29/include/forge/search.hpp`. `Worker::qsearch` and `Worker::search` call it where the corrected static evaluation is copied into the node, and on the ply-limit return that would otherwise hand back a raw static evaluation. `ValueNone` and mate scores are returned unchanged. The hash store still writes `ss->raw_eval`, the unscaled evaluation, into the eval slot.
+
+Source diff under `forge-combo29/src` and `forge-combo29/include`: 39 insertions, 7 deletions.
+
+## Default pins
+
+Threads 1, Hash 16, OwnBook false, every other option at default. Measured with
+
+`cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`
+
+and `cmake --build build -j`. `/usr/bin/c++` on this machine is Clang 18 and does not link, because it selects a GCC 14 libstdc++ that is not installed. The binary below was built with `CXX=g++-13` and those cmake flags.
+
+Before the edit, and again after it with the option left off:
+
+- `go perft 5` from the start position: 4865609
+- `bench 11`: 312866
+- `bench 13`: 862329
+
+Setting the option on, then off, reproduces those three numbers. An invalid value while the option is off also leaves them in place. `go perft 5` with the option on is still 4865609. Perft does not read the evaluation.
+
+## Option on
+
+`bench 13` with `EvalRule50Damp` true: 1049205, repeated. That is not the default count.
+
+On `4k3/8/8/8/8/3Q4/8/4K3 w - - 80 20`, depth 1 is 913 with the option off and 173 with it on. The hash eval slot is 821 in both searches, and 821 again for the same placement at clock 0. The stored evaluation was not scaled. Depth 4 is 880 at clock 0 on a fresh table, 141 at clock 80, and 917 at clock 0 on the table just filled by the clock-80 search. The shrunk score was not reused for the other clock. A losing depth-1 score goes from -891 to -169. Mate in one, `6k1/4Q3/6K1/8/8/8/8/8 w - - 90 40` and the same placement at clock 99, stays 31999 (`e7g7`) with the option off and on.
+
+The same queen placement with the option on, depth 1, scores 903, 812, 675, 447, 219, 82, and 0 at clocks 0, 10, 25, 50, 75, 90, and 99. Depth 8 falls the same way: 888, 808, 669, 396, 155, 18, and 0. The hash eval slot stays 821 at every clock. A losing placement falls from -882 toward zero on that same clock list, and its stored eval stays -899. Mate in one stays 31999 at each of those clocks. Clock 99 is already a draw for the queen ending with the option off, because no quiet move remains before the hundredth half-move, so both settings score 0 there. Checkmate already on the board at clock 100, `6k1/6Q1/6K1/8/8/8/8/8 b - - 100 50`, scores -32000 with the option off and on.
+
+## Searches under address and undefined sanitizers
+
+`forge-combo29/tests_r3_01/eval_rule50_damp.cpp`, compiled with the engine sources, `-O2 -fsanitize=address,undefined`, and the same `FORGE_*` defines as the release build. `EvalRule50Damp` is on. Two walks of 200 games search to depth 10 from the start position: at most 18 plies (seed `0x51A7E0D5`) and at most 40 plies (seed `0xC0FFEE11`). Every fifth game has its half-move clock rewritten into 20..99. The run reports 0 illegal moves, 2 and 6 positions in check, and 40 raised clocks in each walk. AddressSanitizer and UndefinedBehaviorSanitizer print nothing and the process exits 0. The same suite exits 0 without sanitizers. A two-thread `go depth 6` with the option on from the start position returns `a2a3`.
+
+No strength claim.
+
+Not executed: a ply-128 node (that return calls the same scaler the tests check), and ThreadSanitizer.
+
+option.EvalRule50Damp=true
+bench 13 nodes 1049205
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/REPORT_r3_11.md
+# DeadMaterial
+
+## Where the idea comes from
+
+This is the ordinary endgame fact, written for this engine and not taken from another engine's code, constants, or tables.
+
+King against king, king and one knight or one bishop against king, and king and two knights against king have no forced mate, so the score is 0. King, bishop and knight against king is won by driving the lone king into a corner of the bishop's colour. In this program `DarkSquares` has bit 0 set, so a1 is dark. A dark-squared bishop uses a1 and h8. A light-squared bishop uses h1 and a8.
+
+The attacker score, in centipawns, is
+
+`48 + 28 * (7 - corner distance) + 12 * (7 - distance between the kings)`.
+
+`corner distance` is the Chebyshev distance from the lone king to the nearer of those two corners. The corner term is larger than the king term, so a step toward that corner still raises the score when the kings move farther apart. The number is from the attacker's point of view, then negated when the lone king is the side to move.
+
+## What the option does
+
+`DeadMaterial` is a UCI check option, default false, and it is listed in the `uci` answer.
+
+With it off, evaluation and the draw shortcut are the previous code. Bench and perft stay on the lock.
+
+With it on, `Worker::static_evaluate` returns the score above before it refreshes an accumulator or calls the network. `corrected_eval` does not add correction history on top of that score. The `eval` command uses the same rule and leaves the hand-crafted and network fields at 0.
+
+Bare kings and king plus one minor are no longer cut off as insufficient material, so the 0 comes from this evaluation and those king moves are searched. Repetition, the fifty-move rule, stalemate, and other insufficient material (such as bishops all on one colour) still draw the old way. Two knights against a king were not an insufficient-material cutoff; they now score 0 when evaluated. Bishop and knight against a king was not a cutoff either; it now gets the corner score instead of the network.
+
+Nothing here is a strength claim. No games were played.
+
+## Pins
+
+Build: `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`, then `cmake --build build -j`. Compiler: g++ 13.3. The `c++` driver on this machine is Clang and does not link `libstdc++`; the pins below were taken with g++ and match the lock.
+
+Threads 1, Hash 16, OwnBook false, every other option left at default. Printed before any edit and again on the final tree:
+
+- bench 11: 312866 nodes
+- bench 13: 862329 nodes
+- `go perft 5` from the start position: 4865609 nodes
+
+## Tests
+
+`forge-combo29/tests_r3_11/dead_material_test.cpp` checks:
+
+- bare kings, white or black knight, white or black bishop, and two knights on one side, from both sides to move, all score 0
+- the start position, a queen, a rook, a pawn, a knight on each side, two bishops, a bishop and a pawn, and bishop plus knight plus a pawn are not these endings
+- a light bishop and a dark bishop each score the matching corner above the other corner
+- a closer attacking king scores higher, and stepping the lone king toward a8 with a light bishop does not lower the score
+- flipping the side to move negates the bishop-and-knight score
+- the start position's evaluation components do not change when the option flips
+- with the option on, the bishop-and-knight total equals this formula and both the hand-crafted and network fields stay 0; with it off, the network term is not 0 and the total differs
+- depth 5 on that bishop-and-knight position: 675 nodes off, 514 nodes on
+- 200 generated positions plus five fixtures, searched to depth 10 with the option on: every best move, and every move of the PV, is in the legal move list
+- search play, option on, repeats the engine's best move. Distance is Chebyshev distance from the lone king to the nearer corner of the bishop's colour. A dark bishop uses a1 and h8; a light bishop uses h1 and a8. Lone king on a8 against a dark bishop, depth 8 for 16 plies: distance 7 to 3. Lone king on h8 against a light bishop, depth 12 for 20 plies: distance 7 to 4.
+
+Two further lines, same rule, not folded into the test binary: a lone king on d5 against a dark bishop, depth 12 for 20 plies, distance 4 to 3; a lone king on d4 against a light bishop and knight, depth 10 for 40 plies, goes to a1 first (distance 7, the other colour) and is then pushed toward h1, best distance 2, ending distance 3. That is the score pulling the king. It is not a measure of playing strength.
+
+Release run of the test: 0 failures, drive 7 to 3 and 7 to 4, 205 searches, 2275 ms.
+
+Pins were printed again on this tree after that test, with the same three default counts and the same option-on bench count as below.
+
+Sanitizer, `-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all`, halt on error, leak detection on. One run of the depth-10 searches alone: exit 0, 0 failures, 205 searches, 21110 ms. The run that also plays the two corner lines: exit 0, drive 7 to 3 and 7 to 4, 0 failures, 205 searches, 21365 ms. No sanitizer report.
+
+Source diff against `e04556dd` in `forge-combo29/src` and `forge-combo29/include`: 96 insertions and 4 deletions, 100 changed lines.
+
+setoption name DeadMaterial value true
+
+bench 13 with it on: 862343 nodes
++ git show 041404af67a585969e8ed6ce8906b4b270b7ffc7:forge-combo29/REPORT_r3_14.md
+# DrawJitter
+
+Repetition leaves and fifty-move leaves can return a draw score a few centipawns off zero. The offset follows the node count. Mate scores are not adjusted.
+
+`DrawJitter` is a UCI spin option, listed in the `uci` answer. Default 0, minimum 0, maximum 8. Zero keeps today's scores: those leaves return exactly 0.
+
+## Where the idea comes from
+
+A search that scores every draw as 0 cannot tell two drawing lines apart. Engines have avoided that with contempt, a constant added to draw scores. Stockfish exposed the constant as Contempt and later removed it. This is not that option. No contempt value, margin, or table was copied.
+
+Only two kinds of leaf move. A repetition, and a position whose half-move clock has reached 100 and is not checkmate, score
+
+    (nodes % (2 * DrawJitter + 1)) - DrawJitter
+
+That stays inside [-DrawJitter, +DrawJitter] and changes as nodes are counted. The step was written for this search. Plain stalemate and insufficient material stay at 0. A stalemate whose clock is already 100 is a fifty-move leaf, so it uses the same step. Checkmate, including checkmate on the hundredth half-move, still returns a mate score.
+
+If the root itself is already one of those draws, no nodes have been counted, so the score is -DrawJitter.
+
+## Default pins
+
+Threads 1, Hash 16, OwnBook false, and every other option at default, including DrawJitter 0. Printed before any edit and again on the final binary:
+
+- bench 11: 312866
+- bench 13: 862329
+- `go perft 5` from the start position: 4865609
+
+Build: `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`, then `cmake --build build`. The system `c++` is Clang 18.1.3. It found libstdc++ headers only with `--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13`.
+
+## Showing the option is live
+
+On this depth-13 bench, DrawJitter 4 still returns 862329 nodes. The leaves are no longer exactly 0, but the tree does not change. DrawJitter 5 is the smallest value that changes the count: 880111 nodes. DrawJitter 8 changes it too, and a second run matched.
+
+## Tests
+
+`forge-combo29/tests_r3_14/draw_jitter_test.cpp` checks the node-count step, a fifty-move root, an in-tree fifty-move score, a capture on half-move 99, a constructed threefold, the ply just before that threefold, and mate scores with the option at 0 and at 8. Setting the option back to 0 restores an exact zero on the fifty-move root.
+
+It then runs 200 searches to depth 10 with DrawJitter 8, one thread, and a 16 MB hash. The best move and every move in the PV were legal, and the score stayed inside the mate bounds (0 illegal). The same 200 positions at DrawJitter 5 also returned legal lines. A two-thread depth-10 search from the start position returned a legal line.
+
+That binary was g++ 13.3 with `-O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined` and the portable feature macros. Exit status 0. No sanitizer diagnostic.
+
+With DrawJitter left at 0, the existing rules suite, the repetition/mate driver, and the fifty-move transposition cases also passed, including the same drivers rebuilt with address and undefined sanitizers. Those runs were checks only. They are not part of this change.
+
+The diff in `forge-combo29/src` and `forge-combo29/include` is 28 insertions and 3 deletions.
+
+## Re-check
+
+One release process, Threads 1, Hash 16, OwnBook false:
+
+- DrawJitter 0: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+- DrawJitter 8: bench 13 = 857947, and the repeat was 857947
+- DrawJitter 0 again: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+- DrawJitter 5: bench 13 = 880111
+- Values 1, 2, 3, and 4 leave bench 13 at 862329
+- Value 9 is out of range, clamped to 8, bench 13 = 857947
+- Value -3 is out of range, clamped to 0, bench 13 = 862329
+- A non-numeric value is refused and does not change the option
+
+The same release commands were run again at 14:19 UTC. Bench 11, bench 13, and perft 5 matched the numbers above, including DrawJitter 8 at 857947 twice and the return to 0. The sanitizer binary was run again: both 200-search samples and the two-thread search passed, exit 0, no sanitizer diagnostic.
+
+A later pass at 14:39 UTC matched again: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609, DrawJitter 8 bench 13 = 857947, then DrawJitter 0 bench 13 = 862329.
+
+No strength claim.
+
+setoption name DrawJitter value 8
+
+bench 13 nodes 857947
++ git show 85e0961064799c8f49f129b1d856490436b44354:forge-combo29/src/search.cpp
++ sed -n '1570,1610p;1920,1950p'
++ nl -ba
+  1570	    } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+  1571	               (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+  1572	        // Every move failed low: the parent's quiet move refuted this line.
+  1573	        update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+  1574	                            history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+  1575	    }
+  1576	
+  1577	    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+  1578	    if (excluded.is_none() && !(root_node && root_restricted_)) {
+  1579	#if FORGE_SPD_TT_NOTLS
+  1580	        store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+  1581	#else
+  1582	        shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+  1583	#endif
+  1584	    }
+  1585	    // Teach the static evaluation about this pawn structure when the search
+  1586	    // result is a usable bound in the direction of the difference.
+  1587	    if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+  1588	        (best_move.is_none() || !best_move.is_capture()) &&
+  1589	        !(bound == BoundLower && best_score <= ss->static_eval) &&
+  1590	        !(bound == BoundUpper && best_score >= ss->static_eval)) {
+  1591	        update_correction(board, depth, best_score, ss->static_eval);
+  1592	    }
+  1593	    return best_score;
+  1594	}
+  1595	
+  1596	// ---------------------------------------------------------------------------
+  1597	// Iterative deepening driver
+  1598	
+  1599	SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+  1600	    const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+  1601	        ? limits.start_time : limits.request_start;
+  1602	    start_ = origin == std::chrono::steady_clock::time_point{}
+  1603	        ? std::chrono::steady_clock::now() : origin;
+  1604	    local_nodes_ = 0;
+  1605	    nodes_.store(0, std::memory_order_relaxed);
+  1606	    all_workers_ = &all;
+  1607	    seldepth_ = 0;
+  1608	    aborted_ = false;
+  1609	    stopped_by_nodes_ = false;
+  1610	    extra_nodes_ = 0;
+  1920	        if (should_stop()) break;
+  1921	        if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+  1922	            // Stop early when the best move has been stable; spend longer when it keeps changing.
+  1923	            double factor = 1.0;
+  1924	            if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+  1925	            else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+  1926	            else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
+  1927	            // A best move that absorbed most of the effort is clearly best;
+  1928	            // spend longer when the alternatives still draw attention.
+  1929	            if (local_nodes_ > 0 && depth >= 6) {
+  1930	                const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+  1931	                const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+  1932	                if (best_effort != effort_end) {
+  1933	                    const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
+  1934	                    const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+  1935	                    factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+  1936	                }
+  1937	            }
+  1938	            // A falling evaluation deserves more thought.
+  1939	            if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+  1940	                const int drop = std::min(iteration_previous_score - score, 150);
+  1941	                factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+  1942	            }
+  1943	            factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+  1944	            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+  1945	        }
+  1946	    }
+  1947	
+  1948	    nodes_.store(local_nodes_, std::memory_order_relaxed);
+  1949	    result.nodes = total_nodes() + extra_nodes_;
+  1950	    result.seldepth = std::max(result.seldepth, seldepth_);
++ sed -n 1670,1720p
++ nl -ba
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/src/search.cpp
+  1670	    }
+  1671	
+  1672	    const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
+  1673	    mate_moves_ = mate_moves;
+  1674	    const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+  1675	    const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+  1676	    const int multipv = std::clamp(limits.multipv, 1, 8);
+  1677	    // Overrides stay unset on the MultiPV 1 path, so that info line is unchanged.
+  1678	    int pv_index = 1;
+  1679	    int seldepth_override = -1;
+  1680	    int hashfull_override = -1;
+  1681	    std::uint64_t node_override = 0;
+  1682	    bool use_node_override = false;
+  1683	
+  1684	    auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
+  1685	        if (!emit_info) return;
+  1686	        const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+  1687	            std::chrono::steady_clock::now() - start_).count();
+  1688	        const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+  1689	        const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+  1690	        const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+  1691	        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+  1692	        const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+  1693	        std::cout << "info depth " << depth;
+  1694	        if (multipv > 1) {
+  1695	            // depth, multipv, score, then the usual fields, then pv.
+  1696	            std::cout << " multipv " << pv_index << " score " << format_score(score)
+  1697	                      << " seldepth " << std::max(shown_seldepth, depth);
+  1698	        } else {
+  1699	            std::cout << " seldepth " << std::max(shown_seldepth, depth) << " score " << format_score(score);
+  1700	        }
+  1701	        std::cout << " nodes " << nodes << " nps " << nps << " hashfull " << shown_hash << " time " << elapsed << " pv";
+  1702	        for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
+  1703	        std::cout << std::endl;
+  1704	    };
+  1705	
+  1706	    // Terminal or adjudicated roots: report without searching.
+  1707	    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+  1708	                                               board.is_insufficient_material());
+  1709	    if (root_candidates.empty() || root_drawn) {
+  1710	        int score = 0;
+  1711	        if (legal.empty() && board.in_check()) score = -MateValue;
+  1712	        for (int depth = 1; depth <= max_depth; ++depth) {
+  1713	            result.depth = depth;
+  1714	            result.score = score;
+  1715	            emit(depth, score, {});
+  1716	            if (should_stop()) break;
+  1717	        }
+  1718	        if (!root_candidates.empty()) result.best_move = root_candidates.front();
+  1719	        result.nodes = total_nodes();
+  1720	        nodes_.store(local_nodes_, std::memory_order_relaxed);
++ git show 85e0961064799c8f49f129b1d856490436b44354:forge-combo29/src/search.cpp
++ rg -n 'EvalRule50Damp|rule50_score_for_this_clock|rule50_damped_static|update_correction\(board'
+80:bool EvalRule50Damp = false;
+142:[[nodiscard]] bool rule50_score_for_this_clock(std::uint8_t stored_clock, int halfmove) {
+143:    if (!tune::EvalRule50Damp) return true;
+1062:    if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+1083:                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+1103:        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+1206:        if (ply >= MaxPly) return board.in_check() ? 0 : rule50_damped_static(static_evaluate(board, ss), board.halfmove_clock());
+1232:                                 rule50_score_for_this_clock(tte.rule50_clock, board.halfmove_clock())
+1256:        eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
+1591:        update_correction(board, depth, best_score, ss->static_eval);
++ git show 85e0961064799c8f49f129b1d856490436b44354:forge-combo29/src/uci.cpp
++ rg -n -A8 'name == "EvalRule50Damp"'
+314:            } else if (name == "EvalRule50Damp") {
+315-                if (value_text == "true" || value_text == "false") {
+316-                    forge::tune::EvalRule50Damp = value_text == "true";
+317-                    searcher.clear_hash();
+318-                } else {
+319-                    note_invalid();
+320-                }
+321-            } else if (name == "MultiPV") {
+322-                apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/src/eval.cpp
++ rg -n 'dead_material|Two knights|white_pair|attacker_cp'
+472:bool dead_material_enabled = false;
+474:bool dead_material_score(const Board& board, int& score) {
+492:    // Two knights cannot force mate against a lone king.
+498:    const bool white_pair = white_knights == 1 && white_bishops == 1 && black_minors == 0;
+500:    if (!white_pair && !black_pair) return false;
+504:    const Color attacker = white_pair ? White : Black;
+515:    const int attacker_cp = Base + (7 - to_corner) * CornerWeight + (7 - king_gap) * KingWeight;
+516:    score = board.side_to_move() == attacker ? attacker_cp : -attacker_cp;
+540:    if (dead_material_enabled) {
+542:        if (dead_material_score(board, fixed)) {
++ git show 89487999cb6fa5618853c68adef18a0d9dc114f5:forge-combo29/src/search.cpp
++ rg -n 'dead_material|root_drawn'
+841:    if (dead_material_enabled) {
+843:        if (dead_material_score(board, fixed)) return fixed;
+885:    if (dead_material_enabled) {
+887:        if (dead_material_score(board, fixed)) return fixed;
+968:    if (!dead_material_enabled) {
+977:        if (dead_material_score(board, fixed)) return false;
+1707:    const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+1709:    if (root_candidates.empty() || root_drawn) {
++ git show 041404af67a585969e8ed6ce8906b4b270b7ffc7:forge-combo29/src/search.cpp
++ rg -n 'DrawJitter|draw_leaf_score'
+25:int DrawJitter = 0;
+964:int Worker::draw_leaf_score(const Board& board) const {
+965:    const int span = DrawJitter;
+1062:    if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+1205:        if (is_draw(board, ply)) return DrawJitter <= 0 ? 0 : draw_leaf_score(board);
+1703:        else if (DrawJitter > 0 && (board.is_repetition() || board.halfmove_clock() >= 100)) {
+1704:            score = draw_leaf_score(board);
++ git show 041404af67a585969e8ed6ce8906b4b270b7ffc7:forge-combo29/src/uci.cpp
++ rg -n -A3 'name == "DrawJitter"'
+324:            } else if (name == "DrawJitter") {
+325-                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::DrawJitter = clamped; });
+326-            } else {
+327-                const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
++ wc -l /workspace/work/all-run/review-t1-t8/r3-complete/REVIEW.md
+43 /workspace/work/all-run/review-t1-t8/r3-complete/REVIEW.md
++ sha256sum /workspace/work/all-run/review-t1-t8/r3-complete/REVIEW.md
+f92b5b9b450d5859a8f5e3855d09a3f89127c78ab98df283f87e1d122d21662b  /workspace/work/all-run/review-t1-t8/r3-complete/REVIEW.md

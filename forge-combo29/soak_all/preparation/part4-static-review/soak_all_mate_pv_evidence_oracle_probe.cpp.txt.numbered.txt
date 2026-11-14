@@ -1,0 +1,40 @@
+    1 #define main t12_original_test_main
+    2 #include "/workspace/work/dwqww-all/forge-combo29/tests_t12/krk_mate_test.cpp"
+    3 #undef main
+    4 
+    5 int main() {
+    6     const KrkTablebase tb;
+    7     forge::Board board;
+    8     const std::string fen = "8/8/8/8/8/1R6/2k5/5K2 w - - 0 1";
+    9     if (!board.set_fen(fen)) return 2;
+   10     auto distance = [&](const forge::Board& b) {
+   11         const auto rooks = b.pieces(forge::White, forge::Rook);
+   12         if (rooks == 0) return -1;
+   13         return tb.dtm(b.king_square(forge::White), forge::lsb(rooks),
+   14                       b.king_square(forge::Black), b.side_to_move() == forge::White ? 0 : 1);
+   15     };
+   16     std::cout << "ROOT " << fen << " dtm_plies=" << distance(board) << '\n';
+   17     for (const auto move : board.legal_moves()) {
+   18         std::cout << "ROOT_MOVE " << forge::Board::move_to_uci(move)
+   19                   << " exact_mate_plies=" << tb.move_mate_plies(board, move) << '\n';
+   20     }
+   21     const std::string pv = "b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3";
+   22     std::istringstream moves(pv);
+   23     std::string text;
+   24     int ply = 0;
+   25     while (moves >> text) {
+   26         forge::Move selected = forge::Move::none();
+   27         for (const auto move : board.legal_moves()) {
+   28             if (forge::Board::move_to_uci(move) == text) selected = move;
+   29         }
+   30         if (selected.is_none()) { std::cout << "ILLEGAL " << text << '\n'; return 1; }
+   31         forge::Undo undo;
+   32         if (!board.make_move(selected, undo)) return 2;
+   33         ++ply;
+   34         std::cout << "PV_PLY " << ply << " move=" << text << " dtm_remaining=" << distance(board)
+   35                   << " in_check=" << board.in_check() << " legal_moves=" << board.legal_moves().size()
+   36                   << " fen=" << board.fen() << '\n';
+   37     }
+   38     std::cout << "PV_END ply=" << ply << " checkmate=" << (board.in_check() && !board.has_legal_move()) << '\n';
+   39 }
+   40 

@@ -1,0 +1,124 @@
+{"n":13,"argv":["sed","-n","1,120p","app/src/game/pgn/pgn_builder.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+#include <game/pgn/pgn_builder.hpp>
+
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include <matchmaking/output/output.hpp>
+
+#include <fmt/include/fmt/ostream.h>
+
+namespace fastchess::pgn {
+
+namespace str {
+template <typename T>
+std::string to_string(const T& obj) {
+    return fmt::format("{}", fmt::streamed(obj));
+}
+}  // namespace str
+
+PgnBuilder::PgnBuilder(const config::Pgn& pgn_config, const MatchData& match, std::size_t round_id,
+                       std::optional<std::size_t> game_id)
+    : pgn_config_(pgn_config), match_(match) {
+    const auto& white_player = match.players.white;
+    const auto& black_player = match.players.black;
+
+    const auto is_frc_variant = match.variant == VariantType::FRC;
+
+    pgn_generator_.addHeader("Event", pgn_config_.event_name);
+    pgn_generator_.addHeader("Site", pgn_config_.site);
+    pgn_generator_.addHeader("Date", match_.date);
+    pgn_generator_.addHeader("Round", fmt::format("{}", round_id));
+    if (game_id) pgn_generator_.addHeader("GameId", fmt::format("{}", *game_id));
+    pgn_generator_.addHeader("White", white_player.config.name);
+    pgn_generator_.addHeader("Black", black_player.config.name);
+    pgn_generator_.addHeader("Result", getResultFromWhiteMatch(white_player));
+
+    if (!pgn_config_.min) {
+        if (!white_player.uci_name.empty()) {
+            pgn_generator_.addHeader("EngineWhiteName", white_player.uci_name);
+        }
+        if (!white_player.uci_author.empty()) {
+            pgn_generator_.addHeader("EngineWhiteAuthor", white_player.uci_author);
+        }
+        if (!black_player.uci_name.empty()) {
+            pgn_generator_.addHeader("EngineBlackName", black_player.uci_name);
+        }
+        if (!black_player.uci_author.empty()) {
+            pgn_generator_.addHeader("EngineBlackAuthor", black_player.uci_author);
+        }
+    }
+
+    if (match_.fen != chess::constants::STARTPOS || is_frc_variant) {
+        pgn_generator_.addHeader("SetUp", "1");
+        pgn_generator_.addHeader("FEN", match_.fen);
+    }
+
+    if (is_frc_variant) {
+#ifdef USE_CUTE
+        pgn_generator_.addHeader("Variant", "fischerandom");
+#else
+        pgn_generator_.addHeader("Variant", "Chess960");
+#endif
+    }
+
+    if (!pgn_config_.min) {
+        pgn_generator_.addHeader("GameDuration", match_.duration);
+        pgn_generator_.addHeader("GameStartTime", match_.start_time);
+        pgn_generator_.addHeader("GameEndTime", match_.end_time);
+        // The move text stops before an illegal move, so PlyCount counts only the moves written.
+        const auto first_illegal =
+            std::find_if(match_.moves.begin(), match_.moves.end(), [](const auto& move) { return !move.legal; });
+        const auto plies = std::distance(match_.moves.begin(), first_illegal);
+        pgn_generator_.addHeader("PlyCount", fmt::format("{}", plies));
+        pgn_generator_.addHeader("Termination", convertMatchTermination(match_.termination));
+
+        if (white_player.config.limit.tc == black_player.config.limit.tc) {
+            pgn_generator_.addHeader("TimeControl", str::to_string(white_player.config.limit.tc));
+        } else {
+            pgn_generator_.addHeader("WhiteTimeControl", str::to_string(white_player.config.limit.tc));
+            pgn_generator_.addHeader("BlackTimeControl", str::to_string(black_player.config.limit.tc));
+        }
+    }
+
+    const auto opening = getOpeningClassification(is_frc_variant);
+
+    if (!pgn_config_.min && opening) {
+        pgn_generator_.addHeader("ECO", opening->eco);
+        pgn_generator_.addHeader("Opening", opening->name);
+    }
+
+    pgn_generator_.setResult(getResultFromWhiteMatch(white_player));
+
+    const auto firstIllegal = match_.moves.begin() != match_.moves.end() && !match_.moves.begin()->legal;
+
+    if (firstIllegal) {
+        pgn_generator_.addMove("", fmt::format("{}: {}", match_.reason, match_.moves.begin()->move));
+        return;
+    }
+
+    chess::Board board = chess::Board();
+    board.set960(is_frc_variant);
+    board.setFen(match_.fen);
+
+    const std::size_t move_number = int(board.sideToMove() == chess::Color::BLACK) + 2 * board.fullMoveNumber() - 1;
+
+    pgn_generator_.setBlackStarts(board.sideToMove() == chess::Color::BLACK);
+    pgn_generator_.setStartMoveNumber(move_number);
+
+    for (auto it = match_.moves.begin(); it != match_.moves.end(); ++it) {
+        // check if next move is illegal
+        const auto next_illegal = std::next(it) != match_.moves.end() && !std::next(it)->legal;
+
+        const auto last     = std::next(it) == match_.moves.end() || next_illegal;
+        const auto move_str = moveNotation(board, it->move);
+        const auto cmt_str  = createComment(*it, *std::next(it), next_illegal, last);
+
+        pgn_generator_.addMove(move_str, cmt_str);
+
+
+STDERR

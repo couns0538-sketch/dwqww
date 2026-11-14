@@ -1,0 +1,66 @@
+{"n":44,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","d59a448b9f52a6acffba58926c303e60080df86a","8283f8e97259a469b9d7601924c6a2d607b7e4f8","--","forge-combo29/tests_r3_15"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/tests_r3_15/tm_finish_test.cpp b/forge-combo29/tests_r3_15/tm_finish_test.cpp
+index 32682308..c412980f 100644
+--- a/forge-combo29/tests_r3_15/tm_finish_test.cpp
++++ b/forge-combo29/tests_r3_15/tm_finish_test.cpp
+@@ -30,33 +30,44 @@ void test_made_up_timings() {
+         std::int64_t last;
+         std::int64_t remaining;
+         bool skip;
+         const char* name;
+     };
+-    // Invented millisecond triples. skip is the hand-checked result of
+-    // last*last > remaining*prev, with the non-positive rules applied first.
++    // Invented millisecond triples. A step with last <= 2*prev extends as
++    // last*last/prev. A larger step uses sqrt(last*prev) and skips when
++    // last*prev > remaining*remaining. Non-positive samples stay; a spent
++    // budget skips.
+     const Case cases[] = {
+-        {100, 400, 1600, false, "exact fit stays"},
+-        {100, 400, 1599, true, "one millisecond short skips"},
+-        {100, 400, 1601, false, "one millisecond over stays"},
++        {100, 400, 1600, false, "spike mean 200 inside 1600 stays"},
++        {100, 400, 1599, false, "spike mean 200 inside 1599 stays"},
++        {100, 400, 199, true, "spike mean 200 over 199 skips"},
++        {100, 400, 200, false, "spike mean 200 equal 200 stays"},
+         {0, 500, 1, false, "missing previous sample stays"},
+         {10, 0, 1, false, "missing last sample stays"},
+         {-3, 40, 5, false, "negative previous stays"},
+         {8, -1, 5, false, "negative last stays"},
+         {10, 10, 0, true, "budget already spent skips"},
+         {10, 10, -4, true, "negative budget skips"},
+-        {5, 20, 79, true, "400 against 395 skips"},
+-        {5, 20, 80, false, "400 against 400 stays"},
++        {5, 20, 79, false, "spike mean 10 inside 79 stays"},
++        {5, 20, 9, true, "spike mean 10 over 9 skips"},
++        {5, 20, 10, false, "spike mean 10 equal 10 stays"},
+         {1, 1, 1, false, "flat one millisecond stays"},
+-        {1, 2, 3, true, "growth 4 against 3 skips"},
++        {1, 2, 3, true, "double growth 4 against 3 skips"},
++        {1, 2, 4, false, "double growth 4 equal 4 stays"},
+         {100, 10, 5, false, "shrinking iteration stays"},
+         {3, 3, 100, false, "slow growth stays"},
+-        {1, 100000, 50, true, "steep growth skips"},
+-        {1000000000LL, 2000000000LL, 3000000000LL, true, "wide product skips"},
+-        {2000000000LL, 2000000000LL, 2000000000LL, false, "wide product equal stays"},
+-        {2000000000LL, 5000000000LL, 6000000000LL, true, "product past 64 bits skips"},
+-        {4000000000LL, 5000000000LL, 7000000000LL, false, "product past 64 bits stays"},
++        {1, 100000, 50, true, "steep spike still skips a 50 ms budget"},
++        {16, 86, 34, true, "measured spike shape 16 then 86 skips a 34 ms budget"},
++        {16, 86, 38, false, "measured spike shape fits a 38 ms budget"},
++        {16, 32, 50, true, "exact double still compounds 64 against 50"},
++        {16, 33, 40, false, "just past double uses the mean 23 inside 40"},
++        {10, 20, 30, true, "exact double 40 against 30 skips"},
++        {20, 30, 50, false, "ratio 1.5 predicts 45 inside 50"},
++        {1000000000LL, 2000000000LL, 3000000000LL, true, "wide double compounds"},
++        {2000000000LL, 2000000000LL, 2000000000LL, false, "wide equal product stays"},
++        {2000000000LL, 5000000000LL, 6000000000LL, false, "wide spike mean stays under the budget"},
++        {4000000000LL, 5000000000LL, 7000000000LL, false, "wide modest ratio stays"},
+     };
+     for (const Case& item : cases) {
+         const bool got = forge::iteration_will_not_finish(item.prev, item.last, item.remaining);
+         expect(got == item.skip, std::string("timing ") + item.name + " prev " + std::to_string(item.prev) +
+                                       " last " + std::to_string(item.last) + " remaining " +
+
+STDERR

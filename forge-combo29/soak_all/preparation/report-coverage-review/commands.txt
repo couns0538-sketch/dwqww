@@ -1,0 +1,990 @@
++ date -u +%Y-%m-%dT%H:%M:%SZ
+2026-11-14T15:10:45Z
++ sha256sum /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs /workspace/work/all-run/review-t1-t8/report-coverage-review/INTEGRATION_ALL.original.md /workspace/work/all-run/review-t1-t8/report-coverage-review/SOAK_ALL_REPORT.snapshot.md
+2b87dbd50f2a296500fbeac3575a94d7db039b2e870a690dca532dd0221881c0  /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+2cd55f4111e92f788c7f59cdf31f2181e1a68b0230e51cf665a1ab5bb1741b66  /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs
+8d46ec084a7a05d10e7662f614111ab8463bf73f94064243494fe5bb5c9a2738  /workspace/work/all-run/review-t1-t8/report-coverage-review/INTEGRATION_ALL.original.md
+b632c7e69bc3c4428019cb408f1f43d06550a8cd320438ba468fbe8c88098397  /workspace/work/all-run/review-t1-t8/report-coverage-review/SOAK_ALL_REPORT.snapshot.md
++ jq keys /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+[
+  "active",
+  "base",
+  "end",
+  "faults",
+  "incomplete",
+  "inputs",
+  "integrationBranchTip",
+  "lastPush",
+  "lastResultsAudit",
+  "latestAudit",
+  "lock",
+  "mergedSourceCommit",
+  "nextBatch",
+  "nextSeed",
+  "notes",
+  "part2End",
+  "part2Start",
+  "phase",
+  "pins",
+  "pushes",
+  "runSpecResults",
+  "sourceHashes",
+  "start",
+  "totals"
+]
++ jq '{phase,totals:(.totals|with_entries(select(.key|test("Part1|2KRK")))),batches:[.batches[]?|select(.phase|test("Part1|2KRK"))]}' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+{
+  "phase": "2E",
+  "totals": {
+    "Part1": {
+      "description": "Three requested merges; release/ASan+UBSan/TSan builds; all16test folders; defaults pinned; unchanged expected fixtures",
+      "counts": {
+        "engine_builds": 3,
+        "test_checks": 58,
+        "nonzero_checks": 5,
+        "sanitizer_reports": 0,
+        "clock_cases": 14,
+        "fixture_reproduction_runs": 40,
+        "release_krk_T1_runs": 100,
+        "release_krk_T2_runs": 400,
+        "asan_krk_T1_runs": 100,
+        "asan_krk_T2_runs": 40
+      },
+      "status": "Complete with four stale fixture comparisons and one incomplete full ASan attempt; reduced retry passed"
+    },
+    "2KRKsplit": {
+      "description": "Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks",
+      "counts": {
+        "tests_completed": 2,
+        "t1_runs": 200,
+        "t1_misses": 0,
+        "main_runs": 400,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0,
+        "batches": 2
+      },
+      "status": "Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report"
+    }
+  },
+  "batches": []
+}
++ nl -ba /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs
++ sed -n '245,290p;328,365p'
+   245	  if (global.length) {
+   246	    out += `${fmt(global.length)} observed source-line-pair groups across the matched audit batches. This is a grouping of reported evidence, not a count of distinct bugs. Repeated pairs across batches appear once below; their reported warning blocks are summed once per batch.\n\n`;
+   247	    out += table(['Warning type', 'Access source 1', 'Access source 2', 'Reported warning blocks', 'Contributing batches'], global.map(g => [
+   248	      text(g.kind), text(g.pair[0]), text(g.pair[1]), text(fmt(g.warnings)), [...g.batches.values()].map(({run, warnings}) => batchLink(run) + ` (${fmt(warnings)})`).join('; ')
+   249	    ]));
+   250	  } else out += 'No resolved source-line-pair groups are available in the matched audit data. This is not a clean-run claim; inspect unresolved blocks, missing coverage and process outcomes.\n';
+   251	  if (state.active && phases.includes(state.active.phase)) omissions.push(`${state.active.phase}:${state.active.id}: active attempt omitted from finished coverage and all counts.`);
+   252	  if (omissions.length) out += '\nAudit coverage and grouping omissions:\n\n' + omissions.map(s => '- ' + text(s)).join('\n') + '\n';
+   253	  return out + '\n';
+   254	}
+   255	
+   256	/** Render SOAK_ALL_REPORT.md without modifying input objects or reading files. */
+   257	export function renderReport(state, audit = null, options = {}) {
+   258	  if (!state || typeof state !== 'object' || Array.isArray(state)) throw new TypeError('state must be an object');
+   259	  const totals = object(state.totals), runs = uniqueRuns(state);
+   260	  const planned = [...PLANNED];
+   261	  if (own(totals, '2KRKfull')) planned.splice(planned.indexOf('3-default'), 0, '2KRKfull');
+   262	  const phases = [...planned, ...Object.keys(totals).filter(p => !planned.includes(p))];
+   263	  const generatedAt = options.generatedAt ?? 'not supplied';
+   264	  const elapsed = Number.isFinite(Date.parse(generatedAt)) && Number.isFinite(Date.parse(state.start))
+   265	    ? ((Date.parse(generatedAt) - Date.parse(state.start)) / 60000).toFixed(2) : 'not supplied';
+   266	  let out = '# Eight-hour combined Forge integration and soak\n\n';
+   267	  out += `Start: ${text(state.start)}. Scheduled end: ${text(state.end)}. Report snapshot: ${text(generatedAt)}.\n\n`;
+   268	  out += `Elapsed at snapshot: ${elapsed} minutes; current phase: ${text(state.phase)}; recorded pushes: ${fmt(state.pushes)}. `;
+   269	  out += 'Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.\n\n';
+   270	  out += `Base: \`${text(state.base)}\`; merged source: \`${text(state.mergedSourceCommit)}\`; unchanged lock: \`${text(state.lock)}\`. `;
+   271	  out += '[Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).\n\n';
+   272	  if (Object.keys(object(state.pins)).length) out += 'Recorded default pins: ' + Object.entries(state.pins)
+   273	    .map(([k, v]) => `${text(k)} = ${fmt(v)}`).join('; ') + '.\n\n';
+   274	  if (state.active) out += `Active batch: ${text(state.active.phase)} #${text(state.active.id)}, seed ${text(state.active.seed)}, ` +
+   275	    `started ${text(state.active.started)}. Its unfinished work is absent from completed totals.\n\n`;
+   276	  out += '## Phase summary\n\n';
+   277	  out += table(['Phase', 'Conditions', 'Recorded completed work', 'Status'], phases.map(p => [text(phaseTitle(p)),
+   278	    text(CONDITIONS[p] ?? totals[p]?.description ?? 'See batch conditions'),
+   279	    text(shortCounts(object(totals[p]?.counts), p)), text(phaseStatus(state, p))]));
+   280	  out += '\nCounts below use committed state totals. A dash means unavailable or not applicable, never an inferred zero. Fault categories can overlap.\n\n';
+   281	
+   282	  out += '## Mate observations\n\n';
+   283	  const mates = groupsFromCounts(object(totals['2A']?.counts));
+   284	  if (!mates.length) out += 'No completed mate groups are recorded yet.\n';
+   285	  else out += table(['Build', 'Threads', 'Material', 'Trials', 'Mate-score misses', 'KRK criterion failures',
+   286	    'Lost forced mate', 'Mate-bound failures', 'Faults', 'Shutdown faults', 'Unexpected exits'], mates.map(g => {
+   287	      const c = g.counts, krk = g.material === 'KRK';
+   288	      return values([g.build, g.threads, g.material, c.trials, c.mate_score_misses,
+   289	        krk ? c.krk_non_mating_moves : undefined, krk ? c.loses_forced_mate : undefined,
+   290	        krk ? c.mate_bound_violations : undefined, c.faults, c.shutdown_faults, c.unexpected_exits]);
+   328	      return [batchLink(r), text(r.seed), hasRecorded(r) ? 'Yes; see retained counts' : 'No',
+   329	        text(`${s.completed === true} / ${s.passed === true}`), text(`${fmt(c.wins)}–${fmt(c.losses)}–${fmt(c.draws)}`),
+   330	        text(`${fmt(s.pairBins?.completePairs)} / ${fmt(Array.isArray(s.pairBins?.incompletePairs) ? s.pairBins.incompletePairs.length : undefined)}`),
+   331	        text(`exit ${fmt(r.exit ?? s.process?.code)}, signal ${fmt(r.signal ?? s.process?.signal)}`)];
+   332	    }));
+   333	    out += '\nRaw attempt rows can include excluded work and must not be summed into the completed totals.\n\n</details>\n\n';
+   334	  }
+   335	
+   336	  out += '## Existing tests and limitations\n\n';
+   337	  const p1 = object(totals.Part1?.counts), tests = array(options.testResults);
+   338	  const testCount = tests.length || p1.test_checks;
+   339	  const failed = tests.length ? (tests.every(r => number(r.exit))
+   340	    ? tests.filter(r => r.exit !== 0).length : undefined) : p1.nonzero_checks;
+   341	  const sanitizerCount = tests.length ? (tests.every(r => number(r.sanitizer_reports))
+   342	    ? tests.reduce((n, r) => n + r.sanitizer_reports, 0) : undefined) : p1.sanitizer_reports;
+   343	  out += `Existing test/check records: ${fmt(testCount)}; nonzero checks: ${fmt(failed)}; reported sanitizer diagnostics: ${fmt(sanitizerCount)}. ` +
+   344	    'The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.\n\n';
+   345	  if (own(p1, 'asan_krk_T2_runs')) out += `Recorded KRK coverage: release T1 ${fmt(p1.release_krk_T1_runs)}, release T2 ${fmt(p1.release_krk_T2_runs)}, ` +
+   346	    `ASAN T1 ${fmt(p1.asan_krk_T1_runs)}, ASAN T2 ${fmt(p1.asan_krk_T2_runs)}. ` +
+   347	    'The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.\n\n';
+   348	  out += 'The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.\n\n';
+   349	  out += 'Completed-unit totals exclude partial work; interrupted cleanup diagnostics remain evidence even when excluded from a completed frequency denominator. In particular, inspect partial records’ interrupted-trial and shutdown fields. For untraced self-play batches, searches/moves/games can be self-reported counters rather than independently enumerated raw observations. Sanitizer occurrences can repeat in mirrored logs and are not counts of distinct bugs.\n\n';
+   350	  if (array(state.notes).length) {
+   351	    out += '<details>\n<summary>Recorded notes and exceptions (preserved)</summary>\n\n';
+   352	    out += state.notes.map(n => '- ' + text(n)).join('\n') + '\n\nThese notes retain their original recording context; subsequent retry coverage is stated separately.\n\n</details>\n\n';
+   353	  }
+   354	
+   355	  out += '## Incomplete attempts and retries\n\n';
+   356	  if (!array(state.incomplete).length) out += 'No incomplete attempts are listed in state; see test limitations above for attempts tracked only in test evidence.\n\n';
+   357	  else {
+   358	    out += table(['Attempt', 'Seed', 'Completed work retained', 'Partial work excluded', 'Resume cursor', 'Retry', 'Reason'], state.incomplete.map(r => {
+   359	      const c = object(r.completedCountsRecorded), e = object(r.partialExcluded);
+   360	      const retained = ['completed_units', 'records_completed', 'positions', 'trials', 'games', 'faults']
+   361	        .filter(k => own(c, k)).map(k => `${fmt(c[k])} ${counterLabel(k)}`).join('; ') || 'None recorded';
+   362	      const excluded = ['incomplete_units', 'partial_trials_excluded', 'partial_faults_excluded']
+   363	        .filter(k => own(e, k)).map(k => `${fmt(e[k])} ${counterLabel(k)}`).join('; ') || 'See raw partial evidence';
+   364	      const run = runs.find(x => x.phase === r.phase && String(x.id) === String(r.id));
+   365	      return [batchLink({...run, ...r}), text(r.seed), text(retained), text(excluded), text(fmt(r.next_offset)),
++ nl -ba /workspace/work/all-run/review-t1-t8/report-coverage-review/INTEGRATION_ALL.original.md
+     1	# Combined integration validation
+     2	
+     3	Start: 2026-11-14T11:11:32Z. Scheduled eight-hour end: 2026-11-14T19:11:32Z.
+     4	
+     5	Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca` (`carbon/t21-integrate-round2`). Merged source commit: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`.
+     6	
+     7	Requested merges, in order:
+     8	
+     9	- `91103a012c8f77f528606935dcff7184123617eb`
+    10	- `5633a78d1ac0684bd0da6db5a0f6d26933c56031`
+    11	- `61f59baedecd6c80d2a6803421d2f43e0890935a`
+    12	
+    13	The t23 merge applied cleanly. The t22 UCI conflict keeps the existing `note_invalid`/`apply_spin` style, MultiPV, eval command and UCI-loop wrapper, and adds only the three false-default check options. The t12 search conflict preserves its bare-king definition and five pruning guards while ANDing the relevant t23 mate/rule-50 guards. LMR uses the child halfmove clock plus `new_depth`, as in t23. No unrelated engine cleanup was added.
+    14	
+    15	| File | SHA256 |
+    16	| --- | --- |
+    17	| src/search.cpp | `2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819` |
+    18	| src/uci.cpp | `724a4c9c07a4102d38c39fc292f66ba0c850a9c162c090148734da86acd4fb40` |
+    19	| include/forge/search.hpp | `9b88252588398bbe83164d6d9e0200522e919ed813a8cb4b04a8c57eee921600` |
+    20	
+    21	Release and ASan/UBSan CMake builds completed with GCC 14.2, x86-64-v4, the original AVX-512/BMI2 definitions and strict floating-point flags. Default release checks, Threads 1 / Hash 16 / OwnBook false: bench 11 **312866**, bench 13 **862329**, startpos perft 5 **4865609**. All three new options were left at their advertised false defaults.
+    22	
+    23	Release, ASan/UBSan and TSan engine builds completed. The 20 C++ test/helper entry points across all 16 existing test folders were built in release and ASan/UBSan configurations. Test assertions were enabled with `-UNDEBUG`; engine objects retain their original strict floating-point and ISA definitions. The widened-net parity test uses the checked-in 512-wide net and its original namespace isolation. Build commands and outputs are retained in `soak_all/preparation/`.
+    24	
+    25	The [test matrix](soak_all/TEST_MATRIX.md) records every automated suite run and nonzero exit. The unchanged t16 options/clamp expected-output fixtures omit five currently advertised options: MultiPV, NnueFile, ContHist4PlyRead, NonPawnCorrection and LmrDeeperShallower. Exact comparisons therefore fail in both builds; expected files were not changed. Each fixture/build combination repeats this difference 10/10 times; all 40 invocations exit normally and have no other output difference or sanitizer diagnostic. Full evidence is [fault 001](soak_all/faults/001.txt).
+    26	
+    27	The engine invocations, search/OwnBook protocol checkers, candidate-option suite, 200,000-line UCI fuzz tests and t23 mate/rule-50 tests pass without sanitizer diagnostics. The full release KRK test reports 0/100 single-thread misses and 0/400 two-thread misses. Its full ASan/UBSan attempt hit the 440-second test deadline while other sanitizer tests were running; that incomplete attempt is preserved and is not counted as a passing run. The unchanged test's bounded 40-root, one-trial sanitizer retry completes with 0/100 single-thread misses and 0/40 two-thread misses, exit 0 and no sanitizer diagnostic. Ten sanitizer trials per root remain unverified by this retry. See the [retry assessment](soak_all/preparation/asan-krk-retry-assessment.txt).
+    28	
+    29	The later isolated full sanitizer invocation also timed out at 435 seconds. Two bounded invocations of the unchanged test, each `40 5 2 16 14 1`, then completed: together **0/400 two-thread misses and 0/200 single-thread reference misses**, with no sanitizer diagnostic. Both used the same binary SHA256 `4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99` and the same deterministic roots, with full clear before each search. This provides five plus five trials per root; it does not turn either timed-out single `40x10` invocation into a completed run. Evidence: [split 1](soak_all/batches/2KRKsplit-0001.txt), [split 2](soak_all/batches/2KRKsplit-0002.txt).
+    30	
+    31	All seven interactive t3 clock cases pass in each build, with complete UCI traffic and measured times retained in the [clock assessment](soak_all/preparation/t3-clock-interactive-assessment.txt). Initial harness timing measurements and their corrected minimum-150-ms observation are preserved. No expected value was edited to make a check pass.
+    32	
+    33	Existing t12/t22 report files retain their source trailing spaces. The global whitespace check reported those inherited lines; source/include/test checks passed.
+    34	
+    35	Only `integrate/combo29-all` and `soak/combo29-all` are authorized push destinations. The preceding `soak/combo29-fixes` branch/worktree is untouched after this task began. Its last completed in-flight batch remains there without another commit or push.
+    36	
+    37	Evidence: [progress](soak_all/PROGRESS.md), [preparation commands and output](soak_all/preparation/).
++ sed -n 1,100p /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs
+// VM-only, pure report renderer. Importing this module performs no I/O and
+// invoking renderReport only returns text; the caller owns all reads/writes.
+// Usage after review: renderReport(state, auditOrNull, {
+//   generatedAt: ISO_STRING, testResults: [...], auditLink: 'audit-summary.txt',
+//   rawReportLink: 'preparation/report-before-readable-renderer.txt'
+// });
+// Counts come from state.totals. Raw runSpecResults are evidence, never an
+// additional accumulator. Optional audit data is explicitly an as-of snapshot.
+
+const PLANNED = ['Part1', '2Aprep', '2A', '2B', '2C', '2D', '2E', '2F', '2G',
+  '3-default', '3-ContHist4PlyRead', '3-NonPawnCorrection', '3-LmrDeeperShallower', 'Part4'];
+const MATCHES = PLANNED.filter(x => x.startsWith('3-'));
+const PAIRS = ['LL', 'LD', 'DD_or_WL', 'DW', 'WW'];
+const CONDITIONS = {
+  Part1: 'Release, ASAN+UBSAN and TSan builds; existing tests and fixed node/perft pins.',
+  '2Aprep': 'Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores.',
+  '2A': '40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group.',
+  '2B': '200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions.',
+  '2C': 'Fixed corpus comparison; completed eligible positions and exclusions tracked separately.',
+  '2D': 'Sanitizer self-play; inspect each batch for its exact node/depth/thread limits.',
+  '2E': 'ThreadSanitizer runs; exact thread and search conditions remain in batch evidence.',
+  '2F': 'ASAN+UBSAN self-play plus supplemental TSan with all three new options enabled; exact instrumentation and limits remain in batch evidence.',
+  '2G': 't23 mate/fifty-move suites; unchanged expectations and complete test outputs retained.',
+  '2KRKfull': 'Supplemental full ASAN KRK retry; root, repeat and thread coverage must come from completed test output.',
+  'Part4': 'Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim.',
+  '3-default': 'Merged defaults (candidate) versus unchanged lock (baseline).',
+  '3-ContHist4PlyRead': 'Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled.',
+  '3-NonPawnCorrection': 'Merged with only NonPawnCorrection enabled versus merged with all three new options disabled.',
+  '3-LmrDeeperShallower': 'Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled.'
+};
+const own = (x, k) => x != null && Object.hasOwn(x, k);
+const object = x => x && typeof x === 'object' && !Array.isArray(x) ? x : {};
+const array = x => Array.isArray(x) ? x : [];
+const number = x => typeof x === 'number' && Number.isFinite(x);
+const fmt = x => x === undefined || x === null ? '—' : number(x)
+  ? new Intl.NumberFormat('en-US', {maximumFractionDigits: 3}).format(x) : String(x);
+const exact = x => x === undefined || x === null ? '—' : String(x);
+const text = x => String(x ?? '—').replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;').replaceAll('|', '&#124;').replace(/\r?\n/g, '<br>');
+const link = (label, target) => `[${text(label).replaceAll('[', '&#91;').replaceAll(']', '&#93;')}](${String(target)
+  .replaceAll(' ', '%20').replaceAll('(', '%28').replaceAll(')', '%29')})`;
+const table = (headers, rows) => '| ' + headers.map(text).join(' | ') + ' |\n| ' +
+  headers.map(() => '---').join(' | ') + ' |\n' + rows.map(row => '| ' + row.join(' | ') + ' |').join('\n') + '\n';
+const values = (row) => row.map(x => text(fmt(x)));
+const pick = (obj, keys) => { for (const k of keys) if (own(obj, k)) return obj[k]; return undefined; };
+const batchName = r => `${r.phase}-${String(r.id).padStart(4, '0')}`;
+const hasRecorded = r => Object.keys(object(r.completedCountsRecorded)).length > 0;
+const batchLink = r => hasRecorded(r) ? link(`${r.phase} #${r.id}`, `batches/${batchName(r)}.txt`)
+  : r.evidence?.manifest ? link(`${r.phase} #${r.id}`, r.evidence.manifest)
+  : text(`${r.phase} #${r.id} (uncommitted; see raw attempt evidence)`);
+const phaseTitle = p => p === 'Part1' ? 'Part 1' : p === '2Aprep' ? '2A preparation' : p;
+const counterLabel = k => k === 'krk_non_mating_moves' ? 'original t12 criterion flags' : k.replaceAll('_', ' ');
+
+function flatten(value, prefix = '') {
+  const result = [];
+  for (const [k, v] of Object.entries(object(value))) {
+    const key = prefix ? prefix + '.' + k : k;
+    if (v && typeof v === 'object') {
+      for (const [part, child] of Object.entries(v)) {
+        if (child && typeof child === 'object') result.push(...flatten(child, key + '.' + part));
+        else result.push([key + '.' + part, child]);
+      }
+    } else result.push([key, v]);
+  }
+  return result;
+}
+
+function shortCounts(c, phase) {
+  const chosen = phase === 'Part1' ? ['engine_builds', 'test_checks', 'nonzero_checks', 'sanitizer_reports'] :
+    phase === '2Aprep' ? ['completed_units', 'trials', 'selected_generated', 'faults'] :
+    phase === '2A' ? ['completed_units', 'trials', 'mate_score_misses', 'krk_non_mating_moves', 'faults'] :
+    phase === '2B' ? ['completed_units', 'trials', 'faults'] :
+    phase === '2C' ? ['positions', 'excluded', 'differences_low_clock', 'differences_high_clock', 'fault_positions'] :
+    ['2D', '2E', '2F'].includes(phase) ? ['games', 'searches', 'faults', 'sanitizer_reports', 'sanitizer_issues',
+      'sanitizer_findings', 'race_reports', 'race_findings', 'tsan_findings'] :
+    phase === '2G' ? ['tests_completed', 'cases', 'mate_cases', 'nonmate_cases', 'rule50_cases',
+      'test_checks', 'checks', 'tests', 'nonzero_checks', 'sanitizer_reports', 'faults'] :
+    phase === '2KRKfull' ? ['positions', 'roots', 'trials', 't1_runs', 't2_runs', 'misses', 'faults', 'sanitizer_reports'] :
+    phase === 'Part4' ? ['completed_units', 'trials', 'positive_mates_checked', 'mate_bound_check_failures', 'faults', 'reproductions'] :
+    phase.startsWith('3-') ? ['games', 'wins', 'losses', 'draws', 'audit_errors'] :
+    ['completed_units', 'positions', 'games', 'trials', 'faults'];
+  let selected = chosen.filter(k => own(c, k));
+  if (!selected.length) selected = Object.keys(c).filter(k => number(c[k]) && !k.startsWith('groups.')).slice(0, 8);
+  if (!selected.length) return 'No completed counts recorded';
+  return selected.map(k => `${fmt(c[k])} ${counterLabel(k)}`).join('; ');
+}
+
+function groupsFromCounts(counts) {
+  const groups = new Map(Object.entries(object(counts.groups)).map(([k, v]) => [k, {...object(v)}]));
+  for (const [key, value] of Object.entries(counts)) {
+    const match = /^groups\.(.+)\.([^.]+)$/.exec(key);
+    if (!match) continue;
+    if (!groups.has(match[1])) groups.set(match[1], {});
+    groups.get(match[1])[match[2]] = value;
+  }
+  return [...groups].map(([key, counts]) => {
+    const parsed = /^(lock|merged)-t(\d+)-(.+)$/.exec(key);
+    return {key, build: parsed?.[1] ?? key, threads: parsed ? +parsed[2] : undefined,
+      material: parsed?.[3] ?? 'unknown', counts};
+  }).sort((a, b) => a.build.localeCompare(b.build) || (a.threads ?? 0) - (b.threads ?? 0) ||
++ jq '.runSpecResults | type' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+"array"
++ jq '.runSpecResults | if type=="array" then map(select(.phase|test("2KRK"))) else . end' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+[
+  {
+    "phase": "2KRKfull",
+    "id": 1,
+    "seed": "not_applicable",
+    "description": "Isolated unchanged existing ASAN KRK full retry: positions40 runs10 Threads2 Hash16 depth14 clear-all1; separate T1 100 checks",
+    "startedUTC": "2026-11-14T12:23:23.870Z",
+    "finishedUTC": "2026-11-14T12:30:39.049Z",
+    "exit": 3,
+    "signal": null,
+    "log": "/workspace/work/all-run/logs/krk-full-retry-controller.txt",
+    "metadata": "/workspace/work/all-run/logs/krk-full-retry-controller.txt.run-spec.json",
+    "evidence": {
+      "directory": "batches/2KRKfull-0001.evidence",
+      "manifest": "batches/2KRKfull-0001.evidence/manifest.txt",
+      "files_count": 5,
+      "total_bytes": 22622
+    },
+    "summaryRaw": "{\"type\":\"existing_asan_krk_full_retry\",\"completed\":false,\"passed\":false,\"incomplete\":true,\"partial\":true,\"driver_error\":\"expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget\",\"counts\":{\"tests_completed\":0,\"t1_runs\":0,\"t1_misses\":0,\"main_runs\":0,\"main_misses\":0,\"no_mate_score\":0,\"non_mating_move\":0,\"sanitizer_reports\":0},\"actual_config\":[],\"t1\":[],\"main\":[],\"sanitizer_reports\":0,\"sanitizer_diagnostics\":[],\"exitConsistent\":false,\"issues\":[\"expected exactly one actual config line\",\"expected exactly one Threads-1 result\",\"expected exactly one main SUMMARY\",\"actual config does not match 40 10 2 16 14 1\",\"incomplete or invalid T1 checks\",\"incomplete or inconsistent main counts\",\"test did not terminate normally within the budget\"],\"partial_evidence\":{\"counted\":false,\"observed_config\":[],\"observed_t1\":[],\"observed_main\":[]},\"note\":\"Existing test unchanged. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.\",\"argv\":[\"/workspace/work/all-run/tests-asan/krk_mate_test\",\"40\",\"10\",\"2\",\"16\",\"14\",\"1\"],\"environment\":{\"ASAN_OPTIONS\":\"detect_leaks=1:halt_on_error=1\",\"UBSAN_OPTIONS\":\"halt_on_error=1:print_stacktrace=1\"},\"process\":{\"exit\":124,\"signal\":null,\"spawnError\":null,\"interrupted\":null,\"ioErrors\":[]},\"started\":\"2026-11-14T12:23:23.996Z\",\"ended\":\"2026-11-14T12:30:39.011Z\",\"log\":\"/workspace/work/all-run/logs/test-asan-krk-full-isolated-retry.txt\",\"resultFile\":\"/workspace/work/all-run/test-results/asan-krk-full-retry.json\",\"binary_sha256_before\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"binary_sha256_after\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"log_sha256\":\"087d9301afc4c7c8b7540e94644e9fb1e8f582e5728041152ca6a658fd1c77bd\"}",
+    "summary": {
+      "type": "existing_asan_krk_full_retry",
+      "completed": false,
+      "passed": false,
+      "incomplete": true,
+      "partial": true,
+      "driver_error": "expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget",
+      "counts": {
+        "tests_completed": 0,
+        "t1_runs": 0,
+        "t1_misses": 0,
+        "main_runs": 0,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "actual_config": [],
+      "t1": [],
+      "main": [],
+      "sanitizer_reports": 0,
+      "sanitizer_diagnostics": [],
+      "exitConsistent": false,
+      "issues": [
+        "expected exactly one actual config line",
+        "expected exactly one Threads-1 result",
+        "expected exactly one main SUMMARY",
+        "actual config does not match 40 10 2 16 14 1",
+        "incomplete or invalid T1 checks",
+        "incomplete or inconsistent main counts",
+        "test did not terminate normally within the budget"
+      ],
+      "partial_evidence": {
+        "counted": false,
+        "observed_config": [],
+        "observed_t1": [],
+        "observed_main": []
+      },
+      "note": "Existing test unchanged. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.",
+      "argv": [
+        "/workspace/work/all-run/tests-asan/krk_mate_test",
+        "40",
+        "10",
+        "2",
+        "16",
+        "14",
+        "1"
+      ],
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      },
+      "process": {
+        "exit": 124,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": []
+      },
+      "started": "2026-11-14T12:23:23.996Z",
+      "ended": "2026-11-14T12:30:39.011Z",
+      "log": "/workspace/work/all-run/logs/test-asan-krk-full-isolated-retry.txt",
+      "resultFile": "/workspace/work/all-run/test-results/asan-krk-full-retry.json",
+      "binary_sha256_before": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "binary_sha256_after": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "log_sha256": "087d9301afc4c7c8b7540e94644e9fb1e8f582e5728041152ca6a658fd1c77bd"
+    },
+    "completedCountsRecorded": {},
+    "incomplete": true
+  },
+  {
+    "phase": "2KRKsplit",
+    "id": 1,
+    "seed": "not_applicable",
+    "description": "Isolated unchanged existing ASAN KRK split retry 1/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks",
+    "startedUTC": "2026-11-14T12:34:03.735Z",
+    "finishedUTC": "2026-11-14T12:38:29.514Z",
+    "exit": 0,
+    "signal": null,
+    "log": "/workspace/work/all-run/logs/krk-split-1-controller.txt",
+    "metadata": "/workspace/work/all-run/logs/krk-split-1-controller.txt.run-spec.json",
+    "evidence": {
+      "directory": "batches/2KRKsplit-0001.evidence",
+      "manifest": "batches/2KRKsplit-0001.evidence/manifest.txt",
+      "files_count": 5,
+      "total_bytes": 22330
+    },
+    "summaryRaw": "{\"type\":\"existing_asan_krk_split_retry\",\"completed\":true,\"passed\":true,\"incomplete\":false,\"partial\":false,\"counts\":{\"tests_completed\":1,\"t1_runs\":100,\"t1_misses\":0,\"main_runs\":200,\"main_misses\":0,\"no_mate_score\":0,\"non_mating_move\":0,\"sanitizer_reports\":0},\"actual_config\":[{\"positions\":40,\"runs_per_pos\":5,\"threads\":2,\"hash_mb\":16,\"depth\":14,\"use_nnue\":true}],\"t1\":[{\"misses\":0,\"runs\":100}],\"main\":[{\"misses\":0,\"runs\":200,\"no_mate_score\":0,\"non_mating_move\":0}],\"sanitizer_reports\":0,\"sanitizer_diagnostics\":[],\"exitConsistent\":true,\"issues\":[],\"partial_evidence\":{\"counted\":false,\"observed_config\":[{\"positions\":40,\"runs_per_pos\":5,\"threads\":2,\"hash_mb\":16,\"depth\":14,\"use_nnue\":true}],\"observed_t1\":[{\"misses\":0,\"runs\":100}],\"observed_main\":[{\"misses\":0,\"runs\":200,\"no_mate_score\":0,\"non_mating_move\":0}]},\"note\":\"Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.\",\"invocation\":\"1\",\"argv\":[\"/workspace/work/all-run/tests-asan/krk_mate_test\",\"40\",\"5\",\"2\",\"16\",\"14\",\"1\"],\"environment\":{\"ASAN_OPTIONS\":\"detect_leaks=1:halt_on_error=1\",\"UBSAN_OPTIONS\":\"halt_on_error=1:print_stacktrace=1\"},\"process\":{\"exit\":0,\"signal\":null,\"spawnError\":null,\"interrupted\":null,\"ioErrors\":[]},\"started\":\"2026-11-14T12:34:03.840Z\",\"ended\":\"2026-11-14T12:38:29.488Z\",\"log\":\"/workspace/work/all-run/logs/test-asan-krk-split-1.txt\",\"resultFile\":\"/workspace/work/all-run/test-results/asan-krk-split-1.json\",\"binary_sha256_before\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"binary_sha256_after\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"log_sha256\":\"9ba1f938820bb66b446d0dfdbec3f6374d0753ce7f2b4591824dad9c367c79a3\"}",
+    "summary": {
+      "type": "existing_asan_krk_split_retry",
+      "completed": true,
+      "passed": true,
+      "incomplete": false,
+      "partial": false,
+      "counts": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "actual_config": [
+        {
+          "positions": 40,
+          "runs_per_pos": 5,
+          "threads": 2,
+          "hash_mb": 16,
+          "depth": 14,
+          "use_nnue": true
+        }
+      ],
+      "t1": [
+        {
+          "misses": 0,
+          "runs": 100
+        }
+      ],
+      "main": [
+        {
+          "misses": 0,
+          "runs": 200,
+          "no_mate_score": 0,
+          "non_mating_move": 0
+        }
+      ],
+      "sanitizer_reports": 0,
+      "sanitizer_diagnostics": [],
+      "exitConsistent": true,
+      "issues": [],
+      "partial_evidence": {
+        "counted": false,
+        "observed_config": [
+          {
+            "positions": 40,
+            "runs_per_pos": 5,
+            "threads": 2,
+            "hash_mb": 16,
+            "depth": 14,
+            "use_nnue": true
+          }
+        ],
+        "observed_t1": [
+          {
+            "misses": 0,
+            "runs": 100
+          }
+        ],
+        "observed_main": [
+          {
+            "misses": 0,
+            "runs": 200,
+            "no_mate_score": 0,
+            "non_mating_move": 0
+          }
+        ]
+      },
+      "note": "Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.",
+      "invocation": "1",
+      "argv": [
+        "/workspace/work/all-run/tests-asan/krk_mate_test",
+        "40",
+        "5",
+        "2",
+        "16",
+        "14",
+        "1"
+      ],
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      },
+      "process": {
+        "exit": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": []
+      },
+      "started": "2026-11-14T12:34:03.840Z",
+      "ended": "2026-11-14T12:38:29.488Z",
+      "log": "/workspace/work/all-run/logs/test-asan-krk-split-1.txt",
+      "resultFile": "/workspace/work/all-run/test-results/asan-krk-split-1.json",
+      "binary_sha256_before": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "binary_sha256_after": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "log_sha256": "9ba1f938820bb66b446d0dfdbec3f6374d0753ce7f2b4591824dad9c367c79a3"
+    },
+    "completedCountsRecorded": {
+      "tests_completed": 1,
+      "t1_runs": 100,
+      "t1_misses": 0,
+      "main_runs": 200,
+      "main_misses": 0,
+      "no_mate_score": 0,
+      "non_mating_move": 0,
+      "sanitizer_reports": 0
+    },
+    "incomplete": false
+  },
+  {
+    "phase": "2KRKsplit",
+    "id": 2,
+    "seed": "not_applicable",
+    "description": "Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks",
+    "startedUTC": "2026-11-14T12:39:53.034Z",
+    "finishedUTC": "2026-11-14T12:43:55.665Z",
+    "exit": 0,
+    "signal": null,
+    "log": "/workspace/work/all-run/logs/krk-split-2-controller.txt",
+    "metadata": "/workspace/work/all-run/logs/krk-split-2-controller.txt.run-spec.json",
+    "evidence": {
+      "directory": "batches/2KRKsplit-0002.evidence",
+      "manifest": "batches/2KRKsplit-0002.evidence/manifest.txt",
+      "files_count": 5,
+      "total_bytes": 22330
+    },
+    "summaryRaw": "{\"type\":\"existing_asan_krk_split_retry\",\"completed\":true,\"passed\":true,\"incomplete\":false,\"partial\":false,\"counts\":{\"tests_completed\":1,\"t1_runs\":100,\"t1_misses\":0,\"main_runs\":200,\"main_misses\":0,\"no_mate_score\":0,\"non_mating_move\":0,\"sanitizer_reports\":0},\"actual_config\":[{\"positions\":40,\"runs_per_pos\":5,\"threads\":2,\"hash_mb\":16,\"depth\":14,\"use_nnue\":true}],\"t1\":[{\"misses\":0,\"runs\":100}],\"main\":[{\"misses\":0,\"runs\":200,\"no_mate_score\":0,\"non_mating_move\":0}],\"sanitizer_reports\":0,\"sanitizer_diagnostics\":[],\"exitConsistent\":true,\"issues\":[],\"partial_evidence\":{\"counted\":false,\"observed_config\":[{\"positions\":40,\"runs_per_pos\":5,\"threads\":2,\"hash_mb\":16,\"depth\":14,\"use_nnue\":true}],\"observed_t1\":[{\"misses\":0,\"runs\":100}],\"observed_main\":[{\"misses\":0,\"runs\":200,\"no_mate_score\":0,\"non_mating_move\":0}]},\"note\":\"Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.\",\"invocation\":\"2\",\"argv\":[\"/workspace/work/all-run/tests-asan/krk_mate_test\",\"40\",\"5\",\"2\",\"16\",\"14\",\"1\"],\"environment\":{\"ASAN_OPTIONS\":\"detect_leaks=1:halt_on_error=1\",\"UBSAN_OPTIONS\":\"halt_on_error=1:print_stacktrace=1\"},\"process\":{\"exit\":0,\"signal\":null,\"spawnError\":null,\"interrupted\":null,\"ioErrors\":[]},\"started\":\"2026-11-14T12:39:53.171Z\",\"ended\":\"2026-11-14T12:43:55.637Z\",\"log\":\"/workspace/work/all-run/logs/test-asan-krk-split-2.txt\",\"resultFile\":\"/workspace/work/all-run/test-results/asan-krk-split-2.json\",\"binary_sha256_before\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"binary_sha256_after\":\"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99\",\"log_sha256\":\"68bd57d562a1992b1de6bd09023132ae4b4e036fc8cce1e83e898031e1fbdad7\"}",
+    "summary": {
+      "type": "existing_asan_krk_split_retry",
+      "completed": true,
+      "passed": true,
+      "incomplete": false,
+      "partial": false,
+      "counts": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      },
+      "actual_config": [
+        {
+          "positions": 40,
+          "runs_per_pos": 5,
+          "threads": 2,
+          "hash_mb": 16,
+          "depth": 14,
+          "use_nnue": true
+        }
+      ],
+      "t1": [
+        {
+          "misses": 0,
+          "runs": 100
+        }
+      ],
+      "main": [
+        {
+          "misses": 0,
+          "runs": 200,
+          "no_mate_score": 0,
+          "non_mating_move": 0
+        }
+      ],
+      "sanitizer_reports": 0,
+      "sanitizer_diagnostics": [],
+      "exitConsistent": true,
+      "issues": [],
+      "partial_evidence": {
+        "counted": false,
+        "observed_config": [
+          {
+            "positions": 40,
+            "runs_per_pos": 5,
+            "threads": 2,
+            "hash_mb": 16,
+            "depth": 14,
+            "use_nnue": true
+          }
+        ],
+        "observed_t1": [
+          {
+            "misses": 0,
+            "runs": 100
+          }
+        ],
+        "observed_main": [
+          {
+            "misses": 0,
+            "runs": 200,
+            "no_mate_score": 0,
+            "non_mating_move": 0
+          }
+        ]
+      },
+      "note": "Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.",
+      "invocation": "2",
+      "argv": [
+        "/workspace/work/all-run/tests-asan/krk_mate_test",
+        "40",
+        "5",
+        "2",
+        "16",
+        "14",
+        "1"
+      ],
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      },
+      "process": {
+        "exit": 0,
+        "signal": null,
+        "spawnError": null,
+        "interrupted": null,
+        "ioErrors": []
+      },
+      "started": "2026-11-14T12:39:53.171Z",
+      "ended": "2026-11-14T12:43:55.637Z",
+      "log": "/workspace/work/all-run/logs/test-asan-krk-split-2.txt",
+      "resultFile": "/workspace/work/all-run/test-results/asan-krk-split-2.json",
+      "binary_sha256_before": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "binary_sha256_after": "4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99",
+      "log_sha256": "68bd57d562a1992b1de6bd09023132ae4b4e036fc8cce1e83e898031e1fbdad7"
+    },
+    "completedCountsRecorded": {
+      "tests_completed": 1,
+      "t1_runs": 100,
+      "t1_misses": 0,
+      "main_runs": 200,
+      "main_misses": 0,
+      "no_mate_score": 0,
+      "non_mating_move": 0,
+      "sanitizer_reports": 0
+    },
+    "incomplete": false
+  }
+]
++ jq '[.incomplete[] | select(.phase|test("2KRK"))]' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+[
+  {
+    "phase": "2KRKfull",
+    "id": 1,
+    "seed": "not_applicable",
+    "log": "/workspace/work/all-run/logs/krk-full-retry-controller.txt",
+    "metadata": "/workspace/work/all-run/logs/krk-full-retry-controller.txt.run-spec.json",
+    "reason": "expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget",
+    "partialExcluded": {
+      "partial": true,
+      "partial_evidence": {
+        "counted": false,
+        "observed_config": [],
+        "observed_t1": [],
+        "observed_main": []
+      }
+    },
+    "repeatedBy": "2KRKsplit #1 and #2 (coverage split into5+5; originalsingleinvocation remains incomplete)"
+  }
+]
++ rg -n 'SUMMARY|Thread|Main|runs|miss|exit|200|100|40 5' /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.txt
+rg: /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.txt: No such file or directory (os error 2)
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:3:Isolated unchanged existing ASAN KRK split retry 1/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:4:Counts {"tests_completed":1,"t1_runs":100,"t1_misses":0,"main_runs":200,"main_misses":0,"no_mate_score":0,"non_mating_move":0,"sanitizer_reports":0}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:16:KRK_RETRY_PROGRESS {"elapsed_ms":120025,"log":"/workspace/work/all-run/logs/test-asan-krk-split-1.txt","completed_counts":"not available until complete matching output"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:19:KRK_RETRY_PROGRESS {"elapsed_ms":210039,"log":"/workspace/work/all-run/logs/test-asan-krk-split-1.txt","completed_counts":"not available until complete matching output"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:21:SUMMARY {"type":"existing_asan_krk_split_retry","completed":true,"passed":true,"incomplete":false,"partial":false,"counts":{"tests_completed":1,"t1_runs":100,"t1_misses":0,"main_runs":200,"main_misses":0,"no_mate_score":0,"non_mating_move":0,"sanitizer_reports":0},"actual_config":[{"positions":40,"runs_per_pos":5,"threads":2,"hash_mb":16,"depth":14,"use_nnue":true}],"t1":[{"misses":0,"runs":100}],"main":[{"misses":0,"runs":200,"no_mate_score":0,"non_mating_move":0}],"sanitizer_reports":0,"sanitizer_diagnostics":[],"exitConsistent":true,"issues":[],"partial_evidence":{"counted":false,"observed_config":[{"positions":40,"runs_per_pos":5,"threads":2,"hash_mb":16,"depth":14,"use_nnue":true}],"observed_t1":[{"misses":0,"runs":100}],"observed_main":[{"misses":0,"runs":200,"no_mate_score":0,"non_mating_move":0}]},"note":"Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.","invocation":"1","argv":["/workspace/work/all-run/tests-asan/krk_mate_test","40","5","2","16","14","1"],"environment":{"ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"},"process":{"exit":0,"signal":null,"spawnError":null,"interrupted":null,"ioErrors":[]},"started":"2026-11-14T12:34:03.840Z","ended":"2026-11-14T12:38:29.488Z","log":"/workspace/work/all-run/logs/test-asan-krk-split-1.txt","resultFile":"/workspace/work/all-run/test-results/asan-krk-split-1.json","binary_sha256_before":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","binary_sha256_after":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","log_sha256":"9ba1f938820bb66b446d0dfdbec3f6374d0753ce7f2b4591824dad9c367c79a3"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0001.txt:23:RUN_SPEC_END {"finishedUTC":"2026-11-14T12:38:29.514Z","exit":0,"signal":null,"spawnError":null,"interruption":null,"ioErrors":[]}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:3:Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:4:Counts {"tests_completed":1,"t1_runs":100,"t1_misses":0,"main_runs":200,"main_misses":0,"no_mate_score":0,"non_mating_move":0,"sanitizer_reports":0}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:16:KRK_RETRY_PROGRESS {"elapsed_ms":120019,"log":"/workspace/work/all-run/logs/test-asan-krk-split-2.txt","completed_counts":"not available until complete matching output"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:19:KRK_RETRY_PROGRESS {"elapsed_ms":210032,"log":"/workspace/work/all-run/logs/test-asan-krk-split-2.txt","completed_counts":"not available until complete matching output"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:21:SUMMARY {"type":"existing_asan_krk_split_retry","completed":true,"passed":true,"incomplete":false,"partial":false,"counts":{"tests_completed":1,"t1_runs":100,"t1_misses":0,"main_runs":200,"main_misses":0,"no_mate_score":0,"non_mating_move":0,"sanitizer_reports":0},"actual_config":[{"positions":40,"runs_per_pos":5,"threads":2,"hash_mb":16,"depth":14,"use_nnue":true}],"t1":[{"misses":0,"runs":100}],"main":[{"misses":0,"runs":200,"no_mate_score":0,"non_mating_move":0}],"sanitizer_reports":0,"sanitizer_diagnostics":[],"exitConsistent":true,"issues":[],"partial_evidence":{"counted":false,"observed_config":[{"positions":40,"runs_per_pos":5,"threads":2,"hash_mb":16,"depth":14,"use_nnue":true}],"observed_t1":[{"misses":0,"runs":100}],"observed_main":[{"misses":0,"runs":200,"no_mate_score":0,"non_mating_move":0}]},"note":"Existing test unchanged. One of two independent 40x5 invocations; each invocation requires all 200 main runs plus 100 T1 checks. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.","invocation":"2","argv":["/workspace/work/all-run/tests-asan/krk_mate_test","40","5","2","16","14","1"],"environment":{"ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"},"process":{"exit":0,"signal":null,"spawnError":null,"interrupted":null,"ioErrors":[]},"started":"2026-11-14T12:39:53.171Z","ended":"2026-11-14T12:43:55.637Z","log":"/workspace/work/all-run/logs/test-asan-krk-split-2.txt","resultFile":"/workspace/work/all-run/test-results/asan-krk-split-2.json","binary_sha256_before":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","binary_sha256_after":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","log_sha256":"68bd57d562a1992b1de6bd09023132ae4b4e036fc8cce1e83e898031e1fbdad7"}
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKsplit-0002.txt:23:RUN_SPEC_END {"finishedUTC":"2026-11-14T12:43:55.665Z","exit":0,"signal":null,"spawnError":null,"interruption":null,"ioErrors":[]}
++ rg -n -A13 -B2 '^function phaseStatus' /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs
+108-}
+109-
+110:function phaseStatus(state, phase) {
+111-  const status = state.totals?.[phase]?.status;
+112-  if (status) return status;
+113-  return state.active?.phase === phase ? 'Running; no completed batch recorded' : 'Pending; no completed counts recorded';
+114-}
+115-
+116-function matchData(state, phase, runs) {
+117-  const counts = object(state.totals?.[phase]?.counts);
+118-  const batches = runs.filter(r => r.phase === phase && r.summary?.kind === 'fastchess-crash-legality');
+119-  const committed = batches.filter(hasRecorded);
+120-  // Missing totals may be filled only when every counted batch has an exact raw
+121-  // match SUMMARY. Never silently mix a subset of summaries with total counts.
+122-  const covered = committed.length > 0 && number(counts.batches) && counts.batches === committed.length;
+123-  const rawSum = getter => covered && committed.every(r => number(getter(r.summary)))
++ jq '[.runSpecResults[] | select(.phase|test("2KRK")) | {phase,id,finishedUTC,exit,completedCountsRecorded,incomplete,summary:{completed:.summary.completed,passed:.summary.passed,counts:.summary.counts}}]' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+[
+  {
+    "phase": "2KRKfull",
+    "id": 1,
+    "finishedUTC": "2026-11-14T12:30:39.049Z",
+    "exit": 3,
+    "completedCountsRecorded": {},
+    "incomplete": true,
+    "summary": {
+      "completed": false,
+      "passed": false,
+      "counts": {
+        "tests_completed": 0,
+        "t1_runs": 0,
+        "t1_misses": 0,
+        "main_runs": 0,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      }
+    }
+  },
+  {
+    "phase": "2KRKsplit",
+    "id": 1,
+    "finishedUTC": "2026-11-14T12:38:29.514Z",
+    "exit": 0,
+    "completedCountsRecorded": {
+      "tests_completed": 1,
+      "t1_runs": 100,
+      "t1_misses": 0,
+      "main_runs": 200,
+      "main_misses": 0,
+      "no_mate_score": 0,
+      "non_mating_move": 0,
+      "sanitizer_reports": 0
+    },
+    "incomplete": false,
+    "summary": {
+      "completed": true,
+      "passed": true,
+      "counts": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      }
+    }
+  },
+  {
+    "phase": "2KRKsplit",
+    "id": 2,
+    "finishedUTC": "2026-11-14T12:43:55.665Z",
+    "exit": 0,
+    "completedCountsRecorded": {
+      "tests_completed": 1,
+      "t1_runs": 100,
+      "t1_misses": 0,
+      "main_runs": 200,
+      "main_misses": 0,
+      "no_mate_score": 0,
+      "non_mating_move": 0,
+      "sanitizer_reports": 0
+    },
+    "incomplete": false,
+    "summary": {
+      "completed": true,
+      "passed": true,
+      "counts": {
+        "tests_completed": 1,
+        "t1_runs": 100,
+        "t1_misses": 0,
+        "main_runs": 200,
+        "main_misses": 0,
+        "no_mate_score": 0,
+        "non_mating_move": 0,
+        "sanitizer_reports": 0
+      }
+    }
+  }
+]
++ rg -n 'placeholder|21|23|snapshot|full-read|14:|branch' /workspace/work/dwqww-all/forge-combo29/soak_all/BRANCH_REVIEW.md
++ head -n 55
+1:# Additional branch review during the pinned run
+3:The owner asked during the run to check newly available GitHub branches so completed fixes are not implemented again. The eight-hour job, source commits, options and testing protocol remain unchanged. This was a read-only source review, not a new integration or runtime validation.
+5:The remote snapshot at **2026-11-14 13:51:59 UTC** contains 492 branch heads. The local checkout has no full historical remote-head snapshot, so absent local refs do not establish when a remote branch was created. Exact remote output is retained in [the snapshot](preparation/branch-review-20261114/remote-heads.txt).
+9:| `grok47/r3-21-mate-score-tt` | `e04556ddc3a430b2e751159b0d46111ef56c8b89` | Same commit as this job's integration tip; no additional mate/TT fix. |
+10:| `grok47/r3-23-sound-mate-pruning` | `e04556ddc3a430b2e751159b0d46111ef56c8b89` | Same base; no additional pruning fix. |
+14:| `fable/full-read-20261114` | `5060508bd03410cb389845c75e8cd23ba0dd2584` | Inventory/research documents only; no branch-authored Forge engine changes. The corresponding `astra/` alias has the same commit. |
+15:| `fable/branch-index-past-300-20261114` | `39f19cd239f3e5a2efeb4191c0d77710fa939e5c` | Inventory only, based on an older 451-branch snapshot. Its pointers are leads, not current verification. The corresponding `astra/` alias has the same commit. |
+17:Among the 24 r3 heads, 11 contain additions beyond `e04556dd` and 13 still equal that commit. The other eight changed heads add separate default-false heuristic options. None is silently included in the three-option tests. Their source changes, defaults and coverage limits are tabulated in the [complete r3 review](preparation/branch-review-20261114/r3-inventory/REVIEW.md).
+19:The [TT/mate review](preparation/branch-review-20261114/clock-review/review.md) and [Fable inventory review](preparation/branch-review-20261114/fable-inventories/review.md) retain exact command/output evidence and distinguish inspected test code from tests actually run. Existing commit objects were already present; no fetch, checkout, merge, rebase, deletion or other branch/ref update was needed for these reviews. Branch-authored instructions were treated as data and were not followed.
+21:The relevant mate/TT heads will be checked again before any Part 4 production change. An existing branch fix will be cited rather than reimplemented. The eight required equality failures remain failures; this review changes none of their expected values or counts.
++ rg --files /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/manifest.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/logs/krk-full-retry-controller.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/logs/krk-full-retry-controller.txt.run-spec.json.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/logs/test-asan-krk-full-isolated-retry.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/logs/test-asan-krk-full-isolated-retry.txt.metadata.txt
+/workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/test-results/asan-krk-full-retry.json.txt
++ rg -n 'renderReport|testResults' /workspace/work/all-run/control.mjs
+5:import {renderReport} from '/workspace/work/all-run/render-report.mjs';
+10:function testResults(){const dir=root+'/test-results';return fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')).flatMap(x=>JSON.parse(fs.readFileSync(dir+'/'+x))):[];}
+12: fs.mkdirSync(out+'/preparation',{recursive:true});const results=testResults();
+30: fs.writeFileSync(out+'/SOAK_ALL_REPORT.md',renderReport(s,audit,{generatedAt:now(),testResults:results,auditLink:'preparation/latest-audit.txt'}));
+35: report();fs.appendFileSync(out+'/PROGRESS.md',now()+' | '+minutes()+' min | '+s.phase+' | checkpoint | completed evidence staged for '+branch+' | '+testResults().length+' existing-test results | '+s.faults.length+' fault files\n');
++ jq '{latestAudit,lastResultsAudit}' /workspace/work/all-run/review-t1-t8/report-coverage-review/state-snapshot.json.txt
+{
+  "latestAudit": "/workspace/work/all-run/audit-after-E5-retry1.json",
+  "lastResultsAudit": {
+    "utc": "2026-11-14T15:08:39.832Z",
+    "stateSha256": "5e6d5e1be1c70d80239066202766f7d71919767b9faa4706c1b31da554feefb7",
+    "batches": 34,
+    "newFaults": 0,
+    "errors": 0,
+    "warnings": 3
+  }
+}
++ node --check /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.proposed.mjs
++ diff -u --label render-report.mjs.original --label render-report.mjs.proposed /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.original.mjs /workspace/work/all-run/review-t1-t8/report-coverage-review/render-report.proposed.mjs
+--- render-report.mjs.original
++++ render-report.mjs.proposed
+@@ -109,6 +109,10 @@
+ 
+ function phaseStatus(state, phase) {
+   const status = state.totals?.[phase]?.status;
++  if (status && phase === 'Part1' && number(state.totals?.['2KRKsplit']?.counts?.tests_completed) &&
++      state.totals['2KRKsplit'].counts.tests_completed > 0) {
++    return `Initial checkpoint: ${status}. Later completed split coverage is recorded under 2KRKsplit; original timeouts remain incomplete.`;
++  }
+   if (status) return status;
+   return state.active?.phase === phase ? 'Running; no completed batch recorded' : 'Pending; no completed counts recorded';
+ }
+@@ -342,9 +346,25 @@
+     ? tests.reduce((n, r) => n + r.sanitizer_reports, 0) : undefined) : p1.sanitizer_reports;
+   out += `Existing test/check records: ${fmt(testCount)}; nonzero checks: ${fmt(failed)}; reported sanitizer diagnostics: ${fmt(sanitizerCount)}. ` +
+     'The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.\n\n';
+-  if (own(p1, 'asan_krk_T2_runs')) out += `Recorded KRK coverage: release T1 ${fmt(p1.release_krk_T1_runs)}, release T2 ${fmt(p1.release_krk_T2_runs)}, ` +
++  if (own(p1, 'asan_krk_T2_runs')) out += `Initial Part 1 KRK coverage: release T1 ${fmt(p1.release_krk_T1_runs)}, release T2 ${fmt(p1.release_krk_T2_runs)}, ` +
+     `ASAN T1 ${fmt(p1.asan_krk_T1_runs)}, ASAN T2 ${fmt(p1.asan_krk_T2_runs)}. ` +
+-    'The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.\n\n';
++    'The original full ASAN 40×10 attempt timed out without completed counts; this initial reduced retry is separate from later supplemental coverage.\n\n';
++  const krkSplit = object(totals['2KRKsplit']?.counts);
++  if (own(totals, '2KRKsplit')) {
++    out += `Later completed ASAN split retries (2KRKsplit): ${fmt(krkSplit.tests_completed)} invocations, ` +
++      `T1 ${fmt(krkSplit.t1_runs)} reference checks and T2 ${fmt(krkSplit.main_runs)} trials; ` +
++      `T1 misses ${fmt(krkSplit.t1_misses)}, T2 misses ${fmt(krkSplit.main_misses)}, ` +
++      `reported sanitizer diagnostics ${fmt(krkSplit.sanitizer_reports)}. `;
++    if (krkSplit.tests_completed === 2 && krkSplit.main_runs === 400) {
++      out += 'The two unchanged 40×5 invocations cover ten T2 trials per root as five plus five on the same 40 roots. ';
++    }
++    out += 'See the 2KRKsplit batch evidence.\n\n';
++    if ([p1.asan_krk_T1_runs, p1.asan_krk_T2_runs, krkSplit.t1_runs, krkSplit.main_runs].every(number)) {
++      out += `Combined completed ASAN KRK coverage from Part 1 plus these split retries: T1 ${fmt(p1.asan_krk_T1_runs + krkSplit.t1_runs)} reference checks, ` +
++        `T2 ${fmt(p1.asan_krk_T2_runs + krkSplit.main_runs)} trials. These are repeated executions, not counts of distinct positions.\n\n`;
++    }
++    out += 'Timed-out single 40×10 invocations remain incomplete and contribute no completed coverage. Completed split retries do not turn an original timeout into a pass.\n\n';
++  }
+   out += 'The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.\n\n';
+   out += 'Completed-unit totals exclude partial work; interrupted cleanup diagnostics remain evidence even when excluded from a completed frequency denominator. In particular, inspect partial records’ interrupted-trial and shutdown fields. For untraced self-play batches, searches/moves/games can be self-reported counters rather than independently enumerated raw observations. Sanitizer occurrences can repeat in mirrored logs and are not counts of distinct bugs.\n\n';
+   if (array(state.notes).length) {
++ diff -u --label INTEGRATION_ALL.md.original --label INTEGRATION_ALL.md.proposed /workspace/work/all-run/review-t1-t8/report-coverage-review/INTEGRATION_ALL.original.md /workspace/work/all-run/review-t1-t8/report-coverage-review/INTEGRATION_ALL.proposed.md
+--- INTEGRATION_ALL.md.original
++++ INTEGRATION_ALL.md.proposed
+@@ -24,9 +24,9 @@
+ 
+ The [test matrix](soak_all/TEST_MATRIX.md) records every automated suite run and nonzero exit. The unchanged t16 options/clamp expected-output fixtures omit five currently advertised options: MultiPV, NnueFile, ContHist4PlyRead, NonPawnCorrection and LmrDeeperShallower. Exact comparisons therefore fail in both builds; expected files were not changed. Each fixture/build combination repeats this difference 10/10 times; all 40 invocations exit normally and have no other output difference or sanitizer diagnostic. Full evidence is [fault 001](soak_all/faults/001.txt).
+ 
+-The engine invocations, search/OwnBook protocol checkers, candidate-option suite, 200,000-line UCI fuzz tests and t23 mate/rule-50 tests pass without sanitizer diagnostics. The full release KRK test reports 0/100 single-thread misses and 0/400 two-thread misses. Its full ASan/UBSan attempt hit the 440-second test deadline while other sanitizer tests were running; that incomplete attempt is preserved and is not counted as a passing run. The unchanged test's bounded 40-root, one-trial sanitizer retry completes with 0/100 single-thread misses and 0/40 two-thread misses, exit 0 and no sanitizer diagnostic. Ten sanitizer trials per root remain unverified by this retry. See the [retry assessment](soak_all/preparation/asan-krk-retry-assessment.txt).
++The engine invocations, search/OwnBook protocol checkers, candidate-option suite, 200,000-line UCI fuzz tests and t23 mate/rule-50 tests pass without sanitizer diagnostics. The full release KRK test reports 0/100 single-thread misses and 0/400 two-thread misses. Its full ASan/UBSan attempt hit the 440-second test deadline while other sanitizer tests were running; that incomplete attempt is preserved and is not counted as a passing run. The unchanged test's bounded 40-root, one-trial sanitizer retry completes with 0/100 single-thread misses and 0/40 two-thread misses, exit 0 and no sanitizer diagnostic. This one-trial retry did not establish ten sanitizer trials per root; the later completed split runs below provide that coverage. See the [retry assessment](soak_all/preparation/asan-krk-retry-assessment.txt).
+ 
+-The later isolated full sanitizer invocation also timed out at 435 seconds. Two bounded invocations of the unchanged test, each `40 5 2 16 14 1`, then completed: together **0/400 two-thread misses and 0/200 single-thread reference misses**, with no sanitizer diagnostic. Both used the same binary SHA256 `4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99` and the same deterministic roots, with full clear before each search. This provides five plus five trials per root; it does not turn either timed-out single `40x10` invocation into a completed run. Evidence: [split 1](soak_all/batches/2KRKsplit-0001.txt), [split 2](soak_all/batches/2KRKsplit-0002.txt).
++The later isolated full sanitizer invocation also timed out at 435 seconds. Two bounded invocations of the unchanged test, each `40 5 2 16 14 1`, then completed: together **0/400 two-thread misses and 0/200 single-thread reference misses**, with no sanitizer diagnostic. Both used the same binary SHA256 `4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99` and the same deterministic roots, with full clear before each search. The two completed split runs provide ten total two-thread trials for each of the same 40 roots, as five trials in each invocation. Both timed-out single `40x10` invocations remain incomplete and are not counted as passing runs. Including the initial reduced retry, completed sanitizer executions total **300 single-thread reference checks and 440 two-thread trials**; these are repeated checks, not distinct positions. Evidence: [split 1](soak_all/batches/2KRKsplit-0001.txt), [split 2](soak_all/batches/2KRKsplit-0002.txt).
+ 
+ All seven interactive t3 clock cases pass in each build, with complete UCI traffic and measured times retained in the [clock assessment](soak_all/preparation/t3-clock-interactive-assessment.txt). Initial harness timing measurements and their corrected minimum-150-ms observation are preserved. No expected value was edited to make a check pass.
+ 
++ sed -n 150,168p /workspace/work/all-run/review-t1-t8/report-coverage-review/SOAK_ALL_REPORT.snapshot.md
+| NonPawnCorrection | — / — | — | — | — | — | — | — |
+| LmrDeeperShallower | — / — | — | — | — | — | — | — |
+
+A crash can appear as a disconnect. Log markers are occurrences, not additional distinct game failures; abnormal categories overlap. A completed match is not necessarily a passed audit. Failed or interrupted attempts retain their raw scored results below and must not be silently treated as successful batches.
+
+## Existing tests and limitations
+
+Existing test/check records: 61; nonzero checks: 6; reported sanitizer diagnostics: 0. The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.
+
+Recorded KRK coverage: release T1 100, release T2 400, ASAN T1 100, ASAN T2 40. The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.
+
+The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.
+
+Completed-unit totals exclude partial work; interrupted cleanup diagnostics remain evidence even when excluded from a completed frequency denominator. In particular, inspect partial records’ interrupted-trial and shutdown fields. For untraced self-play batches, searches/moves/games can be self-reported counters rather than independently enumerated raw observations. Sanitizer occurrences can repeat in mirrored logs and are not counts of distinct bugs.
+
+<details>
+<summary>Recorded notes and exceptions (preserved)</summary>
+
+- Release and ASan/UBSan t16 options/clamp exact-output comparisons fail because their unchanged expected fixtures omit MultiPV, NnueFile, ContHist4PlyRead, NonPawnCorrection and LmrDeeperShallower advertisements. Both engine runs and search/OwnBook protocol checkers exit 0 with no sanitizer report. Raw diffs are retained; expectations are not edited.
++ tail -n 4
++ rg -n '^SUMMARY|RUN_SPEC_END|interrupted|exit' /workspace/work/dwqww-all/forge-combo29/soak_all/batches/2KRKfull-0001.evidence/raw/logs/krk-full-retry-controller.txt
+20:SUMMARY {"type":"existing_asan_krk_full_retry","completed":false,"passed":false,"incomplete":true,"partial":true,"driver_error":"expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget","counts":{"tests_completed":0,"t1_runs":0,"t1_misses":0,"main_runs":0,"main_misses":0,"no_mate_score":0,"non_mating_move":0,"sanitizer_reports":0},"actual_config":[],"t1":[],"main":[],"sanitizer_reports":0,"sanitizer_diagnostics":[],"exitConsistent":false,"issues":["expected exactly one actual config line","expected exactly one Threads-1 result","expected exactly one main SUMMARY","actual config does not match 40 10 2 16 14 1","incomplete or invalid T1 checks","incomplete or inconsistent main counts","test did not terminate normally within the budget"],"partial_evidence":{"counted":false,"observed_config":[],"observed_t1":[],"observed_main":[]},"note":"Existing test unchanged. Full-clear argument1 is preserved in argv, not advertised by config. T1 misses are checked separately from the executable exit. no_mate_score and non_mating_move may overlap. Timeout or incomplete output contributes no completed counts. Sanitizer report count here is matching diagnostic lines, retained verbatim.","argv":["/workspace/work/all-run/tests-asan/krk_mate_test","40","10","2","16","14","1"],"environment":{"ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"},"process":{"exit":124,"signal":null,"spawnError":null,"interrupted":null,"ioErrors":[]},"started":"2026-11-14T12:23:23.996Z","ended":"2026-11-14T12:30:39.011Z","log":"/workspace/work/all-run/logs/test-asan-krk-full-isolated-retry.txt","resultFile":"/workspace/work/all-run/test-results/asan-krk-full-retry.json","binary_sha256_before":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","binary_sha256_after":"4e504c5479c5b55c09e00493892f468221a13154f725ac9d6bb381c077030e99","log_sha256":"087d9301afc4c7c8b7540e94644e9fb1e8f582e5728041152ca6a658fd1c77bd"}
+22:RUN_SPEC_END {"finishedUTC":"2026-11-14T12:30:39.049Z","exit":3,"signal":null,"spawnError":null,"interruption":null,"ioErrors":[]}
++ sed -n 1,26p /workspace/work/all-run/branch-review-r3-complete/BRANCH_REVIEW.md
+# Final 24-branch r3 review
+
+All 24 final heads contain implementation changes relative to `e04556ddc3a430b2e751159b0d46111ef56c8b89`. This is a **static source/test review**, not acceptance of the branches' native test claims or authorization to merge them. The eight-hour experiment remains on its pinned source and configuration.
+
+The final snapshot was recorded at **2026-11-14T15:00:12.976Z**, SHA256 `3d0799f2b3c446a9e2543a5c76e735501af46ae08569cb7252c98bbeddcb97b7`. It supersedes the earlier **13:51:59.287Z** snapshot for branch status. In particular, r3-21 and r3-23 were placeholders at the earlier snapshot and now have real changes; r3-05/06/07/22 also now have implementations. r3-24 advanced from its first implementation to a stronger fix and tests. The earlier snapshot and review are preserved under `branch_review_evidence/historical/`; they are historical evidence, not the current branch inventory.
+
+All exact commit objects were already available to the reviewers; no fetch was required. Reviewers ran read-only Git/text inspection, with no native builds, engine searches, sanitizer executions, games, checkouts, merges, ref updates or changes to experiment/controller state. Their only writes were scratch reports/evidence. Exact source comparisons confirm that the pinned engine and review base have the same `forge-combo29/src` and `include`; pinned `src/search.cpp` SHA256 is `2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819`.
+
+## Decisions supported by this review
+
+The most focused candidates to reuse later are **r3-21's mate-band conversion guard**, **r3-24's final stale-slot and move-preservation correction**, and **r3-17's malformed-position/legal-prefix and multiworker node-budget changes**. They address concrete mechanisms with relevant regression tests. Reuse their implementation commits and final tests; many final tips are report-only or test-only commits. The exact mapping appears below.
+
+**r3-22's empty-clock-reserve handling is also relevant correctness work**, but its independent branch leaves a source-level stale-helper-count concern after a prior multiworker search followed by an empty-clock terminal root. Its tests use fresh multiworker Searchers for empty clocks; the reused fixture is only one worker. r3-17's counter reset addresses the relevant mechanism, but a combined version has not been tested. Treat r3-22 as a candidate needing that interaction checked.
+
+The remaining default-off options are separate experiments. Their flags being false can preserve the old decision formula, but does not mean every default observable is unchanged: UCI advertisements change, and some add storage or bookkeeping even while off. The three optimization branches 18–20 change normal execution and require their own identity, portability and sanitizer validation. None supplies demonstrated repair of the current eight required equality failures, the original Part-4 short-PV observation, or a substitute for current race/self-play evidence.
+
+## All 24 branches: effect and disposition
+
+Names below are suffixes of `grok47/r3-`. “Off” means the added check option initializes false, unless otherwise stated. Disabled-path statements are source findings, not independent bench runs.
+
+| No. | Branch | Default and actual effect | Finding / later use |
+| --- | --- | --- | --- |
+| 01 | eval-rule-50-damp | Off; scales corrected evaluation by clock and requires matching TT score clock when enabled. | Evaluation heuristic, not restoration of t23 traversal. Hash clears on toggle; learned histories remain. |
+| 02 | threat-history | Off; per-worker quiet history keyed by threat buckets. A 64-KiB table is allocated/cleared per worker even off. | Distinct from t22 continuation history; useful threat-classification fixtures, no independent move-safety/mate proof. |
+| 03 | lmr-signed-correction | Off; signed corrected-minus-raw evaluation adjusts quiet LMR. | Interacts with NonPawnCorrection; formula and legality/PV tests do not establish tactical correctness. |
+| 04 | lmr-late-parent-relief | Off; arrival-index bookkeeping remains; reduces LMR for selected early replies to late parent moves. | Cannot rescue already-pruned moves; lacks focused arrival/reply-boundary assertions. |
++ sha256sum /workspace/work/all-run/branch-review-r3-complete/BRANCH_REVIEW.md
+05b129613dcd4206840e834c3c1d3ae761efbec99233befa1b9d55efe26c0b9b  /workspace/work/all-run/branch-review-r3-complete/BRANCH_REVIEW.md
++ node /workspace/work/all-run/review-t1-t8/report-coverage-review/verify-renderer-proposal.mjs
+{"stateUnmodified":true,"testRecords":61,"initialAsanT1":100,"initialAsanT2":40,"splitAsanT1":200,"splitAsanT2":400,"combinedAsanT1":300,"combinedAsanT2":440,"mateCostMatchRuntimeSectionsUnchanged":true,"incompleteAndEvidenceAppendicesUnchanged":true,"missingCountsNotZero":true,"noEngineWorkload":true}
+## Existing tests and limitations
+
+Existing test/check records: 61; nonzero checks: 6; reported sanitizer diagnostics: 0. The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.
+
+Initial Part 1 KRK coverage: release T1 100, release T2 400, ASAN T1 100, ASAN T2 40. The original full ASAN 40×10 attempt timed out without completed counts; this initial reduced retry is separate from later supplemental coverage.
+
+Later completed ASAN split retries (2KRKsplit): 2 invocations, T1 200 reference checks and T2 400 trials; T1 misses 0, T2 misses 0, reported sanitizer diagnostics 0. The two unchanged 40×5 invocations cover ten T2 trials per root as five plus five on the same 40 roots. See the 2KRKsplit batch evidence.
+
+Combined completed ASAN KRK coverage from Part 1 plus these split retries: T1 300 reference checks, T2 440 trials. These are repeated executions, not counts of distinct positions.
+
+Timed-out single 40×10 invocations remain incomplete and contribute no completed coverage. Completed split retries do not turn an original timeout into a pass.
+
+The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.
+
+Completed-unit totals exclude partial work; interrupted cleanup diagnostics remain evidence even when excluded from a completed frequency denominator. In particular, inspect partial records’ interrupted-trial and shutdown fields. For untraced self-play batches, searches/moves/games can be self-reported counters rather than independently enumerated raw observations. Sanitizer occurrences can repeat in mirrored logs and are not counts of distinct bugs.
+
+
++ diff -u --label SOAK_ALL_REPORT.original-render.md --label SOAK_ALL_REPORT.proposed.md /workspace/work/all-run/review-t1-t8/report-coverage-review/SOAK_ALL_REPORT.original-render.md /workspace/work/all-run/review-t1-t8/report-coverage-review/SOAK_ALL_REPORT.proposed.md
+--- SOAK_ALL_REPORT.original-render.md
++++ SOAK_ALL_REPORT.proposed.md
+@@ -14,7 +14,7 @@
+ 
+ | Phase | Conditions | Recorded completed work | Status |
+ | --- | --- | --- | --- |
+-| Part 1 | Release, ASAN+UBSAN and TSan builds; existing tests and fixed node/perft pins. | 3 engine builds; 58 test checks; 5 nonzero checks; 0 sanitizer reports | Complete with four stale fixture comparisons and one incomplete full ASan attempt; reduced retry passed |
++| Part 1 | Release, ASAN+UBSAN and TSan builds; existing tests and fixed node/perft pins. | 3 engine builds; 58 test checks; 5 nonzero checks; 0 sanitizer reports | Initial checkpoint: Complete with four stale fixture comparisons and one incomplete full ASan attempt; reduced retry passed. Later completed split coverage is recorded under 2KRKsplit; original timeouts remain incomplete. |
+ | 2A preparation | Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores. | 2,000 completed units; 2,442 trials; 402 selected generated; 0 faults | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
+ | 2A | 40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group. | 480 completed units; 4,800 trials; 298 mate score misses; 55 original t12 criterion flags; 298 faults | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
+ | 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
+@@ -159,7 +159,13 @@
+ 
+ Existing test/check records: 61; nonzero checks: 6; reported sanitizer diagnostics: 0. The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.
+ 
+-Recorded KRK coverage: release T1 100, release T2 400, ASAN T1 100, ASAN T2 40. The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.
++Initial Part 1 KRK coverage: release T1 100, release T2 400, ASAN T1 100, ASAN T2 40. The original full ASAN 40×10 attempt timed out without completed counts; this initial reduced retry is separate from later supplemental coverage.
++
++Later completed ASAN split retries (2KRKsplit): 2 invocations, T1 200 reference checks and T2 400 trials; T1 misses 0, T2 misses 0, reported sanitizer diagnostics 0. The two unchanged 40×5 invocations cover ten T2 trials per root as five plus five on the same 40 roots. See the 2KRKsplit batch evidence.
++
++Combined completed ASAN KRK coverage from Part 1 plus these split retries: T1 300 reference checks, T2 440 trials. These are repeated executions, not counts of distinct positions.
++
++Timed-out single 40×10 invocations remain incomplete and contribute no completed coverage. Completed split retries do not turn an original timeout into a pass.
+ 
+ The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.
+ 
++ sha256sum /workspace/work/all-run/review-t1-t8/report-coverage-review/REVIEW.md /workspace/work/all-run/review-t1-t8/report-coverage-review/renderer-proposal.patch.txt /workspace/work/all-run/review-t1-t8/report-coverage-review/integration-docs-proposal.patch.txt /workspace/work/all-run/review-t1-t8/report-coverage-review/historical-branch-proposal.patch.txt
+6eea03ae85d952a8fcb0aad50707b31533b83892baf64421d3bf9715d77dd3eb  /workspace/work/all-run/review-t1-t8/report-coverage-review/REVIEW.md
+0fadc79322c52582b389fdeb2957a3bba1e8c29f6b8435e480046735b9366d90  /workspace/work/all-run/review-t1-t8/report-coverage-review/renderer-proposal.patch.txt
+03cb4cab3b1095cfbae43b6c3cf2335a0d6cee45b17731c57c3cde00d57dc604  /workspace/work/all-run/review-t1-t8/report-coverage-review/integration-docs-proposal.patch.txt
+99e51aa8610a1395e0a290b8c3eee40f2311babe775ed02f8565d68039b9050d  /workspace/work/all-run/review-t1-t8/report-coverage-review/historical-branch-proposal.patch.txt

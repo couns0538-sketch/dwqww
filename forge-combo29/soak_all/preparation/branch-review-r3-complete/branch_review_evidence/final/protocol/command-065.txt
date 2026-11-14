@@ -1,0 +1,31 @@
+{"n":65,"argv":["rg","-n","Threads|softnodes|go nodes|prepare\\(","/workspace/work/all-run/r3-final-protocol-review/r3-12-soft-nodes.tests_r3_12-softnodes_test.cpp.txt"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+19:// Drives the engine over UCI. `softnodes` checks 200 positions:
+160:    constexpr std::string_view kSoft = "info string softnodes nodes ";
+270:void prepare(Engine& engine) {
+271:    engine.send("uci\nsetoption name Threads value 1\nsetoption name Hash value 16\n"
+284:int run_softnodes(const std::string& engine_path) {
+291:    prepare(engine);
+298:    engine.send("go nodes 400\n");
+301:        std::cerr << "FAIL go nodes changed: ok " << hard.ok << " soft " << hard.saw_soft
+315:        engine.send("go softnodes " + std::to_string(kSoft) + "\n");
+352:        std::cerr << "FAIL softnodes failures " << failures << std::endl;
+370:    prepare(engine);
+411:    prepare(engine);
+416:        engine.send("go nodes " + std::to_string(budget) + "\n");
+419:            return fail_edge("go nodes " + std::to_string(budget));
+422:            return fail_edge("go nodes finished over budget " + std::to_string(budget) + " nodes " +
+430:                return fail_edge("go nodes move drifted at " + std::to_string(budget));
+437:        engine.send("go softnodes " + std::to_string(budget) + "\n");
+441:            return fail_edge("softnodes " + std::to_string(budget) + " nodes " +
+445:            return fail_edge("soft depth behind go nodes at " + std::to_string(budget));
+453:        std::cout << "softnodes budget " << budget << " depth " << soft.depth << " nodes "
+458:    engine.send("go softnodes 0\n");
+461:        return fail_edge("softnodes 0 depth " + std::to_string(zero.depth) + " move " + zero.best);
+464:    engine.send("go nodes 0\n");
+467:        return fail_edge("go nodes 0 drifted");
+487:            engine.send("go softnodes " + std::to_string(budget) + "\n");
+520:        std::cerr << "usage: softnodes_test <engine> <softnodes|depth10|edges>" << std::endl;
+525:    if (mode == "softnodes") return run_softnodes(path);
+
+STDERR

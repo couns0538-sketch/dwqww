@@ -1,0 +1,2063 @@
+    1 #include "forge/search.hpp"
+    2 #include "forge/uci_output.hpp"
+    3 
+    4 #include <algorithm>
+    5 #include <cmath>
+    6 #include <cstring>
+    7 #include <iostream>
+    8 #include <limits>
+    9 #include <optional>
+   10 
+   11 // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
+   12 // losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
+   13 // behind them. Same moves in the same order (bit-exact); 1 KB less per picker, and the losing-capture list can
+   14 // never outgrow its storage (it only reuses slots of moves it has already handed out).
+   15 #ifndef FORGE_SDK_BADCAP_PREFIX
+   16 #define FORGE_SDK_BADCAP_PREFIX 0
+   17 #endif
+   18 
+   19 #ifndef FORGE_BARE_KING_MATE_FIX
+   20 #define FORGE_BARE_KING_MATE_FIX 1
+   21 #endif
+   22 
+   23 namespace forge {
+   24 
+   25 namespace tune {
+   26 int LmrQuietBase = 85;
+   27 int LmrQuietDivisor = 220;
+   28 int LmrNoisyBase = 10;
+   29 int LmrNoisyDivisor = 340;
+   30 int NullMoveMinDepth = 3;
+   31 int NullMoveBase = 3;
+   32 int NullMoveDepthDivisor = 3;
+   33 int NullMoveEvalDivisor = 200;
+   34 int RfpDepth = 8;
+   35 int RfpMargin = 72;
+   36 int RfpImproving = 40;
+   37 int RazorDepth = 2;
+   38 int RazorBase = 150;
+   39 int RazorMultiplier = 350;
+   40 int FutilityDepth = 7;
+   41 int FutilityBase = 100;
+   42 int FutilityMultiplier = 110;
+   43 int LmpBase = 4;
+   44 int HistoryPruneDepth = 3;
+   45 int HistoryPruneMultiplier = 2048;
+   46 int SeeQuietMultiplier = 24;
+   47 int SeeNoisyMultiplier = 150;
+   48 int SingularDepth = 7;
+   49 int SingularMargin = 2;
+   50 int IirDepth = 4;
+   51 int ProbcutDepth = 5;
+   52 int ProbcutMargin = 180;
+   53 int QsFutilityMargin = 160;
+   54 int QsSeeMargin = 40;
+   55 int AspirationDelta = 18;
+   56 int HistoryBonusQuadratic = 20;
+   57 int HistoryBonusLinear = 48;
+   58 int HistoryBonusMax = 2048;
+   59 int LmrHistoryDivisor = 6000;
+   60 int CheckExtensionDepth = 2;
+   61 int LmrCutoffThreshold = 3;
+   62 int MaterialCorrectionWeight = 100;
+   63 int TmSoftDivisor = 22;
+   64 int TmIncrementPercent = 75;
+   65 int TmHardPercent = 60;
+   66 int TmHardSoftMultiple = 5;
+   67 int TmStableFactor = 60;
+   68 int TmSemiStableFactor = 80;
+   69 int TmUnstableFactor = 140;
+   70 int TmEffortBase = 155;
+   71 int TmFallingEvalPercent = 100;
+   72 int TmMinFactorPercent = 45;
+   73 int CaptureFutilityBase = 0;
+   74 int CaptureFutilityMultiplier = 250;
+   75 int CaptureFutilityDepth = 6;
+   76 int FailLowContinuationBonus = 0;
+   77 bool ContHist4PlyRead = false;
+   78 bool NonPawnCorrection = false;
+   79 bool LmrDeeperShallower = false;
+   80 bool AspCappedReopen = false;
+   81 
+   82 const std::vector<Parameter>& parameters() {
+   83     static const std::vector<Parameter> table{
+   84         {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
+   85         {"LmrNoisyBase", &LmrNoisyBase, 0, 300},         {"LmrNoisyDivisor", &LmrNoisyDivisor, 100, 800},
+   86         {"NullMoveMinDepth", &NullMoveMinDepth, 1, 10},  {"NullMoveBase", &NullMoveBase, 1, 6},
+   87         {"NullMoveDepthDivisor", &NullMoveDepthDivisor, 1, 10},
+   88         {"NullMoveEvalDivisor", &NullMoveEvalDivisor, 50, 1000},
+   89         {"RfpDepth", &RfpDepth, 0, 15},                  {"RfpMargin", &RfpMargin, 10, 300},
+   90         {"RfpImproving", &RfpImproving, 0, 200},         {"RazorDepth", &RazorDepth, 0, 6},
+   91         {"RazorBase", &RazorBase, 0, 1000},              {"RazorMultiplier", &RazorMultiplier, 0, 1000},
+   92         {"FutilityDepth", &FutilityDepth, 0, 15},        {"FutilityBase", &FutilityBase, 0, 500},
+   93         {"FutilityMultiplier", &FutilityMultiplier, 0, 500},
+   94         {"LmpBase", &LmpBase, 0, 20},                    {"HistoryPruneDepth", &HistoryPruneDepth, 0, 10},
+   95         {"HistoryPruneMultiplier", &HistoryPruneMultiplier, 0, 20000},
+   96         {"SeeQuietMultiplier", &SeeQuietMultiplier, 0, 200},
+   97         {"SeeNoisyMultiplier", &SeeNoisyMultiplier, 0, 1000},
+   98         {"SingularDepth", &SingularDepth, 2, 20},        {"SingularMargin", &SingularMargin, 0, 10},
+   99         {"IirDepth", &IirDepth, 1, 20},                  {"ProbcutDepth", &ProbcutDepth, 1, 20},
+  100         {"ProbcutMargin", &ProbcutMargin, 0, 1000},      {"QsFutilityMargin", &QsFutilityMargin, 0, 1000},
+  101         {"QsSeeMargin", &QsSeeMargin, 0, 500},           {"AspirationDelta", &AspirationDelta, 4, 200},
+  102         {"HistoryBonusQuadratic", &HistoryBonusQuadratic, 0, 100},
+  103         {"HistoryBonusLinear", &HistoryBonusLinear, 0, 500},
+  104         {"HistoryBonusMax", &HistoryBonusMax, 100, 10000},
+  105         {"LmrHistoryDivisor", &LmrHistoryDivisor, 1000, 30000},
+  106         {"CheckExtensionDepth", &CheckExtensionDepth, 1, 30},
+  107         {"LmrCutoffThreshold", &LmrCutoffThreshold, 0, 20},
+  108         {"MaterialCorrectionWeight", &MaterialCorrectionWeight, 0, 300},
+  109         {"TmSoftDivisor", &TmSoftDivisor, 5, 80},            {"TmIncrementPercent", &TmIncrementPercent, 0, 150},
+  110         {"TmHardPercent", &TmHardPercent, 10, 95},           {"TmHardSoftMultiple", &TmHardSoftMultiple, 1, 20},
+  111         {"TmStableFactor", &TmStableFactor, 20, 150},        {"TmSemiStableFactor", &TmSemiStableFactor, 20, 150},
+  112         {"TmUnstableFactor", &TmUnstableFactor, 50, 300},    {"TmEffortBase", &TmEffortBase, 100, 250},
+  113         {"TmFallingEvalPercent", &TmFallingEvalPercent, 0, 400}, {"TmMinFactorPercent", &TmMinFactorPercent, 10, 100},
+  114         {"CaptureFutilityBase", &CaptureFutilityBase, 0, 1000},  {"CaptureFutilityMultiplier", &CaptureFutilityMultiplier, 0, 1000},
+  115         {"CaptureFutilityDepth", &CaptureFutilityDepth, 0, 15},  {"FailLowContinuationBonus", &FailLowContinuationBonus, 0, 300},
+  116     };
+  117     return table;
+  118 }
+  119 } // namespace tune
+  120 
+  121 namespace {
+  122 
+  123 constexpr int HistoryMax = 16384;
+  124 
+  125 [[nodiscard]] int score_to_tt(int score, int ply) {
+  126     if (score >= MateInMaxPly) return score + ply;
+  127     if (score <= -MateInMaxPly) return score - ply;
+  128     return score;
+  129 }
+  130 
+  131 [[nodiscard]] int score_from_tt(int score, int ply) {
+  132     if (score == ValueNone) return ValueNone;
+  133     if (score >= MateInMaxPly) return score - ply;
+  134     if (score <= -MateInMaxPly) return score + ply;
+  135     return score;
+  136 }
+  137 
+  138 [[nodiscard]] int mated_in(int ply) { return -MateValue + ply; }
+  139 [[nodiscard]] int mate_in(int ply) { return MateValue - ply; }
+  140 
+  141 struct ReductionTable {
+  142     std::array<std::array<std::uint8_t, 64>, 64> quiet{};
+  143     std::array<std::array<std::uint8_t, 64>, 64> noisy{};
+  144     ReductionTable() { refresh(); }
+  145     void refresh() {
+  146         for (int depth = 1; depth < 64; ++depth) {
+  147             for (int moves = 1; moves < 64; ++moves) {
+  148                 const double product = std::log(static_cast<double>(depth)) * std::log(static_cast<double>(moves));
+  149                 quiet[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+  150                     std::max(0.0, tune::LmrQuietBase / 100.0 + product / (tune::LmrQuietDivisor / 100.0)));
+  151                 noisy[static_cast<std::size_t>(depth)][static_cast<std::size_t>(moves)] = static_cast<std::uint8_t>(
+  152                     std::max(0.0, tune::LmrNoisyBase / 100.0 + product / (tune::LmrNoisyDivisor / 100.0)));
+  153             }
+  154         }
+  155     }
+  156 };
+  157 ReductionTable Reductions;
+  158 
+  159 [[nodiscard]] int reduction(bool quiet, int depth, int moves) {
+  160     const std::size_t d = static_cast<std::size_t>(std::min(depth, 63));
+  161     const std::size_t m = static_cast<std::size_t>(std::min(moves, 63));
+  162     return quiet ? Reductions.quiet[d][m] : Reductions.noisy[d][m];
+  163 }
+  164 
+  165 [[nodiscard]] int lmp_threshold(int depth, bool improving) {
+  166     return improving ? tune::LmpBase + depth * depth : (tune::LmpBase + depth * depth) / 2;
+  167 }
+  168 
+  169 [[nodiscard]] int history_bonus(int depth) {
+  170     return std::min(tune::HistoryBonusMax, tune::HistoryBonusQuadratic * depth * depth + tune::HistoryBonusLinear * depth - 32);
+  171 }
+  172 
+  173 void apply_history(std::int16_t& entry, int bonus) {
+  174     const int clamped = std::clamp(bonus, -HistoryMax, HistoryMax);
+  175     entry = static_cast<std::int16_t>(entry + clamped - entry * std::abs(clamped) / HistoryMax);
+  176 }
+  177 
+  178 [[nodiscard]] int capture_value(const Board& board, Move move) {
+  179     int value = SeePieceValue[static_cast<std::size_t>(piece_type(board.captured_piece(move)))];
+  180     if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
+  181     return value;
+  182 }
+  183 
+  184 #if FORGE_SEARCH_SPEED2
+  185 // Quiet history of one move: main history row of the side to move plus the continuation history of the two
+  186 // previous plies (and optionally 4 plies back at half weight), summed in this order (= Worker::quiet_history).
+  187 [[nodiscard]] inline int quiet_history_sum(const std::array<std::array<std::int16_t, 64>, 64>& main,
+  188                                            const PieceToHistory* cont1, const PieceToHistory* cont2,
+  189                                            const PieceToHistory* cont4, Piece piece, Move move) {
+  190     const std::size_t p = static_cast<std::size_t>(piece);
+  191     int score = main[move.from][move.to];
+  192     if (cont1 != nullptr) score += (*cont1)[p][move.to];
+  193     if (cont2 != nullptr) score += (*cont2)[p][move.to];
+  194     if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;
+  195     return score;
+  196 }
+  197 #endif
+  198 
+  199 std::string format_score(int score) {
+  200     if (is_mate_score(score)) {
+  201         const int distance = MateValue - std::abs(score);
+  202         const int mate = (distance + 1) / 2;
+  203         return "mate " + std::to_string(score > 0 ? mate : -mate);
+  204     }
+  205     return "cp " + std::to_string(score);
+  206 }
+  207 
+  208 } // namespace
+  209 
+  210 void tune::refresh() { Reductions.refresh(); }
+  211 
+  212 // ---------------------------------------------------------------------------
+  213 // Transposition table
+  214 
+  215 thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
+  216 
+  217 TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
+  218     : table_(table), previous_(active_lease_), gate_(table.exclusive_gate_, std::defer_lock) {
+  219     if (!table_.has_exclusive_access()) {
+  220         gate_.lock();
+  221         table_.exclusive_requested_.store(true, std::memory_order_release);
+  222         try {
+  223             // A foreign accessor either completes before its stripe drains,
+  224             // or observes the request after acquiring that drained stripe.
+  225             for (std::size_t i = 0; i < StripeCount; ++i) {
+  226                 const std::lock_guard<std::mutex> drain(table_.stripes_[i].mutex);
+  227             }
+  228         } catch (...) {
+  229             table_.exclusive_requested_.store(false, std::memory_order_release);
+  230             throw;
+  231         }
+  232     }
+  233     active_lease_ = this;
+  234 }
+  235 
+  236 TranspositionTable::ExclusiveLease::~ExclusiveLease() {
+  237     // Publish completed writes before member destruction releases the gate.
+  238     active_lease_ = previous_;
+  239     if (gate_.owns_lock()) table_.exclusive_requested_.store(false, std::memory_order_release);
+  240 }
+  241 
+  242 bool TranspositionTable::has_exclusive_access() const {
+  243     for (const ExclusiveLease* lease = active_lease_; lease != nullptr; lease = lease->previous_) {
+  244         if (&lease->table_ == this) return true;
+  245     }
+  246     return false;
+  247 }
+  248 
+  249 std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
+  250     std::mutex& stripe = stripes_[index % StripeCount].mutex;
+  251     if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
+  252     for (;;) {
+  253         std::unique_lock<std::mutex> lock(stripe);
+  254         if (!exclusive_requested_.load(std::memory_order_acquire)) return lock;
+  255         // Never wait for the gate while holding a stripe: the owner drains it.
+  256         lock.unlock();
+  257         const std::lock_guard<std::mutex> wait(exclusive_gate_);
+  258     }
+  259 }
+  260 
+  261 void TranspositionTable::resize(std::size_t mb) {
+  262     const std::size_t bytes = std::max<std::size_t>(1, mb) * 1024U * 1024U;
+  263     const std::size_t new_count = std::max<std::size_t>(1, bytes / sizeof(TTCluster));
+  264     auto new_clusters = std::make_unique<TTCluster[]>(new_count);
+  265     clusters_ = std::move(new_clusters);
+  266     cluster_count_ = new_count;
+  267     generation_ = 0;
+  268     ++epoch_;
+  269 }
+  270 
+  271 void TranspositionTable::clear() {
+  272     for (std::size_t i = 0; i < cluster_count_; ++i) clusters_[i] = TTCluster{};
+  273     generation_ = 0;
+  274     ++epoch_;
+  275 }
+  276 
+  277 #if FORGE_SPD_TT_NOTLS
+  278 template <bool TakeLock>
+  279 TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+  280     TTCluster& cluster = cluster_for(key);
+  281     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+  282     // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
+  283     // back a deferred (unlocked) lock, after a thread_local lookup per call.
+  284     const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
+  285     auto snapshot = [&](const TTEntry& entry, bool hit) {
+  286         TTProbe result;
+  287         result.entry = entry;
+  288         result.hit = hit;
+  289         result.owner_ = this;
+  290         result.cluster_ = index;
+  291         result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+  292         result.epoch_ = epoch_;
+  293         result.key_ = key;
+  294         return result;
+  295     };
+  296     const std::uint32_t key32 = verification_key(key);
+  297     for (TTEntry& entry : cluster.entries) {
+  298         if (entry.key32 == key32 && entry.occupied()) {
+  299             // Reused entries remain recent even when search returns a TT cutoff.
+  300             if (entry.generation() != generation_) {
+  301                 entry.gen_bound = static_cast<std::uint8_t>(
+  302                     (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+  303             }
+  304             return snapshot(entry, true);
+  305         }
+  306     }
+  307     const TTEntry* replace = &cluster.entries[0];
+  308     auto relative_age = [this](const TTEntry& entry) {
+  309         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+  310     };
+  311     for (const TTEntry& entry : cluster.entries) {
+  312         if (!entry.occupied()) return snapshot(entry, false);
+  313         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+  314     }
+  315     return snapshot(*replace, false);
+  316 }
+  317 
+  318 TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+  319 
+  320 TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+  321     assert(has_exclusive_access());
+  322     return probe_body<false>(key);
+  323 }
+  324 
+  325 template <bool TakeLock>
+  326 void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+  327                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
+  328     // Reject default, foreign or lifecycle-stale handles without touching storage.
+  329     // Lifecycle operations themselves must not run concurrently with search.
+  330     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+  331         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+  332     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+  333     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+  334     const std::uint32_t key32 = verification_key(key);
+  335     const bool same_position = entry->key32 == key32 && entry->occupied();
+  336     if (!move.is_none() || !same_position) entry->move = move;
+  337     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+  338         entry->key32 = key32;
+  339         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+  340         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+  341         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+  342         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+  343         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+  344     }
+  345 }
+  346 
+  347 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+  348                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+  349     store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+  350 }
+  351 
+  352 void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+  353                                      Bound bound, bool pv, std::uint16_t halfmove_clock) {
+  354     assert(has_exclusive_access());
+  355     store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+  356 }
+  357 #else
+  358 TTProbe TranspositionTable::probe(std::uint64_t key) const {
+  359     TTCluster& cluster = cluster_for(key);
+  360     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+  361     const auto lock = lock_stripe(index);
+  362     auto snapshot = [&](const TTEntry& entry, bool hit) {
+  363         TTProbe result;
+  364         result.entry = entry;
+  365         result.hit = hit;
+  366         result.owner_ = this;
+  367         result.cluster_ = index;
+  368         result.slot_ = static_cast<std::uint8_t>(&entry - cluster.entries.data());
+  369         result.epoch_ = epoch_;
+  370         result.key_ = key;
+  371         return result;
+  372     };
+  373     const std::uint32_t key32 = verification_key(key);
+  374     for (TTEntry& entry : cluster.entries) {
+  375         if (entry.key32 == key32 && entry.occupied()) {
+  376             // Reused entries remain recent even when search returns a TT cutoff.
+  377             if (entry.generation() != generation_) {
+  378                 entry.gen_bound = static_cast<std::uint8_t>(
+  379                     (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+  380             }
+  381             return snapshot(entry, true);
+  382         }
+  383     }
+  384     const TTEntry* replace = &cluster.entries[0];
+  385     auto relative_age = [this](const TTEntry& entry) {
+  386         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+  387     };
+  388     for (const TTEntry& entry : cluster.entries) {
+  389         if (!entry.occupied()) return snapshot(entry, false);
+  390         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+  391     }
+  392     return snapshot(*replace, false);
+  393 }
+  394 
+  395 void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+  396                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+  397     // Reject default, foreign or lifecycle-stale handles without touching storage.
+  398     // Lifecycle operations themselves must not run concurrently with search.
+  399     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+  400         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+  401     const auto lock = lock_stripe(probe.cluster_);
+  402     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
+  403     const std::uint32_t key32 = verification_key(key);
+  404     const bool same_position = entry->key32 == key32 && entry->occupied();
+  405     if (!move.is_none() || !same_position) entry->move = move;
+  406     if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+  407         entry->key32 = key32;
+  408         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+  409         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+  410         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+  411         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+  412         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+  413     }
+  414 }
+  415 #endif
+  416 
+  417 int TranspositionTable::hashfull() const {
+  418     int count = 0;
+  419     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+  420     for (std::size_t i = 0; i < sample; ++i) {
+  421         const auto lock = lock_stripe(i);
+  422         for (const TTEntry& entry : clusters_[i].entries) {
+  423             if (entry.occupied() && entry.generation() == generation_) ++count;
+  424         }
+  425     }
+  426     return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+  427 }
+  428 
+  429 // ---------------------------------------------------------------------------
+  430 // Move picker
+  431 
+  432 class MovePicker {
+  433 public:
+  434     enum class Mode { Main, Quiescence };
+  435 
+  436     MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+  437         : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
+  438         const bool in_check = board.in_check();
+  439         if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+  440         if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+  441             !tt_move_.is_promotion()) {
+  442             tt_move_ = Move::none();
+  443         }
+  444         if (in_check) stage_ = tt_move_.is_none() ? EvasionGenerate : EvasionTT;
+  445         else if (mode == Mode::Quiescence) stage_ = tt_move_.is_none() ? QsGenerate : QsTT;
+  446         else stage_ = tt_move_.is_none() ? GenerateCaptures : MainTT;
+  447         if (ss != nullptr) {
+  448             killers_ = ss->killers;
+  449             const SearchStack* previous = ss - 1;
+  450             if (!previous->current_move.is_none() && previous->moved_piece != Empty) {
+  451                 counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+  452             }
+  453         }
+  454     }
+  455 
+  456     [[nodiscard]] Move next(bool skip_quiets) {
+  457         while (true) {
+  458             switch (stage_) {
+  459             case MainTT:
+  460             case QsTT:
+  461             case EvasionTT:
+  462                 stage_ = static_cast<Stage>(stage_ + 1);
+  463                 return tt_move_;
+  464 
+  465             case GenerateCaptures:
+  466                 generate_captures();
+  467                 stage_ = GoodCaptures;
+  468                 [[fallthrough]];
+  469             case GoodCaptures:
+  470                 while (index_ < count_) {
+  471                     const Move move = pick_best();
+  472                     if (move == tt_move_) continue;
+  473                     if (!board_.see_ge(move, -move_score_threshold(move))) {
+  474 #if FORGE_SDK_BADCAP_PREFIX
+  475                         // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+  476                         moves_[bad_count_++].move = move;
+  477 #else
+  478                         bad_captures_[bad_count_++] = move;
+  479 #endif
+  480                         continue;
+  481                     }
+  482                     return move;
+  483                 }
+  484                 stage_ = Killer1;
+  485                 [[fallthrough]];
+  486             case Killer1:
+  487                 stage_ = Killer2;
+  488                 if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
+  489                 [[fallthrough]];
+  490             case Killer2:
+  491                 stage_ = CounterMove;
+  492                 if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
+  493                 [[fallthrough]];
+  494             case CounterMove:
+  495                 stage_ = GenerateQuiets;
+  496                 if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
+  497                     return counter_;
+  498                 }
+  499                 [[fallthrough]];
+  500             case GenerateQuiets:
+  501                 if (!skip_quiets) generate_quiets();
+  502                 stage_ = QuietMoves;
+  503                 [[fallthrough]];
+  504             case QuietMoves:
+  505                 if (!skip_quiets) {
+  506                     while (index_ < count_) {
+  507                         const Move move = pick_best();
+  508                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+  509                         return move;
+  510                     }
+  511                 }
+  512                 stage_ = BadCaptures;
+  513                 bad_index_ = 0;
+  514                 [[fallthrough]];
+  515             case BadCaptures:
+  516 #if FORGE_SDK_BADCAP_PREFIX
+  517                 if (bad_index_ < bad_count_) return moves_[bad_index_++].move;
+  518 #else
+  519                 if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
+  520 #endif
+  521                 return Move::none();
+  522 
+  523             case QsGenerate:
+  524                 generate_captures();
+  525                 stage_ = QsCaptures;
+  526                 [[fallthrough]];
+  527             case QsCaptures:
+  528                 while (index_ < count_) {
+  529                     const Move move = pick_best();
+  530                     if (move == tt_move_) continue;
+  531                     return move;
+  532                 }
+  533                 return Move::none();
+  534 
+  535             case EvasionGenerate:
+  536                 generate_evasions();
+  537                 stage_ = Evasions;
+  538                 [[fallthrough]];
+  539             case Evasions:
+  540                 while (index_ < count_) {
+  541                     const Move move = pick_best();
+  542                     if (move == tt_move_) continue;
+  543                     return move;
+  544                 }
+  545                 return Move::none();
+  546             }
+  547         }
+  548     }
+  549 
+  550     // Valid for the move just returned by next(), until the next next() call.
+  551     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+  552     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+  553 
+  554 private:
+  555     enum Stage : int {
+  556         MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+  557         QsTT, QsGenerate, QsCaptures,
+  558         EvasionTT, EvasionGenerate, Evasions
+  559     };
+  560     struct Scored {
+  561         Move move;
+  562         int score;
+  563     };
+  564 
+  565     const Board& board_;
+  566     const Worker& searcher_;
+  567     const SearchStack* ss_;
+  568     Move tt_move_;
+  569     std::array<Move, 2> killers_{};
+  570     Move counter_{};
+  571     Stage stage_;
+  572 #if FORGE_SPD_NO_ZERO_MOVELISTS
+  573     // Every slot read is written first (moves_[index_ < count_], bad_captures_
+  574     // [bad_index_ < bad_count_], check_squares_[1..6] after init_check_squares):
+  575     // no zero fill at construction.
+  576     std::array<Scored, 256> moves_;
+  577 #else
+  578     std::array<Scored, 256> moves_{};
+  579 #endif
+  580     std::size_t index_ = 0;
+  581     std::size_t count_ = 0;
+  582 #if FORGE_SDK_BADCAP_PREFIX
+  583     // Losing captures live in moves_[0, bad_count_).
+  584 #elif FORGE_SPD_NO_ZERO_MOVELISTS
+  585     // Same capacity as the generator. A legal position can have more than 64
+  586     // SEE-losing captures, and every one of them is stored.
+  587     std::array<Move, MoveList::Capacity> bad_captures_;
+  588 #else
+  589     std::array<Move, MoveList::Capacity> bad_captures_{};
+  590 #endif
+  591     std::size_t bad_count_ = 0;
+  592     std::size_t bad_index_ = 0;
+  593     MoveList buffer_;
+  594     std::size_t list_start_ = 0;
+  595     bool sorted_ = false;
+  596 #if FORGE_SPD_NO_ZERO_MOVELISTS
+  597     std::array<Bitboard, 7> check_squares_;
+  598 #else
+  599     std::array<Bitboard, 7> check_squares_{};
+  600 #endif
+  601 
+  602     // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+  603     void init_check_squares() {
+  604         const Color them = opposite(board_.side_to_move());
+  605         const int enemy_king = board_.king_square(them);
+  606         const Bitboard occupancy = board_.occupied();
+  607         check_squares_[Pawn] = attacks::pawn(them, enemy_king);
+  608         check_squares_[Knight] = attacks::knight(enemy_king);
+  609         check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
+  610         check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+  611         check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+  612         check_squares_[King] = 0;
+  613     }
+  614 
+  615     [[nodiscard]] bool direct_check(Move move) const {
+  616         const int type = piece_type(board_.moved_piece(move));
+  617         return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
+  618     }
+  619 
+  620 #if FORGE_SEARCH_SPEED2
+  621     // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and continuation tables
+  622     // are fixed for one generation, so they are read once, and the moved piece once per move.
+  623     struct QuietScorer {
+  624         const std::array<std::array<std::int16_t, 64>, 64>& main;
+  625         const PieceToHistory* cont1;
+  626         const PieceToHistory* cont2;
+  627         const PieceToHistory* cont4;
+  628         const Board& board;
+  629 
+  630         QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+  631             : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+  632               cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+  633               cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+  634               cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+  635                         ? (ss - 4)->continuation : nullptr),
+  636               board(b) {}
+  637 
+  638         [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+  639             const Piece piece = board.piece_at(move.from);
+  640             int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
+  641             if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+  642             return value;
+  643         }
+  644     };
+  645 #endif
+  646 
+  647     [[nodiscard]] static int move_score_threshold(Move) { return 0; }
+  648 
+  649     [[nodiscard]] bool is_valid_quiet(Move move) const {
+  650         return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&
+  651                board_.is_pseudo_legal(move);
+  652     }
+  653 
+  654     // Most nodes need only the first few moves: select those on demand and
+  655     // sort the remainder once if the search gets that far.
+  656     [[nodiscard]] Move pick_best() {
+  657         if (!sorted_) {
+  658             if (index_ - list_start_ < 4) {
+  659                 std::size_t best = index_;
+  660                 for (std::size_t i = index_ + 1; i < count_; ++i) {
+  661                     if (moves_[i].score > moves_[best].score) best = i;
+  662                 }
+  663                 std::swap(moves_[index_], moves_[best]);
+  664             } else {
+  665                 std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+  666                           [](const Scored& a, const Scored& b) { return a.score > b.score; });
+  667                 sorted_ = true;
+  668             }
+  669         }
+  670         return moves_[index_++].move;
+  671     }
+  672 
+  673     void sort_moves() {
+  674         list_start_ = index_;
+  675         sorted_ = false;
+  676     }
+  677 
+  678     // First slot of the quiet list: behind the losing captures when they share moves_.
+  679     [[nodiscard]] std::size_t quiet_start() const {
+  680 #if FORGE_SDK_BADCAP_PREFIX
+  681         return bad_count_;
+  682 #else
+  683         return 0;
+  684 #endif
+  685     }
+  686 
+  687     void generate_captures() {
+  688         buffer_.clear();
+  689         board_.generate_pseudo_legal(buffer_, true);
+  690         index_ = 0;
+  691         count_ = 0;
+  692 #if FORGE_SEARCH_SPEED2
+  693         const CaptureHistory& capture_history = *searcher_.capture_history_;
+  694 #endif
+  695         for (const Move move : buffer_) {
+  696 #if FORGE_SEARCH_SPEED2
+  697             const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
+  698             const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
+  699             int value = SeePieceValue[victim];
+  700             if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
+  701             int score = 10 * value + capture_history[moved][move.to][victim];
+  702 #else
+  703             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+  704 #endif
+  705             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
+  706             moves_[count_++] = Scored{move, score};
+  707         }
+  708         sort_moves();
+  709     }
+  710 
+  711     void generate_quiets() {
+  712 #if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+  713         // The quiets-only list is the full list minus every capture and
+  714         // promotion, in the same order, so the filter is gone.
+  715         init_check_squares();
+  716         buffer_.clear();
+  717         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
+  718         index_ = quiet_start();
+  719         count_ = quiet_start();
+  720 #if FORGE_SEARCH_SPEED2
+  721         const QuietScorer scorer(board_, searcher_, ss_);
+  722         for (const Move move : buffer_) {
+  723             moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
+  724         }
+  725 #else
+  726         for (const Move move : buffer_) {
+  727             int score = searcher_.quiet_history(board_, ss_, move);
+  728             if (direct_check(move)) score += 12000;
+  729             moves_[count_++] = Scored{move, score};
+  730         }
+  731 #endif
+  732         sort_moves();
+  733 #else
+  734         init_check_squares();
+  735         buffer_.clear();
+  736         board_.generate_pseudo_legal(buffer_, false);
+  737         index_ = quiet_start();
+  738         count_ = quiet_start();
+  739 #if FORGE_SEARCH_SPEED2
+  740         const QuietScorer scorer(board_, searcher_, ss_);
+  741         for (const Move move : buffer_) {
+  742             if (move.is_capture() || move.is_promotion()) continue;
+  743             moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
+  744         }
+  745 #else
+  746         for (const Move move : buffer_) {
+  747             if (move.is_capture() || move.is_promotion()) continue;
+  748             int score = searcher_.quiet_history(board_, ss_, move);
+  749             if (direct_check(move)) score += 12000;
+  750             moves_[count_++] = Scored{move, score};
+  751         }
+  752 #endif
+  753         sort_moves();
+  754 #endif
+  755     }
+  756 
+  757     void generate_evasions() {
+  758         init_check_squares();
+  759         buffer_.clear();
+  760         board_.generate_pseudo_legal(buffer_, false);
+  761         index_ = 0;
+  762         count_ = 0;
+  763 #if FORGE_SEARCH_SPEED2
+  764         const QuietScorer scorer(board_, searcher_, ss_);
+  765 #endif
+  766         for (const Move move : buffer_) {
+  767             int score;
+  768             if (move.is_capture() || move.is_promotion()) {
+  769                 score = 1'000'000 + 10 * capture_value(board_, move) -
+  770                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+  771             } else {
+  772 #if FORGE_SEARCH_SPEED2
+  773                 score = scorer.score(move, check_squares_);
+  774 #else
+  775                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+  776 #endif
+  777             }
+  778             moves_[count_++] = Scored{move, score};
+  779         }
+  780         sort_moves();
+  781     }
+  782 };
+  783 
+  784 // ---------------------------------------------------------------------------
+  785 // Searcher
+  786 
+  787 Worker::Worker(SharedSearchState& shared, int id)
+  788     : shared_(shared),
+  789       id_(id),
+  790       main_history_(std::make_unique<ButterflyHistory>()),
+  791       capture_history_(std::make_unique<CaptureHistory>()),
+  792       continuation_history_(std::make_unique<ContinuationHistory>()),
+  793       counter_moves_(std::make_unique<CounterMoveTable>()),
+  794       correction_history_(std::make_unique<CorrectionHistory>()),
+  795       material_correction_(std::make_unique<CorrectionHistory>()),
+  796       non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+  797       non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
+  798     clear();
+  799 }
+  800 
+  801 Worker::~Worker() = default;
+  802 
+  803 void Worker::clear() {
+  804     evaluator_.clear();
+  805     *main_history_ = ButterflyHistory{};
+  806     *capture_history_ = CaptureHistory{};
+  807     *continuation_history_ = ContinuationHistory{};
+  808     *counter_moves_ = CounterMoveTable{};
+  809     *correction_history_ = CorrectionHistory{};
+  810     *material_correction_ = CorrectionHistory{};
+  811     *non_pawn_white_correction_ = CorrectionHistory{};
+  812     *non_pawn_black_correction_ = CorrectionHistory{};
+  813     for (SearchStack& ss : stack_) ss = SearchStack{};
+  814 }
+  815 
+  816 namespace {
+  817 // Hash of the piece counts of both sides, for material-indexed statistics.
+  818 [[nodiscard]] std::uint64_t material_key(const Board& board) {
+  819     std::uint64_t key = 0;
+  820     for (const Color color : {White, Black}) {
+  821         for (int type = Pawn; type <= Queen; ++type) {
+  822             key = key * 1099511628211ULL + static_cast<std::uint64_t>(popcount(board.pieces(color, static_cast<PieceType>(type))) + 1);
+  823         }
+  824     }
+  825     return key * 0x9E3779B97F4A7C15ULL;
+  826 }
+  827 
+  828 // Hash of non-pawn piece placements of one side, for non-pawn correction history.
+  829 [[nodiscard]] std::uint64_t non_pawn_key(const Board& board, Color color) {
+  830     std::uint64_t key = static_cast<std::uint64_t>(color) * 0x517CC1B727220A95ULL;
+  831     for (int type = Knight; type <= King; ++type) {
+  832         const Bitboard bb = board.pieces(color, static_cast<PieceType>(type));
+  833         key ^= bb * (0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(type) * 0xBF58476D1CE4E5B9ULL);
+  834         key = (key ^ (key >> 30U)) * 0x94D049BB133111EBULL;
+  835     }
+  836     return key ^ (key >> 31U);
+  837 }
+  838 } // namespace
+  839 
+  840 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+  841     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+  842     const bool residual = nnue::residual();
+  843     if (!ss->accumulator.valid) {
+  844         // Walk back to the nearest valid accumulator, then replay the moves.
+  845         int back = 0;
+  846         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+  847         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+  848             nnue::refresh(board, ss->accumulator);
+  849             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+  850         } else {
+  851             for (int i = back; i >= 0; --i) {
+  852                 nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
+  853                 if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+  854             }
+  855         }
+  856     }
+  857     const int network = nnue::evaluate(board, ss->accumulator);
+  858     if (!residual) return network;
+  859     if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+  860     // A residual network is a learned correction on top of the hand-crafted evaluation.
+  861     return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+  862 }
+  863 
+  864 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+  865     // Called before make_move: the child's accumulator becomes stale and the
+  866     // piece changes are remembered for the lazy update.
+  867     if (!nnue::enabled || !nnue::available()) return;
+  868     (ss + 1)->dirty = nnue::dirty_pieces(board, move);
+  869     (ss + 1)->accumulator.valid = false;
+  870     (ss + 1)->runtime_psqt.valid = false;
+  871 }
+  872 
+  873 void Worker::record_null_move(SearchStack* ss) {
+  874     (ss + 1)->dirty.count = 0;
+  875     (ss + 1)->accumulator.valid = false;
+  876     (ss + 1)->runtime_psqt.valid = false;
+  877 }
+  878 
+  879 int Worker::corrected_eval(const Board& board, int raw_eval) const {
+  880     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+  881     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+  882     if (tune::MaterialCorrectionWeight > 0) {
+  883         correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+  884     }
+  885     if (tune::NonPawnCorrection) {
+  886         const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+  887         const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+  888         correction += (np_w + np_b) / 2;
+  889     }
+  890     return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+  891 }
+  892 
+  893 void Worker::update_correction(const Board& board, int depth, int best_score, int static_eval) {
+  894     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+  895     const int diff = std::clamp((best_score - static_eval) * CorrectionGrain, -CorrectionLimit / 4, CorrectionLimit / 4);
+  896     const int weight = std::min(depth + 1, 16);
+  897     auto apply = [&](std::int32_t& entry) {
+  898         entry = std::clamp(entry + diff * weight / 256, -CorrectionLimit, CorrectionLimit);
+  899     };
+  900     apply((*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)]);
+  901     if (tune::MaterialCorrectionWeight > 0) apply((*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)]);
+  902     if (tune::NonPawnCorrection) {
+  903         apply((*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)]);
+  904         apply((*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)]);
+  905     }
+  906 }
+  907 
+  908 std::int64_t Worker::elapsed_ms() const {
+  909     auto origin = start_;
+  910     if (pondering_) {
+  911         const std::int64_t hit_ns = shared_.ponder_hit_ns.load(std::memory_order_relaxed);
+  912         if (hit_ns == 0) return 0;
+  913         origin = std::chrono::steady_clock::time_point(
+  914             std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::nanoseconds(hit_ns)));
+  915     }
+  916     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - origin).count();
+  917 }
+  918 
+  919 std::uint64_t Worker::total_nodes() const {
+  920     std::uint64_t total = local_nodes_;
+  921     if (all_workers_ != nullptr) {
+  922         for (const Worker* worker : *all_workers_) {
+  923             if (worker != this) total += worker->nodes();
+  924         }
+  925     }
+  926     return total;
+  927 }
+  928 
+  929 bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+  930     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+  931     if (!is_main()) return false;
+  932     if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+  933         stopped_by_nodes_ = true;
+  934         return true;
+  935     }
+  936     if (hard_limit_ms_ > 0) {
+  937         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+  938         if (elapsed_ms() >= hard_limit_ms_) return true;
+  939     }
+  940     return false;
+  941 }
+  942 
+  943 bool Worker::should_stop() {
+  944     // Publish this thread's node count for the others at the same cadence.
+  945     nodes_.store(local_nodes_, std::memory_order_relaxed);
+  946     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+  947     if (parent_worker_ != nullptr) return parent_worker_->should_stop_with(local_nodes_);
+  948     return should_stop_with(0);
+  949 }
+  950 
+  951 bool Worker::is_draw(const Board& board, int ply) const {
+  952     (void)ply;
+  953     if (board.halfmove_clock() >= 100) {
+  954         // Checkmate on the hundredth half-move still wins; everything else is a draw.
+  955         return !board.in_check() || board.has_legal_move();
+  956     }
+  957     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
+  958     // replace its terminal draw score with a material evaluation.
+  959     return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+  960            (!board.in_check() && !board.has_legal_move());
+  961 }
+  962 
+  963 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
+  964 #if FORGE_SEARCH_SPEED2
+  965     return quiet_history_sum((*main_history_)[static_cast<std::size_t>(board.side_to_move())],
+  966                              ss != nullptr ? (ss - 1)->continuation : nullptr,
+  967                              ss != nullptr ? (ss - 2)->continuation : nullptr,
+  968                              tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+  969                                  ? (ss - 4)->continuation : nullptr,
+  970                              board.moved_piece(move), move);
+  971 #else
+  972     const Piece piece = board.moved_piece(move);
+  973     int score = (*main_history_)[static_cast<std::size_t>(board.side_to_move())][move.from][move.to];
+  974     if (ss != nullptr) {
+  975         if ((ss - 1)->continuation != nullptr) score += (*(ss - 1)->continuation)[static_cast<std::size_t>(piece)][move.to];
+  976         if ((ss - 2)->continuation != nullptr) score += (*(ss - 2)->continuation)[static_cast<std::size_t>(piece)][move.to];
+  977         if (tune::ContHist4PlyRead && (ss - 4)->continuation != nullptr && !(ss - 4)->current_move.is_none()) {
+  978             score += (*(ss - 4)->continuation)[static_cast<std::size_t>(piece)][move.to] / 2;
+  979         }
+  980     }
+  981     return score;
+  982 #endif
+  983 }
+  984 
+  985 int Worker::capture_history_value(const Board& board, Move move) const {
+  986     const Piece piece = board.moved_piece(move);
+  987     const int captured = piece_type(board.captured_piece(move));
+  988     return (*capture_history_)[static_cast<std::size_t>(piece)][move.to][static_cast<std::size_t>(captured)];
+  989 }
+  990 
+  991 void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+  992     for (const int back : {1, 2, 4}) {
+  993         const SearchStack* previous = ss - back;
+  994         if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+  995         apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+  996                       back == 4 ? bonus / 2 : bonus);
+  997     }
+  998 }
+  999 
+ 1000 void Worker::update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth, const Move* quiets,
+ 1001                                   int quiet_count) {
+ 1002     const int bonus = history_bonus(depth);
+ 1003     const Color us = board.side_to_move();
+ 1004     if (ss->killers[0] != move) {
+ 1005         ss->killers[1] = ss->killers[0];
+ 1006         ss->killers[0] = move;
+ 1007     }
+ 1008     const SearchStack* previous = ss - 1;
+ 1009     if (!previous->current_move.is_none() && previous->moved_piece != Empty) {
+ 1010         (*counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to] = move;
+ 1011     }
+ 1012     const Piece piece = board.moved_piece(move);
+ 1013     apply_history((*main_history_)[static_cast<std::size_t>(us)][move.from][move.to], bonus);
+ 1014     update_continuation(ss, piece, move.to, bonus);
+ 1015     for (int i = 0; i < quiet_count; ++i) {
+ 1016         const Move quiet = quiets[i];
+ 1017         if (quiet == move) continue;
+ 1018         apply_history((*main_history_)[static_cast<std::size_t>(us)][quiet.from][quiet.to], -bonus);
+ 1019         update_continuation(ss, board.moved_piece(quiet), quiet.to, -bonus);
+ 1020     }
+ 1021 }
+ 1022 
+ 1023 void Worker::update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count) {
+ 1024     const int bonus = history_bonus(depth);
+ 1025     if (best.is_capture()) {
+ 1026         const Piece piece = board.moved_piece(best);
+ 1027         const int captured = piece_type(board.captured_piece(best));
+ 1028         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][best.to][static_cast<std::size_t>(captured)], bonus);
+ 1029     }
+ 1030     for (int i = 0; i < capture_count; ++i) {
+ 1031         const Move capture = captures[i];
+ 1032         if (capture == best) continue;
+ 1033         const Piece piece = board.moved_piece(capture);
+ 1034         const int captured = piece_type(board.captured_piece(capture));
+ 1035         apply_history((*capture_history_)[static_cast<std::size_t>(piece)][capture.to][static_cast<std::size_t>(captured)], -bonus);
+ 1036     }
+ 1037 }
+ 1038 
+ 1039 // ---------------------------------------------------------------------------
+ 1040 // Quiescence search
+ 1041 
+ 1042 int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+ 1043     const bool pv_node = beta - alpha > 1;
+ 1044     const int ply = ss->ply;
+ 1045     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+ 1046     if (aborted_) return 0;
+ 1047     ++local_nodes_;
+ 1048     seldepth_ = std::max(seldepth_, ply);
+ 1049     ss->pv_length = 0;
+ 1050 
+ 1051     if (is_draw(board, ply)) return 0;
+ 1052     if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+ 1053 
+ 1054     const bool in_check = board.in_check();
+ 1055     ss->in_check = in_check;
+ 1056 
+ 1057     if (mate_moves_ > 0) {
+ 1058         alpha = std::max(alpha, mated_in(ply));
+ 1059         beta = std::min(beta, mate_in(ply + 1));
+ 1060         if (alpha >= beta) return alpha;
+ 1061     }
+ 1062 
+ 1063 #if FORGE_SPD_TT_NOTLS
+ 1064     const TTProbe tt_probe = probe_tt(board.key());
+ 1065 #else
+ 1066     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ 1067 #endif
+ 1068     const bool tt_hit = tt_probe.hit;
+ 1069     const TTEntry& tte = tt_probe.entry;
+ 1070     const bool near50 = board.halfmove_clock() >= 90;
+ 1071     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+ 1072     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+ 1073                              ? score_from_tt(tte.score, ply) : ValueNone;
+ 1074     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+ 1075     const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+ 1076     if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+ 1077         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+ 1078         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+ 1079          (tt_bound == BoundUpper && tt_score <= alpha))) {
+ 1080         return tt_score;
+ 1081     }
+ 1082 
+ 1083     int best_score;
+ 1084     int futility_base;
+ 1085     if (in_check) {
+ 1086         ss->static_eval = ValueNone;
+ 1087         best_score = futility_base = -Infinite;
+ 1088     } else {
+ 1089         int eval;
+ 1090         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+ 1091         else ss->raw_eval = static_evaluate(board, ss);
+ 1092         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+ 1093         if (tt_hit && tt_score != ValueNone &&
+ 1094             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+ 1095              tt_bound == BoundExact)) {
+ 1096             eval = tt_score;
+ 1097         }
+ 1098         best_score = eval;
+ 1099         if (best_score >= beta) {
+ 1100 #if FORGE_SPD_TT_NOTLS
+ 1101             if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ 1102 #else
+ 1103             if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+ 1104 #endif
+ 1105             return best_score;
+ 1106         }
+ 1107         if (best_score > alpha) alpha = best_score;
+ 1108         futility_base = ss->static_eval + tune::QsFutilityMargin;
+ 1109     }
+ 1110 
+ 1111     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+ 1112     Move best_move = Move::none();
+ 1113     int move_count = 0;
+ 1114     Move move;
+ 1115     while (!(move = picker.next(false)).is_none()) {
+ 1116         if (!board.is_legal(move)) continue;
+ 1117         ++move_count;
+ 1118         if (mate_moves_ == 0 && !in_check && best_score > -MateInMaxPly) {
+ 1119             const bool gives_check = board.gives_check(move);
+ 1120             // Futility: even winning the captured piece cannot raise alpha.
+ 1121             if (!gives_check && !move.is_promotion() && futility_base + capture_value(board, move) <= alpha) {
+ 1122                 best_score = std::max(best_score, futility_base + capture_value(board, move));
+ 1123                 continue;
+ 1124             }
+ 1125             if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+ 1126         }
+ 1127 #if FORGE_SPD_PREFETCH_EARLY
+ 1128         std::uint64_t child_key = 0;
+ 1129         const bool early_key = board.key_after(move, child_key);
+ 1130         if (early_key) shared_.tt.prefetch(child_key);
+ 1131 #endif
+ 1132         ss->current_move = move;
+ 1133         ss->moved_piece = board.moved_piece(move);
+ 1134         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ 1135         (ss + 1)->ply = ply + 1;
+ 1136         record_move(ss, board, move);
+ 1137         Undo undo;
+ 1138         (void)board.make_move(move, undo);
+ 1139 #if FORGE_SPD_PREFETCH_EARLY
+ 1140         assert(!early_key || child_key == board.key());
+ 1141         if (!early_key) shared_.tt.prefetch(board.key());
+ 1142 #else
+ 1143         shared_.tt.prefetch(board.key());
+ 1144 #endif
+ 1145         const int score = -qsearch(board, ss + 1, -beta, -alpha);
+ 1146         board.unmake_move(move, undo);
+ 1147         if (aborted_) return 0;
+ 1148         if (score > best_score) {
+ 1149             best_score = score;
+ 1150             if (score > alpha) {
+ 1151                 best_move = move;
+ 1152                 if (pv_node) {
+ 1153                     ss->pv[0] = move;
+ 1154                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+ 1155                     ss->pv_length = (ss + 1)->pv_length + 1;
+ 1156                 }
+ 1157                 if (score >= beta) break;
+ 1158                 alpha = score;
+ 1159             }
+ 1160         }
+ 1161     }
+ 1162     if (in_check && move_count == 0) return mated_in(ply);
+ 1163 
+ 1164     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ 1165 #if FORGE_SPD_TT_NOTLS
+ 1166     store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ 1167 #else
+ 1168     shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+ 1169 #endif
+ 1170     return best_score;
+ 1171 }
+ 1172 
+ 1173 // ---------------------------------------------------------------------------
+ 1174 // Main alpha-beta search
+ 1175 
+ 1176 int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node) {
+ 1177     const bool pv_node = beta - alpha > 1;
+ 1178     const bool root_node = ss->ply == 0;
+ 1179     const int ply = ss->ply;
+ 1180 
+ 1181     if (depth <= 0) return qsearch(board, ss, alpha, beta);
+ 1182     // The frame is reused across siblings and same-ply verification searches.
+ 1183     // Keep this call's inherited path budget independent of those mutations.
+ 1184     const int inherited_double_extensions = (ss - 1)->double_extensions;
+ 1185     ss->double_extensions = inherited_double_extensions;
+ 1186     if (((local_nodes_ & 1023U) == 0 || node_limit_specified_) && should_stop()) aborted_ = true;
+ 1187     if (aborted_) return 0;
+ 1188     ++local_nodes_;
+ 1189     seldepth_ = std::max(seldepth_, ply);
+ 1190     ss->pv_length = 0;
+ 1191     ss->move_count = 0;
+ 1192 
+ 1193     if (!root_node) {
+ 1194         if (is_draw(board, ply)) return 0;
+ 1195         if (ply >= MaxPly) return board.in_check() ? 0 : static_evaluate(board, ss);
+ 1196         // Mate distance pruning.
+ 1197         alpha = std::max(alpha, mated_in(ply));
+ 1198         beta = std::min(beta, mate_in(ply + 1));
+ 1199         if (alpha >= beta) return alpha;
+ 1200     }
+ 1201 
+ 1202     const bool in_check = board.in_check();
+ 1203     ss->in_check = in_check;
+ 1204     const Move excluded = ss->excluded_move;
+ 1205     (ss + 1)->excluded_move = Move::none();
+ 1206     (ss + 1)->cutoff_count = 0;
+ 1207     // Children share killers with their siblings; grandchildren start afresh.
+ 1208     (ss + 2)->killers = {};
+ 1209 
+ 1210     // Transposition table probe.
+ 1211 #if FORGE_SPD_TT_NOTLS
+ 1212     const TTProbe tt_probe = probe_tt(board.key());
+ 1213 #else
+ 1214     const TTProbe tt_probe = shared_.tt.probe(board.key());
+ 1215 #endif
+ 1216     const bool tt_hit = tt_probe.hit;
+ 1217     const TTEntry& tte = tt_probe.entry;
+ 1218     const bool near50 = board.halfmove_clock() >= 90;
+ 1219     const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+ 1220     const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+ 1221                              ? score_from_tt(tte.score, ply) : ValueNone;
+ 1222     const int tt_depth = tt_hit ? tte.depth : -1;
+ 1223     const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+ 1224     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
+ 1225     ss->tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+ 1226 
+ 1227     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+ 1228         (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+ 1229         board.halfmove_clock() < 90 &&
+ 1230         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+ 1231          (tt_bound == BoundUpper && tt_score <= alpha))) {
+ 1232         return tt_score;
+ 1233     }
+ 1234 
+ 1235     // Static evaluation.
+ 1236     int eval;
+ 1237     if (in_check) {
+ 1238         eval = ss->static_eval = ss->raw_eval = ValueNone;
+ 1239     } else if (!excluded.is_none()) {
+ 1240         eval = ss->static_eval;
+ 1241     } else {
+ 1242         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+ 1243         else ss->raw_eval = static_evaluate(board, ss);
+ 1244         eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+ 1245         if (tt_hit && tt_score != ValueNone &&
+ 1246             ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+ 1247              tt_bound == BoundExact)) {
+ 1248             eval = tt_score;
+ 1249         }
+ 1250     }
+ 1251 
+ 1252     bool improving = false;
+ 1253     if (!in_check) {
+ 1254         if ((ss - 2)->static_eval != ValueNone) improving = ss->static_eval > (ss - 2)->static_eval;
+ 1255         else if ((ss - 4)->static_eval != ValueNone) improving = ss->static_eval > (ss - 4)->static_eval;
+ 1256         else improving = true;
+ 1257     }
+ 1258 
+ 1259 #if FORGE_BARE_KING_MATE_FIX
+ 1260     const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+ 1261     const bool bare_king_mode = multi_worker &&
+ 1262         (board.occupied(White) == board.pieces(White, King) ||
+ 1263          board.occupied(Black) == board.pieces(Black, King));
+ 1264 #else
+ 1265     constexpr bool bare_king_mode = false;
+ 1266 #endif
+ 1267 
+ 1268     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta) && mate_moves_ == 0 &&
+ 1269         board.halfmove_clock() + depth < 100) {
+ 1270         // Razoring: hopeless positions fall back to quiescence.
+ 1271         if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+ 1272             const int razor = qsearch(board, ss, alpha - 1, alpha);
+ 1273             if (aborted_) return 0;
+ 1274             if (razor < alpha) return razor;
+ 1275         }
+ 1276         // Reverse futility pruning.
+ 1277         if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+ 1278             eval < MateInMaxPly) {
+ 1279             return eval;
+ 1280         }
+ 1281         // Null move pruning.
+ 1282         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+ 1283             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+ 1284             board.has_non_pawn_material(board.side_to_move()) &&
+ 1285             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+ 1286             ++null_tries_;
+ 1287             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+ 1288                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+ 1289             ss->current_move = Move::none();
+ 1290             ss->moved_piece = Empty;
+ 1291             ss->continuation = &(*continuation_history_)[Empty][0];
+ 1292             (ss + 1)->ply = ply + 1;
+ 1293             record_null_move(ss);
+ 1294             NullUndo undo;
+ 1295             board.make_null_move(undo);
+ 1296 #if FORGE_SEARCH_SPEED2
+ 1297             shared_.tt.prefetch(board.key());
+ 1298 #endif
+ 1299             int null_score = -search(board, ss + 1, depth - reduction, -beta, -beta + 1, !cut_node);
+ 1300             board.unmake_null_move(undo);
+ 1301             if (aborted_) return 0;
+ 1302             if (null_score >= beta) {
+ 1303                 if (is_mate_score(null_score)) null_score = beta;
+ 1304                 if (depth < 14) {
+ 1305                     ++null_cutoffs_;
+ 1306                     return null_score;
+ 1307                 }
+ 1308                 // Verification search at high depth guards against zugzwang.
+ 1309                 ss->null_move_allowed = false;
+ 1310                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+ 1311                 ss->double_extensions = inherited_double_extensions;
+ 1312                 ss->null_move_allowed = true;
+ 1313                 if (aborted_) return 0;
+ 1314                 if (verification >= beta) {
+ 1315                     ++null_cutoffs_;
+ 1316                     return null_score;
+ 1317                 }
+ 1318             }
+ 1319         }
+ 1320         // ProbCut: a good capture that beats beta by a margin at reduced depth.
+ 1321         const int probcut_beta = beta + tune::ProbcutMargin - 50 * improving;
+ 1322         if (depth >= tune::ProbcutDepth && !is_mate_score(beta) &&
+ 1323             !(tt_hit && tt_depth >= depth - 3 && tt_score != ValueNone && tt_score < probcut_beta)) {
+ 1324             MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Quiescence);
+ 1325             Move move;
+ 1326             while (!(move = picker.next(false)).is_none()) {
+ 1327                 if (move == excluded || !board.is_legal(move)) continue;
+ 1328                 if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+ 1329                 ss->current_move = move;
+ 1330                 ss->moved_piece = board.moved_piece(move);
+ 1331                 ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(ss->moved_piece)][move.to];
+ 1332                 (ss + 1)->ply = ply + 1;
+ 1333                 record_move(ss, board, move);
+ 1334                 Undo undo;
+ 1335                 (void)board.make_move(move, undo);
+ 1336 #if FORGE_SEARCH_SPEED2
+ 1337                 shared_.tt.prefetch(board.key());
+ 1338 #endif
+ 1339                 int value = -qsearch(board, ss + 1, -probcut_beta, -probcut_beta + 1);
+ 1340                 if (value >= probcut_beta && !aborted_) {
+ 1341                     value = -search(board, ss + 1, depth - 4, -probcut_beta, -probcut_beta + 1, !cut_node);
+ 1342                 }
+ 1343                 board.unmake_move(move, undo);
+ 1344                 if (aborted_) return 0;
+ 1345                 if (value >= probcut_beta) {
+ 1346 #if FORGE_SPD_TT_NOTLS
+ 1347                     store_tt(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ 1348 #else
+ 1349                     shared_.tt.store(tt_probe, board.key(), score_to_tt(value, ply), ss->raw_eval, move, depth - 3, BoundLower, ss->tt_pv, board.halfmove_clock());
+ 1350 #endif
+ 1351                     return value;
+ 1352                 }
+ 1353             }
+ 1354         }
+ 1355     }
+ 1356 
+ 1357     // Internal iterative reduction: no hash move suggests a less important node.
+ 1358     if (mate_moves_ == 0 && !in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;
+ 1359 
+ 1360     MovePicker picker(board, *this, ss, tt_move, MovePicker::Mode::Main);
+ 1361 #if FORGE_SPD_NO_ZERO_MOVELISTS
+ 1362     // Read only below their counts (update_quiet_stats / update_capture_stats).
+ 1363     std::array<Move, 128> quiets_tried;
+ 1364     std::array<Move, 64> captures_tried;
+ 1365 #else
+ 1366     std::array<Move, 128> quiets_tried{};
+ 1367     std::array<Move, 64> captures_tried{};
+ 1368 #endif
+ 1369     int quiet_count = 0;
+ 1370     int capture_count = 0;
+ 1371     int best_score = -Infinite;
+ 1372     Move best_move = Move::none();
+ 1373     int move_count = 0;
+ 1374     bool skip_quiets = false;
+ 1375     const bool has_material = board.has_non_pawn_material(board.side_to_move());
+ 1376 
+ 1377     Move move;
+ 1378     while (!(move = picker.next(skip_quiets)).is_none()) {
+ 1379         if (move == excluded) continue;
+ 1380         if (root_node && root_restricted_ &&
+ 1381             std::none_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+ 1382             continue;
+ 1383         }
+ 1384         if (!board.is_legal(move)) continue;
+ 1385         ++move_count;
+ 1386         ss->move_count = move_count;
+ 1387         const bool capture = move.is_capture();
+ 1388         const bool quiet = !capture && !move.is_promotion();
+ 1389         const bool gives_check = board.gives_check(move);
+ 1390         const Piece moved = board.moved_piece(move);
+ 1391         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
+ 1392 
+ 1393         // Shallow-depth pruning of unpromising moves.
+ 1394         if (mate_moves_ == 0 && board.halfmove_clock() + depth < 100 && !root_node &&
+ 1395             best_score > -MateInMaxPly && has_material && !bare_king_mode) {
+ 1396             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
+ 1397             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
+ 1398             if (quiet && !gives_check) {
+ 1399                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+ 1400                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
+ 1401                     skip_quiets = true;
+ 1402                     continue;
+ 1403                 }
+ 1404                 if (lmr_depth <= tune::HistoryPruneDepth && history < -tune::HistoryPruneMultiplier * depth) continue;
+ 1405                 if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+ 1406             } else {
+ 1407                 // Futility pruning for captures: even winning the piece cannot
+ 1408                 // bring the position back to alpha.
+ 1409                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
+ 1410                     lmr_depth <= tune::CaptureFutilityDepth &&
+ 1411                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
+ 1412                             capture_value(board, move) + history / 8 <= alpha) {
+ 1413                     continue;
+ 1414                 }
+ 1415                 const int see_threshold = -tune::SeeNoisyMultiplier * depth;
+ 1416                 if (!(picker.last_move_see_nonnegative() && see_threshold <= 0) &&
+ 1417                     !board.see_ge(move, see_threshold)) continue;
+ 1418             }
+ 1419         }
+ 1420 
+ 1421         // Extensions.
+ 1422         int extension = 0;
+ 1423         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
+ 1424             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
+ 1425             const int singular_beta = tt_score - tune::SingularMargin * depth;
+ 1426             const int singular_depth = (depth - 1) / 2;
+ 1427             const bool saved_tt_pv = ss->tt_pv;
+ 1428             ss->excluded_move = move;
+ 1429             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
+ 1430             ss->tt_pv = saved_tt_pv;
+ 1431             ss->double_extensions = inherited_double_extensions;
+ 1432             ss->excluded_move = Move::none();
+ 1433             if (aborted_) return 0;
+ 1434             if (singular_score < singular_beta) {
+ 1435                 extension = 1;
+ 1436                 if (!pv_node && singular_score < singular_beta - 24 && inherited_double_extensions <= 6) {
+ 1437                     extension = 2;
+ 1438                 }
+ 1439             } else if (singular_beta >= beta) {
+ 1440                 return singular_beta;
+ 1441             } else if (tt_score >= beta) {
+ 1442                 extension = -2;
+ 1443             } else if (cut_node) {
+ 1444                 extension = -1;
+ 1445             }
+ 1446         } else if (mate_moves_ == 0 && gives_check && depth >= tune::CheckExtensionDepth && !root_node &&
+ 1447                    (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+ 1448             extension = 1;
+ 1449         }
+ 1450         ss->double_extensions = inherited_double_extensions + (extension == 2);
+ 1451         int new_depth = depth - 1 + extension;
+ 1452 
+ 1453 #if FORGE_SPD_PREFETCH_EARLY
+ 1454         std::uint64_t child_key = 0;
+ 1455         const bool early_key = board.key_after(move, child_key);
+ 1456         if (early_key) shared_.tt.prefetch(child_key);
+ 1457 #endif
+ 1458         ss->current_move = move;
+ 1459         ss->moved_piece = moved;
+ 1460         ss->continuation = &(*continuation_history_)[static_cast<std::size_t>(moved)][move.to];
+ 1461         (ss + 1)->ply = ply + 1;
+ 1462         record_move(ss, board, move);
+ 1463         Undo undo;
+ 1464         (void)board.make_move(move, undo);
+ 1465 #if FORGE_SPD_PREFETCH_EARLY
+ 1466         assert(!early_key || child_key == board.key());
+ 1467         if (!early_key) shared_.tt.prefetch(board.key());
+ 1468 #else
+ 1469         shared_.tt.prefetch(board.key());
+ 1470 #endif
+ 1471         const std::uint64_t nodes_before = local_nodes_;
+ 1472         std::size_t root_effort_index = 0;
+ 1473         if (root_node) {
+ 1474             const auto root_effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+ 1475             root_effort_index = static_cast<std::size_t>(std::find(root_effort_moves_.begin(), root_effort_end, move) - root_effort_moves_.begin());
+ 1476             assert(root_effort_index < root_effort_count_);
+ 1477         }
+ 1478 
+ 1479         int score = -Infinite;
+ 1480         bool full_depth_needed = !pv_node || move_count > 1;
+ 1481         if (mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100 && depth >= 2 &&
+ 1482             move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+ 1483             (quiet || !ss->tt_pv || move_count > 4)) {
+ 1484             int r = reduction(quiet, depth, move_count);
+ 1485             if (ss->tt_pv) r -= 1;
+ 1486             if (!improving) r += 1;
+ 1487             if (cut_node) r += 2;
+ 1488             if (tt_capture && quiet) r += 1;
+ 1489             if (gives_check) r -= 1;
+ 1490             if (in_check) r -= 1;
+ 1491             if (tune::LmrCutoffThreshold > 0 && (ss + 1)->cutoff_count > tune::LmrCutoffThreshold) r += 1;
+ 1492             if (quiet) r -= std::clamp(history / tune::LmrHistoryDivisor, -2, 2);
+ 1493             const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+ 1494             score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+ 1495             full_depth_needed = score > alpha && reduced_depth < new_depth;
+ 1496             if (full_depth_needed) {
+ 1497                 if (tune::LmrDeeperShallower) {
+ 1498                     const bool do_deeper = score > best_score + 40 + 2 * new_depth;
+ 1499                     const bool do_shallower = score < best_score + new_depth;
+ 1500                     new_depth += static_cast<int>(do_deeper) - static_cast<int>(do_shallower);
+ 1501                 }
+ 1502                 if (!tune::LmrDeeperShallower || reduced_depth < new_depth) {
+ 1503                     score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+ 1504                 }
+ 1505                 full_depth_needed = false;
+ 1506             }
+ 1507             if (!aborted_ && quiet && score > alpha) {
+ 1508                 // A late quiet move that beat expectations deserves a history boost.
+ 1509                 update_continuation(ss, moved, move.to, history_bonus(depth) / 2);
+ 1510             }
+ 1511         }
+ 1512         if (full_depth_needed && !aborted_) {
+ 1513             score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+ 1514         }
+ 1515         if (pv_node && !aborted_ && (move_count == 1 || score > alpha)) {
+ 1516             score = -search(board, ss + 1, new_depth, -beta, -alpha, false);
+ 1517         }
+ 1518         board.unmake_move(move, undo);
+ 1519         if (aborted_) return 0;
+ 1520         if (root_node && root_effort_index < root_effort_count_)
+ 1521             root_move_nodes_[root_effort_index] += local_nodes_ - nodes_before;
+ 1522 
+ 1523         if (score > best_score) {
+ 1524             best_score = score;
+ 1525             if (score > alpha) {
+ 1526                 best_move = move;
+ 1527                 if (pv_node) {
+ 1528                     ss->pv[0] = move;
+ 1529                     std::copy_n((ss + 1)->pv.begin(), (ss + 1)->pv_length, ss->pv.begin() + 1);
+ 1530                     ss->pv_length = (ss + 1)->pv_length + 1;
+ 1531                 }
+ 1532                 if (score >= beta) {
+ 1533                     ++ss->cutoff_count;
+ 1534                     break;
+ 1535                 }
+ 1536                 alpha = score;
+ 1537             }
+ 1538         }
+ 1539         if (quiet && quiet_count < static_cast<int>(quiets_tried.size())) quiets_tried[static_cast<std::size_t>(quiet_count++)] = move;
+ 1540         else if (!quiet && capture_count < static_cast<int>(captures_tried.size())) captures_tried[static_cast<std::size_t>(capture_count++)] = move;
+ 1541     }
+ 1542 
+ 1543     if (move_count == 0) {
+ 1544         if (!excluded.is_none()) return alpha;
+ 1545         if (root_node && root_restricted_) return 0;
+ 1546         return in_check ? mated_in(ply) : 0;
+ 1547     }
+ 1548 
+ 1549     if (best_score >= beta) {
+ 1550         if (!best_move.is_capture() && !best_move.is_promotion()) {
+ 1551             update_quiet_stats(board, ss, best_move, depth + (best_score > beta + 100), quiets_tried.data(), quiet_count);
+ 1552         }
+ 1553         update_capture_stats(board, best_move, depth, captures_tried.data(), capture_count);
+ 1554     } else if (!best_move.is_none() && (!best_move.is_capture() && !best_move.is_promotion())) {
+ 1555         // Even without a cutoff, a new PV move earned its place.
+ 1556         apply_history((*main_history_)[static_cast<std::size_t>(board.side_to_move())][best_move.from][best_move.to],
+ 1557                       history_bonus(depth) / 4);
+ 1558     } else if (tune::FailLowContinuationBonus > 0 && best_move.is_none() && !(ss - 1)->current_move.is_none() &&
+ 1559                (ss - 1)->moved_piece != Empty && !(ss - 1)->current_move.is_capture() && ply > 0) {
+ 1560         // Every move failed low: the parent's quiet move refuted this line.
+ 1561         update_continuation(ss - 1, (ss - 1)->moved_piece, (ss - 1)->current_move.to,
+ 1562                             history_bonus(depth) * tune::FailLowContinuationBonus / 100);
+ 1563     }
+ 1564 
+ 1565     const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+ 1566     if (excluded.is_none() && !(root_node && root_restricted_)) {
+ 1567 #if FORGE_SPD_TT_NOTLS
+ 1568         store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ 1569 #else
+ 1570         shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, best_move, depth, bound, ss->tt_pv, board.halfmove_clock());
+ 1571 #endif
+ 1572     }
+ 1573     // Teach the static evaluation about this pawn structure when the search
+ 1574     // result is a usable bound in the direction of the difference.
+ 1575     if (!in_check && excluded.is_none() && !is_mate_score(best_score) &&
+ 1576         (best_move.is_none() || !best_move.is_capture()) &&
+ 1577         !(bound == BoundLower && best_score <= ss->static_eval) &&
+ 1578         !(bound == BoundUpper && best_score >= ss->static_eval)) {
+ 1579         update_correction(board, depth, best_score, ss->static_eval);
+ 1580     }
+ 1581     return best_score;
+ 1582 }
+ 1583 
+ 1584 // ---------------------------------------------------------------------------
+ 1585 // Iterative deepening driver
+ 1586 
+ 1587 namespace {
+ 1588 
+ 1589 // One capped step past the score that failed. A mate, or a score already past
+ 1590 // the decisive line, opens that side for the next root search.
+ 1591 constexpr int AspReopenMargin = 13;
+ 1592 constexpr int AspDecisiveScore = 640;
+ 1593 
+ 1594 [[nodiscard]] int capped_fail_low(int returned) {
+ 1595     if (is_mate_score(returned) || returned <= -AspDecisiveScore) return -Infinite;
+ 1596     return std::max(returned - AspReopenMargin, -Infinite);
+ 1597 }
+ 1598 
+ 1599 [[nodiscard]] int capped_fail_high(int returned) {
+ 1600     if (is_mate_score(returned) || returned >= AspDecisiveScore) return Infinite;
+ 1601     return std::min(returned + AspReopenMargin, Infinite);
+ 1602 }
+ 1603 
+ 1604 } // namespace
+ 1605 
+ 1606 SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+ 1607     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+ 1608         ? limits.start_time : limits.request_start;
+ 1609     start_ = origin == std::chrono::steady_clock::time_point{}
+ 1610         ? std::chrono::steady_clock::now() : origin;
+ 1611     local_nodes_ = 0;
+ 1612     nodes_.store(0, std::memory_order_relaxed);
+ 1613     all_workers_ = &all;
+ 1614     seldepth_ = 0;
+ 1615     aborted_ = false;
+ 1616     stopped_by_nodes_ = false;
+ 1617     extra_nodes_ = 0;
+ 1618     pondering_ = limits.ponder;
+ 1619     null_tries_ = 0;
+ 1620     null_cutoffs_ = 0;
+ 1621     root_moves_ = limits.search_moves;
+ 1622     root_restricted_ = limits.search_moves_specified;
+ 1623     root_history_index_ = board.history_size() - 1;
+ 1624     node_limit_ = limits.nodes;
+ 1625     node_limit_specified_ = parent_worker_ != nullptr
+ 1626         ? parent_worker_->node_limit_specified_
+ 1627         : (is_main() && (limits.nodes_specified || limits.nodes != 0));
+ 1628 
+ 1629     // Time allocation.
+ 1630     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+ 1631     soft_limit_ms_ = hard_limit_ms_ = 0;
+ 1632     time_managed_ = false;
+ 1633     if (limits.infinite) {
+ 1634         soft_limit_ms_ = hard_limit_ms_ = 0;
+ 1635     } else if (limits.movetime_ms >= 0) {
+ 1636         hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+ 1637         soft_limit_ms_ = hard_limit_ms_;
+ 1638     } else if (limits.time_ms >= 0) {
+ 1639         const std::int64_t time = limits.time_ms;
+ 1640         const std::int64_t increment = std::max<std::int64_t>(0, limits.increment_ms);
+ 1641         const std::int64_t available = std::max<std::int64_t>(1, time - overhead);
+ 1642         std::int64_t soft;
+ 1643         std::int64_t hard;
+ 1644         if (limits.moves_to_go > 0) {
+ 1645             const std::int64_t mtg = std::min<std::int64_t>(limits.moves_to_go, 50);
+ 1646             soft = available / (mtg + 1) + increment * 3 / 4;
+ 1647             hard = std::min(available * 4 / 5, soft * 4);
+ 1648         } else {
+ 1649             soft = available / tune::TmSoftDivisor + increment * tune::TmIncrementPercent / 100;
+ 1650             hard = std::min(available * tune::TmHardPercent / 100, soft * tune::TmHardSoftMultiple);
+ 1651         }
+ 1652         soft_limit_ms_ = std::max<std::int64_t>(1, std::min(soft, available));
+ 1653         hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+ 1654         time_managed_ = true;
+ 1655     }
+ 1656     SearchInfo result;
+ 1657     const MoveList legal = board.legal_moves();
+ 1658     MoveList root_candidates;
+ 1659     for (const Move move : legal) {
+ 1660         if (!root_restricted_ ||
+ 1661             std::any_of(root_moves_.begin(), root_moves_.end(), [&](const Move& m) { return m == move; })) {
+ 1662             root_candidates.push_back(move);
+ 1663         }
+ 1664     }
+ 1665     result.restricted_root_empty = root_restricted_ && !legal.empty() && root_candidates.empty();
+ 1666     if (result.restricted_root_empty && emit_info) {
+ 1667         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+ 1668         std::cout << "info string searchmoves restriction has no legal root moves" << std::endl;
+ 1669     }
+ 1670 
+ 1671     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
+ 1672     mate_moves_ = mate_moves;
+ 1673     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
+ 1674     const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+ 1675     const int multipv = std::clamp(limits.multipv, 1, 8);
+ 1676     // Overrides stay unset on the MultiPV 1 path, so that info line is unchanged.
+ 1677     int pv_index = 1;
+ 1678     int seldepth_override = -1;
+ 1679     int hashfull_override = -1;
+ 1680     std::uint64_t node_override = 0;
+ 1681     bool use_node_override = false;
+ 1682 
+ 1683     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
+ 1684         if (!emit_info) return;
+ 1685         const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+ 1686             std::chrono::steady_clock::now() - start_).count();
+ 1687         const int shown_seldepth = seldepth_override >= 0 ? seldepth_override : seldepth_;
+ 1688         const std::uint64_t nodes = use_node_override ? node_override : total_nodes();
+ 1689         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
+ 1690         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+ 1691         const int shown_hash = hashfull_override >= 0 ? hashfull_override : shared_.tt.hashfull();
+ 1692         std::cout << "info depth " << depth;
+ 1693         if (multipv > 1) {
+ 1694             // depth, multipv, score, then the usual fields, then pv.
+ 1695             std::cout << " multipv " << pv_index << " score " << format_score(score)
+ 1696                       << " seldepth " << std::max(shown_seldepth, depth);
+ 1697         } else {
+ 1698             std::cout << " seldepth " << std::max(shown_seldepth, depth) << " score " << format_score(score);
+ 1699         }
+ 1700         std::cout << " nodes " << nodes << " nps " << nps << " hashfull " << shown_hash << " time " << elapsed << " pv";
+ 1701         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
+ 1702         std::cout << std::endl;
+ 1703     };
+ 1704 
+ 1705     // Terminal or adjudicated roots: report without searching.
+ 1706     const bool root_drawn = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+ 1707                                                board.is_insufficient_material());
+ 1708     if (root_candidates.empty() || root_drawn) {
+ 1709         int score = 0;
+ 1710         if (legal.empty() && board.in_check()) score = -MateValue;
+ 1711         for (int depth = 1; depth <= max_depth; ++depth) {
+ 1712             result.depth = depth;
+ 1713             result.score = score;
+ 1714             emit(depth, score, {});
+ 1715             if (should_stop()) break;
+ 1716         }
+ 1717         if (!root_candidates.empty()) result.best_move = root_candidates.front();
+ 1718         result.nodes = total_nodes();
+ 1719         nodes_.store(local_nodes_, std::memory_order_relaxed);
+ 1720         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+ 1721             std::chrono::steady_clock::now() - start_).count());
+ 1722         return result;
+ 1723     }
+ 1724 
+ 1725     // An explicit zero node budget is an immediate bounded answer.
+ 1726     if (limits.nodes_specified && limits.nodes == 0) {
+ 1727         result.best_move = root_candidates.front();
+ 1728         result.depth = 0;
+ 1729         return result;
+ 1730     }
+ 1731 
+ 1732     // Dispatch and root setup may already have consumed the entire budget.
+ 1733     // Check helpers too before they switch to the main worker's stop signal.
+ 1734     if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
+ 1735         result.best_move = root_candidates.front();
+ 1736         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+ 1737             std::chrono::steady_clock::now() - start_).count());
+ 1738         return result;
+ 1739     }
+ 1740     if (!is_main()) {
+ 1741         // Helpers run until the main thread stops them.
+ 1742         soft_limit_ms_ = hard_limit_ms_ = 0;
+ 1743         time_managed_ = false;
+ 1744     }
+ 1745 
+ 1746     for (SearchStack& ss : stack_) {
+ 1747         ss.pv_length = 0;
+ 1748         ss.current_move = Move::none();
+ 1749         ss.excluded_move = Move::none();
+ 1750         ss.moved_piece = Empty;
+ 1751         ss.static_eval = ValueNone;
+ 1752         ss.continuation = &(*continuation_history_)[Empty][0];
+ 1753         ss.double_extensions = 0;
+ 1754         ss.null_move_allowed = true;
+ 1755         ss.killers = {};
+ 1756     }
+ 1757     SearchStack* ss = &stack_[4];
+ 1758     for (int i = 0; i < MaxPly + 4; ++i) stack_[static_cast<std::size_t>(i)].ply = i - 4;
+ 1759     for (SearchStack& entry : stack_) {
+ 1760         entry.accumulator.valid = false;
+ 1761         entry.runtime_psqt.valid = false;
+ 1762     }
+ 1763     if (nnue::enabled && nnue::available()) {
+ 1764         nnue::refresh(board, ss->accumulator);
+ 1765         if (nnue::residual()) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+ 1766     }
+ 1767 
+ 1768     Move previous_best = Move::none();
+ 1769     int stable_iterations = 0;
+ 1770     int score = 0;
+ 1771     int previous_score = ValueNone;
+ 1772     root_effort_count_ = root_candidates.size();
+ 1773     assert(root_effort_count_ <= root_effort_moves_.size());
+ 1774     std::copy(root_candidates.begin(), root_candidates.end(), root_effort_moves_.begin());
+ 1775     root_move_nodes_.fill(0);
+ 1776     // Secondary lines use their own table and histories, so the primary
+ 1777     // iterative deepening stays the MultiPV 1 search.
+ 1778     std::unique_ptr<SharedSearchState> alt_shared;
+ 1779     std::unique_ptr<Worker> alt_worker;
+ 1780     std::vector<Worker*> alt_list;
+ 1781     if (multipv > 1 && is_main()) {
+ 1782         const std::size_t hash_mb = std::max<std::size_t>(
+ 1783             1, shared_.tt.cluster_count() * sizeof(TTCluster) / (1024U * 1024U));
+ 1784         alt_shared = std::make_unique<SharedSearchState>(hash_mb);
+ 1785         alt_worker = std::make_unique<Worker>(*alt_shared, 0);
+ 1786         alt_worker->parent_worker_ = this;
+ 1787         alt_list.push_back(alt_worker.get());
+ 1788     }
+ 1789     for (int depth = 1; depth <= max_depth; ++depth) {
+ 1790         root_depth_ = depth;
+ 1791         int delta = tune::AspirationDelta;
+ 1792         int alpha = -Infinite;
+ 1793         int beta = Infinite;
+ 1794         if (depth >= 4) {
+ 1795             alpha = std::max(score - delta, -Infinite);
+ 1796             beta = std::min(score + delta, Infinite);
+ 1797         }
+ 1798         int iteration_score = score;
+ 1799         while (true) {
+ 1800             ss->ply = 0;
+ 1801             iteration_score = search(board, ss, depth, alpha, beta, false);
+ 1802             if (aborted_) break;
+ 1803             if (iteration_score <= alpha) {
+ 1804                 beta = (alpha + beta) / 2;
+ 1805                 if (tune::AspCappedReopen) {
+ 1806                     alpha = capped_fail_low(iteration_score);
+ 1807                     if (iteration_score <= alpha) break;
+ 1808                 } else {
+ 1809                     alpha = std::max(iteration_score - delta, -Infinite);
+ 1810                 }
+ 1811             } else if (iteration_score >= beta) {
+ 1812                 if (tune::AspCappedReopen) {
+ 1813                     beta = capped_fail_high(iteration_score);
+ 1814                     if (iteration_score >= beta) break;
+ 1815                 } else {
+ 1816                     beta = std::min(iteration_score + delta, Infinite);
+ 1817                 }
+ 1818             } else {
+ 1819                 break;
+ 1820             }
+ 1821             delta += delta / 2 + 4;
+ 1822         }
+ 1823         if (aborted_) {
+ 1824             // A clock or external stop may keep a root move that already raised
+ 1825             // alpha in this unfinished iteration, and the score stays the last
+ 1826             // finished one. A node limit must not do that: training labels from
+ 1827             // `go nodes` need the move and the score of one finished iteration.
+ 1828             if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+ 1829                 !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+ 1830                 result.best_move = ss->pv[0];
+ 1831                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+ 1832                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+ 1833                 // Publish the revised line so GUIs see a PV consistent with the move.
+ 1834                 emit(depth, result.score, result.pv);
+ 1835             }
+ 1836             break;
+ 1837         }
+ 1838         score = iteration_score;
+ 1839         result.score = score;
+ 1840         result.depth = depth;
+ 1841         result.seldepth = std::max(seldepth_, depth);
+ 1842         result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
+ 1843         if (!result.pv.empty()) result.best_move = result.pv.front();
+ 1844         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+ 1845         result.nodes = total_nodes();
+ 1846         if (alt_worker && !result.pv.empty()) {
+ 1847             struct PvLine {
+ 1848                 int score = 0;
+ 1849                 int seldepth = 0;
+ 1850                 int hashfull = 0;
+ 1851                 std::uint64_t nodes = 0;
+ 1852                 std::vector<Move> pv;
+ 1853             };
+ 1854             std::vector<PvLine> lines;
+ 1855             lines.push_back(PvLine{score, seldepth_, shared_.tt.hashfull(), total_nodes(), result.pv});
+ 1856             std::vector<Move> banned{result.pv.front()};
+ 1857             const int line_count = std::min(multipv, static_cast<int>(root_candidates.size()));
+ 1858             for (int index = 2; index <= line_count && !aborted_; ++index) {
+ 1859                 if (should_stop()) {
+ 1860                     aborted_ = true;
+ 1861                     break;
+ 1862                 }
+ 1863                 std::vector<Move> allowed;
+ 1864                 allowed.reserve(root_candidates.size());
+ 1865                 for (const Move candidate : root_candidates) {
+ 1866                     if (std::find(banned.begin(), banned.end(), candidate) == banned.end())
+ 1867                         allowed.push_back(candidate);
+ 1868                 }
+ 1869                 if (allowed.empty()) break;
+ 1870                 SearchLimits narrowed = limits;
+ 1871                 narrowed.multipv = 1;
+ 1872                 narrowed.depth = depth;
+ 1873                 narrowed.nodes = 0;
+ 1874                 narrowed.nodes_specified = false;
+ 1875                 narrowed.movetime_ms = -1;
+ 1876                 narrowed.time_ms = -1;
+ 1877                 narrowed.infinite = false;
+ 1878                 narrowed.ponder = false;
+ 1879                 narrowed.mate_moves = 0;
+ 1880                 narrowed.search_moves = std::move(allowed);
+ 1881                 narrowed.search_moves_specified = true;
+ 1882                 narrowed.start_time = {};
+ 1883                 narrowed.request_start = {};
+ 1884                 alt_shared->stop.store(false, std::memory_order_relaxed);
+ 1885                 alt_shared->ponder_hit_ns.store(0, std::memory_order_relaxed);
+ 1886                 alt_shared->tt.clear();
+ 1887                 alt_worker->clear();
+ 1888                 const SearchInfo alt = alt_worker->search(board, narrowed, false, alt_list);
+ 1889                 extra_nodes_ += alt.nodes;
+ 1890                 if (alt_worker->aborted_ || alt.depth < depth) {
+ 1891                     aborted_ = true;
+ 1892                     break;
+ 1893                 }
+ 1894                 if (alt.best_move.is_none()) break;
+ 1895                 if (std::find(banned.begin(), banned.end(), alt.best_move) != banned.end()) break;
+ 1896                 std::vector<Move> pv = alt.pv;
+ 1897                 if (pv.empty() || !(pv.front() == alt.best_move)) pv.insert(pv.begin(), alt.best_move);
+ 1898                 lines.push_back(PvLine{alt.score, alt.seldepth, alt_shared->tt.hashfull(), alt.nodes, std::move(pv)});
+ 1899                 banned.push_back(lines.back().pv.front());
+ 1900             }
+ 1901             // Rank by the exact score. Ties keep the primary line first.
+ 1902             std::stable_sort(lines.begin(), lines.end(), [](const PvLine& a, const PvLine& b) {
+ 1903                 return a.score > b.score;
+ 1904             });
+ 1905             std::uint64_t shown_nodes = 0;
+ 1906             for (std::size_t i = 0; i < lines.size(); ++i) {
+ 1907                 shown_nodes += lines[i].nodes;
+ 1908                 pv_index = static_cast<int>(i + 1);
+ 1909                 seldepth_override = lines[i].seldepth;
+ 1910                 hashfull_override = lines[i].hashfull;
+ 1911                 node_override = shown_nodes;
+ 1912                 use_node_override = true;
+ 1913                 emit(depth, lines[i].score, lines[i].pv);
+ 1914             }
+ 1915             pv_index = 1;
+ 1916             seldepth_override = -1;
+ 1917             hashfull_override = -1;
+ 1918             use_node_override = false;
+ 1919             if (!lines.empty() && !lines.front().pv.empty()) {
+ 1920                 result.score = lines.front().score;
+ 1921                 result.pv = lines.front().pv;
+ 1922                 result.best_move = lines.front().pv.front();
+ 1923                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
+ 1924             }
+ 1925             if (aborted_) break;
+ 1926         } else {
+ 1927             emit(depth, score, result.pv);
+ 1928         }
+ 1929 
+ 1930         if (result.best_move == previous_best) ++stable_iterations;
+ 1931         else stable_iterations = 0;
+ 1932         previous_best = result.best_move;
+ 1933         const int iteration_previous_score = previous_score;
+ 1934         previous_score = score;
+ 1935 
+ 1936         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+ 1937         if (should_stop()) break;
+ 1938         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+ 1939             // Stop early when the best move has been stable; spend longer when it keeps changing.
+ 1940             double factor = 1.0;
+ 1941             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+ 1942             else if (stable_iterations >= 3) factor = tune::TmSemiStableFactor / 100.0;
+ 1943             else if (stable_iterations == 0 && depth >= 6) factor = tune::TmUnstableFactor / 100.0;
+ 1944             // A best move that absorbed most of the effort is clearly best;
+ 1945             // spend longer when the alternatives still draw attention.
+ 1946             if (local_nodes_ > 0 && depth >= 6) {
+ 1947                 const auto effort_end = root_effort_moves_.begin() + static_cast<std::ptrdiff_t>(root_effort_count_);
+ 1948                 const auto best_effort = std::find(root_effort_moves_.begin(), effort_end, result.best_move);
+ 1949                 if (best_effort != effort_end) {
+ 1950                     const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
+ 1951                     const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
+ 1952                     factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+ 1953                 }
+ 1954             }
+ 1955             // A falling evaluation deserves more thought.
+ 1956             if (iteration_previous_score != ValueNone && !is_mate_score(score) && score < iteration_previous_score) {
+ 1957                 const int drop = std::min(iteration_previous_score - score, 150);
+ 1958                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
+ 1959             }
+ 1960             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
+ 1961             if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+ 1962         }
+ 1963     }
+ 1964 
+ 1965     nodes_.store(local_nodes_, std::memory_order_relaxed);
+ 1966     result.nodes = total_nodes() + extra_nodes_;
+ 1967     result.seldepth = std::max(result.seldepth, seldepth_);
+ 1968     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+ 1969         std::chrono::steady_clock::now() - start_).count());
+ 1970     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+ 1971     return result;
+ 1972 }
+ 1973 
+ 1974 // ---------------------------------------------------------------------------
+ 1975 // Searcher facade
+ 1976 
+ 1977 Searcher::Searcher(std::size_t hash_mb, int threads) : shared_(hash_mb) {
+ 1978     set_threads(threads);
+ 1979 }
+ 1980 
+ 1981 Searcher::~Searcher() = default;
+ 1982 
+ 1983 void Searcher::set_threads(int threads) {
+ 1984     const std::size_t count = static_cast<std::size_t>(std::clamp(threads, 1, 256));
+ 1985     while (workers_.size() > count) workers_.pop_back();
+ 1986     while (workers_.size() < count) {
+ 1987         workers_.push_back(std::make_unique<Worker>(shared_, static_cast<int>(workers_.size())));
+ 1988     }
+ 1989 }
+ 1990 
+ 1991 void Searcher::resize_hash(std::size_t hash_mb) { shared_.tt.resize(hash_mb); }
+ 1992 
+ 1993 void Searcher::clear_hash() {
+ 1994     shared_.tt.clear();
+ 1995     for (auto& worker : workers_) worker->clear_caches();
+ 1996 }
+ 1997 
+ 1998 void Searcher::clear() {
+ 1999     shared_.tt.clear();
+ 2000     for (auto& worker : workers_) worker->clear();
+ 2001 }
+ 2002 
+ 2003 SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_info, TTAccess table_access) {
+ 2004     const auto supplied_start = limits.start_time != std::chrono::steady_clock::time_point{}
+ 2005         ? limits.start_time : limits.request_start;
+ 2006     const bool clocked = !limits.infinite && !limits.ponder &&
+ 2007         (limits.time_ms >= 0 || limits.movetime_ms >= 0);
+ 2008     const auto origin = supplied_start == std::chrono::steady_clock::time_point{} && clocked
+ 2009         ? std::chrono::steady_clock::now() : supplied_start;
+ 2010     SearchLimits worker_limits = limits;
+ 2011     worker_limits.start_time = origin;
+ 2012     // Above MultiPV 1 the helpers stay idle. Counting only the main worker
+ 2013     // keeps node totals on the Threads 1 path (idle workers may hold old counts).
+ 2014     std::vector<Worker*> all;
+ 2015     if (worker_limits.multipv > 1) {
+ 2016         all.push_back(workers_.front().get());
+ 2017     } else {
+ 2018         all.reserve(workers_.size());
+ 2019         for (auto& worker : workers_) all.push_back(worker.get());
+ 2020     }
+ 2021     // Age the table once per search, before any worker can probe it.
+ 2022     shared_.tt.new_search();
+ 2023     std::optional<TranspositionTable::ExclusiveLease> exclusive;
+ 2024     // MultiPV above 1 does not start helpers, so the main thread may own the
+ 2025     // table the way a one-thread search does.
+ 2026     const bool single_threaded = workers_.size() == 1 || worker_limits.multipv > 1;
+ 2027     if (table_access == TTAccess::Exclusive && single_threaded) {
+ 2028         exclusive.emplace(shared_.tt);
+ 2029     }
+ 2030 #if FORGE_SPD_TT_NOTLS
+ 2031     // This thread holds the lease (if one was taken) and runs the main worker
+ 2032     // below; helpers exist only without a lease. Saved and restored, so a throw
+ 2033     // or a nested search leaves the flag as it was.
+ 2034     struct TtOwnedScope {
+ 2035         Worker& worker;
+ 2036         const bool previous;
+ 2037         TtOwnedScope(Worker& w, bool owned) : worker(w), previous(w.tt_owned_) { worker.tt_owned_ = owned; }
+ 2038         ~TtOwnedScope() { worker.tt_owned_ = previous; }
+ 2039         TtOwnedScope(const TtOwnedScope&) = delete;
+ 2040         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
+ 2041     } tt_owned_scope(*workers_.front(), exclusive.has_value());
+ 2042 #endif
+ 2043     std::vector<std::thread> helpers;
+ 2044     // MultiPV above 1 runs only the main thread. Helper threads search one line
+ 2045     // and would race the excluded-root passes, so this falls back to Threads 1.
+ 2046     if (worker_limits.multipv <= 1) {
+ 2047         for (std::size_t i = 1; i < workers_.size(); ++i) {
+ 2048             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+ 2049                 (void)workers_[i]->search(board, worker_limits, false, all);
+ 2050             });
+ 2051         }
+ 2052     }
+ 2053     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
+ 2054     // Wind down the helpers without clobbering an externally requested stop.
+ 2055     const bool external_stop = shared_.stop.load(std::memory_order_relaxed);
+ 2056     shared_.stop.store(true, std::memory_order_relaxed);
+ 2057     for (auto& helper : helpers) helper.join();
+ 2058     shared_.stop.store(external_stop, std::memory_order_relaxed);
+ 2059     return result;
+ 2060 }
+ 2061 
+ 2062 } // namespace forge
+ 2063 

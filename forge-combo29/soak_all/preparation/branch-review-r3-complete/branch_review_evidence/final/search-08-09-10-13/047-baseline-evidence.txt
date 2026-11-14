@@ -1,0 +1,13 @@
+{
+  "utc": "2026-11-14T15:05:08.680Z",
+  "cwd": "/workspace/work/dwqww-all",
+  "argv": [
+    "git",
+    "show",
+    "e04556ddc3a430b2e751159b0d46111ef56c8b89:forge-combo29/CMakeLists.txt"
+  ],
+  "exit": 0,
+  "signal": null,
+  "stdout": "# Forge combo29 lock: plain Linux/CMake build (GCC or Clang).\n# This is NOT the Windows lock recipe (clang ThinLTO+PGO, see windows_build/).\n# It builds the same source so node counts (bench pins, perft) can be checked.\ncmake_minimum_required(VERSION 3.16)\nproject(forge_combo29 LANGUAGES CXX)\n\nset(CMAKE_CXX_STANDARD 20)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\nset(CMAKE_CXX_EXTENSIONS OFF)\nif(NOT CMAKE_BUILD_TYPE)\n  set(CMAKE_BUILD_TYPE Release CACHE STRING \"\" FORCE)\nendif()\n\n# FORGE_MARCH: target CPU. The lock needs BMI2 (PEXT sliders) and AVX-512F (NNUE ZMM kernel).\nset(FORGE_MARCH \"x86-64-v4\" CACHE STRING \"value for -march (lock exe uses znver5)\")\n# FORGE_PORTABLE=ON drops the two ISA-bound speed switches (SLIDER_PEXT, NNUE_ZMM) so it\n# builds on CPUs without AVX-512/BMI2. Use -DFORGE_MARCH=x86-64-v3 or native with it.\noption(FORGE_PORTABLE \"build without the PEXT/AVX-512 speed switches\" OFF)\nset(FORGE_NNUE_HIDDEN 256 CACHE STRING \"NNUE hidden units per side\")\nset(FORGE_NNUE_WEIGHTS \"src/nnue_weights.inc\" CACHE STRING \"path of the NNUE weights file\")\nget_filename_component(FORGE_NNUE_WEIGHTS_FILE \"${FORGE_NNUE_WEIGHTS}\" ABSOLUTE BASE_DIR \"${CMAKE_CURRENT_SOURCE_DIR}\")\n\nfile(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)\nadd_executable(forge ${FORGE_SOURCES})\ntarget_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)\n\ntarget_compile_definitions(forge PRIVATE\n  NDEBUG\n  FORGE_NNUE_HIDDEN=${FORGE_NNUE_HIDDEN}\n  FORGE_NNUE_WEIGHTS=\"${FORGE_NNUE_WEIGHTS_FILE}\"\n  FORGE_EXPOSE_TUNABLES=1\n  FORGE_SPD_TT_NOTLS=1\n  FORGE_SPD_NO_ZERO_MOVELISTS=2\n  FORGE_SEARCH_SPEED2=1\n  FORGE_SPD_PREFETCH_EARLY=1)\nif(FORGE_PORTABLE)\n  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)\nelse()\n  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)\nendif()\n\n# Strict floating-point operation order (required for bit-exact node counts).\ntarget_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})\nset(THREADS_PREFER_PTHREAD_FLAG ON)\nfind_package(Threads REQUIRED)\ntarget_link_libraries(forge PRIVATE Threads::Threads)\n",
+  "stderr": ""
+}

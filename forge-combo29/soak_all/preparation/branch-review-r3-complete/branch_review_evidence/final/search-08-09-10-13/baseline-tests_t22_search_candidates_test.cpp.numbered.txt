@@ -1,0 +1,209 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <array>
+    5 #include <cstdint>
+    6 #include <iostream>
+    7 #include <string_view>
+    8 #include <vector>
+    9 
+   10 namespace {
+   11 
+   12 constexpr std::uint64_t ExpectedBench11 = 312866;
+   13 constexpr std::uint64_t ExpectedBench13 = 862329;
+   14 constexpr std::uint64_t ExpectedPerft5 = 4865609;
+   15 
+   16 constexpr std::array<std::string_view, 8> BenchFens{
+   17     forge::Board::StandardStartFen,
+   18     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   19     "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+   20     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   21     "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+   22     "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+   23     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   24     "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+   25 };
+   26 
+   27 constexpr std::array<std::string_view, 25> SeedFens{
+   28     forge::Board::StandardStartFen,
+   29     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   30     "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+   31     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   32     "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+   33     "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+   34     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   35     "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+   36     "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+   37     "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+   38     "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+   39     "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 0 4",
+   40     "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7",
+   41     "2rq1rk1/pb1nbppp/1p2pn2/2pp4/3P4/1PN1PN2/PB1NBPPP/2RQ1RK1 w - - 0 10",
+   42     "r2qkb1r/pp2pppp/2n2n2/3p1b2/3P1B2/2N2N2/PP2PPPP/R2QKB1R w KQkq - 4 6",
+   43     "8/5pk1/4p1p1/3pP1P1/3P4/5K2/8/8 w - - 0 1",
+   44     "8/8/2k5/4b3/8/3N4/4K3/8 w - - 0 1",
+   45     "4r1k1/p1p2ppp/1p6/3p4/3P4/1P2R3/P1P2PPP/6K1 w - - 0 1",
+   46     "r4rk1/pp1b1ppp/2n1p3/q2pP3/3P4/P1PB1N2/2Q2PPP/R3K2R w KQ - 1 13",
+   47     "r1b1k2r/pp1n1ppp/2pbpn2/q7/1b1PP3/2NB1N2/PPQ2PPP/R1B1K2R w KQkq - 4 8",
+   48     "r1bq1rk1/pp2ppbp/2np1np1/8/3NP3/2N1BP2/PPPQ2PP/R3KB1R w KQ - 3 8",
+   49     "3r2k1/pp3ppp/2n1b3/8/3p4/1B3N2/PP3PPP/3R2K1 w - - 0 1",
+   50     "2kr3r/ppp2ppp/2n1b3/3q4/3P4/2PB1N2/P4PPP/R2Q1RK1 w - - 0 12",
+   51     "8/1p4k1/p1p2pp1/2P5/1P1R4/P5P1/5PK1/3r4 w - - 0 1",
+   52     "r1b2rk1/ppq1bppp/2n1pn2/2pp4/3P4/1PN1PN2/PB1PBPPP/R2Q1RK1 w - - 4 9",
+   53 };
+   54 
+   55 std::uint64_t run_bench(int depth) {
+   56     std::uint64_t total_nodes = 0;
+   57     forge::Searcher searcher(16, 1);
+   58     for (const std::string_view fen : BenchFens) {
+   59         forge::Board board;
+   60         if (!board.set_fen(fen)) return 0;
+   61         forge::SearchLimits limits;
+   62         limits.depth = depth;
+   63         searcher.clear();
+   64         total_nodes += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+   65     }
+   66     return total_nodes;
+   67 }
+   68 
+   69 std::vector<forge::Board> build_200_positions() {
+   70     std::vector<forge::Board> positions;
+   71     positions.reserve(200);
+   72     std::uint64_t rng = 0x9E3779B97F4A7C15ULL;
+   73     auto next_u64 = [&]() {
+   74         rng ^= rng >> 12U;
+   75         rng ^= rng << 25U;
+   76         rng ^= rng >> 27U;
+   77         return rng * 0x2545F4914F6CDD1DULL;
+   78     };
+   79 
+   80     for (std::size_t s = 0; s < SeedFens.size() && positions.size() < 200; ++s) {
+   81         forge::Board board;
+   82         if (!board.set_fen(SeedFens[s])) continue;
+   83         for (int step = 0; step < 8 && positions.size() < 200; ++step) {
+   84             const forge::MoveList legal = board.legal_moves();
+   85             if (legal.empty()) {
+   86                 (void)board.set_fen(SeedFens[(s + 1) % SeedFens.size()]);
+   87             }
+   88             if (!board.legal_moves().empty()) {
+   89                 positions.push_back(board);
+   90             }
+   91             const forge::MoveList step_moves = board.legal_moves();
+   92             if (step_moves.empty()) break;
+   93             const forge::Move chosen = step_moves[static_cast<std::size_t>(next_u64() % step_moves.size())];
+   94             forge::Undo undo;
+   95             (void)board.make_move(chosen, undo);
+   96         }
+   97     }
+   98     return positions;
+   99 }
+  100 
+  101 void reset_candidates() {
+  102     forge::tune::ContHist4PlyRead = false;
+  103     forge::tune::NonPawnCorrection = false;
+  104     forge::tune::LmrDeeperShallower = false;
+  105 }
+  106 
+  107 struct Candidate {
+  108     const char* name;
+  109     bool* flag;
+  110 };
+  111 
+  112 int test_candidate(const Candidate& cand, const std::vector<forge::Board>& positions) {
+  113     int failures = 0;
+  114     reset_candidates();
+  115     *cand.flag = true;
+  116 
+  117     const std::uint64_t bench13_on = run_bench(13);
+  118     std::cout << "candidate " << cand.name << " bench13_on " << bench13_on
+  119               << " bench13_off " << ExpectedBench13 << '\n';
+  120     if (bench13_on == 0 || bench13_on == ExpectedBench13) {
+  121         std::cerr << "FAIL " << cand.name << ": bench 13 did not change when enabled\n";
+  122         ++failures;
+  123     }
+  124 
+  125     forge::Searcher searcher(16, 1);
+  126     std::uint64_t total_nodes = 0;
+  127     for (std::size_t i = 0; i < positions.size(); ++i) {
+  128         // Clear every 25 searches so cross-move history and correction tables
+  129         // accumulate within mini-games as well as starting clean across games.
+  130         if (i % 25 == 0) searcher.clear();
+  131         const forge::Board& pos = positions[i];
+  132         forge::SearchLimits limits;
+  133         limits.depth = 10;
+  134         const forge::SearchInfo info =
+  135             searcher.search(pos, limits, false, forge::Searcher::TTAccess::Exclusive);
+  136         total_nodes += info.nodes;
+  137 
+  138         const forge::MoveList legal = pos.legal_moves();
+  139         bool found = false;
+  140         for (const forge::Move m : legal) {
+  141             if (m == info.best_move) {
+  142                 found = true;
+  143                 break;
+  144             }
+  145         }
+  146         if (info.best_move.is_none() || !pos.is_legal(info.best_move) || !found) {
+  147             std::cerr << "FAIL " << cand.name << ": illegal best_move at position " << i
+  148                       << " (" << forge::Board::move_to_uci(info.best_move) << ")\n";
+  149             ++failures;
+  150             break;
+  151         }
+  152     }
+  153     std::cout << "candidate " << cand.name << " searches " << positions.size()
+  154               << " depth 10 legal_ok " << (failures == 0 ? 1 : 0)
+  155               << " total_nodes " << total_nodes << '\n';
+  156 
+  157     reset_candidates();
+  158     return failures;
+  159 }
+  160 
+  161 } // namespace
+  162 
+  163 int main() {
+  164     int failures = 0;
+  165     reset_candidates();
+  166 
+  167     const std::uint64_t b11 = run_bench(11);
+  168     const std::uint64_t b13 = run_bench(13);
+  169     forge::Board start;
+  170     (void)start.set_fen(forge::Board::StandardStartFen);
+  171     const std::uint64_t p5 = start.perft(5);
+  172 
+  173     std::cout << "defaults bench11 " << b11 << " bench13 " << b13 << " perft5 " << p5 << '\n';
+  174     if (b11 != ExpectedBench11 || b13 != ExpectedBench13 || p5 != ExpectedPerft5) {
+  175         std::cerr << "FAIL baseline parity mismatch with options off\n";
+  176         ++failures;
+  177     }
+  178 
+  179     const std::vector<forge::Board> positions = build_200_positions();
+  180     if (positions.size() != 200) {
+  181         std::cerr << "FAIL expected 200 test positions, built " << positions.size() << '\n';
+  182         return 1;
+  183     }
+  184 
+  185     const std::array<Candidate, 3> candidates{{
+  186         {"ContHist4PlyRead", &forge::tune::ContHist4PlyRead},
+  187         {"NonPawnCorrection", &forge::tune::NonPawnCorrection},
+  188         {"LmrDeeperShallower", &forge::tune::LmrDeeperShallower},
+  189     }};
+  190 
+  191     for (const Candidate& cand : candidates) {
+  192         failures += test_candidate(cand, positions);
+  193     }
+  194 
+  195     const std::uint64_t b13_after = run_bench(13);
+  196     std::cout << "defaults_after bench13 " << b13_after << '\n';
+  197     if (b13_after != ExpectedBench13) {
+  198         std::cerr << "FAIL bench 13 changed after resetting options to false\n";
+  199         ++failures;
+  200     }
+  201 
+  202     if (failures != 0) {
+  203         std::cerr << "FAIL total failures: " << failures << '\n';
+  204         return 1;
+  205     }
+  206     std::cout << "PASS t22 search_candidates_test\n";
+  207     return 0;
+  208 }
+  209 

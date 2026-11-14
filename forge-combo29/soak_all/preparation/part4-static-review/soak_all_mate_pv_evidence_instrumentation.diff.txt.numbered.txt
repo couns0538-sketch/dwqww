@@ -1,0 +1,21 @@
+    1 diff --git a/forge-combo29/src/search.cpp b/workspace/work/all-run/part4-review/search-instrumented.cpp
+    2 index 80dd69a..ecdcb83 100644
+    3 --- a/forge-combo29/src/search.cpp
+    4 +++ b/workspace/work/all-run/part4-review/search-instrumented.cpp
+    5 @@ -1101,6 +1101,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+    6  #else
+    7              if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+    8  #endif
+    9 +            if (pv_node && is_mate_score(best_score)) std::cerr << "TRACE_QPV_STANDPAT" << " root_depth=" << root_depth_ << " ply=" << ply << " alpha=" << alpha << " beta=" << beta << " score=" << best_score << " pv_length=" << ss->pv_length << " tt_score=" << tt_score << " tt_raw=" << tte.score << " tt_bound=" << static_cast<int>(tt_bound) << " tt_depth=" << static_cast<int>(tte.depth) << " fen=" << board.fen() << std::endl;
+   10              return best_score;
+   11          }
+   12          if (best_score > alpha) alpha = best_score;
+   13 @@ -1166,6 +1167,7 @@ int Worker::qsearch(Board& board, SearchStack* ss, int alpha, int beta) {
+   14  #else
+   15      shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+   16  #endif
+   17 +    if (pv_node && is_mate_score(best_score) && ss->pv_length == 0) std::cerr << "TRACE_QPV_FINAL" << " root_depth=" << root_depth_ << " ply=" << ply << " alpha=" << alpha << " beta=" << beta << " score=" << best_score << " pv_length=" << ss->pv_length << " tt_score=" << tt_score << " tt_raw=" << tte.score << " tt_bound=" << static_cast<int>(tt_bound) << " tt_depth=" << static_cast<int>(tte.depth) << " fen=" << board.fen() << std::endl;
+   18      return best_score;
+   19  }
+   20  
+   21 

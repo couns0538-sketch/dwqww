@@ -1,0 +1,90 @@
+{"n":9,"argv":["sed","-n","250,335p","app/src/matchmaking/tournament/base/tournament.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+
+    util::ScopeGuard lock1((*white_engine)->getConfig().restart ? nullptr : &(*white_engine));
+    util::ScopeGuard lock2((*black_engine)->getConfig().restart ? nullptr : &(*black_engine));
+
+    if (atomic::stop.load()) return;
+
+    LOG_TRACE_THREAD("Game {} between {} and {} starting", game_id, white_name, black_name);
+
+    start();
+
+    auto match = Match(opening, game_id);
+
+    const bool events_enabled = events::EventWriter::enabled();
+
+    if (events_enabled) {
+        const auto& initial = match.get();
+
+        std::vector<std::string> book_moves;
+        for (const auto& move : initial.moves) book_moves.push_back(move.move);
+
+        const auto white_tc = TimeControl(engine_configs.white.limit.tc);
+        const auto black_tc = TimeControl(engine_configs.black.limit.tc);
+
+        events::json event;
+        event["event"]     = "game_started";
+        event["game"]      = game_id;
+        event["round"]     = round_id + 1;
+        event["white"]     = white_name;
+        event["black"]     = black_name;
+        event["start_fen"] = initial.fen;
+        event["opening"]   = book_moves;
+        event["wtime"]     = events::clockJson(white_tc);
+        event["btime"]     = events::clockJson(black_tc);
+
+        const auto white_tc_str = events::tcString(white_tc);
+        const auto black_tc_str = events::tcString(black_tc);
+
+        if (white_tc_str == black_tc_str) event["tc"] = white_tc_str;
+        event["white_tc"] = white_tc_str;
+        event["black_tc"] = black_tc_str;
+
+        events::EventWriter::emit(event);
+    }
+
+    // -events: exactly one game_finished or game_aborted per game_started
+    const auto emitGameEnd = [&](const MatchData& data, bool recorded, bool in_pgn) {
+        if (!events_enabled) return;
+
+        events::json event;
+
+        if (!recorded) {
+            event["event"]  = "game_aborted";
+            event["game"]   = game_id;
+            event["reason"] = data.reason.empty() ? std::string("Game interrupted") : data.reason;
+            events::EventWriter::emit(event);
+            return;
+        }
+
+        const auto plies = std::count_if(data.moves.begin(), data.moves.end(), [](const auto& m) { return m.legal; });
+
+        event["event"]       = "game_finished";
+        event["game"]        = game_id;
+        event["result"]      = pgn::PgnBuilder::getResultFromWhiteMatch(data.players.white);
+        event["termination"] = events::terminationName(data.termination);
+        event["reason"]      = data.reason;
+        event["plies"]       = plies;
+        if (in_pgn) event["pgn_game_id"] = game_id;
+
+        events::EventWriter::emit(event);
+    };
+
+    match.start(*white_engine->get(), *black_engine->get(), cpus);
+
+    LOG_TRACE_THREAD("Game {} between {} and {} finished", game_id, white_name, black_name);
+
+    if (match.isStallOrDisconnect()) {
+        LOG_WARN_THREAD("Game {} between {} and {} stalled / disconnected", game_id, white_name, black_name);
+
+        if (!config.recover) {
+            if (!atomic::stop.exchange(true)) {
+                Logger::print<Logger::Level::WARN>(
+                    "Game {} stalled / disconnected and no recover option set for engine, stopping tournament.",
+                    game_id);
+
+                const auto match_data = match.get();
+
+
+STDERR

@@ -1,0 +1,22 @@
+COMMAND ["rg","-n","NullSeeVeto|null_see_veto_threat|KingWorth|make_null_move|see_ge","/workspace/work/r3-final-02-07-review/07-search.cpp.txt"]
+STDOUT
+80:bool NullSeeVeto = false;
+473:                    if (!board_.see_ge(move, -move_score_threshold(move))) {
+873:bool null_see_veto_threat(Board& board) {
+876:    constexpr int KingWorth = 100000;
+878:        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
+881:    board.make_null_move(undo);
+889:        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
+893:    board.unmake_null_move(undo);
+1149:            if (!board.see_ge(move, -tune::QsSeeMargin)) continue;
+1310:            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+1320:            board.make_null_move(undo);
+1325:            board.unmake_null_move(undo);
+1353:                if (!board.see_ge(move, probcut_beta - ss->static_eval)) continue;
+1430:                if (!board.see_ge(move, -tune::SeeQuietMultiplier * lmr_depth * lmr_depth)) continue;
+1442:                    !board.see_ge(move, see_threshold)) continue;
+1472:                   (picker.last_move_see_nonnegative() || board.see_ge(move, 0))) {
+
+STDERR
+
+EXIT 0 SIGNAL null

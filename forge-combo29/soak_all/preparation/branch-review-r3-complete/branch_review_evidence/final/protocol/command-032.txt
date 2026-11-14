@@ -1,0 +1,118 @@
+{"n":32,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","74b18517d0a20e25a20cffd62b6a32ac27707e74","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..d87831c3 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -331,10 +331,16 @@ public:
+     // root until the shared stop flag is raised.
+     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
+     void clear();
+     void clear_caches() { evaluator_.clear(); }
+     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
++    // Zero the count other workers add into a node budget. Searcher::search does
++    // this for every worker before it starts any of them.
++    void reset_node_count() {
++        local_nodes_ = 0;
++        nodes_.store(0, std::memory_order_relaxed);
++    }
+     [[nodiscard]] bool is_main() const { return id_ == 0; }
+ 
+ private:
+     friend struct SearcherTestProbe;
+     friend class MovePicker;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..8e716cdf 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -925,15 +925,21 @@ std::uint64_t Worker::total_nodes() const {
+     return total;
+ }
+ 
+ bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+     if (shared_.stop.load(std::memory_order_relaxed)) return true;
+-    if (!is_main()) return false;
++    // The budget counts every worker. A helper that ignores it keeps searching
++    // until the main thread has already unwound. MultiPV still adds the
++    // alternate line's unpublished nodes (pending_nodes) and the lines that
++    // already finished (extra_nodes_). Only the main worker records the reason:
++    // its result is the one that is returned, and a node-limit stop must stay
++    // on the last finished iteration. Helpers still ignore the clock.
+     if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+-        stopped_by_nodes_ = true;
++        if (is_main()) stopped_by_nodes_ = true;
+         return true;
+     }
++    if (!is_main()) return false;
+     if (hard_limit_ms_ > 0) {
+         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+         if (elapsed_ms() >= hard_limit_ms_) return true;
+     }
+     return false;
+@@ -1600,13 +1606,17 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     null_cutoffs_ = 0;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+     node_limit_ = limits.nodes;
++    // Helpers must observe the budget. Leaving the flag false on them made
++    // should_stop return before the count was consulted. An alternate MultiPV
++    // worker copies the parent's flag: its own limits clear the node budget,
++    // and should_stop asks the parent, passing this worker's unpublished nodes.
+     node_limit_specified_ = parent_worker_ != nullptr
+         ? parent_worker_->node_limit_specified_
+-        : (is_main() && (limits.nodes_specified || limits.nodes != 0));
++        : (limits.nodes_specified || limits.nodes != 0);
+ 
+     // Time allocation.
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     soft_limit_ms_ = hard_limit_ms_ = 0;
+     time_managed_ = false;
+@@ -2008,10 +2018,15 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+         ~TtOwnedScope() { worker.tt_owned_ = previous; }
+         TtOwnedScope(const TtOwnedScope&) = delete;
+         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
+     } tt_owned_scope(*workers_.front(), exclusive.has_value());
+ #endif
++    // A helper can read the budget before another worker enters search() and
++    // clears the count it published last time. Zero every counter on this
++    // thread first. MultiPV leaves the extra workers idle; clearing them does
++    // not change the main-worker total.
++    for (auto& worker : workers_) worker->reset_node_count();
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+     if (worker_limits.multipv <= 1) {
+         for (std::size_t i = 1; i < workers_.size(); ++i) {
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..a3451179 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -43,15 +43,24 @@ void apply_position(forge::Board& board, std::istringstream& input) {
+     }
+     if (!(input >> token)) {
+         board = candidate;
+         return;
+     }
+-    if (token != "moves") return;
++    // A token other than "moves" is not part of the FEN. Dropping the command
++    // here used to leave the engine on the previous game.
++    while (token != "moves") {
++        if (!(input >> token)) {
++            board = candidate;
++            return;
++        }
++    }
+     while (input >> token) {
+         const auto move = candidate.parse_uci(token);
+         if (!move.has_value()) {
++            // The position and every legal move before this token still stand.
+             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
++            board = candidate;
+             return;
+         }
+         forge::Undo undo;
+         (void)candidate.make_move(*move, undo);
+     }
+
+STDERR

@@ -1,0 +1,234 @@
+    1 + cat /workspace/work/all-run/part4-review/repro-command.txt
+    2 node <<'NODE'
+    3 const {spawn} = require('child_process');
+    4 const readline = require('readline');
+    5 const fs = require('fs');
+    6 const fen = '8/8/8/8/8/1R6/2k5/5K2 w - - 0 1';
+    7 const useNNUE = process.env.FORGE_REPRO_NNUE !== 'false';
+    8 async function run(label, binary) {
+    9   if (!useNNUE) label += '-nnue-off';
+   10   console.log('BEGIN ' + label + ' ' + binary);
+   11   const child = spawn(binary, [], {stdio:['pipe','pipe','pipe']});
+   12   let output = '', stderr = '', searched = false, completed = false;
+   13   function send(line) { console.log(label + ' > ' + line); child.stdin.write(line + '\n'); }
+   14   const timer = setTimeout(() => {console.log(label + ' TIMEOUT after 45 seconds'); child.kill('SIGTERM');}, 45000);
+   15   child.stderr.on('data', data => {stderr += data; process.stdout.write(label + ' STDERR ' + data);});
+   16   readline.createInterface({input:child.stdout}).on('line', line => {
+   17     output += line + '\n'; console.log(label + ' < ' + line);
+   18     if (line === 'readyok' && !searched) {
+   19       searched = true;
+   20       send('ucinewgame');
+   21       send('position fen ' + fen);
+   22       send('go depth 13');
+   23     } else if (line.startsWith('bestmove ') && searched && !completed) {
+   24       completed = true; send('quit'); child.stdin.end();
+   25     }
+   26   });
+   27   send('uci');
+   28   send('setoption name Threads value 1');
+   29   send('setoption name Hash value 16');
+   30   send('setoption name OwnBook value false');
+   31   if (!useNNUE) send('setoption name UseNNUE value false');
+   32   send('isready');
+   33   const result = await new Promise(resolve => child.once('close', (code,signal) => resolve({code,signal})));
+   34   clearTimeout(timer);
+   35   fs.writeFileSync('/workspace/work/all-run/part4-review/' + label + '-stdout.txt', output);
+   36   fs.writeFileSync('/workspace/work/all-run/part4-review/' + label + '-stderr.txt', stderr);
+   37   console.log('END ' + label + ' ' + JSON.stringify({...result, completed, stderrBytes:Buffer.byteLength(stderr)}));
+   38   if (result.code !== 0 || !completed) process.exitCode = 1;
+   39 }
+   40 (async () => {
+   41   await run('lock', '/workspace/work/soak-run/build-lock-rel/forge');
+   42   await run('merged', '/workspace/work/all-run/builds/release/forge');
+   43 })();
+   44 NODE
+   45 + FORGE_REPRO_NNUE=false
+   46 + bash /workspace/work/all-run/part4-review/repro-command.txt
+   47 BEGIN lock-nnue-off /workspace/work/soak-run/build-lock-rel/forge
+   48 lock-nnue-off > uci
+   49 lock-nnue-off > setoption name Threads value 1
+   50 lock-nnue-off > setoption name Hash value 16
+   51 lock-nnue-off > setoption name OwnBook value false
+   52 lock-nnue-off > setoption name UseNNUE value false
+   53 lock-nnue-off > isready
+   54 lock-nnue-off < id name Chess Engine Forge 6.4.24 candidate
+   55 lock-nnue-off < id author OpenAI
+   56 lock-nnue-off < option name Hash type spin default 32 min 1 max 2048
+   57 lock-nnue-off < option name Threads type spin default 1 min 1 max 256
+   58 lock-nnue-off < option name Move Overhead type spin default 10 min 0 max 1000
+   59 lock-nnue-off < option name Ponder type check default false
+   60 lock-nnue-off < option name OwnBook type check default true
+   61 lock-nnue-off < option name Book File type string default <empty>
+   62 lock-nnue-off < option name Book Depth type spin default 30 min 0 max 100
+   63 lock-nnue-off < option name Book Variety type spin default 30 min 0 max 100
+   64 lock-nnue-off < option name UseNNUE type check default true
+   65 lock-nnue-off < option name LmrQuietBase type spin default 85 min 0 max 300
+   66 lock-nnue-off < option name LmrQuietDivisor type spin default 220 min 100 max 500
+   67 lock-nnue-off < option name LmrNoisyBase type spin default 10 min 0 max 300
+   68 lock-nnue-off < option name LmrNoisyDivisor type spin default 340 min 100 max 800
+   69 lock-nnue-off < option name NullMoveMinDepth type spin default 3 min 1 max 10
+   70 lock-nnue-off < option name NullMoveBase type spin default 3 min 1 max 6
+   71 lock-nnue-off < option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+   72 lock-nnue-off < option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+   73 lock-nnue-off < option name RfpDepth type spin default 8 min 0 max 15
+   74 lock-nnue-off < option name RfpMargin type spin default 72 min 10 max 300
+   75 lock-nnue-off < option name RfpImproving type spin default 40 min 0 max 200
+   76 lock-nnue-off < option name RazorDepth type spin default 2 min 0 max 6
+   77 lock-nnue-off < option name RazorBase type spin default 150 min 0 max 1000
+   78 lock-nnue-off < option name RazorMultiplier type spin default 350 min 0 max 1000
+   79 lock-nnue-off < option name FutilityDepth type spin default 7 min 0 max 15
+   80 lock-nnue-off < option name FutilityBase type spin default 100 min 0 max 500
+   81 lock-nnue-off < option name FutilityMultiplier type spin default 110 min 0 max 500
+   82 lock-nnue-off < option name LmpBase type spin default 4 min 0 max 20
+   83 lock-nnue-off < option name HistoryPruneDepth type spin default 3 min 0 max 10
+   84 lock-nnue-off < option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+   85 lock-nnue-off < option name SeeQuietMultiplier type spin default 24 min 0 max 200
+   86 lock-nnue-off < option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+   87 lock-nnue-off < option name SingularDepth type spin default 7 min 2 max 20
+   88 lock-nnue-off < option name SingularMargin type spin default 2 min 0 max 10
+   89 lock-nnue-off < option name IirDepth type spin default 4 min 1 max 20
+   90 lock-nnue-off < option name ProbcutDepth type spin default 5 min 1 max 20
+   91 lock-nnue-off < option name ProbcutMargin type spin default 180 min 0 max 1000
+   92 lock-nnue-off < option name QsFutilityMargin type spin default 160 min 0 max 1000
+   93 lock-nnue-off < option name QsSeeMargin type spin default 40 min 0 max 500
+   94 lock-nnue-off < option name AspirationDelta type spin default 18 min 4 max 200
+   95 lock-nnue-off < option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+   96 lock-nnue-off < option name HistoryBonusLinear type spin default 48 min 0 max 500
+   97 lock-nnue-off < option name HistoryBonusMax type spin default 2048 min 100 max 10000
+   98 lock-nnue-off < option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+   99 lock-nnue-off < option name CheckExtensionDepth type spin default 2 min 1 max 30
+  100 lock-nnue-off < option name LmrCutoffThreshold type spin default 3 min 0 max 20
+  101 lock-nnue-off < option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+  102 lock-nnue-off < option name TmSoftDivisor type spin default 22 min 5 max 80
+  103 lock-nnue-off < option name TmIncrementPercent type spin default 75 min 0 max 150
+  104 lock-nnue-off < option name TmHardPercent type spin default 60 min 10 max 95
+  105 lock-nnue-off < option name TmHardSoftMultiple type spin default 5 min 1 max 20
+  106 lock-nnue-off < option name TmStableFactor type spin default 60 min 20 max 150
+  107 lock-nnue-off < option name TmSemiStableFactor type spin default 80 min 20 max 150
+  108 lock-nnue-off < option name TmUnstableFactor type spin default 140 min 50 max 300
+  109 lock-nnue-off < option name TmEffortBase type spin default 155 min 100 max 250
+  110 lock-nnue-off < option name TmFallingEvalPercent type spin default 100 min 0 max 400
+  111 lock-nnue-off < option name TmMinFactorPercent type spin default 45 min 10 max 100
+  112 lock-nnue-off < option name CaptureFutilityBase type spin default 0 min 0 max 1000
+  113 lock-nnue-off < option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+  114 lock-nnue-off < option name CaptureFutilityDepth type spin default 6 min 0 max 15
+  115 lock-nnue-off < option name FailLowContinuationBonus type spin default 0 min 0 max 300
+  116 lock-nnue-off < option name Clear Hash type button
+  117 lock-nnue-off < uciok
+  118 lock-nnue-off < readyok
+  119 lock-nnue-off > ucinewgame
+  120 lock-nnue-off > position fen 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1
+  121 lock-nnue-off > go depth 13
+  122 lock-nnue-off < info depth 1 seldepth 2 score cp 425 nodes 28 nps 0 hashfull 0 time 0 pv b3b4
+  123 lock-nnue-off < info depth 2 seldepth 2 score cp 432 nodes 91 nps 0 hashfull 0 time 0 pv b3f3 c2d2
+  124 lock-nnue-off < info depth 3 seldepth 4 score cp 425 nodes 287 nps 0 hashfull 0 time 0 pv b3b6 c2d3 b6d6 d3c3
+  125 lock-nnue-off < info depth 4 seldepth 6 score cp 432 nodes 444 nps 0 hashfull 0 time 0 pv b3b6 c2d3 b6a6 d3c3
+  126 lock-nnue-off < info depth 5 seldepth 8 score cp 428 nodes 1117 nps 0 hashfull 0 time 0 pv b3f3 c2d2 f1f2 d2c2 f3f8
+  127 lock-nnue-off < info depth 6 seldepth 8 score cp 430 nodes 1708 nps 0 hashfull 0 time 0 pv b3f3 c2d2 f3f8 d2e3 f8a8 e3f3
+  128 lock-nnue-off < info depth 7 seldepth 10 score cp 434 nodes 3467 nps 3467000 hashfull 1 time 1 pv b3f3 c2b1 f1e2 b1c2 f3f8 c2b3 f8b8 b3c3
+  129 lock-nnue-off < info depth 8 seldepth 10 score cp 435 nodes 5362 nps 5362000 hashfull 1 time 1 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2c1 d3d5 c1c2
+  130 lock-nnue-off < info depth 9 seldepth 12 score cp 438 nodes 7305 nps 2435000 hashfull 2 time 3 pv b3f3 c2d2 f1f2 d2c2 f2e2 c2b2 e2d2 b2a2 f3f8
+  131 lock-nnue-off < info depth 10 seldepth 12 score cp 442 nodes 9238 nps 2309500 hashfull 2 time 4 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2b2 e2d2 b2a2 d3d8 a2b3
+  132 lock-nnue-off < info depth 11 seldepth 14 score cp 450 nodes 12617 nps 2523400 hashfull 3 time 5 pv b3f3 c2b2 f1e2 b2a2 e2d2 a2b2 f3d3 b2b1 d3d6 b1a2 d6a6 a2b3
+  133 lock-nnue-off < info depth 12 seldepth 16 score cp 459 nodes 18188 nps 2273500 hashfull 4 time 8 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2c1 d3c3 c1b1 c3c6 b1a2 e2d3 a2a3 c6a6 a3b3
+  134 lock-nnue-off < info depth 13 seldepth 22 score mate 17 nodes 25568 nps 2130666 hashfull 5 time 12 pv b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3
+  135 lock-nnue-off < bestmove b3f3
+  136 lock-nnue-off > quit
+  137 END lock-nnue-off {"code":0,"signal":null,"completed":true,"stderrBytes":0}
+  138 BEGIN merged-nnue-off /workspace/work/all-run/builds/release/forge
+  139 merged-nnue-off > uci
+  140 merged-nnue-off > setoption name Threads value 1
+  141 merged-nnue-off > setoption name Hash value 16
+  142 merged-nnue-off > setoption name OwnBook value false
+  143 merged-nnue-off > setoption name UseNNUE value false
+  144 merged-nnue-off > isready
+  145 merged-nnue-off < id name Chess Engine Forge 6.4.24 candidate
+  146 merged-nnue-off < id author OpenAI
+  147 merged-nnue-off < option name Hash type spin default 32 min 1 max 2048
+  148 merged-nnue-off < option name Threads type spin default 1 min 1 max 256
+  149 merged-nnue-off < option name MultiPV type spin default 1 min 1 max 8
+  150 merged-nnue-off < option name Move Overhead type spin default 10 min 0 max 1000
+  151 merged-nnue-off < option name Ponder type check default false
+  152 merged-nnue-off < option name OwnBook type check default true
+  153 merged-nnue-off < option name Book File type string default <empty>
+  154 merged-nnue-off < option name Book Depth type spin default 30 min 0 max 100
+  155 merged-nnue-off < option name Book Variety type spin default 30 min 0 max 100
+  156 merged-nnue-off < option name UseNNUE type check default true
+  157 merged-nnue-off < option name NnueFile type string default <empty>
+  158 merged-nnue-off < option name ContHist4PlyRead type check default false
+  159 merged-nnue-off < option name NonPawnCorrection type check default false
+  160 merged-nnue-off < option name LmrDeeperShallower type check default false
+  161 merged-nnue-off < option name LmrQuietBase type spin default 85 min 0 max 300
+  162 merged-nnue-off < option name LmrQuietDivisor type spin default 220 min 100 max 500
+  163 merged-nnue-off < option name LmrNoisyBase type spin default 10 min 0 max 300
+  164 merged-nnue-off < option name LmrNoisyDivisor type spin default 340 min 100 max 800
+  165 merged-nnue-off < option name NullMoveMinDepth type spin default 3 min 1 max 10
+  166 merged-nnue-off < option name NullMoveBase type spin default 3 min 1 max 6
+  167 merged-nnue-off < option name NullMoveDepthDivisor type spin default 3 min 1 max 10
+  168 merged-nnue-off < option name NullMoveEvalDivisor type spin default 200 min 50 max 1000
+  169 merged-nnue-off < option name RfpDepth type spin default 8 min 0 max 15
+  170 merged-nnue-off < option name RfpMargin type spin default 72 min 10 max 300
+  171 merged-nnue-off < option name RfpImproving type spin default 40 min 0 max 200
+  172 merged-nnue-off < option name RazorDepth type spin default 2 min 0 max 6
+  173 merged-nnue-off < option name RazorBase type spin default 150 min 0 max 1000
+  174 merged-nnue-off < option name RazorMultiplier type spin default 350 min 0 max 1000
+  175 merged-nnue-off < option name FutilityDepth type spin default 7 min 0 max 15
+  176 merged-nnue-off < option name FutilityBase type spin default 100 min 0 max 500
+  177 merged-nnue-off < option name FutilityMultiplier type spin default 110 min 0 max 500
+  178 merged-nnue-off < option name LmpBase type spin default 4 min 0 max 20
+  179 merged-nnue-off < option name HistoryPruneDepth type spin default 3 min 0 max 10
+  180 merged-nnue-off < option name HistoryPruneMultiplier type spin default 2048 min 0 max 20000
+  181 merged-nnue-off < option name SeeQuietMultiplier type spin default 24 min 0 max 200
+  182 merged-nnue-off < option name SeeNoisyMultiplier type spin default 150 min 0 max 1000
+  183 merged-nnue-off < option name SingularDepth type spin default 7 min 2 max 20
+  184 merged-nnue-off < option name SingularMargin type spin default 2 min 0 max 10
+  185 merged-nnue-off < option name IirDepth type spin default 4 min 1 max 20
+  186 merged-nnue-off < option name ProbcutDepth type spin default 5 min 1 max 20
+  187 merged-nnue-off < option name ProbcutMargin type spin default 180 min 0 max 1000
+  188 merged-nnue-off < option name QsFutilityMargin type spin default 160 min 0 max 1000
+  189 merged-nnue-off < option name QsSeeMargin type spin default 40 min 0 max 500
+  190 merged-nnue-off < option name AspirationDelta type spin default 18 min 4 max 200
+  191 merged-nnue-off < option name HistoryBonusQuadratic type spin default 20 min 0 max 100
+  192 merged-nnue-off < option name HistoryBonusLinear type spin default 48 min 0 max 500
+  193 merged-nnue-off < option name HistoryBonusMax type spin default 2048 min 100 max 10000
+  194 merged-nnue-off < option name LmrHistoryDivisor type spin default 6000 min 1000 max 30000
+  195 merged-nnue-off < option name CheckExtensionDepth type spin default 2 min 1 max 30
+  196 merged-nnue-off < option name LmrCutoffThreshold type spin default 3 min 0 max 20
+  197 merged-nnue-off < option name MaterialCorrectionWeight type spin default 100 min 0 max 300
+  198 merged-nnue-off < option name TmSoftDivisor type spin default 22 min 5 max 80
+  199 merged-nnue-off < option name TmIncrementPercent type spin default 75 min 0 max 150
+  200 merged-nnue-off < option name TmHardPercent type spin default 60 min 10 max 95
+  201 merged-nnue-off < option name TmHardSoftMultiple type spin default 5 min 1 max 20
+  202 merged-nnue-off < option name TmStableFactor type spin default 60 min 20 max 150
+  203 merged-nnue-off < option name TmSemiStableFactor type spin default 80 min 20 max 150
+  204 merged-nnue-off < option name TmUnstableFactor type spin default 140 min 50 max 300
+  205 merged-nnue-off < option name TmEffortBase type spin default 155 min 100 max 250
+  206 merged-nnue-off < option name TmFallingEvalPercent type spin default 100 min 0 max 400
+  207 merged-nnue-off < option name TmMinFactorPercent type spin default 45 min 10 max 100
+  208 merged-nnue-off < option name CaptureFutilityBase type spin default 0 min 0 max 1000
+  209 merged-nnue-off < option name CaptureFutilityMultiplier type spin default 250 min 0 max 1000
+  210 merged-nnue-off < option name CaptureFutilityDepth type spin default 6 min 0 max 15
+  211 merged-nnue-off < option name FailLowContinuationBonus type spin default 0 min 0 max 300
+  212 merged-nnue-off < option name Clear Hash type button
+  213 merged-nnue-off < uciok
+  214 merged-nnue-off < readyok
+  215 merged-nnue-off > ucinewgame
+  216 merged-nnue-off > position fen 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1
+  217 merged-nnue-off > go depth 13
+  218 merged-nnue-off < info depth 1 seldepth 2 score cp 425 nodes 28 nps 0 hashfull 0 time 0 pv b3b4
+  219 merged-nnue-off < info depth 2 seldepth 2 score cp 432 nodes 91 nps 0 hashfull 0 time 0 pv b3f3 c2d2
+  220 merged-nnue-off < info depth 3 seldepth 4 score cp 425 nodes 287 nps 0 hashfull 0 time 0 pv b3b6 c2d3 b6d6 d3c3
+  221 merged-nnue-off < info depth 4 seldepth 6 score cp 432 nodes 444 nps 0 hashfull 0 time 0 pv b3b6 c2d3 b6a6 d3c3
+  222 merged-nnue-off < info depth 5 seldepth 8 score cp 428 nodes 1117 nps 0 hashfull 0 time 0 pv b3f3 c2d2 f1f2 d2c2 f3f8
+  223 merged-nnue-off < info depth 6 seldepth 8 score cp 430 nodes 1708 nps 0 hashfull 0 time 0 pv b3f3 c2d2 f3f8 d2e3 f8a8 e3f3
+  224 merged-nnue-off < info depth 7 seldepth 10 score cp 434 nodes 3467 nps 1733500 hashfull 1 time 2 pv b3f3 c2b1 f1e2 b1c2 f3f8 c2b3 f8b8 b3c3
+  225 merged-nnue-off < info depth 8 seldepth 10 score cp 435 nodes 5362 nps 2681000 hashfull 1 time 2 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2c1 d3d5 c1c2
+  226 merged-nnue-off < info depth 9 seldepth 12 score cp 438 nodes 7305 nps 2435000 hashfull 2 time 3 pv b3f3 c2d2 f1f2 d2c2 f2e2 c2b2 e2d2 b2a2 f3f8
+  227 merged-nnue-off < info depth 10 seldepth 12 score cp 442 nodes 9238 nps 2309500 hashfull 2 time 4 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2b2 e2d2 b2a2 d3d8 a2b3
+  228 merged-nnue-off < info depth 11 seldepth 14 score cp 450 nodes 12617 nps 2102833 hashfull 3 time 6 pv b3f3 c2b2 f1e2 b2a2 e2d2 a2b2 f3d3 b2b1 d3d6 b1a2 d6a6 a2b3
+  229 merged-nnue-off < info depth 12 seldepth 16 score cp 459 nodes 18188 nps 2020888 hashfull 4 time 9 pv b3f3 c2b2 f1e2 b2c2 f3d3 c2c1 d3c3 c1b1 c3c6 b1a2 e2d3 a2a3 c6a6 a3b3
+  230 merged-nnue-off < info depth 13 seldepth 22 score mate 17 nodes 25568 nps 1826285 hashfull 5 time 14 pv b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3
+  231 merged-nnue-off < bestmove b3f3
+  232 merged-nnue-off > quit
+  233 END merged-nnue-off {"code":0,"signal":null,"completed":true,"stderrBytes":0}
+  234 

@@ -1,0 +1,45 @@
+{"n":63,"argv":["rg","-n","Searcher searcher|Searcher reused|expect_empty_clock|expect_live_clock|expect_fixed|ponder|wall_ms|time_ms|move_overhead","/workspace/work/all-run/r3-final-protocol-review/r3-22-time-safety.tests_r3_22-clock_guard_test.cpp.txt"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+32:void expect_fixed(const char* label, const char* fen, int depth, std::uint64_t node_limit, bool nodes_specified,
+39:    forge::Searcher searcher(16, 1);
+56:void expect_empty_clock(const char* label, const char* fen, std::int64_t time_ms, int overhead, int threads) {
+62:    forge::Searcher searcher(16, threads);
+64:    limits.time_ms = time_ms;
+65:    limits.move_overhead_ms = overhead;
+68:    const auto wall_ms =
+75:              << wall_ms << " ms\n";
+78:void expect_live_clock(const char* label, std::int64_t time_ms, std::int64_t increment, int moves_to_go, int overhead) {
+84:    forge::Searcher searcher(16, 1);
+86:    limits.time_ms = time_ms;
+89:    limits.move_overhead_ms = overhead;
+99:void expect_ponder_then_stop() {
+102:        fail("ponder fen");
+105:    forge::Searcher searcher(16, 1);
+107:    limits.ponder = true;
+108:    limits.time_ms = 0;
+109:    limits.move_overhead_ms = 10;
+120:        fail("ponder with an empty reserve never started");
+123:    searcher.ponderhit();
+126:        fail("ponderhit on an empty reserve did not finish a search");
+129:    std::cout << "PASS ponder empty reserve nodes " << info.nodes << " move "
+153:    expect_fixed("start-depth-5", start, 5, 0, false, 1001, 5, "c2c4");
+154:    expect_fixed("start-depth-8", start, 8, 0, false, 4099, 8, "d2d4");
+155:    expect_fixed("kiwi-depth-6", kiwi, 6, 0, false, 2279, 6, "e2a6");
+156:    expect_fixed("start-nodes-20000", start, 64, 20000, true, 20000, 10, "d2d4");
+157:    expect_fixed("kiwi-nodes-12000", kiwi, 64, 12000, true, 12000, 7, "d5e6");
+158:    expect_fixed("start-nodes-0", start, 64, 0, true, 0, 0, "a2a3");
+160:    expect_empty_clock("wtime-0-overhead-10", start, 0, 10, 1);
+161:    expect_empty_clock("wtime-5-overhead-50-threads-4", kiwi, 5, 50, 4);
+162:    expect_empty_clock("wtime-10-overhead-10", start, 10, 10, 1);
+163:    expect_empty_clock("wtime-9-overhead-10", start, 9, 10, 1);
+164:    expect_empty_clock("wtime-0-overhead-0", start, 0, 0, 1);
+165:    expect_empty_clock("wtime-0-overhead-10-threads-8", kiwi, 0, 10, 8);
+167:    expect_live_clock("wtime-80", 80, 0, 0, 10);
+168:    expect_live_clock("wtime-100-inc-2000", 100, 2000, 0, 10);
+169:    expect_live_clock("wtime-300-mtg-5", 300, 0, 5, 10);
+171:    forge::Searcher reused(16, 1);
+176:        dead.time_ms = 0;
+177:        dead.move_overhead_ms = 10;
+195:    expect_ponder_then_stop();
+
+STDERR

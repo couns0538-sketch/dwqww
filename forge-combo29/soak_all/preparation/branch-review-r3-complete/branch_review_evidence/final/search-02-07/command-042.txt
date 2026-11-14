@@ -1,0 +1,496 @@
+COMMAND ["git","-C","/workspace/work/dwqww-all","diff","--no-ext-diff","e04556ddc3a430b2e751159b0d46111ef56c8b89","5df8092a0a8fcbe52e2e4f8a3a874e3b64020f28"]
+STDOUT
+diff --git a/forge-combo29/REPORT_r3_06.md b/forge-combo29/REPORT_r3_06.md
+new file mode 100644
+index 00000000..2fe55262
+--- /dev/null
++++ b/forge-combo29/REPORT_r3_06.md
+@@ -0,0 +1,58 @@
++# NullThreatVerify
++
++One UCI check option, `NullThreatVerify`, default off. With it off, null-move cutoffs are the ones this engine already used. With it on, a null-move cutoff at depth below 14 is kept only when a cheaper enemy piece attacks a dearer piece of the side to move and a reduced search that does not use null moves also reaches beta. If there is no such attack, the cutoff stands, as before. At depth 14 and above the existing verification is unchanged.
++
++## Where the idea comes from
++
++Null-move pruning treats a fail-high after a pass, searched at reduced depth, as a cutoff. That step is Christian Donninger's null-move search ("Null Move and Deep Search", ICCA Journal 16(3), 1993). A pass is a bad witness in zugzwang, so the usual guard is a second, reduced search with null moves turned off; the cutoff is kept only if that search also reaches beta. Ernst Heinz describes that confirmation in "Adaptive Null-Move Pruning" (ICCA Journal 22(3), 1999). The Chess Programming Wiki page "Null Move Pruning" records the same verification search.
++
++This task applies that confirmation below depth 14 only when a lesser enemy piece attacks a greater piece of the side to move. Those are the nodes where a pass can look safe while the side to move still has to answer a capture. The attack test is this engine's `attackers_to`. The values are this engine's `SeePieceValue` (pawn 100, knight 300, bishop 300, rook 500, queen 900, king 0). A king is not a material attacker or a material victim. Equal values are not "cheaper". No code, constants, or tables were taken from another engine.
++
++The reduced depth is the same `depth - R` this engine already uses for its depth-14 verification. `R` is the null-move reduction already computed for that node. For a threat confirmation, null moves are refused for the whole of that search, not only at its root. Depth 14 and above still verifies exactly as before, including when the option is on.
++
++## What changed
++
++`forge-combo29/src/search.cpp`, `forge-combo29/src/uci.cpp`, and `forge-combo29/include/forge/search.hpp` only. The diff is 49 insertions and 4 deletions. The option is a check in the `uci` answer:
++
++`option name NullThreatVerify type check default false`
++
++`setoption name NullThreatVerify value true` and `value false` are accepted. Any other value is reported invalid and does not change the flag. The flag is read before the attack scan, so the scan does not run while the option is off. While it is off, `null_blocked_` stays false and the null-move condition does not consult it.
++
++## Checks
++
++Release build:
++
++`cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 && cmake --build build -j`
++
++Threads 1, Hash 16, OwnBook false, every other option left at its default. Printed before the edit and again with the option off:
++
++- `bench 11` nodes 312866
++- `bench 13` nodes 862329
++- `position startpos` / `go perft 5` nodes 4865609
++
++With the option on, `bench 13` was run twice on that binary and both runs printed 789456. That is a different count from 862329, so the option is live. It is not a strength result.
++
++`forge-combo29/tests_r3_06/null_threat_verify_test.cpp` was compiled with the engine sources, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, and `-fsanitize=address,undefined`. It drives the UCI loop, checks the option line, and checks the three default counts, the changed `bench 13`, and the same three counts after the option is set back to false. It then searches 200 positions to depth 10 with the option on (Hash 16, one thread) and requires each returned move to be legal. Sixteen attack positions are checked directly. The start position is not a threat. A pawn, knight, bishop, or rook attacking a dearer piece is, including the position after 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6. An equal minor, a queen attacking a rook, a king beside a rook, a rook blocked by its own pawn, and a pawn attacked only by a pawn are not.
++
++A throwaway counter, compiled locally and not kept in the tree, showed the confirmation is entered. From the Kiwipete position at depth 10 it ran 9 times, and at depth 14 the blocked search contained child nodes as well as the confirmation root. Every move from that probe was legal. The counter was removed before the commit. The node counts below are from the tree without it.
++
++Result, with `ASAN_OPTIONS=halt_on_error=1:detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`:
++
++```
++defaults bench11 312866 bench13 862329 perft5 4865609
++NullThreatVerify bench13 789456
++predicate cases 16 failures 0
++depth10 searches 200 illegal 0
++restored bench11 312866 bench13 862329 perft5 4865609
++PASS null_threat_verify_test
++```
++
++No address or undefined-behavior report. Exit status 0.
++
++## Not checked
++
++No games were played. Nothing here is a strength claim. Only one thread was measured. The 200 searches are generated by legal moves from the start position; they are not a tactical suite.
++
++option name NullThreatVerify type check default false
++setoption name NullThreatVerify value true
++bench 13 nodes 789456
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..74648f82 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,11 +270,15 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
++[[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+@@ -387,6 +391,9 @@ private:
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // True only inside a NullThreatVerify confirmation, so that reduced search
++    // does not use null moves. Stays false for the whole default search.
++    bool null_blocked_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..a6e9f56b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool NullThreatVerify = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -117,6 +118,26 @@ const std::vector<Parameter>& parameters() {
+ }
+ } // namespace tune
+ 
++// Kings are left out: this engine's SEE value for a king is 0, so a king is
++// neither a material attacker nor a material victim.
++bool cheaper_enemy_attacks_dearer(const Board& board) {
++    const Color us = board.side_to_move();
++    const Bitboard enemy = board.occupied(opposite(us));
++    Bitboard ours = board.pieces(us, Knight) | board.pieces(us, Bishop) | board.pieces(us, Rook) |
++                    board.pieces(us, Queen);
++    while (ours != 0) {
++        const int square = pop_lsb(ours);
++        const int victim = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(square)))];
++        Bitboard hits = board.attackers_to(square) & enemy;
++        while (hits != 0) {
++            const int from = pop_lsb(hits);
++            const int attacker = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(from)))];
++            if (attacker > 0 && attacker < victim) return true;
++        }
++    }
++    return false;
++}
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1279,7 +1300,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+-            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
++            ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
++            !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+@@ -1300,13 +1322,23 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                if (depth < 14) {
++                // Depth >= 14 always verifies, as before. Below that, a cutoff
++                // stands unless NullThreatVerify is on and a cheaper enemy piece
++                // attacks a dearer piece of the side to move. The option is read
++                // first, so the attack scan does not run when it is off.
++                const bool threat_gate =
++                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+-                // Verification search at high depth guards against zugzwang.
++                // Same reduced depth as the high-depth verification. A threat
++                // confirmation also refuses null moves in that whole search.
++                const bool saved_block = null_blocked_;
++                if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+@@ -1598,6 +1630,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..9a06f89b 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name NullThreatVerify type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,6 +302,10 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "NullThreatVerify") {
++                if (value_text == "true") forge::tune::NullThreatVerify = true;
++                else if (value_text == "false") forge::tune::NullThreatVerify = false;
++                else note_invalid();
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+diff --git a/forge-combo29/tests_r3_06/null_threat_verify_test.cpp b/forge-combo29/tests_r3_06/null_threat_verify_test.cpp
+new file mode 100644
+index 00000000..2ba1b67c
+--- /dev/null
++++ b/forge-combo29/tests_r3_06/null_threat_verify_test.cpp
+@@ -0,0 +1,282 @@
++#include "forge/board.hpp"
++#include "forge/search.hpp"
++#include "forge/uci.hpp"
++
++#include <array>
++#include <cstdint>
++#include <iostream>
++#include <sstream>
++#include <string>
++#include <string_view>
++#include <utility>
++#include <vector>
++
++namespace {
++
++constexpr std::uint64_t ExpectedBench11 = 312866;
++constexpr std::uint64_t ExpectedBench13 = 862329;
++constexpr std::uint64_t ExpectedPerft5 = 4865609;
++constexpr std::string_view OptionLine = "option name NullThreatVerify type check default false";
++
++class CoutCapture {
++public:
++    explicit CoutCapture(std::string& sink) : sink_(sink), old_(std::cout.rdbuf(buffer_.rdbuf())) {}
++    ~CoutCapture() {
++        std::cout.rdbuf(old_);
++        sink_ = buffer_.str();
++    }
++    CoutCapture(const CoutCapture&) = delete;
++    CoutCapture& operator=(const CoutCapture&) = delete;
++
++private:
++    std::string& sink_;
++    std::ostringstream buffer_;
++    std::streambuf* old_;
++};
++
++std::string run_uci(std::string_view script) {
++    std::string output;
++    {
++        std::istringstream input{std::string(script)};
++        CoutCapture capture(output);
++        const int code = forge::uci_loop(input);
++        if (code != 0) std::cerr << "uci_loop returned " << code << '\n';
++    }
++    return output;
++}
++
++int count_option(const std::string& text) {
++    int count = 0;
++    std::istringstream lines(text);
++    std::string line;
++    while (std::getline(lines, line)) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line == OptionLine) ++count;
++    }
++    return count;
++}
++
++std::vector<std::uint64_t> bench_nodes(const std::string& text, int depth) {
++    std::vector<std::uint64_t> found;
++    const std::string prefix = "info string bench depth " + std::to_string(depth) + " nodes ";
++    std::istringstream lines(text);
++    std::string line;
++    while (std::getline(lines, line)) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.compare(0, prefix.size(), prefix) != 0) continue;
++        std::uint64_t nodes = 0;
++        std::istringstream rest(line.substr(prefix.size()));
++        if (rest >> nodes) found.push_back(nodes);
++    }
++    return found;
++}
++
++std::uint64_t perft_total(const std::string& text) {
++    std::uint64_t last = 0;
++    std::istringstream lines(text);
++    std::string line;
++    while (std::getline(lines, line)) {
++        if (!line.empty() && line.back() == '\r') line.pop_back();
++        if (line.rfind("nodes ", 0) != 0) continue;
++        std::uint64_t nodes = 0;
++        std::istringstream rest(line.substr(6));
++        if (rest >> nodes) last = nodes;
++    }
++    return last;
++}
++
++bool move_is_legal(const forge::Board& board, forge::Move move) {
++    if (move.is_none() || !board.is_legal(move)) return false;
++    const forge::MoveList legal = board.legal_moves();
++    for (const forge::Move candidate : legal) {
++        if (candidate == move) return true;
++    }
++    return false;
++}
++
++std::vector<forge::Board> two_hundred_positions() {
++    std::vector<forge::Board> positions;
++    positions.reserve(200);
++    std::uint64_t rng = 0x6A09E667F3BCC909ULL;
++    auto next_word = [&rng]() {
++        rng = rng * 6364136223846793005ULL + 1442695040888963407ULL;
++        return rng;
++    };
++    forge::Board board;
++    (void)board.set_fen(forge::Board::StandardStartFen);
++    int steps_since_reset = 0;
++    while (positions.size() < 200) {
++        forge::MoveList legal = board.legal_moves();
++        const bool reset = legal.empty() || board.halfmove_clock() >= 80 || steps_since_reset >= 24;
++        if (reset) {
++            (void)board.set_fen(forge::Board::StandardStartFen);
++            legal = board.legal_moves();
++            steps_since_reset = 0;
++        }
++        positions.push_back(board);
++        const forge::Move chosen = legal[static_cast<std::size_t>(next_word() % legal.size())];
++        forge::Undo undo;
++        (void)board.make_move(chosen, undo);
++        ++steps_since_reset;
++    }
++    return positions;
++}
++
++int check_threat_predicate() {
++    const std::array<std::pair<std::string_view, bool>, 16> cases{{
++        {forge::Board::StandardStartFen, false},
++        {"8/8/8/4p3/3N4/8/8/4K2k w - - 0 1", true},
++        {"8/8/4n3/8/3B4/8/8/4K2k w - - 0 1", false},
++        {"3r4/8/8/8/3Q4/8/8/4K2k w - - 0 1", true},
++        {"3q4/8/8/8/3R4/8/8/4K2k w - - 0 1", false},
++        {"8/8/8/8/8/8/1k6/R6K w - - 0 1", false},
++        {"8/8/8/4p3/3Q4/8/8/4K2k w - - 0 1", true},
++        {"4k3/8/8/3n4/2P5/8/8/4K3 b - - 0 1", true},
++        {"3r4/8/3p4/8/3Q4/8/8/4K2k w - - 0 1", false},
++        {"8/8/1n6/8/R7/8/8/4K2k w - - 0 1", true},
++        {"8/8/8/8/8/2N5/8/b3K2k w - - 0 1", false},
++        {"r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4", true},
++        {"8/8/8/8/2b5/8/R7/4K2k w - - 0 1", true},
++        {"8/8/8/8/2b5/1P6/R7/4K2k w - - 0 1", false},
++        {"8/8/8/8/8/2n5/8/3QK2k w - - 0 1", true},
++        {"8/8/8/4p3/3P4/8/8/4K2k w - - 0 1", false},
++    }};
++    int failures = 0;
++    for (const auto& item : cases) {
++        forge::Board board;
++        if (!board.set_fen(item.first)) {
++            std::cerr << "FAIL predicate fen rejected " << item.first << '\n';
++            ++failures;
++            continue;
++        }
++        const bool got = forge::cheaper_enemy_attacks_dearer(board);
++        if (got != item.second) {
++            std::cerr << "FAIL predicate " << item.first << " expected " << item.second << " got " << got << '\n';
++            ++failures;
++        }
++    }
++    std::cout << "predicate cases " << cases.size() << " failures " << failures << '\n';
++    return failures;
++}
++
++int search_two_hundred() {
++    if (!forge::tune::NullThreatVerify) {
++        std::cerr << "FAIL NullThreatVerify was not left on before the depth-10 searches\n";
++        return 1;
++    }
++    const std::vector<forge::Board> positions = two_hundred_positions();
++    if (positions.size() != 200) {
++        std::cerr << "FAIL built " << positions.size() << " positions\n";
++        return 1;
++    }
++    forge::Searcher searcher(16, 1);
++    int failures = 0;
++    for (std::size_t i = 0; i < positions.size(); ++i) {
++        if (i % 25 == 0) searcher.clear();
++        forge::SearchLimits limits;
++        limits.depth = 10;
++        const forge::SearchInfo info =
++            searcher.search(positions[i], limits, false, forge::Searcher::TTAccess::Exclusive);
++        if (!move_is_legal(positions[i], info.best_move)) {
++            std::cerr << "FAIL illegal move at " << i << " " << positions[i].fen() << " move "
++                      << forge::Board::move_to_uci(info.best_move) << '\n';
++            ++failures;
++            break;
++        }
++    }
++    std::cout << "depth10 searches " << positions.size() << " illegal " << failures << '\n';
++    return failures;
++}
++
++}  // namespace
++
++int main() {
++    int failures = 0;
++    if (forge::tune::NullThreatVerify) {
++        std::cerr << "FAIL NullThreatVerify default is not false\n";
++        ++failures;
++    }
++
++    const std::string defaults = run_uci(
++        "uci\n"
++        "setoption name Threads value 1\n"
++        "setoption name Hash value 16\n"
++        "setoption name OwnBook value false\n"
++        "isready\n"
++        "bench 11\n"
++        "bench 13\n"
++        "position startpos\n"
++        "go perft 5\n"
++        "setoption name NullThreatVerify value true\n"
++        "bench 13\n"
++        "quit\n");
++
++    if (count_option(defaults) != 1) {
++        std::cerr << "FAIL uci option line count " << count_option(defaults) << '\n';
++        ++failures;
++    }
++    if (defaults.find("unknown option") != std::string::npos ||
++        defaults.find("invalid value") != std::string::npos) {
++        std::cerr << "FAIL uci reported an option error\n";
++        ++failures;
++    }
++    const std::vector<std::uint64_t> bench11 = bench_nodes(defaults, 11);
++    const std::vector<std::uint64_t> bench13 = bench_nodes(defaults, 13);
++    const std::uint64_t perft5 = perft_total(defaults);
++    if (bench11.size() != 1 || bench11[0] != ExpectedBench11) {
++        std::cerr << "FAIL default bench 11\n";
++        ++failures;
++    }
++    if (bench13.size() != 2 || bench13[0] != ExpectedBench13) {
++        std::cerr << "FAIL default bench 13\n";
++        ++failures;
++    }
++    if (perft5 != ExpectedPerft5) {
++        std::cerr << "FAIL default perft 5 " << perft5 << '\n';
++        ++failures;
++    }
++    if (!forge::tune::NullThreatVerify) {
++        std::cerr << "FAIL setoption did not enable NullThreatVerify\n";
++        ++failures;
++    }
++    const std::uint64_t bench13_on = bench13.size() == 2 ? bench13[1] : 0;
++    std::cout << "defaults bench11 " << (bench11.empty() ? 0 : bench11[0]) << " bench13 "
++              << (bench13.empty() ? 0 : bench13[0]) << " perft5 " << perft5 << '\n';
++    std::cout << "NullThreatVerify bench13 " << bench13_on << '\n';
++    if (bench13_on == 0 || bench13_on == ExpectedBench13) {
++        std::cerr << "FAIL bench 13 did not change with NullThreatVerify on\n";
++        ++failures;
++    }
++
++    failures += check_threat_predicate();
++    failures += search_two_hundred();
++
++    forge::tune::NullThreatVerify = false;
++    const std::string restored = run_uci(
++        "setoption name Threads value 1\n"
++        "setoption name Hash value 16\n"
++        "setoption name OwnBook value false\n"
++        "setoption name NullThreatVerify value false\n"
++        "bench 11\n"
++        "bench 13\n"
++        "position startpos\n"
++        "go perft 5\n"
++        "quit\n");
++    const std::vector<std::uint64_t> bench11_back = bench_nodes(restored, 11);
++    const std::vector<std::uint64_t> bench13_back = bench_nodes(restored, 13);
++    const std::uint64_t perft_back = perft_total(restored);
++    std::cout << "restored bench11 " << (bench11_back.empty() ? 0 : bench11_back[0]) << " bench13 "
++              << (bench13_back.empty() ? 0 : bench13_back[0]) << " perft5 " << perft_back << '\n';
++    if (bench11_back.size() != 1 || bench11_back[0] != ExpectedBench11 || bench13_back.size() != 1 ||
++        bench13_back[0] != ExpectedBench13 || perft_back != ExpectedPerft5 || forge::tune::NullThreatVerify) {
++        std::cerr << "FAIL defaults changed after turning NullThreatVerify off\n";
++        ++failures;
++    }
++
++    if (failures != 0) {
++        std::cerr << "FAIL null_threat_verify_test failures " << failures << '\n';
++        return 1;
++    }
++    std::cout << "PASS null_threat_verify_test\n";
++    return 0;
++}
+
+STDERR
+
+EXIT 0 SIGNAL null

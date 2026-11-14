@@ -1,0 +1,250 @@
+    1 #pragma once
+    2 
+    3 #include "forge/board.hpp"
+    4 
+    5 #include <algorithm>
+    6 #include <bit>
+    7 #include <cstdint>
+    8 #include <vector>
+    9 
+   10 // KrkTablebase below is copied verbatim from tests_t12/krk_mate_test.cpp,
+   11 // introduced by commit 0ca7c0e00126fb58fa2bf03a1f69d7632b8b9619.
+   12 // Source blob: 329cad9acfee7e0a88e118911d14298818234244.
+   13 // Only its enclosing namespace differs. This is an independent retrograde
+   14 // algorithm, but it shares Forge board/move/attack primitives. It is not an
+   15 // external tablebase and does not model repetition or the fifty-move rule.
+   16 namespace soak {
+   17 
+   18 // Exact retrograde tablebase for White King + White Rook vs Black King.
+   19 // State index: ((wk * 64 + wr) * 64 + bk) * 2 + stm, where stm = 0 (White), 1 (Black).
+   20 class KrkTablebase {
+   21 public:
+   22     static constexpr std::size_t TotalStates = 64U * 64U * 64U * 2U;
+   23 
+   24     KrkTablebase() : dtm_(TotalStates, -1), legal_(TotalStates, 0) {
+   25         forge::attacks::init();
+   26         build();
+   27     }
+   28 
+   29     [[nodiscard]] int dtm(int wk, int wr, int bk, int stm) const {
+   30         return dtm_[index(wk, wr, bk, stm)];
+   31     }
+   32 
+   33     [[nodiscard]] bool is_legal_state(int wk, int wr, int bk, int stm) const {
+   34         return legal_[index(wk, wr, bk, stm)] != 0;
+   35     }
+   36 
+   37     // Evaluates a White-to-move KRK move from (wk, wr, bk).
+   38     // Returns exact distance-to-mate in plies from the root (>= 1) if the move
+   39     // forces mate, or -1 if the move allows a draw (stalemate or rook loss).
+   40     [[nodiscard]] int move_mate_plies(const forge::Board& root, const forge::Move& move) const {
+   41         if (move.is_none() || !root.is_legal(move)) return -1;
+   42         forge::Board next = root;
+   43         forge::Undo undo;
+   44         if (!next.make_move(move, undo)) return -1;
+   45         if (!next.has_legal_move()) {
+   46             return next.in_check() ? 1 : -1;
+   47         }
+   48         if (next.is_insufficient_material()) return -1;
+   49         const forge::Bitboard wr_bb = next.pieces(forge::White, forge::Rook);
+   50         if (wr_bb == 0) return -1;
+   51         const int wk = next.king_square(forge::White);
+   52         const int bk = next.king_square(forge::Black);
+   53         const int wr = forge::lsb(wr_bb);
+   54         const int child_dtm = dtm(wk, wr, bk, 1);
+   55         if (child_dtm < 0) return -1;
+   56         return 1 + child_dtm;
+   57     }
+   58 
+   59 private:
+   60     std::vector<std::int16_t> dtm_;
+   61     std::vector<std::uint8_t> legal_;
+   62 
+   63     [[nodiscard]] static constexpr std::size_t index(int wk, int wr, int bk, int stm) {
+   64         return ((static_cast<std::size_t>(wk) * 64U + static_cast<std::size_t>(wr)) * 64U +
+   65                 static_cast<std::size_t>(bk)) * 2U + static_cast<std::size_t>(stm);
+   66     }
+   67 
+   68     [[nodiscard]] static bool rook_attacks_bk(int wk, int wr, int bk) {
+   69         return (forge::attacks::rook(wr, forge::square_bb(wk)) & forge::square_bb(bk)) != 0;
+   70     }
+   71 
+   72     void build() {
+   73         for (int wk = 0; wk < 64; ++wk) {
+   74             for (int wr = 0; wr < 64; ++wr) {
+   75                 if (wr == wk) continue;
+   76                 for (int bk = 0; bk < 64; ++bk) {
+   77                     if (bk == wk || bk == wr) continue;
+   78                     if (forge::square_distance(wk, bk) <= 1) continue;
+   79                     const bool bk_checked = rook_attacks_bk(wk, wr, bk);
+   80                     if (!bk_checked) {
+   81                         legal_[index(wk, wr, bk, 0)] = 1;
+   82                     }
+   83                     legal_[index(wk, wr, bk, 1)] = 1;
+   84                 }
+   85             }
+   86         }
+   87 
+   88         // Terminal checkmates (stm == 1, in check, no legal king move or rook capture).
+   89         for (int wk = 0; wk < 64; ++wk) {
+   90             for (int wr = 0; wr < 64; ++wr) {
+   91                 for (int bk = 0; bk < 64; ++bk) {
+   92                     const std::size_t idx = index(wk, wr, bk, 1);
+   93                     if (!legal_[idx]) continue;
+   94                     if (!rook_attacks_bk(wk, wr, bk)) continue;
+   95                     bool has_escape = false;
+   96                     forge::Bitboard moves = forge::attacks::king(bk);
+   97                     while (moves != 0) {
+   98                         const int nbk = forge::pop_lsb(moves);
+   99                         if (forge::square_distance(wk, nbk) <= 1) continue;
+  100                         if (nbk == wr) {
+  101                             has_escape = true;
+  102                             break;
+  103                         }
+  104                         if (!rook_attacks_bk(wk, wr, nbk)) {
+  105                             has_escape = true;
+  106                             break;
+  107                         }
+  108                     }
+  109                     if (!has_escape) dtm_[idx] = 0;
+  110                 }
+  111             }
+  112         }
+  113 
+  114         for (int ply = 1; ply <= 64; ++ply) {
+  115             bool changed = false;
+  116             if ((ply & 1) == 1) {
+  117                 // White to move: wins in `ply` if any legal move reaches a Black state with dtm == ply - 1.
+  118                 for (int wk = 0; wk < 64; ++wk) {
+  119                     for (int wr = 0; wr < 64; ++wr) {
+  120                         for (int bk = 0; bk < 64; ++bk) {
+  121                             const std::size_t idx = index(wk, wr, bk, 0);
+  122                             if (!legal_[idx] || dtm_[idx] >= 0) continue;
+  123                             bool found = false;
+  124                             forge::Bitboard kmoves = forge::attacks::king(wk);
+  125                             while (kmoves != 0) {
+  126                                 const int nwk = forge::pop_lsb(kmoves);
+  127                                 if (nwk == wr || forge::square_distance(nwk, bk) <= 1) continue;
+  128                                 if (dtm_[index(nwk, wr, bk, 1)] == ply - 1) {
+  129                                     found = true;
+  130                                     break;
+  131                                 }
+  132                             }
+  133                             if (!found) {
+  134                                 const forge::Bitboard occ = forge::square_bb(wk) | forge::square_bb(bk);
+  135                                 forge::Bitboard rmoves = forge::attacks::rook(wr, occ);
+  136                                 while (rmoves != 0) {
+  137                                     const int nwr = forge::pop_lsb(rmoves);
+  138                                     if (nwr == wk || nwr == bk) continue;
+  139                                     if (dtm_[index(wk, nwr, bk, 1)] == ply - 1) {
+  140                                         found = true;
+  141                                         break;
+  142                                     }
+  143                                 }
+  144                             }
+  145                             if (found) {
+  146                                 dtm_[idx] = static_cast<std::int16_t>(ply);
+  147                                 changed = true;
+  148                             }
+  149                         }
+  150                     }
+  151                 }
+  152             } else {
+  153                 // Black to move: loses in `ply` iff >= 1 legal move, cannot capture undefended rook,
+  154                 // and every legal move leads to a solved White state (max dtm == ply - 1).
+  155                 for (int wk = 0; wk < 64; ++wk) {
+  156                     for (int wr = 0; wr < 64; ++wr) {
+  157                         for (int bk = 0; bk < 64; ++bk) {
+  158                             const std::size_t idx = index(wk, wr, bk, 1);
+  159                             if (!legal_[idx] || dtm_[idx] >= 0) continue;
+  160                             int legal_count = 0;
+  161                             int worst = -1;
+  162                             bool can_draw = false;
+  163                             forge::Bitboard kmoves = forge::attacks::king(bk);
+  164                             while (kmoves != 0) {
+  165                                 const int nbk = forge::pop_lsb(kmoves);
+  166                                 if (forge::square_distance(wk, nbk) <= 1) continue;
+  167                                 if (nbk == wr) {
+  168                                     can_draw = true;
+  169                                     break;
+  170                                 }
+  171                                 if (rook_attacks_bk(wk, wr, nbk)) continue;
+  172                                 ++legal_count;
+  173                                 const int child = dtm_[index(wk, wr, nbk, 0)];
+  174                                 if (child < 0) {
+  175                                     can_draw = true;
+  176                                     break;
+  177                                 }
+  178                                 worst = std::max(worst, child);
+  179                             }
+  180                             if (!can_draw && legal_count > 0 && worst == ply - 1) {
+  181                                 dtm_[idx] = static_cast<std::int16_t>(ply);
+  182                                 changed = true;
+  183                             }
+  184                         }
+  185                     }
+  186                 }
+  187             }
+  188             if (!changed) break;
+  189         }
+  190     }
+  191 };
+  192 
+  193 struct KrkRootAssessment {
+  194     bool supported = false;
+  195     bool legal = false;
+  196     int dtm_plies = -1; // Exact game-theoretic DTM; -1 means draw if supported/legal.
+  197 };
+  198 
+  199 struct KrkMoveAssessment {
+  200     bool supported = false;
+  201     bool root_legal = false;
+  202     bool move_legal = false;
+  203     int root_dtm_plies = -1;
+  204     int move_dtm_plies = -1; // Includes the candidate move; -1 means draw if legal.
+  205     bool loses_forced_mate = false;
+  206 };
+  207 
+  208 // The supplied soak KRK roots have White K+R, Black K, White to move, a
+  209 // zero halfmove clock and no castling/en-passant. Other inputs are explicitly
+  210 // unsupported, including KQK/KBBK, Black attackers and Black-to-move roots.
+  211 // Callers use fresh positions: history-dependent repetition is not assessed.
+  212 class KrkOracle {
+  213 public:
+  214     [[nodiscard]] KrkRootAssessment assess_root(const forge::Board& root) const {
+  215         KrkRootAssessment result;
+  216         const auto wk = root.pieces(forge::White, forge::King);
+  217         const auto wr = root.pieces(forge::White, forge::Rook);
+  218         const auto bk = root.pieces(forge::Black, forge::King);
+  219         if (root.side_to_move() != forge::White || root.castling_rights() != 0 ||
+  220             root.ep_square() != -1 || root.halfmove_clock() != 0 ||
+  221             std::popcount(wk) != 1 || std::popcount(wr) != 1 || std::popcount(bk) != 1 ||
+  222             root.occupied() != (wk | wr | bk)) return result;
+  223         result.supported = true;
+  224         result.legal = tablebase_.is_legal_state(forge::lsb(wk), forge::lsb(wr), forge::lsb(bk), 0);
+  225         if (result.legal)
+  226             result.dtm_plies = tablebase_.dtm(forge::lsb(wk), forge::lsb(wr), forge::lsb(bk), 0);
+  227         return result;
+  228     }
+  229 
+  230     [[nodiscard]] KrkMoveAssessment assess_move(const forge::Board& root,
+  231                                                  const forge::Move& move) const {
+  232         const auto assessment = assess_root(root);
+  233         KrkMoveAssessment result;
+  234         result.supported = assessment.supported;
+  235         result.root_legal = assessment.legal;
+  236         result.root_dtm_plies = assessment.dtm_plies;
+  237         if (!result.supported || !result.root_legal || move.is_none() || !root.is_legal(move))
+  238             return result;
+  239         result.move_legal = true;
+  240         result.move_dtm_plies = tablebase_.move_mate_plies(root, move);
+  241         result.loses_forced_mate = result.root_dtm_plies > 0 && result.move_dtm_plies < 0;
+  242         return result;
+  243     }
+  244 
+  245 private:
+  246     KrkTablebase tablebase_;
+  247 };
+  248 
+  249 } // namespace soak
+  250 

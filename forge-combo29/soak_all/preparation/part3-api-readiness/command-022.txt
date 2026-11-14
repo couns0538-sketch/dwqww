@@ -1,0 +1,85 @@
+{"n":22,"argv":["sed","-n","100,180p","app/src/engine/uci_engine.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-022.txt"}
+STDOUT
+}
+
+bool UciEngine::position(const std::vector<std::string_view>& moves, const std::string& fen) {
+    std::string command;
+
+    if (fen == "startpos") {
+        command = "position startpos";
+    } else {
+        command = fmt::format("position fen {}", fen);
+    }
+
+    if (!moves.empty()) {
+        command += " moves";
+
+        for (std::string_view move : moves) {
+            fmt::format_to(std::back_inserter(command), " {}", move);
+        }
+    }
+
+    return writeEngine(command);
+}
+
+bool UciEngine::go(const TimeControl& our_tc, const TimeControl& enemy_tc, chess::Color stm) {
+    std::string input = "go";
+
+    if (config_.limit.nodes) {
+        fmt::format_to(std::back_inserter(input), " nodes {}", config_.limit.nodes);
+    }
+
+    if (config_.limit.plies) {
+        fmt::format_to(std::back_inserter(input), " depth {}", config_.limit.plies);
+    }
+
+    // We cannot use st and tc together
+    if (our_tc.isFixedTime()) {
+        fmt::format_to(std::back_inserter(input), " movetime {}", our_tc.getFixedTime());
+        return writeEngine(input);
+    }
+
+    const auto& white = stm == chess::Color::WHITE ? our_tc : enemy_tc;
+    const auto& black = stm == chess::Color::WHITE ? enemy_tc : our_tc;
+
+    if (our_tc.isTimed() || our_tc.isIncrement()) {
+        if (white.isTimed() || white.isIncrement()) {
+            fmt::format_to(std::back_inserter(input), " wtime {}", white.getTimeLeft());
+        }
+
+        if (black.isTimed() || black.isIncrement()) {
+            fmt::format_to(std::back_inserter(input), " btime {}", black.getTimeLeft());
+        }
+
+        if (white.isIncrement()) {
+            fmt::format_to(std::back_inserter(input), " winc {}", white.getIncrement());
+        }
+
+        if (black.isIncrement()) {
+            fmt::format_to(std::back_inserter(input), " binc {}", black.getIncrement());
+        }
+    }
+
+    if (our_tc.isMoves()) {
+        fmt::format_to(std::back_inserter(input), " movestogo {}", our_tc.getMovesLeft());
+    }
+
+    return writeEngine(input);
+}
+
+bool UciEngine::ucinewgame() {
+    LOG_TRACE_THREAD("Sending ucinewgame to engine {}", config_.name);
+    auto res = writeEngine("ucinewgame");
+
+    if (!res) {
+        LOG_WARN_THREAD("Failed to send ucinewgame to engine {}", config_.name);
+        return false;
+    }
+
+    return isready(getUciNewGameTime()).code == process::Status::OK;
+}
+
+std::optional<std::string> UciEngine::idName() {
+    if (initialized_) return id_name_;
+
+STDERR

@@ -1,0 +1,330 @@
+diff --git a/forge-combo29/REPORT_r3_07.md b/forge-combo29/REPORT_r3_07.md
+new file mode 100644
+index 00000000..3051f37b
+--- /dev/null
++++ b/forge-combo29/REPORT_r3_07.md
+@@ -0,0 +1,45 @@
++# NullSeeVeto
++
++`NullSeeVeto` is one UCI check option. It defaults to false. With it left off, null-move pruning is the same search as before.
++
++The rule comes from this task, not from another engine. Null-move pruning cuts a node off when the side to move can pass and the position still fails high. That cutoff is refused when the opponent already has a legal capture of a dearer piece by a cheaper one, and this engine's static exchange evaluation does not call that capture a material loss (`see_ge` at threshold 0). A piece can be attacked by a cheaper piece and still be safe: if the exchange loses material for the capturer, the cutoff stays allowed. The prices are this engine's `SeePieceValue`. Knights and bishops share that price, so one taking the other is not a cheaper-for-dearer capture. The king is ranked above the queen because `SeePieceValue` stores 0 for the king as a sentinel inside the exchange walk, not as a material price. No table, constant, or routine was copied from another engine.
++
++The check runs only when a null-move cutoff would otherwise be attempted, and only when the option is on. The board is restored before search continues. Turning the option off does not call the check.
++
++## Default pins
++
++Threads 1, Hash 16, OwnBook false, every other option at its default. Measured on the release build (`cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`) before the source change, and again after it.
++
++Before the change, at `e04556dd`:
++
++- bench 11: 312866
++- bench 13: 862329
++- `go perft 5` from the start position: 4865609
++
++After the change, option off (also after turning the option on and then off, and again on a Clang address/undefined build):
++
++- bench 11: 312866
++- bench 13: 862329
++- `go perft 5` from the start position: 4865609
++
++An invalid `setoption name NullSeeVeto value maybe` leaves the option off. The next bench 13 stayed 862329.
++
++## Option on
++
++`setoption name NullSeeVeto value true`, then bench 13: 929140 nodes. Same count on the Clang sanitizer binary. That is a different tree from 862329, so the option is live. This is not a strength result.
++
++## Tests
++
++`forge-combo29/tests_r3_07/null_see_veto_test.cpp` checks the predicate on constructed positions, including a loose queen taken by a knight, a rook defended by a pawn whose exchange still wins for the knight, and a rook on the promotion rank whose recapturing pawn promotes and whose exchange loses. The last of those must not veto. Equal captures, a bishop taking a pawn, a pinned capture, and an en-passant position must not veto either. Each of 200 searches to depth 10, with the option on, Hash 16, and one thread, returned a best move that was in the legal list. Every move of the returned principal variation was legal in sequence. The positions are a deterministic walk from the start position.
++
++The same test was built with Clang 18.1.3 `-fsanitize=address,undefined -fno-omit-frame-pointer` against objects built the same way, and run with halt-on-error for both sanitizers and leak detection on. It printed `positions ok`, `searches 200 legal`, and `NullSeeVeto tests passed`, and exited 0 with no sanitizer diagnostic. An earlier g++ 13.3.0 build with the same sanitizers also exited 0 on 200 depth-10 searches of this search code.
++
++Engine diff against `e04556dd`: 39 insertions and 4 deletions in `include/forge/search.hpp`, `src/search.cpp`, and `src/uci.cpp`. `CMakeLists.txt` was not changed.
++
++Repeated at 14:01 UTC and again at 14:37 UTC on the same release binary: bench 11 was 312866, bench 13 was 862329, and start-position perft 5 was 4865609, both before `NullSeeVeto` was enabled and after it was set back to false. bench 13 with the option on was 929140 on both repeats. The Clang address/undefined test printed `searches 200 legal` with exit 0 and no sanitizer diagnostic on both repeats.
++
++Not verified: playing strength, match score, or whether 929140 is better or worse than 862329. No games were played.
++
++option name NullSeeVeto type check default false
++
++bench 13 with NullSeeVeto on: 929140
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..b1cbc058 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,11 +270,17 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// Side to move is the defender. True when the opponent has a legal capture of a
++// dearer piece by a cheaper piece and static exchange evaluation does not call
++// that capture a material loss. A capture SEE calls losing is not a threat.
++[[nodiscard]] bool null_see_veto_threat(Board& board);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..79f8ba02 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool NullSeeVeto = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -869,6 +870,30 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
++bool null_see_veto_threat(Board& board) {
++    // Same prices as SEE, except the king. SeePieceValue prices a king at 0
++    // because the exchange walk treats it as a sentinel, not as the cheapest piece.
++    constexpr int KingWorth = 100000;
++    auto worth = [](int type) {
++        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
++    };
++    NullUndo undo;
++    board.make_null_move(undo);
++    bool threat = false;
++    const MoveList moves = board.pseudo_legal_moves(true);
++    for (const Move& move : moves) {
++        if (!move.is_capture()) continue;
++        const int attacker = worth(piece_type(board.moved_piece(move)));
++        const int victim = worth(piece_type(board.captured_piece(move)));
++        if (attacker >= victim) continue;
++        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        threat = true;
++        break;
++    }
++    board.unmake_null_move(undo);
++    return threat;
++}
++
+ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->dirty.count = 0;
+     (ss + 1)->accumulator.valid = false;
+@@ -1281,7 +1306,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
++            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..0a38b871 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name NullSeeVeto type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,10 +302,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
++                       name == "LmrDeeperShallower" || name == "NullSeeVeto") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::NullSeeVeto;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {
+diff --git a/forge-combo29/tests_r3_07/null_see_veto_test.cpp b/forge-combo29/tests_r3_07/null_see_veto_test.cpp
+new file mode 100644
+index 00000000..526a47c6
+--- /dev/null
++++ b/forge-combo29/tests_r3_07/null_see_veto_test.cpp
+@@ -0,0 +1,169 @@
++#include "forge/search.hpp"
++
++#include <iostream>
++#include <string>
++#include <string_view>
++
++namespace {
++
++int failures = 0;
++
++void expect(bool condition, std::string_view message) {
++    if (condition) return;
++    std::cerr << "fail: " << message << '\n';
++    ++failures;
++}
++
++struct Rng {
++    std::uint64_t state;
++    std::uint64_t next() {
++        std::uint64_t x = state;
++        x ^= x << 7;
++        x ^= x >> 9;
++        x ^= x << 8;
++        state = x;
++        return x;
++    }
++};
++
++int enemy_exchange(forge::Board& board, std::string_view uci) {
++    forge::NullUndo undo;
++    board.make_null_move(undo);
++    int score = 999999;
++    bool found = false;
++    const forge::MoveList moves = board.pseudo_legal_moves(true);
++    for (const forge::Move& move : moves) {
++        if (forge::Board::move_to_uci(move) != uci) continue;
++        found = board.is_legal(move);
++        score = board.static_exchange(move);
++        break;
++    }
++    board.unmake_null_move(undo);
++    if (!found) return 999999;
++    return score;
++}
++
++void expect_threat(const char* fen, bool threat, const char* label) {
++    forge::Board board;
++    std::string error;
++    expect(board.set_fen(fen, &error), label);
++    expect(!board.in_check(forge::White) && !board.in_check(forge::Black), label);
++    const std::string before = board.fen();
++    const bool got = forge::null_see_veto_threat(board);
++    expect(board.fen() == before, label);
++    expect(got == threat, label);
++    if (got != threat) std::cerr << "  fen " << fen << " threat " << got << '\n';
++}
++
++void expect_exchange(const char* fen, const char* uci, bool loses, const char* label) {
++    forge::Board board;
++    expect(board.set_fen(fen), label);
++    const int score = enemy_exchange(board, uci);
++    expect(score != 999999, label);
++    expect(loses ? score < 0 : score >= 0, label);
++    if ((loses && score >= 0) || (!loses && score < 0) || score == 999999) {
++        std::cerr << "  " << label << " see " << score << " move " << uci << '\n';
++    }
++}
++
++void check_positions() {
++    expect(!forge::tune::NullSeeVeto, "option starts off");
++    expect_threat(std::string(forge::Board::StandardStartFen).c_str(), false, "start has no lesser capture");
++    expect_threat("4k3/8/8/8/1n6/8/Q7/4K3 w - - 0 1", true, "knight takes a loose queen");
++    expect_exchange("4k3/8/8/8/1n6/8/Q7/4K3 w - - 0 1", "b4a2", false, "loose queen exchange wins");
++    expect_threat("4k3/8/8/3q4/8/8/8/4K2Q w - - 0 1", false, "queen takes queen is not cheaper");
++    expect_threat("4k3/8/8/8/8/1b6/P7/4K3 w - - 0 1", false, "bishop takes a pawn is not dearer");
++    expect_threat("k7/8/8/8/2B5/n7/8/7K w - - 0 1", false, "knight takes bishop is the same price");
++    expect_threat("8/2Q5/4k3/3n4/2B5/8/8/K7 w - - 0 1", false, "pinned knight capture is illegal");
++    expect_threat("8/2k5/8/2n5/4R3/3P4/8/4K3 w - - 0 1", true, "defended rook still loses to the knight");
++    expect_exchange("8/2k5/8/2n5/4R3/3P4/8/4K3 w - - 0 1", "c5e4", false, "pawn defence does not save the rook");
++    expect_threat("R7/4k3/1n6/8/8/8/8/4K3 w - - 0 1", true, "loose rook on the last rank");
++    expect_exchange("R7/4k3/1n6/8/8/8/8/4K3 w - - 0 1", "b6a8", false, "loose rook exchange wins");
++    expect_threat("R7/1P2k3/1n6/8/8/8/8/4K3 w - - 0 1", false, "promoting pawn makes the rook safe");
++    expect_exchange("R7/1P2k3/1n6/8/8/8/8/4K3 w - - 0 1", "b6a8", true, "promoting recapture loses for the knight");
++    expect_threat("4k3/8/8/p7/1Q6/8/8/4K3 w - - 0 1", true, "pawn takes a loose queen");
++    expect_exchange("4k3/8/8/p7/1Q6/8/8/4K3 w - - 0 1", "a5b4", false, "pawn takes queen wins the exchange");
++    expect_threat("4k3/8/8/Q7/8/8/r7/7K w - - 0 1", true, "rook takes a loose queen");
++    expect_exchange("4k3/8/8/Q7/8/8/r7/7K w - - 0 1", "a2a5", false, "rook takes queen wins the exchange");
++    expect_threat("4k3/8/8/7K/q7/8/8/R7 w - - 0 1", false, "queen takes a rook is not cheaper");
++    expect_threat("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", false, "en passant is not a cheaper capture");
++}
++
++void check_searches() {
++    forge::tune::NullSeeVeto = true;
++    forge::Searcher searcher(16, 1);
++    Rng rng{0x5ee0d011ULL};
++    int done = 0;
++    while (done < 200) {
++        forge::Board board;
++        expect(board.set_fen(forge::Board::StandardStartFen), "start fen");
++        searcher.clear();
++        for (int ply = 0; ply < 24 && done < 200; ++ply) {
++            const forge::MoveList legal = board.legal_moves();
++            if (legal.empty()) break;
++            forge::SearchLimits limits;
++            limits.depth = 10;
++            const forge::SearchInfo info = searcher.search(
++                board, limits, false, forge::Searcher::TTAccess::Exclusive);
++            bool listed = false;
++            for (const forge::Move& move : legal) {
++                if (move == info.best_move) listed = true;
++            }
++            if (!listed || info.best_move.is_none() || !board.is_legal(info.best_move)) {
++                std::cerr << "fail: illegal move " << forge::Board::move_to_uci(info.best_move)
++                          << " fen " << board.fen() << " search " << done << '\n';
++                ++failures;
++                return;
++            }
++            forge::Board line = board;
++            for (const forge::Move& pv_move : info.pv) {
++                bool pv_listed = false;
++                const forge::MoveList pv_legal = line.legal_moves();
++                for (const forge::Move& candidate : pv_legal) {
++                    if (candidate == pv_move) pv_listed = true;
++                }
++                if (!pv_listed || !line.is_legal(pv_move)) {
++                    std::cerr << "fail: illegal pv move " << forge::Board::move_to_uci(pv_move)
++                              << " fen " << line.fen() << " search " << done << '\n';
++                    ++failures;
++                    return;
++                }
++                forge::Undo pv_undo;
++                if (!line.make_move(pv_move, pv_undo)) {
++                    std::cerr << "fail: pv move rejected " << forge::Board::move_to_uci(pv_move)
++                              << " search " << done << '\n';
++                    ++failures;
++                    return;
++                }
++            }
++            ++done;
++            if (done % 40 == 0) std::cout << "searches " << done << '\n';
++            const forge::Move played = legal[static_cast<std::size_t>(rng.next() % legal.size())];
++            forge::Undo undo;
++            if (!board.make_move(played, undo)) {
++                std::cerr << "fail: could not play " << forge::Board::move_to_uci(played) << '\n';
++                ++failures;
++                return;
++            }
++        }
++    }
++    std::cout << "searches " << done << " legal\n";
++}
++
++}  // namespace
++
++int main() {
++    check_positions();
++    if (failures != 0) {
++        std::cerr << failures << " position failures\n";
++        return 1;
++    }
++    std::cout << "positions ok\n";
++    check_searches();
++    if (failures != 0) {
++        std::cerr << failures << " search failures\n";
++        return 1;
++    }
++    std::cout << "NullSeeVeto tests passed\n";
++    return 0;
++}

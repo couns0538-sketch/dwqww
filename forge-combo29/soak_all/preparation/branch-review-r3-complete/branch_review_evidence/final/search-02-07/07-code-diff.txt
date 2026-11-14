@@ -1,0 +1,104 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..b1cbc058 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,11 +270,17 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// Side to move is the defender. True when the opponent has a legal capture of a
++// dearer piece by a cheaper piece and static exchange evaluation does not call
++// that capture a material loss. A capture SEE calls losing is not a threat.
++[[nodiscard]] bool null_see_veto_threat(Board& board);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..79f8ba02 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool NullSeeVeto = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -869,6 +870,30 @@ void Worker::record_move(SearchStack* ss, const Board& board, const Move& move)
+     (ss + 1)->runtime_psqt.valid = false;
+ }
+ 
++bool null_see_veto_threat(Board& board) {
++    // Same prices as SEE, except the king. SeePieceValue prices a king at 0
++    // because the exchange walk treats it as a sentinel, not as the cheapest piece.
++    constexpr int KingWorth = 100000;
++    auto worth = [](int type) {
++        return type == King ? KingWorth : SeePieceValue[static_cast<std::size_t>(type)];
++    };
++    NullUndo undo;
++    board.make_null_move(undo);
++    bool threat = false;
++    const MoveList moves = board.pseudo_legal_moves(true);
++    for (const Move& move : moves) {
++        if (!move.is_capture()) continue;
++        const int attacker = worth(piece_type(board.moved_piece(move)));
++        const int victim = worth(piece_type(board.captured_piece(move)));
++        if (attacker >= victim) continue;
++        if (!board.is_legal(move) || !board.see_ge(move, 0)) continue;
++        threat = true;
++        break;
++    }
++    board.unmake_null_move(undo);
++    return threat;
++}
++
+ void Worker::record_null_move(SearchStack* ss) {
+     (ss + 1)->dirty.count = 0;
+     (ss + 1)->accumulator.valid = false;
+@@ -1281,7 +1306,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+-            !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
++            !(tt_hit && tt_bound == BoundUpper && tt_score < beta) &&
++            !(tune::NullSeeVeto && null_see_veto_threat(board))) {
+             ++null_tries_;
+             const int reduction = tune::NullMoveBase + depth / tune::NullMoveDepthDivisor +
+                                   std::min((eval - beta) / tune::NullMoveEvalDivisor, 3);
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..0a38b871 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name NullSeeVeto type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,10 +302,12 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
+-            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
++            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
++                       name == "LmrDeeperShallower" || name == "NullSeeVeto") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+-                                                           : &forge::tune::LmrDeeperShallower;
++                             : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
++                                                           : &forge::tune::NullSeeVeto;
+                 if (value_text == "true" || value_text == "false") {
+                     *target = value_text == "true";
+                 } else {

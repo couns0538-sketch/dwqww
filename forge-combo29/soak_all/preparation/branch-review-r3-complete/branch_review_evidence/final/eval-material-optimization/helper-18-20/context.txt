@@ -1,0 +1,767 @@
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/src/search.cpp
++ nl -ba
++ sed -n 430,870p
+   430	        entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+   431	    }
+   432	}
+   433	#endif
+   434	
+   435	int TranspositionTable::hashfull() const {
+   436	    int count = 0;
+   437	    const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+   438	    for (std::size_t i = 0; i < sample; ++i) {
+   439	        const auto lock = lock_stripe(i);
+   440	        for (const TTEntry& entry : clusters_[i].entries) {
+   441	            if (entry.occupied() && entry.generation() == generation_) ++count;
+   442	        }
+   443	    }
+   444	    return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+   445	}
+   446	
+   447	// ---------------------------------------------------------------------------
+   448	// Move picker
+   449	
+   450	class MovePicker {
+   451	public:
+   452	    enum class Mode { Main, Quiescence };
+   453	
+   454	    MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)
+   455	        : board_(board), searcher_(searcher), ss_(ss), tt_move_(tt_move) {
+   456	        const bool in_check = board.in_check();
+   457	        if (!tt_move_.is_none() && !board_.is_pseudo_legal(tt_move_)) tt_move_ = Move::none();
+   458	        if (mode == Mode::Quiescence && !in_check && !tt_move_.is_none() && !tt_move_.is_capture() &&
+   459	            !tt_move_.is_promotion()) {
+   460	            tt_move_ = Move::none();
+   461	        }
+   462	        if (in_check) stage_ = tt_move_.is_none() ? EvasionGenerate : EvasionTT;
+   463	        else if (mode == Mode::Quiescence) stage_ = tt_move_.is_none() ? QsGenerate : QsTT;
+   464	        else stage_ = tt_move_.is_none() ? GenerateCaptures : MainTT;
+   465	        if (ss != nullptr) {
+   466	            killers_ = ss->killers;
+   467	            const SearchStack* previous = ss - 1;
+   468	            if (!previous->current_move.is_none() && previous->moved_piece != Empty) {
+   469	                counter_ = (*searcher_.counter_moves_)[static_cast<std::size_t>(previous->moved_piece)][previous->current_move.to];
+   470	            }
+   471	        }
+   472	    }
+   473	
+   474	    [[nodiscard]] Move next(bool skip_quiets) {
+   475	        while (true) {
+   476	            switch (stage_) {
+   477	            case MainTT:
+   478	            case QsTT:
+   479	            case EvasionTT:
+   480	                stage_ = static_cast<Stage>(stage_ + 1);
+   481	                return tt_move_;
+   482	
+   483	            case GenerateCaptures:
+   484	                generate_captures();
+   485	                stage_ = GoodCaptures;
+   486	                [[fallthrough]];
+   487	            case GoodCaptures:
+   488	                while (index_ < count_) {
+   489	                    const Move move = pick_best();
+   490	                    if (move == tt_move_) continue;
+   491	                    if (!board_.see_ge(move, -move_score_threshold(move))) {
+   492	#if FORGE_SDK_BADCAP_PREFIX
+   493	                        // bad_count_ < index_: this slot's move has already been handed out (or skipped).
+   494	                        moves_[bad_count_++].move = move;
+   495	#else
+   496	                        bad_captures_[bad_count_++] = move;
+   497	#endif
+   498	                        continue;
+   499	                    }
+   500	                    return move;
+   501	                }
+   502	                stage_ = Killer1;
+   503	                [[fallthrough]];
+   504	            case Killer1:
+   505	                stage_ = Killer2;
+   506	                if (!skip_quiets && is_valid_quiet(killers_[0])) return killers_[0];
+   507	                [[fallthrough]];
+   508	            case Killer2:
+   509	                stage_ = CounterMove;
+   510	                if (!skip_quiets && is_valid_quiet(killers_[1]) && killers_[1] != killers_[0]) return killers_[1];
+   511	                [[fallthrough]];
+   512	            case CounterMove:
+   513	                stage_ = GenerateQuiets;
+   514	                if (!skip_quiets && is_valid_quiet(counter_) && counter_ != killers_[0] && counter_ != killers_[1]) {
+   515	                    return counter_;
+   516	                }
+   517	                [[fallthrough]];
+   518	            case GenerateQuiets:
+   519	                if (!skip_quiets) generate_quiets();
+   520	                stage_ = QuietMoves;
+   521	                [[fallthrough]];
+   522	            case QuietMoves:
+   523	                if (!skip_quiets) {
+   524	                    while (index_ < count_) {
+   525	                        const Move move = pick_best();
+   526	                        if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+   527	                        return move;
+   528	                    }
+   529	                }
+   530	                stage_ = BadCaptures;
+   531	                bad_index_ = 0;
+   532	                [[fallthrough]];
+   533	            case BadCaptures:
+   534	#if FORGE_SDK_BADCAP_PREFIX
+   535	                if (bad_index_ < bad_count_) return moves_[bad_index_++].move;
+   536	#else
+   537	                if (bad_index_ < bad_count_) return bad_captures_[bad_index_++];
+   538	#endif
+   539	                return Move::none();
+   540	
+   541	            case QsGenerate:
+   542	                generate_captures();
+   543	                stage_ = QsCaptures;
+   544	                [[fallthrough]];
+   545	            case QsCaptures:
+   546	                while (index_ < count_) {
+   547	                    const Move move = pick_best();
+   548	                    if (move == tt_move_) continue;
+   549	                    return move;
+   550	                }
+   551	                return Move::none();
+   552	
+   553	            case EvasionGenerate:
+   554	                generate_evasions();
+   555	                stage_ = Evasions;
+   556	                [[fallthrough]];
+   557	            case Evasions:
+   558	                while (index_ < count_) {
+   559	                    const Move move = pick_best();
+   560	                    if (move == tt_move_) continue;
+   561	                    return move;
+   562	                }
+   563	                return Move::none();
+   564	            }
+   565	        }
+   566	    }
+   567	
+   568	    // Valid for the move just returned by next(), until the next next() call.
+   569	    // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
+   570	    [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
+   571	
+   572	private:
+   573	    enum Stage : int {
+   574	        MainTT, GenerateCaptures, GoodCaptures, Killer1, Killer2, CounterMove, GenerateQuiets, QuietMoves, BadCaptures,
+   575	        QsTT, QsGenerate, QsCaptures,
+   576	        EvasionTT, EvasionGenerate, Evasions
+   577	    };
+   578	    struct Scored {
+   579	        Move move;
+   580	        int score;
+   581	    };
+   582	
+   583	    const Board& board_;
+   584	    const Worker& searcher_;
+   585	    const SearchStack* ss_;
+   586	    Move tt_move_;
+   587	    std::array<Move, 2> killers_{};
+   588	    Move counter_{};
+   589	    Stage stage_;
+   590	#if FORGE_SPD_NO_ZERO_MOVELISTS
+   591	    // Every slot read is written first (moves_[index_ < count_], bad_captures_
+   592	    // [bad_index_ < bad_count_], check_squares_[1..6] after init_check_squares):
+   593	    // no zero fill at construction.
+   594	    std::array<Scored, 256> moves_;
+   595	#else
+   596	    std::array<Scored, 256> moves_{};
+   597	#endif
+   598	    std::size_t index_ = 0;
+   599	    std::size_t count_ = 0;
+   600	    // Leftmost highest score of the list just built. The first pick is that
+   601	    // move; later picks scan, because swapping the winner changes tie order.
+   602	    bool seeded_ = false;
+   603	    std::size_t seeded_at_ = 0;
+   604	    int seeded_score_ = 0;
+   605	#if FORGE_SDK_BADCAP_PREFIX
+   606	    // Losing captures live in moves_[0, bad_count_).
+   607	#elif FORGE_SPD_NO_ZERO_MOVELISTS
+   608	    // Same capacity as the generator. A legal position can have more than 64
+   609	    // SEE-losing captures, and every one of them is stored.
+   610	    std::array<Move, MoveList::Capacity> bad_captures_;
+   611	#else
+   612	    std::array<Move, MoveList::Capacity> bad_captures_{};
+   613	#endif
+   614	    std::size_t bad_count_ = 0;
+   615	    std::size_t bad_index_ = 0;
+   616	    MoveList buffer_;
+   617	    std::size_t list_start_ = 0;
+   618	    bool sorted_ = false;
+   619	#if FORGE_SPD_NO_ZERO_MOVELISTS
+   620	    std::array<Bitboard, 7> check_squares_;
+   621	#else
+   622	    std::array<Bitboard, 7> check_squares_{};
+   623	#endif
+   624	
+   625	    // Quiet/evasion generation are mutually exclusive stages, each reached at most once.
+   626	    void init_check_squares() {
+   627	        const Color them = opposite(board_.side_to_move());
+   628	        const int enemy_king = board_.king_square(them);
+   629	        const Bitboard occupancy = board_.occupied();
+   630	        check_squares_[Pawn] = attacks::pawn(them, enemy_king);
+   631	        check_squares_[Knight] = attacks::knight(enemy_king);
+   632	        check_squares_[Bishop] = attacks::bishop(enemy_king, occupancy);
+   633	        check_squares_[Rook] = attacks::rook(enemy_king, occupancy);
+   634	        check_squares_[Queen] = check_squares_[Bishop] | check_squares_[Rook];
+   635	        check_squares_[King] = 0;
+   636	    }
+   637	
+   638	    [[nodiscard]] bool direct_check(Move move) const {
+   639	        const int type = piece_type(board_.moved_piece(move));
+   640	        return (check_squares_[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0;
+   641	    }
+   642	
+   643	#if FORGE_SEARCH_SPEED2
+   644	    // Quiet score = quiet_history_sum() + 12000 for a direct check; the history row and continuation tables
+   645	    // are fixed for one generation, so they are read once, and the moved piece once per move.
+   646	    struct QuietScorer {
+   647	        const std::array<std::array<std::int16_t, 64>, 64>& main;
+   648	        const PieceToHistory* cont1;
+   649	        const PieceToHistory* cont2;
+   650	        const PieceToHistory* cont4;
+   651	        const Board& board;
+   652	
+   653	        QuietScorer(const Board& b, const Worker& searcher, const SearchStack* ss)
+   654	            : main((*searcher.main_history_)[static_cast<std::size_t>(b.side_to_move())]),
+   655	              cont1(ss != nullptr ? (ss - 1)->continuation : nullptr),
+   656	              cont2(ss != nullptr ? (ss - 2)->continuation : nullptr),
+   657	              cont4(tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()
+   658	                        ? (ss - 4)->continuation : nullptr),
+   659	              board(b) {}
+   660	
+   661	        [[nodiscard]] int score(Move move, const std::array<Bitboard, 7>& check_squares) const {
+   662	            const Piece piece = board.piece_at(move.from);
+   663	            int value = quiet_history_sum(main, cont1, cont2, cont4, piece, move);
+   664	            if ((check_squares[static_cast<std::size_t>(piece_type(piece))] & square_bb(move.to)) != 0) value += 12000;
+   665	            return value;
+   666	        }
+   667	    };
+   668	#endif
+   669	
+   670	    [[nodiscard]] static int move_score_threshold(Move) { return 0; }
+   671	
+   672	    [[nodiscard]] bool is_valid_quiet(Move move) const {
+   673	        return !move.is_none() && move != tt_move_ && !move.is_capture() && !move.is_promotion() &&
+   674	               board_.is_pseudo_legal(move);
+   675	    }
+   676	
+   677	    // Most nodes need only the first few moves: select those on demand and
+   678	    // sort the remainder once if the search gets that far.
+   679	    // The selection keeps the lowest index on a tie (`>`), which is what the
+   680	    // following move order depends on. Chunks of four compare inside the chunk
+   681	    // first so the running best is not a loop-carried load on every move.
+   682	    [[nodiscard]] Move pick_best() {
+   683	        if (!sorted_) {
+   684	            if (index_ - list_start_ < 4) {
+   685	                if (seeded_ && index_ == list_start_) {
+   686	                    if (seeded_at_ != index_) std::swap(moves_[index_], moves_[seeded_at_]);
+   687	                    seeded_ = false;
+   688	                    return moves_[index_++].move;
+   689	                }
+   690	                std::size_t best = index_;
+   691	                int best_score = moves_[best].score;
+   692	                std::size_t i = index_ + 1;
+   693	                const std::size_t n = count_;
+   694	#if defined(__AVX2__)
+   695	                static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
+   696	                while (i + 4 <= n) {
+   697	                    const __m256i packed = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&moves_[i]));
+   698	                    const __m256i lanes = _mm256_setr_epi32(1, 3, 5, 7, 0, 2, 4, 6);
+   699	                    const __m128i scores = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(packed, lanes));
+   700	                    const __m128i swap_halves = _mm_shuffle_epi32(scores, _MM_SHUFFLE(1, 0, 3, 2));
+   701	                    __m128i folded = _mm_max_epi32(scores, swap_halves);
+   702	                    folded = _mm_max_epi32(folded, _mm_shuffle_epi32(folded, _MM_SHUFFLE(2, 3, 0, 1)));
+   703	                    const int chunk_max = _mm_cvtsi128_si32(folded);
+   704	                    if (chunk_max > best_score) {
+   705	                        const __m128i equal = _mm_cmpeq_epi32(scores, _mm_set1_epi32(chunk_max));
+   706	                        const int mask = _mm_movemask_ps(_mm_castsi128_ps(equal));
+   707	                        best = i + static_cast<std::size_t>(__builtin_ctz(mask));
+   708	                        best_score = chunk_max;
+   709	                    }
+   710	                    i += 4;
+   711	                }
+   712	#endif
+   713	                for (; i < n; ++i) {
+   714	                    const int score = moves_[i].score;
+   715	                    if (score > best_score) {
+   716	                        best_score = score;
+   717	                        best = i;
+   718	                    }
+   719	                }
+   720	                if (best != index_) std::swap(moves_[index_], moves_[best]);
+   721	            } else {
+   722	                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+   723	                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+   724	                          [](const Scored& a, const Scored& b) { return a.score > b.score; });
+   725	                sorted_ = true;
+   726	            }
+   727	        }
+   728	        return moves_[index_++].move;
+   729	    }
+   730	
+   731	    void push_scored(Move move, int score) {
+   732	        if (!seeded_ || score > seeded_score_) {
+   733	            seeded_ = true;
+   734	            seeded_score_ = score;
+   735	            seeded_at_ = count_;
+   736	        }
+   737	        moves_[count_++] = Scored{move, score};
+   738	    }
+   739	
+   740	    void sort_moves() {
+   741	        list_start_ = index_;
+   742	        sorted_ = false;
+   743	    }
+   744	
+   745	    // First slot of the quiet list: behind the losing captures when they share moves_.
+   746	    [[nodiscard]] std::size_t quiet_start() const {
+   747	#if FORGE_SDK_BADCAP_PREFIX
+   748	        return bad_count_;
+   749	#else
+   750	        return 0;
+   751	#endif
+   752	    }
+   753	
+   754	    void generate_captures() {
+   755	        buffer_.clear();
+   756	        board_.generate_pseudo_legal(buffer_, true);
+   757	        index_ = 0;
+   758	        count_ = 0;
+   759	        seeded_ = false;
+   760	#if FORGE_SEARCH_SPEED2
+   761	        const CaptureHistory& capture_history = *searcher_.capture_history_;
+   762	#endif
+   763	        for (const Move move : buffer_) {
+   764	#if FORGE_SEARCH_SPEED2
+   765	            const std::size_t moved = static_cast<std::size_t>(board_.piece_at(move.from));
+   766	            const std::size_t victim = static_cast<std::size_t>(piece_type(board_.captured_piece(move)));
+   767	            int value = SeePieceValue[victim];
+   768	            if (move.is_promotion()) value += SeePieceValue[move.promotion] - SeePieceValue[Pawn];
+   769	            int score = 10 * value + capture_history[moved][move.to][victim];
+   770	#else
+   771	            int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+   772	#endif
+   773	            if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
+   774	            push_scored(move, score);
+   775	        }
+   776	        sort_moves();
+   777	    }
+   778	
+   779	    void generate_quiets() {
+   780	#if FORGE_SPD_NO_ZERO_MOVELISTS >= 2
+   781	        // The quiets-only list is the full list minus every capture and
+   782	        // promotion, in the same order, so the filter is gone.
+   783	        init_check_squares();
+   784	        buffer_.clear();
+   785	        board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
+   786	        index_ = quiet_start();
+   787	        count_ = quiet_start();
+   788	        seeded_ = false;
+   789	#if FORGE_SEARCH_SPEED2
+   790	        const QuietScorer scorer(board_, searcher_, ss_);
+   791	        for (const Move move : buffer_) {
+   792	            push_scored(move, scorer.score(move, check_squares_));
+   793	        }
+   794	#else
+   795	        for (const Move move : buffer_) {
+   796	            int score = searcher_.quiet_history(board_, ss_, move);
+   797	            if (direct_check(move)) score += 12000;
+   798	            push_scored(move, score);
+   799	        }
+   800	#endif
+   801	        sort_moves();
+   802	#else
+   803	        init_check_squares();
+   804	        buffer_.clear();
+   805	        board_.generate_pseudo_legal(buffer_, false);
+   806	        index_ = quiet_start();
+   807	        count_ = quiet_start();
+   808	        seeded_ = false;
+   809	#if FORGE_SEARCH_SPEED2
+   810	        const QuietScorer scorer(board_, searcher_, ss_);
+   811	        for (const Move move : buffer_) {
+   812	            if (move.is_capture() || move.is_promotion()) continue;
+   813	            push_scored(move, scorer.score(move, check_squares_));
+   814	        }
+   815	#else
+   816	        for (const Move move : buffer_) {
+   817	            if (move.is_capture() || move.is_promotion()) continue;
+   818	            int score = searcher_.quiet_history(board_, ss_, move);
+   819	            if (direct_check(move)) score += 12000;
+   820	            push_scored(move, score);
+   821	        }
+   822	#endif
+   823	        sort_moves();
+   824	#endif
+   825	    }
+   826	
+   827	    void generate_evasions() {
+   828	        init_check_squares();
+   829	        buffer_.clear();
+   830	        board_.generate_pseudo_legal(buffer_, false);
+   831	        index_ = 0;
+   832	        count_ = 0;
+   833	        seeded_ = false;
+   834	#if FORGE_SEARCH_SPEED2
+   835	        const QuietScorer scorer(board_, searcher_, ss_);
+   836	#endif
+   837	        for (const Move move : buffer_) {
+   838	            int score;
+   839	            if (move.is_capture() || move.is_promotion()) {
+   840	                score = 1'000'000 + 10 * capture_value(board_, move) -
+   841	                        SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
+   842	            } else {
+   843	#if FORGE_SEARCH_SPEED2
+   844	                score = scorer.score(move, check_squares_);
+   845	#else
+   846	                score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+   847	#endif
+   848	            }
+   849	            push_scored(move, score);
+   850	        }
+   851	        sort_moves();
+   852	    }
+   853	};
+   854	
+   855	// ---------------------------------------------------------------------------
+   856	// Searcher
+   857	
+   858	Worker::Worker(SharedSearchState& shared, int id)
+   859	    : shared_(shared),
+   860	      id_(id),
+   861	      main_history_(std::make_unique<ButterflyHistory>()),
+   862	      capture_history_(std::make_unique<CaptureHistory>()),
+   863	      continuation_history_(std::make_unique<ContinuationHistory>()),
+   864	      counter_moves_(std::make_unique<CounterMoveTable>()),
+   865	      correction_history_(std::make_unique<CorrectionHistory>()),
+   866	      material_correction_(std::make_unique<CorrectionHistory>()),
+   867	      non_pawn_white_correction_(std::make_unique<CorrectionHistory>()),
+   868	      non_pawn_black_correction_(std::make_unique<CorrectionHistory>()) {
+   869	    clear();
+   870	}
++ git show 3def809de68d726715fa3dd21626f706f0f30e16:forge-combo29/src/eval.cpp
++ nl -ba
++ sed -n '1,75p;220,355p;540,650p'
+     1	#include "forge/eval.hpp"
+     2	#include "forge/eval_params.hpp"
+     3	#include "forge/nnue.hpp"
+     4	#include "forge/search.hpp"
+     5	
+     6	#include <algorithm>
+     7	#include <array>
+     8	#include <cstdlib>
+     9	#include <limits>
+    10	
+    11	namespace forge {
+    12	namespace {
+    13	
+    14	using namespace params;
+    15	
+    16	constexpr std::array<int, 8> PassedKingProximityScale{0, 0, 1, 2, 5, 9, 14, 0};
+    17	
+    18	[[nodiscard]] int king_attack_weight(int type) {
+    19	    switch (type) {
+    20	    case Knight: return king_safety.knight;
+    21	    case Bishop: return king_safety.bishop;
+    22	    case Rook: return king_safety.rook;
+    23	    case Queen: return king_safety.queen;
+    24	    default: return 0;
+    25	    }
+    26	}
+    27	
+    28	// Accumulates parameter contributions, optionally recording coefficients.
+    29	template <bool Trace>
+    30	struct Accumulator {
+    31	    Score score = 0;
+    32	    EvalTrace* trace = nullptr;
+    33	
+    34	    template <Color Us>
+    35	    void add(int index, int count = 1) {
+    36	        const Score value = table[static_cast<std::size_t>(index)] * count;
+    37	        score += Us == White ? value : -value;
+    38	        if constexpr (Trace) {
+    39	            trace->coefficients[static_cast<std::size_t>(index)] =
+    40	                static_cast<std::int16_t>(trace->coefficients[static_cast<std::size_t>(index)] + (Us == White ? count : -count));
+    41	        }
+    42	    }
+    43	
+    44	    template <Color Us>
+    45	    int add_mg(int index) {
+    46	        const Score value = table[static_cast<std::size_t>(index)];
+    47	        score += Us == White ? value : -value;
+    48	        if constexpr (Trace) {
+    49	            trace->coefficients[static_cast<std::size_t>(index)] =
+    50	                static_cast<std::int16_t>(trace->coefficients[static_cast<std::size_t>(index)] + (Us == White ? 1 : -1));
+    51	        }
+    52	        return mg_value(value);
+    53	    }
+    54	};
+    55	
+    56	struct EvalInfo {
+    57	    std::array<std::array<Bitboard, 7>, 2> attacked_by{};
+    58	    std::array<Bitboard, 2> attacked_twice{};
+    59	    std::array<Bitboard, 2> mobility_area{};
+    60	    std::array<Bitboard, 2> king_zone{};
+    61	    std::array<int, 2> king_square{};
+    62	    std::array<int, 2> king_attackers{};
+    63	    std::array<int, 2> king_attack_units{};
+    64	    std::array<Bitboard, 2> passed{};
+    65	};
+    66	
+    67	template <bool Trace, Color Us>
+    68	void evaluate_pawn_structure(const Board& board, Accumulator<Trace>& acc, Bitboard& passed_out) {
+    69	    constexpr Color Them = opposite(Us);
+    70	    const Bitboard own = board.pieces(Us, Pawn);
+    71	    const Bitboard enemy = board.pieces(Them, Pawn);
+    72	    const Bitboard enemy_attacks = pawn_attacks_bb(Them, enemy);
+    73	    Bitboard passed = 0;
+    74	    Bitboard pawns = own;
+    75	    while (pawns != 0) {
+   220	        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occupied, bishop_slider.mask));
+   221	        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occupied, rook_slider.mask));
+   222	        const Bitboard queen_bishop = bishop_slider.table[bishop_index];
+   223	        const Bitboard queen_rook = rook_slider.table[rook_index];
+   224	        const int mobility = note(Queen, queen_bishop | queen_rook, queen_attacks);
+   225	        acc.template add<Us>(QueenMobility + std::min(mobility, 27));
+   226	        if (relative_rank(Us, square) >= 2) acc.template add<Us>(QueenEarlyDevelopment, home_minors);
+   227	        const Bitboard enemy_sliders = (queen_bishop & (enemy_bishops | enemy_queens)) | (queen_rook & (enemy_rooks | enemy_queens));
+   228	        if ((enemy_sliders & ~enemy_queens) != 0) acc.template add<Us>(WeakQueen);
+   229	    }
+   230	
+   231	    info.attacked_by[Us][0] = attacked;
+   232	    info.attacked_twice[Us] = twice;
+   233	    info.attacked_by[Us][Knight] |= knight_attacks;
+   234	    info.attacked_by[Us][Bishop] |= bishop_attacks;
+   235	    info.attacked_by[Us][Rook] |= rook_attacks;
+   236	    info.attacked_by[Us][Queen] |= queen_attacks;
+   237	    info.king_attackers[Them] = attackers;
+   238	    info.king_attack_units[Them] = units;
+   239	}
+   240	
+   241	template <bool Trace, Color Us>
+   242	void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& info) {
+   243	    constexpr Color Them = opposite(Us);
+   244	    const int king = info.king_square[Us];
+   245	    const int king_file = file_of(king);
+   246	    const int king_rank = relative_rank(Us, king);
+   247	    const Bitboard own_pawns = board.pieces(Us, Pawn);
+   248	    const Bitboard enemy_pawns = board.pieces(Them, Pawn);
+   249	
+   250	    int shelter = 0;
+   251	    auto shelter_term = [&](int index) { shelter += acc.template add_mg<Us>(index); };
+   252	    for (int file = std::max(0, king_file - 1); file <= std::min(7, king_file + 1); ++file) {
+   253	        const Bitboard file_mask = file_bb(file) & attacks::forward_ranks(Us, king);
+   254	        const Bitboard own = own_pawns & file_mask;
+   255	        const Bitboard enemy = enemy_pawns & file_mask;
+   256	        int own_distance = 0;
+   257	        if (own != 0) {
+   258	            const int nearest = Us == White ? lsb(own) : msb(own);
+   259	            own_distance = std::min(3, relative_rank(Us, nearest) - king_rank);
+   260	        }
+   261	        shelter_term(ShelterDistance + own_distance);
+   262	        if (enemy != 0) {
+   263	            const int nearest = Us == White ? lsb(enemy) : msb(enemy);
+   264	            const int distance = relative_rank(Us, nearest) - king_rank;
+   265	            if (distance <= 3) shelter_term(StormDistance + std::max(1, distance));
+   266	        }
+   267	        if (((own_pawns | enemy_pawns) & file_bb(file)) == 0) shelter_term(KingFileOpen);
+   268	    }
+   269	
+   270	    // King danger from pieces attacking the zone; requires two attackers
+   271	    // unless a queen participates.
+   272	    const int attackers = info.king_attackers[Us];
+   273	    if (attackers >= 2 || (attackers >= 1 && board.pieces(Them, Queen) != 0)) {
+   274	        int units = info.king_attack_units[Us];
+   275	        const Bitboard zone = info.king_zone[Us];
+   276	        const Bitboard weak = zone & info.attacked_by[Them][0] & ~info.attacked_twice[Us] &
+   277	                              (~info.attacked_by[Us][0] | info.attacked_by[Us][King] | info.attacked_by[Us][Queen]);
+   278	        units += king_safety.weak_square * popcount(weak);
+   279	        const Bitboard safe = ~board.occupied(Them) & (~info.attacked_by[Us][0] | (weak & info.attacked_twice[Them]));
+   280	        const Bitboard occ = board.occupied();
+   281	        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(king)];
+   282	        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(king)];
+   283	        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occ, rook_slider.mask));
+   284	        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occ, bishop_slider.mask));
+   285	        const Bitboard rook_rays = rook_slider.table[rook_index];
+   286	        const Bitboard bishop_rays = bishop_slider.table[bishop_index];
+   287	        const Bitboard rook_checks = rook_rays & safe & info.attacked_by[Them][Rook];
+   288	        const Bitboard bishop_checks = bishop_rays & safe & info.attacked_by[Them][Bishop];
+   289	        const Bitboard knight_checks = attacks::knight(king) & safe & info.attacked_by[Them][Knight];
+   290	        const Bitboard queen_checks = (rook_rays | bishop_rays) & safe & info.attacked_by[Them][Queen];
+   291	        units += king_safety.rook_check * popcount(rook_checks) + king_safety.bishop_check * popcount(bishop_checks) +
+   292	                 king_safety.knight_check * popcount(knight_checks) + king_safety.queen_check * popcount(queen_checks);
+   293	        if (board.pieces(Them, Queen) == 0) units /= 2;
+   294	        units -= shelter / king_safety.shelter_divisor;
+   295	        units = std::clamp(units, 0, 99);
+   296	        acc.template add<Us>(KingDanger + units, -1);
+   297	    }
+   298	
+   299	    // Space: safe squares on the central files in our half, counted once more
+   300	    // when they lie behind one of our pawns, scaled by the number of pieces.
+   301	    const int piece_count = popcount(board.occupied(Us) & ~own_pawns) - 1;
+   302	    if (piece_count >= 2) {
+   303	        constexpr Bitboard SpaceMask = Us == White ? (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank2BB | Rank3BB | Rank4BB)
+   304	                                                   : (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB);
+   305	        const Bitboard safe = SpaceMask & ~own_pawns & ~info.attacked_by[Them][Pawn];
+   306	        Bitboard behind = own_pawns;
+   307	        behind |= Us == White ? behind >> 8 : behind << 8;
+   308	        behind |= Us == White ? behind >> 16 : behind << 16;
+   309	        const int count = popcount(safe) + popcount(behind & safe & ~info.attacked_by[Them][0]);
+   310	        acc.template add<Us>(Space, count * piece_count / 4);
+   311	    }
+   312	
+   313	    // King distance to the nearest own pawn (endgame term).
+   314	    if (own_pawns != 0) {
+   315	        acc.template add<Us>(KingPawnDistance, nearest_square_distance(king, own_pawns));
+   316	    }
+   317	}
+   318	
+   319	template <bool Trace, Color Us>
+   320	void evaluate_threats(const Board& board, Accumulator<Trace>& acc, const EvalInfo& info) {
+   321	    constexpr Color Them = opposite(Us);
+   322	    const Bitboard enemy_pieces = board.occupied(Them) & ~board.pieces(Them, King);
+   323	    const Bitboard enemy_non_pawns = enemy_pieces & ~board.pieces(Them, Pawn);
+   324	
+   325	    // Enemy pieces that are poorly defended relative to our attacks.
+   326	    const Bitboard strongly_protected = info.attacked_by[Them][Pawn] | (info.attacked_twice[Them] & ~info.attacked_twice[Us]);
+   327	    const Bitboard defended = enemy_non_pawns & strongly_protected;
+   328	    const Bitboard weak = enemy_pieces & ~strongly_protected & info.attacked_by[Us][0];
+   329	
+   330	    if ((defended | weak) != 0) {
+   331	        auto add_targets = [&](int base, Bitboard targets) {
+   332	            if (targets == 0) return;
+   333	            for (int piece = Pawn; piece <= Queen; ++piece) {
+   334	                const int count = popcount(targets & board.pieces(Them, static_cast<PieceType>(piece)));
+   335	                if (count != 0) acc.template add<Us>(base + piece, count);
+   336	            }
+   337	        };
+   338	        add_targets(ThreatByMinor, (defended | weak) & (info.attacked_by[Us][Knight] | info.attacked_by[Us][Bishop]));
+   339	        add_targets(ThreatByRook, weak & info.attacked_by[Us][Rook]);
+   340	        if ((weak & info.attacked_by[Us][King]) != 0) acc.template add<Us>(ThreatByKing);
+   341	        const Bitboard hanging = weak & (~info.attacked_by[Them][0] | (enemy_non_pawns & info.attacked_twice[Us]));
+   342	        acc.template add<Us>(HangingPiece, popcount(hanging));
+   343	    }
+   344	
+   345	    // Pieces attacked by safe pawns, and pieces our safe pawn pushes would attack.
+   346	    const Bitboard safe_squares = ~info.attacked_by[Them][0] | info.attacked_by[Us][0];
+   347	    const Bitboard safe_pawns = board.pieces(Us, Pawn) & safe_squares;
+   348	    acc.template add<Us>(ThreatByPawn, popcount(pawn_attacks_bb(Us, safe_pawns) & enemy_non_pawns));
+   349	
+   350	    const Bitboard empty = ~board.occupied();
+   351	    Bitboard pushes = pawn_push(Us, board.pieces(Us, Pawn)) & empty;
+   352	    pushes |= pawn_push(Us, pushes & (Us == White ? Rank3BB : Rank6BB)) & empty;
+   353	    pushes &= ~info.attacked_by[Them][Pawn] & safe_squares;
+   354	    acc.template add<Us>(ThreatByPawnPush, popcount(pawn_attacks_bb(Us, pushes) & enemy_non_pawns));
+   355	
+   540	    }
+   541	    nnue::Accumulator accumulator{};
+   542	    nnue::refresh(board, accumulator);
+   543	    parts.nnue = nnue::evaluate(board, accumulator);
+   544	    if (!nnue::residual()) {
+   545	        parts.total = parts.nnue;
+   546	        return parts;
+   547	    }
+   548	    Evaluator fresh;
+   549	    const RuntimePsqt psqt = refresh_runtime_psqt(board);
+   550	    const int handcrafted = fresh.evaluate_runtime(board, psqt);
+   551	    parts.total = std::clamp(handcrafted + parts.nnue, -MateInMaxPly + 1, MateInMaxPly - 1);
+   552	    return parts;
+   553	}
+   554	
+   555	Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {
+   556	    RuntimePsqt state;
+   557	    std::int64_t score = 0;
+   558	    for (int type = Pawn; type <= King; ++type) {
+   559	        Bitboard white = board.pieces(White, static_cast<PieceType>(type));
+   560	        Bitboard black = board.pieces(Black, static_cast<PieceType>(type));
+   561	        state.phase += PhaseValue[static_cast<std::size_t>(type)] * (popcount(white) + popcount(black));
+   562	        while (white != 0) score += params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + pop_lsb(white))];
+   563	        while (black != 0) score -= params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + flip_square(pop_lsb(black)))];
+   564	    }
+   565	    // Do not introduce an overflowing delta intermediate for unusual tool values.
+   566	    state.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();
+   567	    if (state.valid) state.score = static_cast<Score>(score);
+   568	    return state;
+   569	}
+   570	
+   571	void Evaluator::update_runtime_psqt(const RuntimePsqt& parent, RuntimePsqt& child, const nnue::DirtyPieces& dirty) {
+   572	    child = parent;
+   573	    if (!parent.valid) return;
+   574	    std::int64_t score = parent.score;
+   575	    for (int i = 0; i < dirty.count; ++i) {
+   576	        const nnue::PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+   577	        const int type = piece_type(change.piece);
+   578	        const int relative = color_of(change.piece) == White ? change.square : flip_square(change.square);
+   579	        const std::int64_t term = params::table[static_cast<std::size_t>(params::Psqt + (type - 1) * 64 + relative)];
+   580	        const std::int64_t signed_term = color_of(change.piece) == White ? term : -term;
+   581	        score += change.add ? signed_term : -signed_term;
+   582	        child.phase += change.add ? PhaseValue[static_cast<std::size_t>(type)] : -PhaseValue[static_cast<std::size_t>(type)];
+   583	    }
+   584	    child.valid = score >= std::numeric_limits<Score>::min() && score <= std::numeric_limits<Score>::max();
+   585	    if (child.valid) child.score = static_cast<Score>(score);
+   586	}
+   587	
+   588	int Evaluator::evaluate_runtime(const Board& board, const RuntimePsqt& psqt) {
+   589	    PawnEntry& entry = pawn_cache_[static_cast<std::size_t>(board.pawn_key()) & (PawnCacheSize - 1U)];
+   590	    return evaluate_position<false>(board, &entry, nullptr, &psqt);
+   591	}
+   592	
+   593	int evaluate_traced(const Board& board, EvalTrace& trace) {
+   594	    trace = EvalTrace{};
+   595	    (void)evaluate_position<true>(board, nullptr, &trace);
+   596	    return trace.white_eval;
+   597	}
+   598	
+   599	} // namespace forge
++ git show e04556ddc3a430b2e751159b0d46111ef56c8b89:forge-combo29/CMakeLists.txt
++ nl -ba
++ sed -n 1,240p
+     1	# Forge combo29 lock: plain Linux/CMake build (GCC or Clang).
+     2	# This is NOT the Windows lock recipe (clang ThinLTO+PGO, see windows_build/).
+     3	# It builds the same source so node counts (bench pins, perft) can be checked.
+     4	cmake_minimum_required(VERSION 3.16)
+     5	project(forge_combo29 LANGUAGES CXX)
+     6	
+     7	set(CMAKE_CXX_STANDARD 20)
+     8	set(CMAKE_CXX_STANDARD_REQUIRED ON)
+     9	set(CMAKE_CXX_EXTENSIONS OFF)
+    10	if(NOT CMAKE_BUILD_TYPE)
+    11	  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+    12	endif()
+    13	
+    14	# FORGE_MARCH: target CPU. The lock needs BMI2 (PEXT sliders) and AVX-512F (NNUE ZMM kernel).
+    15	set(FORGE_MARCH "x86-64-v4" CACHE STRING "value for -march (lock exe uses znver5)")
+    16	# FORGE_PORTABLE=ON drops the two ISA-bound speed switches (SLIDER_PEXT, NNUE_ZMM) so it
+    17	# builds on CPUs without AVX-512/BMI2. Use -DFORGE_MARCH=x86-64-v3 or native with it.
+    18	option(FORGE_PORTABLE "build without the PEXT/AVX-512 speed switches" OFF)
+    19	set(FORGE_NNUE_HIDDEN 256 CACHE STRING "NNUE hidden units per side")
+    20	set(FORGE_NNUE_WEIGHTS "src/nnue_weights.inc" CACHE STRING "path of the NNUE weights file")
+    21	get_filename_component(FORGE_NNUE_WEIGHTS_FILE "${FORGE_NNUE_WEIGHTS}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    22	
+    23	file(GLOB FORGE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+    24	add_executable(forge ${FORGE_SOURCES})
+    25	target_include_directories(forge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    26	
+    27	target_compile_definitions(forge PRIVATE
+    28	  NDEBUG
+    29	  FORGE_NNUE_HIDDEN=${FORGE_NNUE_HIDDEN}
+    30	  FORGE_NNUE_WEIGHTS="${FORGE_NNUE_WEIGHTS_FILE}"
+    31	  FORGE_EXPOSE_TUNABLES=1
+    32	  FORGE_SPD_TT_NOTLS=1
+    33	  FORGE_SPD_NO_ZERO_MOVELISTS=2
+    34	  FORGE_SEARCH_SPEED2=1
+    35	  FORGE_SPD_PREFETCH_EARLY=1)
+    36	if(FORGE_PORTABLE)
+    37	  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=0 FORGE_SPD_NNUE_ZMM=0)
+    38	else()
+    39	  target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
+    40	endif()
+    41	
+    42	# Strict floating-point operation order (required for bit-exact node counts).
+    43	target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
+    44	set(THREADS_PREFER_PTHREAD_FLAG ON)
+    45	find_package(Threads REQUIRED)
+    46	target_link_libraries(forge PRIVATE Threads::Threads)

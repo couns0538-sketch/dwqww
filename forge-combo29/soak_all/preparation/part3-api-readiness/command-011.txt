@@ -1,0 +1,62 @@
+{"n":11,"argv":["cat","app/src/types/opening.hpp","app/src/types/events.hpp","app/src/types/log.hpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+#pragma once
+
+#include <string>
+
+#include <core/helper.hpp>
+#include <types/enums.hpp>
+
+namespace fastchess::config {
+
+struct Opening {
+    std::string file;
+    FormatType format = FormatType::NONE;
+    OrderType order   = OrderType::SEQUENTIAL;
+    int plies         = -1;
+    int start         = 1;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Opening, file, format, order, plies, start)
+
+}  // namespace fastchess::config
+#pragma once
+
+#include <string>
+
+namespace fastchess::config {
+
+// Machine readable event stream (-events). Intentionally not serialized into
+// the config file, the stream is a property of a single run.
+struct Events {
+    // output path, "-" for stdout, empty when disabled
+    std::string file;
+    // emit throttled "thinking" events while an engine searches
+    bool info = false;
+    // minimum interval between two thinking events of one game, in milliseconds
+    int info_interval_ms = 250;
+
+    [[nodiscard]] bool enabled() const noexcept { return !file.empty(); }
+};
+
+}  // namespace fastchess::config
+#pragma once
+
+#include <string>
+
+#include <core/logger/logger.hpp>
+
+namespace fastchess::config {
+
+struct Log {
+    std::string file;
+    Logger::Level level = Logger::Level::WARN;
+    bool append_file    = true;
+    bool compress       = false;
+    bool realtime       = true;
+    bool engine_coms    = false;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Log, file, level, append_file, compress, realtime, engine_coms)
+
+}  // namespace fastchess::config
+
+STDERR

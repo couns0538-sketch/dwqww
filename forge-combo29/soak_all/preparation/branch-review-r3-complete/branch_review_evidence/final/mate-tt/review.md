@@ -1,0 +1,111 @@
+# Completed r3-21, r3-23 and r3-24: static review
+
+Review snapshot: `/workspace/work/all-run/branch-review-r3-complete/remote-heads.txt`, recorded `2026-11-14T15:00:12.976Z`, SHA256 `3d0799f2b3c446a9e2543a5c76e735501af46ae08569cb7252c98bbeddcb97b7`. Comparisons use base `e04556ddc3a430b2e751159b0d46111ef56c8b89` and the exact final tips below. This supersedes only the branch-status conclusions of the earlier 13:51:59 snapshot review; the earlier review remains an accurate account of its older tips.
+
+| Branch / final tip | Actual change and default | Engine diff versus base | Reuse assessment |
+| --- | --- | --- | --- |
+| `grok47/r3-21-mate-score-tt` / `1d7440c1f860be9c21e190c862d5920b241dd927` | Reject a TT mate score if adjustment to current ply would put it outside the mate band; always on, no new option | `src/search.cpp` +11/-2 | Small, targeted arithmetic/representation correction worth retaining for later independent validation. |
+| `grok47/r3-23-sound-mate-pruning` / `91a852100912c9f0a13b809a4fed12a93feda4da` | Skip shallow move-loop pruning on PV nodes, in check or with mate-valued alpha; `SoundMatePruning=false` by default | `include/forge/search.hpp` +1; `src/search.cpp` +9/-1; `src/uci.cpp` +13/-1 | Real optional search change and regression candidate; not a general mate-soundness proof or a default correction. |
+| `grok47/r3-24-tt-duplicate-shadow` / `0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3` | Re-find an existing TT key before a stale-slot store; preserve its move if the redirected shallow score is rejected; always on | `src/search.cpp` +34/-6 | Targeted TT-storage correction worth retaining in its final form, including the follow-up move-preservation fix. |
+
+The ongoing soak source is unchanged. Its checkout at review start was `91f35c45be40614835f16db00f522cfb426e05a5`; `src` and `include` compare equal to `e04556dd…`. Pinned/working `src/search.cpp` SHA256 remains `2b14b62cd675b047478e70b738932ce4c2c699239b3c0de4ec43551464dc8819`. All three exact objects were already present, so no fetch was necessary. There were no builds, tests, native searches, ref updates, checkouts, merges, production edits or experiment-state changes in this review.
+
+## r3-21: real mate-score conversion correction
+
+The earlier snapshot had no added commit on this branch. The actual code/test change is **`af1c998304dbfbcb997b757a7ce43af7cdf6e933`**, directly on `e04556dd…`. Six later commits (`ce52fcc0…`, `80d395ba…`, `8a9ba064…`, `4c63f5ee…`, `9feacbc0…`, final `1d7440c1…`) update the report; they do not further change the engine. Reusing only the final documentation commit would not import the fix.
+
+Exact final engine location: `forge-combo29/src/search.cpp:130–143`, `score_from_tt`. The existing mate threshold is `MateInMaxPly = 32000 - 128 = 31872`. Previously a stored winning mate value 31873 read at ply 2 became 31871, which is classified as an ordinary score and can be printed as centipawns. The negative side mirrors the same issue. The new function returns `ValueNone` if `score - ply < MateInMaxPly` for a positive stored mate, or `score + ply > -MateInMaxPly` for a negative stored mate. Values that remain in the mate band and ordinary scores retain the old conversion.
+
+The two main consumers already require `tt_score != ValueNone`: final r3-21 qsearch at `src/search.cpp:1080–1088`, `:1101–1104`; main-search TT cutoff at `:1228–1240`. The TT hit is not erased: move, PV metadata and static evaluation remain available. The new source comment saying “ignores the hit” should therefore be understood as ignoring the converted score, consistent with `REPORT_r3_21.md:28`.
+
+Changed files relative to base are exactly:
+
+- `forge-combo29/src/search.cpp`, +11/-2.
+- `forge-combo29/tests_r3_21/proof_mate_score_ply_underflow.cpp`, new 118 lines.
+- `forge-combo29/REPORT_r3_21.md`, new 118 lines.
+
+The proof seeds an artificial exact TT entry into a deliberately constrained position (`tests_r3_21/proof_mate_score_ply_underflow.cpp:42–51`). At lines 65–82 it verifies the positive out-of-band case no longer emerges as a mate, the bogus cp 31871, or a score outside +/-1000, and retains the sole root move. Lines 85–93 retain an ordinary in-band positive mate; lines 95–113 check the corresponding negative boundary and in-band loss. This tests both signs and guard behavior in an actual Searcher using seeded entries. It is not evidence that a natural long-mate search created the problematic entry. The inserted score is synthetic and the TT static eval is explicitly zero; returning zero after discarding the mate is expected from that fixture, not a chess evaluation proof.
+
+The branch report describes before/after failure/pass, sanitizer runs, repeated default pins, arithmetic sweeps and deeper searches. It also explicitly leaves naturally produced near-MaxPly mate entries and multithreading unverified (`REPORT_r3_21.md:113–118`). Those runs were not repeated here. Most of the deeper/arithmetic/counter claims are narrative report statements without their complete raw commands and outputs in the changed files. The included regression is narrower than the aggregate narrative.
+
+### Part-4 and equality overlap
+
+The observed Part-4 qsearch endpoint had `tt_raw=-31982`, `ply=15`, yielding `-31967`. That remains at or beyond the negative mate threshold `-31872`, so **this new guard would not reject that specific traced value**. It neither fills a short PV nor changes the identified TT-backed qsearch final-return mechanism. It protects a different boundary case. The original Part-4 oracle result still shows a legal forced mate within the reported upper bound, not a demonstrated false mating bound.
+
+The r3-21 diff does not change any of the six t23 rule-50 behavior families implicated in the eight equality failures. There is no r3-21 run of those eight roots in this review, so their outcome with this added guard is not known. We should not claim either that it repairs them or that it cannot affect their search trees.
+
+## r3-23: optional shallow-pruning guard
+
+This branch is now a single real child commit **`91a852100912c9f0a13b809a4fed12a93feda4da`** of `e04556dd…`; the earlier tip had been just the base.
+
+Final locations:
+
+- `include/forge/search.hpp:273`: declaration of `tune::SoundMatePruning`.
+- `src/search.cpp:80`: definition initialized to false.
+- `src/search.cpp:1399–1402`: compute `SoundMatePruning && (pv_node || in_check || is_mate_score(alpha))` and suppress the existing shallow move-loop pruning block when true.
+- The affected block is `src/search.cpp:1403–1425`: late quiet skipping, shallow futility/history/SEE and capture-futility/SEE decisions.
+- `src/uci.cpp:191–192`: advertised check option, default false.
+- `src/uci.cpp:314–324`: strict literal true/false parsing, `note_invalid()` for other values, and `searcher.clear()` only when the value changes. The existing setoption path first stops the current search. This preserves the existing parsing style and prevents TT/history reuse across UCI mode changes.
+
+With the option false, the new predicate is false and the old pruning condition is preserved. The option does not disable all selective search: qsearch pruning/TT returns, internal iterative reduction, LMR, earlier pruning and mate-score encoding are unchanged. It is not a switch for exhaustive mate solving.
+
+Changed files are the three engine files in the table, `REPORT_r3_23.md` (46 new lines) and `tests_r3_23/proof_pruning_mating_and_check.cpp` (105 new lines).
+
+The included test searches one FEN, `kbK5/pp6/1P6/7p/8/7P/7B/1R6 w - - 0 1`, with one worker at depths 8 and 9 using Exclusive access and at depth 8 using Shared access. Shared here is still one worker. It asserts the default is false (lines 55–58), expected off-score 31991 (lines 63–75), and on-score 31993 plus a legal seven-ply PV that ends in checkmate (lines 78–99). It creates fresh Searchers per search. The branch report says the independent shortest mate is seven plies and corrects an illegal mate-in-three line from the underlying audit (`REPORT_r3_23.md:29`). **The included test contains no exhaustive opponent-reply/minimum-DTM oracle**: replaying a single mating PV proves that line is legal and mating, not that the opponent has no longer defense. The reported independent full-width search is not retained as an executable test in this diff.
+
+The report explicitly states that the in-check and PV-node arms were not isolated in independent fixtures and no >1-thread position was searched (`:46`). Its reported proof case changes because alpha is already a mate score. This is useful focused behavior evidence, not universal mate-bound soundness. A slower mate score or shorter nonterminal PV alone is not proof of a false winning upper bound.
+
+### Part-4 and equality overlap
+
+Default false cannot repair the eight existing default-option equality failures; their t23 gates are unchanged. When enabled, this patch adds an additional restriction at the same shallow-pruning block as one of the t23 clock guards. That is a possible interaction to validate later, particularly given fault090's broader pruning sensitivity, but it is not the scratch mask that restored old clock behavior and no eight-root test is supplied here.
+
+The Part-4 short-PV endpoint was a qsearch final return backed by a valid-in-band TT score. This patch changes the main-search move loop, not that endpoint mechanism or PV reconstruction. It could change earlier search traversal if enabled, but no evidence establishes the outcome for the Part-4 root. Existing SMP bare-king mode already suppresses this shallow-pruning block under its own conditions; the option should not be described as a new universal KRK/SMP repair.
+
+Independent static review by `/root/review_t1_t8` agreed with these scope, default, UCI and proof limits; no runs or writes were performed by that reviewer for this check.
+
+## r3-24: final stale-slot fix includes move preservation
+
+The prior snapshot at **`305bfc30f05c4020ef01a6992f419d9b27a7cfe2`** added the cluster recheck but still copied a rejected shallow move onto the deeper entry. Final ancestry is:
+
+1. `305bfc30f05c4020ef01a6992f419d9b27a7cfe2`: re-find the matching occupied key in the cluster before applying existing replacement rules.
+2. **`e838ec9a16992418de267dfa3372d74d80f207f2`**: preserve the deeper move when a redirected stale-slot shallow store is rejected; extends tests/report.
+3. `bb94b221d25519bf770a1e344217149891748283`: extend deeper-store-through-stale-slot tests/report.
+4. `0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3`: assert preservation of the deeper entry's PV bit in the two-thread proof.
+
+Only the first two commits change engine source. Reusing only final commit `0ca8cb10…` would import a test assertion rather than the implementation. For a later integration, retain the final code and strengthened tests, not only the first-cut patch.
+
+Exact final source locations are `src/search.cpp:332–344` / `:417–426` for cluster scanning, and `:345–358` / `:427–439` for admission and payload/move handling. The new `stale_slot` compares the actual matching entry address with the old captured slot. The admission rule itself is unchanged: exact bound, new key, depth+4 improvement or changed generation. A move changes only if the write stayed on the same slot or the redirected score is admitted. This directly fixes the earlier review's concrete stale-slot move mismatch: the rejected `a2a3` no longer replaces the deep `g1f3` in the supplied sequence. Same-slot rejected stores deliberately keep the old move-refresh behavior, so the patch is not a general guarantee of score/move association.
+
+All changes versus base are:
+
+- `forge-combo29/src/search.cpp`: +34/-6.
+- `forge-combo29/tests_r3_24/proof_tt_duplicate_shadow.cpp`: new 106 lines.
+- `forge-combo29/tests_r3_24/proof_tt_two_threads.cpp`: new 237 lines.
+- `forge-combo29/REPORT_r3_24.md`: new 64 lines.
+
+The final serial proof checks deep-score retention plus its move and PV bit after the shallow late store. It also checks the opposite order, where the stale probe carries a deeper exact result and must replace the current shallow result while retaining the colliding key. These are relevant deterministic regression sequences.
+
+The new two-thread proof contains ordered release/acquire interleavings for both orders (100 each), a 20,000-iteration-per-thread probe/store hammer and two-worker depth-4 startpos legal-move smoke tests. The branch report now claims ASan/TSan coverage, including the alternate macro implementation; that materially improves the earlier snapshot's test coverage. These are report claims and inspected test source, not independent executions here.
+
+Remaining test/code limits:
+
+- The hammer checks only that the final key exists and its score is one of 777/-50. It relies on sanitizer instrumentation for data-race/unsafe-access findings and does not assert all entry fields or full consistency after every concurrent access. ASan alone is not a data-race detector.
+- Both ordered fixtures use public `probe`/`store`. The two-worker smoke passes both Shared and Exclusive access modes, but `Searcher::search` takes an exclusive lease only for a single active worker (final `src/search.cpp:2021–2039`). Thus both two-worker smoke cases use the locking route; they do not establish direct runtime coverage of `store_owned<false>` under a one-worker lease. The changed shared template also covers that path statically (`:367–370`).
+- The serial test keys still assume multiply-high indexing. The two-thread file makes that assumption explicit with an unsigned-`__int128` cluster calculation and a collision check. It is not a portable fallback-index fixture; an environment without that integer type cannot compile that test as written. The original serial fixture can pass an unfixed modulo-index implementation without exercising the intended collision.
+- Scanning matches the existing 32-bit verification tag, not a stored full key. It does not eliminate hash aliases, remove already existing duplicate entries, or choose the deepest among duplicates. If no current matching key exists, it still uses the original captured replacement slot.
+- The report correctly now acknowledges the pre-existing duplicate limitation. Its phrase “after the stripe lock is taken” remains shorthand for the public route; the owned route relies on the exclusive lease instead of taking a stripe mutex.
+- Same-slot move refresh and rejected-score retention remain intentionally unchanged. The new move-preservation guarantee is specific to a redirected stale-slot store.
+
+### Part-4 and equality overlap
+
+This branch changes storage selection and metadata preservation, not qsearch mate-score conversion, PV reconstruction or any t23 rule-50 predicate. The tests use ordinary score payloads and synthetic keys, not the reported KRK root or the eight equality roots. No duplicate-shadow event was traced at those roots in the existing investigations. It may affect their search trees, but there is no evidence here that it resolves any of those findings.
+
+## Recommendation and evidence boundary
+
+Retain r3-21's arithmetic correction and r3-24's final two-part implementation plus strengthened tests as existing candidates for a later authorized integration. They address distinct defects and should not be reinvented. Retain r3-23 as a separately gated search candidate whose enabled behavior needs independent mate-bound checks; do not equate its name with comprehensive soundness.
+
+None of the final branches changes the current recorded conclusion: no false mate bound was demonstrated for the original Part-4 root, while all eight required low-clock equality comparisons remain failures. None was merged into or tested by the ongoing pinned soak, and none is treated as a repair already applied there.
+
+All branch pin/sanitizer/deeper-search results mentioned above are attributed branch-report claims. They were not reproduced in this static review. The changed files do not supply the complete raw command/output evidence needed to independently accept the entire broader validation narrative or the current job's full test matrix. No strength or speed conclusion is made.
+
+Exact read-only commands and real output are preserved beside this report in `initial.txt`, `r21-r24-diffs.txt`, `r21-proof-and-r23-patch.txt`, `final-lines.txt`, `r23-proof-and-uci.txt` and `scope-provenance.txt`. Missing-object fetches were unnecessary. Review/evidence writes were limited to `/workspace/work/all-run/branch-review-r3-complete/clock-review/`.

@@ -1,0 +1,35 @@
+{"n":8,"argv":["sed","-n","120,150p","app/src/matchmaking/tournament/base/tournament.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+}
+
+void BaseTournament::create() {
+    LOG_TRACE("Creating matches...");
+
+    final_matchcount_ = generator_->total();
+
+    if (events::EventWriter::enabled()) {
+        const auto& config = *config::TournamentConfig;
+
+        std::vector<std::string> names;
+        for (const auto& engine : *config::EngineConfigs) names.push_back(engine.name);
+
+        events::json event;
+        event["event"]        = "tournament_started";
+        event["schema"]       = events::SCHEMA;
+        std::string ver = version;
+        while (!ver.empty() && ver.back() == ' ') ver.pop_back();
+
+        event["version"]      = ver;
+        event["engines"]      = names;
+        event["total_games"]  = final_matchcount_.load();
+        event["games_played"] = initial_matchcount_;
+        event["resumed"]      = initial_matchcount_ > 0;
+        event["variant"]      = config.variant == VariantType::FRC ? "frc" : "standard";
+        event["type"]         = config.type == TournamentType::GAUNTLET ? "gauntlet" : "roundrobin";
+        event["concurrency"]  = config.concurrency;
+        event["sprt"]         = config.sprt.enabled;
+        event["thinking"]     = config.events.info;
+
+        if (!config.pgn.file.empty()) event["pgn"] = config.pgn.file;
+
+STDERR

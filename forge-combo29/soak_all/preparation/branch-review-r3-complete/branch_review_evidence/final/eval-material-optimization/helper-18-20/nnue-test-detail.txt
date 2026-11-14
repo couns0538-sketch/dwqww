@@ -1,0 +1,789 @@
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/tests_r3_18/lazy_eval_identity.cpp
+// Identity checks for the lazy network accumulator.
+//
+// replay: fixed-seed playouts. Every legal move's change list matches
+// dirty_pieces. The accumulator built at evaluation matches applying
+// nnue::update from the parent with that change list. A null move is
+// checked against a copy, which is what a null move used to do.
+//
+// depth8 <base-engine> <new-engine> [count]:
+//   Threads 1, Hash 16, OwnBook false, other options left at defaults.
+//   Each position is ucinewgame, then go depth 8. Best move, score and
+//   nodes are compared.
+//
+// evalcmp <base-engine> <new-engine> [count]:
+//   Same options. `eval` text from both binaries is compared.
+
+#include "forge/board.hpp"
+#include "forge/eval.hpp"
+#include "forge/nnue.hpp"
+#include "forge/search.hpp"
+
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include <cstdio>
+#include <cstdlib>
+#include <sys/wait.h>
+#include <unistd.h>
+
+namespace forge {
+
+struct SearcherTestProbe {
+    static int static_evaluate(Worker& worker, const Board& board, SearchStack* ss) {
+        return worker.static_evaluate(board, ss);
+    }
+    static void record_move(Worker& worker, SearchStack* ss, const Board& board, const Move& move) {
+        worker.record_move(ss, board, move);
+    }
+    static void record_null_move(Worker& worker, SearchStack* ss) { worker.record_null_move(ss); }
+};
+
+} // namespace forge
+
+namespace {
+
+constexpr std::uint64_t kSeed = 0x18D15C0DEULL;
+
+class SplitMix {
+public:
+    explicit SplitMix(std::uint64_t seed) : state_(seed) {}
+    std::uint64_t next() {
+        state_ += 0x9E3779B97F4A7C15ULL;
+        std::uint64_t z = state_;
+        z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+        z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
+        return z ^ (z >> 31U);
+    }
+
+private:
+    std::uint64_t state_;
+};
+
+bool same_dirty(const forge::nnue::DirtyPieces& left, const forge::nnue::DirtyPieces& right) {
+    if (left.count != right.count) return false;
+    for (int i = 0; i < left.count; ++i) {
+        const forge::nnue::PieceChange& a = left.changes[static_cast<std::size_t>(i)];
+        const forge::nnue::PieceChange& b = right.changes[static_cast<std::size_t>(i)];
+        if (a.piece != b.piece || a.square != b.square || a.add != b.add) return false;
+    }
+    return true;
+}
+
+bool same_features(const forge::nnue::Accumulator& left, const forge::nnue::Accumulator& right) {
+    return std::memcmp(left.values.data(), right.values.data(), sizeof(left.values)) == 0;
+}
+
+int fail(const std::string& message) {
+    std::cerr << "FAIL " << message << '\n';
+    return 1;
+}
+
+void reset_frames(std::array<forge::SearchStack, forge::MaxPly + 8>& frames) {
+    for (forge::SearchStack& frame : frames) {
+        frame.accumulator.valid = false;
+        frame.runtime_psqt.valid = false;
+        frame.diff_known = false;
+        frame.entered_null = false;
+        frame.dirty.count = 0;
+    }
+}
+
+bool dirty_matches_board(const forge::Board& board, const forge::Move& move) {
+    const forge::nnue::DirtyPieces from_board = forge::nnue::dirty_pieces(board, move);
+    const forge::nnue::DirtyPieces from_parts = forge::nnue::dirty_from_move(
+        move, board.piece_at(move.from), board.captured_piece(move), board.side_to_move());
+    return same_dirty(from_board, from_parts);
+}
+
+int check_catalog() {
+    const std::array<std::string_view, 6> fens = {
+        forge::Board::StandardStartFen,
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
+        "8/P7/8/8/8/8/7k/K7 w - - 0 1",
+        "1b6/P7/8/8/8/8/7k/K7 w - - 0 1",
+        "k7/7K/8/8/8/8/p7/8 b - - 0 1",
+    };
+    int moves_checked = 0;
+    int ep_moves = 0;
+    int castle_moves = 0;
+    int promo_moves = 0;
+    for (const std::string_view fen : fens) {
+        forge::Board board;
+        if (!board.set_fen(fen)) return fail(std::string("catalog fen rejected: ") + std::string(fen));
+        const forge::MoveList moves = board.legal_moves();
+        if (moves.empty()) return fail(std::string("catalog fen has no moves: ") + std::string(fen));
+        forge::nnue::Accumulator before;
+        forge::nnue::refresh(board, before);
+        for (std::size_t i = 0; i < moves.size(); ++i) {
+            const forge::Move move = moves[i];
+            if (!dirty_matches_board(board, move)) {
+                return fail("dirty_from_move differs at " + std::string(fen) + " move " +
+                            forge::Board::move_to_uci(move));
+            }
+            const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+            forge::Undo undo;
+            if (!board.make_move(move, undo)) return fail("catalog make_move failed");
+            forge::nnue::Accumulator after;
+            forge::nnue::update(before, after, dirty);
+            forge::nnue::Accumulator fresh;
+            forge::nnue::refresh(board, fresh);
+            const int updated = forge::nnue::evaluate(board, after);
+            const int rebuilt = forge::nnue::evaluate(board, fresh);
+            board.unmake_move(move, undo);
+            if (updated != rebuilt) {
+                return fail("update eval != refresh at " + std::string(fen) + " move " +
+                            forge::Board::move_to_uci(move) + " " + std::to_string(updated) +
+                            " vs " + std::to_string(rebuilt));
+            }
+            ++moves_checked;
+            if ((move.flags & forge::EnPassant) != 0U) ++ep_moves;
+            if (move.is_castle()) ++castle_moves;
+            if (move.is_promotion()) ++promo_moves;
+        }
+    }
+    if (ep_moves == 0 || castle_moves == 0 || promo_moves == 0) {
+        return fail("catalog missed a special move class ep " + std::to_string(ep_moves) + " castle " +
+                    std::to_string(castle_moves) + " promo " + std::to_string(promo_moves));
+    }
+    std::cout << "catalog moves " << moves_checked << " ep " << ep_moves << " castle " << castle_moves
+              << " promo " << promo_moves << '\n';
+    return 0;
+}
+
+int replay(std::uint64_t target) {
+    if (const int catalog = check_catalog(); catalog != 0) return catalog;
+    forge::SharedSearchState shared(16);
+    forge::Worker worker(shared, 0);
+    std::array<forge::SearchStack, forge::MaxPly + 8> frames{};
+    for (int i = 0; i < forge::MaxPly + 8; ++i) frames[static_cast<std::size_t>(i)].ply = i - 4;
+
+    SplitMix rng(kSeed);
+    forge::Board board;
+    if (!board.set_fen(forge::Board::StandardStartFen)) return fail("startpos rejected");
+    reset_frames(frames);
+    forge::SearchStack* ss = &frames[4];
+    const int root_eval = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+    const forge::EvalComponents root_parts = forge::Evaluator::static_eval_components(board);
+    if (root_eval != root_parts.total || !ss->accumulator.valid) return fail("root eval mismatch");
+    std::vector<forge::nnue::Accumulator> shadow;
+    shadow.push_back(ss->accumulator);
+
+    std::uint64_t played = 0;
+    std::uint64_t dirty_checks = 0;
+    std::uint64_t null_checks = 0;
+    std::uint64_t refresh_net_mismatch = 0;
+    std::uint64_t refresh_total_mismatch = 0;
+    int ply = 0;
+    while (played < target) {
+        if (ply > 0 && (played % 11U) == 7U && !board.in_check()) {
+            forge::SearcherTestProbe::record_null_move(worker, ss);
+            forge::NullUndo undo;
+            board.make_null_move(undo);
+            forge::SearchStack* child = ss + 1;
+            const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, child);
+            forge::nnue::DirtyPieces empty;
+            forge::nnue::Accumulator copied;
+            forge::nnue::update(shadow.back(), copied, empty);
+            if (!same_features(copied, shadow.back())) return fail("null copy changed features at ply " + std::to_string(ply));
+            if (forge::nnue::evaluate(board, shadow.back()) != forge::nnue::evaluate(board, copied)) {
+                return fail("null evaluate diverged at ply " + std::to_string(ply));
+            }
+            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+            if (lazy_total != parts.total) ++refresh_total_mismatch;
+            if (forge::nnue::evaluate(board, shadow.back()) != parts.nnue) ++refresh_net_mismatch;
+            // The search reads the parent's features for a null move.
+            if (child->accumulator.valid) return fail("null frame stored a new accumulator");
+            board.unmake_null_move(undo);
+            ++null_checks;
+        }
+
+        const forge::MoveList moves = board.legal_moves();
+        if (moves.empty() || board.halfmove_clock() >= 80 || ply >= 32) {
+            if (ply > 0 && !ss->accumulator.valid) {
+                const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+                if (!same_features(ss->accumulator, shadow.back())) return fail("end-of-game accumulator diverged");
+                const int lazy_net = forge::nnue::evaluate(board, ss->accumulator);
+                const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+                if (lazy_net != parts.nnue) ++refresh_net_mismatch;
+                if (lazy_total != parts.total) ++refresh_total_mismatch;
+            }
+            if (!board.set_fen(forge::Board::StandardStartFen)) return fail("restart rejected");
+            reset_frames(frames);
+            ss = &frames[4];
+            ply = 0;
+            const int again = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+            if (again != parts.total || !ss->accumulator.valid) return fail("restart eval mismatch");
+            shadow.clear();
+            shadow.push_back(ss->accumulator);
+            continue;
+        }
+        for (std::size_t i = 0; i < moves.size(); ++i) {
+            if (!dirty_matches_board(board, moves[i])) {
+                return fail("dirty mismatch at " + board.fen() + " " + forge::Board::move_to_uci(moves[i]));
+            }
+            ++dirty_checks;
+        }
+        const forge::Move move = moves[static_cast<std::size_t>(rng.next() % moves.size())];
+        const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+        forge::SearcherTestProbe::record_move(worker, ss, board, move);
+        forge::Undo undo;
+        if (!board.make_move(move, undo)) return fail("make_move failed");
+        forge::nnue::Accumulator next;
+        forge::nnue::update(shadow.back(), next, dirty);
+        shadow.push_back(next);
+        ss += 1;
+        ++ply;
+        // Two plies out of seven are left unevaluated, the way a check or a
+        // table hit skips static evaluation. The next evaluation has to
+        // rebuild that gap from the last finished accumulator.
+        const bool defer = (ply % 7) == 3 || (ply % 7) == 4;
+        if (!defer) {
+            const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+            if (!same_features(ss->accumulator, shadow.back())) {
+                return fail("accumulator bits diverged at " + board.fen() + " after " + std::to_string(played));
+            }
+            for (std::size_t built = 0; built < shadow.size(); ++built) {
+                forge::SearchStack* frame = &frames[4U + built];
+                if (!frame->accumulator.valid || !same_features(frame->accumulator, shadow[built])) {
+                    return fail("chain accumulator diverged at " + board.fen());
+                }
+            }
+            const int lazy_net = forge::nnue::evaluate(board, ss->accumulator);
+            if (lazy_net != forge::nnue::evaluate(board, shadow.back())) return fail("network eval diverged at " + board.fen());
+            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+            if (lazy_net != parts.nnue) ++refresh_net_mismatch;
+            if (lazy_total != parts.total) ++refresh_total_mismatch;
+        }
+        ++played;
+        if ((played % 100000U) == 0U) {
+            std::cout << "replay " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+                      << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+                      << refresh_total_mismatch << '\n';
+        }
+    }
+    std::cout << "replay positions " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+              << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+              << refresh_total_mismatch << '\n';
+    return 0;
+}
+
+struct Engine {
+    pid_t pid = -1;
+    FILE* to = nullptr;
+    FILE* from = nullptr;
+
+    ~Engine() { close(); }
+
+    void close() {
+        if (to != nullptr) {
+            std::fputs("quit\n", to);
+            std::fflush(to);
+        }
+        if (pid > 0) {
+            int status = 0;
+            waitpid(pid, &status, 0);
+            pid = -1;
+        }
+        if (to != nullptr) {
+            std::fclose(to);
+            to = nullptr;
+        }
+        if (from != nullptr) {
+            std::fclose(from);
+            from = nullptr;
+        }
+    }
+};
+
+bool start_engine(Engine& engine, const char* path) {
+    int to_child[2];
+    int from_child[2];
+    if (pipe(to_child) != 0 || pipe(from_child) != 0) return false;
+    const pid_t pid = fork();
+    if (pid < 0) return false;
+    if (pid == 0) {
+        dup2(to_child[0], STDIN_FILENO);
+        dup2(from_child[1], STDOUT_FILENO);
+        close(to_child[0]);
+        close(to_child[1]);
+        close(from_child[0]);
+        close(from_child[1]);
+        execl(path, path, static_cast<char*>(nullptr));
+        std::_Exit(127);
+    }
+    close(to_child[0]);
+    close(from_child[1]);
+    engine.pid = pid;
+    engine.to = fdopen(to_child[1], "w");
+    engine.from = fdopen(from_child[0], "r");
+    if (engine.to == nullptr || engine.from == nullptr) return false;
+    std::fputs("uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nisready\n",
+               engine.to);
+    std::fflush(engine.to);
+    char* line = nullptr;
+    std::size_t cap = 0;
+    bool ready = false;
+    while (getline(&line, &cap, engine.from) != -1) {
+        if (std::string_view(line).find("readyok") != std::string_view::npos) {
+            ready = true;
+            break;
+        }
+    }
+    std::free(line);
+    return ready;
+}
+
+struct GoResult {
+    std::string best;
+    std::string score;
+    std::uint64_t nodes = 0;
+    bool ok = false;
+};
+
+GoResult search_depth8(Engine& engine, const std::string& fen) {
+    GoResult result;
+    std::fputs("ucinewgame\nposition fen ", engine.to);
+    std::fputs(fen.c_str(), engine.to);
+    std::fputs("\ngo depth 8\n", engine.to);
+    std::fflush(engine.to);
+    char* line = nullptr;
+    std::size_t cap = 0;
+    std::string last_info;
+    while (getline(&line, &cap, engine.from) != -1) {
+        const std::string_view text(line);
+        if (text.rfind("info ", 0) == 0 && text.find(" score ") != std::string_view::npos &&
+            text.find(" nodes ") != std::string_view::npos) {
+            last_info.assign(text);
+        }
+        if (text.rfind("bestmove ", 0) == 0) {
+            std::istringstream in{std::string(text)};
+            std::string cmd;
+            in >> cmd >> result.best;
+            break;
+        }
+    }
+    std::free(line);
+    if (result.best.empty() || last_info.empty()) return result;
+    const auto score_at = last_info.find(" score ");
+    const auto nodes_at = last_info.find(" nodes ");
+    if (score_at == std::string::npos || nodes_at == std::string::npos) return result;
+    std::istringstream score_in(last_info.substr(score_at + 7));
+    std::string kind;
+    std::string value;
+    score_in >> kind >> value;
+    result.score = kind + " " + value;
+    std::istringstream nodes_in(last_info.substr(nodes_at + 7));
+    nodes_in >> result.nodes;
+    result.ok = !result.score.empty() && nodes_in && !result.best.empty();
+    return result;
+}
+
+std::vector<std::string> sample_fens(std::uint64_t count) {
+    std::vector<std::string> fens;
+    fens.reserve(static_cast<std::size_t>(count));
+    SplitMix rng(kSeed);
+    forge::Board board;
+    if (!board.set_fen(forge::Board::StandardStartFen)) return {};
+    int ply = 0;
+    while (fens.size() < count) {
+        fens.push_back(board.fen());
+        const forge::MoveList moves = board.legal_moves();
+        if (moves.empty() || board.halfmove_clock() >= 80 || ply >= 24) {
+            if (!board.set_fen(forge::Board::StandardStartFen)) return {};
+            ply = 0;
+            continue;
+        }
+        const forge::Move move = moves[static_cast<std::size_t>(rng.next() % moves.size())];
+        forge::Undo undo;
+        if (!board.make_move(move, undo)) return {};
+        ++ply;
+    }
+    return fens;
+}
+
+std::string eval_line(Engine& engine, const std::string& fen) {
+    std::fputs("position fen ", engine.to);
+    std::fputs(fen.c_str(), engine.to);
+    std::fputs("\neval\n", engine.to);
+    std::fflush(engine.to);
+    char* line = nullptr;
+    std::size_t cap = 0;
+    std::string found;
+    while (getline(&line, &cap, engine.from) != -1) {
+        const std::string_view text(line);
+        if (text.find("info string eval ") != std::string_view::npos) {
+            found.assign(text);
+            while (!found.empty() && (found.back() == '\n' || found.back() == '\r')) found.pop_back();
+            break;
+        }
+    }
+    std::free(line);
+    return found;
+}
+
+int evalcmp(const char* base_path, const char* new_path, std::uint64_t count) {
+    const std::vector<std::string> fens = sample_fens(count);
+    if (fens.size() != count) return fail("could not build eval sample");
+    Engine base;
+    Engine fresh;
+    if (!start_engine(base, base_path)) return fail(std::string("could not start base ") + base_path);
+    if (!start_engine(fresh, new_path)) return fail(std::string("could not start new ") + new_path);
+    for (std::uint64_t i = 0; i < fens.size(); ++i) {
+        const std::string left = eval_line(base, fens[i]);
+        const std::string right = eval_line(fresh, fens[i]);
+        if (left.empty() || left != right) {
+            std::cerr << "FAIL eval fen " << fens[i] << "\n base " << left << "\n new " << right << "\n";
+            return 1;
+        }
+    }
+    std::cout << "uci_eval positions " << fens.size() << " identical\n";
+    return 0;
+}
+
+int depth8(const char* base_path, const char* new_path, std::uint64_t count) {
+    const std::vector<std::string> fens = sample_fens(count);
+    Engine base;
+    Engine fresh;
+    if (!start_engine(base, base_path)) return fail(std::string("could not start base ") + base_path);
+    if (!start_engine(fresh, new_path)) return fail(std::string("could not start new ") + new_path);
+    for (std::uint64_t i = 0; i < fens.size(); ++i) {
+        const GoResult left = search_depth8(base, fens[i]);
+        const GoResult right = search_depth8(fresh, fens[i]);
+        if (!left.ok || !right.ok) {
+            return fail("missing search result at " + fens[i]);
+        }
+        if (left.best != right.best || left.score != right.score || left.nodes != right.nodes) {
+            std::cerr << "FAIL depth8 fen " << fens[i] << "\n base " << left.best << " " << left.score << " nodes "
+                      << left.nodes << "\n new " << right.best << " " << right.score << " nodes " << right.nodes
+                      << "\n";
+            return 1;
+        }
+        if ((i + 1) % 250U == 0U) std::cout << "depth8 " << (i + 1) << " / " << fens.size() << '\n';
+    }
+    std::cout << "depth8 positions " << fens.size() << " identical\n";
+    return 0;
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+    if (argc >= 2 && std::string_view(argv[1]) == "evalcmp") {
+        if (argc < 4) {
+            std::cerr << "usage: lazy_eval_identity evalcmp <base> <new> [count]\n";
+            return 2;
+        }
+        std::uint64_t count = 2000;
+        if (argc >= 5) count = std::strtoull(argv[4], nullptr, 10);
+        return evalcmp(argv[2], argv[3], count);
+    }
+    if (argc >= 2 && std::string_view(argv[1]) == "depth8") {
+        if (argc < 4) {
+            std::cerr << "usage: lazy_eval_identity depth8 <base> <new> [count]\n";
+            return 2;
+        }
+        std::uint64_t count = 10000;
+        if (argc >= 5) count = std::strtoull(argv[4], nullptr, 10);
+        return depth8(argv[2], argv[3], count);
+    }
+    std::uint64_t count = 1000000;
+    if (argc >= 3 && std::string_view(argv[1]) == "replay") count = std::strtoull(argv[2], nullptr, 10);
+    else if (argc >= 2 && std::string_view(argv[1]) != "replay") {
+        std::cerr << "usage: lazy_eval_identity replay [count] | depth8 <base> <new> [count]\n";
+        return 2;
+    }
+    return replay(count);
+}
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/src/nnue.cpp
++ nl -ba
++ sed -n 170,460p
+   170	    }
+   171	    std::vector<std::int16_t> w1(static_cast<std::size_t>(InputCount) * HiddenSize);
+   172	    std::vector<std::int16_t> b1(HiddenSize);
+   173	    std::vector<std::int16_t> w2(2 * HiddenSize);
+   174	    const unsigned char* cursor = bytes.data() + 16;
+   175	    auto take = [&cursor](std::vector<std::int16_t>& out) {
+   176	        for (std::int16_t& value : out) {
+   177	            value = read_i16(cursor);
+   178	            cursor += 2;
+   179	        }
+   180	    };
+   181	    take(w1);
+   182	    take(b1);
+   183	    take(w2);
+   184	    const std::int16_t b2 = read_i16(cursor);
+   185	    Weights incoming;
+   186	    quantize(incoming, w1.data(), b1.data(), w2.data(), b2);
+   187	    live_weights() = std::move(incoming);
+   188	    return true;
+   189	}
+   190	
+   191	bool residual() { return FORGE_HAS_NNUE != 0 && FORGE_NNUE_RESIDUAL != 0; }
+   192	
+   193	void refresh(const Board& board, Accumulator& accumulator) {
+   194	    const Weights& w = weights();
+   195	    for (const Color perspective : {White, Black}) {
+   196	        auto& acc = accumulator.values[static_cast<std::size_t>(perspective)];
+   197	        acc = w.b1;
+   198	        Bitboard occupied = board.occupied();
+   199	        while (occupied != 0) {
+   200	            const int square = pop_lsb(occupied);
+   201	            const int index = feature_index(perspective, board.piece_at(square), square);
+   202	            add_feature(acc, w.w1.get() + static_cast<std::size_t>(index) * HiddenSize);
+   203	        }
+   204	    }
+   205	    accumulator.valid = true;
+   206	}
+   207	
+   208	void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty) {
+   209	    const Weights& w = weights();
+   210	    // Quiet moves (including noncapturing promotions) remove one feature and
+   211	    // add one. Keep each lane's subtraction-then-addition order while avoiding
+   212	    // a full copy and two separate read/write passes over the child.
+   213	    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+   214	        for (const Color perspective : {White, Black}) {
+   215	            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+   216	            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+   217	            const PieceChange& removed = dirty.changes[0];
+   218	            const PieceChange& added = dirty.changes[1];
+   219	            const float* removed_column = w.w1.get() +
+   220	                static_cast<std::size_t>(feature_index(perspective, removed.piece, removed.square)) * HiddenSize;
+   221	            const float* added_column = w.w1.get() +
+   222	                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+   223	            for (int h = 0; h < HiddenSize; ++h) {
+   224	                const std::size_t index = static_cast<std::size_t>(h);
+   225	                destination[index] = (source[index] - removed_column[index]) + added_column[index];
+   226	            }
+   227	        }
+   228	        child.valid = true;
+   229	        return;
+   230	    }
+   231	    // Captures remove the mover and captured piece before adding the mover
+   232	    // (or promoted piece). Preserve both intermediate subtractions per lane.
+   233	    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+   234	        for (const Color perspective : {White, Black}) {
+   235	            const auto& source = parent.values[static_cast<std::size_t>(perspective)];
+   236	            auto& destination = child.values[static_cast<std::size_t>(perspective)];
+   237	            const PieceChange& removed0 = dirty.changes[0];
+   238	            const PieceChange& removed1 = dirty.changes[1];
+   239	            const PieceChange& added = dirty.changes[2];
+   240	            const float* removed0_column = w.w1.get() +
+   241	                static_cast<std::size_t>(feature_index(perspective, removed0.piece, removed0.square)) * HiddenSize;
+   242	            const float* removed1_column = w.w1.get() +
+   243	                static_cast<std::size_t>(feature_index(perspective, removed1.piece, removed1.square)) * HiddenSize;
+   244	            const float* added_column = w.w1.get() +
+   245	                static_cast<std::size_t>(feature_index(perspective, added.piece, added.square)) * HiddenSize;
+   246	            for (int h = 0; h < HiddenSize; ++h) {
+   247	                const std::size_t index = static_cast<std::size_t>(h);
+   248	                destination[index] = ((source[index] - removed0_column[index]) - removed1_column[index]) + added_column[index];
+   249	            }
+   250	        }
+   251	        child.valid = true;
+   252	        return;
+   253	    }
+   254	    for (const Color perspective : {White, Black}) {
+   255	        auto& acc = child.values[static_cast<std::size_t>(perspective)];
+   256	        acc = parent.values[static_cast<std::size_t>(perspective)];
+   257	        for (int i = 0; i < dirty.count; ++i) {
+   258	            const PieceChange& change = dirty.changes[static_cast<std::size_t>(i)];
+   259	            const int index = feature_index(perspective, change.piece, change.square);
+   260	            const float* column = w.w1.get() + static_cast<std::size_t>(index) * HiddenSize;
+   261	            if (change.add) add_feature(acc, column);
+   262	            else sub_feature(acc, column);
+   263	        }
+   264	    }
+   265	    child.valid = true;
+   266	}
+   267	
+   268	namespace {
+   269	
+   270	int centipawns_from_lanes(const float lanes[16], float bias) {
+   271	    float out = bias;
+   272	    for (int j = 0; j < 16; ++j) out += lanes[j];
+   273	    const float centipawns = out * 400.0F / SigmoidK;
+   274	    return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
+   275	}
+   276	
+   277	#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+   278	// One subtraction per removed feature, then one addition. NSub 1 is a quiet
+   279	// move: (source - removed) + added. NSub 2 is a capture:
+   280	// ((source - removed0) - removed1) + added. That is the same association as
+   281	// update(). The screlu sum uses the register just stored, in the same lane
+   282	// order as evaluate().
+   283	template <int NSub>
+   284	int fuse_columns(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board,
+   285	                  const Weights& w) {
+   286	    const Color us = board.side_to_move();
+   287	    const Color them = opposite(us);
+   288	    const float* const our_src = parent.values[static_cast<std::size_t>(us)].data();
+   289	    const float* const their_src = parent.values[static_cast<std::size_t>(them)].data();
+   290	    float* const our_dst = child.values[static_cast<std::size_t>(us)].data();
+   291	    float* const their_dst = child.values[static_cast<std::size_t>(them)].data();
+   292	    auto column = [&](Color perspective, const PieceChange& change) {
+   293	        return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
+   294	    };
+   295	    const float* const our_sub0 = column(us, dirty.changes[0]);
+   296	    const float* const their_sub0 = column(them, dirty.changes[0]);
+   297	    const float* const our_sub1 = NSub == 2 ? column(us, dirty.changes[1]) : nullptr;
+   298	    const float* const their_sub1 = NSub == 2 ? column(them, dirty.changes[1]) : nullptr;
+   299	    const float* const our_add = column(us, dirty.changes[NSub]);
+   300	    const float* const their_add = column(them, dirty.changes[NSub]);
+   301	    const float* const w2_ours = w.w2.data();
+   302	    const float* const w2_theirs = w.w2.data() + HiddenSize;
+   303	    const __m256 zero = _mm256_setzero_ps();
+   304	    const __m256 one = _mm256_set1_ps(1.0F);
+   305	    __m256 sums[2] = {zero, zero};
+   306	    for (int h = 0; h < HiddenSize; h += 16) {
+   307	        for (int k = 0; k < 2; ++k) {
+   308	            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
+   309	            __m256 ours = _mm256_sub_ps(_mm256_load_ps(our_src + base), _mm256_load_ps(our_sub0 + base));
+   310	            __m256 theirs = _mm256_sub_ps(_mm256_load_ps(their_src + base), _mm256_load_ps(their_sub0 + base));
+   311	            if constexpr (NSub == 2) {
+   312	                ours = _mm256_sub_ps(ours, _mm256_load_ps(our_sub1 + base));
+   313	                theirs = _mm256_sub_ps(theirs, _mm256_load_ps(their_sub1 + base));
+   314	            }
+   315	            ours = _mm256_add_ps(ours, _mm256_load_ps(our_add + base));
+   316	            theirs = _mm256_add_ps(theirs, _mm256_load_ps(their_add + base));
+   317	            _mm256_store_ps(our_dst + base, ours);
+   318	            _mm256_store_ps(their_dst + base, theirs);
+   319	            const __m256 a = _mm256_min_ps(_mm256_max_ps(ours, zero), one);
+   320	            const __m256 b = _mm256_min_ps(_mm256_max_ps(theirs, zero), one);
+   321	            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w2_ours + base)),
+   322	                                              _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w2_theirs + base)));
+   323	            sums[k] = _mm256_add_ps(sums[k], term);
+   324	        }
+   325	    }
+   326	    alignas(64) float lanes[16];
+   327	    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
+   328	    child.valid = true;
+   329	    return centipawns_from_lanes(lanes, w.b2);
+   330	}
+   331	#endif
+   332	
+   333	} // namespace
+   334	
+   335	int evaluate(const Board& board, const Accumulator& accumulator) {
+   336	    const Weights& w = weights();
+   337	    const Color us = board.side_to_move();
+   338	    const auto& ours = accumulator.values[static_cast<std::size_t>(us)];
+   339	    const auto& theirs = accumulator.values[static_cast<std::size_t>(opposite(us))];
+   340	    // Sixteen independent partial sums (lane j takes the hidden units with
+   341	    // index % 16 == j, in increasing order) and then one ordered sum: the
+   342	    // association is fixed by the source, so every target (SSE, AVX2, AVX-512,
+   343	    // the scalar fallback) produces bit-identical results without -ffast-math.
+   344	    constexpr int Lanes = 16;
+   345	    static_assert(HiddenSize % Lanes == 0, "HiddenSize must be a multiple of the lane count");
+   346	    alignas(64) float lanes[Lanes];
+   347	#if FORGE_SPD_NNUE_ZMM
+   348	    // One 512-bit register holds all sixteen lanes: lane j takes the hidden
+   349	    // units h + j for h = 0, 16, 32, ... in increasing order, which is the
+   350	    // lane order of the two 256-bit halves below (lane j of sums[j / 8]), and
+   351	    // every term is formed with the same separate multiplies and additions in
+   352	    // the same order, so each lane ends with the same bits as the AVX2 kernel.
+   353	    {
+   354	        const __m512 zero = _mm512_setzero_ps();
+   355	        const __m512 one = _mm512_set1_ps(1.0F);
+   356	        __m512 sum = zero;
+   357	        for (int h = 0; h < HiddenSize; h += Lanes) {
+   358	            const std::size_t base = static_cast<std::size_t>(h);
+   359	            const __m512 a = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(ours.data() + base), zero), one);
+   360	            const __m512 b = _mm512_min_ps(_mm512_max_ps(_mm512_load_ps(theirs.data() + base), zero), one);
+   361	            const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w.w2.data() + base)),
+   362	                                              _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w.w2.data() + HiddenSize + base)));
+   363	            sum = _mm512_add_ps(sum, term);
+   364	        }
+   365	        _mm512_store_ps(lanes, sum);
+   366	    }
+   367	#else
+   368	#if defined(__AVX2__)
+   369	    const __m256 zero = _mm256_setzero_ps();
+   370	    const __m256 one = _mm256_set1_ps(1.0F);
+   371	    __m256 sums[2] = {zero, zero};
+   372	    for (int h = 0; h < HiddenSize; h += Lanes) {
+   373	        for (int k = 0; k < 2; ++k) {
+   374	            const std::size_t base = static_cast<std::size_t>(h + 8 * k);
+   375	            const __m256 a = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(ours.data() + base), zero), one);
+   376	            const __m256 b = _mm256_min_ps(_mm256_max_ps(_mm256_load_ps(theirs.data() + base), zero), one);
+   377	            const __m256 term = _mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(a, a), _mm256_load_ps(w.w2.data() + base)),
+   378	                                            _mm256_mul_ps(_mm256_mul_ps(b, b), _mm256_load_ps(w.w2.data() + HiddenSize + base)));
+   379	            sums[k] = _mm256_add_ps(sums[k], term);
+   380	        }
+   381	    }
+   382	    for (int k = 0; k < 2; ++k) _mm256_store_ps(lanes + 8 * k, sums[k]);
+   383	#elif FORGE_NNUE_SSE
+   384	    const __m128 zero = _mm_setzero_ps();
+   385	    const __m128 one = _mm_set1_ps(1.0F);
+   386	    __m128 sums[4] = {zero, zero, zero, zero};
+   387	    for (int h = 0; h < HiddenSize; h += Lanes) {
+   388	        for (int k = 0; k < 4; ++k) {
+   389	            const std::size_t base = static_cast<std::size_t>(h + 4 * k);
+   390	            const __m128 a = _mm_min_ps(_mm_max_ps(_mm_load_ps(ours.data() + base), zero), one);
+   391	            const __m128 b = _mm_min_ps(_mm_max_ps(_mm_load_ps(theirs.data() + base), zero), one);
+   392	            const __m128 term = _mm_add_ps(_mm_mul_ps(_mm_mul_ps(a, a), _mm_load_ps(w.w2.data() + base)),
+   393	                                           _mm_mul_ps(_mm_mul_ps(b, b), _mm_load_ps(w.w2.data() + HiddenSize + base)));
+   394	            sums[k] = _mm_add_ps(sums[k], term);
+   395	        }
+   396	    }
+   397	    for (int k = 0; k < 4; ++k) _mm_store_ps(lanes + 4 * k, sums[k]);
+   398	#else
+   399	    for (float& lane : lanes) lane = 0.0F;
+   400	    for (int h = 0; h < HiddenSize; h += Lanes) {
+   401	        for (int j = 0; j < Lanes; ++j) {
+   402	            const std::size_t index = static_cast<std::size_t>(h + j);
+   403	            const float a = std::min(std::max(ours[index], 0.0F), 1.0F);
+   404	            const float b = std::min(std::max(theirs[index], 0.0F), 1.0F);
+   405	            lanes[j] += a * a * w.w2[index] + b * b * w.w2[static_cast<std::size_t>(HiddenSize) + index];
+   406	        }
+   407	    }
+   408	#endif
+   409	#endif
+   410	    return centipawns_from_lanes(lanes, w.b2);
+   411	}
+   412	
+   413	int apply_and_evaluate(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board) {
+   414	#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+   415	    const Weights& w = weights();
+   416	    if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
+   417	        return fuse_columns<1>(parent, child, dirty, board, w);
+   418	    }
+   419	    if (dirty.count == 3 && !dirty.changes[0].add && !dirty.changes[1].add && dirty.changes[2].add) {
+   420	        return fuse_columns<2>(parent, child, dirty, board, w);
+   421	    }
+   422	#else
+   423	    (void)board;
+   424	#endif
+   425	    update(parent, child, dirty);
+   426	    return evaluate(board, child);
+   427	}
+   428	
+   429	DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side) {
+   430	    DirtyPieces dirty;
+   431	    dirty.remove(moved, move.from);
+   432	    if (captured != Empty) {
+   433	        const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(side) : move.to;
+   434	        dirty.remove(captured, captured_square);
+   435	    }
+   436	    dirty.add(move.is_promotion() ? make_piece(side, move.promotion) : moved, move.to);
+   437	    if (move.is_castle()) {
+   438	        const bool king_side = (move.flags & KingCastle) != 0U;
+   439	        const int rook_from = side == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+   440	        const int rook_to = side == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+   441	        dirty.remove(make_piece(side, Rook), rook_from);
+   442	        dirty.add(make_piece(side, Rook), rook_to);
+   443	    }
+   444	    return dirty;
+   445	}
+   446	
+   447	DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+   448	    return dirty_from_move(move, board.piece_at(move.from), board.captured_piece(move), board.side_to_move());
+   449	}
+   450	
+   451	} // namespace forge::nnue

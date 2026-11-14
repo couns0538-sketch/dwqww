@@ -1,0 +1,11 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'),cp=require('child_process');
+const root='/workspace/work/all-run/branch-review-r3-complete';
+const repo='/workspace/work/dwqww-all',base='e04556ddc3a430b2e751159b0d46111ef56c8b89';
+const snapshot=fs.readFileSync(root+'/remote-heads.txt','utf8');
+const entries=[...snapshot.matchAll(/^([0-9a-f]{40})\s+refs\/heads\/(grok47\/r3-(\d\d)-[^\s]+)$/gm)];
+if(entries.length!==24)throw Error('Expected 24 heads');
+const log=[];function git(args){const r=cp.spawnSync('git',['-C',repo,...args],{encoding:'utf8',maxBuffer:16*1024*1024});log.push({command:['git','-C',repo,...args],exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr});if(r.status!==0)throw Error('Git failed '+args.join(' '));return r.stdout;}
+const rows=[];try{for(const m of entries){const head=m[1],branch=m[2],number=+m[3];rows.push({number,branch,head,implementationCommits:git(['log','--reverse','--format=%H%x09%s',base+'..'+head,'--','forge-combo29/src','forge-combo29/include','forge-combo29/CMakeLists.txt']).trim().split('\n').filter(Boolean).map(s=>({sha:s.slice(0,40),subject:s.slice(41)})),allCommits:git(['log','--reverse','--format=%H%x09%s',base+'..'+head]).trim().split('\n').filter(Boolean),changedFiles:git(['diff','--numstat',base,head,'--','forge-combo29']).trim().split('\n').filter(Boolean)});}fs.writeFileSync(root+'/final24-commit-inventory.json.txt',JSON.stringify({base,rows},null,2)+'\n');console.log(JSON.stringify({branches:rows.length,implementationCommits:rows.reduce((n,r)=>n+r.implementationCommits.length,0),records:log.length}));for(const r of rows)console.log(JSON.stringify({number:r.number,head:r.head,implementations:r.implementationCommits.map(c=>c.sha)}));}finally{fs.writeFileSync(root+'/synthesis-inventory-command-results.json.txt',JSON.stringify(log,null,2)+'\n');}
+NODE

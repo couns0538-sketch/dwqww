@@ -1,0 +1,27 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'),path=require('path'),crypto=require('crypto');
+const root='/workspace/work/all-run/branch-review-r3-complete',out=root+'/ready-to-copy';
+if(fs.existsSync(out))throw Error('Bundle destination already exists');fs.mkdirSync(out,{recursive:true});
+const digest=b=>crypto.createHash('sha256').update(b).digest('hex');let provenance=[],excluded=[];
+function copy(source,relative){const b=fs.readFileSync(source);if(b.includes(0))throw Error('Binary/NUL input '+source);new TextDecoder('utf-8',{fatal:true}).decode(b);const target=path.join(out,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,b,{flag:'wx',mode:0o644});if(!fs.readFileSync(target).equals(b))throw Error('Copy mismatch '+source);provenance.push({source,path:relative,bytes:b.length,sha256:digest(b)});}
+function tree(source,relative){for(const n of fs.readdirSync(source).sort()){const p=path.join(source,n),s=fs.lstatSync(p);if(s.isDirectory())tree(p,path.join(relative,n));else if(s.isFile()){if(!/\.(txt|md|json|tsv|diff|patch)$/i.test(n)){excluded.push({source:p,reason:'Scratch collector/script or non-evidence extension; not copied'});continue;}copy(p,path.join(relative,n));}else throw Error('Non-regular input '+p);}}
+const groups=[
+['/workspace/work/all-run/review-t1-t8/r3-complete','final/eval-material-optimization'],
+['/workspace/work/r3-final-02-07-review','final/search-02-07'],
+['/workspace/work/all-run/r3-complete-search-review','final/search-08-09-10-13'],
+['/workspace/work/all-run/r3-final-protocol-review','final/protocol'],
+[root+'/clock-review','final/mate-tt'],
+['/workspace/work/all-run/branch-review-20261114','historical/snapshot-135159']
+];for(const [source,relative]of groups)tree(source,'branch_review_evidence/'+relative);
+for(const n of ['remote-heads.txt','final24-commit-inventory.json.txt','synthesis-inventory-command.txt','synthesis-inventory-command-results.json.txt','synthesis-inventory-transcript.txt','bundle-creation-command.txt','bundle-creation-retry-command.txt','bundle-creation-transcript.txt'])copy(root+'/'+n,'branch_review_evidence/final/core/'+n);
+copy('/workspace/work/dwqww-all/forge-combo29/soak_all/BRANCH_REVIEW.md','branch_review_evidence/historical/BRANCH_REVIEW_135159.md');
+copy(root+'/BRANCH_REVIEW.md','BRANCH_REVIEW.md');
+fs.writeFileSync(out+'/branch_review_evidence/COPY_PROVENANCE.json.txt',JSON.stringify(provenance,null,2)+'\n',{flag:'wx',mode:0o644});
+fs.writeFileSync(out+'/branch_review_evidence/EXCLUDED_ARTIFACTS.json.txt',JSON.stringify(excluded,null,2)+'\n',{flag:'wx',mode:0o644});
+fs.writeFileSync(out+'/README.txt','Text-only static branch review bundle. BRANCH_REVIEW.md describes the final 2026-11-14T15:00:12.976Z snapshot. Historical evidence remains under branch_review_evidence/historical and is superseded for final-tip status. No native test result was independently established by these reviews. COPY_PROVENANCE.json.txt maps copied source files to their frozen SHA256/byte lengths. MANIFEST.txt lists SHA256, byte count, and relative path for every artifact except itself. Files are mode0644. Root agent owns any later repository copy/publication; this bundle does not change production or experiment state.\n',{flag:'wx',mode:0o644});
+let files=[];function walk(dir,prefix=''){for(const n of fs.readdirSync(dir).sort()){const p=path.join(dir,n),rel=path.join(prefix,n),s=fs.statSync(p);if(s.isDirectory())walk(p,rel);else if(rel!=='MANIFEST.txt'){const b=fs.readFileSync(p);if(b.includes(0))throw Error('NUL output '+p);new TextDecoder('utf-8',{fatal:true}).decode(b);if(s.mode&0o111)throw Error('Executable output '+p);files.push({path:rel,bytes:b.length,sha256:digest(b)});}}}walk(out);
+fs.writeFileSync(out+'/MANIFEST.txt',files.map(f=>f.sha256+'  '+f.bytes+'  '+f.path).join('\n')+'\n',{flag:'wx',mode:0o644});
+for(const f of files){const b=fs.readFileSync(path.join(out,f.path));if(b.length!==f.bytes||digest(b)!==f.sha256)throw Error('Final verification '+f.path);}
+console.log(JSON.stringify({copiedSources:provenance.length,excludedScripts:excluded,manifestEntries:files.length,totalBytes:files.reduce((n,f)=>n+f.bytes,0),reportSha256:digest(fs.readFileSync(out+'/BRANCH_REVIEW.md')),manifestSha256:digest(fs.readFileSync(out+'/MANIFEST.txt')),readyToCopy:out}));
+NODE

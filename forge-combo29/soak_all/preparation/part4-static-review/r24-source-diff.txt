@@ -1,0 +1,170 @@
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a..b102f28 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -302,65 +302,81 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+             }
+             return snapshot(entry, true);
+         }
+     }
+     const TTEntry* replace = &cluster.entries[0];
+     auto relative_age = [this](const TTEntry& entry) {
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+     }
+     return snapshot(*replace, false);
+ }
+ 
+ TTProbe TranspositionTable::probe(std::uint64_t key) const { return probe_body<true>(key); }
+ 
+ TTProbe TranspositionTable::probe_owned(std::uint64_t key) const {
+     assert(has_exclusive_access());
+     return probe_body<false>(key);
+ }
+ 
+ template <bool TakeLock>
+ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                                     Bound bound, bool pv, std::uint16_t halfmove_clock) {
+     // Reject default, foreign or lifecycle-stale handles without touching storage.
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+     const auto lock = TakeLock ? lock_stripe(probe.cluster_) : std::unique_lock<std::mutex>();
+-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
++    // Probe records a slot before the subtree runs. Another store can place this
++    // key in a different entry of the same cluster; writing the stale slot would
++    // duplicate it, and probe returns the first match, so the shallow copy hides
++    // the deeper one. Re-find the key under the stripe lock and update that entry.
++    TTEntry* entry = &cluster.entries[probe.slot_];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+-    if (!move.is_none() || !same_position) entry->move = move;
+-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++    const bool stale_slot = entry != &cluster.entries[probe.slot_];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    // Same-slot stores still refresh the move when the new score is rejected.
++    // A stale slot must not paint that rejected move onto the deeper entry.
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
+ }
+ 
+ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+     store_body<true>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+ }
+ 
+ void TranspositionTable::store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                                      Bound bound, bool pv, std::uint16_t halfmove_clock) {
+     assert(has_exclusive_access());
+     store_body<false>(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+ }
+ #else
+ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     TTCluster& cluster = cluster_for(key);
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     const auto lock = lock_stripe(index);
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+         TTProbe result;
+         result.entry = entry;
+         result.hit = hit;
+         result.owner_ = this;
+         result.cluster_ = index;
+@@ -371,65 +387,77 @@ TTProbe TranspositionTable::probe(std::uint64_t key) const {
+     };
+     const std::uint32_t key32 = verification_key(key);
+     for (TTEntry& entry : cluster.entries) {
+         if (entry.key32 == key32 && entry.occupied()) {
+             // Reused entries remain recent even when search returns a TT cutoff.
+             if (entry.generation() != generation_) {
+                 entry.gen_bound = static_cast<std::uint8_t>(
+                     (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+             }
+             return snapshot(entry, true);
+         }
+     }
+     const TTEntry* replace = &cluster.entries[0];
+     auto relative_age = [this](const TTEntry& entry) {
+         return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+     };
+     for (const TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+         if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+     }
+     return snapshot(*replace, false);
+ }
+ 
+ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth,
+                                Bound bound, bool pv, std::uint16_t halfmove_clock) {
+     // Reject default, foreign or lifecycle-stale handles without touching storage.
+     // Lifecycle operations themselves must not run concurrently with search.
+     if (probe.owner_ != this || probe.epoch_ != epoch_ || probe.key_ != key ||
+         probe.cluster_ >= cluster_count_ || probe.slot_ >= 4) return;
+     const auto lock = lock_stripe(probe.cluster_);
+-    TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
++    TTCluster& cluster = clusters_[probe.cluster_];
+     const std::uint32_t key32 = verification_key(key);
++    // Same cluster re-check as store_body: a probe-time slot can be stale.
++    TTEntry* entry = &cluster.entries[probe.slot_];
++    for (TTEntry& candidate : cluster.entries) {
++        if (candidate.key32 == key32 && candidate.occupied()) {
++            entry = &candidate;
++            break;
++        }
++    }
+     const bool same_position = entry->key32 == key32 && entry->occupied();
+-    if (!move.is_none() || !same_position) entry->move = move;
+-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
++    const bool stale_slot = entry != &cluster.entries[probe.slot_];
++    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
++                       entry->generation() != generation_;
++    // Same rule as store_body: keep a rejected shallow move off a different slot.
++    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
++    if (admit) {
+         entry->key32 = key32;
+         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
+         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
+         entry->eval = static_cast<std::int16_t>(std::clamp(eval, -32767, 32767));
+         entry->depth = static_cast<std::uint8_t>(std::clamp(depth, 0, 255));
+         entry->gen_bound = static_cast<std::uint8_t>((static_cast<unsigned>(generation_) << 3U) | (pv ? 4U : 0U) | static_cast<unsigned>(bound));
+     }
+ }
+ #endif
+ 
+ int TranspositionTable::hashfull() const {
+     int count = 0;
+     const std::size_t sample = std::min<std::size_t>(1000, cluster_count_);
+     for (std::size_t i = 0; i < sample; ++i) {
+         const auto lock = lock_stripe(i);
+         for (const TTEntry& entry : clusters_[i].entries) {
+             if (entry.occupied() && entry.generation() == generation_) ++count;
+         }
+     }
+     return sample == 0 ? 0 : count * 1000 / (4 * static_cast<int>(sample));
+ }
+ 
+ // ---------------------------------------------------------------------------
+ // Move picker
+ 
+ class MovePicker {
+ public:
+     enum class Mode { Main, Quiescence };
+ 
+     MovePicker(const Board& board, const Worker& searcher, const SearchStack* ss, Move tt_move, Mode mode)

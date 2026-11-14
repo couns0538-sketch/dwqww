@@ -1,0 +1,55 @@
+{"n":36,"argv":["sed","-n","55,105p","app/src/matchmaking/tournament/base/tournament.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-036.txt"}
+STDOUT
+    }
+
+    if (!config.epd.file.empty()) {
+        const bool append = resolveAppendFlag(config.epd.append_file, "-epdout");
+        file_writer_epd_  = std::make_unique<util::FileWriter>(config.epd.file, append);
+    }
+
+    pool_.resize(config.concurrency);
+}
+
+BaseTournament::~BaseTournament() {
+    LOG_TRACE("~BaseTournament()");
+
+    LOG_TRACE("Instructing engines to stop...");
+
+    writeToOpenPipes();
+
+    pool_.kill();
+
+    if (config::TournamentConfig->output == OutputType::FASTCHESS) {
+        if (tracker_.begin() != tracker_.end()) {
+            Logger::print<Logger::Level::INFO>("");
+        }
+
+        for (const auto& [name, tracked] : tracker_) {
+            Logger::print<Logger::Level::INFO>("Player: {}", name);
+            Logger::print<Logger::Level::INFO>("  Timeouts: {}", tracked.timeouts);
+            Logger::print<Logger::Level::INFO>("  Crashed: {}", tracked.disconnects);
+        }
+
+        if (tracker_.begin() != tracker_.end()) {
+            Logger::print<Logger::Level::INFO>("");
+        }
+    }
+
+    saveJson();
+}
+
+void BaseTournament::start() {
+    LOG_TRACE("Starting tournament...");
+
+    create();
+}
+
+BaseTournament::EngineCache& BaseTournament::getEngineCache() {
+    if (config::TournamentConfig->affinity) {
+        // Use per-thread cache
+        std::thread::id tid = std::this_thread::get_id();
+        std::lock_guard<std::mutex> lock(cache_management_mutex_);
+
+        auto it = thread_caches_.find(tid);
+
+STDERR

@@ -74,6 +74,10 @@ All references below are `forge-combo29/src/search.cpp` at the recorded source h
 | Store the completed root score and PV separately | 1689-1697 | 1809-1814 and emit logic |
 | Format mate distance and print the available PV | 190-196; 1576-1579 | 198-204; 1672-1682 |
 
+## Interpretation checked by independent source review
+
+The retained UCI output has no `lowerbound` or `upperbound` qualifier. Calling its mate distance a mating deadline is an analytical at-most interpretation, not a claim that UCI advertised a bound or that the engine proved exact DTM. The root DTM is 15 plies; selected `b3f3` requires 17 plies, so it preserves the forced mate but is not shortest-DTM optimal. The printed mate17 corresponds to 33 plies. The endpoint trace explains reuse and PV truncation; it does not certify how every earlier TT bound was derived. See the [independent static review](preparation/part4-static-review/REVIEW.md).
+
 ## Recommendation and limits
 
 Do not suppress mate scores because the displayed PV is shorter than the reported mate distance. No targeted correctness fix, including a default-off switch, is justified by this reproduction. Reconstructing a complete continuation would be a separate display feature; blindly following TT moves can introduce cycles or misleading continuations.

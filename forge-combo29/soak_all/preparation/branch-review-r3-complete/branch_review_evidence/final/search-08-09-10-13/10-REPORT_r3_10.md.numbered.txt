@@ -1,0 +1,87 @@
+    1 # Evasion ordering (r3-10)
+    2 
+    3 `EvasionOrdering` is a UCI check option, default `false`. With it off, move ordering is unchanged. With it on, a node that is in check — in the main search and in quiescence — orders its evasions as follows:
+    4 
+    5 - a capturing evasion scores `2000000 + victim value + capture history`
+    6 - a quiet evasion scores the same quiet-history mix the non-check quiet picker already uses (main history, plus the two previous continuation histories, plus the existing direct-check bonus)
+    7 - the capture band sits above quiet history and above the old promotion scores, so captures are tried first
+    8 
+    9 The transposition-table move is still tried before that list. Non-capturing promotions keep the previous most-valuable-victim score. They stay below captures and above quiets.
+   10 
+   11 ## Where the idea comes from
+   12 
+   13 When the king is in check, the only legal moves are evasions: captures of the checker, blocks, and king steps. Trying captures before quiet evasions is the usual alpha-beta policy, because a capture changes material and often ends the check at once. Among those captures, a flat most-valuable-victim / least-valuable-attacker order ignores which captures have actually cut off in this search. Adding the engine's own capture-history entry to the victim's piece value lets a capture that has been failing drop behind one that has been working, while a queen is still ahead of a pawn when the histories are equal.
+   14 
+   15 Quiet evasions have no victim. They are interpositions and king moves, so the right rank is the quiet-history mix this picker already uses for non-check quiets: the side-to-move butterfly history plus continuation history. That mix was already the quiet-evasion score. The option does not replace it.
+   16 
+   17 No table, constant, or source line was taken from another engine. Victim values are this tree's `SeePieceValue` (pawn 100, knight 300, bishop 300, rook 500, queen 900). Capture history is `Worker::capture_history_value`. Quiet scores go through the existing quiet scorer. The `2000000` band is only there so a capture stays ahead of the `1000000` band this file already uses for promotions, and ahead of a quiet score (a few `int16` history terms plus the existing `12000` check bonus).
+   18 
+   19 Both search modes already share one picker. If `board.in_check()` is true, the picker enters the evasion stages whether the caller is the main search or quiescence. The new score is in `MovePicker::generate_evasions`, so both see it. Quiescence that is not in check still generates captures only.
+   20 
+   21 ## Default engine
+   22 
+   23 Measured on the unmodified tree at `e04556dd`, then again after the patch with the option left off. Threads 1, Hash 16, OwnBook false, every option at its default. The build was
+   24 
+   25 `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=g++`
+   26 
+   27 and `cmake --build build -j`. GCC 13.3. The machine's default `c++` is Clang 18, and it cannot link `libstdc++` here (it looks for a GCC 14 library that is not installed), so the prescribed flags were compiled with `g++`.
+   28 
+   29 | check | before any change | after, option off |
+   30 | --- | ---: | ---: |
+   31 | bench 11 | 312866 | 312866 |
+   32 | bench 13 | 862329 | 862329 |
+   33 | startpos perft 5 | 4865609 | 4865609 |
+   34 
+   35 Turning the option back off after a run with it on returns bench 13 to 862329.
+   36 
+   37 Source diff in `forge-combo29/src` and `forge-combo29/include`: 18 insertions, 4 deletions. `CMakeLists.txt` was not touched.
+   38 
+   39 ## Proof the option is live
+   40 
+   41 Same release binary, after `setoption name EvasionOrdering value true`:
+   42 
+   43 bench 13 = 772890 nodes.
+   44 
+   45 That is not a strength result. It only shows the search walks a different tree.
+   46 
+   47 ## Legality under sanitizers
+   48 
+   49 `forge-combo29/tests_r3_10/evasion_ordering_test.cpp` was compiled with the same portable defines and `-fsanitize=address,undefined` (and `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`). The option was on for the search loop. Each returned root move has to be legal, and each move of the principal variation has to be legal in the position it is played from.
+   50 
+   51 First run, before the principal-variation walk was added:
+   52 
+   53 - default pins: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609
+   54 - bench 13 with the option on: 772890
+   55 - 200 searches at depth 10: 9 roots in check, 0 illegal root moves
+   56 - no AddressSanitizer or UndefinedBehaviorSanitizer output, exit 0
+   57 - bench 13 after clearing the flag: 862329
+   58 
+   59 Second and third runs, with the line walk:
+   60 
+   61 - same three default pins, same 772890, same restored 862329
+   62 - 200 searches, 9 roots in check, 2360 principal-variation moves, 0 illegal
+   63 - both runs exited 0 with no sanitizer output
+   64 
+   65 ## Re-check
+   66 
+   67 The same release binary was measured again in fresh processes, still Threads 1, Hash 16, OwnBook false, other options default. g++ 13.3, portable `x86-64-v3` build.
+   68 
+   69 | check | result |
+   70 | --- | ---: |
+   71 | bench 11, option off | 312866 |
+   72 | bench 13, option off | 862329 |
+   73 | startpos perft 5 | 4865609 |
+   74 | bench 13, EvasionOrdering on | 772890 |
+   75 | bench 11 after turning it off again | 312866 |
+   76 | bench 13 after turning it off again | 862329 |
+   77 
+   78 Repeated once more in one process: 312866, 862329, 4865609, then 772890 with the option on, then 312866 and 862329 after turning it off. No strength claim. The different node count only shows that the option changes the tree.
+   79 
+   80 ## Not claimed
+   81 
+   82 No games were played. Nothing here is an elo estimate.
+   83 
+   84 setoption name EvasionOrdering value true
+   85 
+   86 bench 13 nodes 772890
+   87 

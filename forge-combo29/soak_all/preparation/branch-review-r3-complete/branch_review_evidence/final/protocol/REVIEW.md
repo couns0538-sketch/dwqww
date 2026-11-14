@@ -1,0 +1,39 @@
+# Final r3 protocol review
+
+The five requested heads were reviewed against `e04556ddc3a430b2e751159b0d46111ef56c8b89` and the earlier frozen tips. All descend from both comparison points. Every object was already present, so no fetch was needed. No native builds/searches/tests, checkouts, merges, ref updates, or state changes were performed. All new evidence is confined to this scratch folder.
+
+At review HEAD `a0c5950ed7c23e54ba17e1422c95951becf57f58`, `src`/`include` still had an empty diff against `e04556dd`. The running job therefore continues to use the pre-r3 engine source.
+
+| Branch | Earlier tip → final head | Actual changes since the earlier review |
+| --- | --- | --- |
+| r3-12-soft-nodes | `71a4863edc351d81ccd5431e6943f476f10a2e0a` → `c808be4b01a9076754c782d68fdbb7797e4db7a1` | Engine code unchanged. Three commits change only report/test source. The new `edges` test mode compares hard/soft budgets 100/400/1000/3000 with corresponding completed-depth moves/scores, checks zero-budget behavior, and seeks a position whose next iteration crosses the 4N cap to check fallback to the previous finished iteration. |
+| r3-15-tm-finish-iteration | `d59a448b9f52a6acffba58926c303e60080df86a` → `8283f8e97259a469b9d7601924c6a2d607b7e4f8` | The prediction helper and its arithmetic fixtures change; search integration/defaults do not. For `last <= 2*previous`, skip when `last² > remaining*previous`, as before. For a larger spike, skip when `last*previous > remaining²`, corresponding to a geometric-mean estimate. The final follow-up is report-only. |
+| r3-16-tm-node-share | `cdd97af4c4338669cb59ce4cda5297f5143d1265` → `2be1e21b6faa3e8e3d80ff79449102b4e9f250f9` | Adds an `info string TmNodeShare lengthen/shorten ...` line when enabled, clock-managed, emitting info, and the adjusted target differs from the original. The target formula and tests are unchanged. The print occurs before the subsequent elapsed-time check. |
+| r3-17-merge-legal-node-limit | `3bafa41b16b6ee5759c51a8408aab12fe40591e4` → `74b18517d0a20e25a20cffd62b6a32ac27707e74` | All four follow-up commits change only `REPORT_r3_17.md`. Engine and test source are identical to the earlier reviewed tip. |
+| r3-22-time-safety | `e04556ddc3a430b2e751159b0d46111ef56c8b89` → `82fb89cbd815ad4427d8fd7d5a78d002e1c8fee7` | New `clock_plan.hpp`, search clock allocation/empty-reserve handling, and two tests. No new option or UCI-parser change. The final follow-up is report-only. |
+
+## Effects on the protocol
+
+**r12 remains opt-in `go softnodes N`.** A completed iteration is the N-node target, with a saturated 4N main-worker hard threshold. Ordinary `go nodes N` leaves `soft_nodes=false`. The zero-budget commit title describes a test expectation change, not an engine fix. The parser's earlier limitation remains: `go softnodes A nodes B` retains the soft flag and targets B softly. Tests still set Threads1; they do not establish the aggregate multi-thread 4N limit or mixed-keyword behavior. This branch does not contain r17's helper-budget changes.
+
+**r15 and r16 remain advertised default-false options.** Both require the existing game-clock path and do not affect pure node-only/depth-only searches through their new decision logic. Mixed clock+node/depth commands can enter that path: neither has an explicit exclusion for the presence of a node/depth limit. r15's tests add spike/boundary/large-product arithmetic cases for the new formula. Its comments/report discuss measured timings, but those measurements were not reproduced here. r16 adds observability to the existing rule; its depth-only search test still cannot exercise clock-target scaling.
+
+**r17's unconditional changes are unchanged:** keep the legal prefix of a malformed `position` command, skip unexpected tokens before `moves`, enable helper node-budget checks, and reset every worker counter before any starts. It remains relevant to D/F multi-thread node searches and malformed-position fuzzing. It is not an added wall-clock deadline and does not cap a depth-only search by elapsed time.
+
+**r22 changes clock behavior with no option gate.** `plan_clock_budget` computes usable time after Move Overhead. When none remains, it returns `{soft=0, hard=0, reserve_empty=true}` instead of manufacturing a 1ms budget. With a positive reserve, it retains the old allocation where already valid and clamps soft to hard when increment would make soft exceed hard. `Worker` tracks empty reserve separately because a numeric hard limit of zero otherwise means no clock. An ordinary nonterminal root returns its legal fallback without searching; nonponder searches with empty reserve do not start helper threads. Pondering remains allowed before `ponderhit`. Movetime keeps its separate existing path; infinite/node-only/depth-only searches do not use the new clock planner.
+
+The added `clock_plan_test` checks allocation formulas, negatives, overhead boundaries, moves-to-go caps, large values within the existing parsed-clock contract, and preservation of valid legacy plans. `clock_guard_test` has fixed-depth/node assertions, fresh-searcher empty-clock cases at Threads1/4/8, live-clock cases, one reused Threads1 case, and ponder/ponderhit coverage. These are source assertions, not tests run by this review. Empty-clock cases print elapsed wall time but do not assert a wall-time ceiling.
+
+## Static coverage concern in r22
+
+r22 skips helper startup for an empty reserve but retains all workers in the `all` vector and does not reset idle helper counters. Only the main worker enters `Worker::search` and clears its count. A terminal/drawn root is handled before the empty-reserve early return and uses `total_nodes()` (`final search.cpp:1689–1708`). After a prior multi-thread search, that path can include previously published idle-helper counts. The branch's empty-clock tests use fresh multi-thread searchers; its reused case is Threads1, so this combination is not covered. This is a source-level accounting concern, not a reproduced failure. r17's separate pre-start counter reset addresses the relevant stale-counter mechanism, but r22 does not include it and no combined version was tested here.
+
+## Relation to the current E5 cutoff
+
+The recorded E5 spec requests Threads2, depth9, CLI nodes0, and a 300-second driver budget. In the unchanged `play_driver.cpp`, `depth>0` sets only `limits.depth`; the nodes0 argument is inactive, so it does **not** request the immediate `go nodes 0` behavior. `SearchLimits` retains its default `time_ms=-1` and `movetime_ms=-1`. The driver checks its 300-second deadline only before starting a game (`:65`, `:72`), not inside the move/search loop (`:89`, `:102–104`). Consequently a continuing game or search can meet the external 450-second controller cutoff without violating a requested engine clock limit.
+
+The parent reported E5 was actively searching a bare-king ending, emitted no race report, and had its partial counts excluded before retry. This review did not reproduce that run or establish its duration's cause. r22 is not a direct fix for that observation because the E5 engine searches are unclocked. A timeout is not by itself evidence of an engine timer bug, race freedom, or deadlock. The pending retry remains separate evidence.
+
+## Evidence and verification limits
+
+`inventory.json.txt` records all exact heads, earlier tips, ancestry outcomes, commit subjects, and changed paths. `commands.json.txt` indexes the exact read commands and their complete stdout/stderr/exits in `command-NNN.txt`. Base/prior source diffs, prior test diffs, full final test sources, the E5 spec, and the current driver source are retained. The final report/test claims on each branch were not promoted to independently verified results. No claim of benchmark preservation, sanitizer success, strength, or speed is made.

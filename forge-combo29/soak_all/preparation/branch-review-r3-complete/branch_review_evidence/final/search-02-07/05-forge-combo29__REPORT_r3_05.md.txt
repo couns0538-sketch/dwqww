@@ -1,0 +1,51 @@
+# HindsightDepth
+
+The rule was assigned for this engine and written from that statement. Nothing was copied from another engine.
+
+A parent sometimes searches a move at less than its full depth. The child, off the principal variation and not in check, looks back at that choice. Static eval here is the corrected value the search already stores for the side to move (`static_eval`). The side that moved is the parent, so that side's loss is the parent's static eval plus the child's static eval. "Clearly worse" means a loss of at least one pawn, `SeePieceValue[Pawn]` (100 centipawns) in this engine. "Did not get worse" means the loss is zero or negative. A smaller loss does neither step.
+
+The new UCI check is `HindsightDepth`, default false, and it is listed in the `uci` answer. With the option off, search does not read the extra stack field. Clearing that field at the start of a search does not change the default tree.
+
+With the option on, the step runs only when all of these hold: the node is not a principal-variation window (`beta - alpha` is 1), the side to move is not in check, this is not a singular re-search, the parent static eval is known, and the parent reached this node by a late-move reduction. The withheld ply count is `new_depth - reduced_depth` after that reduction is clamped. It is stored only for that reduced call and cleared before the full-depth re-search and the principal-variation re-search. Null-move and probcut are not marked. They are not that move's ordinary reduced depth.
+
+- Loss of 100 or more: search one ply shallower.
+- Loss of 0 or less, and three or more plies were withheld: search one ply deeper.
+- Otherwise the depth stays as the parent passed it.
+
+If the hash entry is already at least as deep as the depth that step would use, the step is skipped and the depth stays unchanged. Dropping from 1 to 0 continues in quiescence. The same node does not apply the step twice: a singular re-search or a null-move verification sees the flag already consumed.
+
+On bench 13 with the option on, a counter that was compiled in and then removed (the node count did not change while it was present) saw 218100 reduced, off-PV, not-in-check nodes with a known parent eval. 20361 met the shallower test, 9418 met the deeper test, and 4790 of those steps were skipped because the hash entry was already deep enough. 156903 were only mildly worse, and 31418 were not worse but had fewer than three plies withheld.
+
+## Default pins
+
+Threads 1, Hash 16, OwnBook false, every option at default. Release build with g++ 13.3.0, `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`. In this environment `/usr/bin/c++` is clang and does not link libstdc++, so the measured binary is g++.
+
+Printed before any search change, and again at the end with the option off (including after turning it on and back off):
+
+- bench 11 = 312866
+- bench 13 = 862329
+- `go perft 5` from the start position = 4865609
+
+The same three numbers came back from a binary built with `-fsanitize=address,undefined -fno-sanitize-recover=undefined` and the option left off. An invalid `setoption` value is rejected and does not change the option.
+
+`src` and `include` differ from the base by 41 lines (40 added, 1 removed).
+
+## Option on
+
+Release bench 13, run twice: 840387 both times. The sanitized UCI binary printed the same 840387.
+
+Start position, depth 10, Hash 16, one thread: 13102 nodes with the option off, 12413 with it on.
+
+## Legality
+
+`forge-combo29/tests_r3_05/hindsight_depth_legal.cpp` plays 200 deterministic lines from the start position (0 to 27 plies) and searches each to depth 10 with the option on, Hash 16, one thread. It also searches a king in check, a promotion, a stalemate, and a checkmate. The best move has to be one of the legal moves, or none when the position has no legal move. Every move of the returned line has to be legal in the position where it is played. The same program checks that the option defaults off and that the start-position depth-10 node count changes when it is turned on.
+
+Release run: passed. Sanitizer run (`-O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined`, same engine defines): passed, exit 0, no address or undefined-behavior report.
+
+## Not checked
+
+No games were played, and no strength is claimed. One start-position search to depth 8 with Threads 2 and the option on returned d2d4 and did not crash. The node-count pins and the 200 depth-10 searches were not repeated at Threads 2. Ponder, MultiPV, and clock time were not re-run with the option on. Suites outside this engine folder were not run. The clang driver here still cannot link.
+
+option name HindsightDepth type check default false
+
+bench 13 with HindsightDepth on: 840387

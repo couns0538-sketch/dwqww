@@ -1,0 +1,62 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import {makePlan,auditBatch,MODES} from '../match_all.mjs';
+
+// Synthetic parser fixtures only. No child processes or native games.
+const dir=path.dirname(new URL(import.meta.url).pathname);
+const source=fs.readFileSync('/workspace/work/all-run/match_all.mjs');
+assert.equal(crypto.createHash('sha256').update(source).digest('hex'),'3b47871bee151c78ed6f2c4247fb7f42154d16e775b2f83018d38e86abc18fc0');
+const book='/workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd';
+const bookLines=fs.readFileSync(book,'utf8').split(/\r?\n/).filter(Boolean);
+const startpos='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const bookAudit={lines:bookLines.length,nonSixField:bookLines.filter(x=>x.trim().split(/\s+/).length!==6).length,nonCanonicalWhitespace:bookLines.filter(x=>x!==x.trim().split(/\s+/).join(' ')).length,standardStartpos:bookLines.filter(x=>x===startpos).length,whiteToMove:bookLines.filter(x=>x.split(' ')[1]==='w').length,blackToMove:bookLines.filter(x=>x.split(' ')[1]==='b').length};
+assert.equal(bookAudit.nonSixField,0);assert.equal(bookAudit.nonCanonicalWhitespace,0);assert.equal(bookAudit.standardStartpos,0);
+const planSpec=JSON.parse(fs.readFileSync('/workspace/work/all-run/specs/3-default-0001.json'));
+const representative=makePlan(...planSpec.argv.slice(2));
+assert.equal(representative.games,400);assert.equal(representative.rounds,200);assert.equal(representative.concurrency,4);
+assert.equal(representative.engines[1].options.length,3);
+const results=[];
+async function fixture(name,mode,side='w',abnormal=false,badRound=false){
+  const prefix=dir+'/synthetic/'+name;fs.mkdirSync(path.dirname(prefix),{recursive:true});
+  const plan=makePlan(mode,1,2,1,prefix),fen=bookLines.find(x=>x.split(' ')[1]===side);
+  const events=[{event:'tournament_started',schema:1,version:'source-shaped-fixture',engines:['candidate','baseline'],total_games:2,games_played:0,resumed:false,variant:'standard',type:'roundrobin',concurrency:1,sprt:false,thinking:false}];
+  let pgn='',consoleText='',trace='';
+  for(const engine of plan.engines){
+    const log=`[Engine] [15:00:00.000000] <12345>  ${engine.name}`;
+    for(const [key,value] of engine.options)trace+=`${log} <--- setoption name ${key} value ${value}\n`;
+    if(engine.cmd===plan.engines[0].cmd)for(const option of MODES.slice(1))trace+=`${log} ---> option name ${option} type check default false\n`;
+  }
+  for(let id=1;id<=2;id++){
+    const white=id===1?'candidate':'baseline',black=id===1?'baseline':'candidate',mover=side==='w'?white:black;
+    const termination=abnormal&&id===1?'disconnect':'normal',reason=termination==='normal'?'fixture natural ending':'fixture disconnected';
+    events.push({event:'game_started',game:id,round:badRound&&id===1?2:1,white,black,start_fen:fen,opening:[],wtime:null,btime:null,white_tc:'-',black_tc:'-',tc:'-'});
+    events.push({event:'move',game:id,ply:1,side:side==='w'?'white':'black',engine:mover,move:'a2a3',legal:true,wtime:null,btime:null,time_ms:1,nodes:20000});
+    events.push({event:'game_finished',game:id,result:'1-0',termination,reason,plies:1,pgn_game_id:id});
+    pgn+=`[Event "Synthetic parser fixture"]\n[Site "scratch"]\n[Date "2026.11.14"]\n[Round "1"]\n[GameId "${id}"]\n[White "${white}"]\n[Black "${black}"]\n[Result "1-0"]\n[FEN "${fen}"]\n[SetUp "1"]\n[PlyCount "1"]\n[Termination "${termination==='normal'?'normal':'abandoned'}"]\n[TimeControl "-"]\n\n1. a3 {Synthetic: not a legal-game assertion} 1-0\n\n`;
+    consoleText+=`Finished game ${id} (${white} vs ${black}): 1-0 {${reason}}\n`;
+    trace+=`[Engine] [15:00:00.000000] <12345>  ${mover} <--- go nodes 20000\n`;
+  }
+  consoleText+='Score of candidate vs baseline: 1 - 1 - 0  [0.500] 2\nTournament finished\n';
+  events.push({event:'tournament_finished',reason:'completed',resumable:false});
+  const config={seed:1,opening:{file:book,format:0,order:0,start:1,plies:-1},games:2,rounds:1,concurrency:1,recover:true,noswap:false,reverse:false,ratinginterval:2147483647,output:1,scoreinterval:1,engines:plan.engines.map(e=>({...e,args:'',limit:{nodes:20000,plies:0,tc:{increment:0,fixed_time:0,time:0,moves:0,timemargin:0}}})),stats:{'candidate vs baseline':{wins:1,losses:1,draws:0}},pgn:{file:plan.files.pgn,track_nodes:true,append_file:false},log:{file:plan.files.trace,engine_coms:true,level:1}};
+  for(const key of ['draw','resign','maxmoves','tb_adjudication','sprt'])config[key]={enabled:false};
+  fs.writeFileSync(plan.files.events,events.map(x=>JSON.stringify(x)).join('\n')+'\n');
+  fs.writeFileSync(plan.files.pgn,pgn);fs.writeFileSync(plan.files.console,consoleText);fs.writeFileSync(plan.files.trace,trace);fs.writeFileSync(plan.files.config,JSON.stringify(config));
+  const summary=await auditBatch(plan,{code:0,signal:null,interrupted:null});
+  assert.equal(summary.completed,!badRound,name);assert.equal(summary.passed,!abnormal&&!badRound,name);
+  assert.equal(summary.counts.wins,1);assert.equal(summary.counts.losses,1);assert.equal(summary.counts.draws,0);
+  assert.deepEqual(summary.pairBins.counts,[0,0,1,0,0]);
+  assert.equal(summary.failureCounts.disconnectGames,abnormal?1:0);
+  if(badRound)assert.ok(summary.errors.includes('unexpected round 1'));else assert.deepEqual(summary.errors,[]);
+  const record={name,mode,fenSide:side,completed:summary.completed,passed:summary.passed,counts:summary.counts,pairBins:summary.pairBins.counts,failureCounts:summary.failureCounts,errors:summary.errors};
+  results.push(record);fs.writeFileSync(prefix+'.audit.json.txt',JSON.stringify(summary,null,2)+'\n');
+}
+for(const mode of MODES)await fixture('clean-'+mode,mode);
+await fixture('black-to-move','default','b');
+await fixture('scored-disconnect','default','b',true);
+await fixture('wrong-round','default','w',false,true);
+const report={actual_native_games:0,synthetic_parser_cases:results.length,bookAudit,representativeArgs:representative.args,results};
+fs.writeFileSync(dir+'/fixture-results.json.txt',JSON.stringify(report,null,2)+'\n');
+console.log('FIXTURES '+JSON.stringify(report));

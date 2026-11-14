@@ -1,0 +1,44 @@
+{"n":35,"argv":["rg","-n","clockJson|tcString|terminationName| vs |PlayerPairKey","app/src/core/events","app/src/matchmaking","app/src/types/player_pair_key.hpp"],"cwd":"/workspace/work/fastchess","exit":2,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-035.txt"}
+STDOUT
+app/src/matchmaking/tournament/base/tournament.cpp:168:        std::vector<PlayerPairKey> engine_names;
+app/src/matchmaking/tournament/base/tournament.cpp:179:                    return PlayerPairKey(engine_name, opponent_name) == pair ||
+app/src/matchmaking/tournament/base/tournament.cpp:180:                           PlayerPairKey(opponent_name, engine_name) == pair;
+app/src/matchmaking/tournament/base/tournament.cpp:281:        event["wtime"]     = events::clockJson(white_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:282:        event["btime"]     = events::clockJson(black_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:284:        const auto white_tc_str = events::tcString(white_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:285:        const auto black_tc_str = events::tcString(black_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:313:        event["termination"] = events::terminationName(data.termination);
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:107:        // Finished game 187 (Engine1 vs Engine2): 0-1 {White loses on time}
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:108:        // Finished game 186 (Engine2 vs Engine1): 0-1 {White loses on time}
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:109:        // Score of Engine1 vs Engine2: 95 - 92 - 0  [0.508] 187
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:110:        // Score of Engine1 vs Engine2: 94 - 92 - 0  [0.505] 186
+app/src/matchmaking/match/match.cpp:625:    event["wtime"]   = events::clockJson(white.getTimeControl());
+app/src/matchmaking/match/match.cpp:626:    event["btime"]   = events::clockJson(black.getTimeControl());
+app/src/matchmaking/output/output_fastchess.hpp:92:        std::cout << fmt::format("Started game {} of {} ({} vs {})\n", current_game_count, max_game_count,
+app/src/matchmaking/output/output_fastchess.hpp:99:        std::cout << fmt::format("Finished game {} ({} vs {}): {} {{{}}}\n", id, configs.white.name, configs.black.name,
+app/src/matchmaking/output/output_fastchess.hpp:194:        return fmt::format("Results of {} vs {} ({}, {}, {}{}):", first, second, tc, threads, hash,
+app/src/matchmaking/output/output_cutechess.hpp:28:        std::cout << fmt::format("Score of {} vs {}: {} - {} - {}  [{:.3f}] {}\n", first, second, stats.wins,
+app/src/matchmaking/output/output_cutechess.hpp:101:        std::cout << fmt::format("Started game {} of {} ({} vs {})\n", current_game_count, max_game_count,
+app/src/matchmaking/output/output_cutechess.hpp:108:        std::cout << fmt::format("Finished game {} ({} vs {}): {} {{{}}}\n", id, configs.white.name, configs.black.name,
+app/src/matchmaking/scoreboard.hpp:15:struct PlayerPairKey {
+app/src/matchmaking/scoreboard.hpp:21:    PlayerPairKey(std::string f, std::string s) {
+app/src/matchmaking/scoreboard.hpp:28:    [[nodiscard]] bool operator==(const PlayerPairKey& other) const noexcept {
+app/src/matchmaking/scoreboard.hpp:32:    [[nodiscard]] bool operator!=(const PlayerPairKey& other) const noexcept { return !(*this == other); }
+app/src/matchmaking/scoreboard.hpp:35:        [[nodiscard]] std::size_t operator()(const PlayerPairKey& pair) const noexcept { return pair.hash; }
+app/src/matchmaking/scoreboard.hpp:43:using stats_map = std::unordered_map<PlayerPairKey, Stats, PlayerPairKey::Hash>;
+app/src/matchmaking/scoreboard.hpp:51:        jtmp[fmt::format("{} vs {}", item.first.first, item.first.second)] = obj;
+app/src/matchmaking/scoreboard.hpp:59:        const auto first  = key.substr(0, key.find(" vs "));
+app/src/matchmaking/scoreboard.hpp:60:        const auto second = key.substr(key.find(" vs ") + 4);
+app/src/matchmaking/scoreboard.hpp:62:        map[PlayerPairKey(first, second)] = value;
+app/src/matchmaking/scoreboard.hpp:69:        return results_[PlayerPairKey(configs.white.name, configs.black.name)];
+app/src/matchmaking/scoreboard.hpp:73:        return results_.at(PlayerPairKey(configs.white.name, configs.black.name));
+app/src/matchmaking/scoreboard.hpp:77:        return results_[PlayerPairKey(players.first, players.second)];
+app/src/matchmaking/scoreboard.hpp:81:        return results_.at(PlayerPairKey(players.first, players.second));
+app/src/matchmaking/scoreboard.hpp:107:    // Updates the stats of engine1 vs engine2
+app/src/matchmaking/scoreboard.hpp:147:    // Stats of engine1 vs engine2 + engine2 vs engine1, adjusted with the perspective
+app/src/matchmaking/game_events.hpp:30:[[nodiscard]] inline std::string_view terminationName(MatchTermination termination) {
+app/src/matchmaking/game_events.hpp:66:[[nodiscard]] inline std::string tcString(const TimeControl& tc) {
+app/src/matchmaking/game_events.hpp:73:[[nodiscard]] inline json clockJson(const TimeControl& tc) {
+
+STDERR
+rg: app/src/types/player_pair_key.hpp: No such file or directory (os error 2)

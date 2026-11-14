@@ -1,0 +1,95 @@
++ nl -ba /workspace/work/dwqww-all/forge-combo29/src/search.cpp
++ sed -n '1070,1105p;1158,1172p'
+  1070	    const Move tt_move = tt_hit && (!near50 || tte.rule50_clock == board.halfmove_clock()) ? tte.move : Move::none();
+  1071	    const int tt_score = tt_hit && tte.score_usable(board.halfmove_clock())
+  1072	                             ? score_from_tt(tte.score, ply) : ValueNone;
+  1073	    const Bound tt_bound = tt_hit ? tte.bound() : BoundNone;
+  1074	    const bool tt_pv = pv_node || (tt_hit && !near50 && tte.pv());
+  1075	    if (!pv_node && !near50 && tt_hit && tt_score != ValueNone &&
+  1076	        (mate_moves_ == 0 || (!is_mate_score(alpha) && !is_mate_score(beta))) &&
+  1077	        (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
+  1078	         (tt_bound == BoundUpper && tt_score <= alpha))) {
+  1079	        return tt_score;
+  1080	    }
+  1081	
+  1082	    int best_score;
+  1083	    int futility_base;
+  1084	    if (in_check) {
+  1085	        ss->static_eval = ValueNone;
+  1086	        best_score = futility_base = -Infinite;
+  1087	    } else {
+  1088	        int eval;
+  1089	        if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+  1090	        else ss->raw_eval = static_evaluate(board, ss);
+  1091	        eval = ss->static_eval = corrected_eval(board, ss->raw_eval);
+  1092	        if (tt_hit && tt_score != ValueNone &&
+  1093	            ((tt_bound == BoundLower && tt_score > eval) || (tt_bound == BoundUpper && tt_score < eval) ||
+  1094	             tt_bound == BoundExact)) {
+  1095	            eval = tt_score;
+  1096	        }
+  1097	        best_score = eval;
+  1098	        if (best_score >= beta) {
+  1099	#if FORGE_SPD_TT_NOTLS
+  1100	            if (!tt_hit) store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+  1101	#else
+  1102	            if (!tt_hit) shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), ss->raw_eval, Move::none(), 0, BoundLower, false, board.halfmove_clock());
+  1103	#endif
+  1104	            return best_score;
+  1105	        }
+  1158	            }
+  1159	        }
+  1160	    }
+  1161	    if (in_check && move_count == 0) return mated_in(ply);
+  1162	
+  1163	    const Bound bound = best_score >= beta ? BoundLower : (pv_node && !best_move.is_none() ? BoundExact : BoundUpper);
+  1164	#if FORGE_SPD_TT_NOTLS
+  1165	    store_tt(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+  1166	#else
+  1167	    shared_.tt.store(tt_probe, board.key(), score_to_tt(best_score, ply), in_check ? ValueNone : ss->raw_eval, best_move, 0, bound, tt_pv, board.halfmove_clock());
+  1168	#endif
+  1169	    return best_score;
+  1170	}
+  1171	
+  1172	// ---------------------------------------------------------------------------
++ nl -ba /workspace/work/dwqww-all/forge-combo29/soak_all/mate_pv_investigation.md
++ sed -n 36,75p
+    36	## Independent mating assessment
+    37	
+    38	The scratch query includes `tests_t12/krk_mate_test.cpp` unchanged, renames its original main, and invokes only its exact KRK retrograde class and board operations. It does not run that test's repeated engine searches. The oracle algorithm is independent of alpha-beta search but shares the engine's attack/board primitives; it is not an external tablebase implementation.
+    39	
+    40	- Exact root DTM is **15 plies**, equivalent to mate in 8 moves. The optimal root move is `b3e3`.
+    41	- The chosen `b3f3` forces mate in **17 plies**, equivalent to mate in 9 moves.
+    42	- All 15 published PV moves are legal.
+    43	- Its endpoint is `8/8/8/8/8/5R2/1k1K4/8 b - - 15 8`. Black has three legal moves and is not in check.
+    44	- The endpoint's exact remaining DTM is **6 plies**, allowing mate within 21 total plies along the displayed prefix followed by optimal continuation.
+    45	- UCI `mate 17` is measured in moves. Here it corresponds to a reported mating bound of 33 plies, not 17 plies.
+    46	
+    47	The oracle therefore does not establish an impossible mate bound or a nonmating chosen move. The reported distance is loose compared with exact DTM. An incomplete PV is not, by itself, proof that the score is false.
+    48	
+    49	## Code mechanism and scratch trace
+    50	
+    51	The initial investigation did **not** instrument the exact return instruction. Its preliminary source-based assessment is preserved separately in `mate_pv_evidence/preliminary-analysis.md`. The authorized follow-up instrumented only a scratch copy of the merged `search.cpp` with two logging statements, one at the qsearch stand-pat early return and one immediately before its final return. Production source, binaries, and search decisions were unchanged. The original lock binary's instructions were not instrumented.
+    52	
+    53	One bounded NNUE-off run of that scratch executable reproduced all deterministic stdout exactly: after removing only engine-reported `time` and `nps` fields, its complete stdout matched the uninstrumented merged run (`diff` exit 0). It again searched 25568 nodes, returned `mate 17`, and emitted the identical 15-ply PV. Exit was 0; stderr contained only the intentionally added trace records.
+    54	
+    55	The record at the published PV endpoint is:
+    56	
+    57	```text
+    58	TRACE_QPV_FINAL root_depth=13 ply=15 alpha=-31967 beta=-31965 score=-31967 pv_length=0 tt_score=-31967 tt_raw=-31982 tt_bound=1 tt_depth=9 fen=8/8/8/8/8/5R2/1k1K4/8 b - - 15 8
+    59	```
+    60	
+    61	`tt_bound=1` is `BoundUpper`. The cached mate-valued TT score replaces qsearch's stand-pat evaluation. At this quiet Black-to-move endpoint, qsearch returns that score with an empty child PV. Its parents copy only their searched prefix, while the numerical mate score is propagated separately. The cached position-relative score `-31982` becomes `-31967` after the ply-15 adjustment, yielding root score `31967` and UCI mate distance `(32000 - 31967 + 1) / 2 = 17`.
+    62	
+    63	This confirms the final-return mechanism in the scratch reproduction. It does not audit the earlier creation of every TT bound or prove all mate reports correct. The independent oracle is the evidence that this particular reported bound does not overclaim.
+    64	
+    65	All references below are `forge-combo29/src/search.cpp` at the recorded source hashes:
+    66	
+    67	| Mechanism | Lock lines | Merged lines |
+    68	| --- | --- | --- |
+    69	| Reset qsearch PV length on entry | 996 | 1048 |
+    70	| TT cutoff can return a score without reconstructing a PV | 1016-1019; 1165-1169 | 1075-1079; 1226-1231 |
+    71	| Replace stand-pat evaluation with a usable TT score, including mate values | 1032-1044 | 1092-1104 |
+    72	| Final qsearch return identified by scratch trace | 1109 | 1169 |
+    73	| Copy only the child PV actually searched | 1091-1094; 1444-1447 | 1151-1154; 1526-1529 |
+    74	| Store the completed root score and PV separately | 1689-1697 | 1809-1814 and emit logic |
+    75	| Format mate distance and print the available PV | 190-196; 1576-1579 | 198-204; 1672-1682 |

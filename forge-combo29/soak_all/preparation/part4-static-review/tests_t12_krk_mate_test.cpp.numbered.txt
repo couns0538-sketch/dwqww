@@ -1,0 +1,408 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <algorithm>
+    5 #include <charconv>
+    6 #include <cstdint>
+    7 #include <cstdlib>
+    8 #include <iostream>
+    9 #include <sstream>
+   10 #include <string>
+   11 #include <vector>
+   12 
+   13 namespace {
+   14 
+   15 // Exact retrograde tablebase for White King + White Rook vs Black King.
+   16 // State index: ((wk * 64 + wr) * 64 + bk) * 2 + stm, where stm = 0 (White), 1 (Black).
+   17 class KrkTablebase {
+   18 public:
+   19     static constexpr std::size_t TotalStates = 64U * 64U * 64U * 2U;
+   20 
+   21     KrkTablebase() : dtm_(TotalStates, -1), legal_(TotalStates, 0) {
+   22         forge::attacks::init();
+   23         build();
+   24     }
+   25 
+   26     [[nodiscard]] int dtm(int wk, int wr, int bk, int stm) const {
+   27         return dtm_[index(wk, wr, bk, stm)];
+   28     }
+   29 
+   30     [[nodiscard]] bool is_legal_state(int wk, int wr, int bk, int stm) const {
+   31         return legal_[index(wk, wr, bk, stm)] != 0;
+   32     }
+   33 
+   34     // Evaluates a White-to-move KRK move from (wk, wr, bk).
+   35     // Returns exact distance-to-mate in plies from the root (>= 1) if the move
+   36     // forces mate, or -1 if the move allows a draw (stalemate or rook loss).
+   37     [[nodiscard]] int move_mate_plies(const forge::Board& root, const forge::Move& move) const {
+   38         if (move.is_none() || !root.is_legal(move)) return -1;
+   39         forge::Board next = root;
+   40         forge::Undo undo;
+   41         if (!next.make_move(move, undo)) return -1;
+   42         if (!next.has_legal_move()) {
+   43             return next.in_check() ? 1 : -1;
+   44         }
+   45         if (next.is_insufficient_material()) return -1;
+   46         const forge::Bitboard wr_bb = next.pieces(forge::White, forge::Rook);
+   47         if (wr_bb == 0) return -1;
+   48         const int wk = next.king_square(forge::White);
+   49         const int bk = next.king_square(forge::Black);
+   50         const int wr = forge::lsb(wr_bb);
+   51         const int child_dtm = dtm(wk, wr, bk, 1);
+   52         if (child_dtm < 0) return -1;
+   53         return 1 + child_dtm;
+   54     }
+   55 
+   56 private:
+   57     std::vector<std::int16_t> dtm_;
+   58     std::vector<std::uint8_t> legal_;
+   59 
+   60     [[nodiscard]] static constexpr std::size_t index(int wk, int wr, int bk, int stm) {
+   61         return ((static_cast<std::size_t>(wk) * 64U + static_cast<std::size_t>(wr)) * 64U +
+   62                 static_cast<std::size_t>(bk)) * 2U + static_cast<std::size_t>(stm);
+   63     }
+   64 
+   65     [[nodiscard]] static bool rook_attacks_bk(int wk, int wr, int bk) {
+   66         return (forge::attacks::rook(wr, forge::square_bb(wk)) & forge::square_bb(bk)) != 0;
+   67     }
+   68 
+   69     void build() {
+   70         for (int wk = 0; wk < 64; ++wk) {
+   71             for (int wr = 0; wr < 64; ++wr) {
+   72                 if (wr == wk) continue;
+   73                 for (int bk = 0; bk < 64; ++bk) {
+   74                     if (bk == wk || bk == wr) continue;
+   75                     if (forge::square_distance(wk, bk) <= 1) continue;
+   76                     const bool bk_checked = rook_attacks_bk(wk, wr, bk);
+   77                     if (!bk_checked) {
+   78                         legal_[index(wk, wr, bk, 0)] = 1;
+   79                     }
+   80                     legal_[index(wk, wr, bk, 1)] = 1;
+   81                 }
+   82             }
+   83         }
+   84 
+   85         // Terminal checkmates (stm == 1, in check, no legal king move or rook capture).
+   86         for (int wk = 0; wk < 64; ++wk) {
+   87             for (int wr = 0; wr < 64; ++wr) {
+   88                 for (int bk = 0; bk < 64; ++bk) {
+   89                     const std::size_t idx = index(wk, wr, bk, 1);
+   90                     if (!legal_[idx]) continue;
+   91                     if (!rook_attacks_bk(wk, wr, bk)) continue;
+   92                     bool has_escape = false;
+   93                     forge::Bitboard moves = forge::attacks::king(bk);
+   94                     while (moves != 0) {
+   95                         const int nbk = forge::pop_lsb(moves);
+   96                         if (forge::square_distance(wk, nbk) <= 1) continue;
+   97                         if (nbk == wr) {
+   98                             has_escape = true;
+   99                             break;
+  100                         }
+  101                         if (!rook_attacks_bk(wk, wr, nbk)) {
+  102                             has_escape = true;
+  103                             break;
+  104                         }
+  105                     }
+  106                     if (!has_escape) dtm_[idx] = 0;
+  107                 }
+  108             }
+  109         }
+  110 
+  111         for (int ply = 1; ply <= 64; ++ply) {
+  112             bool changed = false;
+  113             if ((ply & 1) == 1) {
+  114                 // White to move: wins in `ply` if any legal move reaches a Black state with dtm == ply - 1.
+  115                 for (int wk = 0; wk < 64; ++wk) {
+  116                     for (int wr = 0; wr < 64; ++wr) {
+  117                         for (int bk = 0; bk < 64; ++bk) {
+  118                             const std::size_t idx = index(wk, wr, bk, 0);
+  119                             if (!legal_[idx] || dtm_[idx] >= 0) continue;
+  120                             bool found = false;
+  121                             forge::Bitboard kmoves = forge::attacks::king(wk);
+  122                             while (kmoves != 0) {
+  123                                 const int nwk = forge::pop_lsb(kmoves);
+  124                                 if (nwk == wr || forge::square_distance(nwk, bk) <= 1) continue;
+  125                                 if (dtm_[index(nwk, wr, bk, 1)] == ply - 1) {
+  126                                     found = true;
+  127                                     break;
+  128                                 }
+  129                             }
+  130                             if (!found) {
+  131                                 const forge::Bitboard occ = forge::square_bb(wk) | forge::square_bb(bk);
+  132                                 forge::Bitboard rmoves = forge::attacks::rook(wr, occ);
+  133                                 while (rmoves != 0) {
+  134                                     const int nwr = forge::pop_lsb(rmoves);
+  135                                     if (nwr == wk || nwr == bk) continue;
+  136                                     if (dtm_[index(wk, nwr, bk, 1)] == ply - 1) {
+  137                                         found = true;
+  138                                         break;
+  139                                     }
+  140                                 }
+  141                             }
+  142                             if (found) {
+  143                                 dtm_[idx] = static_cast<std::int16_t>(ply);
+  144                                 changed = true;
+  145                             }
+  146                         }
+  147                     }
+  148                 }
+  149             } else {
+  150                 // Black to move: loses in `ply` iff >= 1 legal move, cannot capture undefended rook,
+  151                 // and every legal move leads to a solved White state (max dtm == ply - 1).
+  152                 for (int wk = 0; wk < 64; ++wk) {
+  153                     for (int wr = 0; wr < 64; ++wr) {
+  154                         for (int bk = 0; bk < 64; ++bk) {
+  155                             const std::size_t idx = index(wk, wr, bk, 1);
+  156                             if (!legal_[idx] || dtm_[idx] >= 0) continue;
+  157                             int legal_count = 0;
+  158                             int worst = -1;
+  159                             bool can_draw = false;
+  160                             forge::Bitboard kmoves = forge::attacks::king(bk);
+  161                             while (kmoves != 0) {
+  162                                 const int nbk = forge::pop_lsb(kmoves);
+  163                                 if (forge::square_distance(wk, nbk) <= 1) continue;
+  164                                 if (nbk == wr) {
+  165                                     can_draw = true;
+  166                                     break;
+  167                                 }
+  168                                 if (rook_attacks_bk(wk, wr, nbk)) continue;
+  169                                 ++legal_count;
+  170                                 const int child = dtm_[index(wk, wr, nbk, 0)];
+  171                                 if (child < 0) {
+  172                                     can_draw = true;
+  173                                     break;
+  174                                 }
+  175                                 worst = std::max(worst, child);
+  176                             }
+  177                             if (!can_draw && legal_count > 0 && worst == ply - 1) {
+  178                                 dtm_[idx] = static_cast<std::int16_t>(ply);
+  179                                 changed = true;
+  180                             }
+  181                         }
+  182                     }
+  183                 }
+  184             }
+  185             if (!changed) break;
+  186         }
+  187     }
+  188 };
+  189 
+  190 std::string make_krk_fen(int wk, int wr, int bk) {
+  191     std::ostringstream out;
+  192     for (int rank = 7; rank >= 0; --rank) {
+  193         int empty = 0;
+  194         for (int file = 0; file < 8; ++file) {
+  195             const int sq = rank * 8 + file;
+  196             char piece = 0;
+  197             if (sq == wk) piece = 'K';
+  198             else if (sq == wr) piece = 'R';
+  199             else if (sq == bk) piece = 'k';
+  200             if (piece == 0) {
+  201                 ++empty;
+  202             } else {
+  203                 if (empty > 0) {
+  204                     out << empty;
+  205                     empty = 0;
+  206                 }
+  207                 out << piece;
+  208             }
+  209         }
+  210         if (empty > 0) out << empty;
+  211         if (rank > 0) out << '/';
+  212     }
+  213     out << " w - - 0 1";
+  214     return out.str();
+  215 }
+  216 
+  217 std::string format_score(int score) {
+  218     if (forge::is_mate_score(score)) {
+  219         const int distance = forge::MateValue - std::abs(score);
+  220         const int mate = (distance + 1) / 2;
+  221         return "mate " + std::to_string(score > 0 ? mate : -mate);
+  222     }
+  223     return "cp " + std::to_string(score);
+  224 }
+  225 
+  226 struct SelectedPosition {
+  227     std::string fen;
+  228     int wk = 0;
+  229     int wr = 0;
+  230     int bk = 0;
+  231     int exact_dtm = 0;
+  232     int t1_score = 0;
+  233     forge::Move t1_move{};
+  234 };
+  235 
+  236 int parse_arg(const char* text, int fallback) {
+  237     int v = fallback;
+  238     const std::string_view sv(text);
+  239     const auto res = std::from_chars(sv.data(), sv.data() + sv.size(), v);
+  240     return (res.ec == std::errc{} && res.ptr == sv.data() + sv.size()) ? v : fallback;
+  241 }
+  242 
+  243 } // namespace
+  244 
+  245 int main(int argc, char** argv) {
+  246     const int target_positions = argc > 1 ? std::max(1, parse_arg(argv[1], 40)) : 40;
+  247     const int runs_per_pos = argc > 2 ? std::max(1, parse_arg(argv[2], 10)) : 10;
+  248     const int threads = argc > 3 ? std::clamp(parse_arg(argv[3], 2), 1, 64) : 2;
+  249     const int hash_mb = argc > 4 ? std::clamp(parse_arg(argv[4], 16), 1, 1024) : 16;
+  250     const int depth = argc > 5 ? std::clamp(parse_arg(argv[5], 14), 1, 64) : 14;
+  251     const bool clear_all = argc > 6 ? (parse_arg(argv[6], 1) != 0) : true;
+  252 
+  253     const KrkTablebase tb;
+  254 
+  255     // Deterministically sample legal KRK positions across non-trivial mate distances
+  256     // (preferring deeper forced mates within depth 14 so multi-threaded search does
+  257     // real concurrent work, falling back to shorter mates if needed).
+  258     struct Candidate {
+  259         int wk;
+  260         int wr;
+  261         int bk;
+  262         int dtm;
+  263         std::uint64_t order_hash;
+  264     };
+  265 
+  266     std::vector<SelectedPosition> positions;
+  267     positions.reserve(static_cast<std::size_t>(target_positions));
+  268 
+  269     forge::Searcher single_searcher(static_cast<std::size_t>(hash_mb), 1);
+  270     forge::SearchLimits limits;
+  271     limits.depth = depth;
+  272 
+  273     // Target plies: 13 (mate in 7), 11 (mate in 6), 9 (mate in 5), 7 (mate in 4), 5 (mate in 3).
+  274     const int target_dtms[] = {13, 11, 9, 7, 5};
+  275     for (const int target_dtm : target_dtms) {
+  276         if (static_cast<int>(positions.size()) >= target_positions) break;
+  277         std::vector<Candidate> bucket;
+  278         for (int wk = 0; wk < 64; ++wk) {
+  279             for (int wr = 0; wr < 64; ++wr) {
+  280                 for (int bk = 0; bk < 64; ++bk) {
+  281                     if (!tb.is_legal_state(wk, wr, bk, 0)) continue;
+  282                     if (tb.dtm(wk, wr, bk, 0) != target_dtm) continue;
+  283                     std::uint64_t h = static_cast<std::uint64_t>(wk * 4096 + wr * 64 + bk + 1);
+  284                     h ^= h >> 30U;
+  285                     h *= 0xbf58476d1ce4e5b9ULL;
+  286                     h ^= h >> 27U;
+  287                     h *= 0x94d049bb133111ebULL;
+  288                     h ^= h >> 31U;
+  289                     bucket.push_back(Candidate{wk, wr, bk, target_dtm, h});
+  290                 }
+  291             }
+  292         }
+  293         std::sort(bucket.begin(), bucket.end(), [](const Candidate& a, const Candidate& b) {
+  294             return a.order_hash < b.order_hash;
+  295         });
+  296 
+  297         // Take a balanced slice per mate distance, verifying each with Threads 1 depth 14.
+  298         const int quota = (target_dtm >= 7)
+  299             ? std::max(10, target_positions / 4)
+  300             : target_positions;
+  301         int added_for_dtm = 0;
+  302         for (const Candidate& cand : bucket) {
+  303             if (static_cast<int>(positions.size()) >= target_positions) break;
+  304             if (added_for_dtm >= quota) break;
+  305             const std::string fen = make_krk_fen(cand.wk, cand.wr, cand.bk);
+  306             forge::Board board;
+  307             std::string err;
+  308             if (!board.set_fen(fen, &err)) continue;
+  309 
+  310             single_searcher.clear();
+  311             const forge::SearchInfo info = single_searcher.search(board, limits, false);
+  312             if (info.score < forge::MateInMaxPly) continue;
+  313             const int move_plies = tb.move_mate_plies(board, info.best_move);
+  314             const int claimed_plies = forge::MateValue - info.score;
+  315             if (move_plies < 0 || move_plies > claimed_plies) continue;
+  316 
+  317             positions.push_back(SelectedPosition{
+  318                 fen, cand.wk, cand.wr, cand.bk, cand.dtm, info.score, info.best_move
+  319             });
+  320             ++added_for_dtm;
+  321         }
+  322     }
+  323 
+  324     std::cout << "config positions=" << positions.size()
+  325               << " runs_per_pos=" << runs_per_pos
+  326               << " threads=" << threads
+  327               << " hash_mb=" << hash_mb
+  328               << " depth=" << depth
+  329               << " use_nnue=" << (forge::nnue::enabled ? "true" : "false") << "\n";
+  330 
+  331     if (static_cast<int>(positions.size()) < target_positions) {
+  332         std::cout << "ERROR: only found " << positions.size() << " positions with Threads 1 mate score\n";
+  333         return 2;
+  334     }
+  335 
+  336     // Verify Threads 1 stability across 100 runs (first 10 positions x 10 runs or all x 2+)
+  337     // and run the main multi-threaded test (positions x runs_per_pos, fresh hash each time).
+  338     int t1_misses = 0;
+  339     const int t1_check_runs = 100;
+  340     for (int r = 0; r < t1_check_runs; ++r) {
+  341         const SelectedPosition& pos = positions[static_cast<std::size_t>(r) % positions.size()];
+  342         forge::Board board;
+  343         (void)board.set_fen(pos.fen);
+  344         if (clear_all) single_searcher.clear();
+  345         else single_searcher.clear_hash();
+  346         const forge::SearchInfo info = single_searcher.search(board, limits, false);
+  347         const bool mate_score = info.score >= forge::MateInMaxPly;
+  348         const int move_plies = tb.move_mate_plies(board, info.best_move);
+  349         const int claimed_plies = mate_score ? (forge::MateValue - info.score) : -1;
+  350         const bool mating_move = move_plies > 0 && (!mate_score || move_plies <= std::max(pos.exact_dtm + 2, claimed_plies)) && move_plies <= depth * 2;
+  351         if (!mate_score || !mating_move) ++t1_misses;
+  352     }
+  353     std::cout << "threads_1_check: " << t1_misses << " / " << t1_check_runs << " misses\n";
+  354 
+  355     forge::Searcher mt_searcher(static_cast<std::size_t>(hash_mb), threads);
+  356     int total_runs = 0;
+  357     int total_misses = 0;
+  358     int no_mate_score_count = 0;
+  359     int non_mating_move_count = 0;
+  360     int logged_examples = 0;
+  361 
+  362     for (std::size_t idx = 0; idx < positions.size(); ++idx) {
+  363         const SelectedPosition& pos = positions[idx];
+  364         int pos_misses = 0;
+  365         for (int run = 0; run < runs_per_pos; ++run) {
+  366             forge::Board board;
+  367             (void)board.set_fen(pos.fen);
+  368             if (clear_all) mt_searcher.clear();
+  369             else mt_searcher.clear_hash();
+  370             const forge::SearchInfo info = mt_searcher.search(board, limits, false);
+  371             ++total_runs;
+  372 
+  373             const bool has_mate_score = info.score >= forge::MateInMaxPly;
+  374             const int move_plies = tb.move_mate_plies(board, info.best_move);
+  375             const int claimed_plies = has_mate_score ? (forge::MateValue - info.score) : -1;
+  376             // A move is non-mating if it is illegal/draws (move_plies < 0), or fails to force mate
+  377             // within the claimed mate bound (when a mate score is reported) or within depth plies.
+  378             const bool is_mating_move = move_plies > 0 &&
+  379                 (has_mate_score ? (move_plies <= claimed_plies) : (move_plies <= depth));
+  380 
+  381             if (!has_mate_score || !is_mating_move) {
+  382                 ++total_misses;
+  383                 ++pos_misses;
+  384                 if (!has_mate_score) ++no_mate_score_count;
+  385                 if (!is_mating_move) ++non_mating_move_count;
+  386                 if (logged_examples < 12) {
+  387                     ++logged_examples;
+  388                     std::cout << "  MISS pos=" << idx << " run=" << run
+  389                               << " fen=\"" << pos.fen << "\""
+  390                               << " exact_dtm=" << pos.exact_dtm
+  391                               << " t1=" << format_score(pos.t1_score) << "/" << forge::Board::move_to_uci(pos.t1_move)
+  392                               << " got=" << format_score(info.score) << "/" << forge::Board::move_to_uci(info.best_move)
+  393                               << " move_dtm=" << move_plies << "\n";
+  394                 }
+  395             }
+  396         }
+  397         if (pos_misses > 0) {
+  398             std::cout << "pos " << idx << " (" << pos.fen << ", dtm=" << pos.exact_dtm << " plies): "
+  399                       << pos_misses << "/" << runs_per_pos << " misses\n";
+  400         }
+  401     }
+  402 
+  403     std::cout << "SUMMARY: misses=" << total_misses << " / " << total_runs
+  404               << " (no_mate_score=" << no_mate_score_count
+  405               << ", non_mating_move=" << non_mating_move_count << ")\n";
+  406     return total_misses == 0 ? 0 : 1;
+  407 }
+  408 

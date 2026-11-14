@@ -1,0 +1,138 @@
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..74648f82 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -270,11 +270,15 @@ extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the
+ extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+ extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
++extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
+ [[nodiscard]] const std::vector<Parameter>& parameters();
+ // Call after changing LMR parameters.
+ void refresh();
+ } // namespace tune
+ 
++// True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
++[[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
++
+ // Move-ordering statistics.
+ using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+ using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+@@ -387,6 +391,9 @@ private:
+     bool root_restricted_ = false;
+     std::uint64_t null_tries_ = 0;
+     std::uint64_t null_cutoffs_ = 0;
++    // True only inside a NullThreatVerify confirmation, so that reduced search
++    // does not use null moves. Stays false for the whole default search.
++    bool null_blocked_ = false;
+ 
+ #if FORGE_SPD_TT_NOTLS
+     // The six TT call sites of search / qsearch: one predictable branch per access.
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..a6e9f56b 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -77,6 +77,7 @@ int FailLowContinuationBonus = 0;
+ bool ContHist4PlyRead = false;
+ bool NonPawnCorrection = false;
+ bool LmrDeeperShallower = false;
++bool NullThreatVerify = false;
+ 
+ const std::vector<Parameter>& parameters() {
+     static const std::vector<Parameter> table{
+@@ -117,6 +118,26 @@ const std::vector<Parameter>& parameters() {
+ }
+ } // namespace tune
+ 
++// Kings are left out: this engine's SEE value for a king is 0, so a king is
++// neither a material attacker nor a material victim.
++bool cheaper_enemy_attacks_dearer(const Board& board) {
++    const Color us = board.side_to_move();
++    const Bitboard enemy = board.occupied(opposite(us));
++    Bitboard ours = board.pieces(us, Knight) | board.pieces(us, Bishop) | board.pieces(us, Rook) |
++                    board.pieces(us, Queen);
++    while (ours != 0) {
++        const int square = pop_lsb(ours);
++        const int victim = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(square)))];
++        Bitboard hits = board.attackers_to(square) & enemy;
++        while (hits != 0) {
++            const int from = pop_lsb(hits);
++            const int attacker = SeePieceValue[static_cast<std::size_t>(piece_type(board.piece_at(from)))];
++            if (attacker > 0 && attacker < victim) return true;
++        }
++    }
++    return false;
++}
++
+ namespace {
+ 
+ constexpr int HistoryMax = 16384;
+@@ -1279,7 +1300,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         }
+         // Null move pruning.
+         if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+-            ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
++            ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
++            !(ss - 1)->current_move.is_none() &&
+             board.has_non_pawn_material(board.side_to_move()) &&
+             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
+             ++null_tries_;
+@@ -1300,13 +1322,23 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+             if (aborted_) return 0;
+             if (null_score >= beta) {
+                 if (is_mate_score(null_score)) null_score = beta;
+-                if (depth < 14) {
++                // Depth >= 14 always verifies, as before. Below that, a cutoff
++                // stands unless NullThreatVerify is on and a cheaper enemy piece
++                // attacks a dearer piece of the side to move. The option is read
++                // first, so the attack scan does not run when it is off.
++                const bool threat_gate =
++                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
++                if (depth < 14 && !threat_gate) {
+                     ++null_cutoffs_;
+                     return null_score;
+                 }
+-                // Verification search at high depth guards against zugzwang.
++                // Same reduced depth as the high-depth verification. A threat
++                // confirmation also refuses null moves in that whole search.
++                const bool saved_block = null_blocked_;
++                if (threat_gate) null_blocked_ = true;
+                 ss->null_move_allowed = false;
+                 const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
++                null_blocked_ = saved_block;
+                 ss->double_extensions = inherited_double_extensions;
+                 ss->null_move_allowed = true;
+                 if (aborted_) return 0;
+@@ -1598,6 +1630,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     pondering_ = limits.ponder;
+     null_tries_ = 0;
+     null_cutoffs_ = 0;
++    null_blocked_ = false;
+     root_moves_ = limits.search_moves;
+     root_restricted_ = limits.search_moves_specified;
+     root_history_index_ = board.history_size() - 1;
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..9a06f89b 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
+             }
+             std::cout << "option name ContHist4PlyRead type check default false\n"
+                          "option name NonPawnCorrection type check default false\n"
+-                         "option name LmrDeeperShallower type check default false\n";
++                         "option name LmrDeeperShallower type check default false\n"
++                         "option name NullThreatVerify type check default false\n";
+ #ifdef FORGE_EXPOSE_TUNABLES
+             // Development builds advertise the search constants so match
+             // runners can set them. Builds without this macro still accept them.
+@@ -301,6 +302,10 @@ int uci_loop(std::istream& in) {
+                 } else {
+                     note_invalid();
+                 }
++            } else if (name == "NullThreatVerify") {
++                if (value_text == "true") forge::tune::NullThreatVerify = true;
++                else if (value_text == "false") forge::tune::NullThreatVerify = false;
++                else note_invalid();
+             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection

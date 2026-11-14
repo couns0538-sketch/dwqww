@@ -1,0 +1,193 @@
+{"n":42,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","71a4863edc351d81ccd5431e6943f476f10a2e0a","c808be4b01a9076754c782d68fdbb7797e4db7a1","--","forge-combo29/tests_r3_12"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/tests_r3_12/softnodes_test.cpp b/forge-combo29/tests_r3_12/softnodes_test.cpp
+index f86d51f5..e66db825 100644
+--- a/forge-combo29/tests_r3_12/softnodes_test.cpp
++++ b/forge-combo29/tests_r3_12/softnodes_test.cpp
+@@ -135,18 +135,27 @@ private:
+     int write_fd_ = -1;
+     int read_fd_ = -1;
+     std::string pending_;
+ };
+ 
++struct Iter {
++    int depth = 0;
++    std::string score;
++    std::uint64_t nodes = 0;
++    std::string move;
++};
++
+ struct GoResult {
+     bool ok = false;
+     std::string best;
+     int depth = -1;
+     std::string score;
++    std::string pv_move;
+     std::uint64_t info_nodes = 0;
+     std::uint64_t soft_nodes = 0;
+     bool saw_soft = false;
++    std::vector<Iter> iters;
+ };
+ 
+ void note_info(const std::string& line, GoResult& result) {
+     constexpr std::string_view kSoft = "info string softnodes nodes ";
+     if (line.compare(0, kSoft.size(), kSoft) == 0) {
+@@ -167,13 +176,22 @@ void note_info(const std::string& line, GoResult& result) {
+             input >> kind >> value;
+             result.score = kind + " " + value;
+         } else if (token == "nodes") {
+             input >> result.info_nodes;
+         } else if (token == "pv") {
++            input >> result.pv_move;
+             break;
+         }
+     }
++    if (result.depth > 0) {
++        Iter iter;
++        iter.depth = result.depth;
++        iter.score = result.score;
++        iter.nodes = result.info_nodes;
++        iter.move = result.pv_move;
++        result.iters.push_back(iter);
++    }
+ }
+ 
+ GoResult wait_bestmove(Engine& engine, int timeout_ms) {
+     const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+     GoResult result;
+@@ -381,17 +399,132 @@ int run_depth10(const std::string& engine_path) {
+     return 0;
+ }
+ 
+ } // namespace
+ 
++int fail_edge(const std::string& why) {
++    std::cerr << "FAIL edge " << why << std::endl;
++    return 1;
++}
++
++int run_edges(const std::string& engine_path) {
++    Engine engine(engine_path);
++    prepare(engine);
++    const std::string start(forge::Board::StandardStartFen);
++    const std::uint64_t budgets[] = {100, 400, 1000, 3000};
++    for (const std::uint64_t budget : budgets) {
++        if (!fresh_position(engine, start)) return fail_edge("ready nodes");
++        engine.send("go nodes " + std::to_string(budget) + "\n");
++        const GoResult hard = wait_bestmove(engine, 20000);
++        if (!hard.ok || hard.saw_soft || !move_is_legal(start, hard.best)) {
++            return fail_edge("go nodes " + std::to_string(budget));
++        }
++        if (hard.depth >= 1 && (hard.info_nodes > budget || hard.score.empty())) {
++            return fail_edge("go nodes finished over budget " + std::to_string(budget) + " nodes " +
++                             std::to_string(hard.info_nodes));
++        }
++        if (hard.depth >= 1) {
++            if (!fresh_position(engine, start)) return fail_edge("ready depth-for-nodes");
++            engine.send("go depth " + std::to_string(hard.depth) + "\n");
++            const GoResult fixed = wait_bestmove(engine, 20000);
++            if (!fixed.ok || fixed.saw_soft || fixed.best != hard.best || fixed.score != hard.score) {
++                return fail_edge("go nodes move drifted at " + std::to_string(budget));
++            }
++        }
++        std::cout << "go_nodes budget " << budget << " depth " << hard.depth << " info_nodes "
++                  << hard.info_nodes << " move " << hard.best << std::endl;
++
++        if (!fresh_position(engine, start)) return fail_edge("ready soft");
++        engine.send("go softnodes " + std::to_string(budget) + "\n");
++        const GoResult soft = wait_bestmove(engine, 20000);
++        if (!soft.ok || !soft.saw_soft || soft.depth < 1 || soft.soft_nodes < budget ||
++            soft.soft_nodes > budget * 4 || !move_is_legal(start, soft.best)) {
++            return fail_edge("softnodes " + std::to_string(budget) + " nodes " +
++                             std::to_string(soft.soft_nodes) + " depth " + std::to_string(soft.depth));
++        }
++        if (hard.depth >= 1 && soft.depth < hard.depth) {
++            return fail_edge("soft depth behind go nodes at " + std::to_string(budget));
++        }
++        if (!fresh_position(engine, start)) return fail_edge("ready depth-for-soft");
++        engine.send("go depth " + std::to_string(soft.depth) + "\n");
++        const GoResult matched = wait_bestmove(engine, 20000);
++        if (!matched.ok || matched.saw_soft || matched.best != soft.best || matched.score != soft.score) {
++            return fail_edge("soft move drifted at " + std::to_string(budget));
++        }
++        std::cout << "softnodes budget " << budget << " depth " << soft.depth << " nodes "
++                  << soft.soft_nodes << " move " << soft.best << std::endl;
++    }
++
++    if (!fresh_position(engine, start)) return fail_edge("ready zero");
++    engine.send("go softnodes 0\n");
++    const GoResult zero = wait_bestmove(engine, 10000);
++    if (!zero.ok || zero.saw_soft || zero.depth > 0 || !move_is_legal(start, zero.best)) {
++        return fail_edge("softnodes 0 depth " + std::to_string(zero.depth) + " move " + zero.best);
++    }
++    if (!fresh_position(engine, start)) return fail_edge("ready nodes zero");
++    engine.send("go nodes 0\n");
++    const GoResult hard_zero = wait_bestmove(engine, 10000);
++    if (!hard_zero.ok || hard_zero.saw_soft || hard_zero.best != zero.best) {
++        return fail_edge("go nodes 0 drifted");
++    }
++    std::cout << "zero budget move " << zero.best << std::endl;
++
++    const std::vector<std::string> positions = make_positions(kPositions);
++    bool found_hard = false;
++    for (const std::string& fen : positions) {
++        if (found_hard) break;
++        if (!fresh_position(engine, fen)) return fail_edge("ready profile");
++        engine.send("go depth 8\n");
++        const GoResult profile = wait_bestmove(engine, 30000);
++        if (!profile.ok || profile.iters.size() < 2) return fail_edge("profile");
++        for (std::size_t i = 0; i + 1 < profile.iters.size(); ++i) {
++            const Iter& done = profile.iters[i];
++            const Iter& next = profile.iters[i + 1];
++            if (done.nodes == 0 || next.nodes <= done.nodes) continue;
++            const std::uint64_t budget = done.nodes + 1;
++            if (next.nodes <= budget * 4) continue;
++            found_hard = true;
++            if (!fresh_position(engine, fen)) return fail_edge("ready hardcap");
++            engine.send("go softnodes " + std::to_string(budget) + "\n");
++            const GoResult capped = wait_bestmove(engine, 30000);
++            if (!capped.ok || !capped.saw_soft || capped.depth != done.depth || capped.soft_nodes < budget ||
++                capped.soft_nodes > budget * 4 || capped.best != done.move || capped.score != done.score) {
++                return fail_edge("hardcap budget " + std::to_string(budget) + " depth " +
++                                 std::to_string(capped.depth) + " nodes " + std::to_string(capped.soft_nodes) +
++                                 " move " + capped.best + " expected depth " + std::to_string(done.depth) +
++                                 " move " + done.move + " score " + done.score + " got " + capped.score);
++            }
++            if (!fresh_position(engine, fen)) return fail_edge("ready hardcap depth");
++            engine.send("go depth " + std::to_string(done.depth) + "\n");
++            const GoResult again = wait_bestmove(engine, 30000);
++            if (!again.ok || again.best != capped.best || again.score != capped.score) {
++                return fail_edge("hardcap depth mismatch");
++            }
++            std::cout << "hardcap budget " << budget << " depth " << capped.depth << " nodes "
++                      << capped.soft_nodes << " cap " << (budget * 4) << " move " << capped.best
++                      << std::endl;
++            break;
++        }
++    }
++    if (!found_hard) return fail_edge("no iteration jumped past 4N");
++
++    const int status = engine.finish();
++    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
++        return fail_edge("engine exit");
++    }
++    std::cout << "EDGES_PASS" << std::endl;
++    return 0;
++}
++
+ int main(int argc, char** argv) {
+     if (argc != 3) {
+-        std::cerr << "usage: softnodes_test <engine> <softnodes|depth10>" << std::endl;
++        std::cerr << "usage: softnodes_test <engine> <softnodes|depth10|edges>" << std::endl;
+         return 2;
+     }
+     const std::string path = argv[1];
+     const std::string mode = argv[2];
+     if (mode == "softnodes") return run_softnodes(path);
+     if (mode == "depth10") return run_depth10(path);
++    if (mode == "edges") return run_edges(path);
+     std::cerr << "unknown mode " << mode << std::endl;
+     return 2;
+ }
+
+STDERR

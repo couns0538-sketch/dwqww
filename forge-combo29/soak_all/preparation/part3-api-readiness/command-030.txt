@@ -1,0 +1,231 @@
+{"n":30,"argv":["cat","app/src/game/book/opening_book.cpp","app/src/game/book/opening_book.hpp","app/src/game/timecontrol/timecontrol.hpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-030.txt"}
+STDOUT
+#include <game/book/opening_book.hpp>
+
+#include <optional>
+#include <string>
+
+#include <chess.hpp>
+
+#include <core/config/config.hpp>
+#include <core/logger/logger.hpp>
+#include <game/book/epd_reader.hpp>
+#include <game/book/pgn_reader.hpp>
+
+namespace fastchess::book {
+
+OpeningBook::OpeningBook(const config::Tournament& config, std::size_t initial_matchcount) {
+    start_  = config.opening.start;
+    games_  = config.games;
+    rounds_ = config.rounds;
+    order_  = config.opening.order;
+    plies_  = config.opening.plies;
+
+    // - 1 because start starts at 1 in the opening options
+    offset_ = start_ - 1 + initial_matchcount / games_;
+    setup(config.opening.file, config.opening.format, config.variant);
+}
+
+void OpeningBook::setup(const std::string& file, FormatType type, VariantType vt) {
+    if (file.empty()) {
+        return;
+    }
+
+    if (type == FormatType::PGN) {
+        openings_.emplace<PgnReader>(file, plies_, vt == VariantType::FRC);
+    } else if (type == FormatType::EPD) {
+        openings_.emplace<EpdReader>(file);
+    }
+
+    if (type == FormatType::NONE) return;
+
+    if (order_ == OrderType::RANDOM) {
+        Logger::print("Indexing opening suite...");
+        std::visit([](auto& arg) { Openings::shuffle(arg.get()); }, openings_);
+    }
+
+    if (offset_ > 0) {
+        LOG_INFO("Offsetting the opening book by {} openings...", offset_);
+        std::visit([offset = offset_](auto& arg) { Openings::rotate(arg.get(), offset); }, openings_);
+    }
+
+    std::visit([rounds = rounds_](auto& arg) { Openings::truncate(arg.get(), rounds); }, openings_);
+    std::visit([](auto& arg) { Openings::shrink(arg.get()); }, openings_);
+}
+
+Opening OpeningBook::operator[](std::optional<std::size_t> idx) const noexcept {
+    if (!idx.has_value()) return {chess::constants::STARTPOS, {}};
+
+    assert(idx.value() < std::visit([](const auto& arg) { return arg.get().size(); }, openings_));
+
+    if (std::holds_alternative<EpdReader>(openings_)) {
+        const auto& reader = std::get<EpdReader>(openings_);
+        const auto fen     = reader.get()[idx.value()];
+
+        return {std::string(fen.view()), {}};
+    }
+
+    const auto& reader = std::get<PgnReader>(openings_);
+    return reader.get()[idx.value()];
+}
+
+[[nodiscard]] std::optional<std::size_t> OpeningBook::fetchId() noexcept {
+    const auto idx       = opening_index_++;
+    const auto book_size = std::visit([](const auto& arg) { return arg.get().size(); }, openings_);
+
+    if (book_size == 0) return std::nullopt;
+    return idx % book_size;
+}
+
+}  // namespace fastchess::book
+#pragma once
+
+#include <optional>
+#include <string>
+#include <variant>
+#include <vector>
+
+#include <core/config/config.hpp>
+#include <core/helper.hpp>
+#include <core/rand.hpp>
+#include <game/book/epd_reader.hpp>
+#include <game/book/pgn_reader.hpp>
+#include <types/enums.hpp>
+#include <types/tournament.hpp>
+
+namespace fastchess::book {
+
+struct Openings {
+    // Fisher-Yates / Knuth shuffle
+    template <typename T>
+    static void shuffle(T& vec) {
+        for (std::size_t i = 0; i + 2 <= vec.size(); i++) {
+            auto rand     = random::mersenne_rand();
+            std::size_t j = i + (rand % (vec.size() - i));
+            std::swap(vec[i], vec[j]);
+        }
+    }
+
+    // Rotates the book vector based on the starting offset
+    template <typename T>
+    static void rotate(T& vec, std::size_t offset) {
+        std::rotate(vec.begin(), vec.begin() + (offset % vec.size()), vec.end());
+    }
+
+    // Gets rid of unused openings within the book vector to reduce memory usage
+    template <typename T>
+    static void truncate(T& vec, std::size_t rounds) {
+        if (vec.size() > rounds) {
+            vec.resize(rounds);
+        }
+    }
+
+    // Shrink book vector
+    template <typename T>
+    static void shrink(T& vec) {
+        using BookType = std::decay_t<decltype(vec)>;
+        std::vector<typename BookType::value_type> tmp(vec.begin(), vec.end());
+        vec.swap(tmp);
+        vec.shrink_to_fit();
+    }
+};
+
+class OpeningBook {
+   public:
+    OpeningBook() = default;
+    explicit OpeningBook(const config::Tournament& config, std::size_t initial_matchcount = 0);
+
+    [[nodiscard]] std::optional<std::size_t> fetchId() noexcept;
+
+    [[nodiscard]] Opening operator[](std::optional<std::size_t> idx) const noexcept;
+
+   private:
+    void setup(const std::string& file, FormatType type, VariantType vt);
+
+    std::size_t start_         = 0;
+    std::size_t opening_index_ = 0;
+    std::size_t offset_        = 0;
+    std::size_t rounds_;
+    std::size_t games_;
+    int plies_;
+    OrderType order_;
+
+    std::variant<EpdReader, PgnReader> openings_;
+};
+
+}  // namespace fastchess::book
+#pragma once
+
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+#include <tuple>
+
+#include <core/helper.hpp>
+#include <types/enums.hpp>
+
+#include <json.hpp>
+
+namespace fastchess {
+// @todo use std::chrono::milliseconds
+class TimeControl {
+   public:
+    struct Limits {
+        // go winc/binc, in milliseconds
+        int64_t increment = 0;
+        // go movetime, in milliseconds
+        int64_t fixed_time = 0;
+        // go wtime/btime, in milliseconds
+        int64_t time = 0;
+        // go movestogo
+        int64_t moves = 0;
+
+        int64_t timemargin = 0;
+
+        bool operator==(const Limits& rhs) const {
+            return std::tie(increment, fixed_time, time, moves, timemargin) ==
+                   std::tie(rhs.increment, rhs.fixed_time, rhs.time, rhs.moves, rhs.timemargin);
+        }
+
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(Limits, increment, fixed_time, time, moves, timemargin)
+    };
+
+    TimeControl() : TimeControl(Limits{}) {}
+
+    TimeControl(const Limits& limits);
+
+    [[nodiscard]] std::chrono::milliseconds getTimeoutThreshold() const noexcept;
+
+    // remove the elapsed time from the participant's time control.
+    // Returns false if the time control has been exceeded.
+    [[nodiscard]] bool updateTime(const int64_t elapsed_millis) noexcept;
+
+    [[nodiscard]] int64_t getTimeLeft() const { return time_left_; }
+    [[nodiscard]] int64_t getMovesLeft() const { return moves_left_; }
+    [[nodiscard]] int64_t getFixedTime() const { return limits_.fixed_time; }
+    [[nodiscard]] int64_t getIncrement() const { return limits_.increment; }
+
+    [[nodiscard]] bool isFixedTime() const noexcept { return limits_.fixed_time != 0; }
+    [[nodiscard]] bool isTimed() const noexcept { return limits_.time != 0; }
+    [[nodiscard]] bool isMoves() const noexcept { return limits_.moves != 0; }
+    [[nodiscard]] bool isIncrement() const noexcept { return limits_.increment != 0; }
+
+    friend std::ostream& operator<<(std::ostream& os, const TimeControl& tc);
+
+    bool operator==(const TimeControl& rhs) const {
+        return limits_ == rhs.limits_ && time_left_ == rhs.time_left_ && moves_left_ == rhs.moves_left_;
+    }
+
+    static constexpr int64_t MARGIN = 100;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(TimeControl, limits_, time_left_, moves_left_)
+   private:
+    const Limits limits_;
+
+    int64_t time_left_;
+    int moves_left_;
+};
+
+}  // namespace fastchess
+
+STDERR

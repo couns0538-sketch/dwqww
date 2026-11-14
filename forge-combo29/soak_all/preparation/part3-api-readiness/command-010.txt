@@ -1,0 +1,50 @@
+{"n":10,"argv":["sed","-n","590,635p","app/src/matchmaking/match/match.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+        resign_tracker_.update(usScore.value(), ~board_.sideToMove());
+    } else {
+        draw_tracker_.invalidate();
+        resign_tracker_.invalidate(~board_.sideToMove());
+    }
+
+    maxmoves_tracker_.update();
+
+    checkMateScoreSignMismatch(them, us, board_, start_position_, data_);
+
+    return true;
+}
+
+void Match::emitMoveEvent(const Player& us, const Player& them, Color us_color, Move move, bool applied) {
+    const auto& md = data_.moves.back();
+
+    const auto& white = us_color == Color::WHITE ? us : them;
+    const auto& black = us_color == Color::WHITE ? them : us;
+
+    events::json event;
+    event["event"]  = "move";
+    event["game"]   = game_id_;
+    event["ply"]    = data_.moves.size();
+    event["side"]   = events::sideName(us_color);
+    event["engine"] = us.engine.getConfig().name;
+    event["move"]   = md.move;
+    event["legal"]  = md.legal;
+
+    if (applied) {
+        auto board = board_;
+        board.makeMove<true>(move);
+        event["fen"] = board.getFen();
+    }
+
+    event["time_ms"] = md.elapsed_millis;
+    event["wtime"]   = events::clockJson(white.getTimeControl());
+    event["btime"]   = events::clockJson(black.getTimeControl());
+
+    if (md.score) event["score"] = events::scoreJson(*md.score, us_color);
+    if (md.depth > 0) event["depth"] = md.depth;
+    if (md.seldepth > 0) event["seldepth"] = md.seldepth;
+    if (md.nodes > 0) event["nodes"] = md.nodes;
+    if (md.nps > 0) event["nps"] = md.nps;
+    if (md.tbhits > 0) event["tbhits"] = md.tbhits;
+    if (md.hashfull > 0) event["hashfull"] = md.hashfull;
+    if (!md.pv.empty()) event["pv"] = events::splitPv(md.pv);
+
+STDERR

@@ -1,0 +1,207 @@
+{"n":40,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","82fb89cbd815ad4427d8fd7d5a78d002e1c8fee7","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/clock_plan.hpp b/forge-combo29/include/forge/clock_plan.hpp
+new file mode 100644
+index 00000000..06cd760c
+--- /dev/null
++++ b/forge-combo29/include/forge/clock_plan.hpp
+@@ -0,0 +1,52 @@
++#pragma once
++
++#include <algorithm>
++#include <cstdint>
++
++namespace forge {
++
++// One move of clock time (wtime/btime, increment, movestogo, Move Overhead).
++// movetime is a separate limit and is not planned here.
++struct ClockPlan {
++    std::int64_t soft_ms = 0;
++    std::int64_t hard_ms = 0;
++    // Nothing remains after Move Overhead. A hard limit of 0 would mean the
++    // search is not on a clock, so the caller must stop instead of searching.
++    bool reserve_empty = false;
++};
++
++// usable = max(0, time - overhead), with negatives treated as zero.
++// The plan never asks for more than usable. Soft never exceeds hard.
++// When usable is positive both limits stay in 1..usable, using the same
++// sudden-death and moves-to-go split as before. That split is left alone
++// when it already obeyed the bounds. It is pulled back when no time remains
++// after overhead, or when increment would place soft above hard.
++// soft_divisor must be positive; the UCI spin starts at 5.
++[[nodiscard]] inline ClockPlan plan_clock_budget(std::int64_t time_ms, std::int64_t increment_ms,
++                                                 std::int64_t moves_to_go, std::int64_t overhead_ms,
++                                                 int soft_divisor, int increment_percent, int hard_percent,
++                                                 int hard_soft_multiple) {
++    const std::int64_t overhead = overhead_ms > 0 ? overhead_ms : 0;
++    const std::int64_t time = time_ms > 0 ? time_ms : 0;
++    const std::int64_t increment = increment_ms > 0 ? increment_ms : 0;
++    if (time <= overhead) return ClockPlan{0, 0, true};
++
++    const std::int64_t available = time - overhead;
++    std::int64_t soft = 0;
++    std::int64_t hard = 0;
++    if (moves_to_go > 0) {
++        const std::int64_t mtg = moves_to_go < 50 ? moves_to_go : 50;
++        soft = available / (mtg + 1) + increment * 3 / 4;
++        hard = std::min(available * 4 / 5, soft * 4);
++    } else {
++        const int divisor = soft_divisor > 0 ? soft_divisor : 1;
++        soft = available / divisor + increment * increment_percent / 100;
++        hard = std::min(available * hard_percent / 100, soft * hard_soft_multiple);
++    }
++    soft = std::max<std::int64_t>(1, std::min(soft, available));
++    hard = std::max<std::int64_t>(1, std::min(hard, available));
++    if (soft > hard) soft = hard;
++    return ClockPlan{soft, hard, false};
++}
++
++} // namespace forge
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..46025db0 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -366,10 +366,13 @@ private:
+     std::uint64_t node_limit_ = 0;
+     bool node_limit_specified_ = false;
+     std::int64_t soft_limit_ms_ = 0;
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
++    // Clock play with no time left after Move Overhead. A hard limit of 0
++    // means "not on a clock", so this flag is what makes the search stop.
++    bool clock_reserve_empty_ = false;
+     bool aborted_ = false;
+     // Set only when the node budget itself trips should_stop. A clock stop or an
+     // external stop leaves this false so those paths keep the partial root move.
+     bool stopped_by_nodes_ = false;
+     Worker* parent_worker_ = nullptr;
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..c33ddaf0 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1,5 +1,6 @@
++#include "forge/clock_plan.hpp"
+ #include "forge/search.hpp"
+ #include "forge/uci_output.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -930,10 +931,14 @@ bool Worker::should_stop_with(std::uint64_t pending_nodes) {
+     if (!is_main()) return false;
+     if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
+         stopped_by_nodes_ = true;
+         return true;
+     }
++    if (clock_reserve_empty_) {
++        if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
++        return true;
++    }
+     if (hard_limit_ms_ > 0) {
+         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
+         if (elapsed_ms() >= hard_limit_ms_) return true;
+     }
+     return false;
+@@ -1578,10 +1583,20 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
+         update_correction(board, depth, best_score, ss->static_eval);
+     }
+     return best_score;
+ }
+ 
++namespace {
++
++[[nodiscard]] ClockPlan clock_plan_for(const SearchLimits& limits) {
++    const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
++    return plan_clock_budget(limits.time_ms, limits.increment_ms, limits.moves_to_go, overhead, tune::TmSoftDivisor,
++                             tune::TmIncrementPercent, tune::TmHardPercent, tune::TmHardSoftMultiple);
++}
++
++} // namespace
++
+ // ---------------------------------------------------------------------------
+ // Iterative deepening driver
+ 
+ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all) {
+     const auto origin = limits.start_time != std::chrono::steady_clock::time_point{}
+@@ -1604,36 +1619,27 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     node_limit_ = limits.nodes;
+     node_limit_specified_ = parent_worker_ != nullptr
+         ? parent_worker_->node_limit_specified_
+         : (is_main() && (limits.nodes_specified || limits.nodes != 0));
+ 
+-    // Time allocation.
++    // Time allocation. Movetime keeps its own limit. Clock play goes through
++    // plan_clock_budget so the plan stays inside the time left after overhead.
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     soft_limit_ms_ = hard_limit_ms_ = 0;
+     time_managed_ = false;
++    clock_reserve_empty_ = false;
+     if (limits.infinite) {
+         soft_limit_ms_ = hard_limit_ms_ = 0;
+     } else if (limits.movetime_ms >= 0) {
+         hard_limit_ms_ = std::max<std::int64_t>(1, limits.movetime_ms - overhead);
+         soft_limit_ms_ = hard_limit_ms_;
+     } else if (limits.time_ms >= 0) {
+-        const std::int64_t time = limits.time_ms;
+-        const std::int64_t increment = std::max<std::int64_t>(0, limits.increment_ms);
+-        const std::int64_t available = std::max<std::int64_t>(1, time - overhead);
+-        std::int64_t soft;
+-        std::int64_t hard;
+-        if (limits.moves_to_go > 0) {
+-            const std::int64_t mtg = std::min<std::int64_t>(limits.moves_to_go, 50);
+-            soft = available / (mtg + 1) + increment * 3 / 4;
+-            hard = std::min(available * 4 / 5, soft * 4);
+-        } else {
+-            soft = available / tune::TmSoftDivisor + increment * tune::TmIncrementPercent / 100;
+-            hard = std::min(available * tune::TmHardPercent / 100, soft * tune::TmHardSoftMultiple);
+-        }
+-        soft_limit_ms_ = std::max<std::int64_t>(1, std::min(soft, available));
+-        hard_limit_ms_ = std::max<std::int64_t>(1, std::min(hard, available));
+-        time_managed_ = true;
++        const ClockPlan plan = clock_plan_for(limits);
++        soft_limit_ms_ = plan.soft_ms;
++        hard_limit_ms_ = plan.hard_ms;
++        clock_reserve_empty_ = plan.reserve_empty;
++        time_managed_ = !plan.reserve_empty;
+     }
+     SearchInfo result;
+     const MoveList legal = board.legal_moves();
+     MoveList root_candidates;
+     for (const Move move : legal) {
+@@ -1708,12 +1714,16 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         result.depth = 0;
+         return result;
+     }
+ 
+     // Dispatch and root setup may already have consumed the entire budget.
+-    // Check helpers too before they switch to the main worker's stop signal.
+-    if (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
++    // An empty reserve stops even when elapsed is still 0. Ponder keeps
++    // thinking on the opponent's clock until ponderhit. Helpers are checked
++    // here, before they drop their own limits and follow the main thread.
++    const bool waiting_to_ponder = pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0;
++    if (!waiting_to_ponder &&
++        (clock_reserve_empty_ || (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_))) {
+         result.best_move = root_candidates.front();
+         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start_).count());
+         return result;
+     }
+@@ -2011,11 +2021,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
+     } tt_owned_scope(*workers_.front(), exclusive.has_value());
+ #endif
+     std::vector<std::thread> helpers;
+     // MultiPV above 1 runs only the main thread. Helper threads search one line
+     // and would race the excluded-root passes, so this falls back to Threads 1.
+-    if (worker_limits.multipv <= 1) {
++    // A clock with nothing left after overhead does not start those threads.
++    const bool no_clock_left = !worker_limits.infinite && !worker_limits.ponder && worker_limits.movetime_ms < 0 &&
++                               worker_limits.time_ms >= 0 && clock_plan_for(worker_limits).reserve_empty;
++    if (worker_limits.multipv <= 1 && !no_clock_left) {
+         for (std::size_t i = 1; i < workers_.size(); ++i) {
+             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+                 (void)workers_[i]->search(board, worker_limits, false, all);
+             });
+         }
+
+STDERR

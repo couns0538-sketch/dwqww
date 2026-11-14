@@ -1,0 +1,510 @@
++ git diff e04556ddc3a430b2e751159b0d46111ef56c8b89 3def809de68d726715fa3dd21626f706f0f30e16 -- forge-combo29/include forge-combo29/src
+diff --git a/forge-combo29/include/forge/bitboard.hpp b/forge-combo29/include/forge/bitboard.hpp
+index 4b2b8f54..ad5ba93d 100644
+--- a/forge-combo29/include/forge/bitboard.hpp
++++ b/forge-combo29/include/forge/bitboard.hpp
+@@ -14,6 +14,8 @@
+ #if !defined(__BMI2__)
+ #error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+ #endif
++#endif
++#if defined(__BMI2__)
+ #include <immintrin.h>
+ #endif
+ 
+@@ -194,6 +196,30 @@ extern std::array<Magic, 64> BishopMagics;
+ [[nodiscard]] inline Bitboard queen(int square, Bitboard occupancy) {
+     return bishop(square, occupancy) | rook(square, occupancy);
+ }
++
++// Eval-only slider tables. The movegen path keeps the multiply tables above.
++// PEXT indexes the same attack sets with a shorter dependency before the load.
++struct PextSlider {
++    Bitboard mask = 0;
++    Bitboard* table = nullptr;
++};
++
++extern std::array<PextSlider, 64> RookPext;
++extern std::array<PextSlider, 64> BishopPext;
++
++#if defined(__BMI2__)
++[[nodiscard]] inline Bitboard rook_pext(int square, Bitboard occupancy) {
++    const PextSlider& slider = RookPext[static_cast<std::size_t>(square)];
++    return slider.table[static_cast<std::size_t>(_pext_u64(occupancy, slider.mask))];
++}
++[[nodiscard]] inline Bitboard bishop_pext(int square, Bitboard occupancy) {
++    const PextSlider& slider = BishopPext[static_cast<std::size_t>(square)];
++    return slider.table[static_cast<std::size_t>(_pext_u64(occupancy, slider.mask))];
++}
++#else
++[[nodiscard]] inline Bitboard rook_pext(int square, Bitboard occupancy) { return rook(square, occupancy); }
++[[nodiscard]] inline Bitboard bishop_pext(int square, Bitboard occupancy) { return bishop(square, occupancy); }
++#endif
+ [[nodiscard]] inline Bitboard between(int a, int b) {
+     return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
+ }
+diff --git a/forge-combo29/src/bitboard.cpp b/forge-combo29/src/bitboard.cpp
+index 383196fd..6fea9427 100644
+--- a/forge-combo29/src/bitboard.cpp
++++ b/forge-combo29/src/bitboard.cpp
+@@ -2,8 +2,13 @@
+ 
+ #include <algorithm>
+ #include <cstddef>
++#include <cstdlib>
+ #include <mutex>
+ 
++#if defined(__BMI2__)
++#include <immintrin.h>
++#endif
++
+ namespace forge::attacks {
+ 
+ std::array<Bitboard, 64> KnightTable{};
+@@ -18,6 +23,8 @@ std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask{};
+ std::array<Bitboard, 64> KingZoneMask{};
+ std::array<Magic, 64> RookMagics{};
+ std::array<Magic, 64> BishopMagics{};
++std::array<PextSlider, 64> RookPext{};
++std::array<PextSlider, 64> BishopPext{};
+ 
+ namespace {
+ 
+@@ -132,6 +139,36 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
+ }
+ #endif
+ 
++void init_pext_tables(bool rook, const std::array<Magic, 64>& magics, Bitboard* table, std::array<PextSlider, 64>& out) {
++    const auto& directions = rook ? RookDirections : BishopDirections;
++    std::size_t offset = 0;
++    for (int square = 0; square < 64; ++square) {
++        PextSlider& slider = out[static_cast<std::size_t>(square)];
++        slider.mask = magics[static_cast<std::size_t>(square)].mask;
++        slider.table = table + offset;
++        Bitboard subset = 0;
++        do {
++#if defined(__BMI2__)
++            const std::size_t index = static_cast<std::size_t>(_pext_u64(subset, slider.mask));
++#else
++            std::size_t index = 0;
++            Bitboard bits = slider.mask;
++            Bitboard value = subset;
++            unsigned shift = 0;
++            while (bits != 0) {
++                const int bit = std::countr_zero(bits);
++                if ((value & (1ULL << bit)) != 0) index |= 1ULL << shift;
++                bits &= bits - 1;
++                ++shift;
++            }
++#endif
++            slider.table[index] = sliding_attack(directions, square, subset);
++            ++offset;
++            subset = (subset - slider.mask) & slider.mask;
++        } while (subset != 0);
++    }
++}
++
+ } // namespace
+ 
+ void init() {
+@@ -179,6 +216,17 @@ void init() {
+ 
+     init_magics(true, RookAttackTable.data(), RookMagics);
+     init_magics(false, BishopAttackTable.data(), BishopMagics);
++    static std::array<Bitboard, 0x19000> RookPextTable{};
++    static std::array<Bitboard, 0x1480> BishopPextTable{};
++    init_pext_tables(true, RookMagics, RookPextTable.data(), RookPext);
++    init_pext_tables(false, BishopMagics, BishopPextTable.data(), BishopPext);
++    for (int square = 0; square < 64; ++square) {
++        if (bishop_pext(square, 0) != bishop(square, 0) || rook_pext(square, 0) != rook(square, 0) ||
++            bishop_pext(square, ~Bitboard{0}) != bishop(square, ~Bitboard{0}) ||
++            rook_pext(square, ~Bitboard{0}) != rook(square, ~Bitboard{0})) {
++            std::abort();
++        }
++    }
+ 
+     for (int a = 0; a < 64; ++a) {
+         for (int b = 0; b < 64; ++b) {
+diff --git a/forge-combo29/src/eval.cpp b/forge-combo29/src/eval.cpp
+index 3c6fc995..21807930 100644
+--- a/forge-combo29/src/eval.cpp
++++ b/forge-combo29/src/eval.cpp
+@@ -40,6 +40,17 @@ struct Accumulator {
+                 static_cast<std::int16_t>(trace->coefficients[static_cast<std::size_t>(index)] + (Us == White ? count : -count));
+         }
+     }
++
++    template <Color Us>
++    int add_mg(int index) {
++        const Score value = table[static_cast<std::size_t>(index)];
++        score += Us == White ? value : -value;
++        if constexpr (Trace) {
++            trace->coefficients[static_cast<std::size_t>(index)] =
++                static_cast<std::int16_t>(trace->coefficients[static_cast<std::size_t>(index)] + (Us == White ? 1 : -1));
++        }
++        return mg_value(value);
++    }
+ };
+ 
+ struct EvalInfo {
+@@ -109,91 +120,122 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
+     // Squares that enemy pawns can never attack: outposts.
+     const Bitboard enemy_pawn_attack_span = forward_fill(Them, info.attacked_by[Them][Pawn]);
+ 
++    const Bitboard own_knights = board.pieces(Us, Knight);
++    const Bitboard own_bishops = board.pieces(Us, Bishop);
++    const Bitboard own_rooks = board.pieces(Us, Rook);
++    const Bitboard own_queens = board.pieces(Us, Queen);
++    const Bitboard enemy_bishops = board.pieces(Them, Bishop);
++    const Bitboard enemy_rooks = board.pieces(Them, Rook);
++    const Bitboard enemy_queens = board.pieces(Them, Queen);
++    const Bitboard all_pawns = board.pieces(Pawn);
++    const Bitboard bishop_occ = occupied ^ own_queens;
++    const Bitboard rook_occ = bishop_occ ^ own_rooks;
++    const Bitboard mobility_area = info.mobility_area[Us];
+     const int own_pawn_count = popcount(own_pawns);
+-    acc.template add<Us>(KnightPawnAdjust + own_pawn_count, popcount(board.pieces(Us, Knight)));
+-    acc.template add<Us>(RookPawnAdjust + own_pawn_count, popcount(board.pieces(Us, Rook)));
++    const int dark_pawns = popcount(own_pawns & DarkSquares);
++    const int light_pawns = popcount(own_pawns & LightSquares);
++    const int home_minors = popcount((own_knights | own_bishops) & (Us == White ? Rank1BB : Rank8BB));
++    acc.template add<Us>(KnightPawnAdjust + own_pawn_count, popcount(own_knights));
++    acc.template add<Us>(RookPawnAdjust + own_pawn_count, popcount(own_rooks));
+     constexpr Bitboard LongDiagonals = 0x8142241818244281ULL;
+     constexpr Bitboard CenterFour = CenterSquares;
+ 
+-    for (int type = Knight; type <= Queen; ++type) {
+-        Bitboard pieces = board.pieces(Us, static_cast<PieceType>(type));
+-        while (pieces != 0) {
+-            const int square = pop_lsb(pieces);
+-            Bitboard attacks_bb = 0;
+-            switch (type) {
+-            case Knight: attacks_bb = attacks::knight(square); break;
+-            case Bishop:
+-                // X-ray through own queens so batteries count as mobility.
+-                attacks_bb = attacks::bishop(square, occupied ^ board.pieces(Us, Queen));
+-                break;
+-            case Rook:
+-                attacks_bb = attacks::rook(square, occupied ^ board.pieces(Us, Queen) ^ board.pieces(Us, Rook));
+-                break;
+-            default: attacks_bb = attacks::queen(square, occupied); break;
+-            }
+-            info.attacked_twice[Us] |= info.attacked_by[Us][0] & attacks_bb;
+-            info.attacked_by[Us][0] |= attacks_bb;
+-            info.attacked_by[Us][static_cast<std::size_t>(type)] |= attacks_bb;
+-
+-            const int mobility = popcount(attacks_bb & info.mobility_area[Us]);
+-            switch (type) {
+-            case Knight: acc.template add<Us>(KnightMobility + mobility); break;
+-            case Bishop: acc.template add<Us>(BishopMobility + mobility); break;
+-            case Rook: acc.template add<Us>(RookMobility + mobility); break;
+-            default: acc.template add<Us>(QueenMobility + std::min(mobility, 27)); break;
+-            }
++    Bitboard attacked = info.attacked_by[Us][0];
++    Bitboard twice = info.attacked_twice[Us];
++    Bitboard knight_attacks = 0;
++    Bitboard bishop_attacks = 0;
++    Bitboard rook_attacks = 0;
++    Bitboard queen_attacks = 0;
++    int attackers = info.king_attackers[Them];
++    int units = info.king_attack_units[Them];
++    auto note = [&](int type, Bitboard attacks_bb, Bitboard& typed) {
++        twice |= attacked & attacks_bb;
++        attacked |= attacks_bb;
++        typed |= attacks_bb;
++        const Bitboard zone_hits = attacks_bb & enemy_king_zone;
++        if (zone_hits != 0) {
++            ++attackers;
++            units += king_attack_weight(type) * popcount(zone_hits);
++        }
++        return popcount(attacks_bb & mobility_area);
++    };
+ 
+-            const Bitboard zone_hits = attacks_bb & enemy_king_zone;
+-            if (zone_hits != 0) {
+-                ++info.king_attackers[Them];
+-                info.king_attack_units[Them] += king_attack_weight(type) * popcount(zone_hits);
+-            }
++    Bitboard knights = own_knights;
++    while (knights != 0) {
++        const int square = pop_lsb(knights);
++        const int mobility = note(Knight, attacks::knight(square), knight_attacks);
++        acc.template add<Us>(KnightMobility + mobility);
++        const Bitboard bit = square_bb(square);
++        if ((bit & outpost_ranks) != 0 && (bit & own_pawn_attacks) != 0 && (bit & enemy_pawn_attack_span) == 0) {
++            acc.template add<Us>(KnightOutpost);
++        }
++        if ((pawn_push(Them, bit) & own_pawns) != 0) acc.template add<Us>(MinorBehindPawn);
++    }
+ 
+-            if (type == Knight || type == Bishop) {
+-                const Bitboard bit = square_bb(square);
+-                if ((bit & outpost_ranks) != 0 && (bit & own_pawn_attacks) != 0 && (bit & enemy_pawn_attack_span) == 0) {
+-                    acc.template add<Us>(type == Knight ? KnightOutpost : BishopOutpost);
+-                }
+-                if ((pawn_push(Them, bit) & own_pawns) != 0) acc.template add<Us>(MinorBehindPawn);
+-                if (type == Bishop) {
+-                    const Bitboard same_color = (bit & DarkSquares) != 0 ? DarkSquares : LightSquares;
+-                    acc.template add<Us>(BishopPawnsSameColor, popcount(own_pawns & same_color));
+-                    // A bishop on a long diagonal that sees a central square.
+-                    if ((bit & LongDiagonals) != 0 && (attacks::bishop(square, board.pieces(Pawn)) & CenterFour) != 0) {
+-                        acc.template add<Us>(BishopLongDiagonal);
+-                    }
+-                }
+-            } else if (type == Rook) {
+-                const int file = file_of(square);
+-                if ((own_pawns & file_bb(file)) == 0) {
+-                    acc.template add<Us>((enemy_pawns & file_bb(file)) == 0 ? RookOpenFile : RookSemiOpenFile);
+-                }
+-                // Rook behind a passed pawn on the same file.
+-                const Bitboard ahead = attacks::forward_file(Us, square);
+-                if ((ahead & info.passed[Us]) != 0 && (attacks::rook(square, occupied) & ahead & info.passed[Us]) != 0) {
+-                    acc.template add<Us>(RookBehindOwnPasser);
+-                }
+-                const Bitboard behind_enemy = attacks::forward_file(Them, square);
+-                if ((behind_enemy & info.passed[Them]) != 0 && (attacks::rook(square, occupied) & behind_enemy & info.passed[Them]) != 0) {
+-                    acc.template add<Us>(RookBehindEnemyPasser);
+-                }
+-                if (relative_rank(Us, square) == 6) {
+-                    const int enemy_king_rank = relative_rank(Us, info.king_square[Them]);
+-                    if (enemy_king_rank == 7 || (enemy_pawns & rank_bb(rank_of(square))) != 0) acc.template add<Us>(RookOnSeventh);
+-                }
+-            } else {
+-                if (relative_rank(Us, square) >= 2) {
+-                    const Bitboard home_minors = (board.pieces(Us, Knight) | board.pieces(Us, Bishop)) &
+-                                                 (Us == White ? Rank1BB : Rank8BB);
+-                    acc.template add<Us>(QueenEarlyDevelopment, popcount(home_minors));
+-                }
+-                // Queen attacked by an enemy slider (through pieces) that is not pinned down.
+-                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |
+-                                               (attacks::rook(square, occupied) & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));
+-                if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);
+-            }
++    Bitboard bishops = own_bishops;
++    while (bishops != 0) {
++        const int square = pop_lsb(bishops);
++        const int mobility = note(Bishop, attacks::bishop_pext(square, bishop_occ), bishop_attacks);
++        acc.template add<Us>(BishopMobility + mobility);
++        const Bitboard bit = square_bb(square);
++        if ((bit & outpost_ranks) != 0 && (bit & own_pawn_attacks) != 0 && (bit & enemy_pawn_attack_span) == 0) {
++            acc.template add<Us>(BishopOutpost);
++        }
++        if ((pawn_push(Them, bit) & own_pawns) != 0) acc.template add<Us>(MinorBehindPawn);
++        acc.template add<Us>(BishopPawnsSameColor, (bit & DarkSquares) != 0 ? dark_pawns : light_pawns);
++        if ((bit & LongDiagonals) != 0 && (attacks::bishop_pext(square, all_pawns) & CenterFour) != 0) {
++            acc.template add<Us>(BishopLongDiagonal);
++        }
++    }
++
++    Bitboard rooks = own_rooks;
++    while (rooks != 0) {
++        const int square = pop_lsb(rooks);
++        const int mobility = note(Rook, attacks::rook_pext(square, rook_occ), rook_attacks);
++        acc.template add<Us>(RookMobility + mobility);
++        const int file = file_of(square);
++        if ((own_pawns & file_bb(file)) == 0) {
++            acc.template add<Us>((enemy_pawns & file_bb(file)) == 0 ? RookOpenFile : RookSemiOpenFile);
++        }
++        const Bitboard ahead = attacks::forward_file(Us, square);
++        const Bitboard behind_enemy = attacks::forward_file(Them, square);
++        const bool own_gate = (ahead & info.passed[Us]) != 0;
++        const bool enemy_gate = (behind_enemy & info.passed[Them]) != 0;
++        if (own_gate || enemy_gate) {
++            const Bitboard real = attacks::rook_pext(square, occupied);
++            if (own_gate && (real & ahead & info.passed[Us]) != 0) acc.template add<Us>(RookBehindOwnPasser);
++            if (enemy_gate && (real & behind_enemy & info.passed[Them]) != 0) acc.template add<Us>(RookBehindEnemyPasser);
++        }
++        if (relative_rank(Us, square) == 6) {
++            const int enemy_king_rank = relative_rank(Us, info.king_square[Them]);
++            if (enemy_king_rank == 7 || (enemy_pawns & rank_bb(rank_of(square))) != 0) acc.template add<Us>(RookOnSeventh);
+         }
+     }
++
++    Bitboard queens = own_queens;
++    while (queens != 0) {
++        const int square = pop_lsb(queens);
++        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(square)];
++        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(square)];
++        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occupied, bishop_slider.mask));
++        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occupied, rook_slider.mask));
++        const Bitboard queen_bishop = bishop_slider.table[bishop_index];
++        const Bitboard queen_rook = rook_slider.table[rook_index];
++        const int mobility = note(Queen, queen_bishop | queen_rook, queen_attacks);
++        acc.template add<Us>(QueenMobility + std::min(mobility, 27));
++        if (relative_rank(Us, square) >= 2) acc.template add<Us>(QueenEarlyDevelopment, home_minors);
++        const Bitboard enemy_sliders = (queen_bishop & (enemy_bishops | enemy_queens)) | (queen_rook & (enemy_rooks | enemy_queens));
++        if ((enemy_sliders & ~enemy_queens) != 0) acc.template add<Us>(WeakQueen);
++    }
++
++    info.attacked_by[Us][0] = attacked;
++    info.attacked_twice[Us] = twice;
++    info.attacked_by[Us][Knight] |= knight_attacks;
++    info.attacked_by[Us][Bishop] |= bishop_attacks;
++    info.attacked_by[Us][Rook] |= rook_attacks;
++    info.attacked_by[Us][Queen] |= queen_attacks;
++    info.king_attackers[Them] = attackers;
++    info.king_attack_units[Them] = units;
+ }
+ 
+ template <bool Trace, Color Us>
+@@ -206,10 +248,7 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo&
+     const Bitboard enemy_pawns = board.pieces(Them, Pawn);
+ 
+     int shelter = 0;
+-    auto shelter_term = [&](int index) {
+-        acc.template add<Us>(index);
+-        shelter += mg_value(table[static_cast<std::size_t>(index)]);
+-    };
++    auto shelter_term = [&](int index) { shelter += acc.template add_mg<Us>(index); };
+     for (int file = std::max(0, king_file - 1); file <= std::min(7, king_file + 1); ++file) {
+         const Bitboard file_mask = file_bb(file) & attacks::forward_ranks(Us, king);
+         const Bitboard own = own_pawns & file_mask;
+@@ -239,8 +278,12 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo&
+         units += king_safety.weak_square * popcount(weak);
+         const Bitboard safe = ~board.occupied(Them) & (~info.attacked_by[Us][0] | (weak & info.attacked_twice[Them]));
+         const Bitboard occ = board.occupied();
+-        const Bitboard rook_rays = attacks::rook(king, occ);
+-        const Bitboard bishop_rays = attacks::bishop(king, occ);
++        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(king)];
++        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(king)];
++        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occ, rook_slider.mask));
++        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occ, bishop_slider.mask));
++        const Bitboard rook_rays = rook_slider.table[rook_index];
++        const Bitboard bishop_rays = bishop_slider.table[bishop_index];
+         const Bitboard rook_checks = rook_rays & safe & info.attacked_by[Them][Rook];
+         const Bitboard bishop_checks = bishop_rays & safe & info.attacked_by[Them][Bishop];
+         const Bitboard knight_checks = attacks::knight(king) & safe & info.attacked_by[Them][Knight];
+@@ -285,16 +328,15 @@ void evaluate_threats(const Board& board, Accumulator<Trace>& acc, const EvalInf
+     const Bitboard weak = enemy_pieces & ~strongly_protected & info.attacked_by[Us][0];
+ 
+     if ((defended | weak) != 0) {
+-        Bitboard minor_targets = (defended | weak) & (info.attacked_by[Us][Knight] | info.attacked_by[Us][Bishop]);
+-        while (minor_targets != 0) {
+-            const int square = pop_lsb(minor_targets);
+-            acc.template add<Us>(ThreatByMinor + piece_type(board.piece_at(square)));
+-        }
+-        Bitboard rook_targets = weak & info.attacked_by[Us][Rook];
+-        while (rook_targets != 0) {
+-            const int square = pop_lsb(rook_targets);
+-            acc.template add<Us>(ThreatByRook + piece_type(board.piece_at(square)));
+-        }
++        auto add_targets = [&](int base, Bitboard targets) {
++            if (targets == 0) return;
++            for (int piece = Pawn; piece <= Queen; ++piece) {
++                const int count = popcount(targets & board.pieces(Them, static_cast<PieceType>(piece)));
++                if (count != 0) acc.template add<Us>(base + piece, count);
++            }
++        };
++        add_targets(ThreatByMinor, (defended | weak) & (info.attacked_by[Us][Knight] | info.attacked_by[Us][Bishop]));
++        add_targets(ThreatByRook, weak & info.attacked_by[Us][Rook]);
+         if ((weak & info.attacked_by[Us][King]) != 0) acc.template add<Us>(ThreatByKing);
+         const Bitboard hanging = weak & (~info.attacked_by[Them][0] | (enemy_non_pawns & info.attacked_twice[Us]));
+         acc.template add<Us>(HangingPiece, popcount(hanging));
++ git show 3def809de68d726715fa3dd21626f706f0f30e16:forge-combo29/REPORT_r3_19.md
+# Hand-written evaluation speed (r3 19)
+
+Branch `grok47/r3-19-faster-hce`. Search and the evaluation numbers are unchanged. This is a timing measurement on one machine, not a strength claim.
+
+## Where the idea came from
+
+`bench 16` was timed with `rdtsc` around each section of `evaluate_position` before any rewrite. On that run the hand-written evaluation was the large part of static evaluation, ahead of the network. Inside it, the three heaviest sections were piece evaluation, king evaluation, and threats. Pawn structure, the final taper, attack setup, passed pawns, and the piece-square term were smaller. The changes below are only those three sections, plus eval-only slider tables that those sections call. Nothing was taken from another engine. The attack sets are the ones this file already computed with `sliding_attack`.
+
+## What changed
+
+Piece evaluation walks knights, bishops, rooks, and queens in separate loops and keeps the running attack masks in locals. A queen's bishop ray and rook ray are computed once and reused for the weak-queen term. A rook that stands on a file with passed pawns in both directions does one real-occupancy lookup, not two. Same-color bishop pawn counts and the home-minor count are computed once per side.
+
+King shelter loads each term once and keeps the middlegame half of that load. King danger issues the rook and bishop indexes, then the two loads.
+
+Threats count each enemy piece type with `popcount` and add that term once with that count, instead of walking every target square.
+
+`FORGE_PORTABLE` still leaves movegen on multiply magics (`FORGE_SPD_SLIDER_PEXT=0`). Evaluation uses a second pair of tables, filled from the same masks, indexed with `PEXT`. Empty-board and full-board attacks were checked against the multiply tables at init. The 1,000,000-position compare is the check that the values match in real positions.
+
+## Identity
+
+Threads 1, Hash 16, OwnBook false, every other option left at its default. Printed before any edit and again on the final binary:
+
+| check | nodes |
+| --- | ---: |
+| bench 11 | 312866 |
+| bench 13 | 862329 |
+| go perft 5 from the start position | 4865609 |
+
+Every `bench 16` in the table below was 3024920 nodes.
+
+1,000,000 positions came from a deterministic legal-move walk (`tests_r3_19/identity_walk.cpp`, fixed xorshift seed). For each position the record is uncached hand-written eval, cached hand-written eval, the network term, the total, and the in-check flag. The base and new records are byte-identical (`EVAL_1M_MATCH`).
+
+10,000 positions from the same walk were searched at depth 8 with `Searcher(16, 1)`, exclusive transposition table, info output off. That is the search `go` calls. Each record is the best move, the score, and the node count. The base and new records are byte-identical (`SEARCH_10K_MATCH`).
+
+## bench 16
+
+Pinned to CPU 1, base binary then new binary, five times. Release build, `g++` 13.3, `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3`, `FORGE_PORTABLE=ON`. Times are milliseconds. Nodes were 3024920 on every run.
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1531 | 1498 |
+| 2 | 1508 | 1486 |
+| 3 | 1502 | 1500 |
+| 4 | 1598 | 1488 |
+| 5 | 1580 | 1491 |
+| mean | 1543.8 | 1492.6 |
+
+A separate loop evaluated 20,000 cached positions 21 times with no search. Three pairs, same CPU, seconds:
+
+| pair | base | new |
+| ---: | ---: | ---: |
+| 1 | 0.141 | 0.135 |
+| 2 | 0.138 | 0.135 |
+| 3 | 0.138 | 0.134 |
+
+The checksum of that loop matched (`hot_sum -671370`).
+
+## Repeat on the same commit
+
+Same binaries, still `758df95ba`, CPU 1, base then new. Every run was 3024920 nodes. Three more five-pair tables. Several pairs are only a few milliseconds apart, and both sides move by tens of milliseconds between runs.
+
+Table A:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1541 | 1538 |
+| 2 | 1572 | 1542 |
+| 3 | 1549 | 1511 |
+| 4 | 1506 | 1511 |
+| 5 | 1543 | 1518 |
+| mean | 1542.2 | 1524.0 |
+
+Table B:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1599 | 1665 |
+| 2 | 1644 | 1558 |
+| 3 | 1617 | 1584 |
+| 4 | 1560 | 1555 |
+| 5 | 1517 | 1501 |
+| mean | 1587.4 | 1572.6 |
+
+Table C:
+
+| pair | base ms | new ms |
+| ---: | ---: | ---: |
+| 1 | 1496 | 1555 |
+| 2 | 1594 | 1534 |
+| 3 | 1537 | 1504 |
+| 4 | 1513 | 1493 |
+| 5 | 1498 | 1590 |
+| mean | 1527.6 | 1535.2 |
+
+Fifteen pairs together: base mean 1552.4 ms, new mean 1543.9 ms.
+
+Pins were printed again on both binaries: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. The same 1,000,000-position eval records were written again and are byte-identical (`EVAL_1M_MATCH`).
+
+## Not verified
+
+Playing strength was not measured.
+
+`/usr/bin/c++` on this machine is Clang and could not link `libstdc++`. The build used `/usr/bin/g++` with the requested CMake flags.
+
+The depth-8 compare did not parse UCI `info` text. It compared `SearchInfo` from `Searcher::search`. Printing was off. A depth limit does not use the clock.
+
+Only one thread was checked. Multi-thread search was not compared.

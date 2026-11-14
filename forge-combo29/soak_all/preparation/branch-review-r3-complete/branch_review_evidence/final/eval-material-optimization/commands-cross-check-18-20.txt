@@ -1,0 +1,460 @@
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 1316c38c1cd6dce7ae719804ca72b43b4c2fc165
+ forge-combo29/REPORT_r3_18.md                    |  65 +++
+ forge-combo29/include/forge/nnue.hpp             |  10 +
+ forge-combo29/include/forge/search.hpp           |  12 +-
+ forge-combo29/src/nnue.cpp                       | 109 ++++-
+ forge-combo29/src/search.cpp                     |  81 +++-
+ forge-combo29/tests_r3_18/lazy_eval_identity.cpp | 503 +++++++++++++++++++++++
+ 6 files changed, 750 insertions(+), 30 deletions(-)
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 3def809de68d726715fa3dd21626f706f0f30e16
+ forge-combo29/REPORT_r3_19.md               | 107 +++++++++++++
+ forge-combo29/include/forge/bitboard.hpp    |  26 ++++
+ forge-combo29/src/bitboard.cpp              |  48 ++++++
+ forge-combo29/src/eval.cpp                  | 228 ++++++++++++++++------------
+ forge-combo29/tests_r3_19/identity_walk.cpp | 134 ++++++++++++++++
+ 5 files changed, 450 insertions(+), 93 deletions(-)
++ git diff --stat e04556ddc3a430b2e751159b0d46111ef56c8b89 7fef1fc378b6c966649315c11573bbdc1529435e
+ forge-combo29/REPORT_r3_20.md            | 116 +++++++++++++++++++++++++
+ forge-combo29/include/forge/bitboard.hpp |  14 +++
+ forge-combo29/include/forge/board.hpp    |  29 +++++++
+ forge-combo29/src/bitboard.cpp           |   7 ++
+ forge-combo29/src/board.cpp              | 144 +++++++++++++++++++------------
+ forge-combo29/src/search.cpp             | 120 ++++++++++++++++++++------
+ 6 files changed, 351 insertions(+), 79 deletions(-)
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/tests_r3_18/lazy_eval_identity.cpp
++ nl -ba
++ sed -n '180,205p;250,280p'
+   180	    std::uint64_t null_checks = 0;
+   181	    std::uint64_t refresh_net_mismatch = 0;
+   182	    std::uint64_t refresh_total_mismatch = 0;
+   183	    int ply = 0;
+   184	    while (played < target) {
+   185	        if (ply > 0 && (played % 11U) == 7U && !board.in_check()) {
+   186	            forge::SearcherTestProbe::record_null_move(worker, ss);
+   187	            forge::NullUndo undo;
+   188	            board.make_null_move(undo);
+   189	            forge::SearchStack* child = ss + 1;
+   190	            const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, child);
+   191	            forge::nnue::DirtyPieces empty;
+   192	            forge::nnue::Accumulator copied;
+   193	            forge::nnue::update(shadow.back(), copied, empty);
+   194	            if (!same_features(copied, shadow.back())) return fail("null copy changed features at ply " + std::to_string(ply));
+   195	            if (forge::nnue::evaluate(board, shadow.back()) != forge::nnue::evaluate(board, copied)) {
+   196	                return fail("null evaluate diverged at ply " + std::to_string(ply));
+   197	            }
+   198	            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+   199	            if (lazy_total != parts.total) ++refresh_total_mismatch;
+   200	            if (forge::nnue::evaluate(board, shadow.back()) != parts.nnue) ++refresh_net_mismatch;
+   201	            // The search reads the parent's features for a null move.
+   202	            if (child->accumulator.valid) return fail("null frame stored a new accumulator");
+   203	            board.unmake_null_move(undo);
+   204	            ++null_checks;
+   205	        }
+   250	            if (!same_features(ss->accumulator, shadow.back())) {
+   251	                return fail("accumulator bits diverged at " + board.fen() + " after " + std::to_string(played));
+   252	            }
+   253	            for (std::size_t built = 0; built < shadow.size(); ++built) {
+   254	                forge::SearchStack* frame = &frames[4U + built];
+   255	                if (!frame->accumulator.valid || !same_features(frame->accumulator, shadow[built])) {
+   256	                    return fail("chain accumulator diverged at " + board.fen());
+   257	                }
+   258	            }
+   259	            const int lazy_net = forge::nnue::evaluate(board, ss->accumulator);
+   260	            if (lazy_net != forge::nnue::evaluate(board, shadow.back())) return fail("network eval diverged at " + board.fen());
+   261	            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+   262	            if (lazy_net != parts.nnue) ++refresh_net_mismatch;
+   263	            if (lazy_total != parts.total) ++refresh_total_mismatch;
+   264	        }
+   265	        ++played;
+   266	        if ((played % 100000U) == 0U) {
+   267	            std::cout << "replay " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+   268	                      << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+   269	                      << refresh_total_mismatch << '\n';
+   270	        }
+   271	    }
+   272	    std::cout << "replay positions " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+   273	              << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+   274	              << refresh_total_mismatch << '\n';
+   275	    return 0;
+   276	}
+   277	
+   278	struct Engine {
+   279	    pid_t pid = -1;
+   280	    FILE* to = nullptr;
++ git show 3def809de68d726715fa3dd21626f706f0f30e16:forge-combo29/src/eval.cpp
++ rg -n -B3 -A3 _pext_u64
+217-        const int square = pop_lsb(queens);
+218-        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(square)];
+219-        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(square)];
+220:        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occupied, bishop_slider.mask));
+221:        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occupied, rook_slider.mask));
+222-        const Bitboard queen_bishop = bishop_slider.table[bishop_index];
+223-        const Bitboard queen_rook = rook_slider.table[rook_index];
+224-        const int mobility = note(Queen, queen_bishop | queen_rook, queen_attacks);
+--
+280-        const Bitboard occ = board.occupied();
+281-        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(king)];
+282-        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(king)];
+283:        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occ, rook_slider.mask));
+284:        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occ, bishop_slider.mask));
+285-        const Bitboard rook_rays = rook_slider.table[rook_index];
+286-        const Bitboard bishop_rays = bishop_slider.table[bishop_index];
+287-        const Bitboard rook_checks = rook_rays & safe & info.attacked_by[Them][Rook];
++ git show 3def809de68d726715fa3dd21626f706f0f30e16:forge-combo29/include/forge/bitboard.hpp
++ nl -ba
++ sed -n 1,35p
+     1	#pragma once
+     2	
+     3	#include <array>
+     4	#include <bit>
+     5	#include <cstdint>
+     6	
+     7	// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
+     8	// are indexed with PEXT over the relevant mask (same table sizes, same attack
+     9	// sets, another entry order; no magic search at start-up). Needs BMI2.
+    10	#ifndef FORGE_SPD_SLIDER_PEXT
+    11	#define FORGE_SPD_SLIDER_PEXT 0
+    12	#endif
+    13	#if FORGE_SPD_SLIDER_PEXT
+    14	#if !defined(__BMI2__)
+    15	#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+    16	#endif
+    17	#endif
+    18	#if defined(__BMI2__)
+    19	#include <immintrin.h>
+    20	#endif
+    21	
+    22	namespace forge {
+    23	
+    24	using Bitboard = std::uint64_t;
+    25	
+    26	enum Color : int { White = 0, Black = 1 };
+    27	
+    28	[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }
+    29	
+    30	constexpr Bitboard FileABB = 0x0101010101010101ULL;
+    31	constexpr Bitboard FileBBB = FileABB << 1;
+    32	constexpr Bitboard FileCBB = FileABB << 2;
+    33	constexpr Bitboard FileDBB = FileABB << 3;
+    34	constexpr Bitboard FileEBB = FileABB << 4;
+    35	constexpr Bitboard FileFBB = FileABB << 5;
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/include/forge/bitboard.hpp
++ nl -ba
++ sed -n 1,30p
+     1	#pragma once
+     2	
+     3	#include <array>
+     4	#include <bit>
+     5	#include <cstdint>
+     6	
+     7	// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
+     8	// are indexed with PEXT over the relevant mask (same table sizes, same attack
+     9	// sets, another entry order; no magic search at start-up). Needs BMI2.
+    10	#ifndef FORGE_SPD_SLIDER_PEXT
+    11	#define FORGE_SPD_SLIDER_PEXT 0
+    12	#endif
+    13	// The portable build leaves the multiply indexer selected so a CPU without BMI2
+    14	// still compiles. x86-64-v3 already has BMI2, and PEXT indexes the same masks
+    15	// to the same attack sets (only the table order changes) without searching for
+    16	// magics at startup. Take that indexer whenever the compiler target has BMI2.
+    17	#if defined(__BMI2__) && FORGE_SPD_SLIDER_PEXT == 0
+    18	#undef FORGE_SPD_SLIDER_PEXT
+    19	#define FORGE_SPD_SLIDER_PEXT 1
+    20	#endif
+    21	#if FORGE_SPD_SLIDER_PEXT
+    22	#if !defined(__BMI2__)
+    23	#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+    24	#endif
+    25	#include <immintrin.h>
+    26	#endif
+    27	
+    28	namespace forge {
+    29	
+    30	using Bitboard = std::uint64_t;
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/REPORT_r3_18.md
+# Lazy network accumulator
+
+Branch `grok47/r3-18-lazy-net-accumulator`, built from `e04556dd`. No new UCI option. Search options used for every check below: Threads 1, Hash 16, OwnBook false, every other option left at its default. Build:
+
+```
+cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3
+cmake --build build -j
+```
+
+This machine is a 4-core Intel Xeon VM, g++ 13.3, `-march=x86-64-v3` with the portable switches (no PEXT, no AVX-512). The numbers are measurements on that machine. They are not a strength result.
+
+## Where the idea comes from
+
+The network state is one vector per colour, each a sum of piece-square columns. A move changes only a few of those columns. This search already applied those columns inside static evaluation rather than inside `make_move`: `record_move` stored a change list, and `static_evaluate` walked back to the last finished vector and called `nnue::update`.
+
+On an instrumented bench 13 (862329 nodes) that list was built 826208 times and the columns were added 655136 times. The gap is moves that never reach an evaluation: transposition cutoffs, positions in check, and stand-pat cutoffs. A null move was 41488 of the updates, and a null move does not change the piece set, so the copy is the same bits as the parent vector.
+
+This change keeps that rule and tightens it. Making a move stores the mover, the captured piece, and the side, and builds the change list then, before the move is played. The feature columns are still added only when an evaluation reads that ply. A null move does not copy the vector; evaluation reads the parent. A quiet move or a capture writes each new hidden unit with the same sum as `nnue::update`, and the output layer consumes that unit from the register that was just stored, in the same lane order as `nnue::evaluate`. Castling and every other shape still call `update` and then `evaluate`. Nothing here is taken from another engine's source.
+
+## Pins
+
+Recorded on the base binary before the edit, and again on this binary after the fused output pass. All three match.
+
+| check | before | after |
+| --- | ---: | ---: |
+| bench 11 nodes | 312866 | 312866 |
+| bench 13 nodes | 862329 | 862329 |
+| startpos perft 5 | 4865609 | 4865609 |
+
+bench 16, which is not a pin, was 3024920 nodes on every timing run of both binaries.
+
+## Evaluation identity
+
+Fixed seed `0x18D15C0DE` (SplitMix). Two comparisons:
+
+1. In-process playouts, 1,000,000 positions, plus 89,232 null moves and 28,698,721 legal-move change lists. Two plies out of every seven were left unevaluated so the next evaluation had to rebuild a gap. The vector at evaluation matched `nnue::update` from the parent with `dirty_pieces`. `nnue::evaluate` matched a from-scratch `refresh` on all 1,000,000 positions (`refresh_net_mismatch 0`). The full static total matched `Evaluator::static_eval_components` on all 1,000,000 (`refresh_total_mismatch 0`). A separate catalog (start, Kiwipete, en passant, promotions, a capture promotion) checked 123 moves, including 1 en passant, 2 castles, and 16 promotions; each updated vector evaluated equal to a refresh.
+
+2. The base binary and this binary, same seed, 1,000,000 positions, UCI `eval` with Threads 1, Hash 16, OwnBook false. Re-run after the fused output pass: all 1,000,000 lines were identical.
+
+## Depth 8
+
+10,000 positions from the same seed, re-run after the fused output pass. Each search was `ucinewgame` then `go depth 8` on the base binary and on this binary. Best move, score, and node count matched on all 10,000.
+
+## Bench 16 timing
+
+Fresh alternating runs after the fused output pass, base then this binary. Same nodes every time: 3024920. Time is the engine's own millisecond timer on this VM. This is not a strength result.
+
+| run | base ms | this binary ms |
+| ---: | ---: | ---: |
+| 1 | 1509 | 1440 |
+| 2 | 1493 | 1450 |
+| 3 | 1496 | 1441 |
+| 4 | 1493 | 1444 |
+| 5 | 1496 | 1438 |
+
+Base mean 1497.4 ms (spread 1493–1509). This binary mean 1442.6 ms (spread 1438–1450). On this run the two spreads do not overlap. An earlier build that only deferred the change list, and copied nothing on a null move, was measured at a mean of 1517.2 ms against a base mean of 1511.6 ms; that version did not help. The lower times above are from folding the output layer into the feature update.
+
+## What was not verified
+
+- No games, so no strength claim.
+- Threads other than 1.
+- `UseNNUE false`. The early return to the hand-crafted eval is unchanged and was not re-run.
+- The AVX-512 build (`FORGE_PORTABLE` off). This binary is the portable x86-64-v3 build.
+- Hash sizes other than 16, and MultiPV other than 1.
+- The timing is five runs on one shared VM, not a locked benchmark machine.
++ git show 3def809de68d726715fa3dd21626f706f0f30e16:forge-combo29/tests_r3_19/identity_walk.cpp
++ nl -ba
++ sed -n 1,145p
+     1	#include "forge/board.hpp"
+     2	#include "forge/eval.hpp"
+     3	#include "forge/search.hpp"
+     4	
+     5	#include <cstdint>
+     6	#include <cstdio>
+     7	#include <cstdlib>
+     8	#include <string>
+     9	#include <vector>
+    10	
+    11	namespace {
+    12	
+    13	std::uint64_t rng_state = 0xC0FFEE1234ULL;
+    14	
+    15	std::uint64_t next_rng() {
+    16	    rng_state ^= rng_state >> 12;
+    17	    rng_state ^= rng_state << 25;
+    18	    rng_state ^= rng_state >> 27;
+    19	    return rng_state * 2685821657736338717ULL;
+    20	}
+    21	
+    22	void write_pod(const void* data, std::size_t size) {
+    23	    if (std::fwrite(data, size, 1, stdout) != 1) std::exit(2);
+    24	}
+    25	
+    26	struct EvalRecord {
+    27	    std::int32_t uncached = 0;
+    28	    std::int32_t cached = 0;
+    29	    std::int32_t hce = 0;
+    30	    std::int32_t nnue = 0;
+    31	    std::int32_t total = 0;
+    32	    std::int32_t in_check = 0;
+    33	};
+    34	
+    35	struct SearchRecord {
+    36	    char move[8]{};
+    37	    std::int32_t score = 0;
+    38	    std::uint64_t nodes = 0;
+    39	};
+    40	
+    41	void emit_eval(forge::Board& board, forge::Evaluator& evaluator) {
+    42	    EvalRecord record;
+    43	    record.uncached = forge::Evaluator::evaluate_uncached(board);
+    44	    record.cached = evaluator.evaluate(board);
+    45	    const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+    46	    record.hce = parts.hce;
+    47	    record.nnue = parts.nnue;
+    48	    record.total = parts.total;
+    49	    record.in_check = parts.in_check ? 1 : 0;
+    50	    write_pod(&record, sizeof record);
+    51	}
+    52	
+    53	void play_random(forge::Board& board, int& ply) {
+    54	    const forge::MoveList legal = board.legal_moves();
+    55	    if (legal.empty() || ply >= 80 || (next_rng() % 64ULL) == 0ULL) {
+    56	        if (!board.set_fen(forge::Board::StandardStartFen)) std::exit(3);
+    57	        ply = 0;
+    58	        return;
+    59	    }
+    60	    const forge::Move move = legal[static_cast<std::size_t>(next_rng() % legal.size())];
+    61	    forge::Undo undo;
+    62	    (void)board.make_move(move, undo);
+    63	    ++ply;
+    64	}
+    65	
+    66	void walk_hce(int count) {
+    67	    forge::Board board;
+    68	    int ply = 0;
+    69	    std::int64_t sum = 0;
+    70	    for (int i = 0; i < count; ++i) {
+    71	        sum += forge::Evaluator::evaluate_uncached(board);
+    72	        play_random(board, ply);
+    73	    }
+    74	    std::fprintf(stderr, "hce_sum %lld\n", static_cast<long long>(sum));
+    75	}
+    76	
+    77	void walk_hot(int count) {
+    78	    std::vector<forge::Board> boards;
+    79	    boards.reserve(static_cast<std::size_t>(count));
+    80	    forge::Board cursor;
+    81	    int ply = 0;
+    82	    for (int i = 0; i < count; ++i) {
+    83	        boards.push_back(cursor);
+    84	        play_random(cursor, ply);
+    85	    }
+    86	    forge::Evaluator evaluator;
+    87	    std::int64_t sum = 0;
+    88	    for (const forge::Board& board : boards) sum += evaluator.evaluate(board);
+    89	    evaluator.clear();
+    90	    for (int repeat = 0; repeat < 20; ++repeat) {
+    91	        for (const forge::Board& board : boards) sum += evaluator.evaluate(board);
+    92	    }
+    93	    std::fprintf(stderr, "hot_sum %lld\n", static_cast<long long>(sum));
+    94	}
+    95	
+    96	void walk_eval(int count) {
+    97	    forge::Board board;
+    98	    forge::Evaluator evaluator;
+    99	    int ply = 0;
+   100	    for (int i = 0; i < count; ++i) {
+   101	        emit_eval(board, evaluator);
+   102	        play_random(board, ply);
+   103	    }
+   104	}
+   105	
+   106	void walk_search(int count) {
+   107	    forge::Searcher searcher(16, 1);
+   108	    forge::Board board;
+   109	    int ply = 0;
+   110	    forge::SearchLimits limits;
+   111	    limits.depth = 8;
+   112	    for (int i = 0; i < count; ++i) {
+   113	        const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+   114	        SearchRecord record;
+   115	        const std::string text = forge::Board::move_to_uci(info.best_move);
+   116	        for (std::size_t c = 0; c < text.size() && c < sizeof record.move; ++c) record.move[c] = text[c];
+   117	        record.score = info.score;
+   118	        record.nodes = info.nodes;
+   119	        write_pod(&record, sizeof record);
+   120	        play_random(board, ply);
+   121	    }
+   122	}
+   123	
+   124	} // namespace
+   125	
+   126	int main(int argc, char** argv) {
+   127	    const std::string mode = argc > 1 ? argv[1] : "eval";
+   128	    const int count = argc > 2 ? std::atoi(argv[2]) : 1000000;
+   129	    if (mode == "search") walk_search(count);
+   130	    else if (mode == "hce") walk_hce(count);
+   131	    else if (mode == "hot") walk_hot(count);
+   132	    else walk_eval(count);
+   133	    return 0;
+   134	}
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/REPORT_r3_20.md
++ sed -n '1,55p;90,120p'
+# Search plumbing, round 3 agent 20
+
+The search is unchanged. Bench 11, bench 13, and perft 5 from the start position are the same numbers as the base at `e04556dd`. Two disjoint sets of 10,000 positions, each searched at depth 8 with Threads 1, Hash 16, and OwnBook false, returned the same best move, score, and node count.
+
+This is a timing measurement on one machine. It is not a strength result.
+
+## Pins
+
+Printed on the unmodified binary before any edit, and again on the final binary:
+
+| check | before | after |
+| --- | ---: | ---: |
+| bench 11 nodes | 312866 | 312866 |
+| bench 13 nodes | 862329 | 862329 |
+| perft 5 from the start position | 4865609 | 4865609 |
+
+bench 16 nodes stayed 3024920. Perft 4 on the eight bench positions matched the base as well (197281, 4085603, 3269539, 43238, 1635300, 3813973, 24244, 2433324).
+
+## Where the time was
+
+`perf` task-clock on bench 16, one process, the unmodified binary, 3129 samples. Evaluation is listed only so the rest of the ranking is clear. It was not changed.
+
+| share | samples | function |
+| ---: | ---: | --- |
+| 17.03% | 533 | evaluate_position |
+| 11.79% | 369 | nnue::update |
+| 10.10% | 316 | Worker::search |
+| 7.93% | 248 | MovePicker::pick_best |
+| 5.98% | 187 | nnue::evaluate |
+| 5.15% | 161 | generate_pseudo_legal |
+| 5.11% | 160 | MovePicker::next |
+| 3.74% | 117 | see_ge |
+| 3.48% | 109 | corrected_eval |
+| 2.78% | 87 | is_legal |
+| 2.56% | 80 | init_magics |
+| 2.36% | 74 | attackers_to |
+| 1.79% | 56 | TT probe |
+| 1.66% | 52 | refresh_king_lines |
+| 1.57% | 49 | introsort (inside pick_best) |
+| 1.41% | 44 | unmake_move |
+| 1.05% | 33 | make_move |
+| 0.93% | 29 | gives_check |
+| 0.93% | 29 | key_after |
+
+Outside evaluation, the three hottest areas were:
+
+1. Move picker. `pick_best` 7.93%, `next` 5.11%, and the sort it calls 1.57%. `see_ge` (3.74%) is the capture filter inside the picker and is also called from the search.
+2. Move generation. `generate_pseudo_legal` 5.15%, `is_legal` 2.78%, king-line refresh 1.66%, `gives_check` 0.93%, and the magic-number search at startup 2.56%.
+3. Make and unmake. `make_move` 1.05%, `unmake_move` 1.41%, and `attackers_to` 2.36%, which make_move used to find checkers.
+
+The hash probe was next, at 1.79% plus `key_after` at 0.93%.
+
+The same sample of the final binary (3005 samples) still spends most of its time in evaluation. `pick_best` fell from 248 samples to 178. The magic search is gone. `attackers_to` dropped out of the list above 0.7%. `next` rose, because the best score is now recorded while the moves are scored, so that work sits in `next` instead of in a later scan.
+
+## What changed, and where the idea came from
+| 1 | 1520 | 1478 |
+| 2 | 1515 | 1496 |
+| 3 | 1517 | 1481 |
+| 4 | 1609 | 1480 |
+| 5 | 1509 | 1565 |
+| mean | 1534 | 1500 |
+
+The mean gap is 34 ms. Run 5 went the other way, and run 4's base time is high, so one bench 16 is too noisy to read on its own. An earlier five on the same two binaries, taken the same way, averaged 1524 ms and 1464 ms, and every pair was faster. A second bench inside the same process was also lower for the new binary on the quiet pairs, so the gap is not only the missing magic search at startup.
+
+## Repeated check
+
+Same commit, same two binaries, measured again at 14:17 UTC. Load average was 0.04. Pins on both binaries were bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. Bench 16 nodes were 3024920 on every run below. Two more alternating five-run tables, base then new, milliseconds:
+
+| run | base A | new A | base B | new B |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1503 | 1480 | 1500 | 1544 |
+| 2 | 1529 | 1480 | 1573 | 1456 |
+| 3 | 1529 | 1479 | 1504 | 1456 |
+| 4 | 1549 | 1461 | 1507 | 1470 |
+| 5 | 1500 | 1450 | 1526 | 1561 |
+| mean | 1522 | 1470 | 1522 | 1497 |
+
+Table A was faster on every run. The mean gap is 52 ms. Table B's mean gap is 25 ms, and runs 1 and 5 of that table were slower than the base. The search was not changed for this recheck.
+
+## Not verified
+
+No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed, because this CPU has BMI2. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.

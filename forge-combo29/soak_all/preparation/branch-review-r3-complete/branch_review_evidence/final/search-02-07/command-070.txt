@@ -1,0 +1,25 @@
+COMMAND ["rg","-n","NullThreatVerify|cheaper_enemy|null_blocked_|threat_gate|verification","/workspace/work/r3-final-02-07-review/06-search.cpp.txt"]
+STDOUT
+80:bool NullThreatVerify = false;
+123:bool cheaper_enemy_attacks_dearer(const Board& board) {
+316:    const std::uint32_t key32 = verification_key(key);
+354:    const std::uint32_t key32 = verification_key(key);
+393:    const std::uint32_t key32 = verification_key(key);
+423:    const std::uint32_t key32 = verification_key(key);
+1202:    // The frame is reused across siblings and same-ply verification searches.
+1303:            ss->null_move_allowed && (!tune::NullThreatVerify || !null_blocked_) &&
+1326:                // stands unless NullThreatVerify is on and a cheaper enemy piece
+1329:                const bool threat_gate =
+1330:                    depth < 14 && tune::NullThreatVerify && cheaper_enemy_attacks_dearer(board);
+1331:                if (depth < 14 && !threat_gate) {
+1335:                // Same reduced depth as the high-depth verification. A threat
+1337:                const bool saved_block = null_blocked_;
+1338:                if (threat_gate) null_blocked_ = true;
+1340:                const int verification = search(board, ss, depth - reduction, beta - 1, beta, false);
+1341:                null_blocked_ = saved_block;
+1345:                if (verification >= beta) {
+1633:    null_blocked_ = false;
+
+STDERR
+
+EXIT 0 SIGNAL null

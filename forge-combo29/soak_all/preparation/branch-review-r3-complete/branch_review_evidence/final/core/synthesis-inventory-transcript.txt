@@ -1,0 +1,37 @@
+set -euxo pipefail
+node <<'NODE'
+const fs=require('fs'),cp=require('child_process');
+const root='/workspace/work/all-run/branch-review-r3-complete';
+const repo='/workspace/work/dwqww-all',base='e04556ddc3a430b2e751159b0d46111ef56c8b89';
+const snapshot=fs.readFileSync(root+'/remote-heads.txt','utf8');
+const entries=[...snapshot.matchAll(/^([0-9a-f]{40})\s+refs\/heads\/(grok47\/r3-(\d\d)-[^\s]+)$/gm)];
+if(entries.length!==24)throw Error('Expected 24 heads');
+const log=[];function git(args){const r=cp.spawnSync('git',['-C',repo,...args],{encoding:'utf8',maxBuffer:16*1024*1024});log.push({command:['git','-C',repo,...args],exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr});if(r.status!==0)throw Error('Git failed '+args.join(' '));return r.stdout;}
+const rows=[];try{for(const m of entries){const head=m[1],branch=m[2],number=+m[3];rows.push({number,branch,head,implementationCommits:git(['log','--reverse','--format=%H%x09%s',base+'..'+head,'--','forge-combo29/src','forge-combo29/include','forge-combo29/CMakeLists.txt']).trim().split('\n').filter(Boolean).map(s=>({sha:s.slice(0,40),subject:s.slice(41)})),allCommits:git(['log','--reverse','--format=%H%x09%s',base+'..'+head]).trim().split('\n').filter(Boolean),changedFiles:git(['diff','--numstat',base,head,'--','forge-combo29']).trim().split('\n').filter(Boolean)});}fs.writeFileSync(root+'/final24-commit-inventory.json.txt',JSON.stringify({base,rows},null,2)+'\n');console.log(JSON.stringify({branches:rows.length,implementationCommits:rows.reduce((n,r)=>n+r.implementationCommits.length,0),records:log.length}));for(const r of rows)console.log(JSON.stringify({number:r.number,head:r.head,implementations:r.implementationCommits.map(c=>c.sha)}));}finally{fs.writeFileSync(root+'/synthesis-inventory-command-results.json.txt',JSON.stringify(log,null,2)+'\n');}
+NODE
++ node
+{"branches":24,"implementationCommits":30,"records":72}
+{"number":1,"head":"85e0961064799c8f49f129b1d856490436b44354","implementations":["40c7c468b1c64ffdcb203e4df326e6bf70a77281"]}
+{"number":2,"head":"314585b72dc44374937e1549a3798d605da74d62","implementations":["e4daba905d33ff8ea10da5f99cd9185236c5ae17"]}
+{"number":3,"head":"577aa3e9b0537b8df0d12dfeb4236483a805d505","implementations":["b5e97812eb8c69941b2fc3fac563d5ca4c016561"]}
+{"number":4,"head":"f3ecae11d4cdf9fb58925853e25a340f921b53ba","implementations":["cc48d5aad409661d085e05e0cfae709d5f349c04"]}
+{"number":5,"head":"d102a4ead3edd0719f626120e814b3d47300fb28","implementations":["affee1d2288243c1de3408e0c3f9bcc308e56de5"]}
+{"number":6,"head":"5df8092a0a8fcbe52e2e4f8a3a874e3b64020f28","implementations":["d6b4c73560727fbbf1c5594dad5d56daa16329ea"]}
+{"number":7,"head":"1a6235db4ffaa79bc67dd5051d989defa0cc55a0","implementations":["56b27b1398a46afc26bc46114375b73c065f3076"]}
+{"number":8,"head":"fd9f4f0f9efbb2e16d3056271e7d62dd23e8dab5","implementations":["fef5e0023702bffb2a52a75c626b1596e43fdfbc"]}
+{"number":9,"head":"a92af3d7293c254e4ee7f70bb2bd61b93d9935f9","implementations":["ab72d3b07cc343a8f475b435ba88aa2bf4abb19d"]}
+{"number":10,"head":"1cd68ed033cf90917e4d23a644bbe341c768d2c6","implementations":["a2392f49dc81fbdb6db73213a0a500c472e7ab16"]}
+{"number":11,"head":"89487999cb6fa5618853c68adef18a0d9dc114f5","implementations":["be2e2ec6ab8879dd802d804523faf7f6775d66d6"]}
+{"number":12,"head":"c808be4b01a9076754c782d68fdbb7797e4db7a1","implementations":["4dad16648f4302953885a19c651074c87d193ca5"]}
+{"number":13,"head":"2158d5832ceac299528ea5a6ca7883c3c742cf8c","implementations":["192f66f43e30bd50456f3da89f9dfd636ef26a8b"]}
+{"number":14,"head":"041404af67a585969e8ed6ce8906b4b270b7ffc7","implementations":["e1b0f720134f0dc1b15948c7fb95aa29f2e2740d"]}
+{"number":15,"head":"8283f8e97259a469b9d7601924c6a2d607b7e4f8","implementations":["d59a448b9f52a6acffba58926c303e60080df86a","4db1f6b29abd880d3ac107ae3e6e5e40a783b7b2"]}
+{"number":16,"head":"2be1e21b6faa3e8e3d80ff79449102b4e9f250f9","implementations":["cdd97af4c4338669cb59ce4cda5297f5143d1265","2849b637056227cb77b45a510ac12ded835d35b4"]}
+{"number":17,"head":"74b18517d0a20e25a20cffd62b6a32ac27707e74","implementations":["681f9302fe409e7285719a8f62aef8f0c90f874c"]}
+{"number":18,"head":"1316c38c1cd6dce7ae719804ca72b43b4c2fc165","implementations":["863417a76c027200ee487f63fb890d6e7fa526ff","1316c38c1cd6dce7ae719804ca72b43b4c2fc165"]}
+{"number":19,"head":"3def809de68d726715fa3dd21626f706f0f30e16","implementations":["5d9d1b70388bcb47f38cdc277776753e2c249c9a","758df95baabcdb2dd97aaa9b5507518b5cd02450"]}
+{"number":20,"head":"7fef1fc378b6c966649315c11573bbdc1529435e","implementations":["69460cd7062a8add4126f7bf809c03aa3b1ac4a2","f522db9138c3578295deb78dcef4ca4c466564b5"]}
+{"number":21,"head":"1d7440c1f860be9c21e190c862d5920b241dd927","implementations":["af1c998304dbfbcb997b757a7ce43af7cdf6e933"]}
+{"number":22,"head":"82fb89cbd815ad4427d8fd7d5a78d002e1c8fee7","implementations":["6cecedda933054270cac45bacf367414b13c3fe0"]}
+{"number":23,"head":"91a852100912c9f0a13b809a4fed12a93feda4da","implementations":["91a852100912c9f0a13b809a4fed12a93feda4da"]}
+{"number":24,"head":"0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3","implementations":["305bfc30f05c4020ef01a6992f419d9b27a7cfe2","e838ec9a16992418de267dfa3372d74d80f207f2"]}

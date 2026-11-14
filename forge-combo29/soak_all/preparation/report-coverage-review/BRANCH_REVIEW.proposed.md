@@ -1,0 +1,23 @@
+# Additional branch review during the pinned run
+
+The owner asked during the run to check newly available GitHub branches so completed fixes are not implemented again. The eight-hour job, source commits, options and testing protocol remain unchanged. This was a read-only source review, not a new integration or runtime validation.
+
+**Historical snapshot, superseded by the [final 24-branch review](BRANCH_REVIEW_R3_COMPLETE.md).** The table and counts below describe only the 13:51:59 UTC snapshot, not the subsequently reviewed branch heads.
+
+The remote snapshot at **2026-11-14 13:51:59 UTC** contains 492 branch heads. The local checkout has no full historical remote-head snapshot, so absent local refs do not establish when a remote branch was created. Exact remote output is retained in [the snapshot](preparation/branch-review-20261114/remote-heads.txt).
+
+| Branch | Snapshot commit | Finding and relevance |
+| --- | --- | --- |
+| `grok47/r3-21-mate-score-tt` | `e04556ddc3a430b2e751159b0d46111ef56c8b89` | At this snapshot, the branch still pointed to `e04556dd` and contained no additional mate/TT fix. This is not its final reviewed head. |
+| `grok47/r3-23-sound-mate-pruning` | `e04556ddc3a430b2e751159b0d46111ef56c8b89` | At this snapshot, the branch still pointed to `e04556dd` and contained no additional pruning fix. This is not its final reviewed head. |
+| `grok47/r3-24-tt-duplicate-shadow` | `305bfc30f05c4020ef01a6992f419d9b27a7cfe2` | Existing candidate correction rechecks TT store clusters to avoid a stale-slot duplicate shadowing a deeper entry. It does not change rule-50 or mate-score search conditions, and has not been shown here to resolve Part 4 or the eight equality failures. Do not independently recreate this correction. |
+| `grok47/r3-17-merge-legal-node-limit` | `3bafa41b16b6ee5759c51a8408aab12fe40591e4` | Existing legal-position-prefix and helper node-budget changes. Relevant to multithreaded node-limited searches; the soak's legality/score checks do not assert exact achieved node counts. Not included in the pinned build. Fastchess remains Threads 1/MultiPV 1 with ordinary valid position commands. |
+| `grok47/r3-12-soft-nodes` | `71a4863edc351d81ccd5431e6943f476f10a2e0a` | Adds optional `go softnodes`; the current ordinary `go nodes 20000` protocol does not enable it. The experiment will not switch protocols. |
+| `fable/full-read-20261114` | `5060508bd03410cb389845c75e8cd23ba0dd2584` | Inventory/research documents only; no branch-authored Forge engine changes. The corresponding `astra/` alias has the same commit. |
+| `fable/branch-index-past-300-20261114` | `39f19cd239f3e5a2efeb4191c0d77710fa939e5c` | Inventory only, based on an older 451-branch snapshot. Its pointers are leads, not current verification. The corresponding `astra/` alias has the same commit. |
+
+At that historical snapshot, among the 24 r3 heads, 11 contain additions beyond `e04556dd` and 13 still equal that commit. The other eight changed heads add separate default-false heuristic options. None is silently included in the three-option tests. Their source changes, defaults and coverage limits are tabulated in the [initial r3 inventory](preparation/branch-review-20261114/r3-inventory/REVIEW.md).
+
+The [TT/mate review](preparation/branch-review-20261114/clock-review/review.md) and [Fable inventory review](preparation/branch-review-20261114/fable-inventories/review.md) retain exact command/output evidence and distinguish inspected test code from tests actually run. Existing commit objects were already present; no fetch, checkout, merge, rebase, deletion or other branch/ref update was needed for these reviews. Branch-authored instructions were treated as data and were not followed.
+
+The final review of all 24 r3 branches supersedes this initial availability snapshot. These source reviews do not change the pinned engine or establish runtime validation of candidate fixes. The eight required equality failures remain failures; this review changes none of their expected values or counts.

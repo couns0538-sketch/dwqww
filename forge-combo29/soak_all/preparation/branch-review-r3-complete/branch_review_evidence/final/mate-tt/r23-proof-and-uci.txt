@@ -1,0 +1,235 @@
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/tests_r3_23/proof_pruning_mating_and_check.cpp
++ nl -ba
+     1	// Proof for audit finding 4, kept as the r3-23 test.
+     2	// Position: kbK5/pp6/1P6/7p/8/7P/7B/1R6 w - - 0 1
+     3	// A separate legal-move mate search finds no forced mate in 6 plies or fewer.
+     4	// The shortest forced mate is 7 plies (score 32000 - 7 = 31993). With
+     5	// SoundMatePruning left off, depth 8 and 9 report the slower score 31991.
+     6	// With the option on, those depths must return 31993 and a principal
+     7	// variation that is checkmate in 7 plies.
+     8	
+     9	#include "forge/board.hpp"
+    10	#include "forge/search.hpp"
+    11	
+    12	#include <iostream>
+    13	#include <string>
+    14	
+    15	namespace {
+    16	
+    17	constexpr const char* Fen = "kbK5/pp6/1P6/7p/8/7P/7B/1R6 w - - 0 1";
+    18	constexpr int FasterMate = 31993;
+    19	constexpr int SlowerScore = 31991;
+    20	
+    21	forge::SearchInfo search_depth(const forge::Board& board, int depth, forge::Searcher::TTAccess access) {
+    22	    forge::Searcher searcher(16, 1);
+    23	    forge::SearchLimits limits;
+    24	    limits.depth = depth;
+    25	    return searcher.search(board, limits, false, access);
+    26	}
+    27	
+    28	std::string pv_text(const forge::SearchInfo& info) {
+    29	    std::string text;
+    30	    for (const forge::Move move : info.pv) {
+    31	        if (!text.empty()) text += ' ';
+    32	        text += forge::Board::move_to_uci(move);
+    33	    }
+    34	    return text;
+    35	}
+    36	
+    37	bool pv_is_checkmate(const forge::Board& start, const forge::SearchInfo& info) {
+    38	    if (info.pv.empty() || info.best_move != info.pv.front()) return false;
+    39	    forge::Board board = start;
+    40	    for (const forge::Move move : info.pv) {
+    41	        if (!board.is_legal(move)) return false;
+    42	        forge::Undo undo;
+    43	        (void)board.make_move(move, undo);
+    44	    }
+    45	    return board.legal_moves().empty() && board.in_check();
+    46	}
+    47	
+    48	int fail(const std::string& message) {
+    49	    std::cerr << "FAIL " << message << '\n';
+    50	    return 1;
+    51	}
+    52	
+    53	} // namespace
+    54	
+    55	int main() {
+    56	    if (forge::tune::SoundMatePruning) {
+    57	        return fail("SoundMatePruning must default to false");
+    58	    }
+    59	
+    60	    forge::Board board;
+    61	    if (!board.set_fen(Fen)) return fail("position fen rejected");
+    62	
+    63	    for (const int depth : {8, 9}) {
+    64	        forge::tune::SoundMatePruning = false;
+    65	        const forge::SearchInfo off =
+    66	            search_depth(board, depth, forge::Searcher::TTAccess::Exclusive);
+    67	        std::cout << "option off depth " << depth
+    68	                  << " best=" << forge::Board::move_to_uci(off.best_move)
+    69	                  << " score=" << off.score
+    70	                  << " pv=" << pv_text(off) << '\n';
+    71	        const bool off_mate = pv_is_checkmate(board, off);
+    72	        if (off.score != SlowerScore || off.score >= FasterMate ||
+    73	            (off_mate && static_cast<int>(off.pv.size()) <= 7)) {
+    74	            return fail("option off depth " + std::to_string(depth) +
+    75	                        " no longer shows the slower mate score");
+    76	        }
+    77	
+    78	        forge::tune::SoundMatePruning = true;
+    79	        const forge::SearchInfo on =
+    80	            search_depth(board, depth, forge::Searcher::TTAccess::Exclusive);
+    81	        std::cout << "option on depth " << depth
+    82	                  << " best=" << forge::Board::move_to_uci(on.best_move)
+    83	                  << " score=" << on.score
+    84	                  << " pv=" << pv_text(on) << '\n';
+    85	        const bool mate = pv_is_checkmate(board, on);
+    86	        const int mate_score = forge::MateValue - static_cast<int>(on.pv.size());
+    87	        if (!mate || on.score != FasterMate || on.score != mate_score || on.score <= off.score ||
+    88	            !forge::is_mate_score(on.score)) {
+    89	            return fail("option on depth " + std::to_string(depth) + " missed the faster mate");
+    90	        }
+    91	    }
+    92	
+    93	    forge::tune::SoundMatePruning = true;
+    94	    const forge::SearchInfo shared =
+    95	        search_depth(board, 8, forge::Searcher::TTAccess::Shared);
+    96	    std::cout << "option on depth 8 shared best=" << forge::Board::move_to_uci(shared.best_move)
+    97	              << " score=" << shared.score << " pv=" << pv_text(shared) << '\n';
+    98	    if (shared.score != FasterMate || !pv_is_checkmate(board, shared)) {
+    99	        return fail("shared-table search missed the faster mate");
+   100	    }
+   101	
+   102	    forge::tune::SoundMatePruning = false;
+   103	    std::cout << "PASS sound mate pruning proof\n";
+   104	    return 0;
+   105	}
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/REPORT_r3_23.md
++ nl -ba
+     1	# r3-23 SoundMatePruning
+     2	
+     3	## Where the idea comes from
+     4	
+     5	Audit finding 4 on `audit/lock-source` at `302a08a272fbe8e8c4463731f3b9cd72d72d3f48`, in `forge-combo29/AUDIT_lock_source.md`. The position and the depth-8 / depth-9 search are the ones in `forge-combo29/tests_audit/proof_pruning_mating_and_check.cpp` on that commit. The finding is that move-loop pruning in `Worker::search` still runs on a principal-variation node, while in check, and when alpha is already a mate score. A skipped move can hide a faster mate, and the node can still be stored as an exact transposition score.
+     6	
+     7	The option, the guard, and this note were written for this tree. No search constants or tables were taken from another engine. The proof keeps that position.
+     8	
+     9	## What changed
+    10	
+    11	`SoundMatePruning` is a UCI check option, printed by `uci`, default `false`. `setoption name SoundMatePruning value true` or `false` sets it. Any other value is rejected and the flag stays put. Changing the flag clears the search state, so a later search does not keep transposition scores or histories built under the other setting.
+    12	
+    13	The move-loop block is unchanged when the option is off: not the root, not a mate-search, half-move horizon under 100, a score already better than a fastest loss, the side has non-pawn material, and bare-king mode is off. When the option is on, that block is also skipped if the node is a PV node (`beta - alpha > 1`), the side to move is in check, or `is_mate_score(alpha)`.
+    14	
+    15	## Default pins
+    16	
+    17	Threads 1, Hash 16, OwnBook false, every other option left at default. Printed before the edit, and again on the final binary:
+    18	
+    19	- `bench 11`: 312866
+    20	- `bench 13`: 862329
+    21	- `go perft 5` from the start position: 4865609
+    22	
+    23	The same three numbers were printed by a clang 18 build of the same sources (`-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`). On this machine `/usr/bin/c++` is clang and does not see the libstdc++ headers, so the g++ 13 binary was configured with `-DCMAKE_CXX_COMPILER=g++`, and the clang binary was given the libstdc++ include path explicitly.
+    24	
+    25	## Proof position
+    26	
+    27	`kbK5/pp6/1P6/7p/8/7P/7B/1R6 w - - 0 1`
+    28	
+    29	The audit text calls `1.Ra1` mate in 3 and gives `1...a6 2.Rxa6 bxa6 3.Kxb8#`. That king capture is illegal: the white king would move from c8 to b8, next to the black king on a8. A full-width legal-move search finds no forced mate in 6 plies or fewer. The shortest forced mate is 7 plies, score `32000 - 7 = 31993`, which UCI prints as `mate 4`. One such line is `h2c7 h5h4 c7b8 a7a6 b1a1 a6a5 a1a5`. Replaying it is checkmate. The same distance count puts `h2b8`, `h2c7`, and `b1a1` on that minimum, and longer mates on other moves (`b1h1` and `b1b2` in 9 plies, `h2g1` in 11).
+    30	
+    31	`SoundMatePruning=false`, fresh search, Hash 16, one thread:
+    32	
+    33	- depth 8: `h2b8`, score 31991 (`mate 5`), 890 nodes, PV `h2b8 h5h4 b1b4 a7a6 b4h4 a6a5 b8d6 a5a4`. Replaying that PV does not checkmate.
+    34	- depth 9: `h2b8`, score 31991, PV through `h4a4`. That longer line does checkmate (9 plies, `mate 5`).
+    35	
+    36	`SoundMatePruning=true`:
+    37	
+    38	- depth 8 and depth 9, exclusive table and a depth-8 shared table: `h2b8`, score 31993, PV `h2b8 h5h4 b1a1 a7a6 a1a6 b7a6 b6b7`. Replaying the PV is checkmate, and `32000 - 7 = 31993`.
+    39	- A fresh UCI `go depth 8` prints `score mate 4`, 3088 nodes, the same PV, `bestmove h2b8`.
+    40	- Turning the option off again and searching depth 8 returns the original `mate 5` line and 890 nodes. `bench 11`, `bench 13`, and `perft 5` in that same process are the three pins above.
+    41	- The proof program passed again under address and undefined-behavior sanitizers.
+    42	- The clang binary, option left off, matches the g++ depth-8 line (`mate 5`, 890 nodes). With the option on it matches the g++ mate (`mate 4`, 3088 nodes, the same PV).
+    43	
+    44	## What was not verified
+    45	
+    46	Playing strength was not measured. This position was not searched with more than one thread. No separate position was used to show the in-check arm by itself: in the proof, the node where the shorter mate is kept is not in check, and the option changes the result because alpha is already a mate score. The PV-node arm is the same predicate, but it was not isolated on its own position. The plain `cmake` line with `/usr/bin/c++` does not configure on this machine until the compiler can see libstdc++.
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/src/uci.cpp
++ nl -ba
++ sed -n '242,265p;300,333p'
+   242	                handled_tunable = true;
+   243	                apply_spin(parameter.minimum, parameter.maximum, [&](int clamped) {
+   244	                    *parameter.value = clamped;
+   245	                    forge::tune::refresh();
+   246	                });
+   247	            }
+   248	            if (handled_tunable) {
+   249	                // Unlisted development options; nothing else to do.
+   250	            } else if (name == "Clear Hash") {
+   251	                if (value_text.empty()) searcher.clear_hash();
+   252	                else note_invalid();
+   253	            } else if (name == "Ponder") {
+   254	                if (value_text == "true") ponder_enabled = true;
+   255	                else if (value_text == "false") ponder_enabled = false;
+   256	                else note_invalid();
+   257	            } else if (name == "OwnBook") {
+   258	                if (value_text == "true") own_book = true;
+   259	                else if (value_text == "false") own_book = false;
+   260	                else note_invalid();
+   261	            } else if (name == "Book File") {
+   262	                std::string rest;
+   263	                std::getline(input, rest);
+   264	                std::string path = value_text + rest;
+   265	                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+   300	                    forge::nnue::enabled = value_text == "true";
+   301	                    searcher.clear_hash();
+   302	                } else {
+   303	                    note_invalid();
+   304	                }
+   305	            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+   306	                bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+   307	                             : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+   308	                                                           : &forge::tune::LmrDeeperShallower;
+   309	                if (value_text == "true" || value_text == "false") {
+   310	                    *target = value_text == "true";
+   311	                } else {
+   312	                    note_invalid();
+   313	                }
+   314	            } else if (name == "SoundMatePruning") {
+   315	                if (value_text == "true" || value_text == "false") {
+   316	                    const bool enabled = value_text == "true";
+   317	                    if (forge::tune::SoundMatePruning != enabled) {
+   318	                        forge::tune::SoundMatePruning = enabled;
+   319	                        // Scores already stored were built with the other guard.
+   320	                        searcher.clear();
+   321	                    }
+   322	                } else {
+   323	                    note_invalid();
+   324	                }
+   325	            } else if (name == "MultiPV") {
+   326	                apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+   327	            } else if (name == "Hash") {
+   328	                apply_spin(1, 2048, [&](int clamped) {
+   329	                    searcher.resize_hash(static_cast<std::size_t>(clamped));
+   330	                });
+   331	            } else if (name == "Threads") {
+   332	                apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
+   333	            } else if (name == "Move Overhead") {
++ git -C /workspace/work/dwqww-all show 0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3:forge-combo29/src/search.cpp
++ rg -n 'TTAccess::Exclusive|workers_.size|ExclusiveLease|exclusive_access'
+214:thread_local const TranspositionTable::ExclusiveLease* TranspositionTable::active_lease_ = nullptr;
+216:TranspositionTable::ExclusiveLease::ExclusiveLease(TranspositionTable& table)
+218:    if (!table_.has_exclusive_access()) {
+235:TranspositionTable::ExclusiveLease::~ExclusiveLease() {
+241:bool TranspositionTable::has_exclusive_access() const {
+242:    for (const ExclusiveLease* lease = active_lease_; lease != nullptr; lease = lease->previous_) {
+250:    if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
+320:    assert(has_exclusive_access());
+369:    assert(has_exclusive_access());
+1983:    while (workers_.size() > count) workers_.pop_back();
+1984:    while (workers_.size() < count) {
+1985:        workers_.push_back(std::make_unique<Worker>(shared_, static_cast<int>(workers_.size())));
+2016:        all.reserve(workers_.size());
+2021:    std::optional<TranspositionTable::ExclusiveLease> exclusive;
+2024:    const bool single_threaded = workers_.size() == 1 || worker_limits.multipv > 1;
+2025:    if (table_access == TTAccess::Exclusive && single_threaded) {
+2045:        for (std::size_t i = 1; i < workers_.size(); ++i) {

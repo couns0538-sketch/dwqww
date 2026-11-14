@@ -1,0 +1,73 @@
+{"n":7,"argv":["rg","-n","game_started|game_finished|tournament_started|tournament_finished|start_fen|white_tc|legal.*=|GameId|PlyCount|Termination","app/src"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+app/src/types/match_data.hpp:22:             uint64_t _nodes, bool _legal = true)
+app/src/types/match_data.hpp:47:    bool legal = true;
+app/src/types/match_data.hpp:51:enum class MatchTermination {
+app/src/types/match_data.hpp:129:    MatchTermination termination = MatchTermination::None;
+app/src/game/pgn/pgn_builder.hpp:22:    // game_id adds a [GameId] tag, used to link -events games to their PGN entry
+app/src/game/pgn/pgn_builder.hpp:31:    [[nodiscard]] static std::string convertMatchTermination(const MatchTermination& res) noexcept;
+app/src/engine/process/signal.hpp:51:            return "SIGTERM - Termination";
+app/src/core/events/events.hpp:34:    // Emits tournament_finished (at most once) and closes the stream.
+app/src/core/events/events.cpp:118:        event["event"]     = "tournament_finished";
+app/src/game/epd/epd_builder.hpp:23:            const auto illegal = !move.legal;
+app/src/game/pgn/pgn_builder.cpp:34:    if (game_id) pgn_generator_.addHeader("GameId", fmt::format("{}", *game_id));
+app/src/game/pgn/pgn_builder.cpp:71:        // The move text stops before an illegal move, so PlyCount counts only the moves written.
+app/src/game/pgn/pgn_builder.cpp:72:        const auto first_illegal =
+app/src/game/pgn/pgn_builder.cpp:75:        pgn_generator_.addHeader("PlyCount", fmt::format("{}", plies));
+app/src/game/pgn/pgn_builder.cpp:76:        pgn_generator_.addHeader("Termination", convertMatchTermination(match_.termination));
+app/src/game/pgn/pgn_builder.cpp:95:    const auto firstIllegal = match_.moves.begin() != match_.moves.end() && !match_.moves.begin()->legal;
+app/src/game/pgn/pgn_builder.cpp:113:        const auto next_illegal = std::next(it) != match_.moves.end() && !std::next(it)->legal;
+app/src/game/pgn/pgn_builder.cpp:218:std::string PgnBuilder::convertMatchTermination(const MatchTermination& res) noexcept {
+app/src/game/pgn/pgn_builder.cpp:220:        case MatchTermination::NORMAL:
+app/src/game/pgn/pgn_builder.cpp:222:        case MatchTermination::ADJUDICATION:
+app/src/game/pgn/pgn_builder.cpp:224:        case MatchTermination::DISCONNECT:
+app/src/game/pgn/pgn_builder.cpp:226:        case MatchTermination::STALL:
+app/src/game/pgn/pgn_builder.cpp:228:        case MatchTermination::TIMEOUT:
+app/src/game/pgn/pgn_builder.cpp:230:        case MatchTermination::ILLEGAL_MOVE:
+app/src/game/pgn/pgn_builder.cpp:232:        case MatchTermination::INTERRUPT:
+app/src/matchmaking/tournament/base/tournament.cpp:134:        event["event"]        = "tournament_started";
+app/src/matchmaking/tournament/base/tournament.cpp:270:        const auto white_tc = TimeControl(engine_configs.white.limit.tc);
+app/src/matchmaking/tournament/base/tournament.cpp:274:        event["event"]     = "game_started";
+app/src/matchmaking/tournament/base/tournament.cpp:279:        event["start_fen"] = initial.fen;
+app/src/matchmaking/tournament/base/tournament.cpp:281:        event["wtime"]     = events::clockJson(white_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:284:        const auto white_tc_str = events::tcString(white_tc);
+app/src/matchmaking/tournament/base/tournament.cpp:287:        if (white_tc_str == black_tc_str) event["tc"] = white_tc_str;
+app/src/matchmaking/tournament/base/tournament.cpp:288:        event["white_tc"] = white_tc_str;
+app/src/matchmaking/tournament/base/tournament.cpp:294:    // -events: exactly one game_finished or game_aborted per game_started
+app/src/matchmaking/tournament/base/tournament.cpp:310:        event["event"]       = "game_finished";
+app/src/matchmaking/tournament/base/tournament.cpp:360:    if (match_data.termination != MatchTermination::INTERRUPT && !atomic::stop) {
+app/src/matchmaking/tournament/base/tournament.cpp:391:        case MatchTermination::TIMEOUT:
+app/src/matchmaking/tournament/base/tournament.cpp:394:        case MatchTermination::DISCONNECT:
+app/src/matchmaking/tournament/base/tournament.cpp:395:        case MatchTermination::STALL:
+app/src/matchmaking/match/match.cpp:183:        const auto illegal_move = std::find(moves.begin(), moves.end(), uci_move) == moves.end();
+app/src/matchmaking/match/match.cpp:267:        move_data.legal = true;
+app/src/matchmaking/match/match.cpp:281:    move_data.legal          = legal;
+app/src/matchmaking/match/match.cpp:381:    if (data_.termination == MatchTermination::None) {
+app/src/matchmaking/match/match.cpp:399:        data_.termination = MatchTermination::INTERRUPT;
+app/src/matchmaking/match/match.cpp:415:            data_.termination = MatchTermination::INTERRUPT;
+app/src/matchmaking/match/match.cpp:425:    assert(data_.termination != MatchTermination::None);
+app/src/matchmaking/match/match.cpp:445:        data_.termination = MatchTermination::NORMAL;
+app/src/matchmaking/match/match.cpp:512:        data_.termination = MatchTermination::INTERRUPT;
+app/src/matchmaking/match/match.cpp:541:    const auto legal     = isLegal(move);
+app/src/matchmaking/match/match.cpp:616:    event["legal"]  = md.legal;
+app/src/matchmaking/match/match.cpp:714:        data_.termination = MatchTermination::INTERRUPT;
+app/src/matchmaking/match/match.cpp:717:        data_.termination = MatchTermination::DISCONNECT;
+app/src/matchmaking/match/match.cpp:733:    data_.termination = MatchTermination::STALL;
+app/src/matchmaking/match/match.cpp:747:    data_.termination = MatchTermination::TIMEOUT;
+app/src/matchmaking/match/match.cpp:772:    data_.termination = MatchTermination::ILLEGAL_MOVE;
+app/src/matchmaking/match/match.cpp:865:            data_.termination = MatchTermination::ADJUDICATION;
+app/src/matchmaking/match/match.cpp:875:            data_.termination = MatchTermination::ADJUDICATION;
+app/src/matchmaking/match/match.cpp:889:        data_.termination = MatchTermination::ADJUDICATION;
+app/src/matchmaking/match/match.cpp:899:        data_.termination = MatchTermination::ADJUDICATION;
+app/src/matchmaking/match/match.cpp:909:        data_.termination = MatchTermination::ADJUDICATION;
+app/src/matchmaking/game_events.hpp:30:[[nodiscard]] inline std::string_view terminationName(MatchTermination termination) {
+app/src/matchmaking/game_events.hpp:32:        case MatchTermination::NORMAL:
+app/src/matchmaking/game_events.hpp:34:        case MatchTermination::ADJUDICATION:
+app/src/matchmaking/game_events.hpp:36:        case MatchTermination::TIMEOUT:
+app/src/matchmaking/game_events.hpp:38:        case MatchTermination::ILLEGAL_MOVE:
+app/src/matchmaking/game_events.hpp:40:        case MatchTermination::DISCONNECT:
+app/src/matchmaking/game_events.hpp:42:        case MatchTermination::STALL:
+app/src/matchmaking/game_events.hpp:44:        case MatchTermination::INTERRUPT:
+app/src/matchmaking/game_events.hpp:45:        case MatchTermination::None:
+
+STDERR

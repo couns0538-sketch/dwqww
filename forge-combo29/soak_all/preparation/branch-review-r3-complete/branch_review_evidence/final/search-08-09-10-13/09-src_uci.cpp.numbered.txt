@@ -1,0 +1,493 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/book.hpp"
+    3 #include "forge/nnue.hpp"
+    4 #include "forge/search.hpp"
+    5 #include "forge/uci.hpp"
+    6 #include "forge/uci_clock.hpp"
+    7 #include "forge/uci_output.hpp"
+    8 
+    9 #include <algorithm>
+   10 #include <array>
+   11 #include <charconv>
+   12 #include <chrono>
+   13 #include <condition_variable>
+   14 #include <iostream>
+   15 #include <mutex>
+   16 #include <sstream>
+   17 #include <string>
+   18 #include <string_view>
+   19 #include <thread>
+   20 #include <vector>
+   21 
+   22 namespace {
+   23 
+   24 void apply_position(forge::Board& board, std::istringstream& input) {
+   25     forge::Board candidate = board;
+   26     std::string token;
+   27     if (!(input >> token)) return;
+   28     if (token == "startpos") {
+   29         (void)candidate.set_fen(forge::Board::StandardStartFen);
+   30     } else if (token == "fen") {
+   31         std::string fen;
+   32         for (int i = 0; i < 6 && input >> token; ++i) {
+   33             if (!fen.empty()) fen += ' ';
+   34             fen += token;
+   35         }
+   36         std::string error;
+   37         if (!candidate.set_fen(fen, &error)) {
+   38             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string invalid FEN: " << error << std::endl; }
+   39             return;
+   40         }
+   41     } else {
+   42         return;
+   43     }
+   44     if (!(input >> token)) {
+   45         board = candidate;
+   46         return;
+   47     }
+   48     if (token != "moves") return;
+   49     while (input >> token) {
+   50         const auto move = candidate.parse_uci(token);
+   51         if (!move.has_value()) {
+   52             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+   53             return;
+   54         }
+   55         forge::Undo undo;
+   56         (void)candidate.make_move(*move, undo);
+   57     }
+   58     board = candidate;
+   59 }
+   60 
+   61 bool is_go_keyword(const std::string& token) {
+   62     return token == "depth" || token == "nodes" || token == "movetime" || token == "movestogo" ||
+   63            token == "infinite" || token == "wtime" || token == "btime" || token == "winc" ||
+   64            token == "binc" || token == "mate" || token == "searchmoves" || token == "ponder";
+   65 }
+   66 
+   67 forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
+   68     forge::SearchLimits limits;
+   69     std::string token;
+   70     std::vector<std::string> tokens;
+   71     while (input >> token) tokens.push_back(token);
+   72     const forge::Color side = board.side_to_move();
+   73     for (std::size_t i = 0; i < tokens.size();) {
+   74         token = tokens[i++];
+   75         auto read_int = [&]() {
+   76             int value = 0;
+   77             if (i < tokens.size()) {
+   78                 const std::string& text = tokens[i++];
+   79                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+   80                 if (result.ec != std::errc{} || result.ptr != text.data() + text.size()) return 0;
+   81             }
+   82             return value;
+   83         };
+   84         // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+   85         // search then stops at once.
+   86         auto read_clock = [&]() -> std::int64_t {
+   87             if (i >= tokens.size()) return 0;
+   88             return forge::parse_clock_ms(tokens[i++]);
+   89         };
+   90         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+   91         else if (token == "nodes") {
+   92             if (i < tokens.size()) {
+   93                 const std::string& text = tokens[i++];
+   94                 std::uint64_t value = 0;
+   95                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+   96                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+   97                     limits.nodes = value;
+   98                     limits.nodes_specified = true;
+   99                 }
+  100             }
+  101         }
+  102         else if (token == "movetime") limits.movetime_ms = read_clock();
+  103         else if (token == "movestogo") limits.moves_to_go = std::max(1, read_int());
+  104         else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);
+  105         else if (token == "infinite") limits.infinite = true;
+  106         else if (token == "ponder") limits.ponder = true;
+  107         else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+  108         else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
+  109         else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+  110         else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
+  111         else if (token == "searchmoves") {
+  112             limits.search_moves_specified = true;
+  113             while (i < tokens.size() && !is_go_keyword(tokens[i])) {
+  114                 const auto move = board.parse_uci(tokens[i++]);
+  115                 if (move.has_value()) limits.search_moves.push_back(*move);
+  116             }
+  117         }
+  118     }
+  119     return limits;
+  120 }
+  121 
+  122 } // namespace
+  123 
+  124 namespace {
+  125 
+  126 // Ply number implied by the position's move counters (0 at the start position).
+  127 int game_ply(const forge::Board& board) {
+  128     return 2 * (board.fullmove_number() - 1) + (board.side_to_move() == forge::Black ? 1 : 0);
+  129 }
+  130 
+  131 } // namespace
+  132 
+  133 namespace forge {
+  134 
+  135 int uci_loop(std::istream& in) {
+  136     forge::Board board;
+  137     forge::Searcher searcher;
+  138     int move_overhead_ms = 10;
+  139     int multipv = 1;
+  140     bool ponder_enabled = false;
+  141     forge::book::Book book;
+  142     book.load_embedded();
+  143     bool own_book = forge::book::embedded_available();
+  144     std::string book_file;
+  145     int book_depth = 30;
+  146     int book_variety = 30;
+  147     std::uint64_t book_rng = static_cast<std::uint64_t>(
+  148         std::chrono::steady_clock::now().time_since_epoch().count()) | 1ULL;
+  149     bool ponder_search_active = false;
+  150     std::thread worker;
+  151     std::mutex stop_mutex;
+  152     std::condition_variable stop_cv;
+  153     bool stop_requested = false;
+  154     bool ponder_hit_received = false;
+  155     auto stop_search = [&]() {
+  156         {
+  157             const std::lock_guard<std::mutex> lock(stop_mutex);
+  158             stop_requested = true;
+  159         }
+  160         searcher.stop();
+  161         stop_cv.notify_all();
+  162         if (worker.joinable()) worker.join();
+  163         ponder_search_active = false;
+  164     };
+  165 
+  166     std::string line;
+  167     while (std::getline(in, line)) {
+  168         const auto command_start = std::chrono::steady_clock::now();
+  169         std::istringstream input(line);
+  170         std::string command;
+  171         input >> command;
+  172         if (command == "uci") {
+  173             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  174             std::cout << "id name Chess Engine Forge 6.4.24 candidate\n"
+  175                          "id author OpenAI\n"
+  176                          "option name Hash type spin default 32 min 1 max 2048\n"
+  177                          "option name Threads type spin default 1 min 1 max 256\n"
+  178                          "option name MultiPV type spin default 1 min 1 max 8\n"
+  179                          "option name Move Overhead type spin default 10 min 0 max 1000\n"
+  180                          "option name Ponder type check default false\n"
+  181                          "option name OwnBook type check default " << (forge::book::embedded_available() ? "true" : "false") << "\n"
+  182                          "option name Book File type string default <empty>\n"
+  183                          "option name Book Depth type spin default 30 min 0 max 100\n"
+  184                          "option name Book Variety type spin default 30 min 0 max 100\n";
+  185             if (forge::nnue::available()) {
+  186                 std::cout << "option name UseNNUE type check default true\n"
+  187                              "option name NnueFile type string default <empty>\n";
+  188             }
+  189             std::cout << "option name ContHist4PlyRead type check default false\n"
+  190                          "option name NonPawnCorrection type check default false\n"
+  191                          "option name LmrDeeperShallower type check default false\n"
+  192                          "option name AspArmLate type check default false\n";
+  193 #ifdef FORGE_EXPOSE_TUNABLES
+  194             // Development builds advertise the search constants so match
+  195             // runners can set them. Builds without this macro still accept them.
+  196             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+  197                 std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+  198                           << " min " << parameter.minimum << " max " << parameter.maximum << "\n";
+  199             }
+  200 #endif
+  201             std::cout << "option name Clear Hash type button\n"
+  202                          "uciok" << std::endl;
+  203         } else if (command == "isready") {
+  204             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "readyok" << std::endl; }
+  205         } else if (command == "ucinewgame") {
+  206             stop_search();
+  207             searcher.clear();
+  208             (void)board.set_fen(forge::Board::StandardStartFen);
+  209         } else if (command == "setoption") {
+  210             stop_search();
+  211             std::string token;
+  212             std::string name;
+  213             std::string value_text;
+  214             input >> token;
+  215             if (token == "name") {
+  216                 while (input >> token && token != "value") {
+  217                     if (!name.empty()) name += ' ';
+  218                     name += token;
+  219                 }
+  220                 if (token == "value") input >> value_text;
+  221             }
+  222             auto note_invalid = [&]() {
+  223                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  224                 std::cout << "info string invalid value for option " << name << std::endl;
+  225             };
+  226             // A non-integer leaves the stored value unchanged. An integer outside
+  227             // the advertised range is reported and still clamped, as this lock
+  228             // already did without a message.
+  229             auto apply_spin = [&](int minimum, int maximum, auto&& assign) {
+  230                 int value = 0;
+  231                 const auto parsed = std::from_chars(value_text.data(), value_text.data() + value_text.size(), value);
+  232                 if (parsed.ec != std::errc{} || parsed.ptr != value_text.data() + value_text.size()) {
+  233                     note_invalid();
+  234                     return;
+  235                 }
+  236                 if (value < minimum || value > maximum) note_invalid();
+  237                 assign(std::clamp(value, minimum, maximum));
+  238             };
+  239             bool handled_tunable = false;
+  240             for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+  241                 if (name != parameter.name) continue;
+  242                 handled_tunable = true;
+  243                 apply_spin(parameter.minimum, parameter.maximum, [&](int clamped) {
+  244                     *parameter.value = clamped;
+  245                     forge::tune::refresh();
+  246                 });
+  247             }
+  248             if (handled_tunable) {
+  249                 // Unlisted development options; nothing else to do.
+  250             } else if (name == "Clear Hash") {
+  251                 if (value_text.empty()) searcher.clear_hash();
+  252                 else note_invalid();
+  253             } else if (name == "Ponder") {
+  254                 if (value_text == "true") ponder_enabled = true;
+  255                 else if (value_text == "false") ponder_enabled = false;
+  256                 else note_invalid();
+  257             } else if (name == "OwnBook") {
+  258                 if (value_text == "true") own_book = true;
+  259                 else if (value_text == "false") own_book = false;
+  260                 else note_invalid();
+  261             } else if (name == "Book File") {
+  262                 std::string rest;
+  263                 std::getline(input, rest);
+  264                 std::string path = value_text + rest;
+  265                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+  266                 if (path.empty() || path == "<empty>") {
+  267                     book_file.clear();
+  268                     book.load_embedded();
+  269                 } else if (book.load_file(path)) {
+  270                     book_file = path;
+  271                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  272                     std::cout << "info string loaded book " << path << " with " << book.size() << " entries" << std::endl;
+  273                 } else {
+  274                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  275                     std::cout << "info string cannot load book " << path << std::endl;
+  276                 }
+  277             } else if (name == "Book Depth" || name == "Book Variety") {
+  278                 apply_spin(0, 100, [&](int clamped) {
+  279                     if (name == "Book Depth") book_depth = clamped;
+  280                     else book_variety = clamped;
+  281                 });
+  282             } else if (name == "NnueFile") {
+  283                 std::string rest;
+  284                 std::getline(input, rest);
+  285                 std::string path = value_text + rest;
+  286                 while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+  287                 std::string error;
+  288                 if (!forge::nnue::load_file(path, error)) {
+  289                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  290                     std::cout << "info string " << error << std::endl;
+  291                 } else {
+  292                     searcher.clear_hash();
+  293                     if (!path.empty() && path != "<empty>") {
+  294                         const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  295                         std::cout << "info string loaded nnue " << path << std::endl;
+  296                     }
+  297                 }
+  298             } else if (name == "UseNNUE") {
+  299                 if (value_text == "true" || value_text == "false") {
+  300                     forge::nnue::enabled = value_text == "true";
+  301                     searcher.clear_hash();
+  302                 } else {
+  303                     note_invalid();
+  304                 }
+  305             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" ||
+  306                        name == "LmrDeeperShallower" || name == "AspArmLate") {
+  307                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+  308                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+  309                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
+  310                                                             : &forge::tune::AspArmLate;
+  311                 if (value_text == "true" || value_text == "false") {
+  312                     *target = value_text == "true";
+  313                 } else {
+  314                     note_invalid();
+  315                 }
+  316             } else if (name == "MultiPV") {
+  317                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
+  318             } else if (name == "Hash") {
+  319                 apply_spin(1, 2048, [&](int clamped) {
+  320                     searcher.resize_hash(static_cast<std::size_t>(clamped));
+  321                 });
+  322             } else if (name == "Threads") {
+  323                 apply_spin(1, 256, [&](int clamped) { searcher.set_threads(clamped); });
+  324             } else if (name == "Move Overhead") {
+  325                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
+  326             } else {
+  327                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  328                 std::cout << "info string unknown option " << name << std::endl;
+  329             }
+  330         } else if (command == "position") {
+  331             stop_search();
+  332             apply_position(board, input);
+  333         } else if (command == "go") {
+  334             stop_search();
+  335             std::string first;
+  336             const auto position = input.tellg();
+  337             input >> first;
+  338             if (first == "perft") {
+  339                 std::string depth_text;
+  340                 int depth = -1;
+  341                 if (!(input >> depth_text)) depth_text.clear();
+  342                 const auto parsed = std::from_chars(
+  343                     depth_text.data(), depth_text.data() + depth_text.size(), depth);
+  344                 if (parsed.ec != std::errc{} || parsed.ptr != depth_text.data() + depth_text.size() ||
+  345                     depth < 0 || depth > 10) {
+  346                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string perft depth must be an integer from 0 to 10" << std::endl; }
+  347                     continue;
+  348                 }
+  349                 if (depth == 0) {
+  350                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes 1" << std::endl; }
+  351                     continue;
+  352                 }
+  353                 std::uint64_t total = 0;
+  354                 for (const forge::Move move : board.legal_moves()) {
+  355                     forge::Undo undo;
+  356                     (void)board.make_move(move, undo);
+  357                     const std::uint64_t nodes = board.perft(depth - 1);
+  358                     board.unmake_move(move, undo);
+  359                     total += nodes;
+  360                     { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << forge::Board::move_to_uci(move) << ": " << nodes << std::endl; }
+  361                 }
+  362                 { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "nodes " << total << std::endl; }
+  363             } else {
+  364                 input.clear();
+  365                 input.seekg(position);
+  366                 forge::SearchLimits limits = parse_limits(input, board);
+  367                 limits.move_overhead_ms = move_overhead_ms;
+  368                 limits.multipv = multipv;
+  369                 // Charge dispatch admission only to finite externally clocked searches.
+  370                 if (!limits.infinite && !limits.ponder &&
+  371                     (limits.time_ms >= 0 || limits.movetime_ms >= 0)) limits.start_time = command_start;
+  372                 // Book moves apply to game play (clock or movetime searches), not
+  373                 // to analysis, pondering or restricted searches.
+  374                 const bool game_search = (limits.time_ms >= 0 || limits.movetime_ms >= 0) && !limits.infinite &&
+  375                                          !limits.ponder && !limits.search_moves_specified && limits.mate_moves == 0;
+  376                 if (game_search && own_book && !book.empty() && game_ply(board) < book_depth) {
+  377                     const forge::Move book_move = book.probe(board, book_variety, book_rng);
+  378                     if (!book_move.is_none()) {
+  379                         std::string prediction;
+  380                         if (ponder_enabled) {
+  381                             forge::Board reply_board = board;
+  382                             forge::Undo undo;
+  383                             (void)reply_board.make_move(book_move, undo);
+  384                             const forge::Move reply = book.probe(reply_board, 0, book_rng);
+  385                             if (!reply.is_none()) prediction = " ponder " + forge::Board::move_to_uci(reply);
+  386                         }
+  387                         const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  388                         std::cout << "info string book move " << forge::Board::move_to_uci(book_move) << std::endl;
+  389                         std::cout << "bestmove " << forge::Board::move_to_uci(book_move) << prediction << std::endl;
+  390                         continue;
+  391                     }
+  392                 }
+  393                 const forge::Board search_board = board;
+  394                 {
+  395                     const std::lock_guard<std::mutex> lock(stop_mutex);
+  396                     stop_requested = false;
+  397                     ponder_hit_received = false;
+  398                 }
+  399                 ponder_search_active = limits.ponder;
+  400                 searcher.reset_stop();
+  401                 worker = std::thread([&searcher, &stop_mutex, &stop_cv, &stop_requested,
+  402                                       &ponder_hit_received, search_board, limits, ponder_enabled]() mutable {
+  403                     const forge::SearchInfo result = searcher.search(
+  404                         search_board, limits, true, forge::Searcher::TTAccess::Exclusive);
+  405                     if (limits.infinite || limits.ponder) {
+  406                         std::unique_lock<std::mutex> lock(stop_mutex);
+  407                         stop_cv.wait(lock, [&stop_requested, &ponder_hit_received, &limits] {
+  408                             return stop_requested || (limits.ponder && ponder_hit_received);
+  409                         });
+  410                     }
+  411                     const std::string best = result.best_move.from == result.best_move.to
+  412                         ? "0000" : forge::Board::move_to_uci(result.best_move);
+  413                     std::string prediction;
+  414                     if (ponder_enabled && result.pv.size() > 1 &&
+  415                         result.pv.front().from == result.best_move.from &&
+  416                         result.pv.front().to == result.best_move.to &&
+  417                         result.pv.front().promotion == result.best_move.promotion) {
+  418                         prediction = " ponder " + forge::Board::move_to_uci(result.pv[1]);
+  419                     }
+  420                     const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  421                     std::cout << "bestmove " << best << prediction << std::endl;
+  422                 });
+  423             }
+  424         } else if (command == "eval") {
+  425             const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+  426             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  427             std::cout << "info string eval hce " << parts.hce << " nnue " << parts.nnue
+  428                       << " total " << parts.total;
+  429             if (parts.in_check) std::cout << " incheck 1";
+  430             std::cout << std::endl;
+  431         } else if (command == "bench") {
+  432             // Fixed-depth search over a small position set; prints a node
+  433             // signature and speed for quick regression and performance checks.
+  434             stop_search();
+  435             int depth = 13;
+  436             if (int parsed = 0; input >> parsed) depth = std::clamp(parsed, 1, 64);
+  437             constexpr std::array<std::string_view, 8> fens{
+  438                 forge::Board::StandardStartFen,
+  439                 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+  440                 "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+  441                 "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+  442                 "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+  443                 "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+  444                 "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+  445                 "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+  446             };
+  447             std::uint64_t total_nodes = 0;
+  448             const auto start = std::chrono::steady_clock::now();
+  449             forge::Searcher bench_searcher(16);
+  450             for (const std::string_view fen : fens) {
+  451                 forge::Board bench_board;
+  452                 if (!bench_board.set_fen(fen)) continue;
+  453                 forge::SearchLimits limits;
+  454                 limits.depth = depth;
+  455                 bench_searcher.clear();
+  456                 total_nodes += bench_searcher.search(
+  457                     bench_board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+  458             }
+  459             const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+  460                 std::chrono::steady_clock::now() - start).count();
+  461             const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+  462             std::cout << "info string bench depth " << depth << " nodes " << total_nodes << " time " << elapsed_ms
+  463                       << " nps " << (elapsed_ms > 0 ? total_nodes * 1000U / static_cast<std::uint64_t>(elapsed_ms) : 0)
+  464                       << std::endl;
+  465         } else if (command == "ponderhit") {
+  466             if (ponder_search_active) {
+  467                 searcher.ponderhit();
+  468                 {
+  469                     const std::lock_guard<std::mutex> lock(stop_mutex);
+  470                     ponder_hit_received = true;
+  471                 }
+  472                 stop_cv.notify_all();
+  473                 ponder_search_active = false;
+  474             }
+  475         } else if (command == "stop") {
+  476             stop_search();
+  477         } else if (command == "quit") {
+  478             stop_search();
+  479             break;
+  480         }
+  481     }
+  482     stop_search();
+  483     return 0;
+  484 }
+  485 
+  486 }  // namespace forge
+  487 
+  488 #ifndef FORGE_UCI_NO_MAIN
+  489 int main() {
+  490     return forge::uci_loop(std::cin);
+  491 }
+  492 #endif
+  493 

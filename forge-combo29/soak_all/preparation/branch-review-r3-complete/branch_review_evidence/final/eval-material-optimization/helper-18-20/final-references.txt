@@ -1,0 +1,369 @@
++ git log '--format=%H %s' e04556ddc3a430b2e751159b0d46111ef56c8b89..1316c38c1cd6dce7ae719804ca72b43b4c2fc165
+1316c38c1cd6dce7ae719804ca72b43b4c2fc165 Fold the network output into the lazy feature update.
+89ca5666e051951b40c4f8b2ecc8de409d102955 Record the lazy-accumulator identity checks.
+863417a76c027200ee487f63fb890d6e7fa526ff Defer NNUE accumulator updates until evaluation.
++ git log '--format=%H %s' e04556ddc3a430b2e751159b0d46111ef56c8b89..3def809de68d726715fa3dd21626f706f0f30e16
+3def809de68d726715fa3dd21626f706f0f30e16 Record repeated bench 16 timings and identity rechecks.
+758df95baabcdb2dd97aaa9b5507518b5cd02450 Speed the three hottest hand-written eval sections.
+5d9d1b70388bcb47f38cdc277776753e2c249c9a Speed the hand-written eval's slider lookups.
++ git log '--format=%H %s' e04556ddc3a430b2e751159b0d46111ef56c8b89..7fef1fc378b6c966649315c11573bbdc1529435e
+7fef1fc378b6c966649315c11573bbdc1529435e Add the repeated bench 16 timings.
+83386bd70589d115cdaf070fb39104ff21ee0753 Record the search-plumbing measurement.
+f522db9138c3578295deb78dcef4ca4c466564b5 Speed move selection, legality checks, and slider rays.
+69460cd7062a8add4126f7bf809c03aa3b1ac4a2 Speed search plumbing without changing the search.
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/src/search.cpp
++ nl -ba
++ sed -n 835,940p
+   835	    return key ^ (key >> 31U);
+   836	}
+   837	} // namespace
+   838	
+   839	namespace {
+   840	
+   841	// The change list is stored on the child ply, but the columns are not added
+   842	// until an evaluation reads this frame. A null move has no change list.
+   843	void ensure_piece_diff(SearchStack* frame) {
+   844	    if (frame->diff_known) return;
+   845	    frame->dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,
+   846	                                          static_cast<Color>(frame->entered_side));
+   847	    frame->diff_known = true;
+   848	}
+   849	
+   850	} // namespace
+   851	
+   852	int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+   853	    if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
+   854	    const bool residual = nnue::residual();
+   855	    // Features used for this evaluation. A null move keeps the parent's
+   856	    // accumulator: the piece set is unchanged, and a float copy would be the
+   857	    // same bits without being needed.
+   858	    const nnue::Accumulator* features = &ss->accumulator;
+   859	    const Evaluator::RuntimePsqt* psqt = &ss->runtime_psqt;
+   860	    int network = 0;
+   861	    bool have_network = false;
+   862	    if (!ss->accumulator.valid) {
+   863	        // Walk back to the nearest ply whose features were already built.
+   864	        int back = 0;
+   865	        while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
+   866	        if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
+   867	            nnue::refresh(board, ss->accumulator);
+   868	            if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+   869	        } else {
+   870	            const nnue::Accumulator* source_features = &(ss - back - 1)->accumulator;
+   871	            const Evaluator::RuntimePsqt* source_psqt = &(ss - back - 1)->runtime_psqt;
+   872	            for (int i = back; i >= 0; --i) {
+   873	                SearchStack* frame = ss - i;
+   874	                if (frame->entered_null) continue;
+   875	                ensure_piece_diff(frame);
+   876	                if (residual) Evaluator::update_runtime_psqt(*source_psqt, frame->runtime_psqt, frame->dirty);
+   877	                if (i == 0) {
+   878	                    // The position being scored. Fold the output layer into the
+   879	                    // feature update so those units are not reloaded.
+   880	                    network = nnue::apply_and_evaluate(*source_features, frame->accumulator, frame->dirty, board);
+   881	                    have_network = true;
+   882	                } else {
+   883	                    nnue::update(*source_features, frame->accumulator, frame->dirty);
+   884	                }
+   885	                source_features = &frame->accumulator;
+   886	                source_psqt = &frame->runtime_psqt;
+   887	            }
+   888	            features = source_features;
+   889	            psqt = source_psqt;
+   890	        }
+   891	    }
+   892	    if (!have_network) network = nnue::evaluate(board, *features);
+   893	    if (!residual) return network;
+   894	    if (!psqt->valid) {
+   895	        ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+   896	        psqt = &ss->runtime_psqt;
+   897	    }
+   898	    // A residual network is a learned correction on top of the hand-crafted evaluation.
+   899	    return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+   900	}
+   901	
+   902	void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
+   903	    // Called before make_move. The change list is ready, but the feature
+   904	    // columns are added only when this position is evaluated.
+   905	    if (!nnue::enabled || !nnue::available()) return;
+   906	    SearchStack* child = ss + 1;
+   907	    child->entered_move = move;
+   908	    child->entered_piece = board.piece_at(move.from);
+   909	    child->entered_capture = board.captured_piece(move);
+   910	    child->entered_side = static_cast<std::uint8_t>(board.side_to_move());
+   911	    child->entered_null = false;
+   912	    child->dirty = nnue::dirty_from_move(move, child->entered_piece, child->entered_capture,
+   913	                                          static_cast<Color>(child->entered_side));
+   914	    child->diff_known = true;
+   915	    child->accumulator.valid = false;
+   916	    child->runtime_psqt.valid = false;
+   917	}
+   918	
+   919	void Worker::record_null_move(SearchStack* ss) {
+   920	    SearchStack* child = ss + 1;
+   921	    child->entered_null = true;
+   922	    child->diff_known = true;
+   923	    child->dirty.count = 0;
+   924	    child->accumulator.valid = false;
+   925	    child->runtime_psqt.valid = false;
+   926	}
+   927	
+   928	int Worker::corrected_eval(const Board& board, int raw_eval) const {
+   929	    const std::size_t side = static_cast<std::size_t>(board.side_to_move());
+   930	    std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
+   931	    if (tune::MaterialCorrectionWeight > 0) {
+   932	        correction += (*material_correction_)[side][material_key(board) & (CorrectionSize - 1U)] * tune::MaterialCorrectionWeight / 100;
+   933	    }
+   934	    if (tune::NonPawnCorrection) {
+   935	        const std::int32_t np_w = (*non_pawn_white_correction_)[side][non_pawn_key(board, White) & (CorrectionSize - 1U)];
+   936	        const std::int32_t np_b = (*non_pawn_black_correction_)[side][non_pawn_key(board, Black) & (CorrectionSize - 1U)];
+   937	        correction += (np_w + np_b) / 2;
+   938	    }
+   939	    return std::clamp(raw_eval + correction / CorrectionGrain, -MateInMaxPly + 1, MateInMaxPly - 1);
+   940	}
++ git show 1316c38c1cd6dce7ae719804ca72b43b4c2fc165:forge-combo29/tests_r3_18/lazy_eval_identity.cpp
++ nl -ba
++ sed -n '200,280p;335,386p;440,467p'
+   200	            if (forge::nnue::evaluate(board, shadow.back()) != parts.nnue) ++refresh_net_mismatch;
+   201	            // The search reads the parent's features for a null move.
+   202	            if (child->accumulator.valid) return fail("null frame stored a new accumulator");
+   203	            board.unmake_null_move(undo);
+   204	            ++null_checks;
+   205	        }
+   206	
+   207	        const forge::MoveList moves = board.legal_moves();
+   208	        if (moves.empty() || board.halfmove_clock() >= 80 || ply >= 32) {
+   209	            if (ply > 0 && !ss->accumulator.valid) {
+   210	                const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+   211	                if (!same_features(ss->accumulator, shadow.back())) return fail("end-of-game accumulator diverged");
+   212	                const int lazy_net = forge::nnue::evaluate(board, ss->accumulator);
+   213	                const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+   214	                if (lazy_net != parts.nnue) ++refresh_net_mismatch;
+   215	                if (lazy_total != parts.total) ++refresh_total_mismatch;
+   216	            }
+   217	            if (!board.set_fen(forge::Board::StandardStartFen)) return fail("restart rejected");
+   218	            reset_frames(frames);
+   219	            ss = &frames[4];
+   220	            ply = 0;
+   221	            const int again = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+   222	            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+   223	            if (again != parts.total || !ss->accumulator.valid) return fail("restart eval mismatch");
+   224	            shadow.clear();
+   225	            shadow.push_back(ss->accumulator);
+   226	            continue;
+   227	        }
+   228	        for (std::size_t i = 0; i < moves.size(); ++i) {
+   229	            if (!dirty_matches_board(board, moves[i])) {
+   230	                return fail("dirty mismatch at " + board.fen() + " " + forge::Board::move_to_uci(moves[i]));
+   231	            }
+   232	            ++dirty_checks;
+   233	        }
+   234	        const forge::Move move = moves[static_cast<std::size_t>(rng.next() % moves.size())];
+   235	        const forge::nnue::DirtyPieces dirty = forge::nnue::dirty_pieces(board, move);
+   236	        forge::SearcherTestProbe::record_move(worker, ss, board, move);
+   237	        forge::Undo undo;
+   238	        if (!board.make_move(move, undo)) return fail("make_move failed");
+   239	        forge::nnue::Accumulator next;
+   240	        forge::nnue::update(shadow.back(), next, dirty);
+   241	        shadow.push_back(next);
+   242	        ss += 1;
+   243	        ++ply;
+   244	        // Two plies out of seven are left unevaluated, the way a check or a
+   245	        // table hit skips static evaluation. The next evaluation has to
+   246	        // rebuild that gap from the last finished accumulator.
+   247	        const bool defer = (ply % 7) == 3 || (ply % 7) == 4;
+   248	        if (!defer) {
+   249	            const int lazy_total = forge::SearcherTestProbe::static_evaluate(worker, board, ss);
+   250	            if (!same_features(ss->accumulator, shadow.back())) {
+   251	                return fail("accumulator bits diverged at " + board.fen() + " after " + std::to_string(played));
+   252	            }
+   253	            for (std::size_t built = 0; built < shadow.size(); ++built) {
+   254	                forge::SearchStack* frame = &frames[4U + built];
+   255	                if (!frame->accumulator.valid || !same_features(frame->accumulator, shadow[built])) {
+   256	                    return fail("chain accumulator diverged at " + board.fen());
+   257	                }
+   258	            }
+   259	            const int lazy_net = forge::nnue::evaluate(board, ss->accumulator);
+   260	            if (lazy_net != forge::nnue::evaluate(board, shadow.back())) return fail("network eval diverged at " + board.fen());
+   261	            const forge::EvalComponents parts = forge::Evaluator::static_eval_components(board);
+   262	            if (lazy_net != parts.nnue) ++refresh_net_mismatch;
+   263	            if (lazy_total != parts.total) ++refresh_total_mismatch;
+   264	        }
+   265	        ++played;
+   266	        if ((played % 100000U) == 0U) {
+   267	            std::cout << "replay " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+   268	                      << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+   269	                      << refresh_total_mismatch << '\n';
+   270	        }
+   271	    }
+   272	    std::cout << "replay positions " << played << " dirty_checks " << dirty_checks << " null_checks " << null_checks
+   273	              << " refresh_net_mismatch " << refresh_net_mismatch << " refresh_total_mismatch "
+   274	              << refresh_total_mismatch << '\n';
+   275	    return 0;
+   276	}
+   277	
+   278	struct Engine {
+   279	    pid_t pid = -1;
+   280	    FILE* to = nullptr;
+   335	        if (std::string_view(line).find("readyok") != std::string_view::npos) {
+   336	            ready = true;
+   337	            break;
+   338	        }
+   339	    }
+   340	    std::free(line);
+   341	    return ready;
+   342	}
+   343	
+   344	struct GoResult {
+   345	    std::string best;
+   346	    std::string score;
+   347	    std::uint64_t nodes = 0;
+   348	    bool ok = false;
+   349	};
+   350	
+   351	GoResult search_depth8(Engine& engine, const std::string& fen) {
+   352	    GoResult result;
+   353	    std::fputs("ucinewgame\nposition fen ", engine.to);
+   354	    std::fputs(fen.c_str(), engine.to);
+   355	    std::fputs("\ngo depth 8\n", engine.to);
+   356	    std::fflush(engine.to);
+   357	    char* line = nullptr;
+   358	    std::size_t cap = 0;
+   359	    std::string last_info;
+   360	    while (getline(&line, &cap, engine.from) != -1) {
+   361	        const std::string_view text(line);
+   362	        if (text.rfind("info ", 0) == 0 && text.find(" score ") != std::string_view::npos &&
+   363	            text.find(" nodes ") != std::string_view::npos) {
+   364	            last_info.assign(text);
+   365	        }
+   366	        if (text.rfind("bestmove ", 0) == 0) {
+   367	            std::istringstream in{std::string(text)};
+   368	            std::string cmd;
+   369	            in >> cmd >> result.best;
+   370	            break;
+   371	        }
+   372	    }
+   373	    std::free(line);
+   374	    if (result.best.empty() || last_info.empty()) return result;
+   375	    const auto score_at = last_info.find(" score ");
+   376	    const auto nodes_at = last_info.find(" nodes ");
+   377	    if (score_at == std::string::npos || nodes_at == std::string::npos) return result;
+   378	    std::istringstream score_in(last_info.substr(score_at + 7));
+   379	    std::string kind;
+   380	    std::string value;
+   381	    score_in >> kind >> value;
+   382	    result.score = kind + " " + value;
+   383	    std::istringstream nodes_in(last_info.substr(nodes_at + 7));
+   384	    nodes_in >> result.nodes;
+   385	    result.ok = !result.score.empty() && nodes_in && !result.best.empty();
+   386	    return result;
+   440	        const std::string left = eval_line(base, fens[i]);
+   441	        const std::string right = eval_line(fresh, fens[i]);
+   442	        if (left.empty() || left != right) {
+   443	            std::cerr << "FAIL eval fen " << fens[i] << "\n base " << left << "\n new " << right << "\n";
+   444	            return 1;
+   445	        }
+   446	    }
+   447	    std::cout << "uci_eval positions " << fens.size() << " identical\n";
+   448	    return 0;
+   449	}
+   450	
+   451	int depth8(const char* base_path, const char* new_path, std::uint64_t count) {
+   452	    const std::vector<std::string> fens = sample_fens(count);
+   453	    Engine base;
+   454	    Engine fresh;
+   455	    if (!start_engine(base, base_path)) return fail(std::string("could not start base ") + base_path);
+   456	    if (!start_engine(fresh, new_path)) return fail(std::string("could not start new ") + new_path);
+   457	    for (std::uint64_t i = 0; i < fens.size(); ++i) {
+   458	        const GoResult left = search_depth8(base, fens[i]);
+   459	        const GoResult right = search_depth8(fresh, fens[i]);
+   460	        if (!left.ok || !right.ok) {
+   461	            return fail("missing search result at " + fens[i]);
+   462	        }
+   463	        if (left.best != right.best || left.score != right.score || left.nodes != right.nodes) {
+   464	            std::cerr << "FAIL depth8 fen " << fens[i] << "\n base " << left.best << " " << left.score << " nodes "
+   465	                      << left.nodes << "\n new " << right.best << " " << right.score << " nodes " << right.nodes
+   466	                      << "\n";
+   467	            return 1;
++ nl -ba
++ sed -n 1,34p
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/include/forge/bitboard.hpp
+     1	#pragma once
+     2	
+     3	#include <array>
+     4	#include <bit>
+     5	#include <cstdint>
+     6	
+     7	// Build switch (default 0 = the lock's multiply magics): 1 = the slider tables
+     8	// are indexed with PEXT over the relevant mask (same table sizes, same attack
+     9	// sets, another entry order; no magic search at start-up). Needs BMI2.
+    10	#ifndef FORGE_SPD_SLIDER_PEXT
+    11	#define FORGE_SPD_SLIDER_PEXT 0
+    12	#endif
+    13	// The portable build leaves the multiply indexer selected so a CPU without BMI2
+    14	// still compiles. x86-64-v3 already has BMI2, and PEXT indexes the same masks
+    15	// to the same attack sets (only the table order changes) without searching for
+    16	// magics at startup. Take that indexer whenever the compiler target has BMI2.
+    17	#if defined(__BMI2__) && FORGE_SPD_SLIDER_PEXT == 0
+    18	#undef FORGE_SPD_SLIDER_PEXT
+    19	#define FORGE_SPD_SLIDER_PEXT 1
+    20	#endif
+    21	#if FORGE_SPD_SLIDER_PEXT
+    22	#if !defined(__BMI2__)
+    23	#error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+    24	#endif
+    25	#include <immintrin.h>
+    26	#endif
+    27	
+    28	namespace forge {
+    29	
+    30	using Bitboard = std::uint64_t;
+    31	
+    32	enum Color : int { White = 0, Black = 1 };
+    33	
+    34	[[nodiscard]] constexpr Color opposite(Color color) { return color == White ? Black : White; }
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/REPORT_r3_20.md
++ nl -ba
++ sed -n '50,85p;110,125p'
+    50	
+    51	The hash probe was next, at 1.79% plus `key_after` at 0.93%.
+    52	
+    53	The same sample of the final binary (3005 samples) still spends most of its time in evaluation. `pick_best` fell from 248 samples to 178. The magic search is gone. `attackers_to` dropped out of the list above 0.7%. `next` rose, because the best score is now recorded while the moves are scored, so that work sits in `next` instead of in a later scan.
+    54	
+    55	## What changed, and where the idea came from
+    56	
+    57	Every change is local to this engine. Nothing was taken from another engine's source, constants, or tables. The profile above is the reason each spot was touched.
+    58	
+    59	Move picker. The first move handed out is the lowest-index move with the strictly highest score. That index is known as soon as the moves are scored, so the first pick no longer walks the list. Later picks still walk, four scores at a time, and a tie still keeps the earlier index. The tail is still `std::sort` with `score >`. A stable insertion sort was tried in its place. Bench 11 moved from 312866 nodes to 292627, so the insertion sort was removed and `std::sort` stayed.
+    60	
+    61	Move generation. Captures, quiets, and the full list are separate compilations of one generator, so the capture-or-quiet flag is fixed in each one. The order of moves is the order the old generator emitted. Slider attacks use the BMI2 indexer that was already in `bitboard.cpp` when the compiler target defines `__BMI2__`. The required build is `-march=x86-64-v3`, which has BMI2. That indexer returns the same attack sets as the multiply magics and does not search for magic numbers at startup. A CPU without BMI2 still gets the multiply indexer. Empty-board rook and bishop rays are constant per square, so they are stored once at startup and read back. They are the same bitboards `rook(square, 0)` and `bishop(square, 0)` already produced, and they are what king-line refresh and the exchange pin test were computing.
+    62	
+    63	Make and unmake. After a move, the checkers are the mover's attacks on the opponent king. The other side's pieces cannot be checkers, so they are not gathered. The bitboard is the one `attackers_to` was masked down to.
+    64	
+    65	Legality and discovered check. The usual question is a pin test or a check-square test on lines that were already built for the position. Those two tests are inlined at the call. Check, en passant, king moves, castling, and promotions still use the full test.
+    66	
+    67	Hash table. The owned probe does not build a stripe lock. The four-entry scan stays a short loop: a matching occupied entry is a hit, the first empty entry is the replacement, and a full cluster keeps the lowest depth-minus-age entry, ties keeping the earlier slot. An earlier fully unrolled form of that choice spilled registers and was slower, so the loop was kept.
+    68	
+    69	No UCI option was added.
+    70	
+    71	## Depth 8
+    72	
+    73	Threads 1, Hash 16, OwnBook false, every other option left at its default. Each position was `ucinewgame`, then `position fen`, then `go depth 8`, and the engine was allowed to finish before the next position.
+    74	
+    75	The positions are random legal walks of 12 to 39 plies from the start position, produced with this engine's own move list. Two seeds, no shared position.
+    76	
+    77	| set | positions | best move, depth, score, nodes |
+    78	| --- | ---: | --- |
+    79	| seed 0x20c0ffee | 10000 | all equal to the base |
+    80	| seed 0xB16B00B5 | 10000 | all equal to the base |
+    81	
+    82	The first set searched 58715778 nodes in total, on both binaries.
+    83	
+    84	## Bench 16 timing
+    85	
+   110	| mean | 1522 | 1470 | 1522 | 1497 |
+   111	
+   112	Table A was faster on every run. The mean gap is 52 ms. Table B's mean gap is 25 ms, and runs 1 and 5 of that table were slower than the base. The search was not changed for this recheck.
+   113	
+   114	## Not verified
+   115	
+   116	No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed, because this CPU has BMI2. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.

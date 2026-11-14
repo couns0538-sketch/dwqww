@@ -1,0 +1,151 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <array>
+    5 #include <cstdint>
+    6 #include <iostream>
+    7 #include <string>
+    8 #include <string_view>
+    9 
+   10 namespace {
+   11 
+   12 std::uint64_t mix(std::uint64_t value) {
+   13     value ^= value >> 30;
+   14     value *= 0xBF58476D1CE4E5B9ULL;
+   15     value ^= value >> 27;
+   16     value *= 0x94D049BB133111EBULL;
+   17     value ^= value >> 31;
+   18     return value;
+   19 }
+   20 
+   21 bool listed(const forge::MoveList& legal, forge::Move move) {
+   22     for (const forge::Move candidate : legal) {
+   23         if (candidate == move) return true;
+   24     }
+   25     return false;
+   26 }
+   27 
+   28 // Same eight positions the engine's bench command searches, in the same order.
+   29 std::uint64_t bench_nodes(int depth) {
+   30     constexpr std::array<std::string_view, 8> fens{
+   31         forge::Board::StandardStartFen,
+   32         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   33         "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+   34         "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   35         "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+   36         "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+   37         "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   38         "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+   39     };
+   40     forge::Searcher searcher(16, 1);
+   41     std::uint64_t total = 0;
+   42     for (const std::string_view fen : fens) {
+   43         forge::Board board;
+   44         if (!board.set_fen(fen)) return 0;
+   45         forge::SearchLimits limits;
+   46         limits.depth = depth;
+   47         searcher.clear();
+   48         total += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+   49     }
+   50     return total;
+   51 }
+   52 
+   53 forge::Board walked(std::uint64_t salt, int plies) {
+   54     forge::Board board;
+   55     if (!board.set_fen(forge::Board::StandardStartFen)) return board;
+   56     std::uint64_t state = mix(salt);
+   57     for (int ply = 0; ply < plies; ++ply) {
+   58         const forge::MoveList legal = board.legal_moves();
+   59         if (legal.empty()) break;
+   60         state = mix(state + static_cast<std::uint64_t>(ply) + 9U);
+   61         const forge::Move chosen = legal[static_cast<std::size_t>(state % legal.size())];
+   62         forge::Undo undo;
+   63         if (!board.make_move(chosen, undo)) break;
+   64     }
+   65     return board;
+   66 }
+   67 
+   68 } // namespace
+   69 
+   70 int main() {
+   71     if (forge::tune::QuietExtinction) {
+   72         std::cerr << "QuietExtinction default is not false\n";
+   73         return 1;
+   74     }
+   75     forge::Board perft_board;
+   76     if (!perft_board.set_fen(forge::Board::StandardStartFen)) {
+   77         std::cerr << "start fen rejected\n";
+   78         return 1;
+   79     }
+   80     const std::uint64_t perft5 = perft_board.perft(5);
+   81     const std::uint64_t bench11 = bench_nodes(11);
+   82     const std::uint64_t bench13_off = bench_nodes(13);
+   83     forge::tune::QuietExtinction = true;
+   84     const std::uint64_t bench13_on = bench_nodes(13);
+   85     std::cout << "perft5 " << perft5 << " bench11 " << bench11 << " bench13_off " << bench13_off
+   86               << " bench13_on " << bench13_on << '\n';
+   87     if (perft5 != 4865609 || bench11 != 312866 || bench13_off != 862329 || bench13_on == 0 ||
+   88         bench13_on == bench13_off) {
+   89         std::cerr << "pin mismatch\n";
+   90         return 1;
+   91     }
+   92     forge::Searcher searcher(16, 1);
+   93     int searched = 0;
+   94     int illegal = 0;
+   95     std::uint64_t nodes = 0;
+   96 
+   97     auto check = [&](forge::Board board, int index) {
+   98         const forge::MoveList legal = board.legal_moves();
+   99         const bool ruled_draw = !legal.empty() && (board.is_repetition() || board.halfmove_clock() >= 100 ||
+  100                                                     board.is_insufficient_material());
+  101         forge::SearchLimits limits;
+  102         limits.depth = 10;
+  103         searcher.clear();
+  104         const forge::SearchInfo info = searcher.search(
+  105             board, limits, false, forge::Searcher::TTAccess::Exclusive);
+  106         ++searched;
+  107         nodes += info.nodes;
+  108         bool ok = info.depth == 10;
+  109         if (legal.empty()) ok = ok && info.best_move.is_none();
+  110         else {
+  111             ok = ok && listed(legal, info.best_move);
+  112             forge::Undo undo;
+  113             ok = ok && board.make_move(info.best_move, undo);
+  114             if (!ruled_draw) ok = ok && info.nodes > 0;
+  115         }
+  116         if (!ok) {
+  117             ++illegal;
+  118             std::cerr << "illegal index " << index << " move " << forge::Board::move_to_uci(info.best_move)
+  119                       << " legal " << legal.size() << " depth " << info.depth << " nodes " << info.nodes << '\n';
+  120         }
+  121     };
+  122 
+  123     for (int i = 0; i < 197; ++i) {
+  124         check(walked(0x51A7ULL * static_cast<std::uint64_t>(i + 3), 1 + (i % 23)), i);
+  125     }
+  126 
+  127     forge::Board king_pawn;
+  128     forge::Board checked;
+  129     forge::Board start;
+  130     if (!king_pawn.set_fen("4k3/8/8/3p4/3P4/8/8/4K3 w - - 0 1") ||
+  131         !checked.set_fen("4k3/8/8/8/8/8/8/4QK2 b - - 0 1") ||
+  132         !start.set_fen(forge::Board::StandardStartFen)) {
+  133         std::cerr << "setup fen rejected\n";
+  134         return 1;
+  135     }
+  136     if (king_pawn.has_non_pawn_material(forge::White) || king_pawn.has_non_pawn_material(forge::Black) ||
+  137         !checked.in_check() || !start.has_non_pawn_material(forge::White)) {
+  138         std::cerr << "setup position does not match the case it is meant to cover\n";
+  139         return 1;
+  140     }
+  141     check(king_pawn, 197);
+  142     check(checked, 198);
+  143     check(start, 199);
+  144 
+  145     forge::tune::QuietExtinction = false;
+  146     const std::uint64_t bench13_restored = bench_nodes(13);
+  147     std::cout << "searches " << searched << " illegal " << illegal << " nodes " << nodes
+  148               << " bench13_restored " << bench13_restored << '\n';
+  149     return searched == 200 && illegal == 0 && nodes > 0 && bench13_restored == 862329 ? 0 : 1;
+  150 }
+  151 

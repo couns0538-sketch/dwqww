@@ -1,0 +1,197 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <array>
+    5 #include <cstdint>
+    6 #include <iostream>
+    7 #include <string>
+    8 #include <string_view>
+    9 #include <vector>
+   10 
+   11 namespace {
+   12 
+   13 constexpr std::uint64_t kBench11 = 312866;
+   14 constexpr std::uint64_t kBench13 = 862329;
+   15 constexpr std::uint64_t kPerft5 = 4865609;
+   16 constexpr int kSearches = 200;
+   17 constexpr int kSearchDepth = 10;
+   18 
+   19 constexpr std::array<std::string_view, 8> kBenchFens{
+   20     forge::Board::StandardStartFen,
+   21     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   22     "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+   23     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   24     "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+   25     "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+   26     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   27     "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+   28 };
+   29 
+   30 // Opening and endgame seeds. The first three leave the side to move in check.
+   31 constexpr std::array<std::string_view, 6> kSeedFens{
+   32     "4k3/8/8/8/8/8/4r3/4K3 w - - 0 1",
+   33     "4k3/8/8/8/8/3n4/8/4K3 w - - 0 1",
+   34     "rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 1 2",
+   35     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+   36     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   37     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   38 };
+   39 
+   40 std::uint64_t bench_nodes(int depth) {
+   41     std::uint64_t total = 0;
+   42     forge::Searcher searcher(16, 1);
+   43     for (const std::string_view fen : kBenchFens) {
+   44         forge::Board board;
+   45         if (!board.set_fen(fen)) return 0;
+   46         forge::SearchLimits limits;
+   47         limits.depth = depth;
+   48         searcher.clear();
+   49         total += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+   50     }
+   51     return total;
+   52 }
+   53 
+   54 std::uint64_t mix(std::uint64_t x) {
+   55     x ^= x >> 30;
+   56     x *= 0xBF58476D1CE4E5B9ULL;
+   57     x ^= x >> 27;
+   58     x *= 0x94D049BB133111EBULL;
+   59     x ^= x >> 31;
+   60     return x;
+   61 }
+   62 
+   63 std::vector<forge::Board> two_hundred_positions() {
+   64     std::vector<forge::Board> out;
+   65     out.reserve(static_cast<std::size_t>(kSearches));
+   66     std::uint64_t state = 0xC0FFEEULL;
+   67 
+   68     auto push_if_legal = [&](const forge::Board& board) {
+   69         if (static_cast<int>(out.size()) >= kSearches) return;
+   70         if (board.legal_moves().empty()) return;
+   71         out.push_back(board);
+   72     };
+   73 
+   74     for (const std::string_view fen : kSeedFens) {
+   75         forge::Board board;
+   76         if (board.set_fen(fen)) push_if_legal(board);
+   77     }
+   78 
+   79     forge::Board cursor;
+   80     (void)cursor.set_fen(forge::Board::StandardStartFen);
+   81     while (static_cast<int>(out.size()) < kSearches) {
+   82         const forge::MoveList legal = cursor.legal_moves();
+   83         if (legal.empty() || cursor.halfmove_clock() > 80) {
+   84             (void)cursor.set_fen(forge::Board::StandardStartFen);
+   85             continue;
+   86         }
+   87         push_if_legal(cursor);
+   88         state = mix(state + static_cast<std::uint64_t>(out.size()) + cursor.key());
+   89         const forge::Move chosen = legal[static_cast<std::size_t>(state % legal.size())];
+   90         forge::Undo undo;
+   91         if (!cursor.make_move(chosen, undo)) {
+   92             (void)cursor.set_fen(forge::Board::StandardStartFen);
+   93         }
+   94     }
+   95     return out;
+   96 }
+   97 
+   98 bool move_is_legal(const forge::Board& board, forge::Move move) {
+   99     if (move.is_none()) return false;
+  100     if (!board.is_legal(move)) return false;
+  101     const forge::MoveList legal = board.legal_moves();
+  102     for (const forge::Move candidate : legal) {
+  103         if (candidate == move) return true;
+  104     }
+  105     return false;
+  106 }
+  107 
+  108 // The root move and every later move on the returned line must be legal in the
+  109 // position they are played from.
+  110 bool returned_line_is_legal(const forge::Board& root, const forge::SearchInfo& info) {
+  111     if (!move_is_legal(root, info.best_move)) return false;
+  112     if (info.pv.empty()) return true;
+  113     if (!(info.pv.front() == info.best_move)) return false;
+  114     forge::Board cursor = root;
+  115     for (const forge::Move move : info.pv) {
+  116         if (!move_is_legal(cursor, move)) return false;
+  117         forge::Undo undo;
+  118         if (!cursor.make_move(move, undo)) return false;
+  119     }
+  120     return true;
+  121 }
+  122 
+  123 int search_legality(const std::vector<forge::Board>& positions) {
+  124     forge::Searcher searcher(16, 1);
+  125     int failures = 0;
+  126     int in_check_roots = 0;
+  127     int pv_moves = 0;
+  128     for (int i = 0; i < kSearches; ++i) {
+  129         if (i % 25 == 0) searcher.clear();
+  130         const forge::Board& board = positions[static_cast<std::size_t>(i)];
+  131         if (board.in_check()) ++in_check_roots;
+  132         forge::SearchLimits limits;
+  133         limits.depth = kSearchDepth;
+  134         const forge::SearchInfo info =
+  135             searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+  136         pv_moves += static_cast<int>(info.pv.size());
+  137         if (!returned_line_is_legal(board, info)) {
+  138             std::cerr << "FAIL illegal move at " << i << " " << board.fen() << " move "
+  139                       << forge::Board::move_to_uci(info.best_move) << " pv " << info.pv.size() << '\n';
+  140             ++failures;
+  141         }
+  142     }
+  143     std::cout << "searches " << kSearches << " depth " << kSearchDepth
+  144               << " in_check_roots " << in_check_roots
+  145               << " pv_moves " << pv_moves
+  146               << " illegal " << failures << '\n';
+  147     return failures;
+  148 }
+  149 
+  150 }  // namespace
+  151 
+  152 int main() {
+  153     int failures = 0;
+  154     forge::tune::EvasionOrdering = false;
+  155 
+  156     const std::uint64_t off11 = bench_nodes(11);
+  157     const std::uint64_t off13 = bench_nodes(13);
+  158     forge::Board start;
+  159     (void)start.set_fen(forge::Board::StandardStartFen);
+  160     const std::uint64_t perft5 = start.perft(5);
+  161     std::cout << "defaults bench11 " << off11 << " bench13 " << off13 << " perft5 " << perft5 << '\n';
+  162     if (off11 != kBench11 || off13 != kBench13 || perft5 != kPerft5) {
+  163         std::cerr << "FAIL default signature changed\n";
+  164         ++failures;
+  165     }
+  166 
+  167     forge::tune::EvasionOrdering = true;
+  168     const std::uint64_t on13 = bench_nodes(13);
+  169     std::cout << "evasion_ordering bench13 " << on13 << '\n';
+  170     if (on13 == 0 || on13 == kBench13) {
+  171         std::cerr << "FAIL bench 13 did not change with EvasionOrdering on\n";
+  172         ++failures;
+  173     }
+  174 
+  175     const std::vector<forge::Board> positions = two_hundred_positions();
+  176     if (static_cast<int>(positions.size()) != kSearches) {
+  177         std::cerr << "FAIL built " << positions.size() << " positions\n";
+  178         return 1;
+  179     }
+  180     failures += search_legality(positions);
+  181 
+  182     forge::tune::EvasionOrdering = false;
+  183     const std::uint64_t restored = bench_nodes(13);
+  184     std::cout << "restored bench13 " << restored << '\n';
+  185     if (restored != kBench13) {
+  186         std::cerr << "FAIL bench 13 stayed changed after turning the option off\n";
+  187         ++failures;
+  188     }
+  189 
+  190     if (failures != 0) {
+  191         std::cerr << "FAIL " << failures << '\n';
+  192         return 1;
+  193     }
+  194     std::cout << "PASS evasion_ordering\n";
+  195     return 0;
+  196 }
+  197 

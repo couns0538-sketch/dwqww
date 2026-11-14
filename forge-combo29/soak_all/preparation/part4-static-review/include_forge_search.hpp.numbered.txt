@@ -1,0 +1,464 @@
+    1 #pragma once
+    2 
+    3 #include "forge/board.hpp"
+    4 #include "forge/eval.hpp"
+    5 #include "forge/nnue.hpp"
+    6 
+    7 #include <array>
+    8 #include <atomic>
+    9 #include <chrono>
+   10 #include <cstddef>
+   11 #include <cstdint>
+   12 #include <memory>
+   13 #include <mutex>
+   14 #include <thread>
+   15 #include <vector>
+   16 
+   17 #ifndef FORGE_SPD_TT_NOTLS
+   18 // Build switch, default 0 (= the lock's code): the Worker that runs on the thread
+   19 // holding the table's ExclusiveLease calls TT probe / store without lock_stripe.
+   20 #define FORGE_SPD_TT_NOTLS 0
+   21 #endif
+   22 
+   23 namespace forge {
+   24 
+   25 struct SearchLimits {
+   26     int depth = 64;
+   27     std::uint64_t nodes = 0;
+   28     bool nodes_specified = false;
+   29     // Milliseconds. -1 means that limit was not given. parse_clock_ms stores
+   30     // only non-negative values, including clocks that do not fit in 32 bits.
+   31     std::int64_t movetime_ms = -1;
+   32     std::int64_t time_ms = -1;
+   33     std::int64_t increment_ms = 0;
+   34     // 0 means the increment/sudden-death time control (no movestogo given).
+   35     int moves_to_go = 0;
+   36     int mate_moves = 0;
+   37     int move_overhead_ms = 10;
+   38     bool infinite = false;
+   39     bool ponder = false;
+   40     bool search_moves_specified = false;
+   41     std::vector<Move> search_moves;
+   42     // 1 keeps the single-line search. 2..8 also report the next root moves.
+   43     int multipv = 1;
+   44     // Optional steady-clock receipt origin. start_time takes precedence;
+   45     // request_start remains a compatibility spelling for existing callers.
+   46     // With both unset, finite timed searches start at Searcher entry; other
+   47     // searches retain a worker-local origin. Ponder budgets start at ponderhit.
+   48     std::chrono::steady_clock::time_point request_start{};
+   49     std::chrono::steady_clock::time_point start_time{};
+   50 };
+   51 
+   52 struct SearchInfo {
+   53     Move best_move{};
+   54     Move ponder_move{};
+   55     int score = 0;
+   56     int depth = 0;
+   57     int seldepth = 0;
+   58     std::uint64_t nodes = 0;
+   59     std::uint64_t elapsed_ms = 0;
+   60     std::vector<Move> pv;
+   61     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
+   62     bool restricted_root_empty = false;
+   63 };
+   64 
+   65 constexpr int MaxPly = 128;
+   66 constexpr int Infinite = 32001;
+   67 constexpr int MateValue = 32000;
+   68 constexpr int MateInMaxPly = MateValue - MaxPly;
+   69 constexpr int ValueNone = 32002;
+   70 
+   71 [[nodiscard]] constexpr bool is_mate_score(int score) {
+   72     return score >= MateInMaxPly || score <= -MateInMaxPly;
+   73 }
+   74 
+   75 enum Bound : std::uint8_t { BoundNone = 0, BoundUpper = 1, BoundLower = 2, BoundExact = 3 };
+   76 
+   77 struct TTEntry {
+   78     std::uint32_t key32 = 0;
+   79     Move move{};
+   80     std::int16_t score = 0;
+   81     std::int16_t eval = 0;
+   82     std::uint8_t depth = 0;
+   83     // Bits 0..1 bound, bit 2 was-PV, bits 3..7 generation.
+   84     std::uint8_t gen_bound = 0;
+   85     std::uint8_t rule50_clock = 0; // Capped at100; belongs to admitted score payload.
+   86     std::uint8_t padding = 0;
+   87 
+   88     [[nodiscard]] Bound bound() const { return static_cast<Bound>(gen_bound & 3U); }
+   89     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
+   90     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
+   91     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
+   92     // Existing below90 policy, plus exact near50 context; not a repetition key.
+   93     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
+   94         const int capped = current_clock < 100 ? current_clock : 100;
+   95         return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+   96     }
+   97 };
+   98 
+   99 struct alignas(64) TTCluster {
+  100     std::array<TTEntry, 4> entries{};
+  101 };
+  102 static_assert(sizeof(TTEntry) == 16);
+  103 static_assert(sizeof(TTCluster) == 64);
+  104 
+  105 class TranspositionTable;
+  106 
+  107 // Immutable entry copy plus an opaque probe-time replacement destination.
+  108 struct TTProbe {
+  109     TTEntry entry{};
+  110     bool hit = false;
+  111 private:
+  112     friend class TranspositionTable;
+  113     const TranspositionTable* owner_ = nullptr;
+  114     std::size_t cluster_ = 0;
+  115     std::uint8_t slot_ = 0;
+  116     std::uint64_t epoch_ = 0;
+  117     std::uint64_t key_ = 0;
+  118 };
+  119 
+  120 // Search reads and writes are coherent under striped locks. clear/resize/
+  121 // new_search/destruction require all accessors quiescent (including diagnostic
+  122 // readers and prefetch callers) and invalidate old probes. Handles must not
+  123 // outlive the table; lifecycle operations are not safe concurrently with search.
+  124 class TranspositionTable {
+  125 public:
+  126     explicit TranspositionTable(std::size_t mb = 32) { resize(mb); }
+  127     void resize(std::size_t mb);
+  128     void clear();
+  129     void new_search() { generation_ = static_cast<std::uint8_t>((generation_ + 1U) & 31U); ++epoch_; }
+  130     [[nodiscard]] TTProbe probe(std::uint64_t key) const;
+  131     void store(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound, bool pv, std::uint16_t halfmove_clock);
+  132     [[nodiscard]] int hashfull() const;
+  133     [[nodiscard]] std::uint8_t generation() const { return generation_; }
+  134     [[nodiscard]] std::size_t cluster_count() const { return cluster_count_; }
+  135     void prefetch(std::uint64_t key) const {
+  136 #if defined(__GNUC__) || defined(__clang__)
+  137         __builtin_prefetch(&cluster_for(key));
+  138 #else
+  139         (void)key;
+  140 #endif
+  141     }
+  142 
+  143 private:
+  144     friend class Searcher;
+  145     static constexpr std::size_t StripeCount = 1024;
+  146     struct alignas(64) Stripe { std::mutex mutex; };
+  147     // Opt-in controller ownership: request exclusive access, drain each stripe,
+  148     // then publish TLS. Lifecycle mutations still require all users quiescent.
+  149     class ExclusiveLease {
+  150     public:
+  151         explicit ExclusiveLease(TranspositionTable& table);
+  152         ~ExclusiveLease();
+  153         ExclusiveLease(const ExclusiveLease&) = delete;
+  154         ExclusiveLease& operator=(const ExclusiveLease&) = delete;
+  155         ExclusiveLease(ExclusiveLease&&) = delete;
+  156         ExclusiveLease& operator=(ExclusiveLease&&) = delete;
+  157     private:
+  158         friend class TranspositionTable;
+  159         TranspositionTable& table_;
+  160         const ExclusiveLease* previous_;
+  161         std::unique_lock<std::mutex> gate_;
+  162     };
+  163     static thread_local const ExclusiveLease* active_lease_;
+  164     [[nodiscard]] bool has_exclusive_access() const;
+  165     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+  166 #if FORGE_SPD_TT_NOTLS
+  167     // One body per access with a compile-time "take the stripe lock" parameter.
+  168     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
+  169     // without it and are only for the Worker on the lease's thread (tt_owned_).
+  170     friend class Worker;
+  171     template <bool TakeLock>
+  172     [[nodiscard]] TTProbe probe_body(std::uint64_t key) const;
+  173     template <bool TakeLock>
+  174     void store_body(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+  175                     bool pv, std::uint16_t halfmove_clock);
+  176     [[nodiscard]] TTProbe probe_owned(std::uint64_t key) const;
+  177     void store_owned(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+  178                      bool pv, std::uint16_t halfmove_clock);
+  179 #endif
+  180     mutable std::array<Stripe, StripeCount> stripes_{};
+  181     mutable std::mutex exclusive_gate_;
+  182     std::atomic<bool> exclusive_requested_{false};
+  183     std::uint64_t epoch_ = 0;
+  184     std::unique_ptr<TTCluster[]> clusters_;
+  185     std::size_t cluster_count_ = 0;
+  186     std::uint8_t generation_ = 0;
+  187 
+  188     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
+  189 #if defined(__SIZEOF_INT128__)
+  190         // Multiply-high indexing consumes high key bits. Keep the independent
+  191         // low bits as the tag, rather than reusing the bucket's index bits.
+  192         return static_cast<std::uint32_t>(key);
+  193 #else
+  194         // Modulo indexing consumes low bits for power-of-two table sizes.
+  195         return static_cast<std::uint32_t>(key >> 32U);
+  196 #endif
+  197     }
+  198 
+  199     [[nodiscard]] TTCluster& cluster_for(std::uint64_t key) const {
+  200 #if defined(__SIZEOF_INT128__)
+  201         __extension__ using u128 = unsigned __int128;
+  202         return clusters_[static_cast<std::size_t>((static_cast<u128>(key) * cluster_count_) >> 64U)];
+  203 #else
+  204         return clusters_[static_cast<std::size_t>(key % cluster_count_)];
+  205 #endif
+  206     }
+  207 };
+  208 
+  209 // Search constants exposed for tuning. The UCI layer accepts them as unlisted
+  210 // options (setoption name <Name> value <int>); defaults are the tested values.
+  211 namespace tune {
+  212 struct Parameter {
+  213     const char* name;
+  214     int* value;
+  215     int minimum;
+  216     int maximum;
+  217 };
+  218 extern int LmrQuietBase;      // x0.01
+  219 extern int LmrQuietDivisor;   // x0.01
+  220 extern int LmrNoisyBase;      // x0.01
+  221 extern int LmrNoisyDivisor;   // x0.01
+  222 extern int NullMoveMinDepth;
+  223 extern int NullMoveBase;
+  224 extern int NullMoveDepthDivisor;
+  225 extern int NullMoveEvalDivisor;
+  226 extern int RfpDepth;
+  227 extern int RfpMargin;
+  228 extern int RfpImproving;
+  229 extern int RazorDepth;
+  230 extern int RazorBase;
+  231 extern int RazorMultiplier;
+  232 extern int FutilityDepth;
+  233 extern int FutilityBase;
+  234 extern int FutilityMultiplier;
+  235 extern int LmpBase;
+  236 extern int HistoryPruneDepth;
+  237 extern int HistoryPruneMultiplier;
+  238 extern int SeeQuietMultiplier;
+  239 extern int SeeNoisyMultiplier;
+  240 extern int SingularDepth;
+  241 extern int SingularMargin;
+  242 extern int IirDepth;
+  243 extern int ProbcutDepth;
+  244 extern int ProbcutMargin;
+  245 extern int QsFutilityMargin;
+  246 extern int QsSeeMargin;
+  247 extern int AspirationDelta;
+  248 extern int HistoryBonusQuadratic;
+  249 extern int HistoryBonusLinear;
+  250 extern int HistoryBonusMax;
+  251 extern int LmrHistoryDivisor;
+  252 extern int CheckExtensionDepth;
+  253 extern int LmrCutoffThreshold;    // child cutoff count above which late moves are reduced more (0 = off)
+  254 extern int MaterialCorrectionWeight; // 0 = off, 100 = same weight as the pawn correction
+  255 // Time management (sudden-death / increment controls).
+  256 extern int TmSoftDivisor;         // soft limit = remaining / divisor + increment share
+  257 extern int TmIncrementPercent;    // share of the increment added to the soft limit
+  258 extern int TmHardPercent;         // hard limit as a percentage of the remaining time
+  259 extern int TmHardSoftMultiple;    // hard limit cap as a multiple of the soft limit
+  260 extern int TmStableFactor;        // x0.01 soft scale after 6 stable iterations
+  261 extern int TmSemiStableFactor;    // x0.01 soft scale after 3 stable iterations
+  262 extern int TmUnstableFactor;      // x0.01 soft scale when the best move just changed
+  263 extern int TmEffortBase;          // x0.01: factor *= clamp(base - effort, 0.6, 1.4)
+  264 extern int TmFallingEvalPercent;  // extra percent of soft time per 100 cp of score drop since the previous iteration
+  265 extern int TmMinFactorPercent;    // lower bound of the combined soft-limit factor (x0.01)
+  266 extern int CaptureFutilityBase;   // futility pruning of captures: base margin (0 = off)
+  267 extern int CaptureFutilityMultiplier;
+  268 extern int CaptureFutilityDepth;
+  269 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+  270 extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+  271 extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+  272 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+  273 [[nodiscard]] const std::vector<Parameter>& parameters();
+  274 // Call after changing LMR parameters.
+  275 void refresh();
+  276 } // namespace tune
+  277 
+  278 // Move-ordering statistics.
+  279 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
+  280 using PieceToHistory = std::array<std::array<std::int16_t, 64>, 13>;
+  281 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 13>;
+  282 using CaptureHistory = std::array<std::array<std::array<std::int16_t, 7>, 64>, 13>;
+  283 using CounterMoveTable = std::array<std::array<Move, 64>, 13>;
+  284 constexpr std::size_t CorrectionSize = 1U << 14U;
+  285 constexpr int CorrectionGrain = 256;
+  286 constexpr int CorrectionLimit = 32 * CorrectionGrain;
+  287 using CorrectionHistory = std::array<std::array<std::int32_t, CorrectionSize>, 2>;
+  288 
+  289 struct SearchStack {
+  290     std::array<Move, MaxPly + 1> pv{};
+  291     int pv_length = 0;
+  292     int ply = 0;
+  293     Move current_move{};
+  294     Move excluded_move{};
+  295     std::array<Move, 2> killers{};
+  296     Piece moved_piece = Empty;
+  297     int static_eval = ValueNone;
+  298     int raw_eval = ValueNone;
+  299     int move_count = 0;
+  300     int cutoff_count = 0;
+  301     int double_extensions = 0;
+  302     bool in_check = false;
+  303     bool tt_pv = false;
+  304     bool null_move_allowed = true;
+  305     PieceToHistory* continuation = nullptr;
+  306     // NNUE state: the accumulator is refreshed lazily from the nearest valid
+  307     // ancestor using the piece changes recorded for each ply.
+  308     nnue::Accumulator accumulator{};
+  309     Evaluator::RuntimePsqt runtime_psqt{};
+  310     nnue::DirtyPieces dirty{};
+  311 };
+  312 
+  313 // State shared by every worker of one Searcher.
+  314 struct SharedSearchState {
+  315     explicit SharedSearchState(std::size_t hash_mb) : tt(hash_mb) {}
+  316     TranspositionTable tt;
+  317     std::atomic<bool> stop{false};
+  318     // 0 means pondering has not been converted into a timed search.
+  319     std::atomic<std::int64_t> ponder_hit_ns{0};
+  320 };
+  321 
+  322 // One search thread: owns its histories, stack and evaluation cache.
+  323 class Worker {
+  324 public:
+  325     Worker(SharedSearchState& shared, int id);
+  326     ~Worker();
+  327     Worker(const Worker&) = delete;
+  328     Worker& operator=(const Worker&) = delete;
+  329 
+  330     // Thread 0 drives time management and reporting; helpers search the same
+  331     // root until the shared stop flag is raised.
+  332     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info, const std::vector<Worker*>& all);
+  333     void clear();
+  334     void clear_caches() { evaluator_.clear(); }
+  335     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+  336     [[nodiscard]] bool is_main() const { return id_ == 0; }
+  337 
+  338 private:
+  339     friend struct SearcherTestProbe;
+  340     friend class MovePicker;
+  341 #if FORGE_SPD_TT_NOTLS
+  342     friend class Searcher;
+  343 #endif
+  344 
+  345     SharedSearchState& shared_;
+  346     int id_ = 0;
+  347     Evaluator evaluator_;
+  348     std::unique_ptr<ButterflyHistory> main_history_;
+  349     std::unique_ptr<CaptureHistory> capture_history_;
+  350     std::unique_ptr<ContinuationHistory> continuation_history_;
+  351     std::unique_ptr<CounterMoveTable> counter_moves_;
+  352     std::unique_ptr<CorrectionHistory> correction_history_;
+  353     std::unique_ptr<CorrectionHistory> material_correction_;
+  354     std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+  355     std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
+  356     std::array<SearchStack, MaxPly + 8> stack_{};
+  357     std::array<Move, 256> root_effort_moves_{};
+  358     std::array<std::uint64_t, 256> root_move_nodes_{};
+  359     std::size_t root_effort_count_ = 0;
+  360 
+  361     bool pondering_ = false;
+  362     std::chrono::steady_clock::time_point start_{};
+  363     std::atomic<std::uint64_t> nodes_{0};
+  364     std::uint64_t local_nodes_ = 0;
+  365     const std::vector<Worker*>* all_workers_ = nullptr;
+  366     std::uint64_t node_limit_ = 0;
+  367     bool node_limit_specified_ = false;
+  368     std::int64_t soft_limit_ms_ = 0;
+  369     std::int64_t hard_limit_ms_ = 0;
+  370     bool time_managed_ = false;
+  371     bool aborted_ = false;
+  372     // Set only when the node budget itself trips should_stop. A clock stop or an
+  373     // external stop leaves this false so those paths keep the partial root move.
+  374     bool stopped_by_nodes_ = false;
+  375     Worker* parent_worker_ = nullptr;
+  376     std::uint64_t extra_nodes_ = 0;
+  377 #if FORGE_SPD_TT_NOTLS
+  378     // True only while Searcher::search runs this (main) worker on the thread that
+  379     // holds the table's ExclusiveLease; lock_stripe would hand back a deferred lock.
+  380     bool tt_owned_ = false;
+  381 #endif
+  382     int seldepth_ = 0;
+  383     int root_depth_ = 0;
+  384     int mate_moves_ = 0;
+  385     std::size_t root_history_index_ = 0;
+  386     std::vector<Move> root_moves_;
+  387     bool root_restricted_ = false;
+  388     std::uint64_t null_tries_ = 0;
+  389     std::uint64_t null_cutoffs_ = 0;
+  390 
+  391 #if FORGE_SPD_TT_NOTLS
+  392     // The six TT call sites of search / qsearch: one predictable branch per access.
+  393     [[nodiscard]] TTProbe probe_tt(std::uint64_t key) const {
+  394         return tt_owned_ ? shared_.tt.probe_owned(key) : shared_.tt.probe(key);
+  395     }
+  396     void store_tt(const TTProbe& probe, std::uint64_t key, int score, int eval, Move move, int depth, Bound bound,
+  397                   bool pv, std::uint16_t halfmove_clock) {
+  398         if (tt_owned_) shared_.tt.store_owned(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+  399         else shared_.tt.store(probe, key, score, eval, move, depth, bound, pv, halfmove_clock);
+  400     }
+  401 #endif
+  402     int search(Board& board, SearchStack* ss, int depth, int alpha, int beta, bool cut_node);
+  403     int qsearch(Board& board, SearchStack* ss, int alpha, int beta);
+  404     [[nodiscard]] bool should_stop();
+  405     [[nodiscard]] bool should_stop_with(std::uint64_t pending_nodes);
+  406     [[nodiscard]] std::int64_t elapsed_ms() const;
+  407     [[nodiscard]] std::uint64_t total_nodes() const;
+  408     [[nodiscard]] bool is_draw(const Board& board, int ply) const;
+  409     void update_quiet_stats(const Board& board, SearchStack* ss, Move move, int depth,
+  410                             const Move* quiets, int quiet_count);
+  411     void update_capture_stats(const Board& board, Move best, int depth, const Move* captures, int capture_count);
+  412     void update_continuation(SearchStack* ss, Piece piece, int to, int bonus);
+  413     [[nodiscard]] int quiet_history(const Board& board, const SearchStack* ss, Move move) const;
+  414     [[nodiscard]] int capture_history_value(const Board& board, Move move) const;
+  415     [[nodiscard]] int corrected_eval(const Board& board, int raw_eval) const;
+  416     void update_correction(const Board& board, int depth, int best_score, int static_eval);
+  417     [[nodiscard]] int static_evaluate(const Board& board, SearchStack* ss);
+  418     void record_move(SearchStack* ss, const Board& board, const Move& move);
+  419     void record_null_move(SearchStack* ss);
+  420 };
+  421 
+  422 // Public search facade: a shared transposition table plus one or more workers.
+  423 class Searcher {
+  424 public:
+  425     // Exclusive is for a controller with no concurrent diagnostics: at one
+  426     // worker it drains the stripes and holds an exclusive gate. Foreign TT calls
+  427     // block for the whole search and must not hold locks needed by search.
+  428     // Multiple workers and the default library entry retain shared locking.
+  429     enum class TTAccess { Shared, Exclusive };
+  430     explicit Searcher(std::size_t hash_mb = 32, int threads = 1);
+  431     ~Searcher();
+  432     Searcher(const Searcher&) = delete;
+  433     Searcher& operator=(const Searcher&) = delete;
+  434 
+  435     SearchInfo search(Board board, const SearchLimits& limits, bool emit_info = false,
+  436                       TTAccess table_access = TTAccess::Shared);
+  437     void stop() { shared_.stop.store(true, std::memory_order_relaxed); }
+  438     void reset_stop() {
+  439         shared_.stop.store(false, std::memory_order_relaxed);
+  440         shared_.ponder_hit_ns.store(0, std::memory_order_relaxed);
+  441     }
+  442     void ponderhit() {
+  443         const auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+  444             std::chrono::steady_clock::now().time_since_epoch()).count();
+  445         std::int64_t expected = 0;
+  446         (void)shared_.ponder_hit_ns.compare_exchange_strong(expected, now_ns);
+  447     }
+  448     void clear();
+  449     void clear_hash();
+  450     void resize_hash(std::size_t hash_mb);
+  451     void set_threads(int threads);
+  452     [[nodiscard]] int threads() const { return static_cast<int>(workers_.size()); }
+  453     [[nodiscard]] int hashfull_permille() const { return shared_.tt.hashfull(); }
+  454     [[nodiscard]] static int evaluate(const Board& board) { return Evaluator::evaluate_uncached(board); }
+  455     [[nodiscard]] Worker& main_worker() { return *workers_.front(); }
+  456     [[nodiscard]] TranspositionTable& transposition_table() { return shared_.tt; }
+  457 
+  458 private:
+  459     SharedSearchState shared_;
+  460     std::vector<std::unique_ptr<Worker>> workers_;
+  461 };
+  462 
+  463 } // namespace forge
+  464 

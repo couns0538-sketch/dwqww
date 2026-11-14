@@ -1,0 +1,129 @@
+{"n":46,"argv":["git","show","2be1e21b6faa3e8e3d80ff79449102b4e9f250f9:forge-combo29/tests_r3_16/tm_node_share_test.cpp"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+#include "forge/tm_node_share.hpp"
+
+#include <cstdint>
+#include <iostream>
+
+namespace {
+
+int g_failed = 0;
+int g_checked = 0;
+
+void expect(const char* name, forge::NodeShareTiming sample, std::int64_t want_soft, bool want_reached) {
+    const forge::NodeShareTimingDecision got = forge::decide_node_share_timing(sample);
+    ++g_checked;
+    if (got.soft_ms == want_soft && got.reached == want_reached) return;
+    std::cerr << name << " soft " << got.soft_ms << " reached " << got.reached
+              << " want soft " << want_soft << " reached " << want_reached << '\n';
+    ++g_failed;
+}
+
+}  // namespace
+
+int main() {
+    // Half the root nodes: the soft target stays put. Made-up clocks.
+    static_assert(forge::decide_node_share_timing({2000, 8000, 1999, 500, 1000}).soft_ms == 2000);
+    static_assert(!forge::decide_node_share_timing({2000, 8000, 1999, 500, 1000}).reached);
+    static_assert(forge::decide_node_share_timing({2000, 8000, 2000, 500, 1000}).reached);
+
+    // No root nodes yet: do not invent a share. Still cap at a positive hard limit.
+    static_assert(forge::decide_node_share_timing({2000, 8000, 100, 0, 0}).soft_ms == 2000);
+    static_assert(forge::decide_node_share_timing({9000, 1000, 10, 0, 0}).soft_ms == 1000);
+
+    // Minority lengthens (0% -> 3/2) and stops at the hard limit.
+    static_assert(forge::decide_node_share_timing({2000, 8000, 2999, 0, 1000}).soft_ms == 3000);
+    static_assert(!forge::decide_node_share_timing({2000, 8000, 2999, 0, 1000}).reached);
+    static_assert(forge::decide_node_share_timing({2000, 2500, 2500, 0, 1000}).soft_ms == 2500);
+    static_assert(forge::decide_node_share_timing({2000, 2500, 2500, 0, 1000}).reached);
+    static_assert(!forge::decide_node_share_timing({2000, 2500, 2499, 0, 1000}).reached);
+
+    // Majority shortens (100% -> 1/2). A hard limit above that result does not raise it.
+    static_assert(forge::decide_node_share_timing({2000, 8000, 999, 1000, 1000}).soft_ms == 1000);
+    static_assert(!forge::decide_node_share_timing({2000, 8000, 999, 1000, 1000}).reached);
+    static_assert(forge::decide_node_share_timing({2000, 8000, 1000, 1000, 1000}).reached);
+
+    // Quarter and three-quarter shares, plus a 1/3 and 2/3 split on a short clock.
+    static_assert(forge::decide_node_share_timing({2000, 9000, 0, 250, 1000}).soft_ms == 2500);
+    static_assert(forge::decide_node_share_timing({2000, 9000, 0, 750, 1000}).soft_ms == 1500);
+    static_assert(forge::decide_node_share_timing({80, 400, 92, 1, 3}).soft_ms == 93);
+    static_assert(!forge::decide_node_share_timing({80, 400, 92, 1, 3}).reached);
+    static_assert(forge::decide_node_share_timing({80, 400, 93, 1, 3}).reached);
+    static_assert(forge::decide_node_share_timing({80, 400, 66, 2, 3}).soft_ms == 66);
+    static_assert(forge::decide_node_share_timing({80, 400, 65, 2, 3}).soft_ms == 66);
+    static_assert(!forge::decide_node_share_timing({80, 400, 65, 2, 3}).reached);
+
+    // One node either side of a tie.
+    static_assert(forge::decide_node_share_timing({1000, 5000, 0, 499, 1000}).soft_ms == 1001);
+    static_assert(forge::decide_node_share_timing({1000, 5000, 0, 501, 1000}).soft_ms == 999);
+
+    // best_nodes above the root total counts as the whole root (shorten).
+    static_assert(forge::decide_node_share_timing({100, 1000, 40, 50, 40}).soft_ms == 50);
+    static_assert(!forge::decide_node_share_timing({100, 1000, 40, 50, 40}).reached);
+    static_assert(forge::decide_node_share_timing({100, 1000, 50, 50, 40}).reached);
+
+    // Integer floor, then the hard cap. A non-positive soft is left alone.
+    static_assert(forge::decide_node_share_timing({1, 100, 0, 1, 1}).soft_ms == 1);
+    static_assert(forge::decide_node_share_timing({1, 1, 1, 0, 1}).soft_ms == 1);
+    static_assert(forge::decide_node_share_timing({100, 40, 40, 100, 100}).soft_ms == 40);
+    static_assert(forge::decide_node_share_timing({0, 100, 0, 1, 2}).soft_ms == 0);
+    static_assert(!forge::decide_node_share_timing({0, 100, 0, 1, 2}).reached);
+    static_assert(forge::decide_node_share_timing({-4, 100, 0, 0, 10}).soft_ms == -4);
+    static_assert(!forge::decide_node_share_timing({-4, 100, 50, 0, 10}).reached);
+
+    // A negative elapsed has not reached a positive target. A zero hard limit
+    // does not cap, so a full lengthen of 40 ms becomes 60 ms.
+    static_assert(!forge::decide_node_share_timing({40, 400, -1, 0, 10}).reached);
+    static_assert(forge::decide_node_share_timing({40, 0, 59, 0, 10}).soft_ms == 60);
+    static_assert(!forge::decide_node_share_timing({40, 0, 59, 0, 10}).reached);
+    static_assert(forge::decide_node_share_timing({40, -5, 20, 10, 10}).soft_ms == 20);
+
+    // Big increment: base soft already above hard. The tie is pulled down to hard.
+    // A full shorten of 5000 ms is 2500, which is under this hard limit, so it stays.
+    static_assert(forge::decide_node_share_timing({5000, 1000, 1000, 500, 1000}).soft_ms == 1000);
+    static_assert(forge::decide_node_share_timing({5000, 3000, 2499, 1000, 1000}).soft_ms == 2500);
+    static_assert(!forge::decide_node_share_timing({5000, 3000, 2499, 1000, 1000}).reached);
+    static_assert(forge::decide_node_share_timing({5000, 3000, 3000, 900, 1000}).soft_ms == 3000);
+
+    expect("tie under", {2000, 8000, 1999, 500, 1000}, 2000, false);
+    expect("tie at", {2000, 8000, 2000, 500, 1000}, 2000, true);
+    expect("empty", {2000, 8000, 100, 0, 0}, 2000, false);
+    expect("empty cap", {9000, 1000, 1000, 0, 0}, 1000, true);
+    expect("minority", {2000, 8000, 3000, 0, 1000}, 3000, true);
+    expect("minority cap", {2000, 2500, 2499, 0, 1000}, 2500, false);
+    expect("majority", {2000, 8000, 1000, 1000, 1000}, 1000, true);
+    expect("quarter", {2000, 9000, 2499, 250, 1000}, 2500, false);
+    expect("three quarter", {2000, 9000, 1500, 750, 1000}, 1500, true);
+    expect("one third", {80, 400, 93, 1, 3}, 93, true);
+    expect("two thirds", {80, 400, 65, 2, 3}, 66, false);
+    expect("just under half", {1000, 5000, 1001, 499, 1000}, 1001, true);
+    expect("just over half", {1000, 5000, 998, 501, 1000}, 999, false);
+    expect("overfull root", {100, 1000, 50, 50, 40}, 50, true);
+    expect("floor", {1, 100, 0, 1, 1}, 1, false);
+    expect("hard wins shorten", {100, 40, 39, 100, 100}, 40, false);
+    expect("non positive", {-4, 100, 50, 0, 10}, -4, false);
+    expect("no hard", {40, 0, 60, 0, 10}, 60, true);
+    expect("single root node empty", {100, 1000, 149, 0, 1}, 150, false);
+
+    std::int64_t previous = 100000;
+    for (std::uint64_t best = 0; best <= 1000; ++best) {
+        const forge::NodeShareTimingDecision got =
+            forge::decide_node_share_timing({4000, 10000, 0, best, 1000});
+        ++g_checked;
+        if (got.soft_ms > previous || got.soft_ms < 1 || got.soft_ms > 10000) {
+            std::cerr << "monotonic share " << best << " soft " << got.soft_ms << '\n';
+            ++g_failed;
+            break;
+        }
+        previous = got.soft_ms;
+    }
+
+    if (g_failed != 0) {
+        std::cerr << g_failed << " failed of " << g_checked << '\n';
+        return 1;
+    }
+    std::cout << "tm node share checks " << g_checked << '\n';
+    return 0;
+}
+
+STDERR

@@ -1,0 +1,32 @@
+COMMAND ["rg","-n","ContHist4PlyRead|NonPawnCorrection|LmrDeeperShallower|cont4|nonpawn|lmr|set_threads|threads|nodes|depth","/workspace/work/dwqww-all/forge-combo29/soak_all/play_driver.cpp"]
+STDOUT
+3:// --ContHist4PlyRead, --NonPawnCorrection, --LmrDeeperShallower.
+26:    std::uint64_t seed=1, nodes=2000, max_games=1000000, first_game=0;
+27:    int threads=1, depth=0, seconds=240;
+29:    bool cont_hist_4_ply=false, non_pawn_correction=false, lmr_deeper_shallower=false;
+37:        else if(a=="--nodes") nodes=std::stoull(v);
+38:        else if(a=="--threads") threads=std::stoi(v);
+39:        else if(a=="--depth") depth=std::stoi(v);
+44:        else if(a=="--ContHist4PlyRead") {
+47:        else if(a=="--NonPawnCorrection") {
+50:        else if(a=="--LmrDeeperShallower") {
+51:            if(!parse_bool(v,lmr_deeper_shallower)) { std::cerr << "invalid boolean for " << a << '\n'; return 2; }
+56:    forge::tune::ContHist4PlyRead=cont_hist_4_ply;
+57:    forge::tune::NonPawnCorrection=non_pawn_correction;
+58:    forge::tune::LmrDeeperShallower=lmr_deeper_shallower;
+61:        ",\"ContHist4PlyRead\":"+std::string(cont_hist_4_ply?"true":"false")+
+62:        ",\"NonPawnCorrection\":"+std::string(non_pawn_correction?"true":"false")+
+63:        ",\"LmrDeeperShallower\":"+std::string(lmr_deeper_shallower?"true":"false");
+64:    forge::Searcher searcher(16,threads);
+68:        << ",\"threads\":" << threads << ",\"nodes\":" << nodes << ",\"depth\":" << depth
+96:                ",\"ply\":"+std::to_string(ply)+",\"threads\":"+std::to_string(threads)+
+97:                ",\"nodes\":"+std::to_string(nodes)+",\"depth\":"+std::to_string(depth)+
+102:            if(depth>0) limits.depth=depth;
+103:            else { limits.depth=64; limits.nodes=nodes; limits.nodes_specified=true; }
+114:                    << " search_nodes=" << result.nodes << std::endl;
+130:    std::cout << "SUMMARY {\"seed\":" << seed << ",\"threads\":" << threads << ",\"nodes\":" << nodes
+133:        << ",\"depth\":" << depth << ",\"games\":" << games << ",\"moves\":" << moves << ",\"searches\":" << searches
+
+STDERR
+
+EXIT 0 SIGNAL null

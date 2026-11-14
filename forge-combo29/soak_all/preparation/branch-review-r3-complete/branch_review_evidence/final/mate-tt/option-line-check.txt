@@ -1,0 +1,56 @@
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/src/search.cpp
++ nl -ba
++ sed -n 74,84p
+    74	int CaptureFutilityMultiplier = 250;
+    75	int CaptureFutilityDepth = 6;
+    76	int FailLowContinuationBonus = 0;
+    77	bool ContHist4PlyRead = false;
+    78	bool NonPawnCorrection = false;
+    79	bool LmrDeeperShallower = false;
+    80	bool SoundMatePruning = false;
+    81	
+    82	const std::vector<Parameter>& parameters() {
+    83	    static const std::vector<Parameter> table{
+    84	        {"LmrQuietBase", &LmrQuietBase, 0, 300},         {"LmrQuietDivisor", &LmrQuietDivisor, 100, 500},
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/include/forge/search.hpp
++ nl -ba
++ sed -n 267,277p
+   267	extern int CaptureFutilityMultiplier;
+   268	extern int CaptureFutilityDepth;
+   269	extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+   270	extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+   271	extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+   272	extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
+   273	extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+   274	[[nodiscard]] const std::vector<Parameter>& parameters();
+   275	// Call after changing LMR parameters.
+   276	void refresh();
+   277	} // namespace tune
++ git -C /workspace/work/dwqww-all show 91a852100912c9f0a13b809a4fed12a93feda4da:forge-combo29/src/uci.cpp
++ nl -ba
++ sed -n '185,197p;205,216p'
+   185	            if (forge::nnue::available()) {
+   186	                std::cout << "option name UseNNUE type check default true\n"
+   187	                             "option name NnueFile type string default <empty>\n";
+   188	            }
+   189	            std::cout << "option name ContHist4PlyRead type check default false\n"
+   190	                         "option name NonPawnCorrection type check default false\n"
+   191	                         "option name LmrDeeperShallower type check default false\n"
+   192	                         "option name SoundMatePruning type check default false\n";
+   193	#ifdef FORGE_EXPOSE_TUNABLES
+   194	            // Development builds advertise the search constants so match
+   195	            // runners can set them. Builds without this macro still accept them.
+   196	            for (const forge::tune::Parameter& parameter : forge::tune::parameters()) {
+   197	                std::cout << "option name " << parameter.name << " type spin default " << *parameter.value
+   205	        } else if (command == "ucinewgame") {
+   206	            stop_search();
+   207	            searcher.clear();
+   208	            (void)board.set_fen(forge::Board::StandardStartFen);
+   209	        } else if (command == "setoption") {
+   210	            stop_search();
+   211	            std::string token;
+   212	            std::string name;
+   213	            std::string value_text;
+   214	            input >> token;
+   215	            if (token == "name") {
+   216	                while (input >> token && token != "value") {

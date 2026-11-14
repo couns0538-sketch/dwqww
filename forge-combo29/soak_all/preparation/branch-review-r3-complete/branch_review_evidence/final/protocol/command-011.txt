@@ -1,0 +1,131 @@
+{"n":11,"argv":["git","diff","--no-ext-diff","--no-textconv","--unified=5","e04556ddc3a430b2e751159b0d46111ef56c8b89","c808be4b01a9076754c782d68fdbb7797e4db7a1","--","forge-combo29/src","forge-combo29/include"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+diff --git a/forge-combo29/include/forge/search.hpp b/forge-combo29/include/forge/search.hpp
+index 0abf5d6f..34103aca 100644
+--- a/forge-combo29/include/forge/search.hpp
++++ b/forge-combo29/include/forge/search.hpp
+@@ -24,10 +24,13 @@ namespace forge {
+ 
+ struct SearchLimits {
+     int depth = 64;
+     std::uint64_t nodes = 0;
+     bool nodes_specified = false;
++    // `go softnodes`: finish the iteration that passes `nodes`, hard-stop at 4x.
++    // Left false for bench, `go depth`, and `go nodes`.
++    bool soft_nodes = false;
+     // Milliseconds. -1 means that limit was not given. parse_clock_ms stores
+     // only non-negative values, including clocks that do not fit in 32 bits.
+     std::int64_t movetime_ms = -1;
+     std::int64_t time_ms = -1;
+     std::int64_t increment_ms = 0;
+@@ -363,10 +366,12 @@ private:
+     std::atomic<std::uint64_t> nodes_{0};
+     std::uint64_t local_nodes_ = 0;
+     const std::vector<Worker*>* all_workers_ = nullptr;
+     std::uint64_t node_limit_ = 0;
+     bool node_limit_specified_ = false;
++    // Nonzero only for a main-thread `go softnodes` search. 0 leaves the loop alone.
++    std::uint64_t soft_node_limit_ = 0;
+     std::int64_t soft_limit_ms_ = 0;
+     std::int64_t hard_limit_ms_ = 0;
+     bool time_managed_ = false;
+     bool aborted_ = false;
+     // Set only when the node budget itself trips should_stop. A clock stop or an
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..54bf9355 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -1603,10 +1603,19 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     root_history_index_ = board.history_size() - 1;
+     node_limit_ = limits.nodes;
+     node_limit_specified_ = parent_worker_ != nullptr
+         ? parent_worker_->node_limit_specified_
+         : (is_main() && (limits.nodes_specified || limits.nodes != 0));
++    soft_node_limit_ = 0;
++    // Soft budget is the finished-iteration target. The hard budget stays on the
++    // existing node stop, so a runaway iteration still discards its partial move.
++    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
++        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
++        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
++        node_limit_specified_ = true;
++        soft_node_limit_ = limits.nodes;
++    }
+ 
+     // Time allocation.
+     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
+     soft_limit_ms_ = hard_limit_ms_ = 0;
+     time_managed_ = false;
+@@ -1902,10 +1911,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+         previous_best = result.best_move;
+         const int iteration_previous_score = previous_score;
+         previous_score = score;
+ 
+         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
++        // The iteration above is finished. Passing the soft budget stops here,
++        // keeping this move and score. The hard cap is enforced inside search.
++        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
+         if (should_stop()) break;
+         if (time_managed_ && !(pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0)) {
+             // Stop early when the best move has been stable; spend longer when it keeps changing.
+             double factor = 1.0;
+             if (stable_iterations >= 6) factor = tune::TmStableFactor / 100.0;
+@@ -1936,10 +1948,14 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
+     result.nodes = total_nodes() + extra_nodes_;
+     result.seldepth = std::max(result.seldepth, seldepth_);
+     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+         std::chrono::steady_clock::now() - start_).count());
+     if (result.best_move.is_none()) result.best_move = root_candidates.front();
++    if (emit_info && soft_node_limit_ != 0) {
++        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
++        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
++    }
+     return result;
+ }
+ 
+ // ---------------------------------------------------------------------------
+ // Searcher facade
+diff --git a/forge-combo29/src/uci.cpp b/forge-combo29/src/uci.cpp
+index 4de8f892..ecb35aa0 100644
+--- a/forge-combo29/src/uci.cpp
++++ b/forge-combo29/src/uci.cpp
+@@ -57,13 +57,14 @@ void apply_position(forge::Board& board, std::istringstream& input) {
+     }
+     board = candidate;
+ }
+ 
+ bool is_go_keyword(const std::string& token) {
+-    return token == "depth" || token == "nodes" || token == "movetime" || token == "movestogo" ||
+-           token == "infinite" || token == "wtime" || token == "btime" || token == "winc" ||
+-           token == "binc" || token == "mate" || token == "searchmoves" || token == "ponder";
++    return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
++           token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
++           token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
++           token == "ponder";
+ }
+ 
+ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
+     forge::SearchLimits limits;
+     std::string token;
+@@ -86,18 +87,19 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
+         auto read_clock = [&]() -> std::int64_t {
+             if (i >= tokens.size()) return 0;
+             return forge::parse_clock_ms(tokens[i++]);
+         };
+         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
+-        else if (token == "nodes") {
++        else if (token == "nodes" || token == "softnodes") {
+             if (i < tokens.size()) {
+                 const std::string& text = tokens[i++];
+                 std::uint64_t value = 0;
+                 const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
+                     limits.nodes = value;
+                     limits.nodes_specified = true;
++                    if (token == "softnodes") limits.soft_nodes = true;
+                 }
+             }
+         }
+         else if (token == "movetime") limits.movetime_ms = read_clock();
+         else if (token == "movestogo") limits.moves_to_go = std::max(1, read_int());
+
+STDERR

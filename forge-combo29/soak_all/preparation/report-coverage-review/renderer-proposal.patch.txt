@@ -1,0 +1,41 @@
+--- a/render-report.mjs
++++ b/render-report.mjs
+@@ -109,6 +109,10 @@
+ 
+ function phaseStatus(state, phase) {
+   const status = state.totals?.[phase]?.status;
++  if (status && phase === 'Part1' && number(state.totals?.['2KRKsplit']?.counts?.tests_completed) &&
++      state.totals['2KRKsplit'].counts.tests_completed > 0) {
++    return `Initial checkpoint: ${status}. Later completed split coverage is recorded under 2KRKsplit; original timeouts remain incomplete.`;
++  }
+   if (status) return status;
+   return state.active?.phase === phase ? 'Running; no completed batch recorded' : 'Pending; no completed counts recorded';
+ }
+@@ -342,9 +346,25 @@
+     ? tests.reduce((n, r) => n + r.sanitizer_reports, 0) : undefined) : p1.sanitizer_reports;
+   out += `Existing test/check records: ${fmt(testCount)}; nonzero checks: ${fmt(failed)}; reported sanitizer diagnostics: ${fmt(sanitizerCount)}. ` +
+     'The [test matrix](TEST_MATRIX.md) and raw outputs distinguish fixture mismatches, timeouts and engine failures. A nonzero fixture comparison is not automatically an engine crash.\n\n';
+-  if (own(p1, 'asan_krk_T2_runs')) out += `Recorded KRK coverage: release T1 ${fmt(p1.release_krk_T1_runs)}, release T2 ${fmt(p1.release_krk_T2_runs)}, ` +
++  if (own(p1, 'asan_krk_T2_runs')) out += `Initial Part 1 KRK coverage: release T1 ${fmt(p1.release_krk_T1_runs)}, release T2 ${fmt(p1.release_krk_T2_runs)}, ` +
+     `ASAN T1 ${fmt(p1.asan_krk_T1_runs)}, ASAN T2 ${fmt(p1.asan_krk_T2_runs)}. ` +
+-    'The original full ASAN 40×10 attempt timed out without completed counts; reduced successful coverage does not convert that attempt into a pass.\n\n';
++    'The original full ASAN 40×10 attempt timed out without completed counts; this initial reduced retry is separate from later supplemental coverage.\n\n';
++  const krkSplit = object(totals['2KRKsplit']?.counts);
++  if (own(totals, '2KRKsplit')) {
++    out += `Later completed ASAN split retries (2KRKsplit): ${fmt(krkSplit.tests_completed)} invocations, ` +
++      `T1 ${fmt(krkSplit.t1_runs)} reference checks and T2 ${fmt(krkSplit.main_runs)} trials; ` +
++      `T1 misses ${fmt(krkSplit.t1_misses)}, T2 misses ${fmt(krkSplit.main_misses)}, ` +
++      `reported sanitizer diagnostics ${fmt(krkSplit.sanitizer_reports)}. `;
++    if (krkSplit.tests_completed === 2 && krkSplit.main_runs === 400) {
++      out += 'The two unchanged 40×5 invocations cover ten T2 trials per root as five plus five on the same 40 roots. ';
++    }
++    out += 'See the 2KRKsplit batch evidence.\n\n';
++    if ([p1.asan_krk_T1_runs, p1.asan_krk_T2_runs, krkSplit.t1_runs, krkSplit.main_runs].every(number)) {
++      out += `Combined completed ASAN KRK coverage from Part 1 plus these split retries: T1 ${fmt(p1.asan_krk_T1_runs + krkSplit.t1_runs)} reference checks, ` +
++        `T2 ${fmt(p1.asan_krk_T2_runs + krkSplit.main_runs)} trials. These are repeated executions, not counts of distinct positions.\n\n`;
++    }
++    out += 'Timed-out single 40×10 invocations remain incomplete and contribute no completed coverage. Completed split retries do not turn an original timeout into a pass.\n\n';
++  }
+   out += 'The unchanged t16 options/clamp fixtures omit newly advertised options. Their exact-output mismatches and repeated clean process exits remain recorded separately. Clock-fixture timings use documented observation guards, not exact scheduler guarantees. TSan findings and runtime limitations must be read from the recorded test outputs; building TSan alone is not evidence of a clean run.\n\n';
+   out += 'Completed-unit totals exclude partial work; interrupted cleanup diagnostics remain evidence even when excluded from a completed frequency denominator. In particular, inspect partial records’ interrupted-trial and shutdown fields. For untraced self-play batches, searches/moves/games can be self-reported counters rather than independently enumerated raw observations. Sanitizer occurrences can repeat in mirrored logs and are not counts of distinct bugs.\n\n';
+   if (array(state.notes).length) {

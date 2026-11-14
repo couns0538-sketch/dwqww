@@ -1,0 +1,13 @@
+{
+  "utc": "2026-11-14T15:09:37.943Z",
+  "cwd": "/workspace/work/dwqww-all",
+  "argv": [
+    "git",
+    "show",
+    "c1bb0c23bd77c02367daf95d0137ac8a846118f7:forge-combo29/soak_all/mate_pv_evidence/oracle_probe.cpp.txt"
+  ],
+  "exit": 0,
+  "signal": null,
+  "stdout": "#define main t12_original_test_main\n#include \"/workspace/work/dwqww-all/forge-combo29/tests_t12/krk_mate_test.cpp\"\n#undef main\n\nint main() {\n    const KrkTablebase tb;\n    forge::Board board;\n    const std::string fen = \"8/8/8/8/8/1R6/2k5/5K2 w - - 0 1\";\n    if (!board.set_fen(fen)) return 2;\n    auto distance = [&](const forge::Board& b) {\n        const auto rooks = b.pieces(forge::White, forge::Rook);\n        if (rooks == 0) return -1;\n        return tb.dtm(b.king_square(forge::White), forge::lsb(rooks),\n                      b.king_square(forge::Black), b.side_to_move() == forge::White ? 0 : 1);\n    };\n    std::cout << \"ROOT \" << fen << \" dtm_plies=\" << distance(board) << '\\n';\n    for (const auto move : board.legal_moves()) {\n        std::cout << \"ROOT_MOVE \" << forge::Board::move_to_uci(move)\n                  << \" exact_mate_plies=\" << tb.move_mate_plies(board, move) << '\\n';\n    }\n    const std::string pv = \"b3f3 c2d2 f1f2 d2d1 f2e3 d1c2 e3e2 c2c1 f3c3 c1b2 e2d3 b2b1 d3d2 b1b2 c3f3\";\n    std::istringstream moves(pv);\n    std::string text;\n    int ply = 0;\n    while (moves >> text) {\n        forge::Move selected = forge::Move::none();\n        for (const auto move : board.legal_moves()) {\n            if (forge::Board::move_to_uci(move) == text) selected = move;\n        }\n        if (selected.is_none()) { std::cout << \"ILLEGAL \" << text << '\\n'; return 1; }\n        forge::Undo undo;\n        if (!board.make_move(selected, undo)) return 2;\n        ++ply;\n        std::cout << \"PV_PLY \" << ply << \" move=\" << text << \" dtm_remaining=\" << distance(board)\n                  << \" in_check=\" << board.in_check() << \" legal_moves=\" << board.legal_moves().size()\n                  << \" fen=\" << board.fen() << '\\n';\n    }\n    std::cout << \"PV_END ply=\" << ply << \" checkmate=\" << (board.in_check() && !board.has_legal_move()) << '\\n';\n}\n",
+  "stderr": ""
+}

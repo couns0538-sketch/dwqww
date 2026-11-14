@@ -1,0 +1,48 @@
+{"n":64,"argv":["rg","-n","kLarge|kMaxClockMs|expect\\(|for \\(|check\\(|grid|mul","/workspace/work/all-run/r3-final-protocol-review/r3-22-time-safety.tests_r3_22-clock_plan_test.cpp.txt"],"cwd":"/workspace/work/dwqww-all","exit":0,"signal":null}
+STDOUT
+20:constexpr std::int64_t kLarge = 1000000000000LL;
+30:[[nodiscard]] bool fits_mul(std::int64_t value, std::int64_t numer) {
+50:    if (!fits_mul(increment, 3) || !fits_mul(increment, kIncPercent) || !fits_mul(available, 4) ||
+51:        !fits_mul(available, kHardPercent)) {
+59:        if (!fits_mul(soft, 4)) return out;
+63:        if (!fits_mul(soft, kHardMultiple)) return out;
+72:void check(std::int64_t time, std::int64_t increment, std::int64_t moves_to_go, std::int64_t overhead, int divisor,
+73:           int inc_percent, int hard_percent, int hard_multiple) {
+80:        hard_multiple == kHardMultiple) {
+82:        if (!fits_mul(inc, 100) || !fits_mul(span, 100)) {
+83:            fail("grid value is outside the clock multiply contract time=" + std::to_string(time));
+88:        forge::plan_clock_budget(time, increment, moves_to_go, overhead, divisor, inc_percent, hard_percent, hard_multiple);
+100:        hard_multiple != kHardMultiple) {
+122:void expect(std::int64_t time, std::int64_t increment, std::int64_t moves_to_go, std::int64_t overhead,
+124:    check(time, increment, moves_to_go, overhead, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+135:    for (int i = 0; i < count; ++i) {
+144:    static_assert(forge::kMaxClockMs <= std::numeric_limits<std::int64_t>::max() / 150);
+145:    static_assert(forge::kMaxClockMs <= std::numeric_limits<std::int64_t>::max() / 100);
+147:    expect(0, 0, 0, 10, 0, 0, true, "zero clock, overhead 10");
+148:    expect(5, 0, 0, 50, 0, 0, true, "5 ms clock, overhead 50");
+149:    expect(9, 0, 0, 10, 0, 0, true, "one under overhead");
+150:    expect(10, 0, 0, 10, 0, 0, true, "clock equal to overhead");
+151:    expect(0, 0, 0, 0, 0, 0, true, "zero clock and zero overhead");
+152:    expect(11, 0, 0, 10, 1, 1, false, "one millisecond usable");
+153:    expect(1, 0, 0, 0, 1, 1, false, "one millisecond and no overhead");
+154:    expect(100, 0, 0, 10, 4, 20, false, "sudden death, no increment");
+155:    expect(100, 2000, 0, 10, 54, 54, false, "increment pulled soft down to hard");
+156:    expect(60000, 100, 0, 10, 2801, 14005, false, "ordinary minute plus increment");
+157:    expect(10000, 0, 40, 10, 243, 972, false, "moves-to-go 40");
+158:    expect(1000, 5000, 1, 10, 792, 792, false, "moves-to-go with a large increment");
+159:    expect(5000, 100, 49, 10, 174, 696, false, "moves-to-go just under the cap");
+160:    expect(5000, 100, 50, 10, 172, 688, false, "moves-to-go at the cap");
+161:    expect(5000, 100, 51, 10, 172, 688, false, "moves-to-go just over the cap");
+162:    expect(10000, 100, 0, 10, 529, 2645, false, "increment that still fits under hard");
+167:        forge::plan_clock_budget(5000, 100, kLarge, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+169:        forge::plan_clock_budget(5000, 100, forge::kMaxClockMs, 10, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+222:    const std::int64_t bases[] = {0, 1, 9, 10, 11, 50, 1000, kLarge, forge::kMaxClockMs};
+223:    for (const std::int64_t overhead : bases) {
+231:        add_point(points, count, kLarge);
+232:        add_point(points, count, forge::kMaxClockMs);
+233:        for (int t = 0; t < count; ++t) {
+234:            for (int i = 0; i < count; ++i) {
+235:                for (int m = 0; m < count; ++m) {
+236:                    check(points[t], points[i], points[m], overhead, kDivisor, kIncPercent, kHardPercent, kHardMultiple);
+
+STDERR

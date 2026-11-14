@@ -1,0 +1,173 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <array>
+    5 #include <cstdint>
+    6 #include <iostream>
+    7 #include <string_view>
+    8 #include <vector>
+    9 
+   10 namespace {
+   11 
+   12 constexpr std::uint64_t Bench11Off = 312866;
+   13 constexpr std::uint64_t Bench13Off = 862329;
+   14 constexpr std::uint64_t Perft5 = 4865609;
+   15 
+   16 constexpr std::array<std::string_view, 8> BenchFens{
+   17     forge::Board::StandardStartFen,
+   18     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+   19     "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+   20     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+   21     "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+   22     "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+   23     "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+   24     "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+   25 };
+   26 
+   27 std::uint64_t bench_nodes(int depth) {
+   28     std::uint64_t total = 0;
+   29     forge::Searcher searcher(16, 1);
+   30     for (const std::string_view fen : BenchFens) {
+   31         forge::Board board;
+   32         if (!board.set_fen(fen)) return 0;
+   33         forge::SearchLimits limits;
+   34         limits.depth = depth;
+   35         searcher.clear();
+   36         total += searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive).nodes;
+   37     }
+   38     return total;
+   39 }
+   40 
+   41 bool move_is_legal(const forge::Board& board, const forge::Move& move) {
+   42     if (move.is_none()) return false;
+   43     const forge::MoveList legal = board.legal_moves();
+   44     for (const forge::Move candidate : legal) {
+   45         if (candidate == move) return board.is_legal(move);
+   46     }
+   47     return false;
+   48 }
+   49 
+   50 std::vector<forge::Board> two_hundred_positions() {
+   51     std::vector<forge::Board> positions;
+   52     positions.reserve(200);
+   53     forge::Board board;
+   54     if (!board.set_fen(forge::Board::StandardStartFen)) return positions;
+   55     std::uint64_t rng = 0xA11CE5EEDULL;
+   56     auto step = [&]() {
+   57         rng = rng * 0xD1B54A32D192ED03ULL + 0x94D049BB133111EBULL;
+   58         rng ^= rng >> 29U;
+   59         return rng;
+   60     };
+   61     for (int guard = 0; positions.size() < 200 && guard < 4000; ++guard) {
+   62         const forge::MoveList legal = board.legal_moves();
+   63         if (legal.empty() || board.halfmove_clock() >= 80) {
+   64             if (!board.set_fen(forge::Board::StandardStartFen)) break;
+   65             continue;
+   66         }
+   67         positions.push_back(board);
+   68         const forge::Move chosen = legal[static_cast<std::size_t>(step() % legal.size())];
+   69         forge::Undo undo;
+   70         if (!board.make_move(chosen, undo)) {
+   71             if (!board.set_fen(forge::Board::StandardStartFen)) break;
+   72         }
+   73     }
+   74     return positions;
+   75 }
+   76 
+   77 int search_two_hundred() {
+   78     const std::vector<forge::Board> positions = two_hundred_positions();
+   79     if (positions.size() != 200) {
+   80         std::cerr << "FAIL built " << positions.size() << " positions\n";
+   81         return 1;
+   82     }
+   83     forge::Searcher searcher(16, 1);
+   84     int illegal = 0;
+   85     for (std::size_t i = 0; i < positions.size(); ++i) {
+   86         searcher.clear();
+   87         forge::SearchLimits limits;
+   88         limits.depth = 10;
+   89         const forge::SearchInfo info =
+   90             searcher.search(positions[i], limits, false, forge::Searcher::TTAccess::Exclusive);
+   91         if (!move_is_legal(positions[i], info.best_move)) {
+   92             std::cerr << "FAIL illegal move index " << i << " move "
+   93                       << forge::Board::move_to_uci(info.best_move) << std::endl;
+   94             ++illegal;
+   95             break;
+   96         }
+   97         if ((i + 1) % 25 == 0) {
+   98             std::cout << "depth10 progress " << (i + 1) << std::endl;
+   99         }
+  100     }
+  101     std::cout << "depth10 searches " << positions.size() << " illegal " << illegal << std::endl;
+  102     return illegal;
+  103 }
+  104 
+  105 } // namespace
+  106 
+  107 int main() {
+  108     int failures = 0;
+  109     forge::tune::AspArmLate = false;
+  110 
+  111     const std::uint64_t b11 = bench_nodes(11);
+  112     const std::uint64_t b13 = bench_nodes(13);
+  113     forge::Board start;
+  114     const bool fen_ok = start.set_fen(forge::Board::StandardStartFen);
+  115     const std::uint64_t perft = fen_ok ? start.perft(5) : 0;
+  116     std::cout << "defaults bench11 " << b11 << " bench13 " << b13 << " perft5 " << perft << std::endl;
+  117     if (b11 != Bench11Off || b13 != Bench13Off || perft != Perft5) {
+  118         std::cerr << "FAIL default bench or perft\n";
+  119         ++failures;
+  120     }
+  121 
+  122     forge::tune::AspArmLate = true;
+  123     const std::uint64_t b13_on = bench_nodes(13);
+  124     std::cout << "asparmlate bench13 " << b13_on << std::endl;
+  125     if (b13_on == 0 || b13_on == Bench13Off) {
+  126         std::cerr << "FAIL bench 13 did not change with AspArmLate on\n";
+  127         ++failures;
+  128     }
+  129 
+  130     failures += search_two_hundred();
+  131 
+  132     // Short clock searches exercise the soft-time gate with the option on.
+  133     // Only legality is checked; the clock makes node totals vary.
+  134     {
+  135         forge::Searcher searcher(16, 1);
+  136         const std::vector<forge::Board> positions = two_hundred_positions();
+  137         constexpr int samples = 20;
+  138         int illegal = 0;
+  139         for (int i = 0; i < samples; ++i) {
+  140             searcher.clear();
+  141             forge::SearchLimits limits;
+  142             limits.time_ms = 40;
+  143             limits.increment_ms = 0;
+  144             const forge::SearchInfo info = searcher.search(
+  145                 positions[static_cast<std::size_t>(i)], limits, false,
+  146                 forge::Searcher::TTAccess::Exclusive);
+  147             if (!move_is_legal(positions[static_cast<std::size_t>(i)], info.best_move)) {
+  148                 std::cerr << "FAIL timed illegal sample " << i << " move "
+  149                           << forge::Board::move_to_uci(info.best_move) << std::endl;
+  150                 ++illegal;
+  151                 break;
+  152             }
+  153         }
+  154         std::cout << "timed samples " << samples << " illegal " << illegal << std::endl;
+  155         failures += illegal;
+  156     }
+  157 
+  158     forge::tune::AspArmLate = false;
+  159     const std::uint64_t b13_again = bench_nodes(13);
+  160     std::cout << "defaults_after bench13 " << b13_again << std::endl;
+  161     if (b13_again != Bench13Off) {
+  162         std::cerr << "FAIL bench 13 stayed changed after AspArmLate off\n";
+  163         ++failures;
+  164     }
+  165 
+  166     if (failures != 0) {
+  167         std::cerr << "FAIL asparmlate_test failures " << failures << '\n';
+  168         return 1;
+  169     }
+  170     std::cout << "PASS asparmlate_test" << std::endl;
+  171     return 0;
+  172 }
+  173 

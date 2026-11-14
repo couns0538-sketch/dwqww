@@ -1,0 +1,16 @@
+{"n":33,"argv":["rg","-n","saveJson|finishTournament|tournament_finished|setFinishReason","app/src/matchmaking","app/src/core/events"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-033.txt"}
+STDOUT
+app/src/core/events/events.hpp:31:    static void setFinishReason(const std::string& reason);
+app/src/core/events/events.hpp:34:    // Emits tournament_finished (at most once) and closes the stream.
+app/src/core/events/events.hpp:35:    static void finishTournament(const std::string& reason, bool resumable);
+app/src/core/events/events.cpp:103:void EventWriter::setFinishReason(const std::string& reason) {
+app/src/core/events/events.cpp:113:void EventWriter::finishTournament(const std::string& reason, bool resumable) {
+app/src/core/events/events.cpp:118:        event["event"]     = "tournament_finished";
+app/src/matchmaking/tournament/base/tournament.cpp:90:    saveJson();
+app/src/matchmaking/tournament/base/tournament.cpp:160:void BaseTournament::saveJson() {
+app/src/matchmaking/tournament/base/tournament.hpp:54:    void saveJson();
+app/src/matchmaking/tournament/tournament_manager.cpp:97:    events::EventWriter::finishTournament(reason, resumable);
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:47:            saveJson();
+app/src/matchmaking/tournament/roundrobin/roundrobin.cpp:156:            events::EventWriter::setFinishReason(sprtResult == SPRT_H0 ? "sprt_h0" : "sprt_h1");
+
+STDERR

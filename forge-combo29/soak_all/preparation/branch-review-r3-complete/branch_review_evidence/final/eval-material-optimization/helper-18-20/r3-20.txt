@@ -1,0 +1,769 @@
++ git show --format=fuller --no-patch 7fef1fc378b6c966649315c11573bbdc1529435e
+commit 7fef1fc378b6c966649315c11573bbdc1529435e
+Author:     Cursor Agent <cursoragent@cursor.com>
+AuthorDate: Sat Nov 14 14:19:01 2026 +0000
+Commit:     Cursor Agent <cursoragent@cursor.com>
+CommitDate: Sat Nov 14 14:19:01 2026 +0000
+
+    Add the repeated bench 16 timings.
+    
+    Pins were checked again on the same commit. Two more alternating
+    five-run tables are recorded. The search is unchanged.
+    
+    Co-authored-by: couns0538 <couns0538@gmail.com>
++ git diff e04556ddc3a430b2e751159b0d46111ef56c8b89 7fef1fc378b6c966649315c11573bbdc1529435e -- forge-combo29/include forge-combo29/src
+diff --git a/forge-combo29/include/forge/bitboard.hpp b/forge-combo29/include/forge/bitboard.hpp
+index 4b2b8f54..ba7361ca 100644
+--- a/forge-combo29/include/forge/bitboard.hpp
++++ b/forge-combo29/include/forge/bitboard.hpp
+@@ -10,6 +10,14 @@
+ #ifndef FORGE_SPD_SLIDER_PEXT
+ #define FORGE_SPD_SLIDER_PEXT 0
+ #endif
++// The portable build leaves the multiply indexer selected so a CPU without BMI2
++// still compiles. x86-64-v3 already has BMI2, and PEXT indexes the same masks
++// to the same attack sets (only the table order changes) without searching for
++// magics at startup. Take that indexer whenever the compiler target has BMI2.
++#if defined(__BMI2__) && FORGE_SPD_SLIDER_PEXT == 0
++#undef FORGE_SPD_SLIDER_PEXT
++#define FORGE_SPD_SLIDER_PEXT 1
++#endif
+ #if FORGE_SPD_SLIDER_PEXT
+ #if !defined(__BMI2__)
+ #error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
+@@ -177,6 +185,10 @@ struct Magic {
+ 
+ extern std::array<Magic, 64> RookMagics;
+ extern std::array<Magic, 64> BishopMagics;
++// Empty-board rays. bishop(square, 0) and rook(square, 0) are constant per square;
++// the search uses them as pin and discovered-attack masks.
++extern std::array<Bitboard, 64> RookRay;
++extern std::array<Bitboard, 64> BishopRay;
+ 
+ [[nodiscard]] inline Bitboard knight(int square) { return KnightTable[static_cast<std::size_t>(square)]; }
+ [[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }
+@@ -194,6 +206,8 @@ extern std::array<Magic, 64> BishopMagics;
+ [[nodiscard]] inline Bitboard queen(int square, Bitboard occupancy) {
+     return bishop(square, occupancy) | rook(square, occupancy);
+ }
++[[nodiscard]] inline Bitboard rook_ray(int square) { return RookRay[static_cast<std::size_t>(square)]; }
++[[nodiscard]] inline Bitboard bishop_ray(int square) { return BishopRay[static_cast<std::size_t>(square)]; }
+ [[nodiscard]] inline Bitboard between(int a, int b) {
+     return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
+ }
+diff --git a/forge-combo29/include/forge/board.hpp b/forge-combo29/include/forge/board.hpp
+index 5f89a460..1c7a2b5e 100644
+--- a/forge-combo29/include/forge/board.hpp
++++ b/forge-combo29/include/forge/board.hpp
+@@ -285,6 +285,8 @@ private:
+     mutable KingLines king_lines_;
+     void refresh_king_lines() const;
+ #endif
++    [[nodiscard]] bool is_legal_complete(const Move& move) const;
++    [[nodiscard]] bool gives_check_complete(const Move& move) const;
+ 
+     void put_piece(Piece piece, int square);
+     void remove_piece(int square);
+@@ -314,4 +316,31 @@ inline constexpr std::array<std::uint8_t, 16> PieceTypeTable{0, 1, 2, 3, 4, 5, 6
+     return static_cast<Piece>((color == White ? 0 : 6) + type);
+ }
+ 
++// The usual move is not a check, not en passant, and not a king move. That answer
++// is a pin test. The rare cases stay out of line in the board translation unit.
++inline bool Board::is_legal(const Move& move) const {
++#if FORGE_SPD_KING_LINES
++    const Piece moving = squares_[move.from];
++    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
++        if (!king_lines_.valid) refresh_king_lines();
++        const int king = king_squares_[static_cast<std::size_t>(side_)];
++        return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
++    }
++#endif
++    return is_legal_complete(move);
++}
++
++inline bool Board::gives_check(const Move& move) const {
++#if FORGE_SPD_KING_LINES
++    if ((move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U) {
++        if (!king_lines_.valid) refresh_king_lines();
++        const int type = piece_type(squares_[move.from]);
++        const int king = king_squares_[static_cast<std::size_t>(opposite(side_))];
++        if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;
++        return (king_lines_.discoverers & square_bb(move.from)) != 0 && !attacks::aligned(king, move.from, move.to);
++    }
++#endif
++    return gives_check_complete(move);
++}
++
+ } // namespace forge
+diff --git a/forge-combo29/src/bitboard.cpp b/forge-combo29/src/bitboard.cpp
+index 383196fd..fea48088 100644
+--- a/forge-combo29/src/bitboard.cpp
++++ b/forge-combo29/src/bitboard.cpp
+@@ -18,6 +18,8 @@ std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask{};
+ std::array<Bitboard, 64> KingZoneMask{};
+ std::array<Magic, 64> RookMagics{};
+ std::array<Magic, 64> BishopMagics{};
++std::array<Bitboard, 64> RookRay{};
++std::array<Bitboard, 64> BishopRay{};
+ 
+ namespace {
+ 
+@@ -179,6 +181,11 @@ void init() {
+ 
+     init_magics(true, RookAttackTable.data(), RookMagics);
+     init_magics(false, BishopAttackTable.data(), BishopMagics);
++    for (int square = 0; square < 64; ++square) {
++        const std::size_t s = static_cast<std::size_t>(square);
++        RookRay[s] = rook(square, 0);
++        BishopRay[s] = bishop(square, 0);
++    }
+ 
+     for (int a = 0; a < 64; ++a) {
+         for (int b = 0; b < 64; ++b) {
+diff --git a/forge-combo29/src/board.cpp b/forge-combo29/src/board.cpp
+index c6a2cfe5..876b0ab4 100644
+--- a/forge-combo29/src/board.cpp
++++ b/forge-combo29/src/board.cpp
+@@ -60,8 +60,8 @@ int promotion_recapture_exchange(const Board& board, const Move& move, int captu
+                 (attacks::knight(king) & board.pieces(enemy, Knight) & live) != 0 ||
+                 (attacks::king(king) & board.pieces(enemy, King) & live) != 0;
+             Bitboard pinners =
+-                (attacks::bishop(king, 0) & ((board.pieces(enemy, Bishop) & live) | queens)) |
+-                (attacks::rook(king, 0) & ((board.pieces(enemy, Rook) & live) | queens));
++                (attacks::bishop_ray(king) & ((board.pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook_ray(king) & ((board.pieces(enemy, Rook) & live) | queens));
+             Bitboard forbidden = 0;
+             while (!checked && pinners != 0) {
+                 const int pinner = pop_lsb(pinners);
+@@ -400,11 +400,19 @@ std::string Board::fen() const {
+     return out.str();
+ }
+ 
++namespace {
++// Visible in this file so see_ge can fold the attacker gather into its loop.
++[[gnu::always_inline]] inline Bitboard attackers_to_fast(const Board& board, int square, Bitboard occupancy) {
++    const Bitboard queens = board.pieces(Queen);
++    return (attacks::pawn(Black, square) & board.pieces(WP)) | (attacks::pawn(White, square) & board.pieces(BP)) |
++           (attacks::knight(square) & board.pieces(Knight)) | (attacks::king(square) & board.pieces(King)) |
++           (attacks::bishop(square, occupancy) & (board.pieces(Bishop) | queens)) |
++           (attacks::rook(square, occupancy) & (board.pieces(Rook) | queens));
++}
++}  // namespace
++
+ Bitboard Board::attackers_to(int square, Bitboard occupancy) const {
+-    return (attacks::pawn(Black, square) & pieces(WP)) | (attacks::pawn(White, square) & pieces(BP)) |
+-           (attacks::knight(square) & pieces(Knight)) | (attacks::king(square) & pieces(King)) |
+-           (attacks::bishop(square, occupancy) & (pieces(Bishop) | pieces(Queen))) |
+-           (attacks::rook(square, occupancy) & (pieces(Rook) | pieces(Queen)));
++    return attackers_to_fast(*this, square, occupancy);
+ }
+ 
+ bool Board::square_attacked_with_occupancy(int square, Color by, Bitboard occupancy, Bitboard removed) const {
+@@ -438,13 +446,15 @@ Bitboard Board::compute_checkers() const {
+ // captures and quiets interleaved, then castling. Quiets emits the pushes,
+ // then the same piece loops over the empty squares only, then castling: the
+ // subsequence of All that the move picker's filter keeps, in the same order.
+-void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+-    const bool captures_only = mode == GenMode::Captures;
+-    const bool quiets_only = mode == GenMode::Quiets;
+-    const Color us = side_;
++// Mode is a compile-time constant so the capture/quiet branches fold away.
++template <Board::GenMode Mode>
++void fill_pseudo_legal(const Board& board, MoveList& moves) {
++    constexpr bool captures_only = Mode == Board::GenMode::Captures;
++    constexpr bool quiets_only = Mode == Board::GenMode::Quiets;
++    const Color us = board.side_to_move();
+     const Color them = opposite(us);
+-    const Bitboard own = occupied(us);
+-    const Bitboard enemy = occupied(them);
++    const Bitboard own = board.occupied(us);
++    const Bitboard enemy = board.occupied(them);
+     const Bitboard occ = own | enemy;
+     const Bitboard empty = ~occ;
+     const int up = pawn_push_delta(us);
+@@ -461,13 +471,13 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+         }
+     };
+ 
+-    const Bitboard pawns = pieces(us, Pawn);
++    const Bitboard pawns = board.pieces(us, Pawn);
+     const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
+     const Bitboard third = us == White ? Rank3BB : Rank6BB;
+     const Bitboard promoting = pawns & seventh;
+     const Bitboard regular = pawns & ~seventh;
+ 
+-    if (!captures_only) {
++    if constexpr (!captures_only) {
+         Bitboard single = pawn_push(us, regular) & empty;
+         Bitboard twice = pawn_push(us, single & third) & empty;
+         while (single != 0) {
+@@ -479,7 +489,7 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+             push(to - 2 * up, to, DoublePush);
+         }
+     }
+-    if (!quiets_only) {
++    if constexpr (!quiets_only) {
+         Bitboard promo_push = pawn_push(us, promoting) & empty;
+         while (promo_push != 0) {
+             const int to = pop_lsb(promo_push);
+@@ -496,10 +506,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+                 else push(from, to, Capture);
+             }
+         }
+-        if (ep_square_ >= 0) {
+-            Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
++        if (board.ep_square() >= 0) {
++            const int ep_square = board.ep_square();
++            Bitboard ep_attackers = attacks::pawn(them, ep_square) & pawns;
+             while (ep_attackers != 0) {
+-                push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
++                push(pop_lsb(ep_attackers), ep_square, static_cast<std::uint8_t>(Capture | EnPassant));
+             }
+         }
+     }
+@@ -508,56 +519,70 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+     auto emit = [&](int from, Bitboard targets) {
+         while (targets != 0) {
+             const int to = pop_lsb(targets);
+-            push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
++            std::uint8_t flags = Quiet;
++            if constexpr (captures_only) flags = Capture;
++            else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;
++            push(from, to, flags);
+         }
+     };
+-    Bitboard knights = pieces(us, Knight);
++    Bitboard knights = board.pieces(us, Knight);
+     while (knights != 0) {
+         const int from = pop_lsb(knights);
+         emit(from, attacks::knight(from) & targets_mask);
+     }
+-    Bitboard bishops = pieces(us, Bishop);
++    Bitboard bishops = board.pieces(us, Bishop);
+     while (bishops != 0) {
+         const int from = pop_lsb(bishops);
+         emit(from, attacks::bishop(from, occ) & targets_mask);
+     }
+-    Bitboard rooks = pieces(us, Rook);
++    Bitboard rooks = board.pieces(us, Rook);
+     while (rooks != 0) {
+         const int from = pop_lsb(rooks);
+         emit(from, attacks::rook(from, occ) & targets_mask);
+     }
+-    Bitboard queens = pieces(us, Queen);
++    Bitboard queens = board.pieces(us, Queen);
+     while (queens != 0) {
+         const int from = pop_lsb(queens);
+         emit(from, attacks::queen(from, occ) & targets_mask);
+     }
+-    const int king = king_square(us);
++    const int king = board.king_square(us);
+     emit(king, attacks::king(king) & targets_mask);
+ 
+-    if (!captures_only && checkers_ == 0) {
+-        if (us == White && king == 4) {
+-            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
+-                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
+-                push(4, 6, KingCastle);
+-            }
+-            if ((castling_ & WhiteQueenSide) != 0U &&
+-                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
+-                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
+-                push(4, 2, QueenCastle);
+-            }
+-        } else if (us == Black && king == 60) {
+-            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
+-                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
+-                push(60, 62, KingCastle);
+-            }
+-            if ((castling_ & BlackQueenSide) != 0U &&
+-                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
+-                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
+-                push(60, 58, QueenCastle);
++    if constexpr (!captures_only) {
++        if (board.checkers() == 0) {
++            const std::uint8_t rights = board.castling_rights();
++            if (us == White && king == 4) {
++                if ((rights & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
++                    board.piece_at(7) == WR && !board.square_attacked(5, Black) && !board.square_attacked(6, Black)) {
++                    push(4, 6, KingCastle);
++                }
++                if ((rights & WhiteQueenSide) != 0U &&
++                    (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
++                    board.piece_at(0) == WR && !board.square_attacked(3, Black) && !board.square_attacked(2, Black)) {
++                    push(4, 2, QueenCastle);
++                }
++            } else if (us == Black && king == 60) {
++                if ((rights & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
++                    board.piece_at(63) == BR && !board.square_attacked(61, White) && !board.square_attacked(62, White)) {
++                    push(60, 62, KingCastle);
++                }
++                if ((rights & BlackQueenSide) != 0U &&
++                    (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
++                    board.piece_at(56) == BR && !board.square_attacked(59, White) && !board.square_attacked(58, White)) {
++                    push(60, 58, QueenCastle);
++                }
+             }
+         }
+     }
+ }
++
++void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
++    switch (mode) {
++    case GenMode::Captures: fill_pseudo_legal<GenMode::Captures>(*this, moves); break;
++    case GenMode::Quiets: fill_pseudo_legal<GenMode::Quiets>(*this, moves); break;
++    case GenMode::All: fill_pseudo_legal<GenMode::All>(*this, moves); break;
++    }
++}
+ #else
+ void Board::generate_pseudo_legal(MoveList& moves, bool captures_only) const {
+     const Color us = side_;
+@@ -713,7 +738,7 @@ bool Board::has_legal_move() const {
+ }
+ 
+ #if FORGE_SPD_KING_LINES
+-bool Board::is_legal(const Move& move) const {
++bool Board::is_legal_complete(const Move& move) const {
+     const Color us = side_;
+     const Piece moving = squares_[move.from];
+     // Not in check, not en passant, not a king move: the own king can only
+@@ -744,7 +769,7 @@ bool Board::is_legal(const Move& move) const {
+     return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
+ }
+ #else
+-bool Board::is_legal(const Move& move) const {
++bool Board::is_legal_complete(const Move& move) const {
+     const Color us = side_;
+     const Piece moving = squares_[move.from];
+     Bitboard occupancy = occupied() & ~square_bb(move.from);
+@@ -840,7 +865,7 @@ bool Board::is_pseudo_legal(const Move& move) const {
+ }
+ 
+ #if FORGE_SPD_KING_LINES
+-bool Board::gives_check(const Move& move) const {
++bool Board::gives_check_complete(const Move& move) const {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const int ksq = king_square(them);
+@@ -887,7 +912,7 @@ namespace {
+ // given rook-like / bishop-like sliders (the lock's see_ge uses the same walk
+ // over the empty-board rays and the between masks).
+ [[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
+-    Bitboard snipers = (attacks::rook(king, 0) & rook_like) | (attacks::bishop(king, 0) & bishop_like);
++    Bitboard snipers = (attacks::rook_ray(king) & rook_like) | (attacks::bishop_ray(king) & bishop_like);
+     Bitboard blockers = 0;
+     while (snipers != 0) {
+         const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
+@@ -918,7 +943,7 @@ void Board::refresh_king_lines() const {
+     lines.valid = true;
+ }
+ #else
+-bool Board::gives_check(const Move& move) const {
++bool Board::gives_check_complete(const Move& move) const {
+     const Color us = side_;
+     const Color them = opposite(us);
+     const int ksq = king_square(them);
+@@ -1065,7 +1090,16 @@ bool Board::make_move(const Move& move, Undo& undo) {
+     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
+         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
+     }
+-    checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
++    // Checkers are the mover's attacks on the opponent king. One side only:
++    // the other colour cannot be the checker, so it is not consulted.
++    const int their_king = king_square(them);
++    const Bitboard occ_now = occupied();
++    const Bitboard our_queens = pieces(us, Queen);
++    checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
++                (attacks::knight(their_king) & pieces(us, Knight)) |
++                (attacks::king(their_king) & pieces(us, King)) |
++                (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
++                (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
+     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
+     key_history_.push_back(key_);
+ #if FORGE_SPD_KING_LINES
+@@ -1255,7 +1289,7 @@ bool Board::see_ge(const Move& move, int threshold) const {
+ 
+     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
+     Color stm = us;
+-    Bitboard attackers = attackers_to(to, occupancy);
++    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
+     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
+     const Bitboard lines = pieces(Rook) | pieces(Queen);
+     int result = 1;
+@@ -1285,8 +1319,8 @@ bool Board::see_ge(const Move& move, int threshold) const {
+                 contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
+                                 (attacks::knight(king) & pieces(enemy, Knight)) |
+                                 (attacks::king(king) & pieces(enemy, King));
+-                snipers[side] = (attacks::bishop(king, 0) & (pieces(enemy, Bishop) | queens)) |
+-                                (attacks::rook(king, 0) & (pieces(enemy, Rook) | queens));
++                snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) | queens)) |
++                                (attacks::rook_ray(king) & (pieces(enemy, Rook) | queens));
+                 prepared |= 1U << side;
+             }
+             const Bitboard live = occupancy & ~square_bb(to);
+@@ -1315,8 +1349,8 @@ bool Board::see_ge(const Move& move, int threshold) const {
+                 (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
+                 (attacks::king(king) & pieces(enemy, King) & live) != 0;
+             Bitboard pinners =
+-                (attacks::bishop(king, 0) & ((pieces(enemy, Bishop) & live) | queens)) |
+-                (attacks::rook(king, 0) & ((pieces(enemy, Rook) & live) | queens));
++                (attacks::bishop_ray(king) & ((pieces(enemy, Bishop) & live) | queens)) |
++                (attacks::rook_ray(king) & ((pieces(enemy, Rook) & live) | queens));
+             Bitboard forbidden = 0;
+             while (!checked && pinners != 0) {
+                 const int pinner = pop_lsb(pinners);
+diff --git a/forge-combo29/src/search.cpp b/forge-combo29/src/search.cpp
+index 80dd69a6..d919cbac 100644
+--- a/forge-combo29/src/search.cpp
++++ b/forge-combo29/src/search.cpp
+@@ -7,6 +7,9 @@
+ #include <iostream>
+ #include <limits>
+ #include <optional>
++#if defined(__AVX2__)
++#include <immintrin.h>
++#endif
+ 
+ // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
+ // losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
+@@ -280,7 +283,10 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
+     // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
+     // back a deferred (unlocked) lock, after a thread_local lookup per call.
+-    const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
++    std::unique_lock<std::mutex> lock;
++    if constexpr (TakeLock) lock = lock_stripe(index);
++    const std::uint32_t key32 = verification_key(key);
++    const std::uint8_t generation = generation_;
+     auto snapshot = [&](const TTEntry& entry, bool hit) {
+         TTProbe result;
+         result.entry = entry;
+@@ -292,24 +298,37 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
+         result.key_ = key;
+         return result;
+     };
+-    const std::uint32_t key32 = verification_key(key);
++    // Four slots. Keep this a short loop: fully unrolling the replacement
++    // choice spilled registers and made the probe slower.
++    TTEntry* found = nullptr;
++#pragma GCC unroll 1
+     for (TTEntry& entry : cluster.entries) {
+         if (entry.key32 == key32 && entry.occupied()) {
+-            // Reused entries remain recent even when search returns a TT cutoff.
+-            if (entry.generation() != generation_) {
+-                entry.gen_bound = static_cast<std::uint8_t>(
+-                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
+-            }
+-            return snapshot(entry, true);
++            found = &entry;
++            break;
+         }
+     }
+-    const TTEntry* replace = &cluster.entries[0];
+-    auto relative_age = [this](const TTEntry& entry) {
+-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
+-    };
+-    for (const TTEntry& entry : cluster.entries) {
++    if (found != nullptr) {
++        // Reused entries remain recent even when search returns a TT cutoff.
++        if (found->generation() != generation) {
++            found->gen_bound = static_cast<std::uint8_t>(
++                (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
++        }
++        return snapshot(*found, true);
++    }
++    TTEntry* replace = &cluster.entries[0];
++    int replace_score = replace->occupied()
++                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
++                            : 0;
++#pragma GCC unroll 1
++    for (TTEntry& entry : cluster.entries) {
+         if (!entry.occupied()) return snapshot(entry, false);
+-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
++        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
++        const int score = entry.depth - 4 * age;
++        if (score < replace_score) {
++            replace = &entry;
++            replace_score = score;
++        }
+     }
+     return snapshot(*replace, false);
+ }
+@@ -578,6 +597,11 @@ private:
+ #endif
+     std::size_t index_ = 0;
+     std::size_t count_ = 0;
++    // Leftmost highest score of the list just built. The first pick is that
++    // move; later picks scan, because swapping the winner changes tie order.
++    bool seeded_ = false;
++    std::size_t seeded_at_ = 0;
++    int seeded_score_ = 0;
+ #if FORGE_SDK_BADCAP_PREFIX
+     // Losing captures live in moves_[0, bad_count_).
+ #elif FORGE_SPD_NO_ZERO_MOVELISTS
+@@ -652,16 +676,51 @@ private:
+ 
+     // Most nodes need only the first few moves: select those on demand and
+     // sort the remainder once if the search gets that far.
++    // The selection keeps the lowest index on a tie (`>`), which is what the
++    // following move order depends on. Chunks of four compare inside the chunk
++    // first so the running best is not a loop-carried load on every move.
+     [[nodiscard]] Move pick_best() {
+         if (!sorted_) {
+             if (index_ - list_start_ < 4) {
++                if (seeded_ && index_ == list_start_) {
++                    if (seeded_at_ != index_) std::swap(moves_[index_], moves_[seeded_at_]);
++                    seeded_ = false;
++                    return moves_[index_++].move;
++                }
+                 std::size_t best = index_;
+-                for (std::size_t i = index_ + 1; i < count_; ++i) {
+-                    if (moves_[i].score > moves_[best].score) best = i;
++                int best_score = moves_[best].score;
++                std::size_t i = index_ + 1;
++                const std::size_t n = count_;
++#if defined(__AVX2__)
++                static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
++                while (i + 4 <= n) {
++                    const __m256i packed = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&moves_[i]));
++                    const __m256i lanes = _mm256_setr_epi32(1, 3, 5, 7, 0, 2, 4, 6);
++                    const __m128i scores = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(packed, lanes));
++                    const __m128i swap_halves = _mm_shuffle_epi32(scores, _MM_SHUFFLE(1, 0, 3, 2));
++                    __m128i folded = _mm_max_epi32(scores, swap_halves);
++                    folded = _mm_max_epi32(folded, _mm_shuffle_epi32(folded, _MM_SHUFFLE(2, 3, 0, 1)));
++                    const int chunk_max = _mm_cvtsi128_si32(folded);
++                    if (chunk_max > best_score) {
++                        const __m128i equal = _mm_cmpeq_epi32(scores, _mm_set1_epi32(chunk_max));
++                        const int mask = _mm_movemask_ps(_mm_castsi128_ps(equal));
++                        best = i + static_cast<std::size_t>(__builtin_ctz(mask));
++                        best_score = chunk_max;
++                    }
++                    i += 4;
++                }
++#endif
++                for (; i < n; ++i) {
++                    const int score = moves_[i].score;
++                    if (score > best_score) {
++                        best_score = score;
++                        best = i;
++                    }
+                 }
+-                std::swap(moves_[index_], moves_[best]);
++                if (best != index_) std::swap(moves_[index_], moves_[best]);
+             } else {
+-                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
++                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
++                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+                           [](const Scored& a, const Scored& b) { return a.score > b.score; });
+                 sorted_ = true;
+             }
+@@ -669,6 +728,15 @@ private:
+         return moves_[index_++].move;
+     }
+ 
++    void push_scored(Move move, int score) {
++        if (!seeded_ || score > seeded_score_) {
++            seeded_ = true;
++            seeded_score_ = score;
++            seeded_at_ = count_;
++        }
++        moves_[count_++] = Scored{move, score};
++    }
++
+     void sort_moves() {
+         list_start_ = index_;
+         sorted_ = false;
+@@ -688,6 +756,7 @@ private:
+         board_.generate_pseudo_legal(buffer_, true);
+         index_ = 0;
+         count_ = 0;
++        seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const CaptureHistory& capture_history = *searcher_.capture_history_;
+ #endif
+@@ -702,7 +771,7 @@ private:
+             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
+ #endif
+             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
+-            moves_[count_++] = Scored{move, score};
++            push_scored(move, score);
+         }
+         sort_moves();
+     }
+@@ -716,16 +785,17 @@ private:
+         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
+         index_ = quiet_start();
+         count_ = quiet_start();
++        seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+-            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++            push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+         for (const Move move : buffer_) {
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+-            moves_[count_++] = Scored{move, score};
++            push_scored(move, score);
+         }
+ #endif
+         sort_moves();
+@@ -735,18 +805,19 @@ private:
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = quiet_start();
+         count_ = quiet_start();
++        seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+-            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
++            push_scored(move, scorer.score(move, check_squares_));
+         }
+ #else
+         for (const Move move : buffer_) {
+             if (move.is_capture() || move.is_promotion()) continue;
+             int score = searcher_.quiet_history(board_, ss_, move);
+             if (direct_check(move)) score += 12000;
+-            moves_[count_++] = Scored{move, score};
++            push_scored(move, score);
+         }
+ #endif
+         sort_moves();
+@@ -759,6 +830,7 @@ private:
+         board_.generate_pseudo_legal(buffer_, false);
+         index_ = 0;
+         count_ = 0;
++        seeded_ = false;
+ #if FORGE_SEARCH_SPEED2
+         const QuietScorer scorer(board_, searcher_, ss_);
+ #endif
+@@ -774,7 +846,7 @@ private:
+                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
+ #endif
+             }
+-            moves_[count_++] = Scored{move, score};
++            push_scored(move, score);
+         }
+         sort_moves();
+     }
++ git show 7fef1fc378b6c966649315c11573bbdc1529435e:forge-combo29/REPORT_r3_20.md
+# Search plumbing, round 3 agent 20
+
+The search is unchanged. Bench 11, bench 13, and perft 5 from the start position are the same numbers as the base at `e04556dd`. Two disjoint sets of 10,000 positions, each searched at depth 8 with Threads 1, Hash 16, and OwnBook false, returned the same best move, score, and node count.
+
+This is a timing measurement on one machine. It is not a strength result.
+
+## Pins
+
+Printed on the unmodified binary before any edit, and again on the final binary:
+
+| check | before | after |
+| --- | ---: | ---: |
+| bench 11 nodes | 312866 | 312866 |
+| bench 13 nodes | 862329 | 862329 |
+| perft 5 from the start position | 4865609 | 4865609 |
+
+bench 16 nodes stayed 3024920. Perft 4 on the eight bench positions matched the base as well (197281, 4085603, 3269539, 43238, 1635300, 3813973, 24244, 2433324).
+
+## Where the time was
+
+`perf` task-clock on bench 16, one process, the unmodified binary, 3129 samples. Evaluation is listed only so the rest of the ranking is clear. It was not changed.
+
+| share | samples | function |
+| ---: | ---: | --- |
+| 17.03% | 533 | evaluate_position |
+| 11.79% | 369 | nnue::update |
+| 10.10% | 316 | Worker::search |
+| 7.93% | 248 | MovePicker::pick_best |
+| 5.98% | 187 | nnue::evaluate |
+| 5.15% | 161 | generate_pseudo_legal |
+| 5.11% | 160 | MovePicker::next |
+| 3.74% | 117 | see_ge |
+| 3.48% | 109 | corrected_eval |
+| 2.78% | 87 | is_legal |
+| 2.56% | 80 | init_magics |
+| 2.36% | 74 | attackers_to |
+| 1.79% | 56 | TT probe |
+| 1.66% | 52 | refresh_king_lines |
+| 1.57% | 49 | introsort (inside pick_best) |
+| 1.41% | 44 | unmake_move |
+| 1.05% | 33 | make_move |
+| 0.93% | 29 | gives_check |
+| 0.93% | 29 | key_after |
+
+Outside evaluation, the three hottest areas were:
+
+1. Move picker. `pick_best` 7.93%, `next` 5.11%, and the sort it calls 1.57%. `see_ge` (3.74%) is the capture filter inside the picker and is also called from the search.
+2. Move generation. `generate_pseudo_legal` 5.15%, `is_legal` 2.78%, king-line refresh 1.66%, `gives_check` 0.93%, and the magic-number search at startup 2.56%.
+3. Make and unmake. `make_move` 1.05%, `unmake_move` 1.41%, and `attackers_to` 2.36%, which make_move used to find checkers.
+
+The hash probe was next, at 1.79% plus `key_after` at 0.93%.
+
+The same sample of the final binary (3005 samples) still spends most of its time in evaluation. `pick_best` fell from 248 samples to 178. The magic search is gone. `attackers_to` dropped out of the list above 0.7%. `next` rose, because the best score is now recorded while the moves are scored, so that work sits in `next` instead of in a later scan.
+
+## What changed, and where the idea came from
+
+Every change is local to this engine. Nothing was taken from another engine's source, constants, or tables. The profile above is the reason each spot was touched.
+
+Move picker. The first move handed out is the lowest-index move with the strictly highest score. That index is known as soon as the moves are scored, so the first pick no longer walks the list. Later picks still walk, four scores at a time, and a tie still keeps the earlier index. The tail is still `std::sort` with `score >`. A stable insertion sort was tried in its place. Bench 11 moved from 312866 nodes to 292627, so the insertion sort was removed and `std::sort` stayed.
+
+Move generation. Captures, quiets, and the full list are separate compilations of one generator, so the capture-or-quiet flag is fixed in each one. The order of moves is the order the old generator emitted. Slider attacks use the BMI2 indexer that was already in `bitboard.cpp` when the compiler target defines `__BMI2__`. The required build is `-march=x86-64-v3`, which has BMI2. That indexer returns the same attack sets as the multiply magics and does not search for magic numbers at startup. A CPU without BMI2 still gets the multiply indexer. Empty-board rook and bishop rays are constant per square, so they are stored once at startup and read back. They are the same bitboards `rook(square, 0)` and `bishop(square, 0)` already produced, and they are what king-line refresh and the exchange pin test were computing.
+
+Make and unmake. After a move, the checkers are the mover's attacks on the opponent king. The other side's pieces cannot be checkers, so they are not gathered. The bitboard is the one `attackers_to` was masked down to.
+
+Legality and discovered check. The usual question is a pin test or a check-square test on lines that were already built for the position. Those two tests are inlined at the call. Check, en passant, king moves, castling, and promotions still use the full test.
+
+Hash table. The owned probe does not build a stripe lock. The four-entry scan stays a short loop: a matching occupied entry is a hit, the first empty entry is the replacement, and a full cluster keeps the lowest depth-minus-age entry, ties keeping the earlier slot. An earlier fully unrolled form of that choice spilled registers and was slower, so the loop was kept.
+
+No UCI option was added.
+
+## Depth 8
+
+Threads 1, Hash 16, OwnBook false, every other option left at its default. Each position was `ucinewgame`, then `position fen`, then `go depth 8`, and the engine was allowed to finish before the next position.
+
+The positions are random legal walks of 12 to 39 plies from the start position, produced with this engine's own move list. Two seeds, no shared position.
+
+| set | positions | best move, depth, score, nodes |
+| --- | ---: | --- |
+| seed 0x20c0ffee | 10000 | all equal to the base |
+| seed 0xB16B00B5 | 10000 | all equal to the base |
+
+The first set searched 58715778 nodes in total, on both binaries.
+
+## Bench 16 timing
+
+Five fresh processes each, base then the new binary, on this machine (4-thread Intel Xeon, x86-64-v3). The number is the `time` field from `bench 16`, in milliseconds. Nodes were 3024920 on every run.
+
+| run | base | new |
+| ---: | ---: | ---: |
+| 1 | 1520 | 1478 |
+| 2 | 1515 | 1496 |
+| 3 | 1517 | 1481 |
+| 4 | 1609 | 1480 |
+| 5 | 1509 | 1565 |
+| mean | 1534 | 1500 |
+
+The mean gap is 34 ms. Run 5 went the other way, and run 4's base time is high, so one bench 16 is too noisy to read on its own. An earlier five on the same two binaries, taken the same way, averaged 1524 ms and 1464 ms, and every pair was faster. A second bench inside the same process was also lower for the new binary on the quiet pairs, so the gap is not only the missing magic search at startup.
+
+## Repeated check
+
+Same commit, same two binaries, measured again at 14:17 UTC. Load average was 0.04. Pins on both binaries were bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. Bench 16 nodes were 3024920 on every run below. Two more alternating five-run tables, base then new, milliseconds:
+
+| run | base A | new A | base B | new B |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1503 | 1480 | 1500 | 1544 |
+| 2 | 1529 | 1480 | 1573 | 1456 |
+| 3 | 1529 | 1479 | 1504 | 1456 |
+| 4 | 1549 | 1461 | 1507 | 1470 |
+| 5 | 1500 | 1450 | 1526 | 1561 |
+| mean | 1522 | 1470 | 1522 | 1497 |
+
+Table A was faster on every run. The mean gap is 52 ms. Table B's mean gap is 25 ms, and runs 1 and 5 of that table were slower than the base. The search was not changed for this recheck.
+
+## Not verified
+
+No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed, because this CPU has BMI2. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.

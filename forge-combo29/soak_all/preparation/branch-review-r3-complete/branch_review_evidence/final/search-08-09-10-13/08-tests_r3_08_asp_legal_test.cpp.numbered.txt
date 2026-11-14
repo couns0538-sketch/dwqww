@@ -1,0 +1,109 @@
+    1 #include "forge/board.hpp"
+    2 #include "forge/search.hpp"
+    3 
+    4 #include <cstdint>
+    5 #include <iostream>
+    6 
+    7 namespace {
+    8 
+    9 constexpr int kSearches = 200;
+   10 constexpr int kDepth = 10;
+   11 
+   12 std::uint64_t draw(std::uint64_t& state) {
+   13     state += 0x5A17ULL;
+   14     state = (state << 13) | (state >> 51);
+   15     state ^= 0x3C6EF372ULL;
+   16     return state;
+   17 }
+   18 
+   19 bool listed(const forge::Board& board, forge::Move move) {
+   20     if (move.is_none()) return false;
+   21     const forge::MoveList legal = board.legal_moves();
+   22     for (std::size_t i = 0; i < legal.size(); ++i) {
+   23         if (legal[i] == move) return true;
+   24     }
+   25     return false;
+   26 }
+   27 
+   28 int search_one(forge::Searcher& searcher, const forge::Board& board, const char* label) {
+   29     const forge::MoveList legal = board.legal_moves();
+   30     forge::SearchLimits limits;
+   31     limits.depth = kDepth;
+   32     searcher.clear();
+   33     const forge::SearchInfo info = searcher.search(board, limits, false);
+   34     if (legal.empty()) {
+   35         if (!info.best_move.is_none()) {
+   36             std::cerr << label << " terminal returned " << forge::Board::move_to_uci(info.best_move) << "\n";
+   37             return 1;
+   38         }
+   39         return 0;
+   40     }
+   41     if (!listed(board, info.best_move)) {
+   42         std::cerr << label << " illegal fen " << board.fen()
+   43                   << " move " << forge::Board::move_to_uci(info.best_move) << "\n";
+   44         return 1;
+   45     }
+   46     return 0;
+   47 }
+   48 
+   49 forge::Board reach(int index) {
+   50     forge::Board board;
+   51     if (!board.set_fen(forge::Board::StandardStartFen)) return board;
+   52     std::uint64_t state = 0xC0FFEEULL + static_cast<std::uint64_t>(index) * 17ULL;
+   53     const int plies = index % 16;
+   54     for (int ply = 0; ply < plies; ++ply) {
+   55         const forge::MoveList legal = board.legal_moves();
+   56         if (legal.empty()) break;
+   57         const std::size_t pick = static_cast<std::size_t>(draw(state) % legal.size());
+   58         forge::Undo undo;
+   59         if (!board.make_move(legal[pick], undo)) break;
+   60     }
+   61     return board;
+   62 }
+   63 
+   64 }  // namespace
+   65 
+   66 int main() {
+   67     if (forge::tune::AspCappedReopen) {
+   68         std::cerr << "AspCappedReopen must default off\n";
+   69         return 1;
+   70     }
+   71     forge::tune::AspCappedReopen = true;
+   72 
+   73     forge::Searcher searcher(16);
+   74     int legal_moves = 0;
+   75     int terminals = 0;
+   76     for (int index = 0; index < kSearches; ++index) {
+   77         const forge::Board board = reach(index);
+   78         const bool terminal = board.legal_moves().empty();
+   79         if (search_one(searcher, board, "walk") != 0) return 1;
+   80         if (terminal) ++terminals;
+   81         else ++legal_moves;
+   82     }
+   83 
+   84     // Roots the random walk does not build: check with an escape, a promoting
+   85     // pawn, checkmate, and stalemate. Same depth, same option.
+   86     const char* edges[] = {
+   87         "4r2k/8/8/8/8/8/8/4K3 w - - 0 1",
+   88         "8/P7/8/8/8/8/8/4K2k w - - 0 1",
+   89         "7k/7Q/6K1/8/8/8/8/8 b - - 0 1",
+   90         "k7/2Q5/K7/8/8/8/8/8 b - - 0 1",
+   91     };
+   92     for (const char* fen : edges) {
+   93         forge::Board board;
+   94         if (!board.set_fen(fen)) {
+   95             std::cerr << "rejected fen " << fen << "\n";
+   96             return 1;
+   97         }
+   98         if (search_one(searcher, board, fen) != 0) return 1;
+   99     }
+  100 
+  101     if (legal_moves + terminals != kSearches) {
+  102         std::cerr << "count mismatch\n";
+  103         return 1;
+  104     }
+  105     std::cout << "asp_legal ok searches " << kSearches << " legal " << legal_moves
+  106               << " terminals " << terminals << " edges 4 depth " << kDepth << "\n";
+  107     return 0;
+  108 }
+  109 

@@ -1,0 +1,175 @@
+{"n":14,"argv":["rg","-n","-e","ratinginterval|scoreinterval|repeat|rounds|noswap|reverse|nodes|events|config|openings|pgnout|append","app/src/cli/cli.cpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null}
+STDOUT
+19:#include <types/engine_config.hpp>
+202:    } else if (key == "nodes")
+203:        engineConfig.limit.nodes = parseScalar<int64_t>(value);
+229:    argument_data.configs.emplace_back();
+232:        engine::parseEngineKeyValues(argument_data.configs.back(), key, value);
+240:        for (auto& config : argument_data.configs) {
+241:            engine::parseEngineKeyValues(config, key, value);
+247:    argument_data.tournament_config.pgn.file =
+252:            argument_data.tournament_config.pgn.file = value;
+253:        } else if (key == "append" && is_bool(value)) {
+254:            argument_data.tournament_config.pgn.append_file = value == "true";
+255:        } else if (key == "nodes" && is_bool(value)) {
+256:            argument_data.tournament_config.pgn.track_nodes = value == "true";
+258:            argument_data.tournament_config.pgn.track_seldepth = value == "true";
+260:            argument_data.tournament_config.pgn.track_nps = value == "true";
+262:            argument_data.tournament_config.pgn.track_hashfull = value == "true";
+264:            argument_data.tournament_config.pgn.track_tbhits = value == "true";
+266:            argument_data.tournament_config.pgn.track_timeleft = value == "true";
+268:            argument_data.tournament_config.pgn.track_latency = value == "true";
+270:            argument_data.tournament_config.pgn.min = value == "true";
+273:                argument_data.tournament_config.pgn.notation = NotationType::SAN;
+275:                argument_data.tournament_config.pgn.notation = NotationType::LAN;
+277:                argument_data.tournament_config.pgn.notation = NotationType::UCI;
+279:                OptionsParser::throwMissing("pgnout notation", key, value);
+282:            argument_data.tournament_config.pgn.additional_lines_rgx.push_back(value);
+284:            argument_data.tournament_config.pgn.track_pv = value == "true";
+286:            OptionsParser::throwMissing("pgnout", key, value);
+292:    argument_data.tournament_config.epd.file =
+297:            argument_data.tournament_config.epd.file = value;
+298:        } else if (key == "append" && is_bool(value)) {
+299:            argument_data.tournament_config.epd.append_file = value == "true";
+309:            argument_data.tournament_config.opening.file = value;
+311:                argument_data.tournament_config.opening.format = FormatType::EPD;
+313:                argument_data.tournament_config.opening.format = FormatType::PGN;
+321:                argument_data.tournament_config.opening.format = FormatType::EPD;
+323:                argument_data.tournament_config.opening.format = FormatType::PGN;
+325:                OptionsParser::throwMissing("openings format", key, value);
+329:                argument_data.tournament_config.opening.order = OrderType::SEQUENTIAL;
+331:                argument_data.tournament_config.opening.order = OrderType::RANDOM;
+333:                OptionsParser::throwMissing("openings order", key, value);
+336:            argument_data.tournament_config.opening.plies = parseScalar<int>(value);
+338:            argument_data.tournament_config.opening.start = parseScalar<int>(value);
+339:            if (argument_data.tournament_config.opening.start < 1)
+344:            OptionsParser::throwMissing("openings", key, value);
+350:    argument_data.tournament_config.sprt.enabled = true;
+352:    if (argument_data.tournament_config.rounds == 0) {
+353:        argument_data.tournament_config.rounds = 500000;
+358:            argument_data.tournament_config.sprt.elo0 = parseScalar<double>(value);
+360:            argument_data.tournament_config.sprt.elo1 = parseScalar<double>(value);
+362:            argument_data.tournament_config.sprt.alpha = parseScalar<double>(value);
+364:            argument_data.tournament_config.sprt.beta = parseScalar<double>(value);
+366:            argument_data.tournament_config.sprt.model = value;
+374:    argument_data.tournament_config.draw.enabled = true;
+378:            argument_data.tournament_config.draw.move_number = parseScalar<int>(value);
+380:            argument_data.tournament_config.draw.move_count = parseScalar<int>(value);
+384:                argument_data.tournament_config.draw.score = score;
+395:    argument_data.tournament_config.resign.enabled = true;
+399:            argument_data.tournament_config.resign.move_count = parseScalar<int>(value);
+401:            argument_data.tournament_config.resign.twosided = value == "true";
+405:                argument_data.tournament_config.resign.score = score;
+416:    argument_data.tournament_config.maxmoves.move_count = parseScalar<int>(value);
+417:    argument_data.tournament_config.maxmoves.enabled    = true;
+421:    argument_data.tournament_config.tb_adjudication.syzygy_dirs = std::string(value);
+422:    argument_data.tournament_config.tb_adjudication.enabled     = true;
+426:    argument_data.tournament_config.tb_adjudication.max_pieces = parseScalar<int>(value);
+430:    argument_data.tournament_config.tb_adjudication.ignore_50_move_rule = true;
+436:        argument_data.tournament_config.tb_adjudication.result_type = config::TbAdjudication::ResultType::WIN_LOSS;
+438:        argument_data.tournament_config.tb_adjudication.result_type = config::TbAdjudication::ResultType::DRAW;
+440:        argument_data.tournament_config.tb_adjudication.result_type = config::TbAdjudication::ResultType::BOTH;
+447:    argument_data.tournament_config.autosaveinterval = parseScalar<int>(value);
+453:            argument_data.tournament_config.log.file = value;
+471:            argument_data.tournament_config.log.level = level;
+472:        } else if (key == "append" && is_bool(value)) {
+473:            argument_data.tournament_config.log.append_file = value == "true";
+475:            argument_data.tournament_config.log.compress = value == "true";
+477:            argument_data.tournament_config.log.realtime = value == "true";
+479:            argument_data.tournament_config.log.engine_coms = value == "true";
+487:    auto& events = argument_data.tournament_config.events;
+491:            if (value.empty()) OptionsParser::throwMissing("events", key, value);
+492:            events.file = value;
+494:            events.info = value == "true";
+496:            events.info_interval_ms = parseScalar<int>(value);
+497:            if (events.info_interval_ms < 0) OptionsParser::throwMissing("events", key, value);
+499:            OptionsParser::throwMissing("events", key, value);
+503:    if (!events.enabled()) {
+504:        throw fastchess_exception("Option -events requires file=<path> or file=-");
+508:namespace json_config {
+510:    Logger::print<Logger::Level::INFO>("Loading config file: {}", filename);
+520:    argument_data.old_configs           = argument_data.configs;
+521:    argument_data.old_tournament_config = argument_data.tournament_config;
+523:    argument_data.tournament_config = jsonfile.get<config::Tournament>();
+525:    // the event stream is not part of the saved config, keep what was given on the command line
+526:    argument_data.tournament_config.events = argument_data.old_tournament_config.events;
+528:    argument_data.configs.clear();
+531:        argument_data.configs.push_back(engine.get<EngineConfiguration>());
+544:            argument_data.tournament_config.config_name = value;
+546:            Logger::print<Logger::Level::INFO>("Discarding config file");
+547:            argument_data.tournament_config = argument_data.old_tournament_config;
+548:            argument_data.configs           = argument_data.old_configs;
+553:            OptionsParser::throwMissing("config", key, value);
+557:    if (argument_data.configs.size() > 2) {
+567:}  // namespace json_config
+572:            argument_data.tournament_config.report_penta = value == "true";
+582:            argument_data.tournament_config.output = OutputFactory::getType(value);
+590:    argument_data.tournament_config.concurrency = parseScalar<int>(value);
+596:            argument_data.tournament_config.pgn.crc = value == "true";
+603:void parseForceConcurrency(ArgumentData& argument_data) { argument_data.tournament_config.force_concurrency = true; }
+606:    argument_data.tournament_config.pgn.event_name = concat(params);
+610:    argument_data.tournament_config.pgn.site = concat(params);
+614:    argument_data.tournament_config.games = parseScalar<int>(value);
+618:    argument_data.tournament_config.rounds = parseScalar<int>(value);
+622:    argument_data.tournament_config.wait = parseScalar<int>(value);
+625:void parseNoswap(ArgumentData& argument_data) { argument_data.tournament_config.noswap = true; }
+627:void parseReverse(ArgumentData& argument_data) { argument_data.tournament_config.reverse = true; }
+630:    argument_data.tournament_config.ratinginterval = parseScalar<int>(value);
+634:    argument_data.tournament_config.scoreinterval = parseScalar<int>(value);
+638:    argument_data.tournament_config.seed = parseScalar<uint64_t>(value);
+642:    argument_data.tournament_config.gauntlet_seeds = parseScalar<int>(value);
+652:void parseRecover(ArgumentData& argument_data) { argument_data.tournament_config.recover = true; }
+656:        argument_data.tournament_config.games = parseScalar<int>(params[0]);
+658:        argument_data.tournament_config.games = 2;
+664:    if (val == "fischerandom") argument_data.tournament_config.variant = VariantType::FRC;
+671:        argument_data.tournament_config.type = TournamentType::GAUNTLET;
+676:        argument_data.tournament_config.type = TournamentType::ROUNDROBIN;
+684:    const auto initial_index = argument_data.configs.size();
+689:            argument_data.configs.emplace_back();
+690:            argument_data.configs.back().cmd  = value;
+691:            argument_data.configs.back().name = value;
+693:            argument_data.configs.back().limit.tc.time      = 10 * 1000;
+694:            argument_data.configs.back().limit.tc.increment = 100;
+696:            argument_data.tournament_config.recover = true;
+699:            argument_data.tournament_config.opening.file  = value;
+700:            argument_data.tournament_config.opening.order = OrderType::RANDOM;
+702:                argument_data.tournament_config.opening.format = FormatType::PGN;
+704:                argument_data.tournament_config.opening.format = FormatType::EPD;
+716:    if (argument_data.tournament_config.opening.file.empty()) {
+720:    auto& first  = argument_data.configs[initial_index];
+721:    auto& second = argument_data.configs[initial_index + 1];
+728:    argument_data.tournament_config.games  = 2;
+729:    argument_data.tournament_config.rounds = 25000;
+731:    argument_data.tournament_config.concurrency =
+734:    argument_data.tournament_config.recover = true;
+736:    argument_data.tournament_config.draw.enabled     = true;
+737:    argument_data.tournament_config.draw.move_number = 30;
+738:    argument_data.tournament_config.draw.move_count  = 8;
+739:    argument_data.tournament_config.draw.score       = 8;
+741:    argument_data.tournament_config.output = OutputType::CUTECHESS;
+745:    argument_data.tournament_config.affinity = true;
+748:        if (parseIntList(iss, argument_data.tournament_config.affinity_cpus))
+753:void parseMatePvs(ArgumentData& argument_data) { argument_data.tournament_config.check_mate_pvs = true; }
+755:void parseLatency(ArgumentData& argument_data) { argument_data.tournament_config.show_latency = true; }
+766:void parseTestEnv(ArgumentData& argument_data) { argument_data.tournament_config.test_env = true; }
+768:void parseStrict(ArgumentData& argument_data) { argument_data.tournament_config.strict = true; }
+771:    argument_data.tournament_config.startup_time = std::chrono::milliseconds(parseScalar<uint64_t>(value));
+775:    argument_data.tournament_config.ucinewgame_time = std::chrono::milliseconds(parseScalar<uint64_t>(value));
+779:    argument_data.tournament_config.ping_time = std::chrono::milliseconds(parseScalar<uint64_t>(value));
+792:    // apply the variant type to all configs
+793:    for (auto& config : argument_data_.configs) {
+794:        config.variant = argument_data_.tournament_config.variant;
+797:    cli::sanitize(argument_data_.tournament_config);
+799:    cli::sanitize(argument_data_.configs);
+805:    addOption<ParamStyle::KeyValueOptional>("pgnout", parsePgnOut);
+807:    addOption<ParamStyle::KeyValue>("openings", parseOpening);
+818:    addOption<ParamStyle::KeyValue>("events", parseEvents);
+819:    addOption<ParamStyle::KeyValue>("config", json_config::parseConfig);
+828:    addOption<ParamStyle::Single>("rounds", parseRounds);
+830:    addOption<ParamStyle::None>("noswap", parseNoswap);
+831:    addOption<ParamStyle::None>("reverse", parseReverse);
+832:    addOption<ParamStyle::Single>("ratinginterval", parseRatinginterval);
+833:    addOption<ParamStyle::Single>("scoreinterval", parseScoreinterval);
+843:    addOption("repeat", parseRepeat);
+
+STDERR

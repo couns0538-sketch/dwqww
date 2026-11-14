@@ -1,0 +1,181 @@
+{"n":27,"argv":["cat","app/src/types/enums.hpp","app/src/types/engine_config.hpp","app/src/types/tournament.hpp"],"cwd":"/workspace/work/fastchess","exit":0,"signal":null,"file":"/workspace/work/all-run/part3-api-readiness/command-027.txt"}
+STDOUT
+#pragma once
+
+namespace fastchess {
+
+enum class NotationType { SAN, LAN, UCI };
+enum class OrderType { RANDOM, SEQUENTIAL };
+enum class FormatType { EPD, PGN, NONE };
+enum class VariantType { STANDARD, FRC };
+enum class TournamentType { ROUNDROBIN, GAUNTLET };
+enum class OutputType { FASTCHESS, CUTECHESS, NONE };
+
+}  // namespace fastchess#pragma once
+
+#include <cstdint>
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <vector>
+
+#include <core/helper.hpp>
+#include <game/timecontrol/timecontrol.hpp>
+#include <types/enums.hpp>
+
+#include <json.hpp>
+
+namespace fastchess {
+
+struct Limit {
+    TimeControl::Limits tc;
+
+    uint64_t nodes = 0;
+    uint64_t plies = 0;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Limit, tc, nodes, plies)
+
+struct EngineConfiguration {
+    // the limit for the engines "go" command
+    Limit limit;
+
+    // engine name
+    std::string name;
+
+    // Path to engine
+    std::string dir;
+
+    // Engine binary name
+    std::string cmd;
+
+    // Custom args that should be sent
+    std::string args;
+
+    // Should process be restarted after every game
+    bool restart = false;
+
+    // UCI options
+    std::vector<std::pair<std::string, std::string>> options;
+
+    // Chess variant
+    VariantType variant = VariantType::STANDARD;
+
+    template <typename T, typename Predicate>
+    std::optional<T> getOption(std::string_view option_name, Predicate transform) const {
+        const auto it = std::find_if(options.begin(), options.end(),
+                                     [&option_name](const auto& option) { return option.first == option_name; });
+
+        if (it != options.end()) {
+            return std::optional<T>(transform(it->second));
+        }
+
+        return std::nullopt;
+    }
+
+    std::filesystem::path getEnginePath() const {
+        if (!dir.empty()) {
+            return std::filesystem::path(dir) / cmd;
+        }
+
+        return std::filesystem::path(cmd);
+    }
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EngineConfiguration, name, dir, cmd, args, restart, options, limit, variant)
+
+}  // namespace fastchess
+#pragma once
+
+#include <chrono>
+#include <string>
+#include <vector>
+
+#include <core/helper.hpp>
+#include <core/rand.hpp>
+
+#include <types/draw_adjudication.hpp>
+#include <types/engine_config.hpp>
+#include <types/enums.hpp>
+#include <types/epd.hpp>
+#include <types/events.hpp>
+#include <types/log.hpp>
+#include <types/max_moves_adjudication.hpp>
+#include <types/opening.hpp>
+#include <types/pgn.hpp>
+#include <types/resign_adjudication.hpp>
+#include <types/sprt.hpp>
+#include <types/tb_adjudication.hpp>
+
+namespace fastchess::config {
+
+struct Tournament {
+    Opening opening = {};
+    Pgn pgn         = {};
+    Epd epd         = {};
+
+    Sprt sprt = {};
+
+    std::string config_name = "config.json";
+
+    DrawAdjudication draw          = {};
+    ResignAdjudication resign      = {};
+    MaxMovesAdjudication maxmoves  = {};
+    TbAdjudication tb_adjudication = {};
+
+    VariantType variant = VariantType::STANDARD;
+    TournamentType type = TournamentType::ROUNDROBIN;
+    int gauntlet_seeds  = 1;
+
+#ifdef USE_CUTE
+    // output format, fastchess or cutechess
+    OutputType output    = OutputType::CUTECHESS;
+    int autosaveinterval = 0;
+    int ratinginterval   = 0;
+    int games            = 1;
+    int rounds           = 1;
+    bool report_penta    = false;
+#else
+    // output format, fastchess or cutechess
+    OutputType output    = OutputType::FASTCHESS;
+    int autosaveinterval = 20;
+    int ratinginterval   = 10;
+    std::size_t games    = 2;
+    std::size_t rounds   = 2;
+    bool report_penta    = true;
+#endif
+
+    uint64_t seed = random::random_uint64();
+
+    int scoreinterval = 1;
+
+    int concurrency        = 1;
+    uint32_t wait          = 0;
+    bool force_concurrency = false;
+
+    bool noswap         = false;
+    bool reverse        = false;
+    bool recover        = false;
+    bool affinity       = false;
+    bool check_mate_pvs = false;
+    bool show_latency   = false;
+    bool test_env       = false;
+    bool strict         = false;
+
+    std::chrono::milliseconds startup_time    = std::chrono::seconds(10);
+    std::chrono::milliseconds ucinewgame_time = std::chrono::seconds(60);
+    std::chrono::milliseconds ping_time       = std::chrono::seconds(60);
+
+    std::vector<int> affinity_cpus;
+
+    Log log = {};
+
+    // not serialized, see Events
+    Events events = {};
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Tournament, resign, draw, maxmoves, tb_adjudication, opening, pgn, epd, sprt,
+                                   config_name, output, seed, variant, type, gauntlet_seeds, ratinginterval,
+                                   scoreinterval, wait, autosaveinterval, games, rounds, concurrency, force_concurrency,
+                                   recover, noswap, reverse, report_penta, affinity, check_mate_pvs, show_latency, log)
+
+}  // namespace fastchess::config
+
+STDERR
