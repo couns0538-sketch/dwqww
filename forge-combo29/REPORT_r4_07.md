@@ -30,12 +30,32 @@ Pins `312866`, `862329`, and `4865609` match. Two hundred depth-10 searches retu
 
 ## Test
 
-`tests_r4_07/go_mate_test.cpp`, run by `tests_r4_07/run_asan.sh`.
+`tests_r4_07/go_mate_test.cpp`. There was no engine change.
 
-The script uses the existing combo29 lock definitions from the tests_t22 address/undefined-sanitizer recipe (`-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all`, hidden size 256, the same speed switches). Those are not a new override. A failed check returns 1. Sanitizer errors do not recover.
+The passing run used address and undefined sanitizers and the existing combo29 lock definitions from the tests_t22 sanitizer recipe (`-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all`, hidden size 256, the same speed switches). Those definitions are not a new switch. A failed check returns 1. Sanitizer errors do not recover. Exit code 0. Wall time about 70 seconds.
 
-```bash
-forge-combo29/tests_r4_07/run_asan.sh
+```text
+g++ -std=c++20 -O1 -g -pthread \
+    -fno-omit-frame-pointer \
+    -fsanitize=address,undefined \
+    -fno-sanitize-recover=all \
+    -ffp-contract=off -fno-fast-math -march=x86-64-v3 \
+    -DFORGE_NNUE_HIDDEN=256 \
+    -DFORGE_EXPOSE_TUNABLES=1 \
+    -DFORGE_SPD_TT_NOTLS=1 \
+    -DFORGE_SPD_NO_ZERO_MOVELISTS=2 \
+    -DFORGE_SEARCH_SPEED2=1 \
+    -DFORGE_SPD_PREFETCH_EARLY=1 \
+    -DFORGE_SPD_SLIDER_PEXT=0 \
+    -DFORGE_SPD_NNUE_ZMM=0 \
+    -I include \
+    tests_r4_07/go_mate_test.cpp \
+    src/bitboard.cpp src/board.cpp src/book.cpp \
+    src/eval.cpp src/eval_params.cpp src/nnue.cpp src/search.cpp \
+    -o /tmp/r4_07_go_mate_asan
+/tmp/r4_07_go_mate_asan
 ```
 
-Exit code 0. Wall time about 70 seconds.
+There was no engine change.
+
+R4 DONE 18957fc01f1c9eae42630aa9a82152b16868e53d
