@@ -20,7 +20,7 @@ Frozen input commits
 17 02674044d770fc756ea2cc1041726d23bad6c659 grok47/r3-17-merge-legal-node-limit
 21 28b3a7520de0bdd16105c94b7496cf603127704f grok47/r3-21-mate-score-tt
 24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 grok47/r3-24-tt-duplicate-shadow
-22 b8d47952f21fec0185df8509d53a2bafd7373313 grok47/r3-22-time-safety
+22 143f3c5c6953ecfb8826553200e90f31dc91baae grok47/r3-22-time-safety
 01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
 02 8fe3867a098b7df57d731a3e3581c1be51ea5c57 grok47/r3-02-threat-history
 03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 grok47/r3-03-lmr-signed-correction
@@ -165,6 +165,7 @@ Tip r3-16 3337249994829603e92da529a25f42fc3149d4bb merged with no source change;
 Tip r3-23 68b3720c4274e3a646f73ca92b228cbb686b5a3e merged with no source change; pins and the option table matched.
 Tip r3-21 28b3a7520de0bdd16105c94b7496cf603127704f merged with no source change; pins and the option table matched.
 Tip r3-24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 merged with no source change; pins and the option table matched.
+Tip r3-22 143f3c5c6953ecfb8826553200e90f31dc91baae merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
