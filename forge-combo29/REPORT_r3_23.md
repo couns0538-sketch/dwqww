@@ -63,7 +63,9 @@ Slice 5, openings 1600-1999, 800 games: W-L-D 202-213-385. Elo -4.778, 95% inter
 
 Slice 6, openings 2000-2399, 800 games: W-L-D 209-218-373. Elo -3.909, 95% interval -21.523 to 13.686, LOS 0.331566. Pentanomial 18 92 184 93 13.
 
-Cumulative through 4800 games: W-L-D 1203-1322-2275. Elo -8.615, 95% interval -15.749 to -1.489, LOS 0.008904. Pentanomial 100 627 1044 550 79. PGNs and summaries are under `tests_r3fu_23/screen/`. Later slices are appended the same way.
+Slice 7, openings 2400-2799, 800 games: W-L-D 200-209-391. Elo -3.909, 95% interval -21.147 to 13.310, LOS 0.328132. Pentanomial 21 97 162 110 10.
+
+Cumulative through 5600 games: W-L-D 1403-1531-2666. Elo -7.943, 95% interval -14.533 to -1.358, LOS 0.009033. Pentanomial 121 724 1206 660 89. PGNs and summaries are under `tests_r3fu_23/screen/`. Later slices are appended the same way.
 
 ## What was not verified
 
