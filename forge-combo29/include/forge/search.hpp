@@ -378,6 +378,8 @@ private:
     std::size_t root_history_index_ = 0;
     std::vector<Move> root_moves_;
     bool root_restricted_ = false;
+    // Secondary MultiPV lines are not an evaluation of the whole position.
+    bool multipv_secondary_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
 

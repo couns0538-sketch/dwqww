@@ -8,7 +8,7 @@ The engine could report only one root move. Self-play had no UCI way to ask for 
 
 `MultiPV` is a UCI spin option from 1 to 8, default 1. At 1 the search loop is the same as before and info lines stay in the old form. Above 1, after each finished depth, the main worker searches the remaining root moves with the earlier choices removed and prints `info depth D seldepth S multipv i score ... pv ...`. `bestmove` stays the first line. A value outside 1..8 is clamped. A malformed value is rejected and the previous setting is kept.
 
-Engine diff: 60 insertions and 1 deletion (`git diff --numstat`), under the 300-line cap.
+Engine diff against the lock: 111 insertions and 3 deletions in `src` and `include` (`git diff --numstat 16833ecc`), under the 300-line cap.
 
 ## Files changed
 
@@ -551,3 +551,160 @@ Exit status 0. The sanitizer printed no error.
 - A clock-limited game with `MultiPV` greater than 1. The extra lines search more nodes after a finished iteration, so they use time. `MultiPV` 1 leaves the clock path as it was. No timed game was played.
 - The first line of a `MultiPV` greater than 1 search at depths after 1 against a `MultiPV` 1 search of the same position. The extra searches write child transposition-table entries and history before the next depth, so a later first line can differ. At depth 1 the measured first line matches the single-PV search (`d2d4`, 26 nodes).
 - Elo and speed. The `nps` numbers above are wall-clock readings from these runs, not a speed claim.
+
+## Follow-up: ranking, drawn roots, and a stopped search
+
+A review of the first version showed three gaps. Later lines can score above earlier ones (start position, `MultiPV 8`, depth 7 printed `multipv 1 score cp 24` and then `multipv 2 score cp 26`). A node limit during a secondary line replaced a finished set with a partial one. A drawn root with legal moves printed one empty pv. Secondary lines also trained the pawn-structure correction from a score that is only the best of the remaining moves.
+
+Finished lines are now collected, ranked by score, and printed in that order. `bestmove` is the first of that ranking. A depth that does not finish every requested line keeps the previous complete set in `SearchInfo::lines`. A drawn root with `MultiPV` above 1 prints up to that many legal moves at the draw score. Root correction updates are skipped only while a secondary line is searching. `MultiPV` 1 still takes the original path.
+
+The same bench command as above, on the rebuilt binary:
+
+```
+printf '%s\n' \
+  'setoption name Threads value 1' \
+  'setoption name Hash value 16' \
+  'setoption name OwnBook value false' \
+  'isready' \
+  'bench 11' \
+  'bench 13' \
+  'position startpos' \
+  'go perft 5' \
+  'quit' | /tmp/forge-t10-new/forge
+```
+
+```
+readyok
+info string bench depth 11 nodes 312866 time 219 nps 1428611
+info string bench depth 13 nodes 862329 time 453 nps 1903596
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+`bench 11` is 312866, `bench 13` is 862329, and perft 5 is 4865609. Stripping `nps` and `time` from a fresh `go depth 8` with `MultiPV` left at 1 matched the lock depth-8 transcript above, including `bestmove d2d4`.
+
+`MultiPV 8`, `go depth 8` from the start position produced no score inversions. Depth 7:
+
+```
+info depth 7 seldepth 13 multipv 1 score cp 21 nodes 14699 nps 2449833 hashfull 4 time 6 pv g2g3 d7d5 f1g2 g8f6 g1f3 c7c5
+info depth 7 seldepth 13 multipv 2 score cp 20 nodes 14699 nps 2449833 hashfull 4 time 6 pv e2e3 g8f6 c2c4 c7c5 g1f3 e7e6 h2h3
+info depth 7 seldepth 13 multipv 3 score cp 18 nodes 14699 nps 2449833 hashfull 4 time 6 pv h2h3 c7c5 c2c4 g8f6 g1f3 h7h6 b1c3
+info depth 7 seldepth 13 multipv 4 score cp 17 nodes 14699 nps 2449833 hashfull 4 time 6 pv c2c4 g8f6 b1c3 e7e6 g1f3 c7c5 e2e4
+info depth 7 seldepth 13 multipv 5 score cp 15 nodes 14699 nps 2449833 hashfull 4 time 6 pv d2d4 g8f6 g1f3 d7d5 h2h3 h7h6 c2c3
+info depth 7 seldepth 13 multipv 6 score cp 11 nodes 14699 nps 2449833 hashfull 4 time 6 pv b2b3 c7c5 c1b2 e7e6 c2c4 g8f6
+info depth 7 seldepth 13 multipv 7 score cp 6 nodes 14699 nps 2449833 hashfull 4 time 6 pv b1c3 d7d5 d2d4 g8f6 h2h3 c7c6 g1f3
+info depth 7 seldepth 13 multipv 8 score cp 5 nodes 14699 nps 2449833 hashfull 4 time 6 pv e2e4 g8f6 b1c3 d7d5 e4d5 f6d5 g1f3
+```
+
+Kings only, `MultiPV 3`, `go depth 1`:
+
+```
+info depth 1 seldepth 1 multipv 1 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv e3d2
+info depth 1 seldepth 1 multipv 2 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv e3e2
+info depth 1 seldepth 1 multipv 3 score cp 0 nodes 0 nps 0 hashfull 0 time 0 pv e3f2
+bestmove e3d2
+```
+
+Release test, same link command as above, after rebuilding `search.cpp`:
+
+```
+default best e2e4 score 30 nodes 404 lines 0
+multipv1 best e2e4 score 30 nodes 404 lines 0
+ok the depth-4 search visits nodes
+ok MultiPV 1 visits the same nodes as the default
+ok MultiPV 1 plays the default move
+ok MultiPV 1 reports the default score
+ok MultiPV 1 reports the default pv
+ok MultiPV 1 does not publish extra lines
+ok MultiPV 1 info text has no multipv token
+ok MultiPV 1 still prints info lines
+ok MultiPV 0 is clamped to 1
+depth1-multipv3 best d2d4 score 1 nodes 74 lines 3
+  1 score 1 pv d2d4
+  2 score 1 pv g1f3
+  3 score -10 pv c2c4
+ok depth 1 MultiPV 3 returns three lines
+ok the three lines are distinct legal root moves
+ok depth-1 lines are ordered by score
+ok info prints multipv 1 before score
+ok info prints multipv 2 before score
+ok info prints multipv 3 before score
+ok MultiPV 3 does not print a fourth line
+depth1-multipv100 best d2d4 score 1 nodes 161 lines 8
+  1 score 1 pv d2d4
+  2 score 1 pv g1f3
+  3 score -10 pv c2c4
+  4 score -11 pv e2e4
+  5 score -15 pv h2h3
+  6 score -16 pv e2e3
+  7 score -16 pv b1c3
+  8 score -20 pv d2d3
+ok MultiPV above 8 is clamped to 8
+ok the eight lines are distinct legal root moves
+depth3-multipv2 best e2e4 score 18 nodes 278 lines 2
+  1 score 18 pv e2e4 h7h6 d2d4
+  2 score 18 pv d2d4 h7h6 e2e4
+ok the result keeps the last depth's lines
+ok both last-depth lines are legal root moves
+cramped legal 3
+  h8g7
+  h8h7
+  h8g8
+cramped-multipv8 best h8h7 score -97 nodes 10 lines 3
+  1 score -97 pv h8h7
+  2 score -105 pv h8g7
+  3 score -109 pv h8g8
+ok the cramped fen parses
+ok the cramped position has fewer than 8 legal moves
+ok MultiPV stops when the legal root moves run out
+ok every legal root move is one of the lines
+depth4-multipv8 best d2d4 score 33 nodes 2337 lines 8
+  1 score 33 pv d2d4 d7d5 g1f3 c7c6
+  2 score 31 pv g1f3 c7c5 e2e4 e7e6
+  3 score 31 pv e2e4 c7c5 g1f3 e7e6
+  4 score 30 pv c2c4 c7c5 g1f3 e7e6
+  5 score 20 pv h2h3 e7e6 g1f3 d7d5
+  6 score 14 pv c2c3 c7c5 g1f3 d7d5
+  7 score 12 pv g2g3 d7d5 d2d4 h7h6
+  8 score 11 pv d2d3 d7d5 g1f3 c7c5
+ok depth-4 MultiPV lines are ranked by score
+bare-kings best e3d2 score 0 nodes 0 lines 3
+  1 score 0 pv e3d2
+  2 score 0 pv e3e2
+  3 score 0 pv e3f2
+ok a drawn root prints its legal moves
+nodes560 best g1f3 score 18 nodes 560 lines 3
+  1 score 18 pv e2e4 h7h6 d2d4
+  2 score 18 pv d2d4 h7h6 e2e4
+  3 score 17 pv g1f3 h7h6 e2e4
+ok a node limit keeps the last complete MultiPV set
+failures=0
+```
+
+AddressSanitizer and UndefinedBehaviorSanitizer, after recompiling `search.cpp` with the same sanitizer flags as above and relinking:
+
+```
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+  /tmp/forge-t10-asan/multipv_test
+```
+
+The output matches the Release test above, including `failures=0`, and the sanitizer printed no error. Exit status 0.

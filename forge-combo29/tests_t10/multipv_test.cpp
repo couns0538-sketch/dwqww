@@ -140,6 +140,45 @@ int main() {
     }
     expect(covered, "every legal root move is one of the lines");
 
+    const forge::SearchInfo ranked = search_of(start, 4, 8, true, nullptr);
+    print_lines("depth4-multipv8", ranked);
+    bool ranked_ok = ranked.lines.size() == 8 && ranked.best_move == ranked.lines.front().pv.front() &&
+                     ranked.score == ranked.lines.front().score && lines_are_distinct_legal_roots(start, ranked);
+    for (std::size_t i = 1; i < ranked.lines.size(); ++i)
+        ranked_ok = ranked_ok && ranked.lines[i].score <= ranked.lines[i - 1].score;
+    expect(ranked_ok, "depth-4 MultiPV lines are ranked by score");
+
+    forge::Board bare;
+    std::string bare_text;
+    const bool bare_fen = bare.set_fen("8/8/8/4k3/8/4K3/8/8 w - - 0 1");
+    const forge::SearchInfo bare_info = search_of(bare, 2, 3, true, &bare_text);
+    print_lines("bare-kings", bare_info);
+    const int bare_expect = std::min(3, static_cast<int>(bare.legal_moves().size()));
+    bool bare_ok = bare_fen && bare_expect > 1 && static_cast<int>(bare_info.lines.size()) == bare_expect &&
+                   bare_info.score == 0 && bare_info.best_move == bare_info.lines.front().pv.front();
+    for (const forge::SearchInfo::MultiPvLine& line : bare_info.lines) {
+        bare_ok = bare_ok && line.score == 0 && line.pv.size() == 1 && legal_root(bare, line.pv.front());
+        bare_ok = bare_ok && bare_text.find(" pv " + forge::Board::move_to_uci(line.pv.front())) != std::string::npos;
+    }
+    expect(bare_ok, "a drawn root prints its legal moves");
+
+    forge::SearchLimits limited;
+    limited.depth = 8;
+    limited.multipv = 3;
+    limited.nodes = 560;
+    limited.nodes_specified = true;
+    forge::Searcher limiter(16, 1);
+    const forge::SearchInfo stopped = limiter.search(start, limited, false);
+    print_lines("nodes560", stopped);
+    bool stopped_ok = stopped.lines.size() == 3;
+    for (std::size_t i = 0; i < stopped.lines.size(); ++i) {
+        stopped_ok = stopped_ok && !stopped.lines[i].pv.empty() && legal_root(start, stopped.lines[i].pv.front());
+        for (std::size_t j = 0; j < i; ++j)
+            stopped_ok = stopped_ok && stopped.lines[i].pv.front() != stopped.lines[j].pv.front();
+        if (i > 0) stopped_ok = stopped_ok && stopped.lines[i].score <= stopped.lines[i - 1].score;
+    }
+    expect(stopped_ok, "a node limit keeps the last complete MultiPV set");
+
     std::cout << "failures=" << g_failures << '\n';
     return g_failures == 0 ? 0 : 1;
 }
