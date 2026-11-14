@@ -1,23 +1,89 @@
 # Task 6: fixed-node score and move
 
-Branch `grok47/t6-fixed-node-score`, from `lock/combo29-20261110` at `16833ecc03b425586f91f4c8834dea8807bf4c22`. Compiler: `g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0`.
+Branch `grok47/t6-fixed-node-score`, from `lock/combo29-20261110` at `16833ecc03b425586f91f4c8834dea8807bf4c22`. Compiler: `g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0`. Engine change: 14 insertions and 4 deletions in `src/search.cpp` and `include/forge/search.hpp`.
 
 ## What was wrong
 
-`go nodes N` can finish one or more iterations and then stop in the middle of the next one. If a root move in that unfinished iteration raises alpha, the old code keeps that move and its PV, but it does not update the score. The score stays the one from the last finished iteration.
+`go nodes N` searches by iterative deepening. Depth 1 runs to completion, then depth 2, and so on. A finished iteration is the only place that writes the published result. In `Worker::search` that commit is after the aspiration loop, around the current lines 1696–1704:
 
-On the start position, the same session against `/tmp/forge-t6-lock/forge` (built from `16833ecc` before this change) printed:
+- `result.score` becomes that iteration's score
+- `result.depth` becomes that iteration's depth
+- `result.pv` and `result.best_move` become that iteration's PV
+- `emit` prints one `info` line from those same values
+
+The node budget is not checked only between iterations. `Worker::search` and `Worker::qsearch` call `should_stop` on every node when a node limit is set (`node_limit_specified_` is true for the main thread when `go nodes` was given). When the count reaches N, `aborted_` is set and the current node returns 0.
+
+That return happens before the move that was in progress can update the root PV. The root PV is updated only after a root move's search returns and the score raises alpha (`search.cpp` around lines 1438–1450): `ss->pv[0] = move`, then the child PV is copied. So an abort leaves the root PV holding the last root move of this iteration that did finish and did raise alpha. Moves still being searched are not in that PV. The iteration's score is not written to `result`, because the commit at lines 1696–1704 is skipped once `aborted_` is set.
+
+The lock then did a second, separate update. The abort block used to say that a partially searched iteration which had already raised alpha had found a move at least as good as the previous best. If the partial PV's first move differed from the previous PV's first move, the lock copied that partial PV into `result.best_move`, `result.pv`, and `result.ponder_move`. It did not copy a score. `result.score` and `result.depth` stayed at the last finished iteration. It then called `emit(depth, result.score, result.pv)`. The `depth` argument is the loop variable, so the printed `info` line carries the unfinished iteration's depth, the previous iteration's score, and the partial PV. UCI prints `bestmove` from `result.best_move`, so the move on that line matches the partial PV and does not match the score.
+
+A training label taken from `go nodes` therefore pairs a move that belongs to an unfinished iteration with a score that belongs to the previous finished iteration. The score is not the value of the printed move, and the move is not the move the finished iteration chose. It is also not, in general, the move the unfinished depth would have chosen if it had been allowed to finish: later root moves can still raise alpha after the cut.
+
+The copy was skipped when the partial PV's first move was already the finished iteration's move (`result.pv[0] == ss->pv[0]`). Those budgets look consistent on the lock. The bug shows up only after a different root move has raised alpha in the iteration that the node limit cuts off.
+
+This path is specific to a stop that happens in the middle of an iteration. If the budget is reached after an iteration has already committed, the following `if (should_stop()) break` leaves that committed result alone. A completed `go depth` search never enters the abort block.
+
+## What I found
+
+On the start position, with `Threads 1`, `Hash 16`, `OwnBook false`, the lock binary printed this for `go nodes 155`:
 
 ```
+info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4
+info depth 2 seldepth 2 score cp 49 nodes 54 nps 0 hashfull 0 time 0 pv d2d4 d7d6
 info depth 3 seldepth 3 score cp 49 nodes 155 nps 0 hashfull 0 time 0 pv c2c4 h7h6 d2d4
 bestmove c2c4
 ```
 
-Depth 2 had already finished as `d2d4` with score 49. Depth 3's finished result is `e2e4` with score 18, at 215 nodes. The 155-node search published `c2c4` together with the depth-2 score 49.
+Read as a label, that says depth 3, score +49, move `c2c4`. The three numbers do not come from one search result:
 
-## The fix
+| source | depth | score | move | nodes |
+| --- | --- | --- | --- | --- |
+| finished depth 1 | 1 | +1 | `d2d4` | 26 |
+| finished depth 2 | 2 | +49 | `d2d4` | 54 |
+| `go nodes 155` on the lock | printed as 3 | +49, from depth 2 | `c2c4`, from the partial depth 3 | 155 at the cut |
+| finished depth 3 | 3 | +18 | `e2e4` | 215 |
 
-`Worker::should_stop` records when the node budget is the reason it returns. If that flag is set, the abort path leaves the best move, PV, and score on the last iteration that finished, and it does not print a new `info` line. A clock stop or an external `stop` still keeps a partial root move, which is the previous behaviour. Engine diff: 14 insertions and 4 deletions in `src/search.cpp` and `include/forge/search.hpp`.
+`c2c4` had raised alpha during depth 3 before the 155-node cut. Depth 3, run to the end, plays `e2e4` with score +18. The lock published neither the finished depth-2 pair (`d2d4`, +49) nor the finished depth-3 pair (`e2e4`, +18). The C++ API on the same budget returns `SearchInfo.depth == 2` and `SearchInfo.score == 49` with `best_move == c2c4`. The printed `info` depth is 3 because `emit` is passed the unfinished loop depth; the stored `result.depth` stays 2.
+
+The same split appears on later iterations and on other positions. These are lock results, one thread, hash 16 MB, a fresh searcher each time. "Finished" is a separate search limited to the depth the node-limited search reported.
+
+- Start position, 155, 175, and 195 nodes: reported depth 2, score 49, move `c2c4`. Finished depth 2 is `d2d4`, score 49. At 997 nodes: depth 4, score 30, move `c2c4`, against finished `e2e4`. At 1524, 1611, and 1698 nodes: depth 5, score 6, move `d2d4`, against finished `c2c4`.
+- King and rook ending `8/8/8/8/4k3/8/3R4/4K3 w - - 0 1`, 401 nodes: depth 3, score 419, move `e1f2`. Finished depth 3 is `e1e2`, score 419.
+- Italian `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3`, 88 and 97 nodes: depth 1, score 21, move `f1c4`, against finished `d2d4`. At 106 and 115 nodes the partial move has become `b1c3`, still with score 21. Later cuts mix `d2d4` with the depth-2 score 25 (finished move `b1c3`), `c2c3` with the depth-3 score 21 (finished move `d2d4`), `d2d4` with the depth-4 score 22 (finished move `c2c3`), and `d2d4` with the depth-5 score 20 (finished move `h2h3`).
+- `8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1`, 69 nodes: depth 1, score 83, move `b4c4`, against finished `a5a6`. At 608 and 638 nodes: depth 4, score 71, move `b4f4`, against finished `b4c4`.
+
+Budgets inside the same span that still show the previous move pass on the lock. From the start position, 55 through 135 nodes still report `d2d4` with score 49, which is the finished depth-2 pair. The partial depth-3 search has not yet raised alpha with a different move. On the king and rook ending, every sampled budget between depth 2 (58 nodes, `e1f2`) and depth 3 (160 nodes, `e1e2`) also passed on the lock, because the partial move was still `e1f2`. A test that stops at the first move change in that ending does not see the bug. The 401-node cut, inside depth 4, does.
+
+A budget of 1 node, before any root move completes, reports depth 0, score 0, and the first legal move on both the lock and this branch (`a2a3` from the start position, `d2d1` in the ending, `e2e3` in the pawn ending). There is no finished iteration and no partial PV to copy.
+
+`go depth 3` from the start position finishes. Both binaries print depth 1 `d2d4` score 1, depth 2 `d2d4` score 49, depth 3 `e2e4` score 18 at 215 nodes, and `bestmove e2e4`.
+
+One measurement trap: `go` returns to the UCI loop as soon as the worker thread is started. A pipe that sends `quit` on the next line sets the stop flag immediately. The search then aborts on the first node, prints no `info` line, and falls back to the first legal move, `bestmove a2a3`. That happens on the lock and on this branch. It is an external stop, not the node-limit bug. The `go nodes 155` lines above were read until `bestmove`, and `quit` was sent after that.
+
+## What changed
+
+`Worker` gained `stopped_by_nodes_`, cleared at the start of every `Worker::search`. `should_stop` sets it only in the node-budget branch, after the external-stop check and after helpers have already returned:
+
+1. `shared_.stop` is an external `stop` or the searcher winding helpers down. It returns true and leaves the flag false.
+2. A helper returns false. Helpers do not apply the node budget.
+3. The main thread, over the node budget, sets `stopped_by_nodes_` and returns true.
+4. A hard time limit returns true and leaves the flag false.
+
+The abort block still copies the partial root PV, and still emits it with the previous score, when the flag is false. That is the clock stop and the external `stop`. A node-budget stop now breaks with the last committed iteration: same score, same depth, same PV, same best move, and no extra `info` line.
+
+After the change, the same `go nodes 155` session prints:
+
+```
+info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4
+info depth 2 seldepth 2 score cp 49 nodes 54 nps 0 hashfull 0 time 0 pv d2d4 d7d6
+bestmove d2d4
+```
+
+The last `info` line and `bestmove` are the finished depth-2 result. The search still stops because of the node budget; it no longer advertises `c2c4` with depth 2's score.
+
+Completed iterations are committed by the same statements as before. Bench and perft do not go through this abort block. With `Threads 1`, `Hash 16`, `OwnBook false`, bench 11 is 312866 nodes, bench 13 is 862329 nodes, and `go perft 5` from the start position is 4865609 nodes.
+
+`tests_t6/fixed_nodes.cpp` builds a fresh 16 MB, 1-thread searcher for every call and uses `TTAccess::Exclusive`, the same table access one-thread UCI uses. For each depth through 6 it samples budgets between that depth's node count and the next depth's node count. A node-limited result whose reported depth is D must match a fresh depth-D search in score and move, and the reported PV must start with that move. The lock fails 27 of 176 budgets. This branch passes all 176. The AddressSanitizer and UndefinedBehaviorSanitizer binary printed the same pass log and no sanitizer diagnostic. The command logs below are those runs. The first log is the original test, which stopped at the first depth where the move changed. The second log is the test as it is now.
 
 ## Files
 
