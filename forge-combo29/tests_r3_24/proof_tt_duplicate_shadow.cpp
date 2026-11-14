@@ -4,15 +4,16 @@
 // the late shallow store duplicated the key and probe returned the shallow copy.
 // This is the proof sequence from tests_audit/proof_tt_duplicate_shadow.cpp.
 //
-// g++ -std=c++20 -O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
-//   -ffp-contract=off -fno-fast-math -march=x86-64-v3 \
-//   -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 \
-//   -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 \
-//   -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 \
-//   -Iforge-combo29/include forge-combo29/tests_r3_24/proof_tt_duplicate_shadow.cpp \
-//   forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp \
-//   forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp \
-//   forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp \
+// Build (ASan + UBSan), from the repo root:
+//   g++ -std=c++20 -O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer
+//   -ffp-contract=off -fno-fast-math -march=x86-64-v3
+//   -DFORGE_NNUE_HIDDEN=256 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2
+//   -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1
+//   -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0
+//   -Iforge-combo29/include forge-combo29/tests_r3_24/proof_tt_duplicate_shadow.cpp
+//   forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp
+//   forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp
+//   forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp
 //   -lpthread -o /tmp/proof_tt_duplicate_shadow
 
 #include "forge/search.hpp"
@@ -64,6 +65,10 @@ int main() {
 
     if (!visible(after, 14, 777) || after.entry.bound() != forge::BoundExact) {
         std::cerr << "FAIL shallow store shadowed the deeper entry\n";
+        return 1;
+    }
+    if (after.entry.move.from != 6 || after.entry.move.to != 21) {
+        std::cerr << "FAIL shallow store replaced the deeper move\n";
         return 1;
     }
     if (!visible(other, 3, 15) || other.entry.bound() != forge::BoundExact) {

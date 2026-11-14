@@ -343,8 +343,13 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
         }
     }
     const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+    const bool stale_slot = entry != &cluster.entries[probe.slot_];
+    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
+                       entry->generation() != generation_;
+    // Same-slot stores still refresh the move when the new score is rejected.
+    // A stale slot must not paint that rejected move onto the deeper entry.
+    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+    if (admit) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
@@ -420,8 +425,12 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
         }
     }
     const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+    const bool stale_slot = entry != &cluster.entries[probe.slot_];
+    const bool admit = bound == BoundExact || !same_position || depth + 4 > entry->depth ||
+                       entry->generation() != generation_;
+    // Same rule as store_body: keep a rejected shallow move off a different slot.
+    if ((!stale_slot || admit) && (!move.is_none() || !same_position)) entry->move = move;
+    if (admit) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
