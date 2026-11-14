@@ -90,5 +90,9 @@ Screening, not a strength claim. Same binary, option on as the first engine, `no
 
 Chunk results are written under `forge-combo29/screen_r3fu_03/` as each chunk finishes. W-L-D counts the option-on engine first.
 
+Chunk 01 (openings 1-500, 1000 games, 00:22:42): W-L-D 259-246-495, Elo 4.52 +/- 11.73 (95%), LOS 77.48%, pentanomial 11, 96, 275, 105, 13. Detail: `forge-combo29/screen_r3fu_03/chunk-01-summary.md`.
+
+Idle bench 13 nps, off then on, five times: 1553745/1534393, 1562190/1579357, 1573593/1556550, 1520862/1489341, 1491918/1442021. Nodes stayed 862329 on every run.
+
 option name LmrSignedCorrection type check default false
 bench 13 with LmrSignedCorrection on: 862329
