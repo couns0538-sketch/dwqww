@@ -93,5 +93,5 @@ grok47/r4-03-screen-lds 1eb46fbe9 2026-11-14 16:30:39 +0000 r4-03: chunk 1 PGN a
 grok47/r4-04-screen-ch4 b3a228fe4 2026-11-14 16:57:07 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc abb28831e 2026-11-14 16:54:01 +0000 r4-05: pair screen chunks by file and publish the chunk 002 summary
 
-Last check: 2026-11-14T17:04:39Z
-Deadline: 2026-11-15T03:04:38Z
+Last check: 2026-11-14T17:04:48Z
+Deadline: 2026-11-15T01:52:00Z
