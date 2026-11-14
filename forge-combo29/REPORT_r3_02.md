@@ -42,6 +42,8 @@ At 2026-11-14T13:57:04Z the g++ 13 ASan/UBSan binary exited 0: oracle agreed on 
 
 At 2026-11-14T14:16:50Z the same release binary repeated the defaults (bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609) and ThreatHistory bench 13 = 643379.
 
+At 2026-11-14T14:35:25Z those four counts were unchanged. At 2026-11-14T14:36:09Z a fresh g++ 13 `-fsanitize=address,undefined -fno-sanitize-recover=undefined` build exited 0 again: 1630 oracle agreements, depth 8 nodes 16646 off and 16740 on, and 200 legal depth-10 moves.
+
 Not measured: playing strength, multi-thread searches, or time-control searches. Clang’s compiler-rt archive was not installed, so the sanitizer run used g++ rather than the Clang release binary. `tests_t16/options.expected.txt` still snapshots the old option list and was left untouched.
 
 option.ThreatHistory=true
