@@ -89,10 +89,21 @@ struct TTEntry {
     [[nodiscard]] bool pv() const { return (gen_bound & 4U) != 0; }
     [[nodiscard]] std::uint8_t generation() const { return static_cast<std::uint8_t>(gen_bound >> 3U); }
     [[nodiscard]] bool occupied() const { return bound() != BoundNone; }
-    // Existing below90 policy, plus exact near50 context; not a repetition key.
+    // Below 90, a score is usable only when the stored depth cannot reach the
+    // 50-move draw from either clock. An exact clock match stays usable, except
+    // a mate the remaining half-moves cannot deliver. Not a repetition key.
     [[nodiscard]] bool score_usable(std::uint16_t current_clock) const {
-        const int capped = current_clock < 100 ? current_clock : 100;
-        return (rule50_clock < 90 && capped < 90) || rule50_clock == capped;
+        if (is_mate_score(score)) {
+            const int distance = MateValue - (score < 0 ? -static_cast<int>(score) : static_cast<int>(score));
+            if (static_cast<int>(current_clock) + distance > 100) return false;
+        }
+        const int capped = current_clock < 100 ? static_cast<int>(current_clock) : 100;
+        const int stored_clock = rule50_clock;
+        const int stored_depth = depth;
+        const bool inside_horizon = stored_clock + stored_depth < 100 &&
+                                    static_cast<int>(current_clock) + stored_depth < 100 &&
+                                    stored_clock < 90 && capped < 90;
+        return inside_horizon || stored_clock == capped;
     }
 };
 
