@@ -181,6 +181,9 @@ int main() {
                 std::cout << "option name UseNNUE type check default true\n"
                              "option name NnueFile type string default <empty>\n";
             }
+            std::cout << "option name ContHist4PlyRead type check default false\n"
+                         "option name NonPawnCorrection type check default false\n"
+                         "option name LmrDeeperShallower type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -293,6 +296,16 @@ int main() {
                     std::cout << "info string invalid value for option UseNNUE" << std::endl;
                 }
                 searcher.clear_hash();
+            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+                bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                             : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                                                           : &forge::tune::LmrDeeperShallower;
+                if (value_text == "true") *target = true;
+                else if (value_text == "false") *target = false;
+                else {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string invalid value for option " << name << std::endl;
+                }
             } else if (name == "Hash" || name == "Move Overhead" || name == "Threads") {
                 int value = 0;
                 const auto parsed = std::from_chars(
