@@ -10,7 +10,18 @@ The proposed replacement was not applied. It would not change `Book File` or `Nn
 
 ## Proof
 
-`forge-combo29/tests_r4_10/run.sh` configures CMake with no `-DFORGE_*` override and links AddressSanitizer and UndefinedBehaviorSanitizer. `forge-combo29/tests_r4_10/check.py` exits non-zero on a failed check. Leak detection stayed on. The run printed no sanitizer diagnostic and exited 0.
+`forge-combo29/tests_r4_10/check.cpp` is the check. It exits non-zero on failure. The engine was built with no `-DFORGE_*` override and linked with AddressSanitizer and UndefinedBehaviorSanitizer:
+
+```
+CXX=g++ cmake -S forge-combo29 -B /tmp/r4-10-asan -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_FLAGS="-g -fsanitize=address,undefined -fno-omit-frame-pointer" \
+    -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build /tmp/r4-10-asan -j"$(nproc)"
+g++ -std=c++20 -O2 -o /tmp/r4-10-check forge-combo29/tests_r4_10/check.cpp
+/tmp/r4-10-check /tmp/r4-10-asan/forge
+```
+
+Leak detection stayed on. The run printed no sanitizer diagnostic and exited 0.
 
 String values that loaded a 16-byte book (`with 1 entries`) or opened an NNUE file (`nnue: wrong size`, which is only printed after the file opens):
 
@@ -30,6 +41,6 @@ Pins, same process:
 - `bench 13` = `862329`
 - `position startpos` / `go perft 5` = `4865609`
 
-Two hundred `go depth 10` searches, each checked against `go perft 1` for that position. Every `bestmove` was in the legal list. Samples: search 1 `d2d4` (20 legal), search 100 `a7a5` (35), search 200 `c5d4` (34). Elapsed 36.5s.
+Two hundred `go depth 10` searches, each checked against `go perft 1` for that position. Every `bestmove` was in the legal list. Samples: search 1 `d2d4` (20 legal), search 100 `a7a5` (35), search 200 `c5d4` (34). Elapsed 39.8s.
 
 `CMakeLists.txt` was not edited.
