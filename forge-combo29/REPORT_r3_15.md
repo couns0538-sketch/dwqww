@@ -40,7 +40,7 @@ with `go wtime 4000`, twelve option-off repeats and twelve option-on repeats sho
 - depth 13: 132862 nodes, about 84 ms
 - depth 14: 62323 nodes, about 38 ms
 
-Depth 13 is one wider tree (the score moved from -140 to -124 and the selective depth went from 24 to 30), not a new growth rate. `84 * 84 / 16` is about 440 ms. The node form of that same compound, `132862 * 132862 / 26389`, is 668927 nodes. The next iteration searched 62323 nodes, close to the geometric mean of the two sizes, `sqrt(26389 * 132862)` = 59212.
+Depth 13 is one wider tree (the score moved from -140 to -124 and the selective depth went from 24 to 30), not a new growth rate. The first captured hold was `prev 16 last 86`, and `86 * 86 / 16` is 462 ms. The twelve repeats sat at about 84 ms after 16 ms, and `84 * 84 / 16` is 441 ms. The node form of that compound, `132862 * 132862 / 26389`, is 668927 nodes. The next iteration searched 62323 nodes, close to the geometric mean of the two sizes, `sqrt(26389 * 132862)` = 59212.
 
 The revised rule treats 84 > 2 * 16 as a spike. `sqrt(17 * 84)` is 37.8 ms. A fresh pair after the change:
 
