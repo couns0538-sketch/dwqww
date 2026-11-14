@@ -1,0 +1,126 @@
+TASK t12 — SUMMARY OF WHAT CHANGED, FINDINGS, AND IN DETAIL WHAT WAS WRONG
+Branch: carbon/t12-krk-root-cause
+Base:   origin/lock/combo29-20261110 (16833ecc03b425586f91f4c8834dea8807bf4c22)
+
+==============================================================================
+1. WHAT CHANGED
+==============================================================================
+
+Only one engine source file was modified:
+  - forge-combo29/src/search.cpp (19 insertions, 5 deletions; 24 changed lines)
+
+Specifically, inside Worker::search (src/search.cpp:1200-1225, 1334, 1420):
+  1. Added `bare_king_mode` (guarded by default-on `#ifndef FORGE_BARE_KING_MATE_FIX`),
+     which is true when:
+       - `all_workers_ != nullptr && all_workers_->size() > 1` (multi-worker search), AND
+       - `board.occupied(White) == board.pieces(White, King) ||
+          board.occupied(Black) == board.pieces(Black, King)`
+         (either side is down to a bare king, such as KRK).
+  2. When `bare_king_mode` is true, `Worker::search` skips:
+       - Pre-loop Razoring (`!bare_king_mode && depth <= tune::RazorDepth ...`)
+       - Pre-loop Reverse Futility Pruning (`!bare_king_mode && depth <= tune::RfpDepth ...`)
+       - Pre-loop Null-Move Pruning (`!bare_king_mode && depth >= tune::NullMoveMinDepth ...`)
+       - Move-loop shallow pruning (`LMP skip_quiets`, `Futility`, `History`, `SEE`)
+       - Late-Move Reductions (`LMR`)
+
+What was NOT touched (no forbidden shortcuts):
+  - Helper threads continue to probe from and store to `shared_.tt` identically to Worker 0.
+  - No history tables or correction tables are cleared at the start of search.
+  - Thread counts, stripe locking, and timing logic are untouched.
+  - Single-thread (`Threads 1`) searches run the exact unchanged lock tree:
+      bench 11   = 312866 nodes
+      bench 13   = 862329 nodes
+      go perft 5 = 4865609 nodes
+      scripts/check_pins.sh = PINS MATCH combo29 (all 10 net-on/net-off depths 11..22)
+
+==============================================================================
+2. WHAT WE FOUND
+==============================================================================
+
+Baseline vs. Post-Fix on `krk_mate_test` (40 legal KRK positions x 10 runs = 400
+runs at depth 14, Hash 16, Threads 2, verified against an exact 524,288-state
+retrograde KRK tablebase):
+
+  - Unchanged lock (`Threads 1` check):   0 / 100 misses
+  - Unchanged lock (`Threads 2`):        54 / 400 misses (54 centipawn scores, 24 non-mating moves)
+  - Fixed engine (`Threads 2`, Run 1):    0 / 400 misses
+  - Fixed engine (`Threads 2`, Run 2):    0 / 400 misses
+  - Fixed engine (`Threads 2`, Run 3):    0 / 400 misses
+  - Fixed engine (`-fsanitize=address,undefined`): 0 / 400 misses, 0 sanitizer errors
+  - Fixed engine (`x86-64-v4` AVX-512/PEXT):       0 / 400 misses
+  - Fixed engine (stained-history `clear_hash()`, 10 dtm=13 pos x 30 runs): 0 / 300 misses
+
+Evaluation of the five candidates in required order:
+  (a) Torn TT read/write: NOT THE CAUSE.
+      `ExclusiveLease` is only taken when `workers_.size() == 1`. At `Threads >= 2`,
+      every TT `probe` and `store` locks `stripes_[index % 1024].mutex` and copies
+      the 16-byte `TTEntry` under lock. ASan/UBSan is clean. Furthermore, running
+      `Threads 1` on the lock with `clear_hash()` only (empty TT, 1 thread, stained
+      move-ordering history) reproduces 18 / 400 KRK mate misses with zero concurrency.
+  (b) Mate score ply adjustment: NOT THE CAUSE.
+      All 4 store sites use `score_to_tt(score, ply)` and both probe sites use
+      `score_from_tt(tte.score, ply)`. Logged mate entries round-trip accurately.
+  (c) Aborted search or helper depth skew storing partial bounds: NOT THE CAUSE.
+      `if (aborted_) return 0;` runs before every TT store in `search` and `qsearch`.
+      Helpers search the same `depth = 1..max_depth` loop, and `shared_.stop` is set
+      only after Worker 0 completes depth 14.
+  (d) Unsound TT bounds stored after forward pruning / LMR skipped or reduced the
+      quiet mating move: REAL CAUSE (detailed below).
+  (e) TT replacement dropping a deep mate entry for a shallow one: NOT THE CAUSE.
+      Logging every `store_body` call across failing runs showed `MATE_LOST = 0`
+      (zero occupied mate entries were ever overwritten by a centipawn score), and
+      enforcing strict `depth >= entry->depth` replacement still failed 58 / 400 runs.
+
+==============================================================================
+3. IN DETAIL: WHAT WAS WRONG
+==============================================================================
+
+Step 1 — KRK forced mates require quiet waiting/zugzwang moves invisible to qsearch:
+  In KRK endings, forcing checkmate requires quiet non-checking rook waiting moves
+  and king-approach moves that restrict the lone enemy king into zugzwang. When a
+  reduced search branch reaches `depth == 0` with the bare king not in check,
+  `Worker::qsearch` searches only captures/promotions (none exist) and stands pat
+  on static evaluation (~+430..+550 cp), completely blind to a forced mate 2-4
+  plies deeper.
+
+Step 2 — Forward pruning and LMR drop or horizon-truncate the unique mating move:
+  In `Worker::search`, as soon as move 1 (typically a pointless rook check, since
+  `MovePicker` gives +12000 to direct checks) returns ~+450 cp, `best_score >
+  -MateInMaxPly` becomes true. For all subsequent quiet non-checking moves:
+    * Late-Move Pruning (`move_count >= lmp_threshold`) sets `skip_quiets = true`,
+      skipping the quiet mating move completely without searching it.
+    * Futility / History / SEE pruning skip quiet moves when `lmr_depth` is small.
+    * Late-Move Reductions (`LMR`) reduce late quiet moves by 2..5 plies (and also
+      reduce the bare king's own 2nd..8th defensive flights), pushing the mate past
+      the `depth == 0` horizon so the reduced search returns ~+470 cp <= alpha and
+      never triggers a full-depth re-search.
+    * Pre-loop Razoring, Reverse Futility Pruning, and Null-Move Pruning cut off
+      non-PV bare-king nodes directly with centipawn scores (null-move pruning is
+      especially invalid in KRK because KRK mates rely on zugzwang).
+
+Step 3 — `Worker::search` stores full-depth TT bounds over pruned/reduced results:
+  At the end of `Worker::search` (`src/search.cpp:1496-1503`), even though legal
+  quiet moves were skipped by `skip_quiets` or reduced by LMR, the node stores
+  `BoundUpper` (on fail-low) or `BoundExact` (on PV) at its full nominal `depth`.
+  For example, on `3K4/5k2/6R1/8/8/8/8 w - - 0 1` (`PV#4`, mate in 6 via quiet
+  `3.Ke8`), Worker 1 skipped quiet moves at `depth = 6` and stored:
+    `BEFORE(a1a1, score=476, depth=2, Upper) -> AFTER(a1a1, score=488, depth=6, Upper)`
+
+Step 4 — One ply up, the defending bare king converts that into a false `BoundLower`:
+  At the parent Black-to-move node (`PV#3` and `PV#1`), Black sees that its king
+  flight was only punished by `+488` / `+477 cp` (`-488` / `-477` for Black) rather
+  than `-Mate`. That beats Black's null-window beta (e.g. `-520` or `-486`), so
+  Black stores `BoundLower` (`score = -488` at `depth = 7` on `PV#3`, and
+  `score = -477` at `depth = 10` on `PV#1`) into `shared_.tt`—falsely certifying in
+  the shared hash table that Black cannot be checkmated within 10 plies!
+
+Step 5 — Worker 0 hits Worker 1's `BoundLower` and cuts off the mating line:
+  On a fresh `Threads 1` search, deterministic move ordering happens to fail high
+  at the root and enter a full-window PV re-search (`!pv_node == false`, bypassing
+  TT cutoffs) that discovers the mate. With `Threads 2`, Worker 1 writes these
+  centipawn `BoundLower` / `BoundUpper` / `BoundExact` entries into `shared_.tt`
+  ahead of or alongside Worker 0. When Worker 0 probes `PV#1` on a null-window /
+  LMR search (`!pv_node == true`, `req_d = 3`, window `[-487, -486]`), it hits
+  Worker 1's `depth = 10, score = -477, BoundLower` entry (`-477 >= -486`), takes
+  an immediate TT cutoff without searching `1.Rc6`, and finishes depth 14 with a
+  centipawn score (`cp 487`, `g6d6`) instead of `mate 8` (`g6c6`).

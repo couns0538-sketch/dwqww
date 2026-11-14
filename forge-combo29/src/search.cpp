@@ -16,6 +16,10 @@
 #define FORGE_SDK_BADCAP_PREFIX 0
 #endif
 
+#ifndef FORGE_BARE_KING_MATE_FIX
+#define FORGE_BARE_KING_MATE_FIX 1
+#endif
+
 namespace forge {
 
 namespace tune {
@@ -1193,20 +1197,29 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         else improving = true;
     }
 
+#if FORGE_BARE_KING_MATE_FIX
+    const bool multi_worker = all_workers_ != nullptr && all_workers_->size() > 1;
+    const bool bare_king_mode = multi_worker &&
+        (board.occupied(White) == board.pieces(White, King) ||
+         board.occupied(Black) == board.pieces(Black, King));
+#else
+    constexpr bool bare_king_mode = false;
+#endif
+
     if (!pv_node && !in_check && excluded.is_none() && !is_mate_score(beta)) {
         // Razoring: hopeless positions fall back to quiescence.
-        if (depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
+        if (!bare_king_mode && depth <= tune::RazorDepth && eval + tune::RazorBase + tune::RazorMultiplier * depth < alpha) {
             const int razor = qsearch(board, ss, alpha - 1, alpha);
             if (aborted_) return 0;
             if (razor < alpha) return razor;
         }
         // Reverse futility pruning.
-        if (depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
+        if (!bare_king_mode && depth <= tune::RfpDepth && eval - (tune::RfpMargin * depth - tune::RfpImproving * improving) >= beta &&
             eval < MateInMaxPly) {
             return eval;
         }
         // Null move pruning.
-        if (depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
+        if (!bare_king_mode && depth >= tune::NullMoveMinDepth && eval >= beta && ss->static_eval >= beta - 24 * depth + 180 &&
             ss->null_move_allowed && !(ss - 1)->current_move.is_none() &&
             board.has_non_pawn_material(board.side_to_move()) &&
             !(tt_hit && tt_bound == BoundUpper && tt_score < beta)) {
@@ -1318,7 +1331,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         const int history = quiet ? quiet_history(board, ss, move) : capture_history_value(board, move);
 
         // Shallow-depth pruning of unpromising moves.
-        if (!root_node && best_score > -MateInMaxPly && has_material) {
+        if (!root_node && best_score > -MateInMaxPly && has_material && !bare_king_mode) {
             if (quiet && !skip_quiets && move_count >= lmp_threshold(depth, improving)) skip_quiets = true;
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
@@ -1404,7 +1417,8 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
         int score = -Infinite;
         bool full_depth_needed = !pv_node || move_count > 1;
-        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && (quiet || !ss->tt_pv || move_count > 4)) {
+        if (depth >= 2 && move_count > 1 + (root_node ? 1 : 0) && !bare_king_mode &&
+            (quiet || !ss->tt_pv || move_count > 4)) {
             int r = reduction(quiet, depth, move_count);
             if (ss->tt_pv) r -= 1;
             if (!improving) r += 1;
