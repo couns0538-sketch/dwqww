@@ -89,6 +89,62 @@ int interleave_once(forge::TranspositionTable& tt) {
     return 0;
 }
 
+// Thread A holds a miss. Thread B writes the colliding key and a shallow
+// key_a. Thread A then stores the depth-14 exact score through the old probe.
+int interleave_deep_late(forge::TranspositionTable& tt) {
+    tt.clear();
+    std::atomic<int> phase{0};
+
+    std::thread late([&] {
+        const forge::TTProbe p_deep = tt.probe(key_a);
+        if (p_deep.hit) {
+            phase.store(-1, std::memory_order_release);
+            return;
+        }
+        phase.store(1, std::memory_order_release);
+        for (;;) {
+            const int step = phase.load(std::memory_order_acquire);
+            if (step == 2 || step < 0) break;
+            std::this_thread::yield();
+        }
+        if (phase.load(std::memory_order_acquire) != 2) return;
+        tt.store(p_deep, key_a, 777, 100, forge::Move{6, 21, 0, 0}, 14, forge::BoundExact, true, 0);
+        phase.store(3, std::memory_order_release);
+    });
+
+    std::thread writer([&] {
+        for (;;) {
+            const int step = phase.load(std::memory_order_acquire);
+            if (step == 1 || step < 0) break;
+            std::this_thread::yield();
+        }
+        if (phase.load(std::memory_order_acquire) != 1) return;
+        const forge::TTProbe p_other = tt.probe(key_other);
+        tt.store(p_other, key_other, 15, 15, forge::Move{12, 28, 0, 0}, 3, forge::BoundExact, false, 0);
+        const forge::TTProbe p_shallow = tt.probe(key_a);
+        if (p_shallow.hit) {
+            phase.store(-2, std::memory_order_release);
+            return;
+        }
+        tt.store(p_shallow, key_a, -50, 40, forge::Move{8, 16, 0, 0}, 2, forge::BoundUpper, false, 0);
+        phase.store(2, std::memory_order_release);
+    });
+
+    late.join();
+    writer.join();
+    if (phase.load(std::memory_order_acquire) != 3) {
+        std::cerr << "FAIL deep-late phase " << phase.load(std::memory_order_acquire) << "\n";
+        return 1;
+    }
+    const forge::TTProbe after = tt.probe(key_a);
+    if (!visible(after, 14, 777) || after.entry.move.from != 6 || after.entry.move.to != 21 ||
+        after.entry.eval != 100) {
+        return fail("two-thread deeper store did not replace the shallow entry");
+    }
+    if (!visible(tt.probe(key_other), 3, 15)) return fail("two-thread deeper store dropped the colliding key");
+    return 0;
+}
+
 // Both threads keep probing and storing with no extra barrier, then stop.
 // A sanitizer build is what makes a torn cluster entry visible.
 int hammer(forge::TranspositionTable& tt) {
@@ -165,6 +221,13 @@ int main() {
     std::cout << "PASS two-thread interleaving x" << kRepeats
               << " kept move " << static_cast<int>(kept.entry.move.from)
               << "->" << static_cast<int>(kept.entry.move.to) << "\n";
+    for (int i = 0; i < kRepeats; ++i) {
+        if (interleave_deep_late(tt) != 0) {
+            std::cerr << "FAIL deep-late at repeat " << i << "\n";
+            return 1;
+        }
+    }
+    std::cout << "PASS two-thread deeper store x" << kRepeats << "\n";
     if (search_two_workers(forge::Searcher::TTAccess::Shared) != 0) return 1;
     if (search_two_workers(forge::Searcher::TTAccess::Exclusive) != 0) return 1;
     std::cout << "PASS two-worker search\n";

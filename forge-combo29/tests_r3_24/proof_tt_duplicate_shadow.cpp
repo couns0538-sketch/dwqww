@@ -71,8 +71,34 @@ int main() {
         std::cerr << "FAIL shallow store replaced the deeper move\n";
         return 1;
     }
+    if (!after.entry.pv()) {
+        std::cerr << "FAIL shallow store cleared the deeper pv bit\n";
+        return 1;
+    }
     if (!visible(other, 3, 15) || other.entry.bound() != forge::BoundExact) {
         std::cerr << "FAIL colliding key was overwritten\n";
+        return 1;
+    }
+
+    // Opposite order: the stale probe is the deeper exact store. It must
+    // replace the shallow entry in the other slot, not leave that shallow
+    // score in front, and not remove the colliding key.
+    forge::TranspositionTable replace_tt(1);
+    const forge::TTProbe p_deep_late = replace_tt.probe(key_a);
+    const forge::TTProbe p_other2 = replace_tt.probe(key_other);
+    replace_tt.store(p_other2, key_other, 15, 15, forge::Move{12, 28, 0, 0}, 3, forge::BoundExact, false, 0);
+    const forge::TTProbe p_shallow_first = replace_tt.probe(key_a);
+    replace_tt.store(p_shallow_first, key_a, -50, 40, forge::Move{8, 16, 0, 0}, 2, forge::BoundUpper, false, 0);
+    replace_tt.store(p_deep_late, key_a, 777, 100, forge::Move{6, 21, 0, 0}, 14, forge::BoundExact, true, 0);
+    const forge::TTProbe replaced = replace_tt.probe(key_a);
+    const forge::TTProbe other_kept = replace_tt.probe(key_other);
+    if (!visible(replaced, 14, 777) || replaced.entry.move.from != 6 || replaced.entry.move.to != 21 ||
+        !replaced.entry.pv() || replaced.entry.eval != 100) {
+        std::cerr << "FAIL deeper store through a stale slot did not replace the shallow entry\n";
+        return 1;
+    }
+    if (!visible(other_kept, 3, 15)) {
+        std::cerr << "FAIL deeper store through a stale slot removed the colliding key\n";
         return 1;
     }
     std::cout << "PASS deep entry stays visible\n";
