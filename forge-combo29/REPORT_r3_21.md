@@ -100,6 +100,14 @@ Separate `go depth 11` and `go depth 13` searches of the eight bench positions m
 
 A table of every store ply `0..127`, every mate distance `0..128`, both signs, and every read ply `0..127`, passed through the same `int16` clamp the table uses, produced no centipawn result. The new code either keeps a mate score or returns `ValueNone`. That table is a check of this function's arithmetic, not a second copy in the engine.
 
+The loss side of the same position shows the mirror image. After `g3g4`, a stored score of `-31872` is read at ply 1. The unfixed code returns `31871` with `is_mate_score=0`. This branch returns `0`. A stored loss of `-31990`, which still fits after adding one ply, returns `31989` and is a mate on both binaries.
+
+Depth 20 and depth 22 match the unfixed binary on the start position, the bench endgame, the bench position that is mate in 2, king and rook versus king (`mate 17`), and the mate in 1. Node counts, scores, PVs, and best moves are the same. The start position at depth 22 is 3618801 nodes on both.
+
+A temporary counter inside `score_from_tt`, removed before the next build, fired 0 times across perft 5, bench 11, bench 13, and a depth-22 king-and-rook mate. Those bench and perft commands still printed 4865609, 312866, and 862329 while the counter was present. After deleting the counter and rebuilding, the same three numbers came back. The default searches do not enter the new branch, which is why the pins stay put without an option.
+
+The proof test, rebuilt from this tree with AddressSanitizer and UndefinedBehaviorSanitizer, printed `PASS` and exited 0.
+
 ## Not verified
 
 - The cmake command with the default `c++` compiler. It does not link here. The binaries above were built with GCC 13.3.0 and the flags in `CMakeLists.txt`.
