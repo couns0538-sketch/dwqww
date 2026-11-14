@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T12:45:01.912Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T12:52:48.646Z.
 
-Elapsed at snapshot: 93.50 minutes; current phase: 2KRKsplit; recorded pushes: 16. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 101.28 minutes; current phase: 2C; recorded pushes: 17. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -16,7 +16,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2A preparation | Retain all 40 supplied KRK roots; select generated KQK/KBBK using lock T1 positive exact mate scores. | 2,000 completed units; 2,442 trials; 402 selected generated; 0 faults | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
 | 2A | 40 KRK + 40 KQK + 40 KBBK; lock and merged; T2/T4; depth 14; ten cold-state trials per group. | 480 completed units; 4,800 trials; 298 mate score misses; 55 original t12 criterion flags; 298 faults | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
 | 2B | 200 fixed-seed legal bare-king positions; lock and merged; depth 12; reported T1/T2 conditions. | 800 completed units; 800 trials; 0 faults | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
-| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | No completed counts recorded | Pending; no completed counts recorded |
+| 2C | Fixed corpus comparison; completed eligible positions and exclusions tracked separately. | 16,750 positions; 115 excluded; 1 differences low clock; 4 differences high clock; 1 fault positions | Running |
 | 2D | Sanitizer self-play; inspect each batch for its exact node/depth/thread limits. | 194 games; 27,831 searches; 0 faults | Running |
 | 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
 | 2F | ASAN+UBSAN self-play with all three new options enabled; exact limits remain in batch evidence. | No completed counts recorded | Pending; no completed counts recorded |
@@ -123,6 +123,7 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - The isolated unchanged ASan/UBSan40x10 KRK retry also timed out after435seconds with no sanitizer diagnostic and buffered test output unavailable. It contributes zero completed trials. Two40x5 invocations are planned to complete ten fresh-clear trials perroot within command limits; original timeouts remain recorded.
 - Phase2B: all800 searches reacheddepth12 with legalmoves and clean exits. Threads1 move,score,bound,nodecount andcompleteddepth match exactly onall200roots; raw measurements retained in bare_king_depth12_measurements.txt.
 - Both bounded ASan KRK40x5 invocations passed on the identical binary and deterministic roots: combined400 T2 trials and200 T1 references, zero misses or sanitizer reports. Original40x10 attempts remain incomplete.
+- Required depth9 equality failed at halfmove76: FEN5k2/8/7p/1K5P/8/8/8/7q w - - 76 136. Both builds return b5c4 cp-1689 and the samePV; merged31749nodes versus lock32435. Initial pair plus10fresh reproductions differ. Recorded asfault084; source diagnosis pending, production unchanged.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -135,12 +136,13 @@ These notes retain their original recording context; subsequent retry coverage i
 | [2A #1](batches/2A-0001.txt) | 8473201 | 287 completed units; 2,870 trials; 182 faults | 1 incomplete units; 1 partial trials excluded; 0 partial faults excluded | 287 | Attempt 2 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2A #2](batches/2A-0002.txt) | 8473201 | 116 completed units; 1,160 trials; 65 faults | 1 incomplete units; 6 partial trials excluded; 0 partial faults excluded | 403 | Attempt 3 recorded as retry; completion not inferred | driver retained partial work separately |
 | [2KRKfull #1](batches/2KRKfull-0001.evidence/manifest.txt) | not_applicable | None recorded | See raw partial evidence | — | Attempt 2KRKsplit #1 and #2 (coverage split into5+5; originalsingleinvocation remains incomplete) recorded as retry; completion not inferred | expected exactly one actual config line; expected exactly one Threads-1 result; expected exactly one main SUMMARY; actual config does not match 40 10 2 16 14 1; incomplete or invalid T1 checks; incomplete or inconsistent main counts; test did not terminate normally within the budget |
+| [2C #1](batches/2C-0001.txt) | 4754000 | 16,865 records completed; 16,750 positions | See raw partial evidence | — | Retry not recorded | driver retained partial work separately |
 
 A retry link records a later attempt; it does not imply that every partial unit has completed. Retained completed units are already included once in phase totals.
 
 ## Findings and evidence audit
 
-83 numbered files: 1 fixture; 82 soak.
+84 numbered files: 1 fixture; 83 soak.
 
 <details>
 <summary>Numbered findings and evidence</summary>
@@ -230,10 +232,11 @@ A retry link records a later attempt; it does not imply that every partial unit 
 | [081.txt](faults/081.txt) | soak | Endgame lock-t2-KBBK KBBK-001615; 7/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures |
 | [082.txt](faults/082.txt) | soak | Endgame lock-t4-KBBK KBBK-001615; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures |
 | [083.txt](faults/083.txt) | soak | Endgame lock-t2-KBBK KBBK-001735; 3/10 mate-score misses, 0 illegal, 0 KRK nonmating, 0 mate-bound failures |
+| [084.txt](faults/084.txt) | soak | Comparison fault at required-equality root; 10/10 additional fault pairs |
 
 </details>
 
-Optional audit snapshot: 2026-11-14T12:22:45.958Z; state SHA256 `217e7f57a41a193540d8f10cc30034ddcb8c70dbc2907f4e981c224b7777d75a`; apply mode true; reported errors 0, warnings 1. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
+Optional audit snapshot: 2026-11-14T12:51:59.534Z; state SHA256 `4855c1dd3a6623f1059fdaaca9c9e76de8a1ca3df1222131a109e4524b150fd3`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
 
 | Audited batch | Raw verification | Partial safety observations | Sanitizer occurrences |
 | --- | --- | --- | --- |
@@ -243,11 +246,17 @@ Optional audit snapshot: 2026-11-14T12:22:45.958Z; state SHA256 `217e7f57a41a193
 | 2A:1 | Raw records inspected; see audit issues | 0 | 0 |
 | 2A:2 | Raw records inspected; see audit issues | 0 | 0 |
 | 2A:3 | Raw records inspected; see audit issues | 0 | 0 |
+| 2KRKfull:1 | Raw records inspected; see audit issues | 0 | 0 |
+| 2B:1 | Raw records inspected; see audit issues | 0 | 0 |
+| 2KRKsplit:1 | Raw records inspected; see audit issues | 0 | 0 |
+| 2KRKsplit:2 | Raw records inspected; see audit issues | 0 | 0 |
+| 2C:1 | Raw records inspected; see audit issues | 0 | 0 |
 
 <details>
 <summary>Audit issues and limits</summary>
 
 - warning: 2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available
+- warning: 2KRKfull:1 incomplete existing-test invocation; zero completed coverage; native budget expired; incomplete status alone is not an engine fault
 - Frequencies come only from complete raw recorded trial groups. Partial safety evidence has no completed reproduction frequency.
 - No engine is executed by this auditor. Missing ten-run reproduction groups remain pending.
 - Sanitizer marker locations are evidence occurrences, not a count of independent bugs. Mirrored logs can contain the same diagnostic.
@@ -268,6 +277,7 @@ This appendix preserves every state total, including overlapping categories and 
 | Part4 | Reported mate17/short-PV reproduction and exact KRK assessment; scratch-only trace; production source unchanged | Known-root investigation complete; optional broader sampled audit pending |
 | 2B | 200 fixed-seed legal bare-king roots, no mate-score selection; lock and merged, Threads1/2, depth12; raw nodes and times only | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
+| 2C | Four disjoint frozen corpus shards; cold depth9 comparisons; counts only | Running |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -678,6 +688,32 @@ This appendix preserves every state total, including overlapping categories and 
 | 2KRKsplit | non_mating_move | 0 |
 | 2KRKsplit | sanitizer_reports | 0 |
 | 2KRKsplit | batches | 2 |
+| 2C | records_completed | 16865 |
+| 2C | positions | 16750 |
+| 2C | positions_low_clock | 16742 |
+| 2C | positions_high_clock | 8 |
+| 2C | differences_low_clock | 1 |
+| 2C | differences_high_clock | 4 |
+| 2C | fault_positions | 1 |
+| 2C | excluded | 115 |
+| 2C | excluded_no_legal | 7 |
+| 2C | excluded_insufficient | 108 |
+| 2C | excluded_halfmove100 | 0 |
+| 2C | invalid_fens | 0 |
+| 2C | engine_runs | 33600 |
+| 2C | illegal | 0 |
+| 2C | missing | 0 |
+| 2C | missing_info | 0 |
+| 2C | wrong_depth | 0 |
+| 2C | sanitizer_issues | 0 |
+| 2C | transport_issues | 0 |
+| 2C | crashes | 0 |
+| 2C | nonzero_exits | 0 |
+| 2C | shutdown_timeouts | 0 |
+| 2C | reproduction_pairs | 50 |
+| 2C | reproduction_differences | 50 |
+| 2C | reproduction_fault_pairs | 10 |
+| 2C | batches | 1 |
 
 </details>
 
