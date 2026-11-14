@@ -837,6 +837,11 @@ namespace {
 } // namespace
 
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
+    // Score recognized endings before any accumulator refresh or network call.
+    if (dead_material_enabled) {
+        int fixed = 0;
+        if (dead_material_score(board, fixed)) return fixed;
+    }
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
     if (!ss->accumulator.valid) {
@@ -876,6 +881,11 @@ void Worker::record_null_move(SearchStack* ss) {
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
+    // Keep the recognized ending score exact: correction history must not tilt a draw or the corner drive.
+    if (dead_material_enabled) {
+        int fixed = 0;
+        if (dead_material_score(board, fixed)) return fixed;
+    }
     const std::size_t side = static_cast<std::size_t>(board.side_to_move());
     std::int32_t correction = (*correction_history_)[side][board.pawn_key() & (CorrectionSize - 1U)];
     if (tune::MaterialCorrectionWeight > 0) {
@@ -955,8 +965,19 @@ bool Worker::is_draw(const Board& board, int ply) const {
     }
     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
     // replace its terminal draw score with a material evaluation.
-    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
-           (!board.in_check() && !board.has_legal_move());
+    if (!dead_material_enabled) {
+        return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+               (!board.in_check() && !board.has_legal_move());
+    }
+    // Bare kings and king plus one minor are scored 0 by evaluation instead of
+    // this cutoff. Other insufficient material still draws here.
+    if (board.is_repetition(root_history_index_)) return true;
+    if (board.is_insufficient_material()) {
+        int fixed = 0;
+        if (dead_material_score(board, fixed)) return false;
+        return true;
+    }
+    return !board.in_check() && !board.has_legal_move();
 }
 
 int Worker::quiet_history(const Board& board, const SearchStack* ss, Move move) const {
