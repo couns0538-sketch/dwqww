@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T22:51:38.385Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: existing test suites.
+Updated 2026-11-14T22:56:02.169Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Bounded KRK candidate/reference recurrence comparison.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -125,6 +125,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T22:51:38.385Z: Successor soak: existing test suites. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Existing suite runtime batch suite-asan-0024: [{"id":"r3-17-command-transcript","exit":0,"passed":true,"reviewRequired":false,"incomplete":false,"sanitizerReports":0}]. Cumulative command counts {"enabled":{"planned":59,"attempted":59,"completed":59,"passed":56,"failed":3,"incomplete":0,"needsReview":0,"sanitizerReports":0,"notAttempted":0,"remaining":0},"asan":{"planned":59,"attempted":59,"completed":58,"passed":56,"failed":2,"incomplete":1,"needsReview":0,"sanitizerReports":0,"notAttempted":0,"remaining":1}}. Failures and incomplete tests retained; no expected values modified.
+Checkpoint 2026-11-14T22:56:02.169Z: Bounded KRK candidate/reference recurrence comparison. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Full unchanged t12 invocation40 10 2 16 14 1, alternating candidate/reference, fixed30minute ceiling. Totals [{"mode":"candidate","completeInvocations":1,"mainTests":400,"mainMisses":0,"noMateScore":0,"nonMatingMove":0,"t1PreflightTests":100,"t1PreflightMisses":0},{"mode":"reference","completeInvocations":1,"mainTests":400,"mainMisses":0,"noMateScore":0,"nonMatingMove":0,"t1PreflightTests":100,"t1PreflightMisses":0}]. Original suite failure remains retained; focused10repeats had0misses. No causal regression claim from counts alone.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d

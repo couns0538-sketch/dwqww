@@ -1,0 +1,38 @@
+{
+  "label": "krk-rate-controller-failure-repro",
+  "started": "2026-11-14T22:53:27.201Z",
+  "cwd": "/workspace/work/dwqww-r4-guard",
+  "argv": [
+    "timeout",
+    "-k",
+    "2",
+    "440",
+    "node",
+    "/workspace/work/r4-krk-rate/run-next.mjs",
+    "--execute-authorized"
+  ],
+  "inputFile": null,
+  "ended": "2026-11-14T22:53:27.294Z",
+  "exit": 1,
+  "signal": null,
+  "stdoutFile": "/workspace/work/r4-run/logs/krk-rate-controller-failure-repro.stdout.txt",
+  "stderrFile": "/workspace/work/r4-run/logs/krk-rate-controller-failure-repro.stderr.txt",
+  "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderrSha256": "e44dae24676ec0de02a20f2a2b789f8e93fa0642fa987f19b80c4b5f3ac7502e"
+}
+
+STDOUT
+
+STDERR
+file:///workspace/work/r4-krk-rate/run-next.mjs:7
+for(const pid of fs.readdirSync('/proc').filter(x=>/^\d+$/.test(x))){if(Number(pid)===process.pid)continue;try{const argv=fs.readFileSync('/proc/'+pid+'/cmdline','utf8').split('\0');if(argv.some(x=>x===run+'/run-suite-batch.mjs'||x===run+'/execute-suite-step.mjs'||x===p.candidateTestBinary||x===p.referenceTestBinary||x==='/workspace/work/r4-krk-repeat/repeat-one'||x===root+'/run-next.mjs'))throw Error('A suite/focused/rate process remains live: '+pid);}catch(e){if(e.message.startsWith('A suite/'))throw e;}}
+                                                                                                                                                                                                                                                                                                                                                                                                               ^
+
+Error: A suite/focused/rate process remains live: 60396
+    at file:///workspace/work/r4-krk-rate/run-next.mjs:7:400
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.1
+
