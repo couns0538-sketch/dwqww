@@ -72,4 +72,6 @@ Chunk 005, openings 1601-2000, 800 games, option on first: W-L-D 204-212-384. El
 
 Chunk 006, openings 2001-2400, 800 games, option on first: W-L-D 204-212-384. Elo -3.47, 95% +/- 16.91. LOS 34.34%. Pentanomial 23, 105, 156, 89, 27. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-006-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-006.pgn.
 
-After 4800 games: W-L-D 1241-1230-2329. Pentanomial 106, 597, 999, 576, 122. Elo 0.80, 95% +/- 6.48. LOS 59.52%. The interval includes zero.
+Chunk 007, openings 2401-2800, 800 games, option on first: W-L-D 203-197-400. Elo 2.61, 95% +/- 15.42. LOS 62.98%. Pentanomial 12, 107, 162, 101, 18. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-007-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-007.pgn.
+
+After 5600 games: W-L-D 1444-1427-2729. Pentanomial 118, 704, 1161, 677, 140. Elo 1.05, 95% +/- 5.97. LOS 63.53%. The interval includes zero.
