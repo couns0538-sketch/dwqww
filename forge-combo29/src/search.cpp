@@ -96,6 +96,9 @@ bool QuietExtinction = false;
 bool TmFinishIteration = false;
 bool TmNodeShare = false;
 bool SoundMatePruning = false;
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+bool MateAlphaGuard = false;
+#endif
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1699,6 +1702,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
             const int lmr_depth = std::max(0, depth - reduction(quiet, depth, move_count));
             if (quiet && !gives_check) {
                 if (!in_check && lmr_depth <= tune::FutilityDepth &&
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                    (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+#endif
                     ss->static_eval + tune::FutilityBase + tune::FutilityMultiplier * lmr_depth <= alpha) {
                     trace_case();
                     quiet_fail = true;
@@ -1721,6 +1727,9 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 // bring the position back to alpha.
                 if (tune::CaptureFutilityBase > 0 && capture && !in_check && !gives_check &&
                     lmr_depth <= tune::CaptureFutilityDepth &&
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+                    (!tune::MateAlphaGuard || !is_mate_score(alpha)) &&
+#endif
                     ss->static_eval + tune::CaptureFutilityBase + tune::CaptureFutilityMultiplier * lmr_depth +
                             capture_value(board, move) + history / 8 <= alpha) {
                     trace_case();

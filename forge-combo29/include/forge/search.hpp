@@ -303,6 +303,9 @@ extern bool QuietExtinction;         // non-root quiet-tail cutoff after wide fa
 extern bool TmFinishIteration;       // on a clock, skip an iteration the last two times say cannot finish (false = off)
 extern bool TmNodeShare;             // clock-only soft target from the root-node split (false = off)
 extern bool SoundMatePruning;        // skip move-loop pruning on PV, in check, and mate alpha (false = off)
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+extern bool MateAlphaGuard;
+#endif
 // Per-case arms. FollowOption tracks SoundMatePruning. Tests force one arm
 // without the other two. Defaults leave the option's on/off behavior unchanged.
 enum class SoundPruneArm : std::uint8_t { FollowOption, ForceOff, ForceOn };

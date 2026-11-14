@@ -216,6 +216,9 @@ int uci_loop(std::istream& in) {
                          "option name TmFinishIteration type check default false\n"
                          "option name TmNodeShare type check default false\n"
                          "option name SoundMatePruning type check default false\n";
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+            std::cout << "option name MateAlphaGuard type check default false\n";
+#endif
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -388,6 +391,18 @@ int uci_loop(std::istream& in) {
                 } else {
                     note_invalid();
                 }
+#if defined(FORGE_MATE_ALPHA_GUARD) && FORGE_MATE_ALPHA_GUARD
+            } else if (name == "MateAlphaGuard") {
+                if (value_text == "true" || value_text == "false") {
+                    const bool enabled = value_text == "true";
+                    if (forge::tune::MateAlphaGuard != enabled) {
+                        forge::tune::MateAlphaGuard = enabled;
+                        searcher.clear();
+                    }
+                } else {
+                    note_invalid();
+                }
+#endif
             } else if (name == "MultiPV") {
                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
             } else if (name == "Hash") {
