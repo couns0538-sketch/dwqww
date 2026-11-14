@@ -275,6 +275,7 @@ extern bool ThreatHistory;           // second quiet history keyed by cheaper-at
 extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
 extern bool LmrLateParentRelief;     // one ply less reduction on the first few replies after a late parent (false = off)
 extern bool HindsightDepth;          // off-PV depth step after a reduced move (false = off)
+extern bool NullThreatVerify;        // null cutoff needs a reduced non-null search when a cheaper enemy piece attacks a dearer piece (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -300,6 +301,9 @@ void refresh();
     const int adjusted = reduction_plies - correction_cp / kCentipawnsPerPly;
     return adjusted > 0 ? adjusted : 0;
 }
+
+// True when an enemy piece of strictly lower SEE value attacks a piece of the side to move.
+[[nodiscard]] bool cheaper_enemy_attacks_dearer(const Board& board);
 
 // Move-ordering statistics.
 using ButterflyHistory = std::array<std::array<std::array<std::int16_t, 64>, 64>, 2>;
@@ -433,6 +437,9 @@ private:
     bool root_restricted_ = false;
     std::uint64_t null_tries_ = 0;
     std::uint64_t null_cutoffs_ = 0;
+    // True only inside a NullThreatVerify confirmation, so that reduced search
+    // does not use null moves. Stays false for the whole default search.
+    bool null_blocked_ = false;
 
 #if FORGE_SPD_TT_NOTLS
     // The six TT call sites of search / qsearch: one predictable branch per access.
