@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -73,6 +74,25 @@ void walk_hce(int count) {
     std::fprintf(stderr, "hce_sum %lld\n", static_cast<long long>(sum));
 }
 
+void walk_hot(int count) {
+    std::vector<forge::Board> boards;
+    boards.reserve(static_cast<std::size_t>(count));
+    forge::Board cursor;
+    int ply = 0;
+    for (int i = 0; i < count; ++i) {
+        boards.push_back(cursor);
+        play_random(cursor, ply);
+    }
+    forge::Evaluator evaluator;
+    std::int64_t sum = 0;
+    for (const forge::Board& board : boards) sum += evaluator.evaluate(board);
+    evaluator.clear();
+    for (int repeat = 0; repeat < 20; ++repeat) {
+        for (const forge::Board& board : boards) sum += evaluator.evaluate(board);
+    }
+    std::fprintf(stderr, "hot_sum %lld\n", static_cast<long long>(sum));
+}
+
 void walk_eval(int count) {
     forge::Board board;
     forge::Evaluator evaluator;
@@ -108,6 +128,7 @@ int main(int argc, char** argv) {
     const int count = argc > 2 ? std::atoi(argv[2]) : 1000000;
     if (mode == "search") walk_search(count);
     else if (mode == "hce") walk_hce(count);
+    else if (mode == "hot") walk_hot(count);
     else walk_eval(count);
     return 0;
 }
