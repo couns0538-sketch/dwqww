@@ -23,15 +23,13 @@ grok47/r3-02-threat-history f29db79a4e87 200 identical; ab21443c4607 200 identic
 grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical; 176aa9fc1edd 200 identical; 73d9f20e5dd1 200 identical
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
-grok47/r3-06-null-threat-verify d6b4c7356072 0 verification error: invalid literal for int() with base 10: '0.0.1'
+grok47/r3-06-null-threat-verify d6b4c7356072 200 NullThreatVerify on vs NullThreatVerify off ply 7 pushed d1d3 replay e1g1 fen rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR 
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 grok47/r3-09-asp-arm-late a6cb38efffbc 200 identical
 grok47/r3-10-evasion-ordering a2392f49dc81 200 identical
 grok47/r3-11-dead-material e1acd7b14870 200 identical
-grok47/r3-13-quiet-extinction b7dbb6c3e859 80 QuietExtinction off vs QuietExtinction on ply 3 pushed d2d4 replay g1f3
 grok47/r3-14-draw-jitter ccbb229af9d0 200 identical
 grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0
-grok47/r3-16-tm-node-share af548ac4265a 287 clock clock legal, configuration missing, time-losses 0
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
 
@@ -100,7 +98,8 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 grok47/r3-06-null-threat-verify d6b4c7356072 kind nodes pgn forge-combo29/tests_r3fu_06/chunk_000.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
 engine source sha256: 
-engine binary sha256: 
+engine binary sha256: b369e8fd21e56584be602666029a121a6f4cfeb2be9b06ae199f321749cfd072
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/d6b4c73560727fbbf1c5594dad5d56daa16329ea-37997d042e39/forge 'name=NullThreatVerify on' restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.Threads=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/d6b4c73560727fbbf1c5594dad5d56daa16329ea-37997d042e39/forge 'name=NullThreatVerify off' restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.Threads=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-06-null-threat-verify/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-06-null-threat-verify/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c kind nodes pgn forge-combo29/tests_r3fu_08/chunk-001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
@@ -126,12 +125,6 @@ engine source sha256:
 engine binary sha256: 17f1d2d682b300f7d0d8263a1aabc1c63126eb957d08a25fe7b5525dd4f5560d
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
-grok47/r3-13-quiet-extinction b7dbb6c3e859 kind nodes pgn forge-combo29/tests_r3fu_13/screen/chunk-1.pgn
-build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
-engine source sha256: 
-engine binary sha256: ad0bcb5fbe83f231042a87fcb72c4e8f605cf0b41f3b3e824f6d4d18596a5185
-fastchess command: bare fen QuietExtinction nodes 50000 binary /home/ubuntu/r4-verify/build/b7dbb6c3e859d9074d7ebce5083150f633589c62-37997d042e39/forge
-
 grok47/r3-14-draw-jitter ccbb229af9d0 kind nodes pgn forge-combo29/tests_r3fu_14/screen/chunk001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
 engine source sha256: 
@@ -143,12 +136,6 @@ build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-6
 engine source sha256: 
 engine binary sha256: 
 fastchess command: clock audit 10+0.1 TimeControl 10+0.1 Hash 16 OwnBook false
-
-grok47/r3-16-tm-node-share af548ac4265a kind clock pgn forge-combo29/tests_r3fu_16/chunk1.pgn
-build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
-engine source sha256: 
-engine binary sha256: 
-fastchess command: clock audit 10+0.1 TimeControl 10+0.1
 
 grok47/r3-21-mate-score-tt af1c998304db kind nodes pgn forge-combo29/tests_r3fu_21/chunk1.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
@@ -164,17 +151,19 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 
 ## Still open
 
-grok47/r3-07-null-see-veto dd4c65ee8 2026-11-14 17:41:10 +0000 Record the fastchess command for the remaining screen chunks.
+grok47/r3-07-null-see-veto 6837edcd0 2026-11-14 18:19:18 +0000 Add the first fastchess NullSeeVeto chunk.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
+grok47/r3-13-quiet-extinction a6724b080 2026-11-14 18:03:39 +0000 Record UHO screen chunks 12 and 13.
+grok47/r3-16-tm-node-share 9ad8ecca5 2026-11-14 17:54:46 +0000 Checkpoint clock screen.
 grok47/r3-17-merge-legal-node-limit 02674044d 2026-11-14 15:28:41 +0000 Record the owner-build node budget follow-up.
 grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the AVX-512 fused-pass identity checks.
 grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-slider follow-up measurements.
 grok47/r3-20-faster-search-plumbing decec3775 2026-11-14 15:37:05 +0000 Add the depth-8 and perft comparison tests.
 grok47/r3-22-time-safety 143f3c5c6 2026-11-14 16:47:41 +0000 Record the empty-clock follow-up and the 1+0.01 match
-grok47/r3-23-sound-mate-pruning c5f76289b 2026-11-14 17:40:52 +0000 Add UHO slice 5, openings 1600-1999
-grok47/r4-03-screen-lds e34f64473 2026-11-14 17:45:56 +0000 r4-03: heartbeat screen progress
+grok47/r3-23-sound-mate-pruning 88cf5ba9a 2026-11-14 18:04:48 +0000 Add UHO slice 6, openings 2000-2399
+grok47/r4-03-screen-lds 4ab9ef662 2026-11-14 18:01:35 +0000 r4-03: chunk 1001 PGN and screen summary
 grok47/r4-04-screen-ch4 881e2cc8c 2026-11-14 17:42:33 +0000 r4-04: ContHist4PlyRead screen heartbeat
-grok47/r4-05-screen-npc 4389a6616 2026-11-14 17:38:14 +0000 r4-05: NonPawnCorrection screen chunk 004 (1501-2000)
+grok47/r4-05-screen-npc bb4c91996 2026-11-14 18:15:51 +0000 r4-05: NonPawnCorrection screen chunk 005 (2001-2500)
 
-Last check: 2026-11-14T18:20:20Z
+Last check: 2026-11-14T18:26:54Z
 Deadline: 2026-11-15T01:52:00Z
