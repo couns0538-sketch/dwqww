@@ -94,41 +94,41 @@ Off mean nps 1299992 over 5 runs, nodes [862329]. On mean nps 1339750 over 5 run
 
 Scores are from the option-on side. W-L-D is wins, losses, draws for option on. Pentanomial bins are pair results over the two colors of one opening: LL, LD (or DL), DD+WL, WD (or DW), WW. Elo and LOS use the fastchess pentanomial model: pair score in game-point units, variance of that score, 95% interval z=1.959963984540054, Elo = -400 log10(1/p - 1), and the printed margin is half the distance between the Elo values of the two score bounds. LOS is the normal probability that the true score is above 0.5.
 
-W-L-D (option on first): 57-73-145
+W-L-D (option on first): 163-179-351
 
-Pentanomial [LL, LD, DD+WL, WD, WW]: 5, 41, 58, 31, 2
+Pentanomial [LL, LD, DD+WL, WD, WW]: 10, 96, 148, 84, 8
 
-Elo 95%: -20.31 +/- 24.75 (-45.16 to 4.33)
+Elo 95%: -8.03 +/- 15.62 (-23.67 to 7.57)
 
-LOS: 5.31%
+LOS: 15.64%
 
-Pairs: 137. Games: 274. Score: 0.4708.
+Pairs: 346. Games: 692. Score: 0.4884.
 
 Pair notes:
 
-- round 138 has 1 scored games
-- middle bin split DD=36 WL=22
+- round 347 has 1 scored games
+- middle bin split DD=85 WL=63
 
 ## Chunks
 
 ### chunk001
 
-sha256 1a62d5efad0c98219d40c203bace30394abffa788282758958ba66e09bcb2bbf bytes 1495247
+sha256 a69b1759fd2642eb0c813c3338e057399ffe330a43ce4e0b345c8c283ab30237 bytes 3754905
 
 ```
 chunk chunk001
 meta running start=1 rounds=500 elapsed_sec=?
-pgn_games 275 W-L-D 57-73-145 other 0
-pentanomial LL LD DD+WL WD WW [5, 41, 58, 31, 2]
-openings checked 138 mismatches 0 start 1 rounds 500
-round 138 has 1 scored games
-middle bin split DD=36 WL=22
-independent_pentanomial Elo -20.31 +/- 24.75 (95%) bounds -45.16 .. 4.33 LOS 5.31% score 0.4708 pairs 137
+pgn_games 693 W-L-D 163-179-351 other 0
+pentanomial LL LD DD+WL WD WW [10, 96, 148, 84, 8]
+openings checked 347 mismatches 0 start 1 rounds 500
+round 347 has 1 scored games
+middle bin split DD=85 WL=63
+independent_pentanomial Elo -8.03 +/- 15.62 (95%) bounds -23.67 .. 7.57 LOS 15.64% score 0.4884 pairs 346
 fastchess_tail:
 Results of ContHist4PlyRead-on vs ContHist4PlyRead-off (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
-Elo: -13.90 +/- 28.87, nElo: -23.27 +/- 48.15
-LOS: 17.18 %, DrawRatio: 43.00 %, PairsRatio: 0.78
-Games: 200, Wins: 43, Losses: 51, Draws: 106, Points: 96.0 (48.00 %)
-Ptnml(0-2): [3, 29, 43, 23, 2]
+Elo: -4.63 +/- 16.76, nElo: -7.69 +/- 27.80
+LOS: 29.39 %, DrawRatio: 43.33 %, PairsRatio: 0.93
+Games: 600, Wins: 146, Losses: 154, Draws: 300, Points: 296.0 (49.33 %)
+Ptnml(0-2): [9, 79, 130, 75, 7]
 ```
 
