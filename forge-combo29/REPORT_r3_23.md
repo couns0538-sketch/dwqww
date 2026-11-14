@@ -65,7 +65,11 @@ Slice 6, openings 2000-2399, 800 games: W-L-D 209-218-373. Elo -3.909, 95% inter
 
 Slice 7, openings 2400-2799, 800 games: W-L-D 200-209-391. Elo -3.909, 95% interval -21.147 to 13.310, LOS 0.328132. Pentanomial 21 97 162 110 10.
 
-Cumulative through 5600 games: W-L-D 1403-1531-2666. Elo -7.943, 95% interval -14.533 to -1.358, LOS 0.009033. Pentanomial 121 724 1206 660 89. PGNs and summaries are under `tests_r3fu_23/screen/`. Later slices are appended the same way.
+Slice 8, openings 2800-3199, 800 games: W-L-D 196-201-403. Elo -2.172, 95% interval -19.150 to 14.797, LOS 0.400925. Pentanomial 16 95 177 102 10.
+
+Cumulative through the finished slices, 6400 games: W-L-D 1599-1732-3069. Elo -7.221, 95% interval -13.365 to -1.082, LOS 0.010572. Pentanomial 137 819 1383 762 99.
+
+Openings 3200-3599 were still in progress when the screen stopped. Those PGNs are partial (148, 168, 176, and 167 games) and their summaries are empty. PGNs and summaries are under `tests_r3fu_23/screen/`.
 
 ## What was not verified
 
