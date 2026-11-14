@@ -21,7 +21,7 @@ No off-by-default option. The existing `call_once` does not change node counts, 
 
 AddressSanitizer and UBSan do not prove the absence of a data race. The check is ThreadSanitizer on `forge-combo29/tests_r4_06/concurrent_board_init.cpp`. The process does not construct a `Board` or call `attacks::init` before eight threads pass a barrier. Threads 0–3 then build the first boards together. Threads 4–7 wait 80–320 µs so they enter while a magic fill can still be running and after it has published. Each thread checks the 20 start moves, empty-board rook and bishop attacks against a geometric walk, knight a1, the 48 Kiwipete moves, and an attack-table fingerprint. The threads must agree. A mismatch returns 1. A ThreadSanitizer report exits 66 (`halt_on_error=1`).
 
-Compiler: g++ 13.3.0. `/usr/bin/c++` is Clang 18 and cannot link `libstdc++` here, so the release configure used `CXX=g++`. CMakeLists.txt was not edited. The tests do not `#define` or `#undef` any `FORGE_*` macro. `tests_r4_06/run_checks.sh` passes the same switches `CMakeLists.txt` already sets.
+Compiler: g++ 13.3.0. `/usr/bin/c++` is Clang 18 and cannot link `libstdc++` here, so the release configure used `CXX=g++`. CMakeLists.txt was not edited. The tests do not `#define` or `#undef` any `FORGE_*` macro. g++ was given the same `FORGE_SPD_*`, `FORGE_NNUE_HIDDEN`, and `FORGE_SEARCH_SPEED2` switches `CMakeLists.txt` already sets.
 
 | Build | Result |
 |---|---|
@@ -87,7 +87,6 @@ nodes 4865609
 
 - `forge-combo29/tests_r4_06/concurrent_board_init.cpp`
 - `forge-combo29/tests_r4_06/depth10_legal.cpp`
-- `forge-combo29/tests_r4_06/run_checks.sh`
 - `forge-combo29/REPORT_r4_06.md`
 
-No change under `forge-combo29/src`, `forge-combo29/include`, or `CMakeLists.txt`.
+There was no engine change. Nothing under `forge-combo29/src`, `forge-combo29/include`, or `CMakeLists.txt` differs from `e04556ddc`.
