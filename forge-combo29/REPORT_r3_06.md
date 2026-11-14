@@ -70,6 +70,8 @@ bench 13 nps, five off and five on, alternating, off first (nodes stayed 862329 
 
 Chunk PGNs and summaries are under `forge-combo29/tests_r3fu_06/`. W-L-D is option on first. This is a screen, not a strength claim.
 
+Chunk 0 (openings 0-499, 1000 games, 1884 s): option on 265-262-473. Pentanomial LL LD DD/WL WD WW = 24 110 228 115 23 (DD 124, WL 104). Elo 1.0, 95% interval -12.8 to 14.9, LOS 0.56. Illegal moves 0, timeouts 0.
+
 option name NullThreatVerify type check default false
 setoption name NullThreatVerify value true
 bench 13 nodes 789456
