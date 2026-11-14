@@ -40,6 +40,8 @@ At 2026-11-14T13:54:51Z, defaults again: bench 11 = 312866, bench 13 = 862329, p
 
 At 2026-11-14T13:57:04Z the g++ 13 ASan/UBSan binary exited 0: oracle agreed on 1630 quiet moves, depth 8 was 16646 off and 16740 on, and all 200 depth-10 moves were legal.
 
+At 2026-11-14T14:16:50Z the same release binary repeated the defaults (bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609) and ThreatHistory bench 13 = 643379.
+
 Not measured: playing strength, multi-thread searches, or time-control searches. Clang’s compiler-rt archive was not installed, so the sanitizer run used g++ rather than the Clang release binary. `tests_t16/options.expected.txt` still snapshots the old option list and was left untouched.
 
 option.ThreatHistory=true
