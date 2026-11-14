@@ -15,7 +15,7 @@ const left=state.soakBudgetMinutes*60000-(Date.now()-Date.parse(state.soakBudget
 if(left<item.outerTimeoutMs+5000){fs.closeSync(out);fs.closeSync(err);fs.writeFileSync(meta,JSON.stringify({...record,status:'not launched',reason:'insufficient budget for full declared command'},null,2)+'\n');console.log('NOT_LAUNCHED '+id);process.exit(3);}
 const p=cp.spawnSync(item.argv[0],item.argv.slice(1),{cwd:item.cwd,env:{...process.env,...item.env},input,stdio:[input?'pipe':'ignore',out,err],timeout:item.outerTimeoutMs});fs.closeSync(out);fs.closeSync(err);
 const stdout=fs.readFileSync(item.stdoutFile),stderr=fs.readFileSync(item.stderrFile),text=stdout.toString()+'\n'+stderr.toString();
-const sanitizer=[...text.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:/g)].map(x=>x[0]);
+const sanitizer=[...text.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|(?:AddressSanitizer|UndefinedBehaviorSanitizer):DEADLYSIGNAL|runtime error:/g)].map(x=>x[0]);
 const perft=[...stdout.toString().matchAll(/^nodes (\d+)$/gm)].map(x=>+x[1]);
 const perftPass=!item.expectedPerftNodes||JSON.stringify(perft)===JSON.stringify(item.expectedPerftNodes);
 const result={...record,ended:new Date().toISOString(),exit:p.status,signal:p.signal,error:p.error?.message,stdoutSha256:crypto.createHash('sha256').update(stdout).digest('hex'),stderrSha256:crypto.createHash('sha256').update(stderr).digest('hex'),sanitizer,perft:item.expectedPerftNodes?perft:undefined,perftPass,reviewMarkers:text.split('\n').filter(x=>/\bFAIL(?:ED)?\b|\bMISMATCH\b/.test(x)),passed:p.status===0&&!sanitizer.length&&perftPass,incomplete:p.status===124||p.status===137||!!p.signal};
