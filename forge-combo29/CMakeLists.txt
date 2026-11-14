@@ -40,3 +40,10 @@ target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(forge PRIVATE Threads::Threads)
+
+# Draw-rule checks (repetition, 50-move horizon, insufficient material, TT clock).
+# No NNUE objects: the cases call Board and the header-only TT helpers.
+add_executable(draw_rules_test tests/draw_rules_test.cpp src/board.cpp src/bitboard.cpp)
+target_include_directories(draw_rules_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(draw_rules_test PRIVATE cxx_std_20)
+target_compile_options(draw_rules_test PRIVATE -Wall -Wextra -Werror)
