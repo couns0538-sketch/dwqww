@@ -175,7 +175,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
     Bitboard bishops = own_bishops;
     while (bishops != 0) {
         const int square = pop_lsb(bishops);
-        const int mobility = note(Bishop, attacks::bishop_pext(square, bishop_occ), bishop_attacks);
+        const int mobility = note(Bishop, attacks::bishop(square, bishop_occ), bishop_attacks);
         acc.template add<Us>(BishopMobility + mobility);
         const Bitboard bit = square_bb(square);
         if ((bit & outpost_ranks) != 0 && (bit & own_pawn_attacks) != 0 && (bit & enemy_pawn_attack_span) == 0) {
@@ -183,7 +183,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
         }
         if ((pawn_push(Them, bit) & own_pawns) != 0) acc.template add<Us>(MinorBehindPawn);
         acc.template add<Us>(BishopPawnsSameColor, (bit & DarkSquares) != 0 ? dark_pawns : light_pawns);
-        if ((bit & LongDiagonals) != 0 && (attacks::bishop_pext(square, all_pawns) & CenterFour) != 0) {
+        if ((bit & LongDiagonals) != 0 && (attacks::bishop(square, all_pawns) & CenterFour) != 0) {
             acc.template add<Us>(BishopLongDiagonal);
         }
     }
@@ -191,7 +191,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
     Bitboard rooks = own_rooks;
     while (rooks != 0) {
         const int square = pop_lsb(rooks);
-        const int mobility = note(Rook, attacks::rook_pext(square, rook_occ), rook_attacks);
+        const int mobility = note(Rook, attacks::rook(square, rook_occ), rook_attacks);
         acc.template add<Us>(RookMobility + mobility);
         const int file = file_of(square);
         if ((own_pawns & file_bb(file)) == 0) {
@@ -202,7 +202,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
         const bool own_gate = (ahead & info.passed[Us]) != 0;
         const bool enemy_gate = (behind_enemy & info.passed[Them]) != 0;
         if (own_gate || enemy_gate) {
-            const Bitboard real = attacks::rook_pext(square, occupied);
+            const Bitboard real = attacks::rook(square, occupied);
             if (own_gate && (real & ahead & info.passed[Us]) != 0) acc.template add<Us>(RookBehindOwnPasser);
             if (enemy_gate && (real & behind_enemy & info.passed[Them]) != 0) acc.template add<Us>(RookBehindEnemyPasser);
         }
@@ -215,12 +215,12 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
     Bitboard queens = own_queens;
     while (queens != 0) {
         const int square = pop_lsb(queens);
-        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(square)];
-        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(square)];
-        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occupied, bishop_slider.mask));
-        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occupied, rook_slider.mask));
-        const Bitboard queen_bishop = bishop_slider.table[bishop_index];
-        const Bitboard queen_rook = rook_slider.table[rook_index];
+        const attacks::Magic& bishop_magic = attacks::BishopMagics[static_cast<std::size_t>(square)];
+        const attacks::Magic& rook_magic = attacks::RookMagics[static_cast<std::size_t>(square)];
+        const std::size_t bishop_index = bishop_magic.index(occupied);
+        const std::size_t rook_index = rook_magic.index(occupied);
+        const Bitboard queen_bishop = bishop_magic.table[bishop_index];
+        const Bitboard queen_rook = rook_magic.table[rook_index];
         const int mobility = note(Queen, queen_bishop | queen_rook, queen_attacks);
         acc.template add<Us>(QueenMobility + std::min(mobility, 27));
         if (relative_rank(Us, square) >= 2) acc.template add<Us>(QueenEarlyDevelopment, home_minors);
@@ -278,12 +278,12 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
         units += king_safety.weak_square * popcount(weak);
         const Bitboard safe = ~board.occupied(Them) & (~info.attacked_by[Us][0] | (weak & info.attacked_twice[Them]));
         const Bitboard occ = board.occupied();
-        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(king)];
-        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(king)];
-        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occ, rook_slider.mask));
-        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occ, bishop_slider.mask));
-        const Bitboard rook_rays = rook_slider.table[rook_index];
-        const Bitboard bishop_rays = bishop_slider.table[bishop_index];
+        const attacks::Magic& rook_magic = attacks::RookMagics[static_cast<std::size_t>(king)];
+        const attacks::Magic& bishop_magic = attacks::BishopMagics[static_cast<std::size_t>(king)];
+        const std::size_t rook_index = rook_magic.index(occ);
+        const std::size_t bishop_index = bishop_magic.index(occ);
+        const Bitboard rook_rays = rook_magic.table[rook_index];
+        const Bitboard bishop_rays = bishop_magic.table[bishop_index];
         const Bitboard rook_checks = rook_rays & safe & info.attacked_by[Them][Rook];
         const Bitboard bishop_checks = bishop_rays & safe & info.attacked_by[Them][Bishop];
         const Bitboard knight_checks = attacks::knight(king) & safe & info.attacked_by[Them][Knight];

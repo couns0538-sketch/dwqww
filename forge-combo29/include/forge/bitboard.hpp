@@ -14,8 +14,6 @@
 #if !defined(__BMI2__)
 #error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
 #endif
-#endif
-#if defined(__BMI2__)
 #include <immintrin.h>
 #endif
 
@@ -196,30 +194,6 @@ extern std::array<Magic, 64> BishopMagics;
 [[nodiscard]] inline Bitboard queen(int square, Bitboard occupancy) {
     return bishop(square, occupancy) | rook(square, occupancy);
 }
-
-// Eval-only slider tables. The movegen path keeps the multiply tables above.
-// PEXT indexes the same attack sets with a shorter dependency before the load.
-struct PextSlider {
-    Bitboard mask = 0;
-    Bitboard* table = nullptr;
-};
-
-extern std::array<PextSlider, 64> RookPext;
-extern std::array<PextSlider, 64> BishopPext;
-
-#if defined(__BMI2__)
-[[nodiscard]] inline Bitboard rook_pext(int square, Bitboard occupancy) {
-    const PextSlider& slider = RookPext[static_cast<std::size_t>(square)];
-    return slider.table[static_cast<std::size_t>(_pext_u64(occupancy, slider.mask))];
-}
-[[nodiscard]] inline Bitboard bishop_pext(int square, Bitboard occupancy) {
-    const PextSlider& slider = BishopPext[static_cast<std::size_t>(square)];
-    return slider.table[static_cast<std::size_t>(_pext_u64(occupancy, slider.mask))];
-}
-#else
-[[nodiscard]] inline Bitboard rook_pext(int square, Bitboard occupancy) { return rook(square, occupancy); }
-[[nodiscard]] inline Bitboard bishop_pext(int square, Bitboard occupancy) { return bishop(square, occupancy); }
-#endif
 [[nodiscard]] inline Bitboard between(int a, int b) {
     return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
 }
