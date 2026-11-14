@@ -92,3 +92,5 @@ Binary sha256: `1e3ca575f62687793050f72e23a05fd30c800a7234ea5b5b1442704511583896
 `id name Chess Engine Forge 6.4.24 candidate`
 
 The check is `forge-combo29/tests_r3fu_14/same_searcher_bench.cpp`. This is a node-count check, not a strength claim.
+
+UHO screen, same owner binary, nodes 50000, book `UHO_4060_v4.epd`. Chunk 1 is 250 openings, both colors. A snapshot of 324 games is in `forge-combo29/tests_r3fu_14/screen/chunk001.pgn`. Value 8 first: W-L-D 87-92-145, Elo -5.36, 95% -25.72 to 14.96, LOS 30.25%, pentanomial 6, 29, 93, 32, 2. Detail, command, versions, and sha256s are in `forge-combo29/tests_r3fu_14/screen/chunk001-summary.md`. The chunk was still running when that snapshot was taken.
