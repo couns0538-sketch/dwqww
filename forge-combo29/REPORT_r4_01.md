@@ -21,7 +21,7 @@ Frozen input commits
 21 caa1c4baded6a5ab5501043114c1b90ed831051b grok47/r3-21-mate-score-tt
 24 d546561dd3c4208d9949bd56a1db2f2b1fadae8e grok47/r3-24-tt-duplicate-shadow
 22 b8d47952f21fec0185df8509d53a2bafd7373313 grok47/r3-22-time-safety
-01 1843e5a170128e2c0e29f7b61e679e9216e3cb2d grok47/r3-01-eval-rule-50-damp
+01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
 02 f29db79a4e873309bad06bbc2606c7876ca995a8 grok47/r3-02-threat-history
 03 1ecc1d33156d1833701b98586f9c17bd4f67da91 grok47/r3-03-lmr-signed-correction
 04 ae2cc041e24b5805d04fd4a0d95fcf88f20fdb84 grok47/r3-04-lmr-late-parent-relief
@@ -61,7 +61,7 @@ build of the merged commit, every other option at default. Got is the
 integrated binary with only that option changed.
 
 option                value  commit                                     expected   got
-EvalRule50Damp        true   1843e5a170128e2c0e29f7b61e679e9216e3cb2d    1049205    1049205
+EvalRule50Damp        true   c0aaf80df40213f867038d2280abbc954d8b9e98    1049205    1049205
 ThreatHistory         true   f29db79a4e873309bad06bbc2606c7876ca995a8    643389     643389
 LmrSignedCorrection   true   1ecc1d33156d1833701b98586f9c17bd4f67da91    862329     862329
 LmrLateParentRelief   true   ae2cc041e24b5805d04fd4a0d95fcf88f20fdb84    818656     818656
@@ -125,6 +125,14 @@ fault  index  fen                                              move   integrated
 089    12999  8/1k6/5K2/B4N2/8/R7/8/8 w - - 79 147              f6e5   cp 1187, 12663                 12873
 090    14002  8/6b1/6k1/B7/7K/4q3/8/8 w - - 79 145              a5c7   cp -1178, 26217                36360
 091    25354  8/r7/1k4n1/5p2/2K5/7n/8/8 w - - 72 141            c4d4   cp -1812, 29687                29685
+
+Re-check at 2026-11-14 16:11 UTC. Origin was fetched again. The trees of
+r3-17 at 02674044d770fc756ea2cc1041726d23bad6c659 and r3-12 at
+6d8717d287cc5f1038d53355b8b03d3cbba9e604 do not contain the line
+`R3 FOLLOW-UP DONE`. Those tips were already merged. r3-01 moved to
+c0aaf80df40213f867038d2280abbc954d8b9e98, a screen chunk and report
+update with no source change. Pins and the option table were run
+again on the same owner binary and matched the numbers above.
 
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
