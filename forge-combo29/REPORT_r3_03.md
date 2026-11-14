@@ -53,6 +53,18 @@ Setting the option true and then false restores bench 13 to 862329. An unrecogni
 
 The test checks the signed fraction and the zero floor directly, then plays 200 searches to depth 10 with the option on (threads 1, hash 16, history and hash cleared between searches). The positions are the start position plus 199 other positions from a fixed-seed walk of legal moves. Every returned best move was in the legal move list and passed `is_pseudo_legal` and `is_legal`. Every move in the principal variation was legal in the position where it was played. Exit code 0. No AddressSanitizer or UndefinedBehaviorSanitizer diagnostic.
 
+## Re-check
+
+Fresh runs on `grok47/r3-03-lmr-signed-correction` at `bbc7831ed`, same release binary, Threads 1, Hash 16, OwnBook false. 2026-11-14T13:54Z:
+
+- perft 5: 4865609
+- bench 11: 312866
+- bench 13: 862329
+- bench 13 with `LmrSignedCorrection` on: 1244366
+- option set back to false: bench 11 = 312866, bench 13 = 862329
+
+The depth-10 sanitizer binary was run twice after that, 200 searches each, option on, `halt_on_error=1` and `detect_leaks=1`. Both exited 0. Every best move and every principal-variation move was legal. No AddressSanitizer or UndefinedBehaviorSanitizer diagnostic. This is not a strength result.
+
 ## Not measured
 
 No games were played. The node-count change is not a strength result.
