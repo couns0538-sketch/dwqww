@@ -80,4 +80,10 @@ bench 13, five alternating runs, off first, same binary. Nodes stay 862329 off a
 | 4 | on | 850997 | 698 | 1219193 |
 | 5 | off | 862329 | 917 | 940380 |
 
-Chunk 001 is openings 1-10, 20 games, `nodes=50000`, concurrency 2. Option on is the first engine. W-L-D 3-7-10. fastchess 95% Elo -70.44 +/- 92.08. LOS 5.69%. Pentanomial (0-2) [1, 3, 5, 1, 0]. The interval covers both sides of 0. PGN: `forge-combo29/tests_r3fu_08/chunk-001.pgn`. Summary: `forge-combo29/tests_r3fu_08/chunk-001-summary.txt`. Later chunks continue in order.
+Chunk 001 is openings 1-10, 20 games, `nodes=50000`, concurrency 2. Option on is the first engine. W-L-D 3-7-10. Elo 95% -70.44 +/- 92.08. LOS 5.69%. Pentanomial (0-2) [1, 3, 5, 1, 0]. The interval covers both sides of 0.
+
+Chunk 002 is openings 11-210, 400 games, finished 2026-11-14T16:01:02Z, exit 0, no illegal moves or disconnects. W-L-D 105-104-191. Elo 95% 0.87 +/- 22.16. LOS 53.07%. Pentanomial [9, 49, 82, 52, 8].
+
+Cumulative 420 games: W-L-D 108-111-201. Elo 95% -2.48 +/- 21.60. LOS 41.08%. Pentanomial [10, 52, 87, 53, 8]. Still a screen. The interval covers 0.
+
+PGNs and summaries: `forge-combo29/tests_r3fu_08/chunk-001.pgn`, `chunk-001-summary.txt`, `chunk-002.pgn`, `chunk-002-summary.txt`. `pgn_screen.cpp` recounts a PGN the same way. Later chunks continue at opening 211.
