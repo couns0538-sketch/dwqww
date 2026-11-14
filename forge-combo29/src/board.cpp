@@ -1154,6 +1154,7 @@ std::optional<Move> Board::parse_uci(std::string_view text) {
 }
 
 std::string Board::move_to_uci(const Move& move) {
+    if (move.is_none()) return "0000";
     std::string text;
     text += static_cast<char>('a' + file_of(move.from));
     text += static_cast<char>('1' + rank_of(move.from));
