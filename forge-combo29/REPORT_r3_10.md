@@ -98,16 +98,16 @@ The match is the same binary twice at 50000 nodes, Threads 1, Hash 16, OwnBook f
 Chunk 001, openings 1–250, 500 games, finished 15:44 UTC, exit 0. W-L-D 123-126-251. Elo -2.08 +/- 18.84 (95%). LOS 41.41%. Ptnml(0-2) 3 77 101 58 11. The interval includes zero. PGN `forge-combo29/tests_r3fu_10/chunk-001.pgn`, sha256 `fe8fa418fe6f812772787c1791166cb55e887cad3ffa375cb1eec92e525e878e`.
 
 <!-- screen-live -->
-aggregate through chunk 005
+aggregate through chunk 006
 screening only, not a strength claim
 W-L-D is EvasionOn first
 
-W-L-D 626-678-1196
-games 2500 points 1224 score 0.4896
-pentanomial LL LD WL DD WD WW 46 343 243 280 293 45
-Ptnml(0-2) 46 343 523 293 45
-pairs 1250 unpaired_games 0 skipped 0
-Elo -7.23 +/- 8.61 (95%)
-LOS 4.99 %
+W-L-D 743-814-1443
+games 3000 points 1464.5 score 0.488167
+pentanomial LL LD WL DD WD WW 55 420 284 340 343 58
+Ptnml(0-2) 55 420 624 343 58
+pairs 1500 unpaired_games 0 skipped 0
+Elo -8.22 +/- 7.91 (95%)
+LOS 2.07 %
 screen_only not_a_strength_claim
 <!-- /screen-live -->
