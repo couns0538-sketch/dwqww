@@ -177,7 +177,10 @@ int main() {
                          "option name Book File type string default <empty>\n"
                          "option name Book Depth type spin default 30 min 0 max 100\n"
                          "option name Book Variety type spin default 30 min 0 max 100\n";
-            if (forge::nnue::available()) std::cout << "option name UseNNUE type check default true\n";
+            if (forge::nnue::available()) {
+                std::cout << "option name UseNNUE type check default true\n"
+                             "option name NnueFile type string default <empty>\n";
+            }
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them; release builds accept them silently.
@@ -265,6 +268,22 @@ int main() {
                     book_depth = std::clamp(value, 0, 100);
                 } else {
                     book_variety = std::clamp(value, 0, 100);
+                }
+            } else if (name == "NnueFile") {
+                std::string rest;
+                std::getline(input, rest);
+                std::string path = value_text + rest;
+                while (!path.empty() && (path.back() == ' ' || path.back() == '\r')) path.pop_back();
+                std::string error;
+                if (!forge::nnue::load_file(path, error)) {
+                    const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                    std::cout << "info string " << error << std::endl;
+                } else {
+                    searcher.clear_hash();
+                    if (!path.empty() && path != "<empty>") {
+                        const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+                        std::cout << "info string loaded nnue " << path << std::endl;
+                    }
                 }
             } else if (name == "UseNNUE") {
                 if (value_text == "true") forge::nnue::enabled = true;
