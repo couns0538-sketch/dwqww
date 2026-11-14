@@ -19,7 +19,7 @@ Self-check at e04556dd, portable x86-64-v3, 20000 nodes, one opening, two games,
 ## Results
 
 grok47/r3-01-eval-rule-50-damp c0aaf80df402 200 identical
-grok47/r3-02-threat-history f29db79a4e87 200 identical; e7f5bc837eb7 200 identical
+grok47/r3-02-threat-history f29db79a4e87 200 identical; e7f5bc837eb7 200 identical; ab21443c4607 200 identical
 grok47/r3-03-lmr-signed-correction 1ecc1d33156d 200 identical
 grok47/r3-04-lmr-late-parent-relief ae2cc041e24b 200 identical; feccf387e16a 200 identical
 grok47/r3-05-hindsight-depth 4ce2b8b18fd9 200 identical
@@ -46,6 +46,12 @@ build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64
 engine source sha256: e7f5bc837eb7:b57150d279362aa6eb622a205ae08a30a951590ee36a34f08fc98548ca23b5b9 e7f5bc837eb7:b57150d279362aa6eb622a205ae08a30a951590ee36a34f08fc98548ca23b5b9
 engine binary sha256: e7f5bc837eb7:af091e30e0cbe0de2ab0dfdbe0bfde609bec3f3bab7c5d6d76a4def478837361 e7f5bc837eb7:af091e30e0cbe0de2ab0dfdbe0bfde609bec3f3bab7c5d6d76a4def478837361
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/e7f5bc837eb7461c21779dc182eda5b9cfc4b1c7-87d04443a779/forge name=ThreatHistoryOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e7f5bc837eb7461c21779dc182eda5b9cfc4b1c7-87d04443a779/forge name=ThreatHistoryOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=false nodes=50000 -rounds 100 -games 2 -concurrency 2 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-02-threat-history/6be54c788bac/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-02-threat-history/6be54c788bac/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
+grok47/r3-02-threat-history ab21443c4607 kind nodes pgn forge-combo29/tests_r3fu_02/chunk002.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: ab21443c4607:b57150d279362aa6eb622a205ae08a30a951590ee36a34f08fc98548ca23b5b9 ab21443c4607:b57150d279362aa6eb622a205ae08a30a951590ee36a34f08fc98548ca23b5b9
+engine binary sha256: ab21443c4607:af091e30e0cbe0de2ab0dfdbe0bfde609bec3f3bab7c5d6d76a4def478837361 ab21443c4607:af091e30e0cbe0de2ab0dfdbe0bfde609bec3f3bab7c5d6d76a4def478837361
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/ab21443c460723c618041db2840cd28e3e15cb80-87d04443a779/forge name=ThreatHistoryOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/ab21443c460723c618041db2840cd28e3e15cb80-87d04443a779/forge name=ThreatHistoryOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=false nodes=50000 -rounds 100 -games 2 -concurrency 2 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-02-threat-history/45273c53694d/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-02-threat-history/45273c53694d/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
 grok47/r3-03-lmr-signed-correction 1ecc1d33156d kind nodes pgn forge-combo29/screen_r3fu_03/chunk-01.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
@@ -111,5 +117,5 @@ grok47/r4-03-screen-lds ca20d7f52 2026-11-14 17:15:41 +0000 r4-03: chunk 501 PGN
 grok47/r4-04-screen-ch4 51fb0b120 2026-11-14 17:11:45 +0000 r4-04: ContHist4PlyRead screen chunk001
 grok47/r4-05-screen-npc 697f52ee8 2026-11-14 17:20:41 +0000 r4-05: NonPawnCorrection screen chunk 003 (1001-1500)
 
-Last check: 2026-11-14T17:34:14Z
+Last check: 2026-11-14T17:43:05Z
 Deadline: 2026-11-15T01:52:00Z
