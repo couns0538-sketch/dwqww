@@ -65,6 +65,8 @@ Fresh runs on `grok47/r3-03-lmr-signed-correction` at `bbc7831ed`, same release 
 
 The depth-10 sanitizer binary was run twice after that, 200 searches each, option on, `halt_on_error=1` and `detect_leaks=1`. Both exited 0. Every best move and every principal-variation move was legal. No AddressSanitizer or UndefinedBehaviorSanitizer diagnostic. This is not a strength result.
 
+2026-11-14T14:15Z, same binary: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329, bench 13 with the option on = 1244366.
+
 ## Not measured
 
 No games were played. The node-count change is not a strength result.
