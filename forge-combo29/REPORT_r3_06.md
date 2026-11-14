@@ -80,6 +80,8 @@ Chunk 3 (openings 1500-1999, 1000 games, 1476 s): option on 276-255-469. Pentano
 
 After 2000 openings: option on 1066-1025-1909. Screening only.
 
+Chunk 4 was stopped unfinished at 220 of 500 openings (openings 2000-2219, 440 games). Option on 111-116-213. Pentanomial 10 51 101 50 8 (DD 56, WL 45). Elo -3.9, 95% interval -24.3 to 16.5, LOS 0.35. Illegal moves 0, timeouts 0. No later chunk was started.
+
 option name NullThreatVerify type check default false
 setoption name NullThreatVerify value true
 bench 13 nodes 789456
