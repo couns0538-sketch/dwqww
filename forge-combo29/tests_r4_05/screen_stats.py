@@ -52,15 +52,21 @@ def points_for_on(headers: dict[str, str]) -> float:
     raise ValueError(f"unrecognized result {result!r} for white {white!r}")
 
 
+def pair_key(game: dict[str, str]) -> str:
+    # ScreenPair keeps each chunk's round numbers from colliding. Fastchess
+    # restarts Round at 1 in every chunk, and it writes games in completion
+    # order, so adjacent PGN records are not a color pair.
+    if game.get("ScreenPair"):
+        return game["ScreenPair"]
+    return game.get("Round", "")
+
+
 def pentanomial(games: list[dict[str, str]]) -> dict[str, float | int | tuple[int, int, int, int, int]]:
-    # fastchess writes the PGN in completion order. Concurrent games from
-    # different openings are interleaved, so a pair is the two games that
-    # share a Round header (one color each), not two adjacent records.
     if len(games) % 2 != 0:
         raise ValueError(f"odd game count {len(games)}")
     by_round: dict[str, list[dict[str, str]]] = {}
     for game in games:
-        by_round.setdefault(game.get("Round", ""), []).append(game)
+        by_round.setdefault(pair_key(game), []).append(game)
     wins = losses = draws = 0
     ll = ld = mid = wd = ww = 0
     terminations: dict[str, int] = {}
@@ -191,7 +197,10 @@ def load_chunk_games(pgn_dir: Path) -> list[tuple[str, list[dict[str, str]]]]:
     files = sorted(pgn_dir.glob("chunk_[0-9][0-9][0-9].pgn"))
     loaded: list[tuple[str, list[dict[str, str]]]] = []
     for path in files:
-        loaded.append((path.name, parse_games(path.read_text(encoding="utf-8", errors="replace"))))
+        games = parse_games(path.read_text(encoding="utf-8", errors="replace"))
+        for game in games:
+            game["ScreenPair"] = f"{path.name}:{game.get('Round', '')}"
+        loaded.append((path.name, games))
     return loaded
 
 

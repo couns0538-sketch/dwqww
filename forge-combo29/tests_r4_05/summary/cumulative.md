@@ -8,14 +8,14 @@ Owner's PC, cited only as prior context: +6.8 ± 7.2 in 4000 games.
 
 ### Cumulative
 
-- W-L-D (option on first): 249-270-481
-- Games: 1000
-- Pairs: 500
-- Elo 95% (pentanomial, logistic): -7.30 +/- 13.46
-- 95% Elo bounds: -20.77 to 6.15
-- LOS: 14.38 %
-- Pentanomial [LL, LD, WL/DD, WD, WW]: [20, 129, 220, 114, 17]
-- Terminations: {"normal": 1000}
+- W-L-D (option on first): 507-538-955
+- Games: 2000
+- Pairs: 1000
+- Elo 95% (pentanomial, logistic): -5.39 +/- 9.97
+- 95% Elo bounds: -15.36 to 4.58
+- LOS: 14.47 %
+- Pentanomial [LL, LD, WL/DD, WD, WW]: [49, 253, 422, 232, 44]
+- Terminations: {"normal": 2000}
 
 - Base: `e04556ddc3a430b2e751159b0d46111ef56c8b89`
 - Implementation commit: `b68d49fedcc8e705484d06fb02cf0a417734839f`
@@ -77,3 +77,4 @@ Owner's PC, cited only as prior context: +6.8 ± 7.2 in 4000 games.
 | chunk | games | W-L-D on | Elo 95% | LOS | pentanomial [LL, LD, WL/DD, WD, WW] |
 | --- | ---: | --- | --- | --- | --- |
 | chunk_001.pgn | 1000 | 249-270-481 | -7.30 +/- 13.46 | 14.38 % | [20, 129, 220, 114, 17] |
+| chunk_002.pgn | 1000 | 258-268-474 | -3.47 +/- 14.71 | 32.16 % | [29, 124, 202, 118, 27] |

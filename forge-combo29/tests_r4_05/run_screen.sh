@@ -296,7 +296,7 @@ run_chunk() {
     local start_iso
     start_iso=$(python3 -c 'import json; print(json.load(open("'"$TESTS/state.json"'"))["match_start"])')
     write_state running "chunk ${id} published; match still inside the time box" "$start_iso"
-    refresh_report
+    refresh_report || exit 1
     cd "$REPO"
     rm -rf "$REPO/forge-combo29/tests_r4_05/__pycache__"
     git add -- forge-combo29/REPORT_r4_05.md forge-combo29/tests_r4_05
