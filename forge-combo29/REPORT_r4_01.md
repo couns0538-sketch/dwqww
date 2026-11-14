@@ -34,7 +34,7 @@ Frozen input commits
 11 d7d52cbb7db65c2a4c182658ce40d25c967cb8b3 grok47/r3-11-dead-material
 12 6d8717d287cc5f1038d53355b8b03d3cbba9e604 grok47/r3-12-soft-nodes
 13 dfe64bf8200e449ca0ff37127f1535e8f841f254 grok47/r3-13-quiet-extinction
-14 99997aa0cbf445c6a829b29c4960a32143be9dcf grok47/r3-14-draw-jitter
+14 158b5d61a9bf708b39eed350f73f1a6ac3daa599 grok47/r3-14-draw-jitter
 15 29a38cf9df7b2de94bcb3dd9bbbfcc2430059f68 grok47/r3-15-tm-finish-iteration
 16 f8d188b7b0597a6ec629012edd4e6655d4474c47 grok47/r3-16-tm-node-share
 23 2bba512e6f88bc2953e27445f1a2156a758a9b21 grok47/r3-23-sound-mate-pruning
@@ -73,7 +73,7 @@ AspArmLate            true   3b94d827fee3239e3be920e42619f3db7cf01e20    870398 
 EvasionOrdering       true   6f0d2e4336c2af27b5884eed3bb7f13313d48051    772890     772890
 DeadMaterial          true   d7d52cbb7db65c2a4c182658ce40d25c967cb8b3    862329     862329
 QuietExtinction       true   dfe64bf8200e449ca0ff37127f1535e8f841f254    632155     632155
-DrawJitter            8      99997aa0cbf445c6a829b29c4960a32143be9dcf    857947     857947
+DrawJitter            8      158b5d61a9bf708b39eed350f73f1a6ac3daa599    857947     857947
 TmFinishIteration     true   29a38cf9df7b2de94bcb3dd9bbbfcc2430059f68    862329     862329
 TmNodeShare           true   f8d188b7b0597a6ec629012edd4e6655d4474c47    862329     862329
 SoundMatePruning      true   2bba512e6f88bc2953e27445f1a2156a758a9b21    980408     980408
@@ -146,8 +146,10 @@ a report note with no source change. At 16:32 UTC r3-09 moved to
 3b94d827fee3239e3be920e42619f3db7cf01e20, a screen chunk with no
 source change. At 16:32 UTC r3-13 moved to
 dfe64bf8200e449ca0ff37127f1535e8f841f254, screen chunks with no source
-change. Pins and the option table were run again after each of those
-merges and matched the numbers above. Where a newer tip does not change
+change. At 16:32 UTC r3-14 moved to
+158b5d61a9bf708b39eed350f73f1a6ac3daa599, a screen snapshot with no
+source change. Pins and the option table were run again after each
+of those merges and matched the numbers above. Where a newer tip does not change
 src or include, the expected bench is the number already measured
 on that same engine source.
 
