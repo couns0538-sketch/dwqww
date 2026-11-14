@@ -1,0 +1,51 @@
+LmrLateParentRelief screening setup. This is a screen, not a strength claim.
+
+Branch: grok47/r3-04-lmr-late-parent-relief
+Source commit (binary): f3ecae11d4cdf9fb58925853e25a340f921b53ba
+Implementation commit: cc48d5aad409661d085e05e0cfae709d5f349c04
+Binary: /agent/repos/dwqww/build-owner/forge
+Binary sha256: 8919bd97dd07407c40e2d3f14793b691da7b672f4878d366af4e374363e2f7ac
+Build: CXX=g++ cmake -S forge-combo29 -B build-owner -DCMAKE_BUILD_TYPE=Release && cmake --build build-owner -j
+CPU has AVX-512F and BMI2, so this is the owner build: -march=x86-64-v4, FORGE_SPD_SLIDER_PEXT=1, FORGE_SPD_NNUE_ZMM=1. No CMakeLists.txt edit and no FORGE_* cache override.
+Compiler note: /usr/bin/c++ is Clang 18 and cannot link libstdc++, so CXX=g++ (GCC 13.3.0) was selected. That is not a FORGE_* override.
+
+Pins on this binary, Threads 1, Hash 16, OwnBook false, LmrLateParentRelief off:
+bench 11 = 312866
+bench 13 = 862329
+startpos perft 5 = 4865609
+bench 13 with the option on = 818656
+
+bench 13 nps, five alternating runs, option off then on, same binary, quiet machine, 2026-11-14 15:27 UTC:
+off 1664727
+on  1634043
+off 1759855
+on  1663934
+off 1735068
+on  1694939
+off 1721215
+on  1614706
+off 1742078
+on  1640593
+Node counts stayed 862329 off and 818656 on.
+
+Book: UHO_Lichess_4852_v1.epd from https://github.com/official-stockfish/books/raw/master/UHO_Lichess_4852_v1.epd.zip
+Book sha256: 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a
+Book lines: 2632036
+Zip sha256: 4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07
+
+fastchess: alpha 1.8.3 20261107-d7b47e8
+fastchess commit: d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75
+fastchess tag: v1.8.3-alpha
+Elo +/- is fastchess CI95ZSCORE 1.959963984540054 (95%).
+
+Match: same binary, LmrLateParentReliefOn first, LmrLateParentReliefOff second.
+nodes=50000, Threads 1, Hash 16, OwnBook false, restart each game.
+UHO order=sequential, chunks of 500 openings, two games per opening (colors swapped).
+Stop at 9 chunks or 6 hours, whichever comes first.
+concurrency 2 on 4 cores.
+Ptnml(0-2) order: LL, LD, WL+DD, WD, WW for the first engine (option on).
+
+Full command, START replaced by 1, 501, 1001, ... :
+/tmp/screen-r3-04/fastchess/fastchess -engine cmd=/agent/repos/dwqww/build-owner/forge name=LmrLateParentReliefOn option.LmrLateParentRelief=true option.Threads=1 option.Hash=16 option.OwnBook=false -engine cmd=/agent/repos/dwqww/build-owner/forge name=LmrLateParentReliefOff option.LmrLateParentRelief=false option.Threads=1 option.Hash=16 option.OwnBook=false -each proto=uci nodes=50000 restart=on -openings file=/tmp/screen-r3-04/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START -rounds 500 -games 2 -repeat -concurrency 2 -recover -report penta=true -ratinginterval 100 -pgnout file=forge-combo29/tests_r3fu_04/chunk-NNNN.pgn notation=san append=false -event "LmrLateParentRelief screen chunk NNNN"
+
+A 2-game smoke on opening 1 completed: both games were White mates, W-L-D for option on was 1-1-0. That pair is not part of chunk 1; chunk 1 starts again at opening 1.
