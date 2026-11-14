@@ -129,6 +129,32 @@ int main() {
 
     failures += search_two_hundred();
 
+    // Short clock searches exercise the soft-time gate with the option on.
+    // Only legality is checked; the clock makes node totals vary.
+    {
+        forge::Searcher searcher(16, 1);
+        const std::vector<forge::Board> positions = two_hundred_positions();
+        constexpr int samples = 20;
+        int illegal = 0;
+        for (int i = 0; i < samples; ++i) {
+            searcher.clear();
+            forge::SearchLimits limits;
+            limits.time_ms = 40;
+            limits.increment_ms = 0;
+            const forge::SearchInfo info = searcher.search(
+                positions[static_cast<std::size_t>(i)], limits, false,
+                forge::Searcher::TTAccess::Exclusive);
+            if (!move_is_legal(positions[static_cast<std::size_t>(i)], info.best_move)) {
+                std::cerr << "FAIL timed illegal sample " << i << " move "
+                          << forge::Board::move_to_uci(info.best_move) << std::endl;
+                ++illegal;
+                break;
+            }
+        }
+        std::cout << "timed samples " << samples << " illegal " << illegal << std::endl;
+        failures += illegal;
+    }
+
     forge::tune::AspArmLate = false;
     const std::uint64_t b13_again = bench_nodes(13);
     std::cout << "defaults_after bench13 " << b13_again << std::endl;

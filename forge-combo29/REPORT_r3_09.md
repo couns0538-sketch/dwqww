@@ -1,0 +1,58 @@
+# AspArmLate
+
+`AspArmLate` is one UCI check option. It is off by default, so the root search used by `bench` and `go perft` is unchanged.
+
+## Where the idea comes from
+
+The rule is the one named in the task. It is the usual iterative-deepening aspiration policy, written for this engine and not taken from another engine's source, constants, or tables.
+
+Early root iterations do not yet have a score that has been shown to lie inside the window that produced it, so those iterations use a full window (`-Infinite` .. `Infinite`). A narrow window, the existing `AspirationDelta` around the previous root score, is used only after one root score has come back strictly inside its window. If a search is still outside that window, the same widening already in this file runs again (`delta += delta / 2 + 4`). That attempt is not a finished iteration: the soft time limit does not stop the search on it. The hard limit, the node limit, and an external stop still abort as before.
+
+With the option left off, the narrow window still opens at depth 4, which is the previous behaviour.
+
+## What changed
+
+- `forge-combo29/include/forge/search.hpp`: `tune::AspArmLate`, default false.
+- `forge-combo29/src/search.cpp`: the flag, the root-window choice, and the soft-time gate.
+- `forge-combo29/src/uci.cpp`: the option is printed by `uci` and accepted by `setoption`.
+- `forge-combo29/tests_r3_09/asp_arm_late_test.cpp`: bench pins, 200 depth-10 searches, and 20 short clock searches.
+
+The `src` and `include` diff against `e04556dd` is 33 changed lines. `CMakeLists.txt` was not edited.
+
+`uci` prints:
+
+```
+option name AspArmLate type check default false
+```
+
+A value other than `true` or `false` is rejected and leaves the flag as it was. `setoption name AspArmLate value maybe` printed `invalid value for option AspArmLate`, and the following `bench 11` stayed 312866.
+
+## Pins
+
+Release build:
+
+`cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=g++`
+
+`/usr/bin/c++` on this machine is Clang 18, and it does not find `libstdc++` (it selects the GCC 14 library directory, which has no `libstdc++.so`). The binary used here is g++ 13.3.0 with the flags above. Threads 1, Hash 16, OwnBook false, and every other option at default, including `AspArmLate` false.
+
+Before the edit, and again after it with the option off:
+
+- `bench 11` = 312866
+- `bench 13` = 862329
+- `go perft 5` from the start position = 4865609
+
+Turning the option off again after a bench with it on repeated those same `bench 11` and `bench 13` counts.
+
+## Sanitizer
+
+`forge-combo29/tests_r3_09/asp_arm_late_test.cpp` was compiled with the same `FORGE_*` defines as the portable release build, plus `-O2 -fno-omit-frame-pointer -fno-sanitize-recover=address,undefined -fsanitize=address,undefined`, and `-DFORGE_UCI_NO_MAIN`. The binary links `libasan.so.8` and `libubsan.so.1`.
+
+With `AspArmLate` on, 200 searches to depth 10 (Hash 16, one thread) each returned a move that is in the position's legal move list and passes `is_legal`. A further 20 searches on a 40 ms clock, also with the option on, did the same. The process exited 0 with no sanitizer report.
+
+That run also printed the pins with the option off (`312866`, `862329`, `4865609`) and `818642` with it on, then `862329` again after the flag was cleared.
+
+No strength claim. These checks are node counts, perft, legality, and a clean sanitizer run.
+
+setoption name AspArmLate value true
+
+bench 13 nodes 818642
