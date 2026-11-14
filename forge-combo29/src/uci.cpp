@@ -2,6 +2,7 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+#include "forge/uci_clock.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -79,6 +80,12 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
             }
             return value;
         };
+        // Clocks are 64-bit. A 32-bit parse turns 3000000000 into 0, and the
+        // search then stops at once.
+        auto read_clock = [&]() -> std::int64_t {
+            if (i >= tokens.size()) return 0;
+            return forge::parse_clock_ms(tokens[i++]);
+        };
         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
         else if (token == "nodes") {
             if (i < tokens.size()) {
@@ -91,15 +98,15 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
                 }
             }
         }
-        else if (token == "movetime") limits.movetime_ms = std::max(0, read_int());
+        else if (token == "movetime") limits.movetime_ms = read_clock();
         else if (token == "movestogo") limits.moves_to_go = std::max(1, read_int());
         else if (token == "mate") limits.mate_moves = std::clamp(read_int(), 0, 32);
         else if (token == "infinite") limits.infinite = true;
         else if (token == "ponder") limits.ponder = true;
-        else if (token == "wtime") { const int value = std::max(0, read_int()); if (side == forge::White) limits.time_ms = value; }
-        else if (token == "btime") { const int value = std::max(0, read_int()); if (side == forge::Black) limits.time_ms = value; }
-        else if (token == "winc") { const int value = std::max(0, read_int()); if (side == forge::White) limits.increment_ms = value; }
-        else if (token == "binc") { const int value = std::max(0, read_int()); if (side == forge::Black) limits.increment_ms = value; }
+        else if (token == "wtime") { const std::int64_t value = read_clock(); if (side == forge::White) limits.time_ms = value; }
+        else if (token == "btime") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.time_ms = value; }
+        else if (token == "winc") { const std::int64_t value = read_clock(); if (side == forge::White) limits.increment_ms = value; }
+        else if (token == "binc") { const std::int64_t value = read_clock(); if (side == forge::Black) limits.increment_ms = value; }
         else if (token == "searchmoves") {
             limits.search_moves_specified = true;
             while (i < tokens.size() && !is_go_keyword(tokens[i])) {
