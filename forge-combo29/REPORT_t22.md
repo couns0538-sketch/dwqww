@@ -1,26 +1,141 @@
-# Task t22 Report: Search Inventory and Candidates
+# Task t22 Report: Search Inventory, Detailed Findings of What Was Wrong / Missing, and What Changed
 
-## Summary of Findings and Changes
+## Overview
 
-Reading `forge-combo29/src/search.cpp` and `forge-combo29/include/forge/search.hpp` showed a complete modern PVS/alpha-beta search with aspiration windows, razoring, reverse futility, null-move pruning with depth>=14 verification, ProbCut, IIR, singular/double/negative extensions and multi-cut, LMP, futility/history/SEE pruning, pawn + material correction history, and soft/hard time management, alongside a few clear structural gaps (4-ply continuation history is updated on every cutoff/bonus but omitted from quiet history reads; correction history covers pawns and material counts while ignoring non-pawn piece placement; LMR re-searches use an unadjusted `new_depth` regardless of reduced-search margin). Three candidates (`ContHist4PlyRead`, `NonPawnCorrection`, and `LmrDeeperShallower`) were implemented behind default-off UCI `check` options (`false`) without touching evaluation or NNUE code, adding 80 changed lines total across `include/forge/search.hpp`, `src/search.cpp`, and `src/uci.cpp` (well under the 150-line-per-candidate cap). With all new options at their defaults, `bench 11` (312866), `bench 13` (862329), `bench 16` (3024920), all ten `check_pins.sh` bench pins (UseNNUE true and false), and `go perft 5` (4865609) are bit-for-bit identical to the base commit `bf5574ee`.
+Task `t22` audited the entire search implementation in `forge-combo29/src/search.cpp` and `forge-combo29/include/forge/search.hpp` on top of `integrate/combo29-fixes` (`bf5574ee654a773f0ef3d06878707056b90cdad7`), catalogued every search technique and tuning parameter, identified concrete flaws / structural omissions in the search, and implemented three independent candidates behind default-off UCI `check` options (`ContHist4PlyRead`, `NonPawnCorrection`, and `LmrDeeperShallower`) without modifying evaluation or NNUE code.
 
----
-
-## Files Changed and Added
-
-Modified engine source files (total diff: `+71 / -9` = 80 changed lines across all three candidates combined):
-- `forge-combo29/include/forge/search.hpp` (`+5 / -0`)
-- `forge-combo29/src/search.cpp` (`+53 / -9`)
-- `forge-combo29/src/uci.cpp` (`+13 / -0`)
-
-Added test and report files:
-- `forge-combo29/tests_t22/search_candidates_test.cpp`
-- `forge-combo29/tests_t22/uci_candidates.txt`
-- `forge-combo29/REPORT_t22.md`
+With all three new UCI options at their default (`false`), the engine is bit-for-bit node-identical to `integrate/combo29-fixes`:
+- `bench 11`: `312866` nodes
+- `bench 13`: `862329` nodes
+- `bench 16`: `3024920` nodes
+- `go perft 5` (startpos): `4865609` nodes
+- All 10 `scripts/check_pins.sh` depths (11, 13, 16, 20, 22 with `UseNNUE true` and `UseNNUE false`) match `combo29` exactly.
 
 ---
 
-## 1. Search Inventory Table
+## 1. In Detail: What Was Found and What Was Wrong / Missing in the Base Search
+
+Auditing `src/search.cpp` and `include/forge/search.hpp` revealed a well-structured PVS alpha-beta engine, alongside three specific architectural defects / gaps that directly informed the three candidates, plus several notable omissions documented in the full inventory:
+
+### Finding A — Dead/Write-Only 4-Ply Continuation History Polluting Shared Tables (Bug / Asymmetry in `src/search.cpp`)
+
+**What was wrong in base (`bf5574ee`)**:
+In `Worker::update_continuation` (`src/search.cpp:943-950` on base):
+```cpp
+void Worker::update_continuation(SearchStack* ss, Piece piece, int to, int bonus) {
+    for (const int back : {1, 2, 4}) {
+        const SearchStack* previous = ss - back;
+        if (previous->continuation == nullptr || previous->current_move.is_none()) continue;
+        apply_history((*previous->continuation)[static_cast<std::size_t>(piece)][static_cast<std::size_t>(to)],
+                      back == 4 ? bonus / 2 : bonus);
+    }
+}
+```
+Every time a quiet move fails high (`update_quiet_stats`, lines 966 & 971) or beats `alpha` in a reduced LMR search (`search`, line 1431), the engine writes continuation bonuses and maluses into **one single shared 4D table** `ContinuationHistory` (`[13][64][13][64]`) for `ss - 1` (opponent's previous move), `ss - 2` (own previous move), **and `ss - 4` (own move two turns ago, weighted by `bonus / 2`)**.
+
+However, when reading continuation history to score quiet moves, prune quiet moves, and adjust LMR reductions:
+1. `MovePicker::QuietScorer` (`src/search.cpp:614-632` on base, active when `FORGE_SEARCH_SPEED2=1`) only fetched `cont1 = (ss - 1)->continuation` and `cont2 = (ss - 2)->continuation`.
+2. `quiet_history_sum` (`src/search.cpp:179-187` on base) only summed `main + cont1 + cont2`.
+3. `Worker::quiet_history` (`src/search.cpp:921-935` on base, used for shallow history pruning at line 1335, LMR reduction adjustment at line 1421, and non-`SPEED2` builds) also only read `ss - 1` and `ss - 2`.
+
+Because Forge uses a **single unified `[prev_piece][prev_to][piece][to]` table** (not separate tables per ply offset), writing 4-ply-back associations into `continuation_history_` while never reading `(ss - 4)->continuation` had two negative effects:
+1. All 4-ply continuation updates performed work and dirtied cache lines on every quiet cutoff and malus loop, yet 4-ply continuation context (`ss - 4`) was completely ignored when ordering moves, pruning bad quiet moves, or computing LMR depth adjustments.
+2. Worse, because `(ss - 4)` is a same-side move (just like `(ss - 2)`), its half-weight updates modified the exact same `PieceToHistory` slices read by `(ss - 2)` without the search ever consulting `(ss - 4)` when that move actually occurred 4 plies earlier.
+
+### Finding B — Static-Eval Correction History Blind to Piece Placement / King Safety (`src/search.cpp:802-870`)
+
+**What was wrong / missing in base (`bf5574ee`)**:
+In `Worker::corrected_eval` (`src/search.cpp:852-859` on base) and `Worker::update_correction` (`src/search.cpp:861-870` on base), static evaluation error `(best_score - static_eval)` was tracked in only two tables:
+1. `correction_history_`, indexed by `board.pawn_key() & (CorrectionSize - 1U)` (pawn positions only).
+2. `material_correction_`, indexed by `material_key(board) & (CorrectionSize - 1U)` (total piece counts per type/color only, ignoring squares).
+
+That corrected `static_eval` drives almost every forward-pruning decision in Forge:
+- Quiescence stand-pat and delta/futility base (`src/search.cpp:1036-1052`)
+- Razoring (`src/search.cpp:1203`)
+- Reverse futility pruning (`src/search.cpp:1209`)
+- Null-move pruning gate and eval reduction (`src/search.cpp:1214-1220`)
+- ProbCut SEE margin `probcut_beta - ss->static_eval` (`src/search.cpp:1260`)
+- Child quiet futility pruning (`src/search.cpp:1331`)
+- Improving flag (`ss->static_eval > (ss - 2)->static_eval`, `src/search.cpp:1195-1197`)
+
+Whenever a position has a systematic evaluation error caused by **piece placement rather than pawn structure or material count** — for example, an exposed king after castling rights are lost or pieces swarm the kingside, trapped rooks/bishops, or an entrenched knight outpost while pawns stay fixed — every sibling node with the same pawn structure blends incompatible king/piece placements into one `pawn_key` bucket, washing out the correction signal. Base Forge had no non-pawn piece-placement correction history at all.
+
+### Finding C — Flat, Unadjusted Post-LMR Re-Search Depth (`src/search.cpp:1422-1428`)
+
+**What was wrong / suboptimal in base (`bf5574ee`)**:
+In the LMR block of `Worker::search` (`src/search.cpp:1422-1428` on base):
+```cpp
+const int reduced_depth = std::clamp(new_depth - r, 1, new_depth);
+score = -search(board, ss + 1, reduced_depth, -alpha - 1, -alpha, true);
+full_depth_needed = score > alpha && reduced_depth < new_depth;
+if (full_depth_needed) {
+    score = -search(board, ss + 1, new_depth, -alpha - 1, -alpha, !cut_node);
+    full_depth_needed = false;
+}
+```
+When a reduced zero-window search (`reduced_depth < new_depth`) failed high (`score > alpha`), Forge discarded the magnitude of `score` and unconditionally re-searched at the exact nominal `new_depth` (and then again at `new_depth` with full window `(-beta, -alpha)` on PV nodes if `score > alpha`).
+- If the reduced search barely cleared `alpha` (e.g., `score < best_score + new_depth`), it still paid the full cost of a `new_depth` re-search even when `r == 1` meant `new_depth - 1 == reduced_depth`.
+- Conversely, if a late move crushed the reduced search far above `best_score` (`score > best_score + 40 + 2 * new_depth`), signaling a sharp tactical refutation or missed threat, it received no extra ply in the confirmation search or PV search.
+- Careful detail noticed while inspecting `src/search.cpp:1410`: `best_score` starts the move loop at `-Infinite` (`-32001`), **not** at `alpha`. However, LMR only executes when `move_count > 1` (or `> 2` at root, line 1412), so at least move 1 has already completed without aborting and raised `best_score` to a real search score (`>= -MateValue`), making `best_score + 40 + 2 * new_depth` and `best_score + new_depth` well-defined and free of overflow on every LMR move.
+
+### Finding D — Other Notable Gaps Observed During the Full Audit (Not Selected to Stay Within the 3-Candidate Cap)
+
+1. **Pawn History (`absent`)**: Quiet move ordering uses butterfly `[side][from][to]` plus `[prev_piece][prev_to][piece][to]` continuation history, with no `[pawn_key][piece][to]` table to remember quiet piece maneuvers tied to specific pawn structures.
+2. **Capture-History LMR Adjustment (`absent`)**: Noisy moves enter LMR (`Reductions.noisy[d][m]` at line 1413), and `history` already holds `capture_history_value(board, move)` for captures at line 1323, yet line 1421 (`if (quiet) r -= ...`) only adjusts `r` for quiet moves; good/bad capture history never adjusts noisy LMR reductions.
+3. **Quiet Checks in Quiescence (`partly`)**: When `qsearch` enters with `in_check == true`, `MovePicker` uses `EvasionTT` / `EvasionGenerate` and searches all legal check evasions (returning `mated_in(ply)` if `move_count == 0`). When `in_check == false`, `qsearch` only generates captures and promotions (`Mode::Quiescence` -> `generate_captures`), never quiet checking moves at ply 0 of quiescence.
+4. **6-Ply Continuation History & Continuation Correction History (`absent`)**: Continuation history stops at `back = 4` (with `back = 6` absent), and correction history has no move-pair/continuation-indexed table.
+5. **VM Toolchain Issue Encountered at `Start` (`environment`)**: On this Ubuntu 24.04 cloud VM, `/etc/alternatives/c++` pointed to `/usr/bin/clang++` (Clang 18.1.3), which selected `/usr/lib/gcc/x86_64-linux-gnu/14` as its GCC installation directory even though only `libstdc++-13-dev` (`g++ 13.3.0`) was installed (`gcc/14` had no `libstdc++.so` / headers). Consequently, plain `cmake` failed compiler detection with `/usr/bin/ld: cannot find -lstdc++`. Invoking CMake with `CXX=g++` resolved this cleanly.
+
+---
+
+## 2. Detailed Breakdown of What Changed on `carbon/t22-search-candidates`
+
+Total engine diff across `include/` and `src/` is **71 insertions and 9 deletions** (80 changed lines total for all three candidates combined; rule 5 allows up to 150 changed lines per candidate):
+
+### A. `forge-combo29/include/forge/search.hpp` (`+5 / -0`)
+1. Declared three `bool` flags in `namespace forge::tune` (lines 268–270):
+   - `extern bool ContHist4PlyRead;`
+   - `extern bool NonPawnCorrection;`
+   - `extern bool LmrDeeperShallower;`
+2. Added two per-worker correction history tables on `class Worker` (lines 352–353):
+   - `std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;`
+   - `std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;`
+
+### B. `forge-combo29/src/search.cpp` (`+53 / -9`)
+1. **Default-off option definitions** (`lines 73–75`):
+   - Initialized `ContHist4PlyRead = false`, `NonPawnCorrection = false`, `LmrDeeperShallower = false`.
+2. **Candidate 1 — `ContHist4PlyRead`** (`lines 181–191`, `616–640`, `952–972`):
+   - Extended `quiet_history_sum(...)` (under `#if FORGE_SEARCH_SPEED2`) with `const PieceToHistory* cont4` and added `if (cont4 != nullptr) score += (*cont4)[p][move.to] / 2;`.
+   - Updated `MovePicker::QuietScorer` to initialize `cont4` to `(ss - 4)->continuation` when `tune::ContHist4PlyRead && ss != nullptr && !(ss - 4)->current_move.is_none()`, and `nullptr` otherwise (`stack_` starts search at `&stack_[4]`, so `ss - 4` is always in bounds even at `ply == 0`, where `(ss - 4)->current_move.is_none()` is `true`).
+   - Updated `Worker::quiet_history(...)` in both `#if FORGE_SEARCH_SPEED2` and `#else` compilation paths to add `(*(ss - 4)->continuation)[piece][move.to] / 2` under the identical guard, keeping `FORGE_SEARCH_SPEED2=0` and `FORGE_SEARCH_SPEED2=1` bit-identical.
+3. **Candidate 2 — `NonPawnCorrection`** (`lines 790–792`, `806–807`, `823–832`, `880–884`, `897–900`):
+   - Allocated `non_pawn_white_correction_` and `non_pawn_black_correction_` in `Worker::Worker` and zeroed both in `Worker::clear()` (ensuring `ucinewgame` resets all state deterministically).
+   - Added `non_pawn_key(const Board& board, Color color)`, a fast SplitMix-style hash over `board.pieces(color, type)` bitboards for `Knight` through `King` (`type = 2..6`).
+   - In `Worker::corrected_eval`: when `tune::NonPawnCorrection` is `true`, looks up `np_w` and `np_b` for `[side][key & (CorrectionSize - 1U)]` and adds `(np_w + np_b) / 2` to `correction` prior to `correction / CorrectionGrain`.
+   - In `Worker::update_correction`: when `tune::NonPawnCorrection` is `true`, updates both tables using the same `apply` helper (`diff * weight / 256` clamped to `[-CorrectionLimit, CorrectionLimit]`) as pawn and material correction history.
+4. **Candidate 3 — `LmrDeeperShallower`** (`lines 1419`, `1463–1470`):
+   - Changed `new_depth` from `const int` to `int` so post-LMR adjustments propagate into both the zero-window re-search and any subsequent PV full-window re-search.
+   - Inside `if (full_depth_needed)` after the reduced LMR search beats `alpha`: when `tune::LmrDeeperShallower` is `true`, computes `do_deeper = score > best_score + 40 + 2 * new_depth` and `do_shallower = score < best_score + new_depth`, adjusts `new_depth += int(do_deeper) - int(do_shallower)`, and only runs the zero-window full-depth re-search if `reduced_depth < new_depth`.
+
+### C. `forge-combo29/src/uci.cpp` (`+13 / -0`)
+1. Advertised all three options in the `uci` response (`lines 184–186`):
+   - `option name ContHist4PlyRead type check default false`
+   - `option name NonPawnCorrection type check default false`
+   - `option name LmrDeeperShallower type check default false`
+2. Parsed `setoption name <Option> value <true|false>` (`lines 299–308`), emitting `info string invalid value for option <Name>` on malformed values (matching `Ponder`, `OwnBook`, and `UseNNUE`).
+
+### D. `forge-combo29/tests_t22/` (New Test Files)
+1. `forge-combo29/tests_t22/search_candidates_test.cpp`:
+   - Verifies default-off parity (`bench 11` = 312866, `bench 13` = 862329, `perft 5` = 4865609).
+   - Builds 200 diverse legal positions from 25 opening/middlegame/endgame seed FENs via deterministic pseudo-random legal rollouts.
+   - For each candidate (`ContHist4PlyRead`, `NonPawnCorrection`, `LmrDeeperShallower`): enables only that option, verifies `bench 13` produces a different non-zero node count than 862329, runs 200 searches to `depth = 10` (clearing every 25 searches so history/correction tables exercise both cross-search accumulation and clean resets), and verifies every returned `best_move` is non-null, passes `board.is_legal(best_move)`, and appears in `board.legal_moves()`.
+   - Resets all three options to `false` at the end and confirms `bench 13` returns to `862329`.
+2. `forge-combo29/tests_t22/uci_candidates.txt`:
+   - Plain UCI command script exercising `uci`, baseline `bench 11`/`13`/`16`, `go perft 5`, toggling each candidate option on and off through UCI `setoption`, and checking `bench 11` and `bench 13` node counts.
+
+---
+
+## 3. Search Inventory Table
 
 Line numbers below list the original `integrate/combo29-fixes` (`bf5574ee`) line numbers first, followed by post-t22 line numbers where shifted in `src/search.cpp` / `include/forge/search.hpp`.
 
@@ -57,40 +172,19 @@ Line numbers below list the original `integrate/combo29-fixes` (`bf5574ee`) line
 
 ---
 
-## 2. Three Candidates Prepared for Match Testing
+## 4. Candidate Reference Cards for Match Testing
 
 None of the owner's previously rejected candidates (`EvalOptimism`, `RfpReturnBlend`, enhanced transposition cutoffs, `LmrCapVictim`, `NullMoveMinDepth=2`, `CaptureFutilityBase=300`, `FailLowContinuationBonus`, `SingularMargin=1`, `ProbcutDepth=4`, `LmrHistoryDivisor=4000`, `RfpMargin=60`, or refreshing a hash entry's age on a hit) were used.
 
-### Candidate 1: `ContHist4PlyRead` (4-ply Continuation History Read)
-- **UCI match option**: `option.ContHist4PlyRead=true` (`setoption name ContHist4PlyRead value true`, default `false`)
-- **Bench node counts** (`Threads 1`, `Hash 16`, `OwnBook false`):
-  - Off (`false`): `bench 11` = `312866`, `bench 13` = `862329`
-  - On (`true`): `bench 11` = `335384`, `bench 13` = `989877`
-- **What it does**: Includes the 4-ply-back continuation history entry `(*(ss - 4)->continuation)[piece][to] / 2` (guarded by `!(ss - 4)->current_move.is_none()`) in both `QuietScorer` (move picker quiet ordering) and `Worker::quiet_history` (history pruning and LMR history reduction adjustment).
-- **Why a gain is expected in Forge**: `Worker::update_continuation` (`src/search.cpp:943-950` in base) already updates `ss - 1`, `ss - 2`, and `ss - 4` (with `bonus / 2` at `back == 4`) on every quiet beta cutoff, quiet malus, and LMR fail-high bonus. However, `QuietScorer` and `Worker::quiet_history` only read `ss - 1` and `ss - 2`, meaning all 4-ply updates were dead writes polluting the shared `[prev_piece][prev_to][piece][to]` continuation table without ever contributing to own-side two-move plan continuity. Reading `ss - 4` at matching `1/2` weight utilizes the already-maintained statistics for quiet move ordering, shallow history pruning, and LMR reductions.
-- **Origin of idea**: Direct code inspection of the read/write asymmetry in Forge's `src/search.cpp` combined with the standard multi-ply Continuation History concept documented on the Chess Programming Wiki (*Continuation History* / *Countermove History*).
-
-### Candidate 2: `NonPawnCorrection` (Per-Color Non-Pawn Static-Eval Correction History)
-- **UCI match option**: `option.NonPawnCorrection=true` (`setoption name NonPawnCorrection value true`, default `false`)
-- **Bench node counts** (`Threads 1`, `Hash 16`, `OwnBook false`):
-  - Off (`false`): `bench 11` = `312866`, `bench 13` = `862329`
-  - On (`true`): `bench 11` = `293735`, `bench 13` = `775585`
-- **What it does**: Maintains two per-worker correction tables (`non_pawn_white_correction_` and `non_pawn_black_correction_`), indexed by `[side_to_move][non_pawn_key(board, color) & (CorrectionSize - 1)]`, where `non_pawn_key` hashes the bitboards of Knights, Bishops, Rooks, Queens, and King for one color. `Worker::corrected_eval` adds `(np_w + np_b) / 2` to the correction sum before dividing by `CorrectionGrain`, and `Worker::update_correction` updates both tables under the same conditions and clamping rules as pawn and material correction history.
-- **Why a gain is expected in Forge**: Forge already benefits from pawn-structure correction history and material-balance correction history (`MaterialCorrectionWeight = 100`), which sharpen `static_eval` for RFP, null-move margins, ProbCut SEE thresholds, futility pruning, and qsearch stand-pat. Neither existing table distinguishes piece configurations under identical pawn structures and piece counts (such as king safety / castled king shelter vs exposed king, rook placement, or bishop pair coordination). Per-side non-pawn keys capture recurring piece setups across sibling subtrees without modifying the evaluation function or NNUE.
-- **Origin of idea**: Generalization of pawn correction history to non-pawn piece configurations as described on the Chess Programming Wiki (*Correction History*) and widely studied in modern alpha-beta search literature.
-
-### Candidate 3: `LmrDeeperShallower` (Post-LMR Deeper / Shallower Re-Search Depth Adjustment)
-- **UCI match option**: `option.LmrDeeperShallower=true` (`setoption name LmrDeeperShallower value true`, default `false`)
-- **Bench node counts** (`Threads 1`, `Hash 16`, `OwnBook false`):
-  - Off (`false`): `bench 11` = `312866`, `bench 13` = `862329`
-  - On (`true`): `bench 11` = `336538`, `bench 13` = `813907`
-- **What it does**: When a late-move reduced zero-window search (`reduced_depth < new_depth`) fails high (`score > alpha`), compares the reduced search `score` against `best_score`: increments `new_depth` by `+1` if `score > best_score + 40 + 2 * new_depth`, decrements `new_depth` by `-1` if `score < best_score + new_depth`, and skips the zero-window re-search if the adjusted `new_depth` no longer exceeds `reduced_depth` (whilst preserving any subsequent PV open-window search at the adjusted `new_depth`).
-- **Why a gain is expected in Forge**: In Forge's LMR block, every reduced search that beats `alpha` unconditionally triggers a re-search at exact `new_depth`, whether it barely cleared `alpha` on a marginal tactical fluctuation or surged far past `best_score`. Using the quantitative margin of the reduced-search score saves nodes on borderline fail-highs (`do_shallower`) and invests an extra ply on standout surprise refutations (`do_deeper`), including into the PV re-search if the move continues to beat `alpha`.
-- **Origin of idea**: Chess Programming Wiki (*Late Move Reductions* — re-search depth adjustment based on reduced search score margin) adapted to Forge's `best_score` and `new_depth` frame.
+| Candidate UCI Option | Match Runner Option Line | `bench 11` (Off / On) | `bench 13` (Off / On) | Origin / Reference |
+|---|---|---|---|---|
+| `ContHist4PlyRead` | `option.ContHist4PlyRead=true` | `312866` / `335384` | `862329` / `989877` | Direct audit of read/write asymmetry in `src/search.cpp` + Chess Programming Wiki (*Continuation History*) |
+| `NonPawnCorrection` | `option.NonPawnCorrection=true` | `312866` / `293735` | `862329` / `775585` | Chess Programming Wiki (*Correction History* — non-pawn piece-placement correction) |
+| `LmrDeeperShallower` | `option.LmrDeeperShallower=true` | `312866` / `336538` | `862329` / `813907` | Chess Programming Wiki (*Late Move Reductions* — post-LMR re-search depth adjustment) |
 
 ---
 
-## 3. Commands Run and Full Outputs
+## 5. Commands Run and Full Outputs
 
 *Environment note*: On this Ubuntu 24.04 cloud VM, `/usr/bin/c++` pointed to `clang++-18` while only `libstdc++-13-dev` (`g++ 13.3.0`) headers/libraries were installed alongside a bare `gcc-14` directory stub, causing default `cmake` without `CXX=g++` to fail CMake's compiler link check (`cannot find -lstdc++`). Setting `CXX=g++` builds cleanly with GNU 13.3.0. In addition, the VM CPU does not have AVX-512, so `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3` was used as specified in `Start`.
 
@@ -543,7 +637,7 @@ PASS
 
 ---
 
-## 4. What Could Not Be Verified
+## 6. What Could Not Be Verified
 
 1. **Playing strength (Elo) and SPRT match results**: Can only be measured by self-play / gauntlet matches on the owner's PC.
 2. **Windows Clang ThinLTO + PGO (`znver5`, AVX-512 / BMI2 `PEXT` + `ZMM`) build and hardware throughput**: This Linux cloud VM lacks AVX-512 and the Windows `llvm-mingw` clang 23.1.5 toolchain, so builds used Linux `g++ 13.3.0` with `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`.
