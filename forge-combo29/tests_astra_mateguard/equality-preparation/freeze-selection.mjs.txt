@@ -1,0 +1,10 @@
+import fs from 'node:fs';import crypto from 'node:crypto';import readline from 'node:readline';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const states=[0,1,2,3].map(worker=>({worker,cursor:0,positions:0,excluded:0,digest:crypto.createHash('sha256')}));const batches=[];
+for(let batch=1;batch<=7;batch++){
+ const file='/workspace/work/all-run/compare-batches/C-'+String(batch).padStart(4,'0')+'/summary.txt',s=JSON.parse(fs.readFileSync(file));batches.push({file,sha256:hash(file)});
+ for(const w of s.workers){const st=states[w.worker];if(w.offset!==st.cursor)throw Error('old cursor discontinuity');if(!w.accepted){if(w.skipped&&w.remainingEligibleAfter===0)continue;throw Error('old unaccepted worker');}
+  let count=0;for await(const line of readline.createInterface({input:fs.createReadStream(w.outputPrefix+'.jsonl'),crlfDelay:Infinity})){if(!line.trim())continue;const r=JSON.parse(line);if(r.type==='position'){st.digest.update(r.context.index+'\t'+r.context.fen+'\n');st.positions++;count++;}else if(r.type==='excluded')st.excluded++;}
+  if(count!==w.counts.positions)throw Error('old position count');st.cursor=w.next_offset;
+ }
+}
+const result={utc:new Date().toISOString(),purpose:'Original selected100000 eligible comparisons, distinct from the full199020-record source corpus',rowHashEncoding:'local_index + TAB + exact normalized FEN + LF in increasing local_index order, preserving duplicates',sourceSha256:'571fd73cf5ec3ddad78d6afc1dd65c57d7f4c3f8eaa424cbfbabe94a4a8b06c1',batches,workers:states.map(x=>({worker:x.worker,finalCursor:x.cursor,positions:x.positions,excluded:x.excluded,selectedIndexFenSha256:x.digest.digest('hex')}))};if(result.workers.some(x=>x.positions!==25000))throw Error('old target');fs.writeFileSync('/workspace/work/r4-run/equality-tools/original-selection.json.txt',JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(result,null,2));

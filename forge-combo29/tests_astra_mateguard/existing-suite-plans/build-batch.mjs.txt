@@ -1,0 +1,33 @@
+// Sequential bounded compiler orchestration; no test runs, source/ref/state edits.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import cp from 'node:child_process';
+const own='/workspace/work/r4-krk-validation/test-plan',run='/workspace/work/r4-run';
+const manifestFile=own+'/build-progress.json.txt';
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+function sourceFiles(){const root='/workspace/work/dwqww-r4-guard/forge-combo29',dirs=fs.readdirSync(root).filter(n=>n==='src'||n==='include'||/^tests_(t\d+|r3_\d+|r4_01)$/.test(n));const files=[root+'/CMakeLists.txt'];function walk(p){for(const e of fs.readdirSync(p,{withFileTypes:true})){const f=path.join(p,e.name);if(e.isDirectory())walk(f);else if(e.isFile())files.push(f);}}for(const d of dirs)walk(root+'/'+d);return files.sort();}
+let m;if(fs.existsSync(manifestFile))m=JSON.parse(fs.readFileSync(manifestFile));else{m={started:'2026-11-14T20:52:34Z',deadline:'2026-11-14T21:17:34Z',minimumFreeBytes:2147483648,nativeTestsRun:0,builds:[],batches:[],sourceHashes:Object.fromEntries(sourceFiles().map(p=>[p,hash(p)]))};}
+function save(){fs.writeFileSync(manifestFile,JSON.stringify(m,null,2)+'\n');}
+function verify(){const changes=Object.entries(m.sourceHashes).filter(([p,expected])=>!fs.existsSync(p)||hash(p)!==expected).map(([p])=>p);if(changes.length){m.sourceChanges=changes;save();throw Error('read-only source fingerprint changed');}}
+verify();const batchStart=Date.now(),batch={started:new Date().toISOString(),builds:0};m.batches.push(batch);save();
+const plans=['enabled','asan'].map(mode=>({mode,plan:JSON.parse(fs.readFileSync(own+'/plan-'+mode+'.json.txt'))}));
+let stop=null;
+outer:for(const {mode,plan} of plans)for(const entry of plan.builds){
+ if(m.builds.some(x=>x.mode===mode&&x.id===entry.id))continue;
+ const stat=fs.statfsSync('/workspace'),free=stat.bavail*stat.bsize;
+ if(free<m.minimumFreeBytes){stop='free disk below2GiB';break outer;}
+ if(Date.now()+140000>Date.parse(m.deadline)){stop='25minute task deadline reserves one full command';break outer;}
+ if(Date.now()-batchStart>=300000){stop='bounded five-minute launch window complete';break outer;}
+ const metadata=entry.stdoutFile+'.metadata.txt';
+ if(fs.existsSync(metadata)){stop='unexpected existing metadata '+metadata;break outer;}
+ const argv=['timeout','-k','2','132','node',run+'/execute-suite-step.mjs',mode,'builds',entry.id];
+ const started=new Date().toISOString();console.log('BUILD_START '+JSON.stringify({mode,id:entry.id,started,freeBytes:free}));
+ const result=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:136000,maxBuffer:8*1024*1024});
+ const observed=fs.existsSync(metadata)?JSON.parse(fs.readFileSync(metadata)):null;
+ const record={mode,id:entry.id,started,ended:new Date().toISOString(),argv,cwd:process.cwd(),wrapperExit:result.status,wrapperSignal:result.signal,wrapperStdout:result.stdout,wrapperStderr:result.stderr,metadata,compilerExit:observed?.exit??null,passed:result.status===0&&observed?.passed===true,incomplete:observed?.incomplete??true,outputPaths:{stdout:entry.stdoutFile,stderr:entry.stderrFile},outputSha256:{stdout:fs.existsSync(entry.stdoutFile)?hash(entry.stdoutFile):null,stderr:fs.existsSync(entry.stderrFile)?hash(entry.stderrFile):null}};
+ if(!record.passed){record.fullCompilerStderr=fs.existsSync(entry.stderrFile)?fs.readFileSync(entry.stderrFile,'utf8'):null;record.fullCompilerStdout=fs.existsSync(entry.stdoutFile)?fs.readFileSync(entry.stdoutFile,'utf8'):null;}
+ m.builds.push(record);batch.builds++;save();console.log('BUILD_RESULT '+JSON.stringify({mode,id:entry.id,exit:record.compilerExit,wrapperExit:record.wrapperExit,passed:record.passed,incomplete:record.incomplete,stderr:record.fullCompilerStderr}));
+}
+verify();batch.ended=new Date().toISOString();batch.stopReason=stop??'all requested builds attempted';m.lastSourceVerification=batch.ended;m.sourceHashesUnchanged=true;m.remaining=plans.flatMap(({mode,plan})=>plan.builds.filter(e=>!m.builds.some(x=>x.mode===mode&&x.id===e.id)).map(e=>({mode,id:e.id})));const stat=fs.statfsSync('/workspace');m.lastFreeBytes=stat.bavail*stat.bsize;save();
+console.log('BATCH_COMPLETE '+JSON.stringify({started:batch.started,ended:batch.ended,reason:batch.stopReason,attemptedThisBatch:batch.builds,attempted:m.builds.length,passed:m.builds.filter(x=>x.passed).length,failed:m.builds.filter(x=>!x.passed).map(x=>({mode:x.mode,id:x.id,exit:x.compilerExit})),remaining:m.remaining.length,freeBytes:m.lastFreeBytes,sourceHashesUnchanged:true,nativeTestsRun:0}));

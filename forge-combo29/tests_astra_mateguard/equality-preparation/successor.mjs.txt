@@ -1,0 +1,31 @@
+// No engine processes or global state writes. Validates a completed wrapper
+// summary and emits the next explicit four-worker configuration.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {makePlan} from './compare4.mjs';
+const [currentFile,summaryFile,nextFile,nextOut,seed]=process.argv.slice(2);
+if(!seed||!/^\d+$/.test(seed))throw Error('usage: successor.mjs CURRENT_CONFIG SUMMARY NEXT_CONFIG NEW_OUT DECIMAL_SEED');
+for(const p of [nextFile,nextOut])if(!path.resolve(p).startsWith('/workspace/work/r4-run/equality-'))throw Error('output outside equality scratch');
+if(fs.existsSync(nextFile)||fs.existsSync(nextOut))throw Error('refuse existing output');
+const c=JSON.parse(fs.readFileSync(currentFile)),s=JSON.parse(fs.readFileSync(summaryFile));
+if(s.type!=='comparison_sharded_summary'||s.worker_count!==4||s.sourceSha256!=='571fd73cf5ec3ddad78d6afc1dd65c57d7f4c3f8eaa424cbfbabe94a4a8b06c1')throw Error('summary identity');
+const sha=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const expected={merged:'710cfcf73fcc3b9897281113759ed18565feb167eb0effe7023cbbe1706037dc',lock:'e2788a101d11acfca637b14471e2b067ae11e551500cfb0656019a193ec2cb3e'};
+for(const role of ['merged','lock'])if(sha(c[role])!==expected[role]||s.inputHashes?.[c[role]]!==expected[role])throw Error('binary pin '+role);
+if(s.changedInputs?.length)throw Error('inputs changed; investigate before successor');
+if(s.allTargetsMet)throw Error('all targets met: do not launch another batch');
+const workers=s.workers.map(w=>{
+ const previous=c.workers.find(x=>x.worker===w.worker);
+ if(!previous||w.offset!==previous.offset||w.remainingEligibleBefore!==previous.remainingEligible)throw Error('config/summary continuity');
+ const positions=w.accepted?w.counts.positions:0;
+ const next=w.accepted?w.summary?.next_offset:w.offset;
+ if(!Number.isSafeInteger(positions)||positions<0||positions>previous.remainingEligible||!Number.isSafeInteger(next)||next<w.offset)throw Error('invalid committed cursor');
+ if(w.next_offset!==next||w.remainingEligibleAfter!==previous.remainingEligible-positions)throw Error('unverified successor');
+ return {worker:w.worker,offset:next,remainingEligible:previous.remainingEligible-positions};
+});
+if(workers.length!==4||new Set(workers.map(w=>w.worker)).size!==4)throw Error('four workers');
+const config={...c,seed,workers,out:path.resolve(nextOut),previousSummary:path.resolve(summaryFile),previousSummarySha256:sha(summaryFile)};
+makePlan(config); // Same proven wrapper argument/range validation, no execution.
+fs.mkdirSync(path.dirname(nextFile),{recursive:true});fs.writeFileSync(nextFile,JSON.stringify(config,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({nextConfig:path.resolve(nextFile),workers,validationFailed:s.validationFailed,partial:s.partial,note:'Only accepted completed records advance; rejected workers repeat their old cursor. Review retained diagnostics before launching.'},null,2));
