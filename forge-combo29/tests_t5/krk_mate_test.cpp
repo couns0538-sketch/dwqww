@@ -2,9 +2,11 @@
 // a Threads 1 search keeps move-ordering history from an earlier position and
 // then plays a different move (often without a mate score), and Threads 2
 // stores helper transposition bounds that make the same depth-14 search
-// disagree with Threads 1.
+// disagree with Threads 1. A node-limited search must also keep the one-thread
+// depth, score, move, and node count when Threads is 2.
 #include "forge/search.hpp"
 
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <utility>
@@ -110,6 +112,50 @@ int check_threads(const std::string& fen, bool use_nnue, int runs) {
     return 0;
 }
 
+int check_node_budget() {
+    constexpr const char* kStart = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    forge::nnue::enabled = true;
+    struct Budget {
+        int depth = 0;
+        int score = 0;
+        std::uint64_t nodes = 0;
+        std::string move;
+        bool ok = false;
+    };
+    auto run = [&](int threads) {
+        Budget budget;
+        forge::Searcher searcher(16, threads);
+        forge::Board board;
+        std::string error;
+        if (!board.set_fen(kStart, &error)) {
+            std::cout << "node budget invalid fen: " << error << "\n";
+            return budget;
+        }
+        forge::SearchLimits limits;
+        limits.depth = 64;
+        limits.nodes = 30000;
+        limits.nodes_specified = true;
+        const forge::SearchInfo info = searcher.search(board, limits, false, forge::Searcher::TTAccess::Exclusive);
+        budget.depth = info.depth;
+        budget.score = info.score;
+        budget.nodes = info.nodes;
+        budget.move = forge::Board::move_to_uci(info.best_move);
+        budget.ok = info.depth > 0;
+        std::cout << "nodes-30k threads " << threads << " depth " << info.depth << " " << score_text(info.score)
+                  << " " << budget.move << " total " << info.nodes << "\n";
+        return budget;
+    };
+    const Budget one = run(1);
+    const Budget two = run(2);
+    if (!one.ok || !two.ok || one.depth != two.depth || one.score != two.score || one.nodes != two.nodes ||
+        one.move != two.move) {
+        std::cout << "node budget FAIL\n";
+        return 1;
+    }
+    std::cout << "node budget ok\n";
+    return 0;
+}
+
 } // namespace
 
 int main() {
@@ -123,6 +169,7 @@ int main() {
     for (const char* fen : positions) failures += check_history(fen);
     for (const char* fen : positions) failures += check_threads(fen, false, 30);
     failures += check_threads("4K3/k7/8/8/2R5/8/8/8 w - - 0 1", true, 20);
+    failures += check_node_budget();
     if (failures != 0) {
         std::cout << "FAILED " << failures << "\n";
         return 1;

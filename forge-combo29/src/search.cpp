@@ -899,7 +899,8 @@ bool Worker::should_stop() {
     nodes_.store(local_nodes_, std::memory_order_relaxed);
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
     if (!is_main()) return false;
-    if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
+    // A node limit bounds the main search. Helper nodes are not part of it.
+    if (node_limit_specified_ && local_nodes_ >= node_limit_) return true;
     if (hard_limit_ms_ > 0) {
         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
@@ -1794,8 +1795,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     for (auto& worker : workers_) all.push_back(worker.get());
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+    // Helpers cannot publish a sound entry, so a node-limited search does not
+    // start them. Their nodes would otherwise end the main search early.
+    const bool node_limited = limits.nodes_specified || limits.nodes != 0;
+    const bool launch_helpers = !node_limited && workers_.size() > 1;
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
-    if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
+    if (table_access == TTAccess::Exclusive && !launch_helpers) {
         exclusive.emplace(shared_.tt);
     }
 #if FORGE_SPD_TT_NOTLS
@@ -1812,10 +1817,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
     std::vector<std::thread> helpers;
-    for (std::size_t i = 1; i < workers_.size(); ++i) {
-        helpers.emplace_back([this, i, board, &worker_limits, &all]() {
-            (void)workers_[i]->search(board, worker_limits, false, all);
-        });
+    if (launch_helpers) {
+        for (std::size_t i = 1; i < workers_.size(); ++i) {
+            helpers.emplace_back([this, i, board, &worker_limits, &all]() {
+                (void)workers_[i]->search(board, worker_limits, false, all);
+            });
+        }
     }
     SearchInfo result = workers_.front()->search(board, worker_limits, emit_info, all);
     // Wind down the helpers without clobbering an externally requested stop.

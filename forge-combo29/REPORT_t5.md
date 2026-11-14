@@ -8,7 +8,7 @@ With `Threads 1`, the history tables live until `ucinewgame`. They are indexed b
 
 ## Fix
 
-Helper threads still read the table and still search, but they no longer store entries and they no longer refresh generation on a probe. The main thread's stores are unchanged, so a one-thread search builds the same table as before. Every search, on every worker, clears that worker's history tables before the root. Bench already clears those tables before each position, and the depth-11 and depth-13 node counts stayed on the lock pins.
+Helper threads still read the table, but they no longer store entries and they no longer refresh generation on a probe. The main thread's stores are unchanged, so a one-thread search builds the same table as before. Every search, on every worker, clears that worker's history tables before the root. A search with a node limit does not start the helpers: they cannot publish a sound entry, and counting their nodes was ending the main search early. Bench already clears the history tables before each position, and the depth-11 and depth-13 node counts stayed on the lock pins.
 
 ## Files
 
@@ -17,7 +17,7 @@ Helper threads still read the table and still search, but they no longer store e
 - `forge-combo29/tests_t5/krk_mate_test.cpp`
 - `forge-combo29/REPORT_t5.md`
 
-Engine diff: 38 insertions, 16 deletions (`git diff --numstat`). No change to `CMakeLists.txt`.
+Engine diff against `16833ecc` (`git diff --numstat -- forge-combo29/src forge-combo29/include`): `search.hpp` 13 insertions and 2 deletions, `search.cpp` 38 insertions and 20 deletions. No change to `CMakeLists.txt`.
 
 The test links `Searcher` directly (`TTAccess::Exclusive`, Hash 16). It fails on the lock sources and passes after the change. `UseNNUE` is off for the mate checks. One extra block leaves the net on and only checks that two threads repeat the one-thread move and score.
 
@@ -27,19 +27,22 @@ Working directory: `/agent/repos/dwqww`. Compiler: `g++-13` (this machine's Clan
 
 ### Test linked to the unchanged lock (`16833ecc`)
 
-This was compiled and run before the source edit. Exit status 1.
+`search.cpp` and `search.hpp` were taken from that commit. The other translation units are unchanged from it. Exit status 1.
 
 ```
+mkdir -p /tmp/lock_inc/forge
+git show 16833ecc:forge-combo29/include/forge/search.hpp > /tmp/lock_inc/forge/search.hpp
+git show 16833ecc:forge-combo29/src/search.cpp > /tmp/lock_search.cpp
 g++-13 -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 \
   -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 \
   -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 \
   -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 \
   -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_NNUE_ZMM=1 \
-  -I forge-combo29/include \
+  -I /tmp/lock_inc -I forge-combo29/include \
   forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp \
   forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp \
   forge-combo29/src/nnue.cpp forge-combo29/src/book.cpp \
-  forge-combo29/src/search.cpp \
+  /tmp/lock_search.cpp \
   forge-combo29/tests_t5/krk_mate_test.cpp \
   -pthread -o /tmp/krk_mate_test_lock && /tmp/krk_mate_test_lock; echo EXIT:$?
 ```
@@ -55,22 +58,25 @@ fresh 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
 after-startpos 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
 history ok
 t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 mate 7 c4c6
-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 30 mismatches 19 first mate 9 e8d7
+threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 30 mismatches 21 first cp 451 c4b4
 threads FAIL
 t1 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 mate 17 b3f3
-threads2 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 runs 30 mismatches 29 first cp 481 b3b8
+threads2 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 runs 30 mismatches 30 first mate 14 b3f3
 threads FAIL
 t1 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
 threads2 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 runs 30 mismatches 1 first mate 3 d1e1
 threads FAIL
 nnue-t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 cp 476 e8e7
-nnue-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 20 mismatches 20 first cp 496 c4c5
+nnue-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 20 mismatches 20 first cp 510 e8f7
 threads FAIL
-FAILED 6
+nodes-30k threads 1 depth 11 cp 24 d2d4 total 30000
+nodes-30k threads 2 depth 10 cp 19 g1f3 total 30000
+node budget FAIL
+FAILED 7
 EXIT:1
 ```
 
-`3k4/8/3K4/8/8/8/8/3R4` did not change after a start-position search on the lock. The other two history cases did. Two threads missed or changed the one-thread result on every position, including with the net left on (there the one-thread score is a centipawn score, not a mate).
+`3k4/8/3K4/8/8/8/8/3R4` did not change after a start-position search on the lock. The other two history cases did. Two threads missed or changed the one-thread result on the longer mates and with the net left on (there the one-thread score is a centipawn score, not a mate). The first wrong two-thread move is not stable across runs. An earlier run of the mate checks, before the node-budget check existed, failed 19 of 30 (`mate 9 e8d7`), 29 of 30 (`cp 481 b3b8`), 1 of 30 (`mate 3 d1e1`), and 20 of 20 (`cp 496 c4c5`).
 
 ### Test linked to this change
 
@@ -113,8 +119,42 @@ threads ok
 nnue-t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 cp 476 e8e7
 nnue-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 20 mismatches 0
 threads ok
+nodes-30k threads 1 depth 11 cp 24 d2d4 total 30000
+nodes-30k threads 2 depth 11 cp 24 d2d4 total 30000
+node budget ok
 ok
 EXIT:0
+```
+
+The same test, linked to the previous patch (helpers already do not store, but the node limit still counts every thread), passed the mate and history checks and then failed the node budget. Exit status 1. That binary was `search.cpp` from this branch with only the stop condition put back to `total_nodes()`.
+
+```
+fresh 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 mate 7 c4c6
+after-startpos 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 mate 7 c4c6
+history ok
+fresh 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 mate 17 b3f3
+after-startpos 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 mate 17 b3f3
+history ok
+fresh 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
+after-startpos 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
+history ok
+t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 mate 7 c4c6
+threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 30 mismatches 0
+threads ok
+t1 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 mate 17 b3f3
+threads2 8/8/8/8/8/1R6/2k5/5K2 w - - 0 1 runs 30 mismatches 0
+threads ok
+t1 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 mate 3 d1d4
+threads2 3k4/8/3K4/8/8/8/8/3R4 w - - 0 1 runs 30 mismatches 0
+threads ok
+nnue-t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 cp 476 e8e7
+nnue-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 20 mismatches 0
+threads ok
+nodes-30k threads 1 depth 11 cp 24 d2d4 total 30000
+nodes-30k threads 2 depth 10 cp 24 d2d4 total 30861
+node budget FAIL
+FAILED 1
+EXIT:1
 ```
 
 ### AddressSanitizer and UndefinedBehaviorSanitizer
@@ -159,6 +199,9 @@ threads ok
 nnue-t1 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 cp 476 e8e7
 nnue-threads2 4K3/k7/8/8/2R5/8/8/8 w - - 0 1 runs 20 mismatches 0
 threads ok
+nodes-30k threads 1 depth 11 cp 24 d2d4 total 30000
+nodes-30k threads 2 depth 11 cp 24 d2d4 total 30000
+node budget ok
 ok
 EXIT:0
 ```
@@ -242,8 +285,8 @@ option name CaptureFutilityDepth type spin default 6 min 0 max 15
 option name FailLowContinuationBonus type spin default 0 min 0 max 300
 option name Clear Hash type button
 uciok
-info string bench depth 11 nodes 312866 time 160 nps 1955412
-info string bench depth 13 nodes 862329 time 421 nps 2048287
+info string bench depth 11 nodes 312866 time 161 nps 1943267
+info string bench depth 13 nodes 862329 time 423 nps 2038602
 a2a3: 181046
 b2b3: 215255
 c2c3: 222861
@@ -271,25 +314,37 @@ Pins: `bench 11` = 312866, `bench 13` = 862329, `go perft 5` = 4865609.
 
 ## Helper stores and node-limited depth
 
-A review of the first patch asked for helper threads to publish results again. Sharing every fail-high was measured, and it brings the mate miss back. On the same three positions, with helpers storing only `BoundLower` and not replacing a current-generation exact entry, two threads missed the mate 10 of 30 and 16 of 30 times (`cp 438 c4b4`, `cp 494 b3e3`). Ignoring those centipawn scores in the main thread, and refusing to overwrite a main-thread entry, still missed (11 of 30 and 18 of 30). The entries occupy cluster slots and change which entry the main thread keeps. The patch therefore still drops helper stores.
+A review of the first patch asked for helper threads to publish results again. Sharing a fail-high brings the mate miss back, so those attempts were not kept.
 
-`go nodes 1000000` from the start position, Hash 16, `UseNNUE true`, `OwnBook false`, one run each:
+Helpers storing only `BoundLower`, and not replacing a current-generation exact entry, missed the mate 10 of 30 and 16 of 30 times (`cp 438 c4b4`, `cp 494 b3e3`). Ignoring those centipawn scores in the main thread, and refusing to overwrite a main-thread entry, still missed (11 of 30 and 18 of 30). A later attempt let helpers write `BoundLower` only into an empty, old, or already-helper slot, let a non-PV node cut off on a deep enough fail-high, and made every PV node ignore the helper entry. That still missed: 24 of 30 (`cp 458 c4b4`) and 30 of 30 (`cp 519 b3f3`). The mate-in-3 position stayed matched, 0 of 30. With the net left on, the same attempt missed the one-thread score 20 of 20 (`cp 540 e8d7` against `cp 476 e8e7`). The extra cutoffs change which moves the main line searches at full depth, and the depth-14 mate becomes a centipawn score. The patch still drops helper stores.
 
-| threads | lock depth | this patch |
+`go nodes 1000000` from the start position, Hash 16, `UseNNUE true`, `OwnBook false`. The client reads until `bestmove`, then sends `quit`. One run each.
+
+Lock binary `/tmp/forge-lock-t5/forge` (unchanged `16833ecc`):
+
+| threads | last completed info | bestmove |
 | --- | --- | --- |
-| 1 | 19 cp 15 d2d4 | 19 cp 15 d2d4 |
-| 2 | 17 cp 22 e2e4 | 16 cp 35 e2e4 |
-| 4 | 17 cp 11 d2d4 | 15 cp 27 e2e4 |
+| 1 | depth 19 score cp 15 nodes 920173 pv d2d4 | d2d4 |
+| 2 | depth 19 score cp 13 nodes 968560 pv e2e4 | e2e4 |
+| 4 | depth 18 score cp 16 nodes 980627 pv d2d4 | d2d4 |
 
-The lock already searches a lower depth once helper nodes count toward the limit. This patch is one ply lower at two threads and two plies lower at four, because those nodes no longer fill the table. One thread is unchanged. This is not a speed claim.
+An earlier lock run of the same command finished at depth 17 for both two and four threads (`cp 22 e2e4`, `cp 11 d2d4`). The lock's multi-thread node-limited result is not stable. One thread is stable: this run's depth-19 line matches the earlier one (`cp 15 d2d4`, 920173 nodes).
+
+This patch, `/tmp/forge-t5/forge`, threads 1, 2, and 4 each finished at the same search line. Threads 1 printed:
+
+```
+info depth 19 seldepth 30 score cp 15 nodes 920173 nps 1921029 hashfull 464 time 479 pv d2d4 g8f6 c2c4 e7e6 g1f3 b7b6 b1c3 c8b7 e2e3 g7g6 f1e2 f8g7 b2b4 e8g8 c1a3 a7a6 a1c1 d7d6 e1g1
+bestmove d2d4
+```
+
+Threads 2 printed that same depth-19 line, including `nps` and `time`. Threads 4 printed the same depth, score, nodes, `hashfull`, and pv, with `nps 1917027` and `time 480`. The depth-17 and depth-18 lines matched on all three (`cp 18` at 600227 nodes, `cp 15` at 846653 nodes). A node-limited search does not start helpers, so the reported node count stays on the one-thread search. A depth-limited search still starts them; they read the table and do not write it. This is not a speed claim. Helpers still do not share cuts on a clock search.
 
 ## Not verified
 
 - The reported 57 of 400 and 0 of 100 counts. No position list came with the task. The counts above are the runs in `tests_t5/krk_mate_test.cpp` only.
 - A king-and-rook position where `UseNNUE true` and `Threads 1` at depth 14 already prints a mate, and `Threads 2` used to miss it. On `4K3/k7/8/8/2R5/8/8/8 w - - 0 1` the net-on one-thread search scores `cp 476`, not a mate. Two threads now repeat that same score and move (0 mismatches in 20). The missed-mate runs are with `UseNNUE false`.
-- More than two threads.
-- Clock-limited games. History is cleared at the start of those searches too. Bench and perft do not cover a timed game.
-- Whether helper threads still change the main search under a node limit. `should_stop` on the main thread counts helper nodes, and this task did not change that. The depth-14 tests set no node limit.
+- More than two threads on the depth-14 mate positions. `go nodes 1000000` was run at four threads; that search does not start helpers, so it matches the one-thread line.
+- Clock-limited games. History is cleared at the start of those searches too, and the helpers still start. Bench and perft do not cover a timed game, and this run did not measure whether the extra threads make the main search slower on the clock.
 - Playing strength or speed. Nothing here is an Elo or NPS claim. The bench `nps` lines are the raw timer output.
 - The release binary under AddressSanitizer. The sanitizer run is the test at `-O1`. The `#else` path of `FORGE_SPD_TT_NOTLS` is compiled out of this build (`FORGE_SPD_TT_NOTLS=1`); it has the same helper-write guards in source and was not linked.
 - Clang, and any non-Linux host.
