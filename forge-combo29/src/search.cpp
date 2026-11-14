@@ -894,11 +894,16 @@ bool Worker::should_stop() {
     // Publish this thread's node count for the others at the same cadence.
     nodes_.store(local_nodes_, std::memory_order_relaxed);
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
-    if (!is_main()) return false;
+    // The budget counts every worker. A helper that ignores it keeps searching
+    // until the main thread has already unwound, so `go nodes 1` with several
+    // threads used to walk about a hundred nodes. Only the main worker records
+    // the reason: its result is the one that is returned, and a node-limit
+    // stop must stay on the last finished iteration.
     if (node_limit_specified_ && total_nodes() >= node_limit_) {
-        stopped_by_nodes_ = true;
+        if (is_main()) stopped_by_nodes_ = true;
         return true;
     }
+    if (!is_main()) return false;
     if (hard_limit_ms_ > 0) {
         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
@@ -1524,7 +1529,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
-    node_limit_specified_ = is_main() && (limits.nodes_specified || limits.nodes != 0);
+    node_limit_specified_ = limits.nodes_specified || limits.nodes != 0;
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -1809,6 +1814,9 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
+    // A helper can read the budget before another worker enters search() and
+    // clears the count it published last time. Zero every counter first.
+    for (auto& worker : workers_) worker->reset_node_count();
     std::vector<std::thread> helpers;
     for (std::size_t i = 1; i < workers_.size(); ++i) {
         helpers.emplace_back([this, i, board, &worker_limits, &all]() {
