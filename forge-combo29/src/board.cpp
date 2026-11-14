@@ -438,13 +438,15 @@ Bitboard Board::compute_checkers() const {
 // captures and quiets interleaved, then castling. Quiets emits the pushes,
 // then the same piece loops over the empty squares only, then castling: the
 // subsequence of All that the move picker's filter keeps, in the same order.
-void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
-    const bool captures_only = mode == GenMode::Captures;
-    const bool quiets_only = mode == GenMode::Quiets;
-    const Color us = side_;
+// Mode is a compile-time constant so the capture/quiet branches fold away.
+template <Board::GenMode Mode>
+void fill_pseudo_legal(const Board& board, MoveList& moves) {
+    constexpr bool captures_only = Mode == Board::GenMode::Captures;
+    constexpr bool quiets_only = Mode == Board::GenMode::Quiets;
+    const Color us = board.side_to_move();
     const Color them = opposite(us);
-    const Bitboard own = occupied(us);
-    const Bitboard enemy = occupied(them);
+    const Bitboard own = board.occupied(us);
+    const Bitboard enemy = board.occupied(them);
     const Bitboard occ = own | enemy;
     const Bitboard empty = ~occ;
     const int up = pawn_push_delta(us);
@@ -461,13 +463,13 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
         }
     };
 
-    const Bitboard pawns = pieces(us, Pawn);
+    const Bitboard pawns = board.pieces(us, Pawn);
     const Bitboard seventh = us == White ? Rank7BB : Rank2BB;
     const Bitboard third = us == White ? Rank3BB : Rank6BB;
     const Bitboard promoting = pawns & seventh;
     const Bitboard regular = pawns & ~seventh;
 
-    if (!captures_only) {
+    if constexpr (!captures_only) {
         Bitboard single = pawn_push(us, regular) & empty;
         Bitboard twice = pawn_push(us, single & third) & empty;
         while (single != 0) {
@@ -479,7 +481,7 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
             push(to - 2 * up, to, DoublePush);
         }
     }
-    if (!quiets_only) {
+    if constexpr (!quiets_only) {
         Bitboard promo_push = pawn_push(us, promoting) & empty;
         while (promo_push != 0) {
             const int to = pop_lsb(promo_push);
@@ -496,10 +498,11 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
                 else push(from, to, Capture);
             }
         }
-        if (ep_square_ >= 0) {
-            Bitboard ep_attackers = attacks::pawn(them, ep_square_) & pawns;
+        if (board.ep_square() >= 0) {
+            const int ep_square = board.ep_square();
+            Bitboard ep_attackers = attacks::pawn(them, ep_square) & pawns;
             while (ep_attackers != 0) {
-                push(pop_lsb(ep_attackers), ep_square_, static_cast<std::uint8_t>(Capture | EnPassant));
+                push(pop_lsb(ep_attackers), ep_square, static_cast<std::uint8_t>(Capture | EnPassant));
             }
         }
     }
@@ -508,54 +511,68 @@ void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
     auto emit = [&](int from, Bitboard targets) {
         while (targets != 0) {
             const int to = pop_lsb(targets);
-            push(from, to, (square_bb(to) & enemy) != 0 ? Capture : Quiet);
+            std::uint8_t flags = Quiet;
+            if constexpr (captures_only) flags = Capture;
+            else if constexpr (!quiets_only) flags = (square_bb(to) & enemy) != 0 ? Capture : Quiet;
+            push(from, to, flags);
         }
     };
-    Bitboard knights = pieces(us, Knight);
+    Bitboard knights = board.pieces(us, Knight);
     while (knights != 0) {
         const int from = pop_lsb(knights);
         emit(from, attacks::knight(from) & targets_mask);
     }
-    Bitboard bishops = pieces(us, Bishop);
+    Bitboard bishops = board.pieces(us, Bishop);
     while (bishops != 0) {
         const int from = pop_lsb(bishops);
         emit(from, attacks::bishop(from, occ) & targets_mask);
     }
-    Bitboard rooks = pieces(us, Rook);
+    Bitboard rooks = board.pieces(us, Rook);
     while (rooks != 0) {
         const int from = pop_lsb(rooks);
         emit(from, attacks::rook(from, occ) & targets_mask);
     }
-    Bitboard queens = pieces(us, Queen);
+    Bitboard queens = board.pieces(us, Queen);
     while (queens != 0) {
         const int from = pop_lsb(queens);
         emit(from, attacks::queen(from, occ) & targets_mask);
     }
-    const int king = king_square(us);
+    const int king = board.king_square(us);
     emit(king, attacks::king(king) & targets_mask);
 
-    if (!captures_only && checkers_ == 0) {
-        if (us == White && king == 4) {
-            if ((castling_ & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
-                piece_at(7) == WR && !square_attacked(5, Black) && !square_attacked(6, Black)) {
-                push(4, 6, KingCastle);
-            }
-            if ((castling_ & WhiteQueenSide) != 0U &&
-                (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
-                piece_at(0) == WR && !square_attacked(3, Black) && !square_attacked(2, Black)) {
-                push(4, 2, QueenCastle);
-            }
-        } else if (us == Black && king == 60) {
-            if ((castling_ & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
-                piece_at(63) == BR && !square_attacked(61, White) && !square_attacked(62, White)) {
-                push(60, 62, KingCastle);
-            }
-            if ((castling_ & BlackQueenSide) != 0U &&
-                (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
-                piece_at(56) == BR && !square_attacked(59, White) && !square_attacked(58, White)) {
-                push(60, 58, QueenCastle);
+    if constexpr (!captures_only) {
+        if (board.checkers() == 0) {
+            const std::uint8_t rights = board.castling_rights();
+            if (us == White && king == 4) {
+                if ((rights & WhiteKingSide) != 0U && (occ & (square_bb(5) | square_bb(6))) == 0 &&
+                    board.piece_at(7) == WR && !board.square_attacked(5, Black) && !board.square_attacked(6, Black)) {
+                    push(4, 6, KingCastle);
+                }
+                if ((rights & WhiteQueenSide) != 0U &&
+                    (occ & (square_bb(1) | square_bb(2) | square_bb(3))) == 0 &&
+                    board.piece_at(0) == WR && !board.square_attacked(3, Black) && !board.square_attacked(2, Black)) {
+                    push(4, 2, QueenCastle);
+                }
+            } else if (us == Black && king == 60) {
+                if ((rights & BlackKingSide) != 0U && (occ & (square_bb(61) | square_bb(62))) == 0 &&
+                    board.piece_at(63) == BR && !board.square_attacked(61, White) && !board.square_attacked(62, White)) {
+                    push(60, 62, KingCastle);
+                }
+                if ((rights & BlackQueenSide) != 0U &&
+                    (occ & (square_bb(57) | square_bb(58) | square_bb(59))) == 0 &&
+                    board.piece_at(56) == BR && !board.square_attacked(59, White) && !board.square_attacked(58, White)) {
+                    push(60, 58, QueenCastle);
+                }
             }
         }
+    }
+}
+
+void Board::generate_pseudo_legal(MoveList& moves, GenMode mode) const {
+    switch (mode) {
+    case GenMode::Captures: fill_pseudo_legal<GenMode::Captures>(*this, moves); break;
+    case GenMode::Quiets: fill_pseudo_legal<GenMode::Quiets>(*this, moves); break;
+    case GenMode::All: fill_pseudo_legal<GenMode::All>(*this, moves); break;
     }
 }
 #else
@@ -1065,7 +1082,16 @@ bool Board::make_move(const Move& move, Undo& undo) {
     if (ep_square_ >= 0 && has_legal_en_passant_capture()) {
         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
     }
-    checkers_ = attackers_to(king_square(them), occupied()) & occupied(us);
+    // Checkers are the mover's attacks on the opponent king. One side only:
+    // the other colour cannot be the checker, so it is not consulted.
+    const int their_king = king_square(them);
+    const Bitboard occ_now = occupied();
+    const Bitboard our_queens = pieces(us, Queen);
+    checkers_ = (attacks::pawn(them, their_king) & pieces(us, Pawn)) |
+                (attacks::knight(their_king) & pieces(us, Knight)) |
+                (attacks::king(their_king) & pieces(us, King)) |
+                (attacks::bishop(their_king, occ_now) & (pieces(us, Bishop) | our_queens)) |
+                (attacks::rook(their_king, occ_now) & (pieces(us, Rook) | our_queens));
     plies_from_null_ = static_cast<std::uint16_t>(std::min<int>(plies_from_null_ + 1, 1024));
     key_history_.push_back(key_);
 #if FORGE_SPD_KING_LINES

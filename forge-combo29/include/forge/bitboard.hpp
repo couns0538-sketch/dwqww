@@ -10,6 +10,14 @@
 #ifndef FORGE_SPD_SLIDER_PEXT
 #define FORGE_SPD_SLIDER_PEXT 0
 #endif
+// The portable build leaves the multiply indexer selected so a CPU without BMI2
+// still compiles. x86-64-v3 already has BMI2, and PEXT indexes the same masks
+// to the same attack sets (only the table order changes) without searching for
+// magics at startup. Take that indexer whenever the compiler target has BMI2.
+#if defined(__BMI2__) && FORGE_SPD_SLIDER_PEXT == 0
+#undef FORGE_SPD_SLIDER_PEXT
+#define FORGE_SPD_SLIDER_PEXT 1
+#endif
 #if FORGE_SPD_SLIDER_PEXT
 #if !defined(__BMI2__)
 #error "FORGE_SPD_SLIDER_PEXT=1 needs BMI2 (the lock builds with -march=znver5)"
