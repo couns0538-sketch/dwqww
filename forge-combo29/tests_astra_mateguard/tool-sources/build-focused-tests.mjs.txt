@@ -1,0 +1,14 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
+const [mode]=process.argv.slice(2),run='/workspace/work/r4-run',repo='/workspace/work/dwqww-r4-guard',src=repo+'/forge-combo29';
+if(!['enabled','asan','tsan'].includes(mode))throw Error('mode');
+const build=run+'/builds/guard-'+mode,out=run+'/tests-'+mode;fs.mkdirSync(out,{recursive:true});
+const defs=['-DFORGE_MATE_ALPHA_GUARD=1','-DFORGE_EXPOSE_TUNABLES=1','-DFORGE_NNUE_HIDDEN=256','-DFORGE_SEARCH_SPEED2=1','-DFORGE_SPD_NNUE_ZMM=1','-DFORGE_SPD_NO_ZERO_MOVELISTS=2','-DFORGE_SPD_PREFETCH_EARLY=1','-DFORGE_SPD_SLIDER_PEXT=1','-DFORGE_SPD_TT_NOTLS=1'];
+const flags=['-std=c++20','-pthread','-O3','-ffp-contract=off','-fno-fast-math','-march=x86-64-v4','-I'+src+'/include',...defs,'-UNDEBUG'];
+if(mode!=='enabled')flags.push('-g','-fsanitize='+(mode==='asan'?'address,undefined':'thread'),'-fno-omit-frame-pointer');
+const objectDir=build+'/CMakeFiles/forge.dir/src',objects=fs.readdirSync(objectDir).filter(x=>x.endsWith('.cpp.o')&&x!=='uci.cpp.o').map(x=>objectDir+'/'+x);
+if(objects.length!==7)throw Error('object count');
+const records=[];
+function execute(label,args){const started=new Date().toISOString(),r=cp.spawnSync('timeout',['-k','2','120','g++',...args],{encoding:'utf8',timeout:125000,maxBuffer:8*1024*1024});const record={label,started,ended:new Date().toISOString(),argv:['timeout','-k','2','120','g++',...args],exit:r.status,signal:r.signal,stdout:r.stdout,stderr:r.stderr};records.push(record);fs.writeFileSync(out+'/build-records.json.txt',JSON.stringify(records,null,2)+'\n');console.log(JSON.stringify(record));if(r.status!==0)throw Error(label+' failed');}
+const testDir=src+'/tests_astra_mateguard';
+for(const name of mode==='tsan'?['play_driver']:['mate_solver_guard','fifty_move_guard','depth10_guard','play_driver'])execute(name,[...flags,testDir+'/'+name+'.cpp',...objects,'-o',out+'/'+name]);
+const provenance={mode,flags,inputs:Object.fromEntries(objects.map(p=>[p,crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')])),binaries:Object.fromEntries(fs.readdirSync(out).filter(n=>!n.endsWith('.txt')).map(n=>[n,crypto.createHash('sha256').update(fs.readFileSync(out+'/'+n)).digest('hex')]))};fs.writeFileSync(out+'/provenance.json.txt',JSON.stringify(provenance,null,2)+'\n');
