@@ -76,3 +76,7 @@ Openings 1-500. 1000 games. 00:51:10. Option on first. W-L-D 257-259-484. Elo 95
 ### Chunk 0002
 
 Openings 501-1000. 1000 games. 00:44:49. Option on first. W-L-D 259-259-482. Elo 95% -0.00 +/- 13.49. LOS 50.00%. Ptnml(0-2) [21, 113, 231, 115, 20]. Points 500.0 (50.00%). Screening measurement only.
+
+### Chunk 0003
+
+Stopped unfinished at 2026-11-14 18:49 UTC. Openings 1001-1500. The saved PGN has 796 games. Counted from those headers, option on first, W-L-D 220-194-382. Fastchess had not printed Elo, LOS, or a pentanomial for that partial set. Its last interval print was 600 games: W-L-D 176-145-279, Elo 95% 17.97 +/- 17.93, LOS 97.55%, Ptnml(0-2) [8, 69, 124, 82, 17]. Chunk 4 was not started. Screening measurement only.
