@@ -28,6 +28,7 @@ grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 grok47/r3-09-asp-arm-late a6cb38efffbc 200 identical
 grok47/r3-10-evasion-ordering a2392f49dc81 200 identical
 grok47/r3-11-dead-material e1acd7b14870 200 identical
+grok47/r3-13-quiet-extinction b7dbb6c3e859 80 QuietExtinction on vs QuietExtinction off ply 65 pushed h8g6 replay b3c3
 grok47/r3-14-draw-jitter ccbb229af9d0 200 identical
 grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
@@ -125,6 +126,12 @@ engine source sha256:
 engine binary sha256: 17f1d2d682b300f7d0d8263a1aabc1c63126eb957d08a25fe7b5525dd4f5560d
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
+grok47/r3-13-quiet-extinction b7dbb6c3e859 kind nodes pgn forge-combo29/tests_r3fu_13/screen/chunk-1.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: ad0bcb5fbe83f231042a87fcb72c4e8f605cf0b41f3b3e824f6d4d18596a5185
+fastchess command: bare fen QuietExtinction nodes 50000 binary /home/ubuntu/r4-verify/build/b7dbb6c3e859d9074d7ebce5083150f633589c62-37997d042e39/forge
+
 grok47/r3-14-draw-jitter ccbb229af9d0 kind nodes pgn forge-combo29/tests_r3fu_14/screen/chunk001.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
 engine source sha256: 
@@ -153,7 +160,6 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 
 grok47/r3-07-null-see-veto 6837edcd0 2026-11-14 18:19:18 +0000 Add the first fastchess NullSeeVeto chunk.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
-grok47/r3-13-quiet-extinction a6724b080 2026-11-14 18:03:39 +0000 Record UHO screen chunks 12 and 13.
 grok47/r3-16-tm-node-share 9ad8ecca5 2026-11-14 17:54:46 +0000 Checkpoint clock screen.
 grok47/r3-17-merge-legal-node-limit 02674044d 2026-11-14 15:28:41 +0000 Record the owner-build node budget follow-up.
 grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the AVX-512 fused-pass identity checks.
@@ -165,5 +171,5 @@ grok47/r4-03-screen-lds 4ab9ef662 2026-11-14 18:01:35 +0000 r4-03: chunk 1001 PG
 grok47/r4-04-screen-ch4 881e2cc8c 2026-11-14 17:42:33 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc bb4c91996 2026-11-14 18:15:51 +0000 r4-05: NonPawnCorrection screen chunk 005 (2001-2500)
 
-Last check: 2026-11-14T18:26:54Z
+Last check: 2026-11-14T18:29:42Z
 Deadline: 2026-11-15T01:52:00Z
