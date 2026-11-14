@@ -98,19 +98,43 @@ Base folders:
 
 ## Recheck
 
-A second pass is running on this same branch. It does not replace the numbers above until it finishes.
+The same branch was built and run again. No source file changed.
 
-Release `./build/forge`, rebuilt with `CXX=g++` and the same portable flags, printed bench 11 = 312866, bench 13 = 862329, and start-position perft 5 = 4865609 again. The per-move split matched.
+Release `./build/forge`, configured with `CXX=g++` and `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`, printed bench 11 = 312866, bench 13 = 862329, and start-position perft 5 = 4865609. The per-move split matched the first run.
 
-The same three commands on an ASan/UBSan binary (`-fsanitize=address,undefined -fno-sanitize-recover=address,undefined`, `halt_on_error=1`) printed the same three totals and the same per-move split. No sanitizer diagnostic on that run.
+An ASan/UBSan engine was configured with the same flags plus `-fsanitize=address,undefined -fno-sanitize-recover=address,undefined -fno-omit-frame-pointer`. CMake still appends `-O3`, so the engine objects are sanitized at `-O3`. The harnesses were compiled at `-O1` with the same sanitizers and linked to those objects. `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:abort_on_error=1`. That binary printed the same three totals and the same per-move split. Its stderr had no sanitizer diagnostic.
 
-The Release suite was run again: tests_t1, t3, t6, t8, t12, t13, t14, t15, t17, t18, t19, t20, t21, t22, t23, plus `tests_r3_17` position prefix, thread node limit, MultiPV budget, and `commands.txt`. Every one exited 0.
+Both builds then ran every base test folder and both branch suites. Every program exited 0 except the known raw `tests_t16` options diff.
 
-ASan/UBSan has passed tests_t1, t3, t6, t8, t13, t14, t15, t17, t18 (200000 lines), t19, t20, t21, and the fifty-move half of tests_t23. `tests_t12` under ASan was still running when this note was written. tests_t16, tests_t22, the mate half of tests_t23, and the branch suites under ASan had not been reached yet.
+| check | Release | ASan/UBSan |
+| --- | --- | --- |
+| tests_t1 | exit 0, `d3b1`, 176 nodes | same |
+| tests_t3 | passed | passed |
+| tests_t6 | fixed-node score and move agree | same |
+| tests_t8 | PASS | PASS |
+| tests_t12 | misses 0 / 400 | misses 0 / 400 |
+| tests_t13 | race PASS, startup PASS | race PASS, startup PASS |
+| tests_t14 | 30 positions | 30 positions |
+| tests_t15 | RESULT passed | RESULT passed |
+| tests_t16 | filtered options and clamp match; own-book 54 lines; search 7 lines | same, and no sanitizer diagnostic |
+| tests_t17 | fails=0 | fails=0 |
+| tests_t18 | 200000 lines, exit 0 | 200000 lines, `SANITIZERS clean`, 173841 ms |
+| tests_t19 | `static_equal 100000`, widen `cmp` 0 | same, hashes match |
+| tests_t20 | PASS | PASS |
+| tests_t21 | `multipv1_bench PASS` | `multipv1_bench PASS` |
+| tests_t22 | PASS, bench 11/13/perft 312866 / 862329 / 4865609, bench 13 after 862329 | same node counts |
+| tests_t23 | mate missed 0, false 0, illegal 0; fifty-move 20 cases, 0 failures | same |
+| position prefix and `commands.txt` | PASS, marker lines match `expected.txt` | same |
+| thread node limit | PASS | PASS. One thread exact. Eight threads, budget 1: worst 1. Four threads, budget 10000: worst 10002. Rook budget 10: worst 10. Warm 20001. |
+| MultiPV node budget | PASS | PASS. MultiPV 3 at 4000 nodes was 4000 and `d2d4` on 1 and 4 threads. MultiPV 1 with 4 threads was 4000. Reused searcher stopped at 8000, then 1500. |
 
-## Not verified yet
+The raw `tests_t16` options diff still exits 1 on both builds. The only extra lines are `MultiPV`, `NnueFile`, `ContHist4PlyRead`, `NonPawnCorrection`, and `LmrDeeperShallower`. Filtering those lines makes the options and clamp diffs empty. `tests_t22` under ASan also reproduced the three default-off candidates: bench 13 moved to 989877, 775585, and 813907, then returned to 862329.
 
-- The rest of the ASan/UBSan suite listed above.
+After that, the helper-budget test, the MultiPV budget test, and both `tests_t13` programs were repeated 8 times on each build. All 64 runs exited 0. No AddressSanitizer, LeakSanitizer, or undefined-behavior report was written.
+
+## Not verified
+
 - `forge-combo29/soak_all`. It is not one of the `tests_*` folders.
-- A Clang-linked binary, a non-portable `-march`, and the Windows lock build.
+- A Clang-linked binary. `/usr/bin/c++` is Clang 18.1.3 and still fails configure with `cannot find -lstdc++`.
+- A non-portable `-march`, and the Windows lock build.
 - `./build/forge` was not started under a GUI.
