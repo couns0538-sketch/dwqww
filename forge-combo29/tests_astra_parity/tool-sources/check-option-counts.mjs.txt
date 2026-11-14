@@ -1,0 +1,14 @@
+import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
+const stage=process.argv[2];if(!['step1-release','step2-release'].includes(stage))throw Error('stage');const r='/workspace/work/parity-run',out=r+'/option-counts-'+stage;fs.mkdirSync(out);
+const report=fs.readFileSync(r+'/inputs/frozen-option-counts-source.txt','utf8');
+const options=[...report.matchAll(/^(\w+)\s+(true|8)\s+([0-9a-f]{40})\s+(\d+)\s+(\d+)$/gm)].map(m=>({name:m[1],value:m[2],source:m[3],expected:+m[4]}));if(options.length!==16)throw Error('expected16 rows');
+const rows=[];
+for(const option of options)for(const mode of [stage]){
+ const binary=r+'/builds/'+mode+'/forge',input='uci\nsetoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nsetoption name '+option.name+' value '+option.value+'\nisready\nbench 13\nquit\n';
+ const started=new Date().toISOString(),args=['-k','2','20',binary],p=cp.spawnSync('timeout',args,{input,encoding:'utf8',timeout:25000});
+ const count=Number(p.stdout?.match(/bench depth 13 nodes (\d+)/)?.[1]);
+ const data={...option,mode,started,ended:new Date().toISOString(),argv:['timeout',...args],input,binarySha256:crypto.createHash('sha256').update(fs.readFileSync(binary)).digest('hex'),exit:p.status,signal:p.signal,count,expectedMatched:count===option.expected};
+ fs.writeFileSync(out+'/'+option.name+'-'+mode+'.txt',JSON.stringify(data,null,2)+'\nSTDOUT\n'+p.stdout+'\nSTDERR\n'+p.stderr);rows.push({...data,operationalPass:p.status===0&&!p.stderr});
+}
+const violations=rows.filter(x=>!x.operationalPass||!x.expectedMatched);const sameBase=options.every(o=>new Set(rows.filter(x=>x.name===o.name).map(x=>x.count)).size===1);
+const summary={options:16,invocations:rows.length,rows,sameBase,violations};fs.writeFileSync(out+'/summary.json.txt',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify({options:16,invocations:rows.length,sameBase,violations}));process.exitCode=violations.length||!sameBase?1:0;
