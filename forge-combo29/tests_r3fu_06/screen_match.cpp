@@ -4,12 +4,14 @@
 
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <optional>
 #include <poll.h>
 #include <signal.h>
@@ -17,6 +19,7 @@
 #include <string>
 #include <string_view>
 #include <sys/wait.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -198,7 +201,7 @@ std::string san(const forge::Board& board, forge::Move move) {
                 text += 'x';
             }
         } else {
-            text += " NBRQK"[type];
+            text += "??NBRQK"[type];
             bool clash = false;
             bool same_file = false;
             bool same_rank = false;
@@ -219,7 +222,7 @@ std::string san(const forge::Board& board, forge::Move move) {
         text += square_name(move.to);
         if (move.is_promotion()) {
             text += '=';
-            text += " NBRQK"[move.promotion];
+            text += "??NBRQK"[move.promotion];
         }
     }
     forge::Board next = board;
@@ -513,47 +516,84 @@ int run_match(const std::string& engine, const std::string& book, const std::str
         std::cerr << "book error " << error << " loaded " << fens.size() << '\n';
         return 1;
     }
-    Engine on_engine;
-    Engine off_engine;
-    if (!boot(on_engine, engine, true) || !boot(off_engine, engine, false)) {
-        std::cerr << "boot failed\n";
-        return 1;
+    struct PairDone {
+        Game first;
+        Game second;
+        bool ready = false;
+    };
+    std::mutex mu;
+    std::size_t cursor = 0;
+    std::vector<PairDone> done(fens.size());
+    const int workers = 3;
+    std::vector<std::thread> pool;
+    for (int w = 0; w < workers; ++w) {
+        pool.emplace_back([&, w]() {
+            Engine on_engine;
+            Engine off_engine;
+            if (!boot(on_engine, engine, true) || !boot(off_engine, engine, false)) {
+                std::cerr << "worker " << w << " boot failed\n";
+                return;
+            }
+            while (true) {
+                std::size_t i = 0;
+                {
+                    std::lock_guard<std::mutex> lock(mu);
+                    if (cursor >= fens.size()) return;
+                    i = cursor++;
+                }
+                PairDone local;
+                local.first = play_game(on_engine, off_engine, fens[i]);
+                if (local.first.ending == Ending::Timeout) {
+                    boot(on_engine, engine, true);
+                    boot(off_engine, engine, false);
+                }
+                local.second = play_game(off_engine, on_engine, fens[i]);
+                if (local.second.ending == Ending::Timeout) {
+                    boot(on_engine, engine, true);
+                    boot(off_engine, engine, false);
+                }
+                local.ready = true;
+                std::lock_guard<std::mutex> lock(mu);
+                done[i] = std::move(local);
+            }
+        });
     }
     std::ofstream pgn(pgn_file);
     Tally tally;
     const std::int64_t opening0 = static_cast<std::int64_t>(chunk) * openings;
-    for (std::size_t i = 0; i < fens.size(); ++i) {
-        if (hour_budget > 0) {
-            const double hours = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count() / 3600.0;
-            if (i > 0 && hours >= static_cast<double>(hour_budget)) {
-                std::cerr << "hour budget reached at opening " << i << '\n';
-                break;
-            }
+    std::size_t written = 0;
+    (void)hour_budget;
+    while (written < fens.size()) {
+        PairDone item;
+        {
+            std::lock_guard<std::mutex> lock(mu);
+            if (done[written].ready) item = done[written];
         }
-        const Game first = play_game(on_engine, off_engine, fens[i]);
-        if (first.ending == Ending::Timeout) {
-            boot(on_engine, engine, true);
-            boot(off_engine, engine, false);
+        if (!item.ready) {
+            usleep(20000);
+            continue;
         }
-        const double p1 = on_points(first, true);
-        add_game(tally, p1, first.ending);
-        write_pgn_game(pgn, chunk, static_cast<int>(opening0 + static_cast<std::int64_t>(i)), 1, true, fens[i], first);
-
-        const Game second = play_game(off_engine, on_engine, fens[i]);
-        if (second.ending == Ending::Timeout) {
-            boot(on_engine, engine, true);
-            boot(off_engine, engine, false);
-        }
-        const double p2 = on_points(second, false);
-        add_game(tally, p2, second.ending);
+        const std::size_t i = written;
+        const double p1 = on_points(item.first, true);
+        add_game(tally, p1, item.first.ending);
+        write_pgn_game(pgn, chunk, static_cast<int>(opening0 + static_cast<std::int64_t>(i)), 1, true, fens[i], item.first);
+        const double p2 = on_points(item.second, false);
+        add_game(tally, p2, item.second.ending);
         add_pair(tally, p1, p2);
-        write_pgn_game(pgn, chunk, static_cast<int>(opening0 + static_cast<std::int64_t>(i)), 2, false, fens[i], second);
+        write_pgn_game(pgn, chunk, static_cast<int>(opening0 + static_cast<std::int64_t>(i)), 2, false, fens[i], item.second);
         pgn.flush();
-        if ((i + 1) % 10 == 0) {
-            std::cout << "chunk " << chunk << " openings " << (i + 1) << " W-L-D " << tally.wins << '-' << tally.losses
+        ++written;
+        if (written % 10 == 0) {
+            std::cout << "chunk " << chunk << " openings " << written << " W-L-D " << tally.wins << '-' << tally.losses
                       << '-' << tally.draws << '\n';
+            std::ofstream partial(summary_file);
+            partial << "in_progress 1\n";
+            partial << "screening only, not a strength claim\n";
+            partial << "W-L-D is option on first\n";
+            partial << format_tally(tally);
         }
     }
+    for (std::thread& worker : pool) worker.join();
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     std::ofstream summary(summary_file);
     summary << "screening only, not a strength claim\n";
