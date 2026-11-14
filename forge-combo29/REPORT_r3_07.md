@@ -101,3 +101,5 @@ The first 1900 openings (book lines 1 through 1900, fastchess start index 1 thro
 Chunk 6, fastchess `start=1901`, rounds 500, 1000 games. fastchess reports option on first: W-L-D 240-264-496. Elo -8.34 +/- 13.30. LOS 10.94%. Pentanomial [17, 137, 214, 117, 15]. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0006.pgn` and `forge-combo29/tests_r3fu_07/chunk_0006_summary.txt`.
 
 Cumulative after 4800 games (2400 pairs): W-L-D option on first 1163-1184-2453. Elo 95%: -1.52 +/- 6.16 [-7.68, 4.64]. LOS: 0.3144. Pentanomial: 90, 603, 1026, 600, 81. The interval includes zero. Not a strength result.
+
+Chunk 7 (`start=2401`) was still running at 18:41 UTC, 605 of 1000 games finished.
