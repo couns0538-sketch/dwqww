@@ -368,6 +368,9 @@ private:
     std::int64_t soft_limit_ms_ = 0;
     std::int64_t hard_limit_ms_ = 0;
     bool time_managed_ = false;
+    // Clock play with no time left after Move Overhead. A hard limit of 0
+    // means "not on a clock", so this flag is what makes the search stop.
+    bool clock_reserve_empty_ = false;
     bool aborted_ = false;
     // Set only when the node budget itself trips should_stop. A clock stop or an
     // external stop leaves this false so those paths keep the partial root move.
