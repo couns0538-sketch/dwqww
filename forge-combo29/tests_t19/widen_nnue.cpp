@@ -13,10 +13,12 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace {
@@ -97,6 +99,27 @@ std::uint64_t fingerprint(const std::vector<int>& values) {
     return hash;
 }
 
+std::filesystem::path resolved(const std::filesystem::path& path) {
+    std::error_code error;
+    const std::filesystem::path canonical = std::filesystem::weakly_canonical(path, error);
+    return error ? path.lexically_normal() : canonical;
+}
+
+bool same_target(const std::filesystem::path& left, const std::filesystem::path& right) {
+    if (resolved(left) == resolved(right)) return true;
+    std::error_code error;
+    return std::filesystem::equivalent(left, right, error);
+}
+
+bool is_lock_weights(const std::filesystem::path& path) {
+    const std::filesystem::path check = resolved(path);
+    if (check.filename() != "nnue_weights.inc") return false;
+    for (const std::filesystem::path& part : check) {
+        if (part == "src") return true;
+    }
+    return false;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -106,7 +129,7 @@ int main(int argc, char** argv) {
     }
     const std::string input_path = argv[1];
     const std::string output_path = argv[2];
-    if (output_path.find("src/nnue_weights.inc") != std::string::npos) {
+    if (is_lock_weights(output_path) || same_target(input_path, output_path)) {
         std::cerr << "widen_nnue: refusing to overwrite the lock weights\n";
         return 2;
     }

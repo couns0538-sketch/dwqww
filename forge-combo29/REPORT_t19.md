@@ -443,6 +443,23 @@ hash_static_256 13290400224059203287
 hash_static_512 13290400224059203287
 ```
 
+## Review follow-up
+
+`eval_parity` now exits 1 when `network_differ` is not 0, including when the clamped static scores still match. Rebuilt `/tmp/t19/eval_parity` from the existing release objects and the new `eval_parity.cpp`, then ran it. Exit 0. The printed block matches the release run above, including `network_differ 0` and both hashes `13290400224059203287`.
+
+`widen_nnue` resolves the output path before writing. It refuses the lock file, a `..` spelling of that file, a symlink to it, and any output that is the same file as the input. The lock file's SHA-256 stayed `a7ebcf3a319675f347e6e8e3f2539901d38d8036cb9b5935f31dd43d084c9638`. A write to `/tmp/nnue_weights_512_review.inc` matched `tests_t19/nnue_weights_512.inc` (`cmp`, 1732702 bytes, same fingerprints as the earlier converter run).
+
+```
+g++ -std=c++20 -O2 -o /tmp/widen_nnue forge-combo29/tests_t19/widen_nnue.cpp
+/tmp/widen_nnue forge-combo29/src/nnue_weights.inc forge-combo29/src/../src/nnue_weights.inc
+```
+
+```
+widen_nnue: refusing to overwrite the lock weights
+```
+
+Exit 2. The same refusal, also exit 2, for the lock path itself and for `/tmp/nnue_weights_lock_link.inc` (a symlink to the lock file).
+
 ## What I could not verify
 
 - A configure that uses `/usr/bin/c++` with no extra flag. That compiler does not see a C++ standard library on this machine. Clang 18.1.3 does match the three default numbers when given `--gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13`.

@@ -149,6 +149,6 @@ int main() {
               << "worst_network_512 " << worst_network_512 << '\n'
               << "hash_static_256 " << hash_256 << '\n'
               << "hash_static_512 " << hash_512 << '\n';
-    if (!residual_256 || !residual_512 || make_failures != 0 || static_differ != 0) return 1;
+    if (!residual_256 || !residual_512 || make_failures != 0 || static_differ != 0 || network_differ != 0) return 1;
     return 0;
 }
