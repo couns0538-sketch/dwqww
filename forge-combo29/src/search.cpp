@@ -1,4 +1,5 @@
 #include "forge/search.hpp"
+#include "forge/tm_node_share.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -77,6 +78,7 @@ int FailLowContinuationBonus = 0;
 bool ContHist4PlyRead = false;
 bool NonPawnCorrection = false;
 bool LmrDeeperShallower = false;
+bool TmNodeShare = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -1928,7 +1930,22 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
             }
             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            // TmNodeShare is clock play only: this block is skipped for depth,
+            // nodes, movetime, infinite, and ponder before ponderhit.
+            if (tune::TmNodeShare) {
+                std::uint64_t best_nodes = 0;
+                std::uint64_t root_nodes = 0;
+                for (std::size_t slot = 0; slot < root_effort_count_; ++slot) {
+                    const std::uint64_t spent = root_move_nodes_[slot];
+                    root_nodes += spent;
+                    if (root_effort_moves_[slot] == result.best_move) best_nodes = spent;
+                }
+                const NodeShareTimingDecision decision = decide_node_share_timing(
+                    NodeShareTiming{soft_limit_ms_, hard_limit_ms_, elapsed_ms(), best_nodes, root_nodes});
+                if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(decision.soft_ms) * factor)) break;
+            } else if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) {
+                break;
+            }
         }
     }
 

@@ -188,7 +188,8 @@ int uci_loop(std::istream& in) {
             }
             std::cout << "option name ContHist4PlyRead type check default false\n"
                          "option name NonPawnCorrection type check default false\n"
-                         "option name LmrDeeperShallower type check default false\n";
+                         "option name LmrDeeperShallower type check default false\n"
+                         "option name TmNodeShare type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -310,6 +311,9 @@ int uci_loop(std::istream& in) {
                 } else {
                     note_invalid();
                 }
+            } else if (name == "TmNodeShare") {
+                if (value_text == "true" || value_text == "false") forge::tune::TmNodeShare = value_text == "true";
+                else note_invalid();
             } else if (name == "MultiPV") {
                 apply_spin(1, 8, [&](int clamped) { multipv = clamped; });
             } else if (name == "Hash") {
