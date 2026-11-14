@@ -72,6 +72,31 @@ void test_option_defaults_off_and_is_listed() {
     if (!forge::tune::ThreatHistory) fail("setoption name ThreatHistory value true did not stick");
 }
 
+// Independent of quiet_threat_index: an enemy attacker whose SEE value is strictly
+// below the mover. A king is not cheaper; SeePieceValue stores the king as 0.
+[[nodiscard]] bool cheaper_enemy_attacks(const forge::Board& board, int square, int reference_type) {
+    if (reference_type <= forge::Pawn) return false;
+    constexpr int king_value = 100000;
+    const int reference = reference_type == forge::King
+                              ? king_value
+                              : forge::SeePieceValue[static_cast<std::size_t>(reference_type)];
+    forge::Bitboard attackers = board.attackers_to(square) & board.occupied(forge::opposite(board.side_to_move()));
+    while (attackers != 0) {
+        const int from = forge::pop_lsb(attackers);
+        const int type = forge::piece_type(board.piece_at(from));
+        const int value = type == forge::King ? king_value : forge::SeePieceValue[static_cast<std::size_t>(type)];
+        if (value > 0 && value < reference) return true;
+    }
+    return false;
+}
+
+[[nodiscard]] int oracle_threat_index(const forge::Board& board, forge::Move move) {
+    const int type = forge::piece_type(board.piece_at(move.from));
+    if (type <= forge::Pawn) return 0;
+    return (cheaper_enemy_attacks(board, move.from, type) ? 2 : 0) |
+           (cheaper_enemy_attacks(board, move.to, type) ? 1 : 0);
+}
+
 void test_threat_index() {
     // Pawn quiets have no cheaper attacker. Start position, e2-e4.
     expect_index(forge::Board::StandardStartFen, quiet_move('e', '2', 'e', '4'), 0);
@@ -116,8 +141,66 @@ void test_threat_index() {
             if (forge::piece_type(board.moved_piece(move)) == forge::Pawn && index != 0) {
                 fail("pawn quiet " + forge::Board::move_to_uci(move) + " left bucket 0");
             }
+            if (index != oracle_threat_index(board, move)) {
+                fail("oracle mismatch " + forge::Board::move_to_uci(move) + " in " + std::string(fen));
+            }
         }
     }
+}
+
+void test_index_matches_attackers_on_walked_games() {
+    constexpr std::string_view roots[] = {
+        forge::Board::StandardStartFen,
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "r4rk1/1pp1qppp/p1np1n2/8/2B1P1b1/2N2N2/PPP1QPPP/2KR3R w - - 0 10",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 8",
+        "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+        "6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1",
+        "r2q1rk1/ppp2ppp/2n1bn2/2bpp3/3PP3/2N1BN2/PPP1BPPP/R2Q1RK1 w - - 0 9",
+        "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        "8/8/3k4/8/3K4/8/3P4/8 w - - 0 1",
+        "2k5/8/8/8/8/8/6Q1/2K5 w - - 0 1",
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        "6k1/8/8/8/8/5n2/6B1/6K1 w - - 0 1",
+    };
+    std::uint32_t rng = 0xA5A5A5A5u;
+    auto next_rng = [&]() {
+        rng ^= rng << 13;
+        rng ^= rng >> 17;
+        rng ^= rng << 5;
+        return rng;
+    };
+    int quiet_checks = 0;
+    for (int game = 0; game < 80; ++game) {
+        forge::Board board;
+        const std::string_view root = roots[static_cast<std::size_t>(game) % (sizeof(roots) / sizeof(roots[0]))];
+        if (!board.set_fen(root)) {
+            fail(std::string("oracle root fen rejected: ") + std::string(root));
+            return;
+        }
+        const int walk = static_cast<int>(game % 24);
+        for (int ply = 0; ply < walk; ++ply) {
+            const forge::MoveList legal = board.legal_moves();
+            if (legal.empty()) break;
+            forge::Undo undo;
+            if (!board.make_move(legal[next_rng() % legal.size()], undo)) break;
+        }
+        for (const forge::Move move : board.legal_moves()) {
+            if (!move.is_quiet()) continue;
+            const int index = forge::quiet_threat_index(board, move);
+            const int oracle = oracle_threat_index(board, move);
+            if (index != oracle) {
+                fail("walked oracle mismatch " + forge::Board::move_to_uci(move) + " index " + std::to_string(index) +
+                     " oracle " + std::to_string(oracle) + " fen " + board.fen());
+                return;
+            }
+            ++quiet_checks;
+        }
+    }
+    if (quiet_checks < 500) fail("oracle checked only " + std::to_string(quiet_checks) + " quiet moves");
+    else std::cout << "oracle agreed on " << quiet_checks << " quiet moves\n";
 }
 
 [[nodiscard]] std::uint64_t search_nodes(forge::Searcher& searcher, const forge::Board& board, int depth) {
@@ -222,6 +305,7 @@ void test_two_hundred_depth_ten_moves_are_legal() {
 int main() {
     test_option_defaults_off_and_is_listed();
     test_threat_index();
+    test_index_matches_attackers_on_walked_games();
     test_option_changes_the_search();
     test_two_hundred_depth_ten_moves_are_legal();
     if (failures != 0) {

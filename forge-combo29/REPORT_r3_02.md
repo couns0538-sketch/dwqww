@@ -28,9 +28,17 @@ Release build: `cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFOR
 
 ## Tests
 
-`forge-combo29/tests_r3_02/threat_history_test.cpp` checks the option text and the default, the threat index on hand positions (pawn, knight-attacked rook, equal-value bishop, pawn-attacked queen, destination-only pawn attack, queen not cheaper than a rook, both squares attacked by a queen, king not cheaper), that a depth-8 search of the Kiwipete position changes node count when the option is on (16646 off, 16740 on), and that 200 depth-10 searches with the option on each return a move present in `legal_moves()` that also passes `is_pseudo_legal` and `is_legal`. CMakeLists.txt was not changed; the test is not part of the `forge` target.
+`forge-combo29/tests_r3_02/threat_history_test.cpp` checks the option text and the default, the threat index on hand positions (pawn, knight-attacked rook, equal-value bishop, pawn-attacked queen, destination-only pawn attack, queen not cheaper than a rook, both squares attacked by a queen, king not cheaper), and the same index against `attackers_to` plus `SeePieceValue` on 1630 quiet moves from walked games. A depth-8 search of the Kiwipete position changes node count when the option is on (16646 off, 16740 on). Two hundred depth-10 searches with the option on each return a move present in `legal_moves()` that also passes `is_pseudo_legal` and `is_legal`. CMakeLists.txt was not changed; the test is not part of the `forge` target.
 
 The same test was compiled with g++ 13 `-O2 -fsanitize=address,undefined -fno-sanitize-recover=undefined` and the engine’s portable search defines. It exited 0. No ASan or UBSan report. All 200 moves were legal.
+
+## Re-check
+
+Repeated on `grok47/r3-02-threat-history` at `e4daba905` plus the oracle test, without treating the first run as final. Release binary rebuilt with the same Clang 18 CMake command. Threads 1, Hash 16, OwnBook false.
+
+At 2026-11-14T13:54:51Z, defaults again: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. `ThreatHistory` still defaults to false. With `setoption name ThreatHistory value true`, bench 13 = 643379.
+
+At 2026-11-14T13:57:04Z the g++ 13 ASan/UBSan binary exited 0: oracle agreed on 1630 quiet moves, depth 8 was 16646 off and 16740 on, and all 200 depth-10 moves were legal.
 
 Not measured: playing strength, multi-thread searches, or time-control searches. Clang’s compiler-rt archive was not installed, so the sanitizer run used g++ rather than the Clang release binary. `tests_t16/options.expected.txt` still snapshots the old option list and was left untouched.
 
