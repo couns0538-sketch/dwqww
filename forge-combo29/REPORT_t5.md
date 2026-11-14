@@ -269,6 +269,20 @@ nodes 4865609
 
 Pins: `bench 11` = 312866, `bench 13` = 862329, `go perft 5` = 4865609.
 
+## Helper stores and node-limited depth
+
+A review of the first patch asked for helper threads to publish results again. Sharing every fail-high was measured, and it brings the mate miss back. On the same three positions, with helpers storing only `BoundLower` and not replacing a current-generation exact entry, two threads missed the mate 10 of 30 and 16 of 30 times (`cp 438 c4b4`, `cp 494 b3e3`). Ignoring those centipawn scores in the main thread, and refusing to overwrite a main-thread entry, still missed (11 of 30 and 18 of 30). The entries occupy cluster slots and change which entry the main thread keeps. The patch therefore still drops helper stores.
+
+`go nodes 1000000` from the start position, Hash 16, `UseNNUE true`, `OwnBook false`, one run each:
+
+| threads | lock depth | this patch |
+| --- | --- | --- |
+| 1 | 19 cp 15 d2d4 | 19 cp 15 d2d4 |
+| 2 | 17 cp 22 e2e4 | 16 cp 35 e2e4 |
+| 4 | 17 cp 11 d2d4 | 15 cp 27 e2e4 |
+
+The lock already searches a lower depth once helper nodes count toward the limit. This patch is one ply lower at two threads and two plies lower at four, because those nodes no longer fill the table. One thread is unchanged. This is not a speed claim.
+
 ## Not verified
 
 - The reported 57 of 400 and 0 of 100 counts. No position list came with the task. The counts above are the runs in `tests_t5/krk_mate_test.cpp` only.
