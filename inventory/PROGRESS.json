@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "run": 12,
-  "snapshot_at": "2026-11-14T01:27:01Z",
-  "trigger_at": "2026-11-14T01:23:24Z",
+  "run": 13,
+  "snapshot_at": "2026-11-14T02:37:04Z",
+  "trigger_at": "2026-11-14T02:26:44Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
@@ -18,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "da310bf1706c05b32a0243ea0e083b995d857fbc",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at da310bf1. The commit that adds the run-12 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "095e812061085f3b84fc3939cbfd516a5cc3dcd3",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 095e8120. The commit that adds the run-13 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -34,15 +34,16 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 11. Replacing 12819522 with da310bf1 keeps the same containment: both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 12. Replacing da310bf1 with 095e8120 keeps the same containment: both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 338,
+    "tip-only": 316,
     "run9-read": 29,
+    "run13-read": 22,
     "run10-read": 12,
     "run11-read": 11,
     "run12-read": 10,
@@ -55,23 +56,35 @@
     "run8-read": 2,
     "run1-detail": 1,
     "run10-workflow": 1,
-    "run12-checkpoint": 1,
+    "run13-checkpoint": 1,
     "run5-read": 1,
     "run6-read": 1,
     "run6-same-docs": 1,
     "run7-read": 1
   },
   "detail_this_run": [
-    "forge/audit-20261020-0102-ci-preservation",
-    "forge/candidate-uci-perft-interrupt-20261020-0045",
-    "forge/integrator-ownbook-ci-20261020-0245",
-    "forge/research-20261020-0115",
-    "forge/research-20261020-0315",
-    "forge/review-pgn-nps-signal-20261020-0010",
-    "forge/test-20261020-0130",
-    "forge/test-20261020-0330",
-    "forge/timeout-journal-20261019-1625",
-    "forge/timeout-warm-replay-20261020-0034"
+    "forge/candidate-ownbook-optout-20261020-0445",
+    "forge/candidate-tt-smp-snapshot-20261020-0345",
+    "forge/research-20261020-0415",
+    "forge/test-20261020-0430",
+    "forge/test-20261020-0530",
+    "investigator/hourly-20261020-0500-node-budget-audit",
+    "investigator/hourly-source-audit-20261020-0400",
+    "forge/test-20261020-0030",
+    "forge/research-20261020-0215",
+    "investigator/tt-smp-publication-20261020-0300",
+    "forge/research-20261020-0015",
+    "forge/candidate-ownbook-optout-20261020-0545",
+    "forge/candidate-ownbook-optout-20261020-0645",
+    "forge/candidate-ownbook-optout-20261020-0745",
+    "forge/research-20261020-0615",
+    "forge/research-20261020-0715",
+    "forge/test-20261020-0630",
+    "investigator/ownbook-off-external-20261020-0700",
+    "investigator/tt-rule50-qsearch-20261020-0600",
+    "research/forge-nnue-independent-audit-20261020-0710",
+    "research/grokchess-tt-trylock-20261020-0605",
+    "forge/research-20261020-0515"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -997,15 +1010,153 @@
       "uci_blob": "9bf1b757e09b5314a29101d444ae660d68b28d62",
       "protocol_ownbook": false,
       "protocol_external_book": null
+    },
+    {
+      "id": "deadline-probe-evidence-absent",
+      "status": "report sentences only; patches not applied; engine blobs unchanged",
+      "tip": "d2d8dfe4fe9df20697f993bf44dea0f65e57ba39",
+      "tree": "b206821973417fc9a42eeefa4390e9b9969878c9",
+      "branches": 7,
+      "files_added": [
+        "validation/hourly/2026-10-20-deadline/REPORT.md",
+        "validation/hourly/2026-10-20-deadline/probe-deadline-tests.patch",
+        "validation/hourly/2026-10-20-deadline/probe-deadline.patch"
+      ],
+      "search_blob": "ca5b354137b9341f16a23e55805eed1f7681d333",
+      "uci_blob": "9bf1b757e09b5314a29101d444ae660d68b28d62",
+      "claimed_tests": "11/11 synthetic and 8/8 mocked trials",
+      "zip_sha256": "c82add3a7589d53cf323417688d6ec47aab771be2aa5241e442d2c6fb4c3d986",
+      "zip_in_git": false,
+      "elo": null
+    },
+    {
+      "id": "hard-budget-351ms-formula",
+      "status": "formula recomputed from search.cpp constants; diagnostic tests not run",
+      "tip": "87a319fdcd028ae7058036735b7e75adebfaaa84",
+      "tree": "44a96fb2d5cc957935f9f87200ac1013761ba418",
+      "branches": 10,
+      "clock": "go wtime 401 btime 596 winc 100 binc 100, overhead 10, Black to move",
+      "available_ms": 586,
+      "soft_ms": 101,
+      "hard_ms": 351,
+      "constants": "src/search.cpp:50-53",
+      "allocation": "src/search.cpp:1139-1151",
+      "hard_stop": "src/search.cpp:590",
+      "poll": "src/search.cpp:674 and src/search.cpp:779, every 1024 nodes",
+      "claimed_tests": "14/14 unit, 8/8 clean synthetic, 4/4 delayed 650 ms overruns",
+      "zip_sha256": "1e5fdb8d0cc1bc1d21f8e3aa53f0e851f5912c81a6d7274e0eb773e4d795d3e3",
+      "zip_in_git": false,
+      "engine_source_changed": false,
+      "elo": null
+    },
+    {
+      "id": "nnue-aa-calibration-failed",
+      "status": "ratios recomputed from stored pair seconds; no candidate A/B; no Elo",
+      "report_branch": "results/nnue-performance-39334266771-1",
+      "report": "hosted-nnue-performance-results/performance/report.json",
+      "protocol_branch": "forge/hosted-nnue-performance-20261019-2220",
+      "experiment": "forge-6.4.10-fused-nnue-update-vs-6.4.9-hosted-linux",
+      "baseline_sha": "4edda780c68a742f20565d4e6a54a0c99a2c88a6",
+      "candidate_sha": "36f5b2f6e1ff519e82a4b52edc85caceaf15aed0",
+      "status_field": "failed_primary_calibration_no_ab",
+      "qualifies_hosted_speed_claim": false,
+      "ab_status": "skipped_failed_primary_calibration",
+      "kernel_status": "skipped_failed_primary_calibration",
+      "all_twelve_commands": "baseline/forge",
+      "cpu_ratios": [
+        0.9779746970333036,
+        1.0142985934967326,
+        1.0329386002802807,
+        1.00967519727259,
+        0.9780256772981446,
+        1.0472249068040853
+      ],
+      "cpu_median": 1.0119868953846614,
+      "wall_ratios": [
+        0.9772402859698365,
+        1.0135423649340312,
+        1.0337375655593846,
+        1.0079057757275274,
+        0.9795777539748349,
+        1.0484324974942478
+      ],
+      "wall_median": 1.0107240703307792,
+      "each_ratio_gate": [
+        0.97,
+        1.03
+      ],
+      "median_gate": [
+        0.99,
+        1.01
+      ],
+      "failing_pairs": [
+        3,
+        6
+      ],
+      "bench_nodes_each_stored": 419798,
+      "bench_rerun": false,
+      "baseline_forge_sha256_recorded_expected_equals_actual": "82a385d5504733bf355dfad1ece2266c7889ef33229454e45c1f0cee4f0d2260",
+      "candidate_forge_sha256_recorded_expected_equals_actual": "1946bfd9c59f88582d018eda2fc74bda0025c4bd700791cb1fd1b7303c0aa9e4",
+      "binaries_rehashed_here": false
+    },
+    {
+      "id": "tt-store-key-before-payload",
+      "status": "source order read; toy not compiled; Forge not run",
+      "tip": "50149f788fda75eff8d2882fe104e5232ad9903a",
+      "store": "src/search.cpp:222-226",
+      "order": [
+        "key32",
+        "score",
+        "eval",
+        "depth",
+        "gen_bound"
+      ],
+      "comment": "include/forge/search.hpp:80-81",
+      "probe_accepts": "src/search.cpp:199 key32 match and occupied()",
+      "replacement_hole": "an occupied slot keeps its old bound until gen_bound is written, so a new key can match an old score",
+      "toy": "investigations/tt_smp_20261020/tt_publication_minimal.cpp",
+      "toy_stdout": "PASS: wrong-key score accepted",
+      "elo": null
+    },
+    {
+      "id": "qsearch-check-masks-unused",
+      "status": "source read; no timing",
+      "constructor": "src/search.cpp:266-275",
+      "consumers": [
+        "src/search.cpp:449",
+        "src/search.cpp:466"
+      ],
+      "capture_qsearch": "src/search.cpp:336-346 does not call direct_check",
+      "elo": null
+    },
+    {
+      "id": "smp-node-publish-gap",
+      "status": "source mechanism read; no go nodes measurement",
+      "helpers_skip_budget": "src/search.cpp:586",
+      "publish_inside_should_stop": "src/search.cpp:584",
+      "poll": "src/search.cpp:674 and src/search.cpp:779",
+      "node_limit_main_only": "src/search.cpp:1125",
+      "helper_join": "src/search.cpp:1367-1371",
+      "file_ends": 1375,
+      "cited_range_1365_1395": "the join is inside the file; line 1395 does not exist",
+      "elo": null
+    },
+    {
+      "id": "root-effort-ordinal-buckets",
+      "status": "source read; the 1355-versus-601 figure is not in this commit",
+      "accumulate": "src/search.cpp:1048",
+      "best_index": "src/search.cpp:1059",
+      "cleared_once": "src/search.cpp:1239",
+      "soft_factor": "src/search.cpp:1303-1306",
+      "elo": null
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from da310bf1706c05b32a0243ea0e083b995d857fbc because of the run-12 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from 095e812061085f3b84fc3939cbfd516a5cc3dcd3 because of the run-13 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read shared tip d2d8dfe4fe9df20697f993bf44dea0f65e57ba39 (7 branches), one commit past 2fc649ef. It adds validation/hourly/2026-10-20-deadline/REPORT.md, probe-deadline-tests.patch, and probe-deadline.patch. Read them as data. Do not apply the patches and do not execute repository scripts.",
-    "If that commit is short, read the two one-file children of 2fc649ef: 430329ce (forge/test-20261020-0030, TESTER-STATUS.md) and 52085b27 (forge/research-20261020-0215, RESEARCH.md). Then read investigator/tt-smp-publication-20261020-0300 at 50149f788fda75eff8d2882fe104e5232ad9903a, four commits and 32 added lines past 2fc649ef. Then read forge/research-20261020-0015 at 72bf672e8adbbfd72871fcf0f74926b34ddacf6b, eight notes past 374a71d4.",
-    "Do not open 3cabc1b2 in that run. It is a child of 2fc649ef, not a branch tip, and its diff is 1368 files. Do not decode the .b64 artifact parts.",
+    "Otherwise read 7e3fa78a1e756e3ad9cb36e328d3d4bfa0e3ca79 (not a tip; one 8-line handoff past 87a319fd) and tip ec013151745b524a7f7095b834ff97f75fecad2c (forge/test-20261020-0830). That tip adds validation/hourly/2026-10-20-go-origin/REPORT.md, model-test.stdout, time_origin_model.cpp, and uci-clock-origin.patch. Read them as data. Do not apply the patch, compile the model, or execute repository scripts.",
+    "Leave 3cabc1b2 unread. It is a child of 2fc649ef, not a branch tip, and its diff is 1368 files. Do not decode the .b64 artifact parts.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ],

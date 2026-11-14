@@ -1098,12 +1098,109 @@ The integer clock parser, the 1 ms budget for a failed parse, the unchecked 64-s
 - Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
 - Supermemory was unavailable. Adapter was not used.
 
+## Run 13 — 2026-11-14 02:26 UTC
+
+Trigger 02:26 UTC on 2026-11-14. `git ls-remote --heads origin` at the start of the run, rechecked with the same 430 heads before writing. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. |
+| Same tip as the run-12 table | 429 |
+| Moved | 1. This checkpoint, `da310bf1` to `095e8120`, the run-12 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `da310bf1` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `ece0ace1` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. Twenty-two branches that were tip-only are now `run13-read`. 316 branches stay tip-only.
+
+No engine was built. No patch was applied. No script in the tree was executed. The deadline and hard-budget evidence zips are not in git. Six same-binary timing ratios were recomputed from a stored JSON file. No Elo was measured.
+
+### Deadline diagnostic, seven names
+
+`d2d8dfe4fe9df20697f993bf44dea0f65e57ba39` (tree `b2068219`, 1051 files, 2026-10-20 03:40 +02:00) is one commit past `2fc649ef`. It adds 129 lines in three files and contains neither the lock, H512, nor `main`. `src/search.cpp` blob `ca5b3541` and `src/uci.cpp` blob `9bf1b757` are the same bytes as on `2fc649ef` and `9108d012`.
+
+These names all point at `d2d8dfe4`:
+
+`forge/candidate-ownbook-optout-20261020-0445`, `forge/candidate-tt-smp-snapshot-20261020-0345`, `forge/research-20261020-0415`, `forge/test-20261020-0430`, `forge/test-20261020-0530`, `investigator/hourly-20261020-0500-node-budget-audit`, `investigator/hourly-source-audit-20261020-0400`.
+
+`validation/hourly/2026-10-20-deadline/REPORT.md` says the TT-tag strength attempt is still failed and not resumable: six games, three pairs, one Candidate timeout, and no SPRT decision. That repeats the STATE sentence already recorded on `2fc649ef`. The report says a separate Python diagnostic started its timeout at dequeue, judged delivery by dequeue time, and could treat an exited child with an undrained stdout pipe as a missing bestmove. The two patches change `warm_timeout_probe.py` and its test. They do not change engine source. The report says the old diagnostic produced two errors and one failed assertion, then 11/11 synthetic tests and 8/8 mocked trials passed. The zip it names, SHA-256 `c82add3a7589d53cf323417688d6ec47aab771be2aa5241e442d2c6fb4c3d986`, appears only as that sentence. `git log -S` finds the digest in this commit and in no added zip. Those pass counts were not rerun here.
+
+### Hard-budget classification, ten names
+
+`87a319fdcd028ae7058036735b7e75adebfaaa84` (tree `44a96fb2`, 1054 files, 2026-10-20 05:37 +02:00) is one commit past `d2d8dfe4`. It adds `validation/hourly/2026-10-20-hard-budget/REPORT.md`, `hard_limit.patch`, and `test_and_fixture.patch`, 111 lines. The same two engine blobs are unchanged. It contains neither the lock, H512, nor `main`.
+
+These names all point at `87a319fd`:
+
+`forge/candidate-ownbook-optout-20261020-0545`, `forge/candidate-ownbook-optout-20261020-0645`, `forge/candidate-ownbook-optout-20261020-0745`, `forge/research-20261020-0615`, `forge/research-20261020-0715`, `forge/test-20261020-0630`, `investigator/ownbook-off-external-20261020-0700`, `investigator/tt-rule50-qsearch-20261020-0600`, `research/forge-nnue-independent-audit-20261020-0710`, `research/grokchess-tt-trylock-20261020-0605`.
+
+The frozen command is `go wtime 401 btime 596 winc 100 binc 100` with Move Overhead 10, Black to move. `src/search.cpp:50-53` sets `TmSoftDivisor` 22, `TmIncrementPercent` 75, `TmHardPercent` 60, and `TmHardSoftMultiple` 5. Integer arithmetic from `src/search.cpp:1139-1151` gives available `max(1, 596-10) = 586`, soft `586/22 + 75 = 101`, and hard `min(351, 505) = 351`. The patch's `HARD_LIMIT_MS` expression is that same arithmetic and asserts 351. The 2-second value is the diagnostic `deadline` argument, which the patch default still shows as `2.0`. A bestmove at 650 ms is inside that watchdog and outside 351 ms. The report says 14/14 unit tests passed, 8/8 ordinary synthetic trials stayed clean, and 4/4 deliberately delayed 650 ms trials were marked as hard-budget overruns. Zip SHA-256 `1e5fdb8d0cc1bc1d21f8e3aa53f0e851f5912c81a6d7274e0eb773e4d795d3e3` is only that sentence. The patches were not applied and the tests were not run. The report itself says a wall-clock overrun leaves engine, scheduler, and stdout buffering open. `src/search.cpp:590` compares `elapsed_ms()` with `hard_limit_ms_` and does not apply the soft factor. `src/search.cpp:674` and `:779` call `should_stop` every 1024 nodes unless a node limit is set. That poll gap is in the source. This commit does not measure it.
+
+### Same-binary NNUE calibration, recomputed
+
+`430329cec4576de5746a65970c6cd34bbabe3266` (tree `db9d60d3`, 1049 files, 2026-10-20 00:34 +02:00) is the only tip of `forge/test-20261020-0030`. It adds `validation/hourly/2026-10-20-0030/TESTER-STATUS.md`, 37 lines, on parent `2fc649ef`. The engine blobs are unchanged.
+
+The note points at `results/nnue-performance-39334266771-1` `hosted-nnue-performance-results/performance/report.json` and at the protocol on `forge/hosted-nnue-performance-20261019-2220`. The protocol names experiment `forge-6.4.10-fused-nnue-update-vs-6.4.9-hosted-linux`, baseline `4edda780c68a742f20565d4e6a54a0c99a2c88a6`, candidate `36f5b2f6e1ff519e82a4b52edc85caceaf15aed0`. Gates are each ratio in `[0.97, 1.03]` and each median in `[0.99, 1.01]`.
+
+The report's six A/A pairs are twelve processes, and every command is `frozen/artifacts/baseline/forge`. Dividing each pair's A seconds by its B seconds reproduces the stored ratios exactly.
+
+| Pair | CPU A/B | Wall A/B |
+|---|---|---|
+| 1 | 0.9779746970333036 | 0.9772402859698365 |
+| 2 | 1.0142985934967326 | 1.0135423649340312 |
+| 3 | 1.0329386002802807 | 1.0337375655593846 |
+| 4 | 1.00967519727259 | 1.0079057757275274 |
+| 5 | 0.9780256772981446 | 0.9795777539748349 |
+| 6 | 1.0472249068040853 | 1.0484324974942478 |
+
+CPU median `1.0119868953846614`. Wall median `1.0107240703307792`. Pairs 3 and 6 are above 1.03 on both metrics. Both medians are above 1.01. `status` is `failed_primary_calibration_no_ab`. `qualifies_hosted_speed_claim` is false. `primary.ab_status` and `kernel.status` are both `skipped_failed_primary_calibration`. The stored rehash records expected and actual SHA-256 equal for baseline `forge` (`82a385d5504733bf355dfad1ece2266c7889ef33229454e45c1f0cee4f0d2260`) and candidate `forge` (`1946bfd9c59f88582d018eda2fc74bda0025c4bd700791cb1fd1b7303c0aa9e4`). This run did not hash the executable bytes. `frozen/correctness.json` records `bench_nodes_each` 419798, `full_ctest_both_passed` true, and `both_snapshot_streams_byte_identical` true. That bench was not rerun. It is a different signature from the hourly 417491 logs. There is no candidate-versus-baseline speed result and no Elo.
+
+### TT publication order, one name
+
+`50149f788fda75eff8d2882fe104e5232ad9903a` (tree `15f69741`, 1052 files, 2026-10-20 03:06 +02:00) is the only tip of `investigator/tt-smp-publication-20261020-0300`. Four commits past `2fc649ef` add 32 lines. The engine blobs are unchanged.
+
+`TranspositionTable::store` writes `key32`, then `score`, then `eval`, then `depth`, then `gen_bound` (`src/search.cpp:222-226`). `probe` accepts an entry when `key32` matches and `occupied()` is true (`src/search.cpp:199`). `occupied()` is `gen_bound & 3`. The comment at `include/forge/search.hpp:80-81` says a torn entry is caught by the key check and by move legality. On a slot that is already occupied, the old bound stays non-zero until the last assignment, so a reader can observe the new key together with the previous score. Move legality does not check that score. An empty slot stays unoccupied until `gen_bound` is written, so the key-first order does not by itself publish an empty slot.
+
+`investigations/tt_smp_20261020/tt_publication_minimal.cpp` forces that interleaving with a handshake and asserts the false hit. `raw_minimal.txt` says `PASS: wrong-key score accepted`. The toy was not compiled here. `CHECKPOINT.md` says the engine was not run and asks for ThreadSanitizer. No such log is in the commit.
+
+### Research notes whose citations were checked
+
+`52085b2775ca58e71a6629f952b326cda184620a` (tree `a9f7effe`, 1049 files) is the only tip of `forge/research-20261020-0215`. `72bf672e8adbbfd72871fcf0f74926b34ddacf6b` (tree `4e1b461f`, 1053 files) is the only tip of `forge/research-20261020-0015` and adds eight two-line notes past `374a71d4`. `761ae645cf1db4979b78357a6bd27752aafa0084` (tree `ed81071b`, 1052 files) is the only tip of `forge/research-20261020-0515` and adds one 18-line note past `d2d8dfe4`. None of these three changes the engine blobs. None contains the lock, H512, or `main`.
+
+Quiescence returns a TT score with no halfmove test at `src/search.cpp:692-695`. The main-search cutoff requires `halfmove_clock() < 90` at `src/search.cpp:813-816`. Both paths can replace static eval with a TT score at `src/search.cpp:708-711` and `:830-833`. `TTEntry` (`include/forge/search.hpp:60-74`) has no halfmove field. The 02:15 note says this is eligibility, and that no mis-searched position was shown. No position was searched here.
+
+`MovePicker`'s constructor fills `check_squares_` at `src/search.cpp:266-275` for every mode, including capture-only quiescence. `direct_check` is used by `generate_quiets` (`src/search.cpp:449`) and `generate_evasions` (`src/search.cpp:466`). The quiescence capture loop at `src/search.cpp:336-346` does not call it. That is a real per-node cost in the source. No timing was measured.
+
+`src/nnue.cpp` on this blob `6b1f40ad` is 176 lines. `update` is `src/nnue.cpp:95-109`. `dirty_pieces` is `src/nnue.cpp:155-174`. The 02:15 note cites `src/nnue.cpp:57-111` and `:169-193`. Those numbers do not locate the functions, and line 193 does not exist. The hosted calibration above is the failed same-binary gate for the 6.4.10-versus-6.4.9 experiment. It supplies no accepted speed gain.
+
+`Worker::should_stop` returns before the node-limit test when the caller is not the main thread (`src/search.cpp:586-587`). The node publish is inside `should_stop` (`src/search.cpp:584`). Quiescence and main search call it every 1024 nodes (`src/search.cpp:674`, `:779`) unless `node_limit_specified_` is set, and that flag is main-only (`src/search.cpp:1125`). Helpers are launched at `src/search.cpp:1363-1365` and joined after `stop` is set at `src/search.cpp:1367-1371`. The file ends at line 1375. The 05:15 note's range `1365-1395` extends past the file. The overshoot hypothesis was not measured.
+
+Root nodes are added to `root_move_nodes_[move_count - 1]` at `src/search.cpp:1048`. The best-move ordinal is stored at `src/search.cpp:1059`. The array is cleared once at `src/search.cpp:1239`, before the depth loop. The soft-time factor reads that ordinal at `src/search.cpp:1303-1306`. The ordinal is the current iteration's move order, so a slot is not a stable move identity across depths. The 05:15 note's 1355-versus-601 bucket is a citation of another STATUS. That figure is not in this commit and was not recomputed.
+
+`tests/tests.cpp:484-514` is `test_transposition_tag_independence`. `main` calls it at `tests/tests.cpp:525`. The 00:15 note's range `484-523` includes the test and the start of `main`.
+
+The integer clock parser is still `src/uci.cpp:73-78`. A failed conversion returns 0, and `wtime` stores `max(0, that)` at `src/uci.cpp:99`. The default overhead is 10. A parsed 0 becomes a 1 ms budget at `src/search.cpp:1139`. `bad_captures_[bad_count_++]` is unchecked at `src/search.cpp:296`. The array has 64 slots at `src/search.cpp:384`. A game search still probes the book when `own_book` is false and `book_file` is non-empty (`src/uci.cpp:325`). These lines were read again because the cited ranges overlap them. They were not played.
+
+### Not claimed
+
+- No new Elo. The TT-tag SPRT remains the unresolved six-game STATE sentence. The deadline and hard-budget pass counts were not rerun, and their zips are absent.
+- The 101 ms and 351 ms figures match the source formula. They are not a timed search from this run. A 650 ms bestmove was not produced here.
+- The NNUE result is a failed same-binary calibration. It is not a candidate speedup and not an Elo result. Bench 419798 was not rerun.
+- The TT store order is a source fact. The toy's PASS line is their stored stdout. Forge was not run under ThreadSanitizer.
+- The unused quiescence check masks, the 1024-node helper publish, and the ordinal root buckets are source facts. None has a measurement in these commits.
+- 316 branches are still tip-only. `3cabc1b2` is still unread. It is not a branch tip.
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
 ## Next run
 
 1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
 2. If a foreign tip moved, read that delta before the files below.
-3. Otherwise read shared tip `d2d8dfe4fe9df20697f993bf44dea0f65e57ba39` (7 branches). It is one commit past `2fc649ef` and adds `validation/hourly/2026-10-20-deadline/REPORT.md`, `probe-deadline-tests.patch`, and `probe-deadline.patch`. Read them as data. Do not apply the patches and do not execute repository scripts.
-4. If that commit is short, read the two one-file children of `2fc649ef`: `430329ce` (`forge/test-20261020-0030`, `TESTER-STATUS.md`) and `52085b27` (`forge/research-20261020-0215`, `RESEARCH.md`). Then read `investigator/tt-smp-publication-20261020-0300` at `50149f788fda75eff8d2882fe104e5232ad9903a` (four commits, 32 added lines). Then read `forge/research-20261020-0015` at `72bf672e8adbbfd72871fcf0f74926b34ddacf6b` (eight notes past `374a71d4`).
-5. Leave `3cabc1b2` for a later run. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
-6. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
-7. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
+3. Otherwise read `7e3fa78a1e756e3ad9cb36e328d3d4bfa0e3ca79`. It is not a branch tip. It adds one 8-line handoff past `87a319fd`. Then read tip `ec013151745b524a7f7095b834ff97f75fecad2c` (`forge/test-20261020-0830`). It adds `validation/hourly/2026-10-20-go-origin/REPORT.md`, `model-test.stdout`, `time_origin_model.cpp`, and `uci-clock-origin.patch`. Read them as data. Do not apply the patch, compile the model, or execute repository scripts.
+4. Leave `3cabc1b2` unread. It is not a branch tip, and the diff from `2fc649ef` is 1368 files. Do not decode the `.b64` artifact parts.
+5. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+6. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
