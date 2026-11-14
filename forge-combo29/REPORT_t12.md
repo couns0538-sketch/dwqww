@@ -39,7 +39,7 @@ Preserving proved mates without the cutoff change still left misses. The cutoff 
 
 ## The change
 
-While more than one worker is searching, a proved mate is kept against a shallower store and against a same-depth store that does not itself prove mate. A deeper store may still replace it. In that same multi-worker search, a non-mate table cutoff is used only when the stored depth is at least two plies deeper than the node; a mate cutoff is unchanged. One worker leaves both rules as they were, which is why `bench 11`, `bench 13`, and `go perft 5` stay on the lock's node counts.
+While more than one worker is searching, a proved mate is kept against a shallower store and against a same-depth store that is not exact and does not itself prove mate. A deeper store, or a same-depth exact result, may still replace it. In that same multi-worker search, a non-mate table cutoff is used only when the stored depth is at least two plies deeper than the node; a mate cutoff is unchanged. One worker leaves both rules as they were, which is why `bench 11`, `bench 13`, and `go perft 5` stay on the lock's node counts. `FORGE_T12_MATE_TT` defaults to 1; 0 compiles the lock's replacement and cutoff.
 
 ## Files changed
 
@@ -345,6 +345,77 @@ g++ -O1 -g -fsanitize=address,undefined search.o nnue.o board.o book.o eval.o ev
 ```
 
 Stdout was byte-identical to the release 40 × 10 listing above (`misses 0`). Stderr was empty (0 bytes). Exit status 0.
+
+## Review follow-up
+
+Four review notes, and what changed.
+
+The test now returns 1 when `misses` is not 0, and 0 when it is. The three repeats below exited 0.
+
+`FORGE_T12_MATE_TT` defaults to 1. Setting it to 0 compiles the lock replacement (`keep` is false) and the lock cutoff (`tt_need` is `depth`). The default is 1, not 0: the build file cannot be edited, and a default of 0 would leave the miss in the engine this task has to fix. One worker is the lock path either way. With the switch off, the mate-10 position missed 10 of 400. With it on, the counts below are 0.
+
+A same-depth exact result may replace a one-sided mate bound. A same-depth upper or lower bound that does not prove mate still cannot. The mate-10 position stayed at 0 of 400 after that change, and the 40-position test stayed at 0 of 400 three times.
+
+`protect_mates_` is an atomic flag. The search releases it when the flag is set and acquires it in `keep_proved_mate`, so a store that overlaps the end of the search does not race the restore.
+
+```
+T12_LABEL=h /tmp/t12/exp_after 400 2
+```
+
+```
+h score_misses 0 / 400
+```
+
+```
+/tmp/t12/krk_after 2 16 10 40
+```
+
+Three runs, each exit 0:
+
+```
+runs 400
+misses 0
+score_misses 0
+move_misses 0
+```
+
+```
+T12_LABEL=off /tmp/t12/exp_off 400 2
+```
+
+```
+off score_misses 10 / 400
+```
+
+Reference counts after this follow-up, same command as above:
+
+```
+info string bench depth 11 nodes 312866 time 185 nps 1691167
+info string bench depth 13 nodes 862329 time 506 nps 1704207
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+Address and undefined sanitizers, same test, after this follow-up: stdout ended in `misses 0`, stderr was empty, exit 0.
 
 ## What could not be verified
 

@@ -216,5 +216,5 @@ int main(int argc, char** argv) {
     std::cout << "misses " << misses << "\n";
     std::cout << "score_misses " << score_misses << "\n";
     std::cout << "move_misses " << move_misses << "\n";
-    return 0;
+    return misses == 0 ? 0 : 1;
 }

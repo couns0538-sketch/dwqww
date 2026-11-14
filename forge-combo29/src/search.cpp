@@ -239,14 +239,16 @@ bool TranspositionTable::has_exclusive_access() const {
 
 bool TranspositionTable::keep_proved_mate(const TTEntry& entry, bool same_position, int depth, int score,
                                           Bound bound) const {
-    if (!protect_mates_ || !same_position || entry.generation() != generation_) return false;
+    if (!protect_mates_.load(std::memory_order_acquire) || !same_position || entry.generation() != generation_) return false;
     const Bound stored = entry.bound();
     const bool proved = (entry.score >= MateInMaxPly && (stored == BoundLower || stored == BoundExact)) ||
                         (entry.score <= -MateInMaxPly && (stored == BoundUpper || stored == BoundExact));
     if (!proved) return false;
-    // A deeper search may correct a mate that was wrong. A shallower store, or a
-    // same-depth store that does not itself prove mate, must leave the proof.
+    // A deeper search may correct a mate that was wrong. A same-depth exact
+    // result may too: that search finished inside its window. A shallower store,
+    // or a same-depth store that is not exact and does not prove mate, stays out.
     if (depth > static_cast<int>(entry.depth)) return false;
+    if (depth == static_cast<int>(entry.depth) && bound == BoundExact) return false;
     const bool incoming_proves = (score >= MateInMaxPly && (bound == BoundLower || bound == BoundExact)) ||
                                  (score <= -MateInMaxPly && (bound == BoundUpper || bound == BoundExact));
     return depth < static_cast<int>(entry.depth) || !incoming_proves;
@@ -339,7 +341,11 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
+#if FORGE_T12_MATE_TT
     const bool keep = keep_proved_mate(*entry, same_position, depth, score, bound);
+#else
+    const bool keep = false;
+#endif
     if (!keep && (!move.is_none() || !same_position)) entry->move = move;
     if (!keep && (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_)) {
         entry->key32 = key32;
@@ -409,7 +415,11 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
+#if FORGE_T12_MATE_TT
     const bool keep = keep_proved_mate(*entry, same_position, depth, score, bound);
+#else
+    const bool keep = false;
+#endif
     if (!keep && (!move.is_none() || !same_position)) entry->move = move;
     if (!keep && (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_)) {
         entry->key32 = key32;
@@ -1181,9 +1191,14 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
 
     // A helper one ply ahead stores a non-mate bound that this node has not
     // proved. Trust a mate at this depth. Trust a non-mate only from a search
-    // at least two plies deeper. One thread keeps the original rule.
+    // at least two plies deeper. One thread, and a build with the switch off,
+    // keeps the lock's rule.
+#if FORGE_T12_MATE_TT
     const bool multi = all_workers_ != nullptr && all_workers_->size() > 1;
     const int tt_need = multi && tt_score != ValueNone && !is_mate_score(tt_score) ? depth + 2 : depth;
+#else
+    const int tt_need = depth;
+#endif
     if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= tt_need &&
         board.halfmove_clock() < 90 &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
@@ -1810,9 +1825,12 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     struct ProtectMates {
         TranspositionTable& table;
         const bool previous;
-        ProtectMates(TranspositionTable& tt, bool on) : table(tt), previous(tt.protect_mates_) { tt.protect_mates_ = on; }
-        ~ProtectMates() { table.protect_mates_ = previous; }
-    } protect_mates(shared_.tt, workers_.size() > 1);
+        ProtectMates(TranspositionTable& tt, bool on)
+            : table(tt), previous(tt.protect_mates_.load(std::memory_order_relaxed)) {
+            tt.protect_mates_.store(on, std::memory_order_release);
+        }
+        ~ProtectMates() { table.protect_mates_.store(previous, std::memory_order_release); }
+    } protect_mates(shared_.tt, FORGE_T12_MATE_TT && workers_.size() > 1);
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);
