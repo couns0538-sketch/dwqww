@@ -159,6 +159,7 @@ struct NullUndo {
     std::int8_t ep_square = -1;
     std::uint64_t key = 0;
     std::uint16_t halfmove = 0;
+    std::uint16_t fullmove = 1;
     std::uint16_t plies_from_null = 0;
     Bitboard checkers = 0;
 #if FORGE_SPD_KING_LINES

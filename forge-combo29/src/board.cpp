@@ -1112,6 +1112,7 @@ void Board::make_null_move(NullUndo& undo) {
     undo.ep_square = ep_square_;
     undo.key = key_;
     undo.halfmove = halfmove_;
+    undo.fullmove = fullmove_;
     undo.plies_from_null = plies_from_null_;
     undo.checkers = checkers_;
 #if FORGE_SPD_KING_LINES
@@ -1121,6 +1122,8 @@ void Board::make_null_move(NullUndo& undo) {
         key_ ^= Z.ep[static_cast<std::size_t>(file_of(ep_square_))];
     }
     ep_square_ = -1;
+    // A null move is a ply. Black's ply advances the fullmove counter, same as a real move.
+    if (side_ == Black) fullmove_ = static_cast<std::uint16_t>(std::min<int>(fullmove_ + 1, 65535));
     side_ = opposite(side_);
     key_ ^= Z.side;
     halfmove_ = static_cast<std::uint16_t>(std::min<int>(halfmove_ + 1, 65535));
@@ -1138,6 +1141,7 @@ void Board::unmake_null_move(const NullUndo& undo) {
     ep_square_ = undo.ep_square;
     key_ = undo.key;
     halfmove_ = undo.halfmove;
+    fullmove_ = undo.fullmove;
     plies_from_null_ = undo.plies_from_null;
     checkers_ = undo.checkers;
 #if FORGE_SPD_KING_LINES
