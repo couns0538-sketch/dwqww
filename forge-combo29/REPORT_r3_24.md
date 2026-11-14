@@ -52,7 +52,7 @@ Single-thread proof, ASan + UBSan, `FORGE_SPD_TT_NOTLS=1`: after the late shallo
 Two-thread proof (`proof_tt_two_threads.cpp`), keys checked to share a cluster under the 1 MB multiply-high index:
 
 - 20000 rounds on two threads of unordered probe/store, then a joined probe. ASan and TSan.
-- 100 ordered interleavings: thread A holds the miss probe, thread B writes the colliding key and the depth-14 score, thread A stores depth 2. The kept entry is depth 14, score 777, move `6->21`, and the colliding key remains. ASan and TSan. The single-thread proof also checks that this rejected store leaves the pv bit set.
+- 100 ordered interleavings: thread A holds the miss probe, thread B writes the colliding key and the depth-14 score, thread A stores depth 2. The kept entry is depth 14, score 777, move `6->21`, pv still set, and the colliding key remains. ASan and TSan.
 - The other order, single-threaded and 100 times on two threads: the stale probe is the depth-14 exact store, and a shallow entry is already in the other slot. The exact store replaces that shallow entry (score 777, move `6->21`, eval 100) and leaves the colliding key in place. ASan and TSan. The locked `store` path (no `FORGE_SPD_TT_NOTLS`) passes the same two-thread file under ASan.
 - `Searcher` with 2 workers, depth 4, shared access and exclusive access. Both return a legal start-position move. Node counts move between runs (thread order). ASan and TSan, and again with `FORGE_SPD_TT_NOTLS` left at 0.
 - UCI `setoption name Threads value 2`, Hash 16, OwnBook false, `go depth 4` from the start position printed `bestmove a2a3`.

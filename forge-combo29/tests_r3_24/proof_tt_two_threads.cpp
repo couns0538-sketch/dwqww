@@ -81,7 +81,9 @@ int interleave_once(forge::TranspositionTable& tt) {
         return 1;
     }
     const forge::TTProbe after = tt.probe(key_a);
-    if (!visible(after, 14, 777)) return fail("two-thread shallow store hid the deeper score");
+    if (!visible(after, 14, 777) || !after.entry.pv()) {
+        return fail("two-thread shallow store hid the deeper score");
+    }
     if (after.entry.move.from != 6 || after.entry.move.to != 21) {
         return fail("two-thread shallow store replaced the deeper move");
     }
@@ -138,7 +140,7 @@ int interleave_deep_late(forge::TranspositionTable& tt) {
     }
     const forge::TTProbe after = tt.probe(key_a);
     if (!visible(after, 14, 777) || after.entry.move.from != 6 || after.entry.move.to != 21 ||
-        after.entry.eval != 100) {
+        after.entry.eval != 100 || !after.entry.pv()) {
         return fail("two-thread deeper store did not replace the shallow entry");
     }
     if (!visible(tt.probe(key_other), 3, 15)) return fail("two-thread deeper store dropped the colliding key");
