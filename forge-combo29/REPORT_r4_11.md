@@ -44,7 +44,7 @@ The same proof command after the fix prints `Unknown`, writes nothing to stderr,
 
 ## Checks
 
-`forge-combo29/tests_r4_11/run.sh` configures the existing CMake file with g++ (the proof compiler; `/usr/bin/c++` on this image is Clang without its sanitizer runtime), `-fsanitize=address,undefined`, and `-fno-sanitize-recover=address,undefined`. It does not change lock `FORGE_*` defaults. The test exits 1 on a failed check. A sanitizer finding aborts with a non-zero status.
+`tests_r4_11/r4_11_test.cpp` was built with g++ (the proof compiler; `/usr/bin/c++` on this image is Clang without its sanitizer runtime), `-fsanitize=address,undefined`, and `-fno-sanitize-recover=address,undefined`, using the lock `FORGE_*` defaults and passing no `-DFORGE_*` override. The test exits 1 on a failed check. A sanitizer finding aborts with a non-zero status.
 
 `tests_r4_11/r4_11_test.cpp` calls `name` for `-128..-1`, other out-of-range indices, and the in-range piece-square and term names. It then checks the lock pins and runs 200 depth-10 searches. Each `best_move` and every PV move must be legal.
 
@@ -66,3 +66,5 @@ PASS
 ```
 
 Pins `312866`, `862329`, and `4865609` are unchanged.
+
+R4 DONE 1ebc9b480
