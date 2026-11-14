@@ -91,6 +91,12 @@ With `TmFinishIteration` on, Hash 16, and Threads 1, it searched 200 positions t
 
 Same binary, `TmFinishIteration` on versus off. Owner build (`-march=x86-64-v4`, portable off) because this CPU has AVX-512F and BMI2. No `CMakeLists.txt` edit and no extra `FORGE_*` definition. Pins on that binary, options at the match defaults: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
 
-Command, versions, and sha256s: `forge-combo29/tests_r3fu_15/command.txt` and `forge-combo29/tests_r3fu_15/versions.txt`. Four sequential UHO chunks, games 2, rounds 500, concurrency 2. Results are written into that directory as each chunk finishes. This is not a strength claim.
+Command, versions, and sha256s: `forge-combo29/tests_r3fu_15/command.txt` and `forge-combo29/tests_r3fu_15/versions.txt`. The plan was four sequential UHO chunks, games 2, rounds 500, concurrency 2. Chunk 1 was stopped before it finished. Chunks 2, 3, and 4 were not started. This is not a strength claim.
+
+Chunk 1 used the same binary twice: `TmFinishIterationOn` first, `TmFinishIterationOff` second, `-each proto=uci tc=10+0.1 option.Threads=1 option.Hash=16 option.OwnBook=false`, openings file the first 2000 lines of `UHO_Lichess_4852_v1.epd`, `order=sequential start=1`, `-games 2 -rounds 500 -concurrency 2 -report penta=true`. Fastchess alpha 1.8.3, commit `3d7a4db2493fc85a05ef010fd7e13a3884667aa2`, sha256 `936811dcaea97a853a762d3f1e6fb600610c1be3c1f759f2f2fefa2e6500b21e`. Engine sha256 `cd5322d45080578c3cf8e8ffe434b41f14943d40ba4370f9598f8fb8bd35abb8`. Book zip sha256 `4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07`. Excerpt sha256 `4f84d800d459f1323ac9d477c23bf980c67a8674fcc7bd2182848e25784f9c71`. Implementation commit `8283f8e97259a469b9d7601924c6a2d607b7e4f8`.
+
+Finished-game lines in `forge-combo29/tests_r3fu_15/chunk1.log`: 464. From the on engine's side that is 95 wins, 108 losses, 261 draws. Time losses: `TmFinishIterationOn` 0, `TmFinishIterationOff` 0. No timeout or forfeit string appeared.
+
+The last fastchess interval, printed at 400 games, was Elo -9.56 +/- 17.92 (95% interval), LOS 14.76%, pentanomial `[1, 56, 98, 43, 2]`. PGN: `forge-combo29/tests_r3fu_15/chunk1.pgn`. Progress note: `forge-combo29/tests_r3fu_15/progress.txt`.
 
 setoption name TmFinishIteration value true
