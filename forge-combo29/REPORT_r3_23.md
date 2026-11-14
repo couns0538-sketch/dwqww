@@ -51,7 +51,11 @@ Owner build (`x86-64-v4`, PEXT and AVX-512 on, no `FORGE_*` override). Option of
 
 The UHO screen uses `tests_r3fu_23/uho_screen.cpp` at 50000 nodes, Threads 1, Hash 16. Option-on is the first player in each color-swapped pair. Book `UHO_Lichess_4852_v1.epd`, sha256 of the zip `4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07`. Owner binary sha256 `c9173950c8336f1d5edf39078bf32321e4f1da2fbbd4b1ef5ac8482cd73f45bd`. Bench 13, five alternating runs, option on first: nps 936397, 923264, 950929, 918348, 1398584. Option-off node totals in those runs stayed 862329. Option-on bench 13 nodes were 980408.
 
-Chunk 1, openings 0-399, 800 games, four workers: W-L-D 195-224-381 for option-on. Elo -12.600, 95% interval -30.071 to 4.808, LOS 0.078019. Pentanomial LL LD WL/DD WD WW = 18 108 176 81 17. Per-worker PGNs and summaries are under `tests_r3fu_23/screen/`. Later chunks are appended the same way.
+Chunk 1, openings 0-399, 800 games: W-L-D 195-224-381 for option-on. Elo -12.600, 95% interval -30.071 to 4.808, LOS 0.078019. Pentanomial LL LD WL/DD WD WW = 18 108 176 81 17.
+
+Slice 2, openings 400-799, 800 games: W-L-D 189-212-399. Elo -9.992, 95% interval -27.075 to 7.043, LOS 0.125172. Pentanomial 13 117 168 84 18.
+
+Cumulative through 1600 games: W-L-D 384-436-780. Elo -11.296, 95% interval -23.502 to 0.883, LOS 0.034548. Pentanomial 31 225 344 165 35. PGNs and summaries are under `tests_r3fu_23/screen/`. Later slices are appended the same way.
 
 ## What was not verified
 
