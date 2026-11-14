@@ -1,0 +1,40 @@
+No-regression match. r3-24 is first in W-L-D. This file records the score. It is not a strength claim.
+
+W-L-D over 4000 games: 1021-1021-1958
+Elo 95%: -0.00 +/- 0.00 (fastchess CI95ZSCORE = 1.959963984540054)
+LOS: nan (fastchess on each chunk). All 2000 opening pairs scored 1-1, so the pentanomial variance is 0 and the z-test is degenerate.
+Pentanomial Ptnml(0-2) LL, LD, DD/WL, WD, WW: [0, 0, 2000, 0, 0]
+Chunks: 253-253-494, 270-270-460, 255-255-490, 243-243-514. Each Ptnml [0, 0, 500, 0, 0]. Each fastchess exit 0.
+
+Versions
+r3-24 implementation commit: 0ca8cb1009dfd1c8e58dc793c3e760d1c88628f3
+base: e04556ddc3a430b2e751159b0d46111ef56c8b89
+id name both: Chess Engine Forge 6.4.24 candidate
+compiler: g++ 13.3.0
+build: cmake -S forge-combo29 -B <dir> -DCMAKE_BUILD_TYPE=Release
+owner build, no FORGE_PORTABLE, no FORGE_MARCH, no FORGE_* override
+CPU has AVX-512F and BMI2, so the portable build was not used
+fastchess: 3d7a4db2493fc85a05ef010fd7e13a3884667aa2
+book: UHO_Lichess_4852_v1.epd, 2632036 lines, order=sequential
+starts: chunk1=1, chunk2=501, chunk3=1001, chunk4=1501
+rounds 500, games 2, concurrency 4, nodes 50000, Threads 1, Hash 16, OwnBook false
+
+Command
+/tmp/match-tools/fastchess/fastchess -recover -games 2 -rounds 500 -concurrency 4 -ratinginterval 100 -scoreinterval 50 -report penta=true -openings file=/tmp/match-tools/UHO_Lichess_4852_v1.epd format=epd order=sequential start=START -engine name=r3-24 cmd=/tmp/forge-builds/r3/forge -engine name=base-e04556dd cmd=/tmp/forge-builds/base/forge -each nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false proto=uci -pgnout file=forge-combo29/tests_r3fu_24/chunkN.pgn
+
+Pins after the match, same r3 binary, Threads 1, Hash 16, OwnBook false:
+bench 11 = 312866
+bench 13 = 862329
+go perft 5 = 4865609
+
+Two-thread proof on the owner flags (-march=x86-64-v4, FORGE_SPD_SLIDER_PEXT=1, FORGE_SPD_NNUE_ZMM=1, FORGE_SPD_TT_NOTLS=1, -O3 -DNDEBUG -ffp-contract=off -fno-fast-math): exit 0.
+
+sha256
+16f789f896392b646cac0ac54c311ed552d55e2624a616f7352caa0c468571f1  r3-24 forge (unchanged after the match)
+4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984  base forge (unchanged after the match)
+7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a  UHO_Lichess_4852_v1.epd
+936811dcaea97a853a762d3f1e6fb600610c1be3c1f759f2f2fefa2e6500b21e  fastchess
+4347e7724205be2495e8451f733bbd04439f1ee3ea9239d5b082fdfdf54a6aac  chunk1.pgn
+37fe30b2199dd3b517b40118aa2f03e7ac89cd5b22db41ec39d8b9622366e049  chunk2.pgn
+3fbc1035657eeb6cb91631bf3b8e31e84fb705997c985f3b819ee6082f192563  chunk3.pgn
+f6ec401f4402f852d2900ba4a21a60869b51df92ea7b3b95dbbbe2312394360d  chunk4.pgn

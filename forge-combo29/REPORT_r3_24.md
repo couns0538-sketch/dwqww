@@ -60,5 +60,26 @@ Two-thread proof (`proof_tt_two_threads.cpp`), keys checked to share a cluster u
 ## Not verified
 
 - Node counts under Clang, or with Hash or Threads other than the single-thread pins. Two-thread search node counts are not stable and are not pins.
-- Games or strength.
 - A table that already contains two copies of one key. New stores will not create that pair; an older shallow copy in an earlier slot would still be what probe returns.
+
+## Follow-up match
+
+No-regression match against `e04556dd`, owner build (AVX-512F and BMI2 are present, so the portable build was not used). Default CMake Release. No `CMakeLists.txt` edit and no `FORGE_*` override. r3-24 is first in W-L-D.
+
+Pins on `/tmp/forge-builds/r3/forge` after the match, Threads 1, Hash 16, OwnBook false: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. Binary sha256 unchanged from before the games.
+
+Two-thread proof recompiled with the owner flags (`-O3 -DNDEBUG -ffp-contract=off -fno-fast-math -march=x86-64-v4` and the CMake defaults `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`, `FORGE_SPD_TT_NOTLS=1`). Exit 0. Kept move `6->21`, depth 14, score 777, both orders, 100 repeats, plus the hammer and the 2-worker search.
+
+4000 games, 4 chunks of 1000, UHO_Lichess_4852_v1.epd, `order=sequential`, starts 1, 501, 1001, 1501, `-games 2 -rounds 500 -concurrency 4`. Each engine: `nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false`. Other options left at default. fastchess `3d7a4db2493fc85a05ef010fd7e13a3884667aa2`. Each chunk exit 0. No disconnect, illegal-move, or crash line in the logs.
+
+| Chunk | Openings | W-L-D | Elo 95% | Ptnml(0-2) |
+| --- | --- | --- | --- | --- |
+| 1 | 1-500 | 253-253-494 | -0.00 +/- 0.00 | [0, 0, 500, 0, 0] |
+| 2 | 501-1000 | 270-270-460 | -0.00 +/- 0.00 | [0, 0, 500, 0, 0] |
+| 3 | 1001-1500 | 255-255-490 | -0.00 +/- 0.00 | [0, 0, 500, 0, 0] |
+| 4 | 1501-2000 | 243-243-514 | -0.00 +/- 0.00 | [0, 0, 500, 0, 0] |
+| All | 1-2000 | 1021-1021-1958 | -0.00 +/- 0.00 | [0, 0, 2000, 0, 0] |
+
+Ptnml(0-2) is LL, LD, DD/WL, WD, WW from r3-24. Paired by FEN, all 2000 pairs score 1-1, which is why every count sits in the middle bin. Fastchess LOS printed `nan` on every chunk: pair variance is 0, so the z-test is degenerate. The +/- above is fastchess `CI95ZSCORE` (1.959963984540054).
+
+Command, versions, and sha256s: `forge-combo29/tests_r3fu_24/match_command.txt` and `forge-combo29/tests_r3fu_24/summary.txt`. PGNs: `chunk1.pgn` through `chunk4.pgn`.
