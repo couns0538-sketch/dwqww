@@ -18,6 +18,8 @@ std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask{};
 std::array<Bitboard, 64> KingZoneMask{};
 std::array<Magic, 64> RookMagics{};
 std::array<Magic, 64> BishopMagics{};
+std::array<Bitboard, 64> RookRay{};
+std::array<Bitboard, 64> BishopRay{};
 
 namespace {
 
@@ -179,6 +181,11 @@ void init() {
 
     init_magics(true, RookAttackTable.data(), RookMagics);
     init_magics(false, BishopAttackTable.data(), BishopMagics);
+    for (int square = 0; square < 64; ++square) {
+        const std::size_t s = static_cast<std::size_t>(square);
+        RookRay[s] = rook(square, 0);
+        BishopRay[s] = bishop(square, 0);
+    }
 
     for (int a = 0; a < 64; ++a) {
         for (int b = 0; b < 64; ++b) {

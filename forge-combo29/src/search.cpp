@@ -10,6 +10,9 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#if defined(__AVX2__)
+#include <immintrin.h>
+#endif
 
 // FORGE_SDK_BADCAP_PREFIX (SDK long job 2026-11-06; default 0 = the code before it): the move picker keeps its
 // losing captures in the already consumed front of moves_ instead of a separate array and generates the quiets
@@ -371,7 +374,10 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
     const std::size_t index = static_cast<std::size_t>(&cluster - clusters_.get());
     // Owner calls (TakeLock false) skip lock_stripe: under the lease it only hands
     // back a deferred (unlocked) lock, after a thread_local lookup per call.
-    const auto lock = TakeLock ? lock_stripe(index) : std::unique_lock<std::mutex>();
+    std::unique_lock<std::mutex> lock;
+    if constexpr (TakeLock) lock = lock_stripe(index);
+    const std::uint32_t key32 = verification_key(key);
+    const std::uint8_t generation = generation_;
     auto snapshot = [&](const TTEntry& entry, bool hit) {
         TTProbe result;
         result.entry = entry;
@@ -383,24 +389,37 @@ TTProbe TranspositionTable::probe_body(std::uint64_t key) const {
         result.key_ = key;
         return result;
     };
-    const std::uint32_t key32 = verification_key(key);
+    // Four slots. Keep this a short loop: fully unrolling the replacement
+    // choice spilled registers and made the probe slower.
+    TTEntry* found = nullptr;
+#pragma GCC unroll 1
     for (TTEntry& entry : cluster.entries) {
         if (entry.key32 == key32 && entry.occupied()) {
-            // Reused entries remain recent even when search returns a TT cutoff.
-            if (entry.generation() != generation_) {
-                entry.gen_bound = static_cast<std::uint8_t>(
-                    (static_cast<unsigned>(generation_) << 3U) | (entry.gen_bound & 7U));
-            }
-            return snapshot(entry, true);
+            found = &entry;
+            break;
         }
     }
-    const TTEntry* replace = &cluster.entries[0];
-    auto relative_age = [this](const TTEntry& entry) {
-        return static_cast<int>((32 + generation_ - entry.generation()) & 31U);
-    };
-    for (const TTEntry& entry : cluster.entries) {
+    if (found != nullptr) {
+        // Reused entries remain recent even when search returns a TT cutoff.
+        if (found->generation() != generation) {
+            found->gen_bound = static_cast<std::uint8_t>(
+                (static_cast<unsigned>(generation) << 3U) | (found->gen_bound & 7U));
+        }
+        return snapshot(*found, true);
+    }
+    TTEntry* replace = &cluster.entries[0];
+    int replace_score = replace->occupied()
+                            ? replace->depth - 4 * static_cast<int>((32U + generation - replace->generation()) & 31U)
+                            : 0;
+#pragma GCC unroll 1
+    for (TTEntry& entry : cluster.entries) {
         if (!entry.occupied()) return snapshot(entry, false);
-        if (entry.depth - 4 * relative_age(entry) < replace->depth - 4 * relative_age(*replace)) replace = &entry;
+        const int age = static_cast<int>((32U + generation - entry.generation()) & 31U);
+        const int score = entry.depth - 4 * age;
+        if (score < replace_score) {
+            replace = &entry;
+            replace_score = score;
+        }
     }
     return snapshot(*replace, false);
 }
@@ -702,6 +721,11 @@ private:
 #endif
     std::size_t index_ = 0;
     std::size_t count_ = 0;
+    // Leftmost highest score of the list just built. The first pick is that
+    // move; later picks scan, because swapping the winner changes tie order.
+    bool seeded_ = false;
+    std::size_t seeded_at_ = 0;
+    int seeded_score_ = 0;
 #if FORGE_SDK_BADCAP_PREFIX
     // Losing captures live in moves_[0, bad_count_).
 #elif FORGE_SPD_NO_ZERO_MOVELISTS
@@ -779,21 +803,65 @@ private:
 
     // Most nodes need only the first few moves: select those on demand and
     // sort the remainder once if the search gets that far.
+    // The selection keeps the lowest index on a tie (`>`), which is what the
+    // following move order depends on. Chunks of four compare inside the chunk
+    // first so the running best is not a loop-carried load on every move.
     [[nodiscard]] Move pick_best() {
         if (!sorted_) {
             if (index_ - list_start_ < 4) {
-                std::size_t best = index_;
-                for (std::size_t i = index_ + 1; i < count_; ++i) {
-                    if (moves_[i].score > moves_[best].score) best = i;
+                if (seeded_ && index_ == list_start_) {
+                    if (seeded_at_ != index_) std::swap(moves_[index_], moves_[seeded_at_]);
+                    seeded_ = false;
+                    return moves_[index_++].move;
                 }
-                std::swap(moves_[index_], moves_[best]);
+                std::size_t best = index_;
+                int best_score = moves_[best].score;
+                std::size_t i = index_ + 1;
+                const std::size_t n = count_;
+#if defined(__AVX2__)
+                static_assert(sizeof(Scored) == 8, "score lane shuffle assumes an 8-byte record");
+                while (i + 4 <= n) {
+                    const __m256i packed = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&moves_[i]));
+                    const __m256i lanes = _mm256_setr_epi32(1, 3, 5, 7, 0, 2, 4, 6);
+                    const __m128i scores = _mm256_castsi256_si128(_mm256_permutevar8x32_epi32(packed, lanes));
+                    const __m128i swap_halves = _mm_shuffle_epi32(scores, _MM_SHUFFLE(1, 0, 3, 2));
+                    __m128i folded = _mm_max_epi32(scores, swap_halves);
+                    folded = _mm_max_epi32(folded, _mm_shuffle_epi32(folded, _MM_SHUFFLE(2, 3, 0, 1)));
+                    const int chunk_max = _mm_cvtsi128_si32(folded);
+                    if (chunk_max > best_score) {
+                        const __m128i equal = _mm_cmpeq_epi32(scores, _mm_set1_epi32(chunk_max));
+                        const int mask = _mm_movemask_ps(_mm_castsi128_ps(equal));
+                        best = i + static_cast<std::size_t>(__builtin_ctz(mask));
+                        best_score = chunk_max;
+                    }
+                    i += 4;
+                }
+#endif
+                for (; i < n; ++i) {
+                    const int score = moves_[i].score;
+                    if (score > best_score) {
+                        best_score = score;
+                        best = i;
+                    }
+                }
+                if (best != index_) std::swap(moves_[index_], moves_[best]);
             } else {
-                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_), moves_.begin() + static_cast<std::ptrdiff_t>(count_),
+                std::sort(moves_.begin() + static_cast<std::ptrdiff_t>(index_),
+                          moves_.begin() + static_cast<std::ptrdiff_t>(count_),
                           [](const Scored& a, const Scored& b) { return a.score > b.score; });
                 sorted_ = true;
             }
         }
         return moves_[index_++].move;
+    }
+
+    void push_scored(Move move, int score) {
+        if (!seeded_ || score > seeded_score_) {
+            seeded_ = true;
+            seeded_score_ = score;
+            seeded_at_ = count_;
+        }
+        moves_[count_++] = Scored{move, score};
     }
 
     void sort_moves() {
@@ -815,6 +883,7 @@ private:
         board_.generate_pseudo_legal(buffer_, true);
         index_ = 0;
         count_ = 0;
+        seeded_ = false;
 #if FORGE_SEARCH_SPEED2
         const CaptureHistory& capture_history = *searcher_.capture_history_;
 #endif
@@ -829,7 +898,7 @@ private:
             int score = 10 * capture_value(board_, move) + searcher_.capture_history_value(board_, move);
 #endif
             if (move.is_promotion()) score += move.promotion == Queen ? 20000 : -5000;
-            moves_[count_++] = Scored{move, score};
+            push_scored(move, score);
         }
         sort_moves();
     }
@@ -843,16 +912,17 @@ private:
         board_.generate_pseudo_legal(buffer_, Board::GenMode::Quiets);
         index_ = quiet_start();
         count_ = quiet_start();
+        seeded_ = false;
 #if FORGE_SEARCH_SPEED2
         const QuietScorer scorer(board_, searcher_, ss_);
         for (const Move move : buffer_) {
-            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
+            push_scored(move, scorer.score(move, check_squares_));
         }
 #else
         for (const Move move : buffer_) {
             int score = searcher_.quiet_history(board_, ss_, move);
             if (direct_check(move)) score += 12000;
-            moves_[count_++] = Scored{move, score};
+            push_scored(move, score);
         }
 #endif
         sort_moves();
@@ -862,18 +932,19 @@ private:
         board_.generate_pseudo_legal(buffer_, false);
         index_ = quiet_start();
         count_ = quiet_start();
+        seeded_ = false;
 #if FORGE_SEARCH_SPEED2
         const QuietScorer scorer(board_, searcher_, ss_);
         for (const Move move : buffer_) {
             if (move.is_capture() || move.is_promotion()) continue;
-            moves_[count_++] = Scored{move, scorer.score(move, check_squares_)};
+            push_scored(move, scorer.score(move, check_squares_));
         }
 #else
         for (const Move move : buffer_) {
             if (move.is_capture() || move.is_promotion()) continue;
             int score = searcher_.quiet_history(board_, ss_, move);
             if (direct_check(move)) score += 12000;
-            moves_[count_++] = Scored{move, score};
+            push_scored(move, score);
         }
 #endif
         sort_moves();
@@ -886,6 +957,7 @@ private:
         board_.generate_pseudo_legal(buffer_, false);
         index_ = 0;
         count_ = 0;
+        seeded_ = false;
 #if FORGE_SEARCH_SPEED2
         const QuietScorer scorer(board_, searcher_, ss_);
 #endif
@@ -910,7 +982,7 @@ private:
                 score = searcher_.quiet_history(board_, ss_, move) + (direct_check(move) ? 12000 : 0);
 #endif
             }
-            moves_[count_++] = Scored{move, score};
+            push_scored(move, score);
         }
         sort_moves();
     }
