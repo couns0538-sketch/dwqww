@@ -100,6 +100,8 @@ Chunk 04 (openings 1501-2000, 1000 games, 00:18:30): W-L-D 271-253-476, Elo 6.25
 
 Chunk 05 (openings 2001-2500, 1000 games, 00:17:06): W-L-D 249-247-504, Elo 0.69 +/- 10.94 (95%), LOS 54.95%, pentanomial 6, 100, 290, 94, 10. Detail: `forge-combo29/screen_r3fu_03/chunk-05-summary.md`.
 
+Chunk 06 (openings 2501-3000, 1000 games, 00:18:28): W-L-D 248-253-499, Elo -1.74 +/- 10.79 (95%), LOS 37.61%, pentanomial 9, 92, 303, 87, 9. Detail: `forge-combo29/screen_r3fu_03/chunk-06-summary.md`.
+
 Idle bench 13 nps, off then on, five times: 1553745/1534393, 1562190/1579357, 1573593/1556550, 1520862/1489341, 1491918/1442021. Nodes stayed 862329 on every run.
 
 option name LmrSignedCorrection type check default false
