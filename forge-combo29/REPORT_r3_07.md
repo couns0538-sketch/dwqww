@@ -43,3 +43,7 @@ Not verified: playing strength, match score, or whether 929140 is better or wors
 option name NullSeeVeto type check default false
 
 bench 13 with NullSeeVeto on: 929140
+
+## Follow-up screen
+
+Equal-node screen of one owner binary, `NullSeeVeto` on versus off, `go nodes 50000`, Threads 1, Hash 16, OwnBook false. Openings are sequential pairs from UHO_Lichess_4852_v1. This is a screen, not a strength claim. The on side makes a null move and generates captures on every null-move try, so bench 13 nodes per second is reported as well. Chunk PGNs and summaries are under `forge-combo29/tests_r3fu_07/`.
