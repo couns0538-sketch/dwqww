@@ -138,8 +138,8 @@ inline constexpr auto DistanceMasks = [] {
 
 namespace attacks {
 
-// Precomputed attack tables. Initialisation is idempotent and cheap; the Board
-// constructor guarantees it has run before any position is created.
+// Precomputed attack tables. init() fills them once; a concurrent caller waits
+// until that fill has finished. The Board constructor calls it.
 void init();
 
 extern std::array<Bitboard, 64> KnightTable;
