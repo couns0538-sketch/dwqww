@@ -1,0 +1,9 @@
+import fs from 'node:fs';import cp from 'node:child_process';
+const r='/workspace/work/r4-run',cwd='/workspace/work/fable-opus-handoff',branch='handoff/fable-opus-combo29-all-20261114',records=[];
+const stamp=new Date().toISOString().replace(/[^0-9TZ]/g,''),log=r+'/logs/coordination-poll-'+stamp+'.txt';
+function git(args){const x=cp.spawnSync('git',args,{cwd,encoding:'utf8',timeout:60000,maxBuffer:8*1024*1024});records.push({argv:['git',...args],exit:x.status,signal:x.signal,stdout:x.stdout,stderr:x.stderr});fs.writeFileSync(log,JSON.stringify(records,null,2)+'\n');if(x.status!==0)throw Error('git failed');return x.stdout.trim();}
+git(['fetch','--no-tags','origin','refs/heads/'+branch+':refs/remotes/origin/'+branch]);const head=git(['rev-parse','origin/'+branch]);
+const paths=git(['ls-tree','-r','--name-only',head,'--','forge-combo29/soak_all']).split('\n').filter(p=>/\/(FABLE|OPUS)[^/]*\.md$/.test(p));
+const seenFile=r+'/coordination-seen.json',seen=fs.existsSync(seenFile)?JSON.parse(fs.readFileSync(seenFile)):{};const newMessages=[];
+for(const p of paths){const blob=git(['rev-parse',head+':'+p]);if(seen[p]===blob)continue;newMessages.push({path:p,blob,text:git(['show',head+':'+p])});seen[p]=blob;}
+fs.writeFileSync(seenFile,JSON.stringify(seen,null,2)+'\n');console.log(JSON.stringify({utc:new Date().toISOString(),head,newMessages,log}));

@@ -1,0 +1,26 @@
+import fs from 'node:fs';import crypto from 'node:crypto';
+const r='/workspace/work/r4-run',issues=[],pending=[];const check=(x,s)=>{if(!x)issues.push(s);};
+const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+const norm=s=>s.replace(/\btime \d+/g,'time <elapsed>').replace(/\bnps \d+/g,'nps <rate>');
+const release=read(r+'/release-validation/summary.json.txt');
+check(JSON.stringify(release.faults)===JSON.stringify(['true false toggle bench13']),'unexpected original release harness failures');
+check(fs.readFileSync(r+'/release-validation/toggle.stdout.txt','utf8').includes('bench depth 13 nodes 907205 '),'retained NNUEfalse output');
+check(fs.readFileSync(r+'/logs/toggle-pins-default-nnue.txt','utf8').includes('bench depth 13 nodes 862329 '),'corrected explicit NNUEtrue toggle');
+check(read(r+'/logs/toggle-pins-default-nnue.metadata.txt').exit===0,'corrected toggle exit');
+check(release.repeats.length===10&&release.repeats.every(x=>x.mate==='11'&&x.nodes==='36063'),'ten original fixture repeats');
+check(norm(release.toggle[2].output)===norm(read(r+'/release-validation/original-on-01.json.txt').searches[0].output),'true toggle cold output equals fresh true');
+const options=read(r+'/option-counts/summary.json.txt');check(options.rows.length===48&&options.sameBase&&!options.violations.length,'option count acceptance');
+const tests=[];
+for(const label of ['t23-release-mate','t23-release-fifty','t23-asan-mate','t23-asan-fifty','asan-depth10-200','acceptance-tsan-t2','acceptance-tsan-t4']){
+ const p=r+'/logs/'+label+'.metadata.txt';if(!fs.existsSync(p)){pending.push(label);continue;}
+ const metadata=read(p),raw=fs.readFileSync(r+'/logs/'+label+'.txt','utf8'),diagnostics=[...raw.matchAll(/WARNING: ThreadSanitizer|FATAL: ThreadSanitizer|ERROR: (?:AddressSanitizer|LeakSanitizer)|runtime error:/g)].map(m=>m[0]);
+ check(metadata.exit===0&&metadata.signal===null,label+' process');check(!diagnostics.length,label+' sanitizer diagnostics');
+ let counts={};
+ if(label.endsWith('-mate')){const m=raw.match(/SUMMARY: total=(\d+) mate_positions=(\d+) non_mate_positions=(\d+) missed_mates=(\d+) false_mates=(\d+) illegal=(\d+)/);check(!!m&&m[1]==='40'&&m.slice(4).every(x=>x==='0'),label+' counts');counts={cases:m?+m[1]:null};}
+ else if(label.endsWith('-fifty')){const m=raw.match(/SUMMARY: cases=(\d+) failures=(\d+)/);check(!!m&&m[1]==='20'&&m[2]==='0',label+' counts');counts={cases:m?+m[1]:null};}
+ else if(label==='asan-depth10-200'){check(raw.includes('SUMMARY searches=200 exclusions=0 faults=0'),'200 search summary');check((raw.match(/^RESULT .*legal=1 /gm)||[]).length===200,'200 explicit legal results');counts={searches:200};}
+ else {const m=raw.match(/^SUMMARY (\{.*\})$/m);check(!!m,label+' summary');if(m){counts=JSON.parse(m[1]);check(counts.games>0&&counts.searches>0&&counts.faults===0&&counts.illegal===0&&counts.missing===0&&counts.badscore===0,label+' game checks');}}
+ tests.push({label,...counts,diagnostics});
+}
+const summary={utc:new Date().toISOString(),issues,pending,releaseChecksPass:!issues.length,tests,guardAccepted:false,note:'Original-root semantic depth4 versus old depth5 coverage is awaiting Fable review; 2000-game acceptance is separate. Known failed harness assertion retained, corrected precondition checked above.'};
+const stamp=new Date().toISOString().replace(/[^0-9TZ]/g,'');fs.writeFileSync(r+'/logs/acceptance-audit-'+stamp+'.txt',JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary));process.exitCode=issues.length?1:0;

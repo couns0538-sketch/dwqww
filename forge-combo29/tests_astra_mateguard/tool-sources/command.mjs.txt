@@ -1,2 +1,15 @@
 import fs from 'node:fs';import cp from 'node:child_process';import crypto from 'node:crypto';
-const [label,...args0]=process.argv.slice(2),root='/workspace/work/r4-run',cwd='/workspace/work/dwqww-r4-guard';if(!/^[a-z0-9-]+$/.test(label??''))throw Error('label');const args=[...args0];let inputFile=null;if(args[0]==='--stdin'){args.shift();inputFile=args.shift();}if(!args.length)throw Error('command');const log=root+'/logs/'+label+'.txt';if(fs.existsSync(log))throw Error('fresh log required');const argv=['timeout','-k','2','440',...args],started=new Date().toISOString();console.log('START '+JSON.stringify({label,started,cwd,argv,inputFile}));const r=cp.spawnSync(argv[0],argv.slice(1),{cwd,encoding:'utf8',input:inputFile?fs.readFileSync(inputFile):undefined,timeout:450000,maxBuffer:64*1024*1024});const ended=new Date().toISOString(),metadata={label,started,ended,cwd,argv,inputFile,exit:r.status,signal:r.signal,error:r.error?.message};fs.writeFileSync(log,JSON.stringify(metadata,null,2)+'\n\nSTDOUT\n'+(r.stdout??'')+'\nSTDERR\n'+(r.stderr??'')+'\n');fs.writeFileSync(root+'/logs/'+label+'.metadata.txt',JSON.stringify({...metadata,stdoutSha256:crypto.createHash('sha256').update(r.stdout??'').digest('hex'),stderrSha256:crypto.createHash('sha256').update(r.stderr??'').digest('hex')},null,2)+'\n');console.log('RESULT '+JSON.stringify({...metadata,log,stdoutTail:(r.stdout??'').slice(-1800),stderrTail:(r.stderr??'').slice(-1800)}));process.exit(r.status??1);
+const [label,...args0]=process.argv.slice(2),root='/workspace/work/r4-run',cwd='/workspace/work/dwqww-r4-guard';
+if(!/^[a-z0-9-]+$/.test(label??''))throw Error('label');
+const args=[...args0];let inputFile=null;if(args[0]==='--stdin'){args.shift();inputFile=args.shift();}if(!args.length)throw Error('command');
+const log=root+'/logs/'+label+'.txt',stdoutFile=root+'/logs/'+label+'.stdout.txt',stderrFile=root+'/logs/'+label+'.stderr.txt';
+if([log,stdoutFile,stderrFile].some(p=>fs.existsSync(p)))throw Error('fresh log required');
+const argv=['timeout','-k','2','440',...args],started=new Date().toISOString();
+const start={label,started,cwd,argv,inputFile};console.log('START '+JSON.stringify(start));fs.writeFileSync(log,JSON.stringify({...start,status:'running',stdoutFile,stderrFile},null,2)+'\n',{flag:'wx'});
+const out=fs.openSync(stdoutFile,'wx'),err=fs.openSync(stderrFile,'wx');
+const r=cp.spawnSync(argv[0],argv.slice(1),{cwd,input:inputFile?fs.readFileSync(inputFile):undefined,stdio:[inputFile?'pipe':'ignore',out,err],timeout:450000});
+fs.closeSync(out);fs.closeSync(err);
+const stdout=fs.readFileSync(stdoutFile),stderr=fs.readFileSync(stderrFile),ended=new Date().toISOString();
+const metadata={...start,ended,exit:r.status,signal:r.signal,error:r.error?.message,stdoutFile,stderrFile,stdoutSha256:crypto.createHash('sha256').update(stdout).digest('hex'),stderrSha256:crypto.createHash('sha256').update(stderr).digest('hex')};
+fs.writeFileSync(log,JSON.stringify(metadata,null,2)+'\n\nSTDOUT\n'+stdout.toString()+'\nSTDERR\n'+stderr.toString()+'\n');fs.writeFileSync(root+'/logs/'+label+'.metadata.txt',JSON.stringify(metadata,null,2)+'\n');
+console.log('RESULT '+JSON.stringify({...metadata,log,stdoutTail:stdout.toString().slice(-1800),stderrTail:stderr.toString().slice(-1800)}));process.exit(r.status??1);
