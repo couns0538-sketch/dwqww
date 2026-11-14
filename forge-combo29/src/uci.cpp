@@ -2,6 +2,7 @@
 #include "forge/book.hpp"
 #include "forge/nnue.hpp"
 #include "forge/search.hpp"
+#include "forge/uci.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -122,7 +123,9 @@ int game_ply(const forge::Board& board) {
 
 } // namespace
 
-int main() {
+namespace forge {
+
+int uci_loop(std::istream& in) {
     forge::Board board;
     forge::Searcher searcher;
     int move_overhead_ms = 10;
@@ -153,7 +156,7 @@ int main() {
     };
 
     std::string line;
-    while (std::getline(std::cin, line)) {
+    while (std::getline(in, line)) {
         const auto command_start = std::chrono::steady_clock::now();
         std::istringstream input(line);
         std::string command;
@@ -428,3 +431,11 @@ int main() {
     stop_search();
     return 0;
 }
+
+}  // namespace forge
+
+#ifndef FORGE_UCI_NO_MAIN
+int main() {
+    return forge::uci_loop(std::cin);
+}
+#endif
