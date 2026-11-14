@@ -9,6 +9,9 @@
 //   Threads 1, Hash 16, OwnBook false, other options left at defaults.
 //   Each position is ucinewgame, then go depth 8. Best move, score and
 //   nodes are compared.
+//
+// evalcmp <base-engine> <new-engine> [count]:
+//   Same options. `eval` text from both binaries is compared.
 
 #include "forge/board.hpp"
 #include "forge/eval.hpp"
@@ -406,6 +409,45 @@ std::vector<std::string> sample_fens(std::uint64_t count) {
     return fens;
 }
 
+std::string eval_line(Engine& engine, const std::string& fen) {
+    std::fputs("position fen ", engine.to);
+    std::fputs(fen.c_str(), engine.to);
+    std::fputs("\neval\n", engine.to);
+    std::fflush(engine.to);
+    char* line = nullptr;
+    std::size_t cap = 0;
+    std::string found;
+    while (getline(&line, &cap, engine.from) != -1) {
+        const std::string_view text(line);
+        if (text.find("info string eval ") != std::string_view::npos) {
+            found.assign(text);
+            while (!found.empty() && (found.back() == '\n' || found.back() == '\r')) found.pop_back();
+            break;
+        }
+    }
+    std::free(line);
+    return found;
+}
+
+int evalcmp(const char* base_path, const char* new_path, std::uint64_t count) {
+    const std::vector<std::string> fens = sample_fens(count);
+    if (fens.size() != count) return fail("could not build eval sample");
+    Engine base;
+    Engine fresh;
+    if (!start_engine(base, base_path)) return fail(std::string("could not start base ") + base_path);
+    if (!start_engine(fresh, new_path)) return fail(std::string("could not start new ") + new_path);
+    for (std::uint64_t i = 0; i < fens.size(); ++i) {
+        const std::string left = eval_line(base, fens[i]);
+        const std::string right = eval_line(fresh, fens[i]);
+        if (left.empty() || left != right) {
+            std::cerr << "FAIL eval fen " << fens[i] << "\n base " << left << "\n new " << right << "\n";
+            return 1;
+        }
+    }
+    std::cout << "uci_eval positions " << fens.size() << " identical\n";
+    return 0;
+}
+
 int depth8(const char* base_path, const char* new_path, std::uint64_t count) {
     const std::vector<std::string> fens = sample_fens(count);
     Engine base;
@@ -433,6 +475,15 @@ int depth8(const char* base_path, const char* new_path, std::uint64_t count) {
 } // namespace
 
 int main(int argc, char** argv) {
+    if (argc >= 2 && std::string_view(argv[1]) == "evalcmp") {
+        if (argc < 4) {
+            std::cerr << "usage: lazy_eval_identity evalcmp <base> <new> [count]\n";
+            return 2;
+        }
+        std::uint64_t count = 2000;
+        if (argc >= 5) count = std::strtoull(argv[4], nullptr, 10);
+        return evalcmp(argv[2], argv[3], count);
+    }
     if (argc >= 2 && std::string_view(argv[1]) == "depth8") {
         if (argc < 4) {
             std::cerr << "usage: lazy_eval_identity depth8 <base> <new> [count]\n";
