@@ -2,13 +2,77 @@
 
 ## What was wrong
 
-The engine could report only one root move. Self-play had no UCI way to ask for the next-best opening moves.
+The lock reports one principal variation. There is no `MultiPV` option. On the lock binary, `setoption name MultiPV value 2` then `go depth 2` from the start position prints the ordinary lines (`nodes 26`, then `nodes 54`, `bestmove d2d4`) and never prints a `multipv` token. Self-play that wants a second opening move has nothing to read. That is the original gap. The first implementation on this branch closed it, and running that implementation showed four further defects. Each one is below, with the output that exposed it and the change that addresses it.
 
-## Fix
+Engine diff against the lock `16833ecc`: 134 insertions and 12 deletions in `src` and `include` (`git diff --numstat 16833ecc`), under the 300-line cap. `MultiPV` 1 does not enter the extra-line loop, so `bench 11` stays 312866, `bench 13` stays 862329, `go perft 5` stays 4865609, and a depth-8 start-position search matches the lock once `nps` and `time` are stripped.
 
-`MultiPV` is a UCI spin option from 1 to 8, default 1. At 1 the search loop is the same as before and info lines stay in the old form. Above 1, after each finished depth, the main worker searches the remaining root moves with the earlier choices removed and prints `info depth D seldepth S multipv i score ... pv ...`. `bestmove` stays the first line. A value outside 1..8 is clamped. A malformed value is rejected and the previous setting is kept.
+### 1. Lines were printed in search order, so a later line could outscore an earlier one
 
-Engine diff against the lock: 134 insertions and 12 deletions in `src` and `include` (`git diff --numstat 16833ecc`), under the 300-line cap.
+Above 1, the main worker searches the ordinary root first, then searches again with that root move removed, then again with the next one removed. Those later searches are full-window. They read transposition-table entries and history written by the earlier searches. Late-move reduction in the first search can also leave a root move under-valued. The score that comes back for line 2 is therefore not obliged to be lower than the score for line 1.
+
+The first build printed the lines in the order the searches finished. On the start position, `MultiPV 8`, depth 7, that order was wrong: `multipv 1` was `cp 24` and `multipv 2` was `cp 26`. A picker that treats line 1 as the best line of that depth would have played the lower score. That pair is the recorded case; the follow-up section below quotes it.
+
+Finished lines of one depth are now collected and `stable_sort`ed by score, higher first. Ties keep the earlier search first, so the ordinary root move stays ahead of a later line with the same score. `bestmove`, the score, the pv, and the ponder move are taken from the first line of that ranking, and the `multipv` index is the rank, not the search order. After the change, `MultiPV 8` depth 8 had no score inversion. Depth 7 of that run is `cp 21, 20, 18, 17, 15, 11, 6, 5`.
+
+The ranking uses the scores those searches returned. It does not re-search the whole position independently. The next depth's main search still sees every legal root move, because the temporary root restriction is restored before the next iteration. A `MultiPV` greater than 1 can therefore pick a different first move at a later depth than `MultiPV` 1 does. That was measured as a consequence of the extra searches writing child transposition-table entries and history, and it is left as is. Depth 1 still matches the single-PV search (`d2d4`, 26 nodes).
+
+### 2. A stopped depth replaced the answer with one unfinished line
+
+`SearchInfo::lines` was already kept as the last depth that finished every requested line. `bestmove` was not. Two paths published the newer, incomplete depth:
+
+- The primary search of the new depth finished, the node or time limit was already hit, and the extra lines never ran. The code still emitted that primary as `multipv 1` and left `bestmove` on it.
+- The primary search aborted after it had raised alpha. The abort path copied the partial pv into `bestmove` and emitted it. `lines` stayed on the previous complete set.
+
+Both made the played move disagree with line 1 of the stored set. The C++ test at 560 nodes, `MultiPV 3`, depth limit 8, returned `bestmove g1f3` with score 18, while `lines` was still the depth-3 ranking: `e2e4` 18, `d2d4` 18, `g1f3` 17. Over UCI the same limit printed a lone `depth 4 multipv 1 ... pv g1f3` after the complete depth-3 triple, then `bestmove g1f3`. A picker reading the last `multipv 1` line got one move and lost the other two.
+
+An unfinished depth now leaves the previous complete ranking in place, including `bestmove`, score, pv, and ponder move, and it does not print the lone newer line. The reported depth is set back to that finished iteration when the primary itself completed and the siblings did not. If the primary aborts and a complete set already exists, the abort path does not overwrite `bestmove`. If no complete set exists yet (`MultiPV` 1, which never stores `lines`, or a stop during the first depth), the partial root move is still published. `go nodes 1000` with `MultiPV` left at 1 matched the lock after stripping `nps` and `time`.
+
+After the change, `go nodes 560` with `MultiPV 3` ends on the depth-3 triple and `bestmove e2e4`, which is `multipv 1`. The test requires `best_move == lines[0]` and `score == lines[0].score`.
+
+The cost of that rule is that a primary which did finish is discarded when its sibling lines did not. The published answer is one depth's full ranking.
+
+### 3. A drawn root with legal moves printed an empty pv
+
+A root that is a draw by repetition, the 50-move rule, or insufficient material does not search. The lock reports score 0 and an empty pv, and `bestmove` is the first legal move. That empty pv is what `MultiPV` 1 must keep, so the one-line text stays the same.
+
+The first `MultiPV` build used that same empty pv when `MultiPV` was above 1. The position `8/8/8/4k3/8/4K3/8/8 w - - 0 1` is bare kings. White is not in check and has legal king moves, and the position is insufficient material, so the search returns immediately. `MultiPV 3` printed one empty line. Self-play still had no list of choices.
+
+When `MultiPV` is above 1, the main worker, and the root is a draw that still has moves, the engine now prints up to `k` of those moves as one-move pvs at the draw score. `bestmove` is the first of them. Measured: `e3d2`, `e3e2`, `e3f2`, all `cp 0`, `bestmove e3d2`. A root with no legal moves stays one empty line. Checkmate at the root is that case (`legal` is empty, score `-MateValue`, which formats as `mate 0`). Stalemate is the same empty line at score 0.
+
+### 4. Secondary lines trained the correction from a score that is not the position's evaluation
+
+At the end of a search, `update_correction` adjusts the pawn-structure and material correction from the search score minus the static eval. The conditions are: not in check, no excluded move, not a mate score, the best move is not a capture, and the bound is on the side of the static eval that makes the difference meaningful.
+
+A secondary `MultiPV` search meets those conditions at the root. Its score is the best score among the root moves that are still allowed, after the better moves have been removed. Writing that into the correction teaches the position a value from a search that was forbidden from playing the moves already chosen. The next depth then reads that correction.
+
+The update is now skipped only when `root_node && multipv_secondary_`. The flag is set for the extra root search and cleared when that search returns, and it is cleared again at the start of `Worker::search`. Child nodes of a secondary line still update. A `searchmoves` root is also restricted, and it does not set the flag, so a one-line `searchmoves` search still trains the correction.
+
+### 5. A timed game with MultiPV above 1 never searched
+
+`OwnBook` defaults to true when the embedded book is present. The book probe runs for a game search: a clock or a `movetime`, and not infinite, ponder, `searchmoves`, or a mate search. `go depth` does not use the book, which is why the depth pins never showed this.
+
+Before the book condition learned about `MultiPV`, `OwnBook true`, `MultiPV 2`, `go movetime 200` from the start position printed `info string book move e2e4` and `bestmove e2e4`. No `multipv` line was printed. The option that exists so self-play can choose among root moves was skipped on the searches self-play actually uses.
+
+The book condition now also requires `multipv <= 1`. `MultiPV` 1 is unchanged: `go movetime 200` and `go wtime 300 btime 300` both still print `info string book move e2e4` and `bestmove e2e4`. `MultiPV 2` searches. `go movetime 200` finished a depth-15 pair and `bestmove e2e4` was `multipv 1`. `go wtime 80 btime 80` finished a depth-8 pair with the same property. The printed `time` on that clock run was 4 milliseconds; that is the time the search reported, not a measurement of the 80 millisecond budget.
+
+### What else was checked, and was not a defect
+
+`go depth 2 searchmoves e2e4 d2d4` with `MultiPV 4` printed only `d2d4` (`cp 49`) and `e2e4` (`cp 37`), 24 nodes, `bestmove d2d4`. The extra searches stay inside `root_candidates`, which `searchmoves` already filters. The C++ test got the same two moves, the same scores, and the same 24 nodes.
+
+`4k3/8/8/8/8/8/8/4K2r w - - 0 1` is check from the rook on h1. `MultiPV 8` at depth 2 returned the three legal evasions, ranked `e1f2` `-307`, `e1e2` `-322`, `e1d2` `-370`, and `bestmove` was line 1.
+
+`Threads 2`, `MultiPV 2`, `go depth 3` printed two lines per depth, scores nonincreasing, `bestmove e2e4` equal to the depth-3 first line. Helper threads do not run the extra lines (`is_main()` gates them) and they share the transposition table. Node counts on one depth differed (depth 2 was 180 nodes on `multipv 1` and 344 on `multipv 2`) because a helper was still counting while the lines were printed. That run did not crash and did not print a duplicate index. It is one run. It is not a claim that two threads visit the same tree as one thread.
+
+`xyz` is rejected with `info string invalid value for option MultiPV` and the previous value is kept. `0`, `9`, and `100` clamp to 1..8. `MultiPV 100` at depth 1 produced 8 lines.
+
+## What changed
+
+- `include/forge/search.hpp`: `SearchLimits::multipv` (default 1). `SearchInfo::MultiPvLine` and `lines`, empty when `multipv` is 1, otherwise the last depth that finished every requested line. `Worker::multipv_secondary_` marks a secondary root search.
+- `src/uci.cpp`: the `uci` greeting advertises `option name MultiPV type spin default 1 min 1 max 8`. `setoption` parses with `std::from_chars`, rejects a malformed token, and clamps with `std::clamp` to 1..8. `go` copies the value into `limits.multipv`. The book probe requires `multipv <= 1`.
+- `src/search.cpp`: the info line inserts ` multipv i` only when `multipv > 1`, immediately before `score`. Extra root searches run only on the main worker, under a temporary root restriction that is restored afterwards. A restricted root does not store into the transposition table, so those searches do not overwrite the primary root entry. Finished lines are ranked before they are printed. An unfinished depth keeps the previous complete ranking. A drawn root with legal moves prints up to `k` one-move lines when `multipv > 1`. Root correction is skipped while `multipv_secondary_` is set.
+- `tests_t10/multipv_test.cpp`: fails to compile against the lock headers (`SearchLimits::multipv`, `SearchInfo::lines`, and `SearchInfo::MultiPvLine` do not exist there). With this tree it checks the one-line pin, clamp, ranking, the drawn root, the 560-node stop, `searchmoves`, and the in-check evasions. Release and ASan+UBSan both print `failures=0`.
+
+The command transcripts that support each item are in the sections below. `nps` and `time` are wall-clock readings from those runs. No Elo or speed claim is made from them.
 
 ## Files changed
 
