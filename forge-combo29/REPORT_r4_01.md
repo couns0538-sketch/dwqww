@@ -22,7 +22,7 @@ Frozen input commits
 24 eb2dda7a68f6605fa298c3fddec81b099fcd5501 grok47/r3-24-tt-duplicate-shadow
 22 143f3c5c6953ecfb8826553200e90f31dc91baae grok47/r3-22-time-safety
 01 837b0f8d9baea2f51f5346a537f10e0453a8b4ee grok47/r3-01-eval-rule-50-damp
-02 ab21443c460723c618041db2840cd28e3e15cb80 grok47/r3-02-threat-history
+02 afa7ca21ff0a7fc61d0161c8baa8cb0760f94235 grok47/r3-02-threat-history
 03 42ef3a1edbacdc2ce992d66215d3a6b58de62f8c grok47/r3-03-lmr-signed-correction
 04 5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db grok47/r3-04-lmr-late-parent-relief
 05 2b3f4b4f9f2fd020869a976baf4523607e4afbf0 grok47/r3-05-hindsight-depth
@@ -62,7 +62,7 @@ integrated binary with only that option changed.
 
 option                value  commit                                     expected   got
 EvalRule50Damp        true   837b0f8d9baea2f51f5346a537f10e0453a8b4ee    1049205    1049205
-ThreatHistory         true   ab21443c460723c618041db2840cd28e3e15cb80    643389     643389
+ThreatHistory         true   afa7ca21ff0a7fc61d0161c8baa8cb0760f94235    643389     643389
 LmrSignedCorrection   true   42ef3a1edbacdc2ce992d66215d3a6b58de62f8c    862329     862329
 LmrLateParentRelief   true   5e7fb50c17e41baa3acd1cf4ab87303ec9bc74db    818656     818656
 HindsightDepth        true   2b3f4b4f9f2fd020869a976baf4523607e4afbf0    840387     840387
@@ -220,6 +220,7 @@ Tip r3-08 2ee71d705dde420c05e3228e27adbc4785622f37 merged with no engine-source 
 Tip r3-10 59cab756b2f3ed26761000dbdeb85c46d1f20e49 merged with no engine-source change; pins were not re-run.
 Tip r3-13 662caa22fa0752f54d97faac82b3acf3b63d3360 merged with no engine-source change; pins were not re-run.
 Tip r3-15 fa79e52ed15d57a792735c0d5dbbf4d091c432dc merged with no engine-source change; pins were not re-run.
+Tip r3-02 afa7ca21ff0a7fc61d0161c8baa8cb0760f94235 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
