@@ -346,25 +346,26 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
 }
 
-DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side) {
     DirtyPieces dirty;
-    const Color us = board.side_to_move();
-    const Piece moved = board.piece_at(move.from);
-    const Piece captured = board.captured_piece(move);
     dirty.remove(moved, move.from);
     if (captured != Empty) {
-        const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(us) : move.to;
+        const int captured_square = (move.flags & EnPassant) != 0U ? move.to - pawn_push_delta(side) : move.to;
         dirty.remove(captured, captured_square);
     }
-    dirty.add(move.is_promotion() ? make_piece(us, move.promotion) : moved, move.to);
+    dirty.add(move.is_promotion() ? make_piece(side, move.promotion) : moved, move.to);
     if (move.is_castle()) {
         const bool king_side = (move.flags & KingCastle) != 0U;
-        const int rook_from = us == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
-        const int rook_to = us == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
-        dirty.remove(make_piece(us, Rook), rook_from);
-        dirty.add(make_piece(us, Rook), rook_to);
+        const int rook_from = side == White ? (king_side ? 7 : 0) : (king_side ? 63 : 56);
+        const int rook_to = side == White ? (king_side ? 5 : 3) : (king_side ? 61 : 59);
+        dirty.remove(make_piece(side, Rook), rook_from);
+        dirty.add(make_piece(side, Rook), rook_to);
     }
     return dirty;
+}
+
+DirtyPieces dirty_pieces(const Board& board, const Move& move) {
+    return dirty_from_move(move, board.piece_at(move.from), board.captured_piece(move), board.side_to_move());
 }
 
 } // namespace forge::nnue

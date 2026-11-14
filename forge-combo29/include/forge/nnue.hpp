@@ -82,5 +82,10 @@ void update(const Accumulator& parent, Accumulator& child, const DirtyPieces& di
 
 // Piece changes implied by a move about to be played on `board`.
 [[nodiscard]] DirtyPieces dirty_pieces(const Board& board, const Move& move);
+// Same change list without the board: `moved` is the piece on the origin,
+// `captured` is Empty when nothing is taken, and `side` is the mover.
+// Search stores those four facts when the move is made and calls this only
+// if an evaluation actually needs the accumulator.
+[[nodiscard]] DirtyPieces dirty_from_move(Move move, Piece moved, Piece captured, Color side);
 
 } // namespace forge::nnue

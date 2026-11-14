@@ -836,43 +836,83 @@ namespace {
 }
 } // namespace
 
+namespace {
+
+// The change list is stored on the child ply, but the columns are not added
+// until an evaluation reads this frame. A null move has no change list.
+void ensure_piece_diff(SearchStack* frame) {
+    if (frame->diff_known) return;
+    frame->dirty = nnue::dirty_from_move(frame->entered_move, frame->entered_piece, frame->entered_capture,
+                                          static_cast<Color>(frame->entered_side));
+    frame->diff_known = true;
+}
+
+} // namespace
+
 int Worker::static_evaluate(const Board& board, SearchStack* ss) {
     if (!nnue::enabled || !nnue::available()) return evaluator_.evaluate(board);
     const bool residual = nnue::residual();
+    // Features used for this evaluation. A null move keeps the parent's
+    // accumulator: the piece set is unchanged, and a float copy would be the
+    // same bits without being needed.
+    const nnue::Accumulator* features = &ss->accumulator;
+    const Evaluator::RuntimePsqt* psqt = &ss->runtime_psqt;
     if (!ss->accumulator.valid) {
-        // Walk back to the nearest valid accumulator, then replay the moves.
+        // Walk back to the nearest ply whose features were already built.
         int back = 0;
         while (back < ss->ply && !(ss - back - 1)->accumulator.valid) ++back;
         if (back >= ss->ply && !(ss - back - 1)->accumulator.valid) {
             nnue::refresh(board, ss->accumulator);
             if (residual) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
         } else {
+            const nnue::Accumulator* source_features = &(ss - back - 1)->accumulator;
+            const Evaluator::RuntimePsqt* source_psqt = &(ss - back - 1)->runtime_psqt;
             for (int i = back; i >= 0; --i) {
-                nnue::update((ss - i - 1)->accumulator, (ss - i)->accumulator, (ss - i)->dirty);
-                if (residual) Evaluator::update_runtime_psqt((ss - i - 1)->runtime_psqt, (ss - i)->runtime_psqt, (ss - i)->dirty);
+                SearchStack* frame = ss - i;
+                if (frame->entered_null) continue;
+                ensure_piece_diff(frame);
+                nnue::update(*source_features, frame->accumulator, frame->dirty);
+                if (residual) Evaluator::update_runtime_psqt(*source_psqt, frame->runtime_psqt, frame->dirty);
+                source_features = &frame->accumulator;
+                source_psqt = &frame->runtime_psqt;
             }
+            features = source_features;
+            psqt = source_psqt;
         }
     }
-    const int network = nnue::evaluate(board, ss->accumulator);
+    const int network = nnue::evaluate(board, *features);
     if (!residual) return network;
-    if (!ss->runtime_psqt.valid) ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+    if (!psqt->valid) {
+        ss->runtime_psqt = Evaluator::refresh_runtime_psqt(board);
+        psqt = &ss->runtime_psqt;
+    }
     // A residual network is a learned correction on top of the hand-crafted evaluation.
-    return std::clamp(evaluator_.evaluate_runtime(board, ss->runtime_psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
+    return std::clamp(evaluator_.evaluate_runtime(board, *psqt) + network, -MateInMaxPly + 1, MateInMaxPly - 1);
 }
 
 void Worker::record_move(SearchStack* ss, const Board& board, const Move& move) {
-    // Called before make_move: the child's accumulator becomes stale and the
-    // piece changes are remembered for the lazy update.
+    // Called before make_move. Only the pieces are stored. The accumulator
+    // stays stale until static_evaluate builds it.
     if (!nnue::enabled || !nnue::available()) return;
-    (ss + 1)->dirty = nnue::dirty_pieces(board, move);
-    (ss + 1)->accumulator.valid = false;
-    (ss + 1)->runtime_psqt.valid = false;
+    SearchStack* child = ss + 1;
+    child->entered_move = move;
+    child->entered_piece = board.piece_at(move.from);
+    child->entered_capture = board.captured_piece(move);
+    child->entered_side = static_cast<std::uint8_t>(board.side_to_move());
+    child->entered_null = false;
+    child->diff_known = false;
+    child->dirty.count = 0;
+    child->accumulator.valid = false;
+    child->runtime_psqt.valid = false;
 }
 
 void Worker::record_null_move(SearchStack* ss) {
-    (ss + 1)->dirty.count = 0;
-    (ss + 1)->accumulator.valid = false;
-    (ss + 1)->runtime_psqt.valid = false;
+    SearchStack* child = ss + 1;
+    child->entered_null = true;
+    child->diff_known = true;
+    child->dirty.count = 0;
+    child->accumulator.valid = false;
+    child->runtime_psqt.valid = false;
 }
 
 int Worker::corrected_eval(const Board& board, int raw_eval) const {
@@ -1739,6 +1779,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     for (SearchStack& entry : stack_) {
         entry.accumulator.valid = false;
         entry.runtime_psqt.valid = false;
+        entry.diff_known = false;
+        entry.entered_null = false;
+        entry.dirty.count = 0;
     }
     if (nnue::enabled && nnue::available()) {
         nnue::refresh(board, ss->accumulator);

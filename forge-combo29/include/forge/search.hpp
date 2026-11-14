@@ -303,11 +303,19 @@ struct SearchStack {
     bool tt_pv = false;
     bool null_move_allowed = true;
     PieceToHistory* continuation = nullptr;
-    // NNUE state: the accumulator is refreshed lazily from the nearest valid
-    // ancestor using the piece changes recorded for each ply.
+    // Network features are not updated when the move is made. The move's
+    // pieces are remembered here; the change list and the accumulator are
+    // built the first time an evaluation needs this ply (or a descendant).
+    // A null move sets entered_null and does not change the piece set.
     nnue::Accumulator accumulator{};
     Evaluator::RuntimePsqt runtime_psqt{};
     nnue::DirtyPieces dirty{};
+    Move entered_move{};
+    Piece entered_piece = Empty;
+    Piece entered_capture = Empty;
+    std::uint8_t entered_side = 0;
+    bool entered_null = false;
+    bool diff_known = false;
 };
 
 // State shared by every worker of one Searcher.
