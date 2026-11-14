@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T22:04:18.350Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: depth-9 equality against e04556dd.
+Updated 2026-11-14T22:12:01.558Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak: depth-9 equality against e04556dd.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -88,7 +88,7 @@ Self-play games count normal terminal/capped games; fault-aborted games are sepa
 
 [Independent full-stream audit](tests_astra_mateguard/successor-play-independent-audit/README.md): all12 batches,708 completed games/97576searches; ASAN/UBSAN687/95136,TSan21/2440;0faults,0fault-aborted games,0diagnostics. Every search trace, option, seed, exit and retained hash checked.
 
-Equality against e04556dd: 81168/100000 completed positions; 81135 below clock80 with 0 differences; 33 at clock80–99 with 1 differences. Raw operational findings: 1 (0 in committed records, 1 in excluded partial attempts). Exact original corpus selection fully verified: false.
+Equality against e04556dd: 96517/100000 completed positions; 96475 below clock80 with 0 differences; 42 at clock80–99 with 1 differences. Raw operational findings: 1 (0 in committed records, 1 in excluded partial attempts). Exact original corpus selection fully verified: false.
 
 | Differing record | Causal source | Evidence |
 |---|---|---|
@@ -113,6 +113,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T22:04:18.350Z: Successor soak: depth-9 equality against e04556dd. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Batch E-0005 counts {"records_completed":16502,"positions":16387,"positions_low_clock":16378,"positions_high_clock":9,"differences_low_clock":0,"differences_high_clock":0,"fault_positions":0,"excluded":115,"excluded_no_legal":7,"excluded_insufficient":108,"excluded_halfmove100":0,"invalid_fens":0,"engine_runs":32774,"illegal":0,"missing":0,"missing_info":0,"wrong_depth":0,"sanitizer_issues":0,"transport_issues":0,"crashes":0,"nonzero_exits":0,"shutdown_timeouts":0,"reproduction_pairs":0,"reproduction_differences":0,"reproduction_fault_pairs":0}. Cumulative 81168 positions; 1 low/high-clock observations require attribution; operational faults 1 including 1 partial findings. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.
+Checkpoint 2026-11-14T22:12:01.558Z: Successor soak: depth-9 equality against e04556dd. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Batch E-0006 counts {"records_completed":15449,"positions":15349,"positions_low_clock":15340,"positions_high_clock":9,"differences_low_clock":0,"differences_high_clock":0,"fault_positions":0,"excluded":100,"excluded_no_legal":4,"excluded_insufficient":96,"excluded_halfmove100":0,"invalid_fens":0,"engine_runs":30698,"illegal":0,"missing":0,"missing_info":0,"wrong_depth":0,"sanitizer_issues":0,"transport_issues":0,"crashes":0,"nonzero_exits":0,"shutdown_timeouts":0,"reproduction_pairs":0,"reproduction_differences":0,"reproduction_fault_pairs":0}. Cumulative 96517 positions; 1 low/high-clock observations require attribution; operational faults 1 including 1 partial findings. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
