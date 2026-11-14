@@ -1,13 +1,13 @@
 # Six-hour Forge soak
 
 Start: 2026-11-14T05:32:25Z. Scheduled end: 2026-11-14T11:32:25Z.
-Updated: 2026-11-14T05:40:37.363Z. Elapsed minutes: 8.21. Completed checkpoint pushes: 1.
+Updated: 2026-11-14T05:50:47.263Z. Elapsed minutes: 18.37. Completed checkpoint pushes: 2.
 Integration bf5574ee654a773f0ef3d06878707056b90cdad7; reference 16833ecc03b425586f91f4c8834dea8807bf4c22. Cloud-only, one agent.
 
 | Phase | What ran | Counts | Status / faults |
 | --- | --- | --- | --- |
-| A | Not yet run | {} | Pending; faults 0 |
-| B | Not yet run | {} | Pending; faults 0 |
+| A | Both exact commits: Release, ASan/UBSan, TSan builds; both release bench11/13 and perft5; driver preparation | {"builds":6,"pin_checks":6,"batches":1} | Complete; faults 0 |
+| B | timeout 450 /workspace/work/soak-run/play-asan --seed 4753002 --seconds 240 --threads 1 --nodes 2000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":471,"moves":65110,"searches":65110,"opening_moves":3768,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":346,"stalemates":1,"repetitions":67,"fifty":29,"ply_caps":10,"insufficient":18,"sanitizer_reports":0,"batches_threads1":2,"batches":2} | Running; faults 0 |
 | C | Not yet run | {} | Pending; faults 0 |
 | D | Not yet run | {} | Pending; faults 0 |
 | E | Not yet run | {} | Pending; faults 0 |

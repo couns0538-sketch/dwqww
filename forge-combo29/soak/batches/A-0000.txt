@@ -1,0 +1,351 @@
+UTC 2026-11-14T05:41:00.762Z
+Phase A batch 0 seed n/a
+Both exact commits: Release, ASan/UBSan, TSan builds; both release bench11/13 and perft5; driver preparation
+Counts {"builds":6,"pin_checks":6}
+Exit/status Complete
+Raw log /workspace/work/soak-run/logs/A-complete.txt
+SHA256 0f6b0e075f5bd15bc769a103bf235e6e5f500a3530f757263b57f56114d347dc
+
++ export PATH=/workspace/work/tooling/cmake-3.31.6-linux-x86_64/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback
++ PATH=/workspace/work/tooling/cmake-3.31.6-linux-x86_64/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback
++ for variant in int lock
++ '[' int = int ']'
++ source=/workspace/work/dwqww/forge-combo29
++ for kind in rel asan tsan
++ flags=
++ '[' rel = asan ']'
++ '[' rel = tsan ']'
++ cmake -S /workspace/work/dwqww/forge-combo29 -B /workspace/work/soak-run/build-int-rel -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS= -DCMAKE_EXE_LINKER_FLAGS=
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-int-rel
++ cmake --build /workspace/work/soak-run/build-int-rel -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 33%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' int rel
+BUILD_OK int rel
++ for kind in rel asan tsan
++ flags=
++ '[' asan = asan ']'
++ flags='-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all'
++ '[' asan = tsan ']'
++ cmake -S /workspace/work/dwqww/forge-combo29 -B /workspace/work/soak-run/build-int-asan -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all' '-DCMAKE_EXE_LINKER_FLAGS=-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-int-asan
++ cmake --build /workspace/work/soak-run/build-int-asan -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 33%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' int asan
+BUILD_OK int asan
++ for kind in rel asan tsan
++ flags=
++ '[' tsan = asan ']'
++ '[' tsan = tsan ']'
++ flags='-g -fsanitize=thread -fno-omit-frame-pointer'
++ cmake -S /workspace/work/dwqww/forge-combo29 -B /workspace/work/soak-run/build-int-tsan -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-g -fsanitize=thread -fno-omit-frame-pointer' '-DCMAKE_EXE_LINKER_FLAGS=-g -fsanitize=thread -fno-omit-frame-pointer'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-int-tsan
++ cmake --build /workspace/work/soak-run/build-int-tsan -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 33%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' int tsan
+BUILD_OK int tsan
++ for variant in int lock
++ '[' lock = int ']'
++ source=/workspace/work/soak-run/lock-tree/forge-combo29
++ for kind in rel asan tsan
++ flags=
++ '[' rel = asan ']'
++ '[' rel = tsan ']'
++ cmake -S /workspace/work/soak-run/lock-tree/forge-combo29 -B /workspace/work/soak-run/build-lock-rel -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS= -DCMAKE_EXE_LINKER_FLAGS=
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-lock-rel
++ cmake --build /workspace/work/soak-run/build-lock-rel -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' lock rel
+BUILD_OK lock rel
++ for kind in rel asan tsan
++ flags=
++ '[' asan = asan ']'
++ flags='-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all'
++ '[' asan = tsan ']'
++ cmake -S /workspace/work/soak-run/lock-tree/forge-combo29 -B /workspace/work/soak-run/build-lock-asan -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all' '-DCMAKE_EXE_LINKER_FLAGS=-g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-lock-asan
++ cmake --build /workspace/work/soak-run/build-lock-asan -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 33%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' lock asan
+BUILD_OK lock asan
++ for kind in rel asan tsan
++ flags=
++ '[' tsan = asan ']'
++ '[' tsan = tsan ']'
++ flags='-g -fsanitize=thread -fno-omit-frame-pointer'
++ cmake -S /workspace/work/soak-run/lock-tree/forge-combo29 -B /workspace/work/soak-run/build-lock-tsan -DCMAKE_BUILD_TYPE=Release '-DCMAKE_CXX_FLAGS=-g -fsanitize=thread -fno-omit-frame-pointer' '-DCMAKE_EXE_LINKER_FLAGS=-g -fsanitize=thread -fno-omit-frame-pointer'
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/work/soak-run/build-lock-tsan
++ cmake --build /workspace/work/soak-run/build-lock-tsan -j
+[ 11%] Building CXX object CMakeFiles/forge.dir/src/bitboard.cpp.o
+[ 22%] Building CXX object CMakeFiles/forge.dir/src/board.cpp.o
+[ 33%] Building CXX object CMakeFiles/forge.dir/src/book.cpp.o
+[ 44%] Building CXX object CMakeFiles/forge.dir/src/eval.cpp.o
+[ 55%] Building CXX object CMakeFiles/forge.dir/src/eval_params.cpp.o
+[ 66%] Building CXX object CMakeFiles/forge.dir/src/nnue.cpp.o
+[ 77%] Building CXX object CMakeFiles/forge.dir/src/search.cpp.o
+[ 88%] Building CXX object CMakeFiles/forge.dir/src/uci.cpp.o
+[100%] Linking CXX executable forge
+[100%] Built target forge
++ printf 'BUILD_OK %s %s\n' lock tsan
+BUILD_OK lock tsan
++ for variant in int lock
++ timeout 60 /workspace/work/soak-run/build-int-rel/forge
+info string bench depth 11 nodes 312866 time 197 nps 1588152
+info string bench depth 13 nodes 862329 time 533 nps 1617878
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
++ for variant in int lock
++ timeout 60 /workspace/work/soak-run/build-lock-rel/forge
+info string bench depth 11 nodes 312866 time 196 nps 1596255
+info string bench depth 13 nodes 862329 time 605 nps 1425337
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
++ command -v unzip
+/usr/bin/unzip
++ unzip -o /workspace/work/soak-run/books/UHO_Lichess_4852_v1.epd.zip -d /workspace/work/soak-run/openings
+Archive:  /workspace/work/soak-run/books/UHO_Lichess_4852_v1.epd.zip
+  inflating: /workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd  
++ sha256sum /workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd
+7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a  /workspace/work/soak-run/openings/UHO_Lichess_4852_v1.epd
++ for kind in asan tsan rel
++ read -r -a defines
+++ sed -n 's/^CXX_DEFINES = //p' /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/flags.make
++ read -r -a flags
+++ sed -n 's/^CXX_FLAGS = //p' /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/flags.make
++ objects=()
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/bitboard.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/board.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/book.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/eval.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/eval_params.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/nnue.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/search.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/uci.cpp.o != */uci.cpp.o ]]
++ g++ -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -DNDEBUG -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all -O3 -DNDEBUG -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -I forge-combo29/include forge-combo29/soak/play_driver.cpp /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/soak-run/build-int-asan/CMakeFiles/forge.dir/src/search.cpp.o -pthread -o /workspace/work/soak-run/play-asan
++ for kind in asan tsan rel
++ read -r -a defines
+++ sed -n 's/^CXX_DEFINES = //p' /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/flags.make
++ read -r -a flags
+++ sed -n 's/^CXX_FLAGS = //p' /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/flags.make
++ objects=()
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/bitboard.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/board.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/book.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/eval.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/eval_params.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/nnue.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/search.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/uci.cpp.o != */uci.cpp.o ]]
++ g++ -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -DNDEBUG -g -fsanitize=thread -fno-omit-frame-pointer -O3 -DNDEBUG -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -I forge-combo29/include forge-combo29/soak/play_driver.cpp /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/soak-run/build-int-tsan/CMakeFiles/forge.dir/src/search.cpp.o -pthread -o /workspace/work/soak-run/play-tsan
++ for kind in asan tsan rel
++ read -r -a defines
+++ sed -n 's/^CXX_DEFINES = //p' /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/flags.make
++ read -r -a flags
+++ sed -n 's/^CXX_FLAGS = //p' /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/flags.make
++ objects=()
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/bitboard.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/board.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/book.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/eval.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/eval_params.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/nnue.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/search.cpp.o != */uci.cpp.o ]]
++ objects+=("$object")
++ for object in /workspace/work/soak-run/build-int-$kind/CMakeFiles/forge.dir/src/*.cpp.o
++ [[ /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/uci.cpp.o != */uci.cpp.o ]]
++ g++ -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 -DNDEBUG -O3 -DNDEBUG -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -I forge-combo29/include forge-combo29/soak/play_driver.cpp /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/bitboard.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/board.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/book.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/eval.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/eval_params.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/nnue.cpp.o /workspace/work/soak-run/build-int-rel/CMakeFiles/forge.dir/src/search.cpp.o -pthread -o /workspace/work/soak-run/play-rel
++ ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
++ UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
++ timeout 90 /workspace/work/soak-run/play-asan --seed 4753000 --seconds 60 --games 2 --threads 1 --nodes 2000 --trigger /workspace/work/soak-run/smoke-trigger.json
+SUMMARY {"seed":4753000,"threads":1,"nodes":2000,"depth":0,"games":2,"moves":236,"searches":236,"opening_moves":16,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":1,"stalemates":0,"repetitions":0,"fifty":0,"ply_caps":0,"insufficient":1}
