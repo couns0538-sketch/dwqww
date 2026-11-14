@@ -78,7 +78,9 @@ Screening uses that same binary. ThreatHistoryOn is listed first. Each chunk is 
 
 Versions: engine `Chess Engine Forge 6.4.24 candidate` (UCI), Clang 18.1.3, fastchess alpha 1.8.3 compiled for ubuntu-22.04 20261107-d7b47e8. Book sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`. Binary sha256 `9949d8950cea9334e5e325221e2da28e7d7b94a098ebb46a76eb00b18d1bae1f`. Per-chunk W-L-D, Elo 95%, LOS, and pentanomial are in `tests_r3fu_02/`.
 
-Chunk 001 finished at 2026-11-14T16:48:10Z (openings 1-500, 1000 games, fastchess exit 0). ThreatHistory on: 249-279-472, Elo -10.43 +/- 13.68, LOS 6.73%, Ptnml(0-2) [26, 122, 225, 110, 17]. See `tests_r3fu_02/chunk001_summary.md`. Not a strength claim.
+Chunk 001 finished at 2026-11-14T16:48:10Z (openings 1-500, 1000 games, fastchess exit 0). ThreatHistory on: 249-279-472, Elo -10.43 +/- 13.68, LOS 6.73%, Ptnml(0-2) [26, 122, 225, 110, 17]. See `tests_r3fu_02/chunk001_summary.md`.
+
+Chunk 002 finished at 2026-11-14T17:55:34Z (openings 501-1000, 1000 games, fastchess exit 0). ThreatHistory on: 245-268-487, Elo -7.99 +/- 14.07, LOS 13.25%, Ptnml(0-2) [21, 142, 196, 121, 20]. See `tests_r3fu_02/chunk002_summary.md`. Not a strength claim.
 
 option.ThreatHistory=true
 bench 13 nodes 643389
