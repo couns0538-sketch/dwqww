@@ -98,16 +98,9 @@ The match is the same binary twice at 50000 nodes, Threads 1, Hash 16, OwnBook f
 Chunk 001, openings 1–250, 500 games, finished 15:44 UTC, exit 0. W-L-D 123-126-251. Elo -2.08 +/- 18.84 (95%). LOS 41.41%. Ptnml(0-2) 3 77 101 58 11. The interval includes zero. PGN `forge-combo29/tests_r3fu_10/chunk-001.pgn`, sha256 `fe8fa418fe6f812772787c1791166cb55e887cad3ffa375cb1eec92e525e878e`.
 
 <!-- screen-live -->
-aggregate through chunk 013
-screening only, not a strength claim
-W-L-D is EvasionOn first
+Stopped 2026-11-14T18:49:18Z during chunk 014. No further chunk was started. Chunks 001-013 are finished. Chunk 014 has no DONE line.
 
-W-L-D 1644-1713-3143
-games 6500 points 3215.5 score 0.494692
-pentanomial LL LD WL DD WD WW 128 820 637 780 763 122
-Ptnml(0-2) 128 820 1417 763 122
-pairs 3250 unpaired_games 0 skipped 0
-Elo -3.69 +/- 5.32 (95%)
-LOS 8.72 %
-screen_only not_a_strength_claim
+Finished aggregate through chunk 013, 6500 games. W-L-D 1644-1713-3143. Elo -3.69 +/- 5.32 (95%). LOS 8.72%. Ptnml(0-2) 128 820 1417 763 122. The 95% interval includes zero. Text: `forge-combo29/tests_r3fu_10/screen-aggregate.txt`.
+
+Partial chunk 014, openings from 3251, 150 scored games, 74 complete pairs, 2 unpaired. W-L-D 45-35-70. Elo 23.51 +/- 37.31 (95%). LOS 89.32%. PGN `forge-combo29/tests_r3fu_10/chunk-014.pgn`, sha256 `59c094a7c929c90a290f11395dffcc29808a9f9500467b363df97956f9c104c2`. Screening only, not a strength claim.
 <!-- /screen-live -->
