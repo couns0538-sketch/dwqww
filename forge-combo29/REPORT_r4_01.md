@@ -19,7 +19,7 @@ Frozen input commits
 
 17 02674044d770fc756ea2cc1041726d23bad6c659 grok47/r3-17-merge-legal-node-limit
 21 d30c2746d3f1dfd931ff75bde455a060f75cff6a grok47/r3-21-mate-score-tt
-24 d546561dd3c4208d9949bd56a1db2f2b1fadae8e grok47/r3-24-tt-duplicate-shadow
+24 67f96d9b5e477ec212bbe36f5d1994c87cafd590 grok47/r3-24-tt-duplicate-shadow
 22 b8d47952f21fec0185df8509d53a2bafd7373313 grok47/r3-22-time-safety
 01 c0aaf80df40213f867038d2280abbc954d8b9e98 grok47/r3-01-eval-rule-50-damp
 02 f29db79a4e873309bad06bbc2606c7876ca995a8 grok47/r3-02-threat-history
@@ -136,8 +136,10 @@ feccf387e16ac19233f77413a113134467b3f0f3, also with no source change.
 At 16:18 UTC r3-05 moved to f9022e2b0fe573fdf1265b115ff9d48ce895273e,
 again with no source change. At 16:23 UTC r3-21 moved to
 d30c2746d3f1dfd931ff75bde455a060f75cff6a, a match log with no source
-change. Pins and the option table were run again after each of those
-merges and matched the numbers above. Where a newer tip does not change
+change. At 16:24 UTC r3-24 moved to
+67f96d9b5e477ec212bbe36f5d1994c87cafd590, also with no source change.
+Pins and the option table were run again after each of those merges
+and matched the numbers above. Where a newer tip does not change
 src or include, the expected bench is the number already measured
 on that same engine source.
 
