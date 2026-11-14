@@ -53,21 +53,29 @@ def points_for_on(headers: dict[str, str]) -> float:
 
 
 def pentanomial(games: list[dict[str, str]]) -> dict[str, float | int | tuple[int, int, int, int, int]]:
+    # fastchess writes the PGN in completion order. Concurrent games from
+    # different openings are interleaved, so a pair is the two games that
+    # share a Round header (one color each), not two adjacent records.
     if len(games) % 2 != 0:
         raise ValueError(f"odd game count {len(games)}")
+    by_round: dict[str, list[dict[str, str]]] = {}
+    for game in games:
+        by_round.setdefault(game.get("Round", ""), []).append(game)
     wins = losses = draws = 0
     ll = ld = mid = wd = ww = 0
     terminations: dict[str, int] = {}
-    for index in range(0, len(games), 2):
-        first, second = games[index], games[index + 1]
-        if first.get("FEN") != second.get("FEN"):
-            raise ValueError(f"pair {index // 2 + 1} FENs differ")
-        if first.get("White") != ON or second.get("White") != OFF:
-            raise ValueError(
-                f"pair {index // 2 + 1} color order is {first.get('White')} / {second.get('White')}"
-            )
+    for rnd in sorted(by_round, key=lambda value: int(value) if value.isdigit() else value):
+        group = by_round[rnd]
+        if len(group) != 2:
+            raise ValueError(f"round {rnd} has {len(group)} games")
+        on_white = [game for game in group if game.get("White") == ON]
+        off_white = [game for game in group if game.get("White") == OFF]
+        if len(on_white) != 1 or len(off_white) != 1:
+            raise ValueError(f"round {rnd} colors are {[game.get('White') for game in group]}")
+        if on_white[0].get("FEN") != off_white[0].get("FEN"):
+            raise ValueError(f"round {rnd} FENs differ")
         pair_points = 0.0
-        for game in (first, second):
+        for game in (on_white[0], off_white[0]):
             score = points_for_on(game)
             pair_points += score
             if score == 1.0:

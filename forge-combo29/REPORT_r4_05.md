@@ -7,16 +7,16 @@ Prior result on the owner's PC, not measured here: +6.8 ± 7.2 in 4000 games.
 ## Result
 
 - State: running
-- W-L-D (option on first): 0-0-0
-- Games: 0
-- Pairs: 0
-- Elo 95% (pentanomial, logistic): n/a
-- 95% Elo bounds: n/a to n/a
-- LOS: n/a
-- Pentanomial [LL, LD, WL/DD, WD, WW]: [0, 0, 0, 0, 0]
+- W-L-D (option on first): 249-270-481
+- Games: 1000
+- Pairs: 500
+- Elo 95% (pentanomial, logistic): -7.30 +/- 13.46
+- 95% Elo bounds: -20.77 to 6.15
+- LOS: 14.38 %
+- Pentanomial [LL, LD, WL/DD, WD, WW]: [20, 129, 220, 114, 17]
 - Terminations other than normal: none
 - Match start: 2026-11-14T15:43:00Z
-- Stop reason: match started
+- Stop reason: chunk 001 published; match still inside the time box
 
 Positive Elo means the option-on side scored above one half. The interval is the fastchess pentanomial 95% interval: logistic Elo of the pair score, with the half-width equal to half the distance between the Elo values of the score bounds.
 
@@ -26,7 +26,7 @@ Sequential UHO slices of 500 openings, both colors, so 1000 games when a chunk i
 
 | chunk | openings | games | W-L-D (on first) | Elo 95% | LOS | LL | LD | WL/DD | WD | WW |
 | --- | --- | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| — | — | 0 | 0-0-0 | n/a | n/a | 0 | 0 | 0 | 0 | 0 |
+| 001 | 1-500 | 1000 | 249-270-481 | -7.30 +/- 13.46 | 14.38 % | 20 | 129 | 220 | 114 | 17 |
 
 ## Conditions
 
