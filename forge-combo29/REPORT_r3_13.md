@@ -55,5 +55,22 @@ The closing pass at 14:38 UTC did the same. The release UCI loop printed bench 1
 
 No strength claim is made. No games were played.
 
+## Follow-up: quiet checks stay in a closed tail
+
+Closing the quiet tail used to skip every remaining quiet, including moves that give check. A closed tail now still returns quiet checks, discovered checks included. Captures, promotions, killers, and counters are unchanged. The option still defaults off.
+
+Owner build on this machine (AVX-512F and BMI2 are present): default CMake Release, `FORGE_PORTABLE` off, `-march=x86-64-v4`, `FORGE_SPD_SLIDER_PEXT=1`, `FORGE_SPD_NNUE_ZMM=1`. No CMakeLists edit and no extra `FORGE_*` flag. Threads 1, Hash 16, OwnBook false:
+
+- bench 11 = 312866
+- bench 13 = 862329
+- start-position perft 5 = 4865609
+- QuietExtinction on, bench 13 = 632155
+
+Five alternating bench 13 runs of that binary, off/on/off/on/off, nps 864923, 879214, 873686, 874349, 903908. The off runs stayed at 862329 nodes. The on runs stayed at 632155. sha256 of `build/forge` at those runs: `ad0bcb5fbe83f231042a87fcb72c4e8f605cf0b41f3b3e824f6d4d18596a5185`. id name: Chess Engine Forge 6.4.24 candidate.
+
+`tests_r3fu_13/quiet_tail_checks.cpp` exits non-zero unless both directed cases pass with the option on. In `2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1`, depth 10 plays `g3g6` with a mate score and the PV quiet check `g6h7`, which is the only mating move after `c6e5`. After `g3g6` and `a7a6`, the only mate is that same quiet check, and depth 4 plays `g6h7`. A build that drops quiet checks from the closed tail plays `f6h5` instead of the mate line and fails the test.
+
+No strength claim from the search change itself.
+
 setoption name QuietExtinction value true
-bench 13 nodes 602141
+bench 13 nodes 632155

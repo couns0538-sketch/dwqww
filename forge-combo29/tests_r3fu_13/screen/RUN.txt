@@ -1,0 +1,26 @@
+QuietExtinction on versus the same binary with the option off.
+W-L-D is from the option-on side. Pentanomial bins are pair scores 0, 0.5, 1, 1.5, 2.
+
+command:
+/tmp/quiet_screen /agent/repos/dwqww/build/forge /tmp/uho/UHO_Lichess_4852_v1.epd /agent/repos/dwqww/forge-combo29/tests_r3fu_13/screen 6
+
+each engine:
+setoption name Threads value 1
+setoption name Hash value 16
+setoption name OwnBook value false
+setoption name QuietExtinction value true|false
+go nodes 50000
+
+engine id: Chess Engine Forge 6.4.24 candidate
+source: grok47/r3-13-quiet-extinction 20d889a127f61096ebf90c3786a1cd4add078ee6
+implementation: b7dbb6c3e
+compiler: g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+host: Linux 6.12.113+
+build: cmake Release, default FORGE_PORTABLE=OFF, -march=x86-64-v4, PEXT and AVX-512 ZMM on
+sha256 engine: ad0bcb5fbe83f231042a87fcb72c4e8f605cf0b41f3b3e824f6d4d18596a5185
+sha256 UHO_Lichess_4852_v1.epd: 7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a
+sha256 UHO zip: 4e298f11e8acfa106babe02968f2e61582145e7874c59284690b20b9650e0e07
+
+bench 13 nodes off 862329, on 632155
+five alternating bench 13 nps off/on/off/on/off:
+864923 879214 873686 874349 903908

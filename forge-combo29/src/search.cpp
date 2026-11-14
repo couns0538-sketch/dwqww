@@ -613,14 +613,16 @@ public:
                 }
                 [[fallthrough]];
             case GenerateQuiets:
-                if (!skip_quiets && !quiet_tail_closed_) generate_quiets();
+                if (!skip_quiets) generate_quiets();
                 stage_ = QuietMoves;
                 [[fallthrough]];
             case QuietMoves:
-                if (!skip_quiets && !quiet_tail_closed_) {
+                if (!skip_quiets) {
                     while (index_ < count_) {
                         const Move move = pick_best();
                         if (move == tt_move_ || move == killers_[0] || move == killers_[1] || move == counter_) continue;
+                        // A closed tail keeps quiet checks, including discovered checks.
+                        if (quiet_tail_closed_ && !board_.gives_check(move)) continue;
                         return move;
                     }
                 }
@@ -666,7 +668,7 @@ public:
     // Only Main/GoodCaptures returns after a successful SEE >= 0 test.
     [[nodiscard]] bool last_move_see_nonnegative() const { return stage_ == GoodCaptures; }
 
-    // Drop the ordinary quiet tail. Captures, promotions, killers, and counters stay.
+    // Drop non-checking quiets. Checks, captures, promotions, killers, and counters stay.
     void close_quiet_tail() { quiet_tail_closed_ = true; }
 
 private:
@@ -1830,7 +1832,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
                 alpha = score;
             }
         }
-        // A second wide quiet miss ends the ordinary quiet tail. The move just searched stays.
+        // A second wide quiet miss ends non-checking quiets. Quiet checks stay in the tail.
         if (may_extinguish && quiet && best_score > -MateInMaxPly && score <= alpha - QuietWideGap) {
             ++wide_quiet_misses;
             if (wide_quiet_misses == 1) futility_tight = true;
