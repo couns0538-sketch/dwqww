@@ -6,7 +6,7 @@ The change is the requested quiet-move late-move reduction: add a signed fractio
 
 `Worker::update_correction` in `forge-combo29/src/search.cpp` already stores a signed residual of the search score against the static eval. The pawn-structure table is always updated. The material table is updated when `MaterialCorrectionWeight` is non-zero (the default is 100). The two non-pawn tables are updated only when `NonPawnCorrection` is on (default off). `Worker::corrected_eval` adds that same blend to the uncorrected evaluation. The search keeps both numbers on the stack: `raw_eval` is the uncorrected eval, `static_eval` is the eval after the correction. Their difference is the signed correction in centipawns. A negative difference means results have come back worse than the uncorrected evaluation. A positive difference means they have come back better.
 
-The scale is local to this patch. `CorrectionLimit / CorrectionGrain` caps one table at 32 centipawns, so the integer adjustment stays a few plies even if a table saturates. Eight centipawns count as one ply. Anything smaller is a fraction of a ply and C++ integer division drops it. Eight was chosen so the adjustment is on the scale of the correction the eval already applies, and so a depth-13 bench with the option on visits a different node count. It was not tuned for strength, and this report does not claim a strength result.
+The first draft used one ply per 8 centipawns with no cap. The follow-up below replaces that. The current rule is `correction_cp / 64` rounded toward zero, then limited to -1..+1 ply. It was not tuned for strength, and this report does not claim a strength result.
 
 ## Behaviour
 
@@ -15,10 +15,11 @@ One new UCI check option, `LmrSignedCorrection`, default `false`. It is printed 
 With it on, inside the existing late-move reduction of a quiet move (after the history, check, cut-node, and related adjustments already there), the reduction becomes:
 
 ```
-reduction - (static_eval - raw_eval) / 8
+delta = clamp(correction_cp / 64, -1, +1)   # division rounds toward zero
+reduction = max(0, reduction - delta)
 ```
 
-and is then clamped so it is never negative. The node is skipped when either eval is `ValueNone` (in check) or the difference is zero, so a zero correction leaves the reduction value untouched. Noisy late-move reductions are unchanged. `LmrDeeperShallower`, `NonPawnCorrection`, and `ContHist4PlyRead` stay independent and default off.
+`correction_cp` is `static_eval - raw_eval`. The node is skipped when either eval is `ValueNone` (in check) or the difference is zero, so a zero correction leaves the reduction value untouched. Noisy late-move reductions are unchanged. `LmrDeeperShallower`, `NonPawnCorrection`, and `ContHist4PlyRead` stay independent and default off.
 
 `apply_lmr_signed_correction` in `forge-combo29/include/forge/search.hpp` is the clamp and the division. The search call site is the quiet late-move block in `Worker::search`.
 
@@ -73,5 +74,21 @@ The depth-10 sanitizer binary was run twice after that, 200 searches each, optio
 
 No games were played. The node-count change is not a strength result.
 
+## Follow-up: one-ply fraction
+
+The previous adjustment subtracted `correction_cp / 8` with no cap, so a large correction moved the reduction by several plies. The follow-up rule subtracts `correction_cp / 64`, rounded toward zero, then limits that adjustment to -1..+1. The reduction is still never negative. Positive correction (results better than the raw eval) subtracts a ply. Negative correction adds a ply. A correction inside -63..+63 centipawns changes nothing.
+
+Owner build on this machine: AVX-512F and BMI2 are present, and so are the rest of x86-64-v4, so the binary is the default Release build (`FORGE_PORTABLE` off, `-march=x86-64-v4`, g++ 13.3.0). No CMakeLists edit and no extra `FORGE_*` source define. Option off, Threads 1, Hash 16, OwnBook false:
+
+- bench 11: 312866
+- bench 13: 862329
+- go perft 5 from the start position: 4865609
+
+bench 13 with `LmrSignedCorrection` on: **862329**. The same count as option off. A one-ply step needs 64 centipawns, and each correction table caps at 32, so the step happens only when the pawn and material corrections are both saturated on the same side. That did not change the depth-13 bench tree.
+
+Screening, not a strength claim. Same binary, option on as the first engine, `nodes=50000`, Threads 1, Hash 16, OwnBook false. Book `UHO_Lichess_4852_v1.epd` (sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`), sequential chunks of 500 openings, two games each (colors swapped), up to 9 chunks or 6 hours. fastchess alpha 1.8.3. Engine id `Chess Engine Forge 6.4.24 candidate`. Implementation commit `01701ba52bfa8b8d9c42cd76c4d5cf2e5d3b3e94`. Engine sha256 `c91a68b5e05822f312df0547d162e551d30c98250201e77452938ece4e41c31a`.
+
+Chunk results are written under `forge-combo29/screen_r3fu_03/` as each chunk finishes. W-L-D counts the option-on engine first.
+
 option name LmrSignedCorrection type check default false
-bench 13 with LmrSignedCorrection on: 1244366
+bench 13 with LmrSignedCorrection on: 862329
