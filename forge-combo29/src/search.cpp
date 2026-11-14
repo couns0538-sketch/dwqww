@@ -893,7 +893,10 @@ bool Worker::should_stop() {
     nodes_.store(local_nodes_, std::memory_order_relaxed);
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
     if (!is_main()) return false;
-    if (node_limit_specified_ && total_nodes() >= node_limit_) return true;
+    if (node_limit_specified_ && total_nodes() >= node_limit_) {
+        stopped_by_nodes_ = true;
+        return true;
+    }
     if (hard_limit_ms_ > 0) {
         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
@@ -1511,6 +1514,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     all_workers_ = &all;
     seldepth_ = 0;
     aborted_ = false;
+    stopped_by_nodes_ = false;
     pondering_ = limits.ponder;
     null_tries_ = 0;
     null_cutoffs_ = 0;
@@ -1675,9 +1679,12 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
             delta += delta / 2 + 4;
         }
         if (aborted_) {
-            // A partially searched iteration that already raised alpha at the
-            // root has found a move at least as good as the previous best.
-            if (ss->pv_length > 0 && !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
+            // A clock or external stop may keep a root move that already raised
+            // alpha in this unfinished iteration, and the score stays the last
+            // finished one. A node limit must not do that: training labels from
+            // `go nodes` need the move and the score of one finished iteration.
+            if (!stopped_by_nodes_ && ss->pv_length > 0 &&
+                !(result.pv.size() > 0 && result.pv[0] == ss->pv[0])) {
                 result.best_move = ss->pv[0];
                 result.pv.assign(ss->pv.begin(), ss->pv.begin() + ss->pv_length);
                 result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
