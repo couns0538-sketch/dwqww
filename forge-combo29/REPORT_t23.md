@@ -54,8 +54,76 @@ Changed engine files (27 insertions, 14 deletions = 41 changed lines total, well
 
 Added test and report files:
 - `forge-combo29/tests_t23/mate_solver_test.cpp`
+- `forge-combo29/tests_t23/mate_cases.txt`
 - `forge-combo29/tests_t23/fifty_move_tt_test.cpp`
+- `forge-combo29/tests_t23/fifty_move_cases.txt`
+- `forge-combo29/tests_t23/SUMMARY_t23.txt`
 - `forge-combo29/REPORT_t23.md`
+
+---
+
+## 3.1 Detailed Root-Cause Breakdown & Line-by-Line Change Log
+
+### What Was Wrong in Detail — Fault A (`go mate N`)
+
+In `Worker::search(Board, const SearchLimits&, ...)` (`forge-combo29/src/search.cpp:1572–1573` in base `bf5574ee`), `go mate N` caps iterative deepening at `mate_depth = mate_moves * 2 - 1` plies. An exact forced mate in `N` moves requires `2 * N - 1` plies (`N` attacker moves + `N - 1` defender replies), with checkmate scored at `ply == 2 * N - 1` (`move_count == 0 && in_check` at `src/search.cpp:1468` or `1106`). Because `max_depth == 2 * N - 1`, there is **zero ply slack**: losing even 1 ply of depth along the mating line drops the attacker's final mating ply (`ply == 2 * N - 2`, `!in_check`) into `Worker::qsearch`, where `MovePicker::Mode::Quiescence` (`src/search.cpp:431, 514–524`) generates only captures/promotions and stands pat on static evaluation (`src/search.cpp:1049–1057`), completely omitting quiet checkmates.
+
+Seven specific mechanisms in `src/search.cpp` caused `go mate N` to miss 15 of 30 forced mates on the unchanged base:
+
+1. **Late Move Reductions (`src/search.cpp:1412–1428` in base)**:
+   - On `8/8/8/8/2R5/k7/8/1K6 w - - 0 1` (`R2_krk_m2`) with `go mate 2` (`max_depth = 3`), `MovePicker` scores direct checks `+12000` (`Rc4-c3+`, `Rc4-a4+`), searching them first (`move_count` 1 and 2, returning `+483`). The unique mating move `1. Kb1-c2!` (zugzwang) is quiet and non-checking (`move_count >= 3`). At `depth = 3` (`new_depth = 2`), LMR reduces `1. Kc2` to `reduced_depth = 1` with zero window `[-484, -483]`. After `1. Kc2 Ka3-a2` (`ply = 1`, `depth = 1 -> new_depth = 0`), White at `ply = 2` enters `qsearch`, stands pat below `483`, and never generates `2. Rc4-a4#`. Because `score <= alpha`, `full_depth_needed` (`line 1424`) is `false`, `1. Kc2` is never re-searched at `new_depth = 2`, and `go mate 2` terminates at depth 3 returning `c4g4` (`score cp 483`).
+2. **Internal Iterative Reduction (`src/search.cpp:1290` in base)**:
+   - `if (!in_check && depth >= tune::IirDepth && tt_move.is_none() && (pv_node || cut_node)) --depth;` subtracted 1 ply at `depth >= 4` (`go mate 3` has `max_depth = 5`), making 5-ply mates unreachable on uncached PV/cut subtrees.
+3. **Pre-move-loop forward pruning (`src/search.cpp:1201–1286` in base)**:
+   - Razoring (`1203`), Reverse Futility Pruning (`1209`), Null-Move Pruning (`1214`), and ProbCut (`1254`) returned heuristic centipawn bounds on non-PV nodes whenever `!is_mate_score(beta)` (which is true until a mate has already raised `alpha` into mate range). When the attacker was down material in middlegame puzzles (e.g. `MG5_quiet_m2`), defender nodes had high static evals and immediately pruned via RFP/NMP before searching the forced mate.
+4. **In-loop shallow move pruning (`src/search.cpp:1326–1350` in base)**:
+   - Late Move Pruning (`lmp_threshold`, `1327`), quiet Futility Pruning (`1330`), History Pruning (`1335`), quiet SEE pruning (`1336`), and noisy SEE pruning (`1346–1348`, threshold `-150 * depth`) discarded quiet mating setups while down material and queen/rook sacrifices with negative SEE (such as `1. Qg8+! Rxg8 2. Nf7#` in `MG3_smoth_m2`, where `Qg8+` has `SEE = -400 < -300` at depth 2, and `2. Qxh7+! Kxh7 3. Rh3#` in `MG7_anast_m3` / `MG10_blk_m3`).
+5. **Quiescence capture futility & SEE pruning (`src/search.cpp:1062–1070` in base)**:
+   - At `ply == 2 * N - 2`, `depth == 0` enters `qsearch`. If the final checkmating move was a sacrificial capture (`SEE < -40`), `if (!board.see_ge(move, -tune::QsSeeMargin)) continue;` (`line 1069`) pruned the checkmating capture itself.
+6. **Singular negative extensions / multi-cut & check extensions (`src/search.cpp:1353–1380` in base)**:
+   - Singular multi-cut (`1370`) and negative extensions (`-2` / `-1` at `1372–1375`) could reduce depth below `2 * N - 1`.
+7. **Mate-window TT cutoffs, `qsearch` mate-distance pruning, and early-exit sign (`src/search.cpp:1006, 1021, 1170, 1714` in base)**:
+   - `qsearch` lacked mate-distance pruning (`alpha = max(alpha, mated_in(ply)); beta = min(beta, mate_in(ply + 1))`), TT bounds from mate-clamped windows could cut off wider mate windows, and `MateValue - std::abs(score) <= mate_depth` (`line 1714`) used `std::abs(score)`, stopping early even on negative mate scores (`score < 0`, being mated) instead of requiring `score >= mate_in(mate_moves * 2 - 1)`.
+
+---
+
+### What Was Wrong in Detail — Fault B (Stale Hash Scores Near the 50-Move Rule)
+
+In `Board::compute_key` (`forge-combo29/src/board.cpp:1372–1382`), `halfmove_` is **not** hashed into `key_`. Instead, `TTEntry` stores `rule50_clock = min(halfmove_clock, 100)` (`include/forge/search.hpp:82`, `src/search.cpp:331, 400`) and gates `tt_score` via `TTEntry::score_usable(current_clock)` (`(rule50_clock < 90 && capped < 90) || rule50_clock == capped`, `include/forge/search.hpp:91–94`), while `Worker::search` (`src/search.cpp:1171` in base) requires `board.halfmove_clock() < 90` for main-search TT cutoffs.
+
+Despite those two guards, four flaws in `src/search.cpp` caused warm-table searches at clocks 96–99 to return stale winning scores (`+576`, `+567`, `+1002`, etc.) where an empty-table search returned `0`:
+
+1. **Unconditional reuse of low-clock `tte.move` and `tte.pv()` at `halfmove_clock() >= 90` (`src/search.cpp:1015, 1020, 1161, 1167` in base)**:
+   - Both `search` and `qsearch` set `tt_move = tt_hit ? tte.move : Move::none()` and `tt_pv = pv_node || (tt_hit && tte.pv())` even when `board.halfmove_clock() >= 90` and `tte.rule50_clock == 0`.
+2. **Low-clock `tt_move` pawn push or capture at `clock == 96..99` resets `halfmove_clock` to `0` and unlocks low-clock TT cutoffs in the child subtree**:
+   - Step-by-step trace on `8/7p/5k2/4nN2/8/8/1KQ5/8 w - - 98 50` (`C98_KQNvKNp_d4`, depth 4) after warming the table on the same position at `clock = 0`, depth 10 (`score = +1169`):
+     - **Empty table**: White cannot mate or win material within 2 plies; after any White quiet move (`clock = 99`), Black plays a quiet move (`e5g6` or `f6g5`), reaching `clock = 100` -> `Worker::is_draw` (`src/search.cpp:911`) -> **`0`**.
+     - **Warm table**: White plays `1. Qc2-c7` (`clock = 99`, Black to move). Every quiet move by Black (`Ng6`, `Kg6`, etc.) reaches `clock = 100` = **`0`**. However, Black probes the warm TT and hits the `clock = 0` entry, whose `tt_move` is `1... Kf6xf5` (a capture; on `C97_KQvKNp_d3` at `clock = 97`, the low-clock `tt_move` is `1... h7-h5`, a pawn push). Searched first in `MainTT` (`move_count = 1`), `1... Kxf5` (or `1... h7-h5`) **resets `board.halfmove_clock()` to `0`**. Inside that `clock = 0` child subtree, `halfmove_clock() < 90` is true again, so deep low-clock TT entries (`rule50_clock < 90`) satisfy `score_usable(0) == true` and cut off immediately at **`+576`** for White (`-576` for Black), setting `best_score = -576 > -MateInMaxPly`.
+3. **Forward pruning and LMR firing inside the 50-move horizon (`src/search.cpp:1201, 1326, 1412` in base)**:
+   - At Black's `clock = 99` node, once `tt_move` sets `best_score = -576 > -MateInMaxPly`, line 1326 (`if (!root_node && best_score > -MateInMaxPly && has_material)`) executes **even on PV nodes** (`!root_node` is true for all `ply >= 1`). Futility pruning (`static_eval + 100 + 110 * lmr_depth <= alpha`, under the root aspiration window around `+576`) and LMP (`move_count >= lmp_threshold(1, false) == 2`) set `skip_quiets = true` and **skip every quiet drawing move by Black**!
+   - Similarly, at clocks `96..98`, LMR (`line 1412`) reduces quiet moves so they hit `qsearch` at `clock = 98` or `99` (standing pat on `+576` / `+1002` instead of reaching `clock = 100`), and pre-loop Razoring / RFP / Null-Move (`line 1201`) return static centipawn estimates at non-PV nodes within `depth` plies of `clock = 100`.
+   - Consequently, at clock 98 (`8/7p/5k2/4nN2/8/8/1KQ5/8 w - - 98 50`, depth 4), empty TT gives **`0`**, warm TT gives **`+576`**, and TT-only (worker histories cleared) gives **`+590`**.
+4. **Missing `halfmove_clock() < 90` cutoff guard in `Worker::qsearch` (`src/search.cpp:1021–1025` in base)**:
+   - Unlike `Worker::search` (`line 1171`), `Worker::qsearch` allowed direct TT cutoffs at `halfmove_clock() >= 90` whenever `tte.rule50_clock == capped`. When a search from root `clock = 95` stood pat in `qsearch` at ply 2 (`clock = 97`, storing `+521` with `rule50_clock = 97`), a subsequent search from root `clock = 97` hit `rule50_clock == 97` in `qsearch` and returned `+521` instead of `0` (`C97_KQvKNp_95`).
+
+---
+
+### Exact Line-by-Line Changes (`bf5574ee` -> `carbon/t23-mate-and-fifty`)
+
+| File & Lines (`bf5574ee` -> new) | Change | Purpose |
+|---|---|---|
+| `include/forge/search.hpp:374` -> `375` | Add `int mate_moves_ = 0;` to `Worker` | Tracks active `go mate N` mode per worker (`0` for all normal searches). |
+| `src/search.cpp:1008` -> `1009–1013` | Add mate-distance pruning in `Worker::qsearch` when `mate_moves_ > 0` | Keeps `qsearch` bounds consistent with `Worker::search` during `go mate N`. |
+| `src/search.cpp:1015–1025` -> `1022–1033` | In `Worker::qsearch`: `near50 = board.halfmove_clock() >= 90`; guard `tt_move` with `!near50 \|\| tte.rule50_clock == board.halfmove_clock()`, `tt_pv` and TT cutoff with `!near50`, and mate-bound TT cutoff with `mate_moves_ == 0 \|\| (!is_mate_score(alpha) && !is_mate_score(beta))` | Fixes Fault B (`qsearch` TT cutoffs and cross-clock `tt_move`/`tt_pv` near 50-move rule) and Fault A (`qsearch` mate-window TT cutoffs). |
+| `src/search.cpp:1062` -> `1070` | Guard `qsearch` capture futility & SEE pruning with `mate_moves_ == 0` | Prevents `qsearch` from pruning negative-SEE checkmating captures at `ply == 2*N - 2`. |
+| `src/search.cpp:1161–1175` -> `1170–1182` | In `Worker::search`: `near50 = board.halfmove_clock() >= 90`; guard `tt_move` with `!near50 \|\| tte.rule50_clock == board.halfmove_clock()`, `ss->tt_pv` with `!near50`, and TT cutoff with `mate_moves_ == 0 \|\| (!is_mate_score(alpha) && !is_mate_score(beta))` | Prevents low-clock `tt_move`/`tt_pv` from steering high-clock nodes into clock-resetting moves and prevents stale mate-window TT cutoffs. |
+| `src/search.cpp:1201` -> `1211–1212` | Guard Razoring / RFP / NMP / ProbCut block with `mate_moves_ == 0 && board.halfmove_clock() + depth < 100` | Prevents non-exact forward pruning in `go mate N` and when the 50-move draw is within `depth` plies. |
+| `src/search.cpp:1290` -> `1301` | Guard IIR (`--depth`) with `mate_moves_ == 0` | Preserves exact `2*N - 1` ply horizon in `go mate N`. |
+| `src/search.cpp:1326` -> `1337` | Guard LMP / futility / history / SEE move-loop pruning with `mate_moves_ == 0 && board.halfmove_clock() + depth < 100` | Prevents skipping quiet drawing moves near clock 100 and quiet/sacrificial mating moves in `go mate N`. |
+| `src/search.cpp:1354, 1377` -> `1365, 1388` | Guard singular and check extensions with `mate_moves_ == 0` | Prevents singular multi-cut / negative extensions from truncating `go mate N` depth. |
+| `src/search.cpp:1412` -> `1423` | Guard LMR with `mate_moves_ == 0 && board.halfmove_clock() + new_depth < 100` | Prevents reducing quiet mating moves in `go mate N` or quiet 50-move drawing moves short of clock 100. |
+| `src/search.cpp:1571` -> `1583` | Set `mate_moves_ = mate_moves;` in `Worker::search` driver | Initializes worker mate mode for the search. |
+| `src/search.cpp:1714` -> `1726` | Replace `is_mate_score(score) && MateValue - std::abs(score) <= mate_depth` with `score >= mate_in(mate_moves * 2 - 1)` | Stops early only when the side to move has found a forced mate in `<= N` moves (not when being mated). |
 
 ---
 
