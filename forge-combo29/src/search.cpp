@@ -1880,9 +1880,21 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     // should_stop return before the count was consulted. An alternate MultiPV
     // worker copies the parent's flag: its own limits clear the node budget,
     // and should_stop asks the parent, passing this worker's unpublished nodes.
+    // Helpers observe a normal node budget. A softnodes search keeps the original
+    // rule that only the main worker carries the budget: its hard cap is four
+    // times the finished-iteration target, and helpers follow the main stop.
     node_limit_specified_ = parent_worker_ != nullptr
         ? parent_worker_->node_limit_specified_
-        : (limits.nodes_specified || limits.nodes != 0);
+        : ((!limits.soft_nodes || is_main()) && (limits.nodes_specified || limits.nodes != 0));
+    soft_node_limit_ = 0;
+    // Soft budget is the finished-iteration target. The hard budget stays on the
+    // existing node stop, so a runaway iteration still discards its partial move.
+    if (limits.soft_nodes && parent_worker_ == nullptr && is_main() && limits.nodes > 0) {
+        constexpr std::uint64_t kMaxNodes = std::numeric_limits<std::uint64_t>::max();
+        node_limit_ = limits.nodes > kMaxNodes / 4 ? kMaxNodes : limits.nodes * 4;
+        node_limit_specified_ = true;
+        soft_node_limit_ = limits.nodes;
+    }
 
     // Time allocation. Movetime keeps its own limit. Clock play goes through
     // plan_clock_budget so the plan stays inside the time left after overhead.
@@ -2205,6 +2217,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         previous_score = score;
 
         if (mate_moves > 0 && score >= mate_in(mate_moves * 2 - 1)) break;
+        // The iteration above is finished. Passing the soft budget stops here,
+        // keeping this move and score. The hard cap is enforced inside search.
+        if (soft_node_limit_ != 0 && total_nodes() + extra_nodes_ >= soft_node_limit_) break;
         if (should_stop()) break;
         // Outside the window the iteration is unfinished and cannot soft-stop.
         const bool soft_finished = !tune::AspArmLate || inside_window;
@@ -2241,6 +2256,10 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_).count());
     if (result.best_move.is_none()) result.best_move = root_candidates.front();
+    if (emit_info && soft_node_limit_ != 0) {
+        const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+        std::cout << "info string softnodes nodes " << result.nodes << std::endl;
+    }
     return result;
 }
 

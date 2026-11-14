@@ -26,6 +26,9 @@ struct SearchLimits {
     int depth = 64;
     std::uint64_t nodes = 0;
     bool nodes_specified = false;
+    // `go softnodes`: finish the iteration that passes `nodes`, hard-stop at 4x.
+    // Left false for bench, `go depth`, and `go nodes`.
+    bool soft_nodes = false;
     // Milliseconds. -1 means that limit was not given. parse_clock_ms stores
     // only non-negative values, including clocks that do not fit in 32 bits.
     std::int64_t movetime_ms = -1;
@@ -421,6 +424,8 @@ private:
     const std::vector<Worker*>* all_workers_ = nullptr;
     std::uint64_t node_limit_ = 0;
     bool node_limit_specified_ = false;
+    // Nonzero only for a main-thread `go softnodes` search. 0 leaves the loop alone.
+    std::uint64_t soft_node_limit_ = 0;
     std::int64_t soft_limit_ms_ = 0;
     std::int64_t hard_limit_ms_ = 0;
     bool time_managed_ = false;

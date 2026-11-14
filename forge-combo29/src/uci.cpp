@@ -68,9 +68,10 @@ void apply_position(forge::Board& board, std::istringstream& input) {
 }
 
 bool is_go_keyword(const std::string& token) {
-    return token == "depth" || token == "nodes" || token == "movetime" || token == "movestogo" ||
-           token == "infinite" || token == "wtime" || token == "btime" || token == "winc" ||
-           token == "binc" || token == "mate" || token == "searchmoves" || token == "ponder";
+    return token == "depth" || token == "nodes" || token == "softnodes" || token == "movetime" ||
+           token == "movestogo" || token == "infinite" || token == "wtime" || token == "btime" ||
+           token == "winc" || token == "binc" || token == "mate" || token == "searchmoves" ||
+           token == "ponder";
 }
 
 forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board) {
@@ -97,7 +98,7 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
             return forge::parse_clock_ms(tokens[i++]);
         };
         if (token == "depth") limits.depth = std::clamp(read_int(), 1, 64);
-        else if (token == "nodes") {
+        else if (token == "nodes" || token == "softnodes") {
             if (i < tokens.size()) {
                 const std::string& text = tokens[i++];
                 std::uint64_t value = 0;
@@ -105,6 +106,7 @@ forge::SearchLimits parse_limits(std::istringstream& input, forge::Board& board)
                 if (result.ec == std::errc{} && result.ptr == text.data() + text.size()) {
                     limits.nodes = value;
                     limits.nodes_specified = true;
+                    if (token == "softnodes") limits.soft_nodes = true;
                 }
             }
         }
