@@ -19,6 +19,7 @@ Self-check at e04556dd, portable x86-64-v3, 20000 nodes, one opening, two games,
 ## Results
 
 grok47/r3-07-null-see-veto f3bcd9a052c0 0 clock configuration missing, replay not run
+grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 
 ## Commands and hashes
 
@@ -26,6 +27,12 @@ grok47/r3-07-null-see-veto f3bcd9a052c0 kind unknown pgn forge-combo29/tests_r3f
 build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=clang++
 engine source sha256: 7e30808db1ea89edfff758daffecc1486d4610cefb59847a1e299e86386da4f5
 engine binary sha256: 
+
+grok47/r3-08-asp-capped-reopen dc2e25b54d7c kind nodes pgn forge-combo29/tests_r3fu_08/chunk-001.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=clang++
+engine source sha256: dc2e25b54d7c:e3397b5a3b2a673ce6b30163d531bd851813a43279027ea30f502e376f455327 dc2e25b54d7c:e3397b5a3b2a673ce6b30163d531bd851813a43279027ea30f502e376f455327
+engine binary sha256: dc2e25b54d7c:1e647eead4e6ee779673c3463d897c06d9727ea66cc918a7a1f9762641abd480 dc2e25b54d7c:1e647eead4e6ee779673c3463d897c06d9727ea66cc918a7a1f9762641abd480
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/dc2e25b54d7ce176090fd439d1b4df2d5fbcefc4-7e389295b5ee/forge name=on restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.AspCappedReopen=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/dc2e25b54d7ce176090fd439d1b4df2d5fbcefc4-7e389295b5ee/forge name=off restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.AspCappedReopen=false nodes=50000 -rounds 10 -games 2 -concurrency 2 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-08-asp-capped-reopen/d4da1cf2a088/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-08-asp-capped-reopen/d4da1cf2a088/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
 ## Still open
 
@@ -35,7 +42,6 @@ grok47/r3-03-lmr-signed-correction 4c1dd7ac5 2026-11-14 15:30:56 +0000 Record th
 grok47/r3-04-lmr-late-parent-relief 83b258f22 2026-11-14 15:29:12 +0000 Start the LmrLateParentRelief screening follow-up.
 grok47/r3-05-hindsight-depth cacb3ed98 2026-11-14 15:27:45 +0000 Reuse the hindsight static eval instead of evaluating twice.
 grok47/r3-06-null-threat-verify 5afe0de5d 2026-11-14 15:36:37 +0000 Record the owner-build bench sample and screen setup.
-grok47/r3-08-asp-capped-reopen dc2e25b54 2026-11-14 15:35:53 +0000 Record the first AspCappedReopen UHO screen chunk
 grok47/r3-09-asp-arm-late a6cb38eff 2026-11-14 15:28:46 +0000 Reopen a full window after a failed root iteration.
 grok47/r3-10-evasion-ordering 692004da0 2026-11-14 15:45:07 +0000 Add EvasionOrdering screen chunk 001.
 grok47/r3-11-dead-material 83f38f489 2026-11-14 15:41:37 +0000 Add KBNK mate tests for both sides at 200000 nodes.
@@ -56,5 +62,5 @@ grok47/r4-03-screen-lds 626479273 2026-11-14 15:45:37 +0000 r4-03: drop generate
 grok47/r4-04-screen-ch4 67c2a7ea6 2026-11-14 15:41:10 +0000 r4-04: record ContHist4PlyRead screen setup
 grok47/r4-05-screen-npc b68b815c1 2026-11-14 15:43:00 +0000 r4-05: start NonPawnCorrection screen
 
-Last check: 2026-11-14T15:47:28Z
+Last check: 2026-11-14T15:48:34Z
 Deadline: 2026-11-15T01:47:25Z
