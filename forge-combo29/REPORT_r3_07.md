@@ -43,3 +43,25 @@ Not verified: playing strength, match score, or whether 929140 is better or wors
 option name NullSeeVeto type check default false
 
 bench 13 with NullSeeVeto on: 929140
+
+## Follow-up screen
+
+Equal-node screen of one owner binary. The CPU has AVX-512F and BMI2, so the build is plain Release with no `FORGE_*` override (`-march=x86-64-v4`, the CMake default). Default pins on that binary: bench 11 = 312866, bench 13 = 862329, start-position perft 5 = 4865609. `NullSeeVeto` on still changes bench 13 to 929140 nodes.
+
+Both sides are that same binary. Threads 1, Hash 16, OwnBook false, `go nodes 50000`. Openings are sequential color-reversed pairs from UHO_Lichess_4852_v1.epd (sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`). Engine sha256 `58d52fb7ff960bf14d3191a5a90b064eda0347948fb306fb996617ffdd97593d`. Compiler: Ubuntu clang version 18.1.3. Id: Chess Engine Forge 6.4.24 candidate. This is a screen, not a strength claim. Equal nodes are not equal time: the on side makes a null move and generates captures on every null-move try.
+
+bench 13 nodes per second, five alternating runs, off then on:
+
+| run | off nps | on nps |
+| --- | --- | --- |
+| 1 | 1251566 | 1540862 |
+| 2 | 1275634 | 1493794 |
+| 3 | 1614848 | 1376503 |
+| 4 | 1620919 | 990554 |
+| 5 | 1409034 | 1378545 |
+
+Mean off 1434400 nps, mean on 1356052 nps. Each bench is under a second, so the rate moves around. Node counts did not: every off run was 862329 and every on run was 929140. Raw lines are in `forge-combo29/tests_r3fu_07/bench13_nps.txt`.
+
+Chunk 1, openings 0 through 199, 400 games. Command: `/tmp/screen_match /tmp/build-owner/forge /tmp/uho/UHO_Lichess_4852_v1.epd 0 200 4 forge-combo29/tests_r3fu_07/chunk_0001.pgn forge-combo29/tests_r3fu_07/chunk_0001_summary.txt`
+
+W-L-D option on first: 87-99-214. Elo 95%: -10.43 [-30.73, 9.88]. LOS: 0.1570. Pentanomial pair points 0, 0.5, 1, 1.5, 2: 6, 53, 94, 41, 6. The interval includes zero. PGN and the summary text are `forge-combo29/tests_r3fu_07/chunk_0001.pgn` and `forge-combo29/tests_r3fu_07/chunk_0001_summary.txt`.
