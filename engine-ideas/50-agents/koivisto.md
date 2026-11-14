@@ -1,6 +1,26 @@
 # Koivisto
 
-Ideas only. In so far: the training pipeline and the leftover classical score. Still waiting: null-move and verification, endgame eval, threading, history heuristics, singular extensions.
+Ideas only. All seven departments are in.
+
+## History heuristics
+
+Importance: breakthrough. See B8. Quiet memory is three equally weighted scores: the previous move, this side’s move from two plies ago, and a from-to score chosen by one threatened square. Stockfish remembers more contexts and is not weaker overall. The learned threat conditioning is the one place Koivisto is ahead, and the square table is the weak form. Threat-role memory is B8. Depth-confirmed continuations are S26. A veto when contexts disagree is S27.
+
+## Singular extensions
+
+Importance: breakthrough. See B10. At deeper nodes a shallow excluded search proves the hash move is alone and refunds a withheld ply. Below that gate, a cut node gains a ply when the static eval sits below alpha. A fail-low dominated by one move is stored and extended later. Stockfish’s singular search is the richer one and is not weaker overall. It does not store effort dominance, and it shortens the hash move in the ambiguous band. Depth-normalized repayment is B10. Starving near-misses while leaving the best move whole, and a shallow extension only on eval-bound disagreement, stay inside that family and are not separate catalog entries beyond the falsifiers on B10. The near-miss experiment is still worth a match: if shortening the hash move beats starving the near-misses at the same node budget, do not keep the starve rule.
+
+## Null-move and verification
+
+Importance: routine. Koivisto never runs a second search to check a null cutoff. A pass is refused below depth 5 when a narrow tactical threat exists, and is allowed deeper regardless. A hash fail-high after a pass is treated as if it were 100 plies deeper, then returned as a cutoff. Stockfish re-searches deep cutoffs and does not grant that extra hash depth. Verify only threatened cutoffs is S31. Grading shallow hash proofs is S32. Scaling the passer’s reduction by the margin is S33.
+
+## Endgame eval
+
+Importance: breakthrough. See B14. The searched score is one network times a piece-weighted multiplier from 1.5 to 1.15. There is no second endgame head. The wiki’s tapered tables are not what master evaluates. Stockfish is ahead on features that know the endgame before the scale. It is thinner where the outcome-fitted curve never enters search and is clamped before the endings where conversion fails. Calibration below material 17 is B14. Queenless ownership is E4. Untied phase coefficients stay inside E3.
+
+## Threading
+
+Importance: routine. Lazy SMP, one shared hash, and only the main worker’s move. A fail-low that spent half its nodes is the crude form of B10, not a new idea. A wider draw leaf, −7 through 8, is S42. Stockfish is ahead on the vote and on persistent workers. Koivisto is ahead only on the width of that draw jitter.
 
 ## Net training pipeline
 

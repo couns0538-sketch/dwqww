@@ -134,3 +134,170 @@ Sources:
 - https://github.com/Luecx/Koivisto/releases/tag/v5.0
 - https://github.com/official-stockfish/Stockfish/pull/4324
 - https://github.com/official-stockfish/Stockfish/pull/5090
+
+## B7. Bullet completed-iteration stop
+
+- Importance: breakthrough
+- Engine / department: Berserk / short-time-control strength
+- Also considered: B3 changes reductions with the node budget. This one refuses to start an iteration the clock cannot finish. Test them separately. The bullet reserve in T10 is a cap on one move’s share, not this stop.
+- Where it would live: time (`src/search/timeman.hpp` on the later tree).
+
+What to add. Use this only when the starting clock is bullet-scale, about 8 seconds with an increment under a tenth. Do not start another iteration unless the time already used says that iteration can finish. Hold back at least one increment. Play the last finished iteration.
+
+Why it might help. On the Computer Chess Index sheets dated 14 November 2026, Stockfish’s lead over Berserk 14 widens at 8.0+0.08 seconds (about 188 Elo on one sheet, 128 and 125 on the others) and is much smaller at 60 seconds and at 2m24s. An unfinished last iteration is a larger share of an 8-second game than of a two-minute game. The author’s 2022 point was that time which the strength does not earn back is a loss. Stockfish is still ahead at every short control opened. The candidate is the widening of that lead as the clock gets short, on the order of 100 Elo, not a claim that Berserk beats Stockfish at bullet.
+
+Risks. Most of the gap may be strength per node. Pruning, the net, and move ordering are other departments. Stopping early misses a late change of move. A reserve that is too large makes every move too shallow.
+
+What would falsify it. A paired 8.0+0.08s match does not gain, or the same policy gains a similar amount at 60+0.6 and at 2m24+1.12. Also falsify if forfeits are already near zero and completed depth does not rise.
+
+Sources:
+
+- https://raw.githubusercontent.com/computer-chess-index/cci/main/engines/Berserk.md
+- https://raw.githubusercontent.com/computer-chess-index/cci/main/engines/Stockfish.md
+- https://www.chessengeria.eu/post/interview-with-jay-honnold
+
+## B8. Threat-role memory
+
+- Importance: breakthrough
+- Engine / department: Koivisto / history heuristics
+- Also considered: Berserk’s four from-to buckets remember “any attack” versus none, then add a flat bonus. That cheaper-attacker class table is the routine companion S28, not this idea. Do not add a from-to table per threatened square.
+- Where it would live: search (`include/forge/history.hpp`).
+
+What to add. A small statistic indexed by threat kind (attacked piece type and attacker piece type) and by the quiet’s role: the attacked piece steps away, another piece blocks, the quiet attacks the attacker, the quiet creates a greater threat, or none of these. Update it when that quiet is the best move or fails high, and when the eval swing shows the threat was answered. In positions with this threat, add the statistic to ordering, pruning, and reductions, and remove the piece-value-sized bonus for merely stepping off the attacked square. When no such threat exists, ordinary continuation history stays in charge.
+
+Why it might help. The published Koivisto advantage is remembering which quiet worked against the current threat, including a quiet by a piece that is not the one in danger. Its table splits that evidence across squares and learns only from cutoffs. Stockfish’s threat prior can outvote from-to history, pawn history, and one continuation entry for running with the attacked piece, and it never learns that a block or a counter was the defense that worked. A role index is small, fills early, and can correct that prior.
+
+Risks. Running away is often right, so deleting the static bonus can lose more than the memory gains. Role labels will be wrong for discoveries and pins. If one role dominates, the statistic becomes a new constant bias.
+
+What would falsify it. In positions with a lesser-piece attack on a greater piece, the first quiet searched is not a cutoff more often than with the static step-off bonus left in place. Also falsify if adding the role term on top of that bonus matches replacing the bonus.
+
+Sources:
+
+- https://raw.githubusercontent.com/Luecx/Koivisto/master/src_files/history.h
+- https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/movepick.cpp
+- https://chessprogramming.org/History_Heuristic
+
+## B9. Surplus-thread root auditors
+
+- Importance: breakthrough
+- Engine / department: RubiChess / thread scaling
+- Also considered: a high bar that lets one deeper helper override the main move is the weaker form of the same selection rule. It is not a second idea. Koivisto’s wider draw jitter and private correction tables stay routine.
+- Where it would live: search (`src/search/searcher.inc`).
+
+What to add. Keep ordinary lazy SMP for the first 16 threads, one per distinct depth schedule. Every thread beyond that is an auditor. Assign each auditor a root move that currently has a low share of nodes, and search that move with a wide window. An auditor may change the played move only when its result is as deep as the leader and several auditors agree. Widen the clock when auditors disagree with the leader, and shorten it when they agree. Leave the first 16 threads on the full root list.
+
+Why it might help. Depth diversity aliases early: RubiChess repeats schedules from thread 17, and Stockfish’s aspiration offset repeats from thread 9. Extra threads then rewrite the same lines. Published Stockfish figures still show about half the nodes wasted at 64 threads on a long budget, and about 18 percent of the Elo of eightfold time missing at 8 threads. Spending the duplicate threads on neglected root moves attacks that waste. RubiChess times the move from the main thread alone, so a helper can become the played move after the time was already spent.
+
+Risks. Auditors can pollute the shared table with shallow bounds. Below 16 threads the rule should stay off. A wide-window side move costs as much as a main-line search and can lose Elo at short controls.
+
+What would falsify it. On 32-thread and 64-thread self-play, nodes on the eventual best root move are already spread across threads, or the auditor version does not beat plain lazy SMP by more than the error bar. Also falsify if an 8-thread run, with auditors disabled, changes strength at all.
+
+Sources:
+
+- https://raw.githubusercontent.com/Matthies/RubiChess/master/src/search.cpp
+- https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+- https://official-stockfish.github.io/docs/stockfish-wiki/Useful-data.html
+- https://anemato.de/blog/nuca
+
+## B10. Depth-normalized effort repayment
+
+- Importance: breakthrough
+- Engine / department: Koivisto / singular-extension style
+- Also considered: Koivisto’s “half the nodes, one extra ply” fail-low mark is the crude version of this signal. Do not ship that flag and this repayment together. Singular verification that returns a verdict without touching the parent generator stays S18.
+- Where it would live: search (`alphabeta.inc`). Singular extensions are already there.
+
+What to add. When a node finishes, score each move by nodes spent divided by the depth that move was actually given. If one move’s rate clearly beats the next, remember it as critical even when the node failed low. On the next visit, give that move back depth that reductions had withheld, in proportion to how dominant the rate was, with a hard cap on repaid depth from the root. Do not treat raw node share as the signal. The first move is searched deeper than the rest, so it will look dominant even when it is ordinary.
+
+Why it might help. Both engines mostly detect an only-move from a score gap. The moves that still get missed are the ones reduced before anyone notices they are the only try, including defenses that fail low but are expensive to refute. Koivisto stores a half-the-nodes flag and adds one ply off the PV. Stockfish never stores effort dominance. Paying back withheld depth, normalized so the first move does not win by default, is the hole neither closes.
+
+Risks. The flag can still collapse to “extend the first move.” Repaid depth can chain. Fail-lows in lost positions will attract the same extra depth as real hidden defenses.
+
+What would falsify it. After dividing by depth searched, the flag almost never fires, or it fires on the same moves as raw node share. Or, at a fixed node budget, tactical suites and match score do not improve while average path depth grows.
+
+Sources:
+
+- https://github.com/Luecx/Koivisto/blob/master/src_files/search.cpp
+- https://github.com/official-stockfish/Stockfish/blob/master/src/search.cpp
+- https://www.chessprogramming.org/Singular_Extensions
+
+## B11. Surplus-scaled verification depth
+
+- Importance: breakthrough
+- Engine / department: Berserk / search reductions
+- Also considered: RubiChess restores the entire omitted depth whenever a shallow score beats alpha. That full restore is one arm of this test, not a separate idea. The one-ply hindsight shave stays routine.
+- Where it would live: search (`alphabeta.inc`).
+
+What to add. When a reduced zero-window search beats alpha and its depth is below full depth, always verify that same move. Start the verification one ply above the reduced depth. Give back more of the withheld plies as the reduced score rises further above the current best score, and give all of them back once the surplus is large. Cap the verification at ordinary full depth, plus at most the single extra ply both engines already allow for a clearly high reduced score. Leave the PV’s first move on a full-window search.
+
+Why it might help. Both engines pay for a near-full second search and only nudge it by one ply, so the size of the surprise is discarded. A barely-high reduced score is the expensive, low-confidence case. A clearly-high score is the case that deserved the depth the reduction withheld. The second search is a large enough part of late-move reduction that a better split could matter more than another one-ply constant.
+
+Risks. A tactic whose reduced score only just clears alpha stays shallow for that iteration. Stacking this with a one-ply shave can leave a recovering quiet without enough depth. Neighboring verification depths will alias into the same transposition entry.
+
+What would falsify it. A fixed one-ply step matches the scaled rule on a long time control, or the scaled rule loses the winning move in quiet tactical positions where that move’s reduced score only barely beats alpha.
+
+Sources:
+
+- https://raw.githubusercontent.com/jhonnold/berserk/main/src/search.c
+- https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+
+## B12. Miss-weighted on-policy refresh
+
+- Importance: breakthrough
+- Engine / department: Berserk / data generation for nets
+- Also considered: B6 freezes one pool and compares filters. B2 trains a residual where a frozen eval and the result disagree. D9 changes the mix weight where two labels disagree. This idea regenerates the games from the current engine and spends the deep label on disagreements. Do not run it as a second copy of B6.
+- Where it would live: data (`src/datagen.cpp`, `tools/nnue/train_resid_v3b.py`).
+
+What to add. Play the training games with the current Forge engine. Build each opening with a short random legal preamble of both parities, and reject it only when one finished search already shows a decisive score, several pawns rather than one. Choose the move with a modest search that is allowed to finish its iteration. Store a deeper finished search as the target, but keep a thin sample where the two scores agree and a much larger share where they disagree. On the next net, retire positions the new engine no longer reaches. Leave captures, checks, and the early middlegame in the set. Thin early plies only enough that one game cannot fill the batch.
+
+Why it might help. A net inside search is asked to score the leaves that search reaches. The published Berserk habit is to train on its own just-played games and later drop another engine’s games. A 2026 Stockfish recipe refreshes labels on a large, largely foreign set, then drops captures, checks, and almost all of the early game. Those deleted positions are where a shallow look and a deep look disagree. For an engine that does not already own tens of billions of historical positions, matching the live search should matter more than inheriting old games. This is a large gain only if that match beats both a relabeled foreign pack and a uniform skip of the same games.
+
+Risks. Published notes say Leela-derived sets beat Stockfish self-play, and that a cleaner label can be harder to learn. A small on-policy set with a shallow teacher can lose to a large off-policy set. Disagreement weighting can flood the batch with tactics quiescence should resolve. One Berserk release credited the trainer, not the data.
+
+What would falsify it. At equal position count, with the same trainer and the same net shape, this set fails to beat both a relabeled off-policy pack and the same on-policy games kept uniformly under a late-ply skip schedule.
+
+Sources:
+
+- https://wiki.chessdom.org/Berserk_questionnaire_20251013
+- https://github.com/jhonnold/berserk/releases/tag/8
+- https://github.com/official-stockfish/nnue-pytorch/wiki/Training-datasets
+
+## B13. Sibling-backed quiet extinction
+
+- Importance: breakthrough
+- Engine / department: Berserk / aggressive pruning
+- Also considered: a fixed tight futility cushion is the version this idea refuses. History drops that remove one move stay a different experiment.
+- Where it would live: search (`alphabeta.inc`).
+
+What to add. After a quiet has actually been searched and missed alpha by a wide margin, drop every remaining quiet in that node, including on non-root PV nodes. Until a searched quiet has missed widely, keep a wide cushion and judge each quiet on its own. Once one or two quiets have missed widely, switch to a cushion on the order of one pawn at one ply and under three pawns at five, and end the quiet list. Keep captures and queen promotions. Keep the tail while the best score is still a mate-scale loss, and keep it in pure king-and-pawn positions. Leave killers and the countermove exempt.
+
+Why it might help. Quiet moves are most of the tree. A published engine already lives with a tight cushion and a list that dies early, including on PV nodes, while Stockfish uses a much wider per-move cushion and refuses that drop while following the PV. A fixed tight cushion will cut a late quiet that is the only good one. Switching on the misses already seen uses search evidence, so the tight rule fires when the node is behaving like an all-node.
+
+Risks. A good quiet ordered late is never searched. PV lines move around more. Stacking this with history drops and exchange drops can over-prune. The pawn-ending exemption gives nodes back where the net is already reliable.
+
+What would falsify it. At the same node count the new search loses on quiet tactical positions, or losses cluster where the only holding quiet was later than the second quiet tried. Also falsify if the node count barely changes, which means the wide-miss switch almost never fires.
+
+Sources:
+
+- https://github.com/jhonnold/berserk/blob/main/src/search.c
+- https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+
+## B14. Searched endgame calibration
+
+- Importance: breakthrough
+- Engine / department: Koivisto / endgame eval
+- Also considered: E3 is a phase multiplier on the whole game. V6 judges a trade by which side of the edge the resulting ending is on. This idea only rescales positions whose material count is already below the display curve’s floor. Do not stack it on E3.
+- Where it would live: eval (`src/eval.cpp` and the scale in `src/search/evaluation.inc`).
+
+What to add. When a 1/3/3/5/9 material count is below 17, drop the agreement boost. Rescale the value search compares so its magnitude matches tablebase win rate for that remaining material. The scale’s inputs are the five piece counts, which side holds the last rook, which side holds the last bishop, and one bit for whether a lone bishop shares the pawn’s color. Fit those on 5-man to 7-man win, draw, and loss. Leave the network alone.
+
+Why it might help. A piece-typed scale that stays inside the searched score keeps moving after the heavy pieces are gone. The outcome-fitted curve used for display stops at material 17 and does not enter search. The scale that does enter search grows a score that already agrees with material. On a drawn bishop-and-pawn ending that is the wrong direction. A December 2025 dev note showed depth-1 scores near −550 centipawns on tablebase draws of that family, and said the class of mistake should generally be fixed by a better network, and also that a map of which static scores are wrong would be useful. Those nets are not the current master. If the current scale still does this, search will trade material and refuse draws for a result that is drawn.
+
+Risks. Pruning margins and the fifty-move fade assume today’s magnitude. A change that only fixes the printed centipawn will not change games. A material class that is usually drawn still contains wins. This becomes a fortress search if it starts scoring piece placement beyond material and the bishop-color bit.
+
+What would falsify it. On current master, a sample of 5-man to 7-man tablebase draws below material 17 is already near zero after the existing scale, or a match of the new scale against the unchanged scale stays inside noise. Also drop it if the gain vanishes while the fifty-move fade is left untouched.
+
+Sources:
+
+- https://raw.githubusercontent.com/Luecx/Koivisto/master/src_files/board.cpp
+- https://github.com/official-stockfish/Stockfish/blob/master/src/evaluate.cpp
+- https://github.com/official-stockfish/Stockfish/issues/6481

@@ -30,6 +30,38 @@ Breakthrough. Ethereal mobility. Net. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
 
 Breakthrough. Koivisto training pipeline. Data. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
 
+### B7. Bullet completed-iteration stop
+
+Breakthrough. Berserk short time controls. Time. Not B3. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B8. Threat-role memory
+
+Breakthrough. Koivisto history. Search. The cheaper-attacker class table is S28. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B9. Surplus-thread root auditors
+
+Breakthrough. RubiChess thread scaling. Search. A single deeper helper override is the weaker form, not a second idea. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B10. Depth-normalized effort repayment
+
+Breakthrough. Koivisto singular extensions. Search. The half-the-nodes fail-low mark is the crude form. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B11. Surplus-scaled verification depth
+
+Breakthrough. Berserk search reductions. Search. RubiChess’s full depth restore is one arm. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B12. Miss-weighted on-policy refresh
+
+Breakthrough. Berserk data generation. Data. Not B6 and not B2. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B13. Sibling-backed quiet extinction
+
+Breakthrough. Berserk aggressive pruning. Search. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### B14. Searched endgame calibration
+
+Breakthrough. Koivisto endgame eval. Eval. Do not stack on E3. See [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
 ## Search allocation
 
 ### S1. Long-clock live set
@@ -806,10 +838,297 @@ Merged into E3. Not counted separately.
 - Risks: A result label repeats one outcome across a game. A search-score label copies present mistakes.
 - Falsify if: The two fits agree within a small tolerance, or neither beats the current weights.
 
+## Additions at 11:53 UTC
+
+Routine only. Breakthroughs B7–B14 are in [BREAKTHROUGHS.md](BREAKTHROUGHS.md).
+
+### T11. Bank the increment when the bullet root is stable
+
+- Sources: Berserk short-time strength. Related to T10, which caps one move’s share. https://raw.githubusercontent.com/computer-chess-index/cci/main/engines/Berserk.md
+- Where: time
+- What to add: If the best root move and its score are unchanged for two finished iterations and the time left is below a bullet threshold, play at once and keep the increment. Do not apply this at 60 seconds or at 2m24s.
+- Why: Moves that will not change can be played early so later tactical moves still have a clock.
+- Risks: A stable score can still flip. Banking time and never spending it is the same as playing shallow.
+- Falsify if: The 8.0+0.08s match does not gain, or the identical stop changes the 60+0.6 and 2m24 results by as much as the bullet result.
+
+Bullet overhead subtracted from a 0.08s increment is the same measurement as T7. It is not a new idea. Cite https://computerchess.org.uk/404/about.html on T7.
+
+### T12. Two-way node clock
+
+- Sources: Ethereal time controls. One idea, three switches, tested apart. https://github.com/AndyGrant/Ethereal/commit/60f4d5c https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/timeman.c https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+- Where: time
+- What to add: Lengthen the soft target when the best move holds a minority of root nodes, summed across threads, and cap that extension at the hard reserve. Apply a stable-name discount only when that same move also holds most of the nodes. When the node share is low, do not also apply the calm-score discount. Keep the existing shorten-when-nodes-agree behavior.
+- Why: Agreement is a reason to move. Disagreement is a reason to stay. Stockfish’s node term only shortens. A 2022 package that did both gained about ten Elo on increment controls and about twenty on a short no-increment session, against a baseline that had neither. The gain is real and not a new strength class.
+- Risks: A 2.4 times ceiling is too wide if the engine already shortens on agreement. Main-thread-only counts get noisy as threads increase. The calm-score path and the node path can double-count.
+- Falsify if: A lengthen capped at the hard reserve fails to beat the shorten-only side at both an increment control and a moves-to-go control. The stable-name gate fails if it matches the plain product of a stability factor and a node factor. The calm-score freeze fails if multiplying the calm factor during a split matches freezing it at neutral.
+
+### S23. Capped decisive reopen
+
+- Sources: RubiChess aspiration windows. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/search.cpp https://github.com/official-stockfish/Stockfish/issues/6296
+- Where: search
+- What to add: On a root fail, place the failing side a margin past the true returned score, and cap that margin. When the score is already in the mate band or past a decisive threshold, open the failing side to the win or loss bound in one step and do not raise the opposite bound on that re-search.
+- Why: Uncapped growth on top of a large mean-square term is the failure that made an otherwise passing window change get reverted. A cap and a one-step open avoid a long climb.
+- Risks: A full-width re-search spends the clock. A ceiling that is too low gives away the cutoffs that make a narrow window worth using.
+- Falsify if: At a fixed node budget the capped open does not reduce re-searches per depth against uncapped growth, and match play shows no fewer oscillating root bounds.
+
+### S24. Variance-sized safe overlap
+
+- Sources: RubiChess aspiration windows. https://chessprogramming.org/Aspiration_Windows https://github.com/official-stockfish/Stockfish/commit/57b32f3e60e596fe1d2452a9548baa5b292fc724
+- Where: search
+- What to add: After the failing side is placed on the true score, keep an overlap back into the previous window. Use none when the root score has been steady, and up to half the old width when recent root scores have been swinging. Same rule on fail-high and fail-low.
+- Why: A narrow re-search that drops the old interval often fails the other way. One side always keeps half the window. The other keeps none on a fail-low. Scale the overlap with the bounce.
+- Risks: A noisy variance estimate taxes stable positions.
+- Falsify if: The scaled overlap loses to both a fixed half-window and a fixed zero overlap, or it does not cut the rate of a second fail in the opposite direction.
+
+### S25. Arm the window only after one resolved score
+
+- Sources: RubiChess aspiration windows. https://github.com/Matthies/RubiChess/commit/15c6b6ea7d016cf36dd1b1fda7602749f82382dd
+- Where: search
+- What to add: Search the first root iterations full-width. Arm a narrow window only after one score has landed inside the bounds. While a re-search is still outside the bounds, do not treat the iteration as complete for the soft time stop.
+- Why: The first depths are where a guess is worst. A tiny window there is mostly a guaranteed re-search. A failed window should not trip the soft stop.
+- Risks: Full-width early iterations cost nodes. Refusing to move during a long fail-low can lose on time.
+- Falsify if: At short time controls, nodes to the first in-window score are higher than with an immediate narrow window, and results are no better, including time losses.
+
+### S26. Depth-confirmed continuations
+
+- Sources: Koivisto history. https://raw.githubusercontent.com/Luecx/Koivisto/master/src_files/newmovegen.cpp https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/history.h
+- Where: search
+- What to add: Split each continuation into a shallow memory and a confirmed memory. The confirmed memory moves only when the same quiet fails high on a reduced search and again on the re-search, or the cutoff depth is past a floor. High remaining depth orders from the confirmed memory.
+- Why: Frequent shallow cutoffs write the same cells that order the middle of the tree.
+- Risks: Confirmed samples are rare, so the deep memory stays cold.
+- Falsify if: At nodes with several plies left, the all-depth continuation already selects the cutoff quiet as often as the confirmed memory.
+
+### S27. Context-disagreement veto
+
+- Sources: Koivisto history. Depends on B8 for the threat-role side. https://raw.githubusercontent.com/Luecx/Koivisto/master/src_files/history.cpp
+- Where: search
+- What to add: When the previous-move continuation and the threat-role statistic disagree in sign, ignore both and use only the general from-to history. When they agree, add them as usual. Use a dead zone around zero.
+- Why: A veto treats conflict as “this context is not about the current problem” instead of letting a large positive and a large negative cancel.
+- Risks: A good reply to the last move that is a bad answer to the threat gets flattened.
+- Falsify if: A fixed weighted sum produces an earlier cutoff than the veto on the same nodes.
+
+### S28. Cheaper-attacker quiet history
+
+- Sources: Berserk move ordering. Companion to B8, not a duplicate. https://raw.githubusercontent.com/jhonnold/berserk/main/src/history.h https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/movepick.cpp
+- Where: search
+- What to add: For each quiet from-to, keep a history for the cheaper attacker on the origin: none, pawn, minor, or rook. Read only the class of the current position. Remove the constant threat bonus so the table is the whole change.
+- Why: A flight is a different move when a pawn attacks the piece than when only a queen does. A single from-to history plus one constant misses that interaction. B8 remembers the defense’s role. This remembers the attacker class.
+- Risks: Entries stay sparse. Sixteen classes multiply the table if both origin and destination are kept. Start with origin only.
+- Falsify if: After long games the classes stay near zero, or a match shows no node drop and no strength gain once the constant bonus is out.
+
+### S29. Capture safety inside a fixed exchange gate
+
+- Sources: Berserk move ordering. https://raw.githubusercontent.com/jhonnold/berserk/main/src/movepick.c
+- Where: search
+- What to add: Add a capture-history axis for the cheaper piece attacking the landing square. Use it only to order captures that already pass a fixed exchange threshold. Keep that threshold independent of the history score.
+- Why: Letting the score move the exchange margin turns the bit into a second exchange test. Freezing the gate asks whether safety changes the order of two captures that are both tactically acceptable.
+- Risks: Among captures that already pass exchange, the class may rarely change.
+- Falsify if: The cutoff capture’s rank among exchange-passing captures does not improve. If strength appears only after the score is allowed to move the gate, the ordering claim is false.
+
+### S30. Full scores on moves that answer check
+
+- Sources: Berserk move ordering. https://raw.githubusercontent.com/jhonnold/berserk/main/src/movepick.c https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/movepick.cpp
+- Where: search
+- What to add: When the side to move is in check, in the main search and in quiescence, score quiet evasions with the ordinary quiet mix and capture evasions with capture history plus victim value. Keep captures ahead of quiets.
+- Why: An interposition is where the previous move and the threat on the origin matter most. The in-check path often drops those terms.
+- Risks: Evasion lists are short. Capture history can delay the only legal save. Quiescence is hot.
+- Falsify if: On a tactical suite the first quiet tried in check is unchanged, or a match loses strength.
+
+### S31. Verify only threatened null cutoffs
+
+- Sources: Koivisto null-move. Distinct from S45, which vetoes the drop when the capture wins on exchange. This one re-searches instead of banning. https://github.com/Luecx/Koivisto/blob/master/src_files/search.cpp https://www.chessprogramming.org/Null_Move_Pruning
+- Where: search. Null-move verification at depth 14 or more is already present.
+- What to add: Accept a null cutoff immediately when the opponent has no attack on a more valuable piece and the static margin over beta is comfortable. When such an attack exists, accept the cutoff only after a reduced re-search with null moves disabled also reaches beta. Do this at every depth. Do not re-search the quiet, high-margin cutoffs.
+- Why: One engine uses the attack count only as a ban below depth 5. The other re-searches every deep cutoff and no shallow one, and never asks whether a piece is hanging.
+- Risks: The attack mask misses queen attacks and attacks on equal material. If it fires on most nodes, the second search becomes the common path.
+- Falsify if: Always-verify-above-a-high-depth and never-verify both beat the threat gate, or a hanging-piece set shows the immediate-accept branch missing the same tactics as an unverified cutoff.
+
+### S32. Grade hash proofs inside the null tree
+
+- Sources: Koivisto null-move. https://github.com/Luecx/Koivisto/blob/master/src_files/search.cpp
+- Where: search
+- What to add: Do not give a fail-high hash entry extra depth because the previous move was a pass. If the probe’s fail-high depends on a hash bound shallower than the depth the probe still owed, the parent may use it only after the reduced re-search also reaches beta.
+- Why: Adding a hundred plies to a stored fail-high after a pass, then returning it as a real cutoff, is a cutoff that was never searched to the owed depth.
+- Risks: Null probes become more expensive exactly where a rich hash makes them cheap.
+- Falsify if: A short-time paired match loses to immediate cutoffs, and a tactical set shows no change in the chosen move.
+
+### S33. Scale the passer’s reduction by the margin
+
+- Sources: Koivisto null-move. https://github.com/Luecx/Koivisto/blob/master/src_files/search.cpp
+- Where: search
+- What to add: Inside the null tree, reduce the side that passed by more when the static margin over beta was thin, and by nothing when the margin was large. If that biased probe still reaches beta, accept it with no second search. If it misses beta by a small amount, give the real-move search one extra ply instead of a separate verification tree.
+- Why: A near-miss can buy one ply on the real node instead of repeating the reduced tree. A high-depth verification of every cutoff is the expensive alternative.
+- Risks: Extra reductions can drop the probe below beta by missing the passer’s own tactics. This is not a zugzwang test.
+- Falsify if: A match against a high-depth verification baseline loses, and a quiet zugzwang set shows no fewer missed wins than an immediate cutoff.
+
+### S34. Front-loaded cutoff steps
+
+- Sources: RubiChess late-move reductions. https://raw.githubusercontent.com/Matthies/RubiChess/263f15d7960eb32b45ce1a06fbe64d750729803f/src/search.cpp
+- Where: search
+- What to add: Ease a gentle base reduction by two plies while this ply has seen no beta cutoff, by one ply after a couple of cutoffs, and remove the ease after four. Count a cutoff with no transposition move as two. On any shallow score above alpha, restore the full omitted depth. Test this schedule alone.
+- Why: The first tries are searched before the node has evidence that it cuts. Whole-ply steps change the tree more than a small fraction added late.
+- Risks: Two plies is a large share of the reduction at ordinary depths.
+- Falsify if: At a fixed node budget the stepped version does not beat a smooth logarithmic reduction, or the only gain is a higher depth that disappears in a time match.
+
+### S35. Fuller replies to a late parent
+
+- Sources: RubiChess late-move reductions. https://raw.githubusercontent.com/Matthies/RubiChess/263f15d7960eb32b45ce1a06fbe64d750729803f/src/search.cpp
+- Where: search
+- What to add: When the parent move was a late legal try, take one ply of reduction off the first few replies only. Try a second ply only for the first reply if the parent try was far past that. Keep the normal reduction for replies that are themselves late.
+- Why: A parent still being examined after two dozen tries is suspicious. Its refutation is often among the first replies. Easing every reply spends depth on speculative replies too.
+- Risks: The parent try index is a property of the search, not of the position.
+- Falsify if: The best reply to a late parent is no earlier in the move list than the best reply to an early parent, or a fixed-node match shows no gain.
+
+### S36. Root quiet shift on a window re-search
+
+- Sources: RubiChess late-move reductions. Related to S23 but only changes later quiet depths, not the window. https://raw.githubusercontent.com/Matthies/RubiChess/263f15d7960eb32b45ce1a06fbe64d750729803f/src/search.cpp
+- Where: search
+- What to add: On the root re-search after the score leaves the window, reduce later quiet moves one ply less after a fail-low and one ply more after a fail-high. Leave captures and the first root move alone. Clamp so the shift cannot extend. Clear it for the next iteration.
+- Why: A fail-low means the root ordering was too optimistic. A fail-high means the remaining quiet tries can be shallower while the window opens.
+- Risks: Window failures can be uncommon. Reducing more after a fail-high can lock onto the first move that crossed beta.
+- Falsify if: The shifted root moves do not change the chosen move often enough to move the result.
+
+### S37. Off-PV worsening shave
+
+- Sources: Berserk search reductions. https://raw.githubusercontent.com/jhonnold/berserk/main/src/search.c
+- Where: search
+- What to add: Off the PV, and not in check, if the parent searched this move at least one ply reduced and the two corrected static evals show a worsening past a modest margin, search this node one ply shallower. Skip it when the transposition entry is already at least as deep as the current depth. Keep the paired “no worsening, three withheld plies, search one deeper” rule off the PV.
+- Why: A deep table entry is a reason to stop trusting a static dip. Applying the shave on the PV, or when the entry is already deep, is the part to leave out.
+- Risks: A one-ply shave also makes later drops easier. A stale deep entry can block a shave that would have been right.
+- Falsify if: The node saving is from moves disappearing, or the ungated thresholds beat the gated rule, or allowing the shave on the PV beats keeping it off.
+
+### S38. Signed correction on quiet reductions
+
+- Sources: Berserk search reductions. https://raw.githubusercontent.com/jhonnold/berserk/main/src/search.c https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/search.cpp
+- Where: search
+- What to add: For quiet moves only, add a signed fraction of a ply from correction history. When results have come back worse than the uncorrected eval, reduce more. When they have come back better, reduce less. Keep the reduction at least zero.
+- Why: Using the absolute value searches more for either sign. The sign says whether to trust a late quiet less or to give it more depth.
+- Risks: Noisy in the first iterations. The corrected eval may already sit inside a hindsight rule, so the term double-counts.
+- Falsify if: The signed term loses to an absolute-value term of the same scale, or to leaving correction out of the formula.
+
+### S39. Unaliased depth cohorts
+
+- Sources: RubiChess thread scaling. The small version of B9’s diagnosis. Does not change move selection. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/search.cpp https://www.chessprogramming.org/Lazy_SMP
+- Where: search
+- What to add: Replace a fixed 16-pattern depth jump with a schedule whose number of distinct phases grows with the thread count, so thread 17 does not repeat thread 1. Keep the main thread on the plain depth sequence.
+- Why: The only deliberate depth diversity saturates at 16 threads.
+- Risks: Wilder depth gaps make a depth-gated move pick ignore helpers that finish behind the leader.
+- Falsify if: A 32-thread match of unique phases against the 16-pattern table is inside the error bar, or the unique-phase version loses at 8 threads where the old table was already unique.
+
+### S40. Quiet correction merge
+
+- Sources: RubiChess thread scaling. https://anemato.de/blog/nuca https://raw.githubusercontent.com/Matthies/RubiChess/master/src/engine.cpp
+- Where: search
+- What to add: Keep correction histories private during the node loop. Between iterations, average them across threads that already share a NUMA node, then decay the result. Do not average across nodes. With no NUMA information, merge only within a small group, on the order of an L3, not across the machine.
+- Why: A live shared table gained strength and cost a large fraction of speed until it was partitioned. A merge between iterations moves the learning without touching the hot path.
+- Risks: Averaging can wash out a real signal. A whole-machine merge on a machine booted as one NUMA node repeats the chiplet problem.
+- Falsify if: Self-play at 8 and at 64 threads both fail to gain, or nodes per second fall by more than a small amount while Elo does not rise. A 1-thread run must be unchanged.
+
+### S42. Wider draw leaves per worker
+
+- Sources: Koivisto threading. https://github.com/Luecx/Koivisto/blob/master/src_files/search.cpp
+- Where: search
+- What to add: On a draw or a fifty-move leaf, return one of sixteen scores from −7 through 8, taken from the low bits of that worker’s node count. Leave mate scores unchanged. Match at 1 thread and at 8 threads.
+- Why: A wider band keeps drawing lines from collapsing onto one stored score. Different worker counters write different draw scores into the shared hash. The two-point toggle is the smaller version.
+- Risks: The same comment says other engines have not shown the wider band to be better. A gain that already appears at 1 thread is a search change, not a threading change.
+- Falsify if: The 1-thread match accounts for the 8-thread match, or the 8-thread match loses to the two-point draw.
+
+### S44. Elite-history quiet static drop
+
+- Sources: Berserk aggressive pruning. https://github.com/jhonnold/berserk/blob/main/src/search.c https://chessprogramming.org/Reverse_Futility_Pruning
+- Where: search
+- What to add: Allow a static node drop when the eval is well above beta even though the transposition move is quiet, but only off the PV, out of check, at modest depth, when that quiet’s history is in a very high band, and when no lesser piece attacks a greater one. Do not allow the drop merely because the transposition move is a capture.
+- Why: A quiet that has been winning in similar positions makes a high eval believable. Each accepted drop skips the whole node.
+- Risks: History transfers badly. Past modest depth a wrong drop is expensive. The trigger may be too rare.
+- Falsify if: In a normal bench the extra drop almost never happens, or a match loses in quiet positions that failed high on static eval while the stored quiet was not actually good.
+
+### S45. Exchange-filtered lesser-attacker null veto
+
+- Sources: Berserk aggressive pruning. The ban, where S31 is the re-search. https://github.com/jhonnold/berserk/blob/main/src/search.c
+- Where: search
+- What to add: Before a null-move fail-high drops the node, veto it when a lesser piece attacks a greater one and that capture does not lose material on static exchange. Keep the high-depth verification either way. A defended piece that the exchange test says is not winning should not veto.
+- Why: A raw attack overlap refuses the drop even when the capture is not winning. The exchange filter keeps the tactical veto and leaves null-move on when a pawn merely touches a defended minor.
+- Risks: Null-move is a large part of strength. Exchange tests miss pins.
+- Falsify if: The filtered veto almost never changes which nodes are dropped, or a match loses strength while tactical positions show no gain.
+
+### P19. Sign-aware material override
+
+- Sources: RubiChess net integration. Stronger than P14’s halfway shrink, and only past a high bar. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/eval.cpp https://raw.githubusercontent.com/official-stockfish/Stockfish/master/src/evaluate.cpp
+- Where: eval
+- What to add: Keep the network when a cheap material score is small or has the same sign. When the material score is large and the network has the opposite sign, blend toward material with a weight that grows only past a high bar. A second arm replaces the network above that bar. Do not port a handcrafted evaluator.
+- Why: A hard refusal in one-sided positions stops a wrong-sign network value. A shrink toward zero leaves a wrong sign in place, only smaller. A high bar leaves compensation alone.
+- Risks: The network is often right when material and position disagree, including sacrifices and fortresses. The replace arm jumps when a capture crosses the bar.
+- Falsify if: On quiet positions the network already shares material’s sign whenever the gap is large, or either arm loses to the unblended network. Also drop it if the only changed games are ones tablebases already score.
+
+### P20. Skip the net on dead material
+
+- Sources: RubiChess net integration. https://raw.githubusercontent.com/Matthies/RubiChess/master/src/eval.cpp
+- Where: eval
+- What to add: Before the network call, if there are at most five pieces and the material is a known draw, or king, bishop, and knight versus king, return a draw or a simple score that drives the lone king to the mating corner. Do not add a bishop-and-pawn test that only fires when the king is already on the corner.
+- Why: These positions can be settled before the network. Without tablebases, a wrong network score wastes a won ending or plays on in a draw.
+- Risks: A hand-made mating score can fight mate distance. A wrong material key draws a won position.
+- Falsify if: On those positions the network is already within a small band of the special score, or games with tablebases off get worse.
+
+### P21. Safe-check pressure
+
+- Sources: Ethereal king safety. Do not import coefficients. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/evaluate.c
+- Where: eval. King shelter and storm already exist. There is no safe-check count.
+- What to add: A penalty-only score of squares a piece already attacks from which it would give check, uncovered or covered only by the king or queen and hit twice. Ignore a piece whose only neighborhood hits are covered twice by pawns. Stay off until two such pieces exist, or one exists and a queen remains. Square the middlegame part. Keep the endgame part mild. Fit the scale on Forge games.
+- Why: King-bucket features can learn “a knight stands near the king” without stating that the landing square is safe. Threat features leave the king off the target list.
+- Risks: The net may already have the pattern. The square can dominate search if the scale is steep.
+- Falsify if: On positions where a safe check exists next move, the term does not change the chosen move and self-play does not gain, or the same counts as network inputs fail to beat the baseline net.
+
+### P22. Shield state as the danger switch
+
+- Sources: Ethereal king safety. Uses P21. https://raw.githubusercontent.com/AndyGrant/Ethereal/master/src/evaluate.c https://github.com/official-stockfish/Stockfish/blob/master/src/nnue/features/pp_3wide.h
+- Where: eval
+- What to add: On the king’s file and the two adjacent files, read only pawns at or in front of the king. A missing pawn is its own state. A storm is blocked only when a friendly pawn stands directly in front of the enemy pawn. Use those states only to grow or shrink P21. Leave a linear shelter reward out of the first test.
+- Why: The useful split is a description of the three files and a penalty that appears only once pieces are attacking. Pawn pairs see local duos everywhere, including away from the king.
+- Risks: Three files miss a storm from the fourth file. If the linear shelter reward was the valuable half, this interaction-only test looks useless.
+- Falsify if: The interaction is neutral in opposite-side castling and in same-side games where the shield has opened, or a linear three-file shelter without the attacker product wins and the interaction loses.
+
+### P23. Pawn-and-king residual head
+
+- Sources: Ethereal king safety. Distinct from P9, which strips the kings. https://github.com/AndyGrant/Ethereal/blob/master/src/network.h https://talkchess.com/viewtopic.php?t=75335
+- Where: net
+- What to add: A tiny network that sees only the two kings and the pawns and writes a middlegame value and an endgame value. Train it to predict the gap between a deep search and the main net, on positions where the three-file shield is missing or an enemy pawn has reached contact. Add it as a residual. Turn it down where material is extremely unbalanced. Do not load published weights.
+- Why: A specialist can keep shelter and storm from being washed out by piece activity. The historical Elo was a full release against the previous Ethereal, and it included an endgame net outside this department.
+- Risks: King-oriented pawn pairs may leave no residual. A head that cannot see pieces will treat a storm with no attackers as dangerous.
+- Falsify if: On held-out broken-shield and contact-storm positions the residual is no more accurate than the main net alone, or self-play Elo does not rise.
+
+### E4. Ownership in the queenless scale
+
+- Sources: Koivisto endgame eval. Not B14, which fits tablebase win rate below material 17. https://raw.githubusercontent.com/Luecx/Koivisto/master/src_files/board.cpp https://github.com/official-stockfish/Stockfish/blob/master/src/evaluate.cpp
+- Where: eval
+- What to add: Once both queens are gone, split the post-network scale by who holds the last rook and who holds the last bishop. The side holding that piece keeps the higher multiplier on its advantage. Keep a total-material sum for queen endings.
+- Why: A sum over both colors gives queen versus pawns and pawns versus queen the same multiplier. A one-pawn advantage should not be the same searched number for the rook side and the pawn side.
+- Risks: The queenless feature block may already have learned this. The term can make the engine keep a useless rook.
+- Falsify if: Queenless positions with the same total material and swapped ownership already play correctly, and the ownership term does not change a match.
+
+Phase weights untied from the playing values are the five-coefficient arm already inside E3. Not a new idea.
+
+### D11. Finished-iteration labels
+
+- Sources: Berserk data generation. https://github.com/jhonnold/berserk/blob/main/docs/plans/2026-08-29-datagen-uci-options.md
+- Where: data
+- What to add: From the same games, write two label sets. One stops at a hard node cap. The other treats that cap as a soft budget, finishes the iteration, and keeps a large hard backstop. Train both.
+- Why: A hard cap can cut the search while an iteration is still moving. One measurement at a soft budget of 5000 finished around 1.48 times that budget.
+- Risks: If a hard cap already keeps the previous completed depth, the extra nodes only cost throughput.
+- Falsify if: The two nets are tied, and a second labeling pass moves the hard-cap scores no more than the finished-iteration scores.
+
+### D12. Wide decided-opening gate
+
+- Sources: Berserk data generation. The gate inside B12, tested on its own. https://github.com/jhonnold/berserk/blob/main/src/datagen.c
+- Where: data
+- What to add: Before keeping a game, run one finished verification search. Drop the opening only above a wide score margin, stated in the engine’s raw unit. Keep a control with no gate and a control with a margin of about one pawn. Use both even and odd random-ply counts.
+- Why: Games that start already won spend the budget on positions the search will never doubt. A one-pawn gate deletes unbalanced positions the net still has to learn. Copying the number 1000 into a centipawn engine makes the gate tighter than the published raw-unit cut.
+- Risks: Cutting the sharp tail can weaken play in positions that are merely very good.
+- Falsify if: The wide gate does not beat the unfiltered set at equal count, or the one-pawn gate beats the wide gate.
+
 ## Counts in this snapshot
 
-- Breakthroughs: 6 (B1–B6)
-- Other unique ideas: 84
-- Unique ideas in this snapshot: 90
-- Not counted separately: P16 (merged into E3)
+- Breakthroughs: 14 (B1–B14)
+- Other unique ideas: 115
+- Unique ideas in this snapshot: 129
+- Not counted separately: P16 (merged into E3); bullet overhead (merged into T7); officer-only output gain (merged into E3); half-the-nodes fail-low mark and the single deeper helper override (merged into B10 and B9); RubiChess full depth restore (one arm of B11); untied phase coefficients (inside E3)
 - Merged away, not counted twice: game-result labels on quiet material deficits (into B2); near-tie sampling, result-weighted book choice, and personality directions (into O1); fortress discount, plan tie-break, and the WDL leftover (into V1); capture-filter variants (into B6)

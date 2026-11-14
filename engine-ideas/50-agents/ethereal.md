@@ -1,6 +1,14 @@
 # Ethereal
 
-Ideas only. In so far: search structure, pawn structure, mobility, passed pawns, and the tuning method. Still waiting: king safety and time controls.
+Ideas only. All seven departments are in.
+
+## King safety
+
+Importance: routine. No opened page shows current Stockfish weaker here. The default build scores shelter, storm, and attacker pressure, plus a small pawn-and-king net. Shelter uses only the king’s file and the file on either side. An attacker counts only when it hits the neighborhood on a square defending pawns do not cover twice. The formula stays off until two pieces attack, or one piece attacks and a queen remains. Only the positive part becomes a penalty, squared in the middlegame. Safe-check pressure is P21. The three-file shield as a switch on that penalty is P22. A pawn-and-king residual, which keeps the kings that P9 strips out, is P23.
+
+## Time controls
+
+Importance: routine. The 2022 two-way node signal gained about ten Elo on increment controls and about twenty on a short no-increment session. Stockfish is stronger on the base schedule and on a stable best-move name. It is weaker on the node signal, which only shortens. Lengthening a node-poor best move, requiring nodes before a stable-name discount, and refusing to let a flat score cancel a split are one idea, T12.
 
 ## Clean search structure
 

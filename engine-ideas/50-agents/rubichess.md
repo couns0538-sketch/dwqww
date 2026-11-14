@@ -1,6 +1,22 @@
 # RubiChess
 
-Ideas only. In so far: incremental updates, probcut, and eval tapering. Still waiting: net integration, late-move reductions, aspiration windows, thread scaling.
+Ideas only. All seven departments are in.
+
+## Thread scaling
+
+Importance: breakthrough. See B9. Lazy SMP, one transposition table, and depth schedules that repeat from thread 17. The played move is the highest score among threads at least as deep as the leader. There is no summed vote. Stockfish is stronger on the evidence opened: it votes, and a shared correction history gained strength while costing speed until it was partitioned. Published scaling is about 82 percent of eightfold time at 8 threads, and about half the nodes wasted at 64 threads on a long budget. Auditors for the surplus threads are B9. Unique depth phases are S39. A quiet merge of correction history between iterations is S40.
+
+## Late-move reductions
+
+Importance: routine. Stockfish is ahead. RubiChess uses whole-ply steps, eases the first tries until a few cutoffs appear, and restores the full omitted depth if the shallow score beats alpha. That full restore is one arm of B11, not a new idea. Front-loaded cutoff steps are S34. Fuller replies only to a late parent are S35. A root quiet shift on the aspiration re-search is S36.
+
+## Aspiration windows
+
+Importance: routine. Stockfish is ahead. Its window follows an effort-weighted running average, and a fail is fail-soft. RubiChess stays full-width until one search past depth 4 has landed inside the bounds, then uses a half-width of 15, and caps the margin at the win score. Stockfish has no ceiling. That cap is the guard after an overflowing margin forced a revert. The capped reopen is S23. Variance-sized overlap is S24. Arming the window only after one resolved score is S25.
+
+## Net integration
+
+Importance: routine. The network is refused when an endgame material-plus-square total is at or above 760, and the returned value is scaled by officers only. Stockfish always calls the network out of check and only shrinks a disagreeing score toward zero, so a wrong sign stays a wrong sign. Sign-aware override past a high bar is P19. Skipping the net on known dead material is P20. An officer-only gain that ignores pawns is the second arm of E3, not a new scale on top of B4.
 
 ## Eval tapering
 

@@ -1,6 +1,26 @@
 # Berserk
 
-Ideas only. In so far: net structure and eval scaling. Still waiting: aggressive pruning, short-time-control strength, data generation, search reductions, move ordering.
+Ideas only. All seven departments are in.
+
+## Short-time-control strength
+
+Importance: breakthrough. See B7. Stockfish is ahead at every short control opened. The lead over Berserk 14 is largest at about 8 seconds and smaller at blitz and at two minutes. The clock stop that refuses an unfinished iteration is B7. Banking a stable bullet move is T11. Overhead against a short increment is the same measurement as T7.
+
+## Data generation
+
+Importance: breakthrough. See B12. The published habit is to train on games this engine just played, then drop other engines’ games. Current main does not write a training file. The generator rejects openings whose finished search is already past about six displayed pawns, and it finishes the iteration before writing the score. Finished-iteration labels are D11. The wide gate, tested alone, is D12.
+
+## Search reductions
+
+Importance: breakthrough. See B11. The base table is the usual log of depth times log of move index. The distinctive piece is how much of a withheld depth the second search gets back when the reduced score beats alpha. Stockfish is ahead on the small stacked terms. The scaled verification is B11. The off-PV worsening shave is S37. Signed correction on quiet reductions is S38.
+
+## Aggressive pruning
+
+Importance: breakthrough. See B13. The edge is ending a quiet list, not trimming depth. A bad history or a tight static cushion can drop every later quiet, including on PV nodes. Stockfish’s quiet futility cushion is much wider and drops only that move. Whole-node drops are a place Stockfish already drops more. Sibling-backed extinction is B13. The elite-history static drop is S44. The exchange-filtered null veto is S45.
+
+## Move ordering
+
+Importance: routine. Stockfish is ahead on most quiet ordering. Berserk’s edge is threat context: four from-to buckets for origin and destination inside the opponent’s attack map, plus a flat bonus for leaving a cheaper-piece attack. Killers as their own stage were measured expendable. The cheaper-attacker history, with the constant bonus removed, is S28, beside B8. Capture safety inside a frozen exchange gate is S29. Full scores on moves that answer check are S30.
 
 ## High-level net structure
 
