@@ -237,6 +237,21 @@ bool TranspositionTable::has_exclusive_access() const {
     return false;
 }
 
+bool TranspositionTable::keep_proved_mate(const TTEntry& entry, bool same_position, int depth, int score,
+                                          Bound bound) const {
+    if (!protect_mates_ || !same_position || entry.generation() != generation_) return false;
+    const Bound stored = entry.bound();
+    const bool proved = (entry.score >= MateInMaxPly && (stored == BoundLower || stored == BoundExact)) ||
+                        (entry.score <= -MateInMaxPly && (stored == BoundUpper || stored == BoundExact));
+    if (!proved) return false;
+    // A deeper search may correct a mate that was wrong. A shallower store, or a
+    // same-depth store that does not itself prove mate, must leave the proof.
+    if (depth > static_cast<int>(entry.depth)) return false;
+    const bool incoming_proves = (score >= MateInMaxPly && (bound == BoundLower || bound == BoundExact)) ||
+                                 (score <= -MateInMaxPly && (bound == BoundUpper || bound == BoundExact));
+    return depth < static_cast<int>(entry.depth) || !incoming_proves;
+}
+
 std::unique_lock<std::mutex> TranspositionTable::lock_stripe(std::size_t index) const {
     std::mutex& stripe = stripes_[index % StripeCount].mutex;
     if (has_exclusive_access()) return std::unique_lock<std::mutex>(stripe, std::defer_lock);
@@ -324,8 +339,9 @@ void TranspositionTable::store_body(const TTProbe& probe, std::uint64_t key, int
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+    const bool keep = keep_proved_mate(*entry, same_position, depth, score, bound);
+    if (!keep && (!move.is_none() || !same_position)) entry->move = move;
+    if (!keep && (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_)) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
@@ -393,8 +409,9 @@ void TranspositionTable::store(const TTProbe& probe, std::uint64_t key, int scor
     TTEntry* entry = &clusters_[probe.cluster_].entries[probe.slot_];
     const std::uint32_t key32 = verification_key(key);
     const bool same_position = entry->key32 == key32 && entry->occupied();
-    if (!move.is_none() || !same_position) entry->move = move;
-    if (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_) {
+    const bool keep = keep_proved_mate(*entry, same_position, depth, score, bound);
+    if (!keep && (!move.is_none() || !same_position)) entry->move = move;
+    if (!keep && (bound == BoundExact || !same_position || depth + 4 > entry->depth || entry->generation() != generation_)) {
         entry->key32 = key32;
         entry->score = static_cast<std::int16_t>(std::clamp(score, -32767, 32767));
         entry->rule50_clock = static_cast<std::uint8_t>(std::min<int>(halfmove_clock, 100));
@@ -1162,7 +1179,12 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     const bool tt_capture = !tt_move.is_none() && tt_move.is_capture();
     ss->tt_pv = pv_node || (tt_hit && tte.pv());
 
-    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= depth &&
+    // A helper one ply ahead stores a non-mate bound that this node has not
+    // proved. Trust a mate at this depth. Trust a non-mate only from a search
+    // at least two plies deeper. One thread keeps the original rule.
+    const bool multi = all_workers_ != nullptr && all_workers_->size() > 1;
+    const int tt_need = multi && tt_score != ValueNone && !is_mate_score(tt_score) ? depth + 2 : depth;
+    if (!pv_node && excluded.is_none() && tt_hit && tt_score != ValueNone && tt_depth >= tt_need &&
         board.halfmove_clock() < 90 &&
         (tt_bound == BoundExact || (tt_bound == BoundLower && tt_score >= beta) ||
          (tt_bound == BoundUpper && tt_score <= alpha))) {
@@ -1783,6 +1805,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     for (auto& worker : workers_) all.push_back(worker.get());
     // Age the table once per search, before any worker can probe it.
     shared_.tt.new_search();
+    // Helpers share the table. While they do, a proved mate is kept against a
+    // shallower store. One worker never takes this path.
+    struct ProtectMates {
+        TranspositionTable& table;
+        const bool previous;
+        ProtectMates(TranspositionTable& tt, bool on) : table(tt), previous(tt.protect_mates_) { tt.protect_mates_ = on; }
+        ~ProtectMates() { table.protect_mates_ = previous; }
+    } protect_mates(shared_.tt, workers_.size() > 1);
     std::optional<TranspositionTable::ExclusiveLease> exclusive;
     if (table_access == TTAccess::Exclusive && workers_.size() == 1) {
         exclusive.emplace(shared_.tt);

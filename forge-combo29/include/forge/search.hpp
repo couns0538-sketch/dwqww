@@ -159,6 +159,8 @@ private:
     static thread_local const ExclusiveLease* active_lease_;
     [[nodiscard]] bool has_exclusive_access() const;
     [[nodiscard]] std::unique_lock<std::mutex> lock_stripe(std::size_t index) const;
+    // Keep a proved mate against a shallower store and against a same-depth non-mate.
+    [[nodiscard]] bool keep_proved_mate(const TTEntry& entry, bool same_position, int depth, int score, Bound bound) const;
 #if FORGE_SPD_TT_NOTLS
     // One body per access with a compile-time "take the stripe lock" parameter.
     // probe / store keep lock_stripe; probe_owned / store_owned run the same body
@@ -180,6 +182,9 @@ private:
     std::unique_ptr<TTCluster[]> clusters_;
     std::size_t cluster_count_ = 0;
     std::uint8_t generation_ = 0;
+    // Set for the duration of a search that has more than one worker. A single
+    // worker leaves this false, so its replacement rule is the original one.
+    bool protect_mates_ = false;
 
     [[nodiscard]] static constexpr std::uint32_t verification_key(std::uint64_t key) {
 #if defined(__SIZEOF_INT128__)
