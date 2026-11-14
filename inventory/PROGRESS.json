@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "run": 10,
-  "snapshot_at": "2026-11-13T23:27:30Z",
-  "trigger_at": "2026-11-13T23:23:47Z",
+  "run": 11,
+  "snapshot_at": "2026-11-14T00:28:41Z",
+  "trigger_at": "2026-11-14T00:24:09Z",
   "remote_heads_ls_remote": 430,
   "moved": 1,
   "new": 0,
@@ -18,8 +18,8 @@
     "opus-sol-S48fix-grids-20261027 9f8afcbb8fa90aaa933bc3540cb3f65121aab1a1"
   ],
   "checkpoint_branch": "cursor/forge-branch-inventory-automation",
-  "checkpoint_tip_before_this_commit": "1d458a9ab31e26f45edeb9a403e6c83094447bc3",
-  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 1d458a9a. The commit that adds the run-10 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
+  "checkpoint_tip_before_this_commit": "12819522873b36d745f7a810e61a55d1dad8b40d",
+  "note": "branches-current.tsv matches ls-remote at the start of this commit, including this branch at 12819522. The commit that adds the run-11 files moves this branch. The next run appends that movement and does not treat it as foreign work.",
   "frozen_run1_table": "inventory/branches.tsv",
   "current_table": "inventory/branches-current.tsv",
   "movement_log": "inventory/HEAD_MOVEMENT.tsv",
@@ -34,16 +34,17 @@
   },
   "main_tip": "5176ddf79ae15b76c08c4485d90ee5600ba30a1a",
   "ancestry_of_unique_tips": {
-    "method": "unchanged from run 9. Replacing db4613f1 with 1d458a9a keeps the same containment: both contain the lock and main and neither contains H512.",
+    "method": "unchanged from run 10. Replacing 1d458a9a with 12819522 keeps the same containment: both contain the lock and main and neither contains H512.",
     "contains_lock_commit": 17,
     "contains_h512_commit": 11,
     "contains_main_but_not_lock": 39,
     "contains_neither_main_nor_lock": 285
   },
   "review_status_counts": {
-    "tip-only": 359,
+    "tip-only": 348,
     "run9-read": 29,
     "run10-read": 12,
+    "run11-read": 11,
     "run4-moved": 6,
     "run2-new": 4,
     "run3-read": 4,
@@ -52,29 +53,25 @@
     "run2-moved": 2,
     "run8-read": 2,
     "run1-detail": 1,
-    "run10-checkpoint": 1,
     "run10-workflow": 1,
+    "run11-checkpoint": 1,
     "run5-read": 1,
     "run6-read": 1,
     "run6-same-docs": 1,
     "run7-read": 1
   },
   "detail_this_run": [
-    "forge/6.4-hourly-20261019",
-    "forge/candidate-ownbook-native-ci-20261020-1245",
-    "forge/lead-ownbook-native-20261020-1345",
-    "forge/test-20261021-0030",
-    "forge/test-20261021-0230",
-    "forge/test-20261021-0330",
-    "forge/test-20261021-0430",
-    "investigator/hourly-20261021-1000-no-new-finding",
-    "investigator/hourly-20261021-1100-qsearch-candidate-native",
-    "investigator/hourly-20261021-1200-terminal-zero-nodes-native",
-    "research/forge24-paired-speed-calibration-20261021",
-    "tester/forge64-20261022-1230-budget-matrix",
-    "forge/candidate-ownbook-20261020-1045",
-    "forge/candidate-ownbook-native-20261020-1145",
-    "research/forge-ownbook-native-verify-20261020-1706"
+    "forge/audit-perft-uci-responsiveness-20261019-2300",
+    "forge/audit-rule50-tt-bypass-20261019-2100",
+    "forge/audit-tt-exact-layout-20261019-2000",
+    "forge/candidate-lazy-checks-20261019-1745",
+    "forge/candidate-lazy-movepicker-20261019-1945",
+    "forge/research-20261019-1815",
+    "forge/research-20261019-1915",
+    "forge/research-20261019-2015",
+    "forge/test-20261019-1730",
+    "forge/test-20261019-2030",
+    "forge/test-20261019-2230"
   ],
   "replayed_this_run": [],
   "findings": [
@@ -800,13 +797,128 @@
       "wtime_store": "src/uci.cpp:99",
       "budget": "src/search.cpp:1141 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
       "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384"
+    },
+    {
+      "id": "tt-tag-overlaps-multiply-high-index",
+      "status": "source and fixture arithmetic checked; the stored 12-failure log was not rerun; no Elo",
+      "parent": "24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b",
+      "parent_branch": "cursor/engine-strength-overhaul-66cc",
+      "parent_still_has_old_tag": true,
+      "fix_tip": "9108d012526be80c6d163f7cab684e6acd9abf8d",
+      "fix_present_on": [
+        "356e863dbd86d2ce24b8ee9486d7406f1d525480",
+        "af1941375111717f415a46d9ce0224c329034466",
+        "5101c2529d386b7c3a04ba9156a69ee34df6bb43"
+      ],
+      "old_tag": "src/search.cpp:197 and :218 store key>>32 on 24cc2cce",
+      "index": "include/forge/search.hpp:106 on 24cc2cce, (key * cluster_count) >> 64",
+      "new_helper": "include/forge/search.hpp:106 verification_key; low 32 bits on the multiply-high path; key>>32 on the modulo path",
+      "call_sites": [
+        "src/search.cpp:197",
+        "src/search.cpp:218"
+      ],
+      "test": "tests/tests.cpp:484",
+      "patch_sha256": "954a804ba8ba624c2823dafa9d303dc29c618722bd8e38bc49d7a1b1709eeb39",
+      "index_table": "1 MiB and 3 MiB multiply-high and modulo indices match forge-tt-review.md",
+      "stored_baseline_failures": 12,
+      "stored_exit": 1,
+      "bench_nodes_both_logs": 417491,
+      "bench_times_ms": [
+        654,
+        836
+      ],
+      "strength": "validation/hourly/STATE.json strength.decision is pending"
+    },
+    {
+      "id": "sanitizer-logs-split",
+      "status": "logs read; neither ctest was rerun; no engine leak identified",
+      "first_log": "validation/hourly/2026-10-19-initial/sanitizer-ctest.log starts with a LeakSanitizer fatal error. 1 of 4 tests passed. forge_tests, uci_regression, and ponder_regression fail because the engine exits 1.",
+      "status_json_ctest_exit": 8,
+      "second_log": "sanitizer-ctest-no-lsan.log records 4/4 pass",
+      "environment": "sanitizer-environment.json sets detect_leaks=0 and records ctest_exit 0",
+      "state_sentence": "STATE.json says the address and undefined-behavior run passed and LeakSanitizer was unavailable"
+    },
+    {
+      "id": "cited-pgn-counts-match",
+      "status": "Result tags scored; Elo figures in the note were not recomputed; the 44-file archive was not recounted",
+      "zip_sha256": "acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960",
+      "forge_6_4_vs_sf19": {
+        "blob": "d2ba8f9e7985256d9f4b6052460b846366767207",
+        "v64": "35/30/35",
+        "games": 100,
+        "tc": "20+0.2",
+        "pairs": 50,
+        "histogram": [
+          5,
+          8,
+          18,
+          15,
+          4
+        ]
+      },
+      "residual_clock": {
+        "blob": "b03d55a9a358d5896f9d806b7f33d5aec76248bd",
+        "res128": "49/23/128",
+        "games": 200,
+        "tc": "10+0.1",
+        "histogram": [
+          0,
+          12,
+          57,
+          24,
+          7
+        ],
+        "engine_name_both_sides": "Chess Engine Forge 6.3.0"
+      },
+      "residual_20k": {
+        "res128": "209/88/203",
+        "games": 500,
+        "normal": 170,
+        "adjudication": 330
+      },
+      "aa_in_this_commit": {
+        "candidate": "4/0/4",
+        "games": 8,
+        "pentanomial": [
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        "elo_claim": null,
+        "console_drawratio_line": "100.00 % while Draws is 0"
+      }
+    },
+    {
+      "id": "clock-badcap-book-unchanged-on-9108d012",
+      "status": "lines read; not played",
+      "parser": "src/uci.cpp:73",
+      "fail_returns": 0,
+      "wtime_store": "src/uci.cpp:99",
+      "budget": "src/search.cpp:1139 makes a parsed 0 a 1 ms budget after the 10 ms overhead",
+      "bad_captures": "src/search.cpp:296 writes a 64-slot array declared at src/search.cpp:384",
+      "book": "src/uci.cpp:325 still probes when own_book is false and book_file is non-empty"
+    },
+    {
+      "id": "qsearch-halfmove-and-root-slot-notes",
+      "status": "source lines match forge-search-audit.md; neither case was searched or timed",
+      "compute_key": "src/board.cpp:896 omits halfmove_",
+      "qsearch_cutoff": "src/search.cpp:692 has no halfmove test",
+      "main_cutoff": "src/search.cpp:813 requires halfmove_clock() < 90",
+      "eval_substitution": [
+        "src/search.cpp:708",
+        "src/search.cpp:830"
+      ],
+      "root_nodes": "src/search.cpp:1048 adds to slot move_count-1; cleared once at :1239; read at :1303",
+      "check_masks": "src/search.cpp:266, consumed at :449 and :466"
     }
   ],
   "next_run": [
     "Diff ls-remote against inventory/branches-current.tsv. Append to inventory/HEAD_MOVEMENT.tsv. Do not rewrite inventory/branches.tsv or earlier movement rows.",
-    "This checkpoint tip will differ from 1d458a9ab31e26f45edeb9a403e6c83094447bc3 because of the run-10 commit. Record it, then continue. Do not treat it as foreign work.",
+    "This checkpoint tip will differ from 12819522873b36d745f7a810e61a55d1dad8b40d because of the run-11 commit. Record it, then continue. Do not treat it as foreign work.",
     "If a foreign tip moved, read that delta first.",
-    "Otherwise read the shared tip 9108d012526be80c6d163f7cab684e6acd9abf8d (11 branches, one tree). Its parent is 24cc2cce. The commit changes include/forge/search.hpp, src/search.cpp, and tests/tests.cpp, and adds tools/audit/audit_match_archive.py plus validation/hourly/2026-10-19-initial/. Read the source diff, candidate.patch, forge-tt-review.md, forge-search-audit.md, and forge-match-evidence.md. Check a cited W/L/D against the PGN or stats file it names. Do not execute repository scripts.",
+    "Otherwise read the TT-tag strength trail after 9108d012. Commit 91885905 is not a branch tip. It adds validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/protocol.json, validation/hourly/STATE.json, and tools/match/run_hourly_sprt.py. 374a71d4 is the tip of forge/review-pgn-nps-signal-20261020-0010. Shared tip 2fc649effb6d2f09f4fdf63b44d59283fe26b616 (9 branches) adds validation/hourly/2026-10-19-initial/REPORT.md. Read the protocol, the STATE delta, and that REPORT. Check a cited W/L/D against a PGN or stats file. Do not execute repository scripts. Do not decode the .b64 artifact parts.",
     "KRK replay stays the first reproduction when a run investigates instead of reading: H512 efb2ff96, then f6760ff6, then 49b80952, FEN 4R3/8/8/k2K4/8/8/8/8 w - - 0 1, expected d5c5.",
     "Do not push to main, lock/combo29-20261110, fable/standalone-h512-20261111, or another agent's branch."
   ],

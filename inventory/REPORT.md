@@ -930,3 +930,99 @@ The 6.2.0 changelog row, 18 wins, 11 losses, 91 draws at 10+0.1, is the older em
 3. Otherwise read the shared tip `9108d012526be80c6d163f7cab684e6acd9abf8d` (11 branches, one tree). Its parent is `24cc2cce`. The commit changes `include/forge/search.hpp`, `src/search.cpp`, and `tests/tests.cpp`, and adds `tools/audit/audit_match_archive.py` plus `validation/hourly/2026-10-19-initial/`. Read the source diff, `candidate.patch`, `forge-tt-review.md`, `forge-search-audit.md`, and `forge-match-evidence.md`. Check a cited W/L/D against the PGN or stats file it names. Do not execute repository scripts.
 4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
 5. Do not push to `main`, the lock, the H512 branch, or another agent’s branch.
+
+## Run 11 — 2026-11-14 00:24 UTC
+
+Trigger 00:24 UTC on 2026-11-14. `git fetch origin --prune` and `git ls-remote --heads origin`, rechecked at 00:28 UTC. The run-1 table `inventory/branches.tsv` is unchanged. The live list is `inventory/branches-current.tsv`. One movement row is appended in `inventory/HEAD_MOVEMENT.tsv`.
+
+| Item | Value |
+|---|---|
+| Remote heads | 430. Local remote-tracking refs match `ls-remote`. |
+| Same tip as the run-10 table | 429 |
+| Moved | 1. This checkpoint, `1d458a9a` to `12819522`, the run-10 commit. Not foreign work. |
+| New | 0 |
+| Gone | 0 |
+| Unique tips | 341. One tip replaced another. `1d458a9a` is no longer a branch tip. |
+| Unique tip trees | 341. The checkpoint tree `133c75f2` matches no other tip. |
+| Shared-tip groups | still 16 groups, 105 branches |
+| Tags | the same 3, not reviewed |
+| Inaccessible heads | none in this fetch |
+
+`refs/remotes/origin/HEAD` still points at `main`. Ancestry counts stay 17, 11, 39, and 285. The 11 branches at `9108d012` were tip-only and are now `run11-read`. 348 branches stay tip-only.
+
+No engine was built. No script in the tree was executed. Three named PGNs were scored from `Result` tags. The cluster-index table was recalculated from the key formula. The regression binary was not run.
+
+### One tree, eleven names
+
+`9108d012526be80c6d163f7cab684e6acd9abf8d` (tree `9f03c88a`, 982 files, 2026-10-19 15:22 +02:00) is the whole shared group. Its parent is `24cc2cce3eda0e12ddfa4036cd25f7d50e8a3b0b`. It contains that parent. It contains neither the lock, H512, nor `main`. `356e863d`, `af194137`, and `5101c252` contain this commit. `cursor/engine-strength-overhaul-66cc` is still `24cc2cce` and does not.
+
+These names all point at `9108d012`. None of them is a separate experiment:
+
+`forge/audit-perft-uci-responsiveness-20261019-2300`, `forge/audit-rule50-tt-bypass-20261019-2100`, `forge/audit-tt-exact-layout-20261019-2000`, `forge/candidate-lazy-checks-20261019-1745`, `forge/candidate-lazy-movepicker-20261019-1945`, `forge/research-20261019-1815`, `forge/research-20261019-1915`, `forge/research-20261019-2015`, `forge/test-20261019-1730`, `forge/test-20261019-2030`, `forge/test-20261019-2230`.
+
+### The tag and the index
+
+`candidate.patch` is the three-file source diff. Its SHA-256 is `954a804ba8ba624c2823dafa9d303dc29c618722bd8e38bc49d7a1b1709eeb39`, the digest named in `forge-tt-review.md`. A current `git diff` of the same three paths differs only in the length of the index abbrev.
+
+On `24cc2cce`, `cluster_for` is `include/forge/search.hpp:106`. Multiply-high indexing is `(key * cluster_count) >> 64`. The modulo fallback is `key % cluster_count`. `probe` and `store` both keep `key >> 32` (`src/search.cpp:197` and `:218`). `TTCluster` is 64 bytes: four 16-byte `TTEntry` values, `alignas(64)` at `include/forge/search.hpp:76`. One MiB is 16,384 clusters. Thirty-two MiB is 2^19 clusters, so the old 32-bit tag repeats the top 19 index bits and has 13 bits left. Sixty-four MiB leaves 12. Hash is 1 to 2048 MiB at `src/uci.cpp:164`, which is at most 2^25 clusters.
+
+This commit adds `verification_key` at `include/forge/search.hpp:106`. The multiply-high path returns the low 32 bits. The modulo path still returns `key >> 32`. `probe` and `store` both call it (`src/search.cpp:197`, `:218`). The low 32 bits and a top-25 index do not overlap. The helper adds no field to `TTEntry`.
+
+`tests/tests.cpp:484` clears the table, stores four keys, and expects four distinct scores, at 1 MiB and at 3 MiB. Group one shares the high half `0x12345678` and uses low halves 1 through 4. Group two shares the low half `0x9abcdef0` and steps the high half by `3 << 60`. That step is divisible by 16,384 and by 49,152. Recalculated multiply-high and modulo indices:
+
+| Size | Group | Multiply-high | Modulo |
+|---|---|---|---|
+| 1 MiB / 16,384 | high half shared | 1165, 1165, 1165, 1165 | 1, 2, 3, 4 |
+| 1 MiB / 16,384 | low half shared | 1165, 4237, 7309, 10381 | 7920, 7920, 7920, 7920 |
+| 3 MiB / 49,152 | high half shared | 3495, 3495, 3495, 3495 | 1, 2, 3, 4 |
+| 3 MiB / 49,152 | low half shared | 3495, 12711, 21927, 31143 | 7920, 7920, 7920, 7920 |
+
+Those are the four rows in `forge-tt-review.md`. On the old multiply-high tag, group one shares a cluster and a tag. The last three inserts hit, and the first three reads return the last score: six failures per table size, twelve across the two sizes. Group two uses different high halves, so it does not add failures on that path.
+
+`baseline-new-regression.log` lists three "distinguishes keys" lines, three "retain their own scores" lines, and the same six lines again, then `12 test failure(s)`. The exit file is `1`. `baseline-ctest.log` records 4/4 pass on the parent tests. `candidate-ctest.log` records 4/4 pass with the new test included. `modulo-verification-method.txt` says a disposable copy replaced the two `__SIZEOF_INT128__` guards with `#if 0`, and `modulo-ctest.log` records 4/4 pass. That copy is not in the commit. `fallback-build.log` ends in a libstdc++ `charconv` error for `__int128` after `-U__SIZEOF_INT128__`, and `fallback-status.json` records build exit 2. None of these binaries were rebuilt here.
+
+Both `baseline-bench11.log` and `candidate-bench11.log` print `nodes 417491`. The times are one sample each, 654 ms and 836 ms. That is the same node signature and not a speed result. `validation/hourly/STATE.json` sets `candidate_status` to `correctness_verified_strength_pending` and `strength.decision` to `pending`.
+
+### Sanitizer logs disagree with each other
+
+`sanitizer-ctest.log` starts with `LeakSanitizer has encountered a fatal error` and ends at 1 of 4 tests passed. `forge_tests`, `uci_regression`, and `ponder_regression` fail when the engine process exits 1. `sanitizer-status.json` records ctest exit 8 and does not mention a retry. `sanitizer-ctest-no-lsan.log` records 4/4 pass. `sanitizer-environment.json` sets `ASAN_OPTIONS` to `detect_leaks=0` and records `ctest_exit` 0. `STATE.json` says the address and undefined-behavior run passed and that LeakSanitizer was unavailable. `additional-validation-status.json` records `asan_ubsan_exit` 0. The passing sentence is the second log. The first log is a LeakSanitizer abort under the sandbox restriction named in the environment file. This run did not rerun either ctest and did not identify an engine leak from these files.
+
+### Match counts that were checked
+
+`validation/release-6.0.0/all-match-pgns.zip` is blob `c8eb1422`, 67,169,642 bytes. Its SHA-256 is `acbd91b4a7f7829092eede5472e2c40de1e34f33e469f6b2927c61b58ad27960`, the same digest as `forge-match-raw-stats.json`. The json says 44 PGNs and 76,047 games. This run did not recount the archive. It scored three PGNs the evidence note names. Every header `Result` matched the final movetext result. No Elo was recomputed.
+
+`validation/release-6.0.0/forge-6.4.0-vs-sf19-3000-20+0.2.pgn` is blob `d2ba8f9e`, SHA-256 `076d1f5f6d8e44da96b0ae211944188c18f75cf48255ecbe47db20c4cd39f855`. From `v64`: 35 wins, 30 losses, 35 draws, 100 games, time control `20+0.2`, termination `normal` on all 100. Fifty rounds, each a color swap, opening names agree inside each round. Pair scores 0, 0.5, 1, 1.5, 2 are 5, 8, 18, 15, 4. The json row for `v64` is the same count and the same histogram. White and Black engine-name tags are Stockfish 19 and Chess Engine Forge 6.4.0. The player tags are `SF19-3000` and `v64`. The note's +17 +/- 53 figure was not recomputed. 52.5 points per 100 games is the win/draw/loss arithmetic.
+
+`pgns/dev-residual-nnue-128-vs-6.3.0-10+0.1.pgn` at `f481fc5a` is blob `b03d55a9`, SHA-256 `85cf152a44ae4963e4ed008cd392ea5e481e071401ffc96e3be0fdf86d8e9559`. From `res128`: 49 wins, 23 losses, 128 draws, 200 games, `10+0.1`, all `normal`. One hundred color-swapped rounds, opening names agree. The histogram is 0, 12, 57, 24, 7. Both engine-name tags say Chess Engine Forge 6.3.0. The json row matches. 56.5 points per 100 games is the arithmetic. The note's +45 +/- 26 figure was not recomputed.
+
+`pgns/dev-residual-nnue-128-vs-6.3.0-20k.pgn` at the same commit: 209 wins, 88 losses, 203 draws, 500 games. Terminations are 170 `normal` and 330 `adjudication`. The json row matches. 62.1 points per 100 games is the arithmetic. The note's +86 +/- 24 figure was not recomputed. Adjudication is 330 of these 500 games.
+
+The eight-game file added by this commit, `validation/hourly/2026-10-19-initial/matches/aa/games.pgn`, scores 4 wins, 0 draws, 4 losses for `Candidate`. Four color-swapped rounds each score 1. Rounds 1 and 2 are `0-1` both colors. Rounds 3 and 4 are `1-0` both colors. `stats.json` has the same 4/0/4, pentanomial `[0, 0, 4, 0, 0]`, and `elo_claim` null. Both engine-name tags say Chess Engine Forge 6.4.0. `fastchess.log` is empty. The console's last block says `Draws: 0` and, on the line above, `DrawRatio: 100.00 %`. The PGN has no draw. The games do not separate the candidate from the baseline. This is not an Elo result. The bench signature above is the same 417491 on both logs.
+
+### Other source lines read, not played
+
+`read_int` is `src/uci.cpp:73`. A token that does not convert returns 0 (`src/uci.cpp:78`). `wtime` stores `max(0, that)` (`src/uci.cpp:99`). The default overhead is 10 ms (`include/forge/search.hpp:28`). A parsed 0 becomes available time `max(1, 0 - 10)` at `src/search.cpp:1139`, so the budget is 1 ms. `bad_captures_[bad_count_++]` is unchecked at `src/search.cpp:296`. The array has 64 slots at `src/search.cpp:384`. A game search still probes the book when `own_book` is false and `book_file` is non-empty (`src/uci.cpp:325`). The later gate that requires `own_book` is `af194137`, already read on `5101c252`.
+
+`Board::compute_key` (`src/board.cpp:896`) mixes pieces, castling, en passant, and side. It does not mix `halfmove_`. Quiescence returns a TT score with no halfmove test (`src/search.cpp:692`). The main-search cutoff requires `halfmove_clock() < 90` (`src/search.cpp:813`). Both paths can replace static eval with a TT score (`src/search.cpp:708`, `:830`). `forge-search-audit.md` describes a clock-99 position for this. That position was not searched here.
+
+Root nodes are added to `root_move_nodes_[move_count - 1]` (`src/search.cpp:1048`). The array is cleared once at `src/search.cpp:1239`. The best-move ordinal is stored at `src/search.cpp:1059` and read for the soft-time factor at `src/search.cpp:1303`. Check masks are built in every `MovePicker` constructor (`src/search.cpp:266`) and read from quiet generation (`src/search.cpp:449`, `:466`). `material_key` recomputes ten popcounts at `src/search.cpp:504`. These are the audit's source notes. No timing and no match was run for them.
+
+`TTEntry` fields are ordinary members (`include/forge/search.hpp:60`). The class comment at `include/forge/search.hpp:80` says a torn entry is caught by the key and by move legality. The tag patch does not add atomics.
+
+### Not claimed
+
+- No new Elo and no new bench. The identical 417491 lines are stored logs. The 654 ms and 836 ms samples are not a speed comparison. `STATE.json` still says strength is pending.
+- The twelve-failure log matches the collision count. It is their log. This run did not link the new test against `24cc2cce`.
+- `cursor/engine-strength-overhaul-66cc` still stores `key >> 32` for both index backends. The repair is on this tip and on the later hourly tips that contain it.
+- 348 branches are still tip-only. The TT-tag SPRT text starts at `91885905`, which is not a branch tip. The next branch tip on that line is `374a71d4` (`forge/review-pgn-nps-signal-20261020-0010`). The recorded outcome files are the unique diff of shared tip `2fc649ef` (9 names).
+- The KRK history miss was not replayed.
+- Nothing was pushed to `main`, `lock/combo29-20261110`, `fable/standalone-h512-20261111`, or another agent's branch.
+- Supermemory was unavailable. Adapter was not used.
+
+## Next run
+
+1. `git fetch` and `git ls-remote --heads origin`. Diff against `inventory/branches-current.tsv`. Append new rows to `inventory/HEAD_MOVEMENT.tsv`. Do not rewrite `inventory/branches.tsv` or earlier movement rows. This branch's tip will have moved by the commit that adds these files; record that as this checkpoint, then continue.
+2. If a foreign tip moved, read that delta before the files below.
+3. Otherwise read the TT-tag strength trail that starts at `9108d012`. Commit `91885905` is not a branch tip. It adds `validation/hourly/2026-10-19-initial/matches/tt-tag-sprt/protocol.json`, `validation/hourly/STATE.json`, and `tools/match/run_hourly_sprt.py`. `374a71d4` is the tip of `forge/review-pgn-nps-signal-20261020-0010`. Shared tip `2fc649effb6d2f09f4fdf63b44d59283fe26b616` (9 branches) is the next commit and adds `validation/hourly/2026-10-19-initial/REPORT.md`. Read the protocol, the STATE delta, and that REPORT. Check a cited W/L/D against a PGN or stats file. Do not execute repository scripts. Do not decode the `.b64` artifact parts.
+4. The KRK replay remains the first reproduction when a run investigates instead of opening the next pack. Position `4R3/8/8/k2K4/8/8/8/8 w - - 0 1` should play `d5c5`. Run it on H512 `efb2ff96`, then on `f6760ff6`, then on `49b80952`.
+5. Do not push to `main`, the lock, the H512 branch, or another agent's branch.
