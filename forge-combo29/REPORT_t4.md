@@ -1,27 +1,85 @@
 # REPORT t4 — clock parsing
 
+Base is `origin/lock/combo29-20261110` at `16833ecc03b425586f91f4c8834dea8807bf4c22`. The measurements below are that binary and this branch, Linux g++ 13.3.0, Release, `Threads 1`, `Hash 16`, `OwnBook false`.
+
 ## What was wrong
 
-`parse_limits` in `forge-combo29/src/uci.cpp` read every `go` number except `nodes` into a 32-bit `int` with `std::from_chars`. `3000000000` does not fit. The conversion failed, the code substituted 0, and for the side to move that became `time_ms = 0`. The search then set a 1 ms hard budget and moved at once. The same reader rejects a leading `+`, so `movetime +80` failed and also became 0. A negative token already parsed and was then clamped with `std::max(0, value)`. A malformed token already became 0.
+`parse_limits` in `forge-combo29/src/uci.cpp` read `depth`, `movetime`, `movestogo`, `mate`, `wtime`, `btime`, `winc`, and `binc` with one helper, `read_int`. The helper declared a 32-bit `int` set to 0 and called `std::from_chars` on the next token. Any failure returned 0. A missing token also returned 0.
 
-On the unchanged lock binary (`16833ecc`), `go depth 12 wtime 3000000000 btime 3000000000` stopped at depth 6 (`nodes 1703`, `bestmove d2d4`) instead of the depth-12 line (`nodes 56720`, `bestmove e2e4`). `go depth +8` stopped at depth 1. `go movetime +80` returned in under 2 ms. `go movetime 80` searched for about 80 ms.
+`std::from_chars` fails in two ways that matter here.
 
-## The fix
+A number bigger than a signed 32-bit int does not wrap. `INT_MAX` is 2147483647. `3000000000` is past that (about 34.7 days, if the GUI sends milliseconds). `from_chars` returns `std::errc::result_out_of_range` and does not write a value. `read_int` saw the error and returned 0. The same thing happens for `2147483648` (one past `INT_MAX`), for `03000000000` (the same 3000000000 with a leading zero), and for a string of nines longer than int64. `2147483647` itself still parsed, because it fits.
 
-`movetime_ms`, `time_ms`, and `increment_ms` are `std::int64_t`. The parser accepts one leading `+`, parses the token into int64, and clamps. A value above int64 clamps to the top of that range and then to the clock ceiling. A negative clock clamps to 0. Junk, a second sign, or a missing number still yields 0, which is what a failed parse used to do. The ceiling is `INT64_MAX / 150`, so the existing time formula can multiply an increment by `TmIncrementPercent` (option maximum 150) and a soft limit by `TmHardSoftMultiple` (option maximum 20) without a signed 64-bit overflow. Depth, mate, and movestogo use the same reader and then their existing bounds: depth 1..64, mate 0..32, movestogo at least 1 and at most `INT_MAX`. `nodes` is unchanged. It already used `uint64_t`, and a failed parse still leaves the node limit unset.
+A leading `+` also fails. `from_chars` accepts a leading `-` and rejects a leading `+` with `std::errc::invalid_argument`. `movetime +80`, `depth +8`, `wtime +3000000000`, and `winc +3000000000` all took the failure path and became 0. `movetime 80` and `depth 8` parsed.
+
+`SearchLimits` stored the clock in 32-bit fields: `movetime_ms` and `time_ms` default to `-1`, and `increment_ms` defaults to 0. `-1` means "this limit was not given." After a successful read, `wtime` and `btime` were stored with `std::max(0, value)`, and only for the side to move. So a failed `wtime` while White is to move writes `time_ms = 0`. That is a clock of zero, which is different from "no clock."
+
+The search treats `time_ms >= 0` as a timed game. With overhead subtracted, the available time is `max(1, time_ms - overhead)`. A stored 0 therefore becomes a 1 ms budget. The hard limit is 1 ms, the search stops on the next check, and the engine prints `bestmove` at once. `movetime` does the same: `movetime_ms >= 0` installs `max(1, movetime_ms - overhead)` as both the soft and the hard limit, so a failed `movetime +80` is a 1 ms search.
+
+`depth` uses the same reader and then `std::clamp` to 1..64. A failed `depth +8` is 0, and the clamp raises it to 1, so the engine searches one ply and stops.
+
+`nodes` was a separate `uint64_t` parse. A failed token there does not store 0. It leaves `nodes_specified` false, so there is no node limit at all. `go depth 12 nodes +1000` therefore searched the whole depth-12 tree. `go depth 12 nodes 1000` stopped at 1000 nodes.
+
+Negative clock tokens already parsed. `from_chars` accepts `-80`, and `std::max(0, value)` then stored 0. Junk such as `zz` and `+80ms` already became 0, because `from_chars` stops before the end of the token. Those two cases were already the 1 ms search, and they still are.
+
+The opponent's clock is discarded. Black to move with a huge `wtime` still has `time_ms == -1`, so that search is unlimited except for the depth cap. The bug shows up only on the side to move, and on `movetime` and `depth`.
+
+## What the searches showed
+
+On the lock binary, `go depth 12 wtime 3000000000 btime 3000000000` stopped at depth 6 in under 1 ms:
+
+```
+info depth 6 seldepth 10 score cp 34 nodes 1703 pv d2d4 d7d5 e2e3 g8f6 c2c4 d5c4
+bestmove d2d4
+```
+
+The same command with a clock that fits finishes depth 12:
+
+```
+info depth 12 seldepth 23 score cp 30 nodes 56720 pv e2e4 c7c5 g1f3 b8c6 b1c3 e7e6 d2d4 c5d4 f3d4 g8f6 f1e2 f8e7
+bestmove e2e4
+```
+
+The other lock failures were the same 0-substitution, measured on that binary:
+
+- `go depth +8` stopped at depth 1, `nodes 26`, `bestmove d2d4`. Depth 8 is `nodes 4099`, `bestmove d2d4`.
+- `go depth 12 wtime 2147483648` stopped at depth 6, `nodes 1703`, `bestmove d2d4`. `wtime 2147483647` finished depth 12.
+- `go depth 12 wtime 999999999999999999999` stopped at depth 6 the same way.
+- `go movetime +80` returned in 0.54 ms at depth 6. `go movetime 80` searched about 80 ms and reached depth 14, `nodes 101640`, `bestmove e2e4`. `movetime +00080` failed the same way as `+80`.
+- After `e2e4`, Black's `go depth 10 btime 3000000000` stopped at depth 5, `nodes 1093`, `bestmove e7e5`. The depth-10 line is `nodes 14583`, `bestmove e7e6`.
+- `go wtime 200 winc 3000000000` treated the increment as 0, so 200 ms of sudden death finished in 6.4 ms at depth 10, `bestmove d2d4`. With the increment kept, the same clock runs about 120 ms and reaches depth 15, `nodes 212340`, `bestmove e2e4`.
+- `go depth 12 nodes +1000` ignored the node budget and played the depth-12 line (`nodes 56720`, `bestmove e2e4`). `go depth 12 nodes 1000` stops at depth 5, `nodes 1000`, `bestmove c2c4`.
+
+These lock results still matched, so the old parser was fine for them: `wtime 2147483647`, `go depth 3 wtime 1000`, plain `movetime 80`, `movetime -80`, `movetime zz`, `movetime +80ms`, `movetime +0`, `wtime -5`, Black ignoring White's `wtime`, and White ignoring Black's `btime 0`.
+
+`tests_t4/go_numbers_test.cpp` calls the parser directly. `3000000000`, `+3000000000`, and `03000000000` are the integer 3000000000. The depth-capped games only show that the value is large enough to finish the depth. They do not print the stored integer.
+
+## What changed
+
+`movetime_ms`, `time_ms`, and `increment_ms` in `include/forge/search.hpp` are `std::int64_t`. The defaults are still `-1`, `-1`, and `0`.
+
+`include/forge/go_numbers.hpp` holds the readers. `parse_i64_token` strips one leading `+`, then uses `from_chars` into int64. A second sign, junk, or a missing remainder returns 0, which is what the old failed parse returned. A value outside int64 clamps to the end of that range that matches the sign. `clamp_clock_ms` then keeps a clock in `0 .. kMaxClockMs`.
+
+`kMaxClockMs` is `INT64_MAX / 150`. `3000000000` is under it, so that clock is stored whole. The ceiling exists because the time formula in `src/search.cpp` multiplies an increment by `TmIncrementPercent` (UCI maximum 150) and a soft limit by `TmHardSoftMultiple` (UCI maximum 20). A stored clock at the top of int64 would overflow those multiplies. The header `static_assert`s that the worst case of the sudden-death formula still fits in int64.
+
+`depth`, `mate`, and `movestogo` use the int64 reader and then their old bounds: depth 1..64, mate 0..32, movestogo from 1 up to `INT_MAX`. A `movestogo` past `INT_MAX` used to become 1, because the failed read returned 0 and `std::max(1, 0)` is 1. It now clamps to `INT_MAX`. The search already uses `min(moves_to_go, 50)`, so both values fall into the 50-move cap. I did not play a game that shows that difference.
+
+`nodes` now uses `parse_u64_token`. One leading `+` is accepted, so `nodes +1000` is a budget of 1000. A value past uint64 clamps to the top of uint64 and the limit is set. A minus sign or junk still returns no value, and `nodes_specified` stays false, which is what the old uint64 parse did. A negative node token still does not become a zero-node search.
+
+Ordinary in-range commands take the same path as before. `bench 11` is 312866 nodes, `bench 13` is 862329, and `go perft 5` from the start position is 4865609. Those commands do not go through the clock reader. The numbers were re-measured after the `nodes` change.
 
 ## Files changed
 
-- `forge-combo29/include/forge/search.hpp` — clock fields widened to `std::int64_t`
-- `forge-combo29/include/forge/go_numbers.hpp` — shared int64 and uint64 token parsers
-- `forge-combo29/src/uci.cpp` — 64-bit parse and clamp, including `nodes` with a leading `+`
-- `forge-combo29/tests_t4/clock_commands.txt` — UCI transcript
-- `forge-combo29/tests_t4/clock_expected.txt` — expected stable lines and time bounds
-- `forge-combo29/tests_t4/check_clock.cpp` — reads engine stdout and checks the expected file
-- `forge-combo29/tests_t4/go_numbers_test.cpp` — exact integer checks for the parser
+- `forge-combo29/include/forge/search.hpp` — `movetime_ms`, `time_ms`, and `increment_ms` widened to `std::int64_t`
+- `forge-combo29/include/forge/go_numbers.hpp` — `parse_i64_token`, `clamp_clock_ms`, `parse_u64_token`, and the clock ceiling
+- `forge-combo29/src/uci.cpp` — `parse_limits` calls those readers
+- `forge-combo29/tests_t4/clock_commands.txt` — 23 UCI searches
+- `forge-combo29/tests_t4/clock_expected.txt` — the stable `info` line or the time bound for each search
+- `forge-combo29/tests_t4/check_clock.cpp` — checks engine stdout against that file
+- `forge-combo29/tests_t4/go_numbers_test.cpp` — exact integers, including 3000000000
 - `forge-combo29/REPORT_t4.md` — this report
 
-Engine diff: 73 insertions and 19 deletions in `src/uci.cpp` and `search.hpp`.
+Against `16833ecc`, the engine diff is `go_numbers.hpp` (new, 70 lines), `search.hpp` (8 lines changed), and `uci.cpp` (57 lines changed). The command logs below are the runs. The later "Follow-up" section is the `nodes` plus-sign pass and the extra clock tokens.
 
 ## How to run the transcript
 
