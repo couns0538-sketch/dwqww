@@ -333,6 +333,12 @@ public:
     void clear();
     void clear_caches() { evaluator_.clear(); }
     [[nodiscard]] std::uint64_t nodes() const { return nodes_.load(std::memory_order_relaxed); }
+    // Zero the count other workers add into a node budget. Searcher::search does
+    // this for every worker before it starts any of them.
+    void reset_node_count() {
+        local_nodes_ = 0;
+        nodes_.store(0, std::memory_order_relaxed);
+    }
     [[nodiscard]] bool is_main() const { return id_ == 0; }
 
 private:

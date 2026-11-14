@@ -927,11 +927,17 @@ std::uint64_t Worker::total_nodes() const {
 
 bool Worker::should_stop_with(std::uint64_t pending_nodes) {
     if (shared_.stop.load(std::memory_order_relaxed)) return true;
-    if (!is_main()) return false;
+    // The budget counts every worker. A helper that ignores it keeps searching
+    // until the main thread has already unwound. MultiPV still adds the
+    // alternate line's unpublished nodes (pending_nodes) and the lines that
+    // already finished (extra_nodes_). Only the main worker records the reason:
+    // its result is the one that is returned, and a node-limit stop must stay
+    // on the last finished iteration. Helpers still ignore the clock.
     if (node_limit_specified_ && total_nodes() + extra_nodes_ + pending_nodes >= node_limit_) {
-        stopped_by_nodes_ = true;
+        if (is_main()) stopped_by_nodes_ = true;
         return true;
     }
+    if (!is_main()) return false;
     if (hard_limit_ms_ > 0) {
         if (pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0) return false;
         if (elapsed_ms() >= hard_limit_ms_) return true;
@@ -1602,9 +1608,13 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     root_restricted_ = limits.search_moves_specified;
     root_history_index_ = board.history_size() - 1;
     node_limit_ = limits.nodes;
+    // Helpers must observe the budget. Leaving the flag false on them made
+    // should_stop return before the count was consulted. An alternate MultiPV
+    // worker copies the parent's flag: its own limits clear the node budget,
+    // and should_stop asks the parent, passing this worker's unpublished nodes.
     node_limit_specified_ = parent_worker_ != nullptr
         ? parent_worker_->node_limit_specified_
-        : (is_main() && (limits.nodes_specified || limits.nodes != 0));
+        : (limits.nodes_specified || limits.nodes != 0);
 
     // Time allocation.
     const std::int64_t overhead = std::max<std::int64_t>(0, limits.move_overhead_ms);
@@ -2010,6 +2020,11 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         TtOwnedScope& operator=(const TtOwnedScope&) = delete;
     } tt_owned_scope(*workers_.front(), exclusive.has_value());
 #endif
+    // A helper can read the budget before another worker enters search() and
+    // clears the count it published last time. Zero every counter on this
+    // thread first. MultiPV leaves the extra workers idle; clearing them does
+    // not change the main-worker total.
+    for (auto& worker : workers_) worker->reset_node_count();
     std::vector<std::thread> helpers;
     // MultiPV above 1 runs only the main thread. Helper threads search one line
     // and would race the excluded-root passes, so this falls back to Threads 1.

@@ -45,11 +45,20 @@ void apply_position(forge::Board& board, std::istringstream& input) {
         board = candidate;
         return;
     }
-    if (token != "moves") return;
+    // A token other than "moves" is not part of the FEN. Dropping the command
+    // here used to leave the engine on the previous game.
+    while (token != "moves") {
+        if (!(input >> token)) {
+            board = candidate;
+            return;
+        }
+    }
     while (input >> token) {
         const auto move = candidate.parse_uci(token);
         if (!move.has_value()) {
+            // The position and every legal move before this token still stand.
             { const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex()); std::cout << "info string illegal move " << token << std::endl; }
+            board = candidate;
             return;
         }
         forge::Undo undo;
