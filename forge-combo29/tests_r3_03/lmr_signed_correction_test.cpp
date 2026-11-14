@@ -102,6 +102,15 @@ bool move_is_legal(const forge::Board& board, forge::Move move) {
     return false;
 }
 
+bool line_is_legal(forge::Board board, const std::vector<forge::Move>& line) {
+    for (const forge::Move move : line) {
+        if (!move_is_legal(board, move)) return false;
+        forge::Undo undo;
+        if (!board.make_move(move, undo)) return false;
+    }
+    return true;
+}
+
 } // namespace
 
 int main() {
@@ -128,6 +137,14 @@ int main() {
         }
         if (!move_is_legal(board, info.best_move)) {
             std::cerr << "illegal " << forge::Board::move_to_uci(info.best_move) << " on " << fens[index] << '\n';
+            return 1;
+        }
+        if (!info.pv.empty() && info.pv.front() != info.best_move) {
+            std::cerr << "pv disagrees with best move on " << fens[index] << '\n';
+            return 1;
+        }
+        if (!line_is_legal(board, info.pv)) {
+            std::cerr << "illegal pv on " << fens[index] << '\n';
             return 1;
         }
         ++legal_moves;
