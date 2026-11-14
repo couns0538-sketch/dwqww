@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T15:56:08.930Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T16:00:32.069Z.
 
-Elapsed at snapshot: 284.62 minutes; current phase: 2E; recorded pushes: 49. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 289.00 minutes; current phase: 3-default; recorded pushes: 50. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -21,7 +21,7 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2E | ThreadSanitizer runs; exact thread and search conditions remain in batch evidence. | 56 games; 8,297 searches; 0 faults | Complete: 56 games / 8297 searches; TSan Threads2/4; no warnings; original E5 timeout excluded and retry completed |
 | 2F | ASAN+UBSAN self-play plus supplemental TSan with all three new options enabled; exact instrumentation and limits remain in batch evidence. | 1,116 games; 128,418 searches; 0 faults | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
-| 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | No completed counts recorded | Pending; no completed counts recorded |
+| 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 400 games; 113 wins; 107 losses; 180 draws; 0 audit errors | Running |
 | 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
 | 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | No completed counts recorded | Pending; no completed counts recorded |
@@ -137,14 +137,14 @@ Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook
 
 | Mode | Games | Wins | Losses | Draws | Status |
 | --- | --- | --- | --- | --- | --- |
-| default | — | — | — | — | Pending; no completed counts recorded |
+| default | 400 | 113 | 107 | 180 | Running |
 | ContHist4PlyRead | — | — | — | — | Pending; no completed counts recorded |
 | NonPawnCorrection | — | — | — | — | Pending; no completed counts recorded |
 | LmrDeeperShallower | — | — | — | — | Pending; no completed counts recorded |
 
 | Mode | LL | LD | DD or WL | DW | WW | Complete pairs | Incomplete pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | — | — | — | — | — | — | — |
+| default | 4 | 31 | 127 | 31 | 7 | 200 | 0 |
 | ContHist4PlyRead | — | — | — | — | — | — | — |
 | NonPawnCorrection | — | — | — | — | — | — | — |
 | LmrDeeperShallower | — | — | — | — | — | — | — |
@@ -153,12 +153,23 @@ Pair bins correspond to candidate scores 0, ½, 1, 1½ and 2 across a color-swap
 
 | Mode | Illegal events / games | Disconnect games | Stall games | Aborted games | Abnormal terminations | Crash markers | Audit errors |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| default | — / — | — | — | — | — | — | — |
+| default | 0 / 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ContHist4PlyRead | — / — | — | — | — | — | — | — |
 | NonPawnCorrection | — / — | — | — | — | — | — | — |
 | LmrDeeperShallower | — / — | — | — | — | — | — | — |
 
 A crash can appear as a disconnect. Log markers are occurrences, not additional distinct game failures; abnormal categories overlap. A completed match is not necessarily a passed audit. Failed or interrupted attempts retain their raw scored results below and must not be silently treated as successful batches.
+
+<details>
+<summary>Match batch coverage, including failed and incomplete attempts</summary>
+
+| Batch | Seed | Recorded totals? | Completed / passed | Raw W–L–D | Complete / incomplete pairs | Runner result |
+| --- | --- | --- | --- | --- | --- | --- |
+| [3-default #1](batches/3-default-0001.txt) | 8474001 | Yes; see retained counts | true / true | 113–107–180 | 200 / 0 | exit 0, signal — |
+
+Raw attempt rows can include excluded work and must not be summed into the completed totals.
+
+</details>
 
 ## Existing tests and limitations
 
@@ -399,6 +410,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2E | TSan self-play, Threads2, Hash16, OwnBookfalse, UseNNUEtrue, MultiPV1, all3 candidates false, depth9,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Complete: 56 games / 8297 searches; TSan Threads2/4; no warnings; original E5 timeout excluded and retry completed |
 | 2F | Supplemental TSan enabled-option self-play, Threads4,Hash16,OwnBookfalse,UseNNUEtrue,MultiPV1,all3 candidates true,depth9/nodes0,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Complete: 1102 ASAN+UBSAN games / 126532 searches plus14 enabled-option TSan games /1886 searches; no chess/runtime diagnostics |
 | 2G | Unchanged t23 mate and rule50 suites, release and ASan+UBSan;40mate-suite cases plus20rule50 cases perbuild | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
+| 3-default | Official fastchess; merged defaults versus lock;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Running |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -876,6 +888,31 @@ This appendix preserves every state total, including overlapping categories and 
 | 2G | rule50_failures | 0 |
 | 2G | sanitizer_reports | 0 |
 | 2G | batches | 1 |
+| 3-default | games | 400 |
+| 3-default | games_started | 400 |
+| 3-default | wins | 113 |
+| 3-default | losses | 107 |
+| 3-default | draws | 180 |
+| 3-default | moves | 54357 |
+| 3-default | complete_pairs | 200 |
+| 3-default | incomplete_pairs | 0 |
+| 3-default | audit_errors | 0 |
+| 3-default | pair_LL | 4 |
+| 3-default | pair_LD | 31 |
+| 3-default | pair_DD_or_WL | 127 |
+| 3-default | pair_DW | 31 |
+| 3-default | pair_WW | 7 |
+| 3-default | illegal_move_events | 0 |
+| 3-default | illegal_move_games | 0 |
+| 3-default | disconnect_games | 0 |
+| 3-default | stall_games | 0 |
+| 3-default | aborted_games | 0 |
+| 3-default | abnormal_terminations | 0 |
+| 3-default | crash_markers | 0 |
+| 3-default | illegal_markers | 0 |
+| 3-default | disconnect_markers | 0 |
+| 3-default | stall_markers | 0 |
+| 3-default | batches | 1 |
 
 </details>
 
