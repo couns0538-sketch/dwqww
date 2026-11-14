@@ -72,3 +72,7 @@ Chunks of 500 sequential openings, two games each, option on named first, stop a
 ### Chunk 0001
 
 Openings 1-500. 1000 games. 00:51:10. Option on first. W-L-D 257-259-484. Elo 95% -0.69 +/- 13.86. LOS 46.08%. Ptnml(0-2) [25, 115, 215, 127, 18]. Points 499.0 (49.90%). Screening measurement only.
+
+### Chunk 0002
+
+Openings 501-1000. 1000 games. 00:44:49. Option on first. W-L-D 259-259-482. Elo 95% -0.00 +/- 13.49. LOS 50.00%. Ptnml(0-2) [21, 113, 231, 115, 20]. Points 500.0 (50.00%). Screening measurement only.
