@@ -1989,7 +1989,7 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     mate_moves_ = mate_moves;
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
-    const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+    int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
     const int multipv = std::clamp(limits.multipv, 1, 8);
     // Overrides stay unset on the MultiPV 1 path, so that info line is unchanged.
     int pv_index = 1;
@@ -2051,12 +2051,46 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     }
 
     // Dispatch and root setup may already have consumed the entire budget.
-    // An empty reserve stops even when elapsed is still 0. Ponder keeps
-    // thinking on the opponent's clock until ponderhit. Helpers are checked
-    // here, before they drop their own limits and follow the main thread.
+    // An empty reserve would otherwise play the first legal move unsearched.
+    // Play the hash move when it is legal. Otherwise search one ply and at
+    // most 2000 nodes; an unfinished ply still falls back to the first legal
+    // move. Ponder keeps thinking on the opponent's clock until ponderhit.
     const bool waiting_to_ponder = pondering_ && shared_.ponder_hit_ns.load(std::memory_order_relaxed) == 0;
-    if (!waiting_to_ponder &&
-        (clock_reserve_empty_ || (hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_))) {
+    bool emergency_ply = false;
+    if (!waiting_to_ponder && clock_reserve_empty_ && !root_candidates.empty()) {
+        Move hashed = Move::none();
+#if FORGE_SPD_TT_NOTLS
+        const TTProbe tt_probe = probe_tt(board.key());
+#else
+        const TTProbe tt_probe = shared_.tt.probe(board.key());
+#endif
+        if (tt_probe.hit && !tt_probe.entry.move.is_none()) {
+            for (const Move candidate : root_candidates) {
+                if (candidate == tt_probe.entry.move) {
+                    hashed = candidate;
+                    break;
+                }
+            }
+        }
+        if (!hashed.is_none()) {
+            result.best_move = hashed;
+            result.depth = 0;
+            result.nodes = 0;
+            result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start_).count());
+            return result;
+        }
+        constexpr std::uint64_t kEmergencyNodes = 2000;
+        clock_reserve_empty_ = false;
+        // Helpers are not running. Their leftover counts must not consume the cap.
+        all_workers_ = nullptr;
+        if (!node_limit_specified_ || node_limit_ > kEmergencyNodes) {
+            node_limit_ = kEmergencyNodes;
+            node_limit_specified_ = true;
+        }
+        max_depth = 1;
+        emergency_ply = true;
+    } else if (!waiting_to_ponder && hard_limit_ms_ > 0 && elapsed_ms() >= hard_limit_ms_) {
         result.best_move = root_candidates.front();
         result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - start_).count());
@@ -2368,6 +2402,11 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     result.seldepth = std::max(result.seldepth, seldepth_);
     result.elapsed_ms = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_).count());
+    if (emergency_ply && result.depth < 1) {
+        result.best_move = root_candidates.front();
+        result.pv.clear();
+        result.ponder_move = Move::none();
+    }
     if (result.best_move.is_none()) result.best_move = root_candidates.front();
     if (emit_info && soft_node_limit_ != 0) {
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
@@ -2414,10 +2453,14 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
         ? std::chrono::steady_clock::now() : supplied_start;
     SearchLimits worker_limits = limits;
     worker_limits.start_time = origin;
+    // An empty clock does not start helpers. Leave them out of the node sum so
+    // a previous search cannot make this one look like it spent their nodes.
+    const bool no_clock_left = !worker_limits.infinite && !worker_limits.ponder && worker_limits.movetime_ms < 0 &&
+                               worker_limits.time_ms >= 0 && clock_plan_for(worker_limits).reserve_empty;
     // Above MultiPV 1 the helpers stay idle. Counting only the main worker
     // keeps node totals on the Threads 1 path (idle workers may hold old counts).
     std::vector<Worker*> all;
-    if (worker_limits.multipv > 1) {
+    if (worker_limits.multipv > 1 || no_clock_left) {
         all.push_back(workers_.front().get());
     } else {
         all.reserve(workers_.size());
@@ -2454,8 +2497,6 @@ SearchInfo Searcher::search(Board board, const SearchLimits& limits, bool emit_i
     // MultiPV above 1 runs only the main thread. Helper threads search one line
     // and would race the excluded-root passes, so this falls back to Threads 1.
     // A clock with nothing left after overhead does not start those threads.
-    const bool no_clock_left = !worker_limits.infinite && !worker_limits.ponder && worker_limits.movetime_ms < 0 &&
-                               worker_limits.time_ms >= 0 && clock_plan_for(worker_limits).reserve_empty;
     if (worker_limits.multipv <= 1 && !no_clock_left) {
         for (std::size_t i = 1; i < workers_.size(); ++i) {
             helpers.emplace_back([this, i, board, &worker_limits, &all]() {
