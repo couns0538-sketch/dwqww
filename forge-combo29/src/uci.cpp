@@ -374,6 +374,9 @@ int main() {
                     std::cout << "bestmove " << best << prediction << std::endl;
                 });
             }
+        } else if (command == "eval") {
+            const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
+            std::cout << forge::eval_report(board) << std::endl;
         } else if (command == "bench") {
             // Fixed-depth search over a small position set; prints a node
             // signature and speed for quick regression and performance checks.

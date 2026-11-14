@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdlib>
 #include <limits>
+#include <string>
 
 namespace forge {
 namespace {
@@ -481,6 +482,18 @@ int Evaluator::evaluate(const Board& board) {
 
 int Evaluator::evaluate_uncached(const Board& board) {
     return evaluate_position<false>(board, nullptr, nullptr);
+}
+
+std::string eval_report(const Board& board) {
+    const int hce = Evaluator::evaluate_uncached(board);
+    if (!nnue::enabled || !nnue::available()) {
+        return "info string eval hce " + std::to_string(hce) + " nnue off sum " + std::to_string(hce);
+    }
+    nnue::Accumulator accumulator;
+    nnue::refresh(board, accumulator);
+    const int network = nnue::evaluate(board, accumulator);
+    return "info string eval hce " + std::to_string(hce) + " nnue " + std::to_string(network) +
+           " sum " + std::to_string(hce + network);
 }
 
 Evaluator::RuntimePsqt Evaluator::refresh_runtime_psqt(const Board& board) {
