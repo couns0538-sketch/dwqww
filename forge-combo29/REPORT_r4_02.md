@@ -27,6 +27,7 @@ grok47/r3-06-null-threat-verify d6b4c7356072 0 verification error: invalid liter
 grok47/r3-08-asp-capped-reopen dc2e25b54d7c 20 identical
 grok47/r3-09-asp-arm-late a6cb38efffbc 200 identical
 grok47/r3-10-evasion-ordering a2392f49dc81 200 identical
+grok47/r3-11-dead-material e1acd7b14870 200 identical
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
 
@@ -115,6 +116,12 @@ engine source sha256:
 engine binary sha256: 6f48bb76b29f86e76a04dca9818af799a210db4ce0f4eede72488fad18fd524b
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/a2392f49dc81fbdb6db73213a0a500c472e7ab16-37997d042e39/forge name=EvasionOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.EvasionOrdering=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/a2392f49dc81fbdb6db73213a0a500c472e7ab16-37997d042e39/forge name=EvasionOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.EvasionOrdering=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-10-evasion-ordering/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-10-evasion-ordering/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
+grok47/r3-11-dead-material e1acd7b14870 kind nodes pgn forge-combo29/tests_r3fu_11/screen/chunk-001.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: 17f1d2d682b300f7d0d8263a1aabc1c63126eb957d08a25fe7b5525dd4f5560d
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOn restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e1acd7b148707c6c52e2e023c7846bf16b7113e5-37997d042e39/forge name=DeadMaterialOff restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.DeadMaterial=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-11-dead-material/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
 grok47/r3-21-mate-score-tt af1c998304db kind nodes pgn forge-combo29/tests_r3fu_21/chunk1.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
 engine source sha256: af1c998304db:2cb78b8c476020dda94a09873fc523bd61352cb7b89c5a6b50e698c2dec33f60 e04556ddc3a4:b0949c1ea74050643e14972b9d27b8d62aa568466e0e28e78587efa2c0060e16
@@ -130,7 +137,6 @@ fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/h
 ## Still open
 
 grok47/r3-07-null-see-veto dd4c65ee8 2026-11-14 17:41:10 +0000 Record the fastchess command for the remaining screen chunks.
-grok47/r3-11-dead-material b27a351b7 2026-11-14 17:23:14 +0000 Add UHO screen chunk 004.
 grok47/r3-12-soft-nodes 6d8717d28 2026-11-14 15:53:19 +0000 Record the 10000-position nodes and softnodes label totals
 grok47/r3-13-quiet-extinction 662caa22f 2026-11-14 17:38:07 +0000 Record UHO screen chunks 9 through 11.
 grok47/r3-14-draw-jitter 507374704 2026-11-14 17:44:08 +0000 Finish UHO chunk 4 for DrawJitter 8 against 0.
@@ -146,5 +152,5 @@ grok47/r4-03-screen-lds e34f64473 2026-11-14 17:45:56 +0000 r4-03: heartbeat scr
 grok47/r4-04-screen-ch4 881e2cc8c 2026-11-14 17:42:33 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc 4389a6616 2026-11-14 17:38:14 +0000 r4-05: NonPawnCorrection screen chunk 004 (1501-2000)
 
-Last check: 2026-11-14T18:09:41Z
+Last check: 2026-11-14T18:13:21Z
 Deadline: 2026-11-15T01:52:00Z
