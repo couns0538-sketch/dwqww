@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 
 namespace forge::nnue {
 
@@ -61,6 +62,12 @@ struct DirtyPieces {
 
 // Whether a network is compiled into this binary.
 [[nodiscard]] bool available();
+// Load a FORGENET v1 file of this build's shape (magic, version 1, hidden size,
+// then little-endian int16 W1, B1, W2, and one B2). A rejected file leaves the
+// active net unchanged and writes the reason into `error`.
+[[nodiscard]] bool load_file(const std::string& path, std::string& error);
+// Copy the compiled-in network back into the active table.
+void use_compiled();
 // Whether the compiled-in network is a residual correction that the engine
 // adds to the hand-crafted evaluation (false when no network is compiled in).
 [[nodiscard]] bool residual();
