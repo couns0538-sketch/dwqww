@@ -467,4 +467,8 @@ private:
     std::vector<std::unique_ptr<Worker>> workers_;
 };
 
+// Updates DrawJitter. A changed value drops that searcher's hash, so scores
+// stored under the previous width are not reused. An unchanged value does not.
+void set_draw_jitter(int value, Searcher& searcher);
+
 } // namespace forge

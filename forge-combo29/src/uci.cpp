@@ -322,7 +322,7 @@ int uci_loop(std::istream& in) {
             } else if (name == "Move Overhead") {
                 apply_spin(0, 1000, [&](int clamped) { move_overhead_ms = clamped; });
             } else if (name == "DrawJitter") {
-                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::DrawJitter = clamped; });
+                apply_spin(0, forge::DrawJitterMax, [&](int clamped) { forge::set_draw_jitter(clamped, searcher); });
             } else {
                 const std::lock_guard<std::mutex> output_lock(forge::uci_output_mutex());
                 std::cout << "info string unknown option " << name << std::endl;
