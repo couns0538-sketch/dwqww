@@ -4,3 +4,4 @@
 2026-11-14T11:22:04.688Z | 10.54 min | Part 1 | merged defaults | release + ASan/UBSan builds; three required pins | builds 2, pins 3/3 | tests pending | engine faults 0 observed; inherited report whitespace recorded
 2026-11-14T11:31:04.917Z | 19.55 min | Part 1 | checkpoint | completed evidence staged for integrate/combo29-all | 40 existing-test results | 0 fault files
 2026-11-14T11:43:38.993Z | 32.12 min | Part 1 | checkpoint | completed evidence staged for integrate/combo29-all | 56 existing-test results | 0 fault files
+2026-11-14T11:50:52.342Z | 39.34 min | Part 1 | checkpoint | completed evidence staged for integrate/combo29-all | 58 existing-test results | 1 fault files

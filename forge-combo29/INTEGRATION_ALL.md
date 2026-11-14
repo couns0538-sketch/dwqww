@@ -20,7 +20,11 @@ The t23 merge applied cleanly. The t22 UCI conflict keeps the existing `note_inv
 
 Release and ASan/UBSan CMake builds completed with GCC 14.2, x86-64-v4, the original AVX-512/BMI2 definitions and strict floating-point flags. Default release checks, Threads 1 / Hash 16 / OwnBook false: bench 11 **312866**, bench 13 **862329**, startpos perft 5 **4865609**. All three new options were left at their advertised false defaults.
 
-The complete test-folder matrix is in progress; no all-tests-pass claim is made yet. Existing t12/t22 report files retain their source trailing spaces. The global whitespace check reported those inherited lines; source/include/test checks passed.
+Release, ASan/UBSan and TSan engine builds completed. The 20 C++ test/helper entry points across all 16 existing test folders were built in release and ASan/UBSan configurations. Test assertions were enabled with `-UNDEBUG`; engine objects retain their original strict floating-point and ISA definitions. The widened-net parity test uses the checked-in 512-wide net and its original namespace isolation. Build commands and outputs are retained in `soak_all/preparation/`.
+
+The [test matrix](soak_all/TEST_MATRIX.md) records every run and nonzero exit. The unchanged t16 options/clamp expected-output fixtures omit five currently advertised options: MultiPV, NnueFile, ContHist4PlyRead, NonPawnCorrection and LmrDeeperShallower. Exact comparisons therefore fail in both builds; expected files were not changed. The engine invocations, search/OwnBook protocol checkers, candidate-option suite, 200,000-line UCI fuzz tests and t23 mate/rule-50 tests pass without sanitizer diagnostics. The full release KRK test reports 0/100 single-thread misses and 0/400 two-thread misses. Its full ASan/UBSan attempt hit the 440-second test deadline while other sanitizer tests were running; that incomplete attempt is preserved and is not counted as a passing run. A smaller bounded retry and final fixture classification are in progress.
+
+Existing t12/t22 report files retain their source trailing spaces. The global whitespace check reported those inherited lines; source/include/test checks passed.
 
 Only `integrate/combo29-all` and `soak/combo29-all` are authorized push destinations. The preceding `soak/combo29-fixes` branch/worktree is untouched after this task began. Its last completed in-flight batch remains there without another commit or push.
 

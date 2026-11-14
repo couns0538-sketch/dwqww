@@ -1,4 +1,6 @@
 // Part 2 C: cold depth-9 comparisons over a fixed, ordered FEN corpus.
+// Every engine run starts a fresh process, sends ucinewgame, and observes quit,
+// both output EOFs, and process status before the position can be committed.
 // --offset and --limit count nonblank, noncomment input records, including
 // explicitly recorded exclusions. --seed identifies the corpus/run; this
 // driver never shuffles it. --out names an append-only JSONL file. Evidence
@@ -96,13 +98,23 @@ struct Run {
     std::optional<UciResult> result;
     std::string error, trace;
     unsigned illegal = 0, missing = 0, missing_info = 0, wrong_depth = 0, diagnostics = 0, transport = 0;
-    bool issue() const { return illegal || missing || missing_info || wrong_depth || diagnostics || transport; }
+    bool shutdown_observed = false;
+    UciShutdownResult shutdown;
+    unsigned crashes = 0, nonzero_exits = 0, shutdown_timeouts = 0;
+    bool issue() const { return illegal || missing || missing_info || wrong_depth || diagnostics || transport ||
+                               crashes || nonzero_exits || shutdown_timeouts; }
     std::string json() const {
         return "{\"attempted\":" + boolean(attempted) + ",\"budget_interrupted\":" + boolean(budget) +
             ",\"result\":" + (result ? result_json(*result) : "null") + ",\"error\":" + quote(error) +
             ",\"illegal\":" + std::to_string(illegal) + ",\"missing\":" + std::to_string(missing) +
             ",\"missing_info\":" + std::to_string(missing_info) + ",\"wrong_depth\":" + std::to_string(wrong_depth) +
-            ",\"sanitizer_issues\":" + std::to_string(diagnostics) + ",\"transport_issues\":" + std::to_string(transport) + "}";
+            ",\"sanitizer_issues\":" + std::to_string(diagnostics) + ",\"transport_issues\":" + std::to_string(transport) +
+            ",\"crashes\":" + std::to_string(crashes) + ",\"nonzero_exits\":" + std::to_string(nonzero_exits) +
+            ",\"shutdown_timeouts\":" + std::to_string(shutdown_timeouts) +
+            ",\"shutdown\":{\"observed\":" + boolean(shutdown_observed) + ",\"reaped\":" + boolean(shutdown.reaped) +
+            ",\"exit_code\":" + std::to_string(shutdown.exit_code) + ",\"signal\":" + std::to_string(shutdown.signal) +
+            ",\"timed_out\":" + boolean(shutdown.timed_out) + ",\"driver_sigterm\":" + boolean(shutdown.driver_sigterm) +
+            ",\"driver_sigkill\":" + boolean(shutdown.driver_sigkill) + ",\"error\":" + quote(shutdown.error) + "}}";
     }
 };
 struct Engine {
@@ -118,21 +130,25 @@ Run search(Engine& engine, const std::string& fen, const std::vector<std::string
     Run run;
     if (!timeout_ms(deadline)) { run.budget = true; return run; }
     run.attempted = true;
+    // Bound startup plus search together. Eleven failed pairs therefore fit
+    // into a fresh 420-second batch instead of forever restarting at one FEN.
+    const auto run_deadline = std::min(deadline, Clock::now() + std::chrono::seconds(15));
     std::size_t trace_start = 0;
-    bool began_search = false;
+    bool began_search = false, new_process = false;
     try {
         if (!engine.process) {
-            engine.process = std::make_unique<UciProcess>(engine.path, 1, timeout_ms(deadline));
+            engine.process = std::make_unique<UciProcess>(engine.path, 1, timeout_ms(run_deadline));
             engine.startup = engine.process->transcript();
+            new_process = true;
         }
         trace_start = engine.process->transcript().size();
-        if (!timeout_ms(deadline)) {
-            run.budget = true; run.trace = engine.startup; return run;
+        if (!timeout_ms(run_deadline)) {
+            throw std::runtime_error("engine response timeout before search");
         }
         began_search = true;
-        run.result = engine.process->search(fen, SearchDepth, timeout_ms(deadline), true);
+        run.result = engine.process->search(fen, SearchDepth, timeout_ms(run_deadline), true);
         run.trace = engine.startup + run.result->transcript;
-        run.diagnostics = sanitizer(engine.startup + run.result->stderr_output) ? 1 : 0;
+        run.diagnostics = sanitizer((new_process ? engine.startup : "") + run.result->stderr_output) ? 1 : 0;
         if (run.result->move.empty() || run.result->move == "0000" || run.result->move == "(none)") run.missing = 1;
         else if (std::find(legal.begin(), legal.end(), run.result->move) == legal.end()) run.illegal = 1;
         if (run.result->depth != SearchDepth) run.wrong_depth = 1;
@@ -147,6 +163,20 @@ Run search(Engine& engine, const std::string& fen, const std::vector<std::string
             run.transport = 1;
             run.missing_info = run.error.find("completed score info") != std::string::npos ? 1 : 0;
             run.missing = run.missing_info ? 0 : 1;
+        }
+    }
+    if (engine.process) {
+        const int remaining = timeout_ms(deadline);
+        run.shutdown = engine.process->finish(std::max(1, std::min(250, remaining)));
+        run.shutdown_observed = true;
+        run.trace += run.shutdown.transcript;
+        if (sanitizer(run.shutdown.stderr_output)) run.diagnostics = 1;
+        if (run.shutdown.timed_out && remaining < 250 && !timeout_ms(deadline)) run.budget = true;
+        if (!run.budget) {
+            run.crashes = run.shutdown.signal != 0 && !run.shutdown.driver_sigterm && !run.shutdown.driver_sigkill;
+            run.nonzero_exits = run.shutdown.exit_code > 0;
+            run.shutdown_timeouts = run.shutdown.timed_out;
+            if (!run.shutdown.reaped || !run.shutdown.error.empty()) run.transport = 1;
         }
         engine.process.reset();
     }
@@ -179,10 +209,12 @@ struct Counters {
     std::uint64_t records = 0, positions = 0, low = 0, high = 0, diff_low = 0, diff_high = 0, faults = 0;
     std::uint64_t excluded = 0, no_legal = 0, insufficient = 0, rule50 = 0, invalid = 0;
     std::uint64_t searches = 0, illegal = 0, missing = 0, missing_info = 0, wrong_depth = 0, diagnostics = 0, transport = 0;
+    std::uint64_t crashes = 0, nonzero_exits = 0, shutdown_timeouts = 0;
     std::uint64_t repro_pairs = 0, repro_differences = 0, repro_faults = 0;
     void account(const Run& run) {
         searches += run.attempted; illegal += run.illegal; missing += run.missing; missing_info += run.missing_info;
         wrong_depth += run.wrong_depth; diagnostics += run.diagnostics; transport += run.transport;
+        crashes += run.crashes; nonzero_exits += run.nonzero_exits; shutdown_timeouts += run.shutdown_timeouts;
     }
     void account(const Pair& pair) { account(pair.merged); account(pair.lock); }
     std::string json_fields() const {
@@ -195,7 +227,9 @@ struct Counters {
             ",\"engine_runs\":" + std::to_string(searches) + ",\"illegal\":" + std::to_string(illegal) +
             ",\"missing\":" + std::to_string(missing) + ",\"missing_info\":" + std::to_string(missing_info) +
             ",\"wrong_depth\":" + std::to_string(wrong_depth) + ",\"sanitizer_issues\":" + std::to_string(diagnostics) +
-            ",\"transport_issues\":" + std::to_string(transport) + ",\"reproduction_pairs\":" + std::to_string(repro_pairs) +
+            ",\"transport_issues\":" + std::to_string(transport) + ",\"crashes\":" + std::to_string(crashes) +
+            ",\"nonzero_exits\":" + std::to_string(nonzero_exits) + ",\"shutdown_timeouts\":" + std::to_string(shutdown_timeouts) +
+            ",\"reproduction_pairs\":" + std::to_string(repro_pairs) +
             ",\"reproduction_differences\":" + std::to_string(repro_differences) + ",\"reproduction_fault_pairs\":" + std::to_string(repro_faults);
     }
 };
@@ -220,7 +254,8 @@ int execute(const Config& config) {
         ",\"limit\":" + std::to_string(config.limit) + ",\"seconds\":" + std::to_string(config.seconds) +
         ",\"seed\":" + std::to_string(config.seed) + ",\"seed_role\":\"metadata_no_shuffle\",\"depth\":9,"
         "\"offset_unit\":\"nonblank_noncomment_input_records_including_exclusions\","
-        "\"cold_state\":\"ucinewgame_before_every_search\",\"reproductions_use_new_processes\":true,"
+        "\"cold_state\":\"fresh_process_and_ucinewgame_before_every_search\",\"observed_shutdown\":true,"
+        "\"startup_and_search_timeout_ms\":15000,\"reproductions_use_new_processes\":true,"
         "\"equality_fields\":[\"bestmove\",\"score_kind\",\"score\",\"nodes\",\"bound\"],\"options\":" + Options + "}";
     output << setup << '\n'; output.flush(); details << "CONFIG " << setup << '\n'; details.flush();
     std::cout << "CONFIG " << setup << std::endl;

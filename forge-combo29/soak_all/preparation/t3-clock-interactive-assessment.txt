@@ -1,0 +1,45 @@
+Interactive t3 clock fixture assessment
+
+Both builds completed all 7 cases: release 7/7, ASan+UBSan 7/7.
+Both engine processes exited 0; both stderr streams were empty.
+Options: Threads 1, Hash 16, OwnBook false, Move Overhead 10;
+all new options left at their advertised defaults.
+
+Final wall observations from go submission to received bestmove (milliseconds):
+case                  release       ASan+UBSan
+wide white clock      151.938161    154.599273
+movetime +80           70.684650     76.959316
+movetime -5             1.228076      1.798210
+movetime abc            1.628068      1.212734
+movetime +-80           1.273003      1.719804
+overflow with junk      1.127698      1.986368
+wide black clock      151.282853    156.019413
+
+Both wide-clock cases remained active until explicitly stopped after >=150ms.
+Stop submission times: release white151.013644/black150.783494ms;
+ASan white150.178024/black150.900271ms. These are observed wall timings,
+not proof of exact millisecond scheduling or a speed comparison.
+
+The controller treated +80 as nonzero using a documented 30..1000ms wall
+observation guard, and negative/malformed values using a <1000ms scheduling
+guard. The actual values above are retained so the loose guard is not confused
+with an exact timing guarantee. Every case returned a syntactically valid,
+non-null UCI move; this clock-specific controller does not independently prove
+move legality.
+
+The first attempt's Node150ms callback fired at149.927551ms for one ASan case.
+That controller-boundary issue was preserved, then the complete fixture was
+repeated with a monotonic >=150ms timer. Use the files containing "-final"
+for the accepted observations. No engine or existing test file was changed.
+
+Full scratch-controller source, actual command, and all observed output:
+t3-clock-interactive-final-command.txt
+
+Separate byte-preserving input, stdout, stderr, timed event records and summary:
+release-t3-clock-interactive-final.{stdin.txt,stdout.txt,stderr.txt,events.jsonl}
+release-t3-clock-interactive-final-summary.json
+asan-t3-clock-interactive-final.{stdin.txt,stdout.txt,stderr.txt,events.jsonl}
+asan-t3-clock-interactive-final-summary.json
+
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1

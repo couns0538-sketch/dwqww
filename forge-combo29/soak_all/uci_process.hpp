@@ -32,6 +32,12 @@ struct UciResult {
     }
 };
 
+struct UciShutdownResult {
+    bool reaped = false, timed_out = false, driver_sigterm = false, driver_sigkill = false;
+    int exit_code = -1, signal = 0;
+    std::string transcript, stderr_output, error;
+};
+
 class UciProcess {
     using Clock = std::chrono::steady_clock;
     using Deadline = Clock::time_point;
@@ -39,6 +45,9 @@ class UciProcess {
     int input_ = -1, output_ = -1, error_ = -1;
     bool output_eof_ = false, error_eof_ = false;
     std::string pending_, pending_error_, trace_, stderr_;
+    bool have_child_status_ = false, finished_ = false;
+    int child_status_ = 0;
+    UciShutdownResult final_status_;
 
     static Deadline deadline(int timeout_ms) {
         return Clock::now() + std::chrono::milliseconds(std::max(1, timeout_ms));
@@ -80,8 +89,21 @@ class UciProcess {
             pending_error_.clear();
         }
     }
+    void emit_output_lines(bool flush_tail = false) {
+        std::size_t end = 0;
+        while ((end = pending_.find('\n')) != std::string::npos) {
+            trace_ += "< stdout " + pending_.substr(0, end + 1);
+            pending_.erase(0, end + 1);
+        }
+        if (flush_tail && !pending_.empty()) {
+            trace_ += "< stdout " + pending_;
+            trace_ += "\n! transport stdout ended without newline\n";
+            pending_.clear();
+        }
+    }
     void read_available(int fd, bool is_error) {
         char buffer[8192];
+        std::size_t received = 0;
         for (;;) {
             const ssize_t size = read(fd, buffer, sizeof(buffer));
             if (size > 0) {
@@ -92,6 +114,10 @@ class UciProcess {
                 } else {
                     pending_.append(buffer, static_cast<std::size_t>(size));
                 }
+                // Return to the deadline-aware caller even if a runaway child
+                // writes continuously; one readable pipe cannot monopolize it.
+                received += static_cast<std::size_t>(size);
+                if (received >= 65536) return;
                 continue;
             }
             if (size == 0) {
@@ -126,6 +152,7 @@ class UciProcess {
     }
     std::string line_until(Deadline end) {
         for (;;) {
+            if (remaining(end) == 0) fail("engine response timeout");
             const auto split = pending_.find('\n');
             if (split != std::string::npos) {
                 const std::string raw = pending_.substr(0, split + 1);
@@ -146,6 +173,8 @@ class UciProcess {
                 const pid_t reaped = waitpid(child_, &status, WNOHANG);
                 std::string detail = "engine disconnected";
                 if (reaped == child_) {
+                    child_status_ = status;
+                    have_child_status_ = true;
                     child_ = -1;
                     if (WIFSIGNALED(status)) detail += " signal=" + std::to_string(WTERMSIG(status));
                     else if (WIFEXITED(status)) detail += " exit=" + std::to_string(WEXITSTATUS(status));
@@ -190,30 +219,16 @@ class UciProcess {
         until_deadline("readyok", end);
     }
     void shutdown() noexcept {
-        if (child_ > 0) {
-            try { send_until("quit", deadline(100)); } catch (...) {}
-        }
-        close_fd(input_);
-        if (child_ > 0) {
-            int status = 0;
-            const auto end = deadline(250);
-            while (remaining(end) > 0) {
-                const pid_t got = waitpid(child_, &status, WNOHANG);
-                if (got == child_ || (got < 0 && errno == ECHILD)) {
-                    child_ = -1;
-                    break;
-                }
-                if (got < 0 && errno != EINTR) break;
-                poll(nullptr, 0, std::min(10, remaining(end)));
-            }
+        try { (void)finish(250); }
+        catch (...) {
+            close_fd(input_); close_fd(output_); close_fd(error_);
             if (child_ > 0) {
                 kill(child_, SIGKILL);
-                while (waitpid(child_, &status, 0) < 0 && errno == EINTR) {}
+                int status = 0;
+                (void)waitpid(child_, &status, WNOHANG);
                 child_ = -1;
             }
         }
-        close_fd(output_);
-        close_fd(error_);
     }
     static bool move_text(const std::string& move) {
         return (move.size() == 4 || move.size() == 5) &&
@@ -262,6 +277,10 @@ public:
             send_until("setoption name Hash value 16", end);
             send_until("setoption name OwnBook value false", end);
             ready_until(end);
+        } catch (const std::exception& caught) {
+            const std::string original = caught.what();
+            shutdown();
+            throw std::runtime_error(original + "\n! observed startup shutdown\n" + final_status_.transcript);
         } catch (...) {
             shutdown();
             throw;
@@ -273,6 +292,101 @@ public:
 
     const std::string& transcript() const { return trace_; }
     const std::string& stderr_output() const { return stderr_; }
+    // Explicitly observe quit, pipe EOF, and process status. The entire method
+    // is bounded by timeout_ms; its final 40% is reserved for SIGTERM/SIGKILL
+    // escalation. Driver-initiated signals are reported separately from an
+    // unsolicited engine crash. Calling it again returns the recorded result.
+    UciShutdownResult finish(int timeout_ms = 250) {
+        if (finished_) return final_status_;
+        const std::size_t begin_trace = trace_.size(), begin_error = stderr_.size();
+        const auto started = Clock::now();
+        const int budget = std::max(1, timeout_ms);
+        const auto end = started + std::chrono::milliseconds(budget);
+        const auto graceful_end = started + std::chrono::milliseconds(budget * 3 / 5);
+        const auto terminate_end = started + std::chrono::milliseconds(budget * 4 / 5);
+        UciShutdownResult result;
+        auto error = [&](const std::string& message) {
+            if (!result.error.empty()) result.error += "; ";
+            result.error += message.substr(0, message.find('\n'));
+        };
+        auto reap = [&] {
+            if (child_ <= 0) return;
+            int status = 0;
+            const pid_t got = waitpid(child_, &status, WNOHANG);
+            if (got == child_) {
+                child_status_ = status; have_child_status_ = true; child_ = -1;
+            } else if (got < 0 && errno != EINTR) {
+                error(std::string("shutdown waitpid failed: ") + std::strerror(errno));
+                if (errno == ECHILD) child_ = -1;
+            }
+        };
+        auto drain = [&] {
+            try {
+                if (error_ >= 0 && !error_eof_) read_available(error_, true);
+                if (output_ >= 0 && !output_eof_) read_available(output_, false);
+                emit_output_lines(output_eof_);
+                emit_error_lines(error_eof_);
+            } catch (const std::exception& caught) { error(caught.what()); }
+            reap();
+        };
+        auto observe_until = [&](Deadline until) {
+            for (;;) {
+                drain();
+                if (child_ <= 0 && output_eof_ && error_eof_) return;
+                const int left = remaining(until);
+                if (!left) return;
+                pollfd descriptors[2] = {
+                    {output_eof_ ? -1 : output_, POLLIN, 0},
+                    {error_eof_ ? -1 : error_, POLLIN, 0},
+                };
+                const int polled = poll(descriptors, 2, std::min(10, left));
+                if (polled < 0 && errno != EINTR) {
+                    error(std::string("shutdown poll failed: ") + std::strerror(errno)); return;
+                }
+            }
+        };
+        if (child_ > 0 && input_ >= 0) {
+            try { send_until("quit", graceful_end); }
+            catch (const std::exception& caught) { error(caught.what()); }
+        }
+        close_fd(input_);
+        observe_until(graceful_end);
+        if (child_ > 0 || !output_eof_ || !error_eof_) {
+            result.timed_out = true;
+            if (child_ > 0) result.driver_sigterm = kill(child_, SIGTERM) == 0;
+            observe_until(terminate_end);
+        }
+        if (child_ > 0 || !output_eof_ || !error_eof_) {
+            if (child_ > 0) result.driver_sigkill = kill(child_, SIGKILL) == 0;
+            observe_until(end);
+        }
+        drain();
+        emit_output_lines(true); emit_error_lines(true);
+        if (child_ > 0) {
+            result.timed_out = true;
+            if (!result.driver_sigkill) result.driver_sigkill = kill(child_, SIGKILL) == 0;
+            reap();
+            if (child_ > 0) {
+                error("child exit status unavailable at shutdown deadline");
+                child_ = -1;
+            }
+        }
+        close_fd(output_); close_fd(error_);
+        result.reaped = have_child_status_;
+        if (have_child_status_) {
+            if (WIFEXITED(child_status_)) result.exit_code = WEXITSTATUS(child_status_);
+            if (WIFSIGNALED(child_status_)) result.signal = WTERMSIG(child_status_);
+        }
+        trace_ += "! shutdown reaped=" + std::to_string(result.reaped) +
+            " exit=" + std::to_string(result.exit_code) + " signal=" + std::to_string(result.signal) +
+            " timed_out=" + std::to_string(result.timed_out) +
+            " driver_sigterm=" + std::to_string(result.driver_sigterm) +
+            " driver_sigkill=" + std::to_string(result.driver_sigkill) + "\n";
+        result.transcript = trace_.substr(begin_trace);
+        result.stderr_output = stderr_.substr(begin_error);
+        final_status_ = result; finished_ = true;
+        return final_status_;
+    }
     void send(const std::string& command, int timeout_ms = 30000) { send_until(command, deadline(timeout_ms)); }
     std::string line(int timeout_ms = 30000) { return line_until(deadline(timeout_ms)); }
     void until(const std::string& expected, int timeout_ms = 30000) { until_deadline(expected, deadline(timeout_ms)); }

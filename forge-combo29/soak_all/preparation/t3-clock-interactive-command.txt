@@ -1,0 +1,242 @@
++ cat /workspace/work/all-run/clock-cases.mjs
+import fs from 'node:fs';
+import {spawn} from 'node:child_process';
+const dir='/workspace/work/dwqww-all/forge-combo29/soak_all/preparation';
+const builds=[['release','/workspace/work/all-run/builds/release/forge'],['asan','/workspace/work/all-run/builds/asan/forge']];
+for(const [label,path] of builds){
+ const start=process.hrtime.bigint(), now=()=>Number(process.hrtime.bigint()-start)/1e6;
+ const events=[], cases=[]; let stdout='',stderr='',pending='',input='',queue=[],waiters=[],exited=false;
+ const p=spawn(path,[],{env:{...process.env,ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'},stdio:['pipe','pipe','pipe']});
+ let resolveExit; const exit=new Promise(r=>resolveExit=r);
+ const event=(type,data)=>{const e={ms:now(),type,data}; events.push(e); process.stdout.write(JSON.stringify({build:label,...e})+'\n');};
+ p.on('error',e=>event('spawn_error',String(e)));
+ p.on('exit',(code,signal)=>{exited=true;event('exit',{code,signal});resolveExit({code,signal});});
+ p.stdout.on('data',buf=>{const text=buf.toString();stdout+=text;pending+=text;event('stdout_chunk',text);let n;while((n=pending.indexOf('\n'))>=0){const line=pending.slice(0,n).replace(/\r$/,'');pending=pending.slice(n+1);queue.push({line,ms:now()});}while(waiters.length&&queue.length)waiters.shift()(queue.shift());});
+ p.stderr.on('data',buf=>{const text=buf.toString();stderr+=text;event('stderr_chunk',text);});
+ const send=text=>{input+=text+'\n';event('stdin',text+'\n');p.stdin.write(text+'\n');};
+ const line=(timeout=10000)=>new Promise((resolve,reject)=>{if(queue.length)return resolve(queue.shift());if(exited)return reject(Error('engine already exited'));const deliver=v=>{clearTimeout(timer);resolve(v);};const timer=setTimeout(()=>{const i=waiters.indexOf(deliver);if(i>=0)waiters.splice(i,1);reject(Error('response timeout'));},timeout);waiters.push(deliver);});
+ const until=async(prefix,timeout=10000)=>{const end=Date.now()+timeout;for(;;){const v=await line(Math.max(1,end-Date.now()));if(v.line.startsWith(prefix))return v;}};
+ try{
+  event('exec',{path,env:{ASAN_OPTIONS:'detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS:'halt_on_error=1:print_stacktrace=1'}});
+  send('uci');await until('uciok');for(const text of ['setoption name Threads value 1','setoption name Hash value 16','setoption name OwnBook value false','setoption name Move Overhead value 10'])send(text);send('isready');await until('readyok');
+  const definitions=[['wide_white','position startpos','go wtime 3000000000 btime 3000000000',true],['plus80','position startpos','go movetime +80',false],['negative5','position startpos','go movetime -5',false],['invalid_abc',null,'go movetime abc',false],['double_sign',null,'go movetime +-80',false],['overflow_junk',null,'go movetime 999999999999999999999abc',false],['wide_black','position startpos moves e2e4','go wtime 1 btime 3000000000',true]];
+  for(const [name,position,go,wide] of definitions){
+   if(position)send(position);send('isready');await until('readyok');const begin=now();send(go);let best,live150=null,stopMs=null;
+   const got=until('bestmove ',10000);
+   if(wide){const sentinel=Symbol();const first=await Promise.race([got,new Promise(r=>setTimeout(()=>r(sentinel),150))]);live150=first===sentinel;if(live150){stopMs=now()-begin;send('stop');best=await got;}else best=first;}
+   else best=await got;
+   const wall=best.ms-begin;const format=/^bestmove [a-h][1-8][a-h][1-8][qrbn]?(?: |$)/.test(best.line);
+   const pass=format&&(wide?live150:name==='plus80'?wall>=30&&wall<1000:wall<1000);
+   const result={name,position,go,wall_ms:wall,still_running_at_150ms:live150,stop_sent_ms:stopMs,bestmove:best.line,pass,timing_interpretation:wide?'must remain active through150ms':name==='plus80'?'expected hard budget70ms;30..1000ms observation guard':'expected hard budget1ms; wall observed, generous1000ms scheduling guard'};cases.push(result);event('case',result);
+  }
+  send('quit');p.stdin.end();const done=await Promise.race([exit,new Promise((_,reject)=>setTimeout(()=>reject(Error('quit timeout')),3000))]);
+  const sanitizer=/AddressSanitizer|UndefinedBehaviorSanitizer|runtime error:|ThreadSanitizer|LeakSanitizer/.test(stderr);
+  const summary={build:label,cases:cases.length,passed:cases.filter(c=>c.pass).length,sanitizer_report:sanitizer,exit:done,all_pass:cases.length===7&&cases.every(c=>c.pass)&&!sanitizer&&done.code===0};event('SUMMARY',summary);fs.writeFileSync(dir+'/'+label+'-t3-clock-interactive-summary.json',JSON.stringify(summary,null,2)+'\n');
+ }catch(error){event('controller_error',String(error));p.kill('SIGKILL');await exit;process.exitCode=1;}
+ finally{fs.writeFileSync(dir+'/'+label+'-t3-clock-interactive.stdout.txt',stdout);fs.writeFileSync(dir+'/'+label+'-t3-clock-interactive.stderr.txt',stderr);fs.writeFileSync(dir+'/'+label+'-t3-clock-interactive.stdin.txt',input);fs.writeFileSync(dir+'/'+label+'-t3-clock-interactive.events.jsonl',events.map(e=>JSON.stringify(e)).join('\n')+'\n');}
+}
++ node /workspace/work/all-run/clock-cases.mjs
+{"build":"release","ms":4.749019,"type":"exec","data":{"path":"/workspace/work/all-run/builds/release/forge","env":{"ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"}}}
+{"build":"release","ms":5.365668,"type":"stdin","data":"uci\n"}
+{"build":"release","ms":106.170374,"type":"stdout_chunk","data":"id name Chess Engine Forge 6.4.24 candidate\nid author OpenAI\noption name Hash type spin default 32 min 1 max 2048\noption name Threads type spin default 1 min 1 max 256\noption name MultiPV type spin default 1 min 1 max 8\noption name Move Overhead type spin default 10 min 0 max 1000\noption name Ponder type check default false\noption name OwnBook type check default true\noption name Book File type string default <empty>\noption name Book Depth type spin default 30 min 0 max 100\noption name Book Variety type spin default 30 min 0 max 100\noption name UseNNUE type check default true\noption name NnueFile type string default <empty>\noption name ContHist4PlyRead type check default false\noption name NonPawnCorrection type check default false\noption name LmrDeeperShallower type check default false\noption name LmrQuietBase type spin default 85 min 0 max 300\noption name LmrQuietDivisor type spin default 220 min 100 max 500\noption name LmrNoisyBase type spin default 10 min 0 max 300\noption name LmrNoisyDivisor type spin default 340 min 100 max 800\noption name NullMoveMinDepth type spin default 3 min 1 max 10\noption name NullMoveBase type spin default 3 min 1 max 6\noption name NullMoveDepthDivisor type spin default 3 min 1 max 10\noption name NullMoveEvalDivisor type spin default 200 min 50 max 1000\noption name RfpDepth type spin default 8 min 0 max 15\noption name RfpMargin type spin default 72 min 10 max 300\noption name RfpImproving type spin default 40 min 0 max 200\noption name RazorDepth type spin default 2 min 0 max 6\noption name RazorBase type spin default 150 min 0 max 1000\noption name RazorMultiplier type spin default 350 min 0 max 1000\noption name FutilityDepth type spin default 7 min 0 max 15\noption name FutilityBase type spin default 100 min 0 max 500\noption name FutilityMultiplier type spin default 110 min 0 max 500\noption name LmpBase type spin default 4 min 0 max 20\noption name HistoryPruneDepth type spin default 3 min 0 max 10\noption name HistoryPruneMultiplier type spin default 2048 min 0 max 20000\noption name SeeQuietMultiplier type spin default 24 min 0 max 200\noption name SeeNoisyMultiplier type spin default 150 min 0 max 1000\noption name SingularDepth type spin default 7 min 2 max 20\noption name SingularMargin type spin default 2 min 0 max 10\noption name IirDepth type spin default 4 min 1 max 20\noption name ProbcutDepth type spin default 5 min 1 max 20\noption name ProbcutMargin type spin default 180 min 0 max 1000\noption name QsFutilityMargin type spin default 160 min 0 max 1000\noption name QsSeeMargin type spin default 40 min 0 max 500\noption name AspirationDelta type spin default 18 min 4 max 200\noption name HistoryBonusQuadratic type spin default 20 min 0 max 100\noption name HistoryBonusLinear type spin default 48 min 0 max 500\noption name HistoryBonusMax type spin default 2048 min 100 max 10000\noption name LmrHistoryDivisor type spin default 6000 min 1000 max 30000\noption name CheckExtensionDepth type spin default 2 min 1 max 30\noption name LmrCutoffThreshold type spin default 3 min 0 max 20\noption name MaterialCorrectionWeight type spin default 100 min 0 max 300\noption name TmSoftDivisor type spin default 22 min 5 max 80\noption name TmIncrementPercent type spin default 75 min 0 max 150\noption name TmHardPercent type spin default 60 min 10 max 95\noption name TmHardSoftMultiple type spin default 5 min 1 max 20\noption name TmStableFactor type spin default 60 min 20 max 150\noption name TmSemiStableFactor type spin default 80 min 20 max 150\noption name TmUnstableFactor type spin default 140 min 50 max 300\noption name TmEffortBase type spin default 155 min 100 max 250\noption name TmFallingEvalPercent type spin default 100 min 0 max 400\noption name TmMinFactorPercent type spin default 45 min 10 max 100\noption name CaptureFutilityBase type spin default 0 min 0 max 1000\noption name CaptureFutilityMultiplier type spin default 250 min 0 max 1000\noption name CaptureFutilityDepth type spin default 6 min 0 max 15\noption name FailLowContinuationBonus type spin default 0 min 0 max 300\noption name Clear Hash type button\nuciok\n"}
+{"build":"release","ms":107.373287,"type":"stdin","data":"setoption name Threads value 1\n"}
+{"build":"release","ms":107.432636,"type":"stdin","data":"setoption name Hash value 16\n"}
+{"build":"release","ms":107.452185,"type":"stdin","data":"setoption name OwnBook value false\n"}
+{"build":"release","ms":107.52963,"type":"stdin","data":"setoption name Move Overhead value 10\n"}
+{"build":"release","ms":107.55629,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":153.021499,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":153.193175,"type":"stdin","data":"position startpos\n"}
+{"build":"release","ms":153.267346,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":153.335237,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":153.419182,"type":"stdin","data":"go wtime 3000000000 btime 3000000000\n"}
+{"build":"release","ms":154.220807,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 1 nodes 26 nps 0 hashfull 0 time 0 pv d2d4\ninfo depth 2 seldepth 2 score cp 49 nodes 54 nps 0 hashfull 0 time 0 pv d2d4 d7d6\n"}
+{"build":"release","ms":155.487135,"type":"stdout_chunk","data":"info depth 3 seldepth 3 score cp 18 nodes 215 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4\ninfo depth 4 seldepth 6 score cp 30 nodes 404 nps 404000 hashfull 0 time 1 pv e2e4 e7e5 c2c3 c7c6\ninfo depth 5 seldepth 9 score cp 6 nodes 1001 nps 1001000 hashfull 0 time 1 pv c2c4 e7e5 e2e3 g8f6 d2d4\n"}
+{"build":"release","ms":155.670828,"type":"stdout_chunk","data":"info depth 6 seldepth 10 score cp 34 nodes 1703 nps 851500 hashfull 0 time 2 pv d2d4 d7d5 e2e3 g8f6 c2c4 d5c4\n"}
+{"build":"release","ms":156.418012,"type":"stdout_chunk","data":"info depth 7 seldepth 11 score cp 17 nodes 2574 nps 1287000 hashfull 1 time 2 pv d2d4 d7d5 e2e3 g8f6 c2c4 c7c6 h2h3\n"}
+{"build":"release","ms":157.503891,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp 26 nodes 4099 nps 1366333 hashfull 2 time 3 pv d2d4 d7d5 c2c4 c7c6 e2e3 g8f6 h2h3 h7h6 c4d5\n"}
+{"build":"release","ms":161.429071,"type":"stdout_chunk","data":"info depth 9 seldepth 14 score cp 31 nodes 9653 nps 1379000 hashfull 7 time 7 pv d2d4 e7e6 c2c4 g8f6 g1f3 c7c5 d4d5 d7d6 e2e3 e6d5\n"}
+{"build":"release","ms":163.681669,"type":"stdout_chunk","data":"info depth 10 seldepth 14 score cp 24 nodes 13102 nps 1310200 hashfull 10 time 10 pv d2d4 e7e6 c2c4 g8f6 g1f3 f8e7 b1c3 d7d5 e2e3 b8d7 c4d5\n"}
+{"build":"release","ms":170.621483,"type":"stdout_chunk","data":"info depth 11 seldepth 19 score cp 24 nodes 23975 nps 1498437 hashfull 15 time 16 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6 f1e2 c8b7 e1g1 c7c5\n"}
+{"build":"release","ms":192.629828,"type":"stdout_chunk","data":"info depth 12 seldepth 23 score cp 30 nodes 56720 nps 1492631 hashfull 36 time 38 pv e2e4 c7c5 g1f3 b8c6 b1c3 e7e6 d2d4 c5d4 f3d4 g8f6 f1e2 f8e7\n"}
+{"build":"release","ms":202.836732,"type":"stdout_chunk","data":"info depth 13 seldepth 23 score cp 26 nodes 72062 nps 1470653 hashfull 46 time 49 pv e2e4 c7c5 g1f3 b8c6 b1c3 e7e6 d2d4 c5d4 f3d4 f8b4 d4c6 b7c6 f1e2 b4c3 b2c3 d7d5\n"}
+{"build":"release","ms":223.757736,"type":"stdout_chunk","data":"info depth 14 seldepth 23 score cp 23 nodes 101640 nps 1452000 hashfull 61 time 70 pv e2e4 c7c5 g1f3 b8c6 b1c3 g7g6 d2d4 c5d4 f3d4 f8g7 d4c6 b7c6 f1c4 d7d6\n"}
+{"build":"release","ms":302.491424,"type":"stdout_chunk","data":"info depth 15 seldepth 28 score cp 27 nodes 212340 nps 1434729 hashfull 121 time 148 pv e2e4 c7c5 c2c3 b8c6 g1f3 e7e5 f1b5 g8e7 e1g1 a7a6 b5c6 e7c6 d2d4 c5d4 c3d4\n"}
+{"build":"release","ms":303.920354,"type":"stdin","data":"stop\n"}
+{"build":"release","ms":304.34692,"type":"stdout_chunk","data":"bestmove e2e4\n"}
+{"build":"release","ms":304.56145,"type":"case","data":{"name":"wide_white","position":"position startpos","go":"go wtime 3000000000 btime 3000000000","wall_ms":150.944713,"still_running_at_150ms":true,"stop_sent_ms":150.49949999999998,"bestmove":"bestmove e2e4","pass":true,"timing_interpretation":"must remain active through150ms"}}
+{"build":"release","ms":304.588981,"type":"stdin","data":"position startpos\n"}
+{"build":"release","ms":304.625325,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":304.666376,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":304.715239,"type":"stdin","data":"go movetime +80\n"}
+{"build":"release","ms":305.027384,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 27 nodes 21 nps 0 hashfull 0 time 0 pv e2e4\n"}
+{"build":"release","ms":305.100453,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 27 nodes 47 nps 0 hashfull 0 time 0 pv e2e4 c7c5\ninfo depth 3 seldepth 3 score cp 27 nodes 78 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3\ninfo depth 4 seldepth 4 score cp 27 nodes 118 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3 b8c6\n"}
+{"build":"release","ms":305.159151,"type":"stdout_chunk","data":"info depth 5 seldepth 6 score cp 27 nodes 173 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3 b8c6 g1f3\n"}
+{"build":"release","ms":305.221864,"type":"stdout_chunk","data":"info depth 6 seldepth 10 score cp 27 nodes 257 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3 b8c6 g1f3 e7e5\n"}
+{"build":"release","ms":305.267432,"type":"stdout_chunk","data":"info depth 7 seldepth 10 score cp 27 nodes 379 nps 0 hashfull 0 time 0 pv e2e4 c7c5 c2c3 b8c6 g1f3 e7e5 f1b5\n"}
+{"build":"release","ms":305.765504,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp 23 nodes 1011 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 e2e3 f8e7 g1f3 b7b6\n"}
+{"build":"release","ms":306.169036,"type":"stdout_chunk","data":"info depth 9 seldepth 13 score cp 24 nodes 1710 nps 1710000 hashfull 0 time 1 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3 d7d5 e2e3\n"}
+{"build":"release","ms":307.263948,"type":"stdout_chunk","data":"info depth 10 seldepth 14 score cp 28 nodes 3472 nps 1736000 hashfull 1 time 2 pv e2e4 c7c5 c2c3 b8c6 g1f3 e7e5 f1b5 g8f6 e1g1 f8d6\n"}
+{"build":"release","ms":308.653739,"type":"stdout_chunk","data":"info depth 11 seldepth 18 score cp 21 nodes 5622 nps 1874000 hashfull 2 time 3 pv e2e4 c7c5 c2c3 b8c6 d2d4 d7d5 e4d5 d8d5 g1f3 c8f5 c1e3\n"}
+{"build":"release","ms":309.979285,"type":"stdout_chunk","data":"info depth 12 seldepth 18 score cp 21 nodes 7885 nps 1577000 hashfull 3 time 5 pv e2e4 c7c5 c2c3 b8c6 d2d4 d7d5 e4d5 d8d5 g1f3 c8f5 c1e3 c5d4\n"}
+{"build":"release","ms":312.059175,"type":"stdout_chunk","data":"info depth 13 seldepth 21 score cp 21 nodes 11151 nps 1593000 hashfull 4 time 7 pv e2e4 c7c5 c2c3 b8c6 d2d4 d7d5 e4d5 d8d5 g1f3 c8f5 c1e3 c5d4 f3d4\n"}
+{"build":"release","ms":343.514582,"type":"stdout_chunk","data":"info depth 14 seldepth 24 score cp 27 nodes 53932 nps 1419263 hashfull 30 time 38 pv e2e4 e7e5 g1f3 b8c6 b1c3 g8f6 d2d4 e5d4 f3d4 f8b4 d4c6 b7c6 f1d3 b4c3 b2c3\n"}
+{"build":"release","ms":365.090843,"type":"stdout_chunk","data":"info depth 15 seldepth 27 score cp 29 nodes 79876 nps 1331266 hashfull 41 time 60 pv e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1 f8e7\n"}
+{"build":"release","ms":375.326139,"type":"stdout_chunk","data":"bestmove e2e4\n"}
+{"build":"release","ms":375.737563,"type":"case","data":{"name":"plus80","position":"position startpos","go":"go movetime +80","wall_ms":70.655327,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove e2e4","pass":true,"timing_interpretation":"expected hard budget70ms;30..1000ms observation guard"}}
+{"build":"release","ms":375.932974,"type":"stdin","data":"position startpos\n"}
+{"build":"release","ms":375.966524,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":376.180984,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":376.331197,"type":"stdin","data":"go movetime -5\n"}
+{"build":"release","ms":376.557435,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 29 nodes 21 nps 0 hashfull 0 time 0 pv e2e4\n"}
+{"build":"release","ms":376.633238,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 29 nodes 47 nps 0 hashfull 0 time 0 pv e2e4 e7e5\ninfo depth 3 seldepth 3 score cp 29 nodes 78 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3\n"}
+{"build":"release","ms":376.684704,"type":"stdout_chunk","data":"info depth 4 seldepth 5 score cp 27 nodes 137 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 b8c6\n"}
+{"build":"release","ms":376.768609,"type":"stdout_chunk","data":"info depth 5 seldepth 6 score cp 26 nodes 265 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 f3e5\n"}
+{"build":"release","ms":376.881548,"type":"stdout_chunk","data":"info depth 6 seldepth 7 score cp 26 nodes 437 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 f3e5 f6e4\n"}
+{"build":"release","ms":377.096588,"type":"stdout_chunk","data":"info depth 7 seldepth 9 score cp 25 nodes 768 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 f3e5 f6e4 d1e2\n"}
+{"build":"release","ms":377.230688,"type":"stdout_chunk","data":"info depth 8 seldepth 9 score cp 26 nodes 1123 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 f3e5 f6e4 d2d4 d7d5\n"}
+{"build":"release","ms":377.975949,"type":"stdout_chunk","data":"bestmove e2e4\n"}
+{"build":"release","ms":378.058302,"type":"case","data":{"name":"negative5","position":"position startpos","go":"go movetime -5","wall_ms":1.6939049999999725,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove e2e4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"release","ms":378.073725,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":378.17133,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":378.19104,"type":"stdin","data":"go movetime abc\n"}
+{"build":"release","ms":378.521042,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 26 nodes 21 nps 0 hashfull 0 time 0 pv e2e4\n"}
+{"build":"release","ms":378.597095,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 26 nodes 49 nps 0 hashfull 0 time 0 pv e2e4 e7e5\ninfo depth 3 seldepth 3 score cp 26 nodes 89 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3\ninfo depth 4 seldepth 6 score cp 27 nodes 211 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6\n"}
+{"build":"release","ms":378.664646,"type":"stdout_chunk","data":"info depth 5 seldepth 6 score cp 26 nodes 371 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 b1c3\n"}
+{"build":"release","ms":378.772927,"type":"stdout_chunk","data":"info depth 6 seldepth 8 score cp 27 nodes 666 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7\n"}
+{"build":"release","ms":379.06342,"type":"stdout_chunk","data":"info depth 7 seldepth 10 score cp 27 nodes 1147 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3\n"}
+{"build":"release","ms":379.333573,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp 27 nodes 1649 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3 d7d5\n"}
+{"build":"release","ms":379.49966,"type":"stdout_chunk","data":"bestmove d2d4\n"}
+{"build":"release","ms":379.54668,"type":"case","data":{"name":"invalid_abc","position":null,"go":"go movetime abc","wall_ms":1.3211390000000165,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"release","ms":379.56007,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":379.605869,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":379.626499,"type":"stdin","data":"go movetime +-80\n"}
+{"build":"release","ms":379.737945,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 27 nodes 21 nps 0 hashfull 0 time 0 pv d2d4\n"}
+{"build":"release","ms":379.812887,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 27 nodes 47 nps 0 hashfull 0 time 0 pv d2d4 g8f6\n"}
+{"build":"release","ms":379.870493,"type":"stdout_chunk","data":"info depth 3 seldepth 3 score cp 27 nodes 82 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4\ninfo depth 4 seldepth 4 score cp 27 nodes 138 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6\n"}
+{"build":"release","ms":380.109119,"type":"stdout_chunk","data":"info depth 5 seldepth 5 score cp 27 nodes 210 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3\ninfo depth 6 seldepth 7 score cp 27 nodes 309 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7\ninfo depth 7 seldepth 7 score cp 27 nodes 453 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3\ninfo depth 8 seldepth 10 score cp 27 nodes 654 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3 d7d5\n"}
+{"build":"release","ms":380.180125,"type":"stdout_chunk","data":"info depth 9 seldepth 10 score cp 27 nodes 1025 nps 0 hashfull 0 time 0 pv d2d4 g8f6 c2c4 e7e6 g1f3 f8e7 b1c3 d7d5 c4d5\n"}
+{"build":"release","ms":380.715452,"type":"stdout_chunk","data":"bestmove d2d4\n"}
+{"build":"release","ms":380.811075,"type":"case","data":{"name":"double_sign","position":null,"go":"go movetime +-80","wall_ms":1.1343709999999874,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"release","ms":380.841611,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":380.90172,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":380.983893,"type":"stdin","data":"go movetime 999999999999999999999abc\n"}
+{"build":"release","ms":381.152794,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 26 nodes 22 nps 0 hashfull 0 time 0 pv e2e4\n"}
+{"build":"release","ms":381.40479,"type":"stdout_chunk","data":"info depth 2 seldepth 4 score cp 32 nodes 50 nps 0 hashfull 0 time 0 pv e2e4 e7e5\n"}
+{"build":"release","ms":381.564899,"type":"stdout_chunk","data":"info depth 3 seldepth 4 score cp 33 nodes 89 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3\ninfo depth 4 seldepth 5 score cp 26 nodes 145 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6\n"}
+{"build":"release","ms":381.709394,"type":"stdout_chunk","data":"info depth 5 seldepth 7 score cp 26 nodes 245 nps 0 hashfull 0 time 0 pv e2e4 e7e5 b1c3 b8c6 g1f3\n"}
+{"build":"release","ms":381.82107,"type":"stdout_chunk","data":"info depth 6 seldepth 9 score cp 25 nodes 433 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 d2d4 f6e4\n"}
+{"build":"release","ms":381.909552,"type":"stdout_chunk","data":"info depth 7 seldepth 9 score cp 25 nodes 642 nps 0 hashfull 0 time 0 pv e2e4 e7e5 g1f3 g8f6 d2d4 f6e4 d4e5\n"}
+{"build":"release","ms":382.070492,"type":"stdout_chunk","data":"bestmove e2e4\n"}
+{"build":"release","ms":382.11575,"type":"case","data":{"name":"overflow_junk","position":null,"go":"go movetime 999999999999999999999abc","wall_ms":1.1064489999999978,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove e2e4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"release","ms":382.153696,"type":"stdin","data":"position startpos moves e2e4\n"}
+{"build":"release","ms":382.171803,"type":"stdin","data":"isready\n"}
+{"build":"release","ms":382.264972,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"release","ms":382.291682,"type":"stdin","data":"go wtime 1 btime 3000000000\n"}
+{"build":"release","ms":382.426974,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp -23 nodes 21 nps 0 hashfull 0 time 0 pv e7e5\n"}
+{"build":"release","ms":382.485511,"type":"stdout_chunk","data":"info depth 2 seldepth 4 score cp -23 nodes 49 nps 0 hashfull 0 time 0 pv e7e5 g1f3\ninfo depth 3 seldepth 4 score cp -23 nodes 87 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6\ninfo depth 4 seldepth 5 score cp -23 nodes 140 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6 d2d4\n"}
+{"build":"release","ms":382.54544,"type":"stdout_chunk","data":"info depth 5 seldepth 6 score cp -23 nodes 211 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6 d2d4 f6e4\ninfo depth 6 seldepth 6 score cp -23 nodes 312 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6 d2d4 f6e4 f3e5\n"}
+{"build":"release","ms":382.670567,"type":"stdout_chunk","data":"info depth 7 seldepth 11 score cp -23 nodes 478 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6 d2d4 f6e4 f3e5 d7d5\n"}
+{"build":"release","ms":382.899187,"type":"stdout_chunk","data":"info depth 8 seldepth 11 score cp -19 nodes 916 nps 0 hashfull 0 time 0 pv e7e5 g1f3 g8f6 d2d4 f6e4 f3e5 d7d5 b1c3\n"}
+{"build":"release","ms":383.264963,"type":"stdout_chunk","data":"info depth 9 seldepth 15 score cp -23 nodes 1549 nps 0 hashfull 1 time 0 pv e7e5 g1f3 g8f6 d2d4 f6e4 f3e5 d7d5 c2c4 c7c6\n"}
+{"build":"release","ms":383.967019,"type":"stdout_chunk","data":"info depth 10 seldepth 15 score cp -21 nodes 2725 nps 2725000 hashfull 1 time 1 pv e7e5 g1f3 g8f6 d2d4 f6e4 f3e5 d7d5 f1d3 b8d7 e1g1\n"}
+{"build":"release","ms":387.162372,"type":"stdout_chunk","data":"info depth 11 seldepth 20 score cp -27 nodes 7045 nps 1761250 hashfull 5 time 4 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5\n"}
+{"build":"release","ms":387.70416,"type":"stdout_chunk","data":"info depth 12 seldepth 20 score cp -27 nodes 8307 nps 1661400 hashfull 5 time 5 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1\n"}
+{"build":"release","ms":388.857078,"type":"stdout_chunk","data":"info depth 13 seldepth 20 score cp -27 nodes 10093 nps 1682166 hashfull 5 time 6 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1\n"}
+{"build":"release","ms":391.363234,"type":"stdout_chunk","data":"info depth 14 seldepth 20 score cp -27 nodes 13819 nps 1727375 hashfull 7 time 8 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1 f8e7\n"}
+{"build":"release","ms":425.627146,"type":"stdout_chunk","data":"info depth 15 seldepth 26 score cp -18 nodes 60284 nps 1401953 hashfull 33 time 43 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1 f8e7 b1c3 c7c6 f1e1 e8g8\n"}
+{"build":"release","ms":453.562115,"type":"stdout_chunk","data":"info depth 16 seldepth 28 score cp -22 nodes 97865 nps 1398071 hashfull 54 time 70 pv e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 d4c6 b7c6 f1d3 d7d5 e4d5 c6d5 e1g1 f8e7 c2c4 d5d4 b1d2 e8g8 f1e1 c7c5 d2f3 c8b7\n"}
+{"build":"release","ms":527.968402,"type":"stdout_chunk","data":"info depth 17 seldepth 29 score cp -18 nodes 190803 nps 1315882 hashfull 106 time 145 pv e7e5 g1f3 b8c6 f1c4 g8f6 d2d3 f8e7 e1g1 e8g8 b1c3 d7d6 a2a3 h7h6 c4a2 a7a6 f1e1\n"}
+{"build":"release","ms":532.449943,"type":"stdin","data":"stop\n"}
+{"build":"release","ms":533.523573,"type":"stdout_chunk","data":"bestmove e7e5\n"}
+{"build":"release","ms":533.648038,"type":"case","data":{"name":"wide_black","position":"position startpos moves e2e4","go":"go wtime 1 btime 3000000000","wall_ms":151.289087,"still_running_at_150ms":true,"stop_sent_ms":150.15544699999998,"bestmove":"bestmove e7e5","pass":true,"timing_interpretation":"must remain active through150ms"}}
+{"build":"release","ms":533.672375,"type":"stdin","data":"quit\n"}
+{"build":"release","ms":536.015307,"type":"exit","data":{"code":0,"signal":null}}
+{"build":"release","ms":536.291148,"type":"SUMMARY","data":{"build":"release","cases":7,"passed":7,"sanitizer_report":false,"exit":{"code":0,"signal":null},"all_pass":true}}
+{"build":"asan","ms":1.70355,"type":"exec","data":{"path":"/workspace/work/all-run/builds/asan/forge","env":{"ASAN_OPTIONS":"detect_leaks=1:halt_on_error=1","UBSAN_OPTIONS":"halt_on_error=1:print_stacktrace=1"}}}
+{"build":"asan","ms":1.765242,"type":"stdin","data":"uci\n"}
+{"build":"asan","ms":33.95704,"type":"stdout_chunk","data":"id name Chess Engine Forge 6.4.24 candidate\nid author OpenAI\noption name Hash type spin default 32 min 1 max 2048\noption name Threads type spin default 1 min 1 max 256\noption name MultiPV type spin default 1 min 1 max 8\noption name Move Overhead type spin default 10 min 0 max 1000\noption name Ponder type check default false\noption name OwnBook type check default true\noption name Book File type string default <empty>\noption name Book Depth type spin default 30 min 0 max 100\noption name Book Variety type spin default 30 min 0 max 100\noption name UseNNUE type check default true\noption name NnueFile type string default <empty>\noption name ContHist4PlyRead type check default false\noption name NonPawnCorrection type check default false\noption name LmrDeeperShallower type check default false\noption name LmrQuietBase type spin default 85 min 0 max 300\noption name LmrQuietDivisor type spin default 220 min 100 max 500\noption name LmrNoisyBase type spin default 10 min 0 max 300\noption name LmrNoisyDivisor type spin default 340 min 100 max 800\noption name NullMoveMinDepth type spin default 3 min 1 max 10\noption name NullMoveBase type spin default 3 min 1 max 6\noption name NullMoveDepthDivisor type spin default 3 min 1 max 10\noption name NullMoveEvalDivisor type spin default 200 min 50 max 1000\noption name RfpDepth type spin default 8 min 0 max 15\noption name RfpMargin type spin default 72 min 10 max 300\noption name RfpImproving type spin default 40 min 0 max 200\noption name RazorDepth type spin default 2 min 0 max 6\noption name RazorBase type spin default 150 min 0 max 1000\noption name RazorMultiplier type spin default 350 min 0 max 1000\noption name FutilityDepth type spin default 7 min 0 max 15\noption name FutilityBase type spin default 100 min 0 max 500\noption name FutilityMultiplier type spin default 110 min 0 max 500\noption name LmpBase type spin default 4 min 0 max 20\noption name HistoryPruneDepth type spin default 3 min 0 max 10\noption name HistoryPruneMultiplier type spin default 2048 min 0 max 20000\noption name SeeQuietMultiplier type spin default 24 min 0 max 200\noption name SeeNoisyMultiplier type spin default 150 min 0 max 1000\noption name SingularDepth type spin default 7 min 2 max 20\noption name SingularMargin type spin default 2 min 0 max 10\noption name IirDepth type spin default 4 min 1 max 20\noption name ProbcutDepth type spin default 5 min 1 max 20\noption name ProbcutMargin type spin default 180 min 0 max 1000\noption name QsFutilityMargin type spin default 160 min 0 max 1000\noption name QsSeeMargin type spin default 40 min 0 max 500\noption name AspirationDelta type spin default 18 min 4 max 200\noption name HistoryBonusQuadratic type spin default 20 min 0 max 100\noption name HistoryBonusLinear type spin default 48 min 0 max 500\noption name HistoryBonusMax type spin default 2048 min 100 max 10000\noption name LmrHistoryDivisor type spin default 6000 min 1000 max 30000\noption name CheckExtensionDepth type spin default 2 min 1 max 30\noption name LmrCutoffThreshold type spin default 3 min 0 max 20\noption name MaterialCorrectionWeight type spin default 100 min 0 max 300\noption name TmSoftDivisor type spin default 22 min 5 max 80\noption name TmIncrementPercent type spin default 75 min 0 max 150\noption name TmHardPercent type spin default 60 min 10 max 95\noption name TmHardSoftMultiple type spin default 5 min 1 max 20\noption name TmStableFactor type spin default 60 min 20 max 150\noption name TmSemiStableFactor type spin default 80 min 20 max 150\noption name TmUnstableFactor type spin default 140 min 50 max 300\noption name TmEffortBase type spin default 155 min 100 max 250\noption name TmFallingEvalPercent type spin default 100 min 0 max 400\noption name TmMinFactorPercent type spin default 45 min 10 max 100\noption name CaptureFutilityBase type spin default 0 min 0 max 1000\noption name CaptureFutilityMultiplier type spin default 250 min 0 max 1000\noption name CaptureFutilityDepth type spin default 6 min 0 max 15\noption name FailLowContinuationBonus type spin default 0 min 0 max 300\noption name Clear Hash type button\nuciok\n"}
+{"build":"asan","ms":34.266311,"type":"stdin","data":"setoption name Threads value 1\n"}
+{"build":"asan","ms":34.336125,"type":"stdin","data":"setoption name Hash value 16\n"}
+{"build":"asan","ms":34.343105,"type":"stdin","data":"setoption name OwnBook value false\n"}
+{"build":"asan","ms":34.348333,"type":"stdin","data":"setoption name Move Overhead value 10\n"}
+{"build":"asan","ms":34.360141,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":92.519838,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":92.698874,"type":"stdin","data":"position startpos\n"}
+{"build":"asan","ms":92.720326,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":92.929949,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":92.967074,"type":"stdin","data":"go wtime 3000000000 btime 3000000000\n"}
+{"build":"asan","ms":96.911283,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 1 nodes 26 nps 8666 hashfull 0 time 3 pv d2d4\n"}
+{"build":"asan","ms":97.297549,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 49 nodes 54 nps 13500 hashfull 0 time 4 pv d2d4 d7d6\n"}
+{"build":"asan","ms":99.080987,"type":"stdout_chunk","data":"info depth 3 seldepth 3 score cp 18 nodes 215 nps 43000 hashfull 0 time 5 pv e2e4 h7h6 d2d4\n"}
+{"build":"asan","ms":104.4294,"type":"stdout_chunk","data":"info depth 4 seldepth 6 score cp 30 nodes 404 nps 40400 hashfull 0 time 10 pv e2e4 e7e5 c2c3 c7c6\n"}
+{"build":"asan","ms":112.794438,"type":"stdout_chunk","data":"info depth 5 seldepth 9 score cp 6 nodes 1001 nps 52684 hashfull 0 time 19 pv c2c4 e7e5 e2e3 g8f6 d2d4\n"}
+{"build":"asan","ms":120.373085,"type":"stdout_chunk","data":"info depth 6 seldepth 10 score cp 34 nodes 1703 nps 63074 hashfull 0 time 27 pv d2d4 d7d5 e2e3 g8f6 c2c4 d5c4\n"}
+{"build":"asan","ms":126.850039,"type":"stdout_chunk","data":"info depth 7 seldepth 11 score cp 17 nodes 2574 nps 78000 hashfull 1 time 33 pv d2d4 d7d5 e2e3 g8f6 c2c4 c7c6 h2h3\n"}
+{"build":"asan","ms":137.931396,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp 26 nodes 4099 nps 93159 hashfull 2 time 44 pv d2d4 d7d5 c2c4 c7c6 e2e3 g8f6 h2h3 h7h6 c4d5\n"}
+{"build":"asan","ms":172.403299,"type":"stdout_chunk","data":"info depth 9 seldepth 14 score cp 31 nodes 9653 nps 122189 hashfull 7 time 79 pv d2d4 e7e6 c2c4 g8f6 g1f3 c7c5 d4d5 d7d6 e2e3 e6d5\n"}
+{"build":"asan","ms":193.835936,"type":"stdout_chunk","data":"info depth 10 seldepth 14 score cp 24 nodes 13102 nps 131020 hashfull 10 time 100 pv d2d4 e7e6 c2c4 g8f6 g1f3 f8e7 b1c3 d7d5 e2e3 b8d7 c4d5\n"}
+{"build":"asan","ms":243.241829,"type":"stdin","data":"stop\n"}
+{"build":"asan","ms":250.400429,"type":"stdout_chunk","data":"bestmove d2d4\n"}
+{"build":"asan","ms":250.634468,"type":"case","data":{"name":"wide_white","position":"position startpos","go":"go wtime 3000000000 btime 3000000000","wall_ms":157.487826,"still_running_at_150ms":true,"stop_sent_ms":150.269968,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"must remain active through150ms"}}
+{"build":"asan","ms":250.665073,"type":"stdin","data":"position startpos\n"}
+{"build":"asan","ms":250.67644,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":251.057298,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":251.094984,"type":"stdin","data":"go movetime +80\n"}
+{"build":"asan","ms":254.671225,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 24 nodes 21 nps 10500 hashfull 0 time 2 pv d2d4\n"}
+{"build":"asan","ms":256.511187,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 24 nodes 46 nps 11500 hashfull 0 time 4 pv d2d4 e7e6\n"}
+{"build":"asan","ms":258.559491,"type":"stdout_chunk","data":"info depth 3 seldepth 3 score cp 27 nodes 79 nps 13166 hashfull 0 time 6 pv d2d4 e7e6 e2e4\n"}
+{"build":"asan","ms":260.906659,"type":"stdout_chunk","data":"info depth 4 seldepth 6 score cp 31 nodes 132 nps 14666 hashfull 0 time 9 pv d2d4 e7e6 e2e4 d7d5 e4d5 e6d5\n"}
+{"build":"asan","ms":263.311964,"type":"stdout_chunk","data":"info depth 5 seldepth 6 score cp 31 nodes 197 nps 17909 hashfull 0 time 11 pv d2d4 e7e6 e2e4 d7d5 e4d5\n"}
+{"build":"asan","ms":273.569504,"type":"stdout_chunk","data":"info depth 6 seldepth 10 score cp 28 nodes 452 nps 21523 hashfull 0 time 21 pv d2d4 e7e6 e2e4 c7c5 d4d5 g8f6\n"}
+{"build":"asan","ms":276.78016,"type":"stdout_chunk","data":"info depth 7 seldepth 10 score cp 26 nodes 650 nps 26000 hashfull 0 time 25 pv d2d4 e7e6 e2e4 d7d5 e4d5 e6d5 g1f3\n"}
+{"build":"asan","ms":284.046641,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp 24 nodes 1316 nps 41125 hashfull 0 time 32 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6\n"}
+{"build":"asan","ms":288.558897,"type":"stdout_chunk","data":"info depth 9 seldepth 13 score cp 24 nodes 1874 nps 50648 hashfull 0 time 37 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6 f1e2\n"}
+{"build":"asan","ms":295.079416,"type":"stdout_chunk","data":"info depth 10 seldepth 15 score cp 24 nodes 2667 nps 62023 hashfull 1 time 43 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6 f1e2 c8b7\n"}
+{"build":"asan","ms":310.128803,"type":"stdout_chunk","data":"info depth 11 seldepth 15 score cp 24 nodes 4781 nps 82431 hashfull 2 time 58 pv d2d4 e7e6 c2c4 g8f6 e2e3 f8e7 g1f3 b7b6 f1e2 c8b7 e1g1\n"}
+{"build":"asan","ms":325.14179,"type":"stdout_chunk","data":"bestmove d2d4\n"}
+{"build":"asan","ms":325.341768,"type":"case","data":{"name":"plus80","position":"position startpos","go":"go movetime +80","wall_ms":74.10965899999997,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget70ms;30..1000ms observation guard"}}
+{"build":"asan","ms":325.367827,"type":"stdin","data":"position startpos\n"}
+{"build":"asan","ms":325.388608,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":325.68792,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":325.74811,"type":"stdin","data":"go movetime -5\n"}
+{"build":"asan","ms":326.852496,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 24 nodes 21 nps 0 hashfull 0 time 0 pv d2d4\nbestmove d2d4\n"}
+{"build":"asan","ms":326.921759,"type":"case","data":{"name":"negative5","position":"position startpos","go":"go movetime -5","wall_ms":1.1330490000000282,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"asan","ms":326.943161,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":327.019425,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":327.061067,"type":"stdin","data":"go movetime abc\n"}
+{"build":"asan","ms":327.943382,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 24 nodes 21 nps 0 hashfull 0 time 0 pv d2d4\n"}
+{"build":"asan","ms":328.248357,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 24 nodes 46 nps 46000 hashfull 0 time 1 pv d2d4 e7e6\nbestmove d2d4\n"}
+{"build":"asan","ms":328.327635,"type":"case","data":{"name":"invalid_abc","position":null,"go":"go movetime abc","wall_ms":1.2043150000000082,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"asan","ms":328.340564,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":328.399412,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":328.427183,"type":"stdin","data":"go movetime +-80\n"}
+{"build":"asan","ms":329.006487,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 24 nodes 21 nps 0 hashfull 0 time 0 pv d2d4\n"}
+{"build":"asan","ms":329.300705,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 24 nodes 46 nps 0 hashfull 0 time 0 pv d2d4 e7e6\n"}
+{"build":"asan","ms":329.69953,"type":"stdout_chunk","data":"info depth 3 seldepth 3 score cp 22 nodes 90 nps 90000 hashfull 0 time 1 pv d2d4 e7e6 c2c4\nbestmove d2d4\n"}
+{"build":"asan","ms":329.748162,"type":"case","data":{"name":"double_sign","position":null,"go":"go movetime +-80","wall_ms":1.2874889999999937,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"asan","ms":329.7598,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":329.805518,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":329.88107,"type":"stdin","data":"go movetime 999999999999999999999abc\n"}
+{"build":"asan","ms":330.779049,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 22 nodes 21 nps 0 hashfull 0 time 0 pv d2d4\n"}
+{"build":"asan","ms":331.133367,"type":"stdout_chunk","data":"info depth 2 seldepth 2 score cp 22 nodes 47 nps 47000 hashfull 0 time 1 pv d2d4 e7e6\nbestmove d2d4\n"}
+{"build":"asan","ms":331.190432,"type":"case","data":{"name":"overflow_junk","position":null,"go":"go movetime 999999999999999999999abc","wall_ms":1.2770029999999792,"still_running_at_150ms":null,"stop_sent_ms":null,"bestmove":"bestmove d2d4","pass":true,"timing_interpretation":"expected hard budget1ms; wall observed, generous1000ms scheduling guard"}}
+{"build":"asan","ms":331.20945,"type":"stdin","data":"position startpos moves e2e4\n"}
+{"build":"asan","ms":331.234938,"type":"stdin","data":"isready\n"}
+{"build":"asan","ms":331.444781,"type":"stdout_chunk","data":"readyok\n"}
+{"build":"asan","ms":331.486033,"type":"stdin","data":"go wtime 1 btime 3000000000\n"}
+{"build":"asan","ms":332.176181,"type":"stdout_chunk","data":"info depth 1 seldepth 1 score cp 4 nodes 21 nps 0 hashfull 0 time 0 pv e7e5\n"}
+{"build":"asan","ms":332.824568,"type":"stdout_chunk","data":"info depth 2 seldepth 3 score cp -17 nodes 70 nps 70000 hashfull 0 time 1 pv b8c6 g1f3\n"}
+{"build":"asan","ms":333.614455,"type":"stdout_chunk","data":"info depth 3 seldepth 5 score cp -22 nodes 139 nps 139000 hashfull 0 time 1 pv c7c5 b1c3 g8f6\n"}
+{"build":"asan","ms":335.520206,"type":"stdout_chunk","data":"info depth 4 seldepth 6 score cp -18 nodes 333 nps 111000 hashfull 0 time 3 pv e7e6 d2d4 d7d5 e4d5\n"}
+{"build":"asan","ms":338.165919,"type":"stdout_chunk","data":"info depth 5 seldepth 10 score cp -19 nodes 665 nps 110833 hashfull 0 time 6 pv e7e6 g1f3 c7c5 f1e2 g8f6\n"}
+{"build":"asan","ms":342.611946,"type":"stdout_chunk","data":"info depth 6 seldepth 10 score cp -16 nodes 1265 nps 126500 hashfull 0 time 10 pv e7e6 g1f3 d7d5 e4d5 e6d5 d2d4\n"}
+{"build":"asan","ms":348.620382,"type":"stdout_chunk","data":"info depth 7 seldepth 13 score cp -17 nodes 2101 nps 131312 hashfull 1 time 16 pv e7e6 g1f3 d7d5 e4d5 e6d5 f1e2 g8f6\n"}
+{"build":"asan","ms":365.119385,"type":"stdout_chunk","data":"info depth 8 seldepth 13 score cp -19 nodes 4515 nps 136818 hashfull 2 time 33 pv e7e6 d2d4 d7d5 e4d5 e6d5 f1d3 g8f6 g1f3\n"}
+{"build":"asan","ms":437.217212,"type":"stdout_chunk","data":"info depth 9 seldepth 17 score cp -28 nodes 15116 nps 143961 hashfull 8 time 105 pv c7c5 g1f3 b8c6 d2d4 c5d4 f3d4 e7e5 d4c6 b7c6\n"}
+{"build":"asan","ms":463.975307,"type":"stdout_chunk","data":"info depth 10 seldepth 17 score cp -28 nodes 18659 nps 141356 hashfull 10 time 132 pv c7c5 g1f3 b8c6 b1c3 h7h6 d2d4 c5d4 f3d4 e7e5 d4c6 b7c6\n"}
+{"build":"asan","ms":481.418391,"type":"stdin","data":"stop\n"}
+{"build":"asan","ms":483.905328,"type":"stdout_chunk","data":"bestmove c7c5\n"}
+{"build":"asan","ms":484.009313,"type":"case","data":{"name":"wide_black","position":"position startpos moves e2e4","go":"go wtime 1 btime 3000000000","wall_ms":152.450802,"still_running_at_150ms":true,"stop_sent_ms":149.927551,"bestmove":"bestmove c7c5","pass":true,"timing_interpretation":"must remain active through150ms"}}
+{"build":"asan","ms":484.028551,"type":"stdin","data":"quit\n"}
+{"build":"asan","ms":501.481387,"type":"exit","data":{"code":0,"signal":null}}
+{"build":"asan","ms":501.680854,"type":"SUMMARY","data":{"build":"asan","cases":7,"passed":7,"sanitizer_report":false,"exit":{"code":0,"signal":null},"all_pass":true}}
