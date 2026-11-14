@@ -62,7 +62,9 @@ info string TmNodeShare shorten soft 90 adjusted 65 best 7497 root 9642 depth 9
 bestmove e2e4
 ```
 
-Depth 1 held 2 of 25 root nodes, a minority, so 90 ms became 127 ms. Depth 9 held 7497 of 9642, a majority, so 90 ms became 65 ms. `e2e4` is legal. The same command with the option off printed no `TmNodeShare` line and returned `bestmove e2e4` at depth 15. The option-on run of this command stopped at depth 14. That pair is one clock sample, not a strength result.
+Depth 1 held 2 of 25 root nodes, a minority, so 90 ms became 127 ms. Depth 9 held 7497 of 9642, a majority, so 90 ms became 65 ms. `e2e4` is legal. Those two lines repeated on a second run of the same command. In that second pair, the option-on search and the option-off search both finished at depth 15 with 212340 nodes and `bestmove e2e4`. The option-off run printed no `TmNodeShare` line. One earlier option-on sample stopped at depth 14; that did not repeat, so this report does not treat the finished depth as changed. The soft target did move, on the lines above.
+
+The same three pins, the 1020 made-up timing checks, and the 200 depth-10 sanitizer searches were run again at 14:47Z. The node counts and the sanitizer result matched the lists above.
 
 `src` and `include` differ from `e04556dd` by 91 lines (89 added, 2 removed), including the new header. `CMakeLists.txt` was not edited.
 
