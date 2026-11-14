@@ -13,8 +13,9 @@
 // The merged-T1 observation is recorded but never used to exclude a root.
 // mates units: root, then build (lock, merged), then threads (2,4), ten trials.
 // cost units: 200 deterministic legal roots, build (lock,merged), threads (1,2).
-// Search histories persist between trials within a group; hash is cleared each
-// trial. An incomplete PV is never treated as evidence of a false mate.
+// Each trial sends ucinewgame/isready to reset histories and hash. An incomplete
+// PV is never treated as evidence of a false mate. Interrupted groups retain
+// their records but do not contribute to completed SUMMARY trial totals.
 #include "uci_process.hpp"
 #include "forge/board.hpp"
 
@@ -328,13 +329,29 @@ struct Totals {
     std::size_t at_depth = 0, early_mate = 0, unfinished_depth = 0;
 };
 
+void add_counts(Totals& into, const Totals& from) {
+    into.units += from.units;
+    into.trials += from.trials;
+    into.faults += from.faults;
+    into.nodes += from.nodes;
+    into.reported_ms += from.reported_ms;
+    into.wall_ms += from.wall_ms;
+    into.at_depth += from.at_depth;
+    into.early_mate += from.early_mate;
+    into.unfinished_depth += from.unfinished_depth;
+}
+
 void emit_summary(const Options& o, const Budget& budget, const Totals& total,
-                  std::size_t next, std::size_t available, const std::map<std::string, Totals>& groups) {
+                  const Totals& partial, std::size_t next, std::size_t available,
+                  const std::map<std::string, Totals>& groups) {
     std::ostringstream out;
     out << "{\"mode\":" << json_quote(o.mode) << ",\"seed\":" << o.seed
         << ",\"offset\":" << o.offset << ",\"next_offset\":" << next << ",\"available_units\":" << available
         << ",\"completed_units\":" << total.units << ",\"trials\":" << total.trials << ",\"faults\":" << total.faults
         << ",\"incomplete_units\":" << total.incomplete << ",\"selected_generated\":" << total.selected
+        << ",\"partial_trials_excluded\":" << partial.trials << ",\"partial_faults_excluded\":" << partial.faults
+        << ",\"partial_nodes_excluded\":" << partial.nodes << ",\"partial_reported_ms_excluded\":" << partial.reported_ms
+        << ",\"partial_wall_ms_excluded\":" << partial.wall_ms
         << ",\"elapsed_ms\":" << budget.elapsed() << ",\"budget_seconds\":" << o.seconds
         << ",\"corpus\":" << json_quote(o.corpus) << ",\"out\":" << json_quote(o.out)
         << ",\"selection\":" << json_quote(o.mode == "cost" ?
@@ -366,7 +383,7 @@ int run(const Options& o) {
     config << "{\"mode\":" << json_quote(o.mode) << ",\"merged\":" << json_quote(o.merged) << ",\"lock\":" << json_quote(o.lock)
         << ",\"seed\":" << o.seed << ",\"depth\":" << o.depth << ",\"trials_per_mate_group\":" << o.trials
         << ",\"Hash\":16,\"OwnBook\":false,\"new_options\":\"defaults\",\"fresh_hash_each_trial\":true"
-        << ",\"histories\":\"retained within group; fresh process per group\",\"threads\":[";
+        << ",\"ucinewgame_each_trial\":true,\"histories\":\"reset each trial via ucinewgame/isready\",\"threads\":[";
     for (std::size_t i = 0; i < o.threads.size(); ++i) { if (i) config << ','; config << o.threads[i]; }
     config << "],\"offset\":" << o.offset << ",\"limit\":" << o.limit << ",\"seconds\":" << o.seconds
         << ",\"timeout_ms\":" << o.timeout_ms << ",\"root_count\":" << roots.size() << '}';
@@ -374,7 +391,7 @@ int run(const Options& o) {
     write_file(o.out + "/config.json", config.str() + "\n");
     std::ofstream results(o.out + "/results.jsonl");
     if (!results) throw std::runtime_error("cannot open results.jsonl");
-    Totals total;
+    Totals total, partial;
     std::map<std::string, Totals> groups;
     std::size_t next = o.offset;
     const std::size_t available = o.mode == "prepare" ? 100040 : roots.size() * 2 * o.threads.size();
@@ -416,12 +433,18 @@ int run(const Options& o) {
         const std::string stem = o.mode + "-" + padded(next) + "-" + root.id + "-" + build_name + "-t" + std::to_string(threads);
         std::unique_ptr<UciProcess> process;
         std::vector<std::string> trials;
+        std::string interrupted_trial = "null";
         bool interrupted = false, faulty = false;
         const int count = o.mode == "mates" ? o.trials : 1;
         const std::string group_key = build_name + "-t" + std::to_string(threads) + "-" + root.kind;
+        Totals unit;
         for (int trial = 0; trial < count; ++trial) {
             Trial t = run_trial(o, budget, root, engine, threads, stem + "-trial" + std::to_string(trial), process);
-            if (t.budget_interrupted) { interrupted = true; break; }
+            if (t.budget_interrupted) {
+                interrupted = true;
+                interrupted_trial = result_json(t, o.depth);
+                break;
+            }
             const bool mate_miss = o.mode == "mates" && (!t.completed || !t.result.positive_mate() || !t.result.score_bound.empty());
             const bool unfinished_depth = t.completed && t.result.depth < o.depth && t.result.score_kind != "mate";
             const bool fault = !t.completed || !t.legal || !t.pv_legal || t.sanitizer_report || mate_miss || unfinished_depth;
@@ -430,16 +453,16 @@ int run(const Options& o) {
             std::string row = "{\"mode\":" + json_quote(o.mode) + ",\"unit\":" + std::to_string(next) + ",\"id\":" + json_quote(root.id) +
                 ",\"kind\":" + json_quote(root.kind) + ",\"fen\":" + json_quote(root.fen) + ",\"build\":" + json_quote(build_name) +
                 ",\"threads\":" + std::to_string(threads) + ",\"trial\":" + std::to_string(trial) +
-                ",\"mate_score_miss\":" + boolean(mate_miss) + ",\"fault\":" + boolean(fault) + ",\"result\":" + result + "}";
+                ",\"summary_accounting\":\"only if entire unit completes\",\"mate_score_miss\":" + boolean(mate_miss) +
+                ",\"fault\":" + boolean(fault) + ",\"result\":" + result + "}";
             results << row << '\n'; results.flush(); std::cout << "RESULT " << row << std::endl;
-            ++total.trials;
-            auto& g = groups[group_key]; ++g.trials;
-            if (fault) { faulty = true; ++total.faults; ++g.faults; }
+            ++unit.trials;
+            if (fault) { faulty = true; ++unit.faults; }
             if (t.completed) {
-                g.nodes += t.result.nodes; g.reported_ms += t.result.reported_ms; g.wall_ms += t.result.wall_ms;
-                if (t.result.depth >= o.depth) ++g.at_depth;
-                else if (t.result.score_kind == "mate") ++g.early_mate;
-                else ++g.unfinished_depth;
+                unit.nodes += t.result.nodes; unit.reported_ms += t.result.reported_ms; unit.wall_ms += t.result.wall_ms;
+                if (t.result.depth >= o.depth) ++unit.at_depth;
+                else if (t.result.score_kind == "mate") ++unit.early_mate;
+                else ++unit.unfinished_depth;
             }
         }
         if (faulty || interrupted) {
@@ -448,17 +471,20 @@ int run(const Options& o) {
                 << ",\"mode\":" << json_quote(o.mode) << ",\"unit\":" << next << ",\"id\":" << json_quote(root.id)
                 << ",\"fen\":" << json_quote(root.fen) << ",\"engine\":" << json_quote(engine) << ",\"build\":" << json_quote(build_name)
                 << ",\"threads\":" << threads << ",\"Hash\":16,\"OwnBook\":false,\"depth\":" << o.depth
-                << ",\"fresh_hash_each_trial\":true,\"new_options\":\"defaults\",\"expected_trials\":" << count
+                << ",\"fresh_hash_each_trial\":true,\"ucinewgame_each_trial\":true,\"new_options\":\"defaults\",\"expected_trials\":" << count
                 << ",\"completed_trial_records\":" << trials.size() << ",\"lock_t1_reference\":" << root.lock_reference
                 << ",\"merged_t1_reference\":" << root.merged_reference << ",\"trials\":[";
             for (std::size_t i = 0; i < trials.size(); ++i) { if (i) fault << ','; fault << trials[i]; }
-            fault << "]}\n";
+            fault << "],\"interrupted_trial\":" << interrupted_trial << "}\n";
             write_file(o.out + "/" + (interrupted ? "partial-" : "pending-") + stem + ".json", fault.str());
         }
-        if (interrupted) { ++total.incomplete; break; }
-        ++total.units; ++next;
+        if (interrupted) { add_counts(partial, unit); ++total.incomplete; break; }
+        unit.units = 1;
+        add_counts(total, unit);
+        add_counts(groups[group_key], unit);
+        ++next;
     }
-    emit_summary(o, budget, total, next, available, groups);
+    emit_summary(o, budget, total, partial, next, available, groups);
     return 0; // Fault observations are in JSON; exit failure is reserved for a broken driver invocation.
 }
 } // namespace

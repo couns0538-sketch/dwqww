@@ -292,7 +292,9 @@ public:
         const auto end = deadline(timeout_ms);
         const std::size_t begin_trace = trace_.size(), begin_error = stderr_.size();
         if (fresh_hash) {
-            send_until("setoption name Clear Hash", end);
+            // Cold-state protocol: reset histories as well as the hash. The
+            // separate clear_hash() method intentionally preserves histories.
+            send_until("ucinewgame", end);
             ready_until(end);
         }
         send_until("position fen " + fen, end);

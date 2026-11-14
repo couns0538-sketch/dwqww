@@ -1,0 +1,163 @@
+START 2026-11-14T11:31:31.597Z
+ARGV ["/workspace/work/all-run/builds/asan/forge"]
+STDIN
+# OwnBook, Book File, Book Depth, Book Variety, and Ponder.
+# Lines starting with # are not UCI commands; the engine ignores them.
+position startpos
+setoption name Ponder value false
+setoption name Book Variety value 0
+setoption name Book Depth value 30
+setoption name OwnBook value true
+go movetime 50
+stop
+# OwnBook false switches the embedded book off.
+setoption name OwnBook value false
+go movetime 5000
+stop
+# Depth -1 clamps to 0, so the book stays off even with OwnBook true.
+setoption name OwnBook value true
+setoption name Book Depth value -1
+go movetime 50
+stop
+# Depth 1 is inside the range and the book plays again.
+setoption name Book Depth value 1
+go movetime 50
+stop
+# Depth 101 clamps to 100 and the book still plays.
+setoption name Book Depth value 101
+go movetime 50
+stop
+# Variety 100, then -1 clamps to 0, so every probe is the heaviest move.
+setoption name Book Depth value 30
+setoption name Book Variety value 100
+setoption name Book Variety value -1
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+go movetime 50
+stop
+# A Book File loaded while OwnBook is false must not play.
+setoption name OwnBook value false
+setoption name Book Variety value 0
+setoption name Book Depth value 30
+setoption name Book File value forge-combo29/tests_t16/start h2h4.book
+go movetime 5000
+stop
+# OwnBook true after that load plays the file.
+setoption name OwnBook value true
+go movetime 50
+stop
+# OwnBook false after the file was already loaded.
+setoption name OwnBook value false
+go movetime 5000
+stop
+# Embedded book again, then the same file loaded while OwnBook is true.
+setoption name Book File value <empty>
+setoption name OwnBook value true
+go movetime 50
+stop
+setoption name Book File value forge-combo29/tests_t16/start h2h4.book
+go movetime 50
+stop
+# Off again after a load that happened while the book was on.
+setoption name OwnBook value false
+go movetime 5000
+stop
+# A missing file keeps the book that was already loaded.
+setoption name Book File value forge-combo29/tests_t16/no-such-book
+setoption name OwnBook value true
+go movetime 50
+stop
+# An empty Book File value reloads the embedded book.
+setoption name Book File value <empty>
+go movetime 50
+stop
+# Ponder true adds the booked reply. A bad value leaves ponder on.
+setoption name Ponder value true
+go movetime 50
+stop
+setoption name Ponder value yes
+go movetime 50
+stop
+setoption name Ponder value false
+go movetime 50
+stop
+# A bad OwnBook value leaves the book on; false then switches it off.
+setoption name OwnBook value yes
+go movetime 50
+stop
+setoption name OwnBook value false
+go movetime 5000
+stop
+quit
+
+STDOUT
+info string book move e2e4
+bestmove e2e4
+bestmove a2a3
+info string invalid value for option Book Depth
+bestmove a2a3
+info string book move e2e4
+bestmove e2e4
+info string invalid value for option Book Depth
+info string book move e2e4
+bestmove e2e4
+info string invalid value for option Book Variety
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4
+info string loaded book forge-combo29/tests_t16/start h2h4.book with 1 entries
+bestmove a2a3
+info string book move h2h4
+bestmove h2h4
+bestmove a2a3
+info string book move e2e4
+bestmove e2e4
+info string loaded book forge-combo29/tests_t16/start h2h4.book with 1 entries
+info string book move h2h4
+bestmove h2h4
+bestmove a2a3
+info string cannot load book forge-combo29/tests_t16/no-such-book
+info string book move h2h4
+bestmove h2h4
+info string book move e2e4
+bestmove e2e4
+info string book move e2e4
+bestmove e2e4 ponder c7c5
+info string invalid value for option Ponder
+info string book move e2e4
+bestmove e2e4 ponder c7c5
+info string book move e2e4
+bestmove e2e4
+info string invalid value for option OwnBook
+info string book move e2e4
+bestmove e2e4
+bestmove a2a3
+
+STDERR
+
+END 2026-11-14T11:31:31.765Z EXIT 0 SIGNAL null

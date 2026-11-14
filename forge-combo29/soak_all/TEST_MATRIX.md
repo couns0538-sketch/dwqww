@@ -1,6 +1,6 @@
 # Existing test-folder matrix
 
-Updated 2026-11-14T11:31:04.913Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
+Updated 2026-11-14T11:43:38.984Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
 
 | Build | Group | Test/check | Exit | Sanitizer reports | Output |
 | --- | --- | --- | --- | --- | --- |
@@ -18,6 +18,18 @@ Updated 2026-11-14T11:31:04.913Z. Expected values are unchanged. Nonzero exits a
 | asan | basic | wide-net-cmp | 0 | 0 | [asan-wide-net-cmp.txt](preparation/asan-wide-net-cmp.txt) |
 | asan | basic | eval_parity | 0 | 0 | [asan-eval_parity.txt](preparation/asan-eval_parity.txt) |
 | asan | basic | repeat_mate_test | 0 | 0 | [asan-repeat_mate_test.txt](preparation/asan-repeat_mate_test.txt) |
+| asan | candidates | search_candidates_test | 0 | 0 | [asan-search_candidates_test.txt](preparation/asan-search_candidates_test.txt) |
+| asan | fuzz | uci_fuzz | 0 | 0 | [asan-uci_fuzz.txt](preparation/asan-uci_fuzz.txt) |
+| asan | krk | krk_mate_test | 124 | 0 | [asan-krk_mate_test.txt](preparation/asan-krk_mate_test.txt) |
+| asan | protocol | t16-search | 0 | 0 | [asan-t16-search.txt](preparation/asan-t16-search.txt) |
+| asan | protocol | t16-search-check | 0 | 0 | [asan-t16-search-check.txt](preparation/asan-t16-search-check.txt) |
+| asan | protocol | t16-ownbook | 0 | 0 | [asan-t16-ownbook.txt](preparation/asan-t16-ownbook.txt) |
+| asan | protocol | t16-ownbook-check | 0 | 0 | [asan-t16-ownbook-check.txt](preparation/asan-t16-ownbook-check.txt) |
+| asan | protocol | t16-options | 0 | 0 | [asan-t16-options.txt](preparation/asan-t16-options.txt) |
+| asan | protocol | t16-options-diff | 1 | 0 | [asan-t16-options-diff.txt](preparation/asan-t16-options-diff.txt) |
+| asan | protocol | t16-clamp | 0 | 0 | [asan-t16-clamp.txt](preparation/asan-t16-clamp.txt) |
+| asan | protocol | t16-clamp-diff | 1 | 0 | [asan-t16-clamp-diff.txt](preparation/asan-t16-clamp-diff.txt) |
+| asan | protocol | t22-uci-options | 0 | 0 | [asan-t22-uci-options.txt](preparation/asan-t22-uci-options.txt) |
 | asan | timing | multipv_stop_test | 0 | 0 | [asan-multipv_stop_test.txt](preparation/asan-multipv_stop_test.txt) |
 | release | basic | bad_capture_overflow | 0 | 0 | [release-bad_capture_overflow.txt](preparation/release-bad_capture_overflow.txt) |
 | release | basic | clock_parse_test | 0 | 0 | [release-clock_parse_test.txt](preparation/release-clock_parse_test.txt) |
@@ -33,7 +45,11 @@ Updated 2026-11-14T11:31:04.913Z. Expected values are unchanged. Nonzero exits a
 | release | basic | wide-net-cmp | 0 | 0 | [release-wide-net-cmp.txt](preparation/release-wide-net-cmp.txt) |
 | release | basic | eval_parity | 0 | 0 | [release-eval_parity.txt](preparation/release-eval_parity.txt) |
 | release | basic | repeat_mate_test | 0 | 0 | [release-repeat_mate_test.txt](preparation/release-repeat_mate_test.txt) |
+| release | candidates | search_candidates_test | 0 | 0 | [release-search_candidates_test.txt](preparation/release-search_candidates_test.txt) |
+| release | fuzz | uci_fuzz | 0 | 0 | [release-uci_fuzz.txt](preparation/release-uci_fuzz.txt) |
 | release | krk | krk_mate_test | 0 | 0 | [release-krk_mate_test.txt](preparation/release-krk_mate_test.txt) |
+| release | mate-fifty | mate_solver_test | 0 | 0 | [release-mate_solver_test.txt](preparation/release-mate_solver_test.txt) |
+| release | mate-fifty | fifty_move_tt_test | 0 | 0 | [release-fifty_move_tt_test.txt](preparation/release-fifty_move_tt_test.txt) |
 | release | protocol | t16-search | 0 | 0 | [release-t16-search.txt](preparation/release-t16-search.txt) |
 | release | protocol | t16-search-check | 0 | 0 | [release-t16-search-check.txt](preparation/release-t16-search-check.txt) |
 | release | protocol | t16-ownbook | 0 | 0 | [release-t16-ownbook.txt](preparation/release-t16-ownbook.txt) |
