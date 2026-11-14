@@ -1,5 +1,7 @@
 # Task t13: ThreadSanitizer on the locked multi-thread search
 
+The account of what was wrong, what the sanitizer found, and what changed is `WHAT_WAS_WRONG_t13.md`. This file is the command log.
+
 Engine tree: `forge-combo29` on `lock/combo29-20261110` (commit `16833ecc`).
 Compiler for the sanitizer builds: Ubuntu clang 18.1.3. CPU has AVX-512; the release binary was still built with `-DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3`, the same switches as the start command.
 
@@ -30,6 +32,7 @@ Search with 2 and 4 threads did not need a lock or a new hash checksum: the stri
 - `forge-combo29/tests_t13/race_driver.cpp` (added)
 - `forge-combo29/tests_t13/startup_race.cpp` (added)
 - `forge-combo29/REPORT_t13.md` (added)
+- `forge-combo29/WHAT_WAS_WRONG_t13.md` (added; the explanation of the bug)
 
 ## Races before
 
