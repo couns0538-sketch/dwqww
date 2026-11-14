@@ -23,6 +23,7 @@ All additions on this branch are text files under `forge-combo29/soak/`. No engi
 - `preparation/*.txt`: build and setup output, pinned checks, provenance, corpus preparation and independent evidence audits. Preparation runs are excluded from phase totals.
 - `faults/NNN.txt`, when required: exact input and settings, diagnostic or search output, and frequency across ten trials. The report lists every recorded fault.
 - `CHANGES.md`: this description of the branch's additions.
+- `HANDOFF.md`: the actionable two-thread mate-score finding, a concrete reproducer, and links to both builds' ten-trial transcripts for subsequent engine work.
 
 Official fastchess, its build, the opening book, generated networks, engine executables, temporary orchestration tools and large normal match artifacts stay in the cloud VM. Match artifact hashes are included in the committed batch evidence. No scripts, executables, archives, Python files or CI workflows are added to the branch.
 
