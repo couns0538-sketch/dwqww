@@ -49,3 +49,15 @@ No games were played, and no strength is claimed. One start-position search to d
 option name HindsightDepth type check default false
 
 bench 13 with HindsightDepth on: 840387
+
+## Follow-up
+
+The hindsight block used to call the static evaluator when the hash entry had no eval, and the normal eval block called it again. The raw value is now kept and the normal block reuses it. With the option off the pins stay bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. With the option on, bench 13 stays 840387. That was checked on the portable build and on the owner build.
+
+The owner build is the default Release cmake (AVX-512F and BMI2 are present, so portable was not used). No CMakeLists change and no FORGE_* override. The compiler is g++ 13.3.0 because this machine's c++ driver does not link libstdc++. Binary sha256: 453e4757662bf45230623455f63da64657e6a7cee0120f49fe0ee0eb3e8d8a02. Implementation commit: cacb3ed982ec5ac2eec66687e69739d88048f56c.
+
+Screen, not a strength result. Same binary, HindsightDepth on versus off, 50000 nodes, Threads 1, Hash 16, OwnBook false. Book is 8mvs_+90_+99.epd from official-stockfish/books (8533 lines, sha256 e4ccf9297520743bb44705908b510ae45f817a146418c7773aaf44bed2cf8428), sequential, both colors. fastchess alpha 1.8.3 (sha256 091bf93dcf08e15d14b77bc2374d0a423982b32200e8add69f17bace3a34b31f). Resign after 4 moves at 800 cp. Draw adjudication after move 40 for 8 moves within 10 cp, or 200 moves.
+
+bench 13 nps, five alternating runs, off/on/off/on/off: 1446860, 1525203, 1576469, 1541994, 1591012. Node counts stayed 862329 off and 840387 on.
+
+Chunk 001, openings 1-400, 800 games, option on first: W-L-D 214-190-396. Elo 10.43, 95% +/- 15.96. LOS 90.00%. Pentanomial 18, 90, 162, 110, 20. The interval includes zero. Details: forge-combo29/tests_r3fu_05/chunk-001-summary.txt. PGN: forge-combo29/tests_r3fu_05/chunk-001.pgn.

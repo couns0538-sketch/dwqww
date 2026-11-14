@@ -1446,13 +1446,21 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
     // eval fell by a pawn or more, search one ply less; if it did not fall and
     // three or more plies were withheld, search one ply more. A hash entry at
     // least that deep already answers the node, so the depth stays put.
+    // A raw eval computed here is reused below so the position is not evaluated twice.
+    int reused_raw = 0;
+    bool reuse_raw = false;
     if (tune::HindsightDepth) {
         const int withheld = ss->withheld_plies;
         ss->withheld_plies = 0;
         if (withheld > 0 && !pv_node && !root_node && !in_check && excluded.is_none()) {
             const int parent_eval = (ss - 1)->static_eval;
             if (parent_eval != ValueNone) {
-                const int raw = (tt_hit && tte.eval != ValueNone) ? tte.eval : static_evaluate(board, ss);
+                const bool hashed_eval = tt_hit && tte.eval != ValueNone;
+                const int raw = hashed_eval ? tte.eval : static_evaluate(board, ss);
+                if (!hashed_eval) {
+                    reused_raw = raw;
+                    reuse_raw = true;
+                }
                 const int mover_loss = parent_eval + corrected_eval(board, raw);
                 int proposed = depth;
                 if (mover_loss >= SeePieceValue[Pawn]) proposed = depth - 1;
@@ -1476,7 +1484,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         return tt_score;
     }
 
-    // Static evaluation.
+    // Static evaluation. reuse_raw is the hindsight eval of this position.
     int eval;
     if (in_check) {
         eval = ss->static_eval = ss->raw_eval = ValueNone;
@@ -1484,6 +1492,7 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         eval = ss->static_eval;
     } else {
         if (tt_hit && tte.eval != ValueNone) ss->raw_eval = tte.eval;
+        else if (reuse_raw) ss->raw_eval = reused_raw;
         else ss->raw_eval = static_evaluate(board, ss);
         eval = ss->static_eval = rule50_damped_static(corrected_eval(board, ss->raw_eval), board.halfmove_clock());
         if (tt_hit && tt_score != ValueNone &&
