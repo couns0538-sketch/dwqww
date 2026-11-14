@@ -1,79 +1,63 @@
 # Quiescence search audit
 
-Forge 5.31.0 treated stand-pat as legal whenever the side to move was not in check. That is wrong when every legal move is a capture or a promotion. The static evaluation then hid a forced loss and could fail high inside a window that the true score does not reach. The correction searches those forced tactical moves. Checks, evasions, stalemate, and captures that sit beside a quiet move were already bound-correct on the positions below, and they stay that way.
+This note is the record of the audit on `cursor/forge-qsearch-audit-60ce`. It says what was wrong in Forge 5.31.0, what the search found around that bug, and what this branch changes. The branch is not merged. The version string is still 5.31.0. No strength claim is made.
 
-This branch is not merged. The project version is still the extracted 5.31.0 sources plus this correction. No strength claim is made.
+## What was wrong
 
-## Contract
+`Searcher::quiescence` is the search used when the main depth reaches 0. Its job is tactical: captures, en passant, and promotions. A quiet move is anything else, including castling and a double pawn push. Stand-pat means "decline the capture and take the static evaluation." That is a legal choice only when the side to move has a quiet legal move it could play instead.
 
-`Searcher::quiescence` is a capture-and-promotion search with these rules:
+Forge 5.31.0 treated stand-pat as legal on every node that was not in check. The old function did this in two places, both before it would allow a bad tactical move to lower the score:
 
-- In check, search every legal evasion. Do not stand-pat. No legal move is mate, scored `-30000 + ply`.
-- Stalemate scores 0, including when the static evaluation is positive and the window contains that positive value.
-- A non-tactical legal move (anything that is not a capture or a promotion, including castling and double pawn pushes) makes stand-pat a legal floor. Only captures and promotions are searched from there. En passant is a capture. A quiet promotion is tactical.
-- If every legal move is a capture or a promotion, stand-pat is not a legal choice. Those moves are searched the same way evasions are.
-- Repetition, the 100-halfmove rule, and insufficient material still score 0, except that a side with no legal move in check is still mate.
+1. Before generating moves, if the side was not in check and `stand_pat >= beta && beta <= 0`, it returned `beta`.
+2. After `legal_moves(true)` (captures and promotions only), if `stand_pat >= beta`, it returned `beta`, except when that list was empty and the position was stalemate. Otherwise it set `alpha = max(alpha, stand_pat)` and then searched the tactical moves.
 
-## The bug
+`legal_moves(true)` being non-empty was treated as proof that stand-pat was optional. A non-empty list only proves that a capture or promotion exists. It does not prove the side can decline it. When every legal move is a capture or a promotion, the side must play one of them. The static evaluation is then a score the position cannot choose.
 
-In `Searcher::quiescence`, the 5.31.0 code always applied stand-pat on a non-check node. Two paths did it:
+The damage shows up in two ways.
 
-- Before move generation, `stand_pat >= beta && beta <= 0` returned `beta`.
-- After generating captures and promotions, `stand_pat >= beta` returned `beta` unless the capture list was empty and the position was stalemate. Otherwise `alpha` became `max(alpha, stand_pat)`.
+**The floor.** On a wide window the old code still generated the tactical moves, but it had already raised `alpha` to the static evaluation. The search loop only replaces `alpha` when a move scores strictly above it. A forced loss below the static evaluation was computed and then discarded. The function returned the static evaluation.
 
-`legal_moves(true)` contains captures and promotions. A non-empty list was treated as proof that stand-pat was optional. It is not optional when the side to move has no other legal move. A forced promotion into mate, or a forced capture that draws a dead position, returned the static evaluation.
+**The false fail-high.** On a zero window whose upper bound was the static evaluation, `stand_pat >= beta` returned `beta` immediately. The tactical moves were not searched. The caller was told the score was at least `beta`. The true score was below `beta`.
 
-Depth-1 search of the same positions was already right, because the root is a full-width node. The bad score appeared at the quiescence horizon and in any zero-window cutoff that trusted stand-pat.
+Depth 1 of the same positions was already right. The root of `alpha_beta` generates every legal move and does not stand-pat. The wrong score appeared at the quiescence horizon, and in any cutoff that trusted stand-pat.
 
-## Reproduced scores
+### White is forced to promote
 
-Measured by compiling the same probe against the unmodified 5.31.0 sources and against this branch. Mate score is 30000. `-29998` is mate at ply 2, which is what both a depth-1 search and a corrected quiescence search return for these one-move tactics.
+FEN: `8/P7/8/8/8/8/6q1/K1k5 w - - 0 1`
 
-| Position | FEN | Stand-pat | 5.31.0 qsearch | Depth 1 | This branch |
-| --- | --- | --- | --- | --- | --- |
-| White must promote | `8/P7/8/8/8/8/6q1/K1k5 w - - 0 1` | -720 | -720 | -29998 `a7a8q` | -29998 |
-| Black must promote | `5K1k/1Q6/8/8/8/8/7p/8 b - - 0 1` | -720 | -720 | -29998 `h2h1q` | -29998 |
-| White bishop must capture | `8/8/8/8/8/1k6/1p6/BK6 w - - 0 1` | +1 | +1 | 0 `a1b2` | 0 |
-| Black bishop must capture | `6kb/6P1/6K1/8/8/8/8/8 b - - 0 1` | +1 | +1 | 0 `h8g7` | 0 |
+White has a pawn on a7, the king on a1, the black king on c1, and a black queen on g2. White is not in check. The only legal moves are `a7a8q`, `a7a8r`, `a7a8b`, and `a7a8n`. There is no quiet move. The static evaluation is -720, which is the material of a queen against a pawn. That number does not see that every promotion loses.
 
-The same probe measured the false fail-high windows on 5.31.0 and the corrected bounds:
+After `a7a8q`, Black is not in check. Both `g2a8` (capture of the new queen) and `g2b2` (a quiet move) are mate. Quiescence sees the capturing mate, so this example does not depend on searching quiet checks. The mate is delivered at ply 2. Mate score is 30000, so the score from White's point of view is `-30000 + 2 = -29998`.
 
-| Window | 5.31.0 | This branch |
-| --- | --- | --- |
-| Promotion, `[-800, -720)` | -720 | -800 |
-| Bishop capture, `[0, 1)` | 1 | 0 |
-| Favorable stalemate `5k1K/7P/8/8/8/8/8/8 w - - 0 1`, `[0, 388)` | 0 | 0 |
-| Evasion `4r2k/8/8/8/8/8/8/4K3 w - - 0 1`, `[-610, -530)` | -541 | -541 |
+Unmodified 5.31.0 quiescence returned -720. A fresh depth-1 search returned -29998 and played `a7a8q`. The same bug on the black mirror `5K1k/1Q6/8/8/8/8/7p/8 b - - 0 1` returned -720 instead of -29998 for `h2h1q`.
 
-After `a7a8q`, Black is not in check. Both `g2a8` (capture of the new queen) and `g2b2` (quiet) mate. Quiescence sees the capture, so this fixture does not depend on searching quiet checks.
+The window `[-800, -720)` made the second failure mode visible. 5.31.0 returned -720 without searching. That is a claim that the score is at least -720. The true score, -29998, is below -720. This branch returns -800, the fail-low bound.
 
-The favorable stalemate has static evaluation +288 and no legal moves. Both builds return 0 inside `[0, 388)`. The 5.21.0 fix for that case is intact. The in-check evasion has four legal king moves, static evaluation -530, and score -541 on both builds. It is not mate.
+### The bishop must capture, and the result is a draw
 
-## The correction
+FEN: `8/8/8/8/8/1k6/1p6/BK6 w - - 0 1`
 
-Stand-pat is applied only when it is a legal choice, or when it cannot change the result:
+White's only legal move is `a1b2`, capturing the pawn. The static evaluation is +1. After the capture the position is bishop and king against king, which the engine scores as a draw, 0. Depth 1 already returned 0. Unmodified quiescence returned +1, because +1 had been installed as `alpha` and the capture's 0 did not beat it.
 
-- There is no capture or promotion to search (the existing stalemate probe still runs).
-- `stand_pat <= alpha`, so raising alpha or cutting off on it would not change the returned bound. The tactical moves are searched anyway.
-- A legal quiet move exists.
+The window `[0, 1)` returned 1 on 5.31.0. That claims the score is at least 1. The true score is 0. This branch returns 0. The black mirror `6kb/6P1/6K1/8/8/8/8/8 b - - 0 1` has the same shape: 5.31.0 quiescence returned +1 for `h8g7`, and depth 1 returned 0.
 
-`Board::has_legal_quiet_move()` reports a legal move that is neither a capture nor a promotion. The scan runs only in the third case. In-check nodes still generate every legal move and never stand-pat. Transposition-table stores are unchanged: depth-0 entries, mate scores normalized by ply, and a deeper entry is not overwritten.
+## What the audit found
 
-## Tests
+The bug above is the one that was wrong. The surrounding quiescence rules were checked on the same probes and on 150,594 positions. These cases already matched the contract on 5.31.0, and they still match after the correction.
 
-`forge/tests/tests.cpp` adds `check_quiescence_forced_tactics`. For each forced-tactical fixture it checks that the position is not in check, that a legal move exists, and that none of those moves is quiet. Mate fixtures must match a fresh depth-1 search, score below -29000, score below stand-pat, and fail low on `[stand-pat - 80, stand-pat)`. Draw fixtures must score 0 at quiescence and at depth 1, with stand-pat above 0, and `[0, 1)` must return 0. A second quiescence call on the same searcher must return the same score. The board FEN is restored.
+**Checks and evasions.** In check, the old code generated every legal move and did not stand-pat. `4r2k/8/8/8/8/8/8/4K3 w - - 0 1` is check, with four king moves and none of them mate. The static evaluation is -530. Both builds return -541 on the wide window and on `[-610, -530)`. Immediate mate `7k/6Q1/6K1/8/8/8/8/8 b - - 0 1` scores -30000 on both builds.
 
-Two guards cover behavior that was already correct: the evasion above must be in check and score below stand-pat without being mate, and `4k3/8/8/2q5/8/8/8/2R1K3 w - - 0 1` must keep a winning rook capture while a quiet move exists.
+**Stalemate.** `5k1K/7P/8/8/8/8/8/8 w - - 0 1` has static evaluation +288 and no legal move. Both builds return 0 inside `[0, 388)`. `7k/5Q2/6K1/8/8/8/8/8 b - - 0 1` has static evaluation -1010 and returns 0. The 5.21.0 fix for a favorable quiet stalemate is intact. A window that cannot contain 0 still returns the ordinary alpha-beta bound. That is a fail-low, not an exact draw score.
 
-`forge/tools/qsearch_audit.cpp` is a differential checker, not engine code. Its contract search implements the rules above with the same draw and mate conventions and a 200,000-node cap. A mismatch is an engine score that differs from that contract. A separate one-ply listing is diagnostic only, because a mate score probed at ply 0 can differ by one from the score stored inside the search.
+**Tactical moves when a quiet move also exists.** Stand-pat is the correct floor there, because the side can decline the capture. `4k3/8/8/2q5/8/8/8/2R1K3 w - - 0 1` scores 562 against a static evaluation of -470. En passant is available in `4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 2`, and the score is 218 against a static evaluation of 45. On `7k/8/8/8/8/7K/p7/1rR5 w - - 0 1` the capture `c1b1` is answered by -969. The root stays at the static evaluation, -249, on both builds, because 17 other legal moves are quiet.
 
-Verification on this branch, g++ 13.3.0, C++20, `-Wall -Wextra -Wpedantic -Wconversion -Wshadow`:
+**A quiet mate is a different horizon.** `k7/8/1K6/8/8/8/8/6Q1 w - - 0 1` is mate in one by the quiet move `g1g8`. Depth 1 scores 29999. Quiescence returns the static evaluation, 1019, because all 25 legal moves are quiet and this search does not examine quiet checks. Forge 1.1.0 rejected a checking-quiescence experiment after a W11 L10 D11 screen because it cost about 9.3% more nodes. This audit leaves that decision in place. No test locks the score 1019.
 
-- Release `ctest` target `forge_tests`: passed in 8.02 seconds.
-- `forge_tests` rebuilt with `-O1 -fsanitize=address,undefined -fno-omit-frame-pointer`: `All tests passed`.
-- `qsearch_audit`: 150,594 positions compared, 0 mismatches, 0 rejected FENs. One middlegame exceeded the 200,000-node cap of that program. A second contract with the same rules and its own transposition table scored that position, and it matched the engine.
+**The wide sample.** `forge/tools/qsearch_audit.cpp` compares the engine with an independent search of the same rules: evasions in check, draw on stalemate, tactical moves searched, stand-pat only when a quiet legal move exists. It shares move generation, check detection, evaluation, and the draw rules with the engine, so agreement shows that quiescence follows those rules. It does not prove the shared pieces. The existing perft and legality tests still pass.
 
-The audit set is 12 named positions, a structured sample, and a 30-game random walk of 24 plies. The structured sample places both kings, then either a white pawn on the seventh rank or a rim knight plus a black pawn. It keeps positions that are in check, have no legal move, or have a tactical move and no quiet move, plus a thin sample of positions that have both. The walk keeps checks, terminals, forced tactical positions, and every fourth ply. The named results after the fix:
+The sample is 12 named positions, a structured placement of both kings plus either a white pawn on the seventh rank or a rim knight and a black pawn, and a 30-game walk of 24 plies. It keeps checks, positions with no legal move, positions whose moves are all tactical, and a thin slice of positions that have both a quiet move and a capture. The walk also keeps every fourth ply. Across 150,594 comparisons there were 0 mismatches and 0 rejected FENs.
+
+One walk position exceeded the contract's 200,000-node cap because that contract had no transposition table: `r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11`. It is not in check. It has 28 quiet moves and 4 tactical moves, and its static evaluation is -26. The engine returns -26 after 563 nodes. The same rules, given a transposition table, searched 1,353,971 nodes and also returned -26. Stand-pat is legal here, and no tactical line beat it.
 
 | Label | Engine | Stand-pat | Legal moves | In check | Quiet move | Tactical move |
 | --- | ---: | ---: | ---: | --- | --- | --- |
@@ -88,28 +72,50 @@ The audit set is 12 named positions, a structured sample, and a 30-game random w
 | Forced promotions, both colors | -29998 | -720 | 4 | no | no | yes |
 | Forced bishop captures, both colors | 0 | 1 | 1 | no | no | yes |
 
-On the losing back-rank position, the capture `c1b1` is answered by a quiescence score of -969. The root correctly stays at stand-pat -249 because quiet moves exist. That score is the same on 5.31.0 and on this branch.
+| Position | FEN | Stand-pat | 5.31.0 qsearch | Depth 1 | This branch |
+| --- | --- | --- | --- | --- | --- |
+| White must promote | `8/P7/8/8/8/8/6q1/K1k5 w - - 0 1` | -720 | -720 | -29998 `a7a8q` | -29998 |
+| Black must promote | `5K1k/1Q6/8/8/8/8/7p/8 b - - 0 1` | -720 | -720 | -29998 `h2h1q` | -29998 |
+| White bishop must capture | `8/8/8/8/8/1k6/1p6/BK6 w - - 0 1` | +1 | +1 | 0 `a1b2` | 0 |
+| Black bishop must capture | `6kb/6P1/6K1/8/8/8/8/8 b - - 0 1` | +1 | +1 | 0 `h8g7` | 0 |
 
-The FEN that exceeded the cap is `r2qk1nr/3n1ppp/1pp2b2/p2pp3/1PP3bP/P4N2/2QPPPPR/RNB1KB2 w Qkq - 2 11`. It is not in check. It has 28 quiet moves and 4 tactical moves, and its static evaluation is -26. The engine quiescence search returns -26 after 563 nodes. The same contract, given a transposition table, searched 1,353,971 nodes and also returned -26. The no-table search passed 200,000 nodes before reaching that score; the agreement says the stand-pat floor is the best result under the contract.
+| Window | 5.31.0 | This branch |
+| --- | --- | --- |
+| Promotion, `[-800, -720)` | -720 | -800 |
+| Bishop capture, `[0, 1)` | 1 | 0 |
+| Favorable stalemate `5k1K/7P/8/8/8/8/8/8 w - - 0 1`, `[0, 388)` | 0 | 0 |
+| Evasion `4r2k/8/8/8/8/8/8/4K3 w - - 0 1`, `[-610, -530)` | -541 | -541 |
 
-The default `c++` on the verification machine is Clang 18.1.3, and its link failed with `cannot find -lstdc++`. The builds above set the compiler to g++.
+## What changed
 
-## What was left unchanged
+The engine change is the stand-pat gate in `Searcher::quiescence`. Stand-pat is applied only when one of these is true:
 
-Quiet checks are still outside quiescence. `k7/8/1K6/8/8/8/8/6Q1 w - - 0 1` is mate in one by `g1g8`. Depth 1 scores 29999. Quiescence returns stand-pat 1019 because all 25 legal moves are quiet. Forge 1.1.0 rejected a checking-quiescence experiment after a W11 L10 D11 screen because it cost about 9.3% more nodes. This audit does not reopen that search, and no test locks the 1019 score in place.
+- There is no capture or promotion to search. The existing stalemate probe still runs, and a favorable stalemate still returns 0 when that 0 can change the window.
+- `stand_pat <= alpha`, so raising `alpha` to it, or cutting off on it, would not change the bound. The tactical moves are searched anyway.
+- A legal quiet move exists.
 
-Stalemate that cannot affect the window still returns the normal alpha-beta bound. A fail-low with `alpha >= 0` is not reported as an exact draw.
+`Board::has_legal_quiet_move()` walks pseudo-legal moves, skips captures and promotions (en passant counts as a capture), and returns on the first move that leaves the king safe. That walk runs only in the third case. In-check nodes still call `legal_moves(false)` and never stand-pat. Transposition-table stores are unchanged: depth-0 entries, mate scores shifted by ply, and a deeper entry is not overwritten.
 
-`has_legal_quiet_move()` walks pseudo-legal moves when a tactical move exists and stand-pat is above alpha. The node counter does not include that walk. Existing node ceilings stayed green. No nodes-per-second claim is made.
+The files are:
 
-Negative static-exchange and hard delta pruning stay removed, as in 5.17.0 through 5.19.0. This change does not put them back.
+- `forge/src/search.cpp`: the gate around stand-pat.
+- `forge/include/forge/board.hpp` and `forge/src/board.cpp`: `has_legal_quiet_move()`.
+- `forge/tests/tests.cpp`: `check_quiescence_forced_tactics`, covering both colors, the fail-high windows, a repeated transposition-table probe, the evasion, and the winning rook capture. Each forced-tactical fixture must be out of check, have a legal move, and have no quiet move. Mate fixtures must match a fresh depth-1 search, score below -29000, and fail low on `[stand-pat - 80, stand-pat)`. Draw fixtures must score 0 at quiescence and at depth 1, and `[0, 1)` must return 0.
+- `forge/tools/qsearch_audit.cpp`: the differential checker. It is not linked into the engine.
+- `forge/CMakeLists.txt`: builds `qsearch_audit`. `FORGE_BUILD_VALIDATION_TOOLS` adds `forge_openings` only when `tools/generate_openings.cpp` is present. In this tree the source is absent, so configuring with the option on prints a skip and finishes. The earlier CMake error was `Cannot find source file: tools/generate_openings.cpp`.
 
-## Limitations
+Negative static-exchange pruning and hard delta pruning stay removed, as they have since 5.17.0 through 5.19.0. This change does not put them back.
 
-The contract and the engine share move generation, check detection, evaluation, and the draw rules. Agreement shows that quiescence follows those rules. It does not prove the shared pieces. The existing perft and legality tests still pass.
+Verification used g++ 13.3.0, C++20, `-Wall -Wextra -Wpedantic -Wconversion -Wshadow`. The default `c++` on the machine is Clang 18.1.3 and its link failed with `cannot find -lstdc++`, so the builds named g++ explicitly.
 
-The structured sample is seventh-rank pawns and rim knights, not the full set of chess positions. The one middlegame that exceeded the no-table node cap was scored afterward with a transposition table, and it matched. Quiet checking moves are outside the contract on purpose.
+- Release `ctest` target `forge_tests`: passed in 8.02 seconds.
+- `forge_tests` rebuilt with `-O1 -fsanitize=address,undefined -fno-omit-frame-pointer`: `All tests passed`.
+- `qsearch_audit`: 150,594 positions, 0 mismatches.
 
-The Python match, ponder, and UCI regression scripts, the opening book, and the validation corpora from the 5.31.0 archive are not in this tree. `ctest` registers those Python tests only when `tools/uci_regression.py` is present. The C++ suite is the verification that was run. `FORGE_BUILD_VALIDATION_TOOLS` still names the opening-corpus generator, and CMake adds that target only when `tools/generate_openings.cpp` is present. In this tree the option configures and skips the target.
+`has_legal_quiet_move()` walks the pseudo-legal list when a tactical move exists and stand-pat is above `alpha`. The node counter does not include that walk. The existing node ceilings stayed green. No nodes-per-second claim is made.
+
+## Limits
+
+The structured sample is seventh-rank pawns and rim knights plus a short random walk, not every chess position. Quiet checking moves are outside the contract on purpose. The Python match, ponder, and UCI scripts, the opening book, and the validation corpora from the 5.31.0 archive are not in this tree. `ctest` registers those Python tests only when `tools/uci_regression.py` is present.
 
 Nothing on this branch was merged or promoted.
