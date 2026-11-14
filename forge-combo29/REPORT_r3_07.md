@@ -71,3 +71,5 @@ Chunk 2, openings 200 through 599, 800 games. Command: `/tmp/screen_match /tmp/b
 W-L-D option on first: 203-198-399. Elo 95%: 2.17 [-14.07, 18.41]. LOS: 0.6034. Pentanomial: 23, 92, 160, 107, 18. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0002.pgn` and `forge-combo29/tests_r3fu_07/chunk_0002_summary.txt`.
 
 Cumulative after 1200 games (600 pairs): W-L-D option on first 290-297-613. Elo 95%: -2.03 [-14.79, 10.74]. LOS: 0.3778. Pentanomial: 29, 145, 254, 148, 24. The interval includes zero. Not a strength result.
+
+Chunk 3, openings 600 through 1099, was still in progress at 16:25 UTC.
