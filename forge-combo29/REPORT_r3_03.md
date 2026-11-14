@@ -67,6 +67,8 @@ The depth-10 sanitizer binary was run twice after that, 200 searches each, optio
 
 2026-11-14T14:15Z, same binary: perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329, bench 13 with the option on = 1244366.
 
+2026-11-14T14:35Z, same commands again, plus a third sanitizer pass of 200 depth-10 searches. perft 5 = 4865609, bench 11 = 312866, bench 13 = 862329, bench 13 with the option on = 1244366. Sanitizer exit 0, every returned move legal, no sanitizer diagnostic. No strength claim.
+
 ## Not measured
 
 No games were played. The node-count change is not a strength result.
