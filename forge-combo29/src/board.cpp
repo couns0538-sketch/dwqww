@@ -60,8 +60,8 @@ int promotion_recapture_exchange(const Board& board, const Move& move, int captu
                 (attacks::knight(king) & board.pieces(enemy, Knight) & live) != 0 ||
                 (attacks::king(king) & board.pieces(enemy, King) & live) != 0;
             Bitboard pinners =
-                (attacks::bishop(king, 0) & ((board.pieces(enemy, Bishop) & live) | queens)) |
-                (attacks::rook(king, 0) & ((board.pieces(enemy, Rook) & live) | queens));
+                (attacks::bishop_ray(king) & ((board.pieces(enemy, Bishop) & live) | queens)) |
+                (attacks::rook_ray(king) & ((board.pieces(enemy, Rook) & live) | queens));
             Bitboard forbidden = 0;
             while (!checked && pinners != 0) {
                 const int pinner = pop_lsb(pinners);
@@ -400,11 +400,19 @@ std::string Board::fen() const {
     return out.str();
 }
 
+namespace {
+// Visible in this file so see_ge can fold the attacker gather into its loop.
+[[gnu::always_inline]] inline Bitboard attackers_to_fast(const Board& board, int square, Bitboard occupancy) {
+    const Bitboard queens = board.pieces(Queen);
+    return (attacks::pawn(Black, square) & board.pieces(WP)) | (attacks::pawn(White, square) & board.pieces(BP)) |
+           (attacks::knight(square) & board.pieces(Knight)) | (attacks::king(square) & board.pieces(King)) |
+           (attacks::bishop(square, occupancy) & (board.pieces(Bishop) | queens)) |
+           (attacks::rook(square, occupancy) & (board.pieces(Rook) | queens));
+}
+}  // namespace
+
 Bitboard Board::attackers_to(int square, Bitboard occupancy) const {
-    return (attacks::pawn(Black, square) & pieces(WP)) | (attacks::pawn(White, square) & pieces(BP)) |
-           (attacks::knight(square) & pieces(Knight)) | (attacks::king(square) & pieces(King)) |
-           (attacks::bishop(square, occupancy) & (pieces(Bishop) | pieces(Queen))) |
-           (attacks::rook(square, occupancy) & (pieces(Rook) | pieces(Queen)));
+    return attackers_to_fast(*this, square, occupancy);
 }
 
 bool Board::square_attacked_with_occupancy(int square, Color by, Bitboard occupancy, Bitboard removed) const {
@@ -730,7 +738,7 @@ bool Board::has_legal_move() const {
 }
 
 #if FORGE_SPD_KING_LINES
-bool Board::is_legal(const Move& move) const {
+bool Board::is_legal_complete(const Move& move) const {
     const Color us = side_;
     const Piece moving = squares_[move.from];
     // Not in check, not en passant, not a king move: the own king can only
@@ -761,7 +769,7 @@ bool Board::is_legal(const Move& move) const {
     return !square_attacked_with_occupancy(king, opposite(us), occupancy, removed);
 }
 #else
-bool Board::is_legal(const Move& move) const {
+bool Board::is_legal_complete(const Move& move) const {
     const Color us = side_;
     const Piece moving = squares_[move.from];
     Bitboard occupancy = occupied() & ~square_bb(move.from);
@@ -857,7 +865,7 @@ bool Board::is_pseudo_legal(const Move& move) const {
 }
 
 #if FORGE_SPD_KING_LINES
-bool Board::gives_check(const Move& move) const {
+bool Board::gives_check_complete(const Move& move) const {
     const Color us = side_;
     const Color them = opposite(us);
     const int ksq = king_square(them);
@@ -904,7 +912,7 @@ namespace {
 // given rook-like / bishop-like sliders (the lock's see_ge uses the same walk
 // over the empty-board rays and the between masks).
 [[nodiscard]] Bitboard single_blockers(int king, Bitboard rook_like, Bitboard bishop_like, Bitboard occupancy) {
-    Bitboard snipers = (attacks::rook(king, 0) & rook_like) | (attacks::bishop(king, 0) & bishop_like);
+    Bitboard snipers = (attacks::rook_ray(king) & rook_like) | (attacks::bishop_ray(king) & bishop_like);
     Bitboard blockers = 0;
     while (snipers != 0) {
         const Bitboard between = attacks::between(king, pop_lsb(snipers)) & occupancy;
@@ -935,7 +943,7 @@ void Board::refresh_king_lines() const {
     lines.valid = true;
 }
 #else
-bool Board::gives_check(const Move& move) const {
+bool Board::gives_check_complete(const Move& move) const {
     const Color us = side_;
     const Color them = opposite(us);
     const int ksq = king_square(them);
@@ -1281,7 +1289,7 @@ bool Board::see_ge(const Move& move, int threshold) const {
 
     Bitboard occupancy = (occupied() ^ square_bb(from) ^ square_bb(captured_square)) | square_bb(to);
     Color stm = us;
-    Bitboard attackers = attackers_to(to, occupancy);
+    Bitboard attackers = attackers_to_fast(*this, to, occupancy);
     const Bitboard diagonals = pieces(Bishop) | pieces(Queen);
     const Bitboard lines = pieces(Rook) | pieces(Queen);
     int result = 1;
@@ -1311,8 +1319,8 @@ bool Board::see_ge(const Move& move, int threshold) const {
                 contact[side] = (attacks::pawn(stm, king) & pieces(enemy, Pawn)) |
                                 (attacks::knight(king) & pieces(enemy, Knight)) |
                                 (attacks::king(king) & pieces(enemy, King));
-                snipers[side] = (attacks::bishop(king, 0) & (pieces(enemy, Bishop) | queens)) |
-                                (attacks::rook(king, 0) & (pieces(enemy, Rook) | queens));
+                snipers[side] = (attacks::bishop_ray(king) & (pieces(enemy, Bishop) | queens)) |
+                                (attacks::rook_ray(king) & (pieces(enemy, Rook) | queens));
                 prepared |= 1U << side;
             }
             const Bitboard live = occupancy & ~square_bb(to);
@@ -1341,8 +1349,8 @@ bool Board::see_ge(const Move& move, int threshold) const {
                 (attacks::knight(king) & pieces(enemy, Knight) & live) != 0 ||
                 (attacks::king(king) & pieces(enemy, King) & live) != 0;
             Bitboard pinners =
-                (attacks::bishop(king, 0) & ((pieces(enemy, Bishop) & live) | queens)) |
-                (attacks::rook(king, 0) & ((pieces(enemy, Rook) & live) | queens));
+                (attacks::bishop_ray(king) & ((pieces(enemy, Bishop) & live) | queens)) |
+                (attacks::rook_ray(king) & ((pieces(enemy, Rook) & live) | queens));
             Bitboard forbidden = 0;
             while (!checked && pinners != 0) {
                 const int pinner = pop_lsb(pinners);

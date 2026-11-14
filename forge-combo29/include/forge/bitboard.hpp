@@ -185,6 +185,10 @@ struct Magic {
 
 extern std::array<Magic, 64> RookMagics;
 extern std::array<Magic, 64> BishopMagics;
+// Empty-board rays. bishop(square, 0) and rook(square, 0) are constant per square;
+// the search uses them as pin and discovered-attack masks.
+extern std::array<Bitboard, 64> RookRay;
+extern std::array<Bitboard, 64> BishopRay;
 
 [[nodiscard]] inline Bitboard knight(int square) { return KnightTable[static_cast<std::size_t>(square)]; }
 [[nodiscard]] inline Bitboard king(int square) { return KingTable[static_cast<std::size_t>(square)]; }
@@ -202,6 +206,8 @@ extern std::array<Magic, 64> BishopMagics;
 [[nodiscard]] inline Bitboard queen(int square, Bitboard occupancy) {
     return bishop(square, occupancy) | rook(square, occupancy);
 }
+[[nodiscard]] inline Bitboard rook_ray(int square) { return RookRay[static_cast<std::size_t>(square)]; }
+[[nodiscard]] inline Bitboard bishop_ray(int square) { return BishopRay[static_cast<std::size_t>(square)]; }
 [[nodiscard]] inline Bitboard between(int a, int b) {
     return BetweenTable[static_cast<std::size_t>(a)][static_cast<std::size_t>(b)];
 }

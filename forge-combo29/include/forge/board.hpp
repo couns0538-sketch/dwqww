@@ -285,6 +285,8 @@ private:
     mutable KingLines king_lines_;
     void refresh_king_lines() const;
 #endif
+    [[nodiscard]] bool is_legal_complete(const Move& move) const;
+    [[nodiscard]] bool gives_check_complete(const Move& move) const;
 
     void put_piece(Piece piece, int square);
     void remove_piece(int square);
@@ -312,6 +314,33 @@ inline constexpr std::array<std::uint8_t, 16> PieceTypeTable{0, 1, 2, 3, 4, 5, 6
 [[nodiscard]] constexpr Color color_of(Piece piece) { return piece >= BP ? Black : White; }
 [[nodiscard]] constexpr Piece make_piece(Color color, int type) {
     return static_cast<Piece>((color == White ? 0 : 6) + type);
+}
+
+// The usual move is not a check, not en passant, and not a king move. That answer
+// is a pin test. The rare cases stay out of line in the board translation unit.
+inline bool Board::is_legal(const Move& move) const {
+#if FORGE_SPD_KING_LINES
+    const Piece moving = squares_[move.from];
+    if (checkers_ == 0 && (move.flags & EnPassant) == 0U && piece_type(moving) != King) {
+        if (!king_lines_.valid) refresh_king_lines();
+        const int king = king_squares_[static_cast<std::size_t>(side_)];
+        return (king_lines_.pinned & square_bb(move.from)) == 0 || attacks::aligned(king, move.from, move.to);
+    }
+#endif
+    return is_legal_complete(move);
+}
+
+inline bool Board::gives_check(const Move& move) const {
+#if FORGE_SPD_KING_LINES
+    if ((move.flags & (EnPassant | KingCastle | QueenCastle | Promotion)) == 0U) {
+        if (!king_lines_.valid) refresh_king_lines();
+        const int type = piece_type(squares_[move.from]);
+        const int king = king_squares_[static_cast<std::size_t>(opposite(side_))];
+        if ((king_lines_.check_squares[static_cast<std::size_t>(type)] & square_bb(move.to)) != 0) return true;
+        return (king_lines_.discoverers & square_bb(move.from)) != 0 && !attacks::aligned(king, move.from, move.to);
+    }
+#endif
+    return gives_check_complete(move);
 }
 
 } // namespace forge
