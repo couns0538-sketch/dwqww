@@ -1,6 +1,7 @@
 #include "forge/clock_plan.hpp"
 #include "forge/search.hpp"
 #include "forge/tm_finish.hpp"
+#include "forge/tm_node_share.hpp"
 #include "forge/uci_output.hpp"
 
 #include <algorithm>
@@ -93,6 +94,7 @@ bool AspArmLate = false;
 bool EvasionOrdering = false;
 bool QuietExtinction = false;
 bool TmFinishIteration = false;
+bool TmNodeShare = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -2310,11 +2312,35 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 factor *= 1.0 + drop * tune::TmFallingEvalPercent / 10000.0;
             }
             factor = std::max(factor, tune::TmMinFactorPercent / 100.0);
-            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor)) break;
+            // TmNodeShare is clock play only: this block is skipped for depth,
+            // nodes, movetime, infinite, and ponder before ponderhit. Off, the
+            // soft limit is the one already planned. TmFinishIteration measures
+            // the same deadline the stop uses.
+            std::int64_t soft_basis = soft_limit_ms_;
+            if (tune::TmNodeShare) {
+                std::uint64_t best_nodes = 0;
+                std::uint64_t root_nodes = 0;
+                for (std::size_t slot = 0; slot < root_effort_count_; ++slot) {
+                    const std::uint64_t spent = root_move_nodes_[slot];
+                    root_nodes += spent;
+                    if (root_effort_moves_[slot] == result.best_move) best_nodes = spent;
+                }
+                const NodeShareTimingDecision decision = decide_node_share_timing(
+                    NodeShareTiming{soft_limit_ms_, hard_limit_ms_, elapsed_ms(), best_nodes, root_nodes});
+                if (emit_info && decision.soft_ms != soft_limit_ms_) {
+                    const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
+                    std::cout << "info string TmNodeShare "
+                              << (decision.soft_ms > soft_limit_ms_ ? "lengthen" : "shorten")
+                              << " soft " << soft_limit_ms_ << " adjusted " << decision.soft_ms
+                              << " best " << best_nodes << " root " << root_nodes
+                              << " depth " << depth << std::endl;
+                }
+                soft_basis = decision.soft_ms;
+            }
+            if (elapsed_ms() >= static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor)) break;
             if (finish_sampling) {
                 const std::int64_t used_ms = elapsed_ms();
-                const auto deadline =
-                    static_cast<std::int64_t>(static_cast<double>(soft_limit_ms_) * factor);
+                const auto deadline = static_cast<std::int64_t>(static_cast<double>(soft_basis) * factor);
                 const std::int64_t left_ms = deadline - used_ms;
                 if (iteration_will_not_finish(finish_prev_ms, finish_last_ms, left_ms)) {
                     if (emit_info) {
