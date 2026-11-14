@@ -7,7 +7,7 @@ The owner's earlier stop was +2 ± 13 in 1200 games. That stop is prior context.
 State: `running`.
 Screen start (UTC): 2026-11-14T15:41:48Z.
 Screen deadline (UTC): 2026-11-14T21:41:48Z (6 hours from screen start, or 9 chunks, whichever comes first).
-Note: heartbeat during chunk
+Note: pushed after chunk 1001
 
 ## What was compared
 
@@ -80,13 +80,13 @@ W-L-D is option on first. Elo is logistic Elo from the pentanomial model used by
 | ---: | ---: | --- | --- | ---: | --- | ---: | --- |
 | 1 | 1000 | 270-245-485 | 8.69 +/- 12.38 | 91.57 | [6, 119, 235, 124, 16] | 500 | finished |
 | 501 | 1000 | 256-258-486 | -0.69 +/- 13.35 | 45.94 | [17, 126, 215, 126, 16] | 500 | finished |
-| 1001 | 686 | 190-165-331 | 12.67 +/- 16.44 | 93.48 | [13, 68, 161, 83, 18] | 343 | running |
+| 1001 | 1000 | 274-249-477 | 8.69 +/- 14.10 | 88.66 | [21, 112, 215, 125, 27] | 500 | finished |
 
-Pooled (all chunks, option on first): W-L-D 716-668-1302 over 2686 games, 1343 pairs, Elo 6.21 +/- 7.97 (95%), LOS 93.66 %, Ptnml(0-2) [36, 313, 611, 333, 50].
+Pooled (all chunks, option on first): W-L-D 800-752-1448 over 3000 games, 1500 pairs, Elo 5.56 +/- 7.68 (95%), LOS 92.22 %, Ptnml(0-2) [44, 357, 665, 375, 59].
 
-Split of the pooled middle bin: WL 283, DD 328. Raw pair counts LL 36, LD 313, WL 283, DD 328, WD 333, WW 50. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 0.
+Split of the pooled middle bin: WL 307, DD 358. Raw pair counts LL 44, LD 357, WL 307, DD 358, WD 375, WW 59. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 0.
 
-nElo (fastchess pentanomial normalization): 10.24 +/- 13.14.
+nElo (fastchess pentanomial normalization): 9.01 +/- 12.43.
 
 ### fastchess blocks
 
@@ -116,10 +116,11 @@ Ptnml(0-2): [17, 126, 215, 126, 16], WL/DD Ratio: 0.84
 
 ```
 Results of LmrDeeperShallower vs default (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
-Elo: 13.29 +/- 16.55, nElo: 21.00 +/- 26.11
-LOS: 94.25 %, DrawRatio: 46.76 %, PairsRatio: 1.26
-Games: 680, Wins: 189, Losses: 163, Draws: 328, Points: 353.0 (51.91 %)
-Ptnml(0-2): [13, 67, 159, 83, 18], WL/DD Ratio: 0.79
+Elo: 8.69 +/- 14.10, nElo: 13.28 +/- 21.53
+LOS: 88.66 %, DrawRatio: 43.00 %, PairsRatio: 1.14
+Games: 1000, Wins: 274, Losses: 249, Draws: 477, Points: 512.5 (51.25 %)
+Ptnml(0-2): [21, 112, 215, 125, 27], WL/DD Ratio: 0.79
+--------------------------------------------------
 ```
 
 ## Reading the sample
