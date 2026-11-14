@@ -29,7 +29,7 @@ Frozen input commits
 06 55d714b10c4aa837cab381e2f8cd46e62cea1c48 grok47/r3-06-null-threat-verify
 07 acdcb7d7dc1dce997638230e90d32db170f7c17d grok47/r3-07-null-see-veto
 08 043097d56bfc0a8f206690044c5b597658356bd0 grok47/r3-08-asp-capped-reopen
-09 3b8c3fe58259a7fe34d62069a30a877db3aa205f grok47/r3-09-asp-arm-late
+09 3b94d827fee3239e3be920e42619f3db7cf01e20 grok47/r3-09-asp-arm-late
 10 6f0d2e4336c2af27b5884eed3bb7f13313d48051 grok47/r3-10-evasion-ordering
 11 d7d52cbb7db65c2a4c182658ce40d25c967cb8b3 grok47/r3-11-dead-material
 12 6d8717d287cc5f1038d53355b8b03d3cbba9e604 grok47/r3-12-soft-nodes
@@ -69,7 +69,7 @@ HindsightDepth        true   f9022e2b0fe573fdf1265b115ff9d48ce895273e    840387 
 NullThreatVerify      true   55d714b10c4aa837cab381e2f8cd46e62cea1c48    789456     789456
 NullSeeVeto           true   acdcb7d7dc1dce997638230e90d32db170f7c17d    929140     929140
 AspCappedReopen       true   043097d56bfc0a8f206690044c5b597658356bd0    850997     850997
-AspArmLate            true   3b8c3fe58259a7fe34d62069a30a877db3aa205f    870398     870398
+AspArmLate            true   3b94d827fee3239e3be920e42619f3db7cf01e20    870398     870398
 EvasionOrdering       true   6f0d2e4336c2af27b5884eed3bb7f13313d48051    772890     772890
 DeadMaterial          true   d7d52cbb7db65c2a4c182658ce40d25c967cb8b3    862329     862329
 QuietExtinction       true   eebb14ca513d56c4227d69cfdada30707f5b6cf3    632155     632155
@@ -142,8 +142,10 @@ At 16:25 UTC r3-02 moved to 8fe3867a098b7df57d731a3e3581c1be51ea5c57,
 a screen snapshot with no source change. At 16:25 UTC r3-10 moved to
 6f0d2e4336c2af27b5884eed3bb7f13313d48051, also with no source change.
 At 16:31 UTC r3-07 moved to acdcb7d7dc1dce997638230e90d32db170f7c17d,
-a report note with no source change. Pins and the option table were
-run again after each of those merges and matched the numbers above. Where a newer tip does not change
+a report note with no source change. At 16:32 UTC r3-09 moved to
+3b94d827fee3239e3be920e42619f3db7cf01e20, a screen chunk with no
+source change. Pins and the option table were run again after each
+of those merges and matched the numbers above. Where a newer tip does not change
 src or include, the expected bench is the number already measured
 on that same engine source.
 
