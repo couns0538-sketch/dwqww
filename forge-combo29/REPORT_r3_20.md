@@ -113,4 +113,51 @@ Table A was faster on every run. The mean gap is 52 ms. Table B's mean gap is 25
 
 ## Not verified
 
-No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed, because this CPU has BMI2. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.
+No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed in the first measurement, because that binary forced the BMI2 indexer on. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.
+
+## Follow-up
+
+The header no longer forces `FORGE_SPD_SLIDER_PEXT` on when BMI2 is available. The compile definitions choose that switch. Nothing else in the search changed.
+
+Pins on the base commit and on this tree, portable (`FORGE_PORTABLE=ON`, `-march=x86-64-v3`, slider switch 0) and owner (default march `x86-64-v4`, slider switch 1, AVX-512 NNUE kernel on). This CPU has AVX-512F and BMI2.
+
+| build | bench 11 | bench 13 | perft 5 |
+| --- | ---: | ---: | ---: |
+| base portable | 312866 | 862329 | 4865609 |
+| this tree, portable | 312866 | 862329 | 4865609 |
+| base owner | 312866 | 862329 | 4865609 |
+| this tree, owner | 312866 | 862329 | 4865609 |
+
+`tests_r3fu_20/perft4_bench.cpp` asks the engine for perft 4 on the eight bench positions. All four binaries above were 8/8. The totals are 197281, 4085603, 3269539, 43238, 1635300, 3813973, 24244, 2433324.
+
+`tests_r3fu_20/depth8_compare.cpp` speaks UCI: Threads 1, Hash 16, OwnBook false, `ucinewgame` before each position, `go depth 8`. `tests_r3fu_20/depth8_expected.txt` is the base portable engine's best move, score, and node count for 10,000 positions. The portable binary, the owner binary, and the owner base binary each matched all 10,000.
+
+Bench 16, seven fresh processes, base then this tree. The number is the `time` field in milliseconds. Nodes were 3024920 on every run. The spread inside the set is larger than the gap between the binaries.
+
+Portable, slider switch 0:
+
+| run | base | this tree |
+| ---: | ---: | ---: |
+| 1 | 3324 | 3269 |
+| 2 | 2153 | 2540 |
+| 3 | 2316 | 2542 |
+| 4 | 2023 | 2595 |
+| 5 | 3211 | 3161 |
+| 6 | 2575 | 2428 |
+| 7 | 2042 | 1930 |
+| mean | 2520.6 | 2637.9 |
+
+Owner, slider switch 1 and the AVX-512 evaluation kernel:
+
+| run | base | this tree |
+| ---: | ---: | ---: |
+| 1 | 2499 | 2237 |
+| 2 | 2497 | 1984 |
+| 3 | 1869 | 2061 |
+| 4 | 2142 | 2322 |
+| 5 | 2425 | 1844 |
+| 6 | 1865 | 2209 |
+| 7 | 1885 | 1813 |
+| mean | 2168.9 | 2067.1 |
+
+These are timings on this machine, not a strength claim. Runs cross both ways.
