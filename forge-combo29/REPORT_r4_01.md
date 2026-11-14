@@ -30,7 +30,7 @@ Frozen input commits
 07 9564de36aa9d4ed17b19d8f7d6468f61ac286efc grok47/r3-07-null-see-veto
 08 3b41775159d67c1336876ece36cdfcb71c4a8c86 grok47/r3-08-asp-capped-reopen
 09 3b94d827fee3239e3be920e42619f3db7cf01e20 grok47/r3-09-asp-arm-late
-10 6f0d2e4336c2af27b5884eed3bb7f13313d48051 grok47/r3-10-evasion-ordering
+10 0c89887f480e71e5068d736f80a48e9aa2b9e8c1 grok47/r3-10-evasion-ordering
 11 d7d52cbb7db65c2a4c182658ce40d25c967cb8b3 grok47/r3-11-dead-material
 12 6d8717d287cc5f1038d53355b8b03d3cbba9e604 grok47/r3-12-soft-nodes
 13 dfe64bf8200e449ca0ff37127f1535e8f841f254 grok47/r3-13-quiet-extinction
@@ -70,7 +70,7 @@ NullThreatVerify      true   e6bb8f273849f5c8fc9382638e1864e3e28b4859    789456 
 NullSeeVeto           true   9564de36aa9d4ed17b19d8f7d6468f61ac286efc    929140     929140
 AspCappedReopen       true   3b41775159d67c1336876ece36cdfcb71c4a8c86    850997     850997
 AspArmLate            true   3b94d827fee3239e3be920e42619f3db7cf01e20    870398     870398
-EvasionOrdering       true   6f0d2e4336c2af27b5884eed3bb7f13313d48051    772890     772890
+EvasionOrdering       true   0c89887f480e71e5068d736f80a48e9aa2b9e8c1    772890     772890
 DeadMaterial          true   d7d52cbb7db65c2a4c182658ce40d25c967cb8b3    862329     862329
 QuietExtinction       true   dfe64bf8200e449ca0ff37127f1535e8f841f254    632155     632155
 DrawJitter            8      158b5d61a9bf708b39eed350f73f1a6ac3daa599    857947     857947
@@ -158,6 +158,7 @@ Tip r3-05 c50314ab9472610847194d9fd871ae38d7eef666 merged with no source change;
 Tip r3-06 e6bb8f273849f5c8fc9382638e1864e3e28b4859 merged with no source change; pins and the option table matched.
 Tip r3-07 9564de36aa9d4ed17b19d8f7d6468f61ac286efc merged with no source change; pins and the option table matched.
 Tip r3-08 3b41775159d67c1336876ece36cdfcb71c4a8c86 merged with no source change; pins and the option table matched.
+Tip r3-10 0c89887f480e71e5068d736f80a48e9aa2b9e8c1 merged with no source change; pins and the option table matched.
 Not verified. No `R3 FOLLOW-UP DONE` commit existed to merge.
 Playing strength was not measured. Address and thread sanitizers were
 not run on the integrated tree. The KRK threads-2 miss above was not
