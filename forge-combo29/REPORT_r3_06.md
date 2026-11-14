@@ -76,7 +76,9 @@ Chunk 1 (openings 500-999, 1000 games, 1592 s): option on 255-261-484. Pentanomi
 
 Chunk 2 (openings 1000-1499, 1000 games, 1473 s): option on 270-247-483. Pentanomial 14 110 235 121 20 (DD 126, WL 109). Elo 8.0, 95% interval -5.1 to 21.0, LOS 0.89. Illegal moves 0, timeouts 0.
 
-After 1500 openings: option on 790-770-1440. Screening only.
+Chunk 3 (openings 1500-1999, 1000 games, 1476 s): option on 276-255-469. Pentanomial 17 109 227 130 17 (DD 115, WL 112). Elo 7.3, 95% interval -5.9 to 20.5, LOS 0.86. Illegal moves 0, timeouts 0.
+
+After 2000 openings: option on 1066-1025-1909. Screening only.
 
 option name NullThreatVerify type check default false
 setoption name NullThreatVerify value true
