@@ -90,3 +90,5 @@ nodes 4865609
 - `forge-combo29/REPORT_r4_06.md`
 
 There was no engine change. Nothing under `forge-combo29/src`, `forge-combo29/include`, or `CMakeLists.txt` differs from `e04556ddc`.
+
+R4 DONE cfc321ec4c115434a55e4ab2b8d97266edccd6ee
