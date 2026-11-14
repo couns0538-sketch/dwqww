@@ -79,3 +79,25 @@ g++ -std=c++20 -O2 -Wall -Wextra -Werror -I forge-combo29/include \
 ```
 
 Guard test: the same `-D` flags and `-O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3` as the engine, plus `tests_r3_22/clock_guard_test.cpp` and the `src` translation units except `uci.cpp`.
+
+## Follow-up
+
+An empty reserve used to return `root_candidates.front()` without looking at the position. It now probes the transposition table and plays that move when it is one of the legal root moves. Otherwise it searches depth 1 with a node cap of 2000. Helper threads are not started, and workers left over from an earlier thread count are left out of the node sum, so the cap is only this search. If that ply does not finish, the move is the first legal move. Ponder still thinks until `ponderhit`. Mate, stalemate, and other terminal roots are still reported without a search.
+
+`tests_r3fu_22/empty_clock_move_test.cpp` checks that:
+
+- a fresh empty clock matches a normal depth-1 search (start position 26 nodes, `d2d4`; the kiwipete position 394 nodes, `e2a6`), both under 2000
+- after a depth-6 search, the next empty clock plays that move in 0 nodes
+- an empty clock with a 1-node limit does not finish the ply and plays the first legal move
+- one `Searcher` is set to Threads 2, searched, set to Threads 4, searched, then given an empty clock from a mate (`7k/6Q1/6K1/8/8/8/8/8 b - - 0 1`), a stalemate (`7k/5Q2/6K1/8/8/8/8/8 b - - 0 1`), and a 50-move draw (`8/8/8/4k3/8/8/4K3/R7 w - - 100 1`). The mate and the stalemate return no move and 0 nodes. The draw returns a legal move and 0 nodes.
+
+The machine has AVX-512F and BMI2, so the engine build is the owner default: Release, `FORGE_PORTABLE` off, march `x86-64-v4`, no `FORGE_*` override. g++ 13 is the compiler because this machine's Clang 18 cannot link libstdc++. Pins on that binary: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+`tests_r3fu_22/short_clock_match.cpp` plays the new binary against `e04556dd`. Both sides are Threads 1, Hash 16, OwnBook false, Move Overhead 10. Colors swap every game. Eight opening prefixes are applied, then the clock runs. A move that takes longer than the time sent is a time loss. Concurrency is 2, half of the 4 CPUs. The base is `/tmp/forge-base/build/forge` built from that commit with the same owner flags.
+
+tc=1+0.01 (1000 ms + 10 ms), 2000 games, mean length 149.041 plies:
+
+- new: time losses 0, illegal moves 0, crashes 0
+- base: time losses 0, illegal moves 0, crashes 0
+
+tc=3+0.03 (3000 ms + 30 ms), 2000 games: same harness, results filled when that run ends.
