@@ -1,15 +1,30 @@
-# Chunk 002 progress snapshot
+# Chunk 002
 
-Status: in progress. Openings 501-1000, both colors, 1000 games. Counts are only games with a complete Result tag in this copy. Not a strength claim.
+Status: finished. Openings 501-1000, both colors, 1000 games. ThreatHistory on is the first engine. Not a strength claim.
 
-- Snapshot time: 2026-11-14T17:44:14Z
-- Complete games in this copy: 732
-- W-L-D (ThreatHistory on first): 191-197-344
-- Points: 363.0 / 732 (49.59%)
-- Elo: -2.85 +/- 18.32 (95%)
-- LOS: 38.03%
-- Pentanomial Ptnml(0-2): [11, 111, 135, 91, 18]
-- Complete pairs: 366; rounds with one game so far: 0
+- Started: 2026-11-14T16:48:10Z
+- Finished: 2026-11-14T17:55:34Z
+- fastchess exit: 0
+- Match time: 00:43:27
+- W-L-D (ThreatHistory on first): 245-268-487
+- Points: 488.5 / 1000 (48.85%)
+- Elo: -7.99 +/- 14.07 (95%, fastchess)
+- nElo: -12.24 +/- 21.53
+- LOS: 13.25%
+- Pentanomial Ptnml(0-2): [21, 142, 196, 121, 20]
+- Draw ratio: 39.20%
+- Pairs ratio: 0.87
+- PGN results: 1000
+
+fastchess final report:
+
+```
+Results of ThreatHistoryOn vs ThreatHistoryOff (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -7.99 +/- 14.07, nElo: -12.24 +/- 21.53
+LOS: 13.25 %, DrawRatio: 39.20 %, PairsRatio: 0.87
+Games: 1000, Wins: 245, Losses: 268, Draws: 487, Points: 488.5 (48.85 %)
+Ptnml(0-2): [21, 142, 196, 121, 20], WL/DD Ratio: 0.75
+```
 
 Command:
 
