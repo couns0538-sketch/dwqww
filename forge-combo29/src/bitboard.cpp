@@ -2,7 +2,12 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <mutex>
+
+#if defined(__BMI2__)
+#include <immintrin.h>
+#endif
 
 namespace forge::attacks {
 
@@ -18,6 +23,8 @@ std::array<std::array<Bitboard, 64>, 2> ForwardRanksMask{};
 std::array<Bitboard, 64> KingZoneMask{};
 std::array<Magic, 64> RookMagics{};
 std::array<Magic, 64> BishopMagics{};
+std::array<PextSlider, 64> RookPext{};
+std::array<PextSlider, 64> BishopPext{};
 
 namespace {
 
@@ -132,6 +139,36 @@ void init_magics(bool rook, Bitboard* table, std::array<Magic, 64>& magics) {
 }
 #endif
 
+void init_pext_tables(bool rook, const std::array<Magic, 64>& magics, Bitboard* table, std::array<PextSlider, 64>& out) {
+    const auto& directions = rook ? RookDirections : BishopDirections;
+    std::size_t offset = 0;
+    for (int square = 0; square < 64; ++square) {
+        PextSlider& slider = out[static_cast<std::size_t>(square)];
+        slider.mask = magics[static_cast<std::size_t>(square)].mask;
+        slider.table = table + offset;
+        Bitboard subset = 0;
+        do {
+#if defined(__BMI2__)
+            const std::size_t index = static_cast<std::size_t>(_pext_u64(subset, slider.mask));
+#else
+            std::size_t index = 0;
+            Bitboard bits = slider.mask;
+            Bitboard value = subset;
+            unsigned shift = 0;
+            while (bits != 0) {
+                const int bit = std::countr_zero(bits);
+                if ((value & (1ULL << bit)) != 0) index |= 1ULL << shift;
+                bits &= bits - 1;
+                ++shift;
+            }
+#endif
+            slider.table[index] = sliding_attack(directions, square, subset);
+            ++offset;
+            subset = (subset - slider.mask) & slider.mask;
+        } while (subset != 0);
+    }
+}
+
 } // namespace
 
 void init() {
@@ -179,6 +216,17 @@ void init() {
 
     init_magics(true, RookAttackTable.data(), RookMagics);
     init_magics(false, BishopAttackTable.data(), BishopMagics);
+    static std::array<Bitboard, 0x19000> RookPextTable{};
+    static std::array<Bitboard, 0x1480> BishopPextTable{};
+    init_pext_tables(true, RookMagics, RookPextTable.data(), RookPext);
+    init_pext_tables(false, BishopMagics, BishopPextTable.data(), BishopPext);
+    for (int square = 0; square < 64; ++square) {
+        if (bishop_pext(square, 0) != bishop(square, 0) || rook_pext(square, 0) != rook(square, 0) ||
+            bishop_pext(square, ~Bitboard{0}) != bishop(square, ~Bitboard{0}) ||
+            rook_pext(square, ~Bitboard{0}) != rook(square, ~Bitboard{0})) {
+            std::abort();
+        }
+    }
 
     for (int a = 0; a < 64; ++a) {
         for (int b = 0; b < 64; ++b) {

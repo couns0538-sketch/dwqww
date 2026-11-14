@@ -120,16 +120,28 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
         while (pieces != 0) {
             const int square = pop_lsb(pieces);
             Bitboard attacks_bb = 0;
+            Bitboard queen_bishop = 0;
+            Bitboard queen_rook = 0;
             switch (type) {
             case Knight: attacks_bb = attacks::knight(square); break;
             case Bishop:
                 // X-ray through own queens so batteries count as mobility.
-                attacks_bb = attacks::bishop(square, occupied ^ board.pieces(Us, Queen));
+                attacks_bb = attacks::bishop_pext(square, occupied ^ board.pieces(Us, Queen));
                 break;
             case Rook:
-                attacks_bb = attacks::rook(square, occupied ^ board.pieces(Us, Queen) ^ board.pieces(Us, Rook));
+                attacks_bb = attacks::rook_pext(square, occupied ^ board.pieces(Us, Queen) ^ board.pieces(Us, Rook));
                 break;
-            default: attacks_bb = attacks::queen(square, occupied); break;
+            default: {
+                // One bishop ray and one rook ray. The weak-queen term below uses the same rays.
+                const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(square)];
+                const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(square)];
+                const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occupied, bishop_slider.mask));
+                const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occupied, rook_slider.mask));
+                queen_bishop = bishop_slider.table[bishop_index];
+                queen_rook = rook_slider.table[rook_index];
+                attacks_bb = queen_bishop | queen_rook;
+                break;
+            }
             }
             info.attacked_twice[Us] |= info.attacked_by[Us][0] & attacks_bb;
             info.attacked_by[Us][0] |= attacks_bb;
@@ -159,7 +171,7 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
                     const Bitboard same_color = (bit & DarkSquares) != 0 ? DarkSquares : LightSquares;
                     acc.template add<Us>(BishopPawnsSameColor, popcount(own_pawns & same_color));
                     // A bishop on a long diagonal that sees a central square.
-                    if ((bit & LongDiagonals) != 0 && (attacks::bishop(square, board.pieces(Pawn)) & CenterFour) != 0) {
+                    if ((bit & LongDiagonals) != 0 && (attacks::bishop_pext(square, board.pieces(Pawn)) & CenterFour) != 0) {
                         acc.template add<Us>(BishopLongDiagonal);
                     }
                 }
@@ -168,14 +180,15 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
                 if ((own_pawns & file_bb(file)) == 0) {
                     acc.template add<Us>((enemy_pawns & file_bb(file)) == 0 ? RookOpenFile : RookSemiOpenFile);
                 }
-                // Rook behind a passed pawn on the same file.
+                // Rook behind a passed pawn on the same file. Both directions share one lookup.
                 const Bitboard ahead = attacks::forward_file(Us, square);
-                if ((ahead & info.passed[Us]) != 0 && (attacks::rook(square, occupied) & ahead & info.passed[Us]) != 0) {
-                    acc.template add<Us>(RookBehindOwnPasser);
-                }
                 const Bitboard behind_enemy = attacks::forward_file(Them, square);
-                if ((behind_enemy & info.passed[Them]) != 0 && (attacks::rook(square, occupied) & behind_enemy & info.passed[Them]) != 0) {
-                    acc.template add<Us>(RookBehindEnemyPasser);
+                const bool own_gate = (ahead & info.passed[Us]) != 0;
+                const bool enemy_gate = (behind_enemy & info.passed[Them]) != 0;
+                if (own_gate || enemy_gate) {
+                    const Bitboard real = attacks::rook_pext(square, occupied);
+                    if (own_gate && (real & ahead & info.passed[Us]) != 0) acc.template add<Us>(RookBehindOwnPasser);
+                    if (enemy_gate && (real & behind_enemy & info.passed[Them]) != 0) acc.template add<Us>(RookBehindEnemyPasser);
                 }
                 if (relative_rank(Us, square) == 6) {
                     const int enemy_king_rank = relative_rank(Us, info.king_square[Them]);
@@ -187,9 +200,9 @@ void evaluate_pieces(const Board& board, Accumulator<Trace>& acc, EvalInfo& info
                                                  (Us == White ? Rank1BB : Rank8BB);
                     acc.template add<Us>(QueenEarlyDevelopment, popcount(home_minors));
                 }
-                // Queen attacked by an enemy slider (through pieces) that is not pinned down.
-                const Bitboard enemy_sliders = (attacks::bishop(square, occupied) & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |
-                                               (attacks::rook(square, occupied) & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));
+                // Queen attacked by an enemy slider along the rays already gathered above.
+                const Bitboard enemy_sliders = (queen_bishop & (board.pieces(Them, Bishop) | board.pieces(Them, Queen))) |
+                                               (queen_rook & (board.pieces(Them, Rook) | board.pieces(Them, Queen)));
                 if ((enemy_sliders & ~board.pieces(Them, Queen)) != 0) acc.template add<Us>(WeakQueen);
             }
         }
@@ -239,8 +252,12 @@ void evaluate_king(const Board& board, Accumulator<Trace>& acc, const EvalInfo& 
         units += king_safety.weak_square * popcount(weak);
         const Bitboard safe = ~board.occupied(Them) & (~info.attacked_by[Us][0] | (weak & info.attacked_twice[Them]));
         const Bitboard occ = board.occupied();
-        const Bitboard rook_rays = attacks::rook(king, occ);
-        const Bitboard bishop_rays = attacks::bishop(king, occ);
+        const attacks::PextSlider& rook_slider = attacks::RookPext[static_cast<std::size_t>(king)];
+        const attacks::PextSlider& bishop_slider = attacks::BishopPext[static_cast<std::size_t>(king)];
+        const std::size_t rook_index = static_cast<std::size_t>(_pext_u64(occ, rook_slider.mask));
+        const std::size_t bishop_index = static_cast<std::size_t>(_pext_u64(occ, bishop_slider.mask));
+        const Bitboard rook_rays = rook_slider.table[rook_index];
+        const Bitboard bishop_rays = bishop_slider.table[bishop_index];
         const Bitboard rook_checks = rook_rays & safe & info.attacked_by[Them][Rook];
         const Bitboard bishop_checks = bishop_rays & safe & info.attacked_by[Them][Bishop];
         const Bitboard knight_checks = attacks::knight(king) & safe & info.attacked_by[Them][Knight];
