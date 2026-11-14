@@ -1,6 +1,6 @@
 # Existing test-folder matrix
 
-Updated 2026-11-14T12:33:53.216Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
+Updated 2026-11-14T12:39:51.000Z. Expected values are unchanged. Nonzero exits and sanitizer diagnostics are retained, including stale protocol fixtures.
 
 | Build | Group | Test/check | Exit | Sanitizer reports | Output |
 | --- | --- | --- | --- | --- | --- |
@@ -21,6 +21,7 @@ Updated 2026-11-14T12:33:53.216Z. Expected values are unchanged. Nonzero exits a
 | asan | candidates | search_candidates_test | 0 | 0 | [asan-search_candidates_test.txt](preparation/asan-search_candidates_test.txt) |
 | asan | fuzz | uci_fuzz | 0 | 0 | [asan-uci_fuzz.txt](preparation/asan-uci_fuzz.txt) |
 | asan | krk-full-retry | krk_mate_test_full_retry | 124 | 0 | [asan-krk_mate_test_full_retry.txt](preparation/asan-krk_mate_test_full_retry.txt) |
+| asan | krk-split-retry | krk_mate_test_split_1 | 0 | 0 | [asan-krk_mate_test_split_1.txt](preparation/asan-krk_mate_test_split_1.txt) |
 | asan | krk | krk_mate_test | 124 | 0 | [asan-krk_mate_test.txt](preparation/asan-krk_mate_test.txt) |
 | asan | mate-fifty | mate_solver_test | 0 | 0 | [asan-mate_solver_test.txt](preparation/asan-mate_solver_test.txt) |
 | asan | mate-fifty | fifty_move_tt_test | 0 | 0 | [asan-fifty_move_tt_test.txt](preparation/asan-fifty_move_tt_test.txt) |
