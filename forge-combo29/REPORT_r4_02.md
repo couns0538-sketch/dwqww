@@ -18,11 +18,15 @@ Self-check at e04556dd, portable x86-64-v3, 20000 nodes, one opening, two games,
 
 ## Results
 
-No node-limited screening or no-regression match is on those branches yet.
+grok47/r3-07-null-see-veto f3bcd9a052c0 0 clock configuration missing, replay not run
 
 ## Commands and hashes
 
-No replay command yet.
+grok47/r3-07-null-see-veto f3bcd9a052c0 kind unknown pgn forge-combo29/tests_r3fu_07/chunk_0001.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=ON -DFORGE_MARCH=x86-64-v3 -DCMAKE_CXX_COMPILER=clang++
+engine source sha256: 7e30808db1ea89edfff758daffecc1486d4610cefb59847a1e299e86386da4f5
+engine binary sha256: 
+
 ## Still open
 
 grok47/r3-01-eval-rule-50-damp b009da42b 2026-11-14 15:29:24 +0000 Record the EvalRule50Damp screen command, hashes, and bench rates.
@@ -31,7 +35,6 @@ grok47/r3-03-lmr-signed-correction 4c1dd7ac5 2026-11-14 15:30:56 +0000 Record th
 grok47/r3-04-lmr-late-parent-relief 83b258f22 2026-11-14 15:29:12 +0000 Start the LmrLateParentRelief screening follow-up.
 grok47/r3-05-hindsight-depth cacb3ed98 2026-11-14 15:27:45 +0000 Reuse the hindsight static eval instead of evaluating twice.
 grok47/r3-06-null-threat-verify 5afe0de5d 2026-11-14 15:36:37 +0000 Record the owner-build bench sample and screen setup.
-grok47/r3-07-null-see-veto f3bcd9a05 2026-11-14 15:43:06 +0000 Add the first NullSeeVeto screen chunk and bench rates.
 grok47/r3-08-asp-capped-reopen dc2e25b54 2026-11-14 15:35:53 +0000 Record the first AspCappedReopen UHO screen chunk
 grok47/r3-09-asp-arm-late a6cb38eff 2026-11-14 15:28:46 +0000 Reopen a full window after a failed root iteration.
 grok47/r3-10-evasion-ordering 692004da0 2026-11-14 15:45:07 +0000 Add EvasionOrdering screen chunk 001.
@@ -53,5 +56,5 @@ grok47/r4-03-screen-lds 626479273 2026-11-14 15:45:37 +0000 r4-03: drop generate
 grok47/r4-04-screen-ch4 67c2a7ea6 2026-11-14 15:41:10 +0000 r4-04: record ContHist4PlyRead screen setup
 grok47/r4-05-screen-npc b68b815c1 2026-11-14 15:43:00 +0000 r4-05: start NonPawnCorrection screen
 
-Last check: 2026-11-14T15:47:26Z
+Last check: 2026-11-14T15:47:28Z
 Deadline: 2026-11-15T01:47:25Z
