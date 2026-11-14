@@ -186,6 +186,9 @@ int uci_loop(std::istream& in) {
                 std::cout << "option name UseNNUE type check default true\n"
                              "option name NnueFile type string default <empty>\n";
             }
+            std::cout << "option name ContHist4PlyRead type check default false\n"
+                         "option name NonPawnCorrection type check default false\n"
+                         "option name LmrDeeperShallower type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -295,6 +298,15 @@ int uci_loop(std::istream& in) {
                 if (value_text == "true" || value_text == "false") {
                     forge::nnue::enabled = value_text == "true";
                     searcher.clear_hash();
+                } else {
+                    note_invalid();
+                }
+            } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower") {
+                bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
+                             : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
+                                                           : &forge::tune::LmrDeeperShallower;
+                if (value_text == "true" || value_text == "false") {
+                    *target = value_text == "true";
                 } else {
                     note_invalid();
                 }

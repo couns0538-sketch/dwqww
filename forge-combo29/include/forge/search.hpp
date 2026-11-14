@@ -267,6 +267,9 @@ extern int CaptureFutilityBase;   // futility pruning of captures: base margin (
 extern int CaptureFutilityMultiplier;
 extern int CaptureFutilityDepth;
 extern int FailLowContinuationBonus; // x0.01 of the history bonus given to the parent move on fail low (0 = off)
+extern bool ContHist4PlyRead;        // read 4-ply-back continuation history in quiet scoring (false = off)
+extern bool NonPawnCorrection;       // per-color non-pawn static-eval correction history (false = off)
+extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -348,6 +351,8 @@ private:
     std::unique_ptr<CounterMoveTable> counter_moves_;
     std::unique_ptr<CorrectionHistory> correction_history_;
     std::unique_ptr<CorrectionHistory> material_correction_;
+    std::unique_ptr<CorrectionHistory> non_pawn_white_correction_;
+    std::unique_ptr<CorrectionHistory> non_pawn_black_correction_;
     std::array<SearchStack, MaxPly + 8> stack_{};
     std::array<Move, 256> root_effort_moves_{};
     std::array<std::uint64_t, 256> root_move_nodes_{};
