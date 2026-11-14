@@ -132,7 +132,7 @@ The raw `tests_t16` options diff still exits 1 on both builds. The only extra li
 
 After that, the helper-budget test, the MultiPV budget test, and both `tests_t13` programs were repeated 8 times on each build. All 64 runs exited 0. No AddressSanitizer, LeakSanitizer, or undefined-behavior report was written.
 
-The same four programs, on both builds, kept running after that. At 14:24 UTC the extra loop had finished 80 rounds (640 runs) with 0 failures and no sanitizer report. The loop is scheduled through 14:48 UTC; the count above is the checkpoint, not the final tally.
+The same four programs then kept running on both builds until 14:48 UTC. That loop finished 201 rounds, 1608 runs, with 0 failures and no sanitizer report.
 
 ## Not verified
 
