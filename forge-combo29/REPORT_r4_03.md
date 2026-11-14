@@ -4,10 +4,11 @@ Screening only. This is not a strength claim.
 
 The owner's earlier stop was +2 ± 13 in 1200 games. That stop is prior context. This run is a new on-versus-off sample of the existing default-off option and does not by itself establish a strength change.
 
-State: `running`.
+State: `stopped`.
 Screen start (UTC): 2026-11-14T15:41:48Z.
 Screen deadline (UTC): 2026-11-14T21:41:48Z (6 hours from screen start, or 9 chunks, whichever comes first).
-Note: pushed after chunk 1501
+Screen stop (UTC): 2026-11-14T18:49:56Z.
+Note: Stopped on request before another chunk. Chunks 1, 501, 1001, and 1501 finished at 1000 games. Chunk 2001 is partial. This is not a finished screen and not a strength claim.
 
 ## What was compared
 
@@ -82,12 +83,13 @@ W-L-D is option on first. Elo is logistic Elo from the pentanomial model used by
 | 501 | 1000 | 256-258-486 | -0.69 +/- 13.35 | 45.94 | [17, 126, 215, 126, 16] | 500 | finished |
 | 1001 | 1000 | 274-249-477 | 8.69 +/- 14.10 | 88.66 | [21, 112, 215, 125, 27] | 500 | finished |
 | 1501 | 1000 | 245-263-492 | -6.25 +/- 13.55 | 18.27 | [25, 119, 218, 125, 13] | 500 | finished |
+| 2001 | 261 | 65-78-118 | -16.05 +/- 28.68 | 13.55 | [10, 30, 58, 26, 6] | 130 | stopped |
 
-Pooled (all chunks, option on first): W-L-D 1045-1015-1940 over 4000 games, 2000 pairs, Elo 2.61 +/- 6.68 (95%), LOS 77.77 %, Ptnml(0-2) [69, 476, 883, 500, 72].
+Pooled (all chunks, option on first): W-L-D 1110-1093-2058 over 4261 games, 2130 pairs, Elo 1.47 +/- 6.51 (95%), LOS 67.07 %, Ptnml(0-2) [79, 506, 941, 526, 78].
 
-Split of the pooled middle bin: WL 401, DD 482. Raw pair counts LL 69, LD 476, WL 401, DD 482, WD 500, WW 72. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 0.
+Split of the pooled middle bin: WL 428, DD 513. Raw pair counts LL 79, LD 506, WL 428, DD 513, WD 526, WW 78. Unpaired finished games (excluded from the pentanomial, included in W-L-D): 1.
 
-nElo (fastchess pentanomial normalization): 4.20 +/- 10.77.
+nElo (fastchess pentanomial normalization): 2.35 +/- 10.43.
 
 ### fastchess blocks
 
@@ -133,6 +135,19 @@ LOS: 18.27 %, DrawRatio: 43.60 %, PairsRatio: 0.96
 Games: 1000, Wins: 245, Losses: 263, Draws: 492, Points: 491.0 (49.10 %)
 Ptnml(0-2): [25, 119, 218, 125, 13], WL/DD Ratio: 0.76
 --------------------------------------------------
+```
+
+#### chunk 2001
+
+```
+Results of LmrDeeperShallower vs default (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -16.05 +/- 28.68, nElo: -23.71 +/- 42.23
+LOS: 13.55 %, DrawRatio: 44.62 %, PairsRatio: 0.80
+Games: 260, Wins: 65, Losses: 77, Draws: 118, Points: 124.0 (47.69 %)
+Ptnml(0-2): [10, 30, 58, 26, 6], WL/DD Ratio: 0.87
+--------------------------------------------------
+Started game 264 of 1000 (default vs LmrDeeperShallower)
+Tournament was interrupted. To resume the tournament, run: /tmp/r4tools/fastchess-linux-x86-64/fastchess -config file=/agent/repos/dwqww/forge-combo29/tests_r4_03/chunk_2001.json
 ```
 
 ## Reading the sample
