@@ -46,7 +46,11 @@ Named cases cover the audit pair (clock 0 with overhead 10, clock 5 with overhea
 | kiwipete, nodes 12000 | 12000 | d5e6 |
 | start, nodes 0 | 0 | a2a3 |
 
-Ponder with clock 0 and overhead 10 searched, then stopped after `ponderhit` (2048 nodes in that run). Live clocks of 80 ms, 100 ms plus a 2000 ms increment, and 300 ms with `movestogo` 5 all searched and stopped before depth 64.
+Ponder with clock 0 and overhead 10 searched, then stopped after `ponderhit` (2048 nodes in the release run). Live clocks of 80 ms, 100 ms plus a 2000 ms increment, and 300 ms with `movestogo` 5 all searched and stopped before depth 64. The same guard binary built with ASan and UBSan repeated those checks. The six fixed searches stayed on the counts above. The timed searches stopped earlier, which is the sanitizer slowdown, and the empty reserves still returned 0 nodes.
+
+A depth-8 search with a 60 s clock still returned 4099 nodes and `d2d4`. A 20000-node search with that same clock still returned exactly 20000 nodes. An empty clock with Black to move returned 0 nodes.
+
+Through UCI, with OwnBook off: `go wtime 0` at the default overhead, and `go wtime 5` with Move Overhead 50 and Threads 4, each printed `bestmove` and no `info depth` line. `go wtime 100 winc 2000` searched to depth 13 and stopped with the last info time at 39 ms, under the 54 ms hard limit for that plan.
 
 ## Pins
 
