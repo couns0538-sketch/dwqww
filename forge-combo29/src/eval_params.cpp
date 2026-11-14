@@ -20,6 +20,7 @@ Table table = defaults();
 KingSafetyWeights king_safety{};
 
 const char* name(int index) {
+    if (index < 0 || index >= Count) return "Unknown";
     static thread_local std::string buffer;
     auto indexed = [&](const char* base, int start) {
         buffer = std::string(base) + "[" + std::to_string(index - start) + "]";
