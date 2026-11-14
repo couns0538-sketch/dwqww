@@ -23,7 +23,7 @@ Frozen input commits
 22 143f3c5c6953ecfb8826553200e90f31dc91baae grok47/r3-22-time-safety
 01 56c0bbc3f71cbd82df0cf6fc73ab1ff53aaa7213 grok47/r3-01-eval-rule-50-damp
 02 e7f5bc837eb7461c21779dc182eda5b9cfc4b1c7 grok47/r3-02-threat-history
-03 176aa9fc1edd53c15b37ab966dc1eb4457a43377 grok47/r3-03-lmr-signed-correction
+03 73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2 grok47/r3-03-lmr-signed-correction
 04 d71f002fde848d2a4c3ef661dde152a442d395c6 grok47/r3-04-lmr-late-parent-relief
 05 da44ae67e647d50f73ee3477fe1e3c255c38abf4 grok47/r3-05-hindsight-depth
 06 544c108818eaaaaf25336b3e26531353876773e1 grok47/r3-06-null-threat-verify
@@ -63,7 +63,7 @@ integrated binary with only that option changed.
 option                value  commit                                     expected   got
 EvalRule50Damp        true   56c0bbc3f71cbd82df0cf6fc73ab1ff53aaa7213    1049205    1049205
 ThreatHistory         true   e7f5bc837eb7461c21779dc182eda5b9cfc4b1c7    643389     643389
-LmrSignedCorrection   true   176aa9fc1edd53c15b37ab966dc1eb4457a43377    862329     862329
+LmrSignedCorrection   true   73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2    862329     862329
 LmrLateParentRelief   true   d71f002fde848d2a4c3ef661dde152a442d395c6    818656     818656
 HindsightDepth        true   da44ae67e647d50f73ee3477fe1e3c255c38abf4    840387     840387
 NullThreatVerify      true   544c108818eaaaaf25336b3e26531353876773e1    789456     789456
@@ -196,6 +196,7 @@ and was not merged.
 The literal line was not present in the files fetched at 17:13 UTC.
 The commits named by those lines are the engine fixes above.
 
+Tip r3-03 73d9f20e5dd1d1fba1d919b1e72162ebe90f84e2 merged with no engine-source change; pins were not re-run.
 Not verified. The other in-scope branches still have no
 `R3 FOLLOW-UP DONE` line in the files on origin.
 Playing strength was not measured. Address and thread sanitizers were
