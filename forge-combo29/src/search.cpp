@@ -1422,7 +1422,10 @@ int Worker::search(Board& board, SearchStack* ss, int depth, int alpha, int beta
         if (mate_moves_ == 0 && !root_node && depth >= tune::SingularDepth && move == tt_move && excluded.is_none() &&
             tt_bound != BoundUpper && tt_score != ValueNone && !is_mate_score(tt_score) && tt_depth >= depth - 3) {
             const int singular_beta = tt_score - tune::SingularMargin * depth;
-            const int singular_depth = (depth - 1) / 2;
+            // (depth - 1) / 2 is 0 at depth 2. search() then enters qsearch, which
+            // never reads excluded_move, so the singular search cuts off on this
+            // node's own TT entry. Keep the verification in search().
+            const int singular_depth = std::max(1, (depth - 1) / 2);
             const bool saved_tt_pv = ss->tt_pv;
             ss->excluded_move = move;
             const int singular_score = search(board, ss, singular_depth, singular_beta - 1, singular_beta, cut_node);
