@@ -1921,7 +1921,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
                 if (best_effort != effort_end) {
                     const auto index = static_cast<std::size_t>(best_effort - root_effort_moves_.begin());
                     const double effort = static_cast<double>(root_move_nodes_[index]) / static_cast<double>(local_nodes_);
-                    factor *= std::clamp(tune::TmEffortBase / 100.0 - effort, 0.6, 1.4);
+                    // TmNodeShare on: this factor stays 1. The share is applied
+                    // only by decide_node_share_timing below.
+                    factor *= effort_share_factor(effort, tune::TmEffortBase, tune::TmNodeShare);
                 }
             }
             // A falling evaluation deserves more thought.
