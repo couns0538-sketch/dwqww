@@ -74,3 +74,9 @@ No strength claim from the search change itself.
 
 setoption name QuietExtinction value true
 bench 13 nodes 632155
+
+## UHO screen, stopped unfinished
+
+Same owner binary, option on versus option off, `go nodes 50000`, Threads 1, Hash 16, OwnBook false. Book `UHO_Lichess_4852_v1.epd`, sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`. Engine sha256 `ad0bcb5fbe83f231042a87fcb72c4e8f605cf0b41f3b3e824f6d4d18596a5185`. The run was stopped while chunk 20 was still open. Chunks 1–19 are complete. Chunk 20 is a partial PGN and has no summary file.
+
+Completed pairs, option on first: W-L-D 34-1343-143, 1520 games, score 105.5, Elo -450.94, 95% interval -478.351 to -423.53, LOS 0. Pentanomial (0, 0.5, 1, 1.5, 2) is 592 128 37 3 0. This is a measured score only. It is not a strength claim. The screen did not reach its time cap.
