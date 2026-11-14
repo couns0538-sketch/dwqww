@@ -104,3 +104,5 @@
 2026-11-14T15:00:09.759Z | 228.63 min | 2E | 5 seed 9520005 | incomplete/uncommitted | {"exit":124,"reason":"no SUMMARY line","log":"/workspace/work/all-run/logs/2E-0005.txt"}
 2026-11-14T15:00:09.784Z | 228.63 min | 2E | checkpoint | completed evidence staged for soak/combo29-all | 61 existing-test results | 91 fault files
 2026-11-14T15:00:09.880Z | checkpoint command | git ["-c","user.name=Codex","-c","user.email=codex@openai.com","commit","--quiet","-m","Combined soak checkpoint 2026-11-14T15:00:09.880Z elapsed 228.63 min"] | staged files 8
+2026-11-14T15:03:20.477Z | 231.81 min | 2E | checkpoint | completed evidence staged for soak/combo29-all | 61 existing-test results | 91 fault files
+2026-11-14T15:03:20.549Z | checkpoint command | git ["-c","user.name=Codex","-c","user.email=codex@openai.com","commit","--quiet","-m","Combined soak checkpoint 2026-11-14T15:03:20.549Z elapsed 231.81 min"] | staged files 4

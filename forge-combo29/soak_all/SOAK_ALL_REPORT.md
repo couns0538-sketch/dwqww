@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T15:00:09.768Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T15:03:20.445Z.
 
-Elapsed at snapshot: 228.63 minutes; current phase: 2E; recorded pushes: 39. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 231.81 minutes; current phase: 2E; recorded pushes: 40. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -74,12 +74,12 @@ These are sums of observed measurements under the listed conditions. Early mate 
 
 Chess fault counters, runtime failures and sanitizer warnings are separate observations. A chess summary with zero faults does not establish a clean sanitizer run. Counts in this section come only from matched finished batches in the supplied audit snapshot; state game/search totals remain unchanged.
 
-Audit snapshot: 2026-11-14T14:52:29.338Z; reported reconciliation errors 0. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.
+Audit snapshot: 2026-11-14T15:03:11.438Z; reported reconciliation errors 0. Batch identity, finish time, recorded counts and available exit/signal are matched to state. This renderer does not assert that the audit state hash matches current state.
 
 | Phase | Audited / finished attempts | With canonical counts | With process classification | TSan warning blocks | Unresolved blocks | Nonzero exits | Runtime/diagnostic affected | Timeout/forced |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2D | 6 / 6 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
-| 2E | 4 / 5 | 4 | 4 | 0 | 0 | 0 | 0 | 0 |
+| 2E | 5 / 5 | 5 | 5 | 0 | 0 | 1 | 0 | 1 |
 | 2F | 6 / 6 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
 
 Coverage includes finished attempts with no committed chess counts. A dash means unavailable, not zero. Nonzero exits, runtime diagnostics and timeouts can overlap; timeout/forced termination is not labelled an engine crash. ASan/UBSan marker lines are not TSan warning events.
@@ -105,7 +105,7 @@ Coverage includes finished attempts with no committed chess counts. A dash means
 | [2D #6](batches/2D-0006.txt) | 2026-11-14T14:41:25.043Z | 2 | 0 / 2,000 | false / false / false | 316 / 31,104 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
 | [2F #5](batches/2F-0005.txt) | 2026-11-14T14:46:47.860Z | 1 | 0 / 2,000 | true / true / true | 183 / 26,054 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
 | [2F #6](batches/2F-0006.txt) | 2026-11-14T14:52:13.748Z | 2 | 0 / 2,000 | true / true / true | 321 / 30,005 / 0 | 0 / none | normal_exit | 0 | 0 | 0 / 0 | Unavailable / not applicable |
-| [2E #5](batches/2E-0005.evidence/manifest.txt) | 2026-11-14T15:00:09.720Z | — | — / — | — / — / — | — / — / — | 124 / none | No audit row supplied | — | — | — / — | Unavailable / not applicable |
+| [2E #5](batches/2E-0005.evidence/manifest.txt) | 2026-11-14T15:00:09.720Z | — | — / — | — / — / — | — / — / — | 124 / none | budget_timeout_or_forced_termination; not classified as engine crash | 0 | 0 | 0 / 0 | Unavailable / not applicable |
 
 Conditions come from each retained raw SUMMARY, or its retained parsed SUMMARY when raw text is unavailable. Candidate order is ContHist4PlyRead / NonPawnCorrection / LmrDeeperShallower; literal booleans are shown. A positive depth setting selects depth-limited search; depth zero selects the node limit. Missing conditions are not inferred from the phase description or later batches.
 
@@ -119,7 +119,6 @@ No resolved source-line-pair groups are available in the matched audit data. Thi
 Audit coverage and grouping omissions:
 
 - 2E:5: one or more per-batch condition fields unavailable; planned or latest phase conditions are not substituted.
-- 2E:5: No audit row supplied; no sanitizer count inferred.
 
 ## Match counts
 
@@ -178,6 +177,7 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - At user request during the run, inspected the2026-11-14 13:51:59UTC remote snapshot to avoid duplicate work: r3-21/r3-23 contain no extra commit; r3-24 has an existing TT stale-slot candidate fix; r3-17 has legal-prefix/helper-node-budget changes. These branches were reviewed statically only and not merged. The pinned source/protocol remain unchanged. See BRANCH_REVIEW.md.
 - At14:02UTC an exec-server transport disconnect prevented creation of a preparation command. No batch was active or lost; connection recovered on the next probe. The failed command had made no state/file changes and was retried.
 - To cover enabled-option concurrency within the same Part2 clock budget, final prepared F slots9/10 (extra ASAN+UBSAN repeats, never executed) are replaced by F11/12: the unchanged TSan driver, Threads2/4,depth9, allthree options true. Exact specifications and validation are retained in preparation/f-tsan-supplemental.
+- TSan E5 seed9520005 timed out at450seconds while game2 reached bare-king position8/5R2/2B5/3P4/P3k3/2P1N3/1P5P/6K1 w - - 1 60. Process was CPU-active and inputs advanced; no deadlock/crash assertion. No finalSUMMARY, so all partial counts excluded. Same-condition retry E5r1 scheduled; full input/output and observation retained.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -303,7 +303,7 @@ A retry link records a later attempt; it does not imply that every partial unit 
 
 </details>
 
-Optional audit snapshot: 2026-11-14T14:52:29.338Z; state SHA256 `e3e8ea43b637f2b99b831e7d8512f5719175387177e8ed8b4794378f8020435f`; apply mode true; reported errors 0, warnings 2. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
+Optional audit snapshot: 2026-11-14T15:03:11.438Z; state SHA256 `3c6296f9cba0d2d3f1059a892a929cf0ae18d40d4c4657a0a68fa22984b7065f`; apply mode true; reported errors 0, warnings 3. This snapshot is not assumed to verify later state or active work. [Full audit](preparation/latest-audit.txt).
 
 | Audited batch | Raw verification | Partial safety observations | Artifacts with diagnostic markers |
 | --- | --- | --- | --- |
@@ -339,12 +339,14 @@ Optional audit snapshot: 2026-11-14T14:52:29.338Z; state SHA256 `e3e8ea43b637f2b
 | 2D:6 | Limited; see audit | 0 | 0 |
 | 2F:5 | Limited; see audit | 0 | 0 |
 | 2F:6 | Limited; see audit | 0 | 0 |
+| 2E:5 | Limited; see audit | 0 | 0 |
 
 <details>
 <summary>Audit issues and limits</summary>
 
 - warning: 2D:1 lacks --trace: search/move/game counts are self-reported, with SUMMARY invariants and emitted FAULT rows checked; no per-search replay enumeration available
 - warning: 2KRKfull:1 incomplete existing-test invocation; zero completed coverage; native budget expired; incomplete status alone is not an engine fault
+- warning: 2E:5 has no recognized final summary; no completed counters inferred, but raw sanitizer evidence is scanned
 - Frequencies come only from complete raw recorded trial groups. Partial safety evidence has no completed reproduction frequency.
 - No engine is executed by this auditor. Missing ten-run reproduction groups remain pending.
 - Sanitizer marker locations are evidence occurrences, not a count of independent bugs. Mirrored logs can contain the same diagnostic.
