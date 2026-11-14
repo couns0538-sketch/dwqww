@@ -1,8 +1,8 @@
 # Eight-hour combined Forge integration and soak
 
-Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T19:38:20.443Z.
+Start: 2026-11-14T11:11:32Z. Scheduled end: 2026-11-14T19:11:32Z. Report snapshot: 2026-11-14T19:45:41.469Z.
 
-Elapsed at snapshot: 506.81 minutes; current phase: 3-NonPawnCorrection; recorded pushes: 82. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
+Elapsed at snapshot: 514.16 minutes; current phase: Round-4 transition per Fable coordination; recorded pushes: 84. Cloud VM only. Counts and measurements do not support an Elo, strength or speed conclusion.
 
 Base: `fca0fb40c7e66fdf01e36f4b95ceb179ffee2fca`; merged source: `f27b1971e459581ad4c85b7015f6af83bbfd4af6`; unchanged lock: `16833ecc03b425586f91f4c8834dea8807bf4c22`. [Source provenance](../INTEGRATION_ALL.md), [progress](PROGRESS.md), [raw batches](batches/), [test matrix](TEST_MATRIX.md).
 
@@ -23,9 +23,9 @@ Recorded default pins: bench11 = 312,866; bench13 = 862,329; perft5 = 4,865,609.
 | 2G | t23 mate/fifty-move suites; unchanged expectations and complete test outputs retained. | 4 tests completed; 120 cases; 60 mate cases; 20 nonmate cases; 40 rule50 cases; 0 sanitizer reports | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Merged defaults (candidate) versus unchanged lock (baseline). | 4,000 games; 1,094 wins; 1,177 losses; 1,729 draws; 0 audit errors | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | 3-ContHist4PlyRead | Merged with only ContHist4PlyRead enabled versus merged with all three new options disabled. | 4,000 games; 1,152 wins; 1,126 losses; 1,722 draws; 0 audit errors | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | 3,600 games; 1,050 wins; 986 losses; 1,564 draws; 0 audit errors | Running |
-| 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | 0 games | Pending in owner-authorized extension;0/4000 at original cutoff |
-| Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 5 initial searches; 27 origin observation searches; 9 static eval counterfactual searches; 5 r3 full option searches; 5 r3 mate arm searches; 61 total engine searches; 2 followup oracle invocations; 64 followup oracle rows | Cause recorded and direct event reproduced10/10 in extension; small repair and broader sample pending |
+| 3-NonPawnCorrection | Merged with only NonPawnCorrection enabled versus merged with all three new options disabled. | 4,000 games; 1,176 wins; 1,099 losses; 1,725 draws; 0 audit errors | Complete:4000 games,2000 paired openings; completed across original window and owner-authorized extension; clean runner audits |
+| 3-LmrDeeperShallower | Merged with only LmrDeeperShallower enabled versus merged with all three new options disabled. | 0 games | Omitted after Fable message0002 under owner-authorized coordination/low-usage prioritization;0/4000 games; not a completed comparison |
+| Part4 | Mate-bound/PV investigation and optional sampled KRK audit; exact DTM checks, no universal correctness claim. | 5 initial searches; 27 origin observation searches; 9 static eval counterfactual searches; 5 r3 full option searches; 5 r3 mate arm searches; 61 total engine searches; 2 followup oracle invocations; 64 followup oracle rows | Fault092 proved and reproduced10/10; repair moved to new r4 collaborative task; broader old-tree sample omitted per Fable recommendation |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | 2 tests completed; 200 t1 runs; 0 t1 misses; 400 main runs; 0 main misses; 0 no mate score; 0 non mating move; 0 sanitizer reports | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 
 Counts below use committed state totals. A dash means unavailable or not applicable, never an inferred zero. Fault categories can overlap.
@@ -139,14 +139,14 @@ Recorded match configuration: 20,000 nodes per move, Threads 1, Hash 16, OwnBook
 | --- | --- | --- | --- | --- | --- |
 | default | 4,000 | 1,094 | 1,177 | 1,729 | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | ContHist4PlyRead | 4,000 | 1,152 | 1,126 | 1,722 | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| NonPawnCorrection | 3,600 | 1,050 | 986 | 1,564 | Running |
-| LmrDeeperShallower | 0 | — | — | — | Pending in owner-authorized extension;0/4000 at original cutoff |
+| NonPawnCorrection | 4,000 | 1,176 | 1,099 | 1,725 | Complete:4000 games,2000 paired openings; completed across original window and owner-authorized extension; clean runner audits |
+| LmrDeeperShallower | 0 | — | — | — | Omitted after Fable message0002 under owner-authorized coordination/low-usage prioritization;0/4000 games; not a completed comparison |
 
 | Mode | LL | LD | DD or WL | DW | WW | Complete pairs | Incomplete pairs |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | default | 77 | 315 | 1,272 | 286 | 50 | 2,000 | 0 |
 | ContHist4PlyRead | 115 | 474 | 797 | 498 | 116 | 2,000 | 0 |
-| NonPawnCorrection | 83 | 428 | 736 | 448 | 105 | 1,800 | 0 |
+| NonPawnCorrection | 94 | 464 | 828 | 499 | 115 | 2,000 | 0 |
 | LmrDeeperShallower | — | — | — | — | — | — | — |
 
 Pair bins correspond to candidate scores 0, ½, 1, 1½ and 2 across a color-swapped pair. The middle bin combines two draws with one win and one loss. Scored abnormal games remain in W–L–D and complete pair bins.
@@ -194,6 +194,7 @@ A crash can appear as a disconnect. Log markers are occurrences, not additional 
 | [3-NonPawnCorrection #7](batches/3-NonPawnCorrection-0007.txt) | 8476007 | Yes; see retained counts | true / true | 133–98–169 | 200 / 0 | exit 0, signal — |
 | [3-NonPawnCorrection #8](batches/3-NonPawnCorrection-0008.txt) | 8476008 | Yes; see retained counts | true / true | 109–123–168 | 200 / 0 | exit 0, signal — |
 | [3-NonPawnCorrection #9](batches/3-NonPawnCorrection-0009.txt) | 8476009 | Yes; see retained counts | true / true | 111–106–183 | 200 / 0 | exit 0, signal — |
+| [3-NonPawnCorrection #10](batches/3-NonPawnCorrection-0010.txt) | 8476010 | Yes; see retained counts | true / true | 126–113–161 | 200 / 0 | exit 0, signal — |
 
 Raw attempt rows can include excluded work and must not be summed into the completed totals.
 
@@ -245,6 +246,8 @@ Completed-unit totals exclude partial work; interrupted cleanup diagnostics rema
 - The user explicitly authorized a clearly named Fable/Opus handoff branch after the credit reset. A focused handoff is being published separately; it does not authorize updates to other agents branches.
 - After the eight-hour checkpoint, the owner explicitly authorized continued work and a shared Fable/Opus handoff branch. Later batches are extension work; they do not change the original interruption, elapsed-window coverage or failed checkpoint cadence.
 - Extension: fault092 now reproduced10/10 additional fresh instrumented searches with unchanged full normalized output/trace. Coordination branch handoff/fable-opus-combo29-all-20261114 asks Fable/Opus for the repair acceptance test and next assignment.
+- Fable response0002 at09a7a935, read19:38UTC, recommended finishing the active NonPawn batch and dropping remaining LMR match and broad sample in favor of a narrow guard on r4 plus sanitizer coverage. Owner had explicitly requested joint next-step coordination and low usage. Completed total12000 games is preserved; LMR4000 remains omitted, not passed.
+- Successor work will use r4 base8e805fb4 plus four named audit source fixes. Original f27 engine sources and old evidence remain unchanged. Owner compile-OFF and no-Elo rules remain controlling; Fable runtime option is placed behind the compile gate. New four-hour soak budget begins only after guard acceptance work.
 
 These notes retain their original recording context; subsequent retry coverage is stated separately.
 
@@ -441,7 +444,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 2D | ASan+UBSan self-play, Threads2, Hash16, OwnBookfalse, UseNNUEtrue, MultiPV1, all3 candidates false, nodes20000,8 seeded opening plies,300-ply cap,full trace,300-second game-boundary budget | Complete: 1131 games / 131115 searches; ASAN+UBSAN Threads1/2, nodes2000/20000; no chess/runtime diagnostics |
 | 2Aprep | Lock-T1 selection and merged-T1 observations: retain40previousKRKroots; generateKQK/KBBK atdepth14; no merged-result filtering | Complete: 40 KRK, 40 KQK and 40 KBBK roots frozen |
 | 2A | Frozen40KRK+40KQK+40KBBK, lock/merged, Threads2/4, depth14,10fresh-state trials perroot/build/thread; exactKRKoracle; noKQK/KBBKproofclaim | Complete: merged 0/2,400 and lock 298/2,400 mate-score misses |
-| Part4 | Known-root reproduction, nine observation passes, private counterfactuals, exact r3-23 option and isolated mate-alpha arm; no production fix | Cause recorded and direct event reproduced10/10 in extension; small repair and broader sample pending |
+| Part4 | Known-root reproduction, nine observation passes, private counterfactuals, exact r3-23 option and isolated mate-alpha arm; no production fix | Fault092 proved and reproduced10/10; repair moved to new r4 collaborative task; broader old-tree sample omitted per Fable recommendation |
 | 2B | 200 fixed-seed legal bare-king roots, no mate-score selection; lock and merged, Threads1/2, depth12; raw nodes and times only | Complete: 800 depth-12 searches on 200 roots, both builds at Threads 1/2; no fault |
 | 2KRKsplit | Isolated unchanged existing ASAN KRK split retry 2/2: same deterministic40 roots,5 fresh-clear trials each,Threads2 Hash16 depth14; separate100 T1 checks | Complete: two unchanged40x5 invocations; 0/400 main misses,0/200 T1 misses, no sanitizer report |
 | 2C | Four disjoint frozen corpus shards; cold depth9 comparisons; counts only | Complete:100,000 positions; 8 required low-clock equality failures; 31 high-clock differences observed |
@@ -450,8 +453,8 @@ This appendix preserves every state total, including overlapping categories and 
 | 2G | Unchanged t23 mate and rule50 suites, release and ASan+UBSan;40mate-suite cases plus20rule50 cases perbuild | Complete: four unchanged suite runs; 120 cases; zero missed/false mates, illegal moves, rule50 failures, or sanitizer reports |
 | 3-default | Official fastchess; merged defaults versus lock;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000 games,2000 color-swapped UHO pairs; W-L-D1094-1177-1729; no crash/illegal/disconnect/stall/abort marker or event; counts only |
 | 3-ContHist4PlyRead | Official fastchess; merged ContHist4PlyRead on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000games/2000pairs;0 recorded crash,illegal,disconnect,stall,abort or structural audit error |
-| 3-NonPawnCorrection | Official fastchess; merged NonPawnCorrection on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Running |
-| 3-LmrDeeperShallower | Requested option-on versus option-off fixed-node UHO pairs; no native batch started | Pending in owner-authorized extension;0/4000 at original cutoff |
+| 3-NonPawnCorrection | Official fastchess; merged NonPawnCorrection on versus all-three off;400 games in200 color-swapped UHO pairs, nodes20000,Threads1,Hash16,OwnBookfalse,recover,no clock/adjudication | Complete:4000 games,2000 paired openings; completed across original window and owner-authorized extension; clean runner audits |
+| 3-LmrDeeperShallower | Requested option-on versus option-off fixed-node UHO pairs; no native batch started | Omitted after Fable message0002 under owner-authorized coordination/low-usage prioritization;0/4000 games; not a completed comparison |
 
 | Phase | Counter | Recorded value |
 | --- | --- | --- |
@@ -986,20 +989,20 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-ContHist4PlyRead | disconnect_markers | 0 |
 | 3-ContHist4PlyRead | stall_markers | 0 |
 | 3-ContHist4PlyRead | batches | 10 |
-| 3-NonPawnCorrection | games | 3600 |
-| 3-NonPawnCorrection | games_started | 3600 |
-| 3-NonPawnCorrection | wins | 1050 |
-| 3-NonPawnCorrection | losses | 986 |
-| 3-NonPawnCorrection | draws | 1564 |
-| 3-NonPawnCorrection | moves | 500047 |
-| 3-NonPawnCorrection | complete_pairs | 1800 |
+| 3-NonPawnCorrection | games | 4000 |
+| 3-NonPawnCorrection | games_started | 4000 |
+| 3-NonPawnCorrection | wins | 1176 |
+| 3-NonPawnCorrection | losses | 1099 |
+| 3-NonPawnCorrection | draws | 1725 |
+| 3-NonPawnCorrection | moves | 555482 |
+| 3-NonPawnCorrection | complete_pairs | 2000 |
 | 3-NonPawnCorrection | incomplete_pairs | 0 |
 | 3-NonPawnCorrection | audit_errors | 0 |
-| 3-NonPawnCorrection | pair_LL | 83 |
-| 3-NonPawnCorrection | pair_LD | 428 |
-| 3-NonPawnCorrection | pair_DD_or_WL | 736 |
-| 3-NonPawnCorrection | pair_DW | 448 |
-| 3-NonPawnCorrection | pair_WW | 105 |
+| 3-NonPawnCorrection | pair_LL | 94 |
+| 3-NonPawnCorrection | pair_LD | 464 |
+| 3-NonPawnCorrection | pair_DD_or_WL | 828 |
+| 3-NonPawnCorrection | pair_DW | 499 |
+| 3-NonPawnCorrection | pair_WW | 115 |
 | 3-NonPawnCorrection | illegal_move_events | 0 |
 | 3-NonPawnCorrection | illegal_move_games | 0 |
 | 3-NonPawnCorrection | disconnect_games | 0 |
@@ -1010,7 +1013,7 @@ This appendix preserves every state total, including overlapping categories and 
 | 3-NonPawnCorrection | illegal_markers | 0 |
 | 3-NonPawnCorrection | disconnect_markers | 0 |
 | 3-NonPawnCorrection | stall_markers | 0 |
-| 3-NonPawnCorrection | batches | 9 |
+| 3-NonPawnCorrection | batches | 10 |
 | 3-LmrDeeperShallower | games | 0 |
 
 </details>
