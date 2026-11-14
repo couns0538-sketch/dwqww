@@ -72,4 +72,8 @@ W-L-D option on first: 203-198-399. Elo 95%: 2.17 [-14.07, 18.41]. LOS: 0.6034. 
 
 Cumulative after 1200 games (600 pairs): W-L-D option on first 290-297-613. Elo 95%: -2.03 [-14.79, 10.74]. LOS: 0.3778. Pentanomial: 29, 145, 254, 148, 24. The interval includes zero. Not a strength result.
 
-Chunk 3, openings 600 through 1099, was still in progress at 16:25 UTC.
+Chunk 3, openings 600 through 1099, 1000 games. Command: `/tmp/screen_match /tmp/build-owner/forge /tmp/uho/UHO_Lichess_4852_v1.epd 600 500 4 forge-combo29/tests_r3fu_07/chunk_0003.pgn forge-combo29/tests_r3fu_07/chunk_0003_summary.txt`
+
+W-L-D option on first: 237-254-509. Elo 95%: -5.91 [-19.79, 7.97]. LOS: 0.2021. Pentanomial: 20, 135, 208, 116, 21. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0003.pgn` and `forge-combo29/tests_r3fu_07/chunk_0003_summary.txt`.
+
+Cumulative after 2200 games (1100 pairs): W-L-D option on first 527-551-1122. Elo 95%: -3.79 [-13.18, 5.60]. LOS: 0.2144. Pentanomial: 49, 280, 462, 264, 45. The interval includes zero. Not a strength result.
