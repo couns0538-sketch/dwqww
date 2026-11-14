@@ -249,6 +249,7 @@ public:
     [[nodiscard]] std::uint64_t key() const { return key_; }
     [[nodiscard]] std::uint64_t pawn_key() const { return pawn_key_; }
     [[nodiscard]] int halfmove_clock() const { return halfmove_; }
+    [[nodiscard]] int plies_from_null() const { return plies_from_null_; }
     [[nodiscard]] int fullmove_number() const { return fullmove_; }
     [[nodiscard]] int ep_square() const { return ep_square_; }
     [[nodiscard]] std::uint8_t castling_rights() const { return castling_; }

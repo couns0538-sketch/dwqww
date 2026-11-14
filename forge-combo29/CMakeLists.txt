@@ -35,6 +35,22 @@ else()
   target_compile_definitions(forge PRIVATE FORGE_SPD_SLIDER_PEXT=1 FORGE_SPD_NNUE_ZMM=1)
 endif()
 
+# Search experiments. Both default off, so a normal build is the lock tree.
+# FORGE_ETC_STATS counts enhanced-transposition opportunities and takes no cutoff.
+# FORGE_CONT4_READ adds the ply-4 continuation history (already written) to quiet ordering.
+option(FORGE_ETC_STATS "count enhanced transposition opportunities without changing the tree" OFF)
+option(FORGE_ETC_HASH_ONLY "with FORGE_ETC_STATS, peek only the hash move" OFF)
+option(FORGE_CONT4_READ "order quiets with the ply-4 continuation history the search already writes" OFF)
+if(FORGE_ETC_STATS)
+  target_compile_definitions(forge PRIVATE FORGE_ETC_STATS=1)
+endif()
+if(FORGE_ETC_HASH_ONLY)
+  target_compile_definitions(forge PRIVATE FORGE_ETC_HASH_ONLY=1)
+endif()
+if(FORGE_CONT4_READ)
+  target_compile_definitions(forge PRIVATE FORGE_CONT4_READ=1)
+endif()
+
 # Strict floating-point operation order (required for bit-exact node counts).
 target_compile_options(forge PRIVATE -O3 -ffp-contract=off -fno-fast-math -march=${FORGE_MARCH})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
