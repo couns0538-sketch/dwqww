@@ -1,13 +1,13 @@
 # Six-hour Forge soak
 
 Start: 2026-11-14T05:32:25Z. Scheduled end: 2026-11-14T11:32:25Z.
-Updated: 2026-11-14T06:17:15.430Z. Elapsed minutes: 44.84. Completed checkpoint pushes: 5.
+Updated: 2026-11-14T06:25:19.423Z. Elapsed minutes: 52.91. Completed checkpoint pushes: 6.
 Integration bf5574ee654a773f0ef3d06878707056b90cdad7; reference 16833ecc03b425586f91f4c8834dea8807bf4c22. Cloud-only, one agent.
 
 | Phase | What ran | Counts | Status / faults |
 | --- | --- | --- | --- |
 | A | Both exact commits: Release, ASan/UBSan, TSan builds; both release bench11/13 and perft5; driver preparation | {"builds":6,"pin_checks":6,"batches":1} | Complete; faults 0 |
-| B | timeout 450 /workspace/work/soak-run/play-asan --seed 4753008 --seconds 240 --threads 1 --nodes 2000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":1838,"moves":261443,"searches":261443,"opening_moves":14704,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":1328,"stalemates":2,"repetitions":258,"fifty":106,"ply_caps":49,"insufficient":95,"sanitizer_reports":0,"batches_threads1":8,"batches":8} | Running; faults 0 |
+| B | timeout 450 /workspace/work/soak-run/play-asan --seed 4753010 --seconds 240 --threads 1 --nodes 2000 --depth 0 --trigger /workspace/work/soak-run/last-trigger.json | {"games":2295,"moves":327635,"searches":327635,"opening_moves":18360,"faults":0,"illegal":0,"missing":0,"badscore":0,"mates":1661,"stalemates":2,"repetitions":318,"fifty":135,"ply_caps":59,"insufficient":120,"sanitizer_reports":0,"batches_threads1":10,"batches":10} | Running; faults 0 |
 | C | Not yet run | {} | Pending; faults 0 |
 | D | Not yet run | {} | Pending; faults 0 |
 | E | Not yet run | {} | Pending; faults 0 |
