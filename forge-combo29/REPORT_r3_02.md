@@ -52,9 +52,31 @@ The destination threat bit used the position occupancy with the mover still on i
 
 The CPU has AVX-512F and BMI2, so the binary is the owner release build: `cmake -S forge-combo29 -B build-owner -DCMAKE_BUILD_TYPE=Release` (default `-march=x86-64-v4`, PEXT and ZMM on). Threads 1, Hash 16, OwnBook false, ThreatHistory left off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
 
-`tests_r3fu_02/xray_destination_test.cpp` covers the queen move whose destination is behind the mover on a rook file (index 3), the square between the rook and the queen (index 3), and a destination off that file (index 2).
+`tests_r3fu_02/xray_destination_test.cpp` covers the queen move whose destination is behind the mover on a rook file (index 3), the square between the rook and the queen (index 3), and a destination off that file (index 2). The earlier threat-history suite still passes, including the attacker oracle on 1630 quiet moves.
 
-Screening is a node-limited opening match of this same binary with the option on against itself with the option off. It is not a strength claim.
+Bench 13 nps on this binary, five alternating runs, option off then on. Node counts stayed 862329 and 643389.
+
+| run | off nps | on nps |
+| --- | ---: | ---: |
+| 1 | 1850491 | 1620627 |
+| 2 | 1796518 | 1649715 |
+| 3 | 1834742 | 1653956 |
+| 4 | 1684236 | 1557842 |
+| 5 | 1724658 | 1596498 |
+
+Screening uses that same binary. ThreatHistoryOn is listed first. Each chunk is 500 sequential openings from `UHO_Lichess_4852_v1.epd`, both colors (`-rounds 500 -games 2`), `nodes=50000`, Threads 1, Hash 16, OwnBook false, concurrency 2. Chunks continue until 6 hours from the start of the screen. This is a screen, not a strength claim.
+
+```
+/tmp/screen-r3-02/fastchess-linux-x86-64/fastchess \
+  -engine cmd=/tmp/screen-r3-02/forge name=ThreatHistoryOn option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=true \
+  -engine cmd=/tmp/screen-r3-02/forge name=ThreatHistoryOff option.Threads=1 option.Hash=16 option.OwnBook=false option.ThreatHistory=false \
+  -each nodes=50000 \
+  -openings file=/tmp/screen-r3-02/UHO_Lichess_4852_v1.epd format=epd order=sequential start=N \
+  -rounds 500 -games 2 -concurrency 2 -ratinginterval 100 -recover \
+  -pgnout file=chunkNNN.pgn nodes=true
+```
+
+Versions: engine `Chess Engine Forge 6.4.24 candidate` (UCI), Clang 18.1.3, fastchess alpha 1.8.3 compiled for ubuntu-22.04 20261107-d7b47e8. Book sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`. Binary sha256 `9949d8950cea9334e5e325221e2da28e7d7b94a098ebb46a76eb00b18d1bae1f`. Per-chunk W-L-D, Elo 95%, LOS, and pentanomial are in `tests_r3fu_02/`.
 
 option.ThreatHistory=true
 bench 13 nodes 643389
