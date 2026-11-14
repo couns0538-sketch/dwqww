@@ -57,3 +57,27 @@ Playing strength was not measured. How often the mate or ±640 full-open branch 
 setoption name AspCappedReopen value true
 
 bench 13 nodes 850997
+
+## Follow-up screen
+
+Screen only. Same binary, `AspCappedReopen` on against off. Not a strength claim.
+
+CPU has AVX-512F and BMI2, so the binary is the owner build: `cmake -S forge-combo29 -B /tmp/forge-owner-build -DCMAKE_BUILD_TYPE=Release` with the file's defaults (`FORGE_MARCH=x86-64-v4`, `FORGE_PORTABLE=OFF`). No `CMakeLists.txt` edit and no `FORGE_*` override. Pins on that binary, Threads 1, Hash 16, OwnBook false, option off: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+Book: `UHO_Lichess_4852_v1.epd`, 2632036 positions, sequential order, both colors per opening. Match tool: fastchess alpha 1.8.3 `20261113-3d7a4db`. Engine id: Chess Engine Forge 6.4.24 candidate. Compiler: Ubuntu clang 18.1.3. CMake 3.28.3.
+
+sha256 forge `580ca05934c3b0f24e92d401664a2f1beea1f870db6efad0b20a319646a9dc51`
+sha256 fastchess `936811dcaea97a853a762d3f1e6fb600610c1be3c1f759f2f2fefa2e6500b21e`
+sha256 book `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`
+
+bench 13, five alternating runs, off first, same binary. Nodes stay 862329 off and 850997 on. nps is machine time, not a speed claim:
+
+| run | side | nodes | ms | nps |
+| --- | --- | --- | --- | --- |
+| 1 | off | 862329 | 843 | 1022928 |
+| 2 | on | 850997 | 606 | 1404285 |
+| 3 | off | 862329 | 667 | 1292847 |
+| 4 | on | 850997 | 698 | 1219193 |
+| 5 | off | 862329 | 917 | 940380 |
+
+Chunk 001 is openings 1-10, 20 games, `nodes=50000`, concurrency 2. Option on is the first engine. W-L-D 3-7-10. fastchess 95% Elo -70.44 +/- 92.08. LOS 5.69%. Pentanomial (0-2) [1, 3, 5, 1, 0]. The interval covers both sides of 0. PGN: `forge-combo29/tests_r3fu_08/chunk-001.pgn`. Summary: `forge-combo29/tests_r3fu_08/chunk-001-summary.txt`. Later chunks continue in order.
