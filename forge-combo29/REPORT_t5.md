@@ -1,25 +1,133 @@
 # Task 5: two-thread KRK mate, and stale history
 
+This is the account of what was wrong on the lock `16833ecc`, what the runs showed, and what this branch changes. The command log below is the evidence. Nothing here is an Elo or speed claim.
+
 ## What was wrong
 
-With `Threads 2`, a depth-14 search of a king-and-rook ending does not stay on the mate that `Threads 1` proves. Helper threads write the shared transposition table. A PV node may skip legal moves (late-move pruning, history pruning, futility, SEE) and still store `BoundExact` or `BoundUpper`. `BoundExact` replaces the existing entry at any depth, so a helper store overwrites the main thread's mate score. The main thread then cuts off and reports a different move, sometimes a centipawn score. Helper probes also rewrite an entry's generation, which changes which slot the main thread replaces.
+Two separate faults. Both show up in king-and-rook endings at depth 14. A third fault showed up after the first fix: helper threads that no longer write the table were still spending a node-limited search's budget.
 
-With `Threads 1`, the history tables live until `ucinewgame`. They are indexed by from-square and to-square, not by position. After another search, and after `Clear Hash` has wiped the table, the same ending can play a different move and lose the mate score. `ucinewgame` hides this because it clears the histories.
+### 1. Two threads overwrite the mate in the shared table
 
-## Fix
+`Searcher::search` starts one helper thread per worker after the main worker. Each helper gets its own copy of the board and searches the same position. They share one transposition table. On the lock, every worker stores into that table, and a probe that hits refreshes the entry's generation under the stripe lock.
 
-Helper threads still read the table, but they no longer store entries and they no longer refresh generation on a probe. The main thread's stores are unchanged, so a one-thread search builds the same table as before. Every search, on every worker, clears that worker's history tables before the root. A search with a node limit does not start the helpers: they cannot publish a sound entry, and counting their nodes was ending the main search early. Bench already clears the history tables before each position, and the depth-11 and depth-13 node counts stayed on the lock pins.
+A node stores one of three bounds (`Worker::search`, the assignment of `bound` just before `store_tt`):
 
-## Files
+- `BoundLower` when the score is at least beta. That is a fail-high. It says "the score is at least this," which stays true if every child score is itself sound.
+- `BoundExact` when the node is a PV node (`beta - alpha > 1`) and some move was chosen.
+- `BoundUpper` otherwise. That says "the score is at most this."
 
-- `forge-combo29/include/forge/search.hpp`
-- `forge-combo29/src/search.cpp`
-- `forge-combo29/tests_t5/krk_mate_test.cpp`
-- `forge-combo29/REPORT_t5.md`
+The root is a PV node. Later moves are searched with a zero window first, and a score above alpha is searched again with the full window.
+
+The move loop prunes before it searches. Late-move pruning, quiet futility, history pruning, quiet SEE, capture futility, and capture SEE all `continue` over a legal move. The guard on that block is `!root_node`. It is not `!pv_node`. A PV node below the root can therefore skip a legal move and still store `BoundExact` or `BoundUpper`. The true score of a skipped move can only be higher, so those two bounds are too low. `BoundLower` from a real fail-high does not have that problem by itself.
+
+`store_body` replaces the score when `bound == BoundExact`, or the position differs, or `depth + 4` exceeds the stored depth, or the generation differs. An exact bound replaces any depth. A helper that stored a shallow exact score, after skipping the mating move, overwrites the main thread's deeper mate entry.
+
+The main thread then reads that entry. A non-PV node returns the table score immediately when the depth is enough and the bound matches (`BoundExact`, a lower bound at least beta, or an upper bound at most alpha). The root itself does not take that cutoff, because the cutoff requires `!pv_node`. The damage is inside the tree: a child returns the helper's score, alpha moves, and a different move becomes the one that is searched at full depth. The reported root score is then a centipawn score, or a different mate, or a different move.
+
+A helper probe makes this worse even when the stored score is ignored. On a hit, `probe_body` writes the current generation into `gen_bound` if `refresh_generation` is true. Replacement picks the slot with the smallest `depth - 4 * relative_age`. A refreshed entry looks younger, so the main thread keeps the helper's slot and throws away a different one.
+
+The task report was 57 misses in 400 two-thread runs, and 0 in 100 one-thread runs. No position list came with that report. The positions and counts below are the ones this branch ran. The two-thread miss is not one stable wrong move: a repeat of the same 30 runs names a different first failure. One thread, on a fresh worker, is stable.
+
+### 2. One thread keeps history from the previous position
+
+Each worker owns butterfly history, capture history, continuation history, a counter-move table, a correction table, and a material correction table. Butterfly history is indexed by side to move, from-square, and to-square (`ButterflyHistory` in `search.hpp`). Continuation history is indexed by the moved piece and the to-square. None of these keys include the position. Killers are cleared at the start of every search (the stack loop in `Worker::search`). The history tables were not.
+
+They live until `Worker::clear()`, which `ucinewgame` calls. `Clear Hash` calls `clear_hash()`: the transposition table and the evaluation caches, not the history. So wiping the hash and searching the same ending again still uses the ordering learned from the previous position. History changes reductions (`history / LmrHistoryDivisor`), history pruning, and which quiet move is tried first. At depth 14 that is enough to search a different move, and to come back with a centipawn score where a fresh search had a mate.
+
+`ucinewgame` hides the fault because it clears the tables. Bench hides it too: bench calls `clear()` before each of its positions.
+
+### 3. After dropping helper stores, their nodes still ended the search
+
+`should_stop` on the lock stops the main worker when `total_nodes()` reaches the limit. `total_nodes()` adds every worker's count. Helpers do not run the clock (`should_stop` returns immediately for a non-main worker unless the shared stop flag is set), but their nodes count toward `go nodes`.
+
+Once helpers no longer write the table, those nodes buy no cutoff for the main search. The main worker stops after it has searched only part of the requested budget. The one-thread search is unchanged, because with one worker `total_nodes()` is that worker's own count. This is why a two-thread and a four-thread `go nodes` search got shallower after the first patch, while `Threads 1` stayed on the lock's line.
+
+## What the runs found
+
+Hash 16, `OwnBook false`, `TTAccess::Exclusive`, depth 14, unless a line says otherwise. `UseNNUE` is off for the mate checks. The test links `Searcher` directly. Full transcripts are in the command log.
+
+### The lock drops the mate, and it drops it differently each run
+
+One thread, fresh worker, net off:
+
+| position | one thread |
+| --- | --- |
+| `4K3/k7/8/8/2R5/8/8/8 w - - 0 1` | mate 7 `c4c6` |
+| `8/8/8/8/8/1R6/2k5/5K2 w - - 0 1` | mate 17 `b3f3` |
+| `3k4/8/3K4/8/8/8/8/3R4 w - - 0 1` | mate 3 `d1d4` |
+
+Depth 14 prints mate 17 on the second position. The test locks that score. The search extends, so the printed mate distance can be longer than the depth limit. The branch does not change that score.
+
+Two threads on the lock, 30 runs, same positions. The latest run of `tests_t5/krk_mate_test.cpp`:
+
+- First position: 21 of 30 disagreed. First failure `cp 451 c4b4`.
+- Second position: 30 of 30 disagreed. First failure mate 14 `b3f3` (same move, a different score).
+- Third position: 1 of 30 disagreed. First failure mate 3 `d1e1` (same mate distance, the other move).
+
+An earlier run of the mate checks, before the node-budget check existed, failed 19 of 30 (`mate 9 e8d7`), 29 of 30 (`cp 481 b3b8`), and 1 of 30 (`mate 3 d1e1`). The fault is real. The particular wrong move is a race between the two searches.
+
+With the net left on, one thread scores the first position `cp 476 e8e7`, not a mate. Two threads disagreed 20 of 20. The latest first failure was `cp 510 e8f7`. An earlier run's first failure was `cp 496 c4c5`. This is the same shared-table disagreement. It is not, on this position, a missed mate, because one thread never proved one.
+
+### The history fault survives Clear Hash
+
+The test searches the start position to depth 10, calls `clear_hash()`, then searches the same ending to depth 14. On the lock:
+
+- First position: fresh mate 7 `c4c6`, after the start-position search `cp 433 c4b4`.
+- Second position: fresh mate 17 `b3f3`, after it `cp 539 b3f3`. The move stayed. The mate score did not.
+- Third position: stayed mate 3 `d1d4`. History did not move this one.
+
+`clear_hash()` had already wiped the table and the evaluation caches. The thing that still changed the move is the history tables.
+
+### A helper fail-high is enough to hide the mate
+
+Putting helper stores back was measured and not kept. Each attempt reintroduced a centipawn score where one thread had a mate.
+
+- Helpers store only `BoundLower`, and do not replace a current-generation exact entry: 10 of 30 and 16 of 30 (`cp 438 c4b4`, `cp 494 b3e3`).
+- The main thread ignores a non-mate helper score, and a helper does not overwrite a main-thread entry: 11 of 30 and 18 of 30.
+- Helpers write `BoundLower` only into an empty slot, an old-generation slot, or a slot that already holds a helper entry. A PV node ignores that entry completely. A non-PV node may return it when it is a deep enough fail-high. That still missed: 24 of 30 (`cp 458 c4b4`) and 30 of 30 (`cp 519 b3f3`). The mate-in-3 position stayed matched, 0 of 30. With the net on, 20 of 20 disagreed (`cp 540 e8d7` against `cp 476 e8e7`).
+
+The last attempt is the one that shows why a "sound" lower bound is not enough at a fixed depth. A zero-window node returns the helper score because it is at least beta. The parent raises alpha. The mating move is then reduced. Its reduced search comes back at or below that alpha, so the full-depth search that would have proved the mate is skipped. The root reports the centipawn score. Mate in 3 is short enough that this does not happen. Mate 7 and mate 17 are not.
+
+### The node limit
+
+`go nodes 1000000`, start position, net on, one run. The client reads until `bestmove`.
+
+Lock, this session:
+
+| threads | last completed line | best move |
+| --- | --- | --- |
+| 1 | depth 19, cp 15, 920173 nodes, `d2d4` | `d2d4` |
+| 2 | depth 19, cp 13, 968560 nodes, `e2e4` | `e2e4` |
+| 4 | depth 18, cp 16, 980627 nodes, `d2d4` | `d2d4` |
+
+An earlier lock run of the same command finished at depth 17 for both two threads (`cp 22 e2e4`) and four threads (`cp 11 d2d4`). One thread matched both times: depth 19, cp 15, `d2d4`, 920173 nodes. The multi-thread node-limited result on the lock is not stable, for the same reason the mate is not stable: the helpers write the table.
+
+The previous patch on this branch (helpers do not store, and the limit still counts every thread) made it worse and stable in the wrong direction: two threads finished at depth 16, cp 35, `e2e4`; four threads at depth 15, cp 27, `e2e4`. One thread stayed depth 19, cp 15, `d2d4`. The 30000-node test in the same binary printed depth 11, cp 24, `d2d4`, 30000 nodes for one thread, and depth 10, cp 24, `d2d4`, 30861 nodes for two threads.
+
+## What changed
+
+Helpers still search on a depth-limited search and on a clock search. They still read the table. They do not store, and a helper probe does not refresh generation. The main thread's store path is the same replacement rule as the lock.
+
+`Worker::store_tt` returns immediately when `!is_main()`. `Worker::probe_tt` calls `probe(key, false)` for a helper, so the generation write in `probe_body` is skipped. The same `is_main()` guard is on the `#else` store sites. Those sites are compiled out of this build (`FORGE_SPD_TT_NOTLS=1`). The one-thread path still calls `probe_owned` / `store_owned` when it holds the exclusive lease, and the locked `probe` / `store` otherwise.
+
+Every search, on every worker, calls `clear_histories()` before the root. That zeros butterfly history, capture history, continuation history, counter moves, correction history, and material correction. `Worker::clear()` calls the same function, so `ucinewgame` still clears them. Bench already cleared them before each position, which is why the bench node counts did not move.
+
+A search with `nodes_specified` or a non-zero `nodes` does not start helpers. `should_stop` compares the limit with `local_nodes_`, the main worker's own count. When no helper is started, the exclusive lease is taken for an `Exclusive` search, which is the same store path a one-thread search uses. `go nodes 1000000` then finishes on the same line at 1, 2, and 4 threads: depth 19, cp 15, 920173 nodes, `d2d4`. The 30000-node test prints depth 11, cp 24, `d2d4`, 30000 nodes for both one and two threads.
+
+Two behavior changes are intentional. History no longer carries from the previous move into the next search, so a game plays without that leftover ordering. A node-limited search with `Threads` above 1 runs as the one-thread search of that many nodes; the helpers are not started, because they cannot publish a sound entry and their nodes were ending the search early. A depth-limited search still starts them. They do not share cuts, so a clock search does not get a deeper main tree from the extra threads.
+
+### Files
+
+- `forge-combo29/include/forge/search.hpp` — `probe` takes `refresh_generation`; `store_tt` drops helper writes; `probe_tt` does not refresh on a helper.
+- `forge-combo29/src/search.cpp` — generation refresh is conditional; `clear_histories` runs at the start of every search; the node limit uses the main worker's count; a node-limited search does not launch helpers.
+- `forge-combo29/tests_t5/krk_mate_test.cpp` — fails on the lock, passes here.
+- `forge-combo29/REPORT_t5.md` — this file.
 
 Engine diff against `16833ecc` (`git diff --numstat -- forge-combo29/src forge-combo29/include`): `search.hpp` 13 insertions and 2 deletions, `search.cpp` 38 insertions and 20 deletions. No change to `CMakeLists.txt`.
 
-The test links `Searcher` directly (`TTAccess::Exclusive`, Hash 16). It fails on the lock sources and passes after the change. `UseNNUE` is off for the mate checks. One extra block leaves the net on and only checks that two threads repeat the one-thread move and score.
+### What stayed the same
+
+The main thread still stores exact, upper, and lower bounds under the same replacement rule, including `BoundExact` replacing any depth. The pruning is unchanged. One-thread bench and perft match the lock: `bench 11` = 312866, `bench 13` = 862329, start-position `go perft 5` = 4865609. The depth-14 mate test now matches the one-thread move and score on every two-thread run (0 mismatches in 30, and 0 in 20 with the net on), and the history check matches the fresh search after a start-position search plus `clear_hash()`.
 
 ## Commands
 
@@ -314,7 +422,7 @@ Pins: `bench 11` = 312866, `bench 13` = 862329, `go perft 5` = 4865609.
 
 ## Helper stores and node-limited depth
 
-A review of the first patch asked for helper threads to publish results again. Sharing a fail-high brings the mate miss back, so those attempts were not kept.
+These are the measurements behind the account above. A review of the first patch asked for helper threads to publish results again. Sharing a fail-high brings the mate miss back, so those attempts were not kept.
 
 Helpers storing only `BoundLower`, and not replacing a current-generation exact entry, missed the mate 10 of 30 and 16 of 30 times (`cp 438 c4b4`, `cp 494 b3e3`). Ignoring those centipawn scores in the main thread, and refusing to overwrite a main-thread entry, still missed (11 of 30 and 18 of 30). A later attempt let helpers write `BoundLower` only into an empty, old, or already-helper slot, let a non-PV node cut off on a deep enough fail-high, and made every PV node ignore the helper entry. That still missed: 24 of 30 (`cp 458 c4b4`) and 30 of 30 (`cp 519 b3f3`). The mate-in-3 position stayed matched, 0 of 30. With the net left on, the same attempt missed the one-thread score 20 of 20 (`cp 540 e8d7` against `cp 476 e8e7`). The extra cutoffs change which moves the main line searches at full depth, and the depth-14 mate becomes a centipawn score. The patch still drops helper stores.
 
