@@ -106,7 +106,7 @@ Chunk 07 (openings 3001-3500, 1000 games, 00:17:30): W-L-D 249-265-486, Elo -5.5
 
 Chunk 08 (openings 3501-4000, 1000 games, 00:16:42): W-L-D 248-236-516, Elo 4.17 +/- 10.72 (95%), LOS 77.71%, pentanomial 8, 85, 303, 95, 9. Detail: `forge-combo29/screen_r3fu_03/chunk-08-summary.md`.
 
-Chunk 09 (openings 4001 onward) was still running when this branch was pushed. The saved PGN has 381 results and is not a finished chunk, so it has no W-L-D, Elo, or LOS. No further chunk was started.
+Chunk 09 (openings 4001 onward) was stopped unfinished. The saved PGN has 395 results and is not a finished chunk, so it has no W-L-D, Elo, or LOS. No further chunk was started.
 
 Idle bench 13 nps, off then on, five times: 1553745/1534393, 1562190/1579357, 1573593/1556550, 1520862/1489341, 1491918/1442021. Nodes stayed 862329 on every run.
 
