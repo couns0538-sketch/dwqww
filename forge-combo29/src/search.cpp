@@ -1135,19 +1135,8 @@ bool Worker::is_draw(const Board& board, int ply) const {
     }
     // Detect stalemate before TT cutoffs, stand pat or forward pruning can
     // replace its terminal draw score with a material evaluation.
-    if (!dead_material_enabled) {
-        return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
-               (!board.in_check() && !board.has_legal_move());
-    }
-    // Bare kings and king plus one minor are scored 0 by evaluation instead of
-    // this cutoff. Other insufficient material still draws here.
-    if (board.is_repetition(root_history_index_)) return true;
-    if (board.is_insufficient_material()) {
-        int fixed = 0;
-        if (dead_material_score(board, fixed)) return false;
-        return true;
-    }
-    return !board.in_check() && !board.has_legal_move();
+    return board.is_repetition(root_history_index_) || board.is_insufficient_material() ||
+           (!board.in_check() && !board.has_legal_move());
 }
 
 int Worker::draw_leaf_score(const Board& board) const {
