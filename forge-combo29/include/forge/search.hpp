@@ -279,6 +279,7 @@ extern bool NullThreatVerify;        // null cutoff needs a reduced non-null sea
 extern bool NullSeeVeto;             // refuse a null-move cutoff on a cheaper capture of a dearer piece that SEE does not call a loss (false = off)
 extern bool AspCappedReopen;         // root fail: capped reopen, or full open when decisive (false = off)
 extern bool AspArmLate;              // full root window until one score lands inside; soft time ignores an open window (false = off)
+extern bool EvasionOrdering;         // in check, history-order evasions (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();

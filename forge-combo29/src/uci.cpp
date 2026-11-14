@@ -206,7 +206,8 @@ int uci_loop(std::istream& in) {
                          "option name NullThreatVerify type check default false\n"
                          "option name NullSeeVeto type check default false\n"
                          "option name AspCappedReopen type check default false\n"
-                         "option name AspArmLate type check default false\n";
+                         "option name AspArmLate type check default false\n"
+                         "option name EvasionOrdering type check default false\n";
 #ifdef FORGE_EXPOSE_TUNABLES
             // Development builds advertise the search constants so match
             // runners can set them. Builds without this macro still accept them.
@@ -328,7 +329,7 @@ int uci_loop(std::istream& in) {
                 else note_invalid();
             } else if (name == "ContHist4PlyRead" || name == "NonPawnCorrection" || name == "LmrDeeperShallower" ||
                        name == "ThreatHistory" || name == "LmrSignedCorrection" || name == "LmrLateParentRelief" ||
-                       name == "NullSeeVeto" || name == "AspArmLate") {
+                       name == "NullSeeVeto" || name == "AspArmLate" || name == "EvasionOrdering") {
                 bool* target = name == "ContHist4PlyRead" ? &forge::tune::ContHist4PlyRead
                              : name == "NonPawnCorrection" ? &forge::tune::NonPawnCorrection
                              : name == "LmrDeeperShallower" ? &forge::tune::LmrDeeperShallower
@@ -336,7 +337,8 @@ int uci_loop(std::istream& in) {
                              : name == "LmrSignedCorrection" ? &forge::tune::LmrSignedCorrection
                              : name == "LmrLateParentRelief" ? &forge::tune::LmrLateParentRelief
                              : name == "NullSeeVeto" ? &forge::tune::NullSeeVeto
-                                                    : &forge::tune::AspArmLate;
+                             : name == "AspArmLate" ? &forge::tune::AspArmLate
+                                                   : &forge::tune::EvasionOrdering;
                 if (value_text == "true" || value_text == "false") {
                     *target = value_text == "true";
                 } else {

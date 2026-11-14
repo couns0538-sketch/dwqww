@@ -87,6 +87,7 @@ bool NullThreatVerify = false;
 bool NullSeeVeto = false;
 bool AspCappedReopen = false;
 bool AspArmLate = false;
+bool EvasionOrdering = false;
 
 const std::vector<Parameter>& parameters() {
     static const std::vector<Parameter> table{
@@ -866,9 +867,18 @@ private:
 #if FORGE_SEARCH_SPEED2
         const QuietScorer scorer(board_, searcher_, ss_);
 #endif
+        // Off: the historical most-valuable-victim score, so default benches stay put.
+        // On: a capture is victim value plus capture history, and that band sits
+        // above both quiet history and the legacy promotion scores (captures first).
+        // Quiet evasions keep the same mix generate_quiets uses.
+        const bool history_evasions = tune::EvasionOrdering;
         for (const Move move : buffer_) {
             int score;
-            if (move.is_capture() || move.is_promotion()) {
+            if (history_evasions && move.is_capture()) {
+                const int victim =
+                    SeePieceValue[static_cast<std::size_t>(piece_type(board_.captured_piece(move)))];
+                score = 2'000'000 + victim + searcher_.capture_history_value(board_, move);
+            } else if (move.is_capture() || move.is_promotion()) {
                 score = 1'000'000 + 10 * capture_value(board_, move) -
                         SeePieceValue[static_cast<std::size_t>(piece_type(board_.moved_piece(move)))] / 10;
             } else {
