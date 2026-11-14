@@ -85,7 +85,7 @@ FEN reader, 40 cases. A rejection leaves the previous board unchanged. An accept
 
 ## The change
 
-No rule fault was found, so move generation and search were left as they are. The only engine edit is a `friend struct BoardStateProbe` on `Board`, so the suite can compare fields that have no accessor (the null-move cursor and the king-line cache) after every perft. That declaration does not change the lock counts.
+No rule fault was found, so move generation and search were left as they are. The only engine edit is a `friend struct BoardStateProbe` on `Board`, so the suite can compare fields that have no accessor (the null-move cursor and the king-line cache) after every perft. That declaration does not change the lock counts. A follow-up added more rule cases to the suite and did not edit engine source again.
 
 ## Files changed
 
@@ -548,9 +548,504 @@ Rule 7 after the edit: bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. 
 
 ## What I could not verify
 
-- No second chess engine was executed in this environment. The six counts were compared with the three published tables above, which agree. They were not recomputed by another program here.
-- Queenside castling through, out of, and into check has no position of its own. Kingside was tested directly. Queenside castling is only inside the kiwipete and position-4 totals.
-- `make_null_move` / `unmake_null_move` were not called. Perft does not make null moves. `plies_from_null` was still compared on those perft paths.
-- Draw search used one thread, a 16 MB hash, and depth at most 3. A multi-thread search was not run.
-- The bench numbers were not repeated under the sanitizers. The sanitizer run is the suite.
-- `/usr/bin/c++` (Clang) was not used again after `libstdc++` was installed. The measured binaries were built with `g++` 13.3.0.
+The follow-up below covers queenside castling, null-move make and unmake, a two-thread search, a Clang build of the suite, and the lock bench under address and undefined-behavior sanitizers.
+
+Still open: no second chess engine was executed in this environment. The six counts were compared with the three published tables above, which agree. They were not recomputed by another program here.
+
+## Follow-up
+
+The suite grew. Engine headers and sources did not. The new cases passed, so nothing in move generation or search was changed.
+
+Queenside castling, white, queen-side rights only:
+
+- Through check, `3r4/2k5/8/8/8/8/8/R3K2R w Q - 0 1` (`d1` attacked, king safe): `e1c1` is illegal. A hand-built queen-castle move is not pseudo-legal. Search drops a transposition-table move that fails that check.
+- Into check, `2r5/1k6/8/8/8/8/8/R3K2R w Q - 0 1` (`c1` attacked, `d1` safe): `e1c1` is illegal.
+- Out of check, `4r3/2k5/8/8/8/8/8/R3K2R w Q - 0 1`: `e1c1` is illegal.
+- Rook on `a1` attacked and `c1`/`d1` safe, `r7/2k5/8/8/8/8/8/R3K2R w Q - 0 1`: `e1c1` is legal. The king lands on `c1`, the rook on `d1`, and `a1` and `e1` are empty. The key matches a recompute. Unmake restores every field.
+- Only `b1` attacked, `1r6/2k5/8/8/8/8/8/R3K2R w Q - 0 1`: `e1c1` is legal, the key matches, and unmake restores the board.
+
+Black, same ideas: kingside through `f8`, into `g8`, and out of check; kingside with the `h8` rook attacked (`e8g8` legal); queenside with only `b8` attacked (`r3k3/8/8/8/8/8/8/1R2K3 b q - 0 1`, `e8c8` legal).
+
+Other edges:
+
+- File pin on en passant. `3r4/8/8/3Pp3/8/8/8/3K3k w - e6 0 1`: `d5e6` is pseudo-legal and illegal. With the rook on `a8` instead, `d5e6` is legal, the key matches, and unmake restores the board. `4k3/8/8/8/3Pp3/8/8/4R2K b - d3 0 1`: `e4d3` is illegal because it opens the e-file.
+- Pinned knight, `4r3/8/8/8/8/8/4N3/4K2k w - - 0 1`: `e2d4` and `e2c3` are pseudo-legal and illegal, and the knight has no legal move.
+- Discovered check, `4k3/8/8/8/8/8/4N3/4RK2 w - - 0 1`: `e2d4` gives check from the rook alone.
+- Checking castle, `3k4/8/8/8/8/8/8/R3K3 w Q - 0 1`: `e1c1` gives check, the checker is the rook on `d1`, and the key matches a recompute.
+- Null move on `r7/8/8/3Pp3/8/8/8/3K3k w - e6 0 1`: the side flips, en passant is cleared, the half-move clock becomes 1, the key matches a recompute, and unmake restores every field.
+- After one rook-and-king repetition cycle, two null moves leave `is_draw` false. Unmaking them leaves a twofold repetition, not a threefold.
+- Clock 99 with a pawn, `8/8/8/8/8/7k/P7/4K3 w - - 99 1`: `a2a3` resets the clock and is not a draw; `e1e2` lands on 100 and is a draw; `a2a4` sets en passant on `a3` with no capturer, resets the clock, leaves that dead square out of the key, and the FEN still records `a3`.
+- Capture at 99, `n7/8/8/8/8/7k/8/R3K3 w - - 99 1`: `a1a8` resets the clock. Depth 2 is not an adjudicated draw (`score=-381 nodes=37 best=h3g2`, black to move).
+- Two workers, 16 MB hash. Mate in one still returns `b6b7` at score 31999. From the start, depth 3 returns the legal move `e2e4` at score 18. The helper's node count is not printed. One earlier pair of runs, before that print was removed, showed 215 nodes at `-O3` and 274 under the sanitizers for the same move and the same score. The shared table makes that count unstable.
+
+The first queenside positions put the black king on `h2`, in check from the rook on `h1`. `set_fen` rejected them with "side that moved left its king in check", which is the same check as FEN 32. Those positions were replaced with the king on `c7` or `b7`. That was a bad test position, not an engine fault.
+
+Two checks that used to accept a weaker condition now require the exact result. Double check must produce exactly `e8e7`, `e8f7`, `e8d8`, and `e8f8`. Half-move `1000000` and `LLONG_MAX` must be stored as 65535 with full-move 1. Full-move `1000000` and `LLONG_MAX` must be stored as 65535 with half-move 0. A clock that does not fit in `long long` must be rejected.
+
+`sha256sum -c windows_build/SOURCE_INPUTS.sha256`, run from `forge-combo29`, exits 1. The mismatch is the three-line `friend struct BoardStateProbe` from the first commit. Those fields (`plies_from_null_` and the king-line cache) have no accessor, and the state compare needs them. The friend stays. The node lock is unchanged.
+
+```
+sha256sum -c windows_build/SOURCE_INPUTS.sha256
+```
+
+```
+include/forge/bitboard.hpp: OK
+include/forge/board.hpp: FAILED
+include/forge/book.hpp: OK
+include/forge/eval.hpp: OK
+include/forge/eval_params.hpp: OK
+include/forge/nnue.hpp: OK
+include/forge/search.hpp: OK
+include/forge/uci_output.hpp: OK
+src/bitboard.cpp: OK
+src/board.cpp: OK
+src/book.cpp: OK
+src/book_data.inc: OK
+src/eval.cpp: OK
+src/eval_params.cpp: OK
+src/eval_params_table.inc: OK
+src/nnue.cpp: OK
+src/nnue_weights.inc: OK
+src/polyglot_keys.inc: OK
+src/search.cpp: OK
+src/uci.cpp: OK
+sha256sum: WARNING: 1 computed checksum did NOT match
+```
+
+Exit code 1.
+
+### Release suite after the follow-up
+
+```
+g++ -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -I forge-combo29/include -pthread forge-combo29/tests_t17/rules_suite.cpp forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp -o /tmp/t17_rules
+/tmp/t17_rules
+```
+
+Compile exited 0. Program exit code 0. Output:
+
+```
+t17 rules suite
+SOURCE chessprogramming.org/Perft_Results and github.com/Wasserpuncher/chess-perft and github.com/carokanns/GoBit perft_tests.txt agree; disagreements=none
+PASS PERFT start depth 5 engine 4865609 expected 4865609
+PASS STATE after perft start
+PASS HASH start depth 3 positions 9323 mismatches 0
+PASS STATE after hash walk start
+PASS PERFT kiwipete depth 4 engine 4085603 expected 4085603
+PASS STATE after perft kiwipete
+PASS HASH kiwipete depth 3 positions 99950 mismatches 0
+PASS STATE after hash walk kiwipete
+PASS PERFT pos3 depth 5 engine 674624 expected 674624
+PASS STATE after perft pos3
+PASS HASH pos3 depth 3 positions 3018 mismatches 0
+PASS STATE after hash walk pos3
+PASS PERFT pos4 depth 4 engine 422333 expected 422333
+PASS STATE after perft pos4
+PASS HASH pos4 depth 3 positions 9738 mismatches 0
+PASS STATE after hash walk pos4
+PASS PERFT pos5 depth 4 engine 2103487 expected 2103487
+PASS STATE after perft pos5
+PASS HASH pos5 depth 3 positions 63910 mismatches 0
+PASS STATE after hash walk pos5
+PASS PERFT pos6 depth 4 engine 3894594 expected 3894594
+PASS STATE after perft pos6
+PASS HASH pos6 depth 3 positions 92016 mismatches 0
+PASS STATE after hash walk pos6
+PASS ep pin fen keeps d3
+PASS ep capture e4d3 is pseudo-legal
+PASS ep capture e4d3 is illegal
+PASS parse_uci rejects illegal ep e4d3
+PASS castle through: king is not in check
+PASS castle through: f1 is attacked
+PASS castle through: g1 is not attacked
+PASS cannot castle through check
+PASS castle out: king is in check
+PASS cannot castle out of check
+PASS castle into: king is not in check
+PASS castle into: f1 is not attacked
+PASS castle into: g1 is attacked
+PASS cannot castle into check
+PASS rook on h1 is attacked
+PASS king path e1-f1-g1 is safe
+PASS castling with the rook attacked is legal
+PASS O-O lands king g1 rook f1
+PASS O-O vacates e1 and h1
+PASS STATE after attacked-rook castle unmake
+PASS underpromotion legal a7a8n
+PASS promotion piece a7a8n
+PASS STATE unmake a7a8n
+PASS underpromotion legal a7a8b
+PASS promotion piece a7a8b
+PASS STATE unmake a7a8b
+PASS underpromotion legal a7a8r
+PASS promotion piece a7a8r
+PASS STATE unmake a7a8r
+PASS underpromotion legal a7a8q
+PASS promotion piece a7a8q
+PASS STATE unmake a7a8q
+PASS promotion capture legal a7b8n
+PASS promotion capture result a7b8n
+PASS STATE unmake a7b8n
+PASS promotion capture legal a7b8b
+PASS promotion capture result a7b8b
+PASS STATE unmake a7b8b
+PASS promotion capture legal a7b8r
+PASS promotion capture result a7b8r
+PASS STATE unmake a7b8r
+PASS promotion capture legal a7b8q
+PASS promotion capture result a7b8q
+PASS STATE unmake a7b8q
+PASS double-check move d7f6 is legal
+PASS d7f6 gives check
+PASS double check has 2 checkers (got 2)
+PASS checkers are the knight and the bishop
+double-check legal: e8e7 e8f7 e8d8 e8f8
+PASS double check replies are exactly e8e7 e8f7 e8d8 e8f8
+PASS STATE after double-check unmake
+PASS queenside through: d1 attacked, king safe
+PASS cannot castle queenside through check
+PASS crafted queenside castle through check is not pseudo-legal
+PASS queenside into: c1 attacked, d1 safe
+PASS cannot castle queenside into check
+PASS queenside out: king is in check
+PASS cannot castle queenside out of check
+PASS a1 rook is attacked
+PASS queenside king path c1-d1 is safe
+PASS queenside castle with the rook attacked is legal
+PASS O-O-O lands king c1 rook d1
+PASS O-O-O vacates a1 and e1
+PASS key after O-O-O rook attacked
+PASS STATE unmake O-O-O rook attacked
+PASS b1 is attacked
+PASS c1 and d1 are safe
+PASS queenside castle is legal when only b1 is attacked
+PASS key after O-O-O b1 attacked
+PASS STATE unmake O-O-O b1 attacked
+PASS black kingside through: f8 attacked
+PASS black cannot castle through check
+PASS black kingside into: g8 attacked
+PASS black cannot castle into check
+PASS black cannot castle out of check
+PASS black castle with h8 rook attacked is legal
+PASS black queenside castle is legal when only b8 is attacked
+PASS file-pin ep square is e6
+PASS file-pin ep d5e6 is pseudo-legal
+PASS file-pin ep d5e6 is illegal
+PASS ep d5e6 is legal when the king is not on the opened file
+PASS key after legal ep d5e6
+PASS STATE unmake legal ep d5e6
+PASS black ep e4d3 is illegal when it opens the e-file
+PASS pinned knight e2d4 is illegal
+PASS pinned knight e2c3 is illegal
+PASS pinned knight has no legal move
+PASS e2d4 is a pure discovered check
+PASS discovered check is the rook alone
+PASS O-O-O gives check along the d-file
+PASS rook on d1 is the checker
+PASS key after checking castle
+PASS null move passes the turn
+PASS null move clears en passant
+PASS null move increments the half-move clock
+PASS key after null move matches a recompute
+PASS STATE after null-move unmake
+PASS cycle once before the null-move chain
+PASS twofold before the null moves is not a draw
+PASS two null moves restore the side to move
+PASS a null move breaks the repetition chain the search uses
+PASS unmaking the null moves restores twofold, not threefold
+PASS clock 99 has a pawn push and a quiet king move
+PASS a pawn move resets the half-move clock
+PASS the position after the pawn move is not a 50-move draw
+PASS key after the pawn reset
+PASS a quiet move from 99 lands on 100
+PASS the quiet reply at 100 is a draw
+PASS a2a4 double push is legal
+PASS double push sets ep a3 even with no capturer
+PASS double push resets the clock
+PASS dead ep square is not hashed
+PASS fen still records the dead ep square
+PASS a1a8 captures the knight at clock 99
+PASS capture resets the clock and leaves the rook
+DRAW capture-resets-99 score=-381 nodes=37 best=h3g2
+PASS a capture on ply 99 is not a 50-move draw
+PASS play one repetition cycle
+PASS second occurrence is not game threefold
+PASS search draw is false on twofold at the root
+PASS search draw is true when the line repeats the root
+DRAW twofold-root score=370 nodes=131 best=h1h8
+PASS search does not adjudicate twofold at the root
+PASS play the second repetition cycle
+PASS third occurrence is game threefold
+PASS search draw is true on threefold at the root
+DRAW threefold-root score=0 nodes=0 best=h1f1
+PASS search adjudicates threefold as a draw
+PASS clock 99 quiet position has no mating move
+PASS search draw is false at 99 half-moves
+DRAW halfmove99 score=0 nodes=32 best=a1a3
+PASS at 99 the search looks and the next ply is drawn
+PASS search draw is true at 100 half-moves
+DRAW halfmove100 score=0 nodes=0 best=a1b1
+PASS search adjudicates 100 half-moves as a draw
+PASS quiet mate b6b7 is legal at half-move 99
+DRAW mate-on-100 score=31999 nodes=73 best=b6b7
+PASS mating move that reaches half-move 100 wins
+PASS mate still exists once the clock is already 100
+PASS clock already 100 is a draw before the move
+DRAW already-100-with-mate score=0 nodes=0 best=b6b1
+PASS search does not play a mate after the clock has reached 100
+PASS parse mating move
+PASS mating move lands on half-move 100
+PASS opponent is checkmated
+PASS checkmate on half-move 100 is not a draw
+DRAW mated-at-100 score=-32000 nodes=0 best=none
+PASS side to move loses the mate on half-move 100
+PASS stalemate has no legal move
+PASS search draw is true in stalemate
+DRAW stalemate-root score=0 nodes=0 best=none
+PASS search adjudicates stalemate as a draw
+PASS g5g6 leads to stalemate
+DRAW stalemate-child score=0 nodes=2 best=g5g6
+PASS search scores a move into stalemate as a draw
+DRAW material bare-kings flag=1 score=0 nodes=0 best=a1b1
+PASS insufficient-material bare-kings
+PASS search draw flag bare-kings
+PASS search adjudication bare-kings
+DRAW material bare-kings-black flag=1 score=0 nodes=0 best=h1g1
+PASS insufficient-material bare-kings-black
+PASS search draw flag bare-kings-black
+PASS search adjudication bare-kings-black
+DRAW material knight-king flag=1 score=0 nodes=0 best=b1d2
+PASS insufficient-material knight-king
+PASS search draw flag knight-king
+PASS search adjudication knight-king
+DRAW material bishop-king flag=1 score=0 nodes=0 best=b1a2
+PASS insufficient-material bishop-king
+PASS search draw flag bishop-king
+PASS search adjudication bishop-king
+DRAW material bishop-king-black flag=1 score=0 nodes=0 best=a1b1
+PASS insufficient-material bishop-king-black
+PASS search draw flag bishop-king-black
+PASS search adjudication bishop-king-black
+DRAW material rook-king flag=0 score=434 nodes=53 best=b1b5
+PASS insufficient-material rook-king
+PASS search draw flag rook-king
+PASS search adjudication rook-king
+MULTI-THREAD
+PASS searcher keeps two workers
+THREADS mate depth2 score=31999 best=b6b7
+PASS two-thread mate search returns a legal move
+PASS two threads still find the mate in one
+THREADS start depth3 score=18 best=e2e4
+PASS two-thread start search visits nodes
+PASS two-thread start search returns a legal move
+FEN 1 REJECT missing all fields | FEN must contain six fields
+PASS FEN 1 reject leaves the board unchanged
+PASS FEN 1 rejected as required
+FEN 2 REJECT missing side, castling, ep, clocks | FEN must contain six fields
+PASS FEN 2 reject leaves the board unchanged
+PASS FEN 2 rejected as required
+FEN 3 REJECT missing castling, ep, clocks | FEN must contain six fields
+PASS FEN 3 reject leaves the board unchanged
+PASS FEN 3 rejected as required
+FEN 4 REJECT missing ep and clocks | FEN must contain six fields
+PASS FEN 4 reject leaves the board unchanged
+PASS FEN 4 rejected as required
+FEN 5 REJECT missing both clocks | FEN must contain six fields
+PASS FEN 5 reject leaves the board unchanged
+PASS FEN 5 rejected as required
+FEN 6 REJECT missing fullmove | FEN must contain six fields
+PASS FEN 6 reject leaves the board unchanged
+PASS FEN 6 rejected as required
+FEN 7 REJECT extra seventh field | FEN must contain exactly six fields
+PASS FEN 7 reject leaves the board unchanged
+PASS FEN 7 rejected as required
+FEN 8 REJECT missing side token | FEN must contain six fields
+PASS FEN 8 reject leaves the board unchanged
+PASS FEN 8 rejected as required
+FEN 9 REJECT digit 9 in a rank | invalid FEN placement
+PASS FEN 9 reject leaves the board unchanged
+PASS FEN 9 rejected as required
+FEN 10 REJECT eight empties plus a pawn | invalid FEN placement
+PASS FEN 10 reject leaves the board unchanged
+PASS FEN 10 rejected as required
+FEN 11 REJECT nine pawns on a rank | pawn on promotion rank
+PASS FEN 11 reject leaves the board unchanged
+PASS FEN 11 rejected as required
+FEN 12 REJECT 4+pawn+4 squares | pawn on promotion rank
+PASS FEN 12 reject leaves the board unchanged
+PASS FEN 12 rejected as required
+FEN 13 REJECT two white kings | invalid FEN fields
+PASS FEN 13 reject leaves the board unchanged
+PASS FEN 13 rejected as required
+FEN 14 REJECT two black kings | invalid FEN fields
+PASS FEN 14 reject leaves the board unchanged
+PASS FEN 14 rejected as required
+FEN 15 REJECT no black king | invalid FEN fields
+PASS FEN 15 reject leaves the board unchanged
+PASS FEN 15 rejected as required
+FEN 16 REJECT no white king | invalid FEN fields
+PASS FEN 16 reject leaves the board unchanged
+PASS FEN 16 rejected as required
+FEN 17 REJECT no kings | invalid FEN fields
+PASS FEN 17 reject leaves the board unchanged
+PASS FEN 17 rejected as required
+FEN 18 REJECT white pawn on rank 1 | pawn on promotion rank
+PASS FEN 18 reject leaves the board unchanged
+PASS FEN 18 rejected as required
+FEN 19 REJECT white pawn on rank 8 | pawn on promotion rank
+PASS FEN 19 reject leaves the board unchanged
+PASS FEN 19 rejected as required
+FEN 20 REJECT black pawn on rank 1 | pawn on promotion rank
+PASS FEN 20 reject leaves the board unchanged
+PASS FEN 20 rejected as required
+FEN 21 REJECT black pawn on rank 8 | pawn on promotion rank
+PASS FEN 21 reject leaves the board unchanged
+PASS FEN 21 rejected as required
+FEN 22 REJECT ep square on rank 4 | invalid en-passant square
+PASS FEN 22 reject leaves the board unchanged
+PASS FEN 22 rejected as required
+FEN 23 REJECT ep square on rank 1 | invalid en-passant square
+PASS FEN 23 reject leaves the board unchanged
+PASS FEN 23 rejected as required
+FEN 24 REJECT ep file off the board | invalid en-passant square
+PASS FEN 24 reject leaves the board unchanged
+PASS FEN 24 rejected as required
+FEN 25 REJECT ep e6 with no pawn | inconsistent en-passant square
+PASS FEN 25 reject leaves the board unchanged
+PASS FEN 25 rejected as required
+FEN 26 REJECT ep e6 with a white pawn on e4 | inconsistent en-passant square
+PASS FEN 26 reject leaves the board unchanged
+PASS FEN 26 rejected as required
+FEN 27 REJECT ep square occupied | inconsistent en-passant square
+PASS FEN 27 reject leaves the board unchanged
+PASS FEN 27 rejected as required
+FEN 28 REJECT ep origin e7 occupied | inconsistent en-passant square
+PASS FEN 28 reject leaves the board unchanged
+PASS FEN 28 rejected as required
+FEN 29 REJECT ep e3 with no white pawn | inconsistent en-passant square
+PASS FEN 29 reject leaves the board unchanged
+PASS FEN 29 rejected as required
+FEN 30 REJECT white to move but ep on rank 3 | inconsistent en-passant square
+PASS FEN 30 reject leaves the board unchanged
+PASS FEN 30 rejected as required
+FEN 31 REJECT side not to move (white) is in check | side that moved left its king in check
+PASS FEN 31 reject leaves the board unchanged
+PASS FEN 31 rejected as required
+FEN 32 REJECT side not to move (black) is in check | side that moved left its king in check
+PASS FEN 32 reject leaves the board unchanged
+PASS FEN 32 rejected as required
+FEN 33 ACCEPT halfmove=65535 fullmove=1 fen=4k3/8/8/8/8/8/8/4K3 w - - 65535 1 | half-move 1000000
+PASS FEN 33 clamps the half-move clock to 65535
+FEN 34 ACCEPT halfmove=0 fullmove=65535 fen=4k3/8/8/8/8/8/8/4K3 w - - 0 65535 | full-move 1000000
+PASS FEN 34 clamps the full-move number to 65535
+FEN 35 ACCEPT halfmove=65535 fullmove=1 fen=4k3/8/8/8/8/8/8/4K3 w - - 65535 1 | half-move LLONG_MAX
+PASS FEN 35 clamps the half-move clock to 65535
+FEN 36 ACCEPT halfmove=0 fullmove=65535 fen=4k3/8/8/8/8/8/8/4K3 w - - 0 65535 | full-move LLONG_MAX
+PASS FEN 36 clamps the full-move number to 65535
+FEN 37 REJECT half-move overflows long long | FEN must contain six fields
+PASS FEN 37 reject leaves the board unchanged
+PASS FEN 37 rejected as required
+FEN 38 REJECT full-move overflows long long | FEN must contain six fields
+PASS FEN 38 reject leaves the board unchanged
+PASS FEN 38 rejected as required
+FEN 39 REJECT negative half-move | invalid FEN fields
+PASS FEN 39 reject leaves the board unchanged
+PASS FEN 39 rejected as required
+FEN 40 REJECT full-move 0 | invalid FEN fields
+PASS FEN 40 reject leaves the board unchanged
+PASS FEN 40 rejected as required
+RESULT PASS fails=0
+```
+
+### Same suite under `-fsanitize=address,undefined`
+
+```
+g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -march=x86-64-v3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -I forge-combo29/include -pthread forge-combo29/tests_t17/rules_suite.cpp forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp -o /tmp/t17_rules_asan
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 /tmp/t17_rules_asan
+```
+
+Compile exited 0 with no diagnostics. The sanitizers printed no errors. Program output was the same as the release suite above, line for line. Exit code 0.
+
+### Clang 18.1.3
+
+`clang++` with no extra include path still fails: `fatal error: 'array' file not found`. `libstdc++-13-dev` is installed, and Clang does not search `/usr/include/c++/13` on its own. The suite was rebuilt with those headers named explicitly:
+
+```
+clang++ -std=c++20 -stdlib=libstdc++ -isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13 -L/usr/lib/gcc/x86_64-linux-gnu/13 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -I forge-combo29/include -pthread forge-combo29/tests_t17/rules_suite.cpp forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp -o /tmp/t17_rules_clang
+/tmp/t17_rules_clang
+```
+
+Compile exited 0. Program exit code 0. Output matched the g++ release suite, line for line.
+
+### Lock numbers again, g++ binary, engine sources unchanged
+
+```
+printf 'setoption name Threads value 1\nsetoption name Hash value 16\nsetoption name OwnBook value false\nbench 11\nbench 13\nposition startpos\ngo perft 5\nquit\n' | ./build/forge
+```
+
+```
+info string bench depth 11 nodes 312866 time 167 nps 1873449
+info string bench depth 13 nodes 862329 time 440 nps 1959838
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+Exit code 0. bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609.
+
+### Lock numbers under `-fsanitize=address,undefined`
+
+The engine binary, including `uci.cpp` and `book.cpp`, rebuilt at `-O1` with the same defines. OwnBook stayed false, so the book file was not opened.
+
+```
+g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -march=x86-64-v3 -DNDEBUG -DFORGE_NNUE_HIDDEN=256 -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_SPD_TT_NOTLS=1 -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=0 -DFORGE_SPD_NNUE_ZMM=0 -I forge-combo29/include -pthread forge-combo29/src/bitboard.cpp forge-combo29/src/board.cpp forge-combo29/src/eval.cpp forge-combo29/src/eval_params.cpp forge-combo29/src/nnue.cpp forge-combo29/src/search.cpp forge-combo29/src/book.cpp forge-combo29/src/uci.cpp -o /tmp/forge_asan
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 /tmp/forge_asan
+```
+
+Input was the same Threads 1, Hash 16, OwnBook false, `bench 11`, `bench 13`, `go perft 5` sequence. Compile exited 0. The sanitizers printed no errors. Program exit code 0. Output:
+
+```
+info string bench depth 11 nodes 312866 time 2191 nps 142795
+info string bench depth 13 nodes 862329 time 5972 nps 144395
+a2a3: 181046
+b2b3: 215255
+c2c3: 222861
+d2d3: 328511
+e2e3: 402988
+f2f3: 178889
+g2g3: 217210
+h2h3: 181044
+a2a4: 217832
+b2b4: 216145
+c2c4: 240082
+d2d4: 361790
+e2e4: 405385
+f2f4: 198473
+g2g4: 214048
+h2h4: 218829
+b1a3: 198572
+b1c3: 234656
+g1f3: 233491
+g1h3: 198502
+nodes 4865609
+```
+
+The node counts match the g++ binary. The per-move perft 5 split is unchanged.
+

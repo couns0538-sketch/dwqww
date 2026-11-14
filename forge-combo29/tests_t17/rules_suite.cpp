@@ -316,18 +316,26 @@ void special_moves() {
             check((board.checkers() & board.pieces(forge::WN)) != 0 && (board.checkers() & board.pieces(forge::WB)) != 0,
                   "checkers are the knight and the bishop");
             const forge::MoveList legal = board.legal_moves(false);
-            bool only_king = !legal.empty();
-            bool queen_takes = false;
+            const char* expected_replies[] = {"e8e7", "e8f7", "e8d8", "e8f8"};
+            bool seen[4] = {};
+            int extra = 0;
             std::ostringstream listed;
             listed << "double-check legal:";
             for (const forge::Move reply : legal) {
-                listed << ' ' << forge::Board::move_to_uci(reply);
-                if (board.piece_at(reply.from) != forge::BK) only_king = false;
-                if (forge::Board::move_to_uci(reply) == "g7f6") queen_takes = true;
+                const std::string uci = forge::Board::move_to_uci(reply);
+                listed << ' ' << uci;
+                bool known = false;
+                for (int i = 0; i < 4; ++i) {
+                    if (uci == expected_replies[i]) {
+                        seen[i] = true;
+                        known = true;
+                    }
+                }
+                if (!known) ++extra;
             }
             std::cout << listed.str() << std::endl;
-            check(only_king, "double check allows only king moves");
-            check(!queen_takes, "queen cannot take one checker while the other remains");
+            const bool exact = extra == 0 && seen[0] && seen[1] && seen[2] && seen[3] && legal.size() == 4;
+            check(exact, "double check replies are exactly e8e7 e8f7 e8d8 e8f8");
             board.unmake_move(*move, undo);
             same_board(board, before, "STATE after double-check unmake");
         }
@@ -469,7 +477,220 @@ void draw_rules() {
     }
 }
 
-enum class FenKind { Reject, Any };
+// Positions the first pass did not stand on their own: queenside castling,
+// a file pin on en passant, a null move, a pure discovered check, and a
+// capture or pawn move that resets a clock of 99.
+void further_edges() {
+    auto roundtrip = [](forge::Board& board, const forge::Move& move, std::string_view name) {
+        warm(board);
+        const forge::Board before = board;
+        forge::Undo undo;
+        (void)board.make_move(move, undo);
+        std::string diff;
+        const bool keys = forge::BoardStateProbe::incremental_matches(board, &diff);
+        check(keys, std::string("key after ") + std::string(name) + (keys ? "" : " mismatch " + diff));
+        board.unmake_move(move, undo);
+        same_board(board, before, std::string("STATE unmake ") + std::string(name));
+    };
+
+    {
+        forge::Board board = load("3r4/2k5/8/8/8/8/8/R3K2R w Q - 0 1");
+        check(!board.in_check() && board.square_attacked(3, forge::Black), "queenside through: d1 attacked, king safe");
+        check(!uci_legal(board, "e1c1"), "cannot castle queenside through check");
+        forge::Move crafted{};
+        crafted.from = 4;
+        crafted.to = 2;
+        crafted.flags = forge::QueenCastle;
+        check(!board.is_pseudo_legal(crafted), "crafted queenside castle through check is not pseudo-legal");
+    }
+    {
+        forge::Board board = load("2r5/1k6/8/8/8/8/8/R3K2R w Q - 0 1");
+        check(!board.in_check() && board.square_attacked(2, forge::Black) && !board.square_attacked(3, forge::Black),
+              "queenside into: c1 attacked, d1 safe");
+        check(!uci_legal(board, "e1c1"), "cannot castle queenside into check");
+    }
+    {
+        forge::Board board = load("4r3/2k5/8/8/8/8/8/R3K2R w Q - 0 1");
+        check(board.in_check(), "queenside out: king is in check");
+        check(!uci_legal(board, "e1c1"), "cannot castle queenside out of check");
+    }
+    {
+        forge::Board board = load("r7/2k5/8/8/8/8/8/R3K2R w Q - 0 1");
+        check(board.square_attacked(0, forge::Black), "a1 rook is attacked");
+        check(!board.square_attacked(2, forge::Black) && !board.square_attacked(3, forge::Black) && !board.in_check(),
+              "queenside king path c1-d1 is safe");
+        const std::optional<forge::Move> castle = board.parse_uci("e1c1");
+        check(castle.has_value(), "queenside castle with the rook attacked is legal");
+        if (castle) {
+            warm(board);
+            const forge::Board before = board;
+            forge::Undo undo;
+            (void)board.make_move(*castle, undo);
+            check(board.piece_at(2) == forge::WK && board.piece_at(3) == forge::WR, "O-O-O lands king c1 rook d1");
+            check(board.piece_at(0) == forge::Empty && board.piece_at(4) == forge::Empty, "O-O-O vacates a1 and e1");
+            std::string diff;
+            const bool keys = forge::BoardStateProbe::incremental_matches(board, &diff);
+            check(keys, std::string("key after O-O-O rook attacked") + (keys ? "" : " mismatch " + diff));
+            board.unmake_move(*castle, undo);
+            same_board(board, before, "STATE unmake O-O-O rook attacked");
+        }
+    }
+    {
+        forge::Board board = load("1r6/2k5/8/8/8/8/8/R3K2R w Q - 0 1");
+        check(board.square_attacked(1, forge::Black), "b1 is attacked");
+        check(!board.square_attacked(2, forge::Black) && !board.square_attacked(3, forge::Black), "c1 and d1 are safe");
+        const std::optional<forge::Move> castle = board.parse_uci("e1c1");
+        check(castle.has_value() && board.is_pseudo_legal(*castle) && board.is_legal(*castle),
+              "queenside castle is legal when only b1 is attacked");
+        if (castle) roundtrip(board, *castle, "O-O-O b1 attacked");
+    }
+    {
+        forge::Board through = load("r3k2r/8/8/8/8/8/5R2/4K3 b k - 0 1");
+        check(!through.in_check() && through.square_attacked(61, forge::White), "black kingside through: f8 attacked");
+        check(!uci_legal(through, "e8g8"), "black cannot castle through check");
+        forge::Board into = load("r3k2r/8/8/8/8/8/6R1/4K3 b k - 0 1");
+        check(into.square_attacked(62, forge::White) && !into.square_attacked(61, forge::White), "black kingside into: g8 attacked");
+        check(!uci_legal(into, "e8g8"), "black cannot castle into check");
+        forge::Board out = load("r3k2r/8/8/8/8/8/4R3/4K3 b k - 0 1");
+        check(out.in_check() && !uci_legal(out, "e8g8"), "black cannot castle out of check");
+        forge::Board rook = load("r3k2r/8/8/8/8/8/7R/4K3 b k - 0 1");
+        check(rook.square_attacked(63, forge::White) && uci_legal(rook, "e8g8"), "black castle with h8 rook attacked is legal");
+        forge::Board queen = load("r3k3/8/8/8/8/8/8/1R2K3 b q - 0 1");
+        check(queen.square_attacked(57, forge::White) && uci_legal(queen, "e8c8"),
+              "black queenside castle is legal when only b8 is attacked");
+    }
+    {
+        forge::Board illegal = load("3r4/8/8/3Pp3/8/8/8/3K3k w - e6 0 1");
+        check(illegal.ep_square() == 44, "file-pin ep square is e6");
+        check(uci_pseudo(illegal, "d5e6"), "file-pin ep d5e6 is pseudo-legal");
+        check(!uci_legal(illegal, "d5e6"), "file-pin ep d5e6 is illegal");
+        forge::Board legal = load("r7/8/8/3Pp3/8/8/8/3K3k w - e6 0 1");
+        const std::optional<forge::Move> ep = legal.parse_uci("d5e6");
+        check(ep.has_value(), "ep d5e6 is legal when the king is not on the opened file");
+        if (ep) roundtrip(legal, *ep, "legal ep d5e6");
+        forge::Board black = load("4k3/8/8/8/3Pp3/8/8/4R2K b - d3 0 1");
+        check(uci_pseudo(black, "e4d3") && !uci_legal(black, "e4d3"), "black ep e4d3 is illegal when it opens the e-file");
+    }
+    {
+        forge::Board board = load("4r3/8/8/8/8/8/4N3/4K2k w - - 0 1");
+        check(uci_pseudo(board, "e2d4") && !uci_legal(board, "e2d4"), "pinned knight e2d4 is illegal");
+        check(uci_pseudo(board, "e2c3") && !uci_legal(board, "e2c3"), "pinned knight e2c3 is illegal");
+        bool knight_moved = false;
+        for (const forge::Move move : board.legal_moves(false)) {
+            const std::string uci = forge::Board::move_to_uci(move);
+            if (uci.size() >= 2 && uci[0] == 'e' && uci[1] == '2') knight_moved = true;
+        }
+        check(!knight_moved, "pinned knight has no legal move");
+    }
+    {
+        forge::Board board = load("4k3/8/8/8/8/8/4N3/4RK2 w - - 0 1");
+        const std::optional<forge::Move> move = board.parse_uci("e2d4");
+        check(move.has_value() && board.gives_check(*move), "e2d4 is a pure discovered check");
+        if (move) {
+            forge::Undo undo;
+            (void)board.make_move(*move, undo);
+            const int checkers = forge::popcount(board.checkers());
+            check(board.in_check() && checkers == 1 && (board.checkers() & board.pieces(forge::WR)) != 0 &&
+                      (board.checkers() & board.pieces(forge::WN)) == 0,
+                  "discovered check is the rook alone");
+            board.unmake_move(*move, undo);
+        }
+    }
+    {
+        forge::Board board = load("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1");
+        const std::optional<forge::Move> castle = board.parse_uci("e1c1");
+        check(castle.has_value() && board.gives_check(*castle), "O-O-O gives check along the d-file");
+        if (castle) {
+            forge::Undo undo;
+            (void)board.make_move(*castle, undo);
+            check(board.in_check() && (board.checkers() & board.pieces(forge::WR)) != 0, "rook on d1 is the checker");
+            check(forge::BoardStateProbe::incremental_matches(board, nullptr), "key after checking castle");
+            board.unmake_move(*castle, undo);
+        }
+    }
+    {
+        forge::Board board = load("r7/8/8/3Pp3/8/8/8/3K3k w - e6 0 1");
+        warm(board);
+        const forge::Board before = board;
+        forge::NullUndo undo;
+        board.make_null_move(undo);
+        check(board.side_to_move() == forge::Black, "null move passes the turn");
+        check(board.ep_square() < 0, "null move clears en passant");
+        check(board.halfmove_clock() == 1, "null move increments the half-move clock");
+        check(forge::BoardStateProbe::incremental_matches(board, nullptr), "key after null move matches a recompute");
+        board.unmake_null_move(undo);
+        same_board(board, before, "STATE after null-move unmake");
+    }
+    {
+        forge::Board board = load("4k3/8/8/8/8/8/8/4K2R w - - 0 1");
+        check(play(board, "h1h2") && play(board, "e8d8") && play(board, "h2h1") && play(board, "d8e8"),
+              "cycle once before the null-move chain");
+        forge::Searcher searcher(16, 1);
+        const std::size_t root = board.history_size() - 1;
+        forge::SearcherTestProbe::set_root_history(searcher.main_worker(), root);
+        check(!forge::SearcherTestProbe::is_draw(searcher.main_worker(), board, 1), "twofold before the null moves is not a draw");
+        forge::NullUndo first;
+        forge::NullUndo second;
+        board.make_null_move(first);
+        board.make_null_move(second);
+        check(board.side_to_move() == forge::White, "two null moves restore the side to move");
+        forge::SearcherTestProbe::set_root_history(searcher.main_worker(), root);
+        check(!forge::SearcherTestProbe::is_draw(searcher.main_worker(), board, 1),
+              "a null move breaks the repetition chain the search uses");
+        board.unmake_null_move(second);
+        board.unmake_null_move(first);
+        check(!board.is_repetition(), "unmaking the null moves restores twofold, not threefold");
+    }
+    {
+        forge::Board board = load("8/8/8/8/8/7k/P7/4K3 w - - 99 1");
+        const std::optional<forge::Move> push = board.parse_uci("a2a3");
+        const std::optional<forge::Move> quiet = board.parse_uci("e1e2");
+        check(push.has_value() && quiet.has_value(), "clock 99 has a pawn push and a quiet king move");
+        if (push && quiet) {
+            forge::Searcher searcher(16, 1);
+            forge::Undo undo;
+            (void)board.make_move(*push, undo);
+            check(board.halfmove_clock() == 0, "a pawn move resets the half-move clock");
+            forge::SearcherTestProbe::set_root_history(searcher.main_worker(), board.history_size() - 1);
+            check(!forge::SearcherTestProbe::is_draw(searcher.main_worker(), board, 1), "the position after the pawn move is not a 50-move draw");
+            check(forge::BoardStateProbe::incremental_matches(board, nullptr), "key after the pawn reset");
+            board.unmake_move(*push, undo);
+            (void)board.make_move(*quiet, undo);
+            check(board.halfmove_clock() == 100, "a quiet move from 99 lands on 100");
+            forge::SearcherTestProbe::set_root_history(searcher.main_worker(), board.history_size() - 1);
+            check(forge::SearcherTestProbe::is_draw(searcher.main_worker(), board, 1), "the quiet reply at 100 is a draw");
+            board.unmake_move(*quiet, undo);
+            const std::optional<forge::Move> twice = board.parse_uci("a2a4");
+            check(twice.has_value(), "a2a4 double push is legal");
+            if (twice) {
+                (void)board.make_move(*twice, undo);
+                check(board.ep_square() == 16, "double push sets ep a3 even with no capturer");
+                check(board.halfmove_clock() == 0, "double push resets the clock");
+                check(forge::BoardStateProbe::incremental_matches(board, nullptr), "dead ep square is not hashed");
+                std::string fen = board.fen();
+                check(fen.find(" a3 ") != std::string::npos, "fen still records the dead ep square");
+                board.unmake_move(*twice, undo);
+            }
+        }
+    }
+    {
+        forge::Board board = load("n7/8/8/8/8/7k/8/R3K3 w - - 99 1");
+        const std::optional<forge::Move> capture = board.parse_uci("a1a8");
+        check(capture.has_value() && capture->is_capture(), "a1a8 captures the knight at clock 99");
+        if (capture) {
+            forge::Undo undo;
+            (void)board.make_move(*capture, undo);
+            check(board.halfmove_clock() == 0 && board.piece_at(56) == forge::WR, "capture resets the clock and leaves the rook");
+            forge::Searcher searcher(16, 1);
+            searcher.clear();
+            const forge::SearchInfo info = search_depth(searcher, board, 2);
+            std::cout << "DRAW capture-resets-99 " << search_text(info) << std::endl;
+            check(!adjudicated_draw(info) && info.score != 0, "a capture on ply 99 is not a 50-move draw");
+        }
+    }
+}
+
+enum class FenKind { Reject, ClampHalf, ClampFull };
 
 void malformed_fens() {
     struct Case {
@@ -510,12 +731,12 @@ void malformed_fens() {
         {"4k3/8/8/8/8/8/8/4K3 w - e3 0 1", "white to move but ep on rank 3", FenKind::Reject},
         {"4k3/8/8/8/8/8/8/4K2r b - - 0 1", "side not to move (white) is in check", FenKind::Reject},
         {"4k2R/8/8/8/8/8/8/4K3 w - - 0 1", "side not to move (black) is in check", FenKind::Reject},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 1000000 1", "half-move 1000000", FenKind::Any},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 0 1000000", "full-move 1000000", FenKind::Any},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 9223372036854775807 1", "half-move LLONG_MAX", FenKind::Any},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 0 9223372036854775807", "full-move LLONG_MAX", FenKind::Any},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 999999999999999999999 1", "half-move overflows long long", FenKind::Any},
-        {"4k3/8/8/8/8/8/8/4K3 w - - 0 999999999999999999999", "full-move overflows long long", FenKind::Any},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 1000000 1", "half-move 1000000", FenKind::ClampHalf},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 0 1000000", "full-move 1000000", FenKind::ClampFull},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 9223372036854775807 1", "half-move LLONG_MAX", FenKind::ClampHalf},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 0 9223372036854775807", "full-move LLONG_MAX", FenKind::ClampFull},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 999999999999999999999 1", "half-move overflows long long", FenKind::Reject},
+        {"4k3/8/8/8/8/8/8/4K3 w - - 0 999999999999999999999", "full-move overflows long long", FenKind::Reject},
         {"4k3/8/8/8/8/8/8/4K3 w - - -1 1", "negative half-move", FenKind::Reject},
         {"4k3/8/8/8/8/8/8/4K3 w - - 0 0", "full-move 0", FenKind::Reject},
     };
@@ -541,8 +762,9 @@ void malformed_fens() {
             case FenKind::Reject:
                 check(true, std::string("FEN ") + std::to_string(index) + " rejected as required");
                 break;
-            case FenKind::Any:
-                check(true, std::string("FEN ") + std::to_string(index) + " handled by rejection");
+            case FenKind::ClampHalf:
+            case FenKind::ClampFull:
+                check(false, std::string("FEN ") + std::to_string(index) + " rejected a clock that must be clamped");
                 break;
             default: {
                 const FenKind unhandled = item.kind;
@@ -564,8 +786,13 @@ void malformed_fens() {
         case FenKind::Reject:
             check(false, std::string("FEN ") + std::to_string(index) + " accepted a malformed position");
             break;
-        case FenKind::Any:
-            check(true, std::string("FEN ") + std::to_string(index) + " handled by acceptance");
+        case FenKind::ClampHalf:
+            check(trial.halfmove_clock() == 65535 && trial.fullmove_number() == 1,
+                  std::string("FEN ") + std::to_string(index) + " clamps the half-move clock to 65535");
+            break;
+        case FenKind::ClampFull:
+            check(trial.halfmove_clock() == 0 && trial.fullmove_number() == 65535,
+                  std::string("FEN ") + std::to_string(index) + " clamps the full-move number to 65535");
             break;
         default: {
             const FenKind unhandled = item.kind;
@@ -577,13 +804,41 @@ void malformed_fens() {
     }
 }
 
+// Two workers share the transposition table. The result is the main worker's.
+// Helpers are joined before search returns. This only checks that a second
+// thread runs, returns, and does not play an illegal move. Node counts are
+// not printed: the helper races the table, so the count is not a signature.
+void multi_thread() {
+    std::cout << "MULTI-THREAD" << std::endl;
+    forge::Searcher searcher(16, 2);
+    check(searcher.threads() == 2, "searcher keeps two workers");
+
+    forge::Board mate = load("k7/8/1QK5/8/8/8/8/8 w - - 0 1");
+    searcher.clear();
+    const forge::SearchInfo mate_info = search_depth(searcher, mate, 2);
+    const std::string mate_uci = forge::Board::move_to_uci(mate_info.best_move);
+    std::cout << "THREADS mate depth2 score=" << mate_info.score << " best=" << mate_uci << std::endl;
+    check(mate.is_legal(mate_info.best_move), "two-thread mate search returns a legal move");
+    check(mate_uci == "b6b7" && forge::is_mate_score(mate_info.score), "two threads still find the mate in one");
+
+    forge::Board start = load(forge::Board::StandardStartFen);
+    searcher.clear();
+    const forge::SearchInfo start_info = search_depth(searcher, start, 3);
+    const std::string start_uci = forge::Board::move_to_uci(start_info.best_move);
+    std::cout << "THREADS start depth3 score=" << start_info.score << " best=" << start_uci << std::endl;
+    check(start_info.nodes > 0, "two-thread start search visits nodes");
+    check(start.is_legal(start_info.best_move), "two-thread start search returns a legal move");
+}
+
 } // namespace
 
 int main() {
     std::cout << "t17 rules suite" << std::endl;
     perft_and_state();
     special_moves();
+    further_edges();
     draw_rules();
+    multi_thread();
     malformed_fens();
     std::cout << "RESULT " << (g_fails == 0 ? "PASS" : "FAIL") << " fails=" << g_fails << std::endl;
     return g_fails == 0 ? 0 : 1;
