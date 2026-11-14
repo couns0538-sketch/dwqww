@@ -74,13 +74,15 @@ void test_option_defaults_off_and_is_listed() {
 
 // Independent of quiet_threat_index: an enemy attacker whose SEE value is strictly
 // below the mover. A king is not cheaper; SeePieceValue stores the king as 0.
-[[nodiscard]] bool cheaper_enemy_attacks(const forge::Board& board, int square, int reference_type) {
+[[nodiscard]] bool cheaper_enemy_attacks(const forge::Board& board, int square, int reference_type,
+                                         forge::Bitboard occupancy) {
     if (reference_type <= forge::Pawn) return false;
     constexpr int king_value = 100000;
     const int reference = reference_type == forge::King
                               ? king_value
                               : forge::SeePieceValue[static_cast<std::size_t>(reference_type)];
-    forge::Bitboard attackers = board.attackers_to(square) & board.occupied(forge::opposite(board.side_to_move()));
+    forge::Bitboard attackers =
+        board.attackers_to(square, occupancy) & board.occupied(forge::opposite(board.side_to_move()));
     while (attackers != 0) {
         const int from = forge::pop_lsb(attackers);
         const int type = forge::piece_type(board.piece_at(from));
@@ -93,8 +95,9 @@ void test_option_defaults_off_and_is_listed() {
 [[nodiscard]] int oracle_threat_index(const forge::Board& board, forge::Move move) {
     const int type = forge::piece_type(board.piece_at(move.from));
     if (type <= forge::Pawn) return 0;
-    return (cheaper_enemy_attacks(board, move.from, type) ? 2 : 0) |
-           (cheaper_enemy_attacks(board, move.to, type) ? 1 : 0);
+    const forge::Bitboard occ = board.occupied();
+    return (cheaper_enemy_attacks(board, move.from, type, occ) ? 2 : 0) |
+           (cheaper_enemy_attacks(board, move.to, type, occ ^ forge::square_bb(move.from)) ? 1 : 0);
 }
 
 void test_threat_index() {

@@ -266,18 +266,21 @@ std::string format_score(int score) {
 
 } // namespace
 
-// Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the empty
-// destination is. "Cheaper" follows SeePieceValue, except a king is never
-// cheaper (the SEE table stores king as 0). Nothing is cheaper than a pawn,
-// so pawn quiets stay in bucket 0. The reference value on the destination is
-// the mover, the piece that would stand there.
+// Bit 1: the mover is attacked by a cheaper enemy piece. Bit 0: the
+// destination is. The destination test removes the mover from occupancy, so a
+// slider standing on the move's line is not hidden by the piece that is about
+// to leave. "Cheaper" follows SeePieceValue, except a king is never cheaper
+// (the SEE table stores king as 0). Nothing is cheaper than a pawn, so pawn
+// quiets stay in bucket 0. The reference value on the destination is the
+// mover, the piece that would stand there.
 int quiet_threat_index(const Board& board, Move move) {
     const int type = piece_type(board.piece_at(move.from));
     if (type <= Pawn) return 0;
     const Color us = board.side_to_move();
     const Color them = opposite(us);
-    const Bitboard occ = board.occupied();
-    const auto cheaper = [&](int square) {
+    const Bitboard from_occ = board.occupied();
+    const Bitboard to_occ = from_occ ^ square_bb(move.from);
+    const auto cheaper = [&](int square, Bitboard occ) {
         if ((attacks::pawn(us, square) & board.pieces(them, Pawn)) != 0) return true;
         if (type <= Bishop) return false;
         if ((attacks::knight(square) & board.pieces(them, Knight)) != 0) return true;
@@ -288,7 +291,7 @@ int quiet_threat_index(const Board& board, Move move) {
         const Bitboard queens = board.pieces(them, Queen);
         return (attacks::bishop(square, occ) & queens) != 0 || (attacks::rook(square, occ) & queens) != 0;
     };
-    return (cheaper(move.from) ? 2 : 0) | (cheaper(move.to) ? 1 : 0);
+    return (cheaper(move.from, from_occ) ? 2 : 0) | (cheaper(move.to, to_occ) ? 1 : 0);
 }
 
 void tune::refresh() { Reductions.refresh(); }
