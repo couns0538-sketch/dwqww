@@ -549,7 +549,7 @@ Exit status 0. The sanitizer printed no error.
 
 - The first line of a `MultiPV` greater than 1 search at depths after 1 against a `MultiPV` 1 search of the same position. The extra searches write child transposition-table entries and history before the next depth, so a later first line can differ. At depth 1 the measured first line matches the single-PV search (`d2d4`, 26 nodes).
 - Elo and speed. The `nps` numbers above are wall-clock readings from these runs, not a speed claim.
-- A full alternating game on `wtime`/`btime`. `go movetime` is the timed path that was run; see the next section.
+- A full alternating game of many moves. One `go wtime 80 btime 80` with `MultiPV 2` was run; see the last section.
 
 ## Follow-up: ranking, drawn roots, and a stopped search
 
@@ -943,3 +943,49 @@ bestmove e2e3
 ```
 
 `bestmove e2e3` is depth 5's first line. The sanitizer printed no error.
+
+`OwnBook true`, `MultiPV 1`, `go wtime 300 btime 300` from the start position:
+
+```
+readyok
+info string book move e2e4
+bestmove e2e4
+```
+
+`OwnBook true`, `MultiPV 2`, `go wtime 80 btime 80` from the start position. `quit` was sent after `bestmove`:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 51 nps 0 hashfull 0 time 0 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp 1 nodes 51 nps 0 hashfull 0 time 0 pv g1f3
+info depth 2 seldepth 2 multipv 1 score cp 49 nodes 106 nps 0 hashfull 0 time 0 pv d2d4 d7d6
+info depth 2 seldepth 2 multipv 2 score cp 46 nodes 106 nps 0 hashfull 0 time 0 pv g1f3 e7e6
+info depth 3 seldepth 3 multipv 1 score cp 18 nodes 278 nps 0 hashfull 0 time 0 pv e2e4 h7h6 d2d4
+info depth 3 seldepth 3 multipv 2 score cp 18 nodes 278 nps 0 hashfull 0 time 0 pv d2d4 h7h6 e2e4
+info depth 4 seldepth 6 multipv 1 score cp 35 nodes 619 nps 0 hashfull 0 time 0 pv d2d4 d7d5 g1f3 c7c6
+info depth 4 seldepth 6 multipv 2 score cp 35 nodes 619 nps 0 hashfull 0 time 0 pv g1f3 d7d5 d2d4 c7c6
+info depth 5 seldepth 8 multipv 1 score cp 2 nodes 1574 nps 1574000 hashfull 0 time 1 pv e2e3 c7c5 g1f3 g8f6 d2d4
+info depth 5 seldepth 8 multipv 2 score cp 1 nodes 1574 nps 1574000 hashfull 0 time 1 pv d2d4 g8f6 g1f3 h7h6 g2g3
+info depth 6 seldepth 8 multipv 1 score cp 13 nodes 2331 nps 2331000 hashfull 0 time 1 pv d2d4 g8f6 e2e3 h7h6 g1f3 d7d5
+info depth 6 seldepth 8 multipv 2 score cp 12 nodes 2331 nps 2331000 hashfull 0 time 1 pv g1f3 g8f6 d2d4 h7h6 e2e3 d7d5
+info depth 7 seldepth 12 multipv 1 score cp 25 nodes 5515 nps 1838333 hashfull 1 time 3 pv e2e4 c7c5 g1f3 h7h6 f1e2 e7e6 d2d4 c5d4
+info depth 7 seldepth 12 multipv 2 score cp 19 nodes 5515 nps 1838333 hashfull 1 time 3 pv c2c4 c7c5 e2e3 g8f6 g1f3 e7e6 f1e2
+info depth 8 seldepth 13 multipv 1 score cp 25 nodes 8123 nps 2030750 hashfull 2 time 4 pv e2e4 c7c5 g1f3 h7h6 f1e2 e7e6 d2d4 c5d4 f3d4
+info depth 8 seldepth 13 multipv 2 score cp 17 nodes 8123 nps 2030750 hashfull 2 time 4 pv g1f3 g8f6 d2d4 e7e6 c2c4 c7c5 e2e3 b8c6
+bestmove e2e4
+```
+
+No book line. Depth 8 finished both lines and `bestmove e2e4` is `multipv 1`. The printed `time` is 4 milliseconds; that is the clock the search reported, not a claim about the 80 millisecond budget.
+
+`MultiPV 4`, `go depth 2 searchmoves e2e4 d2d4` from the start position:
+
+```
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 1 nodes 5 nps 0 hashfull 0 time 0 pv d2d4
+info depth 1 seldepth 1 multipv 2 score cp -11 nodes 5 nps 0 hashfull 0 time 0 pv e2e4
+info depth 2 seldepth 2 multipv 1 score cp 49 nodes 24 nps 0 hashfull 0 time 0 pv d2d4 d7d6
+info depth 2 seldepth 2 multipv 2 score cp 37 nodes 24 nps 0 hashfull 0 time 0 pv e2e4 e7e6
+bestmove d2d4
+```
+
+Both lines are inside the `searchmoves` list. `bestmove d2d4` is line 1. The same two moves, scores, and 24 nodes are what the C++ test printed for that restriction.
