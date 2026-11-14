@@ -44,7 +44,7 @@ Source diff in `src` and `include`: 27 insertions, 4 deletions.
 - `go nodes 400` on the start position did not print a softnodes line. Its last finished info line reported 215 nodes.
 - Result: `SOFTNODES_PASS 200 budget 1000`.
 
-The same 200 softnodes searches were repeated on the sanitized binary below and passed with exit 0.
+The same 200 softnodes searches were repeated on that sanitized binary with leak detection left off, and the process exited 0.
 
 Sanitizer build, extra flags `-fsanitize=address,undefined -fno-omit-frame-pointer` on compile and link. `softnodes_test ./build-asan/forge depth10` with `ASAN_OPTIONS=halt_on_error=1:detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`:
 
