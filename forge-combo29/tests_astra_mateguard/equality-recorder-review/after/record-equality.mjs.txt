@@ -1,0 +1,59 @@
+import fs from 'node:fs';
+import cp from 'node:child_process';
+import {hashFile, check, differenceTranscripts, writeImmutable, verifyPackage} from './equality-tools/evidence-integrity.mjs';
+const id=process.argv[2],r='/workspace/work/r4-run',stateFile=r+'/state.json';
+if(!/^E-\d{4}$/.test(id??''))throw Error('batch id');
+const statePin=hashFile(stateFile),s=JSON.parse(fs.readFileSync(stateFile)),prior=s.equalityBatches??[];
+if(prior.some(x=>x.id===id)||id!=='E-'+String(prior.length+1).padStart(4,'0'))throw Error('unique sequential batch required');
+for(const previous of prior){
+ check(previous.summarySha256&&hashFile(previous.summary)===previous.summarySha256,'prior summary pin mismatch: '+previous.id);
+ check(previous.auditSha256&&hashFile(previous.audit)===previous.auditSha256,'prior audit pin mismatch: '+previous.id);
+}
+const source=r+'/equality-batches/'+id,summary=source+'/summary.txt',b=JSON.parse(fs.readFileSync(summary));
+const files=[...prior.map(x=>x.summary),summary],auditPrefix=source+'/all-differences-audit';
+const transaction={schema:1,id,summaries:files.map(file=>({file,sha256:hashFile(file)})),tools:['equality-tools/audit-all-differences.mjs','equality-tools/evidence-integrity.mjs','package-evidence.mjs'].map(name=>({name,sha256:hashFile(r+'/'+name)}))};
+writeImmutable(source+'/record-equality-transaction.txt',JSON.stringify(transaction,null,2)+'\n');
+const argv=['node',r+'/equality-tools/audit-all-differences.mjs',...files],started=new Date().toISOString();
+const a=cp.spawnSync(argv[0],argv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:64*1024*1024});
+const attempt=r+'/logs/record-equality-'+id+'-'+Date.now()+'-'+process.pid;
+fs.mkdirSync(r+'/logs',{recursive:true});
+const command=JSON.stringify({argv,started,ended:new Date().toISOString(),exit:a.status,signal:a.signal,error:a.error?.message},null,2)+'\n';
+writeImmutable(attempt+'.audit.txt',a.stdout??'');writeImmutable(attempt+'.stderr.txt',a.stderr??'');writeImmutable(attempt+'.command.txt',command);
+if(![0,1,3].includes(a.status)||!a.stdout)throw Error('aggregate failed; inspect '+attempt);
+const audit=JSON.parse(a.stdout),tests=s.repo+'/forge-combo29/tests_astra_mateguard',faults=tests+'/faults';
+const faultFiles=audit.differences.map(d=>{
+ const manifest=JSON.parse(fs.readFileSync(d.artifactManifest));
+ const selected=differenceTranscripts(d,manifest);
+ const dest=faults+'/equality-'+String(d.globalRecordIndex).padStart(6,'0')+'.txt';
+ const text='Observed depth-9 difference; attribution pending. Legacy clock gate does not waive this record.\n'+JSON.stringify({reference:audit.reference,candidate:audit.candidate,...d},null,2)+'\n\nFULL ORIGINAL AND REPEAT TRANSCRIPTS\n'+selected;
+ if(fs.existsSync(dest))check(fs.readFileSync(dest).equals(Buffer.from(text)),'existing immutable fault differs: '+dest);
+ return {dest,text};
+});
+// All evidence and existing faults are verified before publishing new immutable files.
+fs.mkdirSync(faults,{recursive:true});for(const {dest,text}of faultFiles)writeImmutable(dest,text);
+writeImmutable(auditPrefix+'.txt',a.stdout);
+writeImmutable(auditPrefix+'.stderr.txt',a.stderr??'');
+if(fs.existsSync(auditPrefix+'.command.txt')){
+ const old=JSON.parse(fs.readFileSync(auditPrefix+'.command.txt'));
+ check(JSON.stringify(old.argv)===JSON.stringify(argv)&&old.exit===a.status&&!old.signal&&!old.error,'existing audit command mismatch');
+}else writeImmutable(auditPrefix+'.command.txt',command);
+const destination=tests+'/equality/'+id;
+if(fs.existsSync(destination))verifyPackage(source,destination);
+else {
+ const stage=destination+'.stage-'+Date.now()+'-'+process.pid;
+ const packArgv=['node',r+'/package-evidence.mjs',source,stage];
+ const p=cp.spawnSync(packArgv[0],packArgv.slice(1),{encoding:'utf8',timeout:90000,maxBuffer:1024*1024});
+ writeImmutable(attempt+'.package.txt',JSON.stringify({argv:packArgv,exit:p.status,signal:p.signal,stdout:p.stdout,stderr:p.stderr},null,2)+'\n');
+ if(p.status!==0)throw Error('package failed; retained staging directory '+stage+'; retry uses a fresh stage');
+ verifyPackage(source,stage);fs.renameSync(stage,destination);
+ verifyPackage(source,destination);
+}
+check(hashFile(stateFile)===statePin,'state changed during recording; verified publication retained for retry');
+prior.push({id,summary,summarySha256:hashFile(summary),counts:b.counts,partial:b.partial,validationFailed:b.validationFailed,allTargetsMet:b.allTargetsMet,audit:auditPrefix+'.txt',auditSha256:hashFile(auditPrefix+'.txt'),auditExit:a.status});
+s.equalityBatches=prior;s.equalityTotals={...audit.counts,totalDifferencePositions:audit.totalDifferences,unattributedDifferences:audit.unattributedDifferences,targetMet:audit.targetMet,selection:audit.selection,operationalFaults:audit.operationalFaults,committedOperationalFaults:audit.committedOperationalFaults,partialOperationalFaults:audit.partialOperationalFaults,partialDifferenceObservations:audit.partialDifferenceObservations.length,validationErrors:audit.validationErrors.length,equalityAcceptedWithoutAttribution:audit.equalityAcceptedWithoutAttribution};
+s.phase='Successor soak: depth-9 equality against e04556dd';s.progressBatch=id+'; seed '+b.seed;
+s.checkpointNote='Batch '+id+' counts '+JSON.stringify(b.counts)+'. Cumulative '+audit.counts.positions+' positions; '+audit.unattributedDifferences+' low/high-clock observations require attribution; operational faults '+audit.operationalFaults+' including '+audit.partialOperationalFaults+' partial findings. Full inputs, output, partial boundaries and every difference retained. Original100k selection verified only when targetMet.';
+s.commitMessage='Checkpoint successor equality batch '+id;
+const next=stateFile+'.record-'+process.pid;writeImmutable(next,JSON.stringify(s,null,2)+'\n');fs.renameSync(next,stateFile);
+console.log(JSON.stringify({id,auditExit:a.status,counts:s.equalityTotals,published:destination}));
+process.exitCode=audit.operationalFaults||audit.validationErrors.length?3:0;
