@@ -46,3 +46,40 @@ Not executed: a ply-128 node (that return calls the same scaler the tests check)
 
 option.EvalRule50Damp=true
 bench 13 nodes 1049205
+
+## Follow-up
+
+Screen only. Same binary, `EvalRule50Damp` on versus off. Not a strength claim.
+
+Owner build, because the machine has AVX-512F and BMI2: `CXX=g++-13 cmake -S forge-combo29 -B build -DCMAKE_BUILD_TYPE=Release -DFORGE_MARCH=x86-64-v4`, portable left at the CMake default off. Default pins on that binary: perft 5 = 4865609, bench 11 nodes = 312866, bench 13 nodes = 862329. Binary sha256 `778ba5bd02273550e7fc600768ec0f8913354b9039a3f310b59b0179eb19e9e6`. Source commit `85e0961064799c8f49f129b1d856490436b44354`. Implementation commit `40c7c468b1c64ffdcb203e4df326e6bf70a77281`.
+
+fastchess alpha 1.8.3, tag `v1.8.3-alpha`, commit `d7b47e8dec6b564aaf4cbb2922ab37e6c6761e75`. Book `UHO_Lichess_4852_v1.epd`, 2632036 lines, sha256 `7a7f6470615a69c6cf23d565417701d38732876f480af90d67b42abade35644a`. Neither the book nor fastchess is in the git tree.
+
+```
+/tmp/r3screen/fastchess -engine cmd=/agent/repos/dwqww/build/forge name=EvalRule50DampOn option.EvalRule50Damp=true -engine cmd=/agent/repos/dwqww/build/forge name=EvalRule50DampOff option.EvalRule50Damp=false -each proto=uci nodes=50000 option.Threads=1 option.Hash=16 option.OwnBook=false -openings file=/tmp/r3screen/UHO_Lichess_4852_v1.epd format=epd order=sequential start=S -games 2 -rounds 500 -concurrency 3 -report penta=true -ratinginterval 100 -pgnout file=forge-combo29/tests_r3fu_01/chunk_S.pgn min=true append=false
+```
+
+Concurrency is 3, one less than 4 CPUs. Chunks use start 1, 501, 1001, and so on, up to 9 chunks or 6 hours. The first engine is the option on.
+
+Bench 13 nodes per second, five runs off then five runs on, alternating in one process. Node counts stayed 862329 off and 1049205 on.
+
+| run | option | nodes | nps |
+| --- | --- | ---: | ---: |
+| 1 | off | 862329 | 1823105 |
+| 2 | on | 1049205 | 1983374 |
+| 3 | off | 862329 | 1933473 |
+| 4 | on | 1049205 | 2073527 |
+| 5 | off | 862329 | 1891072 |
+| 6 | on | 1049205 | 2025492 |
+| 7 | off | 862329 | 1834742 |
+| 8 | on | 1049205 | 2045233 |
+| 9 | off | 862329 | 1891072 |
+| 10 | on | 1049205 | 2049228 |
+
+Cumulative score, option on first. Elo is fastchess logistic Elo with the printed 95% interval. LOS is the fastchess figure for the option-on side. Pentanomial order is Ptnml(0-2): LL, LD, DD/WL, WD, WW.
+
+| chunk start | games | W-L-D on | Elo | LOS | Ptnml(0-2) |
+| --- | ---: | --- | --- | --- | --- |
+| 1 | 1000 | 216-319-465 | -35.91 +/- 14.11 | 0.00% | 31, 161, 206, 84, 18 |
+
+Cumulative after start 1: 216-319-465, Elo -35.91 +/- 14.11, LOS 0.00%, Ptnml 31, 161, 206, 84, 18. Further chunks are still running.
