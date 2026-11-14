@@ -272,6 +272,7 @@ extern bool NonPawnCorrection;       // per-color non-pawn static-eval correctio
 extern bool LmrDeeperShallower;      // adjust new_depth by +/-1 after LMR before re-search (false = off)
 extern bool EvalRule50Damp;          // shrink a node's static eval toward 0 as the half-move clock rises (false = off)
 extern bool ThreatHistory;           // second quiet history keyed by cheaper-attacker threats (false = off)
+extern bool LmrSignedCorrection;     // quiet LMR: signed fraction of a ply from correction history (false = off)
 [[nodiscard]] const std::vector<Parameter>& parameters();
 // Call after changing LMR parameters.
 void refresh();
@@ -285,6 +286,17 @@ void refresh();
     if (!tune::EvalRule50Damp || score == ValueNone || is_mate_score(score)) return score;
     const int clock = halfmove < 0 ? 0 : (halfmove > 100 ? 100 : halfmove);
     return score * (100 - clock) / 100;
+}
+
+// Quiet late-move reduction with a signed fraction of a ply from the eval
+// correction. correction_cp is the corrected static eval minus the uncorrected
+// eval (negative when results came back worse). Eight centipawns are one ply;
+// a smaller absolute correction is a truncated fraction and does not change
+// the integer reduction. The returned reduction is never negative.
+[[nodiscard]] inline int apply_lmr_signed_correction(int reduction_plies, int correction_cp) {
+    constexpr int kCentipawnsPerPly = 8;
+    const int adjusted = reduction_plies - correction_cp / kCentipawnsPerPly;
+    return adjusted > 0 ? adjusted : 0;
 }
 
 // Move-ordering statistics.
