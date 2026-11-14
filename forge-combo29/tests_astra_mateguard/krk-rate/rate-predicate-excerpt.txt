@@ -1,0 +1,222 @@
+[
+  {
+    "line": 33,
+    "text": ""
+  },
+  {
+    "line": 34,
+    "text": "    // Evaluates a White-to-move KRK move from (wk, wr, bk)."
+  },
+  {
+    "line": 35,
+    "text": "    // Returns exact distance-to-mate in plies from the root (>= 1) if the move"
+  },
+  {
+    "line": 36,
+    "text": "    // forces mate, or -1 if the move allows a draw (stalemate or rook loss)."
+  },
+  {
+    "line": 37,
+    "text": "    [[nodiscard]] int move_mate_plies(const forge::Board& root, const forge::Move& move) const {"
+  },
+  {
+    "line": 38,
+    "text": "        if (move.is_none() || !root.is_legal(move)) return -1;"
+  },
+  {
+    "line": 39,
+    "text": "        forge::Board next = root;"
+  },
+  {
+    "line": 40,
+    "text": "        forge::Undo undo;"
+  },
+  {
+    "line": 41,
+    "text": "        if (!next.make_move(move, undo)) return -1;"
+  },
+  {
+    "line": 42,
+    "text": "        if (!next.has_legal_move()) {"
+  },
+  {
+    "line": 43,
+    "text": "            return next.in_check() ? 1 : -1;"
+  },
+  {
+    "line": 44,
+    "text": "        }"
+  },
+  {
+    "line": 45,
+    "text": "        if (next.is_insufficient_material()) return -1;"
+  },
+  {
+    "line": 46,
+    "text": "        const forge::Bitboard wr_bb = next.pieces(forge::White, forge::Rook);"
+  },
+  {
+    "line": 47,
+    "text": "        if (wr_bb == 0) return -1;"
+  },
+  {
+    "line": 48,
+    "text": "        const int wk = next.king_square(forge::White);"
+  },
+  {
+    "line": 49,
+    "text": "        const int bk = next.king_square(forge::Black);"
+  },
+  {
+    "line": 50,
+    "text": "        const int wr = forge::lsb(wr_bb);"
+  },
+  {
+    "line": 51,
+    "text": "        const int child_dtm = dtm(wk, wr, bk, 1);"
+  },
+  {
+    "line": 52,
+    "text": "        if (child_dtm < 0) return -1;"
+  },
+  {
+    "line": 53,
+    "text": "        return 1 + child_dtm;"
+  },
+  {
+    "line": 54,
+    "text": "    }"
+  },
+  {
+    "line": 373,
+    "text": "            const bool has_mate_score = info.score >= forge::MateInMaxPly;"
+  },
+  {
+    "line": 374,
+    "text": "            const int move_plies = tb.move_mate_plies(board, info.best_move);"
+  },
+  {
+    "line": 375,
+    "text": "            const int claimed_plies = has_mate_score ? (forge::MateValue - info.score) : -1;"
+  },
+  {
+    "line": 376,
+    "text": "            // A move is non-mating if it is illegal/draws (move_plies < 0), or fails to force mate"
+  },
+  {
+    "line": 377,
+    "text": "            // within the claimed mate bound (when a mate score is reported) or within depth plies."
+  },
+  {
+    "line": 378,
+    "text": "            const bool is_mating_move = move_plies > 0 &&"
+  },
+  {
+    "line": 379,
+    "text": "                (has_mate_score ? (move_plies <= claimed_plies) : (move_plies <= depth));"
+  },
+  {
+    "line": 380,
+    "text": ""
+  },
+  {
+    "line": 381,
+    "text": "            if (!has_mate_score || !is_mating_move) {"
+  },
+  {
+    "line": 382,
+    "text": "                ++total_misses;"
+  },
+  {
+    "line": 383,
+    "text": "                ++pos_misses;"
+  },
+  {
+    "line": 384,
+    "text": "                if (!has_mate_score) ++no_mate_score_count;"
+  },
+  {
+    "line": 385,
+    "text": "                if (!is_mating_move) ++non_mating_move_count;"
+  },
+  {
+    "line": 386,
+    "text": "                if (logged_examples < 12) {"
+  },
+  {
+    "line": 387,
+    "text": "                    ++logged_examples;"
+  },
+  {
+    "line": 388,
+    "text": "                    std::cout << \"  MISS pos=\" << idx << \" run=\" << run"
+  },
+  {
+    "line": 389,
+    "text": "                              << \" fen=\\\"\" << pos.fen << \"\\\"\""
+  },
+  {
+    "line": 390,
+    "text": "                              << \" exact_dtm=\" << pos.exact_dtm"
+  },
+  {
+    "line": 391,
+    "text": "                              << \" t1=\" << format_score(pos.t1_score) << \"/\" << forge::Board::move_to_uci(pos.t1_move)"
+  },
+  {
+    "line": 392,
+    "text": "                              << \" got=\" << format_score(info.score) << \"/\" << forge::Board::move_to_uci(info.best_move)"
+  },
+  {
+    "line": 393,
+    "text": "                              << \" move_dtm=\" << move_plies << \"\\n\";"
+  },
+  {
+    "line": 394,
+    "text": "                }"
+  },
+  {
+    "line": 395,
+    "text": "            }"
+  },
+  {
+    "line": 396,
+    "text": "        }"
+  },
+  {
+    "line": 397,
+    "text": "        if (pos_misses > 0) {"
+  },
+  {
+    "line": 398,
+    "text": "            std::cout << \"pos \" << idx << \" (\" << pos.fen << \", dtm=\" << pos.exact_dtm << \" plies): \""
+  },
+  {
+    "line": 399,
+    "text": "                      << pos_misses << \"/\" << runs_per_pos << \" misses\\n\";"
+  },
+  {
+    "line": 400,
+    "text": "        }"
+  },
+  {
+    "line": 401,
+    "text": "    }"
+  },
+  {
+    "line": 402,
+    "text": ""
+  },
+  {
+    "line": 403,
+    "text": "    std::cout << \"SUMMARY: misses=\" << total_misses << \" / \" << total_runs"
+  },
+  {
+    "line": 404,
+    "text": "              << \" (no_mate_score=\" << no_mate_score_count"
+  },
+  {
+    "line": 405,
+    "text": "              << \", non_mating_move=\" << non_mating_move_count << \")\\n\";"
+  }
+]

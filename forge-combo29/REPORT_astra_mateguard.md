@@ -1,6 +1,6 @@
 # Narrow mate-alpha guard and round-4 soak
 
-Updated 2026-11-14T23:07:46.174Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Closing successor soak evidence and requesting next coordinated assignment.
+Updated 2026-11-14T23:11:54.281Z. Cloud VM only. Branch `for-fable-and-opus/astra-r4-mate-alpha-guard`. Task start 2026-11-14T19:48:28.579Z. Current phase: Successor soak closed with findings; next coordinated assignment requested next.
 
 **Guard acceptance: complete.** Default pins: **312866 / 862329 / 4865609**. Engine delta is27 added lines,0 removed, behind an OFF-by-default compile gate and a false-default UCI option. No CMakeLists change.
 
@@ -119,15 +119,30 @@ KRK status: Open rare two-thread mate-score miss; original selected move remains
 [Manual clock command coverage](tests_astra_mateguard/manual-clock-cases/CLOCK-REPORT.md):7 exact cases per build,14total, all4 huge-clock cases active until timed stop;0diagnostics. Approximate short-clock timings are measured without invented acceptance bands.
 
 Bounded alternating KRK comparison; counts exclude original suite and focused repetitions:
-| Build | Complete invocations | Main T2 searches | Missing mate score | Non-mating move | T1 preflight searches | T1 misses |
+| Build | Complete invocations | Main T2 searches | Missing mate score | Raw move-bound failures | T1 preflight searches | T1 misses |
 |---|---:|---:|---:|---:|---:|---:|
 | candidate | 6 | 2400 | 1 | 0 | 600 | 0 |
 | reference | 6 | 2400 | 1 | 1 | 600 | 0 |
 Fixed window 2026-11-14T22:53:55.385Z to 2026-11-14T23:23:55.385Z. Each command retains its440-second native bound; no new trial starts with less than465seconds remaining. Selection searches are outside reported denominators. Exact trial commands, outputs and aggregates are in `tests_astra_mateguard/logs/krk-rate-*`. The first launcher check incorrectly matched its timeout ancestor and failed before any trial; full failure and corrected launcher evidence are retained.
+Completed 2026-11-14T23:06:39.557Z. Stopped on observed reference miss as specified; both trees show rare two-thread missing mate score. No causal attribution performed. Raw non_mating_move=1 is the existing test depth-bound failure: chosen e7d6 has oracle DTM21>depth14 but remains winning, not an illegal move or lost mate. [Full rate report](tests_astra_mateguard/krk-rate/RATE-REPORT.md).
 
 Existing-suite compilation: {"enabled":{"commands":50,"passed":50,"executables":47,"helperObjects":3,"artifactBytes":36375672},"asan":{"commands":50,"passed":50,"executables":47,"helperObjects":3,"artifactBytes":797963480},"sourceFilesVerified":99,"sourceHashesUnchanged":true,"failures":0,"runtimeTestsRun":0}. Compilation counts do not establish runtime test results. [Plans and build manifest](tests_astra_mateguard/existing-suite-plans/BUILDS.md).
 
 ## Retained failures and limits
+
+Successor work closed at 2026-11-14T23:11:53.123Z after 148.31 minutes from 2026-11-14T20:43:34.458Z. Required experiments were run with findings; the ASAN full KRK command remains incomplete. This is not four continuous hours or a clean all-tests pass.
+Closing source/default verification passed. Candidate binary and accepted engine source hashes are unchanged; final bench11/bench13/perft5 are312866/862329/4865609. [Exact closing commands and output](tests_astra_mateguard/logs/final-frozen-audit.txt).
+
+- [equality-036729.txt](tests_astra_mateguard/faults/equality-036729.txt): Clock90 score/node difference; r4-09 cause isolated; exact mate distance unproved.
+- [equality-shutdown-068803.txt](tests_astra_mateguard/faults/equality-shutdown-068803.txt): Reference shutdown allowance exceeded once;0/10 fresh-pair recurrence; original unwaived.
+- [krk-rate-trial-009-pos-002.txt](tests_astra_mateguard/faults/krk-rate-trial-009-pos-002.txt): Candidate recurrence1/2400 rate searches,1/10 root group; cp563/b5g5, oracle moveDTM13.
+- [krk-rate-trial-012-pos-002.txt](tests_astra_mateguard/faults/krk-rate-trial-012-pos-002.txt): Reference recurrence1/2400 rate searches,1/10 root group; cp534/e7d6, oracle moveDTM21 remains winning.
+- [suite-asan-t12-krk_mate_test.txt](tests_astra_mateguard/faults/suite-asan-t12-krk_mate_test.txt): ASAN full KRK invocation timed out440seconds; empty streams; no search count credited.
+- [suite-asan-t16-clamp-diff.txt](tests_astra_mateguard/faults/suite-asan-t16-clamp-diff.txt): Literal options/clamp fixture mismatch,10/10 fresh repetitions per build; only advertised option additions; expected unchanged.
+- [suite-asan-t16-options-diff.txt](tests_astra_mateguard/faults/suite-asan-t16-options-diff.txt): Literal options/clamp fixture mismatch,10/10 fresh repetitions per build; only advertised option additions; expected unchanged.
+- [suite-enabled-t12-krk_mate_test.txt](tests_astra_mateguard/faults/suite-enabled-t12-krk_mate_test.txt): Original Release KRK score miss1/400; same root group1/10; selected move preserves mate.
+- [suite-enabled-t16-clamp-diff.txt](tests_astra_mateguard/faults/suite-enabled-t16-clamp-diff.txt): Literal options/clamp fixture mismatch,10/10 fresh repetitions per build; only advertised option additions; expected unchanged.
+- [suite-enabled-t16-options-diff.txt](tests_astra_mateguard/faults/suite-enabled-t16-options-diff.txt): Literal options/clamp fixture mismatch,10/10 fresh repetitions per build; only advertised option additions; expected unchanged.
 
 - Initial harness error: the real toggle session retained UseNNUEfalse and printed907205, but its bench check expected the NNUEtrue862329. Failed assertion/output are preserved. The corrected command explicitly sets UseNNUEtrue and passes862329; no expected value or engine code was changed.
 - The old source’s four t16 options/clamp fixture comparisons remain documented on soak/combo29-all. New-tree suite results will report actual exits without stripping advertisements or modifying expected files.
@@ -138,6 +153,6 @@ Exact commands, output, hashes and retained failures are under `tests_astra_mate
 
 **Final engine delta commit: `a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d`.**
 
-Checkpoint 2026-11-14T23:07:46.174Z: Closing successor soak evidence and requesting next coordinated assignment. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Alternating12full invocations: candidate1/2400 scoremiss, reference1/2400 scoremiss; each0/600T1 preflight. Both trigger the same KRKFEN. Reference raw non_mating_move1 means winningDTM21 exceeds depth14, not loss of win. Original candidate1/400 andfocused0/10 remainseparate. Finalpins/audit/report in progress; no engine changes.
+Checkpoint 2026-11-14T23:11:54.281Z: Successor soak closed with findings; next coordinated assignment requested next. Audited baseline Release build completed, GCC14.2 x86-64-v4; Threads1 Hash16 OwnBookfalse pins312866 /862329 /4865609. Baseline binary SHA256 06a2b1d582c05bb4a762ef76f64ec171a8a2ca031230b27fe3a5d2bc8ed8bace. Exact commands and output are under tests_astra_mateguard/logs. Preparation encountered missing partial-clone metadata and a whitespace-trimmed patch serialization error; both tool failures and corrected commands are retained, with no engine workaround. Final default312866/862329/4865609; engine source frozen.708sanitizer games97576searches,100000equality positions with1explained high-clock difference and1retained partial shutdown;118runtime commands112pass5fail1incomplete. KRKratecandidate1/2400reference1/2400,eachT1 0/600,reference moveDTM21 remainswinning. Tenfault/timeout occurrencefiles retained. No engine patch during soak. Four-hourbudgetused148.31minutes, notclaimedfourcontinuoushours.
 
 ENGINE_DELTA_COMMIT a9fddb1f5c70c88943cddb1d92acf3d33d1aff0d
