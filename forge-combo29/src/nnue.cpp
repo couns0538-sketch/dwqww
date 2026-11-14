@@ -274,7 +274,58 @@ int centipawns_from_lanes(const float lanes[16], float bias) {
     return static_cast<int>(std::clamp(centipawns, -30000.0F, 30000.0F));
 }
 
-#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+#if FORGE_SPD_NNUE_ZMM
+// Same feature arithmetic as update(), then the AVX-512 evaluate loop:
+// one 512-bit sum, lane j accumulating hidden units j, j+16, j+32, ...
+// with separate multiply and add. Weight columns may be only 16-byte
+// aligned, so those loads are unaligned; the accumulator and w2 stay aligned.
+template <int NSub>
+int fuse_columns(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board,
+                  const Weights& w) {
+    const Color us = board.side_to_move();
+    const Color them = opposite(us);
+    const float* const our_src = parent.values[static_cast<std::size_t>(us)].data();
+    const float* const their_src = parent.values[static_cast<std::size_t>(them)].data();
+    float* const our_dst = child.values[static_cast<std::size_t>(us)].data();
+    float* const their_dst = child.values[static_cast<std::size_t>(them)].data();
+    auto column = [&](Color perspective, const PieceChange& change) {
+        return w.w1.get() + static_cast<std::size_t>(feature_index(perspective, change.piece, change.square)) * HiddenSize;
+    };
+    const float* const our_sub0 = column(us, dirty.changes[0]);
+    const float* const their_sub0 = column(them, dirty.changes[0]);
+    const float* const our_sub1 = NSub == 2 ? column(us, dirty.changes[1]) : nullptr;
+    const float* const their_sub1 = NSub == 2 ? column(them, dirty.changes[1]) : nullptr;
+    const float* const our_add = column(us, dirty.changes[NSub]);
+    const float* const their_add = column(them, dirty.changes[NSub]);
+    const float* const w2_ours = w.w2.data();
+    const float* const w2_theirs = w.w2.data() + HiddenSize;
+    const __m512 zero = _mm512_setzero_ps();
+    const __m512 one = _mm512_set1_ps(1.0F);
+    __m512 sum = zero;
+    for (int h = 0; h < HiddenSize; h += 16) {
+        const std::size_t base = static_cast<std::size_t>(h);
+        __m512 ours = _mm512_sub_ps(_mm512_loadu_ps(our_src + base), _mm512_loadu_ps(our_sub0 + base));
+        __m512 theirs = _mm512_sub_ps(_mm512_loadu_ps(their_src + base), _mm512_loadu_ps(their_sub0 + base));
+        if constexpr (NSub == 2) {
+            ours = _mm512_sub_ps(ours, _mm512_loadu_ps(our_sub1 + base));
+            theirs = _mm512_sub_ps(theirs, _mm512_loadu_ps(their_sub1 + base));
+        }
+        ours = _mm512_add_ps(ours, _mm512_loadu_ps(our_add + base));
+        theirs = _mm512_add_ps(theirs, _mm512_loadu_ps(their_add + base));
+        _mm512_store_ps(our_dst + base, ours);
+        _mm512_store_ps(their_dst + base, theirs);
+        const __m512 a = _mm512_min_ps(_mm512_max_ps(ours, zero), one);
+        const __m512 b = _mm512_min_ps(_mm512_max_ps(theirs, zero), one);
+        const __m512 term = _mm512_add_ps(_mm512_mul_ps(_mm512_mul_ps(a, a), _mm512_load_ps(w2_ours + base)),
+                                          _mm512_mul_ps(_mm512_mul_ps(b, b), _mm512_load_ps(w2_theirs + base)));
+        sum = _mm512_add_ps(sum, term);
+    }
+    alignas(64) float lanes[16];
+    _mm512_store_ps(lanes, sum);
+    child.valid = true;
+    return centipawns_from_lanes(lanes, w.b2);
+}
+#elif defined(__AVX2__)
 // One subtraction per removed feature, then one addition. NSub 1 is a quiet
 // move: (source - removed) + added. NSub 2 is a capture:
 // ((source - removed0) - removed1) + added. That is the same association as
@@ -411,7 +462,7 @@ int evaluate(const Board& board, const Accumulator& accumulator) {
 }
 
 int apply_and_evaluate(const Accumulator& parent, Accumulator& child, const DirtyPieces& dirty, const Board& board) {
-#if defined(__AVX2__) && !FORGE_SPD_NNUE_ZMM
+#if FORGE_SPD_NNUE_ZMM || defined(__AVX2__)
     const Weights& w = weights();
     if (dirty.count == 2 && !dirty.changes[0].add && dirty.changes[1].add) {
         return fuse_columns<1>(parent, child, dirty, board, w);
