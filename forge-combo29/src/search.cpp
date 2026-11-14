@@ -1565,6 +1565,8 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
     const int mate_moves = std::clamp(limits.mate_moves, 0, 32);
     const int mate_depth = mate_moves > 0 ? mate_moves * 2 - 1 : 64;
     const int max_depth = std::clamp(std::min(limits.depth, mate_depth), 1, 64);
+    const int multipv = std::clamp(limits.multipv, 1, 8);
+    int pv_index = 1;
 
     auto emit = [&](int depth, int score, const std::vector<Move>& pv) {
         if (!emit_info) return;
@@ -1573,7 +1575,9 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         const std::uint64_t nodes = total_nodes();
         const std::uint64_t nps = elapsed > 0 ? nodes * 1000U / static_cast<std::uint64_t>(elapsed) : 0;
         const std::lock_guard<std::mutex> output_lock(uci_output_mutex());
-        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth) << " score " << format_score(score)
+        std::cout << "info depth " << depth << " seldepth " << std::max(seldepth_, depth);
+        if (multipv > 1) std::cout << " multipv " << pv_index;
+        std::cout << " score " << format_score(score)
                   << " nodes " << nodes << " nps " << nps << " hashfull " << shared_.tt.hashfull() << " time " << elapsed << " pv";
         for (const Move move : pv) std::cout << ' ' << Board::move_to_uci(move);
         std::cout << std::endl;
@@ -1695,6 +1699,41 @@ SearchInfo Worker::search(Board board, const SearchLimits& limits, bool emit_inf
         result.ponder_move = result.pv.size() > 1 ? result.pv[1] : Move::none();
         result.nodes = total_nodes();
         emit(depth, score, result.pv);
+
+        // The next root moves are full-window searches with the earlier ones
+        // removed. MultiPV 1 does not enter, so its tree and info text stay put.
+        if (multipv > 1 && is_main() && !result.pv.empty()) {
+            const bool saved_restricted = root_restricted_;
+            std::vector<Move> saved_moves = root_moves_;
+            result.lines.clear();
+            result.lines.push_back({score, result.pv});
+            std::vector<Move> banned{result.pv.front()};
+            if (!should_stop()) {
+                for (int line = 2; line <= multipv && !aborted_ && !should_stop(); ++line) {
+                    std::vector<Move> allowed;
+                    allowed.reserve(root_candidates.size());
+                    for (const Move candidate : root_candidates) {
+                        if (std::find(banned.begin(), banned.end(), candidate) == banned.end())
+                            allowed.push_back(candidate);
+                    }
+                    if (allowed.empty()) break;
+                    root_restricted_ = true;
+                    root_moves_ = std::move(allowed);
+                    ss->ply = 0;
+                    const int extra_score = search(board, ss, depth, -Infinite, Infinite, false);
+                    if (aborted_ || ss->pv_length <= 0) break;
+                    banned.push_back(ss->pv[0]);
+                    result.lines.push_back(
+                        {extra_score, std::vector<Move>(ss->pv.begin(), ss->pv.begin() + ss->pv_length)});
+                    pv_index = line;
+                    emit(depth, extra_score, result.lines.back().pv);
+                }
+            }
+            pv_index = 1;
+            root_restricted_ = saved_restricted;
+            root_moves_ = std::move(saved_moves);
+            if (aborted_) break;
+        }
 
         if (result.best_move == previous_best) ++stable_iterations;
         else stable_iterations = 0;

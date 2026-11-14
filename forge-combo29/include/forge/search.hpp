@@ -37,6 +37,8 @@ struct SearchLimits {
     bool ponder = false;
     bool search_moves_specified = false;
     std::vector<Move> search_moves;
+    // 1 is the single-PV search. 2..8 also report the next-best root moves.
+    int multipv = 1;
     // Optional steady-clock receipt origin. start_time takes precedence;
     // request_start remains a compatibility spelling for existing callers.
     // With both unset, finite timed searches start at Searcher entry; other
@@ -56,6 +58,12 @@ struct SearchInfo {
     std::vector<Move> pv;
     // A searchmoves intersection with no legal moves is not checkmate or stalemate.
     bool restricted_root_empty = false;
+    // Last finished depth when multipv > 1. Empty for a one-line search.
+    struct MultiPvLine {
+        int score = 0;
+        std::vector<Move> pv;
+    };
+    std::vector<MultiPvLine> lines;
 };
 
 constexpr int MaxPly = 128;
