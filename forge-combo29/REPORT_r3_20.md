@@ -96,6 +96,21 @@ Five fresh processes each, base then the new binary, on this machine (4-thread I
 
 The mean gap is 34 ms. Run 5 went the other way, and run 4's base time is high, so one bench 16 is too noisy to read on its own. An earlier five on the same two binaries, taken the same way, averaged 1524 ms and 1464 ms, and every pair was faster. A second bench inside the same process was also lower for the new binary on the quiet pairs, so the gap is not only the missing magic search at startup.
 
+## Repeated check
+
+Same commit, same two binaries, measured again at 14:17 UTC. Load average was 0.04. Pins on both binaries were bench 11 = 312866, bench 13 = 862329, perft 5 = 4865609. Bench 16 nodes were 3024920 on every run below. Two more alternating five-run tables, base then new, milliseconds:
+
+| run | base A | new A | base B | new B |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1503 | 1480 | 1500 | 1544 |
+| 2 | 1529 | 1480 | 1573 | 1456 |
+| 3 | 1529 | 1479 | 1504 | 1456 |
+| 4 | 1549 | 1461 | 1507 | 1470 |
+| 5 | 1500 | 1450 | 1526 | 1561 |
+| mean | 1522 | 1470 | 1522 | 1497 |
+
+Table A was faster on every run. The mean gap is 52 ms. Table B's mean gap is 25 ms, and runs 1 and 5 of that table were slower than the base. The search was not changed for this recheck.
+
 ## Not verified
 
 No games were played, so this says nothing about strength. Only Threads 1 was searched. Time-control, ponder, and MultiPV were not compared. The multiply-magic slider path was not timed, because this CPU has BMI2. Depths other than the pins, perft 4 on the bench set, and depth 8 were not compared.
