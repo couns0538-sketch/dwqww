@@ -1,49 +1,169 @@
-# t20 report: repeatable search and mate scores
+# t20: what changed, what was found, what was wrong
+
+## What changed
+
+No engine source changed. `forge-combo29/src` and `forge-combo29/include` are the lock. The branch adds:
+
+- `forge-combo29/tests_t20/repeat_mate_test.cpp`
+- `forge-combo29/REPORT_t20.md`
+
+`ucinewgame` already calls `Searcher::clear()` (`src/uci.cpp`). That is the reset. It was not moved to the start of every search, because history carried from move to move inside one game is what the search is built to use. Bench 11, bench 13 and perft 5 are unchanged: 312866, 862329, 4865609.
 
 ## What was found
 
-`ucinewgame` already calls `Searcher::clear()`. That zeros the transposition table (every cluster, the generation age counter back to 0, and the epoch), the pawn-evaluation cache, the main / capture / continuation histories, both correction tables, the counter-move table, and the per-thread search stack (killers included). It does not run at the start of every search. A second `go depth 10` on the start position in the same game, with no `ucinewgame` between them, changes the node count (13102, then 1774). After `ucinewgame` the move, score and node count match the first search again.
+One process, one thread, hash 16 MiB, book off, the same `go` entry the UCI loop uses (`TTAccess::Exclusive`).
 
-Skipping that clear is what the reports describe. With one thread, Hash 16 and the book off, stale history and a stale hash change the move or the score on later searches (measured on the same 30 positions). `Searcher::clear()` removes that. Node counters, time limits and the root-effort table are assigned at the start of `Worker::search` before they are read, so they do not leak into the next search. The shared stop flag is not cleared by `ucinewgame`; the next `go` calls `reset_stop()` before searching, and the test does the same. The book RNG in `uci.cpp` is not reset. It is not used when `OwnBook` is false, and depth / nodes searches do not probe the book.
+Search a position from a cleared engine. Then search other positions. Then search the first position again **without** `ucinewgame`. The answer changes. Do the same three times **with** `ucinewgame` (`Searcher::clear()`) between them and the move, the score and the node count match. That held for all 30 positions at `go depth 10` and at `go nodes 5000`.
 
-No engine source was changed. The reset already sits on `ucinewgame`, and state from one move to the next inside a game is still there.
+A second `go depth 10` on the start position, still inside the same game, is a different search: 13102 nodes the first time, 1774 the second. After `ucinewgame` it is 13102 again. So the tables are doing their job between moves, and they are the thing that makes two games disagree when they are not cleared.
 
-## Clear Hash (not changed)
+## What was wrong
 
-`setoption name Clear Hash` calls `Searcher::clear_hash()`:
+The failure is one `Searcher` remembering the previous game. `go` does not wipe that memory. Only `ucinewgame` does. A GUI or a match runner that sends `position` and `go` for a new game without `ucinewgame` gets a different move in an ending, on one thread, with a fixed depth or a fixed node limit. Nothing about the clock is involved.
 
-- `TranspositionTable::clear()` writes an empty cluster over every slot, sets `generation_` to 0 and increments `epoch_` (old probe handles cannot store).
-- `Worker::clear_caches()` clears each thread's pawn-evaluation cache.
+### Measured move changes
 
-It does not clear main history, capture history, continuation history, correction tables, counter moves, killers or node counters. The test filled the table, called `clear_hash()`, and saw generation 0, a probe miss, and history still non-zero.
+Each line is: clear, `go` the position, `go` the other nine positions, `go` the position again with the tables still warm. Hash 16, Threads 1, exclusive table access.
 
-## Hash resize
+`go depth 10` on `8/8/4k3/8/8/8/3K4/7Q w - - 0 1` (king and queen versus king):
 
-`setoption name Hash value N` calls `Searcher::resize_hash`. That allocates a new zero-filled table, sets `generation_` to 0 and increments `epoch_`. It does not clear histories or the pawn cache. The next search calls `new_search()`, which advances generation from 0 to 1, the same first generation as the first search after `ucinewgame`. Resizing to the same 16 MiB already drops old entries. The test also resized 16 → 32 → 16 from a cleared history and the following `go depth 10` matched the search after `ucinewgame` (start position, 13102 nodes, `d2d4`, `cp 24`).
+- cleared: `d2c3`, score 1142, 40691 nodes
+- warm: `h1h4`, score 1138, 5741 nodes
 
-## `go mate N`
+The best move changed. The node count fell by about seven times because the old hash and the old history cut and ordered the tree differently.
 
-The engine accepts `mate`. `parse_limits` stores `SearchLimits::mate_moves` (clamped to 0..32). The search depth cap is `min(depth, 2*N-1)` (default depth 64, so the cap is `2*N-1`). After an iteration whose score is a mate and `MateValue - abs(score)` is at most that cap, iteration stops. That is a mate in N moves or shorter.
+`go nodes 5000` on `6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1`:
 
-If reductions have not produced that mate score yet, the search runs to the cap and returns the best line it has, which may not be a mate. Observed on the KRK mate in 2 `8/8/8/8/2R5/k7/8/1K6 w - - 0 1`:
+- cleared: `g7g6`, score -856
+- warm: `g7g5`, score -946
 
-- `go mate 1` is not this position. On the KRK mate in 1, `go mate 1` stops at depth 1 with `score mate 1`.
-- `go mate 2` stops at depth 3 (the cap) with `score cp 483`, move `c4g4`, not a mate.
-- `go mate 6` (cap 11) stops at depth 5 with `score mate 2`, move `b1c2`, once that mate is in the score.
-- `go mate 1` from the start position stops at depth 1 with `score cp 1`, move `d2d4`.
+`go nodes 5000` on the same king-and-queen position:
 
-## Stalemate and checkmate at the root
+- cleared: `d2d3`, score 994
+- warm: `d2c2`, score 982
 
-A position with no legal move never enters the search loop that walks the tree. The driver emits one info line per depth up to the depth cap and returns. `best_move` stays the empty move (`from == to`). The UCI loop prints that as `bestmove 0000`. It does not crash or hang. Bare `go` uses depth 64, so the test's depth-64 search is that answer.
+On the positions where the move stayed, the score or the node count still moved. Start position, depth 10: `d2d4` both times, score 24 and 13102 nodes when cleared, score 32 and 6625 nodes when warm. After `ucinewgame` those pairs match again.
 
-- Stalemate `4k3/4P3/4K3/8/8/8/8/8 b - - 0 1` and `7k/5K2/6Q1/8/8/8/8/8 b - - 0 1`: `bestmove 0000`, `score cp 0`.
-- Checkmate `k7/1Q6/1K6/8/8/8/8/8 b - - 0 1`: `bestmove 0000`, score `-MateValue`, printed as `score mate 0`.
+That table was this program, linked against the release objects of the unchanged engine (`TTAccess::Exclusive`, the same access `go` uses). Full output:
 
-## Mate scores
+```
+g++ -std=c++20 -O3 -ffp-contract=off -fno-fast-math -march=x86-64-v4 -DNDEBUG \
+  -DFORGE_EXPOSE_TUNABLES=1 -DFORGE_NNUE_HIDDEN=256 -DFORGE_SEARCH_SPEED2=1 -DFORGE_SPD_NNUE_ZMM=1 \
+  -DFORGE_SPD_NO_ZERO_MOVELISTS=2 -DFORGE_SPD_PREFETCH_EARLY=1 -DFORGE_SPD_SLIDER_PEXT=1 -DFORGE_SPD_TT_NOTLS=1 \
+  -I forge-combo29/include /tmp/t20_wrong.cpp \
+  build/CMakeFiles/forge.dir/src/board.cpp.o \
+  build/CMakeFiles/forge.dir/src/bitboard.cpp.o \
+  build/CMakeFiles/forge.dir/src/eval.cpp.o \
+  build/CMakeFiles/forge.dir/src/eval_params.cpp.o \
+  build/CMakeFiles/forge.dir/src/nnue.cpp.o \
+  build/CMakeFiles/forge.dir/src/search.cpp.o \
+  -pthread -o /tmp/t20_wrong
+/tmp/t20_wrong
+```
 
-Twelve positions, two for each of mate +1, +2, +3, -1, -2, -3. Six are KRK and six are KQK. An independent minimax in the test (not the engine score) is the ground truth. `go depth 8` printed `score mate N` with that sign and distance, and the move it played kept that distance (a mate in 1 checkmated; otherwise the resulting position had the remaining distance).
+```
+DEPTH
+0 DIFFER clean d2d4 24 13102 stale d2d4 32 6625
+1 DIFFER clean e2a6 -130 33339 stale e2a6 -130 13284
+2 DIFFER clean b4f4 129 12301 stale b4f4 176 7317
+3 DIFFER clean h7h5 -989 25590 stale h7h5 -985 4435
+4 DIFFER clean h1f1 404 15206 stale h1f1 477 13917
+5 DIFFER clean d2c3 1142 40691 stale h1h4 1138 5741
+6 DIFFER clean a3b3 105 4115 stale a3b3 105 878
+7 DIFFER clean e1f2 251 3436 stale e1f2 343 5311
+8 DIFFER clean d1e2 -1 34821 stale d1e2 -2 5327
+9 DIFFER clean h1d1 31997 369 stale h1d1 31997 234
+NODES
+0 DIFFER clean d2d4 26 5000 stale d2d4 33 5000
+1 DIFFER clean e2a6 -170 5000 stale e2a6 -186 5000
+2 DIFFER clean b4f4 121 5000 stale b4f4 120 5000
+3 DIFFER clean g7g6 -856 5000 stale g7g5 -946 5000
+4 DIFFER clean h1f1 424 5000 stale h1f1 425 5000
+5 DIFFER clean d2d3 994 5000 stale d2c2 982 5000
+6 same clean a3b3 105 5000 stale a3b3 105 5000
+7 DIFFER clean e1f2 251 5000 stale e1f2 321 5000
+8 DIFFER clean g1f3 45 5000 stale g1f3 23 5000
+9 DIFFER clean h1d1 31997 2600 stale h1d1 31997 1481
+```
 
-Not every short KRK mate is seen at depth 8. `8/8/8/8/8/8/8/k1KR4 w - - 0 1` is mate in 3 (1.Kc2 Ka2 2.Rd3 Ka1 3.Ra3#), and `go depth 8` on the UCI binary reported `score mate 4`. Search was not changed, so that miss is still there. The twelve positions in the test are ones both the minimax and the engine call the same mate.
+Index 5 is `8/8/4k3/8/8/8/3K4/7Q w - - 0 1`. Index 3 is `6k1/5ppp/8/8/8/8/5PPP/3R2K1 b - - 0 1`. Index 0 is the start position. The source of that probe was not committed. The committed test is the one that checks the three repeats match after `clear()`.
+
+### How the leftover state changes the move
+
+`Searcher::search` calls `TranspositionTable::new_search()` before the workers run. That only does `generation_ = (generation_ + 1) & 31`. It does not empty the table. Entries from the previous search stay. A later search of the same position takes those scores, bounds, depths and hash moves as cutoffs and as the first move tried. A search of a different position still collides into the same clusters, and the replacement decision uses depth minus four times the generation age. Old entries therefore change which line is stored and which line is cut. That is why the warm depth-10 search of the start position visits 6625 nodes instead of 13102.
+
+The history tables are not touched at the start of a search either. They are updated on cutoffs and on new PV moves (`update_quiet_stats`, `update_capture_stats`, `update_continuation`, and the fail-low continuation update). The next search orders quiets by that history and changes late-move reduction by `history / LmrHistoryDivisor`, clamped to -2..2 (`src/search.cpp` around the reduction). A quiet that was good in the previous game is tried earlier and reduced less. In a king ending that is enough to swap `g6` and `g5`, or `Kc3` and `Qh4`.
+
+The correction tables are added onto the static evaluation (`corrected_eval`). A pawn key or a material key filled by the previous game shifts the eval, which moves the futility, razoring and null-move margins. The counter-move table is tried by the move picker before the quiet list, so a reply learned in another game is inserted into this one when the previous piece and square match.
+
+Those four stores (hash, history, correction, counters) are the leak. They are exactly what `Worker::clear` and `TranspositionTable::clear` wipe, and `ucinewgame` calls both through `Searcher::clear()`:
+
+- hash clusters zeroed, `generation_` set to 0, `epoch_` incremented so an old probe cannot write back
+- pawn-evaluation cache
+- main history, capture history, continuation history
+- correction history and material correction
+- counter moves
+- the search stack, killers included
+
+After that clear, the next search's `new_search()` sets generation to 1, the same value as the first search of a fresh engine. The test checked that: three repeats, unrelated searches in between, identical move, score and nodes.
+
+### What is not the leak
+
+Killers live on the search stack. `Worker::search` sets `ss.killers = {}` before iterative deepening, and `clear()` assigns a fresh stack as well. A killer from the previous search is not still there.
+
+Node counters, seldepth, null-move statistics, the root-effort array and the soft and hard time limits are assigned at the top of `Worker::search` before they are read. A depth or nodes search does not stop on a time limit left behind by an older `go`.
+
+`ucinewgame` does leave `shared_.stop` set, because `stop_search()` raises it and `clear()` does not lower it. The next `go` calls `reset_stop()` before `search()`. The test does the same. A search that forgot `reset_stop()` would abort on the first node-check and return a shallow move. The UCI `go` path does not forget it.
+
+The book RNG in `main` is not cleared. `OwnBook false` never reads it, and a depth or nodes `go` does not ask the book even when the book is on (`game_search` requires a clock or a movetime).
+
+### Clear Hash does not fix it
+
+`setoption name Clear Hash` calls `Searcher::clear_hash()` only. That empties the transposition table (generation 0, epoch bumped) and the pawn cache (`Worker::clear_caches`). It leaves history, continuation, correction, counter moves and killers. After a search, `clear_hash()` was observed with generation 0, a miss on the position just searched, and 95 main-history entries still non-zero. A new game that only presses Clear Hash still has the history leak above.
+
+### Hash resize does fix the table, and only the table
+
+`setoption name Hash value N` always reallocates (`TranspositionTable::resize`), even when N is already the current size. The new clusters are value-initialised empty, generation is 0, epoch increments. History is kept on purpose. From a cleared engine, resize 16 to 32 and back to 16, then `go depth 10` on the start position, matched the search after `ucinewgame`: `d2d4`, score 24, 13102 nodes.
+
+### The mate score is wrong on some forced mates
+
+`go depth 8` is deep enough for mate in 3 (five plies) when the search actually reaches the mating move at full depth. It does not always do that.
+
+`8/8/8/8/8/8/8/k1KR4 w - - 0 1` is white king c1, black king a1, rook d1. This line checkmates in three white moves, checked with the legal-move generator:
+
+1. `c1c2` (check, one legal reply) `a1a2`
+2. `d1d3` (one legal reply) `a2a1`
+3. `d3a3` checkmate, zero legal moves
+
+`go depth 8` on `./build/forge`, after `ucinewgame`, printed this. The command was `setoption name Threads value 1`, `setoption name Hash value 16`, `setoption name OwnBook value false`, `ucinewgame`, `position fen 8/8/8/8/8/8/8/k1KR4 w - - 0 1`, `go depth 8`. The `uciok` option list is omitted:
+
+```
+info depth 1 seldepth 2 score cp 474 nodes 18 nps 0 hashfull 0 time 0 pv d1h1
+info depth 2 seldepth 2 score cp 422 nodes 48 nps 0 hashfull 0 time 0 pv d1d5 a1a2
+info depth 3 seldepth 4 score cp 436 nodes 85 nps 0 hashfull 0 time 0 pv d1d5 a1a2 d5a5 a2b3
+info depth 4 seldepth 6 score cp 427 nodes 170 nps 0 hashfull 0 time 0 pv d1d5 a1a2 d5a5 a2b3 a5b5 b3c3
+info depth 5 seldepth 8 score cp 454 nodes 392 nps 0 hashfull 0 time 0 pv c1c2 a1a2 d1d5 a2a3 d5a5 a3b4
+info depth 6 seldepth 9 score cp 464 nodes 702 nps 0 hashfull 0 time 0 pv c1c2 a1a2 d1d7 a2a3 d7a7 a3b4 a7b7 b4a3
+info depth 7 seldepth 10 score mate 4 nodes 848 nps 848000 hashfull 0 time 1 pv c1c2 a1a2 d1d7 a2a3 d7d4 a3a2 d4a4
+info depth 8 seldepth 10 score mate 4 nodes 933 nps 933000 hashfull 0 time 1 pv c1c2 a1a2 d1d7 a2a3 d7d4 a3a2 d4a4
+bestmove c1c2
+```
+
+`c1c2` is the right first move. The PV then plays `d1d7` and mates on the seventh ply (`d4a4`), which `format_score` prints as mate 4 (`(distance + 1) / 2` with distance 7). The three-move mate `d1d3` is absent from every depth. Mate 4 is a real win. It is not the distance.
+
+The search is built so that miss can happen at this depth. Late-move reduction at the root applies when `depth >= 2` and `move_count > 2` (`move_count > 1 + (root_node ? 1 : 0)`). A reduced move is searched again at full depth only when the reduced score beats alpha. Check extension requires `!root_node`, so the checking root move `c1c2` is not extended. Depth 5 is the first iteration that plays `c1c2`, and it follows `d1d5`, still a centipawn score. Depth 7 is the first mate score, and it is the longer mate.
+
+The twelve mates in the test are positions where an independent minimax and `go depth 8` agree, and the played move leaves that same distance. The miss above is still in the lock. Search was not edited, because changing reduction or extensions changes the bench node counts.
+
+Root checkmate is a separate score bug. `k7/1Q6/1K6/8/8/8/8/8 b - - 0 1` has no legal move and the king is in check. The driver sets `score = -MateValue` (`-32000`) and never searches. `format_score` does `distance = 32000 - 32000 = 0`, `mate = 1/2 = 0`, and prints `mate 0` because `-0` for an `int` is `0`. The side to move is already mated, so the distance is not a one-move mate and not a drawn score. `bestmove` is still `0000` (`from == to` in `src/uci.cpp`). Stalemate on the same path uses score 0 and prints `cp 0`, also `bestmove 0000`. Neither case hangs: the loop emits depths 1..64 and returns.
+
+### `go mate N` gives up before the mate is proved
+
+The command is accepted. `mate_moves` is clamped to 0..32. The depth cap is `min(depth, 2*N-1)`. With the default depth 64 that cap is `2*N-1`, the ply length of a mate in N. The loop also breaks when the score is already a mate and `MateValue - abs(score)` is within that cap.
+
+On the KRK mate in 2 `8/8/8/8/2R5/k7/8/1K6 w - - 0 1` the mate is `b1c2 a3a2 c4a4`. `go depth 8` finds `score mate 2`. `go mate 2` caps the search at depth 3. At depth 3 the reductions have not proved the mate, so it stops on the cap with `score cp 483` and `bestmove c4g4`. `go mate 6` (cap 11) does prove it and stops at depth 5 with `score mate 2` and `b1c2`, short of the cap. `go mate 1` on the mate-in-1 rook position stops at depth 1 with `score mate 1`. `go mate 1` on the start position stops at depth 1 with `score cp 1` and `d2d4`, because there is no mate inside one ply.
+
+So `go mate N` stops when it has a mate in N or shorter inside the iterations it ran. It also stops at ply `2*N-1` when it does not have one yet, and then the best move need not be a mating move.
 
 ## Files changed
 
