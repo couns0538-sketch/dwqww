@@ -65,3 +65,9 @@ Mean off 1434400 nps, mean on 1356052 nps. Each bench is under a second, so the 
 Chunk 1, openings 0 through 199, 400 games. Command: `/tmp/screen_match /tmp/build-owner/forge /tmp/uho/UHO_Lichess_4852_v1.epd 0 200 4 forge-combo29/tests_r3fu_07/chunk_0001.pgn forge-combo29/tests_r3fu_07/chunk_0001_summary.txt`
 
 W-L-D option on first: 87-99-214. Elo 95%: -10.43 [-30.73, 9.88]. LOS: 0.1570. Pentanomial pair points 0, 0.5, 1, 1.5, 2: 6, 53, 94, 41, 6. The interval includes zero. PGN and the summary text are `forge-combo29/tests_r3fu_07/chunk_0001.pgn` and `forge-combo29/tests_r3fu_07/chunk_0001_summary.txt`.
+
+Chunk 2, openings 200 through 599, 800 games. Command: `/tmp/screen_match /tmp/build-owner/forge /tmp/uho/UHO_Lichess_4852_v1.epd 200 400 4 forge-combo29/tests_r3fu_07/chunk_0002.pgn forge-combo29/tests_r3fu_07/chunk_0002_summary.txt`
+
+W-L-D option on first: 203-198-399. Elo 95%: 2.17 [-14.07, 18.41]. LOS: 0.6034. Pentanomial: 23, 92, 160, 107, 18. PGN and summary: `forge-combo29/tests_r3fu_07/chunk_0002.pgn` and `forge-combo29/tests_r3fu_07/chunk_0002_summary.txt`.
+
+Cumulative after 1200 games (600 pairs): W-L-D option on first 290-297-613. Elo 95%: -2.03 [-14.79, 10.74]. LOS: 0.3778. Pentanomial: 29, 145, 254, 148, 24. The interval includes zero. Not a strength result.
