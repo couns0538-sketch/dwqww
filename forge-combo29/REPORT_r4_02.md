@@ -33,6 +33,7 @@ grok47/r3-14-draw-jitter ccbb229af9d0 200 identical
 grok47/r3-15-tm-finish-iteration 4db1f6b29abd 276 clock clock legal, configuration recorded, time-losses 0; 4db1f6b29abd 366 clock clock legal, configuration recorded, time-losses 0
 grok47/r3-16-tm-node-share af548ac4265a 287 clock clock legal, configuration recorded, time-losses 0
 grok47/r3-21-mate-score-tt af1c998304db 200 identical
+grok47/r3-23-sound-mate-pruning 3d903f6ae0cf 200 option-off vs option-on length pushed 320 replay 383 fen rnbqkbnr/ppp3pp/4p3/3p1p2/2PP4/2N5/PP2PPPP/R1BQK
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df 200 identical
 
 ## Commands and hashes
@@ -163,6 +164,12 @@ engine source sha256: af1c998304db:2cb78b8c476020dda94a09873fc523bd61352cb7b89c5
 engine binary sha256: af1c998304db:e12981d3667fc4319920388621a591763a2ebc58c5da1c7552ed5f8f211bb197 e04556ddc3a4:4a624cf990c057c9a5d7847916b2d537a38ab6b95be4339dbec30a187f7ec984
 fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/af1c998304dbfbcb997b757a7ce43af7cdf6e933-37997d042e39/forge name=r3-21 restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/e04556ddc3a430b2e751159b0d46111ef56c8b89-37997d042e39/forge name=base restart=on option.Threads=1 option.Hash=16 option.OwnBook=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-21-mate-score-tt/nr100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-21-mate-score-tt/nr100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
 
+grok47/r3-23-sound-mate-pruning 3d903f6ae0cf kind nodes pgn forge-combo29/tests_r3fu_23/screen/chunk01-w0.pgn
+build flags: -DCMAKE_BUILD_TYPE=Release -DFORGE_PORTABLE=OFF -DFORGE_MARCH=x86-64-v4 -DCMAKE_CXX_COMPILER=g++
+engine source sha256: 
+engine binary sha256: c9173950c8336f1d5edf39078bf32321e4f1da2fbbd4b1ef5ac8482cd73f45bd
+fastchess command: /home/ubuntu/r4-verify/fastchess-src/fastchess -engine cmd=/home/ubuntu/r4-verify/build/3d903f6ae0cfdcc07ab709ff7a0b13fdc21250d8-37997d042e39/forge name=option-on restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.SoundMatePruning=true nodes=50000 -engine cmd=/home/ubuntu/r4-verify/build/3d903f6ae0cfdcc07ab709ff7a0b13fdc21250d8-37997d042e39/forge name=option-off restart=on option.Threads=1 option.Hash=16 option.OwnBook=false option.SoundMatePruning=false nodes=50000 -rounds 100 -games 2 -concurrency 4 -openings file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-23-sound-mate-pruning/first100/openings.epd format=epd order=sequential -pgnout file=/agent/repos/dwqww/forge-combo29/tests_r4_02/r3-23-sound-mate-pruning/first100/replay.pgn append=false nodes=true notation=san -ratinginterval 0 -scoreinterval 0
+
 grok47/r3-24-tt-duplicate-shadow 0ca8cb1009df kind nodes pgn forge-combo29/tests_r3fu_24/chunk1.pgn
 build flags: -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DFORGE_MARCH=x86-64-v4 -DFORGE_PORTABLE=OFF
 engine source sha256: 0ca8cb1009df:7028cd9889652ee6fb17adc9c5843b47632756e12f39c3a78eb84c4cc36dedb7 e04556ddc3a4:b0949c1ea74050643e14972b9d27b8d62aa568466e0e28e78587efa2c0060e16
@@ -178,10 +185,9 @@ grok47/r3-18-lazy-net-accumulator 820784220 2026-11-14 15:36:04 +0000 Record the
 grok47/r3-19-faster-hce 528ccdf1c 2026-11-14 15:33:17 +0000 Record the shared-slider follow-up measurements.
 grok47/r3-20-faster-search-plumbing decec3775 2026-11-14 15:37:05 +0000 Add the depth-8 and perft comparison tests.
 grok47/r3-22-time-safety 143f3c5c6 2026-11-14 16:47:41 +0000 Record the empty-clock follow-up and the 1+0.01 match
-grok47/r3-23-sound-mate-pruning 88cf5ba9a 2026-11-14 18:04:48 +0000 Add UHO slice 6, openings 2000-2399
 grok47/r4-03-screen-lds 4ab9ef662 2026-11-14 18:01:35 +0000 r4-03: chunk 1001 PGN and screen summary
 grok47/r4-04-screen-ch4 881e2cc8c 2026-11-14 17:42:33 +0000 r4-04: ContHist4PlyRead screen heartbeat
 grok47/r4-05-screen-npc bb4c91996 2026-11-14 18:15:51 +0000 r4-05: NonPawnCorrection screen chunk 005 (2001-2500)
 
-Last check: 2026-11-14T18:29:48Z
+Last check: 2026-11-14T18:33:38Z
 Deadline: 2026-11-15T01:52:00Z
