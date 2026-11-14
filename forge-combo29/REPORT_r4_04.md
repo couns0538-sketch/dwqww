@@ -94,15 +94,15 @@ Off mean nps 1299992 over 5 runs, nodes [862329]. On mean nps 1339750 over 5 run
 
 Scores are from the option-on side. W-L-D is wins, losses, draws for option on. Pentanomial bins are pair results over the two colors of one opening: LL, LD (or DL), DD+WL, WD (or DW), WW. Elo and LOS use the fastchess pentanomial model: pair score in game-point units, variance of that score, 95% interval z=1.959963984540054, Elo = -400 log10(1/p - 1), and the printed margin is half the distance between the Elo values of the two score bounds. LOS is the normal probability that the true score is above 0.5.
 
-W-L-D (option on first): 270-274-556
+W-L-D (option on first): 331-330-680
 
-Pentanomial [LL, LD, DD+WL, WD, WW]: 12, 113, 196, 114, 15
+Pentanomial [LL, LD, DD+WL, WD, WW]: 6, 86, 139, 86, 12
 
-Elo 95%: 2.70 +/- 13.85 (-11.15 to 16.56)
+Elo 95%: 6.34 +/- 16.17 (-9.82 to 22.52)
 
-LOS: 64.90%
+LOS: 77.90%
 
-Pairs: 450. Games: 900. Score: 0.5039.
+Pairs: 329. Games: 658. Score: 0.5091.
 
 Pair notes:
 
@@ -156,7 +156,128 @@ Pair notes:
 - round 48 has 4 scored games
 - round 49 has 4 scored games
 - round 50 has 4 scored games
-- middle bin split DD=116 WL=80
+- round 51 has 4 scored games
+- round 52 has 4 scored games
+- round 53 has 4 scored games
+- round 54 has 4 scored games
+- round 55 has 4 scored games
+- round 56 has 4 scored games
+- round 57 has 4 scored games
+- round 58 has 4 scored games
+- round 59 has 4 scored games
+- round 60 has 4 scored games
+- round 61 has 4 scored games
+- round 62 has 4 scored games
+- round 63 has 4 scored games
+- round 64 has 4 scored games
+- round 65 has 4 scored games
+- round 66 has 4 scored games
+- round 67 has 4 scored games
+- round 68 has 4 scored games
+- round 69 has 4 scored games
+- round 70 has 4 scored games
+- round 71 has 4 scored games
+- round 72 has 4 scored games
+- round 73 has 4 scored games
+- round 74 has 4 scored games
+- round 75 has 4 scored games
+- round 76 has 4 scored games
+- round 77 has 4 scored games
+- round 78 has 4 scored games
+- round 79 has 4 scored games
+- round 80 has 4 scored games
+- round 81 has 4 scored games
+- round 82 has 4 scored games
+- round 83 has 4 scored games
+- round 84 has 4 scored games
+- round 85 has 4 scored games
+- round 86 has 4 scored games
+- round 87 has 4 scored games
+- round 88 has 4 scored games
+- round 89 has 4 scored games
+- round 90 has 4 scored games
+- round 91 has 4 scored games
+- round 92 has 4 scored games
+- round 93 has 4 scored games
+- round 94 has 4 scored games
+- round 95 has 4 scored games
+- round 96 has 4 scored games
+- round 97 has 4 scored games
+- round 98 has 4 scored games
+- round 99 has 4 scored games
+- round 100 has 4 scored games
+- round 101 has 4 scored games
+- round 102 has 4 scored games
+- round 103 has 4 scored games
+- round 104 has 4 scored games
+- round 105 has 4 scored games
+- round 106 has 4 scored games
+- round 107 has 4 scored games
+- round 108 has 4 scored games
+- round 109 has 4 scored games
+- round 110 has 4 scored games
+- round 111 has 4 scored games
+- round 112 has 4 scored games
+- round 113 has 4 scored games
+- round 114 has 4 scored games
+- round 115 has 4 scored games
+- round 116 has 4 scored games
+- round 117 has 4 scored games
+- round 118 has 4 scored games
+- round 119 has 4 scored games
+- round 120 has 4 scored games
+- round 121 has 4 scored games
+- round 122 has 4 scored games
+- round 123 has 4 scored games
+- round 124 has 4 scored games
+- round 125 has 4 scored games
+- round 126 has 4 scored games
+- round 127 has 4 scored games
+- round 128 has 4 scored games
+- round 129 has 4 scored games
+- round 130 has 4 scored games
+- round 131 has 4 scored games
+- round 132 has 4 scored games
+- round 133 has 4 scored games
+- round 134 has 4 scored games
+- round 135 has 4 scored games
+- round 136 has 4 scored games
+- round 137 has 4 scored games
+- round 138 has 4 scored games
+- round 139 has 4 scored games
+- round 140 has 4 scored games
+- round 141 has 4 scored games
+- round 142 has 4 scored games
+- round 143 has 4 scored games
+- round 144 has 4 scored games
+- round 145 has 4 scored games
+- round 146 has 4 scored games
+- round 147 has 4 scored games
+- round 148 has 4 scored games
+- round 149 has 4 scored games
+- round 150 has 4 scored games
+- round 151 has 4 scored games
+- round 152 has 4 scored games
+- round 153 has 4 scored games
+- round 154 has 4 scored games
+- round 155 has 4 scored games
+- round 156 has 4 scored games
+- round 157 has 4 scored games
+- round 158 has 4 scored games
+- round 159 has 4 scored games
+- round 160 has 4 scored games
+- round 161 has 4 scored games
+- round 162 has 4 scored games
+- round 163 has 4 scored games
+- round 164 has 4 scored games
+- round 165 has 4 scored games
+- round 166 has 4 scored games
+- round 167 has 4 scored games
+- round 168 has 4 scored games
+- round 169 has 4 scored games
+- round 170 has 4 scored games
+- round 171 has 3 scored games
+- middle bin split DD=81 WL=58
 
 ## Chunks
 
@@ -181,15 +302,22 @@ Ptnml(0-2): [13, 133, 212, 127, 15]
 ```
 ### chunk002
 
-sha256 dbfff7b539a2450a1fd260af20cb7583467a39823f94814a417abc5428ff82cc bytes 554560
+sha256 f5127428815ac4dfea97fa886c863b22adec286856aaa62b221ee0abb586f68c bytes 1873044
 
 ```
 chunk chunk002
 meta running start=501 rounds=500 elapsed_sec=?
-pgn_games 100 W-L-D 25-27-48 other 0
-pentanomial LL LD DD+WL WD WW [5, 13, 15, 13, 4]
-openings checked 50 mismatches 0 start 501 rounds 500
-middle bin split DD=11 WL=4
-independent_pentanomial Elo -6.95 +/- 54.04 (95%) bounds -61.16 .. 46.92 LOS 39.97% score 0.4900 pairs 50
+pgn_games 341 W-L-D 86-83-172 other 0
+pentanomial LL LD DD+WL WD WW [9, 40, 67, 47, 7]
+openings checked 171 mismatches 0 start 501 rounds 500
+round 171 has 1 scored games
+middle bin split DD=42 WL=25
+independent_pentanomial Elo 3.07 +/- 24.65 (95%) bounds -21.57 .. 27.73 LOS 59.65% score 0.5044 pairs 170
+fastchess_tail:
+Results of ContHist4PlyRead-on vs ContHist4PlyRead-off (50000 nodes, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -6.95 +/- 35.82, nElo: -9.38 +/- 48.15
+LOS: 35.14 %, DrawRatio: 35.00 %, PairsRatio: 0.97
+Games: 200, Wins: 49, Losses: 53, Draws: 98, Points: 98.0 (49.00 %)
+Ptnml(0-2): [9, 24, 35, 26, 6]
 ```
 
