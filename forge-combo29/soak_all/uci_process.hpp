@@ -38,6 +38,13 @@ struct UciShutdownResult {
     std::string transcript, stderr_output, error;
 };
 
+class UciStartupError : public std::runtime_error {
+public:
+    UciShutdownResult shutdown;
+    UciStartupError(const std::string& message, UciShutdownResult status)
+        : std::runtime_error(message), shutdown(std::move(status)) {}
+};
+
 class UciProcess {
     using Clock = std::chrono::steady_clock;
     using Deadline = Clock::time_point;
@@ -280,7 +287,7 @@ public:
         } catch (const std::exception& caught) {
             const std::string original = caught.what();
             shutdown();
-            throw std::runtime_error(original + "\n! observed startup shutdown\n" + final_status_.transcript);
+            throw UciStartupError(original + "\n! observed startup shutdown\n" + final_status_.transcript, final_status_);
         } catch (...) {
             shutdown();
             throw;

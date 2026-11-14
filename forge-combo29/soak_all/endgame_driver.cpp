@@ -17,6 +17,7 @@
 // PV is never treated as evidence of a false mate. Interrupted groups retain
 // their records but do not contribute to completed SUMMARY trial totals.
 #include "uci_process.hpp"
+#include "krk_oracle.hpp"
 #include "forge/board.hpp"
 
 #include <algorithm>
@@ -253,7 +254,56 @@ struct Trial {
     bool budget_interrupted = false;
     bool sanitizer_report = false;
     std::string error, transcript, stderr_text;
+    std::string shutdown = "null";
+    bool shutdown_fault = false, unexpected_exit = false;
+    std::string oracle = "null";
+    bool krk_non_mating_move = false, loses_forced_mate = false, mate_bound_violation = false;
 };
+
+bool sanitizer_text(const std::string& text) {
+    for (const char* marker : {"AddressSanitizer", "UndefinedBehaviorSanitizer", "ThreadSanitizer", "LeakSanitizer", "runtime error:"})
+        if (text.find(marker) != std::string::npos) return true;
+    return false;
+}
+
+struct Shutdown {
+    std::string json = "null";
+    bool fault = false, unexpected_exit = false, sanitizer_report = false;
+};
+
+Shutdown finish_process(const Options& o, const std::string& stem, bool budget_interrupted,
+                        std::unique_ptr<UciProcess>& process) {
+    Shutdown observed;
+    if (!process) return observed;
+    const auto status = process->finish(500);
+    const bool induced_signal = (status.signal == SIGTERM && status.driver_sigterm) ||
+        (status.signal == SIGKILL && status.driver_sigkill);
+    observed.unexpected_exit = status.reaped && (status.exit_code > 0 || (status.signal != 0 && !induced_signal));
+    observed.sanitizer_report = sanitizer_text(status.stderr_output);
+    observed.fault = observed.unexpected_exit || observed.sanitizer_report || (!budget_interrupted &&
+        (!status.reaped || status.timed_out || !status.error.empty() || status.exit_code != 0 || status.signal != 0));
+    const std::string trace = o.out + "/" + stem + ".shutdown.uci.txt";
+    write_file(trace, process->transcript());
+    std::ostringstream out;
+    out << "{\"reaped\":" << boolean(status.reaped) << ",\"exit_code\":" << status.exit_code
+        << ",\"signal\":" << status.signal << ",\"timed_out\":" << boolean(status.timed_out)
+        << ",\"driver_sigterm\":" << boolean(status.driver_sigterm) << ",\"driver_sigkill\":" << boolean(status.driver_sigkill)
+        << ",\"budget_interrupted\":" << boolean(budget_interrupted) << ",\"unexpected_exit\":" << boolean(observed.unexpected_exit)
+        << ",\"sanitizer_report\":" << boolean(observed.sanitizer_report) << ",\"fault\":" << boolean(observed.fault)
+        << ",\"error\":" << json_quote(status.error) << ",\"stderr\":" << json_quote(status.stderr_output)
+        << ",\"full_transcript\":" << json_quote(trace) << '}';
+    observed.json = out.str();
+    process.reset();
+    return observed;
+}
+
+void finish_trial(const Options& o, const std::string& stem, Trial& trial, std::unique_ptr<UciProcess>& process) {
+    const auto observed = finish_process(o, stem, trial.budget_interrupted, process);
+    trial.shutdown = observed.json;
+    trial.shutdown_fault = observed.fault;
+    trial.unexpected_exit = observed.unexpected_exit;
+    trial.sanitizer_report = trial.sanitizer_report || observed.sanitizer_report;
+}
 
 std::string result_json(const Trial& t, int requested_depth) {
     std::ostringstream out;
@@ -272,12 +322,14 @@ std::string result_json(const Trial& t, int requested_depth) {
     for (std::size_t i = 0; i < r.pv.size(); ++i) { if (i) out << ','; out << json_quote(r.pv[i]); }
     out << "],\"error\":" << json_quote(t.error) << ",\"stderr\":" << json_quote(t.stderr_text)
         << ",\"sanitizer_report\":" << boolean(t.sanitizer_report) << ",\"budget_interrupted\":" << boolean(t.budget_interrupted)
+        << ",\"krk_oracle\":" << t.oracle << ",\"shutdown\":" << t.shutdown
         << ",\"transcript\":" << json_quote(t.transcript) << '}';
     return out.str();
 }
 
 Trial run_trial(const Options& o, Budget& budget, const Root& root, const std::string& engine,
-                int threads, const std::string& stem, std::unique_ptr<UciProcess>& process) {
+                int threads, const std::string& stem, std::unique_ptr<UciProcess>& process,
+                const soak::KrkOracle* oracle = nullptr) {
     Trial t;
     t.transcript = o.out + "/" + stem + ".uci.txt";
     if (!budget.available()) { t.budget_interrupted = true; return t; }
@@ -297,6 +349,29 @@ Trial run_trial(const Options& o, Budget& budget, const Root& root, const std::s
         t.result = process->search(root.fen, o.depth, search_ms, true);
         t.completed = true;
         t.legal = std::find(moves.begin(), moves.end(), t.result.move) != moves.end();
+        if (oracle && root.kind == "KRK") {
+            forge::Board position;
+            if (!position.set_fen(root.fen)) throw std::runtime_error("invalid KRK oracle root");
+            const auto move = position.parse_uci(t.result.move);
+            const auto assessed = oracle->assess_move(position, move ? *move : forge::Move{});
+            const int claimed = t.result.positive_mate() ? 2 * t.result.score - 1 : -1;
+            const int bound = claimed > 0 ? claimed : o.depth;
+            t.loses_forced_mate = assessed.loses_forced_mate;
+            t.mate_bound_violation = assessed.supported && assessed.root_legal && assessed.move_legal &&
+                claimed > 0 && (assessed.move_dtm_plies < 0 || assessed.move_dtm_plies > claimed);
+            t.krk_non_mating_move = assessed.supported && assessed.root_legal &&
+                (!assessed.move_legal || assessed.move_dtm_plies <= 0 || assessed.move_dtm_plies > bound);
+            std::ostringstream observation;
+            observation << "{\"supported\":" << boolean(assessed.supported)
+                << ",\"root_legal\":" << boolean(assessed.root_legal) << ",\"move_legal\":" << boolean(assessed.move_legal)
+                << ",\"root_dtm_plies\":" << assessed.root_dtm_plies << ",\"move_dtm_plies\":" << assessed.move_dtm_plies
+                << ",\"claimed_mate_plies\":" << claimed << ",\"comparison_bound_plies\":" << bound
+                << ",\"loses_forced_mate\":" << boolean(t.loses_forced_mate)
+                << ",\"mate_bound_violation\":" << boolean(t.mate_bound_violation)
+                << ",\"t12_non_mating_move\":" << boolean(t.krk_non_mating_move) << '}';
+            t.oracle = observation.str();
+            if (!assessed.supported || !assessed.root_legal) throw std::runtime_error("supplied KRK root unsupported by oracle");
+        }
         forge::Board pv;
         if (!pv.set_fen(root.fen)) throw std::runtime_error("invalid root in PV check");
         for (const auto& text : t.result.pv) {
@@ -315,10 +390,8 @@ Trial run_trial(const Options& o, Budget& budget, const Root& root, const std::s
         write_file(t.transcript, process->transcript());
     }
     else write_file(t.transcript, "Process creation failed: " + t.error + "\n");
-    const std::string diagnostics = t.stderr_text + t.error;
-    for (const char* marker : {"AddressSanitizer", "UndefinedBehaviorSanitizer", "ThreadSanitizer", "LeakSanitizer", "runtime error:"})
-        if (diagnostics.find(marker) != std::string::npos) t.sanitizer_report = true;
-    if (!t.completed) process.reset();
+    t.sanitizer_report = sanitizer_text(t.stderr_text + t.error);
+    if (!t.completed) finish_trial(o, stem, t, process);
     return t;
 }
 
@@ -327,6 +400,8 @@ struct Totals {
     std::uint64_t nodes = 0, reported_ms = 0;
     double wall_ms = 0.0;
     std::size_t at_depth = 0, early_mate = 0, unfinished_depth = 0;
+    std::size_t shutdown_faults = 0, unexpected_exits = 0;
+    std::size_t mate_score_misses = 0, krk_non_mating_moves = 0, loses_forced_mate = 0, mate_bound_violations = 0;
 };
 
 void add_counts(Totals& into, const Totals& from) {
@@ -339,6 +414,12 @@ void add_counts(Totals& into, const Totals& from) {
     into.at_depth += from.at_depth;
     into.early_mate += from.early_mate;
     into.unfinished_depth += from.unfinished_depth;
+    into.shutdown_faults += from.shutdown_faults;
+    into.unexpected_exits += from.unexpected_exits;
+    into.mate_score_misses += from.mate_score_misses;
+    into.krk_non_mating_moves += from.krk_non_mating_moves;
+    into.loses_forced_mate += from.loses_forced_mate;
+    into.mate_bound_violations += from.mate_bound_violations;
 }
 
 void emit_summary(const Options& o, const Budget& budget, const Totals& total,
@@ -348,6 +429,9 @@ void emit_summary(const Options& o, const Budget& budget, const Totals& total,
     out << "{\"mode\":" << json_quote(o.mode) << ",\"seed\":" << o.seed
         << ",\"offset\":" << o.offset << ",\"next_offset\":" << next << ",\"available_units\":" << available
         << ",\"completed_units\":" << total.units << ",\"trials\":" << total.trials << ",\"faults\":" << total.faults
+        << ",\"shutdown_faults\":" << total.shutdown_faults << ",\"unexpected_exits\":" << total.unexpected_exits
+        << ",\"mate_score_misses\":" << total.mate_score_misses << ",\"krk_non_mating_moves\":" << total.krk_non_mating_moves
+        << ",\"loses_forced_mate\":" << total.loses_forced_mate << ",\"mate_bound_violations\":" << total.mate_bound_violations
         << ",\"incomplete_units\":" << total.incomplete << ",\"selected_generated\":" << total.selected
         << ",\"partial_trials_excluded\":" << partial.trials << ",\"partial_faults_excluded\":" << partial.faults
         << ",\"partial_nodes_excluded\":" << partial.nodes << ",\"partial_reported_ms_excluded\":" << partial.reported_ms
@@ -365,7 +449,10 @@ void emit_summary(const Options& o, const Budget& budget, const Totals& total,
         out << json_quote(key) << ":{\"trials\":" << g.trials << ",\"faults\":" << g.faults
             << ",\"nodes\":" << g.nodes << ",\"reported_ms\":" << g.reported_ms << ",\"wall_ms\":" << g.wall_ms
             << ",\"at_requested_depth\":" << g.at_depth << ",\"early_mate_termination\":" << g.early_mate
-            << ",\"unfinished_depth\":" << g.unfinished_depth << '}';
+            << ",\"unfinished_depth\":" << g.unfinished_depth
+            << ",\"shutdown_faults\":" << g.shutdown_faults << ",\"unexpected_exits\":" << g.unexpected_exits
+            << ",\"mate_score_misses\":" << g.mate_score_misses << ",\"krk_non_mating_moves\":" << g.krk_non_mating_moves
+            << ",\"loses_forced_mate\":" << g.loses_forced_mate << ",\"mate_bound_violations\":" << g.mate_bound_violations << '}';
     }
     out << "}}";
     std::cout << "SUMMARY " << out.str() << std::endl;
@@ -376,6 +463,8 @@ int run(const Options& o) {
     std::filesystem::create_directories(o.out);
     if (std::filesystem::exists(o.out + "/summary.json")) throw std::runtime_error("use a fresh --out directory to preserve previous evidence");
     Budget budget(o.seconds);
+    std::unique_ptr<soak::KrkOracle> oracle;
+    if (o.mode != "cost") oracle = std::make_unique<soak::KrkOracle>();
     auto roots = o.mode == "cost" ? cost_roots(o.seed) : load_corpus(o);
     if (o.mode == "cost") save_corpus(o.out + "/cost-corpus.tsv", roots);
     else if (o.mode == "prepare") save_corpus(o.corpus, roots);
@@ -385,7 +474,9 @@ int run(const Options& o) {
         << ",\"Hash\":16,\"OwnBook\":false,\"new_options\":\"defaults\",\"fresh_hash_each_trial\":true"
         << ",\"ucinewgame_each_trial\":true,\"histories\":\"reset each trial via ucinewgame/isready\",\"threads\":[";
     for (std::size_t i = 0; i < o.threads.size(); ++i) { if (i) config << ','; config << o.threads[i]; }
-    config << "],\"offset\":" << o.offset << ",\"limit\":" << o.limit << ",\"seconds\":" << o.seconds
+    config << "],\"krk_oracle\":\"exact tests_t12 retrograde; supplied White KRK only; no KQK/KBBK proof\""
+        << ",\"krk_non_mating_criterion\":\"illegal/draw or move DTM exceeds claimed mate plies, or requested depth absent a positive mate score\""
+        << ",\"offset\":" << o.offset << ",\"limit\":" << o.limit << ",\"seconds\":" << o.seconds
         << ",\"timeout_ms\":" << o.timeout_ms << ",\"root_count\":" << roots.size() << '}';
     std::cout << "CONFIG " << config.str() << std::endl;
     write_file(o.out + "/config.json", config.str() + "\n");
@@ -399,11 +490,14 @@ int run(const Options& o) {
         if (o.mode == "prepare") {
             Root root = next < 40 ? roots[next] : generated(o.seed, next - 40, ((next - 40) % 2 == 0) ? "KQK" : "KBBK", true);
             std::unique_ptr<UciProcess> lock_process, merged_process;
-            Trial locked = run_trial(o, budget, root, o.lock, 1, "prepare-" + padded(next) + "-lock", lock_process);
+            Trial locked = run_trial(o, budget, root, o.lock, 1, "prepare-" + padded(next) + "-lock", lock_process, oracle.get());
+            if (lock_process) finish_trial(o, "prepare-" + padded(next) + "-lock", locked, lock_process);
             if (locked.budget_interrupted) { ++total.incomplete; break; }
-            const bool selected = next < 40 || (locked.completed && locked.legal && locked.result.positive_mate() && locked.result.score_bound.empty());
+            const bool selected = next < 40 || (locked.completed && locked.legal && !locked.shutdown_fault &&
+                !locked.sanitizer_report && locked.result.positive_mate() && locked.result.score_bound.empty());
             Trial merged;
-            if (selected) merged = run_trial(o, budget, root, o.merged, 1, "prepare-" + padded(next) + "-merged", merged_process);
+            if (selected) merged = run_trial(o, budget, root, o.merged, 1, "prepare-" + padded(next) + "-merged", merged_process, oracle.get());
+            if (merged_process) finish_trial(o, "prepare-" + padded(next) + "-merged", merged, merged_process);
             if (selected && merged.budget_interrupted) { ++total.incomplete; break; }
             root.lock_reference = result_json(locked, o.depth);
             root.merged_reference = selected ? result_json(merged, o.depth) : "null";
@@ -418,8 +512,10 @@ int run(const Options& o) {
                 ",\"lock_t1\":" + root.lock_reference + ",\"merged_t1\":" + root.merged_reference + "}";
             results << row << '\n'; results.flush(); std::cout << "RESULT " << row << std::endl;
             total.trials += selected ? 2 : 1;
-            if (!locked.completed || !locked.legal || !locked.pv_legal || locked.sanitizer_report ||
-                (selected && (!merged.completed || !merged.legal || !merged.pv_legal || merged.sanitizer_report))) ++total.faults;
+            total.shutdown_faults += locked.shutdown_fault + (selected && merged.shutdown_fault);
+            total.unexpected_exits += locked.unexpected_exit + (selected && merged.unexpected_exit);
+            if (!locked.completed || !locked.legal || !locked.pv_legal || locked.sanitizer_report || locked.shutdown_fault ||
+                (selected && (!merged.completed || !merged.legal || !merged.pv_legal || merged.sanitizer_report || merged.shutdown_fault))) ++total.faults;
             ++total.units; ++next;
             continue;
         }
@@ -439,7 +535,7 @@ int run(const Options& o) {
         const std::string group_key = build_name + "-t" + std::to_string(threads) + "-" + root.kind;
         Totals unit;
         for (int trial = 0; trial < count; ++trial) {
-            Trial t = run_trial(o, budget, root, engine, threads, stem + "-trial" + std::to_string(trial), process);
+            Trial t = run_trial(o, budget, root, engine, threads, stem + "-trial" + std::to_string(trial), process, oracle.get());
             if (t.budget_interrupted) {
                 interrupted = true;
                 interrupted_trial = result_json(t, o.depth);
@@ -447,7 +543,8 @@ int run(const Options& o) {
             }
             const bool mate_miss = o.mode == "mates" && (!t.completed || !t.result.positive_mate() || !t.result.score_bound.empty());
             const bool unfinished_depth = t.completed && t.result.depth < o.depth && t.result.score_kind != "mate";
-            const bool fault = !t.completed || !t.legal || !t.pv_legal || t.sanitizer_report || mate_miss || unfinished_depth;
+            const bool fault = !t.completed || !t.error.empty() || !t.legal || !t.pv_legal || t.sanitizer_report ||
+                t.shutdown_fault || mate_miss || t.krk_non_mating_move || unfinished_depth;
             const std::string result = result_json(t, o.depth);
             trials.push_back(result);
             std::string row = "{\"mode\":" + json_quote(o.mode) + ",\"unit\":" + std::to_string(next) + ",\"id\":" + json_quote(root.id) +
@@ -457,6 +554,12 @@ int run(const Options& o) {
                 ",\"fault\":" + boolean(fault) + ",\"result\":" + result + "}";
             results << row << '\n'; results.flush(); std::cout << "RESULT " << row << std::endl;
             ++unit.trials;
+            unit.shutdown_faults += t.shutdown_fault;
+            unit.unexpected_exits += t.unexpected_exit;
+            unit.mate_score_misses += mate_miss;
+            unit.krk_non_mating_moves += t.krk_non_mating_move;
+            unit.loses_forced_mate += t.loses_forced_mate;
+            unit.mate_bound_violations += t.mate_bound_violation;
             if (fault) { faulty = true; ++unit.faults; }
             if (t.completed) {
                 unit.nodes += t.result.nodes; unit.reported_ms += t.result.reported_ms; unit.wall_ms += t.result.wall_ms;
@@ -465,6 +568,13 @@ int run(const Options& o) {
                 else ++unit.unfinished_depth;
             }
         }
+        const auto shutdown = finish_process(o, stem, interrupted, process);
+        if (shutdown.fault) { faulty = true; ++unit.faults; ++unit.shutdown_faults; }
+        if (shutdown.unexpected_exit) ++unit.unexpected_exits;
+        const std::string completion = "{\"record_type\":\"unit_completion\",\"mode\":" + json_quote(o.mode) +
+            ",\"unit\":" + std::to_string(next) + ",\"completed\":" + boolean(!interrupted) +
+            ",\"trial_records\":" + std::to_string(trials.size()) + ",\"shutdown\":" + shutdown.json + "}";
+        results << completion << '\n'; results.flush(); std::cout << "UNIT " << completion << std::endl;
         if (faulty || interrupted) {
             std::ostringstream fault;
             fault << "{\"status\":" << json_quote(interrupted ? "partial-rerun-full-group" : "pending-review")
@@ -475,7 +585,7 @@ int run(const Options& o) {
                 << ",\"completed_trial_records\":" << trials.size() << ",\"lock_t1_reference\":" << root.lock_reference
                 << ",\"merged_t1_reference\":" << root.merged_reference << ",\"trials\":[";
             for (std::size_t i = 0; i < trials.size(); ++i) { if (i) fault << ','; fault << trials[i]; }
-            fault << "],\"interrupted_trial\":" << interrupted_trial << "}\n";
+            fault << "],\"interrupted_trial\":" << interrupted_trial << ",\"unit_shutdown\":" << shutdown.json << "}\n";
             write_file(o.out + "/" + (interrupted ? "partial-" : "pending-") + stem + ".json", fault.str());
         }
         if (interrupted) { add_counts(partial, unit); ++total.incomplete; break; }

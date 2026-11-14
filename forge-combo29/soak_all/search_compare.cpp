@@ -158,6 +158,10 @@ Run search(Engine& engine, const std::string& fen, const std::vector<std::string
             ? engine.startup + engine.process->transcript().substr(trace_start)
             : std::string(error.what());
         run.diagnostics = sanitizer(run.trace) ? 1 : 0;
+        if (const auto* startup = dynamic_cast<const UciStartupError*>(&error)) {
+            run.shutdown = startup->shutdown;
+            run.shutdown_observed = true;
+        }
         run.budget = !timeout_ms(deadline) && run.error.find("timeout") != std::string::npos;
         if (!run.budget) {
             run.transport = 1;
@@ -172,13 +176,15 @@ Run search(Engine& engine, const std::string& fen, const std::vector<std::string
         run.trace += run.shutdown.transcript;
         if (sanitizer(run.shutdown.stderr_output)) run.diagnostics = 1;
         if (run.shutdown.timed_out && remaining < 250 && !timeout_ms(deadline)) run.budget = true;
-        if (!run.budget) {
-            run.crashes = run.shutdown.signal != 0 && !run.shutdown.driver_sigterm && !run.shutdown.driver_sigkill;
-            run.nonzero_exits = run.shutdown.exit_code > 0;
-            run.shutdown_timeouts = run.shutdown.timed_out;
-            if (!run.shutdown.reaped || !run.shutdown.error.empty()) run.transport = 1;
-        }
         engine.process.reset();
+    }
+    if (run.shutdown_observed && !run.budget) {
+        const bool forced_signal = (run.shutdown.signal == SIGTERM && run.shutdown.driver_sigterm) ||
+                                   (run.shutdown.signal == SIGKILL && run.shutdown.driver_sigkill);
+        run.crashes = run.shutdown.signal != 0 && !forced_signal;
+        run.nonzero_exits = run.shutdown.exit_code > 0;
+        run.shutdown_timeouts = run.shutdown.timed_out;
+        if (!run.shutdown.reaped || !run.shutdown.error.empty()) run.transport = 1;
     }
     return run;
 }
