@@ -94,19 +94,69 @@ Off mean nps 1299992 over 5 runs, nodes [862329]. On mean nps 1339750 over 5 run
 
 Scores are from the option-on side. W-L-D is wins, losses, draws for option on. Pentanomial bins are pair results over the two colors of one opening: LL, LD (or DL), DD+WL, WD (or DW), WW. Elo and LOS use the fastchess pentanomial model: pair score in game-point units, variance of that score, 95% interval z=1.959963984540054, Elo = -400 log10(1/p - 1), and the printed margin is half the distance between the Elo values of the two score bounds. LOS is the normal probability that the true score is above 0.5.
 
-W-L-D (option on first): 245-247-508
+W-L-D (option on first): 270-274-556
 
-Pentanomial [LL, LD, DD+WL, WD, WW]: 13, 133, 212, 127, 15
+Pentanomial [LL, LD, DD+WL, WD, WW]: 12, 113, 196, 114, 15
 
-Elo 95%: -0.69 +/- 13.14 (-13.84 to 12.44)
+Elo 95%: 2.70 +/- 13.85 (-11.15 to 16.56)
 
-LOS: 45.87%
+LOS: 64.90%
 
-Pairs: 500. Games: 1000. Score: 0.4990.
+Pairs: 450. Games: 900. Score: 0.5039.
 
 Pair notes:
 
-- middle bin split DD=124 WL=88
+- round 1 has 4 scored games
+- round 2 has 4 scored games
+- round 3 has 4 scored games
+- round 4 has 4 scored games
+- round 5 has 4 scored games
+- round 6 has 4 scored games
+- round 7 has 4 scored games
+- round 8 has 4 scored games
+- round 9 has 4 scored games
+- round 10 has 4 scored games
+- round 11 has 4 scored games
+- round 12 has 4 scored games
+- round 13 has 4 scored games
+- round 14 has 4 scored games
+- round 15 has 4 scored games
+- round 16 has 4 scored games
+- round 17 has 4 scored games
+- round 18 has 4 scored games
+- round 19 has 4 scored games
+- round 20 has 4 scored games
+- round 21 has 4 scored games
+- round 22 has 4 scored games
+- round 23 has 4 scored games
+- round 24 has 4 scored games
+- round 25 has 4 scored games
+- round 26 has 4 scored games
+- round 27 has 4 scored games
+- round 28 has 4 scored games
+- round 29 has 4 scored games
+- round 30 has 4 scored games
+- round 31 has 4 scored games
+- round 32 has 4 scored games
+- round 33 has 4 scored games
+- round 34 has 4 scored games
+- round 35 has 4 scored games
+- round 36 has 4 scored games
+- round 37 has 4 scored games
+- round 38 has 4 scored games
+- round 39 has 4 scored games
+- round 40 has 4 scored games
+- round 41 has 4 scored games
+- round 42 has 4 scored games
+- round 43 has 4 scored games
+- round 44 has 4 scored games
+- round 45 has 4 scored games
+- round 46 has 4 scored games
+- round 47 has 4 scored games
+- round 48 has 4 scored games
+- round 49 has 4 scored games
+- round 50 has 4 scored games
+- middle bin split DD=116 WL=80
 
 ## Chunks
 
@@ -128,5 +178,18 @@ Elo: -0.69 +/- 13.14, nElo: -1.14 +/- 21.53
 LOS: 45.87 %, DrawRatio: 42.40 %, PairsRatio: 0.97
 Games: 1000, Wins: 245, Losses: 247, Draws: 508, Points: 499.0 (49.90 %)
 Ptnml(0-2): [13, 133, 212, 127, 15]
+```
+### chunk002
+
+sha256 dbfff7b539a2450a1fd260af20cb7583467a39823f94814a417abc5428ff82cc bytes 554560
+
+```
+chunk chunk002
+meta running start=501 rounds=500 elapsed_sec=?
+pgn_games 100 W-L-D 25-27-48 other 0
+pentanomial LL LD DD+WL WD WW [5, 13, 15, 13, 4]
+openings checked 50 mismatches 0 start 501 rounds 500
+middle bin split DD=11 WL=4
+independent_pentanomial Elo -6.95 +/- 54.04 (95%) bounds -61.16 .. 46.92 LOS 39.97% score 0.4900 pairs 50
 ```
 
