@@ -1,0 +1,159 @@
+{
+  "status": "PROPOSED_NOT_EXECUTED",
+  "baselineSource": "f27b1971e459581ad4c85b7015f6af83bbfd4af6",
+  "cwd": "/workspace/work/all-run/part4-origin-preparation",
+  "steps": [
+    {
+      "name": "create-native-output-directory",
+      "argv": [
+        "mkdir",
+        "-p",
+        "/workspace/work/all-run/part4-origin-preparation/native"
+      ]
+    },
+    {
+      "name": "compile-key-query",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-DFORGE_EXPOSE_TUNABLES=1",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DFORGE_NNUE_WEIGHTS=\"/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc\"",
+        "-DFORGE_SEARCH_SPEED2=1",
+        "-DFORGE_SPD_NNUE_ZMM=1",
+        "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+        "-DFORGE_SPD_PREFETCH_EARLY=1",
+        "-DFORGE_SPD_SLIDER_PEXT=1",
+        "-DFORGE_SPD_TT_NOTLS=1",
+        "-DNDEBUG",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-O3",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=x86-64-v4",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-I/workspace/work/dwqww-all/forge-combo29/include",
+        "/workspace/work/all-run/part4-origin-preparation/key-query.cpp",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o",
+        "-Wl,--gc-sections",
+        "-pthread",
+        "-o",
+        "/workspace/work/all-run/part4-origin-preparation/native/key-query"
+      ]
+    },
+    {
+      "name": "run-key-query",
+      "argv": [
+        "timeout",
+        "30",
+        "/workspace/work/all-run/part4-origin-preparation/native/key-query"
+      ],
+      "instruction": "Read decimal TARGET_KEY; replace __TARGET_KEY__ below. Do not infer/fabricate the number."
+    },
+    {
+      "name": "compile-scratch-search",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-DFORGE_EXPOSE_TUNABLES=1",
+        "-DFORGE_NNUE_HIDDEN=256",
+        "-DFORGE_NNUE_WEIGHTS=\"/workspace/work/dwqww-all/forge-combo29/src/nnue_weights.inc\"",
+        "-DFORGE_SEARCH_SPEED2=1",
+        "-DFORGE_SPD_NNUE_ZMM=1",
+        "-DFORGE_SPD_NO_ZERO_MOVELISTS=2",
+        "-DFORGE_SPD_PREFETCH_EARLY=1",
+        "-DFORGE_SPD_SLIDER_PEXT=1",
+        "-DFORGE_SPD_TT_NOTLS=1",
+        "-DNDEBUG",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-O3",
+        "-ffp-contract=off",
+        "-fno-fast-math",
+        "-march=x86-64-v4",
+        "-I/workspace/work/dwqww-all/forge-combo29/include",
+        "-c",
+        "/workspace/work/all-run/part4-origin-preparation/search-origin.cpp",
+        "-o",
+        "/workspace/work/all-run/part4-origin-preparation/native/search-origin.o"
+      ]
+    },
+    {
+      "name": "link-scratch-engine",
+      "argv": [
+        "timeout",
+        "450",
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "-Wl,--dependency-file=/workspace/work/all-run/part4-origin-preparation/native/link.d",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/bitboard.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/board.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/book.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/eval_params.cpp.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/nnue.cpp.o",
+        "/workspace/work/all-run/part4-origin-preparation/native/search-origin.o",
+        "/workspace/work/all-run/builds/release/CMakeFiles/forge.dir/src/uci.cpp.o",
+        "-o",
+        "/workspace/work/all-run/part4-origin-preparation/native/forge-origin"
+      ]
+    },
+    {
+      "name": "baseline",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-preparation/repro_driver.mjs",
+        "/workspace/work/all-run/builds/release/forge",
+        "baseline-r1"
+      ]
+    },
+    {
+      "name": "trace-first",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-preparation/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-preparation/native/forge-origin",
+        "trace-r1",
+        "__TARGET_KEY__",
+        "200000"
+      ]
+    },
+    {
+      "name": "trace-repeat",
+      "argv": [
+        "timeout",
+        "90",
+        "node",
+        "/workspace/work/all-run/part4-origin-preparation/repro_driver.mjs",
+        "/workspace/work/all-run/part4-origin-preparation/native/forge-origin",
+        "trace-r2",
+        "__TARGET_KEY__",
+        "200000"
+      ]
+    },
+    {
+      "name": "compare-static-output",
+      "argv": [
+        "node",
+        "/workspace/work/all-run/part4-origin-preparation/compare_runs.mjs",
+        "baseline-r1",
+        "trace-r1",
+        "trace-r2"
+      ]
+    }
+  ],
+  "environment": "The reproduction driver clears inherited FORGE_ORIGIN_KEY/LIMIT. Trace invocations set FORGE_ORIGIN_KEY to the supplied decimal CLI key and FORGE_ORIGIN_LIMIT=200000; baseline invocation passes neither. No other environment values are logged.",
+  "constraints": "Root must review first. Run commands sequentially with retained exact stdout/stderr/exit and clock checks between commands. This file was generated, not executed."
+}

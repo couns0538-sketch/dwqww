@@ -1,0 +1,81 @@
+Static review only: first-pass Forge origin tracer
+Reviewer: trace_static_check (subagent of review_r3_search)
+Scope: origin_trace.hpp, search-origin.cpp/instrumentation.diff.txt,
+prepare_trace.mjs, repro_driver.mjs, compare_runs.mjs, native-plan.json.txt,
+and referenced public declarations/build flags read for compatibility.
+No compilation, syntax-check execution, engine run, test execution, production
+edit, ref change, or state change was performed by this reviewer.
+
+Disposition: no blocking compile or semantic issue identified by static review
+for the exact pinned FORGE_SPD_TT_NOTLS=1, Threads=1, fresh-process plan.
+This is not a build/run success claim or endpoint-origin proof.
+
+Findings:
+1. The logger's referenced Board/SearchStack/TTEntry declarations and member
+   types match the pinned source headers. Template instrumentation accesses
+   private TTProbe fields within existing TranspositionTable member functions.
+2. Frame RAII tracks the currently executing caller, restores its parent at
+   all return paths, snapshots incoming moves, and distinguishes same-ply
+   recursion from move/null edges. Main-to-qsearch depth<=0 delegation creates
+   only the actual qsearch frame, avoiding an artificial duplicate caller.
+3. Probe cluster snapshots bracket the original generation refresh/selection.
+   Store snapshots bracket the original move and score-payload assignments.
+   Locks/lease routing and original replacement predicates remain intact.
+   admitted=0 does NOT mean that no TT bytes changed: the original move-only
+   update can still occur. The before/after slots expose that distinction.
+4. The target cluster computation calls cluster_for, not probe; no extra TT
+   probe, oracle call, layout change, or payload mutation is introduced.
+   The added score conversion and usability checks are read-only computations.
+5. Preparation verifies a fixed source SHA, unique anchors, and an exact reverse
+   transformation, and writes only preparation artifacts. This was inspected,
+   not re-executed by this reviewer.
+6. Native-plan output, object, and linker dependency paths are under scratch.
+   Existing release objects are only linker inputs. Compile defines and flags
+   match the inspected pinned build settings. No planned write to the original
+   release binary/object/dependency file was identified.
+7. Driver labels cannot reuse existing directories; raw stdout/stderr/traffic
+   and binary SHA are retained. Trace env inheritance is cleared. A completed
+   bestmove, exit 0, and no timeout are required. Its 45s SIGTERM/50s SIGKILL
+   bounds precede the outer 90s limit. No silent-pass issue was found in the
+   exact three-run plan.
+
+Evidence limits, not blockers for that fixed plan:
+- compare_runs.mjs:6-8,28-30 permits omitting the repeat argument and emits
+  repeatedSemanticTraceEqual=null without failing. The native plan DOES pass
+  the third label, so this caveat does not weaken that planned invocation.
+- compare_runs.mjs:17-28 checks output identity and trace cleanliness, not
+  summary binary/settings/key provenance or an endpoint-specific admitted
+  payload ledger. Treat it as an identity gate, with raw evidence separately
+  inspected for the actual origin conclusion.
+- new_search() advances generation and epoch in the unchanged public header;
+  the next probe/store records them, but no standalone NEW_SEARCH event is
+  emitted. This is sufficient for the single fresh-process search plan.
+- Existing move_text emits a UCI rendering, not all raw Move bytes. Parent has
+  advised it is adding safe raw bytes and malformed-value guards; that pending
+  change was not yet present in the version inspected for this written review.
+
+All caveats and the no-blocker static disposition were sent to the parent.
+
+Follow-up static review of latest move_text, compare_runs.mjs, and README.md:
+- No new blocker identified. No compilation, script execution, or engine/test
+  execution was performed during this follow-up.
+- move_text now preserves all four raw Move bytes. Its from/to and promotion
+  bounds guard Board::move_to_uci's actual indexing operations. The raw bytes
+  remain available for none/invalid renderings. This resolves the prior move
+  payload completeness caveat. The guard is memory-safe formatting, not a
+  complete chess-move legality validator (and need not be one).
+- The comparison now checks recorded fixed settings, the baseline binary path
+  and hash against the present pinned manifest, matching trace-run binary/key
+  metadata, and a WORKER_PROBE containing the requested root depth, ply, raw
+  and adjusted scores, bound, stored depth, and exact endpoint FEN. The regex
+  boundaries distinguish depth from entry_depth and bound from gen_bound.
+- The expected baseline hash entry is present in readonly-inputs.sha256.txt.
+  These new checks resolve the prior missing metadata/endpoint-presence caveat
+  for genuine driver summaries from the prescribed plan.
+- Optional-repeat behavior remains intentional and is now explicitly described
+  as preliminary-only; the final plan supplies all three labels.
+- README correctly distinguishes output/endpoint identity from an admitted
+  writer ledger or mate-soundness proof, describes move-only updates on
+  admitted=0, and preserves the first-pass and scratch-output limitations.
+
+Final static disposition remains no blocker for root's reviewed exact plan.
